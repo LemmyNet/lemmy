@@ -1,4 +1,18 @@
-use super::*;
+use diesel::{
+    ExpressionMethods,
+    PgConnection,
+    PgTextExpressionMethods,
+    QueryDsl,
+    RunQueryDsl,
+};
+use diesel::result::Error;
+use serde::{Deserialize, Serialize};
+
+use crate::db::{
+    SortType,
+    fuzzy_search,
+    limit_and_offset,
+};
 
 table! {
   community_view (id) {

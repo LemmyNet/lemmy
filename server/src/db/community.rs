@@ -1,5 +1,26 @@
-use super::*;
-use crate::schema::{community, community_follower, community_moderator, community_user_ban, site};
+use diesel::{
+    ExpressionMethods,
+    PgConnection,
+    QueryDsl,
+    RunQueryDsl,
+};
+use diesel::dsl::insert_into;
+use diesel::result::Error;
+use serde::{Deserialize, Serialize};
+
+use crate::schema::{
+    community,
+    community_follower,
+    community_moderator,
+    community_user_ban,
+    site,
+};
+use super::{
+    Bannable,
+    Crud,
+    Followable,
+    Joinable,
+};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "community"]
@@ -248,6 +269,7 @@ impl Crud<SiteForm> for Site {
 
 #[cfg(test)]
 mod tests {
+  use crate::db::establish_connection;
   use super::super::user::*;
   use super::*;
   #[test]

@@ -1,4 +1,22 @@
-use super::*;
+use diesel::{
+    ExpressionMethods,
+    PgConnection,
+    PgTextExpressionMethods,
+    QueryDsl,
+    RunQueryDsl,
+};
+use diesel::dsl::{
+    IntervalDsl,
+    now,
+};
+use diesel::result::Error;
+use serde::{Deserialize, Serialize};
+
+use crate::db::{
+    SortType,
+    fuzzy_search,
+    limit_and_offset,
+};
 
 table! {
   user_view (id) {

@@ -1,6 +1,25 @@
-use super::*;
-use bcrypt::verify;
 use std::str::FromStr;
+
+use bcrypt::verify;
+use failure::Error;
+use serde::{Deserialize, Serialize};
+
+use crate::api::{Perform, self};
+use crate::db::comment;
+use crate::db::comment_view;
+use crate::db::community;
+use crate::db::community_view;
+use crate::db::moderator;
+use crate::db::post_view;
+use crate::db::user;
+use crate::db::user_view;
+use crate::db::{
+    Crud,
+    Followable,
+    Joinable,
+    SortType,
+    establish_connection,
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Login {
@@ -45,17 +64,17 @@ pub struct GetUserDetails {
 #[derive(Serialize, Deserialize)]
 pub struct GetUserDetailsResponse {
   op: String,
-  user: UserView,
-  follows: Vec<CommunityFollowerView>,
-  moderates: Vec<CommunityModeratorView>,
-  comments: Vec<CommentView>,
-  posts: Vec<PostView>,
+  user: user_view::UserView,
+  follows: Vec<community_view::CommunityFollowerView>,
+  moderates: Vec<community_view::CommunityModeratorView>,
+  comments: Vec<comment_view::CommentView>,
+  posts: Vec<post_view::PostView>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct GetRepliesResponse {
   op: String,
-  replies: Vec<ReplyView>,
+  replies: Vec<comment_view::ReplyView>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -73,7 +92,7 @@ pub struct AddAdmin {
 #[derive(Serialize, Deserialize)]
 pub struct AddAdminResponse {
   op: String,
-  admins: Vec<UserView>,
+  admins: Vec<user_view::UserView>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -88,7 +107,7 @@ pub struct BanUser {
 #[derive(Serialize, Deserialize)]
 pub struct BanUserResponse {
   op: String,
-  user: UserView,
+  user: user_view::UserView,
   banned: bool,
 }
 
@@ -101,16 +120,16 @@ pub struct GetReplies {
   auth: String,
 }
 
-impl Perform<LoginResponse> for Oper<Login> {
+impl Perform<LoginResponse> for api::Oper<Login> {
   fn perform(&self) -> Result<LoginResponse, Error> {
     let data: &Login = &self.data;
     let conn = establish_connection();
 
     // Fetch that username / email
-    let user: User_ = match User_::find_by_email_or_username(&conn, &data.username_or_email) {
+    let user: user::User_ = match user::User_::find_by_email_or_username(&conn, &data.username_or_email) {
       Ok(user) => user,
       Err(_e) => {
-        return Err(APIError::err(
+        return Err(api::APIError::err(
           &self.op,
           "couldnt_find_that_username_or_email",
         ))?
@@ -120,7 +139,7 @@ impl Perform<LoginResponse> for Oper<Login> {
     // Verify the password
     let valid: bool = verify(&data.password, &user.password_encrypted).unwrap_or(false);
     if !valid {
-      return Err(APIError::err(&self.op, "password_incorrect"))?;
+      return Err(api::APIError::err(&self.op, "password_incorrect"))?;
     }
 
     // Return the jwt
@@ -131,29 +150,29 @@ impl Perform<LoginResponse> for Oper<Login> {
   }
 }
 
-impl Perform<LoginResponse> for Oper<Register> {
+impl Perform<LoginResponse> for api::Oper<Register> {
   fn perform(&self) -> Result<LoginResponse, Error> {
     let data: &Register = &self.data;
     let conn = establish_connection();
 
     // Make sure passwords match
     if &data.password != &data.password_verify {
-      return Err(APIError::err(&self.op, "passwords_dont_match"))?;
+      return Err(api::APIError::err(&self.op, "passwords_dont_match"))?;
     }
 
-    if has_slurs(&data.username) {
-      return Err(APIError::err(&self.op, "no_slurs"))?;
+    if crate::has_slurs(&data.username) {
+      return Err(api::APIError::err(&self.op, "no_slurs"))?;
     }
 
     // Make sure there are no admins
-    if data.admin && UserView::admins(&conn)?.len() > 0 {
-      return Err(APIError::err(&self.op, "admin_already_created"))?;
+    if data.admin && user_view::UserView::admins(&conn)?.len() > 0 {
+      return Err(api::APIError::err(&self.op, "admin_already_created"))?;
     }
 
     // Register the new user
-    let user_form = UserForm {
+    let user_form = user::UserForm {
       name: data.username.to_owned(),
-      fedi_name: Settings::get().hostname.into(),
+      fedi_name: crate::Settings::get().hostname.into(),
       email: data.email.to_owned(),
       password_encrypted: data.password.to_owned(),
       preferred_username: None,
@@ -164,16 +183,16 @@ impl Perform<LoginResponse> for Oper<Register> {
     };
 
     // Create the user
-    let inserted_user = match User_::register(&conn, &user_form) {
+    let inserted_user = match user::User_::register(&conn, &user_form) {
       Ok(user) => user,
-      Err(_e) => return Err(APIError::err(&self.op, "user_already_exists"))?,
+      Err(_e) => return Err(api::APIError::err(&self.op, "user_already_exists"))?,
     };
 
     // Create the main community if it doesn't exist
-    let main_community: Community = match Community::read(&conn, 2) {
+    let main_community: community::Community = match community::Community::read(&conn, 2) {
       Ok(c) => c,
       Err(_e) => {
-        let community_form = CommunityForm {
+        let community_form = community::CommunityForm {
           name: "main".to_string(),
           title: "The Default Community".to_string(),
           description: Some("The Default Community".to_string()),
@@ -184,34 +203,34 @@ impl Perform<LoginResponse> for Oper<Register> {
           deleted: None,
           updated: None,
         };
-        Community::create(&conn, &community_form).unwrap()
+        community::Community::create(&conn, &community_form).unwrap()
       }
     };
 
     // Sign them up for main community no matter what
-    let community_follower_form = CommunityFollowerForm {
+    let community_follower_form = community::CommunityFollowerForm {
       community_id: main_community.id,
       user_id: inserted_user.id,
     };
 
     let _inserted_community_follower =
-      match CommunityFollower::follow(&conn, &community_follower_form) {
+      match community::CommunityFollower::follow(&conn, &community_follower_form) {
         Ok(user) => user,
-        Err(_e) => return Err(APIError::err(&self.op, "community_follower_already_exists"))?,
+        Err(_e) => return Err(api::APIError::err(&self.op, "community_follower_already_exists"))?,
       };
 
     // If its an admin, add them as a mod and follower to main
     if data.admin {
-      let community_moderator_form = CommunityModeratorForm {
+      let community_moderator_form = community::CommunityModeratorForm {
         community_id: main_community.id,
         user_id: inserted_user.id,
       };
 
       let _inserted_community_moderator =
-        match CommunityModerator::join(&conn, &community_moderator_form) {
+        match community::CommunityModerator::join(&conn, &community_moderator_form) {
           Ok(user) => user,
           Err(_e) => {
-            return Err(APIError::err(
+            return Err(api::APIError::err(
               &self.op,
               "community_moderator_already_exists",
             ))?
@@ -227,35 +246,35 @@ impl Perform<LoginResponse> for Oper<Register> {
   }
 }
 
-impl Perform<LoginResponse> for Oper<SaveUserSettings> {
+impl Perform<LoginResponse> for api::Oper<SaveUserSettings> {
   fn perform(&self) -> Result<LoginResponse, Error> {
     let data: &SaveUserSettings = &self.data;
     let conn = establish_connection();
 
-    let claims = match Claims::decode(&data.auth) {
+    let claims = match user::Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
+      Err(_e) => return Err(api::APIError::err(&self.op, "not_logged_in"))?,
     };
 
     let user_id = claims.id;
 
-    let read_user = User_::read(&conn, user_id)?;
+    let read_user = user::User_::read(&conn, user_id)?;
 
-    let user_form = UserForm {
+    let user_form = user::UserForm {
       name: read_user.name,
       fedi_name: read_user.fedi_name,
       email: read_user.email,
       password_encrypted: read_user.password_encrypted,
       preferred_username: read_user.preferred_username,
-      updated: Some(naive_now()),
+      updated: Some(crate::naive_now()),
       admin: read_user.admin,
       banned: read_user.banned,
       show_nsfw: data.show_nsfw,
     };
 
-    let updated_user = match User_::update(&conn, user_id, &user_form) {
+    let updated_user = match user::User_::update(&conn, user_id, &user_form) {
       Ok(user) => user,
-      Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_user"))?,
+      Err(_e) => return Err(api::APIError::err(&self.op, "couldnt_update_user"))?,
     };
 
     // Return the jwt
@@ -266,13 +285,13 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
   }
 }
 
-impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
+impl Perform<GetUserDetailsResponse> for api::Oper<GetUserDetails> {
   fn perform(&self) -> Result<GetUserDetailsResponse, Error> {
     let data: &GetUserDetails = &self.data;
     let conn = establish_connection();
 
-    let user_claims: Option<Claims> = match &data.auth {
-      Some(auth) => match Claims::decode(&auth) {
+    let user_claims: Option<user::Claims> = match &data.auth {
+      Some(auth) => match user::Claims::decode(&auth) {
         Ok(claims) => Some(claims.claims),
         Err(_e) => None,
       },
@@ -295,7 +314,7 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
     let user_details_id = match data.user_id {
       Some(id) => id,
       None => {
-        User_::read_from_name(
+        user::User_::read_from_name(
           &conn,
           data.username.to_owned().unwrap_or("admin".to_string()),
         )?
@@ -303,13 +322,13 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
       }
     };
 
-    let user_view = UserView::read(&conn, user_details_id)?;
+    let user_view = user_view::UserView::read(&conn, user_details_id)?;
 
     // If its saved only, you don't care what creator it was
     let posts = if data.saved_only {
-      PostView::list(
+      post_view::PostView::list(
         &conn,
-        PostListingType::All,
+        post_view::PostListingType::All,
         &sort,
         data.community_id,
         None,
@@ -323,9 +342,9 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
         data.limit,
       )?
     } else {
-      PostView::list(
+      post_view::PostView::list(
         &conn,
-        PostListingType::All,
+        post_view::PostListingType::All,
         &sort,
         data.community_id,
         Some(user_details_id),
@@ -340,7 +359,7 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
       )?
     };
     let comments = if data.saved_only {
-      CommentView::list(
+      comment_view::CommentView::list(
         &conn,
         &sort,
         None,
@@ -352,7 +371,7 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
         data.limit,
       )?
     } else {
-      CommentView::list(
+      comment_view::CommentView::list(
         &conn,
         &sort,
         None,
@@ -365,8 +384,8 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
       )?
     };
 
-    let follows = CommunityFollowerView::for_user(&conn, user_details_id)?;
-    let moderates = CommunityModeratorView::for_user(&conn, user_details_id)?;
+    let follows = community_view::CommunityFollowerView::for_user(&conn, user_details_id)?;
+    let moderates = community_view::CommunityModeratorView::for_user(&conn, user_details_id)?;
 
     // Return the jwt
     Ok(GetUserDetailsResponse {
@@ -380,53 +399,53 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
   }
 }
 
-impl Perform<AddAdminResponse> for Oper<AddAdmin> {
+impl Perform<AddAdminResponse> for api::Oper<AddAdmin> {
   fn perform(&self) -> Result<AddAdminResponse, Error> {
     let data: &AddAdmin = &self.data;
     let conn = establish_connection();
 
-    let claims = match Claims::decode(&data.auth) {
+    let claims = match user::Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
+      Err(_e) => return Err(api::APIError::err(&self.op, "not_logged_in"))?,
     };
 
     let user_id = claims.id;
 
     // Make sure user is an admin
-    if UserView::read(&conn, user_id)?.admin == false {
-      return Err(APIError::err(&self.op, "not_an_admin"))?;
+    if user_view::UserView::read(&conn, user_id)?.admin == false {
+      return Err(api::APIError::err(&self.op, "not_an_admin"))?;
     }
 
-    let read_user = User_::read(&conn, data.user_id)?;
+    let read_user = user::User_::read(&conn, data.user_id)?;
 
-    let user_form = UserForm {
+    let user_form = user::UserForm {
       name: read_user.name,
       fedi_name: read_user.fedi_name,
       email: read_user.email,
       password_encrypted: read_user.password_encrypted,
       preferred_username: read_user.preferred_username,
-      updated: Some(naive_now()),
+      updated: Some(crate::naive_now()),
       admin: data.added,
       banned: read_user.banned,
       show_nsfw: read_user.show_nsfw,
     };
 
-    match User_::update(&conn, data.user_id, &user_form) {
+    match user::User_::update(&conn, data.user_id, &user_form) {
       Ok(user) => user,
-      Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_user"))?,
+      Err(_e) => return Err(api::APIError::err(&self.op, "couldnt_update_user"))?,
     };
 
     // Mod tables
-    let form = ModAddForm {
+    let form = moderator::ModAddForm {
       mod_user_id: user_id,
       other_user_id: data.user_id,
       removed: Some(!data.added),
     };
 
-    ModAdd::create(&conn, &form)?;
+    moderator::ModAdd::create(&conn, &form)?;
 
-    let site_creator_id = Site::read(&conn, 1)?.creator_id;
-    let mut admins = UserView::admins(&conn)?;
+    let site_creator_id = community::Site::read(&conn, 1)?.creator_id;
+    let mut admins = user_view::UserView::admins(&conn)?;
     let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
@@ -438,49 +457,49 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
   }
 }
 
-impl Perform<BanUserResponse> for Oper<BanUser> {
+impl Perform<BanUserResponse> for api::Oper<BanUser> {
   fn perform(&self) -> Result<BanUserResponse, Error> {
     let data: &BanUser = &self.data;
     let conn = establish_connection();
 
-    let claims = match Claims::decode(&data.auth) {
+    let claims = match user::Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
+      Err(_e) => return Err(api::APIError::err(&self.op, "not_logged_in"))?,
     };
 
     let user_id = claims.id;
 
     // Make sure user is an admin
-    if UserView::read(&conn, user_id)?.admin == false {
-      return Err(APIError::err(&self.op, "not_an_admin"))?;
+    if user_view::UserView::read(&conn, user_id)?.admin == false {
+      return Err(api::APIError::err(&self.op, "not_an_admin"))?;
     }
 
-    let read_user = User_::read(&conn, data.user_id)?;
+    let read_user = user::User_::read(&conn, data.user_id)?;
 
-    let user_form = UserForm {
+    let user_form = user::UserForm {
       name: read_user.name,
       fedi_name: read_user.fedi_name,
       email: read_user.email,
       password_encrypted: read_user.password_encrypted,
       preferred_username: read_user.preferred_username,
-      updated: Some(naive_now()),
+      updated: Some(crate::naive_now()),
       admin: read_user.admin,
       banned: data.ban,
       show_nsfw: read_user.show_nsfw,
     };
 
-    match User_::update(&conn, data.user_id, &user_form) {
+    match user::User_::update(&conn, data.user_id, &user_form) {
       Ok(user) => user,
-      Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_user"))?,
+      Err(_e) => return Err(api::APIError::err(&self.op, "couldnt_update_user"))?,
     };
 
     // Mod tables
     let expires = match data.expires {
-      Some(time) => Some(naive_from_unix(time)),
+      Some(time) => Some(crate::naive_from_unix(time)),
       None => None,
     };
 
-    let form = ModBanForm {
+    let form = moderator::ModBanForm {
       mod_user_id: user_id,
       other_user_id: data.user_id,
       reason: data.reason.to_owned(),
@@ -488,9 +507,9 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
       expires: expires,
     };
 
-    ModBan::create(&conn, &form)?;
+    moderator::ModBan::create(&conn, &form)?;
 
-    let user_view = UserView::read(&conn, data.user_id)?;
+    let user_view = user_view::UserView::read(&conn, data.user_id)?;
 
     Ok(BanUserResponse {
       op: self.op.to_string(),
@@ -500,21 +519,21 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
   }
 }
 
-impl Perform<GetRepliesResponse> for Oper<GetReplies> {
+impl Perform<GetRepliesResponse> for api::Oper<GetReplies> {
   fn perform(&self) -> Result<GetRepliesResponse, Error> {
     let data: &GetReplies = &self.data;
     let conn = establish_connection();
 
-    let claims = match Claims::decode(&data.auth) {
+    let claims = match user::Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
+      Err(_e) => return Err(api::APIError::err(&self.op, "not_logged_in"))?,
     };
 
     let user_id = claims.id;
 
     let sort = SortType::from_str(&data.sort)?;
 
-    let replies = ReplyView::get_replies(
+    let replies = comment_view::ReplyView::get_replies(
       &conn,
       user_id,
       &sort,
@@ -531,22 +550,22 @@ impl Perform<GetRepliesResponse> for Oper<GetReplies> {
   }
 }
 
-impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
+impl Perform<GetRepliesResponse> for api::Oper<MarkAllAsRead> {
   fn perform(&self) -> Result<GetRepliesResponse, Error> {
     let data: &MarkAllAsRead = &self.data;
     let conn = establish_connection();
 
-    let claims = match Claims::decode(&data.auth) {
+    let claims = match user::Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
+      Err(_e) => return Err(api::APIError::err(&self.op, "not_logged_in"))?,
     };
 
     let user_id = claims.id;
 
-    let replies = ReplyView::get_replies(&conn, user_id, &SortType::New, true, Some(1), Some(999))?;
+    let replies = comment_view::ReplyView::get_replies(&conn, user_id, &SortType::New, true, Some(1), Some(999))?;
 
     for reply in &replies {
-      let comment_form = CommentForm {
+      let comment_form = comment::CommentForm {
         content: reply.to_owned().content,
         parent_id: reply.to_owned().parent_id,
         post_id: reply.to_owned().post_id,
@@ -557,13 +576,13 @@ impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
         updated: reply.to_owned().updated,
       };
 
-      let _updated_comment = match Comment::update(&conn, reply.id, &comment_form) {
+      let _updated_comment = match comment::Comment::update(&conn, reply.id, &comment_form) {
         Ok(comment) => comment,
-        Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_comment"))?,
+        Err(_e) => return Err(api::APIError::err(&self.op, "couldnt_update_comment"))?,
       };
     }
 
-    let replies = ReplyView::get_replies(&conn, user_id, &SortType::New, true, Some(1), Some(999))?;
+    let replies = comment_view::ReplyView::get_replies(&conn, user_id, &SortType::New, true, Some(1), Some(999))?;
 
     Ok(GetRepliesResponse {
       op: self.op.to_string(),

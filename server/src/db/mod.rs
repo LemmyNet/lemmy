@@ -1,8 +1,8 @@
-use crate::Settings;
-use diesel::dsl::*;
+use diesel::{Connection, PgConnection};
 use diesel::result::Error;
-use diesel::*;
 use serde::{Deserialize, Serialize};
+
+use crate::Settings;
 
 pub mod category;
 pub mod comment;

@@ -4,10 +4,10 @@ extern crate diesel_migrations;
 
 use actix::prelude::*;
 use actix_files::NamedFile;
-use actix_web::*;
+use actix_web::{self, web};
 use actix_web_actors::ws;
 use lemmy_server::db::establish_connection;
-use lemmy_server::websocket::server::*;
+use lemmy_server::websocket::server;
 use std::env;
 use std::time::{Duration, Instant};
 
@@ -20,10 +20,10 @@ const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Entry point for our route
 fn chat_route(
-  req: HttpRequest,
+  req: actix_web::HttpRequest,
   stream: web::Payload,
-  chat_server: web::Data<Addr<ChatServer>>,
-) -> Result<HttpResponse, Error> {
+  chat_server: web::Data<Addr<server::ChatServer>>,
+) -> Result<actix_web::HttpResponse, actix_web::Error> {
   ws::start(
     WSSession {
       cs_addr: chat_server.get_ref().to_owned(),
@@ -44,7 +44,7 @@ fn chat_route(
 }
 
 struct WSSession {
-  cs_addr: Addr<ChatServer>,
+  cs_addr: Addr<server::ChatServer>,
   /// unique session id
   id: usize,
   ip: String,
@@ -69,7 +69,7 @@ impl Actor for WSSession {
     let addr = ctx.address();
     self
       .cs_addr
-      .send(Connect {
+      .send(server::Connect {
         addr: addr.recipient(),
         ip: self.ip.to_owned(),
       })
@@ -87,7 +87,7 @@ impl Actor for WSSession {
 
   fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
     // notify chat server
-    self.cs_addr.do_send(Disconnect {
+    self.cs_addr.do_send(server::Disconnect {
       id: self.id,
       ip: self.ip.to_owned(),
     });
@@ -97,10 +97,10 @@ impl Actor for WSSession {
 
 /// Handle messages from chat server, we simply send it to peer websocket
 /// These are room messages, IE sent to others in the room
-impl Handler<WSMessage> for WSSession {
+impl Handler<server::WSMessage> for WSSession {
   type Result = ();
 
-  fn handle(&mut self, msg: WSMessage, ctx: &mut Self::Context) {
+  fn handle(&mut self, msg: server::WSMessage, ctx: &mut Self::Context) {
     // println!("id: {} msg: {}", self.id, msg.0);
     ctx.text(msg.0);
   }
@@ -124,7 +124,7 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WSSession {
 
         self
           .cs_addr
-          .send(StandardMessage {
+          .send(server::StandardMessage {
             id: self.id,
             msg: m,
           })
@@ -161,7 +161,7 @@ impl WSSession {
         println!("Websocket Client heartbeat failed, disconnecting!");
 
         // notify chat server
-        act.cs_addr.do_send(Disconnect {
+        act.cs_addr.do_send(server::Disconnect {
           id: act.id,
           ip: act.ip.to_owned(),
         });
@@ -187,10 +187,10 @@ fn main() {
   embedded_migrations::run(&conn).unwrap();
 
   // Start chat server actor in separate thread
-  let server = ChatServer::default().start();
+  let server = server::ChatServer::default().start();
   // Create Http server with websocket support
-  HttpServer::new(move || {
-    App::new()
+  actix_web::HttpServer::new(move || {
+    actix_web::App::new()
       .data(server.clone())
       .service(web::resource("/api/v1/ws").to(chat_route))
       //            .service(web::resource("/api/v1/rest").route(web::post().to(||{})))

@@ -1,18 +1,4 @@
-use crate::db::category::*;
-use crate::db::comment::*;
-use crate::db::comment_view::*;
-use crate::db::community::*;
-use crate::db::community_view::*;
-use crate::db::moderator::*;
-use crate::db::moderator_views::*;
-use crate::db::post::*;
-use crate::db::post_view::*;
-use crate::db::user::*;
-use crate::db::user_view::*;
-use crate::db::*;
-use crate::{has_slurs, naive_from_unix, naive_now, remove_slurs, Settings};
 use failure::Error;
-use serde::{Deserialize, Serialize};
 
 pub mod comment;
 pub mod community;

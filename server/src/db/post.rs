@@ -1,5 +1,20 @@
-use super::*;
-use crate::schema::{post, post_like, post_read, post_saved};
+use diesel::PgConnection;
+use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl, insert_into};
+use diesel::result::Error;
+use serde::{Deserialize, Serialize};
+
+use crate::db::{
+    Crud,
+    Likeable,
+    Saveable,
+    Readable,
+};
+use crate::schema::{
+    post,
+    post_like,
+    post_read,
+    post_saved,
+};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "post"]
@@ -174,6 +189,7 @@ impl Readable<PostReadForm> for PostRead {
 
 #[cfg(test)]
 mod tests {
+  use crate::db::establish_connection;
   use super::super::community::*;
   use super::super::user::*;
   use super::*;

@@ -1,9 +1,21 @@
-use super::*;
+use bcrypt::{hash, DEFAULT_COST};
+use diesel::{
+    ExpressionMethods,
+    PgConnection,
+    QueryDsl,
+    RunQueryDsl,
+    insert_into,
+};
+use diesel::result::Error;
+use jsonwebtoken::{decode, encode, Header, TokenData, Validation};
+use serde::{Deserialize, Serialize};
+
 use crate::schema::user_;
 use crate::schema::user_::dsl::*;
 use crate::{is_email_regex, Settings};
-use bcrypt::{hash, DEFAULT_COST};
-use jsonwebtoken::{decode, encode, Header, TokenData, Validation};
+use super::{
+    Crud,
+};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "user_"]
@@ -126,6 +138,7 @@ impl User_ {
 
 #[cfg(test)]
 mod tests {
+  use crate::db::establish_connection;
   use super::*;
   #[test]
   fn test_crud() {

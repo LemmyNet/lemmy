@@ -1,4 +1,22 @@
-use super::*;
+use diesel::{
+    ExpressionMethods,
+    PgConnection,
+    PgTextExpressionMethods,
+    QueryDsl,
+    RunQueryDsl,
+};
+use diesel::dsl::{
+    IntervalDsl,
+    now,
+};
+use diesel::result::Error;
+use serde::{Deserialize, Serialize};
+
+use super::{
+    SortType,
+    fuzzy_search,
+    limit_and_offset,
+};
 
 // The faked schema since diesel doesn't do views
 table! {
@@ -245,6 +263,7 @@ impl ReplyView {
 
 #[cfg(test)]
 mod tests {
+  use crate::db::{Crud, Likeable, establish_connection};
   use super::super::comment::*;
   use super::super::community::*;
   use super::super::post::*;

@@ -1,4 +1,22 @@
-use super::*;
+use diesel::{
+    ExpressionMethods,
+    PgConnection,
+    PgTextExpressionMethods,
+    QueryDsl,
+    RunQueryDsl,
+};
+use diesel::dsl::{
+    IntervalDsl,
+    now,
+};
+use diesel::result::Error;
+use serde::{Deserialize, Serialize};
+
+use crate::db::{
+    SortType,
+    fuzzy_search,
+    limit_and_offset,
+};
 
 #[derive(EnumString, ToString, Debug, Serialize, Deserialize)]
 pub enum PostListingType {
@@ -203,6 +221,7 @@ impl PostView {
 
 #[cfg(test)]
 mod tests {
+  use crate::db::{Crud, Likeable, establish_connection};
   use super::super::community::*;
   use super::super::post::*;
   use super::super::user::*;

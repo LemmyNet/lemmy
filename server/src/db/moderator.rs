@@ -1,7 +1,23 @@
-use super::*;
+use diesel::{
+    PgConnection,
+    QueryDsl,
+    RunQueryDsl,
+    insert_into,
+};
+use diesel::result::Error;
+use serde::{Deserialize, Serialize};
+
+use crate::db::Crud;
 use crate::schema::{
-  mod_add, mod_add_community, mod_ban, mod_ban_from_community, mod_lock_post, mod_remove_comment,
-  mod_remove_community, mod_remove_post, mod_sticky_post,
+  mod_add,
+  mod_add_community,
+  mod_ban,
+  mod_ban_from_community,
+  mod_lock_post,
+  mod_remove_comment,
+  mod_remove_community,
+  mod_remove_post,
+  mod_sticky_post,
 };
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
@@ -426,6 +442,7 @@ impl Crud<ModAddForm> for ModAdd {
 
 #[cfg(test)]
 mod tests {
+  use crate::db::establish_connection;
   use super::super::comment::*;
   use super::super::community::*;
   use super::super::post::*;

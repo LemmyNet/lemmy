@@ -1,5 +1,19 @@
+use diesel::result::Error;
+use diesel::{
+    ExpressionMethods,
+    PgConnection,
+    QueryDsl,
+    RunQueryDsl,
+    insert_into,
+};
+use serde::{Deserialize, Serialize};
+
 use super::post::Post;
-use super::*;
+use crate::db::{
+    Crud,
+    Likeable,
+    Saveable,
+};
 use crate::schema::{comment, comment_like, comment_saved};
 
 // WITH RECURSIVE MyTree AS (
@@ -160,6 +174,7 @@ impl Saveable<CommentSavedForm> for CommentSaved {
 
 #[cfg(test)]
 mod tests {
+  use crate::db::establish_connection;
   use super::super::community::*;
   use super::super::post::*;
   use super::super::user::*;

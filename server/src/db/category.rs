@@ -1,6 +1,11 @@
-use super::*;
+use diesel::PgConnection;
+use diesel::{QueryDsl, RunQueryDsl, insert_into};
+use diesel::result::Error;
+use serde::{Deserialize, Serialize};
+
 use crate::schema::category;
 use crate::schema::category::dsl::*;
+use super::Crud;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "category"]
@@ -49,6 +54,7 @@ impl Category {
 
 #[cfg(test)]
 mod tests {
+  use crate::db::establish_connection;
   use super::*;
   #[test]
   fn test_crud() {
