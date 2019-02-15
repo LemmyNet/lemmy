@@ -2,6 +2,8 @@
 
 We have a twitter alternative (mastodon), a facebook alternative (friendica), so let's build a reddit alternative in the fediverse.
 
+[Matrix Chatroom](https://riot.im/app/#/room/#rust-reddit-fediverse:matrix.org)
+
 ## Goals / TODOs
 
 - Come up with a name / codename.
@@ -12,4 +14,3 @@ We have a twitter alternative (mastodon), a facebook alternative (friendica), so
 - Should it allow bots?
 - Decide on tech to be used: I prefer Actix, Diesel for the back end, inferno, typescript and bootstrap for the front end. 
 - How do we do the activitypub stuff?
--
