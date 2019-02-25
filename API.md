@@ -5,14 +5,14 @@
 <!-- toc -->
 
 - [Actors](#actors)
-  * [User / [Person](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-person)](#user--personhttpswwww3orgtractivitystreams-vocabulary%23dfn-person)
-  * [Community / [Group](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-group)](#community--grouphttpswwww3orgtractivitystreams-vocabulary%23dfn-group)
+  * [User / Person](#user--person)
+  * [Community / Group](#community--group)
 - [Objects](#objects)
-  * [Post / [Page](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-page)](#post--pagehttpswwww3orgtractivitystreams-vocabulary%23dfn-page)
-  * [Post Listings / [Ordered CollectionPage](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-orderedcollectionpage)](#post-listings--ordered-collectionpagehttpswwww3orgtractivitystreams-vocabulary%23dfn-orderedcollectionpage)
-  * [Comment / [Note](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-note)](#comment--notehttpswwww3orgtractivitystreams-vocabulary%23dfn-note)
-  * [Comment Listings / [Ordered CollectionPage](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-orderedcollectionpage)](#comment-listings--ordered-collectionpagehttpswwww3orgtractivitystreams-vocabulary%23dfn-orderedcollectionpage)
-  * [Deleted thing / [Tombstone](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-tombstone)](#deleted-thing--tombstonehttpswwww3orgtractivitystreams-vocabulary%23dfn-tombstone)
+  * [Post / Page](#post--page)
+  * [Post Listings / Ordered CollectionPage](#post-listings--ordered-collectionpage)
+  * [Comment / Note](#comment--note)
+  * [Comment Listings / Ordered CollectionPage](#comment-listings--ordered-collectionpage)
+  * [Deleted thing / Tombstone](#deleted-thing--tombstone)
 - [Actions](#actions)
   * [Comments](#comments)
     + [Create](#create)
@@ -38,7 +38,7 @@
 ;
 ## Actors
 
-### User / [Person](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-person)
+### [User / Person](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-person)
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
@@ -57,7 +57,7 @@
 }
 ```
 
-### Community / [Group](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-group)
+### [Community / Group](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-group)
 
 ```
 {
@@ -76,7 +76,7 @@
 
 ## Objects
 
-### Post / [Page](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-page) 
+### [Post / Page](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-page) 
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
@@ -90,7 +90,7 @@
 }
 ```
 
-### Post Listings / [Ordered CollectionPage](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-orderedcollectionpage)
+### [Post Listings / Ordered CollectionPage](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-orderedcollectionpage)
 
 ```
 {
@@ -103,7 +103,7 @@
 }
 ```
 
-### Comment / [Note](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-note)
+### [Comment / Note](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-note)
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
@@ -118,7 +118,7 @@
   "replies" // TODO, not sure if these objects should embed all replies in them or not.
 }
 ```
-### Comment Listings / [Ordered CollectionPage](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-orderedcollectionpage)
+### [Comment Listings / Ordered CollectionPage](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-orderedcollectionpage)
 
 ```
 {
@@ -130,7 +130,7 @@
   "orderedItems": [Comments]
 }
 ```
-### Deleted thing / [Tombstone](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-tombstone)
+### [Deleted thing / Tombstone](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-tombstone)
 ```
 {
   "type": "Tombstone",
