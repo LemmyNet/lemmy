@@ -5,11 +5,7 @@ We have a twitter alternative (mastodon), a facebook alternative (friendica), so
 [Matrix Chatroom](https://riot.im/app/#/room/#rust-reddit-fediverse:matrix.org)
 
 ## TODOs
-
-- Use the [activitypub crate.](https://docs.rs/activitypub/0.1.4/activitypub/)
-- https://docs.rs/activitypub/0.1.4/activitypub/
-- [Activitypub vocab.](https://www.w3.org/TR/activitystreams-vocabulary/)
-- Create a markdown doc of actions, matching up to things in that vocab.
+- Create a markdown doc for ActivityPub actions: [API.md](API.md)
 
 ## Goals
 
@@ -26,3 +22,10 @@ We have a twitter alternative (mastodon), a facebook alternative (friendica), so
   - Frontend: inferno, typescript and bootstrap for now.
 - Should it allow bots?
 - Should the comments / votes be static, or feel like a chat, like [flowchat?](https://flow-chat.com). 
+
+## Resources / Potential Libraries
+- Use the [activitypub crate.](https://docs.rs/activitypub/0.1.4/activitypub/)
+- https://docs.rs/activitypub/0.1.4/activitypub/
+- [Activitypub vocab.](https://www.w3.org/TR/activitystreams-vocabulary/)
+
+
