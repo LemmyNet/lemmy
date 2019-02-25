@@ -32,10 +32,15 @@
     + [Update](#update-2)
     + [Join](#join)
     + [Leave](#leave)
+  * [Moderator](#moderator)
+    + [Ban user from community / Block](#ban-user-from-community--block)
+    + [Delete Comment](#delete-comment)
+    + [Invite a moderator](#invite-a-moderator)
+    + [Accept Invitation](#accept-invitation)
+    + [Reject Invitation](#reject-invitation)
 
 <!-- tocstop -->
 
-;
 ## Actors
 
 ### [User / Person](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-person)
@@ -110,12 +115,13 @@
   "type": "Note",
   "id": "https://rust-reddit-fediverse/api/v1/comment/1",
   "name": "A note",
-  "content": "Looks like it is going to rain today. Bring an umbrella!"
-  "attributedTo": "http://sally.example.org",
+  "content": "Looks like it is going to rain today. Bring an umbrella <a href='http://sally.example.org'>@sally</a>!"
+  "attributedTo": john_id,
   "inReplyTo": "comment or post id",
   "startTime": "2014-12-31T23:00:00-08:00",
   "updated"?: "2014-12-12T12:12:12Z"
   "replies" // TODO, not sure if these objects should embed all replies in them or not.
+  "to": [sally_id, group_id]
 }
 ```
 ### [Comment Listings / Ordered CollectionPage](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-orderedcollectionpage)
@@ -211,7 +217,6 @@
 ```
 
 ### Posts
-
 #### [Create](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-create)
 ```
 {
@@ -311,4 +316,60 @@
 }
 ```
 
-TODO - Moderator actions
+### Moderator
+#### [Ban user from community / Block](https://www.w3.org/TR/activitystreams-vocabulary#dfn-block)
+```
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "summary": "The moderator blocked Sally from a group",
+  "type": "Remove",
+  "actor": mod_id,
+  "object": user_id,
+  "origin": group_id
+}
+```
+
+#### [Delete Comment](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-delete)
+```
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "summary": "Sally deleted a users comment",
+  "type": "Delete",
+  "actor": id,
+  "object": community_id
+}
+```
+
+#### [Invite a moderator](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-invite)
+```
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "summary": "Sally invited John to mod a community",
+  "type": "Invite",
+  "id": "https://rust-reddit-fediverse/api/v1/invite/1",
+  "actor": sally_id,
+  "object": group_id,
+  "target": john_id
+}
+```
+#### [Accept Invitation](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-accept)
+```
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "summary": "John Accepted an invitation to mod a community",
+  "type": "Accept",
+  "actor": john_id,
+  "object": invite_id
+}
+```
+#### [Reject Invitation](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-reject)
+```
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "summary": "John Rejected an invitation to mod a community",
+  "type": "Reject",
+  "actor": john_id,
+  "object": invite_id
+}
+```
+
