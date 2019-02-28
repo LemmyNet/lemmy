@@ -1,0 +1,13 @@
+[package]
+name = "server"
+version = "0.0.1"
+authors = ["Dessalines <happydooby@gmail.com>"]
+
+[dependencies]
+diesel = { version = "1.4.1", features = ["postgres","chrono"] }
+dotenv = "0.9.0"
+bcrypt = "0.3"
+activitypub = "0.1.4"
+chrono = { version = "0.4", features = ["serde"] }
+failure = "0.1.5"
+serde_json = "*"

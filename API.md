@@ -49,7 +49,7 @@
   "@context": "https://www.w3.org/ns/activitystreams",
   "type": "Person",
   "id": "https://rust-reddit-fediverse/api/v1/user/sally_smith",
-  "name": "Sally Smith", // Their chosen alias
+  "name": "sally_smith", // TODO can't find an activitypub vocab for alias.
   "icon"?: {
     "type": "Image",
     "name": "User icon",
