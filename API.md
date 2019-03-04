@@ -49,7 +49,13 @@
   "@context": "https://www.w3.org/ns/activitystreams",
   "type": "Person",
   "id": "https://rust-reddit-fediverse/api/v1/user/sally_smith",
-  "name": "sally_smith", // TODO can't find an activitypub vocab for alias.
+  "inbox": "https://rust-reddit-fediverse/api/v1/user/sally_smith/inbox",
+  "outbox": "https://rust-reddit-fediverse/api/v1/user/sally_smith/outbox",
+  "liked": "https://rust-reddit-fediverse/api/v1/user/sally_smith/liked",
+  "disliked": "https://rust-reddit-fediverse/api/v1/user/sally_smith/disliked",
+  "following": "https://rust-reddit-fediverse/api/v1/user/sally_smith/following",
+  "name": "sally_smith", 
+  "preferredUsername": "Sally",
   "icon"?: {
     "type": "Image",
     "name": "User icon",
@@ -63,7 +69,6 @@
 ```
 
 ### [Community / Group](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-group)
-
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
@@ -73,6 +78,7 @@
   "attributedTo": [ // The moderators
     "http://joe.example.org",
   ],
+  "followers": "https://rust-reddit-fediverse/api/v1/community/today_i_learned/followers",
   "startTime": "2014-12-31T23:00:00-08:00",
   "summary"?: "The group's tagline",
   "attachment: [{}] // TBD, these would be where strong types for custom styles, and images would work.
@@ -91,16 +97,13 @@
   "url": "https://news.blah.com"
   "attributedTo": "http://joe.example.org", // The poster
   "startTime": "2014-12-31T23:00:00-08:00",
-
 }
 ```
 
 ### [Post Listings / Ordered CollectionPage](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-orderedcollectionpage)
-
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "summary": "Page 1 of Sally's front page",
   "type": "OrderedCollectionPage",
   "id": "https://rust-reddit-fediverse/api/v1/posts?type={all, best, front}&sort={}&page=1,
   "partOf": "http://example.org/foo",
@@ -125,11 +128,9 @@
 }
 ```
 ### [Comment Listings / Ordered CollectionPage](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-orderedcollectionpage)
-
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "summary": "Page 1 of comments for",
   "type": "OrderedCollectionPage",
   "id": "https://rust-reddit-fediverse/api/v1/comments?type={all,user,community,post,parent_comment}&id=1&page=1,
   "partOf": "http://example.org/foo",
@@ -147,13 +148,16 @@
 ```
 ## Actions
 
+- These are all posts to a user's outbox.
+- The server then creates a post to the necessary inbox of the recipient, or the followers.
+- Whenever a user accesses the site, they do a get from their inbox.
+
 ### Comments
 
 #### [Create](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-create)
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "summary": "Sally created a note",
   "type": "Create",
   "actor": id,
   "object": comment_id, or post_id
@@ -164,7 +168,6 @@
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "summary": "Sally deleted a note",
   "type": "Delete",
   "actor": id,
   "object": comment_id, or post_id
@@ -174,7 +177,6 @@
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "summary": "Sally created a note",
   "type": "Create",
   "actor": id,
   "object": comment_id, or post_id
@@ -186,7 +188,6 @@
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "summary": "Sally read a comment",
   "type": "Read",
   "actor": user_id
   "object": comment_id
@@ -194,10 +195,10 @@
 ```
 
 #### [Like](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-like)
+- TODO: Should likes be notifications? IE, have a to?
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "summary": "Sally liked a comment",
   "type": "Like",
   "actor": user_id
   "object": comment_id
@@ -208,7 +209,6 @@
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "summary": "Sally disliked a comment",
   "type": "Dislike",
   "actor": user_id
   "object": comment_id
@@ -221,9 +221,9 @@
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "summary": "Sally created a post",
   "type": "Create",
   "actor": id,
+  "to": community_id/followers
   "object": post_id
 }
 ```
@@ -231,7 +231,6 @@
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "summary": "Sally deleted a post",
   "type": "Delete",
   "actor": id,
   "object": comment_id, or post_id
@@ -242,7 +241,6 @@
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "summary": "Sally created a post",
   "type": "Create",
   "actor": id,
   "object": comment_id, or post_id
@@ -253,7 +251,6 @@
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "summary": "Sally read a post",
   "type": "Read",
   "actor": user_id
   "object": post_id
@@ -265,7 +262,6 @@
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "summary": "Sally created a community",
   "type": "Create",
   "actor": id,
   "object": community_id
@@ -275,7 +271,6 @@
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "summary": "Sally deleted a community",
   "type": "Delete",
   "actor": id,
   "object": community_id
@@ -286,7 +281,6 @@
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "summary": "Sally created a community",
   "type": "Create",
   "actor": id,
   "object": community_id
@@ -294,11 +288,29 @@
 }
 ```
 
-#### [Join](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-join)
+#### [Follow / Subscribe](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-follow)
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "summary": "Sally joined a community",
+  "type": "Follow",
+  "actor": id
+  "object": community_id
+}
+```
+
+#### [Ignore/ Unsubscribe](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-ignore)
+```
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
+  "type": "Follow",
+  "actor": id
+  "object": community_id
+}
+```
+#### [Join / Become a Mod](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-join)
+```
+{
+  "@context": "https://www.w3.org/ns/activitystreams",
   "type": "Join",
   "actor": user_id,
   "object": community_id
@@ -309,7 +321,6 @@
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "summary": "Sally left a community",
   "type": "Leave",
   "actor": user_id,
   "object": community_id
@@ -321,7 +332,6 @@
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "summary": "The moderator blocked Sally from a group",
   "type": "Remove",
   "actor": mod_id,
   "object": user_id,
@@ -333,7 +343,6 @@
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "summary": "Sally deleted a users comment",
   "type": "Delete",
   "actor": id,
   "object": community_id
@@ -344,7 +353,6 @@
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "summary": "Sally invited John to mod a community",
   "type": "Invite",
   "id": "https://rust-reddit-fediverse/api/v1/invite/1",
   "actor": sally_id,
@@ -356,7 +364,6 @@
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "summary": "John Accepted an invitation to mod a community",
   "type": "Accept",
   "actor": john_id,
   "object": invite_id
@@ -366,7 +373,6 @@
 ```
 {
   "@context": "https://www.w3.org/ns/activitystreams",
-  "summary": "John Rejected an invitation to mod a community",
   "type": "Reject",
   "actor": john_id,
   "object": invite_id

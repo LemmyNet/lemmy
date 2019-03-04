@@ -12,6 +12,8 @@ We have a twitter alternative (mastodon), a facebook alternative (friendica), so
 - Must have communities.
 - Must have threaded comments.
 - Must be federated: liking and following communities across instances.
+- Be live-updating: have a right pane for new comments, and a main pain for the full threaded view.
+  - Use websockets for post / gets to your own instance.
 
 ## Questions
 - How does voting work? Should we go back to the old way of showing up and downvote counts? Or just a score?
@@ -25,5 +27,7 @@ We have a twitter alternative (mastodon), a facebook alternative (friendica), so
 - Use the [activitypub crate.](https://docs.rs/activitypub/0.1.4/activitypub/)
 - https://docs.rs/activitypub/0.1.4/activitypub/
 - [Activitypub vocab.](https://www.w3.org/TR/activitystreams-vocabulary/)
+- [Activitypub main](https://www.w3.org/TR/activitypub/)
 - [Diesel to Postgres data types](https://kotiri.com/2018/01/31/postgresql-diesel-rust-types.html)
 - [helpful diesel examples](http://siciarz.net/24-days-rust-diesel/)
+- [Mastodan public key server example](https://blog.joinmastodon.org/2018/06/how-to-implement-a-basic-activitypub-server/)
