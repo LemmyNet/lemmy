@@ -9,8 +9,8 @@ table! {
 table! {
     community_follower (id) {
         id -> Int4,
-        community_id -> Int4,
         fedi_user_id -> Text,
+        community_id -> Nullable<Int4>,
         start_time -> Timestamp,
     }
 }
@@ -18,8 +18,8 @@ table! {
 table! {
     community_user (id) {
         id -> Int4,
-        community_id -> Int4,
         fedi_user_id -> Text,
+        community_id -> Nullable<Int4>,
         start_time -> Timestamp,
     }
 }
