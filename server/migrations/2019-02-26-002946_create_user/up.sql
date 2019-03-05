@@ -5,6 +5,6 @@ create table user_ (
   password_encrypted text not null,
   email text,
   icon bytea,
-  start_time timestamp not null default now()
-);
-
+  published timestamp not null default now(),
+  updated timestamp
+)

@@ -1,10 +1,8 @@
 extern crate diesel;
-extern crate activitypub;
 use schema::user_;
 use diesel::*;
 use diesel::result::Error;
 use schema::user_::dsl::*;
-// use self::activitypub::{context, actor::Person};
 use Crud;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug)]
@@ -16,7 +14,8 @@ pub struct User_ {
   pub password_encrypted: String,
   pub email: Option<String>,
   pub icon: Option<Vec<u8>>,
-  pub start_time: chrono::NaiveDateTime
+  pub published: chrono::NaiveDateTime,
+  pub updated: Option<chrono::NaiveDateTime>
 }
 
 #[derive(Insertable, AsChangeset, Clone, Copy)]
@@ -26,6 +25,7 @@ pub struct UserForm<'a> {
     pub preferred_username: Option<&'a str>,
     pub password_encrypted: &'a str,
     pub email: Option<&'a str>,
+    pub updated: Option<&'a chrono::NaiveDateTime>
 }
 
 impl<'a> Crud<UserForm<'a>> for User_ {
@@ -58,16 +58,6 @@ impl<'a> Crud<UserForm<'a>> for User_ {
   }
 }
 
-
-// TODO
-// pub fn person(user: &User_) -> Person {
-//   let mut person  = Person::default();
-//   person.object_props.set_context_object(context());
-//   person.ap_actor_props.set_preferred_username_string("set".into());
-
-//   person
-// }
-
 #[cfg(test)]
 mod tests {
   use establish_connection;
@@ -81,7 +71,8 @@ mod tests {
       name: "thom".into(),
       preferred_username: None,
       password_encrypted: "nope".into(),
-      email: None
+      email: None,
+      updated: None
     };
 
     let inserted_user = User_::create(&conn, new_user).unwrap();
@@ -93,7 +84,8 @@ mod tests {
       password_encrypted: "here".into(),
       email: None,
       icon: None,
-      start_time: inserted_user.start_time
+      published: inserted_user.published,
+      updated: None
     };
     
     let read_user = User_::read(&conn, inserted_user.id);

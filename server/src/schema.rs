@@ -2,7 +2,8 @@ table! {
     community (id) {
         id -> Int4,
         name -> Varchar,
-        start_time -> Timestamp,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
     }
 }
 
@@ -11,7 +12,7 @@ table! {
         id -> Int4,
         community_id -> Int4,
         fedi_user_id -> Text,
-        start_time -> Timestamp,
+        published -> Timestamp,
     }
 }
 
@@ -20,7 +21,7 @@ table! {
         id -> Int4,
         community_id -> Int4,
         fedi_user_id -> Text,
-        start_time -> Timestamp,
+        published -> Timestamp,
     }
 }
 
@@ -30,7 +31,8 @@ table! {
         name -> Varchar,
         url -> Text,
         attributed_to -> Text,
-        start_time -> Timestamp,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
     }
 }
 
@@ -39,7 +41,7 @@ table! {
         id -> Int4,
         fedi_user_id -> Text,
         post_id -> Nullable<Int4>,
-        start_time -> Timestamp,
+        published -> Timestamp,
     }
 }
 
@@ -48,7 +50,7 @@ table! {
         id -> Int4,
         fedi_user_id -> Text,
         post_id -> Nullable<Int4>,
-        start_time -> Timestamp,
+        published -> Timestamp,
     }
 }
 
@@ -60,7 +62,8 @@ table! {
         password_encrypted -> Text,
         email -> Nullable<Text>,
         icon -> Nullable<Bytea>,
-        start_time -> Timestamp,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
     }
 }
 
