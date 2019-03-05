@@ -52,7 +52,6 @@
   "inbox": "https://rust-reddit-fediverse/api/v1/user/sally_smith/inbox",
   "outbox": "https://rust-reddit-fediverse/api/v1/user/sally_smith/outbox",
   "liked": "https://rust-reddit-fediverse/api/v1/user/sally_smith/liked",
-  "disliked": "https://rust-reddit-fediverse/api/v1/user/sally_smith/disliked",
   "following": "https://rust-reddit-fediverse/api/v1/user/sally_smith/following",
   "name": "sally_smith", 
   "preferredUsername": "Sally",

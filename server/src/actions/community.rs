@@ -9,13 +9,15 @@ use {Crud, Followable, Joinable};
 pub struct Community {
   pub id: i32,
   pub name: String,
-  pub start_time: chrono::NaiveDateTime
+  pub published: chrono::NaiveDateTime,
+  pub updated: Option<chrono::NaiveDateTime>
 }
 
 #[derive(Insertable, AsChangeset, Clone, Copy)]
 #[table_name="community"]
 pub struct CommunityForm<'a> {
-    pub name: &'a str,
+  pub name: &'a str,
+  pub updated: Option<&'a chrono::NaiveDateTime>
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
@@ -25,7 +27,7 @@ pub struct CommunityUser {
   pub id: i32,
   pub community_id: i32,
   pub fedi_user_id: String,
-  pub start_time: chrono::NaiveDateTime
+  pub published: chrono::NaiveDateTime,
 }
 
 #[derive(Insertable, AsChangeset, Clone, Copy)]
@@ -42,7 +44,7 @@ pub struct CommunityFollower {
   pub id: i32,
   pub community_id: i32,
   pub fedi_user_id: String,
-  pub start_time: chrono::NaiveDateTime
+  pub published: chrono::NaiveDateTime,
 }
 
 #[derive(Insertable, AsChangeset, Clone, Copy)]
@@ -130,6 +132,7 @@ mod tests {
     
     let new_community = CommunityForm {
       name: "TIL".into(),
+      updated: None
     };
 
     let inserted_community = Community::create(&conn, new_community).unwrap();
@@ -137,14 +140,16 @@ mod tests {
     let expected_community = Community {
       id: inserted_community.id,
       name: "TIL".into(),
-      start_time: inserted_community.start_time
+      published: inserted_community.published,
+      updated: None
     };
 
     let new_user = UserForm {
       name: "thom".into(),
       preferred_username: None,
       password_encrypted: "nope".into(),
-      email: None
+      email: None,
+      updated: None
     };
 
     let inserted_user = User_::create(&conn, new_user).unwrap();
@@ -160,7 +165,7 @@ mod tests {
       id: inserted_community_follower.id,
       community_id: inserted_community.id,
       fedi_user_id: "test".into(),
-      start_time: inserted_community_follower.start_time
+      published: inserted_community_follower.published
     };
     
     let community_user_form = CommunityUserForm {
@@ -174,7 +179,7 @@ mod tests {
       id: inserted_community_user.id,
       community_id: inserted_community.id,
       fedi_user_id: "test".into(),
-      start_time: inserted_community_user.start_time
+      published: inserted_community_user.published
     };
 
     let read_community = Community::read(&conn, inserted_community.id);
