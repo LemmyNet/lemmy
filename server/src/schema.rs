@@ -1,4 +1,26 @@
 table! {
+    comment (id) {
+        id -> Int4,
+        content -> Text,
+        attributed_to -> Text,
+        post_id -> Int4,
+        parent_id -> Nullable<Int4>,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
+    }
+}
+
+table! {
+    comment_like (id) {
+        id -> Int4,
+        comment_id -> Int4,
+        fedi_user_id -> Text,
+        score -> Int2,
+        published -> Timestamp,
+    }
+}
+
+table! {
     community (id) {
         id -> Int4,
         name -> Varchar,
@@ -37,19 +59,11 @@ table! {
 }
 
 table! {
-    post_dislike (id) {
-        id -> Int4,
-        fedi_user_id -> Text,
-        post_id -> Nullable<Int4>,
-        published -> Timestamp,
-    }
-}
-
-table! {
     post_like (id) {
         id -> Int4,
+        post_id -> Int4,
         fedi_user_id -> Text,
-        post_id -> Nullable<Int4>,
+        score -> Int2,
         published -> Timestamp,
     }
 }
@@ -67,17 +81,19 @@ table! {
     }
 }
 
+joinable!(comment -> post (post_id));
+joinable!(comment_like -> comment (comment_id));
 joinable!(community_follower -> community (community_id));
 joinable!(community_user -> community (community_id));
-joinable!(post_dislike -> post (post_id));
 joinable!(post_like -> post (post_id));
 
 allow_tables_to_appear_in_same_query!(
+    comment,
+    comment_like,
     community,
     community_follower,
     community_user,
     post,
-    post_dislike,
     post_like,
     user_,
 );

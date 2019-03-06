@@ -31,6 +31,11 @@ pub trait Joinable<T> {
   fn leave(conn: &PgConnection, form: T) -> usize;
 }
 
+pub trait Likeable<T> {
+  fn like(conn: &PgConnection, form: T) -> Result<Self, Error> where Self: Sized;
+  fn remove(conn: &PgConnection, form: T) -> usize;
+}
+
 pub fn establish_connection() -> PgConnection {
   let db_url = Settings::get().db_url;
   PgConnection::establish(&db_url)
