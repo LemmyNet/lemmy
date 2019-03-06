@@ -52,6 +52,7 @@
   "inbox": "https://rust-reddit-fediverse/api/v1/user/sally_smith/inbox",
   "outbox": "https://rust-reddit-fediverse/api/v1/user/sally_smith/outbox",
   "liked": "https://rust-reddit-fediverse/api/v1/user/sally_smith/liked",
+  // TODO disliked?
   "following": "https://rust-reddit-fediverse/api/v1/user/sally_smith/following",
   "name": "sally_smith", 
   "preferredUsername": "Sally",
@@ -62,7 +63,7 @@
     "width": 32,
     "height": 32
   },
-  "startTime": "2014-12-31T23:00:00-08:00",
+  "published": "2014-12-31T23:00:00-08:00",
   "summary"?: "This is sally's profile."
 }
 ```
@@ -78,7 +79,7 @@
     "http://joe.example.org",
   ],
   "followers": "https://rust-reddit-fediverse/api/v1/community/today_i_learned/followers",
-  "startTime": "2014-12-31T23:00:00-08:00",
+  "published": "2014-12-31T23:00:00-08:00",
   "summary"?: "The group's tagline",
   "attachment: [{}] // TBD, these would be where strong types for custom styles, and images would work.
 }
@@ -95,7 +96,7 @@
   "name": "The title of a post, maybe a link to imgur",
   "url": "https://news.blah.com"
   "attributedTo": "http://joe.example.org", // The poster
-  "startTime": "2014-12-31T23:00:00-08:00",
+  "published": "2014-12-31T23:00:00-08:00",
 }
 ```
 
@@ -116,11 +117,11 @@
   "@context": "https://www.w3.org/ns/activitystreams",
   "type": "Note",
   "id": "https://rust-reddit-fediverse/api/v1/comment/1",
-  "name": "A note",
-  "content": "Looks like it is going to rain today. Bring an umbrella <a href='http://sally.example.org'>@sally</a>!"
+  "mediaType": "text/markdown",
+  "content": "Looks like it is going to rain today. Bring an umbrella *if necessary*!"
   "attributedTo": john_id,
   "inReplyTo": "comment or post id",
-  "startTime": "2014-12-31T23:00:00-08:00",
+  "published": "2014-12-31T23:00:00-08:00",
   "updated"?: "2014-12-12T12:12:12Z"
   "replies" // TODO, not sure if these objects should embed all replies in them or not.
   "to": [sally_id, group_id]

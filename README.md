@@ -6,7 +6,6 @@ We have a twitter alternative (mastodon), a facebook alternative (friendica), so
 
 [ActivityPub API.md](API.md)
 
-
 ## Goals
 - Come up with a name / codename.
 - Must have communities.
@@ -21,7 +20,9 @@ We have a twitter alternative (mastodon), a facebook alternative (friendica), so
   - Backend: Actix, Diesel.
   - Frontend: inferno, typescript and bootstrap for now.
 - Should it allow bots?
-- Should the comments / votes be static, or feel like a chat, like [flowchat?](https://flow-chat.com). 
+- Should the comments / votes be static, or feel like a chat, like [flowchat?](https://flow-chat.com).
+  - Two pane model - Right pane is live comments, left pane is live tree view.
+  - On mobile, allow you to switch between them. Default?
 
 ## Resources / Potential Libraries
 - Use the [activitypub crate.](https://docs.rs/activitypub/0.1.4/activitypub/)
@@ -31,3 +32,9 @@ We have a twitter alternative (mastodon), a facebook alternative (friendica), so
 - [Diesel to Postgres data types](https://kotiri.com/2018/01/31/postgresql-diesel-rust-types.html)
 - [helpful diesel examples](http://siciarz.net/24-days-rust-diesel/)
 - [Mastodan public key server example](https://blog.joinmastodon.org/2018/06/how-to-implement-a-basic-activitypub-server/)
+- [Recursive query for adjacency list for nested comments](https://stackoverflow.com/questions/192220/what-is-the-most-efficient-elegant-way-to-parse-a-flat-table-into-a-tree/192462#192462)
+
+## TODOs 
+- Endpoints
+- DB
+- Followers / following
