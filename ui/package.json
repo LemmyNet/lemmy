@@ -1,0 +1,31 @@
+{
+  "name": "rust_reddit_fediverse",
+  "version": "1.0.0",
+  "description": "A simple UI for rust_reddit_fediverse",
+  "main": "index.js",
+  "scripts": {
+    "start": "node fuse dev",
+    "build": "node fuse prod"
+  },
+  "keywords": [],
+  "author": "Dessalines",
+  "license": "GPL-2.0-or-later",
+  "engines": {
+    "node": ">=8.9.0"
+  },
+  "engineStrict": true,
+  "dependencies": {
+    "classcat": "^1.1.3",
+    "dotenv": "^6.1.0",
+    "inferno": "^7.0.1",
+    "inferno-router": "^7.0.1",
+    "moment": "^2.22.2"
+  },
+  "devDependencies": {
+    "fuse-box": "3.1.3",
+    "ts-transform-classcat": "^0.0.2",
+    "ts-transform-inferno": "^4.0.2",
+    "typescript": "^3.3.3333",
+    "uglify-es": "^3.3.9"
+  }
+}

@@ -147,13 +147,11 @@
 }
 ```
 ## Actions
-
 - These are all posts to a user's outbox.
 - The server then creates a post to the necessary inbox of the recipient, or the followers.
 - Whenever a user accesses the site, they do a get from their inbox.
 
 ### Comments
-
 #### [Create](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-create)
 ```
 {
@@ -163,7 +161,6 @@
   "object": comment_id, or post_id
 }
 ```
-
 #### [Delete](https://www.w3.org/TR/activitystreams-vocabulary/#dfn-delete)
 ```
 {

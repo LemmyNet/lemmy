@@ -11,3 +11,10 @@ activitypub = "0.1.4"
 chrono = { version = "0.4", features = ["serde"] }
 failure = "0.1.5"
 serde_json = "*"
+serde = { version = "1.0", features = ["derive"] }
+actix = "*"
+actix-web = "*"
+env_logger = "*"
+rand = "0.6.5"
+strum = "0.14.0"
+strum_macros = "0.14.0"

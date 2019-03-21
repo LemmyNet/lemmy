@@ -33,8 +33,12 @@ We have a twitter alternative (mastodon), a facebook alternative (friendica), so
 - [helpful diesel examples](http://siciarz.net/24-days-rust-diesel/)
 - [Mastodan public key server example](https://blog.joinmastodon.org/2018/06/how-to-implement-a-basic-activitypub-server/)
 - [Recursive query for adjacency list for nested comments](https://stackoverflow.com/questions/192220/what-is-the-most-efficient-elegant-way-to-parse-a-flat-table-into-a-tree/192462#192462)
+- https://github.com/sparksuite/simplemde-markdown-editor
+- [Sticky Sidebar](https://stackoverflow.com/questions/38382043/how-to-use-css-position-sticky-to-keep-a-sidebar-visible-with-bootstrap-4/49111934)
 
 ## TODOs 
 - Endpoints
 - DB
 - Followers / following
+
+
