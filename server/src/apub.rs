@@ -34,7 +34,7 @@ mod tests {
   use super::User_;
   use naive_now;
 
- #[test]
+  #[test]
   fn test_person() {
     let expected_user = User_ {
       id: 52,

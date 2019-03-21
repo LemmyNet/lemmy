@@ -4,6 +4,13 @@ use diesel::*;
 use diesel::result::Error;
 use {Crud, Likeable};
 
+// WITH RECURSIVE MyTree AS (
+//     SELECT * FROM comment WHERE parent_id IS NULL
+//     UNION ALL
+//     SELECT m.* FROM comment AS m JOIN MyTree AS t ON m.parent_id = t.id
+// )
+// SELECT * FROM MyTree;
+
 #[derive(Queryable, Identifiable, PartialEq, Debug)]
 #[table_name="comment"]
 pub struct Comment {
