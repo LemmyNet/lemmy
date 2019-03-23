@@ -4,16 +4,14 @@ use std::time::{Instant, Duration};
 use server::actix::*;
 use server::actix_web::server::HttpServer;
 use server::actix_web::{fs, http, ws, App, Error, HttpRequest, HttpResponse};
+use std::str::FromStr;
 
+use server::websocket_server::server::*;
 
 /// How often heartbeat pings are sent
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 /// How long before lack of client response causes a timeout
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
-
-use server::websocket_server::server::*;
-use std::str::FromStr;
-// use server::websocket_server::server::UserOperation::from_str;
 
 /// This is our websocket route state, this state is shared with all route
 /// instances via `HttpContext::state()`
@@ -92,7 +90,7 @@ use server::serde_json::Value;
 /// WebSocket message handler
 impl StreamHandler<ws::Message, ws::ProtocolError> for WSSession {
   fn handle(&mut self, msg: ws::Message, ctx: &mut Self::Context) {
-    // println!("WEBSOCKET MESSAGE: {:?}", msg);
+    println!("WEBSOCKET MESSAGE: {:?}", msg);
     match msg {
       ws::Message::Ping(msg) => {
         self.hb = Instant::now();
@@ -108,7 +106,7 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WSSession {
         // Get the OP command, and its data
         let op: &str = &json["op"].as_str().unwrap();
         let data: &Value = &json["data"];
-        
+
         let user_operation: UserOperation = UserOperation::from_str(op).unwrap();
 
         match user_operation {
@@ -116,7 +114,23 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WSSession {
             let login: Login = serde_json::from_str(&data.to_string()).unwrap();
             ctx.state()
               .addr
-              .do_send(login);
+              .send(login)
+              .into_actor(self)
+              .then(|res, _, ctx| {
+                match res {
+                  Ok(response) => match response {
+                    Ok(t) => ctx.text(serde_json::to_string(&t).unwrap()),
+                    Err(e) => {
+                      let error_message_str: String = serde_json::to_string(&e).unwrap();
+                      eprintln!("{}", &error_message_str);
+                      ctx.text(&error_message_str);
+                    }
+                  },
+                  _ => println!("Something is wrong"),
+                }
+                fut::ok(())
+              })
+            .wait(ctx)
           },
           UserOperation::Register => {
             let register: Register = serde_json::from_str(&data.to_string()).unwrap();
@@ -126,13 +140,44 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WSSession {
               .into_actor(self)
               .then(|res, _, ctx| {
                 match res {
-                  Ok(wut) => ctx.text(wut),
+                  Ok(response) => match response {
+                    Ok(t) => ctx.text(serde_json::to_string(&t).unwrap()),
+                    Err(e) => {
+                      let error_message_str: String = serde_json::to_string(&e).unwrap();
+                      eprintln!("{}", &error_message_str);
+                      ctx.text(&error_message_str);
+                    }
+                  },
                   _ => println!("Something is wrong"),
                 }
                 fut::ok(())
               })
             .wait(ctx)
-          }
+          },
+          UserOperation::CreateCommunity => {
+            use server::actions::community::CommunityForm;
+            let auth: &str = &json["auth"].as_str().unwrap();
+            let community_form: CommunityForm = serde_json::from_str(&data.to_string()).unwrap();
+            ctx.state()
+              .addr
+              .send(community_form)
+              .into_actor(self)
+              .then(|res, _, ctx| {
+                match res {
+                  Ok(response) => match response {
+                    Ok(t) => ctx.text(serde_json::to_string(&t).unwrap()),
+                    Err(e) => {
+                      let error_message_str: String = serde_json::to_string(&e).unwrap();
+                      eprintln!("{}", &error_message_str);
+                      ctx.text(&error_message_str);
+                    }
+                  },
+                  _ => println!("Something is wrong"),
+                }
+                fut::ok(())
+              })
+            .wait(ctx)
+          },
           _ => ctx.text(format!("!!! unknown command: {:?}", m)),
         } 
 

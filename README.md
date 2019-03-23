@@ -35,6 +35,8 @@ We have a twitter alternative (mastodon), a facebook alternative (friendica), so
 - [Recursive query for adjacency list for nested comments](https://stackoverflow.com/questions/192220/what-is-the-most-efficient-elegant-way-to-parse-a-flat-table-into-a-tree/192462#192462)
 - https://github.com/sparksuite/simplemde-markdown-editor
 - [Sticky Sidebar](https://stackoverflow.com/questions/38382043/how-to-use-css-position-sticky-to-keep-a-sidebar-visible-with-bootstrap-4/49111934)
+- [RXJS websocket](https://stackoverflow.com/questions/44060315/reconnecting-a-websocket-in-angular-and-rxjs/44067972#44067972)
+- [Rust JWT](https://github.com/Keats/jsonwebtoken)
 
 ## TODOs 
 - Endpoints

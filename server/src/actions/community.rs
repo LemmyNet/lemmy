@@ -2,9 +2,10 @@ extern crate diesel;
 use schema::{community, community_user, community_follower};
 use diesel::*;
 use diesel::result::Error;
+use serde::{Deserialize, Serialize};
 use {Crud, Followable, Joinable};
 
-#[derive(Queryable, Identifiable, PartialEq, Debug)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name="community"]
 pub struct Community {
   pub id: i32,
@@ -13,11 +14,11 @@ pub struct Community {
   pub updated: Option<chrono::NaiveDateTime>
 }
 
-#[derive(Insertable, AsChangeset, Clone, Copy)]
+#[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize)]
 #[table_name="community"]
-pub struct CommunityForm<'a> {
-  pub name: &'a str,
-  pub updated: Option<&'a chrono::NaiveDateTime>
+pub struct CommunityForm {
+  pub name: String,
+  pub updated: Option<chrono::NaiveDateTime>
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
@@ -30,11 +31,11 @@ pub struct CommunityUser {
   pub published: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Clone, Copy)]
+#[derive(Insertable, AsChangeset, Clone)]
 #[table_name="community_user"]
-pub struct CommunityUserForm<'a> {
-  pub community_id: &'a i32,
-  pub fedi_user_id: &'a str,
+pub struct CommunityUserForm {
+  pub community_id: i32,
+  pub fedi_user_id: String,
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
@@ -47,76 +48,72 @@ pub struct CommunityFollower {
   pub published: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Clone, Copy)]
+#[derive(Insertable, AsChangeset, Clone)]
 #[table_name="community_follower"]
-pub struct CommunityFollowerForm<'a> {
-  pub community_id: &'a i32,
-  pub fedi_user_id: &'a str,
+pub struct CommunityFollowerForm {
+  pub community_id: i32,
+  pub fedi_user_id: String,
 }
 
 
-impl<'a> Crud<CommunityForm<'a>> for Community {
-  fn read(conn: &PgConnection, community_id: i32) -> Community {
+impl Crud<CommunityForm> for Community {
+  fn read(conn: &PgConnection, community_id: i32) -> Result<Self, Error> {
     use schema::community::dsl::*;
     community.find(community_id)
-      .first::<Community>(conn)
-      .expect("Error in query")
+      .first::<Self>(conn)
   }
 
-  fn delete(conn: &PgConnection, community_id: i32) -> usize {
+  fn delete(conn: &PgConnection, community_id: i32) -> Result<usize, Error> {
     use schema::community::dsl::*;
     diesel::delete(community.find(community_id))
       .execute(conn)
-      .expect("Error deleting.")
   }
 
-  fn create(conn: &PgConnection, new_community: CommunityForm) -> Result<Community, Error> {
+  fn create(conn: &PgConnection, new_community: &CommunityForm) -> Result<Self, Error> {
     use schema::community::dsl::*;
       insert_into(community)
         .values(new_community)
-        .get_result::<Community>(conn)
+        .get_result::<Self>(conn)
   }
 
-  fn update(conn: &PgConnection, community_id: i32, new_community: CommunityForm) -> Community {
+  fn update(conn: &PgConnection, community_id: i32, new_community: &CommunityForm) -> Result<Self, Error> {
     use schema::community::dsl::*;
     diesel::update(community.find(community_id))
       .set(new_community)
-      .get_result::<Community>(conn)
-      .expect(&format!("Unable to find {}", community_id))
+      .get_result::<Self>(conn)
   }
 }
 
-impl<'a> Followable<CommunityFollowerForm<'a>> for CommunityFollower {
-  fn follow(conn: &PgConnection, community_follower_form: CommunityFollowerForm) -> Result<CommunityFollower, Error> {
+impl Followable<CommunityFollowerForm> for CommunityFollower {
+  fn follow(conn: &PgConnection, community_follower_form: &CommunityFollowerForm) -> Result<Self, Error> {
     use schema::community_follower::dsl::*;
     insert_into(community_follower)
       .values(community_follower_form)
-      .get_result::<CommunityFollower>(conn)
+      .get_result::<Self>(conn)
   }
-  fn ignore(conn: &PgConnection, community_follower_form: CommunityFollowerForm) -> usize {
+  fn ignore(conn: &PgConnection, community_follower_form: &CommunityFollowerForm) -> Result<usize, Error> {
     use schema::community_follower::dsl::*;
     diesel::delete(community_follower
-      .filter(community_id.eq(community_follower_form.community_id))
-      .filter(fedi_user_id.eq(community_follower_form.fedi_user_id)))
+      .filter(community_id.eq(&community_follower_form.community_id))
+      .filter(fedi_user_id.eq(&community_follower_form.fedi_user_id)))
       .execute(conn)
-      .expect("Error deleting.")
   }
 }
 
-impl<'a> Joinable<CommunityUserForm<'a>> for CommunityUser {
-  fn join(conn: &PgConnection, community_user_form: CommunityUserForm) -> Result<CommunityUser, Error> {
+impl Joinable<CommunityUserForm> for CommunityUser {
+  fn join(conn: &PgConnection, community_user_form: &CommunityUserForm) -> Result<Self, Error> {
     use schema::community_user::dsl::*;
     insert_into(community_user)
       .values(community_user_form)
-      .get_result::<CommunityUser>(conn)
+      .get_result::<Self>(conn)
   }
-  fn leave(conn: &PgConnection, community_user_form: CommunityUserForm) -> usize {
+
+  fn leave(conn: &PgConnection, community_user_form: &CommunityUserForm) -> Result<usize, Error> {
     use schema::community_user::dsl::*;
     diesel::delete(community_user
       .filter(community_id.eq(community_user_form.community_id))
-      .filter(fedi_user_id.eq(community_user_form.fedi_user_id)))
+      .filter(fedi_user_id.eq(&community_user_form.fedi_user_id)))
       .execute(conn)
-      .expect("Error deleting.")
   }
 }
 
@@ -135,7 +132,7 @@ mod tests {
       updated: None
     };
 
-    let inserted_community = Community::create(&conn, new_community).unwrap();
+    let inserted_community = Community::create(&conn, &new_community).unwrap();
 
     let expected_community = Community {
       id: inserted_community.id,
@@ -145,21 +142,21 @@ mod tests {
     };
 
     let new_user = UserForm {
-      name: "thom".into(),
+      name: "terry".into(),
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
       updated: None
     };
 
-    let inserted_user = User_::create(&conn, new_user).unwrap();
+    let inserted_user = User_::create(&conn, &new_user).unwrap();
 
     let community_follower_form = CommunityFollowerForm {
-      community_id: &inserted_community.id,
+      community_id: inserted_community.id,
       fedi_user_id: "test".into()
     };
 
-    let inserted_community_follower = CommunityFollower::follow(&conn, community_follower_form).unwrap();
+    let inserted_community_follower = CommunityFollower::follow(&conn, &community_follower_form).unwrap();
 
     let expected_community_follower = CommunityFollower {
       id: inserted_community_follower.id,
@@ -169,11 +166,11 @@ mod tests {
     };
     
     let community_user_form = CommunityUserForm {
-      community_id: &inserted_community.id,
+      community_id: inserted_community.id,
       fedi_user_id: "test".into()
     };
 
-    let inserted_community_user = CommunityUser::join(&conn, community_user_form).unwrap();
+    let inserted_community_user = CommunityUser::join(&conn, &community_user_form).unwrap();
 
     let expected_community_user = CommunityUser {
       id: inserted_community_user.id,
@@ -182,12 +179,12 @@ mod tests {
       published: inserted_community_user.published
     };
 
-    let read_community = Community::read(&conn, inserted_community.id);
-    let updated_community = Community::update(&conn, inserted_community.id, new_community);
-    let ignored_community = CommunityFollower::ignore(&conn, community_follower_form);
-    let left_community = CommunityUser::leave(&conn, community_user_form);
-    let num_deleted = Community::delete(&conn, inserted_community.id);
-    User_::delete(&conn, inserted_user.id);
+    let read_community = Community::read(&conn, inserted_community.id).unwrap();
+    let updated_community = Community::update(&conn, inserted_community.id, &new_community).unwrap();
+    let ignored_community = CommunityFollower::ignore(&conn, &community_follower_form).unwrap();
+    let left_community = CommunityUser::leave(&conn, &community_user_form).unwrap();
+    let num_deleted = Community::delete(&conn, inserted_community.id).unwrap();
+    User_::delete(&conn, inserted_user.id).unwrap();
 
     assert_eq!(expected_community, read_community);
     assert_eq!(expected_community, inserted_community);
