@@ -1,7 +1,9 @@
 import { Component, linkEvent } from 'inferno';
-
-import { LoginForm, RegisterForm } from '../interfaces';
-import { WebSocketService } from '../services';
+import { Subscription } from "rxjs";
+import { retryWhen, delay, take } from 'rxjs/operators';
+import { LoginForm, RegisterForm, UserOperation } from '../interfaces';
+import { WebSocketService, UserService } from '../services';
+import { msgOp } from '../utils';
 
 interface State {
   loginForm: LoginForm;
@@ -10,24 +12,36 @@ interface State {
 
 let emptyState: State = {
   loginForm: {
-    username: null,
-    password: null
+    username_or_email: undefined,
+    password: undefined
   },
   registerForm: {
-    username: null,
-    password: null,
-    password_verify: null
+    username: undefined,
+    password: undefined,
+    password_verify: undefined
   }
 }
 
 export class Login extends Component<any, State> {
+  private subscription: Subscription;
 
   constructor(props, context) {
     super(props, context);
 
     this.state = emptyState;
 
+    this.subscription = WebSocketService.Instance.subject
+      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
+      .subscribe(
+        (msg) => this.parseMessage(msg),
+        (err) => console.error(err),
+      );
   }
+
+  componentWillUnmount() {
+    this.subscription.unsubscribe();
+  }
+
   render() {
     return (
       <div class="container">
@@ -51,7 +65,7 @@ export class Login extends Component<any, State> {
           <div class="form-group row">
             <label class="col-sm-2 col-form-label">Email or Username</label>
             <div class="col-sm-10">
-              <input type="text" class="form-control" value={this.state.loginForm.username} onInput={linkEvent(this, this.handleLoginUsernameChange)} required minLength={3} />
+              <input type="text" class="form-control" value={this.state.loginForm.username_or_email} onInput={linkEvent(this, this.handleLoginUsernameChange)} required minLength={3} />
             </div>
           </div>
           <div class="form-group row">
@@ -108,38 +122,55 @@ export class Login extends Component<any, State> {
   }
 
   handleLoginSubmit(i: Login, event) {
-    console.log(i.state);
     event.preventDefault();
     WebSocketService.Instance.login(i.state.loginForm);
   }
 
   handleLoginUsernameChange(i: Login, event) {
-    i.state.loginForm.username = event.target.value;
+    i.state.loginForm.username_or_email = event.target.value;
+    i.setState(i.state);
   }
 
   handleLoginPasswordChange(i: Login, event) {
     i.state.loginForm.password = event.target.value;
+    i.setState(i.state);
   }
 
   handleRegisterSubmit(i: Login, event) {
-    console.log(i.state);
     event.preventDefault();
     WebSocketService.Instance.register(i.state.registerForm);
   }
 
   handleRegisterUsernameChange(i: Login, event) {
     i.state.registerForm.username = event.target.value;
+    i.setState(i.state);
   }
 
   handleRegisterEmailChange(i: Login, event) {
     i.state.registerForm.email = event.target.value;
+    i.setState(i.state);
   }
 
   handleRegisterPasswordChange(i: Login, event) {
     i.state.registerForm.password = event.target.value;
+    i.setState(i.state);
   }
-  
+
   handleRegisterPasswordVerifyChange(i: Login, event) {
     i.state.registerForm.password_verify = event.target.value;
+    i.setState(i.state);
+  }
+
+  parseMessage(msg: any) {
+    let op: UserOperation = msgOp(msg);
+    if (msg.error) {
+      alert(msg.error);
+      return;
+    } else {
+      if (op == UserOperation.Register || op == UserOperation.Login) {
+        UserService.Instance.login(msg.jwt);
+        this.props.history.push('/');
+      }
+    }
   }
 }

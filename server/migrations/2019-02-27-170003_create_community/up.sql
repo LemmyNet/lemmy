@@ -1,6 +1,6 @@
 create table community (
   id serial primary key,
-  name varchar(20) not null,
+  name varchar(20) not null unique,
   published timestamp not null default now(),
   updated timestamp
 );

@@ -15,13 +15,13 @@ pub struct Post {
   pub updated: Option<chrono::NaiveDateTime>
 }
 
-#[derive(Insertable, AsChangeset, Clone, Copy)]
+#[derive(Insertable, AsChangeset, Clone)]
 #[table_name="post"]
-pub struct PostForm<'a> {
-  pub name: &'a str,
-  pub url: &'a str,
-  pub attributed_to: &'a str,
-  pub updated: Option<&'a chrono::NaiveDateTime>
+pub struct PostForm {
+  pub name: String,
+  pub url: String,
+  pub attributed_to: String,
+  pub updated: Option<chrono::NaiveDateTime>
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
@@ -35,59 +35,55 @@ pub struct PostLike {
   pub published: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Clone, Copy)]
+#[derive(Insertable, AsChangeset, Clone)]
 #[table_name="post_like"]
-pub struct PostLikeForm<'a> {
-  pub post_id: &'a i32,
-  pub fedi_user_id: &'a str,
-  pub score: &'a i16
+pub struct PostLikeForm {
+  pub post_id: i32,
+  pub fedi_user_id: String,
+  pub score: i16
 }
 
-impl<'a> Crud<PostForm<'a>> for Post {
-  fn read(conn: &PgConnection, post_id: i32) -> Post {
+impl Crud<PostForm> for Post {
+  fn read(conn: &PgConnection, post_id: i32) -> Result<Self, Error> {
     use schema::post::dsl::*;
     post.find(post_id)
-      .first::<Post>(conn)
-      .expect("Error in query")
+      .first::<Self>(conn)
   }
 
-  fn delete(conn: &PgConnection, post_id: i32) -> usize {
+  fn delete(conn: &PgConnection, post_id: i32) -> Result<usize, Error> {
     use schema::post::dsl::*;
     diesel::delete(post.find(post_id))
       .execute(conn)
-      .expect("Error deleting.")
   }
 
-  fn create(conn: &PgConnection, new_post: PostForm) -> Result<Post, Error> {
+  fn create(conn: &PgConnection, new_post: &PostForm) -> Result<Self, Error> {
     use schema::post::dsl::*;
       insert_into(post)
         .values(new_post)
-        .get_result::<Post>(conn)
+        .get_result::<Self>(conn)
   }
 
-  fn update(conn: &PgConnection, post_id: i32, new_post: PostForm) -> Post {
+  fn update(conn: &PgConnection, post_id: i32, new_post: &PostForm) -> Result<Self, Error> {
     use schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set(new_post)
-      .get_result::<Post>(conn)
-      .expect(&format!("Unable to find {}", post_id))
+      .get_result::<Self>(conn)
   }
 }
 
-impl<'a> Likeable <PostLikeForm<'a>> for PostLike {
-  fn like(conn: &PgConnection, post_like_form: PostLikeForm) -> Result<PostLike, Error> {
+impl Likeable <PostLikeForm> for PostLike {
+  fn like(conn: &PgConnection, post_like_form: &PostLikeForm) -> Result<Self, Error> {
     use schema::post_like::dsl::*;
     insert_into(post_like)
       .values(post_like_form)
-      .get_result::<PostLike>(conn)
+      .get_result::<Self>(conn)
   }
-  fn remove(conn: &PgConnection, post_like_form: PostLikeForm) -> usize {
+  fn remove(conn: &PgConnection, post_like_form: &PostLikeForm) -> Result<usize, Error> {
     use schema::post_like::dsl::*;
     diesel::delete(post_like
       .filter(post_id.eq(post_like_form.post_id))
-      .filter(fedi_user_id.eq(post_like_form.fedi_user_id)))
+      .filter(fedi_user_id.eq(&post_like_form.fedi_user_id)))
       .execute(conn)
-      .expect("Error deleting.")
   }
 }
 
@@ -107,7 +103,7 @@ mod tests {
       updated: None
     };
 
-    let inserted_post = Post::create(&conn, new_post).unwrap();
+    let inserted_post = Post::create(&conn, &new_post).unwrap();
 
     let expected_post = Post {
       id: inserted_post.id,
@@ -119,12 +115,12 @@ mod tests {
     };
 
     let post_like_form = PostLikeForm {
-      post_id: &inserted_post.id,
+      post_id: inserted_post.id,
       fedi_user_id: "test".into(),
-      score: &1
+      score: 1
     };
 
-    let inserted_post_like = PostLike::like(&conn, post_like_form).unwrap();
+    let inserted_post_like = PostLike::like(&conn, &post_like_form).unwrap();
 
     let expected_post_like = PostLike {
       id: inserted_post_like.id,
@@ -134,10 +130,10 @@ mod tests {
       score: 1
     };
     
-    let read_post = Post::read(&conn, inserted_post.id);
-    let updated_post = Post::update(&conn, inserted_post.id, new_post);
-    let like_removed = PostLike::remove(&conn, post_like_form);
-    let num_deleted = Post::delete(&conn, inserted_post.id);
+    let read_post = Post::read(&conn, inserted_post.id).unwrap();
+    let updated_post = Post::update(&conn, inserted_post.id, &new_post).unwrap();
+    let like_removed = PostLike::remove(&conn, &post_like_form).unwrap();
+    let num_deleted = Post::delete(&conn, inserted_post.id).unwrap();
 
     assert_eq!(expected_post, read_post);
     assert_eq!(expected_post, inserted_post);

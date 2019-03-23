@@ -6,19 +6,27 @@ use actix::prelude::*;
 use rand::{rngs::ThreadRng, Rng};
 use std::collections::{HashMap, HashSet};
 use serde::{Deserialize, Serialize};
+use bcrypt::{verify};
 
 use {Crud,establish_connection};
+use actions::community::*;
 
 #[derive(EnumString,ToString,Debug)]
 pub enum UserOperation {
-  Login, Register, Logout, Join, Edit, Reply, Vote, Delete, NextPage, Sticky
-}
-
-pub enum MessageType {
-  Comments, Users, Ping, Pong
+  Login, Register, Logout, CreateCommunity, Join, Edit, Reply, Vote, Delete, NextPage, Sticky
 }
 
 
+#[derive(EnumString,ToString,Debug)]
+pub enum MessageToUser {
+  Comments, Users, Ping, Pong, Error
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ErrorMessage {
+  op: String,
+  error: String
+}
 
 /// Chat server sends this messages to session
 #[derive(Message)]
@@ -66,14 +74,16 @@ pub struct Join {
   pub name: String,
 }
 
-#[derive(Message)]
 #[derive(Serialize, Deserialize)]
 pub struct Login {
-  pub username: String,
+  pub username_or_email: String,
   pub password: String
 }
 
-// #[derive(Message)]
+impl actix::Message for Login {
+  type Result = Result<LoginResponse, ErrorMessage>;
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Register {
   username: String,
@@ -82,9 +92,31 @@ pub struct Register {
   password_verify: String
 }
 
-impl actix::Message for Register {
-  type Result = String;
+#[derive(Serialize, Deserialize)]
+pub struct LoginResponse {
+  op: String,
+  jwt: String
 }
+
+impl actix::Message for Register {
+  type Result = Result<LoginResponse, ErrorMessage>;
+}
+
+// #[derive(Serialize, Deserialize)]
+// pub struct CreateCommunity {
+//   name: String
+// }
+
+#[derive(Serialize, Deserialize)]
+pub struct CreateCommunityResponse {
+  op: String,
+  community: Community
+}
+
+impl  actix::Message for CommunityForm {
+  type Result = Result<CreateCommunityResponse, ErrorMessage>;
+}
+
 /// `ChatServer` manages chat rooms and responsible for coordinating chat
 /// session. implementation is super primitive
 pub struct ChatServer {
@@ -233,10 +265,47 @@ impl Handler<Join> for ChatServer {
 
 impl Handler<Login> for ChatServer {
 
-  type Result = ();
-  fn handle(&mut self, msg: Login, _: &mut Context<Self>) {
-    println!("{}", msg.password);
+  type Result = MessageResult<Login>;
+  fn handle(&mut self, msg: Login, _: &mut Context<Self>) -> Self::Result {
 
+    use actions::user::*;
+    let conn = establish_connection();
+
+    // Fetch that username / email
+    let user: User_ = match User_::find_by_email_or_username(&conn, &msg.username_or_email) {
+      Ok(user) => user,
+      Err(e) => return MessageResult(
+        Err(
+          ErrorMessage {
+            op: UserOperation::Login.to_string(), 
+            error: "Couldn't find that username or email".to_string()
+          }
+          )
+        )
+    };
+
+    // Verify the password
+    let valid: bool = verify(&msg.password, &user.password_encrypted).unwrap_or(false);
+    if !valid {
+      return MessageResult(
+        Err(
+          ErrorMessage {
+            op: UserOperation::Login.to_string(), 
+            error: "Password incorrect".to_string()
+          }
+          )
+        )
+    }
+
+    // Return the jwt
+    MessageResult(
+      Ok(
+        LoginResponse {
+          op: UserOperation::Login.to_string(), 
+          jwt: user.jwt()
+        }
+        )
+      )
   }
 }
 
@@ -248,22 +317,79 @@ impl Handler<Register> for ChatServer {
     use actions::user::*;
     let conn = establish_connection();
 
-    // TODO figure out how to return values, and throw errors
+    // Make sure passwords match
+    if msg.password != msg.password_verify {
+      return MessageResult(
+        Err(
+          ErrorMessage {
+            op: UserOperation::Register.to_string(), 
+            error: "Passwords do not match.".to_string()
+          }
+          )
+        );
+    }
 
     // Register the new user
     let user_form = UserForm {
-      name: &msg.username,
-      email: msg.email.as_ref().map(|x| &**x),
-      password_encrypted: &msg.password,
+      name: msg.username,
+      email: msg.email,
+      password_encrypted: msg.password,
       preferred_username: None,
       updated: None
     };
 
-    let inserted_user = User_::create(&conn, user_form).unwrap();
+    // Create the user
+    let inserted_user = match User_::create(&conn, &user_form) {
+      Ok(user) => user,
+      Err(e) => return MessageResult(
+        Err(
+          ErrorMessage {
+            op: UserOperation::Register.to_string(), 
+            error: "User already exists.".to_string() // overwrite the diesel error
+          }
+          )
+        )
+    };
 
-    
     // Return the jwt
-    MessageResult("hi".to_string())
+    MessageResult(
+      Ok(
+        LoginResponse {
+          op: UserOperation::Register.to_string(), 
+          jwt: inserted_user.jwt()
+        }
+        )
+      )
 
+  }
+}
+
+
+impl Handler<CommunityForm> for ChatServer {
+
+  type Result = MessageResult<CommunityForm>;
+
+  fn handle(&mut self, form: CommunityForm, _: &mut Context<Self>) -> Self::Result {
+    let conn = establish_connection();
+    let community = match Community::create(&conn, &form) {
+      Ok(community) => community,
+      Err(e) => return MessageResult(
+        Err(
+          ErrorMessage {
+            op: UserOperation::CreateCommunity.to_string(), 
+            error: "Community already exists.".to_string() // overwrite the diesel error
+          }
+          )
+        )
+    };
+    
+    MessageResult(
+      Ok(
+        CreateCommunityResponse {
+          op: UserOperation::CreateCommunity.to_string(), 
+          community: community
+        }
+        )
+      )
   }
 }

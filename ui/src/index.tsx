@@ -4,10 +4,12 @@ import { HashRouter, Route, Switch } from 'inferno-router';
 import { Navbar } from './components/navbar';
 import { Home } from './components/home';
 import { Login } from './components/login';
+import { CreatePost } from './components/create-post';
+import { CreateCommunity } from './components/create-community';
 
 import './main.css';
 
-import { WebSocketService } from './services';
+import { WebSocketService, UserService } from './services';
 
 const container = document.getElementById('app');
 
@@ -16,6 +18,7 @@ class Index extends Component<any, any> {
   constructor(props, context) {
     super(props, context);
     WebSocketService.Instance;
+    UserService.Instance;
   }
 
   render() {
@@ -26,6 +29,8 @@ class Index extends Component<any, any> {
           <Switch>
             <Route exact path="/" component={Home} />
             <Route path={`/login`} component={Login} />
+            <Route path={`/create_post`} component={CreatePost} />
+            <Route path={`/create_community`} component={CreateCommunity} />
             {/*
             <Route path={`/search/:type_/:q/:page`} component={Search} />
             <Route path={`/submit`} component={Submit} />

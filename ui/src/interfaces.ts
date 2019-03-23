@@ -1,7 +1,17 @@
-export interface LoginForm {
+export enum UserOperation {
+  Login, Register, CreateCommunity
+}
+
+export interface User {
+  id: number
   username: string;
+}
+
+export interface LoginForm {
+  username_or_email: string;
   password: string;
 }
+
 export interface RegisterForm {
   username: string;
   email?: string;
@@ -9,6 +19,14 @@ export interface RegisterForm {
   password_verify: string;
 }
 
-export enum UserOperation {
-  Login, Register
+export interface CommunityForm {
+  name: string;
+  updated?: number
+}
+
+export interface PostForm {
+  name: string;
+  url: string;
+  attributed_to: string;
+  updated?: number
 }

@@ -8,6 +8,9 @@ pub extern crate actix;
 pub extern crate actix_web;
 pub extern crate rand;
 pub extern crate strum;
+pub extern crate jsonwebtoken;
+pub extern crate bcrypt;
+pub extern crate regex;
 #[macro_use] pub extern crate strum_macros;
 
 pub mod schema;
@@ -20,28 +23,28 @@ use diesel::pg::PgConnection;
 use diesel::result::Error;
 use dotenv::dotenv;
 use std::env;
-
+use regex::Regex;
 
 pub trait Crud<T> {
-  fn create(conn: &PgConnection, form: T) -> Result<Self, Error> where Self: Sized;
-  fn read(conn: &PgConnection, id: i32) -> Self;
-  fn update(conn: &PgConnection, id: i32, form: T) -> Self;
-  fn delete(conn: &PgConnection, id: i32) -> usize;
+  fn create(conn: &PgConnection, form: &T) -> Result<Self, Error> where Self: Sized;
+  fn read(conn: &PgConnection, id: i32) -> Result<Self, Error> where Self: Sized;  
+  fn update(conn: &PgConnection, id: i32, form: &T) -> Result<Self, Error> where Self: Sized;  
+  fn delete(conn: &PgConnection, id: i32) -> Result<usize, Error> where Self: Sized;
 }
 
 pub trait Followable<T> {
-  fn follow(conn: &PgConnection, form: T) -> Result<Self, Error> where Self: Sized;
-  fn ignore(conn: &PgConnection, form: T) -> usize;
+  fn follow(conn: &PgConnection, form: &T) -> Result<Self, Error> where Self: Sized;
+  fn ignore(conn: &PgConnection, form: &T) -> Result<usize, Error> where Self: Sized;
 }
 
 pub trait Joinable<T> {
-  fn join(conn: &PgConnection, form: T) -> Result<Self, Error> where Self: Sized;
-  fn leave(conn: &PgConnection, form: T) -> usize;
+  fn join(conn: &PgConnection, form: &T) -> Result<Self, Error> where Self: Sized;
+  fn leave(conn: &PgConnection, form: &T) -> Result<usize, Error> where Self: Sized;
 }
 
 pub trait Likeable<T> {
-  fn like(conn: &PgConnection, form: T) -> Result<Self, Error> where Self: Sized;
-  fn remove(conn: &PgConnection, form: T) -> usize;
+  fn like(conn: &PgConnection, form: &T) -> Result<Self, Error> where Self: Sized;
+  fn remove(conn: &PgConnection, form: &T) -> Result<usize, Error> where Self: Sized;
 }
 
 pub fn establish_connection() -> PgConnection {
@@ -61,7 +64,7 @@ impl Settings {
     Settings {
       db_url: env::var("DATABASE_URL")
         .expect("DATABASE_URL must be set"),
-      hostname: env::var("HOSTNAME").unwrap_or("http://0.0.0.0".to_string())
+        hostname: env::var("HOSTNAME").unwrap_or("http://0.0.0.0".to_string())
     }
   }
   fn api_endpoint(&self) -> String {
@@ -78,11 +81,22 @@ pub fn naive_now() -> NaiveDateTime {
   chrono::prelude::Utc::now().naive_utc()
 }
 
+pub fn is_email_regex(test: &str) -> bool {
+  let re = Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$").unwrap();
+  re.is_match(test)
+}
+
 #[cfg(test)]
 mod tests {
-  use Settings;
- #[test]
+  use {Settings, is_email_regex};
+  #[test]
   fn test_api() {
     assert_eq!(Settings::get().api_endpoint(), "http://0.0.0.0/api/v1");
   }
-} 
+
+  #[test]
+  fn test_email() {
+    assert!(is_email_regex("gush@gmail.com"));
+    assert!(!is_email_regex("nada_neutho"));
+  } 
+}
