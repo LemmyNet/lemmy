@@ -35,6 +35,7 @@ export class Login extends Component<any, State> {
       .subscribe(
         (msg) => this.parseMessage(msg),
         (err) => console.error(err),
+        () => console.log("complete")
       );
   }
 

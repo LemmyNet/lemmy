@@ -6,10 +6,13 @@ use actix::prelude::*;
 use rand::{rngs::ThreadRng, Rng};
 use std::collections::{HashMap, HashSet};
 use serde::{Deserialize, Serialize};
+use serde_json::{Result, Value};
 use bcrypt::{verify};
+use std::str::FromStr;
 
-use {Crud,establish_connection};
+use {Crud, Joinable, establish_connection};
 use actions::community::*;
+use actions::user::*;
 
 #[derive(EnumString,ToString,Debug)]
 pub enum UserOperation {
@@ -58,6 +61,24 @@ pub struct ClientMessage {
   pub room: String,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct StandardMessage {
+  /// Id of the client session
+  pub id: usize,
+  /// Peer message
+  pub msg: String,
+}
+
+impl actix::Message for StandardMessage {
+  type Result = String;
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct StandardResponse<T> {
+  op: String,
+  response: T
+}
+
 /// List of available rooms
 pub struct ListRooms;
 
@@ -80,10 +101,6 @@ pub struct Login {
   pub password: String
 }
 
-impl actix::Message for Login {
-  type Result = Result<LoginResponse, ErrorMessage>;
-}
-
 #[derive(Serialize, Deserialize)]
 pub struct Register {
   username: String,
@@ -98,23 +115,15 @@ pub struct LoginResponse {
   jwt: String
 }
 
-impl actix::Message for Register {
-  type Result = Result<LoginResponse, ErrorMessage>;
+#[derive(Serialize, Deserialize)]
+pub struct CreateCommunity {
+  name: String,
 }
-
-// #[derive(Serialize, Deserialize)]
-// pub struct CreateCommunity {
-//   name: String
-// }
 
 #[derive(Serialize, Deserialize)]
 pub struct CreateCommunityResponse {
   op: String,
-  community: Community
-}
-
-impl  actix::Message for CommunityForm {
-  type Result = Result<CreateCommunityResponse, ErrorMessage>;
+  data: Community
 }
 
 /// `ChatServer` manages chat rooms and responsible for coordinating chat
@@ -150,6 +159,16 @@ impl ChatServer {
           }
         }
       }
+    }
+  }
+
+  /// Send message only to self
+  fn send(&self, message: &str, id: &usize) {
+    // println!("{:?}", self.sessions);
+    if let Some(addr) = self.sessions.get(id) {
+      println!("msg: {}", message); 
+      // println!("{:?}", addr.connected());
+      let _ = addr.do_send(WSMessage(message.to_owned()));
     }
   }
 }
@@ -219,121 +238,176 @@ impl Handler<ClientMessage> for ChatServer {
   }
 }
 
-/// Handler for `ListRooms` message.
-impl Handler<ListRooms> for ChatServer {
-  type Result = MessageResult<ListRooms>;
+/// Handler for Message message.
+impl Handler<StandardMessage> for ChatServer {
+  type Result = MessageResult<StandardMessage>;
 
-  fn handle(&mut self, _: ListRooms, _: &mut Context<Self>) -> Self::Result {
-    let mut rooms = Vec::new();
+  fn handle(&mut self, msg: StandardMessage, _: &mut Context<Self>) -> Self::Result {
 
-    for key in self.rooms.keys() {
-      rooms.push(key.to_owned())
-    }
+    let json: Value = serde_json::from_str(&msg.msg)
+      .expect("Couldn't parse message");
 
-    MessageResult(rooms)
-  }
-}
+    let data: &Value = &json["data"];
+    let op = &json["op"].as_str().unwrap();
+    let auth = &json["auth"].as_str();
+    let user_operation: UserOperation = UserOperation::from_str(&op).unwrap();
 
-/// Join room, send disconnect message to old room
-/// send join message to new room
-impl Handler<Join> for ChatServer {
-  type Result = ();
-
-  fn handle(&mut self, msg: Join, _: &mut Context<Self>) {
-    let Join { id, name } = msg;
-    let mut rooms = Vec::new();
-
-    // remove session from all rooms
-    for (n, sessions) in &mut self.rooms {
-      if sessions.remove(&id) {
-        rooms.push(n.to_owned());
+    let res: String = match user_operation {
+      UserOperation::Login => {
+        let login: Login = serde_json::from_str(&data.to_string()).unwrap();
+        login.perform()
+      },
+      UserOperation::Register => {
+        let register: Register = serde_json::from_str(&data.to_string()).unwrap();
+        register.perform()
+      },
+      UserOperation::CreateCommunity => {
+        let create_community: CreateCommunity = serde_json::from_str(&data.to_string()).unwrap();
+        match auth {
+          Some(auth) => {
+            create_community.perform(auth)
+          },
+          None => serde_json::to_string(
+            &ErrorMessage {
+              op: UserOperation::CreateCommunity.to_string(),
+              error: "Not logged in.".to_string()
+            }
+            )
+            .unwrap()
+        }
+      },
+      _ => {
+        let e = ErrorMessage { 
+          op: "Unknown".to_string(),
+          error: "Unknown User Operation".to_string()
+        };
+        serde_json::to_string(&e).unwrap()
       }
-    }
-    // send message to other users
-    for room in rooms {
-      self.send_room_message(&room, "Someone disconnected", 0);
-    }
+      // _ => "no".to_string()
+    };
 
-    if self.rooms.get_mut(&name).is_none() {
-      self.rooms.insert(name.clone(), HashSet::new());
-    }
-    self.send_room_message(&name, "Someone connected", id);
-    self.rooms.get_mut(&name).unwrap().insert(id);
+
+
+    // let data: &Value = &json["data"];
+    // let res = StandardResponse {op: "nope".to_string(), response: "hi".to_string()};
+    // let out = serde_json::to_string(&res).unwrap();
+    MessageResult(res)
   }
-
 }
 
-impl Handler<Login> for ChatServer {
+// /// Handler for `ListRooms` message.
+// impl Handler<ListRooms> for ChatServer {
+//   type Result = MessageResult<ListRooms>;
 
-  type Result = MessageResult<Login>;
-  fn handle(&mut self, msg: Login, _: &mut Context<Self>) -> Self::Result {
+//   fn handle(&mut self, _: ListRooms, _: &mut Context<Self>) -> Self::Result {
+//     let mut rooms = Vec::new();
 
-    use actions::user::*;
+//     for key in self.rooms.keys() {
+//       rooms.push(key.to_owned())
+//     }
+
+//     MessageResult(rooms)
+//   }
+// }
+
+// /// Join room, send disconnect message to old room
+// /// send join message to new room
+// impl Handler<Join> for ChatServer {
+//   type Result = ();
+
+//   fn handle(&mut self, msg: Join, _: &mut Context<Self>) {
+//     let Join { id, name } = msg;
+//     let mut rooms = Vec::new();
+
+//     // remove session from all rooms
+//     for (n, sessions) in &mut self.rooms {
+//       if sessions.remove(&id) {
+//         rooms.push(n.to_owned());
+//       }
+//     }
+//     // send message to other users
+//     for room in rooms {
+//       self.send_room_message(&room, "Someone disconnected", 0);
+//     }
+
+//     if self.rooms.get_mut(&name).is_none() {
+//       self.rooms.insert(name.clone(), HashSet::new());
+//     }
+//     self.send_room_message(&name, "Someone connected", id);
+//     self.rooms.get_mut(&name).unwrap().insert(id);
+//   }
+
+// }
+
+pub trait Perform {
+  fn perform(&self) -> String;
+}
+
+pub trait PerformAuth {
+  fn perform(&self, auth: &str) -> String;
+}
+
+impl Perform for Login {
+  fn perform(&self) -> String {
+
     let conn = establish_connection();
 
     // Fetch that username / email
-    let user: User_ = match User_::find_by_email_or_username(&conn, &msg.username_or_email) {
+    let user: User_ = match User_::find_by_email_or_username(&conn, &self.username_or_email) {
       Ok(user) => user,
-      Err(e) => return MessageResult(
-        Err(
-          ErrorMessage {
-            op: UserOperation::Login.to_string(), 
-            error: "Couldn't find that username or email".to_string()
-          }
-          )
+      Err(e) => return serde_json::to_string(
+        &ErrorMessage {
+          op: UserOperation::Login.to_string(), 
+          error: "Couldn't find that username or email".to_string()
+        }
         )
+        .unwrap()
     };
 
     // Verify the password
-    let valid: bool = verify(&msg.password, &user.password_encrypted).unwrap_or(false);
+    let valid: bool = verify(&self.password, &user.password_encrypted).unwrap_or(false);
     if !valid {
-      return MessageResult(
-        Err(
-          ErrorMessage {
-            op: UserOperation::Login.to_string(), 
-            error: "Password incorrect".to_string()
-          }
-          )
+      return serde_json::to_string(
+        &ErrorMessage {
+          op: UserOperation::Login.to_string(), 
+          error: "Password incorrect".to_string()
+        }
         )
+        .unwrap()
     }
 
     // Return the jwt
-    MessageResult(
-      Ok(
-        LoginResponse {
-          op: UserOperation::Login.to_string(), 
-          jwt: user.jwt()
-        }
-        )
+    serde_json::to_string(
+      &LoginResponse {
+        op: UserOperation::Login.to_string(),
+        jwt: user.jwt()
+      }
       )
+      .unwrap()
   }
 }
 
-impl Handler<Register> for ChatServer {
+impl Perform for Register {
+  fn perform(&self) -> String {
 
-  type Result = MessageResult<Register>;
-  fn handle(&mut self, msg: Register, _: &mut Context<Self>) -> Self::Result {
-
-    use actions::user::*;
     let conn = establish_connection();
 
     // Make sure passwords match
-    if msg.password != msg.password_verify {
-      return MessageResult(
-        Err(
-          ErrorMessage {
-            op: UserOperation::Register.to_string(), 
-            error: "Passwords do not match.".to_string()
-          }
-          )
-        );
+    if &self.password != &self.password_verify {
+      return serde_json::to_string(
+        &ErrorMessage {
+          op: UserOperation::Register.to_string(), 
+          error: "Passwords do not match.".to_string()
+        }
+        )
+        .unwrap();
     }
 
     // Register the new user
     let user_form = UserForm {
-      name: msg.username,
-      email: msg.email,
-      password_encrypted: msg.password,
+      name: self.username.to_owned(),
+      email: self.email.to_owned(),
+      password_encrypted: self.password.to_owned(),
       preferred_username: None,
       updated: None
     };
@@ -341,55 +415,232 @@ impl Handler<Register> for ChatServer {
     // Create the user
     let inserted_user = match User_::create(&conn, &user_form) {
       Ok(user) => user,
-      Err(e) => return MessageResult(
-        Err(
-          ErrorMessage {
+      Err(e) => {
+        return serde_json::to_string(
+          &ErrorMessage {
             op: UserOperation::Register.to_string(), 
             error: "User already exists.".to_string() // overwrite the diesel error
           }
           )
-        )
+          .unwrap()
+      }
     };
 
     // Return the jwt
-    MessageResult(
-      Ok(
-        LoginResponse {
-          op: UserOperation::Register.to_string(), 
-          jwt: inserted_user.jwt()
-        }
-        )
+    serde_json::to_string(
+      &LoginResponse {
+        op: UserOperation::Register.to_string(), 
+        jwt: inserted_user.jwt()
+      }
       )
+      .unwrap()
 
   }
 }
 
+impl PerformAuth for CreateCommunity {
+  fn perform(&self, auth: &str) -> String {
 
-impl Handler<CommunityForm> for ChatServer {
-
-  type Result = MessageResult<CommunityForm>;
-
-  fn handle(&mut self, form: CommunityForm, _: &mut Context<Self>) -> Self::Result {
     let conn = establish_connection();
-    let community = match Community::create(&conn, &form) {
+
+    let claims = match Claims::decode(&auth) {
+      Ok(claims) => claims.claims,
+      Err(e) => {
+        return serde_json::to_string(
+          &ErrorMessage {
+            op: UserOperation::CreateCommunity.to_string(), 
+            error: "Community user already exists.".to_string() // overwrite the diesel error
+          }
+          )
+          .unwrap();
+      }
+    };
+
+    let user_id = claims.id;
+    let iss = claims.iss;
+
+    // Register the new user
+    let community_form = CommunityForm {
+      name: self.name.to_owned(),
+      updated: None
+    };
+
+    let inserted_community = match Community::create(&conn, &community_form) {
       Ok(community) => community,
-      Err(e) => return MessageResult(
-        Err(
-          ErrorMessage {
+      Err(e) => {
+        return serde_json::to_string(
+          &ErrorMessage {
             op: UserOperation::CreateCommunity.to_string(), 
             error: "Community already exists.".to_string() // overwrite the diesel error
           }
           )
-        )
+          .unwrap()
+      }
     };
-    
-    MessageResult(
-      Ok(
-        CreateCommunityResponse {
-          op: UserOperation::CreateCommunity.to_string(), 
-          community: community
-        }
-        )
+
+    let community_user_form = CommunityUserForm {
+      community_id: inserted_community.id,
+      fedi_user_id: format!("{}/{}", iss, user_id)
+    };
+
+    let inserted_community_user = match CommunityUser::join(&conn, &community_user_form) {
+      Ok(user) => user,
+      Err(e) => {
+        return serde_json::to_string(
+          &ErrorMessage {
+            op: UserOperation::CreateCommunity.to_string(), 
+            error: "Community user already exists.".to_string() // overwrite the diesel error
+          }
+          )
+          .unwrap()
+      }
+    };
+
+
+    // Return the jwt
+    serde_json::to_string(
+      &CreateCommunityResponse {
+        op: UserOperation::CreateCommunity.to_string(), 
+        data: inserted_community
+      }
       )
+      .unwrap()
+
   }
 }
+// impl Handler<Login> for ChatServer {
+
+//   type Result = MessageResult<Login>;
+//   fn handle(&mut self, msg: Login, _: &mut Context<Self>) -> Self::Result {
+
+//     let conn = establish_connection();
+
+//     // Fetch that username / email
+//     let user: User_ = match User_::find_by_email_or_username(&conn, &msg.username_or_email) {
+//       Ok(user) => user,
+//       Err(e) => return MessageResult(
+//         Err(
+//           ErrorMessage {
+//             op: UserOperation::Login.to_string(), 
+//             error: "Couldn't find that username or email".to_string()
+//           }
+//           )
+//         )
+//     };
+
+//     // Verify the password
+//     let valid: bool = verify(&msg.password, &user.password_encrypted).unwrap_or(false);
+//     if !valid {
+//       return MessageResult(
+//         Err(
+//           ErrorMessage {
+//             op: UserOperation::Login.to_string(), 
+//             error: "Password incorrect".to_string()
+//           }
+//           )
+//         )
+//     }
+
+//     // Return the jwt
+//     MessageResult(
+//       Ok(
+//         LoginResponse {
+//           op: UserOperation::Login.to_string(), 
+//           jwt: user.jwt()
+//         }
+//         )
+//       )
+//   }
+// }
+
+// impl Handler<Register> for ChatServer {
+
+//   type Result = MessageResult<Register>;
+//   fn handle(&mut self, msg: Register, _: &mut Context<Self>) -> Self::Result {
+
+//     let conn = establish_connection();
+
+//     // Make sure passwords match
+//     if msg.password != msg.password_verify {
+//       return MessageResult(
+//         Err(
+//           ErrorMessage {
+//             op: UserOperation::Register.to_string(), 
+//             error: "Passwords do not match.".to_string()
+//           }
+//           )
+//         );
+//     }
+
+//     // Register the new user
+//     let user_form = UserForm {
+//       name: msg.username,
+//       email: msg.email,
+//       password_encrypted: msg.password,
+//       preferred_username: None,
+//       updated: None
+//     };
+
+//     // Create the user
+//     let inserted_user = match User_::create(&conn, &user_form) {
+//       Ok(user) => user,
+//       Err(e) => return MessageResult(
+//         Err(
+//           ErrorMessage {
+//             op: UserOperation::Register.to_string(), 
+//             error: "User already exists.".to_string() // overwrite the diesel error
+//           }
+//           )
+//         )
+//     };
+
+//     // Return the jwt
+//     MessageResult(
+//       Ok(
+//         LoginResponse {
+//           op: UserOperation::Register.to_string(), 
+//           jwt: inserted_user.jwt()
+//         }
+//         )
+//       )
+
+//   }
+// }
+
+
+// impl Handler<CreateCommunity> for ChatServer {
+
+//   type Result = MessageResult<CreateCommunity>;
+
+//   fn handle(&mut self, msg: CreateCommunity, _: &mut Context<Self>) -> Self::Result {
+//     let conn = establish_connection();
+
+//     let user_id = Claims::decode(&msg.auth).id;
+
+//     let community_form = CommunityForm {
+//       name: msg.name,
+//       updated: None
+//     };
+
+//     let community = match Community::create(&conn, &community_form) {
+//       Ok(community) => community,
+//       Err(e) => return MessageResult(
+//         Err(
+//           ErrorMessage {
+//             op: UserOperation::CreateCommunity.to_string(), 
+//             error: "Community already exists.".to_string() // overwrite the diesel error
+//           }
+//           )
+//         )
+//     };
+    
+//     MessageResult(
+//       Ok(
+//         CreateCommunityResponse {
+//           op: UserOperation::CreateCommunity.to_string(), 
+//           community: community
+//         }
+//         )
+//       )
+//   }
+// }

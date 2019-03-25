@@ -4,7 +4,7 @@ use diesel::result::Error;
 use schema::user_::dsl::*;
 use serde::{Serialize, Deserialize};
 use {Crud,is_email_regex};
-use jsonwebtoken::{encode, decode, Header, Validation};
+use jsonwebtoken::{encode, decode, Header, Validation, TokenData};
 use bcrypt::{DEFAULT_COST, hash};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug)]
@@ -60,9 +60,20 @@ impl Crud<UserForm> for User_ {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Claims {
-    id: i32,
-    username: String
+pub struct Claims {
+  pub id: i32,
+  pub username: String,
+  pub iss: String,
+}
+
+impl Claims {
+  pub fn decode(jwt: &str) -> Result<TokenData<Claims>, jsonwebtoken::errors::Error> {
+    let v = Validation {
+      validate_exp: false,
+      ..Validation::default()
+    };
+    decode::<Claims>(&jwt, "secret".as_ref(), &v)
+  }
 }
 
 type Jwt = String;
@@ -70,7 +81,8 @@ impl User_ {
   pub fn jwt(&self) -> Jwt {
     let my_claims = Claims {
       id: self.id,
-      username: self.name.to_owned()
+      username: self.name.to_owned(),
+      iss: "rrf".to_string() // TODO this should come from config file
     };
     encode(&Header::default(), &my_claims, "secret".as_ref()).unwrap()
   }
@@ -86,11 +98,12 @@ impl User_ {
   }
 
   pub fn find_by_jwt(conn: &PgConnection, jwt: &str) -> Result<Self, Error> {
-    let token = decode::<Claims>(&jwt, "secret".as_ref(), &Validation::default())
-    .expect("Couldn't decode jwt");
-    Self::read(&conn, token.claims.id)
+    let claims: Claims = Claims::decode(&jwt).expect("Invalid token").claims;
+    Self::read(&conn, claims.id)
   }
+
 }
+
 
 #[cfg(test)]
 mod tests {

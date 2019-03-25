@@ -19,9 +19,9 @@ export class UserService {
   }
 
   public login(jwt: string) {
+    this.setUser(jwt);
     Cookies.set("jwt", jwt);
     console.log("jwt cookie set");
-    this.setUser(jwt);
   }
 
   public logout() {
@@ -42,7 +42,6 @@ export class UserService {
   private setUser(jwt: string) {
     this.user = jwt_decode(jwt);
     this.sub.next(this.user);
-    console.log(this.user.username);
   }
 
   public static get Instance(){

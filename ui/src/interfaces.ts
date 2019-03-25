@@ -3,8 +3,15 @@ export enum UserOperation {
 }
 
 export interface User {
-  id: number
+  id: number;
   username: string;
+}
+
+export interface Community {
+  id: number;
+  name: string;
+  published: Date;
+  updated?: Date;
 }
 
 export interface LoginForm {
@@ -21,7 +28,6 @@ export interface RegisterForm {
 
 export interface CommunityForm {
   name: string;
-  updated?: number
 }
 
 export interface PostForm {
