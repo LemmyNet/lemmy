@@ -4,7 +4,6 @@ use std::time::{Instant, Duration};
 use server::actix::*;
 use server::actix_web::server::HttpServer;
 use server::actix_web::{fs, http, ws, App, Error, HttpRequest, HttpResponse};
-use std::str::FromStr;
 
 use server::websocket_server::server::*;
 
@@ -82,15 +81,16 @@ impl Handler<WSMessage> for WSSession {
   type Result = ();
 
   fn handle(&mut self, msg: WSMessage, ctx: &mut Self::Context) {
+    println!("id: {} msg: {}", self.id, msg.0);
     ctx.text(msg.0);
+    ctx.text("NO");
   }
 }
 
-use server::serde_json::Value;
 /// WebSocket message handler
 impl StreamHandler<ws::Message, ws::ProtocolError> for WSSession {
   fn handle(&mut self, msg: ws::Message, ctx: &mut Self::Context) {
-    println!("WEBSOCKET MESSAGE: {:?}", msg);
+    println!("WEBSOCKET MESSAGE: {:?} from id: {}", msg, self.id);
     match msg {
       ws::Message::Ping(msg) => {
         self.hb = Instant::now();
@@ -100,86 +100,29 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WSSession {
         self.hb = Instant::now();
       }
       ws::Message::Text(text) => {
-        let m = text.trim();
-        let json: Value = serde_json::from_str(m).unwrap();
-
-        // Get the OP command, and its data
-        let op: &str = &json["op"].as_str().unwrap();
-        let data: &Value = &json["data"];
-
-        let user_operation: UserOperation = UserOperation::from_str(op).unwrap();
-
-        match user_operation {
-          UserOperation::Login => {
-            let login: Login = serde_json::from_str(&data.to_string()).unwrap();
-            ctx.state()
-              .addr
-              .send(login)
-              .into_actor(self)
-              .then(|res, _, ctx| {
-                match res {
-                  Ok(response) => match response {
-                    Ok(t) => ctx.text(serde_json::to_string(&t).unwrap()),
-                    Err(e) => {
-                      let error_message_str: String = serde_json::to_string(&e).unwrap();
-                      eprintln!("{}", &error_message_str);
-                      ctx.text(&error_message_str);
-                    }
-                  },
-                  _ => println!("Something is wrong"),
-                }
-                fut::ok(())
-              })
-            .wait(ctx)
-          },
-          UserOperation::Register => {
-            let register: Register = serde_json::from_str(&data.to_string()).unwrap();
-            ctx.state()
-              .addr
-              .send(register)
-              .into_actor(self)
-              .then(|res, _, ctx| {
-                match res {
-                  Ok(response) => match response {
-                    Ok(t) => ctx.text(serde_json::to_string(&t).unwrap()),
-                    Err(e) => {
-                      let error_message_str: String = serde_json::to_string(&e).unwrap();
-                      eprintln!("{}", &error_message_str);
-                      ctx.text(&error_message_str);
-                    }
-                  },
-                  _ => println!("Something is wrong"),
-                }
-                fut::ok(())
-              })
-            .wait(ctx)
-          },
-          UserOperation::CreateCommunity => {
-            use server::actions::community::CommunityForm;
-            let auth: &str = &json["auth"].as_str().unwrap();
-            let community_form: CommunityForm = serde_json::from_str(&data.to_string()).unwrap();
-            ctx.state()
-              .addr
-              .send(community_form)
-              .into_actor(self)
-              .then(|res, _, ctx| {
-                match res {
-                  Ok(response) => match response {
-                    Ok(t) => ctx.text(serde_json::to_string(&t).unwrap()),
-                    Err(e) => {
-                      let error_message_str: String = serde_json::to_string(&e).unwrap();
-                      eprintln!("{}", &error_message_str);
-                      ctx.text(&error_message_str);
-                    }
-                  },
-                  _ => println!("Something is wrong"),
-                }
-                fut::ok(())
-              })
-            .wait(ctx)
-          },
-          _ => ctx.text(format!("!!! unknown command: {:?}", m)),
-        } 
+        let m = text.trim().to_owned();
+        
+        ctx.state()
+          .addr
+          .send(StandardMessage {
+            id: self.id,
+            msg: m
+          })
+        .into_actor(self)
+          .then(|res, _, ctx| {
+            match res {
+              Ok(res) => ctx.text(res),
+              Err(e) => {
+                eprintln!("{}", &e);
+                // ctx.text(e);
+              }
+            }
+            // Ok(res) => ctx.text(res),
+            // // something is wrong with chat server
+            // _ => ctx.stop(),
+            fut::ok(())
+          })
+            .wait(ctx);
 
         // we check for /sss type of messages
         // if m.starts_with('/') {

@@ -5,6 +5,8 @@ import { CommunityForm, UserOperation } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { msgOp } from '../utils';
 
+import { Community } from '../interfaces';
+
 interface State {
   communityForm: CommunityForm;
 }
@@ -28,6 +30,7 @@ export class CreateCommunity extends Component<any, State> {
       .subscribe(
         (msg) => this.parseMessage(msg),
         (err) => console.error(err),
+        () => console.log("complete")
       );
   }
 
@@ -80,10 +83,14 @@ export class CreateCommunity extends Component<any, State> {
 
   parseMessage(msg: any) {
     let op: UserOperation = msgOp(msg);
+    console.log(msg);
     if (msg.error) {
       alert(msg.error);
       return;
     } else {
+      if (op == UserOperation.CreateCommunity) {
+        let community: Community = msg.data;
+      }
     }
   }
 
