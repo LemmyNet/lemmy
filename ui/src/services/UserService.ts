@@ -1,5 +1,5 @@
 import * as Cookies from 'js-cookie';
-import { User } from '../interfaces';
+import { User, LoginResponse } from '../interfaces';
 import * as jwt_decode from 'jwt-decode';
 import { Subject } from 'rxjs';
 
@@ -18,9 +18,9 @@ export class UserService {
 
   }
 
-  public login(jwt: string) {
-    this.setUser(jwt);
-    Cookies.set("jwt", jwt);
+  public login(res: LoginResponse) {
+    this.setUser(res.jwt);
+    Cookies.set("jwt", res.jwt);
     console.log("jwt cookie set");
   }
 

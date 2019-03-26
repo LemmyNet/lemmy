@@ -1,5 +1,5 @@
 export enum UserOperation {
-  Login, Register, CreateCommunity
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, GetPost, GetCommunity, CreateComment
 }
 
 export interface User {
@@ -10,8 +10,71 @@ export interface User {
 export interface Community {
   id: number;
   name: string;
-  published: Date;
-  updated?: Date;
+  published: string;
+  updated?: string;
+}
+
+export interface CommunityForm {
+  name: string;
+  auth?: string;
+}
+
+export interface CommunityResponse {
+  op: string;
+  community: Community;
+}
+
+export interface ListCommunitiesResponse {
+  op: string;
+  communities: Array<Community>;
+}
+
+export interface Post {
+  id: number;
+  name: string;
+  url?: string;
+  body?: string;
+  attributed_to: string;
+  community_id: number;
+  published: string;
+  updated?: string;
+}
+
+export interface PostForm {
+  name: string;
+  url?: string;
+  body?: string;
+  community_id: number;
+  updated?: number;
+  auth: string;
+}
+
+export interface PostResponse {
+  op: string;
+  post: Post;
+  comments: Array<Comment>;
+}
+
+export interface Comment {
+  id: number;
+  content: string;
+  attributed_to: string;
+  post_id: number,
+  parent_id?: number;
+  published: string;
+  updated?: string;
+}
+
+export interface CommentForm {
+  content: string;
+  post_id: number;
+  parent_id?: number;
+  auth: string;
+}
+
+export interface CommentResponse {
+  op: string;
+  comment: Comment;
 }
 
 export interface LoginForm {
@@ -26,13 +89,9 @@ export interface RegisterForm {
   password_verify: string;
 }
 
-export interface CommunityForm {
-  name: string;
+export interface LoginResponse {
+  op: string;
+  jwt: string;
 }
 
-export interface PostForm {
-  name: string;
-  url: string;
-  attributed_to: string;
-  updated?: number
-}
+

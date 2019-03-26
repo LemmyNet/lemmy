@@ -1,8 +1,10 @@
 create table post (
   id serial primary key,
   name varchar(100) not null,
-  url text not null,
+  url text, -- These are both optional, a post can just have a title
+  body text,
   attributed_to text not null,
+  community_id int references community on update cascade on delete cascade not null,
   published timestamp not null default now(),
   updated timestamp
 );

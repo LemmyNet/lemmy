@@ -6,6 +6,8 @@ import { Home } from './components/home';
 import { Login } from './components/login';
 import { CreatePost } from './components/create-post';
 import { CreateCommunity } from './components/create-community';
+import { Post } from './components/post';
+import { Community } from './components/community';
 
 import './main.css';
 
@@ -31,12 +33,8 @@ class Index extends Component<any, any> {
             <Route path={`/login`} component={Login} />
             <Route path={`/create_post`} component={CreatePost} />
             <Route path={`/create_community`} component={CreateCommunity} />
-            {/*
-            <Route path={`/search/:type_/:q/:page`} component={Search} />
-            <Route path={`/submit`} component={Submit} />
-            <Route path={`/user/:id`} component={Login} />
-            <Route path={`/community/:id`} component={Login} /> 
-            */}
+            <Route path={`/post/:id`} component={Post} />
+            <Route path={`/community/:id`} component={Community} />
           </Switch>
         </div>
       </HashRouter>

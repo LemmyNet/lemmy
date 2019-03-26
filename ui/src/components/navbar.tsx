@@ -58,5 +58,6 @@ export class Navbar extends Component<any, any> {
 
   handleLogoutClick(i: Navbar, event) {
     UserService.Instance.logout();
+    // i.props.history.push('/');
   }
 }

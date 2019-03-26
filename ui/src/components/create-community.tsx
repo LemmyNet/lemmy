@@ -11,20 +11,20 @@ interface State {
   communityForm: CommunityForm;
 }
 
-let emptyState: State = {
-  communityForm: {
-    name: null,
-  }
-}
-
 export class CreateCommunity extends Component<any, State> {
   private subscription: Subscription;
+
+  private emptyState: State = {
+    communityForm: {
+      name: null,
+    }
+  }
 
   constructor(props, context) {
     super(props, context);
 
-    this.state = emptyState;
-
+    this.state = this.emptyState;
+    
     this.subscription = WebSocketService.Instance.subject
       .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
       .subscribe(
@@ -89,7 +89,8 @@ export class CreateCommunity extends Component<any, State> {
       return;
     } else {
       if (op == UserOperation.CreateCommunity) {
-        let community: Community = msg.data;
+        let community: Community = msg.community;
+        this.props.history.push(`/community/${community.id}`);
       }
     }
   }
