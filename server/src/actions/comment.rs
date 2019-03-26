@@ -2,7 +2,9 @@ extern crate diesel;
 use schema::{comment, comment_like};
 use diesel::*;
 use diesel::result::Error;
+use serde::{Deserialize, Serialize};
 use {Crud, Likeable};
+use actions::post::Post;
 
 // WITH RECURSIVE MyTree AS (
 //     SELECT * FROM comment WHERE parent_id IS NULL
@@ -11,7 +13,8 @@ use {Crud, Likeable};
 // )
 // SELECT * FROM MyTree;
 
-#[derive(Queryable, Identifiable, PartialEq, Debug)]
+#[derive(Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
+#[belongs_to(Post)]
 #[table_name="comment"]
 pub struct Comment {
   pub id: i32,
@@ -96,20 +99,38 @@ impl Likeable <CommentLikeForm> for CommentLike {
   }
 }
 
+impl Comment {
+  pub fn from_post(conn: &PgConnection, post: &Post) -> Result<Vec<Self>, Error> {
+    use schema::community::dsl::*;
+    Comment::belonging_to(post)
+      .load::<Self>(conn) 
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use establish_connection;
   use super::*;
   use actions::post::*;
+  use actions::community::*;
   use Crud;
  #[test]
   fn test_crud() {
     let conn = establish_connection();
+
+    let new_community = CommunityForm {
+      name: "test community".to_string(),
+      updated: None
+    };
+
+    let inserted_community = Community::create(&conn, &new_community).unwrap();
     
     let new_post = PostForm {
       name: "A test post".into(),
-      url: "https://test.com".into(),
+      url: None,
+      body: None,
       attributed_to: "test_user.com".into(),
+      community_id: inserted_community.id,
       updated: None
     };
 
@@ -167,6 +188,7 @@ mod tests {
     let num_deleted = Comment::delete(&conn, inserted_comment.id).unwrap();
     Comment::delete(&conn, inserted_child_comment.id).unwrap();
     Post::delete(&conn, inserted_post.id).unwrap();
+    Community::delete(&conn, inserted_community.id).unwrap();
 
     assert_eq!(expected_comment, read_comment);
     assert_eq!(expected_comment, inserted_comment);

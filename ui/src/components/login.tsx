@@ -1,7 +1,7 @@
 import { Component, linkEvent } from 'inferno';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { LoginForm, RegisterForm, UserOperation } from '../interfaces';
+import { LoginForm, RegisterForm, LoginResponse, UserOperation } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { msgOp } from '../utils';
 
@@ -169,7 +169,8 @@ export class Login extends Component<any, State> {
       return;
     } else {
       if (op == UserOperation.Register || op == UserOperation.Login) {
-        UserService.Instance.login(msg.jwt);
+        let res: LoginResponse = msg;
+        UserService.Instance.login(msg);
         this.props.history.push('/');
       }
     }

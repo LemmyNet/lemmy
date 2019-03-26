@@ -117,6 +117,13 @@ impl Joinable<CommunityUserForm> for CommunityUser {
   }
 }
 
+impl Community {
+  pub fn list_all(conn: &PgConnection) -> Result<Vec<Self>, Error> {
+    use schema::community::dsl::*;
+    community.load::<Self>(conn)
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use establish_connection;
@@ -183,6 +190,7 @@ mod tests {
     let updated_community = Community::update(&conn, inserted_community.id, &new_community).unwrap();
     let ignored_community = CommunityFollower::ignore(&conn, &community_follower_form).unwrap();
     let left_community = CommunityUser::leave(&conn, &community_user_form).unwrap();
+    let loaded_count = Community::list_all(&conn).unwrap().len();
     let num_deleted = Community::delete(&conn, inserted_community.id).unwrap();
     User_::delete(&conn, inserted_user.id).unwrap();
 
@@ -193,6 +201,7 @@ mod tests {
     assert_eq!(expected_community_user, inserted_community_user);
     assert_eq!(1, ignored_community);
     assert_eq!(1, left_community);
+    assert_eq!(1, loaded_count);
     assert_eq!(1, num_deleted);
 
   }

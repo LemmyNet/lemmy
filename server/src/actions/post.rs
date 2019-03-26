@@ -2,15 +2,18 @@ extern crate diesel;
 use schema::{post, post_like};
 use diesel::*;
 use diesel::result::Error;
+use serde::{Deserialize, Serialize};
 use {Crud, Likeable};
 
-#[derive(Queryable, Identifiable, PartialEq, Debug)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name="post"]
 pub struct Post {
   pub id: i32,
   pub name: String,
-  pub url: String,
+  pub url: Option<String>,
+  pub body: Option<String>,
   pub attributed_to: String,
+  pub community_id: i32,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>
 }
@@ -19,8 +22,10 @@ pub struct Post {
 #[table_name="post"]
 pub struct PostForm {
   pub name: String,
-  pub url: String,
+  pub url: Option<String>,
+  pub body: Option<String>,
   pub attributed_to: String,
+  pub community_id: i32,
   pub updated: Option<chrono::NaiveDateTime>
 }
 
@@ -92,14 +97,24 @@ mod tests {
   use establish_connection;
   use super::*;
   use Crud;
+  use actions::community::*;
  #[test]
   fn test_crud() {
     let conn = establish_connection();
+
+    let new_community = CommunityForm {
+      name: "test community_2".to_string(),
+      updated: None
+    };
+
+    let inserted_community = Community::create(&conn, &new_community).unwrap();
     
     let new_post = PostForm {
       name: "A test post".into(),
-      url: "https://test.com".into(),
+      url: None,
+      body: None,
       attributed_to: "test_user.com".into(),
+      community_id: inserted_community.id,
       updated: None
     };
 
@@ -108,8 +123,10 @@ mod tests {
     let expected_post = Post {
       id: inserted_post.id,
       name: "A test post".into(),
-      url: "https://test.com".into(),
+      url: None,
+      body: None,
       attributed_to: "test_user.com".into(),
+      community_id: inserted_community.id,
       published: inserted_post.published,
       updated: None
     };
@@ -134,6 +151,7 @@ mod tests {
     let updated_post = Post::update(&conn, inserted_post.id, &new_post).unwrap();
     let like_removed = PostLike::remove(&conn, &post_like_form).unwrap();
     let num_deleted = Post::delete(&conn, inserted_post.id).unwrap();
+    Community::delete(&conn, inserted_community.id).unwrap();
 
     assert_eq!(expected_post, read_post);
     assert_eq!(expected_post, inserted_post);

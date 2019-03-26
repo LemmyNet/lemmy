@@ -51,8 +51,10 @@ table! {
     post (id) {
         id -> Int4,
         name -> Varchar,
-        url -> Text,
+        url -> Nullable<Text>,
+        body -> Nullable<Text>,
         attributed_to -> Text,
+        community_id -> Int4,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
     }
@@ -85,6 +87,7 @@ joinable!(comment -> post (post_id));
 joinable!(comment_like -> comment (comment_id));
 joinable!(community_follower -> community (community_id));
 joinable!(community_user -> community (community_id));
+joinable!(post -> community (community_id));
 joinable!(post_like -> post (post_id));
 
 allow_tables_to_appear_in_same_query!(
