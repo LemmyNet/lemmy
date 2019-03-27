@@ -78,7 +78,6 @@ export class CreateCommunity extends Component<any, State> {
 
   handleCommunityNameChange(i: CreateCommunity, event) {
     i.state.communityForm.name = event.target.value;
-    i.setState(i.state);
   }
 
   parseMessage(msg: any) {

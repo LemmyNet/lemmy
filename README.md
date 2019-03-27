@@ -37,6 +37,7 @@ We have a twitter alternative (mastodon), a facebook alternative (friendica), so
 - [Sticky Sidebar](https://stackoverflow.com/questions/38382043/how-to-use-css-position-sticky-to-keep-a-sidebar-visible-with-bootstrap-4/49111934)
 - [RXJS websocket](https://stackoverflow.com/questions/44060315/reconnecting-a-websocket-in-angular-and-rxjs/44067972#44067972)
 - [Rust JWT](https://github.com/Keats/jsonwebtoken)
+- [Hierarchical tree building javascript](https://stackoverflow.com/a/40732240/1655478)
 
 ## TODOs 
 - Endpoints

@@ -83,7 +83,6 @@ impl Handler<WSMessage> for WSSession {
   fn handle(&mut self, msg: WSMessage, ctx: &mut Self::Context) {
     println!("id: {} msg: {}", self.id, msg.0);
     ctx.text(msg.0);
-    ctx.text("NO");
   }
 }
 
@@ -122,7 +121,7 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WSSession {
             // _ => ctx.stop(),
             fut::ok(())
           })
-            .wait(ctx);
+        .wait(ctx);
 
         // we check for /sss type of messages
         // if m.starts_with('/') {

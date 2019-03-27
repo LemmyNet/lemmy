@@ -190,15 +190,14 @@ pub struct CreateCommentResponse {
 /// session. implementation is super primitive
 pub struct ChatServer {
   sessions: HashMap<usize, Recipient<WSMessage>>, // A map from generated random ID to session addr
-  rooms: HashMap<String, HashSet<usize>>, // A map from room name to set of connectionIDs
+  rooms: HashMap<i32, HashSet<usize>>, // A map from room / post name to set of connectionIDs
   rng: ThreadRng,
 }
 
 impl Default for ChatServer {
   fn default() -> ChatServer {
     // default room
-    let mut rooms = HashMap::new();
-    rooms.insert("Main".to_owned(), HashSet::new());
+    let rooms = HashMap::new();
 
     ChatServer {
       sessions: HashMap::new(),
@@ -210,8 +209,8 @@ impl Default for ChatServer {
 
 impl ChatServer {
   /// Send message to all users in the room
-  fn send_room_message(&self, room: &str, message: &str, skip_id: usize) {
-    if let Some(sessions) = self.rooms.get(room) {
+  fn send_room_message(&self, room: i32, message: &str, skip_id: usize) {
+    if let Some(sessions) = self.rooms.get(&room) {
       for id in sessions {
         if *id != skip_id {
           if let Some(addr) = self.sessions.get(id) {
@@ -250,14 +249,14 @@ impl Handler<Connect> for ChatServer {
     println!("Someone joined");
 
     // notify all users in same room
-    self.send_room_message(&"Main".to_owned(), "Someone joined", 0);
+    // self.send_room_message(&"Main".to_owned(), "Someone joined", 0);
 
     // register session with random id
     let id = self.rng.gen::<usize>();
     self.sessions.insert(id, msg.addr);
 
     // auto join session to Main room
-    self.rooms.get_mut(&"Main".to_owned()).unwrap().insert(id);
+    // self.rooms.get_mut(&"Main".to_owned()).unwrap().insert(id);
 
     // send id back
     id
@@ -271,32 +270,32 @@ impl Handler<Disconnect> for ChatServer {
   fn handle(&mut self, msg: Disconnect, _: &mut Context<Self>) {
     println!("Someone disconnected");
 
-    let mut rooms: Vec<String> = Vec::new();
+    let mut rooms: Vec<i32> = Vec::new();
 
     // remove address
     if self.sessions.remove(&msg.id).is_some() {
       // remove session from all rooms
-      for (name, sessions) in &mut self.rooms {
+      for (id, sessions) in &mut self.rooms {
         if sessions.remove(&msg.id) {
-          rooms.push(name.to_owned());
+          // rooms.push(*id);
         }
       }
     }
     // send message to other users
-    for room in rooms {
-      self.send_room_message(&room, "Someone disconnected", 0);
-    }
+    // for room in rooms {
+      // self.send_room_message(room, "Someone disconnected", 0);
+    // }
   }
 }
 
 /// Handler for Message message.
-impl Handler<ClientMessage> for ChatServer {
-  type Result = ();
+// impl Handler<ClientMessage> for ChatServer {
+//   type Result = ();
 
-  fn handle(&mut self, msg: ClientMessage, _: &mut Context<Self>) {
-    self.send_room_message(&msg.room, msg.msg.as_str(), msg.id);
-  }
-}
+//   fn handle(&mut self, msg: ClientMessage, _: &mut Context<Self>) {
+//     self.send_room_message(&msg.room, msg.msg.as_str(), msg.id);
+//   }
+// }
 
 /// Handler for Message message.
 impl Handler<StandardMessage> for ChatServer {
@@ -314,35 +313,35 @@ impl Handler<StandardMessage> for ChatServer {
     let res: String = match user_operation {
       UserOperation::Login => {
         let login: Login = serde_json::from_str(&data.to_string()).unwrap();
-        login.perform()
+        login.perform(self, msg.id)
       },
       UserOperation::Register => {
         let register: Register = serde_json::from_str(&data.to_string()).unwrap();
-        register.perform()
+        register.perform(self, msg.id)
       },
       UserOperation::CreateCommunity => {
         let create_community: CreateCommunity = serde_json::from_str(&data.to_string()).unwrap();
-        create_community.perform()
+        create_community.perform(self, msg.id)
       },
       UserOperation::ListCommunities => {
         let list_communities: ListCommunities = ListCommunities;
-        list_communities.perform()
+        list_communities.perform(self, msg.id)
       },
       UserOperation::CreatePost => {
         let create_post: CreatePost = serde_json::from_str(&data.to_string()).unwrap();
-        create_post.perform()
+        create_post.perform(self, msg.id)
       },
       UserOperation::GetPost => {
         let get_post: GetPost = serde_json::from_str(&data.to_string()).unwrap();
-        get_post.perform()
+        get_post.perform(self, msg.id)
       },
       UserOperation::GetCommunity => {
         let get_community: GetCommunity = serde_json::from_str(&data.to_string()).unwrap();
-        get_community.perform()
+        get_community.perform(self, msg.id)
       },
       UserOperation::CreateComment => {
         let create_comment: CreateComment = serde_json::from_str(&data.to_string()).unwrap();
-        create_comment.perform()
+        create_comment.perform(self, msg.id)
       },
       _ => {
         let e = ErrorMessage { 
@@ -351,7 +350,6 @@ impl Handler<StandardMessage> for ChatServer {
         };
         serde_json::to_string(&e).unwrap()
       }
-      // _ => "no".to_string()
     };
 
     MessageResult(res)
@@ -360,7 +358,7 @@ impl Handler<StandardMessage> for ChatServer {
 
 
 pub trait Perform {
-  fn perform(&self) -> String;
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String;
   fn op_type(&self) -> UserOperation;
   fn error(&self, error_msg: &str) -> String {
     serde_json::to_string(
@@ -377,7 +375,7 @@ impl Perform for Login {
   fn op_type(&self) -> UserOperation {
     UserOperation::Login
   }
-  fn perform(&self) -> String {
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
 
     let conn = establish_connection();
 
@@ -409,7 +407,7 @@ impl Perform for Register {
   fn op_type(&self) -> UserOperation {
     UserOperation::Register
   }
-  fn perform(&self) -> String {
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
 
     let conn = establish_connection();
 
@@ -452,7 +450,7 @@ impl Perform for CreateCommunity {
     UserOperation::CreateCommunity
   }
 
-  fn perform(&self) -> String {
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
 
     let conn = establish_connection();
 
@@ -505,7 +503,7 @@ impl Perform for ListCommunities {
     UserOperation::ListCommunities
   }
 
-  fn perform(&self) -> String {
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
 
     let conn = establish_connection();
 
@@ -527,7 +525,7 @@ impl Perform for CreatePost {
     UserOperation::CreatePost
   }
 
-  fn perform(&self) -> String {
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
 
     let conn = establish_connection();
 
@@ -574,7 +572,7 @@ impl Perform for GetPost {
     UserOperation::GetPost
   }
 
-  fn perform(&self) -> String {
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
 
     let conn = establish_connection();
 
@@ -585,7 +583,37 @@ impl Perform for GetPost {
       }
     };
 
+
+    // let mut rooms = Vec::new();
+
+    // remove session from all rooms
+    for (n, sessions) in &mut chat.rooms {
+      // if sessions.remove(&addr) {
+      //   // rooms.push(*n);
+      // }
+      sessions.remove(&addr);
+    }
+    //     // send message to other users
+    //     for room in rooms {
+    //       self.send_room_message(&room, "Someone disconnected", 0);
+    //     }
+
+    if chat.rooms.get_mut(&self.id).is_none() {
+      chat.rooms.insert(self.id, HashSet::new());
+    }
+
+    // TODO send a Joined response
+
+
+
+    // chat.send_room_message(addr,)
+    //     self.send_room_message(&name, "Someone connected", id);
+    chat.rooms.get_mut(&self.id).unwrap().insert(addr);
+
     let comments = Comment::from_post(&conn, &post).unwrap();
+
+    println!("{:?}", chat.rooms.keys());
+    println!("{:?}", chat.rooms.get(&5i32).unwrap());
 
     // Return the jwt
     serde_json::to_string(
@@ -604,7 +632,7 @@ impl Perform for GetCommunity {
     UserOperation::GetCommunity
   }
 
-  fn perform(&self) -> String {
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
 
     let conn = establish_connection();
 
@@ -631,7 +659,7 @@ impl Perform for CreateComment {
     UserOperation::CreateComment
   }
 
-  fn perform(&self) -> String {
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
 
     let conn = establish_connection();
 
@@ -660,13 +688,20 @@ impl Perform for CreateComment {
       }
     };
 
-    serde_json::to_string(
+    let comment_out = serde_json::to_string(
       &CreateCommentResponse {
         op: self.op_type().to_string(), 
         comment: inserted_comment
       }
       )
-      .unwrap()
+      .unwrap();
+    
+    chat.send_room_message(self.post_id, &comment_out, addr);
+
+    println!("{:?}", chat.rooms.keys());
+    println!("{:?}", chat.rooms.get(&5i32).unwrap());
+
+    comment_out
   }
 }
 

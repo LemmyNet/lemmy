@@ -105,22 +105,18 @@ export class CreatePost extends Component<any, State> {
 
   handlePostUrlChange(i: CreatePost, event) {
     i.state.postForm.url = event.target.value;
-    i.setState(i.state);
   }
 
   handlePostNameChange(i: CreatePost, event) {
     i.state.postForm.name = event.target.value;
-    i.setState(i.state);
   }
 
   handlePostBodyChange(i: CreatePost, event) {
     i.state.postForm.body = event.target.value;
-    i.setState(i.state);
   }
 
   handlePostCommunityChange(i: CreatePost, event) {
     i.state.postForm.community_id = Number(event.target.value);
-    i.setState(i.state);
   }
 
   parseMessage(msg: any) {
@@ -132,6 +128,7 @@ export class CreatePost extends Component<any, State> {
     } else if (op == UserOperation.ListCommunities) {
       let res: ListCommunitiesResponse = msg;
       this.state.communities = res.communities;
+      this.state.postForm.community_id = res.communities[0].id; // TODO set it to the default community
       this.setState(this.state);
     } else if (op == UserOperation.CreatePost) {
       let res: PostResponse = msg;

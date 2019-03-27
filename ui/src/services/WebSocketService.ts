@@ -59,10 +59,6 @@ export class WebSocketService {
     this.subject.next(this.wsSendWrapper(UserOperation.CreateComment, commentForm));
   }
 
-  public getComments(postId: number) {
-    this.subject.next(this.wsSendWrapper(UserOperation.GetComments, {post_id: postId}));
-  }
-
   private wsSendWrapper(op: UserOperation, data: any) {
     let send = { op: UserOperation[op], data: data };
     console.log(send);
