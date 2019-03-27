@@ -4,6 +4,7 @@ import { retryWhen, delay, take } from 'rxjs/operators';
 import { PostForm, Post, PostResponse, UserOperation, Community, ListCommunitiesResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { msgOp } from '../utils';
+import { MomentTime } from './moment-time';
 
 interface State {
   postForm: PostForm;

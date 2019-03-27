@@ -4,6 +4,7 @@ import { retryWhen, delay, take } from 'rxjs/operators';
 import { UserOperation, Community, Post as PostI, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { msgOp } from '../utils';
+import { MomentTime } from './moment-time';
 
 interface CommentNodeI {
   comment: Comment;
@@ -74,14 +75,17 @@ export class Post extends Component<any, State> {
 
   postHeader() {
     let title = this.state.post.url 
-      ? <h5><a href={this.state.post.url}>{this.state.post.name}</a></h5> 
+      ? <h5>
+      <a href={this.state.post.url}>{this.state.post.name}</a>
+      <small><a className="ml-2 text-muted font-italic" href={this.state.post.url}>{(new URL(this.state.post.url)).hostname}</a></small>
+      </h5> 
       : <h5>{this.state.post.name}</h5>;
     return (
       <div>
-        {title}
-        via {this.state.post.attributed_to} X hours ago
-          {this.state.post.body}
-        </div>
+        <div>{title}</div>
+        <div>via {this.state.post.attributed_to} <MomentTime data={this.state.post} /></div>
+        <div>{this.state.post.body}</div>
+      </div>
     )
   }
 
@@ -90,7 +94,7 @@ export class Post extends Component<any, State> {
       <div class="sticky-top">
         <h4>New Comments</h4>
         {this.state.comments.map(comment => 
-          <CommentNodes nodes={[{comment: comment}]} />
+          <CommentNodes nodes={[{comment: comment}]} noIndent />
         )}
       </div>
     )
@@ -163,6 +167,7 @@ interface CommentNodesState {
 
 interface CommentNodesProps {
   nodes: Array<CommentNodeI>;
+  noIndent?: boolean;
 }
 
 export class CommentNodes extends Component<CommentNodesProps, CommentNodesState> {
@@ -177,7 +182,7 @@ export class CommentNodes extends Component<CommentNodesProps, CommentNodesState
     return (
       <div className="comments">
         {this.props.nodes.map(node =>
-          <div className={`comment ${node.comment.parent_id ? 'ml-4' : ''}`}>
+          <div className={`comment ${node.comment.parent_id  && !this.props.noIndent ? 'ml-4' : ''}`}>
             <div className="float-left small text-center">
               <div className="pointer upvote">▲</div>
               <div>20</div>
@@ -190,14 +195,14 @@ export class CommentNodes extends Component<CommentNodesProps, CommentNodesState
               </li>
               <li className="list-inline-item">
                 <span>(
-                  <span className="text-info"> +1300</span>
+                  <span className="text-info">+1300</span>
                   <span> | </span>
                   <span className="text-danger">-29</span>
-                  <span> ) points</span>
+                  <span>) </span>
                 </span>
               </li>
               <li className="list-inline-item">
-                <span>X hours ago</span>
+                <span><MomentTime data={node.comment} /></span>
               </li>
             </ul>
             <p className="mb-0">{node.comment.content}</p>

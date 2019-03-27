@@ -7,3 +7,4 @@ export function msgOp(msg: any): UserOperation {
   let opStr: string = msg.op;
   return UserOperation[opStr];
 }
+

@@ -1,5 +1,6 @@
-
-
+body {
+  font-family: 'Open Sans', sans-serif;
+}
 
 .pointer {
   cursor: pointer;
