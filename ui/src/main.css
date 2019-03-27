@@ -1,3 +1,14 @@
+
+
+
 .pointer {
   cursor: pointer;
+}
+
+.upvote:hover {
+ color: var(--info);
+}
+
+.downvote:hover {
+  color: var(--danger);
 }
