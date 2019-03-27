@@ -103,6 +103,7 @@ impl Comment {
   pub fn from_post(conn: &PgConnection, post: &Post) -> Result<Vec<Self>, Error> {
     use schema::community::dsl::*;
     Comment::belonging_to(post)
+      .order_by(comment::published.desc())
       .load::<Self>(conn) 
   }
 }

@@ -131,7 +131,7 @@ export class Post extends Component<any, State> {
   commentsTree() {
     let nodes = this.buildCommentsTree();
     return (
-      <div className="sticky-top">
+      <div className="">
         <CommentNodes nodes={nodes} />
       </div>
     );
@@ -147,7 +147,7 @@ export class Post extends Component<any, State> {
     } else if (op == UserOperation.GetPost) {
       let res: PostResponse = msg;
       this.state.post = res.post;
-      this.state.comments = res.comments.reverse();
+      this.state.comments = res.comments;
       this.setState(this.state);
     } else if (op == UserOperation.CreateComment) {
       let res: CommentResponse = msg;
@@ -177,10 +177,11 @@ export class CommentNodes extends Component<CommentNodesProps, CommentNodesState
     return (
       <div className="comments">
         {this.props.nodes.map(node =>
-          <div className="comment ml-2">
-            <div className="float-left small font-weight-light">
-              <div className="pointer">▲</div>
-              <div className="pointer">▼</div>
+          <div className={`comment ${node.comment.parent_id ? 'ml-4' : ''}`}>
+            <div className="float-left small text-center">
+              <div className="pointer upvote">▲</div>
+              <div>20</div>
+              <div className="pointer downvote">▼</div>
             </div>
             <div className="details ml-4">
             <ul class="list-inline mb-0 text-muted small">
@@ -189,7 +190,7 @@ export class CommentNodes extends Component<CommentNodesProps, CommentNodesState
               </li>
               <li className="list-inline-item">
                 <span>(
-                  <span className="text-info"> 1300</span>
+                  <span className="text-info"> +1300</span>
                   <span> | </span>
                   <span className="text-danger">-29</span>
                   <span> ) points</span>
