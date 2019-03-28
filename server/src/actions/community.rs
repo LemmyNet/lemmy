@@ -201,7 +201,7 @@ mod tests {
     assert_eq!(expected_community_user, inserted_community_user);
     assert_eq!(1, ignored_community);
     assert_eq!(1, left_community);
-    assert_eq!(1, loaded_count);
+    assert_eq!(2, loaded_count);
     assert_eq!(1, num_deleted);
 
   }
