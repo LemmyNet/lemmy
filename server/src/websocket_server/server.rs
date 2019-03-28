@@ -9,8 +9,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Result, Value};
 use bcrypt::{verify};
 use std::str::FromStr;
+use std::{thread, time};
 
-use {Crud, Joinable, establish_connection};
+use {Crud, Joinable, Likeable, establish_connection};
 use actions::community::*;
 use actions::user::*;
 use actions::post::*;
@@ -19,7 +20,7 @@ use actions::comment::*;
 
 #[derive(EnumString,ToString,Debug)]
 pub enum UserOperation {
-  Login, Register, Logout, CreateCommunity, ListCommunities, CreatePost, GetPost, GetCommunity, CreateComment, Join, Edit, Reply, Vote, Delete, NextPage, Sticky
+  Login, Register, Logout, CreateCommunity, ListCommunities, CreatePost, GetPost, GetCommunity, CreateComment, CreateCommentLike, Join, Edit, Reply, Vote, Delete, NextPage, Sticky
 }
 
 
@@ -151,14 +152,15 @@ pub struct CreatePostResponse {
 
 #[derive(Serialize, Deserialize)]
 pub struct GetPost {
-  id: i32
+  id: i32,
+  auth: Option<String>
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct GetPostResponse {
   op: String,
   post: Post,
-  comments: Vec<Comment>
+  comments: Vec<CommentView>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -183,7 +185,22 @@ pub struct CreateComment {
 #[derive(Serialize, Deserialize)]
 pub struct CreateCommentResponse {
   op: String,
-  comment: Comment
+  comment: CommentView
+}
+
+
+#[derive(Serialize, Deserialize)]
+pub struct CreateCommentLike {
+  comment_id: i32,
+  post_id: i32,
+  score: i16,
+  auth: String
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CreateCommentLikeResponse {
+  op: String,
+  comment: CommentView
 }
 
 /// `ChatServer` manages chat rooms and responsible for coordinating chat
@@ -342,6 +359,10 @@ impl Handler<StandardMessage> for ChatServer {
       UserOperation::CreateComment => {
         let create_comment: CreateComment = serde_json::from_str(&data.to_string()).unwrap();
         create_comment.perform(self, msg.id)
+      },
+      UserOperation::CreateCommentLike => {
+        let create_comment_like: CreateCommentLike = serde_json::from_str(&data.to_string()).unwrap();
+        create_comment_like.perform(self, msg.id)
       },
       _ => {
         let e = ErrorMessage { 
@@ -576,6 +597,22 @@ impl Perform for GetPost {
 
     let conn = establish_connection();
 
+    println!("{:?}", self.auth);
+
+    let fedi_user_id: Option<String> = match &self.auth {
+      Some(auth) => {
+        match Claims::decode(&auth) {
+          Ok(claims) => {
+            let user_id = claims.claims.id;
+            let iss = claims.claims.iss;
+            Some(format!("{}/{}", iss, user_id))
+          }
+          Err(e) => None
+        }
+      }
+      None => None
+    };
+
     let post = match Post::read(&conn, self.id) {
       Ok(post) => post,
       Err(e) => {
@@ -583,37 +620,21 @@ impl Perform for GetPost {
       }
     };
 
-
-    // let mut rooms = Vec::new();
-
     // remove session from all rooms
     for (n, sessions) in &mut chat.rooms {
-      // if sessions.remove(&addr) {
-      //   // rooms.push(*n);
-      // }
       sessions.remove(&addr);
     }
-    //     // send message to other users
-    //     for room in rooms {
-    //       self.send_room_message(&room, "Someone disconnected", 0);
-    //     }
 
     if chat.rooms.get_mut(&self.id).is_none() {
       chat.rooms.insert(self.id, HashSet::new());
     }
 
-    // TODO send a Joined response
-
-
-
-    // chat.send_room_message(addr,)
-    //     self.send_room_message(&name, "Someone connected", id);
     chat.rooms.get_mut(&self.id).unwrap().insert(addr);
 
-    let comments = Comment::from_post(&conn, &post).unwrap();
+    let comments = CommentView::from_post(&conn, post.id, &fedi_user_id);
 
-    println!("{:?}", chat.rooms.keys());
-    println!("{:?}", chat.rooms.get(&5i32).unwrap());
+    // println!("{:?}", chat.rooms.keys());
+    // println!("{:?}", chat.rooms.get(&5i32).unwrap());
 
     // Return the jwt
     serde_json::to_string(
@@ -688,23 +709,97 @@ impl Perform for CreateComment {
       }
     };
 
+    // TODO You like your own comment by default
+
+    // Simulate a comment view to get back blank score, no need to fetch anything
+    let comment_view = CommentView::from_new_comment(&inserted_comment);
+
     let comment_out = serde_json::to_string(
       &CreateCommentResponse {
         op: self.op_type().to_string(), 
-        comment: inserted_comment
+        comment: comment_view
       }
       )
       .unwrap();
     
     chat.send_room_message(self.post_id, &comment_out, addr);
 
-    println!("{:?}", chat.rooms.keys());
-    println!("{:?}", chat.rooms.get(&5i32).unwrap());
+    // println!("{:?}", chat.rooms.keys());
+    // println!("{:?}", chat.rooms.get(&5i32).unwrap());
 
     comment_out
   }
 }
 
+
+impl Perform for CreateCommentLike {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::CreateCommentLike
+  }
+
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&self.auth) {
+      Ok(claims) => claims.claims,
+      Err(e) => {
+        return self.error("Not logged in.");
+      }
+    };
+
+    let user_id = claims.id;
+    let iss = claims.iss;
+    let fedi_user_id = format!("{}/{}", iss, user_id);
+
+    let like_form = CommentLikeForm {
+      comment_id: self.comment_id,
+      post_id: self.post_id,
+      fedi_user_id: fedi_user_id.to_owned(),
+      score: self.score
+    };
+
+    // Remove any likes first
+    CommentLike::remove(&conn, &like_form).unwrap();
+
+    // Only add the like if the score isnt 0
+    if &like_form.score != &0 {
+      let inserted_like = match CommentLike::like(&conn, &like_form) {
+        Ok(like) => like,
+        Err(e) => {
+          return self.error("Couldn't like comment.");
+        }
+      };
+    }
+
+    // Have to refetch the comment to get the current state
+    // thread::sleep(time::Duration::from_secs(1));
+    let liked_comment = CommentView::read(&conn, self.comment_id, &Some(fedi_user_id));
+
+    let mut liked_comment_sent = liked_comment.clone();
+    liked_comment_sent.my_vote = None;
+
+    let like_out = serde_json::to_string(
+      &CreateCommentLikeResponse {
+        op: self.op_type().to_string(), 
+        comment: liked_comment
+      }
+      )
+      .unwrap();
+
+    let like_sent_out = serde_json::to_string(
+      &CreateCommentLikeResponse {
+        op: self.op_type().to_string(), 
+        comment: liked_comment_sent
+      }
+      )
+      .unwrap();
+
+      chat.send_room_message(self.post_id, &like_sent_out, addr);
+
+      like_out
+  }
+}
 
 
 // impl Handler<Login> for ChatServer {

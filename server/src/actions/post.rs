@@ -77,6 +77,12 @@ impl Crud<PostForm> for Post {
 }
 
 impl Likeable <PostLikeForm> for PostLike {
+  fn read(conn: &PgConnection, post_id_from: i32) -> Result<Vec<Self>, Error> {
+    use schema::post_like::dsl::*;
+    post_like
+      .filter(post_id.eq(post_id_from))
+      .load::<Self>(conn) 
+  }
   fn like(conn: &PgConnection, post_like_form: &PostLikeForm) -> Result<Self, Error> {
     use schema::post_like::dsl::*;
     insert_into(post_like)

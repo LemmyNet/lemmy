@@ -18,3 +18,5 @@ create table community_follower (
   fedi_user_id text not null,
   published timestamp not null default now()
 );
+
+insert into community (name) values ('main');

@@ -16,4 +16,3 @@ create table post_like (
   score smallint not null, -- -1, or 1 for dislike, like, no row for no opinion
   published timestamp not null default now()
 );
-

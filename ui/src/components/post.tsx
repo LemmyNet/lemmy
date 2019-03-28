@@ -1,7 +1,7 @@
 import { Component, linkEvent } from 'inferno';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community, Post as PostI, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse } from '../interfaces';
+import { UserOperation, Community, Post as PostI, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse, CommentLikeForm, CreateCommentLikeResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { msgOp } from '../utils';
 import { MomentTime } from './moment-time';
@@ -9,7 +9,6 @@ import { MomentTime } from './moment-time';
 interface CommentNodeI {
   comment: Comment;
   children?: Array<CommentNodeI>;
-  showReply?: boolean;
 };
 
 interface State {
@@ -78,7 +77,7 @@ export class Post extends Component<any, State> {
       ? <h5>
       <a href={this.state.post.url}>{this.state.post.name}</a>
       <small><a className="ml-2 text-muted font-italic" href={this.state.post.url}>{(new URL(this.state.post.url)).hostname}</a></small>
-      </h5> 
+    </h5> 
       : <h5>{this.state.post.name}</h5>;
     return (
       <div>
@@ -141,7 +140,6 @@ export class Post extends Component<any, State> {
     );
   }
 
-
   parseMessage(msg: any) {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
@@ -156,6 +154,16 @@ export class Post extends Component<any, State> {
     } else if (op == UserOperation.CreateComment) {
       let res: CommentResponse = msg;
       this.state.comments.unshift(res.comment);
+      this.setState(this.state);
+    } else if (op == UserOperation.CreateCommentLike) {
+      let res: CreateCommentLikeResponse = msg;
+      let found: Comment = this.state.comments.find(c => c.id === res.comment.id);
+      found.score = res.comment.score;
+      found.upvotes = res.comment.upvotes;
+      found.downvotes = res.comment.downvotes;
+      if (res.comment.my_vote !== null) 
+        found.my_vote = res.comment.my_vote;
+      console.log(res.comment.my_vote);
       this.setState(this.state);
     }
 
@@ -174,75 +182,128 @@ export class CommentNodes extends Component<CommentNodesProps, CommentNodesState
 
   constructor(props, context) {
     super(props, context);
-    this.handleReplyClick = this.handleReplyClick.bind(this);
-    this.handleReplyCancel = this.handleReplyCancel.bind(this);
   }
 
   render() {
     return (
       <div className="comments">
         {this.props.nodes.map(node =>
-          <div className={`comment ${node.comment.parent_id  && !this.props.noIndent ? 'ml-4' : ''}`}>
-            <div className="float-left small text-center">
-              <div className="pointer upvote">▲</div>
-              <div>20</div>
-              <div className="pointer downvote">▼</div>
-            </div>
-            <div className="details ml-4">
-            <ul class="list-inline mb-0 text-muted small">
-              <li className="list-inline-item">
-                <a href={node.comment.attributed_to}>{node.comment.attributed_to}</a>
-              </li>
-              <li className="list-inline-item">
-                <span>(
-                  <span className="text-info">+1300</span>
-                  <span> | </span>
-                  <span className="text-danger">-29</span>
-                  <span>) </span>
-                </span>
-              </li>
-              <li className="list-inline-item">
-                <span><MomentTime data={node.comment} /></span>
-              </li>
-            </ul>
-            <p className="mb-0">{node.comment.content}</p>
-            <ul class="list-inline mb-1 text-muted small font-weight-bold">
-              <li className="list-inline-item">
-                <span class="pointer" onClick={linkEvent(node, this.handleReplyClick)}>reply</span>
-              </li>
-              <li className="list-inline-item">
-                <a className="text-muted" href="test">link</a>
-              </li>
-            </ul>
-          </div>
-          {node.showReply && <CommentForm node={node} onReplyCancel={this.handleReplyCancel} />}
-          {node.children && <CommentNodes nodes={node.children}/>}
-          </div>
+          <CommentNode node={node} noIndent={this.props.noIndent} />
         )}
       </div>
     )
   }
+}
 
-  handleReplyClick(i: CommentNodeI, event) {
-    i.showReply = true;
+
+interface CommentNodeState {
+  showReply: boolean;
+}
+
+interface CommentNodeProps {
+  node: CommentNodeI;
+  noIndent?: boolean;
+}
+
+export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
+
+  private emptyState: CommentNodeState = {
+    showReply: false
+  }
+
+  constructor(props, context) {
+    super(props, context);
+
+    this.state = this.emptyState;
+    this.handleReplyCancel = this.handleReplyCancel.bind(this);
+    this.handleCommentLike = this.handleCommentLike.bind(this);
+    this.handleCommentDisLike = this.handleCommentDisLike.bind(this);
+  }
+
+  render() {
+    let node = this.props.node;
+    return (
+      <div className={`comment ${node.comment.parent_id  && !this.props.noIndent ? 'ml-4' : ''}`}>
+        <div className="float-left small text-center">
+          <div className={`pointer upvote ${node.comment.my_vote == 1 ? 'text-info' : 'text-muted'}`} onClick={linkEvent(node, this.handleCommentLike)}>▲</div>
+          <div>{node.comment.score}</div>
+          <div className={`pointer downvote ${node.comment.my_vote == -1 && 'text-danger'}`} onClick={linkEvent(node, this.handleCommentDisLike)}>▼</div>
+        </div>
+        <div className="details ml-4">
+          <ul class="list-inline mb-0 text-muted small">
+            <li className="list-inline-item">
+              <a href={node.comment.attributed_to}>{node.comment.attributed_to}</a>
+            </li>
+            <li className="list-inline-item">
+              <span>(
+                <span className="text-info">+{node.comment.upvotes}</span>
+                <span> | </span>
+                <span className="text-danger">-{node.comment.downvotes}</span>
+                <span>) </span>
+              </span>
+            </li>
+            <li className="list-inline-item">
+              <span><MomentTime data={node.comment} /></span>
+            </li>
+          </ul>
+          <p className="mb-0">{node.comment.content}</p>
+          <ul class="list-inline mb-1 text-muted small font-weight-bold">
+            <li className="list-inline-item">
+              <span class="pointer" onClick={linkEvent(this, this.handleReplyClick)}>reply</span>
+            </li>
+            <li className="list-inline-item">
+              <a className="text-muted" href="test">link</a>
+            </li>
+          </ul>
+        </div>
+        {this.state.showReply && <CommentForm node={node} onReplyCancel={this.handleReplyCancel} />}
+        {this.props.node.children && <CommentNodes nodes={this.props.node.children}/>}
+      </div>
+    )
+  }
+
+  private getScore(): number {
+    return (this.props.node.comment.upvotes - this.props.node.comment.downvotes) || 0;
+  }
+
+  handleReplyClick(i: CommentNode, event) {
+    i.state.showReply = true;
+    i.setState(i.state);
+  }
+
+  handleReplyCancel(): any {
+    this.state.showReply = false;
     this.setState(this.state);
   }
 
-  handleReplyCancel(i: CommentNodeI): any {
-    i.showReply = false;
-    this.setState(this.state);
+  handleCommentLike(i: CommentNodeI, event) {
+
+    let form: CommentLikeForm = {
+      comment_id: i.comment.id,
+      post_id: i.comment.post_id,
+      score: (i.comment.my_vote == 1) ? 0 : 1
+    };
+    WebSocketService.Instance.likeComment(form);
+  }
+
+  handleCommentDisLike(i: CommentNodeI, event) {
+    let form: CommentLikeForm = {
+      comment_id: i.comment.id,
+      post_id: i.comment.post_id,
+      score: (i.comment.my_vote == -1) ? 0 : -1
+    };
+    WebSocketService.Instance.likeComment(form);
   }
 }
 
 interface CommentFormProps {
   postId?: number;
   node?: CommentNodeI;
-  onReplyCancel?(node: CommentNodeI);
+  onReplyCancel?();
 }
 
 interface CommentFormState {
   commentForm: CommentFormI;
-  topReply: boolean;
 }
 
 export class CommentForm extends Component<CommentFormProps, CommentFormState> {
@@ -253,8 +314,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
       content: null,
       post_id: null,
       parent_id: null
-    },
-    topReply: true
+    }
   }
 
   constructor(props, context) {
@@ -262,16 +322,11 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
 
     this.state = this.emptyState;
     if (this.props.node) {
-      this.state.topReply = false;
       this.state.commentForm.post_id = this.props.node.comment.post_id;
       this.state.commentForm.parent_id = this.props.node.comment.id;
     } else {
       this.state.commentForm.post_id = this.props.postId;
     }
-
-    console.log(this.state);
-
-    this.handleReplyCancel = this.handleReplyCancel.bind(this);
   }
 
   render() {
@@ -286,7 +341,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
           <div class="row">
             <div class="col-sm-12">
               <button type="submit" class="btn btn-secondary mr-2">Post</button>
-              {!this.state.topReply && <button type="button" class="btn btn-secondary" onClick={this.handleReplyCancel}>Cancel</button>}
+              {this.props.node && <button type="button" class="btn btn-secondary" onClick={linkEvent(this, this.handleReplyCancel)}>Cancel</button>}
             </div>
           </div>
         </form>
@@ -299,6 +354,9 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     i.state.commentForm.content = undefined;
     i.setState(i.state);
     event.target.reset();
+    if (i.props.node) {
+      i.props.onReplyCancel();
+    }
   }
 
   handleCommentContentChange(i: CommentForm, event) {
@@ -306,7 +364,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     i.state.commentForm.content = event.target.value;
   }
 
-  handleReplyCancel(event) {
-    this.props.onReplyCancel(this.props.node);
+  handleReplyCancel(i: CommentForm, event) {
+    i.props.onReplyCancel();
   }
 }
