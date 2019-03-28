@@ -14,6 +14,7 @@ table! {
     comment_like (id) {
         id -> Int4,
         comment_id -> Int4,
+        post_id -> Int4,
         fedi_user_id -> Text,
         score -> Int2,
         published -> Timestamp,
@@ -85,6 +86,7 @@ table! {
 
 joinable!(comment -> post (post_id));
 joinable!(comment_like -> comment (comment_id));
+joinable!(comment_like -> post (post_id));
 joinable!(community_follower -> community (community_id));
 joinable!(community_user -> community (community_id));
 joinable!(post -> community (community_id));

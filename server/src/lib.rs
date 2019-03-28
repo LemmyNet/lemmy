@@ -43,6 +43,7 @@ pub trait Joinable<T> {
 }
 
 pub trait Likeable<T> {
+  fn read(conn: &PgConnection, id: i32) -> Result<Vec<Self>, Error> where Self: Sized;
   fn like(conn: &PgConnection, form: &T) -> Result<Self, Error> where Self: Sized;
   fn remove(conn: &PgConnection, form: &T) -> Result<usize, Error> where Self: Sized;
 }
