@@ -693,26 +693,45 @@ impl Perform for CreateComment {
 
     let user_id = claims.id;
     let iss = claims.iss;
+    let fedi_user_id = format!("{}/{}", iss, user_id);
 
     let comment_form = CommentForm {
       content: self.content.to_owned(),
       parent_id: self.parent_id.to_owned(),
       post_id: self.post_id,
-      attributed_to: format!("{}/{}", iss, user_id),
+      attributed_to: fedi_user_id.to_owned(),
       updated: None
     };
 
     let inserted_comment = match Comment::create(&conn, &comment_form) {
       Ok(comment) => comment,
       Err(e) => {
-        return self.error("Couldn't create Post");
+        return self.error("Couldn't create Comment");
       }
     };
 
-    // TODO You like your own comment by default
+    // You like your own comment by default
+    let like_form = CommentLikeForm {
+      comment_id: inserted_comment.id,
+      post_id: self.post_id,
+      fedi_user_id: fedi_user_id.to_owned(),
+      score: 1
+    };
 
-    // Simulate a comment view to get back blank score, no need to fetch anything
-    let comment_view = CommentView::from_new_comment(&inserted_comment);
+    let inserted_like = match CommentLike::like(&conn, &like_form) {
+      Ok(like) => like,
+      Err(e) => {
+        return self.error("Couldn't like comment.");
+      }
+    };
+
+    let likes: Vec<CommentLike> = vec![inserted_like];
+
+    let comment_view = CommentView::from_comment(&inserted_comment, &likes, &Some(fedi_user_id));
+
+
+    let mut comment_sent = comment_view.clone();
+    comment_sent.my_vote = None;
 
     let comment_out = serde_json::to_string(
       &CreateCommentResponse {
@@ -721,11 +740,17 @@ impl Perform for CreateComment {
       }
       )
       .unwrap();
-    
-    chat.send_room_message(self.post_id, &comment_out, addr);
 
-    // println!("{:?}", chat.rooms.keys());
-    // println!("{:?}", chat.rooms.get(&5i32).unwrap());
+
+    let comment_sent_out = serde_json::to_string(
+      &CreateCommentLikeResponse {
+        op: self.op_type().to_string(), 
+        comment: comment_sent
+      }
+      )
+      .unwrap();
+    
+    chat.send_room_message(self.post_id, &comment_sent_out, addr);
 
     comment_out
   }

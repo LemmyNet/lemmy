@@ -145,7 +145,7 @@ pub struct CommentView {
 }
 
 impl CommentView {
-  fn from_comment(comment: &Comment, likes: &Vec<CommentLike>, fedi_user_id: &Option<String>) -> Self {
+  pub fn from_comment(comment: &Comment, likes: &Vec<CommentLike>, fedi_user_id: &Option<String>) -> Self {
     let mut upvotes: i32 = 0;
     let mut downvotes: i32 = 0;
     let mut my_vote: Option<i16> = Some(0);
@@ -180,10 +180,6 @@ impl CommentView {
       downvotes: downvotes,
       my_vote: my_vote
     }
-  }
-
-  pub fn from_new_comment(comment: &Comment) -> Self {
-    Self::from_comment(comment, &Vec::new(), &None)
   }
 
   pub fn read(conn: &PgConnection, comment_id: i32, fedi_user_id: &Option<String>) -> Self {
