@@ -6,12 +6,11 @@ use actix::prelude::*;
 use rand::{rngs::ThreadRng, Rng};
 use std::collections::{HashMap, HashSet};
 use serde::{Deserialize, Serialize};
-use serde_json::{Result, Value};
+use serde_json::{Value};
 use bcrypt::{verify};
 use std::str::FromStr;
-use std::{thread, time};
 
-use {Crud, Joinable, Likeable, establish_connection};
+use {Crud, Joinable, Likeable, establish_connection, naive_now};
 use actions::community::*;
 use actions::user::*;
 use actions::post::*;
@@ -20,7 +19,7 @@ use actions::comment::*;
 
 #[derive(EnumString,ToString,Debug)]
 pub enum UserOperation {
-  Login, Register, Logout, CreateCommunity, ListCommunities, CreatePost, GetPost, GetCommunity, CreateComment, CreateCommentLike, Join, Edit, Reply, Vote, Delete, NextPage, Sticky
+  Login, Register, Logout, CreateCommunity, ListCommunities, CreatePost, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, Join, Edit, Reply, Vote, Delete, NextPage, Sticky
 }
 
 
@@ -178,6 +177,7 @@ pub struct GetCommunityResponse {
 pub struct CreateComment {
   content: String,
   parent_id: Option<i32>,
+  edit_id: Option<i32>,
   post_id: i32,
   auth: String
 }
@@ -188,6 +188,21 @@ pub struct CreateCommentResponse {
   comment: CommentView
 }
 
+
+#[derive(Serialize, Deserialize)]
+pub struct EditComment {
+  content: String,
+  parent_id: Option<i32>,
+  edit_id: i32,
+  post_id: i32,
+  auth: String
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct EditCommentResponse {
+  op: String,
+  comment: CommentView
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct CreateCommentLike {
@@ -360,6 +375,10 @@ impl Handler<StandardMessage> for ChatServer {
         let create_comment: CreateComment = serde_json::from_str(&data.to_string()).unwrap();
         create_comment.perform(self, msg.id)
       },
+      UserOperation::EditComment => {
+        let edit_comment: EditComment = serde_json::from_str(&data.to_string()).unwrap();
+        edit_comment.perform(self, msg.id)
+      },
       UserOperation::CreateCommentLike => {
         let create_comment_like: CreateCommentLike = serde_json::from_str(&data.to_string()).unwrap();
         create_comment_like.perform(self, msg.id)
@@ -483,7 +502,9 @@ impl Perform for CreateCommunity {
     };
 
     let user_id = claims.id;
+    let username = claims.username;
     let iss = claims.iss;
+    let fedi_user_id = format!("{}/{}", iss, username);
 
     let community_form = CommunityForm {
       name: self.name.to_owned(),
@@ -499,7 +520,7 @@ impl Perform for CreateCommunity {
 
     let community_user_form = CommunityUserForm {
       community_id: inserted_community.id,
-      fedi_user_id: format!("{}/{}", iss, user_id)
+      fedi_user_id: fedi_user_id
     };
 
     let inserted_community_user = match CommunityUser::join(&conn, &community_user_form) {
@@ -558,15 +579,16 @@ impl Perform for CreatePost {
     };
 
     let user_id = claims.id;
+    let username = claims.username;
     let iss = claims.iss;
-
+    let fedi_user_id = format!("{}/{}", iss, username);
 
     let post_form = PostForm {
       name: self.name.to_owned(),
       url: self.url.to_owned(),
       body: self.body.to_owned(),
       community_id: self.community_id,
-      attributed_to: format!("{}/{}", iss, user_id),
+      attributed_to: fedi_user_id,
       updated: None
     };
 
@@ -603,9 +625,10 @@ impl Perform for GetPost {
       Some(auth) => {
         match Claims::decode(&auth) {
           Ok(claims) => {
-            let user_id = claims.claims.id;
+            let username = claims.claims.username;
             let iss = claims.claims.iss;
-            Some(format!("{}/{}", iss, user_id))
+            let fedi_user_id = format!("{}/{}", iss, username);
+            Some(fedi_user_id)
           }
           Err(e) => None
         }
@@ -692,8 +715,9 @@ impl Perform for CreateComment {
     };
 
     let user_id = claims.id;
+    let username = claims.username;
     let iss = claims.iss;
-    let fedi_user_id = format!("{}/{}", iss, user_id);
+    let fedi_user_id = format!("{}/{}", iss, username);
 
     let comment_form = CommentForm {
       content: self.content.to_owned(),
@@ -729,7 +753,6 @@ impl Perform for CreateComment {
 
     let comment_view = CommentView::from_comment(&inserted_comment, &likes, &Some(fedi_user_id));
 
-
     let mut comment_sent = comment_view.clone();
     comment_sent.my_vote = None;
 
@@ -740,7 +763,6 @@ impl Perform for CreateComment {
       }
       )
       .unwrap();
-
 
     let comment_sent_out = serde_json::to_string(
       &CreateCommentLikeResponse {
@@ -756,6 +778,75 @@ impl Perform for CreateComment {
   }
 }
 
+impl Perform for EditComment {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::EditComment
+  }
+
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&self.auth) {
+      Ok(claims) => claims.claims,
+      Err(e) => {
+        return self.error("Not logged in.");
+      }
+    };
+
+    let user_id = claims.id;
+    let username = claims.username;
+    let iss = claims.iss;
+    let fedi_user_id = format!("{}/{}", iss, username);
+
+    let comment_form = CommentForm {
+      content: self.content.to_owned(),
+      parent_id: self.parent_id,
+      post_id: self.post_id,
+      attributed_to: fedi_user_id.to_owned(),
+      updated: Some(naive_now())
+    };
+
+    let updated_comment = match Comment::update(&conn, self.edit_id, &comment_form) {
+      Ok(comment) => comment,
+      Err(e) => {
+        return self.error("Couldn't update Comment");
+      }
+    };
+
+    let likes = match CommentLike::read(&conn, self.edit_id) {
+      Ok(likes) => likes,
+      Err(e) => {
+        return self.error("Couldn't get likes");
+      }
+    };
+
+    let comment_view = CommentView::from_comment(&updated_comment, &likes, &Some(fedi_user_id));
+
+    let mut comment_sent = comment_view.clone();
+    comment_sent.my_vote = None;
+
+    let comment_out = serde_json::to_string(
+      &CreateCommentResponse {
+        op: self.op_type().to_string(), 
+        comment: comment_view
+      }
+      )
+      .unwrap();
+
+    let comment_sent_out = serde_json::to_string(
+      &CreateCommentLikeResponse {
+        op: self.op_type().to_string(), 
+        comment: comment_sent
+      }
+      )
+      .unwrap();
+    
+    chat.send_room_message(self.post_id, &comment_sent_out, addr);
+
+    comment_out
+  }
+}
 
 impl Perform for CreateCommentLike {
   fn op_type(&self) -> UserOperation {
@@ -774,8 +865,9 @@ impl Perform for CreateCommentLike {
     };
 
     let user_id = claims.id;
+    let username = claims.username;
     let iss = claims.iss;
-    let fedi_user_id = format!("{}/{}", iss, user_id);
+    let fedi_user_id = format!("{}/{}", iss, username);
 
     let like_form = CommentLikeForm {
       comment_id: self.comment_id,

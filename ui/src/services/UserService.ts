@@ -42,6 +42,11 @@ export class UserService {
   private setUser(jwt: string) {
     this.user = jwt_decode(jwt);
     this.sub.next(this.user);
+    console.log(this.user);
+  }
+
+  public get fediUserId(): string {
+    return `${this.user.iss}/${this.user.username}`;
   }
 
   public static get Instance(){

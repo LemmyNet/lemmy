@@ -174,7 +174,7 @@ impl CommentView {
       post_id: comment.post_id,
       attributed_to: comment.attributed_to.to_owned(),
       published: comment.published,
-      updated: None,
+      updated: comment.updated,
       upvotes: upvotes,
       score: score,
       downvotes: downvotes,

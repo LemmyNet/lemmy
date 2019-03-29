@@ -1,9 +1,10 @@
 export enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, GetPost, GetCommunity, CreateComment, CreateCommentLike
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike
 }
 
 export interface User {
   id: number;
+  iss: string;
   username: string;
 }
 
@@ -73,6 +74,7 @@ export interface CommentForm {
   content: string;
   post_id: number;
   parent_id?: number;
+  edit_id?: number;
   auth: string;
 }
 

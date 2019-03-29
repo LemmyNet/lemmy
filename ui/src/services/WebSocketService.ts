@@ -14,7 +14,7 @@ export class WebSocketService {
 
     // Even tho this isn't used, its necessary to not keep reconnecting
     this.subject
-      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
+      .pipe(retryWhen(errors => errors.pipe(delay(60000), take(999))))
       .subscribe();
 
     console.log(`Connected to ${wsUri}`);
@@ -58,6 +58,11 @@ export class WebSocketService {
   public createComment(commentForm: CommentForm) {
     this.setAuth(commentForm);
     this.subject.next(this.wsSendWrapper(UserOperation.CreateComment, commentForm));
+  }
+
+  public editComment(commentForm: CommentForm) {
+    this.setAuth(commentForm);
+    this.subject.next(this.wsSendWrapper(UserOperation.EditComment, commentForm));
   }
 
   public likeComment(form: CommentLikeForm) {
