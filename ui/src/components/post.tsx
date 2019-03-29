@@ -91,7 +91,7 @@ export class Post extends Component<any, State> {
   newComments() {
     return (
       <div class="sticky-top">
-        <h4>New Comments</h4>
+        <h5>New Comments</h5>
         {this.state.comments.map(comment => 
           <CommentNodes nodes={[{comment: comment}]} noIndent />
         )}
@@ -102,7 +102,7 @@ export class Post extends Component<any, State> {
   sidebar() {
     return ( 
       <div class="sticky-top">
-        <h4>Sidebar</h4>
+        <h5>Sidebar</h5>
         <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
       </div>
     );
@@ -155,7 +155,14 @@ export class Post extends Component<any, State> {
       let res: CommentResponse = msg;
       this.state.comments.unshift(res.comment);
       this.setState(this.state);
-    } else if (op == UserOperation.CreateCommentLike) {
+    } else if (op == UserOperation.EditComment) {
+      let res: CommentResponse = msg;
+      let found = this.state.comments.find(c => c.id == res.comment.id);
+      found.content = res.comment.content;
+      found.updated = res.comment.updated;
+      this.setState(this.state);
+    }
+    else if (op == UserOperation.CreateCommentLike) {
       let res: CreateCommentLikeResponse = msg;
       let found: Comment = this.state.comments.find(c => c.id === res.comment.id);
       found.score = res.comment.score;
@@ -163,7 +170,6 @@ export class Post extends Component<any, State> {
       found.downvotes = res.comment.downvotes;
       if (res.comment.my_vote !== null) 
         found.my_vote = res.comment.my_vote;
-      console.log(res.comment.my_vote);
       this.setState(this.state);
     }
 
@@ -198,6 +204,7 @@ export class CommentNodes extends Component<CommentNodesProps, CommentNodesState
 
 interface CommentNodeState {
   showReply: boolean;
+  showEdit: boolean;
 }
 
 interface CommentNodeProps {
@@ -208,7 +215,8 @@ interface CommentNodeProps {
 export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
 
   private emptyState: CommentNodeState = {
-    showReply: false
+    showReply: false,
+    showEdit: false
   }
 
   constructor(props, context) {
@@ -246,15 +254,25 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               <span><MomentTime data={node.comment} /></span>
             </li>
           </ul>
-          <p className="mb-0">{node.comment.content}</p>
-          <ul class="list-inline mb-1 text-muted small font-weight-bold">
-            <li className="list-inline-item">
-              <span class="pointer" onClick={linkEvent(this, this.handleReplyClick)}>reply</span>
-            </li>
-            <li className="list-inline-item">
-              <a className="text-muted" href="test">link</a>
-            </li>
-          </ul>
+          {this.state.showEdit && <CommentForm node={node} edit onReplyCancel={this.handleReplyCancel} />}
+          {!this.state.showEdit &&
+            <div>
+              <p className='mb-0'>{node.comment.content}</p>
+              <ul class="list-inline mb-1 text-muted small font-weight-bold">
+                <li className="list-inline-item">
+                  <span class="pointer" onClick={linkEvent(this, this.handleReplyClick)}>reply</span>
+                </li>
+                {this.myComment && 
+                  <li className="list-inline-item">
+                    <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>edit</span>
+                  </li>
+                }
+                <li className="list-inline-item">
+                  <a className="text-muted" href="test">link</a>
+                </li>
+              </ul>
+            </div>
+          }
         </div>
         {this.state.showReply && <CommentForm node={node} onReplyCancel={this.handleReplyCancel} />}
         {this.props.node.children && <CommentNodes nodes={this.props.node.children}/>}
@@ -262,8 +280,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     )
   }
 
-  private getScore(): number {
-    return (this.props.node.comment.upvotes - this.props.node.comment.downvotes) || 0;
+  private get myComment(): boolean {
+    return this.props.node.comment.attributed_to == UserService.Instance.fediUserId;
   }
 
   handleReplyClick(i: CommentNode, event) {
@@ -271,10 +289,17 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     i.setState(i.state);
   }
 
+  handleEditClick(i: CommentNode, event) {
+    i.state.showEdit = true;
+    i.setState(i.state);
+  }
+
   handleReplyCancel(): any {
     this.state.showReply = false;
+    this.state.showEdit = false;
     this.setState(this.state);
   }
+
 
   handleCommentLike(i: CommentNodeI, event) {
 
@@ -300,10 +325,12 @@ interface CommentFormProps {
   postId?: number;
   node?: CommentNodeI;
   onReplyCancel?();
+  edit?: boolean;
 }
 
 interface CommentFormState {
   commentForm: CommentFormI;
+  buttonTitle: string;
 }
 
 export class CommentForm extends Component<CommentFormProps, CommentFormState> {
@@ -312,27 +339,33 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     commentForm: {
       auth: null,
       content: null,
-      post_id: null,
-      parent_id: null
-    }
+      post_id: this.props.node ? this.props.node.comment.post_id : this.props.postId
+    },
+    buttonTitle: !this.props.node ? "Post" : this.props.edit ? "Edit" : "Reply"
   }
 
   constructor(props, context) {
     super(props, context);
 
     this.state = this.emptyState;
+
     if (this.props.node) {
-      this.state.commentForm.post_id = this.props.node.comment.post_id;
-      this.state.commentForm.parent_id = this.props.node.comment.id;
-    } else {
-      this.state.commentForm.post_id = this.props.postId;
-    }
+      if (this.props.edit) {
+        this.state.commentForm.edit_id = this.props.node.comment.id;
+        this.state.commentForm.parent_id = this.props.node.comment.parent_id;
+        this.state.commentForm.content = this.props.node.comment.content;
+      } else {
+        // A reply gets a new parent id
+        this.state.commentForm.parent_id = this.props.node.comment.id;
+      }
+    }  
   }
+
 
   render() {
     return (
       <div>
-        <form onSubmit={linkEvent(this, this.handleCreateCommentSubmit)}>
+        <form onSubmit={linkEvent(this, this.handleCommentSubmit)}>
           <div class="form-group row">
             <div class="col-sm-12">
               <textarea class="form-control" value={this.state.commentForm.content} onInput={linkEvent(this, this.handleCommentContentChange)} placeholder="Comment here" required />
@@ -340,7 +373,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
           </div>
           <div class="row">
             <div class="col-sm-12">
-              <button type="submit" class="btn btn-secondary mr-2">Post</button>
+              <button type="submit" class="btn btn-secondary mr-2">{this.state.buttonTitle}</button>
               {this.props.node && <button type="button" class="btn btn-secondary" onClick={linkEvent(this, this.handleReplyCancel)}>Cancel</button>}
             </div>
           </div>
@@ -349,8 +382,13 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     );
   }
 
-  handleCreateCommentSubmit(i: CommentForm, event) {
-    WebSocketService.Instance.createComment(i.state.commentForm);
+  handleCommentSubmit(i: CommentForm, event) {
+    if (i.props.edit) {
+      WebSocketService.Instance.editComment(i.state.commentForm);
+    } else {
+      WebSocketService.Instance.createComment(i.state.commentForm);
+    }
+
     i.state.commentForm.content = undefined;
     i.setState(i.state);
     event.target.reset();
@@ -360,8 +398,8 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
   }
 
   handleCommentContentChange(i: CommentForm, event) {
-    // TODO don't use setState, it triggers a re-render
     i.state.commentForm.content = event.target.value;
+    i.setState(i.state);
   }
 
   handleReplyCancel(i: CommentForm, event) {
