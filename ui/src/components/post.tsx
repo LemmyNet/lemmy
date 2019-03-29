@@ -267,6 +267,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                     <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>edit</span>
                   </li>
                 }
+                {this.myComment &&
+                  <li className="list-inline-item">
+                    <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>delete</span>
+                  </li>
+                }
                 <li className="list-inline-item">
                   <a className="text-muted" href="test">link</a>
                 </li>
@@ -292,6 +297,17 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   handleEditClick(i: CommentNode, event) {
     i.state.showEdit = true;
     i.setState(i.state);
+  }
+
+  handleDeleteClick(i: CommentNode, event) {
+    let deleteForm: CommentFormI = {
+      content: "*deleted*",
+      edit_id: i.props.node.comment.id,
+      post_id: i.props.node.comment.post_id,
+      parent_id: i.props.node.comment.parent_id,
+      auth: null
+    };
+    WebSocketService.Instance.editComment(deleteForm);
   }
 
   handleReplyCancel(): any {
