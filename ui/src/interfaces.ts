@@ -112,4 +112,8 @@ export interface LoginResponse {
   jwt: string;
 }
 
+export enum CommentSortType {
+  Hot, Top, New
+}
+
 

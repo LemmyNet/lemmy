@@ -88,5 +88,6 @@ export class WebSocketService {
 
 window.onbeforeunload = (e => {
   WebSocketService.Instance.subject.unsubscribe();
+  WebSocketService.Instance.subject = null;
 });
 

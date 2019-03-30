@@ -1,9 +1,9 @@
 import { Component, linkEvent } from 'inferno';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community, Post as PostI, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse, CommentLikeForm, CreateCommentLikeResponse } from '../interfaces';
+import { UserOperation, Community, Post as PostI, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse, CommentLikeForm, CreateCommentLikeResponse, CommentSortType } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { msgOp } from '../utils';
+import { msgOp, hotRank } from '../utils';
 import { MomentTime } from './moment-time';
 
 interface CommentNodeI {
@@ -14,6 +14,7 @@ interface CommentNodeI {
 interface State {
   post: PostI;
   comments: Array<Comment>;
+  commentSort: CommentSortType;
 }
 
 export class Post extends Component<any, State> {
@@ -27,7 +28,8 @@ export class Post extends Component<any, State> {
       id: null,
       published: null,
     },
-    comments: []
+    comments: [],
+    commentSort: CommentSortType.Hot
   }
 
   constructor(props, context) {
@@ -59,6 +61,7 @@ export class Post extends Component<any, State> {
           <div class="col-12 col-sm-8 col-lg-7 mb-3">
             {this.postHeader()}
             <CommentForm postId={this.state.post.id} />
+            {this.sortRadios()}
             {this.commentsTree()}
           </div>
           <div class="col-12 col-sm-4 col-lg-3 mb-3">
@@ -88,6 +91,28 @@ export class Post extends Component<any, State> {
     )
   }
 
+  sortRadios() {
+    return (
+      <div class="btn-group btn-group-toggle mb-3">
+        <label className={`btn btn-sm btn-secondary ${this.state.commentSort === CommentSortType.Hot && 'active'}`}>Hot
+          <input type="radio" value={CommentSortType.Hot}
+          checked={this.state.commentSort === CommentSortType.Hot} 
+          onChange={linkEvent(this, this.handleCommentSortChange)}  />
+        </label>
+        <label className={`btn btn-sm btn-secondary ${this.state.commentSort === CommentSortType.Top && 'active'}`}>Top
+          <input type="radio" value={CommentSortType.Top}
+          checked={this.state.commentSort === CommentSortType.Top} 
+          onChange={linkEvent(this, this.handleCommentSortChange)}  />
+        </label>
+        <label className={`btn btn-sm btn-secondary ${this.state.commentSort === CommentSortType.New && 'active'}`}>New
+          <input type="radio" value={CommentSortType.New}
+          checked={this.state.commentSort === CommentSortType.New} 
+          onChange={linkEvent(this, this.handleCommentSortChange)}  />
+        </label>
+      </div>
+    )
+  }
+
   newComments() {
     return (
       <div class="sticky-top">
@@ -107,28 +132,50 @@ export class Post extends Component<any, State> {
       </div>
     );
   }
+  
+  handleCommentSortChange(i: Post, event) {
+    i.state.commentSort = Number(event.target.value);
+    i.setState(i.state);
+  }
 
-  // buildCommentsTree(): Array<CommentNodeI> {
-  buildCommentsTree(): any {
-    let tree: Array<CommentNodeI> = this.createCommentsTree(this.state.comments);
-    console.log(tree); // TODO this is redoing every time and it shouldn't
+  private buildCommentsTree(): Array<CommentNodeI> {
+    let map = new Map<number, CommentNodeI>();
+    for (let comment of this.state.comments) {
+      let node: CommentNodeI = {
+        comment: comment,
+        children: []
+      };
+      map.set(comment.id, { ...node });
+    }
+    let tree: Array<CommentNodeI> = [];
+    for (let comment of this.state.comments) {
+      if( comment.parent_id ) {
+        map.get(comment.parent_id).children.push(map.get(comment.id));
+      } 
+      else {
+        tree.push(map.get(comment.id));
+      }
+    }
+
+    this.sortTree(tree);
+
     return tree;
   }
 
-  private createCommentsTree(comments: Array<Comment>): Array<CommentNodeI> {
-    let hashTable = {};
-    for (let comment of comments) {
-      let node: CommentNodeI = {
-        comment: comment
-      };
-      hashTable[comment.id] = { ...node, children : [] };
+  sortTree(tree: Array<CommentNodeI>) {
+
+    if (this.state.commentSort == CommentSortType.Top) {
+      tree.sort((a, b) => b.comment.score - a.comment.score);
+    } else if (this.state.commentSort == CommentSortType.New) {
+      tree.sort((a, b) => b.comment.published.localeCompare(a.comment.published));
+    } else if (this.state.commentSort == CommentSortType.Hot) {
+      tree.sort((a, b) => hotRank(b.comment) - hotRank(a.comment));
     }
-    let tree: Array<CommentNodeI> = [];
-    for (let comment of comments) {
-      if( comment.parent_id ) hashTable[comment.parent_id].children.push(hashTable[comment.id]);
-      else tree.push(hashTable[comment.id]);
+
+    for (let node of tree) {
+      this.sortTree(node.children);
     }
-    return tree;
+
   }
 
   commentsTree() {
@@ -280,7 +327,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
           }
         </div>
         {this.state.showReply && <CommentForm node={node} onReplyCancel={this.handleReplyCancel} />}
-        {this.props.node.children && <CommentNodes nodes={this.props.node.children}/>}
+        {this.props.node.children && <CommentNodes nodes={this.props.node.children} />}
       </div>
     )
   }
@@ -389,8 +436,8 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
           </div>
           <div class="row">
             <div class="col-sm-12">
-              <button type="submit" class="btn btn-secondary mr-2">{this.state.buttonTitle}</button>
-              {this.props.node && <button type="button" class="btn btn-secondary" onClick={linkEvent(this, this.handleReplyCancel)}>Cancel</button>}
+              <button type="submit" class="btn btn-sm btn-secondary mr-2">{this.state.buttonTitle}</button>
+              {this.props.node && <button type="button" class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.handleReplyCancel)}>Cancel</button>}
             </div>
           </div>
         </form>
