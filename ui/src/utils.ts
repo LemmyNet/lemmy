@@ -1,4 +1,5 @@
 import { UserOperation, Comment } from './interfaces';
+import * as markdown_it from 'markdown-it';
 
 export let repoUrl = 'https://github.com/dessalines/rust-reddit-fediverse';
 export let wsUri = (window.location.protocol=='https:'&&'wss://'||'ws://')+window.location.host + '/service/ws/';
@@ -7,6 +8,12 @@ export function msgOp(msg: any): UserOperation {
   let opStr: string = msg.op;
   return UserOperation[opStr];
 }
+
+var md = new markdown_it({
+  html: true,
+  linkify: true,
+  typographer: true
+});
 
 export function hotRank(comment: Comment): number {
   // Rank = ScaleFactor * sign(Score) * log(1 + abs(Score)) / (Time + 2)^Gravity
@@ -20,4 +27,8 @@ export function hotRank(comment: Comment): number {
   // console.log(`Comment: ${comment.content}\nRank: ${rank}\nScore: ${comment.score}\nHours: ${hoursElapsed}`);
 
   return rank;
+}
+
+export function mdToHtml(text: string) {
+  return {__html: md.render(text)};
 }

@@ -3,7 +3,7 @@ import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { UserOperation, Community, Post as PostI, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse, CommentLikeForm, CreateCommentLikeResponse, CommentSortType } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { msgOp, hotRank } from '../utils';
+import { msgOp, hotRank,mdToHtml } from '../utils';
 import { MomentTime } from './moment-time';
 
 interface CommentNodeI {
@@ -304,7 +304,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
           {this.state.showEdit && <CommentForm node={node} edit onReplyCancel={this.handleReplyCancel} />}
           {!this.state.showEdit &&
             <div>
-              <p className='mb-0'>{node.comment.content}</p>
+              <div className="md-div" dangerouslySetInnerHTML={mdToHtml(node.comment.content)} />
               <ul class="list-inline mb-1 text-muted small font-weight-bold">
                 <li className="list-inline-item">
                   <span class="pointer" onClick={linkEvent(this, this.handleReplyClick)}>reply</span>

@@ -23,3 +23,7 @@ body {
   color: #fff;
   background-color: var(--secondary);
 }
+
+.md-div p {
+  margin-bottom: 0px;
+}
