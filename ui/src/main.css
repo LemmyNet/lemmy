@@ -13,3 +13,13 @@ body {
 .downvote:hover {
   color: var(--danger);
 }
+
+.form-control, .form-control:focus {
+  background-color: var(--secondary);
+  color: #fff;
+}
+
+.custom-select {
+  color: #fff;
+  background-color: var(--secondary);
+}
