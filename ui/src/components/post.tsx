@@ -424,7 +424,6 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     }  
   }
 
-
   render() {
     return (
       <div>
