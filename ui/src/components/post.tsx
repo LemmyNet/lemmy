@@ -5,6 +5,7 @@ import { UserOperation, Community, Post as PostI, PostResponse, Comment, Comment
 import { WebSocketService, UserService } from '../services';
 import { msgOp, hotRank,mdToHtml } from '../utils';
 import { MomentTime } from './moment-time';
+import * as autosize from 'autosize';
 
 interface CommentNodeI {
   comment: Comment;
@@ -52,6 +53,10 @@ export class Post extends Component<any, State> {
 
   componentWillUnmount() {
     this.subscription.unsubscribe();
+  }
+
+  componentDidMount() {
+    autosize(document.querySelectorAll('textarea'));
   }
 
   render() {
@@ -422,6 +427,10 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
         this.state.commentForm.parent_id = this.props.node.comment.id;
       }
     }  
+  }
+
+  componentDidMount() {
+    autosize(document.querySelectorAll('textarea'));
   }
 
   render() {
