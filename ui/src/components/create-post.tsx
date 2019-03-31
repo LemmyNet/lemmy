@@ -70,13 +70,13 @@ export class CreatePost extends Component<any, State> {
           <div class="form-group row">
             <label class="col-sm-2 col-form-label">Title</label>
             <div class="col-sm-10">
-              <textarea value={this.state.postForm.name} onInput={linkEvent(this, this.handlePostNameChange)} class="form-control" required rows="3" />
+              <textarea value={this.state.postForm.name} onInput={linkEvent(this, this.handlePostNameChange)} class="form-control" required rows={3} />
             </div>
           </div>
           <div class="form-group row">
             <label class="col-sm-2 col-form-label">Body</label>
             <div class="col-sm-10">
-              <textarea value={this.state.postForm.body} onInput={linkEvent(this, this.handlePostBodyChange)} class="form-control" rows="6" />
+              <textarea value={this.state.postForm.body} onInput={linkEvent(this, this.handlePostBodyChange)} class="form-control" rows={6} />
             </div>
           </div>
           <div class="form-group row">

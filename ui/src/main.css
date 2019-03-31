@@ -27,3 +27,8 @@ body {
 .md-div p {
   margin-bottom: 0px;
 }
+
+.md-div img {
+  max-width: 100%;
+  height: auto;
+}
