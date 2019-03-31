@@ -152,7 +152,7 @@ impl CommentView {
 
     for like in likes.iter() {
       if like.score == 1 {
-        upvotes += 1
+        upvotes += 1;
       } else if like.score == -1 {
         downvotes += 1;
       }
