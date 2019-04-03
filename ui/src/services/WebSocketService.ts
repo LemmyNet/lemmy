@@ -41,6 +41,10 @@ export class WebSocketService {
     this.subject.next(this.wsSendWrapper(UserOperation.ListCommunities, undefined));
   }
 
+  public listCategories() {
+    this.subject.next(this.wsSendWrapper(UserOperation.ListCategories, undefined));
+  }
+
   public createPost(postForm: PostForm) {
     this.setAuth(postForm);
     this.subject.next(this.wsSendWrapper(UserOperation.CreatePost, postForm));

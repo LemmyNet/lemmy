@@ -2,11 +2,12 @@ import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community, Post as PostI, GetPostResponse, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse, CommentLikeForm, CreateCommentLikeResponse, CommentSortType, CreatePostLikeResponse } from '../interfaces';
+import { UserOperation, Community, Post as PostI, GetPostResponse, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse, CommentLikeForm, CommentSortType, CreatePostLikeResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { msgOp, hotRank,mdToHtml } from '../utils';
 import { MomentTime } from './moment-time';
 import { PostListing } from './post-listing';
+import { Sidebar } from './sidebar';
 import * as autosize from 'autosize';
 
 interface CommentNodeI {
@@ -14,19 +15,21 @@ interface CommentNodeI {
   children?: Array<CommentNodeI>;
 };
 
-interface State {
+interface PostState {
   post: PostI;
   comments: Array<Comment>;
   commentSort: CommentSortType;
+  community: Community;
 }
 
-export class Post extends Component<any, State> {
+export class Post extends Component<any, PostState> {
 
   private subscription: Subscription;
-  private emptyState: State = {
+  private emptyState: PostState = {
     post: null,
     comments: [],
-    commentSort: CommentSortType.Hot
+    commentSort: CommentSortType.Hot,
+    community: null,
   }
 
   constructor(props, context) {
@@ -115,8 +118,7 @@ export class Post extends Component<any, State> {
   sidebar() {
     return ( 
       <div class="sticky-top">
-        <h5>Sidebar</h5>
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+        <Sidebar community={this.state.community} />
       </div>
     );
   }
@@ -185,6 +187,7 @@ export class Post extends Component<any, State> {
       let res: GetPostResponse = msg;
       this.state.post = res.post;
       this.state.comments = res.comments;
+      this.state.community = res.community;
       this.setState(this.state);
     } else if (op == UserOperation.CreateComment) {
       let res: CommentResponse = msg;
@@ -198,7 +201,7 @@ export class Post extends Component<any, State> {
       this.setState(this.state);
     }
     else if (op == UserOperation.CreateCommentLike) {
-      let res: CreateCommentLikeResponse = msg;
+      let res: CommentResponse = msg;
       let found: Comment = this.state.comments.find(c => c.id === res.comment.id);
       found.score = res.comment.score;
       found.upvotes = res.comment.upvotes;

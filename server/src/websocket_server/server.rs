@@ -17,10 +17,12 @@ use actions::post::*;
 use actions::comment::*;
 use actions::post_view::*;
 use actions::comment_view::*;
+use actions::category::*;
+use actions::community_view::*;
 
 #[derive(EnumString,ToString,Debug)]
 pub enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity
 }
 
 #[derive(Serialize, Deserialize)]
@@ -103,7 +105,7 @@ pub struct CreateCommunity {
 #[derive(Serialize, Deserialize)]
 pub struct CreateCommunityResponse {
   op: String,
-  community: Community
+  community: CommunityView
 }
 
 #[derive(Serialize, Deserialize)]
@@ -112,7 +114,16 @@ pub struct ListCommunities;
 #[derive(Serialize, Deserialize)]
 pub struct ListCommunitiesResponse {
   op: String,
-  communities: Vec<Community>
+  communities: Vec<CommunityView>
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ListCategories;
+
+#[derive(Serialize, Deserialize)]
+pub struct ListCategoriesResponse {
+  op: String,
+  categories: Vec<Category>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -141,7 +152,8 @@ pub struct GetPost {
 pub struct GetPostResponse {
   op: String,
   post: PostView,
-  comments: Vec<CommentView>
+  comments: Vec<CommentView>,
+  community: CommunityView
 }
 
 #[derive(Serialize, Deserialize)]
@@ -167,7 +179,7 @@ pub struct GetCommunity {
 #[derive(Serialize, Deserialize)]
 pub struct GetCommunityResponse {
   op: String,
-  community: Community
+  community: CommunityView
 }
 
 #[derive(Serialize, Deserialize)]
@@ -333,7 +345,7 @@ impl Handler<Disconnect> for ChatServer {
     }
     // send message to other users
     // for room in rooms {
-      // self.send_room_message(room, "Someone disconnected", 0);
+    // self.send_room_message(room, "Someone disconnected", 0);
     // }
   }
 }
@@ -376,6 +388,10 @@ impl Handler<StandardMessage> for ChatServer {
       UserOperation::ListCommunities => {
         let list_communities: ListCommunities = ListCommunities;
         list_communities.perform(self, msg.id)
+      },
+      UserOperation::ListCategories => {
+        let list_categories: ListCategories = ListCategories;
+        list_categories.perform(self, msg.id)
       },
       UserOperation::CreatePost => {
         let create_post: CreatePost = serde_json::from_str(&data.to_string()).unwrap();
@@ -576,10 +592,12 @@ impl Perform for CreateCommunity {
       }
     };
 
+    let community_view = CommunityView::read(&conn, inserted_community.id).unwrap();
+
     serde_json::to_string(
       &CreateCommunityResponse {
         op: self.op_type().to_string(), 
-        community: inserted_community
+        community: community_view
       }
       )
       .unwrap()
@@ -595,13 +613,35 @@ impl Perform for ListCommunities {
 
     let conn = establish_connection();
 
-    let communities: Vec<Community> = Community::list_all(&conn).unwrap();
+    let communities: Vec<CommunityView> = CommunityView::list_all(&conn).unwrap();
 
     // Return the jwt
     serde_json::to_string(
       &ListCommunitiesResponse {
         op: self.op_type().to_string(),
         communities: communities
+      }
+      )
+      .unwrap()
+  }
+}
+
+impl Perform for ListCategories {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::ListCategories
+  }
+
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+
+    let conn = establish_connection();
+
+    let categories: Vec<Category> = Category::list_all(&conn).unwrap();
+
+    // Return the jwt
+    serde_json::to_string(
+      &ListCategoriesResponse {
+        op: self.op_type().to_string(),
+        categories: categories
       }
       )
       .unwrap()
@@ -656,9 +696,9 @@ impl Perform for CreatePost {
         return self.error("Couldn't like post.");
       }
     };
-  
+
     // Refetch the view
-    let post_view = match PostView::get(&conn, inserted_post.id, Some(user_id)) {
+    let post_view = match PostView::read(&conn, inserted_post.id, Some(user_id)) {
       Ok(post) => post,
       Err(_e) => {
         return self.error("Couldn't find Post");
@@ -700,7 +740,7 @@ impl Perform for GetPost {
       None => None
     };
 
-    let post_view = match PostView::get(&conn, self.id, user_id) {
+    let post_view = match PostView::read(&conn, self.id, user_id) {
       Ok(post) => post,
       Err(_e) => {
         return self.error("Couldn't find Post");
@@ -720,12 +760,15 @@ impl Perform for GetPost {
 
     let comments = CommentView::list(&conn, self.id, user_id).unwrap();
 
+    let community = CommunityView::read(&conn, post_view.community_id).unwrap();
+
     // Return the jwt
     serde_json::to_string(
       &GetPostResponse {
         op: self.op_type().to_string(),
         post: post_view,
-        comments: comments
+        comments: comments,
+        community: community
       }
       )
       .unwrap()
@@ -741,7 +784,7 @@ impl Perform for GetCommunity {
 
     let conn = establish_connection();
 
-    let community = match Community::read(&conn, self.id) {
+    let community_view = match CommunityView::read(&conn, self.id) {
       Ok(community) => community,
       Err(_e) => {
         return self.error("Couldn't find Community");
@@ -752,7 +795,7 @@ impl Perform for GetCommunity {
     serde_json::to_string(
       &GetCommunityResponse {
         op: self.op_type().to_string(),
-        community: community
+        community: community_view
       }
       )
       .unwrap()
@@ -828,7 +871,7 @@ impl Perform for CreateComment {
       }
       )
       .unwrap();
-    
+
     chat.send_room_message(self.post_id, &comment_sent_out, addr);
 
     comment_out
@@ -890,7 +933,7 @@ impl Perform for EditComment {
       }
       )
       .unwrap();
-    
+
     chat.send_room_message(self.post_id, &comment_sent_out, addr);
 
     comment_out
@@ -958,9 +1001,9 @@ impl Perform for CreateCommentLike {
       )
       .unwrap();
 
-      chat.send_room_message(self.post_id, &like_sent_out, addr);
+    chat.send_room_message(self.post_id, &like_sent_out, addr);
 
-      like_out
+    like_out
   }
 }
 
@@ -1049,7 +1092,7 @@ impl Perform for CreatePostLike {
       };
     }
 
-    let post_view = match PostView::get(&conn, self.post_id, Some(user_id)) {
+    let post_view = match PostView::read(&conn, self.post_id, Some(user_id)) {
       Ok(post) => post,
       Err(_e) => {
         return self.error("Couldn't find Post");
@@ -1066,7 +1109,7 @@ impl Perform for CreatePostLike {
       )
       .unwrap();
 
-      like_out
+    like_out
   }
 }
 
@@ -1104,7 +1147,7 @@ impl Perform for EditPost {
       }
     };
 
-    let post_view = PostView::get(&conn, self.edit_id, Some(user_id)).unwrap();
+    let post_view = PostView::read(&conn, self.edit_id, Some(user_id)).unwrap();
 
     let mut post_sent = post_view.clone();
     post_sent.my_vote = None;
@@ -1124,7 +1167,7 @@ impl Perform for EditPost {
       }
       )
       .unwrap();
-    
+
     chat.send_room_message(self.edit_id, &post_sent_out, addr);
 
     post_out
@@ -1255,7 +1298,7 @@ impl Perform for EditPost {
 //           )
 //         )
 //     };
-    
+
 //     MessageResult(
 //       Ok(
 //         CreateCommunityResponse {

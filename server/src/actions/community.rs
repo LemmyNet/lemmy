@@ -125,13 +125,6 @@ impl Joinable<CommunityModeratorForm> for CommunityModerator {
   }
 }
 
-impl Community {
-  pub fn list_all(conn: &PgConnection) -> Result<Vec<Self>, Error> {
-    use schema::community::dsl::*;
-    community.load::<Self>(conn)
-  }
-}
-
 #[cfg(test)]
 mod tests {
   use establish_connection;

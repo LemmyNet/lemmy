@@ -1,5 +1,5 @@
 export enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity
 }
 
 export interface User {
@@ -11,12 +11,23 @@ export interface User {
 export interface Community {
   id: number;
   name: string;
+  title: string;
+  description?: string;
+  creator_id: number;
+  creator_name: string;
+  category_id: number;
+  category_name: string;
+  number_of_subscribers: number;
+  number_of_posts: number;
   published: string;
   updated?: string;
 }
 
 export interface CommunityForm {
   name: string;
+  title: string;
+  description?: string,
+  category_id: number,
   auth?: string;
 }
 
@@ -28,6 +39,11 @@ export interface CommunityResponse {
 export interface ListCommunitiesResponse {
   op: string;
   communities: Array<Community>;
+}
+
+export interface ListCategoriesResponse {
+  op: string;
+  categories: Array<Category>;
 }
 
 export interface Post {
@@ -64,6 +80,7 @@ export interface GetPostResponse {
   op: string;
   post: Post;
   comments: Array<Comment>;
+  community: Community;
 }
 
 export interface PostResponse {
@@ -128,6 +145,11 @@ export interface CreatePostLikeForm {
 export interface CreatePostLikeResponse {
   op: string;
   post: Post;
+}
+
+export interface Category {
+  id: number;
+  name: string;
 }
 
 export interface LoginForm {

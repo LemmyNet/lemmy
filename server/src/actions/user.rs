@@ -117,7 +117,7 @@ mod tests {
     let conn = establish_connection();
     
     let new_user = UserForm {
-      name: "thom".into(),
+      name: "thommy".into(),
       fedi_name: "rrf".into(),
       preferred_username: None,
       password_encrypted: "nope".into(),
@@ -129,7 +129,7 @@ mod tests {
 
     let expected_user = User_ {
       id: inserted_user.id,
-      name: "thom".into(),
+      name: "thommy".into(),
       fedi_name: "rrf".into(),
       preferred_username: None,
       password_encrypted: "$2y$12$YXpNpYsdfjmed.QlYLvw4OfTCgyKUnKHc/V8Dgcf9YcVKHPaYXYYy".into(),
