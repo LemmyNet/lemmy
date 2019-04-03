@@ -12,6 +12,7 @@ use bcrypt::{DEFAULT_COST, hash};
 pub struct User_ {
   pub id: i32,
   pub name: String,
+  pub fedi_name: String,
   pub preferred_username: Option<String>,
   pub password_encrypted: String,
   pub email: Option<String>,
@@ -24,6 +25,7 @@ pub struct User_ {
 #[table_name="user_"]
 pub struct UserForm {
     pub name: String,
+    pub fedi_name: String,
     pub preferred_username: Option<String>,
     pub password_encrypted: String,
     pub email: Option<String>,
@@ -116,6 +118,7 @@ mod tests {
     
     let new_user = UserForm {
       name: "thom".into(),
+      fedi_name: "rrf".into(),
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
@@ -127,6 +130,7 @@ mod tests {
     let expected_user = User_ {
       id: inserted_user.id,
       name: "thom".into(),
+      fedi_name: "rrf".into(),
       preferred_username: None,
       password_encrypted: "$2y$12$YXpNpYsdfjmed.QlYLvw4OfTCgyKUnKHc/V8Dgcf9YcVKHPaYXYYy".into(),
       email: None,

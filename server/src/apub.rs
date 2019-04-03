@@ -39,6 +39,7 @@ mod tests {
     let expected_user = User_ {
       id: 52,
       name: "thom".into(),
+      fedi_name: "rrf".into(),
       preferred_username: None,
       password_encrypted: "here".into(),
       email: None,

@@ -12,7 +12,7 @@ pub struct Post {
   pub name: String,
   pub url: Option<String>,
   pub body: Option<String>,
-  pub attributed_to: String,
+  pub creator_id: i32,
   pub community_id: i32,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>
@@ -24,7 +24,7 @@ pub struct PostForm {
   pub name: String,
   pub url: Option<String>,
   pub body: Option<String>,
-  pub attributed_to: String,
+  pub creator_id: i32,
   pub community_id: i32,
   pub updated: Option<chrono::NaiveDateTime>
 }
@@ -35,7 +35,7 @@ pub struct PostForm {
 pub struct PostLike {
   pub id: i32,
   pub post_id: i32,
-  pub fedi_user_id: String,
+  pub user_id: i32,
   pub score: i16,
   pub published: chrono::NaiveDateTime,
 }
@@ -44,7 +44,7 @@ pub struct PostLike {
 #[table_name="post_like"]
 pub struct PostLikeForm {
   pub post_id: i32,
-  pub fedi_user_id: String,
+  pub user_id: i32,
   pub score: i16
 }
 
@@ -93,7 +93,7 @@ impl Likeable <PostLikeForm> for PostLike {
     use schema::post_like::dsl::*;
     diesel::delete(post_like
       .filter(post_id.eq(post_like_form.post_id))
-      .filter(fedi_user_id.eq(&post_like_form.fedi_user_id)))
+      .filter(user_id.eq(post_like_form.user_id)))
       .execute(conn)
   }
 }
@@ -104,12 +104,25 @@ mod tests {
   use super::*;
   use Crud;
   use actions::community::*;
+  use actions::user::*;
  #[test]
   fn test_crud() {
     let conn = establish_connection();
 
+    let new_user = UserForm {
+      name: "jim".into(),
+      fedi_name: "rrf".into(),
+      preferred_username: None,
+      password_encrypted: "nope".into(),
+      email: None,
+      updated: None
+    };
+
+    let inserted_user = User_::create(&conn, &new_user).unwrap();
+
     let new_community = CommunityForm {
       name: "test community_2".to_string(),
+      creator_id: inserted_user.id,
       updated: None
     };
 
@@ -119,7 +132,7 @@ mod tests {
       name: "A test post".into(),
       url: None,
       body: None,
-      attributed_to: "test_user.com".into(),
+      creator_id: inserted_user.id,
       community_id: inserted_community.id,
       updated: None
     };
@@ -131,7 +144,7 @@ mod tests {
       name: "A test post".into(),
       url: None,
       body: None,
-      attributed_to: "test_user.com".into(),
+      creator_id: inserted_user.id,
       community_id: inserted_community.id,
       published: inserted_post.published,
       updated: None
@@ -139,7 +152,7 @@ mod tests {
 
     let post_like_form = PostLikeForm {
       post_id: inserted_post.id,
-      fedi_user_id: "test".into(),
+      user_id: inserted_user.id,
       score: 1
     };
 
@@ -148,7 +161,7 @@ mod tests {
     let expected_post_like = PostLike {
       id: inserted_post_like.id,
       post_id: inserted_post.id,
-      fedi_user_id: "test".into(),
+      user_id: inserted_user.id,
       published: inserted_post_like.published,
       score: 1
     };
@@ -158,6 +171,7 @@ mod tests {
     let like_removed = PostLike::remove(&conn, &post_like_form).unwrap();
     let num_deleted = Post::delete(&conn, inserted_post.id).unwrap();
     Community::delete(&conn, inserted_community.id).unwrap();
+    User_::delete(&conn, inserted_user.id).unwrap();
 
     assert_eq!(expected_post, read_post);
     assert_eq!(expected_post, inserted_post);
