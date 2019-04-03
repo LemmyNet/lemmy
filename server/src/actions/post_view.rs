@@ -100,7 +100,7 @@ impl PostView {
   }
 
 
-  pub fn get(conn: &PgConnection, from_post_id: i32, from_user_id: Option<i32>) -> Result<Self, Error> {
+  pub fn read(conn: &PgConnection, from_post_id: i32, from_user_id: Option<i32>) -> Result<Self, Error> {
 
     use actions::post_view::post_view::dsl::*;
     use diesel::prelude::*;
@@ -235,8 +235,8 @@ mod tests {
 
     let read_post_listings_with_user = PostView::list(&conn, ListingType::Community, ListingSortType::New, Some(inserted_community.id), Some(inserted_user.id), 10).unwrap();
     let read_post_listings_no_user = PostView::list(&conn, ListingType::Community, ListingSortType::New, Some(inserted_community.id), None, 10).unwrap();
-    let read_post_listing_no_user = PostView::get(&conn, inserted_post.id, None).unwrap();
-    let read_post_listing_with_user = PostView::get(&conn, inserted_post.id, Some(inserted_user.id)).unwrap();
+    let read_post_listing_no_user = PostView::read(&conn, inserted_post.id, None).unwrap();
+    let read_post_listing_with_user = PostView::read(&conn, inserted_post.id, Some(inserted_user.id)).unwrap();
 
     let like_removed = PostLike::remove(&conn, &post_like_form).unwrap();
     let num_deleted = Post::delete(&conn, inserted_post.id).unwrap();

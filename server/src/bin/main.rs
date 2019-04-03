@@ -3,7 +3,7 @@ extern crate server;
 use std::time::{Instant, Duration};
 use server::actix::*;
 use server::actix_web::server::HttpServer;
-use server::actix_web::{fs, http, ws, App, Error, HttpRequest, HttpResponse};
+use server::actix_web::{ws, App, Error, HttpRequest, HttpResponse};
 
 use server::websocket_server::server::*;
 

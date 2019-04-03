@@ -1,7 +1,7 @@
 import { Component, linkEvent } from 'inferno';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { CommunityForm, UserOperation } from '../interfaces';
+import { CommunityForm, UserOperation, Category, ListCategoriesResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { msgOp } from '../utils';
 
@@ -9,6 +9,7 @@ import { Community } from '../interfaces';
 
 interface State {
   communityForm: CommunityForm;
+  categories: Array<Category>;
 }
 
 export class CreateCommunity extends Component<any, State> {
@@ -17,14 +18,17 @@ export class CreateCommunity extends Component<any, State> {
   private emptyState: State = {
     communityForm: {
       name: null,
-    }
+      title: null,
+      category_id: null
+    },
+    categories: []
   }
 
   constructor(props, context) {
     super(props, context);
 
     this.state = this.emptyState;
-    
+
     this.subscription = WebSocketService.Instance.subject
       .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
       .subscribe(
@@ -32,6 +36,8 @@ export class CreateCommunity extends Component<any, State> {
         (err) => console.error(err),
         () => console.log("complete")
       );
+
+    WebSocketService.Instance.listCategories();
   }
 
   componentWillUnmount() {
@@ -62,6 +68,28 @@ export class CreateCommunity extends Component<any, State> {
             </div>
           </div>
           <div class="form-group row">
+            <label class="col-sm-2 col-form-label">Title / Headline</label>
+            <div class="col-sm-10">
+              <input type="text" value={this.state.communityForm.title} onInput={linkEvent(this, this.handleCommunityTitleChange)} class="form-control" required minLength={3} />
+            </div>
+          </div>
+          <div class="form-group row">
+            <label class="col-sm-2 col-form-label">Description / Sidebar</label>
+            <div class="col-sm-10">
+              <textarea value={this.state.communityForm.description} onInput={linkEvent(this, this.handleCommunityDescriptionChange)} class="form-control" rows={6} />
+            </div>
+          </div>
+          <div class="form-group row">
+            <label class="col-sm-2 col-form-label">Category</label>
+            <div class="col-sm-10">
+              <select class="form-control" value={this.state.communityForm.category_id} onInput={linkEvent(this, this.handleCommunityCategoryChange)}>
+                {this.state.categories.map(category =>
+                  <option value={category.id}>{category.name}</option>
+                )}
+              </select>
+            </div>
+          </div>
+          <div class="form-group row">
             <div class="col-sm-10">
               <button type="submit" class="btn btn-secondary">Create</button>
             </div>
@@ -70,7 +98,7 @@ export class CreateCommunity extends Component<any, State> {
       </div>
     );
   }
-  
+
   handleCreateCommunitySubmit(i: CreateCommunity, event) {
     event.preventDefault();
     WebSocketService.Instance.createCommunity(i.state.communityForm);
@@ -78,6 +106,22 @@ export class CreateCommunity extends Component<any, State> {
 
   handleCommunityNameChange(i: CreateCommunity, event) {
     i.state.communityForm.name = event.target.value;
+    i.setState(i.state);
+  }
+
+  handleCommunityTitleChange(i: CreateCommunity, event) {
+    i.state.communityForm.title = event.target.value;
+    i.setState(i.state);
+  }
+
+  handleCommunityDescriptionChange(i: CreateCommunity, event) {
+    i.state.communityForm.description = event.target.value;
+    i.setState(i.state);
+  }
+
+  handleCommunityCategoryChange(i: CreateCommunity, event) {
+    i.state.communityForm.category_id = Number(event.target.value);
+    i.setState(i.state);
   }
 
   parseMessage(msg: any) {
@@ -86,11 +130,14 @@ export class CreateCommunity extends Component<any, State> {
     if (msg.error) {
       alert(msg.error);
       return;
-    } else {
-      if (op == UserOperation.CreateCommunity) {
-        let community: Community = msg.community;
-        this.props.history.push(`/community/${community.id}`);
-      }
+    } else if (op == UserOperation.ListCategories){
+      let res: ListCategoriesResponse = msg;
+      this.state.categories = res.categories;
+      this.state.communityForm.category_id = res.categories[0].id;
+      this.setState(this.state);
+    } else if (op == UserOperation.CreateCommunity) {
+      let community: Community = msg.community;
+      this.props.history.push(`/community/${community.id}`);
     }
   }
 

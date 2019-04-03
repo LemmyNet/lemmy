@@ -6,7 +6,8 @@ import { UserOperation, Community as CommunityI, CommunityResponse, Post, GetPos
 import { WebSocketService, UserService } from '../services';
 import { MomentTime } from './moment-time';
 import { PostListing } from './post-listing';
-import { msgOp } from '../utils';
+import { Sidebar } from './sidebar';
+import { msgOp, mdToHtml } from '../utils';
 
 interface State {
   community: CommunityI;
@@ -21,6 +22,13 @@ export class Community extends Component<any, State> {
     community: {
       id: null,
       name: null,
+      title: null,
+      category_id: null,
+      category_name: null,
+      creator_id: null,
+      creator_name: null,
+      number_of_subscribers: null,
+      number_of_posts: null,
       published: null
     },
     posts: [],
@@ -70,10 +78,8 @@ export class Community extends Component<any, State> {
             }
           </div>
           <div class="col-12 col-sm-2 col-lg-3">
-            Sidebar
+            <Sidebar community={this.state.community} />
           </div>
-      
-          
         </div>
       </div>
     )
