@@ -10,6 +10,9 @@ use {Crud, Followable, Joinable};
 pub struct Community {
   pub id: i32,
   pub name: String,
+  pub title: String,
+  pub description: Option<String>,
+  pub category_id: i32,
   pub creator_id: i32,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>
@@ -19,6 +22,9 @@ pub struct Community {
 #[table_name="community"]
 pub struct CommunityForm {
   pub name: String,
+  pub title: String,
+  pub description: Option<String>,
+  pub category_id: i32,
   pub creator_id: i32,
   pub updated: Option<chrono::NaiveDateTime>
 }
@@ -149,8 +155,11 @@ mod tests {
 
     let new_community = CommunityForm {
       name: "TIL".into(),
+      creator_id: inserted_user.id,
+      title: "nada".to_owned(),
+      description: None,
+      category_id: 1,
       updated: None,
-      creator_id: inserted_user.id
     };
 
     let inserted_community = Community::create(&conn, &new_community).unwrap();
@@ -159,6 +168,9 @@ mod tests {
       id: inserted_community.id,
       creator_id: inserted_user.id,
       name: "TIL".into(),
+      title: "nada".to_owned(),
+      description: None,
+      category_id: 1,
       published: inserted_community.published,
       updated: None
     };
@@ -196,7 +208,6 @@ mod tests {
     let updated_community = Community::update(&conn, inserted_community.id, &new_community).unwrap();
     let ignored_community = CommunityFollower::ignore(&conn, &community_follower_form).unwrap();
     let left_community = CommunityModerator::leave(&conn, &community_user_form).unwrap();
-    let loaded_count = Community::list_all(&conn).unwrap().len();
     let num_deleted = Community::delete(&conn, inserted_community.id).unwrap();
     User_::delete(&conn, inserted_user.id).unwrap();
 

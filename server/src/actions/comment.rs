@@ -117,97 +117,6 @@ impl CommentLike {
   }
 }
 
-
-
-impl Comment {
-  fn from_post(conn: &PgConnection, post_id_from: i32) -> Result<Vec<Self>, Error> {
-    use schema::comment::dsl::*;
-    comment
-      .filter(post_id.eq(post_id_from))
-      .order_by(published.desc())
-      .load::<Self>(conn) 
-  }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct CommentView {
-  pub id: i32,
-  pub creator_id: i32,
-  pub content: String,
-  pub post_id: i32,
-  pub parent_id: Option<i32>,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub score: i32,
-  pub upvotes: i32,
-  pub downvotes: i32,
-  pub my_vote: Option<i16>
-}
-
-impl CommentView {
-  pub fn from_comment(comment: &Comment, likes: &Vec<CommentLike>, user_id: Option<i32>) -> Self {
-    let mut upvotes: i32 = 0;
-    let mut downvotes: i32 = 0;
-    let mut my_vote: Option<i16> = Some(0);
-
-    for like in likes.iter() {
-      if like.score == 1 {
-        upvotes += 1;
-      } else if like.score == -1 {
-        downvotes += 1;
-      }
-
-      if let Some(user) = user_id {
-        if like.user_id == user {
-          my_vote = Some(like.score);
-        }
-      }
-
-    }
-
-    let score: i32 = upvotes - downvotes;
-
-    CommentView {
-      id: comment.id,
-      content: comment.content.to_owned(),
-      parent_id: comment.parent_id,
-      post_id: comment.post_id,
-      creator_id: comment.creator_id,
-      published: comment.published,
-      updated: comment.updated,
-      upvotes: upvotes,
-      score: score,
-      downvotes: downvotes,
-      my_vote: my_vote
-    }
-  }
-
-  pub fn read(conn: &PgConnection, comment_id: i32, user_id: Option<i32>) -> Self {
-    let comment = Comment::read(&conn, comment_id).unwrap();
-    let likes = CommentLike::read(&conn, comment_id).unwrap();
-    Self::from_comment(&comment, &likes, user_id)
-  }
-
-  pub fn from_post(conn: &PgConnection, post_id: i32, user_id: Option<i32>) -> Vec<Self> {
-    let comments = Comment::from_post(&conn, post_id).unwrap();
-    let post_comment_likes = CommentLike::from_post(&conn, post_id).unwrap();
-    
-    let mut views = Vec::new();
-    for comment in comments.iter() {
-      let comment_likes: Vec<CommentLike> = post_comment_likes
-        .iter()
-        .filter(|like| comment.id == like.comment_id)
-        .cloned()
-        .collect();
-      let comment_view = CommentView::from_comment(&comment, &comment_likes, user_id);
-      views.push(comment_view);
-    };
-
-    views
-  }
-}
-
-
 #[cfg(test)]
 mod tests {
   use establish_connection;
@@ -233,6 +142,9 @@ mod tests {
 
     let new_community = CommunityForm {
       name: "test community".to_string(),
+      title: "nada".to_owned(),
+      description: None,
+      category_id: 1,
       creator_id: inserted_user.id,
       updated: None
     };

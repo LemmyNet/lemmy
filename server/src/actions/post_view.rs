@@ -16,47 +16,47 @@ pub enum ListingSortType {
 // The faked schema since diesel doesn't do views
 table! {
   post_view (id) {
-    user_id -> Nullable<Int4>,
-    my_vote -> Nullable<Int4>,
     id -> Int4,
     name -> Varchar,
     url -> Nullable<Text>,
     body -> Nullable<Text>,
     creator_id -> Int4,
-    creator_name -> Varchar,
     community_id -> Int4,
+    published -> Timestamp,
+    updated -> Nullable<Timestamp>,
+    creator_name -> Varchar,
     community_name -> Varchar,
     number_of_comments -> BigInt,
     score -> BigInt,
     upvotes -> BigInt,
     downvotes -> BigInt,
     hot_rank -> Int4,
-    published -> Timestamp,
-    updated -> Nullable<Timestamp>,
+    user_id -> Nullable<Int4>,
+    my_vote -> Nullable<Int4>,
   }
 }
 
 
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize,QueryableByName)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize,QueryableByName,Clone)]
 #[table_name="post_view"]
 pub struct PostView {
-  pub user_id: Option<i32>,
-  pub my_vote: Option<i32>,
   pub id: i32,
   pub name: String,
   pub url: Option<String>,
   pub body: Option<String>,
   pub creator_id: i32,
-  pub creator_name: String,
   pub community_id: i32,
+  pub published: chrono::NaiveDateTime,
+  pub updated: Option<chrono::NaiveDateTime>,
+  pub creator_name: String,
   pub community_name: String,
   pub number_of_comments: i64,
   pub score: i64,
   pub upvotes: i64,
   pub downvotes: i64,
   pub hot_rank: i32,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>
+  pub user_id: Option<i32>,
+  pub my_vote: Option<i32>,
 }
 
 impl PostView {
@@ -103,7 +103,6 @@ impl PostView {
   pub fn get(conn: &PgConnection, from_post_id: i32, from_user_id: Option<i32>) -> Result<Self, Error> {
 
     use actions::post_view::post_view::dsl::*;
-    use diesel::dsl::*;
     use diesel::prelude::*;
 
     let mut query = post_view.into_boxed();
@@ -113,45 +112,8 @@ impl PostView {
     if let Some(from_user_id) = from_user_id {
       query = query.filter(user_id.eq(from_user_id));
     } else {
-      // This fills in nulls for the user_id and user vote
-      query = query
-        .select((
-            sql("null"),
-            sql("null"),
-            id, 
-            name, 
-            url, 
-            body, 
-            creator_id, 
-            creator_name, 
-            community_id, 
-            community_name, 
-            number_of_comments, 
-            score, 
-            upvotes, 
-            downvotes, 
-            hot_rank, 
-            published, 
-            updated
-            ))
-        .group_by((
-            id,
-            name,
-            url,
-            body, 
-            creator_id,
-            creator_name,
-            community_id,
-            community_name,
-            number_of_comments,
-            score,
-            upvotes,
-            downvotes,
-            hot_rank,
-            published,
-            updated
-            ));
-    };
+      query = query.filter(user_id.is_null());
+    }
 
     query.first::<Self>(conn)
   }
@@ -187,7 +149,10 @@ mod tests {
 
     let new_community = CommunityForm {
       name: community_name.to_owned(),
+      title: "nada".to_owned(),
+      description: None,
       creator_id: inserted_user.id,
+      category_id: 1,
       updated: None
     };
 

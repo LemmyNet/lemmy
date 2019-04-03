@@ -30,7 +30,6 @@ impl User_ {
 
 #[cfg(test)]
 mod tests {
-  use super::activitypub::{context, actor::Person};
   use super::User_;
   use naive_now;
 

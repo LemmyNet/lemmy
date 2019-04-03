@@ -1,5 +1,5 @@
 export enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity
 }
 
 export interface User {
@@ -56,19 +56,26 @@ export interface PostForm {
   body?: string;
   community_id: number;
   updated?: number;
+  edit_id?: number;
   auth: string;
+}
+
+export interface GetPostResponse {
+  op: string;
+  post: Post;
+  comments: Array<Comment>;
 }
 
 export interface PostResponse {
   op: string;
   post: Post;
-  comments: Array<Comment>;
 }
 
 export interface Comment {
   id: number;
   content: string;
   creator_id: number;
+  creator_name: string;
   post_id: number,
   parent_id?: number;
   published: string;
@@ -97,11 +104,6 @@ export interface CommentLikeForm {
   post_id: number;
   score: number;
   auth?: string;
-}
-
-export interface CreateCommentLikeResponse {
-  op: string;
-  comment: Comment;
 }
 
 export interface GetPostsForm {

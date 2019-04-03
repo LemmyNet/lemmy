@@ -3,15 +3,18 @@ import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { WebSocketService, UserService } from '../services';
-import { Post, CreatePostLikeResponse, CreatePostLikeForm } from '../interfaces';
+import { Post, CreatePostLikeResponse, CreatePostLikeForm, PostForm as PostFormI } from '../interfaces';
 import { MomentTime } from './moment-time';
+import { PostForm } from './post-form';
 import { mdToHtml } from '../utils';
 
 interface PostListingState {
+  showEdit: boolean;
 }
 
 interface PostListingProps {
   post: Post;
+  editable?: boolean;
   showCommunity?: boolean;
   showBody?: boolean;
 }
@@ -19,6 +22,7 @@ interface PostListingProps {
 export class PostListing extends Component<PostListingProps, PostListingState> {
 
   private emptyState: PostListingState = {
+    showEdit: false
   }
 
   constructor(props, context) {
@@ -27,9 +31,21 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     this.state = this.emptyState;
     this.handlePostLike = this.handlePostLike.bind(this);
     this.handlePostDisLike = this.handlePostDisLike.bind(this);
+    this.handleEditPost = this.handleEditPost.bind(this);
   }
 
-  render() {
+ render() {
+   return (
+     <div>
+     {!this.state.showEdit 
+       ? this.listing()
+       : <PostForm post={this.props.post} onEdit={this.handleEditPost} />
+     }
+   </div>
+   )
+  }
+
+  listing() {
     let post = this.props.post;
     return (
       <div class="listing">
@@ -74,15 +90,25 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               <Link to={`/post/${post.id}`}>{post.number_of_comments} Comments</Link>
             </li>
           </ul>
+            {this.myPost && 
+            <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
+              <li className="list-inline-item">
+                <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>edit</span>
+              </li>
+              <li className="list-inline-item">
+                <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>delete</span>
+              </li>
+            </ul>
+          }
           {this.props.showBody && this.props.post.body && <div className="md-div" dangerouslySetInnerHTML={mdToHtml(post.body)} />}
         </div>
       </div>
     )
   }
 
-  // private get myPost(): boolean {
-  //   return this.props.node.comment.attributed_to == UserService.Instance.fediUserId;
-  // }
+  private get myPost(): boolean {
+    return this.props.editable && UserService.Instance.loggedIn && this.props.post.creator_id == UserService.Instance.user.id;
+  }
 
   handlePostLike(i: PostListing, event) {
 
@@ -99,6 +125,28 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       score: (i.props.post.my_vote == -1) ? 0 : -1
     };
     WebSocketService.Instance.likePost(form);
+  }
+
+  handleEditClick(i: PostListing, event) {
+    i.state.showEdit = true;
+    i.setState(i.state);
+  }
+
+  handleEditPost(post: Post) {
+    this.state.showEdit = false;
+    this.setState(this.state);
+  }
+
+  handleDeleteClick(i: PostListing, event) {
+    let deleteForm: PostFormI = {
+      body: '',
+      community_id: i.props.post.community_id,
+      name: "deleted",
+      url: '',
+      edit_id: i.props.post.id,
+      auth: null
+    };
+    WebSocketService.Instance.editPost(deleteForm);
   }
 }
 
