@@ -32,3 +32,7 @@ body {
   max-width: 100%;
   height: auto;
 }
+
+.listing {
+  min-height: 61px;
+}

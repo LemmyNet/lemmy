@@ -1,13 +1,17 @@
 import { Component, linkEvent } from 'inferno';
+import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community as CommunityI, CommunityResponse, Post } from '../interfaces';
+import { UserOperation, Community as CommunityI, CommunityResponse, Post, GetPostsForm, ListingSortType, ListingType, GetPostsResponse, CreatePostLikeForm, CreatePostLikeResponse} from '../interfaces';
 import { WebSocketService, UserService } from '../services';
+import { MomentTime } from './moment-time';
+import { PostListing } from './post-listing';
 import { msgOp } from '../utils';
 
 interface State {
   community: CommunityI;
   posts: Array<Post>;
+  sortType: ListingSortType;
 }
 
 export class Community extends Component<any, State> {
@@ -19,15 +23,14 @@ export class Community extends Component<any, State> {
       name: null,
       published: null
     },
-    posts: []
+    posts: [],
+    sortType: ListingSortType.Hot,
   }
 
   constructor(props, context) {
     super(props, context);
 
     this.state = this.emptyState;
-
-    console.log(this.props.match.params.id);
 
     this.subscription = WebSocketService.Instance.subject
       .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
@@ -39,6 +42,14 @@ export class Community extends Component<any, State> {
 
     let communityId = Number(this.props.match.params.id);
     WebSocketService.Instance.getCommunity(communityId);
+
+    let getPostsForm: GetPostsForm = {
+      community_id: communityId,
+      limit: 10,
+      sort: ListingSortType[ListingSortType.Hot],
+      type_: ListingType[ListingType.Community]
+    }
+    WebSocketService.Instance.getPosts(getPostsForm);
   }
 
   componentWillUnmount() {
@@ -49,12 +60,55 @@ export class Community extends Component<any, State> {
     return (
       <div class="container">
         <div class="row">
-          <div class="col-12 col-lg-6 mb-4">
-            {this.state.community.name}
+          <div class="col-12 col-sm-10 col-lg-9">
+            <h4>/f/{this.state.community.name}</h4>
+            <div>{this.selects()}</div>
+            {this.state.posts.length > 0 
+              ? this.state.posts.map(post => 
+                <PostListing post={post} />) 
+              : <div>no listings</div>
+            }
           </div>
+          <div class="col-12 col-sm-2 col-lg-3">
+            Sidebar
+          </div>
+      
+          
         </div>
       </div>
     )
+  }
+
+  selects() {
+    return (
+      <div className="mb-2">
+        <select value={this.state.sortType} onChange={linkEvent(this, this.handleSortChange)} class="custom-select w-auto">
+          <option disabled>Sort Type</option>
+          <option value={ListingSortType.Hot}>Hot</option>
+          <option value={ListingSortType.New}>New</option>
+          <option disabled>──────────</option>
+          <option value={ListingSortType.TopDay}>Top Day</option>
+          <option value={ListingSortType.TopWeek}>Week</option>
+          <option value={ListingSortType.TopMonth}>Month</option>
+          <option value={ListingSortType.TopYear}>Year</option>
+          <option value={ListingSortType.TopAll}>All</option>
+        </select>
+      </div>
+    )
+
+  }
+
+  handleSortChange(i: Community, event) {
+    i.state.sortType = Number(event.target.value);
+    i.setState(i.state);
+
+    let getPostsForm: GetPostsForm = {
+      community_id: i.state.community.id,
+      limit: 10,
+      sort: ListingSortType[i.state.sortType],
+      type_: ListingType[ListingType.Community]
+    }
+    WebSocketService.Instance.getPosts(getPostsForm);
   }
 
   parseMessage(msg: any) {
@@ -67,6 +121,20 @@ export class Community extends Component<any, State> {
       let res: CommunityResponse = msg;
       this.state.community = res.community;
       this.setState(this.state);
-    }  
+    }  else if (op == UserOperation.GetPosts) {
+      let res: GetPostsResponse = msg;
+      this.state.posts = res.posts;
+      this.setState(this.state);
+    } else if (op == UserOperation.CreatePostLike) {
+      let res: CreatePostLikeResponse = msg;
+      let found = this.state.posts.find(c => c.id == res.post.id);
+      found.my_vote = res.post.my_vote;
+      found.score = res.post.score;
+      found.upvotes = res.post.upvotes;
+      found.downvotes = res.post.downvotes;
+      this.setState(this.state);
+    }
   }
 }
+
+

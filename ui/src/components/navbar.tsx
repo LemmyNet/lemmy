@@ -34,7 +34,10 @@ export class Navbar extends Component<any, any> {
         <div class="collapse navbar-collapse">
           <ul class="navbar-nav mr-auto">
             <li class="nav-item">
-              <a class="nav-link" href={repoUrl}>github</a>
+              <a class="nav-link" href={repoUrl}>About</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href={repoUrl}>Forums</a>
             </li>
             <li class="nav-item">
               <Link class="nav-link" to="/create_post">Create Post</Link>

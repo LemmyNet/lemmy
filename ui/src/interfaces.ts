@@ -1,5 +1,5 @@
 export enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike
 }
 
 export interface User {
@@ -31,12 +31,21 @@ export interface ListCommunitiesResponse {
 }
 
 export interface Post {
+  user_id?: number;
+  my_vote?: number;
   id: number;
   name: string;
   url?: string;
   body?: string;
-  attributed_to: string;
+  creator_id: number;
+  creator_name: string;
   community_id: number;
+  community_name: string;
+  number_of_comments: number;
+  score: number;
+  upvotes: number;
+  downvotes: number;
+  hot_rank: number;
   published: string;
   updated?: string;
 }
@@ -59,7 +68,7 @@ export interface PostResponse {
 export interface Comment {
   id: number;
   content: string;
-  attributed_to: string;
+  creator_id: number;
   post_id: number,
   parent_id?: number;
   published: string;
@@ -95,6 +104,30 @@ export interface CreateCommentLikeResponse {
   comment: Comment;
 }
 
+export interface GetPostsForm {
+  type_: string;
+  sort: string;
+  limit: number;
+  community_id?: number;
+  auth?: string;
+}
+
+export interface GetPostsResponse {
+  op: string;
+  posts: Array<Post>;
+}
+
+export interface CreatePostLikeForm {
+  post_id: number;
+  score: number;
+  auth?: string;
+}
+
+export interface CreatePostLikeResponse {
+  op: string;
+  post: Post;
+}
+
 export interface LoginForm {
   username_or_email: string;
   password: string;
@@ -107,6 +140,7 @@ export interface RegisterForm {
   password_verify: string;
 }
 
+
 export interface LoginResponse {
   op: string;
   jwt: string;
@@ -116,4 +150,11 @@ export enum CommentSortType {
   Hot, Top, New
 }
 
+export enum ListingType {
+  All, Subscribed, Community
+}
+
+export enum ListingSortType {
+  Hot, New, TopDay, TopWeek, TopMonth, TopYear, TopAll
+}
 

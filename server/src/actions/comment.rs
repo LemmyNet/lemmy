@@ -18,10 +18,10 @@ use actions::post::Post;
 #[table_name="comment"]
 pub struct Comment {
   pub id: i32,
-  pub content: String,
-  pub attributed_to: String,
+  pub creator_id: i32,
   pub post_id: i32,
   pub parent_id: Option<i32>,
+  pub content: String,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>
 }
@@ -29,10 +29,10 @@ pub struct Comment {
 #[derive(Insertable, AsChangeset, Clone)]
 #[table_name="comment"]
 pub struct CommentForm {
-  pub content: String,
-  pub attributed_to: String,
+  pub creator_id: i32,
   pub post_id: i32,
   pub parent_id: Option<i32>,
+  pub content: String,
   pub updated: Option<chrono::NaiveDateTime>
 }
 
@@ -41,9 +41,9 @@ pub struct CommentForm {
 #[table_name = "comment_like"]
 pub struct CommentLike {
   pub id: i32,
+  pub user_id: i32,
   pub comment_id: i32,
   pub post_id: i32,
-  pub fedi_user_id: String,
   pub score: i16,
   pub published: chrono::NaiveDateTime,
 }
@@ -51,9 +51,9 @@ pub struct CommentLike {
 #[derive(Insertable, AsChangeset, Clone)]
 #[table_name="comment_like"]
 pub struct CommentLikeForm {
+  pub user_id: i32,
   pub comment_id: i32,
   pub post_id: i32,
-  pub fedi_user_id: String,
   pub score: i16
 }
 
@@ -103,7 +103,7 @@ impl Likeable <CommentLikeForm> for CommentLike {
     use schema::comment_like::dsl::*;
     diesel::delete(comment_like
                    .filter(comment_id.eq(comment_like_form.comment_id))
-                   .filter(fedi_user_id.eq(&comment_like_form.fedi_user_id)))
+                   .filter(user_id.eq(comment_like_form.user_id)))
       .execute(conn)
   }
 }
@@ -132,8 +132,8 @@ impl Comment {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CommentView {
   pub id: i32,
+  pub creator_id: i32,
   pub content: String,
-  pub attributed_to: String,
   pub post_id: i32,
   pub parent_id: Option<i32>,
   pub published: chrono::NaiveDateTime,
@@ -145,7 +145,7 @@ pub struct CommentView {
 }
 
 impl CommentView {
-  pub fn from_comment(comment: &Comment, likes: &Vec<CommentLike>, fedi_user_id: &Option<String>) -> Self {
+  pub fn from_comment(comment: &Comment, likes: &Vec<CommentLike>, user_id: Option<i32>) -> Self {
     let mut upvotes: i32 = 0;
     let mut downvotes: i32 = 0;
     let mut my_vote: Option<i16> = Some(0);
@@ -157,8 +157,8 @@ impl CommentView {
         downvotes += 1;
       }
 
-      if let Some(user) = fedi_user_id {
-        if like.fedi_user_id == *user {
+      if let Some(user) = user_id {
+        if like.user_id == user {
           my_vote = Some(like.score);
         }
       }
@@ -172,7 +172,7 @@ impl CommentView {
       content: comment.content.to_owned(),
       parent_id: comment.parent_id,
       post_id: comment.post_id,
-      attributed_to: comment.attributed_to.to_owned(),
+      creator_id: comment.creator_id,
       published: comment.published,
       updated: comment.updated,
       upvotes: upvotes,
@@ -182,13 +182,13 @@ impl CommentView {
     }
   }
 
-  pub fn read(conn: &PgConnection, comment_id: i32, fedi_user_id: &Option<String>) -> Self {
+  pub fn read(conn: &PgConnection, comment_id: i32, user_id: Option<i32>) -> Self {
     let comment = Comment::read(&conn, comment_id).unwrap();
     let likes = CommentLike::read(&conn, comment_id).unwrap();
-    Self::from_comment(&comment, &likes, fedi_user_id)
+    Self::from_comment(&comment, &likes, user_id)
   }
 
-  pub fn from_post(conn: &PgConnection, post_id: i32, fedi_user_id: &Option<String>) -> Vec<Self> {
+  pub fn from_post(conn: &PgConnection, post_id: i32, user_id: Option<i32>) -> Vec<Self> {
     let comments = Comment::from_post(&conn, post_id).unwrap();
     let post_comment_likes = CommentLike::from_post(&conn, post_id).unwrap();
     
@@ -199,7 +199,7 @@ impl CommentView {
         .filter(|like| comment.id == like.comment_id)
         .cloned()
         .collect();
-      let comment_view = CommentView::from_comment(&comment, &comment_likes, fedi_user_id);
+      let comment_view = CommentView::from_comment(&comment, &comment_likes, user_id);
       views.push(comment_view);
     };
 
@@ -214,13 +214,26 @@ mod tests {
   use super::*;
   use actions::post::*;
   use actions::community::*;
+  use actions::user::*;
   use Crud;
  #[test]
   fn test_crud() {
     let conn = establish_connection();
 
+    let new_user = UserForm {
+      name: "terry".into(),
+      fedi_name: "rrf".into(),
+      preferred_username: None,
+      password_encrypted: "nope".into(),
+      email: None,
+      updated: None
+    };
+
+    let inserted_user = User_::create(&conn, &new_user).unwrap();
+
     let new_community = CommunityForm {
       name: "test community".to_string(),
+      creator_id: inserted_user.id,
       updated: None
     };
 
@@ -228,9 +241,9 @@ mod tests {
     
     let new_post = PostForm {
       name: "A test post".into(),
+      creator_id: inserted_user.id,
       url: None,
       body: None,
-      attributed_to: "test_user.com".into(),
       community_id: inserted_community.id,
       updated: None
     };
@@ -239,7 +252,7 @@ mod tests {
 
     let comment_form = CommentForm {
       content: "A test comment".into(),
-      attributed_to: "test_user.com".into(),
+      creator_id: inserted_user.id,
       post_id: inserted_post.id,
       parent_id: None,
       updated: None
@@ -250,7 +263,7 @@ mod tests {
     let expected_comment = Comment {
       id: inserted_comment.id,
       content: "A test comment".into(),
-      attributed_to: "test_user.com".into(),
+      creator_id: inserted_user.id,
       post_id: inserted_post.id,
       parent_id: None,
       published: inserted_comment.published,
@@ -259,7 +272,7 @@ mod tests {
     
     let child_comment_form = CommentForm {
       content: "A child comment".into(),
-      attributed_to: "test_user.com".into(),
+      creator_id: inserted_user.id,
       post_id: inserted_post.id,
       parent_id: Some(inserted_comment.id),
       updated: None
@@ -270,7 +283,7 @@ mod tests {
     let comment_like_form = CommentLikeForm {
       comment_id: inserted_comment.id,
       post_id: inserted_post.id,
-      fedi_user_id: "test".into(),
+      user_id: inserted_user.id,
       score: 1
     };
 
@@ -280,7 +293,7 @@ mod tests {
       id: inserted_comment_like.id,
       comment_id: inserted_comment.id,
       post_id: inserted_post.id,
-      fedi_user_id: "test".into(),
+      user_id: inserted_user.id,
       published: inserted_comment_like.published,
       score: 1
     };
@@ -292,6 +305,7 @@ mod tests {
     Comment::delete(&conn, inserted_child_comment.id).unwrap();
     Post::delete(&conn, inserted_post.id).unwrap();
     Community::delete(&conn, inserted_community.id).unwrap();
+    User_::delete(&conn, inserted_user.id).unwrap();
 
     assert_eq!(expected_comment, read_comment);
     assert_eq!(expected_comment, inserted_comment);

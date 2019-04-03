@@ -1,5 +1,5 @@
 import { wsUri } from '../env';
-import { LoginForm, RegisterForm, UserOperation, CommunityForm, PostForm, CommentForm, CommentLikeForm } from '../interfaces';
+import { LoginForm, RegisterForm, UserOperation, CommunityForm, PostForm, CommentForm, CommentLikeForm, GetListingsForm, CreatePostLikeForm } from '../interfaces';
 import { webSocket } from 'rxjs/webSocket';
 import { Subject } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
@@ -70,15 +70,25 @@ export class WebSocketService {
     this.subject.next(this.wsSendWrapper(UserOperation.CreateCommentLike, form));
   }
 
+  public getPosts(form: GetListingsForm) {
+    this.setAuth(form, false);
+    this.subject.next(this.wsSendWrapper(UserOperation.GetPosts, form));
+  }
+
+  public likePost(form: CreatePostLikeForm) {
+    this.setAuth(form);
+    this.subject.next(this.wsSendWrapper(UserOperation.CreatePostLike, form));
+  }
+
   private wsSendWrapper(op: UserOperation, data: any) {
     let send = { op: UserOperation[op], data: data };
     console.log(send);
     return send;
   }
 
-  private setAuth(obj: any) {
+  private setAuth(obj: any, throwErr: boolean = true) {
     obj.auth = UserService.Instance.auth;
-    if (obj.auth == null) {
+    if (obj.auth == null && throwErr) {
       alert("Not logged in.");
       throw "Not logged in";
     }

@@ -1,10 +1,11 @@
 import { Component, linkEvent } from 'inferno';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community, Post as PostI, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse, CommentLikeForm, CreateCommentLikeResponse, CommentSortType } from '../interfaces';
+import { UserOperation, Community, Post as PostI, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse, CommentLikeForm, CreateCommentLikeResponse, CommentSortType, CreatePostLikeResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { msgOp, hotRank,mdToHtml } from '../utils';
 import { MomentTime } from './moment-time';
+import { PostListing } from './post-listing';
 import * as autosize from 'autosize';
 
 interface CommentNodeI {
@@ -22,13 +23,7 @@ export class Post extends Component<any, State> {
 
   private subscription: Subscription;
   private emptyState: State = {
-    post: {
-      name: null,
-      attributed_to: null,
-      community_id: null,
-      id: null,
-      published: null,
-    },
+    post: null,
     comments: [],
     commentSort: CommentSortType.Hot
   }
@@ -38,7 +33,7 @@ export class Post extends Component<any, State> {
 
     this.state = this.emptyState;
 
-    this.state.post.id = Number(this.props.match.params.id);
+    let postId = Number(this.props.match.params.id);
 
     this.subscription = WebSocketService.Instance.subject
       .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
@@ -48,7 +43,7 @@ export class Post extends Component<any, State> {
         () => console.log('complete')
       );
 
-    WebSocketService.Instance.getPost(this.state.post.id);
+    WebSocketService.Instance.getPost(postId);
   }
 
   componentWillUnmount() {
@@ -62,36 +57,23 @@ export class Post extends Component<any, State> {
   render() {
     return (
       <div class="container">
-        <div class="row">
-          <div class="col-12 col-sm-8 col-lg-7 mb-3">
-            {this.postHeader()}
-            <CommentForm postId={this.state.post.id} />
-            {this.sortRadios()}
-            {this.commentsTree()}
+        {this.state.post && 
+          <div class="row">
+            <div class="col-12 col-sm-8 col-lg-7 mb-3">
+              <PostListing post={this.state.post} showBody showCommunity />
+              <div className="mb-2" />
+              <CommentForm postId={this.state.post.id} />
+              {this.sortRadios()}
+              {this.commentsTree()}
+            </div>
+            <div class="col-12 col-sm-4 col-lg-3 mb-3">
+              {this.state.comments.length > 0 && this.newComments()}
+            </div>
+            <div class="col-12 col-sm-12 col-lg-2">
+              {this.sidebar()}
+            </div>
           </div>
-          <div class="col-12 col-sm-4 col-lg-3 mb-3">
-            {this.newComments()}
-          </div>
-          <div class="col-12 col-sm-12 col-lg-2">
-            {this.sidebar()}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  postHeader() {
-    let title = this.state.post.url 
-      ? <h5>
-      <a href={this.state.post.url}>{this.state.post.name}</a>
-      <small><a className="ml-2 text-muted font-italic" href={this.state.post.url}>{(new URL(this.state.post.url)).hostname}</a></small>
-    </h5> 
-      : <h5>{this.state.post.name}</h5>;
-    return (
-      <div>
-        <div>{title}</div>
-        <div>via {this.state.post.attributed_to} <MomentTime data={this.state.post} /></div>
-        <div>{this.state.post.body}</div>
+        }
       </div>
     )
   }
@@ -222,6 +204,13 @@ export class Post extends Component<any, State> {
       found.downvotes = res.comment.downvotes;
       if (res.comment.my_vote !== null) 
         found.my_vote = res.comment.my_vote;
+      this.setState(this.state);
+    } else if (op == UserOperation.CreatePostLike) {
+      let res: CreatePostLikeResponse = msg;
+      this.state.post.my_vote = res.post.my_vote;
+      this.state.post.score = res.post.score;
+      this.state.post.upvotes = res.post.upvotes;
+      this.state.post.downvotes = res.post.downvotes;
       this.setState(this.state);
     }
 
