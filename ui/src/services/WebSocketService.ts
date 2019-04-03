@@ -80,6 +80,11 @@ export class WebSocketService {
     this.subject.next(this.wsSendWrapper(UserOperation.CreatePostLike, form));
   }
 
+  public editPost(postForm: PostForm) {
+    this.setAuth(postForm);
+    this.subject.next(this.wsSendWrapper(UserOperation.EditPost, postForm));
+  }
+
   private wsSendWrapper(op: UserOperation, data: any) {
     let send = { op: UserOperation[op], data: data };
     console.log(send);

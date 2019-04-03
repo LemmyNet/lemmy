@@ -16,10 +16,11 @@ use actions::user::*;
 use actions::post::*;
 use actions::comment::*;
 use actions::post_view::*;
+use actions::comment_view::*;
 
 #[derive(EnumString,ToString,Debug)]
 pub enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity
 }
 
 #[derive(Serialize, Deserialize)]
@@ -93,6 +94,9 @@ pub struct LoginResponse {
 #[derive(Serialize, Deserialize)]
 pub struct CreateCommunity {
   name: String,
+  title: String,
+  description: Option<String>,
+  category_id: i32 ,
   auth: String
 }
 
@@ -121,9 +125,9 @@ pub struct CreatePost {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct CreatePostResponse {
+pub struct PostResponse {
   op: String,
-  post: Post
+  post: PostView
 }
 
 
@@ -176,13 +180,6 @@ pub struct CreateComment {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct CreateCommentResponse {
-  op: String,
-  comment: CommentView
-}
-
-
-#[derive(Serialize, Deserialize)]
 pub struct EditComment {
   content: String,
   parent_id: Option<i32>,
@@ -192,7 +189,7 @@ pub struct EditComment {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct EditCommentResponse {
+pub struct CommentResponse {
   op: String,
   comment: CommentView
 }
@@ -203,12 +200,6 @@ pub struct CreateCommentLike {
   post_id: i32,
   score: i16,
   auth: String
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct CreateCommentLikeResponse {
-  op: String,
-  comment: CommentView
 }
 
 
@@ -223,6 +214,26 @@ pub struct CreatePostLike {
 pub struct CreatePostLikeResponse {
   op: String,
   post: PostView
+}
+
+
+#[derive(Serialize, Deserialize)]
+pub struct EditPost {
+  edit_id: i32,
+  community_id: i32,
+  name: String,
+  url: Option<String>,
+  body: Option<String>,
+  auth: String
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct EditCommunity {
+  edit_id: i32,
+  title: String,
+  description: Option<String>,
+  category_id: i32,
+  auth: String
 }
 
 /// `ChatServer` manages chat rooms and responsible for coordinating chat
@@ -260,15 +271,15 @@ impl ChatServer {
     }
   }
 
-  /// Send message only to self
-  fn send(&self, message: &str, id: &usize) {
-    // println!("{:?}", self.sessions);
-    if let Some(addr) = self.sessions.get(id) {
-      println!("msg: {}", message); 
-      // println!("{:?}", addr.connected());
-      let _ = addr.do_send(WSMessage(message.to_owned()));
-    }
-  }
+  // /// Send message only to self
+  // fn send(&self, message: &str, id: &usize) {
+  //   // println!("{:?}", self.sessions);
+  //   if let Some(addr) = self.sessions.get(id) {
+  //     println!("msg: {}", message); 
+  //     // println!("{:?}", addr.connected());
+  //     let _ = addr.do_send(WSMessage(message.to_owned()));
+  //   }
+  // }
 }
 
 /// Make actor from `ChatServer`
@@ -309,12 +320,12 @@ impl Handler<Disconnect> for ChatServer {
   fn handle(&mut self, msg: Disconnect, _: &mut Context<Self>) {
     println!("Someone disconnected");
 
-    let mut rooms: Vec<i32> = Vec::new();
+    // let mut rooms: Vec<i32> = Vec::new();
 
     // remove address
     if self.sessions.remove(&msg.id).is_some() {
       // remove session from all rooms
-      for (id, sessions) in &mut self.rooms {
+      for (_id, sessions) in &mut self.rooms {
         if sessions.remove(&msg.id) {
           // rooms.push(*id);
         }
@@ -398,6 +409,10 @@ impl Handler<StandardMessage> for ChatServer {
         let create_post_like: CreatePostLike = serde_json::from_str(&data.to_string()).unwrap();
         create_post_like.perform(self, msg.id)
       },
+      UserOperation::EditPost => {
+        let edit_post: EditPost = serde_json::from_str(&data.to_string()).unwrap();
+        edit_post.perform(self, msg.id)
+      },
       _ => {
         let e = ErrorMessage { 
           op: "Unknown".to_string(),
@@ -413,7 +428,7 @@ impl Handler<StandardMessage> for ChatServer {
 
 
 pub trait Perform {
-  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String;
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String;
   fn op_type(&self) -> UserOperation;
   fn error(&self, error_msg: &str) -> String {
     serde_json::to_string(
@@ -430,14 +445,14 @@ impl Perform for Login {
   fn op_type(&self) -> UserOperation {
     UserOperation::Login
   }
-  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
 
     let conn = establish_connection();
 
     // Fetch that username / email
     let user: User_ = match User_::find_by_email_or_username(&conn, &self.username_or_email) {
       Ok(user) => user,
-      Err(e) => return self.error("Couldn't find that username or email")
+      Err(_e) => return self.error("Couldn't find that username or email")
     };
 
     // Verify the password
@@ -462,7 +477,7 @@ impl Perform for Register {
   fn op_type(&self) -> UserOperation {
     UserOperation::Register
   }
-  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
 
     let conn = establish_connection();
 
@@ -484,7 +499,7 @@ impl Perform for Register {
     // Create the user
     let inserted_user = match User_::create(&conn, &user_form) {
       Ok(user) => user,
-      Err(e) => {
+      Err(_e) => {
         return self.error("User already exists.");
       }
     };
@@ -506,32 +521,33 @@ impl Perform for CreateCommunity {
     UserOperation::CreateCommunity
   }
 
-  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
 
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
-      Err(e) => {
+      Err(_e) => {
         return self.error("Not logged in.");
       }
     };
 
     let user_id = claims.id;
-    let username = claims.username;
-    let iss = claims.iss;
 
     // When you create a community, make sure the user becomes a moderator and a follower
 
     let community_form = CommunityForm {
       name: self.name.to_owned(),
+      title: self.title.to_owned(),
+      description: self.description.to_owned(),
+      category_id: self.category_id,
       creator_id: user_id,
       updated: None
     };
 
     let inserted_community = match Community::create(&conn, &community_form) {
       Ok(community) => community,
-      Err(e) => {
+      Err(_e) => {
         return self.error("Community already exists.");
       }
     };
@@ -541,9 +557,9 @@ impl Perform for CreateCommunity {
       user_id: user_id
     };
 
-    let inserted_community_moderator = match CommunityModerator::join(&conn, &community_moderator_form) {
+    let _inserted_community_moderator = match CommunityModerator::join(&conn, &community_moderator_form) {
       Ok(user) => user,
-      Err(e) => {
+      Err(_e) => {
         return self.error("Community moderator already exists.");
       }
     };
@@ -553,9 +569,9 @@ impl Perform for CreateCommunity {
       user_id: user_id
     };
 
-    let inserted_community_follower = match CommunityFollower::follow(&conn, &community_follower_form) {
+    let _inserted_community_follower = match CommunityFollower::follow(&conn, &community_follower_form) {
       Ok(user) => user,
-      Err(e) => {
+      Err(_e) => {
         return self.error("Community follower already exists.");
       }
     };
@@ -575,7 +591,7 @@ impl Perform for ListCommunities {
     UserOperation::ListCommunities
   }
 
-  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
 
     let conn = establish_connection();
 
@@ -597,20 +613,18 @@ impl Perform for CreatePost {
     UserOperation::CreatePost
   }
 
-  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
 
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
-      Err(e) => {
+      Err(_e) => {
         return self.error("Not logged in.");
       }
     };
 
     let user_id = claims.id;
-    let username = claims.username;
-    let iss = claims.iss;
 
     let post_form = PostForm {
       name: self.name.to_owned(),
@@ -623,7 +637,7 @@ impl Perform for CreatePost {
 
     let inserted_post = match Post::create(&conn, &post_form) {
       Ok(post) => post,
-      Err(e) => {
+      Err(_e) => {
         return self.error("Couldn't create Post");
       }
     };
@@ -636,17 +650,25 @@ impl Perform for CreatePost {
     };
 
     // Only add the like if the score isnt 0
-    let inserted_like = match PostLike::like(&conn, &like_form) {
+    let _inserted_like = match PostLike::like(&conn, &like_form) {
       Ok(like) => like,
-      Err(e) => {
+      Err(_e) => {
         return self.error("Couldn't like post.");
+      }
+    };
+  
+    // Refetch the view
+    let post_view = match PostView::get(&conn, inserted_post.id, Some(user_id)) {
+      Ok(post) => post,
+      Err(_e) => {
+        return self.error("Couldn't find Post");
       }
     };
 
     serde_json::to_string(
-      &CreatePostResponse {
+      &PostResponse {
         op: self.op_type().to_string(), 
-        post: inserted_post
+        post: post_view
       }
       )
       .unwrap()
@@ -670,11 +692,9 @@ impl Perform for GetPost {
         match Claims::decode(&auth) {
           Ok(claims) => {
             let user_id = claims.claims.id;
-            let username = claims.claims.username;
-            let iss = claims.claims.iss;
             Some(user_id)
           }
-          Err(e) => None
+          Err(_e) => None
         }
       }
       None => None
@@ -682,13 +702,13 @@ impl Perform for GetPost {
 
     let post_view = match PostView::get(&conn, self.id, user_id) {
       Ok(post) => post,
-      Err(e) => {
+      Err(_e) => {
         return self.error("Couldn't find Post");
       }
     };
 
     // remove session from all rooms
-    for (n, sessions) in &mut chat.rooms {
+    for (_n, sessions) in &mut chat.rooms {
       sessions.remove(&addr);
     }
 
@@ -698,10 +718,7 @@ impl Perform for GetPost {
 
     chat.rooms.get_mut(&self.id).unwrap().insert(addr);
 
-    let comments = CommentView::from_post(&conn, self.id, user_id);
-
-    // println!("{:?}", chat.rooms.keys());
-    // println!("{:?}", chat.rooms.get(&5i32).unwrap());
+    let comments = CommentView::list(&conn, self.id, user_id).unwrap();
 
     // Return the jwt
     serde_json::to_string(
@@ -720,13 +737,13 @@ impl Perform for GetCommunity {
     UserOperation::GetCommunity
   }
 
-  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
 
     let conn = establish_connection();
 
     let community = match Community::read(&conn, self.id) {
       Ok(community) => community,
-      Err(e) => {
+      Err(_e) => {
         return self.error("Couldn't find Community");
       }
     };
@@ -753,15 +770,12 @@ impl Perform for CreateComment {
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
-      Err(e) => {
+      Err(_e) => {
         return self.error("Not logged in.");
       }
     };
 
     let user_id = claims.id;
-    let username = claims.username;
-    let iss = claims.iss;
-    let fedi_user_id = format!("{}/{}", iss, username);
 
     let comment_form = CommentForm {
       content: self.content.to_owned(),
@@ -773,7 +787,7 @@ impl Perform for CreateComment {
 
     let inserted_comment = match Comment::create(&conn, &comment_form) {
       Ok(comment) => comment,
-      Err(e) => {
+      Err(_e) => {
         return self.error("Couldn't create Comment");
       }
     };
@@ -786,22 +800,21 @@ impl Perform for CreateComment {
       score: 1
     };
 
-    let inserted_like = match CommentLike::like(&conn, &like_form) {
+    let _inserted_like = match CommentLike::like(&conn, &like_form) {
       Ok(like) => like,
-      Err(e) => {
+      Err(_e) => {
         return self.error("Couldn't like comment.");
       }
     };
 
-    let likes: Vec<CommentLike> = vec![inserted_like];
-
-    let comment_view = CommentView::from_comment(&inserted_comment, &likes, Some(user_id));
+    let comment_view = CommentView::read(&conn, inserted_comment.id, Some(user_id)).unwrap();
 
     let mut comment_sent = comment_view.clone();
     comment_sent.my_vote = None;
+    comment_sent.user_id = None;
 
     let comment_out = serde_json::to_string(
-      &CreateCommentResponse {
+      &CommentResponse {
         op: self.op_type().to_string(), 
         comment: comment_view
       }
@@ -809,7 +822,7 @@ impl Perform for CreateComment {
       .unwrap();
 
     let comment_sent_out = serde_json::to_string(
-      &CreateCommentLikeResponse {
+      &CommentResponse {
         op: self.op_type().to_string(), 
         comment: comment_sent
       }
@@ -833,15 +846,12 @@ impl Perform for EditComment {
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
-      Err(e) => {
+      Err(_e) => {
         return self.error("Not logged in.");
       }
     };
 
     let user_id = claims.id;
-    let username = claims.username;
-    let iss = claims.iss;
-    let fedi_user_id = format!("{}/{}", iss, username);
 
     let comment_form = CommentForm {
       content: self.content.to_owned(),
@@ -851,27 +861,22 @@ impl Perform for EditComment {
       updated: Some(naive_now())
     };
 
-    let updated_comment = match Comment::update(&conn, self.edit_id, &comment_form) {
+    let _updated_comment = match Comment::update(&conn, self.edit_id, &comment_form) {
       Ok(comment) => comment,
-      Err(e) => {
+      Err(_e) => {
         return self.error("Couldn't update Comment");
       }
     };
 
-    let likes = match CommentLike::read(&conn, self.edit_id) {
-      Ok(likes) => likes,
-      Err(e) => {
-        return self.error("Couldn't get likes");
-      }
-    };
 
-    let comment_view = CommentView::from_comment(&updated_comment, &likes, Some(user_id));
+    let comment_view = CommentView::read(&conn, self.edit_id, Some(user_id)).unwrap();
 
     let mut comment_sent = comment_view.clone();
     comment_sent.my_vote = None;
+    comment_sent.user_id = None;
 
     let comment_out = serde_json::to_string(
-      &CreateCommentResponse {
+      &CommentResponse {
         op: self.op_type().to_string(), 
         comment: comment_view
       }
@@ -879,7 +884,7 @@ impl Perform for EditComment {
       .unwrap();
 
     let comment_sent_out = serde_json::to_string(
-      &CreateCommentLikeResponse {
+      &CommentResponse {
         op: self.op_type().to_string(), 
         comment: comment_sent
       }
@@ -903,15 +908,12 @@ impl Perform for CreateCommentLike {
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
-      Err(e) => {
+      Err(_e) => {
         return self.error("Not logged in.");
       }
     };
 
     let user_id = claims.id;
-    let username = claims.username;
-    let iss = claims.iss;
-    let fedi_user_id = format!("{}/{}", iss, username);
 
     let like_form = CommentLikeForm {
       comment_id: self.comment_id,
@@ -925,23 +927,23 @@ impl Perform for CreateCommentLike {
 
     // Only add the like if the score isnt 0
     if &like_form.score != &0 {
-      let inserted_like = match CommentLike::like(&conn, &like_form) {
+      let _inserted_like = match CommentLike::like(&conn, &like_form) {
         Ok(like) => like,
-        Err(e) => {
+        Err(_e) => {
           return self.error("Couldn't like comment.");
         }
       };
     }
 
     // Have to refetch the comment to get the current state
-    // thread::sleep(time::Duration::from_secs(1));
-    let liked_comment = CommentView::read(&conn, self.comment_id, Some(user_id));
+    let liked_comment = CommentView::read(&conn, self.comment_id, Some(user_id)).unwrap();
 
     let mut liked_comment_sent = liked_comment.clone();
     liked_comment_sent.my_vote = None;
+    liked_comment_sent.user_id = None;
 
     let like_out = serde_json::to_string(
-      &CreateCommentLikeResponse {
+      &CommentResponse {
         op: self.op_type().to_string(), 
         comment: liked_comment
       }
@@ -949,7 +951,7 @@ impl Perform for CreateCommentLike {
       .unwrap();
 
     let like_sent_out = serde_json::to_string(
-      &CreateCommentLikeResponse {
+      &CommentResponse {
         op: self.op_type().to_string(), 
         comment: liked_comment_sent
       }
@@ -968,7 +970,7 @@ impl Perform for GetPosts {
     UserOperation::GetPosts
   }
 
-  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
 
     let conn = establish_connection();
 
@@ -981,7 +983,7 @@ impl Perform for GetPosts {
             let user_id = claims.claims.id;
             Some(user_id)
           }
-          Err(e) => None
+          Err(_e) => None
         }
       }
       None => None
@@ -992,8 +994,8 @@ impl Perform for GetPosts {
 
     let posts = match PostView::list(&conn, type_, sort, self.community_id, user_id, self.limit) {
       Ok(posts) => posts,
-      Err(e) => {
-        eprintln!("{}", e);
+      Err(_e) => {
+        eprintln!("{}", _e);
         return self.error("Couldn't get posts");
       }
     };
@@ -1015,13 +1017,13 @@ impl Perform for CreatePostLike {
     UserOperation::CreatePostLike
   }
 
-  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
 
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
-      Err(e) => {
+      Err(_e) => {
         return self.error("Not logged in.");
       }
     };
@@ -1039,9 +1041,9 @@ impl Perform for CreatePostLike {
 
     // Only add the like if the score isnt 0
     if &like_form.score != &0 {
-      let inserted_like = match PostLike::like(&conn, &like_form) {
+      let _inserted_like = match PostLike::like(&conn, &like_form) {
         Ok(like) => like,
-        Err(e) => {
+        Err(_e) => {
           return self.error("Couldn't like post.");
         }
       };
@@ -1049,7 +1051,7 @@ impl Perform for CreatePostLike {
 
     let post_view = match PostView::get(&conn, self.post_id, Some(user_id)) {
       Ok(post) => post,
-      Err(e) => {
+      Err(_e) => {
         return self.error("Couldn't find Post");
       }
     };
@@ -1068,6 +1070,66 @@ impl Perform for CreatePostLike {
   }
 }
 
+impl Perform for EditPost {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::EditPost
+  }
+
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&self.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => {
+        return self.error("Not logged in.");
+      }
+    };
+
+    let user_id = claims.id;
+
+    let post_form = PostForm {
+      name: self.name.to_owned(),
+      url: self.url.to_owned(),
+      body: self.body.to_owned(),
+      creator_id: user_id,
+      community_id: self.community_id,
+      updated: Some(naive_now())
+    };
+
+    let _updated_post = match Post::update(&conn, self.edit_id, &post_form) {
+      Ok(post) => post,
+      Err(_e) => {
+        return self.error("Couldn't update Post");
+      }
+    };
+
+    let post_view = PostView::get(&conn, self.edit_id, Some(user_id)).unwrap();
+
+    let mut post_sent = post_view.clone();
+    post_sent.my_vote = None;
+
+    let post_out = serde_json::to_string(
+      &PostResponse {
+        op: self.op_type().to_string(), 
+        post: post_view
+      }
+      )
+      .unwrap();
+
+    let post_sent_out = serde_json::to_string(
+      &PostResponse {
+        op: self.op_type().to_string(), 
+        post: post_sent
+      }
+      )
+      .unwrap();
+    
+    chat.send_room_message(self.edit_id, &post_sent_out, addr);
+
+    post_out
+  }
+}
 // impl Handler<Login> for ChatServer {
 
 //   type Result = MessageResult<Login>;
@@ -1078,7 +1140,7 @@ impl Perform for CreatePostLike {
 //     // Fetch that username / email
 //     let user: User_ = match User_::find_by_email_or_username(&conn, &msg.username_or_email) {
 //       Ok(user) => user,
-//       Err(e) => return MessageResult(
+//       Err(_e) => return MessageResult(
 //         Err(
 //           ErrorMessage {
 //             op: UserOperation::Login.to_string(), 
@@ -1144,7 +1206,7 @@ impl Perform for CreatePostLike {
 //     // Create the user
 //     let inserted_user = match User_::create(&conn, &user_form) {
 //       Ok(user) => user,
-//       Err(e) => return MessageResult(
+//       Err(_e) => return MessageResult(
 //         Err(
 //           ErrorMessage {
 //             op: UserOperation::Register.to_string(), 
@@ -1184,7 +1246,7 @@ impl Perform for CreatePostLike {
 
 //     let community = match Community::create(&conn, &community_form) {
 //       Ok(community) => community,
-//       Err(e) => return MessageResult(
+//       Err(_e) => return MessageResult(
 //         Err(
 //           ErrorMessage {
 //             op: UserOperation::CreateCommunity.to_string(), 

@@ -1,7 +1,8 @@
 import { Component, linkEvent } from 'inferno';
+import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community, Post as PostI, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse, CommentLikeForm, CreateCommentLikeResponse, CommentSortType, CreatePostLikeResponse } from '../interfaces';
+import { UserOperation, Community, Post as PostI, GetPostResponse, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse, CommentLikeForm, CreateCommentLikeResponse, CommentSortType, CreatePostLikeResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { msgOp, hotRank,mdToHtml } from '../utils';
 import { MomentTime } from './moment-time';
@@ -60,7 +61,7 @@ export class Post extends Component<any, State> {
         {this.state.post && 
           <div class="row">
             <div class="col-12 col-sm-8 col-lg-7 mb-3">
-              <PostListing post={this.state.post} showBody showCommunity />
+              <PostListing post={this.state.post} showBody showCommunity editable />
               <div className="mb-2" />
               <CommentForm postId={this.state.post.id} />
               {this.sortRadios()}
@@ -181,7 +182,7 @@ export class Post extends Component<any, State> {
       alert(msg.error);
       return;
     } else if (op == UserOperation.GetPost) {
-      let res: PostResponse = msg;
+      let res: GetPostResponse = msg;
       this.state.post = res.post;
       this.state.comments = res.comments;
       this.setState(this.state);
@@ -211,6 +212,10 @@ export class Post extends Component<any, State> {
       this.state.post.score = res.post.score;
       this.state.post.upvotes = res.post.upvotes;
       this.state.post.downvotes = res.post.downvotes;
+      this.setState(this.state);
+    } else if (op == UserOperation.EditPost) {
+      let res: PostResponse = msg;
+      this.state.post = res.post;
       this.setState(this.state);
     }
 
@@ -281,7 +286,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         <div className="details ml-4">
           <ul class="list-inline mb-0 text-muted small">
             <li className="list-inline-item">
-              <a href={node.comment.attributed_to}>{node.comment.attributed_to}</a>
+              <Link to={`/user/${node.comment.creator_id}`}>{node.comment.creator_name}</Link>
             </li>
             <li className="list-inline-item">
               <span>(
@@ -327,7 +332,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   private get myComment(): boolean {
-    return this.props.node.comment.attributed_to == UserService.Instance.fediUserId;
+    return UserService.Instance.loggedIn && this.props.node.comment.creator_id == UserService.Instance.user.id;
   }
 
   handleReplyClick(i: CommentNode, event) {

@@ -1,4 +1,11 @@
 table! {
+    category (id) {
+        id -> Int4,
+        name -> Varchar,
+    }
+}
+
+table! {
     comment (id) {
         id -> Int4,
         creator_id -> Int4,
@@ -25,6 +32,9 @@ table! {
     community (id) {
         id -> Int4,
         name -> Varchar,
+        title -> Varchar,
+        description -> Nullable<Text>,
+        category_id -> Int4,
         creator_id -> Int4,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
@@ -91,6 +101,7 @@ joinable!(comment -> user_ (creator_id));
 joinable!(comment_like -> comment (comment_id));
 joinable!(comment_like -> post (post_id));
 joinable!(comment_like -> user_ (user_id));
+joinable!(community -> category (category_id));
 joinable!(community -> user_ (creator_id));
 joinable!(community_follower -> community (community_id));
 joinable!(community_follower -> user_ (user_id));
@@ -102,6 +113,7 @@ joinable!(post_like -> post (post_id));
 joinable!(post_like -> user_ (user_id));
 
 allow_tables_to_appear_in_same_query!(
+    category,
     comment,
     comment_like,
     community,

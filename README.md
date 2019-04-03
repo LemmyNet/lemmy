@@ -40,6 +40,7 @@ We have a twitter alternative (mastodon), a facebook alternative (friendica), so
 - [Rust JWT](https://github.com/Keats/jsonwebtoken)
 - [Hierarchical tree building javascript](https://stackoverflow.com/a/40732240/1655478)
 - [Hot sorting discussion](https://meta.stackexchange.com/questions/11602/what-formula-should-be-used-to-determine-hot-questions) [2](https://medium.com/hacking-and-gonzo/how-reddit-ranking-algorithms-work-ef111e33d0d9)
+- [Classification types.](https://www.reddit.com/r/ModeratorDuck/wiki/subreddit_classification)
 
 ## TODOs 
 - Endpoints
