@@ -153,7 +153,8 @@ pub struct GetPostResponse {
   op: String,
   post: PostView,
   comments: Vec<CommentView>,
-  community: CommunityView
+  community: CommunityView,
+  moderators: Vec<CommunityModeratorView>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -179,7 +180,8 @@ pub struct GetCommunity {
 #[derive(Serialize, Deserialize)]
 pub struct GetCommunityResponse {
   op: String,
-  community: CommunityView
+  community: CommunityView,
+  moderators: Vec<CommunityModeratorView>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -762,13 +764,16 @@ impl Perform for GetPost {
 
     let community = CommunityView::read(&conn, post_view.community_id).unwrap();
 
+    let moderators = CommunityModeratorView::for_community(&conn, post_view.community_id).unwrap();
+
     // Return the jwt
     serde_json::to_string(
       &GetPostResponse {
         op: self.op_type().to_string(),
         post: post_view,
         comments: comments,
-        community: community
+        community: community,
+        moderators: moderators
       }
       )
       .unwrap()
@@ -791,11 +796,20 @@ impl Perform for GetCommunity {
       }
     };
 
+
+    let moderators = match CommunityModeratorView::for_community(&conn, self.id) {
+      Ok(moderators) => moderators,
+      Err(_e) => {
+        return self.error("Couldn't find Community");
+      }
+    };
+
     // Return the jwt
     serde_json::to_string(
       &GetCommunityResponse {
         op: self.op_type().to_string(),
-        community: community_view
+        community: community_view,
+        moderators: moderators
       }
       )
       .unwrap()

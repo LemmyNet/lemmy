@@ -2,7 +2,7 @@ import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community, Post as PostI, GetPostResponse, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse, CommentLikeForm, CommentSortType, CreatePostLikeResponse } from '../interfaces';
+import { UserOperation, Community, Post as PostI, GetPostResponse, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse, CommentLikeForm, CommentSortType, CreatePostLikeResponse, CommunityUser } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { msgOp, hotRank,mdToHtml } from '../utils';
 import { MomentTime } from './moment-time';
@@ -20,6 +20,7 @@ interface PostState {
   comments: Array<Comment>;
   commentSort: CommentSortType;
   community: Community;
+  moderators: Array<CommunityUser>;
 }
 
 export class Post extends Component<any, PostState> {
@@ -30,6 +31,7 @@ export class Post extends Component<any, PostState> {
     comments: [],
     commentSort: CommentSortType.Hot,
     community: null,
+    moderators: []
   }
 
   constructor(props, context) {
@@ -118,7 +120,7 @@ export class Post extends Component<any, PostState> {
   sidebar() {
     return ( 
       <div class="sticky-top">
-        <Sidebar community={this.state.community} />
+        <Sidebar community={this.state.community} moderators={this.state.moderators} />
       </div>
     );
   }
@@ -188,6 +190,7 @@ export class Post extends Component<any, PostState> {
       this.state.post = res.post;
       this.state.comments = res.comments;
       this.state.community = res.community;
+      this.state.moderators = res.moderators;
       this.setState(this.state);
     } else if (op == UserOperation.CreateComment) {
       let res: CommentResponse = msg;

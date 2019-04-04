@@ -8,6 +8,15 @@ export interface User {
   username: string;
 }
 
+export interface CommunityUser {
+  id: number;
+  user_id: number;
+  user_name: string;
+  community_id: number;
+  community_name: string;
+  published: string;
+}
+
 export interface Community {
   id: number;
   name: string;
@@ -35,6 +44,7 @@ export interface CommunityForm {
 export interface CommunityResponse {
   op: string;
   community: Community;
+  moderators: Array<CommunityUser>;
 }
 
 export interface ListCommunitiesResponse {
@@ -82,6 +92,7 @@ export interface GetPostResponse {
   post: Post;
   comments: Array<Comment>;
   community: Community;
+  moderators: Array<CommunityUser>;
 }
 
 export interface PostResponse {
