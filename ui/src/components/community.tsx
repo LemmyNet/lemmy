@@ -2,7 +2,7 @@ import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community as CommunityI, CommunityResponse, Post, GetPostsForm, ListingSortType, ListingType, GetPostsResponse, CreatePostLikeForm, CreatePostLikeResponse, CommunityUser} from '../interfaces';
+import { UserOperation, Community as CommunityI, GetCommunityResponse, CommunityResponse, Post, GetPostsForm, ListingSortType, ListingType, GetPostsResponse, CreatePostLikeForm, CreatePostLikeResponse, CommunityUser} from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { MomentTime } from './moment-time';
 import { PostListing } from './post-listing';
@@ -127,7 +127,7 @@ export class Community extends Component<any, State> {
       alert(msg.error);
       return;
     } else if (op == UserOperation.GetCommunity) {
-      let res: CommunityResponse = msg;
+      let res: GetCommunityResponse = msg;
       this.state.community = res.community;
       this.state.moderators = res.moderators;
       this.setState(this.state);
@@ -142,6 +142,10 @@ export class Community extends Component<any, State> {
       found.score = res.post.score;
       found.upvotes = res.post.upvotes;
       found.downvotes = res.post.downvotes;
+      this.setState(this.state);
+    } else if (op == UserOperation.EditCommunity) {
+      let res: CommunityResponse = msg;
+      this.state.community = res.community;
       this.setState(this.state);
     }
   }

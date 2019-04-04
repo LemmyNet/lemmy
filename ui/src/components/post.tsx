@@ -2,7 +2,7 @@ import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community, Post as PostI, GetPostResponse, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse, CommentLikeForm, CommentSortType, CreatePostLikeResponse, CommunityUser } from '../interfaces';
+import { UserOperation, Community, Post as PostI, GetPostResponse, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse, CommentLikeForm, CommentSortType, CreatePostLikeResponse, CommunityUser, CommunityResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { msgOp, hotRank,mdToHtml } from '../utils';
 import { MomentTime } from './moment-time';
@@ -222,6 +222,12 @@ export class Post extends Component<any, PostState> {
     } else if (op == UserOperation.EditPost) {
       let res: PostResponse = msg;
       this.state.post = res.post;
+      this.setState(this.state);
+    } else if (op == UserOperation.EditCommunity) {
+      let res: CommunityResponse = msg;
+      this.state.community = res.community;
+      this.state.post.community_id = res.community.id;
+      this.state.post.community_name = res.community.name;
       this.setState(this.state);
     }
 

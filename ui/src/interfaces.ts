@@ -38,13 +38,20 @@ export interface CommunityForm {
   title: string;
   description?: string,
   category_id: number,
+  edit_id?: number;
   auth?: string;
 }
+
+export interface GetCommunityResponse {
+  op: string;
+  community: Community;
+  moderators: Array<CommunityUser>;
+}
+
 
 export interface CommunityResponse {
   op: string;
   community: Community;
-  moderators: Array<CommunityUser>;
 }
 
 export interface ListCommunitiesResponse {

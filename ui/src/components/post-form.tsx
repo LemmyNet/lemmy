@@ -105,7 +105,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
 
   handlePostSubmit(i: PostForm, event) {
     event.preventDefault();
-    console.log(i.state.postForm);
     if (i.props.post) {
       WebSocketService.Instance.editPost(i.state.postForm);
     } else {

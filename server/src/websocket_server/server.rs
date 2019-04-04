@@ -103,7 +103,7 @@ pub struct CreateCommunity {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct CreateCommunityResponse {
+pub struct CommunityResponse {
   op: String,
   community: CommunityView
 }
@@ -244,6 +244,7 @@ pub struct EditPost {
 #[derive(Serialize, Deserialize)]
 pub struct EditCommunity {
   edit_id: i32,
+  name: String,
   title: String,
   description: Option<String>,
   category_id: i32,
@@ -431,6 +432,10 @@ impl Handler<StandardMessage> for ChatServer {
         let edit_post: EditPost = serde_json::from_str(&data.to_string()).unwrap();
         edit_post.perform(self, msg.id)
       },
+      UserOperation::EditCommunity => {
+        let edit_community: EditCommunity = serde_json::from_str(&data.to_string()).unwrap();
+        edit_community.perform(self, msg.id)
+      },
       _ => {
         let e = ErrorMessage { 
           op: "Unknown".to_string(),
@@ -597,7 +602,7 @@ impl Perform for CreateCommunity {
     let community_view = CommunityView::read(&conn, inserted_community.id).unwrap();
 
     serde_json::to_string(
-      &CreateCommunityResponse {
+      &CommunityResponse {
         op: self.op_type().to_string(), 
         community: community_view
       }
@@ -795,7 +800,6 @@ impl Perform for GetCommunity {
         return self.error("Couldn't find Community");
       }
     };
-
 
     let moderators = match CommunityModeratorView::for_community(&conn, self.id) {
       Ok(moderators) => moderators,
@@ -1187,6 +1191,68 @@ impl Perform for EditPost {
     post_out
   }
 }
+
+impl Perform for EditCommunity {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::EditCommunity
+  }
+
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&self.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => {
+        return self.error("Not logged in.");
+      }
+    };
+
+    let user_id = claims.id;
+
+    let community_form = CommunityForm {
+      name: self.name.to_owned(),
+      title: self.title.to_owned(),
+      description: self.description.to_owned(),
+      category_id: self.category_id.to_owned(),
+      creator_id: user_id,
+      updated: Some(naive_now())
+    };
+
+    let _updated_community = match Community::update(&conn, self.edit_id, &community_form) {
+      Ok(community) => community,
+      Err(_e) => {
+        return self.error("Couldn't update Community");
+      }
+    };
+
+    let community_view = CommunityView::read(&conn, self.edit_id).unwrap();
+
+    // Do the subscriber stuff here
+    // let mut community_sent = post_view.clone();
+    // community_sent.my_vote = None;
+
+    let community_out = serde_json::to_string(
+      &CommunityResponse {
+        op: self.op_type().to_string(), 
+        community: community_view
+      }
+      )
+      .unwrap();
+
+    // let post_sent_out = serde_json::to_string(
+    //   &PostResponse {
+    //     op: self.op_type().to_string(), 
+    //     post: post_sent
+    //   }
+    //   )
+    //   .unwrap();
+
+    chat.send_room_message(self.edit_id, &community_out, addr);
+
+    community_out
+  }
+}
 // impl Handler<Login> for ChatServer {
 
 //   type Result = MessageResult<Login>;
@@ -1315,7 +1381,7 @@ impl Perform for EditPost {
 
 //     MessageResult(
 //       Ok(
-//         CreateCommunityResponse {
+//         CommunityResponse {
 //           op: UserOperation::CreateCommunity.to_string(), 
 //           community: community
 //         }
