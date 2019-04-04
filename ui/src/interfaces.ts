@@ -19,6 +19,7 @@ export interface Community {
   category_name: string;
   number_of_subscribers: number;
   number_of_posts: number;
+  number_of_comments: number;
   published: string;
   updated?: string;
 }

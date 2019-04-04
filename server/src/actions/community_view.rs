@@ -17,6 +17,7 @@ table! {
     category_name -> Varchar,
     number_of_subscribers -> BigInt,
     number_of_posts -> BigInt,
+    number_of_comments -> BigInt,
   }
 }
 
@@ -34,7 +35,8 @@ pub struct CommunityView {
   pub creator_name: String,
   pub category_name: String,
   pub number_of_subscribers: i64,
-  pub number_of_posts: i64
+  pub number_of_posts: i64,
+  pub number_of_comments: i64
 }
 
 impl CommunityView {

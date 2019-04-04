@@ -37,7 +37,7 @@ export class Navbar extends Component<any, any> {
               <a class="nav-link" href={repoUrl}>About</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href={repoUrl}>Forums</a>
+              <Link class="nav-link" to="/communities">Forums</Link>
             </li>
             <li class="nav-item">
               <Link class="nav-link" to="/create_post">Create Post</Link>

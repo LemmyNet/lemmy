@@ -21,10 +21,13 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     return (
       <div>
         <h4>{community.title}</h4>
+        <ul class="list-inline">
+          <li className="list-inline-item badge badge-light">{community.category_name}</li>
+          <li className="list-inline-item badge badge-light">{community.number_of_subscribers} Subscribers</li>
+          <li className="list-inline-item badge badge-light">{community.number_of_posts} Posts</li>
+          <li className="list-inline-item badge badge-light">{community.number_of_comments} Comments</li>
+        </ul>
         <div><button type="button" class="btn btn-secondary mb-2">Subscribe</button></div>
-        <div className="badge badge-light">{community.category_name}</div>
-        <div>{community.number_of_subscribers} Subscribers</div>
-        <div>{community.number_of_posts} Posts</div>
         <hr />
         {community.description && <div className="md-div" dangerouslySetInnerHTML={mdToHtml(community.description)} />}
       </div>
