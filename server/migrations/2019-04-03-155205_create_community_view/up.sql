@@ -9,10 +9,12 @@ from community c;
 
 create view community_moderator_view as 
 select *,
-(select name from user_ u where cm.user_id = u.id) as user_name
+(select name from user_ u where cm.user_id = u.id) as user_name,
+(select name from community c where cm.community_id = c.id) as community_name
 from community_moderator cm;
 
 create view community_follower_view as 
 select *,
-(select name from user_ u where cf.user_id = u.id) as user_name
+(select name from user_ u where cf.user_id = u.id) as user_name,
+(select name from community c where cf.community_id = c.id) as community_name
 from community_follower cf;

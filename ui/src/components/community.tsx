@@ -2,7 +2,7 @@ import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community as CommunityI, CommunityResponse, Post, GetPostsForm, ListingSortType, ListingType, GetPostsResponse, CreatePostLikeForm, CreatePostLikeResponse} from '../interfaces';
+import { UserOperation, Community as CommunityI, CommunityResponse, Post, GetPostsForm, ListingSortType, ListingType, GetPostsResponse, CreatePostLikeForm, CreatePostLikeResponse, CommunityUser} from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { MomentTime } from './moment-time';
 import { PostListing } from './post-listing';
@@ -11,6 +11,7 @@ import { msgOp, mdToHtml } from '../utils';
 
 interface State {
   community: CommunityI;
+  moderators: Array<CommunityUser>;
   posts: Array<Post>;
   sortType: ListingSortType;
 }
@@ -29,8 +30,10 @@ export class Community extends Component<any, State> {
       creator_name: null,
       number_of_subscribers: null,
       number_of_posts: null,
+      number_of_comments: null,
       published: null
     },
+    moderators: [],
     posts: [],
     sortType: ListingSortType.Hot,
   }
@@ -78,7 +81,7 @@ export class Community extends Component<any, State> {
             }
           </div>
           <div class="col-12 col-sm-2 col-lg-3">
-            <Sidebar community={this.state.community} />
+            <Sidebar community={this.state.community} moderators={this.state.moderators} />
           </div>
         </div>
       </div>
@@ -126,6 +129,7 @@ export class Community extends Component<any, State> {
     } else if (op == UserOperation.GetCommunity) {
       let res: CommunityResponse = msg;
       this.state.community = res.community;
+      this.state.moderators = res.moderators;
       this.setState(this.state);
     }  else if (op == UserOperation.GetPosts) {
       let res: GetPostsResponse = msg;

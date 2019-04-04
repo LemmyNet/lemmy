@@ -32,6 +32,7 @@ export class Communities extends Component<any, CommunitiesState> {
   render() {
     return (
       <div class="container-fluid">
+        <h4>Communities</h4>
         <div class="table-responsive">
           <table class="table table-sm table-hover" data-sortable>
             <thead>
