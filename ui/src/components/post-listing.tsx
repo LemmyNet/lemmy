@@ -34,15 +34,15 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     this.handleEditPost = this.handleEditPost.bind(this);
   }
 
- render() {
-   return (
-     <div>
-     {!this.state.showEdit 
-       ? this.listing()
-       : <PostForm post={this.props.post} onEdit={this.handleEditPost} />
-     }
-   </div>
-   )
+  render() {
+    return (
+      <div>
+        {!this.state.showEdit 
+          ? this.listing()
+          : <PostForm post={this.props.post} onEdit={this.handleEditPost} />
+        }
+      </div>
+    )
   }
 
   listing() {
@@ -90,7 +90,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               <Link to={`/post/${post.id}`}>{post.number_of_comments} Comments</Link>
             </li>
           </ul>
-            {this.myPost && 
+          {this.myPost && 
             <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
               <li className="list-inline-item">
                 <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>edit</span>
@@ -132,6 +132,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     i.setState(i.state);
   }
 
+  // The actual editing is done in the recieve for post
   handleEditPost(post: Post) {
     this.state.showEdit = false;
     this.setState(this.state);
