@@ -21,6 +21,7 @@ interface PostState {
   commentSort: CommentSortType;
   community: Community;
   moderators: Array<CommunityUser>;
+  scrolled: boolean;
 }
 
 export class Post extends Component<any, PostState> {
@@ -31,7 +32,8 @@ export class Post extends Component<any, PostState> {
     comments: [],
     commentSort: CommentSortType.Hot,
     community: null,
-    moderators: []
+    moderators: [],
+    scrolled: false
   }
 
   constructor(props, context) {
@@ -58,6 +60,15 @@ export class Post extends Component<any, PostState> {
 
   componentDidMount() {
     autosize(document.querySelectorAll('textarea'));
+  }
+
+  componentDidUpdate(lastProps: any, lastState: PostState, snapshot: any) {
+    if (!this.state.scrolled && lastState.comments.length > 0 && window.location.href.includes('#comment-')) {
+      let id = window.location.hash.split("#")[2];
+      var elmnt = document.getElementById(`${id}`);
+      elmnt.scrollIntoView(); 
+      this.state.scrolled = true;
+    }
   }
 
   render() {
@@ -294,7 +305,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   render() {
     let node = this.props.node;
     return (
-      <div className={`comment ${node.comment.parent_id  && !this.props.noIndent ? 'ml-4' : ''}`}>
+      <div id={`comment-${node.comment.id}`} className={`comment ${node.comment.parent_id  && !this.props.noIndent ? 'ml-4' : ''}`}>
         <div className="float-left small text-center">
           <div className={`pointer upvote ${node.comment.my_vote == 1 ? 'text-info' : 'text-muted'}`} onClick={linkEvent(node, this.handleCommentLike)}>▲</div>
           <div>{node.comment.score}</div>
@@ -336,7 +347,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                   </li>
                 }
                 <li className="list-inline-item">
-                  <a className="text-muted" href="test">link</a>
+                  <Link className="text-muted" to={`/post/${node.comment.post_id}#comment-${node.comment.id}`}>link</Link>
                 </li>
               </ul>
             </div>
