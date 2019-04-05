@@ -83,7 +83,7 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
         {this.state.posts.length > 0 
           ? this.state.posts.map(post => 
             <PostListing post={post} showCommunity={!this.props.communityId}/>) 
-          : <div>No Listings</div>
+          : <div>No Listings. Subscribe to some <Link to="/communities">forums</Link>.</div>
         }
       </div>
     )
