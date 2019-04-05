@@ -914,6 +914,12 @@ impl Perform for EditComment {
 
     let user_id = claims.id;
 
+    // Verify its the creator
+    let orig_comment = Comment::read(&conn, self.edit_id).unwrap();
+    if user_id != orig_comment.creator_id {
+        return self.error("Incorrect creator.");
+    }
+
     let comment_form = CommentForm {
       content: self.content.to_owned(),
       parent_id: self.parent_id,
@@ -1149,6 +1155,12 @@ impl Perform for EditPost {
 
     let user_id = claims.id;
 
+    // Verify its the creator
+    let orig_post = Post::read(&conn, self.edit_id).unwrap();
+    if user_id != orig_post.creator_id {
+        return self.error("Incorrect creator.");
+    }
+
     let post_form = PostForm {
       name: self.name.to_owned(),
       url: self.url.to_owned(),
@@ -1209,6 +1221,14 @@ impl Perform for EditCommunity {
     };
 
     let user_id = claims.id;
+
+
+    // Verify its a mod
+    let moderator_view = CommunityModeratorView::for_community(&conn, self.edit_id).unwrap();
+    let mod_ids: Vec<i32> = moderator_view.into_iter().map(|m| m.user_id).collect();
+    if !mod_ids.contains(&user_id) {
+        return self.error("Incorrect creator.");
+    };
 
     let community_form = CommunityForm {
       name: self.name.to_owned(),

@@ -133,10 +133,8 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
   }
 
   parseMessage(msg: any) {
-    console.log(msg);
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(msg.error);
       return;
     } else if (op == UserOperation.ListCommunities) {
       let res: ListCommunitiesResponse = msg;
