@@ -109,7 +109,7 @@ export class Post extends Component<any, PostState> {
   newComments() {
     return (
       <div class="sticky-top">
-        <h5>New Comments</h5>
+        <h4>New Comments</h4>
         {this.state.comments.map(comment => 
           <CommentNodes nodes={[{comment: comment}]} noIndent />
         )}

@@ -10,6 +10,7 @@ import { mdToHtml } from '../utils';
 
 interface PostListingState {
   showEdit: boolean;
+  iframeExpanded: boolean;
 }
 
 interface PostListingProps {
@@ -22,7 +23,8 @@ interface PostListingProps {
 export class PostListing extends Component<PostListingProps, PostListingState> {
 
   private emptyState: PostListingState = {
-    showEdit: false
+    showEdit: false,
+    iframeExpanded: false
   }
 
   constructor(props, context) {
@@ -56,11 +58,21 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         </div>
         <div className="ml-4">
           {post.url 
-            ? <h5 className="mb-0">
+            ? <h4 className="mb-0">
             <a className="text-white" href={post.url}>{post.name}</a>
             <small><a className="ml-2 text-muted font-italic" href={post.url}>{(new URL(post.url)).hostname}</a></small>
-          </h5> 
-            : <h5 className="mb-0"><Link className="text-white" to={`/post/${post.id}`}>{post.name}</Link></h5>
+            { !this.state.iframeExpanded
+              ? <span class="pointer ml-2 text-muted small" title="Expand here" onClick={linkEvent(this, this.handleIframeExpandClick)}>+</span>
+              : 
+              <span>
+                <span class="pointer ml-2 text-muted small" onClick={linkEvent(this, this.handleIframeExpandClick)}>-</span>
+                <div class="embed-responsive embed-responsive-1by1">
+                  <iframe scrolling="yes" class="embed-responsive-item" src={post.url}></iframe>
+                </div>
+              </span>
+            }
+          </h4> 
+            : <h4 className="mb-0"><Link className="text-white" to={`/post/${post.id}`}>{post.name}</Link></h4>
           }
         </div>
         <div className="details ml-4 mb-1">
@@ -148,6 +160,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       auth: null
     };
     WebSocketService.Instance.editPost(deleteForm);
+  }
+
+  handleIframeExpandClick(i: PostListing, event) {
+    i.state.iframeExpanded = !i.state.iframeExpanded;
+    i.setState(i.state);
   }
 }
 

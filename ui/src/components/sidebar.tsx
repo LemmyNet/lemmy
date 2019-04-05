@@ -68,7 +68,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
           </div>
         }
         <hr />
-        <h5>Moderators</h5>
+        <h4>Moderators</h4>
         {this.props.moderators.map(mod =>
           <Link to={`/user/${mod.user_id}`}>{mod.user_name}</Link>
         )}

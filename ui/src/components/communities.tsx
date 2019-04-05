@@ -6,6 +6,8 @@ import { UserOperation, Community, Post as PostI, GetPostResponse, PostResponse,
 import { WebSocketService, UserService } from '../services';
 import { msgOp, hotRank,mdToHtml } from '../utils';
 
+declare const Sortable: any;
+
 interface CommunitiesState {
   communities: Array<Community>;
 }
@@ -29,12 +31,17 @@ export class Communities extends Component<any, CommunitiesState> {
     WebSocketService.Instance.listCommunities();
   }
 
+  componentDidMount() {
+    let table = document.querySelector('#community_table');
+    Sortable.initTable(table);
+  }
+
   render() {
     return (
       <div class="container-fluid">
         <h4>Communities</h4>
         <div class="table-responsive">
-          <table class="table table-sm table-hover" data-sortable>
+          <table id="community_table" class="table table-sm table-hover" data-sortable>
             <thead>
               <tr>
                 <th>Name</th>
