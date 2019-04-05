@@ -18,6 +18,8 @@ table! {
     number_of_subscribers -> BigInt,
     number_of_posts -> BigInt,
     number_of_comments -> BigInt,
+    user_id -> Nullable<Int4>,
+    subscribed -> Nullable<Bool>,
   }
 }
 
@@ -58,18 +60,43 @@ pub struct CommunityView {
   pub category_name: String,
   pub number_of_subscribers: i64,
   pub number_of_posts: i64,
-  pub number_of_comments: i64
+  pub number_of_comments: i64,
+  pub user_id: Option<i32>,
+  pub subscribed: Option<bool>,
 }
 
 impl CommunityView {
-  pub fn read(conn: &PgConnection, from_community_id: i32) -> Result<Self, Error> {
+  pub fn read(conn: &PgConnection, from_community_id: i32, from_user_id: Option<i32>) -> Result<Self, Error> {
     use actions::community_view::community_view::dsl::*;
-    community_view.find(from_community_id).first::<Self>(conn)
+
+    let mut query = community_view.into_boxed();
+
+    query = query.filter(id.eq(from_community_id));
+
+    // The view lets you pass a null user_id, if you're not logged in
+    if let Some(from_user_id) = from_user_id {
+      query = query.filter(user_id.eq(from_user_id));
+    } else {
+      query = query.filter(user_id.is_null());
+    };
+
+    query.first::<Self>(conn)
   }
 
-  pub fn list_all(conn: &PgConnection) -> Result<Vec<Self>, Error> {
+  pub fn list_all(conn: &PgConnection, from_user_id: Option<i32>) -> Result<Vec<Self>, Error> {
     use actions::community_view::community_view::dsl::*;
-    community_view.load::<Self>(conn)
+    let mut query = community_view.into_boxed();
+
+    // The view lets you pass a null user_id, if you're not logged in
+    if let Some(from_user_id) = from_user_id {
+      query = query.filter(user_id.eq(from_user_id))
+        .order_by((subscribed.desc(), number_of_subscribers.desc()));
+    } else {
+      query = query.filter(user_id.is_null())
+        .order_by(number_of_subscribers.desc());
+    };
+
+    query.load::<Self>(conn) 
   }
 }
 

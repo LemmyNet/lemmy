@@ -147,6 +147,11 @@ export class Community extends Component<any, State> {
       let res: CommunityResponse = msg;
       this.state.community = res.community;
       this.setState(this.state);
+    } else if (op == UserOperation.FollowCommunity) {
+      let res: CommunityResponse = msg;
+      this.state.community.subscribed = res.community.subscribed;
+      this.state.community.number_of_subscribers = res.community.number_of_subscribers;
+      this.setState(this.state);
     }
   }
 }

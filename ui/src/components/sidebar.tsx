@@ -1,6 +1,6 @@
 import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
-import { Community, CommunityUser } from '../interfaces';
+import { Community, CommunityUser, FollowCommunityForm } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { mdToHtml } from '../utils';
 import { CommunityForm } from './community-form';
@@ -61,7 +61,12 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
           <li className="list-inline-item badge badge-light">{community.number_of_posts} Posts</li>
           <li className="list-inline-item badge badge-light">{community.number_of_comments} Comments</li>
         </ul>
-        <div><button type="button" class="btn btn-secondary mb-2">Subscribe</button></div>
+        <div>
+          {community.subscribed 
+            ? <button class="btn btn-sm btn-secondary" onClick={linkEvent(community.id, this.handleUnsubscribe)}>Unsubscribe</button>
+            : <button class="btn btn-sm btn-secondary" onClick={linkEvent(community.id, this.handleSubscribe)}>Subscribe</button>
+          }
+        </div>
         {community.description && 
           <div>
             <hr />
@@ -94,6 +99,22 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
 
   // TODO no deleting communities yet
   handleDeleteClick(i: Sidebar, event) {
+  }
+
+  handleUnsubscribe(communityId: number) {
+    let form: FollowCommunityForm = {
+      community_id: communityId,
+      follow: false
+    };
+    WebSocketService.Instance.followCommunity(form);
+  }
+
+  handleSubscribe(communityId: number) {
+    let form: FollowCommunityForm = {
+      community_id: communityId,
+      follow: true
+    };
+    WebSocketService.Instance.followCommunity(form);
   }
 
   private get amCreator(): boolean {

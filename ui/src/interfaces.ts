@@ -1,5 +1,5 @@
 export enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity, FollowCommunity
 }
 
 export interface User {
@@ -18,6 +18,8 @@ export interface CommunityUser {
 }
 
 export interface Community {
+  user_id?: number;
+  subscribed?: boolean;
   id: number;
   name: string;
   title: string;
@@ -169,6 +171,12 @@ export interface CreatePostLikeResponse {
 export interface Category {
   id: number;
   name: string;
+}
+
+export interface FollowCommunityForm {
+  community_id: number;
+  follow: boolean;
+  auth?: string;
 }
 
 export interface LoginForm {

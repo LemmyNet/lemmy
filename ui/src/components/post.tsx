@@ -229,6 +229,11 @@ export class Post extends Component<any, PostState> {
       this.state.post.community_id = res.community.id;
       this.state.post.community_name = res.community.name;
       this.setState(this.state);
+    } else if (op == UserOperation.FollowCommunity) {
+      let res: CommunityResponse = msg;
+      this.state.community.subscribed = res.community.subscribed;
+      this.state.community.number_of_subscribers = res.community.number_of_subscribers;
+      this.setState(this.state);
     }
 
   }

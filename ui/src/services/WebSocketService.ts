@@ -1,5 +1,5 @@
 import { wsUri } from '../env';
-import { LoginForm, RegisterForm, UserOperation, CommunityForm, PostForm, CommentForm, CommentLikeForm, GetPostsForm, CreatePostLikeForm } from '../interfaces';
+import { LoginForm, RegisterForm, UserOperation, CommunityForm, PostForm, CommentForm, CommentLikeForm, GetPostsForm, CreatePostLikeForm, FollowCommunityForm } from '../interfaces';
 import { webSocket } from 'rxjs/webSocket';
 import { Subject } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
@@ -42,8 +42,14 @@ export class WebSocketService {
     this.subject.next(this.wsSendWrapper(UserOperation.EditCommunity, communityForm));
   }
 
+  public followCommunity(followCommunityForm: FollowCommunityForm) {
+    this.setAuth(followCommunityForm);
+    this.subject.next(this.wsSendWrapper(UserOperation.FollowCommunity, followCommunityForm));
+  }
+
   public listCommunities() {
-    this.subject.next(this.wsSendWrapper(UserOperation.ListCommunities, undefined));
+    let data = {auth: UserService.Instance.auth };
+    this.subject.next(this.wsSendWrapper(UserOperation.ListCommunities, data));
   }
 
   public listCategories() {
@@ -61,7 +67,8 @@ export class WebSocketService {
   }
 
   public getCommunity(communityId: number) {
-    this.subject.next(this.wsSendWrapper(UserOperation.GetCommunity, {id: communityId}));
+    let data = {id: communityId, auth: UserService.Instance.auth };
+    this.subject.next(this.wsSendWrapper(UserOperation.GetCommunity, data));
   }
 
   public createComment(commentForm: CommentForm) {
