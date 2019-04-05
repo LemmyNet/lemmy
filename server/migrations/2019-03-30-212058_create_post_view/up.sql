@@ -14,7 +14,7 @@ with all_post as
 (
   select        
   p.*,
-  (select name from user_ where p.creator_id = user_.id) creator_name,
+  (select name from user_ where p.creator_id = user_.id) as creator_name,
   (select name from community where p.community_id = community.id) as community_name,
   (select count(*) from comment where comment.post_id = p.id) as number_of_comments,
   coalesce(sum(pl.score), 0) as score,
@@ -29,7 +29,8 @@ with all_post as
 select
 ap.*,
 u.id as user_id,
-coalesce(pl.score, 0) as my_vote
+coalesce(pl.score, 0) as my_vote,
+(select cf.id::bool from community_follower cf where u.id = cf.user_id and cf.community_id = ap.community_id) as subscribed
 from user_ u
 cross join all_post ap
 left join post_like pl on u.id = pl.user_id and ap.id = pl.post_id
@@ -39,7 +40,8 @@ union all
 select 
 ap.*,
 null as user_id,
-null as my_vote
+null as my_vote,
+null as subscribed
 from all_post ap
 ;
 

@@ -33,6 +33,7 @@ table! {
     hot_rank -> Int4,
     user_id -> Nullable<Int4>,
     my_vote -> Nullable<Int4>,
+    subscribed -> Nullable<Bool>,
   }
 }
 
@@ -57,6 +58,7 @@ pub struct PostView {
   pub hot_rank: i32,
   pub user_id: Option<i32>,
   pub my_vote: Option<i32>,
+  pub subscribed: Option<bool>,
 }
 
 impl PostView {
@@ -69,6 +71,13 @@ impl PostView {
 
     if let Some(from_community_id) = from_community_id {
       query = query.filter(community_id.eq(from_community_id));
+    };
+
+    match type_ {
+      ListingType::Subscribed  => {
+        query = query.filter(subscribed.eq(true));
+      },
+      _ => {}
     };
 
     // The view lets you pass a null user_id, if you're not logged in

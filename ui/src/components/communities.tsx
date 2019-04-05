@@ -42,8 +42,8 @@ export class Communities extends Component<any, CommunitiesState> {
       <div class="container-fluid">
         <h4>Communities</h4>
         <div class="table-responsive">
-          <table id="community_table" class="table table-sm table-hover" data-sortable>
-            <thead>
+          <table id="community_table" class="table table-sm table-hover">
+            <thead class="pointer">
               <tr>
                 <th>Name</th>
                 <th>Title</th>

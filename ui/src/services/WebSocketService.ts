@@ -52,6 +52,11 @@ export class WebSocketService {
     this.subject.next(this.wsSendWrapper(UserOperation.ListCommunities, data));
   }
 
+  public getFollowedCommunities() {
+    let data = {auth: UserService.Instance.auth };
+    this.subject.next(this.wsSendWrapper(UserOperation.GetFollowedCommunities, data));
+  }
+
   public listCategories() {
     this.subject.next(this.wsSendWrapper(UserOperation.ListCategories, undefined));
   }
