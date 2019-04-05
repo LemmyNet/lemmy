@@ -71,7 +71,7 @@ export class Community extends Component<any, State> {
     return (
       <div class="container">
         <div class="row">
-          <div class="col-12 col-sm-10 col-lg-9">
+          <div class="col-12 col-lg-9">
             <h4>/f/{this.state.community.name}</h4>
             <div>{this.selects()}</div>
             {this.state.posts.length > 0 
@@ -80,7 +80,7 @@ export class Community extends Component<any, State> {
               : <div>no listings</div>
             }
           </div>
-          <div class="col-12 col-sm-2 col-lg-3">
+          <div class="col-12 col-lg-3">
             <Sidebar community={this.state.community} moderators={this.state.moderators} />
           </div>
         </div>

@@ -95,7 +95,8 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
           </div>
           <div class="form-group row">
             <div class="col-sm-10">
-              <button type="submit" class="btn btn-secondary">{this.props.post ? 'Edit' : 'Create'} Post</button>
+              <button type="submit" class="btn btn-secondary mr-2">{this.props.post ? 'Save' : 'Create'}</button>
+              {this.props.post && <button type="button" class="btn btn-secondary" onClick={linkEvent(this, this.handleCancel)}>Cancel</button>}
             </div>
           </div>
         </form>
@@ -130,6 +131,10 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
   handlePostCommunityChange(i: PostForm, event) {
     i.state.postForm.community_id = Number(event.target.value);
     i.setState(i.state);
+  }
+
+  handleCancel(i: PostForm, event) {
+    i.props.onCancel();
   }
 
   parseMessage(msg: any) {

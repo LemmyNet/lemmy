@@ -34,6 +34,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     this.handlePostLike = this.handlePostLike.bind(this);
     this.handlePostDisLike = this.handlePostDisLike.bind(this);
     this.handleEditPost = this.handleEditPost.bind(this);
+    this.handleEditCancel = this.handleEditCancel.bind(this);
   }
 
   render() {
@@ -41,7 +42,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       <div>
         {!this.state.showEdit 
           ? this.listing()
-          : <PostForm post={this.props.post} onEdit={this.handleEditPost} />
+          : <PostForm post={this.props.post} onEdit={this.handleEditPost} onCancel={this.handleEditCancel}/>
         }
       </div>
     )
@@ -142,6 +143,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   handleEditClick(i: PostListing, event) {
     i.state.showEdit = true;
     i.setState(i.state);
+  }
+
+  handleEditCancel() {
+    this.state.showEdit = false;
+    this.setState(this.state);
   }
 
   // The actual editing is done in the recieve for post
