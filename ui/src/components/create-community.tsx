@@ -13,7 +13,7 @@ export class CreateCommunity extends Component<any, any> {
       <div class="container">
         <div class="row">
           <div class="col-12 col-lg-6 mb-4">
-            <h3>Create Forum</h3>
+            <h4>Create Forum</h4>
             <CommunityForm onCreate={this.handleCommunityCreate}/>
           </div>
         </div>
