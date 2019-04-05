@@ -24,6 +24,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     super(props, context);
     this.state = this.emptyState;
     this.handleEditCommunity = this.handleEditCommunity.bind(this);
+    this.handleEditCancel = this.handleEditCancel.bind(this);
   }
 
   render() {
@@ -31,7 +32,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
       <div>
         {!this.state.showEdit 
           ? this.sidebar()
-          : <CommunityForm community={this.props.community} onEdit={this.handleEditCommunity} />
+          : <CommunityForm community={this.props.community} onEdit={this.handleEditCommunity} onCancel={this.handleEditCancel}/>
         }
       </div>
     )
@@ -82,6 +83,11 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   }
 
   handleEditCommunity(community: Community) {
+    this.state.showEdit = false;
+    this.setState(this.state);
+  }
+
+  handleEditCancel() {
     this.state.showEdit = false;
     this.setState(this.state);
   }
