@@ -113,7 +113,7 @@ impl PostView {
       query = query.filter(user_id.eq(from_user_id));
     } else {
       query = query.filter(user_id.is_null());
-    }
+    };
 
     query.first::<Self>(conn)
   }

@@ -22,7 +22,7 @@ use actions::community_view::*;
 
 #[derive(EnumString,ToString,Debug)]
 pub enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity, FollowCommunity
 }
 
 #[derive(Serialize, Deserialize)]
@@ -109,7 +109,9 @@ pub struct CommunityResponse {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ListCommunities;
+pub struct ListCommunities {
+  auth: Option<String>
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct ListCommunitiesResponse {
@@ -174,7 +176,8 @@ pub struct GetPostsResponse {
 
 #[derive(Serialize, Deserialize)]
 pub struct GetCommunity {
-  id: i32
+  id: i32,
+  auth: Option<String>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -248,6 +251,13 @@ pub struct EditCommunity {
   title: String,
   description: Option<String>,
   category_id: i32,
+  auth: String
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct FollowCommunity {
+  community_id: i32,
+  follow: bool,
   auth: String
 }
 
@@ -389,7 +399,7 @@ impl Handler<StandardMessage> for ChatServer {
         create_community.perform(self, msg.id)
       },
       UserOperation::ListCommunities => {
-        let list_communities: ListCommunities = ListCommunities;
+        let list_communities: ListCommunities = serde_json::from_str(&data.to_string()).unwrap();
         list_communities.perform(self, msg.id)
       },
       UserOperation::ListCategories => {
@@ -435,6 +445,10 @@ impl Handler<StandardMessage> for ChatServer {
       UserOperation::EditCommunity => {
         let edit_community: EditCommunity = serde_json::from_str(&data.to_string()).unwrap();
         edit_community.perform(self, msg.id)
+      },
+      UserOperation::FollowCommunity => {
+        let follow_community: FollowCommunity = serde_json::from_str(&data.to_string()).unwrap();
+        follow_community.perform(self, msg.id)
       },
       _ => {
         let e = ErrorMessage { 
@@ -599,7 +613,7 @@ impl Perform for CreateCommunity {
       }
     };
 
-    let community_view = CommunityView::read(&conn, inserted_community.id).unwrap();
+    let community_view = CommunityView::read(&conn, inserted_community.id, Some(user_id)).unwrap();
 
     serde_json::to_string(
       &CommunityResponse {
@@ -620,7 +634,20 @@ impl Perform for ListCommunities {
 
     let conn = establish_connection();
 
-    let communities: Vec<CommunityView> = CommunityView::list_all(&conn).unwrap();
+    let user_id: Option<i32> = match &self.auth {
+      Some(auth) => {
+        match Claims::decode(&auth) {
+          Ok(claims) => {
+            let user_id = claims.claims.id;
+            Some(user_id)
+          }
+          Err(_e) => None
+        }
+      }
+      None => None
+    };
+
+    let communities: Vec<CommunityView> = CommunityView::list_all(&conn, user_id).unwrap();
 
     // Return the jwt
     serde_json::to_string(
@@ -767,7 +794,7 @@ impl Perform for GetPost {
 
     let comments = CommentView::list(&conn, self.id, user_id).unwrap();
 
-    let community = CommunityView::read(&conn, post_view.community_id).unwrap();
+    let community = CommunityView::read(&conn, post_view.community_id, user_id).unwrap();
 
     let moderators = CommunityModeratorView::for_community(&conn, post_view.community_id).unwrap();
 
@@ -794,7 +821,20 @@ impl Perform for GetCommunity {
 
     let conn = establish_connection();
 
-    let community_view = match CommunityView::read(&conn, self.id) {
+    let user_id: Option<i32> = match &self.auth {
+      Some(auth) => {
+        match Claims::decode(&auth) {
+          Ok(claims) => {
+            let user_id = claims.claims.id;
+            Some(user_id)
+          }
+          Err(_e) => None
+        }
+      }
+      None => None
+    };
+
+    let community_view = match CommunityView::read(&conn, self.id, user_id) {
       Ok(community) => community,
       Err(_e) => {
         return self.error("Couldn't find Community");
@@ -917,7 +957,7 @@ impl Perform for EditComment {
     // Verify its the creator
     let orig_comment = Comment::read(&conn, self.edit_id).unwrap();
     if user_id != orig_comment.creator_id {
-        return self.error("Incorrect creator.");
+      return self.error("Incorrect creator.");
     }
 
     let comment_form = CommentForm {
@@ -1158,7 +1198,7 @@ impl Perform for EditPost {
     // Verify its the creator
     let orig_post = Post::read(&conn, self.edit_id).unwrap();
     if user_id != orig_post.creator_id {
-        return self.error("Incorrect creator.");
+      return self.error("Incorrect creator.");
     }
 
     let post_form = PostForm {
@@ -1227,7 +1267,7 @@ impl Perform for EditCommunity {
     let moderator_view = CommunityModeratorView::for_community(&conn, self.edit_id).unwrap();
     let mod_ids: Vec<i32> = moderator_view.into_iter().map(|m| m.user_id).collect();
     if !mod_ids.contains(&user_id) {
-        return self.error("Incorrect creator.");
+      return self.error("Incorrect creator.");
     };
 
     let community_form = CommunityForm {
@@ -1246,7 +1286,7 @@ impl Perform for EditCommunity {
       }
     };
 
-    let community_view = CommunityView::read(&conn, self.edit_id).unwrap();
+    let community_view = CommunityView::read(&conn, self.edit_id, Some(user_id)).unwrap();
 
     // Do the subscriber stuff here
     // let mut community_sent = post_view.clone();
@@ -1273,6 +1313,61 @@ impl Perform for EditCommunity {
     community_out
   }
 }
+
+
+impl Perform for FollowCommunity {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::FollowCommunity
+  }
+
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&self.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => {
+        return self.error("Not logged in.");
+      }
+    };
+
+    let user_id = claims.id;
+
+    let community_follower_form = CommunityFollowerForm {
+      community_id: self.community_id,
+      user_id: user_id
+    };
+
+    if self.follow {
+
+      match CommunityFollower::follow(&conn, &community_follower_form) {
+        Ok(user) => user,
+        Err(_e) => {
+          return self.error("Community follower already exists.");
+        }
+      };
+    } else {
+      match CommunityFollower::ignore(&conn, &community_follower_form) {
+        Ok(user) => user,
+        Err(_e) => {
+          return self.error("Community follower already exists.");
+        }
+      };
+    }
+
+    let community_view = CommunityView::read(&conn, self.community_id, Some(user_id)).unwrap();
+
+    serde_json::to_string(
+      &CommunityResponse {
+        op: self.op_type().to_string(), 
+        community: community_view
+      }
+      )
+      .unwrap()
+  }
+}
+
+
 // impl Handler<Login> for ChatServer {
 
 //   type Result = MessageResult<Login>;
