@@ -59,8 +59,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         </div>
         <div className="ml-4">
           {post.url 
-            ? <h4 className="mb-0">
-            <a className="text-white" href={post.url}>{post.name}</a>
+            ? <div className="mb-0">
+            <h4 className="d-inline"><a className="text-white" href={post.url}>{post.name}</a></h4>
             <small><a className="ml-2 text-muted font-italic" href={post.url}>{(new URL(post.url)).hostname}</a></small>
             { !this.state.iframeExpanded
               ? <span class="pointer ml-2 text-muted small" title="Expand here" onClick={linkEvent(this, this.handleIframeExpandClick)}>+</span>
@@ -72,7 +72,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                 </div>
               </span>
             }
-          </h4> 
+          </div> 
             : <h4 className="mb-0"><Link className="text-white" to={`/post/${post.id}`}>{post.name}</Link></h4>
           }
         </div>
@@ -80,7 +80,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           <ul class="list-inline mb-0 text-muted small">
             <li className="list-inline-item">
               <span>by </span>
-              <a href={post.creator_id.toString()}>{post.creator_name}</a>
+              <Link to={`/user/${post.creator_id}`}>{post.creator_name}</Link>
               {this.props.showCommunity && 
                 <span>
                   <span> to </span>

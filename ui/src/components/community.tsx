@@ -5,15 +5,14 @@ import { retryWhen, delay, take } from 'rxjs/operators';
 import { UserOperation, Community as CommunityI, GetCommunityResponse, CommunityResponse, Post, GetPostsForm, ListingSortType, ListingType, GetPostsResponse, CreatePostLikeForm, CreatePostLikeResponse, CommunityUser} from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { MomentTime } from './moment-time';
-import { PostListing } from './post-listing';
+import { PostListings } from './post-listings';
 import { Sidebar } from './sidebar';
 import { msgOp, mdToHtml } from '../utils';
 
 interface State {
   community: CommunityI;
+  communityId: number;
   moderators: Array<CommunityUser>;
-  posts: Array<Post>;
-  sortType: ListingSortType;
 }
 
 export class Community extends Component<any, State> {
@@ -34,8 +33,7 @@ export class Community extends Component<any, State> {
       published: null
     },
     moderators: [],
-    posts: [],
-    sortType: ListingSortType.Hot,
+    communityId: Number(this.props.match.params.id)
   }
 
   constructor(props, context) {
@@ -51,16 +49,7 @@ export class Community extends Component<any, State> {
         () => console.log('complete')
       );
 
-    let communityId = Number(this.props.match.params.id);
-    WebSocketService.Instance.getCommunity(communityId);
-
-    let getPostsForm: GetPostsForm = {
-      community_id: communityId,
-      limit: 10,
-      sort: ListingSortType[ListingSortType.Hot],
-      type_: ListingType[ListingType.Community]
-    }
-    WebSocketService.Instance.getPosts(getPostsForm);
+    WebSocketService.Instance.getCommunity(this.state.communityId);
   }
 
   componentWillUnmount() {
@@ -73,12 +62,7 @@ export class Community extends Component<any, State> {
         <div class="row">
           <div class="col-12 col-lg-9">
             <h4>/f/{this.state.community.name}</h4>
-            <div>{this.selects()}</div>
-            {this.state.posts.length > 0 
-              ? this.state.posts.map(post => 
-                <PostListing post={post} />) 
-              : <div>no listings</div>
-            }
+            <PostListings communityId={this.state.communityId} />
           </div>
           <div class="col-12 col-lg-3">
             <Sidebar community={this.state.community} moderators={this.state.moderators} />
@@ -88,37 +72,6 @@ export class Community extends Component<any, State> {
     )
   }
 
-  selects() {
-    return (
-      <div className="mb-2">
-        <select value={this.state.sortType} onChange={linkEvent(this, this.handleSortChange)} class="custom-select w-auto">
-          <option disabled>Sort Type</option>
-          <option value={ListingSortType.Hot}>Hot</option>
-          <option value={ListingSortType.New}>New</option>
-          <option disabled>──────────</option>
-          <option value={ListingSortType.TopDay}>Top Day</option>
-          <option value={ListingSortType.TopWeek}>Week</option>
-          <option value={ListingSortType.TopMonth}>Month</option>
-          <option value={ListingSortType.TopYear}>Year</option>
-          <option value={ListingSortType.TopAll}>All</option>
-        </select>
-      </div>
-    )
-
-  }
-
-  handleSortChange(i: Community, event) {
-    i.state.sortType = Number(event.target.value);
-    i.setState(i.state);
-
-    let getPostsForm: GetPostsForm = {
-      community_id: i.state.community.id,
-      limit: 10,
-      sort: ListingSortType[i.state.sortType],
-      type_: ListingType[ListingType.Community]
-    }
-    WebSocketService.Instance.getPosts(getPostsForm);
-  }
 
   parseMessage(msg: any) {
     console.log(msg);
@@ -130,18 +83,6 @@ export class Community extends Component<any, State> {
       let res: GetCommunityResponse = msg;
       this.state.community = res.community;
       this.state.moderators = res.moderators;
-      this.setState(this.state);
-    }  else if (op == UserOperation.GetPosts) {
-      let res: GetPostsResponse = msg;
-      this.state.posts = res.posts;
-      this.setState(this.state);
-    } else if (op == UserOperation.CreatePostLike) {
-      let res: CreatePostLikeResponse = msg;
-      let found = this.state.posts.find(c => c.id == res.post.id);
-      found.my_vote = res.post.my_vote;
-      found.score = res.post.score;
-      found.upvotes = res.post.upvotes;
-      found.downvotes = res.post.downvotes;
       this.setState(this.state);
     } else if (op == UserOperation.EditCommunity) {
       let res: CommunityResponse = msg;
@@ -155,5 +96,4 @@ export class Community extends Component<any, State> {
     }
   }
 }
-
 

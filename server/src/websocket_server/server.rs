@@ -22,7 +22,7 @@ use actions::community_view::*;
 
 #[derive(EnumString,ToString,Debug)]
 pub enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity, FollowCommunity
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity, FollowCommunity, GetFollowedCommunities
 }
 
 #[derive(Serialize, Deserialize)]
@@ -261,6 +261,18 @@ pub struct FollowCommunity {
   auth: String
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct GetFollowedCommunities {
+  auth: String
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetFollowedCommunitiesResponse {
+  op: String,
+  communities: Vec<CommunityFollowerView>
+}
+
+
 /// `ChatServer` manages chat rooms and responsible for coordinating chat
 /// session. implementation is super primitive
 pub struct ChatServer {
@@ -449,6 +461,10 @@ impl Handler<StandardMessage> for ChatServer {
       UserOperation::FollowCommunity => {
         let follow_community: FollowCommunity = serde_json::from_str(&data.to_string()).unwrap();
         follow_community.perform(self, msg.id)
+      },
+      UserOperation::GetFollowedCommunities => {
+        let followed_communities: GetFollowedCommunities = serde_json::from_str(&data.to_string()).unwrap();
+        followed_communities.perform(self, msg.id)
       },
       _ => {
         let e = ErrorMessage { 
@@ -1081,8 +1097,6 @@ impl Perform for GetPosts {
 
     let conn = establish_connection();
 
-    println!("{:?}", self.auth);
-
     let user_id: Option<i32> = match &self.auth {
       Some(auth) => {
         match Claims::decode(&auth) {
@@ -1367,6 +1381,36 @@ impl Perform for FollowCommunity {
   }
 }
 
+impl Perform for GetFollowedCommunities {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::GetFollowedCommunities
+  }
+
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&self.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => {
+        return self.error("Not logged in.");
+      }
+    };
+
+    let user_id = claims.id;
+
+    let communities: Vec<CommunityFollowerView> = CommunityFollowerView::for_user(&conn, user_id).unwrap();
+
+    // Return the jwt
+    serde_json::to_string(
+      &GetFollowedCommunitiesResponse {
+        op: self.op_type().to_string(),
+        communities: communities
+      }
+      )
+      .unwrap()
+  }
+}
 
 // impl Handler<Login> for ChatServer {
 
