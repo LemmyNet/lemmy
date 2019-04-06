@@ -1,4 +1,4 @@
-version: '3'
+version: '2.4'
 
 services:
   db:
@@ -8,6 +8,11 @@ services:
       POSTGRES_USER: rrr
       POSTGRES_PASSWORD: rrr
       POSTGRES_DB: rrr
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rrr"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
   lemmy:
     build: 
       context: .
@@ -17,6 +22,6 @@ services:
     environment:
       LEMMY_FRONT_END_DIR: /app/dist
       DATABASE_URL: postgres://rrr:rrr@db:5432/rrr
-
-    links:
-      - db
+    depends_on: 
+      db: 
+        condition: service_healthy 
