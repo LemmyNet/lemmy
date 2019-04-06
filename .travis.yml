@@ -17,7 +17,9 @@ before_install:
   - cd server
 script:
   - cargo install diesel_cli --no-default-features --features postgres
-  - cargo install 
+  - cargo build
   - diesel migration run
   - cargo build --all
   - cargo test --all
+env:
+  - DATABASE_URL=postgres://rrr:rrr@localhost/rrr
