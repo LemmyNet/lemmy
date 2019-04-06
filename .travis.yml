@@ -7,6 +7,8 @@ matrix:
   allow_failures:
     - rust: nightly
   fast_finish: true
+before_cache:
+  - cd server
 cache: cargo
 services:
   - postgresql
