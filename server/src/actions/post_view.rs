@@ -218,7 +218,8 @@ mod tests {
       downvotes: 0,
       hot_rank: 864,
       published: inserted_post.published,
-      updated: None
+      updated: None,
+      subscribed: None
     };
 
     let expected_post_listing_with_user = PostView {
@@ -238,7 +239,8 @@ mod tests {
       downvotes: 0,
       hot_rank: 864,
       published: inserted_post.published,
-      updated: None
+      updated: None,
+      subscribed: None
     };
 
 
