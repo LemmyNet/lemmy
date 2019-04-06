@@ -13,8 +13,9 @@ services:
 before_script:
   - psql -c "create user rrr with password 'rrr' superuser;" -U postgres
   - psql -c 'create database rrr with owner rrr;' -U postgres
-script:
+before_install:
   - cd server
+script:
   - cargo install diesel_cli --no-default-features --features postgres
   - cargo install 
   - diesel migration run
