@@ -1,4 +1,4 @@
-# Lemmy
+<h1><img src="https://image.flaticon.com/icons/svg/194/194242.svg" width="30px"/> Lemmy</h1>
 
 [![Build Status](https://travis-ci.org/dessalines/lemmy.svg?branch=master)](https://travis-ci.org/dessalines/lemmy)
 [![star this repo](http://githubbadges.com/star.svg?user=dessalines&repo=lemmy&style=flat)](https://github.com/dessalines/lemmy)
