@@ -48,18 +48,18 @@
 {
   "@context": "https://www.w3.org/ns/activitystreams",
   "type": "Person",
-  "id": "https://rust-reddit-fediverse/api/v1/user/sally_smith",
-  "inbox": "https://rust-reddit-fediverse/api/v1/user/sally_smith/inbox",
-  "outbox": "https://rust-reddit-fediverse/api/v1/user/sally_smith/outbox",
-  "liked": "https://rust-reddit-fediverse/api/v1/user/sally_smith/liked",
+  "id": "https://instance_url/api/v1/user/sally_smith",
+  "inbox": "https://instance_url/api/v1/user/sally_smith/inbox",
+  "outbox": "https://instance_url/api/v1/user/sally_smith/outbox",
+  "liked": "https://instance_url/api/v1/user/sally_smith/liked",
   // TODO disliked?
-  "following": "https://rust-reddit-fediverse/api/v1/user/sally_smith/following",
+  "following": "https://instance_url/api/v1/user/sally_smith/following",
   "name": "sally_smith", 
   "preferredUsername": "Sally",
   "icon"?: {
     "type": "Image",
     "name": "User icon",
-    "url": "https://rust-reddit-fediverse/api/v1/user/sally_smith/icon.png",
+    "url": "https://instance_url/api/v1/user/sally_smith/icon.png",
     "width": 32,
     "height": 32
   },
@@ -73,12 +73,12 @@
 {
   "@context": "https://www.w3.org/ns/activitystreams",
   "type": "Group",
-  "id": "https://rust-reddit-fediverse/api/v1/community/today_i_learned",
+  "id": "https://instance_url/api/v1/community/today_i_learned",
   "name": "today_i_learned"
   "attributedTo": [ // The moderators
     "http://joe.example.org",
   ],
-  "followers": "https://rust-reddit-fediverse/api/v1/community/today_i_learned/followers",
+  "followers": "https://instance_url/api/v1/community/today_i_learned/followers",
   "published": "2014-12-31T23:00:00-08:00",
   "summary"?: "The group's tagline",
   "attachment: [{}] // TBD, these would be where strong types for custom styles, and images would work.
@@ -92,7 +92,7 @@
 {
   "@context": "https://www.w3.org/ns/activitystreams",
   "type": "Page",
-  "id": "https://rust-reddit-fediverse/api/v1/post/1",
+  "id": "https://instance_url/api/v1/post/1",
   "name": "The title of a post, maybe a link to imgur",
   "url": "https://news.blah.com"
   "attributedTo": "http://joe.example.org", // The poster
@@ -105,7 +105,7 @@
 {
   "@context": "https://www.w3.org/ns/activitystreams",
   "type": "OrderedCollectionPage",
-  "id": "https://rust-reddit-fediverse/api/v1/posts?type={all, best, front}&sort={}&page=1,
+  "id": "https://instance_url/api/v1/posts?type={all, best, front}&sort={}&page=1,
   "partOf": "http://example.org/foo",
   "orderedItems": [Posts]
 }
@@ -116,7 +116,7 @@
 {
   "@context": "https://www.w3.org/ns/activitystreams",
   "type": "Note",
-  "id": "https://rust-reddit-fediverse/api/v1/comment/1",
+  "id": "https://instance_url/api/v1/comment/1",
   "mediaType": "text/markdown",
   "content": "Looks like it is going to rain today. Bring an umbrella *if necessary*!"
   "attributedTo": john_id,
@@ -132,7 +132,7 @@
 {
   "@context": "https://www.w3.org/ns/activitystreams",
   "type": "OrderedCollectionPage",
-  "id": "https://rust-reddit-fediverse/api/v1/comments?type={all,user,community,post,parent_comment}&id=1&page=1,
+  "id": "https://instance_url/api/v1/comments?type={all,user,community,post,parent_comment}&id=1&page=1,
   "partOf": "http://example.org/foo",
   "orderedItems": [Comments]
 }
@@ -351,7 +351,7 @@
 {
   "@context": "https://www.w3.org/ns/activitystreams",
   "type": "Invite",
-  "id": "https://rust-reddit-fediverse/api/v1/invite/1",
+  "id": "https://instance_url/api/v1/invite/1",
   "actor": sally_id,
   "object": group_id,
   "target": john_id

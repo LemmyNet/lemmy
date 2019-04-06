@@ -1,11 +1,16 @@
 extern crate server;
+#[macro_use] extern crate diesel_migrations;
 
 use std::time::{Instant, Duration};
+use std::env;
 use server::actix::*;
 use server::actix_web::server::HttpServer;
-use server::actix_web::{ws, App, Error, HttpRequest, HttpResponse};
+use server::actix_web::{ws, App, Error, HttpRequest, HttpResponse, fs::NamedFile, fs};
 
 use server::websocket_server::server::*;
+use server::establish_connection;
+
+embed_migrations!();
 
 /// How often heartbeat pings are sent
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
@@ -225,7 +230,11 @@ impl WSSession {
 
 fn main() {
   let _ = env_logger::init();
-  let sys = actix::System::new("rust-reddit-fediverse-server");
+  let sys = actix::System::new("lemmy");
+
+  // Run the migrations from code
+  let conn = establish_connection();
+  embedded_migrations::run(&conn).unwrap();
 
   // Start chat server actor in separate thread
   let server = Arbiter::start(|_| ChatServer::default());
@@ -244,14 +253,26 @@ fn main() {
       // .header("LOCATION", "/static/websocket.html")
       // .finish()
       // }))
-      // // websocket
       .resource("/service/ws", |r| r.route().f(chat_route))
       // static resources
-      // .handler("/static/", fs::StaticFiles::new("static/").unwrap())
-  }).bind("127.0.0.1:8080")
+      .resource("/", |r| r.route().f(index))
+      .handler(
+        "/static",
+        fs::StaticFiles::new(front_end_dir()).unwrap()
+      )
+      .finish()
+  }).bind("0.0.0.0:8080")
   .unwrap()
     .start();
 
-  println!("Started http server: 127.0.0.1:8080");
+  println!("Started http server: 0.0.0.0:8080");
   let _ = sys.run();
+}
+
+fn index(_req: &HttpRequest<WsChatSessionState>) -> Result<NamedFile, actix_web::error::Error> {
+  Ok(NamedFile::open(front_end_dir() + "/index.html")?)
+}
+
+fn front_end_dir() -> String {
+  env::var("LEMMY_FRONT_END_DIR").unwrap_or("../ui/dist".to_string())
 }

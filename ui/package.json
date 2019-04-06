@@ -1,7 +1,7 @@
 {
-  "name": "rust_reddit_fediverse",
+  "name": "lemmy",
   "version": "1.0.0",
-  "description": "A simple UI for rust_reddit_fediverse",
+  "description": "A simple UI for lemmy",
   "main": "index.js",
   "scripts": {
     "start": "node fuse dev",

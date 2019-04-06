@@ -1,4 +1,4 @@
-# Rust Reddit Fediverse (to be renamed later)
+# Lemmy
 
 We have a twitter alternative (mastodon), a facebook alternative (friendica), so let's build a reddit alternative in the fediverse.
 

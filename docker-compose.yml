@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: rrr
+      POSTGRES_PASSWORD: rrr
+      POSTGRES_DB: rrr
+  lemmy:
+    build: 
+      context: .
+    command: /bin/sh -c /app/lemmy
+    ports:
+      - "8080:8080"
+    environment:
+      LEMMY_FRONT_END_DIR: /app/dist
+      DATABASE_URL: postgres://rrr:rrr@db:5432/rrr
+
+    links:
+      - db
