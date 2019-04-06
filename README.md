@@ -1,5 +1,7 @@
 # Lemmy
 
+[![Build Status](https://travis-ci.org/dessalines/lemmy.svg?branch=master)](https://travis-ci.org/dessalines/lemmy)
+
 We have a twitter alternative (mastodon), a facebook alternative (friendica), so let's build a reddit alternative in the fediverse.
 
 [Matrix Chat: #rust-reddit-fediverse:matrix.org](https://riot.im/app/#/room/#rust-reddit-fediverse:matrix.org)
