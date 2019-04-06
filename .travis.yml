@@ -1,27 +1,22 @@
 language: rust
 rust:
   - stable
-  - beta
-  - nightly
 matrix:
   allow_failures:
     - rust: nightly
   fast_finish: true
-before_cache:
-  - cd server
 cache: cargo
-services:
-  - postgresql
 before_script:
   - psql -c "create user rrr with password 'rrr' superuser;" -U postgres
   - psql -c 'create database rrr with owner rrr;' -U postgres
 before_install:
   - cd server
 script:
-  - cargo install diesel_cli --no-default-features --features postgres
-  - cargo build
+  - cargo install --force diesel_cli --no-default-features --features postgres
   - diesel migration run
   - cargo build --all
   - cargo test --all
 env:
   - DATABASE_URL=postgres://rrr:rrr@localhost/rrr
+addons:
+  postgresql: "9.4"
