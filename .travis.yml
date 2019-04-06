@@ -20,12 +20,6 @@ script:
   - cargo build --all
   - cargo test --all
 env:
-  global:
   - DATABASE_URL=postgres://rrr:rrr@localhost/rrr
-  - PGPORT=5433
 addons:
   postgresql: "10"
-  apt:
-    packages:
-    - postgresql-10
-    - postgresql-client-10
