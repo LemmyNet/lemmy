@@ -17,5 +17,6 @@ script:
   - cd server
   - cargo install diesel_cli --no-default-features --features postgres
   - cargo install 
-  - cargo build --verbose --all
-  - cargo test --verbose --all
+  - diesel migration run
+  - cargo build --all
+  - cargo test --all
