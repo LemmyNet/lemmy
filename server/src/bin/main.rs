@@ -261,11 +261,11 @@ fn main() {
         fs::StaticFiles::new(front_end_dir()).unwrap()
       )
       .finish()
-  }).bind("0.0.0.0:8080")
+  }).bind("0.0.0.0:8536")
   .unwrap()
     .start();
 
-  println!("Started http server: 0.0.0.0:8080");
+  println!("Started http server: 0.0.0.0:8536");
   let _ = sys.run();
 }
 
