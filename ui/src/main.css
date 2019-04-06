@@ -36,3 +36,14 @@ body {
 .listing {
   min-height: 61px;
 }
+
+.icon {
+  display: inline-flex;
+  width: 1em;
+  height: 1em;
+  stroke-width: 0;
+  stroke: currentColor;
+  fill: currentColor;
+  vertical-align: middle;
+  margin-bottom: 4px;
+}

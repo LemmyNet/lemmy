@@ -46,7 +46,10 @@ cd lemmy
 and goto http://localhost:8080
 
 ## Documentation
-- [ActivityPub API.md](API.md)
-- [Goals](goals.md)
-- [Ranking Algorithm](ranking.md)
+- [ActivityPub API.md](docs/API.md)
+- [Goals](docs/goals.md)
+- [Ranking Algorithm](docs/ranking.md)
 
+## Credits
+
+Icons made by [Freepik](https://www.freepik.com/) licensed by [CC 3.0](http://creativecommons.org/licenses/by/3.0/)
