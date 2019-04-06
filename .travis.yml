@@ -8,8 +8,6 @@ matrix:
 before_cache:
   - cd server
 cache: cargo
-services:
-  - postgresql
 before_script:
   - psql -c "create user rrr with password 'rrr' superuser;" -U postgres
   - psql -c 'create database rrr with owner rrr;' -U postgres
@@ -23,3 +21,5 @@ script:
   - cargo test --all
 env:
   - DATABASE_URL=postgres://rrr:rrr@localhost/rrr
+addons:
+  postgresql: "9.4"
