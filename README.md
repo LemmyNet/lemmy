@@ -26,7 +26,7 @@ git clone https://github.com/dessalines/lemmy
 cd lemmy
 docker-compose up
 ```
-and goto http://localhost:8080
+and goto http://localhost:8536
 ### Local Development
 #### Requirements
 - [Rust](https://www.rust-lang.org/)
@@ -43,7 +43,7 @@ git clone https://github.com/dessalines/lemmy
 cd lemmy
 ./install.sh
 ```
-and goto http://localhost:8080
+and goto http://localhost:8536
 
 ## Documentation
 - [ActivityPub API.md](docs/API.md)

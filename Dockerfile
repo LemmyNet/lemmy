@@ -8,6 +8,5 @@ COPY server /app/server
 COPY --from=node /app/ui/dist /app/dist
 RUN cd /app/server && cargo build --release
 RUN mv /app/server/target/release/lemmy /app/
-EXPOSE 8080
 WORKDIR /app/
-
+EXPOSE 8536

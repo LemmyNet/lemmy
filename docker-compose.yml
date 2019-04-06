@@ -18,7 +18,7 @@ services:
       context: .
     command: /bin/sh -c /app/lemmy
     ports:
-      - "8080:8080"
+      - "8536:8536"
     environment:
       LEMMY_FRONT_END_DIR: /app/dist
       DATABASE_URL: postgres://rrr:rrr@db:5432/rrr
