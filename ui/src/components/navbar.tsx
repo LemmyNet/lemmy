@@ -7,7 +7,7 @@ export class Navbar extends Component<any, any> {
 
   constructor(props, context) {
     super(props, context);
-    this.state = {isLoggedIn: UserService.Instance.loggedIn};
+    this.state = {isLoggedIn: UserService.Instance.loggedIn, expanded: false};
 
     // Subscribe to user changes
     UserService.Instance.sub.subscribe(user => {
@@ -27,11 +27,14 @@ export class Navbar extends Component<any, any> {
   navbar() {
     return (
       <nav class="navbar navbar-expand-sm navbar-light bg-light p-0 px-3 shadow">
-        <a class="navbar-brand" href="#">Lemmy</a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <a class="navbar-brand" href="#">
+          <svg class="icon mr-2"><use xlinkHref="#icon-mouse"></use></svg>
+          Lemmy
+        </a>
+        <button class="navbar-toggler" type="button" onClick={linkEvent(this, this.expandNavbar)}>
           <span class="navbar-toggler-icon"></span>
         </button>
-        <div class="collapse navbar-collapse">
+        <div className={`${!this.state.expanded && 'collapse'} navbar-collapse`}>
           <ul class="navbar-nav mr-auto">
             <li class="nav-item">
               <a class="nav-link" href={repoUrl}>About</a>
@@ -62,5 +65,10 @@ export class Navbar extends Component<any, any> {
   handleLogoutClick(i: Navbar, event) {
     UserService.Instance.logout();
     // i.props.history.push('/');
+  }
+
+  expandNavbar(i: Navbar, event) {
+    i.state.expanded = !i.state.expanded;
+    i.setState(i.state);
   }
 }
