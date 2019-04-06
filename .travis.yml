@@ -22,4 +22,4 @@ script:
 env:
   - DATABASE_URL=postgres://rrr:rrr@localhost/rrr
 addons:
-  postgresql: "10"
+  postgresql: "9.4"
