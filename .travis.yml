@@ -8,7 +8,14 @@ matrix:
     - rust: nightly
   fast_finish: true
 cache: cargo
+services:
+  - postgresql
+before_script:
+  - psql -c "create user rrr with password 'rrr' superuser;" -U postgres
+  - psql -c 'create database rrr with owner rrr;' -U postgres
 script:
   - cd server
+  - cargo install diesel_cli --no-default-features --features postgres
+  - cargo install 
   - cargo build --verbose --all
   - cargo test --verbose --all
