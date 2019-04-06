@@ -3,8 +3,13 @@ name = "server"
 version = "0.0.1"
 authors = ["Dessalines <happydooby@gmail.com>"]
 
+[[bin]]
+name = "lemmy"
+path = "src/bin/main.rs"
+
 [dependencies]
-diesel = { version = "1.4.1", features = ["postgres","chrono"] }
+diesel = { version = "1.4.2", features = ["postgres","chrono"] }
+diesel_migrations = "*"
 dotenv = "0.9.0"
 bcrypt = "0.3"
 activitypub = "0.1.4"

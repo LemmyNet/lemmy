@@ -27,7 +27,7 @@ export class Navbar extends Component<any, any> {
   navbar() {
     return (
       <nav class="navbar navbar-expand-sm navbar-light bg-light p-0 px-3 shadow">
-        <a class="navbar-brand" href="#">rrf</a>
+        <a class="navbar-brand" href="#">Lemmy</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>
