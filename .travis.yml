@@ -9,5 +9,6 @@ matrix:
   fast_finish: true
 cache: cargo
 script:
+  - cd server
   - cargo build --verbose --all
   - cargo test --verbose --all
