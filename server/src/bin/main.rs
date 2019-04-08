@@ -82,11 +82,12 @@ impl Actor for WSSession {
 }
 
 /// Handle messages from chat server, we simply send it to peer websocket
+/// These are room messages, IE sent to others in the room
 impl Handler<WSMessage> for WSSession {
   type Result = ();
 
   fn handle(&mut self, msg: WSMessage, ctx: &mut Self::Context) {
-    println!("id: {} msg: {}", self.id, msg.0);
+    // println!("id: {} msg: {}", self.id, msg.0);
     ctx.text(msg.0);
   }
 }
@@ -94,7 +95,7 @@ impl Handler<WSMessage> for WSSession {
 /// WebSocket message handler
 impl StreamHandler<ws::Message, ws::ProtocolError> for WSSession {
   fn handle(&mut self, msg: ws::Message, ctx: &mut Self::Context) {
-    println!("WEBSOCKET MESSAGE: {:?} from id: {}", msg, self.id);
+    // println!("WEBSOCKET MESSAGE: {:?} from id: {}", msg, self.id);
     match msg {
       ws::Message::Ping(msg) => {
         self.hb = Instant::now();
