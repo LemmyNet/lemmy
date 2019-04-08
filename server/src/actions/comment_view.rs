@@ -208,8 +208,8 @@ mod tests {
       my_vote: Some(1),
     };
 
-    let read_comment_views_no_user = CommentView::list(&conn, inserted_post.id, None).unwrap();
-    let read_comment_views_with_user = CommentView::list(&conn, inserted_post.id, Some(inserted_user.id)).unwrap();
+    let read_comment_views_no_user = CommentView::list(&conn, &SortType::New, Some(inserted_post.id), None, None, 999).unwrap();
+    let read_comment_views_with_user = CommentView::list(&conn, &SortType::New, Some(inserted_post.id), None, Some(inserted_user.id), 999).unwrap();
     let like_removed = CommentLike::remove(&conn, &comment_like_form).unwrap();
     let num_deleted = Comment::delete(&conn, inserted_comment.id).unwrap();
     Post::delete(&conn, inserted_post.id).unwrap();
