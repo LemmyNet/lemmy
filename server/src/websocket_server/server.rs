@@ -328,16 +328,6 @@ impl ChatServer {
       }
     }
   }
-
-  // /// Send message only to self
-  // fn send(&self, message: &str, id: &usize) {
-  //   // println!("{:?}", self.sessions);
-  //   if let Some(addr) = self.sessions.get(id) {
-  //     println!("msg: {}", message); 
-  //     // println!("{:?}", addr.connected());
-  //     let _ = addr.do_send(WSMessage(message.to_owned()));
-  //   }
-  // }
 }
 
 /// Make actor from `ChatServer`
@@ -389,21 +379,8 @@ impl Handler<Disconnect> for ChatServer {
         }
       }
     }
-    // send message to other users
-    // for room in rooms {
-    // self.send_room_message(room, "Someone disconnected", 0);
-    // }
   }
 }
-
-/// Handler for Message message.
-// impl Handler<ClientMessage> for ChatServer {
-//   type Result = ();
-
-//   fn handle(&mut self, msg: ClientMessage, _: &mut Context<Self>) {
-//     self.send_room_message(&msg.room, msg.msg.as_str(), msg.id);
-//   }
-// }
 
 /// Handler for Message message.
 impl Handler<StandardMessage> for ChatServer {
@@ -800,8 +777,6 @@ impl Perform for GetPost {
 
     let conn = establish_connection();
 
-    println!("{:?}", self.auth);
-
     let user_id: Option<i32> = match &self.auth {
       Some(auth) => {
         match Claims::decode(&auth) {
@@ -1141,7 +1116,6 @@ impl Perform for GetPosts {
     let posts = match PostView::list(&conn, type_, &sort, self.community_id, None, user_id, self.limit) {
       Ok(posts) => posts,
       Err(_e) => {
-        eprintln!("{}", _e);
         return self.error("Couldn't get posts");
       }
     };
@@ -1486,185 +1460,3 @@ impl Perform for GetUserDetails {
   }
 }
 
-// impl Handler<Login> for ChatServer {
-
-//   type Result = MessageResult<Login>;
-//   fn handle(&mut self, msg: Login, _: &mut Context<Self>) -> Self::Result {
-
-//     let conn = establish_connection();
-
-//     // Fetch that username / email
-//     let user: User_ = match User_::find_by_email_or_username(&conn, &msg.username_or_email) {
-//       Ok(user) => user,
-//       Err(_e) => return MessageResult(
-//         Err(
-//           ErrorMessage {
-//             op: UserOperation::Login.to_string(), 
-//             error: "Couldn't find that username or email".to_string()
-//           }
-//           )
-//         )
-//     };
-
-//     // Verify the password
-//     let valid: bool = verify(&msg.password, &user.password_encrypted).unwrap_or(false);
-//     if !valid {
-//       return MessageResult(
-//         Err(
-//           ErrorMessage {
-//             op: UserOperation::Login.to_string(), 
-//             error: "Password incorrect".to_string()
-//           }
-//           )
-//         )
-//     }
-
-//     // Return the jwt
-//     MessageResult(
-//       Ok(
-//         LoginResponse {
-//           op: UserOperation::Login.to_string(), 
-//           jwt: user.jwt()
-//         }
-//         )
-//       )
-//   }
-// }
-
-// impl Handler<Register> for ChatServer {
-
-//   type Result = MessageResult<Register>;
-//   fn handle(&mut self, msg: Register, _: &mut Context<Self>) -> Self::Result {
-
-//     let conn = establish_connection();
-
-//     // Make sure passwords match
-//     if msg.password != msg.password_verify {
-//       return MessageResult(
-//         Err(
-//           ErrorMessage {
-//             op: UserOperation::Register.to_string(), 
-//             error: "Passwords do not match.".to_string()
-//           }
-//           )
-//         );
-//     }
-
-//     // Register the new user
-//     let user_form = UserForm {
-//       name: msg.username,
-//       email: msg.email,
-//       password_encrypted: msg.password,
-//       preferred_username: None,
-//       updated: None
-//     };
-
-//     // Create the user
-//     let inserted_user = match User_::create(&conn, &user_form) {
-//       Ok(user) => user,
-//       Err(_e) => return MessageResult(
-//         Err(
-//           ErrorMessage {
-//             op: UserOperation::Register.to_string(), 
-//             error: "User already exists.".to_string() // overwrite the diesel error
-//           }
-//           )
-//         )
-//     };
-
-//     // Return the jwt
-//     MessageResult(
-//       Ok(
-//         LoginResponse {
-//           op: UserOperation::Register.to_string(), 
-//           jwt: inserted_user.jwt()
-//         }
-//         )
-//       )
-
-//   }
-// }
-
-
-// impl Handler<CreateCommunity> for ChatServer {
-
-//   type Result = MessageResult<CreateCommunity>;
-
-//   fn handle(&mut self, msg: CreateCommunity, _: &mut Context<Self>) -> Self::Result {
-//     let conn = establish_connection();
-
-//     let user_id = Claims::decode(&msg.auth).id;
-
-//     let community_form = CommunityForm {
-//       name: msg.name,
-//       updated: None
-//     };
-
-//     let community = match Community::create(&conn, &community_form) {
-//       Ok(community) => community,
-//       Err(_e) => return MessageResult(
-//         Err(
-//           ErrorMessage {
-//             op: UserOperation::CreateCommunity.to_string(), 
-//             error: "Community already exists.".to_string() // overwrite the diesel error
-//           }
-//           )
-//         )
-//     };
-
-//     MessageResult(
-//       Ok(
-//         CommunityResponse {
-//           op: UserOperation::CreateCommunity.to_string(), 
-//           community: community
-//         }
-//         )
-//       )
-//   }
-// }
-//
-//
-//
-// /// Handler for `ListRooms` message.
-// impl Handler<ListRooms> for ChatServer {
-//   type Result = MessageResult<ListRooms>;
-
-//   fn handle(&mut self, _: ListRooms, _: &mut Context<Self>) -> Self::Result {
-//     let mut rooms = Vec::new();
-
-//     for key in self.rooms.keys() {
-//       rooms.push(key.to_owned())
-//     }
-
-//     MessageResult(rooms)
-//   }
-// }
-
-// /// Join room, send disconnect message to old room
-// /// send join message to new room
-// impl Handler<Join> for ChatServer {
-//   type Result = ();
-
-//   fn handle(&mut self, msg: Join, _: &mut Context<Self>) {
-//     let Join { id, name } = msg;
-//     let mut rooms = Vec::new();
-
-//     // remove session from all rooms
-//     for (n, sessions) in &mut self.rooms {
-//       if sessions.remove(&id) {
-//         rooms.push(n.to_owned());
-//       }
-//     }
-//     // send message to other users
-//     for room in rooms {
-//       self.send_room_message(&room, "Someone disconnected", 0);
-//     }
-
-//     if self.rooms.get_mut(&name).is_none() {
-//       self.rooms.insert(name.clone(), HashSet::new());
-//     }
-//     self.send_room_message(&name, "Someone connected", id);
-//     self.rooms.get_mut(&name).unwrap().insert(id);
-//   }
-
-// }
