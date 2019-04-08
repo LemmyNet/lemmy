@@ -1,13 +1,11 @@
-import { Component, linkEvent } from 'inferno';
-import { Link } from 'inferno-router';
+import { Component } from 'inferno';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community as CommunityI, GetCommunityResponse, CommunityResponse, Post, GetPostsForm, ListingSortType, ListingType, GetPostsResponse, CreatePostLikeForm, CreatePostLikeResponse, CommunityUser} from '../interfaces';
-import { WebSocketService, UserService } from '../services';
-import { MomentTime } from './moment-time';
+import { UserOperation, Community as CommunityI, GetCommunityResponse, CommunityResponse,  CommunityUser} from '../interfaces';
+import { WebSocketService } from '../services';
 import { PostListings } from './post-listings';
 import { Sidebar } from './sidebar';
-import { msgOp, mdToHtml } from '../utils';
+import { msgOp } from '../utils';
 
 interface State {
   community: CommunityI;
@@ -36,7 +34,7 @@ export class Community extends Component<any, State> {
     communityId: Number(this.props.match.params.id)
   }
 
-  constructor(props, context) {
+  constructor(props: any, context: any) {
     super(props, context);
 
     this.state = this.emptyState;

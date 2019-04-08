@@ -1,9 +1,9 @@
-import { Component, linkEvent } from 'inferno';
+import { Component } from 'inferno';
 import { CommunityForm } from './community-form';
 
 export class CreateCommunity extends Component<any, any> {
 
-  constructor(props, context) {
+  constructor(props: any, context: any) {
     super(props, context);
     this.handleCommunityCreate = this.handleCommunityCreate.bind(this);
   }

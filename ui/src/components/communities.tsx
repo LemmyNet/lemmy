@@ -2,9 +2,9 @@ import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community, Post as PostI, GetPostResponse, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse, CommentLikeForm, CommentSortType, CreatePostLikeResponse, ListCommunitiesResponse, CommunityResponse, FollowCommunityForm } from '../interfaces';
-import { WebSocketService, UserService } from '../services';
-import { msgOp, hotRank,mdToHtml } from '../utils';
+import { UserOperation, Community, ListCommunitiesResponse, CommunityResponse, FollowCommunityForm } from '../interfaces';
+import { WebSocketService } from '../services';
+import { msgOp } from '../utils';
 
 declare const Sortable: any;
 
@@ -18,7 +18,7 @@ export class Communities extends Component<any, CommunitiesState> {
     communities: []
   }
 
-  constructor(props, context) {
+  constructor(props: any, context: any) {
     super(props, context);
     this.state = this.emptyState;
     this.subscription = WebSocketService.Instance.subject
@@ -30,6 +30,10 @@ export class Communities extends Component<any, CommunitiesState> {
       );
     WebSocketService.Instance.listCommunities();
 
+  }
+
+  componentWillUnmount() {
+    this.subscription.unsubscribe();
   }
 
   componentDidMount() {

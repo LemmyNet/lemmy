@@ -1,4 +1,4 @@
-import { Component, linkEvent } from 'inferno';
+import { Component } from 'inferno';
 import * as moment from 'moment';
 
 interface MomentTimeProps {
@@ -10,7 +10,7 @@ interface MomentTimeProps {
 
 export class MomentTime extends Component<MomentTimeProps, any> {
 
-  constructor(props, context) {
+  constructor(props: any, context: any) {
     super(props, context);
   }
 

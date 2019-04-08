@@ -25,7 +25,7 @@ let emptyState: State = {
 export class Login extends Component<any, State> {
   private subscription: Subscription;
 
-  constructor(props, context) {
+  constructor(props: any, context: any) {
     super(props, context);
 
     this.state = emptyState;
@@ -122,42 +122,42 @@ export class Login extends Component<any, State> {
     );
   }
 
-  handleLoginSubmit(i: Login, event) {
+  handleLoginSubmit(i: Login, event: any) {
     event.preventDefault();
     WebSocketService.Instance.login(i.state.loginForm);
   }
 
-  handleLoginUsernameChange(i: Login, event) {
+  handleLoginUsernameChange(i: Login, event: any) {
     i.state.loginForm.username_or_email = event.target.value;
     i.setState(i.state);
   }
 
-  handleLoginPasswordChange(i: Login, event) {
+  handleLoginPasswordChange(i: Login, event: any) {
     i.state.loginForm.password = event.target.value;
     i.setState(i.state);
   }
 
-  handleRegisterSubmit(i: Login, event) {
+  handleRegisterSubmit(i: Login, event: any) {
     event.preventDefault();
     WebSocketService.Instance.register(i.state.registerForm);
   }
 
-  handleRegisterUsernameChange(i: Login, event) {
+  handleRegisterUsernameChange(i: Login, event: any) {
     i.state.registerForm.username = event.target.value;
     i.setState(i.state);
   }
 
-  handleRegisterEmailChange(i: Login, event) {
+  handleRegisterEmailChange(i: Login, event: any) {
     i.state.registerForm.email = event.target.value;
     i.setState(i.state);
   }
 
-  handleRegisterPasswordChange(i: Login, event) {
+  handleRegisterPasswordChange(i: Login, event: any) {
     i.state.registerForm.password = event.target.value;
     i.setState(i.state);
   }
 
-  handleRegisterPasswordVerifyChange(i: Login, event) {
+  handleRegisterPasswordVerifyChange(i: Login, event: any) {
     i.state.registerForm.password_verify = event.target.value;
     i.setState(i.state);
   }
@@ -170,7 +170,7 @@ export class Login extends Component<any, State> {
     } else {
       if (op == UserOperation.Register || op == UserOperation.Login) {
         let res: LoginResponse = msg;
-        UserService.Instance.login(msg);
+        UserService.Instance.login(res);
         this.props.history.push('/');
       }
     }

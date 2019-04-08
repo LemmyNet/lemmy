@@ -1,16 +1,13 @@
 extern crate diesel;
 use diesel::*;
 use diesel::result::Error;
+use diesel::dsl::*;
 use serde::{Deserialize, Serialize};
+use { SortType };
 
 #[derive(EnumString,ToString,Debug, Serialize, Deserialize)]
-pub enum ListingType {
+pub enum PostListingType {
   All, Subscribed, Community
-}
-
-#[derive(EnumString,ToString,Debug, Serialize, Deserialize)]
-pub enum ListingSortType {
-  Hot, New, TopDay, TopWeek, TopMonth, TopYear, TopAll
 }
 
 // The faked schema since diesel doesn't do views
@@ -62,45 +59,53 @@ pub struct PostView {
 }
 
 impl PostView {
-  pub fn list(conn: &PgConnection, type_: ListingType, sort: ListingSortType, from_community_id: Option<i32>, from_user_id: Option<i32>, limit: i64) -> Result<Vec<Self>, Error> {
+  pub fn list(conn: &PgConnection, 
+              type_: PostListingType, 
+              sort: &SortType, 
+              for_community_id: Option<i32>, 
+              for_creator_id: Option<i32>, 
+              my_user_id: Option<i32>, 
+              limit: i64) -> Result<Vec<Self>, Error> {
     use actions::post_view::post_view::dsl::*;
-    use diesel::dsl::*;
-    use diesel::prelude::*;
 
     let mut query = post_view.limit(limit).into_boxed();
 
-    if let Some(from_community_id) = from_community_id {
-      query = query.filter(community_id.eq(from_community_id));
+    if let Some(for_community_id) = for_community_id {
+      query = query.filter(community_id.eq(for_community_id));
+    };
+
+    if let Some(for_creator_id) = for_creator_id {
+      query = query.filter(creator_id.eq(for_creator_id));
     };
 
     match type_ {
-      ListingType::Subscribed  => {
+      PostListingType::Subscribed  => {
         query = query.filter(subscribed.eq(true));
       },
       _ => {}
     };
 
     // The view lets you pass a null user_id, if you're not logged in
-    if let Some(from_user_id) = from_user_id {
-      query = query.filter(user_id.eq(from_user_id));
+    if let Some(my_user_id) = my_user_id {
+      query = query.filter(user_id.eq(my_user_id));
     } else {
       query = query.filter(user_id.is_null());
     }
 
     query = match sort {
-      ListingSortType::Hot => query.order_by(hot_rank.desc()),
-      ListingSortType::New => query.order_by(published.desc()),
-      ListingSortType::TopAll => query.order_by(score.desc()),
-      ListingSortType::TopYear => query
+      SortType::Hot => query.order_by(hot_rank.desc()),
+      SortType::New => query.order_by(published.desc()),
+      SortType::TopAll => query.order_by(score.desc()),
+      SortType::TopYear => query
         .filter(published.gt(now - 1.years()))
         .order_by(score.desc()),
-        ListingSortType::TopMonth => query
+        SortType::TopMonth => query
           .filter(published.gt(now - 1.months()))
           .order_by(score.desc()),
-          ListingSortType::TopWeek => query
+          SortType::TopWeek => query
             .filter(published.gt(now - 1.weeks()))
             .order_by(score.desc()),
-            ListingSortType::TopDay => query
+            SortType::TopDay => query
               .filter(published.gt(now - 1.days()))
               .order_by(score.desc())
     };
@@ -109,7 +114,7 @@ impl PostView {
   }
 
 
-  pub fn read(conn: &PgConnection, from_post_id: i32, from_user_id: Option<i32>) -> Result<Self, Error> {
+  pub fn read(conn: &PgConnection, from_post_id: i32, my_user_id: Option<i32>) -> Result<Self, Error> {
 
     use actions::post_view::post_view::dsl::*;
     use diesel::prelude::*;
@@ -118,8 +123,8 @@ impl PostView {
 
     query = query.filter(id.eq(from_post_id));
 
-    if let Some(from_user_id) = from_user_id {
-      query = query.filter(user_id.eq(from_user_id));
+    if let Some(my_user_id) = my_user_id {
+      query = query.filter(user_id.eq(my_user_id));
     } else {
       query = query.filter(user_id.is_null());
     };
@@ -244,8 +249,8 @@ mod tests {
     };
 
 
-    let read_post_listings_with_user = PostView::list(&conn, ListingType::Community, ListingSortType::New, Some(inserted_community.id), Some(inserted_user.id), 10).unwrap();
-    let read_post_listings_no_user = PostView::list(&conn, ListingType::Community, ListingSortType::New, Some(inserted_community.id), None, 10).unwrap();
+    let read_post_listings_with_user = PostView::list(&conn, PostListingType::Community, SortType::New, Some(inserted_community.id), Some(inserted_user.id), 10).unwrap();
+    let read_post_listings_no_user = PostView::list(&conn, PostListingType::Community, SortType::New, Some(inserted_community.id), None, 10).unwrap();
     let read_post_listing_no_user = PostView::read(&conn, inserted_post.id, None).unwrap();
     let read_post_listing_with_user = PostView::read(&conn, inserted_post.id, Some(inserted_user.id)).unwrap();
 

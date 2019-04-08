@@ -2,15 +2,14 @@ import { Component, linkEvent } from 'inferno';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { PostForm as PostFormI, Post, PostResponse, UserOperation, Community, ListCommunitiesResponse } from '../interfaces';
-import { WebSocketService, UserService } from '../services';
+import { WebSocketService } from '../services';
 import { msgOp } from '../utils';
-import { MomentTime } from './moment-time';
 
 interface PostFormProps {
   post?: Post; // If a post is given, that means this is an edit
-  onCancel?();
-  onCreate?(id: number);
-  onEdit?(post: Post);
+  onCancel?(): any;
+  onCreate?(id: number): any;
+  onEdit?(post: Post): any;
 }
 
 interface PostFormState {
@@ -30,7 +29,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     communities: []
   }
 
-  constructor(props, context) {
+  constructor(props: any, context: any) {
     super(props, context);
 
     this.state = this.emptyState;
@@ -104,7 +103,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     );
   }
 
-  handlePostSubmit(i: PostForm, event) {
+  handlePostSubmit(i: PostForm, event: any) {
     event.preventDefault();
     if (i.props.post) {
       WebSocketService.Instance.editPost(i.state.postForm);
@@ -113,27 +112,27 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     }
   }
 
-  handlePostUrlChange(i: PostForm, event) {
+  handlePostUrlChange(i: PostForm, event: any) {
     i.state.postForm.url = event.target.value;
     i.setState(i.state);
   }
 
-  handlePostNameChange(i: PostForm, event) {
+  handlePostNameChange(i: PostForm, event: any) {
     i.state.postForm.name = event.target.value;
     i.setState(i.state);
   }
 
-  handlePostBodyChange(i: PostForm, event) {
+  handlePostBodyChange(i: PostForm, event: any) {
     i.state.postForm.body = event.target.value;
     i.setState(i.state);
   }
 
-  handlePostCommunityChange(i: PostForm, event) {
+  handlePostCommunityChange(i: PostForm, event: any) {
     i.state.postForm.community_id = Number(event.target.value);
     i.setState(i.state);
   }
 
-  handleCancel(i: PostForm, event) {
+  handleCancel(i: PostForm) {
     i.props.onCancel();
   }
 

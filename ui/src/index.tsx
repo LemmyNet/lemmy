@@ -9,6 +9,7 @@ import { CreateCommunity } from './components/create-community';
 import { Post } from './components/post';
 import { Community } from './components/community';
 import { Communities } from './components/communities';
+import { User } from './components/user';
 
 import './main.css';
 
@@ -18,7 +19,7 @@ const container = document.getElementById('app');
 
 class Index extends Component<any, any> {
 
-  constructor(props, context) {
+  constructor(props: any, context: any) {
     super(props, context);
     WebSocketService.Instance;
     UserService.Instance;
@@ -35,8 +36,11 @@ class Index extends Component<any, any> {
             <Route path={`/create_post`} component={CreatePost} />
             <Route path={`/create_community`} component={CreateCommunity} />
             <Route path={`/communities`} component={Communities} />
+            <Route path={`/post/:id/comment/:comment_id`} component={Post} />
             <Route path={`/post/:id`} component={Post} />
             <Route path={`/community/:id`} component={Community} />
+            <Route path={`/user/:id/:heading`} component={User} />
+            <Route path={`/user/:id`} component={User} />
           </Switch>
           {this.symbols()}
         </div>
