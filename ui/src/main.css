@@ -54,5 +54,15 @@ body {
   stroke: currentColor;
   fill: currentColor;
   vertical-align: middle;
-  margin-bottom: 6px;
+  align-self: center;
+}
+
+
+.spin {
+  animation: spins 2s linear infinite;
+}
+
+@keyframes spins {
+  0% { transform: rotate(0deg); }
+  100% {  transform: rotate(359deg); }
 }

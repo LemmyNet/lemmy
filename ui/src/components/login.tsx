@@ -8,6 +8,8 @@ import { msgOp } from '../utils';
 interface State {
   loginForm: LoginForm;
   registerForm: RegisterForm;
+  loginLoading: boolean;
+  registerLoading: boolean;
 }
 
 let emptyState: State = {
@@ -19,7 +21,9 @@ let emptyState: State = {
     username: undefined,
     password: undefined,
     password_verify: undefined
-  }
+  },
+  loginLoading: false,
+  registerLoading: false
 }
 
 export class Login extends Component<any, State> {
@@ -31,12 +35,12 @@ export class Login extends Component<any, State> {
     this.state = emptyState;
 
     this.subscription = WebSocketService.Instance.subject
-      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
-      .subscribe(
-        (msg) => this.parseMessage(msg),
+    .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
+    .subscribe(
+      (msg) => this.parseMessage(msg),
         (err) => console.error(err),
         () => console.log("complete")
-      );
+    );
   }
 
   componentWillUnmount() {
@@ -77,7 +81,8 @@ export class Login extends Component<any, State> {
           </div>
           <div class="form-group row">
             <div class="col-sm-10">
-              <button type="submit" class="btn btn-secondary">Login</button>
+              <button type="submit" class="btn btn-secondary">{this.state.loginLoading ? 
+              <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : 'Login'}</button>
             </div>
           </div>
         </form>
@@ -115,7 +120,9 @@ export class Login extends Component<any, State> {
         </div>
         <div class="form-group row">
           <div class="col-sm-10">
-            <button type="submit" class="btn btn-secondary">Sign Up</button>
+            <button type="submit" class="btn btn-secondary">{this.state.registerLoading ? 
+            <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : 'Sign Up'}</button>
+
           </div>
         </div>
       </form>
@@ -124,6 +131,8 @@ export class Login extends Component<any, State> {
 
   handleLoginSubmit(i: Login, event: any) {
     event.preventDefault();
+    i.state.loginLoading = true;
+    i.setState(i.state);
     WebSocketService.Instance.login(i.state.loginForm);
   }
 
@@ -138,6 +147,8 @@ export class Login extends Component<any, State> {
   }
 
   handleRegisterSubmit(i: Login, event: any) {
+    i.state.registerLoading = true;
+    i.setState(i.state);
     event.preventDefault();
     WebSocketService.Instance.register(i.state.registerForm);
   }
@@ -166,9 +177,14 @@ export class Login extends Component<any, State> {
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
       alert(msg.error);
+      this.state.loginLoading = false;
+      this.state.registerLoading = false;
+      this.setState(this.state);
       return;
     } else {
       if (op == UserOperation.Register || op == UserOperation.Login) {
+        this.state.loginLoading = false;
+        this.state.registerLoading = false;
         let res: LoginResponse = msg;
         UserService.Instance.login(res);
         this.props.history.push('/');

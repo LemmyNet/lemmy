@@ -10,24 +10,26 @@ declare const Sortable: any;
 
 interface CommunitiesState {
   communities: Array<Community>;
+  loading: boolean;
 }
 
 export class Communities extends Component<any, CommunitiesState> {
   private subscription: Subscription;
   private emptyState: CommunitiesState = {
-    communities: []
+    communities: [],
+    loading: true
   }
 
   constructor(props: any, context: any) {
     super(props, context);
     this.state = this.emptyState;
     this.subscription = WebSocketService.Instance.subject
-      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
-      .subscribe(
-        (msg) => this.parseMessage(msg),
+    .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
+    .subscribe(
+      (msg) => this.parseMessage(msg),
         (err) => console.error(err),
         () => console.log('complete')
-      );
+    );
     WebSocketService.Instance.listCommunities();
 
   }
@@ -44,40 +46,45 @@ export class Communities extends Component<any, CommunitiesState> {
   render() {
     return (
       <div class="container-fluid">
-        <h4>Communities</h4>
-        <div class="table-responsive">
-          <table id="community_table" class="table table-sm table-hover">
-            <thead class="pointer">
-              <tr>
-                <th>Name</th>
-                <th>Title</th>
-                <th>Category</th>
-                <th class="text-right">Subscribers</th>
-                <th class="text-right">Posts</th>
-                <th class="text-right">Comments</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {this.state.communities.map(community =>
+        {this.state.loading ? 
+        <h4 class=""><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
+        <div>
+          <h4>Communities</h4>
+          <div class="table-responsive">
+            <table id="community_table" class="table table-sm table-hover">
+              <thead class="pointer">
                 <tr>
-                  <td><Link to={`/community/${community.id}`}>{community.name}</Link></td>
-                  <td>{community.title}</td>
-                  <td>{community.category_name}</td>
-                  <td class="text-right">{community.number_of_subscribers}</td>
-                  <td class="text-right">{community.number_of_posts}</td>
-                  <td class="text-right">{community.number_of_comments}</td>
-                  <td class="text-right">
-                    {community.subscribed 
-                      ? <button class="btn btn-sm btn-secondary" onClick={linkEvent(community.id, this.handleUnsubscribe)}>Unsubscribe</button>
-                      : <button class="btn btn-sm btn-secondary" onClick={linkEvent(community.id, this.handleSubscribe)}>Subscribe</button>
-                    }
-                  </td>
+                  <th>Name</th>
+                  <th>Title</th>
+                  <th>Category</th>
+                  <th class="text-right">Subscribers</th>
+                  <th class="text-right">Posts</th>
+                  <th class="text-right">Comments</th>
+                  <th></th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {this.state.communities.map(community =>
+                  <tr>
+                    <td><Link to={`/community/${community.id}`}>{community.name}</Link></td>
+                    <td>{community.title}</td>
+                    <td>{community.category_name}</td>
+                    <td class="text-right">{community.number_of_subscribers}</td>
+                    <td class="text-right">{community.number_of_posts}</td>
+                    <td class="text-right">{community.number_of_comments}</td>
+                    <td class="text-right">
+                      {community.subscribed ? 
+                      <button class="btn btn-sm btn-secondary" onClick={linkEvent(community.id, this.handleUnsubscribe)}>Unsubscribe</button> : 
+                      <button class="btn btn-sm btn-secondary" onClick={linkEvent(community.id, this.handleSubscribe)}>Subscribe</button>
+                      }
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
+        }
       </div>
     );
   }
@@ -109,6 +116,7 @@ export class Communities extends Component<any, CommunitiesState> {
       let res: ListCommunitiesResponse = msg;
       this.state.communities = res.communities;
       this.state.communities.sort((a, b) => b.number_of_subscribers - a.number_of_subscribers);
+      this.state.loading = false;
       this.setState(this.state);
     } else if (op == UserOperation.FollowCommunity) {
       let res: CommunityResponse = msg;

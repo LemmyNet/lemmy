@@ -19,6 +19,7 @@ interface PostState {
   moderators: Array<CommunityUser>;
   scrolled?: boolean;
   scrolled_comment_id?: number;
+  loading: boolean;
 }
 
 export class Post extends Component<any, PostState> {
@@ -30,7 +31,8 @@ export class Post extends Component<any, PostState> {
     commentSort: CommentSortType.Hot,
     community: null,
     moderators: [],
-    scrolled: false
+    scrolled: false, 
+    loading: true
   }
 
   constructor(props: any, context: any) {
@@ -74,8 +76,9 @@ export class Post extends Component<any, PostState> {
   render() {
     return (
       <div class="container">
-        {this.state.post && 
-          <div class="row">
+        {this.state.loading ? 
+        <h4><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
+        <div class="row">
             <div class="col-12 col-sm-8 col-lg-7 mb-3">
               <PostListing post={this.state.post} showBody showCommunity editable />
               <div className="mb-2" />
@@ -202,6 +205,7 @@ export class Post extends Component<any, PostState> {
       this.state.comments = res.comments;
       this.state.community = res.community;
       this.state.moderators = res.moderators;
+      this.state.loading = false;
       this.setState(this.state);
     } else if (op == UserOperation.CreateComment) {
       let res: CommentResponse = msg;

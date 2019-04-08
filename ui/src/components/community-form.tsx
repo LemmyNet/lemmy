@@ -4,6 +4,7 @@ import { retryWhen, delay, take } from 'rxjs/operators';
 import { CommunityForm as CommunityFormI, UserOperation, Category, ListCategoriesResponse, CommunityResponse } from '../interfaces';
 import { WebSocketService } from '../services';
 import { msgOp } from '../utils';
+import * as autosize from 'autosize';
 
 import { Community } from '../interfaces';
 
@@ -17,6 +18,7 @@ interface CommunityFormProps {
 interface CommunityFormState {
   communityForm: CommunityFormI;
   categories: Array<Category>;
+  loading: boolean;
 }
 
 export class CommunityForm extends Component<CommunityFormProps, CommunityFormState> {
@@ -28,7 +30,8 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
       title: null,
       category_id: null
     },
-    categories: []
+    categories: [],
+    loading: false
   }
 
   constructor(props: any, context: any) {
@@ -58,6 +61,10 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
     WebSocketService.Instance.listCategories();
   }
 
+  componentDidMount() {
+    autosize(document.querySelectorAll('textarea'));
+  }
+
   componentWillUnmount() {
     this.subscription.unsubscribe();
   }
@@ -81,7 +88,7 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
         <div class="form-group row">
           <label class="col-12 col-form-label">Sidebar</label>
           <div class="col-12">
-            <textarea value={this.state.communityForm.description} onInput={linkEvent(this, this.handleCommunityDescriptionChange)} class="form-control" rows={6} />
+            <textarea value={this.state.communityForm.description} onInput={linkEvent(this, this.handleCommunityDescriptionChange)} class="form-control" rows={3} />
           </div>
         </div>
         <div class="form-group row">
@@ -96,8 +103,11 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
         </div>
         <div class="form-group row">
           <div class="col-12">
-            <button type="submit" class="btn btn-secondary mr-2">{this.props.community ? 'Save' : 'Create'}</button>
-            {this.props.community && <button type="button" class="btn btn-secondary" onClick={linkEvent(this, this.handleCancel)}>Cancel</button>}
+            <button type="submit" class="btn btn-secondary mr-2">
+              {this.state.loading ? 
+              <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : 
+              this.props.community ? 'Save' : 'Create'}</button>
+              {this.props.community && <button type="button" class="btn btn-secondary" onClick={linkEvent(this, this.handleCancel)}>Cancel</button>}
           </div>
         </div>
       </form>
@@ -106,11 +116,13 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
 
   handleCreateCommunitySubmit(i: CommunityForm, event: any) {
     event.preventDefault();
+    i.state.loading = true;
     if (i.props.community) {
       WebSocketService.Instance.editCommunity(i.state.communityForm);
     } else {
       WebSocketService.Instance.createCommunity(i.state.communityForm);
     }
+    i.setState(i.state);
   }
 
   handleCommunityNameChange(i: CommunityForm, event: any) {
@@ -142,6 +154,7 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
     console.log(msg);
     if (msg.error) {
       alert(msg.error);
+      this.state.loading = false;
       return;
     } else if (op == UserOperation.ListCategories){
       let res: ListCategoriesResponse = msg;
@@ -150,9 +163,11 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
       this.setState(this.state);
     } else if (op == UserOperation.CreateCommunity) {
       let res: CommunityResponse = msg;
+      this.state.loading = false;
       this.props.onCreate(res.community.id);
     } else if (op == UserOperation.EditCommunity) {
       let res: CommunityResponse = msg;
+      this.state.loading = false;
       this.props.onEdit(res.community);
     }
   }

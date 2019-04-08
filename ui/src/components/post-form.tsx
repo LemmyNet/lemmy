@@ -4,6 +4,7 @@ import { retryWhen, delay, take } from 'rxjs/operators';
 import { PostForm as PostFormI, Post, PostResponse, UserOperation, Community, ListCommunitiesResponse } from '../interfaces';
 import { WebSocketService } from '../services';
 import { msgOp } from '../utils';
+import * as autosize from 'autosize';
 
 interface PostFormProps {
   post?: Post; // If a post is given, that means this is an edit
@@ -15,6 +16,7 @@ interface PostFormProps {
 interface PostFormState {
   postForm: PostFormI;
   communities: Array<Community>;
+  loading: boolean;
 }
 
 export class PostForm extends Component<PostFormProps, PostFormState> {
@@ -26,7 +28,8 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       auth: null,
       community_id: null
     },
-    communities: []
+    communities: [],
+    loading: false
   }
 
   constructor(props: any, context: any) {
@@ -56,6 +59,10 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     WebSocketService.Instance.listCommunities();
   }
 
+  componentDidMount() {
+    autosize(document.querySelectorAll('textarea'));
+  }
+
   componentWillUnmount() {
     this.subscription.unsubscribe();
   }
@@ -73,13 +80,13 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
           <div class="form-group row">
             <label class="col-sm-2 col-form-label">Title</label>
             <div class="col-sm-10">
-              <textarea value={this.state.postForm.name} onInput={linkEvent(this, this.handlePostNameChange)} class="form-control" required rows={3} />
+              <textarea value={this.state.postForm.name} onInput={linkEvent(this, this.handlePostNameChange)} class="form-control" required rows={2} />
             </div>
           </div>
           <div class="form-group row">
             <label class="col-sm-2 col-form-label">Body</label>
             <div class="col-sm-10">
-              <textarea value={this.state.postForm.body} onInput={linkEvent(this, this.handlePostBodyChange)} class="form-control" rows={6} />
+              <textarea value={this.state.postForm.body} onInput={linkEvent(this, this.handlePostBodyChange)} class="form-control" rows={4} />
             </div>
           </div>
           <div class="form-group row">
@@ -94,7 +101,10 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
           </div>
           <div class="form-group row">
             <div class="col-sm-10">
-              <button type="submit" class="btn btn-secondary mr-2">{this.props.post ? 'Save' : 'Create'}</button>
+              <button type="submit" class="btn btn-secondary mr-2">
+              {this.state.loading ? 
+              <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : 
+              this.props.post ? 'Save' : 'Create'}</button>
               {this.props.post && <button type="button" class="btn btn-secondary" onClick={linkEvent(this, this.handleCancel)}>Cancel</button>}
             </div>
           </div>
@@ -110,6 +120,8 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     } else {
       WebSocketService.Instance.createPost(i.state.postForm);
     }
+    i.state.loading = true;
+    i.setState(i.state);
   }
 
   handlePostUrlChange(i: PostForm, event: any) {
@@ -139,6 +151,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
   parseMessage(msg: any) {
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
+      this.state.loading = false;
       return;
     } else if (op == UserOperation.ListCommunities) {
       let res: ListCommunitiesResponse = msg;
@@ -150,9 +163,11 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       }
       this.setState(this.state);
     } else if (op == UserOperation.CreatePost) {
+      this.state.loading = false;
       let res: PostResponse = msg;
       this.props.onCreate(res.post.id);
     } else if (op == UserOperation.EditPost) {
+      this.state.loading = false;
       let res: PostResponse = msg;
       this.props.onEdit(res.post);
     }
