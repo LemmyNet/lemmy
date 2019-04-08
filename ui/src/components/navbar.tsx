@@ -5,7 +5,7 @@ import { UserService } from '../services';
 
 export class Navbar extends Component<any, any> {
 
-  constructor(props, context) {
+  constructor(props: any, context: any) {
     super(props, context);
     this.state = {isLoggedIn: UserService.Instance.loggedIn, expanded: false};
 
@@ -62,12 +62,11 @@ export class Navbar extends Component<any, any> {
     );
   }
 
-  handleLogoutClick(i: Navbar, event) {
+  handleLogoutClick() {
     UserService.Instance.logout();
-    // i.props.history.push('/');
   }
 
-  expandNavbar(i: Navbar, event) {
+  expandNavbar(i: Navbar) {
     i.state.expanded = !i.state.expanded;
     i.setState(i.state);
   }

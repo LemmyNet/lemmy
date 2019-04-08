@@ -10,7 +10,7 @@ use serde_json::{Value};
 use bcrypt::{verify};
 use std::str::FromStr;
 
-use {Crud, Joinable, Likeable, Followable, establish_connection, naive_now};
+use {Crud, Joinable, Likeable, Followable, establish_connection, naive_now, SortType};
 use actions::community::*;
 use actions::user::*;
 use actions::post::*;
@@ -19,10 +19,11 @@ use actions::post_view::*;
 use actions::comment_view::*;
 use actions::category::*;
 use actions::community_view::*;
+use actions::user_view::*;
 
 #[derive(EnumString,ToString,Debug)]
 pub enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity, FollowCommunity, GetFollowedCommunities
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails
 }
 
 #[derive(Serialize, Deserialize)]
@@ -272,6 +273,26 @@ pub struct GetFollowedCommunitiesResponse {
   communities: Vec<CommunityFollowerView>
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct GetUserDetails {
+  user_id: i32,
+  sort: String,
+  limit: i64,
+  community_id: Option<i32>,
+  auth: Option<String>
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetUserDetailsResponse {
+  op: String,
+  user: UserView,
+  follows: Vec<CommunityFollowerView>,
+  moderates: Vec<CommunityModeratorView>,
+  comments: Vec<CommentView>,
+  posts: Vec<PostView>,
+  saved_posts: Vec<PostView>,
+  saved_comments: Vec<CommentView>,
+}
 
 /// `ChatServer` manages chat rooms and responsible for coordinating chat
 /// session. implementation is super primitive
@@ -466,13 +487,17 @@ impl Handler<StandardMessage> for ChatServer {
         let followed_communities: GetFollowedCommunities = serde_json::from_str(&data.to_string()).unwrap();
         followed_communities.perform(self, msg.id)
       },
-      _ => {
-        let e = ErrorMessage { 
-          op: "Unknown".to_string(),
-          error: "Unknown User Operation".to_string()
-        };
-        serde_json::to_string(&e).unwrap()
-      }
+      UserOperation::GetUserDetails => {
+        let get_user_details: GetUserDetails = serde_json::from_str(&data.to_string()).unwrap();
+        get_user_details.perform(self, msg.id)
+      },
+      // _ => {
+      //   let e = ErrorMessage { 
+      //     op: "Unknown".to_string(),
+      //     error: "Unknown User Operation".to_string()
+      //   };
+      //   serde_json::to_string(&e).unwrap()
+      // }
     };
 
     MessageResult(res)
@@ -808,7 +833,7 @@ impl Perform for GetPost {
 
     chat.rooms.get_mut(&self.id).unwrap().insert(addr);
 
-    let comments = CommentView::list(&conn, self.id, user_id).unwrap();
+    let comments = CommentView::list(&conn, &SortType::New, Some(self.id), None, user_id, 999).unwrap();
 
     let community = CommunityView::read(&conn, post_view.community_id, user_id).unwrap();
 
@@ -1110,10 +1135,10 @@ impl Perform for GetPosts {
       None => None
     };
 
-    let type_ = ListingType::from_str(&self.type_).expect("listing type");
-    let sort = ListingSortType::from_str(&self.sort).expect("listing sort");
+    let type_ = PostListingType::from_str(&self.type_).expect("listing type");
+    let sort = SortType::from_str(&self.sort).expect("listing sort");
 
-    let posts = match PostView::list(&conn, type_, sort, self.community_id, user_id, self.limit) {
+    let posts = match PostView::list(&conn, type_, &sort, self.community_id, None, user_id, self.limit) {
       Ok(posts) => posts,
       Err(_e) => {
         eprintln!("{}", _e);
@@ -1406,6 +1431,55 @@ impl Perform for GetFollowedCommunities {
       &GetFollowedCommunitiesResponse {
         op: self.op_type().to_string(),
         communities: communities
+      }
+      )
+      .unwrap()
+  }
+}
+
+impl Perform for GetUserDetails {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::GetUserDetails
+  }
+
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+
+    let conn = establish_connection();
+
+    let user_id: Option<i32> = match &self.auth {
+      Some(auth) => {
+        match Claims::decode(&auth) {
+          Ok(claims) => {
+            let user_id = claims.claims.id;
+            Some(user_id)
+          }
+          Err(_e) => None
+        }
+      }
+      None => None
+    };
+
+
+    //TODO add save
+    let sort = SortType::from_str(&self.sort).expect("listing sort");
+
+    let user_view = UserView::read(&conn, self.user_id).unwrap();
+    let posts = PostView::list(&conn, PostListingType::All, &sort, self.community_id, Some(self.user_id), user_id, self.limit).unwrap();
+    let comments = CommentView::list(&conn, &sort, None, Some(self.user_id), user_id, self.limit).unwrap();
+    let follows = CommunityFollowerView::for_user(&conn, self.user_id).unwrap();
+    let moderates = CommunityModeratorView::for_user(&conn, self.user_id).unwrap();
+
+    // Return the jwt
+    serde_json::to_string(
+      &GetUserDetailsResponse {
+        op: self.op_type().to_string(),
+        user: user_view,
+        follows: follows,
+        moderates: moderates, 
+        comments: comments,
+        posts: posts,
+        saved_posts: Vec::new(),
+        saved_comments: Vec::new(),
       }
       )
       .unwrap()

@@ -2,16 +2,16 @@ import { Component, linkEvent } from 'inferno';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { CommunityForm as CommunityFormI, UserOperation, Category, ListCategoriesResponse, CommunityResponse } from '../interfaces';
-import { WebSocketService, UserService } from '../services';
+import { WebSocketService } from '../services';
 import { msgOp } from '../utils';
 
 import { Community } from '../interfaces';
 
 interface CommunityFormProps {
   community?: Community; // If a community is given, that means this is an edit
-  onCancel?();
-  onCreate?(id: number);
-  onEdit?(community: Community);
+  onCancel?(): any;
+  onCreate?(id: number): any;
+  onEdit?(community: Community): any;
 }
 
 interface CommunityFormState {
@@ -31,7 +31,7 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
     categories: []
   }
 
-  constructor(props, context) {
+  constructor(props: any, context: any) {
     super(props, context);
 
     this.state = this.emptyState;
@@ -104,7 +104,7 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
     );
   }
 
-  handleCreateCommunitySubmit(i: CommunityForm, event) {
+  handleCreateCommunitySubmit(i: CommunityForm, event: any) {
     event.preventDefault();
     if (i.props.community) {
       WebSocketService.Instance.editCommunity(i.state.communityForm);
@@ -113,27 +113,27 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
     }
   }
 
-  handleCommunityNameChange(i: CommunityForm, event) {
+  handleCommunityNameChange(i: CommunityForm, event: any) {
     i.state.communityForm.name = event.target.value;
     i.setState(i.state);
   }
 
-  handleCommunityTitleChange(i: CommunityForm, event) {
+  handleCommunityTitleChange(i: CommunityForm, event: any) {
     i.state.communityForm.title = event.target.value;
     i.setState(i.state);
   }
 
-  handleCommunityDescriptionChange(i: CommunityForm, event) {
+  handleCommunityDescriptionChange(i: CommunityForm, event: any) {
     i.state.communityForm.description = event.target.value;
     i.setState(i.state);
   }
 
-  handleCommunityCategoryChange(i: CommunityForm, event) {
+  handleCommunityCategoryChange(i: CommunityForm, event: any) {
     i.state.communityForm.category_id = Number(event.target.value);
     i.setState(i.state);
   }
 
-  handleCancel(i: CommunityForm, event) {
+  handleCancel(i: CommunityForm) {
     i.props.onCancel();
   }
 

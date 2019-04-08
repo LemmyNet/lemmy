@@ -1,5 +1,5 @@
 import { wsUri } from '../env';
-import { LoginForm, RegisterForm, UserOperation, CommunityForm, PostForm, CommentForm, CommentLikeForm, GetPostsForm, CreatePostLikeForm, FollowCommunityForm } from '../interfaces';
+import { LoginForm, RegisterForm, UserOperation, CommunityForm, PostForm, CommentForm, CommentLikeForm, GetPostsForm, CreatePostLikeForm, FollowCommunityForm, GetUserDetailsForm } from '../interfaces';
 import { webSocket } from 'rxjs/webSocket';
 import { Subject } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
@@ -106,6 +106,11 @@ export class WebSocketService {
     this.subject.next(this.wsSendWrapper(UserOperation.EditPost, postForm));
   }
 
+  public getUserDetails(form: GetUserDetailsForm) {
+    this.setAuth(form, false);
+    this.subject.next(this.wsSendWrapper(UserOperation.GetUserDetails, form));
+  }
+
   private wsSendWrapper(op: UserOperation, data: any) {
     let send = { op: UserOperation[op], data: data };
     console.log(send);
@@ -122,7 +127,7 @@ export class WebSocketService {
 
 }
 
-window.onbeforeunload = (e => {
+window.onbeforeunload = (() => {
   WebSocketService.Instance.subject.unsubscribe();
   WebSocketService.Instance.subject = null;
 });

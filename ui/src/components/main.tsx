@@ -1,13 +1,11 @@
-import { Component, linkEvent } from 'inferno';
+import { Component } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community as CommunityI, GetCommunityResponse, CommunityResponse, Post, GetPostsForm, ListingSortType, ListingType, GetPostsResponse, CreatePostLikeForm, CreatePostLikeResponse, CommunityUser, GetFollowedCommunitiesResponse } from '../interfaces';
+import { UserOperation, CommunityUser, GetFollowedCommunitiesResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { MomentTime } from './moment-time';
 import { PostListings } from './post-listings';
-import { Sidebar } from './sidebar';
-import { msgOp, mdToHtml } from '../utils';
+import { msgOp } from '../utils';
 
 interface State {
   subscribedCommunities: Array<CommunityUser>;
@@ -20,7 +18,7 @@ export class Main extends Component<any, State> {
     subscribedCommunities: []
   }
 
-  constructor(props, context) {
+  constructor(props: any, context: any) {
     super(props, context);
 
     this.state = this.emptyState;

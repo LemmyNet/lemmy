@@ -1,9 +1,7 @@
 import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
-import { Subscription } from "rxjs";
-import { retryWhen, delay, take } from 'rxjs/operators';
 import { WebSocketService, UserService } from '../services';
-import { Post, CreatePostLikeResponse, CreatePostLikeForm, PostForm as PostFormI } from '../interfaces';
+import { Post, CreatePostLikeForm, PostForm as PostFormI } from '../interfaces';
 import { MomentTime } from './moment-time';
 import { PostForm } from './post-form';
 import { mdToHtml } from '../utils';
@@ -18,6 +16,7 @@ interface PostListingProps {
   editable?: boolean;
   showCommunity?: boolean;
   showBody?: boolean;
+  viewOnly?: boolean;
 }
 
 export class PostListing extends Component<PostListingProps, PostListingState> {
@@ -27,7 +26,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     iframeExpanded: false
   }
 
-  constructor(props, context) {
+  constructor(props: any, context: any) {
     super(props, context);
 
     this.state = this.emptyState;
@@ -52,7 +51,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     let post = this.props.post;
     return (
       <div class="listing">
-        <div className="float-left small text-center">
+        <div className={`float-left small text-center ${this.props.viewOnly && 'no-click'}`}>
           <div className={`pointer upvote ${post.my_vote == 1 ? 'text-info' : 'text-muted'}`} onClick={linkEvent(this, this.handlePostLike)}>▲</div>
           <div>{post.score}</div>
           <div className={`pointer downvote ${post.my_vote == -1 && 'text-danger'}`} onClick={linkEvent(this, this.handlePostDisLike)}>▼</div>
@@ -123,7 +122,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     return this.props.editable && UserService.Instance.loggedIn && this.props.post.creator_id == UserService.Instance.user.id;
   }
 
-  handlePostLike(i: PostListing, event) {
+  handlePostLike(i: PostListing) {
 
     let form: CreatePostLikeForm = {
       post_id: i.props.post.id,
@@ -132,7 +131,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     WebSocketService.Instance.likePost(form);
   }
 
-  handlePostDisLike(i: PostListing, event) {
+  handlePostDisLike(i: PostListing) {
     let form: CreatePostLikeForm = {
       post_id: i.props.post.id,
       score: (i.props.post.my_vote == -1) ? 0 : -1
@@ -140,7 +139,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     WebSocketService.Instance.likePost(form);
   }
 
-  handleEditClick(i: PostListing, event) {
+  handleEditClick(i: PostListing) {
     i.state.showEdit = true;
     i.setState(i.state);
   }
@@ -151,12 +150,12 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   // The actual editing is done in the recieve for post
-  handleEditPost(post: Post) {
+  handleEditPost() {
     this.state.showEdit = false;
     this.setState(this.state);
   }
 
-  handleDeleteClick(i: PostListing, event) {
+  handleDeleteClick(i: PostListing) {
     let deleteForm: PostFormI = {
       body: '',
       community_id: i.props.post.community_id,
@@ -168,7 +167,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     WebSocketService.Instance.editPost(deleteForm);
   }
 
-  handleIframeExpandClick(i: PostListing, event) {
+  handleIframeExpandClick(i: PostListing) {
     i.state.iframeExpanded = !i.state.iframeExpanded;
     i.setState(i.state);
   }

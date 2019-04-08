@@ -20,7 +20,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     showEdit: false
   }
 
-  constructor(props, context) {
+  constructor(props: any, context: any) {
     super(props, context);
     this.state = this.emptyState;
     this.handleEditCommunity = this.handleEditCommunity.bind(this);
@@ -82,12 +82,12 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     );
   }
 
-  handleEditClick(i: Sidebar, event) {
+  handleEditClick(i: Sidebar) {
     i.state.showEdit = true;
     i.setState(i.state);
   }
 
-  handleEditCommunity(community: Community) {
+  handleEditCommunity() {
     this.state.showEdit = false;
     this.setState(this.state);
   }
@@ -98,8 +98,8 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   }
 
   // TODO no deleting communities yet
-  handleDeleteClick(i: Sidebar, event) {
-  }
+  // handleDeleteClick(i: Sidebar, event) {
+  // }
 
   handleUnsubscribe(communityId: number) {
     let form: FollowCommunityForm = {
