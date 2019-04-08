@@ -11,6 +11,7 @@ interface State {
   community: CommunityI;
   communityId: number;
   moderators: Array<CommunityUser>;
+  loading: boolean;
 }
 
 export class Community extends Component<any, State> {
@@ -31,7 +32,8 @@ export class Community extends Component<any, State> {
       published: null
     },
     moderators: [],
-    communityId: Number(this.props.match.params.id)
+    communityId: Number(this.props.match.params.id),
+    loading: true
   }
 
   constructor(props: any, context: any) {
@@ -40,12 +42,12 @@ export class Community extends Component<any, State> {
     this.state = this.emptyState;
 
     this.subscription = WebSocketService.Instance.subject
-      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
-      .subscribe(
-        (msg) => this.parseMessage(msg),
+    .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
+    .subscribe(
+      (msg) => this.parseMessage(msg),
         (err) => console.error(err),
         () => console.log('complete')
-      );
+    );
 
     WebSocketService.Instance.getCommunity(this.state.communityId);
   }
@@ -57,6 +59,8 @@ export class Community extends Component<any, State> {
   render() {
     return (
       <div class="container">
+        {this.state.loading ? 
+        <h4><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
         <div class="row">
           <div class="col-12 col-lg-9">
             <h4>/f/{this.state.community.name}</h4>
@@ -66,6 +70,7 @@ export class Community extends Component<any, State> {
             <Sidebar community={this.state.community} moderators={this.state.moderators} />
           </div>
         </div>
+        }
       </div>
     )
   }
@@ -81,6 +86,7 @@ export class Community extends Component<any, State> {
       let res: GetCommunityResponse = msg;
       this.state.community = res.community;
       this.state.moderators = res.moderators;
+      this.state.loading = false;
       this.setState(this.state);
     } else if (op == UserOperation.EditCommunity) {
       let res: CommunityResponse = msg;

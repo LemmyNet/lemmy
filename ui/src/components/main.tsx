@@ -9,13 +9,15 @@ import { msgOp } from '../utils';
 
 interface State {
   subscribedCommunities: Array<CommunityUser>;
+  loading: boolean;
 }
 
 export class Main extends Component<any, State> {
 
   private subscription: Subscription;
   private emptyState: State = {
-    subscribedCommunities: []
+    subscribedCommunities: [],
+    loading: true
   }
 
   constructor(props: any, context: any) {
@@ -24,12 +26,12 @@ export class Main extends Component<any, State> {
     this.state = this.emptyState;
 
     this.subscription = WebSocketService.Instance.subject
-      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
-      .subscribe(
-        (msg) => this.parseMessage(msg),
+    .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
+    .subscribe(
+      (msg) => this.parseMessage(msg),
         (err) => console.error(err),
         () => console.log('complete')
-      );
+    );
 
     if (UserService.Instance.loggedIn) {
       WebSocketService.Instance.getFollowedCommunities();
@@ -51,13 +53,18 @@ export class Main extends Component<any, State> {
             <h4>A Landing message</h4>
             {UserService.Instance.loggedIn &&
               <div>
-                <hr />
-                <h4>Subscribed forums</h4>
-                <ul class="list-unstyled"> 
-                  {this.state.subscribedCommunities.map(community =>
-                    <li><Link to={`/community/${community.community_id}`}>{community.community_name}</Link></li>
-                  )}
-                </ul>
+                {this.state.loading ? 
+                <h4 class="mt-3"><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
+                <div>
+                  <hr />
+                  <h4>Subscribed forums</h4>
+                  <ul class="list-unstyled"> 
+                    {this.state.subscribedCommunities.map(community =>
+                      <li><Link to={`/community/${community.community_id}`}>{community.community_name}</Link></li>
+                    )}
+                  </ul>
+                </div>
+                }
               </div>
             }
           </div>
@@ -76,6 +83,7 @@ export class Main extends Component<any, State> {
     } else if (op == UserOperation.GetFollowedCommunities) {
       let res: GetFollowedCommunitiesResponse = msg;
       this.state.subscribedCommunities = res.communities;
+      this.state.loading = false;
       this.setState(this.state);
     }
   }

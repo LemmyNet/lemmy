@@ -18,6 +18,7 @@ interface PostListingsState {
   posts: Array<Post>;
   sortType: SortType;
   type_: ListingType;
+  loading: boolean;
 }
 
 export class PostListings extends Component<PostListingsProps, PostListingsState> {
@@ -44,7 +45,8 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
     ? ListingType.Community 
     : UserService.Instance.loggedIn
     ? ListingType.Subscribed 
-    : ListingType.All
+    : ListingType.All,
+    loading: true
   }
 
   constructor(props: any, context: any) {
@@ -77,11 +79,16 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
   render() {
     return (
       <div>
-        <div>{this.selects()}</div>
-        {this.state.posts.length > 0 
-          ? this.state.posts.map(post => 
-            <PostListing post={post} showCommunity={!this.props.communityId}/>) 
-          : <div>No Listings. Subscribe to some <Link to="/communities">forums</Link>.</div>
+        {this.state.loading ? 
+        <h4><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
+        <div>
+          <div>{this.selects()}</div>
+          {this.state.posts.length > 0 
+            ? this.state.posts.map(post => 
+              <PostListing post={post} showCommunity={!this.props.communityId}/>) 
+                : <div>No Listings. Subscribe to some <Link to="/communities">forums</Link>.</div>
+          }
+        </div>
         }
       </div>
     )
@@ -103,11 +110,11 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
         </select>
         {!this.props.communityId && 
           UserService.Instance.loggedIn &&
-          <select value={this.state.type_} onChange={linkEvent(this, this.handleTypeChange)} class="ml-2 custom-select w-auto">
-          <option disabled>Type</option>
-          <option value={ListingType.All}>All</option>
-          <option value={ListingType.Subscribed}>Subscribed</option>
-        </select>
+            <select value={this.state.type_} onChange={linkEvent(this, this.handleTypeChange)} class="ml-2 custom-select w-auto">
+              <option disabled>Type</option>
+              <option value={ListingType.All}>All</option>
+              <option value={ListingType.Subscribed}>Subscribed</option>
+            </select>
 
         }
       </div>
@@ -149,6 +156,7 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
     } else if (op == UserOperation.GetPosts) {
       let res: GetPostsResponse = msg;
       this.state.posts = res.posts;
+      this.state.loading = false;
       this.setState(this.state);
     } else if (op == UserOperation.CreatePostLike) {
       let res: CreatePostLikeResponse = msg;
