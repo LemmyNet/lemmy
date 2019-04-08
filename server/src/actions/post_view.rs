@@ -249,8 +249,8 @@ mod tests {
     };
 
 
-    let read_post_listings_with_user = PostView::list(&conn, PostListingType::Community, SortType::New, Some(inserted_community.id), Some(inserted_user.id), 10).unwrap();
-    let read_post_listings_no_user = PostView::list(&conn, PostListingType::Community, SortType::New, Some(inserted_community.id), None, 10).unwrap();
+    let read_post_listings_with_user = PostView::list(&conn, PostListingType::Community, &SortType::New, Some(inserted_community.id), None, Some(inserted_user.id), 10).unwrap();
+    let read_post_listings_no_user = PostView::list(&conn, PostListingType::Community, &SortType::New, Some(inserted_community.id), None, None, 10).unwrap();
     let read_post_listing_no_user = PostView::read(&conn, inserted_post.id, None).unwrap();
     let read_post_listing_with_user = PostView::read(&conn, inserted_post.id, Some(inserted_user.id)).unwrap();
 
