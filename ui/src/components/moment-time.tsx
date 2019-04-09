@@ -17,11 +17,11 @@ export class MomentTime extends Component<MomentTimeProps, any> {
   render() {
     if (this.props.data.updated) {
       return (
-        <span className="font-italics">modified {moment.utc(this.props.data.updated).fromNow()}</span>
+        <span title={this.props.data.updated} className="font-italics">modified {moment.utc(this.props.data.updated).fromNow()}</span>
       )
     } else {
       return (
-        <span>{moment.utc(this.props.data.published).fromNow()}</span>
+        <span title={this.props.data.published}>{moment.utc(this.props.data.published).fromNow()}</span>
       )
     }
   }
