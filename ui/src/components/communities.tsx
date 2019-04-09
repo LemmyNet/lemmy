@@ -45,7 +45,7 @@ export class Communities extends Component<any, CommunitiesState> {
 
   render() {
     return (
-      <div class="container-fluid">
+      <div class="container">
         {this.state.loading ? 
         <h4 class=""><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
         <div>

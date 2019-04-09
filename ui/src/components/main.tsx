@@ -5,7 +5,7 @@ import { retryWhen, delay, take } from 'rxjs/operators';
 import { UserOperation, CommunityUser, GetFollowedCommunitiesResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
-import { msgOp } from '../utils';
+import { msgOp, repoUrl } from '../utils';
 
 interface State {
   subscribedCommunities: Array<CommunityUser>;
@@ -46,17 +46,15 @@ export class Main extends Component<any, State> {
     return (
       <div class="container">
         <div class="row">
-          <div class="col-12 col-md-9">
+          <div class="col-12 col-md-8">
             <PostListings />
           </div>
-          <div class="col-12 col-md-3">
-            <h4>A Landing message</h4>
-            {UserService.Instance.loggedIn &&
+          <div class="col-12 col-md-4">
+            {UserService.Instance.loggedIn ?
               <div>
                 {this.state.loading ? 
-                <h4 class="mt-3"><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
+                <h4><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
                 <div>
-                  <hr />
                   <h4>Subscribed forums</h4>
                   <ul class="list-unstyled"> 
                     {this.state.subscribedCommunities.map(community =>
@@ -65,7 +63,8 @@ export class Main extends Component<any, State> {
                   </ul>
                 </div>
                 }
-              </div>
+              </div> :
+            this.landing()
             }
           </div>
         </div>
@@ -73,6 +72,21 @@ export class Main extends Component<any, State> {
     )
   }
 
+  landing() {
+    return (
+      <div>
+        <h4>Welcome to 
+          <svg class="icon mx-2"><use xlinkHref="#icon-mouse"></use></svg>
+          <a href={repoUrl}>Lemmy<sup>Beta</sup></a>
+        </h4>
+        <p>Lemmy is a <a href="https://en.wikipedia.org/wiki/Link_aggregation">link aggregator</a> / reddit alternative, intended to work in the <a href="https://en.wikipedia.org/wiki/Fediverse">fediverse</a>.</p>
+        <p>Its self-hostable, has live-updating comment threads, and is tiny (<code>~80kB</code>). Federation into the ActivityPub network is on the roadmap.</p>
+        <p>This is a <b>very early beta version</b>, and a lot of features are currently broken or missing.</p>
+        <p>Suggest new features or report bugs <a href={repoUrl}>here.</a></p>
+        <p>Made with <a href="https://www.rust-lang.org">Rust</a>, <a href="https://actix.rs/">Actix</a>, <a href="https://www.infernojs.org">Inferno</a>, <a href="https://www.typescriptlang.org/">Typescript</a>.</p>
+      </div>
+    )
+  }
 
   parseMessage(msg: any) {
     console.log(msg);
