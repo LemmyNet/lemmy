@@ -1,11 +1,22 @@
 export enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity, FollowCommunity, GetFollowedCommunities
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails
 }
 
 export interface User {
   id: number;
   iss: string;
   username: string;
+}
+
+export interface UserView {
+  id: number;
+  name: string;
+  fedi_name: string;
+  published: string;
+  number_of_posts: number;
+  post_score: number;
+  number_of_comments: number;
+  comment_score: number;
 }
 
 export interface CommunityUser {
@@ -144,6 +155,11 @@ export interface CommentLikeForm {
   auth?: string;
 }
 
+export interface CommentNode {
+  comment: Comment;
+  children?: Array<CommentNode>;
+}
+
 export interface GetPostsForm {
   type_: string;
   sort: string;
@@ -184,6 +200,27 @@ export interface GetFollowedCommunitiesResponse {
   communities: Array<CommunityUser>;
 }
 
+export interface GetUserDetailsForm {
+  user_id: number;
+  sort: string; // TODO figure this one out
+  limit: number;
+  community_id?: number;
+  auth?: string;
+}
+
+
+
+export interface UserDetailsResponse {
+  op: string;
+  user: UserView;
+  follows: Array<CommunityUser>;
+  moderates: Array<CommunityUser>;
+  comments: Array<Comment>;
+  posts: Array<Post>;
+  saved?: Array<Post>;
+}
+
+
 export interface LoginForm {
   username_or_email: string;
   password: string;
@@ -210,7 +247,7 @@ export enum ListingType {
   All, Subscribed, Community
 }
 
-export enum ListingSortType {
+export enum SortType {
   Hot, New, TopDay, TopWeek, TopMonth, TopYear, TopAll
 }
 

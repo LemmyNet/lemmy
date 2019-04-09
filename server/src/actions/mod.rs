@@ -6,3 +6,4 @@ pub mod post_view;
 pub mod comment_view;
 pub mod category;
 pub mod community_view;
+pub mod user_view;

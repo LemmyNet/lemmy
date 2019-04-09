@@ -1,4 +1,4 @@
-<h1><img src="https://image.flaticon.com/icons/svg/194/194242.svg" width="30px"/> Lemmy</h1>
+<h1><img src="https://image.flaticon.com/icons/svg/194/194242.svg" width="50px" height="50px" /> Lemmy</h1>
 
 [![Build Status](https://travis-ci.org/dessalines/lemmy.svg?branch=master)](https://travis-ci.org/dessalines/lemmy)
 [![star this repo](http://githubbadges.com/star.svg?user=dessalines&repo=lemmy&style=flat)](https://github.com/dessalines/lemmy)
@@ -19,6 +19,15 @@ Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Infern
 
 ## Features
 - TBD
+-
+the name
+
+Lead singer from motorhead.
+The old school video game.
+The furry rodents.
+
+Goals r/ censorship
+
 ## Install
 ### Docker
 ```

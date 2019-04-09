@@ -1,19 +1,15 @@
 import { Component, linkEvent } from 'inferno';
-import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community, Post as PostI, GetPostResponse, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse, CommentLikeForm, CommentSortType, CreatePostLikeResponse, CommunityUser, CommunityResponse } from '../interfaces';
-import { WebSocketService, UserService } from '../services';
-import { msgOp, hotRank,mdToHtml } from '../utils';
-import { MomentTime } from './moment-time';
+import { UserOperation, Community, Post as PostI, GetPostResponse, PostResponse, Comment,  CommentResponse, CommentSortType, CreatePostLikeResponse, CommunityUser, CommunityResponse, CommentNode as CommentNodeI } from '../interfaces';
+import { WebSocketService } from '../services';
+import { msgOp, hotRank } from '../utils';
 import { PostListing } from './post-listing';
 import { Sidebar } from './sidebar';
+import { CommentForm } from './comment-form';
+import { CommentNodes } from './comment-nodes';
 import * as autosize from 'autosize';
 
-interface CommentNodeI {
-  comment: Comment;
-  children?: Array<CommentNodeI>;
-};
 
 interface PostState {
   post: PostI;
@@ -21,7 +17,9 @@ interface PostState {
   commentSort: CommentSortType;
   community: Community;
   moderators: Array<CommunityUser>;
-  scrolled: boolean;
+  scrolled?: boolean;
+  scrolled_comment_id?: number;
+  loading: boolean;
 }
 
 export class Post extends Component<any, PostState> {
@@ -33,15 +31,19 @@ export class Post extends Component<any, PostState> {
     commentSort: CommentSortType.Hot,
     community: null,
     moderators: [],
-    scrolled: false
+    scrolled: false, 
+    loading: true
   }
 
-  constructor(props, context) {
+  constructor(props: any, context: any) {
     super(props, context);
 
     this.state = this.emptyState;
 
     let postId = Number(this.props.match.params.id);
+    if (this.props.match.params.comment_id) {
+      this.state.scrolled_comment_id = this.props.match.params.comment_id;
+    }
 
     this.subscription = WebSocketService.Instance.subject
       .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
@@ -62,11 +64,11 @@ export class Post extends Component<any, PostState> {
     autosize(document.querySelectorAll('textarea'));
   }
 
-  componentDidUpdate(lastProps: any, lastState: PostState, snapshot: any) {
-    if (!this.state.scrolled && lastState.comments.length > 0 && window.location.href.includes('#comment-')) {
-      let id = window.location.hash.split("#")[2];
-      var elmnt = document.getElementById(`${id}`);
+  componentDidUpdate(_lastProps: any, lastState: PostState, _snapshot: any) {
+    if (this.state.scrolled_comment_id && !this.state.scrolled && lastState.comments.length > 0) {
+      var elmnt = document.getElementById(`comment-${this.state.scrolled_comment_id}`);
       elmnt.scrollIntoView(); 
+      elmnt.classList.add("mark");
       this.state.scrolled = true;
     }
   }
@@ -74,8 +76,9 @@ export class Post extends Component<any, PostState> {
   render() {
     return (
       <div class="container">
-        {this.state.post && 
-          <div class="row">
+        {this.state.loading ? 
+        <h4><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
+        <div class="row">
             <div class="col-12 col-sm-8 col-lg-7 mb-3">
               <PostListing post={this.state.post} showBody showCommunity editable />
               <div className="mb-2" />
@@ -136,7 +139,7 @@ export class Post extends Component<any, PostState> {
     );
   }
   
-  handleCommentSortChange(i: Post, event) {
+  handleCommentSortChange(i: Post, event: any) {
     i.state.commentSort = Number(event.target.value);
     i.setState(i.state);
   }
@@ -202,6 +205,7 @@ export class Post extends Component<any, PostState> {
       this.state.comments = res.comments;
       this.state.community = res.community;
       this.state.moderators = res.moderators;
+      this.state.loading = false;
       this.setState(this.state);
     } else if (op == UserOperation.CreateComment) {
       let res: CommentResponse = msg;
@@ -250,252 +254,5 @@ export class Post extends Component<any, PostState> {
   }
 }
 
-interface CommentNodesState {
-}
-
-interface CommentNodesProps {
-  nodes: Array<CommentNodeI>;
-  noIndent?: boolean;
-}
-
-export class CommentNodes extends Component<CommentNodesProps, CommentNodesState> {
-
-  constructor(props, context) {
-    super(props, context);
-  }
-
-  render() {
-    return (
-      <div className="comments">
-        {this.props.nodes.map(node =>
-          <CommentNode node={node} noIndent={this.props.noIndent} />
-        )}
-      </div>
-    )
-  }
-}
 
 
-interface CommentNodeState {
-  showReply: boolean;
-  showEdit: boolean;
-}
-
-interface CommentNodeProps {
-  node: CommentNodeI;
-  noIndent?: boolean;
-}
-
-export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
-
-  private emptyState: CommentNodeState = {
-    showReply: false,
-    showEdit: false
-  }
-
-  constructor(props, context) {
-    super(props, context);
-
-    this.state = this.emptyState;
-    this.handleReplyCancel = this.handleReplyCancel.bind(this);
-    this.handleCommentLike = this.handleCommentLike.bind(this);
-    this.handleCommentDisLike = this.handleCommentDisLike.bind(this);
-  }
-
-  render() {
-    let node = this.props.node;
-    return (
-      <div id={`comment-${node.comment.id}`} className={`comment ${node.comment.parent_id  && !this.props.noIndent ? 'ml-4' : ''}`}>
-        <div className="float-left small text-center">
-          <div className={`pointer upvote ${node.comment.my_vote == 1 ? 'text-info' : 'text-muted'}`} onClick={linkEvent(node, this.handleCommentLike)}>▲</div>
-          <div>{node.comment.score}</div>
-          <div className={`pointer downvote ${node.comment.my_vote == -1 && 'text-danger'}`} onClick={linkEvent(node, this.handleCommentDisLike)}>▼</div>
-        </div>
-        <div className="details ml-4">
-          <ul class="list-inline mb-0 text-muted small">
-            <li className="list-inline-item">
-              <Link to={`/user/${node.comment.creator_id}`}>{node.comment.creator_name}</Link>
-            </li>
-            <li className="list-inline-item">
-              <span>(
-                <span className="text-info">+{node.comment.upvotes}</span>
-                <span> | </span>
-                <span className="text-danger">-{node.comment.downvotes}</span>
-                <span>) </span>
-              </span>
-            </li>
-            <li className="list-inline-item">
-              <span><MomentTime data={node.comment} /></span>
-            </li>
-          </ul>
-          {this.state.showEdit && <CommentForm node={node} edit onReplyCancel={this.handleReplyCancel} />}
-          {!this.state.showEdit &&
-            <div>
-              <div className="md-div" dangerouslySetInnerHTML={mdToHtml(node.comment.content)} />
-              <ul class="list-inline mb-1 text-muted small font-weight-bold">
-                <li className="list-inline-item">
-                  <span class="pointer" onClick={linkEvent(this, this.handleReplyClick)}>reply</span>
-                </li>
-                {this.myComment && 
-                  <li className="list-inline-item">
-                    <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>edit</span>
-                  </li>
-                }
-                {this.myComment &&
-                  <li className="list-inline-item">
-                    <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>delete</span>
-                  </li>
-                }
-                <li className="list-inline-item">
-                  <Link className="text-muted" to={`/post/${node.comment.post_id}#comment-${node.comment.id}`}>link</Link>
-                </li>
-              </ul>
-            </div>
-          }
-        </div>
-        {this.state.showReply && <CommentForm node={node} onReplyCancel={this.handleReplyCancel} />}
-        {this.props.node.children && <CommentNodes nodes={this.props.node.children} />}
-      </div>
-    )
-  }
-
-  private get myComment(): boolean {
-    return UserService.Instance.loggedIn && this.props.node.comment.creator_id == UserService.Instance.user.id;
-  }
-
-  handleReplyClick(i: CommentNode, event) {
-    i.state.showReply = true;
-    i.setState(i.state);
-  }
-
-  handleEditClick(i: CommentNode, event) {
-    i.state.showEdit = true;
-    i.setState(i.state);
-  }
-
-  handleDeleteClick(i: CommentNode, event) {
-    let deleteForm: CommentFormI = {
-      content: "*deleted*",
-      edit_id: i.props.node.comment.id,
-      post_id: i.props.node.comment.post_id,
-      parent_id: i.props.node.comment.parent_id,
-      auth: null
-    };
-    WebSocketService.Instance.editComment(deleteForm);
-  }
-
-  handleReplyCancel(): any {
-    this.state.showReply = false;
-    this.state.showEdit = false;
-    this.setState(this.state);
-  }
-
-
-  handleCommentLike(i: CommentNodeI, event) {
-
-    let form: CommentLikeForm = {
-      comment_id: i.comment.id,
-      post_id: i.comment.post_id,
-      score: (i.comment.my_vote == 1) ? 0 : 1
-    };
-    WebSocketService.Instance.likeComment(form);
-  }
-
-  handleCommentDisLike(i: CommentNodeI, event) {
-    let form: CommentLikeForm = {
-      comment_id: i.comment.id,
-      post_id: i.comment.post_id,
-      score: (i.comment.my_vote == -1) ? 0 : -1
-    };
-    WebSocketService.Instance.likeComment(form);
-  }
-}
-
-interface CommentFormProps {
-  postId?: number;
-  node?: CommentNodeI;
-  onReplyCancel?();
-  edit?: boolean;
-}
-
-interface CommentFormState {
-  commentForm: CommentFormI;
-  buttonTitle: string;
-}
-
-export class CommentForm extends Component<CommentFormProps, CommentFormState> {
-
-  private emptyState: CommentFormState = {
-    commentForm: {
-      auth: null,
-      content: null,
-      post_id: this.props.node ? this.props.node.comment.post_id : this.props.postId
-    },
-    buttonTitle: !this.props.node ? "Post" : this.props.edit ? "Edit" : "Reply"
-  }
-
-  constructor(props, context) {
-    super(props, context);
-
-    this.state = this.emptyState;
-
-    if (this.props.node) {
-      if (this.props.edit) {
-        this.state.commentForm.edit_id = this.props.node.comment.id;
-        this.state.commentForm.parent_id = this.props.node.comment.parent_id;
-        this.state.commentForm.content = this.props.node.comment.content;
-      } else {
-        // A reply gets a new parent id
-        this.state.commentForm.parent_id = this.props.node.comment.id;
-      }
-    }  
-  }
-
-  componentDidMount() {
-    autosize(document.querySelectorAll('textarea'));
-  }
-
-  render() {
-    return (
-      <div>
-        <form onSubmit={linkEvent(this, this.handleCommentSubmit)}>
-          <div class="form-group row">
-            <div class="col-sm-12">
-              <textarea class="form-control" value={this.state.commentForm.content} onInput={linkEvent(this, this.handleCommentContentChange)} placeholder="Comment here" required />
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-sm-12">
-              <button type="submit" class="btn btn-sm btn-secondary mr-2">{this.state.buttonTitle}</button>
-              {this.props.node && <button type="button" class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.handleReplyCancel)}>Cancel</button>}
-            </div>
-          </div>
-        </form>
-      </div>
-    );
-  }
-
-  handleCommentSubmit(i: CommentForm, event) {
-    if (i.props.edit) {
-      WebSocketService.Instance.editComment(i.state.commentForm);
-    } else {
-      WebSocketService.Instance.createComment(i.state.commentForm);
-    }
-
-    i.state.commentForm.content = undefined;
-    i.setState(i.state);
-    event.target.reset();
-    if (i.props.node) {
-      i.props.onReplyCancel();
-    }
-  }
-
-  handleCommentContentChange(i: CommentForm, event) {
-    i.state.commentForm.content = event.target.value;
-    i.setState(i.state);
-  }
-
-  handleReplyCancel(i: CommentForm, event) {
-    i.props.onReplyCancel();
-  }
-}

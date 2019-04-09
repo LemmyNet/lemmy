@@ -2,12 +2,26 @@ import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { repoUrl } from '../utils';
 import { UserService } from '../services';
+import { version } from '../version';
 
-export class Navbar extends Component<any, any> {
+interface NavbarState {
+  isLoggedIn: boolean;
+  expanded: boolean;
+  expandUserDropdown: boolean;
+}
 
-  constructor(props, context) {
+export class Navbar extends Component<any, NavbarState> {
+
+  emptyState: NavbarState = {
+    isLoggedIn: UserService.Instance.loggedIn,
+    expanded: false,
+    expandUserDropdown: false
+  }
+
+  constructor(props: any, context: any) {
     super(props, context);
-    this.state = {isLoggedIn: UserService.Instance.loggedIn, expanded: false};
+    this.state = this.emptyState;
+    this.handleOverviewClick = this.handleOverviewClick.bind(this);
 
     // Subscribe to user changes
     UserService.Instance.sub.subscribe(user => {
@@ -27,7 +41,7 @@ export class Navbar extends Component<any, any> {
   navbar() {
     return (
       <nav class="navbar navbar-expand-sm navbar-light bg-light p-0 px-3 shadow">
-        <a class="navbar-brand" href="#">
+        <a title={version} class="navbar-brand" href="#">
           <svg class="icon mr-2"><use xlinkHref="#icon-mouse"></use></svg>
           Lemmy
         </a>
@@ -50,25 +64,44 @@ export class Navbar extends Component<any, any> {
             </li>
           </ul>
           <ul class="navbar-nav ml-auto mr-2">
-            <li class="nav-item">
-              {this.state.isLoggedIn ? 
-              <a role="button" class="nav-link pointer" onClick={ linkEvent(this, this.handleLogoutClick) }>Logout</a> :
+            {this.state.isLoggedIn ? 
+            <li className={`nav-item dropdown ${this.state.expandUserDropdown && 'show'}`}>
+              <a class="pointer nav-link dropdown-toggle" onClick={linkEvent(this, this.expandUserDropdown)} role="button">
+                {UserService.Instance.user.username}
+              </a>
+              <div className={`dropdown-menu dropdown-menu-right ${this.state.expandUserDropdown && 'show'}`}>
+                <a role="button" class="dropdown-item pointer" onClick={linkEvent(this, this.handleOverviewClick)}>Overview</a>
+                <a role="button" class="dropdown-item pointer" onClick={ linkEvent(this, this.handleLogoutClick) }>Logout</a>
+              </div>
+            </li> : 
               <Link class="nav-link" to="/login">Login</Link>
-              }
-            </li>
+            }
           </ul>
         </div>
       </nav>
     );
   }
 
-  handleLogoutClick(i: Navbar, event) {
-    UserService.Instance.logout();
-    // i.props.history.push('/');
+  expandUserDropdown(i: Navbar) {
+    i.state.expandUserDropdown = !i.state.expandUserDropdown;
+    i.setState(i.state);
   }
 
-  expandNavbar(i: Navbar, event) {
+  handleLogoutClick(i: Navbar) {
+    i.state.expandUserDropdown = false;
+    UserService.Instance.logout();
+  }
+
+  handleOverviewClick(i: Navbar) {
+    i.state.expandUserDropdown = false;
+    i.setState(i.state);
+    let userPage = `/user/${UserService.Instance.user.id}`;
+    i.context.router.history.push(userPage);
+  }
+
+  expandNavbar(i: Navbar) {
     i.state.expanded = !i.state.expanded;
     i.setState(i.state);
   }
 }
+

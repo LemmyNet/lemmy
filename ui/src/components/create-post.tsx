@@ -1,9 +1,9 @@
-import { Component, linkEvent } from 'inferno';
+import { Component } from 'inferno';
 import { PostForm } from './post-form';
 
 export class CreatePost extends Component<any, any> {
 
-  constructor(props, context) {
+  constructor(props: any, context: any) {
     super(props, context);
     this.handlePostCreate = this.handlePostCreate.bind(this);
   }

@@ -1,7 +1,9 @@
 extern crate diesel;
 use diesel::*;
 use diesel::result::Error;
+use diesel::dsl::*;
 use serde::{Deserialize, Serialize};
+use { SortType };
 
 // The faked schema since diesel doesn't do views
 table! {
@@ -42,33 +44,61 @@ pub struct CommentView {
 
 impl CommentView {
 
-  pub fn list(conn: &PgConnection, from_post_id: i32, from_user_id: Option<i32>) -> Result<Vec<Self>, Error> {
+  pub fn list(conn: &PgConnection, 
+              sort: &SortType, 
+              for_post_id: Option<i32>, 
+              for_creator_id: Option<i32>, 
+              my_user_id: Option<i32>, 
+              limit: i64) -> Result<Vec<Self>, Error> {
     use actions::comment_view::comment_view::dsl::*;
-    use diesel::prelude::*;
 
-    let mut query = comment_view.into_boxed();
+    let mut query = comment_view.limit(limit).into_boxed();
 
     // The view lets you pass a null user_id, if you're not logged in
-    if let Some(from_user_id) = from_user_id {
-      query = query.filter(user_id.eq(from_user_id));
+    if let Some(my_user_id) = my_user_id {
+      query = query.filter(user_id.eq(my_user_id));
     } else {
       query = query.filter(user_id.is_null());
     }
 
-    query = query.filter(post_id.eq(from_post_id)).order_by(published.desc());
+    if let Some(for_creator_id) = for_creator_id {
+      query = query.filter(creator_id.eq(for_creator_id));
+    };
+
+    if let Some(for_post_id) = for_post_id {
+      query = query.filter(post_id.eq(for_post_id));
+    };
+
+    query = match sort {
+      // SortType::Hot => query.order_by(hot_rank.desc()),
+      SortType::New => query.order_by(published.desc()),
+      SortType::TopAll => query.order_by(score.desc()),
+      SortType::TopYear => query
+        .filter(published.gt(now - 1.years()))
+        .order_by(score.desc()),
+        SortType::TopMonth => query
+          .filter(published.gt(now - 1.months()))
+          .order_by(score.desc()),
+          SortType::TopWeek => query
+            .filter(published.gt(now - 1.weeks()))
+            .order_by(score.desc()),
+            SortType::TopDay => query
+              .filter(published.gt(now - 1.days()))
+              .order_by(score.desc()),
+              _ => query.order_by(published.desc())
+    };
 
     query.load::<Self>(conn) 
   }
 
-  pub fn read(conn: &PgConnection, from_comment_id: i32, from_user_id: Option<i32>) -> Result<Self, Error> {
+  pub fn read(conn: &PgConnection, from_comment_id: i32, my_user_id: Option<i32>) -> Result<Self, Error> {
     use actions::comment_view::comment_view::dsl::*;
-    use diesel::prelude::*;
 
     let mut query = comment_view.into_boxed();
 
     // The view lets you pass a null user_id, if you're not logged in
-    if let Some(from_user_id) = from_user_id {
-      query = query.filter(user_id.eq(from_user_id));
+    if let Some(my_user_id) = my_user_id {
+      query = query.filter(user_id.eq(my_user_id));
     } else {
       query = query.filter(user_id.is_null());
     }
@@ -178,8 +208,8 @@ mod tests {
       my_vote: Some(1),
     };
 
-    let read_comment_views_no_user = CommentView::list(&conn, inserted_post.id, None).unwrap();
-    let read_comment_views_with_user = CommentView::list(&conn, inserted_post.id, Some(inserted_user.id)).unwrap();
+    let read_comment_views_no_user = CommentView::list(&conn, &SortType::New, Some(inserted_post.id), None, None, 999).unwrap();
+    let read_comment_views_with_user = CommentView::list(&conn, &SortType::New, Some(inserted_post.id), None, Some(inserted_user.id), 999).unwrap();
     let like_removed = CommentLike::remove(&conn, &comment_like_form).unwrap();
     let num_deleted = Comment::delete(&conn, inserted_comment.id).unwrap();
     Post::delete(&conn, inserted_post.id).unwrap();

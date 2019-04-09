@@ -10,7 +10,7 @@ use serde_json::{Value};
 use bcrypt::{verify};
 use std::str::FromStr;
 
-use {Crud, Joinable, Likeable, Followable, establish_connection, naive_now};
+use {Crud, Joinable, Likeable, Followable, establish_connection, naive_now, SortType};
 use actions::community::*;
 use actions::user::*;
 use actions::post::*;
@@ -19,10 +19,11 @@ use actions::post_view::*;
 use actions::comment_view::*;
 use actions::category::*;
 use actions::community_view::*;
+use actions::user_view::*;
 
 #[derive(EnumString,ToString,Debug)]
 pub enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity, FollowCommunity, GetFollowedCommunities
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails
 }
 
 #[derive(Serialize, Deserialize)]
@@ -272,6 +273,26 @@ pub struct GetFollowedCommunitiesResponse {
   communities: Vec<CommunityFollowerView>
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct GetUserDetails {
+  user_id: i32,
+  sort: String,
+  limit: i64,
+  community_id: Option<i32>,
+  auth: Option<String>
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetUserDetailsResponse {
+  op: String,
+  user: UserView,
+  follows: Vec<CommunityFollowerView>,
+  moderates: Vec<CommunityModeratorView>,
+  comments: Vec<CommentView>,
+  posts: Vec<PostView>,
+  saved_posts: Vec<PostView>,
+  saved_comments: Vec<CommentView>,
+}
 
 /// `ChatServer` manages chat rooms and responsible for coordinating chat
 /// session. implementation is super primitive
@@ -307,16 +328,6 @@ impl ChatServer {
       }
     }
   }
-
-  // /// Send message only to self
-  // fn send(&self, message: &str, id: &usize) {
-  //   // println!("{:?}", self.sessions);
-  //   if let Some(addr) = self.sessions.get(id) {
-  //     println!("msg: {}", message); 
-  //     // println!("{:?}", addr.connected());
-  //     let _ = addr.do_send(WSMessage(message.to_owned()));
-  //   }
-  // }
 }
 
 /// Make actor from `ChatServer`
@@ -368,21 +379,8 @@ impl Handler<Disconnect> for ChatServer {
         }
       }
     }
-    // send message to other users
-    // for room in rooms {
-    // self.send_room_message(room, "Someone disconnected", 0);
-    // }
   }
 }
-
-/// Handler for Message message.
-// impl Handler<ClientMessage> for ChatServer {
-//   type Result = ();
-
-//   fn handle(&mut self, msg: ClientMessage, _: &mut Context<Self>) {
-//     self.send_room_message(&msg.room, msg.msg.as_str(), msg.id);
-//   }
-// }
 
 /// Handler for Message message.
 impl Handler<StandardMessage> for ChatServer {
@@ -466,13 +464,17 @@ impl Handler<StandardMessage> for ChatServer {
         let followed_communities: GetFollowedCommunities = serde_json::from_str(&data.to_string()).unwrap();
         followed_communities.perform(self, msg.id)
       },
-      _ => {
-        let e = ErrorMessage { 
-          op: "Unknown".to_string(),
-          error: "Unknown User Operation".to_string()
-        };
-        serde_json::to_string(&e).unwrap()
-      }
+      UserOperation::GetUserDetails => {
+        let get_user_details: GetUserDetails = serde_json::from_str(&data.to_string()).unwrap();
+        get_user_details.perform(self, msg.id)
+      },
+      // _ => {
+      //   let e = ErrorMessage { 
+      //     op: "Unknown".to_string(),
+      //     error: "Unknown User Operation".to_string()
+      //   };
+      //   serde_json::to_string(&e).unwrap()
+      // }
     };
 
     MessageResult(res)
@@ -775,8 +777,6 @@ impl Perform for GetPost {
 
     let conn = establish_connection();
 
-    println!("{:?}", self.auth);
-
     let user_id: Option<i32> = match &self.auth {
       Some(auth) => {
         match Claims::decode(&auth) {
@@ -808,7 +808,7 @@ impl Perform for GetPost {
 
     chat.rooms.get_mut(&self.id).unwrap().insert(addr);
 
-    let comments = CommentView::list(&conn, self.id, user_id).unwrap();
+    let comments = CommentView::list(&conn, &SortType::New, Some(self.id), None, user_id, 999).unwrap();
 
     let community = CommunityView::read(&conn, post_view.community_id, user_id).unwrap();
 
@@ -1110,13 +1110,12 @@ impl Perform for GetPosts {
       None => None
     };
 
-    let type_ = ListingType::from_str(&self.type_).expect("listing type");
-    let sort = ListingSortType::from_str(&self.sort).expect("listing sort");
+    let type_ = PostListingType::from_str(&self.type_).expect("listing type");
+    let sort = SortType::from_str(&self.sort).expect("listing sort");
 
-    let posts = match PostView::list(&conn, type_, sort, self.community_id, user_id, self.limit) {
+    let posts = match PostView::list(&conn, type_, &sort, self.community_id, None, user_id, self.limit) {
       Ok(posts) => posts,
       Err(_e) => {
-        eprintln!("{}", _e);
         return self.error("Couldn't get posts");
       }
     };
@@ -1412,185 +1411,52 @@ impl Perform for GetFollowedCommunities {
   }
 }
 
-// impl Handler<Login> for ChatServer {
+impl Perform for GetUserDetails {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::GetUserDetails
+  }
 
-//   type Result = MessageResult<Login>;
-//   fn handle(&mut self, msg: Login, _: &mut Context<Self>) -> Self::Result {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
 
-//     let conn = establish_connection();
+    let conn = establish_connection();
 
-//     // Fetch that username / email
-//     let user: User_ = match User_::find_by_email_or_username(&conn, &msg.username_or_email) {
-//       Ok(user) => user,
-//       Err(_e) => return MessageResult(
-//         Err(
-//           ErrorMessage {
-//             op: UserOperation::Login.to_string(), 
-//             error: "Couldn't find that username or email".to_string()
-//           }
-//           )
-//         )
-//     };
-
-//     // Verify the password
-//     let valid: bool = verify(&msg.password, &user.password_encrypted).unwrap_or(false);
-//     if !valid {
-//       return MessageResult(
-//         Err(
-//           ErrorMessage {
-//             op: UserOperation::Login.to_string(), 
-//             error: "Password incorrect".to_string()
-//           }
-//           )
-//         )
-//     }
-
-//     // Return the jwt
-//     MessageResult(
-//       Ok(
-//         LoginResponse {
-//           op: UserOperation::Login.to_string(), 
-//           jwt: user.jwt()
-//         }
-//         )
-//       )
-//   }
-// }
-
-// impl Handler<Register> for ChatServer {
-
-//   type Result = MessageResult<Register>;
-//   fn handle(&mut self, msg: Register, _: &mut Context<Self>) -> Self::Result {
-
-//     let conn = establish_connection();
-
-//     // Make sure passwords match
-//     if msg.password != msg.password_verify {
-//       return MessageResult(
-//         Err(
-//           ErrorMessage {
-//             op: UserOperation::Register.to_string(), 
-//             error: "Passwords do not match.".to_string()
-//           }
-//           )
-//         );
-//     }
-
-//     // Register the new user
-//     let user_form = UserForm {
-//       name: msg.username,
-//       email: msg.email,
-//       password_encrypted: msg.password,
-//       preferred_username: None,
-//       updated: None
-//     };
-
-//     // Create the user
-//     let inserted_user = match User_::create(&conn, &user_form) {
-//       Ok(user) => user,
-//       Err(_e) => return MessageResult(
-//         Err(
-//           ErrorMessage {
-//             op: UserOperation::Register.to_string(), 
-//             error: "User already exists.".to_string() // overwrite the diesel error
-//           }
-//           )
-//         )
-//     };
-
-//     // Return the jwt
-//     MessageResult(
-//       Ok(
-//         LoginResponse {
-//           op: UserOperation::Register.to_string(), 
-//           jwt: inserted_user.jwt()
-//         }
-//         )
-//       )
-
-//   }
-// }
+    let user_id: Option<i32> = match &self.auth {
+      Some(auth) => {
+        match Claims::decode(&auth) {
+          Ok(claims) => {
+            let user_id = claims.claims.id;
+            Some(user_id)
+          }
+          Err(_e) => None
+        }
+      }
+      None => None
+    };
 
 
-// impl Handler<CreateCommunity> for ChatServer {
+    //TODO add save
+    let sort = SortType::from_str(&self.sort).expect("listing sort");
 
-//   type Result = MessageResult<CreateCommunity>;
+    let user_view = UserView::read(&conn, self.user_id).unwrap();
+    let posts = PostView::list(&conn, PostListingType::All, &sort, self.community_id, Some(self.user_id), user_id, self.limit).unwrap();
+    let comments = CommentView::list(&conn, &sort, None, Some(self.user_id), user_id, self.limit).unwrap();
+    let follows = CommunityFollowerView::for_user(&conn, self.user_id).unwrap();
+    let moderates = CommunityModeratorView::for_user(&conn, self.user_id).unwrap();
 
-//   fn handle(&mut self, msg: CreateCommunity, _: &mut Context<Self>) -> Self::Result {
-//     let conn = establish_connection();
+    // Return the jwt
+    serde_json::to_string(
+      &GetUserDetailsResponse {
+        op: self.op_type().to_string(),
+        user: user_view,
+        follows: follows,
+        moderates: moderates, 
+        comments: comments,
+        posts: posts,
+        saved_posts: Vec::new(),
+        saved_comments: Vec::new(),
+      }
+      )
+      .unwrap()
+  }
+}
 
-//     let user_id = Claims::decode(&msg.auth).id;
-
-//     let community_form = CommunityForm {
-//       name: msg.name,
-//       updated: None
-//     };
-
-//     let community = match Community::create(&conn, &community_form) {
-//       Ok(community) => community,
-//       Err(_e) => return MessageResult(
-//         Err(
-//           ErrorMessage {
-//             op: UserOperation::CreateCommunity.to_string(), 
-//             error: "Community already exists.".to_string() // overwrite the diesel error
-//           }
-//           )
-//         )
-//     };
-
-//     MessageResult(
-//       Ok(
-//         CommunityResponse {
-//           op: UserOperation::CreateCommunity.to_string(), 
-//           community: community
-//         }
-//         )
-//       )
-//   }
-// }
-//
-//
-//
-// /// Handler for `ListRooms` message.
-// impl Handler<ListRooms> for ChatServer {
-//   type Result = MessageResult<ListRooms>;
-
-//   fn handle(&mut self, _: ListRooms, _: &mut Context<Self>) -> Self::Result {
-//     let mut rooms = Vec::new();
-
-//     for key in self.rooms.keys() {
-//       rooms.push(key.to_owned())
-//     }
-
-//     MessageResult(rooms)
-//   }
-// }
-
-// /// Join room, send disconnect message to old room
-// /// send join message to new room
-// impl Handler<Join> for ChatServer {
-//   type Result = ();
-
-//   fn handle(&mut self, msg: Join, _: &mut Context<Self>) {
-//     let Join { id, name } = msg;
-//     let mut rooms = Vec::new();
-
-//     // remove session from all rooms
-//     for (n, sessions) in &mut self.rooms {
-//       if sessions.remove(&id) {
-//         rooms.push(n.to_owned());
-//       }
-//     }
-//     // send message to other users
-//     for room in rooms {
-//       self.send_room_message(&room, "Someone disconnected", 0);
-//     }
-
-//     if self.rooms.get_mut(&name).is_none() {
-//       self.rooms.insert(name.clone(), HashSet::new());
-//     }
-//     self.send_room_message(&name, "Someone connected", id);
-//     self.rooms.get_mut(&name).unwrap().insert(id);
-//   }
-
-// }

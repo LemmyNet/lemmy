@@ -24,6 +24,8 @@ use diesel::result::Error;
 use dotenv::dotenv;
 use std::env;
 use regex::Regex;
+use serde::{Deserialize, Serialize};
+use chrono::{DateTime, NaiveDateTime, Utc};
 
 pub trait Crud<T> {
   fn create(conn: &PgConnection, form: &T) -> Result<Self, Error> where Self: Sized;
@@ -73,7 +75,11 @@ impl Settings {
   }
 }
 
-use chrono::{DateTime, NaiveDateTime, Utc};
+#[derive(EnumString,ToString,Debug, Serialize, Deserialize)]
+pub enum SortType {
+  Hot, New, TopDay, TopWeek, TopMonth, TopYear, TopAll
+}
+
 pub fn to_datetime_utc(ndt: NaiveDateTime) -> DateTime<Utc> {
   DateTime::<Utc>::from_utc(ndt, Utc)
 }

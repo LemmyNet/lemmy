@@ -20,7 +20,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     showEdit: false
   }
 
-  constructor(props, context) {
+  constructor(props: any, context: any) {
     super(props, context);
     this.state = this.emptyState;
     this.handleEditCommunity = this.handleEditCommunity.bind(this);
@@ -42,7 +42,8 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     let community = this.props.community;
     return (
       <div>
-        <h4>{community.title}</h4>
+        <h4 className="mb-0">{community.title}</h4>
+        <Link className="text-muted" to={`/community/${community.id}`}>/f/{community.name}</Link>
         {this.amMod && 
             <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
               <li className="list-inline-item">
@@ -82,12 +83,12 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     );
   }
 
-  handleEditClick(i: Sidebar, event) {
+  handleEditClick(i: Sidebar) {
     i.state.showEdit = true;
     i.setState(i.state);
   }
 
-  handleEditCommunity(community: Community) {
+  handleEditCommunity() {
     this.state.showEdit = false;
     this.setState(this.state);
   }
@@ -98,8 +99,8 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   }
 
   // TODO no deleting communities yet
-  handleDeleteClick(i: Sidebar, event) {
-  }
+  // handleDeleteClick(i: Sidebar, event) {
+  // }
 
   handleUnsubscribe(communityId: number) {
     let form: FollowCommunityForm = {

@@ -31,8 +31,6 @@ insert into category (name) values
 ('Meta'),
 ('Other');
 
-
-
 create table community (
   id serial primary key,
   name varchar(20) not null unique,
@@ -58,4 +56,4 @@ create table community_follower (
   published timestamp not null default now()
 );
 
-insert into community (name, title, category_id, creator_id) values ('main', 'The default Community', 1, 1);
+insert into community (name, title, category_id, creator_id) values ('main', 'The Default Community', 1, 1);
