@@ -62,11 +62,11 @@ export class Community extends Component<any, State> {
         {this.state.loading ? 
         <h4><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
         <div class="row">
-          <div class="col-12 col-lg-9">
+          <div class="col-12 col-md-9">
             <h4>{this.state.community.title}</h4>
             <PostListings communityId={this.state.communityId} />
           </div>
-          <div class="col-12 col-lg-3">
+          <div class="col-12 col-md-3">
             <Sidebar community={this.state.community} moderators={this.state.moderators} />
           </div>
         </div>
