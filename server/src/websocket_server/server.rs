@@ -10,7 +10,7 @@ use serde_json::{Value};
 use bcrypt::{verify};
 use std::str::FromStr;
 
-use {Crud, Joinable, Likeable, Followable, establish_connection, naive_now, SortType};
+use {Crud, Joinable, Likeable, Followable, establish_connection, naive_now, SortType, has_slurs, remove_slurs};
 use actions::community::*;
 use actions::user::*;
 use actions::post::*;
@@ -541,6 +541,10 @@ impl Perform for Register {
       return self.error("Passwords do not match.");
     }
 
+    if has_slurs(&self.username) {
+      return self.error("No slurs");
+    }
+
     // Register the new user
     let user_form = UserForm {
       name: self.username.to_owned(),
@@ -586,6 +590,12 @@ impl Perform for CreateCommunity {
         return self.error("Not logged in.");
       }
     };
+
+    if has_slurs(&self.name) || 
+      has_slurs(&self.title) || 
+      (self.description.is_some() && has_slurs(&self.description.to_owned().unwrap())) {
+      return self.error("No slurs");
+    }
 
     let user_id = claims.id;
 
@@ -715,6 +725,11 @@ impl Perform for CreatePost {
         return self.error("Not logged in.");
       }
     };
+
+    if has_slurs(&self.name) || 
+      (self.body.is_some() && has_slurs(&self.body.to_owned().unwrap())) {
+      return self.error("No slurs");
+    }
 
     let user_id = claims.id;
 
@@ -894,8 +909,10 @@ impl Perform for CreateComment {
 
     let user_id = claims.id;
 
+    let content_slurs_removed = remove_slurs(&self.content.to_owned());
+
     let comment_form = CommentForm {
-      content: self.content.to_owned(),
+      content: content_slurs_removed,
       parent_id: self.parent_id.to_owned(),
       post_id: self.post_id,
       creator_id: user_id,
@@ -976,8 +993,10 @@ impl Perform for EditComment {
       return self.error("Incorrect creator.");
     }
 
+    let content_slurs_removed = remove_slurs(&self.content.to_owned());
+
     let comment_form = CommentForm {
-      content: self.content.to_owned(),
+      content: content_slurs_removed,
       parent_id: self.parent_id,
       post_id: self.post_id,
       creator_id: user_id,
@@ -1197,6 +1216,11 @@ impl Perform for EditPost {
 
   fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
 
+    if has_slurs(&self.name) || 
+      (self.body.is_some() && has_slurs(&self.body.to_owned().unwrap())) {
+      return self.error("No slurs");
+    }
+
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
@@ -1263,6 +1287,10 @@ impl Perform for EditCommunity {
   }
 
   fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+
+    if has_slurs(&self.name) || has_slurs(&self.title) {
+      return self.error("No slurs");
+    }
 
     let conn = establish_connection();
 

@@ -151,7 +151,9 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
   parseMessage(msg: any) {
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
+      alert(msg.error);
       this.state.loading = false;
+      this.setState(this.state);
       return;
     } else if (op == UserOperation.ListCommunities) {
       let res: ListCommunitiesResponse = msg;

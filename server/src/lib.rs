@@ -12,7 +12,7 @@ pub extern crate jsonwebtoken;
 pub extern crate bcrypt;
 pub extern crate regex;
 #[macro_use] pub extern crate strum_macros;
-
+#[macro_use] pub extern crate lazy_static;
 pub mod schema;
 pub mod apub;
 pub mod actions;
@@ -89,21 +89,42 @@ pub fn naive_now() -> NaiveDateTime {
 }
 
 pub fn is_email_regex(test: &str) -> bool {
-  let re = Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$").unwrap();
-  re.is_match(test)
+  EMAIL_REGEX.is_match(test)
+}
+
+pub fn remove_slurs(test: &str) -> String {
+  SLUR_REGEX.replace_all(test, "*removed*").to_string()
+}
+
+pub fn has_slurs(test: &str) -> bool {
+  SLUR_REGEX.is_match(test)
 }
 
 #[cfg(test)]
 mod tests {
-  use {Settings, is_email_regex};
+  use {Settings, is_email_regex, remove_slurs, has_slurs};
   #[test]
   fn test_api() {
     assert_eq!(Settings::get().api_endpoint(), "http://0.0.0.0/api/v1");
   }
 
-  #[test]
-  fn test_email() {
+  #[test] fn test_email() {
     assert!(is_email_regex("gush@gmail.com"));
     assert!(!is_email_regex("nada_neutho"));
   } 
+
+  #[test] fn test_slur_filter() {
+    let test = "coons test dindu ladyboy tranny. This is a bunch of other safe text.".to_string();
+    let slur_free = "No slurs here";
+    assert_eq!(remove_slurs(&test), "*removed* test *removed* *removed* *removed*. This is a bunch of other safe text.".to_string());
+    assert!(has_slurs(&test));
+    assert!(!has_slurs(slur_free));
+  } 
 }
+
+
+lazy_static! {
+  static ref EMAIL_REGEX: Regex = Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$").unwrap();
+  static ref SLUR_REGEX: Regex = Regex::new(r"(fag(g|got|tard)?|maricos?|cock\s?sucker(s|ing)?|\bnig(\b|g?(a|er)?s?)\b|dindu(s?)|mudslime?s?|kikes?|mongoloids?|towel\s*heads?|\bspi(c|k)s?\b|\bchinks?|niglets?|beaners?|\bnips?\b|\bcoons?\b|jungle\s*bunn(y|ies?)|jigg?aboo?s?|\bpakis?\b|rag\s*heads?|gooks?|cunts?|bitch(es|ing|y)?|puss(y|ies?)|twats?|feminazis?|whor(es?|ing)|\bslut(s|t?y)?|\btrann?(y|ies?)|ladyboy(s?))").unwrap();
+}
+
