@@ -1,3 +1,4 @@
+src/version.ts
 dist
 .fusebox
 _site

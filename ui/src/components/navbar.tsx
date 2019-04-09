@@ -2,6 +2,7 @@ import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { repoUrl } from '../utils';
 import { UserService } from '../services';
+import { version } from '../version';
 
 interface NavbarState {
   isLoggedIn: boolean;
@@ -40,7 +41,7 @@ export class Navbar extends Component<any, NavbarState> {
   navbar() {
     return (
       <nav class="navbar navbar-expand-sm navbar-light bg-light p-0 px-3 shadow">
-        <a class="navbar-brand" href="#">
+        <a title={version} class="navbar-brand" href="#">
           <svg class="icon mr-2"><use xlinkHref="#icon-mouse"></use></svg>
           Lemmy
         </a>
