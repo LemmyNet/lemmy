@@ -42,7 +42,8 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     let community = this.props.community;
     return (
       <div>
-        <h4>{community.title}</h4>
+        <h4 className="mb-0">{community.title}</h4>
+        <Link className="text-muted" to={`/community/${community.id}`}>/f/{community.name}</Link>
         {this.amMod && 
             <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
               <li className="list-inline-item">

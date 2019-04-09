@@ -46,7 +46,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         <div className="details ml-4">
           <ul class="list-inline mb-0 text-muted small">
             <li className="list-inline-item">
-              <Link to={`/user/${node.comment.creator_id}`}>{node.comment.creator_name}</Link>
+              <Link className="text-info" to={`/user/${node.comment.creator_id}`}>{node.comment.creator_name}</Link>
             </li>
             <li className="list-inline-item">
               <span>(

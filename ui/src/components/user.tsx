@@ -77,7 +77,7 @@ export class User extends Component<any, UserState> {
     return (
       <div class="container">
         <div class="row">
-          <div class="col-12 col-lg-9">
+          <div class="col-12 col-md-9">
             <h4>/u/{this.state.user.name}</h4>
             {this.selects()}
             {this.state.view == View.Overview &&
@@ -90,7 +90,7 @@ export class User extends Component<any, UserState> {
               this.posts()
             }
           </div>
-          <div class="col-12 col-lg-3">
+          <div class="col-12 col-md-3">
             {this.userInfo()}
             {this.moderates()}
             {this.follows()}
