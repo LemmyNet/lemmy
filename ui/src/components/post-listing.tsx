@@ -79,7 +79,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           <ul class="list-inline mb-0 text-muted small">
             <li className="list-inline-item">
               <span>by </span>
-              <Link to={`/user/${post.creator_id}`}>{post.creator_name}</Link>
+              <Link className="text-info" to={`/user/${post.creator_id}`}>{post.creator_name}</Link>
               {this.props.showCommunity && 
                 <span>
                   <span> to </span>
@@ -99,7 +99,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               </span>
             </li>
             <li className="list-inline-item">
-              <Link to={`/post/${post.id}`}>{post.number_of_comments} Comments</Link>
+              <Link className="text-muted" to={`/post/${post.id}`}>{post.number_of_comments} Comments</Link>
             </li>
           </ul>
           {this.myPost && 

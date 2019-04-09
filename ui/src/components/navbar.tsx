@@ -3,11 +3,24 @@ import { Link } from 'inferno-router';
 import { repoUrl } from '../utils';
 import { UserService } from '../services';
 
-export class Navbar extends Component<any, any> {
+interface NavbarState {
+  isLoggedIn: boolean;
+  expanded: boolean;
+  expandUserDropdown: boolean;
+}
+
+export class Navbar extends Component<any, NavbarState> {
+
+  emptyState: NavbarState = {
+    isLoggedIn: UserService.Instance.loggedIn,
+    expanded: false,
+    expandUserDropdown: false
+  }
 
   constructor(props: any, context: any) {
     super(props, context);
-    this.state = {isLoggedIn: UserService.Instance.loggedIn, expanded: false};
+    this.state = this.emptyState;
+    this.handleOverviewClick = this.handleOverviewClick.bind(this);
 
     // Subscribe to user changes
     UserService.Instance.sub.subscribe(user => {
@@ -50,20 +63,39 @@ export class Navbar extends Component<any, any> {
             </li>
           </ul>
           <ul class="navbar-nav ml-auto mr-2">
-            <li class="nav-item">
-              {this.state.isLoggedIn ? 
-              <a role="button" class="nav-link pointer" onClick={ linkEvent(this, this.handleLogoutClick) }>Logout</a> :
+            {this.state.isLoggedIn ? 
+            <li className={`nav-item dropdown ${this.state.expandUserDropdown && 'show'}`}>
+              <a class="pointer nav-link dropdown-toggle" onClick={linkEvent(this, this.expandUserDropdown)} role="button">
+                {UserService.Instance.user.username}
+              </a>
+              <div className={`dropdown-menu dropdown-menu-right ${this.state.expandUserDropdown && 'show'}`}>
+                <a role="button" class="dropdown-item pointer" onClick={linkEvent(this, this.handleOverviewClick)}>Overview</a>
+                <a role="button" class="dropdown-item pointer" onClick={ linkEvent(this, this.handleLogoutClick) }>Logout</a>
+              </div>
+            </li> : 
               <Link class="nav-link" to="/login">Login</Link>
-              }
-            </li>
+            }
           </ul>
         </div>
       </nav>
     );
   }
 
-  handleLogoutClick() {
+  expandUserDropdown(i: Navbar) {
+    i.state.expandUserDropdown = !i.state.expandUserDropdown;
+    i.setState(i.state);
+  }
+
+  handleLogoutClick(i: Navbar) {
+    i.state.expandUserDropdown = false;
     UserService.Instance.logout();
+  }
+
+  handleOverviewClick(i: Navbar) {
+    i.state.expandUserDropdown = false;
+    i.setState(i.state);
+    let userPage = `/user/${UserService.Instance.user.id}`;
+    i.context.router.history.push(userPage);
   }
 
   expandNavbar(i: Navbar) {
@@ -71,3 +103,4 @@ export class Navbar extends Component<any, any> {
     i.setState(i.state);
   }
 }
+

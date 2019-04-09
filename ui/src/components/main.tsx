@@ -46,10 +46,10 @@ export class Main extends Component<any, State> {
     return (
       <div class="container">
         <div class="row">
-          <div class="col-12 col-lg-9">
+          <div class="col-12 col-md-9">
             <PostListings />
           </div>
-          <div class="col-12 col-lg-3">
+          <div class="col-12 col-md-3">
             <h4>A Landing message</h4>
             {UserService.Instance.loggedIn &&
               <div>
