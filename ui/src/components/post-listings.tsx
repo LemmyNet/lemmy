@@ -2,12 +2,10 @@ import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community as CommunityI, GetCommunityResponse, CommunityResponse, Post, GetPostsForm, ListingSortType, ListingType, GetPostsResponse, CreatePostLikeForm, CreatePostLikeResponse, CommunityUser} from '../interfaces';
+import { UserOperation, Community as CommunityI, Post, GetPostsForm, SortType, ListingType, GetPostsResponse, CreatePostLikeResponse, CommunityUser} from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { MomentTime } from './moment-time';
 import { PostListing } from './post-listing';
-import { Sidebar } from './sidebar';
-import { msgOp, mdToHtml } from '../utils';
+import { msgOp } from '../utils';
 
 
 interface PostListingsProps {
@@ -18,8 +16,9 @@ interface PostListingsState {
   community: CommunityI;
   moderators: Array<CommunityUser>;
   posts: Array<Post>;
-  sortType: ListingSortType;
+  sortType: SortType;
   type_: ListingType;
+  loading: boolean;
 }
 
 export class PostListings extends Component<PostListingsProps, PostListingsState> {
@@ -41,15 +40,16 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
     },
     moderators: [],
     posts: [],
-    sortType: ListingSortType.Hot,
+    sortType: SortType.Hot,
     type_: this.props.communityId 
     ? ListingType.Community 
     : UserService.Instance.loggedIn
     ? ListingType.Subscribed 
-    : ListingType.All
+    : ListingType.All,
+    loading: true
   }
 
-  constructor(props, context) {
+  constructor(props: any, context: any) {
     super(props, context);
 
 
@@ -67,7 +67,7 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
       type_: ListingType[this.state.type_],
       community_id: this.props.communityId,
       limit: 10,
-      sort: ListingSortType[ListingSortType.Hot],
+      sort: SortType[SortType.Hot],
     }
     WebSocketService.Instance.getPosts(getPostsForm);
   }
@@ -79,11 +79,16 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
   render() {
     return (
       <div>
-        <div>{this.selects()}</div>
-        {this.state.posts.length > 0 
-          ? this.state.posts.map(post => 
-            <PostListing post={post} showCommunity={!this.props.communityId}/>) 
-          : <div>No Listings. Subscribe to some <Link to="/communities">forums</Link>.</div>
+        {this.state.loading ? 
+        <h4><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
+        <div>
+          <div>{this.selects()}</div>
+          {this.state.posts.length > 0 
+            ? this.state.posts.map(post => 
+              <PostListing post={post} showCommunity={!this.props.communityId}/>) 
+                : <div>No Listings. Subscribe to some <Link to="/communities">forums</Link>.</div>
+          }
+        </div>
         }
       </div>
     )
@@ -94,22 +99,22 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
       <div className="mb-2">
         <select value={this.state.sortType} onChange={linkEvent(this, this.handleSortChange)} class="custom-select w-auto">
           <option disabled>Sort Type</option>
-          <option value={ListingSortType.Hot}>Hot</option>
-          <option value={ListingSortType.New}>New</option>
+          <option value={SortType.Hot}>Hot</option>
+          <option value={SortType.New}>New</option>
           <option disabled>──────────</option>
-          <option value={ListingSortType.TopDay}>Top Day</option>
-          <option value={ListingSortType.TopWeek}>Week</option>
-          <option value={ListingSortType.TopMonth}>Month</option>
-          <option value={ListingSortType.TopYear}>Year</option>
-          <option value={ListingSortType.TopAll}>All</option>
+          <option value={SortType.TopDay}>Top Day</option>
+          <option value={SortType.TopWeek}>Week</option>
+          <option value={SortType.TopMonth}>Month</option>
+          <option value={SortType.TopYear}>Year</option>
+          <option value={SortType.TopAll}>All</option>
         </select>
         {!this.props.communityId && 
           UserService.Instance.loggedIn &&
-          <select value={this.state.type_} onChange={linkEvent(this, this.handleTypeChange)} class="ml-2 custom-select w-auto">
-          <option disabled>Type</option>
-          <option value={ListingType.All}>All</option>
-          <option value={ListingType.Subscribed}>Subscribed</option>
-        </select>
+            <select value={this.state.type_} onChange={linkEvent(this, this.handleTypeChange)} class="ml-2 custom-select w-auto">
+              <option disabled>Type</option>
+              <option value={ListingType.All}>All</option>
+              <option value={ListingType.Subscribed}>Subscribed</option>
+            </select>
 
         }
       </div>
@@ -117,26 +122,26 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
 
   }
 
-  handleSortChange(i: PostListings, event) {
+  handleSortChange(i: PostListings, event: any) {
     i.state.sortType = Number(event.target.value);
     i.setState(i.state);
 
     let getPostsForm: GetPostsForm = {
       community_id: i.state.community.id,
       limit: 10,
-      sort: ListingSortType[i.state.sortType],
+      sort: SortType[i.state.sortType],
       type_: ListingType[ListingType.Community]
     }
     WebSocketService.Instance.getPosts(getPostsForm);
   }
 
-  handleTypeChange(i: PostListings, event) {
+  handleTypeChange(i: PostListings, event: any) {
     i.state.type_ = Number(event.target.value);
     i.setState(i.state);
 
     let getPostsForm: GetPostsForm = {
       limit: 10,
-      sort: ListingSortType[i.state.sortType],
+      sort: SortType[i.state.sortType],
       type_: ListingType[i.state.type_]
     }
     WebSocketService.Instance.getPosts(getPostsForm);
@@ -151,6 +156,7 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
     } else if (op == UserOperation.GetPosts) {
       let res: GetPostsResponse = msg;
       this.state.posts = res.posts;
+      this.state.loading = false;
       this.setState(this.state);
     } else if (op == UserOperation.CreatePostLike) {
       let res: CreatePostLikeResponse = msg;

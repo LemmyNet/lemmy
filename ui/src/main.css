@@ -6,6 +6,11 @@ body {
   cursor: pointer;
 }
 
+.no-click {
+  pointer-events:none;
+  opacity: 0.65;
+}
+
 .upvote:hover {
  color: var(--info);
 }
@@ -22,6 +27,10 @@ body {
 .custom-select {
   color: #fff;
   background-color: var(--secondary);
+}
+
+.mark {
+  background-color: #322a00;
 }
 
 .md-div p {
@@ -45,5 +54,15 @@ body {
   stroke: currentColor;
   fill: currentColor;
   vertical-align: middle;
-  margin-bottom: 6px;
+  align-self: center;
+}
+
+
+.spin {
+  animation: spins 2s linear infinite;
+}
+
+@keyframes spins {
+  0% { transform: rotate(0deg); }
+  100% {  transform: rotate(359deg); }
 }

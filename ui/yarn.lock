@@ -9,10 +9,46 @@
   dependencies:
     regenerator-runtime "^0.12.0"
 
+"@types/autosize@^3.0.6":
+  version "3.0.6"
+  resolved "https://registry.yarnpkg.com/@types/autosize/-/autosize-3.0.6.tgz#9022e6a783ec5a4d5e570013701dbc0bfe7667fa"
+  integrity sha512-gpfmXswGISLSWNOOdF2PDK96SfkaZdNtNixWJbYH10xn3Hqdt4VyS1GmoutuwOshWyCLuJw2jGhF0zkK7PUhrg==
+  dependencies:
+    "@types/jquery" "*"
+
+"@types/jquery@*":
+  version "3.3.29"
+  resolved "https://registry.yarnpkg.com/@types/jquery/-/jquery-3.3.29.tgz#680a2219ce3c9250483722fccf5570d1e2d08abd"
+  integrity sha512-FhJvBninYD36v3k6c+bVk1DSZwh7B5Dpb/Pyk3HKVsiohn0nhbefZZ+3JXbWQhFyt0MxSl2jRDdGQPHeOHFXrQ==
+  dependencies:
+    "@types/sizzle" "*"
+
 "@types/js-cookie@^2.2.1":
   version "2.2.1"
   resolved "https://registry.yarnpkg.com/@types/js-cookie/-/js-cookie-2.2.1.tgz#aa6f6d5e5aaf7d97959e9fa938ac2501cf1a76f4"
   integrity sha512-VIVurImEhQ95jxtjs8baVU5qCzVfwYfuMrpXwdRykJ5MCI5iY7/jB4cDSgwBVeYqeXrhT7GfJUwoDOmN0OMVCA==
+
+"@types/jwt-decode@^2.2.1":
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/@types/jwt-decode/-/jwt-decode-2.2.1.tgz#afdf5c527fcfccbd4009b5fd02d1e18241f2d2f2"
+  integrity sha512-aWw2YTtAdT7CskFyxEX2K21/zSDStuf/ikI3yBqmwpwJF0pS+/IX5DWv+1UFffZIbruP6cnT9/LAJV1gFwAT1A==
+
+"@types/linkify-it@*":
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/@types/linkify-it/-/linkify-it-2.1.0.tgz#ea3dd64c4805597311790b61e872cbd1ed2cd806"
+  integrity sha512-Q7DYAOi9O/+cLLhdaSvKdaumWyHbm7HAk/bFwwyTuU0arR5yyCeW5GOoqt4tJTpDRxhpx9Q8kQL6vMpuw9hDSw==
+
+"@types/markdown-it@^0.0.7":
+  version "0.0.7"
+  resolved "https://registry.yarnpkg.com/@types/markdown-it/-/markdown-it-0.0.7.tgz#75070485a3d8ad11e7deb8287f4430be15bf4d39"
+  integrity sha512-WyL6pa76ollQFQNEaLVa41ZUUvDvPY+qAUmlsphnrpL6I9p1m868b26FyeoOmo7X3/Ta/S9WKXcEYXUSHnxoVQ==
+  dependencies:
+    "@types/linkify-it" "*"
+
+"@types/sizzle@*":
+  version "2.3.2"
+  resolved "https://registry.yarnpkg.com/@types/sizzle/-/sizzle-2.3.2.tgz#a811b8c18e2babab7d542b3365887ae2e4d9de47"
+  integrity sha512-7EJYyKTL7tFR8+gDbB6Wwz/arpGa0Mywk1TJbNzKzHtzbwVmY4HR9WqS5VV7dsBUKQmPNr192jHr/VpBluj/hg==
 
 abbrev@1:
   version "1.1.1"

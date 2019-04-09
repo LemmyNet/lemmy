@@ -8,6 +8,8 @@ import { msgOp } from '../utils';
 interface State {
   loginForm: LoginForm;
   registerForm: RegisterForm;
+  loginLoading: boolean;
+  registerLoading: boolean;
 }
 
 let emptyState: State = {
@@ -19,24 +21,26 @@ let emptyState: State = {
     username: undefined,
     password: undefined,
     password_verify: undefined
-  }
+  },
+  loginLoading: false,
+  registerLoading: false
 }
 
 export class Login extends Component<any, State> {
   private subscription: Subscription;
 
-  constructor(props, context) {
+  constructor(props: any, context: any) {
     super(props, context);
 
     this.state = emptyState;
 
     this.subscription = WebSocketService.Instance.subject
-      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
-      .subscribe(
-        (msg) => this.parseMessage(msg),
+    .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
+    .subscribe(
+      (msg) => this.parseMessage(msg),
         (err) => console.error(err),
         () => console.log("complete")
-      );
+    );
   }
 
   componentWillUnmount() {
@@ -77,7 +81,8 @@ export class Login extends Component<any, State> {
           </div>
           <div class="form-group row">
             <div class="col-sm-10">
-              <button type="submit" class="btn btn-secondary">Login</button>
+              <button type="submit" class="btn btn-secondary">{this.state.loginLoading ? 
+              <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : 'Login'}</button>
             </div>
           </div>
         </form>
@@ -115,49 +120,55 @@ export class Login extends Component<any, State> {
         </div>
         <div class="form-group row">
           <div class="col-sm-10">
-            <button type="submit" class="btn btn-secondary">Sign Up</button>
+            <button type="submit" class="btn btn-secondary">{this.state.registerLoading ? 
+            <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : 'Sign Up'}</button>
+
           </div>
         </div>
       </form>
     );
   }
 
-  handleLoginSubmit(i: Login, event) {
+  handleLoginSubmit(i: Login, event: any) {
     event.preventDefault();
+    i.state.loginLoading = true;
+    i.setState(i.state);
     WebSocketService.Instance.login(i.state.loginForm);
   }
 
-  handleLoginUsernameChange(i: Login, event) {
+  handleLoginUsernameChange(i: Login, event: any) {
     i.state.loginForm.username_or_email = event.target.value;
     i.setState(i.state);
   }
 
-  handleLoginPasswordChange(i: Login, event) {
+  handleLoginPasswordChange(i: Login, event: any) {
     i.state.loginForm.password = event.target.value;
     i.setState(i.state);
   }
 
-  handleRegisterSubmit(i: Login, event) {
+  handleRegisterSubmit(i: Login, event: any) {
+    i.state.registerLoading = true;
+    i.setState(i.state);
     event.preventDefault();
     WebSocketService.Instance.register(i.state.registerForm);
   }
 
-  handleRegisterUsernameChange(i: Login, event) {
+  handleRegisterUsernameChange(i: Login, event: any) {
     i.state.registerForm.username = event.target.value;
     i.setState(i.state);
   }
 
-  handleRegisterEmailChange(i: Login, event) {
+  handleRegisterEmailChange(i: Login, event: any) {
     i.state.registerForm.email = event.target.value;
     i.setState(i.state);
   }
 
-  handleRegisterPasswordChange(i: Login, event) {
+  handleRegisterPasswordChange(i: Login, event: any) {
     i.state.registerForm.password = event.target.value;
     i.setState(i.state);
   }
 
-  handleRegisterPasswordVerifyChange(i: Login, event) {
+  handleRegisterPasswordVerifyChange(i: Login, event: any) {
     i.state.registerForm.password_verify = event.target.value;
     i.setState(i.state);
   }
@@ -166,11 +177,16 @@ export class Login extends Component<any, State> {
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
       alert(msg.error);
+      this.state.loginLoading = false;
+      this.state.registerLoading = false;
+      this.setState(this.state);
       return;
     } else {
       if (op == UserOperation.Register || op == UserOperation.Login) {
+        this.state.loginLoading = false;
+        this.state.registerLoading = false;
         let res: LoginResponse = msg;
-        UserService.Instance.login(msg);
+        UserService.Instance.login(res);
         this.props.history.push('/');
       }
     }
