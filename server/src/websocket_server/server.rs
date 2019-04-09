@@ -391,25 +391,25 @@ impl Handler<StandardMessage> for ChatServer {
     let json: Value = serde_json::from_str(&msg.msg)
       .expect("Couldn't parse message");
 
-    let data: &Value = &json["data"];
+    let data = &json["data"].to_string();
     let op = &json["op"].as_str().unwrap();
     let user_operation: UserOperation = UserOperation::from_str(&op).unwrap();
 
     let res: String = match user_operation {
       UserOperation::Login => {
-        let login: Login = serde_json::from_str(&data.to_string()).unwrap();
+        let login: Login = serde_json::from_str(data).unwrap();
         login.perform(self, msg.id)
       },
       UserOperation::Register => {
-        let register: Register = serde_json::from_str(&data.to_string()).unwrap();
+        let register: Register = serde_json::from_str(data).unwrap();
         register.perform(self, msg.id)
       },
       UserOperation::CreateCommunity => {
-        let create_community: CreateCommunity = serde_json::from_str(&data.to_string()).unwrap();
+        let create_community: CreateCommunity = serde_json::from_str(data).unwrap();
         create_community.perform(self, msg.id)
       },
       UserOperation::ListCommunities => {
-        let list_communities: ListCommunities = serde_json::from_str(&data.to_string()).unwrap();
+        let list_communities: ListCommunities = serde_json::from_str(data).unwrap();
         list_communities.perform(self, msg.id)
       },
       UserOperation::ListCategories => {
@@ -417,55 +417,55 @@ impl Handler<StandardMessage> for ChatServer {
         list_categories.perform(self, msg.id)
       },
       UserOperation::CreatePost => {
-        let create_post: CreatePost = serde_json::from_str(&data.to_string()).unwrap();
+        let create_post: CreatePost = serde_json::from_str(data).unwrap();
         create_post.perform(self, msg.id)
       },
       UserOperation::GetPost => {
-        let get_post: GetPost = serde_json::from_str(&data.to_string()).unwrap();
+        let get_post: GetPost = serde_json::from_str(data).unwrap();
         get_post.perform(self, msg.id)
       },
       UserOperation::GetCommunity => {
-        let get_community: GetCommunity = serde_json::from_str(&data.to_string()).unwrap();
+        let get_community: GetCommunity = serde_json::from_str(data).unwrap();
         get_community.perform(self, msg.id)
       },
       UserOperation::CreateComment => {
-        let create_comment: CreateComment = serde_json::from_str(&data.to_string()).unwrap();
+        let create_comment: CreateComment = serde_json::from_str(data).unwrap();
         create_comment.perform(self, msg.id)
       },
       UserOperation::EditComment => {
-        let edit_comment: EditComment = serde_json::from_str(&data.to_string()).unwrap();
+        let edit_comment: EditComment = serde_json::from_str(data).unwrap();
         edit_comment.perform(self, msg.id)
       },
       UserOperation::CreateCommentLike => {
-        let create_comment_like: CreateCommentLike = serde_json::from_str(&data.to_string()).unwrap();
+        let create_comment_like: CreateCommentLike = serde_json::from_str(data).unwrap();
         create_comment_like.perform(self, msg.id)
       },
       UserOperation::GetPosts => {
-        let get_posts: GetPosts = serde_json::from_str(&data.to_string()).unwrap();
+        let get_posts: GetPosts = serde_json::from_str(data).unwrap();
         get_posts.perform(self, msg.id)
       },
       UserOperation::CreatePostLike => {
-        let create_post_like: CreatePostLike = serde_json::from_str(&data.to_string()).unwrap();
+        let create_post_like: CreatePostLike = serde_json::from_str(data).unwrap();
         create_post_like.perform(self, msg.id)
       },
       UserOperation::EditPost => {
-        let edit_post: EditPost = serde_json::from_str(&data.to_string()).unwrap();
+        let edit_post: EditPost = serde_json::from_str(data).unwrap();
         edit_post.perform(self, msg.id)
       },
       UserOperation::EditCommunity => {
-        let edit_community: EditCommunity = serde_json::from_str(&data.to_string()).unwrap();
+        let edit_community: EditCommunity = serde_json::from_str(data).unwrap();
         edit_community.perform(self, msg.id)
       },
       UserOperation::FollowCommunity => {
-        let follow_community: FollowCommunity = serde_json::from_str(&data.to_string()).unwrap();
+        let follow_community: FollowCommunity = serde_json::from_str(data).unwrap();
         follow_community.perform(self, msg.id)
       },
       UserOperation::GetFollowedCommunities => {
-        let followed_communities: GetFollowedCommunities = serde_json::from_str(&data.to_string()).unwrap();
+        let followed_communities: GetFollowedCommunities = serde_json::from_str(data).unwrap();
         followed_communities.perform(self, msg.id)
       },
       UserOperation::GetUserDetails => {
-        let get_user_details: GetUserDetails = serde_json::from_str(&data.to_string()).unwrap();
+        let get_user_details: GetUserDetails = serde_json::from_str(data).unwrap();
         get_user_details.perform(self, msg.id)
       },
       // _ => {
