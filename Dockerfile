@@ -5,8 +5,8 @@ RUN cd /app/ui && yarn && yarn build
 
 FROM rust:1.33 as rust
 COPY server /app/server
+WORKDIR /app/server
 COPY --from=node /app/ui/dist /app/dist
-RUN cd /app/server && cargo build --release
+RUN cargo build --release
 RUN mv /app/server/target/release/lemmy /app/
-WORKDIR /app/
 EXPOSE 8536

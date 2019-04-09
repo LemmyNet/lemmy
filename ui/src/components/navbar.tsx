@@ -40,7 +40,7 @@ export class Navbar extends Component<any, NavbarState> {
   // TODO toggle css collapse
   navbar() {
     return (
-      <nav class="container navbar navbar-expand-sm navbar-light navbar-bg p-0 px-3">
+      <nav class="container navbar navbar-expand-md navbar-light navbar-bg p-0 px-3">
         <a title={version} class="navbar-brand" href="#">
           <svg class="icon mr-2"><use xlinkHref="#icon-mouse"></use></svg>
           Lemmy
