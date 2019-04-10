@@ -1,7 +1,7 @@
 import { Component, linkEvent } from 'inferno';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { PostForm as PostFormI, Post, PostResponse, UserOperation, Community, ListCommunitiesResponse } from '../interfaces';
+import { PostForm as PostFormI, Post, PostResponse, UserOperation, Community, ListCommunitiesResponse, ListCommunitiesForm, SortType } from '../interfaces';
 import { WebSocketService } from '../services';
 import { msgOp } from '../utils';
 import * as autosize from 'autosize';
@@ -56,7 +56,11 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
         () => console.log('complete')
       );
 
-    WebSocketService.Instance.listCommunities();
+      let listCommunitiesForm: ListCommunitiesForm = {
+        sort: SortType[SortType.TopAll]
+      }
+
+      WebSocketService.Instance.listCommunities(listCommunitiesForm);
   }
 
   componentDidMount() {

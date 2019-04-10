@@ -2,13 +2,14 @@ import { Component } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, CommunityUser, GetFollowedCommunitiesResponse } from '../interfaces';
+import { UserOperation, CommunityUser, GetFollowedCommunitiesResponse, ListCommunitiesForm, ListCommunitiesResponse, Community, SortType } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
 import { msgOp, repoUrl } from '../utils';
 
 interface State {
   subscribedCommunities: Array<CommunityUser>;
+  trendingCommunities: Array<Community>;
   loading: boolean;
 }
 
@@ -17,6 +18,7 @@ export class Main extends Component<any, State> {
   private subscription: Subscription;
   private emptyState: State = {
     subscribedCommunities: [],
+    trendingCommunities: [],
     loading: true
   }
 
@@ -36,6 +38,13 @@ export class Main extends Component<any, State> {
     if (UserService.Instance.loggedIn) {
       WebSocketService.Instance.getFollowedCommunities();
     }
+
+    let listCommunitiesForm: ListCommunitiesForm = {
+      sort: SortType[SortType.New],
+      limit: 8
+    }
+
+    WebSocketService.Instance.listCommunities(listCommunitiesForm);
   }
 
   componentWillUnmount() {
@@ -50,24 +59,38 @@ export class Main extends Component<any, State> {
             <PostListings />
           </div>
           <div class="col-12 col-md-4">
-            {UserService.Instance.loggedIn ?
+            {this.state.loading ? 
+            <h4><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
+            <div>
+              {this.trendingCommunities()}
+              {UserService.Instance.loggedIn ?
               <div>
-                {this.state.loading ? 
-                <h4><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
-                <div>
-                  <h4>Subscribed forums</h4>
-                  <ul class="list-unstyled"> 
-                    {this.state.subscribedCommunities.map(community =>
-                      <li><Link to={`/community/${community.community_id}`}>{community.community_name}</Link></li>
-                    )}
-                  </ul>
-                </div>
-                }
+                <h4>Subscribed forums</h4>
+                <ul class="list-inline"> 
+                  {this.state.subscribedCommunities.map(community =>
+                    <li class="list-inline-item"><Link to={`/community/${community.community_id}`}>{community.community_name}</Link></li>
+                  )}
+                </ul>
               </div> :
-            this.landing()
+                this.landing()
+              }
+            </div>
             }
           </div>
         </div>
+      </div>
+    )
+  }
+
+  trendingCommunities() {
+    return (
+      <div>
+        <h4>Trending forums</h4> 
+        <ul class="list-inline"> 
+          {this.state.trendingCommunities.map(community =>
+            <li class="list-inline-item"><Link to={`/community/${community.id}`}>{community.name}</Link></li>
+          )}
+        </ul>
       </div>
     )
   }
@@ -97,6 +120,11 @@ export class Main extends Component<any, State> {
     } else if (op == UserOperation.GetFollowedCommunities) {
       let res: GetFollowedCommunitiesResponse = msg;
       this.state.subscribedCommunities = res.communities;
+      this.state.loading = false;
+      this.setState(this.state);
+    } else if (op == UserOperation.ListCommunities) {
+      let res: ListCommunitiesResponse = msg;
+      this.state.trendingCommunities = res.communities;
       this.state.loading = false;
       this.setState(this.state);
     }
