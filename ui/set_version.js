@@ -7,3 +7,5 @@ exports.setVersion =  function() {
   let line = `export let version: string = "${revision}";`;
   fs.writeFileSync("./src/version.ts", line);
 }
+
+this.setVersion()
