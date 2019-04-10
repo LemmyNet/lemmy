@@ -111,6 +111,8 @@ pub struct CommunityResponse {
 
 #[derive(Serialize, Deserialize)]
 pub struct ListCommunities {
+  sort: String,
+  limit: Option<i64>,
   auth: Option<String>
 }
 
@@ -675,7 +677,9 @@ impl Perform for ListCommunities {
       None => None
     };
 
-    let communities: Vec<CommunityView> = CommunityView::list_all(&conn, user_id).unwrap();
+    let sort = SortType::from_str(&self.sort).expect("listing sort");
+
+    let communities: Vec<CommunityView> = CommunityView::list(&conn, user_id, sort, self.limit).unwrap();
 
     // Return the jwt
     serde_json::to_string(
