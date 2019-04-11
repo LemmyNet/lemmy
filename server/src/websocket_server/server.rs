@@ -10,7 +10,7 @@ use serde_json::{Value};
 use bcrypt::{verify};
 use std::str::FromStr;
 
-use {Crud, Joinable, Likeable, Followable, establish_connection, naive_now, SortType};
+use {Crud, Joinable, Likeable, Followable, establish_connection, naive_now, SortType, has_slurs, remove_slurs};
 use actions::community::*;
 use actions::user::*;
 use actions::post::*;
@@ -111,6 +111,8 @@ pub struct CommunityResponse {
 
 #[derive(Serialize, Deserialize)]
 pub struct ListCommunities {
+  sort: String,
+  limit: Option<i64>,
   auth: Option<String>
 }
 
@@ -391,25 +393,25 @@ impl Handler<StandardMessage> for ChatServer {
     let json: Value = serde_json::from_str(&msg.msg)
       .expect("Couldn't parse message");
 
-    let data: &Value = &json["data"];
+    let data = &json["data"].to_string();
     let op = &json["op"].as_str().unwrap();
     let user_operation: UserOperation = UserOperation::from_str(&op).unwrap();
 
     let res: String = match user_operation {
       UserOperation::Login => {
-        let login: Login = serde_json::from_str(&data.to_string()).unwrap();
+        let login: Login = serde_json::from_str(data).unwrap();
         login.perform(self, msg.id)
       },
       UserOperation::Register => {
-        let register: Register = serde_json::from_str(&data.to_string()).unwrap();
+        let register: Register = serde_json::from_str(data).unwrap();
         register.perform(self, msg.id)
       },
       UserOperation::CreateCommunity => {
-        let create_community: CreateCommunity = serde_json::from_str(&data.to_string()).unwrap();
+        let create_community: CreateCommunity = serde_json::from_str(data).unwrap();
         create_community.perform(self, msg.id)
       },
       UserOperation::ListCommunities => {
-        let list_communities: ListCommunities = serde_json::from_str(&data.to_string()).unwrap();
+        let list_communities: ListCommunities = serde_json::from_str(data).unwrap();
         list_communities.perform(self, msg.id)
       },
       UserOperation::ListCategories => {
@@ -417,55 +419,55 @@ impl Handler<StandardMessage> for ChatServer {
         list_categories.perform(self, msg.id)
       },
       UserOperation::CreatePost => {
-        let create_post: CreatePost = serde_json::from_str(&data.to_string()).unwrap();
+        let create_post: CreatePost = serde_json::from_str(data).unwrap();
         create_post.perform(self, msg.id)
       },
       UserOperation::GetPost => {
-        let get_post: GetPost = serde_json::from_str(&data.to_string()).unwrap();
+        let get_post: GetPost = serde_json::from_str(data).unwrap();
         get_post.perform(self, msg.id)
       },
       UserOperation::GetCommunity => {
-        let get_community: GetCommunity = serde_json::from_str(&data.to_string()).unwrap();
+        let get_community: GetCommunity = serde_json::from_str(data).unwrap();
         get_community.perform(self, msg.id)
       },
       UserOperation::CreateComment => {
-        let create_comment: CreateComment = serde_json::from_str(&data.to_string()).unwrap();
+        let create_comment: CreateComment = serde_json::from_str(data).unwrap();
         create_comment.perform(self, msg.id)
       },
       UserOperation::EditComment => {
-        let edit_comment: EditComment = serde_json::from_str(&data.to_string()).unwrap();
+        let edit_comment: EditComment = serde_json::from_str(data).unwrap();
         edit_comment.perform(self, msg.id)
       },
       UserOperation::CreateCommentLike => {
-        let create_comment_like: CreateCommentLike = serde_json::from_str(&data.to_string()).unwrap();
+        let create_comment_like: CreateCommentLike = serde_json::from_str(data).unwrap();
         create_comment_like.perform(self, msg.id)
       },
       UserOperation::GetPosts => {
-        let get_posts: GetPosts = serde_json::from_str(&data.to_string()).unwrap();
+        let get_posts: GetPosts = serde_json::from_str(data).unwrap();
         get_posts.perform(self, msg.id)
       },
       UserOperation::CreatePostLike => {
-        let create_post_like: CreatePostLike = serde_json::from_str(&data.to_string()).unwrap();
+        let create_post_like: CreatePostLike = serde_json::from_str(data).unwrap();
         create_post_like.perform(self, msg.id)
       },
       UserOperation::EditPost => {
-        let edit_post: EditPost = serde_json::from_str(&data.to_string()).unwrap();
+        let edit_post: EditPost = serde_json::from_str(data).unwrap();
         edit_post.perform(self, msg.id)
       },
       UserOperation::EditCommunity => {
-        let edit_community: EditCommunity = serde_json::from_str(&data.to_string()).unwrap();
+        let edit_community: EditCommunity = serde_json::from_str(data).unwrap();
         edit_community.perform(self, msg.id)
       },
       UserOperation::FollowCommunity => {
-        let follow_community: FollowCommunity = serde_json::from_str(&data.to_string()).unwrap();
+        let follow_community: FollowCommunity = serde_json::from_str(data).unwrap();
         follow_community.perform(self, msg.id)
       },
       UserOperation::GetFollowedCommunities => {
-        let followed_communities: GetFollowedCommunities = serde_json::from_str(&data.to_string()).unwrap();
+        let followed_communities: GetFollowedCommunities = serde_json::from_str(data).unwrap();
         followed_communities.perform(self, msg.id)
       },
       UserOperation::GetUserDetails => {
-        let get_user_details: GetUserDetails = serde_json::from_str(&data.to_string()).unwrap();
+        let get_user_details: GetUserDetails = serde_json::from_str(data).unwrap();
         get_user_details.perform(self, msg.id)
       },
       // _ => {
@@ -541,6 +543,10 @@ impl Perform for Register {
       return self.error("Passwords do not match.");
     }
 
+    if has_slurs(&self.username) {
+      return self.error("No slurs");
+    }
+
     // Register the new user
     let user_form = UserForm {
       name: self.username.to_owned(),
@@ -586,6 +592,12 @@ impl Perform for CreateCommunity {
         return self.error("Not logged in.");
       }
     };
+
+    if has_slurs(&self.name) || 
+      has_slurs(&self.title) || 
+      (self.description.is_some() && has_slurs(&self.description.to_owned().unwrap())) {
+      return self.error("No slurs");
+    }
 
     let user_id = claims.id;
 
@@ -665,7 +677,9 @@ impl Perform for ListCommunities {
       None => None
     };
 
-    let communities: Vec<CommunityView> = CommunityView::list_all(&conn, user_id).unwrap();
+    let sort = SortType::from_str(&self.sort).expect("listing sort");
+
+    let communities: Vec<CommunityView> = CommunityView::list(&conn, user_id, sort, self.limit).unwrap();
 
     // Return the jwt
     serde_json::to_string(
@@ -715,6 +729,11 @@ impl Perform for CreatePost {
         return self.error("Not logged in.");
       }
     };
+
+    if has_slurs(&self.name) || 
+      (self.body.is_some() && has_slurs(&self.body.to_owned().unwrap())) {
+      return self.error("No slurs");
+    }
 
     let user_id = claims.id;
 
@@ -894,8 +913,10 @@ impl Perform for CreateComment {
 
     let user_id = claims.id;
 
+    let content_slurs_removed = remove_slurs(&self.content.to_owned());
+
     let comment_form = CommentForm {
-      content: self.content.to_owned(),
+      content: content_slurs_removed,
       parent_id: self.parent_id.to_owned(),
       post_id: self.post_id,
       creator_id: user_id,
@@ -976,8 +997,10 @@ impl Perform for EditComment {
       return self.error("Incorrect creator.");
     }
 
+    let content_slurs_removed = remove_slurs(&self.content.to_owned());
+
     let comment_form = CommentForm {
-      content: self.content.to_owned(),
+      content: content_slurs_removed,
       parent_id: self.parent_id,
       post_id: self.post_id,
       creator_id: user_id,
@@ -1197,6 +1220,11 @@ impl Perform for EditPost {
 
   fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
 
+    if has_slurs(&self.name) || 
+      (self.body.is_some() && has_slurs(&self.body.to_owned().unwrap())) {
+      return self.error("No slurs");
+    }
+
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
@@ -1263,6 +1291,10 @@ impl Perform for EditCommunity {
   }
 
   fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+
+    if has_slurs(&self.name) || has_slurs(&self.title) {
+      return self.error("No slurs");
+    }
 
     let conn = establish_connection();
 

@@ -66,3 +66,12 @@ body {
   0% { transform: rotate(0deg); }
   100% {  transform: rotate(359deg); }
 }
+
+.dropdown-menu {
+  z-index: 2000;
+}
+
+.navbar-bg {
+  background-color: #222;
+}
+

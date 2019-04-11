@@ -97,13 +97,13 @@ export class Login extends Component<any, State> {
         <div class="form-group row">
           <label class="col-sm-2 col-form-label">Username</label>
           <div class="col-sm-10">
-            <input type="text" class="form-control" value={this.state.registerForm.username} onInput={linkEvent(this, this.handleRegisterUsernameChange)} required minLength={3} />
+            <input type="text" class="form-control" value={this.state.registerForm.username} onInput={linkEvent(this, this.handleRegisterUsernameChange)} required minLength={3} pattern="[a-zA-Z0-9_]+" />
           </div>
         </div>
         <div class="form-group row">
           <label class="col-sm-2 col-form-label">Email</label>
           <div class="col-sm-10">
-            <input type="email" class="form-control" value={this.state.registerForm.email} onInput={linkEvent(this, this.handleRegisterEmailChange)} minLength={3} />
+            <input type="email" class="form-control" placeholder="Optional" value={this.state.registerForm.email} onInput={linkEvent(this, this.handleRegisterEmailChange)} minLength={3} />
           </div>
         </div>
         <div class="form-group row">

@@ -2,7 +2,7 @@ import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community, ListCommunitiesResponse, CommunityResponse, FollowCommunityForm } from '../interfaces';
+import { UserOperation, Community, ListCommunitiesResponse, CommunityResponse, FollowCommunityForm, ListCommunitiesForm, SortType } from '../interfaces';
 import { WebSocketService } from '../services';
 import { msgOp } from '../utils';
 
@@ -30,7 +30,12 @@ export class Communities extends Component<any, CommunitiesState> {
         (err) => console.error(err),
         () => console.log('complete')
     );
-    WebSocketService.Instance.listCommunities();
+
+    let listCommunitiesForm: ListCommunitiesForm = {
+      sort: SortType[SortType.TopAll]
+    }
+
+    WebSocketService.Instance.listCommunities(listCommunitiesForm);
 
   }
 
@@ -45,7 +50,7 @@ export class Communities extends Component<any, CommunitiesState> {
 
   render() {
     return (
-      <div class="container-fluid">
+      <div class="container">
         {this.state.loading ? 
         <h4 class=""><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
         <div>
