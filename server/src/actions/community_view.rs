@@ -2,6 +2,7 @@ extern crate diesel;
 use diesel::*;
 use diesel::result::Error;
 use serde::{Deserialize, Serialize};
+use {SortType};
 
 table! {
   community_view (id) {
@@ -83,17 +84,27 @@ impl CommunityView {
     query.first::<Self>(conn)
   }
 
-  pub fn list_all(conn: &PgConnection, from_user_id: Option<i32>) -> Result<Vec<Self>, Error> {
+  pub fn list(conn: &PgConnection, from_user_id: Option<i32>, sort: SortType, limit: Option<i64>) -> Result<Vec<Self>, Error> {
     use actions::community_view::community_view::dsl::*;
     let mut query = community_view.into_boxed();
 
+
+
     // The view lets you pass a null user_id, if you're not logged in
-    if let Some(from_user_id) = from_user_id {
-      query = query.filter(user_id.eq(from_user_id))
-        .order_by((subscribed.desc(), number_of_subscribers.desc()));
-    } else {
-      query = query.filter(user_id.is_null())
-        .order_by(number_of_subscribers.desc());
+
+    match sort {
+      SortType::New => query = query.order_by(published.desc()).filter(user_id.is_null()),
+      SortType::TopAll => {
+        match from_user_id {
+          Some(from_user_id) => query = query.filter(user_id.eq(from_user_id)).order_by((subscribed.desc(), number_of_subscribers.desc())),
+          None => query = query.order_by(number_of_subscribers.desc()).filter(user_id.is_null())
+        }
+      }
+      _ => ()
+    };
+
+    if let Some(limit) = limit {
+      query = query.limit(limit);
     };
 
     query.load::<Self>(conn) 

@@ -67,6 +67,12 @@ export interface CommunityResponse {
   community: Community;
 }
 
+export interface ListCommunitiesForm {
+  sort: string;
+  limit?: number;
+  auth?: string;
+}
+
 export interface ListCommunitiesResponse {
   op: string;
   communities: Array<Community>;

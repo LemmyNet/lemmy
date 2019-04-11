@@ -56,7 +56,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
               }
             </ul>
           }
-        <ul class="list-inline">
+        <ul class="mt-1 list-inline">
           <li className="list-inline-item"><Link className="badge badge-light" to="/communities">{community.category_name}</Link></li>
           <li className="list-inline-item badge badge-light">{community.number_of_subscribers} Subscribers</li>
           <li className="list-inline-item badge badge-light">{community.number_of_posts} Posts</li>

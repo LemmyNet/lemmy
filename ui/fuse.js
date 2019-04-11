@@ -11,7 +11,7 @@ const transformInferno = require('ts-transform-inferno').default;
 const transformClasscat = require('ts-transform-classcat').default;
 let fuse, app;
 let isProduction = false;
-var setVersion = require('./set_version.js').setVersion;
+// var setVersion = require('./set_version.js').setVersion;
 
 Sparky.task('config', _ => {
   fuse = new FuseBox({
@@ -42,7 +42,7 @@ Sparky.task('config', _ => {
   });
   app = fuse.bundle('app').instructions('>index.tsx');
 });
-Sparky.task('version', _ => setVersion());
+// Sparky.task('version', _ => setVersion());
 Sparky.task('clean', _ => Sparky.src('dist/').clean('dist/'));
 Sparky.task('env', _ => (isProduction = true));
 Sparky.task('copy-assets', () => Sparky.src('assets/*.svg').dest('dist/'));

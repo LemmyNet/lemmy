@@ -101,17 +101,17 @@ export class Post extends Component<any, PostState> {
   sortRadios() {
     return (
       <div class="btn-group btn-group-toggle mb-3">
-        <label className={`btn btn-sm btn-secondary ${this.state.commentSort === CommentSortType.Hot && 'active'}`}>Hot
+        <label className={`btn btn-sm btn-secondary pointer ${this.state.commentSort === CommentSortType.Hot && 'active'}`}>Hot
           <input type="radio" value={CommentSortType.Hot}
           checked={this.state.commentSort === CommentSortType.Hot} 
           onChange={linkEvent(this, this.handleCommentSortChange)}  />
         </label>
-        <label className={`btn btn-sm btn-secondary ${this.state.commentSort === CommentSortType.Top && 'active'}`}>Top
+        <label className={`btn btn-sm btn-secondary pointer ${this.state.commentSort === CommentSortType.Top && 'active'}`}>Top
           <input type="radio" value={CommentSortType.Top}
           checked={this.state.commentSort === CommentSortType.Top} 
           onChange={linkEvent(this, this.handleCommentSortChange)}  />
         </label>
-        <label className={`btn btn-sm btn-secondary ${this.state.commentSort === CommentSortType.New && 'active'}`}>New
+        <label className={`btn btn-sm btn-secondary pointer ${this.state.commentSort === CommentSortType.New && 'active'}`}>New
           <input type="radio" value={CommentSortType.New}
           checked={this.state.commentSort === CommentSortType.New} 
           onChange={linkEvent(this, this.handleCommentSortChange)}  />

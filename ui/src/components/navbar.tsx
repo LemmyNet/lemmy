@@ -25,7 +25,7 @@ export class Navbar extends Component<any, NavbarState> {
 
     // Subscribe to user changes
     UserService.Instance.sub.subscribe(user => {
-      let loggedIn: boolean = user !== null;
+      let loggedIn: boolean = user !== undefined;
       this.setState({isLoggedIn: loggedIn});
     });
   }
@@ -40,7 +40,7 @@ export class Navbar extends Component<any, NavbarState> {
   // TODO toggle css collapse
   navbar() {
     return (
-      <nav class="navbar navbar-expand-sm navbar-light bg-light p-0 px-3 shadow">
+      <nav class="container navbar navbar-expand-md navbar-light navbar-bg p-0 px-3">
         <a title={version} class="navbar-brand" href="#">
           <svg class="icon mr-2"><use xlinkHref="#icon-mouse"></use></svg>
           Lemmy
@@ -74,7 +74,7 @@ export class Navbar extends Component<any, NavbarState> {
                 <a role="button" class="dropdown-item pointer" onClick={ linkEvent(this, this.handleLogoutClick) }>Logout</a>
               </div>
             </li> : 
-              <Link class="nav-link" to="/login">Login</Link>
+            <Link class="nav-link" to="/login">Login / Sign up</Link>
             }
           </ul>
         </div>
