@@ -1,8 +1,8 @@
 import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
-import { Community, CommunityUser, FollowCommunityForm } from '../interfaces';
+import { Community, CommunityUser, FollowCommunityForm, CommunityForm as CommunityFormI } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { mdToHtml } from '../utils';
+import { mdToHtml, getUnixTime } from '../utils';
 import { CommunityForm } from './community-form';
 
 interface SidebarProps {
@@ -12,12 +12,18 @@ interface SidebarProps {
 
 interface SidebarState {
   showEdit: boolean;
+  showRemoveDialog: boolean;
+  removeReason: string;
+  removeExpires: string;
 }
 
 export class Sidebar extends Component<SidebarProps, SidebarState> {
 
   private emptyState: SidebarState = {
-    showEdit: false
+    showEdit: false,
+    showRemoveDialog: false,
+    removeReason: null,
+    removeExpires: null
   }
 
   constructor(props: any, context: any) {
@@ -42,44 +48,71 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     let community = this.props.community;
     return (
       <div>
-        <h4 className="mb-0">{community.title}</h4>
-        <Link className="text-muted" to={`/community/${community.id}`}>/f/{community.name}</Link>
-        {this.amMod && 
-            <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
-              <li className="list-inline-item">
-                <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>edit</span>
-              </li>
-              {this.amCreator && 
-                <li className="list-inline-item">
-                {/* <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>delete</span> */}
-              </li>
-              }
-            </ul>
-          }
-        <ul class="mt-1 list-inline">
-          <li className="list-inline-item"><Link className="badge badge-light" to="/communities">{community.category_name}</Link></li>
-          <li className="list-inline-item badge badge-light">{community.number_of_subscribers} Subscribers</li>
-          <li className="list-inline-item badge badge-light">{community.number_of_posts} Posts</li>
-          <li className="list-inline-item badge badge-light">{community.number_of_comments} Comments</li>
-        </ul>
-        <div>
-          {community.subscribed 
-            ? <button class="btn btn-sm btn-secondary" onClick={linkEvent(community.id, this.handleUnsubscribe)}>Unsubscribe</button>
-            : <button class="btn btn-sm btn-secondary" onClick={linkEvent(community.id, this.handleSubscribe)}>Subscribe</button>
-          }
-        </div>
-        {community.description && 
-          <div>
-            <hr />
-            <div className="md-div" dangerouslySetInnerHTML={mdToHtml(community.description)} />
-          </div>
+        <h4 className="mb-0">{community.title}
+        {community.removed &&
+          <small className="ml-2 text-muted font-italic">removed</small>
         }
-        <hr />
-        <h4>Moderators</h4>
-        {this.props.moderators.map(mod =>
-          <Link to={`/user/${mod.user_id}`}>{mod.user_name}</Link>
-        )}
+      </h4>
+      <Link className="text-muted" to={`/community/${community.id}`}>/f/{community.name}</Link>
+      {community.am_mod && 
+        <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
+          <li className="list-inline-item">
+            <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>edit</span>
+          </li>
+          {this.amCreator && 
+            <li className="list-inline-item">
+              {/* <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>delete</span> */}
+            </li>
+          }
+          <li className="list-inline-item">
+            {!this.props.community.removed ? 
+            <span class="pointer" onClick={linkEvent(this, this.handleModRemoveShow)}>remove</span> :
+            <span class="pointer" onClick={linkEvent(this, this.handleModRemoveSubmit)}>restore</span>
+            }
+          </li>
+        </ul>
+      }
+      {this.state.showRemoveDialog && 
+        <form onSubmit={linkEvent(this, this.handleModRemoveSubmit)}>
+          <div class="form-group row">
+            <label class="col-form-label">Reason</label>
+            <input type="text" class="form-control mr-2" placeholder="Optional" value={this.state.removeReason} onInput={linkEvent(this, this.handleModRemoveReasonChange)} />
+          </div>
+          <div class="form-group row">
+            <label class="col-form-label">Expires</label>
+            <input type="date" class="form-control mr-2" placeholder="Expires" value={this.state.removeExpires} onInput={linkEvent(this, this.handleModRemoveExpiresChange)} />
+          </div>
+          <div class="form-group row">
+            <button type="submit" class="btn btn-secondary">Remove Community</button>
+          </div>
+        </form>
+      }
+      <ul class="mt-1 list-inline">
+        <li className="list-inline-item"><Link className="badge badge-light" to="/communities">{community.category_name}</Link></li>
+        <li className="list-inline-item badge badge-light">{community.number_of_subscribers} Subscribers</li>
+        <li className="list-inline-item badge badge-light">{community.number_of_posts} Posts</li>
+        <li className="list-inline-item badge badge-light">{community.number_of_comments} Comments</li>
+      </ul>
+      <div>
+        {community.subscribed 
+          ? <button class="btn btn-sm btn-secondary" onClick={linkEvent(community.id, this.handleUnsubscribe)}>Unsubscribe</button>
+          : <button class="btn btn-sm btn-secondary" onClick={linkEvent(community.id, this.handleSubscribe)}>Subscribe</button>
+        }
       </div>
+      {community.description && 
+        <div>
+          <hr />
+          <div className="md-div" dangerouslySetInnerHTML={mdToHtml(community.description)} />
+        </div>
+      }
+      <hr />
+      <h4>Moderators</h4>
+      <ul class="list-inline"> 
+        {this.props.moderators.map(mod =>
+          <li class="list-inline-item"><Link to={`/user/${mod.user_id}`}>{mod.user_name}</Link></li>
+        )}
+      </ul>
+    </div>
     );
   }
 
@@ -122,10 +155,48 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     return UserService.Instance.loggedIn && this.props.community.creator_id == UserService.Instance.user.id;
   }
 
-  private get amMod(): boolean {
-    console.log(this.props.moderators);
-    console.log(this.props);
-    return UserService.Instance.loggedIn && 
-      this.props.moderators.map(m => m.user_id).includes(UserService.Instance.user.id);
+  // private get amMod(): boolean {
+  //   return UserService.Instance.loggedIn && 
+  //     this.props.moderators.map(m => m.user_id).includes(UserService.Instance.user.id);
+  // }
+
+  handleDeleteClick() {
   }
+
+  handleModRemoveShow(i: Sidebar) {
+    i.state.showRemoveDialog = true;
+    i.setState(i.state);
+  }
+
+  handleModRemoveReasonChange(i: Sidebar, event: any) {
+    i.state.removeReason = event.target.value;
+    i.setState(i.state);
+  }
+
+  handleModRemoveExpiresChange(i: Sidebar, event: any) {
+    console.log(event.target.value);
+    i.state.removeExpires = event.target.value;
+    i.setState(i.state);
+  }
+
+  handleModRemoveSubmit(i: Sidebar) {
+
+    let deleteForm: CommunityFormI = {
+      name: i.props.community.name,
+      title: i.props.community.title,
+      category_id: i.props.community.category_id,
+      edit_id: i.props.community.id,
+      removed: !i.props.community.removed,
+      reason: i.state.removeReason,
+      expires: getUnixTime(i.state.removeExpires),
+      auth: null,
+    };
+    WebSocketService.Instance.editCommunity(deleteForm);
+
+    i.state.showRemoveDialog = false;
+    i.setState(i.state);
+  }
+
+
+
 }

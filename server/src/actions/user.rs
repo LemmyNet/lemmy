@@ -17,6 +17,8 @@ pub struct User_ {
   pub password_encrypted: String,
   pub email: Option<String>,
   pub icon: Option<Vec<u8>>,
+  pub admin: Option<bool>,
+  pub banned: Option<bool>,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>
 }
@@ -28,6 +30,8 @@ pub struct UserForm {
     pub fedi_name: String,
     pub preferred_username: Option<String>,
     pub password_encrypted: String,
+    pub admin: Option<bool>,
+    pub banned: Option<bool>,
     pub email: Option<String>,
     pub updated: Option<chrono::NaiveDateTime>
 }
@@ -122,6 +126,8 @@ mod tests {
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
+      admin: None,
+      banned: None,
       updated: None
     };
 
@@ -135,6 +141,8 @@ mod tests {
       password_encrypted: "$2y$12$YXpNpYsdfjmed.QlYLvw4OfTCgyKUnKHc/V8Dgcf9YcVKHPaYXYYy".into(),
       email: None,
       icon: None,
+      admin: Some(false),
+      banned: Some(false),
       published: inserted_user.published,
       updated: None
     };

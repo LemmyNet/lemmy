@@ -10,6 +10,7 @@ import { Post } from './components/post';
 import { Community } from './components/community';
 import { Communities } from './components/communities';
 import { User } from './components/user';
+import { Modlog } from './components/modlog';
 import { Symbols } from './components/symbols';
 
 import './main.css';
@@ -42,6 +43,7 @@ class Index extends Component<any, any> {
             <Route path={`/community/:id`} component={Community} />
             <Route path={`/user/:id/:heading`} component={User} />
             <Route path={`/user/:id`} component={User} />
+            <Route path={`/modlog`} component={Modlog} />
           </Switch>
           <Symbols />
         </div>

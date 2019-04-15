@@ -13,14 +13,18 @@ table! {
     post_id -> Int4,
     parent_id -> Nullable<Int4>,
     content -> Text,
+    removed -> Nullable<Bool>,
     published -> Timestamp,
     updated -> Nullable<Timestamp>,
+    community_id -> Int4,
+    banned -> Nullable<Bool>,
     creator_name -> Varchar,
     score -> BigInt,
     upvotes -> BigInt,
     downvotes -> BigInt,
     user_id -> Nullable<Int4>,
     my_vote -> Nullable<Int4>,
+    am_mod -> Nullable<Bool>,
   }
 }
 
@@ -32,14 +36,18 @@ pub struct CommentView {
   pub post_id: i32,
   pub parent_id: Option<i32>,
   pub content: String,
+  pub removed: Option<bool>,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
+  pub community_id: i32,
+  pub banned: Option<bool>,
   pub creator_name: String,
   pub score: i64,
   pub upvotes: i64,
   pub downvotes: i64,
   pub user_id: Option<i32>,
   pub my_vote: Option<i32>,
+  pub am_mod: Option<bool>,
 }
 
 impl CommentView {
@@ -130,6 +138,8 @@ mod tests {
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
+      admin: None,
+      banned: None,
       updated: None
     };
 
@@ -141,6 +151,7 @@ mod tests {
       description: None,
       category_id: 1,
       creator_id: inserted_user.id,
+      removed: None,
       updated: None
     };
 
@@ -152,6 +163,8 @@ mod tests {
       url: None,
       body: None,
       community_id: inserted_community.id,
+      removed: None,
+      locked: None,
       updated: None
     };
 
@@ -162,6 +175,7 @@ mod tests {
       creator_id: inserted_user.id,
       post_id: inserted_post.id,
       parent_id: None,
+      removed: None,
       updated: None
     };
 
@@ -181,7 +195,10 @@ mod tests {
       content: "A test comment 32".into(),
       creator_id: inserted_user.id,
       post_id: inserted_post.id,
+      community_id: inserted_community.id,
       parent_id: None,
+      removed: Some(false),
+      banned: None,
       published: inserted_comment.published,
       updated: None,
       creator_name: inserted_user.name.to_owned(),
@@ -189,7 +206,8 @@ mod tests {
       downvotes: 0,
       upvotes: 1,
       user_id: None,
-      my_vote: None
+      my_vote: None,
+      am_mod: None,
     };
 
     let expected_comment_view_with_user = CommentView {
@@ -197,7 +215,10 @@ mod tests {
       content: "A test comment 32".into(),
       creator_id: inserted_user.id,
       post_id: inserted_post.id,
+      community_id: inserted_community.id,
       parent_id: None,
+      removed: Some(false),
+      banned: None,
       published: inserted_comment.published,
       updated: None,
       creator_name: inserted_user.name.to_owned(),
@@ -206,6 +227,7 @@ mod tests {
       upvotes: 1,
       user_id: Some(inserted_user.id),
       my_vote: Some(1),
+      am_mod: None,
     };
 
     let read_comment_views_no_user = CommentView::list(&conn, &SortType::New, Some(inserted_post.id), None, None, 999).unwrap();

@@ -50,6 +50,11 @@ pub trait Likeable<T> {
   fn remove(conn: &PgConnection, form: &T) -> Result<usize, Error> where Self: Sized;
 }
 
+pub trait Bannable<T> {
+  fn ban(conn: &PgConnection, form: &T) -> Result<Self, Error> where Self: Sized;
+  fn unban(conn: &PgConnection, form: &T) -> Result<usize, Error> where Self: Sized;
+}
+
 pub fn establish_connection() -> PgConnection {
   let db_url = Settings::get().db_url;
   PgConnection::establish(&db_url)
@@ -86,6 +91,10 @@ pub fn to_datetime_utc(ndt: NaiveDateTime) -> DateTime<Utc> {
 
 pub fn naive_now() -> NaiveDateTime {
   chrono::prelude::Utc::now().naive_utc()
+}
+
+pub fn naive_from_unix(time: i64)  ->  NaiveDateTime {
+  NaiveDateTime::from_timestamp(time, 0)
 }
 
 pub fn is_email_regex(test: &str) -> bool {

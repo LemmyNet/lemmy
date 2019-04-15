@@ -1,5 +1,5 @@
 import { wsUri } from '../env';
-import { LoginForm, RegisterForm, UserOperation, CommunityForm, PostForm, CommentForm, CommentLikeForm, GetPostsForm, CreatePostLikeForm, FollowCommunityForm, GetUserDetailsForm, ListCommunitiesForm } from '../interfaces';
+import { LoginForm, RegisterForm, UserOperation, CommunityForm, PostForm, CommentForm, CommentLikeForm, GetPostsForm, CreatePostLikeForm, FollowCommunityForm, GetUserDetailsForm, ListCommunitiesForm, GetModlogForm, BanFromCommunityForm, AddModToCommunityForm } from '../interfaces';
 import { webSocket } from 'rxjs/webSocket';
 import { Subject } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
@@ -106,9 +106,23 @@ export class WebSocketService {
     this.subject.next(this.wsSendWrapper(UserOperation.EditPost, postForm));
   }
 
+  public banFromCommunity(form: BanFromCommunityForm) {
+    this.setAuth(form);
+    this.subject.next(this.wsSendWrapper(UserOperation.BanFromCommunity, form));
+  }
+
+  public addModToCommunity(form: AddModToCommunityForm) {
+    this.setAuth(form);
+    this.subject.next(this.wsSendWrapper(UserOperation.AddModToCommunity, form));
+  }
+
   public getUserDetails(form: GetUserDetailsForm) {
     this.setAuth(form, false);
     this.subject.next(this.wsSendWrapper(UserOperation.GetUserDetails, form));
+  }
+
+  public getModlog(form: GetModlogForm) {
+    this.subject.next(this.wsSendWrapper(UserOperation.GetModlog, form));
   }
 
   private wsSendWrapper(op: UserOperation, data: any) {
