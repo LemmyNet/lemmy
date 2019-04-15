@@ -14,6 +14,8 @@ pub struct Post {
   pub body: Option<String>,
   pub creator_id: i32,
   pub community_id: i32,
+  pub removed: Option<bool>,
+  pub locked: Option<bool>,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>
 }
@@ -26,6 +28,8 @@ pub struct PostForm {
   pub body: Option<String>,
   pub creator_id: i32,
   pub community_id: i32,
+  pub removed: Option<bool>,
+  pub locked: Option<bool>,
   pub updated: Option<chrono::NaiveDateTime>
 }
 
@@ -115,17 +119,20 @@ mod tests {
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
+      admin: None,
+      banned: None,
       updated: None
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
 
     let new_community = CommunityForm {
-      name: "test community_2".to_string(),
+      name: "test community_3".to_string(),
       title: "nada".to_owned(),
       description: None,
       category_id: 1,
       creator_id: inserted_user.id,
+      removed: None,
       updated: None
     };
 
@@ -137,6 +144,8 @@ mod tests {
       body: None,
       creator_id: inserted_user.id,
       community_id: inserted_community.id,
+      removed: None,
+      locked: None,
       updated: None
     };
 
@@ -150,6 +159,8 @@ mod tests {
       creator_id: inserted_user.id,
       community_id: inserted_community.id,
       published: inserted_post.published,
+      removed: Some(false),
+      locked: Some(false),
       updated: None
     };
 

@@ -3,7 +3,8 @@ import * as moment from 'moment';
 
 interface MomentTimeProps {
   data: {
-    published: string;
+    published?: string;
+    when_?: string;
     updated?: string;
   }
 }
@@ -20,8 +21,9 @@ export class MomentTime extends Component<MomentTimeProps, any> {
         <span title={this.props.data.updated} className="font-italics">modified {moment.utc(this.props.data.updated).fromNow()}</span>
       )
     } else {
+      let str = this.props.data.published || this.props.data.when_;
       return (
-        <span title={this.props.data.published}>{moment.utc(this.props.data.published).fromNow()}</span>
+        <span title={str}>{moment.utc(str).fromNow()}</span>
       )
     }
   }

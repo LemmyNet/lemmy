@@ -22,6 +22,7 @@ pub struct Comment {
   pub post_id: i32,
   pub parent_id: Option<i32>,
   pub content: String,
+  pub removed: Option<bool>,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>
 }
@@ -33,6 +34,7 @@ pub struct CommentForm {
   pub post_id: i32,
   pub parent_id: Option<i32>,
   pub content: String,
+  pub removed: Option<bool>,
   pub updated: Option<chrono::NaiveDateTime>
 }
 
@@ -135,6 +137,8 @@ mod tests {
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
+      admin: None,
+      banned: None,
       updated: None
     };
 
@@ -146,6 +150,7 @@ mod tests {
       description: None,
       category_id: 1,
       creator_id: inserted_user.id,
+      removed: None,
       updated: None
     };
 
@@ -157,6 +162,8 @@ mod tests {
       url: None,
       body: None,
       community_id: inserted_community.id,
+      removed: None,
+      locked: None,
       updated: None
     };
 
@@ -166,6 +173,7 @@ mod tests {
       content: "A test comment".into(),
       creator_id: inserted_user.id,
       post_id: inserted_post.id,
+      removed: None,
       parent_id: None,
       updated: None
     };
@@ -177,6 +185,7 @@ mod tests {
       content: "A test comment".into(),
       creator_id: inserted_user.id,
       post_id: inserted_post.id,
+      removed: Some(false),
       parent_id: None,
       published: inserted_comment.published,
       updated: None
@@ -187,6 +196,7 @@ mod tests {
       creator_id: inserted_user.id,
       post_id: inserted_post.id,
       parent_id: Some(inserted_comment.id),
+      removed: None,
       updated: None
     };
 

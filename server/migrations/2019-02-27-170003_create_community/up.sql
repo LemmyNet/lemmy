@@ -38,6 +38,7 @@ create table community (
   description text,
   category_id int references category on update cascade on delete cascade not null,
   creator_id int references user_ on update cascade on delete cascade not null,
+  removed boolean default false,
   published timestamp not null default now(),
   updated timestamp
 );
@@ -46,14 +47,24 @@ create table community_moderator (
   id serial primary key,
   community_id int references community on update cascade on delete cascade not null,
   user_id int references user_ on update cascade on delete cascade not null,
-  published timestamp not null default now()
+  published timestamp not null default now(),
+  unique (community_id, user_id)
 );
 
 create table community_follower (
   id serial primary key,
   community_id int references community on update cascade on delete cascade not null,
   user_id int references user_ on update cascade on delete cascade not null,
-  published timestamp not null default now()
+  published timestamp not null default now(),
+  unique (community_id, user_id)
+);
+
+create table community_user_ban (
+  id serial primary key,
+  community_id int references community on update cascade on delete cascade not null,
+  user_id int references user_ on update cascade on delete cascade not null,
+  published timestamp not null default now(),
+  unique (community_id, user_id)
 );
 
 insert into community (name, title, category_id, creator_id) values ('main', 'The Default Community', 1, 1);

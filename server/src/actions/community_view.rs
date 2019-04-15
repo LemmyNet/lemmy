@@ -12,6 +12,7 @@ table! {
     description -> Nullable<Text>,
     category_id -> Int4,
     creator_id -> Int4,
+    removed -> Nullable<Bool>,
     published -> Timestamp,
     updated -> Nullable<Timestamp>,
     creator_name -> Varchar,
@@ -21,6 +22,7 @@ table! {
     number_of_comments -> BigInt,
     user_id -> Nullable<Int4>,
     subscribed -> Nullable<Bool>,
+    am_mod -> Nullable<Bool>,
   }
 }
 
@@ -46,6 +48,17 @@ table! {
   }
 }
 
+table! {
+  community_user_ban_view (id) {
+    id -> Int4,
+    community_id -> Int4,
+    user_id -> Int4,
+    published -> Timestamp,
+    user_name -> Varchar,
+    community_name -> Varchar,
+  }
+}
+
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize,QueryableByName,Clone)]
 #[table_name="community_view"]
 pub struct CommunityView {
@@ -55,6 +68,7 @@ pub struct CommunityView {
   pub description: Option<String>,
   pub category_id: i32,
   pub creator_id: i32,
+  pub removed: Option<bool>,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
   pub creator_name: String,
@@ -64,6 +78,7 @@ pub struct CommunityView {
   pub number_of_comments: i64,
   pub user_id: Option<i32>,
   pub subscribed: Option<bool>,
+  pub am_mod: Option<bool>,
 }
 
 impl CommunityView {
@@ -107,7 +122,7 @@ impl CommunityView {
       query = query.limit(limit);
     };
 
-    query.load::<Self>(conn) 
+    query.filter(removed.eq(false)).load::<Self>(conn) 
   }
 }
 
@@ -155,5 +170,37 @@ impl CommunityFollowerView {
   pub fn for_user(conn: &PgConnection, from_user_id: i32) -> Result<Vec<Self>, Error> {
     use actions::community_view::community_follower_view::dsl::*;
     community_follower_view.filter(user_id.eq(from_user_id)).load::<Self>(conn)
+  }
+}
+
+
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize,QueryableByName,Clone)]
+#[table_name="community_user_ban_view"]
+pub struct CommunityUserBanView {
+  pub id: i32,
+  pub community_id: i32,
+  pub user_id: i32,
+  pub published: chrono::NaiveDateTime,
+  pub user_name : String,
+  pub community_name: String,
+}
+
+impl CommunityUserBanView {
+  pub fn for_community(conn: &PgConnection, from_community_id: i32) -> Result<Vec<Self>, Error> {
+    use actions::community_view::community_user_ban_view::dsl::*;
+    community_user_ban_view.filter(community_id.eq(from_community_id)).load::<Self>(conn)
+  }
+
+  pub fn for_user(conn: &PgConnection, from_user_id: i32) -> Result<Vec<Self>, Error> {
+    use actions::community_view::community_user_ban_view::dsl::*;
+    community_user_ban_view.filter(user_id.eq(from_user_id)).load::<Self>(conn)
+  }
+
+  pub fn get(conn: &PgConnection, from_user_id: i32, from_community_id: i32) -> Result<Self, Error> {
+    use actions::community_view::community_user_ban_view::dsl::*;
+    community_user_ban_view
+      .filter(user_id.eq(from_user_id))
+      .filter(community_id.eq(from_community_id))
+      .first::<Self>(conn)
   }
 }

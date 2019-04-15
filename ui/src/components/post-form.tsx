@@ -2,7 +2,7 @@ import { Component, linkEvent } from 'inferno';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { PostForm as PostFormI, Post, PostResponse, UserOperation, Community, ListCommunitiesResponse, ListCommunitiesForm, SortType } from '../interfaces';
-import { WebSocketService } from '../services';
+import { WebSocketService, UserService } from '../services';
 import { msgOp } from '../utils';
 import * as autosize from 'autosize';
 
@@ -26,7 +26,8 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     postForm: {
       name: null,
       auth: null,
-      community_id: null
+      community_id: null,
+      creator_id: UserService.Instance.loggedIn ? UserService.Instance.user.id : null
     },
     communities: [],
     loading: false
@@ -43,6 +44,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
         name: this.props.post.name,
         community_id: this.props.post.community_id,
         edit_id: this.props.post.id,
+        creator_id: this.props.post.creator_id,
         url: this.props.post.url,
         auth: null
       }

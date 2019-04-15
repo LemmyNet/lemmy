@@ -12,6 +12,7 @@ table! {
         post_id -> Int4,
         parent_id -> Nullable<Int4>,
         content -> Text,
+        removed -> Nullable<Bool>,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
     }
@@ -36,6 +37,7 @@ table! {
         description -> Nullable<Text>,
         category_id -> Int4,
         creator_id -> Int4,
+        removed -> Nullable<Bool>,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
     }
@@ -60,6 +62,105 @@ table! {
 }
 
 table! {
+    community_user_ban (id) {
+        id -> Int4,
+        community_id -> Int4,
+        user_id -> Int4,
+        published -> Timestamp,
+    }
+}
+
+table! {
+    mod_add (id) {
+        id -> Int4,
+        mod_user_id -> Int4,
+        other_user_id -> Int4,
+        removed -> Nullable<Bool>,
+        when_ -> Timestamp,
+    }
+}
+
+table! {
+    mod_add_community (id) {
+        id -> Int4,
+        mod_user_id -> Int4,
+        other_user_id -> Int4,
+        community_id -> Int4,
+        removed -> Nullable<Bool>,
+        when_ -> Timestamp,
+    }
+}
+
+table! {
+    mod_ban (id) {
+        id -> Int4,
+        mod_user_id -> Int4,
+        other_user_id -> Int4,
+        reason -> Nullable<Text>,
+        banned -> Nullable<Bool>,
+        expires -> Nullable<Timestamp>,
+        when_ -> Timestamp,
+    }
+}
+
+table! {
+    mod_ban_from_community (id) {
+        id -> Int4,
+        mod_user_id -> Int4,
+        other_user_id -> Int4,
+        community_id -> Int4,
+        reason -> Nullable<Text>,
+        banned -> Nullable<Bool>,
+        expires -> Nullable<Timestamp>,
+        when_ -> Timestamp,
+    }
+}
+
+table! {
+    mod_lock_post (id) {
+        id -> Int4,
+        mod_user_id -> Int4,
+        post_id -> Int4,
+        locked -> Nullable<Bool>,
+        when_ -> Timestamp,
+    }
+}
+
+table! {
+    mod_remove_comment (id) {
+        id -> Int4,
+        mod_user_id -> Int4,
+        comment_id -> Int4,
+        reason -> Nullable<Text>,
+        removed -> Nullable<Bool>,
+        when_ -> Timestamp,
+    }
+}
+
+table! {
+    mod_remove_community (id) {
+        id -> Int4,
+        mod_user_id -> Int4,
+        community_id -> Int4,
+        reason -> Nullable<Text>,
+        removed -> Nullable<Bool>,
+        expires -> Nullable<Timestamp>,
+        when_ -> Timestamp,
+    }
+}
+
+table! {
+    mod_remove_post (id) {
+        id -> Int4,
+        mod_user_id -> Int4,
+        post_id -> Int4,
+        reason -> Nullable<Text>,
+        removed -> Nullable<Bool>,
+        when_ -> Timestamp,
+    }
+}
+
+table! {
     post (id) {
         id -> Int4,
         name -> Varchar,
@@ -67,6 +168,8 @@ table! {
         body -> Nullable<Text>,
         creator_id -> Int4,
         community_id -> Int4,
+        removed -> Nullable<Bool>,
+        locked -> Nullable<Bool>,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
     }
@@ -91,8 +194,18 @@ table! {
         password_encrypted -> Text,
         email -> Nullable<Text>,
         icon -> Nullable<Bytea>,
+        admin -> Nullable<Bool>,
+        banned -> Nullable<Bool>,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
+    }
+}
+
+table! {
+    user_ban (id) {
+        id -> Int4,
+        user_id -> Int4,
+        published -> Timestamp,
     }
 }
 
@@ -107,10 +220,23 @@ joinable!(community_follower -> community (community_id));
 joinable!(community_follower -> user_ (user_id));
 joinable!(community_moderator -> community (community_id));
 joinable!(community_moderator -> user_ (user_id));
+joinable!(community_user_ban -> community (community_id));
+joinable!(community_user_ban -> user_ (user_id));
+joinable!(mod_add_community -> community (community_id));
+joinable!(mod_ban_from_community -> community (community_id));
+joinable!(mod_lock_post -> post (post_id));
+joinable!(mod_lock_post -> user_ (mod_user_id));
+joinable!(mod_remove_comment -> comment (comment_id));
+joinable!(mod_remove_comment -> user_ (mod_user_id));
+joinable!(mod_remove_community -> community (community_id));
+joinable!(mod_remove_community -> user_ (mod_user_id));
+joinable!(mod_remove_post -> post (post_id));
+joinable!(mod_remove_post -> user_ (mod_user_id));
 joinable!(post -> community (community_id));
 joinable!(post -> user_ (creator_id));
 joinable!(post_like -> post (post_id));
 joinable!(post_like -> user_ (user_id));
+joinable!(user_ban -> user_ (user_id));
 
 allow_tables_to_appear_in_same_query!(
     category,
@@ -119,7 +245,17 @@ allow_tables_to_appear_in_same_query!(
     community,
     community_follower,
     community_moderator,
+    community_user_ban,
+    mod_add,
+    mod_add_community,
+    mod_ban,
+    mod_ban_from_community,
+    mod_lock_post,
+    mod_remove_comment,
+    mod_remove_community,
+    mod_remove_post,
     post,
     post_like,
     user_,
+    user_ban,
 );

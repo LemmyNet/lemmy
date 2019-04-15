@@ -102,7 +102,6 @@ export class Communities extends Component<any, CommunitiesState> {
     WebSocketService.Instance.followCommunity(form);
   }
 
-
   handleSubscribe(communityId: number) {
     let form: FollowCommunityForm = {
       community_id: communityId,
@@ -129,6 +128,6 @@ export class Communities extends Component<any, CommunitiesState> {
       found.subscribed = res.community.subscribed;
       found.number_of_subscribers = res.community.number_of_subscribers;
       this.setState(this.state);
-    }
+    } 
   }
 }

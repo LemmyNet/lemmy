@@ -24,6 +24,11 @@ body {
   color: #fff;
 }
 
+.form-control:disabled {
+  background-color: var(--secondary);
+  opacity: .5;
+}
+
 .custom-select {
   color: #fff;
   background-color: var(--secondary);
