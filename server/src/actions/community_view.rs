@@ -59,6 +59,21 @@ table! {
   }
 }
 
+table! {
+    site_view (id) {
+      id -> Int4,
+      name -> Varchar,
+      description -> Nullable<Text>,
+      creator_id -> Int4,
+      published -> Timestamp,
+      updated -> Nullable<Timestamp>,
+      creator_name -> Varchar,
+      number_of_users -> BigInt,
+      number_of_posts -> BigInt,
+      number_of_comments -> BigInt,
+    }
+}
+
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize,QueryableByName,Clone)]
 #[table_name="community_view"]
 pub struct CommunityView {
@@ -202,5 +217,28 @@ impl CommunityUserBanView {
       .filter(user_id.eq(from_user_id))
       .filter(community_id.eq(from_community_id))
       .first::<Self>(conn)
+  }
+}
+
+
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize,QueryableByName,Clone)]
+#[table_name="site_view"]
+pub struct SiteView {
+  pub id: i32,
+  pub name: String,
+  pub description: Option<String>,
+  pub creator_id: i32,
+  pub published: chrono::NaiveDateTime,
+  pub updated: Option<chrono::NaiveDateTime>,
+  pub creator_name: String,
+  pub number_of_users: i64,
+  pub number_of_posts: i64,
+  pub number_of_comments: i64,
+}
+
+impl SiteView {
+  pub fn read(conn: &PgConnection) -> Result<Self, Error> {
+    use actions::community_view::site_view::dsl::*;
+    site_view.first::<Self>(conn)
   }
 }

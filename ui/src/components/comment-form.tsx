@@ -23,7 +23,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
       auth: null,
       content: null,
       post_id: this.props.node ? this.props.node.comment.post_id : this.props.postId,
-      creator_id: UserService.Instance.loggedIn ? UserService.Instance.user.id : null,
+      creator_id: UserService.Instance.user ? UserService.Instance.user.id : null,
     },
     buttonTitle: !this.props.node ? "Post" : this.props.edit ? "Edit" : "Reply",
   }
@@ -71,6 +71,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
   }
 
   handleCommentSubmit(i: CommentForm, event: any) {
+    event.preventDefault();
     if (i.props.edit) {
       WebSocketService.Instance.editComment(i.state.commentForm);
     } else {

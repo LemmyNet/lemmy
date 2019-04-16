@@ -6,8 +6,8 @@ create table user_ (
   password_encrypted text not null,
   email text unique,
   icon bytea,
-  admin boolean default false,
-  banned boolean default false,
+  admin boolean default false not null,
+  banned boolean default false not null,
   published timestamp not null default now(),
   updated timestamp,
   unique(name, fedi_name)

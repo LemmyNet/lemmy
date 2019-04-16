@@ -160,7 +160,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   private get myPost(): boolean {
-    return UserService.Instance.loggedIn && this.props.post.creator_id == UserService.Instance.user.id;
+    return UserService.Instance.user && this.props.post.creator_id == UserService.Instance.user.id;
   }
 
   handlePostLike(i: PostListing) {
@@ -220,6 +220,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   handleModRemoveSubmit(i: PostListing) {
+    event.preventDefault();
     let form: PostFormI = {
       name: i.props.post.name,
       community_id: i.props.post.community_id,

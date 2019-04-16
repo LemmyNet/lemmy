@@ -44,8 +44,8 @@ mod tests {
       email: None,
       icon: None,
       published: naive_now(),
-      admin: None,
-      banned: None,
+      admin: false,
+      banned: false,
       updated: None
     };
 

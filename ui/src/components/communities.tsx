@@ -62,9 +62,9 @@ export class Communities extends Component<any, CommunitiesState> {
                   <th>Name</th>
                   <th>Title</th>
                   <th>Category</th>
-                  <th class="text-right">Subscribers</th>
-                  <th class="text-right">Posts</th>
-                  <th class="text-right">Comments</th>
+                  <th class="text-right d-none d-md-table-cell">Subscribers</th>
+                  <th class="text-right d-none d-md-table-cell">Posts</th>
+                  <th class="text-right d-none d-md-table-cell">Comments</th>
                   <th></th>
                 </tr>
               </thead>
@@ -74,13 +74,13 @@ export class Communities extends Component<any, CommunitiesState> {
                     <td><Link to={`/community/${community.id}`}>{community.name}</Link></td>
                     <td>{community.title}</td>
                     <td>{community.category_name}</td>
-                    <td class="text-right">{community.number_of_subscribers}</td>
-                    <td class="text-right">{community.number_of_posts}</td>
-                    <td class="text-right">{community.number_of_comments}</td>
+                    <td class="text-right d-none d-md-table-cell">{community.number_of_subscribers}</td>
+                    <td class="text-right d-none d-md-table-cell">{community.number_of_posts}</td>
+                    <td class="text-right d-none d-md-table-cell">{community.number_of_comments}</td>
                     <td class="text-right">
                       {community.subscribed ? 
-                      <button class="btn btn-sm btn-secondary" onClick={linkEvent(community.id, this.handleUnsubscribe)}>Unsubscribe</button> : 
-                      <button class="btn btn-sm btn-secondary" onClick={linkEvent(community.id, this.handleSubscribe)}>Subscribe</button>
+                      <span class="pointer btn-link" onClick={linkEvent(community.id, this.handleUnsubscribe)}>Unsubscribe</span> : 
+                      <span class="pointer btn-link" onClick={linkEvent(community.id, this.handleSubscribe)}>Subscribe</span>
                       }
                     </td>
                   </tr>

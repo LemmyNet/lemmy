@@ -186,6 +186,17 @@ table! {
 }
 
 table! {
+    site (id) {
+        id -> Int4,
+        name -> Varchar,
+        description -> Nullable<Text>,
+        creator_id -> Int4,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
+    }
+}
+
+table! {
     user_ (id) {
         id -> Int4,
         name -> Varchar,
@@ -194,8 +205,8 @@ table! {
         password_encrypted -> Text,
         email -> Nullable<Text>,
         icon -> Nullable<Bytea>,
-        admin -> Nullable<Bool>,
-        banned -> Nullable<Bool>,
+        admin -> Bool,
+        banned -> Bool,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
     }
@@ -236,6 +247,7 @@ joinable!(post -> community (community_id));
 joinable!(post -> user_ (creator_id));
 joinable!(post_like -> post (post_id));
 joinable!(post_like -> user_ (user_id));
+joinable!(site -> user_ (creator_id));
 joinable!(user_ban -> user_ (user_id));
 
 allow_tables_to_appear_in_same_query!(
@@ -256,6 +268,7 @@ allow_tables_to_appear_in_same_query!(
     mod_remove_post,
     post,
     post_like,
+    site,
     user_,
     user_ban,
 );

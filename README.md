@@ -19,12 +19,11 @@ Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Infern
 
 ## Features
 - TBD
--
-the name
 
-Lead singer from motorhead.
-The old school video game.
-The furry rodents.
+## Why's it called Lemmy?
+- Lead singer from [motorhead](https://invidio.us/watch?v=pWB5JZRGl0U).
+- The old school [video game](https://en.wikipedia.org/wiki/Lemmings_(video_game)).
+- The [furry rodents](http://sunchild.fpwc.org/lemming-the-little-giant-of-the-north/).
 
 Goals r/ censorship
 

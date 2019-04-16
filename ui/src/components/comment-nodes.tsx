@@ -7,7 +7,7 @@ interface CommentNodesState {
 
 interface CommentNodesProps {
   nodes: Array<CommentNodeI>;
-  moderators: Array<CommunityUser>;
+  moderators?: Array<CommunityUser>;
   noIndent?: boolean;
   viewOnly?: boolean;
   locked?: boolean;

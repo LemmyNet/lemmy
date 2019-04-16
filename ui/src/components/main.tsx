@@ -2,14 +2,15 @@ import { Component } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, CommunityUser, GetFollowedCommunitiesResponse, ListCommunitiesForm, ListCommunitiesResponse, Community, SortType } from '../interfaces';
+import { UserOperation, CommunityUser, GetFollowedCommunitiesResponse, ListCommunitiesForm, ListCommunitiesResponse, Community, SortType, GetSiteResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
-import { msgOp, repoUrl } from '../utils';
+import { msgOp, repoUrl, mdToHtml } from '../utils';
 
 interface State {
   subscribedCommunities: Array<CommunityUser>;
   trendingCommunities: Array<Community>;
+  site: GetSiteResponse;
   loading: boolean;
 }
 
@@ -19,6 +20,21 @@ export class Main extends Component<any, State> {
   private emptyState: State = {
     subscribedCommunities: [],
     trendingCommunities: [],
+    site: {
+      op: null,
+      site: {
+        id: null,
+        name: null,
+        creator_id: null,
+        creator_name: null,
+        published: null,
+        number_of_users: null,
+        number_of_posts: null,
+        number_of_comments: null,
+      },
+      admins: [],
+      banned: [],
+    },
     loading: true
   }
 
@@ -35,7 +51,9 @@ export class Main extends Component<any, State> {
         () => console.log('complete')
     );
 
-    if (UserService.Instance.loggedIn) {
+    WebSocketService.Instance.getSite();
+
+    if (UserService.Instance.user) {
       WebSocketService.Instance.getFollowedCommunities();
     }
 
@@ -63,7 +81,7 @@ export class Main extends Component<any, State> {
             <h4><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
             <div>
               {this.trendingCommunities()}
-              {UserService.Instance.loggedIn ?
+              {UserService.Instance.user && this.state.subscribedCommunities.length > 0 && 
               <div>
                 <h4>Subscribed forums</h4>
                 <ul class="list-inline"> 
@@ -71,9 +89,9 @@ export class Main extends Component<any, State> {
                     <li class="list-inline-item"><Link to={`/community/${community.community_id}`}>{community.community_name}</Link></li>
                   )}
                 </ul>
-              </div> :
-                this.landing()
+              </div>
               }
+              {this.landing()}
             </div>
             }
           </div>
@@ -85,7 +103,7 @@ export class Main extends Component<any, State> {
   trendingCommunities() {
     return (
       <div>
-        <h4>Trending forums</h4> 
+        <h4>Trending <Link class="text-white" to="/communities">forums</Link></h4> 
         <ul class="list-inline"> 
           {this.state.trendingCommunities.map(community =>
             <li class="list-inline-item"><Link to={`/community/${community.id}`}>{community.name}</Link></li>
@@ -98,6 +116,26 @@ export class Main extends Component<any, State> {
   landing() {
     return (
       <div>
+        <h4>{`${this.state.site.site.name}`}</h4>
+        <ul class="my-1 list-inline">
+          <li className="list-inline-item badge badge-light">{this.state.site.site.number_of_users} Users</li>
+          <li className="list-inline-item badge badge-light">{this.state.site.site.number_of_posts} Posts</li>
+          <li className="list-inline-item badge badge-light">{this.state.site.site.number_of_comments} Comments</li>
+          <li className="list-inline-item"><Link className="badge badge-light" to="/modlog">Modlog</Link></li>
+        </ul>
+        <ul class="list-inline small"> 
+          <li class="list-inline-item">admins: </li>
+          {this.state.site.admins.map(admin =>
+            <li class="list-inline-item"><Link class="text-info" to={`/user/${admin.id}`}>{admin.name}</Link></li>
+          )}
+        </ul>
+        {this.state.site.site.description && 
+          <div>
+            <hr />
+            <div className="md-div" dangerouslySetInnerHTML={mdToHtml(this.state.site.site.description)} />
+            <hr />
+          </div>
+        }
         <h4>Welcome to 
           <svg class="icon mx-2"><use xlinkHref="#icon-mouse"></use></svg>
           <a href={repoUrl}>Lemmy<sup>Beta</sup></a>
@@ -127,7 +165,18 @@ export class Main extends Component<any, State> {
       this.state.trendingCommunities = res.communities;
       this.state.loading = false;
       this.setState(this.state);
-    }
+    } else if (op == UserOperation.GetSite) {
+      let res: GetSiteResponse = msg;
+
+      // This means it hasn't been set up yet
+      if (!res.site) {
+        this.context.router.history.push("/setup");
+      }
+      this.state.site.admins = res.admins;
+      this.state.site.site = res.site;
+      this.state.site.banned = res.banned;
+      this.setState(this.state);
+    } 
   }
 }
 

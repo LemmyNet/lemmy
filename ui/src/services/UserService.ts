@@ -31,10 +31,6 @@ export class UserService {
     this.sub.next(undefined);
   }
 
-  public get loggedIn(): boolean {
-    return this.user !== undefined;
-  }
-
   public get auth(): string {
     return Cookies.get("jwt");
   }

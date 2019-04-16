@@ -1,5 +1,5 @@
 extern crate diesel;
-use schema::{community, community_moderator, community_follower, community_user_ban};
+use schema::{community, community_moderator, community_follower, community_user_ban, site};
 use diesel::*;
 use diesel::result::Error;
 use serde::{Deserialize, Serialize};
@@ -31,58 +31,6 @@ pub struct CommunityForm {
   pub updated: Option<chrono::NaiveDateTime>
 }
 
-#[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
-#[belongs_to(Community)]
-#[table_name = "community_moderator"]
-pub struct CommunityModerator {
-  pub id: i32,
-  pub community_id: i32,
-  pub user_id: i32,
-  pub published: chrono::NaiveDateTime,
-}
-
-#[derive(Insertable, AsChangeset, Clone)]
-#[table_name="community_moderator"]
-pub struct CommunityModeratorForm {
-  pub community_id: i32,
-  pub user_id: i32,
-}
-
-#[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
-#[belongs_to(Community)]
-#[table_name = "community_user_ban"]
-pub struct CommunityUserBan {
-  pub id: i32,
-  pub community_id: i32,
-  pub user_id: i32,
-  pub published: chrono::NaiveDateTime,
-}
-
-#[derive(Insertable, AsChangeset, Clone)]
-#[table_name="community_user_ban"]
-pub struct CommunityUserBanForm {
-  pub community_id: i32,
-  pub user_id: i32,
-}
-
-#[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
-#[belongs_to(Community)]
-#[table_name = "community_follower"]
-pub struct CommunityFollower {
-  pub id: i32,
-  pub community_id: i32,
-  pub user_id: i32,
-  pub published: chrono::NaiveDateTime,
-}
-
-#[derive(Insertable, AsChangeset, Clone)]
-#[table_name="community_follower"]
-pub struct CommunityFollowerForm {
-  pub community_id: i32,
-  pub user_id: i32,
-}
-
-
 impl Crud<CommunityForm> for Community {
   fn read(conn: &PgConnection, community_id: i32) -> Result<Self, Error> {
     use schema::community::dsl::*;
@@ -111,20 +59,21 @@ impl Crud<CommunityForm> for Community {
   }
 }
 
-impl Followable<CommunityFollowerForm> for CommunityFollower {
-  fn follow(conn: &PgConnection, community_follower_form: &CommunityFollowerForm) -> Result<Self, Error> {
-    use schema::community_follower::dsl::*;
-    insert_into(community_follower)
-      .values(community_follower_form)
-      .get_result::<Self>(conn)
-  }
-  fn ignore(conn: &PgConnection, community_follower_form: &CommunityFollowerForm) -> Result<usize, Error> {
-    use schema::community_follower::dsl::*;
-    diesel::delete(community_follower
-      .filter(community_id.eq(&community_follower_form.community_id))
-      .filter(user_id.eq(&community_follower_form.user_id)))
-      .execute(conn)
-  }
+#[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
+#[belongs_to(Community)]
+#[table_name = "community_moderator"]
+pub struct CommunityModerator {
+  pub id: i32,
+  pub community_id: i32,
+  pub user_id: i32,
+  pub published: chrono::NaiveDateTime,
+}
+
+#[derive(Insertable, AsChangeset, Clone)]
+#[table_name="community_moderator"]
+pub struct CommunityModeratorForm {
+  pub community_id: i32,
+  pub user_id: i32,
 }
 
 impl Joinable<CommunityModeratorForm> for CommunityModerator {
@@ -144,6 +93,23 @@ impl Joinable<CommunityModeratorForm> for CommunityModerator {
   }
 }
 
+#[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
+#[belongs_to(Community)]
+#[table_name = "community_user_ban"]
+pub struct CommunityUserBan {
+  pub id: i32,
+  pub community_id: i32,
+  pub user_id: i32,
+  pub published: chrono::NaiveDateTime,
+}
+
+#[derive(Insertable, AsChangeset, Clone)]
+#[table_name="community_user_ban"]
+pub struct CommunityUserBanForm {
+  pub community_id: i32,
+  pub user_id: i32,
+}
+
 impl Bannable<CommunityUserBanForm> for CommunityUserBan {
   fn ban(conn: &PgConnection, community_user_ban_form: &CommunityUserBanForm) -> Result<Self, Error> {
     use schema::community_user_ban::dsl::*;
@@ -158,6 +124,86 @@ impl Bannable<CommunityUserBanForm> for CommunityUserBan {
       .filter(community_id.eq(community_user_ban_form.community_id))
       .filter(user_id.eq(community_user_ban_form.user_id)))
       .execute(conn)
+  }
+}
+
+#[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
+#[belongs_to(Community)]
+#[table_name = "community_follower"]
+pub struct CommunityFollower {
+  pub id: i32,
+  pub community_id: i32,
+  pub user_id: i32,
+  pub published: chrono::NaiveDateTime,
+}
+
+#[derive(Insertable, AsChangeset, Clone)]
+#[table_name="community_follower"]
+pub struct CommunityFollowerForm {
+  pub community_id: i32,
+  pub user_id: i32,
+}
+
+impl Followable<CommunityFollowerForm> for CommunityFollower {
+  fn follow(conn: &PgConnection, community_follower_form: &CommunityFollowerForm) -> Result<Self, Error> {
+    use schema::community_follower::dsl::*;
+    insert_into(community_follower)
+      .values(community_follower_form)
+      .get_result::<Self>(conn)
+  }
+  fn ignore(conn: &PgConnection, community_follower_form: &CommunityFollowerForm) -> Result<usize, Error> {
+    use schema::community_follower::dsl::*;
+    diesel::delete(community_follower
+      .filter(community_id.eq(&community_follower_form.community_id))
+      .filter(user_id.eq(&community_follower_form.user_id)))
+      .execute(conn)
+  }
+}
+
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
+#[table_name="site"]
+pub struct Site {
+  pub id: i32,
+  pub name: String,
+  pub description: Option<String>,
+  pub creator_id: i32,
+  pub published: chrono::NaiveDateTime,
+  pub updated: Option<chrono::NaiveDateTime>
+}
+
+#[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize)]
+#[table_name="site"]
+pub struct SiteForm {
+  pub name: String,
+  pub description: Option<String>,
+  pub creator_id: i32,
+  pub updated: Option<chrono::NaiveDateTime>
+}
+
+impl Crud<SiteForm> for Site {
+  fn read(conn: &PgConnection, _site_id: i32) -> Result<Self, Error> {
+    use schema::site::dsl::*;
+    site.first::<Self>(conn)
+  }
+
+  fn delete(conn: &PgConnection, site_id: i32) -> Result<usize, Error> {
+    use schema::site::dsl::*;
+    diesel::delete(site.find(site_id))
+      .execute(conn)
+  }
+
+  fn create(conn: &PgConnection, new_site: &SiteForm) -> Result<Self, Error> {
+    use schema::site::dsl::*;
+      insert_into(site)
+        .values(new_site)
+        .get_result::<Self>(conn)
+  }
+
+  fn update(conn: &PgConnection, site_id: i32, new_site: &SiteForm) -> Result<Self, Error> {
+    use schema::site::dsl::*;
+    diesel::update(site.find(site_id))
+      .set(new_site)
+      .get_result::<Self>(conn)
   }
 }
 
@@ -177,8 +223,8 @@ mod tests {
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
-      admin: None,
-      banned: None,
+      admin: false,
+      banned: false,
       updated: None
     };
 
