@@ -155,6 +155,7 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
     if (msg.error) {
       alert(msg.error);
       this.state.loading = false;
+      this.setState(this.state);
       return;
     } else if (op == UserOperation.ListCategories){
       let res: ListCategoriesResponse = msg;

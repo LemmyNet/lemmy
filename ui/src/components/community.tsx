@@ -63,7 +63,11 @@ export class Community extends Component<any, State> {
         <h4><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
         <div class="row">
           <div class="col-12 col-md-9">
-            <h4>{this.state.community.title}</h4>
+            <h4>{this.state.community.title}
+            {this.state.community.removed &&
+              <small className="ml-2 text-muted font-italic">removed</small>
+            }
+          </h4>
             <PostListings communityId={this.state.communityId} />
           </div>
           <div class="col-12 col-md-3">

@@ -8,6 +8,8 @@ import { mdToHtml } from '../utils';
 
 interface PostListingState {
   showEdit: boolean;
+  showRemoveDialog: boolean;
+  removeReason: string;
   iframeExpanded: boolean;
 }
 
@@ -23,6 +25,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
   private emptyState: PostListingState = {
     showEdit: false,
+    showRemoveDialog: false,
+    removeReason: null,
     iframeExpanded: false
   }
 
@@ -59,20 +63,34 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         <div className="ml-4">
           {post.url 
             ? <div className="mb-0">
-            <h4 className="d-inline"><a className="text-white" href={post.url}>{post.name}</a></h4>
-            <small><a className="ml-2 text-muted font-italic" href={post.url}>{(new URL(post.url)).hostname}</a></small>
-            { !this.state.iframeExpanded
-              ? <span class="pointer ml-2 text-muted small" title="Expand here" onClick={linkEvent(this, this.handleIframeExpandClick)}>+</span>
-              : 
-              <span>
-                <span class="pointer ml-2 text-muted small" onClick={linkEvent(this, this.handleIframeExpandClick)}>-</span>
-                <div class="embed-responsive embed-responsive-1by1">
-                  <iframe scrolling="yes" class="embed-responsive-item" src={post.url}></iframe>
-                </div>
-              </span>
+            <h4 className="d-inline"><a className="text-white" href={post.url}>{post.name}</a>
+            {post.removed &&
+              <small className="ml-2 text-muted font-italic">removed</small>
             }
-          </div> 
-            : <h4 className="mb-0"><Link className="text-white" to={`/post/${post.id}`}>{post.name}</Link></h4>
+            {post.locked &&
+              <small className="ml-2 text-muted font-italic">locked</small>
+            }
+          </h4>
+          <small><a className="ml-2 text-muted font-italic" href={post.url}>{(new URL(post.url)).hostname}</a></small>
+          { !this.state.iframeExpanded
+            ? <span class="pointer ml-2 text-muted small" title="Expand here" onClick={linkEvent(this, this.handleIframeExpandClick)}>+</span>
+            : 
+            <span>
+              <span class="pointer ml-2 text-muted small" onClick={linkEvent(this, this.handleIframeExpandClick)}>-</span>
+              <div class="embed-responsive embed-responsive-1by1">
+                <iframe scrolling="yes" class="embed-responsive-item" src={post.url}></iframe>
+              </div>
+            </span>
+          }
+        </div> 
+          : <h4 className="mb-0"><Link className="text-white" to={`/post/${post.id}`}>{post.name}</Link>
+          {post.removed &&
+            <small className="ml-2 text-muted font-italic">removed</small>
+          }
+          {post.locked &&
+            <small className="ml-2 text-muted font-italic">locked</small>
+          }
+        </h4>
           }
         </div>
         <div className="details ml-4 mb-1">
@@ -102,15 +120,38 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               <Link className="text-muted" to={`/post/${post.id}`}>{post.number_of_comments} Comments</Link>
             </li>
           </ul>
-          {this.myPost && 
+          {this.props.editable &&
             <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
-              <li className="list-inline-item">
-                <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>edit</span>
-              </li>
-              <li className="list-inline-item">
-                <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>delete</span>
-              </li>
+              {this.myPost && 
+                <span>
+                  <li className="list-inline-item">
+                    <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>edit</span>
+                  </li>
+                  <li className="list-inline-item mr-2">
+                    <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>delete</span>
+                  </li>
+                </span>
+              }
+              {this.props.post.am_mod &&
+                <span>
+                  <li className="list-inline-item">
+                    {!this.props.post.removed ? 
+                    <span class="pointer" onClick={linkEvent(this, this.handleModRemoveShow)}>remove</span> :
+                    <span class="pointer" onClick={linkEvent(this, this.handleModRemoveSubmit)}>restore</span>
+                    }
+                  </li>
+                  <li className="list-inline-item">
+                    <span class="pointer" onClick={linkEvent(this, this.handleModLock)}>{this.props.post.locked ? 'unlock' : 'lock'}</span>
+                  </li>
+                </span>
+              }
             </ul>
+          }
+          {this.state.showRemoveDialog && 
+            <form class="form-inline" onSubmit={linkEvent(this, this.handleModRemoveSubmit)}>
+              <input type="text" class="form-control mr-2" placeholder="Reason" value={this.state.removeReason} onInput={linkEvent(this, this.handleModRemoveReasonChange)} />
+              <button type="submit" class="btn btn-secondary">Remove Post</button>
+            </form>
           }
           {this.props.showBody && this.props.post.body && <div className="md-div" dangerouslySetInnerHTML={mdToHtml(post.body)} />}
         </div>
@@ -119,7 +160,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   private get myPost(): boolean {
-    return this.props.editable && UserService.Instance.loggedIn && this.props.post.creator_id == UserService.Instance.user.id;
+    return UserService.Instance.user && this.props.post.creator_id == UserService.Instance.user.id;
   }
 
   handlePostLike(i: PostListing) {
@@ -162,9 +203,49 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       name: "deleted",
       url: '',
       edit_id: i.props.post.id,
+      creator_id: i.props.post.creator_id,
       auth: null
     };
     WebSocketService.Instance.editPost(deleteForm);
+  }
+
+  handleModRemoveShow(i: PostListing) {
+    i.state.showRemoveDialog = true;
+    i.setState(i.state);
+  }
+
+  handleModRemoveReasonChange(i: PostListing, event: any) {
+    i.state.removeReason = event.target.value;
+    i.setState(i.state);
+  }
+
+  handleModRemoveSubmit(i: PostListing) {
+    event.preventDefault();
+    let form: PostFormI = {
+      name: i.props.post.name,
+      community_id: i.props.post.community_id,
+      edit_id: i.props.post.id,
+      creator_id: i.props.post.creator_id,
+      removed: !i.props.post.removed,
+      reason: i.state.removeReason,
+      auth: null,
+    };
+    WebSocketService.Instance.editPost(form);
+
+    i.state.showRemoveDialog = false;
+    i.setState(i.state);
+  }
+
+  handleModLock(i: PostListing) {
+    let form: PostFormI = {
+      name: i.props.post.name,
+      community_id: i.props.post.community_id,
+      edit_id: i.props.post.id,
+      creator_id: i.props.post.creator_id,
+      locked: !i.props.post.locked,
+      auth: null,
+    };
+    WebSocketService.Instance.editPost(form);
   }
 
   handleIframeExpandClick(i: PostListing) {

@@ -1,5 +1,5 @@
 import { wsUri } from '../env';
-import { LoginForm, RegisterForm, UserOperation, CommunityForm, PostForm, CommentForm, CommentLikeForm, GetPostsForm, CreatePostLikeForm, FollowCommunityForm, GetUserDetailsForm } from '../interfaces';
+import { LoginForm, RegisterForm, UserOperation, CommunityForm, PostForm, CommentForm, CommentLikeForm, GetPostsForm, CreatePostLikeForm, FollowCommunityForm, GetUserDetailsForm, ListCommunitiesForm, GetModlogForm, BanFromCommunityForm, AddModToCommunityForm, SiteForm, Site, UserView } from '../interfaces';
 import { webSocket } from 'rxjs/webSocket';
 import { Subject } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
@@ -8,16 +8,21 @@ import { UserService } from './';
 export class WebSocketService {
   private static _instance: WebSocketService;
   public subject: Subject<any>;
+  public instanceName: string;
+
+  public site: Site;
+  public admins: Array<UserView>;
+  public banned: Array<UserView>;
 
   private constructor() {
     this.subject = webSocket(wsUri);
 
-    // Even tho this isn't used, its necessary to not keep reconnecting
+    // Necessary to not keep reconnecting
     this.subject
       .pipe(retryWhen(errors => errors.pipe(delay(60000), take(999))))
       .subscribe();
 
-    console.log(`Connected to ${wsUri}`);
+      console.log(`Connected to ${wsUri}`);
   }
 
   public static get Instance(){
@@ -47,9 +52,9 @@ export class WebSocketService {
     this.subject.next(this.wsSendWrapper(UserOperation.FollowCommunity, followCommunityForm));
   }
 
-  public listCommunities() {
-    let data = {auth: UserService.Instance.auth };
-    this.subject.next(this.wsSendWrapper(UserOperation.ListCommunities, data));
+  public listCommunities(form: ListCommunitiesForm) {
+    this.setAuth(form, false);
+    this.subject.next(this.wsSendWrapper(UserOperation.ListCommunities, form));
   }
 
   public getFollowedCommunities() {
@@ -106,9 +111,36 @@ export class WebSocketService {
     this.subject.next(this.wsSendWrapper(UserOperation.EditPost, postForm));
   }
 
+  public banFromCommunity(form: BanFromCommunityForm) {
+    this.setAuth(form);
+    this.subject.next(this.wsSendWrapper(UserOperation.BanFromCommunity, form));
+  }
+
+  public addModToCommunity(form: AddModToCommunityForm) {
+    this.setAuth(form);
+    this.subject.next(this.wsSendWrapper(UserOperation.AddModToCommunity, form));
+  }
+
   public getUserDetails(form: GetUserDetailsForm) {
     this.setAuth(form, false);
     this.subject.next(this.wsSendWrapper(UserOperation.GetUserDetails, form));
+  }
+
+  public getModlog(form: GetModlogForm) {
+    this.subject.next(this.wsSendWrapper(UserOperation.GetModlog, form));
+  }
+
+  public createSite(siteForm: SiteForm) {
+    this.setAuth(siteForm);
+    this.subject.next(this.wsSendWrapper(UserOperation.CreateSite, siteForm));
+  }
+
+  public editSite(siteForm: SiteForm) {
+    this.setAuth(siteForm);
+    this.subject.next(this.wsSendWrapper(UserOperation.EditSite, siteForm));
+  }
+  public getSite() {
+    this.subject.next(this.wsSendWrapper(UserOperation.GetSite, {}));
   }
 
   private wsSendWrapper(op: UserOperation, data: any) {
@@ -124,7 +156,6 @@ export class WebSocketService {
       throw "Not logged in";
     }
   }
-
 }
 
 window.onbeforeunload = (() => {

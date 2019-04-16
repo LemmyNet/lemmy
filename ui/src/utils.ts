@@ -31,3 +31,11 @@ export function hotRank(comment: Comment): number {
 export function mdToHtml(text: string) {
   return {__html: md.render(text)};
 }
+
+export function getUnixTime(text: string): number { 
+  return text ? new Date(text).getTime()/1000 : undefined;
+}
+
+export function addTypeInfo<T>(arr: Array<T>, name: string): Array<{type_: string, data: T}> {  
+  return arr.map(e => {return {type_: name, data: e}});
+}

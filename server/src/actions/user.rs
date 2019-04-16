@@ -17,6 +17,8 @@ pub struct User_ {
   pub password_encrypted: String,
   pub email: Option<String>,
   pub icon: Option<Vec<u8>>,
+  pub admin: bool,
+  pub banned: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>
 }
@@ -28,6 +30,8 @@ pub struct UserForm {
     pub fedi_name: String,
     pub preferred_username: Option<String>,
     pub password_encrypted: String,
+    pub admin: bool,
+    pub banned: bool,
     pub email: Option<String>,
     pub updated: Option<chrono::NaiveDateTime>
 }
@@ -42,22 +46,26 @@ impl Crud<UserForm> for User_ {
       .execute(conn)
   }
   fn create(conn: &PgConnection, form: &UserForm) -> Result<Self, Error> {
-    let mut edited_user = form.clone();
-    let password_hash = hash(&form.password_encrypted, DEFAULT_COST)
-      .expect("Couldn't hash password");
-    edited_user.password_encrypted = password_hash;
     insert_into(user_)
-      .values(edited_user)
+      .values(form)
       .get_result::<Self>(conn)
   }
   fn update(conn: &PgConnection, user_id: i32, form: &UserForm) -> Result<Self, Error> {
+    diesel::update(user_.find(user_id))
+      .set(form)
+      .get_result::<Self>(conn)
+  }
+}
+
+impl User_ {
+  pub fn register(conn: &PgConnection, form: &UserForm) -> Result<Self, Error> {
     let mut edited_user = form.clone();
     let password_hash = hash(&form.password_encrypted, DEFAULT_COST)
       .expect("Couldn't hash password");
     edited_user.password_encrypted = password_hash;
-    diesel::update(user_.find(user_id))
-      .set(edited_user)
-      .get_result::<Self>(conn)
+
+    Self::create(&conn, &edited_user)
+
   }
 }
 
@@ -122,6 +130,8 @@ mod tests {
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
+      admin: false,
+      banned: false,
       updated: None
     };
 
@@ -132,9 +142,11 @@ mod tests {
       name: "thommy".into(),
       fedi_name: "rrf".into(),
       preferred_username: None,
-      password_encrypted: "$2y$12$YXpNpYsdfjmed.QlYLvw4OfTCgyKUnKHc/V8Dgcf9YcVKHPaYXYYy".into(),
+      password_encrypted: "nope".into(),
       email: None,
       icon: None,
+      admin: false,
+      banned: false,
       published: inserted_user.published,
       updated: None
     };
@@ -143,9 +155,9 @@ mod tests {
     let updated_user = User_::update(&conn, inserted_user.id, &new_user).unwrap();
     let num_deleted = User_::delete(&conn, inserted_user.id).unwrap();
 
-    assert_eq!(expected_user.id, read_user.id);
-    assert_eq!(expected_user.id, inserted_user.id);
-    assert_eq!(expected_user.id, updated_user.id);
+    assert_eq!(expected_user, read_user);
+    assert_eq!(expected_user, inserted_user);
+    assert_eq!(expected_user, updated_user);
     assert_eq!(1, num_deleted);
   }
 }

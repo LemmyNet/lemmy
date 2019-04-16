@@ -125,24 +125,27 @@ export class User extends Component<any, UserState> {
   }
 
   overview() {
-    let combined: Array<any> = [];
-    combined.push(...this.state.comments);
-    combined.push(...this.state.posts);
+    let combined: Array<{type_: string, data: Comment | Post}> = [];
+    let comments = this.state.comments.map(e => {return {type_: "comments", data: e}});
+    let posts = this.state.posts.map(e => {return {type_: "posts", data: e}});
+
+    combined.push(...comments);
+    combined.push(...posts);
 
     // Sort it
     if (this.state.sort == SortType.New) {
-      combined.sort((a, b) => b.published.localeCompare(a.published));
+      combined.sort((a, b) => b.data.published.localeCompare(a.data.published));
     } else {
-      combined.sort((a, b) => b.score - a.score);
+      combined.sort((a, b) => b.data.score - a.data.score);
     }
 
     return (
       <div>
         {combined.map(i =>
           <div>
-            {i.community_id 
-              ? <PostListing post={i} showCommunity viewOnly />
-              : <CommentNodes nodes={[{comment: i}]} noIndent viewOnly />
+            {i.type_ == "posts"
+              ? <PostListing post={i.data as Post} showCommunity viewOnly />
+              : <CommentNodes nodes={[{comment: i.data as Comment}]} noIndent viewOnly />
             }
           </div>
                      )
