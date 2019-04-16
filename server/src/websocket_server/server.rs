@@ -26,7 +26,7 @@ use actions::moderator::*;
 
 #[derive(EnumString,ToString,Debug)]
 pub enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetModlog, BanFromCommunity, AddModToCommunity,
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser
 }
 
 #[derive(Serialize, Deserialize)]
@@ -88,7 +88,8 @@ pub struct Register {
   username: String,
   email: Option<String>,
   password: String,
-  password_verify: String
+  password_verify: String,
+  admin: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -361,6 +362,67 @@ pub struct AddModToCommunityResponse {
   moderators: Vec<CommunityModeratorView>,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct CreateSite {
+  name: String,
+  description: Option<String>,
+  auth: String
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct EditSite {
+  name: String,
+  description: Option<String>,
+  auth: String
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetSite {
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SiteResponse {
+  op: String,
+  site: SiteView,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetSiteResponse {
+  op: String,
+  site: Option<SiteView>,
+  admins: Vec<UserView>,
+  banned: Vec<UserView>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AddAdmin {
+  user_id: i32,
+  added: bool,
+  auth: String
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AddAdminResponse {
+  op: String,
+  admins: Vec<UserView>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct BanUser {
+  user_id: i32,
+  ban: bool,
+  reason: Option<String>,
+  expires: Option<i64>,
+  auth: String
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct BanUserResponse {
+  op: String,
+  user: UserView,
+  banned: bool,
+}
+
 /// `ChatServer` manages chat rooms and responsible for coordinating chat
 /// session. implementation is super primitive
 pub struct ChatServer {
@@ -563,6 +625,26 @@ impl Handler<StandardMessage> for ChatServer {
         let mod_add_to_community: AddModToCommunity = serde_json::from_str(data).unwrap();
         mod_add_to_community.perform(self, msg.id)
       },
+      UserOperation::CreateSite => {
+        let create_site: CreateSite = serde_json::from_str(data).unwrap();
+        create_site.perform(self, msg.id)
+      },
+      UserOperation::EditSite => {
+        let edit_site: EditSite = serde_json::from_str(data).unwrap();
+        edit_site.perform(self, msg.id)
+      },
+      UserOperation::GetSite => {
+        let get_site: GetSite = serde_json::from_str(data).unwrap();
+        get_site.perform(self, msg.id)
+      },
+      UserOperation::AddAdmin => {
+        let add_admin: AddAdmin = serde_json::from_str(data).unwrap();
+        add_admin.perform(self, msg.id)
+      },
+      UserOperation::BanUser => {
+        let ban_user: BanUser = serde_json::from_str(data).unwrap();
+        ban_user.perform(self, msg.id)
+      },
     };
 
     MessageResult(res)
@@ -633,6 +715,11 @@ impl Perform for Register {
       return self.error("No slurs");
     }
 
+    // Make sure there are no admins
+    if self.admin && UserView::admins(&conn).unwrap().len() > 0 {
+      return self.error("Sorry, there's already an admin.");
+    }
+
     // Register the new user
     let user_form = UserForm {
       name: self.username.to_owned(),
@@ -641,17 +728,33 @@ impl Perform for Register {
       password_encrypted: self.password.to_owned(),
       preferred_username: None,
       updated: None,
-      admin: None,
-      banned: None,
+      admin: self.admin,
+      banned: false,
     };
 
     // Create the user
-    let inserted_user = match User_::create(&conn, &user_form) {
+    let inserted_user = match User_::register(&conn, &user_form) {
       Ok(user) => user,
       Err(_e) => {
         return self.error("User already exists.");
       }
     };
+
+    // If its an admin, add them as a mod to main
+    if self.admin {
+      let community_moderator_form = CommunityModeratorForm {
+        community_id: 1,
+        user_id: inserted_user.id
+      };
+
+      let _inserted_community_moderator = match CommunityModerator::join(&conn, &community_moderator_form) {
+        Ok(user) => user,
+        Err(_e) => {
+          return self.error("Community moderator already exists.");
+        }
+      };
+    }
+
 
     // Return the jwt
     serde_json::to_string(
@@ -1852,3 +1955,284 @@ impl Perform for AddModToCommunity {
   }
 }
 
+impl Perform for CreateSite {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::CreateSite
+  }
+
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&self.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => {
+        return self.error("Not logged in.");
+      }
+    };
+
+    if has_slurs(&self.name) || 
+      (self.description.is_some() && has_slurs(&self.description.to_owned().unwrap())) {
+      return self.error("No slurs");
+    }
+
+    let user_id = claims.id;
+
+    // Make sure user is an admin
+    if !UserView::read(&conn, user_id).unwrap().admin {
+      return self.error("Not an admin.");
+    }
+
+    let site_form = SiteForm {
+      name: self.name.to_owned(),
+      description: self.description.to_owned(),
+      creator_id: user_id,
+      updated: None,
+    };
+
+    match Site::create(&conn, &site_form) {
+      Ok(site) => site,
+      Err(_e) => {
+        return self.error("Site exists already");
+      }
+    };
+
+    let site_view = SiteView::read(&conn).unwrap();
+
+    serde_json::to_string(
+      &SiteResponse {
+        op: self.op_type().to_string(), 
+        site: site_view,
+      }
+      )
+      .unwrap()
+  }
+}
+
+impl Perform for EditSite {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::EditSite
+  }
+
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&self.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => {
+        return self.error("Not logged in.");
+      }
+    };
+
+    if has_slurs(&self.name) || 
+      (self.description.is_some() && has_slurs(&self.description.to_owned().unwrap())) {
+      return self.error("No slurs");
+    }
+
+    let user_id = claims.id;
+
+    // Make sure user is an admin
+    if UserView::read(&conn, user_id).unwrap().admin == false {
+      return self.error("Not an admin.");
+    }
+
+    let found_site = Site::read(&conn, 1).unwrap();
+
+    let site_form = SiteForm {
+      name: self.name.to_owned(),
+      description: self.description.to_owned(),
+      creator_id: found_site.creator_id,
+      updated: Some(naive_now()),
+    };
+
+    match Site::update(&conn, 1, &site_form) {
+      Ok(site) => site,
+      Err(_e) => {
+        return self.error("Couldn't update site.");
+      }
+    };
+
+    let site_view = SiteView::read(&conn).unwrap();
+
+    serde_json::to_string(
+      &SiteResponse {
+        op: self.op_type().to_string(), 
+        site: site_view,
+      }
+      )
+      .unwrap()
+  }
+}
+
+impl Perform for GetSite {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::GetSite
+  }
+
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+
+    let conn = establish_connection();
+
+    // It can return a null site in order to redirect
+    let site_view = match Site::read(&conn, 1) {
+      Ok(_site) => Some(SiteView::read(&conn).unwrap()),
+      Err(_e) => None
+    };
+
+    let admins = UserView::admins(&conn).unwrap();
+    let banned = UserView::banned(&conn).unwrap();
+
+    serde_json::to_string(
+      &GetSiteResponse {
+        op: self.op_type().to_string(), 
+        site: site_view,
+        admins: admins,
+        banned: banned,
+      }
+      )
+      .unwrap()
+  }
+}
+
+impl Perform for AddAdmin {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::AddAdmin
+  }
+
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&self.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => {
+        return self.error("Not logged in.");
+      }
+    };
+
+    let user_id = claims.id;
+
+    // Make sure user is an admin
+    if UserView::read(&conn, user_id).unwrap().admin == false {
+      return self.error("Not an admin.");
+    }
+
+    let read_user = User_::read(&conn, self.user_id).unwrap();
+      
+    let user_form = UserForm {
+      name: read_user.name,
+      fedi_name: read_user.fedi_name,
+      email: read_user.email,
+      password_encrypted: read_user.password_encrypted,
+      preferred_username: read_user.preferred_username,
+      updated: Some(naive_now()),
+      admin: self.added,
+      banned: read_user.banned,
+    };
+
+    match User_::update(&conn, self.user_id, &user_form) {
+      Ok(user) => user,
+      Err(_e) => {
+        return self.error("Couldn't update user");
+      }
+    };
+
+    // Mod tables
+    let form = ModAddForm {
+      mod_user_id: user_id,
+      other_user_id: self.user_id,
+      removed: Some(!self.added),
+    };
+
+    ModAdd::create(&conn, &form).unwrap();
+
+    let admins = UserView::admins(&conn).unwrap();
+
+    let res = serde_json::to_string(
+      &AddAdminResponse {
+        op: self.op_type().to_string(), 
+        admins: admins,
+      }
+      )
+      .unwrap();
+
+    res
+
+  }
+}
+
+impl Perform for BanUser {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::BanUser
+  }
+
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&self.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => {
+        return self.error("Not logged in.");
+      }
+    };
+
+    let user_id = claims.id;
+
+    // Make sure user is an admin
+    if UserView::read(&conn, user_id).unwrap().admin == false {
+      return self.error("Not an admin.");
+    }
+
+    let read_user = User_::read(&conn, self.user_id).unwrap();
+      
+    let user_form = UserForm {
+      name: read_user.name,
+      fedi_name: read_user.fedi_name,
+      email: read_user.email,
+      password_encrypted: read_user.password_encrypted,
+      preferred_username: read_user.preferred_username,
+      updated: Some(naive_now()),
+      admin: read_user.admin,
+      banned: self.ban,
+    };
+
+    match User_::update(&conn, self.user_id, &user_form) {
+      Ok(user) => user,
+      Err(_e) => {
+        return self.error("Couldn't update user");
+      }
+    };
+
+    // Mod tables
+    let expires = match self.expires {
+      Some(time) => Some(naive_from_unix(time)),
+      None => None
+    };
+
+    let form = ModBanForm {
+      mod_user_id: user_id,
+      other_user_id: self.user_id,
+      reason: self.reason.to_owned(),
+      banned: Some(self.ban),
+      expires: expires,
+    };
+
+    ModBan::create(&conn, &form).unwrap();
+
+    let user_view = UserView::read(&conn, self.user_id).unwrap();
+
+    let res = serde_json::to_string(
+      &BanUserResponse {
+        op: self.op_type().to_string(), 
+        user: user_view,
+        banned: self.ban
+      }
+      )
+      .unwrap();
+
+    res
+
+  }
+}

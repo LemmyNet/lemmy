@@ -87,11 +87,18 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
           </div>
         </form>
       }
-      <ul class="mt-1 list-inline">
+      <ul class="my-1 list-inline">
         <li className="list-inline-item"><Link className="badge badge-light" to="/communities">{community.category_name}</Link></li>
         <li className="list-inline-item badge badge-light">{community.number_of_subscribers} Subscribers</li>
         <li className="list-inline-item badge badge-light">{community.number_of_posts} Posts</li>
         <li className="list-inline-item badge badge-light">{community.number_of_comments} Comments</li>
+        <li className="list-inline-item"><Link className="badge badge-light" to={`/modlog/community/${this.props.community.id}`}>Modlog</Link></li>
+      </ul>
+      <ul class="list-inline small"> 
+        <li class="list-inline-item">mods: </li>
+        {this.props.moderators.map(mod =>
+          <li class="list-inline-item"><Link class="text-info" to={`/user/${mod.user_id}`}>{mod.user_name}</Link></li>
+        )}
       </ul>
       <div>
         {community.subscribed 
@@ -103,15 +110,9 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
         <div>
           <hr />
           <div className="md-div" dangerouslySetInnerHTML={mdToHtml(community.description)} />
+          <hr />
         </div>
       }
-      <hr />
-      <h4>Moderators</h4>
-      <ul class="list-inline"> 
-        {this.props.moderators.map(mod =>
-          <li class="list-inline-item"><Link to={`/user/${mod.user_id}`}>{mod.user_name}</Link></li>
-        )}
-      </ul>
     </div>
     );
   }
@@ -152,7 +153,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   }
 
   private get amCreator(): boolean {
-    return UserService.Instance.loggedIn && this.props.community.creator_id == UserService.Instance.user.id;
+    return this.props.community.creator_id == UserService.Instance.user.id;
   }
 
   // private get amMod(): boolean {
@@ -180,7 +181,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   }
 
   handleModRemoveSubmit(i: Sidebar) {
-
+    event.preventDefault();
     let deleteForm: CommunityFormI = {
       name: i.props.community.name,
       title: i.props.community.title,

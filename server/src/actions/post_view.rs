@@ -165,8 +165,8 @@ mod tests {
       password_encrypted: "nope".into(),
       email: None,
       updated: None,
-      admin: None,
-      banned: None,
+      admin: false,
+      banned: false,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();

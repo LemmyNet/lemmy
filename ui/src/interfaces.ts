@@ -1,5 +1,5 @@
 export enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetModlog, BanFromCommunity, AddModToCommunity
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser
 }
 
 export enum CommentSortType {
@@ -105,6 +105,19 @@ export interface Comment {
 export interface Category {
   id: number;
   name: string;
+}
+
+export interface Site {
+  id: number;
+  name: string;
+  description?: string;
+  creator_id: number;
+  published: string;
+  updated?: string;
+  creator_name: string;
+  number_of_users: number;
+  number_of_posts: number;
+  number_of_comments: number;
 }
 
 export interface FollowCommunityForm {
@@ -294,6 +307,7 @@ export interface RegisterForm {
   email?: string;
   password: string;
   password_verify: string;
+  admin: boolean;
 }
 
 export interface LoginResponse {
@@ -421,4 +435,49 @@ export interface CreatePostLikeResponse {
   post: Post;
 }
 
+export interface SiteForm {
+  name: string;
+  description?: string,
+  removed?: boolean;
+  reason?: string;
+  expires?: number;
+  auth?: string;
+}
 
+export interface GetSiteResponse {
+  op: string;
+  site: Site;
+  admins: Array<UserView>;
+  banned: Array<UserView>;
+}
+
+
+export interface SiteResponse {
+  op: string;
+  site: Site;
+}
+
+export interface BanUserForm {
+  user_id: number;
+  ban: boolean;
+  reason?: string,
+  expires?: number,
+  auth?: string;
+}
+
+export interface BanUserResponse {
+  op: string;
+  user: UserView,
+  banned: boolean,
+}
+
+export interface AddAdminForm {
+  user_id: number;
+  added: boolean;
+  auth?: string;
+}
+
+export interface AddAdminResponse {
+  op: string;
+  admins: Array<UserView>;
+}

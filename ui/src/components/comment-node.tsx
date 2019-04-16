@@ -154,13 +154,13 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   get myComment(): boolean {
-    return UserService.Instance.loggedIn && this.props.node.comment.creator_id == UserService.Instance.user.id;
+    return UserService.Instance.user && this.props.node.comment.creator_id == UserService.Instance.user.id;
   }
 
   get canMod(): boolean {
 
     // You can do moderator actions only on the mods added after you.
-    if (UserService.Instance.loggedIn) {
+    if (UserService.Instance.user) {
       let modIds = this.props.moderators.map(m => m.user_id);
       let yourIndex = modIds.findIndex(id => id == UserService.Instance.user.id);
       if (yourIndex == -1) {
@@ -240,6 +240,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   handleModRemoveSubmit(i: CommentNode) {
+    event.preventDefault();
     let form: CommentFormI = {
       content: i.props.node.comment.content,
       edit_id: i.props.node.comment.id,
@@ -272,6 +273,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   handleModBanSubmit(i: CommentNode) {
+    event.preventDefault();
     let form: BanFromCommunityForm = {
       user_id: i.props.node.comment.creator_id,
       community_id: i.props.node.comment.community_id,

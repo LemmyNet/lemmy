@@ -43,7 +43,7 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
     sortType: SortType.Hot,
     type_: this.props.communityId 
     ? ListingType.Community 
-    : UserService.Instance.loggedIn
+    : UserService.Instance.user
     ? ListingType.Subscribed 
     : ListingType.All,
     loading: true
@@ -86,7 +86,7 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
           {this.state.posts.length > 0 
             ? this.state.posts.map(post => 
               <PostListing post={post} showCommunity={!this.props.communityId}/>) 
-                : <div>No Listings. Subscribe to some <Link to="/communities">forums</Link>.</div>
+                : <div>No Listings. {!this.props.communityId && <span>Subscribe to some <Link to="/communities">forums</Link>.</span>}</div>
           }
         </div>
         }
@@ -109,7 +109,7 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
           <option value={SortType.TopAll}>All</option>
         </select>
         {!this.props.communityId && 
-          UserService.Instance.loggedIn &&
+          UserService.Instance.user &&
             <select value={this.state.type_} onChange={linkEvent(this, this.handleTypeChange)} class="ml-2 custom-select w-auto">
               <option disabled>Type</option>
               <option value={ListingType.All}>All</option>

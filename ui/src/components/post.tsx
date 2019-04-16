@@ -79,14 +79,14 @@ export class Post extends Component<any, PostState> {
         {this.state.loading ? 
         <h4><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
         <div class="row">
-            <div class="col-12 col-sm-8 col-lg-7 mb-3">
+            <div class="col-12 col-md-8 col-lg-7 mb-3">
               <PostListing post={this.state.post} showBody showCommunity editable />
               <div className="mb-2" />
               <CommentForm postId={this.state.post.id} disabled={this.state.post.locked} />
               {this.sortRadios()}
               {this.commentsTree()}
             </div>
-            <div class="col-12 col-sm-4 col-lg-3 mb-3">
+            <div class="col-12 col-md-4 col-lg-3 mb-3 d-none d-md-block">
               {this.state.comments.length > 0 && this.newComments()}
             </div>
             <div class="col-12 col-sm-12 col-lg-2">

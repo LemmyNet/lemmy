@@ -27,7 +27,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       name: null,
       auth: null,
       community_id: null,
-      creator_id: UserService.Instance.loggedIn ? UserService.Instance.user.id : null
+      creator_id: (UserService.Instance.user) ? UserService.Instance.user.id : null,
     },
     communities: [],
     loading: false
@@ -95,7 +95,9 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               <textarea value={this.state.postForm.body} onInput={linkEvent(this, this.handlePostBodyChange)} class="form-control" rows={4} />
             </div>
           </div>
-          <div class="form-group row">
+          {/* Cant change a community from an edit */}
+          {!this.props.post &&
+            <div class="form-group row">
             <label class="col-sm-2 col-form-label">Forum</label>
             <div class="col-sm-10">
               <select class="form-control" value={this.state.postForm.community_id} onInput={linkEvent(this, this.handlePostCommunityChange)}>
@@ -104,7 +106,8 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
                 )}
               </select>
             </div>
-          </div>
+            </div>
+            }
           <div class="form-group row">
             <div class="col-sm-10">
               <button type="submit" class="btn btn-secondary mr-2">

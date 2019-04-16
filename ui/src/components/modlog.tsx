@@ -9,34 +9,24 @@ import { MomentTime } from './moment-time';
 import * as moment from 'moment';
 
 interface ModlogState {
-  removed_posts: Array<ModRemovePost>,
-  locked_posts: Array<ModLockPost>,
-  removed_comments: Array<ModRemoveComment>,
-  removed_communities: Array<ModRemoveCommunity>,
-  banned_from_community: Array<ModBanFromCommunity>,
-  banned: Array<ModBan>,
-  added_to_community: Array<ModAddCommunity>,
-  added: Array<ModAdd>,
+  combined: Array<{type_: string, data: ModRemovePost | ModLockPost | ModRemoveCommunity}>,
+  communityId?: number,
+  communityName?: string,
   loading: boolean;
 }
 
 export class Modlog extends Component<any, ModlogState> {
   private subscription: Subscription;
   private emptyState: ModlogState = {
-    removed_posts: [],
-    locked_posts: [],
-    removed_comments: [],
-    removed_communities: [],
-    banned_from_community: [],
-    banned: [],
-    added_to_community: [],
-    added: [],
-    loading: true
+    combined: [],
+    loading: true,
   }
 
   constructor(props: any, context: any) {
     super(props, context);
+
     this.state = this.emptyState;
+    this.state.communityId = this.props.match.params.community_id ? Number(this.props.match.params.community_id) : undefined;
     this.subscription = WebSocketService.Instance.subject
     .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
     .subscribe(
@@ -46,7 +36,7 @@ export class Modlog extends Component<any, ModlogState> {
     );
 
     let modlogForm: GetModlogForm = {
-
+      community_id: this.state.communityId
     };
     WebSocketService.Instance.getModlog(modlogForm);
   }
@@ -55,30 +45,35 @@ export class Modlog extends Component<any, ModlogState> {
     this.subscription.unsubscribe();
   }
 
-  combined() {
-    let combined: Array<{type_: string, data: ModRemovePost | ModLockPost | ModRemoveCommunity}> = [];
-    let removed_posts = addTypeInfo(this.state.removed_posts, "removed_posts");
-    let locked_posts = addTypeInfo(this.state.locked_posts, "locked_posts");
-    let removed_comments = addTypeInfo(this.state.removed_comments, "removed_comments");
-    let removed_communities = addTypeInfo(this.state.removed_communities, "removed_communities");
-    let banned_from_community = addTypeInfo(this.state.banned_from_community, "banned_from_community");
-    let added_to_community = addTypeInfo(this.state.added_to_community, "added_to_community");
+  setCombined(res: GetModlogResponse) {
+    let removed_posts = addTypeInfo(res.removed_posts, "removed_posts");
+    let locked_posts = addTypeInfo(res.locked_posts, "locked_posts");
+    let removed_comments = addTypeInfo(res.removed_comments, "removed_comments");
+    let removed_communities = addTypeInfo(res.removed_communities, "removed_communities");
+    let banned_from_community = addTypeInfo(res.banned_from_community, "banned_from_community");
+    let added_to_community = addTypeInfo(res.added_to_community, "added_to_community");
 
-    combined.push(...removed_posts);
-    combined.push(...locked_posts);
-    combined.push(...removed_comments);
-    combined.push(...removed_communities);
-    combined.push(...banned_from_community);
-    combined.push(...added_to_community);
+    this.state.combined.push(...removed_posts);
+    this.state.combined.push(...locked_posts);
+    this.state.combined.push(...removed_comments);
+    this.state.combined.push(...removed_communities);
+    this.state.combined.push(...banned_from_community);
+    this.state.combined.push(...added_to_community);
+
+    if (this.state.communityId && this.state.combined.length > 0) {
+      this.state.communityName = this.state.combined[0].data.community_name;
+    }
 
     // Sort them by time
-    combined.sort((a, b) => b.data.when_.localeCompare(a.data.when_));
+    this.state.combined.sort((a, b) => b.data.when_.localeCompare(a.data.when_));
 
-    console.log(combined);
+    this.setState(this.state);
+  }
 
+  combined() {
     return (
       <tbody>
-        {combined.map(i =>
+        {this.state.combined.map(i =>
           <tr>
             <td><MomentTime data={i.data} /></td>
             <td><Link to={`/user/${i.data.mod_user_id}`}>{i.data.mod_user_name}</Link></td>
@@ -143,7 +138,10 @@ export class Modlog extends Component<any, ModlogState> {
         {this.state.loading ? 
         <h4 class=""><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
         <div>
-          <h4>Modlog</h4>
+          <h4>
+            {this.state.communityName && <Link className="text-white" to={`/community/${this.state.communityId}`}>/f/{this.state.communityName} </Link>}
+            <span>Modlog</span>
+          </h4>
           <div class="table-responsive">
             <table id="modlog_table" class="table table-sm table-hover">
               <thead class="pointer">
@@ -171,14 +169,7 @@ export class Modlog extends Component<any, ModlogState> {
     } else if (op == UserOperation.GetModlog) {
       let res: GetModlogResponse = msg;
       this.state.loading = false;
-      this.state.removed_posts = res.removed_posts;
-      this.state.locked_posts = res.locked_posts;
-      this.state.removed_comments = res.removed_comments;
-      this.state.removed_communities = res.removed_communities;
-      this.state.banned_from_community = res.banned_from_community;
-      this.state.added_to_community = res.added_to_community;
-    
-      this.setState(this.state);
+      this.setCombined(res);
     } 
   }
 }

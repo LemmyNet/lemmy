@@ -1,6 +1,5 @@
 import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
-import { repoUrl } from '../utils';
 import { UserService } from '../services';
 import { version } from '../version';
 
@@ -13,7 +12,7 @@ interface NavbarState {
 export class Navbar extends Component<any, NavbarState> {
 
   emptyState: NavbarState = {
-    isLoggedIn: UserService.Instance.loggedIn,
+    isLoggedIn: UserService.Instance.user !== undefined,
     expanded: false,
     expandUserDropdown: false
   }
@@ -50,9 +49,6 @@ export class Navbar extends Component<any, NavbarState> {
         </button>
         <div className={`${!this.state.expanded && 'collapse'} navbar-collapse`}>
           <ul class="navbar-nav mr-auto">
-            <li class="nav-item">
-              <a class="nav-link" href={repoUrl}>About</a>
-            </li>
             <li class="nav-item">
               <Link class="nav-link" to="/communities">Forums</Link>
             </li>

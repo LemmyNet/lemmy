@@ -68,3 +68,12 @@ create table community_user_ban (
 );
 
 insert into community (name, title, category_id, creator_id) values ('main', 'The Default Community', 1, 1);
+
+create table site (
+  id serial primary key,
+  name varchar(20) not null unique,
+  description text,
+  creator_id int references user_ on update cascade on delete cascade not null,
+  published timestamp not null default now(),
+  updated timestamp
+);

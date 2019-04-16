@@ -20,7 +20,8 @@ let emptyState: State = {
   registerForm: {
     username: undefined,
     password: undefined,
-    password_verify: undefined
+    password_verify: undefined,
+    admin: false,
   },
   loginLoading: false,
   registerLoading: false
@@ -147,6 +148,7 @@ export class Login extends Component<any, State> {
   }
 
   handleRegisterSubmit(i: Login, event: any) {
+    event.preventDefault();
     i.state.registerLoading = true;
     i.setState(i.state);
     event.preventDefault();

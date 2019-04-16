@@ -415,8 +415,8 @@ mod tests {
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
-      admin: None,
-      banned: None,
+      admin: false,
+      banned: false,
       updated: None
     };
 
@@ -428,8 +428,8 @@ mod tests {
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
-      admin: None,
-      banned: None,
+      admin: false,
+      banned: false,
       updated: None
     };
 
