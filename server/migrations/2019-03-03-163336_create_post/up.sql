@@ -5,6 +5,8 @@ create table post (
   body text,
   creator_id int references user_ on update cascade on delete cascade not null,
   community_id int references community on update cascade on delete cascade not null,
+  removed boolean default false,
+  locked boolean default false,
   published timestamp not null default now(),
   updated timestamp
 );

@@ -8,6 +8,8 @@ table! {
     id -> Int4,
     name -> Varchar,
     fedi_name -> Varchar,
+    admin -> Bool,
+    banned -> Bool,
     published -> Timestamp,
     number_of_posts -> BigInt,
     post_score -> BigInt,
@@ -22,6 +24,8 @@ pub struct UserView {
   pub id: i32,
   pub name: String,
   pub fedi_name: String,
+  pub admin: bool,
+  pub banned: bool,
   pub published: chrono::NaiveDateTime,
   pub number_of_posts: i64,
   pub post_score: i64,
@@ -35,6 +39,18 @@ impl UserView {
 
     user_view.find(from_user_id)
     .first::<Self>(conn)
+  }
+
+  pub fn admins(conn: &PgConnection) -> Result<Vec<Self>, Error> {
+    use actions::user_view::user_view::dsl::*;
+    user_view.filter(admin.eq(true))
+    .load::<Self>(conn)
+  }
+
+  pub fn banned(conn: &PgConnection) -> Result<Vec<Self>, Error> {
+    use actions::user_view::user_view::dsl::*;
+    user_view.filter(banned.eq(true))
+    .load::<Self>(conn)
   }
 }
 

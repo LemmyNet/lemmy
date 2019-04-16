@@ -2,13 +2,15 @@ import { Component } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, CommunityUser, GetFollowedCommunitiesResponse } from '../interfaces';
+import { UserOperation, CommunityUser, GetFollowedCommunitiesResponse, ListCommunitiesForm, ListCommunitiesResponse, Community, SortType, GetSiteResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
-import { msgOp } from '../utils';
+import { msgOp, repoUrl, mdToHtml } from '../utils';
 
 interface State {
   subscribedCommunities: Array<CommunityUser>;
+  trendingCommunities: Array<Community>;
+  site: GetSiteResponse;
   loading: boolean;
 }
 
@@ -17,6 +19,22 @@ export class Main extends Component<any, State> {
   private subscription: Subscription;
   private emptyState: State = {
     subscribedCommunities: [],
+    trendingCommunities: [],
+    site: {
+      op: null,
+      site: {
+        id: null,
+        name: null,
+        creator_id: null,
+        creator_name: null,
+        published: null,
+        number_of_users: null,
+        number_of_posts: null,
+        number_of_comments: null,
+      },
+      admins: [],
+      banned: [],
+    },
     loading: true
   }
 
@@ -33,9 +51,18 @@ export class Main extends Component<any, State> {
         () => console.log('complete')
     );
 
-    if (UserService.Instance.loggedIn) {
+    WebSocketService.Instance.getSite();
+
+    if (UserService.Instance.user) {
       WebSocketService.Instance.getFollowedCommunities();
     }
+
+    let listCommunitiesForm: ListCommunitiesForm = {
+      sort: SortType[SortType.New],
+      limit: 8
+    }
+
+    WebSocketService.Instance.listCommunities(listCommunitiesForm);
   }
 
   componentWillUnmount() {
@@ -46,26 +73,26 @@ export class Main extends Component<any, State> {
     return (
       <div class="container">
         <div class="row">
-          <div class="col-12 col-md-9">
+          <div class="col-12 col-md-8">
             <PostListings />
           </div>
-          <div class="col-12 col-md-3">
-            <h4>A Landing message</h4>
-            {UserService.Instance.loggedIn &&
+          <div class="col-12 col-md-4">
+            {this.state.loading ? 
+            <h4><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
+            <div>
+              {this.trendingCommunities()}
+              {UserService.Instance.user && this.state.subscribedCommunities.length > 0 && 
               <div>
-                {this.state.loading ? 
-                <h4 class="mt-3"><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
-                <div>
-                  <hr />
-                  <h4>Subscribed forums</h4>
-                  <ul class="list-unstyled"> 
-                    {this.state.subscribedCommunities.map(community =>
-                      <li><Link to={`/community/${community.community_id}`}>{community.community_name}</Link></li>
-                    )}
-                  </ul>
-                </div>
-                }
+                <h4>Subscribed forums</h4>
+                <ul class="list-inline"> 
+                  {this.state.subscribedCommunities.map(community =>
+                    <li class="list-inline-item"><Link to={`/community/${community.community_id}`}>{community.community_name}</Link></li>
+                  )}
+                </ul>
               </div>
+              }
+              {this.landing()}
+            </div>
             }
           </div>
         </div>
@@ -73,6 +100,54 @@ export class Main extends Component<any, State> {
     )
   }
 
+  trendingCommunities() {
+    return (
+      <div>
+        <h4>Trending <Link class="text-white" to="/communities">forums</Link></h4> 
+        <ul class="list-inline"> 
+          {this.state.trendingCommunities.map(community =>
+            <li class="list-inline-item"><Link to={`/community/${community.id}`}>{community.name}</Link></li>
+          )}
+        </ul>
+      </div>
+    )
+  }
+
+  landing() {
+    return (
+      <div>
+        <h4>{`${this.state.site.site.name}`}</h4>
+        <ul class="my-1 list-inline">
+          <li className="list-inline-item badge badge-light">{this.state.site.site.number_of_users} Users</li>
+          <li className="list-inline-item badge badge-light">{this.state.site.site.number_of_posts} Posts</li>
+          <li className="list-inline-item badge badge-light">{this.state.site.site.number_of_comments} Comments</li>
+          <li className="list-inline-item"><Link className="badge badge-light" to="/modlog">Modlog</Link></li>
+        </ul>
+        <ul class="list-inline small"> 
+          <li class="list-inline-item">admins: </li>
+          {this.state.site.admins.map(admin =>
+            <li class="list-inline-item"><Link class="text-info" to={`/user/${admin.id}`}>{admin.name}</Link></li>
+          )}
+        </ul>
+        {this.state.site.site.description && 
+          <div>
+            <hr />
+            <div className="md-div" dangerouslySetInnerHTML={mdToHtml(this.state.site.site.description)} />
+            <hr />
+          </div>
+        }
+        <h4>Welcome to 
+          <svg class="icon mx-2"><use xlinkHref="#icon-mouse"></use></svg>
+          <a href={repoUrl}>Lemmy<sup>Beta</sup></a>
+        </h4>
+        <p>Lemmy is a <a href="https://en.wikipedia.org/wiki/Link_aggregation">link aggregator</a> / reddit alternative, intended to work in the <a href="https://en.wikipedia.org/wiki/Fediverse">fediverse</a>.</p>
+        <p>Its self-hostable, has live-updating comment threads, and is tiny (<code>~80kB</code>). Federation into the ActivityPub network is on the roadmap.</p>
+        <p>This is a <b>very early beta version</b>, and a lot of features are currently broken or missing.</p>
+        <p>Suggest new features or report bugs <a href={repoUrl}>here.</a></p>
+        <p>Made with <a href="https://www.rust-lang.org">Rust</a>, <a href="https://actix.rs/">Actix</a>, <a href="https://www.infernojs.org">Inferno</a>, <a href="https://www.typescriptlang.org/">Typescript</a>.</p>
+      </div>
+    )
+  }
 
   parseMessage(msg: any) {
     console.log(msg);
@@ -85,7 +160,23 @@ export class Main extends Component<any, State> {
       this.state.subscribedCommunities = res.communities;
       this.state.loading = false;
       this.setState(this.state);
-    }
+    } else if (op == UserOperation.ListCommunities) {
+      let res: ListCommunitiesResponse = msg;
+      this.state.trendingCommunities = res.communities;
+      this.state.loading = false;
+      this.setState(this.state);
+    } else if (op == UserOperation.GetSite) {
+      let res: GetSiteResponse = msg;
+
+      // This means it hasn't been set up yet
+      if (!res.site) {
+        this.context.router.history.push("/setup");
+      }
+      this.state.site.admins = res.admins;
+      this.state.site.site = res.site;
+      this.state.site.banned = res.banned;
+      this.setState(this.state);
+    } 
   }
 }
 

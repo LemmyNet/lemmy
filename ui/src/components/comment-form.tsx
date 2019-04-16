@@ -1,6 +1,6 @@
 import { Component, linkEvent } from 'inferno';
 import { CommentNode as CommentNodeI, CommentForm as CommentFormI } from '../interfaces';
-import { WebSocketService } from '../services';
+import { WebSocketService, UserService } from '../services';
 import * as autosize from 'autosize';
 
 interface CommentFormProps {
@@ -8,6 +8,7 @@ interface CommentFormProps {
   node?: CommentNodeI;
   onReplyCancel?(): any;
   edit?: boolean;
+  disabled?: boolean;
 }
 
 interface CommentFormState {
@@ -21,9 +22,10 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     commentForm: {
       auth: null,
       content: null,
-      post_id: this.props.node ? this.props.node.comment.post_id : this.props.postId
+      post_id: this.props.node ? this.props.node.comment.post_id : this.props.postId,
+      creator_id: UserService.Instance.user ? UserService.Instance.user.id : null,
     },
-    buttonTitle: !this.props.node ? "Post" : this.props.edit ? "Edit" : "Reply"
+    buttonTitle: !this.props.node ? "Post" : this.props.edit ? "Edit" : "Reply",
   }
 
   constructor(props: any, context: any) {
@@ -36,6 +38,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
         this.state.commentForm.edit_id = this.props.node.comment.id;
         this.state.commentForm.parent_id = this.props.node.comment.parent_id;
         this.state.commentForm.content = this.props.node.comment.content;
+        this.state.commentForm.creator_id = this.props.node.comment.creator_id;
       } else {
         // A reply gets a new parent id
         this.state.commentForm.parent_id = this.props.node.comment.id;
@@ -53,12 +56,12 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
         <form onSubmit={linkEvent(this, this.handleCommentSubmit)}>
           <div class="form-group row">
             <div class="col-sm-12">
-              <textarea class="form-control" value={this.state.commentForm.content} onInput={linkEvent(this, this.handleCommentContentChange)} placeholder="Comment here" required />
+              <textarea class="form-control" value={this.state.commentForm.content} onInput={linkEvent(this, this.handleCommentContentChange)} placeholder="Comment here" required disabled={this.props.disabled}/>
             </div>
           </div>
           <div class="row">
             <div class="col-sm-12">
-              <button type="submit" class="btn btn-sm btn-secondary mr-2">{this.state.buttonTitle}</button>
+              <button type="submit" class="btn btn-sm btn-secondary mr-2" disabled={this.props.disabled}>{this.state.buttonTitle}</button>
               {this.props.node && <button type="button" class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.handleReplyCancel)}>Cancel</button>}
             </div>
           </div>
@@ -68,6 +71,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
   }
 
   handleCommentSubmit(i: CommentForm, event: any) {
+    event.preventDefault();
     if (i.props.edit) {
       WebSocketService.Instance.editComment(i.state.commentForm);
     } else {

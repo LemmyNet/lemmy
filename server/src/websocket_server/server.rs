@@ -9,8 +9,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value};
 use bcrypt::{verify};
 use std::str::FromStr;
+use diesel::PgConnection;
 
-use {Crud, Joinable, Likeable, Followable, establish_connection, naive_now, SortType};
+use {Crud, Joinable, Likeable, Followable, Bannable, establish_connection, naive_now, naive_from_unix, SortType, has_slurs, remove_slurs};
 use actions::community::*;
 use actions::user::*;
 use actions::post::*;
@@ -20,10 +21,12 @@ use actions::comment_view::*;
 use actions::category::*;
 use actions::community_view::*;
 use actions::user_view::*;
+use actions::moderator_views::*;
+use actions::moderator::*;
 
 #[derive(EnumString,ToString,Debug)]
 pub enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser
 }
 
 #[derive(Serialize, Deserialize)]
@@ -85,7 +88,8 @@ pub struct Register {
   username: String,
   email: Option<String>,
   password: String,
-  password_verify: String
+  password_verify: String,
+  admin: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -111,6 +115,8 @@ pub struct CommunityResponse {
 
 #[derive(Serialize, Deserialize)]
 pub struct ListCommunities {
+  sort: String,
+  limit: Option<i64>,
   auth: Option<String>
 }
 
@@ -202,7 +208,10 @@ pub struct EditComment {
   content: String,
   parent_id: Option<i32>,
   edit_id: i32,
+  creator_id: i32,
   post_id: i32,
+  removed: Option<bool>,
+  reason: Option<String>,
   auth: String
 }
 
@@ -219,7 +228,6 @@ pub struct CreateCommentLike {
   score: i16,
   auth: String
 }
-
 
 #[derive(Serialize, Deserialize)]
 pub struct CreatePostLike {
@@ -238,10 +246,14 @@ pub struct CreatePostLikeResponse {
 #[derive(Serialize, Deserialize)]
 pub struct EditPost {
   edit_id: i32,
+  creator_id: i32,
   community_id: i32,
   name: String,
   url: Option<String>,
   body: Option<String>,
+  removed: Option<bool>,
+  reason: Option<String>,
+  locked: Option<bool>,
   auth: String
 }
 
@@ -252,6 +264,9 @@ pub struct EditCommunity {
   title: String,
   description: Option<String>,
   category_id: i32,
+  removed: Option<bool>,
+  reason: Option<String>,
+  expires: Option<i64>,
   auth: String
 }
 
@@ -294,6 +309,120 @@ pub struct GetUserDetailsResponse {
   saved_comments: Vec<CommentView>,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct GetModlog {
+  mod_user_id: Option<i32>,
+  community_id: Option<i32>,
+  limit: Option<i64>,
+  page: Option<i64>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetModlogResponse {
+  op: String,
+  removed_posts: Vec<ModRemovePostView>,
+  locked_posts: Vec<ModLockPostView>,
+  removed_comments: Vec<ModRemoveCommentView>,
+  removed_communities: Vec<ModRemoveCommunityView>,
+  banned_from_community: Vec<ModBanFromCommunityView>,
+  banned: Vec<ModBanView>,
+  added_to_community: Vec<ModAddCommunityView>,
+  added: Vec<ModAddView>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct BanFromCommunity {
+  community_id: i32,
+  user_id: i32,
+  ban: bool,
+  reason: Option<String>,
+  expires: Option<i64>,
+  auth: String
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct BanFromCommunityResponse {
+  op: String,
+  user: UserView,
+  banned: bool,
+}
+
+
+#[derive(Serialize, Deserialize)]
+pub struct AddModToCommunity {
+  community_id: i32,
+  user_id: i32,
+  added: bool,
+  auth: String
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AddModToCommunityResponse {
+  op: String,
+  moderators: Vec<CommunityModeratorView>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CreateSite {
+  name: String,
+  description: Option<String>,
+  auth: String
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct EditSite {
+  name: String,
+  description: Option<String>,
+  auth: String
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetSite {
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SiteResponse {
+  op: String,
+  site: SiteView,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetSiteResponse {
+  op: String,
+  site: Option<SiteView>,
+  admins: Vec<UserView>,
+  banned: Vec<UserView>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AddAdmin {
+  user_id: i32,
+  added: bool,
+  auth: String
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AddAdminResponse {
+  op: String,
+  admins: Vec<UserView>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct BanUser {
+  user_id: i32,
+  ban: bool,
+  reason: Option<String>,
+  expires: Option<i64>,
+  auth: String
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct BanUserResponse {
+  op: String,
+  user: UserView,
+  banned: bool,
+}
+
 /// `ChatServer` manages chat rooms and responsible for coordinating chat
 /// session. implementation is super primitive
 pub struct ChatServer {
@@ -326,6 +455,19 @@ impl ChatServer {
           }
         }
       }
+    }
+  }
+
+  fn send_community_message(&self, conn: &PgConnection, community_id: i32, message: &str, skip_id: usize) {
+    let posts = PostView::list(conn,
+                               PostListingType::Community, 
+                               &SortType::New, 
+                               Some(community_id), 
+                               None,
+                               None, 
+                               999).unwrap();
+    for post in posts {
+      self.send_room_message(post.id, message, skip_id);
     }
   }
 }
@@ -391,25 +533,28 @@ impl Handler<StandardMessage> for ChatServer {
     let json: Value = serde_json::from_str(&msg.msg)
       .expect("Couldn't parse message");
 
-    let data: &Value = &json["data"];
+    let data = &json["data"].to_string();
     let op = &json["op"].as_str().unwrap();
     let user_operation: UserOperation = UserOperation::from_str(&op).unwrap();
 
+
+    // TODO figure out how to do proper error handling here, instead of just returning
+    // error strings
     let res: String = match user_operation {
       UserOperation::Login => {
-        let login: Login = serde_json::from_str(&data.to_string()).unwrap();
+        let login: Login = serde_json::from_str(data).unwrap();
         login.perform(self, msg.id)
       },
       UserOperation::Register => {
-        let register: Register = serde_json::from_str(&data.to_string()).unwrap();
+        let register: Register = serde_json::from_str(data).unwrap();
         register.perform(self, msg.id)
       },
       UserOperation::CreateCommunity => {
-        let create_community: CreateCommunity = serde_json::from_str(&data.to_string()).unwrap();
+        let create_community: CreateCommunity = serde_json::from_str(data).unwrap();
         create_community.perform(self, msg.id)
       },
       UserOperation::ListCommunities => {
-        let list_communities: ListCommunities = serde_json::from_str(&data.to_string()).unwrap();
+        let list_communities: ListCommunities = serde_json::from_str(data).unwrap();
         list_communities.perform(self, msg.id)
       },
       UserOperation::ListCategories => {
@@ -417,64 +562,89 @@ impl Handler<StandardMessage> for ChatServer {
         list_categories.perform(self, msg.id)
       },
       UserOperation::CreatePost => {
-        let create_post: CreatePost = serde_json::from_str(&data.to_string()).unwrap();
+        let create_post: CreatePost = serde_json::from_str(data).unwrap();
         create_post.perform(self, msg.id)
       },
       UserOperation::GetPost => {
-        let get_post: GetPost = serde_json::from_str(&data.to_string()).unwrap();
+        let get_post: GetPost = serde_json::from_str(data).unwrap();
         get_post.perform(self, msg.id)
       },
       UserOperation::GetCommunity => {
-        let get_community: GetCommunity = serde_json::from_str(&data.to_string()).unwrap();
+        let get_community: GetCommunity = serde_json::from_str(data).unwrap();
         get_community.perform(self, msg.id)
       },
       UserOperation::CreateComment => {
-        let create_comment: CreateComment = serde_json::from_str(&data.to_string()).unwrap();
+        let create_comment: CreateComment = serde_json::from_str(data).unwrap();
         create_comment.perform(self, msg.id)
       },
       UserOperation::EditComment => {
-        let edit_comment: EditComment = serde_json::from_str(&data.to_string()).unwrap();
+        let edit_comment: EditComment = serde_json::from_str(data).unwrap();
         edit_comment.perform(self, msg.id)
       },
       UserOperation::CreateCommentLike => {
-        let create_comment_like: CreateCommentLike = serde_json::from_str(&data.to_string()).unwrap();
+        let create_comment_like: CreateCommentLike = serde_json::from_str(data).unwrap();
         create_comment_like.perform(self, msg.id)
       },
       UserOperation::GetPosts => {
-        let get_posts: GetPosts = serde_json::from_str(&data.to_string()).unwrap();
+        let get_posts: GetPosts = serde_json::from_str(data).unwrap();
         get_posts.perform(self, msg.id)
       },
       UserOperation::CreatePostLike => {
-        let create_post_like: CreatePostLike = serde_json::from_str(&data.to_string()).unwrap();
+        let create_post_like: CreatePostLike = serde_json::from_str(data).unwrap();
         create_post_like.perform(self, msg.id)
       },
       UserOperation::EditPost => {
-        let edit_post: EditPost = serde_json::from_str(&data.to_string()).unwrap();
+        let edit_post: EditPost = serde_json::from_str(data).unwrap();
         edit_post.perform(self, msg.id)
       },
       UserOperation::EditCommunity => {
-        let edit_community: EditCommunity = serde_json::from_str(&data.to_string()).unwrap();
+        let edit_community: EditCommunity = serde_json::from_str(data).unwrap();
         edit_community.perform(self, msg.id)
       },
       UserOperation::FollowCommunity => {
-        let follow_community: FollowCommunity = serde_json::from_str(&data.to_string()).unwrap();
+        let follow_community: FollowCommunity = serde_json::from_str(data).unwrap();
         follow_community.perform(self, msg.id)
       },
       UserOperation::GetFollowedCommunities => {
-        let followed_communities: GetFollowedCommunities = serde_json::from_str(&data.to_string()).unwrap();
+        let followed_communities: GetFollowedCommunities = serde_json::from_str(data).unwrap();
         followed_communities.perform(self, msg.id)
       },
       UserOperation::GetUserDetails => {
-        let get_user_details: GetUserDetails = serde_json::from_str(&data.to_string()).unwrap();
+        let get_user_details: GetUserDetails = serde_json::from_str(data).unwrap();
         get_user_details.perform(self, msg.id)
       },
-      // _ => {
-      //   let e = ErrorMessage { 
-      //     op: "Unknown".to_string(),
-      //     error: "Unknown User Operation".to_string()
-      //   };
-      //   serde_json::to_string(&e).unwrap()
-      // }
+      UserOperation::GetModlog => {
+        let get_modlog: GetModlog = serde_json::from_str(data).unwrap();
+        get_modlog.perform(self, msg.id)
+      },
+      UserOperation::BanFromCommunity => {
+        let ban_from_community: BanFromCommunity = serde_json::from_str(data).unwrap();
+        ban_from_community.perform(self, msg.id)
+      },
+      UserOperation::AddModToCommunity => {
+        let mod_add_to_community: AddModToCommunity = serde_json::from_str(data).unwrap();
+        mod_add_to_community.perform(self, msg.id)
+      },
+      UserOperation::CreateSite => {
+        let create_site: CreateSite = serde_json::from_str(data).unwrap();
+        create_site.perform(self, msg.id)
+      },
+      UserOperation::EditSite => {
+        let edit_site: EditSite = serde_json::from_str(data).unwrap();
+        edit_site.perform(self, msg.id)
+      },
+      UserOperation::GetSite => {
+        let get_site: GetSite = serde_json::from_str(data).unwrap();
+        get_site.perform(self, msg.id)
+      },
+      UserOperation::AddAdmin => {
+        let add_admin: AddAdmin = serde_json::from_str(data).unwrap();
+        add_admin.perform(self, msg.id)
+      },
+      UserOperation::BanUser => {
+        let ban_user: BanUser = serde_json::from_str(data).unwrap();
+        ban_user.perform(self, msg.id)
+      },
     };
 
     MessageResult(res)
@@ -541,6 +711,15 @@ impl Perform for Register {
       return self.error("Passwords do not match.");
     }
 
+    if has_slurs(&self.username) {
+      return self.error("No slurs");
+    }
+
+    // Make sure there are no admins
+    if self.admin && UserView::admins(&conn).unwrap().len() > 0 {
+      return self.error("Sorry, there's already an admin.");
+    }
+
     // Register the new user
     let user_form = UserForm {
       name: self.username.to_owned(),
@@ -548,16 +727,34 @@ impl Perform for Register {
       email: self.email.to_owned(),
       password_encrypted: self.password.to_owned(),
       preferred_username: None,
-      updated: None
+      updated: None,
+      admin: self.admin,
+      banned: false,
     };
 
     // Create the user
-    let inserted_user = match User_::create(&conn, &user_form) {
+    let inserted_user = match User_::register(&conn, &user_form) {
       Ok(user) => user,
       Err(_e) => {
         return self.error("User already exists.");
       }
     };
+
+    // If its an admin, add them as a mod to main
+    if self.admin {
+      let community_moderator_form = CommunityModeratorForm {
+        community_id: 1,
+        user_id: inserted_user.id
+      };
+
+      let _inserted_community_moderator = match CommunityModerator::join(&conn, &community_moderator_form) {
+        Ok(user) => user,
+        Err(_e) => {
+          return self.error("Community moderator already exists.");
+        }
+      };
+    }
+
 
     // Return the jwt
     serde_json::to_string(
@@ -587,6 +784,12 @@ impl Perform for CreateCommunity {
       }
     };
 
+    if has_slurs(&self.name) || 
+      has_slurs(&self.title) || 
+      (self.description.is_some() && has_slurs(&self.description.to_owned().unwrap())) {
+      return self.error("No slurs");
+    }
+
     let user_id = claims.id;
 
     // When you create a community, make sure the user becomes a moderator and a follower
@@ -597,7 +800,8 @@ impl Perform for CreateCommunity {
       description: self.description.to_owned(),
       category_id: self.category_id,
       creator_id: user_id,
-      updated: None
+      removed: None,
+      updated: None,
     };
 
     let inserted_community = match Community::create(&conn, &community_form) {
@@ -665,7 +869,9 @@ impl Perform for ListCommunities {
       None => None
     };
 
-    let communities: Vec<CommunityView> = CommunityView::list_all(&conn, user_id).unwrap();
+    let sort = SortType::from_str(&self.sort).expect("listing sort");
+
+    let communities: Vec<CommunityView> = CommunityView::list(&conn, user_id, sort, self.limit).unwrap();
 
     // Return the jwt
     serde_json::to_string(
@@ -716,7 +922,17 @@ impl Perform for CreatePost {
       }
     };
 
+    if has_slurs(&self.name) || 
+      (self.body.is_some() && has_slurs(&self.body.to_owned().unwrap())) {
+      return self.error("No slurs");
+    }
+
     let user_id = claims.id;
+
+    // Check for a ban
+    if CommunityUserBanView::get(&conn, user_id, self.community_id).is_ok() {
+      return self.error("You have been banned from this community");
+    }
 
     let post_form = PostForm {
       name: self.name.to_owned(),
@@ -724,6 +940,8 @@ impl Perform for CreatePost {
       body: self.body.to_owned(),
       community_id: self.community_id,
       creator_id: user_id,
+      removed: None,
+      locked: None,
       updated: None
     };
 
@@ -894,11 +1112,20 @@ impl Perform for CreateComment {
 
     let user_id = claims.id;
 
+    // Check for a ban
+    let post = Post::read(&conn, self.post_id).unwrap();
+    if CommunityUserBanView::get(&conn, user_id, post.community_id).is_ok() {
+      return self.error("You have been banned from this community");
+    }
+
+    let content_slurs_removed = remove_slurs(&self.content.to_owned());
+
     let comment_form = CommentForm {
-      content: self.content.to_owned(),
+      content: content_slurs_removed,
       parent_id: self.parent_id.to_owned(),
       post_id: self.post_id,
       creator_id: user_id,
+      removed: None,
       updated: None
     };
 
@@ -970,17 +1197,32 @@ impl Perform for EditComment {
 
     let user_id = claims.id;
 
-    // Verify its the creator
-    let orig_comment = Comment::read(&conn, self.edit_id).unwrap();
-    if user_id != orig_comment.creator_id {
-      return self.error("Incorrect creator.");
+
+    // Verify its the creator or a mod
+    let orig_comment = CommentView::read(&conn, self.edit_id, None).unwrap();
+    let mut editors: Vec<i32> = CommunityModeratorView::for_community(&conn, orig_comment.community_id)
+      .unwrap()
+      .into_iter()
+      .map(|m| m.user_id)
+      .collect();
+    editors.push(self.creator_id);
+    if !editors.contains(&user_id) {
+      return self.error("Not allowed to edit comment.");
     }
 
+    // Check for a ban
+    if CommunityUserBanView::get(&conn, user_id, orig_comment.community_id).is_ok() {
+      return self.error("You have been banned from this community");
+    }
+
+    let content_slurs_removed = remove_slurs(&self.content.to_owned());
+
     let comment_form = CommentForm {
-      content: self.content.to_owned(),
+      content: content_slurs_removed,
       parent_id: self.parent_id,
       post_id: self.post_id,
-      creator_id: user_id,
+      creator_id: self.creator_id,
+      removed: self.removed.to_owned(),
       updated: Some(naive_now())
     };
 
@@ -990,6 +1232,17 @@ impl Perform for EditComment {
         return self.error("Couldn't update Comment");
       }
     };
+
+    // Mod tables
+    if let Some(removed) = self.removed.to_owned() {
+      let form = ModRemoveCommentForm {
+        mod_user_id: user_id,
+        comment_id: self.edit_id,
+        removed: Some(removed),
+        reason: self.reason.to_owned(),
+      };
+      ModRemoveComment::create(&conn, &form).unwrap();
+    }
 
 
     let comment_view = CommentView::read(&conn, self.edit_id, Some(user_id)).unwrap();
@@ -1037,6 +1290,12 @@ impl Perform for CreateCommentLike {
     };
 
     let user_id = claims.id;
+
+    // Check for a ban
+    let post = Post::read(&conn, self.post_id).unwrap();
+    if CommunityUserBanView::get(&conn, user_id, post.community_id).is_ok() {
+      return self.error("You have been banned from this community");
+    }
 
     let like_form = CommentLikeForm {
       comment_id: self.comment_id,
@@ -1150,6 +1409,12 @@ impl Perform for CreatePostLike {
 
     let user_id = claims.id;
 
+    // Check for a ban
+    let post = Post::read(&conn, self.post_id).unwrap();
+    if CommunityUserBanView::get(&conn, user_id, post.community_id).is_ok() {
+      return self.error("You have been banned from this community");
+    }
+
     let like_form = PostLikeForm {
       post_id: self.post_id,
       user_id: user_id,
@@ -1197,6 +1462,11 @@ impl Perform for EditPost {
 
   fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
 
+    if has_slurs(&self.name) || 
+      (self.body.is_some() && has_slurs(&self.body.to_owned().unwrap())) {
+      return self.error("No slurs");
+    }
+
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
@@ -1208,18 +1478,30 @@ impl Perform for EditPost {
 
     let user_id = claims.id;
 
-    // Verify its the creator
-    let orig_post = Post::read(&conn, self.edit_id).unwrap();
-    if user_id != orig_post.creator_id {
-      return self.error("Incorrect creator.");
+    // Verify its the creator or a mod
+    let mut editors: Vec<i32> = CommunityModeratorView::for_community(&conn, self.community_id)
+      .unwrap()
+      .into_iter()
+      .map(|m| m.user_id)
+      .collect();
+    editors.push(self.creator_id);
+    if !editors.contains(&user_id) {
+      return self.error("Not allowed to edit comment.");
+    }
+
+    // Check for a ban
+    if CommunityUserBanView::get(&conn, user_id, self.community_id).is_ok() {
+      return self.error("You have been banned from this community");
     }
 
     let post_form = PostForm {
       name: self.name.to_owned(),
       url: self.url.to_owned(),
       body: self.body.to_owned(),
-      creator_id: user_id,
+      creator_id: self.creator_id.to_owned(),
       community_id: self.community_id,
+      removed: self.removed.to_owned(),
+      locked: self.locked.to_owned(),
       updated: Some(naive_now())
     };
 
@@ -1229,6 +1511,26 @@ impl Perform for EditPost {
         return self.error("Couldn't update Post");
       }
     };
+
+    // Mod tables
+    if let Some(removed) = self.removed.to_owned() {
+      let form = ModRemovePostForm {
+        mod_user_id: user_id,
+        post_id: self.edit_id,
+        removed: Some(removed),
+        reason: self.reason.to_owned(),
+      };
+      ModRemovePost::create(&conn, &form).unwrap();
+    }
+
+    if let Some(locked) = self.locked.to_owned() {
+      let form = ModLockPostForm {
+        mod_user_id: user_id,
+        post_id: self.edit_id,
+        locked: Some(locked),
+      };
+      ModLockPost::create(&conn, &form).unwrap();
+    }
 
     let post_view = PostView::read(&conn, self.edit_id, Some(user_id)).unwrap();
 
@@ -1264,6 +1566,10 @@ impl Perform for EditCommunity {
 
   fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
 
+    if has_slurs(&self.name) || has_slurs(&self.title) {
+      return self.error("No slurs");
+    }
+
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
@@ -1274,7 +1580,6 @@ impl Perform for EditCommunity {
     };
 
     let user_id = claims.id;
-
 
     // Verify its a mod
     let moderator_view = CommunityModeratorView::for_community(&conn, self.edit_id).unwrap();
@@ -1289,6 +1594,7 @@ impl Perform for EditCommunity {
       description: self.description.to_owned(),
       category_id: self.category_id.to_owned(),
       creator_id: user_id,
+      removed: self.removed.to_owned(),
       updated: Some(naive_now())
     };
 
@@ -1299,11 +1605,23 @@ impl Perform for EditCommunity {
       }
     };
 
-    let community_view = CommunityView::read(&conn, self.edit_id, Some(user_id)).unwrap();
+    // Mod tables
+    if let Some(removed) = self.removed.to_owned() {
+      let expires = match self.expires {
+        Some(time) => Some(naive_from_unix(time)),
+        None => None
+      };
+      let form = ModRemoveCommunityForm {
+        mod_user_id: user_id,
+        community_id: self.edit_id,
+        removed: Some(removed),
+        reason: self.reason.to_owned(),
+        expires: expires
+      };
+      ModRemoveCommunity::create(&conn, &form).unwrap();
+    }
 
-    // Do the subscriber stuff here
-    // let mut community_sent = post_view.clone();
-    // community_sent.my_vote = None;
+    let community_view = CommunityView::read(&conn, self.edit_id, Some(user_id)).unwrap();
 
     let community_out = serde_json::to_string(
       &CommunityResponse {
@@ -1313,15 +1631,17 @@ impl Perform for EditCommunity {
       )
       .unwrap();
 
-    // let post_sent_out = serde_json::to_string(
-    //   &PostResponse {
-    //     op: self.op_type().to_string(), 
-    //     post: post_sent
-    //   }
-    //   )
-    //   .unwrap();
+    let community_view_sent = CommunityView::read(&conn, self.edit_id, None).unwrap();
 
-    chat.send_room_message(self.edit_id, &community_out, addr);
+    let community_sent = serde_json::to_string(
+      &CommunityResponse {
+        op: self.op_type().to_string(), 
+        community: community_view_sent
+      }
+      )
+      .unwrap();
+
+    chat.send_community_message(&conn, self.edit_id, &community_sent, addr);
 
     community_out
   }
@@ -1460,3 +1780,459 @@ impl Perform for GetUserDetails {
   }
 }
 
+impl Perform for GetModlog {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::GetModlog
+  }
+
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+
+    let conn = establish_connection();
+
+    let removed_posts = ModRemovePostView::list(&conn, self.community_id, self.mod_user_id, self.limit, self.page).unwrap();
+    let locked_posts = ModLockPostView::list(&conn, self.community_id, self.mod_user_id, self.limit, self.page).unwrap();
+    let removed_comments = ModRemoveCommentView::list(&conn, self.community_id, self.mod_user_id, self.limit, self.page).unwrap();
+    let removed_communities = ModRemoveCommunityView::list(&conn, self.mod_user_id, self.limit, self.page).unwrap();
+    let banned_from_community = ModBanFromCommunityView::list(&conn, self.community_id, self.mod_user_id, self.limit, self.page).unwrap();
+    let banned = ModBanView::list(&conn, self.mod_user_id, self.limit, self.page).unwrap();
+    let added_to_community = ModAddCommunityView::list(&conn, self.community_id, self.mod_user_id, self.limit, self.page).unwrap();
+    let added = ModAddView::list(&conn, self.mod_user_id, self.limit, self.page).unwrap();
+
+    // Return the jwt
+    serde_json::to_string(
+      &GetModlogResponse {
+        op: self.op_type().to_string(),
+        removed_posts: removed_posts,
+        locked_posts: locked_posts,
+        removed_comments: removed_comments,
+        removed_communities: removed_communities,
+        banned_from_community: banned_from_community,
+        banned: banned,
+        added_to_community: added_to_community,
+        added: added,
+      }
+      )
+      .unwrap()
+  }
+}
+
+impl Perform for BanFromCommunity {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::BanFromCommunity
+  }
+
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&self.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => {
+        return self.error("Not logged in.");
+      }
+    };
+
+    let user_id = claims.id;
+
+    let community_user_ban_form = CommunityUserBanForm {
+      community_id: self.community_id,
+      user_id: self.user_id,
+    };
+
+    if self.ban {
+      match CommunityUserBan::ban(&conn, &community_user_ban_form) {
+        Ok(user) => user,
+        Err(_e) => {
+          return self.error("Community user ban already exists");
+        }
+      };
+    } else {
+      match CommunityUserBan::unban(&conn, &community_user_ban_form) {
+        Ok(user) => user,
+        Err(_e) => {
+          return self.error("Community user ban already exists");
+        }
+      };
+    }
+
+    // Mod tables
+    let expires = match self.expires {
+      Some(time) => Some(naive_from_unix(time)),
+      None => None
+    };
+
+    let form = ModBanFromCommunityForm {
+      mod_user_id: user_id,
+      other_user_id: self.user_id,
+      community_id: self.community_id,
+      reason: self.reason.to_owned(),
+      banned: Some(self.ban),
+      expires: expires,
+    };
+    ModBanFromCommunity::create(&conn, &form).unwrap();
+
+    let user_view = UserView::read(&conn, self.user_id).unwrap();
+
+    let res = serde_json::to_string(
+      &BanFromCommunityResponse {
+        op: self.op_type().to_string(), 
+        user: user_view,
+        banned: self.ban
+      }
+      )
+      .unwrap();
+
+
+    chat.send_community_message(&conn, self.community_id, &res, addr);
+
+    res
+  }
+}
+
+impl Perform for AddModToCommunity {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::AddModToCommunity
+  }
+
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&self.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => {
+        return self.error("Not logged in.");
+      }
+    };
+
+    let user_id = claims.id;
+
+    let community_moderator_form = CommunityModeratorForm {
+      community_id: self.community_id,
+      user_id: self.user_id
+    };
+
+    if self.added {
+      match CommunityModerator::join(&conn, &community_moderator_form) {
+        Ok(user) => user,
+        Err(_e) => {
+          return self.error("Community moderator already exists.");
+        }
+      };
+    } else {
+      match CommunityModerator::leave(&conn, &community_moderator_form) {
+        Ok(user) => user,
+        Err(_e) => {
+          return self.error("Community moderator already exists.");
+        }
+      };
+    }
+
+    // Mod tables
+    let form = ModAddCommunityForm {
+      mod_user_id: user_id,
+      other_user_id: self.user_id,
+      community_id: self.community_id,
+      removed: Some(!self.added),
+    };
+    ModAddCommunity::create(&conn, &form).unwrap();
+
+    let moderators = CommunityModeratorView::for_community(&conn, self.community_id).unwrap();
+
+    let res = serde_json::to_string(
+      &AddModToCommunityResponse {
+        op: self.op_type().to_string(), 
+        moderators: moderators,
+      }
+      )
+      .unwrap();
+
+
+    chat.send_community_message(&conn, self.community_id, &res, addr);
+
+    res
+
+  }
+}
+
+impl Perform for CreateSite {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::CreateSite
+  }
+
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&self.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => {
+        return self.error("Not logged in.");
+      }
+    };
+
+    if has_slurs(&self.name) || 
+      (self.description.is_some() && has_slurs(&self.description.to_owned().unwrap())) {
+      return self.error("No slurs");
+    }
+
+    let user_id = claims.id;
+
+    // Make sure user is an admin
+    if !UserView::read(&conn, user_id).unwrap().admin {
+      return self.error("Not an admin.");
+    }
+
+    let site_form = SiteForm {
+      name: self.name.to_owned(),
+      description: self.description.to_owned(),
+      creator_id: user_id,
+      updated: None,
+    };
+
+    match Site::create(&conn, &site_form) {
+      Ok(site) => site,
+      Err(_e) => {
+        return self.error("Site exists already");
+      }
+    };
+
+    let site_view = SiteView::read(&conn).unwrap();
+
+    serde_json::to_string(
+      &SiteResponse {
+        op: self.op_type().to_string(), 
+        site: site_view,
+      }
+      )
+      .unwrap()
+  }
+}
+
+impl Perform for EditSite {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::EditSite
+  }
+
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&self.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => {
+        return self.error("Not logged in.");
+      }
+    };
+
+    if has_slurs(&self.name) || 
+      (self.description.is_some() && has_slurs(&self.description.to_owned().unwrap())) {
+      return self.error("No slurs");
+    }
+
+    let user_id = claims.id;
+
+    // Make sure user is an admin
+    if UserView::read(&conn, user_id).unwrap().admin == false {
+      return self.error("Not an admin.");
+    }
+
+    let found_site = Site::read(&conn, 1).unwrap();
+
+    let site_form = SiteForm {
+      name: self.name.to_owned(),
+      description: self.description.to_owned(),
+      creator_id: found_site.creator_id,
+      updated: Some(naive_now()),
+    };
+
+    match Site::update(&conn, 1, &site_form) {
+      Ok(site) => site,
+      Err(_e) => {
+        return self.error("Couldn't update site.");
+      }
+    };
+
+    let site_view = SiteView::read(&conn).unwrap();
+
+    serde_json::to_string(
+      &SiteResponse {
+        op: self.op_type().to_string(), 
+        site: site_view,
+      }
+      )
+      .unwrap()
+  }
+}
+
+impl Perform for GetSite {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::GetSite
+  }
+
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+
+    let conn = establish_connection();
+
+    // It can return a null site in order to redirect
+    let site_view = match Site::read(&conn, 1) {
+      Ok(_site) => Some(SiteView::read(&conn).unwrap()),
+      Err(_e) => None
+    };
+
+    let admins = UserView::admins(&conn).unwrap();
+    let banned = UserView::banned(&conn).unwrap();
+
+    serde_json::to_string(
+      &GetSiteResponse {
+        op: self.op_type().to_string(), 
+        site: site_view,
+        admins: admins,
+        banned: banned,
+      }
+      )
+      .unwrap()
+  }
+}
+
+impl Perform for AddAdmin {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::AddAdmin
+  }
+
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&self.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => {
+        return self.error("Not logged in.");
+      }
+    };
+
+    let user_id = claims.id;
+
+    // Make sure user is an admin
+    if UserView::read(&conn, user_id).unwrap().admin == false {
+      return self.error("Not an admin.");
+    }
+
+    let read_user = User_::read(&conn, self.user_id).unwrap();
+      
+    let user_form = UserForm {
+      name: read_user.name,
+      fedi_name: read_user.fedi_name,
+      email: read_user.email,
+      password_encrypted: read_user.password_encrypted,
+      preferred_username: read_user.preferred_username,
+      updated: Some(naive_now()),
+      admin: self.added,
+      banned: read_user.banned,
+    };
+
+    match User_::update(&conn, self.user_id, &user_form) {
+      Ok(user) => user,
+      Err(_e) => {
+        return self.error("Couldn't update user");
+      }
+    };
+
+    // Mod tables
+    let form = ModAddForm {
+      mod_user_id: user_id,
+      other_user_id: self.user_id,
+      removed: Some(!self.added),
+    };
+
+    ModAdd::create(&conn, &form).unwrap();
+
+    let admins = UserView::admins(&conn).unwrap();
+
+    let res = serde_json::to_string(
+      &AddAdminResponse {
+        op: self.op_type().to_string(), 
+        admins: admins,
+      }
+      )
+      .unwrap();
+
+    res
+
+  }
+}
+
+impl Perform for BanUser {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::BanUser
+  }
+
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&self.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => {
+        return self.error("Not logged in.");
+      }
+    };
+
+    let user_id = claims.id;
+
+    // Make sure user is an admin
+    if UserView::read(&conn, user_id).unwrap().admin == false {
+      return self.error("Not an admin.");
+    }
+
+    let read_user = User_::read(&conn, self.user_id).unwrap();
+      
+    let user_form = UserForm {
+      name: read_user.name,
+      fedi_name: read_user.fedi_name,
+      email: read_user.email,
+      password_encrypted: read_user.password_encrypted,
+      preferred_username: read_user.preferred_username,
+      updated: Some(naive_now()),
+      admin: read_user.admin,
+      banned: self.ban,
+    };
+
+    match User_::update(&conn, self.user_id, &user_form) {
+      Ok(user) => user,
+      Err(_e) => {
+        return self.error("Couldn't update user");
+      }
+    };
+
+    // Mod tables
+    let expires = match self.expires {
+      Some(time) => Some(naive_from_unix(time)),
+      None => None
+    };
+
+    let form = ModBanForm {
+      mod_user_id: user_id,
+      other_user_id: self.user_id,
+      reason: self.reason.to_owned(),
+      banned: Some(self.ban),
+      expires: expires,
+    };
+
+    ModBan::create(&conn, &form).unwrap();
+
+    let user_view = UserView::read(&conn, self.user_id).unwrap();
+
+    let res = serde_json::to_string(
+      &BanUserResponse {
+        op: self.op_type().to_string(), 
+        user: user_view,
+        banned: self.ban
+      }
+      )
+      .unwrap();
+
+    res
+
+  }
+}

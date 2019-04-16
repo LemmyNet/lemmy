@@ -19,6 +19,8 @@ table! {
     body -> Nullable<Text>,
     creator_id -> Int4,
     community_id -> Int4,
+    removed -> Nullable<Bool>,
+    locked -> Nullable<Bool>,
     published -> Timestamp,
     updated -> Nullable<Timestamp>,
     creator_name -> Varchar,
@@ -31,6 +33,7 @@ table! {
     user_id -> Nullable<Int4>,
     my_vote -> Nullable<Int4>,
     subscribed -> Nullable<Bool>,
+    am_mod -> Nullable<Bool>,
   }
 }
 
@@ -44,6 +47,8 @@ pub struct PostView {
   pub body: Option<String>,
   pub creator_id: i32,
   pub community_id: i32,
+  pub removed: Option<bool>,
+  pub locked: Option<bool>,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
   pub creator_name: String,
@@ -56,6 +61,7 @@ pub struct PostView {
   pub user_id: Option<i32>,
   pub my_vote: Option<i32>,
   pub subscribed: Option<bool>,
+  pub am_mod: Option<bool>,
 }
 
 impl PostView {
@@ -110,6 +116,8 @@ impl PostView {
               .order_by(score.desc())
     };
 
+    query = query.filter(removed.eq(false));
+
     query.load::<Self>(conn) 
   }
 
@@ -156,7 +164,9 @@ mod tests {
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
-      updated: None
+      updated: None,
+      admin: false,
+      banned: false,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -167,6 +177,7 @@ mod tests {
       description: None,
       creator_id: inserted_user.id,
       category_id: 1,
+      removed: None,
       updated: None
     };
 
@@ -178,6 +189,8 @@ mod tests {
       body: None,
       creator_id: inserted_user.id,
       community_id: inserted_community.id,
+      removed: None,
+      locked: None,
       updated: None
     };
 
@@ -216,6 +229,8 @@ mod tests {
       creator_id: inserted_user.id,
       creator_name: user_name.to_owned(),
       community_id: inserted_community.id,
+      removed: Some(false),
+      locked: Some(false),
       community_name: community_name.to_owned(),
       number_of_comments: 0,
       score: 1,
@@ -224,7 +239,8 @@ mod tests {
       hot_rank: 864,
       published: inserted_post.published,
       updated: None,
-      subscribed: None
+      subscribed: None,
+      am_mod: None,
     };
 
     let expected_post_listing_with_user = PostView {
@@ -234,6 +250,8 @@ mod tests {
       name: post_name.to_owned(),
       url: None,
       body: None,
+      removed: Some(false),
+      locked: Some(false),
       creator_id: inserted_user.id,
       creator_name: user_name.to_owned(),
       community_id: inserted_community.id,
@@ -245,7 +263,8 @@ mod tests {
       hot_rank: 864,
       published: inserted_post.published,
       updated: None,
-      subscribed: None
+      subscribed: None,
+      am_mod: None,
     };
 
 
@@ -274,6 +293,5 @@ mod tests {
     assert_eq!(expected_post_like, inserted_post_like);
     assert_eq!(1, like_removed);
     assert_eq!(1, num_deleted);
-
   }
 }

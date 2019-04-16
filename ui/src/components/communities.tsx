@@ -2,7 +2,7 @@ import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community, ListCommunitiesResponse, CommunityResponse, FollowCommunityForm } from '../interfaces';
+import { UserOperation, Community, ListCommunitiesResponse, CommunityResponse, FollowCommunityForm, ListCommunitiesForm, SortType } from '../interfaces';
 import { WebSocketService } from '../services';
 import { msgOp } from '../utils';
 
@@ -30,7 +30,12 @@ export class Communities extends Component<any, CommunitiesState> {
         (err) => console.error(err),
         () => console.log('complete')
     );
-    WebSocketService.Instance.listCommunities();
+
+    let listCommunitiesForm: ListCommunitiesForm = {
+      sort: SortType[SortType.TopAll]
+    }
+
+    WebSocketService.Instance.listCommunities(listCommunitiesForm);
 
   }
 
@@ -45,7 +50,7 @@ export class Communities extends Component<any, CommunitiesState> {
 
   render() {
     return (
-      <div class="container-fluid">
+      <div class="container">
         {this.state.loading ? 
         <h4 class=""><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
         <div>
@@ -57,9 +62,9 @@ export class Communities extends Component<any, CommunitiesState> {
                   <th>Name</th>
                   <th>Title</th>
                   <th>Category</th>
-                  <th class="text-right">Subscribers</th>
-                  <th class="text-right">Posts</th>
-                  <th class="text-right">Comments</th>
+                  <th class="text-right d-none d-md-table-cell">Subscribers</th>
+                  <th class="text-right d-none d-md-table-cell">Posts</th>
+                  <th class="text-right d-none d-md-table-cell">Comments</th>
                   <th></th>
                 </tr>
               </thead>
@@ -69,13 +74,13 @@ export class Communities extends Component<any, CommunitiesState> {
                     <td><Link to={`/community/${community.id}`}>{community.name}</Link></td>
                     <td>{community.title}</td>
                     <td>{community.category_name}</td>
-                    <td class="text-right">{community.number_of_subscribers}</td>
-                    <td class="text-right">{community.number_of_posts}</td>
-                    <td class="text-right">{community.number_of_comments}</td>
+                    <td class="text-right d-none d-md-table-cell">{community.number_of_subscribers}</td>
+                    <td class="text-right d-none d-md-table-cell">{community.number_of_posts}</td>
+                    <td class="text-right d-none d-md-table-cell">{community.number_of_comments}</td>
                     <td class="text-right">
                       {community.subscribed ? 
-                      <button class="btn btn-sm btn-secondary" onClick={linkEvent(community.id, this.handleUnsubscribe)}>Unsubscribe</button> : 
-                      <button class="btn btn-sm btn-secondary" onClick={linkEvent(community.id, this.handleSubscribe)}>Subscribe</button>
+                      <span class="pointer btn-link" onClick={linkEvent(community.id, this.handleUnsubscribe)}>Unsubscribe</span> : 
+                      <span class="pointer btn-link" onClick={linkEvent(community.id, this.handleSubscribe)}>Subscribe</span>
                       }
                     </td>
                   </tr>
@@ -96,7 +101,6 @@ export class Communities extends Component<any, CommunitiesState> {
     };
     WebSocketService.Instance.followCommunity(form);
   }
-
 
   handleSubscribe(communityId: number) {
     let form: FollowCommunityForm = {
@@ -124,6 +128,6 @@ export class Communities extends Component<any, CommunitiesState> {
       found.subscribed = res.community.subscribed;
       found.number_of_subscribers = res.community.number_of_subscribers;
       this.setState(this.state);
-    }
+    } 
   }
 }

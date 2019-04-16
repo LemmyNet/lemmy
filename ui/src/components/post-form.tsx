@@ -1,8 +1,8 @@
 import { Component, linkEvent } from 'inferno';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { PostForm as PostFormI, Post, PostResponse, UserOperation, Community, ListCommunitiesResponse } from '../interfaces';
-import { WebSocketService } from '../services';
+import { PostForm as PostFormI, Post, PostResponse, UserOperation, Community, ListCommunitiesResponse, ListCommunitiesForm, SortType } from '../interfaces';
+import { WebSocketService, UserService } from '../services';
 import { msgOp } from '../utils';
 import * as autosize from 'autosize';
 
@@ -26,7 +26,8 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     postForm: {
       name: null,
       auth: null,
-      community_id: null
+      community_id: null,
+      creator_id: (UserService.Instance.user) ? UserService.Instance.user.id : null,
     },
     communities: [],
     loading: false
@@ -43,6 +44,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
         name: this.props.post.name,
         community_id: this.props.post.community_id,
         edit_id: this.props.post.id,
+        creator_id: this.props.post.creator_id,
         url: this.props.post.url,
         auth: null
       }
@@ -56,7 +58,11 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
         () => console.log('complete')
       );
 
-    WebSocketService.Instance.listCommunities();
+      let listCommunitiesForm: ListCommunitiesForm = {
+        sort: SortType[SortType.TopAll]
+      }
+
+      WebSocketService.Instance.listCommunities(listCommunitiesForm);
   }
 
   componentDidMount() {
@@ -89,7 +95,9 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               <textarea value={this.state.postForm.body} onInput={linkEvent(this, this.handlePostBodyChange)} class="form-control" rows={4} />
             </div>
           </div>
-          <div class="form-group row">
+          {/* Cant change a community from an edit */}
+          {!this.props.post &&
+            <div class="form-group row">
             <label class="col-sm-2 col-form-label">Forum</label>
             <div class="col-sm-10">
               <select class="form-control" value={this.state.postForm.community_id} onInput={linkEvent(this, this.handlePostCommunityChange)}>
@@ -98,7 +106,8 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
                 )}
               </select>
             </div>
-          </div>
+            </div>
+            }
           <div class="form-group row">
             <div class="col-sm-10">
               <button type="submit" class="btn btn-secondary mr-2">
@@ -151,7 +160,9 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
   parseMessage(msg: any) {
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
+      alert(msg.error);
       this.state.loading = false;
+      this.setState(this.state);
       return;
     } else if (op == UserOperation.ListCommunities) {
       let res: ListCommunitiesResponse = msg;

@@ -25,14 +25,10 @@ export class UserService {
   }
 
   public logout() {
-    this.user = null;
+    this.user = undefined;
     Cookies.remove("jwt");
     console.log("Logged out.");
-    this.sub.next(null);
-  }
-
-  public get loggedIn(): boolean {
-    return this.user !== undefined;
+    this.sub.next(undefined);
   }
 
   public get auth(): string {
