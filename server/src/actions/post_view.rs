@@ -116,6 +116,9 @@ impl PostView {
               .order_by(score.desc())
     };
 
+
+    // TODO make sure community removed isn't fetched either
+
     query = query.filter(removed.eq(false));
 
     query.load::<Self>(conn) 
