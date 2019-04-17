@@ -19,7 +19,7 @@ export class Footer extends Component<any, any> {
               <Link class="nav-link" to="/modlog">Modlog</Link>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href={repoUrl}>Contribute</a>
+              <a class="nav-link" href={`${repoUrl}#support`}>Contribute</a>
             </li>
             <li class="nav-item">
               <a class="nav-link" href={repoUrl}>Code</a>
