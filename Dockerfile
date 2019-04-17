@@ -1,8 +1,10 @@
 FROM node:10-jessie as node
 #If encounter Invalid cross-device error -run on host 'echo N | sudo tee /sys/module/overlay/parameters/metacopy'
-COPY ui /app/ui
 WORKDIR /app/ui
-RUN yarn
+
+COPY ui/package.json ui/yarn.lock ./
+RUN yarn install --pure-lockfile # This caches your deps
+COPY ui /app/ui
 RUN yarn build
 
 FROM rust:1.33 as rust
