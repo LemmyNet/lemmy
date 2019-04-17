@@ -3,7 +3,7 @@ use diesel::*;
 use diesel::result::Error;
 use diesel::dsl::*;
 use serde::{Deserialize, Serialize};
-use { SortType };
+use { SortType, limit_and_offset };
 
 #[derive(EnumString,ToString,Debug, Serialize, Deserialize)]
 pub enum PostListingType {
@@ -71,10 +71,14 @@ impl PostView {
               for_community_id: Option<i32>, 
               for_creator_id: Option<i32>, 
               my_user_id: Option<i32>, 
-              limit: i64) -> Result<Vec<Self>, Error> {
+              page: Option<i64>,
+              limit: Option<i64>,
+              ) -> Result<Vec<Self>, Error> {
     use actions::post_view::post_view::dsl::*;
 
-    let mut query = post_view.limit(limit).into_boxed();
+    let (limit, offset) = limit_and_offset(page, limit);
+
+    let mut query = post_view.into_boxed();
 
     if let Some(for_community_id) = for_community_id {
       query = query.filter(community_id.eq(for_community_id));
@@ -119,7 +123,10 @@ impl PostView {
 
     // TODO make sure community removed isn't fetched either
 
-    query = query.filter(removed.eq(false));
+    query = query
+      .limit(limit)
+      .offset(offset)
+      .filter(removed.eq(false));
 
     query.load::<Self>(conn) 
   }
@@ -271,8 +278,8 @@ mod tests {
     };
 
 
-    let read_post_listings_with_user = PostView::list(&conn, PostListingType::Community, &SortType::New, Some(inserted_community.id), None, Some(inserted_user.id), 10).unwrap();
-    let read_post_listings_no_user = PostView::list(&conn, PostListingType::Community, &SortType::New, Some(inserted_community.id), None, None, 10).unwrap();
+    let read_post_listings_with_user = PostView::list(&conn, PostListingType::Community, &SortType::New, Some(inserted_community.id), None, Some(inserted_user.id), None, None).unwrap();
+    let read_post_listings_no_user = PostView::list(&conn, PostListingType::Community, &SortType::New, Some(inserted_community.id), None, None, None, None).unwrap();
     let read_post_listing_no_user = PostView::read(&conn, inserted_post.id, None).unwrap();
     let read_post_listing_with_user = PostView::read(&conn, inserted_post.id, Some(inserted_user.id)).unwrap();
 

@@ -2,6 +2,7 @@ extern crate diesel;
 use diesel::*;
 use diesel::result::Error;
 use serde::{Deserialize, Serialize};
+use {limit_and_offset};
 
 table! {
   mod_remove_post_view (id) {
@@ -37,14 +38,13 @@ impl ModRemovePostView {
   pub fn list(conn: &PgConnection, 
               from_community_id: Option<i32>, 
               from_mod_user_id: Option<i32>, 
+              page: Option<i64>,
               limit: Option<i64>, 
-              page: Option<i64>) -> Result<Vec<Self>, Error> {
+              ) -> Result<Vec<Self>, Error> {
     use actions::moderator_views::mod_remove_post_view::dsl::*;
     let mut query = mod_remove_post_view.into_boxed();
 
-    let page = page.unwrap_or(1);
-    let limit = limit.unwrap_or(10);
-    let offset = limit * (page - 1);
+    let (limit, offset) = limit_and_offset(page, limit);
 
     if let Some(from_community_id) = from_community_id {
       query = query.filter(community_id.eq(from_community_id));
@@ -91,14 +91,13 @@ impl ModLockPostView {
   pub fn list(conn: &PgConnection, 
               from_community_id: Option<i32>, 
               from_mod_user_id: Option<i32>, 
+              page: Option<i64>,
               limit: Option<i64>, 
-              page: Option<i64>) -> Result<Vec<Self>, Error> {
+              ) -> Result<Vec<Self>, Error> {
     use actions::moderator_views::mod_lock_post_view::dsl::*;
     let mut query = mod_lock_post_view.into_boxed();
 
-    let page = page.unwrap_or(1);
-    let limit = limit.unwrap_or(10);
-    let offset = limit * (page - 1);
+    let (limit, offset) = limit_and_offset(page, limit);
 
     if let Some(from_community_id) = from_community_id {
       query = query.filter(community_id.eq(from_community_id));
@@ -154,14 +153,13 @@ impl ModRemoveCommentView {
   pub fn list(conn: &PgConnection, 
               from_community_id: Option<i32>, 
               from_mod_user_id: Option<i32>, 
+              page: Option<i64>,
               limit: Option<i64>, 
-              page: Option<i64>) -> Result<Vec<Self>, Error> {
+             ) -> Result<Vec<Self>, Error> {
     use actions::moderator_views::mod_remove_comment_view::dsl::*;
     let mut query = mod_remove_comment_view.into_boxed();
 
-    let page = page.unwrap_or(1);
-    let limit = limit.unwrap_or(10);
-    let offset = limit * (page - 1);
+    let (limit, offset) = limit_and_offset(page, limit);
 
     if let Some(from_community_id) = from_community_id {
       query = query.filter(community_id.eq(from_community_id));
@@ -206,14 +204,13 @@ pub struct ModRemoveCommunityView {
 impl ModRemoveCommunityView {
   pub fn list(conn: &PgConnection, 
               from_mod_user_id: Option<i32>, 
+              page: Option<i64>,
               limit: Option<i64>, 
-              page: Option<i64>) -> Result<Vec<Self>, Error> {
+              ) -> Result<Vec<Self>, Error> {
     use actions::moderator_views::mod_remove_community_view::dsl::*;
     let mut query = mod_remove_community_view.into_boxed();
 
-    let page = page.unwrap_or(1);
-    let limit = limit.unwrap_or(10);
-    let offset = limit * (page - 1);
+    let (limit, offset) = limit_and_offset(page, limit);
 
     if let Some(from_mod_user_id) = from_mod_user_id {
       query = query.filter(mod_user_id.eq(from_mod_user_id));
@@ -260,14 +257,13 @@ impl ModBanFromCommunityView {
   pub fn list(conn: &PgConnection, 
               from_community_id: Option<i32>, 
               from_mod_user_id: Option<i32>, 
+              page: Option<i64>,
               limit: Option<i64>, 
-              page: Option<i64>) -> Result<Vec<Self>, Error> {
+              ) -> Result<Vec<Self>, Error> {
     use actions::moderator_views::mod_ban_from_community_view::dsl::*;
     let mut query = mod_ban_from_community_view.into_boxed();
 
-    let page = page.unwrap_or(1);
-    let limit = limit.unwrap_or(10);
-    let offset = limit * (page - 1);
+    let (limit, offset) = limit_and_offset(page, limit);
 
     if let Some(from_community_id) = from_community_id {
       query = query.filter(community_id.eq(from_community_id));
@@ -312,14 +308,13 @@ pub struct ModBanView {
 impl ModBanView {
   pub fn list(conn: &PgConnection, 
               from_mod_user_id: Option<i32>, 
+              page: Option<i64>,
               limit: Option<i64>, 
-              page: Option<i64>) -> Result<Vec<Self>, Error> {
+              ) -> Result<Vec<Self>, Error> {
     use actions::moderator_views::mod_ban_view::dsl::*;
     let mut query = mod_ban_view.into_boxed();
 
-    let page = page.unwrap_or(1);
-    let limit = limit.unwrap_or(10);
-    let offset = limit * (page - 1);
+    let (limit, offset) = limit_and_offset(page, limit);
 
     if let Some(from_mod_user_id) = from_mod_user_id {
       query = query.filter(mod_user_id.eq(from_mod_user_id));
@@ -361,14 +356,13 @@ impl ModAddCommunityView {
   pub fn list(conn: &PgConnection, 
               from_community_id: Option<i32>, 
               from_mod_user_id: Option<i32>, 
+              page: Option<i64>,
               limit: Option<i64>, 
-              page: Option<i64>) -> Result<Vec<Self>, Error> {
+              ) -> Result<Vec<Self>, Error> {
     use actions::moderator_views::mod_add_community_view::dsl::*;
     let mut query = mod_add_community_view.into_boxed();
 
-    let page = page.unwrap_or(1);
-    let limit = limit.unwrap_or(10);
-    let offset = limit * (page - 1);
+    let (limit, offset) = limit_and_offset(page, limit);
 
     if let Some(from_community_id) = from_community_id {
       query = query.filter(community_id.eq(from_community_id));
@@ -409,14 +403,13 @@ pub struct ModAddView {
 impl ModAddView {
   pub fn list(conn: &PgConnection, 
               from_mod_user_id: Option<i32>, 
+              page: Option<i64>,
               limit: Option<i64>, 
-              page: Option<i64>) -> Result<Vec<Self>, Error> {
+              ) -> Result<Vec<Self>, Error> {
     use actions::moderator_views::mod_add_view::dsl::*;
     let mut query = mod_add_view.into_boxed();
 
-    let page = page.unwrap_or(1);
-    let limit = limit.unwrap_or(10);
-    let offset = limit * (page - 1);
+    let (limit, offset) = limit_and_offset(page, limit);
 
     if let Some(from_mod_user_id) = from_mod_user_id {
       query = query.filter(mod_user_id.eq(from_mod_user_id));

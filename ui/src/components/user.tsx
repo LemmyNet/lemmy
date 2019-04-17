@@ -4,7 +4,7 @@ import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { UserOperation, Post, Comment, CommunityUser, GetUserDetailsForm, SortType, UserDetailsResponse, UserView } from '../interfaces';
 import { WebSocketService } from '../services';
-import { msgOp } from '../utils';
+import { msgOp, fetchLimit } from '../utils';
 import { PostListing } from './post-listing';
 import { CommentNodes } from './comment-nodes';
 import { MomentTime } from './moment-time';
@@ -15,6 +15,7 @@ enum View {
 
 interface UserState {
   user: UserView;
+  user_id: number;
   follows: Array<CommunityUser>;
   moderates: Array<CommunityUser>;
   comments: Array<Comment>;
@@ -22,6 +23,7 @@ interface UserState {
   saved?: Array<Post>;
   view: View;
   sort: SortType;
+  page: number;
 }
 
 export class User extends Component<any, UserState> {
@@ -38,12 +40,14 @@ export class User extends Component<any, UserState> {
       number_of_comments: null,
       comment_score: null,
     },
+    user_id: null,
     follows: [],
     moderates: [],
     comments: [],
     posts: [],
     view: View.Overview,
-    sort: SortType.New
+    sort: SortType.New,
+    page: 1,
   }
 
   constructor(props: any, context: any) {
@@ -51,7 +55,7 @@ export class User extends Component<any, UserState> {
 
     this.state = this.emptyState;
 
-    let userId = Number(this.props.match.params.id);
+    this.state.user_id = Number(this.props.match.params.id);
 
     this.subscription = WebSocketService.Instance.subject
     .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
@@ -61,12 +65,7 @@ export class User extends Component<any, UserState> {
         () => console.log('complete')
     );
 
-    let form: GetUserDetailsForm = {
-      user_id: userId,
-      sort: SortType[this.state.sort],
-      limit: 999
-    };
-    WebSocketService.Instance.getUserDetails(form);
+    this.refetch();
   }
 
   componentWillUnmount() {
@@ -89,6 +88,7 @@ export class User extends Component<any, UserState> {
             {this.state.view == View.Posts &&
               this.posts()
             }
+            {this.paginator()}
           </div>
           <div class="col-12 col-md-3">
             {this.userInfo()}
@@ -230,21 +230,51 @@ export class User extends Component<any, UserState> {
     )
   }
 
-  handleSortChange(i: User, event: any) {
-    i.state.sort = Number(event.target.value);
-    i.setState(i.state);
+  paginator() {
+    return (
+      <div class="mt-2">
+        {this.state.page > 1 && 
+          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}>Prev</button>
+        }
+        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}>Next</button>
+      </div>
+    );
+  }
 
+  nextPage(i: User) { 
+    i.state.page++;
+    i.setState(i.state);
+    i.refetch();
+  }
+
+  prevPage(i: User) { 
+    i.state.page--;
+    i.setState(i.state);
+    i.refetch();
+  }
+
+  refetch() {
     let form: GetUserDetailsForm = {
-      user_id: i.state.user.id,
-      sort: SortType[i.state.sort],
-      limit: 999
+      user_id: this.state.user_id,
+      sort: SortType[this.state.sort],
+      page: this.state.page,
+      limit: fetchLimit,
     };
     WebSocketService.Instance.getUserDetails(form);
   }
 
+  handleSortChange(i: User, event: any) {
+    i.state.sort = Number(event.target.value);
+    i.state.page = 1;
+    i.setState(i.state);
+    i.refetch();
+  }
+
   handleViewChange(i: User, event: any) {
     i.state.view = Number(event.target.value);
+    i.state.page = 1;
     i.setState(i.state);
+    i.refetch();
   }
 
   parseMessage(msg: any) {

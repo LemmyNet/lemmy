@@ -3,7 +3,7 @@ use diesel::*;
 use diesel::result::Error;
 use diesel::dsl::*;
 use serde::{Deserialize, Serialize};
-use { SortType };
+use { SortType, limit_and_offset };
 
 // The faked schema since diesel doesn't do views
 table! {
@@ -57,10 +57,15 @@ impl CommentView {
               for_post_id: Option<i32>, 
               for_creator_id: Option<i32>, 
               my_user_id: Option<i32>, 
-              limit: i64) -> Result<Vec<Self>, Error> {
+              page: Option<i64>,
+              limit: Option<i64>,
+              ) -> Result<Vec<Self>, Error> {
     use actions::comment_view::comment_view::dsl::*;
 
-    let mut query = comment_view.limit(limit).into_boxed();
+    let (limit, offset) = limit_and_offset(page, limit);
+
+    // TODO no limits here?
+    let mut query = comment_view.into_boxed();
 
     // The view lets you pass a null user_id, if you're not logged in
     if let Some(my_user_id) = my_user_id {
@@ -96,7 +101,10 @@ impl CommentView {
               _ => query.order_by(published.desc())
     };
 
-    query.load::<Self>(conn) 
+    query
+      .limit(limit)
+      .offset(offset)
+      .load::<Self>(conn) 
   }
 
   pub fn read(conn: &PgConnection, from_comment_id: i32, my_user_id: Option<i32>) -> Result<Self, Error> {
@@ -230,8 +238,8 @@ mod tests {
       am_mod: None,
     };
 
-    let read_comment_views_no_user = CommentView::list(&conn, &SortType::New, Some(inserted_post.id), None, None, 999).unwrap();
-    let read_comment_views_with_user = CommentView::list(&conn, &SortType::New, Some(inserted_post.id), None, Some(inserted_user.id), 999).unwrap();
+    let read_comment_views_no_user = CommentView::list(&conn, &SortType::New, Some(inserted_post.id), None, None, None, None).unwrap();
+    let read_comment_views_with_user = CommentView::list(&conn, &SortType::New, Some(inserted_post.id), None, Some(inserted_user.id), None, None).unwrap();
     let like_removed = CommentLike::remove(&conn, &comment_like_form).unwrap();
     let num_deleted = Comment::delete(&conn, inserted_comment.id).unwrap();
     Post::delete(&conn, inserted_post.id).unwrap();

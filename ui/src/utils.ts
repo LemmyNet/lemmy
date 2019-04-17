@@ -39,3 +39,5 @@ export function getUnixTime(text: string): number {
 export function addTypeInfo<T>(arr: Array<T>, name: string): Array<{type_: string, data: T}> {  
   return arr.map(e => {return {type_: name, data: e}});
 }
+
+export let fetchLimit: number = 20;
