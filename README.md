@@ -10,22 +10,32 @@
 
 A link aggregator / reddit clone for the fediverse.
 
-Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Inferno](https://www.infernojs.org), [Typescript](https://www.typescriptlang.org/).
+[Lemmy Dev instance](https://dev.lemmy.ml) *for testing purposes only*
 
-## Navigation
-- [Matrix Chatroom](https://riot.im/app/#/room/#rust-reddit-fediverse:matrix.org)
-- [Issues / Feature Requests](https://github.com/dessalines/lemmy/issues)
-- Support the development via Patreon
+This is a **very early beta version**, and a lot of features are currently broken or missing.
 
 ## Features
-- TBD
+- Self hostable, easy to deploy.
+  - Comes with docker.
+- Open source.
+- Live-updating Comment threads.
+- Clean, minimal interface.
+  - Mobile-friendly.
+- Full vote scores `(+/-)` like old reddit.
+- Full moderation.
+  - Both site admins, and community moderators.
+  - Can lock, remove, and restore posts.
+  - Can remove and restore comments.
+- High performance.
+  - Server is written in rust.
+  - Front end is `~80kB` gzipped.
 
 ## Why's it called Lemmy?
 - Lead singer from [motorhead](https://invidio.us/watch?v=pWB5JZRGl0U).
 - The old school [video game](https://en.wikipedia.org/wiki/Lemmings_(video_game)).
 - The [furry rodents](http://sunchild.fpwc.org/lemming-the-little-giant-of-the-north/).
 
-Goals r/ censorship
+Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Inferno](https://www.infernojs.org), [Typescript](https://www.typescriptlang.org/) and [Diesel](http://diesel.rs/)
 
 ## Install
 ### Docker
@@ -57,6 +67,12 @@ and goto http://localhost:8536
 - [ActivityPub API.md](docs/API.md)
 - [Goals](docs/goals.md)
 - [Ranking Algorithm](docs/ranking.md)
+
+## Support
+Support the development, and help cover hosting costs.
+- Patreon
+- bitcoin: `bc1queu73nwuheqtsp65nyh5hf4jr533r8rr5nsj75`
+- ethereum: `0x400c96c96acbC6E7B3B43B1dc1BB446540a88A01`
 
 ## Credits
 
