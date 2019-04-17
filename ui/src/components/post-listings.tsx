@@ -2,7 +2,7 @@ import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community as CommunityI, Post, GetPostsForm, SortType, ListingType, GetPostsResponse, CreatePostLikeResponse, CommunityUser} from '../interfaces';
+import { UserOperation, Post, GetPostsForm, SortType, ListingType, GetPostsResponse, CreatePostLikeResponse, CommunityUser} from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { PostListing } from './post-listing';
 import { msgOp, fetchLimit } from '../utils';
@@ -12,7 +12,6 @@ interface PostListingsProps {
 }
 
 interface PostListingsState {
-  community: CommunityI;
   moderators: Array<CommunityUser>;
   posts: Array<Post>;
   sortType: SortType;
@@ -25,19 +24,6 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
 
   private subscription: Subscription;
   private emptyState: PostListingsState = {
-    community: {
-      id: null,
-      name: null,
-      title: null,
-      category_id: null,
-      category_name: null,
-      creator_id: null,
-      creator_name: null,
-      number_of_subscribers: null,
-      number_of_posts: null,
-      number_of_comments: null,
-      published: null
-    },
     moderators: [],
     posts: [],
     sortType: SortType.Hot,
@@ -149,7 +135,7 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
 
   refetch() {
     let getPostsForm: GetPostsForm = {
-      community_id: this.state.community.id,
+      community_id: this.props.communityId,
       page: this.state.page,
       limit: fetchLimit,
       sort: SortType[this.state.sortType],
