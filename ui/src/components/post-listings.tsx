@@ -153,7 +153,7 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
       page: this.state.page,
       limit: fetchLimit,
       sort: SortType[this.state.sortType],
-      type_: ListingType[ListingType.Community]
+      type_: ListingType[this.state.type_]
     }
     WebSocketService.Instance.getPosts(getPostsForm);
   }
