@@ -1723,7 +1723,12 @@ impl Perform for GetFollowedCommunities {
 
     let user_id = claims.id;
 
-    let communities: Vec<CommunityFollowerView> = CommunityFollowerView::for_user(&conn, user_id).unwrap();
+    let communities: Vec<CommunityFollowerView> = match CommunityFollowerView::for_user(&conn, user_id) {
+      Ok(communities) => communities,
+      Err(_e) => {
+        return self.error("System error, try logging out and back in.");
+      }
+    };
 
     // Return the jwt
     serde_json::to_string(
