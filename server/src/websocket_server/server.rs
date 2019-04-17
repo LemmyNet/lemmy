@@ -1792,11 +1792,19 @@ impl Perform for GetModlog {
     let removed_posts = ModRemovePostView::list(&conn, self.community_id, self.mod_user_id, self.limit, self.page).unwrap();
     let locked_posts = ModLockPostView::list(&conn, self.community_id, self.mod_user_id, self.limit, self.page).unwrap();
     let removed_comments = ModRemoveCommentView::list(&conn, self.community_id, self.mod_user_id, self.limit, self.page).unwrap();
-    let removed_communities = ModRemoveCommunityView::list(&conn, self.mod_user_id, self.limit, self.page).unwrap();
     let banned_from_community = ModBanFromCommunityView::list(&conn, self.community_id, self.mod_user_id, self.limit, self.page).unwrap();
-    let banned = ModBanView::list(&conn, self.mod_user_id, self.limit, self.page).unwrap();
     let added_to_community = ModAddCommunityView::list(&conn, self.community_id, self.mod_user_id, self.limit, self.page).unwrap();
-    let added = ModAddView::list(&conn, self.mod_user_id, self.limit, self.page).unwrap();
+
+    // These arrays are only for the full modlog, when a community isn't given
+    let mut removed_communities = Vec::new();
+    let mut banned = Vec::new();
+    let mut added = Vec::new();
+
+    if self.community_id.is_none() {
+      removed_communities = ModRemoveCommunityView::list(&conn, self.mod_user_id, self.limit, self.page).unwrap();
+      banned = ModBanView::list(&conn, self.mod_user_id, self.limit, self.page).unwrap();
+      added = ModAddView::list(&conn, self.mod_user_id, self.limit, self.page).unwrap();
+    }
 
     // Return the jwt
     serde_json::to_string(
