@@ -134,7 +134,8 @@ export interface GetFollowedCommunitiesResponse {
 export interface GetUserDetailsForm {
   user_id: number;
   sort: string; // TODO figure this one out
-  limit: number;
+  page?: number;
+  limit?: number;
   community_id?: number;
   auth?: string;
 }
@@ -179,8 +180,8 @@ export interface AddModToCommunityResponse {
 export interface GetModlogForm {
   mod_user_id?: number;
   community_id?: number;
-  limit?: number;
   page?: number;
+  limit?: number;
 }
 
 export interface GetModlogResponse {
@@ -343,6 +344,7 @@ export interface CommunityResponse {
 
 export interface ListCommunitiesForm {
   sort: string;
+  page?: number;
   limit?: number;
   auth?: string;
 }
@@ -356,6 +358,7 @@ export interface ListCategoriesResponse {
   op: string;
   categories: Array<Category>;
 }
+
 export interface PostForm {
   name: string;
   url?: string;
@@ -414,7 +417,8 @@ export interface CommentNode {
 export interface GetPostsForm {
   type_: string;
   sort: string;
-  limit: number;
+  page?: number;
+  limit?: number;
   community_id?: number;
   auth?: string;
 }

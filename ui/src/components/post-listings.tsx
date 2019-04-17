@@ -5,8 +5,7 @@ import { retryWhen, delay, take } from 'rxjs/operators';
 import { UserOperation, Community as CommunityI, Post, GetPostsForm, SortType, ListingType, GetPostsResponse, CreatePostLikeResponse, CommunityUser} from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { PostListing } from './post-listing';
-import { msgOp } from '../utils';
-
+import { msgOp, fetchLimit } from '../utils';
 
 interface PostListingsProps {
   communityId?: number;
@@ -18,6 +17,7 @@ interface PostListingsState {
   posts: Array<Post>;
   sortType: SortType;
   type_: ListingType;
+  page: number;
   loading: boolean;
 }
 
@@ -46,6 +46,7 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
     : UserService.Instance.user
     ? ListingType.Subscribed 
     : ListingType.All,
+    page: 1,
     loading: true
   }
 
@@ -63,13 +64,7 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
         () => console.log('complete')
       );
 
-    let getPostsForm: GetPostsForm = {
-      type_: ListingType[this.state.type_],
-      community_id: this.props.communityId,
-      limit: 10,
-      sort: SortType[SortType.Hot],
-    }
-    WebSocketService.Instance.getPosts(getPostsForm);
+      this.refetch();
   }
 
   componentWillUnmount() {
@@ -82,12 +77,13 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
         {this.state.loading ? 
         <h4><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
         <div>
-          <div>{this.selects()}</div>
+          {this.selects()}
           {this.state.posts.length > 0 
             ? this.state.posts.map(post => 
               <PostListing post={post} showCommunity={!this.props.communityId}/>) 
                 : <div>No Listings. {!this.props.communityId && <span>Subscribe to some <Link to="/communities">forums</Link>.</span>}</div>
           }
+          {this.paginator()}
         </div>
         }
       </div>
@@ -119,17 +115,44 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
         }
       </div>
     )
+  }
 
+  paginator() {
+    return (
+      <div class="mt-2">
+        {this.state.page > 1 && 
+          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}>Prev</button>
+        }
+        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}>Next</button>
+      </div>
+    );
+  }
+
+  nextPage(i: PostListings) { 
+    i.state.page++;
+    i.setState(i.state);
+    i.refetch();
+  }
+
+  prevPage(i: PostListings) { 
+    i.state.page--;
+    i.setState(i.state);
+    i.refetch();
   }
 
   handleSortChange(i: PostListings, event: any) {
     i.state.sortType = Number(event.target.value);
+    i.state.page = 1;
     i.setState(i.state);
+    i.refetch();
+  }
 
+  refetch() {
     let getPostsForm: GetPostsForm = {
-      community_id: i.state.community.id,
-      limit: 10,
-      sort: SortType[i.state.sortType],
+      community_id: this.state.community.id,
+      page: this.state.page,
+      limit: fetchLimit,
+      sort: SortType[this.state.sortType],
       type_: ListingType[ListingType.Community]
     }
     WebSocketService.Instance.getPosts(getPostsForm);
@@ -137,14 +160,9 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
 
   handleTypeChange(i: PostListings, event: any) {
     i.state.type_ = Number(event.target.value);
+    i.state.page = 1;
     i.setState(i.state);
-
-    let getPostsForm: GetPostsForm = {
-      limit: 10,
-      sort: SortType[i.state.sortType],
-      type_: ListingType[i.state.type_]
-    }
-    WebSocketService.Instance.getPosts(getPostsForm);
+    i.refetch();
   }
 
   parseMessage(msg: any) {

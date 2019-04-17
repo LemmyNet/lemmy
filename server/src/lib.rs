@@ -109,6 +109,13 @@ pub fn has_slurs(test: &str) -> bool {
   SLUR_REGEX.is_match(test)
 }
 
+pub fn limit_and_offset(page: Option<i64>, limit: Option<i64>) -> (i64, i64) {
+    let page = page.unwrap_or(1);
+    let limit = limit.unwrap_or(10);
+    let offset = limit * (page - 1);
+    (limit, offset)
+}
+
 #[cfg(test)]
 mod tests {
   use {Settings, is_email_regex, remove_slurs, has_slurs};

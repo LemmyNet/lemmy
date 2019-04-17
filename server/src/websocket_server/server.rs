@@ -116,6 +116,7 @@ pub struct CommunityResponse {
 #[derive(Serialize, Deserialize)]
 pub struct ListCommunities {
   sort: String,
+  page: Option<i64>,
   limit: Option<i64>,
   auth: Option<String>
 }
@@ -170,7 +171,8 @@ pub struct GetPostResponse {
 pub struct GetPosts {
   type_: String,
   sort: String,
-  limit: i64,
+  page: Option<i64>,
+  limit: Option<i64>,
   community_id: Option<i32>,
   auth: Option<String>
 }
@@ -292,7 +294,8 @@ pub struct GetFollowedCommunitiesResponse {
 pub struct GetUserDetails {
   user_id: i32,
   sort: String,
-  limit: i64,
+  page: Option<i64>,
+  limit: Option<i64>,
   community_id: Option<i32>,
   auth: Option<String>
 }
@@ -313,8 +316,8 @@ pub struct GetUserDetailsResponse {
 pub struct GetModlog {
   mod_user_id: Option<i32>,
   community_id: Option<i32>,
-  limit: Option<i64>,
   page: Option<i64>,
+  limit: Option<i64>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -465,7 +468,9 @@ impl ChatServer {
                                Some(community_id), 
                                None,
                                None, 
-                               999).unwrap();
+                               None,
+                               Some(9999))
+      .unwrap();
     for post in posts {
       self.send_room_message(post.id, message, skip_id);
     }
@@ -871,7 +876,7 @@ impl Perform for ListCommunities {
 
     let sort = SortType::from_str(&self.sort).expect("listing sort");
 
-    let communities: Vec<CommunityView> = CommunityView::list(&conn, user_id, sort, self.limit).unwrap();
+    let communities: Vec<CommunityView> = CommunityView::list(&conn, user_id, sort, self.page, self.limit).unwrap();
 
     // Return the jwt
     serde_json::to_string(
@@ -1026,7 +1031,7 @@ impl Perform for GetPost {
 
     chat.rooms.get_mut(&self.id).unwrap().insert(addr);
 
-    let comments = CommentView::list(&conn, &SortType::New, Some(self.id), None, user_id, 999).unwrap();
+    let comments = CommentView::list(&conn, &SortType::New, Some(self.id), None, user_id, None, Some(9999)).unwrap();
 
     let community = CommunityView::read(&conn, post_view.community_id, user_id).unwrap();
 
@@ -1372,7 +1377,7 @@ impl Perform for GetPosts {
     let type_ = PostListingType::from_str(&self.type_).expect("listing type");
     let sort = SortType::from_str(&self.sort).expect("listing sort");
 
-    let posts = match PostView::list(&conn, type_, &sort, self.community_id, None, user_id, self.limit) {
+    let posts = match PostView::list(&conn, type_, &sort, self.community_id, None, user_id, self.page, self.limit) {
       Ok(posts) => posts,
       Err(_e) => {
         return self.error("Couldn't get posts");
@@ -1758,8 +1763,8 @@ impl Perform for GetUserDetails {
     let sort = SortType::from_str(&self.sort).expect("listing sort");
 
     let user_view = UserView::read(&conn, self.user_id).unwrap();
-    let posts = PostView::list(&conn, PostListingType::All, &sort, self.community_id, Some(self.user_id), user_id, self.limit).unwrap();
-    let comments = CommentView::list(&conn, &sort, None, Some(self.user_id), user_id, self.limit).unwrap();
+    let posts = PostView::list(&conn, PostListingType::All, &sort, self.community_id, Some(self.user_id), user_id, self.page, self.limit).unwrap();
+    let comments = CommentView::list(&conn, &sort, None, Some(self.user_id), user_id, self.page, self.limit).unwrap();
     let follows = CommunityFollowerView::for_user(&conn, self.user_id).unwrap();
     let moderates = CommunityModeratorView::for_user(&conn, self.user_id).unwrap();
 
@@ -1789,11 +1794,11 @@ impl Perform for GetModlog {
 
     let conn = establish_connection();
 
-    let removed_posts = ModRemovePostView::list(&conn, self.community_id, self.mod_user_id, self.limit, self.page).unwrap();
-    let locked_posts = ModLockPostView::list(&conn, self.community_id, self.mod_user_id, self.limit, self.page).unwrap();
-    let removed_comments = ModRemoveCommentView::list(&conn, self.community_id, self.mod_user_id, self.limit, self.page).unwrap();
-    let banned_from_community = ModBanFromCommunityView::list(&conn, self.community_id, self.mod_user_id, self.limit, self.page).unwrap();
-    let added_to_community = ModAddCommunityView::list(&conn, self.community_id, self.mod_user_id, self.limit, self.page).unwrap();
+    let removed_posts = ModRemovePostView::list(&conn, self.community_id, self.mod_user_id, self.page, self.limit).unwrap();
+    let locked_posts = ModLockPostView::list(&conn, self.community_id, self.mod_user_id, self.page, self.limit).unwrap();
+    let removed_comments = ModRemoveCommentView::list(&conn, self.community_id, self.mod_user_id, self.page, self.limit).unwrap();
+    let banned_from_community = ModBanFromCommunityView::list(&conn, self.community_id, self.mod_user_id, self.page, self.limit).unwrap();
+    let added_to_community = ModAddCommunityView::list(&conn, self.community_id, self.mod_user_id, self.page, self.limit).unwrap();
 
     // These arrays are only for the full modlog, when a community isn't given
     let mut removed_communities = Vec::new();

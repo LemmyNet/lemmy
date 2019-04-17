@@ -2,7 +2,7 @@ extern crate diesel;
 use diesel::*;
 use diesel::result::Error;
 use serde::{Deserialize, Serialize};
-use {SortType};
+use {SortType, limit_and_offset};
 
 table! {
   community_view (id) {
@@ -114,14 +114,18 @@ impl CommunityView {
     query.first::<Self>(conn)
   }
 
-  pub fn list(conn: &PgConnection, from_user_id: Option<i32>, sort: SortType, limit: Option<i64>) -> Result<Vec<Self>, Error> {
+  pub fn list(conn: &PgConnection, 
+              from_user_id: Option<i32>, 
+              sort: SortType, 
+              page: Option<i64>,
+              limit: Option<i64>,
+              ) -> Result<Vec<Self>, Error> {
     use actions::community_view::community_view::dsl::*;
     let mut query = community_view.into_boxed();
 
-
+    let (limit, offset) = limit_and_offset(page, limit);
 
     // The view lets you pass a null user_id, if you're not logged in
-
     match sort {
       SortType::New => query = query.order_by(published.desc()).filter(user_id.is_null()),
       SortType::TopAll => {
@@ -133,11 +137,11 @@ impl CommunityView {
       _ => ()
     };
 
-    if let Some(limit) = limit {
-      query = query.limit(limit);
-    };
-
-    query.filter(removed.eq(false)).load::<Self>(conn) 
+    query
+      .limit(limit)
+      .offset(offset)
+      .filter(removed.eq(false))
+      .load::<Self>(conn) 
   }
 }
 
