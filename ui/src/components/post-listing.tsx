@@ -63,7 +63,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         <div className="ml-4">
           {post.url 
             ? <div className="mb-0">
-            <h4 className="d-inline"><a className="text-white" href={post.url}>{post.name}</a>
+            <h4 className="d-inline"><a className="text-white" href={post.url} title={post.url}>{post.name}</a>
             {post.removed &&
               <small className="ml-2 text-muted font-italic">removed</small>
             }
@@ -71,12 +71,12 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               <small className="ml-2 text-muted font-italic">locked</small>
             }
           </h4>
-          <small><a className="ml-2 text-muted font-italic" href={post.url}>{(new URL(post.url)).hostname}</a></small>
+          <small><a className="ml-2 text-muted font-italic" href={post.url} title={post.url}>{(new URL(post.url)).hostname}</a></small>
           { !this.state.iframeExpanded
-            ? <span class="pointer ml-2 text-muted small" title="Expand here" onClick={linkEvent(this, this.handleIframeExpandClick)}>+</span>
+            ? <span class="badge badge-light pointer ml-2 text-muted small" title="Expand here" onClick={linkEvent(this, this.handleIframeExpandClick)}>+</span>
             : 
             <span>
-              <span class="pointer ml-2 text-muted small" onClick={linkEvent(this, this.handleIframeExpandClick)}>-</span>
+              <span class="pointer ml-2 badge badge-light text-muted small" onClick={linkEvent(this, this.handleIframeExpandClick)}>-</span>
               <div class="embed-responsive embed-responsive-1by1">
                 <iframe scrolling="yes" class="embed-responsive-item" src={post.url}></iframe>
               </div>
