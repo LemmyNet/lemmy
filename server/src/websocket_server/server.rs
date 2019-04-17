@@ -1806,9 +1806,9 @@ impl Perform for GetModlog {
     let mut added = Vec::new();
 
     if self.community_id.is_none() {
-      removed_communities = ModRemoveCommunityView::list(&conn, self.mod_user_id, self.limit, self.page).unwrap();
-      banned = ModBanView::list(&conn, self.mod_user_id, self.limit, self.page).unwrap();
-      added = ModAddView::list(&conn, self.mod_user_id, self.limit, self.page).unwrap();
+      removed_communities = ModRemoveCommunityView::list(&conn, self.mod_user_id, self.page, self.limit).unwrap();
+      banned = ModBanView::list(&conn, self.mod_user_id, self.page, self.limit).unwrap();
+      added = ModAddView::list(&conn, self.mod_user_id, self.page, self.limit).unwrap();
     }
 
     // Return the jwt

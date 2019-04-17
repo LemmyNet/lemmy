@@ -1,10 +1,10 @@
-import { Component } from 'inferno';
+import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { UserOperation, GetModlogForm, GetModlogResponse, ModRemovePost, ModLockPost, ModRemoveComment, ModRemoveCommunity, ModBanFromCommunity, ModBan, ModAddCommunity, ModAdd } from '../interfaces';
 import { WebSocketService } from '../services';
-import { msgOp, addTypeInfo } from '../utils';
+import { msgOp, addTypeInfo, fetchLimit } from '../utils';
 import { MomentTime } from './moment-time';
 import * as moment from 'moment';
 
@@ -12,6 +12,7 @@ interface ModlogState {
   combined: Array<{type_: string, data: ModRemovePost | ModLockPost | ModRemoveCommunity}>,
   communityId?: number,
   communityName?: string,
+  page: number;
   loading: boolean;
 }
 
@@ -19,6 +20,7 @@ export class Modlog extends Component<any, ModlogState> {
   private subscription: Subscription;
   private emptyState: ModlogState = {
     combined: [],
+    page: 1,
     loading: true,
   }
 
@@ -35,10 +37,7 @@ export class Modlog extends Component<any, ModlogState> {
         () => console.log('complete')
     );
 
-    let modlogForm: GetModlogForm = {
-      community_id: this.state.communityId
-    };
-    WebSocketService.Instance.getModlog(modlogForm);
+    this.refetch();
   }
 
   componentWillUnmount() {
@@ -52,6 +51,7 @@ export class Modlog extends Component<any, ModlogState> {
     let removed_communities = addTypeInfo(res.removed_communities, "removed_communities");
     let banned_from_community = addTypeInfo(res.banned_from_community, "banned_from_community");
     let added_to_community = addTypeInfo(res.added_to_community, "added_to_community");
+    this.state.combined = [];
 
     this.state.combined.push(...removed_posts);
     this.state.combined.push(...locked_posts);
@@ -153,11 +153,44 @@ export class Modlog extends Component<any, ModlogState> {
               </thead>
               {this.combined()}
             </table>
+            {this.paginator()}
           </div>
         </div>
         }
       </div>
     );
+  }
+
+  paginator() {
+    return (
+      <div class="mt-2">
+        {this.state.page > 1 && 
+          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}>Prev</button>
+        }
+        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}>Next</button>
+      </div>
+    );
+  }
+
+  nextPage(i: Modlog) { 
+    i.state.page++;
+    i.setState(i.state);
+    i.refetch();
+  }
+
+  prevPage(i: Modlog) { 
+    i.state.page--;
+    i.setState(i.state);
+    i.refetch();
+  }
+  
+  refetch(){
+    let modlogForm: GetModlogForm = {
+      community_id: this.state.communityId,
+      page: this.state.page,
+      limit: fetchLimit,
+    };
+    WebSocketService.Instance.getModlog(modlogForm);
   }
 
   parseMessage(msg: any) {
