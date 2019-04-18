@@ -160,7 +160,9 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
     } else if (op == UserOperation.ListCategories){
       let res: ListCategoriesResponse = msg;
       this.state.categories = res.categories;
-      this.state.communityForm.category_id = res.categories[0].id;
+      if (!this.props.community) {
+        this.state.communityForm.category_id = res.categories[0].id;
+      }
       this.setState(this.state);
     } else if (op == UserOperation.CreateCommunity) {
       let res: CommunityResponse = msg;
