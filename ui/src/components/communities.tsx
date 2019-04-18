@@ -32,7 +32,8 @@ export class Communities extends Component<any, CommunitiesState> {
     );
 
     let listCommunitiesForm: ListCommunitiesForm = {
-      sort: SortType[SortType.TopAll]
+      sort: SortType[SortType.TopAll],
+      limit: 9999,
     }
 
     WebSocketService.Instance.listCommunities(listCommunitiesForm);
