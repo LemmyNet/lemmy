@@ -61,6 +61,9 @@ and goto http://localhost:8536
 git clone https://github.com/dessalines/lemmy
 cd lemmy
 ./install.sh
+# For live coding, where both the front and back end, automagically reload on any save, do:
+# cd ui && yarn start
+# cd server && cargo watch -x run
 ```
 and goto http://localhost:8536
 
