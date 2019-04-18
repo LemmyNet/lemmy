@@ -37,7 +37,7 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
         <div class="form-group row">
           <label class="col-12 col-form-label">Name</label>
           <div class="col-12">
-            <input type="text" class="form-control" value={this.state.siteForm.name} onInput={linkEvent(this, this.handleSiteNameChange)} required minLength={3} />
+            <input type="text" class="form-control" value={this.state.siteForm.name} onInput={linkEvent(this, this.handleSiteNameChange)} required minLength={3} maxLength={20} />
           </div>
         </div>
         <div class="form-group row">
