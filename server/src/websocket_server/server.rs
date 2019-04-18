@@ -876,7 +876,7 @@ impl Perform for ListCommunities {
 
     let sort = SortType::from_str(&self.sort).expect("listing sort");
 
-    let communities: Vec<CommunityView> = CommunityView::list(&conn, user_id, sort, self.page, self.limit).unwrap();
+    let communities: Vec<CommunityView> = CommunityView::list(&conn, user_id, sort, self.page, Some(9999)).unwrap();
 
     // Return the jwt
     serde_json::to_string(
