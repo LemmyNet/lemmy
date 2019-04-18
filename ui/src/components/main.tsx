@@ -59,7 +59,7 @@ export class Main extends Component<any, State> {
 
     let listCommunitiesForm: ListCommunitiesForm = {
       sort: SortType[SortType.New],
-      limit: 8
+      limit: 6
     }
 
     WebSocketService.Instance.listCommunities(listCommunitiesForm);

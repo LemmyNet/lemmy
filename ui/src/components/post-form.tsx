@@ -59,7 +59,8 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       );
 
       let listCommunitiesForm: ListCommunitiesForm = {
-        sort: SortType[SortType.TopAll]
+        sort: SortType[SortType.TopAll],
+        limit: 9999,
       }
 
       WebSocketService.Instance.listCommunities(listCommunitiesForm);
