@@ -86,7 +86,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
           <div class="form-group row">
             <label class="col-sm-2 col-form-label">Title</label>
             <div class="col-sm-10">
-              <textarea value={this.state.postForm.name} onInput={linkEvent(this, this.handlePostNameChange)} class="form-control" required rows={2} />
+              <textarea value={this.state.postForm.name} onInput={linkEvent(this, this.handlePostNameChange)} class="form-control" required rows={2} minLength={3} maxLength={100} />
             </div>
           </div>
           <div class="form-group row">

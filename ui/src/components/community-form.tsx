@@ -76,13 +76,13 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
         <div class="form-group row">
           <label class="col-12 col-form-label">Name</label>
           <div class="col-12">
-            <input type="text" class="form-control" value={this.state.communityForm.name} onInput={linkEvent(this, this.handleCommunityNameChange)} required minLength={3} pattern="[a-z0-9_]+" title="lowercase, underscores, and no spaces."/>
+            <input type="text" class="form-control" value={this.state.communityForm.name} onInput={linkEvent(this, this.handleCommunityNameChange)} required minLength={3} maxLength={20} pattern="[a-z0-9_]+" title="lowercase, underscores, and no spaces."/>
           </div>
         </div>
         <div class="form-group row">
           <label class="col-12 col-form-label">Title</label>
           <div class="col-12">
-            <input type="text" value={this.state.communityForm.title} onInput={linkEvent(this, this.handleCommunityTitleChange)} class="form-control" required minLength={3} />
+            <input type="text" value={this.state.communityForm.title} onInput={linkEvent(this, this.handleCommunityTitleChange)} class="form-control" required minLength={3} maxLength={100} />
           </div>
         </div>
         <div class="form-group row">
