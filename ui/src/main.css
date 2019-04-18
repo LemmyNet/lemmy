@@ -80,3 +80,8 @@ body {
   background-color: #222;
 }
 
+blockquote {
+  border-left: 3px solid #ccc;
+  margin: 0.5em 5px;
+  padding: 0.1em 5px;
+}
