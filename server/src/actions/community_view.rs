@@ -130,7 +130,7 @@ impl CommunityView {
       SortType::New => query = query.order_by(published.desc()).filter(user_id.is_null()),
       SortType::TopAll => {
         match from_user_id {
-          Some(from_user_id) => query = query.filter(user_id.eq(from_user_id)).order_by((subscribed.desc(), number_of_subscribers.desc())),
+          Some(from_user_id) => query = query.filter(user_id.eq(from_user_id)).order_by((subscribed.asc(), number_of_subscribers.desc())),
           None => query = query.order_by(number_of_subscribers.desc()).filter(user_id.is_null())
         }
       }
