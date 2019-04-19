@@ -1,0 +1,84 @@
+
+.pointer {
+  cursor: pointer;
+}
+
+.no-click {
+  pointer-events:none;
+  opacity: 0.65;
+}
+
+.upvote:hover {
+ color: var(--info);
+}
+
+.downvote:hover {
+  color: var(--danger);
+}
+
+.form-control, .form-control:focus {
+  background-color: var(--secondary);
+  color: #fff;
+}
+
+.form-control:disabled {
+  background-color: var(--secondary);
+  opacity: .5;
+}
+
+.custom-select {
+  color: #fff;
+  background-color: var(--secondary);
+}
+
+.mark {
+  background-color: #322a00;
+}
+
+.md-div p {
+  margin-bottom: 0px;
+}
+
+.md-div img {
+  max-width: 100%;
+  height: auto;
+}
+
+.listing {
+  min-height: 61px;
+}
+
+.icon {
+  display: inline-flex;
+  width: 1em;
+  height: 1em;
+  stroke-width: 0;
+  stroke: currentColor;
+  fill: currentColor;
+  vertical-align: middle;
+  align-self: center;
+}
+
+
+.spin {
+  animation: spins 2s linear infinite;
+}
+
+@keyframes spins {
+  0% { transform: rotate(0deg); }
+  100% {  transform: rotate(359deg); }
+}
+
+.dropdown-menu {
+  z-index: 2000;
+}
+
+.navbar-bg {
+  background-color: #222;
+}
+
+blockquote {
+  border-left: 3px solid #ccc;
+  margin: 0.5em 5px;
+  padding: 0.1em 5px;
+}
