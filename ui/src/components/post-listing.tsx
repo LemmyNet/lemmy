@@ -65,7 +65,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         <div className="pt-1 ml-4">
           {post.url 
             ? <div className="mb-0">
-            <h5 className="d-inline"><a className="text-white" href={post.url} title={post.url}>{post.name}</a>
+            <h5 className="d-inline"><a className="text-white" href={post.url} target="_blank" title={post.url}>{post.name}</a>
             {post.removed &&
               <small className="ml-2 text-muted font-italic">removed</small>
             }
