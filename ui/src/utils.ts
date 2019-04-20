@@ -1,4 +1,4 @@
-import { UserOperation, Comment } from './interfaces';
+import { UserOperation, Comment, User } from './interfaces';
 import * as markdown_it from 'markdown-it';
 
 export let repoUrl = 'https://github.com/dessalines/lemmy';
@@ -38,6 +38,25 @@ export function getUnixTime(text: string): number {
 
 export function addTypeInfo<T>(arr: Array<T>, name: string): Array<{type_: string, data: T}> {  
   return arr.map(e => {return {type_: name, data: e}});
+}
+
+export function canMod(user: User, modIds: Array<number>, creator_id: number): boolean {
+  // You can do moderator actions only on the mods added after you.
+  if (user) {
+    let yourIndex = modIds.findIndex(id => id == user.id);
+    if (yourIndex == -1) {
+      return false;
+    } else { 
+      modIds = modIds.slice(0, yourIndex+1); // +1 cause you cant mod yourself
+      return !modIds.includes(creator_id);
+    }
+  } else {
+    return false;
+  }
+}
+
+export function isMod(modIds: Array<number>, creator_id: number): boolean {
+  return modIds.includes(creator_id);
 }
 
 export let fetchLimit: number = 20;

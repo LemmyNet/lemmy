@@ -48,11 +48,11 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     let community = this.props.community;
     return (
       <div>
-        <h4 className="mb-0">{community.title}
+        <h5 className="mb-0">{community.title}
         {community.removed &&
           <small className="ml-2 text-muted font-italic">removed</small>
         }
-      </h4>
+      </h5>
       <Link className="text-muted" to={`/community/${community.id}`}>/f/{community.name}</Link>
       {community.am_mod && 
         <ul class="list-inline mb-1 text-muted small font-weight-bold"> 

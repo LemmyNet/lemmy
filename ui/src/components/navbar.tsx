@@ -7,12 +7,14 @@ interface NavbarState {
   isLoggedIn: boolean;
   expanded: boolean;
   expandUserDropdown: boolean;
+  unreadCount: number;
 }
 
 export class Navbar extends Component<any, NavbarState> {
 
   emptyState: NavbarState = {
-    isLoggedIn: UserService.Instance.user !== undefined,
+    isLoggedIn: (UserService.Instance.user !== undefined),
+    unreadCount: 0,
     expanded: false,
     expandUserDropdown: false
   }
@@ -24,8 +26,9 @@ export class Navbar extends Component<any, NavbarState> {
 
     // Subscribe to user changes
     UserService.Instance.sub.subscribe(user => {
-      let loggedIn: boolean = user !== undefined;
-      this.setState({isLoggedIn: loggedIn});
+      this.state.isLoggedIn = user.user !== undefined;
+      this.state.unreadCount = user.unreadCount;
+      this.setState(this.state);
     });
   }
 
@@ -64,16 +67,26 @@ export class Navbar extends Component<any, NavbarState> {
           </ul>
           <ul class="navbar-nav ml-auto mr-2">
             {this.state.isLoggedIn ? 
-            <li className={`nav-item dropdown ${this.state.expandUserDropdown && 'show'}`}>
-              <a class="pointer nav-link dropdown-toggle" onClick={linkEvent(this, this.expandUserDropdown)} role="button">
-                {UserService.Instance.user.username}
-              </a>
-              <div className={`dropdown-menu dropdown-menu-right ${this.state.expandUserDropdown && 'show'}`}>
-                <a role="button" class="dropdown-item pointer" onClick={linkEvent(this, this.handleOverviewClick)}>Overview</a>
-                <a role="button" class="dropdown-item pointer" onClick={ linkEvent(this, this.handleLogoutClick) }>Logout</a>
-              </div>
-            </li> : 
-            <Link class="nav-link" to="/login">Login / Sign up</Link>
+            <>
+              {
+              <li className="nav-item">
+                <Link class="nav-link" to="/inbox">🖂 
+                  {this.state.unreadCount> 0 && <span class="badge badge-light">{this.state.unreadCount}</span>}
+                </Link>
+              </li>
+            }
+              <li className={`nav-item dropdown ${this.state.expandUserDropdown && 'show'}`}>
+                <a class="pointer nav-link dropdown-toggle" onClick={linkEvent(this, this.expandUserDropdown)} role="button">
+                  {UserService.Instance.user.username}
+                </a>
+                <div className={`dropdown-menu dropdown-menu-right ${this.state.expandUserDropdown && 'show'}`}>
+                  <a role="button" class="dropdown-item pointer" onClick={linkEvent(this, this.handleOverviewClick)}>Overview</a>
+                  <a role="button" class="dropdown-item pointer" onClick={ linkEvent(this, this.handleLogoutClick) }>Logout</a>
+                </div>
+              </li> 
+            </>
+              : 
+              <Link class="nav-link" to="/login">Login / Sign up</Link>
             }
           </ul>
         </div>
@@ -89,6 +102,7 @@ export class Navbar extends Component<any, NavbarState> {
   handleLogoutClick(i: Navbar) {
     i.state.expandUserDropdown = false;
     UserService.Instance.logout();
+    i.context.router.history.push('/');
   }
 
   handleOverviewClick(i: Navbar) {

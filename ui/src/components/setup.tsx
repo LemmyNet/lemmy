@@ -61,7 +61,7 @@ export class Setup extends Component<any, State> {
   registerUser() {
     return (
       <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
-        <h4>Set up Site Administrator</h4>
+        <h5>Set up Site Administrator</h5>
         <div class="form-group row">
           <label class="col-sm-2 col-form-label">Username</label>
           <div class="col-sm-10">

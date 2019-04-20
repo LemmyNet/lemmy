@@ -9,7 +9,7 @@ import { MomentTime } from './moment-time';
 import * as moment from 'moment';
 
 interface ModlogState {
-  combined: Array<{type_: string, data: ModRemovePost | ModLockPost | ModRemoveCommunity}>,
+  combined: Array<{type_: string, data: ModRemovePost | ModLockPost | ModRemoveCommunity | ModAdd | ModBan}>,
   communityId?: number,
   communityName?: string,
   page: number;
@@ -51,6 +51,8 @@ export class Modlog extends Component<any, ModlogState> {
     let removed_communities = addTypeInfo(res.removed_communities, "removed_communities");
     let banned_from_community = addTypeInfo(res.banned_from_community, "banned_from_community");
     let added_to_community = addTypeInfo(res.added_to_community, "added_to_community");
+    let added = addTypeInfo(res.added, "added");
+    let banned = addTypeInfo(res.banned, "banned");
     this.state.combined = [];
 
     this.state.combined.push(...removed_posts);
@@ -59,9 +61,11 @@ export class Modlog extends Component<any, ModlogState> {
     this.state.combined.push(...removed_communities);
     this.state.combined.push(...banned_from_community);
     this.state.combined.push(...added_to_community);
+    this.state.combined.push(...added);
+    this.state.combined.push(...banned);
 
     if (this.state.communityId && this.state.combined.length > 0) {
-      this.state.communityName = this.state.combined[0].data.community_name;
+      this.state.communityName = (this.state.combined[0].data as ModRemovePost).community_name;
     }
 
     // Sort them by time
@@ -95,13 +99,14 @@ export class Modlog extends Component<any, ModlogState> {
                 <>
                   {(i.data as ModRemoveComment).removed? 'Removed' : 'Restored'} 
                   <span> Comment <Link to={`/post/${(i.data as ModRemoveComment).post_id}/comment/${(i.data as ModRemoveComment).comment_id}`}>{(i.data as ModRemoveComment).comment_content}</Link></span>
+                  <span> by <Link to={`/user/${(i.data as ModRemoveComment).comment_user_id}`}>{(i.data as ModRemoveComment).comment_user_name}</Link></span>
                   <div>{(i.data as ModRemoveComment).reason && ` reason: ${(i.data as ModRemoveComment).reason}`}</div>
                 </>
               }
               {i.type_ == 'removed_communities' && 
                 <>
                   {(i.data as ModRemoveCommunity).removed ? 'Removed' : 'Restored'} 
-                  <span> Community <Link to={`/community/${i.data.community_id}`}>{i.data.community_name}</Link></span>
+                  <span> Community <Link to={`/community/${(i.data as ModRemoveCommunity).community_id}`}>{(i.data as ModRemoveCommunity).community_name}</Link></span>
                   <div>{(i.data as ModRemoveCommunity).reason && ` reason: ${(i.data as ModRemoveCommunity).reason}`}</div>
                   <div>{(i.data as ModRemoveCommunity).expires && ` expires: ${moment.utc((i.data as ModRemoveCommunity).expires).fromNow()}`}</div>
                 </>
@@ -110,6 +115,8 @@ export class Modlog extends Component<any, ModlogState> {
                 <>
                   <span>{(i.data as ModBanFromCommunity).banned ? 'Banned ' : 'Unbanned '} </span>
                   <span><Link to={`/user/${(i.data as ModBanFromCommunity).other_user_id}`}>{(i.data as ModBanFromCommunity).other_user_name}</Link></span>
+                  <span> from the community </span>
+                  <span><Link to={`/community/${(i.data as ModBanFromCommunity).community_id}`}>{(i.data as ModBanFromCommunity).community_name}</Link></span>
                   <div>{(i.data as ModBanFromCommunity).reason && ` reason: ${(i.data as ModBanFromCommunity).reason}`}</div>
                   <div>{(i.data as ModBanFromCommunity).expires && ` expires: ${moment.utc((i.data as ModBanFromCommunity).expires).fromNow()}`}</div>
                 </>
@@ -119,12 +126,27 @@ export class Modlog extends Component<any, ModlogState> {
                   <span>{(i.data as ModAddCommunity).removed ? 'Removed ' : 'Appointed '} </span>
                   <span><Link to={`/user/${(i.data as ModAddCommunity).other_user_id}`}>{(i.data as ModAddCommunity).other_user_name}</Link></span>
                   <span> as a mod to the community </span>
-                  <span><Link to={`/community/${i.data.community_id}`}>{i.data.community_name}</Link></span>
+                  <span><Link to={`/community/${(i.data as ModAddCommunity).community_id}`}>{(i.data as ModAddCommunity).community_name}</Link></span>
+                </>
+              }
+              {i.type_ == 'banned' && 
+                <>
+                  <span>{(i.data as ModBan).banned ? 'Banned ' : 'Unbanned '} </span>
+                  <span><Link to={`/user/${(i.data as ModBan).other_user_id}`}>{(i.data as ModBan).other_user_name}</Link></span>
+                  <div>{(i.data as ModBan).reason && ` reason: ${(i.data as ModBan).reason}`}</div>
+                  <div>{(i.data as ModBan).expires && ` expires: ${moment.utc((i.data as ModBan).expires).fromNow()}`}</div>
+                </>
+              }
+              {i.type_ == 'added' && 
+                <>
+                  <span>{(i.data as ModAdd).removed ? 'Removed ' : 'Appointed '} </span>
+                  <span><Link to={`/user/${(i.data as ModAdd).other_user_id}`}>{(i.data as ModAdd).other_user_name}</Link></span>
+                  <span> as an admin </span>
                 </>
               }
             </td>
           </tr>
-                     )
+                                )
         }
 
       </tbody>
@@ -136,12 +158,12 @@ export class Modlog extends Component<any, ModlogState> {
     return (
       <div class="container">
         {this.state.loading ? 
-        <h4 class=""><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
+        <h5 class=""><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> : 
         <div>
-          <h4>
+          <h5>
             {this.state.communityName && <Link className="text-white" to={`/community/${this.state.communityId}`}>/f/{this.state.communityName} </Link>}
             <span>Modlog</span>
-          </h4>
+          </h5>
           <div class="table-responsive">
             <table id="modlog_table" class="table table-sm table-hover">
               <thead class="pointer">
@@ -183,7 +205,7 @@ export class Modlog extends Component<any, ModlogState> {
     i.setState(i.state);
     i.refetch();
   }
-  
+
   refetch(){
     let modlogForm: GetModlogForm = {
       community_id: this.state.communityId,

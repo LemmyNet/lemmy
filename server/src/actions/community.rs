@@ -14,7 +14,7 @@ pub struct Community {
   pub description: Option<String>,
   pub category_id: i32,
   pub creator_id: i32,
-  pub removed: Option<bool>,
+  pub removed: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>
 }
@@ -249,7 +249,7 @@ mod tests {
       title: "nada".to_owned(),
       description: None,
       category_id: 1,
-      removed: Some(false),
+      removed: false,
       published: inserted_community.published,
       updated: None
     };

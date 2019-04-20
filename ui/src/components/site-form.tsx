@@ -33,7 +33,7 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
   render() {
     return (
       <form onSubmit={linkEvent(this, this.handleCreateSiteSubmit)}>
-        <h4>{`${this.props.site ? 'Edit' : 'Name'} your Site`}</h4>
+        <h5>{`${this.props.site ? 'Edit' : 'Name'} your Site`}</h5>
         <div class="form-group row">
           <label class="col-12 col-form-label">Name</label>
           <div class="col-12">

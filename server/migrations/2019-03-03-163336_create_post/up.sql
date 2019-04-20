@@ -5,8 +5,8 @@ create table post (
   body text,
   creator_id int references user_ on update cascade on delete cascade not null,
   community_id int references community on update cascade on delete cascade not null,
-  removed boolean default false,
-  locked boolean default false,
+  removed boolean default false not null,
+  locked boolean default false not null,
   published timestamp not null default now(),
   updated timestamp
 );
@@ -20,3 +20,18 @@ create table post_like (
   unique(post_id, user_id)
 );
 
+create table post_saved (
+  id serial primary key,
+  post_id int references post on update cascade on delete cascade not null,
+  user_id int references user_ on update cascade on delete cascade not null,
+  published timestamp not null default now(),
+  unique(post_id, user_id)
+);
+
+create table post_read (
+  id serial primary key,
+  post_id int references post on update cascade on delete cascade not null,
+  user_id int references user_ on update cascade on delete cascade not null,
+  published timestamp not null default now(),
+  unique(post_id, user_id)
+);

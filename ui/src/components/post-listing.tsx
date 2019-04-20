@@ -1,10 +1,10 @@
 import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { WebSocketService, UserService } from '../services';
-import { Post, CreatePostLikeForm, PostForm as PostFormI } from '../interfaces';
+import { Post, CreatePostLikeForm, PostForm as PostFormI, SavePostForm, CommunityUser, UserView } from '../interfaces';
 import { MomentTime } from './moment-time';
 import { PostForm } from './post-form';
-import { mdToHtml } from '../utils';
+import { mdToHtml, canMod, isMod } from '../utils';
 
 interface PostListingState {
   showEdit: boolean;
@@ -19,6 +19,8 @@ interface PostListingProps {
   showCommunity?: boolean;
   showBody?: boolean;
   viewOnly?: boolean;
+  moderators?: Array<CommunityUser>;
+  admins?: Array<UserView>;
 }
 
 export class PostListing extends Component<PostListingProps, PostListingState> {
@@ -60,17 +62,17 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           <div>{post.score}</div>
           <div className={`pointer downvote ${post.my_vote == -1 && 'text-danger'}`} onClick={linkEvent(this, this.handlePostDisLike)}>▼</div>
         </div>
-        <div className="ml-4">
+        <div className="pt-1 ml-4">
           {post.url 
             ? <div className="mb-0">
-            <h4 className="d-inline"><a className="text-white" href={post.url} title={post.url}>{post.name}</a>
+            <h5 className="d-inline"><a className="text-white" href={post.url} title={post.url}>{post.name}</a>
             {post.removed &&
               <small className="ml-2 text-muted font-italic">removed</small>
             }
             {post.locked &&
               <small className="ml-2 text-muted font-italic">locked</small>
             }
-          </h4>
+          </h5>
           <small><a className="ml-2 text-muted font-italic" href={post.url} title={post.url}>{(new URL(post.url)).hostname}</a></small>
           { !this.state.iframeExpanded
             ? <span class="badge badge-light pointer ml-2 text-muted small" title="Expand here" onClick={linkEvent(this, this.handleIframeExpandClick)}>+</span>
@@ -83,14 +85,14 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             </span>
           }
         </div> 
-          : <h4 className="mb-0"><Link className="text-white" to={`/post/${post.id}`}>{post.name}</Link>
+          : <h5 className="mb-0"><Link className="text-white" to={`/post/${post.id}`}>{post.name}</Link>
           {post.removed &&
             <small className="ml-2 text-muted font-italic">removed</small>
           }
           {post.locked &&
             <small className="ml-2 text-muted font-italic">locked</small>
           }
-        </h4>
+        </h5>
           }
         </div>
         <div className="details ml-4 mb-1">
@@ -98,6 +100,12 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             <li className="list-inline-item">
               <span>by </span>
               <Link className="text-info" to={`/user/${post.creator_id}`}>{post.creator_name}</Link>
+              {this.isMod && 
+                <span className="mx-1 badge badge-secondary">mod</span>
+              }
+              {this.isAdmin && 
+                <span className="mx-1 badge badge-secondary">admin</span>
+              }
               {this.props.showCommunity && 
                 <span>
                   <span> to </span>
@@ -120,19 +128,22 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               <Link className="text-muted" to={`/post/${post.id}`}>{post.number_of_comments} Comments</Link>
             </li>
           </ul>
-          {this.props.editable &&
+          {UserService.Instance.user && this.props.editable &&
             <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
+              <li className="list-inline-item mr-2">
+                <span class="pointer" onClick={linkEvent(this, this.handleSavePostClick)}>{this.props.post.saved ? 'unsave' : 'save'}</span>
+              </li>
               {this.myPost && 
-                <span>
+                <>
                   <li className="list-inline-item">
                     <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>edit</span>
                   </li>
                   <li className="list-inline-item mr-2">
                     <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>delete</span>
                   </li>
-                </span>
+                </>
               }
-              {this.props.post.am_mod &&
+              {this.canMod &&
                 <span>
                   <li className="list-inline-item">
                     {!this.props.post.removed ? 
@@ -161,6 +172,29 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
   private get myPost(): boolean {
     return UserService.Instance.user && this.props.post.creator_id == UserService.Instance.user.id;
+  }
+
+  get canMod(): boolean {
+
+    if (this.props.editable) {
+      let adminsThenMods = this.props.admins.map(a => a.id)
+      .concat(this.props.moderators.map(m => m.user_id));
+
+      return canMod(UserService.Instance.user, adminsThenMods, this.props.post.creator_id);
+
+    } else return false;
+  }
+
+  get isMod(): boolean {
+    return this.props.moderators && isMod(this.props.moderators.map(m => m.user_id), this.props.post.creator_id);
+  }
+
+  get isAdmin(): boolean {
+    return this.props.admins && isMod(this.props.admins.map(a => a.id), this.props.post.creator_id);
+  }
+
+  get canAdmin(): boolean {
+    return this.props.admins && canMod(UserService.Instance.user, this.props.admins.map(a => a.id), this.props.post.creator_id);
   }
 
   handlePostLike(i: PostListing) {
@@ -207,6 +241,16 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       auth: null
     };
     WebSocketService.Instance.editPost(deleteForm);
+  }
+
+  handleSavePostClick(i: PostListing) {
+    let saved = (i.props.post.saved == undefined) ? true : !i.props.post.saved;
+    let form: SavePostForm = {
+      post_id: i.props.post.id,
+      save: saved
+    };
+
+    WebSocketService.Instance.savePost(form);
   }
 
   handleModRemoveShow(i: PostListing) {

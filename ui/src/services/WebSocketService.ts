@@ -1,5 +1,5 @@
 import { wsUri } from '../env';
-import { LoginForm, RegisterForm, UserOperation, CommunityForm, PostForm, CommentForm, CommentLikeForm, GetPostsForm, CreatePostLikeForm, FollowCommunityForm, GetUserDetailsForm, ListCommunitiesForm, GetModlogForm, BanFromCommunityForm, AddModToCommunityForm, SiteForm, Site, UserView } from '../interfaces';
+import { LoginForm, RegisterForm, UserOperation, CommunityForm, PostForm, SavePostForm, CommentForm, SaveCommentForm, CommentLikeForm, GetPostsForm, CreatePostLikeForm, FollowCommunityForm, GetUserDetailsForm, ListCommunitiesForm, GetModlogForm, BanFromCommunityForm, AddModToCommunityForm, AddAdminForm, BanUserForm, SiteForm, Site, UserView, GetRepliesForm } from '../interfaces';
 import { webSocket } from 'rxjs/webSocket';
 import { Subject } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
@@ -96,6 +96,11 @@ export class WebSocketService {
     this.subject.next(this.wsSendWrapper(UserOperation.CreateCommentLike, form));
   }
 
+  public saveComment(form: SaveCommentForm) {
+    this.setAuth(form);
+    this.subject.next(this.wsSendWrapper(UserOperation.SaveComment, form));
+  }
+
   public getPosts(form: GetPostsForm) {
     this.setAuth(form, false);
     this.subject.next(this.wsSendWrapper(UserOperation.GetPosts, form));
@@ -111,6 +116,11 @@ export class WebSocketService {
     this.subject.next(this.wsSendWrapper(UserOperation.EditPost, postForm));
   }
 
+  public savePost(form: SavePostForm) {
+    this.setAuth(form);
+    this.subject.next(this.wsSendWrapper(UserOperation.SavePost, form));
+  }
+
   public banFromCommunity(form: BanFromCommunityForm) {
     this.setAuth(form);
     this.subject.next(this.wsSendWrapper(UserOperation.BanFromCommunity, form));
@@ -121,9 +131,23 @@ export class WebSocketService {
     this.subject.next(this.wsSendWrapper(UserOperation.AddModToCommunity, form));
   }
 
+  public banUser(form: BanUserForm) {
+    this.setAuth(form);
+    this.subject.next(this.wsSendWrapper(UserOperation.BanUser, form));
+  }
+
+  public addAdmin(form: AddAdminForm) {
+    this.setAuth(form);
+    this.subject.next(this.wsSendWrapper(UserOperation.AddAdmin, form));
+  }
+
   public getUserDetails(form: GetUserDetailsForm) {
-    this.setAuth(form, false);
     this.subject.next(this.wsSendWrapper(UserOperation.GetUserDetails, form));
+  }
+
+  public getReplies(form: GetRepliesForm) {
+    this.setAuth(form);
+    this.subject.next(this.wsSendWrapper(UserOperation.GetReplies, form));
   }
 
   public getModlog(form: GetModlogForm) {
