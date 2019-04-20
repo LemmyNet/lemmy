@@ -2,22 +2,27 @@ import { Component } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, CommunityUser, GetFollowedCommunitiesResponse, ListCommunitiesForm, ListCommunitiesResponse, Community, SortType, GetSiteResponse, GetRepliesResponse, GetRepliesForm } from '../interfaces';
+import { UserOperation, CommunityUser, GetFollowedCommunitiesResponse, ListCommunitiesForm, ListCommunitiesResponse, Community, SortType, GetSiteResponse, GetRepliesResponse, GetRepliesForm, ListingType } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
 import { msgOp, repoUrl, mdToHtml } from '../utils';
 
-interface State {
+
+interface MainProps {
+  type: ListingType;
+}
+
+interface MainState {
   subscribedCommunities: Array<CommunityUser>;
   trendingCommunities: Array<Community>;
   site: GetSiteResponse;
   loading: boolean;
 }
 
-export class Main extends Component<any, State> {
+export class Main extends Component<MainProps, MainState> {
 
   private subscription: Subscription;
-  private emptyState: State = {
+  private emptyState: MainState = {
     subscribedCommunities: [],
     trendingCommunities: [],
     site: {
@@ -83,7 +88,7 @@ export class Main extends Component<any, State> {
       <div class="container">
         <div class="row">
           <div class="col-12 col-md-8">
-            <PostListings />
+            <PostListings type={this.props.type} />
           </div>
           <div class="col-12 col-md-4">
             {this.state.loading ? 

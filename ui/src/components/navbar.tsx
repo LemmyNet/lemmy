@@ -71,7 +71,7 @@ export class Navbar extends Component<any, NavbarState> {
               {
               <li className="nav-item">
                 <Link class="nav-link" to="/inbox">🖂 
-                  {this.state.unreadCount> 0 && <span class="badge badge-light">{this.state.unreadCount}</span>}
+                  {this.state.unreadCount> 0 && <span class="ml-1 badge badge-light">{this.state.unreadCount}</span>}
                 </Link>
               </li>
             }
