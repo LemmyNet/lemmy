@@ -13,6 +13,7 @@ import { Communities } from './components/communities';
 import { User } from './components/user';
 import { Modlog } from './components/modlog';
 import { Setup } from './components/setup';
+import { Inbox } from './components/inbox';
 import { Symbols } from './components/symbols';
 
 import './css/bootstrap.min.css';
@@ -46,6 +47,7 @@ class Index extends Component<any, any> {
             <Route path={`/community/:id`} component={Community} />
             <Route path={`/user/:id/:heading`} component={User} />
             <Route path={`/user/:id`} component={User} />
+            <Route path={`/inbox`} component={Inbox} />
             <Route path={`/modlog/community/:community_id`} component={Modlog} />
             <Route path={`/modlog`} component={Modlog} />
             <Route path={`/setup`} component={Setup} />

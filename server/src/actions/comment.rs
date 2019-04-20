@@ -36,6 +36,7 @@ pub struct CommentForm {
   pub parent_id: Option<i32>,
   pub content: String,
   pub removed: Option<bool>,
+  pub read: Option<bool>,
   pub updated: Option<chrono::NaiveDateTime>
 }
 
@@ -208,6 +209,7 @@ mod tests {
       creator_id: inserted_user.id,
       post_id: inserted_post.id,
       removed: None,
+      read: None,
       parent_id: None,
       updated: None
     };
@@ -232,6 +234,7 @@ mod tests {
       post_id: inserted_post.id,
       parent_id: Some(inserted_comment.id),
       removed: None,
+      read: None,
       updated: None
     };
 

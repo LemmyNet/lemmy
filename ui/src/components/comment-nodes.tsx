@@ -12,6 +12,7 @@ interface CommentNodesProps {
   noIndent?: boolean;
   viewOnly?: boolean;
   locked?: boolean;
+  markable?: boolean;
 }
 
 export class CommentNodes extends Component<CommentNodesProps, CommentNodesState> {
@@ -30,6 +31,7 @@ export class CommentNodes extends Component<CommentNodesProps, CommentNodesState
             locked={this.props.locked} 
             moderators={this.props.moderators}
             admins={this.props.admins}
+            markable={this.props.markable}
             />
         )}
       </div>

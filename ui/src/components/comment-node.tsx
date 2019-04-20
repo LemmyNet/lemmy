@@ -25,6 +25,7 @@ interface CommentNodeProps {
   noIndent?: boolean;
   viewOnly?: boolean;
   locked?: boolean;
+  markable?: boolean;
   moderators: Array<CommunityUser>;
   admins: Array<UserView>;
 }
@@ -146,7 +147,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                         }
                         {!this.props.node.comment.banned &&
                           <li className="list-inline-item">
-                            <span class="pointer" onClick={linkEvent(this, this.addAdmin)}>{`${this.isAdmin ? 'remove' : 'appoint'} as admin`}</span>
+                            <span class="pointer" onClick={linkEvent(this, this.handleAddAdmin)}>{`${this.isAdmin ? 'remove' : 'appoint'} as admin`}</span>
                           </li>
                         }
                       </>
@@ -156,6 +157,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 <li className="list-inline-item">
                   <Link className="text-muted" to={`/post/${node.comment.post_id}/comment/${node.comment.id}`} target="_blank">link</Link>
                 </li>
+                {this.props.markable && 
+                  <li className="list-inline-item">
+                    <span class="pointer" onClick={linkEvent(this, this.handleMarkRead)}>{`mark as ${node.comment.read ? 'unread' : 'read'}`}</span>
+                  </li>
+                }
               </ul>
             </div>
           }
@@ -309,6 +315,20 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     i.setState(i.state);
   }
 
+  handleMarkRead(i: CommentNode) {
+    let form: CommentFormI = {
+      content: i.props.node.comment.content,
+      edit_id: i.props.node.comment.id,
+      creator_id: i.props.node.comment.creator_id,
+      post_id: i.props.node.comment.post_id,
+      parent_id: i.props.node.comment.parent_id,
+      read: !i.props.node.comment.read,
+      auth: null
+    };
+    WebSocketService.Instance.editComment(form);
+  }
+
+
   handleModBanFromCommunityShow(i: CommentNode) {
     i.state.showBanDialog = true;
     i.state.banType = BanType.Community;
@@ -382,7 +402,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     i.setState(i.state);
   }
 
-  addAdmin(i: CommentNode) {
+  handleAddAdmin(i: CommentNode) {
     let form: AddAdminForm = {
       user_id: i.props.node.comment.creator_id,
       added: !i.isAdmin,

@@ -10,7 +10,6 @@ import { CommentForm } from './comment-form';
 import { CommentNodes } from './comment-nodes';
 import * as autosize from 'autosize';
 
-
 interface PostState {
   post: PostI;
   comments: Array<Comment>;
