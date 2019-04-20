@@ -28,7 +28,7 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
     moderators: [],
     posts: [],
     sortType: SortType.Hot,
-    type_: (this.props.type !== undefined) ? this.props.type : 
+    type_: (this.props.type !== undefined && UserService.Instance.user) ? this.props.type : 
       this.props.communityId 
         ? ListingType.Community 
         : UserService.Instance.user
