@@ -83,9 +83,7 @@ blockquote {
   padding: 0.1em 5px;
 }
 
-.badge-notify{
-   /* background:red; */
-   position:relative;
-   top: -20px;
-   left: -35px;
+.inbox {
+  margin-top: 6px;
 }
+
