@@ -27,7 +27,7 @@ pub struct CommunityForm {
   pub description: Option<String>,
   pub category_id: i32,
   pub creator_id: i32,
-  pub removed: bool,
+  pub removed: Option<bool>,
   pub updated: Option<chrono::NaiveDateTime>
 }
 
@@ -236,7 +236,7 @@ mod tests {
       title: "nada".to_owned(),
       description: None,
       category_id: 1,
-      removed: false,
+      removed: None,
       updated: None,
     };
 

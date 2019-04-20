@@ -1,10 +1,10 @@
 import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { WebSocketService, UserService } from '../services';
-import { Post, CreatePostLikeForm, PostForm as PostFormI, SavePostForm } from '../interfaces';
+import { Post, CreatePostLikeForm, PostForm as PostFormI, SavePostForm, CommunityUser, UserView } from '../interfaces';
 import { MomentTime } from './moment-time';
 import { PostForm } from './post-form';
-import { mdToHtml } from '../utils';
+import { mdToHtml, canMod, isMod } from '../utils';
 
 interface PostListingState {
   showEdit: boolean;
@@ -19,6 +19,8 @@ interface PostListingProps {
   showCommunity?: boolean;
   showBody?: boolean;
   viewOnly?: boolean;
+  moderators?: Array<CommunityUser>;
+  admins?: Array<UserView>;
 }
 
 export class PostListing extends Component<PostListingProps, PostListingState> {
@@ -98,6 +100,12 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             <li className="list-inline-item">
               <span>by </span>
               <Link className="text-info" to={`/user/${post.creator_id}`}>{post.creator_name}</Link>
+              {this.isMod && 
+                <span className="mx-1 badge badge-secondary">mod</span>
+              }
+              {this.isAdmin && 
+                <span className="mx-1 badge badge-secondary">admin</span>
+              }
               {this.props.showCommunity && 
                 <span>
                   <span> to </span>
@@ -135,7 +143,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   </li>
                 </>
               }
-              {this.props.post.am_mod &&
+              {this.canMod &&
                 <span>
                   <li className="list-inline-item">
                     {!this.props.post.removed ? 
@@ -164,6 +172,29 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
   private get myPost(): boolean {
     return UserService.Instance.user && this.props.post.creator_id == UserService.Instance.user.id;
+  }
+
+  get canMod(): boolean {
+
+    if (this.props.editable) {
+      let adminsThenMods = this.props.admins.map(a => a.id)
+      .concat(this.props.moderators.map(m => m.user_id));
+
+      return canMod(UserService.Instance.user, adminsThenMods, this.props.post.creator_id);
+
+    } else return false;
+  }
+
+  get isMod(): boolean {
+    return this.props.moderators && isMod(this.props.moderators.map(m => m.user_id), this.props.post.creator_id);
+  }
+
+  get isAdmin(): boolean {
+    return this.props.admins && isMod(this.props.admins.map(a => a.id), this.props.post.creator_id);
+  }
+
+  get canAdmin(): boolean {
+    return this.props.admins && canMod(UserService.Instance.user, this.props.admins.map(a => a.id), this.props.post.creator_id);
   }
 
   handlePostLike(i: PostListing) {
@@ -207,8 +238,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       url: '',
       edit_id: i.props.post.id,
       creator_id: i.props.post.creator_id,
-      removed: !i.props.post.removed,
-      locked: !i.props.post.locked,
       auth: null
     };
     WebSocketService.Instance.editPost(deleteForm);
@@ -242,7 +271,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       edit_id: i.props.post.id,
       creator_id: i.props.post.creator_id,
       removed: !i.props.post.removed,
-      locked: !i.props.post.locked,
       reason: i.state.removeReason,
       auth: null,
     };
@@ -258,7 +286,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       community_id: i.props.post.community_id,
       edit_id: i.props.post.id,
       creator_id: i.props.post.creator_id,
-      removed: !i.props.post.removed,
       locked: !i.props.post.locked,
       auth: null,
     };
