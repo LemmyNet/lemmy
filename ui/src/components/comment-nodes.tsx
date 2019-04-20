@@ -1,5 +1,5 @@
 import { Component } from 'inferno';
-import { CommentNode as CommentNodeI, CommunityUser } from '../interfaces';
+import { CommentNode as CommentNodeI, CommunityUser, UserView } from '../interfaces';
 import { CommentNode } from './comment-node';
 
 interface CommentNodesState {
@@ -8,6 +8,7 @@ interface CommentNodesState {
 interface CommentNodesProps {
   nodes: Array<CommentNodeI>;
   moderators?: Array<CommunityUser>;
+  admins?: Array<UserView>;
   noIndent?: boolean;
   viewOnly?: boolean;
   locked?: boolean;
@@ -27,7 +28,9 @@ export class CommentNodes extends Component<CommentNodesProps, CommentNodesState
             noIndent={this.props.noIndent} 
             viewOnly={this.props.viewOnly} 
             locked={this.props.locked} 
-            moderators={this.props.moderators}/>
+            moderators={this.props.moderators}
+            admins={this.props.admins}
+            />
         )}
       </div>
     )

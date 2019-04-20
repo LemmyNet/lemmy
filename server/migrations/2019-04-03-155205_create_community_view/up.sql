@@ -13,19 +13,16 @@ with all_community as
 select
 ac.*,
 u.id as user_id,
-cf.id::boolean as subscribed,
-u.admin or (select cm.id::bool from community_moderator cm where u.id = cm.user_id and cm.community_id = ac.id) as am_mod
+(select cf.id::boolean from community_follower cf where u.id = cf.user_id and ac.id = cf.community_id) as subscribed
 from user_ u
 cross join all_community ac
-left join community_follower cf on u.id = cf.user_id and ac.id = cf.community_id
 
 union all
 
 select 
 ac.*,
 null as user_id,
-null as subscribed,
-null as am_mod
+null as subscribed
 from all_community ac
 ;
 

@@ -43,8 +43,7 @@ create view mod_ban_view as
 select mb.*,
 (select name from user_ u where mb.mod_user_id = u.id) as mod_user_name,
 (select name from user_ u where mb.other_user_id = u.id) as other_user_name
-from mod_ban_from_community mb;
-
+from mod_ban mb;
 
 create view mod_add_community_view as 
 select ma.*,
@@ -52,7 +51,6 @@ select ma.*,
 (select name from user_ u where ma.other_user_id = u.id) as other_user_name,
 (select name from community c where ma.community_id = c.id) as community_name
 from mod_add_community ma;
-
 
 create view mod_add_view as 
 select ma.*,

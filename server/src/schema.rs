@@ -12,7 +12,8 @@ table! {
         post_id -> Int4,
         parent_id -> Nullable<Int4>,
         content -> Text,
-        removed -> Nullable<Bool>,
+        removed -> Bool,
+        read -> Bool,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
     }
@@ -30,6 +31,15 @@ table! {
 }
 
 table! {
+    comment_saved (id) {
+        id -> Int4,
+        comment_id -> Int4,
+        user_id -> Int4,
+        published -> Timestamp,
+    }
+}
+
+table! {
     community (id) {
         id -> Int4,
         name -> Varchar,
@@ -37,7 +47,7 @@ table! {
         description -> Nullable<Text>,
         category_id -> Int4,
         creator_id -> Int4,
-        removed -> Nullable<Bool>,
+        removed -> Bool,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
     }
@@ -168,8 +178,8 @@ table! {
         body -> Nullable<Text>,
         creator_id -> Int4,
         community_id -> Int4,
-        removed -> Nullable<Bool>,
-        locked -> Nullable<Bool>,
+        removed -> Bool,
+        locked -> Bool,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
     }
@@ -181,6 +191,24 @@ table! {
         post_id -> Int4,
         user_id -> Int4,
         score -> Int2,
+        published -> Timestamp,
+    }
+}
+
+table! {
+    post_read (id) {
+        id -> Int4,
+        post_id -> Int4,
+        user_id -> Int4,
+        published -> Timestamp,
+    }
+}
+
+table! {
+    post_saved (id) {
+        id -> Int4,
+        post_id -> Int4,
+        user_id -> Int4,
         published -> Timestamp,
     }
 }
@@ -225,6 +253,8 @@ joinable!(comment -> user_ (creator_id));
 joinable!(comment_like -> comment (comment_id));
 joinable!(comment_like -> post (post_id));
 joinable!(comment_like -> user_ (user_id));
+joinable!(comment_saved -> comment (comment_id));
+joinable!(comment_saved -> user_ (user_id));
 joinable!(community -> category (category_id));
 joinable!(community -> user_ (creator_id));
 joinable!(community_follower -> community (community_id));
@@ -247,6 +277,10 @@ joinable!(post -> community (community_id));
 joinable!(post -> user_ (creator_id));
 joinable!(post_like -> post (post_id));
 joinable!(post_like -> user_ (user_id));
+joinable!(post_read -> post (post_id));
+joinable!(post_read -> user_ (user_id));
+joinable!(post_saved -> post (post_id));
+joinable!(post_saved -> user_ (user_id));
 joinable!(site -> user_ (creator_id));
 joinable!(user_ban -> user_ (user_id));
 
@@ -254,6 +288,7 @@ allow_tables_to_appear_in_same_query!(
     category,
     comment,
     comment_like,
+    comment_saved,
     community,
     community_follower,
     community_moderator,
@@ -268,6 +303,8 @@ allow_tables_to_appear_in_same_query!(
     mod_remove_post,
     post,
     post_like,
+    post_read,
+    post_saved,
     site,
     user_,
     user_ban,

@@ -441,7 +441,7 @@ mod tests {
       description: None,
       category_id: 1,
       creator_id: inserted_user.id,
-      removed: None,
+      removed: false,
       updated: None
     };
 
@@ -453,8 +453,8 @@ mod tests {
       body: None,
       creator_id: inserted_user.id,
       community_id: inserted_community.id,
-      removed: None,
-      locked: None,
+      removed: false,
+      locked: false,
       updated: None
     };
 

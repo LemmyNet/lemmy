@@ -53,9 +53,9 @@ export class Communities extends Component<any, CommunitiesState> {
     return (
       <div class="container">
         {this.state.loading ? 
-        <h4 class=""><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
+        <h5 class=""><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> : 
         <div>
-          <h4>Communities</h4>
+          <h5>Communities</h5>
           <div class="table-responsive">
             <table id="community_table" class="table table-sm table-hover">
               <thead class="pointer">

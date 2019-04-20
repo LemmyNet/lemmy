@@ -1,11 +1,13 @@
 import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
-import { CommentNode as CommentNodeI, CommentLikeForm, CommentForm as CommentFormI, BanFromCommunityForm, CommunityUser, AddModToCommunityForm } from '../interfaces';
+import { CommentNode as CommentNodeI, CommentLikeForm, CommentForm as CommentFormI, SaveCommentForm, BanFromCommunityForm, BanUserForm, CommunityUser, UserView, AddModToCommunityForm, AddAdminForm } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { mdToHtml, getUnixTime } from '../utils';
+import { mdToHtml, getUnixTime, canMod, isMod } from '../utils';
 import { MomentTime } from './moment-time';
 import { CommentForm } from './comment-form';
 import { CommentNodes } from './comment-nodes';
+
+enum BanType {Community, Site};
 
 interface CommentNodeState {
   showReply: boolean;
@@ -15,6 +17,7 @@ interface CommentNodeState {
   showBanDialog: boolean;
   banReason: string;
   banExpires: string;
+  banType: BanType;
 }
 
 interface CommentNodeProps {
@@ -23,6 +26,7 @@ interface CommentNodeProps {
   viewOnly?: boolean;
   locked?: boolean;
   moderators: Array<CommunityUser>;
+  admins: Array<UserView>;
 }
 
 export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
@@ -35,6 +39,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     showBanDialog: false,
     banReason: null,
     banExpires: null,
+    banType: BanType.Community
   }
 
   constructor(props: any, context: any) {
@@ -60,6 +65,12 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             <li className="list-inline-item">
               <Link className="text-info" to={`/user/${node.comment.creator_id}`}>{node.comment.creator_name}</Link>
             </li>
+            {this.isMod && 
+              <li className="list-inline-item badge badge-secondary">mod</li>
+            }
+            {this.isAdmin && 
+              <li className="list-inline-item badge badge-secondary">admin</li>
+            }
             <li className="list-inline-item">
               <span>(
                 <span className="text-info">+{node.comment.upvotes}</span>
@@ -77,47 +88,70 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             <div>
               <div className="md-div" dangerouslySetInnerHTML={mdToHtml(node.comment.removed ? '*removed*' : node.comment.content)} />
               <ul class="list-inline mb-1 text-muted small font-weight-bold">
-                {!this.props.viewOnly && 
-                  <span class="mr-2">
+                {UserService.Instance.user && !this.props.viewOnly && 
+                  <>
                     <li className="list-inline-item">
                       <span class="pointer" onClick={linkEvent(this, this.handleReplyClick)}>reply</span>
                     </li>
+                    <li className="list-inline-item mr-2">
+                      <span class="pointer" onClick={linkEvent(this, this.handleSaveCommentClick)}>{node.comment.saved ? 'unsave' : 'save'}</span>
+                    </li>
                     {this.myComment && 
                       <>
-                      <li className="list-inline-item">
-                        <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>edit</span>
-                      </li>
-                      <li className="list-inline-item">
-                        <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>delete</span>
-                      </li>
-                    </>
+                        <li className="list-inline-item">
+                          <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>edit</span>
+                        </li>
+                        <li className="list-inline-item">
+                          <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>delete</span>
+                        </li>
+                      </>
                     }
-                    {this.canMod &&
-                      <>
+                    {/* Admins and mods can remove comments */}
+                    {this.canMod && 
                       <li className="list-inline-item">
                         {!this.props.node.comment.removed ? 
                         <span class="pointer" onClick={linkEvent(this, this.handleModRemoveShow)}>remove</span> :
                         <span class="pointer" onClick={linkEvent(this, this.handleModRemoveSubmit)}>restore</span>
                         }
                       </li>
-                      {!this.isMod &&
-                        <>
+                    }
+                    {/* Mods can ban from community, and appoint as mods to community */}
+                    {this.canMod &&
+                      <>
+                        {!this.isMod && 
                           <li className="list-inline-item">
-                            {!this.props.node.comment.banned ? 
-                            <span class="pointer" onClick={linkEvent(this, this.handleModBanShow)}>ban</span> :
-                            <span class="pointer" onClick={linkEvent(this, this.handleModBanSubmit)}>unban</span>
+                            {!this.props.node.comment.banned_from_community ? 
+                            <span class="pointer" onClick={linkEvent(this, this.handleModBanFromCommunityShow)}>ban</span> :
+                            <span class="pointer" onClick={linkEvent(this, this.handleModBanFromCommunitySubmit)}>unban</span>
                             }
                           </li>
-                        </>
-                      }
-                      {!this.props.node.comment.banned &&
-                        <li className="list-inline-item">
-                          <span class="pointer" onClick={linkEvent(this, this.handleAddModToCommunity)}>{`${this.isMod ? 'remove' : 'appoint'} as mod`}</span>
-                        </li>
-                      }
-                    </>
+                        }
+                        {!this.props.node.comment.banned_from_community &&
+                          <li className="list-inline-item">
+                            <span class="pointer" onClick={linkEvent(this, this.handleAddModToCommunity)}>{`${this.isMod ? 'remove' : 'appoint'} as mod`}</span>
+                          </li>
+                        }
+                      </>
                     }
-                  </span>
+                    {/* Admins can ban from all, and appoint other admins */}
+                    {this.canAdmin &&
+                      <>
+                        {!this.isAdmin && 
+                          <li className="list-inline-item">
+                            {!this.props.node.comment.banned ? 
+                            <span class="pointer" onClick={linkEvent(this, this.handleModBanShow)}>ban from site</span> :
+                            <span class="pointer" onClick={linkEvent(this, this.handleModBanSubmit)}>unban from site</span>
+                            }
+                          </li>
+                        }
+                        {!this.props.node.comment.banned &&
+                          <li className="list-inline-item">
+                            <span class="pointer" onClick={linkEvent(this, this.addAdmin)}>{`${this.isAdmin ? 'remove' : 'appoint'} as admin`}</span>
+                          </li>
+                        }
+                      </>
+                    }
+                  </>
                 }
                 <li className="list-inline-item">
                   <Link className="text-muted" to={`/post/${node.comment.post_id}/comment/${node.comment.id}`} target="_blank">link</Link>
@@ -133,22 +167,35 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
           </form>
         }
         {this.state.showBanDialog && 
-        <form onSubmit={linkEvent(this, this.handleModBanSubmit)}>
-          <div class="form-group row">
-            <label class="col-form-label">Reason</label>
-            <input type="text" class="form-control mr-2" placeholder="Optional" value={this.state.banReason} onInput={linkEvent(this, this.handleModBanReasonChange)} />
-          </div>
-          <div class="form-group row">
-            <label class="col-form-label">Expires</label>
-            <input type="date" class="form-control mr-2" placeholder="Expires" value={this.state.banExpires} onInput={linkEvent(this, this.handleModBanExpiresChange)} />
-          </div>
-          <div class="form-group row">
-            <button type="submit" class="btn btn-secondary">Ban {this.props.node.comment.creator_name}</button>
-          </div>
-        </form>
+          <form onSubmit={linkEvent(this, this.handleModBanBothSubmit)}>
+            <div class="form-group row">
+              <label class="col-form-label">Reason</label>
+              <input type="text" class="form-control mr-2" placeholder="Optional" value={this.state.banReason} onInput={linkEvent(this, this.handleModBanReasonChange)} />
+            </div>
+            <div class="form-group row">
+              <label class="col-form-label">Expires</label>
+              <input type="date" class="form-control mr-2" placeholder="Expires" value={this.state.banExpires} onInput={linkEvent(this, this.handleModBanExpiresChange)} />
+            </div>
+            <div class="form-group row">
+              <button type="submit" class="btn btn-secondary">Ban {this.props.node.comment.creator_name}</button>
+            </div>
+          </form>
         }
-        {this.state.showReply && <CommentForm node={node} onReplyCancel={this.handleReplyCancel} disabled={this.props.locked} />}
-        {this.props.node.children && <CommentNodes nodes={this.props.node.children} locked={this.props.locked} moderators={this.props.moderators}/>}
+        {this.state.showReply && 
+          <CommentForm 
+            node={node} 
+            onReplyCancel={this.handleReplyCancel} 
+            disabled={this.props.locked} 
+          />
+        }
+        {this.props.node.children && 
+          <CommentNodes 
+            nodes={this.props.node.children} 
+            locked={this.props.locked} 
+            moderators={this.props.moderators}
+            admins={this.props.admins}
+          />
+        }
       </div>
     )
   }
@@ -158,27 +205,22 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   get canMod(): boolean {
+    let adminsThenMods = this.props.admins.map(a => a.id)
+    .concat(this.props.moderators.map(m => m.user_id));
 
-    // You can do moderator actions only on the mods added after you.
-    if (UserService.Instance.user) {
-      let modIds = this.props.moderators.map(m => m.user_id);
-      let yourIndex = modIds.findIndex(id => id == UserService.Instance.user.id);
-      if (yourIndex == -1) {
-        return false;
-      } else { 
-        console.log(modIds);
-        modIds = modIds.slice(0, yourIndex+1); // +1 cause you cant mod yourself
-        console.log(modIds);
-        return !modIds.includes(this.props.node.comment.creator_id);
-      }
-    } else {
-      return false;
-    }
-
+    return canMod(UserService.Instance.user, adminsThenMods, this.props.node.comment.creator_id);
   }
 
   get isMod(): boolean {
-    return this.props.moderators.map(m => m.user_id).includes(this.props.node.comment.creator_id);
+    return isMod(this.props.moderators.map(m => m.user_id), this.props.node.comment.creator_id);
+  }
+
+  get isAdmin(): boolean {
+    return isMod(this.props.admins.map(a => a.id), this.props.node.comment.creator_id);
+  }
+
+  get canAdmin(): boolean {
+    return canMod(UserService.Instance.user, this.props.admins.map(a => a.id), this.props.node.comment.creator_id);
   }
 
   handleReplyClick(i: CommentNode) {
@@ -193,14 +235,25 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
 
   handleDeleteClick(i: CommentNode) {
     let deleteForm: CommentFormI = {
-      content: "*deleted*",
+      content: '*deleted*',
       edit_id: i.props.node.comment.id,
       creator_id: i.props.node.comment.creator_id,
       post_id: i.props.node.comment.post_id,
       parent_id: i.props.node.comment.parent_id,
+      removed: i.props.node.comment.removed,
       auth: null
     };
     WebSocketService.Instance.editComment(deleteForm);
+  }
+
+  handleSaveCommentClick(i: CommentNode) {
+    let saved = (i.props.node.comment.saved == undefined) ? true : !i.props.node.comment.saved;
+    let form: SaveCommentForm = {
+      comment_id: i.props.node.comment.id,
+      save: saved
+    };
+
+    WebSocketService.Instance.saveComment(form);
   }
 
   handleReplyCancel() {
@@ -257,8 +310,15 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     i.setState(i.state);
   }
 
+  handleModBanFromCommunityShow(i: CommentNode) {
+    i.state.showBanDialog = true;
+    i.state.banType = BanType.Community;
+    i.setState(i.state);
+  }
+
   handleModBanShow(i: CommentNode) {
     i.state.showBanDialog = true;
+    i.state.banType = BanType.Site;
     i.setState(i.state);
   }
 
@@ -272,16 +332,42 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     i.setState(i.state);
   }
 
+  handleModBanFromCommunitySubmit(i: CommentNode) {
+    i.state.banType = BanType.Community;
+    i.setState(i.state);
+    i.handleModBanBothSubmit(i);
+  }
+
   handleModBanSubmit(i: CommentNode) {
+    i.state.banType = BanType.Site;
+    i.setState(i.state);
+    i.handleModBanBothSubmit(i);
+  }
+
+  handleModBanBothSubmit(i: CommentNode) {
     event.preventDefault();
-    let form: BanFromCommunityForm = {
-      user_id: i.props.node.comment.creator_id,
-      community_id: i.props.node.comment.community_id,
-      ban: !i.props.node.comment.banned,
-      reason: i.state.banReason,
-      expires: getUnixTime(i.state.banExpires),
-    };
-    WebSocketService.Instance.banFromCommunity(form);
+
+    console.log(BanType[i.state.banType]);
+    console.log(i.props.node.comment.banned);
+
+    if (i.state.banType == BanType.Community) {
+      let form: BanFromCommunityForm = {
+        user_id: i.props.node.comment.creator_id,
+        community_id: i.props.node.comment.community_id,
+        ban: !i.props.node.comment.banned_from_community,
+        reason: i.state.banReason,
+        expires: getUnixTime(i.state.banExpires),
+      };
+      WebSocketService.Instance.banFromCommunity(form);
+    } else {
+      let form: BanUserForm = {
+        user_id: i.props.node.comment.creator_id,
+        ban: !i.props.node.comment.banned,
+        reason: i.state.banReason,
+        expires: getUnixTime(i.state.banExpires),
+      };
+      WebSocketService.Instance.banUser(form);
+    }
 
     i.state.showBanDialog = false;
     i.setState(i.state);
@@ -294,6 +380,15 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       added: !i.isMod,
     };
     WebSocketService.Instance.addModToCommunity(form);
+    i.setState(i.state);
+  }
+
+  addAdmin(i: CommentNode) {
+    let form: AddAdminForm = {
+      user_id: i.props.node.comment.creator_id,
+      added: !i.isAdmin,
+    };
+    WebSocketService.Instance.addAdmin(form);
     i.setState(i.state);
   }
 }

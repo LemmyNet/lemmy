@@ -1,7 +1,7 @@
 import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { WebSocketService, UserService } from '../services';
-import { Post, CreatePostLikeForm, PostForm as PostFormI } from '../interfaces';
+import { Post, CreatePostLikeForm, PostForm as PostFormI, SavePostForm } from '../interfaces';
 import { MomentTime } from './moment-time';
 import { PostForm } from './post-form';
 import { mdToHtml } from '../utils';
@@ -60,17 +60,17 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           <div>{post.score}</div>
           <div className={`pointer downvote ${post.my_vote == -1 && 'text-danger'}`} onClick={linkEvent(this, this.handlePostDisLike)}>▼</div>
         </div>
-        <div className="ml-4">
+        <div className="pt-1 ml-4">
           {post.url 
             ? <div className="mb-0">
-            <h4 className="d-inline"><a className="text-white" href={post.url} title={post.url}>{post.name}</a>
+            <h5 className="d-inline"><a className="text-white" href={post.url} title={post.url}>{post.name}</a>
             {post.removed &&
               <small className="ml-2 text-muted font-italic">removed</small>
             }
             {post.locked &&
               <small className="ml-2 text-muted font-italic">locked</small>
             }
-          </h4>
+          </h5>
           <small><a className="ml-2 text-muted font-italic" href={post.url} title={post.url}>{(new URL(post.url)).hostname}</a></small>
           { !this.state.iframeExpanded
             ? <span class="badge badge-light pointer ml-2 text-muted small" title="Expand here" onClick={linkEvent(this, this.handleIframeExpandClick)}>+</span>
@@ -83,14 +83,14 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             </span>
           }
         </div> 
-          : <h4 className="mb-0"><Link className="text-white" to={`/post/${post.id}`}>{post.name}</Link>
+          : <h5 className="mb-0"><Link className="text-white" to={`/post/${post.id}`}>{post.name}</Link>
           {post.removed &&
             <small className="ml-2 text-muted font-italic">removed</small>
           }
           {post.locked &&
             <small className="ml-2 text-muted font-italic">locked</small>
           }
-        </h4>
+        </h5>
           }
         </div>
         <div className="details ml-4 mb-1">
@@ -120,17 +120,20 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               <Link className="text-muted" to={`/post/${post.id}`}>{post.number_of_comments} Comments</Link>
             </li>
           </ul>
-          {this.props.editable &&
+          {UserService.Instance.user && this.props.editable &&
             <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
+              <li className="list-inline-item mr-2">
+                <span class="pointer" onClick={linkEvent(this, this.handleSavePostClick)}>{this.props.post.saved ? 'unsave' : 'save'}</span>
+              </li>
               {this.myPost && 
-                <span>
+                <>
                   <li className="list-inline-item">
                     <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>edit</span>
                   </li>
                   <li className="list-inline-item mr-2">
                     <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>delete</span>
                   </li>
-                </span>
+                </>
               }
               {this.props.post.am_mod &&
                 <span>
@@ -204,9 +207,21 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       url: '',
       edit_id: i.props.post.id,
       creator_id: i.props.post.creator_id,
+      removed: !i.props.post.removed,
+      locked: !i.props.post.locked,
       auth: null
     };
     WebSocketService.Instance.editPost(deleteForm);
+  }
+
+  handleSavePostClick(i: PostListing) {
+    let saved = (i.props.post.saved == undefined) ? true : !i.props.post.saved;
+    let form: SavePostForm = {
+      post_id: i.props.post.id,
+      save: saved
+    };
+
+    WebSocketService.Instance.savePost(form);
   }
 
   handleModRemoveShow(i: PostListing) {
@@ -227,6 +242,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       edit_id: i.props.post.id,
       creator_id: i.props.post.creator_id,
       removed: !i.props.post.removed,
+      locked: !i.props.post.locked,
       reason: i.state.removeReason,
       auth: null,
     };
@@ -242,6 +258,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       community_id: i.props.post.community_id,
       edit_id: i.props.post.id,
       creator_id: i.props.post.creator_id,
+      removed: !i.props.post.removed,
       locked: !i.props.post.locked,
       auth: null,
     };

@@ -61,7 +61,7 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
     return (
       <div>
         {this.state.loading ? 
-        <h4><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
+        <h5><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> : 
         <div>
           {this.selects()}
           {this.state.posts.length > 0 

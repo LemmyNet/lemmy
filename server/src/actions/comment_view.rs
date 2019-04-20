@@ -13,18 +13,20 @@ table! {
     post_id -> Int4,
     parent_id -> Nullable<Int4>,
     content -> Text,
-    removed -> Nullable<Bool>,
+    removed -> Bool,
+    read -> Bool,
     published -> Timestamp,
     updated -> Nullable<Timestamp>,
     community_id -> Int4,
-    banned -> Nullable<Bool>,
+    banned -> Bool,
+    banned_from_community -> Bool,
     creator_name -> Varchar,
     score -> BigInt,
     upvotes -> BigInt,
     downvotes -> BigInt,
     user_id -> Nullable<Int4>,
     my_vote -> Nullable<Int4>,
-    am_mod -> Nullable<Bool>,
+    saved -> Nullable<Bool>,
   }
 }
 
@@ -36,18 +38,20 @@ pub struct CommentView {
   pub post_id: i32,
   pub parent_id: Option<i32>,
   pub content: String,
-  pub removed: Option<bool>,
+  pub removed: bool,
+  pub read: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
   pub community_id: i32,
-  pub banned: Option<bool>,
+  pub banned: bool,
+  pub banned_from_community: bool,
   pub creator_name: String,
   pub score: i64,
   pub upvotes: i64,
   pub downvotes: i64,
   pub user_id: Option<i32>,
   pub my_vote: Option<i32>,
-  pub am_mod: Option<bool>,
+  pub saved: Option<bool>,
 }
 
 impl CommentView {
@@ -57,6 +61,7 @@ impl CommentView {
               for_post_id: Option<i32>, 
               for_creator_id: Option<i32>, 
               my_user_id: Option<i32>, 
+              saved_only: bool,
               page: Option<i64>,
               limit: Option<i64>,
               ) -> Result<Vec<Self>, Error> {
@@ -81,6 +86,10 @@ impl CommentView {
     if let Some(for_post_id) = for_post_id {
       query = query.filter(post_id.eq(for_post_id));
     };
+    
+    if saved_only {
+      query = query.filter(saved.eq(true));
+    }
 
     query = match sort {
       // SortType::Hot => query.order_by(hot_rank.desc()),
@@ -159,7 +168,7 @@ mod tests {
       description: None,
       category_id: 1,
       creator_id: inserted_user.id,
-      removed: None,
+      removed: false,
       updated: None
     };
 
@@ -171,8 +180,8 @@ mod tests {
       url: None,
       body: None,
       community_id: inserted_community.id,
-      removed: None,
-      locked: None,
+      removed: false,
+      locked: false,
       updated: None
     };
 
@@ -205,8 +214,10 @@ mod tests {
       post_id: inserted_post.id,
       community_id: inserted_community.id,
       parent_id: None,
-      removed: Some(false),
-      banned: None,
+      removed: false,
+      read: false,
+      banned: false,
+      banned_from_community: false,
       published: inserted_comment.published,
       updated: None,
       creator_name: inserted_user.name.to_owned(),
@@ -215,7 +226,7 @@ mod tests {
       upvotes: 1,
       user_id: None,
       my_vote: None,
-      am_mod: None,
+      saved: None,
     };
 
     let expected_comment_view_with_user = CommentView {
@@ -225,8 +236,10 @@ mod tests {
       post_id: inserted_post.id,
       community_id: inserted_community.id,
       parent_id: None,
-      removed: Some(false),
-      banned: None,
+      removed: false,
+      read: false,
+      banned: false,
+      banned_from_community: false,
       published: inserted_comment.published,
       updated: None,
       creator_name: inserted_user.name.to_owned(),
@@ -235,11 +248,11 @@ mod tests {
       upvotes: 1,
       user_id: Some(inserted_user.id),
       my_vote: Some(1),
-      am_mod: None,
+      saved: None,
     };
 
-    let read_comment_views_no_user = CommentView::list(&conn, &SortType::New, Some(inserted_post.id), None, None, None, None).unwrap();
-    let read_comment_views_with_user = CommentView::list(&conn, &SortType::New, Some(inserted_post.id), None, Some(inserted_user.id), None, None).unwrap();
+    let read_comment_views_no_user = CommentView::list(&conn, &SortType::New, Some(inserted_post.id), None, None, false, None, None).unwrap();
+    let read_comment_views_with_user = CommentView::list(&conn, &SortType::New, Some(inserted_post.id), None, Some(inserted_user.id), false, None, None).unwrap();
     let like_removed = CommentLike::remove(&conn, &comment_like_form).unwrap();
     let num_deleted = Comment::delete(&conn, inserted_comment.id).unwrap();
     Post::delete(&conn, inserted_post.id).unwrap();

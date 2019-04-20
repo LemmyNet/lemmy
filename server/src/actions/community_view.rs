@@ -12,7 +12,7 @@ table! {
     description -> Nullable<Text>,
     category_id -> Int4,
     creator_id -> Int4,
-    removed -> Nullable<Bool>,
+    removed -> Bool,
     published -> Timestamp,
     updated -> Nullable<Timestamp>,
     creator_name -> Varchar,
@@ -22,7 +22,6 @@ table! {
     number_of_comments -> BigInt,
     user_id -> Nullable<Int4>,
     subscribed -> Nullable<Bool>,
-    am_mod -> Nullable<Bool>,
   }
 }
 
@@ -83,7 +82,7 @@ pub struct CommunityView {
   pub description: Option<String>,
   pub category_id: i32,
   pub creator_id: i32,
-  pub removed: Option<bool>,
+  pub removed: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
   pub creator_name: String,
@@ -93,7 +92,6 @@ pub struct CommunityView {
   pub number_of_comments: i64,
   pub user_id: Option<i32>,
   pub subscribed: Option<bool>,
-  pub am_mod: Option<bool>,
 }
 
 impl CommunityView {

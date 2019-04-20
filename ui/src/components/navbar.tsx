@@ -64,16 +64,22 @@ export class Navbar extends Component<any, NavbarState> {
           </ul>
           <ul class="navbar-nav ml-auto mr-2">
             {this.state.isLoggedIn ? 
-            <li className={`nav-item dropdown ${this.state.expandUserDropdown && 'show'}`}>
-              <a class="pointer nav-link dropdown-toggle" onClick={linkEvent(this, this.expandUserDropdown)} role="button">
-                {UserService.Instance.user.username}
-              </a>
-              <div className={`dropdown-menu dropdown-menu-right ${this.state.expandUserDropdown && 'show'}`}>
-                <a role="button" class="dropdown-item pointer" onClick={linkEvent(this, this.handleOverviewClick)}>Overview</a>
-                <a role="button" class="dropdown-item pointer" onClick={ linkEvent(this, this.handleLogoutClick) }>Logout</a>
-              </div>
-            </li> : 
-            <Link class="nav-link" to="/login">Login / Sign up</Link>
+            <>
+              <li className="nav-item">
+                <Link class="nav-link" to="/communities">🖂</Link>
+              </li>
+              <li className={`nav-item dropdown ${this.state.expandUserDropdown && 'show'}`}>
+                <a class="pointer nav-link dropdown-toggle" onClick={linkEvent(this, this.expandUserDropdown)} role="button">
+                  {UserService.Instance.user.username}
+                </a>
+                <div className={`dropdown-menu dropdown-menu-right ${this.state.expandUserDropdown && 'show'}`}>
+                  <a role="button" class="dropdown-item pointer" onClick={linkEvent(this, this.handleOverviewClick)}>Overview</a>
+                  <a role="button" class="dropdown-item pointer" onClick={ linkEvent(this, this.handleLogoutClick) }>Logout</a>
+                </div>
+              </li> 
+            </>
+              : 
+              <Link class="nav-link" to="/login">Login / Sign up</Link>
             }
           </ul>
         </div>

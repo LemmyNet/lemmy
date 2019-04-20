@@ -78,12 +78,12 @@ export class Main extends Component<any, State> {
           </div>
           <div class="col-12 col-md-4">
             {this.state.loading ? 
-            <h4><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
+            <h5><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> : 
             <div>
               {this.trendingCommunities()}
               {UserService.Instance.user && this.state.subscribedCommunities.length > 0 && 
               <div>
-                <h4>Subscribed forums</h4>
+                <h5>Subscribed forums</h5>
                 <ul class="list-inline"> 
                   {this.state.subscribedCommunities.map(community =>
                     <li class="list-inline-item"><Link to={`/community/${community.community_id}`}>{community.community_name}</Link></li>
@@ -103,7 +103,7 @@ export class Main extends Component<any, State> {
   trendingCommunities() {
     return (
       <div>
-        <h4>Trending <Link class="text-white" to="/communities">forums</Link></h4> 
+        <h5>Trending <Link class="text-white" to="/communities">forums</Link></h5> 
         <ul class="list-inline"> 
           {this.state.trendingCommunities.map(community =>
             <li class="list-inline-item"><Link to={`/community/${community.id}`}>{community.name}</Link></li>
@@ -116,7 +116,7 @@ export class Main extends Component<any, State> {
   landing() {
     return (
       <div>
-        <h4>{`${this.state.site.site.name}`}</h4>
+        <h5>{`${this.state.site.site.name}`}</h5>
         <ul class="my-1 list-inline">
           <li className="list-inline-item badge badge-light">{this.state.site.site.number_of_users} Users</li>
           <li className="list-inline-item badge badge-light">{this.state.site.site.number_of_posts} Posts</li>
@@ -136,10 +136,10 @@ export class Main extends Component<any, State> {
             <hr />
           </div>
         }
-        <h4>Welcome to 
+        <h5>Welcome to 
           <svg class="icon mx-2"><use xlinkHref="#icon-mouse"></use></svg>
           <a href={repoUrl}>Lemmy<sup>Beta</sup></a>
-        </h4>
+        </h5>
         <p>Lemmy is a <a href="https://en.wikipedia.org/wiki/Link_aggregation">link aggregator</a> / reddit alternative, intended to work in the <a href="https://en.wikipedia.org/wiki/Fediverse">fediverse</a>.</p>
         <p>Its self-hostable, has live-updating comment threads, and is tiny (<code>~80kB</code>). Federation into the ActivityPub network is on the roadmap.</p>
         <p>This is a <b>very early beta version</b>, and a lot of features are currently broken or missing.</p>
