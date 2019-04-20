@@ -294,6 +294,7 @@ mod tests {
       post_id: inserted_post.id,
       parent_id: None,
       removed: None,
+      read: None,
       updated: None
     };
 

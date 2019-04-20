@@ -465,6 +465,7 @@ mod tests {
       creator_id: inserted_user.id,
       post_id: inserted_post.id,
       removed: None,
+      read: None,
       parent_id: None,
       updated: None
     };
