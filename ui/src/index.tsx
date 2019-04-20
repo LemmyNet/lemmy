@@ -37,6 +37,7 @@ class Index extends Component<any, any> {
         <Navbar />
         <div class="mt-3 p-0">
           <Switch>
+            <Route exact path="/all" component={Home} />
             <Route exact path="/" component={Home} />
             <Route path={`/login`} component={Login} />
             <Route path={`/create_post`} component={CreatePost} />

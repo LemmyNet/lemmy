@@ -8,6 +8,7 @@ import { PostListing } from './post-listing';
 import { msgOp, fetchLimit } from '../utils';
 
 interface PostListingsProps {
+  type?: ListingType;
   communityId?: number;
 }
 
@@ -27,18 +28,18 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
     moderators: [],
     posts: [],
     sortType: SortType.Hot,
-    type_: this.props.communityId 
-    ? ListingType.Community 
-    : UserService.Instance.user
-    ? ListingType.Subscribed 
-    : ListingType.All,
-    page: 1,
-    loading: true
+    type_: (this.props.type !== undefined) ? this.props.type : 
+      this.props.communityId 
+        ? ListingType.Community 
+        : UserService.Instance.user
+          ? ListingType.Subscribed 
+          : ListingType.All,
+          page: 1,
+          loading: true
   }
 
   constructor(props: any, context: any) {
     super(props, context);
-
 
     this.state = this.emptyState;
 
@@ -147,6 +148,11 @@ export class PostListings extends Component<PostListingsProps, PostListingsState
   handleTypeChange(i: PostListings, event: any) {
     i.state.type_ = Number(event.target.value);
     i.state.page = 1;
+    if (i.state.type_ == ListingType.All) {
+      i.context.router.history.push('/all');
+    } else {
+      i.context.router.history.push('/');
+    }
     i.setState(i.state);
     i.refetch();
   }
