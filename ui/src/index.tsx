@@ -15,7 +15,8 @@ import { Modlog } from './components/modlog';
 import { Setup } from './components/setup';
 import { Symbols } from './components/symbols';
 
-import './main.css';
+import './css/bootstrap.min.css';
+import './css/main.css';
 
 import { WebSocketService, UserService } from './services';
 

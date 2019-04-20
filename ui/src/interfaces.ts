@@ -1,5 +1,5 @@
 export enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser
 }
 
 export enum CommentSortType {
@@ -41,65 +41,69 @@ export interface CommunityUser {
 }
 
 export interface Community {
-  user_id?: number;
-  subscribed?: boolean;
-  am_mod?: boolean;
-  removed?: boolean;
   id: number;
   name: string;
   title: string;
   description?: string;
-  creator_id: number;
-  creator_name: string;
   category_id: number;
+  creator_id: number;
+  removed: boolean;
+  published: string;
+  updated?: string;
+  creator_name: string;
   category_name: string;
   number_of_subscribers: number;
   number_of_posts: number;
   number_of_comments: number;
-  published: string;
-  updated?: string;
+  user_id?: number;
+  subscribed?: boolean;
 }
 
 export interface Post {
-  user_id?: number;
-  my_vote?: number;
-  am_mod?: boolean;
-  removed?: boolean;
-  locked?: boolean;
   id: number;
   name: string;
   url?: string;
   body?: string;
   creator_id: number;
-  creator_name: string;
   community_id: number;
+  removed: boolean;
+  locked: boolean;
+  published: string;
+  updated?: string;
+  creator_name: string;
   community_name: string;
   number_of_comments: number;
   score: number;
   upvotes: number;
   downvotes: number;
   hot_rank: number;
-  published: string;
-  updated?: string;
+  user_id?: number;
+  my_vote?: number;
+  subscribed?: boolean;
+  read?: boolean;
+  saved?: boolean;
 }
 
 export interface Comment {
   id: number;
-  content: string;
   creator_id: number;
-  creator_name: string;
   post_id: number,
-  community_id: number,
   parent_id?: number;
+  content: string;
+  removed: boolean;
+  read: boolean;
   published: string;
   updated?: string;
+  community_id: number,
+  banned: boolean;
+  banned_from_community: boolean;
+  creator_name: string;
   score: number;
   upvotes: number;
   downvotes: number;
+  user_id?: number;
   my_vote?: number;
-  am_mod?: boolean;
-  removed?: boolean;
-  banned?: boolean;
+  saved?: boolean;
 }
 
 export interface Category {
@@ -137,7 +141,7 @@ export interface GetUserDetailsForm {
   page?: number;
   limit?: number;
   community_id?: number;
-  auth?: string;
+  saved_only: boolean;
 }
 
 export interface UserDetailsResponse {
@@ -147,7 +151,6 @@ export interface UserDetailsResponse {
   moderates: Array<CommunityUser>;
   comments: Array<Comment>;
   posts: Array<Post>;
-  saved?: Array<Post>;
 }
 
 export interface BanFromCommunityForm {
@@ -324,7 +327,7 @@ export interface CommunityForm {
   description?: string,
   category_id: number,
   edit_id?: number;
-  removed?: boolean;
+  removed: boolean;
   reason?: string;
   expires?: number;
   auth?: string;
@@ -367,9 +370,9 @@ export interface PostForm {
   updated?: number;
   edit_id?: number;
   creator_id: number;
-  removed?: boolean;
+  removed: boolean;
+  locked: boolean;
   reason?: string;
-  locked?: boolean;
   auth: string;
 }
 
@@ -379,6 +382,13 @@ export interface GetPostResponse {
   comments: Array<Comment>;
   community: Community;
   moderators: Array<CommunityUser>;
+  admins: Array<UserView>;
+}
+
+export interface SavePostForm {
+  post_id: number;
+  save: boolean;
+  auth?: string;
 }
 
 export interface PostResponse {
@@ -392,9 +402,15 @@ export interface CommentForm {
   parent_id?: number;
   edit_id?: number;
   creator_id: number;
-  removed?: boolean;
+  removed: boolean;
   reason?: string;
   auth: string;
+}
+
+export interface SaveCommentForm {
+  comment_id: number;
+  save: boolean;
+  auth?: string;
 }
 
 export interface CommentResponse {

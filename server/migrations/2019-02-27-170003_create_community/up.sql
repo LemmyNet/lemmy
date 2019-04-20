@@ -38,7 +38,7 @@ create table community (
   description text,
   category_id int references category on update cascade on delete cascade not null,
   creator_id int references user_ on update cascade on delete cascade not null,
-  removed boolean default false,
+  removed boolean default false not null,
   published timestamp not null default now(),
   updated timestamp
 );

@@ -77,7 +77,7 @@ export class User extends Component<any, UserState> {
       <div class="container">
         <div class="row">
           <div class="col-12 col-md-9">
-            <h4>/u/{this.state.user.name}</h4>
+            <h5>/u/{this.state.user.name}</h5>
             {this.selects()}
             {this.state.view == View.Overview &&
               this.overview()
@@ -87,6 +87,9 @@ export class User extends Component<any, UserState> {
             }
             {this.state.view == View.Posts &&
               this.posts()
+            }
+            {this.state.view == View.Saved &&
+              this.overview()
             }
             {this.paginator()}
           </div>
@@ -108,7 +111,7 @@ export class User extends Component<any, UserState> {
           <option value={View.Overview}>Overview</option>
           <option value={View.Comments}>Comments</option>
           <option value={View.Posts}>Posts</option>
-          {/* <option value={View.Saved}>Saved</option> */}
+          <option value={View.Saved}>Saved</option>
         </select>
         <select value={this.state.sort} onChange={linkEvent(this, this.handleSortChange)} class="custom-select w-auto ml-2">
           <option disabled>Sort Type</option>
@@ -178,7 +181,7 @@ export class User extends Component<any, UserState> {
     let user = this.state.user;
     return (
       <div>
-        <h4>{user.name}</h4>
+        <h5>{user.name}</h5>
         <div>Joined <MomentTime data={user} /></div>
         <table class="table table-bordered table-sm mt-2">
           <tr>
@@ -200,7 +203,7 @@ export class User extends Component<any, UserState> {
       <div>
         {this.state.moderates.length > 0 &&
           <div>
-            <h4>Moderates</h4>
+            <h5>Moderates</h5>
             <ul class="list-unstyled"> 
               {this.state.moderates.map(community =>
                 <li><Link to={`/community/${community.community_id}`}>{community.community_name}</Link></li>
@@ -218,7 +221,7 @@ export class User extends Component<any, UserState> {
         {this.state.follows.length > 0 &&
           <div>
             <hr />
-            <h4>Subscribed</h4>
+            <h5>Subscribed</h5>
             <ul class="list-unstyled"> 
               {this.state.follows.map(community =>
                 <li><Link to={`/community/${community.community_id}`}>{community.community_name}</Link></li>
@@ -257,6 +260,7 @@ export class User extends Component<any, UserState> {
     let form: GetUserDetailsForm = {
       user_id: this.state.user_id,
       sort: SortType[this.state.sort],
+      saved_only: this.state.view == View.Saved,
       page: this.state.page,
       limit: fetchLimit,
     };
