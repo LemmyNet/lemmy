@@ -370,8 +370,8 @@ export interface PostForm {
   updated?: number;
   edit_id?: number;
   creator_id: number;
-  removed: boolean;
-  locked: boolean;
+  removed?: boolean;
+  locked?: boolean;
   reason?: string;
   auth: string;
 }
@@ -402,7 +402,7 @@ export interface CommentForm {
   parent_id?: number;
   edit_id?: number;
   creator_id: number;
-  removed: boolean;
+  removed?: boolean;
   reason?: string;
   auth: string;
 }

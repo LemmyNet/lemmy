@@ -261,8 +261,8 @@ pub struct EditPost {
   name: String,
   url: Option<String>,
   body: Option<String>,
-  removed: bool,
-  locked: bool,
+  removed: Option<bool>,
+  locked: Option<bool>,
   reason: Option<String>,
   auth: String
 }
@@ -281,7 +281,7 @@ pub struct EditCommunity {
   title: String,
   description: Option<String>,
   category_id: i32,
-  removed: bool,
+  removed: Option<bool>,
   reason: Option<String>,
   expires: Option<i64>,
   auth: String
@@ -836,14 +836,13 @@ impl Perform for CreateCommunity {
     }
 
     // When you create a community, make sure the user becomes a moderator and a follower
-
     let community_form = CommunityForm {
       name: self.name.to_owned(),
       title: self.title.to_owned(),
       description: self.description.to_owned(),
       category_id: self.category_id,
       creator_id: user_id,
-      removed: false,
+      removed: None,
       updated: None,
     };
 
@@ -988,8 +987,8 @@ impl Perform for CreatePost {
       body: self.body.to_owned(),
       community_id: self.community_id,
       creator_id: user_id,
-      removed: false,
-      locked: false,
+      removed: None,
+      locked: None,
       updated: None
     };
 
@@ -1612,15 +1611,24 @@ impl Perform for EditPost {
 
     let user_id = claims.id;
 
-    // Verify its the creator or a mod
-    let mut editors: Vec<i32> = CommunityModeratorView::for_community(&conn, self.community_id)
+    // Verify its the creator or a mod or admin
+    let mut editors: Vec<i32> = vec![self.creator_id];
+    editors.append(
+      &mut CommunityModeratorView::for_community(&conn, self.community_id)
       .unwrap()
       .into_iter()
       .map(|m| m.user_id)
-      .collect();
-    editors.push(self.creator_id);
+      .collect()
+    );
+    editors.append(
+      &mut UserView::admins(&conn)
+      .unwrap()
+      .into_iter()
+      .map(|a| a.id)
+      .collect()
+      );
     if !editors.contains(&user_id) {
-      return self.error("Not allowed to edit comment.");
+      return self.error("Not allowed to edit post.");
     }
 
     // Check for a community ban
@@ -1652,21 +1660,21 @@ impl Perform for EditPost {
     };
 
     // Mod tables
-    if self.removed {
+    if let Some(removed) = self.removed.to_owned() {
       let form = ModRemovePostForm {
         mod_user_id: user_id,
         post_id: self.edit_id,
-        removed: Some(self.removed),
+        removed: Some(removed),
         reason: self.reason.to_owned(),
       };
       ModRemovePost::create(&conn, &form).unwrap();
     }
 
-    if self.locked {
+    if let Some(locked) = self.locked.to_owned() {
       let form = ModLockPostForm {
         mod_user_id: user_id,
         post_id: self.edit_id,
-        locked: Some(self.locked),
+        locked: Some(locked),
       };
       ModLockPost::create(&conn, &form).unwrap();
     }
@@ -1803,7 +1811,7 @@ impl Perform for EditCommunity {
     };
 
     // Mod tables
-    if self.removed {
+    if let Some(removed) = self.removed.to_owned() {
       let expires = match self.expires {
         Some(time) => Some(naive_from_unix(time)),
         None => None
@@ -1811,7 +1819,7 @@ impl Perform for EditCommunity {
       let form = ModRemoveCommunityForm {
         mod_user_id: user_id,
         community_id: self.edit_id,
-        removed: Some(self.removed),
+        removed: Some(removed),
         reason: self.reason.to_owned(),
         expires: expires
       };

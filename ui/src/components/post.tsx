@@ -82,7 +82,14 @@ export class Post extends Component<any, PostState> {
         <h5><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> : 
         <div class="row">
             <div class="col-12 col-md-8 col-lg-7 mb-3">
-              <PostListing post={this.state.post} showBody showCommunity editable />
+              <PostListing 
+                post={this.state.post} 
+                showBody 
+                showCommunity 
+                editable 
+                moderators={this.state.moderators} 
+                admins={this.state.admins}
+              />
               <div className="mb-2" />
               <CommentForm postId={this.state.post.id} disabled={this.state.post.locked} />
               {this.sortRadios()}

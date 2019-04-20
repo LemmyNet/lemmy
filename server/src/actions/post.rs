@@ -28,8 +28,8 @@ pub struct PostForm {
   pub body: Option<String>,
   pub creator_id: i32,
   pub community_id: i32,
-  pub removed: bool,
-  pub locked: bool,
+  pub removed: Option<bool>,
+  pub locked: Option<bool>,
   pub updated: Option<chrono::NaiveDateTime>
 }
 
@@ -198,7 +198,7 @@ mod tests {
       description: None,
       category_id: 1,
       creator_id: inserted_user.id,
-      removed: false,
+      removed: None,
       updated: None
     };
 
@@ -210,8 +210,8 @@ mod tests {
       body: None,
       creator_id: inserted_user.id,
       community_id: inserted_community.id,
-      removed: false,
-      locked: false,
+      removed: None,
+      locked: None,
       updated: None
     };
 

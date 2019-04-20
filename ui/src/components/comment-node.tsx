@@ -212,15 +212,15 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   get isMod(): boolean {
-    return isMod(this.props.moderators.map(m => m.user_id), this.props.node.comment.creator_id);
+    return this.props.moderators && isMod(this.props.moderators.map(m => m.user_id), this.props.node.comment.creator_id);
   }
 
   get isAdmin(): boolean {
-    return isMod(this.props.admins.map(a => a.id), this.props.node.comment.creator_id);
+    return this.props.admins && isMod(this.props.admins.map(a => a.id), this.props.node.comment.creator_id);
   }
 
   get canAdmin(): boolean {
-    return canMod(UserService.Instance.user, this.props.admins.map(a => a.id), this.props.node.comment.creator_id);
+    return this.props.admins && canMod(UserService.Instance.user, this.props.admins.map(a => a.id), this.props.node.comment.creator_id);
   }
 
   handleReplyClick(i: CommentNode) {
@@ -240,7 +240,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       creator_id: i.props.node.comment.creator_id,
       post_id: i.props.node.comment.post_id,
       parent_id: i.props.node.comment.parent_id,
-      removed: i.props.node.comment.removed,
       auth: null
     };
     WebSocketService.Instance.editComment(deleteForm);
