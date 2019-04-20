@@ -26,7 +26,7 @@ use actions::moderator::*;
 
 #[derive(EnumString,ToString,Debug)]
 pub enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetReplies, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser
 }
 
 #[derive(Serialize, Deserialize)]
@@ -215,6 +215,7 @@ pub struct EditComment {
   post_id: i32,
   removed: Option<bool>,
   reason: Option<String>,
+  read: Option<bool>,
   auth: String
 }
 
@@ -437,6 +438,21 @@ pub struct BanUserResponse {
   op: String,
   user: UserView,
   banned: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetReplies {
+  sort: String,
+  page: Option<i64>,
+  limit: Option<i64>,
+  unread_only: bool,
+  auth: String
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetRepliesResponse {
+  op: String,
+  replies: Vec<ReplyView>,
 }
 
 /// `ChatServer` manages chat rooms and responsible for coordinating chat
@@ -670,6 +686,10 @@ impl Handler<StandardMessage> for ChatServer {
       UserOperation::BanUser => {
         let ban_user: BanUser = serde_json::from_str(data).unwrap();
         ban_user.perform(self, msg.id)
+      },
+      UserOperation::GetReplies => {
+        let get_replies: GetReplies = serde_json::from_str(data).unwrap();
+        get_replies.perform(self, msg.id)
       },
     };
 
@@ -1181,6 +1201,7 @@ impl Perform for CreateComment {
       post_id: self.post_id,
       creator_id: user_id,
       removed: None,
+      read: None,
       updated: None
     };
 
@@ -1292,6 +1313,7 @@ impl Perform for EditComment {
       post_id: self.post_id,
       creator_id: self.creator_id,
       removed: self.removed.to_owned(),
+      read: self.read.to_owned(),
       updated: Some(naive_now())
     };
 
@@ -2021,6 +2043,39 @@ impl Perform for GetModlog {
         banned: banned,
         added_to_community: added_to_community,
         added: added,
+      }
+      )
+      .unwrap()
+  }
+}
+
+impl Perform for GetReplies {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::GetReplies
+  }
+
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&self.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => {
+        return self.error("Not logged in.");
+      }
+    };
+
+    let user_id = claims.id;
+
+    let sort = SortType::from_str(&self.sort).expect("listing sort");
+
+    let replies = ReplyView::get_replies(&conn, user_id, &sort, self.unread_only, self.page, self.limit).unwrap();
+
+    // Return the jwt
+    serde_json::to_string(
+      &GetRepliesResponse {
+        op: self.op_type().to_string(),
+        replies: replies,
       }
       )
       .unwrap()

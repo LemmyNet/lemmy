@@ -2,7 +2,7 @@ import { Component } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, CommunityUser, GetFollowedCommunitiesResponse, ListCommunitiesForm, ListCommunitiesResponse, Community, SortType, GetSiteResponse } from '../interfaces';
+import { UserOperation, CommunityUser, GetFollowedCommunitiesResponse, ListCommunitiesForm, ListCommunitiesResponse, Community, SortType, GetSiteResponse, GetRepliesResponse, GetRepliesForm } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
 import { msgOp, repoUrl, mdToHtml } from '../utils';
@@ -55,6 +55,15 @@ export class Main extends Component<any, State> {
 
     if (UserService.Instance.user) {
       WebSocketService.Instance.getFollowedCommunities();
+
+      // Get replies for the count
+      let repliesForm: GetRepliesForm = {
+        sort: SortType[SortType.New],
+        unread_only: true,
+        page: 1,
+        limit: 9999,
+      };
+      WebSocketService.Instance.getReplies(repliesForm);
     }
 
     let listCommunitiesForm: ListCommunitiesForm = {
@@ -176,7 +185,14 @@ export class Main extends Component<any, State> {
       this.state.site.site = res.site;
       this.state.site.banned = res.banned;
       this.setState(this.state);
+    } else if (op == UserOperation.GetReplies) {
+      let res: GetRepliesResponse = msg;
+      this.sendRepliesCount(res);
     } 
+  }
+
+  sendRepliesCount(res: GetRepliesResponse) {
+    UserService.Instance.sub.next({user: UserService.Instance.user, unreadCount: res.replies.filter(r => !r.read).length});
   }
 }
 

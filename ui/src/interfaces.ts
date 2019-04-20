@@ -1,5 +1,5 @@
 export enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetReplies, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser
 }
 
 export enum CommentSortType {
@@ -151,6 +151,19 @@ export interface UserDetailsResponse {
   moderates: Array<CommunityUser>;
   comments: Array<Comment>;
   posts: Array<Post>;
+}
+
+export interface GetRepliesForm {
+  sort: string; // TODO figure this one out
+  page?: number;
+  limit?: number;
+  unread_only: boolean;
+  auth?: string;
+}
+
+export interface GetRepliesResponse {
+  op: string;
+  replies: Array<Comment>;
 }
 
 export interface BanFromCommunityForm {
@@ -404,6 +417,7 @@ export interface CommentForm {
   creator_id: number;
   removed?: boolean;
   reason?: string;
+  read?: boolean;
   auth: string;
 }
 

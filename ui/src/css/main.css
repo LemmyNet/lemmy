@@ -82,3 +82,10 @@ blockquote {
   margin: 0.5em 5px;
   padding: 0.1em 5px;
 }
+
+.badge-notify{
+   /* background:red; */
+   position:relative;
+   top: -20px;
+   left: -35px;
+}
