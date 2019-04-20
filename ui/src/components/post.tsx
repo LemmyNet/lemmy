@@ -1,7 +1,7 @@
 import { Component, linkEvent } from 'inferno';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community, Post as PostI, GetPostResponse, PostResponse, Comment,  CommentResponse, CommentSortType, CreatePostLikeResponse, CommunityUser, CommunityResponse, CommentNode as CommentNodeI, BanFromCommunityResponse, AddModToCommunityResponse } from '../interfaces';
+import { UserOperation, Community, Post as PostI, GetPostResponse, PostResponse, Comment,  CommentResponse, CommentSortType, CreatePostLikeResponse, CommunityUser, CommunityResponse, CommentNode as CommentNodeI, BanFromCommunityResponse, BanUserResponse, AddModToCommunityResponse, AddAdminResponse, UserView } from '../interfaces';
 import { WebSocketService } from '../services';
 import { msgOp, hotRank } from '../utils';
 import { PostListing } from './post-listing';
@@ -10,13 +10,13 @@ import { CommentForm } from './comment-form';
 import { CommentNodes } from './comment-nodes';
 import * as autosize from 'autosize';
 
-
 interface PostState {
   post: PostI;
   comments: Array<Comment>;
   commentSort: CommentSortType;
   community: Community;
   moderators: Array<CommunityUser>;
+  admins: Array<UserView>;
   scrolled?: boolean;
   scrolled_comment_id?: number;
   loading: boolean;
@@ -31,6 +31,7 @@ export class Post extends Component<any, PostState> {
     commentSort: CommentSortType.Hot,
     community: null,
     moderators: [],
+    admins: [],
     scrolled: false, 
     loading: true
   }
@@ -77,10 +78,17 @@ export class Post extends Component<any, PostState> {
     return (
       <div class="container">
         {this.state.loading ? 
-        <h4><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h4> : 
+        <h5><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> : 
         <div class="row">
             <div class="col-12 col-md-8 col-lg-7 mb-3">
-              <PostListing post={this.state.post} showBody showCommunity editable />
+              <PostListing 
+                post={this.state.post} 
+                showBody 
+                showCommunity 
+                editable 
+                moderators={this.state.moderators} 
+                admins={this.state.admins}
+              />
               <div className="mb-2" />
               <CommentForm postId={this.state.post.id} disabled={this.state.post.locked} />
               {this.sortRadios()}
@@ -123,9 +131,15 @@ export class Post extends Component<any, PostState> {
   newComments() {
     return (
       <div class="sticky-top">
-        <h4>New Comments</h4>
+        <h5>New Comments</h5>
         {this.state.comments.map(comment => 
-          <CommentNodes nodes={[{comment: comment}]} noIndent locked={this.state.post.locked} moderators={this.state.moderators} />
+          <CommentNodes 
+            nodes={[{comment: comment}]} 
+            noIndent 
+            locked={this.state.post.locked} 
+            moderators={this.state.moderators} 
+            admins={this.state.admins}
+          />
         )}
       </div>
     )
@@ -187,8 +201,13 @@ export class Post extends Component<any, PostState> {
   commentsTree() {
     let nodes = this.buildCommentsTree();
     return (
-      <div className="">
-        <CommentNodes nodes={nodes} locked={this.state.post.locked} moderators={this.state.moderators} />
+      <div>
+        <CommentNodes 
+          nodes={nodes} 
+          locked={this.state.post.locked} 
+          moderators={this.state.moderators} 
+          admins={this.state.admins}
+        />
       </div>
     );
   }
@@ -202,9 +221,11 @@ export class Post extends Component<any, PostState> {
     } else if (op == UserOperation.GetPost) {
       let res: GetPostResponse = msg;
       this.state.post = res.post;
+      this.state.post = res.post;
       this.state.comments = res.comments;
       this.state.community = res.community;
       this.state.moderators = res.moderators;
+      this.state.admins = res.admins;
       this.state.loading = false;
       this.setState(this.state);
     } else if (op == UserOperation.CreateComment) {
@@ -222,8 +243,12 @@ export class Post extends Component<any, PostState> {
       found.score = res.comment.score;
 
       this.setState(this.state);
-    }
-    else if (op == UserOperation.CreateCommentLike) {
+    } else if (op == UserOperation.SaveComment) {
+      let res: CommentResponse = msg;
+      let found = this.state.comments.find(c => c.id == res.comment.id);
+      found.saved = res.comment.saved;
+      this.setState(this.state);
+    } else if (op == UserOperation.CreateCommentLike) {
       let res: CommentResponse = msg;
       let found: Comment = this.state.comments.find(c => c.id === res.comment.id);
       found.score = res.comment.score;
@@ -243,6 +268,10 @@ export class Post extends Component<any, PostState> {
       let res: PostResponse = msg;
       this.state.post = res.post;
       this.setState(this.state);
+    } else if (op == UserOperation.SavePost) {
+      let res: PostResponse = msg;
+      this.state.post = res.post;
+      this.setState(this.state);
     } else if (op == UserOperation.EditCommunity) {
       let res: CommunityResponse = msg;
       this.state.community = res.community;
@@ -257,11 +286,20 @@ export class Post extends Component<any, PostState> {
     } else if (op == UserOperation.BanFromCommunity) {
       let res: BanFromCommunityResponse = msg;
       this.state.comments.filter(c => c.creator_id == res.user.id)
-      .forEach(c => c.banned = res.banned);
+      .forEach(c => c.banned_from_community = res.banned);
       this.setState(this.state);
     } else if (op == UserOperation.AddModToCommunity) {
       let res: AddModToCommunityResponse = msg;
       this.state.moderators = res.moderators;
+      this.setState(this.state);
+    } else if (op == UserOperation.BanUser) {
+      let res: BanUserResponse = msg;
+      this.state.comments.filter(c => c.creator_id == res.user.id)
+      .forEach(c => c.banned = res.banned);
+      this.setState(this.state);
+    } else if (op == UserOperation.AddAdmin) {
+      let res: AddAdminResponse = msg;
+      this.state.admins = res.admins;
       this.setState(this.state);
     }
 

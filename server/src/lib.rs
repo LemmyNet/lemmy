@@ -55,6 +55,16 @@ pub trait Bannable<T> {
   fn unban(conn: &PgConnection, form: &T) -> Result<usize, Error> where Self: Sized;
 }
 
+pub trait Saveable<T> {
+  fn save(conn: &PgConnection, form: &T) -> Result<Self, Error> where Self: Sized;
+  fn unsave(conn: &PgConnection, form: &T) -> Result<usize, Error> where Self: Sized;
+}
+
+pub trait Readable<T> {
+  fn mark_as_read(conn: &PgConnection, form: &T) -> Result<Self, Error> where Self: Sized;
+  fn mark_as_unread(conn: &PgConnection, form: &T) -> Result<usize, Error> where Self: Sized;
+}
+
 pub fn establish_connection() -> PgConnection {
   let db_url = Settings::get().db_url;
   PgConnection::establish(&db_url)

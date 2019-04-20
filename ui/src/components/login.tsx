@@ -67,7 +67,7 @@ export class Login extends Component<any, State> {
     return (
       <div>
         <form onSubmit={linkEvent(this, this.handleLoginSubmit)}>
-          <h4>Login</h4>
+          <h5>Login</h5>
           <div class="form-group row">
             <label class="col-sm-2 col-form-label">Email or Username</label>
             <div class="col-sm-10">
@@ -94,7 +94,7 @@ export class Login extends Component<any, State> {
   registerForm() {
     return (
       <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
-        <h4>Sign Up</h4>
+        <h5>Sign Up</h5>
         <div class="form-group row">
           <label class="col-sm-2 col-form-label">Username</label>
           <div class="col-sm-10">

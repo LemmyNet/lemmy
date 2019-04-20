@@ -19,8 +19,8 @@ table! {
     body -> Nullable<Text>,
     creator_id -> Int4,
     community_id -> Int4,
-    removed -> Nullable<Bool>,
-    locked -> Nullable<Bool>,
+    removed -> Bool,
+    locked -> Bool,
     published -> Timestamp,
     updated -> Nullable<Timestamp>,
     creator_name -> Varchar,
@@ -33,7 +33,8 @@ table! {
     user_id -> Nullable<Int4>,
     my_vote -> Nullable<Int4>,
     subscribed -> Nullable<Bool>,
-    am_mod -> Nullable<Bool>,
+    read -> Nullable<Bool>,
+    saved -> Nullable<Bool>,
   }
 }
 
@@ -47,8 +48,8 @@ pub struct PostView {
   pub body: Option<String>,
   pub creator_id: i32,
   pub community_id: i32,
-  pub removed: Option<bool>,
-  pub locked: Option<bool>,
+  pub removed: bool,
+  pub locked: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
   pub creator_name: String,
@@ -61,7 +62,8 @@ pub struct PostView {
   pub user_id: Option<i32>,
   pub my_vote: Option<i32>,
   pub subscribed: Option<bool>,
-  pub am_mod: Option<bool>,
+  pub read: Option<bool>,
+  pub saved: Option<bool>,
 }
 
 impl PostView {
@@ -71,6 +73,8 @@ impl PostView {
               for_community_id: Option<i32>, 
               for_creator_id: Option<i32>, 
               my_user_id: Option<i32>, 
+              saved_only: bool,
+              unread_only: bool,
               page: Option<i64>,
               limit: Option<i64>,
               ) -> Result<Vec<Self>, Error> {
@@ -86,6 +90,15 @@ impl PostView {
 
     if let Some(for_creator_id) = for_creator_id {
       query = query.filter(creator_id.eq(for_creator_id));
+    };
+
+    // TODO these are wrong, bc they'll only show saved for your logged in user, not theirs
+    if saved_only {
+      query = query.filter(saved.eq(true));
+    };
+
+    if unread_only {
+      query = query.filter(read.eq(false));
     };
 
     match type_ {
@@ -239,8 +252,8 @@ mod tests {
       creator_id: inserted_user.id,
       creator_name: user_name.to_owned(),
       community_id: inserted_community.id,
-      removed: Some(false),
-      locked: Some(false),
+      removed: false,
+      locked: false,
       community_name: community_name.to_owned(),
       number_of_comments: 0,
       score: 1,
@@ -250,7 +263,8 @@ mod tests {
       published: inserted_post.published,
       updated: None,
       subscribed: None,
-      am_mod: None,
+      read: None,
+      saved: None,
     };
 
     let expected_post_listing_with_user = PostView {
@@ -260,8 +274,8 @@ mod tests {
       name: post_name.to_owned(),
       url: None,
       body: None,
-      removed: Some(false),
-      locked: Some(false),
+      removed: false,
+      locked: false,
       creator_id: inserted_user.id,
       creator_name: user_name.to_owned(),
       community_id: inserted_community.id,
@@ -274,12 +288,13 @@ mod tests {
       published: inserted_post.published,
       updated: None,
       subscribed: None,
-      am_mod: None,
+      read: None,
+      saved: None,
     };
 
 
-    let read_post_listings_with_user = PostView::list(&conn, PostListingType::Community, &SortType::New, Some(inserted_community.id), None, Some(inserted_user.id), None, None).unwrap();
-    let read_post_listings_no_user = PostView::list(&conn, PostListingType::Community, &SortType::New, Some(inserted_community.id), None, None, None, None).unwrap();
+    let read_post_listings_with_user = PostView::list(&conn, PostListingType::Community, &SortType::New, Some(inserted_community.id), None, Some(inserted_user.id), false, false, None, None).unwrap();
+    let read_post_listings_no_user = PostView::list(&conn, PostListingType::Community, &SortType::New, Some(inserted_community.id), None, None, false, false, None, None).unwrap();
     let read_post_listing_no_user = PostView::read(&conn, inserted_post.id, None).unwrap();
     let read_post_listing_with_user = PostView::read(&conn, inserted_post.id, Some(inserted_user.id)).unwrap();
 

@@ -4,9 +4,10 @@ import * as jwt_decode from 'jwt-decode';
 import { Subject } from 'rxjs';
 
 export class UserService {
+
   private static _instance: UserService;
   public user: User;
-  public sub: Subject<User> = new Subject<User>();
+  public sub: Subject<{user: User, unreadCount: number}> = new Subject<{user: User, unreadCount: number}>();
 
   private constructor() {
     let jwt = Cookies.get("jwt");
@@ -28,7 +29,7 @@ export class UserService {
     this.user = undefined;
     Cookies.remove("jwt");
     console.log("Logged out.");
-    this.sub.next(undefined);
+    this.sub.next({user: undefined, unreadCount: 0});
   }
 
   public get auth(): string {
@@ -37,7 +38,7 @@ export class UserService {
 
   private setUser(jwt: string) {
     this.user = jwt_decode(jwt);
-    this.sub.next(this.user);
+    this.sub.next({user: this.user, unreadCount: 0});
     console.log(this.user);
   }
 

@@ -13,7 +13,7 @@ export class CreatePost extends Component<any, any> {
       <div class="container">
         <div class="row">
           <div class="col-12 col-lg-6 mb-4">
-            <h4>Create a Post</h4>
+            <h5>Create a Post</h5>
             <PostForm onCreate={this.handlePostCreate}/>
           </div>
         </div>
