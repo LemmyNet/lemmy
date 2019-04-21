@@ -16,6 +16,7 @@ with all_post as
   p.*,
   (select name from user_ where p.creator_id = user_.id) as creator_name,
   (select name from community where p.community_id = community.id) as community_name,
+  (select removed from community c where p.community_id = c.id) as community_removed,
   (select count(*) from comment where comment.post_id = p.id) as number_of_comments,
   coalesce(sum(pl.score), 0) as score,
   count (case when pl.score = 1 then 1 else null end) as upvotes,

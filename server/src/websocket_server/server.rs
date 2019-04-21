@@ -196,7 +196,8 @@ pub struct GetCommunity {
 pub struct GetCommunityResponse {
   op: String,
   community: CommunityView,
-  moderators: Vec<CommunityModeratorView>
+  moderators: Vec<CommunityModeratorView>,
+  admins: Vec<UserView>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -1165,13 +1166,16 @@ impl Perform for GetCommunity {
       }
     };
 
+    let admins = UserView::admins(&conn)?;
+
     // Return the jwt
     Ok(
       serde_json::to_string(
         &GetCommunityResponse {
           op: self.op_type().to_string(),
           community: community_view,
-          moderators: moderators
+          moderators: moderators,
+          admins: admins,
         }
         )?
       )
@@ -1817,11 +1821,24 @@ impl Perform for EditCommunity {
     }
 
     // Verify its a mod
-    let moderator_view = CommunityModeratorView::for_community(&conn, self.edit_id)?;
-    let mod_ids: Vec<i32> = moderator_view.into_iter().map(|m| m.user_id).collect();
-    if !mod_ids.contains(&user_id) {
-      return Err(self.error("Incorrect creator."))?
-    };
+    let mut editors: Vec<i32> = Vec::new();
+    editors.append(
+      &mut CommunityModeratorView::for_community(&conn, self.edit_id)
+      ?
+      .into_iter()
+      .map(|m| m.user_id)
+      .collect()
+      );
+    editors.append(
+      &mut UserView::admins(&conn)
+      ?
+      .into_iter()
+      .map(|a| a.id)
+      .collect()
+      );
+    if !editors.contains(&user_id) {
+      return Err(self.error("Not allowed to edit community"))?
+    }
 
     let community_form = CommunityForm {
       name: self.name.to_owned(),

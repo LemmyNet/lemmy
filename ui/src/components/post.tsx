@@ -148,7 +148,11 @@ export class Post extends Component<any, PostState> {
   sidebar() {
     return ( 
       <div class="sticky-top">
-        <Sidebar community={this.state.community} moderators={this.state.moderators} />
+        <Sidebar 
+          community={this.state.community} 
+          moderators={this.state.moderators} 
+          admins={this.state.admins}
+        />
       </div>
     );
   }

@@ -72,6 +72,7 @@ export interface Post {
   updated?: string;
   creator_name: string;
   community_name: string;
+  community_removed: boolean;
   number_of_comments: number;
   score: number;
   upvotes: number;
@@ -350,6 +351,7 @@ export interface GetCommunityResponse {
   op: string;
   community: Community;
   moderators: Array<CommunityUser>;
+  admins: Array<UserView>;
 }
 
 
