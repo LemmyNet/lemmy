@@ -30,6 +30,9 @@ This is a **very early beta version**, and a lot of features are currently broke
   - Server is written in rust.
   - Front end is `~80kB` gzipped.
 
+## About
+Lemmy is similar to sites like Reddit, lobste.rs, Raddle, or Hacker News. Behind the scenes, it is very different; It allows anyone to run a server (instance), and all instances are federated, and similar to Mastodon, connected to the same universe. For a link aggregator, this means a user registered on one server can subscribe to forums on any other Lemmy instance, and can have discussions with users registered on any number of instances.
+
 ## Why's it called Lemmy?
 - Lead singer from [motorhead](https://invidio.us/watch?v=pWB5JZRGl0U).
 - The old school [video game](https://en.wikipedia.org/wiki/Lemmings_(video_game)).

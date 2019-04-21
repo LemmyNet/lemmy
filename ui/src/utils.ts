@@ -21,7 +21,7 @@ export function hotRank(comment: Comment): number {
   let now: Date = new Date();
   let hoursElapsed: number = (now.getTime() - date.getTime()) / 36e5;
 
-  let rank = (10000 * Math.sign(3+comment.score) * Math.log10(Math.abs(3+comment.score))) / Math.pow(hoursElapsed + 2, 1.8);
+  let rank = (10000 *  Math.log10(Math.max(1, 3 + comment.score))) / Math.pow(hoursElapsed + 2, 1.8);
 
   // console.log(`Comment: ${comment.content}\nRank: ${rank}\nScore: ${comment.score}\nHours: ${hoursElapsed}`);
 

@@ -12,14 +12,15 @@ The [Hacker New's ranking algorithm](https://medium.com/hacking-and-gonzo/how-ha
 
 ## My Algorithm
 ```
-Rank = ScaleFactor * sign(3 + Score) * log(abs(3 + Score)) / (Time + 2)^Gravity
+Rank = ScaleFactor * log(Max(1, 3 + Score)) / (Time + 2)^Gravity
 
 Score = Upvotes - Downvotes
 Time = time since submission (in hours)
 Gravity = Decay gravity, 1.8 is default
 ```
 
-- Add 3 to the score, so that even minimally downvoted comments will be affected by time decay. Otherwise all new comments would stay at zero, near the bottom.
+- Use Max(1, score) to make sure all comments are affected by time decay.
+- Add 3 to the score, so that everything that has less than 3 downvotes will seem new. Otherwise all new comments would stay at zero, near the bottom.
 - The sign and abs of the score are necessary for dealing with the log of negative scores.
 - A scale factor of 10k gets the rank in integer form.
 
