@@ -10,6 +10,7 @@ use serde_json::{Value};
 use bcrypt::{verify};
 use std::str::FromStr;
 use diesel::PgConnection;
+use failure::Error;
 
 use {Crud, Joinable, Likeable, Followable, Bannable, Saveable, establish_connection, naive_now, naive_from_unix, SortType, has_slurs, remove_slurs};
 use actions::community::*;
@@ -29,10 +30,11 @@ pub enum UserOperation {
   Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetReplies, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Fail, Debug)]
+#[fail(display = "{{\"op\":\"{}\", \"error\":\"{}\"}}", op, message)]
 pub struct ErrorMessage {
   op: String,
-  error: String
+  message: String
 }
 
 /// Chat server sends this messages to session
@@ -490,7 +492,7 @@ impl ChatServer {
     }
   }
 
-  fn send_community_message(&self, conn: &PgConnection, community_id: i32, message: &str, skip_id: usize) {
+  fn send_community_message(&self, conn: &PgConnection, community_id: i32, message: &str, skip_id: usize) -> Result<(), Error> {
     let posts = PostView::list(conn,
                                PostListingType::Community, 
                                &SortType::New, 
@@ -500,11 +502,12 @@ impl ChatServer {
                                false,
                                false,
                                None,
-                               Some(9999))
-      .unwrap();
+                               Some(9999))?;
     for post in posts {
       self.send_room_message(post.id, message, skip_id);
     }
+
+    Ok(())
   }
 }
 
@@ -562,184 +565,188 @@ impl Handler<Disconnect> for ChatServer {
 impl Handler<StandardMessage> for ChatServer {
   type Result = MessageResult<StandardMessage>;
 
+
   fn handle(&mut self, msg: StandardMessage, _: &mut Context<Self>) -> Self::Result {
 
-    let json: Value = serde_json::from_str(&msg.msg)
-      .expect("Couldn't parse message");
-
-    let data = &json["data"].to_string();
-    let op = &json["op"].as_str().unwrap();
-    let user_operation: UserOperation = UserOperation::from_str(&op).unwrap();
-
-
-    // TODO figure out how to do proper error handling here, instead of just returning
-    // error strings
-    let res: String = match user_operation {
-      UserOperation::Login => {
-        let login: Login = serde_json::from_str(data).unwrap();
-        login.perform(self, msg.id)
-      },
-      UserOperation::Register => {
-        let register: Register = serde_json::from_str(data).unwrap();
-        register.perform(self, msg.id)
-      },
-      UserOperation::CreateCommunity => {
-        let create_community: CreateCommunity = serde_json::from_str(data).unwrap();
-        create_community.perform(self, msg.id)
-      },
-      UserOperation::ListCommunities => {
-        let list_communities: ListCommunities = serde_json::from_str(data).unwrap();
-        list_communities.perform(self, msg.id)
-      },
-      UserOperation::ListCategories => {
-        let list_categories: ListCategories = ListCategories;
-        list_categories.perform(self, msg.id)
-      },
-      UserOperation::CreatePost => {
-        let create_post: CreatePost = serde_json::from_str(data).unwrap();
-        create_post.perform(self, msg.id)
-      },
-      UserOperation::GetPost => {
-        let get_post: GetPost = serde_json::from_str(data).unwrap();
-        get_post.perform(self, msg.id)
-      },
-      UserOperation::GetCommunity => {
-        let get_community: GetCommunity = serde_json::from_str(data).unwrap();
-        get_community.perform(self, msg.id)
-      },
-      UserOperation::CreateComment => {
-        let create_comment: CreateComment = serde_json::from_str(data).unwrap();
-        create_comment.perform(self, msg.id)
-      },
-      UserOperation::EditComment => {
-        let edit_comment: EditComment = serde_json::from_str(data).unwrap();
-        edit_comment.perform(self, msg.id)
-      },
-      UserOperation::SaveComment => {
-        let save_post: SaveComment = serde_json::from_str(data).unwrap();
-        save_post.perform(self, msg.id)
-      },
-      UserOperation::CreateCommentLike => {
-        let create_comment_like: CreateCommentLike = serde_json::from_str(data).unwrap();
-        create_comment_like.perform(self, msg.id)
-      },
-      UserOperation::GetPosts => {
-        let get_posts: GetPosts = serde_json::from_str(data).unwrap();
-        get_posts.perform(self, msg.id)
-      },
-      UserOperation::CreatePostLike => {
-        let create_post_like: CreatePostLike = serde_json::from_str(data).unwrap();
-        create_post_like.perform(self, msg.id)
-      },
-      UserOperation::EditPost => {
-        let edit_post: EditPost = serde_json::from_str(data).unwrap();
-        edit_post.perform(self, msg.id)
-      },
-      UserOperation::SavePost => {
-        let save_post: SavePost = serde_json::from_str(data).unwrap();
-        save_post.perform(self, msg.id)
-      },
-      UserOperation::EditCommunity => {
-        let edit_community: EditCommunity = serde_json::from_str(data).unwrap();
-        edit_community.perform(self, msg.id)
-      },
-      UserOperation::FollowCommunity => {
-        let follow_community: FollowCommunity = serde_json::from_str(data).unwrap();
-        follow_community.perform(self, msg.id)
-      },
-      UserOperation::GetFollowedCommunities => {
-        let followed_communities: GetFollowedCommunities = serde_json::from_str(data).unwrap();
-        followed_communities.perform(self, msg.id)
-      },
-      UserOperation::GetUserDetails => {
-        let get_user_details: GetUserDetails = serde_json::from_str(data).unwrap();
-        get_user_details.perform(self, msg.id)
-      },
-      UserOperation::GetModlog => {
-        let get_modlog: GetModlog = serde_json::from_str(data).unwrap();
-        get_modlog.perform(self, msg.id)
-      },
-      UserOperation::BanFromCommunity => {
-        let ban_from_community: BanFromCommunity = serde_json::from_str(data).unwrap();
-        ban_from_community.perform(self, msg.id)
-      },
-      UserOperation::AddModToCommunity => {
-        let mod_add_to_community: AddModToCommunity = serde_json::from_str(data).unwrap();
-        mod_add_to_community.perform(self, msg.id)
-      },
-      UserOperation::CreateSite => {
-        let create_site: CreateSite = serde_json::from_str(data).unwrap();
-        create_site.perform(self, msg.id)
-      },
-      UserOperation::EditSite => {
-        let edit_site: EditSite = serde_json::from_str(data).unwrap();
-        edit_site.perform(self, msg.id)
-      },
-      UserOperation::GetSite => {
-        let get_site: GetSite = serde_json::from_str(data).unwrap();
-        get_site.perform(self, msg.id)
-      },
-      UserOperation::AddAdmin => {
-        let add_admin: AddAdmin = serde_json::from_str(data).unwrap();
-        add_admin.perform(self, msg.id)
-      },
-      UserOperation::BanUser => {
-        let ban_user: BanUser = serde_json::from_str(data).unwrap();
-        ban_user.perform(self, msg.id)
-      },
-      UserOperation::GetReplies => {
-        let get_replies: GetReplies = serde_json::from_str(data).unwrap();
-        get_replies.perform(self, msg.id)
-      },
+    let msg_out = match parse_json_message(self, msg) {
+      Ok(m) => m,
+      Err(e) => e.to_string()
     };
 
-    MessageResult(res)
+    MessageResult(msg_out)
   }
 }
 
+fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<String, Error> {
+
+  let json: Value = serde_json::from_str(&msg.msg)?;
+  let data = &json["data"].to_string();
+  let op = &json["op"].as_str().unwrap();
+
+  let user_operation: UserOperation = UserOperation::from_str(&op)?;
+
+  match user_operation {
+    UserOperation::Login => {
+      let login: Login = serde_json::from_str(data)?;
+      login.perform(chat, msg.id)
+    },
+    UserOperation::Register => {
+      let register: Register = serde_json::from_str(data)?;
+      register.perform(chat, msg.id)
+    },
+    UserOperation::CreateCommunity => {
+      let create_community: CreateCommunity = serde_json::from_str(data)?;
+      create_community.perform(chat, msg.id)
+    },
+    UserOperation::ListCommunities => {
+      let list_communities: ListCommunities = serde_json::from_str(data)?;
+      list_communities.perform(chat, msg.id)
+    },
+    UserOperation::ListCategories => {
+      let list_categories: ListCategories = ListCategories;
+      list_categories.perform(chat, msg.id)
+    },
+    UserOperation::CreatePost => {
+      let create_post: CreatePost = serde_json::from_str(data)?;
+      create_post.perform(chat, msg.id)
+    },
+    UserOperation::GetPost => {
+      let get_post: GetPost = serde_json::from_str(data)?;
+      get_post.perform(chat, msg.id)
+    },
+    UserOperation::GetCommunity => {
+      let get_community: GetCommunity = serde_json::from_str(data)?;
+      get_community.perform(chat, msg.id)
+    },
+    UserOperation::CreateComment => {
+      let create_comment: CreateComment = serde_json::from_str(data)?;
+      create_comment.perform(chat, msg.id)
+    },
+    UserOperation::EditComment => {
+      let edit_comment: EditComment = serde_json::from_str(data)?;
+      edit_comment.perform(chat, msg.id)
+    },
+    UserOperation::SaveComment => {
+      let save_post: SaveComment = serde_json::from_str(data)?;
+      save_post.perform(chat, msg.id)
+    },
+    UserOperation::CreateCommentLike => {
+      let create_comment_like: CreateCommentLike = serde_json::from_str(data)?;
+      create_comment_like.perform(chat, msg.id)
+    },
+    UserOperation::GetPosts => {
+      let get_posts: GetPosts = serde_json::from_str(data)?;
+      get_posts.perform(chat, msg.id)
+    },
+    UserOperation::CreatePostLike => {
+      let create_post_like: CreatePostLike = serde_json::from_str(data)?;
+      create_post_like.perform(chat, msg.id)
+    },
+    UserOperation::EditPost => {
+      let edit_post: EditPost = serde_json::from_str(data)?;
+      edit_post.perform(chat, msg.id)
+    },
+    UserOperation::SavePost => {
+      let save_post: SavePost = serde_json::from_str(data)?;
+      save_post.perform(chat, msg.id)
+    },
+    UserOperation::EditCommunity => {
+      let edit_community: EditCommunity = serde_json::from_str(data)?;
+      edit_community.perform(chat, msg.id)
+    },
+    UserOperation::FollowCommunity => {
+      let follow_community: FollowCommunity = serde_json::from_str(data)?;
+      follow_community.perform(chat, msg.id)
+    },
+    UserOperation::GetFollowedCommunities => {
+      let followed_communities: GetFollowedCommunities = serde_json::from_str(data)?;
+      followed_communities.perform(chat, msg.id)
+    },
+    UserOperation::GetUserDetails => {
+      let get_user_details: GetUserDetails = serde_json::from_str(data)?;
+      get_user_details.perform(chat, msg.id)
+    },
+    UserOperation::GetModlog => {
+      let get_modlog: GetModlog = serde_json::from_str(data)?;
+      get_modlog.perform(chat, msg.id)
+    },
+    UserOperation::BanFromCommunity => {
+      let ban_from_community: BanFromCommunity = serde_json::from_str(data)?;
+      ban_from_community.perform(chat, msg.id)
+    },
+    UserOperation::AddModToCommunity => {
+      let mod_add_to_community: AddModToCommunity = serde_json::from_str(data)?;
+      mod_add_to_community.perform(chat, msg.id)
+    },
+    UserOperation::CreateSite => {
+      let create_site: CreateSite = serde_json::from_str(data)?;
+      create_site.perform(chat, msg.id)
+    },
+    UserOperation::EditSite => {
+      let edit_site: EditSite = serde_json::from_str(data)?;
+      edit_site.perform(chat, msg.id)
+    },
+    UserOperation::GetSite => {
+      let get_site: GetSite = serde_json::from_str(data)?;
+      get_site.perform(chat, msg.id)
+    },
+    UserOperation::AddAdmin => {
+      let add_admin: AddAdmin = serde_json::from_str(data)?;
+      add_admin.perform(chat, msg.id)
+    },
+    UserOperation::BanUser => {
+      let ban_user: BanUser = serde_json::from_str(data)?;
+      ban_user.perform(chat, msg.id)
+    },
+    UserOperation::GetReplies => {
+      let get_replies: GetReplies = serde_json::from_str(data)?;
+      get_replies.perform(chat, msg.id)
+    },
+  }
+}
 
 pub trait Perform {
-  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String;
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error>;
   fn op_type(&self) -> UserOperation;
-  fn error(&self, error_msg: &str) -> String {
-    serde_json::to_string(
-      &ErrorMessage {
-        op: self.op_type().to_string(), 
-        error: error_msg.to_string()
-      }
-      )
-      .unwrap()
+  fn error(&self, error_msg: &str) -> ErrorMessage {
+    ErrorMessage {
+      op: self.op_type().to_string(), 
+      message: error_msg.to_string()
+    }
   }
 }
 
 impl Perform for Login {
+
   fn op_type(&self) -> UserOperation {
     UserOperation::Login
   }
-  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
     // Fetch that username / email
     let user: User_ = match User_::find_by_email_or_username(&conn, &self.username_or_email) {
       Ok(user) => user,
-      Err(_e) => return self.error("Couldn't find that username or email")
+      Err(_e) => return Err(self.error("Couldn't find that username or email"))?
     };
 
     // Verify the password
     let valid: bool = verify(&self.password, &user.password_encrypted).unwrap_or(false);
     if !valid {
-      return self.error("Password incorrect")
+      return Err(self.error("Password incorrect"))?
     }
 
     // Return the jwt
-    serde_json::to_string(
-      &LoginResponse {
-        op: self.op_type().to_string(),
-        jwt: user.jwt()
-      }
+    Ok(
+      serde_json::to_string(
+        &LoginResponse {
+          op: self.op_type().to_string(),
+          jwt: user.jwt()
+        }
+        )?
       )
-      .unwrap()
   }
 
 }
@@ -748,22 +755,22 @@ impl Perform for Register {
   fn op_type(&self) -> UserOperation {
     UserOperation::Register
   }
-  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
     // Make sure passwords match
     if &self.password != &self.password_verify {
-      return self.error("Passwords do not match.");
+      return Err(self.error("Passwords do not match."))?
     }
 
     if has_slurs(&self.username) {
-      return self.error("No slurs");
+      return Err(self.error("No slurs"))?
     }
 
     // Make sure there are no admins
-    if self.admin && UserView::admins(&conn).unwrap().len() > 0 {
-      return self.error("Sorry, there's already an admin.");
+    if self.admin && UserView::admins(&conn)?.len() > 0 {
+      return Err(self.error("Sorry, there's already an admin."))?
     }
 
     // Register the new user
@@ -782,7 +789,7 @@ impl Perform for Register {
     let inserted_user = match User_::register(&conn, &user_form) {
       Ok(user) => user,
       Err(_e) => {
-        return self.error("User already exists.");
+        return Err(self.error("User already exists."))?
       }
     };
 
@@ -796,7 +803,7 @@ impl Perform for Register {
       let _inserted_community_moderator = match CommunityModerator::join(&conn, &community_moderator_form) {
         Ok(user) => user,
         Err(_e) => {
-          return self.error("Community moderator already exists.");
+          return Err(self.error("Community moderator already exists."))?
         }
       };
 
@@ -808,20 +815,21 @@ impl Perform for Register {
       let _inserted_community_follower = match CommunityFollower::follow(&conn, &community_follower_form) {
         Ok(user) => user,
         Err(_e) => {
-          return self.error("Community follower already exists.");
+          return Err(self.error("Community follower already exists."))?
         }
       };
     }
 
 
     // Return the jwt
-    serde_json::to_string(
-      &LoginResponse {
-        op: self.op_type().to_string(), 
-        jwt: inserted_user.jwt()
-      }
+    Ok(
+      serde_json::to_string(
+        &LoginResponse {
+          op: self.op_type().to_string(), 
+          jwt: inserted_user.jwt()
+        }
+        )?
       )
-      .unwrap()
 
   }
 }
@@ -831,28 +839,28 @@ impl Perform for CreateCommunity {
     UserOperation::CreateCommunity
   }
 
-  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return self.error("Not logged in.");
+        return Err(self.error("Not logged in."))?
       }
     };
 
     if has_slurs(&self.name) || 
       has_slurs(&self.title) || 
-      (self.description.is_some() && has_slurs(&self.description.to_owned().unwrap())) {
-      return self.error("No slurs");
-    }
+        (self.description.is_some() && has_slurs(&self.description.to_owned().unwrap())) {
+          return Err(self.error("No slurs"))?
+        }
 
     let user_id = claims.id;
 
     // Check for a site ban
-    if UserView::read(&conn, user_id).unwrap().banned {
-      return self.error("You have been banned from the site");
+    if UserView::read(&conn, user_id)?.banned {
+      return Err(self.error("You have been banned from the site"))?
     }
 
     // When you create a community, make sure the user becomes a moderator and a follower
@@ -869,7 +877,7 @@ impl Perform for CreateCommunity {
     let inserted_community = match Community::create(&conn, &community_form) {
       Ok(community) => community,
       Err(_e) => {
-        return self.error("Community already exists.");
+        return Err(self.error("Community already exists."))?
       }
     };
 
@@ -881,7 +889,7 @@ impl Perform for CreateCommunity {
     let _inserted_community_moderator = match CommunityModerator::join(&conn, &community_moderator_form) {
       Ok(user) => user,
       Err(_e) => {
-        return self.error("Community moderator already exists.");
+        return Err(self.error("Community moderator already exists."))?
       }
     };
 
@@ -893,19 +901,20 @@ impl Perform for CreateCommunity {
     let _inserted_community_follower = match CommunityFollower::follow(&conn, &community_follower_form) {
       Ok(user) => user,
       Err(_e) => {
-        return self.error("Community follower already exists.");
+        return Err(self.error("Community follower already exists."))?
       }
     };
 
-    let community_view = CommunityView::read(&conn, inserted_community.id, Some(user_id)).unwrap();
+    let community_view = CommunityView::read(&conn, inserted_community.id, Some(user_id))?;
 
-    serde_json::to_string(
-      &CommunityResponse {
-        op: self.op_type().to_string(), 
-        community: community_view
-      }
+    Ok(
+      serde_json::to_string(
+        &CommunityResponse {
+          op: self.op_type().to_string(), 
+          community: community_view
+        }
+        )?
       )
-      .unwrap()
   }
 }
 
@@ -914,7 +923,7 @@ impl Perform for ListCommunities {
     UserOperation::ListCommunities
   }
 
-  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
@@ -931,18 +940,19 @@ impl Perform for ListCommunities {
       None => None
     };
 
-    let sort = SortType::from_str(&self.sort).expect("listing sort");
+    let sort = SortType::from_str(&self.sort)?;
 
-    let communities: Vec<CommunityView> = CommunityView::list(&conn, user_id, sort, self.page, self.limit).unwrap();
+    let communities: Vec<CommunityView> = CommunityView::list(&conn, user_id, sort, self.page, self.limit)?;
 
     // Return the jwt
-    serde_json::to_string(
-      &ListCommunitiesResponse {
-        op: self.op_type().to_string(),
-        communities: communities
-      }
+    Ok(
+      serde_json::to_string(
+        &ListCommunitiesResponse {
+          op: self.op_type().to_string(),
+          communities: communities
+        }
+        )?
       )
-      .unwrap()
   }
 }
 
@@ -951,20 +961,21 @@ impl Perform for ListCategories {
     UserOperation::ListCategories
   }
 
-  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
-    let categories: Vec<Category> = Category::list_all(&conn).unwrap();
+    let categories: Vec<Category> = Category::list_all(&conn)?;
 
     // Return the jwt
-    serde_json::to_string(
-      &ListCategoriesResponse {
-        op: self.op_type().to_string(),
-        categories: categories
-      }
+    Ok(
+      serde_json::to_string(
+        &ListCategoriesResponse {
+          op: self.op_type().to_string(),
+          categories: categories
+        }
+        )?
       )
-      .unwrap()
   }
 }
 
@@ -973,32 +984,32 @@ impl Perform for CreatePost {
     UserOperation::CreatePost
   }
 
-  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return self.error("Not logged in.");
+        return Err(self.error("Not logged in."))?
       }
     };
 
     if has_slurs(&self.name) || 
       (self.body.is_some() && has_slurs(&self.body.to_owned().unwrap())) {
-      return self.error("No slurs");
-    }
+        return Err(self.error("No slurs"))?
+      }
 
     let user_id = claims.id;
 
     // Check for a community ban
     if CommunityUserBanView::get(&conn, user_id, self.community_id).is_ok() {
-      return self.error("You have been banned from this community");
+      return Err(self.error("You have been banned from this community"))?
     }
 
     // Check for a site ban
-    if UserView::read(&conn, user_id).unwrap().banned {
-      return self.error("You have been banned from the site");
+    if UserView::read(&conn, user_id)?.banned {
+      return Err(self.error("You have been banned from the site"))?
     }
 
     let post_form = PostForm {
@@ -1015,7 +1026,7 @@ impl Perform for CreatePost {
     let inserted_post = match Post::create(&conn, &post_form) {
       Ok(post) => post,
       Err(_e) => {
-        return self.error("Couldn't create Post");
+        return Err(self.error("Couldn't create Post"))?
       }
     };
 
@@ -1030,7 +1041,7 @@ impl Perform for CreatePost {
     let _inserted_like = match PostLike::like(&conn, &like_form) {
       Ok(like) => like,
       Err(_e) => {
-        return self.error("Couldn't like post.");
+        return Err(self.error("Couldn't like post."))?
       }
     };
 
@@ -1038,17 +1049,18 @@ impl Perform for CreatePost {
     let post_view = match PostView::read(&conn, inserted_post.id, Some(user_id)) {
       Ok(post) => post,
       Err(_e) => {
-        return self.error("Couldn't find Post");
+        return Err(self.error("Couldn't find Post"))?
       }
     };
 
-    serde_json::to_string(
-      &PostResponse {
-        op: self.op_type().to_string(), 
-        post: post_view
-      }
+    Ok(
+      serde_json::to_string(
+        &PostResponse {
+          op: self.op_type().to_string(), 
+          post: post_view
+        }
+        )?
       )
-      .unwrap()
   }
 }
 
@@ -1058,7 +1070,7 @@ impl Perform for GetPost {
     UserOperation::GetPost
   }
 
-  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
@@ -1078,7 +1090,7 @@ impl Perform for GetPost {
     let post_view = match PostView::read(&conn, self.id, user_id) {
       Ok(post) => post,
       Err(_e) => {
-        return self.error("Couldn't find Post");
+        return Err(self.error("Couldn't find Post"))?
       }
     };
 
@@ -1093,26 +1105,27 @@ impl Perform for GetPost {
 
     chat.rooms.get_mut(&self.id).unwrap().insert(addr);
 
-    let comments = CommentView::list(&conn, &SortType::New, Some(self.id), None, user_id, false, None, Some(9999)).unwrap();
+    let comments = CommentView::list(&conn, &SortType::New, Some(self.id), None, user_id, false, None, Some(9999))?;
 
-    let community = CommunityView::read(&conn, post_view.community_id, user_id).unwrap();
+    let community = CommunityView::read(&conn, post_view.community_id, user_id)?;
 
-    let moderators = CommunityModeratorView::for_community(&conn, post_view.community_id).unwrap();
+    let moderators = CommunityModeratorView::for_community(&conn, post_view.community_id)?;
 
-    let admins = UserView::admins(&conn).unwrap();
+    let admins = UserView::admins(&conn)?;
 
     // Return the jwt
-    serde_json::to_string(
-      &GetPostResponse {
-        op: self.op_type().to_string(),
-        post: post_view,
-        comments: comments,
-        community: community,
-        moderators: moderators,
-        admins: admins,
-      }
+    Ok(
+      serde_json::to_string(
+        &GetPostResponse {
+          op: self.op_type().to_string(),
+          post: post_view,
+          comments: comments,
+          community: community,
+          moderators: moderators,
+          admins: admins,
+        }
+        )?
       )
-      .unwrap()
   }
 }
 
@@ -1121,7 +1134,7 @@ impl Perform for GetCommunity {
     UserOperation::GetCommunity
   }
 
-  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
@@ -1141,26 +1154,27 @@ impl Perform for GetCommunity {
     let community_view = match CommunityView::read(&conn, self.id, user_id) {
       Ok(community) => community,
       Err(_e) => {
-        return self.error("Couldn't find Community");
+        return Err(self.error("Couldn't find Community"))?
       }
     };
 
     let moderators = match CommunityModeratorView::for_community(&conn, self.id) {
       Ok(moderators) => moderators,
       Err(_e) => {
-        return self.error("Couldn't find Community");
+        return Err(self.error("Couldn't find Community"))?
       }
     };
 
     // Return the jwt
-    serde_json::to_string(
-      &GetCommunityResponse {
-        op: self.op_type().to_string(),
-        community: community_view,
-        moderators: moderators
-      }
+    Ok(
+      serde_json::to_string(
+        &GetCommunityResponse {
+          op: self.op_type().to_string(),
+          community: community_view,
+          moderators: moderators
+        }
+        )?
       )
-      .unwrap()
   }
 }
 
@@ -1169,28 +1183,28 @@ impl Perform for CreateComment {
     UserOperation::CreateComment
   }
 
-  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return self.error("Not logged in.");
+        return Err(self.error("Not logged in."))?
       }
     };
 
     let user_id = claims.id;
 
     // Check for a community ban
-    let post = Post::read(&conn, self.post_id).unwrap();
+    let post = Post::read(&conn, self.post_id)?;
     if CommunityUserBanView::get(&conn, user_id, post.community_id).is_ok() {
-      return self.error("You have been banned from this community");
+      return Err(self.error("You have been banned from this community"))?
     }
-    
+
     // Check for a site ban
-    if UserView::read(&conn, user_id).unwrap().banned {
-      return self.error("You have been banned from the site");
+    if UserView::read(&conn, user_id)?.banned {
+      return Err(self.error("You have been banned from the site"))?
     }
 
     let content_slurs_removed = remove_slurs(&self.content.to_owned());
@@ -1208,7 +1222,7 @@ impl Perform for CreateComment {
     let inserted_comment = match Comment::create(&conn, &comment_form) {
       Ok(comment) => comment,
       Err(_e) => {
-        return self.error("Couldn't create Comment");
+        return Err(self.error("Couldn't create Comment"))?
       }
     };
 
@@ -1223,11 +1237,11 @@ impl Perform for CreateComment {
     let _inserted_like = match CommentLike::like(&conn, &like_form) {
       Ok(like) => like,
       Err(_e) => {
-        return self.error("Couldn't like comment.");
+        return Err(self.error("Couldn't like comment."))?
       }
     };
 
-    let comment_view = CommentView::read(&conn, inserted_comment.id, Some(user_id)).unwrap();
+    let comment_view = CommentView::read(&conn, inserted_comment.id, Some(user_id))?;
 
     let mut comment_sent = comment_view.clone();
     comment_sent.my_vote = None;
@@ -1238,20 +1252,18 @@ impl Perform for CreateComment {
         op: self.op_type().to_string(), 
         comment: comment_view
       }
-      )
-      .unwrap();
+      )?;
 
     let comment_sent_out = serde_json::to_string(
       &CommentResponse {
         op: self.op_type().to_string(), 
         comment: comment_sent
       }
-      )
-      .unwrap();
+      )?;
 
     chat.send_room_message(self.post_id, &comment_sent_out, addr);
 
-    comment_out
+    Ok(comment_out)
   }
 }
 
@@ -1260,49 +1272,49 @@ impl Perform for EditComment {
     UserOperation::EditComment
   }
 
-  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return self.error("Not logged in.");
+        return Err(self.error("Not logged in."))?
       }
     };
 
     let user_id = claims.id;
 
     // Verify its the creator or a mod, or an admin
-    let orig_comment = CommentView::read(&conn, self.edit_id, None).unwrap();
+    let orig_comment = CommentView::read(&conn, self.edit_id, None)?;
     let mut editors: Vec<i32> = vec![self.creator_id];
     editors.append(
       &mut CommunityModeratorView::for_community(&conn, orig_comment.community_id)
-      .unwrap()
+      ?
       .into_iter()
       .map(|m| m.user_id)
       .collect()
-    );
+      );
     editors.append(
       &mut UserView::admins(&conn)
-      .unwrap()
+      ?
       .into_iter()
       .map(|a| a.id)
       .collect()
       );
 
     if !editors.contains(&user_id) {
-      return self.error("Not allowed to edit comment.");
+      return Err(self.error("Not allowed to edit comment."))?
     }
 
     // Check for a community ban
     if CommunityUserBanView::get(&conn, user_id, orig_comment.community_id).is_ok() {
-      return self.error("You have been banned from this community");
+      return Err(self.error("You have been banned from this community"))?
     }
 
     // Check for a site ban
-    if UserView::read(&conn, user_id).unwrap().banned {
-      return self.error("You have been banned from the site");
+    if UserView::read(&conn, user_id)?.banned {
+      return Err(self.error("You have been banned from the site"))?
     }
 
     let content_slurs_removed = remove_slurs(&self.content.to_owned());
@@ -1320,7 +1332,7 @@ impl Perform for EditComment {
     let _updated_comment = match Comment::update(&conn, self.edit_id, &comment_form) {
       Ok(comment) => comment,
       Err(_e) => {
-        return self.error("Couldn't update Comment");
+        return Err(self.error("Couldn't update Comment"))?
       }
     };
 
@@ -1332,11 +1344,11 @@ impl Perform for EditComment {
         removed: Some(removed),
         reason: self.reason.to_owned(),
       };
-      ModRemoveComment::create(&conn, &form).unwrap();
+      ModRemoveComment::create(&conn, &form)?;
     }
 
 
-    let comment_view = CommentView::read(&conn, self.edit_id, Some(user_id)).unwrap();
+    let comment_view = CommentView::read(&conn, self.edit_id, Some(user_id))?;
 
     let mut comment_sent = comment_view.clone();
     comment_sent.my_vote = None;
@@ -1347,20 +1359,18 @@ impl Perform for EditComment {
         op: self.op_type().to_string(), 
         comment: comment_view
       }
-      )
-      .unwrap();
+      )?;
 
     let comment_sent_out = serde_json::to_string(
       &CommentResponse {
         op: self.op_type().to_string(), 
         comment: comment_sent
       }
-      )
-      .unwrap();
+      )?;
 
     chat.send_room_message(self.post_id, &comment_sent_out, addr);
 
-    comment_out
+    Ok(comment_out)
   }
 }
 
@@ -1369,14 +1379,14 @@ impl Perform for SaveComment {
     UserOperation::SaveComment
   }
 
-  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return self.error("Not logged in.");
+        return Err(self.error("Not logged in."))?
       }
     };
 
@@ -1391,19 +1401,19 @@ impl Perform for SaveComment {
       match CommentSaved::save(&conn, &comment_saved_form) {
         Ok(comment) => comment,
         Err(_e) => {
-          return self.error("Couldnt do comment save");
+          return Err(self.error("Couldnt do comment save"))?
         }
       };
     } else {
       match CommentSaved::unsave(&conn, &comment_saved_form) {
         Ok(comment) => comment,
         Err(_e) => {
-          return self.error("Couldnt do comment save");
+          return Err(self.error("Couldnt do comment save"))?
         }
       };
     }
 
-    let comment_view = CommentView::read(&conn, self.comment_id, Some(user_id)).unwrap();
+    let comment_view = CommentView::read(&conn, self.comment_id, Some(user_id))?;
 
     let comment_out = serde_json::to_string(
       &CommentResponse {
@@ -1411,9 +1421,9 @@ impl Perform for SaveComment {
         comment: comment_view
       }
       )
-      .unwrap();
+      ?;
 
-    comment_out
+    Ok(comment_out)
   }
 }
 
@@ -1423,28 +1433,28 @@ impl Perform for CreateCommentLike {
     UserOperation::CreateCommentLike
   }
 
-  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return self.error("Not logged in.");
+        return Err(self.error("Not logged in."))?
       }
     };
 
     let user_id = claims.id;
 
     // Check for a community ban
-    let post = Post::read(&conn, self.post_id).unwrap();
+    let post = Post::read(&conn, self.post_id)?;
     if CommunityUserBanView::get(&conn, user_id, post.community_id).is_ok() {
-      return self.error("You have been banned from this community");
+      return Err(self.error("You have been banned from this community"))?
     }
 
     // Check for a site ban
-    if UserView::read(&conn, user_id).unwrap().banned {
-      return self.error("You have been banned from the site");
+    if UserView::read(&conn, user_id)?.banned {
+      return Err(self.error("You have been banned from the site"))?
     }
 
     let like_form = CommentLikeForm {
@@ -1455,20 +1465,20 @@ impl Perform for CreateCommentLike {
     };
 
     // Remove any likes first
-    CommentLike::remove(&conn, &like_form).unwrap();
+    CommentLike::remove(&conn, &like_form)?;
 
     // Only add the like if the score isnt 0
     if &like_form.score != &0 {
       let _inserted_like = match CommentLike::like(&conn, &like_form) {
         Ok(like) => like,
         Err(_e) => {
-          return self.error("Couldn't like comment.");
+          return Err(self.error("Couldn't like comment."))?
         }
       };
     }
 
     // Have to refetch the comment to get the current state
-    let liked_comment = CommentView::read(&conn, self.comment_id, Some(user_id)).unwrap();
+    let liked_comment = CommentView::read(&conn, self.comment_id, Some(user_id))?;
 
     let mut liked_comment_sent = liked_comment.clone();
     liked_comment_sent.my_vote = None;
@@ -1479,20 +1489,18 @@ impl Perform for CreateCommentLike {
         op: self.op_type().to_string(), 
         comment: liked_comment
       }
-      )
-      .unwrap();
+      )?;
 
     let like_sent_out = serde_json::to_string(
       &CommentResponse {
         op: self.op_type().to_string(), 
         comment: liked_comment_sent
       }
-      )
-      .unwrap();
+      )?;
 
     chat.send_room_message(self.post_id, &like_sent_out, addr);
 
-    like_out
+    Ok(like_out)
   }
 }
 
@@ -1502,7 +1510,7 @@ impl Perform for GetPosts {
     UserOperation::GetPosts
   }
 
-  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
@@ -1519,24 +1527,25 @@ impl Perform for GetPosts {
       None => None
     };
 
-    let type_ = PostListingType::from_str(&self.type_).expect("listing type");
-    let sort = SortType::from_str(&self.sort).expect("listing sort");
+    let type_ = PostListingType::from_str(&self.type_)?;
+    let sort = SortType::from_str(&self.sort)?;
 
     let posts = match PostView::list(&conn, type_, &sort, self.community_id, None, user_id, false, false, self.page, self.limit) {
       Ok(posts) => posts,
       Err(_e) => {
-        return self.error("Couldn't get posts");
+        return Err(self.error("Couldn't get posts"))?
       }
     };
 
     // Return the jwt
-    serde_json::to_string(
-      &GetPostsResponse {
-        op: self.op_type().to_string(),
-        posts: posts
-      }
+    Ok(
+      serde_json::to_string(
+        &GetPostsResponse {
+          op: self.op_type().to_string(),
+          posts: posts
+        }
+        )?
       )
-      .unwrap()
   }
 }
 
@@ -1546,28 +1555,28 @@ impl Perform for CreatePostLike {
     UserOperation::CreatePostLike
   }
 
-  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return self.error("Not logged in.");
+        return Err(self.error("Not logged in."))?
       }
     };
 
     let user_id = claims.id;
 
     // Check for a community ban
-    let post = Post::read(&conn, self.post_id).unwrap();
+    let post = Post::read(&conn, self.post_id)?;
     if CommunityUserBanView::get(&conn, user_id, post.community_id).is_ok() {
-      return self.error("You have been banned from this community");
+      return Err(self.error("You have been banned from this community"))?
     }
 
     // Check for a site ban
-    if UserView::read(&conn, user_id).unwrap().banned {
-      return self.error("You have been banned from the site");
+    if UserView::read(&conn, user_id)?.banned {
+      return Err(self.error("You have been banned from the site"))?
     }
 
     let like_form = PostLikeForm {
@@ -1577,14 +1586,14 @@ impl Perform for CreatePostLike {
     };
 
     // Remove any likes first
-    PostLike::remove(&conn, &like_form).unwrap();
+    PostLike::remove(&conn, &like_form)?;
 
     // Only add the like if the score isnt 0
     if &like_form.score != &0 {
       let _inserted_like = match PostLike::like(&conn, &like_form) {
         Ok(like) => like,
         Err(_e) => {
-          return self.error("Couldn't like post.");
+          return Err(self.error("Couldn't like post."))?
         }
       };
     }
@@ -1592,7 +1601,7 @@ impl Perform for CreatePostLike {
     let post_view = match PostView::read(&conn, self.post_id, Some(user_id)) {
       Ok(post) => post,
       Err(_e) => {
-        return self.error("Couldn't find Post");
+        return Err(self.error("Couldn't find Post"))?
       }
     };
 
@@ -1603,10 +1612,9 @@ impl Perform for CreatePostLike {
         op: self.op_type().to_string(), 
         post: post_view
       }
-      )
-      .unwrap();
+      )?;
 
-    like_out
+    Ok(like_out)
   }
 }
 
@@ -1615,19 +1623,19 @@ impl Perform for EditPost {
     UserOperation::EditPost
   }
 
-  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> Result<String, Error> {
 
     if has_slurs(&self.name) || 
       (self.body.is_some() && has_slurs(&self.body.to_owned().unwrap())) {
-      return self.error("No slurs");
-    }
+        return Err(self.error("No slurs"))?
+      }
 
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return self.error("Not logged in.");
+        return Err(self.error("Not logged in."))?
       }
     };
 
@@ -1637,30 +1645,30 @@ impl Perform for EditPost {
     let mut editors: Vec<i32> = vec![self.creator_id];
     editors.append(
       &mut CommunityModeratorView::for_community(&conn, self.community_id)
-      .unwrap()
+      ?
       .into_iter()
       .map(|m| m.user_id)
       .collect()
-    );
+      );
     editors.append(
       &mut UserView::admins(&conn)
-      .unwrap()
+      ?
       .into_iter()
       .map(|a| a.id)
       .collect()
       );
     if !editors.contains(&user_id) {
-      return self.error("Not allowed to edit post.");
+      return Err(self.error("Not allowed to edit post."))?
     }
 
     // Check for a community ban
     if CommunityUserBanView::get(&conn, user_id, self.community_id).is_ok() {
-      return self.error("You have been banned from this community");
+      return Err(self.error("You have been banned from this community"))?
     }
 
     // Check for a site ban
-    if UserView::read(&conn, user_id).unwrap().banned {
-      return self.error("You have been banned from the site");
+    if UserView::read(&conn, user_id)?.banned {
+      return Err(self.error("You have been banned from the site"))?
     }
 
     let post_form = PostForm {
@@ -1677,7 +1685,7 @@ impl Perform for EditPost {
     let _updated_post = match Post::update(&conn, self.edit_id, &post_form) {
       Ok(post) => post,
       Err(_e) => {
-        return self.error("Couldn't update Post");
+        return Err(self.error("Couldn't update Post"))?
       }
     };
 
@@ -1689,7 +1697,7 @@ impl Perform for EditPost {
         removed: Some(removed),
         reason: self.reason.to_owned(),
       };
-      ModRemovePost::create(&conn, &form).unwrap();
+      ModRemovePost::create(&conn, &form)?;
     }
 
     if let Some(locked) = self.locked.to_owned() {
@@ -1698,10 +1706,10 @@ impl Perform for EditPost {
         post_id: self.edit_id,
         locked: Some(locked),
       };
-      ModLockPost::create(&conn, &form).unwrap();
+      ModLockPost::create(&conn, &form)?;
     }
 
-    let post_view = PostView::read(&conn, self.edit_id, Some(user_id)).unwrap();
+    let post_view = PostView::read(&conn, self.edit_id, Some(user_id))?;
 
     let mut post_sent = post_view.clone();
     post_sent.my_vote = None;
@@ -1712,7 +1720,7 @@ impl Perform for EditPost {
         post: post_view
       }
       )
-      .unwrap();
+      ?;
 
     let post_sent_out = serde_json::to_string(
       &PostResponse {
@@ -1720,11 +1728,11 @@ impl Perform for EditPost {
         post: post_sent
       }
       )
-      .unwrap();
+      ?;
 
     chat.send_room_message(self.edit_id, &post_sent_out, addr);
 
-    post_out
+    Ok(post_out)
   }
 }
 
@@ -1733,14 +1741,14 @@ impl Perform for SavePost {
     UserOperation::SavePost
   }
 
-  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return self.error("Not logged in.");
+        return Err(self.error("Not logged in."))?
       }
     };
 
@@ -1755,19 +1763,19 @@ impl Perform for SavePost {
       match PostSaved::save(&conn, &post_saved_form) {
         Ok(post) => post,
         Err(_e) => {
-          return self.error("Couldnt do post save");
+          return Err(self.error("Couldnt do post save"))?
         }
       };
     } else {
       match PostSaved::unsave(&conn, &post_saved_form) {
         Ok(post) => post,
         Err(_e) => {
-          return self.error("Couldnt do post save");
+          return Err(self.error("Couldnt do post save"))?
         }
       };
     }
 
-    let post_view = PostView::read(&conn, self.post_id, Some(user_id)).unwrap();
+    let post_view = PostView::read(&conn, self.post_id, Some(user_id))?;
 
     let post_out = serde_json::to_string(
       &PostResponse {
@@ -1775,9 +1783,9 @@ impl Perform for SavePost {
         post: post_view
       }
       )
-      .unwrap();
+      ?;
 
-    post_out
+    Ok(post_out)
   }
 }
 
@@ -1786,10 +1794,10 @@ impl Perform for EditCommunity {
     UserOperation::EditCommunity
   }
 
-  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> Result<String, Error> {
 
     if has_slurs(&self.name) || has_slurs(&self.title) {
-      return self.error("No slurs");
+      return Err(self.error("No slurs"))?
     }
 
     let conn = establish_connection();
@@ -1797,22 +1805,22 @@ impl Perform for EditCommunity {
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return self.error("Not logged in.");
+        return Err(self.error("Not logged in."))?
       }
     };
 
     let user_id = claims.id;
 
     // Check for a site ban
-    if UserView::read(&conn, user_id).unwrap().banned {
-      return self.error("You have been banned from the site");
+    if UserView::read(&conn, user_id)?.banned {
+      return Err(self.error("You have been banned from the site"))?
     }
 
     // Verify its a mod
-    let moderator_view = CommunityModeratorView::for_community(&conn, self.edit_id).unwrap();
+    let moderator_view = CommunityModeratorView::for_community(&conn, self.edit_id)?;
     let mod_ids: Vec<i32> = moderator_view.into_iter().map(|m| m.user_id).collect();
     if !mod_ids.contains(&user_id) {
-      return self.error("Incorrect creator.");
+      return Err(self.error("Incorrect creator."))?
     };
 
     let community_form = CommunityForm {
@@ -1828,7 +1836,7 @@ impl Perform for EditCommunity {
     let _updated_community = match Community::update(&conn, self.edit_id, &community_form) {
       Ok(community) => community,
       Err(_e) => {
-        return self.error("Couldn't update Community");
+        return Err(self.error("Couldn't update Community"))?
       }
     };
 
@@ -1845,10 +1853,10 @@ impl Perform for EditCommunity {
         reason: self.reason.to_owned(),
         expires: expires
       };
-      ModRemoveCommunity::create(&conn, &form).unwrap();
+      ModRemoveCommunity::create(&conn, &form)?;
     }
 
-    let community_view = CommunityView::read(&conn, self.edit_id, Some(user_id)).unwrap();
+    let community_view = CommunityView::read(&conn, self.edit_id, Some(user_id))?;
 
     let community_out = serde_json::to_string(
       &CommunityResponse {
@@ -1856,9 +1864,9 @@ impl Perform for EditCommunity {
         community: community_view
       }
       )
-      .unwrap();
+      ?;
 
-    let community_view_sent = CommunityView::read(&conn, self.edit_id, None).unwrap();
+    let community_view_sent = CommunityView::read(&conn, self.edit_id, None)?;
 
     let community_sent = serde_json::to_string(
       &CommunityResponse {
@@ -1866,11 +1874,11 @@ impl Perform for EditCommunity {
         community: community_view_sent
       }
       )
-      .unwrap();
+      ?;
 
-    chat.send_community_message(&conn, self.edit_id, &community_sent, addr);
+    chat.send_community_message(&conn, self.edit_id, &community_sent, addr)?;
 
-    community_out
+    Ok(community_out)
   }
 }
 
@@ -1880,14 +1888,14 @@ impl Perform for FollowCommunity {
     UserOperation::FollowCommunity
   }
 
-  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return self.error("Not logged in.");
+        return Err(self.error("Not logged in."))?
       }
     };
 
@@ -1903,27 +1911,28 @@ impl Perform for FollowCommunity {
       match CommunityFollower::follow(&conn, &community_follower_form) {
         Ok(user) => user,
         Err(_e) => {
-          return self.error("Community follower already exists.");
+          return Err(self.error("Community follower already exists."))?
         }
       };
     } else {
       match CommunityFollower::ignore(&conn, &community_follower_form) {
         Ok(user) => user,
         Err(_e) => {
-          return self.error("Community follower already exists.");
+          return Err(self.error("Community follower already exists."))?
         }
       };
     }
 
-    let community_view = CommunityView::read(&conn, self.community_id, Some(user_id)).unwrap();
+    let community_view = CommunityView::read(&conn, self.community_id, Some(user_id))?;
 
-    serde_json::to_string(
-      &CommunityResponse {
-        op: self.op_type().to_string(), 
-        community: community_view
-      }
+    Ok(
+      serde_json::to_string(
+        &CommunityResponse {
+          op: self.op_type().to_string(), 
+          community: community_view
+        }
+        )?
       )
-      .unwrap()
   }
 }
 
@@ -1932,14 +1941,14 @@ impl Perform for GetFollowedCommunities {
     UserOperation::GetFollowedCommunities
   }
 
-  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return self.error("Not logged in.");
+        return Err(self.error("Not logged in."))?
       }
     };
 
@@ -1948,18 +1957,19 @@ impl Perform for GetFollowedCommunities {
     let communities: Vec<CommunityFollowerView> = match CommunityFollowerView::for_user(&conn, user_id) {
       Ok(communities) => communities,
       Err(_e) => {
-        return self.error("System error, try logging out and back in.");
+        return Err(self.error("System error, try logging out and back in."))?
       }
     };
 
     // Return the jwt
-    serde_json::to_string(
-      &GetFollowedCommunitiesResponse {
-        op: self.op_type().to_string(),
-        communities: communities
-      }
+    Ok(
+      serde_json::to_string(
+        &GetFollowedCommunitiesResponse {
+          op: self.op_type().to_string(),
+          communities: communities
+        }
+        )?
       )
-      .unwrap()
   }
 }
 
@@ -1968,40 +1978,41 @@ impl Perform for GetUserDetails {
     UserOperation::GetUserDetails
   }
 
-  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
     //TODO add save
-    let sort = SortType::from_str(&self.sort).expect("listing sort");
+    let sort = SortType::from_str(&self.sort)?;
 
-    let user_view = UserView::read(&conn, self.user_id).unwrap();
+    let user_view = UserView::read(&conn, self.user_id)?;
     let posts = if self.saved_only {
-      PostView::list(&conn, PostListingType::All, &sort, self.community_id, None, Some(self.user_id), self.saved_only, false, self.page, self.limit).unwrap()
+      PostView::list(&conn, PostListingType::All, &sort, self.community_id, None, Some(self.user_id), self.saved_only, false, self.page, self.limit)?
     } else {
-      PostView::list(&conn, PostListingType::All, &sort, self.community_id, Some(self.user_id), None, self.saved_only, false, self.page, self.limit).unwrap()
+      PostView::list(&conn, PostListingType::All, &sort, self.community_id, Some(self.user_id), None, self.saved_only, false, self.page, self.limit)?
     };
     let comments = if self.saved_only {
-      CommentView::list(&conn, &sort, None, None, Some(self.user_id), self.saved_only, self.page, self.limit).unwrap()
+      CommentView::list(&conn, &sort, None, None, Some(self.user_id), self.saved_only, self.page, self.limit)?
     } else {
-      CommentView::list(&conn, &sort, None, Some(self.user_id), None, self.saved_only, self.page, self.limit).unwrap()
+      CommentView::list(&conn, &sort, None, Some(self.user_id), None, self.saved_only, self.page, self.limit)?
     };
 
-    let follows = CommunityFollowerView::for_user(&conn, self.user_id).unwrap();
-    let moderates = CommunityModeratorView::for_user(&conn, self.user_id).unwrap();
+    let follows = CommunityFollowerView::for_user(&conn, self.user_id)?;
+    let moderates = CommunityModeratorView::for_user(&conn, self.user_id)?;
 
     // Return the jwt
-    serde_json::to_string(
-      &GetUserDetailsResponse {
-        op: self.op_type().to_string(),
-        user: user_view,
-        follows: follows,
-        moderates: moderates, 
-        comments: comments,
-        posts: posts,
-      }
+    Ok(
+      serde_json::to_string(
+        &GetUserDetailsResponse {
+          op: self.op_type().to_string(),
+          user: user_view,
+          follows: follows,
+          moderates: moderates, 
+          comments: comments,
+          posts: posts,
+        }
+        )?
       )
-      .unwrap()
   }
 }
 
@@ -2010,15 +2021,15 @@ impl Perform for GetModlog {
     UserOperation::GetModlog
   }
 
-  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
-    let removed_posts = ModRemovePostView::list(&conn, self.community_id, self.mod_user_id, self.page, self.limit).unwrap();
-    let locked_posts = ModLockPostView::list(&conn, self.community_id, self.mod_user_id, self.page, self.limit).unwrap();
-    let removed_comments = ModRemoveCommentView::list(&conn, self.community_id, self.mod_user_id, self.page, self.limit).unwrap();
-    let banned_from_community = ModBanFromCommunityView::list(&conn, self.community_id, self.mod_user_id, self.page, self.limit).unwrap();
-    let added_to_community = ModAddCommunityView::list(&conn, self.community_id, self.mod_user_id, self.page, self.limit).unwrap();
+    let removed_posts = ModRemovePostView::list(&conn, self.community_id, self.mod_user_id, self.page, self.limit)?;
+    let locked_posts = ModLockPostView::list(&conn, self.community_id, self.mod_user_id, self.page, self.limit)?;
+    let removed_comments = ModRemoveCommentView::list(&conn, self.community_id, self.mod_user_id, self.page, self.limit)?;
+    let banned_from_community = ModBanFromCommunityView::list(&conn, self.community_id, self.mod_user_id, self.page, self.limit)?;
+    let added_to_community = ModAddCommunityView::list(&conn, self.community_id, self.mod_user_id, self.page, self.limit)?;
 
     // These arrays are only for the full modlog, when a community isn't given
     let mut removed_communities = Vec::new();
@@ -2026,26 +2037,27 @@ impl Perform for GetModlog {
     let mut added = Vec::new();
 
     if self.community_id.is_none() {
-      removed_communities = ModRemoveCommunityView::list(&conn, self.mod_user_id, self.page, self.limit).unwrap();
-      banned = ModBanView::list(&conn, self.mod_user_id, self.page, self.limit).unwrap();
-      added = ModAddView::list(&conn, self.mod_user_id, self.page, self.limit).unwrap();
+      removed_communities = ModRemoveCommunityView::list(&conn, self.mod_user_id, self.page, self.limit)?;
+      banned = ModBanView::list(&conn, self.mod_user_id, self.page, self.limit)?;
+      added = ModAddView::list(&conn, self.mod_user_id, self.page, self.limit)?;
     }
 
     // Return the jwt
-    serde_json::to_string(
-      &GetModlogResponse {
-        op: self.op_type().to_string(),
-        removed_posts: removed_posts,
-        locked_posts: locked_posts,
-        removed_comments: removed_comments,
-        removed_communities: removed_communities,
-        banned_from_community: banned_from_community,
-        banned: banned,
-        added_to_community: added_to_community,
-        added: added,
-      }
+    Ok(
+      serde_json::to_string(
+        &GetModlogResponse {
+          op: self.op_type().to_string(),
+          removed_posts: removed_posts,
+          locked_posts: locked_posts,
+          removed_comments: removed_comments,
+          removed_communities: removed_communities,
+          banned_from_community: banned_from_community,
+          banned: banned,
+          added_to_community: added_to_community,
+          added: added,
+        }
+        )?
       )
-      .unwrap()
   }
 }
 
@@ -2054,31 +2066,32 @@ impl Perform for GetReplies {
     UserOperation::GetReplies
   }
 
-  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return self.error("Not logged in.");
+        return Err(self.error("Not logged in."))?
       }
     };
 
     let user_id = claims.id;
 
-    let sort = SortType::from_str(&self.sort).expect("listing sort");
+    let sort = SortType::from_str(&self.sort)?;
 
-    let replies = ReplyView::get_replies(&conn, user_id, &sort, self.unread_only, self.page, self.limit).unwrap();
+    let replies = ReplyView::get_replies(&conn, user_id, &sort, self.unread_only, self.page, self.limit)?;
 
     // Return the jwt
-    serde_json::to_string(
-      &GetRepliesResponse {
-        op: self.op_type().to_string(),
-        replies: replies,
-      }
+    Ok(
+      serde_json::to_string(
+        &GetRepliesResponse {
+          op: self.op_type().to_string(),
+          replies: replies,
+        }
+        )?
       )
-      .unwrap()
   }
 }
 
@@ -2087,14 +2100,14 @@ impl Perform for BanFromCommunity {
     UserOperation::BanFromCommunity
   }
 
-  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return self.error("Not logged in.");
+        return Err(self.error("Not logged in."))?
       }
     };
 
@@ -2109,14 +2122,14 @@ impl Perform for BanFromCommunity {
       match CommunityUserBan::ban(&conn, &community_user_ban_form) {
         Ok(user) => user,
         Err(_e) => {
-          return self.error("Community user ban already exists");
+          return Err(self.error("Community user ban already exists"))?
         }
       };
     } else {
       match CommunityUserBan::unban(&conn, &community_user_ban_form) {
         Ok(user) => user,
         Err(_e) => {
-          return self.error("Community user ban already exists");
+          return Err(self.error("Community user ban already exists"))?
         }
       };
     }
@@ -2135,9 +2148,9 @@ impl Perform for BanFromCommunity {
       banned: Some(self.ban),
       expires: expires,
     };
-    ModBanFromCommunity::create(&conn, &form).unwrap();
+    ModBanFromCommunity::create(&conn, &form)?;
 
-    let user_view = UserView::read(&conn, self.user_id).unwrap();
+    let user_view = UserView::read(&conn, self.user_id)?;
 
     let res = serde_json::to_string(
       &BanFromCommunityResponse {
@@ -2146,12 +2159,12 @@ impl Perform for BanFromCommunity {
         banned: self.ban
       }
       )
-      .unwrap();
+      ?;
 
 
-    chat.send_community_message(&conn, self.community_id, &res, addr);
+    chat.send_community_message(&conn, self.community_id, &res, addr)?;
 
-    res
+    Ok(res)
   }
 }
 
@@ -2160,14 +2173,14 @@ impl Perform for AddModToCommunity {
     UserOperation::AddModToCommunity
   }
 
-  fn perform(&self, chat: &mut ChatServer, addr: usize) -> String {
+  fn perform(&self, chat: &mut ChatServer, addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return self.error("Not logged in.");
+        return Err(self.error("Not logged in."))?
       }
     };
 
@@ -2182,14 +2195,14 @@ impl Perform for AddModToCommunity {
       match CommunityModerator::join(&conn, &community_moderator_form) {
         Ok(user) => user,
         Err(_e) => {
-          return self.error("Community moderator already exists.");
+          return Err(self.error("Community moderator already exists."))?
         }
       };
     } else {
       match CommunityModerator::leave(&conn, &community_moderator_form) {
         Ok(user) => user,
         Err(_e) => {
-          return self.error("Community moderator already exists.");
+          return Err(self.error("Community moderator already exists."))?
         }
       };
     }
@@ -2201,9 +2214,9 @@ impl Perform for AddModToCommunity {
       community_id: self.community_id,
       removed: Some(!self.added),
     };
-    ModAddCommunity::create(&conn, &form).unwrap();
+    ModAddCommunity::create(&conn, &form)?;
 
-    let moderators = CommunityModeratorView::for_community(&conn, self.community_id).unwrap();
+    let moderators = CommunityModeratorView::for_community(&conn, self.community_id)?;
 
     let res = serde_json::to_string(
       &AddModToCommunityResponse {
@@ -2211,12 +2224,12 @@ impl Perform for AddModToCommunity {
         moderators: moderators,
       }
       )
-      .unwrap();
+      ?;
 
 
-    chat.send_community_message(&conn, self.community_id, &res, addr);
+    chat.send_community_message(&conn, self.community_id, &res, addr)?;
 
-    res
+    Ok(res)
 
   }
 }
@@ -2226,27 +2239,27 @@ impl Perform for CreateSite {
     UserOperation::CreateSite
   }
 
-  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return self.error("Not logged in.");
+        return Err(self.error("Not logged in."))?
       }
     };
 
     if has_slurs(&self.name) || 
       (self.description.is_some() && has_slurs(&self.description.to_owned().unwrap())) {
-      return self.error("No slurs");
-    }
+        return Err(self.error("No slurs"))?
+      }
 
     let user_id = claims.id;
 
     // Make sure user is an admin
-    if !UserView::read(&conn, user_id).unwrap().admin {
-      return self.error("Not an admin.");
+    if !UserView::read(&conn, user_id)?.admin {
+      return Err(self.error("Not an admin."))?
     }
 
     let site_form = SiteForm {
@@ -2259,19 +2272,20 @@ impl Perform for CreateSite {
     match Site::create(&conn, &site_form) {
       Ok(site) => site,
       Err(_e) => {
-        return self.error("Site exists already");
+        return Err(self.error("Site exists already"))?
       }
     };
 
-    let site_view = SiteView::read(&conn).unwrap();
+    let site_view = SiteView::read(&conn)?;
 
-    serde_json::to_string(
-      &SiteResponse {
-        op: self.op_type().to_string(), 
-        site: site_view,
-      }
+    Ok(
+      serde_json::to_string(
+        &SiteResponse {
+          op: self.op_type().to_string(), 
+          site: site_view,
+        }
+        )?
       )
-      .unwrap()
   }
 }
 
@@ -2280,30 +2294,30 @@ impl Perform for EditSite {
     UserOperation::EditSite
   }
 
-  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return self.error("Not logged in.");
+        return Err(self.error("Not logged in."))?
       }
     };
 
     if has_slurs(&self.name) || 
       (self.description.is_some() && has_slurs(&self.description.to_owned().unwrap())) {
-      return self.error("No slurs");
-    }
+        return Err(self.error("No slurs"))?
+      }
 
     let user_id = claims.id;
 
     // Make sure user is an admin
-    if UserView::read(&conn, user_id).unwrap().admin == false {
-      return self.error("Not an admin.");
+    if UserView::read(&conn, user_id)?.admin == false {
+      return Err(self.error("Not an admin."))?
     }
 
-    let found_site = Site::read(&conn, 1).unwrap();
+    let found_site = Site::read(&conn, 1)?;
 
     let site_form = SiteForm {
       name: self.name.to_owned(),
@@ -2315,19 +2329,20 @@ impl Perform for EditSite {
     match Site::update(&conn, 1, &site_form) {
       Ok(site) => site,
       Err(_e) => {
-        return self.error("Couldn't update site.");
+        return Err(self.error("Couldn't update site."))?
       }
     };
 
-    let site_view = SiteView::read(&conn).unwrap();
+    let site_view = SiteView::read(&conn)?;
 
-    serde_json::to_string(
-      &SiteResponse {
-        op: self.op_type().to_string(), 
-        site: site_view,
-      }
+    Ok(
+      serde_json::to_string(
+        &SiteResponse {
+          op: self.op_type().to_string(), 
+          site: site_view,
+        }
+        )?
       )
-      .unwrap()
   }
 }
 
@@ -2336,28 +2351,29 @@ impl Perform for GetSite {
     UserOperation::GetSite
   }
 
-  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
     // It can return a null site in order to redirect
     let site_view = match Site::read(&conn, 1) {
-      Ok(_site) => Some(SiteView::read(&conn).unwrap()),
+      Ok(_site) => Some(SiteView::read(&conn)?),
       Err(_e) => None
     };
 
-    let admins = UserView::admins(&conn).unwrap();
-    let banned = UserView::banned(&conn).unwrap();
+    let admins = UserView::admins(&conn)?;
+    let banned = UserView::banned(&conn)?;
 
-    serde_json::to_string(
-      &GetSiteResponse {
-        op: self.op_type().to_string(), 
-        site: site_view,
-        admins: admins,
-        banned: banned,
-      }
+    Ok(
+      serde_json::to_string(
+        &GetSiteResponse {
+          op: self.op_type().to_string(), 
+          site: site_view,
+          admins: admins,
+          banned: banned,
+        }
+        )?    
       )
-      .unwrap()
   }
 }
 
@@ -2366,26 +2382,26 @@ impl Perform for AddAdmin {
     UserOperation::AddAdmin
   }
 
-  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return self.error("Not logged in.");
+        return Err(self.error("Not logged in."))?
       }
     };
 
     let user_id = claims.id;
 
     // Make sure user is an admin
-    if UserView::read(&conn, user_id).unwrap().admin == false {
-      return self.error("Not an admin.");
+    if UserView::read(&conn, user_id)?.admin == false {
+      return Err(self.error("Not an admin."))?
     }
 
-    let read_user = User_::read(&conn, self.user_id).unwrap();
-      
+    let read_user = User_::read(&conn, self.user_id)?;
+
     let user_form = UserForm {
       name: read_user.name,
       fedi_name: read_user.fedi_name,
@@ -2400,7 +2416,7 @@ impl Perform for AddAdmin {
     match User_::update(&conn, self.user_id, &user_form) {
       Ok(user) => user,
       Err(_e) => {
-        return self.error("Couldn't update user");
+        return Err(self.error("Couldn't update user"))?
       }
     };
 
@@ -2411,9 +2427,9 @@ impl Perform for AddAdmin {
       removed: Some(!self.added),
     };
 
-    ModAdd::create(&conn, &form).unwrap();
+    ModAdd::create(&conn, &form)?;
 
-    let admins = UserView::admins(&conn).unwrap();
+    let admins = UserView::admins(&conn)?;
 
     let res = serde_json::to_string(
       &AddAdminResponse {
@@ -2421,9 +2437,10 @@ impl Perform for AddAdmin {
         admins: admins,
       }
       )
-      .unwrap();
+      ?;
 
-    res
+
+    Ok(res)
 
   }
 }
@@ -2433,26 +2450,26 @@ impl Perform for BanUser {
     UserOperation::BanUser
   }
 
-  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> String {
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
 
     let conn = establish_connection();
 
     let claims = match Claims::decode(&self.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return self.error("Not logged in.");
+        return Err(self.error("Not logged in."))?
       }
     };
 
     let user_id = claims.id;
 
     // Make sure user is an admin
-    if UserView::read(&conn, user_id).unwrap().admin == false {
-      return self.error("Not an admin.");
+    if UserView::read(&conn, user_id)?.admin == false {
+      return Err(self.error("Not an admin."))?
     }
 
-    let read_user = User_::read(&conn, self.user_id).unwrap();
-      
+    let read_user = User_::read(&conn, self.user_id)?;
+
     let user_form = UserForm {
       name: read_user.name,
       fedi_name: read_user.fedi_name,
@@ -2467,7 +2484,7 @@ impl Perform for BanUser {
     match User_::update(&conn, self.user_id, &user_form) {
       Ok(user) => user,
       Err(_e) => {
-        return self.error("Couldn't update user");
+        return Err(self.error("Couldn't update user"))?
       }
     };
 
@@ -2485,9 +2502,9 @@ impl Perform for BanUser {
       expires: expires,
     };
 
-    ModBan::create(&conn, &form).unwrap();
+    ModBan::create(&conn, &form)?;
 
-    let user_view = UserView::read(&conn, self.user_id).unwrap();
+    let user_view = UserView::read(&conn, self.user_id)?;
 
     let res = serde_json::to_string(
       &BanUserResponse {
@@ -2496,9 +2513,9 @@ impl Perform for BanUser {
         banned: self.ban
       }
       )
-      .unwrap();
+      ?;
 
-    res
+    Ok(res)
 
   }
 }
