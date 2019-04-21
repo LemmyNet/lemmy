@@ -39,7 +39,10 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
       <div>
         {!this.state.showEdit 
           ? this.sidebar()
-          : <CommunityForm community={this.props.community} onEdit={this.handleEditCommunity} onCancel={this.handleEditCancel}/>
+          : <CommunityForm 
+          community={this.props.community} 
+          onEdit={this.handleEditCommunity} 
+          onCancel={this.handleEditCancel} />
         }
       </div>
     )
@@ -206,7 +209,4 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     i.state.showRemoveDialog = false;
     i.setState(i.state);
   }
-
-
-
 }

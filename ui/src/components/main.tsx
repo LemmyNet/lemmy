@@ -1,10 +1,11 @@
-import { Component } from 'inferno';
+import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, CommunityUser, GetFollowedCommunitiesResponse, ListCommunitiesForm, ListCommunitiesResponse, Community, SortType, GetSiteResponse, ListingType } from '../interfaces';
+import { UserOperation, CommunityUser, GetFollowedCommunitiesResponse, ListCommunitiesForm, ListCommunitiesResponse, Community, SortType, GetSiteResponse, ListingType, SiteResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
+import { SiteForm } from './site-form';
 import { msgOp, repoUrl, mdToHtml } from '../utils';
 
 
@@ -16,6 +17,7 @@ interface MainState {
   subscribedCommunities: Array<CommunityUser>;
   trendingCommunities: Array<Community>;
   site: GetSiteResponse;
+  showEditSite: boolean;
   loading: boolean;
 }
 
@@ -40,6 +42,7 @@ export class Main extends Component<MainProps, MainState> {
       admins: [],
       banned: [],
     },
+    showEditSite: false,
     loading: true
   }
 
@@ -68,6 +71,8 @@ export class Main extends Component<MainProps, MainState> {
     }
 
     WebSocketService.Instance.listCommunities(listCommunitiesForm);
+
+    this.handleEditCancel = this.handleEditCancel.bind(this);
   }
 
   componentWillUnmount() {
@@ -87,16 +92,16 @@ export class Main extends Component<MainProps, MainState> {
             <div>
               {this.trendingCommunities()}
               {UserService.Instance.user && this.state.subscribedCommunities.length > 0 && 
-              <div>
-                <h5>Subscribed forums</h5>
-                <ul class="list-inline"> 
-                  {this.state.subscribedCommunities.map(community =>
-                    <li class="list-inline-item"><Link to={`/community/${community.community_id}`}>{community.community_name}</Link></li>
-                  )}
-                </ul>
-              </div>
+                <div>
+                  <h5>Subscribed forums</h5>
+                  <ul class="list-inline"> 
+                    {this.state.subscribedCommunities.map(community =>
+                      <li class="list-inline-item"><Link to={`/community/${community.community_id}`}>{community.community_name}</Link></li>
+                    )}
+                  </ul>
+                </div>
               }
-              {this.landing()}
+              {this.sidebar()}
             </div>
             }
           </div>
@@ -118,17 +123,39 @@ export class Main extends Component<MainProps, MainState> {
     )
   }
 
-  landing() {
+  sidebar() {
     return (
       <div>
-        <h5>{`${this.state.site.site.name}`}</h5>
-        <ul class="my-1 list-inline">
+        {!this.state.showEditSite ?
+          this.siteInfo() :
+          <SiteForm
+            site={this.state.site.site} 
+            onCancel={this.handleEditCancel} 
+          />
+        }
+        {this.landing()}
+      </div>
+    )
+  }
+
+  siteInfo() {
+    return (
+      <div>
+        <h5 class="mb-0">{`${this.state.site.site.name}`}</h5>
+        {this.canAdmin && 
+          <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
+            <li className="list-inline-item">
+              <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>edit</span>
+            </li>
+          </ul>
+        }
+        <ul class="my-2 list-inline">
           <li className="list-inline-item badge badge-light">{this.state.site.site.number_of_users} Users</li>
           <li className="list-inline-item badge badge-light">{this.state.site.site.number_of_posts} Posts</li>
           <li className="list-inline-item badge badge-light">{this.state.site.site.number_of_comments} Comments</li>
           <li className="list-inline-item"><Link className="badge badge-light" to="/modlog">Modlog</Link></li>
         </ul>
-        <ul class="list-inline small"> 
+        <ul class="my-1 list-inline small"> 
           <li class="list-inline-item">admins: </li>
           {this.state.site.admins.map(admin =>
             <li class="list-inline-item"><Link class="text-info" to={`/user/${admin.id}`}>{admin.name}</Link></li>
@@ -141,6 +168,13 @@ export class Main extends Component<MainProps, MainState> {
             <hr />
           </div>
         }
+      </div>
+    )
+  }
+
+  landing() {
+    return (
+      <div>
         <h5>Welcome to 
           <svg class="icon mx-2"><use xlinkHref="#icon-mouse"></use></svg>
           <a href={repoUrl}>Lemmy<sup>Beta</sup></a>
@@ -152,6 +186,20 @@ export class Main extends Component<MainProps, MainState> {
         <p>Made with <a href="https://www.rust-lang.org">Rust</a>, <a href="https://actix.rs/">Actix</a>, <a href="https://www.infernojs.org">Inferno</a>, <a href="https://www.typescriptlang.org/">Typescript</a>.</p>
       </div>
     )
+  }
+
+  get canAdmin(): boolean {
+    return UserService.Instance.user && this.state.site.admins.map(a => a.id).includes(UserService.Instance.user.id);
+  }
+
+  handleEditClick(i: Main) {
+    i.state.showEditSite = true;
+    i.setState(i.state);
+  }
+
+  handleEditCancel() {
+    this.state.showEditSite = false;
+    this.setState(this.state);
   }
 
   parseMessage(msg: any) {
@@ -181,7 +229,12 @@ export class Main extends Component<MainProps, MainState> {
       this.state.site.site = res.site;
       this.state.site.banned = res.banned;
       this.setState(this.state);
-    } 
+    } else if (op == UserOperation.EditSite) {
+      let res: SiteResponse = msg;
+      this.state.site.site = res.site;
+      this.state.showEditSite = false;
+      this.setState(this.state);
+    }
   }
 }
 

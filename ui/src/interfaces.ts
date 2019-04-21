@@ -341,7 +341,7 @@ export interface CommunityForm {
   description?: string,
   category_id: number,
   edit_id?: number;
-  removed: boolean;
+  removed?: boolean;
   reason?: string;
   expires?: number;
   auth?: string;
