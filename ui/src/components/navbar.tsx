@@ -1,6 +1,10 @@
 import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
-import { UserService } from '../services';
+import { Subscription } from "rxjs";
+import { retryWhen, delay, take } from 'rxjs/operators';
+import { WebSocketService, UserService } from '../services';
+import { UserOperation, GetRepliesForm, GetRepliesResponse, SortType } from '../interfaces';
+import { msgOp } from '../utils';
 import { version } from '../version';
 
 interface NavbarState {
@@ -11,7 +15,8 @@ interface NavbarState {
 }
 
 export class Navbar extends Component<any, NavbarState> {
-
+  private wsSub: Subscription;
+  private userSub: Subscription;
   emptyState: NavbarState = {
     isLoggedIn: (UserService.Instance.user !== undefined),
     unreadCount: 0,
@@ -24,18 +29,33 @@ export class Navbar extends Component<any, NavbarState> {
     this.state = this.emptyState;
     this.handleOverviewClick = this.handleOverviewClick.bind(this);
 
+    this.keepFetchingReplies();
+
     // Subscribe to user changes
-    UserService.Instance.sub.subscribe(user => {
+    this.userSub = UserService.Instance.sub.subscribe(user => {
       this.state.isLoggedIn = user.user !== undefined;
       this.state.unreadCount = user.unreadCount;
       this.setState(this.state);
     });
+
+    this.wsSub = WebSocketService.Instance.subject
+    .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
+    .subscribe(
+      (msg) => this.parseMessage(msg),
+        (err) => console.error(err),
+        () => console.log('complete')
+    );
   }
 
   render() {
     return (
       <div>{this.navbar()}</div>
     )
+  }
+
+  componentWillUnmount() {
+    this.wsSub.unsubscribe();
+    this.userSub.unsubscribe();
   }
 
   // TODO class active corresponding to current page
@@ -116,6 +136,38 @@ export class Navbar extends Component<any, NavbarState> {
   expandNavbar(i: Navbar) {
     i.state.expanded = !i.state.expanded;
     i.setState(i.state);
+  }
+
+  parseMessage(msg: any) {
+    let op: UserOperation = msgOp(msg);
+    if (msg.error) {
+      alert(msg.error);
+      return;
+    } else if (op == UserOperation.GetReplies) {
+      let res: GetRepliesResponse = msg;
+      this.sendRepliesCount(res);
+    } 
+  }
+
+  keepFetchingReplies() {
+    this.fetchReplies();
+    setInterval(() => this.fetchReplies(), 30000);
+  }
+
+  fetchReplies() {
+    if (this.state.isLoggedIn) {
+      let repliesForm: GetRepliesForm = {
+        sort: SortType[SortType.New],
+        unread_only: true,
+        page: 1,
+        limit: 9999,
+      };
+      WebSocketService.Instance.getReplies(repliesForm);
+    }
+  }
+
+  sendRepliesCount(res: GetRepliesResponse) {
+    UserService.Instance.sub.next({user: UserService.Instance.user, unreadCount: res.replies.filter(r => !r.read).length});
   }
 }
 
