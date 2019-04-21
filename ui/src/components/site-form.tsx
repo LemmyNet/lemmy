@@ -24,6 +24,12 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
   constructor(props: any, context: any) {
     super(props, context);
     this.state = this.emptyState;
+    if (this.props.site) {
+      this.state.siteForm = {
+        name: this.props.site.name,
+        description: this.props.site.description,
+      }
+    }
   }
 
   componentDidMount() {
