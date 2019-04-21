@@ -25,6 +25,7 @@ table! {
     updated -> Nullable<Timestamp>,
     creator_name -> Varchar,
     community_name -> Varchar,
+    community_removed -> Bool,
     number_of_comments -> BigInt,
     score -> BigInt,
     upvotes -> BigInt,
@@ -54,6 +55,7 @@ pub struct PostView {
   pub updated: Option<chrono::NaiveDateTime>,
   pub creator_name: String,
   pub community_name: String,
+  pub community_removed: bool,
   pub number_of_comments: i64,
   pub score: i64,
   pub upvotes: i64,
@@ -133,13 +135,11 @@ impl PostView {
               .order_by(score.desc())
     };
 
-
-    // TODO make sure community removed isn't fetched either
-
     query = query
       .limit(limit)
       .offset(offset)
-      .filter(removed.eq(false));
+      .filter(removed.eq(false))
+      .filter(community_removed.eq(false));
 
     query.load::<Self>(conn) 
   }
@@ -255,6 +255,7 @@ mod tests {
       removed: false,
       locked: false,
       community_name: community_name.to_owned(),
+      community_removed: false,
       number_of_comments: 0,
       score: 1,
       upvotes: 1,
@@ -280,6 +281,7 @@ mod tests {
       creator_name: user_name.to_owned(),
       community_id: inserted_community.id,
       community_name: community_name.to_owned(),
+      community_removed: false,
       number_of_comments: 0,
       score: 1,
       upvotes: 1,

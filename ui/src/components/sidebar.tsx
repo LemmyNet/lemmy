@@ -1,6 +1,6 @@
 import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
-import { Community, CommunityUser, FollowCommunityForm, CommunityForm as CommunityFormI } from '../interfaces';
+import { Community, CommunityUser, FollowCommunityForm, CommunityForm as CommunityFormI, UserView } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { mdToHtml, getUnixTime } from '../utils';
 import { CommunityForm } from './community-form';
@@ -8,6 +8,7 @@ import { CommunityForm } from './community-form';
 interface SidebarProps {
   community: Community;
   moderators: Array<CommunityUser>;
+  admins: Array<UserView>;
 }
 
 interface SidebarState {
@@ -54,24 +55,29 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
         }
       </h5>
       <Link className="text-muted" to={`/community/${community.id}`}>/f/{community.name}</Link>
-      {community.am_mod && 
-        <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
-          <li className="list-inline-item">
-            <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>edit</span>
-          </li>
-          {this.amCreator && 
+      <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
+        {this.canMod && 
+          <>
             <li className="list-inline-item">
-              {/* <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>delete</span> */}
+              <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>edit</span>
             </li>
-          }
+            {this.amCreator && 
+              <li className="list-inline-item">
+                {/* <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>delete</span> */}
+              </li>
+            }
+          </>
+        }
+        {this.canAdmin &&
           <li className="list-inline-item">
             {!this.props.community.removed ? 
             <span class="pointer" onClick={linkEvent(this, this.handleModRemoveShow)}>remove</span> :
             <span class="pointer" onClick={linkEvent(this, this.handleModRemoveSubmit)}>restore</span>
             }
           </li>
-        </ul>
-      }
+
+        }
+      </ul>
       {this.state.showRemoveDialog && 
         <form onSubmit={linkEvent(this, this.handleModRemoveSubmit)}>
           <div class="form-group row">
@@ -156,10 +162,13 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     return this.props.community.creator_id == UserService.Instance.user.id;
   }
 
-  // private get amMod(): boolean {
-  //   return UserService.Instance.loggedIn && 
-  //     this.props.moderators.map(m => m.user_id).includes(UserService.Instance.user.id);
-  // }
+  get canMod(): boolean {
+    return UserService.Instance.user && this.props.moderators.map(m => m.user_id).includes(UserService.Instance.user.id);
+  }
+
+  get canAdmin(): boolean {
+    return UserService.Instance.user && this.props.admins.map(a => a.id).includes(UserService.Instance.user.id);
+  }
 
   handleDeleteClick() {
   }

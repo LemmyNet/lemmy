@@ -1,7 +1,7 @@
 import { Component } from 'inferno';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community as CommunityI, GetCommunityResponse, CommunityResponse,  CommunityUser} from '../interfaces';
+import { UserOperation, Community as CommunityI, GetCommunityResponse, CommunityResponse,  CommunityUser, UserView } from '../interfaces';
 import { WebSocketService } from '../services';
 import { PostListings } from './post-listings';
 import { Sidebar } from './sidebar';
@@ -11,6 +11,7 @@ interface State {
   community: CommunityI;
   communityId: number;
   moderators: Array<CommunityUser>;
+  admins: Array<UserView>;
   loading: boolean;
 }
 
@@ -29,9 +30,11 @@ export class Community extends Component<any, State> {
       number_of_subscribers: null,
       number_of_posts: null,
       number_of_comments: null,
-      published: null
+      published: null,
+      removed: null,
     },
     moderators: [],
+    admins: [],
     communityId: Number(this.props.match.params.id),
     loading: true
   }
@@ -71,7 +74,11 @@ export class Community extends Component<any, State> {
             <PostListings communityId={this.state.communityId} />
           </div>
           <div class="col-12 col-md-3">
-            <Sidebar community={this.state.community} moderators={this.state.moderators} />
+            <Sidebar 
+              community={this.state.community} 
+              moderators={this.state.moderators} 
+              admins={this.state.admins}
+            />
           </div>
         </div>
         }
@@ -90,6 +97,7 @@ export class Community extends Component<any, State> {
       let res: GetCommunityResponse = msg;
       this.state.community = res.community;
       this.state.moderators = res.moderators;
+      this.state.admins = res.admins;
       this.state.loading = false;
       this.setState(this.state);
     } else if (op == UserOperation.EditCommunity) {

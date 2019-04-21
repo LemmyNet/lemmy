@@ -174,6 +174,14 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     return UserService.Instance.user && this.props.post.creator_id == UserService.Instance.user.id;
   }
 
+  get isMod(): boolean {
+    return this.props.moderators && isMod(this.props.moderators.map(m => m.user_id), this.props.post.creator_id);
+  }
+
+  get isAdmin(): boolean {
+    return this.props.admins && isMod(this.props.admins.map(a => a.id), this.props.post.creator_id);
+  }
+
   get canMod(): boolean {
 
     if (this.props.editable) {
@@ -183,18 +191,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       return canMod(UserService.Instance.user, adminsThenMods, this.props.post.creator_id);
 
     } else return false;
-  }
-
-  get isMod(): boolean {
-    return this.props.moderators && isMod(this.props.moderators.map(m => m.user_id), this.props.post.creator_id);
-  }
-
-  get isAdmin(): boolean {
-    return this.props.admins && isMod(this.props.admins.map(a => a.id), this.props.post.creator_id);
-  }
-
-  get canAdmin(): boolean {
-    return this.props.admins && canMod(UserService.Instance.user, this.props.admins.map(a => a.id), this.props.post.creator_id);
   }
 
   handlePostLike(i: PostListing) {
