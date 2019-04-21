@@ -5,7 +5,7 @@ create or replace function hot_rank(
 returns integer as $$
 begin
   -- hours_diff:=EXTRACT(EPOCH FROM (timezone('utc',now()) - published))/3600
-  return floor(10000*sign(3+score)*log(abs(3+score)) / power(((EXTRACT(EPOCH FROM (timezone('utc',now()) - published))/3600) + 2), 1.8))::integer;
+  return floor(10000*log(greatest(1,score+3)) / power(((EXTRACT(EPOCH FROM (timezone('utc',now()) - published))/3600) + 2), 1.8))::integer;
 end; $$
 LANGUAGE plpgsql;
 
