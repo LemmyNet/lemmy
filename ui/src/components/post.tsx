@@ -130,8 +130,9 @@ export class Post extends Component<any, PostState> {
 
   newComments() {
     return (
-      <div class="sticky-top">
-        <h5>New Comments</h5>
+      <div class="container-fluid sticky-top new-comments">
+        <h5>Chat</h5>
+        <CommentForm postId={this.state.post.id} disabled={this.state.post.locked} />
         {this.state.comments.map(comment => 
           <CommentNodes 
             nodes={[{comment: comment}]} 

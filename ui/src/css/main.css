@@ -87,3 +87,7 @@ blockquote {
   margin-top: 6px;
 }
 
+.new-comments {
+  max-height: 100vh;
+  overflow-y: auto;
+}

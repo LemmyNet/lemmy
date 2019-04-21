@@ -56,7 +56,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
         <form onSubmit={linkEvent(this, this.handleCommentSubmit)}>
           <div class="form-group row">
             <div class="col-sm-12">
-              <textarea class="form-control" value={this.state.commentForm.content} onInput={linkEvent(this, this.handleCommentContentChange)} placeholder="Comment here" required disabled={this.props.disabled}/>
+              <textarea class="form-control" value={this.state.commentForm.content} onInput={linkEvent(this, this.handleCommentContentChange)} required disabled={this.props.disabled} rows={2} />
             </div>
           </div>
           <div class="row">
