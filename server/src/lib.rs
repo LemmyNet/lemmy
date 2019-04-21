@@ -13,6 +13,8 @@ pub extern crate bcrypt;
 pub extern crate regex;
 #[macro_use] pub extern crate strum_macros;
 #[macro_use] pub extern crate lazy_static;
+#[macro_use] extern crate failure;
+
 pub mod schema;
 pub mod apub;
 pub mod actions;
