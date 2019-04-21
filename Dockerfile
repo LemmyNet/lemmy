@@ -32,6 +32,9 @@ COPY server/migrations ./migrations/
 RUN cargo build --frozen --release --bin lemmy
 RUN mv /app/server/target/release/lemmy /app/lemmy
 
+# Get diesel-cli on there just in case
+RUN cargo install diesel_cli --no-default-features --features postgres
+
 # The output image
 # FROM debian:stable-slim
 # RUN apt-get -y update && apt-get install -y postgresql-client
