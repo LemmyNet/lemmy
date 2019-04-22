@@ -87,10 +87,11 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
             <label class="col-form-label">Reason</label>
             <input type="text" class="form-control mr-2" placeholder="Optional" value={this.state.removeReason} onInput={linkEvent(this, this.handleModRemoveReasonChange)} />
           </div>
-          <div class="form-group row">
-            <label class="col-form-label">Expires</label>
-            <input type="date" class="form-control mr-2" placeholder="Expires" value={this.state.removeExpires} onInput={linkEvent(this, this.handleModRemoveExpiresChange)} />
-          </div>
+          {/* TODO hold off on expires for now */}
+          {/* <div class="form-group row"> */}
+          {/*   <label class="col-form-label">Expires</label> */}
+          {/*   <input type="date" class="form-control mr-2" placeholder="Expires" value={this.state.removeExpires} onInput={linkEvent(this, this.handleModRemoveExpiresChange)} /> */}
+          {/* </div> */}
           <div class="form-group row">
             <button type="submit" class="btn btn-secondary">Remove Community</button>
           </div>
