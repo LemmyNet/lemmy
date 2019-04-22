@@ -45,6 +45,10 @@ export class Setup extends Component<any, State> {
     this.subscription.unsubscribe();
   }
 
+  componentDidMount() {
+    document.title = "Setup - Lemmy";
+  }
+
   render() {
     return (
       <div class="container">

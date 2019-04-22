@@ -294,6 +294,7 @@ export class User extends Component<any, UserState> {
       this.state.follows = res.follows;
       this.state.moderates = res.moderates;
       this.state.posts = res.posts;
+      document.title = `/u/${this.state.user.name} - Lemmy`;
       this.setState(this.state);
     } 
   }

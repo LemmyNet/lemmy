@@ -48,6 +48,10 @@ export class Login extends Component<any, State> {
     this.subscription.unsubscribe();
   }
 
+  componentDidMount() {
+    document.title = "Login - Lemmy";
+  }
+
   render() {
     return (
       <div class="container">

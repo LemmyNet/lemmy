@@ -14,6 +14,10 @@ export class Home extends Component<any, any> {
     )
   }
 
+  componentDidMount() {
+    document.title = "Lemmy";
+  }
+
   listType(): ListingType { 
     return (this.props.match.path == '/all') ? ListingType.All : ListingType.Subscribed;
   }

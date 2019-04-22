@@ -99,6 +99,7 @@ export class Community extends Component<any, State> {
       this.state.moderators = res.moderators;
       this.state.admins = res.admins;
       this.state.loading = false;
+      document.title = `/f/${this.state.community.name} - Lemmy`;
       this.setState(this.state);
     } else if (op == UserOperation.EditCommunity) {
       let res: CommunityResponse = msg;

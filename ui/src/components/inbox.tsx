@@ -48,6 +48,10 @@ export class Inbox extends Component<any, InboxState> {
     this.subscription.unsubscribe();
   }
 
+  componentDidMount() {
+    document.title = `/u/${UserService.Instance.user.username} Inbox - Lemmy`;
+  }
+
   render() {
     let user = UserService.Instance.user;
     return (

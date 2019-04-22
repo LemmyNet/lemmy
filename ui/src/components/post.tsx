@@ -232,6 +232,7 @@ export class Post extends Component<any, PostState> {
       this.state.moderators = res.moderators;
       this.state.admins = res.admins;
       this.state.loading = false;
+      document.title = `${this.state.post.name} - Lemmy`;
       this.setState(this.state);
     } else if (op == UserOperation.CreateComment) {
       let res: CommentResponse = msg;

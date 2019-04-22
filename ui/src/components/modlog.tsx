@@ -44,6 +44,10 @@ export class Modlog extends Component<any, ModlogState> {
     this.subscription.unsubscribe();
   }
 
+  componentDidMount() {
+    document.title = "Modlog - Lemmy";
+  }
+
   setCombined(res: GetModlogResponse) {
     let removed_posts = addTypeInfo(res.removed_posts, "removed_posts");
     let locked_posts = addTypeInfo(res.locked_posts, "locked_posts");
