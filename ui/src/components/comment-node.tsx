@@ -178,10 +178,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               <label class="col-form-label">Reason</label>
               <input type="text" class="form-control mr-2" placeholder="Optional" value={this.state.banReason} onInput={linkEvent(this, this.handleModBanReasonChange)} />
             </div>
-            <div class="form-group row">
-              <label class="col-form-label">Expires</label>
-              <input type="date" class="form-control mr-2" placeholder="Expires" value={this.state.banExpires} onInput={linkEvent(this, this.handleModBanExpiresChange)} />
-            </div>
+            {/* TODO hold off on expires until later */}
+            {/* <div class="form-group row"> */}
+            {/*   <label class="col-form-label">Expires</label> */}
+            {/*   <input type="date" class="form-control mr-2" placeholder="Expires" value={this.state.banExpires} onInput={linkEvent(this, this.handleModBanExpiresChange)} /> */}
+            {/* </div> */}
             <div class="form-group row">
               <button type="submit" class="btn btn-secondary">Ban {this.props.node.comment.creator_name}</button>
             </div>
