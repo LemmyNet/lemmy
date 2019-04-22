@@ -8,6 +8,10 @@ export class CreatePost extends Component<any, any> {
     this.handlePostCreate = this.handlePostCreate.bind(this);
   }
 
+  componentDidMount() {
+    document.title = "Create Post - Lemmy";
+  }
+
   render() {
     return (
       <div class="container">

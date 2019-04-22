@@ -8,6 +8,10 @@ export class CreateCommunity extends Component<any, any> {
     this.handleCommunityCreate = this.handleCommunityCreate.bind(this);
   }
 
+  componentDidMount() {
+    document.title = "Create Forum - Lemmy";
+  }
+
   render() {
     return (
       <div class="container">
