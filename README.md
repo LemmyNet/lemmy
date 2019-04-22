@@ -20,23 +20,23 @@ Front Page|Post
 ![main screen](https://i.imgur.com/y64BtXC.png)|![chat screen](https://i.imgur.com/vsOr87q.png)
 
 ## Features
+- Open source, [AGPL License](/LICENSE).
 - Self hostable, easy to deploy.
-  - Comes with docker.
-- Open source.
+  - Comes with [docker](#docker).
 - Live-updating Comment threads.
-- Clean, minimal interface.
-  - Mobile-friendly.
 - Full vote scores `(+/-)` like old reddit.
-- Full moderation.
-  - Both site admins, and community moderators.
-  - Can lock, remove, and restore posts.
-  - Can remove and restore comments.
+- Moderation abilities.
+  - Public Moderation Logs.
+  - Both site admins, and community moderators, who can appoint other moderators.
+  - Can lock, remove, and restore posts and comments.
+  - Can ban and unban users from communities and the site.
+- Clean, mobile-friendly interface.
 - High performance.
   - Server is written in rust.
   - Front end is `~80kB` gzipped.
 
 ## About
-[Lemmy](https://github.com/dessalines/lemmy) is similar to sites like [Reddit](https://reddit.com), [lobste.rs](https://lobste.rs), [Raddle](https://raddle.me), or [Hacker News](https://news.ycombinator.com/): you subscribe to forums you're interested in, post links and discussions, then vote, and comment on them. Behind the scenes, it is very different; anyone can easily run a server, and all these servers are federated (think email), and connected to the same universe, called the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
+[Lemmy](https://github.com/dessalines/lemmy) is similar to sites like [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), [Raddle](https://raddle.me), or [Hacker News](https://news.ycombinator.com/): you subscribe to forums you're interested in, post links and discussions, then vote, and comment on them. Behind the scenes, it is very different; anyone can easily run a server, and all these servers are federated (think email), and connected to the same universe, called the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
 
 For a link aggregator, this means a user registered on one server can subscribe to forums on any other server, and can have discussions with users registered elsewhere.
 
