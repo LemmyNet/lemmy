@@ -6,13 +6,17 @@
 [![GitHub issues](https://img.shields.io/github/issues-raw/dessalines/lemmy.svg)](https://github.com/dessalines/lemmy/issues)
 ![GitHub repo size](https://img.shields.io/github/repo-size/dessalines/lemmy.svg)
 [![Matrix](https://img.shields.io/matrix/rust-reddit-fediverse:matrix.org.svg?label=matrix-chat)](https://riot.im/app/#/room/#rust-reddit-fediverse:matrix.org)
+[![Patreon](https://img.shields.io/badge/-Support%20on%20Patreon-blueviolet.svg)](https://www.patreon.com/dessalines)
 [![License](https://img.shields.io/github/license/dessalines/lemmy.svg)](LICENSE)
 
 A link aggregator / reddit clone for the fediverse.
 
 [Lemmy Dev instance](https://dev.lemmy.ml) *for testing purposes only*
 
-This is a **very early beta version**, and a lot of features are currently broken or missing.
+This is a **very early beta version**, and a lot of features are currently broken or in active development, such as federation.
+
+![main screen](https://i.imgur.com/y64BtXC.png)
+![chat screen](https://i.imgur.com/vsOr87q.png)
 
 ## Features
 - Self hostable, easy to deploy.
@@ -31,14 +35,20 @@ This is a **very early beta version**, and a lot of features are currently broke
   - Front end is `~80kB` gzipped.
 
 ## About
-Lemmy is similar to sites like Reddit, lobste.rs, Raddle, or Hacker News. Behind the scenes, it is very different; It allows anyone to run a server (instance), and all instances are federated, and similar to Mastodon, connected to the same universe. For a link aggregator, this means a user registered on one server can subscribe to forums on any other Lemmy instance, and can have discussions with users registered on any number of instances.
+[Lemmy](https://github.com/dessalines/lemmy) is similar to sites like [Reddit](https://reddit.com), [lobste.rs](https://lobste.rs), [Raddle](https://raddle.me), or [Hacker News](https://news.ycombinator.com/): you subscribe to forums you're interested in, post links and discussions, then vote, and comment on them. Behind the scenes, it is very different; anyone can easily run a server, and all these servers are federated (think email), and connected to the same universe, called the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
+
+For a link aggregator, this means a user registered on one server can subscribe to forums on any other server, and can have discussions with users registered elsewhere.
+
+The overall goal is to create an easily self-hostable, decentralized alternative to reddit and other link aggregators, outside of their corporate control and meddling.
+
+Each lemmy server can set its own moderation policy; appointing site-wide admins, and community moderators to keep out the trolls, and foster a healthy, non-toxic environment where all can feel comfortable contributing.
 
 ## Why's it called Lemmy?
 - Lead singer from [motorhead](https://invidio.us/watch?v=pWB5JZRGl0U).
 - The old school [video game](https://en.wikipedia.org/wiki/Lemmings_(video_game)).
 - The [furry rodents](http://sunchild.fpwc.org/lemming-the-little-giant-of-the-north/).
 
-Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Inferno](https://www.infernojs.org), [Typescript](https://www.typescriptlang.org/) and [Diesel](http://diesel.rs/)
+Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Inferno](https://www.infernojs.org), [Typescript](https://www.typescriptlang.org/) and [Diesel](http://diesel.rs/).
 
 ## Install
 ### Docker
@@ -77,7 +87,7 @@ and goto http://localhost:8536
 
 ## Support
 Support the development, and help cover hosting costs.
-- Patreon
+- [Patreon](https://www.patreon.com/dessalines)
 - bitcoin: `bc1queu73nwuheqtsp65nyh5hf4jr533r8rr5nsj75`
 - ethereum: `0x400c96c96acbC6E7B3B43B1dc1BB446540a88A01`
 
