@@ -2,7 +2,7 @@ import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Post, Comment, CommunityUser, GetUserDetailsForm, SortType, UserDetailsResponse, UserView } from '../interfaces';
+import { UserOperation, Post, Comment, CommunityUser, GetUserDetailsForm, SortType, UserDetailsResponse, UserView, CommentResponse } from '../interfaces';
 import { WebSocketService } from '../services';
 import { msgOp, fetchLimit } from '../utils';
 import { PostListing } from './post-listing';
@@ -148,7 +148,7 @@ export class User extends Component<any, UserState> {
           <div>
             {i.type_ == "posts"
               ? <PostListing post={i.data as Post} showCommunity viewOnly />
-              : <CommentNodes nodes={[{comment: i.data as Comment}]} noIndent viewOnly />
+              : <CommentNodes nodes={[{comment: i.data as Comment}]} noIndent />
             }
           </div>
                      )
@@ -296,7 +296,38 @@ export class User extends Component<any, UserState> {
       this.state.posts = res.posts;
       document.title = `/u/${this.state.user.name} - Lemmy`;
       this.setState(this.state);
-    } 
+    } else if (op == UserOperation.EditComment) {
+      let res: CommentResponse = msg;
+
+      let found = this.state.comments.find(c => c.id == res.comment.id);
+      found.content = res.comment.content;
+      found.updated = res.comment.updated;
+      found.removed = res.comment.removed;
+      found.upvotes = res.comment.upvotes;
+      found.downvotes = res.comment.downvotes;
+      found.score = res.comment.score;
+
+      this.setState(this.state);
+    } else if (op == UserOperation.CreateComment) {
+      // let res: CommentResponse = msg;
+      alert('Reply sent');
+      // this.state.comments.unshift(res.comment); // TODO do this right
+      // this.setState(this.state);
+    } else if (op == UserOperation.SaveComment) {
+      let res: CommentResponse = msg;
+      let found = this.state.comments.find(c => c.id == res.comment.id);
+      found.saved = res.comment.saved;
+      this.setState(this.state);
+    } else if (op == UserOperation.CreateCommentLike) {
+      let res: CommentResponse = msg;
+      let found: Comment = this.state.comments.find(c => c.id === res.comment.id);
+      found.score = res.comment.score;
+      found.upvotes = res.comment.upvotes;
+      found.downvotes = res.comment.downvotes;
+      if (res.comment.my_vote !== null) 
+        found.my_vote = res.comment.my_vote;
+      this.setState(this.state);
+    }
   }
 }
 

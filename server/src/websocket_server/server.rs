@@ -1311,14 +1311,17 @@ impl Perform for EditComment {
       return Err(self.error("Not allowed to edit comment."))?
     }
 
-    // Check for a community ban
-    if CommunityUserBanView::get(&conn, user_id, orig_comment.community_id).is_ok() {
-      return Err(self.error("You have been banned from this community"))?
-    }
+    // You are allowed to mark the comment as read even if you're banned.
+    if self.read.is_none() {
+      // Check for a community ban
+      if CommunityUserBanView::get(&conn, user_id, orig_comment.community_id).is_ok() {
+        return Err(self.error("You have been banned from this community"))?
+      }
 
-    // Check for a site ban
-    if UserView::read(&conn, user_id)?.banned {
-      return Err(self.error("You have been banned from the site"))?
+      // Check for a site ban
+      if UserView::read(&conn, user_id)?.banned {
+        return Err(self.error("You have been banned from the site"))?
+      }
     }
 
     let content_slurs_removed = remove_slurs(&self.content.to_owned());

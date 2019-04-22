@@ -94,7 +94,7 @@ export class Inbox extends Component<any, InboxState> {
     return (
       <div>
         {this.state.replies.map(reply => 
-          <CommentNodes nodes={[{comment: reply}]} noIndent viewOnly markable />
+          <CommentNodes nodes={[{comment: reply}]} noIndent markable />
         )}
       </div>
     );
@@ -161,6 +161,14 @@ export class Inbox extends Component<any, InboxState> {
     } else if (op == UserOperation.EditComment) {
       let res: CommentResponse = msg;
 
+      let found = this.state.replies.find(c => c.id == res.comment.id);
+      found.content = res.comment.content;
+      found.updated = res.comment.updated;
+      found.removed = res.comment.removed;
+      found.upvotes = res.comment.upvotes;
+      found.downvotes = res.comment.downvotes;
+      found.score = res.comment.score;
+
       // If youre in the unread view, just remove it from the list
       if (this.state.unreadType == UnreadType.Unread && res.comment.read) {
         this.state.replies = this.state.replies.filter(r => r.id !== res.comment.id);
@@ -168,8 +176,27 @@ export class Inbox extends Component<any, InboxState> {
         let found = this.state.replies.find(c => c.id == res.comment.id);
         found.read = res.comment.read;
       }
-
       this.sendRepliesCount();
+
+      this.setState(this.state);
+    } else if (op == UserOperation.CreateComment) {
+      // let res: CommentResponse = msg;
+      alert('Reply sent');
+      // this.state.replies.unshift(res.comment); // TODO do this right
+      // this.setState(this.state);
+    } else if (op == UserOperation.SaveComment) {
+      let res: CommentResponse = msg;
+      let found = this.state.replies.find(c => c.id == res.comment.id);
+      found.saved = res.comment.saved;
+      this.setState(this.state);
+    } else if (op == UserOperation.CreateCommentLike) {
+      let res: CommentResponse = msg;
+      let found: Comment = this.state.replies.find(c => c.id === res.comment.id);
+      found.score = res.comment.score;
+      found.upvotes = res.comment.upvotes;
+      found.downvotes = res.comment.downvotes;
+      if (res.comment.my_vote !== null) 
+        found.my_vote = res.comment.my_vote;
       this.setState(this.state);
     }
   }

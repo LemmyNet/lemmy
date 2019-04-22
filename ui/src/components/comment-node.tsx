@@ -220,10 +220,15 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   get canMod(): boolean {
-    let adminsThenMods = this.props.admins.map(a => a.id)
-    .concat(this.props.moderators.map(m => m.user_id));
 
-    return canMod(UserService.Instance.user, adminsThenMods, this.props.node.comment.creator_id);
+    if (this.props.admins && this.props.moderators) {
+      let adminsThenMods = this.props.admins.map(a => a.id)
+      .concat(this.props.moderators.map(m => m.user_id));
+
+      return canMod(UserService.Instance.user, adminsThenMods, this.props.node.comment.creator_id);
+      } else { 
+      return false;
+    }
   }
 
   get canAdmin(): boolean {
