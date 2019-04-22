@@ -89,5 +89,9 @@ blockquote {
 
 .new-comments {
   max-height: 100vh;
+  overflow: hidden;
+}
+
+.new-comments:hover {
   overflow-y: auto;
 }
