@@ -12,7 +12,7 @@ use std::str::FromStr;
 use diesel::PgConnection;
 use failure::Error;
 
-use {Crud, Joinable, Likeable, Followable, Bannable, Saveable, establish_connection, naive_now, naive_from_unix, SortType, has_slurs, remove_slurs};
+use {Crud, Joinable, Likeable, Followable, Bannable, Saveable, establish_connection, naive_now, naive_from_unix, SortType, SearchType, has_slurs, remove_slurs};
 use actions::community::*;
 use actions::user::*;
 use actions::post::*;
@@ -27,7 +27,7 @@ use actions::moderator::*;
 
 #[derive(EnumString,ToString,Debug)]
 pub enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetReplies, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetReplies, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser, Search
 }
 
 #[derive(Fail, Debug)]
@@ -458,6 +458,23 @@ pub struct GetRepliesResponse {
   replies: Vec<ReplyView>,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct Search {
+  q: String,
+  type_: String,
+  community_id: Option<i32>,
+  sort: String,
+  page: Option<i64>,
+  limit: Option<i64>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SearchResponse {
+  op: String,
+  comments: Vec<CommentView>,
+  posts: Vec<PostView>,
+}
+
 /// `ChatServer` manages chat rooms and responsible for coordinating chat
 /// session. implementation is super primitive
 pub struct ChatServer {
@@ -500,6 +517,7 @@ impl ChatServer {
                                Some(community_id), 
                                None,
                                None, 
+                               None,
                                false,
                                false,
                                None,
@@ -702,6 +720,10 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
     UserOperation::GetReplies => {
       let get_replies: GetReplies = serde_json::from_str(data)?;
       get_replies.perform(chat, msg.id)
+    },
+    UserOperation::Search => {
+      let search: Search = serde_json::from_str(data)?;
+      search.perform(chat, msg.id)
     },
   }
 }
@@ -1106,7 +1128,7 @@ impl Perform for GetPost {
 
     chat.rooms.get_mut(&self.id).unwrap().insert(addr);
 
-    let comments = CommentView::list(&conn, &SortType::New, Some(self.id), None, user_id, false, None, Some(9999))?;
+    let comments = CommentView::list(&conn, &SortType::New, Some(self.id), None, None, user_id, false, None, Some(9999))?;
 
     let community = CommunityView::read(&conn, post_view.community_id, user_id)?;
 
@@ -1537,7 +1559,17 @@ impl Perform for GetPosts {
     let type_ = PostListingType::from_str(&self.type_)?;
     let sort = SortType::from_str(&self.sort)?;
 
-    let posts = match PostView::list(&conn, type_, &sort, self.community_id, None, user_id, false, false, self.page, self.limit) {
+    let posts = match PostView::list(&conn, 
+                                     type_, 
+                                     &sort, 
+                                     self.community_id, 
+                                     None,
+                                     None,
+                                     user_id, 
+                                     false, 
+                                     false, 
+                                     self.page, 
+                                     self.limit) {
       Ok(posts) => posts,
       Err(_e) => {
         return Err(self.error("Couldn't get posts"))?
@@ -2006,15 +2038,52 @@ impl Perform for GetUserDetails {
     let sort = SortType::from_str(&self.sort)?;
 
     let user_view = UserView::read(&conn, self.user_id)?;
+    // If its saved only, you don't care what creator it was
     let posts = if self.saved_only {
-      PostView::list(&conn, PostListingType::All, &sort, self.community_id, None, Some(self.user_id), self.saved_only, false, self.page, self.limit)?
+      PostView::list(&conn, 
+                     PostListingType::All, 
+                     &sort, 
+                     self.community_id, 
+                     None, 
+                     None,
+                     Some(self.user_id), 
+                     self.saved_only, 
+                     false, 
+                     self.page, 
+                     self.limit)?
     } else {
-      PostView::list(&conn, PostListingType::All, &sort, self.community_id, Some(self.user_id), None, self.saved_only, false, self.page, self.limit)?
+      PostView::list(&conn, 
+                     PostListingType::All, 
+                     &sort, 
+                     self.community_id, 
+                     Some(self.user_id), 
+                     None, 
+                     None, 
+                     self.saved_only, 
+                     false, 
+                     self.page, 
+                     self.limit)?
     };
     let comments = if self.saved_only {
-      CommentView::list(&conn, &sort, None, None, Some(self.user_id), self.saved_only, self.page, self.limit)?
+      CommentView::list(&conn, 
+                        &sort, 
+                        None, 
+                        None, 
+                        None, 
+                        Some(self.user_id), 
+                        self.saved_only, 
+                        self.page, 
+                        self.limit)?
     } else {
-      CommentView::list(&conn, &sort, None, Some(self.user_id), None, self.saved_only, self.page, self.limit)?
+      CommentView::list(&conn, 
+                        &sort, 
+                        None, 
+                        Some(self.user_id), 
+                        None, 
+                        None, 
+                        self.saved_only, 
+                        self.page, 
+                        self.limit)?
     };
 
     let follows = CommunityFollowerView::for_user(&conn, self.user_id)?;
@@ -2537,5 +2606,83 @@ impl Perform for BanUser {
 
     Ok(res)
 
+  }
+}
+
+impl Perform for Search {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::Search
+  }
+
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
+
+    let conn = establish_connection();
+
+    let sort = SortType::from_str(&self.sort)?;
+    let type_ = SearchType::from_str(&self.type_)?;
+
+    let mut posts = Vec::new();
+    let mut comments = Vec::new();
+
+    match type_ {
+      SearchType::Posts => {
+        posts = PostView::list(&conn, 
+                               PostListingType::All, 
+                               &sort, 
+                               self.community_id, 
+                               None,
+                               Some(self.q.to_owned()),
+                               None, 
+                               false, 
+                               false, 
+                               self.page, 
+                               self.limit)?;
+      },
+      SearchType::Comments => {
+        comments = CommentView::list(&conn, 
+                                   &sort, 
+                                     None, 
+                                     None, 
+                                     Some(self.q.to_owned()),
+                                     None,
+                                     false, 
+                                     self.page,
+                                     self.limit)?;
+      }, 
+      SearchType::Both => {
+        posts = PostView::list(&conn, 
+                               PostListingType::All, 
+                               &sort, 
+                               self.community_id, 
+                               None,
+                               Some(self.q.to_owned()),
+                               None, 
+                               false, 
+                               false, 
+                               self.page, 
+                               self.limit)?;
+        comments = CommentView::list(&conn, 
+                                   &sort, 
+                                     None, 
+                                     None, 
+                                     Some(self.q.to_owned()),
+                                     None,
+                                     false, 
+                                     self.page,
+                                     self.limit)?;
+      }
+    };
+
+
+    // Return the jwt
+    Ok(
+      serde_json::to_string(
+        &SearchResponse {
+          op: self.op_type().to_string(),
+          comments: comments,
+          posts: posts,
+        }
+        )?
+      )
   }
 }

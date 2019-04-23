@@ -97,6 +97,11 @@ pub enum SortType {
   Hot, New, TopDay, TopWeek, TopMonth, TopYear, TopAll
 }
 
+#[derive(EnumString,ToString,Debug, Serialize, Deserialize)]
+pub enum SearchType {
+  Both, Comments, Posts
+}
+
 pub fn to_datetime_utc(ndt: NaiveDateTime) -> DateTime<Utc> {
   DateTime::<Utc>::from_utc(ndt, Utc)
 }
@@ -121,6 +126,11 @@ pub fn has_slurs(test: &str) -> bool {
   SLUR_REGEX.is_match(test)
 }
 
+pub fn fuzzy_search(q: &str) -> String {
+  let replaced = q.replace(" ", "%");
+  format!("%{}%", replaced)
+}
+
 pub fn limit_and_offset(page: Option<i64>, limit: Option<i64>) -> (i64, i64) {
     let page = page.unwrap_or(1);
     let limit = limit.unwrap_or(10);
@@ -130,7 +140,7 @@ pub fn limit_and_offset(page: Option<i64>, limit: Option<i64>) -> (i64, i64) {
 
 #[cfg(test)]
 mod tests {
-  use {Settings, is_email_regex, remove_slurs, has_slurs};
+  use {Settings, is_email_regex, remove_slurs, has_slurs, fuzzy_search};
   #[test]
   fn test_api() {
     assert_eq!(Settings::get().api_endpoint(), "http://0.0.0.0/api/v1");
@@ -148,7 +158,13 @@ mod tests {
     assert!(has_slurs(&test));
     assert!(!has_slurs(slur_free));
   } 
+
+  #[test] fn test_fuzzy_search() {
+    let test = "This is a fuzzy search";
+    assert_eq!(fuzzy_search(test), "%This%is%a%fuzzy%search%".to_string());
+  }
 }
+
 
 
 lazy_static! {

@@ -1,5 +1,5 @@
 import { wsUri } from '../env';
-import { LoginForm, RegisterForm, UserOperation, CommunityForm, PostForm, SavePostForm, CommentForm, SaveCommentForm, CommentLikeForm, GetPostsForm, CreatePostLikeForm, FollowCommunityForm, GetUserDetailsForm, ListCommunitiesForm, GetModlogForm, BanFromCommunityForm, AddModToCommunityForm, AddAdminForm, BanUserForm, SiteForm, Site, UserView, GetRepliesForm } from '../interfaces';
+import { LoginForm, RegisterForm, UserOperation, CommunityForm, PostForm, SavePostForm, CommentForm, SaveCommentForm, CommentLikeForm, GetPostsForm, CreatePostLikeForm, FollowCommunityForm, GetUserDetailsForm, ListCommunitiesForm, GetModlogForm, BanFromCommunityForm, AddModToCommunityForm, AddAdminForm, BanUserForm, SiteForm, Site, UserView, GetRepliesForm, SearchForm } from '../interfaces';
 import { webSocket } from 'rxjs/webSocket';
 import { Subject } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
@@ -163,8 +163,13 @@ export class WebSocketService {
     this.setAuth(siteForm);
     this.subject.next(this.wsSendWrapper(UserOperation.EditSite, siteForm));
   }
+
   public getSite() {
     this.subject.next(this.wsSendWrapper(UserOperation.GetSite, {}));
+  }
+
+  public search(form: SearchForm) {
+    this.subject.next(this.wsSendWrapper(UserOperation.Search, form));
   }
 
   private wsSendWrapper(op: UserOperation, data: any) {

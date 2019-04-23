@@ -1,5 +1,5 @@
 export enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetReplies, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetReplies, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser, Search
 }
 
 export enum CommentSortType {
@@ -12,6 +12,10 @@ export enum ListingType {
 
 export enum SortType {
   Hot, New, TopDay, TopWeek, TopMonth, TopYear, TopAll
+}
+
+export enum SearchType {
+  Both, Comments, Posts
 }
 
 export interface User {
@@ -516,4 +520,19 @@ export interface AddAdminForm {
 export interface AddAdminResponse {
   op: string;
   admins: Array<UserView>;
+}
+
+export interface SearchForm {
+  q: string;
+  type_: string;
+  community_id?: number;
+  sort: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface SearchResponse {
+  op: string;
+  posts?: Array<Post>;
+  comments?: Array<Comment>;
 }
