@@ -76,7 +76,7 @@ export class Navbar extends Component<any, NavbarState> {
               <Link class="nav-link" to="/communities">Forums</Link>
             </li>
             <li class="nav-item">
-              <Link class="nav-link" to="/modlog">Modlog</Link>
+              <Link class="nav-link" to="/search">Search</Link>
             </li>
             <li class="nav-item">
               <Link class="nav-link" to="/create_post">Create Post</Link>

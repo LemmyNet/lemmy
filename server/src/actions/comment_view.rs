@@ -3,7 +3,7 @@ use diesel::*;
 use diesel::result::Error;
 use diesel::dsl::*;
 use serde::{Deserialize, Serialize};
-use { SortType, limit_and_offset };
+use { SortType, limit_and_offset, fuzzy_search };
 
 // The faked schema since diesel doesn't do views
 table! {
@@ -60,6 +60,7 @@ impl CommentView {
               sort: &SortType, 
               for_post_id: Option<i32>, 
               for_creator_id: Option<i32>, 
+              search_term: Option<String>,
               my_user_id: Option<i32>, 
               saved_only: bool,
               page: Option<i64>,
@@ -85,6 +86,10 @@ impl CommentView {
 
     if let Some(for_post_id) = for_post_id {
       query = query.filter(post_id.eq(for_post_id));
+    };
+
+    if let Some(search_term) = search_term {
+      query = query.filter(content.ilike(fuzzy_search(&search_term)));
     };
     
     if saved_only {
@@ -353,8 +358,26 @@ mod tests {
       saved: None,
     };
 
-    let read_comment_views_no_user = CommentView::list(&conn, &SortType::New, Some(inserted_post.id), None, None, false, None, None).unwrap();
-    let read_comment_views_with_user = CommentView::list(&conn, &SortType::New, Some(inserted_post.id), None, Some(inserted_user.id), false, None, None).unwrap();
+    let read_comment_views_no_user = CommentView::list(
+      &conn, 
+      &SortType::New, 
+      Some(inserted_post.id), 
+      None, 
+      None, 
+      None,
+      false, 
+      None, 
+      None).unwrap();
+    let read_comment_views_with_user = CommentView::list(
+      &conn, 
+      &SortType::New, 
+      Some(inserted_post.id), 
+      None, 
+      None,
+      Some(inserted_user.id), 
+      false, 
+      None, 
+      None).unwrap();
     let like_removed = CommentLike::remove(&conn, &comment_like_form).unwrap();
     let num_deleted = Comment::delete(&conn, inserted_comment.id).unwrap();
     Post::delete(&conn, inserted_post.id).unwrap();

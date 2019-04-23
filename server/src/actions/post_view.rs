@@ -3,7 +3,7 @@ use diesel::*;
 use diesel::result::Error;
 use diesel::dsl::*;
 use serde::{Deserialize, Serialize};
-use { SortType, limit_and_offset };
+use { SortType, limit_and_offset, fuzzy_search };
 
 #[derive(EnumString,ToString,Debug, Serialize, Deserialize)]
 pub enum PostListingType {
@@ -74,6 +74,7 @@ impl PostView {
               sort: &SortType, 
               for_community_id: Option<i32>, 
               for_creator_id: Option<i32>, 
+              search_term: Option<String>,
               my_user_id: Option<i32>, 
               saved_only: bool,
               unread_only: bool,
@@ -92,6 +93,10 @@ impl PostView {
 
     if let Some(for_creator_id) = for_creator_id {
       query = query.filter(creator_id.eq(for_creator_id));
+    };
+
+    if let Some(search_term) = search_term {
+      query = query.filter(name.ilike(fuzzy_search(&search_term)));
     };
 
     // TODO these are wrong, bc they'll only show saved for your logged in user, not theirs
@@ -295,8 +300,27 @@ mod tests {
     };
 
 
-    let read_post_listings_with_user = PostView::list(&conn, PostListingType::Community, &SortType::New, Some(inserted_community.id), None, Some(inserted_user.id), false, false, None, None).unwrap();
-    let read_post_listings_no_user = PostView::list(&conn, PostListingType::Community, &SortType::New, Some(inserted_community.id), None, None, false, false, None, None).unwrap();
+    let read_post_listings_with_user = PostView::list(&conn, 
+                                                      PostListingType::Community, 
+                                                      &SortType::New, Some(inserted_community.id), 
+                                                      None, 
+                                                      None,
+                                                      Some(inserted_user.id), 
+                                                      false, 
+                                                      false, 
+                                                      None, 
+                                                      None).unwrap();
+    let read_post_listings_no_user = PostView::list(&conn, 
+                                                    PostListingType::Community, 
+                                                    &SortType::New, 
+                                                    Some(inserted_community.id), 
+                                                    None, 
+                                                    None, 
+                                                    None,
+                                                    false, 
+                                                    false, 
+                                                    None, 
+                                                    None).unwrap();
     let read_post_listing_no_user = PostView::read(&conn, inserted_post.id, None).unwrap();
     let read_post_listing_with_user = PostView::read(&conn, inserted_post.id, Some(inserted_user.id)).unwrap();
 
