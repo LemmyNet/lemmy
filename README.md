@@ -87,8 +87,9 @@ and goto http://localhost:8536
 - [Ranking Algorithm](docs/ranking.md)
 
 ## Support
-Support the development, and help cover hosting costs.
-- [Patreon](https://www.patreon.com/dessalines)
+Lemmy is free, open-source software, meaning no advertising, monetizing, or venture capital, ever. Your donations directly support full-time development of the project.
+- [Support on Patreon](https://www.patreon.com/dessalines).
+- [Sponsor List](https://dev.lemmy.ml/#/sponsors).
 - bitcoin: `bc1queu73nwuheqtsp65nyh5hf4jr533r8rr5nsj75`
 - ethereum: `0x400c96c96acbC6E7B3B43B1dc1BB446540a88A01`
 

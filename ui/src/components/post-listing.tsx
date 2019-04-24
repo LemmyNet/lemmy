@@ -4,13 +4,13 @@ import { WebSocketService, UserService } from '../services';
 import { Post, CreatePostLikeForm, PostForm as PostFormI, SavePostForm, CommunityUser, UserView } from '../interfaces';
 import { MomentTime } from './moment-time';
 import { PostForm } from './post-form';
-import { mdToHtml, canMod, isMod } from '../utils';
+import { mdToHtml, canMod, isMod, isImage } from '../utils';
 
 interface PostListingState {
   showEdit: boolean;
   showRemoveDialog: boolean;
   removeReason: string;
-  iframeExpanded: boolean;
+  imageExpanded: boolean;
 }
 
 interface PostListingProps {
@@ -29,7 +29,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     showEdit: false,
     showRemoveDialog: false,
     removeReason: null,
-    iframeExpanded: false
+    imageExpanded: false
   }
 
   constructor(props: any, context: any) {
@@ -78,15 +78,19 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             }
           </h5>
           <small><a className="ml-2 text-muted font-italic" href={post.url} title={post.url}>{(new URL(post.url)).hostname}</a></small>
-          { !this.state.iframeExpanded
-            ? <span class="badge badge-light pointer ml-2 text-muted small" title="Expand here" onClick={linkEvent(this, this.handleIframeExpandClick)}>+</span>
-            : 
-            <span>
-              <span class="pointer ml-2 badge badge-light text-muted small" onClick={linkEvent(this, this.handleIframeExpandClick)}>-</span>
-              <div class="embed-responsive embed-responsive-1by1">
-                <iframe scrolling="yes" class="embed-responsive-item" src={post.url}></iframe>
-              </div>
-            </span>
+          { isImage(post.url) && 
+            <>
+              { !this.state.imageExpanded
+                ? <span class="badge badge-light pointer ml-2 text-muted small" title="Expand here" onClick={linkEvent(this, this.handleImageExpandClick)}>+</span>
+                : 
+                <span>
+                  <span class="pointer ml-2 badge badge-light text-muted small" onClick={linkEvent(this, this.handleImageExpandClick)}>-</span>
+                  <div>
+                    <img class="img-fluid" src={post.url} />
+                  </div>
+                </span>
+              }
+            </>
           }
         </div> 
           : <h5 className="mb-0"><Link className="text-white" to={`/post/${post.id}`}>{post.name}</Link>
@@ -292,8 +296,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     WebSocketService.Instance.editPost(form);
   }
 
-  handleIframeExpandClick(i: PostListing) {
-    i.state.iframeExpanded = !i.state.iframeExpanded;
+  handleImageExpandClick(i: PostListing) {
+    i.state.imageExpanded = !i.state.imageExpanded;
     i.setState(i.state);
   }
 }

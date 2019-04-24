@@ -59,4 +59,11 @@ export function isMod(modIds: Array<number>, creator_id: number): boolean {
   return modIds.includes(creator_id);
 }
 
+
+var imageRegex = new RegExp(`(http)?s?:?(\/\/[^"']*\.(?:png|jpg|jpeg|gif|png|svg))`);
+
+export function isImage(url: string) {
+  return imageRegex.test(url);
+}
+
 export let fetchLimit: number = 20;
