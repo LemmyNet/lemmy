@@ -58,11 +58,15 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     return (
       <div class="listing">
         <div className={`float-left small text-center ${this.props.viewOnly && 'no-click'}`}>
-          <div className={`pointer upvote ${post.my_vote == 1 ? 'text-info' : 'text-muted'}`} onClick={linkEvent(this, this.handlePostLike)}>▲</div>
+          <div className={`pointer ${post.my_vote == 1 ? 'text-info' : 'text-muted'}`} onClick={linkEvent(this, this.handlePostLike)}>
+            <svg class="icon upvote"><use xlinkHref="#icon-arrow-up"></use></svg>
+          </div>
           <div>{post.score}</div>
-          <div className={`pointer downvote ${post.my_vote == -1 && 'text-danger'}`} onClick={linkEvent(this, this.handlePostDisLike)}>▼</div>
+          <div className={`pointer ${post.my_vote == -1 && 'text-danger'}`} onClick={linkEvent(this, this.handlePostDisLike)}>
+            <svg class="icon downvote"><use xlinkHref="#icon-arrow-down"></use></svg>
+          </div>
         </div>
-        <div className="pt-1 ml-4">
+        <div className="ml-4">
           {post.url 
             ? <div className="mb-0">
             <h5 className="d-inline"><a className="text-white" href={post.url} target="_blank" title={post.url}>{post.name}</a>

@@ -57,9 +57,13 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     return (
       <div className={`comment ${node.comment.parent_id  && !this.props.noIndent ? 'ml-4' : ''}`}>
         <div className={`float-left small text-center ${this.props.viewOnly && 'no-click'}`}>
-          <div className={`pointer upvote ${node.comment.my_vote == 1 ? 'text-info' : 'text-muted'}`} onClick={linkEvent(node, this.handleCommentLike)}>▲</div>
+          <div className={`pointer ${node.comment.my_vote == 1 ? 'text-info' : 'text-muted'}`} onClick={linkEvent(node, this.handleCommentLike)}>
+            <svg class="icon upvote"><use xlinkHref="#icon-arrow-up"></use></svg>
+          </div>
           <div>{node.comment.score}</div>
-          <div className={`pointer downvote ${node.comment.my_vote == -1 && 'text-danger'}`} onClick={linkEvent(node, this.handleCommentDisLike)}>▼</div>
+          <div className={`pointer ${node.comment.my_vote == -1 && 'text-danger'}`} onClick={linkEvent(node, this.handleCommentDisLike)}>
+            <svg class="icon downvote"><use xlinkHref="#icon-arrow-down"></use></svg>
+          </div>
         </div>
         <div id={`comment-${node.comment.id}`} className="details ml-4">
           <ul class="list-inline mb-0 text-muted small">
