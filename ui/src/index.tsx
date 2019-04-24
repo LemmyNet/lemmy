@@ -15,6 +15,7 @@ import { Modlog } from './components/modlog';
 import { Setup } from './components/setup';
 import { Inbox } from './components/inbox';
 import { Search } from './components/search';
+import { Sponsors } from './components/sponsors';
 import { Symbols } from './components/symbols';
 
 import './css/bootstrap.min.css';
@@ -54,6 +55,7 @@ class Index extends Component<any, any> {
             <Route path={`/modlog`} component={Modlog} />
             <Route path={`/setup`} component={Setup} />
             <Route path={`/search`} component={Search} />
+            <Route path={`/sponsors`} component={Sponsors} />
           </Switch>
           <Symbols />
         </div>
