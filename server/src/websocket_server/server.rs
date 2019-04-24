@@ -1355,8 +1355,8 @@ impl Perform for EditComment {
       creator_id: self.creator_id,
       removed: self.removed.to_owned(),
       read: self.read.to_owned(),
-      updated: Some(naive_now())
-    };
+      updated: if self.read.is_some() { None } else {Some(naive_now())}
+      };
 
     let _updated_comment = match Comment::update(&conn, self.edit_id, &comment_form) {
       Ok(comment) => comment,
