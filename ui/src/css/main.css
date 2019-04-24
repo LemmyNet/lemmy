@@ -95,3 +95,8 @@ blockquote {
 .new-comments:hover {
   overflow-y: auto;
 }
+
+.thumbnail {
+  max-height: 50px;
+  max-width: 50px;
+}

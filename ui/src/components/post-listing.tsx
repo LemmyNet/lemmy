@@ -66,6 +66,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             <svg class="icon downvote"><use xlinkHref="#icon-arrow-down"></use></svg>
           </div>
         </div>
+        {post.url && isImage(post.url) &&
+          <a href={post.url} target="_blank"><img class="mx-2 float-left img-fluid thumbnail rounded" src={post.url} /></a>
+        }
         <div className="ml-4">
           {post.url 
             ? <div className="mb-0">
@@ -86,7 +89,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                 <span>
                   <span class="pointer ml-2 badge badge-light text-muted small" onClick={linkEvent(this, this.handleImageExpandClick)}>-</span>
                   <div>
-                    <img class="img-fluid" src={post.url} />
+                    <a href={post.url} target="_blank"><img class="img-fluid" src={post.url} /></a>
                   </div>
                 </span>
               }
