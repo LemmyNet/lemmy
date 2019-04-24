@@ -67,7 +67,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           </div>
         </div>
         {post.url && isImage(post.url) &&
-          <a href={post.url} target="_blank"><img class="mx-2 float-left img-fluid thumbnail rounded" src={post.url} /></a>
+          <span class="pointer" onClick={linkEvent(this, this.handleImageExpandClick)}><img class="mx-2 float-left img-fluid thumbnail rounded" src={post.url} /></span>
         }
         <div className="ml-4">
           {post.url 
