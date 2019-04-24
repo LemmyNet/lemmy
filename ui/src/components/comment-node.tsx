@@ -3,6 +3,7 @@ import { Link } from 'inferno-router';
 import { CommentNode as CommentNodeI, CommentLikeForm, CommentForm as CommentFormI, SaveCommentForm, BanFromCommunityForm, BanUserForm, CommunityUser, UserView, AddModToCommunityForm, AddAdminForm } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { mdToHtml, getUnixTime, canMod, isMod } from '../utils';
+import * as moment from 'moment';
 import { MomentTime } from './moment-time';
 import { CommentForm } from './comment-form';
 import { CommentNodes } from './comment-nodes';
@@ -65,7 +66,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             <svg class="icon downvote"><use xlinkHref="#icon-arrow-down"></use></svg>
           </div>
         </div>
-        <div id={`comment-${node.comment.id}`} className="details ml-4">
+        <div id={`comment-${node.comment.id}`} className={`details ml-4 ${this.isCommentNew ? 'mark' : ''}`}>
           <ul class="list-inline mb-0 text-muted small">
             <li className="list-inline-item">
               <Link className="text-info" to={`/user/${node.comment.creator_id}`}>{node.comment.creator_name}</Link>
@@ -419,5 +420,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     };
     WebSocketService.Instance.addAdmin(form);
     i.setState(i.state);
+  }
+
+  get isCommentNew(): boolean {
+    let now = moment.utc().subtract(10, 'minutes');
+    let then = moment.utc(this.props.node.comment.published);
+    return now.isBefore(then);
   }
 }
