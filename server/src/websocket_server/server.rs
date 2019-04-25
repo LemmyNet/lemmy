@@ -816,6 +816,19 @@ impl Perform for Register {
       }
     };
 
+    // Sign them up for main community no matter what
+    let community_follower_form = CommunityFollowerForm {
+      community_id: 1,
+      user_id: inserted_user.id,
+    };
+
+    let _inserted_community_follower = match CommunityFollower::follow(&conn, &community_follower_form) {
+      Ok(user) => user,
+      Err(_e) => {
+        return Err(self.error("Community follower already exists."))?
+      }
+    };
+
     // If its an admin, add them as a mod and follower to main
     if self.admin {
       let community_moderator_form = CommunityModeratorForm {
@@ -830,17 +843,6 @@ impl Perform for Register {
         }
       };
 
-      let community_follower_form = CommunityFollowerForm {
-        community_id: 1,
-        user_id: inserted_user.id,
-      };
-
-      let _inserted_community_follower = match CommunityFollower::follow(&conn, &community_follower_form) {
-        Ok(user) => user,
-        Err(_e) => {
-          return Err(self.error("Community follower already exists."))?
-        }
-      };
     }
 
 
