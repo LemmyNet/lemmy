@@ -1311,12 +1311,12 @@ impl Perform for EditComment {
 
     let user_id = claims.id;
 
+    let orig_comment = CommentView::read(&conn, self.edit_id, None)?;
 
     // You are allowed to mark the comment as read even if you're banned.
     if self.read.is_none() {
 
       // Verify its the creator or a mod, or an admin
-      let orig_comment = CommentView::read(&conn, self.edit_id, None)?;
       let mut editors: Vec<i32> = vec![self.creator_id];
       editors.append(
         &mut CommunityModeratorView::for_community(&conn, orig_comment.community_id)
@@ -1358,7 +1358,7 @@ impl Perform for EditComment {
       creator_id: self.creator_id,
       removed: self.removed.to_owned(),
       read: self.read.to_owned(),
-      updated: if self.read.is_some() { None } else {Some(naive_now())}
+      updated: if self.read.is_some() { orig_comment.updated } else {Some(naive_now())}
       };
 
     let _updated_comment = match Comment::update(&conn, self.edit_id, &comment_form) {
