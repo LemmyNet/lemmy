@@ -1311,30 +1311,32 @@ impl Perform for EditComment {
 
     let user_id = claims.id;
 
-    // Verify its the creator or a mod, or an admin
-    let orig_comment = CommentView::read(&conn, self.edit_id, None)?;
-    let mut editors: Vec<i32> = vec![self.creator_id];
-    editors.append(
-      &mut CommunityModeratorView::for_community(&conn, orig_comment.community_id)
-      ?
-      .into_iter()
-      .map(|m| m.user_id)
-      .collect()
-      );
-    editors.append(
-      &mut UserView::admins(&conn)
-      ?
-      .into_iter()
-      .map(|a| a.id)
-      .collect()
-      );
-
-    if !editors.contains(&user_id) {
-      return Err(self.error("Not allowed to edit comment."))?
-    }
 
     // You are allowed to mark the comment as read even if you're banned.
     if self.read.is_none() {
+
+      // Verify its the creator or a mod, or an admin
+      let orig_comment = CommentView::read(&conn, self.edit_id, None)?;
+      let mut editors: Vec<i32> = vec![self.creator_id];
+      editors.append(
+        &mut CommunityModeratorView::for_community(&conn, orig_comment.community_id)
+        ?
+        .into_iter()
+        .map(|m| m.user_id)
+        .collect()
+        );
+      editors.append(
+        &mut UserView::admins(&conn)
+        ?
+        .into_iter()
+        .map(|a| a.id)
+        .collect()
+        );
+
+      if !editors.contains(&user_id) {
+        return Err(self.error("Not allowed to edit comment."))?
+      }
+
       // Check for a community ban
       if CommunityUserBanView::get(&conn, user_id, orig_comment.community_id).is_ok() {
         return Err(self.error("You have been banned from this community"))?
@@ -1344,6 +1346,7 @@ impl Perform for EditComment {
       if UserView::read(&conn, user_id)?.banned {
         return Err(self.error("You have been banned from the site"))?
       }
+
     }
 
     let content_slurs_removed = remove_slurs(&self.content.to_owned());
