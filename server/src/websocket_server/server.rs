@@ -188,7 +188,8 @@ pub struct GetPostsResponse {
 
 #[derive(Serialize, Deserialize)]
 pub struct GetCommunity {
-  id: i32,
+  id: Option<i32>,
+  name: Option<String>,
   auth: Option<String>
 }
 
@@ -311,7 +312,8 @@ pub struct GetFollowedCommunitiesResponse {
 
 #[derive(Serialize, Deserialize)]
 pub struct GetUserDetails {
-  user_id: i32,
+  user_id: Option<i32>,
+  username: Option<String>,
   sort: String,
   page: Option<i64>,
   limit: Option<i64>,
@@ -1176,14 +1178,19 @@ impl Perform for GetCommunity {
       None => None
     };
 
-    let community_view = match CommunityView::read(&conn, self.id, user_id) {
+    let community_id = match self.id {
+      Some(id) => id,
+      None => Community::read_from_name(&conn, self.name.to_owned().unwrap_or("main".to_string()))?.id
+    };
+
+    let community_view = match CommunityView::read(&conn, community_id, user_id) {
       Ok(community) => community,
       Err(_e) => {
         return Err(self.error("Couldn't find Community"))?
       }
     };
 
-    let moderators = match CommunityModeratorView::for_community(&conn, self.id) {
+    let moderators = match CommunityModeratorView::for_community(&conn, community_id) {
       Ok(moderators) => moderators,
       Err(_e) => {
         return Err(self.error("Couldn't find Community"))?
@@ -2042,7 +2049,13 @@ impl Perform for GetUserDetails {
     //TODO add save
     let sort = SortType::from_str(&self.sort)?;
 
-    let user_view = UserView::read(&conn, self.user_id)?;
+    let user_details_id = match self.user_id {
+      Some(id) => id,
+      None => User_::read_from_name(&conn, self.username.to_owned().unwrap_or("admin".to_string()))?.id
+    };
+
+    let user_view = UserView::read(&conn, user_details_id)?;
+
     // If its saved only, you don't care what creator it was
     let posts = if self.saved_only {
       PostView::list(&conn, 
@@ -2051,7 +2064,7 @@ impl Perform for GetUserDetails {
                      self.community_id, 
                      None, 
                      None,
-                     Some(self.user_id), 
+                     Some(user_details_id), 
                      self.saved_only, 
                      false, 
                      self.page, 
@@ -2061,7 +2074,7 @@ impl Perform for GetUserDetails {
                      PostListingType::All, 
                      &sort, 
                      self.community_id, 
-                     Some(self.user_id), 
+                     Some(user_details_id), 
                      None, 
                      None, 
                      self.saved_only, 
@@ -2075,7 +2088,7 @@ impl Perform for GetUserDetails {
                         None, 
                         None, 
                         None, 
-                        Some(self.user_id), 
+                        Some(user_details_id), 
                         self.saved_only, 
                         self.page, 
                         self.limit)?
@@ -2083,7 +2096,7 @@ impl Perform for GetUserDetails {
       CommentView::list(&conn, 
                         &sort, 
                         None, 
-                        Some(self.user_id), 
+                        Some(user_details_id), 
                         None, 
                         None, 
                         self.saved_only, 
@@ -2091,8 +2104,8 @@ impl Perform for GetUserDetails {
                         self.limit)?
     };
 
-    let follows = CommunityFollowerView::for_user(&conn, self.user_id)?;
-    let moderates = CommunityModeratorView::for_user(&conn, self.user_id)?;
+    let follows = CommunityFollowerView::for_user(&conn, user_details_id)?;
+    let moderates = CommunityModeratorView::for_user(&conn, user_details_id)?;
 
     // Return the jwt
     Ok(

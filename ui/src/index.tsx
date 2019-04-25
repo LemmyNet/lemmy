@@ -48,8 +48,9 @@ class Index extends Component<any, any> {
             <Route path={`/post/:id/comment/:comment_id`} component={Post} />
             <Route path={`/post/:id`} component={Post} />
             <Route path={`/community/:id`} component={Community} />
-            <Route path={`/user/:id/:heading`} component={User} />
+            <Route path={`/f/:name`} component={Community} />
             <Route path={`/user/:id`} component={User} />
+            <Route path={`/u/:username`} component={User} />
             <Route path={`/inbox`} component={Inbox} />
             <Route path={`/modlog/community/:community_id`} component={Modlog} />
             <Route path={`/modlog`} component={Modlog} />

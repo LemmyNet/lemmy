@@ -57,7 +57,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
           <small className="ml-2 text-muted font-italic">removed</small>
         }
       </h5>
-      <Link className="text-muted" to={`/community/${community.id}`}>/f/{community.name}</Link>
+      <Link className="text-muted" to={`/f/${community.name}`}>/f/{community.name}</Link>
       <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
         {this.canMod && 
           <>
@@ -107,7 +107,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
       <ul class="list-inline small"> 
         <li class="list-inline-item">mods: </li>
         {this.props.moderators.map(mod =>
-          <li class="list-inline-item"><Link class="text-info" to={`/user/${mod.user_id}`}>{mod.user_name}</Link></li>
+          <li class="list-inline-item"><Link class="text-info" to={`/u/${mod.user_name}`}>{mod.user_name}</Link></li>
         )}
       </ul>
       <div>

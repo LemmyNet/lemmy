@@ -16,6 +16,7 @@ enum View {
 interface UserState {
   user: UserView;
   user_id: number;
+  username: string;
   follows: Array<CommunityUser>;
   moderates: Array<CommunityUser>;
   comments: Array<Comment>;
@@ -41,6 +42,7 @@ export class User extends Component<any, UserState> {
       comment_score: null,
     },
     user_id: null,
+    username: null,
     follows: [],
     moderates: [],
     comments: [],
@@ -56,6 +58,7 @@ export class User extends Component<any, UserState> {
     this.state = this.emptyState;
 
     this.state.user_id = Number(this.props.match.params.id);
+    this.state.username = this.props.match.params.username;
 
     this.subscription = WebSocketService.Instance.subject
     .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
@@ -206,7 +209,7 @@ export class User extends Component<any, UserState> {
             <h5>Moderates</h5>
             <ul class="list-unstyled"> 
               {this.state.moderates.map(community =>
-                <li><Link to={`/community/${community.community_id}`}>{community.community_name}</Link></li>
+                <li><Link to={`/f/${community.community_name}`}>{community.community_name}</Link></li>
               )}
             </ul>
           </div>
@@ -224,7 +227,7 @@ export class User extends Component<any, UserState> {
             <h5>Subscribed</h5>
             <ul class="list-unstyled"> 
               {this.state.follows.map(community =>
-                <li><Link to={`/community/${community.community_id}`}>{community.community_name}</Link></li>
+                <li><Link to={`/f/${community.community_name}`}>{community.community_name}</Link></li>
               )}
             </ul>
           </div>
@@ -259,6 +262,7 @@ export class User extends Component<any, UserState> {
   refetch() {
     let form: GetUserDetailsForm = {
       user_id: this.state.user_id,
+      username: this.state.username,
       sort: SortType[this.state.sort],
       saved_only: this.state.view == View.Saved,
       page: this.state.page,

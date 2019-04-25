@@ -69,7 +69,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         <div id={`comment-${node.comment.id}`} className={`details ml-4 ${this.isCommentNew ? 'mark' : ''}`}>
           <ul class="list-inline mb-0 text-muted small">
             <li className="list-inline-item">
-              <Link className="text-info" to={`/user/${node.comment.creator_id}`}>{node.comment.creator_name}</Link>
+              <Link className="text-info" to={`/u/${node.comment.creator_name}`}>{node.comment.creator_name}</Link>
             </li>
             {this.isMod && 
               <li className="list-inline-item badge badge-secondary">mod</li>

@@ -1,5 +1,6 @@
 import { Component } from 'inferno';
 import { CommunityForm } from './community-form';
+import { Community } from '../interfaces';
 
 export class CreateCommunity extends Component<any, any> {
 
@@ -25,8 +26,8 @@ export class CreateCommunity extends Component<any, any> {
     )
   }
 
-  handleCommunityCreate(id: number) {
-    this.props.history.push(`/community/${id}`);
+  handleCommunityCreate(community: Community) {
+    this.props.history.push(`/f/${community.name}`);
   }
 }
 

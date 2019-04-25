@@ -67,6 +67,10 @@ impl User_ {
     Self::create(&conn, &edited_user)
 
   }
+  pub fn read_from_name(conn: &PgConnection, from_user_name: String) -> Result<Self, Error> {
+    user_.filter(name.eq(from_user_name))
+      .first::<Self>(conn)
+  }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

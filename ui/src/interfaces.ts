@@ -141,8 +141,9 @@ export interface GetFollowedCommunitiesResponse {
 }
 
 export interface GetUserDetailsForm {
-  user_id: number;
-  sort: string; // TODO figure this one out
+  user_id?: number;
+  username?: string;
+  sort: string;
   page?: number;
   limit?: number;
   community_id?: number;
