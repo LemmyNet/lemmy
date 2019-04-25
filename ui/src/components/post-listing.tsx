@@ -62,7 +62,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             <svg class="icon upvote"><use xlinkHref="#icon-arrow-up"></use></svg>
           </div>
           <div>{post.score}</div>
-          <div className={`pointer ${post.my_vote == -1 && 'text-danger'}`} onClick={linkEvent(this, this.handlePostDisLike)}>
+          <div className={`pointer ${post.my_vote == -1 ? 'text-danger' : 'text-muted'}`} onClick={linkEvent(this, this.handlePostDisLike)}>
             <svg class="icon downvote"><use xlinkHref="#icon-arrow-down"></use></svg>
           </div>
         </div>
