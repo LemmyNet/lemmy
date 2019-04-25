@@ -62,7 +62,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             <svg class="icon upvote"><use xlinkHref="#icon-arrow-up"></use></svg>
           </div>
           <div>{node.comment.score}</div>
-          <div className={`pointer ${node.comment.my_vote == -1 && 'text-danger'}`} onClick={linkEvent(node, this.handleCommentDisLike)}>
+          <div className={`pointer ${node.comment.my_vote == -1 ? 'text-danger' : 'text-muted'}`} onClick={linkEvent(node, this.handleCommentDisLike)}>
             <svg class="icon downvote"><use xlinkHref="#icon-arrow-down"></use></svg>
           </div>
         </div>
