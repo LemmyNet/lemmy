@@ -188,13 +188,20 @@ export class Login extends Component<any, State> {
       this.setState(this.state);
       return;
     } else {
-      if (op == UserOperation.Register || op == UserOperation.Login) {
+      if (op == UserOperation.Login) {
         this.state.loginLoading = false;
         this.state.registerLoading = false;
         let res: LoginResponse = msg;
         UserService.Instance.login(res);
         this.props.history.push('/');
+      } else if (op == UserOperation.Register) {
+        this.state.loginLoading = false;
+        this.state.registerLoading = false;
+        let res: LoginResponse = msg;
+        UserService.Instance.login(res);
+        this.props.history.push('/communities');
       }
     }
   }
+
 }
