@@ -67,44 +67,37 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           </div>
         </div>
         {post.url && isImage(post.url) &&
-          <span class="pointer" onClick={linkEvent(this, this.handleImageExpandClick)}><img class="mx-2 float-left img-fluid thumbnail rounded" src={post.url} /></span>
+          <span title="Expand here" class="pointer" onClick={linkEvent(this, this.handleImageExpandClick)}><img class="mx-2 float-left img-fluid thumbnail rounded" src={post.url} /></span>
         }
         <div className="ml-4">
-          {post.url 
-            ? <div className="mb-0">
-            <h5 className="d-inline"><a className="text-white" href={post.url} target="_blank" title={post.url}>{post.name}</a>
+          <div>
+            <h5 className="mb-0 d-inline"><Link className="text-white" to={`/post/${post.id}`}>{post.name}</Link></h5>
+            {post.url && 
+              <small>
+                <a className="ml-2 text-muted font-italic" href={post.url} target="_blank" title={post.url}>{(new URL(post.url)).hostname}</a>
+              </small>
+            }
             {post.removed &&
               <small className="ml-2 text-muted font-italic">removed</small>
             }
             {post.locked &&
               <small className="ml-2 text-muted font-italic">locked</small>
             }
-          </h5>
-          <small><a className="ml-2 text-muted font-italic" href={post.url} title={post.url}>{(new URL(post.url)).hostname}</a></small>
-          { isImage(post.url) && 
-            <>
-              { !this.state.imageExpanded
-                ? <span class="badge badge-light pointer ml-2 text-muted small" title="Expand here" onClick={linkEvent(this, this.handleImageExpandClick)}>+</span>
-                : 
-                <span>
-                  <span class="pointer ml-2 badge badge-light text-muted small" onClick={linkEvent(this, this.handleImageExpandClick)}>-</span>
-                  <div>
-                    <a href={post.url} target="_blank"><img class="img-fluid" src={post.url} /></a>
-                  </div>
-                </span>
-              }
-            </>
-          }
-        </div> 
-          : <h5 className="mb-0"><Link className="text-white" to={`/post/${post.id}`}>{post.name}</Link>
-          {post.removed &&
-            <small className="ml-2 text-muted font-italic">removed</small>
-          }
-          {post.locked &&
-            <small className="ml-2 text-muted font-italic">locked</small>
-          }
-        </h5>
-          }
+            { post.url && isImage(post.url) && 
+              <>
+                { !this.state.imageExpanded
+                  ? <span class="badge badge-light pointer ml-2 text-muted small" title="Expand here" onClick={linkEvent(this, this.handleImageExpandClick)}>+</span>
+                  : 
+                  <span>
+                    <span class="pointer ml-2 badge badge-light text-muted small" onClick={linkEvent(this, this.handleImageExpandClick)}>-</span>
+                    <div>
+                      <a href={post.url} target="_blank"><img class="img-fluid" src={post.url} /></a>
+                    </div>
+                  </span>
+                }
+              </>
+            }
+          </div>
         </div>
         <div className="details ml-4 mb-1">
           <ul class="list-inline mb-0 text-muted small">
