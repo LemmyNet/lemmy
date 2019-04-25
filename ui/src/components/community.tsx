@@ -10,6 +10,7 @@ import { msgOp } from '../utils';
 interface State {
   community: CommunityI;
   communityId: number;
+  communityName: string;
   moderators: Array<CommunityUser>;
   admins: Array<UserView>;
   loading: boolean;
@@ -36,6 +37,7 @@ export class Community extends Component<any, State> {
     moderators: [],
     admins: [],
     communityId: Number(this.props.match.params.id),
+    communityName: this.props.match.params.name,
     loading: true
   }
 
@@ -52,7 +54,12 @@ export class Community extends Component<any, State> {
         () => console.log('complete')
     );
 
-    WebSocketService.Instance.getCommunity(this.state.communityId);
+    if (this.state.communityId) {
+      WebSocketService.Instance.getCommunity(this.state.communityId);
+    } else if (this.state.communityName) {
+      WebSocketService.Instance.getCommunityByName(this.state.communityName);
+    }
+
   }
 
   componentWillUnmount() {
@@ -71,7 +78,7 @@ export class Community extends Component<any, State> {
               <small className="ml-2 text-muted font-italic">removed</small>
             }
           </h5>
-            <PostListings communityId={this.state.communityId} />
+          {this.state.community && <PostListings communityId={this.state.community.id} />}
           </div>
           <div class="col-12 col-md-3">
             <Sidebar 

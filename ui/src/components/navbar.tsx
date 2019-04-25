@@ -129,7 +129,7 @@ export class Navbar extends Component<any, NavbarState> {
   handleOverviewClick(i: Navbar) {
     i.state.expandUserDropdown = false;
     i.setState(i.state);
-    let userPage = `/user/${UserService.Instance.user.id}`;
+    let userPage = `/u/${UserService.Instance.user.username}`;
     i.context.router.history.push(userPage);
   }
 

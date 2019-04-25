@@ -11,7 +11,7 @@ import { Community } from '../interfaces';
 interface CommunityFormProps {
   community?: Community; // If a community is given, that means this is an edit
   onCancel?(): any;
-  onCreate?(id: number): any;
+  onCreate?(community: Community): any;
   onEdit?(community: Community): any;
 }
 
@@ -167,7 +167,7 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
     } else if (op == UserOperation.CreateCommunity) {
       let res: CommunityResponse = msg;
       this.state.loading = false;
-      this.props.onCreate(res.community.id);
+      this.props.onCreate(res.community);
     } 
 
     // TODO is this necessary?

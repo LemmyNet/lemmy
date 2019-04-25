@@ -73,7 +73,7 @@ export class Communities extends Component<any, CommunitiesState> {
               <tbody>
                 {this.state.communities.map(community =>
                   <tr>
-                    <td><Link to={`/community/${community.id}`}>{community.name}</Link></td>
+                    <td><Link to={`/f/${community.name}`}>{community.name}</Link></td>
                     <td>{community.title}</td>
                     <td>{community.category_name}</td>
                     <td class="text-right d-none d-md-table-cell">{community.number_of_subscribers}</td>

@@ -59,6 +59,14 @@ impl Crud<CommunityForm> for Community {
   }
 }
 
+impl Community {
+  pub fn read_from_name(conn: &PgConnection, community_name: String) -> Result<Self, Error> {
+    use schema::community::dsl::*;
+    community.filter(name.eq(community_name))
+      .first::<Self>(conn)
+  }
+}
+
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
 #[belongs_to(Community)]
 #[table_name = "community_moderator"]

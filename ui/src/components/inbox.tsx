@@ -58,7 +58,7 @@ export class Inbox extends Component<any, InboxState> {
       <div class="container">
         <div class="row">
           <div class="col-12">
-            <h5>Inbox for <Link to={`/user/${user.id}`}>{user.username}</Link></h5>
+            <h5>Inbox for <Link to={`/u/${user.username}`}>{user.username}</Link></h5>
             {this.selects()}
             {this.replies()}
             {this.paginator()}

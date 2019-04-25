@@ -96,7 +96,7 @@ export class Main extends Component<MainProps, MainState> {
                   <h5>Subscribed forums</h5>
                   <ul class="list-inline"> 
                     {this.state.subscribedCommunities.map(community =>
-                      <li class="list-inline-item"><Link to={`/community/${community.community_id}`}>{community.community_name}</Link></li>
+                      <li class="list-inline-item"><Link to={`/f/${community.community_name}`}>{community.community_name}</Link></li>
                     )}
                   </ul>
                 </div>
@@ -116,7 +116,7 @@ export class Main extends Component<MainProps, MainState> {
         <h5>Trending <Link class="text-white" to="/communities">forums</Link></h5> 
         <ul class="list-inline"> 
           {this.state.trendingCommunities.map(community =>
-            <li class="list-inline-item"><Link to={`/community/${community.id}`}>{community.name}</Link></li>
+            <li class="list-inline-item"><Link to={`/f/${community.name}`}>{community.name}</Link></li>
           )}
         </ul>
       </div>
@@ -158,7 +158,7 @@ export class Main extends Component<MainProps, MainState> {
         <ul class="my-1 list-inline small"> 
           <li class="list-inline-item">admins: </li>
           {this.state.site.admins.map(admin =>
-            <li class="list-inline-item"><Link class="text-info" to={`/user/${admin.id}`}>{admin.name}</Link></li>
+            <li class="list-inline-item"><Link class="text-info" to={`/u/${admin.name}`}>{admin.name}</Link></li>
           )}
         </ul>
         {this.state.site.site.description && 

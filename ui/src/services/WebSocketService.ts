@@ -81,6 +81,11 @@ export class WebSocketService {
     this.subject.next(this.wsSendWrapper(UserOperation.GetCommunity, data));
   }
 
+  public getCommunityByName(name: string) {
+    let data = {name: name, auth: UserService.Instance.auth };
+    this.subject.next(this.wsSendWrapper(UserOperation.GetCommunity, data));
+  }
+
   public createComment(commentForm: CommentForm) {
     this.setAuth(commentForm);
     this.subject.next(this.wsSendWrapper(UserOperation.CreateComment, commentForm));
