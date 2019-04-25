@@ -12,28 +12,29 @@ interface State {
   registerLoading: boolean;
 }
 
-let emptyState: State = {
-  loginForm: {
-    username_or_email: undefined,
-    password: undefined
-  },
-  registerForm: {
-    username: undefined,
-    password: undefined,
-    password_verify: undefined,
-    admin: false,
-  },
-  loginLoading: false,
-  registerLoading: false
-}
 
 export class Login extends Component<any, State> {
   private subscription: Subscription;
 
+  emptyState: State = {
+    loginForm: {
+      username_or_email: undefined,
+      password: undefined
+    },
+    registerForm: {
+      username: undefined,
+      password: undefined,
+      password_verify: undefined,
+      admin: false,
+    },
+    loginLoading: false,
+    registerLoading: false
+  }
+
   constructor(props: any, context: any) {
     super(props, context);
 
-    this.state = emptyState;
+    this.state = this.emptyState;
 
     this.subscription = WebSocketService.Instance.subject
     .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
@@ -183,8 +184,7 @@ export class Login extends Component<any, State> {
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
       alert(msg.error);
-      this.state.loginLoading = false;
-      this.state.registerLoading = false;
+      this.state = this.emptyState;
       this.setState(this.state);
       return;
     } else {
