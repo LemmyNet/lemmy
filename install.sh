@@ -1,3 +1,6 @@
+#!/bin/sh
+set -e
+
 cd ui
 yarn
 yarn build
