@@ -10,6 +10,7 @@ interface State {
   registerForm: RegisterForm;
   loginLoading: boolean;
   registerLoading: boolean;
+  spamNada: string;
 }
 
 
@@ -30,6 +31,7 @@ export class Login extends Component<any, State> {
     },
     loginLoading: false,
     registerLoading: false,
+    spamNada: undefined
   }
 
   constructor(props: any, context: any) {
@@ -126,6 +128,7 @@ export class Login extends Component<any, State> {
           </div>
         </div>
         <input type="hidden" value={this.state.registerForm.spam_timer} />
+        <input type="text" class="d-none" value={this.state.spamNada} onInput={linkEvent(this, this.handleSpamNada)} />
         <div class="form-group row">
           <div class="col-sm-10">
             <button type="submit" class="btn btn-secondary">{this.state.registerLoading ? 
@@ -164,7 +167,7 @@ export class Login extends Component<any, State> {
     let elapsed = endTimer - i.state.registerForm.spam_timer;
 
     i.state.registerForm.spam_timer = elapsed;
-    if (elapsed > 1142) {
+    if (elapsed > 1142 && i.state.spamNada == undefined) {
       WebSocketService.Instance.register(i.state.registerForm);
     } else {
       window.location.href = "https://github.com/dessalines/lemmy";
@@ -174,6 +177,11 @@ export class Login extends Component<any, State> {
   handleRegisterUsernameChange(i: Login, event: any) {
     i.state.registerForm.username = event.target.value;
     i.state.registerForm.spam_timer = new Date().getTime();
+    i.setState(i.state);
+  }
+
+  handleSpamNada(i: Login, event: any) {
+    i.state.spamNada = event.target.value;
     i.setState(i.state);
   }
 
