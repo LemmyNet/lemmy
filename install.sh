@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+export DATABASE_URL=postgres://rrr:rrr@localhost/rrr
+
 cd ui
 yarn
 yarn build
