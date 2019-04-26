@@ -2,6 +2,7 @@
 name = "server"
 version = "0.0.1"
 authors = ["Dessalines <happydooby@gmail.com>"]
+autobins = false
 
 [[bin]]
 name = "lemmy"

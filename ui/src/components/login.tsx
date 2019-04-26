@@ -10,7 +10,6 @@ interface State {
   registerForm: RegisterForm;
   loginLoading: boolean;
   registerLoading: boolean;
-  spamTimer: number;
 }
 
 
@@ -27,10 +26,10 @@ export class Login extends Component<any, State> {
       password: undefined,
       password_verify: undefined,
       admin: false,
+      spam_timer: undefined,
     },
     loginLoading: false,
     registerLoading: false,
-    spamTimer: new Date().getTime()
   }
 
   constructor(props: any, context: any) {
@@ -126,7 +125,7 @@ export class Login extends Component<any, State> {
             <input type="password" value={this.state.registerForm.password_verify} onInput={linkEvent(this, this.handleRegisterPasswordVerifyChange)} class="form-control" required />
           </div>
         </div>
-        <input type="hidden" value={this.state.spamTimer} />
+        <input type="hidden" value={this.state.registerForm.spam_timer} />
         <div class="form-group row">
           <div class="col-sm-10">
             <button type="submit" class="btn btn-secondary">{this.state.registerLoading ? 
@@ -162,16 +161,19 @@ export class Login extends Component<any, State> {
     event.preventDefault();
 
     let endTimer = new Date().getTime();
-    let elapsed = endTimer - i.state.spamTimer;
-    if (elapsed > 4500) {
+    let elapsed = endTimer - i.state.registerForm.spam_timer;
+
+    i.state.registerForm.spam_timer = elapsed;
+    if (elapsed > 1142) {
       WebSocketService.Instance.register(i.state.registerForm);
     } else {
-      location.reload(true);
+      window.location.href = "https://github.com/dessalines/lemmy";
     }
   }
 
   handleRegisterUsernameChange(i: Login, event: any) {
     i.state.registerForm.username = event.target.value;
+    i.state.registerForm.spam_timer = new Date().getTime();
     i.setState(i.state);
   }
 
