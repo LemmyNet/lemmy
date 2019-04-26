@@ -157,7 +157,9 @@ export class Login extends Component<any, State> {
     i.state.registerLoading = true;
     i.setState(i.state);
     event.preventDefault();
-    WebSocketService.Instance.register(i.state.registerForm);
+    setTimeout(function(){
+      WebSocketService.Instance.register(i.state.registerForm);
+    }, 10000);
   }
 
   handleRegisterUsernameChange(i: Login, event: any) {
