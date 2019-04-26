@@ -100,3 +100,9 @@ blockquote {
   max-height: 50px;
   max-width: 50px;
 }
+
+.no-s-hows {
+  position: absolute !important;
+  top: -9999px !important;
+  left: -9999px !important;
+}
