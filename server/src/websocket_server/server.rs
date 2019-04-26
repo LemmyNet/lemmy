@@ -969,7 +969,7 @@ impl Perform for ListCommunities {
 
     let sort = SortType::from_str(&self.sort)?;
 
-    let communities: Vec<CommunityView> = CommunityView::list(&conn, user_id, sort, self.page, Some(50))?;
+    let communities: Vec<CommunityView> = CommunityView::list(&conn, user_id, sort, self.page, self.limit)?;
 
     // Return the jwt
     Ok(
