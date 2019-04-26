@@ -1,0 +1,13 @@
+apiVersion: skaffold/v1beta9
+kind: Config
+profiles:
+  - name: lemmy--dev--no-sync
+    build:
+      artifacts:
+        - image: registry.gitlab.com/pojntfx/lemmy/lemmy
+          docker:
+            dockerfile: Dockerfile.dev
+    deploy:
+      kubectl:
+        manifests:
+          - stack.dev.yaml
