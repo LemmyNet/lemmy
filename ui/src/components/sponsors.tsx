@@ -1,7 +1,10 @@
 import { Component } from 'inferno';
 
 let general = 
-  ["Eduardo Cavazos"];
+  [
+  "Nathan J. Goode",
+  "Eduardo Cavazos"
+];
 // let highlighted = [];
 // let silver = [];
 // let gold = [];
@@ -43,10 +46,10 @@ export class Sponsors extends Component<any, any> {
   }
   sponsors() {
     return (
-      <div>
+      <div class="container">
         <h5>Sponsors</h5>
         <p>General Sponsors are those that pledged $10 to $39 to Lemmy.</p>
-        <div class="">
+        <div class="row card-columns">
           {general.map(s => 
             <div class="card col-12 col-md-2">
               <div>{s}</div>
