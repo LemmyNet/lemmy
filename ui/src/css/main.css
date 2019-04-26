@@ -100,3 +100,7 @@ blockquote {
   max-height: 50px;
   max-width: 50px;
 }
+
+.no-s-how {
+  display: none;
+}

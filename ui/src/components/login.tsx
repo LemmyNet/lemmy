@@ -129,6 +129,7 @@ export class Login extends Component<any, State> {
         </div>
         <input type="hidden" value={this.state.registerForm.spam_timer} />
         <input type="text" class="d-none" value={this.state.spamNada} onInput={linkEvent(this, this.handleSpamNada)} />
+        <input type="text" class="no-s-how" value={this.state.spamNada} onInput={linkEvent(this, this.handleSpamNada)} />
         <div class="form-group row">
           <div class="col-sm-10">
             <button type="submit" class="btn btn-secondary">{this.state.registerLoading ? 
