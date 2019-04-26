@@ -92,7 +92,7 @@ pub struct Register {
   password: String,
   password_verify: String,
   admin: bool,
-  spam_timer: i64,
+  spam_timeri: i64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -790,7 +790,7 @@ impl Perform for Register {
       return Err(self.error("Passwords do not match."))?
     }
 
-    if self.spam_timer < 1142 {
+    if self.spam_timeri < 1142 {
       return Err(self.error("Too fast"))?
     }
 

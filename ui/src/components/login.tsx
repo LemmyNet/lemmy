@@ -27,7 +27,7 @@ export class Login extends Component<any, State> {
       password: undefined,
       password_verify: undefined,
       admin: false,
-      spam_timer: undefined,
+      spam_timeri: undefined,
     },
     loginLoading: false,
     registerLoading: false,
@@ -103,6 +103,7 @@ export class Login extends Component<any, State> {
     return (
       <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
         <h5>Sign Up</h5>
+        <input type="text" class="no-s-hows" value={this.state.spamNada} onInput={linkEvent(this, this.handleSpamNada)} />
         <div class="form-group row">
           <label class="col-sm-2 col-form-label">Username</label>
           <div class="col-sm-10">
@@ -127,9 +128,7 @@ export class Login extends Component<any, State> {
             <input type="password" value={this.state.registerForm.password_verify} onInput={linkEvent(this, this.handleRegisterPasswordVerifyChange)} class="form-control" required />
           </div>
         </div>
-        <input type="hidden" value={this.state.registerForm.spam_timer} />
-        <input type="text" class="d-none" value={this.state.spamNada} onInput={linkEvent(this, this.handleSpamNada)} />
-        <input type="text" class="no-s-hows" value={this.state.spamNada} onInput={linkEvent(this, this.handleSpamNada)} />
+        <input type="hidden" value={this.state.registerForm.spam_timeri} />
         <div class="form-group row">
           <div class="col-sm-10">
             <button type="submit" class="btn btn-secondary">{this.state.registerLoading ? 
@@ -165,21 +164,19 @@ export class Login extends Component<any, State> {
     event.preventDefault();
 
     let endTimer = new Date().getTime();
-    let elapsed = endTimer - i.state.registerForm.spam_timer;
+    let elapsed = endTimer - i.state.registerForm.spam_timeri;
 
-    i.state.registerForm.spam_timer = elapsed;
+    i.state.registerForm.spam_timeri = elapsed;
     if (elapsed > 1423 && i.state.spamNada == undefined) {
       WebSocketService.Instance.register(i.state.registerForm);
     } else {
-      i.state.spamNada = "nt";
-      i.setState(i.state);
-      {/* window.location.href = "https://github.com/dessalines/lemmy"; */}
+      window.location.href = "https://github.com/dessalines/lemmy";
     }
   }
 
   handleRegisterUsernameChange(i: Login, event: any) {
     i.state.registerForm.username = event.target.value;
-    i.state.registerForm.spam_timer = new Date().getTime();
+    i.state.registerForm.spam_timeri = new Date().getTime();
     i.setState(i.state);
   }
 
