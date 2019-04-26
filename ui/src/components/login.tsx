@@ -10,6 +10,7 @@ interface State {
   registerForm: RegisterForm;
   loginLoading: boolean;
   registerLoading: boolean;
+  spamTimer: number;
 }
 
 
@@ -28,7 +29,8 @@ export class Login extends Component<any, State> {
       admin: false,
     },
     loginLoading: false,
-    registerLoading: false
+    registerLoading: false,
+    spamTimer: new Date().getTime()
   }
 
   constructor(props: any, context: any) {
@@ -124,6 +126,7 @@ export class Login extends Component<any, State> {
             <input type="password" value={this.state.registerForm.password_verify} onInput={linkEvent(this, this.handleRegisterPasswordVerifyChange)} class="form-control" required />
           </div>
         </div>
+        <input type="hidden" value={this.state.spamTimer} />
         <div class="form-group row">
           <div class="col-sm-10">
             <button type="submit" class="btn btn-secondary">{this.state.registerLoading ? 
@@ -157,9 +160,14 @@ export class Login extends Component<any, State> {
     i.state.registerLoading = true;
     i.setState(i.state);
     event.preventDefault();
-    setTimeout(function(){
+
+    let endTimer = new Date().getTime();
+    let elapsed = endTimer - i.state.spamTimer;
+    if (elapsed > 4500) {
       WebSocketService.Instance.register(i.state.registerForm);
-    }, 10000);
+    } else {
+      location.reload(true);
+    }
   }
 
   handleRegisterUsernameChange(i: Login, event: any) {
