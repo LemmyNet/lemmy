@@ -73,6 +73,7 @@ and goto http://localhost:8536
 #### Running
 ```
 git clone https://github.com/dessalines/lemmy
+export DATABASE_URL=postgres://rrr:rrr@localhost/rrr
 cd lemmy
 ./install.sh
 # For live coding, where both the front and back end, automagically reload on any save, do:
