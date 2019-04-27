@@ -11,19 +11,20 @@
 
 A link aggregator / reddit clone for the fediverse.
 
-[Lemmy Dev instance](https://dev.lemmy.ml) *for testing purposes only*
+[Lemmy Dev instance](https://dev.lemmy.ml) _for testing purposes only_
 
 This is a **very early beta version**, and a lot of features are currently broken or in active development, such as federation.
 
-|Front Page|Post|
-|-----------------------------------------------|----------------------------------------------- |
-|![main screen](https://i.imgur.com/y64BtXC.png)|![chat screen](https://i.imgur.com/vsOr87q.png) |
+| Front Page                                      | Post                                            |
+| ----------------------------------------------- | ----------------------------------------------- |
+| ![main screen](https://i.imgur.com/y64BtXC.png) | ![chat screen](https://i.imgur.com/vsOr87q.png) |
 
 ## Features
 
 - Open source, [AGPL License](/LICENSE).
 - Self hostable, easy to deploy.
-  - Comes with [docker](#docker).
+  - Comes with [Kubernetes](#kubernetes)
+  - Comes with [Docker](#docker).
 - Live-updating Comment threads.
 - Full vote scores `(+/-)` like old reddit.
 - Moderation abilities.
@@ -56,9 +57,39 @@ Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Infern
 
 ## Usage
 
-### Production
+### Kubernetes
 
-#### Docker
+#### Requirements
+
+- Local or remote Kubernetes cluster, i.e. [`minikube`](https://kubernetes.io/docs/tasks/tools/install-minikube/)
+- [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- [`skaffold`](https://skaffold.dev/)
+
+#### Production
+
+```bash
+# Deploy the Traefik Ingress
+kubectl apply -f https://raw.githubusercontent.com/containous/traefik/v1.7/examples/k8s/traefik-rbac.yaml
+kubectl apply -f https://raw.githubusercontent.com/containous/traefik/v1.7/examples/k8s/traefik-ds.yaml
+# Replace ${IP} with your Ingress' IP
+echo "${IP} dev.lemmy.local" >> /etc/hosts
+```
+
+```bash
+skaffold run -p lemmy--prod
+```
+
+Now go to http://dev.lemmy.local.
+
+#### Development
+
+```bash
+skaffold dev -p lemmy--dev
+```
+
+Now go to http://localhost:4444. It automatically proxies to localhost, both if the cluster is local or remote; it also hot-reloads the UI and automatically recompiles and restarts the server.
+
+### Docker
 
 Make sure you have both docker and docker-compose installed.
 
@@ -70,51 +101,22 @@ cd lemmy
 
 and goto http://localhost:8536
 
-<!-- #### Kubernetes (WIP)
+### Native
 
-> TODO: Add production version with proper proxy setup and Ingress for WebSockets
-
-```bash
-skaffold run -p lemmy--prod
-# Now go to http://${IP}:30002
-``` -->
-
-### Development
-
-#### Kubernetes
-
-##### Requirements
-
-- Local or remote Kubernetes cluster, i.e. [`minikube`](https://kubernetes.io/docs/tasks/tools/install-minikube/)
-- [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
-- [`skaffold`](https://skaffold.dev/)
-
-##### Running
-
-```bash
-skaffold dev -p lemmy--dev
-```
-
-And goto http://localhost:4444 (automatically proxies to localhost, both if the cluster is local or remote).
-
-It hot-reloads the UI and automatically recompiles the server.
-
-#### Non-Kubernetes
-
-##### Requirements
+#### Requirements
 
 - [Rust](https://www.rust-lang.org/)
 - [Yarn](https://yarnpkg.com/en/)
 - [Postgres](https://www.sqlite.org/index.html)
 
-##### Set up Postgres DB
+#### Set up Postgres DB
 
 ```
  psql -c "create user rrr with password 'rrr' superuser;" -U postgres
  psql -c 'create database rrr with owner rrr;' -U postgres
 ```
 
-##### Running
+#### Running
 
 ```
 git clone https://github.com/dessalines/lemmy

@@ -19,5 +19,19 @@ profiles:
     deploy:
       kubectl:
         manifests:
-          - server/stack.dev.yaml
-          - ui/stack.dev.yaml
+          - "**/*.dev.yaml"
+  - name: lemmy--prod
+    build:
+      artifacts:
+        - image: registry.gitlab.com/pojntfx/lemmy/server.prod
+          context: server
+          docker:
+            dockerfile: Dockerfile.prod
+        - image: registry.gitlab.com/pojntfx/lemmy/ui.prod
+          context: ui
+          docker:
+            dockerfile: Dockerfile.prod
+    deploy:
+      kubectl:
+        manifests:
+          - "**/*.prod.yaml"
