@@ -11,13 +11,13 @@
 
 A link aggregator / reddit clone for the fediverse.
 
-[Lemmy Dev instance](https://dev.lemmy.ml) _for testing purposes only_
+[Lemmy Dev instance](https://dev.lemmy.ml) *for testing purposes only*
 
 This is a **very early beta version**, and a lot of features are currently broken or in active development, such as federation.
 
-| Front Page                                      | Post                                            |
-| ----------------------------------------------- | ----------------------------------------------- |
-| ![main screen](https://i.imgur.com/y64BtXC.png) | ![chat screen](https://i.imgur.com/vsOr87q.png) |
+|Front Page|Post|
+|-----------------------------------------------|----------------------------------------------- |
+|![main screen](https://i.imgur.com/y64BtXC.png)|![chat screen](https://i.imgur.com/vsOr87q.png) |
 
 ## Features
 

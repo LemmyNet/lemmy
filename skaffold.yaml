@@ -8,8 +8,6 @@ profiles:
           context: server
           docker:
             dockerfile: Dockerfile.dev
-          sync:
-            "***/*.rs": .
         - image: registry.gitlab.com/pojntfx/lemmy/ui.dev
           context: ui
           docker:

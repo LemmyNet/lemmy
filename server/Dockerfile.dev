@@ -1,6 +1,6 @@
 # Setup env
 FROM rust:1.33
-RUN mkdir -p /opt/lemmy/server--dev
+RUN USER=root cargo new --bin /opt/lemmy/server--dev
 WORKDIR /opt/lemmy/server--dev
 # Create empty directory where the frontend would normally be
 RUN mkdir -p /opt/lemmy/ui--dev/dist
@@ -10,8 +10,12 @@ RUN echo 'fn main() { println!("Dummy") }' >src/bin/main.rs
 # Install deps
 COPY Cargo.toml .
 COPY Cargo.lock .
-RUN cargo build
+RUN cargo build --release
+RUN rm src/bin/main.rs
 # Add app
-COPY . .
+COPY src/ src/
+COPY migrations/ migrations/
+RUN rm target/release/deps/lemmy*
+RUN cargo build --release
 # Run app
-CMD cargo run
+CMD ["/opt/lemmy/server--dev/target/release/lemmy"]
