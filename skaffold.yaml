@@ -9,15 +9,15 @@ profiles:
           docker:
             dockerfile: Dockerfile.dev
           sync:
-            "**/*.rs": src/
+            "***/*.rs": .
         - image: registry.gitlab.com/pojntfx/lemmy/ui.dev
           context: ui
           docker:
             dockerfile: Dockerfile.dev
           sync:
-            "**/*.ts": src/
-            "**/*.tsx": src/
-            "**/*.css": src/
+            "***/*.ts": .
+            "***/*.tsx": .
+            "***/*.css": .
     deploy:
       kubectl:
         manifests:

@@ -83,19 +83,21 @@ skaffold run -p lemmy--prod
 
 #### Kubernetes
 
-This requires:
+##### Requirements
 
-- Local or remote Kubernetes Cluster, i.e. [`minikube`](https://kubernetes.io/docs/tasks/tools/install-minikube/)
+- Local or remote Kubernetes cluster, i.e. [`minikube`](https://kubernetes.io/docs/tasks/tools/install-minikube/)
 - [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - [`skaffold`](https://skaffold.dev/)
 
-After satisfying the requirements, run the following:
+##### Running
 
 ```bash
 skaffold dev -p lemmy--dev
 ```
 
-And goto http://localhost:4444.
+And goto http://localhost:4444 (automatically proxies to localhost, both if the cluster is local or remote).
+
+It hot-reloads the UI and automatically recompiles the server.
 
 #### Non-Kubernetes
 
