@@ -11,15 +11,16 @@
 
 A link aggregator / reddit clone for the fediverse.
 
-[Lemmy Dev instance](https://dev.lemmy.ml) *for testing purposes only*
+[Lemmy Dev instance](https://dev.lemmy.ml) _for testing purposes only_
 
 This is a **very early beta version**, and a lot of features are currently broken or in active development, such as federation.
- 
-Front Page|Post
----|---
-![main screen](https://i.imgur.com/y64BtXC.png)|![chat screen](https://i.imgur.com/vsOr87q.png)
+
+| Front Page                                      | Post                                            |
+| ----------------------------------------------- | ----------------------------------------------- |
+| ![main screen](https://i.imgur.com/y64BtXC.png) | ![chat screen](https://i.imgur.com/vsOr87q.png) |
 
 ## Features
+
 - Open source, [AGPL License](/LICENSE).
 - Self hostable, easy to deploy.
   - Comes with [docker](#docker).
@@ -36,6 +37,7 @@ Front Page|Post
   - Front end is `~80kB` gzipped.
 
 ## About
+
 [Lemmy](https://github.com/dessalines/lemmy) is similar to sites like [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), [Raddle](https://raddle.me), or [Hacker News](https://news.ycombinator.com/): you subscribe to forums you're interested in, post links and discussions, then vote, and comment on them. Behind the scenes, it is very different; anyone can easily run a server, and all these servers are federated (think email), and connected to the same universe, called the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
 
 For a link aggregator, this means a user registered on one server can subscribe to forums on any other server, and can have discussions with users registered elsewhere.
@@ -45,32 +47,73 @@ The overall goal is to create an easily self-hostable, decentralized alternative
 Each lemmy server can set its own moderation policy; appointing site-wide admins, and community moderators to keep out the trolls, and foster a healthy, non-toxic environment where all can feel comfortable contributing.
 
 ## Why's it called Lemmy?
+
 - Lead singer from [motorhead](https://invidio.us/watch?v=pWB5JZRGl0U).
-- The old school [video game](https://en.wikipedia.org/wiki/Lemmings_(video_game)).
+- The old school [video game](<https://en.wikipedia.org/wiki/Lemmings_(video_game)>).
 - The [furry rodents](http://sunchild.fpwc.org/lemming-the-little-giant-of-the-north/).
 
 Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Inferno](https://www.infernojs.org), [Typescript](https://www.typescriptlang.org/) and [Diesel](http://diesel.rs/).
 
-## Install
-### Docker
+## Usage
+
+### Production
+
+#### Docker
+
 Make sure you have both docker and docker-compose installed.
+
 ```
 git clone https://github.com/dessalines/lemmy
 cd lemmy
 ./docker_update.sh # This pulls the newest version, builds and runs it
 ```
+
 and goto http://localhost:8536
-### Local Development
-#### Requirements
+
+<!-- #### Kubernetes (WIP)
+
+> TODO: Add production version with proper proxy setup and Ingress for WebSockets
+
+```bash
+skaffold run -p lemmy--prod
+# Now go to http://${IP}:30002
+``` -->
+
+### Development
+
+#### Kubernetes
+
+This requires:
+
+- Local or remote Kubernetes Cluster, i.e. [`minikube`](https://kubernetes.io/docs/tasks/tools/install-minikube/)
+- [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- [`skaffold`](https://skaffold.dev/)
+
+After satisfying the requirements, run the following:
+
+```bash
+skaffold dev -p lemmy--dev
+```
+
+And goto http://localhost:4444.
+
+#### Non-Kubernetes
+
+##### Requirements
+
 - [Rust](https://www.rust-lang.org/)
 - [Yarn](https://yarnpkg.com/en/)
 - [Postgres](https://www.sqlite.org/index.html)
-#### Set up Postgres DB
+
+##### Set up Postgres DB
+
 ```
  psql -c "create user rrr with password 'rrr' superuser;" -U postgres
  psql -c 'create database rrr with owner rrr;' -U postgres
 ```
-#### Running
+
+##### Running
+
 ```
 git clone https://github.com/dessalines/lemmy
 cd lemmy
@@ -79,15 +122,19 @@ cd lemmy
 # cd ui && yarn start
 # cd server && cargo watch -x run
 ```
+
 and goto http://localhost:8536
 
 ## Documentation
+
 - [ActivityPub API.md](docs/API.md)
 - [Goals](docs/goals.md)
 - [Ranking Algorithm](docs/ranking.md)
 
 ## Support
+
 Lemmy is free, open-source software, meaning no advertising, monetizing, or venture capital, ever. Your donations directly support full-time development of the project.
+
 - [Support on Patreon](https://www.patreon.com/dessalines).
 - [Sponsor List](https://dev.lemmy.ml/#/sponsors).
 - bitcoin: `bc1queu73nwuheqtsp65nyh5hf4jr533r8rr5nsj75`
