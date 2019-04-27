@@ -1,0 +1,110 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres
+data:
+  POSTGRES_PASSWORD: rrr
+  POSTGRES_USER: rrr
+  POSTGRES_DB: rrr
+  PGDATA: /var/lib/postgresql/data/pgdata
+  DATABASE_URL: postgres://rrr:rrr@postgres:5432/rrr
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:11.2-alpine
+          resources:
+            limits:
+              memory: 256Mi
+              cpu: 512m
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: postgres
+          volumeMounts:
+            - name: postgres
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: postgres
+          persistentVolumeClaim:
+            claimName: postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lemmy-server--prod
+data:
+  LEMMY_FRONT_END_DIR: /opt/lemmy/ui--prod/dist # not actually used here, polyfill for monolith
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lemmy-server--prod
+spec:
+  selector:
+    matchLabels:
+      app: lemmy-server--prod
+  template:
+    metadata:
+      labels:
+        app: lemmy-server--prod
+    spec:
+      containers:
+        - name: lemmy-server--prod
+          image: registry.gitlab.com/pojntfx/lemmy/server.prod
+          envFrom:
+            - configMapRef:
+                name: postgres
+            - configMapRef:
+                name: lemmy-server--prod
+          resources:
+            limits:
+              memory: 512Mi
+              cpu: 512m
+          ports:
+            - containerPort: 8536
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lemmy-server--prod
+spec:
+  selector:
+    app: lemmy-server--prod
+  ports:
+    - port: 8536
+      targetPort: 8536
