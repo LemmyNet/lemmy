@@ -93,8 +93,8 @@ spec:
                 name: lemmy-server--dev
           resources:
             limits:
-              memory: 256Mi
-              cpu: 256m
+              memory: 512Mi
+              cpu: 512m
           ports:
             - containerPort: 8536
 ---
