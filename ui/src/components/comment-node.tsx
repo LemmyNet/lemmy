@@ -92,7 +92,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
           {this.state.showEdit && <CommentForm node={node} edit onReplyCancel={this.handleReplyCancel} disabled={this.props.locked} />}
           {!this.state.showEdit &&
             <div>
-              <div className="md-div" dangerouslySetInnerHTML={mdToHtml(node.comment.removed ? '*removed*' : node.comment.content)} />
+              <div className="md-div" dangerouslySetInnerHTML={mdToHtml(node.comment.removed ? '*removed*' : node.comment.deleted ? '*deleted*' : node.comment.content)} />
               <ul class="list-inline mb-1 text-muted small font-weight-bold">
                 {UserService.Instance.user && !this.props.viewOnly && 
                   <>
@@ -108,7 +108,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                           <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>edit</span>
                         </li>
                         <li className="list-inline-item">
-                          <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>delete</span>
+                          <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>
+                            {!this.props.node.comment.deleted ? 'delete' : 'restore'}
+                          </span>
                         </li>
                       </>
                     }
@@ -252,11 +254,12 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
 
   handleDeleteClick(i: CommentNode) {
     let deleteForm: CommentFormI = {
-      content: '*deleted*',
+      content: i.props.node.comment.content,
       edit_id: i.props.node.comment.id,
       creator_id: i.props.node.comment.creator_id,
       post_id: i.props.node.comment.post_id,
       parent_id: i.props.node.comment.parent_id,
+      deleted: !i.props.node.comment.deleted,
       auth: null
     };
     WebSocketService.Instance.editComment(deleteForm);

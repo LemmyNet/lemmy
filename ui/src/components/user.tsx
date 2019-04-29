@@ -350,6 +350,7 @@ export class User extends Component<any, UserState> {
       found.content = res.comment.content;
       found.updated = res.comment.updated;
       found.removed = res.comment.removed;
+      found.deleted = res.comment.deleted;
       found.upvotes = res.comment.upvotes;
       found.downvotes = res.comment.downvotes;
       found.score = res.comment.score;

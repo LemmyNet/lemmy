@@ -56,6 +56,9 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
         {community.removed &&
           <small className="ml-2 text-muted font-italic">removed</small>
         }
+        {community.deleted &&
+          <small className="ml-2 text-muted font-italic">deleted</small>
+        }
       </h5>
       <Link className="text-muted" to={`/c/${community.name}`}>/c/{community.name}</Link>
       <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
@@ -66,7 +69,9 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
             </li>
             {this.amCreator && 
               <li className="list-inline-item">
-                {/* <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>delete</span> */}
+                <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>
+                  {!community.deleted ? 'delete' : 'restore'}
+                </span>
               </li>
             }
           </>
@@ -142,9 +147,18 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     this.setState(this.state);
   }
 
-  // TODO no deleting communities yet
-  // handleDeleteClick(i: Sidebar, event) {
-  // }
+  handleDeleteClick(i: Sidebar) {
+    event.preventDefault();
+    let deleteForm: CommunityFormI = {
+      name: i.props.community.name,
+      title: i.props.community.title,
+      category_id: i.props.community.category_id,
+      edit_id: i.props.community.id,
+      deleted: !i.props.community.deleted,
+      auth: null,
+    };
+    WebSocketService.Instance.editCommunity(deleteForm);
+  }
 
   handleUnsubscribe(communityId: number) {
     let form: FollowCommunityForm = {
@@ -172,9 +186,6 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
 
   get canAdmin(): boolean {
     return UserService.Instance.user && this.props.admins.map(a => a.id).includes(UserService.Instance.user.id);
-  }
-
-  handleDeleteClick() {
   }
 
   handleModRemoveShow(i: Sidebar) {
