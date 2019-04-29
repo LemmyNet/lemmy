@@ -94,7 +94,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
           <div class="form-group row">
             <label class="col-sm-2 col-form-label">Body</label>
             <div class="col-sm-10">
-              <textarea value={this.state.postForm.body} onInput={linkEvent(this, this.handlePostBodyChange)} class="form-control" rows={4} />
+              <textarea value={this.state.postForm.body} onInput={linkEvent(this, this.handlePostBodyChange)} class="form-control" rows={4} maxLength={10000} />
             </div>
           </div>
           {/* Cant change a community from an edit */}
