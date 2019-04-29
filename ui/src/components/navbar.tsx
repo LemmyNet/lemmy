@@ -63,10 +63,10 @@ export class Navbar extends Component<any, NavbarState> {
   navbar() {
     return (
       <nav class="container navbar navbar-expand-md navbar-light navbar-bg p-0 px-3">
-        <a title={version} class="navbar-brand" href="#">
+        <Link title={version} class="navbar-brand" to="/">
           <svg class="icon mr-2"><use xlinkHref="#icon-mouse"></use></svg>
           Lemmy
-        </a>
+        </Link>
         <button class="navbar-toggler" type="button" onClick={linkEvent(this, this.expandNavbar)}>
           <span class="navbar-toggler-icon"></span>
         </button>
