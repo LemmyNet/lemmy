@@ -27,7 +27,7 @@ use actions::moderator::*;
 
 #[derive(EnumString,ToString,Debug)]
 pub enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetReplies, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser, Search
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetReplies, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser, Search, MarkAllAsRead
 }
 
 #[derive(Fail, Debug)]
@@ -478,6 +478,11 @@ pub struct SearchResponse {
   posts: Vec<PostView>,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct MarkAllAsRead {
+  auth: String
+}
+
 /// `ChatServer` manages chat rooms and responsible for coordinating chat
 /// session. implementation is super primitive
 pub struct ChatServer {
@@ -727,6 +732,10 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
     UserOperation::Search => {
       let search: Search = serde_json::from_str(data)?;
       search.perform(chat, msg.id)
+    },
+    UserOperation::MarkAllAsRead => {
+      let mark_all_as_read: MarkAllAsRead = serde_json::from_str(data)?;
+      mark_all_as_read.perform(chat, msg.id)
     },
   }
 }
@@ -2704,6 +2713,59 @@ impl Perform for Search {
           op: self.op_type().to_string(),
           comments: comments,
           posts: posts,
+        }
+        )?
+      )
+  }
+}
+
+
+impl Perform for MarkAllAsRead {
+  fn op_type(&self) -> UserOperation {
+    UserOperation::MarkAllAsRead
+  }
+
+  fn perform(&self, _chat: &mut ChatServer, _addr: usize) -> Result<String, Error> {
+
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&self.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => {
+        return Err(self.error("Not logged in."))?
+      }
+    };
+
+    let user_id = claims.id;
+
+    let replies = ReplyView::get_replies(&conn, user_id, &SortType::New, true, Some(1), Some(999))?;
+
+    for reply in &replies {
+      let comment_form = CommentForm {
+        content: reply.to_owned().content,
+        parent_id: reply.to_owned().parent_id,
+        post_id: reply.to_owned().post_id,
+        creator_id: reply.to_owned().creator_id,
+        removed: None,
+        read: Some(true),
+        updated: reply.to_owned().updated 
+      };
+
+      let _updated_comment = match Comment::update(&conn, reply.id, &comment_form) {
+        Ok(comment) => comment,
+        Err(_e) => {
+          return Err(self.error("Couldn't update Comment"))?
+        }
+      };
+    }
+
+    let replies = ReplyView::get_replies(&conn, user_id, &SortType::New, true, Some(1), Some(999))?;
+
+    Ok(
+      serde_json::to_string(
+        &GetRepliesResponse {
+          op: self.op_type().to_string(),
+          replies: replies,
         }
         )?
       )

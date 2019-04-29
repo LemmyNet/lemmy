@@ -177,6 +177,12 @@ export class WebSocketService {
     this.subject.next(this.wsSendWrapper(UserOperation.Search, form));
   }
 
+  public markAllAsRead() {
+    let form = {};
+    this.setAuth(form);
+    this.subject.next(this.wsSendWrapper(UserOperation.MarkAllAsRead, form));
+  }
+
   private wsSendWrapper(op: UserOperation, data: any) {
     let send = { op: UserOperation[op], data: data };
     console.log(send);
