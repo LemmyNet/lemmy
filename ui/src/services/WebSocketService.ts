@@ -147,6 +147,7 @@ export class WebSocketService {
   }
 
   public getUserDetails(form: GetUserDetailsForm) {
+    this.setAuth(form, false);
     this.subject.next(this.wsSendWrapper(UserOperation.GetUserDetails, form));
   }
 
