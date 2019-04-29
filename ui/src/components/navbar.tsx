@@ -64,7 +64,7 @@ export class Navbar extends Component<any, NavbarState> {
     return (
       <nav class="container navbar navbar-expand-md navbar-light navbar-bg p-0 px-3">
         <Link title={version} class="navbar-brand" to="/">
-          <svg class="icon mr-2"><use xlinkHref="#icon-mouse"></use></svg>
+          <svg class="icon mr-2 mouse-icon"><use xlinkHref="#icon-mouse"></use></svg>
           Lemmy
         </Link>
         <button class="navbar-toggler" type="button" onClick={linkEvent(this, this.expandNavbar)}>
@@ -73,7 +73,7 @@ export class Navbar extends Component<any, NavbarState> {
         <div className={`${!this.state.expanded && 'collapse'} navbar-collapse`}>
           <ul class="navbar-nav mr-auto">
             <li class="nav-item">
-              <Link class="nav-link" to="/communities">Forums</Link>
+              <Link class="nav-link" to="/communities">Communities</Link>
             </li>
             <li class="nav-item">
               <Link class="nav-link" to="/search">Search</Link>
@@ -82,7 +82,7 @@ export class Navbar extends Component<any, NavbarState> {
               <Link class="nav-link" to="/create_post">Create Post</Link>
             </li>
             <li class="nav-item">
-              <Link class="nav-link" to="/create_community">Create Forum</Link>
+              <Link class="nav-link" to="/create_community">Create Community</Link>
             </li>
           </ul>
           <ul class="navbar-nav ml-auto mr-2">

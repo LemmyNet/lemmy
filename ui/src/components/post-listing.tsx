@@ -118,7 +118,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               {this.props.showCommunity && 
                 <span>
                   <span> to </span>
-                  <Link to={`/f/${post.community_name}`}>{post.community_name}</Link>
+                  <Link to={`/c/${post.community_name}`}>{post.community_name}</Link>
                 </span>
               }
             </li>

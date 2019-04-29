@@ -99,7 +99,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
           {/* Cant change a community from an edit */}
           {!this.props.post &&
             <div class="form-group row">
-            <label class="col-sm-2 col-form-label">Forum</label>
+            <label class="col-sm-2 col-form-label">Community</label>
             <div class="col-sm-10">
               <select class="form-control" value={this.state.postForm.community_id} onInput={linkEvent(this, this.handlePostCommunityChange)}>
                 {this.state.communities.map(community =>
