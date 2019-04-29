@@ -4,7 +4,7 @@ import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { UserOperation, Post, Comment, CommunityUser, GetUserDetailsForm, SortType, UserDetailsResponse, UserView, CommentResponse } from '../interfaces';
 import { WebSocketService } from '../services';
-import { msgOp, fetchLimit } from '../utils';
+import { msgOp, fetchLimit, routeSortTypeToEnum, capitalizeFirstLetter } from '../utils';
 import { PostListing } from './post-listing';
 import { CommentNodes } from './comment-nodes';
 import { MomentTime } from './moment-time';
@@ -25,6 +25,7 @@ interface UserState {
   view: View;
   sort: SortType;
   page: number;
+  loading: boolean;
 }
 
 export class User extends Component<any, UserState> {
@@ -47,9 +48,10 @@ export class User extends Component<any, UserState> {
     moderates: [],
     comments: [],
     posts: [],
-    view: View.Overview,
-    sort: SortType.New,
-    page: 1,
+    loading: true,
+    view: this.getViewFromProps(this.props),
+    sort: this.getSortTypeFromProps(this.props),
+    page: this.getPageFromProps(this.props),
   }
 
   constructor(props: any, context: any) {
@@ -71,13 +73,42 @@ export class User extends Component<any, UserState> {
     this.refetch();
   }
 
+  getViewFromProps(props: any): View {
+    return (props.match.params.view) ? 
+      View[capitalizeFirstLetter(props.match.params.view)] : 
+      View.Overview;
+  }
+
+  getSortTypeFromProps(props: any): SortType {
+    return (props.match.params.sort) ? 
+      routeSortTypeToEnum(props.match.params.sort) : 
+      SortType.New;
+  }
+
+  getPageFromProps(props: any): number {
+    return (props.match.params.page) ? Number(props.match.params.page) : 1;
+  }
+
   componentWillUnmount() {
     this.subscription.unsubscribe();
+  }
+
+  // Necessary for back button for some reason
+  componentWillReceiveProps(nextProps: any) {
+    if (nextProps.history.action == 'POP') {
+      this.state = this.emptyState;
+      this.state.view = this.getViewFromProps(nextProps);
+      this.state.sort = this.getSortTypeFromProps(nextProps);
+      this.state.page = this.getPageFromProps(nextProps);
+      this.refetch();
+    }
   }
 
   render() {
     return (
       <div class="container">
+        {this.state.loading ? 
+        <h5><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> : 
         <div class="row">
           <div class="col-12 col-md-9">
             <h5>/u/{this.state.user.name}</h5>
@@ -102,6 +133,7 @@ export class User extends Component<any, UserState> {
             {this.follows()}
           </div>
         </div>
+        }
       </div>
     )
   }
@@ -209,7 +241,7 @@ export class User extends Component<any, UserState> {
             <h5>Moderates</h5>
             <ul class="list-unstyled"> 
               {this.state.moderates.map(community =>
-                <li><Link to={`/f/${community.community_name}`}>{community.community_name}</Link></li>
+                <li><Link to={`/c/${community.community_name}`}>{community.community_name}</Link></li>
               )}
             </ul>
           </div>
@@ -227,7 +259,7 @@ export class User extends Component<any, UserState> {
             <h5>Subscribed</h5>
             <ul class="list-unstyled"> 
               {this.state.follows.map(community =>
-                <li><Link to={`/f/${community.community_name}`}>{community.community_name}</Link></li>
+                <li><Link to={`/c/${community.community_name}`}>{community.community_name}</Link></li>
               )}
             </ul>
           </div>
@@ -247,15 +279,23 @@ export class User extends Component<any, UserState> {
     );
   }
 
+  updateUrl() {
+    let viewStr = View[this.state.view].toLowerCase();
+    let sortStr = SortType[this.state.sort].toLowerCase();
+    this.props.history.push(`/u/${this.state.user.name}/view/${viewStr}/sort/${sortStr}/page/${this.state.page}`);
+  }
+
   nextPage(i: User) { 
     i.state.page++;
     i.setState(i.state);
+    i.updateUrl();
     i.refetch();
   }
 
   prevPage(i: User) { 
     i.state.page--;
     i.setState(i.state);
+    i.updateUrl();
     i.refetch();
   }
 
@@ -275,6 +315,7 @@ export class User extends Component<any, UserState> {
     i.state.sort = Number(event.target.value);
     i.state.page = 1;
     i.setState(i.state);
+    i.updateUrl();
     i.refetch();
   }
 
@@ -282,6 +323,7 @@ export class User extends Component<any, UserState> {
     i.state.view = Number(event.target.value);
     i.state.page = 1;
     i.setState(i.state);
+    i.updateUrl();
     i.refetch();
   }
 
@@ -298,6 +340,7 @@ export class User extends Component<any, UserState> {
       this.state.follows = res.follows;
       this.state.moderates = res.moderates;
       this.state.posts = res.posts;
+      this.state.loading = false;
       document.title = `/u/${this.state.user.name} - Lemmy`;
       this.setState(this.state);
     } else if (op == UserOperation.EditComment) {

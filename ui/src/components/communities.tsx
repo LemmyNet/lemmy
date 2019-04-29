@@ -45,7 +45,7 @@ export class Communities extends Component<any, CommunitiesState> {
   }
 
   componentDidMount() {
-    document.title = "Forums - Lemmy";
+    document.title = "Communities - Lemmy";
     let table = document.querySelector('#community_table');
     Sortable.initTable(table);
   }
@@ -56,7 +56,7 @@ export class Communities extends Component<any, CommunitiesState> {
         {this.state.loading ? 
         <h5 class=""><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> : 
         <div>
-          <h5>Forums</h5>
+          <h5>Communities</h5>
           <div class="table-responsive">
             <table id="community_table" class="table table-sm table-hover">
               <thead class="pointer">
@@ -73,7 +73,7 @@ export class Communities extends Component<any, CommunitiesState> {
               <tbody>
                 {this.state.communities.map(community =>
                   <tr>
-                    <td><Link to={`/f/${community.name}`}>{community.name}</Link></td>
+                    <td><Link to={`/c/${community.name}`}>{community.name}</Link></td>
                     <td>{community.title}</td>
                     <td>{community.category_name}</td>
                     <td class="text-right d-none d-md-table-cell">{community.number_of_subscribers}</td>
