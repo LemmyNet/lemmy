@@ -2,16 +2,11 @@ import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, CommunityUser, GetFollowedCommunitiesResponse, ListCommunitiesForm, ListCommunitiesResponse, Community, SortType, GetSiteResponse, ListingType, SiteResponse } from '../interfaces';
+import { UserOperation, CommunityUser, GetFollowedCommunitiesResponse, ListCommunitiesForm, ListCommunitiesResponse, Community, SortType, GetSiteResponse, ListingType, SiteResponse, GetPostsResponse, CreatePostLikeResponse, Post, GetPostsForm } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
 import { SiteForm } from './site-form';
-import { msgOp, repoUrl, mdToHtml } from '../utils';
-
-
-interface MainProps {
-  type: ListingType;
-}
+import { msgOp, repoUrl, mdToHtml, fetchLimit, routeSortTypeToEnum, routeListingTypeToEnum } from '../utils';
 
 interface MainState {
   subscribedCommunities: Array<CommunityUser>;
@@ -19,9 +14,13 @@ interface MainState {
   site: GetSiteResponse;
   showEditSite: boolean;
   loading: boolean;
+  posts: Array<Post>;
+  type_: ListingType;
+  sort: SortType;
+  page: number;
 }
 
-export class Main extends Component<MainProps, MainState> {
+export class Main extends Component<any, MainState> {
 
   private subscription: Subscription;
   private emptyState: MainState = {
@@ -43,7 +42,29 @@ export class Main extends Component<MainProps, MainState> {
       banned: [],
     },
     showEditSite: false,
-    loading: true
+    loading: true,
+    posts: [],
+    type_: this.getListingTypeFromProps(this.props),
+    sort: this.getSortTypeFromProps(this.props),
+    page: this.getPageFromProps(this.props),
+  }
+
+  getListingTypeFromProps(props: any): ListingType {
+    return (props.match.params.type) ? 
+      routeListingTypeToEnum(props.match.params.type) : 
+      UserService.Instance.user ? 
+      ListingType.Subscribed : 
+      ListingType.All;
+  }
+
+  getSortTypeFromProps(props: any): SortType {
+    return (props.match.params.sort) ? 
+      routeSortTypeToEnum(props.match.params.sort) : 
+      SortType.Hot;
+  }
+
+  getPageFromProps(props: any): number {
+    return (props.match.params.page) ? Number(props.match.params.page) : 1;
   }
 
   constructor(props: any, context: any) {
@@ -72,11 +93,26 @@ export class Main extends Component<MainProps, MainState> {
 
     WebSocketService.Instance.listCommunities(listCommunitiesForm);
 
-    this.handleEditCancel = this.handleEditCancel.bind(this);
+    this.fetchPosts();
   }
 
   componentWillUnmount() {
     this.subscription.unsubscribe();
+  }
+
+  componentDidMount() {
+    document.title = "Lemmy";
+  }
+
+  // Necessary for back button for some reason
+  componentWillReceiveProps(nextProps: any) {
+    if (nextProps.history.action == 'POP') {
+      this.state = this.emptyState;
+      this.state.type_ = this.getListingTypeFromProps(nextProps);
+      this.state.sort = this.getSortTypeFromProps(nextProps);
+      this.state.page = this.getPageFromProps(nextProps);
+      this.fetchPosts();
+    }
   }
 
   render() {
@@ -84,25 +120,24 @@ export class Main extends Component<MainProps, MainState> {
       <div class="container">
         <div class="row">
           <div class="col-12 col-md-8">
-            <PostListings type={this.props.type} />
+            {this.posts()}
           </div>
           <div class="col-12 col-md-4">
-            {this.state.loading ? 
-            <h5><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> : 
-            <div>
-              {this.trendingCommunities()}
-              {UserService.Instance.user && this.state.subscribedCommunities.length > 0 && 
-                <div>
-                  <h5>Subscribed forums</h5>
-                  <ul class="list-inline"> 
-                    {this.state.subscribedCommunities.map(community =>
-                      <li class="list-inline-item"><Link to={`/f/${community.community_name}`}>{community.community_name}</Link></li>
-                    )}
-                  </ul>
-                </div>
-              }
-              {this.sidebar()}
-            </div>
+            {!this.state.loading &&
+              <div>
+                {this.trendingCommunities()}
+                {UserService.Instance.user && this.state.subscribedCommunities.length > 0 && 
+                  <div>
+                    <h5>Subscribed communities</h5>
+                    <ul class="list-inline"> 
+                      {this.state.subscribedCommunities.map(community =>
+                        <li class="list-inline-item"><Link to={`/c/${community.community_name}`}>{community.community_name}</Link></li>
+                      )}
+                    </ul>
+                  </div>
+                }
+                {this.sidebar()}
+              </div>
             }
           </div>
         </div>
@@ -113,10 +148,10 @@ export class Main extends Component<MainProps, MainState> {
   trendingCommunities() {
     return (
       <div>
-        <h5>Trending <Link class="text-white" to="/communities">forums</Link></h5> 
+        <h5>Trending <Link class="text-white" to="/communities">communities</Link></h5> 
         <ul class="list-inline"> 
           {this.state.trendingCommunities.map(community =>
-            <li class="list-inline-item"><Link to={`/f/${community.name}`}>{community.name}</Link></li>
+            <li class="list-inline-item"><Link to={`/c/${community.name}`}>{community.name}</Link></li>
           )}
         </ul>
       </div>
@@ -136,6 +171,12 @@ export class Main extends Component<MainProps, MainState> {
         {this.landing()}
       </div>
     )
+  }
+
+  updateUrl() {
+    let typeStr = ListingType[this.state.type_].toLowerCase();
+    let sortStr = SortType[this.state.sort].toLowerCase();
+    this.props.history.push(`/home/type/${typeStr}/sort/${sortStr}/page/${this.state.page}`);
   }
 
   siteInfo() {
@@ -185,7 +226,59 @@ export class Main extends Component<MainProps, MainState> {
         <p>Suggest new features or report bugs <a href={repoUrl}>here.</a></p>
         <p>Made with <a href="https://www.rust-lang.org">Rust</a>, <a href="https://actix.rs/">Actix</a>, <a href="https://www.infernojs.org">Inferno</a>, <a href="https://www.typescriptlang.org/">Typescript</a>.</p>
       </div>
+      )
+  }
+
+  posts() {
+    return (
+      <div>
+        {this.state.loading ? 
+        <h5><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> : 
+        <div>
+          {this.selects()}
+          <PostListings posts={this.state.posts} showCommunity />
+          {this.paginator()}
+        </div>
+        }
+      </div>
     )
+  }
+
+  selects() {
+    return (
+      <div className="mb-2">
+        <select value={this.state.sort} onChange={linkEvent(this, this.handleSortChange)} class="custom-select w-auto">
+          <option disabled>Sort Type</option>
+          <option value={SortType.Hot}>Hot</option>
+          <option value={SortType.New}>New</option>
+          <option disabled>──────────</option>
+          <option value={SortType.TopDay}>Top Day</option>
+          <option value={SortType.TopWeek}>Week</option>
+          <option value={SortType.TopMonth}>Month</option>
+          <option value={SortType.TopYear}>Year</option>
+          <option value={SortType.TopAll}>All</option>
+        </select>
+        { UserService.Instance.user &&
+          <select value={this.state.type_} onChange={linkEvent(this, this.handleTypeChange)} class="ml-2 custom-select w-auto">
+            <option disabled>Type</option>
+            <option value={ListingType.All}>All</option>
+            <option value={ListingType.Subscribed}>Subscribed</option>
+          </select>
+
+        }
+      </div>
+    )
+  }
+
+  paginator() {
+    return (
+      <div class="mt-2">
+        {this.state.page > 1 && 
+          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}>Prev</button>
+        }
+        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}>Next</button>
+      </div>
+    );
   }
 
   get canAdmin(): boolean {
@@ -202,6 +295,46 @@ export class Main extends Component<MainProps, MainState> {
     this.setState(this.state);
   }
 
+  nextPage(i: Main) { 
+    i.state.page++;
+    i.setState(i.state);
+    i.updateUrl();
+    i.fetchPosts();
+  }
+
+  prevPage(i: Main) { 
+    i.state.page--;
+    i.setState(i.state);
+    i.updateUrl();
+    i.fetchPosts();
+  }
+
+  handleSortChange(i: Main, event: any) {
+    i.state.sort = Number(event.target.value);
+    i.state.page = 1;
+    i.setState(i.state);
+    i.updateUrl();
+    i.fetchPosts();
+  }
+
+  handleTypeChange(i: Main, event: any) {
+    i.state.type_ = Number(event.target.value);
+    i.state.page = 1;
+    i.setState(i.state);
+    i.updateUrl();
+    i.fetchPosts();
+  }
+
+  fetchPosts() {
+    let getPostsForm: GetPostsForm = {
+      page: this.state.page,
+      limit: fetchLimit,
+      sort: SortType[this.state.sort],
+      type_: ListingType[this.state.type_]
+    }
+    WebSocketService.Instance.getPosts(getPostsForm);
+  }
+
   parseMessage(msg: any) {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
@@ -211,12 +344,10 @@ export class Main extends Component<MainProps, MainState> {
     } else if (op == UserOperation.GetFollowedCommunities) {
       let res: GetFollowedCommunitiesResponse = msg;
       this.state.subscribedCommunities = res.communities;
-      this.state.loading = false;
       this.setState(this.state);
     } else if (op == UserOperation.ListCommunities) {
       let res: ListCommunitiesResponse = msg;
       this.state.trendingCommunities = res.communities;
-      this.state.loading = false;
       this.setState(this.state);
     } else if (op == UserOperation.GetSite) {
       let res: GetSiteResponse = msg;
@@ -233,6 +364,19 @@ export class Main extends Component<MainProps, MainState> {
       let res: SiteResponse = msg;
       this.state.site.site = res.site;
       this.state.showEditSite = false;
+      this.setState(this.state);
+    } else if (op == UserOperation.GetPosts) {
+      let res: GetPostsResponse = msg;
+      this.state.posts = res.posts;
+      this.state.loading = false;
+      this.setState(this.state);
+    } else if (op == UserOperation.CreatePostLike) {
+      let res: CreatePostLikeResponse = msg;
+      let found = this.state.posts.find(c => c.id == res.post.id);
+      found.my_vote = res.post.my_vote;
+      found.score = res.post.score;
+      found.upvotes = res.post.upvotes;
+      found.downvotes = res.post.downvotes;
       this.setState(this.state);
     }
   }

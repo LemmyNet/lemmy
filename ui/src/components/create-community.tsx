@@ -10,7 +10,7 @@ export class CreateCommunity extends Component<any, any> {
   }
 
   componentDidMount() {
-    document.title = "Create Forum - Lemmy";
+    document.title = "Create Community - Lemmy";
   }
 
   render() {
@@ -18,7 +18,7 @@ export class CreateCommunity extends Component<any, any> {
       <div class="container">
         <div class="row">
           <div class="col-12 col-lg-6 mb-4">
-            <h5>Create Forum</h5>
+            <h5>Create Community</h5>
             <CommunityForm onCreate={this.handleCommunityCreate}/>
           </div>
         </div>
@@ -27,7 +27,7 @@ export class CreateCommunity extends Component<any, any> {
   }
 
   handleCommunityCreate(community: Community) {
-    this.props.history.push(`/f/${community.name}`);
+    this.props.history.push(`/c/${community.name}`);
   }
 }
 

@@ -120,10 +120,7 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
     if (i.props.community) {
       WebSocketService.Instance.editCommunity(i.state.communityForm);
     } else {
-
-      setTimeout(function(){
-        WebSocketService.Instance.createCommunity(i.state.communityForm);
-      }, 10000);
+      WebSocketService.Instance.createCommunity(i.state.communityForm);
     }
     i.setState(i.state);
   }
