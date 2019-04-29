@@ -16,6 +16,7 @@ table! {
         read -> Bool,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
+        deleted -> Bool,
     }
 }
 
@@ -50,6 +51,7 @@ table! {
         removed -> Bool,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
+        deleted -> Bool,
     }
 }
 
@@ -182,6 +184,7 @@ table! {
         locked -> Bool,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
+        deleted -> Bool,
     }
 }
 
