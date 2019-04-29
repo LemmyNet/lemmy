@@ -442,6 +442,7 @@ mod tests {
       category_id: 1,
       creator_id: inserted_user.id,
       removed: None,
+      deleted: None,
       updated: None
     };
 
@@ -454,6 +455,7 @@ mod tests {
       creator_id: inserted_user.id,
       community_id: inserted_community.id,
       removed: None,
+      deleted: None,
       locked: None,
       updated: None
     };
@@ -465,6 +467,7 @@ mod tests {
       creator_id: inserted_user.id,
       post_id: inserted_post.id,
       removed: None,
+      deleted: None,
       read: None,
       parent_id: None,
       updated: None

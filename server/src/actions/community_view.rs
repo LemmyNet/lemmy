@@ -15,6 +15,7 @@ table! {
     removed -> Bool,
     published -> Timestamp,
     updated -> Nullable<Timestamp>,
+    deleted -> Bool,
     creator_name -> Varchar,
     category_name -> Varchar,
     number_of_subscribers -> BigInt,
@@ -85,6 +86,7 @@ pub struct CommunityView {
   pub removed: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
+  pub deleted: bool,
   pub creator_name: String,
   pub category_name: String,
   pub number_of_subscribers: i64,
@@ -139,6 +141,7 @@ impl CommunityView {
       .limit(limit)
       .offset(offset)
       .filter(removed.eq(false))
+      .filter(deleted.eq(false))
       .load::<Self>(conn) 
   }
 }

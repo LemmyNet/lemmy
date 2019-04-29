@@ -17,6 +17,7 @@ table! {
     read -> Bool,
     published -> Timestamp,
     updated -> Nullable<Timestamp>,
+    deleted -> Bool,
     community_id -> Int4,
     banned -> Bool,
     banned_from_community -> Bool,
@@ -42,6 +43,7 @@ pub struct CommentView {
   pub read: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
+  pub deleted: bool,
   pub community_id: i32,
   pub banned: bool,
   pub banned_from_community: bool,
@@ -115,6 +117,7 @@ impl CommentView {
               _ => query.order_by(published.desc())
     };
 
+    // Note: deleted and removed comments are done on the front side
     query
       .limit(limit)
       .offset(offset)
@@ -153,6 +156,7 @@ table! {
     read -> Bool,
     published -> Timestamp,
     updated -> Nullable<Timestamp>,
+    deleted -> Bool,
     community_id -> Int4,
     banned -> Bool,
     banned_from_community -> Bool,
@@ -179,6 +183,7 @@ pub struct ReplyView {
   pub read: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
+  pub deleted: bool,
   pub community_id: i32,
   pub banned: bool,
   pub banned_from_community: bool,
@@ -275,6 +280,7 @@ mod tests {
       category_id: 1,
       creator_id: inserted_user.id,
       removed: None,
+      deleted: None,
       updated: None
     };
 
@@ -287,6 +293,7 @@ mod tests {
       body: None,
       community_id: inserted_community.id,
       removed: None,
+      deleted: None,
       locked: None,
       updated: None
     };
@@ -299,6 +306,7 @@ mod tests {
       post_id: inserted_post.id,
       parent_id: None,
       removed: None,
+      deleted: None,
       read: None,
       updated: None
     };
@@ -322,6 +330,7 @@ mod tests {
       community_id: inserted_community.id,
       parent_id: None,
       removed: false,
+      deleted: false,
       read: false,
       banned: false,
       banned_from_community: false,
@@ -344,6 +353,7 @@ mod tests {
       community_id: inserted_community.id,
       parent_id: None,
       removed: false,
+      deleted: false,
       read: false,
       banned: false,
       banned_from_community: false,

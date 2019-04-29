@@ -23,9 +23,11 @@ table! {
     locked -> Bool,
     published -> Timestamp,
     updated -> Nullable<Timestamp>,
+    deleted -> Bool,
     creator_name -> Varchar,
     community_name -> Varchar,
     community_removed -> Bool,
+    community_deleted -> Bool,
     number_of_comments -> BigInt,
     score -> BigInt,
     upvotes -> BigInt,
@@ -53,9 +55,11 @@ pub struct PostView {
   pub locked: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
+  pub deleted: bool,
   pub creator_name: String,
   pub community_name: String,
   pub community_removed: bool,
+  pub community_deleted: bool,
   pub number_of_comments: i64,
   pub score: i64,
   pub upvotes: i64,
@@ -144,7 +148,9 @@ impl PostView {
       .limit(limit)
       .offset(offset)
       .filter(removed.eq(false))
-      .filter(community_removed.eq(false));
+      .filter(deleted.eq(false))
+      .filter(community_removed.eq(false))
+      .filter(community_deleted.eq(false));
 
     query.load::<Self>(conn) 
   }
@@ -206,6 +212,7 @@ mod tests {
       creator_id: inserted_user.id,
       category_id: 1,
       removed: None,
+      deleted: None,
       updated: None
     };
 
@@ -218,6 +225,7 @@ mod tests {
       creator_id: inserted_user.id,
       community_id: inserted_community.id,
       removed: None,
+      deleted: None,
       locked: None,
       updated: None
     };
@@ -258,9 +266,11 @@ mod tests {
       creator_name: user_name.to_owned(),
       community_id: inserted_community.id,
       removed: false,
+      deleted: false,
       locked: false,
       community_name: community_name.to_owned(),
       community_removed: false,
+      community_deleted: false,
       number_of_comments: 0,
       score: 1,
       upvotes: 1,
@@ -281,12 +291,14 @@ mod tests {
       url: None,
       body: None,
       removed: false,
+      deleted: false,
       locked: false,
       creator_id: inserted_user.id,
       creator_name: user_name.to_owned(),
       community_id: inserted_community.id,
       community_name: community_name.to_owned(),
       community_removed: false,
+      community_deleted: false,
       number_of_comments: 0,
       score: 1,
       upvotes: 1,

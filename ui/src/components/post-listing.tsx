@@ -85,6 +85,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             {post.removed &&
               <small className="ml-2 text-muted font-italic">removed</small>
             }
+            {post.deleted &&
+              <small className="ml-2 text-muted font-italic">deleted</small>
+            }
             {post.locked &&
               <small className="ml-2 text-muted font-italic">locked</small>
             }
@@ -140,7 +143,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           {UserService.Instance.user && this.props.editable &&
             <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
               <li className="list-inline-item mr-2">
-                <span class="pointer" onClick={linkEvent(this, this.handleSavePostClick)}>{this.props.post.saved ? 'unsave' : 'save'}</span>
+                <span class="pointer" onClick={linkEvent(this, this.handleSavePostClick)}>{post.saved ? 'unsave' : 'save'}</span>
               </li>
               {this.myPost && 
                 <>
@@ -148,7 +151,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                     <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>edit</span>
                   </li>
                   <li className="list-inline-item mr-2">
-                    <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>delete</span>
+                    <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>
+                      {!post.deleted ? 'delete' : 'restore'}
+                    </span>
                   </li>
                 </>
               }
@@ -237,12 +242,13 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
   handleDeleteClick(i: PostListing) {
     let deleteForm: PostFormI = {
-      body: '',
+      body: i.props.post.body,
       community_id: i.props.post.community_id,
-      name: "deleted",
-      url: '',
+      name: i.props.post.name,
+      url: i.props.post.url,
       edit_id: i.props.post.id,
       creator_id: i.props.post.creator_id,
+      deleted: !i.props.post.deleted,
       auth: null
     };
     WebSocketService.Instance.editPost(deleteForm);
