@@ -323,6 +323,7 @@ pub struct GetUserDetails {
   limit: Option<i64>,
   community_id: Option<i32>,
   saved_only: bool,
+  auth: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -2069,6 +2070,19 @@ impl Perform for GetUserDetails {
 
     let conn = establish_connection();
 
+    let user_id: Option<i32> = match &self.auth {
+      Some(auth) => {
+        match Claims::decode(&auth) {
+          Ok(claims) => {
+            let user_id = claims.claims.id;
+            Some(user_id)
+          }
+          Err(_e) => None
+        }
+      }
+      None => None
+    };
+
     //TODO add save
     let sort = SortType::from_str(&self.sort)?;
 
@@ -2099,7 +2113,7 @@ impl Perform for GetUserDetails {
                      self.community_id, 
                      Some(user_details_id), 
                      None, 
-                     None, 
+                     user_id, 
                      self.saved_only, 
                      false, 
                      self.page, 
@@ -2121,7 +2135,7 @@ impl Perform for GetUserDetails {
                         None, 
                         Some(user_details_id), 
                         None, 
-                        None, 
+                        user_id, 
                         self.saved_only, 
                         self.page, 
                         self.limit)?
