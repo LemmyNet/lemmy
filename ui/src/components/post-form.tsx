@@ -8,6 +8,7 @@ import * as autosize from 'autosize';
 
 interface PostFormProps {
   post?: Post; // If a post is given, that means this is an edit
+  prevCommunityName?: string;
   onCancel?(): any;
   onCreate?(id: number): any;
   onEdit?(post: Post): any;
@@ -170,6 +171,9 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       this.state.communities = res.communities;
       if (this.props.post) {
         this.state.postForm.community_id = this.props.post.community_id;
+      } else if (this.props.prevCommunityName) {
+        let foundCommunityId = res.communities.find(r => r.name == this.props.prevCommunityName).id;
+        this.state.postForm.community_id = foundCommunityId;
       } else {
         this.state.postForm.community_id = res.communities[0].id;
       }

@@ -79,7 +79,7 @@ export class Navbar extends Component<any, NavbarState> {
               <Link class="nav-link" to="/search">Search</Link>
             </li>
             <li class="nav-item">
-              <Link class="nav-link" to="/create_post">Create Post</Link>
+              <Link class="nav-link" to={{pathname: '/create_post', state: { prevPath: this.currentLocation }}}>Create Post</Link>
             </li>
             <li class="nav-item">
               <Link class="nav-link" to="/create_community">Create Community</Link>
@@ -163,6 +163,10 @@ export class Navbar extends Component<any, NavbarState> {
       };
       WebSocketService.Instance.getReplies(repliesForm);
     }
+  }
+
+  get currentLocation() {
+    return this.context.router.history.location.pathname;
   }
 
   sendRepliesCount(res: GetRepliesResponse) {

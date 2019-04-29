@@ -18,11 +18,21 @@ export class CreatePost extends Component<any, any> {
         <div class="row">
           <div class="col-12 col-lg-6 mb-4">
             <h5>Create a Post</h5>
-            <PostForm onCreate={this.handlePostCreate}/>
+            <PostForm onCreate={this.handlePostCreate} prevCommunityName={this.prevCommunityName} />
           </div>
         </div>
       </div>
     )
+  }
+
+  get prevCommunityName(): string {
+    if (this.props.location.state) {
+      let lastLocation = this.props.location.state.prevPath;
+      if (lastLocation.includes("/c/")) {
+        return lastLocation.split("/c/")[1];
+      }    
+    }
+    return undefined;
   }
 
   handlePostCreate(id: number) {
