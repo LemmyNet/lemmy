@@ -1,5 +1,6 @@
 import { UserOperation, Comment, User, SortType, ListingType } from './interfaces';
 import * as markdown_it from 'markdown-it';
+import * as markdown_it_container from 'markdown-it-container';
 
 export let repoUrl = 'https://github.com/dessalines/lemmy';
 
@@ -12,6 +13,23 @@ var md = new markdown_it({
   html: true,
   linkify: true,
   typographer: true
+}).use(markdown_it_container, 'spoiler', {
+  validate: function(params: any) {
+    return params.trim().match(/^spoiler\s+(.*)$/);
+  },
+
+  render: function (tokens: any, idx: any) {
+    var m = tokens[idx].info.trim().match(/^spoiler\s+(.*)$/);
+
+    if (tokens[idx].nesting === 1) {
+      // opening tag
+      return '<details><summary>' + md.utils.escapeHtml(m[1]) + '</summary>\n';
+
+    } else {
+      // closing tag
+      return '</details>\n';
+    }
+  }
 });
 
 export function hotRank(comment: Comment): number {
