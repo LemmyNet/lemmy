@@ -58,7 +58,16 @@ export class Inbox extends Component<any, InboxState> {
       <div class="container">
         <div class="row">
           <div class="col-12">
-            <h5>Inbox for <Link to={`/u/${user.username}`}>{user.username}</Link></h5>
+            <h5 class="mb-0">
+              <span>Inbox for <Link to={`/u/${user.username}`}>{user.username}</Link></span>
+            </h5>
+            {this.state.replies.length > 0 && this.state.unreadType == UnreadType.Unread &&
+              <ul class="list-inline mb-1 text-muted small font-weight-bold">
+                <li className="list-inline-item">
+                  <span class="pointer" onClick={this.markAllAsRead}>mark all as read</span>
+                </li>
+              </ul>
+            }
             {this.selects()}
             {this.replies()}
             {this.paginator()}
@@ -147,13 +156,17 @@ export class Inbox extends Component<any, InboxState> {
     i.refetch();
   }
 
+  markAllAsRead() {
+    WebSocketService.Instance.markAllAsRead();
+  }
+
   parseMessage(msg: any) {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
       alert(msg.error);
       return;
-    } else if (op == UserOperation.GetReplies) {
+    } else if (op == UserOperation.GetReplies || op == UserOperation.MarkAllAsRead) {
       let res: GetRepliesResponse = msg;
       this.state.replies = res.replies;
       this.sendRepliesCount();
