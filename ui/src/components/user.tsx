@@ -241,7 +241,7 @@ export class User extends Component<any, UserState> {
             <h5>Moderates</h5>
             <ul class="list-unstyled"> 
               {this.state.moderates.map(community =>
-                <li><Link to={`/f/${community.community_name}`}>{community.community_name}</Link></li>
+                <li><Link to={`/c/${community.community_name}`}>{community.community_name}</Link></li>
               )}
             </ul>
           </div>
@@ -259,7 +259,7 @@ export class User extends Component<any, UserState> {
             <h5>Subscribed</h5>
             <ul class="list-unstyled"> 
               {this.state.follows.map(community =>
-                <li><Link to={`/f/${community.community_name}`}>{community.community_name}</Link></li>
+                <li><Link to={`/c/${community.community_name}`}>{community.community_name}</Link></li>
               )}
             </ul>
           </div>

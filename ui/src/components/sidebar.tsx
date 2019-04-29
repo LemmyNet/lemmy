@@ -57,7 +57,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
           <small className="ml-2 text-muted font-italic">removed</small>
         }
       </h5>
-      <Link className="text-muted" to={`/f/${community.name}`}>/f/{community.name}</Link>
+      <Link className="text-muted" to={`/c/${community.name}`}>/c/{community.name}</Link>
       <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
         {this.canMod && 
           <>

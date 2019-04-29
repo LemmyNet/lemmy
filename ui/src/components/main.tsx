@@ -128,10 +128,10 @@ export class Main extends Component<any, MainState> {
                 {this.trendingCommunities()}
                 {UserService.Instance.user && this.state.subscribedCommunities.length > 0 && 
                   <div>
-                    <h5>Subscribed forums</h5>
+                    <h5>Subscribed communities</h5>
                     <ul class="list-inline"> 
                       {this.state.subscribedCommunities.map(community =>
-                        <li class="list-inline-item"><Link to={`/f/${community.community_name}`}>{community.community_name}</Link></li>
+                        <li class="list-inline-item"><Link to={`/c/${community.community_name}`}>{community.community_name}</Link></li>
                       )}
                     </ul>
                   </div>
@@ -148,10 +148,10 @@ export class Main extends Component<any, MainState> {
   trendingCommunities() {
     return (
       <div>
-        <h5>Trending <Link class="text-white" to="/communities">forums</Link></h5> 
+        <h5>Trending <Link class="text-white" to="/communities">communities</Link></h5> 
         <ul class="list-inline"> 
           {this.state.trendingCommunities.map(community =>
-            <li class="list-inline-item"><Link to={`/f/${community.name}`}>{community.name}</Link></li>
+            <li class="list-inline-item"><Link to={`/c/${community.name}`}>{community.name}</Link></li>
           )}
         </ul>
       </div>

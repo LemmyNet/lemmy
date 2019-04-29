@@ -174,7 +174,7 @@ export class Community extends Component<any, State> {
 
   updateUrl() {
     let sortStr = SortType[this.state.sort].toLowerCase();
-    this.props.history.push(`/f/${this.state.community.name}/sort/${sortStr}/page/${this.state.page}`);
+    this.props.history.push(`/c/${this.state.community.name}/sort/${sortStr}/page/${this.state.page}`);
   }
 
   fetchPosts() {
@@ -199,7 +199,7 @@ export class Community extends Component<any, State> {
       this.state.community = res.community;
       this.state.moderators = res.moderators;
       this.state.admins = res.admins;
-      document.title = `/f/${this.state.community.name} - Lemmy`;
+      document.title = `/c/${this.state.community.name} - Lemmy`;
       this.setState(this.state);
       this.fetchPosts();
     } else if (op == UserOperation.EditCommunity) {
