@@ -1,9 +1,8 @@
 import { render, Component } from 'inferno';
-import { HashRouter, Route, Switch } from 'inferno-router';
-
+import { HashRouter, BrowserRouter, Route, Switch } from 'inferno-router';
+import { Main } from './components/main';
 import { Navbar } from './components/navbar';
 import { Footer } from './components/footer';
-import { Home } from './components/home';
 import { Login } from './components/login';
 import { CreatePost } from './components/create-post';
 import { CreateCommunity } from './components/create-community';
@@ -39,14 +38,15 @@ class Index extends Component<any, any> {
         <Navbar />
         <div class="mt-3 p-0">
           <Switch>
-            <Route exact path="/all" component={Home} />
-            <Route exact path="/" component={Home} />
+            <Route path="/home/type/:type/sort/:sort/page/:page" component={Main} />
+            <Route exact path="/" component={Main} />
             <Route path={`/login`} component={Login} />
             <Route path={`/create_post`} component={CreatePost} />
             <Route path={`/create_community`} component={CreateCommunity} />
             <Route path={`/communities`} component={Communities} />
             <Route path={`/post/:id/comment/:comment_id`} component={Post} />
             <Route path={`/post/:id`} component={Post} />
+            <Route path="/f/:name/sort/:sort/page/:page" component={Community} />
             <Route path={`/community/:id`} component={Community} />
             <Route path={`/f/:name`} component={Community} />
             <Route path={`/user/:id`} component={User} />
