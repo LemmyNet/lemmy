@@ -219,6 +219,7 @@ pub struct EditComment {
   creator_id: i32,
   post_id: i32,
   removed: Option<bool>,
+  deleted: Option<bool>,
   reason: Option<String>,
   read: Option<bool>,
   auth: String
@@ -268,6 +269,7 @@ pub struct EditPost {
   url: Option<String>,
   body: Option<String>,
   removed: Option<bool>,
+  deleted: Option<bool>,
   locked: Option<bool>,
   reason: Option<String>,
   auth: String
@@ -288,6 +290,7 @@ pub struct EditCommunity {
   description: Option<String>,
   category_id: i32,
   removed: Option<bool>,
+  deleted: Option<bool>,
   reason: Option<String>,
   expires: Option<i64>,
   auth: String
@@ -912,6 +915,7 @@ impl Perform for CreateCommunity {
       category_id: self.category_id,
       creator_id: user_id,
       removed: None,
+      deleted: None,
       updated: None,
     };
 
@@ -1060,6 +1064,7 @@ impl Perform for CreatePost {
       community_id: self.community_id,
       creator_id: user_id,
       removed: None,
+      deleted: None,
       locked: None,
       updated: None
     };
@@ -1264,6 +1269,7 @@ impl Perform for CreateComment {
       post_id: self.post_id,
       creator_id: user_id,
       removed: None,
+      deleted: None,
       read: None,
       updated: None
     };
@@ -1380,6 +1386,7 @@ impl Perform for EditComment {
       post_id: self.post_id,
       creator_id: self.creator_id,
       removed: self.removed.to_owned(),
+      deleted: self.deleted.to_owned(),
       read: self.read.to_owned(),
       updated: if self.read.is_some() { orig_comment.updated } else {Some(naive_now())}
       };
@@ -1743,6 +1750,7 @@ impl Perform for EditPost {
       creator_id: self.creator_id.to_owned(),
       community_id: self.community_id,
       removed: self.removed.to_owned(),
+      deleted: self.deleted.to_owned(),
       locked: self.locked.to_owned(),
       updated: Some(naive_now())
     };
@@ -1908,6 +1916,7 @@ impl Perform for EditCommunity {
       category_id: self.category_id.to_owned(),
       creator_id: user_id,
       removed: self.removed.to_owned(),
+      deleted: self.deleted.to_owned(),
       updated: Some(naive_now())
     };
 
@@ -2747,6 +2756,7 @@ impl Perform for MarkAllAsRead {
         post_id: reply.to_owned().post_id,
         creator_id: reply.to_owned().creator_id,
         removed: None,
+        deleted: None,
         read: Some(true),
         updated: reply.to_owned().updated 
       };
