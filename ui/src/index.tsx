@@ -34,7 +34,7 @@ class Index extends Component<any, any> {
 
   render() {
     return (
-      <BrowserRouter>
+      <HashRouter>
         <Navbar />
         <div class="mt-3 p-0">
           <Switch>
