@@ -1,4 +1,4 @@
-import { UserOperation, Comment, User } from './interfaces';
+import { UserOperation, Comment, User, SortType, ListingType } from './interfaces';
 import * as markdown_it from 'markdown-it';
 
 export let repoUrl = 'https://github.com/dessalines/lemmy';
@@ -67,3 +67,29 @@ export function isImage(url: string) {
 }
 
 export let fetchLimit: number = 20;
+
+export function capitalizeFirstLetter(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+
+export function routeSortTypeToEnum(sort: string): SortType {
+  if (sort == 'new') {
+    return SortType.New;
+  } else if (sort == 'hot') {
+    return SortType.Hot;
+  } else if (sort == 'topday') {
+    return SortType.TopDay;
+  } else if (sort == 'topweek') {
+    return SortType.TopWeek;
+  } else if (sort == 'topmonth') {
+    return SortType.TopMonth;
+  } else if (sort == 'topall') {
+    return SortType.TopAll;
+  }
+}
+
+export function routeListingTypeToEnum(type: string): ListingType {
+  return ListingType[capitalizeFirstLetter(type)];
+}
+
