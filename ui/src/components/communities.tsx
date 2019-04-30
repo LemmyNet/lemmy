@@ -10,6 +10,7 @@ declare const Sortable: any;
 
 interface CommunitiesState {
   communities: Array<Community>;
+  page: number;
   loading: boolean;
 }
 
@@ -17,7 +18,8 @@ export class Communities extends Component<any, CommunitiesState> {
   private subscription: Subscription;
   private emptyState: CommunitiesState = {
     communities: [],
-    loading: true
+    loading: true,
+    page: this.getPageFromProps(this.props),
   }
 
   constructor(props: any, context: any) {
@@ -31,13 +33,12 @@ export class Communities extends Component<any, CommunitiesState> {
         () => console.log('complete')
     );
 
-    let listCommunitiesForm: ListCommunitiesForm = {
-      sort: SortType[SortType.TopAll],
-      limit: 100,
-    }
+    this.refetch();
 
-    WebSocketService.Instance.listCommunities(listCommunitiesForm);
+  }
 
+  getPageFromProps(props: any): number {
+    return (props.match.params.page) ? Number(props.match.params.page) : 1;
   }
 
   componentWillUnmount() {
@@ -48,6 +49,15 @@ export class Communities extends Component<any, CommunitiesState> {
     document.title = "Communities - Lemmy";
     let table = document.querySelector('#community_table');
     Sortable.initTable(table);
+  }
+
+  // Necessary for back button for some reason
+  componentWillReceiveProps(nextProps: any) {
+    if (nextProps.history.action == 'POP') {
+      this.state = this.emptyState;
+      this.state.page = this.getPageFromProps(nextProps);
+      this.refetch();
+    }
   }
 
   render() {
@@ -90,10 +100,40 @@ export class Communities extends Component<any, CommunitiesState> {
               </tbody>
             </table>
           </div>
+          {this.paginator()}
         </div>
         }
       </div>
     );
+  }
+
+  paginator() {
+    return (
+      <div class="mt-2">
+        {this.state.page > 1 && 
+          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}>Prev</button>
+        }
+        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}>Next</button>
+      </div>
+    );
+  }
+
+  updateUrl() {
+    this.props.history.push(`/communities/page/${this.state.page}`);
+  }
+
+  nextPage(i: Communities) { 
+    i.state.page++;
+    i.setState(i.state);
+    i.updateUrl();
+    i.refetch();
+  }
+
+  prevPage(i: Communities) { 
+    i.state.page--;
+    i.setState(i.state);
+    i.updateUrl();
+    i.refetch();
   }
 
   handleUnsubscribe(communityId: number) {
@@ -110,6 +150,17 @@ export class Communities extends Component<any, CommunitiesState> {
       follow: true
     };
     WebSocketService.Instance.followCommunity(form);
+  }
+
+  refetch() {
+    let listCommunitiesForm: ListCommunitiesForm = {
+      sort: SortType[SortType.TopAll],
+      limit: 100,
+      page: this.state.page,
+    }
+
+    WebSocketService.Instance.listCommunities(listCommunitiesForm);
+
   }
 
   parseMessage(msg: any) {
