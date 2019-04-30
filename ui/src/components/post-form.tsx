@@ -86,8 +86,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
             <div class="col-sm-10">
               <input type="url" class="form-control" value={this.state.postForm.url} onInput={linkEvent(this, this.handlePostUrlChange)} />
               {this.state.suggestedTitle && 
-                <span class="text-muted small font-weight-bold pointer" onClick={linkEvent(this, this.copySuggestedTitle}>copy suggested title: {this.state.suggestedTitle}
-                                                         </span>
+                <span class="text-muted small font-weight-bold pointer" onClick={linkEvent(this, this.copySuggestedTitle)}>copy suggested title: {this.state.suggestedTitle}</span>
               }
             </div>
           </div>
