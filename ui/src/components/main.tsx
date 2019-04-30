@@ -216,7 +216,7 @@ export class Main extends Component<any, MainState> {
   landing() {
     return (
       <div>
-        <h5>Welcome to 
+        <h5>Powered by  
           <svg class="icon mx-2"><use xlinkHref="#icon-mouse"></use></svg>
           <a href={repoUrl}>Lemmy<sup>Beta</sup></a>
         </h5>
@@ -226,7 +226,7 @@ export class Main extends Component<any, MainState> {
         <p>Suggest new features or report bugs <a href={repoUrl}>here.</a></p>
         <p>Made with <a href="https://www.rust-lang.org">Rust</a>, <a href="https://actix.rs/">Actix</a>, <a href="https://www.infernojs.org">Inferno</a>, <a href="https://www.typescriptlang.org/">Typescript</a>.</p>
       </div>
-      )
+    )
   }
 
   posts() {
