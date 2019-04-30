@@ -111,3 +111,9 @@ export function routeListingTypeToEnum(type: string): ListingType {
   return ListingType[capitalizeFirstLetter(type)];
 }
 
+export async function getPageTitle(url: string) {
+  let res = await fetch(`https://textance.herokuapp.com/title/${url}`);
+  let data = await res.text();
+  return data;
+}
+

@@ -3,7 +3,7 @@ import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { PostForm as PostFormI, Post, PostResponse, UserOperation, Community, ListCommunitiesResponse, ListCommunitiesForm, SortType } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { msgOp } from '../utils';
+import { msgOp, getPageTitle } from '../utils';
 import * as autosize from 'autosize';
 
 interface PostFormProps {
@@ -18,6 +18,7 @@ interface PostFormState {
   postForm: PostFormI;
   communities: Array<Community>;
   loading: boolean;
+  suggestedTitle: string;
 }
 
 export class PostForm extends Component<PostFormProps, PostFormState> {
@@ -31,7 +32,8 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       creator_id: (UserService.Instance.user) ? UserService.Instance.user.id : null,
     },
     communities: [],
-    loading: false
+    loading: false,
+    suggestedTitle: undefined,
   }
 
   constructor(props: any, context: any) {
@@ -83,6 +85,10 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
             <label class="col-sm-2 col-form-label">URL</label>
             <div class="col-sm-10">
               <input type="url" class="form-control" value={this.state.postForm.url} onInput={linkEvent(this, this.handlePostUrlChange)} />
+              {this.state.suggestedTitle && 
+                <span class="text-muted small font-weight-bold pointer" onClick={linkEvent(this, this.copySuggestedTitle}>copy suggested title: {this.state.suggestedTitle}
+                                                         </span>
+              }
             </div>
           </div>
           <div class="form-group row">
@@ -135,8 +141,18 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     i.setState(i.state);
   }
 
+  copySuggestedTitle(i: PostForm) {
+    i.state.postForm.name = i.state.suggestedTitle;
+    i.state.suggestedTitle = undefined;
+    i.setState(i.state);
+  }
+
   handlePostUrlChange(i: PostForm, event: any) {
     i.state.postForm.url = event.target.value;
+    getPageTitle(i.state.postForm.url).then(d => {
+      i.state.suggestedTitle = d;
+      i.setState(i.state);
+    });
     i.setState(i.state);
   }
 
