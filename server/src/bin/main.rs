@@ -30,7 +30,7 @@ fn chat_route(req: &HttpRequest<WsChatSessionState>) -> Result<HttpResponse, Err
     WSSession {
       id: 0,
       hb: Instant::now(),
-      ip: req.connection_info().host().to_string(),
+      ip: req.connection_info().remote().unwrap_or("127.0.0.1:12345").split(":").next().unwrap_or("127.0.0.1").to_string()
     },
     )
 }
