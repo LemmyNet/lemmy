@@ -29,7 +29,8 @@ fn chat_route(req: &HttpRequest<WsChatSessionState>) -> Result<HttpResponse, Err
     req,
     WSSession {
       id: 0,
-      hb: Instant::now()
+      hb: Instant::now(),
+      ip: req.connection_info().host().to_string(),
     },
     )
 }
@@ -37,6 +38,7 @@ fn chat_route(req: &HttpRequest<WsChatSessionState>) -> Result<HttpResponse, Err
 struct WSSession {
   /// unique session id
   id: usize,
+  ip: String,
   /// Client must send ping at least once per 10 seconds (CLIENT_TIMEOUT),
   /// otherwise we drop connection.
   hb: Instant
@@ -61,6 +63,7 @@ impl Actor for WSSession {
       .addr
       .send(Connect {
         addr: addr.recipient(),
+        ip: self.ip.to_owned(),
       })
     .into_actor(self)
       .then(|res, act, ctx| {
@@ -76,7 +79,10 @@ impl Actor for WSSession {
 
   fn stopping(&mut self, ctx: &mut Self::Context) -> Running {
     // notify chat server
-    ctx.state().addr.do_send(Disconnect { id: self.id });
+    ctx.state().addr.do_send(Disconnect { 
+      id: self.id,
+      ip: self.ip.to_owned(),
+    });
     Running::Stop
   }
 }
@@ -111,7 +117,7 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WSSession {
           .addr
           .send(StandardMessage {
             id: self.id,
-            msg: m
+            msg: m,
           })
         .into_actor(self)
           .then(|res, _, ctx| {
@@ -215,7 +221,7 @@ impl WSSession {
         // notify chat server
         ctx.state()
           .addr
-          .do_send(Disconnect { id: act.id });
+          .do_send(Disconnect { id: act.id, ip: act.ip.to_owned() });
 
         // stop actor
         ctx.stop();
