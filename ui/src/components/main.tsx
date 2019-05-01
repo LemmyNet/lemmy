@@ -128,7 +128,7 @@ export class Main extends Component<any, MainState> {
                 {this.trendingCommunities()}
                 {UserService.Instance.user && this.state.subscribedCommunities.length > 0 && 
                   <div>
-                    <h5>Subscribed communities</h5>
+                    <h5>Subscribed <Link class="text-white" to="/communities">communities</Link></h5> 
                     <ul class="list-inline"> 
                       {this.state.subscribedCommunities.map(community =>
                         <li class="list-inline-item"><Link to={`/c/${community.community_name}`}>{community.community_name}</Link></li>
