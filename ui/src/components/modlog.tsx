@@ -228,6 +228,7 @@ export class Modlog extends Component<any, ModlogState> {
     } else if (op == UserOperation.GetModlog) {
       let res: GetModlogResponse = msg;
       this.state.loading = false;
+      window.scrollTo(0,0);
       this.setCombined(res);
     } 
   }
