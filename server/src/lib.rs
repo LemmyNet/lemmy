@@ -75,7 +75,8 @@ pub fn establish_connection() -> PgConnection {
 
 pub struct Settings {
   db_url: String,
-  hostname: String
+  hostname: String,
+  jwt_secret: String,
 }
 
 impl Settings {
@@ -84,7 +85,8 @@ impl Settings {
     Settings {
       db_url: env::var("DATABASE_URL")
         .expect("DATABASE_URL must be set"),
-        hostname: env::var("HOSTNAME").unwrap_or("http://0.0.0.0".to_string())
+        hostname: env::var("HOSTNAME").unwrap_or("rrr".to_string()),
+        jwt_secret: env::var("JWT_SECRET").unwrap_or("changeme".to_string()),
     }
   }
   fn api_endpoint(&self) -> String {
@@ -143,7 +145,7 @@ mod tests {
   use {Settings, is_email_regex, remove_slurs, has_slurs, fuzzy_search};
   #[test]
   fn test_api() {
-    assert_eq!(Settings::get().api_endpoint(), "http://0.0.0.0/api/v1");
+    assert_eq!(Settings::get().api_endpoint(), "rrr/api/v1");
   }
 
   #[test] fn test_email() {

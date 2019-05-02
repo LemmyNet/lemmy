@@ -3,7 +3,7 @@ use diesel::*;
 use diesel::result::Error;
 use schema::user_::dsl::*;
 use serde::{Serialize, Deserialize};
-use {Crud,is_email_regex};
+use {Crud,is_email_regex, Settings};
 use jsonwebtoken::{encode, decode, Header, Validation, TokenData};
 use bcrypt::{DEFAULT_COST, hash};
 
@@ -86,7 +86,7 @@ impl Claims {
       validate_exp: false,
       ..Validation::default()
     };
-    decode::<Claims>(&jwt, "secret".as_ref(), &v)
+    decode::<Claims>(&jwt, Settings::get().jwt_secret.as_ref(), &v)
   }
 }
 
@@ -96,9 +96,9 @@ impl User_ {
     let my_claims = Claims {
       id: self.id,
       username: self.name.to_owned(),
-      iss: "rrf".to_string() // TODO this should come from config file
+      iss: self.fedi_name.to_owned(),
     };
-    encode(&Header::default(), &my_claims, "secret".as_ref()).unwrap()
+    encode(&Header::default(), &my_claims, Settings::get().jwt_secret.as_ref()).unwrap()
   }
 
   pub fn find_by_email_or_username(conn: &PgConnection, username_or_email: &str) -> Result<Self, Error> {

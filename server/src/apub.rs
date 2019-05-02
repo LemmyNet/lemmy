@@ -50,7 +50,7 @@ mod tests {
     };
 
     let person = expected_user.person();
-    assert_eq!("http://0.0.0.0/api/v1/user/thom", person.object_props.id_string().unwrap());
+    assert_eq!("rrr/api/v1/user/thom", person.object_props.id_string().unwrap());
     let json = serde_json::to_string_pretty(&person).unwrap();
     println!("{}", json);
 
