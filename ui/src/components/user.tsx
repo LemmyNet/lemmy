@@ -342,6 +342,7 @@ export class User extends Component<any, UserState> {
       this.state.posts = res.posts;
       this.state.loading = false;
       document.title = `/u/${this.state.user.name} - Lemmy`;
+      window.scrollTo(0,0);
       this.setState(this.state);
     } else if (op == UserOperation.EditComment) {
       let res: CommentResponse = msg;
