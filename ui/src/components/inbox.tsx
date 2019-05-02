@@ -170,6 +170,7 @@ export class Inbox extends Component<any, InboxState> {
       let res: GetRepliesResponse = msg;
       this.state.replies = res.replies;
       this.sendRepliesCount();
+      window.scrollTo(0,0);
       this.setState(this.state);
     } else if (op == UserOperation.EditComment) {
       let res: CommentResponse = msg;

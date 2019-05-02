@@ -383,6 +383,7 @@ export class Main extends Component<any, MainState> {
       let res: GetPostsResponse = msg;
       this.state.posts = res.posts;
       this.state.loading = false;
+      window.scrollTo(0,0);
       this.setState(this.state);
     } else if (op == UserOperation.CreatePostLike) {
       let res: CreatePostLikeResponse = msg;

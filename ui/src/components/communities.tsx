@@ -174,6 +174,7 @@ export class Communities extends Component<any, CommunitiesState> {
       this.state.communities = res.communities;
       this.state.communities.sort((a, b) => b.number_of_subscribers - a.number_of_subscribers);
       this.state.loading = false;
+      window.scrollTo(0,0);
       this.setState(this.state);
     } else if (op == UserOperation.FollowCommunity) {
       let res: CommunityResponse = msg;

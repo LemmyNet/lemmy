@@ -251,6 +251,7 @@ export class Search extends Component<any, SearchState> {
       this.state.searchResponse = res;
       this.state.loading = false;
       document.title = `Search - ${this.state.q} - Lemmy`;
+      window.scrollTo(0,0);
       this.setState(this.state);
       
     }
