@@ -97,13 +97,13 @@ export class Search extends Component<any, SearchState> {
   selects() {
     return (
       <div className="mb-2">
-        <select value={this.state.type_} onChange={linkEvent(this, this.handleTypeChange)} class="custom-select w-auto">
+        <select value={this.state.type_} onChange={linkEvent(this, this.handleTypeChange)} class="custom-select custom-select-sm w-auto">
           <option disabled>Type</option>
           <option value={SearchType.Both}>Both</option>
           <option value={SearchType.Comments}>Comments</option>
           <option value={SearchType.Posts}>Posts</option>
         </select>
-        <select value={this.state.sort} onChange={linkEvent(this, this.handleSortChange)} class="custom-select w-auto ml-2">
+        <select value={this.state.sort} onChange={linkEvent(this, this.handleSortChange)} class="custom-select custom-select-sm w-auto ml-2">
           <option disabled>Sort Type</option>
           <option value={SortType.New}>New</option>
           <option value={SortType.TopDay}>Top Day</option>

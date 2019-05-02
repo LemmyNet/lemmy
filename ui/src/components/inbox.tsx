@@ -80,12 +80,12 @@ export class Inbox extends Component<any, InboxState> {
   selects() {
     return (
       <div className="mb-2">
-        <select value={this.state.unreadType} onChange={linkEvent(this, this.handleUnreadTypeChange)} class="custom-select w-auto">
+        <select value={this.state.unreadType} onChange={linkEvent(this, this.handleUnreadTypeChange)} class="custom-select custom-select-sm w-auto">
           <option disabled>Type</option>
           <option value={UnreadType.Unread}>Unread</option>
           <option value={UnreadType.All}>All</option>
         </select>
-        <select value={this.state.sort} onChange={linkEvent(this, this.handleSortChange)} class="custom-select w-auto ml-2">
+        <select value={this.state.sort} onChange={linkEvent(this, this.handleSortChange)} class="custom-select custom-select-sm w-auto ml-2">
           <option disabled>Sort Type</option>
           <option value={SortType.New}>New</option>
           <option value={SortType.TopDay}>Top Day</option>
