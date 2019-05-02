@@ -87,7 +87,7 @@ export class Main extends Component<any, MainState> {
     }
 
     let listCommunitiesForm: ListCommunitiesForm = {
-      sort: SortType[SortType.New],
+      sort: SortType[SortType.Hot],
       limit: 6
     }
 
@@ -247,7 +247,29 @@ export class Main extends Component<any, MainState> {
   selects() {
     return (
       <div className="mb-2">
-        <select value={this.state.sort} onChange={linkEvent(this, this.handleSortChange)} class="custom-select w-auto">
+        <div class="btn-group btn-group-toggle">
+          <label className={`btn btn-sm btn-secondary 
+            ${this.state.type_ == ListingType.Subscribed && 'active'}
+            ${UserService.Instance.user == undefined ? 'disabled' : 'pointer'}
+            `}>
+            <input type="radio" 
+              value={ListingType.Subscribed}
+              checked={this.state.type_ == ListingType.Subscribed}
+              onChange={linkEvent(this, this.handleTypeChange)}
+              disabled={UserService.Instance.user == undefined}
+            />
+            Subscribed
+          </label>
+          <label className={`pointer btn btn-sm btn-secondary ${this.state.type_ == ListingType.All && 'active'}`}>
+            <input type="radio" 
+              value={ListingType.All}
+              checked={this.state.type_ == ListingType.All}
+              onChange={linkEvent(this, this.handleTypeChange)}
+            /> 
+            All
+          </label>
+        </div>
+        <select value={this.state.sort} onChange={linkEvent(this, this.handleSortChange)} class="ml-2 custom-select custom-select-sm w-auto">
           <option disabled>Sort Type</option>
           <option value={SortType.Hot}>Hot</option>
           <option value={SortType.New}>New</option>
@@ -258,14 +280,6 @@ export class Main extends Component<any, MainState> {
           <option value={SortType.TopYear}>Year</option>
           <option value={SortType.TopAll}>All</option>
         </select>
-        { UserService.Instance.user &&
-          <select value={this.state.type_} onChange={linkEvent(this, this.handleTypeChange)} class="ml-2 custom-select w-auto">
-            <option disabled>Type</option>
-            <option value={ListingType.All}>All</option>
-            <option value={ListingType.Subscribed}>Subscribed</option>
-          </select>
-
-        }
       </div>
     )
   }

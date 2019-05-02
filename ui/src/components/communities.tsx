@@ -66,17 +66,17 @@ export class Communities extends Component<any, CommunitiesState> {
         {this.state.loading ? 
         <h5 class=""><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> : 
         <div>
-          <h5>Communities</h5>
+          <h5>List of communities</h5>
           <div class="table-responsive">
             <table id="community_table" class="table table-sm table-hover">
               <thead class="pointer">
                 <tr>
                   <th>Name</th>
-                  <th>Title</th>
+                  <th class="d-none d-lg-table-cell">Title</th>
                   <th>Category</th>
-                  <th class="text-right d-none d-md-table-cell">Subscribers</th>
-                  <th class="text-right d-none d-md-table-cell">Posts</th>
-                  <th class="text-right d-none d-md-table-cell">Comments</th>
+                  <th class="text-right">Subscribers</th>
+                  <th class="text-right d-none d-lg-table-cell">Posts</th>
+                  <th class="text-right d-none d-lg-table-cell">Comments</th>
                   <th></th>
                 </tr>
               </thead>
@@ -84,11 +84,11 @@ export class Communities extends Component<any, CommunitiesState> {
                 {this.state.communities.map(community =>
                   <tr>
                     <td><Link to={`/c/${community.name}`}>{community.name}</Link></td>
-                    <td>{community.title}</td>
+                    <td class="d-none d-lg-table-cell">{community.title}</td>
                     <td>{community.category_name}</td>
-                    <td class="text-right d-none d-md-table-cell">{community.number_of_subscribers}</td>
-                    <td class="text-right d-none d-md-table-cell">{community.number_of_posts}</td>
-                    <td class="text-right d-none d-md-table-cell">{community.number_of_comments}</td>
+                    <td class="text-right">{community.number_of_subscribers}</td>
+                    <td class="text-right d-none d-lg-table-cell">{community.number_of_posts}</td>
+                    <td class="text-right d-none d-lg-table-cell">{community.number_of_comments}</td>
                     <td class="text-right">
                       {community.subscribed ? 
                       <span class="pointer btn-link" onClick={linkEvent(community.id, this.handleUnsubscribe)}>Unsubscribe</span> : 
