@@ -573,6 +573,7 @@ impl ChatServer {
   fn check_rate_limit_full(&mut self, addr: usize, rate: i32, per: i32) -> Result<(), Error> {
     if let Some(info) = self.sessions.get(&addr) {
       if let Some(rate_limit) = self.rate_limits.get_mut(&info.ip) {
+        // The initial value
         if rate_limit.allowance == -2f64 {
           rate_limit.allowance = rate as f64;
         };
@@ -625,7 +626,7 @@ impl Handler<Connect> for ChatServer {
 
     // register session with random id
     let id = self.rng.gen::<usize>();
-    println!("{} Joined", &msg.ip);
+    println!("{} joined", &msg.ip);
 
     self.sessions.insert(id, SessionInfo {
       addr: msg.addr,

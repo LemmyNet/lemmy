@@ -141,14 +141,14 @@ export class User extends Component<any, UserState> {
   selects() {
     return (
       <div className="mb-2">
-        <select value={this.state.view} onChange={linkEvent(this, this.handleViewChange)} class="custom-select w-auto">
+        <select value={this.state.view} onChange={linkEvent(this, this.handleViewChange)} class="custom-select custom-select-sm w-auto">
           <option disabled>View</option>
           <option value={View.Overview}>Overview</option>
           <option value={View.Comments}>Comments</option>
           <option value={View.Posts}>Posts</option>
           <option value={View.Saved}>Saved</option>
         </select>
-        <select value={this.state.sort} onChange={linkEvent(this, this.handleSortChange)} class="custom-select w-auto ml-2">
+        <select value={this.state.sort} onChange={linkEvent(this, this.handleSortChange)} class="custom-select custom-select-sm w-auto ml-2">
           <option disabled>Sort Type</option>
           <option value={SortType.New}>New</option>
           <option value={SortType.TopDay}>Top Day</option>

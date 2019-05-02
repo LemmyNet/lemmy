@@ -124,7 +124,7 @@ export class Community extends Component<any, State> {
   selects() {
     return (
       <div className="mb-2">
-        <select value={this.state.sort} onChange={linkEvent(this, this.handleSortChange)} class="custom-select w-auto">
+        <select value={this.state.sort} onChange={linkEvent(this, this.handleSortChange)} class="custom-select custom-select-sm w-auto">
           <option disabled>Sort Type</option>
           <option value={SortType.Hot}>Hot</option>
           <option value={SortType.New}>New</option>
