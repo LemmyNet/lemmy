@@ -2,6 +2,8 @@
 set -e
 
 export DATABASE_URL=postgres://rrr:rrr@localhost/rrr
+export JWT_SECRET=changeme
+export HOSTNAME=rrr
 
 cd ui
 yarn

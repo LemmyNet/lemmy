@@ -13,7 +13,7 @@ use diesel::PgConnection;
 use failure::Error;
 use std::time::{SystemTime};
 
-use {Crud, Joinable, Likeable, Followable, Bannable, Saveable, establish_connection, naive_now, naive_from_unix, SortType, SearchType, has_slurs, remove_slurs};
+use {Crud, Joinable, Likeable, Followable, Bannable, Saveable, establish_connection, naive_now, naive_from_unix, SortType, SearchType, has_slurs, remove_slurs, Settings};
 use actions::community::*;
 use actions::user::*;
 use actions::post::*;
@@ -902,7 +902,7 @@ impl Perform for Register {
     // Register the new user
     let user_form = UserForm {
       name: self.username.to_owned(),
-      fedi_name: "rrf".into(),
+      fedi_name: Settings::get().hostname.into(),
       email: self.email.to_owned(),
       password_encrypted: self.password.to_owned(),
       preferred_username: None,

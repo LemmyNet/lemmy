@@ -144,6 +144,10 @@ export class Navbar extends Component<any, NavbarState> {
   parseMessage(msg: any) {
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
+      if (msg.error == "Not logged in.") {
+        UserService.Instance.logout();
+        location.reload();
+      }
       return;
     } else if (op == UserOperation.GetReplies) {
       let res: GetRepliesResponse = msg;
