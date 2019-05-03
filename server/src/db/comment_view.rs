@@ -68,7 +68,7 @@ impl CommentView {
               page: Option<i64>,
               limit: Option<i64>,
               ) -> Result<Vec<Self>, Error> {
-    use actions::comment_view::comment_view::dsl::*;
+    use super::comment_view::comment_view::dsl::*;
 
     let (limit, offset) = limit_and_offset(page, limit);
 
@@ -125,7 +125,7 @@ impl CommentView {
   }
 
   pub fn read(conn: &PgConnection, from_comment_id: i32, my_user_id: Option<i32>) -> Result<Self, Error> {
-    use actions::comment_view::comment_view::dsl::*;
+    use super::comment_view::comment_view::dsl::*;
 
     let mut query = comment_view.into_boxed();
 
@@ -206,7 +206,7 @@ impl ReplyView {
               page: Option<i64>,
               limit: Option<i64>,
               ) -> Result<Vec<Self>, Error> {
-    use actions::comment_view::reply_view::dsl::*;
+    use super::comment_view::reply_view::dsl::*;
 
     let (limit, offset) = limit_and_offset(page, limit);
 
@@ -251,10 +251,10 @@ impl ReplyView {
 mod tests {
   use establish_connection;
   use super::*;
-  use actions::post::*;
-  use actions::community::*;
-  use actions::user::*;
-  use actions::comment::*;
+  use super::super::post::*;
+  use super::super::community::*;
+  use super::super::user::*;
+  use super::super::comment::*;
   use {Crud,Likeable};
  #[test]
   fn test_crud() {

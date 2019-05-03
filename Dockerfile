@@ -21,7 +21,7 @@ COPY server/Cargo.toml server/Cargo.lock ./
 RUN  mkdir -p ./src/bin \
   && echo 'fn main() { println!("Dummy") }' > ./src/bin/main.rs 
 RUN cargo build --release --bin lemmy
-RUN rm -r ./target/release/.fingerprint/server-*
+RUN rm -r ./target/release/.fingerprint/lemmy_server-*
 
 # copy your source tree
 # RUN rm -rf ./src/

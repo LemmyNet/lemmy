@@ -4,7 +4,7 @@ use diesel::*;
 use diesel::result::Error;
 use serde::{Deserialize, Serialize};
 use {Crud, Likeable, Saveable};
-use actions::post::Post;
+use super::post::Post;
 
 // WITH RECURSIVE MyTree AS (
 //     SELECT * FROM comment WHERE parent_id IS NULL
@@ -160,9 +160,9 @@ impl Saveable <CommentSavedForm> for CommentSaved {
 mod tests {
   use establish_connection;
   use super::*;
-  use actions::post::*;
-  use actions::community::*;
-  use actions::user::*;
+  use super::super::post::*;
+  use super::super::community::*;
+  use super::super::user::*;
   use Crud;
  #[test]
   fn test_crud() {
