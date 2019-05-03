@@ -41,7 +41,7 @@ impl ModRemovePostView {
               page: Option<i64>,
               limit: Option<i64>, 
               ) -> Result<Vec<Self>, Error> {
-    use actions::moderator_views::mod_remove_post_view::dsl::*;
+    use super::moderator_views::mod_remove_post_view::dsl::*;
     let mut query = mod_remove_post_view.into_boxed();
 
     let (limit, offset) = limit_and_offset(page, limit);
@@ -94,7 +94,7 @@ impl ModLockPostView {
               page: Option<i64>,
               limit: Option<i64>, 
               ) -> Result<Vec<Self>, Error> {
-    use actions::moderator_views::mod_lock_post_view::dsl::*;
+    use super::moderator_views::mod_lock_post_view::dsl::*;
     let mut query = mod_lock_post_view.into_boxed();
 
     let (limit, offset) = limit_and_offset(page, limit);
@@ -156,7 +156,7 @@ impl ModRemoveCommentView {
               page: Option<i64>,
               limit: Option<i64>, 
              ) -> Result<Vec<Self>, Error> {
-    use actions::moderator_views::mod_remove_comment_view::dsl::*;
+    use super::moderator_views::mod_remove_comment_view::dsl::*;
     let mut query = mod_remove_comment_view.into_boxed();
 
     let (limit, offset) = limit_and_offset(page, limit);
@@ -207,7 +207,7 @@ impl ModRemoveCommunityView {
               page: Option<i64>,
               limit: Option<i64>, 
               ) -> Result<Vec<Self>, Error> {
-    use actions::moderator_views::mod_remove_community_view::dsl::*;
+    use super::moderator_views::mod_remove_community_view::dsl::*;
     let mut query = mod_remove_community_view.into_boxed();
 
     let (limit, offset) = limit_and_offset(page, limit);
@@ -260,7 +260,7 @@ impl ModBanFromCommunityView {
               page: Option<i64>,
               limit: Option<i64>, 
               ) -> Result<Vec<Self>, Error> {
-    use actions::moderator_views::mod_ban_from_community_view::dsl::*;
+    use super::moderator_views::mod_ban_from_community_view::dsl::*;
     let mut query = mod_ban_from_community_view.into_boxed();
 
     let (limit, offset) = limit_and_offset(page, limit);
@@ -311,7 +311,7 @@ impl ModBanView {
               page: Option<i64>,
               limit: Option<i64>, 
               ) -> Result<Vec<Self>, Error> {
-    use actions::moderator_views::mod_ban_view::dsl::*;
+    use super::moderator_views::mod_ban_view::dsl::*;
     let mut query = mod_ban_view.into_boxed();
 
     let (limit, offset) = limit_and_offset(page, limit);
@@ -359,7 +359,7 @@ impl ModAddCommunityView {
               page: Option<i64>,
               limit: Option<i64>, 
               ) -> Result<Vec<Self>, Error> {
-    use actions::moderator_views::mod_add_community_view::dsl::*;
+    use super::moderator_views::mod_add_community_view::dsl::*;
     let mut query = mod_add_community_view.into_boxed();
 
     let (limit, offset) = limit_and_offset(page, limit);
@@ -406,7 +406,7 @@ impl ModAddView {
               page: Option<i64>,
               limit: Option<i64>, 
               ) -> Result<Vec<Self>, Error> {
-    use actions::moderator_views::mod_add_view::dsl::*;
+    use super::moderator_views::mod_add_view::dsl::*;
     let mut query = mod_add_view.into_boxed();
 
     let (limit, offset) = limit_and_offset(page, limit);

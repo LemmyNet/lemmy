@@ -173,10 +173,10 @@ impl Readable <PostReadForm> for PostRead {
 #[cfg(test)]
 mod tests {
   use establish_connection;
-  use super::*;
   use Crud;
-  use actions::community::*;
-  use actions::user::*;
+  use super::*;
+  use super::super::community::*;
+  use super::super::user::*;
  #[test]
   fn test_crud() {
     let conn = establish_connection();

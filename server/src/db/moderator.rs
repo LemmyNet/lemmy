@@ -400,10 +400,10 @@ impl Crud<ModAddForm> for ModAdd {
 mod tests {
   use establish_connection;
   use super::*;
-  use actions::user::*;
-  use actions::post::*;
-  use actions::community::*;
-  use actions::comment::*;
+  use super::super::user::*;
+  use super::super::post::*;
+  use super::super::community::*;
+  use super::super::comment::*;
   // use Crud;
  #[test]
   fn test_crud() {

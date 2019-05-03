@@ -35,20 +35,20 @@ pub struct UserView {
 
 impl UserView {
   pub fn read(conn: &PgConnection, from_user_id: i32) -> Result<Self, Error> {
-    use actions::user_view::user_view::dsl::*;
+    use super::user_view::user_view::dsl::*;
 
     user_view.find(from_user_id)
     .first::<Self>(conn)
   }
 
   pub fn admins(conn: &PgConnection) -> Result<Vec<Self>, Error> {
-    use actions::user_view::user_view::dsl::*;
+    use super::user_view::user_view::dsl::*;
     user_view.filter(admin.eq(true))
     .load::<Self>(conn)
   }
 
   pub fn banned(conn: &PgConnection) -> Result<Vec<Self>, Error> {
-    use actions::user_view::user_view::dsl::*;
+    use super::user_view::user_view::dsl::*;
     user_view.filter(banned.eq(true))
     .load::<Self>(conn)
   }
