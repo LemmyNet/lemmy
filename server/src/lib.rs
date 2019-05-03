@@ -17,8 +17,8 @@ pub extern crate regex;
 
 pub mod schema;
 pub mod apub;
-pub mod actions;
-pub mod websocket_server;
+pub mod db;
+pub mod websocket;
 
 use diesel::*;
 use diesel::pg::PgConnection;

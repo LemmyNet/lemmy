@@ -85,7 +85,7 @@ impl PostView {
               page: Option<i64>,
               limit: Option<i64>,
               ) -> Result<Vec<Self>, Error> {
-    use actions::post_view::post_view::dsl::*;
+    use super::post_view::post_view::dsl::*;
 
     let (limit, offset) = limit_and_offset(page, limit);
 
@@ -158,7 +158,7 @@ impl PostView {
 
   pub fn read(conn: &PgConnection, from_post_id: i32, my_user_id: Option<i32>) -> Result<Self, Error> {
 
-    use actions::post_view::post_view::dsl::*;
+    use super::post_view::post_view::dsl::*;
     use diesel::prelude::*;
 
     let mut query = post_view.into_boxed();
@@ -181,9 +181,9 @@ impl PostView {
 mod tests {
   use {establish_connection, Crud, Likeable};
   use super::*;
-  use actions::community::*;
-  use actions::user::*;
-  use actions::post::*;
+  use super::super::community::*;
+  use super::super::user::*;
+  use super::super::post::*;
   #[test]
   fn test_crud() {
     let conn = establish_connection();

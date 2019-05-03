@@ -14,17 +14,17 @@ use failure::Error;
 use std::time::{SystemTime};
 
 use {Crud, Joinable, Likeable, Followable, Bannable, Saveable, establish_connection, naive_now, naive_from_unix, SortType, SearchType, has_slurs, remove_slurs, Settings};
-use actions::community::*;
-use actions::user::*;
-use actions::post::*;
-use actions::comment::*;
-use actions::post_view::*;
-use actions::comment_view::*;
-use actions::category::*;
-use actions::community_view::*;
-use actions::user_view::*;
-use actions::moderator_views::*;
-use actions::moderator::*;
+use db::community::*;
+use db::user::*;
+use db::post::*;
+use db::comment::*;
+use db::post_view::*;
+use db::comment_view::*;
+use db::category::*;
+use db::community_view::*;
+use db::user_view::*;
+use db::moderator_views::*;
+use db::moderator::*;
 
 const RATE_LIMIT_MESSAGES: i32 = 30;
 const RATE_LIMIT_PER_SECOND: i32 = 60;

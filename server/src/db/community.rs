@@ -221,7 +221,7 @@ impl Crud<SiteForm> for Site {
 mod tests {
   use establish_connection;
   use super::*;
-  use actions::user::*;
+  use super::super::user::*;
   use Crud;
  #[test]
   fn test_crud() {

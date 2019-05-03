@@ -1,14 +1,13 @@
-extern crate server;
+extern crate lemmy_server;
 #[macro_use] extern crate diesel_migrations;
 
 use std::time::{Instant, Duration};
 use std::env;
-use server::actix::*;
-use server::actix_web::server::HttpServer;
-use server::actix_web::{ws, App, Error, HttpRequest, HttpResponse, fs::NamedFile, fs};
-
-use server::websocket_server::server::*;
-use server::establish_connection;
+use lemmy_server::actix::*;
+use lemmy_server::actix_web::server::HttpServer;
+use lemmy_server::actix_web::{ws, App, Error, HttpRequest, HttpResponse, fs::NamedFile, fs};
+use lemmy_server::websocket::server::*;
+use lemmy_server::establish_connection;
 
 embed_migrations!();
 
