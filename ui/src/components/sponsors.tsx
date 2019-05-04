@@ -3,7 +3,6 @@ import { Component } from 'inferno';
 let general = 
   [
   "Nathan J. Goode",
-  "Eduardo Cavazos"
 ];
 // let highlighted = [];
 // let silver = [];

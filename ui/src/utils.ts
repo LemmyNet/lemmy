@@ -1,5 +1,6 @@
-import { UserOperation, Comment, User } from './interfaces';
+import { UserOperation, Comment, User, SortType, ListingType } from './interfaces';
 import * as markdown_it from 'markdown-it';
+import * as markdown_it_container from 'markdown-it-container';
 
 export let repoUrl = 'https://github.com/dessalines/lemmy';
 
@@ -12,6 +13,23 @@ var md = new markdown_it({
   html: true,
   linkify: true,
   typographer: true
+}).use(markdown_it_container, 'spoiler', {
+  validate: function(params: any) {
+    return params.trim().match(/^spoiler\s+(.*)$/);
+  },
+
+  render: function (tokens: any, idx: any) {
+    var m = tokens[idx].info.trim().match(/^spoiler\s+(.*)$/);
+
+    if (tokens[idx].nesting === 1) {
+      // opening tag
+      return '<details><summary>' + md.utils.escapeHtml(m[1]) + '</summary>\n';
+
+    } else {
+      // closing tag
+      return '</details>\n';
+    }
+  }
 });
 
 export function hotRank(comment: Comment): number {
@@ -67,3 +85,35 @@ export function isImage(url: string) {
 }
 
 export let fetchLimit: number = 20;
+
+export function capitalizeFirstLetter(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+
+export function routeSortTypeToEnum(sort: string): SortType {
+  if (sort == 'new') {
+    return SortType.New;
+  } else if (sort == 'hot') {
+    return SortType.Hot;
+  } else if (sort == 'topday') {
+    return SortType.TopDay;
+  } else if (sort == 'topweek') {
+    return SortType.TopWeek;
+  } else if (sort == 'topmonth') {
+    return SortType.TopMonth;
+  } else if (sort == 'topall') {
+    return SortType.TopAll;
+  }
+}
+
+export function routeListingTypeToEnum(type: string): ListingType {
+  return ListingType[capitalizeFirstLetter(type)];
+}
+
+export async function getPageTitle(url: string) {
+  let res = await fetch(`https://textance.herokuapp.com/title/${url}`);
+  let data = await res.text();
+  return data;
+}
+

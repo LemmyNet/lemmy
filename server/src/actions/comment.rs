@@ -25,7 +25,8 @@ pub struct Comment {
   pub removed: bool,
   pub read: bool,
   pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>
+  pub updated: Option<chrono::NaiveDateTime>,
+  pub deleted: bool,
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
@@ -37,7 +38,8 @@ pub struct CommentForm {
   pub content: String,
   pub removed: Option<bool>,
   pub read: Option<bool>,
-  pub updated: Option<chrono::NaiveDateTime>
+  pub updated: Option<chrono::NaiveDateTime>,
+  pub deleted: Option<bool>,
 }
 
 impl Crud<CommentForm> for Comment {
@@ -186,6 +188,7 @@ mod tests {
       category_id: 1,
       creator_id: inserted_user.id,
       removed: None,
+      deleted: None,
       updated: None
     };
 
@@ -198,6 +201,7 @@ mod tests {
       body: None,
       community_id: inserted_community.id,
       removed: None,
+      deleted: None,
       locked: None,
       updated: None
     };
@@ -209,6 +213,7 @@ mod tests {
       creator_id: inserted_user.id,
       post_id: inserted_post.id,
       removed: None,
+      deleted: None,
       read: None,
       parent_id: None,
       updated: None
@@ -222,6 +227,7 @@ mod tests {
       creator_id: inserted_user.id,
       post_id: inserted_post.id,
       removed: false,
+      deleted: false,
       read: false,
       parent_id: None,
       published: inserted_comment.published,
@@ -234,6 +240,7 @@ mod tests {
       post_id: inserted_post.id,
       parent_id: Some(inserted_comment.id),
       removed: None,
+      deleted: None,
       read: None,
       updated: None
     };

@@ -51,6 +51,7 @@ Each lemmy server can set its own moderation policy; appointing site-wide admins
 
 - Lead singer from [motorhead](https://invidio.us/watch?v=pWB5JZRGl0U).
 - The old school [video game](<https://en.wikipedia.org/wiki/Lemmings_(video_game)>).
+- The [Koopa from Super Mario](https://www.mariowiki.com/Lemmy_Koopa).
 - The [furry rodents](http://sunchild.fpwc.org/lemming-the-little-giant-of-the-north/).
 
 Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Inferno](https://www.infernojs.org), [Typescript](https://www.typescriptlang.org/) and [Diesel](http://diesel.rs/).

@@ -1,5 +1,5 @@
 export enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetReplies, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser, Search
+  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetReplies, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser, Search, MarkAllAsRead
 }
 
 export enum CommentSortType {
@@ -52,6 +52,7 @@ export interface Community {
   category_id: number;
   creator_id: number;
   removed: boolean;
+  deleted: boolean;
   published: string;
   updated?: string;
   creator_name: string;
@@ -71,6 +72,7 @@ export interface Post {
   creator_id: number;
   community_id: number;
   removed: boolean;
+  deleted: boolean;
   locked: boolean;
   published: string;
   updated?: string;
@@ -96,6 +98,7 @@ export interface Comment {
   parent_id?: number;
   content: string;
   removed: boolean;
+  deleted: boolean;
   read: boolean;
   published: string;
   updated?: string;
@@ -348,6 +351,7 @@ export interface CommunityForm {
   category_id: number,
   edit_id?: number;
   removed?: boolean;
+  deleted?: boolean;
   reason?: string;
   expires?: number;
   auth?: string;
@@ -392,6 +396,7 @@ export interface PostForm {
   edit_id?: number;
   creator_id: number;
   removed?: boolean;
+  deleted?: boolean;
   locked?: boolean;
   reason?: string;
   auth: string;
@@ -424,6 +429,7 @@ export interface CommentForm {
   edit_id?: number;
   creator_id: number;
   removed?: boolean;
+  deleted?: boolean;
   reason?: string;
   read?: boolean;
   auth: string;

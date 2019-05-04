@@ -15,11 +15,13 @@ table! {
     removed -> Bool,
     published -> Timestamp,
     updated -> Nullable<Timestamp>,
+    deleted -> Bool,
     creator_name -> Varchar,
     category_name -> Varchar,
     number_of_subscribers -> BigInt,
     number_of_posts -> BigInt,
     number_of_comments -> BigInt,
+    hot_rank -> Int4,
     user_id -> Nullable<Int4>,
     subscribed -> Nullable<Bool>,
   }
@@ -85,11 +87,13 @@ pub struct CommunityView {
   pub removed: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
+  pub deleted: bool,
   pub creator_name: String,
   pub category_name: String,
   pub number_of_subscribers: i64,
   pub number_of_posts: i64,
   pub number_of_comments: i64,
+  pub hot_rank: i32,
   pub user_id: Option<i32>,
   pub subscribed: Option<bool>,
 }
@@ -125,6 +129,7 @@ impl CommunityView {
 
     // The view lets you pass a null user_id, if you're not logged in
     match sort {
+      SortType::Hot => query = query.order_by(hot_rank.desc()).filter(user_id.is_null()),
       SortType::New => query = query.order_by(published.desc()).filter(user_id.is_null()),
       SortType::TopAll => {
         match from_user_id {
@@ -139,6 +144,7 @@ impl CommunityView {
       .limit(limit)
       .offset(offset)
       .filter(removed.eq(false))
+      .filter(deleted.eq(false))
       .load::<Self>(conn) 
   }
 }

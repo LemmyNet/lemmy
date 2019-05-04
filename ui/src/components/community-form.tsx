@@ -88,7 +88,7 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
         <div class="form-group row">
           <label class="col-12 col-form-label">Sidebar</label>
           <div class="col-12">
-            <textarea value={this.state.communityForm.description} onInput={linkEvent(this, this.handleCommunityDescriptionChange)} class="form-control" rows={3} />
+            <textarea value={this.state.communityForm.description} onInput={linkEvent(this, this.handleCommunityDescriptionChange)} class="form-control" rows={3} maxLength={10000} />
           </div>
         </div>
         <div class="form-group row">
@@ -120,10 +120,7 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
     if (i.props.community) {
       WebSocketService.Instance.editCommunity(i.state.communityForm);
     } else {
-
-      setTimeout(function(){
-        WebSocketService.Instance.createCommunity(i.state.communityForm);
-      }, 10000);
+      WebSocketService.Instance.createCommunity(i.state.communityForm);
     }
     i.setState(i.state);
   }
