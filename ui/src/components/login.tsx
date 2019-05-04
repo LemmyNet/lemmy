@@ -95,7 +95,7 @@ export class Login extends Component<any, State> {
             </div>
           </div>
         </form>
-        Forgot your password or deleted your account? Reset your password. TODO
+        {/* Forgot your password or deleted your account? Reset your password. TODO */}
       </div>
     );
   }
@@ -161,7 +161,6 @@ export class Login extends Component<any, State> {
     event.preventDefault();
     i.state.registerLoading = true;
     i.setState(i.state);
-    event.preventDefault();
 
     let endTimer = new Date().getTime();
     let elapsed = endTimer - i.state.registerForm.spam_timeri;
@@ -209,14 +208,14 @@ export class Login extends Component<any, State> {
       return;
     } else {
       if (op == UserOperation.Login) {
-        this.state.loginLoading = false;
-        this.state.registerLoading = false;
+        this.state = this.emptyState;
+        this.setState(this.state);
         let res: LoginResponse = msg;
         UserService.Instance.login(res);
         this.props.history.push('/');
       } else if (op == UserOperation.Register) {
-        this.state.loginLoading = false;
-        this.state.registerLoading = false;
+        this.state = this.emptyState;
+        this.setState(this.state);
         let res: LoginResponse = msg;
         UserService.Instance.login(res);
         this.props.history.push('/communities');

@@ -110,7 +110,7 @@ export class Modlog extends Component<any, ModlogState> {
               {i.type_ == 'removed_communities' && 
                 <>
                   {(i.data as ModRemoveCommunity).removed ? 'Removed' : 'Restored'} 
-                  <span> Community <Link to={`/f/${(i.data as ModRemoveCommunity).community_name}`}>{(i.data as ModRemoveCommunity).community_name}</Link></span>
+                  <span> Community <Link to={`/c/${(i.data as ModRemoveCommunity).community_name}`}>{(i.data as ModRemoveCommunity).community_name}</Link></span>
                   <div>{(i.data as ModRemoveCommunity).reason && ` reason: ${(i.data as ModRemoveCommunity).reason}`}</div>
                   <div>{(i.data as ModRemoveCommunity).expires && ` expires: ${moment.utc((i.data as ModRemoveCommunity).expires).fromNow()}`}</div>
                 </>
@@ -120,7 +120,7 @@ export class Modlog extends Component<any, ModlogState> {
                   <span>{(i.data as ModBanFromCommunity).banned ? 'Banned ' : 'Unbanned '} </span>
                   <span><Link to={`/u/${(i.data as ModBanFromCommunity).other_user_name}`}>{(i.data as ModBanFromCommunity).other_user_name}</Link></span>
                   <span> from the community </span>
-                  <span><Link to={`/f/${(i.data as ModBanFromCommunity).community_name}`}>{(i.data as ModBanFromCommunity).community_name}</Link></span>
+                  <span><Link to={`/c/${(i.data as ModBanFromCommunity).community_name}`}>{(i.data as ModBanFromCommunity).community_name}</Link></span>
                   <div>{(i.data as ModBanFromCommunity).reason && ` reason: ${(i.data as ModBanFromCommunity).reason}`}</div>
                   <div>{(i.data as ModBanFromCommunity).expires && ` expires: ${moment.utc((i.data as ModBanFromCommunity).expires).fromNow()}`}</div>
                 </>
@@ -130,7 +130,7 @@ export class Modlog extends Component<any, ModlogState> {
                   <span>{(i.data as ModAddCommunity).removed ? 'Removed ' : 'Appointed '} </span>
                   <span><Link to={`/u/${(i.data as ModAddCommunity).other_user_name}`}>{(i.data as ModAddCommunity).other_user_name}</Link></span>
                   <span> as a mod to the community </span>
-                  <span><Link to={`/f/${(i.data as ModAddCommunity).community_name}`}>{(i.data as ModAddCommunity).community_name}</Link></span>
+                  <span><Link to={`/c/${(i.data as ModAddCommunity).community_name}`}>{(i.data as ModAddCommunity).community_name}</Link></span>
                 </>
               }
               {i.type_ == 'banned' && 
@@ -165,7 +165,7 @@ export class Modlog extends Component<any, ModlogState> {
         <h5 class=""><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> : 
         <div>
           <h5>
-            {this.state.communityName && <Link className="text-white" to={`/f/${this.state.communityName}`}>/f/{this.state.communityName} </Link>}
+            {this.state.communityName && <Link className="text-white" to={`/c/${this.state.communityName}`}>/c/{this.state.communityName} </Link>}
             <span>Modlog</span>
           </h5>
           <div class="table-responsive">

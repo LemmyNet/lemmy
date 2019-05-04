@@ -3,7 +3,7 @@ import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { WebSocketService, UserService } from '../services';
-import { UserOperation, GetRepliesForm, GetRepliesResponse, SortType } from '../interfaces';
+import { UserOperation, GetRepliesForm, GetRepliesResponse, SortType, GetSiteResponse } from '../interfaces';
 import { msgOp } from '../utils';
 import { version } from '../version';
 
@@ -12,6 +12,7 @@ interface NavbarState {
   expanded: boolean;
   expandUserDropdown: boolean;
   unreadCount: number;
+  siteName: string;
 }
 
 export class Navbar extends Component<any, NavbarState> {
@@ -21,7 +22,8 @@ export class Navbar extends Component<any, NavbarState> {
     isLoggedIn: (UserService.Instance.user !== undefined),
     unreadCount: 0,
     expanded: false,
-    expandUserDropdown: false
+    expandUserDropdown: false,
+    siteName: undefined
   }
 
   constructor(props: any, context: any) {
@@ -45,6 +47,8 @@ export class Navbar extends Component<any, NavbarState> {
         (err) => console.error(err),
         () => console.log('complete')
     );
+
+    WebSocketService.Instance.getSite();
   }
 
   render() {
@@ -59,30 +63,29 @@ export class Navbar extends Component<any, NavbarState> {
   }
 
   // TODO class active corresponding to current page
-  // TODO toggle css collapse
   navbar() {
     return (
       <nav class="container navbar navbar-expand-md navbar-light navbar-bg p-0 px-3">
-        <a title={version} class="navbar-brand" href="#">
-          <svg class="icon mr-2"><use xlinkHref="#icon-mouse"></use></svg>
-          Lemmy
-        </a>
+        <Link title={version} class="navbar-brand" to="/">
+          <svg class="icon mr-2 mouse-icon"><use xlinkHref="#icon-mouse"></use></svg>
+          {this.state.siteName}
+        </Link>
         <button class="navbar-toggler" type="button" onClick={linkEvent(this, this.expandNavbar)}>
           <span class="navbar-toggler-icon"></span>
         </button>
         <div className={`${!this.state.expanded && 'collapse'} navbar-collapse`}>
           <ul class="navbar-nav mr-auto">
             <li class="nav-item">
-              <Link class="nav-link" to="/communities">Forums</Link>
+              <Link class="nav-link" to="/communities">Communities</Link>
             </li>
             <li class="nav-item">
               <Link class="nav-link" to="/search">Search</Link>
             </li>
             <li class="nav-item">
-              <Link class="nav-link" to="/create_post">Create Post</Link>
+              <Link class="nav-link" to={{pathname: '/create_post', state: { prevPath: this.currentLocation }}}>Create Post</Link>
             </li>
             <li class="nav-item">
-              <Link class="nav-link" to="/create_community">Create Forum</Link>
+              <Link class="nav-link" to="/create_community">Create Community</Link>
             </li>
           </ul>
           <ul class="navbar-nav ml-auto mr-2">
@@ -145,6 +148,14 @@ export class Navbar extends Component<any, NavbarState> {
     } else if (op == UserOperation.GetReplies) {
       let res: GetRepliesResponse = msg;
       this.sendRepliesCount(res);
+    } else if (op == UserOperation.GetSite) {
+      let res: GetSiteResponse = msg;
+
+      if (res.site) {
+        this.state.siteName = res.site.name;
+        WebSocketService.Instance.site = res.site;
+        this.setState(this.state);
+      }
     } 
   }
 
@@ -163,6 +174,10 @@ export class Navbar extends Component<any, NavbarState> {
       };
       WebSocketService.Instance.getReplies(repliesForm);
     }
+  }
+
+  get currentLocation() {
+    return this.context.router.history.location.pathname;
   }
 
   sendRepliesCount(res: GetRepliesResponse) {

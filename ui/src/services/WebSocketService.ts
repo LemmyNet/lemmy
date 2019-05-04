@@ -147,6 +147,7 @@ export class WebSocketService {
   }
 
   public getUserDetails(form: GetUserDetailsForm) {
+    this.setAuth(form, false);
     this.subject.next(this.wsSendWrapper(UserOperation.GetUserDetails, form));
   }
 
@@ -175,6 +176,12 @@ export class WebSocketService {
 
   public search(form: SearchForm) {
     this.subject.next(this.wsSendWrapper(UserOperation.Search, form));
+  }
+
+  public markAllAsRead() {
+    let form = {};
+    this.setAuth(form);
+    this.subject.next(this.wsSendWrapper(UserOperation.MarkAllAsRead, form));
   }
 
   private wsSendWrapper(op: UserOperation, data: any) {
