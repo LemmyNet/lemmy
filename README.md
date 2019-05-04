@@ -14,15 +14,14 @@ A link aggregator / reddit clone for the fediverse.
 [Lemmy Dev instance](https://dev.lemmy.ml) *for testing purposes only*
 
 This is a **very early beta version**, and a lot of features are currently broken or in active development, such as federation.
- 
+
 Front Page|Post
 ---|---
 ![main screen](https://i.imgur.com/y64BtXC.png)|![chat screen](https://i.imgur.com/vsOr87q.png)
-
 ## Features
 - Open source, [AGPL License](/LICENSE).
 - Self hostable, easy to deploy.
-  - Comes with [docker](#docker).
+  - Comes with [Docker](#docker), [Kubernetes](#kubernetes).
 - Live-updating Comment threads.
 - Full vote scores `(+/-)` like old reddit.
 - Moderation abilities.
@@ -34,7 +33,6 @@ Front Page|Post
 - High performance.
   - Server is written in rust.
   - Front end is `~80kB` gzipped.
-
 ## About
 [Lemmy](https://github.com/dessalines/lemmy) is similar to sites like [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), [Raddle](https://raddle.me), or [Hacker News](https://news.ycombinator.com/): you subscribe to forums you're interested in, post links and discussions, then vote, and comment on them. Behind the scenes, it is very different; anyone can easily run a server, and all these servers are federated (think email), and connected to the same universe, called the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
 
@@ -51,16 +49,42 @@ Each lemmy server can set its own moderation policy; appointing site-wide admins
 - The [furry rodents](http://sunchild.fpwc.org/lemming-the-little-giant-of-the-north/).
 
 Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Inferno](https://www.infernojs.org), [Typescript](https://www.typescriptlang.org/) and [Diesel](http://diesel.rs/).
-
 ## Install
 ### Docker
 Make sure you have both docker and docker-compose installed.
+
 ```
 git clone https://github.com/dessalines/lemmy
 cd lemmy
 ./docker_update.sh # This pulls the newest version, builds and runs it
 ```
+
 and goto http://localhost:8536
+### Kubernetes
+#### Requirements
+- Local or remote Kubernetes cluster, i.e. [`minikube`](https://kubernetes.io/docs/tasks/tools/install-minikube/)
+- [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- [`skaffold`](https://skaffold.dev/)
+#### Production
+```bash
+# Deploy the Traefik Ingress
+kubectl apply -f https://raw.githubusercontent.com/containous/traefik/v1.7/examples/k8s/traefik-rbac.yaml
+kubectl apply -f https://raw.githubusercontent.com/containous/traefik/v1.7/examples/k8s/traefik-ds.yaml
+# Replace ${IP} with your Ingress' IP
+echo "${IP} dev.lemmy.local" >> /etc/hosts
+```
+
+```bash
+skaffold run -p lemmy--prod
+```
+
+Now go to http://dev.lemmy.local.
+#### Development
+```bash
+skaffold dev -p lemmy--dev
+```
+
+Now go to http://localhost:4444. It automatically proxies to localhost, both if the cluster is local or remote; it also hot-reloads the UI and automatically recompiles and restarts the server.
 ### Local Development
 #### Requirements
 - [Rust](https://www.rust-lang.org/)
@@ -80,20 +104,17 @@ cd lemmy
 # cd ui && yarn start
 # cd server && cargo watch -x run
 ```
-and goto http://localhost:8536
 
+and goto http://localhost:8536
 ## Documentation
 - [ActivityPub API.md](docs/API.md)
 - [Goals](docs/goals.md)
 - [Ranking Algorithm](docs/ranking.md)
-
 ## Support
 Lemmy is free, open-source software, meaning no advertising, monetizing, or venture capital, ever. Your donations directly support full-time development of the project.
 - [Support on Patreon](https://www.patreon.com/dessalines).
 - [Sponsor List](https://dev.lemmy.ml/#/sponsors).
 - bitcoin: `bc1queu73nwuheqtsp65nyh5hf4jr533r8rr5nsj75`
 - ethereum: `0x400c96c96acbC6E7B3B43B1dc1BB446540a88A01`
-
 ## Credits
-
 Icons made by [Freepik](https://www.freepik.com/) licensed by [CC 3.0](http://creativecommons.org/licenses/by/3.0/)
