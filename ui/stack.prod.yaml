@@ -1,0 +1,54 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lemmy-ui--prod
+spec:
+  selector:
+    matchLabels:
+      app: lemmy-ui--prod
+  template:
+    metadata:
+      labels:
+        app: lemmy-ui--prod
+    spec:
+      containers:
+        - name: lemmy-ui--prod
+          image: registry.gitlab.com/pojntfx/lemmy/ui.prod
+          resources:
+            limits:
+              memory: 1024Mi
+              cpu: 512m
+          ports:
+            - containerPort: 4444
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lemmy-ui--prod
+spec:
+  selector:
+    app: lemmy-ui--prod
+  ports:
+    - port: 5000
+      targetPort: 5000
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: lemmy-server--prod
+  annotations:
+    traefik.ingress.kubernetes.io/request-modifier: "ReplacePathRegex: ^/static/(.*) /$1"
+spec:
+  rules:
+    - host: dev.lemmy.local
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: lemmy-ui--prod
+              servicePort: 5000
+          - path: /service/ws
+            backend:
+              serviceName: lemmy-server--prod
+              servicePort: 8536
