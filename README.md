@@ -15,14 +15,13 @@ A link aggregator / reddit clone for the fediverse.
 
 This is a **very early beta version**, and a lot of features are currently broken or in active development, such as federation.
 
-|Front Page|Post|
-|-|-|
-|![main screen](https://i.imgur.com/y64BtXC.png)|![chat screen](https://i.imgur.com/vsOr87q.png)|
+Front Page|Post
+---|---
+![main screen](https://i.imgur.com/y64BtXC.png)|![chat screen](https://i.imgur.com/vsOr87q.png)
 ## Features
 - Open source, [AGPL License](/LICENSE).
 - Self hostable, easy to deploy.
-  - Comes with [Kubernetes](#kubernetes)
-  - Comes with [Docker](#docker).
+  - Comes with [Docker](#docker), [Kubernetes](#kubernetes).
 - Live-updating Comment threads.
 - Full vote scores `(+/-)` like old reddit.
 - Moderation abilities.
@@ -42,6 +41,7 @@ For a link aggregator, this means a user registered on one server can subscribe 
 The overall goal is to create an easily self-hostable, decentralized alternative to reddit and other link aggregators, outside of their corporate control and meddling.
 
 Each lemmy server can set its own moderation policy; appointing site-wide admins, and community moderators to keep out the trolls, and foster a healthy, non-toxic environment where all can feel comfortable contributing.
+
 ## Why's it called Lemmy?
 - Lead singer from [motorhead](https://invidio.us/watch?v=pWB5JZRGl0U).
 - The old school [video game](<https://en.wikipedia.org/wiki/Lemmings_(video_game)>).
@@ -49,7 +49,17 @@ Each lemmy server can set its own moderation policy; appointing site-wide admins
 - The [furry rodents](http://sunchild.fpwc.org/lemming-the-little-giant-of-the-north/).
 
 Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Inferno](https://www.infernojs.org), [Typescript](https://www.typescriptlang.org/) and [Diesel](http://diesel.rs/).
-## Usage
+## Install
+### Docker
+Make sure you have both docker and docker-compose installed.
+
+```
+git clone https://github.com/dessalines/lemmy
+cd lemmy
+./docker_update.sh # This pulls the newest version, builds and runs it
+```
+
+and goto http://localhost:8536
 ### Kubernetes
 #### Requirements
 - Local or remote Kubernetes cluster, i.e. [`minikube`](https://kubernetes.io/docs/tasks/tools/install-minikube/)
@@ -75,17 +85,7 @@ skaffold dev -p lemmy--dev
 ```
 
 Now go to http://localhost:4444. It automatically proxies to localhost, both if the cluster is local or remote; it also hot-reloads the UI and automatically recompiles and restarts the server.
-### Docker
-Make sure you have both docker and docker-compose installed.
-
-```
-git clone https://github.com/dessalines/lemmy
-cd lemmy
-./docker_update.sh # This pulls the newest version, builds and runs it
-```
-
-and goto http://localhost:8536
-### Native
+### Local Development
 #### Requirements
 - [Rust](https://www.rust-lang.org/)
 - [Yarn](https://yarnpkg.com/en/)
@@ -112,7 +112,6 @@ and goto http://localhost:8536
 - [Ranking Algorithm](docs/ranking.md)
 ## Support
 Lemmy is free, open-source software, meaning no advertising, monetizing, or venture capital, ever. Your donations directly support full-time development of the project.
-
 - [Support on Patreon](https://www.patreon.com/dessalines).
 - [Sponsor List](https://dev.lemmy.ml/#/sponsors).
 - bitcoin: `bc1queu73nwuheqtsp65nyh5hf4jr533r8rr5nsj75`
