@@ -1233,6 +1233,7 @@ impl Perform for GetPost {
       sessions.remove(&addr);
     }
 
+    // If the room doesn't exist yet
     if chat.rooms.get_mut(&self.id).is_none() {
       chat.rooms.insert(self.id, HashSet::new());
     }
