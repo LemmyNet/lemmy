@@ -17,7 +17,8 @@ pub struct Post {
   pub removed: bool,
   pub locked: bool,
   pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>
+  pub updated: Option<chrono::NaiveDateTime>,
+  pub deleted: bool,
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
@@ -30,7 +31,8 @@ pub struct PostForm {
   pub community_id: i32,
   pub removed: Option<bool>,
   pub locked: Option<bool>,
-  pub updated: Option<chrono::NaiveDateTime>
+  pub updated: Option<chrono::NaiveDateTime>,
+  pub deleted: Option<bool>,
 }
 
 impl Crud<PostForm> for Post {
@@ -199,6 +201,7 @@ mod tests {
       category_id: 1,
       creator_id: inserted_user.id,
       removed: None,
+      deleted: None,
       updated: None
     };
 
@@ -211,6 +214,7 @@ mod tests {
       creator_id: inserted_user.id,
       community_id: inserted_community.id,
       removed: None,
+      deleted: None,
       locked: None,
       updated: None
     };
@@ -227,6 +231,7 @@ mod tests {
       published: inserted_post.published,
       removed: false,
       locked: false,
+      deleted: false,
       updated: None
     };
 

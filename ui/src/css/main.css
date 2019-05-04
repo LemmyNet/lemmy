@@ -87,6 +87,10 @@ blockquote {
   margin-top: 6px;
 }
 
+.mouse-icon {
+  margin-top: -4px;
+}
+
 .new-comments {
   max-height: 100vh;
   overflow: hidden;

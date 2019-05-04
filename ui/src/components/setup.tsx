@@ -20,6 +20,7 @@ export class Setup extends Component<any, State> {
       username: undefined,
       password: undefined,
       password_verify: undefined,
+      spam_timeri: 3000,
       admin: true,
     },
     doneRegisteringUser: false,

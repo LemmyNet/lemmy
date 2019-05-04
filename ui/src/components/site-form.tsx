@@ -49,7 +49,7 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
         <div class="form-group row">
           <label class="col-12 col-form-label">Sidebar</label>
           <div class="col-12">
-            <textarea value={this.state.siteForm.description} onInput={linkEvent(this, this.handleSiteDescriptionChange)} class="form-control" rows={3} />
+            <textarea value={this.state.siteForm.description} onInput={linkEvent(this, this.handleSiteDescriptionChange)} class="form-control" rows={3} maxLength={10000} />
           </div>
         </div>
         <div class="form-group row">

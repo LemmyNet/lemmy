@@ -16,7 +16,8 @@ pub struct Community {
   pub creator_id: i32,
   pub removed: bool,
   pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>
+  pub updated: Option<chrono::NaiveDateTime>,
+  pub deleted: bool,
 }
 
 #[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize)]
@@ -28,7 +29,8 @@ pub struct CommunityForm {
   pub category_id: i32,
   pub creator_id: i32,
   pub removed: Option<bool>,
-  pub updated: Option<chrono::NaiveDateTime>
+  pub updated: Option<chrono::NaiveDateTime>,
+  pub deleted: Option<bool>,
 }
 
 impl Crud<CommunityForm> for Community {
@@ -245,6 +247,7 @@ mod tests {
       description: None,
       category_id: 1,
       removed: None,
+      deleted: None,
       updated: None,
     };
 
@@ -258,6 +261,7 @@ mod tests {
       description: None,
       category_id: 1,
       removed: false,
+      deleted: false,
       published: inserted_community.published,
       updated: None
     };
