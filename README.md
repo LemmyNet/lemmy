@@ -18,9 +18,7 @@ This is a **very early beta version**, and a lot of features are currently broke
 |Front Page|Post|
 |-|-|
 |![main screen](https://i.imgur.com/y64BtXC.png)|![chat screen](https://i.imgur.com/vsOr87q.png)|
-
 ## Features
-
 - Open source, [AGPL License](/LICENSE).
 - Self hostable, easy to deploy.
   - Comes with [Kubernetes](#kubernetes)
@@ -36,9 +34,7 @@ This is a **very early beta version**, and a lot of features are currently broke
 - High performance.
   - Server is written in rust.
   - Front end is `~80kB` gzipped.
-
 ## About
-
 [Lemmy](https://github.com/dessalines/lemmy) is similar to sites like [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), [Raddle](https://raddle.me), or [Hacker News](https://news.ycombinator.com/): you subscribe to forums you're interested in, post links and discussions, then vote, and comment on them. Behind the scenes, it is very different; anyone can easily run a server, and all these servers are federated (think email), and connected to the same universe, called the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
 
 For a link aggregator, this means a user registered on one server can subscribe to forums on any other server, and can have discussions with users registered elsewhere.
@@ -46,28 +42,20 @@ For a link aggregator, this means a user registered on one server can subscribe 
 The overall goal is to create an easily self-hostable, decentralized alternative to reddit and other link aggregators, outside of their corporate control and meddling.
 
 Each lemmy server can set its own moderation policy; appointing site-wide admins, and community moderators to keep out the trolls, and foster a healthy, non-toxic environment where all can feel comfortable contributing.
-
 ## Why's it called Lemmy?
-
 - Lead singer from [motorhead](https://invidio.us/watch?v=pWB5JZRGl0U).
 - The old school [video game](<https://en.wikipedia.org/wiki/Lemmings_(video_game)>).
 - The [Koopa from Super Mario](https://www.mariowiki.com/Lemmy_Koopa).
 - The [furry rodents](http://sunchild.fpwc.org/lemming-the-little-giant-of-the-north/).
 
 Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Inferno](https://www.infernojs.org), [Typescript](https://www.typescriptlang.org/) and [Diesel](http://diesel.rs/).
-
 ## Usage
-
 ### Kubernetes
-
 #### Requirements
-
 - Local or remote Kubernetes cluster, i.e. [`minikube`](https://kubernetes.io/docs/tasks/tools/install-minikube/)
 - [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - [`skaffold`](https://skaffold.dev/)
-
 #### Production
-
 ```bash
 # Deploy the Traefik Ingress
 kubectl apply -f https://raw.githubusercontent.com/containous/traefik/v1.7/examples/k8s/traefik-rbac.yaml
@@ -81,17 +69,13 @@ skaffold run -p lemmy--prod
 ```
 
 Now go to http://dev.lemmy.local.
-
 #### Development
-
 ```bash
 skaffold dev -p lemmy--dev
 ```
 
 Now go to http://localhost:4444. It automatically proxies to localhost, both if the cluster is local or remote; it also hot-reloads the UI and automatically recompiles and restarts the server.
-
 ### Docker
-
 Make sure you have both docker and docker-compose installed.
 
 ```
@@ -101,24 +85,17 @@ cd lemmy
 ```
 
 and goto http://localhost:8536
-
 ### Native
-
 #### Requirements
-
 - [Rust](https://www.rust-lang.org/)
 - [Yarn](https://yarnpkg.com/en/)
 - [Postgres](https://www.sqlite.org/index.html)
-
 #### Set up Postgres DB
-
 ```
  psql -c "create user rrr with password 'rrr' superuser;" -U postgres
  psql -c 'create database rrr with owner rrr;' -U postgres
 ```
-
 #### Running
-
 ```
 git clone https://github.com/dessalines/lemmy
 cd lemmy
@@ -129,22 +106,16 @@ cd lemmy
 ```
 
 and goto http://localhost:8536
-
 ## Documentation
-
 - [ActivityPub API.md](docs/API.md)
 - [Goals](docs/goals.md)
 - [Ranking Algorithm](docs/ranking.md)
-
 ## Support
-
 Lemmy is free, open-source software, meaning no advertising, monetizing, or venture capital, ever. Your donations directly support full-time development of the project.
 
 - [Support on Patreon](https://www.patreon.com/dessalines).
 - [Sponsor List](https://dev.lemmy.ml/#/sponsors).
 - bitcoin: `bc1queu73nwuheqtsp65nyh5hf4jr533r8rr5nsj75`
 - ethereum: `0x400c96c96acbC6E7B3B43B1dc1BB446540a88A01`
-
 ## Credits
-
 Icons made by [Freepik](https://www.freepik.com/) licensed by [CC 3.0](http://creativecommons.org/licenses/by/3.0/)
