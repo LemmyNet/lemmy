@@ -1,8 +1,4 @@
-extern crate diesel;
-use diesel::*;
-use diesel::result::Error;
-use serde::{Deserialize, Serialize};
-use {SortType, limit_and_offset};
+use super::*;
 
 table! {
   community_view (id) {
@@ -100,7 +96,7 @@ pub struct CommunityView {
 
 impl CommunityView {
   pub fn read(conn: &PgConnection, from_community_id: i32, from_user_id: Option<i32>) -> Result<Self, Error> {
-    use actions::community_view::community_view::dsl::*;
+    use super::community_view::community_view::dsl::*;
 
     let mut query = community_view.into_boxed();
 
@@ -122,7 +118,7 @@ impl CommunityView {
               page: Option<i64>,
               limit: Option<i64>,
               ) -> Result<Vec<Self>, Error> {
-    use actions::community_view::community_view::dsl::*;
+    use super::community_view::community_view::dsl::*;
     let mut query = community_view.into_boxed();
 
     let (limit, offset) = limit_and_offset(page, limit);
@@ -163,12 +159,12 @@ pub struct CommunityModeratorView {
 
 impl CommunityModeratorView {
   pub fn for_community(conn: &PgConnection, from_community_id: i32) -> Result<Vec<Self>, Error> {
-    use actions::community_view::community_moderator_view::dsl::*;
+    use super::community_view::community_moderator_view::dsl::*;
     community_moderator_view.filter(community_id.eq(from_community_id)).load::<Self>(conn)
   }
 
   pub fn for_user(conn: &PgConnection, from_user_id: i32) -> Result<Vec<Self>, Error> {
-    use actions::community_view::community_moderator_view::dsl::*;
+    use super::community_view::community_moderator_view::dsl::*;
     community_moderator_view.filter(user_id.eq(from_user_id)).load::<Self>(conn)
   }
 }
@@ -186,12 +182,12 @@ pub struct CommunityFollowerView {
 
 impl CommunityFollowerView {
   pub fn for_community(conn: &PgConnection, from_community_id: i32) -> Result<Vec<Self>, Error> {
-    use actions::community_view::community_follower_view::dsl::*;
+    use super::community_view::community_follower_view::dsl::*;
     community_follower_view.filter(community_id.eq(from_community_id)).load::<Self>(conn)
   }
 
   pub fn for_user(conn: &PgConnection, from_user_id: i32) -> Result<Vec<Self>, Error> {
-    use actions::community_view::community_follower_view::dsl::*;
+    use super::community_view::community_follower_view::dsl::*;
     community_follower_view.filter(user_id.eq(from_user_id)).load::<Self>(conn)
   }
 }
@@ -210,17 +206,17 @@ pub struct CommunityUserBanView {
 
 impl CommunityUserBanView {
   pub fn for_community(conn: &PgConnection, from_community_id: i32) -> Result<Vec<Self>, Error> {
-    use actions::community_view::community_user_ban_view::dsl::*;
+    use super::community_view::community_user_ban_view::dsl::*;
     community_user_ban_view.filter(community_id.eq(from_community_id)).load::<Self>(conn)
   }
 
   pub fn for_user(conn: &PgConnection, from_user_id: i32) -> Result<Vec<Self>, Error> {
-    use actions::community_view::community_user_ban_view::dsl::*;
+    use super::community_view::community_user_ban_view::dsl::*;
     community_user_ban_view.filter(user_id.eq(from_user_id)).load::<Self>(conn)
   }
 
   pub fn get(conn: &PgConnection, from_user_id: i32, from_community_id: i32) -> Result<Self, Error> {
-    use actions::community_view::community_user_ban_view::dsl::*;
+    use super::community_view::community_user_ban_view::dsl::*;
     community_user_ban_view
       .filter(user_id.eq(from_user_id))
       .filter(community_id.eq(from_community_id))
@@ -246,7 +242,7 @@ pub struct SiteView {
 
 impl SiteView {
   pub fn read(conn: &PgConnection) -> Result<Self, Error> {
-    use actions::community_view::site_view::dsl::*;
+    use super::community_view::site_view::dsl::*;
     site_view.first::<Self>(conn)
   }
 }
