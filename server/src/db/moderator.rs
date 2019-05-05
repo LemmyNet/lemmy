@@ -1,9 +1,5 @@
-extern crate diesel;
 use schema::{mod_remove_post, mod_lock_post, mod_remove_comment, mod_remove_community, mod_ban_from_community, mod_ban, mod_add_community, mod_add};
-use diesel::*;
-use diesel::result::Error;
-use serde::{Deserialize, Serialize};
-use {Crud};
+use super::*;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name="mod_remove_post"]
@@ -398,12 +394,11 @@ impl Crud<ModAddForm> for ModAdd {
 
 #[cfg(test)]
 mod tests {
-  use establish_connection;
   use super::*;
-  use actions::user::*;
-  use actions::post::*;
-  use actions::community::*;
-  use actions::comment::*;
+  use super::super::user::*;
+  use super::super::post::*;
+  use super::super::community::*;
+  use super::super::comment::*;
   // use Crud;
  #[test]
   fn test_crud() {

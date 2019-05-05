@@ -1,12 +1,7 @@
 [package]
-name = "server"
+name = "lemmy_server"
 version = "0.0.1"
 authors = ["Dessalines <happydooby@gmail.com>"]
-autobins = false
-
-[[bin]]
-name = "lemmy"
-path = "src/bin/main.rs"
 
 [dependencies]
 diesel = { version = "1.4.2", features = ["postgres","chrono"] }
