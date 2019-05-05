@@ -1,9 +1,7 @@
 use schema::user_;
-use diesel::*;
-use diesel::result::Error;
 use schema::user_::dsl::*;
-use serde::{Serialize, Deserialize};
-use {Crud,is_email_regex, Settings};
+use super::*;
+use {Settings, is_email_regex};
 use jsonwebtoken::{encode, decode, Header, Validation, TokenData};
 use bcrypt::{DEFAULT_COST, hash};
 
@@ -38,6 +36,7 @@ pub struct UserForm {
 
 impl Crud<UserForm> for User_ {
   fn read(conn: &PgConnection, user_id: i32) -> Result<Self, Error> {
+    use schema::user_::dsl::*;
     user_.find(user_id)
       .first::<Self>(conn)
   }
