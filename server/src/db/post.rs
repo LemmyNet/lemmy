@@ -1,9 +1,5 @@
-extern crate diesel;
 use schema::{post, post_like, post_saved, post_read};
-use diesel::*;
-use diesel::result::Error;
-use serde::{Deserialize, Serialize};
-use {Crud, Likeable, Saveable, Readable};
+use super::*;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name="post"]

@@ -1,9 +1,5 @@
-extern crate diesel;
 use schema::{community, community_moderator, community_follower, community_user_ban, site};
-use diesel::*;
-use diesel::result::Error;
-use serde::{Deserialize, Serialize};
-use {Crud, Followable, Joinable, Bannable};
+use super::*;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name="community"]
