@@ -99,7 +99,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   <span>
                     <span class="pointer ml-2 badge badge-light text-muted small" onClick={linkEvent(this, this.handleImageExpandClick)}>-</span>
                     <div>
-                      <a href={post.url} target="_blank"><img class="img-fluid" src={post.url} /></a>
+                      <span class="pointer" onClick={linkEvent(this, this.handleImageExpandClick)}><img class="img-fluid" src={post.url} /></span>
                     </div>
                   </span>
                 }
