@@ -1,7 +1,4 @@
-extern crate diesel;
-use diesel::*;
-use diesel::result::Error;
-use serde::{Deserialize, Serialize};
+use super::*;
 
 table! {
   user_view (id) {

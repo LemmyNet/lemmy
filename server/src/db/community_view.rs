@@ -1,8 +1,4 @@
-extern crate diesel;
-use diesel::*;
-use diesel::result::Error;
-use serde::{Deserialize, Serialize};
-use {SortType, limit_and_offset};
+use super::*;
 
 table! {
   community_view (id) {

@@ -1,9 +1,5 @@
-extern crate diesel;
 use schema::{comment, comment_like, comment_saved};
-use diesel::*;
-use diesel::result::Error;
-use serde::{Deserialize, Serialize};
-use {Crud, Likeable, Saveable};
+use super::*;
 use super::post::Post;
 
 // WITH RECURSIVE MyTree AS (

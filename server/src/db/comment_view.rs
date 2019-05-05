@@ -1,9 +1,4 @@
-extern crate diesel;
-use diesel::*;
-use diesel::result::Error;
-use diesel::dsl::*;
-use serde::{Deserialize, Serialize};
-use { SortType, limit_and_offset, fuzzy_search };
+use super::*;
 
 // The faked schema since diesel doesn't do views
 table! {
