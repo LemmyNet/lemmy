@@ -1,6 +1,6 @@
 extern crate activitypub;
 use self::activitypub::{context, actor::Person};
-use actions::user::User_;
+use db::user::User_;
 
 impl User_ {
   pub fn person(&self) -> Person {

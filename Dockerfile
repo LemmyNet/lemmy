@@ -20,8 +20,8 @@ COPY server/Cargo.toml server/Cargo.lock ./
 # this build step will cache your dependencies
 RUN  mkdir -p ./src/bin \
   && echo 'fn main() { println!("Dummy") }' > ./src/bin/main.rs 
-RUN cargo build --release --bin lemmy
-RUN rm -r ./target/release/.fingerprint/server-*
+RUN cargo build --release
+RUN rm -r ./target/release/.fingerprint/lemmy_server-*
 
 # copy your source tree
 # RUN rm -rf ./src/
@@ -29,8 +29,8 @@ COPY server/src ./src/
 COPY server/migrations ./migrations/
 
 # build for release
-RUN cargo build --frozen --release --bin lemmy
-RUN mv /app/server/target/release/lemmy /app/lemmy
+RUN cargo build --frozen --release
+RUN mv /app/server/target/release/lemmy_server /app/lemmy
 
 # Get diesel-cli on there just in case
 # RUN cargo install diesel_cli --no-default-features --features postgres
