@@ -81,3 +81,12 @@ pub fn limit_and_offset(page: Option<i64>, limit: Option<i64>) -> (i64, i64) {
     let offset = limit * (page - 1);
     (limit, offset)
 }
+#[cfg(test)]
+mod tests {
+  use super::fuzzy_search;
+  #[test] fn test_fuzzy_search() {
+    let test = "This is a fuzzy search";
+    assert_eq!(fuzzy_search(test), "%This%is%a%fuzzy%search%".to_string());
+  }
+}
+

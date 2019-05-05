@@ -244,13 +244,11 @@ impl ReplyView {
 
 #[cfg(test)]
 mod tests {
-  use establish_connection;
   use super::*;
   use super::super::post::*;
   use super::super::community::*;
   use super::super::user::*;
   use super::super::comment::*;
-  use {Crud,Likeable};
  #[test]
   fn test_crud() {
     let conn = establish_connection();

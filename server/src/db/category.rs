@@ -47,7 +47,6 @@ impl Category {
 
 #[cfg(test)]
 mod tests {
-  use establish_connection;
   use super::*;
  #[test]
   fn test_crud() {

@@ -215,10 +215,8 @@ impl Crud<SiteForm> for Site {
 
 #[cfg(test)]
 mod tests {
-  use establish_connection;
   use super::*;
   use super::super::user::*;
-  use Crud;
  #[test]
   fn test_crud() {
     let conn = establish_connection();

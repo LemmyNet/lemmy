@@ -72,7 +72,7 @@ pub fn has_slurs(test: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-  use {Settings, is_email_regex, remove_slurs, has_slurs, fuzzy_search};
+  use {Settings, is_email_regex, remove_slurs, has_slurs};
   #[test]
   fn test_api() {
     assert_eq!(Settings::get().api_endpoint(), "rrr/api/v1");
@@ -91,10 +91,6 @@ mod tests {
     assert!(!has_slurs(slur_free));
   } 
 
-  #[test] fn test_fuzzy_search() {
-    let test = "This is a fuzzy search";
-    assert_eq!(fuzzy_search(test), "%This%is%a%fuzzy%search%".to_string());
-  }
 }
 
 lazy_static! {

@@ -104,8 +104,8 @@ impl Default for ChatServer {
 
 impl ChatServer {
   /// Send message to all users in the room
-  fn send_room_message(&self, room: i32, message: &str, skip_id: usize) {
-    if let Some(sessions) = self.rooms.get(&room) {
+  fn send_room_message(&self, room: &i32, message: &str, skip_id: usize) {
+    if let Some(sessions) = self.rooms.get(room) {
       for id in sessions {
         if *id != skip_id {
           if let Some(info) = self.sessions.get(id) {
@@ -116,9 +116,9 @@ impl ChatServer {
     }
   }
 
-  fn join_room(&self, room_id: i32, id: usize) {
+  fn join_room(&mut self, room_id: i32, id: usize) {
     // remove session from all rooms
-    for (_n, sessions) in &mut self.rooms {
+    for (_n, mut sessions) in &mut self.rooms {
       sessions.remove(&id);
     }
 
@@ -127,17 +127,17 @@ impl ChatServer {
       self.rooms.insert(room_id, HashSet::new());
     }
 
-    self.rooms.get_mut(&room_id).unwrap().insert(id);
+    &self.rooms.get_mut(&room_id).unwrap().insert(id);
   }
 
-  fn send_community_message(&self, community_id: i32, message: &str, skip_id: usize) -> Result<(), Error> {
+  fn send_community_message(&self, community_id: &i32, message: &str, skip_id: usize) -> Result<(), Error> {
     use db::*;
     use db::post_view::*;
     let conn = establish_connection();
     let posts = PostView::list(&conn,
                                PostListingType::Community, 
                                &SortType::New, 
-                               Some(community_id), 
+                               Some(*community_id), 
                                None,
                                None, 
                                None,
@@ -146,7 +146,7 @@ impl ChatServer {
                                None,
                                Some(9999))?;
     for post in posts {
-      self.send_room_message(post.id, message, skip_id);
+      self.send_room_message(&post.id, message, skip_id);
     }
 
     Ok(())
@@ -346,7 +346,7 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       community_sent.community.user_id = None;
       community_sent.community.subscribed = None;
       let community_sent_str = serde_json::to_string(&community_sent)?;
-      chat.send_community_message(edit_community.edit_id, &community_sent_str, msg.id)?;
+      chat.send_community_message(&community_sent.community.id, &community_sent_str, msg.id)?;
       Ok(serde_json::to_string(&res)?)
     },
     UserOperation::FollowCommunity => {
@@ -361,16 +361,18 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
     },
     UserOperation::BanFromCommunity => {
       let ban_from_community: BanFromCommunity = serde_json::from_str(data)?;
+      let community_id = ban_from_community.community_id;
       let res = Oper::new(user_operation, ban_from_community).perform()?;
       let res_str = serde_json::to_string(&res)?;
-      chat.send_community_message(ban_from_community.community_id, &res_str, msg.id)?;
+      chat.send_community_message(&community_id, &res_str, msg.id)?;
       Ok(res_str)
     },
     UserOperation::AddModToCommunity => {
       let mod_add_to_community: AddModToCommunity = serde_json::from_str(data)?;
+      let community_id = mod_add_to_community.community_id;
       let res = Oper::new(user_operation, mod_add_to_community).perform()?;
       let res_str = serde_json::to_string(&res)?;
-      chat.send_community_message(mod_add_to_community.community_id, &res_str, msg.id)?;
+      chat.send_community_message(&community_id, &res_str, msg.id)?;
       Ok(res_str)
     },
     UserOperation::ListCategories => {
@@ -407,7 +409,7 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       let mut post_sent = res.clone();
       post_sent.post.my_vote = None;
       let post_sent_str = serde_json::to_string(&post_sent)?;
-      chat.send_room_message(edit_post.edit_id, &post_sent_str, msg.id);
+      chat.send_room_message(&post_sent.post.id, &post_sent_str, msg.id);
       Ok(serde_json::to_string(&res)?)
     },
     UserOperation::SavePost => {
@@ -418,22 +420,24 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
     UserOperation::CreateComment => {
       chat.check_rate_limit(msg.id)?;
       let create_comment: CreateComment = serde_json::from_str(data)?;
+      let post_id = create_comment.post_id;
       let res = Oper::new(user_operation, create_comment).perform()?;
       let mut comment_sent = res.clone();
       comment_sent.comment.my_vote = None;
       comment_sent.comment.user_id = None;
       let comment_sent_str = serde_json::to_string(&comment_sent)?;
-      chat.send_room_message(create_comment.post_id, &comment_sent_str, msg.id);
+      chat.send_room_message(&post_id, &comment_sent_str, msg.id);
       Ok(serde_json::to_string(&res)?)
     },
     UserOperation::EditComment => {
       let edit_comment: EditComment = serde_json::from_str(data)?;
+      let post_id = edit_comment.post_id;
       let res = Oper::new(user_operation, edit_comment).perform()?;
       let mut comment_sent = res.clone();
       comment_sent.comment.my_vote = None;
       comment_sent.comment.user_id = None;
       let comment_sent_str = serde_json::to_string(&comment_sent)?;
-      chat.send_room_message(edit_comment.post_id, &comment_sent_str, msg.id);
+      chat.send_room_message(&post_id, &comment_sent_str, msg.id);
       Ok(serde_json::to_string(&res)?)
     },
     UserOperation::SaveComment => {
@@ -444,12 +448,13 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
     UserOperation::CreateCommentLike => {
       chat.check_rate_limit(msg.id)?;
       let create_comment_like: CreateCommentLike = serde_json::from_str(data)?;
+      let post_id = create_comment_like.post_id;
       let res = Oper::new(user_operation, create_comment_like).perform()?;
       let mut comment_sent = res.clone();
       comment_sent.comment.my_vote = None;
       comment_sent.comment.user_id = None;
       let comment_sent_str = serde_json::to_string(&comment_sent)?;
-      chat.send_room_message(create_comment_like.post_id, &comment_sent_str, msg.id);
+      chat.send_room_message(&post_id, &comment_sent_str, msg.id);
       Ok(serde_json::to_string(&res)?)
     },
     UserOperation::GetModlog => {
