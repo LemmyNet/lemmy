@@ -57,11 +57,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     let post = this.props.post;
     return (
       <div class="listing">
-        <div className={`float-left small text-center ${this.props.viewOnly && 'no-click'}`}>
+        <div className={`mr-1 float-left small text-center ${this.props.viewOnly && 'no-click'}`}>
           <div className={`pointer ${post.my_vote == 1 ? 'text-info' : 'text-muted'}`} onClick={linkEvent(this, this.handlePostLike)}>
             <svg class="icon upvote"><use xlinkHref="#icon-arrow-up"></use></svg>
           </div>
-          <div>{post.score}</div>
+          <div class={`font-weight-bold text-muted`}>{post.score}</div>
           <div className={`pointer ${post.my_vote == -1 ? 'text-danger' : 'text-muted'}`} onClick={linkEvent(this, this.handlePostDisLike)}>
             <svg class="icon downvote"><use xlinkHref="#icon-arrow-down"></use></svg>
           </div>
@@ -113,10 +113,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               <span>by </span>
               <Link className="text-info" to={`/u/${post.creator_name}`}>{post.creator_name}</Link>
               {this.isMod && 
-                <span className="mx-1 badge badge-secondary">mod</span>
+                <span className="mx-1 badge badge-light">mod</span>
               }
               {this.isAdmin && 
-                <span className="mx-1 badge badge-secondary">admin</span>
+                <span className="mx-1 badge badge-light">admin</span>
               }
               {this.props.showCommunity && 
                 <span>

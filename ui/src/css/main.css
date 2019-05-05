@@ -1,3 +1,6 @@
+body, .text-white, .navbar-brand, .badge-light, .btn-secondary {
+  color: #dedede !important;
+}
 
 .pointer {
   cursor: pointer;

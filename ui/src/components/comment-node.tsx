@@ -57,11 +57,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     let node = this.props.node;
     return (
       <div className={`comment ${node.comment.parent_id  && !this.props.noIndent ? 'ml-4' : ''}`}>
-        <div className={`float-left small text-center ${this.props.viewOnly && 'no-click'}`}>
+        <div className={`mr-1 float-left small text-center ${this.props.viewOnly && 'no-click'}`}>
           <div className={`pointer ${node.comment.my_vote == 1 ? 'text-info' : 'text-muted'}`} onClick={linkEvent(node, this.handleCommentLike)}>
             <svg class="icon upvote"><use xlinkHref="#icon-arrow-up"></use></svg>
           </div>
-          <div>{node.comment.score}</div>
+          <div class={`font-weight-bold text-muted`}>{node.comment.score}</div>
           <div className={`pointer ${node.comment.my_vote == -1 ? 'text-danger' : 'text-muted'}`} onClick={linkEvent(node, this.handleCommentDisLike)}>
             <svg class="icon downvote"><use xlinkHref="#icon-arrow-down"></use></svg>
           </div>
@@ -72,10 +72,10 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               <Link className="text-info" to={`/u/${node.comment.creator_name}`}>{node.comment.creator_name}</Link>
             </li>
             {this.isMod && 
-              <li className="list-inline-item badge badge-secondary">mod</li>
+              <li className="list-inline-item badge badge-light">mod</li>
             }
             {this.isAdmin && 
-              <li className="list-inline-item badge badge-secondary">admin</li>
+              <li className="list-inline-item badge badge-light">admin</li>
             }
             <li className="list-inline-item">
               <span>(
