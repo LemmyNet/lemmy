@@ -168,8 +168,6 @@ impl Readable <PostReadForm> for PostRead {
 
 #[cfg(test)]
 mod tests {
-  use establish_connection;
-  use Crud;
   use super::*;
   use super::super::community::*;
   use super::super::user::*;

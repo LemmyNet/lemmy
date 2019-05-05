@@ -7,7 +7,7 @@ use lemmy_server::actix::*;
 use lemmy_server::actix_web::server::HttpServer;
 use lemmy_server::actix_web::{ws, App, Error, HttpRequest, HttpResponse, fs::NamedFile, fs};
 use lemmy_server::websocket::server::*;
-use lemmy_server::establish_connection;
+use lemmy_server::db::establish_connection;
 
 embed_migrations!();
 
@@ -117,6 +117,7 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WSSession {
       }
       ws::Message::Text(text) => {
         let m = text.trim().to_owned();
+        println!("WEBSOCKET MESSAGE: {:?} from id: {}", &m, self.id);
         
         ctx.state()
           .addr
@@ -130,79 +131,11 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WSSession {
               Ok(res) => ctx.text(res),
               Err(e) => {
                 eprintln!("{}", &e);
-                // ctx.text(e);
               }
             }
-            // Ok(res) => ctx.text(res),
-            // // something is wrong with chat server
-            // _ => ctx.stop(),
             fut::ok(())
           })
         .wait(ctx);
-
-        // we check for /sss type of messages
-        // if m.starts_with('/') {
-        //     let v: Vec<&str> = m.splitn(2, ' ').collect();
-        //     match v[0] {
-        //         "/list" => {
-        //             // Send ListRooms message to chat server and wait for
-        //             // response
-        //             println!("List rooms");
-        //             ctx.state()
-        //                 .addr
-        //                 .send(ListRooms)
-        //                 .into_actor(self)
-        //                 .then(|res, _, ctx| {
-        //                     match res {
-        //                         Ok(rooms) => {
-        //                             for room in rooms {
-        //                                 ctx.text(room);
-        //                             }
-        //                         }
-        //                         _ => println!("Something is wrong"),
-        //                     }
-        //                     fut::ok(())
-        //                 })
-        //                 .wait(ctx)
-        // .wait(ctx) pauses all events in context,
-        // so actor wont receive any new messages until it get list
-        // of rooms back
-        // }
-        // "/join" => {
-        //     if v.len() == 2 {
-        //         self.room = v[1].to_owned();
-        //         ctx.state().addr.do_send(Join {
-        //             id: self.id,
-        //             name: self.room.clone(),
-        //         });
-
-        //         ctx.text("joined");
-        //     } else {
-        //         ctx.text("!!! room name is required");
-        //     }
-        // }
-        // "/name" => {
-        //     if v.len() == 2 {
-        //         self.name = Some(v[1].to_owned());
-        //     } else {
-        //         ctx.text("!!! name is required");
-        //     }
-        // }
-        // _ => ctx.text(format!("!!! unknown command: {:?}", m)),
-        // }
-        // } else {
-        // let msg = if let Some(ref name) = self.name {
-        //     format!("{}: {}", name, m)
-        // } else {
-        //     m.to_owned()
-        // };
-        // send message to chat server
-        // ctx.state().addr.do_send(ClientMessage {
-        // id: self.id,
-        // msg: msg,
-        // room: self.room.clone(),
-        // })
-        // }
       }
       ws::Message::Binary(_bin) => println!("Unexpected binary"),
       ws::Message::Close(_) => {

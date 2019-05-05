@@ -154,12 +154,10 @@ impl Saveable <CommentSavedForm> for CommentSaved {
 
 #[cfg(test)]
 mod tests {
-  use establish_connection;
   use super::*;
   use super::super::post::*;
   use super::super::community::*;
   use super::super::user::*;
-  use Crud;
  #[test]
   fn test_crud() {
     let conn = establish_connection();

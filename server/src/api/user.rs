@@ -97,19 +97,19 @@ pub struct GetReplies {
 
 impl Perform<LoginResponse> for Oper<Login> {
   fn perform(&self) -> Result<LoginResponse, Error> {
-    let data: Login = self.data;
+    let data: &Login = &self.data;
     let conn = establish_connection();
 
     // Fetch that username / email
     let user: User_ = match User_::find_by_email_or_username(&conn, &data.username_or_email) {
       Ok(user) => user,
-      Err(_e) => return Err(APIError::err(self.op, "Couldn't find that username or email"))?
+      Err(_e) => return Err(APIError::err(&self.op, "Couldn't find that username or email"))?
     };
 
     // Verify the password
     let valid: bool = verify(&data.password, &user.password_encrypted).unwrap_or(false);
     if !valid {
-      return Err(APIError::err(self.op, "Password incorrect"))?
+      return Err(APIError::err(&self.op, "Password incorrect"))?
     }
 
     // Return the jwt
@@ -125,25 +125,25 @@ impl Perform<LoginResponse> for Oper<Login> {
 
 impl Perform<LoginResponse> for Oper<Register> {
   fn perform(&self) -> Result<LoginResponse, Error> {
-    let data: Register = self.data;
+    let data: &Register = &self.data;
     let conn = establish_connection();
 
     // Make sure passwords match
     if &data.password != &data.password_verify {
-      return Err(APIError::err(self.op, "Passwords do not match."))?
+      return Err(APIError::err(&self.op, "Passwords do not match."))?
     }
 
     if data.spam_timeri < 1142 {
-      return Err(APIError::err(self.op, "Too fast"))?
+      return Err(APIError::err(&self.op, "Too fast"))?
     }
 
     if has_slurs(&data.username) {
-      return Err(APIError::err(self.op, "No slurs"))?
+      return Err(APIError::err(&self.op, "No slurs"))?
     }
 
     // Make sure there are no admins
     if data.admin && UserView::admins(&conn)?.len() > 0 {
-      return Err(APIError::err(self.op, "Sorry, there's already an admin."))?
+      return Err(APIError::err(&self.op, "Sorry, there's already an admin."))?
     }
 
     // Register the new user
@@ -162,7 +162,7 @@ impl Perform<LoginResponse> for Oper<Register> {
     let inserted_user = match User_::register(&conn, &user_form) {
       Ok(user) => user,
       Err(_e) => {
-        return Err(APIError::err(self.op, "User already exists."))?
+        return Err(APIError::err(&self.op, "User already exists."))?
       }
     };
 
@@ -175,7 +175,7 @@ impl Perform<LoginResponse> for Oper<Register> {
     let _inserted_community_follower = match CommunityFollower::follow(&conn, &community_follower_form) {
       Ok(user) => user,
       Err(_e) => {
-        return Err(APIError::err(self.op, "Community follower already exists."))?
+        return Err(APIError::err(&self.op, "Community follower already exists."))?
       }
     };
 
@@ -189,7 +189,7 @@ impl Perform<LoginResponse> for Oper<Register> {
       let _inserted_community_moderator = match CommunityModerator::join(&conn, &community_moderator_form) {
         Ok(user) => user,
         Err(_e) => {
-          return Err(APIError::err(self.op, "Community moderator already exists."))?
+          return Err(APIError::err(&self.op, "Community moderator already exists."))?
         }
       };
 
@@ -208,7 +208,7 @@ impl Perform<LoginResponse> for Oper<Register> {
 
 impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
   fn perform(&self) -> Result<GetUserDetailsResponse, Error> {
-    let data: GetUserDetails = self.data;
+    let data: &GetUserDetails = &self.data;
     let conn = establish_connection();
 
     let user_id: Option<i32> = match &data.auth {
@@ -302,13 +302,13 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
 
 impl Perform<AddAdminResponse> for Oper<AddAdmin> {
   fn perform(&self) -> Result<AddAdminResponse, Error> {
-    let data: AddAdmin = self.data;
+    let data: &AddAdmin = &self.data;
     let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return Err(APIError::err(self.op, "Not logged in."))?
+        return Err(APIError::err(&self.op, "Not logged in."))?
       }
     };
 
@@ -316,7 +316,7 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
 
     // Make sure user is an admin
     if UserView::read(&conn, user_id)?.admin == false {
-      return Err(APIError::err(self.op, "Not an admin."))?
+      return Err(APIError::err(&self.op, "Not an admin."))?
     }
 
     let read_user = User_::read(&conn, data.user_id)?;
@@ -335,7 +335,7 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
     match User_::update(&conn, data.user_id, &user_form) {
       Ok(user) => user,
       Err(_e) => {
-        return Err(APIError::err(self.op, "Couldn't update user"))?
+        return Err(APIError::err(&self.op, "Couldn't update user"))?
       }
     };
 
@@ -361,13 +361,13 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
 
 impl Perform<BanUserResponse> for Oper<BanUser> {
   fn perform(&self) -> Result<BanUserResponse, Error> {
-    let data: BanUser = self.data;
+    let data: &BanUser = &self.data;
     let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return Err(APIError::err(self.op, "Not logged in."))?
+        return Err(APIError::err(&self.op, "Not logged in."))?
       }
     };
 
@@ -375,7 +375,7 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
 
     // Make sure user is an admin
     if UserView::read(&conn, user_id)?.admin == false {
-      return Err(APIError::err(self.op, "Not an admin."))?
+      return Err(APIError::err(&self.op, "Not an admin."))?
     }
 
     let read_user = User_::read(&conn, data.user_id)?;
@@ -394,7 +394,7 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
     match User_::update(&conn, data.user_id, &user_form) {
       Ok(user) => user,
       Err(_e) => {
-        return Err(APIError::err(self.op, "Couldn't update user"))?
+        return Err(APIError::err(&self.op, "Couldn't update user"))?
       }
     };
 
@@ -429,13 +429,13 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
 
 impl Perform<GetRepliesResponse> for Oper<GetReplies> {
   fn perform(&self) -> Result<GetRepliesResponse, Error> {
-    let data: GetReplies = self.data;
+    let data: &GetReplies = &self.data;
     let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return Err(APIError::err(self.op, "Not logged in."))?
+        return Err(APIError::err(&self.op, "Not logged in."))?
       }
     };
 
@@ -457,13 +457,13 @@ impl Perform<GetRepliesResponse> for Oper<GetReplies> {
 
 impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
   fn perform(&self) -> Result<GetRepliesResponse, Error> {
-    let data: MarkAllAsRead = self.data;
+    let data: &MarkAllAsRead = &self.data;
     let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return Err(APIError::err(self.op, "Not logged in."))?
+        return Err(APIError::err(&self.op, "Not logged in."))?
       }
     };
 
@@ -486,7 +486,7 @@ impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
       let _updated_comment = match Comment::update(&conn, reply.id, &comment_form) {
         Ok(comment) => comment,
         Err(_e) => {
-          return Err(APIError::err(self.op, "Couldn't update Comment"))?
+          return Err(APIError::err(&self.op, "Couldn't update Comment"))?
         }
       };
     }
