@@ -28,12 +28,12 @@ pub enum UserOperation {
 #[derive(Fail, Debug)]
 #[fail(display = "{{\"op\":\"{}\", \"error\":\"{}\"}}", op, message)]
 pub struct APIError {
-  op: String,
-  message: String,
+  pub op: String,
+  pub message: String,
 }
 
 impl APIError {
-  pub fn err(op: UserOperation, msg: &str) -> Self {
+  pub fn err(op: &UserOperation, msg: &str) -> Self {
     APIError {
       op: op.to_string(),
       message: msg.to_string(),

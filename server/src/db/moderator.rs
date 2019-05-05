@@ -394,7 +394,6 @@ impl Crud<ModAddForm> for ModAdd {
 
 #[cfg(test)]
 mod tests {
-  use establish_connection;
   use super::*;
   use super::super::user::*;
   use super::super::post::*;

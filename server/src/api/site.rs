@@ -83,7 +83,7 @@ pub struct GetSiteResponse {
 
 impl Perform<ListCategoriesResponse> for Oper<ListCategories> {
   fn perform(&self) -> Result<ListCategoriesResponse, Error> {
-    let data: ListCategories = self.data;
+    let _data: &ListCategories = &self.data;
     let conn = establish_connection();
 
     let categories: Vec<Category> = Category::list_all(&conn)?;
@@ -100,7 +100,7 @@ impl Perform<ListCategoriesResponse> for Oper<ListCategories> {
 
 impl Perform<GetModlogResponse> for Oper<GetModlog> {
   fn perform(&self) -> Result<GetModlogResponse, Error> {
-    let data: GetModlog = self.data;
+    let data: &GetModlog = &self.data;
     let conn = establish_connection();
 
     let removed_posts = ModRemovePostView::list(&conn, data.community_id, data.mod_user_id, data.page, data.limit)?;
@@ -139,26 +139,26 @@ impl Perform<GetModlogResponse> for Oper<GetModlog> {
 
 impl Perform<SiteResponse> for Oper<CreateSite> {
   fn perform(&self) -> Result<SiteResponse, Error> {
-    let data: CreateSite = self.data;
+    let data: &CreateSite = &self.data;
     let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return Err(APIError::err(self.op, "Not logged in."))?
+        return Err(APIError::err(&self.op, "Not logged in."))?
       }
     };
 
     if has_slurs(&data.name) || 
       (data.description.is_some() && has_slurs(&data.description.to_owned().unwrap())) {
-        return Err(APIError::err(self.op, "No slurs"))?
+        return Err(APIError::err(&self.op, "No slurs"))?
       }
 
     let user_id = claims.id;
 
     // Make sure user is an admin
     if !UserView::read(&conn, user_id)?.admin {
-      return Err(APIError::err(self.op, "Not an admin."))?
+      return Err(APIError::err(&self.op, "Not an admin."))?
     }
 
     let site_form = SiteForm {
@@ -171,7 +171,7 @@ impl Perform<SiteResponse> for Oper<CreateSite> {
     match Site::create(&conn, &site_form) {
       Ok(site) => site,
       Err(_e) => {
-        return Err(APIError::err(self.op, "Site exists already"))?
+        return Err(APIError::err(&self.op, "Site exists already"))?
       }
     };
 
@@ -189,26 +189,26 @@ impl Perform<SiteResponse> for Oper<CreateSite> {
 
 impl Perform<SiteResponse> for Oper<EditSite> {
   fn perform(&self) -> Result<SiteResponse, Error> {
-    let data: EditSite = self.data;
+    let data: &EditSite = &self.data;
     let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return Err(APIError::err(self.op, "Not logged in."))?
+        return Err(APIError::err(&self.op, "Not logged in."))?
       }
     };
 
     if has_slurs(&data.name) || 
       (data.description.is_some() && has_slurs(&data.description.to_owned().unwrap())) {
-        return Err(APIError::err(self.op, "No slurs"))?
+        return Err(APIError::err(&self.op, "No slurs"))?
       }
 
     let user_id = claims.id;
 
     // Make sure user is an admin
     if UserView::read(&conn, user_id)?.admin == false {
-      return Err(APIError::err(self.op, "Not an admin."))?
+      return Err(APIError::err(&self.op, "Not an admin."))?
     }
 
     let found_site = Site::read(&conn, 1)?;
@@ -223,7 +223,7 @@ impl Perform<SiteResponse> for Oper<EditSite> {
     match Site::update(&conn, 1, &site_form) {
       Ok(site) => site,
       Err(_e) => {
-        return Err(APIError::err(self.op, "Couldn't update site."))?
+        return Err(APIError::err(&self.op, "Couldn't update site."))?
       }
     };
 
@@ -240,7 +240,7 @@ impl Perform<SiteResponse> for Oper<EditSite> {
 
 impl Perform<GetSiteResponse> for Oper<GetSite> {
   fn perform(&self) -> Result<GetSiteResponse, Error> {
-    let data: GetSite = self.data;
+    let _data: &GetSite = &self.data;
     let conn = establish_connection();
 
     // It can return a null site in order to redirect
@@ -265,7 +265,7 @@ impl Perform<GetSiteResponse> for Oper<GetSite> {
 
 impl Perform<SearchResponse> for Oper<Search> {
   fn perform(&self) -> Result<SearchResponse, Error> {
-    let data: Search = self.data;
+    let data: &Search = &self.data;
     let conn = establish_connection();
 
     let sort = SortType::from_str(&data.sort)?;

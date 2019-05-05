@@ -120,9 +120,7 @@ impl User_ {
 
 #[cfg(test)]
 mod tests {
-  use establish_connection;
-  use super::{User_, UserForm};
-  use Crud;
+  use super::*;
  #[test]
   fn test_crud() {
     let conn = establish_connection();
