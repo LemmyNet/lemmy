@@ -36,6 +36,7 @@ export class Community extends Component<any, State> {
       number_of_comments: null,
       published: null,
       removed: null,
+      deleted: null,
     },
     moderators: [],
     admins: [],
@@ -98,7 +99,7 @@ export class Community extends Component<any, State> {
         {this.state.loading ? 
         <h5><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> : 
         <div class="row">
-          <div class="col-12 col-md-9">
+          <div class="col-12 col-md-8">
             <h5>{this.state.community.title}
             {this.state.community.removed &&
               <small className="ml-2 text-muted font-italic">removed</small>
@@ -108,7 +109,7 @@ export class Community extends Component<any, State> {
           <PostListings posts={this.state.posts} />
           {this.paginator()}
           </div>
-          <div class="col-12 col-md-3">
+          <div class="col-12 col-md-4">
             <Sidebar 
               community={this.state.community} 
               moderators={this.state.moderators} 
