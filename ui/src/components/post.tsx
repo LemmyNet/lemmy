@@ -80,7 +80,7 @@ export class Post extends Component<any, PostState> {
         {this.state.loading ? 
         <h5><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> : 
         <div class="row">
-            <div class="col-12 col-md-8 col-lg-7 mb-3">
+            <div class="col-12 col-md-8 col-lg-6 mb-3">
               <PostListing 
                 post={this.state.post} 
                 showBody 
@@ -97,7 +97,7 @@ export class Post extends Component<any, PostState> {
             <div class="col-12 col-md-4 col-lg-3 mb-3 d-none d-md-block px-0">
               {this.state.comments.length > 0 && this.newComments()}
             </div>
-            <div class="col-12 col-sm-12 col-lg-2">
+            <div class="col-12 col-sm-12 col-lg-3">
               {this.sidebar()}
             </div>
           </div>
@@ -148,7 +148,7 @@ export class Post extends Component<any, PostState> {
 
   sidebar() {
     return ( 
-      <div class="sticky-top">
+      <div class="">
         <Sidebar 
           community={this.state.community} 
           moderators={this.state.moderators} 
