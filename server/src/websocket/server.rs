@@ -20,8 +20,8 @@ use api::site::*;
 
 const RATE_LIMIT_MESSAGES: i32 = 30;
 const RATE_LIMIT_PER_SECOND: i32 = 60;
-const RATE_LIMIT_REGISTER_MESSAGES: i32 = 1;
-const RATE_LIMIT_REGISTER_PER_SECOND: i32 = 60;
+const RATE_LIMIT_REGISTER_MESSAGES: i32 = 3;
+const RATE_LIMIT_REGISTER_PER_SECOND: i32 = 60*3;
 
 
 /// Chat server sends this messages to session
