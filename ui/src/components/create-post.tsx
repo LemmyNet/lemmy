@@ -26,7 +26,9 @@ export class CreatePost extends Component<any, any> {
   }
 
   get prevCommunityName(): string {
-    if (this.props.location.state) {
+    if (this.props.match.params.name) {
+      return this.props.match.params.name;
+    } else if (this.props.location.state) {
       let lastLocation = this.props.location.state.prevPath;
       if (lastLocation.includes("/c/")) {
         return lastLocation.split("/c/")[1];

@@ -136,6 +136,8 @@ export class Main extends Component<any, MainState> {
                     </ul>
                   </div>
                 }
+                <Link class="btn btn-sm btn-secondary btn-block mb-3" 
+                  to="/create_community">Create a Community</Link>
                 {this.sidebar()}
               </div>
             }
