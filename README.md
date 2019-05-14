@@ -1,13 +1,17 @@
 <h1><img src="https://image.flaticon.com/icons/svg/194/194242.svg" width="50px" height="50px" /> Lemmy</h1>
 
+![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/dessalines/lemmy.svg)
 [![Build Status](https://travis-ci.org/dessalines/lemmy.svg?branch=master)](https://travis-ci.org/dessalines/lemmy)
+![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/dessalines/lemmy.svg)
 [![star this repo](http://githubbadges.com/star.svg?user=dessalines&repo=lemmy&style=flat)](https://github.com/dessalines/lemmy)
 [![fork this repo](http://githubbadges.com/fork.svg?user=dessalines&repo=lemmy&style=flat)](https://github.com/dessalines/lemmy/fork)
+![Docker Pulls](https://img.shields.io/docker/pulls/dessalines/lemmy.svg)
 [![GitHub issues](https://img.shields.io/github/issues-raw/dessalines/lemmy.svg)](https://github.com/dessalines/lemmy/issues)
 ![GitHub repo size](https://img.shields.io/github/repo-size/dessalines/lemmy.svg)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/dessalines/lemmy.svg)
+[![License](https://img.shields.io/github/license/dessalines/lemmy.svg)](LICENSE)
 [![Matrix](https://img.shields.io/matrix/rust-reddit-fediverse:matrix.org.svg?label=matrix-chat)](https://riot.im/app/#/room/#rust-reddit-fediverse:matrix.org)
 [![Patreon](https://img.shields.io/badge/-Support%20on%20Patreon-blueviolet.svg)](https://www.patreon.com/dessalines)
-[![License](https://img.shields.io/github/license/dessalines/lemmy.svg)](LICENSE)
 
 A link aggregator / reddit clone for the fediverse.
 
