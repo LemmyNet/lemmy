@@ -55,6 +55,16 @@ Make sure you have both docker and docker-compose installed.
 
 ```
 git clone https://github.com/dessalines/lemmy
+cd lemmy/docker
+docker-compose up -d
+```
+
+and goto http://localhost:8536
+## Develop
+### Docker Development
+
+```
+git clone https://github.com/dessalines/lemmy
 cd lemmy
 ./docker_update.sh # This pulls the newest version, builds and runs it
 ```
