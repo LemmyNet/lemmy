@@ -16,7 +16,6 @@ services:
   lemmy:
     build: 
       context: .
-    command: /bin/sh -c /app/lemmy
     ports:
       - "8536:8536"
     environment:

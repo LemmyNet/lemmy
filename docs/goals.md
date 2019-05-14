@@ -35,6 +35,7 @@
 - [Classification types.](https://www.reddit.com/r/ModeratorDuck/wiki/subreddit_classification)
 - [RES expando - Possibly make this into a switching react component.](https://github.com/honestbleeps/Reddit-Enhancement-Suite/tree/d21f55c21e734f47d8ed03fe0ebce5b16653b0bd/lib/modules/hosts)
 - [Temp Icon](https://www.flaticon.com/free-icon/mouse_194242)
+- [Rust docker build](https://shaneutt.com/blog/rust-fast-small-docker-image-builds/)
 - Activitypub guides
   - https://blog.joinmastodon.org/2018/06/how-to-implement-a-basic-activitypub-server/
   - https://raw.githubusercontent.com/w3c/activitypub/gh-pages/activitypub-tutorial.txt

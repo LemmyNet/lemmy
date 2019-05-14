@@ -1,43 +1,50 @@
 FROM node:10-jessie as node
-#If encounter Invalid cross-device error -run on host 'echo N | sudo tee /sys/module/overlay/parameters/metacopy'
 WORKDIR /app/ui
 
+# Cache deps
 COPY ui/package.json ui/yarn.lock ./
-RUN yarn install --pure-lockfile # This caches your deps
+RUN yarn install --pure-lockfile
+
+# Build 
 COPY ui /app/ui
 RUN yarn build
 
-FROM rust:1.33 as rust
+FROM rust:latest as rust
 
-# create a new empty shell project
+# Install musl
+RUN apt-get update
+RUN apt-get install musl-tools -y
+RUN rustup target add x86_64-unknown-linux-musl
+
+# Cache deps
 WORKDIR /app
 RUN USER=root cargo new server
 WORKDIR /app/server
-
-# copy over your manifests
 COPY server/Cargo.toml server/Cargo.lock ./
-
-# this build step will cache your dependencies
 RUN  mkdir -p ./src/bin \
   && echo 'fn main() { println!("Dummy") }' > ./src/bin/main.rs 
-RUN cargo build --release
-RUN rm -r ./target/release/.fingerprint/lemmy_server-*
-
-# copy your source tree
-# RUN rm -rf ./src/
+RUN RUSTFLAGS=-Clinker=musl-gcc cargo build --release --target=x86_64-unknown-linux-musl
+RUN rm -f ./target/x86_64-unknown-linux-musl/release/deps/lemmy_server*
 COPY server/src ./src/
 COPY server/migrations ./migrations/
 
 # build for release
-RUN cargo build --frozen --release
-RUN mv /app/server/target/release/lemmy_server /app/lemmy
+RUN RUSTFLAGS=-Clinker=musl-gcc cargo build --frozen --release --target=x86_64-unknown-linux-musl
 
 # Get diesel-cli on there just in case
 # RUN cargo install diesel_cli --no-default-features --features postgres
 
-# The output image
-# FROM debian:stable-slim
-# RUN apt-get -y update && apt-get install -y postgresql-client
-# COPY --from=rust /app/server/target/release/lemmy /app/lemmy
+FROM alpine:latest
+
+# Install libpq for postgres
+RUN apk add libpq
+
+# Copy resources
+COPY --from=rust /app/server/target/x86_64-unknown-linux-musl/release/lemmy_server /app/lemmy
 COPY --from=node /app/ui/dist /app/dist
+RUN addgroup -g 1000 lemmy
+RUN adduser -D -s /bin/sh -u 1000 -G lemmy lemmy
+RUN chown lemmy:lemmy /app/lemmy
+USER lemmy
 EXPOSE 8536
+CMD ["/app/lemmy"]
