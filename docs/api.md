@@ -30,6 +30,9 @@ A simple test command:
 ### List
 `Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetReplies, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser, Search, MarkAllAsRead`
 
+### Sort Types
+`Hot, New, TopDay, TopWeek, TopMonth, TopYear, TopAll`
+
 ### User / Authentication / Admin
 #### Login
 The `jwt` string should be stored and used anywhere `auth` is called for.
@@ -540,6 +543,8 @@ Mods and admins can remove and lock a community, creators can delete it.
 ```
 
 #### Get Posts
+`Post listing types are `All, Subscribed, Community`
+
 ##### Request
 ```rust
 {
