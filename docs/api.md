@@ -9,7 +9,7 @@ The data types, such as `Vec<CommentView>`, are listed [here](../server/src/db).
 `host/api/v1/ws`
 
 ### Testing with [Websocat](https://github.com/vi/websocat)
-`websocat ws://127.0.0.1:8536/api/v1/ws`
+`websocat ws://127.0.0.1:8536/api/v1/ws -nt`
 
 A simple test command:
 `{"op": "ListCategories"}`
@@ -31,6 +31,7 @@ A simple test command:
 `Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetReplies, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser, Search, MarkAllAsRead`
 
 ### Sort Types
+These go wherever there is a `sort` field.
 `Hot, New, TopDay, TopWeek, TopMonth, TopYear, TopAll`
 
 ### User / Authentication / Admin
@@ -209,6 +210,8 @@ Only the first user will be able to be the admin.
 ```
 
 #### Search
+Search types are `Both, Comments, Posts`.
+
 ##### Request
 ```rust
 {
@@ -542,7 +545,7 @@ Mods and admins can remove and lock a community, creators can delete it.
 ```
 
 #### Get Posts
-`Post listing types are `All, Subscribed, Community`
+Post listing types are `All, Subscribed, Community`.
 
 ##### Request
 ```rust
