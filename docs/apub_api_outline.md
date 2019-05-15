@@ -1,4 +1,4 @@
-# API
+# Activitypub API outline
 
 - Start with the [reddit API](https://www.reddit.com/dev/api), and find [Activitypub vocab](https://www.w3.org/TR/activitystreams-vocabulary/) to match it.
 
