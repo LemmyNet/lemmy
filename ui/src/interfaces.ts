@@ -333,7 +333,6 @@ export interface RegisterForm {
   email?: string;
   password: string;
   password_verify: string;
-  spam_timeri: number;
   admin: boolean;
 }
 

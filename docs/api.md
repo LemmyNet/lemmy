@@ -68,8 +68,7 @@ Only the first user will be able to be the admin.
     email: Option<String>,
     password: String,
     password_verify: String,
-    admin: bool,
-    spam_timeri: i64,
+    admin: bool
   }
 }
 ```
