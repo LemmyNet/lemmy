@@ -545,7 +545,7 @@ Mods and admins can remove and lock a community, creators can delete it.
 ```
 
 #### Get Posts
-Post listing types are `All, Subscribed, Community`.
+Post listing types are `All, Subscribed, Community`
 
 ##### Request
 ```rust
@@ -570,6 +570,8 @@ Post listing types are `All, Subscribed, Community`.
 ```
 
 #### Create Post Like
+`score` can be 0, -1, or 1
+
 ##### Request
 ```rust
 {
@@ -712,6 +714,8 @@ Mods and admins can remove a comment, creators can delete it.
 ```
 
 #### Create Comment Like
+`score` can be 0, -1, or 1
+
 ##### Request
 ```rust
 {
