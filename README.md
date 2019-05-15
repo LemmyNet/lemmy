@@ -121,7 +121,8 @@ cd lemmy
 
 and goto http://localhost:8536
 ## Documentation
-- [ActivityPub API.md](docs/API.md)
+- [Websocket API for App developers](docs/api.md)
+- [ActivityPub API.md](docs/apub_api_outline.md)
 - [Goals](docs/goals.md)
 - [Ranking Algorithm](docs/ranking.md)
 ## Support

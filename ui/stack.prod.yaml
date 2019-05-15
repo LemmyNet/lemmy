@@ -48,7 +48,7 @@ spec:
             backend:
               serviceName: lemmy-ui--prod
               servicePort: 5000
-          - path: /service/ws
+          - path: /api/v1/ws
             backend:
               serviceName: lemmy-server--prod
               servicePort: 8536
