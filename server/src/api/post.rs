@@ -297,7 +297,8 @@ impl Perform<CreatePostLikeResponse> for Oper<CreatePostLike> {
     PostLike::remove(&conn, &like_form)?;
 
     // Only add the like if the score isnt 0
-    if &like_form.score != &0 {
+    let do_add = &like_form.score != &0 && (&like_form.score == &1 || &like_form.score == &-1);
+    if do_add {
       let _inserted_like = match PostLike::like(&conn, &like_form) {
         Ok(like) => like,
         Err(_e) => {
