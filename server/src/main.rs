@@ -192,13 +192,8 @@ fn main() {
     };
 
     App::with_state(state)
-      // redirect to websocket.html
-      // .resource("/", |r| r.method(http::Method::GET).f(|_| {
-      // HttpResponse::Found()
-      // .header("LOCATION", "/static/websocket.html")
-      // .finish()
-      // }))
-      .resource("/service/ws", |r| r.route().f(chat_route))
+      // .resource("/api/v1/rest", |r| r.method(http::Method::POST).f(|_| {})
+      .resource("/api/v1/ws", |r| r.route().f(chat_route))
       // static resources
       .resource("/", |r| r.route().f(index))
       .handler(
