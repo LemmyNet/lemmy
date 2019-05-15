@@ -15,7 +15,6 @@ pub struct Register {
   password: String,
   password_verify: String,
   admin: bool,
-  spam_timeri: i64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -131,10 +130,6 @@ impl Perform<LoginResponse> for Oper<Register> {
     // Make sure passwords match
     if &data.password != &data.password_verify {
       return Err(APIError::err(&self.op, "Passwords do not match."))?
-    }
-
-    if data.spam_timeri < 1142 {
-      return Err(APIError::err(&self.op, "Too fast"))?
     }
 
     if has_slurs(&data.username) {
