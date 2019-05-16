@@ -10,6 +10,7 @@
 ![GitHub repo size](https://img.shields.io/github/repo-size/dessalines/lemmy.svg)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/dessalines/lemmy.svg)
 [![License](https://img.shields.io/github/license/dessalines/lemmy.svg)](LICENSE)
+[![Mastodon](https://img.shields.io/badge/Mastodon-follow-lightgrey.svg)](https://mastodon.social/@LemmyDev)
 [![Matrix](https://img.shields.io/matrix/rust-reddit-fediverse:matrix.org.svg?label=matrix-chat)](https://riot.im/app/#/room/#rust-reddit-fediverse:matrix.org)
 [![Patreon](https://img.shields.io/badge/-Support%20on%20Patreon-blueviolet.svg)](https://www.patreon.com/dessalines)
 
