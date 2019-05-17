@@ -130,7 +130,7 @@ and goto http://localhost:8536
 Lemmy is free, open-source software, meaning no advertising, monetizing, or venture capital, ever. Your donations directly support full-time development of the project.
 - [Support on Patreon](https://www.patreon.com/dessalines).
 - [Sponsor List](https://dev.lemmy.ml/#/sponsors).
-- bitcoin: `bc1queu73nwuheqtsp65nyh5hf4jr533r8rr5nsj75`
+- bitcoin: `1Hefs7miXS5ff5Ck5xvmjKjXf5242KzRtK`
 - ethereum: `0x400c96c96acbC6E7B3B43B1dc1BB446540a88A01`
 ## Credits
 Icons made by [Freepik](https://www.freepik.com/) licensed by [CC 3.0](http://creativecommons.org/licenses/by/3.0/)
