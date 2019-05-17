@@ -68,7 +68,7 @@ export class Sponsors extends Component<any, any> {
           <tbody>
           <tr>
             <td>Bitcoin</td>
-            <td><code>bc1queu73nwuheqtsp65nyh5hf4jr533r8rr5nsj75</code></td>
+            <td><code>1Hefs7miXS5ff5Ck5xvmjKjXf5242KzRtK</code></td>
           </tr>
           <tr>
             <td>Ethereum</td>
