@@ -69,7 +69,7 @@ export class Post extends Component<any, PostState> {
     if (this.state.scrolled_comment_id && !this.state.scrolled && lastState.comments.length > 0) {
       var elmnt = document.getElementById(`comment-${this.state.scrolled_comment_id}`);
       elmnt.scrollIntoView(); 
-      elmnt.classList.add("mark");
+      elmnt.classList.add("mark-two");
       this.state.scrolled = true;
     }
   }
