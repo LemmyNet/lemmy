@@ -12,6 +12,7 @@ interface NavbarState {
   expanded: boolean;
   expandUserDropdown: boolean;
   replies: Array<Comment>,
+  fetchCount: number,
   unreadCount: number;
   siteName: string;
 }
@@ -22,6 +23,7 @@ export class Navbar extends Component<any, NavbarState> {
   emptyState: NavbarState = {
     isLoggedIn: (UserService.Instance.user !== undefined),
     unreadCount: 0,
+    fetchCount: 0,
     replies: [],
     expanded: false,
     expandUserDropdown: false,
@@ -158,12 +160,13 @@ export class Navbar extends Component<any, NavbarState> {
       return;
     } else if (op == UserOperation.GetReplies) {
       let res: GetRepliesResponse = msg;
-      if (res.replies.length > 0 && this.state.replies.length > 0 && 
-          (JSON.stringify(this.state.replies) !== JSON.stringify(res.replies))) {
-        this.notify(res.replies);
+      let unreadReplies = res.replies.filter(r => !r.read);
+      if (unreadReplies.length > 0 && this.state.fetchCount > 1 && 
+          (JSON.stringify(this.state.replies) !== JSON.stringify(unreadReplies))) {
+        this.notify(unreadReplies);
       }
 
-      this.state.replies = res.replies;
+      this.state.replies = unreadReplies;
       this.sendRepliesCount(res);
     } else if (op == UserOperation.GetSite) {
       let res: GetSiteResponse = msg;
@@ -190,6 +193,7 @@ export class Navbar extends Component<any, NavbarState> {
         limit: 9999,
       };
       WebSocketService.Instance.getReplies(repliesForm);
+      this.state.fetchCount++;
     }
   }
 
@@ -222,7 +226,7 @@ export class Navbar extends Component<any, NavbarState> {
     else {
       var notification = new Notification(`${replies.length} Unread Messages`, {
         icon: `${window.location.protocol}//${window.location.host}/static/assets/apple-touch-icon.png`,
-        body: recentReply.content
+        body: `${recentReply.creator_name}: ${recentReply.content}`
       });
 
       notification.onclick = () => {
