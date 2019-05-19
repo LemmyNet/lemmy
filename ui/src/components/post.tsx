@@ -1,8 +1,8 @@
 import { Component, linkEvent } from 'inferno';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community, Post as PostI, GetPostResponse, PostResponse, Comment,  CommentResponse, CommentSortType, CreatePostLikeResponse, CommunityUser, CommunityResponse, CommentNode as CommentNodeI, BanFromCommunityResponse, BanUserResponse, AddModToCommunityResponse, AddAdminResponse, UserView } from '../interfaces';
-import { WebSocketService } from '../services';
+import { UserOperation, Community, Post as PostI, GetPostResponse, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse, CommentSortType, CreatePostLikeResponse, CommunityUser, CommunityResponse, CommentNode as CommentNodeI, BanFromCommunityResponse, BanUserResponse, AddModToCommunityResponse, AddAdminResponse, UserView } from '../interfaces';
+import { WebSocketService, UserService } from '../services';
 import { msgOp, hotRank } from '../utils';
 import { PostListing } from './post-listing';
 import { Sidebar } from './sidebar';
@@ -69,8 +69,29 @@ export class Post extends Component<any, PostState> {
     if (this.state.scrolled_comment_id && !this.state.scrolled && lastState.comments.length > 0) {
       var elmnt = document.getElementById(`comment-${this.state.scrolled_comment_id}`);
       elmnt.scrollIntoView(); 
-      elmnt.classList.add("mark");
+      elmnt.classList.add("mark-two");
       this.state.scrolled = true;
+      this.markScrolledAsRead(this.state.scrolled_comment_id);
+    }
+  }
+
+  markScrolledAsRead(commentId: number) {
+    let found = this.state.comments.find(c => c.id == commentId);
+    let parent = this.state.comments.find(c => found.parent_id == c.id);
+    let parent_user_id = parent ? parent.creator_id : this.state.post.creator_id;
+
+    if (UserService.Instance.user && UserService.Instance.user.id == parent_user_id) {
+
+      let form: CommentFormI = {
+        content: found.content,
+        edit_id: found.id,
+        creator_id: found.creator_id,
+        post_id: found.post_id,
+        parent_id: found.parent_id,
+        read: true,
+        auth: null
+      };
+      WebSocketService.Instance.editComment(form);
     }
   }
 
@@ -248,6 +269,7 @@ export class Post extends Component<any, PostState> {
       found.upvotes = res.comment.upvotes;
       found.downvotes = res.comment.downvotes;
       found.score = res.comment.score;
+      found.read = res.comment.read;
 
       this.setState(this.state);
     } else if (op == UserOperation.SaveComment) {
