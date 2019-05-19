@@ -162,7 +162,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                   </>
                 }
                 <li className="list-inline-item">
-                  <Link className="text-muted" to={`/post/${node.comment.post_id}/comment/${node.comment.id}`} target="_blank">link</Link>
+                  <Link className="text-muted" to={`/post/${node.comment.post_id}/comment/${node.comment.id}`}>link</Link>
                 </li>
                 {this.props.markable && 
                   <li className="list-inline-item">
