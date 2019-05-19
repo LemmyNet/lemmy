@@ -3,7 +3,7 @@ import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { WebSocketService, UserService } from '../services';
-import { UserOperation, GetRepliesForm, GetRepliesResponse, SortType, GetSiteResponse } from '../interfaces';
+import { UserOperation, GetRepliesForm, GetRepliesResponse, SortType, GetSiteResponse, Comment} from '../interfaces';
 import { msgOp } from '../utils';
 import { version } from '../version';
 
@@ -11,6 +11,8 @@ interface NavbarState {
   isLoggedIn: boolean;
   expanded: boolean;
   expandUserDropdown: boolean;
+  replies: Array<Comment>,
+  fetchCount: number,
   unreadCount: number;
   siteName: string;
 }
@@ -21,6 +23,8 @@ export class Navbar extends Component<any, NavbarState> {
   emptyState: NavbarState = {
     isLoggedIn: (UserService.Instance.user !== undefined),
     unreadCount: 0,
+    fetchCount: 0,
+    replies: [],
     expanded: false,
     expandUserDropdown: false,
     siteName: undefined
@@ -37,6 +41,7 @@ export class Navbar extends Component<any, NavbarState> {
     this.userSub = UserService.Instance.sub.subscribe(user => {
       this.state.isLoggedIn = user.user !== undefined;
       this.state.unreadCount = user.unreadCount;
+      this.requestNotificationPermission();
       this.setState(this.state);
     });
 
@@ -47,6 +52,10 @@ export class Navbar extends Component<any, NavbarState> {
         (err) => console.error(err),
         () => console.log('complete')
     );
+
+    if (this.state.isLoggedIn) {
+      this.requestNotificationPermission();
+    }
 
     WebSocketService.Instance.getSite();
   }
@@ -151,6 +160,13 @@ export class Navbar extends Component<any, NavbarState> {
       return;
     } else if (op == UserOperation.GetReplies) {
       let res: GetRepliesResponse = msg;
+      let unreadReplies = res.replies.filter(r => !r.read);
+      if (unreadReplies.length > 0 && this.state.fetchCount > 1 && 
+          (JSON.stringify(this.state.replies) !== JSON.stringify(unreadReplies))) {
+        this.notify(unreadReplies);
+      }
+
+      this.state.replies = unreadReplies;
       this.sendRepliesCount(res);
     } else if (op == UserOperation.GetSite) {
       let res: GetSiteResponse = msg;
@@ -177,6 +193,7 @@ export class Navbar extends Component<any, NavbarState> {
         limit: 9999,
       };
       WebSocketService.Instance.getReplies(repliesForm);
+      this.state.fetchCount++;
     }
   }
 
@@ -187,5 +204,35 @@ export class Navbar extends Component<any, NavbarState> {
   sendRepliesCount(res: GetRepliesResponse) {
     UserService.Instance.sub.next({user: UserService.Instance.user, unreadCount: res.replies.filter(r => !r.read).length});
   }
-}
 
+  requestNotificationPermission() {
+    if (UserService.Instance.user) {
+    document.addEventListener('DOMContentLoaded', function () {
+      if (!Notification) {
+        alert('Desktop notifications not available in your browser. Try Chromium.'); 
+        return;
+      }
+
+      if (Notification.permission !== 'granted')
+        Notification.requestPermission();
+    });
+    }
+  }
+
+  notify(replies: Array<Comment>) {
+    let recentReply = replies[0];
+    if (Notification.permission !== 'granted')
+      Notification.requestPermission();
+    else {
+      var notification = new Notification(`${replies.length} Unread Messages`, {
+        icon: `${window.location.protocol}//${window.location.host}/static/assets/apple-touch-icon.png`,
+        body: `${recentReply.creator_name}: ${recentReply.content}`
+      });
+
+      notification.onclick = () => {
+        this.context.router.history.push(`/post/${recentReply.post_id}/comment/${recentReply.id}`);
+      };
+
+    }
+  }
+}

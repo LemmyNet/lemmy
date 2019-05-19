@@ -38,6 +38,10 @@ body, .text-white, .navbar-brand, .badge-light, .btn-secondary {
   background-color: #333;
 }
 
+.mark-two {
+  background-color: #444 !important;
+}
+
 .md-div p {
   margin-bottom: 0px;
 }
