@@ -115,14 +115,14 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
           <li class="list-inline-item"><Link class="text-info" to={`/u/${mod.user_name}`}>{mod.user_name}</Link></li>
         )}
       </ul>
+      <Link class="btn btn-sm btn-secondary btn-block mb-3" 
+        to={`/create_post/c/${community.name}`}>Create a Post</Link>
       <div>
         {community.subscribed 
           ? <button class="btn btn-sm btn-secondary btn-block mb-3" onClick={linkEvent(community.id, this.handleUnsubscribe)}>Unsubscribe</button>
           : <button class="btn btn-sm btn-secondary btn-block mb-3" onClick={linkEvent(community.id, this.handleSubscribe)}>Subscribe</button>
         }
       </div>
-      <Link class="btn btn-sm btn-secondary btn-block mb-3" 
-        to={`/create_post/c/${community.name}`}>Create a Post</Link>
       {community.description && 
         <div>
           <hr />
