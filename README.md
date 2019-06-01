@@ -56,7 +56,7 @@ Each lemmy server can set its own moderation policy; appointing site-wide admins
 Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Inferno](https://www.infernojs.org), [Typescript](https://www.typescriptlang.org/) and [Diesel](http://diesel.rs/).
 ## Install
 ### Docker
-Make sure you have both docker and docker-compose installed.
+Make sure you have both docker and docker-compose(>=`1.24.0`) installed.
 
 ```
 git clone https://github.com/dessalines/lemmy
