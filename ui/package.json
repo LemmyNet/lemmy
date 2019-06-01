@@ -29,6 +29,7 @@
     "jwt-decode": "^2.2.0",
     "markdown-it": "^8.4.2",
     "markdown-it-container": "^2.0.0",
+    "markdown-it-emoji": "^1.4.0",
     "moment": "^2.24.0",
     "rxjs": "^6.4.0",
     "terser": "^3.17.0"
