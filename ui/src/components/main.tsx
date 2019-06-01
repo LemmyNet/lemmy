@@ -71,6 +71,7 @@ export class Main extends Component<any, MainState> {
     super(props, context);
 
     this.state = this.emptyState;
+    this.handleEditCancel = this.handleEditCancel.bind(this);
 
     this.subscription = WebSocketService.Instance.subject
     .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
