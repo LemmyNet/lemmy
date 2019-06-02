@@ -47,8 +47,6 @@ export class Communities extends Component<any, CommunitiesState> {
 
   componentDidMount() {
     document.title = "Communities - Lemmy";
-    let table = document.querySelector('#community_table');
-    Sortable.initTable(table);
   }
 
   // Necessary for back button for some reason
@@ -176,6 +174,8 @@ export class Communities extends Component<any, CommunitiesState> {
       this.state.loading = false;
       window.scrollTo(0,0);
       this.setState(this.state);
+      let table = document.querySelector('#community_table');
+      Sortable.initTable(table);
     } else if (op == UserOperation.FollowCommunity) {
       let res: CommunityResponse = msg;
       let found = this.state.communities.find(c => c.id == res.community.id);
