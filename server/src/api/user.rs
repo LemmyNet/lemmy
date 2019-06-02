@@ -161,35 +161,6 @@ impl Perform<LoginResponse> for Oper<Register> {
       }
     };
 
-    // Sign them up for main community no matter what
-    let community_follower_form = CommunityFollowerForm {
-      community_id: 1,
-      user_id: inserted_user.id,
-    };
-
-    let _inserted_community_follower = match CommunityFollower::follow(&conn, &community_follower_form) {
-      Ok(user) => user,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "Community follower already exists."))?
-      }
-    };
-
-    // If its an admin, add them as a mod and follower to main
-    if data.admin {
-      let community_moderator_form = CommunityModeratorForm {
-        community_id: 1,
-        user_id: inserted_user.id,
-      };
-
-      let _inserted_community_moderator = match CommunityModerator::join(&conn, &community_moderator_form) {
-        Ok(user) => user,
-        Err(_e) => {
-          return Err(APIError::err(&self.op, "Community moderator already exists."))?
-        }
-      };
-
-    }
-
     // Return the jwt
     Ok(
       LoginResponse {
