@@ -161,6 +161,53 @@ impl Perform<LoginResponse> for Oper<Register> {
       }
     };
 
+    // Create the main community if it doesn't exist
+    let main_community: Community = match Community::read_from_name(&conn, "main".to_string()) {
+      Ok(c) => c,
+      Err(_e) => {
+        let community_form = CommunityForm {
+          name: "main".to_string(),
+          title: "The Default Community".to_string(),
+          description: Some("The Default Community".to_string()),
+          category_id: 1,
+          creator_id: inserted_user.id,
+          removed: None,
+          deleted: None,
+          updated: None,
+        };
+        Community::create(&conn, &community_form).unwrap()
+      }
+    };
+
+    // Sign them up for main community no matter what
+    let community_follower_form = CommunityFollowerForm {
+      community_id: main_community.id,
+      user_id: inserted_user.id,
+    };
+
+    let _inserted_community_follower = match CommunityFollower::follow(&conn, &community_follower_form) {
+      Ok(user) => user,
+      Err(_e) => {
+        return Err(APIError::err(&self.op, "Community follower already exists."))?
+      }
+    };
+
+    // If its an admin, add them as a mod and follower to main
+    if data.admin {
+      let community_moderator_form = CommunityModeratorForm {
+        community_id: main_community.id,
+        user_id: inserted_user.id,
+      };
+
+      let _inserted_community_moderator = match CommunityModerator::join(&conn, &community_moderator_form) {
+        Ok(user) => user,
+        Err(_e) => {
+          return Err(APIError::err(&self.op, "Community moderator already exists."))?
+        }
+      };
+
+    }
+
     // Return the jwt
     Ok(
       LoginResponse {
