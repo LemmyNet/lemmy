@@ -1,4 +1,4 @@
-use schema::{comment, comment_like, comment_saved};
+use crate::schema::{comment, comment_like, comment_saved};
 use super::*;
 use super::post::Post;
 
@@ -40,26 +40,26 @@ pub struct CommentForm {
 
 impl Crud<CommentForm> for Comment {
   fn read(conn: &PgConnection, comment_id: i32) -> Result<Self, Error> {
-    use schema::comment::dsl::*;
+    use crate::schema::comment::dsl::*;
     comment.find(comment_id)
       .first::<Self>(conn)
   }
 
   fn delete(conn: &PgConnection, comment_id: i32) -> Result<usize, Error> {
-    use schema::comment::dsl::*;
+    use crate::schema::comment::dsl::*;
     diesel::delete(comment.find(comment_id))
       .execute(conn)
   }
 
   fn create(conn: &PgConnection, comment_form: &CommentForm) -> Result<Self, Error> {
-    use schema::comment::dsl::*;
+    use crate::schema::comment::dsl::*;
     insert_into(comment)
       .values(comment_form)
       .get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, comment_id: i32, comment_form: &CommentForm) -> Result<Self, Error> {
-    use schema::comment::dsl::*;
+    use crate::schema::comment::dsl::*;
     diesel::update(comment.find(comment_id))
       .set(comment_form)
       .get_result::<Self>(conn)
@@ -89,20 +89,20 @@ pub struct CommentLikeForm {
 
 impl Likeable <CommentLikeForm> for CommentLike {
   fn read(conn: &PgConnection, comment_id_from: i32) -> Result<Vec<Self>, Error> {
-    use schema::comment_like::dsl::*;
+    use crate::schema::comment_like::dsl::*;
     comment_like
       .filter(comment_id.eq(comment_id_from))
       .load::<Self>(conn) 
   }
 
   fn like(conn: &PgConnection, comment_like_form: &CommentLikeForm) -> Result<Self, Error> {
-    use schema::comment_like::dsl::*;
+    use crate::schema::comment_like::dsl::*;
     insert_into(comment_like)
       .values(comment_like_form)
       .get_result::<Self>(conn)
   }
   fn remove(conn: &PgConnection, comment_like_form: &CommentLikeForm) -> Result<usize, Error> {
-    use schema::comment_like::dsl::*;
+    use crate::schema::comment_like::dsl::*;
     diesel::delete(comment_like
                    .filter(comment_id.eq(comment_like_form.comment_id))
                    .filter(user_id.eq(comment_like_form.user_id)))
@@ -112,7 +112,7 @@ impl Likeable <CommentLikeForm> for CommentLike {
 
 impl CommentLike {
   pub fn from_post(conn: &PgConnection, post_id_from: i32) -> Result<Vec<Self>, Error> {
-    use schema::comment_like::dsl::*;
+    use crate::schema::comment_like::dsl::*;
     comment_like
       .filter(post_id.eq(post_id_from))
       .load::<Self>(conn) 
@@ -138,13 +138,13 @@ pub struct CommentSavedForm {
 
 impl Saveable <CommentSavedForm> for CommentSaved {
   fn save(conn: &PgConnection, comment_saved_form: &CommentSavedForm) -> Result<Self, Error> {
-    use schema::comment_saved::dsl::*;
+    use crate::schema::comment_saved::dsl::*;
     insert_into(comment_saved)
       .values(comment_saved_form)
       .get_result::<Self>(conn)
   }
   fn unsave(conn: &PgConnection, comment_saved_form: &CommentSavedForm) -> Result<usize, Error> {
-    use schema::comment_saved::dsl::*;
+    use crate::schema::comment_saved::dsl::*;
     diesel::delete(comment_saved
       .filter(comment_id.eq(comment_saved_form.comment_id))
       .filter(user_id.eq(comment_saved_form.user_id)))

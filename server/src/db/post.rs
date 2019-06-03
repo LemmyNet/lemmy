@@ -1,4 +1,4 @@
-use schema::{post, post_like, post_saved, post_read};
+use crate::schema::{post, post_like, post_saved, post_read};
 use super::*;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
@@ -33,26 +33,26 @@ pub struct PostForm {
 
 impl Crud<PostForm> for Post {
   fn read(conn: &PgConnection, post_id: i32) -> Result<Self, Error> {
-    use schema::post::dsl::*;
+    use crate::schema::post::dsl::*;
     post.find(post_id)
       .first::<Self>(conn)
   }
 
   fn delete(conn: &PgConnection, post_id: i32) -> Result<usize, Error> {
-    use schema::post::dsl::*;
+    use crate::schema::post::dsl::*;
     diesel::delete(post.find(post_id))
       .execute(conn)
   }
 
   fn create(conn: &PgConnection, new_post: &PostForm) -> Result<Self, Error> {
-    use schema::post::dsl::*;
+    use crate::schema::post::dsl::*;
       insert_into(post)
         .values(new_post)
         .get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, post_id: i32, new_post: &PostForm) -> Result<Self, Error> {
-    use schema::post::dsl::*;
+    use crate::schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set(new_post)
       .get_result::<Self>(conn)
@@ -80,19 +80,19 @@ pub struct PostLikeForm {
 
 impl Likeable <PostLikeForm> for PostLike {
   fn read(conn: &PgConnection, post_id_from: i32) -> Result<Vec<Self>, Error> {
-    use schema::post_like::dsl::*;
+    use crate::schema::post_like::dsl::*;
     post_like
       .filter(post_id.eq(post_id_from))
       .load::<Self>(conn) 
   }
   fn like(conn: &PgConnection, post_like_form: &PostLikeForm) -> Result<Self, Error> {
-    use schema::post_like::dsl::*;
+    use crate::schema::post_like::dsl::*;
     insert_into(post_like)
       .values(post_like_form)
       .get_result::<Self>(conn)
   }
   fn remove(conn: &PgConnection, post_like_form: &PostLikeForm) -> Result<usize, Error> {
-    use schema::post_like::dsl::*;
+    use crate::schema::post_like::dsl::*;
     diesel::delete(post_like
       .filter(post_id.eq(post_like_form.post_id))
       .filter(user_id.eq(post_like_form.user_id)))
@@ -119,13 +119,13 @@ pub struct PostSavedForm {
 
 impl Saveable <PostSavedForm> for PostSaved {
   fn save(conn: &PgConnection, post_saved_form: &PostSavedForm) -> Result<Self, Error> {
-    use schema::post_saved::dsl::*;
+    use crate::schema::post_saved::dsl::*;
     insert_into(post_saved)
       .values(post_saved_form)
       .get_result::<Self>(conn)
   }
   fn unsave(conn: &PgConnection, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
-    use schema::post_saved::dsl::*;
+    use crate::schema::post_saved::dsl::*;
     diesel::delete(post_saved
       .filter(post_id.eq(post_saved_form.post_id))
       .filter(user_id.eq(post_saved_form.user_id)))
@@ -152,13 +152,13 @@ pub struct PostReadForm {
 
 impl Readable <PostReadForm> for PostRead {
   fn mark_as_read(conn: &PgConnection, post_read_form: &PostReadForm) -> Result<Self, Error> {
-    use schema::post_read::dsl::*;
+    use crate::schema::post_read::dsl::*;
     insert_into(post_read)
       .values(post_read_form)
       .get_result::<Self>(conn)
   }
   fn mark_as_unread(conn: &PgConnection, post_read_form: &PostReadForm) -> Result<usize, Error> {
-    use schema::post_read::dsl::*;
+    use crate::schema::post_read::dsl::*;
     diesel::delete(post_read
       .filter(post_id.eq(post_read_form.post_id))
       .filter(user_id.eq(post_read_form.user_id)))

@@ -1,4 +1,4 @@
-use schema::{community, community_moderator, community_follower, community_user_ban, site};
+use crate::schema::{community, community_moderator, community_follower, community_user_ban, site};
 use super::*;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
@@ -31,26 +31,26 @@ pub struct CommunityForm {
 
 impl Crud<CommunityForm> for Community {
   fn read(conn: &PgConnection, community_id: i32) -> Result<Self, Error> {
-    use schema::community::dsl::*;
+    use crate::schema::community::dsl::*;
     community.find(community_id)
       .first::<Self>(conn)
   }
 
   fn delete(conn: &PgConnection, community_id: i32) -> Result<usize, Error> {
-    use schema::community::dsl::*;
+    use crate::schema::community::dsl::*;
     diesel::delete(community.find(community_id))
       .execute(conn)
   }
 
   fn create(conn: &PgConnection, new_community: &CommunityForm) -> Result<Self, Error> {
-    use schema::community::dsl::*;
+    use crate::schema::community::dsl::*;
       insert_into(community)
         .values(new_community)
         .get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, community_id: i32, new_community: &CommunityForm) -> Result<Self, Error> {
-    use schema::community::dsl::*;
+    use crate::schema::community::dsl::*;
     diesel::update(community.find(community_id))
       .set(new_community)
       .get_result::<Self>(conn)
@@ -59,7 +59,7 @@ impl Crud<CommunityForm> for Community {
 
 impl Community {
   pub fn read_from_name(conn: &PgConnection, community_name: String) -> Result<Self, Error> {
-    use schema::community::dsl::*;
+    use crate::schema::community::dsl::*;
     community.filter(name.eq(community_name))
       .first::<Self>(conn)
   }
@@ -84,14 +84,14 @@ pub struct CommunityModeratorForm {
 
 impl Joinable<CommunityModeratorForm> for CommunityModerator {
   fn join(conn: &PgConnection, community_user_form: &CommunityModeratorForm) -> Result<Self, Error> {
-    use schema::community_moderator::dsl::*;
+    use crate::schema::community_moderator::dsl::*;
     insert_into(community_moderator)
       .values(community_user_form)
       .get_result::<Self>(conn)
   }
 
   fn leave(conn: &PgConnection, community_user_form: &CommunityModeratorForm) -> Result<usize, Error> {
-    use schema::community_moderator::dsl::*;
+    use crate::schema::community_moderator::dsl::*;
     diesel::delete(community_moderator
       .filter(community_id.eq(community_user_form.community_id))
       .filter(user_id.eq(community_user_form.user_id)))
@@ -118,14 +118,14 @@ pub struct CommunityUserBanForm {
 
 impl Bannable<CommunityUserBanForm> for CommunityUserBan {
   fn ban(conn: &PgConnection, community_user_ban_form: &CommunityUserBanForm) -> Result<Self, Error> {
-    use schema::community_user_ban::dsl::*;
+    use crate::schema::community_user_ban::dsl::*;
     insert_into(community_user_ban)
       .values(community_user_ban_form)
       .get_result::<Self>(conn)
   }
 
   fn unban(conn: &PgConnection, community_user_ban_form: &CommunityUserBanForm) -> Result<usize, Error> {
-    use schema::community_user_ban::dsl::*;
+    use crate::schema::community_user_ban::dsl::*;
     diesel::delete(community_user_ban
       .filter(community_id.eq(community_user_ban_form.community_id))
       .filter(user_id.eq(community_user_ban_form.user_id)))
@@ -152,13 +152,13 @@ pub struct CommunityFollowerForm {
 
 impl Followable<CommunityFollowerForm> for CommunityFollower {
   fn follow(conn: &PgConnection, community_follower_form: &CommunityFollowerForm) -> Result<Self, Error> {
-    use schema::community_follower::dsl::*;
+    use crate::schema::community_follower::dsl::*;
     insert_into(community_follower)
       .values(community_follower_form)
       .get_result::<Self>(conn)
   }
   fn ignore(conn: &PgConnection, community_follower_form: &CommunityFollowerForm) -> Result<usize, Error> {
-    use schema::community_follower::dsl::*;
+    use crate::schema::community_follower::dsl::*;
     diesel::delete(community_follower
       .filter(community_id.eq(&community_follower_form.community_id))
       .filter(user_id.eq(&community_follower_form.user_id)))
@@ -188,25 +188,25 @@ pub struct SiteForm {
 
 impl Crud<SiteForm> for Site {
   fn read(conn: &PgConnection, _site_id: i32) -> Result<Self, Error> {
-    use schema::site::dsl::*;
+    use crate::schema::site::dsl::*;
     site.first::<Self>(conn)
   }
 
   fn delete(conn: &PgConnection, site_id: i32) -> Result<usize, Error> {
-    use schema::site::dsl::*;
+    use crate::schema::site::dsl::*;
     diesel::delete(site.find(site_id))
       .execute(conn)
   }
 
   fn create(conn: &PgConnection, new_site: &SiteForm) -> Result<Self, Error> {
-    use schema::site::dsl::*;
+    use crate::schema::site::dsl::*;
       insert_into(site)
         .values(new_site)
         .get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, site_id: i32, new_site: &SiteForm) -> Result<Self, Error> {
-    use schema::site::dsl::*;
+    use crate::schema::site::dsl::*;
     diesel::update(site.find(site_id))
       .set(new_site)
       .get_result::<Self>(conn)

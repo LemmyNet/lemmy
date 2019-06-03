@@ -1,7 +1,7 @@
-use schema::user_;
-use schema::user_::dsl::*;
+use crate::schema::user_;
+use crate::schema::user_::dsl::*;
 use super::*;
-use {Settings, is_email_regex};
+use crate::{Settings, is_email_regex};
 use jsonwebtoken::{encode, decode, Header, Validation, TokenData};
 use bcrypt::{DEFAULT_COST, hash};
 
@@ -36,7 +36,7 @@ pub struct UserForm {
 
 impl Crud<UserForm> for User_ {
   fn read(conn: &PgConnection, user_id: i32) -> Result<Self, Error> {
-    use schema::user_::dsl::*;
+    use crate::schema::user_::dsl::*;
     user_.find(user_id)
       .first::<Self>(conn)
   }
