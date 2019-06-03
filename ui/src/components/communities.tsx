@@ -46,7 +46,7 @@ export class Communities extends Component<any, CommunitiesState> {
   }
 
   componentDidMount() {
-    document.title = "Communities - Lemmy";
+    document.title = `Communities - ${WebSocketService.Instance.site.name}`;
   }
 
   // Necessary for back button for some reason
