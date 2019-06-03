@@ -1,5 +1,6 @@
 import { Component } from 'inferno';
 import { PostForm } from './post-form';
+import { WebSocketService } from '../services';
 
 export class CreatePost extends Component<any, any> {
 
@@ -9,7 +10,7 @@ export class CreatePost extends Component<any, any> {
   }
 
   componentDidMount() {
-    document.title = "Create Post - Lemmy";
+    document.title = `Create Post - ${WebSocketService.Instance.site.name}`;
   }
 
   render() {

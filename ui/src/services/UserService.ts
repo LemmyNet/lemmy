@@ -16,7 +16,6 @@ export class UserService {
     } else {
       console.log('No JWT cookie found.');
     }
-
   }
 
   public login(res: LoginResponse) {

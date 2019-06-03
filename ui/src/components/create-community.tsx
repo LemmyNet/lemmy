@@ -1,6 +1,7 @@
 import { Component } from 'inferno';
 import { CommunityForm } from './community-form';
 import { Community } from '../interfaces';
+import { WebSocketService } from '../services';
 
 export class CreateCommunity extends Component<any, any> {
 
@@ -10,7 +11,7 @@ export class CreateCommunity extends Component<any, any> {
   }
 
   componentDidMount() {
-    document.title = "Create Community - Lemmy";
+    document.title = `Create Community - ${WebSocketService.Instance.site.name}`;
   }
 
   render() {

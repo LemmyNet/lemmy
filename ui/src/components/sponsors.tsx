@@ -1,4 +1,5 @@
 import { Component } from 'inferno';
+import { WebSocketService } from '../services';
 
 let general = 
   [
@@ -17,7 +18,7 @@ export class Sponsors extends Component<any, any> {
   }
 
   componentDidMount() {
-    document.title = "Sponsors - Lemmy";
+    document.title = `Sponsors - ${WebSocketService.Instance.site.name}`;
   }
 
   render() {
