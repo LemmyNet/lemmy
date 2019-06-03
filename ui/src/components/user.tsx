@@ -341,7 +341,7 @@ export class User extends Component<any, UserState> {
       this.state.moderates = res.moderates;
       this.state.posts = res.posts;
       this.state.loading = false;
-      document.title = `/u/${this.state.user.name} - Lemmy`;
+      document.title = `/u/${this.state.user.name} - ${WebSocketService.Instance.site.name}`;
       window.scrollTo(0,0);
       this.setState(this.state);
     } else if (op == UserOperation.EditComment) {

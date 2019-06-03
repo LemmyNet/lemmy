@@ -8,7 +8,6 @@ import { UserService } from './';
 export class WebSocketService {
   private static _instance: WebSocketService;
   public subject: Subject<any>;
-  public instanceName: string;
 
   public site: Site;
   public admins: Array<UserView>;
