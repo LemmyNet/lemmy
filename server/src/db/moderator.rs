@@ -1,4 +1,4 @@
-use schema::{mod_remove_post, mod_lock_post, mod_remove_comment, mod_remove_community, mod_ban_from_community, mod_ban, mod_add_community, mod_add};
+use crate::schema::{mod_remove_post, mod_lock_post, mod_remove_comment, mod_remove_community, mod_ban_from_community, mod_ban, mod_add_community, mod_add};
 use super::*;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
@@ -23,26 +23,26 @@ pub struct ModRemovePostForm {
 
 impl Crud<ModRemovePostForm> for ModRemovePost {
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
-    use schema::mod_remove_post::dsl::*;
+    use crate::schema::mod_remove_post::dsl::*;
     mod_remove_post.find(from_id)
       .first::<Self>(conn)
   }
 
   fn delete(conn: &PgConnection, from_id: i32) -> Result<usize, Error> {
-    use schema::mod_remove_post::dsl::*;
+    use crate::schema::mod_remove_post::dsl::*;
     diesel::delete(mod_remove_post.find(from_id))
       .execute(conn)
   }
 
   fn create(conn: &PgConnection, form: &ModRemovePostForm) -> Result<Self, Error> {
-    use schema::mod_remove_post::dsl::*;
+    use crate::schema::mod_remove_post::dsl::*;
       insert_into(mod_remove_post)
         .values(form)
         .get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, from_id: i32, form: &ModRemovePostForm) -> Result<Self, Error> {
-    use schema::mod_remove_post::dsl::*;
+    use crate::schema::mod_remove_post::dsl::*;
     diesel::update(mod_remove_post.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -71,26 +71,26 @@ pub struct ModLockPostForm {
 
 impl Crud<ModLockPostForm> for ModLockPost {
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
-    use schema::mod_lock_post::dsl::*;
+    use crate::schema::mod_lock_post::dsl::*;
     mod_lock_post.find(from_id)
       .first::<Self>(conn)
   }
 
   fn delete(conn: &PgConnection, from_id: i32) -> Result<usize, Error> {
-    use schema::mod_lock_post::dsl::*;
+    use crate::schema::mod_lock_post::dsl::*;
     diesel::delete(mod_lock_post.find(from_id))
       .execute(conn)
   }
 
   fn create(conn: &PgConnection, form: &ModLockPostForm) -> Result<Self, Error> {
-    use schema::mod_lock_post::dsl::*;
+    use crate::schema::mod_lock_post::dsl::*;
       insert_into(mod_lock_post)
         .values(form)
         .get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, from_id: i32, form: &ModLockPostForm) -> Result<Self, Error> {
-    use schema::mod_lock_post::dsl::*;
+    use crate::schema::mod_lock_post::dsl::*;
     diesel::update(mod_lock_post.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -119,26 +119,26 @@ pub struct ModRemoveCommentForm {
 
 impl Crud<ModRemoveCommentForm> for ModRemoveComment {
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
-    use schema::mod_remove_comment::dsl::*;
+    use crate::schema::mod_remove_comment::dsl::*;
     mod_remove_comment.find(from_id)
       .first::<Self>(conn)
   }
 
   fn delete(conn: &PgConnection, from_id: i32) -> Result<usize, Error> {
-    use schema::mod_remove_comment::dsl::*;
+    use crate::schema::mod_remove_comment::dsl::*;
     diesel::delete(mod_remove_comment.find(from_id))
       .execute(conn)
   }
 
   fn create(conn: &PgConnection, form: &ModRemoveCommentForm) -> Result<Self, Error> {
-    use schema::mod_remove_comment::dsl::*;
+    use crate::schema::mod_remove_comment::dsl::*;
       insert_into(mod_remove_comment)
         .values(form)
         .get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, from_id: i32, form: &ModRemoveCommentForm) -> Result<Self, Error> {
-    use schema::mod_remove_comment::dsl::*;
+    use crate::schema::mod_remove_comment::dsl::*;
     diesel::update(mod_remove_comment.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -169,26 +169,26 @@ pub struct ModRemoveCommunityForm {
 
 impl Crud<ModRemoveCommunityForm> for ModRemoveCommunity {
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
-    use schema::mod_remove_community::dsl::*;
+    use crate::schema::mod_remove_community::dsl::*;
     mod_remove_community.find(from_id)
       .first::<Self>(conn)
   }
 
   fn delete(conn: &PgConnection, from_id: i32) -> Result<usize, Error> {
-    use schema::mod_remove_community::dsl::*;
+    use crate::schema::mod_remove_community::dsl::*;
     diesel::delete(mod_remove_community.find(from_id))
       .execute(conn)
   }
 
   fn create(conn: &PgConnection, form: &ModRemoveCommunityForm) -> Result<Self, Error> {
-    use schema::mod_remove_community::dsl::*;
+    use crate::schema::mod_remove_community::dsl::*;
       insert_into(mod_remove_community)
         .values(form)
         .get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, from_id: i32, form: &ModRemoveCommunityForm) -> Result<Self, Error> {
-    use schema::mod_remove_community::dsl::*;
+    use crate::schema::mod_remove_community::dsl::*;
     diesel::update(mod_remove_community.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -221,26 +221,26 @@ pub struct ModBanFromCommunityForm {
 
 impl Crud<ModBanFromCommunityForm> for ModBanFromCommunity {
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
-    use schema::mod_ban_from_community::dsl::*;
+    use crate::schema::mod_ban_from_community::dsl::*;
     mod_ban_from_community.find(from_id)
       .first::<Self>(conn)
   }
 
   fn delete(conn: &PgConnection, from_id: i32) -> Result<usize, Error> {
-    use schema::mod_ban_from_community::dsl::*;
+    use crate::schema::mod_ban_from_community::dsl::*;
     diesel::delete(mod_ban_from_community.find(from_id))
       .execute(conn)
   }
 
   fn create(conn: &PgConnection, form: &ModBanFromCommunityForm) -> Result<Self, Error> {
-    use schema::mod_ban_from_community::dsl::*;
+    use crate::schema::mod_ban_from_community::dsl::*;
       insert_into(mod_ban_from_community)
         .values(form)
         .get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, from_id: i32, form: &ModBanFromCommunityForm) -> Result<Self, Error> {
-    use schema::mod_ban_from_community::dsl::*;
+    use crate::schema::mod_ban_from_community::dsl::*;
     diesel::update(mod_ban_from_community.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -272,26 +272,26 @@ pub struct ModBanForm {
 
 impl Crud<ModBanForm> for ModBan {
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
-    use schema::mod_ban::dsl::*;
+    use crate::schema::mod_ban::dsl::*;
     mod_ban.find(from_id)
       .first::<Self>(conn)
   }
 
   fn delete(conn: &PgConnection, from_id: i32) -> Result<usize, Error> {
-    use schema::mod_ban::dsl::*;
+    use crate::schema::mod_ban::dsl::*;
     diesel::delete(mod_ban.find(from_id))
       .execute(conn)
   }
 
   fn create(conn: &PgConnection, form: &ModBanForm) -> Result<Self, Error> {
-    use schema::mod_ban::dsl::*;
+    use crate::schema::mod_ban::dsl::*;
       insert_into(mod_ban)
         .values(form)
         .get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, from_id: i32, form: &ModBanForm) -> Result<Self, Error> {
-    use schema::mod_ban::dsl::*;
+    use crate::schema::mod_ban::dsl::*;
     diesel::update(mod_ban.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -320,26 +320,26 @@ pub struct ModAddCommunityForm {
 
 impl Crud<ModAddCommunityForm> for ModAddCommunity {
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
-    use schema::mod_add_community::dsl::*;
+    use crate::schema::mod_add_community::dsl::*;
     mod_add_community.find(from_id)
       .first::<Self>(conn)
   }
 
   fn delete(conn: &PgConnection, from_id: i32) -> Result<usize, Error> {
-    use schema::mod_add_community::dsl::*;
+    use crate::schema::mod_add_community::dsl::*;
     diesel::delete(mod_add_community.find(from_id))
       .execute(conn)
   }
 
   fn create(conn: &PgConnection, form: &ModAddCommunityForm) -> Result<Self, Error> {
-    use schema::mod_add_community::dsl::*;
+    use crate::schema::mod_add_community::dsl::*;
       insert_into(mod_add_community)
         .values(form)
         .get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, from_id: i32, form: &ModAddCommunityForm) -> Result<Self, Error> {
-    use schema::mod_add_community::dsl::*;
+    use crate::schema::mod_add_community::dsl::*;
     diesel::update(mod_add_community.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -366,26 +366,26 @@ pub struct ModAddForm {
 
 impl Crud<ModAddForm> for ModAdd {
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
-    use schema::mod_add::dsl::*;
+    use crate::schema::mod_add::dsl::*;
     mod_add.find(from_id)
       .first::<Self>(conn)
   }
 
   fn delete(conn: &PgConnection, from_id: i32) -> Result<usize, Error> {
-    use schema::mod_add::dsl::*;
+    use crate::schema::mod_add::dsl::*;
     diesel::delete(mod_add.find(from_id))
       .execute(conn)
   }
 
   fn create(conn: &PgConnection, form: &ModAddForm) -> Result<Self, Error> {
-    use schema::mod_add::dsl::*;
+    use crate::schema::mod_add::dsl::*;
       insert_into(mod_add)
         .values(form)
         .get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, from_id: i32, form: &ModAddForm) -> Result<Self, Error> {
-    use schema::mod_add::dsl::*;
+    use crate::schema::mod_add::dsl::*;
     diesel::update(mod_add.find(from_id))
       .set(form)
       .get_result::<Self>(conn)

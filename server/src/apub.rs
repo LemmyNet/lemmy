@@ -1,10 +1,10 @@
 extern crate activitypub;
 use self::activitypub::{context, actor::Person};
-use db::user::User_;
+use crate::db::user::User_;
 
 impl User_ {
   pub fn person(&self) -> Person {
-    use {Settings, to_datetime_utc};
+    use crate::{Settings, to_datetime_utc};
     let base_url = &format!("{}/user/{}", Settings::get().api_endpoint(), self.name);
     let mut person  = Person::default();
     person.object_props.set_context_object(context()).ok();
@@ -31,7 +31,7 @@ impl User_ {
 #[cfg(test)]
 mod tests {
   use super::User_;
-  use naive_now;
+  use crate::naive_now;
 
   #[test]
   fn test_person() {
