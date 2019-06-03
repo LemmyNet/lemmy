@@ -1,5 +1,5 @@
-use schema::{category};
-use schema::category::dsl::*;
+use crate::schema::{category};
+use crate::schema::category::dsl::*;
 use super::*;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]

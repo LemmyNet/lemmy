@@ -11,12 +11,12 @@ use std::str::FromStr;
 use failure::Error;
 use std::time::{SystemTime};
 
-use api::*;
-use api::user::*;
-use api::community::*;
-use api::post::*;
-use api::comment::*;
-use api::site::*;
+use crate::api::*;
+use crate::api::user::*;
+use crate::api::community::*;
+use crate::api::post::*;
+use crate::api::comment::*;
+use crate::api::site::*;
 
 const RATE_LIMIT_MESSAGES: i32 = 30;
 const RATE_LIMIT_PER_SECOND: i32 = 60;
@@ -118,7 +118,7 @@ impl ChatServer {
 
   fn join_room(&mut self, room_id: i32, id: usize) {
     // remove session from all rooms
-    for (_n, mut sessions) in &mut self.rooms {
+    for (_n, sessions) in &mut self.rooms {
       sessions.remove(&id);
     }
 
@@ -131,8 +131,8 @@ impl ChatServer {
   }
 
   fn send_community_message(&self, community_id: &i32, message: &str, skip_id: usize) -> Result<(), Error> {
-    use db::*;
-    use db::post_view::*;
+    use crate::db::*;
+    use crate::db::post_view::*;
     let conn = establish_connection();
     let posts = PostView::list(&conn,
                                PostListingType::Community, 

@@ -72,7 +72,7 @@ pub fn has_slurs(test: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-  use {Settings, is_email_regex, remove_slurs, has_slurs};
+  use crate::{Settings, is_email_regex, remove_slurs, has_slurs};
   #[test]
   fn test_api() {
     assert_eq!(Settings::get().api_endpoint(), "rrr/api/v1");

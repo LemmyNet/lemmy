@@ -1,7 +1,7 @@
 use diesel::*;
 use diesel::dsl::*;
 use diesel::result::Error;
-use {Settings};
+use crate::{Settings};
 use serde::{Deserialize, Serialize};
 
 pub mod user;
