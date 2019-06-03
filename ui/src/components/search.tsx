@@ -52,7 +52,7 @@ export class Search extends Component<any, SearchState> {
   }
 
   componentDidMount() {
-    document.title = "Search - Lemmy";
+    document.title = `Search - ${WebSocketService.Instance.site.name}`;
   }
 
   render() {
@@ -250,7 +250,7 @@ export class Search extends Component<any, SearchState> {
       let res: SearchResponse = msg;
       this.state.searchResponse = res;
       this.state.loading = false;
-      document.title = `Search - ${this.state.q} - Lemmy`;
+      document.title = `Search - ${this.state.q} - ${WebSocketService.Instance.site.name}`;
       window.scrollTo(0,0);
       this.setState(this.state);
       
