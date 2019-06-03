@@ -49,7 +49,7 @@ export class Inbox extends Component<any, InboxState> {
   }
 
   componentDidMount() {
-    document.title = `/u/${UserService.Instance.user.username} Inbox - Lemmy`;
+    document.title = `/u/${UserService.Instance.user.username} Inbox - ${WebSocketService.Instance.site.name}`;
   }
 
   render() {

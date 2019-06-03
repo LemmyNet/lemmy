@@ -45,7 +45,7 @@ export class Modlog extends Component<any, ModlogState> {
   }
 
   componentDidMount() {
-    document.title = "Modlog - Lemmy";
+    document.title = `Modlog - ${WebSocketService.Instance.site.name}`;
   }
 
   setCombined(res: GetModlogResponse) {
