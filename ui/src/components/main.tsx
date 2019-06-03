@@ -101,10 +101,6 @@ export class Main extends Component<any, MainState> {
     this.subscription.unsubscribe();
   }
 
-  componentDidMount() {
-    document.title = "Lemmy";
-  }
-
   // Necessary for back button for some reason
   componentWillReceiveProps(nextProps: any) {
     if (nextProps.history.action == 'POP') {
@@ -377,6 +373,8 @@ export class Main extends Component<any, MainState> {
       this.state.site.site = res.site;
       this.state.site.banned = res.banned;
       this.setState(this.state);
+      document.title = `${WebSocketService.Instance.site.name}`;
+
     } else if (op == UserOperation.EditSite) {
       let res: SiteResponse = msg;
       this.state.site.site = res.site;
