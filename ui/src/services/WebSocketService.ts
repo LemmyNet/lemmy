@@ -170,7 +170,7 @@ export class WebSocketService {
   }
 
   public getSite() {
-    this.subject.next(this.wsSendWrapper(UserOperation.GetSite, {}));
+    this.subject.next(this.wsSendWrapper(UserOperation.GetSite, undefined);
   }
 
   public search(form: SearchForm) {
