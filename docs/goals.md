@@ -23,7 +23,7 @@
 - [Activitypub main](https://www.w3.org/TR/activitypub/)
 - [Diesel to Postgres data types](https://kotiri.com/2018/01/31/postgresql-diesel-rust-types.html)
 - [helpful diesel examples](http://siciarz.net/24-days-rust-diesel/)
-- [Mastodan public key server example](https://blog.joinmastodon.org/2018/06/how-to-implement-a-basic-activitypub-server/)
+- [Mastodon public key server example](https://blog.joinmastodon.org/2018/06/how-to-implement-a-basic-activitypub-server/)
 - [Recursive query for adjacency list for nested comments](https://stackoverflow.com/questions/192220/what-is-the-most-efficient-elegant-way-to-parse-a-flat-table-into-a-tree/192462#192462)
 - https://github.com/sparksuite/simplemde-markdown-editor
 - [Markdown-it](https://github.com/markdown-it/markdown-it)
@@ -36,8 +36,10 @@
 - [RES expando - Possibly make this into a switching react component.](https://github.com/honestbleeps/Reddit-Enhancement-Suite/tree/d21f55c21e734f47d8ed03fe0ebce5b16653b0bd/lib/modules/hosts)
 - [Temp Icon](https://www.flaticon.com/free-icon/mouse_194242)
 - [Rust docker build](https://shaneutt.com/blog/rust-fast-small-docker-image-builds/)
+- [Zurb mentions](https://github.com/zurb/tribute)
 - Activitypub guides
   - https://blog.joinmastodon.org/2018/06/how-to-implement-a-basic-activitypub-server/
   - https://raw.githubusercontent.com/w3c/activitypub/gh-pages/activitypub-tutorial.txt
   - https://github.com/tOkeshu/activitypub-example
+  - https://blog.joinmastodon.org/2018/07/how-to-make-friends-and-verify-requests/
 

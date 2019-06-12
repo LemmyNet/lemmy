@@ -64,8 +64,7 @@ pub struct EditSite {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct GetSite {
-}
+pub struct GetSite;
 
 #[derive(Serialize, Deserialize)]
 pub struct SiteResponse {
