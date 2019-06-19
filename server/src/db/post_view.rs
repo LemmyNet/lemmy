@@ -122,7 +122,8 @@ impl PostView {
     }
 
     query = match sort {
-      SortType::Hot => query.order_by(hot_rank.desc()),
+      SortType::Hot => query.order_by(hot_rank.desc())
+        .then_order_by(published.desc()),
       SortType::New => query.order_by(published.desc()),
       SortType::TopAll => query.order_by(score.desc()),
       SortType::TopYear => query
