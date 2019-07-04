@@ -23,3 +23,5 @@ strum_macros = "0.14.0"
 jsonwebtoken = "*"
 regex = "*"
 lazy_static = "*"
+reqwest = "*"
+openssl = { version = "0.10", features = ["vendored"] }

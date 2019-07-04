@@ -125,7 +125,9 @@ impl CommunityView {
 
     // The view lets you pass a null user_id, if you're not logged in
     match sort {
-      SortType::Hot => query = query.order_by(hot_rank.desc()).filter(user_id.is_null()),
+      SortType::Hot => query = query.order_by(hot_rank.desc())
+        .then_order_by(published.desc())
+        .filter(user_id.is_null()),
       SortType::New => query = query.order_by(published.desc()).filter(user_id.is_null()),
       SortType::TopAll => {
         match from_user_id {
