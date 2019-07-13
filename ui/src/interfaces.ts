@@ -222,16 +222,16 @@ export interface GetModlogResponse {
 }
 
 export interface ModRemovePost {
-    id: number;
-    mod_user_id: number;
-    post_id: number;
-    reason?: string;
-    removed?: boolean;
-    when_: string
-    mod_user_name: string;
-    post_name: string;
-    community_id: number;
-    community_name: string;
+  id: number;
+  mod_user_id: number;
+  post_id: number;
+  reason?: string;
+  removed?: boolean;
+  when_: string
+  mod_user_name: string;
+  post_name: string;
+  community_id: number;
+  community_name: string;
 }
 
 export interface ModLockPost {

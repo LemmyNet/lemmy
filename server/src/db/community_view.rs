@@ -57,18 +57,18 @@ table! {
 }
 
 table! {
-    site_view (id) {
-      id -> Int4,
-      name -> Varchar,
-      description -> Nullable<Text>,
-      creator_id -> Int4,
-      published -> Timestamp,
-      updated -> Nullable<Timestamp>,
-      creator_name -> Varchar,
-      number_of_users -> BigInt,
-      number_of_posts -> BigInt,
-      number_of_comments -> BigInt,
-    }
+  site_view (id) {
+    id -> Int4,
+    name -> Varchar,
+    description -> Nullable<Text>,
+    creator_id -> Int4,
+    published -> Timestamp,
+    updated -> Nullable<Timestamp>,
+    creator_name -> Varchar,
+    number_of_users -> BigInt,
+    number_of_posts -> BigInt,
+    number_of_comments -> BigInt,
+  }
 }
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize,QueryableByName,Clone)]
@@ -128,13 +128,13 @@ impl CommunityView {
       SortType::Hot => query = query.order_by(hot_rank.desc())
         .then_order_by(number_of_subscribers.desc())
         .filter(user_id.is_null()),
-      SortType::New => query = query.order_by(published.desc()).filter(user_id.is_null()),
-      SortType::TopAll => {
-        match from_user_id {
-          Some(from_user_id) => query = query.filter(user_id.eq(from_user_id)).order_by((subscribed.asc(), number_of_subscribers.desc())),
-          None => query = query.order_by(number_of_subscribers.desc()).filter(user_id.is_null())
+        SortType::New => query = query.order_by(published.desc()).filter(user_id.is_null()),
+        SortType::TopAll => {
+          match from_user_id {
+            Some(from_user_id) => query = query.filter(user_id.eq(from_user_id)).order_by((subscribed.asc(), number_of_subscribers.desc())),
+            None => query = query.order_by(number_of_subscribers.desc()).filter(user_id.is_null())
+          }
         }
-      }
       _ => ()
     };
 
