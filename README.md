@@ -26,7 +26,7 @@ Front Page|Post
 ## Features
 - Open source, [AGPL License](/LICENSE).
 - Self hostable, easy to deploy.
-  - Comes with [Docker](#docker), [Kubernetes](#kubernetes).
+  - Comes with [Docker](#docker).
 - Live-updating Comment threads.
 - Full vote scores `(+/-)` like old reddit.
 - Moderation abilities.
@@ -65,9 +65,25 @@ docker-compose up -d
 ```
 
 and goto http://localhost:8536
+
+### Nginx Config
+```
+location / {
+  rewrite (\/(user|u|inbox|post|community|c|login|search|sponsors|communities|modlog)+) /static/index.html break;
+  proxy_pass http://0.0.0.0:8536;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_set_header Host $host;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+  # WebSocket support
+  proxy_http_version 1.1;
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection "upgrade";
+}
+```
+
 ## Develop
 ### Docker Development
-
 ```
 git clone https://github.com/dessalines/lemmy
 cd lemmy
@@ -75,31 +91,6 @@ cd lemmy
 ```
 
 and goto http://localhost:8536
-### Kubernetes
-#### Requirements
-- Local or remote Kubernetes cluster, i.e. [`minikube`](https://kubernetes.io/docs/tasks/tools/install-minikube/)
-- [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
-- [`skaffold`](https://skaffold.dev/)
-#### Production
-```bash
-# Deploy the Traefik Ingress
-kubectl apply -f https://raw.githubusercontent.com/containous/traefik/v1.7/examples/k8s/traefik-rbac.yaml
-kubectl apply -f https://raw.githubusercontent.com/containous/traefik/v1.7/examples/k8s/traefik-ds.yaml
-# Replace ${IP} with your Ingress' IP
-echo "${IP} dev.lemmy.local" >> /etc/hosts
-```
-
-```bash
-skaffold run -p lemmy--prod
-```
-
-Now go to http://dev.lemmy.local.
-#### Development
-```bash
-skaffold dev -p lemmy--dev
-```
-
-Now go to http://localhost:4444. It automatically proxies to localhost, both if the cluster is local or remote; it also hot-reloads the UI and automatically recompiles and restarts the server.
 ### Local Development
 #### Requirements
 - [Rust](https://www.rust-lang.org/)
@@ -120,7 +111,6 @@ cd lemmy
 # cd server && cargo watch -x run
 ```
 
-and goto http://localhost:8536
 ## Documentation
 - [Websocket API for App developers](docs/api.md)
 - [ActivityPub API.md](docs/apub_api_outline.md)
@@ -129,7 +119,7 @@ and goto http://localhost:8536
 ## Support
 Lemmy is free, open-source software, meaning no advertising, monetizing, or venture capital, ever. Your donations directly support full-time development of the project.
 - [Support on Patreon](https://www.patreon.com/dessalines).
-- [Sponsor List](https://dev.lemmy.ml/#/sponsors).
+- [Sponsor List](https://dev.lemmy.ml/sponsors).
 - bitcoin: `1Hefs7miXS5ff5Ck5xvmjKjXf5242KzRtK`
 - ethereum: `0x400c96c96acbC6E7B3B43B1dc1BB446540a88A01`
 ## Credits
