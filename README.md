@@ -95,7 +95,7 @@ and goto http://localhost:8536
 #### Requirements
 - [Rust](https://www.rust-lang.org/)
 - [Yarn](https://yarnpkg.com/en/)
-- [Postgres](https://www.sqlite.org/index.html)
+- [Postgres](https://www.postgresql.org/)
 #### Set up Postgres DB
 ```
  psql -c "create user rrr with password 'rrr' superuser;" -U postgres
