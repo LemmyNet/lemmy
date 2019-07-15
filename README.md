@@ -69,7 +69,7 @@ and goto http://localhost:8536
 ### Nginx Config
 ```
 location / {
-  rewrite (\/(user|u|inbox|post|community|c|login|search|sponsors|communities|modlog)+) /static/index.html break;
+  rewrite (\/(user|u|inbox|post|community|c|login|search|sponsors|communities|modlog|home)+) /static/index.html break;
   proxy_pass http://0.0.0.0:8536;
   proxy_set_header X-Real-IP $remote_addr;
   proxy_set_header Host $host;
