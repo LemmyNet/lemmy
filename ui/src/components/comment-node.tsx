@@ -19,6 +19,7 @@ interface CommentNodeState {
   banReason: string;
   banExpires: string;
   banType: BanType;
+  collapsed: boolean;
 }
 
 interface CommentNodeProps {
@@ -41,7 +42,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     showBanDialog: false,
     banReason: null,
     banExpires: null,
-    banType: BanType.Community
+    banType: BanType.Community,
+    collapsed: false,
   }
 
   constructor(props: any, context: any) {
@@ -88,9 +90,12 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             <li className="list-inline-item">
               <span><MomentTime data={node.comment} /></span>
             </li>
+            <li className="list-inline-item">
+              <div className="pointer text-monospace" onClick={linkEvent(this, this.handleCommentCollapse)}>{this.state.collapsed ? '[+]' : '[-]'}</div>
+            </li>
           </ul>
           {this.state.showEdit && <CommentForm node={node} edit onReplyCancel={this.handleReplyCancel} disabled={this.props.locked} />}
-          {!this.state.showEdit &&
+          {!this.state.showEdit && !this.state.collapsed &&
             <div>
               <div className="md-div" dangerouslySetInnerHTML={mdToHtml(node.comment.removed ? '*removed*' : node.comment.deleted ? '*deleted*' : node.comment.content)} />
               <ul class="list-inline mb-1 text-muted small font-weight-bold">
@@ -202,7 +207,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             disabled={this.props.locked} 
           />
         }
-        {this.props.node.children && 
+        {this.props.node.children && !this.state.collapsed &&
           <CommentNodes 
             nodes={this.props.node.children} 
             locked={this.props.locked} 
@@ -210,6 +215,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             admins={this.props.admins}
           />
         }
+        {/* A collapsed clearfix */}
+        {this.state.collapsed && <div class="row col-12"></div>}
       </div>
     )
   }
@@ -429,5 +436,10 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     let now = moment.utc().subtract(10, 'minutes');
     let then = moment.utc(this.props.node.comment.published);
     return now.isBefore(then);
+  }
+
+  handleCommentCollapse(i: CommentNode) {
+    i.state.collapsed = !i.state.collapsed;
+    i.setState(i.state);
   }
 }
