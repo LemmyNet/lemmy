@@ -6,22 +6,23 @@ edition = "2018"
 
 [dependencies]
 diesel = { version = "1.4.2", features = ["postgres","chrono"] }
-diesel_migrations = "*"
-dotenv = "0.9.0"
-bcrypt = "0.3"
-activitypub = "0.1.4"
-chrono = { version = "0.4", features = ["serde"] }
+diesel_migrations = "1.4.0"
+dotenv = "0.14.1"
+bcrypt = "0.5.0"
+activitypub = "0.1.5"
+chrono = { version = "0.4.7", features = ["serde"] }
 failure = "0.1.5"
-serde_json = "*"
-serde = { version = "1.0", features = ["derive"] }
-actix = "*"
-actix-web = "*"
-env_logger = "*"
-rand = "0.6.5"
-strum = "0.14.0"
-strum_macros = "0.14.0"
-jsonwebtoken = "*"
-regex = "*"
-lazy_static = "*"
-reqwest = "*"
-openssl = { version = "0.10", features = ["vendored"] }
+serde_json = "1.0.40"
+serde = { version = "1.0.94", features = ["derive"] }
+actix = "0.8.3"
+actix-web = "1.0"
+actix-files = "0.1.3"
+actix-web-actors = "1.0"
+env_logger = "0.6.2"
+rand = "0.7.0"
+strum = "0.15.0"
+strum_macros = "0.15.0"
+jsonwebtoken = "6.0.1"
+regex = "1.1.9"
+lazy_static = "1.3.0"
+
