@@ -2,14 +2,14 @@ extern crate lemmy_server;
 #[macro_use]
 extern crate diesel_migrations;
 
-use std::time::{Instant, Duration};
-use std::env;
-use actix_web::*;
 use actix::prelude::*;
 use actix_files::NamedFile;
+use actix_web::*;
 use actix_web_actors::ws;
-use lemmy_server::websocket::server::*;
 use lemmy_server::db::establish_connection;
+use lemmy_server::websocket::server::*;
+use std::env;
+use std::time::{Duration, Instant};
 
 embed_migrations!();
 
@@ -18,15 +18,19 @@ const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 /// How long before lack of client response causes a timeout
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 
-
 /// Entry point for our route
-fn chat_route(req: HttpRequest, stream: web::Payload, chat_server: web::Data<Addr<ChatServer>>) -> Result<HttpResponse, Error> {
+fn chat_route(
+    req: HttpRequest,
+    stream: web::Payload,
+    chat_server: web::Data<Addr<ChatServer>>,
+) -> Result<HttpResponse, Error> {
     ws::start(
         WSSession {
             cs_addr: chat_server.get_ref().to_owned(),
             id: 0,
             hb: Instant::now(),
-            ip: req.connection_info()
+            ip: req
+                .connection_info()
                 .remote()
                 .unwrap_or("127.0.0.1:12345")
                 .split(":")
@@ -155,8 +159,10 @@ impl WSSession {
                 println!("Websocket Client heartbeat failed, disconnecting!");
 
                 // notify chat server
-                act.cs_addr
-                    .do_send(Disconnect { id: act.id, ip: act.ip.to_owned() });
+                act.cs_addr.do_send(Disconnect {
+                    id: act.id,
+                    ip: act.ip.to_owned(),
+                });
 
                 // stop actor
                 ctx.stop();
@@ -182,17 +188,17 @@ fn main() {
     let server = ChatServer::default().start();
     // Create Http server with websocket support
     HttpServer::new(move || {
-
         App::new()
             .data(server.clone())
             .service(web::resource("/api/v1/ws").to(chat_route))
-//            .service(web::resource("/api/v1/rest").route(web::post().to(||{})))
+            //            .service(web::resource("/api/v1/rest").route(web::post().to(||{})))
             .service(web::resource("/").to(index))
             // static resources
             .service(actix_files::Files::new("/static", front_end_dir()))
-    }).bind("0.0.0.0:8536")
-        .unwrap()
-        .start();
+    })
+    .bind("0.0.0.0:8536")
+    .unwrap()
+    .start();
 
     println!("Started http server: 0.0.0.0:8536");
     let _ = sys.run();
