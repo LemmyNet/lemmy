@@ -1,13 +1,15 @@
 extern crate lemmy_server;
-#[macro_use] extern crate diesel_migrations;
+#[macro_use]
+extern crate diesel_migrations;
 
-use std::time::{Instant, Duration};
-use std::env;
-use lemmy_server::actix::*;
-use lemmy_server::actix_web::server::HttpServer;
-use lemmy_server::actix_web::{ws, App, Error, HttpRequest, HttpResponse, fs::NamedFile, fs};
-use lemmy_server::websocket::server::*;
+use actix::prelude::*;
+use actix_files::NamedFile;
+use actix_web::*;
+use actix_web_actors::ws;
 use lemmy_server::db::establish_connection;
+use lemmy_server::websocket::server::*;
+use std::env;
+use std::time::{Duration, Instant};
 
 embed_migrations!();
 
@@ -16,41 +18,43 @@ const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 /// How long before lack of client response causes a timeout
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// This is our websocket route state, this state is shared with all route
-/// instances via `HttpContext::state()`
-struct WsChatSessionState {
-  addr: Addr<ChatServer>,
-}
-
 /// Entry point for our route
-fn chat_route(req: &HttpRequest<WsChatSessionState>) -> Result<HttpResponse, Error> {
+fn chat_route(
+  req: HttpRequest,
+  stream: web::Payload,
+  chat_server: web::Data<Addr<ChatServer>>,
+  ) -> Result<HttpResponse, Error> {
   ws::start(
-    req,
     WSSession {
+      cs_addr: chat_server.get_ref().to_owned(),
       id: 0,
       hb: Instant::now(),
-      ip: req.connection_info()
+      ip: req
+        .connection_info()
         .remote()
         .unwrap_or("127.0.0.1:12345")
         .split(":")
         .next()
         .unwrap_or("127.0.0.1")
-        .to_string()
+        .to_string(),
     },
+    &req,
+    stream,
     )
 }
 
 struct WSSession {
+  cs_addr: Addr<ChatServer>,
   /// unique session id
   id: usize,
   ip: String,
   /// Client must send ping at least once per 10 seconds (CLIENT_TIMEOUT),
   /// otherwise we drop connection.
-  hb: Instant
+  hb: Instant,
 }
 
 impl Actor for WSSession {
-  type Context = ws::WebsocketContext<Self, WsChatSessionState>;
+  type Context = ws::WebsocketContext<Self>;
 
   /// Method is called on actor start.
   /// We register ws session with ChatServer
@@ -61,11 +65,9 @@ impl Actor for WSSession {
     // register self in chat server. `AsyncContext::wait` register
     // future within context, but context waits until this future resolves
     // before processing any other events.
-    // HttpContext::state() is instance of WsChatSessionState, state is shared
     // across all routes within application
     let addr = ctx.address();
-    ctx.state()
-      .addr
+    self.cs_addr
       .send(Connect {
         addr: addr.recipient(),
         ip: self.ip.to_owned(),
@@ -82,9 +84,9 @@ impl Actor for WSSession {
     .wait(ctx);
   }
 
-  fn stopping(&mut self, ctx: &mut Self::Context) -> Running {
+  fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
     // notify chat server
-    ctx.state().addr.do_send(Disconnect { 
+    self.cs_addr.do_send(Disconnect {
       id: self.id,
       ip: self.ip.to_owned(),
     });
@@ -118,9 +120,8 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WSSession {
       ws::Message::Text(text) => {
         let m = text.trim().to_owned();
         println!("WEBSOCKET MESSAGE: {:?} from id: {}", &m, self.id);
-        
-        ctx.state()
-          .addr
+
+        self.cs_addr
           .send(StandardMessage {
             id: self.id,
             msg: m,
@@ -140,7 +141,8 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WSSession {
       ws::Message::Binary(_bin) => println!("Unexpected binary"),
       ws::Message::Close(_) => {
         ctx.stop();
-      },
+      }
+      _ => {}
     }
   }
 }
@@ -149,7 +151,7 @@ impl WSSession {
   /// helper method that sends ping to client every second.
   ///
   /// also this method checks heartbeats from client
-  fn hb(&self, ctx: &mut ws::WebsocketContext<Self, WsChatSessionState>) {
+  fn hb(&self, ctx: &mut ws::WebsocketContext<Self>) {
     ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
       // check client heartbeats
       if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
@@ -157,9 +159,10 @@ impl WSSession {
         println!("Websocket Client heartbeat failed, disconnecting!");
 
         // notify chat server
-        ctx.state()
-          .addr
-          .do_send(Disconnect { id: act.id, ip: act.ip.to_owned() });
+        act.cs_addr.do_send(Disconnect {
+          id: act.id,
+          ip: act.ip.to_owned(),
+        });
 
         // stop actor
         ctx.stop();
@@ -182,34 +185,26 @@ fn main() {
   embedded_migrations::run(&conn).unwrap();
 
   // Start chat server actor in separate thread
-  let server = Arbiter::start(|_| ChatServer::default());
-
+  let server = ChatServer::default().start();
   // Create Http server with websocket support
   HttpServer::new(move || {
-    // Websocket sessions state
-    let state = WsChatSessionState {
-      addr: server.clone(),
-    };
-
-    App::with_state(state)
-      // .resource("/api/v1/rest", |r| r.method(http::Method::POST).f(|_| {})
-      .resource("/api/v1/ws", |r| r.route().f(chat_route))
+    App::new()
+      .data(server.clone())
+      .service(web::resource("/api/v1/ws").to(chat_route))
+      //            .service(web::resource("/api/v1/rest").route(web::post().to(||{})))
+      .service(web::resource("/").to(index))
       // static resources
-      .resource("/", |r| r.route().f(index))
-      .handler(
-        "/static",
-        fs::StaticFiles::new(front_end_dir()).unwrap()
-      )
-      .finish()
-  }).bind("0.0.0.0:8536")
-  .unwrap()
+      .service(actix_files::Files::new("/static", front_end_dir()))
+  })
+  .bind("0.0.0.0:8536")
+    .unwrap()
     .start();
 
   println!("Started http server: 0.0.0.0:8536");
   let _ = sys.run();
 }
 
-fn index(_req: &HttpRequest<WsChatSessionState>) -> Result<NamedFile, actix_web::error::Error> {
+fn index() -> Result<NamedFile, actix_web::error::Error> {
   Ok(NamedFile::open(front_end_dir() + "/index.html")?)
 }
 
