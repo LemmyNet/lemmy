@@ -59,11 +59,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       <div class="listing">
         <div className={`mr-1 float-left small text-center ${this.props.viewOnly && 'no-click'}`}>
           <div className={`pointer ${post.my_vote == 1 ? 'text-info' : 'text-muted'}`} onClick={linkEvent(this, this.handlePostLike)}>
-            <svg class="icon upvote"><use xlinkHref="#icon-arrow-up"></use></svg>
+            <svg class="pointer icon upvote"><use xlinkHref="#icon-arrow-up"></use></svg>
           </div>
           <div class={`font-weight-bold text-muted`}>{post.score}</div>
           <div className={`pointer ${post.my_vote == -1 ? 'text-danger' : 'text-muted'}`} onClick={linkEvent(this, this.handlePostDisLike)}>
-            <svg class="icon downvote"><use xlinkHref="#icon-arrow-down"></use></svg>
+            <svg class="pointer icon downvote"><use xlinkHref="#icon-arrow-down"></use></svg>
           </div>
         </div>
         {post.url && isImage(post.url) &&
@@ -94,10 +94,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             { post.url && isImage(post.url) && 
               <>
                 { !this.state.imageExpanded
-                  ? <span class="badge badge-light pointer ml-2 text-muted small" title="Expand here" onClick={linkEvent(this, this.handleImageExpandClick)}>+</span>
+                  ? <span class="text-monospace pointer ml-2 text-muted small" title="Expand here" onClick={linkEvent(this, this.handleImageExpandClick)}>[+]</span>
                   : 
                   <span>
-                    <span class="pointer ml-2 badge badge-light text-muted small" onClick={linkEvent(this, this.handleImageExpandClick)}>-</span>
+                    <span class="text-monospace pointer ml-2 text-muted small" onClick={linkEvent(this, this.handleImageExpandClick)}>[-]</span>
                     <div>
                       <span class="pointer" onClick={linkEvent(this, this.handleImageExpandClick)}><img class="img-fluid" src={post.url} /></span>
                     </div>
