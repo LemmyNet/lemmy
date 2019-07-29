@@ -18,7 +18,7 @@ export class CreateCommunity extends Component<any, any> {
     return (
       <div class="container">
         <div class="row">
-          <div class="col-12 col-lg-6 mb-4">
+          <div class="col-12 col-lg-6 offset-lg-3 mb-4">
             <h5>Create Community</h5>
             <CommunityForm onCreate={this.handleCommunityCreate}/>
           </div>

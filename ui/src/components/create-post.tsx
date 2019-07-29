@@ -17,7 +17,7 @@ export class CreatePost extends Component<any, any> {
     return (
       <div class="container">
         <div class="row">
-          <div class="col-12 col-lg-6 mb-4">
+          <div class="col-12 col-lg-6 offset-lg-3 mb-4">
             <h5>Create a Post</h5>
             <PostForm onCreate={this.handlePostCreate} prevCommunityName={this.prevCommunityName} />
           </div>

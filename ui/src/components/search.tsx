@@ -253,7 +253,6 @@ export class Search extends Component<any, SearchState> {
       document.title = `Search - ${this.state.q} - ${WebSocketService.Instance.site.name}`;
       window.scrollTo(0,0);
       this.setState(this.state);
-      
     }
   }
 }
