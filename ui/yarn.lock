@@ -3,9 +3,9 @@
 
 
 "@babel/runtime@^7.1.2":
-  version "7.5.4"
-  resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.5.4.tgz#cb7d1ad7c6d65676e66b47186577930465b5271b"
-  integrity sha512-Na84uwyImZZc3FKf4aUF1tysApzwf3p2yuFBIyBfbzT5glzKTdvYI4KVW4kcgjrzoGUjC7w3YyCHcJKaRxsr2Q==
+  version "7.5.5"
+  resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.5.5.tgz#74fba56d35efbeca444091c7850ccd494fd2f132"
+  integrity sha512-28QvEGyQyNkB0/m2B4FU7IEZGK2NUrcMtT6BZEFALTguLk+AUT6ofsHtPk5QyjAdUkpMJ+/Em+quwz4HOt30AQ==
   dependencies:
     regenerator-runtime "^0.13.2"
 
@@ -98,9 +98,9 @@ ajax-request@^1.2.0:
     utils-extend "^1.0.7"
 
 ajv@^6.5.5:
-  version "6.10.1"
-  resolved "https://registry.yarnpkg.com/ajv/-/ajv-6.10.1.tgz#ebf8d3af22552df9dd049bfbe50cc2390e823593"
-  integrity sha512-w1YQaVGNC6t2UCPjEawK/vo/dG8OOrVtUmhBT1uJJYxbl5kU2Tj3v6LGqBcsysN1yhuCStJCCA3GqdvKY8sqXQ==
+  version "6.10.2"
+  resolved "https://registry.yarnpkg.com/ajv/-/ajv-6.10.2.tgz#d3cea04d6b017b2894ad69040fec8b623eb4bd52"
+  integrity sha512-TXtUUEYHuaTEbLZWIKUr5pmBuhDLy+8KYtPYdcV8qC+pOZL+NKqYwvWSRrVXHn+ZmRRAu8vJTAznH7Oag6RVRw==
   dependencies:
     fast-deep-equal "^2.0.1"
     fast-json-stable-stringify "^2.0.0"
@@ -321,9 +321,9 @@ body-parser@1.19.0:
     type-is "~1.6.17"
 
 bowser@^2.0.0-beta.3:
-  version "2.4.0"
-  resolved "https://registry.yarnpkg.com/bowser/-/bowser-2.4.0.tgz#fcfbca3d7659ba88afabbb8a45b33d2e4876a90c"
-  integrity sha512-DA9Opnb8S8TBLPPszrHDtCCATbAMkrxF+AxPs/d95r99frBioGpNwL1cbG3AHeV3FnoZW655vEvEryBHFeGrMg==
+  version "2.5.2"
+  resolved "https://registry.yarnpkg.com/bowser/-/bowser-2.5.2.tgz#5eac42a9ad4a4c95182b122fab8dd03d5941c891"
+  integrity sha512-82oFIAwiSzvw7wwMjg7fXOBq0ZXHXcH+vo9Ul6xleXmBvdlCvctrcFGJXCmckWXj2Qsspkhr1lIrRwK30oibRA==
 
 brace-expansion@^1.1.7:
   version "1.1.11"
@@ -1220,32 +1220,32 @@ ignore-walk@^3.0.1:
     minimatch "^3.0.4"
 
 inferno-router@^7.0.1:
-  version "7.1.13"
-  resolved "https://registry.yarnpkg.com/inferno-router/-/inferno-router-7.1.13.tgz#7f72ca8deaa5bf8c2f49bcb3db253e294c134f77"
-  integrity sha512-y97fF0IG70+nAlHRtxaH/8QsMUsSWeS375MC416NomP5tohSxmBLB0WQGTYFHvnMpqb/QSq2ojsifBAWqSHnuw==
+  version "7.2.1"
+  resolved "https://registry.yarnpkg.com/inferno-router/-/inferno-router-7.2.1.tgz#ebea346a31422ed141df7177fb0b5aeb06cf8fe3"
+  integrity sha512-8DMIhAvMVfvFSax+uNsTYCWOktqMIM952EsYRn5V0LMYvnJtUczJH77vSCe1DF4o1jK+/kf9KLNfa1QPQC/CQg==
   dependencies:
     history "^4.9.0"
     hoist-non-inferno-statics "^1.1.3"
-    inferno "7.1.13"
+    inferno "7.2.1"
     path-to-regexp-es6 "1.7.0"
 
-inferno-shared@7.1.13:
-  version "7.1.13"
-  resolved "https://registry.yarnpkg.com/inferno-shared/-/inferno-shared-7.1.13.tgz#2c70af637873b58fbfc3897813076dec4850a6b0"
-  integrity sha512-HNWpvCFO9vw5I9XNvsZamhe7UcSMBN62AOCyyGHlBGPB996/f3xwwgBWi0uHQ2rBtiM4Hp3rn65PQ5wSVd6/hg==
+inferno-shared@7.2.1:
+  version "7.2.1"
+  resolved "https://registry.yarnpkg.com/inferno-shared/-/inferno-shared-7.2.1.tgz#7512d626e252a4e0e3ea28f0396a815651226ed6"
+  integrity sha512-QSzHVcjAy38bQWmk1nrfNsrjdrWtxleojYYg00RyuF4K6s4KCPMEch5MD7C4fCydzeBMGcZUliSoUZXpm3DVwQ==
 
-inferno-vnode-flags@7.1.13:
-  version "7.1.13"
-  resolved "https://registry.yarnpkg.com/inferno-vnode-flags/-/inferno-vnode-flags-7.1.13.tgz#8c98e69079fe85feffe0ded79e6d7c05ae0d59b1"
-  integrity sha512-RELi78Y2bs81hSxgVOY2oZ+E6mHqtXFFdsuslWYwmaYbEDYV2qZQp4ayu5MyHQU+Ip8dkjKvIkN/yrYoBAvJgw==
+inferno-vnode-flags@7.2.1:
+  version "7.2.1"
+  resolved "https://registry.yarnpkg.com/inferno-vnode-flags/-/inferno-vnode-flags-7.2.1.tgz#833c39a16116dce86430c0bb7fedbd054ee32790"
+  integrity sha512-xYK45KNhlsKZtW60b9ahF9eICK45NtUJDGZxwxBegW98/hdL7/TyUP0gARKd4vmrwxdgwbupU6VAXPVbv7Wwgw==
 
-inferno@7.1.13, inferno@^7.0.1:
-  version "7.1.13"
-  resolved "https://registry.yarnpkg.com/inferno/-/inferno-7.1.13.tgz#d8ce8384a07de5138897f9f79c25d04141228b93"
-  integrity sha512-CrdzQRHMRkhrRTAB2tYBxnqe1umYkuKparHOHd7R37okd1TGp/Q8bQa58002Qh4pY+BU272mz3FuQC5LDQOLRg==
+inferno@7.2.1, inferno@^7.0.1:
+  version "7.2.1"
+  resolved "https://registry.yarnpkg.com/inferno/-/inferno-7.2.1.tgz#d82c14a237a004335ed03dd44395a4e0fe0d3729"
+  integrity sha512-+HGUvismTfy1MDRkfOxbD8nriu+lmajo/Z1JQckuisJPMJpspzxBaR9sxaWpVytjexi0Pcrh194COso4t3gAIQ==
   dependencies:
-    inferno-shared "7.1.13"
-    inferno-vnode-flags "7.1.13"
+    inferno-shared "7.2.1"
+    inferno-vnode-flags "7.2.1"
     opencollective-postinstall "^2.0.2"
 
 inflight@^1.0.4:
@@ -1584,9 +1584,9 @@ linkify-it@^2.0.0:
     uc.micro "^1.0.1"
 
 lodash@^4.3.0:
-  version "4.17.14"
-  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.14.tgz#9ce487ae66c96254fe20b599f21b6816028078ba"
-  integrity sha512-mmKYbW3GLuJeX+iGP+Y7Gp1AiGHGbXHCOh/jZmrawMmsE7MS4znI3RL2FsjbqOyMayHInjOeykW7PEajUk1/xw==
+  version "4.17.15"
+  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.15.tgz#b447f6670a0455bbfeedd11392eff330ea097548"
+  integrity sha512-8xOcRHvCjnocdS5cpwXQXVzmmh5e5+saE2QGoeQmbKmRS6J3VQppPOIt0MnmE+4xlZoumy0GPG0D0MVIQbNA1A==
 
 loose-envify@^1.2.0:
   version "1.4.0"
@@ -2193,9 +2193,9 @@ regenerate@^1.4.0:
   integrity sha512-1G6jJVDWrt0rK99kBjvEtziZNCICAuvIPkSiUFIQxVP06RCVpq3dmDo2oi6ABpYaDYaTRr67BEhL8r1wgEZZKg==
 
 regenerator-runtime@^0.13.2:
-  version "0.13.2"
-  resolved "https://registry.yarnpkg.com/regenerator-runtime/-/regenerator-runtime-0.13.2.tgz#32e59c9a6fb9b1a4aff09b4930ca2d4477343447"
-  integrity sha512-S/TQAZJO+D3m9xeN1WTI8dLKBBiRgXBlTJvbWjCThHWZj9EvHK70Ff50/tYj2J/fvBY6JtFVwRuazHN2E7M9BA==
+  version "0.13.3"
+  resolved "https://registry.yarnpkg.com/regenerator-runtime/-/regenerator-runtime-0.13.3.tgz#7cf6a77d8f5c6f60eb73c5fc1955b2ceb01e6bf5"
+  integrity sha512-naKIZz2GQ8JWh///G7L3X6LaQUAMp2lvb1rvwwsURe/VXwD6VMfr+/1NuNw3ag8v2kY1aQ/go5SNn79O9JU7yw==
 
 regex-cache@^0.4.2:
   version "0.4.4"
@@ -2626,9 +2626,9 @@ through@^2.3.6:
   integrity sha1-DdTJ/6q8NXlgsbckEV1+Doai4fU=
 
 tiny-invariant@^1.0.2:
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/tiny-invariant/-/tiny-invariant-1.0.5.tgz#0d198cf4f50ba34b28a16d8b28dcc4b02b813c44"
-  integrity sha512-BziszNEQNwtyMS9OVJia2LK9N9b6VJ35kBrvhDDDpr4hreLYqhCie15dB35uZMdqv9ZTQ55GHQtkz2FnleTHIA==
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/tiny-invariant/-/tiny-invariant-1.0.6.tgz#b3f9b38835e36a41c843a3b0907a5a7b3755de73"
+  integrity sha512-FOyLWWVjG+aC0UqG76V53yAWdXfH8bO6FNmyZOuUrzDzK8DI3/JRY25UD7+g49JWM1LXwymsKERB+DzI0dTEQA==
 
 tiny-warning@^1.0.0:
   version "1.0.3"
@@ -2885,9 +2885,9 @@ ws@^1.1.1:
     ultron "1.0.x"
 
 ws@^7.0.0:
-  version "7.1.0"
-  resolved "https://registry.yarnpkg.com/ws/-/ws-7.1.0.tgz#0395646c6fcc3ac56abf61ce1a42039637a6bd98"
-  integrity sha512-Swie2C4fs7CkwlHu1glMePLYJJsWjzhl1vm3ZaLplD0h7OMkZyZ6kLTB/OagiU923bZrPFXuDTeEqaEN4NWG4g==
+  version "7.1.1"
+  resolved "https://registry.yarnpkg.com/ws/-/ws-7.1.1.tgz#f9942dc868b6dffb72c14fd8f2ba05f77a4d5983"
+  integrity sha512-o41D/WmDeca0BqYhsr3nJzQyg9NF5X8l/UdnFNux9cS3lwB+swm8qGWX5rn+aD6xfBU3rGmtHij7g7x6LxFU3A==
   dependencies:
     async-limiter "^1.0.0"
 
