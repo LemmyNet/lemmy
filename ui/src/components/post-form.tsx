@@ -1,7 +1,8 @@
 import { Component, linkEvent } from 'inferno';
+import { PostListings } from './post-listings';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { PostForm as PostFormI, Post, PostResponse, UserOperation, Community, ListCommunitiesResponse, ListCommunitiesForm, SortType } from '../interfaces';
+import { PostForm as PostFormI, Post, PostResponse, UserOperation, Community, ListCommunitiesResponse, ListCommunitiesForm, SortType, SearchForm, SearchType, SearchResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { msgOp, getPageTitle } from '../utils';
 import * as autosize from 'autosize';
@@ -19,6 +20,7 @@ interface PostFormState {
   communities: Array<Community>;
   loading: boolean;
   suggestedTitle: string;
+  suggestedPosts: Array<Post>;
 }
 
 export class PostForm extends Component<PostFormProps, PostFormState> {
@@ -34,6 +36,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     communities: [],
     loading: false,
     suggestedTitle: undefined,
+    suggestedPosts: [],
   }
 
   constructor(props: any, context: any) {
@@ -86,7 +89,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
             <div class="col-sm-10">
               <input type="url" class="form-control" value={this.state.postForm.url} onInput={linkEvent(this, this.handlePostUrlChange)} />
               {this.state.suggestedTitle && 
-                <span class="text-muted small font-weight-bold pointer" onClick={linkEvent(this, this.copySuggestedTitle)}>copy suggested title: {this.state.suggestedTitle}</span>
+                <div class="mt-1 text-muted small font-weight-bold pointer" onClick={linkEvent(this, this.copySuggestedTitle)}>copy suggested title: {this.state.suggestedTitle}</div>
               }
             </div>
           </div>
@@ -94,6 +97,12 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
             <label class="col-sm-2 col-form-label">Title</label>
             <div class="col-sm-10">
               <textarea value={this.state.postForm.name} onInput={linkEvent(this, this.handlePostNameChange)} class="form-control" required rows={2} minLength={3} maxLength={100} />
+              {this.state.suggestedPosts.length > 0 && 
+                <>
+                  <div class="my-1 text-muted small font-weight-bold">These posts might be related</div>
+                  <PostListings posts={this.state.suggestedPosts} />
+                </>
+              }
             </div>
           </div>
           <div class="form-group row">
@@ -157,6 +166,22 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
 
   handlePostNameChange(i: PostForm, event: any) {
     i.state.postForm.name = event.target.value;
+
+    let form: SearchForm = {
+      q: i.state.postForm.name,
+      type_: SearchType[SearchType.Posts],
+      sort: SortType[SortType.TopAll],
+      community_id: i.state.postForm.community_id,
+      page: 1,
+      limit: 6,
+    };
+
+    if (i.state.postForm.name !== '') {
+      WebSocketService.Instance.search(form);
+    } else {
+      i.state.suggestedPosts = [];
+    }
+
     i.setState(i.state);
   }
 
@@ -201,6 +226,10 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       this.state.loading = false;
       let res: PostResponse = msg;
       this.props.onEdit(res.post);
+    } else if (op == UserOperation.Search) {
+      let res: SearchResponse = msg;
+      this.state.suggestedPosts = res.posts;
+      this.setState(this.state);
     }
   }
 
