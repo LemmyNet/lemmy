@@ -4,7 +4,7 @@ import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { PostForm as PostFormI, Post, PostResponse, UserOperation, Community, ListCommunitiesResponse, ListCommunitiesForm, SortType, SearchForm, SearchType, SearchResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { msgOp, getPageTitle } from '../utils';
+import { msgOp, getPageTitle, debounce } from '../utils';
 import * as autosize from 'autosize';
 
 interface PostFormProps {
@@ -87,7 +87,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
           <div class="form-group row">
             <label class="col-sm-2 col-form-label">URL</label>
             <div class="col-sm-10">
-              <input type="url" class="form-control" value={this.state.postForm.url} onInput={linkEvent(this, this.handlePostUrlChange)} />
+              <input type="url" class="form-control" value={this.state.postForm.url} onInput={linkEvent(this, debounce(this.handlePostUrlChange))} />
               {this.state.suggestedTitle && 
                 <div class="mt-1 text-muted small font-weight-bold pointer" onClick={linkEvent(this, this.copySuggestedTitle)}>copy suggested title: {this.state.suggestedTitle}</div>
               }
@@ -96,7 +96,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
           <div class="form-group row">
             <label class="col-sm-2 col-form-label">Title</label>
             <div class="col-sm-10">
-              <textarea value={this.state.postForm.name} onInput={linkEvent(this, this.handlePostNameChange)} class="form-control" required rows={2} minLength={3} maxLength={100} />
+              <textarea value={this.state.postForm.name} onInput={linkEvent(this, debounce(this.handlePostNameChange))} class="form-control" required rows={2} minLength={3} maxLength={100} />
               {this.state.suggestedPosts.length > 0 && 
                 <>
                   <div class="my-1 text-muted small font-weight-bold">These posts might be related</div>
@@ -166,7 +166,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
 
   handlePostNameChange(i: PostForm, event: any) {
     i.state.postForm.name = event.target.value;
-
     let form: SearchForm = {
       q: i.state.postForm.name,
       type_: SearchType[SearchType.Posts],
