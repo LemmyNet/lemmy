@@ -24,6 +24,11 @@ Sparky.task('config', _ => {
     transformers: {
       before: [transformClasscat(), transformInferno()],
     },
+    alias: {
+      'react': 'inferno-compat',
+      'react-dom': 'inferno-compat',
+      'react-redux': 'inferno-compat',
+		},
     plugins: [
       EnvPlugin({ NODE_ENV: isProduction ? 'production' : 'development' }),
       CSSPlugin(),

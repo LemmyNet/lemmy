@@ -7,6 +7,8 @@ import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
 import { SiteForm } from './site-form';
 import { msgOp, repoUrl, mdToHtml, fetchLimit, routeSortTypeToEnum, routeListingTypeToEnum } from '../utils';
+import { useTranslation } from 'react-i18next';
+const { t } = useTranslation();
 
 interface MainState {
   subscribedCommunities: Array<CommunityUser>;
@@ -147,7 +149,7 @@ export class Main extends Component<any, MainState> {
   trendingCommunities() {
     return (
       <div>
-        <h5>Trending <Link class="text-white" to="/communities">communities</Link></h5> 
+        <h5>{t('Trending')} <Link class="text-white" to="/communities">communities</Link></h5> 
         <ul class="list-inline"> 
           {this.state.trendingCommunities.map(community =>
             <li class="list-inline-item"><Link to={`/c/${community.name}`}>{community.name}</Link></li>
