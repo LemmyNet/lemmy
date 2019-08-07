@@ -7,8 +7,6 @@ import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
 import { SiteForm } from './site-form';
 import { msgOp, repoUrl, mdToHtml, fetchLimit, routeSortTypeToEnum, routeListingTypeToEnum } from '../utils';
-import { useTranslation } from 'react-i18next';
-const { t } = useTranslation();
 
 interface MainState {
   subscribedCommunities: Array<CommunityUser>;
@@ -122,26 +120,34 @@ export class Main extends Component<any, MainState> {
             {this.posts()}
           </div>
           <div class="col-12 col-md-4">
-            {!this.state.loading &&
-              <div>
-                {this.trendingCommunities()}
-                {UserService.Instance.user && this.state.subscribedCommunities.length > 0 && 
-                  <div>
-                    <h5>Subscribed <Link class="text-white" to="/communities">communities</Link></h5> 
-                    <ul class="list-inline"> 
-                      {this.state.subscribedCommunities.map(community =>
-                        <li class="list-inline-item"><Link to={`/c/${community.community_name}`}>{community.community_name}</Link></li>
-                      )}
-                    </ul>
-                  </div>
-                }
-                <Link class="btn btn-sm btn-secondary btn-block mb-3" 
-                  to="/create_community">Create a Community</Link>
-                {this.sidebar()}
-              </div>
-            }
+            {this.my_sidebar()}
           </div>
         </div>
+      </div>
+    )
+  }
+    
+  my_sidebar() {
+    return(
+      <div>
+        {!this.state.loading &&
+          <div>
+            {this.trendingCommunities()}
+            {UserService.Instance.user && this.state.subscribedCommunities.length > 0 && 
+              <div>
+                <h5><T i18nKey="subscribed_to_communities">#<Link class="text-white" to="/communities">#</Link></T></h5> 
+                <ul class="list-inline"> 
+                  {this.state.subscribedCommunities.map(community =>
+                    <li class="list-inline-item"><Link to={`/c/${community.community_name}`}>{community.community_name}</Link></li>
+                  )}
+                </ul>
+              </div>
+            }
+            <Link class="btn btn-sm btn-secondary btn-block mb-3" 
+              to="/create_community"><T i18nKey="create_a_community"> </T></Link>
+              {this.sidebar()}
+            </div>
+        }
       </div>
     )
   }
@@ -149,7 +155,7 @@ export class Main extends Component<any, MainState> {
   trendingCommunities() {
     return (
       <div>
-        <h5>{t('Trending')} <Link class="text-white" to="/communities">communities</Link></h5> 
+        {/* <h5>{t('Trending')} <Link class="text-white" to="/communities">communities</Link></h5> */} 
         <ul class="list-inline"> 
           {this.state.trendingCommunities.map(community =>
             <li class="list-inline-item"><Link to={`/c/${community.name}`}>{community.name}</Link></li>
