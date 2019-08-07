@@ -7,6 +7,7 @@ import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
 import { SiteForm } from './site-form';
 import { msgOp, repoUrl, mdToHtml, fetchLimit, routeSortTypeToEnum, routeListingTypeToEnum } from '../utils';
+import { T } from 'inferno-i18next';
 
 interface MainState {
   subscribedCommunities: Array<CommunityUser>;
@@ -135,7 +136,9 @@ export class Main extends Component<any, MainState> {
             {this.trendingCommunities()}
             {UserService.Instance.user && this.state.subscribedCommunities.length > 0 && 
               <div>
-                <h5><T i18nKey="subscribed_to_communities">#<Link class="text-white" to="/communities">#</Link></T></h5> 
+                <h5>
+                  <T i18nKey="subscribed_to_communities">#<Link class="text-white" to="/communities">#</Link></T>
+                </h5> 
                 <ul class="list-inline"> 
                   {this.state.subscribedCommunities.map(community =>
                     <li class="list-inline-item"><Link to={`/c/${community.community_name}`}>{community.community_name}</Link></li>
@@ -144,7 +147,9 @@ export class Main extends Component<any, MainState> {
               </div>
             }
             <Link class="btn btn-sm btn-secondary btn-block mb-3" 
-              to="/create_community"><T i18nKey="create_a_community"> </T></Link>
+              to="/create_community">
+              <T i18nKey="create_a_community">#</T>
+            </Link>
               {this.sidebar()}
             </div>
         }
@@ -155,7 +160,9 @@ export class Main extends Component<any, MainState> {
   trendingCommunities() {
     return (
       <div>
-        {/* <h5>{t('Trending')} <Link class="text-white" to="/communities">communities</Link></h5> */} 
+        <h5>
+          <T i18nKey="trending_communities">#<Link class="text-white" to="/communities">#</Link></T>
+        </h5>
         <ul class="list-inline"> 
           {this.state.trendingCommunities.map(community =>
             <li class="list-inline-item"><Link to={`/c/${community.name}`}>{community.name}</Link></li>
@@ -193,18 +200,32 @@ export class Main extends Component<any, MainState> {
         {this.canAdmin && 
           <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
             <li className="list-inline-item">
-              <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>edit</span>
+              <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>
+                <T i18nKey="edit">#</T>
+              </span>
             </li>
           </ul>
         }
         <ul class="my-2 list-inline">
-          <li className="list-inline-item badge badge-light">{this.state.site.site.number_of_users} Users</li>
-          <li className="list-inline-item badge badge-light">{this.state.site.site.number_of_posts} Posts</li>
-          <li className="list-inline-item badge badge-light">{this.state.site.site.number_of_comments} Comments</li>
-          <li className="list-inline-item"><Link className="badge badge-light" to="/modlog">Modlog</Link></li>
+          <li className="list-inline-item badge badge-light">
+            <T i18nKey="number_of_users" interpolation={{count: this.state.site.site.number_of_users}}>#</T>
+          </li>
+          <li className="list-inline-item badge badge-light">
+            <T i18nKey="number_of_posts" interpolation={{count: this.state.site.site.number_of_posts}}>#</T>
+          </li>
+          <li className="list-inline-item badge badge-light">
+            <T i18nKey="number_of_comments" interpolation={{count: this.state.site.site.number_of_comments}}>#</T>
+          </li>
+          <li className="list-inline-item">
+            <Link className="badge badge-light" to="/modlog">
+              <T i18nKey="modlog">#</T>
+            </Link>
+          </li>
         </ul>
         <ul class="my-1 list-inline small"> 
-          <li class="list-inline-item">admins: </li>
+          <li class="list-inline-item">
+            <T i18nKey="admins" class="d-inline">#</T>:
+          </li>
           {this.state.site.admins.map(admin =>
             <li class="list-inline-item"><Link class="text-info" to={`/u/${admin.name}`}>{admin.name}</Link></li>
           )}
@@ -223,15 +244,15 @@ export class Main extends Component<any, MainState> {
   landing() {
     return (
       <div>
-        <h5>Powered by  
-          <svg class="icon mx-2"><use xlinkHref="#icon-mouse"></use></svg>
-          <a href={repoUrl}>Lemmy<sup>Beta</sup></a>
+        <h5>
+          <T i18nKey="powered_by" class="d-inline">#</T>
+          <svg class="icon mx-2"><use xlinkHref="#icon-mouse">#</use></svg>
+          <a href={repoUrl}>Lemmy<sup>beta</sup></a>
         </h5>
-        <p>Lemmy is a <a href="https://en.wikipedia.org/wiki/Link_aggregation">link aggregator</a> / reddit alternative, intended to work in the <a href="https://en.wikipedia.org/wiki/Fediverse">fediverse</a>.</p>
-        <p>Its self-hostable, has live-updating comment threads, and is tiny (<code>~80kB</code>). Federation into the ActivityPub network is on the roadmap.</p>
-        <p>This is a <b>very early beta version</b>, and a lot of features are currently broken or missing.</p>
-        <p>Suggest new features or report bugs <a href={repoUrl}>here.</a></p>
-        <p>Made with <a href="https://www.rust-lang.org">Rust</a>, <a href="https://actix.rs/">Actix</a>, <a href="https://www.infernojs.org">Inferno</a>, <a href="https://www.typescriptlang.org/">Typescript</a>.</p>
+        <p>
+          <T i18nKey="landing_0">#<a href="https://en.wikipedia.org/wiki/Link_aggregation">#</a><a href="https://en.wikipedia.org/wiki/Fediverse">#</a><br></br><code>#</code><br></br><b>#</b><br></br><a href={repoUrl}>#</a><br></br><a href="https://www.rust-lang.org">#</a><a href="https://actix.rs/">#</a><a href="https://www.infernojs.org">#</a><a href="https://www.typescriptlang.org/">#</a>
+        </T>
+      </p>
       </div>
     )
   }
