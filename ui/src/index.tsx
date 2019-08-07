@@ -1,5 +1,5 @@
 import { render, Component } from 'inferno';
-import { HashRouter, BrowserRouter, Route, Switch } from 'inferno-router';
+import { BrowserRouter, Route, Switch } from 'inferno-router';
 import { Provider } from 'inferno-i18next';
 import { Main } from './components/main';
 import { Navbar } from './components/navbar';
@@ -17,7 +17,7 @@ import { Inbox } from './components/inbox';
 import { Search } from './components/search';
 import { Sponsors } from './components/sponsors';
 import { Symbols } from './components/symbols';
-import './i18n';
+import { i18next } from './i18next';
 
 import './css/bootstrap.min.css';
 import './css/main.css';
@@ -36,7 +36,7 @@ class Index extends Component<any, any> {
 
   render() {
     return (
-      <Provider i18next={i18n}>
+      <Provider i18next={i18next}>
         <BrowserRouter>
           <Navbar />
           <div class="mt-1 p-0">
