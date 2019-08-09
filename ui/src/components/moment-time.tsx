@@ -1,5 +1,7 @@
 import { Component } from 'inferno';
 import * as moment from 'moment';
+import 'moment/locale/de.js';
+import { getLanguage } from '../utils';
 import { i18n } from '../i18next';
 
 interface MomentTimeProps {
@@ -14,6 +16,8 @@ export class MomentTime extends Component<MomentTimeProps, any> {
 
   constructor(props: any, context: any) {
     super(props, context);
+    // console.log(moment.locales());
+    moment.locale(getLanguage());
   }
 
   render() {
