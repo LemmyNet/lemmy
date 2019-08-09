@@ -5,6 +5,8 @@ import { Post, CreatePostLikeForm, PostForm as PostFormI, SavePostForm, Communit
 import { MomentTime } from './moment-time';
 import { PostForm } from './post-form';
 import { mdToHtml, canMod, isMod, isImage } from '../utils';
+import { i18n } from '../i18next';
+import { T } from 'inferno-i18next';
 
 interface PostListingState {
   showEdit: boolean;
@@ -67,7 +69,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           </div>
         </div>
         {post.url && isImage(post.url) &&
-          <span title="Expand here" class="pointer" onClick={linkEvent(this, this.handleImageExpandClick)}><img class="mx-2 float-left img-fluid thumbnail rounded" src={post.url} /></span>
+          <span title={i18n.t('expand_here')} class="pointer" onClick={linkEvent(this, this.handleImageExpandClick)}><img class="mx-2 float-left img-fluid thumbnail rounded" src={post.url} /></span>
         }
         <div className="ml-4">
           <div>
@@ -83,18 +85,18 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               </small>
             }
             {post.removed &&
-              <small className="ml-2 text-muted font-italic">removed</small>
+              <small className="ml-2 text-muted font-italic"><T i18nKey="removed">#</T></small>
             }
             {post.deleted &&
-              <small className="ml-2 text-muted font-italic">deleted</small>
+              <small className="ml-2 text-muted font-italic"><T i18nKey="deleted">#</T></small>
             }
             {post.locked &&
-              <small className="ml-2 text-muted font-italic">locked</small>
+              <small className="ml-2 text-muted font-italic"><T i18nKey="locked">#</T></small>
             }
             { post.url && isImage(post.url) && 
               <>
                 { !this.state.imageExpanded
-                  ? <span class="text-monospace pointer ml-2 text-muted small" title="Expand here" onClick={linkEvent(this, this.handleImageExpandClick)}>[+]</span>
+                  ? <span class="text-monospace pointer ml-2 text-muted small" title={i18n.t('expand_here')} onClick={linkEvent(this, this.handleImageExpandClick)}>[+]</span>
                   : 
                   <span>
                     <span class="text-monospace pointer ml-2 text-muted small" onClick={linkEvent(this, this.handleImageExpandClick)}>[-]</span>
@@ -113,10 +115,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               <span>by </span>
               <Link className="text-info" to={`/u/${post.creator_name}`}>{post.creator_name}</Link>
               {this.isMod && 
-                <span className="mx-1 badge badge-light">mod</span>
+                <span className="mx-1 badge badge-light"><T i18nKey="mod">#</T></span>
               }
               {this.isAdmin && 
-                <span className="mx-1 badge badge-light">admin</span>
+                <span className="mx-1 badge badge-light"><T i18nKey="admin">#</T></span>
               }
               {this.props.showCommunity && 
                 <span>
@@ -137,22 +139,22 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               </span>
             </li>
             <li className="list-inline-item">
-              <Link className="text-muted" to={`/post/${post.id}`}>{post.number_of_comments} Comments</Link>
+              <Link className="text-muted" to={`/post/${post.id}`}><T i18nKey="number_of_comments" interpolation={{count: post.number_of_comments}}>#</T></Link>
             </li>
           </ul>
           {UserService.Instance.user && this.props.editable &&
             <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
               <li className="list-inline-item mr-2">
-                <span class="pointer" onClick={linkEvent(this, this.handleSavePostClick)}>{post.saved ? 'unsave' : 'save'}</span>
+                <span class="pointer" onClick={linkEvent(this, this.handleSavePostClick)}>{post.saved ? i18n.t('unsave') : i18n.t('save')}</span>
               </li>
               {this.myPost && 
                 <>
                   <li className="list-inline-item">
-                    <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>edit</span>
+                    <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}><T i18nKey="edit">#</T></span>
                   </li>
                   <li className="list-inline-item mr-2">
                     <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>
-                      {!post.deleted ? 'delete' : 'restore'}
+                      {!post.deleted ? i18n.t('delete') : i18n.t('restore')}
                     </span>
                   </li>
                 </>
@@ -161,12 +163,12 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                 <span>
                   <li className="list-inline-item">
                     {!this.props.post.removed ? 
-                    <span class="pointer" onClick={linkEvent(this, this.handleModRemoveShow)}>remove</span> :
-                    <span class="pointer" onClick={linkEvent(this, this.handleModRemoveSubmit)}>restore</span>
+                    <span class="pointer" onClick={linkEvent(this, this.handleModRemoveShow)}><T i18nKey="remove">#</T></span> :
+                    <span class="pointer" onClick={linkEvent(this, this.handleModRemoveSubmit)}><T i18nKey="restore">#</T></span>
                     }
                   </li>
                   <li className="list-inline-item">
-                    <span class="pointer" onClick={linkEvent(this, this.handleModLock)}>{this.props.post.locked ? 'unlock' : 'lock'}</span>
+                    <span class="pointer" onClick={linkEvent(this, this.handleModLock)}>{this.props.post.locked ? i18n.t('unlock') : i18n.t('lock')}</span>
                   </li>
                 </span>
               }
@@ -175,7 +177,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           {this.state.showRemoveDialog && 
             <form class="form-inline" onSubmit={linkEvent(this, this.handleModRemoveSubmit)}>
               <input type="text" class="form-control mr-2" placeholder="Reason" value={this.state.removeReason} onInput={linkEvent(this, this.handleModRemoveReasonChange)} />
-              <button type="submit" class="btn btn-secondary">Remove Post</button>
+              <button type="submit" class="btn btn-secondary"><T i18nKey="remove_post">#</T></button>
             </form>
           }
           {this.props.showBody && this.props.post.body && <div className="md-div" dangerouslySetInnerHTML={mdToHtml(post.body)} />}
