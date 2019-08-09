@@ -382,7 +382,7 @@ export class Main extends Component<any, MainState> {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(msg.error);
+      alert(i18n.t(msg.error));
       return;
     } else if (op == UserOperation.GetFollowedCommunities) {
       let res: GetFollowedCommunitiesResponse = msg;

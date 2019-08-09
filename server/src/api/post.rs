@@ -94,25 +94,25 @@ impl Perform<PostResponse> for Oper<CreatePost> {
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return Err(APIError::err(&self.op, "Not logged in."))?
+        return Err(APIError::err(&self.op, "not_logged_in"))?
       }
     };
 
     if has_slurs(&data.name) || 
       (data.body.is_some() && has_slurs(&data.body.to_owned().unwrap())) {
-        return Err(APIError::err(&self.op, "No slurs"))?
+        return Err(APIError::err(&self.op, "no_slurs"))?
       }
 
     let user_id = claims.id;
 
     // Check for a community ban
     if CommunityUserBanView::get(&conn, user_id, data.community_id).is_ok() {
-      return Err(APIError::err(&self.op, "You have been banned from this community"))?
+      return Err(APIError::err(&self.op, "community_ban"))?
     }
 
     // Check for a site ban
     if UserView::read(&conn, user_id)?.banned {
-      return Err(APIError::err(&self.op, "You have been banned from the site"))?
+      return Err(APIError::err(&self.op, "site_ban"))?
     }
 
     let post_form = PostForm {
@@ -130,7 +130,7 @@ impl Perform<PostResponse> for Oper<CreatePost> {
     let inserted_post = match Post::create(&conn, &post_form) {
       Ok(post) => post,
       Err(_e) => {
-        return Err(APIError::err(&self.op, "Couldn't create Post"))?
+        return Err(APIError::err(&self.op, "couldnt_create_post"))?
       }
     };
 
@@ -145,7 +145,7 @@ impl Perform<PostResponse> for Oper<CreatePost> {
     let _inserted_like = match PostLike::like(&conn, &like_form) {
       Ok(like) => like,
       Err(_e) => {
-        return Err(APIError::err(&self.op, "Couldn't like post."))?
+        return Err(APIError::err(&self.op, "couldnt_like_post"))?
       }
     };
 
@@ -153,7 +153,7 @@ impl Perform<PostResponse> for Oper<CreatePost> {
     let post_view = match PostView::read(&conn, inserted_post.id, Some(user_id)) {
       Ok(post) => post,
       Err(_e) => {
-        return Err(APIError::err(&self.op, "Couldn't find Post"))?
+        return Err(APIError::err(&self.op, "couldnt_find_post"))?
       }
     };
 
@@ -187,7 +187,7 @@ impl Perform<GetPostResponse> for Oper<GetPost> {
     let post_view = match PostView::read(&conn, data.id, user_id) {
       Ok(post) => post,
       Err(_e) => {
-        return Err(APIError::err(&self.op, "Couldn't find Post"))?
+        return Err(APIError::err(&self.op, "couldnt_find_post"))?
       }
     };
 
@@ -248,7 +248,7 @@ impl Perform<GetPostsResponse> for Oper<GetPosts> {
                                      data.limit) {
       Ok(posts) => posts,
       Err(_e) => {
-        return Err(APIError::err(&self.op, "Couldn't get posts"))?
+        return Err(APIError::err(&self.op, "couldnt_get_posts"))?
       }
     };
 
@@ -270,7 +270,7 @@ impl Perform<CreatePostLikeResponse> for Oper<CreatePostLike> {
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return Err(APIError::err(&self.op, "Not logged in."))?
+        return Err(APIError::err(&self.op, "not_logged_in"))?
       }
     };
 
@@ -279,12 +279,12 @@ impl Perform<CreatePostLikeResponse> for Oper<CreatePostLike> {
     // Check for a community ban
     let post = Post::read(&conn, data.post_id)?;
     if CommunityUserBanView::get(&conn, user_id, post.community_id).is_ok() {
-      return Err(APIError::err(&self.op, "You have been banned from this community"))?
+      return Err(APIError::err(&self.op, "community_ban"))?
     }
 
     // Check for a site ban
     if UserView::read(&conn, user_id)?.banned {
-      return Err(APIError::err(&self.op, "You have been banned from the site"))?
+      return Err(APIError::err(&self.op, "site_ban"))?
     }
 
     let like_form = PostLikeForm {
@@ -302,7 +302,7 @@ impl Perform<CreatePostLikeResponse> for Oper<CreatePostLike> {
       let _inserted_like = match PostLike::like(&conn, &like_form) {
         Ok(like) => like,
         Err(_e) => {
-          return Err(APIError::err(&self.op, "Couldn't like post."))?
+          return Err(APIError::err(&self.op, "couldnt_like_post"))?
         }
       };
     }
@@ -310,7 +310,7 @@ impl Perform<CreatePostLikeResponse> for Oper<CreatePostLike> {
     let post_view = match PostView::read(&conn, data.post_id, Some(user_id)) {
       Ok(post) => post,
       Err(_e) => {
-        return Err(APIError::err(&self.op, "Couldn't find Post"))?
+        return Err(APIError::err(&self.op, "couldnt_find_post"))?
       }
     };
 
@@ -329,7 +329,7 @@ impl Perform<PostResponse> for Oper<EditPost> {
     let data: &EditPost = &self.data;
     if has_slurs(&data.name) || 
       (data.body.is_some() && has_slurs(&data.body.to_owned().unwrap())) {
-        return Err(APIError::err(&self.op, "No slurs"))?
+        return Err(APIError::err(&self.op, "no_slurs"))?
       }
 
     let conn = establish_connection();
@@ -337,7 +337,7 @@ impl Perform<PostResponse> for Oper<EditPost> {
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return Err(APIError::err(&self.op, "Not logged in."))?
+        return Err(APIError::err(&self.op, "not_logged_in"))?
       }
     };
 
@@ -360,17 +360,17 @@ impl Perform<PostResponse> for Oper<EditPost> {
       .collect()
       );
     if !editors.contains(&user_id) {
-      return Err(APIError::err(&self.op, "Not allowed to edit post."))?
+      return Err(APIError::err(&self.op, "no_post_edit_allowed"))?
     }
 
     // Check for a community ban
     if CommunityUserBanView::get(&conn, user_id, data.community_id).is_ok() {
-      return Err(APIError::err(&self.op, "You have been banned from this community"))?
+      return Err(APIError::err(&self.op, "community_ban"))?
     }
 
     // Check for a site ban
     if UserView::read(&conn, user_id)?.banned {
-      return Err(APIError::err(&self.op, "You have been banned from the site"))?
+      return Err(APIError::err(&self.op, "site_ban"))?
     }
 
     let post_form = PostForm {
@@ -388,7 +388,7 @@ impl Perform<PostResponse> for Oper<EditPost> {
     let _updated_post = match Post::update(&conn, data.edit_id, &post_form) {
       Ok(post) => post,
       Err(_e) => {
-        return Err(APIError::err(&self.op, "Couldn't update Post"))?
+        return Err(APIError::err(&self.op, "couldnt_update_post"))?
       }
     };
 
@@ -431,7 +431,7 @@ impl Perform<PostResponse> for Oper<SavePost> {
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return Err(APIError::err(&self.op, "Not logged in."))?
+        return Err(APIError::err(&self.op, "not_logged_in"))?
       }
     };
 
@@ -446,14 +446,14 @@ impl Perform<PostResponse> for Oper<SavePost> {
       match PostSaved::save(&conn, &post_saved_form) {
         Ok(post) => post,
         Err(_e) => {
-          return Err(APIError::err(&self.op, "Couldnt do post save"))?
+          return Err(APIError::err(&self.op, "couldnt_save_post"))?
         }
       };
     } else {
       match PostSaved::unsave(&conn, &post_saved_form) {
         Ok(post) => post,
         Err(_e) => {
-          return Err(APIError::err(&self.op, "Couldnt do post save"))?
+          return Err(APIError::err(&self.op, "couldnt_save_post"))?
         }
       };
     }

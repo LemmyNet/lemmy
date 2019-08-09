@@ -53,7 +53,7 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return Err(APIError::err(&self.op, "Not logged in."))?
+        return Err(APIError::err(&self.op, "not_logged_in"))?
       }
     };
 
@@ -62,12 +62,12 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
     // Check for a community ban
     let post = Post::read(&conn, data.post_id)?;
     if CommunityUserBanView::get(&conn, user_id, post.community_id).is_ok() {
-      return Err(APIError::err(&self.op, "You have been banned from this community"))?
+      return Err(APIError::err(&self.op, "community_ban"))?
     }
 
     // Check for a site ban
     if UserView::read(&conn, user_id)?.banned {
-      return Err(APIError::err(&self.op, "You have been banned from the site"))?
+      return Err(APIError::err(&self.op, "site_ban"))?
     }
 
     let content_slurs_removed = remove_slurs(&data.content.to_owned());
@@ -86,7 +86,7 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
     let inserted_comment = match Comment::create(&conn, &comment_form) {
       Ok(comment) => comment,
       Err(_e) => {
-        return Err(APIError::err(&self.op, "Couldn't create Comment"))?
+        return Err(APIError::err(&self.op, "couldnt_create_comment"))?
       }
     };
 
@@ -101,7 +101,7 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
     let _inserted_like = match CommentLike::like(&conn, &like_form) {
       Ok(like) => like,
       Err(_e) => {
-        return Err(APIError::err(&self.op, "Couldn't like comment."))?
+        return Err(APIError::err(&self.op, ""))?
       }
     };
 
@@ -124,7 +124,7 @@ impl Perform<CommentResponse> for Oper<EditComment> {
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return Err(APIError::err(&self.op, "Not logged in."))?
+        return Err(APIError::err(&self.op, "not_logged_in"))?
       }
     };
 
@@ -153,17 +153,17 @@ impl Perform<CommentResponse> for Oper<EditComment> {
         );
 
       if !editors.contains(&user_id) {
-        return Err(APIError::err(&self.op, "Not allowed to edit comment."))?
+        return Err(APIError::err(&self.op, "no_comment_edit_allowed"))?
       }
 
       // Check for a community ban
       if CommunityUserBanView::get(&conn, user_id, orig_comment.community_id).is_ok() {
-        return Err(APIError::err(&self.op, "You have been banned from this community"))?
+        return Err(APIError::err(&self.op, "community_ban"))?
       }
 
       // Check for a site ban
       if UserView::read(&conn, user_id)?.banned {
-        return Err(APIError::err(&self.op, "You have been banned from the site"))?
+        return Err(APIError::err(&self.op, "site_ban"))?
       }
 
     }
@@ -184,7 +184,7 @@ impl Perform<CommentResponse> for Oper<EditComment> {
     let _updated_comment = match Comment::update(&conn, data.edit_id, &comment_form) {
       Ok(comment) => comment,
       Err(_e) => {
-        return Err(APIError::err(&self.op, "Couldn't update Comment"))?
+        return Err(APIError::err(&self.op, "couldnt_update_comment"))?
       }
     };
 
@@ -220,7 +220,7 @@ impl Perform<CommentResponse> for Oper<SaveComment> {
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return Err(APIError::err(&self.op, "Not logged in."))?
+        return Err(APIError::err(&self.op, "not_logged_in"))?
       }
     };
 
@@ -235,14 +235,14 @@ impl Perform<CommentResponse> for Oper<SaveComment> {
       match CommentSaved::save(&conn, &comment_saved_form) {
         Ok(comment) => comment,
         Err(_e) => {
-          return Err(APIError::err(&self.op, "Couldnt do comment save"))?
+          return Err(APIError::err(&self.op, "couldnt_save_comment"))?
         }
       };
     } else {
       match CommentSaved::unsave(&conn, &comment_saved_form) {
         Ok(comment) => comment,
         Err(_e) => {
-          return Err(APIError::err(&self.op, "Couldnt do comment save"))?
+          return Err(APIError::err(&self.op, "couldnt_save_comment"))?
         }
       };
     }
@@ -266,7 +266,7 @@ impl Perform<CommentResponse> for Oper<CreateCommentLike> {
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return Err(APIError::err(&self.op, "Not logged in."))?
+        return Err(APIError::err(&self.op, "not_logged_in"))?
       }
     };
 
@@ -275,12 +275,12 @@ impl Perform<CommentResponse> for Oper<CreateCommentLike> {
     // Check for a community ban
     let post = Post::read(&conn, data.post_id)?;
     if CommunityUserBanView::get(&conn, user_id, post.community_id).is_ok() {
-      return Err(APIError::err(&self.op, "You have been banned from this community"))?
+      return Err(APIError::err(&self.op, "community_ban"))?
     }
 
     // Check for a site ban
     if UserView::read(&conn, user_id)?.banned {
-      return Err(APIError::err(&self.op, "You have been banned from the site"))?
+      return Err(APIError::err(&self.op, "site_ban"))?
     }
 
     let like_form = CommentLikeForm {
@@ -299,7 +299,7 @@ impl Perform<CommentResponse> for Oper<CreateCommentLike> {
       let _inserted_like = match CommentLike::like(&conn, &like_form) {
         Ok(like) => like,
         Err(_e) => {
-          return Err(APIError::err(&self.op, "Couldn't like comment."))?
+          return Err(APIError::err(&self.op, "couldnt_like_comment"))?
         }
       };
     }

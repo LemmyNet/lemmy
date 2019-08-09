@@ -166,7 +166,7 @@ export class Inbox extends Component<any, InboxState> {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(msg.error);
+      alert(i18n.t(msg.error));
       return;
     } else if (op == UserOperation.GetReplies || op == UserOperation.MarkAllAsRead) {
       let res: GetRepliesResponse = msg;
