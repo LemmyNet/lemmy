@@ -194,7 +194,7 @@ export class Community extends Component<any, State> {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(msg.error);
+      alert(i18n.t(msg.error));
       return;
     } else if (op == UserOperation.GetCommunity) {
       let res: GetCommunityResponse = msg;

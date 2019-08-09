@@ -223,7 +223,7 @@ export class Modlog extends Component<any, ModlogState> {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(msg.error);
+      alert(i18n.t(msg.error));
       return;
     } else if (op == UserOperation.GetModlog) {
       let res: GetModlogResponse = msg;

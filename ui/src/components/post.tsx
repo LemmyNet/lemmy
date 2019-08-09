@@ -244,7 +244,7 @@ export class Post extends Component<any, PostState> {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(msg.error);
+      alert(i18n.t(msg.error));
       return;
     } else if (op == UserOperation.GetPost) {
       let res: GetPostResponse = msg;

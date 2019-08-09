@@ -155,7 +155,7 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
     let op: UserOperation = msgOp(msg);
     console.log(msg);
     if (msg.error) {
-      alert(msg.error);
+      alert(i18n.t(msg.error));
       this.state.loading = false;
       this.setState(this.state);
       return;
