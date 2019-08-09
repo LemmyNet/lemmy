@@ -159,3 +159,7 @@ export function debounce(func: any, wait: number = 500, immediate: boolean = fal
   if (callNow) func.apply(context, args);
   }
 }
+
+export function getLanguage() {
+  return (navigator.language || navigator.userLanguage);
+}
