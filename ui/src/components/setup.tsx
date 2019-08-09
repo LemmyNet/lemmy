@@ -5,6 +5,8 @@ import { RegisterForm, LoginResponse, UserOperation } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { msgOp } from '../utils';
 import { SiteForm } from './site-form';
+import { i18n } from '../i18next';
+import { T } from 'inferno-i18next';
 
 interface State {
   userForm: RegisterForm;
@@ -46,7 +48,7 @@ export class Setup extends Component<any, State> {
   }
 
   componentDidMount() {
-    document.title = "Setup - Lemmy";
+    document.title = `${i18n.t('setup')} - Lemmy`;
   }
 
   render() {
@@ -54,7 +56,7 @@ export class Setup extends Component<any, State> {
       <div class="container">
         <div class="row">
           <div class="col-12 offset-lg-3 col-lg-6">
-            <h3>Lemmy Instance Setup</h3>
+            <h3><T i18nKey="lemmy_instance_setup">#</T></h3>
             {!this.state.doneRegisteringUser ? this.registerUser() : <SiteForm />}
           </div>
         </div>
@@ -65,27 +67,27 @@ export class Setup extends Component<any, State> {
   registerUser() {
     return (
       <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
-        <h5>Set up Site Administrator</h5>
+        <h5><T i18nKey="setup_admin">#</T></h5>
         <div class="form-group row">
-          <label class="col-sm-2 col-form-label">Username</label>
+          <label class="col-sm-2 col-form-label"><T i18nKey="username">#</T></label>
           <div class="col-sm-10">
             <input type="text" class="form-control" value={this.state.userForm.username} onInput={linkEvent(this, this.handleRegisterUsernameChange)} required minLength={3} maxLength={20} pattern="[a-zA-Z0-9_]+" />
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-sm-2 col-form-label">Email</label>
+          <label class="col-sm-2 col-form-label"><T i18nKey="email">#</T></label>
           <div class="col-sm-10">
-            <input type="email" class="form-control" placeholder="Optional" value={this.state.userForm.email} onInput={linkEvent(this, this.handleRegisterEmailChange)} minLength={3} />
+            <input type="email" class="form-control" placeholder={i18n.t('optional')} value={this.state.userForm.email} onInput={linkEvent(this, this.handleRegisterEmailChange)} minLength={3} />
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-sm-2 col-form-label">Password</label>
+          <label class="col-sm-2 col-form-label"><T i18nKey="password">#</T></label>
           <div class="col-sm-10">
             <input type="password" value={this.state.userForm.password} onInput={linkEvent(this, this.handleRegisterPasswordChange)} class="form-control" required />
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-sm-2 col-form-label">Verify Password</label>
+          <label class="col-sm-2 col-form-label"><T i18nKey="verify_password">#</T></label>
           <div class="col-sm-10">
             <input type="password" value={this.state.userForm.password_verify} onInput={linkEvent(this, this.handleRegisterPasswordVerifyChange)} class="form-control" required />
           </div>
@@ -93,7 +95,7 @@ export class Setup extends Component<any, State> {
         <div class="form-group row">
           <div class="col-sm-10">
             <button type="submit" class="btn btn-secondary">{this.state.userLoading ? 
-            <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : 'Sign Up'}</button>
+            <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : i18n.t('sign_up')}</button>
 
           </div>
         </div>

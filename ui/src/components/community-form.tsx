@@ -3,8 +3,10 @@ import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { CommunityForm as CommunityFormI, UserOperation, Category, ListCategoriesResponse, CommunityResponse } from '../interfaces';
 import { WebSocketService } from '../services';
-import { msgOp } from '../utils';
+import { msgOp, capitalizeFirstLetter } from '../utils';
 import * as autosize from 'autosize';
+import { i18n } from '../i18next';
+import { T } from 'inferno-i18next';
 
 import { Community } from '../interfaces';
 
@@ -74,25 +76,25 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
     return (
       <form onSubmit={linkEvent(this, this.handleCreateCommunitySubmit)}>
         <div class="form-group row">
-          <label class="col-12 col-form-label">Name</label>
+          <label class="col-12 col-form-label"><T i18nKey="name">#</T></label>
           <div class="col-12">
-            <input type="text" class="form-control" value={this.state.communityForm.name} onInput={linkEvent(this, this.handleCommunityNameChange)} required minLength={3} maxLength={20} pattern="[a-z0-9_]+" title="lowercase, underscores, and no spaces."/>
+            <input type="text" class="form-control" value={this.state.communityForm.name} onInput={linkEvent(this, this.handleCommunityNameChange)} required minLength={3} maxLength={20} pattern="[a-z0-9_]+" title={i18n.t('community_reqs')}/>
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-12 col-form-label">Title</label>
+          <label class="col-12 col-form-label"><T i18nKey="title">#</T></label>
           <div class="col-12">
             <input type="text" value={this.state.communityForm.title} onInput={linkEvent(this, this.handleCommunityTitleChange)} class="form-control" required minLength={3} maxLength={100} />
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-12 col-form-label">Sidebar</label>
+          <label class="col-12 col-form-label"><T i18nKey="sidebar">#</T></label>
           <div class="col-12">
             <textarea value={this.state.communityForm.description} onInput={linkEvent(this, this.handleCommunityDescriptionChange)} class="form-control" rows={3} maxLength={10000} />
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-12 col-form-label">Category</label>
+          <label class="col-12 col-form-label"><T i18nKey="category">#</T></label>
           <div class="col-12">
             <select class="form-control" value={this.state.communityForm.category_id} onInput={linkEvent(this, this.handleCommunityCategoryChange)}>
               {this.state.categories.map(category =>
@@ -106,8 +108,8 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
             <button type="submit" class="btn btn-secondary mr-2">
               {this.state.loading ? 
               <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : 
-              this.props.community ? 'Save' : 'Create'}</button>
-              {this.props.community && <button type="button" class="btn btn-secondary" onClick={linkEvent(this, this.handleCancel)}>Cancel</button>}
+              this.props.community ? capitalizeFirstLetter(i18n.t('save')) : capitalizeFirstLetter(i18n.t('create'))}</button>
+              {this.props.community && <button type="button" class="btn btn-secondary" onClick={linkEvent(this, this.handleCancel)}><T i18nKey="cancel">#</T></button>}
           </div>
         </div>
       </form>

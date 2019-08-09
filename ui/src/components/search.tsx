@@ -6,6 +6,8 @@ import { WebSocketService } from '../services';
 import { msgOp, fetchLimit } from '../utils';
 import { PostListing } from './post-listing';
 import { CommentNodes } from './comment-nodes';
+import { i18n } from '../i18next';
+import { T } from 'inferno-i18next';
 
 interface SearchState {
   q: string,
@@ -87,7 +89,7 @@ export class Search extends Component<any, SearchState> {
         <button type="submit" class="btn btn-secondary mr-2">
           {this.state.loading ?
           <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> :
-          <span>Search</span>
+          <span><T i18nKey="search">#</T></span>
           }
         </button>
       </form>
@@ -98,19 +100,19 @@ export class Search extends Component<any, SearchState> {
     return (
       <div className="mb-2">
         <select value={this.state.type_} onChange={linkEvent(this, this.handleTypeChange)} class="custom-select custom-select-sm w-auto">
-          <option disabled>Type</option>
-          <option value={SearchType.Both}>Both</option>
-          <option value={SearchType.Comments}>Comments</option>
-          <option value={SearchType.Posts}>Posts</option>
+          <option disabled><T i18nKey="type">#</T></option>
+          <option value={SearchType.Both}><T i18nKey="both">#</T></option>
+          <option value={SearchType.Comments}><T i18nKey="comments">#</T></option>
+          <option value={SearchType.Posts}><T i18nKey="posts">#</T></option>
         </select>
         <select value={this.state.sort} onChange={linkEvent(this, this.handleSortChange)} class="custom-select custom-select-sm w-auto ml-2">
-          <option disabled>Sort Type</option>
-          <option value={SortType.New}>New</option>
-          <option value={SortType.TopDay}>Top Day</option>
-          <option value={SortType.TopWeek}>Week</option>
-          <option value={SortType.TopMonth}>Month</option>
-          <option value={SortType.TopYear}>Year</option>
-          <option value={SortType.TopAll}>All</option>
+          <option disabled><T i18nKey="sort_type">#</T></option>
+          <option value={SortType.New}><T i18nKey="new">#</T></option>
+          <option value={SortType.TopDay}><T i18nKey="top_day">#</T></option>
+          <option value={SortType.TopWeek}><T i18nKey="week">#</T></option>
+          <option value={SortType.TopMonth}><T i18nKey="month">#</T></option>
+          <option value={SortType.TopYear}><T i18nKey="year">#</T></option>
+          <option value={SortType.TopAll}><T i18nKey="all">#</T></option>
         </select>
       </div>
     )
@@ -171,9 +173,9 @@ export class Search extends Component<any, SearchState> {
     return (
       <div class="mt-2">
         {this.state.page > 1 && 
-          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}>Prev</button>
+          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}><T i18nKey="prev">#</T></button>
         }
-        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}>Next</button>
+        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}><T i18nKey="next">#</T></button>
       </div>
     );
   }
@@ -183,7 +185,7 @@ export class Search extends Component<any, SearchState> {
     return (
       <div>
         {res && res.op && res.posts.length == 0 && res.comments.length == 0 && 
-          <span>No Results</span>
+          <span><T i18nKey="no_results">#</T></span>
         }
       </div>
     )
@@ -250,7 +252,7 @@ export class Search extends Component<any, SearchState> {
       let res: SearchResponse = msg;
       this.state.searchResponse = res;
       this.state.loading = false;
-      document.title = `Search - ${this.state.q} - ${WebSocketService.Instance.site.name}`;
+      document.title = `${i18n.t('search')} - ${this.state.q} - ${WebSocketService.Instance.site.name}`;
       window.scrollTo(0,0);
       this.setState(this.state);
     }
