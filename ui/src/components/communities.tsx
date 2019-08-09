@@ -5,6 +5,7 @@ import { retryWhen, delay, take } from 'rxjs/operators';
 import { UserOperation, Community, ListCommunitiesResponse, CommunityResponse, FollowCommunityForm, ListCommunitiesForm, SortType } from '../interfaces';
 import { WebSocketService } from '../services';
 import { msgOp } from '../utils';
+import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 
 declare const Sortable: any;
@@ -27,12 +28,12 @@ export class Communities extends Component<any, CommunitiesState> {
     super(props, context);
     this.state = this.emptyState;
     this.subscription = WebSocketService.Instance.subject
-    .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
-    .subscribe(
-      (msg) => this.parseMessage(msg),
+      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
+      .subscribe(
+        (msg) => this.parseMessage(msg),
         (err) => console.error(err),
         () => console.log('complete')
-    );
+      );
 
     this.refetch();
 
@@ -47,7 +48,7 @@ export class Communities extends Component<any, CommunitiesState> {
   }
 
   componentDidMount() {
-    document.title = `Communities - ${WebSocketService.Instance.site.name}`;
+    document.title = `${i18n.t('communities')} - ${WebSocketService.Instance.site.name}`;
   }
 
   // Necessary for back button for some reason

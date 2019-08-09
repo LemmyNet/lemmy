@@ -32,7 +32,7 @@ export class CommentNodes extends Component<CommentNodesProps, CommentNodesState
             moderators={this.props.moderators}
             admins={this.props.admins}
             markable={this.props.markable}
-            />
+          />
         )}
       </div>
     )

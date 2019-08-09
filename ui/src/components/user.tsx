@@ -219,7 +219,7 @@ export class User extends Component<any, UserState> {
     return (
       <div>
         <h5>{user.name}</h5>
-        <div>Joined <MomentTime data={user} /></div>
+        <div>{i18n.t('joined')}<MomentTime data={user} /></div>
         <table class="table table-bordered table-sm mt-2">
           <tr>
             <td><T i18nKey="number_of_points" interpolation={{count: user.post_score}}>#</T></td>

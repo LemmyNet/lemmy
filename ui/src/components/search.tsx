@@ -54,7 +54,7 @@ export class Search extends Component<any, SearchState> {
   }
 
   componentDidMount() {
-    document.title = `Search - ${WebSocketService.Instance.site.name}`;
+    document.title = `${i18n.t('search')} - ${WebSocketService.Instance.site.name}`;
   }
 
   render() {
@@ -62,7 +62,7 @@ export class Search extends Component<any, SearchState> {
       <div class="container">
         <div class="row">
           <div class="col-12">
-            <h5>Search</h5>
+            <h5><T i18nKey="search">#</T></h5>
             {this.selects()}
             {this.searchForm()}
             {this.state.type_ == SearchType.Both &&
@@ -85,7 +85,7 @@ export class Search extends Component<any, SearchState> {
   searchForm() {
     return (
       <form class="form-inline" onSubmit={linkEvent(this, this.handleSearchSubmit)}>
-        <input type="text" class="form-control mr-2" value={this.state.q} placeholder="Search..." onInput={linkEvent(this, this.handleQChange)} required minLength={3} />
+        <input type="text" class="form-control mr-2" value={this.state.q} placeholder={`${i18n.t('search')}...`} onInput={linkEvent(this, this.handleQChange)} required minLength={3} />
         <button type="submit" class="btn btn-secondary mr-2">
           {this.state.loading ?
           <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> :

@@ -52,7 +52,7 @@ export class Login extends Component<any, State> {
   }
 
   componentDidMount() {
-    document.title = `Login - ${WebSocketService.Instance.site.name}`;
+    document.title = `${i18n.t('login')} - ${WebSocketService.Instance.site.name}`;
   }
 
   render() {

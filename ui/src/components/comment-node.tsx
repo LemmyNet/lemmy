@@ -195,10 +195,10 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             {/* TODO hold off on expires until later */}
             {/* <div class="form-group row"> */}
             {/*   <label class="col-form-label">Expires</label> */}
-            {/*   <input type="date" class="form-control mr-2" placeholder="Expires" value={this.state.banExpires} onInput={linkEvent(this, this.handleModBanExpiresChange)} /> */}
+            {/*   <input type="date" class="form-control mr-2" placeholder={i18n.t('expires')} value={this.state.banExpires} onInput={linkEvent(this, this.handleModBanExpiresChange)} /> */}
             {/* </div> */}
             <div class="form-group row">
-              <button type="submit" class="btn btn-secondary">Ban {this.props.node.comment.creator_name}</button>
+              <button type="submit" class="btn btn-secondary">{i18n.t('ban')} {this.props.node.comment.creator_name}</button>
             </div>
           </form>
         }
@@ -388,9 +388,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
 
   handleModBanBothSubmit(i: CommentNode) {
     event.preventDefault();
-
-    console.log(BanType[i.state.banType]);
-    console.log(i.props.node.comment.banned);
 
     if (i.state.banType == BanType.Community) {
       let form: BanFromCommunityForm = {
