@@ -167,7 +167,7 @@ export class Communities extends Component<any, CommunitiesState> {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(msg.error);
+      alert(i18n.t(msg.error));
       return;
     } else if (op == UserOperation.ListCommunities) {
       let res: ListCommunitiesResponse = msg;

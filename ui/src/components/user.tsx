@@ -333,7 +333,7 @@ export class User extends Component<any, UserState> {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(msg.error);
+      alert(i18n.t(msg.error));
       return;
     } else if (op == UserOperation.GetUserDetails) {
       let res: UserDetailsResponse = msg;

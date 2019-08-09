@@ -4,6 +4,7 @@ import { webSocket } from 'rxjs/webSocket';
 import { Subject } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { UserService } from './';
+import { i18n } from '../i18next';
 
 export class WebSocketService {
   private static _instance: WebSocketService;
@@ -192,7 +193,7 @@ export class WebSocketService {
   private setAuth(obj: any, throwErr: boolean = true) {
     obj.auth = UserService.Instance.auth;
     if (obj.auth == null && throwErr) {
-      alert("Not logged in.");
+      alert(i18n.t('not_logged_in'));
       throw "Not logged in";
     }
   }

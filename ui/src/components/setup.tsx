@@ -135,7 +135,7 @@ export class Setup extends Component<any, State> {
   parseMessage(msg: any) {
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(msg.error);
+      alert(i18n.t(msg.error));
       this.state.userLoading = false;
       this.setState(this.state);
       return;
