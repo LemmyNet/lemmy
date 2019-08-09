@@ -5,6 +5,7 @@ import { retryWhen, delay, take } from 'rxjs/operators';
 import { UserOperation, Community, ListCommunitiesResponse, CommunityResponse, FollowCommunityForm, ListCommunitiesForm, SortType } from '../interfaces';
 import { WebSocketService } from '../services';
 import { msgOp } from '../utils';
+import { T } from 'inferno-i18next';
 
 declare const Sortable: any;
 
@@ -64,17 +65,17 @@ export class Communities extends Component<any, CommunitiesState> {
         {this.state.loading ? 
         <h5 class=""><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> : 
         <div>
-          <h5>List of communities</h5>
+          <h5><T i18nKey="list_of_communities">#</T></h5>
           <div class="table-responsive">
             <table id="community_table" class="table table-sm table-hover">
               <thead class="pointer">
                 <tr>
-                  <th>Name</th>
-                  <th class="d-none d-lg-table-cell">Title</th>
-                  <th>Category</th>
-                  <th class="text-right">Subscribers</th>
-                  <th class="text-right d-none d-lg-table-cell">Posts</th>
-                  <th class="text-right d-none d-lg-table-cell">Comments</th>
+                  <th><T i18nKey="name">#</T></th>
+                  <th class="d-none d-lg-table-cell"><T i18nKey="title">#</T></th>
+                  <th><T i18nKey="category">#</T></th>
+                  <th class="text-right"><T i18nKey="subscribers">#</T></th>
+                  <th class="text-right d-none d-lg-table-cell"><T i18nKey="posts">#</T></th>
+                  <th class="text-right d-none d-lg-table-cell"><T i18nKey="comments">#</T></th>
                   <th></th>
                 </tr>
               </thead>
@@ -89,8 +90,8 @@ export class Communities extends Component<any, CommunitiesState> {
                     <td class="text-right d-none d-lg-table-cell">{community.number_of_comments}</td>
                     <td class="text-right">
                       {community.subscribed ? 
-                      <span class="pointer btn-link" onClick={linkEvent(community.id, this.handleUnsubscribe)}>Unsubscribe</span> : 
-                      <span class="pointer btn-link" onClick={linkEvent(community.id, this.handleSubscribe)}>Subscribe</span>
+                      <span class="pointer btn-link" onClick={linkEvent(community.id, this.handleUnsubscribe)}><T i18nKey="unsubscribe">#</T></span> : 
+                      <span class="pointer btn-link" onClick={linkEvent(community.id, this.handleSubscribe)}><T i18nKey="subscribe">#</T></span>
                       }
                     </td>
                   </tr>
@@ -109,9 +110,9 @@ export class Communities extends Component<any, CommunitiesState> {
     return (
       <div class="mt-2">
         {this.state.page > 1 && 
-          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}>Prev</button>
+          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}><T i18nKey="prev">#</T></button>
         }
-        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}>Next</button>
+        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}><T i18nKey="next">#</T></button>
       </div>
     );
   }

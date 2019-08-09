@@ -2,6 +2,7 @@ import { Component } from 'inferno';
 import { Link } from 'inferno-router';
 import { repoUrl } from '../utils';
 import { version } from '../version';
+import { T } from 'inferno-i18next';
 
 export class Footer extends Component<any, any> {
 
@@ -19,16 +20,16 @@ export class Footer extends Component<any, any> {
               <span class="navbar-text">{version}</span>
             </li>
             <li class="nav-item">
-              <Link class="nav-link" to="/modlog">Modlog</Link>
+              <Link class="nav-link" to="/modlog"><T i18nKey="modlog">#</T></Link>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href={`${repoUrl}/blob/master/docs/api.md`}>API</a>
+              <a class="nav-link" href={`${repoUrl}/blob/master/docs/api.md`}><T i18nKey="api">#</T></a>
             </li>
             <li class="nav-item">
-              <Link class="nav-link" to="/sponsors">Sponsors</Link>
+              <Link class="nav-link" to="/sponsors"><T i18nKey="sponsors">#</T></Link>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href={repoUrl}>Code</a>
+              <a class="nav-link" href={repoUrl}><T i18nKey="code">#</T></a>
             </li>
           </ul>
         </div>
