@@ -76,7 +76,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             <h5 className="mb-0 d-inline">
               {post.url ? 
               <a className="text-white" href={post.url} target="_blank" title={post.url}>{post.name}</a> : 
-              <Link className="text-white" to={`/post/${post.id}`} title="Comments">{post.name}</Link>
+              <Link className="text-white" to={`/post/${post.id}`} title={i18n.t('comments')}>{post.name}</Link>
               }
             </h5>
             {post.url && 
@@ -176,7 +176,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           }
           {this.state.showRemoveDialog && 
             <form class="form-inline" onSubmit={linkEvent(this, this.handleModRemoveSubmit)}>
-              <input type="text" class="form-control mr-2" placeholder="Reason" value={this.state.removeReason} onInput={linkEvent(this, this.handleModRemoveReasonChange)} />
+              <input type="text" class="form-control mr-2" placeholder={i18n.t('reason')} value={this.state.removeReason} onInput={linkEvent(this, this.handleModRemoveReasonChange)} />
               <button type="submit" class="btn btn-secondary"><T i18nKey="remove_post">#</T></button>
             </form>
           }
