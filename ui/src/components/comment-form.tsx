@@ -88,7 +88,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     if (i.props.node) {
       i.props.onReplyCancel();
     }
-    
+
     autosize.update(document.querySelector('textarea'));
   }
 

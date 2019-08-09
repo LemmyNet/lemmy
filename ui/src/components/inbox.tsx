@@ -90,7 +90,7 @@ export class Inbox extends Component<any, InboxState> {
         <select value={this.state.sort} onChange={linkEvent(this, this.handleSortChange)} class="custom-select custom-select-sm w-auto ml-2">
           <option disabled><T i18nKey="sort_type">#</T></option>
           <option value={SortType.New}><T i18nKey="new">#</T></option>
-          <option value={SortType.TopDay}><T i18nKey="top_day">top_day</T></option>
+          <option value={SortType.TopDay}><T i18nKey="top_day">#</T></option>
           <option value={SortType.TopWeek}><T i18nKey="week">#</T></option>
           <option value={SortType.TopMonth}><T i18nKey="month">#</T></option>
           <option value={SortType.TopYear}><T i18nKey="year">#</T></option>

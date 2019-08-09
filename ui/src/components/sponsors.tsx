@@ -65,7 +65,7 @@ export class Sponsors extends Component<any, any> {
   bitcoin() {
     return (
       <div>
-      <h5>Crypto</h5>
+        <h5><T i18nKey="crypto">#</T></h5>
       <div class="table-responsive">
         <table class="table table-hover text-center">
           <tbody>

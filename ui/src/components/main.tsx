@@ -7,6 +7,7 @@ import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
 import { SiteForm } from './site-form';
 import { msgOp, repoUrl, mdToHtml, fetchLimit, routeSortTypeToEnum, routeListingTypeToEnum } from '../utils';
+import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 
 interface MainState {
@@ -286,7 +287,7 @@ export class Main extends Component<any, MainState> {
               onChange={linkEvent(this, this.handleTypeChange)}
               disabled={UserService.Instance.user == undefined}
             />
-            Subscribed
+            {i18n.t('subscribed')}
           </label>
           <label className={`pointer btn btn-sm btn-secondary ${this.state.type_ == ListingType.All && 'active'}`}>
             <input type="radio" 
@@ -294,19 +295,19 @@ export class Main extends Component<any, MainState> {
               checked={this.state.type_ == ListingType.All}
               onChange={linkEvent(this, this.handleTypeChange)}
             /> 
-            All
+            {i18n.t('all')}
           </label>
         </div>
         <select value={this.state.sort} onChange={linkEvent(this, this.handleSortChange)} class="ml-2 custom-select custom-select-sm w-auto">
-          <option disabled>Sort Type</option>
-          <option value={SortType.Hot}>Hot</option>
-          <option value={SortType.New}>New</option>
+          <option disabled><T i18nKey="sort_type">#</T></option>
+          <option value={SortType.Hot}><T i18nKey="hot">#</T></option>
+          <option value={SortType.New}><T i18nKey="new">#</T></option>
           <option disabled>──────────</option>
-          <option value={SortType.TopDay}>Top Day</option>
-          <option value={SortType.TopWeek}>Week</option>
-          <option value={SortType.TopMonth}>Month</option>
-          <option value={SortType.TopYear}>Year</option>
-          <option value={SortType.TopAll}>All</option>
+          <option value={SortType.TopDay}><T i18nKey="top_day">#</T></option>
+          <option value={SortType.TopWeek}><T i18nKey="week">#</T></option>
+          <option value={SortType.TopMonth}><T i18nKey="month">#</T></option>
+          <option value={SortType.TopYear}><T i18nKey="year">#</T></option>
+          <option value={SortType.TopAll}><T i18nKey="all">#</T></option>
         </select>
       </div>
     )
@@ -316,9 +317,9 @@ export class Main extends Component<any, MainState> {
     return (
       <div class="mt-2">
         {this.state.page > 1 && 
-          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}>Prev</button>
+          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}><T i18nKey="prev">#</T></button>
         }
-        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}>Next</button>
+        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}><T i18nKey="next">#</T></button>
       </div>
     );
   }

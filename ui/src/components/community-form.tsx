@@ -171,8 +171,7 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
       this.state.loading = false;
       this.props.onCreate(res.community);
     } 
-
-    // TODO is this necessary?
+    // TODO is ths necessary
     else if (op == UserOperation.EditCommunity) {
       let res: CommunityResponse = msg;
       this.state.loading = false;
