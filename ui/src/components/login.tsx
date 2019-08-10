@@ -4,6 +4,8 @@ import { retryWhen, delay, take } from 'rxjs/operators';
 import { LoginForm, RegisterForm, LoginResponse, UserOperation } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { msgOp } from '../utils';
+import { i18n } from '../i18next';
+import { T } from 'inferno-i18next';
 
 interface State {
   loginForm: LoginForm;
@@ -50,7 +52,7 @@ export class Login extends Component<any, State> {
   }
 
   componentDidMount() {
-    document.title = `Login - ${WebSocketService.Instance.site.name}`;
+    document.title = `${i18n.t('login')} - ${WebSocketService.Instance.site.name}`;
   }
 
   render() {
@@ -74,13 +76,13 @@ export class Login extends Component<any, State> {
         <form onSubmit={linkEvent(this, this.handleLoginSubmit)}>
           <h5>Login</h5>
           <div class="form-group row">
-            <label class="col-sm-2 col-form-label">Email or Username</label>
+            <label class="col-sm-2 col-form-label"><T i18nKey="email_or_username">#</T></label>
             <div class="col-sm-10">
               <input type="text" class="form-control" value={this.state.loginForm.username_or_email} onInput={linkEvent(this, this.handleLoginUsernameChange)} required minLength={3} />
             </div>
           </div>
           <div class="form-group row">
-            <label class="col-sm-2 col-form-label">Password</label>
+            <label class="col-sm-2 col-form-label"><T i18nKey="password">#</T></label>
             <div class="col-sm-10">
               <input type="password" value={this.state.loginForm.password} onInput={linkEvent(this, this.handleLoginPasswordChange)} class="form-control" required />
             </div>
@@ -88,38 +90,37 @@ export class Login extends Component<any, State> {
           <div class="form-group row">
             <div class="col-sm-10">
               <button type="submit" class="btn btn-secondary">{this.state.loginLoading ? 
-              <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : 'Login'}</button>
+              <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : i18n.t('login')}</button>
             </div>
           </div>
         </form>
-        {/* Forgot your password or deleted your account? Reset your password. TODO */}
       </div>
     );
   }
   registerForm() {
     return (
       <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
-        <h5>Sign Up</h5>
+        <h5><T i18nKey="sign_up">#</T></h5>
         <div class="form-group row">
-          <label class="col-sm-2 col-form-label">Username</label>
+          <label class="col-sm-2 col-form-label"><T i18nKey="username">#</T></label>
           <div class="col-sm-10">
             <input type="text" class="form-control" value={this.state.registerForm.username} onInput={linkEvent(this, this.handleRegisterUsernameChange)} required minLength={3} maxLength={20} pattern="[a-zA-Z0-9_]+" />
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-sm-2 col-form-label">Email</label>
+          <label class="col-sm-2 col-form-label"><T i18nKey="email">#</T></label>
           <div class="col-sm-10">
-            <input type="email" class="form-control" placeholder="Optional" value={this.state.registerForm.email} onInput={linkEvent(this, this.handleRegisterEmailChange)} minLength={3} />
+            <input type="email" class="form-control" placeholder={i18n.t('optional')} value={this.state.registerForm.email} onInput={linkEvent(this, this.handleRegisterEmailChange)} minLength={3} />
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-sm-2 col-form-label">Password</label>
+          <label class="col-sm-2 col-form-label"><T i18nKey="password">#</T></label>
           <div class="col-sm-10">
             <input type="password" value={this.state.registerForm.password} onInput={linkEvent(this, this.handleRegisterPasswordChange)} class="form-control" required />
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-sm-2 col-form-label">Verify Password</label>
+          <label class="col-sm-2 col-form-label"><T i18nKey="verify_password">#</T></label>
           <div class="col-sm-10">
             <input type="password" value={this.state.registerForm.password_verify} onInput={linkEvent(this, this.handleRegisterPasswordVerifyChange)} class="form-control" required />
           </div>
@@ -127,7 +128,7 @@ export class Login extends Component<any, State> {
         <div class="form-group row">
           <div class="col-sm-10">
             <button type="submit" class="btn btn-secondary">{this.state.registerLoading ? 
-            <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : 'Sign Up'}</button>
+            <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : i18n.t('sign_up')}</button>
 
           </div>
         </div>
@@ -183,7 +184,7 @@ export class Login extends Component<any, State> {
   parseMessage(msg: any) {
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(msg.error);
+      alert(i18n.t(msg.error));
       this.state = this.emptyState;
       this.setState(this.state);
       return;

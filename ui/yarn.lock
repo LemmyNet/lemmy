@@ -2,7 +2,7 @@
 # yarn lockfile v1
 
 
-"@babel/runtime@^7.1.2":
+"@babel/runtime@^7.1.2", "@babel/runtime@^7.3.1":
   version "7.5.5"
   resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.5.5.tgz#74fba56d35efbeca444091c7850ccd494fd2f132"
   integrity sha512-28QvEGyQyNkB0/m2B4FU7IEZGK2NUrcMtT6BZEFALTguLk+AUT6ofsHtPk5QyjAdUkpMJ+/Em+quwz4HOt30AQ==
@@ -15,6 +15,11 @@
   integrity sha512-gpfmXswGISLSWNOOdF2PDK96SfkaZdNtNixWJbYH10xn3Hqdt4VyS1GmoutuwOshWyCLuJw2jGhF0zkK7PUhrg==
   dependencies:
     "@types/jquery" "*"
+
+"@types/i18next@^12.1.0":
+  version "12.1.0"
+  resolved "https://registry.yarnpkg.com/@types/i18next/-/i18next-12.1.0.tgz#7c3fd3dbe03f9531147033773bbd0ca4f474a180"
+  integrity sha512-qLyqTkp3ZKHsSoX8CNVYcTyTkxlm0aRCUpaUVetgkSlSpiNCdWryOgaYwgbO04tJIfLgBXPcy0tJ3Nl/RagllA==
 
 "@types/jquery@*":
   version "3.3.30"
@@ -1169,6 +1174,13 @@ hoist-non-inferno-statics@^1.1.3:
   resolved "https://registry.yarnpkg.com/hoist-non-inferno-statics/-/hoist-non-inferno-statics-1.1.3.tgz#7d870f4160bfb6a59269b45c343c027f0e30ab35"
   integrity sha1-fYcPQWC/tqWSabRcNDwCfw4wqzU=
 
+html-parse-stringify2@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/html-parse-stringify2/-/html-parse-stringify2-2.0.1.tgz#dc5670b7292ca158b7bc916c9a6735ac8872834a"
+  integrity sha1-3FZwtyksoVi3vJFsmmc1rIhyg0o=
+  dependencies:
+    void-elements "^2.0.1"
+
 http-errors@1.7.2:
   version "1.7.2"
   resolved "https://registry.yarnpkg.com/http-errors/-/http-errors-1.7.2.tgz#4f5029cf13239f31036e5b2e55292bcfbcc85c8f"
@@ -1200,6 +1212,13 @@ http-signature@~1.2.0:
     jsprim "^1.2.2"
     sshpk "^1.7.0"
 
+i18next@^17.0.9:
+  version "17.0.9"
+  resolved "https://registry.yarnpkg.com/i18next/-/i18next-17.0.9.tgz#5f835e91a34fa5e7da1e5ae4c4586c81d7c4b17f"
+  integrity sha512-fCYpm3TDzcfPIPN3hmgvC/QJx17QHI+Ul88qbixwIrifN9nBmk2c2oVxVYSDxnV5FgBXZJJ0O4yBYiZ8v1bX2A==
+  dependencies:
+    "@babel/runtime" "^7.3.1"
+
 iconv-lite@0.4.24, iconv-lite@^0.4.17, iconv-lite@^0.4.4:
   version "0.4.24"
   resolved "https://registry.yarnpkg.com/iconv-lite/-/iconv-lite-0.4.24.tgz#2022b4b25fbddc21d2f524974a474aafe733908b"
@@ -1219,6 +1238,31 @@ ignore-walk@^3.0.1:
   dependencies:
     minimatch "^3.0.4"
 
+inferno-clone-vnode@^7.1.12:
+  version "7.2.1"
+  resolved "https://registry.yarnpkg.com/inferno-clone-vnode/-/inferno-clone-vnode-7.2.1.tgz#ae978e6d1cfa07a1616a7b4ecf5ca2f4fe070d5d"
+  integrity sha512-52ksls/sKFfLLXQW8v7My5QqX2i/CedlQM2JzCtkKMo18FovDt52jHNhfmWAbY9svcyxEzPjZMofHL/LFd7aIA==
+  dependencies:
+    inferno "7.2.1"
+
+inferno-create-element@^7.1.12:
+  version "7.2.1"
+  resolved "https://registry.yarnpkg.com/inferno-create-element/-/inferno-create-element-7.2.1.tgz#6327b7a2195e0b08fab43df702889504845271c0"
+  integrity sha512-FGnIre6jRfr34bUgPMYWzj5/WA3htX3TQUYGhTVtiaREVxTj952eGcAMvOp4W4V6n2iK1Zl/qcTjrUdD2G3WiQ==
+  dependencies:
+    inferno "7.2.1"
+
+inferno-i18next@nimbusec-oss/inferno-i18next:
+  version "7.1.12"
+  resolved "https://codeload.github.com/nimbusec-oss/inferno-i18next/tar.gz/f8c1403e60be70141c558e36f12f22c106cb7463"
+  dependencies:
+    html-parse-stringify2 "^2.0.1"
+    inferno "^7.1.12"
+    inferno-clone-vnode "^7.1.12"
+    inferno-create-element "^7.1.12"
+    inferno-shared "^7.1.12"
+    inferno-vnode-flags "^7.1.12"
+
 inferno-router@^7.0.1:
   version "7.2.1"
   resolved "https://registry.yarnpkg.com/inferno-router/-/inferno-router-7.2.1.tgz#ebea346a31422ed141df7177fb0b5aeb06cf8fe3"
@@ -1229,17 +1273,17 @@ inferno-router@^7.0.1:
     inferno "7.2.1"
     path-to-regexp-es6 "1.7.0"
 
-inferno-shared@7.2.1:
+inferno-shared@7.2.1, inferno-shared@^7.1.12:
   version "7.2.1"
   resolved "https://registry.yarnpkg.com/inferno-shared/-/inferno-shared-7.2.1.tgz#7512d626e252a4e0e3ea28f0396a815651226ed6"
   integrity sha512-QSzHVcjAy38bQWmk1nrfNsrjdrWtxleojYYg00RyuF4K6s4KCPMEch5MD7C4fCydzeBMGcZUliSoUZXpm3DVwQ==
 
-inferno-vnode-flags@7.2.1:
+inferno-vnode-flags@7.2.1, inferno-vnode-flags@^7.1.12:
   version "7.2.1"
   resolved "https://registry.yarnpkg.com/inferno-vnode-flags/-/inferno-vnode-flags-7.2.1.tgz#833c39a16116dce86430c0bb7fedbd054ee32790"
   integrity sha512-xYK45KNhlsKZtW60b9ahF9eICK45NtUJDGZxwxBegW98/hdL7/TyUP0gARKd4vmrwxdgwbupU6VAXPVbv7Wwgw==
 
-inferno@7.2.1, inferno@^7.0.1:
+inferno@7.2.1, inferno@^7.0.1, inferno@^7.1.12:
   version "7.2.1"
   resolved "https://registry.yarnpkg.com/inferno/-/inferno-7.2.1.tgz#d82c14a237a004335ed03dd44395a4e0fe0d3729"
   integrity sha512-+HGUvismTfy1MDRkfOxbD8nriu+lmajo/Z1JQckuisJPMJpspzxBaR9sxaWpVytjexi0Pcrh194COso4t3gAIQ==
@@ -2850,6 +2894,11 @@ verror@1.10.0:
     assert-plus "^1.0.0"
     core-util-is "1.0.2"
     extsprintf "^1.2.0"
+
+void-elements@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/void-elements/-/void-elements-2.0.1.tgz#c066afb582bb1cb4128d60ea92392e94d5e9dbec"
+  integrity sha1-wGavtYK7HLQSjWDqkjkulNXp2+w=
 
 watch@^1.0.1:
   version "1.0.2"

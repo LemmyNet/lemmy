@@ -8,6 +8,8 @@ import { msgOp, fetchLimit, routeSortTypeToEnum, capitalizeFirstLetter } from '.
 import { PostListing } from './post-listing';
 import { CommentNodes } from './comment-nodes';
 import { MomentTime } from './moment-time';
+import { i18n } from '../i18next';
+import { T } from 'inferno-i18next';
 
 enum View {
   Overview, Comments, Posts, Saved
@@ -142,20 +144,20 @@ export class User extends Component<any, UserState> {
     return (
       <div className="mb-2">
         <select value={this.state.view} onChange={linkEvent(this, this.handleViewChange)} class="custom-select custom-select-sm w-auto">
-          <option disabled>View</option>
-          <option value={View.Overview}>Overview</option>
-          <option value={View.Comments}>Comments</option>
-          <option value={View.Posts}>Posts</option>
-          <option value={View.Saved}>Saved</option>
+          <option disabled><T i18nKey="view">#</T></option>
+          <option value={View.Overview}><T i18nKey="overview">#</T></option>
+          <option value={View.Comments}><T i18nKey="comments">#</T></option>
+          <option value={View.Posts}><T i18nKey="posts">#</T></option>
+          <option value={View.Saved}><T i18nKey="saved">#</T></option>
         </select>
         <select value={this.state.sort} onChange={linkEvent(this, this.handleSortChange)} class="custom-select custom-select-sm w-auto ml-2">
-          <option disabled>Sort Type</option>
-          <option value={SortType.New}>New</option>
-          <option value={SortType.TopDay}>Top Day</option>
-          <option value={SortType.TopWeek}>Week</option>
-          <option value={SortType.TopMonth}>Month</option>
-          <option value={SortType.TopYear}>Year</option>
-          <option value={SortType.TopAll}>All</option>
+          <option disabled><T i18nKey="sort_type">#</T></option>
+          <option value={SortType.New}><T i18nKey="new">#</T></option>
+          <option value={SortType.TopDay}><T i18nKey="top_day">#</T></option>
+          <option value={SortType.TopWeek}><T i18nKey="week">#</T></option>
+          <option value={SortType.TopMonth}><T i18nKey="month">#</T></option>
+          <option value={SortType.TopYear}><T i18nKey="year">#</T></option>
+          <option value={SortType.TopAll}><T i18nKey="all">#</T></option>
         </select>
       </div>
     )
@@ -217,15 +219,15 @@ export class User extends Component<any, UserState> {
     return (
       <div>
         <h5>{user.name}</h5>
-        <div>Joined <MomentTime data={user} /></div>
+        <div>{i18n.t('joined')}<MomentTime data={user} /></div>
         <table class="table table-bordered table-sm mt-2">
           <tr>
-            <td>{user.post_score} points</td>
-            <td>{user.number_of_posts} posts</td>
+            <td><T i18nKey="number_of_points" interpolation={{count: user.post_score}}>#</T></td>
+            <td><T i18nKey="number_of_posts" interpolation={{count: user.number_of_posts}}>#</T></td>
           </tr>
           <tr>
-            <td>{user.comment_score} points</td>
-            <td>{user.number_of_comments} comments</td>
+            <td><T i18nKey="number_of_points" interpolation={{count: user.comment_score}}>#</T></td>
+            <td><T i18nKey="number_of_comments" interpolation={{count: user.number_of_comments}}>#</T></td>
           </tr>
         </table>
         <hr />
@@ -238,7 +240,7 @@ export class User extends Component<any, UserState> {
       <div>
         {this.state.moderates.length > 0 &&
           <div>
-            <h5>Moderates</h5>
+            <h5><T i18nKey="moderates">#</T></h5>
             <ul class="list-unstyled"> 
               {this.state.moderates.map(community =>
                 <li><Link to={`/c/${community.community_name}`}>{community.community_name}</Link></li>
@@ -256,7 +258,7 @@ export class User extends Component<any, UserState> {
         {this.state.follows.length > 0 &&
           <div>
             <hr />
-            <h5>Subscribed</h5>
+            <h5><T i18nKey="subscribed">#</T></h5>
             <ul class="list-unstyled"> 
               {this.state.follows.map(community =>
                 <li><Link to={`/c/${community.community_name}`}>{community.community_name}</Link></li>
@@ -272,9 +274,9 @@ export class User extends Component<any, UserState> {
     return (
       <div class="mt-2">
         {this.state.page > 1 && 
-          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}>Prev</button>
+          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}><T i18nKey="prev">#</T></button>
         }
-        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}>Next</button>
+        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}><T i18nKey="next">#</T></button>
       </div>
     );
   }
@@ -331,7 +333,7 @@ export class User extends Component<any, UserState> {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(msg.error);
+      alert(i18n.t(msg.error));
       return;
     } else if (op == UserOperation.GetUserDetails) {
       let res: UserDetailsResponse = msg;
@@ -359,7 +361,7 @@ export class User extends Component<any, UserState> {
       this.setState(this.state);
     } else if (op == UserOperation.CreateComment) {
       // let res: CommentResponse = msg;
-      alert('Reply sent');
+      alert(i18n.t('reply_sent'));
       // this.state.comments.unshift(res.comment); // TODO do this right
       // this.setState(this.state);
     } else if (op == UserOperation.SaveComment) {

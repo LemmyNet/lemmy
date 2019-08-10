@@ -9,6 +9,8 @@ import { Sidebar } from './sidebar';
 import { CommentForm } from './comment-form';
 import { CommentNodes } from './comment-nodes';
 import * as autosize from 'autosize';
+import { i18n } from '../i18next';
+import { T } from 'inferno-i18next';
 
 interface PostState {
   post: PostI;
@@ -130,17 +132,17 @@ export class Post extends Component<any, PostState> {
   sortRadios() {
     return (
       <div class="btn-group btn-group-toggle mb-3">
-        <label className={`btn btn-sm btn-secondary pointer ${this.state.commentSort === CommentSortType.Hot && 'active'}`}>Hot
+        <label className={`btn btn-sm btn-secondary pointer ${this.state.commentSort === CommentSortType.Hot && 'active'}`}>{i18n.t('hot')}
           <input type="radio" value={CommentSortType.Hot}
           checked={this.state.commentSort === CommentSortType.Hot} 
           onChange={linkEvent(this, this.handleCommentSortChange)}  />
         </label>
-        <label className={`btn btn-sm btn-secondary pointer ${this.state.commentSort === CommentSortType.Top && 'active'}`}>Top
+        <label className={`btn btn-sm btn-secondary pointer ${this.state.commentSort === CommentSortType.Top && 'active'}`}>{i18n.t('top')}
           <input type="radio" value={CommentSortType.Top}
           checked={this.state.commentSort === CommentSortType.Top} 
           onChange={linkEvent(this, this.handleCommentSortChange)}  />
         </label>
-        <label className={`btn btn-sm btn-secondary pointer ${this.state.commentSort === CommentSortType.New && 'active'}`}>New
+        <label className={`btn btn-sm btn-secondary pointer ${this.state.commentSort === CommentSortType.New && 'active'}`}>{i18n.t('new')}
           <input type="radio" value={CommentSortType.New}
           checked={this.state.commentSort === CommentSortType.New} 
           onChange={linkEvent(this, this.handleCommentSortChange)}  />
@@ -152,7 +154,7 @@ export class Post extends Component<any, PostState> {
   newComments() {
     return (
       <div class="container-fluid sticky-top new-comments">
-        <h5>Chat</h5>
+        <h5><T i18nKey="chat">#</T></h5>
         <CommentForm postId={this.state.post.id} disabled={this.state.post.locked} />
         {this.state.comments.map(comment => 
           <CommentNodes 
@@ -242,7 +244,7 @@ export class Post extends Component<any, PostState> {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(msg.error);
+      alert(i18n.t(msg.error));
       return;
     } else if (op == UserOperation.GetPost) {
       let res: GetPostResponse = msg;

@@ -1,6 +1,8 @@
 import { Component } from 'inferno';
 import { PostForm } from './post-form';
 import { WebSocketService } from '../services';
+import { i18n } from '../i18next';
+import { T } from 'inferno-i18next';
 
 export class CreatePost extends Component<any, any> {
 
@@ -10,7 +12,7 @@ export class CreatePost extends Component<any, any> {
   }
 
   componentDidMount() {
-    document.title = `Create Post - ${WebSocketService.Instance.site.name}`;
+    document.title = `${i18n.t('create_post')} - ${WebSocketService.Instance.site.name}`;
   }
 
   render() {
@@ -18,7 +20,7 @@ export class CreatePost extends Component<any, any> {
       <div class="container">
         <div class="row">
           <div class="col-12 col-lg-6 offset-lg-3 mb-4">
-            <h5>Create a Post</h5>
+            <h5><T i18nKey="create_post">#</T></h5>
             <PostForm onCreate={this.handlePostCreate} prevCommunityName={this.prevCommunityName} />
           </div>
         </div>

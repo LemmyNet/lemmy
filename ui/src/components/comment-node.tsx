@@ -7,6 +7,8 @@ import * as moment from 'moment';
 import { MomentTime } from './moment-time';
 import { CommentForm } from './comment-form';
 import { CommentNodes } from './comment-nodes';
+import { i18n } from '../i18next';
+import { T } from 'inferno-i18next';
 
 enum BanType {Community, Site};
 
@@ -74,10 +76,10 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               <Link className="text-info" to={`/u/${node.comment.creator_name}`}>{node.comment.creator_name}</Link>
             </li>
             {this.isMod && 
-              <li className="list-inline-item badge badge-light">mod</li>
+              <li className="list-inline-item badge badge-light"><T i18nKey="mod">#</T></li>
             }
             {this.isAdmin && 
-              <li className="list-inline-item badge badge-light">admin</li>
+              <li className="list-inline-item badge badge-light"><T i18nKey="admin">#</T></li>
             }
             <li className="list-inline-item">
               <span>(
@@ -97,24 +99,24 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
           {this.state.showEdit && <CommentForm node={node} edit onReplyCancel={this.handleReplyCancel} disabled={this.props.locked} />}
           {!this.state.showEdit && !this.state.collapsed &&
             <div>
-              <div className="md-div" dangerouslySetInnerHTML={mdToHtml(node.comment.removed ? '*removed*' : node.comment.deleted ? '*deleted*' : node.comment.content)} />
+              <div className="md-div" dangerouslySetInnerHTML={mdToHtml(node.comment.removed ? `*${i18n.t('removed')}*` : node.comment.deleted ? `*${i18n.t('deleted')}*` : node.comment.content)} />
               <ul class="list-inline mb-1 text-muted small font-weight-bold">
                 {UserService.Instance.user && !this.props.viewOnly && 
                   <>
                     <li className="list-inline-item">
-                      <span class="pointer" onClick={linkEvent(this, this.handleReplyClick)}>reply</span>
+                      <span class="pointer" onClick={linkEvent(this, this.handleReplyClick)}><T i18nKey="reply">#</T></span>
                     </li>
                     <li className="list-inline-item mr-2">
-                      <span class="pointer" onClick={linkEvent(this, this.handleSaveCommentClick)}>{node.comment.saved ? 'unsave' : 'save'}</span>
+                      <span class="pointer" onClick={linkEvent(this, this.handleSaveCommentClick)}>{node.comment.saved ? i18n.t('unsave') : i18n.t('save')}</span>
                     </li>
                     {this.myComment && 
                       <>
                         <li className="list-inline-item">
-                          <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>edit</span>
+                          <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}><T i18nKey="edit">#</T></span>
                         </li>
                         <li className="list-inline-item">
                           <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>
-                            {!this.props.node.comment.deleted ? 'delete' : 'restore'}
+                            {!this.props.node.comment.deleted ? i18n.t('delete') : i18n.t('restore')}
                           </span>
                         </li>
                       </>
@@ -123,8 +125,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                     {this.canMod && 
                       <li className="list-inline-item">
                         {!this.props.node.comment.removed ? 
-                        <span class="pointer" onClick={linkEvent(this, this.handleModRemoveShow)}>remove</span> :
-                        <span class="pointer" onClick={linkEvent(this, this.handleModRemoveSubmit)}>restore</span>
+                        <span class="pointer" onClick={linkEvent(this, this.handleModRemoveShow)}><T i18nKey="remove">#</T></span> :
+                        <span class="pointer" onClick={linkEvent(this, this.handleModRemoveSubmit)}><T i18nKey="restore">#</T></span>
                         }
                       </li>
                     }
@@ -134,14 +136,14 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                         {!this.isMod && 
                           <li className="list-inline-item">
                             {!this.props.node.comment.banned_from_community ? 
-                            <span class="pointer" onClick={linkEvent(this, this.handleModBanFromCommunityShow)}>ban</span> :
-                            <span class="pointer" onClick={linkEvent(this, this.handleModBanFromCommunitySubmit)}>unban</span>
+                            <span class="pointer" onClick={linkEvent(this, this.handleModBanFromCommunityShow)}><T i18nKey="ban">#</T></span> :
+                            <span class="pointer" onClick={linkEvent(this, this.handleModBanFromCommunitySubmit)}><T i18nKey="unban">#</T></span>
                             }
                           </li>
                         }
                         {!this.props.node.comment.banned_from_community &&
                           <li className="list-inline-item">
-                            <span class="pointer" onClick={linkEvent(this, this.handleAddModToCommunity)}>{`${this.isMod ? 'remove' : 'appoint'} as mod`}</span>
+                            <span class="pointer" onClick={linkEvent(this, this.handleAddModToCommunity)}>{this.isMod ? i18n.t('remove_as_mod') : i18n.t('appoint_as_mod')}</span>
                           </li>
                         }
                       </>
@@ -152,14 +154,14 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                         {!this.isAdmin && 
                           <li className="list-inline-item">
                             {!this.props.node.comment.banned ? 
-                            <span class="pointer" onClick={linkEvent(this, this.handleModBanShow)}>ban from site</span> :
-                            <span class="pointer" onClick={linkEvent(this, this.handleModBanSubmit)}>unban from site</span>
+                            <span class="pointer" onClick={linkEvent(this, this.handleModBanShow)}><T i18nKey="ban_from_site">#</T></span> :
+                            <span class="pointer" onClick={linkEvent(this, this.handleModBanSubmit)}><T i18nKey="unban_from_site">#</T></span>
                             }
                           </li>
                         }
                         {!this.props.node.comment.banned &&
                           <li className="list-inline-item">
-                            <span class="pointer" onClick={linkEvent(this, this.handleAddAdmin)}>{`${this.isAdmin ? 'remove' : 'appoint'} as admin`}</span>
+                            <span class="pointer" onClick={linkEvent(this, this.handleAddAdmin)}>{this.isAdmin ? i18n.t('remove_as_admin') : i18n.t('appoint_as_admin')}</span>
                           </li>
                         }
                       </>
@@ -167,11 +169,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                   </>
                 }
                 <li className="list-inline-item">
-                  <Link className="text-muted" to={`/post/${node.comment.post_id}/comment/${node.comment.id}`}>link</Link>
+                  <Link className="text-muted" to={`/post/${node.comment.post_id}/comment/${node.comment.id}`}><T i18nKey="link">#</T></Link>
                 </li>
                 {this.props.markable && 
                   <li className="list-inline-item">
-                    <span class="pointer" onClick={linkEvent(this, this.handleMarkRead)}>{`mark as ${node.comment.read ? 'unread' : 'read'}`}</span>
+                    <span class="pointer" onClick={linkEvent(this, this.handleMarkRead)}>{node.comment.read ? i18n.t('mark_as_unread') : i18n.t('mark_as_read')}</span>
                   </li>
                 }
               </ul>
@@ -180,23 +182,23 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         </div>
         {this.state.showRemoveDialog && 
           <form class="form-inline" onSubmit={linkEvent(this, this.handleModRemoveSubmit)}>
-            <input type="text" class="form-control mr-2" placeholder="Reason" value={this.state.removeReason} onInput={linkEvent(this, this.handleModRemoveReasonChange)} />
-            <button type="submit" class="btn btn-secondary">Remove Comment</button>
+            <input type="text" class="form-control mr-2" placeholder={i18n.t('reason')} value={this.state.removeReason} onInput={linkEvent(this, this.handleModRemoveReasonChange)} />
+            <button type="submit" class="btn btn-secondary"><T i18nKey="remove_comment">#</T></button>
           </form>
         }
         {this.state.showBanDialog && 
           <form onSubmit={linkEvent(this, this.handleModBanBothSubmit)}>
             <div class="form-group row">
-              <label class="col-form-label">Reason</label>
-              <input type="text" class="form-control mr-2" placeholder="Optional" value={this.state.banReason} onInput={linkEvent(this, this.handleModBanReasonChange)} />
+              <label class="col-form-label"><T i18nKey="reason">#</T></label>
+              <input type="text" class="form-control mr-2" placeholder={i18n.t('reason')} value={this.state.banReason} onInput={linkEvent(this, this.handleModBanReasonChange)} />
             </div>
             {/* TODO hold off on expires until later */}
             {/* <div class="form-group row"> */}
             {/*   <label class="col-form-label">Expires</label> */}
-            {/*   <input type="date" class="form-control mr-2" placeholder="Expires" value={this.state.banExpires} onInput={linkEvent(this, this.handleModBanExpiresChange)} /> */}
+            {/*   <input type="date" class="form-control mr-2" placeholder={i18n.t('expires')} value={this.state.banExpires} onInput={linkEvent(this, this.handleModBanExpiresChange)} /> */}
             {/* </div> */}
             <div class="form-group row">
-              <button type="submit" class="btn btn-secondary">Ban {this.props.node.comment.creator_name}</button>
+              <button type="submit" class="btn btn-secondary">{i18n.t('ban')} {this.props.node.comment.creator_name}</button>
             </div>
           </form>
         }
@@ -386,9 +388,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
 
   handleModBanBothSubmit(i: CommentNode) {
     event.preventDefault();
-
-    console.log(BanType[i.state.banType]);
-    console.log(i.props.node.comment.banned);
 
     if (i.state.banType == BanType.Community) {
       let form: BanFromCommunityForm = {
