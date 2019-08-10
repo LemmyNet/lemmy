@@ -1,7 +1,10 @@
 import { Component, linkEvent } from 'inferno';
 import { CommentNode as CommentNodeI, CommentForm as CommentFormI } from '../interfaces';
+import { capitalizeFirstLetter } from '../utils';
 import { WebSocketService, UserService } from '../services';
 import * as autosize from 'autosize';
+import { i18n } from '../i18next';
+import { T } from 'inferno-i18next';
 
 interface CommentFormProps {
   postId?: number;
@@ -25,11 +28,12 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
       post_id: this.props.node ? this.props.node.comment.post_id : this.props.postId,
       creator_id: UserService.Instance.user ? UserService.Instance.user.id : null,
     },
-    buttonTitle: !this.props.node ? "Post" : this.props.edit ? "Edit" : "Reply",
+    buttonTitle: !this.props.node ? capitalizeFirstLetter(i18n.t('post')) : this.props.edit ? capitalizeFirstLetter(i18n.t('edit')) : capitalizeFirstLetter(i18n.t('reply')),
   }
 
   constructor(props: any, context: any) {
     super(props, context);
+
 
     this.state = this.emptyState;
 
@@ -62,7 +66,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
           <div class="row">
             <div class="col-sm-12">
               <button type="submit" class="btn btn-sm btn-secondary mr-2" disabled={this.props.disabled}>{this.state.buttonTitle}</button>
-              {this.props.node && <button type="button" class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.handleReplyCancel)}>Cancel</button>}
+              {this.props.node && <button type="button" class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.handleReplyCancel)}><T i18nKey="cancel">#</T></button>}
             </div>
           </div>
         </form>
@@ -84,7 +88,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     if (i.props.node) {
       i.props.onReplyCancel();
     }
-    
+
     autosize.update(document.querySelector('textarea'));
   }
 

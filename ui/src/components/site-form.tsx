@@ -1,7 +1,10 @@
 import { Component, linkEvent } from 'inferno';
 import { Site, SiteForm as SiteFormI } from '../interfaces';
 import { WebSocketService } from '../services';
+import { capitalizeFirstLetter } from '../utils';
 import * as autosize from 'autosize';
+import { i18n } from '../i18next';
+import { T } from 'inferno-i18next';
 
 interface SiteFormProps {
   site?: Site; // If a site is given, that means this is an edit
@@ -39,15 +42,15 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
   render() {
     return (
       <form onSubmit={linkEvent(this, this.handleCreateSiteSubmit)}>
-        <h5>{`${this.props.site ? 'Edit' : 'Name'} your Site`}</h5>
+        <h5>{`${this.props.site ? capitalizeFirstLetter(i18n.t('edit')) : capitalizeFirstLetter(i18n.t('name'))} ${i18n.t('your_site')}`}</h5>
         <div class="form-group row">
-          <label class="col-12 col-form-label">Name</label>
+          <label class="col-12 col-form-label"><T i18nKey="name">#</T></label>
           <div class="col-12">
             <input type="text" class="form-control" value={this.state.siteForm.name} onInput={linkEvent(this, this.handleSiteNameChange)} required minLength={3} maxLength={20} />
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-12 col-form-label">Sidebar</label>
+          <label class="col-12 col-form-label"><T i18nKey="sidebar">#</T></label>
           <div class="col-12">
             <textarea value={this.state.siteForm.description} onInput={linkEvent(this, this.handleSiteDescriptionChange)} class="form-control" rows={3} maxLength={10000} />
           </div>
@@ -57,8 +60,8 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
             <button type="submit" class="btn btn-secondary mr-2">
               {this.state.loading ? 
               <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : 
-              this.props.site ? 'Save' : 'Create'}</button>
-              {this.props.site && <button type="button" class="btn btn-secondary" onClick={linkEvent(this, this.handleCancel)}>Cancel</button>}
+              this.props.site ? capitalizeFirstLetter(i18n.t('save')) : capitalizeFirstLetter(i18n.t('create'))}</button>
+              {this.props.site && <button type="button" class="btn btn-secondary" onClick={linkEvent(this, this.handleCancel)}><T i18nKey="cancel">#</T></button>}
           </div>
         </div>
       </form>
