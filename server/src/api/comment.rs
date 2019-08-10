@@ -101,7 +101,7 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
     let _inserted_like = match CommentLike::like(&conn, &like_form) {
       Ok(like) => like,
       Err(_e) => {
-        return Err(APIError::err(&self.op, ""))?
+        return Err(APIError::err(&self.op, "couldnt_like_comment"))?
       }
     };
 
