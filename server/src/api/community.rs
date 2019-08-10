@@ -348,7 +348,7 @@ impl Perform<ListCommunitiesResponse> for Oper<ListCommunities> {
 
     let sort = SortType::from_str(&data.sort)?;
 
-    let communities: Vec<CommunityView> = CommunityView::list(&conn, user_id, sort, data.page, data.limit)?;
+    let communities: Vec<CommunityView> = CommunityView::list(&conn, &sort, user_id, None, data.page, data.limit)?;
 
     // Return the jwt
     Ok(

@@ -25,6 +25,8 @@ pub struct SearchResponse {
   op: String,
   comments: Vec<CommentView>,
   posts: Vec<PostView>,
+  communities: Vec<CommunityView>,
+  users: Vec<UserView>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -272,53 +274,89 @@ impl Perform<SearchResponse> for Oper<Search> {
 
     let mut posts = Vec::new();
     let mut comments = Vec::new();
+    let mut communities = Vec::new();
+    let mut users = Vec::new();
 
     match type_ {
       SearchType::Posts => {
-        posts = PostView::list(&conn, 
-                               PostListingType::All, 
-                               &sort, 
-                               data.community_id, 
-                               None,
-                               Some(data.q.to_owned()),
-                               None, 
-                               false, 
-                               false, 
-                               data.page, 
-                               data.limit)?;
+        posts = PostView::list(
+          &conn, 
+          PostListingType::All, 
+          &sort, 
+          data.community_id, 
+          None,
+          Some(data.q.to_owned()),
+          None, 
+          false, 
+          false, 
+          data.page, 
+          data.limit)?;
       },
       SearchType::Comments => {
-        comments = CommentView::list(&conn, 
-                                     &sort, 
-                                     None, 
-                                     None, 
-                                     Some(data.q.to_owned()),
-                                     None,
-                                     false, 
-                                     data.page,
-                                     data.limit)?;
+        comments = CommentView::list(
+          &conn, 
+          &sort, 
+          None, 
+          None, 
+          Some(data.q.to_owned()),
+          None,
+          false, 
+          data.page,
+          data.limit)?;
+      },
+      SearchType::Communities => {
+        communities = CommunityView::list(
+          &conn, 
+          &sort, 
+          None, 
+          Some(data.q.to_owned()),
+          data.page, 
+          data.limit)?;
       }, 
-      SearchType::Both => {
-        posts = PostView::list(&conn, 
-                               PostListingType::All, 
-                               &sort, 
-                               data.community_id, 
-                               None,
-                               Some(data.q.to_owned()),
-                               None, 
-                               false, 
-                               false, 
-                               data.page, 
-                               data.limit)?;
-        comments = CommentView::list(&conn, 
-                                     &sort, 
-                                     None, 
-                                     None, 
-                                     Some(data.q.to_owned()),
-                                     None,
-                                     false, 
-                                     data.page,
-                                     data.limit)?;
+      SearchType::Users => {
+        users = UserView::list(
+          &conn, 
+          &sort, 
+          Some(data.q.to_owned()), 
+          data.page, 
+          data.limit)?;
+      }, 
+      SearchType::All => {
+        posts = PostView::list(
+          &conn, 
+          PostListingType::All, 
+          &sort, 
+          data.community_id, 
+          None,
+          Some(data.q.to_owned()),
+          None, 
+          false, 
+          false, 
+          data.page, 
+          data.limit)?;
+        comments = CommentView::list(
+          &conn, 
+          &sort, 
+          None, 
+          None, 
+          Some(data.q.to_owned()),
+          None,
+          false, 
+          data.page,
+          data.limit)?;
+        communities = CommunityView::list(
+          &conn, 
+          &sort, 
+          None, 
+          Some(data.q.to_owned()),
+          data.page, 
+          data.limit)?;
+        users = UserView::list(
+          &conn, 
+          &sort, 
+          Some(data.q.to_owned()), 
+          data.page, 
+          data.limit)?;
       }
     };
 
@@ -329,6 +367,8 @@ impl Perform<SearchResponse> for Oper<Search> {
         op: self.op.to_string(),
         comments: comments,
         posts: posts,
+        communities: communities,
+        users: users,
       }
       )
   }

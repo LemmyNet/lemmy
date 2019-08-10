@@ -12,6 +12,7 @@ export const en = {
     number_of_comments:'{{count}} Comments',
     remove_comment: 'Remove Comment',
     communities: 'Communities',
+    users: 'Users',
     create_a_community: 'Create a community',
     create_community: 'Create Community',
     remove_community: 'Remove Community',
