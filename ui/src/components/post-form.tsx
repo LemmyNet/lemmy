@@ -131,7 +131,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               <button type="submit" class="btn btn-secondary mr-2">
               {this.state.loading ? 
               <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : 
-              this.props.post ? capitalizeFirstLetter(i18n.t('save')) : capitalizeFirstLetter(i18n.t('Create'))}</button>
+              this.props.post ? capitalizeFirstLetter(i18n.t('save')) : capitalizeFirstLetter(i18n.t('create'))}</button>
               {this.props.post && <button type="button" class="btn btn-secondary" onClick={linkEvent(this, this.handleCancel)}><T i18nKey="cancel">#</T></button>}
             </div>
           </div>
