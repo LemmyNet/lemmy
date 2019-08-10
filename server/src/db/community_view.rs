@@ -113,8 +113,9 @@ impl CommunityView {
   }
 
   pub fn list(conn: &PgConnection, 
+              sort: &SortType, 
               from_user_id: Option<i32>, 
-              sort: SortType, 
+              search_term: Option<String>,
               page: Option<i64>,
               limit: Option<i64>,
               ) -> Result<Vec<Self>, Error> {
@@ -122,6 +123,10 @@ impl CommunityView {
     let mut query = community_view.into_boxed();
 
     let (limit, offset) = limit_and_offset(page, limit);
+
+    if let Some(search_term) = search_term {
+      query = query.filter(name.ilike(fuzzy_search(&search_term)));
+    };
 
     // The view lets you pass a null user_id, if you're not logged in
     match sort {
