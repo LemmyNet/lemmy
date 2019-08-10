@@ -24,6 +24,9 @@ Sparky.task('config', _ => {
     transformers: {
       before: [transformClasscat(), transformInferno()],
     },
+    alias: {
+      'locale': 'moment/locale'
+		},
     plugins: [
       EnvPlugin({ NODE_ENV: isProduction ? 'production' : 'development' }),
       CSSPlugin(),
