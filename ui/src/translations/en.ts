@@ -64,6 +64,7 @@ export const en = {
     saved: 'Saved',
     unsubscribe: 'Unsubscribe',
     subscribe: 'Subscribe',
+    subscribed: 'Subscribed',
     prev: 'Prev',
     next: 'Next',
     sidebar: 'Sidebar',
