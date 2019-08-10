@@ -144,20 +144,20 @@ impl Perform<SiteResponse> for Oper<CreateSite> {
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return Err(APIError::err(&self.op, "Not logged in."))?
+        return Err(APIError::err(&self.op, "not_logged_in"))?
       }
     };
 
     if has_slurs(&data.name) || 
       (data.description.is_some() && has_slurs(&data.description.to_owned().unwrap())) {
-        return Err(APIError::err(&self.op, "No slurs"))?
+        return Err(APIError::err(&self.op, "no_slurs"))?
       }
 
     let user_id = claims.id;
 
     // Make sure user is an admin
     if !UserView::read(&conn, user_id)?.admin {
-      return Err(APIError::err(&self.op, "Not an admin."))?
+      return Err(APIError::err(&self.op, "not_an_admin"))?
     }
 
     let site_form = SiteForm {
@@ -170,7 +170,7 @@ impl Perform<SiteResponse> for Oper<CreateSite> {
     match Site::create(&conn, &site_form) {
       Ok(site) => site,
       Err(_e) => {
-        return Err(APIError::err(&self.op, "Site exists already"))?
+        return Err(APIError::err(&self.op, "site_already_exists"))?
       }
     };
 
@@ -194,20 +194,20 @@ impl Perform<SiteResponse> for Oper<EditSite> {
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => {
-        return Err(APIError::err(&self.op, "Not logged in."))?
+        return Err(APIError::err(&self.op, "not_logged_in"))?
       }
     };
 
     if has_slurs(&data.name) || 
       (data.description.is_some() && has_slurs(&data.description.to_owned().unwrap())) {
-        return Err(APIError::err(&self.op, "No slurs"))?
+        return Err(APIError::err(&self.op, "no_slurs"))?
       }
 
     let user_id = claims.id;
 
     // Make sure user is an admin
     if UserView::read(&conn, user_id)?.admin == false {
-      return Err(APIError::err(&self.op, "Not an admin."))?
+      return Err(APIError::err(&self.op, "not_an_admin"))?
     }
 
     let found_site = Site::read(&conn, 1)?;
@@ -222,7 +222,7 @@ impl Perform<SiteResponse> for Oper<EditSite> {
     match Site::update(&conn, 1, &site_form) {
       Ok(site) => site,
       Err(_e) => {
-        return Err(APIError::err(&self.op, "Couldn't update site."))?
+        return Err(APIError::err(&self.op, "couldnt_update_site"))?
       }
     };
 

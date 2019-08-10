@@ -6,6 +6,7 @@ import { WebSocketService } from '../services';
 import { PostListings } from './post-listings';
 import { Sidebar } from './sidebar';
 import { msgOp, routeSortTypeToEnum, fetchLimit } from '../utils';
+import { T } from 'inferno-i18next';
 
 interface State {
   community: CommunityI;
@@ -102,7 +103,7 @@ export class Community extends Component<any, State> {
           <div class="col-12 col-md-8">
             <h5>{this.state.community.title}
             {this.state.community.removed &&
-              <small className="ml-2 text-muted font-italic">removed</small>
+              <small className="ml-2 text-muted font-italic"><T i18nKey="removed">#</T></small>
             }
           </h5>
           {this.selects()}
@@ -126,15 +127,15 @@ export class Community extends Component<any, State> {
     return (
       <div className="mb-2">
         <select value={this.state.sort} onChange={linkEvent(this, this.handleSortChange)} class="custom-select custom-select-sm w-auto">
-          <option disabled>Sort Type</option>
-          <option value={SortType.Hot}>Hot</option>
-          <option value={SortType.New}>New</option>
+          <option disabled><T i18nKey="sort_type">#</T></option>
+          <option value={SortType.Hot}><T i18nKey="hot">#</T></option>
+          <option value={SortType.New}><T i18nKey="new">#</T></option>
           <option disabled>──────────</option>
-          <option value={SortType.TopDay}>Top Day</option>
-          <option value={SortType.TopWeek}>Week</option>
-          <option value={SortType.TopMonth}>Month</option>
-          <option value={SortType.TopYear}>Year</option>
-          <option value={SortType.TopAll}>All</option>
+          <option value={SortType.TopDay}><T i18nKey="top_day">#</T></option>
+          <option value={SortType.TopWeek}><T i18nKey="week">#</T></option>
+          <option value={SortType.TopMonth}><T i18nKey="month">#</T></option>
+          <option value={SortType.TopYear}><T i18nKey="year">#</T></option>
+          <option value={SortType.TopAll}><T i18nKey="all">#</T></option>
         </select>
       </div>
     )
@@ -144,9 +145,9 @@ export class Community extends Component<any, State> {
     return (
       <div class="mt-2">
         {this.state.page > 1 && 
-          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}>Prev</button>
+          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}><T i18nKey="prev">#</T></button>
         }
-        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}>Next</button>
+        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}><T i18nKey="next">#</T></button>
       </div>
     );
   }
@@ -193,7 +194,7 @@ export class Community extends Component<any, State> {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(msg.error);
+      alert(i18n.t(msg.error));
       return;
     } else if (op == UserOperation.GetCommunity) {
       let res: GetCommunityResponse = msg;

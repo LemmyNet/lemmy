@@ -6,6 +6,8 @@ import { WebSocketService, UserService } from '../services';
 import { UserOperation, GetRepliesForm, GetRepliesResponse, SortType, GetSiteResponse, Comment} from '../interfaces';
 import { msgOp } from '../utils';
 import { version } from '../version';
+import { i18n } from '../i18next';
+import { T } from 'inferno-i18next';
 
 interface NavbarState {
   isLoggedIn: boolean;
@@ -85,16 +87,16 @@ export class Navbar extends Component<any, NavbarState> {
         <div className={`${!this.state.expanded && 'collapse'} navbar-collapse`}>
           <ul class="navbar-nav mr-auto">
             <li class="nav-item">
-              <Link class="nav-link" to="/communities">Communities</Link>
+              <Link class="nav-link" to="/communities"><T i18nKey="communities">#</T></Link>
             </li>
             <li class="nav-item">
-              <Link class="nav-link" to="/search">Search</Link>
+              <Link class="nav-link" to="/search"><T i18nKey="search">#</T></Link>
             </li>
             <li class="nav-item">
-              <Link class="nav-link" to={{pathname: '/create_post', state: { prevPath: this.currentLocation }}}>Create Post</Link>
+              <Link class="nav-link" to={{pathname: '/create_post', state: { prevPath: this.currentLocation }}}><T i18nKey="create_post">#</T></Link>
             </li>
             <li class="nav-item">
-              <Link class="nav-link" to="/create_community">Create Community</Link>
+              <Link class="nav-link" to="/create_community"><T i18nKey="create_community">#</T></Link>
             </li>
           </ul>
           <ul class="navbar-nav ml-auto mr-2">
@@ -113,13 +115,13 @@ export class Navbar extends Component<any, NavbarState> {
                   {UserService.Instance.user.username}
                 </a>
                 <div className={`dropdown-menu dropdown-menu-right ${this.state.expandUserDropdown && 'show'}`}>
-                  <a role="button" class="dropdown-item pointer" onClick={linkEvent(this, this.handleOverviewClick)}>Overview</a>
-                  <a role="button" class="dropdown-item pointer" onClick={ linkEvent(this, this.handleLogoutClick) }>Logout</a>
+                  <a role="button" class="dropdown-item pointer" onClick={linkEvent(this, this.handleOverviewClick)}><T i18nKey="overview">#</T></a>
+                  <a role="button" class="dropdown-item pointer" onClick={ linkEvent(this, this.handleLogoutClick) }><T i18nKey="logout">#</T></a>
                 </div>
               </li> 
             </>
               : 
-              <Link class="nav-link" to="/login">Login / Sign up</Link>
+              <Link class="nav-link" to="/login"><T i18nKey="login_sign_up">#</T></Link>
             }
           </ul>
         </div>
@@ -153,6 +155,7 @@ export class Navbar extends Component<any, NavbarState> {
   parseMessage(msg: any) {
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
+      // TODO
       if (msg.error == "Not logged in.") {
         UserService.Instance.logout();
         location.reload();
@@ -209,7 +212,7 @@ export class Navbar extends Component<any, NavbarState> {
     if (UserService.Instance.user) {
     document.addEventListener('DOMContentLoaded', function () {
       if (!Notification) {
-        alert('Desktop notifications not available in your browser. Try Chromium.'); 
+        alert(i18n.t('notifications_error')); 
         return;
       }
 
@@ -224,7 +227,7 @@ export class Navbar extends Component<any, NavbarState> {
     if (Notification.permission !== 'granted')
       Notification.requestPermission();
     else {
-      var notification = new Notification(`${replies.length} Unread Messages`, {
+      var notification = new Notification(`${replies.length} ${i18n.t('unread_messages')}`, {
         icon: `${window.location.protocol}//${window.location.host}/static/assets/apple-touch-icon.png`,
         body: `${recentReply.creator_name}: ${recentReply.content}`
       });

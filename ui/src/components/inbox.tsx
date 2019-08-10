@@ -6,6 +6,8 @@ import { UserOperation, Comment, SortType, GetRepliesForm, GetRepliesResponse, C
 import { WebSocketService, UserService } from '../services';
 import { msgOp } from '../utils';
 import { CommentNodes } from './comment-nodes';
+import { i18n } from '../i18next';
+import { T } from 'inferno-i18next';
 
 enum UnreadType {
   Unread, All
@@ -49,7 +51,7 @@ export class Inbox extends Component<any, InboxState> {
   }
 
   componentDidMount() {
-    document.title = `/u/${UserService.Instance.user.username} Inbox - ${WebSocketService.Instance.site.name}`;
+    document.title = `/u/${UserService.Instance.user.username} ${i18n.t('inbox')} - ${WebSocketService.Instance.site.name}`;
   }
 
   render() {
@@ -59,12 +61,12 @@ export class Inbox extends Component<any, InboxState> {
         <div class="row">
           <div class="col-12">
             <h5 class="mb-0">
-              <span>Inbox for <Link to={`/u/${user.username}`}>{user.username}</Link></span>
+              <span><T i18nKey="inbox_for" interpolation={{user: user.username}}>#<Link to={`/u/${user.username}`}>#</Link></T></span>
             </h5>
             {this.state.replies.length > 0 && this.state.unreadType == UnreadType.Unread &&
               <ul class="list-inline mb-1 text-muted small font-weight-bold">
                 <li className="list-inline-item">
-                  <span class="pointer" onClick={this.markAllAsRead}>mark all as read</span>
+                  <span class="pointer" onClick={this.markAllAsRead}><T i18nKey="mark_all_as_read">#</T></span>
                 </li>
               </ul>
             }
@@ -81,18 +83,18 @@ export class Inbox extends Component<any, InboxState> {
     return (
       <div className="mb-2">
         <select value={this.state.unreadType} onChange={linkEvent(this, this.handleUnreadTypeChange)} class="custom-select custom-select-sm w-auto">
-          <option disabled>Type</option>
-          <option value={UnreadType.Unread}>Unread</option>
-          <option value={UnreadType.All}>All</option>
+          <option disabled><T i18nKey="type">#</T></option>
+          <option value={UnreadType.Unread}><T i18nKey="unread">#</T></option>
+          <option value={UnreadType.All}><T i18nKey="all">#</T></option>
         </select>
         <select value={this.state.sort} onChange={linkEvent(this, this.handleSortChange)} class="custom-select custom-select-sm w-auto ml-2">
-          <option disabled>Sort Type</option>
-          <option value={SortType.New}>New</option>
-          <option value={SortType.TopDay}>Top Day</option>
-          <option value={SortType.TopWeek}>Week</option>
-          <option value={SortType.TopMonth}>Month</option>
-          <option value={SortType.TopYear}>Year</option>
-          <option value={SortType.TopAll}>All</option>
+          <option disabled><T i18nKey="sort_type">#</T></option>
+          <option value={SortType.New}><T i18nKey="new">#</T></option>
+          <option value={SortType.TopDay}><T i18nKey="top_day">#</T></option>
+          <option value={SortType.TopWeek}><T i18nKey="week">#</T></option>
+          <option value={SortType.TopMonth}><T i18nKey="month">#</T></option>
+          <option value={SortType.TopYear}><T i18nKey="year">#</T></option>
+          <option value={SortType.TopAll}><T i18nKey="all">#</T></option>
         </select>
       </div>
     )
@@ -113,9 +115,9 @@ export class Inbox extends Component<any, InboxState> {
     return (
       <div class="mt-2">
         {this.state.page > 1 && 
-          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}>Prev</button>
+          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}><T i18nKey="prev">#</T></button>
         }
-        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}>Next</button>
+        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}><T i18nKey="next">#</T></button>
       </div>
     );
   }
@@ -164,7 +166,7 @@ export class Inbox extends Component<any, InboxState> {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(msg.error);
+      alert(i18n.t(msg.error));
       return;
     } else if (op == UserOperation.GetReplies || op == UserOperation.MarkAllAsRead) {
       let res: GetRepliesResponse = msg;
@@ -196,7 +198,7 @@ export class Inbox extends Component<any, InboxState> {
       this.setState(this.state);
     } else if (op == UserOperation.CreateComment) {
       // let res: CommentResponse = msg;
-      alert('Reply sent');
+      alert(i18n.t('reply_sent'));
       // this.state.replies.unshift(res.comment); // TODO do this right
       // this.setState(this.state);
     } else if (op == UserOperation.SaveComment) {

@@ -1,5 +1,6 @@
 import { render, Component } from 'inferno';
-import { HashRouter, BrowserRouter, Route, Switch } from 'inferno-router';
+import { BrowserRouter, Route, Switch } from 'inferno-router';
+import { Provider } from 'inferno-i18next';
 import { Main } from './components/main';
 import { Navbar } from './components/navbar';
 import { Footer } from './components/footer';
@@ -16,6 +17,7 @@ import { Inbox } from './components/inbox';
 import { Search } from './components/search';
 import { Sponsors } from './components/sponsors';
 import { Symbols } from './components/symbols';
+import { i18n } from './i18next';
 
 import './css/bootstrap.min.css';
 import './css/main.css';
@@ -34,37 +36,39 @@ class Index extends Component<any, any> {
 
   render() {
     return (
-      <BrowserRouter>
-        <Navbar />
-        <div class="mt-1 p-0">
-          <Switch>
-            <Route path={`/home/type/:type/sort/:sort/page/:page`} component={Main} />
-            <Route exact path={`/`} component={Main} />
-            <Route path={`/login`} component={Login} />
-            <Route path={`/create_post/c/:name`} component={CreatePost} />
-            <Route path={`/create_post`} component={CreatePost} />
-            <Route path={`/create_community`} component={CreateCommunity} />
-            <Route path={`/communities/page/:page`} component={Communities} />
-            <Route path={`/communities`} component={Communities} />
-            <Route path={`/post/:id/comment/:comment_id`} component={Post} />
-            <Route path={`/post/:id`} component={Post} />
-            <Route path={`/c/:name/sort/:sort/page/:page`} component={Community} />
-            <Route path={`/community/:id`} component={Community} />
-            <Route path={`/c/:name`} component={Community} />
-            <Route path={`/u/:username/view/:view/sort/:sort/page/:page`} component={User} />
-            <Route path={`/user/:id`} component={User} />
-            <Route path={`/u/:username`} component={User} />
-            <Route path={`/inbox`} component={Inbox} />
-            <Route path={`/modlog/community/:community_id`} component={Modlog} />
-            <Route path={`/modlog`} component={Modlog} />
-            <Route path={`/setup`} component={Setup} />
-            <Route path={`/search`} component={Search} />
-            <Route path={`/sponsors`} component={Sponsors} />
-          </Switch>
-          <Symbols />
-        </div>
-        <Footer />
-      </BrowserRouter>
+      <Provider i18next={i18n}>
+        <BrowserRouter>
+          <Navbar />
+          <div class="mt-1 p-0">
+            <Switch>
+              <Route path={`/home/type/:type/sort/:sort/page/:page`} component={Main} />
+              <Route exact path={`/`} component={Main} />
+              <Route path={`/login`} component={Login} />
+              <Route path={`/create_post/c/:name`} component={CreatePost} />
+              <Route path={`/create_post`} component={CreatePost} />
+              <Route path={`/create_community`} component={CreateCommunity} />
+              <Route path={`/communities/page/:page`} component={Communities} />
+              <Route path={`/communities`} component={Communities} />
+              <Route path={`/post/:id/comment/:comment_id`} component={Post} />
+              <Route path={`/post/:id`} component={Post} />
+              <Route path={`/c/:name/sort/:sort/page/:page`} component={Community} />
+              <Route path={`/community/:id`} component={Community} />
+              <Route path={`/c/:name`} component={Community} />
+              <Route path={`/u/:username/view/:view/sort/:sort/page/:page`} component={User} />
+              <Route path={`/user/:id`} component={User} />
+              <Route path={`/u/:username`} component={User} />
+              <Route path={`/inbox`} component={Inbox} />
+              <Route path={`/modlog/community/:community_id`} component={Modlog} />
+              <Route path={`/modlog`} component={Modlog} />
+              <Route path={`/setup`} component={Setup} />
+              <Route path={`/search`} component={Search} />
+              <Route path={`/sponsors`} component={Sponsors} />
+            </Switch>
+            <Symbols />
+          </div>
+          <Footer />
+        </BrowserRouter>
+      </Provider>
     );
   }
 
