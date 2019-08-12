@@ -277,6 +277,8 @@ impl Perform<SearchResponse> for Oper<Search> {
     let mut communities = Vec::new();
     let mut users = Vec::new();
 
+    // TODO no clean / non-nsfw searching rn
+
     match type_ {
       SearchType::Posts => {
         posts = PostView::list(
@@ -287,6 +289,7 @@ impl Perform<SearchResponse> for Oper<Search> {
           None,
           Some(data.q.to_owned()),
           None, 
+          true,
           false, 
           false, 
           data.page, 
@@ -309,6 +312,7 @@ impl Perform<SearchResponse> for Oper<Search> {
           &conn, 
           &sort, 
           None, 
+          true,
           Some(data.q.to_owned()),
           data.page, 
           data.limit)?;
@@ -330,6 +334,7 @@ impl Perform<SearchResponse> for Oper<Search> {
           None,
           Some(data.q.to_owned()),
           None, 
+          true,
           false, 
           false, 
           data.page, 
@@ -348,6 +353,7 @@ impl Perform<SearchResponse> for Oper<Search> {
           &conn, 
           &sort, 
           None, 
+          true,
           Some(data.q.to_owned()),
           data.page, 
           data.limit)?;

@@ -52,6 +52,7 @@ table! {
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
         deleted -> Bool,
+        nsfw -> Bool,
     }
 }
 
@@ -185,6 +186,7 @@ table! {
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
         deleted -> Bool,
+        nsfw -> Bool,
     }
 }
 
@@ -240,6 +242,7 @@ table! {
         banned -> Bool,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
+        show_nsfw -> Bool,
     }
 }
 
