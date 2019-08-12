@@ -22,6 +22,7 @@ export interface User {
   id: number;
   iss: string;
   username: string;
+  show_nsfw: boolean;
 }
 
 export interface UserView {
@@ -53,6 +54,7 @@ export interface Community {
   creator_id: number;
   removed: boolean;
   deleted: boolean;
+  nsfw: boolean;
   published: string;
   updated?: string;
   creator_name: string;
@@ -74,11 +76,14 @@ export interface Post {
   removed: boolean;
   deleted: boolean;
   locked: boolean;
+  nsfw: boolean;
   published: string;
   updated?: string;
   creator_name: string;
   community_name: string;
   community_removed: boolean;
+  community_deleted: boolean;
+  community_nsfw: boolean;
   number_of_comments: number;
   score: number;
   upvotes: number;
@@ -334,6 +339,7 @@ export interface RegisterForm {
   password: string;
   password_verify: string;
   admin: boolean;
+  show_nsfw: boolean;
 }
 
 export interface LoginResponse {
@@ -351,6 +357,7 @@ export interface CommunityForm {
   edit_id?: number;
   removed?: boolean;
   deleted?: boolean;
+  nsfw: boolean;
   reason?: string;
   expires?: number;
   auth?: string;
@@ -396,6 +403,7 @@ export interface PostForm {
   creator_id: number;
   removed?: boolean;
   deleted?: boolean;
+  nsfw: boolean;
   locked?: boolean;
   reason?: string;
   auth: string;

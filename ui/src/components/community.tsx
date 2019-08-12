@@ -37,6 +37,7 @@ export class Community extends Component<any, State> {
       number_of_comments: null,
       published: null,
       removed: null,
+      nsfw: false,
       deleted: null,
     },
     moderators: [],
@@ -104,6 +105,9 @@ export class Community extends Component<any, State> {
             <h5>{this.state.community.title}
             {this.state.community.removed &&
               <small className="ml-2 text-muted font-italic"><T i18nKey="removed">#</T></small>
+            }
+            {this.state.community.nsfw &&
+              <small className="ml-2 text-muted font-italic"><T i18nKey="nsfw">#</T></small>
             }
           </h5>
           {this.selects()}
