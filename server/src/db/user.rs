@@ -18,7 +18,8 @@ pub struct User_ {
   pub admin: bool,
   pub banned: bool,
   pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>
+  pub updated: Option<chrono::NaiveDateTime>,
+  pub show_nsfw: bool,
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
@@ -31,7 +32,8 @@ pub struct UserForm {
     pub admin: bool,
     pub banned: bool,
     pub email: Option<String>,
-    pub updated: Option<chrono::NaiveDateTime>
+    pub updated: Option<chrono::NaiveDateTime>,
+    pub show_nsfw: bool,
 }
 
 impl Crud<UserForm> for User_ {
@@ -77,6 +79,7 @@ pub struct Claims {
   pub id: i32,
   pub username: String,
   pub iss: String,
+  pub show_nsfw: bool,
 }
 
 impl Claims {
@@ -96,6 +99,7 @@ impl User_ {
       id: self.id,
       username: self.name.to_owned(),
       iss: self.fedi_name.to_owned(),
+      show_nsfw: self.show_nsfw,
     };
     encode(&Header::default(), &my_claims, Settings::get().jwt_secret.as_ref()).unwrap()
   }
@@ -133,7 +137,8 @@ mod tests {
       email: None,
       admin: false,
       banned: false,
-      updated: None
+      updated: None,
+      show_nsfw: false,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -149,7 +154,8 @@ mod tests {
       admin: false,
       banned: false,
       published: inserted_user.published,
-      updated: None
+      updated: None,
+      show_nsfw: false,
     };
     
     let read_user = User_::read(&conn, inserted_user.id).unwrap();

@@ -30,7 +30,8 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
     communityForm: {
       name: null,
       title: null,
-      category_id: null
+      category_id: null,
+      nsfw: false,
     },
     categories: [],
     loading: false
@@ -48,6 +49,7 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
         category_id: this.props.community.category_id,
         description: this.props.community.description,
         edit_id: this.props.community.id,
+        nsfw: this.props.community.nsfw,
         auth: null
       }
     }
@@ -105,6 +107,14 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
         </div>
         <div class="form-group row">
           <div class="col-12">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" checked={this.state.communityForm.nsfw} onChange={linkEvent(this, this.handleCommunityNsfwChange)}/>
+              <label class="form-check-label"><T i18nKey="nsfw">#</T></label>
+            </div>
+          </div>
+        </div>
+        <div class="form-group row">
+          <div class="col-12">
             <button type="submit" class="btn btn-secondary mr-2">
               {this.state.loading ? 
               <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : 
@@ -144,6 +154,11 @@ export class CommunityForm extends Component<CommunityFormProps, CommunityFormSt
 
   handleCommunityCategoryChange(i: CommunityForm, event: any) {
     i.state.communityForm.category_id = Number(event.target.value);
+    i.setState(i.state);
+  }
+
+  handleCommunityNsfwChange(i: CommunityForm, event: any) {
+    i.state.communityForm.nsfw = event.target.checked;
     i.setState(i.state);
   }
 
