@@ -22,7 +22,8 @@ pub struct CreateCommunity {
   name: String,
   title: String,
   description: Option<String>,
-  category_id: i32 ,
+  category_id: i32,
+  nsfw: bool,
   auth: String
 }
 
@@ -86,6 +87,7 @@ pub struct EditCommunity {
   category_id: i32,
   removed: Option<bool>,
   deleted: Option<bool>,
+  nsfw: bool,
   reason: Option<String>,
   expires: Option<i64>,
   auth: String
@@ -194,6 +196,7 @@ impl Perform<CommunityResponse> for Oper<CreateCommunity> {
       creator_id: user_id,
       removed: None,
       deleted: None,
+      nsfw: data.nsfw,
       updated: None,
     };
 
@@ -291,6 +294,7 @@ impl Perform<CommunityResponse> for Oper<EditCommunity> {
       creator_id: user_id,
       removed: data.removed.to_owned(),
       deleted: data.deleted.to_owned(),
+      nsfw: data.nsfw,
       updated: Some(naive_now())
     };
 
@@ -333,22 +337,38 @@ impl Perform<ListCommunitiesResponse> for Oper<ListCommunities> {
     let data: &ListCommunities = &self.data;
     let conn = establish_connection();
 
-    let user_id: Option<i32> = match &data.auth {
+    let user_claims: Option<Claims> = match &data.auth {
       Some(auth) => {
         match Claims::decode(&auth) {
           Ok(claims) => {
-            let user_id = claims.claims.id;
-            Some(user_id)
+            Some(claims.claims)
           }
           Err(_e) => None
         }
       }
       None => None
     };
+    
+    let user_id = match &user_claims {
+      Some(claims) => Some(claims.id),
+      None => None
+    };
+
+    let show_nsfw = match &user_claims {
+      Some(claims) => claims.show_nsfw,
+      None => false
+    };
 
     let sort = SortType::from_str(&data.sort)?;
 
-    let communities: Vec<CommunityView> = CommunityView::list(&conn, &sort, user_id, None, data.page, data.limit)?;
+    let communities: Vec<CommunityView> = CommunityView::list(
+      &conn, 
+      &sort, 
+      user_id, 
+      show_nsfw, 
+      None, 
+      data.page, 
+      data.limit)?;
 
     // Return the jwt
     Ok(

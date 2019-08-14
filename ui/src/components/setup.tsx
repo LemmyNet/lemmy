@@ -23,6 +23,7 @@ export class Setup extends Component<any, State> {
       password: undefined,
       password_verify: undefined,
       admin: true,
+      show_nsfw: true,
     },
     doneRegisteringUser: false,
     userLoading: false,
