@@ -28,7 +28,7 @@ A simple test command:
 
 ## API
 ### List
-`Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetReplies, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser, Search, MarkAllAsRead`
+`Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetReplies, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser, Search, MarkAllAsRead, SaveUserSettings`
 
 ### Sort Types
 These go wherever there is a `sort` field.
@@ -109,7 +109,21 @@ Only the first user will be able to be the admin.
   posts: Vec<PostView>,
 }
 ```
-
+#### Save User Settings
+##### Request
+```rust
+{
+  show_nsfw: bool,
+  auth: String,
+}
+```
+##### Response
+```rust
+{
+  op: String,
+  jwt: String
+}
+```
 #### Get Replies / Inbox
 ##### Request
 ```rust
