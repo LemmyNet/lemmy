@@ -208,6 +208,7 @@ mod tests {
       updated: None,
       admin: false,
       banned: false,
+      show_nsfw: false,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -220,7 +221,8 @@ mod tests {
       category_id: 1,
       removed: None,
       deleted: None,
-      updated: None
+      updated: None,
+      nsfw: false,
     };
 
     let inserted_community = Community::create(&conn, &new_community).unwrap();
@@ -234,7 +236,8 @@ mod tests {
       removed: None,
       deleted: None,
       locked: None,
-      updated: None
+      updated: None,
+      nsfw: false,
     };
 
     let inserted_post = Post::create(&conn, &new_post).unwrap();
@@ -289,6 +292,7 @@ mod tests {
       subscribed: None,
       read: None,
       saved: None,
+      nsfw: false,
     };
 
     let expected_post_listing_with_user = PostView {
@@ -318,6 +322,7 @@ mod tests {
       subscribed: None,
       read: None,
       saved: None,
+      nsfw: false,
     };
 
 
@@ -327,6 +332,7 @@ mod tests {
                                                       None, 
                                                       None,
                                                       Some(inserted_user.id), 
+                                                      false,
                                                       false, 
                                                       false, 
                                                       None, 
@@ -338,6 +344,7 @@ mod tests {
                                                     None, 
                                                     None, 
                                                     None,
+                                                    false,
                                                     false, 
                                                     false, 
                                                     None, 
