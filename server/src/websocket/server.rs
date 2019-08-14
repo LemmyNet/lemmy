@@ -305,6 +305,11 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       let res = Oper::new(user_operation, get_user_details).perform()?;
       Ok(serde_json::to_string(&res)?)
     },
+    UserOperation::SaveUserSettings => {
+      let save_user_settings: SaveUserSettings = serde_json::from_str(data)?;
+      let res = Oper::new(user_operation, save_user_settings).perform()?;
+      Ok(serde_json::to_string(&res)?)
+    },
     UserOperation::AddAdmin => {
       let add_admin: AddAdmin = serde_json::from_str(data)?;
       let res = Oper::new(user_operation, add_admin).perform()?;
