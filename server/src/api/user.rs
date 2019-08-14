@@ -19,6 +19,12 @@ pub struct Register {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct SaveUserSettings {
+  show_nsfw: bool,
+  auth: String,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct LoginResponse {
   op: String,
   jwt: String
@@ -221,6 +227,50 @@ impl Perform<LoginResponse> for Oper<Register> {
   }
 }
 
+impl Perform<LoginResponse> for Oper<SaveUserSettings> {
+  fn perform(&self) -> Result<LoginResponse, Error> {
+    let data: &SaveUserSettings = &self.data;
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => {
+        return Err(APIError::err(&self.op, "not_logged_in"))?
+      }
+    };
+
+    let user_id = claims.id;
+    
+    let read_user = User_::read(&conn, user_id)?;
+
+    let user_form = UserForm {
+      name: read_user.name,
+      fedi_name: read_user.fedi_name,
+      email: read_user.email,
+      password_encrypted: read_user.password_encrypted,
+      preferred_username: read_user.preferred_username,
+      updated: Some(naive_now()),
+      admin: read_user.admin,
+      banned: read_user.banned,
+      show_nsfw: data.show_nsfw,
+    };
+
+    let updated_user = match User_::update(&conn, user_id, &user_form) {
+      Ok(user) => user,
+      Err(_e) => {
+        return Err(APIError::err(&self.op, "couldnt_update_user"))?
+      }
+    };
+
+    // Return the jwt
+    Ok(
+      LoginResponse {
+        op: self.op.to_string(), 
+        jwt: updated_user.jwt()
+      }
+      )
+  }
+}
 
 impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
   fn perform(&self) -> Result<GetUserDetailsResponse, Error> {
