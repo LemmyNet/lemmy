@@ -2,12 +2,14 @@ version: '2.4'
 
 services:
   db:
-    image: postgres
+    image: postgres:12-alpine
     restart: always
     environment:
       POSTGRES_USER: rrr
       POSTGRES_PASSWORD: rrr
       POSTGRES_DB: rrr
+    volumes:
+      - db:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U rrr"]
       interval: 5s
@@ -26,3 +28,5 @@ services:
     depends_on: 
       db: 
         condition: service_healthy 
+volumes:
+  db:
