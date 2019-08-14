@@ -15,6 +15,13 @@ pub struct Register {
   password: String,
   password_verify: String,
   admin: bool,
+  show_nsfw: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SaveUserSettings {
+  show_nsfw: bool,
+  auth: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -151,6 +158,7 @@ impl Perform<LoginResponse> for Oper<Register> {
       updated: None,
       admin: data.admin,
       banned: false,
+      show_nsfw: data.show_nsfw,
     };
 
     // Create the user
@@ -170,6 +178,7 @@ impl Perform<LoginResponse> for Oper<Register> {
           title: "The Default Community".to_string(),
           description: Some("The Default Community".to_string()),
           category_id: 1,
+          nsfw: false,
           creator_id: inserted_user.id,
           removed: None,
           deleted: None,
@@ -218,23 +227,76 @@ impl Perform<LoginResponse> for Oper<Register> {
   }
 }
 
+impl Perform<LoginResponse> for Oper<SaveUserSettings> {
+  fn perform(&self) -> Result<LoginResponse, Error> {
+    let data: &SaveUserSettings = &self.data;
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => {
+        return Err(APIError::err(&self.op, "not_logged_in"))?
+      }
+    };
+
+    let user_id = claims.id;
+    
+    let read_user = User_::read(&conn, user_id)?;
+
+    let user_form = UserForm {
+      name: read_user.name,
+      fedi_name: read_user.fedi_name,
+      email: read_user.email,
+      password_encrypted: read_user.password_encrypted,
+      preferred_username: read_user.preferred_username,
+      updated: Some(naive_now()),
+      admin: read_user.admin,
+      banned: read_user.banned,
+      show_nsfw: data.show_nsfw,
+    };
+
+    let updated_user = match User_::update(&conn, user_id, &user_form) {
+      Ok(user) => user,
+      Err(_e) => {
+        return Err(APIError::err(&self.op, "couldnt_update_user"))?
+      }
+    };
+
+    // Return the jwt
+    Ok(
+      LoginResponse {
+        op: self.op.to_string(), 
+        jwt: updated_user.jwt()
+      }
+      )
+  }
+}
 
 impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
   fn perform(&self) -> Result<GetUserDetailsResponse, Error> {
     let data: &GetUserDetails = &self.data;
     let conn = establish_connection();
 
-    let user_id: Option<i32> = match &data.auth {
+    let user_claims: Option<Claims> = match &data.auth {
       Some(auth) => {
         match Claims::decode(&auth) {
           Ok(claims) => {
-            let user_id = claims.claims.id;
-            Some(user_id)
+            Some(claims.claims)
           }
           Err(_e) => None
         }
       }
       None => None
+    };
+    
+    let user_id = match &user_claims {
+      Some(claims) => Some(claims.id),
+      None => None
+    };
+
+    let show_nsfw = match &user_claims {
+      Some(claims) => claims.show_nsfw,
+      None => false
     };
 
     //TODO add save
@@ -249,50 +311,56 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
 
     // If its saved only, you don't care what creator it was
     let posts = if data.saved_only {
-      PostView::list(&conn, 
-                     PostListingType::All, 
-                     &sort, 
-                     data.community_id, 
-                     None, 
-                     None,
-                     Some(user_details_id), 
-                     data.saved_only, 
-                     false, 
-                     data.page, 
-                     data.limit)?
+      PostView::list(
+        &conn, 
+        PostListingType::All, 
+        &sort, 
+        data.community_id, 
+        None, 
+        None,
+        Some(user_details_id), 
+        show_nsfw,
+        data.saved_only, 
+        false, 
+        data.page, 
+        data.limit)?
     } else {
-      PostView::list(&conn, 
-                     PostListingType::All, 
-                     &sort, 
-                     data.community_id, 
-                     Some(user_details_id), 
-                     None, 
-                     user_id, 
-                     data.saved_only, 
-                     false, 
-                     data.page, 
-                     data.limit)?
+      PostView::list(
+        &conn, 
+        PostListingType::All, 
+        &sort, 
+        data.community_id, 
+        Some(user_details_id), 
+        None, 
+        user_id, 
+        show_nsfw,
+        data.saved_only, 
+        false, 
+        data.page, 
+        data.limit)?
     };
     let comments = if data.saved_only {
-      CommentView::list(&conn, 
-                        &sort, 
-                        None, 
-                        None, 
-                        None, 
-                        Some(user_details_id), 
-                        data.saved_only, 
-                        data.page, 
-                        data.limit)?
+      CommentView::list(
+        &conn, 
+        &sort, 
+        None, 
+        None, 
+        None, 
+        Some(user_details_id), 
+        data.saved_only, 
+        data.page, 
+        data.limit)?
     } else {
-      CommentView::list(&conn, 
-                        &sort, 
-                        None, 
-                        Some(user_details_id), 
-                        None, 
-                        user_id, 
-                        data.saved_only, 
-                        data.page, 
-                        data.limit)?
+      CommentView::list(
+        &conn, 
+        &sort, 
+        None, 
+        Some(user_details_id), 
+        None, 
+        user_id, 
+        data.saved_only, 
+        data.page, 
+        data.limit)?
     };
 
     let follows = CommunityFollowerView::for_user(&conn, user_details_id)?;
@@ -343,6 +411,7 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
       updated: Some(naive_now()),
       admin: data.added,
       banned: read_user.banned,
+      show_nsfw: read_user.show_nsfw,
     };
 
     match User_::update(&conn, data.user_id, &user_form) {
@@ -402,6 +471,7 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
       updated: Some(naive_now()),
       admin: read_user.admin,
       banned: data.ban,
+      show_nsfw: read_user.show_nsfw,
     };
 
     match User_::update(&conn, data.user_id, &user_form) {

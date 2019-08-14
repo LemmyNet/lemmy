@@ -1,3 +1,4 @@
+#![recursion_limit = "512"]
 #[macro_use] pub extern crate strum_macros;
 #[macro_use] pub extern crate lazy_static;
 #[macro_use] pub extern crate failure;

@@ -15,6 +15,7 @@ pub struct Post {
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
+  pub nsfw: bool,
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
@@ -29,6 +30,7 @@ pub struct PostForm {
   pub locked: Option<bool>,
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: Option<bool>,
+  pub nsfw: bool,
 }
 
 impl Crud<PostForm> for Post {
@@ -210,6 +212,7 @@ mod tests {
       removed: None,
       deleted: None,
       locked: None,
+      nsfw: false,
       updated: None
     };
 
@@ -225,6 +228,7 @@ mod tests {
       published: inserted_post.published,
       removed: false,
       locked: false,
+      nsfw: false,
       deleted: false,
       updated: None
     };
