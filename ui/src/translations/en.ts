@@ -29,6 +29,7 @@ export const en = {
     mod: 'mod',
     mods: 'mods',
     moderates: 'Moderates',
+    settings: 'Settings',
     remove_as_mod: 'remove as mod',
     appoint_as_mod: 'appoint as mod',
     modlog: 'Modlog',
