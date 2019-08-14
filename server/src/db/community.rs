@@ -231,7 +231,8 @@ mod tests {
       email: None,
       admin: false,
       banned: false,
-      updated: None
+      updated: None,
+      show_nsfw: false,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
