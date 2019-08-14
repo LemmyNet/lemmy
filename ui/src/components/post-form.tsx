@@ -31,6 +31,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
   private emptyState: PostFormState = {
     postForm: {
       name: null,
+      nsfw: false,
       auth: null,
       community_id: null,
       creator_id: (UserService.Instance.user) ? UserService.Instance.user.id : null,
@@ -54,6 +55,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
         edit_id: this.props.post.id,
         creator_id: this.props.post.creator_id,
         url: this.props.post.url,
+        nsfw: this.props.post.nsfw,
         auth: null
       }
     }
@@ -128,6 +130,14 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
             }
           <div class="form-group row">
             <div class="col-sm-10">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" checked={this.state.postForm.nsfw} onChange={linkEvent(this, this.handlePostNsfwChange)}/>
+                <label class="form-check-label"><T i18nKey="nsfw">#</T></label>
+              </div>
+            </div>
+          </div>
+          <div class="form-group row">
+            <div class="col-sm-10">
               <button type="submit" class="btn btn-secondary mr-2">
               {this.state.loading ? 
               <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : 
@@ -193,6 +203,11 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
 
   handlePostCommunityChange(i: PostForm, event: any) {
     i.state.postForm.community_id = Number(event.target.value);
+    i.setState(i.state);
+  }
+
+  handlePostNsfwChange(i: PostForm, event: any) {
+    i.state.postForm.nsfw = event.target.checked;
     i.setState(i.state);
   }
 

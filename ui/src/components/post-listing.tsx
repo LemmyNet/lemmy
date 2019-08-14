@@ -93,6 +93,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             {post.locked &&
               <small className="ml-2 text-muted font-italic"><T i18nKey="locked">#</T></small>
             }
+            {post.nsfw &&
+              <small className="ml-2 text-muted font-italic"><T i18nKey="nsfw">#</T></small>
+            }
             { post.url && isImage(post.url) && 
               <>
                 { !this.state.imageExpanded
@@ -251,6 +254,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       edit_id: i.props.post.id,
       creator_id: i.props.post.creator_id,
       deleted: !i.props.post.deleted,
+      nsfw: i.props.post.nsfw,
       auth: null
     };
     WebSocketService.Instance.editPost(deleteForm);
@@ -285,6 +289,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       creator_id: i.props.post.creator_id,
       removed: !i.props.post.removed,
       reason: i.state.removeReason,
+      nsfw: i.props.post.nsfw,
       auth: null,
     };
     WebSocketService.Instance.editPost(form);
@@ -299,6 +304,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       community_id: i.props.post.community_id,
       edit_id: i.props.post.id,
       creator_id: i.props.post.creator_id,
+      nsfw: i.props.post.nsfw,
       locked: !i.props.post.locked,
       auth: null,
     };

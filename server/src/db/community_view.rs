@@ -12,6 +12,7 @@ table! {
     published -> Timestamp,
     updated -> Nullable<Timestamp>,
     deleted -> Bool,
+    nsfw -> Bool,
     creator_name -> Varchar,
     category_name -> Varchar,
     number_of_subscribers -> BigInt,
@@ -84,6 +85,7 @@ pub struct CommunityView {
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
+  pub nsfw: bool,
   pub creator_name: String,
   pub category_name: String,
   pub number_of_subscribers: i64,
@@ -112,13 +114,15 @@ impl CommunityView {
     query.first::<Self>(conn)
   }
 
-  pub fn list(conn: &PgConnection, 
-              sort: &SortType, 
-              from_user_id: Option<i32>, 
-              search_term: Option<String>,
-              page: Option<i64>,
-              limit: Option<i64>,
-              ) -> Result<Vec<Self>, Error> {
+  pub fn list(
+    conn: &PgConnection, 
+    sort: &SortType, 
+    from_user_id: Option<i32>, 
+    show_nsfw: bool,
+    search_term: Option<String>,
+    page: Option<i64>,
+    limit: Option<i64>,
+    ) -> Result<Vec<Self>, Error> {
     use super::community_view::community_view::dsl::*;
     let mut query = community_view.into_boxed();
 
@@ -141,6 +145,10 @@ impl CommunityView {
           }
         }
       _ => ()
+    };
+
+    if !show_nsfw {
+      query = query.filter(nsfw.eq(false));
     };
 
     query
