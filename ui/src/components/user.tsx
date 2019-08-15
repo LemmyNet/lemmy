@@ -2,8 +2,8 @@ import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Post, Comment, CommunityUser, GetUserDetailsForm, SortType, UserDetailsResponse, UserView, CommentResponse } from '../interfaces';
-import { WebSocketService } from '../services';
+import { UserOperation, Post, Comment, CommunityUser, GetUserDetailsForm, SortType, UserDetailsResponse, UserView, CommentResponse, UserSettingsForm, LoginResponse } from '../interfaces';
+import { WebSocketService, UserService } from '../services';
 import { msgOp, fetchLimit, routeSortTypeToEnum, capitalizeFirstLetter } from '../utils';
 import { PostListing } from './post-listing';
 import { CommentNodes } from './comment-nodes';
@@ -28,6 +28,8 @@ interface UserState {
   sort: SortType;
   page: number;
   loading: boolean;
+  userSettingsForm: UserSettingsForm;
+  userSettingsLoading: boolean;
 }
 
 export class User extends Component<any, UserState> {
@@ -54,6 +56,11 @@ export class User extends Component<any, UserState> {
     view: this.getViewFromProps(this.props),
     sort: this.getSortTypeFromProps(this.props),
     page: this.getPageFromProps(this.props),
+    userSettingsForm: {
+      show_nsfw: null,
+      auth: null,
+    },
+    userSettingsLoading: null,
   }
 
   constructor(props: any, context: any) {
@@ -73,6 +80,10 @@ export class User extends Component<any, UserState> {
     );
 
     this.refetch();
+  }
+
+  get isCurrentUser() {
+    return UserService.Instance.user && UserService.Instance.user.id == this.state.user.id;
   }
 
   getViewFromProps(props: any): View {
@@ -131,6 +142,9 @@ export class User extends Component<any, UserState> {
           </div>
           <div class="col-12 col-md-3">
             {this.userInfo()}
+            {this.isCurrentUser &&
+              this.userSettings()
+            }
             {this.moderates()}
             {this.follows()}
           </div>
@@ -219,7 +233,7 @@ export class User extends Component<any, UserState> {
     return (
       <div>
         <h5>{user.name}</h5>
-        <div>{i18n.t('joined')}<MomentTime data={user} /></div>
+        <div>{i18n.t('joined')} <MomentTime data={user} /></div>
         <table class="table table-bordered table-sm mt-2">
           <tr>
             <td><T i18nKey="number_of_points" interpolation={{count: user.post_score}}>#</T></td>
@@ -231,6 +245,30 @@ export class User extends Component<any, UserState> {
           </tr>
         </table>
         <hr />
+      </div>
+    )
+  }
+
+  userSettings() {  
+    return (
+      <div>
+        <h5><T i18nKey="settings">#</T></h5>
+        <form onSubmit={linkEvent(this, this.handleUserSettingsSubmit)}>
+          <div class="form-group row">
+            <div class="col-12">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" checked={this.state.userSettingsForm.show_nsfw} onChange={linkEvent(this, this.handleUserSettingsShowNsfwChange)}/>
+                <label class="form-check-label"><T i18nKey="show_nsfw">#</T></label>
+              </div>
+            </div>
+          </div>
+          <div class="form-group row">
+            <div class="col-12">
+              <button type="submit" class="btn btn-secondary">{this.state.userSettingsLoading ? 
+              <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : capitalizeFirstLetter(i18n.t('save'))}</button>
+            </div>
+          </div>
+        </form>
       </div>
     )
   }
@@ -329,6 +367,19 @@ export class User extends Component<any, UserState> {
     i.refetch();
   }
 
+  handleUserSettingsShowNsfwChange(i: User, event: any) {
+    i.state.userSettingsForm.show_nsfw = event.target.checked;
+    i.setState(i.state);
+  }
+
+  handleUserSettingsSubmit(i: User, event: any) {
+    event.preventDefault();
+    i.state.userSettingsLoading = true;
+    i.setState(i.state);
+
+    WebSocketService.Instance.saveUserSettings(i.state.userSettingsForm);
+  }
+
   parseMessage(msg: any) {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
@@ -343,6 +394,9 @@ export class User extends Component<any, UserState> {
       this.state.moderates = res.moderates;
       this.state.posts = res.posts;
       this.state.loading = false;
+      if (this.isCurrentUser) {
+        this.state.userSettingsForm.show_nsfw = UserService.Instance.user.show_nsfw;
+      }
       document.title = `/u/${this.state.user.name} - ${WebSocketService.Instance.site.name}`;
       window.scrollTo(0,0);
       this.setState(this.state);
@@ -378,6 +432,12 @@ export class User extends Component<any, UserState> {
       if (res.comment.my_vote !== null) 
         found.my_vote = res.comment.my_vote;
       this.setState(this.state);
+    } else if (op == UserOperation.SaveUserSettings) {
+        this.state = this.emptyState;
+        this.state.userSettingsLoading = false;
+        this.setState(this.state);
+        let res: LoginResponse = msg;
+        UserService.Instance.login(res);
     }
   }
 }

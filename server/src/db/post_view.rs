@@ -19,10 +19,12 @@ table! {
     published -> Timestamp,
     updated -> Nullable<Timestamp>,
     deleted -> Bool,
+    nsfw -> Bool,
     creator_name -> Varchar,
     community_name -> Varchar,
     community_removed -> Bool,
     community_deleted -> Bool,
+    community_nsfw -> Bool,
     number_of_comments -> BigInt,
     score -> BigInt,
     upvotes -> BigInt,
@@ -51,10 +53,12 @@ pub struct PostView {
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
+  pub nsfw: bool,
   pub creator_name: String,
   pub community_name: String,
   pub community_removed: bool,
   pub community_deleted: bool,
+  pub community_nsfw: bool,
   pub number_of_comments: i64,
   pub score: i64,
   pub upvotes: i64,
@@ -68,18 +72,20 @@ pub struct PostView {
 }
 
 impl PostView {
-  pub fn list(conn: &PgConnection, 
-              type_: PostListingType, 
-              sort: &SortType, 
-              for_community_id: Option<i32>, 
-              for_creator_id: Option<i32>, 
-              search_term: Option<String>,
-              my_user_id: Option<i32>, 
-              saved_only: bool,
-              unread_only: bool,
-              page: Option<i64>,
-              limit: Option<i64>,
-              ) -> Result<Vec<Self>, Error> {
+  pub fn list(
+    conn: &PgConnection, 
+    type_: PostListingType, 
+    sort: &SortType, 
+    for_community_id: Option<i32>, 
+    for_creator_id: Option<i32>, 
+    search_term: Option<String>,
+    my_user_id: Option<i32>, 
+    show_nsfw: bool,
+    saved_only: bool,
+    unread_only: bool,
+    page: Option<i64>,
+    limit: Option<i64>,
+    ) -> Result<Vec<Self>, Error> {
     use super::post_view::post_view::dsl::*;
 
     let (limit, offset) = limit_and_offset(page, limit);
@@ -120,6 +126,12 @@ impl PostView {
     } else {
       query = query.filter(user_id.is_null());
     }
+
+    if !show_nsfw {
+      query = query
+        .filter(nsfw.eq(false))
+        .filter(community_nsfw.eq(false));
+    };
 
     query = match sort {
       SortType::Hot => query.order_by(hot_rank.desc())
@@ -196,6 +208,7 @@ mod tests {
       updated: None,
       admin: false,
       banned: false,
+      show_nsfw: false,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -208,7 +221,8 @@ mod tests {
       category_id: 1,
       removed: None,
       deleted: None,
-      updated: None
+      updated: None,
+      nsfw: false,
     };
 
     let inserted_community = Community::create(&conn, &new_community).unwrap();
@@ -222,7 +236,8 @@ mod tests {
       removed: None,
       deleted: None,
       locked: None,
-      updated: None
+      updated: None,
+      nsfw: false,
     };
 
     let inserted_post = Post::create(&conn, &new_post).unwrap();
@@ -266,6 +281,7 @@ mod tests {
       community_name: community_name.to_owned(),
       community_removed: false,
       community_deleted: false,
+      community_nsfw: false,
       number_of_comments: 0,
       score: 1,
       upvotes: 1,
@@ -276,6 +292,7 @@ mod tests {
       subscribed: None,
       read: None,
       saved: None,
+      nsfw: false,
     };
 
     let expected_post_listing_with_user = PostView {
@@ -294,6 +311,7 @@ mod tests {
       community_name: community_name.to_owned(),
       community_removed: false,
       community_deleted: false,
+      community_nsfw: false,
       number_of_comments: 0,
       score: 1,
       upvotes: 1,
@@ -304,6 +322,7 @@ mod tests {
       subscribed: None,
       read: None,
       saved: None,
+      nsfw: false,
     };
 
 
@@ -313,6 +332,7 @@ mod tests {
                                                       None, 
                                                       None,
                                                       Some(inserted_user.id), 
+                                                      false,
                                                       false, 
                                                       false, 
                                                       None, 
@@ -324,6 +344,7 @@ mod tests {
                                                     None, 
                                                     None, 
                                                     None,
+                                                    false,
                                                     false, 
                                                     false, 
                                                     None, 

@@ -14,6 +14,7 @@ pub struct Community {
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
+  pub nsfw: bool,
 }
 
 #[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize)]
@@ -27,6 +28,7 @@ pub struct CommunityForm {
   pub removed: Option<bool>,
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: Option<bool>,
+  pub nsfw: bool,
 }
 
 impl Crud<CommunityForm> for Community {
@@ -229,7 +231,8 @@ mod tests {
       email: None,
       admin: false,
       banned: false,
-      updated: None
+      updated: None,
+      show_nsfw: false,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -240,6 +243,7 @@ mod tests {
       title: "nada".to_owned(),
       description: None,
       category_id: 1,
+      nsfw: false,
       removed: None,
       deleted: None,
       updated: None,
@@ -254,6 +258,7 @@ mod tests {
       title: "nada".to_owned(),
       description: None,
       category_id: 1,
+      nsfw: false,
       removed: false,
       deleted: false,
       published: inserted_community.published,

@@ -46,7 +46,8 @@ mod tests {
       published: naive_now(),
       admin: false,
       banned: false,
-      updated: None
+      updated: None,
+      show_nsfw: false,
     };
 
     let person = expected_user.person();

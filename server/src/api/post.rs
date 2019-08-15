@@ -6,6 +6,7 @@ pub struct CreatePost {
   name: String,
   url: Option<String>,
   body: Option<String>,
+  nsfw: bool,
   community_id: i32,
   auth: String
 }
@@ -73,6 +74,7 @@ pub struct EditPost {
   body: Option<String>,
   removed: Option<bool>,
   deleted: Option<bool>,
+  nsfw: bool,
   locked: Option<bool>,
   reason: Option<String>,
   auth: String
@@ -123,6 +125,7 @@ impl Perform<PostResponse> for Oper<CreatePost> {
       creator_id: user_id,
       removed: None,
       deleted: None,
+      nsfw: data.nsfw,
       locked: None,
       updated: None
     };
@@ -219,40 +222,50 @@ impl Perform<GetPostsResponse> for Oper<GetPosts> {
     let data: &GetPosts = &self.data;
     let conn = establish_connection();
 
-    let user_id: Option<i32> = match &data.auth {
+    let user_claims: Option<Claims> = match &data.auth {
       Some(auth) => {
         match Claims::decode(&auth) {
           Ok(claims) => {
-            let user_id = claims.claims.id;
-            Some(user_id)
+            Some(claims.claims)
           }
           Err(_e) => None
         }
       }
       None => None
     };
+    
+    let user_id = match &user_claims {
+      Some(claims) => Some(claims.id),
+      None => None
+    };
+
+    let show_nsfw = match &user_claims {
+      Some(claims) => claims.show_nsfw,
+      None => false
+    };
 
     let type_ = PostListingType::from_str(&data.type_)?;
     let sort = SortType::from_str(&data.sort)?;
 
-    let posts = match PostView::list(&conn, 
-                                     type_, 
-                                     &sort, 
-                                     data.community_id, 
-                                     None,
-                                     None,
-                                     user_id, 
-                                     false, 
-                                     false, 
-                                     data.page, 
-                                     data.limit) {
+    let posts = match PostView::list(
+      &conn, 
+      type_, 
+      &sort, 
+      data.community_id, 
+      None,
+      None,
+      user_id, 
+      show_nsfw,
+      false, 
+      false, 
+      data.page, 
+      data.limit) {
       Ok(posts) => posts,
       Err(_e) => {
         return Err(APIError::err(&self.op, "couldnt_get_posts"))?
       }
     };
 
-    // Return the jwt
     Ok(
       GetPostsResponse {
         op: self.op.to_string(),
@@ -381,6 +394,7 @@ impl Perform<PostResponse> for Oper<EditPost> {
       community_id: data.community_id,
       removed: data.removed.to_owned(),
       deleted: data.deleted.to_owned(),
+      nsfw: data.nsfw,
       locked: data.locked.to_owned(),
       updated: Some(naive_now())
     };

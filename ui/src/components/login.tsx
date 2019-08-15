@@ -28,6 +28,7 @@ export class Login extends Component<any, State> {
       password: undefined,
       password_verify: undefined,
       admin: false,
+      show_nsfw: false,
     },
     loginLoading: false,
     registerLoading: false,
@@ -127,9 +128,16 @@ export class Login extends Component<any, State> {
         </div>
         <div class="form-group row">
           <div class="col-sm-10">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" checked={this.state.registerForm.show_nsfw} onChange={linkEvent(this, this.handleRegisterShowNsfwChange)}/>
+              <label class="form-check-label"><T i18nKey="show_nsfw">#</T></label>
+            </div>
+          </div>
+        </div>
+        <div class="form-group row">
+          <div class="col-sm-10">
             <button type="submit" class="btn btn-secondary">{this.state.registerLoading ? 
             <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : i18n.t('sign_up')}</button>
-
           </div>
         </div>
       </form>
@@ -178,6 +186,11 @@ export class Login extends Component<any, State> {
 
   handleRegisterPasswordVerifyChange(i: Login, event: any) {
     i.state.registerForm.password_verify = event.target.value;
+    i.setState(i.state);
+  }
+
+  handleRegisterShowNsfwChange(i: Login, event: any) {
+    i.state.registerForm.show_nsfw = event.target.checked;
     i.setState(i.state);
   }
 
