@@ -67,8 +67,9 @@ Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Infern
 Make sure you have both docker and docker-compose(>=`1.24.0`) installed.
 
 ```
-git clone https://github.com/dessalines/lemmy
-cd lemmy/docker
+mkdir /lemmy/
+cd /lemmy/
+wget https://github.com/dessalines/lemmy/blob/master/docker/docker-compose.yml
 docker-compose up -d
 ```
 
