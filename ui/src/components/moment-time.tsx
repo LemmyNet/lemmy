@@ -3,6 +3,7 @@ import * as moment from 'moment';
 // import 'moment/locale/de';
 import 'moment/locale/zh-cn';
 import 'moment/locale/fr';
+import 'moment/locale/sv';
 import { getLanguage } from '../utils';
 import { i18n } from '../i18next';
 
