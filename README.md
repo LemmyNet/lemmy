@@ -69,7 +69,7 @@ Make sure you have both docker and docker-compose(>=`1.24.0`) installed.
 ```
 mkdir /lemmy/
 cd /lemmy/
-wget https://github.com/dessalines/lemmy/blob/master/docker/docker-compose.yml
+wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/docker-compose.yml
 docker-compose up -d
 ```
 
