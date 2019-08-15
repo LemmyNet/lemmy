@@ -37,6 +37,7 @@ Front Page|Post
   - Can ban and unban users from communities and the site.
 - Clean, mobile-friendly interface.
 - i18n / internationalization support.
+- NSFW post / community support.
 - High performance.
   - Server is written in rust.
   - Front end is `~80kB` gzipped.
