@@ -134,17 +134,19 @@ impl ChatServer {
     use crate::db::*;
     use crate::db::post_view::*;
     let conn = establish_connection();
-    let posts = PostView::list(&conn,
-                               PostListingType::Community, 
-                               &SortType::New, 
-                               Some(*community_id), 
-                               None,
-                               None, 
-                               None,
-                               false,
-                               false,
-                               None,
-                               Some(9999))?;
+    let posts = PostView::list(
+      &conn,
+      PostListingType::Community, 
+      &SortType::New, 
+      Some(*community_id), 
+      None,
+      None, 
+      None,
+      false,
+      false,
+      false,
+      None,
+      Some(9999))?;
     for post in posts {
       self.send_room_message(&post.id, message, skip_id);
     }
@@ -301,6 +303,11 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
     UserOperation::GetUserDetails => {
       let get_user_details: GetUserDetails = serde_json::from_str(data)?;
       let res = Oper::new(user_operation, get_user_details).perform()?;
+      Ok(serde_json::to_string(&res)?)
+    },
+    UserOperation::SaveUserSettings => {
+      let save_user_settings: SaveUserSettings = serde_json::from_str(data)?;
+      let res = Oper::new(user_operation, save_user_settings).perform()?;
       Ok(serde_json::to_string(&res)?)
     },
     UserOperation::AddAdmin => {

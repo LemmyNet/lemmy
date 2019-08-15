@@ -412,7 +412,8 @@ mod tests {
       email: None,
       admin: false,
       banned: false,
-      updated: None
+      updated: None,
+      show_nsfw: false,
     };
 
     let inserted_mod = User_::create(&conn, &new_mod).unwrap();
@@ -425,7 +426,8 @@ mod tests {
       email: None,
       admin: false,
       banned: false,
-      updated: None
+      updated: None,
+      show_nsfw: false,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -438,7 +440,8 @@ mod tests {
       creator_id: inserted_user.id,
       removed: None,
       deleted: None,
-      updated: None
+      updated: None,
+      nsfw: false,
     };
 
     let inserted_community = Community::create(&conn, &new_community).unwrap();
@@ -452,7 +455,8 @@ mod tests {
       removed: None,
       deleted: None,
       locked: None,
-      updated: None
+      updated: None,
+      nsfw: false,
     };
 
     let inserted_post = Post::create(&conn, &new_post).unwrap();

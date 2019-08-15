@@ -15,6 +15,7 @@ pub struct Post {
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
+  pub nsfw: bool,
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
@@ -29,6 +30,7 @@ pub struct PostForm {
   pub locked: Option<bool>,
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: Option<bool>,
+  pub nsfw: bool,
 }
 
 impl Crud<PostForm> for Post {
@@ -183,7 +185,8 @@ mod tests {
       email: None,
       admin: false,
       banned: false,
-      updated: None
+      updated: None,
+      show_nsfw: false,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -196,7 +199,8 @@ mod tests {
       creator_id: inserted_user.id,
       removed: None,
       deleted: None,
-      updated: None
+      updated: None,
+      nsfw: false,
     };
 
     let inserted_community = Community::create(&conn, &new_community).unwrap();
@@ -210,6 +214,7 @@ mod tests {
       removed: None,
       deleted: None,
       locked: None,
+      nsfw: false,
       updated: None
     };
 
@@ -225,6 +230,7 @@ mod tests {
       published: inserted_post.published,
       removed: false,
       locked: false,
+      nsfw: false,
       deleted: false,
       updated: None
     };
