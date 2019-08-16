@@ -1,7 +1,7 @@
 version: '2.4'
 
 services:
-  db:
+  lemmy_db:
     image: postgres:12-alpine
     restart: always
     environment:
@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: rrr
       POSTGRES_DB: rrr
     volumes:
-      - db:/var/lib/postgresql/data
+      - lemmy_db:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U rrr"]
       interval: 5s
@@ -17,17 +17,18 @@ services:
       retries: 20
   lemmy:
     build: 
-      context: .
+      context: ../../
+      dockerfile: docker/dev/Dockerfile
     ports:
       - "8536:8536"
     environment:
       LEMMY_FRONT_END_DIR: /app/dist
-      DATABASE_URL: postgres://rrr:rrr@db:5432/rrr
+      DATABASE_URL: postgres://rrr:rrr@lemmy_db:5432/rrr
       JWT_SECRET: changeme
       HOSTNAME: rrr
     restart: always
     depends_on: 
-      db: 
+      lemmy_db: 
         condition: service_healthy 
 volumes:
-  db:
+  lemmy_db:
