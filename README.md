@@ -70,7 +70,7 @@ Make sure you have both docker and docker-compose(>=`1.24.0`) installed.
 ```
 mkdir lemmy/
 cd lemmy/
-wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/docker-compose.yml
+wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/docker-compose.yml
 docker-compose up -d
 ```
 
@@ -98,7 +98,7 @@ location / {
 
 ```
 git clone https://github.com/dessalines/lemmy
-cd lemmy
+cd lemmy/docker
 ./docker_update.sh # This pulls the newest version, builds and runs it
 ```
 
