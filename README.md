@@ -1,5 +1,7 @@
 <h1><img src="https://image.flaticon.com/icons/svg/194/194242.svg" width="50px" height="50px" /> Lemmy</h1>
 
+[![Github](https://img.shields.io/badge/-Github-blue)](https://github.com/dessalines/lemmy)
+[![Gitlab](https://img.shields.io/badge/-Gitlab-yellowgreen)](https://gitlab.com/dessalines/lemmy)
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/dessalines/lemmy.svg)
 [![Build Status](https://travis-ci.org/dessalines/lemmy.svg?branch=master)](https://travis-ci.org/dessalines/lemmy)
 ![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/dessalines/lemmy.svg)
