@@ -1,0 +1,6 @@
+[lemmy]
+# define the username and hostname that you use for ssh connection, and specify the domain
+myuser@example.com  domain=example.com  letsencrypt_contact_email=your@email.com
+
+[all:vars]
+ansible_connection=ssh
