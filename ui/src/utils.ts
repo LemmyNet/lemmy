@@ -170,6 +170,20 @@ export function debounce(func: any, wait: number = 500, immediate: boolean = fal
   }
 }
 
-export function getLanguage() {
+export function getLanguage(): string {
   return (navigator.language || navigator.userLanguage);
+}
+
+export function getMomentLanguage(): string {
+  let lang = getLanguage();
+  if (lang.startsWith('zh')) {
+    lang = 'zh-cn';
+  } else if (lang.startsWith('sv')) {
+    lang = 'sv';
+  } else if (lang.startsWith('fr')) {
+    lang = 'fr';
+  } else {
+    lang = 'en';
+  }
+  return lang;
 }
