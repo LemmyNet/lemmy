@@ -4,7 +4,7 @@ import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { PostForm as PostFormI, Post, PostResponse, UserOperation, Community, ListCommunitiesResponse, ListCommunitiesForm, SortType, SearchForm, SearchType, SearchResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { msgOp, getPageTitle, debounce, capitalizeFirstLetter } from '../utils';
+import { msgOp, getPageTitle, debounce, validURL, capitalizeFirstLetter } from '../utils';
 import * as autosize from 'autosize';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -91,7 +91,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
           <div class="form-group row">
             <label class="col-sm-2 col-form-label"><T i18nKey="url">#</T></label>
             <div class="col-sm-10">
-              <input type="url" class="form-control" value={this.state.postForm.url} onInput={linkEvent(this, debounce(this.handlePostUrlChange))} />
+              <input type="url" class="form-control" value={this.state.postForm.url} onInput={linkEvent(this, this.handlePostUrlChange)} />
               {this.state.suggestedTitle && 
                 <div class="mt-1 text-muted small font-weight-bold pointer" onClick={linkEvent(this, this.copySuggestedTitle)}><T i18nKey="copy_suggested_title" interpolation={{title: this.state.suggestedTitle}}>#</T></div>
               }
@@ -100,7 +100,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
           <div class="form-group row">
             <label class="col-sm-2 col-form-label"><T i18nKey="title">#</T></label>
             <div class="col-sm-10">
-              <textarea value={this.state.postForm.name} onInput={linkEvent(this, debounce(this.handlePostNameChange))} class="form-control" required rows={2} minLength={3} maxLength={100} />
+              <textarea value={this.state.postForm.name} onInput={linkEvent(this, this.handlePostNameChange)} class="form-control" required rows={2} minLength={3} maxLength={100} />
               {this.state.suggestedPosts.length > 0 && 
                 <>
                   <div class="my-1 text-muted small font-weight-bold"><T i18nKey="related_posts">#</T></div>
@@ -169,10 +169,14 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
 
   handlePostUrlChange(i: PostForm, event: any) {
     i.state.postForm.url = event.target.value;
-    getPageTitle(i.state.postForm.url).then(d => {
-      i.state.suggestedTitle = d;
-      i.setState(i.state);
-    });
+    if (validURL(i.state.postForm.url)) {
+      getPageTitle(i.state.postForm.url).then(d => {
+        i.state.suggestedTitle = d;
+        i.setState(i.state);
+      });
+    } else {
+      i.state.suggestedTitle = undefined;
+    }
     i.setState(i.state);
   }
 
