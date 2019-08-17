@@ -4,7 +4,7 @@ import * as moment from 'moment';
 import 'moment/locale/zh-cn';
 import 'moment/locale/fr';
 import 'moment/locale/sv';
-import { getLanguage } from '../utils';
+import { getMomentLanguage } from '../utils';
 import { i18n } from '../i18next';
 
 interface MomentTimeProps {
@@ -20,11 +20,7 @@ export class MomentTime extends Component<MomentTimeProps, any> {
   constructor(props: any, context: any) {
     super(props, context);
 
-    // Moment doesnt have zh, only zh-cn
-    let lang = getLanguage();
-    if (lang == 'zh') {
-      lang = 'zh-cn';
-    }
+    let lang = getMomentLanguage();
 
     moment.locale(lang);
   }
