@@ -170,7 +170,7 @@ impl Perform<LoginResponse> for Oper<Register> {
     };
 
     // Create the main community if it doesn't exist
-    let main_community: Community = match Community::read_from_name(&conn, "main".to_string()) {
+    let main_community: Community = match Community::read(&conn, 2) {
       Ok(c) => c,
       Err(_e) => {
         let community_form = CommunityForm {
