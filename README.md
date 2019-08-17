@@ -1,4 +1,4 @@
-<h1><img src="ui/assets/favicon.svg" width="50px" height="50px" vertical-align="bottom" /><span>Lemmy</span></h1>
+<h1><img src="ui/assets/favicon.svg" width="50px" height="50px" style="vertical-align:bottom" /><span>Lemmy</span></h1>
 
 [![Github](https://img.shields.io/badge/-Github-blue)](https://github.com/dessalines/lemmy)
 [![Gitlab](https://img.shields.io/badge/-Gitlab-yellowgreen)](https://gitlab.com/dessalines/lemmy)
