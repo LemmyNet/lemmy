@@ -1,6 +1,6 @@
 import { Component } from 'inferno';
 import * as moment from 'moment';
-// import 'moment/locale/de';
+import 'moment/locale/de';
 import 'moment/locale/zh-cn';
 import 'moment/locale/fr';
 import 'moment/locale/sv';
