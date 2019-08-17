@@ -1,4 +1,4 @@
-<h1><img src="https://image.flaticon.com/icons/svg/194/194242.svg" width="50px" height="50px" /> Lemmy</h1>
+<h1><img src="ui/assets/favicon.svg" width="50px" height="50px" vertical-align="bottom" /><span>Lemmy</span></h1>
 
 [![Github](https://img.shields.io/badge/-Github-blue)](https://github.com/dessalines/lemmy)
 [![Gitlab](https://img.shields.io/badge/-Gitlab-yellowgreen)](https://gitlab.com/dessalines/lemmy)
@@ -155,4 +155,4 @@ If you'd like to add translations, take a look a look at the [english translatio
 
 ## Credits
 
-Icons made by [Freepik](https://www.freepik.com/) licensed by [CC 3.0](http://creativecommons.org/licenses/by/3.0/)
+Icon made by Andy Cuccaro (@andycuccaro).
