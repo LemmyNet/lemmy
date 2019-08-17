@@ -15,8 +15,16 @@ body, .text-white, .navbar-brand, .badge-light, .btn-secondary {
  color: var(--info);
 }
 
+.upvote {
+  margin-bottom: -5px;
+}
+
 .downvote:hover {
   color: var(--danger);
+}
+
+.downvote {
+  margin-top: -10px;
 }
 
 .form-control, .form-control:focus {
