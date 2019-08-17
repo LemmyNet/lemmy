@@ -84,18 +84,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                 <a className="ml-2 text-muted font-italic" href={post.url} target="_blank" title={post.url}>{(new URL(post.url)).hostname}</a>
               </small>
             }
-            {post.removed &&
-              <small className="ml-2 text-muted font-italic"><T i18nKey="removed">#</T></small>
-            }
-            {post.deleted &&
-              <small className="ml-2 text-muted font-italic"><T i18nKey="deleted">#</T></small>
-            }
-            {post.locked &&
-              <small className="ml-2 text-muted font-italic"><T i18nKey="locked">#</T></small>
-            }
-            {post.nsfw &&
-              <small className="ml-2 text-muted font-italic"><T i18nKey="nsfw">#</T></small>
-            }
             { post.url && isImage(post.url) && 
               <>
                 { !this.state.imageExpanded
@@ -109,6 +97,18 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   </span>
                 }
               </>
+            }
+            {post.removed &&
+              <small className="ml-2 text-muted font-italic"><T i18nKey="removed">#</T></small>
+            }
+            {post.deleted &&
+              <small className="ml-2 text-muted font-italic"><T i18nKey="deleted">#</T></small>
+            }
+            {post.locked &&
+              <small className="ml-2 text-muted font-italic"><T i18nKey="locked">#</T></small>
+            }
+            {post.nsfw &&
+              <small className="ml-2 text-muted font-italic"><T i18nKey="nsfw">#</T></small>
             }
           </div>
         </div>
