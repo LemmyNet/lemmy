@@ -22,14 +22,28 @@
     file: path={{item.path}} state=directory
     with_items:
       - { path: '/lemmy/' }
+      - { path: '/lemmy/volumes/' }
+      - { path: '/var/www/certbot' }
 
   - name:  add all template files
     template: src={{item.src}} dest={{item.dest}}
     with_items:
-      - { src: '../docker/prod/docker-compose.yml', dest: '/lemmy/docker-compose.yml' }
-      - { src: 'nginx.conf', dest: '/lemmy/nginx.conf' }
+      - { src: 'templates/env', dest: '/lemmy/.env' }
+      - { src: 'templates/docker-compose.yml', dest: '/lemmy/docker-compose.yml' }
+      - { src: 'templates/nginx.conf', dest: '/lemmy/nginx.conf' }
+    vars:
+      postgres_password: "{{ lookup('password', 'passwords/{{ inventory_hostname }}/postgres chars=ascii_letters,digits') }}"
+      jwt_password: "{{ lookup('password', 'passwords/{{ inventory_hostname }}/jwt chars=ascii_letters,digits') }}"
 
-  - name: request letsencrypt certificates
+  - name: set env file permissions
+    file:
+      path: "/lemmy/.env"
+      state: touch
+      mode: 0600
+      access_time: preserve
+      modification_time: preserve
+
+  - name: request initial letsencrypt certificate
     command: certbot certonly --standalone --agree-tos -d '{{ domain }}' -m '{{ letsencrypt_contact_email }}'
     args:
       creates: '/etc/letsencrypt/live/{{domain}}/privkey.pem'
@@ -46,9 +60,9 @@
       state: present
       pull: yes
 
-  - name: renew certbot certificates
+  - name: certbot renewal cronjob
     cron:
       special_time=daily
       name=certbot-renew
       user=root
-      job="certbot certonly --webroot --webroot-path=/peertube/volumes/certbot/ -d '{{ domain }}' --deploy-hook 'docker-compose -f /peertube/docker-compose.yml exec nginx nginx -s reload'"
+      job="certbot certonly --webroot --webroot-path=/var/www/certbot -d '{{ domain }}' --deploy-hook 'docker-compose -f /peertube/docker-compose.yml exec nginx nginx -s reload'"
