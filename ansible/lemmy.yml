@@ -1,0 +1,54 @@
+---
+- hosts: all
+
+  # Install python if required
+  # https://www.josharcher.uk/code/ansible-python-connection-failure-ubuntu-server-1604/
+  gather_facts: False
+  pre_tasks:
+    - name: install python for Ansible
+      raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal python-setuptools)
+      args:
+        executable: /bin/bash
+      register: output
+      changed_when: output.stdout != ""
+    - setup: # gather facts
+
+  tasks:
+  - name: install dependencies
+    apt:
+      pkg: ['nginx', 'docker-compose', 'docker.io', 'certbot']
+
+  - name: create lemmy folder
+    file: path={{item.path}} state=directory
+    with_items:
+      - { path: '/lemmy/' }
+
+  - name:  add all template files
+    template: src={{item.src}} dest={{item.dest}}
+    with_items:
+      - { src: '../docker/prod/docker-compose.yml', dest: '/lemmy/docker-compose.yml' }
+      - { src: 'nginx.conf', dest: '/lemmy/nginx.conf' }
+
+  - name: request letsencrypt certificates
+    command: certbot certonly --standalone --agree-tos -d '{{ domain }}' -m '{{ letsencrypt_contact_email }}'
+    args:
+      creates: '/etc/letsencrypt/live/{{domain}}/privkey.pem'
+
+  - name: enable and start docker service
+    systemd:
+      name: docker
+      enabled: yes
+      state: started
+
+  - name: start docker-compose
+    docker_compose:
+      project_src: /peertube/
+      state: present
+      pull: yes
+
+  - name: renew certbot certificates
+    cron:
+      special_time=daily
+      name=certbot-renew
+      user=root
+      job="certbot certonly --webroot --webroot-path=/peertube/volumes/certbot/ -d '{{ domain }}' --deploy-hook 'docker-compose -f /peertube/docker-compose.yml exec nginx nginx -s reload'"
