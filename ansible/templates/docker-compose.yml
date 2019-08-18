@@ -1,4 +1,4 @@
-version: '2.4'
+version: "3.3"
 
 services:
 
@@ -6,9 +6,9 @@ services:
     image: postgres:12-alpine
     restart: always
     environment:
-      POSTGRES_USER=lemmy
-      POSTGRES_PASSWORD=${DATABASE_PASSWORD}
-      POSTGRES_DB=lemmy
+      - POSTGRES_USER=lemmy
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_DB=lemmy
     volumes:
       - ./volumes/db:/var/lib/postgresql/data
     healthcheck:
@@ -23,10 +23,9 @@ services:
     ports:
       - "8536:8536"
     environment:
-      LEMMY_FRONT_END_DIR=/app/dist
-      DATABASE_URL=postgres://rrr:rrr@db:5432/rrr
-      JWT_SECRET=${JWT_SECRET}
-      HOSTNAME=${DOMAIN}
+      - LEMMY_FRONT_END_DIR=/app/dist
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - HOSTNAME=${DOMAIN}
     depends_on: 
-      db: 
-        condition: service_healthy 
+      - db
