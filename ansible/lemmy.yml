@@ -16,21 +16,25 @@
   tasks:
   - name: install dependencies
     apt:
-      pkg: ['nginx', 'docker-compose', 'docker.io', 'certbot']
+      pkg: ['nginx', 'docker-compose', 'docker.io', 'certbot', 'python-certbot-nginx']
+
+  - name: request initial letsencrypt certificate
+    command: certbot certonly --nginx --agree-tos -d '{{ domain }}' -m '{{ letsencrypt_contact_email }}'
+    args:
+      creates: '/etc/letsencrypt/live/{{domain}}/privkey.pem'
 
   - name: create lemmy folder
     file: path={{item.path}} state=directory
     with_items:
       - { path: '/lemmy/' }
       - { path: '/lemmy/volumes/' }
-      - { path: '/var/www/certbot' }
 
   - name:  add all template files
     template: src={{item.src}} dest={{item.dest}}
     with_items:
       - { src: 'templates/env', dest: '/lemmy/.env' }
       - { src: 'templates/docker-compose.yml', dest: '/lemmy/docker-compose.yml' }
-      - { src: 'templates/nginx.conf', dest: '/lemmy/nginx.conf' }
+      - { src: 'templates/nginx.conf', dest: '/etc/nginx/sites-enabled/lemmy.conf' }
     vars:
       postgres_password: "{{ lookup('password', 'passwords/{{ inventory_hostname }}/postgres chars=ascii_letters,digits') }}"
       jwt_password: "{{ lookup('password', 'passwords/{{ inventory_hostname }}/jwt chars=ascii_letters,digits') }}"
@@ -43,11 +47,6 @@
       access_time: preserve
       modification_time: preserve
 
-  - name: request initial letsencrypt certificate
-    command: certbot certonly --standalone --agree-tos -d '{{ domain }}' -m '{{ letsencrypt_contact_email }}'
-    args:
-      creates: '/etc/letsencrypt/live/{{domain}}/privkey.pem'
-
   - name: enable and start docker service
     systemd:
       name: docker
@@ -56,13 +55,16 @@
 
   - name: start docker-compose
     docker_compose:
-      project_src: /peertube/
+      project_src: /lemmy/
       state: present
       pull: yes
+
+  - name: reload nginx with new config
+    shell: nginx -s reload
 
   - name: certbot renewal cronjob
     cron:
       special_time=daily
-      name=certbot-renew
+      name=certbot-renew-lemmy
       user=root
-      job="certbot certonly --webroot --webroot-path=/var/www/certbot -d '{{ domain }}' --deploy-hook 'docker-compose -f /peertube/docker-compose.yml exec nginx nginx -s reload'"
+      job="certbot certonly --nginx -d '{{ domain }}' --deploy-hook 'docker-compose -f /peertube/docker-compose.yml exec nginx nginx -s reload'"
