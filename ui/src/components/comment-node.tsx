@@ -61,7 +61,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     let node = this.props.node;
     return (
       <div className={`comment ${node.comment.parent_id  && !this.props.noIndent ? 'ml-4' : ''}`}>
-        <div className={`mr-1 float-left small text-center ${this.props.viewOnly && 'no-click'}`}>
+        <div className={`vote-bar mr-1 float-left small text-center ${this.props.viewOnly && 'no-click'}`}>
           <div className={`pointer ${node.comment.my_vote == 1 ? 'text-info' : 'text-muted'}`} onClick={linkEvent(node, this.handleCommentLike)}>
             <svg class="pointer icon upvote"><use xlinkHref="#icon-arrow-up"></use></svg>
           </div>
