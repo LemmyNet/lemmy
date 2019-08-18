@@ -18,7 +18,7 @@ export const sv = {
     remove_community: 'Radera gemenskap',
     subscribed_to_communities:'Prenumererar på <1>gemenskaper</1>',
     trending_communities:'Populära <1>gemenskaper</1>',
-    list_of_communities: 'Lista övergemenskaper',
+    list_of_communities: 'Lista över gemenskaper',
     community_reqs: 'gemener, understreck och inga blanksteg.',
     edit: 'redigera',
     reply: 'svara',
