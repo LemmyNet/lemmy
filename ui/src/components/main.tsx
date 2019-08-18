@@ -315,7 +315,7 @@ export class Main extends Component<any, MainState> {
 
   paginator() {
     return (
-      <div class="mt-2">
+      <div class="my-2">
         {this.state.page > 1 && 
           <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}><T i18nKey="prev">#</T></button>
         }
