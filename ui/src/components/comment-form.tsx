@@ -56,7 +56,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
 
   render() {
     return (
-      <div>
+      <div class="mb-3">
         <form onSubmit={linkEvent(this, this.handleCommentSubmit)}>
           <div class="form-group row">
             <div class="col-sm-12">
