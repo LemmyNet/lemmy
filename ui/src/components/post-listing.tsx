@@ -112,7 +112,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             }
           </div>
         </div>
-        <div className="details ml-4 mb-1">
+        <div className="details ml-4">
           <ul class="list-inline mb-0 text-muted small">
             <li className="list-inline-item">
               <span>by </span>
