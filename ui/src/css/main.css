@@ -59,8 +59,9 @@ body, .text-white, .navbar-brand, .badge-light, .btn-secondary {
   height: auto;
 }
 
-.listing {
+.listing, .comment {
   min-height: 61px;
+  margin-bottom: 10px;
 }
 
 .icon {
