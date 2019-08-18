@@ -59,12 +59,7 @@ body, .text-white, .navbar-brand, .badge-light, .btn-secondary {
   height: auto;
 }
 
-.listing {
-  /* min-height: 61px; */
-  margin-bottom: 10px;
-}
-
-.details {
+.listing, .comment-node {
   margin-bottom: 10px;
 }
 

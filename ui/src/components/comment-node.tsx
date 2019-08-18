@@ -70,7 +70,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             <svg class="pointer icon downvote"><use xlinkHref="#icon-arrow-down"></use></svg>
           </div>
         </div>
-        <div id={`comment-${node.comment.id}`} className={`details ml-4 ${this.isCommentNew ? 'mark' : ''}`}>
+        <div id={`comment-${node.comment.id}`} className={`details comment-node ml-4 ${this.isCommentNew ? 'mark' : ''}`}>
           <ul class="list-inline mb-0 text-muted small">
             <li className="list-inline-item">
               <Link className="text-info" to={`/u/${node.comment.creator_name}`}>{node.comment.creator_name}</Link>
