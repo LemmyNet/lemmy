@@ -20,7 +20,7 @@ export class UserService {
 
   public login(res: LoginResponse) {
     this.setUser(res.jwt);
-    Cookies.set("jwt", res.jwt);
+    Cookies.set("jwt", res.jwt, { expires: 365 });
     console.log("jwt cookie set");
   }
 
