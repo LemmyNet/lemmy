@@ -60,13 +60,13 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     return (
       <div class="listing">
         <div className={`vote-bar mr-1 float-left small text-center ${this.props.viewOnly && 'no-click'}`}>
-          <div className={`pointer ${post.my_vote == 1 ? 'text-info' : 'text-muted'}`} onClick={linkEvent(this, this.handlePostLike)}>
-            <svg class="pointer icon upvote"><use xlinkHref="#icon-arrow-up"></use></svg>
-          </div>
+          <button className={`btn btn-sm p-0 ${post.my_vote == 1 ? 'text-info' : 'text-muted'}`} onClick={linkEvent(this, this.handlePostLike)}>
+            <svg class="icon upvote"><use xlinkHref="#icon-arrow-up"></use></svg>
+          </button>
           <div class={`font-weight-bold text-muted`}>{post.score}</div>
-          <div className={`pointer ${post.my_vote == -1 ? 'text-danger' : 'text-muted'}`} onClick={linkEvent(this, this.handlePostDisLike)}>
-            <svg class="pointer icon downvote"><use xlinkHref="#icon-arrow-down"></use></svg>
-          </div>
+          <button className={`btn btn-sm p-0 ${post.my_vote == -1 ? 'text-danger' : 'text-muted'}`} onClick={linkEvent(this, this.handlePostDisLike)}>
+            <svg class="icon downvote"><use xlinkHref="#icon-arrow-down"></use></svg>
+          </button>
         </div>
         {post.url && isImage(post.url) &&
           <span title={i18n.t('expand_here')} class="pointer" onClick={linkEvent(this, this.handleImageExpandClick)}><img class="mx-2 mt-1 float-left img-fluid thumbnail rounded" src={post.url} /></span>
