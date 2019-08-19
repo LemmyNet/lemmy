@@ -5,6 +5,7 @@ import { de } from './translations/de';
 import { zh } from './translations/zh';
 import { fr } from './translations/fr';
 import { sv } from './translations/sv';
+import { ru } from './translations/ru';
 
 // https://github.com/nimbusec-oss/inferno-i18next/blob/master/tests/T.test.js#L66
 // TODO don't forget to add moment locales for new languages.
@@ -14,6 +15,7 @@ const resources = {
   zh,
   fr,
   sv,
+  ru,
 }
 
 function format(value: any, format: any, lng: any) {
