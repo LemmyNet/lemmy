@@ -16,7 +16,7 @@ services:
       timeout: 5s
       retries: 20
   lemmy:
-    image: dessalines/lemmy:v0.0.7
+    image: dessalines/lemmy:v0.0.7.3
     ports:
       - "8536:8536"
     environment:
