@@ -184,6 +184,8 @@ export function getMomentLanguage(): string {
     lang = 'fr';
   } else if (lang.startsWith('de')) {
     lang = 'de';
+  } else if (lang.startsWith('ru')) {
+    lang = 'ru';
   } else {
     lang = 'en';
   }
