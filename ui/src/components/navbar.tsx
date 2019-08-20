@@ -76,7 +76,7 @@ export class Navbar extends Component<any, NavbarState> {
   // TODO class active corresponding to current page
   navbar() {
     return (
-      <nav class="container navbar navbar-expand-md navbar-light navbar-bg p-0 px-3">
+      <nav class="container-fluid navbar navbar-expand-md navbar-light shadow p-0 px-3">
         <Link title={version} class="navbar-brand" to="/">
           {this.state.siteName}
         </Link>
