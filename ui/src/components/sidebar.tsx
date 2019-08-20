@@ -54,85 +54,90 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     let community = this.props.community;
     return (
       <div>
-        <h5 className="mb-0">{community.title}
-        {community.removed &&
-          <small className="ml-2 text-muted font-italic"><T i18nKey="removed">#</T></small>
-        }
-        {community.deleted &&
-          <small className="ml-2 text-muted font-italic"><T i18nKey="deleted">#</T></small>
-        }
-      </h5>
-      <Link className="text-muted" to={`/c/${community.name}`}>/c/{community.name}</Link>
-      <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
-        {this.canMod && 
-          <>
-            <li className="list-inline-item">
-              <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}><T i18nKey="edit">#</T></span>
-            </li>
-            {this.amCreator && 
-              <li className="list-inline-item">
-                <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>
-                  {!community.deleted ? i18n.t('delete') : i18n.t('restore')}
-                </span>
-              </li>
-            }
-          </>
-        }
-        {this.canAdmin &&
-          <li className="list-inline-item">
-            {!this.props.community.removed ? 
-            <span class="pointer" onClick={linkEvent(this, this.handleModRemoveShow)}><T i18nKey="remove">#</T></span> :
-            <span class="pointer" onClick={linkEvent(this, this.handleModRemoveSubmit)}><T i18nKey="restore">#</T></span>
-            }
-          </li>
+        <div class="card border-secondary mb-3">
+          <div class="card-body">
+            <h5 className="mb-0">
+              <span>{community.title}</span>
+              {community.removed &&
+                <small className="ml-2 text-muted font-italic"><T i18nKey="removed">#</T></small>
+              }
+              {community.deleted &&
+                <small className="ml-2 text-muted font-italic"><T i18nKey="deleted">#</T></small>
+              }
+            </h5>
+            <Link className="text-muted" to={`/c/${community.name}`}>/c/{community.name}</Link>
+            <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
+              {this.canMod && 
+                <>
+                  <li className="list-inline-item">
+                    <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}><T i18nKey="edit">#</T></span>
+                  </li>
+                  {this.amCreator && 
+                    <li className="list-inline-item">
+                      <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>
+                        {!community.deleted ? i18n.t('delete') : i18n.t('restore')}
+                      </span>
+                    </li>
+                  }
+                </>
+              }
+              {this.canAdmin &&
+                <li className="list-inline-item">
+                  {!this.props.community.removed ? 
+                  <span class="pointer" onClick={linkEvent(this, this.handleModRemoveShow)}><T i18nKey="remove">#</T></span> :
+                  <span class="pointer" onClick={linkEvent(this, this.handleModRemoveSubmit)}><T i18nKey="restore">#</T></span>
+                  }
+                </li>
 
-        }
-      </ul>
-      {this.state.showRemoveDialog && 
-        <form onSubmit={linkEvent(this, this.handleModRemoveSubmit)}>
-          <div class="form-group row">
-            <label class="col-form-label"><T i18nKey="reason">#</T></label>
-            <input type="text" class="form-control mr-2" placeholder={i18n.t('optional')} value={this.state.removeReason} onInput={linkEvent(this, this.handleModRemoveReasonChange)} />
+              }
+            </ul>
+            {this.state.showRemoveDialog && 
+              <form onSubmit={linkEvent(this, this.handleModRemoveSubmit)}>
+                <div class="form-group row">
+                  <label class="col-form-label"><T i18nKey="reason">#</T></label>
+                  <input type="text" class="form-control mr-2" placeholder={i18n.t('optional')} value={this.state.removeReason} onInput={linkEvent(this, this.handleModRemoveReasonChange)} />
+                </div>
+                {/* TODO hold off on expires for now */}
+                {/* <div class="form-group row"> */}
+                  {/*   <label class="col-form-label">Expires</label> */}
+                  {/*   <input type="date" class="form-control mr-2" placeholder={i18n.t('expires')} value={this.state.removeExpires} onInput={linkEvent(this, this.handleModRemoveExpiresChange)} /> */}
+                  {/* </div> */}
+                  <div class="form-group row">
+                    <button type="submit" class="btn btn-secondary"><T i18nKey="remove_community">#</T></button>
+                  </div>
+                </form>
+            }
+            <ul class="my-1 list-inline">
+              <li className="list-inline-item"><Link className="badge badge-secondary" to="/communities">{community.category_name}</Link></li>
+              <li className="list-inline-item badge badge-secondary"><T i18nKey="number_of_subscribers" interpolation={{count: community.number_of_subscribers}}>#</T></li>
+              <li className="list-inline-item badge badge-secondary"><T i18nKey="number_of_posts" interpolation={{count: community.number_of_posts}}>#</T></li>
+              <li className="list-inline-item badge badge-secondary"><T i18nKey="number_of_comments" interpolation={{count: community.number_of_comments}}>#</T></li>
+              <li className="list-inline-item"><Link className="badge badge-secondary" to={`/modlog/community/${this.props.community.id}`}><T i18nKey="modlog">#</T></Link></li>
+            </ul>
+            <ul class="list-inline small"> 
+              <li class="list-inline-item">{i18n.t('mods')}: </li>
+              {this.props.moderators.map(mod =>
+                <li class="list-inline-item"><Link class="text-info" to={`/u/${mod.user_name}`}>{mod.user_name}</Link></li>
+              )}
+            </ul>
+            <Link class={`btn btn-sm btn-secondary btn-block mb-3 ${(community.deleted || community.removed) && 'no-click'}`}
+            to={`/create_post/c/${community.name}`}><T i18nKey="create_a_post">#</T></Link>
+          <div>
+            {community.subscribed 
+              ? <button class="btn btn-sm btn-secondary btn-block" onClick={linkEvent(community.id, this.handleUnsubscribe)}><T i18nKey="unsubscribe">#</T></button>
+              : <button class="btn btn-sm btn-secondary btn-block" onClick={linkEvent(community.id, this.handleSubscribe)}><T i18nKey="subscribe">#</T></button>
+            }
           </div>
-          {/* TODO hold off on expires for now */}
-          {/* <div class="form-group row"> */}
-          {/*   <label class="col-form-label">Expires</label> */}
-          {/*   <input type="date" class="form-control mr-2" placeholder={i18n.t('expires')} value={this.state.removeExpires} onInput={linkEvent(this, this.handleModRemoveExpiresChange)} /> */}
-          {/* </div> */}
-          <div class="form-group row">
-            <button type="submit" class="btn btn-secondary"><T i18nKey="remove_community">#</T></button>
-          </div>
-        </form>
-      }
-      <ul class="my-1 list-inline">
-        <li className="list-inline-item"><Link className="badge badge-light" to="/communities">{community.category_name}</Link></li>
-        <li className="list-inline-item badge badge-light"><T i18nKey="number_of_subscribers" interpolation={{count: community.number_of_subscribers}}>#</T></li>
-        <li className="list-inline-item badge badge-light"><T i18nKey="number_of_posts" interpolation={{count: community.number_of_posts}}>#</T></li>
-        <li className="list-inline-item badge badge-light"><T i18nKey="number_of_comments" interpolation={{count: community.number_of_comments}}>#</T></li>
-        <li className="list-inline-item"><Link className="badge badge-light" to={`/modlog/community/${this.props.community.id}`}><T i18nKey="modlog">#</T></Link></li>
-      </ul>
-      <ul class="list-inline small"> 
-        <li class="list-inline-item">{i18n.t('mods')}: </li>
-        {this.props.moderators.map(mod =>
-          <li class="list-inline-item"><Link class="text-info" to={`/u/${mod.user_name}`}>{mod.user_name}</Link></li>
-        )}
-      </ul>
-      <Link class={`btn btn-sm btn-secondary btn-block mb-3 ${(community.deleted || community.removed) && 'no-click'}`}
-          to={`/create_post/c/${community.name}`}><T i18nKey="create_a_post">#</T></Link>
-      <div>
-        {community.subscribed 
-          ? <button class="btn btn-sm btn-secondary btn-block mb-3" onClick={linkEvent(community.id, this.handleUnsubscribe)}><T i18nKey="unsubscribe">#</T></button>
-          : <button class="btn btn-sm btn-secondary btn-block mb-3" onClick={linkEvent(community.id, this.handleSubscribe)}><T i18nKey="subscribe">#</T></button>
-        }
-      </div>
-      {community.description && 
-        <div>
-          <hr />
-          <div className="md-div" dangerouslySetInnerHTML={mdToHtml(community.description)} />
-          <hr />
         </div>
-      }
-    </div>
+        </div>
+        {community.description && 
+          <div class="card border-secondary">
+            <div class="card-body">
+              <div className="md-div" dangerouslySetInnerHTML={mdToHtml(community.description)} />
+            </div>
+          </div>
+        }
+        </div>
     );
   }
 
