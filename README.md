@@ -145,6 +145,7 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 - [Sponsor List](https://dev.lemmy.ml/sponsors).
 - bitcoin: `1Hefs7miXS5ff5Ck5xvmjKjXf5242KzRtK`
 - ethereum: `0x400c96c96acbC6E7B3B43B1dc1BB446540a88A01`
+- monero: `41taVyY6e1xApqKyMVDRVxJ76sPkfZhALLTjRvVKpaAh2pBd4wv9RgYj1tSPrx8wc6iE1uWUfjtQdTmTy2FGMeChGVKPQuV`
 
 ## Translations 
 
