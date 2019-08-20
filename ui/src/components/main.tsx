@@ -180,16 +180,14 @@ export class Main extends Component<any, MainState> {
 
   sidebar() {
     return (
-      <div class="card border-secondary mb-3">
-        <div class="card-body">
-          {!this.state.showEditSite ?
-            this.siteInfo() :
-            <SiteForm
-              site={this.state.site.site} 
-              onCancel={this.handleEditCancel} 
-            />
-          }
-        </div>
+      <div>
+        {!this.state.showEditSite ?
+          this.siteInfo() :
+          <SiteForm
+            site={this.state.site.site} 
+            onCancel={this.handleEditCancel} 
+          />
+        }
       </div>
     )
   }
@@ -203,47 +201,52 @@ export class Main extends Component<any, MainState> {
   siteInfo() {
     return (
       <div>
-        <h5 class="mb-0">{`${this.state.site.site.name}`}</h5>
-        {this.canAdmin && 
-          <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
-            <li className="list-inline-item">
-              <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>
-                <T i18nKey="edit">#</T>
-              </span>
-            </li>
-          </ul>
-        }
-        <ul class="my-2 list-inline">
-          <li className="list-inline-item badge badge-secondary">
-            <T i18nKey="number_of_users" interpolation={{count: this.state.site.site.number_of_users}}>#</T>
-          </li>
-          <li className="list-inline-item badge badge-secondary">
-            <T i18nKey="number_of_posts" interpolation={{count: this.state.site.site.number_of_posts}}>#</T>
-          </li>
-          <li className="list-inline-item badge badge-secondary">
-            <T i18nKey="number_of_comments" interpolation={{count: this.state.site.site.number_of_comments}}>#</T>
-          </li>
-          <li className="list-inline-item">
-            <Link className="badge badge-secondary" to="/modlog">
-              <T i18nKey="modlog">#</T>
-            </Link>
-          </li>
-        </ul>
-        <ul class="my-1 list-inline small"> 
-          <li class="list-inline-item">
-            <T i18nKey="admins" class="d-inline">#</T>:
-          </li>
-          {this.state.site.admins.map(admin =>
-            <li class="list-inline-item"><Link class="text-info" to={`/u/${admin.name}`}>{admin.name}</Link></li>
-          )}
-        </ul>
-        {this.state.site.site.description && 
-          <div>
-            <hr />
-            <div className="md-div" dangerouslySetInnerHTML={mdToHtml(this.state.site.site.description)} />
+        <div class="card border-secondary mb-3">
+          <div class="card-body">
+            <h5 class="mb-0">{`${this.state.site.site.name}`}</h5>
+            {this.canAdmin && 
+              <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
+                <li className="list-inline-item">
+                  <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}>
+                    <T i18nKey="edit">#</T>
+                  </span>
+                </li>
+              </ul>
+            }
+            <ul class="my-2 list-inline">
+              <li className="list-inline-item badge badge-secondary">
+                <T i18nKey="number_of_users" interpolation={{count: this.state.site.site.number_of_users}}>#</T>
+              </li>
+              <li className="list-inline-item badge badge-secondary">
+                <T i18nKey="number_of_posts" interpolation={{count: this.state.site.site.number_of_posts}}>#</T>
+              </li>
+              <li className="list-inline-item badge badge-secondary">
+                <T i18nKey="number_of_comments" interpolation={{count: this.state.site.site.number_of_comments}}>#</T>
+              </li>
+              <li className="list-inline-item">
+                <Link className="badge badge-secondary" to="/modlog">
+                  <T i18nKey="modlog">#</T>
+                </Link>
+              </li>
+            </ul>
+            <ul class="mt-1 list-inline small mb-0"> 
+              <li class="list-inline-item">
+                <T i18nKey="admins" class="d-inline">#</T>:
+                </li>
+                {this.state.site.admins.map(admin =>
+                  <li class="list-inline-item"><Link class="text-info" to={`/u/${admin.name}`}>{admin.name}</Link></li>
+                )}
+              </ul>
+            </div>
           </div>
-        }
-      </div>
+          {this.state.site.site.description && 
+            <div class="card border-secondary mb-3">
+              <div class="card-body">
+                <div className="md-div" dangerouslySetInnerHTML={mdToHtml(this.state.site.site.description)} />
+              </div>
+            </div>
+          }
+        </div>
     )
   }
 
@@ -256,7 +259,7 @@ export class Main extends Component<any, MainState> {
             <svg class="icon mx-2"><use xlinkHref="#icon-mouse">#</use></svg>
             <a href={repoUrl}>Lemmy<sup>beta</sup></a>
           </h5>
-          <p>
+          <p class="mb-0">
             <T i18nKey="landing_0">#<a href="https://en.wikipedia.org/wiki/Link_aggregation">#</a><a href="https://en.wikipedia.org/wiki/Fediverse">#</a><br></br><code>#</code><br></br><b>#</b><br></br><a href={repoUrl}>#</a><br></br><a href="https://www.rust-lang.org">#</a><a href="https://actix.rs/">#</a><a href="https://www.infernojs.org">#</a><a href="https://www.typescriptlang.org/">#</a>
           </T>
         </p>

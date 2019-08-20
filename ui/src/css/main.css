@@ -2,6 +2,10 @@ body, .text-white, .navbar-brand, .badge-light, .btn-secondary {
   color: #dedede !important;
 }
 
+.navbar-toggler {
+  border: 0px;
+}
+
 .pointer {
   cursor: pointer;
 }
