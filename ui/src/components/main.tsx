@@ -134,25 +134,30 @@ export class Main extends Component<any, MainState> {
       <div>
         {!this.state.loading &&
           <div>
-            {this.trendingCommunities()}
-            {UserService.Instance.user && this.state.subscribedCommunities.length > 0 && 
-              <div>
-                <h5>
-                  <T i18nKey="subscribed_to_communities">#<Link class="text-white" to="/communities">#</Link></T>
-                </h5> 
-                <ul class="list-inline"> 
-                  {this.state.subscribedCommunities.map(community =>
-                    <li class="list-inline-item"><Link to={`/c/${community.community_name}`}>{community.community_name}</Link></li>
-                  )}
-                </ul>
+            <div class="card border-secondary mb-3">
+              <div class="card-body">
+                {this.trendingCommunities()}
+                {UserService.Instance.user && this.state.subscribedCommunities.length > 0 && 
+                  <div>
+                    <h5>
+                      <T i18nKey="subscribed_to_communities">#<Link class="text-white" to="/communities">#</Link></T>
+                    </h5> 
+                    <ul class="list-inline"> 
+                      {this.state.subscribedCommunities.map(community =>
+                        <li class="list-inline-item"><Link to={`/c/${community.community_name}`}>{community.community_name}</Link></li>
+                      )}
+                    </ul>
+                  </div>
+                }
+                <Link class="btn btn-sm btn-secondary btn-block" 
+                  to="/create_community">
+                  <T i18nKey="create_a_community">#</T>
+                </Link>
               </div>
-            }
-            <Link class="btn btn-sm btn-secondary btn-block mb-3" 
-              to="/create_community">
-              <T i18nKey="create_a_community">#</T>
-            </Link>
-              {this.sidebar()}
             </div>
+            {this.sidebar()}
+            {this.landing()}
+          </div>
         }
       </div>
     )
@@ -175,15 +180,16 @@ export class Main extends Component<any, MainState> {
 
   sidebar() {
     return (
-      <div>
-        {!this.state.showEditSite ?
-          this.siteInfo() :
-          <SiteForm
-            site={this.state.site.site} 
-            onCancel={this.handleEditCancel} 
-          />
-        }
-        {this.landing()}
+      <div class="card border-secondary mb-3">
+        <div class="card-body">
+          {!this.state.showEditSite ?
+            this.siteInfo() :
+            <SiteForm
+              site={this.state.site.site} 
+              onCancel={this.handleEditCancel} 
+            />
+          }
+        </div>
       </div>
     )
   }
@@ -208,17 +214,17 @@ export class Main extends Component<any, MainState> {
           </ul>
         }
         <ul class="my-2 list-inline">
-          <li className="list-inline-item badge badge-light">
+          <li className="list-inline-item badge badge-secondary">
             <T i18nKey="number_of_users" interpolation={{count: this.state.site.site.number_of_users}}>#</T>
           </li>
-          <li className="list-inline-item badge badge-light">
+          <li className="list-inline-item badge badge-secondary">
             <T i18nKey="number_of_posts" interpolation={{count: this.state.site.site.number_of_posts}}>#</T>
           </li>
-          <li className="list-inline-item badge badge-light">
+          <li className="list-inline-item badge badge-secondary">
             <T i18nKey="number_of_comments" interpolation={{count: this.state.site.site.number_of_comments}}>#</T>
           </li>
           <li className="list-inline-item">
-            <Link className="badge badge-light" to="/modlog">
+            <Link className="badge badge-secondary" to="/modlog">
               <T i18nKey="modlog">#</T>
             </Link>
           </li>
@@ -235,7 +241,6 @@ export class Main extends Component<any, MainState> {
           <div>
             <hr />
             <div className="md-div" dangerouslySetInnerHTML={mdToHtml(this.state.site.site.description)} />
-            <hr />
           </div>
         }
       </div>
@@ -244,17 +249,19 @@ export class Main extends Component<any, MainState> {
 
   landing() {
     return (
-      <div>
-        <h5>
-          <T i18nKey="powered_by" class="d-inline">#</T>
-          <svg class="icon mx-2"><use xlinkHref="#icon-mouse">#</use></svg>
-          <a href={repoUrl}>Lemmy<sup>beta</sup></a>
-        </h5>
-        <p>
-          <T i18nKey="landing_0">#<a href="https://en.wikipedia.org/wiki/Link_aggregation">#</a><a href="https://en.wikipedia.org/wiki/Fediverse">#</a><br></br><code>#</code><br></br><b>#</b><br></br><a href={repoUrl}>#</a><br></br><a href="https://www.rust-lang.org">#</a><a href="https://actix.rs/">#</a><a href="https://www.infernojs.org">#</a><a href="https://www.typescriptlang.org/">#</a>
-        </T>
-      </p>
+      <div class="card border-secondary">
+        <div class="card-body">
+          <h5>
+            <T i18nKey="powered_by" class="d-inline">#</T>
+            <svg class="icon mx-2"><use xlinkHref="#icon-mouse">#</use></svg>
+            <a href={repoUrl}>Lemmy<sup>beta</sup></a>
+          </h5>
+          <p>
+            <T i18nKey="landing_0">#<a href="https://en.wikipedia.org/wiki/Link_aggregation">#</a><a href="https://en.wikipedia.org/wiki/Fediverse">#</a><br></br><code>#</code><br></br><b>#</b><br></br><a href={repoUrl}>#</a><br></br><a href="https://www.rust-lang.org">#</a><a href="https://actix.rs/">#</a><a href="https://www.infernojs.org">#</a><a href="https://www.typescriptlang.org/">#</a>
+          </T>
+        </p>
       </div>
+    </div>
     )
   }
 
@@ -275,7 +282,7 @@ export class Main extends Component<any, MainState> {
 
   selects() {
     return (
-      <div className="mb-2">
+      <div className="mb-3">
         <div class="btn-group btn-group-toggle">
           <label className={`btn btn-sm btn-secondary 
             ${this.state.type_ == ListingType.Subscribed && 'active'}
@@ -302,7 +309,7 @@ export class Main extends Component<any, MainState> {
           <option disabled><T i18nKey="sort_type">#</T></option>
           <option value={SortType.Hot}><T i18nKey="hot">#</T></option>
           <option value={SortType.New}><T i18nKey="new">#</T></option>
-          <option disabled>──────────</option>
+          <option disabled>─────</option>
           <option value={SortType.TopDay}><T i18nKey="top_day">#</T></option>
           <option value={SortType.TopWeek}><T i18nKey="week">#</T></option>
           <option value={SortType.TopMonth}><T i18nKey="month">#</T></option>

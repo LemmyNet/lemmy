@@ -6,7 +6,7 @@ import { WebSocketService } from '../services';
 import { PostListings } from './post-listings';
 import { Sidebar } from './sidebar';
 import { msgOp, routeSortTypeToEnum, fetchLimit } from '../utils';
-import { T } from 'inferno-i18next';
+import { T, i18n } from 'inferno-i18next';
 
 interface State {
   community: CommunityI;
@@ -134,7 +134,7 @@ export class Community extends Component<any, State> {
           <option disabled><T i18nKey="sort_type">#</T></option>
           <option value={SortType.Hot}><T i18nKey="hot">#</T></option>
           <option value={SortType.New}><T i18nKey="new">#</T></option>
-          <option disabled>──────────</option>
+          <option disabled>──────</option>
           <option value={SortType.TopDay}><T i18nKey="top_day">#</T></option>
           <option value={SortType.TopWeek}><T i18nKey="week">#</T></option>
           <option value={SortType.TopMonth}><T i18nKey="month">#</T></option>

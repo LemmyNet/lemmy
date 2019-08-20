@@ -123,7 +123,7 @@ export class User extends Component<any, UserState> {
         {this.state.loading ? 
         <h5><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> : 
         <div class="row">
-          <div class="col-12 col-md-9">
+          <div class="col-12 col-md-8">
             <h5>/u/{this.state.user.name}</h5>
             {this.selects()}
             {this.state.view == View.Overview &&
@@ -140,7 +140,7 @@ export class User extends Component<any, UserState> {
             }
             {this.paginator()}
           </div>
-          <div class="col-12 col-md-3">
+          <div class="col-12 col-md-4">
             {this.userInfo()}
             {this.isCurrentUser &&
               this.userSettings()
@@ -232,19 +232,24 @@ export class User extends Component<any, UserState> {
     let user = this.state.user;
     return (
       <div>
-        <h5>{user.name}</h5>
-        <div>{i18n.t('joined')} <MomentTime data={user} /></div>
-        <table class="table table-bordered table-sm mt-2">
-          <tr>
-            <td><T i18nKey="number_of_points" interpolation={{count: user.post_score}}>#</T></td>
-            <td><T i18nKey="number_of_posts" interpolation={{count: user.number_of_posts}}>#</T></td>
-          </tr>
-          <tr>
-            <td><T i18nKey="number_of_points" interpolation={{count: user.comment_score}}>#</T></td>
-            <td><T i18nKey="number_of_comments" interpolation={{count: user.number_of_comments}}>#</T></td>
-          </tr>
-        </table>
-        <hr />
+        <div class="card border-secondary mb-3">
+          <div class="card-body">
+            <h5>{user.name}</h5>
+            <div>{i18n.t('joined')} <MomentTime data={user} /></div>
+            <div class="table-responsive">
+              <table class="table table-bordered table-sm mt-2 mb-0">
+                <tr>
+                  <td><T i18nKey="number_of_points" interpolation={{count: user.post_score}}>#</T></td>
+                  <td><T i18nKey="number_of_posts" interpolation={{count: user.number_of_posts}}>#</T></td>
+                </tr>
+                <tr>
+                  <td><T i18nKey="number_of_points" interpolation={{count: user.comment_score}}>#</T></td>
+                  <td><T i18nKey="number_of_comments" interpolation={{count: user.number_of_comments}}>#</T></td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
@@ -252,23 +257,27 @@ export class User extends Component<any, UserState> {
   userSettings() {  
     return (
       <div>
-        <h5><T i18nKey="settings">#</T></h5>
-        <form onSubmit={linkEvent(this, this.handleUserSettingsSubmit)}>
-          <div class="form-group row">
-            <div class="col-12">
-              <div class="form-check">
-                <input class="form-check-input" type="checkbox" checked={this.state.userSettingsForm.show_nsfw} onChange={linkEvent(this, this.handleUserSettingsShowNsfwChange)}/>
-                <label class="form-check-label"><T i18nKey="show_nsfw">#</T></label>
+        <div class="card border-secondary mb-3">
+          <div class="card-body">
+            <h5><T i18nKey="settings">#</T></h5>
+            <form onSubmit={linkEvent(this, this.handleUserSettingsSubmit)}>
+              <div class="form-group row">
+                <div class="col-12">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" checked={this.state.userSettingsForm.show_nsfw} onChange={linkEvent(this, this.handleUserSettingsShowNsfwChange)}/>
+                    <label class="form-check-label"><T i18nKey="show_nsfw">#</T></label>
+                  </div>
+                </div>
               </div>
-            </div>
+              <div class="form-group row mb-0">
+                <div class="col-12">
+                  <button type="submit" class="btn btn-secondary">{this.state.userSettingsLoading ? 
+                  <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : capitalizeFirstLetter(i18n.t('save'))}</button>
+                </div>
+              </div>
+            </form>
           </div>
-          <div class="form-group row">
-            <div class="col-12">
-              <button type="submit" class="btn btn-secondary">{this.state.userSettingsLoading ? 
-              <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : capitalizeFirstLetter(i18n.t('save'))}</button>
-            </div>
-          </div>
-        </form>
+        </div>
       </div>
     )
   }
@@ -276,16 +285,20 @@ export class User extends Component<any, UserState> {
   moderates() {
     return (
       <div>
-        {this.state.moderates.length > 0 &&
-          <div>
-            <h5><T i18nKey="moderates">#</T></h5>
-            <ul class="list-unstyled"> 
-              {this.state.moderates.map(community =>
-                <li><Link to={`/c/${community.community_name}`}>{community.community_name}</Link></li>
-              )}
-            </ul>
+        <div class="card border-secondary mb-3">
+          <div class="card-body">
+            {this.state.moderates.length > 0 &&
+              <div>
+                <h5><T i18nKey="moderates">#</T></h5>
+                <ul class="list-unstyled mb-0"> 
+                  {this.state.moderates.map(community =>
+                    <li><Link to={`/c/${community.community_name}`}>{community.community_name}</Link></li>
+                  )}
+                </ul>
+              </div>
+            }
           </div>
-        }
+        </div>
       </div>
     )
   }
@@ -294,14 +307,15 @@ export class User extends Component<any, UserState> {
     return (
       <div>
         {this.state.follows.length > 0 &&
-          <div>
-            <hr />
-            <h5><T i18nKey="subscribed">#</T></h5>
-            <ul class="list-unstyled"> 
-              {this.state.follows.map(community =>
-                <li><Link to={`/c/${community.community_name}`}>{community.community_name}</Link></li>
-              )}
-            </ul>
+          <div class="card border-secondary mb-3">
+            <div class="card-body">
+              <h5><T i18nKey="subscribed">#</T></h5>
+              <ul class="list-unstyled mb-0"> 
+                {this.state.follows.map(community =>
+                  <li><Link to={`/c/${community.community_name}`}>{community.community_name}</Link></li>
+                )}
+              </ul>
+            </div>
           </div>
         }
       </div>
@@ -310,7 +324,7 @@ export class User extends Component<any, UserState> {
 
   paginator() {
     return (
-      <div class="mt-2">
+      <div class="my-2">
         {this.state.page > 1 && 
           <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}><T i18nKey="prev">#</T></button>
         }
