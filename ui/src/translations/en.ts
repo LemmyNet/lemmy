@@ -123,6 +123,7 @@ export const en = {
     crypto: 'Crypto',
     bitcoin: 'Bitcoin',
     ethereum: 'Ethereum',
+    monero: 'Monero',
     code: 'Code',
     joined: 'Joined',
     powered_by: 'Powered by',
