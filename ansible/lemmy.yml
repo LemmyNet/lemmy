@@ -33,7 +33,7 @@
     template: src={{item.src}} dest={{item.dest}}
     with_items:
       - { src: 'templates/env', dest: '/lemmy/.env' }
-      - { src: 'templates/docker-compose.yml', dest: '/lemmy/docker-compose.yml' }
+      - { src: '../docker/prod/docker-compose.yml', dest: '/lemmy/docker-compose.yml' }
       - { src: 'templates/nginx.conf', dest: '/etc/nginx/sites-enabled/lemmy.conf' }
     vars:
       postgres_password: "{{ lookup('password', 'passwords/{{ inventory_hostname }}/postgres chars=ascii_letters,digits') }}"

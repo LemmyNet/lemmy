@@ -1,0 +1,4 @@
+DOMAIN={{your domain}}
+DATABASE_PASSWORD={{a random password for postgres}}
+DATABASE_URL=postgres://lemmy:{{ the same postgres password again }}@db:5432/lemmy
+JWT_SECRET={{ a random password for jwt}}
