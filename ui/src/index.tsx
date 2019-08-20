@@ -39,7 +39,7 @@ class Index extends Component<any, any> {
       <Provider i18next={i18n}>
         <BrowserRouter>
           <Navbar />
-          <div class="mt-3 p-0">
+          <div class="mt-4 p-0">
             <Switch>
               <Route path={`/home/type/:type/sort/:sort/page/:page`} component={Main} />
               <Route exact path={`/`} component={Main} />
