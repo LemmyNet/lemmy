@@ -28,7 +28,7 @@ Front Page|Post
 
 - Open source, [AGPL License](/LICENSE).
 - Self hostable, easy to deploy.
-  - Comes with [Docker](#docker).
+  - Comes with [Docker](#docker), [Ansible](#ansible).
 - Live-updating Comment threads.
 - Full vote scores `(+/-)` like old reddit.
 - Moderation abilities.
@@ -64,51 +64,42 @@ Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Infern
 
 ## Install
 
-### Ansible (recommended)
+### Docker
 
-First, you need to [install Ansible on your local computer](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html),
-eg using `sudo apt install ansible`, or the equivalent for you platform.
-
-Then run the following commands on your local computer:
-```bash
-git clone https://github.com/dessalines/lemmy.git
-cd lemmy/ansible/
-cp inventory.example inventory
-nano inventory # enter your server, domain, contact email
-ansible-playbook lemmy.yml
-```
-
-### Manual
-
-Make sure you have both docker and docker-compose installed.
+Make sure you have both docker and docker-compose(>=`1.24.0`) installed.
 
 ```
 mkdir lemmy/
 cd lemmy/
 wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/docker-compose.yml
 wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/env -O .env
-wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/nginx.conf
-# you need to edit .env and nginx.conf to replace the indicated {{ variables }}
-sudo mv nginx.conf /etc/nginx/sites-enabled/lemmy.conf
+# Edit the .env for custom passwords
 docker-compose up -d
 ```
 
 and goto http://localhost:8536
 
-### Nginx Config
-```
-location / {
-  rewrite (\/(user|u|inbox|post|community|c|login|search|sponsors|communities|modlog|home)+) /static/index.html break;
-  proxy_pass http://0.0.0.0:8536;
-  proxy_set_header X-Real-IP $remote_addr;
-  proxy_set_header Host $host;
-  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+[A sample nginx config](/docker/prod/nginx.conf), could be setup with:
 
-  # WebSocket support
-  proxy_http_version 1.1;
-  proxy_set_header Upgrade $http_upgrade;
-  proxy_set_header Connection "upgrade";
-}
+```
+wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/nginx.conf
+# Replace the {{ vars }}
+sudo mv nginx.conf /etc/nginx/sites-enabled/lemmy.conf
+```
+
+### Ansible
+
+First, you need to [install Ansible on your local computer](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html),
+eg using `sudo apt install ansible`, or the equivalent for you platform.
+
+Then run the following commands on your local computer:
+
+```bash
+git clone https://github.com/dessalines/lemmy.git
+cd lemmy/ansible/
+cp inventory.example inventory
+nano inventory # enter your server, domain, contact email
+ansible-playbook lemmy.yml
 ```
 
 ## Develop
