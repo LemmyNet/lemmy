@@ -64,14 +64,32 @@ Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Infern
 
 ## Install
 
-### Docker
+### Ansible (recommended)
 
-Make sure you have both docker and docker-compose(>=`1.24.0`) installed.
+First, you need to [install Ansible on your local computer](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html),
+eg using `sudo apt install ansible`, or the equivalent for you platform.
+
+Then run the following commands on your local computer:
+```bash
+git clone https://github.com/dessalines/lemmy.git
+cd lemmy/ansible/
+cp inventory.example inventory
+nano inventory # enter your server, domain, contact email
+ansible-playbook lemmy.yml
+```
+
+### Manual
+
+Make sure you have both docker and docker-compose installed.
 
 ```
 mkdir lemmy/
 cd lemmy/
 wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/docker-compose.yml
+wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/env -O .env
+wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/nginx.conf
+# you need to edit .env and nginx.conf to replace the indicated {{ variables }}
+sudo mv nginx.conf /etc/nginx/sites-enabled/lemmy.conf
 docker-compose up -d
 ```
 
