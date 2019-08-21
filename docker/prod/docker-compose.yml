@@ -1,23 +1,16 @@
-version: '2.4'
+version: '3.3'
 
 services:
   lemmy_db:
     image: postgres:12-alpine
-    restart: always
     environment:
       - POSTGRES_USER=lemmy
       - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
       - POSTGRES_DB=lemmy
     volumes:
       - lemmy_db:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U lemmy"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
   lemmy:
     image: dessalines/lemmy:v0.0.7.3
-    restart: always
     ports:
       - "8536:8536"
     environment:
@@ -25,9 +18,7 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET}
       - HOSTNAME=${DOMAIN}
-    restart: always
     depends_on:
-      lemmy_db:
-        condition: service_healthy 
+      - lemmy_db
 volumes:
     lemmy_db:

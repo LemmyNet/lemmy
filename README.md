@@ -72,8 +72,8 @@ Make sure you have both docker and docker-compose(>=`1.24.0`) installed.
 mkdir lemmy/
 cd lemmy/
 wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/docker-compose.yml
-wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/env -O .env
-# Edit the .env for custom passwords
+wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/.env
+# Edit the .env if you want custom passwords
 docker-compose up -d
 ```
 
@@ -125,8 +125,9 @@ and goto http://localhost:8536
 #### Set up Postgres DB
 
 ```
- psql -c "create user rrr with password 'rrr' superuser;" -U postgres
- psql -c 'create database rrr with owner rrr;' -U postgres
+ psql -c "create user lemmy with password 'password' superuser;" -U postgres
+ psql -c 'create database lemmy with owner lemmy;' -U postgres
+ export DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
 ```
 
 #### Running
@@ -160,7 +161,7 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 
 If you'd like to add translations, take a look a look at the [english translation file](ui/src/translations/en.ts).
 
-- Languages supported: `en`, `zh`, `fr`, `sv`, `de`, `ru`, `de`
+- Languages supported: English (`en`), Chinese (`zh`), French (`fr`), Swedish (`sv`), German (`de`), Russian (`ru`).
 
 ## Credits
 
