@@ -260,7 +260,7 @@ export class Main extends Component<any, MainState> {
             <a href={repoUrl}>Lemmy<sup>beta</sup></a>
           </h5>
           <p class="mb-0">
-            <T i18nKey="landing_0">#<a href="https://en.wikipedia.org/wiki/Link_aggregation">#</a><a href="https://en.wikipedia.org/wiki/Fediverse">#</a><br></br><code>#</code><br></br><b>#</b><br></br><a href={repoUrl}>#</a><br></br><a href="https://www.rust-lang.org">#</a><a href="https://actix.rs/">#</a><a href="https://www.infernojs.org">#</a><a href="https://www.typescriptlang.org/">#</a>
+            <T i18nKey="landing_0">#<a href="https://en.wikipedia.org/wiki/Link_aggregation">#</a><a href="https://en.wikipedia.org/wiki/Fediverse">#</a><br></br><code>#</code><br></br><b>#</b><br></br><a href={repoUrl}>#</a><br></br><a href="https://www.rust-lang.org">#</a><a href="https://actix.rs/">#</a><a href="https://infernojs.org">#</a><a href="https://www.typescriptlang.org/">#</a>
           </T>
         </p>
       </div>
