@@ -10,7 +10,7 @@ export function msgOp(msg: any): UserOperation {
 }
 
 var md = new markdown_it({
-  html: true,
+  html: false,
   linkify: true,
   typographer: true
 }).use(markdown_it_container, 'spoiler', {
