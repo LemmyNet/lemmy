@@ -412,6 +412,13 @@ export interface PostForm {
   auth: string;
 }
 
+export interface PostFormParams {
+  name: string;
+  url?: string;
+  body?: string;
+  community?: string;
+}
+
 export interface GetPostResponse {
   op: string;
   post: Post;
