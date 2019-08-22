@@ -68,7 +68,7 @@ Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Infern
 
 Make sure you have both docker and docker-compose(>=`1.24.0`) installed.
 
-```
+```bash
 mkdir lemmy/
 cd lemmy/
 wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/docker-compose.yml
@@ -81,7 +81,7 @@ and goto http://localhost:8536
 
 [A sample nginx config](/docker/prod/nginx.conf), could be setup with:
 
-```
+```bash
 wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/nginx.conf
 # Replace the {{ vars }}
 sudo mv nginx.conf /etc/nginx/sites-enabled/lemmy.conf
@@ -106,10 +106,10 @@ ansible-playbook lemmy.yml
 
 ### Docker Development
 
-```
+```bash
 git clone https://github.com/dessalines/lemmy
-cd lemmy/docker
-./docker_update.sh # This pulls the newest version, builds and runs it
+cd lemmy/docker/dev
+./docker_update.sh # This builds and runs it, updating for your changes
 ```
 
 and goto http://localhost:8536
@@ -124,7 +124,7 @@ and goto http://localhost:8536
 
 #### Set up Postgres DB
 
-```
+```bash
  psql -c "create user lemmy with password 'password' superuser;" -U postgres
  psql -c 'create database lemmy with owner lemmy;' -U postgres
  export DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
@@ -132,7 +132,7 @@ and goto http://localhost:8536
 
 #### Running
 
-```
+```bash
 git clone https://github.com/dessalines/lemmy
 cd lemmy
 ./install.sh
