@@ -254,6 +254,7 @@ impl Perform<GetPostsResponse> for Oper<GetPosts> {
       data.community_id, 
       None,
       None,
+      None,
       user_id, 
       show_nsfw,
       false, 

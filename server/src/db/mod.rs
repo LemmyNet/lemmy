@@ -67,7 +67,7 @@ pub enum SortType {
 
 #[derive(EnumString,ToString,Debug, Serialize, Deserialize)]
 pub enum SearchType {
-  All, Comments, Posts, Communities, Users
+  All, Comments, Posts, Communities, Users, Url
 }
 
 pub fn fuzzy_search(q: &str) -> String {

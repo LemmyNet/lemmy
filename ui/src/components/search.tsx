@@ -29,6 +29,7 @@ export class Search extends Component<any, SearchState> {
     page: 1,
     searchResponse: {
       op: null,
+      type_: null,
       posts: [],
       comments: [],
       communities: [],
