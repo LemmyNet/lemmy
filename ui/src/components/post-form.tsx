@@ -23,6 +23,7 @@ interface PostFormState {
   loading: boolean;
   suggestedTitle: string;
   suggestedPosts: Array<Post>;
+  crossPosts: Array<Post>;
 }
 
 export class PostForm extends Component<PostFormProps, PostFormState> {
@@ -40,6 +41,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     loading: false,
     suggestedTitle: undefined,
     suggestedPosts: [],
+    crossPosts: [],
   }
 
   constructor(props: any, context: any) {
@@ -94,6 +96,12 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               <input type="url" class="form-control" value={this.state.postForm.url} onInput={linkEvent(this, this.handlePostUrlChange)} />
               {this.state.suggestedTitle && 
                 <div class="mt-1 text-muted small font-weight-bold pointer" onClick={linkEvent(this, this.copySuggestedTitle)}><T i18nKey="copy_suggested_title" interpolation={{title: this.state.suggestedTitle}}>#</T></div>
+              }
+              {this.state.crossPosts.length > 0 && 
+                <>
+                  <div class="my-1 text-muted small font-weight-bold"><T i18nKey="cross_posts">#</T></div>
+                  <PostListings showCommunity posts={this.state.crossPosts} />
+                </>
               }
             </div>
           </div>
@@ -170,13 +178,27 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
   handlePostUrlChange(i: PostForm, event: any) {
     i.state.postForm.url = event.target.value;
     if (validURL(i.state.postForm.url)) {
+
+      let form: SearchForm = {
+        q: i.state.postForm.url,
+        type_: SearchType[SearchType.Url],
+        sort: SortType[SortType.TopAll],
+        page: 1,
+        limit: 6,
+      };
+
+      WebSocketService.Instance.search(form);
+
+      // Fetch the page title
       getPageTitle(i.state.postForm.url).then(d => {
         i.state.suggestedTitle = d;
         i.setState(i.state);
       });
     } else {
       i.state.suggestedTitle = undefined;
+      i.state.crossPosts = [];
     }
+
     i.setState(i.state);
   }
 
@@ -248,7 +270,12 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       this.props.onEdit(res.post);
     } else if (op == UserOperation.Search) {
       let res: SearchResponse = msg;
-      this.state.suggestedPosts = res.posts;
+      
+      if (res.type_ == SearchType[SearchType.Posts]) {
+        this.state.suggestedPosts = res.posts;
+      } else if (res.type_ == SearchType[SearchType.Url]) {
+        this.state.crossPosts = res.posts;
+      }
       this.setState(this.state);
     }
   }

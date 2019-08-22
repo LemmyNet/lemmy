@@ -15,7 +15,7 @@ export enum SortType {
 }
 
 export enum SearchType {
-  All, Comments, Posts, Communities, Users
+  All, Comments, Posts, Communities, Users, Url
 }
 
 export interface User {
@@ -551,6 +551,7 @@ export interface SearchForm {
 
 export interface SearchResponse {
   op: string;
+  type_: string;
   posts?: Array<Post>;
   comments?: Array<Comment>;
   communities: Array<Community>;  

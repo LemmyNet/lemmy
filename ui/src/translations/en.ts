@@ -8,6 +8,7 @@ export const en = {
     number_of_posts:'{{count}} Posts',
     posts: 'Posts',
     related_posts: 'These posts might be related',
+    cross_posts: 'This link has also been posted to:',
     comments: 'Comments',
     number_of_comments:'{{count}} Comments',
     remove_comment: 'Remove Comment',
