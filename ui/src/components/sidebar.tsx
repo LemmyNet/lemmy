@@ -121,7 +121,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
               )}
             </ul>
             <Link class={`btn btn-sm btn-secondary btn-block mb-3 ${(community.deleted || community.removed) && 'no-click'}`}
-            to={`/create_post/c/${community.name}`}><T i18nKey="create_a_post">#</T></Link>
+            to={`/create_post?community=${community.name}`}><T i18nKey="create_a_post">#</T></Link>
           <div>
             {community.subscribed 
               ? <button class="btn btn-sm btn-secondary btn-block" onClick={linkEvent(community.id, this.handleUnsubscribe)}><T i18nKey="unsubscribe">#</T></button>

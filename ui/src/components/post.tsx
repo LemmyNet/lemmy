@@ -78,6 +78,19 @@ export class Post extends Component<any, PostState> {
       this.state.scrolled = true;
       this.markScrolledAsRead(this.state.scrolled_comment_id);
     }
+
+    // Necessary if you are on a post and you click another post (same route)
+    if (_lastProps.location.pathname !== _lastProps.history.location.pathname) {
+      // Couldnt get a refresh working. This does for now.
+      location.reload();
+
+      // let currentId = this.props.match.params.id;
+      // WebSocketService.Instance.getPost(currentId);
+      // this.context.router.history.push('/sponsors');
+      // this.context.refresh();
+      // this.context.router.history.push(_lastProps.location.pathname);
+
+    }
   }
 
   markScrolledAsRead(commentId: number) {
@@ -258,7 +271,6 @@ export class Post extends Component<any, PostState> {
     } else if (op == UserOperation.GetPost) {
       let res: GetPostResponse = msg;
       this.state.post = res.post;
-      this.state.post = res.post;
       this.state.comments = res.comments;
       this.state.community = res.community;
       this.state.moderators = res.moderators;
@@ -267,16 +279,17 @@ export class Post extends Component<any, PostState> {
       document.title = `${this.state.post.name} - ${WebSocketService.Instance.site.name}`;
 
       // Get cross-posts  
-      let form: SearchForm = {
-        q: res.post.url,
-        type_: SearchType[SearchType.Url],
-        sort: SortType[SortType.TopAll],
-        page: 1,
-        limit: 6,
-      };
-
-      WebSocketService.Instance.search(form);
-
+      if (this.state.post.url) {
+        let form: SearchForm = {
+          q: this.state.post.url,
+          type_: SearchType[SearchType.Url],
+          sort: SortType[SortType.TopAll],
+          page: 1,
+          limit: 6,
+        };
+        WebSocketService.Instance.search(form);
+      }
+      
       this.setState(this.state);
     } else if (op == UserOperation.CreateComment) {
       let res: CommentResponse = msg;
