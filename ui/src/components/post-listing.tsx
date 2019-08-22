@@ -150,6 +150,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               <li className="list-inline-item mr-2">
                 <span class="pointer" onClick={linkEvent(this, this.handleSavePostClick)}>{post.saved ? i18n.t('unsave') : i18n.t('save')}</span>
               </li>
+              <li className="list-inline-item mr-2">
+                <span class="pointer" onClick={linkEvent(this, this.handleCrossPostClick)}><T i18nKey="cross_post">#</T></span>
+              </li>
               {this.myPost && 
                 <>
                   <li className="list-inline-item">
@@ -268,6 +271,17 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     };
 
     WebSocketService.Instance.savePost(form);
+  }
+
+  handleCrossPostClick(i: PostListing) { 
+    let params = `?name=${i.props.post.name}`;
+    if (i.props.post.url) {
+      params += `&url=${i.props.post.url}`;
+    }
+    if (i.props.post.body) {
+      params += `&body=${i.props.post.body}`;
+    }
+    i.context.router.history.push(`/create_post${params}`);
   }
 
   handleModRemoveShow(i: PostListing) {
