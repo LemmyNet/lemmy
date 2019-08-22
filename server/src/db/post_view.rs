@@ -79,6 +79,7 @@ impl PostView {
     for_community_id: Option<i32>, 
     for_creator_id: Option<i32>, 
     search_term: Option<String>,
+    url_search: Option<String>,
     my_user_id: Option<i32>, 
     show_nsfw: bool,
     saved_only: bool,
@@ -102,6 +103,10 @@ impl PostView {
 
     if let Some(search_term) = search_term {
       query = query.filter(name.ilike(fuzzy_search(&search_term)));
+    };
+
+    if let Some(url_search) = url_search {
+      query = query.filter(url.eq(url_search));
     };
 
     // TODO these are wrong, bc they'll only show saved for your logged in user, not theirs
@@ -326,29 +331,34 @@ mod tests {
     };
 
 
-    let read_post_listings_with_user = PostView::list(&conn, 
-                                                      PostListingType::Community, 
-                                                      &SortType::New, Some(inserted_community.id), 
-                                                      None, 
-                                                      None,
-                                                      Some(inserted_user.id), 
-                                                      false,
-                                                      false, 
-                                                      false, 
-                                                      None, 
-                                                      None).unwrap();
-    let read_post_listings_no_user = PostView::list(&conn, 
-                                                    PostListingType::Community, 
-                                                    &SortType::New, 
-                                                    Some(inserted_community.id), 
-                                                    None, 
-                                                    None, 
-                                                    None,
-                                                    false,
-                                                    false, 
-                                                    false, 
-                                                    None, 
-                                                    None).unwrap();
+    let read_post_listings_with_user = PostView::list(
+      &conn, 
+      PostListingType::Community, 
+      &SortType::New, 
+      Some(inserted_community.id), 
+      None, 
+      None,
+      None,
+      Some(inserted_user.id), 
+      false,
+      false, 
+      false, 
+      None, 
+      None).unwrap();
+    let read_post_listings_no_user = PostView::list(
+      &conn, 
+      PostListingType::Community, 
+      &SortType::New, 
+      Some(inserted_community.id), 
+      None, 
+      None, 
+      None,
+      None,
+      false,
+      false, 
+      false, 
+      None, 
+      None).unwrap();
     let read_post_listing_no_user = PostView::read(&conn, inserted_post.id, None).unwrap();
     let read_post_listing_with_user = PostView::read(&conn, inserted_post.id, Some(inserted_user.id)).unwrap();
 
