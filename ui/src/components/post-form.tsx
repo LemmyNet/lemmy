@@ -2,7 +2,7 @@ import { Component, linkEvent } from 'inferno';
 import { PostListings } from './post-listings';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { PostForm as PostFormI, Post, PostResponse, UserOperation, Community, ListCommunitiesResponse, ListCommunitiesForm, SortType, SearchForm, SearchType, SearchResponse } from '../interfaces';
+import { PostForm as PostFormI, PostFormParams, Post, PostResponse, UserOperation, Community, ListCommunitiesResponse, ListCommunitiesForm, SortType, SearchForm, SearchType, SearchResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { msgOp, getPageTitle, debounce, validURL, capitalizeFirstLetter } from '../utils';
 import * as autosize from 'autosize';
@@ -11,7 +11,7 @@ import { T } from 'inferno-i18next';
 
 interface PostFormProps {
   post?: Post; // If a post is given, that means this is an edit
-  prevCommunityName?: string;
+  params?: PostFormParams;
   onCancel?(): any;
   onCreate?(id: number): any;
   onEdit?(post: Post): any;
@@ -23,6 +23,7 @@ interface PostFormState {
   loading: boolean;
   suggestedTitle: string;
   suggestedPosts: Array<Post>;
+  crossPosts: Array<Post>;
 }
 
 export class PostForm extends Component<PostFormProps, PostFormState> {
@@ -40,6 +41,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     loading: false,
     suggestedTitle: undefined,
     suggestedPosts: [],
+    crossPosts: [],
   }
 
   constructor(props: any, context: any) {
@@ -60,20 +62,30 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       }
     }
 
+    if (this.props.params) {
+      this.state.postForm.name = this.props.params.name;
+      if (this.props.params.url) {
+        this.state.postForm.url = this.props.params.url;
+      }
+      if (this.props.params.body) {
+        this.state.postForm.body = this.props.params.body;
+      }
+    }
+
     this.subscription = WebSocketService.Instance.subject
-      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
-      .subscribe(
-        (msg) => this.parseMessage(msg),
+    .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
+    .subscribe(
+      (msg) => this.parseMessage(msg),
         (err) => console.error(err),
         () => console.log('complete')
-      );
+    );
 
-      let listCommunitiesForm: ListCommunitiesForm = {
-        sort: SortType[SortType.TopAll],
-        limit: 9999,
-      }
+    let listCommunitiesForm: ListCommunitiesForm = {
+      sort: SortType[SortType.TopAll],
+      limit: 9999,
+    }
 
-      WebSocketService.Instance.listCommunities(listCommunitiesForm);
+    WebSocketService.Instance.listCommunities(listCommunitiesForm);
   }
 
   componentDidMount() {
@@ -95,6 +107,12 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               {this.state.suggestedTitle && 
                 <div class="mt-1 text-muted small font-weight-bold pointer" onClick={linkEvent(this, this.copySuggestedTitle)}><T i18nKey="copy_suggested_title" interpolation={{title: this.state.suggestedTitle}}>#</T></div>
               }
+              {this.state.crossPosts.length > 0 && 
+                <>
+                  <div class="my-1 text-muted small font-weight-bold"><T i18nKey="cross_posts">#</T></div>
+                  <PostListings showCommunity posts={this.state.crossPosts} />
+                </>
+              }
             </div>
           </div>
           <div class="form-group row">
@@ -115,7 +133,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               <textarea value={this.state.postForm.body} onInput={linkEvent(this, this.handlePostBodyChange)} class="form-control" rows={4} maxLength={10000} />
             </div>
           </div>
-          {/* Cant change a community from an edit */}
           {!this.props.post &&
             <div class="form-group row">
             <label class="col-sm-2 col-form-label"><T i18nKey="community">#</T></label>
@@ -170,13 +187,27 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
   handlePostUrlChange(i: PostForm, event: any) {
     i.state.postForm.url = event.target.value;
     if (validURL(i.state.postForm.url)) {
+
+      let form: SearchForm = {
+        q: i.state.postForm.url,
+        type_: SearchType[SearchType.Url],
+        sort: SortType[SortType.TopAll],
+        page: 1,
+        limit: 6,
+      };
+
+      WebSocketService.Instance.search(form);
+
+      // Fetch the page title
       getPageTitle(i.state.postForm.url).then(d => {
         i.state.suggestedTitle = d;
         i.setState(i.state);
       });
     } else {
       i.state.suggestedTitle = undefined;
+      i.state.crossPosts = [];
     }
+
     i.setState(i.state);
   }
 
@@ -231,8 +262,8 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       this.state.communities = res.communities;
       if (this.props.post) {
         this.state.postForm.community_id = this.props.post.community_id;
-      } else if (this.props.prevCommunityName) {
-        let foundCommunityId = res.communities.find(r => r.name == this.props.prevCommunityName).id;
+      } else if (this.props.params && this.props.params.community) {
+        let foundCommunityId = res.communities.find(r => r.name == this.props.params.community).id;
         this.state.postForm.community_id = foundCommunityId;
       } else {
         this.state.postForm.community_id = res.communities[0].id;
@@ -248,7 +279,12 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       this.props.onEdit(res.post);
     } else if (op == UserOperation.Search) {
       let res: SearchResponse = msg;
-      this.state.suggestedPosts = res.posts;
+      
+      if (res.type_ == SearchType[SearchType.Posts]) {
+        this.state.suggestedPosts = res.posts;
+      } else if (res.type_ == SearchType[SearchType.Url]) {
+        this.state.crossPosts = res.posts;
+      }
       this.setState(this.state);
     }
   }

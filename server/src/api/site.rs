@@ -23,6 +23,7 @@ pub struct Search {
 #[derive(Serialize, Deserialize)]
 pub struct SearchResponse {
   op: String,
+  type_: String,
   comments: Vec<CommentView>,
   posts: Vec<PostView>,
   communities: Vec<CommunityView>,
@@ -288,6 +289,7 @@ impl Perform<SearchResponse> for Oper<Search> {
           data.community_id, 
           None,
           Some(data.q.to_owned()),
+          None,
           None, 
           true,
           false, 
@@ -333,6 +335,7 @@ impl Perform<SearchResponse> for Oper<Search> {
           data.community_id, 
           None,
           Some(data.q.to_owned()),
+          None,
           None, 
           true,
           false, 
@@ -363,6 +366,22 @@ impl Perform<SearchResponse> for Oper<Search> {
           Some(data.q.to_owned()), 
           data.page, 
           data.limit)?;
+      },
+      SearchType::Url => {
+        posts = PostView::list(
+          &conn, 
+          PostListingType::All, 
+          &sort, 
+          data.community_id, 
+          None,
+          None,
+          Some(data.q.to_owned()),
+          None, 
+          true,
+          false, 
+          false, 
+          data.page, 
+          data.limit)?;
       }
     };
 
@@ -371,6 +390,7 @@ impl Perform<SearchResponse> for Oper<Search> {
     Ok(
       SearchResponse {
         op: self.op.to_string(),
+        type_: data.type_.to_owned(),
         comments: comments,
         posts: posts,
         communities: communities,
