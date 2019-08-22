@@ -15,7 +15,7 @@ export enum SortType {
 }
 
 export enum SearchType {
-  All, Comments, Posts, Communities, Users
+  All, Comments, Posts, Communities, Users, Url
 }
 
 export interface User {
@@ -412,6 +412,13 @@ export interface PostForm {
   auth: string;
 }
 
+export interface PostFormParams {
+  name: string;
+  url?: string;
+  body?: string;
+  community?: string;
+}
+
 export interface GetPostResponse {
   op: string;
   post: Post;
@@ -551,6 +558,7 @@ export interface SearchForm {
 
 export interface SearchResponse {
   op: string;
+  type_: string;
   posts?: Array<Post>;
   comments?: Array<Comment>;
   communities: Array<Community>;  

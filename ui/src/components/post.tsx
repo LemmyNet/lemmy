@@ -1,10 +1,11 @@
 import { Component, linkEvent } from 'inferno';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community, Post as PostI, GetPostResponse, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse, CommentSortType, CreatePostLikeResponse, CommunityUser, CommunityResponse, CommentNode as CommentNodeI, BanFromCommunityResponse, BanUserResponse, AddModToCommunityResponse, AddAdminResponse, UserView } from '../interfaces';
+import { UserOperation, Community, Post as PostI, GetPostResponse, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse, CommentSortType, CreatePostLikeResponse, CommunityUser, CommunityResponse, CommentNode as CommentNodeI, BanFromCommunityResponse, BanUserResponse, AddModToCommunityResponse, AddAdminResponse, UserView, SearchType, SortType, SearchForm, SearchResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { msgOp, hotRank } from '../utils';
 import { PostListing } from './post-listing';
+import { PostListings } from './post-listings';
 import { Sidebar } from './sidebar';
 import { CommentForm } from './comment-form';
 import { CommentNodes } from './comment-nodes';
@@ -22,6 +23,7 @@ interface PostState {
   scrolled?: boolean;
   scrolled_comment_id?: number;
   loading: boolean;
+  crossPosts: Array<PostI>;
 }
 
 export class Post extends Component<any, PostState> {
@@ -35,7 +37,8 @@ export class Post extends Component<any, PostState> {
     moderators: [],
     admins: [],
     scrolled: false, 
-    loading: true
+    loading: true,
+    crossPosts: [],
   }
 
   constructor(props: any, context: any) {
@@ -75,6 +78,19 @@ export class Post extends Component<any, PostState> {
       this.state.scrolled = true;
       this.markScrolledAsRead(this.state.scrolled_comment_id);
     }
+
+    // Necessary if you are on a post and you click another post (same route)
+    if (_lastProps.location.pathname !== _lastProps.history.location.pathname) {
+      // Couldnt get a refresh working. This does for now.
+      location.reload();
+
+      // let currentId = this.props.match.params.id;
+      // WebSocketService.Instance.getPost(currentId);
+      // this.context.router.history.push('/sponsors');
+      // this.context.refresh();
+      // this.context.router.history.push(_lastProps.location.pathname);
+
+    }
   }
 
   markScrolledAsRead(commentId: number) {
@@ -112,6 +128,12 @@ export class Post extends Component<any, PostState> {
                 moderators={this.state.moderators} 
                 admins={this.state.admins}
               />
+              {this.state.crossPosts.length > 0 && 
+                <>
+                  <div class="my-1 text-muted small font-weight-bold"><T i18nKey="cross_posts">#</T></div>
+                  <PostListings showCommunity posts={this.state.crossPosts} />
+                </>
+              }
               <div className="mb-2" />
               <CommentForm postId={this.state.post.id} disabled={this.state.post.locked} />
               {this.sortRadios()}
@@ -249,13 +271,25 @@ export class Post extends Component<any, PostState> {
     } else if (op == UserOperation.GetPost) {
       let res: GetPostResponse = msg;
       this.state.post = res.post;
-      this.state.post = res.post;
       this.state.comments = res.comments;
       this.state.community = res.community;
       this.state.moderators = res.moderators;
       this.state.admins = res.admins;
       this.state.loading = false;
       document.title = `${this.state.post.name} - ${WebSocketService.Instance.site.name}`;
+
+      // Get cross-posts  
+      if (this.state.post.url) {
+        let form: SearchForm = {
+          q: this.state.post.url,
+          type_: SearchType[SearchType.Url],
+          sort: SortType[SortType.TopAll],
+          page: 1,
+          limit: 6,
+        };
+        WebSocketService.Instance.search(form);
+      }
+      
       this.setState(this.state);
     } else if (op == UserOperation.CreateComment) {
       let res: CommentResponse = msg;
@@ -331,6 +365,10 @@ export class Post extends Component<any, PostState> {
     } else if (op == UserOperation.AddAdmin) {
       let res: AddAdminResponse = msg;
       this.state.admins = res.admins;
+      this.setState(this.state);
+    } else if (op == UserOperation.Search) {
+      let res: SearchResponse = msg;
+      this.state.crossPosts = res.posts.filter(p => p.id != this.state.post.id);
       this.setState(this.state);
     }
 
