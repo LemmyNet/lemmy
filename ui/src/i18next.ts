@@ -1,6 +1,7 @@
 import * as i18n from 'i18next';
 import { getLanguage } from './utils';
 import { en } from './translations/en';
+import { es } from './translations/es';
 import { de } from './translations/de';
 import { zh } from './translations/zh';
 import { fr } from './translations/fr';
@@ -11,6 +12,7 @@ import { ru } from './translations/ru';
 // TODO don't forget to add moment locales for new languages.
 const resources = {
   en,
+  es,
   de,
   zh,
   fr,
