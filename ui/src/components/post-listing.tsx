@@ -115,7 +115,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         <div className="details ml-4">
           <ul class="list-inline mb-0 text-muted small">
             <li className="list-inline-item">
-              <span>by </span>
+              <span>{i18n.t('by')} </span>
               <Link className="text-info" to={`/u/${post.creator_name}`}>{post.creator_name}</Link>
               {this.isMod && 
                 <span className="mx-1 badge badge-light"><T i18nKey="mod">#</T></span>
@@ -125,7 +125,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               }
               {this.props.showCommunity && 
                 <span>
-                  <span> to </span>
+                  <span> {i18n.t('to')} </span>
                   <Link to={`/c/${post.community_name}`}>{post.community_name}</Link>
                 </span>
               }
