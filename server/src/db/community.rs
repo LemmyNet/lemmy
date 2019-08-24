@@ -101,6 +101,16 @@ impl Joinable<CommunityModeratorForm> for CommunityModerator {
   }
 }
 
+impl CommunityModerator {
+  pub fn delete_for_community(conn: &PgConnection, for_community_id: i32) -> Result<usize, Error> {
+    use crate::schema::community_moderator::dsl::*;
+    diesel::delete(
+      community_moderator
+      .filter(community_id.eq(for_community_id)))
+      .execute(conn)
+  }
+}
+
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
 #[belongs_to(Community)]
 #[table_name = "community_user_ban"]
