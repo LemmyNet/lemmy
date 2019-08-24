@@ -1,6 +1,6 @@
 import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
-import { CommentNode as CommentNodeI, CommentLikeForm, CommentForm as CommentFormI, SaveCommentForm, BanFromCommunityForm, BanUserForm, CommunityUser, UserView, AddModToCommunityForm, AddAdminForm } from '../interfaces';
+import { CommentNode as CommentNodeI, CommentLikeForm, CommentForm as CommentFormI, SaveCommentForm, BanFromCommunityForm, BanUserForm, CommunityUser, UserView, AddModToCommunityForm, AddAdminForm, TransferCommunityForm, TransferSiteForm } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { mdToHtml, getUnixTime, canMod, isMod } from '../utils';
 import * as moment from 'moment';
@@ -148,6 +148,12 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                         }
                       </>
                     }
+                    {/* Community creators can transfer community to another mod */}
+                    {this.amCommunityCreator && this.isMod &&
+                      <li className="list-inline-item">
+                        <span class="pointer" onClick={linkEvent(this, this.handleTransferCommunity)}><T i18nKey="transfer_community">#</T></span>
+                      </li>
+                    }
                     {/* Admins can ban from all, and appoint other admins */}
                     {this.canAdmin &&
                       <>
@@ -165,6 +171,12 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                           </li>
                         }
                       </>
+                    }
+                    {/* Site Creator can transfer to another admin */}
+                    {this.amSiteCreator && this.isAdmin &&
+                      <li className="list-inline-item">
+                        <span class="pointer" onClick={linkEvent(this, this.handleTransferSite)}><T i18nKey="transfer_site">#</T></span>
+                      </li>
                     }
                   </>
                 }
@@ -249,6 +261,20 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
 
   get canAdmin(): boolean {
     return this.props.admins && canMod(UserService.Instance.user, this.props.admins.map(a => a.id), this.props.node.comment.creator_id);
+  }
+
+  get amCommunityCreator(): boolean {
+    return this.props.moderators && 
+      UserService.Instance.user && 
+      (this.props.node.comment.creator_id != UserService.Instance.user.id) &&
+      (UserService.Instance.user.id == this.props.moderators[0].user_id);
+  }
+
+  get amSiteCreator(): boolean {
+    return this.props.admins && 
+      UserService.Instance.user && 
+      (this.props.node.comment.creator_id != UserService.Instance.user.id) &&
+      (UserService.Instance.user.id == this.props.admins[0].id);
   }
 
   handleReplyClick(i: CommentNode) {
@@ -428,6 +454,23 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       added: !i.isAdmin,
     };
     WebSocketService.Instance.addAdmin(form);
+    i.setState(i.state);
+  }
+
+  handleTransferCommunity(i: CommentNode) {
+    let form: TransferCommunityForm = {
+      community_id: i.props.node.comment.community_id,
+      user_id: i.props.node.comment.creator_id,
+    };
+    WebSocketService.Instance.transferCommunity(form);
+    i.setState(i.state);
+  }
+
+  handleTransferSite(i: CommentNode) {
+    let form: TransferSiteForm = {
+      user_id: i.props.node.comment.creator_id,
+    };
+    WebSocketService.Instance.transferSite(form);
     i.setState(i.state);
   }
 

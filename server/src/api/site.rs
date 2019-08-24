@@ -83,6 +83,12 @@ pub struct GetSiteResponse {
   banned: Vec<UserView>,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct TransferSite {
+  user_id: i32,
+  auth: String
+}
+
 impl Perform<ListCategoriesResponse> for Oper<ListCategories> {
   fn perform(&self) -> Result<ListCategoriesResponse, Error> {
     let _data: &ListCategories = &self.data;
@@ -251,7 +257,14 @@ impl Perform<GetSiteResponse> for Oper<GetSite> {
       Err(_e) => None
     };
 
-    let admins = UserView::admins(&conn)?;
+    let mut admins = UserView::admins(&conn)?;
+    if site_view.is_some() {
+      let site_creator_id = site_view.to_owned().unwrap().creator_id;
+      let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
+      let creator_user = admins.remove(creator_index);
+      admins.insert(0, creator_user);
+    }
+
     let banned = UserView::banned(&conn)?;
 
     Ok(
@@ -399,3 +412,68 @@ impl Perform<SearchResponse> for Oper<Search> {
       )
   }
 }
+
+impl Perform<GetSiteResponse> for Oper<TransferSite> {
+  fn perform(&self) -> Result<GetSiteResponse, Error> {
+    let data: &TransferSite = &self.data;
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => {
+        return Err(APIError::err(&self.op, "not_logged_in"))?
+      }
+    };
+
+    let user_id = claims.id;
+
+    let read_site = Site::read(&conn, 1)?;
+
+    // Make sure user is the creator
+    if read_site.creator_id != user_id {
+      return Err(APIError::err(&self.op, "not_an_admin"))?
+    }
+
+    let site_form = SiteForm {
+      name: read_site.name,
+      description: read_site.description,
+      creator_id: data.user_id,
+      updated: Some(naive_now()),
+    };
+
+    match Site::update(&conn, 1, &site_form) {
+      Ok(site) => site,
+      Err(_e) => {
+        return Err(APIError::err(&self.op, "couldnt_update_site"))?
+      }
+    };
+
+    // Mod tables
+    let form = ModAddForm {
+      mod_user_id: user_id,
+      other_user_id: data.user_id,
+      removed: Some(false),
+    };
+
+    ModAdd::create(&conn, &form)?;
+
+    let site_view = SiteView::read(&conn)?;
+
+    let mut admins = UserView::admins(&conn)?;
+    let creator_index = admins.iter().position(|r| r.id == site_view.creator_id).unwrap();
+    let creator_user = admins.remove(creator_index);
+    admins.insert(0, creator_user);
+
+    let banned = UserView::banned(&conn)?;
+
+    Ok(
+      GetSiteResponse {
+        op: self.op.to_string(), 
+        site: Some(site_view),
+        admins: admins,
+        banned: banned,
+      }
+      )
+  }
+}
+
