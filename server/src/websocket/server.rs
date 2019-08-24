@@ -490,5 +490,15 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       let res = Oper::new(user_operation, search).perform()?;
       Ok(serde_json::to_string(&res)?)
     },
+    UserOperation::TransferCommunity => {
+      let transfer_community: TransferCommunity = serde_json::from_str(data)?;
+      let res = Oper::new(user_operation, transfer_community).perform()?;
+      Ok(serde_json::to_string(&res)?)
+    },
+    UserOperation::TransferSite => {
+      let transfer_site: TransferSite = serde_json::from_str(data)?;
+      let res = Oper::new(user_operation, transfer_site).perform()?;
+      Ok(serde_json::to_string(&res)?)
+    },
   }
 }

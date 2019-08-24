@@ -39,6 +39,8 @@ Front Page|Post
 - Clean, mobile-friendly interface.
 - i18n / internationalization support.
 - NSFW post / community support.
+- Cross-posting support.
+- Can transfer site and communities to others.
 - High performance.
   - Server is written in rust.
   - Front end is `~80kB` gzipped.
@@ -161,7 +163,7 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 
 If you'd like to add translations, take a look a look at the [english translation file](ui/src/translations/en.ts).
 
-- Languages supported: English (`en`), Chinese (`zh`), French (`fr`), Swedish (`sv`), German (`de`), Russian (`ru`).
+- Languages supported: English (`en`), Chinese (`zh`), French (`fr`), Spanish (`es`), Swedish (`sv`), German (`de`), Russian (`ru`).
 
 ## Credits
 
