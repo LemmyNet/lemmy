@@ -165,6 +165,17 @@ If you'd like to add translations, take a look a look at the [english translatio
 
 - Languages supported: English (`en`), Chinese (`zh`), French (`fr`), Spanish (`es`), Swedish (`sv`), German (`de`), Russian (`ru`).
 
+### Report
+
+lang | missing | percent
+--- | --- | ---
+es | cross_posts,cross_post,by,to,transfer_community,transfer_site | 96%
+de | cross_posts,cross_post,users,settings,subscribed,expires,nsfw,show_nsfw,crypto,monero,joined,by,to,transfer_community,transfer_site | 91%
+zh | cross_posts,cross_post,users,settings,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site | 93%
+fr | cross_posts,cross_post,users,settings,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site | 93%
+sv | cross_posts,cross_post,settings,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site | 94%
+ru | cross_posts,cross_post,monero,by,to,transfer_community,transfer_site | 96%
+
 ## Credits
 
 Icon made by Andy Cuccaro (@andycuccaro).
