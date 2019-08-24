@@ -111,6 +111,13 @@ pub struct GetFollowedCommunitiesResponse {
   communities: Vec<CommunityFollowerView>
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct TransferCommunity {
+  community_id: i32,
+  user_id: i32,
+  auth: String
+}
+
 impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
   fn perform(&self) -> Result<GetCommunityResponse, Error> {
     let data: &GetCommunity = &self.data;
@@ -148,7 +155,11 @@ impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
       }
     };
 
-    let admins = UserView::admins(&conn)?;
+    let site_creator_id = Site::read(&conn, 1)?.creator_id;
+    let mut admins = UserView::admins(&conn)?;
+    let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
+    let creator_user = admins.remove(creator_index);
+    admins.insert(0, creator_user);
 
     // Return the jwt
     Ok(
@@ -573,6 +584,110 @@ impl Perform<AddModToCommunityResponse> for Oper<AddModToCommunity> {
       AddModToCommunityResponse {
         op: self.op.to_string(), 
         moderators: moderators,
+      }
+      )
+  }
+}
+  
+impl Perform<GetCommunityResponse> for Oper<TransferCommunity> {
+  fn perform(&self) -> Result<GetCommunityResponse, Error> {
+    let data: &TransferCommunity = &self.data;
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => {
+        return Err(APIError::err(&self.op, "not_logged_in"))?
+      }
+    };
+
+    let user_id = claims.id;
+
+    let read_community = Community::read(&conn, data.community_id)?;
+
+    // Make sure user is the creator
+    if read_community.creator_id != user_id {
+      return Err(APIError::err(&self.op, "not_an_admin"))?
+    }
+    
+    let community_form = CommunityForm {
+      name: read_community.name,
+      title: read_community.title,
+      description: read_community.description,
+      category_id: read_community.category_id,
+      creator_id: data.user_id,
+      removed: None,
+      deleted: None,
+      nsfw: read_community.nsfw,
+      updated: Some(naive_now())
+    };
+
+    let _updated_community = match Community::update(&conn, data.community_id, &community_form) {
+      Ok(community) => community,
+      Err(_e) => {
+        return Err(APIError::err(&self.op, "couldnt_update_community"))?
+      }
+    };
+
+    // You also have to re-do the community_moderator table, reordering it.
+    let mut community_mods = CommunityModeratorView::for_community(&conn, data.community_id)?;
+    let creator_index = community_mods.iter().position(|r| r.user_id == data.user_id).unwrap();
+    let creator_user = community_mods.remove(creator_index);
+    community_mods.insert(0, creator_user);
+
+    CommunityModerator::delete_for_community(&conn, data.community_id)?;
+
+    for cmod in &community_mods {
+
+      let community_moderator_form = CommunityModeratorForm {
+        community_id: cmod.community_id,
+        user_id: cmod.user_id
+      };
+
+      let _inserted_community_moderator = match CommunityModerator::join(&conn, &community_moderator_form) {
+        Ok(user) => user,
+        Err(_e) => {
+          return Err(APIError::err(&self.op, "community_moderator_already_exists"))?
+        }
+      };
+    }
+
+    // Mod tables
+    let form = ModAddCommunityForm {
+      mod_user_id: user_id,
+      other_user_id: data.user_id,
+      community_id: data.community_id,
+      removed: Some(false),
+    };
+    ModAddCommunity::create(&conn, &form)?;
+
+    let community_view = match CommunityView::read(&conn, data.community_id, Some(user_id)) {
+      Ok(community) => community,
+      Err(_e) => {
+        return Err(APIError::err(&self.op, "couldnt_find_community"))?
+      }
+    };
+
+    let moderators = match CommunityModeratorView::for_community(&conn, data.community_id) {
+      Ok(moderators) => moderators,
+      Err(_e) => {
+        return Err(APIError::err(&self.op, "couldnt_find_community"))?
+      }
+    };
+
+    let site_creator_id = Site::read(&conn, 1)?.creator_id;
+    let mut admins = UserView::admins(&conn)?;
+    let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
+    let creator_user = admins.remove(creator_index);
+    admins.insert(0, creator_user);
+
+    // Return the jwt
+    Ok(
+      GetCommunityResponse {
+        op: self.op.to_string(),
+        community: community_view,
+        moderators: moderators,
+        admins: admins,
       }
       )
   }

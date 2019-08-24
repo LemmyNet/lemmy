@@ -103,9 +103,10 @@ impl Likeable <CommentLikeForm> for CommentLike {
   }
   fn remove(conn: &PgConnection, comment_like_form: &CommentLikeForm) -> Result<usize, Error> {
     use crate::schema::comment_like::dsl::*;
-    diesel::delete(comment_like
-                   .filter(comment_id.eq(comment_like_form.comment_id))
-                   .filter(user_id.eq(comment_like_form.user_id)))
+    diesel::delete(
+      comment_like
+      .filter(comment_id.eq(comment_like_form.comment_id))
+      .filter(user_id.eq(comment_like_form.user_id)))
       .execute(conn)
   }
 }
