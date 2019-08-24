@@ -1,7 +1,7 @@
 import { Component, linkEvent } from 'inferno';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community, Post as PostI, GetPostResponse, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse, CommentSortType, CreatePostLikeResponse, CommunityUser, CommunityResponse, CommentNode as CommentNodeI, BanFromCommunityResponse, BanUserResponse, AddModToCommunityResponse, AddAdminResponse, UserView, SearchType, SortType, SearchForm, SearchResponse } from '../interfaces';
+import { UserOperation, Community, Post as PostI, GetPostResponse, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse, CommentSortType, CreatePostLikeResponse, CommunityUser, CommunityResponse, CommentNode as CommentNodeI, BanFromCommunityResponse, BanUserResponse, AddModToCommunityResponse, AddAdminResponse, UserView, SearchType, SortType, SearchForm, SearchResponse, GetSiteResponse, GetCommunityResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { msgOp, hotRank } from '../utils';
 import { PostListing } from './post-listing';
@@ -369,6 +369,17 @@ export class Post extends Component<any, PostState> {
     } else if (op == UserOperation.Search) {
       let res: SearchResponse = msg;
       this.state.crossPosts = res.posts.filter(p => p.id != this.state.post.id);
+      this.setState(this.state);
+    } else if (op == UserOperation.TransferSite) { 
+      let res: GetSiteResponse = msg;
+
+      this.state.admins = res.admins;
+      this.setState(this.state);
+    } else if (op == UserOperation.TransferCommunity) { 
+      let res: GetCommunityResponse = msg;
+      this.state.community = res.community;
+      this.state.moderators = res.moderators;
+      this.state.admins = res.admins;
       this.setState(this.state);
     }
 

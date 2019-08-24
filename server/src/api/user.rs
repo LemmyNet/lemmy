@@ -432,7 +432,11 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
 
     ModAdd::create(&conn, &form)?;
 
-    let admins = UserView::admins(&conn)?;
+    let site_creator_id = Site::read(&conn, 1)?.creator_id;
+    let mut admins = UserView::admins(&conn)?;
+    let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
+    let creator_user = admins.remove(creator_index);
+    admins.insert(0, creator_user);
 
     Ok(
       AddAdminResponse {
