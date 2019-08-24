@@ -46,7 +46,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
   render() {
     return (
-      <div class="row col-12">
+      <div class="row">
         {!this.state.showEdit 
           ? this.listing()
           : <PostForm post={this.props.post} onEdit={this.handleEditPost} onCancel={this.handleEditCancel}/>
@@ -58,7 +58,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   listing() {
     let post = this.props.post;
     return (
-      <div class="listing">
+      <div class="listing col-12">
         <div className={`vote-bar mr-1 float-left small text-center ${this.props.viewOnly && 'no-click'}`}>
           <button className={`btn btn-sm p-0 ${post.my_vote == 1 ? 'text-info' : 'text-muted'}`} onClick={linkEvent(this, this.handlePostLike)}>
             <svg class="icon upvote"><use xlinkHref="#icon-arrow-up"></use></svg>
