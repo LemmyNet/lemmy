@@ -54,7 +54,7 @@ body, .text-white, .navbar-brand, .badge-light, .btn-secondary {
   background-color: #444 !important;
 }
 
-.md-div p {
+.md-div p:last-child {
   margin-bottom: 0px;
 }
 
