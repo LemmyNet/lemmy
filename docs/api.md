@@ -28,7 +28,8 @@ A simple test command:
 
 ## API
 ### List
-`Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetReplies, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser, Search, MarkAllAsRead, SaveUserSettings`
+`Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetReplies, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser, Search, MarkAllAsRead, SaveUserSettings, TransferCommunity,
+TransferSite`
 
 ### Sort Types
 These go wherever there is a `sort` field.
@@ -334,6 +335,27 @@ Search types are `Both, Comments, Posts`.
 }
 ```
 
+#### Transfer Site
+##### Request
+```rust
+{
+  op: "TransferSite",
+  data: {
+    user_id: i32,
+    auth: String
+  }
+}
+```
+##### Response
+```rust
+{
+  op: String,
+  site: Option<SiteView>,
+  admins: Vec<UserView>,
+  banned: Vec<UserView>,
+}
+```
+
 ### Community
 #### Get Community
 ##### Request
@@ -509,6 +531,28 @@ Mods and admins can remove and lock a community, creators can delete it.
 {
   op: String,
   communities: Vec<CommunityFollowerView>
+}
+```
+
+#### Transfer Community
+##### Request
+```rust
+{
+  op: "TransferCommunity",
+  data: {
+    community_id: i32,
+    user_id: i32,
+    auth: String
+  }
+}
+```
+##### Response
+```rust
+{
+  op: String,
+  community: CommunityView,
+  moderators: Vec<CommunityModeratorView>,
+  admins: Vec<UserView>,
 }
 ```
 
