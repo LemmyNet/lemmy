@@ -119,7 +119,7 @@ export class Post extends Component<any, PostState> {
         {this.state.loading ? 
         <h5><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> : 
         <div class="row">
-            <div class="col-12 col-md-8 col-lg-6 mb-3">
+            <div class="col-12 col-md-8 mb-3">
               <PostListing 
                 post={this.state.post} 
                 showBody 
@@ -139,11 +139,9 @@ export class Post extends Component<any, PostState> {
               {this.sortRadios()}
               {this.commentsTree()}
             </div>
-            <div class="col-12 col-md-4 col-lg-3 mb-3 d-none d-md-block px-0">
-              {this.state.comments.length > 0 && this.newComments()}
-            </div>
-            <div class="col-12 col-sm-12 col-lg-3">
+            <div class="col-12 col-sm-12 col-md-4">
               {this.sidebar()}
+              {this.state.comments.length > 0 && this.newComments()}
             </div>
           </div>
         }
@@ -175,25 +173,26 @@ export class Post extends Component<any, PostState> {
 
   newComments() {
     return (
-      <div class="container-fluid sticky-top new-comments">
-        <h5><T i18nKey="chat">#</T></h5>
-        <CommentForm postId={this.state.post.id} disabled={this.state.post.locked} />
-        {this.state.comments.map(comment => 
-          <CommentNodes 
-            nodes={[{comment: comment}]} 
-            noIndent 
-            locked={this.state.post.locked} 
-            moderators={this.state.moderators} 
-            admins={this.state.admins}
-          />
-        )}
+      <div class="d-none d-md-block sticky-top new-comments card border-secondary">
+        <div class="card-body small">
+          <h6><T i18nKey="recent_comments">#</T></h6>
+          {this.state.comments.map(comment => 
+            <CommentNodes 
+              nodes={[{comment: comment}]} 
+              noIndent 
+              locked={this.state.post.locked} 
+              moderators={this.state.moderators} 
+              admins={this.state.admins}
+            />
+          )}
+        </div>
       </div>
     )
   }
 
   sidebar() {
     return ( 
-      <div class="">
+      <div class="mb-3">
         <Sidebar 
           community={this.state.community} 
           moderators={this.state.moderators} 
