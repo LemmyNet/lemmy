@@ -164,6 +164,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
       category_id: i.props.community.category_id,
       edit_id: i.props.community.id,
       deleted: !i.props.community.deleted,
+      nsfw: i.props.community.nsfw,
       auth: null,
     };
     WebSocketService.Instance.editCommunity(deleteForm);
@@ -223,6 +224,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
       removed: !i.props.community.removed,
       reason: i.state.removeReason,
       expires: getUnixTime(i.state.removeExpires),
+      nsfw: i.props.community.nsfw,
       auth: null,
     };
     WebSocketService.Instance.editCommunity(deleteForm);
