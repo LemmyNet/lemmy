@@ -109,6 +109,7 @@ export const en = {
     expand_here: 'Expand here',
     subscribe_to_communities: 'Subscribe to some <1>communities</1>.',
     chat: 'Chat',
+    recent_comments: 'Recent Comments',
     no_results: 'No results.',
     setup: 'Setup',
     lemmy_instance_setup: 'Lemmy Instance Setup',
