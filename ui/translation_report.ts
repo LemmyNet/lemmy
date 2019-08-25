@@ -7,23 +7,23 @@ import { sv } from './src/translations/sv';
 import { ru } from './src/translations/ru';
 
 let files = [
-  {t: es, n: 'es'}, 
   {t: de, n: 'de'}, 
-  {t: zh, n: 'zh'}, 
+  {t: es, n: 'es'}, 
   {t: fr, n: 'fr'}, 
-  {t: sv, n: 'sv'}, 
   {t: ru, n: 'ru'}, 
+  {t: sv, n: 'sv'}, 
+  {t: zh, n: 'zh'}, 
 ];
 let masterKeys = Object.keys(en.translation);
 
-let report = 'lang | missing | percent\n';
+let report = 'lang | done | missing\n';
 report += '--- | --- | ---\n';
 
 for (let file of files) {
   let keys = Object.keys(file.t.translation);
   let pct: number = (keys.length / masterKeys.length * 100);
   let missing = difference(masterKeys, keys);
-  report += `${file.n} | ${missing} | ${pct.toFixed(0)}%\n`;
+  report += `${file.n} | ${pct.toFixed(0)}% | ${missing} \n`;
 }
 
 console.log(report);
