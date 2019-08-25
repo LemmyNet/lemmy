@@ -18,6 +18,9 @@ git add ../prod/docker-compose.yml
 # The commit
 git commit -m"Upping version."
 
+git push origin $new_tag
+git push
+
 # Rebuilding docker
 ./docker_update.sh
 docker tag dev_lemmy:latest dessalines/lemmy:$new_tag
