@@ -167,14 +167,15 @@ If you'd like to add translations, take a look a look at the [english translatio
 
 ### Report
 
-lang | missing | percent
+lang | done | missing
 --- | --- | ---
-es | cross_posts,cross_post,by,to,transfer_community,transfer_site | 96%
-de | cross_posts,cross_post,users,settings,subscribed,expires,nsfw,show_nsfw,crypto,monero,joined,by,to,transfer_community,transfer_site | 91%
-zh | cross_posts,cross_post,users,settings,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site | 93%
-fr | cross_posts,cross_post,users,settings,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site | 93%
-sv | cross_posts,cross_post,settings,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site | 94%
-ru | cross_posts,cross_post,monero,by,to,transfer_community,transfer_site | 96%
+de | 91% | cross_posts,cross_post,users,settings,subscribed,expires,nsfw,show_nsfw,crypto,monero,joined,by,to,transfer_community,transfer_site 
+es | 96% | cross_posts,cross_post,by,to,transfer_community,transfer_site 
+fr | 93% | cross_posts,cross_post,users,settings,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site 
+ru | 96% | cross_posts,cross_post,monero,by,to,transfer_community,transfer_site 
+sv | 94% | cross_posts,cross_post,settings,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site 
+zh | 93% | cross_posts,cross_post,users,settings,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site 
+
 
 ## Credits
 
