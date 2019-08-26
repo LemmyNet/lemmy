@@ -1,3 +1,11 @@
+import 'moment/locale/es';
+import 'moment/locale/eo';
+import 'moment/locale/de';
+import 'moment/locale/zh-cn';
+import 'moment/locale/fr';
+import 'moment/locale/sv';
+import 'moment/locale/ru';
+
 import { UserOperation, Comment, User, SortType, ListingType } from './interfaces';
 import * as markdown_it from 'markdown-it';
 import * as markdown_it_container from 'markdown-it-container';
@@ -188,6 +196,8 @@ export function getMomentLanguage(): string {
     lang = 'ru';
   } else if (lang.startsWith('es')) {
     lang = 'es';
+  } else if (lang.startsWith('eo')) {
+    lang = 'eo';
   } else {
     lang = 'en';
   }
