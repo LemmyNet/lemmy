@@ -5,7 +5,7 @@
 - Use a log scale, since votes tend to snowball, and so the first 10 votes are just as important as the next hundred.
 
 ## Reddit Sorting
-[Reddit's comment sorting algorithm](https://medium.com/hacking-and-gonzo/how-reddit-ranking-algorithms-work-ef111e33d0d9), the wilson confidence sort, is inadequate, because it completely ignores time. What ends up happening, especially in smaller subreddits, is that the early comments end up getting upvoted, and newer comments stay at the bottom, never to be seen.
+[Reddit's comment sorting algorithm](https://medium.com/hacking-and-gonzo/how-reddit-ranking-algorithms-work-ef111e33d0d9), the wilson confidence sort, is inadequate, because it completely ignores time. What ends up happening, especially in smaller subreddits, is that the early comments end up getting upvoted, and newer comments stay at the bottom, never to be seen. Research showed that nearly all top comments are just the [first ones posted.](https://minimaxir.com/2016/11/first-comment/)
 
 ## Hacker News Sorting
 The [Hacker New's ranking algorithm](https://medium.com/hacking-and-gonzo/how-hacker-news-ranking-algorithm-works-1d9b0cf2c08d) is great, but it doesn't use a log scale for the scores.
