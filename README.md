@@ -163,18 +163,19 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 
 If you'd like to add translations, take a look a look at the [english translation file](ui/src/translations/en.ts).
 
-- Languages supported: English (`en`), Chinese (`zh`), French (`fr`), Spanish (`es`), Swedish (`sv`), German (`de`), Russian (`ru`).
+- Languages supported: English (`en`), Chinese (`zh`), Esperanto (`eo`), French (`fr`), Spanish (`es`), Swedish (`sv`), German (`de`), Russian (`ru`).
 
 ### Report
 
 lang | done | missing
 --- | --- | ---
-de | 91% | cross_posts,cross_post,users,settings,subscribed,expires,nsfw,show_nsfw,crypto,monero,joined,by,to,transfer_community,transfer_site 
-es | 96% | cross_posts,cross_post,by,to,transfer_community,transfer_site 
-fr | 93% | cross_posts,cross_post,users,settings,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site 
-ru | 96% | cross_posts,cross_post,monero,by,to,transfer_community,transfer_site 
-sv | 94% | cross_posts,cross_post,settings,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site 
-zh | 93% | cross_posts,cross_post,users,settings,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site 
+de | 90% | cross_posts,cross_post,users,settings,subscribed,expires,recent_comments,nsfw,show_nsfw,crypto,monero,joined,by,to,transfer_community,transfer_site 
+es | 96% | cross_posts,cross_post,recent_comments,by,to,transfer_community,transfer_site 
+eo | 100% |  
+fr | 93% | cross_posts,cross_post,users,settings,recent_comments,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site 
+ru | 95% | cross_posts,cross_post,recent_comments,monero,by,to,transfer_community,transfer_site 
+sv | 93% | cross_posts,cross_post,settings,recent_comments,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site 
+zh | 93% | cross_posts,cross_post,users,settings,recent_comments,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site 
 
 
 ## Credits
