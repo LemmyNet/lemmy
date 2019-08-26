@@ -1,4 +1,5 @@
 import { en } from './src/translations/en';
+import { eo } from './src/translations/eo';
 import { es } from './src/translations/es';
 import { de } from './src/translations/de';
 import { zh } from './src/translations/zh';
@@ -9,6 +10,7 @@ import { ru } from './src/translations/ru';
 let files = [
   {t: de, n: 'de'}, 
   {t: es, n: 'es'}, 
+  {t: eo, n: 'eo'}, 
   {t: fr, n: 'fr'}, 
   {t: ru, n: 'ru'}, 
   {t: sv, n: 'sv'}, 
