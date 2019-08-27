@@ -180,4 +180,4 @@ zh | 93% | cross_posts,cross_post,users,settings,recent_comments,nsfw,show_nsfw,
 
 ## Credits
 
-Icon made by Andy Cuccaro (@andycuccaro).
+Logo made by Andy Cuccaro (@andycuccaro) under the CC-BY-SA 4.0 license
