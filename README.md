@@ -170,14 +170,13 @@ If you'd like to add translations, take a look a look at the [english translatio
 lang | done | missing
 --- | --- | ---
 de | 90% | cross_posts,cross_post,users,settings,subscribed,expires,recent_comments,nsfw,show_nsfw,crypto,monero,joined,by,to,transfer_community,transfer_site 
-es | 96% | cross_posts,cross_post,recent_comments,by,to,transfer_community,transfer_site 
+es | 100% |  
 eo | 100% |  
 fr | 93% | cross_posts,cross_post,users,settings,recent_comments,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site 
 ru | 95% | cross_posts,cross_post,recent_comments,monero,by,to,transfer_community,transfer_site 
 sv | 93% | cross_posts,cross_post,settings,recent_comments,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site 
 zh | 93% | cross_posts,cross_post,users,settings,recent_comments,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site 
 
-
 ## Credits
 
-Icon made by Andy Cuccaro (@andycuccaro).
+Logo made by Andy Cuccaro (@andycuccaro) under the CC-BY-SA 4.0 license
