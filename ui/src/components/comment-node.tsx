@@ -152,8 +152,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                         }
                       </>
                     }
-                    {/* Community creators can transfer community to another mod */}
-                    {this.amCommunityCreator && this.isMod &&
+                    {/* Community creators and admins can transfer community to another mod */}
+                    {(this.amCommunityCreator || this.canAdmin) && this.isMod &&
                       <li className="list-inline-item">
                         {!this.state.showConfirmTransferCommunity ?
                         <span class="pointer" onClick={linkEvent(this, this.handleShowConfirmTransferCommunity)}><T i18nKey="transfer_community">#</T>
@@ -491,6 +491,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       user_id: i.props.node.comment.creator_id,
     };
     WebSocketService.Instance.transferCommunity(form);
+    i.state.showConfirmTransferCommunity = false;
     i.setState(i.state);
   }
 
@@ -509,6 +510,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       user_id: i.props.node.comment.creator_id,
     };
     WebSocketService.Instance.transferSite(form);
+    i.state.showConfirmTransferSite = false;
     i.setState(i.state);
   }
 

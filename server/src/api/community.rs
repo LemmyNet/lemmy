@@ -605,8 +605,15 @@ impl Perform<GetCommunityResponse> for Oper<TransferCommunity> {
 
     let read_community = Community::read(&conn, data.community_id)?;
 
-    // Make sure user is the creator
-    if read_community.creator_id != user_id {
+    let site_creator_id = Site::read(&conn, 1)?.creator_id;
+    let mut admins = UserView::admins(&conn)?;
+    let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
+    let creator_user = admins.remove(creator_index);
+    admins.insert(0, creator_user);
+
+
+    // Make sure user is the creator, or an admin
+    if user_id != read_community.creator_id && !admins.iter().map(|a| a.id).collect::<Vec<i32>>().contains(&user_id) {
       return Err(APIError::err(&self.op, "not_an_admin"))?
     }
     
@@ -675,11 +682,6 @@ impl Perform<GetCommunityResponse> for Oper<TransferCommunity> {
       }
     };
 
-    let site_creator_id = Site::read(&conn, 1)?.creator_id;
-    let mut admins = UserView::admins(&conn)?;
-    let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
-    let creator_user = admins.remove(creator_index);
-    admins.insert(0, creator_user);
 
     // Return the jwt
     Ok(
