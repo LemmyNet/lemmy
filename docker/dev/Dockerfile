@@ -1,4 +1,5 @@
 FROM node:10-jessie as node
+
 WORKDIR /app/ui
 
 # Cache deps
@@ -9,7 +10,7 @@ RUN yarn install --pure-lockfile
 COPY ui /app/ui
 RUN yarn build
 
-FROM rust:latest as rust
+FROM rust:1.37 as rust
 
 # Install musl
 RUN apt-get update
@@ -34,7 +35,7 @@ RUN RUSTFLAGS=-Clinker=musl-gcc cargo build --frozen --release --target=x86_64-u
 # Get diesel-cli on there just in case
 # RUN cargo install diesel_cli --no-default-features --features postgres
 
-FROM alpine:latest
+FROM alpine:3.10
 
 # Install libpq for postgres
 RUN apk add libpq
