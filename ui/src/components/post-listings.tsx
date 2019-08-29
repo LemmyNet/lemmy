@@ -19,7 +19,11 @@ export class PostListings extends Component<PostListingsProps, any> {
     return (
       <div>
         {this.props.posts.length > 0 ? this.props.posts.map(post => 
-          <PostListing post={post} showCommunity={this.props.showCommunity} />) : 
+          <>
+            <PostListing post={post} showCommunity={this.props.showCommunity} />
+            <hr class="my-2" />
+          </>
+            ) : 
           <>
             <div><T i18nKey="no_posts">#</T></div>
             {this.props.showCommunity !== undefined  && <div><T i18nKey="subscribe_to_communities">#<Link to="/communities">#</Link></T></div>}

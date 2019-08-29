@@ -62,11 +62,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     return (
       <div className={`comment ${node.comment.parent_id  && !this.props.noIndent ? 'ml-4' : ''}`}>
         <div className={`vote-bar mr-1 float-left small text-center ${this.props.viewOnly && 'no-click'}`}>
-          <button className={`btn btn-sm p-0 ${node.comment.my_vote == 1 ? 'text-info' : 'text-muted'}`} onClick={linkEvent(node, this.handleCommentLike)}>
+          <button className={`btn p-0 ${node.comment.my_vote == 1 ? 'text-info' : 'text-muted'}`} onClick={linkEvent(node, this.handleCommentLike)}>
             <svg class="icon upvote"><use xlinkHref="#icon-arrow-up"></use></svg>
           </button>
           <div class={`font-weight-bold text-muted`}>{node.comment.score}</div>
-          <button className={`btn btn-sm p-0 ${node.comment.my_vote == -1 ? 'text-danger' : 'text-muted'}`} onClick={linkEvent(node, this.handleCommentDisLike)}>
+          <button className={`btn p-0 ${node.comment.my_vote == -1 ? 'text-danger' : 'text-muted'}`} onClick={linkEvent(node, this.handleCommentDisLike)}>
             <svg class="icon downvote"><use xlinkHref="#icon-arrow-down"></use></svg>
           </button>
         </div>
