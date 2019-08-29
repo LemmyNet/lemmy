@@ -59,7 +59,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     let post = this.props.post;
     return (
       <div class="listing col-12">
-        <div className={`vote-bar mr-1 float-left small text-center ${this.props.viewOnly && 'no-click'}`}>
+        <div className={`vote-bar mr-2 float-left small text-center ${this.props.viewOnly && 'no-click'}`}>
           <button className={`btn p-0 ${post.my_vote == 1 ? 'text-info' : 'text-muted'}`} onClick={linkEvent(this, this.handlePostLike)}>
             <svg class="icon upvote"><use xlinkHref="#icon-arrow-up"></use></svg>
           </button>
