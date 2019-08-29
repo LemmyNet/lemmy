@@ -354,6 +354,7 @@ export class Main extends Component<any, MainState> {
 
   nextPage(i: Main) { 
     i.state.page++;
+    i.state.loading = true;
     i.setState(i.state);
     i.updateUrl();
     i.fetchPosts();
@@ -361,6 +362,7 @@ export class Main extends Component<any, MainState> {
 
   prevPage(i: Main) { 
     i.state.page--;
+    i.state.loading = true;
     i.setState(i.state);
     i.updateUrl();
     i.fetchPosts();
@@ -369,6 +371,7 @@ export class Main extends Component<any, MainState> {
   handleSortChange(i: Main, event: any) {
     i.state.sort = Number(event.target.value);
     i.state.page = 1;
+    i.state.loading = true;
     i.setState(i.state);
     i.updateUrl();
     i.fetchPosts();
@@ -377,6 +380,7 @@ export class Main extends Component<any, MainState> {
   handleTypeChange(i: Main, event: any) {
     i.state.type_ = Number(event.target.value);
     i.state.page = 1;
+    i.state.loading = true;
     i.setState(i.state);
     i.updateUrl();
     i.fetchPosts();
