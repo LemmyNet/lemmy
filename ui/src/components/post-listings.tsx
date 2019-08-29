@@ -21,7 +21,8 @@ export class PostListings extends Component<PostListingsProps, any> {
         {this.props.posts.length > 0 ? this.props.posts.map(post => 
           <>
             <PostListing post={post} showCommunity={this.props.showCommunity} />
-            <hr class="my-2" />
+            <hr class="d-md-none my-2" />
+            <div class="d-none d-md-block my-3"></div>
           </>
             ) : 
           <>
