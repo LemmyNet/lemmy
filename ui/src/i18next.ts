@@ -4,10 +4,11 @@ import { en } from './translations/en';
 import { eo } from './translations/eo';
 import { es } from './translations/es';
 import { de } from './translations/de';
-import { zh } from './translations/zh';
 import { fr } from './translations/fr';
 import { sv } from './translations/sv';
 import { ru } from './translations/ru';
+import { zh } from './translations/zh';
+import { nl } from './translations/nl';
 
 // https://github.com/nimbusec-oss/inferno-i18next/blob/master/tests/T.test.js#L66
 // TODO don't forget to add moment locales for new languages.
@@ -20,6 +21,7 @@ const resources = {
   fr,
   sv,
   ru,
+  nl,
 }
 
 function format(value: any, format: any, lng: any) {
