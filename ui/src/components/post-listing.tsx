@@ -60,11 +60,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     return (
       <div class="listing col-12">
         <div className={`vote-bar mr-1 float-left small text-center ${this.props.viewOnly && 'no-click'}`}>
-          <button className={`btn btn-sm p-0 ${post.my_vote == 1 ? 'text-info' : 'text-muted'}`} onClick={linkEvent(this, this.handlePostLike)}>
+          <button className={`btn p-0 ${post.my_vote == 1 ? 'text-info' : 'text-muted'}`} onClick={linkEvent(this, this.handlePostLike)}>
             <svg class="icon upvote"><use xlinkHref="#icon-arrow-up"></use></svg>
           </button>
           <div class={`font-weight-bold text-muted`}>{post.score}</div>
-          <button className={`btn btn-sm p-0 ${post.my_vote == -1 ? 'text-danger' : 'text-muted'}`} onClick={linkEvent(this, this.handlePostDisLike)}>
+          <button className={`btn p-0 ${post.my_vote == -1 ? 'text-danger' : 'text-muted'}`} onClick={linkEvent(this, this.handlePostDisLike)}>
             <svg class="icon downvote"><use xlinkHref="#icon-arrow-down"></use></svg>
           </button>
         </div>
