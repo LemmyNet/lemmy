@@ -6,12 +6,14 @@ import { zh } from './src/translations/zh';
 import { fr } from './src/translations/fr';
 import { sv } from './src/translations/sv';
 import { ru } from './src/translations/ru';
+import { nl } from './src/translations/nl';
 
 let files = [
   {t: de, n: 'de'}, 
-  {t: es, n: 'es'}, 
   {t: eo, n: 'eo'}, 
+  {t: es, n: 'es'}, 
   {t: fr, n: 'fr'}, 
+  {t: nl, n: 'nl'}, 
   {t: ru, n: 'ru'}, 
   {t: sv, n: 'sv'}, 
   {t: zh, n: 'zh'}, 
