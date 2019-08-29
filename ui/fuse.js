@@ -48,7 +48,7 @@ Sparky.task('config', _ => {
 // Sparky.task('version', _ => setVersion());
 Sparky.task('clean', _ => Sparky.src('dist/').clean('dist/'));
 Sparky.task('env', _ => (isProduction = true));
-Sparky.task('copy-assets', () => Sparky.src('assets/**/**.*').dest('dist/'));
+Sparky.task('copy-assets', () => Sparky.src('assets/**/**.*').dest(isProduction ? 'dist/' : 'dist/static'));
 Sparky.task('dev', ['clean', 'config', 'copy-assets'], _ => {
   fuse.dev();
   app.hmr().watch();
