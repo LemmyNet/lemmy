@@ -39,6 +39,7 @@ export class Main extends Component<any, MainState> {
         number_of_users: null,
         number_of_posts: null,
         number_of_comments: null,
+        number_of_communities: null,
       },
       admins: [],
       banned: [],
@@ -216,6 +217,9 @@ export class Main extends Component<any, MainState> {
             <ul class="my-2 list-inline">
               <li className="list-inline-item badge badge-secondary">
                 <T i18nKey="number_of_users" interpolation={{count: this.state.site.site.number_of_users}}>#</T>
+              </li>
+              <li className="list-inline-item badge badge-secondary">
+                <T i18nKey="number_of_communities" interpolation={{count: this.state.site.site.number_of_communities}}>#</T>
               </li>
               <li className="list-inline-item badge badge-secondary">
                 <T i18nKey="number_of_posts" interpolation={{count: this.state.site.site.number_of_posts}}>#</T>

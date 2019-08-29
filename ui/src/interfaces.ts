@@ -135,6 +135,7 @@ export interface Site {
   number_of_users: number;
   number_of_posts: number;
   number_of_comments: number;
+  number_of_communities: number;
 }
 
 export interface FollowCommunityForm {
