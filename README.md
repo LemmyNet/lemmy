@@ -163,19 +163,20 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 
 If you'd like to add translations, take a look a look at the [english translation file](ui/src/translations/en.ts).
 
-- Languages supported: English (`en`), Chinese (`zh`), Esperanto (`eo`), French (`fr`), Spanish (`es`), Swedish (`sv`), German (`de`), Russian (`ru`).
+- Languages supported: English (`en`), Chinese (`zh`), Dutch (`nl`), Esperanto (`eo`), French (`fr`), Spanish (`es`), Swedish (`sv`), German (`de`), Russian (`ru`).
 
 ### Report
 
 lang | done | missing
 --- | --- | ---
-de | 90% | cross_posts,cross_post,users,settings,subscribed,expires,recent_comments,nsfw,show_nsfw,crypto,monero,joined,by,to,transfer_community,transfer_site 
-es | 100% |  
-eo | 100% |  
-fr | 93% | cross_posts,cross_post,users,settings,recent_comments,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site 
-ru | 95% | cross_posts,cross_post,recent_comments,monero,by,to,transfer_community,transfer_site 
-sv | 93% | cross_posts,cross_post,settings,recent_comments,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site 
-zh | 93% | cross_posts,cross_post,users,settings,recent_comments,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site 
+de | 88% | cross_posts,cross_post,users,number_of_communities,settings,subscribed,expires,recent_comments,nsfw,show_nsfw,crypto,monero,joined,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+eo | 98% | number_of_communities,are_you_sure,yes,no 
+es | 98% | number_of_communities,are_you_sure,yes,no 
+fr | 91% | cross_posts,cross_post,users,number_of_communities,settings,recent_comments,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+nl | 100% |  
+ru | 93% | cross_posts,cross_post,number_of_communities,recent_comments,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+sv | 91% | cross_posts,cross_post,number_of_communities,settings,recent_comments,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+zh | 91% | cross_posts,cross_post,users,number_of_communities,settings,recent_comments,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
 
 ## Credits
 
