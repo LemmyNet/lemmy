@@ -22,6 +22,8 @@ interface CommentNodeState {
   banExpires: string;
   banType: BanType;
   collapsed: boolean;
+  showConfirmTransferSite: boolean;
+  showConfirmTransferCommunity: boolean;
 }
 
 interface CommentNodeProps {
@@ -46,6 +48,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     banExpires: null,
     banType: BanType.Community,
     collapsed: false,
+    showConfirmTransferSite: false,
+    showConfirmTransferCommunity: false,
   }
 
   constructor(props: any, context: any) {
@@ -151,7 +155,14 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                     {/* Community creators can transfer community to another mod */}
                     {this.amCommunityCreator && this.isMod &&
                       <li className="list-inline-item">
-                        <span class="pointer" onClick={linkEvent(this, this.handleTransferCommunity)}><T i18nKey="transfer_community">#</T></span>
+                        {!this.state.showConfirmTransferCommunity ?
+                        <span class="pointer" onClick={linkEvent(this, this.handleShowConfirmTransferCommunity)}><T i18nKey="transfer_community">#</T>
+                      </span> : <>
+                        <span class="d-inline-block mr-1"><T i18nKey="are_you_sure">#</T></span>
+                        <span class="pointer d-inline-block mr-1" onClick={linkEvent(this, this.handleTransferCommunity)}><T i18nKey="yes">#</T></span>
+                        <span class="pointer d-inline-block" onClick={linkEvent(this, this.handleCancelShowConfirmTransferCommunity)}><T i18nKey="no">#</T></span>
+                      </>
+                        }
                       </li>
                     }
                     {/* Admins can ban from all, and appoint other admins */}
@@ -175,7 +186,14 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                     {/* Site Creator can transfer to another admin */}
                     {this.amSiteCreator && this.isAdmin &&
                       <li className="list-inline-item">
-                        <span class="pointer" onClick={linkEvent(this, this.handleTransferSite)}><T i18nKey="transfer_site">#</T></span>
+                        {!this.state.showConfirmTransferSite ?
+                        <span class="pointer" onClick={linkEvent(this, this.handleShowConfirmTransferSite)}><T i18nKey="transfer_site">#</T>
+                      </span> : <>
+                        <span class="d-inline-block mr-1"><T i18nKey="are_you_sure">#</T></span>
+                        <span class="pointer d-inline-block mr-1" onClick={linkEvent(this, this.handleTransferSite)}><T i18nKey="yes">#</T></span>
+                        <span class="pointer d-inline-block" onClick={linkEvent(this, this.handleCancelShowConfirmTransferSite)}><T i18nKey="no">#</T></span>
+                      </>
+                        }
                       </li>
                     }
                   </>
@@ -457,12 +475,32 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     i.setState(i.state);
   }
 
+  handleShowConfirmTransferCommunity(i: CommentNode) { 
+    i.state.showConfirmTransferCommunity = true;
+    i.setState(i.state);
+  }
+
+  handleCancelShowConfirmTransferCommunity(i: CommentNode) { 
+    i.state.showConfirmTransferCommunity = false;
+    i.setState(i.state);
+  }
+
   handleTransferCommunity(i: CommentNode) {
     let form: TransferCommunityForm = {
       community_id: i.props.node.comment.community_id,
       user_id: i.props.node.comment.creator_id,
     };
     WebSocketService.Instance.transferCommunity(form);
+    i.setState(i.state);
+  }
+
+  handleShowConfirmTransferSite(i: CommentNode) { 
+    i.state.showConfirmTransferSite = true;
+    i.setState(i.state);
+  }
+
+  handleCancelShowConfirmTransferSite(i: CommentNode) { 
+    i.state.showConfirmTransferSite = false;
     i.setState(i.state);
   }
 
