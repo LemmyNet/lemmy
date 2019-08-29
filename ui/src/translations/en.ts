@@ -21,6 +21,7 @@ export const en = {
     subscribed_to_communities:'Subscribed to <1>communities</1>',
     trending_communities:'Trending <1>communities</1>',
     list_of_communities: 'List of communities',
+    number_of_communities:'{{count}} Communities',
     community_reqs: 'lowercase, underscores, and no spaces.',
     edit: 'edit',
     reply: 'reply',
