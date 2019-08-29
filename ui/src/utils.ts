@@ -5,6 +5,7 @@ import 'moment/locale/zh-cn';
 import 'moment/locale/fr';
 import 'moment/locale/sv';
 import 'moment/locale/ru';
+import 'moment/locale/nl';
 
 import { UserOperation, Comment, User, SortType, ListingType } from './interfaces';
 import * as markdown_it from 'markdown-it';
@@ -198,6 +199,8 @@ export function getMomentLanguage(): string {
     lang = 'es';
   } else if (lang.startsWith('eo')) {
     lang = 'eo';
+  } else if (lang.startsWith('nl')) {
+    lang = 'nl';
   } else {
     lang = 'en';
   }
