@@ -233,14 +233,6 @@ impl Handler<Connect> for ChatServer {
       });
     }
 
-    // for (k,v) in &self.rate_limits {
-    //   println!("{}: {:?}", k,v);
-    // }
-
-    // auto join session to Main room
-    // self.rooms.get_mut(&"Main".to_owned()).unwrap().insert(id);
-
-    // send id back
     id
   }
 }
@@ -285,7 +277,10 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
 
   let json: Value = serde_json::from_str(&msg.msg)?;
   let data = &json["data"].to_string();
-  let op = &json["op"].as_str().unwrap();
+  let op = &json["op"].as_str().ok_or(APIError {
+    op: "Unknown op type".to_string(), 
+    message: format!("Unknown op type"),
+  })?;
 
   let user_operation: UserOperation = UserOperation::from_str(&op)?;
 
