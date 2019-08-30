@@ -6,7 +6,7 @@ import { WebSocketService, UserService } from '../services';
 import * as autosize from 'autosize';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
-declare var Tribute: any;
+import Tribute from 'tributejs/src/Tribute.js';
 
 interface CommentFormProps {
   postId?: number;
@@ -50,7 +50,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
             return `[/u/${item.original.key}](/u/${item.original.key})`;
           },
           values: (text: string, cb: any) => {
-            this.userSearch(text, users => cb(users));
+            this.userSearch(text, (users: any) => cb(users));
           },
           autocompleteMode: true,
         },
@@ -62,7 +62,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
             return `[/c/${item.original.key}](/c/${item.original.key})`;
           },
           values: (text: string, cb: any) => {
-            this.communitySearch(text, communities => cb(communities));
+            this.communitySearch(text, (communities: any) => cb(communities));
           },
           autocompleteMode: true,
         }
@@ -149,7 +149,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
         type_: SearchType[SearchType.Users],
         sort: SortType[SortType.TopAll],
         page: 1,
-        limit: fetchLimit,
+        limit: 6,
       };
 
       WebSocketService.Instance.search(form);
@@ -180,7 +180,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
         type_: SearchType[SearchType.Communities],
         sort: SortType[SortType.TopAll],
         page: 1,
-        limit: fetchLimit,
+        limit: 6,
       };
 
       WebSocketService.Instance.search(form);
