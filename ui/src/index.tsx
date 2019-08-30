@@ -19,6 +19,7 @@ import { Sponsors } from './components/sponsors';
 import { Symbols } from './components/symbols';
 import { i18n } from './i18next';
 
+import './css/tribute.css';
 import './css/bootstrap.min.css';
 import './css/main.css';
 
