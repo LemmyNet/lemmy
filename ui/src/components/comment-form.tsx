@@ -6,7 +6,7 @@ import { WebSocketService, UserService } from '../services';
 import * as autosize from 'autosize';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
-import * as tributejs from 'tributejs';
+declare var Tribute: any;
 
 interface CommentFormProps {
   postId?: number;
@@ -23,7 +23,7 @@ interface CommentFormState {
 
 export class CommentForm extends Component<CommentFormProps, CommentFormState> {
 
-  private id = `comment-form-${btoa(Math.random()).substring(0,12)}`;
+  private id = `comment-form-${Math.random().toString(36).replace(/[^a-z]+/g, '').substr(2, 10)}`;
   private userSub: Subscription;
   private communitySub: Subscription;
   private tribute: any;
@@ -40,7 +40,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
   constructor(props: any, context: any) {
     super(props, context);
 
-    this.tribute = new tributejs({
+    this.tribute = new Tribute({
       collection: [
 
         // Users
