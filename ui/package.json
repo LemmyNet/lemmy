@@ -34,6 +34,7 @@
     "moment": "^2.24.0",
     "rxjs": "^6.4.0",
     "terser": "^3.17.0",
+    "tributejs": "^3.7.2",
     "ws": "^7.0.0"
   },
   "devDependencies": {

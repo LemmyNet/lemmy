@@ -9,6 +9,7 @@ import 'moment/locale/nl';
 
 import { UserOperation, Comment, User, SortType, ListingType } from './interfaces';
 import * as markdown_it from 'markdown-it';
+declare var markdownitEmoji: any;
 import * as markdown_it_container from 'markdown-it-container';
 
 export let repoUrl = 'https://github.com/dessalines/lemmy';
@@ -39,7 +40,7 @@ var md = new markdown_it({
       return '</details>\n';
     }
   }
-});
+}).use(markdownitEmoji);
 
 export function hotRank(comment: Comment): number {
   // Rank = ScaleFactor * sign(Score) * log(1 + abs(Score)) / (Time + 2)^Gravity
