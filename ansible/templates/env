@@ -1,4 +1,4 @@
 DOMAIN={{ domain }}
 DATABASE_PASSWORD={{ postgres_password }}
-DATABASE_URL=postgres://lemmy:{{ postgres_password }}@db:5432/lemmy
+DATABASE_URL=postgres://lemmy:{{ postgres_password }}@lemmy_db:5432/lemmy
 JWT_SECRET={{ jwt_password }}
