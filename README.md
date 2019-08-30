@@ -175,7 +175,7 @@ es | 98% | number_of_communities,are_you_sure,yes,no
 fr | 91% | cross_posts,cross_post,users,number_of_communities,settings,recent_comments,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
 nl | 100% |  
 ru | 93% | cross_posts,cross_post,number_of_communities,recent_comments,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
-sv | 91% | cross_posts,cross_post,number_of_communities,settings,recent_comments,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+sv | 100% |  
 zh | 91% | cross_posts,cross_post,users,number_of_communities,settings,recent_comments,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
 
 ## Credits
