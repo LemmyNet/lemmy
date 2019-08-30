@@ -22,7 +22,7 @@ export class PostListings extends Component<PostListingsProps, any> {
           <>
             <PostListing post={post} showCommunity={this.props.showCommunity} />
             <hr class="d-md-none my-2" />
-            <div class="d-none d-md-block my-3"></div>
+            <div class="d-none d-md-block my-2"></div>
           </>
             ) : 
           <>
