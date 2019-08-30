@@ -47,7 +47,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
         {
           trigger: '@',
           selectTemplate: (item: any) => {
-            return `[/u/${item.original.key}](${window.location.origin}/u/${item.original.key})`;
+            return `[/u/${item.original.key}](/u/${item.original.key})`;
           },
           values: (text: string, cb: any) => {
             this.userSearch(text, users => cb(users));
@@ -59,7 +59,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
         {
           trigger: '#',
           selectTemplate: (item: any) => {
-            return `[/c/${item.original.key}](${window.location.origin}/c/${item.original.key})`;
+            return `[/c/${item.original.key}](/c/${item.original.key})`;
           },
           values: (text: string, cb: any) => {
             this.communitySearch(text, communities => cb(communities));
