@@ -1,10 +1,12 @@
 import { Component, linkEvent } from 'inferno';
-import { CommentNode as CommentNodeI, CommentForm as CommentFormI } from '../interfaces';
-import { capitalizeFirstLetter } from '../utils';
+import { CommentNode as CommentNodeI, CommentForm as CommentFormI, SearchForm, SearchType, SortType, UserOperation, SearchResponse } from '../interfaces';
+import { Subscription } from "rxjs";
+import { capitalizeFirstLetter, fetchLimit, msgOp } from '../utils';
 import { WebSocketService, UserService } from '../services';
 import * as autosize from 'autosize';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
+import * as tributejs from 'tributejs';
 
 interface CommentFormProps {
   postId?: number;
@@ -21,6 +23,10 @@ interface CommentFormState {
 
 export class CommentForm extends Component<CommentFormProps, CommentFormState> {
 
+  private id = `comment-form-${btoa(Math.random()).substring(0,12)}`;
+  private userSub: Subscription;
+  private communitySub: Subscription;
+  private tribute: any;
   private emptyState: CommentFormState = {
     commentForm: {
       auth: null,
@@ -34,6 +40,34 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
   constructor(props: any, context: any) {
     super(props, context);
 
+    this.tribute = new tributejs({
+      collection: [
+
+        // Users
+        {
+          trigger: '@',
+          selectTemplate: (item: any) => {
+            return `[/u/${item.original.key}](${window.location.origin}/u/${item.original.key})`;
+          },
+          values: (text: string, cb: any) => {
+            this.userSearch(text, users => cb(users));
+          },
+          autocompleteMode: true,
+        },
+
+        // Communities
+        {
+          trigger: '#',
+          selectTemplate: (item: any) => {
+            return `[/c/${item.original.key}](${window.location.origin}/c/${item.original.key})`;
+          },
+          values: (text: string, cb: any) => {
+            this.communitySearch(text, communities => cb(communities));
+          },
+          autocompleteMode: true,
+        }
+      ]
+    });
 
     this.state = this.emptyState;
 
@@ -51,7 +85,14 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
   }
 
   componentDidMount() {
-    autosize(document.querySelectorAll('textarea'));
+    var textarea: any = document.getElementById(this.id);
+    autosize(textarea);
+    this.tribute.attach(textarea);
+    textarea.addEventListener('tribute-replaced', () => {
+      this.state.commentForm.content = textarea.value;
+      this.setState(this.state);
+      autosize.update(textarea);
+    });
   }
 
   render() {
@@ -60,7 +101,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
         <form onSubmit={linkEvent(this, this.handleCommentSubmit)}>
           <div class="form-group row">
             <div class="col-sm-12">
-              <textarea class="form-control" value={this.state.commentForm.content} onInput={linkEvent(this, this.handleCommentContentChange)} required disabled={this.props.disabled} rows={2} maxLength={10000} />
+              <textarea id={this.id} class="form-control" value={this.state.commentForm.content} onInput={linkEvent(this, this.handleCommentContentChange)} required disabled={this.props.disabled} rows={2} maxLength={10000} />
             </div>
           </div>
           <div class="row">
@@ -99,5 +140,67 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
 
   handleReplyCancel(i: CommentForm) {
     i.props.onReplyCancel();
+  }
+  
+  userSearch(text: string, cb: any) {
+    if (text) {
+      let form: SearchForm = {
+        q: text,
+        type_: SearchType[SearchType.Users],
+        sort: SortType[SortType.TopAll],
+        page: 1,
+        limit: fetchLimit,
+      };
+
+      WebSocketService.Instance.search(form);
+
+      this.userSub = WebSocketService.Instance.subject
+      .subscribe(
+        (msg) => {  
+          let op: UserOperation = msgOp(msg);
+          if (op == UserOperation.Search) {
+            let res: SearchResponse = msg;
+            let users = res.users.map(u => {return {key: u.name}});
+            cb(users);
+            this.userSub.unsubscribe();
+          }
+        },
+        (err) => console.error(err),
+        () => console.log('complete')
+      );
+    } else {
+      cb([]);
+    }
+  }
+
+  communitySearch(text: string, cb: any) {
+    if (text) {
+      let form: SearchForm = {
+        q: text,
+        type_: SearchType[SearchType.Communities],
+        sort: SortType[SortType.TopAll],
+        page: 1,
+        limit: fetchLimit,
+      };
+
+      WebSocketService.Instance.search(form);
+
+      this.communitySub = WebSocketService.Instance.subject
+      .subscribe(
+        (msg) => {  
+          let op: UserOperation = msgOp(msg);
+          if (op == UserOperation.Search) {
+            let res: SearchResponse = msg;
+            let communities = res.communities.map(u => {return {key: u.name}});
+            cb(communities);
+            this.communitySub.unsubscribe();
+          }
+        },
+        (err) => console.error(err),
+        () => console.log('complete')
+      );
+    } else {
+      cb([]);
+    }
   }
 }
