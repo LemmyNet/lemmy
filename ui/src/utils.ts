@@ -11,15 +11,16 @@ import { UserOperation, Comment, User, SortType, ListingType } from './interface
 import * as markdown_it from 'markdown-it';
 declare var markdownitEmoji: any;
 import * as markdown_it_container from 'markdown-it-container';
+import { emoji_list } from './emoji_list';
 
-export let repoUrl = 'https://github.com/dessalines/lemmy';
+export const repoUrl = 'https://github.com/dessalines/lemmy';
 
 export function msgOp(msg: any): UserOperation {
   let opStr: string = msg.op;
   return UserOperation[opStr];
 }
 
-var md = new markdown_it({
+export const md = new markdown_it({
   html: false,
   linkify: true,
   typographer: true
@@ -182,6 +183,15 @@ export function debounce(func: any, wait: number = 500, immediate: boolean = fal
 
 export function getLanguage(): string {
   return (navigator.language || navigator.userLanguage);
+}
+
+export function emojiMentionList(): Array<{}> {
+  let keyedEmojis = [];
+  for (let e of emoji_list) { 
+    let obj = {key: e}; 
+    keyedEmojis.push(obj);
+  }
+  return keyedEmojis;
 }
 
 export function getMomentLanguage(): string {
