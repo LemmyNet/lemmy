@@ -1,7 +1,7 @@
 import { Component, linkEvent } from 'inferno';
 import { CommentNode as CommentNodeI, CommentForm as CommentFormI, SearchForm, SearchType, SortType, UserOperation, SearchResponse } from '../interfaces';
 import { Subscription } from "rxjs";
-import { capitalizeFirstLetter, fetchLimit, msgOp } from '../utils';
+import { capitalizeFirstLetter, fetchLimit, msgOp, md, emojiMentionList } from '../utils';
 import { WebSocketService, UserService } from '../services';
 import * as autosize from 'autosize';
 import { i18n } from '../i18next';
@@ -42,7 +42,21 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
 
     this.tribute = new Tribute({
       collection: [
-
+        // Emojis
+        {
+          trigger: ':',
+          menuItemTemplate: (item: any) => {
+            let emoji = `:${item.original.key}:`;
+            return `${md.renderInline(emoji)}  ${emoji}`;
+          },
+          selectTemplate: (item: any) => {
+            return `:${item.original.key}:`;
+          },
+          values: emojiMentionList(),
+          allowSpaces: false,
+          autocompleteMode: true,
+          menuItemLimit: 10,
+        },
         // Users
         {
           trigger: '@',
@@ -52,7 +66,9 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
           values: (text: string, cb: any) => {
             this.userSearch(text, (users: any) => cb(users));
           },
+          allowSpaces: false,
           autocompleteMode: true,
+          menuItemLimit: 10,
         },
 
         // Communities
@@ -64,7 +80,9 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
           values: (text: string, cb: any) => {
             this.communitySearch(text, (communities: any) => cb(communities));
           },
+          allowSpaces: false,
           autocompleteMode: true,
+          menuItemLimit: 10,
         }
       ]
     });
