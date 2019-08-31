@@ -35,6 +35,7 @@
     "rxjs": "^6.4.0",
     "terser": "^3.17.0",
     "tributejs": "^3.7.2",
+    "twemoji": "^12.1.2",
     "ws": "^7.0.0"
   },
   "devDependencies": {

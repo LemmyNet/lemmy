@@ -133,3 +133,7 @@ blockquote {
 hr {
   border-top: 1px solid var(--secondary);
 }
+
+.emoji {
+  height: 1.2em !important;
+}

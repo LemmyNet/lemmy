@@ -12,6 +12,7 @@ import * as markdown_it from 'markdown-it';
 declare var markdownitEmoji: any;
 import * as markdown_it_container from 'markdown-it-container';
 import { emoji_list } from './emoji_list';
+import * as twemoji from 'twemoji';
 
 export const repoUrl = 'https://github.com/dessalines/lemmy';
 
@@ -42,6 +43,10 @@ export const md = new markdown_it({
     }
   }
 }).use(markdownitEmoji);
+
+md.renderer.rules.emoji = function(token, idx) {
+  return twemoji.parse(token[idx].content);
+};
 
 export function hotRank(comment: Comment): number {
   // Rank = ScaleFactor * sign(Score) * log(1 + abs(Score)) / (Time + 2)^Gravity
