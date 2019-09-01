@@ -49,7 +49,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       <div class="row">
         {!this.state.showEdit 
           ? this.listing()
-          : <PostForm post={this.props.post} onEdit={this.handleEditPost} onCancel={this.handleEditCancel}/>
+          : 
+          <div class="col-12">
+            <PostForm post={this.props.post} onEdit={this.handleEditPost} onCancel={this.handleEditCancel}/>
+          </div>
         }
       </div>
     )

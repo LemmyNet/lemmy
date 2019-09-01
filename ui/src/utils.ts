@@ -15,6 +15,13 @@ import { emoji_list } from './emoji_list';
 import * as twemoji from 'twemoji';
 
 export const repoUrl = 'https://github.com/dessalines/lemmy';
+export const imageUploadUrl = 'https://postimages.org/';
+export const markdownHelpUrl = 'https://commonmark.org/help/';
+
+export const fetchLimit: number = 20;
+export const mentionDropdownFetchLimit = 6;
+
+export function randomStr() {return Math.random().toString(36).replace(/[^a-z]+/g, '').substr(2, 10)}
 
 export function msgOp(msg: any): UserOperation {
   let opStr: string = msg.op;
@@ -109,8 +116,6 @@ export function validURL(str: string) {
     '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
   return !!pattern.test(str);
 }
-
-export let fetchLimit: number = 20;
 
 export function capitalizeFirstLetter(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);

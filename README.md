@@ -169,14 +169,14 @@ If you'd like to add translations, take a look a look at the [english translatio
 
 lang | done | missing
 --- | --- | ---
-de | 88% | cross_posts,cross_post,users,number_of_communities,settings,subscribed,expires,recent_comments,nsfw,show_nsfw,crypto,monero,joined,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
-eo | 98% | number_of_communities,are_you_sure,yes,no 
-es | 98% | number_of_communities,are_you_sure,yes,no 
-fr | 91% | cross_posts,cross_post,users,number_of_communities,settings,recent_comments,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
-nl | 100% |  
-ru | 93% | cross_posts,cross_post,number_of_communities,recent_comments,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
-sv | 100% |  
-zh | 91% | cross_posts,cross_post,users,number_of_communities,settings,recent_comments,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+de | 87% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,formatting_help,settings,subscribed,expires,recent_comments,nsfw,show_nsfw,crypto,monero,joined,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+eo | 96% | number_of_communities,preview,upload_image,formatting_help,are_you_sure,yes,no 
+es | 96% | number_of_communities,preview,upload_image,formatting_help,are_you_sure,yes,no 
+fr | 89% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,formatting_help,settings,recent_comments,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+nl | 98% | preview,upload_image,formatting_help 
+ru | 91% | cross_posts,cross_post,number_of_communities,preview,upload_image,formatting_help,recent_comments,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+sv | 98% | preview,upload_image,formatting_help 
+zh | 89% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,formatting_help,settings,recent_comments,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
 
 ## Credits
 
