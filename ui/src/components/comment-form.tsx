@@ -1,7 +1,7 @@
 import { Component, linkEvent } from 'inferno';
 import { CommentNode as CommentNodeI, CommentForm as CommentFormI, SearchForm, SearchType, SortType, UserOperation, SearchResponse } from '../interfaces';
 import { Subscription } from "rxjs";
-import { capitalizeFirstLetter, fetchLimit, msgOp, md, emojiMentionList } from '../utils';
+import { capitalizeFirstLetter, mentionDropdownFetchLimit, msgOp, md, emojiMentionList, mdToHtml, randomStr, imageUploadUrl, markdownHelpUrl } from '../utils';
 import { WebSocketService, UserService } from '../services';
 import * as autosize from 'autosize';
 import { i18n } from '../i18next';
@@ -19,11 +19,12 @@ interface CommentFormProps {
 interface CommentFormState {
   commentForm: CommentFormI;
   buttonTitle: string;
+  previewMode: boolean;
 }
 
 export class CommentForm extends Component<CommentFormProps, CommentFormState> {
 
-  private id = `comment-form-${Math.random().toString(36).replace(/[^a-z]+/g, '').substr(2, 10)}`;
+  private id = `comment-form-${randomStr()}`;
   private userSub: Subscription;
   private communitySub: Subscription;
   private tribute: any;
@@ -35,6 +36,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
       creator_id: UserService.Instance.user ? UserService.Instance.user.id : null,
     },
     buttonTitle: !this.props.node ? capitalizeFirstLetter(i18n.t('post')) : this.props.edit ? capitalizeFirstLetter(i18n.t('edit')) : capitalizeFirstLetter(i18n.t('reply')),
+    previewMode: false,
   }
 
   constructor(props: any, context: any) {
@@ -119,13 +121,21 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
         <form onSubmit={linkEvent(this, this.handleCommentSubmit)}>
           <div class="form-group row">
             <div class="col-sm-12">
-              <textarea id={this.id} class="form-control" value={this.state.commentForm.content} onInput={linkEvent(this, this.handleCommentContentChange)} required disabled={this.props.disabled} rows={2} maxLength={10000} />
+              <textarea id={this.id} className={`form-control ${this.state.previewMode && 'd-none'}`} value={this.state.commentForm.content} onInput={linkEvent(this, this.handleCommentContentChange)} required disabled={this.props.disabled} rows={2} maxLength={10000} />
+              {this.state.previewMode && 
+                <div className="md-div" dangerouslySetInnerHTML={mdToHtml(this.state.commentForm.content)} />
+              }
             </div>
           </div>
           <div class="row">
             <div class="col-sm-12">
               <button type="submit" class="btn btn-sm btn-secondary mr-2" disabled={this.props.disabled}>{this.state.buttonTitle}</button>
+              {this.state.commentForm.content &&
+                <button className={`btn btn-sm mr-2 btn-secondary ${this.state.previewMode && 'active'}`} onClick={linkEvent(this, this.handlePreviewToggle)}><T i18nKey="preview">#</T></button>
+              }
               {this.props.node && <button type="button" class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.handleReplyCancel)}><T i18nKey="cancel">#</T></button>}
+              <a href={markdownHelpUrl} target="_blank" class="d-inline-block float-right text-muted small font-weight-bold"><T i18nKey="formatting_help">#</T></a>
+              <a href={imageUploadUrl} target="_blank" class="d-inline-block mr-2 float-right text-muted small font-weight-bold"><T i18nKey="upload_image">#</T></a>
             </div>
           </div>
         </form>
@@ -141,6 +151,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
       WebSocketService.Instance.createComment(i.state.commentForm);
     }
 
+    i.state.previewMode = false;
     i.state.commentForm.content = undefined;
     i.setState(i.state);
     event.target.reset();
@@ -156,6 +167,12 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     i.setState(i.state);
   }
 
+  handlePreviewToggle(i: CommentForm, event: any) {
+    event.preventDefault();
+    i.state.previewMode = !i.state.previewMode;
+    i.setState(i.state);
+  }
+
   handleReplyCancel(i: CommentForm) {
     i.props.onReplyCancel();
   }
@@ -167,7 +184,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
         type_: SearchType[SearchType.Users],
         sort: SortType[SortType.TopAll],
         page: 1,
-        limit: 6,
+        limit: mentionDropdownFetchLimit,
       };
 
       WebSocketService.Instance.search(form);
@@ -198,7 +215,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
         type_: SearchType[SearchType.Communities],
         sort: SortType[SortType.TopAll],
         page: 1,
-        limit: 6,
+        limit: mentionDropdownFetchLimit,
       };
 
       WebSocketService.Instance.search(form);
