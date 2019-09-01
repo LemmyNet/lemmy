@@ -4,7 +4,7 @@ import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { PostForm as PostFormI, PostFormParams, Post, PostResponse, UserOperation, Community, ListCommunitiesResponse, ListCommunitiesForm, SortType, SearchForm, SearchType, SearchResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { msgOp, getPageTitle, debounce, validURL, capitalizeFirstLetter } from '../utils';
+import { msgOp, getPageTitle, debounce, validURL, capitalizeFirstLetter, imageUploadUrl, markdownHelpUrl, mdToHtml } from '../utils';
 import * as autosize from 'autosize';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -21,6 +21,7 @@ interface PostFormState {
   postForm: PostFormI;
   communities: Array<Community>;
   loading: boolean;
+  previewMode: boolean;
   suggestedTitle: string;
   suggestedPosts: Array<Post>;
   crossPosts: Array<Post>;
@@ -39,6 +40,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     },
     communities: [],
     loading: false,
+    previewMode: false,
     suggestedTitle: undefined,
     suggestedPosts: [],
     crossPosts: [],
@@ -107,6 +109,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               {this.state.suggestedTitle && 
                 <div class="mt-1 text-muted small font-weight-bold pointer" onClick={linkEvent(this, this.copySuggestedTitle)}><T i18nKey="copy_suggested_title" interpolation={{title: this.state.suggestedTitle}}>#</T></div>
               }
+              <a href={imageUploadUrl} target="_blank" class="d-inline-block mr-2 float-right text-muted small font-weight-bold"><T i18nKey="upload_image">#</T></a>
               {this.state.crossPosts.length > 0 && 
                 <>
                   <div class="my-1 text-muted small font-weight-bold"><T i18nKey="cross_posts">#</T></div>
@@ -130,7 +133,14 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
           <div class="form-group row">
             <label class="col-sm-2 col-form-label"><T i18nKey="body">#</T></label>
             <div class="col-sm-10">
-              <textarea value={this.state.postForm.body} onInput={linkEvent(this, this.handlePostBodyChange)} class="form-control" rows={4} maxLength={10000} />
+              <textarea value={this.state.postForm.body} onInput={linkEvent(this, this.handlePostBodyChange)} className={`form-control ${this.state.previewMode && 'd-none'}`} rows={4} maxLength={10000} />
+              {this.state.previewMode && 
+                <div className="md-div" dangerouslySetInnerHTML={mdToHtml(this.state.postForm.body)} />
+              }
+              {this.state.postForm.body &&
+                <button className={`mt-1 mr-2 btn btn-sm btn-secondary ${this.state.previewMode && 'active'}`} onClick={linkEvent(this, this.handlePreviewToggle)}><T i18nKey="preview">#</T></button>
+              }
+              <a href={markdownHelpUrl} target="_blank" class="d-inline-block float-right text-muted small font-weight-bold"><T i18nKey="formatting_help">#</T></a>
             </div>
           </div>
           {!this.props.post &&
@@ -248,6 +258,12 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
 
   handleCancel(i: PostForm) {
     i.props.onCancel();
+  }
+
+  handlePreviewToggle(i: PostForm, event: any) {
+    event.preventDefault();
+    i.state.previewMode = !i.state.previewMode;
+    i.setState(i.state);
   }
 
   parseMessage(msg: any) {
