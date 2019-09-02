@@ -6,6 +6,7 @@
   gather_facts: False
   pre_tasks:
     - name: install python for Ansible
+      become: true
       raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal python-setuptools)
       args:
         executable: /bin/bash
@@ -15,21 +16,25 @@
 
   tasks:
   - name: install dependencies
+    become: true
     apt:
       pkg: ['nginx', 'docker-compose', 'docker.io', 'certbot', 'python-certbot-nginx']
 
   - name: request initial letsencrypt certificate
+    become: true
     command: certbot certonly --nginx --agree-tos -d '{{ domain }}' -m '{{ letsencrypt_contact_email }}'
     args:
       creates: '/etc/letsencrypt/live/{{domain}}/privkey.pem'
 
   - name: create lemmy folder
+    become: true
     file: path={{item.path}} state=directory
     with_items:
       - { path: '/lemmy/' }
       - { path: '/lemmy/volumes/' }
 
   - name:  add all template files
+    become: true
     template: src={{item.src}} dest={{item.dest}}
     with_items:
       - { src: 'templates/env', dest: '/lemmy/.env' }
@@ -40,6 +45,7 @@
       jwt_password: "{{ lookup('password', 'passwords/{{ inventory_hostname }}/jwt chars=ascii_letters,digits') }}"
 
   - name: set env file permissions
+    become: true
     file:
       path: "/lemmy/.env"
       state: touch
@@ -48,21 +54,25 @@
       modification_time: preserve
 
   - name: enable and start docker service
+    become: true
     systemd:
       name: docker
       enabled: yes
       state: started
 
   - name: start docker-compose
+    become: true
     docker_compose:
       project_src: /lemmy/
       state: present
       pull: yes
 
   - name: reload nginx with new config
+    become: true
     shell: nginx -s reload
 
   - name: certbot renewal cronjob
+    become: true
     cron:
       special_time=daily
       name=certbot-renew-lemmy
