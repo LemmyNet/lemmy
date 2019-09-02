@@ -65,15 +65,17 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     let node = this.props.node;
     return (
       <div className={`comment ${node.comment.parent_id  && !this.props.noIndent ? 'ml-4' : ''}`}>
-        <div className={`vote-bar mr-2 float-left small text-center ${this.props.viewOnly && 'no-click'}`}>
-          <button className={`btn p-0 ${node.comment.my_vote == 1 ? 'text-info' : 'text-muted'}`} onClick={linkEvent(node, this.handleCommentLike)}>
-            <svg class="icon upvote"><use xlinkHref="#icon-arrow-up"></use></svg>
-          </button>
-          <div class={`font-weight-bold text-muted`}>{node.comment.score}</div>
-          <button className={`btn p-0 ${node.comment.my_vote == -1 ? 'text-danger' : 'text-muted'}`} onClick={linkEvent(node, this.handleCommentDisLike)}>
-            <svg class="icon downvote"><use xlinkHref="#icon-arrow-down"></use></svg>
-          </button>
-        </div>
+        {!this.state.collapsed && 
+          <div className={`vote-bar mr-2 float-left small text-center ${this.props.viewOnly && 'no-click'}`}>
+            <button className={`btn p-0 ${node.comment.my_vote == 1 ? 'text-info' : 'text-muted'}`} onClick={linkEvent(node, this.handleCommentLike)}>
+              <svg class="icon upvote"><use xlinkHref="#icon-arrow-up"></use></svg>
+            </button>
+            <div class={`font-weight-bold text-muted`}>{node.comment.score}</div>
+            <button className={`btn p-0 ${node.comment.my_vote == -1 ? 'text-danger' : 'text-muted'}`} onClick={linkEvent(node, this.handleCommentDisLike)}>
+              <svg class="icon downvote"><use xlinkHref="#icon-arrow-down"></use></svg>
+            </button>
+          </div>
+        }
         <div id={`comment-${node.comment.id}`} className={`details comment-node ml-4 ${this.isCommentNew ? 'mark' : ''}`}>
           <ul class="list-inline mb-0 text-muted small">
             <li className="list-inline-item">

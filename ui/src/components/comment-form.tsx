@@ -1,7 +1,8 @@
 import { Component, linkEvent } from 'inferno';
 import { CommentNode as CommentNodeI, CommentForm as CommentFormI, SearchForm, SearchType, SortType, UserOperation, SearchResponse } from '../interfaces';
 import { Subscription } from "rxjs";
-import { capitalizeFirstLetter, mentionDropdownFetchLimit, msgOp, md, emojiMentionList, mdToHtml, randomStr, imageUploadUrl, markdownHelpUrl } from '../utils';
+import { capitalizeFirstLetter, mentionDropdownFetchLimit, msgOp, mdToHtml, randomStr, imageUploadUrl, markdownHelpUrl } from '../utils';
+import { twemojis } from '../twemojis';
 import { WebSocketService, UserService } from '../services';
 import * as autosize from 'autosize';
 import { i18n } from '../i18next';
@@ -49,12 +50,12 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
           trigger: ':',
           menuItemTemplate: (item: any) => {
             let emoji = `:${item.original.key}:`;
-            return `${md.renderInline(emoji)}  ${emoji}`;
+            return `${item.original.val} ${emoji}`;
           },
           selectTemplate: (item: any) => {
             return `:${item.original.key}:`;
           },
-          values: emojiMentionList(),
+          values: Object.entries(twemojis).map(e => {return {'key': e[0], 'val': e[1]}}),
           allowSpaces: false,
           autocompleteMode: true,
           menuItemLimit: 10,
