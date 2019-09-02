@@ -11,8 +11,8 @@ import { UserOperation, Comment, User, SortType, ListingType } from './interface
 import * as markdown_it from 'markdown-it';
 declare var markdownitEmoji: any;
 import * as markdown_it_container from 'markdown-it-container';
-import { emoji_list } from './emoji_list';
 import * as twemoji from 'twemoji';
+import { twemojis } from './twemojis';
 
 export const repoUrl = 'https://github.com/dessalines/lemmy';
 export const imageUploadUrl = 'https://postimages.org/';
@@ -49,7 +49,9 @@ export const md = new markdown_it({
       return '</details>\n';
     }
   }
-}).use(markdownitEmoji);
+}).use(markdownitEmoji, {
+  defs: twemojis
+});
 
 md.renderer.rules.emoji = function(token, idx) {
   return twemoji.parse(token[idx].content);
@@ -193,15 +195,6 @@ export function debounce(func: any, wait: number = 500, immediate: boolean = fal
 
 export function getLanguage(): string {
   return (navigator.language || navigator.userLanguage);
-}
-
-export function emojiMentionList(): Array<{}> {
-  let keyedEmojis = [];
-  for (let e of emoji_list) { 
-    let obj = {key: e}; 
-    keyedEmojis.push(obj);
-  }
-  return keyedEmojis;
 }
 
 export function getMomentLanguage(): string {
