@@ -25,3 +25,7 @@ git push
 ./docker_update.sh
 docker tag dev_lemmy:latest dessalines/lemmy:$new_tag
 docker push dessalines/lemmy:$new_tag
+
+# Pushing to any ansible deploys
+cd ../../ansible
+ansible-playbook lemmy.yml
