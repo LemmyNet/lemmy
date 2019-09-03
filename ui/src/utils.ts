@@ -9,7 +9,7 @@ import 'moment/locale/nl';
 
 import { UserOperation, Comment, User, SortType, ListingType } from './interfaces';
 import * as markdown_it from 'markdown-it';
-declare var markdownitEmoji: any;
+import * as markdownitEmoji from 'markdown-it-emoji/light';
 import * as markdown_it_container from 'markdown-it-container';
 import * as twemoji from 'twemoji';
 import { twemojis } from './twemojis';
