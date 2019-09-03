@@ -18,10 +18,12 @@ use crate::api::post::*;
 use crate::api::comment::*;
 use crate::api::site::*;
 
-const RATE_LIMIT_MESSAGES: i32 = 30;
-const RATE_LIMIT_PER_SECOND: i32 = 60;
-const RATE_LIMIT_REGISTER_MESSAGES: i32 = 3;
-const RATE_LIMIT_REGISTER_PER_SECOND: i32 = 60*3;
+const RATE_LIMIT_MESSAGE: i32 = 30;
+const RATE_LIMIT_MESSAGES_PER_SECOND: i32 = 60;
+const RATE_LIMIT_POST: i32 = 1;
+const RATE_LIMIT_POSTS_PER_SECOND: i32 = 60*10;
+const RATE_LIMIT_REGISTER: i32 = 1;
+const RATE_LIMIT_REGISTER_PER_SECOND: i32 = 60*60;
 
 
 /// Chat server sends this messages to session
@@ -156,11 +158,15 @@ impl ChatServer {
   }
 
   fn check_rate_limit_register(&mut self, id: usize) -> Result<(), Error> {
-    self.check_rate_limit_full(id, RATE_LIMIT_REGISTER_MESSAGES, RATE_LIMIT_REGISTER_PER_SECOND)
+    self.check_rate_limit_full(id, RATE_LIMIT_REGISTER, RATE_LIMIT_REGISTER_PER_SECOND)
   }
 
-  fn check_rate_limit(&mut self, id: usize) -> Result<(), Error> {
-    self.check_rate_limit_full(id, RATE_LIMIT_MESSAGES, RATE_LIMIT_PER_SECOND)
+  fn check_rate_limit_post(&mut self, id: usize) -> Result<(), Error> {
+    self.check_rate_limit_full(id, RATE_LIMIT_POST, RATE_LIMIT_POSTS_PER_SECOND)
+  }
+
+  fn check_rate_limit_message(&mut self, id: usize) -> Result<(), Error> {
+    self.check_rate_limit_full(id, RATE_LIMIT_MESSAGE, RATE_LIMIT_MESSAGES_PER_SECOND)
   }
 
   fn check_rate_limit_full(&mut self, id: usize, rate: i32, per: i32) -> Result<(), Error> {
@@ -384,7 +390,7 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       Ok(serde_json::to_string(&res)?)
     },
     UserOperation::CreatePost => {
-      chat.check_rate_limit_register(msg.id)?;
+      chat.check_rate_limit_post(msg.id)?;
       let create_post: CreatePost = serde_json::from_str(data)?;
       let res = Oper::new(user_operation, create_post).perform()?;
       Ok(serde_json::to_string(&res)?)
@@ -401,7 +407,7 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       Ok(serde_json::to_string(&res)?)
     },
     UserOperation::CreatePostLike => {
-      chat.check_rate_limit(msg.id)?;
+      chat.check_rate_limit_message(msg.id)?;
       let create_post_like: CreatePostLike = serde_json::from_str(data)?;
       let res = Oper::new(user_operation, create_post_like).perform()?;
       Ok(serde_json::to_string(&res)?)
@@ -421,7 +427,7 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       Ok(serde_json::to_string(&res)?)
     },
     UserOperation::CreateComment => {
-      chat.check_rate_limit(msg.id)?;
+      chat.check_rate_limit_message(msg.id)?;
       let create_comment: CreateComment = serde_json::from_str(data)?;
       let post_id = create_comment.post_id;
       let res = Oper::new(user_operation, create_comment).perform()?;
@@ -449,7 +455,7 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       Ok(serde_json::to_string(&res)?)
     },
     UserOperation::CreateCommentLike => {
-      chat.check_rate_limit(msg.id)?;
+      chat.check_rate_limit_message(msg.id)?;
       let create_comment_like: CreateCommentLike = serde_json::from_str(data)?;
       let post_id = create_comment_like.post_id;
       let res = Oper::new(user_operation, create_comment_like).perform()?;
