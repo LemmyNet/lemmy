@@ -28,4 +28,4 @@ docker push dessalines/lemmy:$new_tag
 
 # Pushing to any ansible deploys
 cd ../../ansible
-ansible-playbook lemmy.yml
+ansible-playbook lemmy.yml --become

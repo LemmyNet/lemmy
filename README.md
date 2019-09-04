@@ -101,7 +101,7 @@ git clone https://github.com/dessalines/lemmy.git
 cd lemmy/ansible/
 cp inventory.example inventory
 nano inventory # enter your server, domain, contact email
-ansible-playbook lemmy.yml
+ansible-playbook lemmy.yml --become
 ```
 
 ## Develop
