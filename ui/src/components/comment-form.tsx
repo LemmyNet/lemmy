@@ -2,12 +2,12 @@ import { Component, linkEvent } from 'inferno';
 import { CommentNode as CommentNodeI, CommentForm as CommentFormI, SearchForm, SearchType, SortType, UserOperation, SearchResponse } from '../interfaces';
 import { Subscription } from "rxjs";
 import { capitalizeFirstLetter, mentionDropdownFetchLimit, msgOp, mdToHtml, randomStr, imageUploadUrl, markdownHelpUrl } from '../utils';
-import { twemojis } from '../twemojis';
 import { WebSocketService, UserService } from '../services';
 import * as autosize from 'autosize';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 import Tribute from 'tributejs/src/Tribute.js';
+import * as emojiShortName from 'emoji-short-name';
 
 interface CommentFormProps {
   postId?: number;
@@ -55,7 +55,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
           selectTemplate: (item: any) => {
             return `:${item.original.key}:`;
           },
-          values: Object.entries(twemojis).map(e => {return {'key': e[0], 'val': e[1]}}),
+          values: Object.entries(emojiShortName).map(e => {return {'key': e[1], 'val': e[0]}}),
           allowSpaces: false,
           autocompleteMode: true,
           menuItemLimit: 10,

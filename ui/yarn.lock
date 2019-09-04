@@ -782,6 +782,11 @@ ee-first@1.1.1:
   resolved "https://registry.yarnpkg.com/ee-first/-/ee-first-1.1.1.tgz#590c61156b0ae2f4f0255732a158b266bc56b21d"
   integrity sha1-WQxhFWsK4vTwJVcyoViyZrxWsh0=
 
+emoji-short-name@^0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/emoji-short-name/-/emoji-short-name-0.1.0.tgz#e2f0fd743e3e16384ae32f8a8b0ce6a47216e1d3"
+  integrity sha512-vpQaGMxBDC4VGHz52CjVKTJsGsgQ0YueEgQFyDkoanPIK3RgGMbHSjnek2viaCwgf8T6TKCR5v03O/SlfD7iFA==
+
 encodeurl@~1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/encodeurl/-/encodeurl-1.0.2.tgz#ad3ff4c86ec2d029322f5a02c3a9a606c95b3f59"

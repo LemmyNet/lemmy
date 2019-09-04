@@ -12,7 +12,7 @@ import * as markdown_it from 'markdown-it';
 import * as markdownitEmoji from 'markdown-it-emoji/light';
 import * as markdown_it_container from 'markdown-it-container';
 import * as twemoji from 'twemoji';
-import { twemojis } from './twemojis';
+import * as emojiShortName from 'emoji-short-name';
 
 export const repoUrl = 'https://github.com/dessalines/lemmy';
 export const imageUploadUrl = 'https://postimages.org/';
@@ -50,7 +50,7 @@ export const md = new markdown_it({
     }
   }
 }).use(markdownitEmoji, {
-  defs: twemojis
+  defs: objectFlip(emojiShortName)
 });
 
 md.renderer.rules.emoji = function(token, idx) {
@@ -195,6 +195,14 @@ export function debounce(func: any, wait: number = 500, immediate: boolean = fal
 
 export function getLanguage(): string {
   return (navigator.language || navigator.userLanguage);
+}
+
+export function objectFlip(obj: any) {
+  const ret = {};
+  Object.keys(obj).forEach((key) => {
+    ret[obj[key]] = key;
+  });
+  return ret;
 }
 
 export function getMomentLanguage(): string {
