@@ -351,6 +351,9 @@ export class Post extends Component<any, PostState> {
       let res: BanFromCommunityResponse = msg;
       this.state.comments.filter(c => c.creator_id == res.user.id)
       .forEach(c => c.banned_from_community = res.banned);
+      if (this.state.post.creator_id == res.user.id) {  
+        this.state.post.banned_from_community = res.banned;
+      }
       this.setState(this.state);
     } else if (op == UserOperation.AddModToCommunity) {
       let res: AddModToCommunityResponse = msg;
@@ -360,6 +363,9 @@ export class Post extends Component<any, PostState> {
       let res: BanUserResponse = msg;
       this.state.comments.filter(c => c.creator_id == res.user.id)
       .forEach(c => c.banned = res.banned);
+      if (this.state.post.creator_id == res.user.id) {  
+        this.state.post.banned = res.banned;
+      }
       this.setState(this.state);
     } else if (op == UserOperation.AddAdmin) {
       let res: AddAdminResponse = msg;
