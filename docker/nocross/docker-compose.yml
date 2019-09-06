@@ -12,7 +12,7 @@ services:
   lemmy:
     build: 
       context: ../../
-      dockerfile: docker/pi/Dockerfile
+      dockerfile: docker/nocross/Dockerfile
     ports:
       - "8536:8536"
     environment:
