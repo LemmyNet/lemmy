@@ -45,6 +45,7 @@ export class User extends Component<any, UserState> {
       post_score: null,
       number_of_comments: null,
       comment_score: null,
+      banned: null,
     },
     user_id: null,
     username: null,
@@ -234,7 +235,14 @@ export class User extends Component<any, UserState> {
       <div>
         <div class="card border-secondary mb-3">
           <div class="card-body">
-            <h5>{user.name}</h5>
+            <h5>
+              <ul class="list-inline mb-0">
+                <li className="list-inline-item">{user.name}</li>
+                {user.banned &&  
+                  <li className="list-inline-item badge badge-danger"><T i18nKey="banned">#</T></li>
+                }
+              </ul>
+            </h5>
             <div>{i18n.t('joined')} <MomentTime data={user} /></div>
             <div class="table-responsive">
               <table class="table table-bordered table-sm mt-2 mb-0">
