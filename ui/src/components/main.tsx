@@ -107,7 +107,6 @@ export class Main extends Component<any, MainState> {
   // Necessary for back button for some reason
   componentWillReceiveProps(nextProps: any) {
     if (nextProps.history.action == 'POP' || nextProps.history.action == 'PUSH') {
-      this.state = this.emptyState;
       this.state.type_ = this.getListingTypeFromProps(nextProps);
       this.state.sort = this.getSortTypeFromProps(nextProps);
       this.state.page = this.getPageFromProps(nextProps);
