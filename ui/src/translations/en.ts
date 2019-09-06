@@ -56,6 +56,7 @@ export const en = {
     ban_from_site: 'ban from site',
     unban: 'unban',
     unban_from_site: 'unban from site',
+    banned: 'banned',
     save: 'save',
     unsave: 'unsave',
     create: 'create',

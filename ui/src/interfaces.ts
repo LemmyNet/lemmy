@@ -34,6 +34,7 @@ export interface UserView {
   post_score: number;
   number_of_comments: number;
   comment_score: number;
+  banned: boolean;
 }
 
 export interface CommunityUser {
@@ -77,6 +78,8 @@ export interface Post {
   deleted: boolean;
   locked: boolean;
   nsfw: boolean;
+  banned: boolean;
+  banned_from_community: boolean;
   published: string;
   updated?: string;
   creator_name: string;
@@ -137,6 +140,8 @@ export interface Site {
   number_of_comments: number;
   number_of_communities: number;
 }
+
+export enum BanType {Community, Site};
 
 export interface FollowCommunityForm {
   community_id: number;
