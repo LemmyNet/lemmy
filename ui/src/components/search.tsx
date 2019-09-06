@@ -4,7 +4,7 @@ import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { UserOperation, Post, Comment, Community, UserView, SortType, SearchForm, SearchResponse, SearchType } from '../interfaces';
 import { WebSocketService } from '../services';
-import { msgOp, fetchLimit } from '../utils';
+import { msgOp, fetchLimit, routeSearchTypeToEnum, routeSortTypeToEnum } from '../utils';
 import { PostListing } from './post-listing';
 import { CommentNodes } from './comment-nodes';
 import { i18n } from '../i18next';
@@ -23,10 +23,10 @@ export class Search extends Component<any, SearchState> {
 
   private subscription: Subscription;
   private emptyState: SearchState = {
-    q: undefined,
-    type_: SearchType.All,
-    sort: SortType.TopAll,
-    page: 1,
+    q: this.getSearchQueryFromProps(this.props),
+    type_: this.getSearchTypeFromProps(this.props),
+    sort: this.getSortTypeFromProps(this.props),
+    page: this.getPageFromProps(this.props),
     searchResponse: {
       op: null,
       type_: null,
@@ -36,6 +36,26 @@ export class Search extends Component<any, SearchState> {
       users: [],
     },
     loading: false,
+  }
+
+  getSearchQueryFromProps(props: any): string {
+    return (props.match.params.q) ? props.match.params.q : '';
+  }
+
+  getSearchTypeFromProps(props: any): SearchType {
+    return (props.match.params.type) ? 
+      routeSearchTypeToEnum(props.match.params.type) : 
+      SearchType.All;
+  }
+
+  getSortTypeFromProps(props: any): SortType {
+    return (props.match.params.sort) ? 
+      routeSortTypeToEnum(props.match.params.sort) : 
+      SortType.TopAll;
+  }
+
+  getPageFromProps(props: any): number {
+    return (props.match.params.page) ? Number(props.match.params.page) : 1;
   }
 
   constructor(props: any, context: any) {
@@ -50,11 +70,28 @@ export class Search extends Component<any, SearchState> {
         (err) => console.error(err),
         () => console.log('complete')
     );
+    
+    if (this.state.q) {
+      this.search();
+    }
 
   }
 
   componentWillUnmount() {
     this.subscription.unsubscribe();
+  }
+
+  // Necessary for back button for some reason
+  componentWillReceiveProps(nextProps: any) {
+    if (nextProps.history.action == 'POP' || nextProps.history.action == 'PUSH') {
+      this.state = this.emptyState;
+      this.state.q = this.getSearchQueryFromProps(nextProps);
+      this.state.type_ = this.getSearchTypeFromProps(nextProps);
+      this.state.sort = this.getSortTypeFromProps(nextProps);
+      this.state.page = this.getPageFromProps(nextProps);
+      this.setState(this.state);
+      this.search();
+    }
   }
 
   componentDidMount() {
@@ -256,12 +293,14 @@ export class Search extends Component<any, SearchState> {
   nextPage(i: Search) { 
     i.state.page++;
     i.setState(i.state);
+    i.updateUrl();
     i.search();
   }
 
   prevPage(i: Search) { 
     i.state.page--;
     i.setState(i.state);
+    i.updateUrl();
     i.search();
   }
 
@@ -275,19 +314,23 @@ export class Search extends Component<any, SearchState> {
       limit: fetchLimit,
     };
 
-    WebSocketService.Instance.search(form);
+    if (this.state.q != '') {
+      WebSocketService.Instance.search(form);
+    }
   }
 
   handleSortChange(i: Search, event: any) {
     i.state.sort = Number(event.target.value);
     i.state.page = 1;
     i.setState(i.state);
+    i.updateUrl();
   }
 
   handleTypeChange(i: Search, event: any) {
     i.state.type_ = Number(event.target.value);
     i.state.page = 1;
     i.setState(i.state);
+    i.updateUrl();
   }
 
   handleSearchSubmit(i: Search, event: any) {
@@ -295,11 +338,18 @@ export class Search extends Component<any, SearchState> {
     i.state.loading = true;
     i.search();
     i.setState(i.state);
+    i.updateUrl();
   }
 
   handleQChange(i: Search, event: any) {
     i.state.q = event.target.value;
     i.setState(i.state);
+  }
+
+  updateUrl() {
+    let typeStr = SearchType[this.state.type_].toLowerCase();
+    let sortStr = SortType[this.state.sort].toLowerCase();
+    this.props.history.push(`/search/q/${this.state.q}/type/${typeStr}/sort/${sortStr}/page/${this.state.page}`);
   }
 
   parseMessage(msg: any) {

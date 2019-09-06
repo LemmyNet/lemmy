@@ -7,7 +7,7 @@ import 'moment/locale/sv';
 import 'moment/locale/ru';
 import 'moment/locale/nl';
 
-import { UserOperation, Comment, User, SortType, ListingType } from './interfaces';
+import { UserOperation, Comment, User, SortType, ListingType, SearchType } from './interfaces';
 import * as markdown_it from 'markdown-it';
 import * as markdownitEmoji from 'markdown-it-emoji/light';
 import * as markdown_it_container from 'markdown-it-container';
@@ -142,6 +142,10 @@ export function routeSortTypeToEnum(sort: string): SortType {
 
 export function routeListingTypeToEnum(type: string): ListingType {
   return ListingType[capitalizeFirstLetter(type)];
+}
+
+export function routeSearchTypeToEnum(type: string): SearchType {
+  return SearchType[capitalizeFirstLetter(type)];
 }
 
 export async function getPageTitle(url: string) {
