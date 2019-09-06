@@ -61,6 +61,7 @@ class Index extends Component<any, any> {
               <Route path={`/modlog/community/:community_id`} component={Modlog} />
               <Route path={`/modlog`} component={Modlog} />
               <Route path={`/setup`} component={Setup} />
+              <Route path={`/search/q/:q/type/:type/sort/:sort/page/:page`} component={Search} />
               <Route path={`/search`} component={Search} />
               <Route path={`/sponsors`} component={Sponsors} />
             </Switch>
