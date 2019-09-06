@@ -182,7 +182,7 @@ export class Navbar extends Component<any, NavbarState> {
 
   keepFetchingReplies() {
     this.fetchReplies();
-    setInterval(() => this.fetchReplies(), 30000);
+    setInterval(() => this.fetchReplies(), 15000);
   }
 
   fetchReplies() {
@@ -193,8 +193,10 @@ export class Navbar extends Component<any, NavbarState> {
         page: 1,
         limit: 9999,
       };
-      WebSocketService.Instance.getReplies(repliesForm);
-      this.state.fetchCount++;
+      if (this.currentLocation !=='/inbox') { 
+        WebSocketService.Instance.getReplies(repliesForm);
+        this.state.fetchCount++;
+      }
     }
   }
 
