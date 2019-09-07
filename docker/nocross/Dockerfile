@@ -6,7 +6,7 @@ WORKDIR /app/ui
 COPY ui/package.json ui/yarn.lock ./
 RUN yarn install --pure-lockfile --network-timeout 100000
 
-# Build 
+# Build
 COPY ui /app/ui
 RUN yarn build
 
@@ -19,7 +19,7 @@ RUN USER=root cargo new server
 WORKDIR /app/server
 COPY server/Cargo.toml server/Cargo.lock ./
 RUN  mkdir -p ./src/bin \
-  && echo 'fn main() { println!("Dummy") }' > ./src/bin/main.rs 
+  && echo 'fn main() { println!("Dummy") }' > ./src/bin/main.rs
 
 RUN cargo build
 RUN rm -f ./target/debug/deps/lemmy_server*
@@ -28,7 +28,7 @@ COPY server/migrations ./migrations/
 
 # build for release
 #RUN cargo build --frozen --release
-RUN cargo build
+RUN cargo build --frozen
 
 # Get diesel-cli on there just in case
 # RUN cargo install diesel_cli --no-default-features --features postgres
