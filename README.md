@@ -81,12 +81,20 @@ docker-compose up -d
 
 and goto http://localhost:8536
 
-[A sample nginx config](/docker/prod/nginx.conf), could be setup with:
+[A sample nginx config](/ansible/templates/nginx.conf), could be setup with:
 
 ```bash
-wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/nginx.conf
+wget https://raw.githubusercontent.com/dessalines/lemmy/master/ansible/templates/nginx.conf
 # Replace the {{ vars }}
 sudo mv nginx.conf /etc/nginx/sites-enabled/lemmy.conf
+```
+#### Updating
+
+To update to the newest version, run:
+
+```bash
+wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/docker-compose.yml
+docker-compose up -d
 ```
 
 ### Ansible
