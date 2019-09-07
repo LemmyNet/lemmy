@@ -1,8 +1,8 @@
-use crate::schema::{post, post_like, post_saved, post_read};
 use super::*;
+use crate::schema::{post, post_like, post_read, post_saved};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
-#[table_name="post"]
+#[table_name = "post"]
 pub struct Post {
   pub id: i32,
   pub name: String,
@@ -19,7 +19,7 @@ pub struct Post {
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
-#[table_name="post"]
+#[table_name = "post"]
 pub struct PostForm {
   pub name: String,
   pub url: Option<String>,
@@ -36,21 +36,17 @@ pub struct PostForm {
 impl Crud<PostForm> for Post {
   fn read(conn: &PgConnection, post_id: i32) -> Result<Self, Error> {
     use crate::schema::post::dsl::*;
-    post.find(post_id)
-      .first::<Self>(conn)
+    post.find(post_id).first::<Self>(conn)
   }
 
   fn delete(conn: &PgConnection, post_id: i32) -> Result<usize, Error> {
     use crate::schema::post::dsl::*;
-    diesel::delete(post.find(post_id))
-      .execute(conn)
+    diesel::delete(post.find(post_id)).execute(conn)
   }
 
   fn create(conn: &PgConnection, new_post: &PostForm) -> Result<Self, Error> {
     use crate::schema::post::dsl::*;
-      insert_into(post)
-        .values(new_post)
-        .get_result::<Self>(conn)
+    insert_into(post).values(new_post).get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, post_id: i32, new_post: &PostForm) -> Result<Self, Error> {
@@ -73,19 +69,19 @@ pub struct PostLike {
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
-#[table_name="post_like"]
+#[table_name = "post_like"]
 pub struct PostLikeForm {
   pub post_id: i32,
   pub user_id: i32,
-  pub score: i16
+  pub score: i16,
 }
 
-impl Likeable <PostLikeForm> for PostLike {
+impl Likeable<PostLikeForm> for PostLike {
   fn read(conn: &PgConnection, post_id_from: i32) -> Result<Vec<Self>, Error> {
     use crate::schema::post_like::dsl::*;
     post_like
       .filter(post_id.eq(post_id_from))
-      .load::<Self>(conn) 
+      .load::<Self>(conn)
   }
   fn like(conn: &PgConnection, post_like_form: &PostLikeForm) -> Result<Self, Error> {
     use crate::schema::post_like::dsl::*;
@@ -95,10 +91,12 @@ impl Likeable <PostLikeForm> for PostLike {
   }
   fn remove(conn: &PgConnection, post_like_form: &PostLikeForm) -> Result<usize, Error> {
     use crate::schema::post_like::dsl::*;
-    diesel::delete(post_like
-      .filter(post_id.eq(post_like_form.post_id))
-      .filter(user_id.eq(post_like_form.user_id)))
-      .execute(conn)
+    diesel::delete(
+      post_like
+        .filter(post_id.eq(post_like_form.post_id))
+        .filter(user_id.eq(post_like_form.user_id)),
+    )
+    .execute(conn)
   }
 }
 
@@ -113,13 +111,13 @@ pub struct PostSaved {
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
-#[table_name="post_saved"]
+#[table_name = "post_saved"]
 pub struct PostSavedForm {
   pub post_id: i32,
   pub user_id: i32,
 }
 
-impl Saveable <PostSavedForm> for PostSaved {
+impl Saveable<PostSavedForm> for PostSaved {
   fn save(conn: &PgConnection, post_saved_form: &PostSavedForm) -> Result<Self, Error> {
     use crate::schema::post_saved::dsl::*;
     insert_into(post_saved)
@@ -128,10 +126,12 @@ impl Saveable <PostSavedForm> for PostSaved {
   }
   fn unsave(conn: &PgConnection, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
     use crate::schema::post_saved::dsl::*;
-    diesel::delete(post_saved
-      .filter(post_id.eq(post_saved_form.post_id))
-      .filter(user_id.eq(post_saved_form.user_id)))
-      .execute(conn)
+    diesel::delete(
+      post_saved
+        .filter(post_id.eq(post_saved_form.post_id))
+        .filter(user_id.eq(post_saved_form.user_id)),
+    )
+    .execute(conn)
   }
 }
 
@@ -146,13 +146,13 @@ pub struct PostRead {
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
-#[table_name="post_read"]
+#[table_name = "post_read"]
 pub struct PostReadForm {
   pub post_id: i32,
   pub user_id: i32,
 }
 
-impl Readable <PostReadForm> for PostRead {
+impl Readable<PostReadForm> for PostRead {
   fn mark_as_read(conn: &PgConnection, post_read_form: &PostReadForm) -> Result<Self, Error> {
     use crate::schema::post_read::dsl::*;
     insert_into(post_read)
@@ -161,19 +161,21 @@ impl Readable <PostReadForm> for PostRead {
   }
   fn mark_as_unread(conn: &PgConnection, post_read_form: &PostReadForm) -> Result<usize, Error> {
     use crate::schema::post_read::dsl::*;
-    diesel::delete(post_read
-      .filter(post_id.eq(post_read_form.post_id))
-      .filter(user_id.eq(post_read_form.user_id)))
-      .execute(conn)
+    diesel::delete(
+      post_read
+        .filter(post_id.eq(post_read_form.post_id))
+        .filter(user_id.eq(post_read_form.user_id)),
+    )
+    .execute(conn)
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use super::*;
   use super::super::community::*;
   use super::super::user::*;
- #[test]
+  use super::*;
+  #[test]
   fn test_crud() {
     let conn = establish_connection();
 
@@ -204,7 +206,7 @@ mod tests {
     };
 
     let inserted_community = Community::create(&conn, &new_community).unwrap();
-    
+
     let new_post = PostForm {
       name: "A test post".into(),
       url: None,
@@ -215,7 +217,7 @@ mod tests {
       deleted: None,
       locked: None,
       nsfw: false,
-      updated: None
+      updated: None,
     };
 
     let inserted_post = Post::create(&conn, &new_post).unwrap();
@@ -232,14 +234,14 @@ mod tests {
       locked: false,
       nsfw: false,
       deleted: false,
-      updated: None
+      updated: None,
     };
 
     // Post Like
     let post_like_form = PostLikeForm {
       post_id: inserted_post.id,
       user_id: inserted_user.id,
-      score: 1
+      score: 1,
     };
 
     let inserted_post_like = PostLike::like(&conn, &post_like_form).unwrap();
@@ -249,7 +251,7 @@ mod tests {
       post_id: inserted_post.id,
       user_id: inserted_user.id,
       published: inserted_post_like.published,
-      score: 1
+      score: 1,
     };
 
     // Post Save
@@ -266,7 +268,7 @@ mod tests {
       user_id: inserted_user.id,
       published: inserted_post_saved.published,
     };
-    
+
     // Post Read
     let post_read_form = PostReadForm {
       post_id: inserted_post.id,
@@ -281,7 +283,7 @@ mod tests {
       user_id: inserted_user.id,
       published: inserted_post_read.published,
     };
-    
+
     let read_post = Post::read(&conn, inserted_post.id).unwrap();
     let updated_post = Post::update(&conn, inserted_post.id, &new_post).unwrap();
     let like_removed = PostLike::remove(&conn, &post_like_form).unwrap();
@@ -301,6 +303,5 @@ mod tests {
     assert_eq!(1, saved_removed);
     assert_eq!(1, read_removed);
     assert_eq!(1, num_deleted);
-
   }
 }

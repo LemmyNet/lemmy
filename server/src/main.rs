@@ -23,7 +23,7 @@ fn chat_route(
   req: HttpRequest,
   stream: web::Payload,
   chat_server: web::Data<Addr<ChatServer>>,
-  ) -> Result<HttpResponse, Error> {
+) -> Result<HttpResponse, Error> {
   ws::start(
     WSSession {
       cs_addr: chat_server.get_ref().to_owned(),
@@ -40,7 +40,7 @@ fn chat_route(
     },
     &req,
     stream,
-    )
+  )
 }
 
 struct WSSession {
@@ -67,12 +67,13 @@ impl Actor for WSSession {
     // before processing any other events.
     // across all routes within application
     let addr = ctx.address();
-    self.cs_addr
+    self
+      .cs_addr
       .send(Connect {
         addr: addr.recipient(),
         ip: self.ip.to_owned(),
       })
-    .into_actor(self)
+      .into_actor(self)
       .then(|res, act, ctx| {
         match res {
           Ok(res) => act.id = res,
@@ -81,7 +82,7 @@ impl Actor for WSSession {
         }
         fut::ok(())
       })
-    .wait(ctx);
+      .wait(ctx);
   }
 
   fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
@@ -121,12 +122,13 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WSSession {
         let m = text.trim().to_owned();
         println!("WEBSOCKET MESSAGE: {:?} from id: {}", &m, self.id);
 
-        self.cs_addr
+        self
+          .cs_addr
           .send(StandardMessage {
             id: self.id,
             msg: m,
           })
-        .into_actor(self)
+          .into_actor(self)
           .then(|res, _, ctx| {
             match res {
               Ok(res) => ctx.text(res),
@@ -136,7 +138,7 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WSSession {
             }
             fut::ok(())
           })
-        .wait(ctx);
+          .wait(ctx);
       }
       ws::Message::Binary(_bin) => println!("Unexpected binary"),
       ws::Message::Close(_) => {
@@ -197,8 +199,8 @@ fn main() {
       .service(actix_files::Files::new("/static", front_end_dir()))
   })
   .bind("0.0.0.0:8536")
-    .unwrap()
-    .start();
+  .unwrap()
+  .start();
 
   println!("Started http server: 0.0.0.0:8536");
   let _ = sys.run();

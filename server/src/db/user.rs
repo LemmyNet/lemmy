@@ -1,12 +1,12 @@
+use super::*;
 use crate::schema::user_;
 use crate::schema::user_::dsl::*;
-use super::*;
-use crate::{Settings, is_email_regex};
-use jsonwebtoken::{encode, decode, Header, Validation, TokenData};
-use bcrypt::{DEFAULT_COST, hash};
+use crate::{is_email_regex, Settings};
+use bcrypt::{hash, DEFAULT_COST};
+use jsonwebtoken::{decode, encode, Header, TokenData, Validation};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug)]
-#[table_name="user_"]
+#[table_name = "user_"]
 pub struct User_ {
   pub id: i32,
   pub name: String,
@@ -23,33 +23,29 @@ pub struct User_ {
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
-#[table_name="user_"]
+#[table_name = "user_"]
 pub struct UserForm {
-    pub name: String,
-    pub fedi_name: String,
-    pub preferred_username: Option<String>,
-    pub password_encrypted: String,
-    pub admin: bool,
-    pub banned: bool,
-    pub email: Option<String>,
-    pub updated: Option<chrono::NaiveDateTime>,
-    pub show_nsfw: bool,
+  pub name: String,
+  pub fedi_name: String,
+  pub preferred_username: Option<String>,
+  pub password_encrypted: String,
+  pub admin: bool,
+  pub banned: bool,
+  pub email: Option<String>,
+  pub updated: Option<chrono::NaiveDateTime>,
+  pub show_nsfw: bool,
 }
 
 impl Crud<UserForm> for User_ {
   fn read(conn: &PgConnection, user_id: i32) -> Result<Self, Error> {
     use crate::schema::user_::dsl::*;
-    user_.find(user_id)
-      .first::<Self>(conn)
+    user_.find(user_id).first::<Self>(conn)
   }
   fn delete(conn: &PgConnection, user_id: i32) -> Result<usize, Error> {
-    diesel::delete(user_.find(user_id))
-      .execute(conn)
+    diesel::delete(user_.find(user_id)).execute(conn)
   }
   fn create(conn: &PgConnection, form: &UserForm) -> Result<Self, Error> {
-    insert_into(user_)
-      .values(form)
-      .get_result::<Self>(conn)
+    insert_into(user_).values(form).get_result::<Self>(conn)
   }
   fn update(conn: &PgConnection, user_id: i32, form: &UserForm) -> Result<Self, Error> {
     diesel::update(user_.find(user_id))
@@ -61,16 +57,14 @@ impl Crud<UserForm> for User_ {
 impl User_ {
   pub fn register(conn: &PgConnection, form: &UserForm) -> Result<Self, Error> {
     let mut edited_user = form.clone();
-    let password_hash = hash(&form.password_encrypted, DEFAULT_COST)
-      .expect("Couldn't hash password");
+    let password_hash =
+      hash(&form.password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
     edited_user.password_encrypted = password_hash;
 
     Self::create(&conn, &edited_user)
-
   }
   pub fn read_from_name(conn: &PgConnection, from_user_name: String) -> Result<Self, Error> {
-    user_.filter(name.eq(from_user_name))
-      .first::<Self>(conn)
+    user_.filter(name.eq(from_user_name)).first::<Self>(conn)
   }
 }
 
@@ -101,15 +95,25 @@ impl User_ {
       iss: self.fedi_name.to_owned(),
       show_nsfw: self.show_nsfw,
     };
-    encode(&Header::default(), &my_claims, Settings::get().jwt_secret.as_ref()).unwrap()
+    encode(
+      &Header::default(),
+      &my_claims,
+      Settings::get().jwt_secret.as_ref(),
+    )
+    .unwrap()
   }
 
-  pub fn find_by_email_or_username(conn: &PgConnection, username_or_email: &str) -> Result<Self, Error> {
+  pub fn find_by_email_or_username(
+    conn: &PgConnection,
+    username_or_email: &str,
+  ) -> Result<Self, Error> {
     if is_email_regex(username_or_email) {
-      user_.filter(email.eq(username_or_email))
+      user_
+        .filter(email.eq(username_or_email))
         .first::<User_>(conn)
     } else {
-      user_.filter(name.eq(username_or_email))
+      user_
+        .filter(name.eq(username_or_email))
         .first::<User_>(conn)
     }
   }
@@ -118,17 +122,15 @@ impl User_ {
     let claims: Claims = Claims::decode(&jwt).expect("Invalid token").claims;
     Self::read(&conn, claims.id)
   }
-
 }
-
 
 #[cfg(test)]
 mod tests {
   use super::*;
- #[test]
+  #[test]
   fn test_crud() {
     let conn = establish_connection();
-    
+
     let new_user = UserForm {
       name: "thommy".into(),
       fedi_name: "rrf".into(),
@@ -157,7 +159,7 @@ mod tests {
       updated: None,
       show_nsfw: false,
     };
-    
+
     let read_user = User_::read(&conn, inserted_user.id).unwrap();
     let updated_user = User_::update(&conn, inserted_user.id, &new_user).unwrap();
     let num_deleted = User_::delete(&conn, inserted_user.id).unwrap();
