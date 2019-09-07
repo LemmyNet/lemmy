@@ -2,6 +2,7 @@
 *Note: this may lag behind the actual API endpoints [here](../server/src/api).*
 
 ## Data types
+
 - `i16`, `i32` and `i64` are respectively [16-bit](https://en.wikipedia.org/wiki/16-bit), [32-bit](https://en.wikipedia.org/wiki/32-bit) and [64-bit](https://en.wikipedia.org/wiki/64-bit_computing) integers.
 - <code>Option<***SomeType***></code> designates an option which may be omitted in requests and not be present in responses. It will be of type ***SomeType***.
 - <code>Vec<***SomeType***></code> is a list which contains objects of type ***SomeType***.
@@ -9,9 +10,11 @@
 - Other data types are listed [here](../server/src/db).
 
 ## Basic usage
+
 Request and response strings are in [JSON format](https://www.json.org).
 
 ### Endpoint
+
 Connect to <code>ws://***host***/api/v1/ws</code> to get started.
 
 If the ***`host`*** supports secure connections, you can use <code>wss://***host***/api/v1/ws</code>.
@@ -34,6 +37,7 @@ ws.onopen = function () {
 ```
 
 ## Rate limits
+
 - 1 per hour for signups and community creation.
 - 1 per 10 minutes for post creation.
 - 30 actions per minute for post voting and comment creation.
@@ -48,7 +52,9 @@ ws.onopen = function () {
 ```
 
 ## API documentation
+
 ### Sort Types
+
 These go wherever there is a `sort` field. The available sort types are:
 
 - `Hot` - the hottest posts/communities, depending on votes, views, comments and publish date
@@ -60,7 +66,9 @@ These go wherever there is a `sort` field. The available sort types are:
 - `TopAll` - the most upvoted posts/communities on the current instance.
 
 ### User / Authentication / Admin actions
+
 #### Login
+
 The `jwt` string should be stored and used anywhere `auth` is called for.
 
 ##### Request
