@@ -1,12 +1,20 @@
-# Lemmy API
+# Lemmy WebSocket API
+*Note: this may lag behind the actual API endpoints [here](../server/src/api).*
 
-This may lag behind the actual API endpoints [here](../server/src/api).
+## Data types
+- `i16`, `i32` and `i64` are respectively [16-bit](https://en.wikipedia.org/wiki/16-bit), [32-bit](https://en.wikipedia.org/wiki/32-bit) and [64-bit](https://en.wikipedia.org/wiki/64-bit_computing) integers.
+- <code>Option<***SomeType***></code> designates an option which may be omitted in requests and not be present in responses. It will be of type ***SomeType***.
+- <code>Vec<***SomeType***></code> is a list which contains objects of type ***SomeType***.
+- `chrono::NaiveDateTime` is a timestamp string in [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) format. Timestamps will be UTC.
+- Other data types are listed [here](../server/src/db).
 
-The data types, such as `Vec<CommentView>`, are listed [here](../server/src/db).
+## Basic usage
+Request and response strings are in [JSON format](https://www.json.org).
 
-## Websocket API
 ### Endpoint
-`host/api/v1/ws`
+Connect to <code>ws://***host***/api/v1/ws</code> to get started.
+
+If the ***`host`*** supports secure connections, you can use <code>wss://***host***/api/v1/ws</code>.
 
 ### Testing with [Websocat](https://github.com/vi/websocat)
 `websocat ws://127.0.0.1:8536/api/v1/ws -nt`
@@ -14,9 +22,22 @@ The data types, such as `Vec<CommentView>`, are listed [here](../server/src/db).
 A simple test command:
 `{"op": "ListCategories"}`
 
+### Testing with the [WebSocket JavaScript API](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API)
+```javascript
+var ws = new WebSocket("ws://" + host + "/api/v1/ws");
+ws.onopen = function () {
+  console.log("Connection succeed!");
+  ws.send(JSON.stringify({
+    op: "ListCategories"
+  }));
+};
+```
+
 ## Rate limits
-- 3 actions per 3 minutes for signups, post, and community creation.
-- 30 actions per minute for everything else.
+- 1 per hour for signups and community creation.
+- 1 per 10 minutes for post creation.
+- 30 actions per minute for post voting and comment creation.
+- Everything else is not rate-limited.
 
 ## Errors
 ```rust
@@ -26,16 +47,19 @@ A simple test command:
 }
 ```
 
-## API
-### List
-`Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetReplies, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser, Search, MarkAllAsRead, SaveUserSettings, TransferCommunity,
-TransferSite`
-
+## API documentation
 ### Sort Types
-These go wherever there is a `sort` field.
-`Hot, New, TopDay, TopWeek, TopMonth, TopYear, TopAll`
+These go wherever there is a `sort` field. The available sort types are:
 
-### User / Authentication / Admin
+- `Hot` - the hottest posts/communities, depending on votes, views, comments and publish date
+- `New` - the newest posts/communities
+- `TopDay` - the most upvoted posts/communities of the current day.
+- `TopWeek` - the most upvoted posts/communities of the current week.
+- `TopMonth` - the most upvoted posts/communities of the current month.
+- `TopYear` - the most upvoted posts/communities of the current year.
+- `TopAll` - the most upvoted posts/communities on the current instance.
+
+### User / Authentication / Admin actions
 #### Login
 The `jwt` string should be stored and used anywhere `auth` is called for.
 
