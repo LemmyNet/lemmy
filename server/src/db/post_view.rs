@@ -1,8 +1,10 @@
 use super::*;
 
-#[derive(EnumString,ToString,Debug, Serialize, Deserialize)]
+#[derive(EnumString, ToString, Debug, Serialize, Deserialize)]
 pub enum PostListingType {
-  All, Subscribed, Community
+  All,
+  Subscribed,
+  Community,
 }
 
 // The faked schema since diesel doesn't do views
@@ -40,9 +42,10 @@ table! {
   }
 }
 
-
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize,QueryableByName,Clone)]
-#[table_name="post_view"]
+#[derive(
+  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
+)]
+#[table_name = "post_view"]
 pub struct PostView {
   pub id: i32,
   pub name: String,
@@ -77,20 +80,20 @@ pub struct PostView {
 
 impl PostView {
   pub fn list(
-    conn: &PgConnection, 
-    type_: PostListingType, 
-    sort: &SortType, 
-    for_community_id: Option<i32>, 
-    for_creator_id: Option<i32>, 
+    conn: &PgConnection,
+    type_: PostListingType,
+    sort: &SortType,
+    for_community_id: Option<i32>,
+    for_creator_id: Option<i32>,
     search_term: Option<String>,
     url_search: Option<String>,
-    my_user_id: Option<i32>, 
+    my_user_id: Option<i32>,
     show_nsfw: bool,
     saved_only: bool,
     unread_only: bool,
     page: Option<i64>,
     limit: Option<i64>,
-    ) -> Result<Vec<Self>, Error> {
+  ) -> Result<Vec<Self>, Error> {
     use super::post_view::post_view::dsl::*;
 
     let (limit, offset) = limit_and_offset(page, limit);
@@ -123,9 +126,9 @@ impl PostView {
     };
 
     match type_ {
-      PostListingType::Subscribed  => {
+      PostListingType::Subscribed => {
         query = query.filter(subscribed.eq(true));
-      },
+      }
       _ => {}
     };
 
@@ -143,22 +146,23 @@ impl PostView {
     };
 
     query = match sort {
-      SortType::Hot => query.order_by(hot_rank.desc())
+      SortType::Hot => query
+        .order_by(hot_rank.desc())
         .then_order_by(published.desc()),
       SortType::New => query.order_by(published.desc()),
       SortType::TopAll => query.order_by(score.desc()),
       SortType::TopYear => query
         .filter(published.gt(now - 1.years()))
         .order_by(score.desc()),
-        SortType::TopMonth => query
-          .filter(published.gt(now - 1.months()))
-          .order_by(score.desc()),
-          SortType::TopWeek => query
-            .filter(published.gt(now - 1.weeks()))
-            .order_by(score.desc()),
-            SortType::TopDay => query
-              .filter(published.gt(now - 1.days()))
-              .order_by(score.desc())
+      SortType::TopMonth => query
+        .filter(published.gt(now - 1.months()))
+        .order_by(score.desc()),
+      SortType::TopWeek => query
+        .filter(published.gt(now - 1.weeks()))
+        .order_by(score.desc()),
+      SortType::TopDay => query
+        .filter(published.gt(now - 1.days()))
+        .order_by(score.desc()),
     };
 
     query = query
@@ -169,12 +173,14 @@ impl PostView {
       .filter(community_removed.eq(false))
       .filter(community_deleted.eq(false));
 
-    query.load::<Self>(conn) 
+    query.load::<Self>(conn)
   }
 
-
-  pub fn read(conn: &PgConnection, from_post_id: i32, my_user_id: Option<i32>) -> Result<Self, Error> {
-
+  pub fn read(
+    conn: &PgConnection,
+    from_post_id: i32,
+    my_user_id: Option<i32>,
+  ) -> Result<Self, Error> {
     use super::post_view::post_view::dsl::*;
     use diesel::prelude::*;
 
@@ -192,14 +198,12 @@ impl PostView {
   }
 }
 
-
-
 #[cfg(test)]
 mod tests {
-  use super::*;
   use super::super::community::*;
-  use super::super::user::*;
   use super::super::post::*;
+  use super::super::user::*;
+  use super::*;
   #[test]
   fn test_crud() {
     let conn = establish_connection();
@@ -254,7 +258,7 @@ mod tests {
     let post_like_form = PostLikeForm {
       post_id: inserted_post.id,
       user_id: inserted_user.id,
-      score: 1
+      score: 1,
     };
 
     let inserted_post_like = PostLike::like(&conn, &post_like_form).unwrap();
@@ -264,13 +268,13 @@ mod tests {
       post_id: inserted_post.id,
       user_id: inserted_user.id,
       published: inserted_post_like.published,
-      score: 1
+      score: 1,
     };
 
     let post_like_form = PostLikeForm {
       post_id: inserted_post.id,
       user_id: inserted_user.id,
-      score: 1
+      score: 1,
     };
 
     // the non user version
@@ -338,37 +342,41 @@ mod tests {
       nsfw: false,
     };
 
-
     let read_post_listings_with_user = PostView::list(
-      &conn, 
-      PostListingType::Community, 
-      &SortType::New, 
-      Some(inserted_community.id), 
-      None, 
+      &conn,
+      PostListingType::Community,
+      &SortType::New,
+      Some(inserted_community.id),
       None,
       None,
-      Some(inserted_user.id), 
+      None,
+      Some(inserted_user.id),
       false,
-      false, 
-      false, 
-      None, 
-      None).unwrap();
+      false,
+      false,
+      None,
+      None,
+    )
+    .unwrap();
     let read_post_listings_no_user = PostView::list(
-      &conn, 
-      PostListingType::Community, 
-      &SortType::New, 
-      Some(inserted_community.id), 
-      None, 
-      None, 
+      &conn,
+      PostListingType::Community,
+      &SortType::New,
+      Some(inserted_community.id),
+      None,
+      None,
       None,
       None,
       false,
-      false, 
-      false, 
-      None, 
-      None).unwrap();
+      false,
+      false,
+      None,
+      None,
+    )
+    .unwrap();
     let read_post_listing_no_user = PostView::read(&conn, inserted_post.id, None).unwrap();
-    let read_post_listing_with_user = PostView::read(&conn, inserted_post.id, Some(inserted_user.id)).unwrap();
+    let read_post_listing_with_user =
+      PostView::read(&conn, inserted_post.id, Some(inserted_user.id)).unwrap();
 
     let like_removed = PostLike::remove(&conn, &post_like_form).unwrap();
     let num_deleted = Post::delete(&conn, inserted_post.id).unwrap();
@@ -376,7 +384,10 @@ mod tests {
     User_::delete(&conn, inserted_user.id).unwrap();
 
     // The with user
-    assert_eq!(expected_post_listing_with_user, read_post_listings_with_user[0]);
+    assert_eq!(
+      expected_post_listing_with_user,
+      read_post_listings_with_user[0]
+    );
     assert_eq!(expected_post_listing_with_user, read_post_listing_with_user);
     assert_eq!(1, read_post_listings_with_user.len());
 

@@ -1,30 +1,34 @@
 #![recursion_limit = "512"]
-#[macro_use] pub extern crate strum_macros;
-#[macro_use] pub extern crate lazy_static;
-#[macro_use] pub extern crate failure;
-#[macro_use] pub extern crate diesel;
-pub extern crate dotenv;
-pub extern crate chrono;
-pub extern crate serde;
-pub extern crate serde_json;
+#[macro_use]
+pub extern crate strum_macros;
+#[macro_use]
+pub extern crate lazy_static;
+#[macro_use]
+pub extern crate failure;
+#[macro_use]
+pub extern crate diesel;
 pub extern crate actix;
 pub extern crate actix_web;
-pub extern crate rand;
-pub extern crate strum;
-pub extern crate jsonwebtoken;
 pub extern crate bcrypt;
+pub extern crate chrono;
+pub extern crate dotenv;
+pub extern crate jsonwebtoken;
+pub extern crate rand;
 pub extern crate regex;
+pub extern crate serde;
+pub extern crate serde_json;
+pub extern crate strum;
 
-pub mod schema;
 pub mod api;
 pub mod apub;
 pub mod db;
+pub mod schema;
 pub mod websocket;
 
-use dotenv::dotenv;
-use std::env;
-use regex::Regex;
 use chrono::{DateTime, NaiveDateTime, Utc};
+use dotenv::dotenv;
+use regex::Regex;
+use std::env;
 
 pub struct Settings {
   db_url: String,
@@ -36,10 +40,9 @@ impl Settings {
   fn get() -> Self {
     dotenv().ok();
     Settings {
-      db_url: env::var("DATABASE_URL")
-        .expect("DATABASE_URL must be set"),
-        hostname: env::var("HOSTNAME").unwrap_or("rrr".to_string()),
-        jwt_secret: env::var("JWT_SECRET").unwrap_or("changeme".to_string()),
+      db_url: env::var("DATABASE_URL").expect("DATABASE_URL must be set"),
+      hostname: env::var("HOSTNAME").unwrap_or("rrr".to_string()),
+      jwt_secret: env::var("JWT_SECRET").unwrap_or("changeme".to_string()),
     }
   }
   fn api_endpoint(&self) -> String {
@@ -55,7 +58,7 @@ pub fn naive_now() -> NaiveDateTime {
   chrono::prelude::Utc::now().naive_utc()
 }
 
-pub fn naive_from_unix(time: i64)  ->  NaiveDateTime {
+pub fn naive_from_unix(time: i64) -> NaiveDateTime {
   NaiveDateTime::from_timestamp(time, 0)
 }
 
@@ -73,24 +76,30 @@ pub fn has_slurs(test: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-  use crate::{Settings, is_email_regex, remove_slurs, has_slurs};
+  use crate::{has_slurs, is_email_regex, remove_slurs, Settings};
   #[test]
   fn test_api() {
     assert_eq!(Settings::get().api_endpoint(), "rrr/api/v1");
   }
 
-  #[test] fn test_email() {
+  #[test]
+  fn test_email() {
     assert!(is_email_regex("gush@gmail.com"));
     assert!(!is_email_regex("nada_neutho"));
-  } 
+  }
 
-  #[test] fn test_slur_filter() {
+  #[test]
+  fn test_slur_filter() {
     let test = "coons test dindu ladyboy tranny. This is a bunch of other safe text.".to_string();
     let slur_free = "No slurs here";
-    assert_eq!(remove_slurs(&test), "*removed* test *removed* *removed* *removed*. This is a bunch of other safe text.".to_string());
+    assert_eq!(
+      remove_slurs(&test),
+      "*removed* test *removed* *removed* *removed*. This is a bunch of other safe text."
+        .to_string()
+    );
     assert!(has_slurs(&test));
     assert!(!has_slurs(slur_free));
-  } 
+  }
 
 }
 

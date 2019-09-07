@@ -1,28 +1,61 @@
-use serde::{Deserialize, Serialize};
-use failure::Error;
-use crate::db::*;
-use crate::db::community::*;
-use crate::db::user::*;
-use crate::db::post::*;
-use crate::db::comment::*;
-use crate::db::post_view::*;
-use crate::db::comment_view::*;
 use crate::db::category::*;
+use crate::db::comment::*;
+use crate::db::comment_view::*;
+use crate::db::community::*;
 use crate::db::community_view::*;
-use crate::db::user_view::*;
-use crate::db::moderator_views::*;
 use crate::db::moderator::*;
-use crate::{has_slurs, remove_slurs, Settings, naive_now, naive_from_unix};
+use crate::db::moderator_views::*;
+use crate::db::post::*;
+use crate::db::post_view::*;
+use crate::db::user::*;
+use crate::db::user_view::*;
+use crate::db::*;
+use crate::{has_slurs, naive_from_unix, naive_now, remove_slurs, Settings};
+use failure::Error;
+use serde::{Deserialize, Serialize};
 
-pub mod user;
+pub mod comment;
 pub mod community;
 pub mod post;
-pub mod comment;
 pub mod site;
+pub mod user;
 
-#[derive(EnumString,ToString,Debug)]
+#[derive(EnumString, ToString, Debug)]
 pub enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetReplies, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser, Search, MarkAllAsRead, SaveUserSettings, TransferCommunity, TransferSite
+  Login,
+  Register,
+  CreateCommunity,
+  CreatePost,
+  ListCommunities,
+  ListCategories,
+  GetPost,
+  GetCommunity,
+  CreateComment,
+  EditComment,
+  SaveComment,
+  CreateCommentLike,
+  GetPosts,
+  CreatePostLike,
+  EditPost,
+  SavePost,
+  EditCommunity,
+  FollowCommunity,
+  GetFollowedCommunities,
+  GetUserDetails,
+  GetReplies,
+  GetModlog,
+  BanFromCommunity,
+  AddModToCommunity,
+  CreateSite,
+  EditSite,
+  GetSite,
+  AddAdmin,
+  BanUser,
+  Search,
+  MarkAllAsRead,
+  SaveUserSettings,
+  TransferCommunity,
+  TransferSite,
 }
 
 #[derive(Fail, Debug)]
@@ -43,18 +76,17 @@ impl APIError {
 
 pub struct Oper<T> {
   op: UserOperation,
-  data: T
+  data: T,
 }
 
-impl <T> Oper<T> {
+impl<T> Oper<T> {
   pub fn new(op: UserOperation, data: T) -> Oper<T> {
-    Oper {
-      op: op,
-      data: data
-    }
+    Oper { op: op, data: data }
   }
 }
 
 pub trait Perform<T> {
-  fn perform(&self) -> Result<T, Error> where T: Sized;
+  fn perform(&self) -> Result<T, Error>
+  where
+    T: Sized;
 }

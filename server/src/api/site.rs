@@ -7,7 +7,7 @@ pub struct ListCategories;
 #[derive(Serialize, Deserialize)]
 pub struct ListCategoriesResponse {
   op: String,
-  categories: Vec<Category>
+  categories: Vec<Category>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -51,19 +51,18 @@ pub struct GetModlogResponse {
   added: Vec<ModAddView>,
 }
 
-
 #[derive(Serialize, Deserialize)]
 pub struct CreateSite {
   name: String,
   description: Option<String>,
-  auth: String
+  auth: String,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct EditSite {
   name: String,
   description: Option<String>,
-  auth: String
+  auth: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -86,7 +85,7 @@ pub struct GetSiteResponse {
 #[derive(Serialize, Deserialize)]
 pub struct TransferSite {
   user_id: i32,
-  auth: String
+  auth: String,
 }
 
 impl Perform<ListCategoriesResponse> for Oper<ListCategories> {
@@ -97,12 +96,10 @@ impl Perform<ListCategoriesResponse> for Oper<ListCategories> {
     let categories: Vec<Category> = Category::list_all(&conn)?;
 
     // Return the jwt
-    Ok(
-      ListCategoriesResponse {
-        op: self.op.to_string(),
-        categories: categories
-      }
-      )
+    Ok(ListCategoriesResponse {
+      op: self.op.to_string(),
+      categories: categories,
+    })
   }
 }
 
@@ -111,11 +108,41 @@ impl Perform<GetModlogResponse> for Oper<GetModlog> {
     let data: &GetModlog = &self.data;
     let conn = establish_connection();
 
-    let removed_posts = ModRemovePostView::list(&conn, data.community_id, data.mod_user_id, data.page, data.limit)?;
-    let locked_posts = ModLockPostView::list(&conn, data.community_id, data.mod_user_id, data.page, data.limit)?;
-    let removed_comments = ModRemoveCommentView::list(&conn, data.community_id, data.mod_user_id, data.page, data.limit)?;
-    let banned_from_community = ModBanFromCommunityView::list(&conn, data.community_id, data.mod_user_id, data.page, data.limit)?;
-    let added_to_community = ModAddCommunityView::list(&conn, data.community_id, data.mod_user_id, data.page, data.limit)?;
+    let removed_posts = ModRemovePostView::list(
+      &conn,
+      data.community_id,
+      data.mod_user_id,
+      data.page,
+      data.limit,
+    )?;
+    let locked_posts = ModLockPostView::list(
+      &conn,
+      data.community_id,
+      data.mod_user_id,
+      data.page,
+      data.limit,
+    )?;
+    let removed_comments = ModRemoveCommentView::list(
+      &conn,
+      data.community_id,
+      data.mod_user_id,
+      data.page,
+      data.limit,
+    )?;
+    let banned_from_community = ModBanFromCommunityView::list(
+      &conn,
+      data.community_id,
+      data.mod_user_id,
+      data.page,
+      data.limit,
+    )?;
+    let added_to_community = ModAddCommunityView::list(
+      &conn,
+      data.community_id,
+      data.mod_user_id,
+      data.page,
+      data.limit,
+    )?;
 
     // These arrays are only for the full modlog, when a community isn't given
     let mut removed_communities = Vec::new();
@@ -123,25 +150,24 @@ impl Perform<GetModlogResponse> for Oper<GetModlog> {
     let mut added = Vec::new();
 
     if data.community_id.is_none() {
-      removed_communities = ModRemoveCommunityView::list(&conn, data.mod_user_id, data.page, data.limit)?;
+      removed_communities =
+        ModRemoveCommunityView::list(&conn, data.mod_user_id, data.page, data.limit)?;
       banned = ModBanView::list(&conn, data.mod_user_id, data.page, data.limit)?;
       added = ModAddView::list(&conn, data.mod_user_id, data.page, data.limit)?;
     }
 
     // Return the jwt
-    Ok(
-      GetModlogResponse {
-        op: self.op.to_string(),
-        removed_posts: removed_posts,
-        locked_posts: locked_posts,
-        removed_comments: removed_comments,
-        removed_communities: removed_communities,
-        banned_from_community: banned_from_community,
-        banned: banned,
-        added_to_community: added_to_community,
-        added: added,
-      }
-      )
+    Ok(GetModlogResponse {
+      op: self.op.to_string(),
+      removed_posts: removed_posts,
+      locked_posts: locked_posts,
+      removed_comments: removed_comments,
+      removed_communities: removed_communities,
+      banned_from_community: banned_from_community,
+      banned: banned,
+      added_to_community: added_to_community,
+      added: added,
+    })
   }
 }
 
@@ -152,21 +178,20 @@ impl Perform<SiteResponse> for Oper<CreateSite> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "not_logged_in"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
     };
 
-    if has_slurs(&data.name) || 
-      (data.description.is_some() && has_slurs(&data.description.to_owned().unwrap())) {
-        return Err(APIError::err(&self.op, "no_slurs"))?
-      }
+    if has_slurs(&data.name)
+      || (data.description.is_some() && has_slurs(&data.description.to_owned().unwrap()))
+    {
+      return Err(APIError::err(&self.op, "no_slurs"))?;
+    }
 
     let user_id = claims.id;
 
     // Make sure user is an admin
     if !UserView::read(&conn, user_id)?.admin {
-      return Err(APIError::err(&self.op, "not_an_admin"))?
+      return Err(APIError::err(&self.op, "not_an_admin"))?;
     }
 
     let site_form = SiteForm {
@@ -178,22 +203,17 @@ impl Perform<SiteResponse> for Oper<CreateSite> {
 
     match Site::create(&conn, &site_form) {
       Ok(site) => site,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "site_already_exists"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "site_already_exists"))?,
     };
 
     let site_view = SiteView::read(&conn)?;
 
-    Ok(
-      SiteResponse {
-        op: self.op.to_string(), 
-        site: site_view,
-      }
-      )
+    Ok(SiteResponse {
+      op: self.op.to_string(),
+      site: site_view,
+    })
   }
 }
-
 
 impl Perform<SiteResponse> for Oper<EditSite> {
   fn perform(&self) -> Result<SiteResponse, Error> {
@@ -202,21 +222,20 @@ impl Perform<SiteResponse> for Oper<EditSite> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "not_logged_in"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
     };
 
-    if has_slurs(&data.name) || 
-      (data.description.is_some() && has_slurs(&data.description.to_owned().unwrap())) {
-        return Err(APIError::err(&self.op, "no_slurs"))?
-      }
+    if has_slurs(&data.name)
+      || (data.description.is_some() && has_slurs(&data.description.to_owned().unwrap()))
+    {
+      return Err(APIError::err(&self.op, "no_slurs"))?;
+    }
 
     let user_id = claims.id;
 
     // Make sure user is an admin
     if UserView::read(&conn, user_id)?.admin == false {
-      return Err(APIError::err(&self.op, "not_an_admin"))?
+      return Err(APIError::err(&self.op, "not_an_admin"))?;
     }
 
     let found_site = Site::read(&conn, 1)?;
@@ -230,19 +249,15 @@ impl Perform<SiteResponse> for Oper<EditSite> {
 
     match Site::update(&conn, 1, &site_form) {
       Ok(site) => site,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "couldnt_update_site"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_site"))?,
     };
 
     let site_view = SiteView::read(&conn)?;
 
-    Ok(
-      SiteResponse {
-        op: self.op.to_string(), 
-        site: site_view,
-      }
-      )
+    Ok(SiteResponse {
+      op: self.op.to_string(),
+      site: site_view,
+    })
   }
 }
 
@@ -254,7 +269,7 @@ impl Perform<GetSiteResponse> for Oper<GetSite> {
     // It can return a null site in order to redirect
     let site_view = match Site::read(&conn, 1) {
       Ok(_site) => Some(SiteView::read(&conn)?),
-      Err(_e) => None
+      Err(_e) => None,
     };
 
     let mut admins = UserView::admins(&conn)?;
@@ -267,14 +282,12 @@ impl Perform<GetSiteResponse> for Oper<GetSite> {
 
     let banned = UserView::banned(&conn)?;
 
-    Ok(
-      GetSiteResponse {
-        op: self.op.to_string(), 
-        site: site_view,
-        admins: admins,
-        banned: banned,
-      }
-      )
+    Ok(GetSiteResponse {
+      op: self.op.to_string(),
+      site: site_view,
+      admins: admins,
+      banned: banned,
+    })
   }
 }
 
@@ -296,120 +309,114 @@ impl Perform<SearchResponse> for Oper<Search> {
     match type_ {
       SearchType::Posts => {
         posts = PostView::list(
-          &conn, 
-          PostListingType::All, 
-          &sort, 
-          data.community_id, 
+          &conn,
+          PostListingType::All,
+          &sort,
+          data.community_id,
           None,
           Some(data.q.to_owned()),
           None,
-          None, 
+          None,
           true,
-          false, 
-          false, 
-          data.page, 
-          data.limit)?;
-      },
+          false,
+          false,
+          data.page,
+          data.limit,
+        )?;
+      }
       SearchType::Comments => {
         comments = CommentView::list(
-          &conn, 
-          &sort, 
-          None, 
-          None, 
+          &conn,
+          &sort,
+          None,
+          None,
           Some(data.q.to_owned()),
           None,
-          false, 
+          false,
           data.page,
-          data.limit)?;
-      },
+          data.limit,
+        )?;
+      }
       SearchType::Communities => {
         communities = CommunityView::list(
-          &conn, 
-          &sort, 
-          None, 
+          &conn,
+          &sort,
+          None,
           true,
           Some(data.q.to_owned()),
-          data.page, 
-          data.limit)?;
-      }, 
+          data.page,
+          data.limit,
+        )?;
+      }
       SearchType::Users => {
-        users = UserView::list(
-          &conn, 
-          &sort, 
-          Some(data.q.to_owned()), 
-          data.page, 
-          data.limit)?;
-      }, 
+        users = UserView::list(&conn, &sort, Some(data.q.to_owned()), data.page, data.limit)?;
+      }
       SearchType::All => {
         posts = PostView::list(
-          &conn, 
-          PostListingType::All, 
-          &sort, 
-          data.community_id, 
+          &conn,
+          PostListingType::All,
+          &sort,
+          data.community_id,
           None,
           Some(data.q.to_owned()),
           None,
-          None, 
+          None,
           true,
-          false, 
-          false, 
-          data.page, 
-          data.limit)?;
-        comments = CommentView::list(
-          &conn, 
-          &sort, 
-          None, 
-          None, 
-          Some(data.q.to_owned()),
-          None,
-          false, 
+          false,
+          false,
           data.page,
-          data.limit)?;
+          data.limit,
+        )?;
+        comments = CommentView::list(
+          &conn,
+          &sort,
+          None,
+          None,
+          Some(data.q.to_owned()),
+          None,
+          false,
+          data.page,
+          data.limit,
+        )?;
         communities = CommunityView::list(
-          &conn, 
-          &sort, 
-          None, 
+          &conn,
+          &sort,
+          None,
           true,
           Some(data.q.to_owned()),
-          data.page, 
-          data.limit)?;
-        users = UserView::list(
-          &conn, 
-          &sort, 
-          Some(data.q.to_owned()), 
-          data.page, 
-          data.limit)?;
-      },
+          data.page,
+          data.limit,
+        )?;
+        users = UserView::list(&conn, &sort, Some(data.q.to_owned()), data.page, data.limit)?;
+      }
       SearchType::Url => {
         posts = PostView::list(
-          &conn, 
-          PostListingType::All, 
-          &sort, 
-          data.community_id, 
+          &conn,
+          PostListingType::All,
+          &sort,
+          data.community_id,
           None,
           None,
           Some(data.q.to_owned()),
-          None, 
+          None,
           true,
-          false, 
-          false, 
-          data.page, 
-          data.limit)?;
+          false,
+          false,
+          data.page,
+          data.limit,
+        )?;
       }
     };
 
-
     // Return the jwt
-    Ok(
-      SearchResponse {
-        op: self.op.to_string(),
-        type_: data.type_.to_owned(),
-        comments: comments,
-        posts: posts,
-        communities: communities,
-        users: users,
-      }
-      )
+    Ok(SearchResponse {
+      op: self.op.to_string(),
+      type_: data.type_.to_owned(),
+      comments: comments,
+      posts: posts,
+      communities: communities,
+      users: users,
+    })
   }
 }
 
@@ -420,9 +427,7 @@ impl Perform<GetSiteResponse> for Oper<TransferSite> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "not_logged_in"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
     };
 
     let user_id = claims.id;
@@ -431,7 +436,7 @@ impl Perform<GetSiteResponse> for Oper<TransferSite> {
 
     // Make sure user is the creator
     if read_site.creator_id != user_id {
-      return Err(APIError::err(&self.op, "not_an_admin"))?
+      return Err(APIError::err(&self.op, "not_an_admin"))?;
     }
 
     let site_form = SiteForm {
@@ -443,9 +448,7 @@ impl Perform<GetSiteResponse> for Oper<TransferSite> {
 
     match Site::update(&conn, 1, &site_form) {
       Ok(site) => site,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "couldnt_update_site"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_site"))?,
     };
 
     // Mod tables
@@ -460,20 +463,20 @@ impl Perform<GetSiteResponse> for Oper<TransferSite> {
     let site_view = SiteView::read(&conn)?;
 
     let mut admins = UserView::admins(&conn)?;
-    let creator_index = admins.iter().position(|r| r.id == site_view.creator_id).unwrap();
+    let creator_index = admins
+      .iter()
+      .position(|r| r.id == site_view.creator_id)
+      .unwrap();
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
 
     let banned = UserView::banned(&conn)?;
 
-    Ok(
-      GetSiteResponse {
-        op: self.op.to_string(), 
-        site: Some(site_view),
-        admins: admins,
-        banned: banned,
-      }
-      )
+    Ok(GetSiteResponse {
+      op: self.op.to_string(),
+      site: Some(site_view),
+      admins: admins,
+      banned: banned,
+    })
   }
 }
-

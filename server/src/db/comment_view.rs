@@ -26,8 +26,10 @@ table! {
   }
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize,QueryableByName,Clone)]
-#[table_name="comment_view"]
+#[derive(
+  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
+)]
+#[table_name = "comment_view"]
 pub struct CommentView {
   pub id: i32,
   pub creator_id: i32,
@@ -52,17 +54,17 @@ pub struct CommentView {
 }
 
 impl CommentView {
-
-  pub fn list(conn: &PgConnection, 
-              sort: &SortType, 
-              for_post_id: Option<i32>, 
-              for_creator_id: Option<i32>, 
-              search_term: Option<String>,
-              my_user_id: Option<i32>, 
-              saved_only: bool,
-              page: Option<i64>,
-              limit: Option<i64>,
-              ) -> Result<Vec<Self>, Error> {
+  pub fn list(
+    conn: &PgConnection,
+    sort: &SortType,
+    for_post_id: Option<i32>,
+    for_creator_id: Option<i32>,
+    search_term: Option<String>,
+    my_user_id: Option<i32>,
+    saved_only: bool,
+    page: Option<i64>,
+    limit: Option<i64>,
+  ) -> Result<Vec<Self>, Error> {
     use super::comment_view::comment_view::dsl::*;
 
     let (limit, offset) = limit_and_offset(page, limit);
@@ -88,7 +90,7 @@ impl CommentView {
     if let Some(search_term) = search_term {
       query = query.filter(content.ilike(fuzzy_search(&search_term)));
     };
-    
+
     if saved_only {
       query = query.filter(saved.eq(true));
     }
@@ -100,26 +102,27 @@ impl CommentView {
       SortType::TopYear => query
         .filter(published.gt(now - 1.years()))
         .order_by(score.desc()),
-        SortType::TopMonth => query
-          .filter(published.gt(now - 1.months()))
-          .order_by(score.desc()),
-          SortType::TopWeek => query
-            .filter(published.gt(now - 1.weeks()))
-            .order_by(score.desc()),
-            SortType::TopDay => query
-              .filter(published.gt(now - 1.days()))
-              .order_by(score.desc()),
-              _ => query.order_by(published.desc())
+      SortType::TopMonth => query
+        .filter(published.gt(now - 1.months()))
+        .order_by(score.desc()),
+      SortType::TopWeek => query
+        .filter(published.gt(now - 1.weeks()))
+        .order_by(score.desc()),
+      SortType::TopDay => query
+        .filter(published.gt(now - 1.days()))
+        .order_by(score.desc()),
+      _ => query.order_by(published.desc()),
     };
 
     // Note: deleted and removed comments are done on the front side
-    query
-      .limit(limit)
-      .offset(offset)
-      .load::<Self>(conn) 
+    query.limit(limit).offset(offset).load::<Self>(conn)
   }
 
-  pub fn read(conn: &PgConnection, from_comment_id: i32, my_user_id: Option<i32>) -> Result<Self, Error> {
+  pub fn read(
+    conn: &PgConnection,
+    from_comment_id: i32,
+    my_user_id: Option<i32>,
+  ) -> Result<Self, Error> {
     use super::comment_view::comment_view::dsl::*;
 
     let mut query = comment_view.into_boxed();
@@ -131,13 +134,13 @@ impl CommentView {
       query = query.filter(user_id.is_null());
     }
 
-    query = query.filter(id.eq(from_comment_id)).order_by(published.desc());
+    query = query
+      .filter(id.eq(from_comment_id))
+      .order_by(published.desc());
 
-    query.first::<Self>(conn) 
+    query.first::<Self>(conn)
   }
-
 }
-
 
 // The faked schema since diesel doesn't do views
 table! {
@@ -166,8 +169,10 @@ table! {
   }
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize,QueryableByName,Clone)]
-#[table_name="reply_view"]
+#[derive(
+  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
+)]
+#[table_name = "reply_view"]
 pub struct ReplyView {
   pub id: i32,
   pub creator_id: i32,
@@ -193,14 +198,14 @@ pub struct ReplyView {
 }
 
 impl ReplyView {
-
-  pub fn get_replies(conn: &PgConnection, 
-              for_user_id: i32, 
-              sort: &SortType, 
-              unread_only: bool,
-              page: Option<i64>,
-              limit: Option<i64>,
-              ) -> Result<Vec<Self>, Error> {
+  pub fn get_replies(
+    conn: &PgConnection,
+    for_user_id: i32,
+    sort: &SortType,
+    unread_only: bool,
+    page: Option<i64>,
+    limit: Option<i64>,
+  ) -> Result<Vec<Self>, Error> {
     use super::comment_view::reply_view::dsl::*;
 
     let (limit, offset) = limit_and_offset(page, limit);
@@ -222,34 +227,30 @@ impl ReplyView {
       SortType::TopYear => query
         .filter(published.gt(now - 1.years()))
         .order_by(score.desc()),
-        SortType::TopMonth => query
-          .filter(published.gt(now - 1.months()))
-          .order_by(score.desc()),
-          SortType::TopWeek => query
-            .filter(published.gt(now - 1.weeks()))
-            .order_by(score.desc()),
-            SortType::TopDay => query
-              .filter(published.gt(now - 1.days()))
-              .order_by(score.desc()),
-              _ => query.order_by(published.desc())
+      SortType::TopMonth => query
+        .filter(published.gt(now - 1.months()))
+        .order_by(score.desc()),
+      SortType::TopWeek => query
+        .filter(published.gt(now - 1.weeks()))
+        .order_by(score.desc()),
+      SortType::TopDay => query
+        .filter(published.gt(now - 1.days()))
+        .order_by(score.desc()),
+      _ => query.order_by(published.desc()),
     };
 
-    query
-      .limit(limit)
-      .offset(offset)
-      .load::<Self>(conn) 
+    query.limit(limit).offset(offset).load::<Self>(conn)
   }
-
 }
 
 #[cfg(test)]
 mod tests {
-  use super::*;
-  use super::super::post::*;
-  use super::super::community::*;
-  use super::super::user::*;
   use super::super::comment::*;
- #[test]
+  use super::super::community::*;
+  use super::super::post::*;
+  use super::super::user::*;
+  use super::*;
+  #[test]
   fn test_crud() {
     let conn = establish_connection();
 
@@ -280,7 +281,7 @@ mod tests {
     };
 
     let inserted_community = Community::create(&conn, &new_community).unwrap();
-    
+
     let new_post = PostForm {
       name: "A test post 2".into(),
       creator_id: inserted_user.id,
@@ -304,7 +305,7 @@ mod tests {
       removed: None,
       deleted: None,
       read: None,
-      updated: None
+      updated: None,
     };
 
     let inserted_comment = Comment::create(&conn, &comment_form).unwrap();
@@ -313,7 +314,7 @@ mod tests {
       comment_id: inserted_comment.id,
       post_id: inserted_post.id,
       user_id: inserted_user.id,
-      score: 1
+      score: 1,
     };
 
     let _inserted_comment_like = CommentLike::like(&conn, &comment_like_form).unwrap();
@@ -365,25 +366,29 @@ mod tests {
     };
 
     let read_comment_views_no_user = CommentView::list(
-      &conn, 
-      &SortType::New, 
-      Some(inserted_post.id), 
-      None, 
-      None, 
+      &conn,
+      &SortType::New,
+      Some(inserted_post.id),
       None,
-      false, 
-      None, 
-      None).unwrap();
+      None,
+      None,
+      false,
+      None,
+      None,
+    )
+    .unwrap();
     let read_comment_views_with_user = CommentView::list(
-      &conn, 
-      &SortType::New, 
-      Some(inserted_post.id), 
-      None, 
+      &conn,
+      &SortType::New,
+      Some(inserted_post.id),
       None,
-      Some(inserted_user.id), 
-      false, 
-      None, 
-      None).unwrap();
+      None,
+      Some(inserted_user.id),
+      false,
+      None,
+      None,
+    )
+    .unwrap();
     let like_removed = CommentLike::remove(&conn, &comment_like_form).unwrap();
     let num_deleted = Comment::delete(&conn, inserted_comment.id).unwrap();
     Post::delete(&conn, inserted_post.id).unwrap();
@@ -391,9 +396,11 @@ mod tests {
     User_::delete(&conn, inserted_user.id).unwrap();
 
     assert_eq!(expected_comment_view_no_user, read_comment_views_no_user[0]);
-    assert_eq!(expected_comment_view_with_user, read_comment_views_with_user[0]);
+    assert_eq!(
+      expected_comment_view_with_user,
+      read_comment_views_with_user[0]
+    );
     assert_eq!(1, num_deleted);
     assert_eq!(1, like_removed);
   }
 }
-
