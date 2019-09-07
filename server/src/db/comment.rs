@@ -1,6 +1,6 @@
-use crate::schema::{comment, comment_like, comment_saved};
-use super::*;
 use super::post::Post;
+use super::*;
+use crate::schema::{comment, comment_like, comment_saved};
 
 // WITH RECURSIVE MyTree AS (
 //     SELECT * FROM comment WHERE parent_id IS NULL
@@ -11,7 +11,7 @@ use super::post::Post;
 
 #[derive(Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[belongs_to(Post)]
-#[table_name="comment"]
+#[table_name = "comment"]
 pub struct Comment {
   pub id: i32,
   pub creator_id: i32,
@@ -26,7 +26,7 @@ pub struct Comment {
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
-#[table_name="comment"]
+#[table_name = "comment"]
 pub struct CommentForm {
   pub creator_id: i32,
   pub post_id: i32,
@@ -41,14 +41,12 @@ pub struct CommentForm {
 impl Crud<CommentForm> for Comment {
   fn read(conn: &PgConnection, comment_id: i32) -> Result<Self, Error> {
     use crate::schema::comment::dsl::*;
-    comment.find(comment_id)
-      .first::<Self>(conn)
+    comment.find(comment_id).first::<Self>(conn)
   }
 
   fn delete(conn: &PgConnection, comment_id: i32) -> Result<usize, Error> {
     use crate::schema::comment::dsl::*;
-    diesel::delete(comment.find(comment_id))
-      .execute(conn)
+    diesel::delete(comment.find(comment_id)).execute(conn)
   }
 
   fn create(conn: &PgConnection, comment_form: &CommentForm) -> Result<Self, Error> {
@@ -58,7 +56,11 @@ impl Crud<CommentForm> for Comment {
       .get_result::<Self>(conn)
   }
 
-  fn update(conn: &PgConnection, comment_id: i32, comment_form: &CommentForm) -> Result<Self, Error> {
+  fn update(
+    conn: &PgConnection,
+    comment_id: i32,
+    comment_form: &CommentForm,
+  ) -> Result<Self, Error> {
     use crate::schema::comment::dsl::*;
     diesel::update(comment.find(comment_id))
       .set(comment_form)
@@ -79,20 +81,20 @@ pub struct CommentLike {
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
-#[table_name="comment_like"]
+#[table_name = "comment_like"]
 pub struct CommentLikeForm {
   pub user_id: i32,
   pub comment_id: i32,
   pub post_id: i32,
-  pub score: i16
+  pub score: i16,
 }
 
-impl Likeable <CommentLikeForm> for CommentLike {
+impl Likeable<CommentLikeForm> for CommentLike {
   fn read(conn: &PgConnection, comment_id_from: i32) -> Result<Vec<Self>, Error> {
     use crate::schema::comment_like::dsl::*;
     comment_like
       .filter(comment_id.eq(comment_id_from))
-      .load::<Self>(conn) 
+      .load::<Self>(conn)
   }
 
   fn like(conn: &PgConnection, comment_like_form: &CommentLikeForm) -> Result<Self, Error> {
@@ -105,9 +107,10 @@ impl Likeable <CommentLikeForm> for CommentLike {
     use crate::schema::comment_like::dsl::*;
     diesel::delete(
       comment_like
-      .filter(comment_id.eq(comment_like_form.comment_id))
-      .filter(user_id.eq(comment_like_form.user_id)))
-      .execute(conn)
+        .filter(comment_id.eq(comment_like_form.comment_id))
+        .filter(user_id.eq(comment_like_form.user_id)),
+    )
+    .execute(conn)
   }
 }
 
@@ -116,7 +119,7 @@ impl CommentLike {
     use crate::schema::comment_like::dsl::*;
     comment_like
       .filter(post_id.eq(post_id_from))
-      .load::<Self>(conn) 
+      .load::<Self>(conn)
   }
 }
 
@@ -131,13 +134,13 @@ pub struct CommentSaved {
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
-#[table_name="comment_saved"]
+#[table_name = "comment_saved"]
 pub struct CommentSavedForm {
   pub comment_id: i32,
   pub user_id: i32,
 }
 
-impl Saveable <CommentSavedForm> for CommentSaved {
+impl Saveable<CommentSavedForm> for CommentSaved {
   fn save(conn: &PgConnection, comment_saved_form: &CommentSavedForm) -> Result<Self, Error> {
     use crate::schema::comment_saved::dsl::*;
     insert_into(comment_saved)
@@ -146,20 +149,22 @@ impl Saveable <CommentSavedForm> for CommentSaved {
   }
   fn unsave(conn: &PgConnection, comment_saved_form: &CommentSavedForm) -> Result<usize, Error> {
     use crate::schema::comment_saved::dsl::*;
-    diesel::delete(comment_saved
-      .filter(comment_id.eq(comment_saved_form.comment_id))
-      .filter(user_id.eq(comment_saved_form.user_id)))
-      .execute(conn)
+    diesel::delete(
+      comment_saved
+        .filter(comment_id.eq(comment_saved_form.comment_id))
+        .filter(user_id.eq(comment_saved_form.user_id)),
+    )
+    .execute(conn)
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use super::*;
-  use super::super::post::*;
   use super::super::community::*;
+  use super::super::post::*;
   use super::super::user::*;
- #[test]
+  use super::*;
+  #[test]
   fn test_crud() {
     let conn = establish_connection();
 
@@ -190,7 +195,7 @@ mod tests {
     };
 
     let inserted_community = Community::create(&conn, &new_community).unwrap();
-    
+
     let new_post = PostForm {
       name: "A test post".into(),
       creator_id: inserted_user.id,
@@ -214,7 +219,7 @@ mod tests {
       deleted: None,
       read: None,
       parent_id: None,
-      updated: None
+      updated: None,
     };
 
     let inserted_comment = Comment::create(&conn, &comment_form).unwrap();
@@ -229,9 +234,9 @@ mod tests {
       read: false,
       parent_id: None,
       published: inserted_comment.published,
-      updated: None
+      updated: None,
     };
-    
+
     let child_comment_form = CommentForm {
       content: "A child comment".into(),
       creator_id: inserted_user.id,
@@ -240,7 +245,7 @@ mod tests {
       removed: None,
       deleted: None,
       read: None,
-      updated: None
+      updated: None,
     };
 
     let inserted_child_comment = Comment::create(&conn, &child_comment_form).unwrap();
@@ -250,7 +255,7 @@ mod tests {
       comment_id: inserted_comment.id,
       post_id: inserted_post.id,
       user_id: inserted_user.id,
-      score: 1
+      score: 1,
     };
 
     let inserted_comment_like = CommentLike::like(&conn, &comment_like_form).unwrap();
@@ -261,9 +266,9 @@ mod tests {
       post_id: inserted_post.id,
       user_id: inserted_user.id,
       published: inserted_comment_like.published,
-      score: 1
+      score: 1,
     };
-    
+
     // Comment Saved
     let comment_saved_form = CommentSavedForm {
       comment_id: inserted_comment.id,
@@ -294,10 +299,12 @@ mod tests {
     assert_eq!(expected_comment, updated_comment);
     assert_eq!(expected_comment_like, inserted_comment_like);
     assert_eq!(expected_comment_saved, inserted_comment_saved);
-    assert_eq!(expected_comment.id, inserted_child_comment.parent_id.unwrap());
+    assert_eq!(
+      expected_comment.id,
+      inserted_child_comment.parent_id.unwrap()
+    );
     assert_eq!(1, like_removed);
     assert_eq!(1, saved_removed);
     assert_eq!(1, num_deleted);
-
   }
 }

@@ -73,8 +73,10 @@ table! {
   }
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize,QueryableByName,Clone)]
-#[table_name="community_view"]
+#[derive(
+  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
+)]
+#[table_name = "community_view"]
 pub struct CommunityView {
   pub id: i32,
   pub name: String,
@@ -98,7 +100,11 @@ pub struct CommunityView {
 }
 
 impl CommunityView {
-  pub fn read(conn: &PgConnection, from_community_id: i32, from_user_id: Option<i32>) -> Result<Self, Error> {
+  pub fn read(
+    conn: &PgConnection,
+    from_community_id: i32,
+    from_user_id: Option<i32>,
+  ) -> Result<Self, Error> {
     use super::community_view::community_view::dsl::*;
 
     let mut query = community_view.into_boxed();
@@ -116,14 +122,14 @@ impl CommunityView {
   }
 
   pub fn list(
-    conn: &PgConnection, 
-    sort: &SortType, 
-    from_user_id: Option<i32>, 
+    conn: &PgConnection,
+    sort: &SortType,
+    from_user_id: Option<i32>,
     show_nsfw: bool,
     search_term: Option<String>,
     page: Option<i64>,
     limit: Option<i64>,
-    ) -> Result<Vec<Self>, Error> {
+  ) -> Result<Vec<Self>, Error> {
     use super::community_view::community_view::dsl::*;
     let mut query = community_view.into_boxed();
 
@@ -135,17 +141,26 @@ impl CommunityView {
 
     // The view lets you pass a null user_id, if you're not logged in
     match sort {
-      SortType::Hot => query = query.order_by(hot_rank.desc())
-        .then_order_by(number_of_subscribers.desc())
-        .filter(user_id.is_null()),
-        SortType::New => query = query.order_by(published.desc()).filter(user_id.is_null()),
-        SortType::TopAll => {
-          match from_user_id {
-            Some(from_user_id) => query = query.filter(user_id.eq(from_user_id)).order_by((subscribed.asc(), number_of_subscribers.desc())),
-            None => query = query.order_by(number_of_subscribers.desc()).filter(user_id.is_null())
-          }
+      SortType::Hot => {
+        query = query
+          .order_by(hot_rank.desc())
+          .then_order_by(number_of_subscribers.desc())
+          .filter(user_id.is_null())
+      }
+      SortType::New => query = query.order_by(published.desc()).filter(user_id.is_null()),
+      SortType::TopAll => match from_user_id {
+        Some(from_user_id) => {
+          query = query
+            .filter(user_id.eq(from_user_id))
+            .order_by((subscribed.asc(), number_of_subscribers.desc()))
         }
-      _ => ()
+        None => {
+          query = query
+            .order_by(number_of_subscribers.desc())
+            .filter(user_id.is_null())
+        }
+      },
+      _ => (),
     };
 
     if !show_nsfw {
@@ -157,81 +172,101 @@ impl CommunityView {
       .offset(offset)
       .filter(removed.eq(false))
       .filter(deleted.eq(false))
-      .load::<Self>(conn) 
+      .load::<Self>(conn)
   }
 }
 
-
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize,QueryableByName,Clone)]
-#[table_name="community_moderator_view"]
+#[derive(
+  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
+)]
+#[table_name = "community_moderator_view"]
 pub struct CommunityModeratorView {
   pub id: i32,
   pub community_id: i32,
   pub user_id: i32,
   pub published: chrono::NaiveDateTime,
-  pub user_name : String,
+  pub user_name: String,
   pub community_name: String,
 }
 
 impl CommunityModeratorView {
   pub fn for_community(conn: &PgConnection, from_community_id: i32) -> Result<Vec<Self>, Error> {
     use super::community_view::community_moderator_view::dsl::*;
-    community_moderator_view.filter(community_id.eq(from_community_id)).load::<Self>(conn)
+    community_moderator_view
+      .filter(community_id.eq(from_community_id))
+      .load::<Self>(conn)
   }
 
   pub fn for_user(conn: &PgConnection, from_user_id: i32) -> Result<Vec<Self>, Error> {
     use super::community_view::community_moderator_view::dsl::*;
-    community_moderator_view.filter(user_id.eq(from_user_id)).load::<Self>(conn)
+    community_moderator_view
+      .filter(user_id.eq(from_user_id))
+      .load::<Self>(conn)
   }
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize,QueryableByName,Clone)]
-#[table_name="community_follower_view"]
+#[derive(
+  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
+)]
+#[table_name = "community_follower_view"]
 pub struct CommunityFollowerView {
   pub id: i32,
   pub community_id: i32,
   pub user_id: i32,
   pub published: chrono::NaiveDateTime,
-  pub user_name : String,
+  pub user_name: String,
   pub community_name: String,
 }
 
 impl CommunityFollowerView {
   pub fn for_community(conn: &PgConnection, from_community_id: i32) -> Result<Vec<Self>, Error> {
     use super::community_view::community_follower_view::dsl::*;
-    community_follower_view.filter(community_id.eq(from_community_id)).load::<Self>(conn)
+    community_follower_view
+      .filter(community_id.eq(from_community_id))
+      .load::<Self>(conn)
   }
 
   pub fn for_user(conn: &PgConnection, from_user_id: i32) -> Result<Vec<Self>, Error> {
     use super::community_view::community_follower_view::dsl::*;
-    community_follower_view.filter(user_id.eq(from_user_id)).load::<Self>(conn)
+    community_follower_view
+      .filter(user_id.eq(from_user_id))
+      .load::<Self>(conn)
   }
 }
 
-
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize,QueryableByName,Clone)]
-#[table_name="community_user_ban_view"]
+#[derive(
+  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
+)]
+#[table_name = "community_user_ban_view"]
 pub struct CommunityUserBanView {
   pub id: i32,
   pub community_id: i32,
   pub user_id: i32,
   pub published: chrono::NaiveDateTime,
-  pub user_name : String,
+  pub user_name: String,
   pub community_name: String,
 }
 
 impl CommunityUserBanView {
   pub fn for_community(conn: &PgConnection, from_community_id: i32) -> Result<Vec<Self>, Error> {
     use super::community_view::community_user_ban_view::dsl::*;
-    community_user_ban_view.filter(community_id.eq(from_community_id)).load::<Self>(conn)
+    community_user_ban_view
+      .filter(community_id.eq(from_community_id))
+      .load::<Self>(conn)
   }
 
   pub fn for_user(conn: &PgConnection, from_user_id: i32) -> Result<Vec<Self>, Error> {
     use super::community_view::community_user_ban_view::dsl::*;
-    community_user_ban_view.filter(user_id.eq(from_user_id)).load::<Self>(conn)
+    community_user_ban_view
+      .filter(user_id.eq(from_user_id))
+      .load::<Self>(conn)
   }
 
-  pub fn get(conn: &PgConnection, from_user_id: i32, from_community_id: i32) -> Result<Self, Error> {
+  pub fn get(
+    conn: &PgConnection,
+    from_user_id: i32,
+    from_community_id: i32,
+  ) -> Result<Self, Error> {
     use super::community_view::community_user_ban_view::dsl::*;
     community_user_ban_view
       .filter(user_id.eq(from_user_id))
@@ -240,9 +275,10 @@ impl CommunityUserBanView {
   }
 }
 
-
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize,QueryableByName,Clone)]
-#[table_name="site_view"]
+#[derive(
+  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
+)]
+#[table_name = "site_view"]
 pub struct SiteView {
   pub id: i32,
   pub name: String,

@@ -1,11 +1,11 @@
 use super::*;
+use bcrypt::verify;
 use std::str::FromStr;
-use bcrypt::{verify};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Login {
   username_or_email: String,
-  password: String
+  password: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -27,7 +27,7 @@ pub struct SaveUserSettings {
 #[derive(Serialize, Deserialize)]
 pub struct LoginResponse {
   op: String,
-  jwt: String
+  jwt: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -60,14 +60,14 @@ pub struct GetRepliesResponse {
 
 #[derive(Serialize, Deserialize)]
 pub struct MarkAllAsRead {
-  auth: String
+  auth: String,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct AddAdmin {
   user_id: i32,
   added: bool,
-  auth: String
+  auth: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -82,7 +82,7 @@ pub struct BanUser {
   ban: bool,
   reason: Option<String>,
   expires: Option<i64>,
-  auth: String
+  auth: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -98,7 +98,7 @@ pub struct GetReplies {
   page: Option<i64>,
   limit: Option<i64>,
   unread_only: bool,
-  auth: String
+  auth: String,
 }
 
 impl Perform<LoginResponse> for Oper<Login> {
@@ -109,25 +109,27 @@ impl Perform<LoginResponse> for Oper<Login> {
     // Fetch that username / email
     let user: User_ = match User_::find_by_email_or_username(&conn, &data.username_or_email) {
       Ok(user) => user,
-      Err(_e) => return Err(APIError::err(&self.op, "couldnt_find_that_username_or_email"))?
+      Err(_e) => {
+        return Err(APIError::err(
+          &self.op,
+          "couldnt_find_that_username_or_email",
+        ))?
+      }
     };
 
     // Verify the password
     let valid: bool = verify(&data.password, &user.password_encrypted).unwrap_or(false);
     if !valid {
-      return Err(APIError::err(&self.op, "password_incorrect"))?
+      return Err(APIError::err(&self.op, "password_incorrect"))?;
     }
 
     // Return the jwt
-    Ok(
-      LoginResponse {
-        op: self.op.to_string(),
-        jwt: user.jwt()
-      }
-      )
+    Ok(LoginResponse {
+      op: self.op.to_string(),
+      jwt: user.jwt(),
+    })
   }
 }
-
 
 impl Perform<LoginResponse> for Oper<Register> {
   fn perform(&self) -> Result<LoginResponse, Error> {
@@ -136,16 +138,16 @@ impl Perform<LoginResponse> for Oper<Register> {
 
     // Make sure passwords match
     if &data.password != &data.password_verify {
-      return Err(APIError::err(&self.op, "passwords_dont_match"))?
+      return Err(APIError::err(&self.op, "passwords_dont_match"))?;
     }
 
     if has_slurs(&data.username) {
-      return Err(APIError::err(&self.op, "no_slurs"))?
+      return Err(APIError::err(&self.op, "no_slurs"))?;
     }
 
     // Make sure there are no admins
     if data.admin && UserView::admins(&conn)?.len() > 0 {
-      return Err(APIError::err(&self.op, "admin_already_created"))?
+      return Err(APIError::err(&self.op, "admin_already_created"))?;
     }
 
     // Register the new user
@@ -164,9 +166,7 @@ impl Perform<LoginResponse> for Oper<Register> {
     // Create the user
     let inserted_user = match User_::register(&conn, &user_form) {
       Ok(user) => user,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "user_already_exists"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "user_already_exists"))?,
     };
 
     // Create the main community if it doesn't exist
@@ -194,12 +194,11 @@ impl Perform<LoginResponse> for Oper<Register> {
       user_id: inserted_user.id,
     };
 
-    let _inserted_community_follower = match CommunityFollower::follow(&conn, &community_follower_form) {
-      Ok(user) => user,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "community_follower_already_exists"))?
-      }
-    };
+    let _inserted_community_follower =
+      match CommunityFollower::follow(&conn, &community_follower_form) {
+        Ok(user) => user,
+        Err(_e) => return Err(APIError::err(&self.op, "community_follower_already_exists"))?,
+      };
 
     // If its an admin, add them as a mod and follower to main
     if data.admin {
@@ -208,22 +207,23 @@ impl Perform<LoginResponse> for Oper<Register> {
         user_id: inserted_user.id,
       };
 
-      let _inserted_community_moderator = match CommunityModerator::join(&conn, &community_moderator_form) {
-        Ok(user) => user,
-        Err(_e) => {
-          return Err(APIError::err(&self.op, "community_moderator_already_exists"))?
-        }
-      };
-
+      let _inserted_community_moderator =
+        match CommunityModerator::join(&conn, &community_moderator_form) {
+          Ok(user) => user,
+          Err(_e) => {
+            return Err(APIError::err(
+              &self.op,
+              "community_moderator_already_exists",
+            ))?
+          }
+        };
     }
 
     // Return the jwt
-    Ok(
-      LoginResponse {
-        op: self.op.to_string(), 
-        jwt: inserted_user.jwt()
-      }
-      )
+    Ok(LoginResponse {
+      op: self.op.to_string(),
+      jwt: inserted_user.jwt(),
+    })
   }
 }
 
@@ -234,13 +234,11 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "not_logged_in"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
     };
 
     let user_id = claims.id;
-    
+
     let read_user = User_::read(&conn, user_id)?;
 
     let user_form = UserForm {
@@ -257,18 +255,14 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
 
     let updated_user = match User_::update(&conn, user_id, &user_form) {
       Ok(user) => user,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "couldnt_update_user"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_user"))?,
     };
 
     // Return the jwt
-    Ok(
-      LoginResponse {
-        op: self.op.to_string(), 
-        jwt: updated_user.jwt()
-      }
-      )
+    Ok(LoginResponse {
+      op: self.op.to_string(),
+      jwt: updated_user.jwt(),
+    })
   }
 }
 
@@ -278,25 +272,21 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
     let conn = establish_connection();
 
     let user_claims: Option<Claims> = match &data.auth {
-      Some(auth) => {
-        match Claims::decode(&auth) {
-          Ok(claims) => {
-            Some(claims.claims)
-          }
-          Err(_e) => None
-        }
-      }
-      None => None
+      Some(auth) => match Claims::decode(&auth) {
+        Ok(claims) => Some(claims.claims),
+        Err(_e) => None,
+      },
+      None => None,
     };
-    
+
     let user_id = match &user_claims {
       Some(claims) => Some(claims.id),
-      None => None
+      None => None,
     };
 
     let show_nsfw = match &user_claims {
       Some(claims) => claims.show_nsfw,
-      None => false
+      None => false,
     };
 
     //TODO add save
@@ -304,7 +294,13 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
 
     let user_details_id = match data.user_id {
       Some(id) => id,
-      None => User_::read_from_name(&conn, data.username.to_owned().unwrap_or("admin".to_string()))?.id
+      None => {
+        User_::read_from_name(
+          &conn,
+          data.username.to_owned().unwrap_or("admin".to_string()),
+        )?
+        .id
+      }
     };
 
     let user_view = UserView::read(&conn, user_details_id)?;
@@ -312,76 +308,77 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
     // If its saved only, you don't care what creator it was
     let posts = if data.saved_only {
       PostView::list(
-        &conn, 
-        PostListingType::All, 
-        &sort, 
-        data.community_id, 
-        None, 
+        &conn,
+        PostListingType::All,
+        &sort,
+        data.community_id,
         None,
         None,
-        Some(user_details_id), 
+        None,
+        Some(user_details_id),
         show_nsfw,
-        data.saved_only, 
-        false, 
-        data.page, 
-        data.limit)?
+        data.saved_only,
+        false,
+        data.page,
+        data.limit,
+      )?
     } else {
       PostView::list(
-        &conn, 
-        PostListingType::All, 
-        &sort, 
-        data.community_id, 
-        Some(user_details_id), 
-        None, 
+        &conn,
+        PostListingType::All,
+        &sort,
+        data.community_id,
+        Some(user_details_id),
         None,
-        user_id, 
+        None,
+        user_id,
         show_nsfw,
-        data.saved_only, 
-        false, 
-        data.page, 
-        data.limit)?
+        data.saved_only,
+        false,
+        data.page,
+        data.limit,
+      )?
     };
     let comments = if data.saved_only {
       CommentView::list(
-        &conn, 
-        &sort, 
-        None, 
-        None, 
-        None, 
-        Some(user_details_id), 
-        data.saved_only, 
-        data.page, 
-        data.limit)?
+        &conn,
+        &sort,
+        None,
+        None,
+        None,
+        Some(user_details_id),
+        data.saved_only,
+        data.page,
+        data.limit,
+      )?
     } else {
       CommentView::list(
-        &conn, 
-        &sort, 
-        None, 
-        Some(user_details_id), 
-        None, 
-        user_id, 
-        data.saved_only, 
-        data.page, 
-        data.limit)?
+        &conn,
+        &sort,
+        None,
+        Some(user_details_id),
+        None,
+        user_id,
+        data.saved_only,
+        data.page,
+        data.limit,
+      )?
     };
 
     let follows = CommunityFollowerView::for_user(&conn, user_details_id)?;
     let moderates = CommunityModeratorView::for_user(&conn, user_details_id)?;
 
     // Return the jwt
-    Ok(
-      GetUserDetailsResponse {
-        op: self.op.to_string(),
-        user: user_view,
-        follows: follows,
-        moderates: moderates, 
-        comments: comments,
-        posts: posts,
-      }
-      )
+    Ok(GetUserDetailsResponse {
+      op: self.op.to_string(),
+      user: user_view,
+      follows: follows,
+      moderates: moderates,
+      comments: comments,
+      posts: posts,
+    })
   }
 }
-
 
 impl Perform<AddAdminResponse> for Oper<AddAdmin> {
   fn perform(&self) -> Result<AddAdminResponse, Error> {
@@ -390,16 +387,14 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "not_logged_in"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
     };
 
     let user_id = claims.id;
 
     // Make sure user is an admin
     if UserView::read(&conn, user_id)?.admin == false {
-      return Err(APIError::err(&self.op, "not_an_admin"))?
+      return Err(APIError::err(&self.op, "not_an_admin"))?;
     }
 
     let read_user = User_::read(&conn, data.user_id)?;
@@ -418,9 +413,7 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
 
     match User_::update(&conn, data.user_id, &user_form) {
       Ok(user) => user,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "couldnt_update_user"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_user"))?,
     };
 
     // Mod tables
@@ -438,12 +431,10 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
 
-    Ok(
-      AddAdminResponse {
-        op: self.op.to_string(), 
-        admins: admins,
-      }
-      )
+    Ok(AddAdminResponse {
+      op: self.op.to_string(),
+      admins: admins,
+    })
   }
 }
 
@@ -454,16 +445,14 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "not_logged_in"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
     };
 
     let user_id = claims.id;
 
     // Make sure user is an admin
     if UserView::read(&conn, user_id)?.admin == false {
-      return Err(APIError::err(&self.op, "not_an_admin"))?
+      return Err(APIError::err(&self.op, "not_an_admin"))?;
     }
 
     let read_user = User_::read(&conn, data.user_id)?;
@@ -482,15 +471,13 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
 
     match User_::update(&conn, data.user_id, &user_form) {
       Ok(user) => user,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "couldnt_update_user"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_user"))?,
     };
 
     // Mod tables
     let expires = match data.expires {
       Some(time) => Some(naive_from_unix(time)),
-      None => None
+      None => None,
     };
 
     let form = ModBanForm {
@@ -505,14 +492,11 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
 
     let user_view = UserView::read(&conn, data.user_id)?;
 
-    Ok(
-      BanUserResponse {
-        op: self.op.to_string(), 
-        user: user_view,
-        banned: data.ban
-      }
-      )
-
+    Ok(BanUserResponse {
+      op: self.op.to_string(),
+      user: user_view,
+      banned: data.ban,
+    })
   }
 }
 
@@ -523,24 +507,27 @@ impl Perform<GetRepliesResponse> for Oper<GetReplies> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "not_logged_in"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
     };
 
     let user_id = claims.id;
 
     let sort = SortType::from_str(&data.sort)?;
 
-    let replies = ReplyView::get_replies(&conn, user_id, &sort, data.unread_only, data.page, data.limit)?;
+    let replies = ReplyView::get_replies(
+      &conn,
+      user_id,
+      &sort,
+      data.unread_only,
+      data.page,
+      data.limit,
+    )?;
 
     // Return the jwt
-    Ok(
-      GetRepliesResponse {
-        op: self.op.to_string(),
-        replies: replies,
-      }
-      )
+    Ok(GetRepliesResponse {
+      op: self.op.to_string(),
+      replies: replies,
+    })
   }
 }
 
@@ -551,9 +538,7 @@ impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "not_logged_in"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
     };
 
     let user_id = claims.id;
@@ -569,24 +554,20 @@ impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
         removed: None,
         deleted: None,
         read: Some(true),
-        updated: reply.to_owned().updated 
+        updated: reply.to_owned().updated,
       };
 
       let _updated_comment = match Comment::update(&conn, reply.id, &comment_form) {
         Ok(comment) => comment,
-        Err(_e) => {
-          return Err(APIError::err(&self.op, "couldnt_update_comment"))?
-        }
+        Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_comment"))?,
       };
     }
 
     let replies = ReplyView::get_replies(&conn, user_id, &SortType::New, true, Some(1), Some(999))?;
 
-    Ok(
-      GetRepliesResponse {
-        op: self.op.to_string(),
-        replies: replies,
-      }
-      )
+    Ok(GetRepliesResponse {
+      op: self.op.to_string(),
+      replies: replies,
+    })
   }
 }

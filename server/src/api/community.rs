@@ -5,7 +5,7 @@ use std::str::FromStr;
 pub struct GetCommunity {
   id: Option<i32>,
   name: Option<String>,
-  auth: Option<String>
+  auth: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -16,7 +16,6 @@ pub struct GetCommunityResponse {
   admins: Vec<UserView>,
 }
 
-
 #[derive(Serialize, Deserialize)]
 pub struct CreateCommunity {
   name: String,
@@ -24,13 +23,13 @@ pub struct CreateCommunity {
   description: Option<String>,
   category_id: i32,
   nsfw: bool,
-  auth: String
+  auth: String,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct CommunityResponse {
   op: String,
-  pub community: CommunityView
+  pub community: CommunityView,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -38,13 +37,13 @@ pub struct ListCommunities {
   sort: String,
   page: Option<i64>,
   limit: Option<i64>,
-  auth: Option<String>
+  auth: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct ListCommunitiesResponse {
   op: String,
-  communities: Vec<CommunityView>
+  communities: Vec<CommunityView>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -54,7 +53,7 @@ pub struct BanFromCommunity {
   ban: bool,
   reason: Option<String>,
   expires: Option<i64>,
-  auth: String
+  auth: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -69,7 +68,7 @@ pub struct AddModToCommunity {
   pub community_id: i32,
   user_id: i32,
   added: bool,
-  auth: String
+  auth: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -90,32 +89,32 @@ pub struct EditCommunity {
   nsfw: bool,
   reason: Option<String>,
   expires: Option<i64>,
-  auth: String
+  auth: String,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct FollowCommunity {
   community_id: i32,
   follow: bool,
-  auth: String
+  auth: String,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct GetFollowedCommunities {
-  auth: String
+  auth: String,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct GetFollowedCommunitiesResponse {
   op: String,
-  communities: Vec<CommunityFollowerView>
+  communities: Vec<CommunityFollowerView>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct TransferCommunity {
   community_id: i32,
   user_id: i32,
-  auth: String
+  auth: String,
 }
 
 impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
@@ -124,35 +123,31 @@ impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
     let conn = establish_connection();
 
     let user_id: Option<i32> = match &data.auth {
-      Some(auth) => {
-        match Claims::decode(&auth) {
-          Ok(claims) => {
-            let user_id = claims.claims.id;
-            Some(user_id)
-          }
-          Err(_e) => None
+      Some(auth) => match Claims::decode(&auth) {
+        Ok(claims) => {
+          let user_id = claims.claims.id;
+          Some(user_id)
         }
-      }
-      None => None
+        Err(_e) => None,
+      },
+      None => None,
     };
 
     let community_id = match data.id {
       Some(id) => id,
-      None => Community::read_from_name(&conn, data.name.to_owned().unwrap_or("main".to_string()))?.id
+      None => {
+        Community::read_from_name(&conn, data.name.to_owned().unwrap_or("main".to_string()))?.id
+      }
     };
 
     let community_view = match CommunityView::read(&conn, community_id, user_id) {
       Ok(community) => community,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "couldnt_find_community"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "couldnt_find_community"))?,
     };
 
     let moderators = match CommunityModeratorView::for_community(&conn, community_id) {
       Ok(moderators) => moderators,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "couldnt_find_community"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "couldnt_find_community"))?,
     };
 
     let site_creator_id = Site::read(&conn, 1)?.creator_id;
@@ -162,14 +157,12 @@ impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
     admins.insert(0, creator_user);
 
     // Return the jwt
-    Ok(
-      GetCommunityResponse {
-        op: self.op.to_string(),
-        community: community_view,
-        moderators: moderators,
-        admins: admins,
-      }
-      )
+    Ok(GetCommunityResponse {
+      op: self.op.to_string(),
+      community: community_view,
+      moderators: moderators,
+      admins: admins,
+    })
   }
 }
 
@@ -180,22 +173,21 @@ impl Perform<CommunityResponse> for Oper<CreateCommunity> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "not_logged_in"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
     };
 
-    if has_slurs(&data.name) || 
-      has_slurs(&data.title) || 
-        (data.description.is_some() && has_slurs(&data.description.to_owned().unwrap())) {
-          return Err(APIError::err(&self.op, "no_slurs"))?
-        }
+    if has_slurs(&data.name)
+      || has_slurs(&data.title)
+      || (data.description.is_some() && has_slurs(&data.description.to_owned().unwrap()))
+    {
+      return Err(APIError::err(&self.op, "no_slurs"))?;
+    }
 
     let user_id = claims.id;
 
     // Check for a site ban
     if UserView::read(&conn, user_id)?.banned {
-      return Err(APIError::err(&self.op, "site_ban"))?
+      return Err(APIError::err(&self.op, "site_ban"))?;
     }
 
     // When you create a community, make sure the user becomes a moderator and a follower
@@ -213,43 +205,42 @@ impl Perform<CommunityResponse> for Oper<CreateCommunity> {
 
     let inserted_community = match Community::create(&conn, &community_form) {
       Ok(community) => community,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "community_already_exists"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "community_already_exists"))?,
     };
 
     let community_moderator_form = CommunityModeratorForm {
       community_id: inserted_community.id,
-      user_id: user_id
+      user_id: user_id,
     };
 
-    let _inserted_community_moderator = match CommunityModerator::join(&conn, &community_moderator_form) {
-      Ok(user) => user,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "community_moderator_already_exists"))?
-      }
-    };
+    let _inserted_community_moderator =
+      match CommunityModerator::join(&conn, &community_moderator_form) {
+        Ok(user) => user,
+        Err(_e) => {
+          return Err(APIError::err(
+            &self.op,
+            "community_moderator_already_exists",
+          ))?
+        }
+      };
 
     let community_follower_form = CommunityFollowerForm {
       community_id: inserted_community.id,
-      user_id: user_id
+      user_id: user_id,
     };
 
-    let _inserted_community_follower = match CommunityFollower::follow(&conn, &community_follower_form) {
-      Ok(user) => user,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "community_follower_already_exists"))?
-      }
-    };
+    let _inserted_community_follower =
+      match CommunityFollower::follow(&conn, &community_follower_form) {
+        Ok(user) => user,
+        Err(_e) => return Err(APIError::err(&self.op, "community_follower_already_exists"))?,
+      };
 
     let community_view = CommunityView::read(&conn, inserted_community.id, Some(user_id))?;
 
-    Ok(
-      CommunityResponse {
-        op: self.op.to_string(),
-        community: community_view
-      }
-      )
+    Ok(CommunityResponse {
+      op: self.op.to_string(),
+      community: community_view,
+    })
   }
 }
 
@@ -258,43 +249,34 @@ impl Perform<CommunityResponse> for Oper<EditCommunity> {
     let data: &EditCommunity = &self.data;
 
     if has_slurs(&data.name) || has_slurs(&data.title) {
-      return Err(APIError::err(&self.op, "no_slurs"))?
+      return Err(APIError::err(&self.op, "no_slurs"))?;
     }
 
     let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "not_logged_in"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
     };
 
     let user_id = claims.id;
 
     // Check for a site ban
     if UserView::read(&conn, user_id)?.banned {
-      return Err(APIError::err(&self.op, "site_ban"))?
+      return Err(APIError::err(&self.op, "site_ban"))?;
     }
 
     // Verify its a mod
     let mut editors: Vec<i32> = Vec::new();
     editors.append(
-      &mut CommunityModeratorView::for_community(&conn, data.edit_id)
-      ?
-      .into_iter()
-      .map(|m| m.user_id)
-      .collect()
-      );
-    editors.append(
-      &mut UserView::admins(&conn)
-      ?
-      .into_iter()
-      .map(|a| a.id)
-      .collect()
-      );
+      &mut CommunityModeratorView::for_community(&conn, data.edit_id)?
+        .into_iter()
+        .map(|m| m.user_id)
+        .collect(),
+    );
+    editors.append(&mut UserView::admins(&conn)?.into_iter().map(|a| a.id).collect());
     if !editors.contains(&user_id) {
-      return Err(APIError::err(&self.op, "no_community_edit_allowed"))?
+      return Err(APIError::err(&self.op, "no_community_edit_allowed"))?;
     }
 
     let community_form = CommunityForm {
@@ -306,40 +288,36 @@ impl Perform<CommunityResponse> for Oper<EditCommunity> {
       removed: data.removed.to_owned(),
       deleted: data.deleted.to_owned(),
       nsfw: data.nsfw,
-      updated: Some(naive_now())
+      updated: Some(naive_now()),
     };
 
     let _updated_community = match Community::update(&conn, data.edit_id, &community_form) {
       Ok(community) => community,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "couldnt_update_community"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_community"))?,
     };
 
     // Mod tables
     if let Some(removed) = data.removed.to_owned() {
       let expires = match data.expires {
         Some(time) => Some(naive_from_unix(time)),
-        None => None
+        None => None,
       };
       let form = ModRemoveCommunityForm {
         mod_user_id: user_id,
         community_id: data.edit_id,
         removed: Some(removed),
         reason: data.reason.to_owned(),
-        expires: expires
+        expires: expires,
       };
       ModRemoveCommunity::create(&conn, &form)?;
     }
 
     let community_view = CommunityView::read(&conn, data.edit_id, Some(user_id))?;
 
-    Ok(
-      CommunityResponse {
-        op: self.op.to_string(), 
-        community: community_view
-      }
-      )
+    Ok(CommunityResponse {
+      op: self.op.to_string(),
+      community: community_view,
+    })
   }
 }
 
@@ -349,48 +327,36 @@ impl Perform<ListCommunitiesResponse> for Oper<ListCommunities> {
     let conn = establish_connection();
 
     let user_claims: Option<Claims> = match &data.auth {
-      Some(auth) => {
-        match Claims::decode(&auth) {
-          Ok(claims) => {
-            Some(claims.claims)
-          }
-          Err(_e) => None
-        }
-      }
-      None => None
+      Some(auth) => match Claims::decode(&auth) {
+        Ok(claims) => Some(claims.claims),
+        Err(_e) => None,
+      },
+      None => None,
     };
-    
+
     let user_id = match &user_claims {
       Some(claims) => Some(claims.id),
-      None => None
+      None => None,
     };
 
     let show_nsfw = match &user_claims {
       Some(claims) => claims.show_nsfw,
-      None => false
+      None => false,
     };
 
     let sort = SortType::from_str(&data.sort)?;
 
     let communities: Vec<CommunityView> = CommunityView::list(
-      &conn, 
-      &sort, 
-      user_id, 
-      show_nsfw, 
-      None, 
-      data.page, 
-      data.limit)?;
+      &conn, &sort, user_id, show_nsfw, None, data.page, data.limit,
+    )?;
 
     // Return the jwt
-    Ok(
-      ListCommunitiesResponse {
-        op: self.op.to_string(),
-        communities: communities
-      }
-      )
+    Ok(ListCommunitiesResponse {
+      op: self.op.to_string(),
+      communities: communities,
+    })
   }
 }
-
 
 impl Perform<CommunityResponse> for Oper<FollowCommunity> {
   fn perform(&self) -> Result<CommunityResponse, Error> {
@@ -399,45 +365,36 @@ impl Perform<CommunityResponse> for Oper<FollowCommunity> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "not_logged_in"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
     };
 
     let user_id = claims.id;
 
     let community_follower_form = CommunityFollowerForm {
       community_id: data.community_id,
-      user_id: user_id
+      user_id: user_id,
     };
 
     if data.follow {
       match CommunityFollower::follow(&conn, &community_follower_form) {
         Ok(user) => user,
-        Err(_e) => {
-          return Err(APIError::err(&self.op, "community_follower_already_exists"))?
-        }
+        Err(_e) => return Err(APIError::err(&self.op, "community_follower_already_exists"))?,
       };
     } else {
       match CommunityFollower::ignore(&conn, &community_follower_form) {
         Ok(user) => user,
-        Err(_e) => {
-          return Err(APIError::err(&self.op, "community_follower_already_exists"))?
-        }
+        Err(_e) => return Err(APIError::err(&self.op, "community_follower_already_exists"))?,
       };
     }
 
     let community_view = CommunityView::read(&conn, data.community_id, Some(user_id))?;
 
-    Ok(
-      CommunityResponse {
-        op: self.op.to_string(), 
-        community: community_view
-      }
-      )
+    Ok(CommunityResponse {
+      op: self.op.to_string(),
+      community: community_view,
+    })
   }
 }
-
 
 impl Perform<GetFollowedCommunitiesResponse> for Oper<GetFollowedCommunities> {
   fn perform(&self) -> Result<GetFollowedCommunitiesResponse, Error> {
@@ -446,30 +403,24 @@ impl Perform<GetFollowedCommunitiesResponse> for Oper<GetFollowedCommunities> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "not_logged_in"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
     };
 
     let user_id = claims.id;
 
-    let communities: Vec<CommunityFollowerView> = match CommunityFollowerView::for_user(&conn, user_id) {
-      Ok(communities) => communities,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "system_err_login"))?
-      }
-    };
+    let communities: Vec<CommunityFollowerView> =
+      match CommunityFollowerView::for_user(&conn, user_id) {
+        Ok(communities) => communities,
+        Err(_e) => return Err(APIError::err(&self.op, "system_err_login"))?,
+      };
 
     // Return the jwt
-    Ok(
-      GetFollowedCommunitiesResponse {
-        op: self.op.to_string(),
-        communities: communities
-      }
-      )
+    Ok(GetFollowedCommunitiesResponse {
+      op: self.op.to_string(),
+      communities: communities,
+    })
   }
 }
-
 
 impl Perform<BanFromCommunityResponse> for Oper<BanFromCommunity> {
   fn perform(&self) -> Result<BanFromCommunityResponse, Error> {
@@ -478,9 +429,7 @@ impl Perform<BanFromCommunityResponse> for Oper<BanFromCommunity> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "not_logged_in"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
     };
 
     let user_id = claims.id;
@@ -493,23 +442,19 @@ impl Perform<BanFromCommunityResponse> for Oper<BanFromCommunity> {
     if data.ban {
       match CommunityUserBan::ban(&conn, &community_user_ban_form) {
         Ok(user) => user,
-        Err(_e) => {
-          return Err(APIError::err(&self.op, "community_user_already_banned"))?
-        }
+        Err(_e) => return Err(APIError::err(&self.op, "community_user_already_banned"))?,
       };
     } else {
       match CommunityUserBan::unban(&conn, &community_user_ban_form) {
         Ok(user) => user,
-        Err(_e) => {
-          return Err(APIError::err(&self.op, "community_user_already_banned"))?
-        }
+        Err(_e) => return Err(APIError::err(&self.op, "community_user_already_banned"))?,
       };
     }
 
     // Mod tables
     let expires = match data.expires {
       Some(time) => Some(naive_from_unix(time)),
-      None => None
+      None => None,
     };
 
     let form = ModBanFromCommunityForm {
@@ -524,13 +469,11 @@ impl Perform<BanFromCommunityResponse> for Oper<BanFromCommunity> {
 
     let user_view = UserView::read(&conn, data.user_id)?;
 
-    Ok(
-      BanFromCommunityResponse {
-        op: self.op.to_string(), 
-        user: user_view,
-        banned: data.ban
-      }
-      )
+    Ok(BanFromCommunityResponse {
+      op: self.op.to_string(),
+      user: user_view,
+      banned: data.ban,
+    })
   }
 }
 
@@ -541,30 +484,34 @@ impl Perform<AddModToCommunityResponse> for Oper<AddModToCommunity> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "not_logged_in"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
     };
 
     let user_id = claims.id;
 
     let community_moderator_form = CommunityModeratorForm {
       community_id: data.community_id,
-      user_id: data.user_id
+      user_id: data.user_id,
     };
 
     if data.added {
       match CommunityModerator::join(&conn, &community_moderator_form) {
         Ok(user) => user,
         Err(_e) => {
-          return Err(APIError::err(&self.op, "community_moderator_already_exists"))?
+          return Err(APIError::err(
+            &self.op,
+            "community_moderator_already_exists",
+          ))?
         }
       };
     } else {
       match CommunityModerator::leave(&conn, &community_moderator_form) {
         Ok(user) => user,
         Err(_e) => {
-          return Err(APIError::err(&self.op, "community_moderator_already_exists"))?
+          return Err(APIError::err(
+            &self.op,
+            "community_moderator_already_exists",
+          ))?
         }
       };
     }
@@ -580,15 +527,13 @@ impl Perform<AddModToCommunityResponse> for Oper<AddModToCommunity> {
 
     let moderators = CommunityModeratorView::for_community(&conn, data.community_id)?;
 
-    Ok(
-      AddModToCommunityResponse {
-        op: self.op.to_string(), 
-        moderators: moderators,
-      }
-      )
+    Ok(AddModToCommunityResponse {
+      op: self.op.to_string(),
+      moderators: moderators,
+    })
   }
 }
-  
+
 impl Perform<GetCommunityResponse> for Oper<TransferCommunity> {
   fn perform(&self) -> Result<GetCommunityResponse, Error> {
     let data: &TransferCommunity = &self.data;
@@ -596,9 +541,7 @@ impl Perform<GetCommunityResponse> for Oper<TransferCommunity> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "not_logged_in"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
     };
 
     let user_id = claims.id;
@@ -611,12 +554,17 @@ impl Perform<GetCommunityResponse> for Oper<TransferCommunity> {
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
 
-
     // Make sure user is the creator, or an admin
-    if user_id != read_community.creator_id && !admins.iter().map(|a| a.id).collect::<Vec<i32>>().contains(&user_id) {
-      return Err(APIError::err(&self.op, "not_an_admin"))?
+    if user_id != read_community.creator_id
+      && !admins
+        .iter()
+        .map(|a| a.id)
+        .collect::<Vec<i32>>()
+        .contains(&user_id)
+    {
+      return Err(APIError::err(&self.op, "not_an_admin"))?;
     }
-    
+
     let community_form = CommunityForm {
       name: read_community.name,
       title: read_community.title,
@@ -626,37 +574,41 @@ impl Perform<GetCommunityResponse> for Oper<TransferCommunity> {
       removed: None,
       deleted: None,
       nsfw: read_community.nsfw,
-      updated: Some(naive_now())
+      updated: Some(naive_now()),
     };
 
     let _updated_community = match Community::update(&conn, data.community_id, &community_form) {
       Ok(community) => community,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "couldnt_update_community"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_community"))?,
     };
 
     // You also have to re-do the community_moderator table, reordering it.
     let mut community_mods = CommunityModeratorView::for_community(&conn, data.community_id)?;
-    let creator_index = community_mods.iter().position(|r| r.user_id == data.user_id).unwrap();
+    let creator_index = community_mods
+      .iter()
+      .position(|r| r.user_id == data.user_id)
+      .unwrap();
     let creator_user = community_mods.remove(creator_index);
     community_mods.insert(0, creator_user);
 
     CommunityModerator::delete_for_community(&conn, data.community_id)?;
 
     for cmod in &community_mods {
-
       let community_moderator_form = CommunityModeratorForm {
         community_id: cmod.community_id,
-        user_id: cmod.user_id
+        user_id: cmod.user_id,
       };
 
-      let _inserted_community_moderator = match CommunityModerator::join(&conn, &community_moderator_form) {
-        Ok(user) => user,
-        Err(_e) => {
-          return Err(APIError::err(&self.op, "community_moderator_already_exists"))?
-        }
-      };
+      let _inserted_community_moderator =
+        match CommunityModerator::join(&conn, &community_moderator_form) {
+          Ok(user) => user,
+          Err(_e) => {
+            return Err(APIError::err(
+              &self.op,
+              "community_moderator_already_exists",
+            ))?
+          }
+        };
     }
 
     // Mod tables
@@ -670,27 +622,20 @@ impl Perform<GetCommunityResponse> for Oper<TransferCommunity> {
 
     let community_view = match CommunityView::read(&conn, data.community_id, Some(user_id)) {
       Ok(community) => community,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "couldnt_find_community"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "couldnt_find_community"))?,
     };
 
     let moderators = match CommunityModeratorView::for_community(&conn, data.community_id) {
       Ok(moderators) => moderators,
-      Err(_e) => {
-        return Err(APIError::err(&self.op, "couldnt_find_community"))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, "couldnt_find_community"))?,
     };
 
-
     // Return the jwt
-    Ok(
-      GetCommunityResponse {
-        op: self.op.to_string(),
-        community: community_view,
-        moderators: moderators,
-        admins: admins,
-      }
-      )
+    Ok(GetCommunityResponse {
+      op: self.op.to_string(),
+      community: community_view,
+      moderators: moderators,
+      admins: admins,
+    })
   }
 }
