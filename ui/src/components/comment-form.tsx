@@ -136,7 +136,10 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
               }
               {this.props.node && <button type="button" class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.handleReplyCancel)}><T i18nKey="cancel">#</T></button>}
               <a href={markdownHelpUrl} target="_blank" class="d-inline-block float-right text-muted small font-weight-bold"><T i18nKey="formatting_help">#</T></a>
-              <a href={imageUploadUrl} target="_blank" class="d-inline-block mr-2 float-right text-muted small font-weight-bold"><T i18nKey="upload_image">#</T></a>
+              <form class="d-inline-block mr-2 float-right text-muted small font-weight-bold">
+                <label htmlFor={`file-upload-${this.id}`} class="pointer"><T i18nKey="upload_image">#</T></label>
+                <input id={`file-upload-${this.id}`} type="file" name="file" class="d-none" onChange={linkEvent(this, this.handleImageUpload)} />
+              </form>
             </div>
           </div>
         </form>
@@ -154,8 +157,8 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
 
     i.state.previewMode = false;
     i.state.commentForm.content = undefined;
-    i.setState(i.state);
     event.target.reset();
+    i.setState(i.state);
     if (i.props.node) {
       i.props.onReplyCancel();
     }
@@ -176,6 +179,28 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
 
   handleReplyCancel(i: CommentForm) {
     i.props.onReplyCancel();
+  }
+
+  handleImageUpload(i: CommentForm, event: any) {
+    event.preventDefault();
+    let file = event.target.files[0];
+    const imageUploadUrl = `/pictshare/api/upload.php`;
+    const formData = new FormData();
+    formData.append('file', file);
+    fetch(imageUploadUrl, {
+      method: 'POST',
+      body: formData,
+    })
+    .then(res => res.json())
+    .then(res => {
+      let url = `${window.location.origin}/pictshare/${res.url}`;
+      let markdown = (res.filetype == 'mp4') ? `[vid](${url}/raw)` : `![](${url})`;
+      let content = i.state.commentForm.content;
+      content = (content) ? `${content} ${markdown}` : markdown;
+      i.state.commentForm.content = content;
+      i.setState(i.state);
+    })
+    .catch((error) => alert(error));
   }
   
   userSearch(text: string, cb: any) {
