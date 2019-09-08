@@ -29,6 +29,7 @@ export const en = {
     preview: 'Preview',
     upload_image: 'upload image',
     formatting_help: 'formatting help',
+    view_source: 'view source',
     unlock: 'unlock',
     lock: 'lock',
     link: 'link',
