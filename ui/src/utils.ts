@@ -104,9 +104,14 @@ export function isMod(modIds: Array<number>, creator_id: number): boolean {
 
 
 var imageRegex = new RegExp(`(http)?s?:?(\/\/[^"']*\.(?:png|jpg|jpeg|gif|png|svg))`);
+var videoRegex = new RegExp(`(http)?s?:?(\/\/[^"']*\.(?:mp4))`);
 
 export function isImage(url: string) {
   return imageRegex.test(url);
+}
+
+export function isVideo(url: string) {
+  return videoRegex.test(url);
 }
 
 export function validURL(str: string) {

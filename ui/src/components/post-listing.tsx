@@ -4,7 +4,7 @@ import { WebSocketService, UserService } from '../services';
 import { Post, CreatePostLikeForm, PostForm as PostFormI, SavePostForm, CommunityUser, UserView, BanType, BanFromCommunityForm, BanUserForm, AddModToCommunityForm, AddAdminForm, TransferSiteForm, TransferCommunityForm } from '../interfaces';
 import { MomentTime } from './moment-time';
 import { PostForm } from './post-form';
-import { mdToHtml, canMod, isMod, isImage, getUnixTime } from '../utils';
+import { mdToHtml, canMod, isMod, isImage, isVideo, getUnixTime } from '../utils';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 
@@ -85,6 +85,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         </div>
         {post.url && isImage(post.url) &&
           <span title={i18n.t('expand_here')} class="pointer" onClick={linkEvent(this, this.handleImageExpandClick)}><img class="mx-2 mt-1 float-left img-fluid thumbnail rounded" src={post.url} /></span>
+        }
+        {post.url && isVideo(post.url) &&
+          <video controls autoPlay muted loop class="mx-2 mt-1 float-left img-fluid thumbnail rounded">
+            <source src={post.url} type="video/mp4" />
+          </video>
         }
         <div className="ml-4">
           <div className="post-title">

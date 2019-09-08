@@ -20,5 +20,12 @@ services:
       - HOSTNAME=${DOMAIN}
     depends_on:
       - lemmy_db
+  lemmy_pictshare:
+    image: hascheksolutions/pictshare:latest
+    ports:
+      - "8537:80"
+    volumes:
+      - lemmy_pictshare:/usr/share/nginx/html/data
 volumes:
-    lemmy_db:
+  lemmy_db:
+  lemmy_pictshare:

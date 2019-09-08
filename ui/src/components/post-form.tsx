@@ -109,7 +109,10 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               {this.state.suggestedTitle && 
                 <div class="mt-1 text-muted small font-weight-bold pointer" onClick={linkEvent(this, this.copySuggestedTitle)}><T i18nKey="copy_suggested_title" interpolation={{title: this.state.suggestedTitle}}>#</T></div>
               }
-              <a href={imageUploadUrl} target="_blank" class="d-inline-block mr-2 float-right text-muted small font-weight-bold"><T i18nKey="upload_image">#</T></a>
+              <form>
+                <label htmlFor="file-upload" class="pointer d-inline-block mr-2 float-right text-muted small font-weight-bold"><T i18nKey="upload_image">#</T></label>
+                <input id="file-upload" type="file" name="file" class="d-none" onChange={linkEvent(this, this.handleImageUpload)} />
+              </form>
               {this.state.crossPosts.length > 0 && 
                 <>
                   <div class="my-1 text-muted small font-weight-bold"><T i18nKey="cross_posts">#</T></div>
@@ -264,6 +267,29 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     event.preventDefault();
     i.state.previewMode = !i.state.previewMode;
     i.setState(i.state);
+  }
+
+  handleImageUpload(i: PostForm, event: any) {
+    event.preventDefault();
+    let file = event.target.files[0];
+    const imageUploadUrl = `/pictshare/api/upload.php`;
+    const formData = new FormData();
+    formData.append('file', file);
+    fetch(imageUploadUrl, {
+      method: 'POST',
+      body: formData,
+    })
+    .then(res => res.json())
+    .then(res => {
+      let url = `${window.location.origin}/pictshare/${res.url}`;
+      if (res.filetype == 'mp4') {
+        url += '/raw';
+      }
+
+      i.state.postForm.url = url;
+      i.setState(i.state);
+    })
+    .catch((error) => alert(error));
   }
 
   parseMessage(msg: any) {
