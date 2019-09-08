@@ -177,14 +177,14 @@ If you'd like to add translations, take a look a look at the [english translatio
 
 lang | done | missing
 --- | --- | ---
-de | 86% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,formatting_help,settings,banned,subscribed,expires,recent_comments,nsfw,show_nsfw,crypto,monero,joined,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
-eo | 95% | number_of_communities,preview,upload_image,formatting_help,banned,are_you_sure,yes,no 
-es | 95% | number_of_communities,preview,upload_image,formatting_help,banned,are_you_sure,yes,no 
-fr | 100% |  
-nl | 98% | preview,upload_image,formatting_help,banned 
-ru | 91% | cross_posts,cross_post,number_of_communities,preview,upload_image,formatting_help,banned,recent_comments,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
-sv | 98% | preview,upload_image,formatting_help,banned 
-zh | 89% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,formatting_help,settings,banned,recent_comments,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+de | 86% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,formatting_help,view_source,settings,banned,subscribed,expires,recent_comments,nsfw,show_nsfw,crypto,monero,joined,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+eo | 95% | number_of_communities,preview,upload_image,formatting_help,view_source,banned,are_you_sure,yes,no 
+es | 95% | number_of_communities,preview,upload_image,formatting_help,view_source,banned,are_you_sure,yes,no 
+fr | 99% | view_source 
+nl | 97% | preview,upload_image,formatting_help,view_source,banned 
+ru | 90% | cross_posts,cross_post,number_of_communities,preview,upload_image,formatting_help,view_source,banned,recent_comments,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+sv | 97% | preview,upload_image,formatting_help,view_source,banned 
+zh | 88% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,formatting_help,view_source,settings,banned,recent_comments,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
 
 ## Credits
 
