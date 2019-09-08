@@ -1,0 +1,26 @@
+version: '3.3'
+
+services:
+  lemmy_db:
+    image: postgres:12-alpine
+    environment:
+      - POSTGRES_USER=lemmy
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_DB=lemmy
+    volumes:
+      - lemmy_db:/var/lib/postgresql/data
+  lemmy:
+    build: 
+      context: ../../
+      dockerfile: docker/nocross/Dockerfile
+    ports:
+      - "8536:8536"
+    environment:
+      - LEMMY_FRONT_END_DIR=/app/dist
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - HOSTNAME=${DOMAIN}
+    depends_on: 
+      - lemmy_db
+volumes:
+  lemmy_db:
