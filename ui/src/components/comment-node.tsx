@@ -22,6 +22,7 @@ interface CommentNodeState {
   showConfirmTransferSite: boolean;
   showConfirmTransferCommunity: boolean;
   collapsed: boolean;
+  viewSource: boolean;
 }
 
 interface CommentNodeProps {
@@ -46,6 +47,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     banExpires: null,
     banType: BanType.Community,
     collapsed: false,
+    viewSource: false,
     showConfirmTransferSite: false,
     showConfirmTransferCommunity: false,
   }
@@ -106,7 +108,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
           {this.state.showEdit && <CommentForm node={node} edit onReplyCancel={this.handleReplyCancel} disabled={this.props.locked} />}
           {!this.state.showEdit && !this.state.collapsed &&
             <div>
-              <div className="md-div" dangerouslySetInnerHTML={mdToHtml(node.comment.removed ? `*${i18n.t('removed')}*` : node.comment.deleted ? `*${i18n.t('deleted')}*` : node.comment.content)} />
+              {this.state.viewSource ? <div>{this.commentUnlessRemoved}</div> : 
+              <div className="md-div" dangerouslySetInnerHTML={mdToHtml(this.commentUnlessRemoved)} />
+              }
               <ul class="list-inline mb-1 text-muted small font-weight-bold">
                 {UserService.Instance.user && !this.props.viewOnly && 
                   <>
@@ -202,6 +206,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                   </>
                 }
                 <li className="list-inline-item">
+                  <span className="pointer" onClick={linkEvent(this, this.handleViewSource)}><T i18nKey="view_source">#</T></span>
+                </li>
+                <li className="list-inline-item">
                   <Link className="text-muted" to={`/post/${node.comment.post_id}/comment/${node.comment.id}`}><T i18nKey="link">#</T></Link>
                 </li>
                 {this.props.markable && 
@@ -296,6 +303,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       UserService.Instance.user && 
       (this.props.node.comment.creator_id != UserService.Instance.user.id) &&
       (UserService.Instance.user.id == this.props.admins[0].id);
+  }
+  
+  get commentUnlessRemoved(): string {  
+    let node = this.props.node;
+    return node.comment.removed ? `*${i18n.t('removed')}*` : node.comment.deleted ? `*${i18n.t('deleted')}*` : node.comment.content;
   }
 
   handleReplyClick(i: CommentNode) {
@@ -525,6 +537,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
 
   handleCommentCollapse(i: CommentNode) {
     i.state.collapsed = !i.state.collapsed;
+    i.setState(i.state);
+  }
+
+  handleViewSource(i: CommentNode) {
+    i.state.viewSource = !i.state.viewSource;
     i.setState(i.state);
   }
 }
