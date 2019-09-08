@@ -4,7 +4,7 @@ import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { PostForm as PostFormI, PostFormParams, Post, PostResponse, UserOperation, Community, ListCommunitiesResponse, ListCommunitiesForm, SortType, SearchForm, SearchType, SearchResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { msgOp, getPageTitle, debounce, validURL, capitalizeFirstLetter, imageUploadUrl, markdownHelpUrl, mdToHtml } from '../utils';
+import { msgOp, getPageTitle, debounce, validURL, capitalizeFirstLetter, markdownHelpUrl, mdToHtml } from '../utils';
 import * as autosize from 'autosize';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -21,6 +21,7 @@ interface PostFormState {
   postForm: PostFormI;
   communities: Array<Community>;
   loading: boolean;
+  imageLoading: boolean;
   previewMode: boolean;
   suggestedTitle: string;
   suggestedPosts: Array<Post>;
@@ -40,6 +41,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     },
     communities: [],
     loading: false,
+    imageLoading: false,
     previewMode: false,
     suggestedTitle: undefined,
     suggestedPosts: [],
@@ -111,8 +113,11 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               }
               <form>
                 <label htmlFor="file-upload" class="pointer d-inline-block mr-2 float-right text-muted small font-weight-bold"><T i18nKey="upload_image">#</T></label>
-                <input id="file-upload" type="file" name="file" class="d-none" onChange={linkEvent(this, this.handleImageUpload)} />
+                <input id="file-upload" type="file" accept="image/*,video/*" name="file" class="d-none" onChange={linkEvent(this, this.handleImageUpload)} />
               </form>
+              {this.state.imageLoading && 
+                <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg>
+              }
               {this.state.crossPosts.length > 0 && 
                 <>
                   <div class="my-1 text-muted small font-weight-bold"><T i18nKey="cross_posts">#</T></div>
@@ -275,6 +280,10 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     const imageUploadUrl = `/pictshare/api/upload.php`;
     const formData = new FormData();
     formData.append('file', file);
+
+    i.state.imageLoading = true;
+    i.setState(i.state);
+
     fetch(imageUploadUrl, {
       method: 'POST',
       body: formData,
@@ -285,11 +294,15 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       if (res.filetype == 'mp4') {
         url += '/raw';
       }
-
       i.state.postForm.url = url;
+      i.state.imageLoading = false;
       i.setState(i.state);
     })
-    .catch((error) => alert(error));
+    .catch((error) => {
+      i.state.imageLoading = false;
+      i.setState(i.state);
+      alert(error);
+    })
   }
 
   parseMessage(msg: any) {

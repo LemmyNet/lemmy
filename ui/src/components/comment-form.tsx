@@ -1,7 +1,7 @@
 import { Component, linkEvent } from 'inferno';
 import { CommentNode as CommentNodeI, CommentForm as CommentFormI, SearchForm, SearchType, SortType, UserOperation, SearchResponse } from '../interfaces';
 import { Subscription } from "rxjs";
-import { capitalizeFirstLetter, mentionDropdownFetchLimit, msgOp, mdToHtml, randomStr, imageUploadUrl, markdownHelpUrl } from '../utils';
+import { capitalizeFirstLetter, mentionDropdownFetchLimit, msgOp, mdToHtml, randomStr, markdownHelpUrl } from '../utils';
 import { WebSocketService, UserService } from '../services';
 import * as autosize from 'autosize';
 import { i18n } from '../i18next';
@@ -21,6 +21,7 @@ interface CommentFormState {
   commentForm: CommentFormI;
   buttonTitle: string;
   previewMode: boolean;
+  imageLoading: boolean;
 }
 
 export class CommentForm extends Component<CommentFormProps, CommentFormState> {
@@ -38,6 +39,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     },
     buttonTitle: !this.props.node ? capitalizeFirstLetter(i18n.t('post')) : this.props.edit ? capitalizeFirstLetter(i18n.t('edit')) : capitalizeFirstLetter(i18n.t('reply')),
     previewMode: false,
+    imageLoading: false,
   }
 
   constructor(props: any, context: any) {
@@ -134,12 +136,15 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
               {this.state.commentForm.content &&
                 <button className={`btn btn-sm mr-2 btn-secondary ${this.state.previewMode && 'active'}`} onClick={linkEvent(this, this.handlePreviewToggle)}><T i18nKey="preview">#</T></button>
               }
-              {this.props.node && <button type="button" class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.handleReplyCancel)}><T i18nKey="cancel">#</T></button>}
+              {this.props.node && <button type="button" class="btn btn-sm btn-secondary mr-2" onClick={linkEvent(this, this.handleReplyCancel)}><T i18nKey="cancel">#</T></button>}
               <a href={markdownHelpUrl} target="_blank" class="d-inline-block float-right text-muted small font-weight-bold"><T i18nKey="formatting_help">#</T></a>
               <form class="d-inline-block mr-2 float-right text-muted small font-weight-bold">
                 <label htmlFor={`file-upload-${this.id}`} class="pointer"><T i18nKey="upload_image">#</T></label>
-                <input id={`file-upload-${this.id}`} type="file" name="file" class="d-none" onChange={linkEvent(this, this.handleImageUpload)} />
+                <input id={`file-upload-${this.id}`} type="file" accept="image/*,video/*" name="file" class="d-none" onChange={linkEvent(this, this.handleImageUpload)} />
               </form>
+              {this.state.imageLoading && 
+                <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg>
+              }
             </div>
           </div>
         </form>
@@ -187,6 +192,10 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     const imageUploadUrl = `/pictshare/api/upload.php`;
     const formData = new FormData();
     formData.append('file', file);
+
+    i.state.imageLoading = true;
+    i.setState(i.state);
+
     fetch(imageUploadUrl, {
       method: 'POST',
       body: formData,
@@ -198,9 +207,14 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
       let content = i.state.commentForm.content;
       content = (content) ? `${content} ${markdown}` : markdown;
       i.state.commentForm.content = content;
+      i.state.imageLoading = false;
       i.setState(i.state);
     })
-    .catch((error) => alert(error));
+    .catch((error) => {
+      i.state.imageLoading = false;
+      i.setState(i.state);
+      alert(error);
+    })
   }
   
   userSearch(text: string, cb: any) {

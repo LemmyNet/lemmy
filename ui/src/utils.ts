@@ -15,7 +15,6 @@ import * as twemoji from 'twemoji';
 import * as emojiShortName from 'emoji-short-name';
 
 export const repoUrl = 'https://github.com/dessalines/lemmy';
-export const imageUploadUrl = 'https://postimages.org/';
 export const markdownHelpUrl = 'https://commonmark.org/help/';
 
 export const fetchLimit: number = 20;
