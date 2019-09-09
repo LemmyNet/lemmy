@@ -43,6 +43,7 @@ pub struct GetModlogResponse {
   op: String,
   removed_posts: Vec<ModRemovePostView>,
   locked_posts: Vec<ModLockPostView>,
+  stickied_posts: Vec<ModStickyPostView>,
   removed_comments: Vec<ModRemoveCommentView>,
   removed_communities: Vec<ModRemoveCommunityView>,
   banned_from_community: Vec<ModBanFromCommunityView>,
@@ -122,6 +123,13 @@ impl Perform<GetModlogResponse> for Oper<GetModlog> {
       data.page,
       data.limit,
     )?;
+    let stickied_posts = ModStickyPostView::list(
+      &conn,
+      data.community_id,
+      data.mod_user_id,
+      data.page,
+      data.limit,
+    )?;
     let removed_comments = ModRemoveCommentView::list(
       &conn,
       data.community_id,
@@ -161,6 +169,7 @@ impl Perform<GetModlogResponse> for Oper<GetModlog> {
       op: self.op.to_string(),
       removed_posts: removed_posts,
       locked_posts: locked_posts,
+      stickied_posts: stickied_posts,
       removed_comments: removed_comments,
       removed_communities: removed_communities,
       banned_from_community: banned_from_community,

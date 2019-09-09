@@ -24,6 +24,7 @@ table! {
     nsfw -> Bool,
     banned -> Bool,
     banned_from_community -> Bool,
+    stickied -> Bool,
     creator_name -> Varchar,
     community_name -> Varchar,
     community_removed -> Bool,
@@ -61,6 +62,7 @@ pub struct PostView {
   pub nsfw: bool,
   pub banned: bool,
   pub banned_from_community: bool,
+  pub stickied: bool,
   pub creator_name: String,
   pub community_name: String,
   pub community_removed: bool,
@@ -100,10 +102,6 @@ impl PostView {
 
     let mut query = post_view.into_boxed();
 
-    if let Some(for_community_id) = for_community_id {
-      query = query.filter(community_id.eq(for_community_id));
-    };
-
     if let Some(for_creator_id) = for_creator_id {
       query = query.filter(creator_id.eq(for_creator_id));
     };
@@ -114,6 +112,11 @@ impl PostView {
 
     if let Some(url_search) = url_search {
       query = query.filter(url.eq(url_search));
+    };
+
+    if let Some(for_community_id) = for_community_id {
+      query = query.filter(community_id.eq(for_community_id));
+      query = query.then_order_by(stickied.desc());
     };
 
     // TODO these are wrong, bc they'll only show saved for your logged in user, not theirs
@@ -147,22 +150,22 @@ impl PostView {
 
     query = match sort {
       SortType::Hot => query
-        .order_by(hot_rank.desc())
+        .then_order_by(hot_rank.desc())
         .then_order_by(published.desc()),
-      SortType::New => query.order_by(published.desc()),
-      SortType::TopAll => query.order_by(score.desc()),
+      SortType::New => query.then_order_by(published.desc()),
+      SortType::TopAll => query.then_order_by(score.desc()),
       SortType::TopYear => query
         .filter(published.gt(now - 1.years()))
-        .order_by(score.desc()),
+        .then_order_by(score.desc()),
       SortType::TopMonth => query
         .filter(published.gt(now - 1.months()))
-        .order_by(score.desc()),
+        .then_order_by(score.desc()),
       SortType::TopWeek => query
         .filter(published.gt(now - 1.weeks()))
-        .order_by(score.desc()),
+        .then_order_by(score.desc()),
       SortType::TopDay => query
         .filter(published.gt(now - 1.days()))
-        .order_by(score.desc()),
+        .then_order_by(score.desc()),
     };
 
     query = query
@@ -249,6 +252,7 @@ mod tests {
       removed: None,
       deleted: None,
       locked: None,
+      stickied: None,
       updated: None,
       nsfw: false,
     };
@@ -293,6 +297,7 @@ mod tests {
       removed: false,
       deleted: false,
       locked: false,
+      stickied: false,
       community_name: community_name.to_owned(),
       community_removed: false,
       community_deleted: false,
@@ -320,6 +325,7 @@ mod tests {
       removed: false,
       deleted: false,
       locked: false,
+      stickied: false,
       creator_id: inserted_user.id,
       creator_name: user_name.to_owned(),
       banned: false,
