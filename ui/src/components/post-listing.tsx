@@ -194,14 +194,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                     </li>
                   </>
                 }
-                {this.canMod &&
+                {this.canModOnSelf &&
                   <>
-                    <li className="list-inline-item">
-                      {!post.removed ? 
-                      <span class="pointer" onClick={linkEvent(this, this.handleModRemoveShow)}><T i18nKey="remove">#</T></span> :
-                      <span class="pointer" onClick={linkEvent(this, this.handleModRemoveSubmit)}><T i18nKey="restore">#</T></span>
-                      }
-                    </li>
                     <li className="list-inline-item">
                       <span class="pointer" onClick={linkEvent(this, this.handleModLock)}>{post.locked ? i18n.t('unlock') : i18n.t('lock')}</span>
                     </li>
@@ -213,6 +207,12 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                 {/* Mods can ban from community, and appoint as mods to community */}
                 {this.canMod &&
                   <>
+                    <li className="list-inline-item">
+                      {!post.removed ? 
+                      <span class="pointer" onClick={linkEvent(this, this.handleModRemoveShow)}><T i18nKey="remove">#</T></span> :
+                      <span class="pointer" onClick={linkEvent(this, this.handleModRemoveSubmit)}><T i18nKey="restore">#</T></span>
+                      }
+                    </li>
                     {!this.isMod && 
                       <li className="list-inline-item">
                         {!post.banned_from_community ? 
@@ -326,14 +326,22 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     return this.props.admins && isMod(this.props.admins.map(a => a.id), this.props.post.creator_id);
   }
 
+  get adminsThenMods(): Array<number> {
+    return this.props.admins.map(a => a.id)
+    .concat(this.props.moderators.map(m => m.user_id));
+  }
+
   get canMod(): boolean {
 
     if (this.props.editable) {
-      let adminsThenMods = this.props.admins.map(a => a.id)
-      .concat(this.props.moderators.map(m => m.user_id));
+      return canMod(UserService.Instance.user, this.adminsThenMods, this.props.post.creator_id);
+    } else return false;
+  }
 
-      return canMod(UserService.Instance.user, adminsThenMods, this.props.post.creator_id);
+  get canModOnSelf(): boolean {
 
+    if (this.props.editable) {
+      return canMod(UserService.Instance.user, this.adminsThenMods, this.props.post.creator_id, true);
     } else return false;
   }
 
