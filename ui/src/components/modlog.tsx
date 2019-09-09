@@ -2,14 +2,15 @@ import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, GetModlogForm, GetModlogResponse, ModRemovePost, ModLockPost, ModRemoveComment, ModRemoveCommunity, ModBanFromCommunity, ModBan, ModAddCommunity, ModAdd } from '../interfaces';
+import { UserOperation, GetModlogForm, GetModlogResponse, ModRemovePost, ModLockPost, ModStickyPost, ModRemoveComment, ModRemoveCommunity, ModBanFromCommunity, ModBan, ModAddCommunity, ModAdd } from '../interfaces';
 import { WebSocketService } from '../services';
 import { msgOp, addTypeInfo, fetchLimit } from '../utils';
 import { MomentTime } from './moment-time';
 import * as moment from 'moment';
+import { i18n } from '../i18next';
 
 interface ModlogState {
-  combined: Array<{type_: string, data: ModRemovePost | ModLockPost | ModRemoveCommunity | ModAdd | ModBan}>,
+  combined: Array<{type_: string, data: ModRemovePost | ModLockPost | ModStickyPost | ModRemoveCommunity | ModAdd | ModBan}>,
   communityId?: number,
   communityName?: string,
   page: number;
@@ -51,6 +52,7 @@ export class Modlog extends Component<any, ModlogState> {
   setCombined(res: GetModlogResponse) {
     let removed_posts = addTypeInfo(res.removed_posts, "removed_posts");
     let locked_posts = addTypeInfo(res.locked_posts, "locked_posts");
+    let stickied_posts = addTypeInfo(res.stickied_posts, "stickied_posts");
     let removed_comments = addTypeInfo(res.removed_comments, "removed_comments");
     let removed_communities = addTypeInfo(res.removed_communities, "removed_communities");
     let banned_from_community = addTypeInfo(res.banned_from_community, "banned_from_community");
@@ -61,6 +63,7 @@ export class Modlog extends Component<any, ModlogState> {
 
     this.state.combined.push(...removed_posts);
     this.state.combined.push(...locked_posts);
+    this.state.combined.push(...stickied_posts);
     this.state.combined.push(...removed_comments);
     this.state.combined.push(...removed_communities);
     this.state.combined.push(...banned_from_community);
@@ -97,6 +100,12 @@ export class Modlog extends Component<any, ModlogState> {
                 <>
                   {(i.data as ModLockPost).locked? 'Locked' : 'Unlocked'} 
                   <span> Post <Link to={`/post/${(i.data as ModLockPost).post_id}`}>{(i.data as ModLockPost).post_name}</Link></span>
+                </>
+              }
+              {i.type_ == 'stickied_posts' && 
+                <>
+                  {(i.data as ModStickyPost).stickied? 'Stickied' : 'Unstickied'} 
+                  <span> Post <Link to={`/post/${(i.data as ModStickyPost).post_id}`}>{(i.data as ModStickyPost).post_name}</Link></span>
                 </>
               }
               {i.type_ == 'removed_comments' && 
