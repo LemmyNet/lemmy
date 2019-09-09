@@ -77,6 +77,7 @@ export interface Post {
   removed: boolean;
   deleted: boolean;
   locked: boolean;
+  stickied: boolean;
   nsfw: boolean;
   banned: boolean;
   banned_from_community: boolean;
@@ -235,6 +236,7 @@ export interface GetModlogResponse {
   op: string;
   removed_posts: Array<ModRemovePost>,
   locked_posts: Array<ModLockPost>,
+  stickied_posts: Array<ModStickyPost>,
   removed_comments: Array<ModRemoveComment>,
   removed_communities: Array<ModRemoveCommunity>,
   banned_from_community: Array<ModBanFromCommunity>,
@@ -261,6 +263,18 @@ export interface ModLockPost {
   mod_user_id: number,
   post_id: number,
   locked?: boolean,
+  when_: string,
+  mod_user_name: string,
+  post_name: string,
+  community_id: number,
+  community_name: string,
+}
+
+export interface ModStickyPost {
+  id: number,
+  mod_user_id: number,
+  post_id: number,
+  stickied?: boolean,
   when_: string,
   mod_user_name: string,
   post_name: string,
@@ -425,6 +439,7 @@ export interface PostForm {
   deleted?: boolean;
   nsfw: boolean;
   locked?: boolean;
+  stickied?: boolean;
   reason?: string;
   auth: string;
 }

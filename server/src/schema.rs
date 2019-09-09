@@ -174,6 +174,16 @@ table! {
 }
 
 table! {
+    mod_sticky_post (id) {
+        id -> Int4,
+        mod_user_id -> Int4,
+        post_id -> Int4,
+        stickied -> Nullable<Bool>,
+        when_ -> Timestamp,
+    }
+}
+
+table! {
     post (id) {
         id -> Int4,
         name -> Varchar,
@@ -187,6 +197,7 @@ table! {
         updated -> Nullable<Timestamp>,
         deleted -> Bool,
         nsfw -> Bool,
+        stickied -> Bool,
     }
 }
 
@@ -279,6 +290,8 @@ joinable!(mod_remove_community -> community (community_id));
 joinable!(mod_remove_community -> user_ (mod_user_id));
 joinable!(mod_remove_post -> post (post_id));
 joinable!(mod_remove_post -> user_ (mod_user_id));
+joinable!(mod_sticky_post -> post (post_id));
+joinable!(mod_sticky_post -> user_ (mod_user_id));
 joinable!(post -> community (community_id));
 joinable!(post -> user_ (creator_id));
 joinable!(post_like -> post (post_id));
@@ -307,6 +320,7 @@ allow_tables_to_appear_in_same_query!(
   mod_remove_comment,
   mod_remove_community,
   mod_remove_post,
+  mod_sticky_post,
   post,
   post_like,
   post_read,

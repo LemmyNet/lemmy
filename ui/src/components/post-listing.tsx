@@ -129,6 +129,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             {post.locked &&
               <small className="ml-2 text-muted font-italic"><T i18nKey="locked">#</T></small>
             }
+            {post.stickied &&
+              <small className="ml-2 text-muted font-italic"><T i18nKey="stickied">#</T></small>
+            }
             {post.nsfw &&
               <small className="ml-2 text-muted font-italic"><T i18nKey="nsfw">#</T></small>
             }
@@ -201,6 +204,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                     </li>
                     <li className="list-inline-item">
                       <span class="pointer" onClick={linkEvent(this, this.handleModLock)}>{post.locked ? i18n.t('unlock') : i18n.t('lock')}</span>
+                    </li>
+                    <li className="list-inline-item">
+                      <span class="pointer" onClick={linkEvent(this, this.handleModSticky)}>{post.stickied ? i18n.t('unsticky') : i18n.t('sticky')}</span>
                     </li>
                   </>
                 }
@@ -454,6 +460,19 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       creator_id: i.props.post.creator_id,
       nsfw: i.props.post.nsfw,
       locked: !i.props.post.locked,
+      auth: null,
+    };
+    WebSocketService.Instance.editPost(form);
+  }
+
+  handleModSticky(i: PostListing) {
+    let form: PostFormI = {
+      name: i.props.post.name,
+      community_id: i.props.post.community_id,
+      edit_id: i.props.post.id,
+      creator_id: i.props.post.creator_id,
+      nsfw: i.props.post.nsfw,
+      stickied: !i.props.post.stickied,
       auth: null,
     };
     WebSocketService.Instance.editPost(form);

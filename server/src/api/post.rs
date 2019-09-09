@@ -74,6 +74,7 @@ pub struct EditPost {
   deleted: Option<bool>,
   nsfw: bool,
   locked: Option<bool>,
+  stickied: Option<bool>,
   reason: Option<String>,
   auth: String,
 }
@@ -121,6 +122,7 @@ impl Perform<PostResponse> for Oper<CreatePost> {
       deleted: None,
       nsfw: data.nsfw,
       locked: None,
+      stickied: None,
       updated: None,
     };
 
@@ -365,6 +367,7 @@ impl Perform<PostResponse> for Oper<EditPost> {
       deleted: data.deleted.to_owned(),
       nsfw: data.nsfw,
       locked: data.locked.to_owned(),
+      stickied: data.stickied.to_owned(),
       updated: Some(naive_now()),
     };
 
@@ -391,6 +394,15 @@ impl Perform<PostResponse> for Oper<EditPost> {
         locked: Some(locked),
       };
       ModLockPost::create(&conn, &form)?;
+    }
+
+    if let Some(stickied) = data.stickied.to_owned() {
+      let form = ModStickyPostForm {
+        mod_user_id: user_id,
+        post_id: data.edit_id,
+        stickied: Some(stickied),
+      };
+      ModStickyPost::create(&conn, &form)?;
     }
 
     let post_view = PostView::read(&conn, data.edit_id, Some(user_id))?;

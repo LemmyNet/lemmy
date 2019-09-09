@@ -1,7 +1,7 @@
 use super::*;
 use crate::schema::{
   mod_add, mod_add_community, mod_ban, mod_ban_from_community, mod_lock_post, mod_remove_comment,
-  mod_remove_community, mod_remove_post,
+  mod_remove_community, mod_remove_post, mod_sticky_post,
 };
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
@@ -89,6 +89,50 @@ impl Crud<ModLockPostForm> for ModLockPost {
   fn update(conn: &PgConnection, from_id: i32, form: &ModLockPostForm) -> Result<Self, Error> {
     use crate::schema::mod_lock_post::dsl::*;
     diesel::update(mod_lock_post.find(from_id))
+      .set(form)
+      .get_result::<Self>(conn)
+  }
+}
+
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
+#[table_name = "mod_sticky_post"]
+pub struct ModStickyPost {
+  pub id: i32,
+  pub mod_user_id: i32,
+  pub post_id: i32,
+  pub stickied: Option<bool>,
+  pub when_: chrono::NaiveDateTime,
+}
+
+#[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize)]
+#[table_name = "mod_sticky_post"]
+pub struct ModStickyPostForm {
+  pub mod_user_id: i32,
+  pub post_id: i32,
+  pub stickied: Option<bool>,
+}
+
+impl Crud<ModStickyPostForm> for ModStickyPost {
+  fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
+    use crate::schema::mod_sticky_post::dsl::*;
+    mod_sticky_post.find(from_id).first::<Self>(conn)
+  }
+
+  fn delete(conn: &PgConnection, from_id: i32) -> Result<usize, Error> {
+    use crate::schema::mod_sticky_post::dsl::*;
+    diesel::delete(mod_sticky_post.find(from_id)).execute(conn)
+  }
+
+  fn create(conn: &PgConnection, form: &ModStickyPostForm) -> Result<Self, Error> {
+    use crate::schema::mod_sticky_post::dsl::*;
+    insert_into(mod_sticky_post)
+      .values(form)
+      .get_result::<Self>(conn)
+  }
+
+  fn update(conn: &PgConnection, from_id: i32, form: &ModStickyPostForm) -> Result<Self, Error> {
+    use crate::schema::mod_sticky_post::dsl::*;
+    diesel::update(mod_sticky_post.find(from_id))
       .set(form)
       .get_result::<Self>(conn)
   }
@@ -443,6 +487,7 @@ mod tests {
       removed: None,
       deleted: None,
       locked: None,
+      stickied: None,
       updated: None,
       nsfw: false,
     };
@@ -472,9 +517,8 @@ mod tests {
       removed: None,
     };
     let inserted_mod_remove_post = ModRemovePost::create(&conn, &mod_remove_post_form).unwrap();
-    let read_moderator_remove_post =
-      ModRemovePost::read(&conn, inserted_mod_remove_post.id).unwrap();
-    let expected_moderator_remove_post = ModRemovePost {
+    let read_mod_remove_post = ModRemovePost::read(&conn, inserted_mod_remove_post.id).unwrap();
+    let expected_mod_remove_post = ModRemovePost {
       id: inserted_mod_remove_post.id,
       post_id: inserted_post.id,
       mod_user_id: inserted_mod.id,
@@ -491,13 +535,30 @@ mod tests {
       locked: None,
     };
     let inserted_mod_lock_post = ModLockPost::create(&conn, &mod_lock_post_form).unwrap();
-    let read_moderator_lock_post = ModLockPost::read(&conn, inserted_mod_lock_post.id).unwrap();
-    let expected_moderator_lock_post = ModLockPost {
+    let read_mod_lock_post = ModLockPost::read(&conn, inserted_mod_lock_post.id).unwrap();
+    let expected_mod_lock_post = ModLockPost {
       id: inserted_mod_lock_post.id,
       post_id: inserted_post.id,
       mod_user_id: inserted_mod.id,
       locked: Some(true),
       when_: inserted_mod_lock_post.when_,
+    };
+
+    // sticky post
+
+    let mod_sticky_post_form = ModStickyPostForm {
+      mod_user_id: inserted_mod.id,
+      post_id: inserted_post.id,
+      stickied: None,
+    };
+    let inserted_mod_sticky_post = ModStickyPost::create(&conn, &mod_sticky_post_form).unwrap();
+    let read_mod_sticky_post = ModStickyPost::read(&conn, inserted_mod_sticky_post.id).unwrap();
+    let expected_mod_sticky_post = ModStickyPost {
+      id: inserted_mod_sticky_post.id,
+      post_id: inserted_post.id,
+      mod_user_id: inserted_mod.id,
+      stickied: Some(true),
+      when_: inserted_mod_sticky_post.when_,
     };
 
     // comment
@@ -510,9 +571,9 @@ mod tests {
     };
     let inserted_mod_remove_comment =
       ModRemoveComment::create(&conn, &mod_remove_comment_form).unwrap();
-    let read_moderator_remove_comment =
+    let read_mod_remove_comment =
       ModRemoveComment::read(&conn, inserted_mod_remove_comment.id).unwrap();
-    let expected_moderator_remove_comment = ModRemoveComment {
+    let expected_mod_remove_comment = ModRemoveComment {
       id: inserted_mod_remove_comment.id,
       comment_id: inserted_comment.id,
       mod_user_id: inserted_mod.id,
@@ -532,9 +593,9 @@ mod tests {
     };
     let inserted_mod_remove_community =
       ModRemoveCommunity::create(&conn, &mod_remove_community_form).unwrap();
-    let read_moderator_remove_community =
+    let read_mod_remove_community =
       ModRemoveCommunity::read(&conn, inserted_mod_remove_community.id).unwrap();
-    let expected_moderator_remove_community = ModRemoveCommunity {
+    let expected_mod_remove_community = ModRemoveCommunity {
       id: inserted_mod_remove_community.id,
       community_id: inserted_community.id,
       mod_user_id: inserted_mod.id,
@@ -556,9 +617,9 @@ mod tests {
     };
     let inserted_mod_ban_from_community =
       ModBanFromCommunity::create(&conn, &mod_ban_from_community_form).unwrap();
-    let read_moderator_ban_from_community =
+    let read_mod_ban_from_community =
       ModBanFromCommunity::read(&conn, inserted_mod_ban_from_community.id).unwrap();
-    let expected_moderator_ban_from_community = ModBanFromCommunity {
+    let expected_mod_ban_from_community = ModBanFromCommunity {
       id: inserted_mod_ban_from_community.id,
       community_id: inserted_community.id,
       mod_user_id: inserted_mod.id,
@@ -579,8 +640,8 @@ mod tests {
       expires: None,
     };
     let inserted_mod_ban = ModBan::create(&conn, &mod_ban_form).unwrap();
-    let read_moderator_ban = ModBan::read(&conn, inserted_mod_ban.id).unwrap();
-    let expected_moderator_ban = ModBan {
+    let read_mod_ban = ModBan::read(&conn, inserted_mod_ban.id).unwrap();
+    let expected_mod_ban = ModBan {
       id: inserted_mod_ban.id,
       mod_user_id: inserted_mod.id,
       other_user_id: inserted_user.id,
@@ -600,9 +661,9 @@ mod tests {
     };
     let inserted_mod_add_community =
       ModAddCommunity::create(&conn, &mod_add_community_form).unwrap();
-    let read_moderator_add_community =
+    let read_mod_add_community =
       ModAddCommunity::read(&conn, inserted_mod_add_community.id).unwrap();
-    let expected_moderator_add_community = ModAddCommunity {
+    let expected_mod_add_community = ModAddCommunity {
       id: inserted_mod_add_community.id,
       community_id: inserted_community.id,
       mod_user_id: inserted_mod.id,
@@ -619,8 +680,8 @@ mod tests {
       removed: None,
     };
     let inserted_mod_add = ModAdd::create(&conn, &mod_add_form).unwrap();
-    let read_moderator_add = ModAdd::read(&conn, inserted_mod_add.id).unwrap();
-    let expected_moderator_add = ModAdd {
+    let read_mod_add = ModAdd::read(&conn, inserted_mod_add.id).unwrap();
+    let expected_mod_add = ModAdd {
       id: inserted_mod_add.id,
       mod_user_id: inserted_mod.id,
       other_user_id: inserted_user.id,
@@ -630,6 +691,7 @@ mod tests {
 
     ModRemovePost::delete(&conn, inserted_mod_remove_post.id).unwrap();
     ModLockPost::delete(&conn, inserted_mod_lock_post.id).unwrap();
+    ModStickyPost::delete(&conn, inserted_mod_sticky_post.id).unwrap();
     ModRemoveComment::delete(&conn, inserted_mod_remove_comment.id).unwrap();
     ModRemoveCommunity::delete(&conn, inserted_mod_remove_community.id).unwrap();
     ModBanFromCommunity::delete(&conn, inserted_mod_ban_from_community.id).unwrap();
@@ -643,25 +705,14 @@ mod tests {
     User_::delete(&conn, inserted_user.id).unwrap();
     User_::delete(&conn, inserted_mod.id).unwrap();
 
-    assert_eq!(expected_moderator_remove_post, read_moderator_remove_post);
-    assert_eq!(expected_moderator_lock_post, read_moderator_lock_post);
-    assert_eq!(
-      expected_moderator_remove_comment,
-      read_moderator_remove_comment
-    );
-    assert_eq!(
-      expected_moderator_remove_community,
-      read_moderator_remove_community
-    );
-    assert_eq!(
-      expected_moderator_ban_from_community,
-      read_moderator_ban_from_community
-    );
-    assert_eq!(expected_moderator_ban, read_moderator_ban);
-    assert_eq!(
-      expected_moderator_add_community,
-      read_moderator_add_community
-    );
-    assert_eq!(expected_moderator_add, read_moderator_add);
+    assert_eq!(expected_mod_remove_post, read_mod_remove_post);
+    assert_eq!(expected_mod_lock_post, read_mod_lock_post);
+    assert_eq!(expected_mod_sticky_post, read_mod_sticky_post);
+    assert_eq!(expected_mod_remove_comment, read_mod_remove_comment);
+    assert_eq!(expected_mod_remove_community, read_mod_remove_community);
+    assert_eq!(expected_mod_ban_from_community, read_mod_ban_from_community);
+    assert_eq!(expected_mod_ban, read_mod_ban);
+    assert_eq!(expected_mod_add_community, read_mod_add_community);
+    assert_eq!(expected_mod_add, read_mod_add);
   }
 }

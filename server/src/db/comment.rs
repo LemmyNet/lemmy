@@ -205,6 +205,7 @@ mod tests {
       removed: None,
       deleted: None,
       locked: None,
+      stickied: None,
       updated: None,
       nsfw: false,
     };
