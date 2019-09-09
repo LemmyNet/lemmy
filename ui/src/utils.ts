@@ -82,14 +82,15 @@ export function addTypeInfo<T>(arr: Array<T>, name: string): Array<{type_: strin
   return arr.map(e => {return {type_: name, data: e}});
 }
 
-export function canMod(user: User, modIds: Array<number>, creator_id: number): boolean {
+export function canMod(user: User, modIds: Array<number>, creator_id: number, onSelf: boolean = false): boolean {
   // You can do moderator actions only on the mods added after you.
   if (user) {
     let yourIndex = modIds.findIndex(id => id == user.id);
     if (yourIndex == -1) {
       return false;
     } else { 
-      modIds = modIds.slice(0, yourIndex+1); // +1 cause you cant mod yourself
+      // onSelf +1 on mod actions not for yourself, IE ban, remove, etc
+      modIds = modIds.slice(0, yourIndex+(onSelf ? 0 : 1)); 
       return !modIds.includes(creator_id);
     }
   } else {
