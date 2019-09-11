@@ -146,8 +146,11 @@ Only the first user will be able to be the admin.
 ##### Request
 ```rust
 {
-  show_nsfw: bool,
-  auth: String,
+  op: "SaveUserSettings",
+  data: {
+    show_nsfw: bool,
+    auth: String
+  }
 }
 ```
 ##### Response
