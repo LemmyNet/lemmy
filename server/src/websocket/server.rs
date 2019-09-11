@@ -305,10 +305,12 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       Ok(serde_json::to_string(&res)?)
     }
     UserOperation::Register => {
-      chat.check_rate_limit_register(msg.id)?;
       let register: Register = serde_json::from_str(data)?;
-      let res = Oper::new(user_operation, register).perform()?;
-      Ok(serde_json::to_string(&res)?)
+      let res = Oper::new(user_operation, register).perform();
+      if res.is_ok() {
+        chat.check_rate_limit_register(msg.id)?;
+      }
+      Ok(serde_json::to_string(&res?)?)
     }
     UserOperation::GetUserDetails => {
       let get_user_details: GetUserDetails = serde_json::from_str(data)?;
