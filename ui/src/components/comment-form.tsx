@@ -6,7 +6,7 @@ import { WebSocketService, UserService } from '../services';
 import * as autosize from 'autosize';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
-import * as Tribute from 'tributejs';
+import Tribute from 'tributejs/src/Tribute.js';
 import * as emojiShortName from 'emoji-short-name';
 
 interface CommentFormProps {
