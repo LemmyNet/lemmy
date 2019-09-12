@@ -115,7 +115,7 @@ blockquote {
 }
 
 .new-comments {
-  max-height: 100vh;
+  max-height: 50vh;
   overflow: hidden;
 }
 

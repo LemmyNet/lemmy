@@ -6,7 +6,7 @@ import { WebSocketService, UserService } from '../services';
 import * as autosize from 'autosize';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
-import Tribute from 'tributejs/src/Tribute.js';
+import * as Tribute from 'tributejs';
 import * as emojiShortName from 'emoji-short-name';
 
 interface CommentFormProps {
@@ -60,7 +60,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
           values: Object.entries(emojiShortName).map(e => {return {'key': e[1], 'val': e[0]}}),
           allowSpaces: false,
           autocompleteMode: true,
-          menuItemLimit: 10,
+          menuItemLimit: mentionDropdownFetchLimit,
         },
         // Users
         {
@@ -73,7 +73,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
           },
           allowSpaces: false,
           autocompleteMode: true,
-          menuItemLimit: 10,
+          menuItemLimit: mentionDropdownFetchLimit,
         },
 
         // Communities
@@ -87,7 +87,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
           },
           allowSpaces: false,
           autocompleteMode: true,
-          menuItemLimit: 10,
+          menuItemLimit: mentionDropdownFetchLimit,
         }
       ]
     });
@@ -123,7 +123,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
       <div class="mb-3">
         <form onSubmit={linkEvent(this, this.handleCommentSubmit)}>
           <div class="form-group row">
-            <div class="col-sm-12">
+            <div className={`col-sm-12`}>
               <textarea id={this.id} className={`form-control ${this.state.previewMode && 'd-none'}`} value={this.state.commentForm.content} onInput={linkEvent(this, this.handleCommentContentChange)} required disabled={this.props.disabled} rows={2} maxLength={10000} />
               {this.state.previewMode && 
                 <div className="md-div" dangerouslySetInnerHTML={mdToHtml(this.state.commentForm.content)} />
