@@ -1,3 +1,7 @@
+body {
+  position: relative;
+}
+
 .tribute-container {
   position: absolute;
   top: 0;
