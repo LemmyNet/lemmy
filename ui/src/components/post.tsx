@@ -140,8 +140,8 @@ export class Post extends Component<any, PostState> {
               {this.commentsTree()}
             </div>
             <div class="col-12 col-sm-12 col-md-4">
-              {this.sidebar()}
               {this.state.comments.length > 0 && this.newComments()}
+              {this.sidebar()}
             </div>
           </div>
         }
@@ -173,7 +173,7 @@ export class Post extends Component<any, PostState> {
 
   newComments() {
     return (
-      <div class="d-none d-md-block sticky-top new-comments card border-secondary">
+      <div class="d-none d-md-block new-comments mb-3 card border-secondary">
         <div class="card-body small">
           <h6><T i18nKey="recent_comments">#</T></h6>
           {this.state.comments.map(comment => 
