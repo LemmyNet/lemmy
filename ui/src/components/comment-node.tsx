@@ -33,6 +33,7 @@ interface CommentNodeProps {
   markable?: boolean;
   moderators: Array<CommunityUser>;
   admins: Array<UserView>;
+  postCreatorId?: number;
 }
 
 export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
@@ -86,6 +87,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             }
             {this.isAdmin && 
               <li className="list-inline-item badge badge-light"><T i18nKey="admin">#</T></li>
+            }
+            {this.isPostCreator && 
+              <li className="list-inline-item badge badge-light"><T i18nKey="creator">#</T></li>
             }
             {(node.comment.banned_from_community || node.comment.banned) &&  
               <li className="list-inline-item badge badge-danger"><T i18nKey="banned">#</T></li>
@@ -255,6 +259,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             locked={this.props.locked} 
             moderators={this.props.moderators}
             admins={this.props.admins}
+            postCreatorId={this.props.postCreatorId}
           />
         }
         {/* A collapsed clearfix */}
@@ -273,6 +278,10 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
 
   get isAdmin(): boolean {
     return this.props.admins && isMod(this.props.admins.map(a => a.id), this.props.node.comment.creator_id);
+  }
+
+  get isPostCreator(): boolean {
+    return this.props.node.comment.creator_id == this.props.postCreatorId;
   }
 
   get canMod(): boolean {

@@ -64,6 +64,7 @@ export const en = {
     save: 'save',
     unsave: 'unsave',
     create: 'create',
+    creator: 'creator',
     username: 'Username',
     email_or_username: 'Email or Username',
     number_of_users:'{{count}} Users',
