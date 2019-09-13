@@ -183,6 +183,7 @@ export class Post extends Component<any, PostState> {
               locked={this.state.post.locked} 
               moderators={this.state.moderators} 
               admins={this.state.admins}
+              postCreatorId={this.state.post.creator_id}
             />
           )}
         </div>
@@ -256,6 +257,7 @@ export class Post extends Component<any, PostState> {
           locked={this.state.post.locked} 
           moderators={this.state.moderators} 
           admins={this.state.admins}
+          postCreatorId={this.state.post.creator_id}
         />
       </div>
     );

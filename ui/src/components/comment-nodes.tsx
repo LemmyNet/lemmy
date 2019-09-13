@@ -9,6 +9,7 @@ interface CommentNodesProps {
   nodes: Array<CommentNodeI>;
   moderators?: Array<CommunityUser>;
   admins?: Array<UserView>;
+  postCreatorId?: number;
   noIndent?: boolean;
   viewOnly?: boolean;
   locked?: boolean;
@@ -31,6 +32,7 @@ export class CommentNodes extends Component<CommentNodesProps, CommentNodesState
             locked={this.props.locked} 
             moderators={this.props.moderators}
             admins={this.props.admins}
+            postCreatorId={this.props.postCreatorId}
             markable={this.props.markable}
           />
         )}
