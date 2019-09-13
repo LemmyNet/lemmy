@@ -492,8 +492,10 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       Ok(serde_json::to_string(&res)?)
     }
     UserOperation::GetSite => {
+      let online: usize = chat.sessions.len();
       let get_site: GetSite = serde_json::from_str(data)?;
-      let res = Oper::new(user_operation, get_site).perform()?;
+      let mut res = Oper::new(user_operation, get_site).perform()?;
+      res.online = online;
       Ok(serde_json::to_string(&res)?)
     }
     UserOperation::Search => {
