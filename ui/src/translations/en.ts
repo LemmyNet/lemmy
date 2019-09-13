@@ -70,6 +70,7 @@ export const en = {
     number_of_users:'{{count}} Users',
     number_of_subscribers:'{{count}} Subscribers',
     number_of_points:'{{count}} Points',
+    number_online:'{{count}} Users Online',
     name: 'Name',
     title: 'Title',
     category: 'Category',

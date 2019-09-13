@@ -43,6 +43,7 @@ export class Main extends Component<any, MainState> {
       },
       admins: [],
       banned: [],
+      online: null,
     },
     showEditSite: false,
     loading: true,
@@ -215,6 +216,9 @@ export class Main extends Component<any, MainState> {
               </ul>
             }
             <ul class="my-2 list-inline">
+              <li className="list-inline-item badge badge-secondary">
+                <T i18nKey="number_online" interpolation={{count: this.state.site.online}}>#</T>
+              </li>
               <li className="list-inline-item badge badge-secondary">
                 <T i18nKey="number_of_users" interpolation={{count: this.state.site.site.number_of_users}}>#</T>
               </li>
@@ -420,6 +424,7 @@ export class Main extends Component<any, MainState> {
       this.state.site.admins = res.admins;
       this.state.site.site = res.site;
       this.state.site.banned = res.banned;
+      this.state.site.online = res.online;
       this.setState(this.state);
       document.title = `${WebSocketService.Instance.site.name}`;
 

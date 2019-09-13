@@ -81,6 +81,7 @@ pub struct GetSiteResponse {
   site: Option<SiteView>,
   admins: Vec<UserView>,
   banned: Vec<UserView>,
+  pub online: usize,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -296,6 +297,7 @@ impl Perform<GetSiteResponse> for Oper<GetSite> {
       site: site_view,
       admins: admins,
       banned: banned,
+      online: 0
     })
   }
 }
@@ -486,6 +488,7 @@ impl Perform<GetSiteResponse> for Oper<TransferSite> {
       site: Some(site_view),
       admins: admins,
       banned: banned,
+      online: 0
     })
   }
 }

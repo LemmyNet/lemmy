@@ -546,6 +546,7 @@ export interface GetSiteResponse {
   site: Site;
   admins: Array<UserView>;
   banned: Array<UserView>;
+  online: number;
 }
 
 
