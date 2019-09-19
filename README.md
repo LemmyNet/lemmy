@@ -39,6 +39,7 @@ Front Page|Post
 - i18n / internationalization support.
 - NSFW post / community support.
 - Cross-posting support.
+- A *similar post search* when creating new posts.
 - Can transfer site and communities to others.
 - High performance.
   - Server is written in rust.
