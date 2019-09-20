@@ -18,6 +18,7 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET}
       - HOSTNAME=${DOMAIN}
+    restart: always
     depends_on:
       - lemmy_db
   lemmy_pictshare:
