@@ -1,0 +1,48 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    lemmy.service: db
+  name: db
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        lemmy.service: db
+    spec:
+      containers:
+      - env:
+        - name: POSTGRES_DB
+          value: lemmy
+        - name: POSTGRES_PASSWORD
+          # example: very-good-password
+          value: CHANGE_ME
+        - name: POSTGRES_USER
+          value: lemmy
+        image: postgres:12-alpine
+        name: db
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: db
+      restartPolicy: Always
+      volumes:
+      - name: db
+        persistentVolumeClaim:
+          claimName: db
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    lemmy.service: db
+  name: db
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
