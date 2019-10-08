@@ -1,0 +1,57 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    lemmy.service: pictshare
+  name: pictshare
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        lemmy.service: pictshare
+    spec:
+      containers:
+      - image: hascheksolutions/pictshare:latest
+        name: pictshare
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - mountPath: /usr/share/nginx/html/data
+          name: pictshare
+      restartPolicy: Always
+      volumes:
+      - name: pictshare
+        persistentVolumeClaim:
+          claimName: pictshare
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    lemmy.service: pictshare
+  name: pictshare
+spec:
+  ports:
+  - name: "8537"
+    port: 8537
+    targetPort: 80
+  selector:
+    lemmy.service: pictshare
+status:
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    lemmy.service: pictshare
+  name: pictshare
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
