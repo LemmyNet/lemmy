@@ -6,7 +6,7 @@ import { UserOperation, CommunityUser, GetFollowedCommunitiesResponse, ListCommu
 import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
 import { SiteForm } from './site-form';
-import { msgOp, repoUrl, mdToHtml, fetchLimit, routeSortTypeToEnum, routeListingTypeToEnum } from '../utils';
+import { msgOp, repoUrl, mdToHtml, fetchLimit, routeSortTypeToEnum, routeListingTypeToEnum, postRefetchSeconds } from '../utils';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 
@@ -25,6 +25,7 @@ interface MainState {
 export class Main extends Component<any, MainState> {
 
   private subscription: Subscription;
+  private postFetcher: any;
   private emptyState: MainState = {
     subscribedCommunities: [],
     trendingCommunities: [],
@@ -98,11 +99,12 @@ export class Main extends Component<any, MainState> {
 
     WebSocketService.Instance.listCommunities(listCommunitiesForm);
 
-    this.fetchPosts();
+    this.keepFetchingPosts();
   }
 
   componentWillUnmount() {
     this.subscription.unsubscribe();
+    clearInterval(this.postFetcher);
   }
 
   // Necessary for back button for some reason
@@ -362,6 +364,7 @@ export class Main extends Component<any, MainState> {
     i.setState(i.state);
     i.updateUrl();
     i.fetchPosts();
+    window.scrollTo(0,0);
   }
 
   prevPage(i: Main) { 
@@ -370,6 +373,7 @@ export class Main extends Component<any, MainState> {
     i.setState(i.state);
     i.updateUrl();
     i.fetchPosts();
+    window.scrollTo(0,0);
   }
 
   handleSortChange(i: Main, event: any) {
@@ -379,6 +383,7 @@ export class Main extends Component<any, MainState> {
     i.setState(i.state);
     i.updateUrl();
     i.fetchPosts();
+    window.scrollTo(0,0);
   }
 
   handleTypeChange(i: Main, event: any) {
@@ -388,6 +393,12 @@ export class Main extends Component<any, MainState> {
     i.setState(i.state);
     i.updateUrl();
     i.fetchPosts();
+    window.scrollTo(0,0);
+  }
+
+  keepFetchingPosts() {
+    this.fetchPosts();
+    this.postFetcher = setInterval(() => this.fetchPosts(), postRefetchSeconds);
   }
 
   fetchPosts() {
@@ -437,7 +448,6 @@ export class Main extends Component<any, MainState> {
       let res: GetPostsResponse = msg;
       this.state.posts = res.posts;
       this.state.loading = false;
-      window.scrollTo(0,0);
       this.setState(this.state);
     } else if (op == UserOperation.CreatePostLike) {
       let res: CreatePostLikeResponse = msg;
