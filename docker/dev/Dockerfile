@@ -10,7 +10,7 @@ RUN yarn install --pure-lockfile
 COPY ui /app/ui
 RUN yarn build
 
-FROM rust:1.37 as rust
+FROM rust:1.38 as rust
 
 # Install musl
 RUN apt-get update
