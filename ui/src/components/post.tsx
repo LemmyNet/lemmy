@@ -234,12 +234,19 @@ export class Post extends Component<any, PostState> {
 
   sortTree(tree: Array<CommentNodeI>) {
 
+    // First, put removed and deleted comments at the bottom, then do your other sorts
     if (this.state.commentSort == CommentSortType.Top) {
-      tree.sort((a, b) => b.comment.score - a.comment.score);
+      tree.sort((a, b) => (+a.comment.removed - +b.comment.removed) || 
+                (+a.comment.deleted - +b.comment.deleted ) || 
+                (b.comment.score - a.comment.score));
     } else if (this.state.commentSort == CommentSortType.New) {
-      tree.sort((a, b) => b.comment.published.localeCompare(a.comment.published));
+      tree.sort((a, b) => (+a.comment.removed - +b.comment.removed) || 
+                (+a.comment.deleted - +b.comment.deleted ) || 
+                (b.comment.published.localeCompare(a.comment.published)));
     } else if (this.state.commentSort == CommentSortType.Hot) {
-      tree.sort((a, b) => hotRank(b.comment) - hotRank(a.comment));
+      tree.sort((a, b) => (+a.comment.removed - +b.comment.removed) || 
+                (+a.comment.deleted - +b.comment.deleted ) || 
+                (hotRank(b.comment) - hotRank(a.comment)));
     }
 
     for (let node of tree) {
