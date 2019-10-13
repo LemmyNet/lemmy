@@ -17,6 +17,7 @@ import * as emojiShortName from 'emoji-short-name';
 export const repoUrl = 'https://github.com/dessalines/lemmy';
 export const markdownHelpUrl = 'https://commonmark.org/help/';
 
+export const postRefetchSeconds: number = 60*1000;
 export const fetchLimit: number = 20;
 export const mentionDropdownFetchLimit = 6;
 

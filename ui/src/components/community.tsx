@@ -5,7 +5,7 @@ import { UserOperation, Community as CommunityI, GetCommunityResponse, Community
 import { WebSocketService } from '../services';
 import { PostListings } from './post-listings';
 import { Sidebar } from './sidebar';
-import { msgOp, routeSortTypeToEnum, fetchLimit } from '../utils';
+import { msgOp, routeSortTypeToEnum, fetchLimit, postRefetchSeconds } from '../utils';
 import { T, i18n } from 'inferno-i18next';
 
 interface State {
@@ -23,6 +23,7 @@ interface State {
 export class Community extends Component<any, State> {
 
   private subscription: Subscription;
+  private postFetcher: any;
   private emptyState: State = {
     community: {
       id: null,
@@ -79,10 +80,12 @@ export class Community extends Component<any, State> {
       WebSocketService.Instance.getCommunityByName(this.state.communityName);
     }
 
+    this.keepFetchingPosts();
   }
 
   componentWillUnmount() {
     this.subscription.unsubscribe();
+    clearInterval(this.postFetcher);
   }
 
   // Necessary for back button for some reason
@@ -161,6 +164,7 @@ export class Community extends Component<any, State> {
     i.setState(i.state);
     i.updateUrl();
     i.fetchPosts();
+    window.scrollTo(0,0);
   }
 
   prevPage(i: Community) { 
@@ -168,6 +172,7 @@ export class Community extends Component<any, State> {
     i.setState(i.state);
     i.updateUrl();
     i.fetchPosts();
+    window.scrollTo(0,0);
   }
 
   handleSortChange(i: Community, event: any) {
@@ -176,11 +181,17 @@ export class Community extends Component<any, State> {
     i.setState(i.state);
     i.updateUrl();
     i.fetchPosts();
+    window.scrollTo(0,0);
   }
 
   updateUrl() {
     let sortStr = SortType[this.state.sort].toLowerCase();
     this.props.history.push(`/c/${this.state.community.name}/sort/${sortStr}/page/${this.state.page}`);
+  }
+
+  keepFetchingPosts() {
+    this.fetchPosts();
+    this.postFetcher = setInterval(() => this.fetchPosts(), postRefetchSeconds);
   }
 
   fetchPosts() {
@@ -221,7 +232,6 @@ export class Community extends Component<any, State> {
       let res: GetPostsResponse = msg;
       this.state.posts = res.posts;
       this.state.loading = false;
-      window.scrollTo(0,0);
       this.setState(this.state);
     } else if (op == UserOperation.CreatePostLike) {
       let res: CreatePostLikeResponse = msg;
