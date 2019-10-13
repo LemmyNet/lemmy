@@ -17,13 +17,7 @@ use crate::api::post::*;
 use crate::api::site::*;
 use crate::api::user::*;
 use crate::api::*;
-
-const RATE_LIMIT_MESSAGE: i32 = 30;
-const RATE_LIMIT_MESSAGES_PER_SECOND: i32 = 60;
-const RATE_LIMIT_POST: i32 = 3;
-const RATE_LIMIT_POSTS_PER_SECOND: i32 = 60 * 10;
-const RATE_LIMIT_REGISTER: i32 = 1;
-const RATE_LIMIT_REGISTER_PER_SECOND: i32 = 60 * 60;
+use crate::Settings;
 
 /// Chat server sends this messages to session
 #[derive(Message)]
@@ -163,15 +157,27 @@ impl ChatServer {
   }
 
   fn check_rate_limit_register(&mut self, id: usize) -> Result<(), Error> {
-    self.check_rate_limit_full(id, RATE_LIMIT_REGISTER, RATE_LIMIT_REGISTER_PER_SECOND)
+    self.check_rate_limit_full(
+      id,
+      Settings::get().rate_limit_register,
+      Settings::get().rate_limit_register_per_second,
+    )
   }
 
   fn check_rate_limit_post(&mut self, id: usize) -> Result<(), Error> {
-    self.check_rate_limit_full(id, RATE_LIMIT_POST, RATE_LIMIT_POSTS_PER_SECOND)
+    self.check_rate_limit_full(
+      id,
+      Settings::get().rate_limit_post,
+      Settings::get().rate_limit_post_per_second,
+    )
   }
 
   fn check_rate_limit_message(&mut self, id: usize) -> Result<(), Error> {
-    self.check_rate_limit_full(id, RATE_LIMIT_MESSAGE, RATE_LIMIT_MESSAGES_PER_SECOND)
+    self.check_rate_limit_full(
+      id,
+      Settings::get().rate_limit_message,
+      Settings::get().rate_limit_message_per_second,
+    )
   }
 
   fn check_rate_limit_full(&mut self, id: usize, rate: i32, per: i32) -> Result<(), Error> {

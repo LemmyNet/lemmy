@@ -34,6 +34,12 @@ pub struct Settings {
   db_url: String,
   hostname: String,
   jwt_secret: String,
+  rate_limit_message: i32,
+  rate_limit_message_per_second: i32,
+  rate_limit_post: i32,
+  rate_limit_post_per_second: i32,
+  rate_limit_register: i32,
+  rate_limit_register_per_second: i32,
 }
 
 impl Settings {
@@ -43,6 +49,30 @@ impl Settings {
       db_url: env::var("DATABASE_URL").expect("DATABASE_URL must be set"),
       hostname: env::var("HOSTNAME").unwrap_or("rrr".to_string()),
       jwt_secret: env::var("JWT_SECRET").unwrap_or("changeme".to_string()),
+      rate_limit_message: env::var("RATE_LIMIT_MESSAGE")
+        .unwrap_or("30".to_string())
+        .parse()
+        .unwrap(),
+      rate_limit_message_per_second: env::var("RATE_LIMIT_MESSAGE_PER_SECOND")
+        .unwrap_or("60".to_string())
+        .parse()
+        .unwrap(),
+      rate_limit_post: env::var("RATE_LIMIT_POST")
+        .unwrap_or("3".to_string())
+        .parse()
+        .unwrap(),
+      rate_limit_post_per_second: env::var("RATE_LIMIT_POST_PER_SECOND")
+        .unwrap_or("600".to_string())
+        .parse()
+        .unwrap(),
+      rate_limit_register: env::var("RATE_LIMIT_REGISTER")
+        .unwrap_or("1".to_string())
+        .parse()
+        .unwrap(),
+      rate_limit_register_per_second: env::var("RATE_LIMIT_REGISTER_PER_SECOND")
+        .unwrap_or("3600".to_string())
+        .parse()
+        .unwrap(),
     }
   }
   fn api_endpoint(&self) -> String {
@@ -90,7 +120,8 @@ mod tests {
 
   #[test]
   fn test_slur_filter() {
-    let test = "coons test dindu ladyboy tranny retardeds. This is a bunch of other safe text.".to_string();
+    let test =
+      "coons test dindu ladyboy tranny retardeds. This is a bunch of other safe text.".to_string();
     let slur_free = "No slurs here";
     assert_eq!(
       remove_slurs(&test),
@@ -100,7 +131,6 @@ mod tests {
     assert!(has_slurs(&test));
     assert!(!has_slurs(slur_free));
   }
-
 }
 
 lazy_static! {
