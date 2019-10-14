@@ -137,7 +137,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                       </>
                     }
                     {/* Admins and mods can remove comments */}
-                    {this.canMod && 
+                    {(this.canMod || this.canAdmin) && 
                       <li className="list-inline-item">
                         {!node.comment.removed ? 
                         <span class="pointer" onClick={linkEvent(this, this.handleModRemoveShow)}><T i18nKey="remove">#</T></span> :

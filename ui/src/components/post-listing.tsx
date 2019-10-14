@@ -24,7 +24,6 @@ interface PostListingState {
 
 interface PostListingProps {
   post: Post;
-  editable?: boolean;
   showCommunity?: boolean;
   showBody?: boolean;
   viewOnly?: boolean;
@@ -174,14 +173,18 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             </li>
           </ul>
           <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
-            {UserService.Instance.user && this.props.editable &&
+            {UserService.Instance.user &&
               <>
-                <li className="list-inline-item mr-2">
-                  <span class="pointer" onClick={linkEvent(this, this.handleSavePostClick)}>{post.saved ? i18n.t('unsave') : i18n.t('save')}</span>
-                </li>
-                <li className="list-inline-item mr-2">
-                  <Link className="text-muted" to={`/create_post${this.crossPostParams}`}><T i18nKey="cross_post">#</T></Link>
-                </li>
+                {this.props.showBody &&
+                  <>
+                    <li className="list-inline-item mr-2">
+                      <span class="pointer" onClick={linkEvent(this, this.handleSavePostClick)}>{post.saved ? i18n.t('unsave') : i18n.t('save')}</span>
+                    </li>
+                    <li className="list-inline-item mr-2">
+                      <Link className="text-muted" to={`/create_post${this.crossPostParams}`}><T i18nKey="cross_post">#</T></Link>
+                    </li>
+                  </>
+                }
                 {this.myPost && 
                   <>
                     <li className="list-inline-item">
@@ -205,14 +208,16 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   </>
                 }
                 {/* Mods can ban from community, and appoint as mods to community */}
-                {this.canMod &&
+                {(this.canMod || this.canAdmin) &&
+                  <li className="list-inline-item">
+                    {!post.removed ? 
+                    <span class="pointer" onClick={linkEvent(this, this.handleModRemoveShow)}><T i18nKey="remove">#</T></span> :
+                    <span class="pointer" onClick={linkEvent(this, this.handleModRemoveSubmit)}><T i18nKey="restore">#</T></span>
+                    }
+                  </li>
+                }
+                {this.canMod && 
                   <>
-                    <li className="list-inline-item">
-                      {!post.removed ? 
-                      <span class="pointer" onClick={linkEvent(this, this.handleModRemoveShow)}><T i18nKey="remove">#</T></span> :
-                      <span class="pointer" onClick={linkEvent(this, this.handleModRemoveSubmit)}><T i18nKey="restore">#</T></span>
-                      }
-                    </li>
                     {!this.isMod && 
                       <li className="list-inline-item">
                         {!post.banned_from_community ? 
@@ -326,23 +331,26 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     return this.props.admins && isMod(this.props.admins.map(a => a.id), this.props.post.creator_id);
   }
 
-  get adminsThenMods(): Array<number> {
-    return this.props.admins.map(a => a.id)
-    .concat(this.props.moderators.map(m => m.user_id));
-  }
-
   get canMod(): boolean {
+    if (this.props.admins && this.props.moderators) {
+      let adminsThenMods = this.props.admins.map(a => a.id)
+      .concat(this.props.moderators.map(m => m.user_id));
 
-    if (this.props.editable) {
-      return canMod(UserService.Instance.user, this.adminsThenMods, this.props.post.creator_id);
-    } else return false;
+      return canMod(UserService.Instance.user, adminsThenMods, this.props.post.creator_id);
+      } else { 
+      return false;
+    }
   }
 
   get canModOnSelf(): boolean {
+    if (this.props.admins && this.props.moderators) {
+      let adminsThenMods = this.props.admins.map(a => a.id)
+      .concat(this.props.moderators.map(m => m.user_id));
 
-    if (this.props.editable) {
-      return canMod(UserService.Instance.user, this.adminsThenMods, this.props.post.creator_id, true);
-    } else return false;
+      return canMod(UserService.Instance.user, adminsThenMods, this.props.post.creator_id, true);
+    } else { 
+      return false;
+    }
   }
 
   get canAdmin(): boolean {
