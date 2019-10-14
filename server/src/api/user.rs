@@ -50,6 +50,7 @@ pub struct GetUserDetailsResponse {
   moderates: Vec<CommunityModeratorView>,
   comments: Vec<CommentView>,
   posts: Vec<PostView>,
+  admins: Vec<UserView>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -367,6 +368,11 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
 
     let follows = CommunityFollowerView::for_user(&conn, user_details_id)?;
     let moderates = CommunityModeratorView::for_user(&conn, user_details_id)?;
+    let site_creator_id = Site::read(&conn, 1)?.creator_id;
+    let mut admins = UserView::admins(&conn)?;
+    let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
+    let creator_user = admins.remove(creator_index);
+    admins.insert(0, creator_user);
 
     // Return the jwt
     Ok(GetUserDetailsResponse {
@@ -376,6 +382,7 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
       moderates: moderates,
       comments: comments,
       posts: posts,
+      admins: admins,
     })
   }
 }

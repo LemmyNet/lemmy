@@ -172,6 +172,7 @@ export interface UserDetailsResponse {
   moderates: Array<CommunityUser>;
   comments: Array<Comment>;
   posts: Array<Post>;
+  admins: Array<UserView>;
 }
 
 export interface GetRepliesForm {

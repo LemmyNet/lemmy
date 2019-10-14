@@ -2,7 +2,7 @@ import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Post, Comment, CommunityUser, GetUserDetailsForm, SortType, UserDetailsResponse, UserView, CommentResponse, UserSettingsForm, LoginResponse } from '../interfaces';
+import { UserOperation, Post, Comment, CommunityUser, GetUserDetailsForm, SortType, UserDetailsResponse, UserView, CommentResponse, UserSettingsForm, LoginResponse, BanUserResponse, AddAdminResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { msgOp, fetchLimit, routeSortTypeToEnum, capitalizeFirstLetter } from '../utils';
 import { PostListing } from './post-listing';
@@ -24,6 +24,7 @@ interface UserState {
   comments: Array<Comment>;
   posts: Array<Post>;
   saved?: Array<Post>;
+  admins: Array<UserView>;
   view: View;
   sort: SortType;
   page: number;
@@ -53,6 +54,7 @@ export class User extends Component<any, UserState> {
     moderates: [],
     comments: [],
     posts: [],
+    admins: [],
     loading: true,
     view: this.getViewFromProps(this.props),
     sort: this.getSortTypeFromProps(this.props),
@@ -199,8 +201,16 @@ export class User extends Component<any, UserState> {
         {combined.map(i =>
           <div>
             {i.type_ == "posts"
-              ? <PostListing post={i.data as Post} showCommunity viewOnly />
-              : <CommentNodes nodes={[{comment: i.data as Comment}]} noIndent />
+              ? <PostListing 
+              post={i.data as Post} 
+              admins={this.state.admins}
+              showCommunity 
+              viewOnly />
+              : 
+              <CommentNodes 
+                nodes={[{comment: i.data as Comment}]} 
+                admins={this.state.admins}
+                noIndent />
             }
           </div>
                      )
@@ -213,7 +223,9 @@ export class User extends Component<any, UserState> {
     return (
       <div>
         {this.state.comments.map(comment => 
-          <CommentNodes nodes={[{comment: comment}]} noIndent viewOnly />
+          <CommentNodes nodes={[{comment: comment}]} 
+            admins={this.state.admins}
+            noIndent />
         )}
       </div>
     );
@@ -223,7 +235,11 @@ export class User extends Component<any, UserState> {
     return (
       <div>
         {this.state.posts.map(post => 
-          <PostListing post={post} showCommunity viewOnly />
+          <PostListing 
+            post={post} 
+            admins={this.state.admins}
+            showCommunity 
+            viewOnly />
         )}
       </div>
     );
@@ -415,6 +431,7 @@ export class User extends Component<any, UserState> {
       this.state.follows = res.follows;
       this.state.moderates = res.moderates;
       this.state.posts = res.posts;
+      this.state.admins = res.admins;
       this.state.loading = false;
       if (this.isCurrentUser) {
         this.state.userSettingsForm.show_nsfw = UserService.Instance.user.show_nsfw;
@@ -453,6 +470,17 @@ export class User extends Component<any, UserState> {
       found.downvotes = res.comment.downvotes;
       if (res.comment.my_vote !== null) 
         found.my_vote = res.comment.my_vote;
+      this.setState(this.state);
+    } else if (op == UserOperation.BanUser) {
+      let res: BanUserResponse = msg;
+      this.state.comments.filter(c => c.creator_id == res.user.id)
+      .forEach(c => c.banned = res.banned);
+      this.state.posts.filter(c => c.creator_id == res.user.id)
+      .forEach(c => c.banned = res.banned);
+      this.setState(this.state);
+    } else if (op == UserOperation.AddAdmin) {
+      let res: AddAdminResponse = msg;
+      this.state.admins = res.admins;
       this.setState(this.state);
     } else if (op == UserOperation.SaveUserSettings) {
         this.state = this.emptyState;
