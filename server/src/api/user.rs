@@ -602,7 +602,17 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
     let user_id = claims.id;
 
     // Comments
-    let comments = CommentView::list(&conn, &SortType::New, None, Some(user_id), None, None, false, None, Some(std::i64::MAX))?;
+    let comments = CommentView::list(
+      &conn,
+      &SortType::New,
+      None,
+      Some(user_id),
+      None,
+      None,
+      false,
+      None,
+      Some(std::i64::MAX),
+    )?;
 
     for comment in &comments {
       let comment_form = CommentForm {
@@ -623,7 +633,21 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
     }
 
     // Posts
-    let posts = PostView::list(&conn, PostListingType::All, &SortType::New,None, Some(user_id), None, None, None, true, false, false, None, Some(std::i64::MAX))?;
+    let posts = PostView::list(
+      &conn,
+      PostListingType::All,
+      &SortType::New,
+      None,
+      Some(user_id),
+      None,
+      None,
+      None,
+      true,
+      false,
+      false,
+      None,
+      Some(std::i64::MAX),
+    )?;
 
     for post in &posts {
       let post_form = PostForm {
