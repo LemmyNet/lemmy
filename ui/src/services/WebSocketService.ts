@@ -199,6 +199,12 @@ export class WebSocketService {
     this.subject.next(this.wsSendWrapper(UserOperation.SaveUserSettings, userSettingsForm));
   }
 
+  public deleteAccount() {
+    let form = {};
+    this.setAuth(form);
+    this.subject.next(this.wsSendWrapper(UserOperation.DeleteAccount, form));
+  }
+
   private wsSendWrapper(op: UserOperation, data: any) {
     let send = { op: UserOperation[op], data: data };
     console.log(send);

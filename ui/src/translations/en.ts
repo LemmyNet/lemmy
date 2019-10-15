@@ -55,6 +55,8 @@ export const en = {
     mark_as_unread: 'mark as unread',
     delete: 'delete',
     deleted: 'deleted',
+    delete_account: 'Delete Account',
+    delete_account_confirm: 'Warning: this will permanently delete all your data. Are you sure?',
     restore: 'restore',
     ban: 'ban',
     ban_from_site: 'ban from site',

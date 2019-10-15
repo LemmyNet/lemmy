@@ -519,5 +519,10 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       let res = Oper::new(user_operation, transfer_site).perform()?;
       Ok(serde_json::to_string(&res)?)
     }
+    UserOperation::DeleteAccount => {
+      let delete_account: DeleteAccount = serde_json::from_str(data)?;
+      let res = Oper::new(user_operation, delete_account).perform()?;
+      Ok(serde_json::to_string(&res)?)
+    }
   }
 }

@@ -31,6 +31,8 @@ interface UserState {
   loading: boolean;
   userSettingsForm: UserSettingsForm;
   userSettingsLoading: boolean;
+  deleteAccountLoading: boolean;
+  deleteAccountShowConfirm: boolean;
 }
 
 export class User extends Component<any, UserState> {
@@ -65,6 +67,8 @@ export class User extends Component<any, UserState> {
       auth: null,
     },
     userSettingsLoading: null,
+    deleteAccountLoading: null,
+    deleteAccountShowConfirm: false,
   }
 
   constructor(props: any, context: any) {
@@ -307,8 +311,17 @@ export class User extends Component<any, UserState> {
               </div>
               <div class="form-group row mb-0">
                 <div class="col-12">
-                  <button type="submit" class="btn btn-secondary">{this.state.userSettingsLoading ? 
+                  <button type="submit" class="btn btn-secondary mr-4">{this.state.userSettingsLoading ? 
                   <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : capitalizeFirstLetter(i18n.t('save'))}</button>
+                  <button class="btn btn-danger" onClick={linkEvent(this, this.handleDeleteAccountShowConfirmToggle)}><T i18nKey="delete_account">#</T></button>
+                  {this.state.deleteAccountShowConfirm && 
+                    <>
+                      <div class="mt-2 alert alert-danger" role="alert"><T i18nKey="delete_account_confirm">#</T></div>
+                      <button class="btn btn-danger mr-4" onClick={linkEvent(this, this.handleDeleteAccount)}>{this.state.deleteAccountLoading ? 
+                      <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : capitalizeFirstLetter(i18n.t('yes'))}</button>
+                      <button class="btn btn-secondary" onClick={linkEvent(this, this.handleDeleteAccountShowConfirmToggle)}><T i18nKey="cancel">#</T></button>
+                    </>
+                  }
                 </div>
               </div>
             </form>
@@ -434,6 +447,20 @@ export class User extends Component<any, UserState> {
     WebSocketService.Instance.saveUserSettings(i.state.userSettingsForm);
   }
 
+  handleDeleteAccountShowConfirmToggle(i: User, event: any) {
+    event.preventDefault();
+    i.state.deleteAccountShowConfirm = !i.state.deleteAccountShowConfirm;
+    i.setState(i.state);
+  }
+
+  handleDeleteAccount(i: User, event: any) {
+    event.preventDefault();
+    i.state.deleteAccountLoading = true;
+    i.setState(i.state);
+
+    WebSocketService.Instance.deleteAccount();
+  }
+
   parseMessage(msg: any) {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
@@ -505,6 +532,11 @@ export class User extends Component<any, UserState> {
         this.setState(this.state);
         let res: LoginResponse = msg;
         UserService.Instance.login(res);
+    } else if (op == UserOperation.DeleteAccount) {
+        this.state.deleteAccountLoading = false;
+        this.state.deleteAccountShowConfirm = false;
+        this.setState(this.state);
+        this.context.router.history.push('/');
     }
   }
 }
