@@ -23,6 +23,7 @@ export interface User {
   iss: string;
   username: string;
   show_nsfw: boolean;
+  theme: string;
 }
 
 export interface UserView {
@@ -381,6 +382,7 @@ export interface LoginResponse {
 
 export interface UserSettingsForm {
   show_nsfw: boolean;
+  theme: string;
   auth: string;
 }
 

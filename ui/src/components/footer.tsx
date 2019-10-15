@@ -13,7 +13,7 @@ export class Footer extends Component<any, any> {
 
   render() {
     return (
-      <nav class="container navbar navbar-expand-md navbar-light navbar-bg p-0 px-3 my-2">
+      <nav class="container navbar navbar-expand-md navbar-light navbar-bg p-0 px-3 mt-2">
         <div className="navbar-collapse">
           <ul class="navbar-nav ml-auto">
             <li class="nav-item">

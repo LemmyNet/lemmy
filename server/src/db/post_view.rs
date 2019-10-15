@@ -225,6 +225,7 @@ mod tests {
       admin: false,
       banned: false,
       show_nsfw: false,
+      theme: "darkly".into(),
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();

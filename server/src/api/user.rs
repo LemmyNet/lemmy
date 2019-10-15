@@ -21,6 +21,7 @@ pub struct Register {
 #[derive(Serialize, Deserialize)]
 pub struct SaveUserSettings {
   show_nsfw: bool,
+  theme: String,
   auth: String,
 }
 
@@ -162,6 +163,7 @@ impl Perform<LoginResponse> for Oper<Register> {
       admin: data.admin,
       banned: false,
       show_nsfw: data.show_nsfw,
+      theme: "darkly".into(),
     };
 
     // Create the user
@@ -252,6 +254,7 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
       admin: read_user.admin,
       banned: read_user.banned,
       show_nsfw: data.show_nsfw,
+      theme: data.theme.to_owned(),
     };
 
     let updated_user = match User_::update(&conn, user_id, &user_form) {
@@ -416,6 +419,7 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
       admin: data.added,
       banned: read_user.banned,
       show_nsfw: read_user.show_nsfw,
+      theme: read_user.theme,
     };
 
     match User_::update(&conn, data.user_id, &user_form) {
@@ -474,6 +478,7 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
       admin: read_user.admin,
       banned: data.ban,
       show_nsfw: read_user.show_nsfw,
+      theme: read_user.theme,
     };
 
     match User_::update(&conn, data.user_id, &user_form) {

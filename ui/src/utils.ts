@@ -238,3 +238,17 @@ export function getMomentLanguage(): string {
   }
   return lang;
 }
+
+export const themes = ['litera', 'minty', 'solar', 'united', 'cyborg','darkly', 'journal', 'sketchy'];
+
+export function setTheme(theme: string = 'darkly') {
+  for (var i=0; i < themes.length; i++) {
+
+    let styleSheet = document.getElementById(themes[i]);
+    if (themes[i] == theme) {
+      styleSheet.removeAttribute("disabled");
+    } else {
+      styleSheet.setAttribute("disabled", "disabled");
+    }      
+  }
+}

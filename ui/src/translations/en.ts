@@ -129,6 +129,7 @@ export const en = {
     modified: 'modified',
     nsfw: 'NSFW',
     show_nsfw: 'Show NSFW content',
+    theme: 'Theme',
     sponsors: 'Sponsors',
     sponsors_of_lemmy: 'Sponsors of Lemmy',
     sponsor_message: 'Lemmy is free, <1>open-source</1> software, meaning no advertising, monetizing, or venture capital, ever. Your donations directly support full-time development of the project. Thank you to the following people:',

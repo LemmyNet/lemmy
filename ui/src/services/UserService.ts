@@ -1,5 +1,6 @@
 import * as Cookies from 'js-cookie';
 import { User, LoginResponse } from '../interfaces';
+import { setTheme } from '../utils';
 import * as jwt_decode from 'jwt-decode';
 import { Subject } from 'rxjs';
 
@@ -14,6 +15,7 @@ export class UserService {
     if (jwt) {
       this.setUser(jwt);
     } else {
+      setTheme();
       console.log('No JWT cookie found.');
     }
   }
@@ -27,8 +29,9 @@ export class UserService {
   public logout() {
     this.user = undefined;
     Cookies.remove("jwt");
-    console.log("Logged out.");
+    setTheme();
     this.sub.next({user: undefined, unreadCount: 0});
+    console.log("Logged out.");
   }
 
   public get auth(): string {
@@ -37,6 +40,7 @@ export class UserService {
 
   private setUser(jwt: string) {
     this.user = jwt_decode(jwt);
+    setTheme(this.user.theme);
     this.sub.next({user: this.user, unreadCount: 0});
     console.log(this.user);
   }
