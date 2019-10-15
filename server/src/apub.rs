@@ -72,6 +72,7 @@ mod tests {
       banned: false,
       updated: None,
       show_nsfw: false,
+      theme: "darkly".into(),
     };
 
     let person = expected_user.person();

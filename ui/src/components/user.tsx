@@ -4,7 +4,7 @@ import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { UserOperation, Post, Comment, CommunityUser, GetUserDetailsForm, SortType, UserDetailsResponse, UserView, CommentResponse, UserSettingsForm, LoginResponse, BanUserResponse, AddAdminResponse } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { msgOp, fetchLimit, routeSortTypeToEnum, capitalizeFirstLetter } from '../utils';
+import { msgOp, fetchLimit, routeSortTypeToEnum, capitalizeFirstLetter, themes, setTheme } from '../utils';
 import { PostListing } from './post-listing';
 import { CommentNodes } from './comment-nodes';
 import { MomentTime } from './moment-time';
@@ -61,6 +61,7 @@ export class User extends Component<any, UserState> {
     page: this.getPageFromProps(this.props),
     userSettingsForm: {
       show_nsfw: null,
+      theme: null,
       auth: null,
     },
     userSettingsLoading: null,
@@ -285,7 +286,18 @@ export class User extends Component<any, UserState> {
           <div class="card-body">
             <h5><T i18nKey="settings">#</T></h5>
             <form onSubmit={linkEvent(this, this.handleUserSettingsSubmit)}>
-              <div class="form-group row">
+              <div class="form-group">
+                <div class="col-12">
+                  <label><T i18nKey="theme">#</T></label>
+                  <select value={this.state.userSettingsForm.theme} onChange={linkEvent(this, this.handleUserSettingsThemeChange)} class="ml-2 custom-select custom-select-sm w-auto">
+                    <option disabled><T i18nKey="theme">#</T></option>
+                    {themes.map(theme =>
+                      <option value={theme}>{theme}</option>
+                    )}
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
                 <div class="col-12">
                   <div class="form-check">
                     <input class="form-check-input" type="checkbox" checked={this.state.userSettingsForm.show_nsfw} onChange={linkEvent(this, this.handleUserSettingsShowNsfwChange)}/>
@@ -309,20 +321,18 @@ export class User extends Component<any, UserState> {
   moderates() {
     return (
       <div>
-        <div class="card border-secondary mb-3">
-          <div class="card-body">
-            {this.state.moderates.length > 0 &&
-              <div>
-                <h5><T i18nKey="moderates">#</T></h5>
-                <ul class="list-unstyled mb-0"> 
-                  {this.state.moderates.map(community =>
-                    <li><Link to={`/c/${community.community_name}`}>{community.community_name}</Link></li>
-                  )}
-                </ul>
-              </div>
-            }
+        {this.state.moderates.length > 0 &&
+          <div class="card border-secondary mb-3">
+            <div class="card-body">
+              <h5><T i18nKey="moderates">#</T></h5>
+              <ul class="list-unstyled mb-0"> 
+                {this.state.moderates.map(community =>
+                  <li><Link to={`/c/${community.community_name}`}>{community.community_name}</Link></li>
+                )}
+              </ul>
+            </div>
           </div>
-        </div>
+        }
       </div>
     )
   }
@@ -410,6 +420,12 @@ export class User extends Component<any, UserState> {
     i.setState(i.state);
   }
 
+  handleUserSettingsThemeChange(i: User, event: any) {
+    i.state.userSettingsForm.theme = event.target.value;
+    setTheme(event.target.value);
+    i.setState(i.state);
+  }
+
   handleUserSettingsSubmit(i: User, event: any) {
     event.preventDefault();
     i.state.userSettingsLoading = true;
@@ -435,6 +451,7 @@ export class User extends Component<any, UserState> {
       this.state.loading = false;
       if (this.isCurrentUser) {
         this.state.userSettingsForm.show_nsfw = UserService.Instance.user.show_nsfw;
+        this.state.userSettingsForm.theme = UserService.Instance.user.theme ? UserService.Instance.user.theme : 'darkly';
       }
       document.title = `/u/${this.state.user.name} - ${WebSocketService.Instance.site.name}`;
       window.scrollTo(0,0);

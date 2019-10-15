@@ -96,8 +96,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           <div className="post-title">
             <h5 className="mb-0 d-inline">
               {post.url ? 
-              <a className="text-white" href={post.url} target="_blank" title={post.url}>{post.name}</a> : 
-              <Link className="text-white" to={`/post/${post.id}`} title={i18n.t('comments')}>{post.name}</Link>
+              <a className="text-body" href={post.url} target="_blank" title={post.url}>{post.name}</a> : 
+              <Link className="text-body" to={`/post/${post.id}`} title={i18n.t('comments')}>{post.name}</Link>
               }
             </h5>
             {post.url && 
