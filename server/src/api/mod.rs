@@ -56,6 +56,7 @@ pub enum UserOperation {
   SaveUserSettings,
   TransferCommunity,
   TransferSite,
+  DeleteAccount,
 }
 
 #[derive(Fail, Debug)]

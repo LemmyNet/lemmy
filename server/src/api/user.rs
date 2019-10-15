@@ -103,6 +103,11 @@ pub struct GetReplies {
   auth: String,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct DeleteAccount {
+  auth: String,
+}
+
 impl Perform<LoginResponse> for Oper<Login> {
   fn perform(&self) -> Result<LoginResponse, Error> {
     let data: &Login = &self.data;
@@ -580,6 +585,70 @@ impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
     Ok(GetRepliesResponse {
       op: self.op.to_string(),
       replies: replies,
+    })
+  }
+}
+
+impl Perform<LoginResponse> for Oper<DeleteAccount> {
+  fn perform(&self) -> Result<LoginResponse, Error> {
+    let data: &DeleteAccount = &self.data;
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
+    };
+
+    let user_id = claims.id;
+
+    // Comments
+    let comments = CommentView::list(&conn, &SortType::New, None, Some(user_id), None, None, false, None, Some(std::i64::MAX))?;
+
+    for comment in &comments {
+      let comment_form = CommentForm {
+        content: "*Permananently Deleted*".to_string(),
+        parent_id: comment.to_owned().parent_id,
+        post_id: comment.to_owned().post_id,
+        creator_id: comment.to_owned().creator_id,
+        removed: None,
+        deleted: Some(true),
+        read: None,
+        updated: Some(naive_now()),
+      };
+
+      let _updated_comment = match Comment::update(&conn, comment.id, &comment_form) {
+        Ok(comment) => comment,
+        Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_comment"))?,
+      };
+    }
+
+    // Posts
+    let posts = PostView::list(&conn, PostListingType::All, &SortType::New,None, Some(user_id), None, None, None, true, false, false, None, Some(std::i64::MAX))?;
+
+    for post in &posts {
+      let post_form = PostForm {
+        name: "*Permananently Deleted*".to_string(),
+        url: Some("https://deleted.com".to_string()),
+        body: Some("*Permananently Deleted*".to_string()),
+        creator_id: post.to_owned().creator_id,
+        community_id: post.to_owned().community_id,
+        removed: None,
+        deleted: Some(true),
+        nsfw: post.to_owned().nsfw,
+        locked: None,
+        stickied: None,
+        updated: Some(naive_now()),
+      };
+
+      let _updated_post = match Post::update(&conn, post.id, &post_form) {
+        Ok(post) => post,
+        Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_post"))?,
+      };
+    }
+
+    Ok(LoginResponse {
+      op: self.op.to_string(),
+      jwt: data.auth.to_owned(),
     })
   }
 }
