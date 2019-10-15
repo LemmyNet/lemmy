@@ -16,7 +16,7 @@ sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../prod/docker-compo
 git add ../prod/docker-compose.yml
 
 # The commit
-git commit -m"Upping version."
+git commit -m"Version $new_tag"
 
 git push origin $new_tag
 git push
@@ -25,13 +25,6 @@ git push
 docker-compose build
 docker tag dev_lemmy:latest dessalines/lemmy:$new_tag
 docker push dessalines/lemmy:$new_tag
-
-# Rebuilding the docker nocross
-# pushd ../nocross
-# docker-compose build
-# docker tag nocross_lemmy:latest dessalines/lemmy:nocross-$new_tag
-# docker push dessalines/lemmy:$new_tag
-# popd
 
 # Pushing to any ansible deploys
 cd ../../ansible
