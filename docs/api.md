@@ -149,6 +149,7 @@ Only the first user will be able to be the admin.
   op: "SaveUserSettings",
   data: {
     show_nsfw: bool,
+    theme: String, // Default 'darkly'
     auth: String
   }
 }
@@ -197,6 +198,27 @@ Only the first user will be able to be the admin.
 {
   op: String,
   replies: Vec<ReplyView>,
+}
+```
+
+#### Delete Account
+
+*Permananently deletes your posts and comments*
+
+##### Request
+```rust
+{
+  op: "DeleteAccount",
+  data: {
+    auth: String
+  }
+}
+```
+##### Response
+```rust
+{
+  op: String,
+  jwt: String,
 }
 ```
 
