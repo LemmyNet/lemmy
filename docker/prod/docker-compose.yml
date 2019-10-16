@@ -12,7 +12,7 @@ services:
   lemmy:
     image: dessalines/lemmy:v0.3.0
     ports:
-      - "8536:8536"
+      - "127.0.0.1:8536:8536"
     environment:
       - LEMMY_FRONT_END_DIR=/app/dist
       - DATABASE_URL=${DATABASE_URL}
@@ -30,7 +30,7 @@ services:
   lemmy_pictshare:
     image: hascheksolutions/pictshare:latest
     ports:
-      - "8537:80"
+      - "127.0.0.1:8537:80"
     volumes:
       - lemmy_pictshare:/usr/share/nginx/html/data
 volumes:

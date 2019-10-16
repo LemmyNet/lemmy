@@ -14,7 +14,7 @@ services:
       context: ../../
       dockerfile: docker/nocross/Dockerfile
     ports:
-      - "8536:8536"
+      - "127.0.0.1:8536:8536"
     environment:
       - LEMMY_FRONT_END_DIR=/app/dist
       - DATABASE_URL=${DATABASE_URL}
