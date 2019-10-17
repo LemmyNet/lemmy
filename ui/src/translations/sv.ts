@@ -64,7 +64,7 @@ export const sv = {
     unban_from_site: 'ta bort blockering från webbplats',
     banned: 'blocerad',
     save: 'spara',
-    unsave: 'förkasta', // Is perhaps 'ångra' more appropriate?
+    unsave: 'förkasta',
     create: 'skapa',
     creator: 'skapare',
     username: 'Användarnamn',
