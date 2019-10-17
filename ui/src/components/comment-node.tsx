@@ -112,7 +112,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
           {this.state.showEdit && <CommentForm node={node} edit onReplyCancel={this.handleReplyCancel} disabled={this.props.locked} />}
           {!this.state.showEdit && !this.state.collapsed &&
             <div>
-              {this.state.viewSource ? <div>{this.commentUnlessRemoved}</div> : 
+              {this.state.viewSource ? <pre>{this.commentUnlessRemoved}</pre> : 
               <div className="md-div" dangerouslySetInnerHTML={mdToHtml(this.commentUnlessRemoved)} />
               }
               <ul class="list-inline mb-1 text-muted small font-weight-bold">
