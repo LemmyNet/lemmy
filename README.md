@@ -198,18 +198,16 @@ If you'd like to add translations, take a look a look at the [english translatio
 
 - Languages supported: English (`en`), Chinese (`zh`), Dutch (`nl`), Esperanto (`eo`), French (`fr`), Spanish (`es`), Swedish (`sv`), German (`de`), Russian (`ru`).
 
-### Report
-
 lang | done | missing
 --- | --- | ---
-de | 84% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,settings,stickied,banned,creator,number_online,subscribed,expires,recent_comments,nsfw,show_nsfw,crypto,monero,joined,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
-eo | 92% | number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,stickied,banned,creator,number_online,are_you_sure,yes,no 
-es | 99% | creator,number_online 
-fr | 97% | view_source,sticky,unsticky,stickied,creator,number_online 
-nl | 95% | preview,upload_image,formatting_help,view_source,sticky,unsticky,stickied,banned,creator,number_online 
-ru | 88% | cross_posts,cross_post,number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,stickied,banned,creator,number_online,recent_comments,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
-sv | 95% | preview,upload_image,formatting_help,view_source,sticky,unsticky,stickied,banned,creator,number_online 
-zh | 86% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,settings,stickied,banned,creator,number_online,recent_comments,nsfw,show_nsfw,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+de | 82% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,settings,stickied,delete_account,delete_account_confirm,banned,creator,number_online,subscribed,expires,recent_comments,nsfw,show_nsfw,theme,crypto,monero,joined,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+eo | 91% | number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,stickied,delete_account,delete_account_confirm,banned,creator,number_online,theme,are_you_sure,yes,no 
+es | 97% | delete_account,delete_account_confirm,creator,number_online,theme 
+fr | 95% | view_source,sticky,unsticky,stickied,delete_account,delete_account_confirm,creator,number_online,theme 
+nl | 93% | preview,upload_image,formatting_help,view_source,sticky,unsticky,stickied,delete_account,delete_account_confirm,banned,creator,number_online,theme 
+ru | 86% | cross_posts,cross_post,number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,stickied,delete_account,delete_account_confirm,banned,creator,number_online,recent_comments,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+sv | 100% |  
+zh | 84% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,settings,stickied,delete_account,delete_account_confirm,banned,creator,number_online,recent_comments,nsfw,show_nsfw,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
 
 ## Credits
 
