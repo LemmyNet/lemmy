@@ -3,9 +3,8 @@ import { WebSocketService } from '../services';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 
-let general = 
-  [
-  "Nathan J. Goode",
+let general = [
+  "riccardo","NotTooHighToHack",
 ];
 // let highlighted = [];
 // let silver = [];
