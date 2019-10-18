@@ -80,7 +80,6 @@ export class Community extends Component<any, State> {
       WebSocketService.Instance.getCommunityByName(this.state.communityName);
     }
 
-    this.keepFetchingPosts();
   }
 
   componentWillUnmount() {
@@ -218,7 +217,7 @@ export class Community extends Component<any, State> {
       this.state.admins = res.admins;
       document.title = `/c/${this.state.community.name} - ${WebSocketService.Instance.site.name}`;
       this.setState(this.state);
-      this.fetchPosts();
+      this.keepFetchingPosts();
     } else if (op == UserOperation.EditCommunity) {
       let res: CommunityResponse = msg;
       this.state.community = res.community;
