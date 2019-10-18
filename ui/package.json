@@ -1,20 +1,16 @@
 {
   "name": "lemmy",
-  "version": "1.0.0",
   "description": "A simple UI for lemmy",
-  "main": "index.js",
-  "scripts": {
-    "start": "node fuse dev",
-    "build": "node fuse prod",
-    "lint": "eslint --report-unused-disable-directives --ext .js,.ts,.tsx src"
-  },
-  "keywords": [],
+  "version": "1.0.0",
   "author": "Dessalines",
   "license": "GPL-2.0-or-later",
-  "engines": {
-    "node": ">=8.9.0"
+  "main": "index.js",
+  "scripts": {
+    "build": "node fuse prod",
+    "lint": "eslint --report-unused-disable-directives --ext .js,.ts,.tsx src",
+    "start": "node fuse dev"
   },
-  "engineStrict": true,
+  "keywords": [],
   "dependencies": {
     "@types/autosize": "^3.0.6",
     "@types/js-cookie": "^2.2.1",
@@ -48,8 +44,36 @@
     "eslint-plugin-inferno": "^7.14.3",
     "eslint-plugin-jane": "^7.0.0",
     "fuse-box": "^3.1.3",
+    "husky": "^3.0.9",
+    "lint-staged": "^9.4.2",
+    "sortpack": "^2.0.1",
     "ts-transform-classcat": "^0.0.2",
     "ts-transform-inferno": "^4.0.2",
     "typescript": "^3.5.3"
+  },
+  "engines": {
+    "node": ">=8.9.0"
+  },
+  "engineStrict": true,
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "pre-push": "npm run lint"
+    }
+  },
+  "lint-staged": {
+    "*.js": [
+      "npm run lint"
+    ],
+    "*.ts": [
+      "npm run lint"
+    ],
+    "*.tsx": [
+      "npm run lint"
+    ],
+    "package.json": [
+      "sortpack",
+      "git add"
+    ]
   }
 }
