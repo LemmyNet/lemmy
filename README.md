@@ -210,6 +210,13 @@ ru | 86% | cross_posts,cross_post,number_of_communities,preview,upload_image,for
 sv | 100% |  
 zh | 84% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,settings,stickied,delete_account,delete_account_confirm,banned,creator,number_online,recent_comments,nsfw,show_nsfw,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
 
+If you'd like to update this report, run:
+
+```bash 
+cd ui
+ts-node translation_report.ts > tmp # And replace the text above.
+```
+
 ## Credits
 
 Logo made by Andy Cuccaro (@andycuccaro) under the CC-BY-SA 4.0 license
