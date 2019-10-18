@@ -139,8 +139,8 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
               {this.props.node && <button type="button" class="btn btn-sm btn-secondary mr-2" onClick={linkEvent(this, this.handleReplyCancel)}><T i18nKey="cancel">#</T></button>}
               <a href={markdownHelpUrl} target="_blank" class="d-inline-block float-right text-muted small font-weight-bold"><T i18nKey="formatting_help">#</T></a>
               <form class="d-inline-block mr-2 float-right text-muted small font-weight-bold">
-                <label htmlFor={`file-upload-${this.id}`} class="pointer"><T i18nKey="upload_image">#</T></label>
-                <input id={`file-upload-${this.id}`} type="file" accept="image/*,video/*" name="file" class="d-none" onChange={linkEvent(this, this.handleImageUpload)} />
+                <label htmlFor={`file-upload-${this.id}`} className={`${UserService.Instance.user && 'pointer'}`}><T i18nKey="upload_image">#</T></label>
+                <input id={`file-upload-${this.id}`} type="file" accept="image/*,video/*" name="file" class="d-none" disabled={!UserService.Instance.user} onChange={linkEvent(this, this.handleImageUpload)} />
               </form>
               {this.state.imageLoading && 
                 <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg>
