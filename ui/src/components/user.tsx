@@ -2,7 +2,7 @@ import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from "rxjs";
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Post, Comment, CommunityUser, GetUserDetailsForm, SortType, UserDetailsResponse, UserView, CommentResponse, UserSettingsForm, LoginResponse, BanUserResponse, AddAdminResponse } from '../interfaces';
+import { UserOperation, Post, Comment, CommunityUser, GetUserDetailsForm, SortType, UserDetailsResponse, UserView, CommentResponse, UserSettingsForm, LoginResponse, BanUserResponse, AddAdminResponse, DeleteAccountForm } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { msgOp, fetchLimit, routeSortTypeToEnum, capitalizeFirstLetter, themes, setTheme } from '../utils';
 import { PostListing } from './post-listing';
@@ -33,6 +33,7 @@ interface UserState {
   userSettingsLoading: boolean;
   deleteAccountLoading: boolean;
   deleteAccountShowConfirm: boolean;
+  deleteAccountForm: DeleteAccountForm;
 }
 
 export class User extends Component<any, UserState> {
@@ -69,6 +70,9 @@ export class User extends Component<any, UserState> {
     userSettingsLoading: null,
     deleteAccountLoading: null,
     deleteAccountShowConfirm: false,
+    deleteAccountForm: {
+      password: null,
+    }
   }
 
   constructor(props: any, context: any) {
@@ -316,9 +320,10 @@ export class User extends Component<any, UserState> {
                   <button class="btn btn-danger" onClick={linkEvent(this, this.handleDeleteAccountShowConfirmToggle)}><T i18nKey="delete_account">#</T></button>
                   {this.state.deleteAccountShowConfirm && 
                     <>
-                      <div class="mt-2 alert alert-danger" role="alert"><T i18nKey="delete_account_confirm">#</T></div>
-                      <button class="btn btn-danger mr-4" onClick={linkEvent(this, this.handleDeleteAccount)}>{this.state.deleteAccountLoading ? 
-                      <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : capitalizeFirstLetter(i18n.t('yes'))}</button>
+                      <div class="my-2 alert alert-danger" role="alert"><T i18nKey="delete_account_confirm">#</T></div>
+                      <input type="password" value={this.state.deleteAccountForm.password}  onInput={linkEvent(this, this.handleDeleteAccountPasswordChange)} class="form-control my-2" />
+                      <button class="btn btn-danger mr-4" disabled={!this.state.deleteAccountForm.password} onClick={linkEvent(this, this.handleDeleteAccount)}>{this.state.deleteAccountLoading ? 
+                      <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : capitalizeFirstLetter(i18n.t('delete'))}</button>
                       <button class="btn btn-secondary" onClick={linkEvent(this, this.handleDeleteAccountShowConfirmToggle)}><T i18nKey="cancel">#</T></button>
                     </>
                   }
@@ -453,12 +458,17 @@ export class User extends Component<any, UserState> {
     i.setState(i.state);
   }
 
+  handleDeleteAccountPasswordChange(i: User, event: any) {
+    i.state.deleteAccountForm.password = event.target.value;
+    i.setState(i.state);
+  }
+
   handleDeleteAccount(i: User, event: any) {
     event.preventDefault();
     i.state.deleteAccountLoading = true;
     i.setState(i.state);
 
-    WebSocketService.Instance.deleteAccount();
+    WebSocketService.Instance.deleteAccount(i.state.deleteAccountForm);
   }
 
   parseMessage(msg: any) {
@@ -466,6 +476,8 @@ export class User extends Component<any, UserState> {
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
       alert(i18n.t(msg.error));
+      this.state.deleteAccountLoading = false;
+      this.setState(this.state);
       return;
     } else if (op == UserOperation.GetUserDetails) {
       let res: UserDetailsResponse = msg;

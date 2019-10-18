@@ -600,3 +600,7 @@ export interface SearchResponse {
   communities: Array<Community>;  
   users: Array<UserView>;
 }
+
+export interface DeleteAccountForm {
+  password: string;
+}
