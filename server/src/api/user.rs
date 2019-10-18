@@ -105,6 +105,7 @@ pub struct GetReplies {
 
 #[derive(Serialize, Deserialize)]
 pub struct DeleteAccount {
+  password: String,
   auth: String,
 }
 
@@ -600,6 +601,14 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
     };
 
     let user_id = claims.id;
+
+    let user: User_ = User_::read(&conn, user_id)?;
+
+    // Verify the password
+    let valid: bool = verify(&data.password, &user.password_encrypted).unwrap_or(false);
+    if !valid {
+      return Err(APIError::err(&self.op, "password_incorrect"))?;
+    }
 
     // Comments
     let comments = CommentView::list(
