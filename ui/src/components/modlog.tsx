@@ -8,6 +8,7 @@ import { msgOp, addTypeInfo, fetchLimit } from '../utils';
 import { MomentTime } from './moment-time';
 import * as moment from 'moment';
 import { i18n } from '../i18next';
+import { T } from 'inferno-i18next';
 
 interface ModlogState {
   combined: Array<{type_: string, data: ModRemovePost | ModLockPost | ModStickyPost | ModRemoveCommunity | ModAdd | ModBan}>,
@@ -89,42 +90,42 @@ export class Modlog extends Component<any, ModlogState> {
             <td><MomentTime data={i.data} /></td>
             <td><Link to={`/u/${i.data.mod_user_name}`}>{i.data.mod_user_name}</Link></td>
             <td>
-              {i.type_ == 'removed_posts' && 
+              {i.type_ == 'removed_posts' &&
                 <>
-                  {(i.data as ModRemovePost).removed? 'Removed' : 'Restored'} 
+                  {(i.data as ModRemovePost).removed? 'Removed' : 'Restored'}
                   <span> Post <Link to={`/post/${(i.data as ModRemovePost).post_id}`}>{(i.data as ModRemovePost).post_name}</Link></span>
                   <div>{(i.data as ModRemovePost).reason && ` reason: ${(i.data as ModRemovePost).reason}`}</div>
                 </>
               }
-              {i.type_ == 'locked_posts' && 
+              {i.type_ == 'locked_posts' &&
                 <>
-                  {(i.data as ModLockPost).locked? 'Locked' : 'Unlocked'} 
+                  {(i.data as ModLockPost).locked? 'Locked' : 'Unlocked'}
                   <span> Post <Link to={`/post/${(i.data as ModLockPost).post_id}`}>{(i.data as ModLockPost).post_name}</Link></span>
                 </>
               }
-              {i.type_ == 'stickied_posts' && 
+              {i.type_ == 'stickied_posts' &&
                 <>
-                  {(i.data as ModStickyPost).stickied? 'Stickied' : 'Unstickied'} 
+                  {(i.data as ModStickyPost).stickied? 'Stickied' : 'Unstickied'}
                   <span> Post <Link to={`/post/${(i.data as ModStickyPost).post_id}`}>{(i.data as ModStickyPost).post_name}</Link></span>
                 </>
               }
-              {i.type_ == 'removed_comments' && 
+              {i.type_ == 'removed_comments' &&
                 <>
-                  {(i.data as ModRemoveComment).removed? 'Removed' : 'Restored'} 
+                  {(i.data as ModRemoveComment).removed? 'Removed' : 'Restored'}
                   <span> Comment <Link to={`/post/${(i.data as ModRemoveComment).post_id}/comment/${(i.data as ModRemoveComment).comment_id}`}>{(i.data as ModRemoveComment).comment_content}</Link></span>
                   <span> by <Link to={`/u/${(i.data as ModRemoveComment).comment_user_name}`}>{(i.data as ModRemoveComment).comment_user_name}</Link></span>
                   <div>{(i.data as ModRemoveComment).reason && ` reason: ${(i.data as ModRemoveComment).reason}`}</div>
                 </>
               }
-              {i.type_ == 'removed_communities' && 
+              {i.type_ == 'removed_communities' &&
                 <>
-                  {(i.data as ModRemoveCommunity).removed ? 'Removed' : 'Restored'} 
+                  {(i.data as ModRemoveCommunity).removed ? 'Removed' : 'Restored'}
                   <span> Community <Link to={`/c/${(i.data as ModRemoveCommunity).community_name}`}>{(i.data as ModRemoveCommunity).community_name}</Link></span>
                   <div>{(i.data as ModRemoveCommunity).reason && ` reason: ${(i.data as ModRemoveCommunity).reason}`}</div>
                   <div>{(i.data as ModRemoveCommunity).expires && ` expires: ${moment.utc((i.data as ModRemoveCommunity).expires).fromNow()}`}</div>
                 </>
               }
-              {i.type_ == 'banned_from_community' && 
+              {i.type_ == 'banned_from_community' &&
                 <>
                   <span>{(i.data as ModBanFromCommunity).banned ? 'Banned ' : 'Unbanned '} </span>
                   <span><Link to={`/u/${(i.data as ModBanFromCommunity).other_user_name}`}>{(i.data as ModBanFromCommunity).other_user_name}</Link></span>
@@ -134,7 +135,7 @@ export class Modlog extends Component<any, ModlogState> {
                   <div>{(i.data as ModBanFromCommunity).expires && ` expires: ${moment.utc((i.data as ModBanFromCommunity).expires).fromNow()}`}</div>
                 </>
               }
-              {i.type_ == 'added_to_community' && 
+              {i.type_ == 'added_to_community' &&
                 <>
                   <span>{(i.data as ModAddCommunity).removed ? 'Removed ' : 'Appointed '} </span>
                   <span><Link to={`/u/${(i.data as ModAddCommunity).other_user_name}`}>{(i.data as ModAddCommunity).other_user_name}</Link></span>
@@ -142,7 +143,7 @@ export class Modlog extends Component<any, ModlogState> {
                   <span><Link to={`/c/${(i.data as ModAddCommunity).community_name}`}>{(i.data as ModAddCommunity).community_name}</Link></span>
                 </>
               }
-              {i.type_ == 'banned' && 
+              {i.type_ == 'banned' &&
                 <>
                   <span>{(i.data as ModBan).banned ? 'Banned ' : 'Unbanned '} </span>
                   <span><Link to={`/u/${(i.data as ModBan).other_user_name}`}>{(i.data as ModBan).other_user_name}</Link></span>
@@ -150,7 +151,7 @@ export class Modlog extends Component<any, ModlogState> {
                   <div>{(i.data as ModBan).expires && ` expires: ${moment.utc((i.data as ModBan).expires).fromNow()}`}</div>
                 </>
               }
-              {i.type_ == 'added' && 
+              {i.type_ == 'added' &&
                 <>
                   <span>{(i.data as ModAdd).removed ? 'Removed ' : 'Appointed '} </span>
                   <span><Link to={`/u/${(i.data as ModAdd).other_user_name}`}>{(i.data as ModAdd).other_user_name}</Link></span>
@@ -170,8 +171,8 @@ export class Modlog extends Component<any, ModlogState> {
   render() {
     return (
       <div class="container">
-        {this.state.loading ? 
-        <h5 class=""><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> : 
+        {this.state.loading ?
+        <h5 class=""><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> :
         <div>
           <h5>
             {this.state.communityName && <Link className="text-white" to={`/c/${this.state.communityName}`}>/c/{this.state.communityName} </Link>}
@@ -199,21 +200,21 @@ export class Modlog extends Component<any, ModlogState> {
   paginator() {
     return (
       <div class="mt-2">
-        {this.state.page > 1 && 
-          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}>Prev</button>
+        {this.state.page > 1 &&
+          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}><T i18nKey="prev">#</T></button>
         }
-        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}>Next</button>
+        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}><T i18nKey="next">#</T></button>
       </div>
     );
   }
 
-  nextPage(i: Modlog) { 
+  nextPage(i: Modlog) {
     i.state.page++;
     i.setState(i.state);
     i.refetch();
   }
 
-  prevPage(i: Modlog) { 
+  prevPage(i: Modlog) {
     i.state.page--;
     i.setState(i.state);
     i.refetch();
@@ -239,6 +240,6 @@ export class Modlog extends Component<any, ModlogState> {
       this.state.loading = false;
       window.scrollTo(0,0);
       this.setCombined(res);
-    } 
+    }
   }
 }
