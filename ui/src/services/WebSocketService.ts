@@ -1,5 +1,5 @@
 import { wsUri } from '../env';
-import { LoginForm, RegisterForm, UserOperation, CommunityForm, PostForm, SavePostForm, CommentForm, SaveCommentForm, CommentLikeForm, GetPostsForm, CreatePostLikeForm, FollowCommunityForm, GetUserDetailsForm, ListCommunitiesForm, GetModlogForm, BanFromCommunityForm, AddModToCommunityForm, TransferCommunityForm, AddAdminForm, TransferSiteForm, BanUserForm, SiteForm, Site, UserView, GetRepliesForm, SearchForm, UserSettingsForm } from '../interfaces';
+import { LoginForm, RegisterForm, UserOperation, CommunityForm, PostForm, SavePostForm, CommentForm, SaveCommentForm, CommentLikeForm, GetPostsForm, CreatePostLikeForm, FollowCommunityForm, GetUserDetailsForm, ListCommunitiesForm, GetModlogForm, BanFromCommunityForm, AddModToCommunityForm, TransferCommunityForm, AddAdminForm, TransferSiteForm, BanUserForm, SiteForm, Site, UserView, GetRepliesForm, SearchForm, UserSettingsForm, DeleteAccountForm } from '../interfaces';
 import { webSocket } from 'rxjs/webSocket';
 import { Subject } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
@@ -199,8 +199,7 @@ export class WebSocketService {
     this.subject.next(this.wsSendWrapper(UserOperation.SaveUserSettings, userSettingsForm));
   }
 
-  public deleteAccount() {
-    let form = {};
+  public deleteAccount(form: DeleteAccountForm) {
     this.setAuth(form);
     this.subject.next(this.wsSendWrapper(UserOperation.DeleteAccount, form));
   }
