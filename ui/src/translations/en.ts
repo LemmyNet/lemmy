@@ -56,7 +56,7 @@ export const en = {
     delete: 'delete',
     deleted: 'deleted',
     delete_account: 'Delete Account',
-    delete_account_confirm: 'Warning: this will permanently delete all your data. Are you sure?',
+    delete_account_confirm: 'Warning: this will permanently delete all your data. Enter your password to confirm.',
     restore: 'restore',
     ban: 'ban',
     ban_from_site: 'ban from site',
