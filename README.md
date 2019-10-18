@@ -23,6 +23,7 @@ This is a **very early beta version**, and a lot of features are currently broke
 Front Page|Post
 ---|---
 ![main screen](https://i.imgur.com/y64BtXC.png)|![chat screen](https://i.imgur.com/vsOr87q.png)
+
 ## Features
 
 - Open source, [AGPL License](/LICENSE).
@@ -35,12 +36,12 @@ Front Page|Post
   - Both site admins, and community moderators, who can appoint other moderators.
   - Can lock, remove, and restore posts and comments.
   - Can ban and unban users from communities and the site.
+  - Can transfer site and communities to others.
 - Clean, mobile-friendly interface.
 - i18n / internationalization support.
 - NSFW post / community support.
 - Cross-posting support.
-- A *similar post search* when creating new posts.
-- Can transfer site and communities to others.
+- A *similar post search* when creating new posts. Great for question / answer communities.
 - High performance.
   - Server is written in rust.
   - Front end is `~80kB` gzipped.
@@ -202,7 +203,7 @@ lang | done | missing
 --- | --- | ---
 de | 82% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,settings,stickied,delete_account,delete_account_confirm,banned,creator,number_online,subscribed,expires,recent_comments,nsfw,show_nsfw,theme,crypto,monero,joined,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
 eo | 91% | number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,stickied,delete_account,delete_account_confirm,banned,creator,number_online,theme,are_you_sure,yes,no 
-es | 97% | delete_account,delete_account_confirm,creator,number_online,theme 
+es | 100% |  
 fr | 95% | view_source,sticky,unsticky,stickied,delete_account,delete_account_confirm,creator,number_online,theme 
 nl | 93% | preview,upload_image,formatting_help,view_source,sticky,unsticky,stickied,delete_account,delete_account_confirm,banned,creator,number_online,theme 
 ru | 86% | cross_posts,cross_post,number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,stickied,delete_account,delete_account_confirm,banned,creator,number_online,recent_comments,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
