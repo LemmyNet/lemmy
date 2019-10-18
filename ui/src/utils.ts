@@ -75,11 +75,11 @@ export function mdToHtml(text: string) {
   return {__html: md.render(text)};
 }
 
-export function getUnixTime(text: string): number {
+export function getUnixTime(text: string): number { 
   return text ? new Date(text).getTime()/1000 : undefined;
 }
 
-export function addTypeInfo<T>(arr: Array<T>, name: string): Array<{type_: string, data: T}> {
+export function addTypeInfo<T>(arr: Array<T>, name: string): Array<{type_: string, data: T}> {  
   return arr.map(e => {return {type_: name, data: e}});
 }
 
@@ -89,9 +89,9 @@ export function canMod(user: User, modIds: Array<number>, creator_id: number, on
     let yourIndex = modIds.findIndex(id => id == user.id);
     if (yourIndex == -1) {
       return false;
-    } else {
+    } else { 
       // onSelf +1 on mod actions not for yourself, IE ban, remove, etc
-      modIds = modIds.slice(0, yourIndex+(onSelf ? 0 : 1));
+      modIds = modIds.slice(0, yourIndex+(onSelf ? 0 : 1)); 
       return !modIds.includes(creator_id);
     }
   } else {
@@ -174,9 +174,9 @@ export function debounce(func: any, wait: number = 500, immediate: boolean = fal
   //   and not already in a timeout then the answer is: Yes
   var callNow = immediate && !timeout;
 
-  // This is the basic debounce behaviour where you can call this
-  //   function several times, but it will only execute once
-  //   [before or after imposing a delay].
+  // This is the basic debounce behaviour where you can call this 
+  //   function several times, but it will only execute once 
+  //   [before or after imposing a delay]. 
   //   Each time the returned function is called, the timer starts over.
   clearTimeout(timeout);
 
@@ -190,7 +190,7 @@ export function debounce(func: any, wait: number = 500, immediate: boolean = fal
     // Check if the function already ran with the immediate flag
     if (!immediate) {
       // Call the original function with apply
-      // apply lets you define the 'this' object as well as the arguments
+      // apply lets you define the 'this' object as well as the arguments 
       //    (both captured before setTimeout)
       func.apply(context, args);
     }
@@ -247,6 +247,6 @@ export function setTheme(theme: string = 'darkly') {
       styleSheet.removeAttribute("disabled");
     } else {
       styleSheet.setAttribute("disabled", "disabled");
-    }
+    }      
   }
 }
