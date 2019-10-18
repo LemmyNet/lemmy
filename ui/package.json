@@ -32,6 +32,7 @@
     "markdown-it-container": "^2.0.0",
     "markdown-it-emoji": "^1.4.0",
     "moment": "^2.24.0",
+    "prettier": "^1.18.2",
     "rxjs": "^6.4.0",
     "terser": "^3.17.0",
     "tributejs": "3.7.2",
@@ -58,18 +59,24 @@
   "husky": {
     "hooks": {
       "pre-commit": "lint-staged",
-      "pre-push": "npm run lint"
+      "pre-push": "yarn run lint"
     }
   },
   "lint-staged": {
     "*.js": [
-      "npm run lint"
+      "prettier --write",
+      "yarn run lint",
+      "git add"
     ],
     "*.ts": [
-      "npm run lint"
+      "prettier --write",
+      "yarn run lint",
+      "git add"
     ],
     "*.tsx": [
-      "npm run lint"
+      "prettier --write",
+      "yarn run lint",
+      "git add"
     ],
     "package.json": [
       "sortpack",
