@@ -112,8 +112,8 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
                 <div class="mt-1 text-muted small font-weight-bold pointer" onClick={linkEvent(this, this.copySuggestedTitle)}><T i18nKey="copy_suggested_title" interpolation={{title: this.state.suggestedTitle}}>#</T></div>
               }
               <form>
-                <label htmlFor="file-upload" class="pointer d-inline-block mr-2 float-right text-muted small font-weight-bold"><T i18nKey="upload_image">#</T></label>
-                <input id="file-upload" type="file" accept="image/*,video/*" name="file" class="d-none" onChange={linkEvent(this, this.handleImageUpload)} />
+                <label htmlFor="file-upload" className={`${UserService.Instance.user && 'pointer'} d-inline-block mr-2 float-right text-muted small font-weight-bold`}><T i18nKey="upload_image">#</T></label>
+                <input id="file-upload" type="file" accept="image/*,video/*" name="file" class="d-none" disabled={!UserService.Instance.user} onChange={linkEvent(this, this.handleImageUpload)} />
               </form>
               {this.state.imageLoading && 
                 <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg>
