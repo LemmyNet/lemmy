@@ -1,5 +1,34 @@
 import { wsUri } from '../env';
-import { LoginForm, RegisterForm, UserOperation, CommunityForm, PostForm, SavePostForm, CommentForm, SaveCommentForm, CommentLikeForm, GetPostsForm, CreatePostLikeForm, FollowCommunityForm, GetUserDetailsForm, ListCommunitiesForm, GetModlogForm, BanFromCommunityForm, AddModToCommunityForm, TransferCommunityForm, AddAdminForm, TransferSiteForm, BanUserForm, SiteForm, Site, UserView, GetRepliesForm, SearchForm, UserSettingsForm, DeleteAccountForm } from '../interfaces';
+import {
+  LoginForm,
+  RegisterForm,
+  UserOperation,
+  CommunityForm,
+  PostForm,
+  SavePostForm,
+  CommentForm,
+  SaveCommentForm,
+  CommentLikeForm,
+  GetPostsForm,
+  CreatePostLikeForm,
+  FollowCommunityForm,
+  GetUserDetailsForm,
+  ListCommunitiesForm,
+  GetModlogForm,
+  BanFromCommunityForm,
+  AddModToCommunityForm,
+  TransferCommunityForm,
+  AddAdminForm,
+  TransferSiteForm,
+  BanUserForm,
+  SiteForm,
+  Site,
+  UserView,
+  GetRepliesForm,
+  SearchForm,
+  UserSettingsForm,
+  DeleteAccountForm,
+} from '../interfaces';
 import { webSocket } from 'rxjs/webSocket';
 import { Subject } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
@@ -19,16 +48,23 @@ export class WebSocketService {
 
     // Necessary to not keep reconnecting
     this.subject
-      .pipe(retryWhen(errors => errors.pipe(delay(60000), take(999))))
+      .pipe(
+        retryWhen(errors =>
+          errors.pipe(
+            delay(60000),
+            take(999)
+          )
+        )
+      )
       .subscribe();
 
-      console.log(`Connected to ${wsUri}`);
+    console.log(`Connected to ${wsUri}`);
   }
 
-  public static get Instance(){
+  public static get Instance() {
     return this._instance || (this._instance = new this());
   }
-   
+
   public login(loginForm: LoginForm) {
     this.subject.next(this.wsSendWrapper(UserOperation.Login, loginForm));
   }
@@ -39,17 +75,23 @@ export class WebSocketService {
 
   public createCommunity(communityForm: CommunityForm) {
     this.setAuth(communityForm);
-    this.subject.next(this.wsSendWrapper(UserOperation.CreateCommunity, communityForm));
+    this.subject.next(
+      this.wsSendWrapper(UserOperation.CreateCommunity, communityForm)
+    );
   }
 
   public editCommunity(communityForm: CommunityForm) {
     this.setAuth(communityForm);
-    this.subject.next(this.wsSendWrapper(UserOperation.EditCommunity, communityForm));
+    this.subject.next(
+      this.wsSendWrapper(UserOperation.EditCommunity, communityForm)
+    );
   }
 
   public followCommunity(followCommunityForm: FollowCommunityForm) {
     this.setAuth(followCommunityForm);
-    this.subject.next(this.wsSendWrapper(UserOperation.FollowCommunity, followCommunityForm));
+    this.subject.next(
+      this.wsSendWrapper(UserOperation.FollowCommunity, followCommunityForm)
+    );
   }
 
   public listCommunities(form: ListCommunitiesForm) {
@@ -58,12 +100,16 @@ export class WebSocketService {
   }
 
   public getFollowedCommunities() {
-    let data = {auth: UserService.Instance.auth };
-    this.subject.next(this.wsSendWrapper(UserOperation.GetFollowedCommunities, data));
+    let data = { auth: UserService.Instance.auth };
+    this.subject.next(
+      this.wsSendWrapper(UserOperation.GetFollowedCommunities, data)
+    );
   }
 
   public listCategories() {
-    this.subject.next(this.wsSendWrapper(UserOperation.ListCategories, undefined));
+    this.subject.next(
+      this.wsSendWrapper(UserOperation.ListCategories, undefined)
+    );
   }
 
   public createPost(postForm: PostForm) {
@@ -72,33 +118,39 @@ export class WebSocketService {
   }
 
   public getPost(postId: number) {
-    let data = {id: postId, auth: UserService.Instance.auth };
+    let data = { id: postId, auth: UserService.Instance.auth };
     this.subject.next(this.wsSendWrapper(UserOperation.GetPost, data));
   }
 
   public getCommunity(communityId: number) {
-    let data = {id: communityId, auth: UserService.Instance.auth };
+    let data = { id: communityId, auth: UserService.Instance.auth };
     this.subject.next(this.wsSendWrapper(UserOperation.GetCommunity, data));
   }
 
   public getCommunityByName(name: string) {
-    let data = {name: name, auth: UserService.Instance.auth };
+    let data = { name: name, auth: UserService.Instance.auth };
     this.subject.next(this.wsSendWrapper(UserOperation.GetCommunity, data));
   }
 
   public createComment(commentForm: CommentForm) {
     this.setAuth(commentForm);
-    this.subject.next(this.wsSendWrapper(UserOperation.CreateComment, commentForm));
+    this.subject.next(
+      this.wsSendWrapper(UserOperation.CreateComment, commentForm)
+    );
   }
 
   public editComment(commentForm: CommentForm) {
     this.setAuth(commentForm);
-    this.subject.next(this.wsSendWrapper(UserOperation.EditComment, commentForm));
+    this.subject.next(
+      this.wsSendWrapper(UserOperation.EditComment, commentForm)
+    );
   }
 
   public likeComment(form: CommentLikeForm) {
     this.setAuth(form);
-    this.subject.next(this.wsSendWrapper(UserOperation.CreateCommentLike, form));
+    this.subject.next(
+      this.wsSendWrapper(UserOperation.CreateCommentLike, form)
+    );
   }
 
   public saveComment(form: SaveCommentForm) {
@@ -133,19 +185,23 @@ export class WebSocketService {
 
   public addModToCommunity(form: AddModToCommunityForm) {
     this.setAuth(form);
-    this.subject.next(this.wsSendWrapper(UserOperation.AddModToCommunity, form));
+    this.subject.next(
+      this.wsSendWrapper(UserOperation.AddModToCommunity, form)
+    );
   }
 
   public transferCommunity(form: TransferCommunityForm) {
     this.setAuth(form);
-    this.subject.next(this.wsSendWrapper(UserOperation.TransferCommunity, form));
+    this.subject.next(
+      this.wsSendWrapper(UserOperation.TransferCommunity, form)
+    );
   }
 
   public transferSite(form: TransferSiteForm) {
     this.setAuth(form);
     this.subject.next(this.wsSendWrapper(UserOperation.TransferSite, form));
   }
-  
+
   public banUser(form: BanUserForm) {
     this.setAuth(form);
     this.subject.next(this.wsSendWrapper(UserOperation.BanUser, form));
@@ -196,7 +252,9 @@ export class WebSocketService {
 
   public saveUserSettings(userSettingsForm: UserSettingsForm) {
     this.setAuth(userSettingsForm);
-    this.subject.next(this.wsSendWrapper(UserOperation.SaveUserSettings, userSettingsForm));
+    this.subject.next(
+      this.wsSendWrapper(UserOperation.SaveUserSettings, userSettingsForm)
+    );
   }
 
   public deleteAccount(form: DeleteAccountForm) {
@@ -214,13 +272,12 @@ export class WebSocketService {
     obj.auth = UserService.Instance.auth;
     if (obj.auth == null && throwErr) {
       alert(i18n.t('not_logged_in'));
-      throw "Not logged in";
+      throw 'Not logged in';
     }
   }
 }
 
-window.onbeforeunload = (() => {
+window.onbeforeunload = () => {
   WebSocketService.Instance.subject.unsubscribe();
   WebSocketService.Instance.subject = null;
-});
-
+};

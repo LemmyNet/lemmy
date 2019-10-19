@@ -17,12 +17,12 @@ interface SiteFormState {
 }
 
 export class SiteForm extends Component<SiteFormProps, SiteFormState> {
-  private emptyState: SiteFormState ={
+  private emptyState: SiteFormState = {
     siteForm: {
-      name: null
+      name: null,
     },
-    loading: false
-  }
+    loading: false,
+  };
 
   constructor(props: any, context: any) {
     super(props, context);
@@ -31,7 +31,7 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
       this.state.siteForm = {
         name: this.props.site.name,
         description: this.props.site.description,
-      }
+      };
     }
   }
 
@@ -42,26 +42,63 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
   render() {
     return (
       <form onSubmit={linkEvent(this, this.handleCreateSiteSubmit)}>
-        <h5>{`${this.props.site ? capitalizeFirstLetter(i18n.t('edit')) : capitalizeFirstLetter(i18n.t('name'))} ${i18n.t('your_site')}`}</h5>
+        <h5>{`${
+          this.props.site
+            ? capitalizeFirstLetter(i18n.t('edit'))
+            : capitalizeFirstLetter(i18n.t('name'))
+        } ${i18n.t('your_site')}`}</h5>
         <div class="form-group row">
-          <label class="col-12 col-form-label"><T i18nKey="name">#</T></label>
+          <label class="col-12 col-form-label">
+            <T i18nKey="name">#</T>
+          </label>
           <div class="col-12">
-            <input type="text" class="form-control" value={this.state.siteForm.name} onInput={linkEvent(this, this.handleSiteNameChange)} required minLength={3} maxLength={20} />
+            <input
+              type="text"
+              class="form-control"
+              value={this.state.siteForm.name}
+              onInput={linkEvent(this, this.handleSiteNameChange)}
+              required
+              minLength={3}
+              maxLength={20}
+            />
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-12 col-form-label"><T i18nKey="sidebar">#</T></label>
+          <label class="col-12 col-form-label">
+            <T i18nKey="sidebar">#</T>
+          </label>
           <div class="col-12">
-            <textarea value={this.state.siteForm.description} onInput={linkEvent(this, this.handleSiteDescriptionChange)} class="form-control" rows={3} maxLength={10000} />
+            <textarea
+              value={this.state.siteForm.description}
+              onInput={linkEvent(this, this.handleSiteDescriptionChange)}
+              class="form-control"
+              rows={3}
+              maxLength={10000}
+            />
           </div>
         </div>
         <div class="form-group row">
           <div class="col-12">
             <button type="submit" class="btn btn-secondary mr-2">
-              {this.state.loading ? 
-              <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : 
-              this.props.site ? capitalizeFirstLetter(i18n.t('save')) : capitalizeFirstLetter(i18n.t('create'))}</button>
-              {this.props.site && <button type="button" class="btn btn-secondary" onClick={linkEvent(this, this.handleCancel)}><T i18nKey="cancel">#</T></button>}
+              {this.state.loading ? (
+                <svg class="icon icon-spinner spin">
+                  <use xlinkHref="#icon-spinner"></use>
+                </svg>
+              ) : this.props.site ? (
+                capitalizeFirstLetter(i18n.t('save'))
+              ) : (
+                capitalizeFirstLetter(i18n.t('create'))
+              )}
+            </button>
+            {this.props.site && (
+              <button
+                type="button"
+                class="btn btn-secondary"
+                onClick={linkEvent(this, this.handleCancel)}
+              >
+                <T i18nKey="cancel">#</T>
+              </button>
+            )}
           </div>
         </div>
       </form>
