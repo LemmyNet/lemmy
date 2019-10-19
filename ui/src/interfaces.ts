@@ -1,21 +1,70 @@
 export enum UserOperation {
-  Login, Register, CreateCommunity, CreatePost, ListCommunities, ListCategories, GetPost, GetCommunity, CreateComment, EditComment, SaveComment, CreateCommentLike, GetPosts, CreatePostLike, EditPost, SavePost, EditCommunity, FollowCommunity, GetFollowedCommunities, GetUserDetails, GetReplies, GetModlog, BanFromCommunity, AddModToCommunity, CreateSite, EditSite, GetSite, AddAdmin, BanUser, Search, MarkAllAsRead, SaveUserSettings, TransferCommunity, TransferSite, DeleteAccount
+  Login,
+  Register,
+  CreateCommunity,
+  CreatePost,
+  ListCommunities,
+  ListCategories,
+  GetPost,
+  GetCommunity,
+  CreateComment,
+  EditComment,
+  SaveComment,
+  CreateCommentLike,
+  GetPosts,
+  CreatePostLike,
+  EditPost,
+  SavePost,
+  EditCommunity,
+  FollowCommunity,
+  GetFollowedCommunities,
+  GetUserDetails,
+  GetReplies,
+  GetModlog,
+  BanFromCommunity,
+  AddModToCommunity,
+  CreateSite,
+  EditSite,
+  GetSite,
+  AddAdmin,
+  BanUser,
+  Search,
+  MarkAllAsRead,
+  SaveUserSettings,
+  TransferCommunity,
+  TransferSite,
+  DeleteAccount,
 }
 
 export enum CommentSortType {
-  Hot, Top, New
+  Hot,
+  Top,
+  New,
 }
 
 export enum ListingType {
-  All, Subscribed, Community
+  All,
+  Subscribed,
+  Community,
 }
 
 export enum SortType {
-  Hot, New, TopDay, TopWeek, TopMonth, TopYear, TopAll
+  Hot,
+  New,
+  TopDay,
+  TopWeek,
+  TopMonth,
+  TopYear,
+  TopAll,
 }
 
 export enum SearchType {
-  All, Comments, Posts, Communities, Users, Url
+  All,
+  Comments,
+  Posts,
+  Communities,
+  Users,
+  Url,
 }
 
 export interface User {
@@ -104,7 +153,7 @@ export interface Post {
 export interface Comment {
   id: number;
   creator_id: number;
-  post_id: number,
+  post_id: number;
   parent_id?: number;
   content: string;
   removed: boolean;
@@ -112,7 +161,7 @@ export interface Comment {
   read: boolean;
   published: string;
   updated?: string;
-  community_id: number,
+  community_id: number;
   banned: boolean;
   banned_from_community: boolean;
   creator_name: string;
@@ -143,7 +192,10 @@ export interface Site {
   number_of_communities: number;
 }
 
-export enum BanType {Community, Site};
+export enum BanType {
+  Community,
+  Site,
+}
 
 export interface FollowCommunityForm {
   community_id: number;
@@ -193,15 +245,15 @@ export interface BanFromCommunityForm {
   community_id: number;
   user_id: number;
   ban: boolean;
-  reason?: string,
-  expires?: number,
+  reason?: string;
+  expires?: number;
   auth?: string;
 }
 
 export interface BanFromCommunityResponse {
   op: string;
-  user: UserView,
-  banned: boolean,
+  user: UserView;
+  banned: boolean;
 }
 
 export interface AddModToCommunityForm {
@@ -236,15 +288,15 @@ export interface GetModlogForm {
 
 export interface GetModlogResponse {
   op: string;
-  removed_posts: Array<ModRemovePost>,
-  locked_posts: Array<ModLockPost>,
-  stickied_posts: Array<ModStickyPost>,
-  removed_comments: Array<ModRemoveComment>,
-  removed_communities: Array<ModRemoveCommunity>,
-  banned_from_community: Array<ModBanFromCommunity>,
-  banned: Array<ModBan>,
-  added_to_community: Array<ModAddCommunity>,
-  added: Array<ModAdd>,
+  removed_posts: Array<ModRemovePost>;
+  locked_posts: Array<ModLockPost>;
+  stickied_posts: Array<ModStickyPost>;
+  removed_comments: Array<ModRemoveComment>;
+  removed_communities: Array<ModRemoveCommunity>;
+  banned_from_community: Array<ModBanFromCommunity>;
+  banned: Array<ModBan>;
+  added_to_community: Array<ModAddCommunity>;
+  added: Array<ModAdd>;
 }
 
 export interface ModRemovePost {
@@ -253,7 +305,7 @@ export interface ModRemovePost {
   post_id: number;
   reason?: string;
   removed?: boolean;
-  when_: string
+  when_: string;
   mod_user_name: string;
   post_name: string;
   community_id: number;
@@ -261,104 +313,104 @@ export interface ModRemovePost {
 }
 
 export interface ModLockPost {
-  id: number,
-  mod_user_id: number,
-  post_id: number,
-  locked?: boolean,
-  when_: string,
-  mod_user_name: string,
-  post_name: string,
-  community_id: number,
-  community_name: string,
+  id: number;
+  mod_user_id: number;
+  post_id: number;
+  locked?: boolean;
+  when_: string;
+  mod_user_name: string;
+  post_name: string;
+  community_id: number;
+  community_name: string;
 }
 
 export interface ModStickyPost {
-  id: number,
-  mod_user_id: number,
-  post_id: number,
-  stickied?: boolean,
-  when_: string,
-  mod_user_name: string,
-  post_name: string,
-  community_id: number,
-  community_name: string,
+  id: number;
+  mod_user_id: number;
+  post_id: number;
+  stickied?: boolean;
+  when_: string;
+  mod_user_name: string;
+  post_name: string;
+  community_id: number;
+  community_name: string;
 }
 
 export interface ModRemoveComment {
-  id: number,
-  mod_user_id: number,
-  comment_id: number,
-  reason?: string,
-  removed?: boolean,
-  when_: string,
-  mod_user_name: string,
-  comment_user_id: number,
-  comment_user_name: string,
-  comment_content: string,
-  post_id: number,
-  post_name: string,
-  community_id: number,
-  community_name: string,
+  id: number;
+  mod_user_id: number;
+  comment_id: number;
+  reason?: string;
+  removed?: boolean;
+  when_: string;
+  mod_user_name: string;
+  comment_user_id: number;
+  comment_user_name: string;
+  comment_content: string;
+  post_id: number;
+  post_name: string;
+  community_id: number;
+  community_name: string;
 }
 
 export interface ModRemoveCommunity {
-  id: number,
-  mod_user_id: number,
-  community_id: number,
-  reason?: string,
-  removed?: boolean,
-  expires?: number,
-  when_: string,
-  mod_user_name: string,
-  community_name: string,
+  id: number;
+  mod_user_id: number;
+  community_id: number;
+  reason?: string;
+  removed?: boolean;
+  expires?: number;
+  when_: string;
+  mod_user_name: string;
+  community_name: string;
 }
 
 export interface ModBanFromCommunity {
-  id: number,
-  mod_user_id: number,
-  other_user_id: number,
-  community_id: number,
-  reason?: string,
-  banned?: boolean,
-  expires?: number,
-  when_: string,
-  mod_user_name: string,
-  other_user_name: string,
-  community_name: string,
+  id: number;
+  mod_user_id: number;
+  other_user_id: number;
+  community_id: number;
+  reason?: string;
+  banned?: boolean;
+  expires?: number;
+  when_: string;
+  mod_user_name: string;
+  other_user_name: string;
+  community_name: string;
 }
 
 export interface ModBan {
-  id: number,
-  mod_user_id: number,
-  other_user_id: number,
-  reason?: string,
-  banned?: boolean,
-  expires?: number,
-  when_: string,
-  mod_user_name: string,
-  other_user_name: string,
+  id: number;
+  mod_user_id: number;
+  other_user_id: number;
+  reason?: string;
+  banned?: boolean;
+  expires?: number;
+  when_: string;
+  mod_user_name: string;
+  other_user_name: string;
 }
 
 export interface ModAddCommunity {
-  id: number,
-  mod_user_id: number,
-  other_user_id: number,
-  community_id: number,
-  removed?: boolean,
-  when_: string,
-  mod_user_name: string,
-  other_user_name: string,
-  community_name: string,
+  id: number;
+  mod_user_id: number;
+  other_user_id: number;
+  community_id: number;
+  removed?: boolean;
+  when_: string;
+  mod_user_name: string;
+  other_user_name: string;
+  community_name: string;
 }
 
 export interface ModAdd {
-  id: number,
-  mod_user_id: number,
-  other_user_id: number,
-  removed?: boolean,
-  when_: string,
-  mod_user_name: string,
-  other_user_name: string,
+  id: number;
+  mod_user_id: number;
+  other_user_id: number;
+  removed?: boolean;
+  when_: string;
+  mod_user_name: string;
+  other_user_name: string;
 }
 
 export interface LoginForm {
@@ -389,8 +441,8 @@ export interface UserSettingsForm {
 export interface CommunityForm {
   name: string;
   title: string;
-  description?: string,
-  category_id: number,
+  description?: string;
+  category_id: number;
   edit_id?: number;
   removed?: boolean;
   deleted?: boolean;
@@ -406,7 +458,6 @@ export interface GetCommunityResponse {
   moderators: Array<CommunityUser>;
   admins: Array<UserView>;
 }
-
 
 export interface CommunityResponse {
   op: string;
@@ -537,7 +588,7 @@ export interface CreatePostLikeResponse {
 
 export interface SiteForm {
   name: string;
-  description?: string,
+  description?: string;
   removed?: boolean;
   reason?: string;
   expires?: number;
@@ -552,7 +603,6 @@ export interface GetSiteResponse {
   online: number;
 }
 
-
 export interface SiteResponse {
   op: string;
   site: Site;
@@ -561,15 +611,15 @@ export interface SiteResponse {
 export interface BanUserForm {
   user_id: number;
   ban: boolean;
-  reason?: string,
-  expires?: number,
+  reason?: string;
+  expires?: number;
   auth?: string;
 }
 
 export interface BanUserResponse {
   op: string;
-  user: UserView,
-  banned: boolean,
+  user: UserView;
+  banned: boolean;
 }
 
 export interface AddAdminForm {
@@ -597,7 +647,7 @@ export interface SearchResponse {
   type_: string;
   posts?: Array<Post>;
   comments?: Array<Comment>;
-  communities: Array<Community>;  
+  communities: Array<Community>;
   users: Array<UserView>;
 }
 

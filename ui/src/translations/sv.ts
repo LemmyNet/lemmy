@@ -56,7 +56,8 @@ export const sv = {
     delete: 'radera',
     deleted: 'raderad',
     delete_account: 'Ta bort konto',
-    delete_account_confirm: 'Varning: den här åtgärden kommer radera alla dina data permanent. Är du säker?',
+    delete_account_confirm:
+      'Varning: den här åtgärden kommer radera alla dina data permanent. Är du säker?',
     restore: 'återställ',
     ban: 'blockera',
     ban_from_site: 'blockera från webbplats',
@@ -108,7 +109,8 @@ export const sv = {
     login_sign_up: 'Logga in eller skapa konto',
     login: 'Logga in',
     sign_up: 'Skapa konto',
-    notifications_error: 'Din webbläsare har inte stöd för skrivbordsaviseringar. Testa Firefox eller Chrome.',
+    notifications_error:
+      'Din webbläsare har inte stöd för skrivbordsaviseringar. Testa Firefox eller Chrome.',
     unread_messages: 'Olästa meddelanden',
     password: 'Lösenord',
     verify_password: 'Bekräfta lösenord',
@@ -134,9 +136,11 @@ export const sv = {
     theme: 'Utseende',
     sponsors: 'Sponsorer',
     sponsors_of_lemmy: 'Lemmys sponsorer',
-    sponsor_message: 'Lemmy är fri mjukvara med <1>öppen källkod</1>, vilket innebär att ingen reklam, vinstindrivning eller venturekapital förekommer, någonsin. Dina donationer går direkt till att stöda utvecklingen av projektet. Stort tack till följande personer:',
+    sponsor_message:
+      'Lemmy är fri mjukvara med <1>öppen källkod</1>, vilket innebär att ingen reklam, vinstindrivning eller venturekapital förekommer, någonsin. Dina donationer går direkt till att stöda utvecklingen av projektet. Stort tack till följande personer:',
     support_on_patreon: 'Stöd på Patreon',
-    general_sponsors: 'Allmänna sponsorer är dem som givit mellan 10 och 39\u00a0dollar till Lemmy.',
+    general_sponsors:
+      'Allmänna sponsorer är dem som givit mellan 10 och 39\u00a0dollar till Lemmy.',
     crypto: 'Kryptovaluta',
     bitcoin: 'Bitcoin',
     ethereum: 'Ethereum',
@@ -151,7 +155,8 @@ export const sv = {
     yes: 'ja',
     no: 'nej',
     powered_by: 'Drivs av',
-    landing_0: 'Lemmy är en <1>länksamlare</1> och alternativ till reddit, ämnad att fungera i <2>Fediversumet</2>.<3></3>Lemmy kan drivas av vem som helst, har kommentarstrådar som updateras i realid och är mycket liten (<4>ca 80\u00a0kB</4>). Federering med ActivityPub-nätverket är planerat. <5></5>Detta är en <6>väldigt tidig betaversion</6> och många funktioner saknas därför eller är trasiga.<7></7>Föreslå nya funktioner eller anmäl buggar <8>här</8>.<9></9>Skapad i <10>Rust</10>, <11>Actix</11>, <12>Inferno</12> och <13>Typescript</13>.',
+    landing_0:
+      'Lemmy är en <1>länksamlare</1> och alternativ till reddit, ämnad att fungera i <2>Fediversumet</2>.<3></3>Lemmy kan drivas av vem som helst, har kommentarstrådar som updateras i realid och är mycket liten (<4>ca 80\u00a0kB</4>). Federering med ActivityPub-nätverket är planerat. <5></5>Detta är en <6>väldigt tidig betaversion</6> och många funktioner saknas därför eller är trasiga.<7></7>Föreslå nya funktioner eller anmäl buggar <8>här</8>.<9></9>Skapad i <10>Rust</10>, <11>Actix</11>, <12>Inferno</12> och <13>Typescript</13>.',
     not_logged_in: 'Inte inloggad.',
     community_ban: 'Du har blockerats från den här gemenskapen.',
     site_ban: 'Du har blockerats från webbplatsen.',
@@ -178,7 +183,8 @@ export const sv = {
     not_an_admin: 'Inte en administratör.',
     site_already_exists: 'Webbplatsen finns redan.',
     couldnt_update_site: 'Kunde inte uppdatera webbplats.',
-    couldnt_find_that_username_or_email: 'Kunde inte hitta det användarnamnet eller e-postadressen.',
+    couldnt_find_that_username_or_email:
+      'Kunde inte hitta det användarnamnet eller e-postadressen.',
     password_incorrect: 'Ogiltigt lösenord.',
     passwords_dont_match: 'Lösenorden stämmer inte överens.',
     admin_already_created: 'Beklagar, men det finns redan en administratör.',
@@ -186,4 +192,4 @@ export const sv = {
     couldnt_update_user: 'Kunde inte uppdatera användare.',
     system_err_login: 'Systemfel. Försök att logga ut och sedan in igen.',
   },
-}
+};

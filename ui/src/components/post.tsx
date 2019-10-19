@@ -1,7 +1,32 @@
 import { Component, linkEvent } from 'inferno';
-import { Subscription } from "rxjs";
+import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community, Post as PostI, GetPostResponse, PostResponse, Comment, CommentForm as CommentFormI, CommentResponse, CommentSortType, CreatePostLikeResponse, CommunityUser, CommunityResponse, CommentNode as CommentNodeI, BanFromCommunityResponse, BanUserResponse, AddModToCommunityResponse, AddAdminResponse, UserView, SearchType, SortType, SearchForm, SearchResponse, GetSiteResponse, GetCommunityResponse } from '../interfaces';
+import {
+  UserOperation,
+  Community,
+  Post as PostI,
+  GetPostResponse,
+  PostResponse,
+  Comment,
+  CommentForm as CommentFormI,
+  CommentResponse,
+  CommentSortType,
+  CreatePostLikeResponse,
+  CommunityUser,
+  CommunityResponse,
+  CommentNode as CommentNodeI,
+  BanFromCommunityResponse,
+  BanUserResponse,
+  AddModToCommunityResponse,
+  AddAdminResponse,
+  UserView,
+  SearchType,
+  SortType,
+  SearchForm,
+  SearchResponse,
+  GetSiteResponse,
+  GetCommunityResponse,
+} from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { msgOp, hotRank } from '../utils';
 import { PostListing } from './post-listing';
@@ -27,7 +52,6 @@ interface PostState {
 }
 
 export class Post extends Component<any, PostState> {
-
   private subscription: Subscription;
   private emptyState: PostState = {
     post: null,
@@ -36,10 +60,10 @@ export class Post extends Component<any, PostState> {
     community: null,
     moderators: [],
     admins: [],
-    scrolled: false, 
+    scrolled: false,
     loading: true,
     crossPosts: [],
-  }
+  };
 
   constructor(props: any, context: any) {
     super(props, context);
@@ -52,10 +76,17 @@ export class Post extends Component<any, PostState> {
     }
 
     this.subscription = WebSocketService.Instance.subject
-      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
+      .pipe(
+        retryWhen(errors =>
+          errors.pipe(
+            delay(3000),
+            take(10)
+          )
+        )
+      )
       .subscribe(
-        (msg) => this.parseMessage(msg),
-        (err) => console.error(err),
+        msg => this.parseMessage(msg),
+        err => console.error(err),
         () => console.log('complete')
       );
 
@@ -71,10 +102,16 @@ export class Post extends Component<any, PostState> {
   }
 
   componentDidUpdate(_lastProps: any, lastState: PostState, _snapshot: any) {
-    if (this.state.scrolled_comment_id && !this.state.scrolled && lastState.comments.length > 0) {
-      var elmnt = document.getElementById(`comment-${this.state.scrolled_comment_id}`);
-      elmnt.scrollIntoView(); 
-      elmnt.classList.add("mark");
+    if (
+      this.state.scrolled_comment_id &&
+      !this.state.scrolled &&
+      lastState.comments.length > 0
+    ) {
+      var elmnt = document.getElementById(
+        `comment-${this.state.scrolled_comment_id}`
+      );
+      elmnt.scrollIntoView();
+      elmnt.classList.add('mark');
       this.state.scrolled = true;
       this.markScrolledAsRead(this.state.scrolled_comment_id);
     }
@@ -89,17 +126,20 @@ export class Post extends Component<any, PostState> {
       // this.context.router.history.push('/sponsors');
       // this.context.refresh();
       // this.context.router.history.push(_lastProps.location.pathname);
-
     }
   }
 
   markScrolledAsRead(commentId: number) {
     let found = this.state.comments.find(c => c.id == commentId);
     let parent = this.state.comments.find(c => found.parent_id == c.id);
-    let parent_user_id = parent ? parent.creator_id : this.state.post.creator_id;
+    let parent_user_id = parent
+      ? parent.creator_id
+      : this.state.post.creator_id;
 
-    if (UserService.Instance.user && UserService.Instance.user.id == parent_user_id) {
-
+    if (
+      UserService.Instance.user &&
+      UserService.Instance.user.id == parent_user_id
+    ) {
       let form: CommentFormI = {
         content: found.content,
         edit_id: found.id,
@@ -107,7 +147,7 @@ export class Post extends Component<any, PostState> {
         post_id: found.post_id,
         parent_id: found.parent_id,
         read: true,
-        auth: null
+        auth: null,
       };
       WebSocketService.Instance.editComment(form);
     }
@@ -116,26 +156,36 @@ export class Post extends Component<any, PostState> {
   render() {
     return (
       <div class="container">
-        {this.state.loading ? 
-        <h5><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> : 
-        <div class="row">
+        {this.state.loading ? (
+          <h5>
+            <svg class="icon icon-spinner spin">
+              <use xlinkHref="#icon-spinner"></use>
+            </svg>
+          </h5>
+        ) : (
+          <div class="row">
             <div class="col-12 col-md-8 mb-3">
-              <PostListing 
-                post={this.state.post} 
-                showBody 
-                showCommunity 
-                editable 
-                moderators={this.state.moderators} 
+              <PostListing
+                post={this.state.post}
+                showBody
+                showCommunity
+                editable
+                moderators={this.state.moderators}
                 admins={this.state.admins}
               />
-              {this.state.crossPosts.length > 0 && 
+              {this.state.crossPosts.length > 0 && (
                 <>
-                  <div class="my-1 text-muted small font-weight-bold"><T i18nKey="cross_posts">#</T></div>
+                  <div class="my-1 text-muted small font-weight-bold">
+                    <T i18nKey="cross_posts">#</T>
+                  </div>
                   <PostListings showCommunity posts={this.state.crossPosts} />
                 </>
-              }
+              )}
               <div className="mb-2" />
-              <CommentForm postId={this.state.post.id} disabled={this.state.post.locked} />
+              <CommentForm
+                postId={this.state.post.id}
+                disabled={this.state.post.locked}
+              />
               {this.sortRadios()}
               {this.commentsTree()}
             </div>
@@ -144,65 +194,88 @@ export class Post extends Component<any, PostState> {
               {this.sidebar()}
             </div>
           </div>
-        }
+        )}
       </div>
-    )
+    );
   }
 
   sortRadios() {
     return (
       <div class="btn-group btn-group-toggle mb-3">
-        <label className={`btn btn-sm btn-secondary pointer ${this.state.commentSort === CommentSortType.Hot && 'active'}`}>{i18n.t('hot')}
-          <input type="radio" value={CommentSortType.Hot}
-          checked={this.state.commentSort === CommentSortType.Hot} 
-          onChange={linkEvent(this, this.handleCommentSortChange)}  />
+        <label
+          className={`btn btn-sm btn-secondary pointer ${this.state
+            .commentSort === CommentSortType.Hot && 'active'}`}
+        >
+          {i18n.t('hot')}
+          <input
+            type="radio"
+            value={CommentSortType.Hot}
+            checked={this.state.commentSort === CommentSortType.Hot}
+            onChange={linkEvent(this, this.handleCommentSortChange)}
+          />
         </label>
-        <label className={`btn btn-sm btn-secondary pointer ${this.state.commentSort === CommentSortType.Top && 'active'}`}>{i18n.t('top')}
-          <input type="radio" value={CommentSortType.Top}
-          checked={this.state.commentSort === CommentSortType.Top} 
-          onChange={linkEvent(this, this.handleCommentSortChange)}  />
+        <label
+          className={`btn btn-sm btn-secondary pointer ${this.state
+            .commentSort === CommentSortType.Top && 'active'}`}
+        >
+          {i18n.t('top')}
+          <input
+            type="radio"
+            value={CommentSortType.Top}
+            checked={this.state.commentSort === CommentSortType.Top}
+            onChange={linkEvent(this, this.handleCommentSortChange)}
+          />
         </label>
-        <label className={`btn btn-sm btn-secondary pointer ${this.state.commentSort === CommentSortType.New && 'active'}`}>{i18n.t('new')}
-          <input type="radio" value={CommentSortType.New}
-          checked={this.state.commentSort === CommentSortType.New} 
-          onChange={linkEvent(this, this.handleCommentSortChange)}  />
+        <label
+          className={`btn btn-sm btn-secondary pointer ${this.state
+            .commentSort === CommentSortType.New && 'active'}`}
+        >
+          {i18n.t('new')}
+          <input
+            type="radio"
+            value={CommentSortType.New}
+            checked={this.state.commentSort === CommentSortType.New}
+            onChange={linkEvent(this, this.handleCommentSortChange)}
+          />
         </label>
       </div>
-    )
+    );
   }
 
   newComments() {
     return (
       <div class="d-none d-md-block new-comments mb-3 card border-secondary">
         <div class="card-body small">
-          <h6><T i18nKey="recent_comments">#</T></h6>
-          {this.state.comments.map(comment => 
-            <CommentNodes 
-              nodes={[{comment: comment}]} 
-              noIndent 
-              locked={this.state.post.locked} 
-              moderators={this.state.moderators} 
+          <h6>
+            <T i18nKey="recent_comments">#</T>
+          </h6>
+          {this.state.comments.map(comment => (
+            <CommentNodes
+              nodes={[{ comment: comment }]}
+              noIndent
+              locked={this.state.post.locked}
+              moderators={this.state.moderators}
               admins={this.state.admins}
               postCreatorId={this.state.post.creator_id}
             />
-          )}
+          ))}
         </div>
       </div>
-    )
+    );
   }
 
   sidebar() {
-    return ( 
+    return (
       <div class="mb-3">
-        <Sidebar 
-          community={this.state.community} 
-          moderators={this.state.moderators} 
+        <Sidebar
+          community={this.state.community}
+          moderators={this.state.moderators}
           admins={this.state.admins}
         />
       </div>
     );
   }
-  
+
   handleCommentSortChange(i: Post, event: any) {
     i.state.commentSort = Number(event.target.value);
     i.setState(i.state);
@@ -213,16 +286,15 @@ export class Post extends Component<any, PostState> {
     for (let comment of this.state.comments) {
       let node: CommentNodeI = {
         comment: comment,
-        children: []
+        children: [],
       };
       map.set(comment.id, { ...node });
     }
     let tree: Array<CommentNodeI> = [];
     for (let comment of this.state.comments) {
-      if( comment.parent_id ) {
+      if (comment.parent_id) {
         map.get(comment.parent_id).children.push(map.get(comment.id));
-      } 
-      else {
+      } else {
         tree.push(map.get(comment.id));
       }
     }
@@ -233,36 +305,43 @@ export class Post extends Component<any, PostState> {
   }
 
   sortTree(tree: Array<CommentNodeI>) {
-
     // First, put removed and deleted comments at the bottom, then do your other sorts
     if (this.state.commentSort == CommentSortType.Top) {
-      tree.sort((a, b) => (+a.comment.removed - +b.comment.removed) || 
-                (+a.comment.deleted - +b.comment.deleted ) || 
-                (b.comment.score - a.comment.score));
+      tree.sort(
+        (a, b) =>
+          +a.comment.removed - +b.comment.removed ||
+          +a.comment.deleted - +b.comment.deleted ||
+          b.comment.score - a.comment.score
+      );
     } else if (this.state.commentSort == CommentSortType.New) {
-      tree.sort((a, b) => (+a.comment.removed - +b.comment.removed) || 
-                (+a.comment.deleted - +b.comment.deleted ) || 
-                (b.comment.published.localeCompare(a.comment.published)));
+      tree.sort(
+        (a, b) =>
+          +a.comment.removed - +b.comment.removed ||
+          +a.comment.deleted - +b.comment.deleted ||
+          b.comment.published.localeCompare(a.comment.published)
+      );
     } else if (this.state.commentSort == CommentSortType.Hot) {
-      tree.sort((a, b) => (+a.comment.removed - +b.comment.removed) || 
-                (+a.comment.deleted - +b.comment.deleted ) || 
-                (hotRank(b.comment) - hotRank(a.comment)));
+      tree.sort(
+        (a, b) =>
+          +a.comment.removed - +b.comment.removed ||
+          +a.comment.deleted - +b.comment.deleted ||
+          hotRank(b.comment) - hotRank(a.comment)
+      );
     }
 
     for (let node of tree) {
       this.sortTree(node.children);
     }
-
   }
 
   commentsTree() {
     let nodes = this.buildCommentsTree();
     return (
       <div>
-        <CommentNodes 
-          nodes={nodes} 
-          locked={this.state.post.locked} 
-          moderators={this.state.moderators} 
+        <CommentNodes
+          nodes={nodes}
+          locked={this.state.post.locked}
+          moderators={this.state.moderators}
           admins={this.state.admins}
           postCreatorId={this.state.post.creator_id}
         />
@@ -286,7 +365,7 @@ export class Post extends Component<any, PostState> {
       this.state.loading = false;
       document.title = `${this.state.post.name} - ${WebSocketService.Instance.site.name}`;
 
-      // Get cross-posts  
+      // Get cross-posts
       if (this.state.post.url) {
         let form: SearchForm = {
           q: this.state.post.url,
@@ -297,7 +376,7 @@ export class Post extends Component<any, PostState> {
         };
         WebSocketService.Instance.search(form);
       }
-      
+
       this.setState(this.state);
     } else if (op == UserOperation.CreateComment) {
       let res: CommentResponse = msg;
@@ -323,12 +402,13 @@ export class Post extends Component<any, PostState> {
       this.setState(this.state);
     } else if (op == UserOperation.CreateCommentLike) {
       let res: CommentResponse = msg;
-      let found: Comment = this.state.comments.find(c => c.id === res.comment.id);
+      let found: Comment = this.state.comments.find(
+        c => c.id === res.comment.id
+      );
       found.score = res.comment.score;
       found.upvotes = res.comment.upvotes;
       found.downvotes = res.comment.downvotes;
-      if (res.comment.my_vote !== null) 
-        found.my_vote = res.comment.my_vote;
+      if (res.comment.my_vote !== null) found.my_vote = res.comment.my_vote;
       this.setState(this.state);
     } else if (op == UserOperation.CreatePostLike) {
       let res: CreatePostLikeResponse = msg;
@@ -354,13 +434,15 @@ export class Post extends Component<any, PostState> {
     } else if (op == UserOperation.FollowCommunity) {
       let res: CommunityResponse = msg;
       this.state.community.subscribed = res.community.subscribed;
-      this.state.community.number_of_subscribers = res.community.number_of_subscribers;
+      this.state.community.number_of_subscribers =
+        res.community.number_of_subscribers;
       this.setState(this.state);
     } else if (op == UserOperation.BanFromCommunity) {
       let res: BanFromCommunityResponse = msg;
-      this.state.comments.filter(c => c.creator_id == res.user.id)
-      .forEach(c => c.banned_from_community = res.banned);
-      if (this.state.post.creator_id == res.user.id) {  
+      this.state.comments
+        .filter(c => c.creator_id == res.user.id)
+        .forEach(c => (c.banned_from_community = res.banned));
+      if (this.state.post.creator_id == res.user.id) {
         this.state.post.banned_from_community = res.banned;
       }
       this.setState(this.state);
@@ -370,9 +452,10 @@ export class Post extends Component<any, PostState> {
       this.setState(this.state);
     } else if (op == UserOperation.BanUser) {
       let res: BanUserResponse = msg;
-      this.state.comments.filter(c => c.creator_id == res.user.id)
-      .forEach(c => c.banned = res.banned);
-      if (this.state.post.creator_id == res.user.id) {  
+      this.state.comments
+        .filter(c => c.creator_id == res.user.id)
+        .forEach(c => (c.banned = res.banned));
+      if (this.state.post.creator_id == res.user.id) {
         this.state.post.banned = res.banned;
       }
       this.setState(this.state);
@@ -384,21 +467,17 @@ export class Post extends Component<any, PostState> {
       let res: SearchResponse = msg;
       this.state.crossPosts = res.posts.filter(p => p.id != this.state.post.id);
       this.setState(this.state);
-    } else if (op == UserOperation.TransferSite) { 
+    } else if (op == UserOperation.TransferSite) {
       let res: GetSiteResponse = msg;
 
       this.state.admins = res.admins;
       this.setState(this.state);
-    } else if (op == UserOperation.TransferCommunity) { 
+    } else if (op == UserOperation.TransferCommunity) {
       let res: GetCommunityResponse = msg;
       this.state.community = res.community;
       this.state.moderators = res.moderators;
       this.state.admins = res.admins;
       this.setState(this.state);
     }
-
   }
 }
-
-
-

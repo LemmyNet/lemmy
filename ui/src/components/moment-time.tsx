@@ -8,11 +8,10 @@ interface MomentTimeProps {
     published?: string;
     when_?: string;
     updated?: string;
-  }
+  };
 }
 
 export class MomentTime extends Component<MomentTimeProps, any> {
-
   constructor(props: any, context: any) {
     super(props, context);
 
@@ -24,13 +23,13 @@ export class MomentTime extends Component<MomentTimeProps, any> {
   render() {
     if (this.props.data.updated) {
       return (
-        <span title={this.props.data.updated} className="font-italics">{i18n.t('modified')} {moment.utc(this.props.data.updated).fromNow()}</span>
-      )
+        <span title={this.props.data.updated} className="font-italics">
+          {i18n.t('modified')} {moment.utc(this.props.data.updated).fromNow()}
+        </span>
+      );
     } else {
       let str = this.props.data.published || this.props.data.when_;
-      return (
-        <span title={str}>{moment.utc(str).fromNow()}</span>
-      )
+      return <span title={str}>{moment.utc(str).fromNow()}</span>;
     }
   }
 }

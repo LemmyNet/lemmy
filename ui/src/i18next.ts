@@ -22,26 +22,24 @@ const resources = {
   sv,
   ru,
   nl,
-}
+};
 
 function format(value: any, format: any, lng: any) {
-	if (format === 'uppercase') return value.toUpperCase();
-	return value;
+  if (format === 'uppercase') return value.toUpperCase();
+  return value;
 }
 
-i18n
-.init({
+i18n.init({
   debug: true,
   // load: 'languageOnly',
 
   // initImmediate: false,
   lng: getLanguage(),
   fallbackLng: 'en',
-	resources,
-	interpolation: {
-    format: format
-    
-  }
+  resources,
+  interpolation: {
+    format: format,
+  },
 });
 
 export { i18n, resources };
