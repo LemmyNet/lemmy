@@ -69,7 +69,7 @@ Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Infern
 
 ### Docker
 
-Make sure you have both docker and docker-compose(>=`1.24.0`) installed.
+Make sure you have both docker and docker-compose(>=`1.24.0`) installed:
 
 ```bash
 mkdir lemmy/
@@ -80,7 +80,7 @@ wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/.env
 docker-compose up -d
 ```
 
-and goto http://localhost:8536
+and go to http://localhost:8536.
 
 [A sample nginx config](/ansible/templates/nginx.conf), could be setup with:
 
@@ -100,8 +100,7 @@ docker-compose up -d
 
 ### Ansible
 
-First, you need to [install Ansible on your local computer](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html),
-eg using `sudo apt install ansible`, or the equivalent for you platform.
+First, you need to [install Ansible on your local computer](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html) (e.g. using `sudo apt install ansible`) or the equivalent for you platform.
 
 Then run the following commands on your local computer:
 
@@ -142,13 +141,15 @@ If you used a `LoadBalancer`, you should see it in your cloud provider's console
 
 ### Docker Development
 
+Run:
+
 ```bash
 git clone https://github.com/dessalines/lemmy
 cd lemmy/docker/dev
 ./docker_update.sh # This builds and runs it, updating for your changes
 ```
 
-and goto http://localhost:8536
+and go to http://localhost:8536.
 
 ### Local Development
 
@@ -195,7 +196,7 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 
 ## Translations 
 
-If you'd like to add translations, take a look a look at the [english translation file](ui/src/translations/en.ts).
+If you'd like to add translations, take a look a look at the [English translation file](ui/src/translations/en.ts).
 
 - Languages supported: English (`en`), Chinese (`zh`), Dutch (`nl`), Esperanto (`eo`), French (`fr`), Spanish (`es`), Swedish (`sv`), German (`de`), Russian (`ru`).
 
@@ -219,4 +220,4 @@ ts-node translation_report.ts > tmp # And replace the text above.
 
 ## Credits
 
-Logo made by Andy Cuccaro (@andycuccaro) under the CC-BY-SA 4.0 license
+Logo made by Andy Cuccaro (@andycuccaro) under the CC-BY-SA 4.0 license.
