@@ -4,6 +4,7 @@ import {
   CommentNode as CommentNodeI,
   CommentLikeForm,
   CommentForm as CommentFormI,
+  EditUserMentionForm,
   SaveCommentForm,
   BanFromCommunityForm,
   BanUserForm,
@@ -686,16 +687,25 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   handleMarkRead(i: CommentNode) {
-    let form: CommentFormI = {
-      content: i.props.node.comment.content,
-      edit_id: i.props.node.comment.id,
-      creator_id: i.props.node.comment.creator_id,
-      post_id: i.props.node.comment.post_id,
-      parent_id: i.props.node.comment.parent_id,
-      read: !i.props.node.comment.read,
-      auth: null,
-    };
-    WebSocketService.Instance.editComment(form);
+    // if it has a user_mention_id field, then its a mention
+    if (i.props.node.comment.user_mention_id) {
+      let form: EditUserMentionForm = {
+        user_mention_id: i.props.node.comment.user_mention_id,
+        read: !i.props.node.comment.read,
+      };
+      WebSocketService.Instance.editUserMention(form);
+    } else {
+      let form: CommentFormI = {
+        content: i.props.node.comment.content,
+        edit_id: i.props.node.comment.id,
+        creator_id: i.props.node.comment.creator_id,
+        post_id: i.props.node.comment.post_id,
+        parent_id: i.props.node.comment.parent_id,
+        read: !i.props.node.comment.read,
+        auth: null,
+      };
+      WebSocketService.Instance.editComment(form);
+    }
   }
 
   handleModBanFromCommunityShow(i: CommentNode) {

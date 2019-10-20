@@ -85,6 +85,35 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
       Err(_e) => return Err(APIError::err(&self.op, "couldnt_create_comment"))?,
     };
 
+    // Scan the comment for user mentions, add those rows
+    let extracted_usernames = extract_usernames(&comment_form.content);
+
+    for username_mention in &extracted_usernames {
+      let mention_user = User_::read_from_name(&conn, username_mention.to_string());
+
+      if mention_user.is_ok() {
+        let mention_user_id = mention_user?.id;
+
+        // You can't mention yourself
+        // At some point, make it so you can't tag the parent creator either
+        // This can cause two notifications, one for reply and the other for mention
+        if mention_user_id != user_id {
+          let user_mention_form = UserMentionForm {
+            recipient_id: mention_user_id,
+            comment_id: inserted_comment.id,
+            read: None,
+          };
+
+          // Allow this to fail softly, since comment edits might re-update or replace it
+          // Let the uniqueness handle this fail
+          match UserMention::create(&conn, &user_mention_form) {
+            Ok(_mention) => (),
+            Err(_e) => eprintln!("{}", &_e),
+          }
+        }
+      }
+    }
+
     // You like your own comment by default
     let like_form = CommentLikeForm {
       comment_id: inserted_comment.id,
@@ -169,6 +198,35 @@ impl Perform<CommentResponse> for Oper<EditComment> {
       Ok(comment) => comment,
       Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_comment"))?,
     };
+
+    // Scan the comment for user mentions, add those rows
+    let extracted_usernames = extract_usernames(&comment_form.content);
+
+    for username_mention in &extracted_usernames {
+      let mention_user = User_::read_from_name(&conn, username_mention.to_string());
+
+      if mention_user.is_ok() {
+        let mention_user_id = mention_user?.id;
+
+        // You can't mention yourself
+        // At some point, make it so you can't tag the parent creator either
+        // This can cause two notifications, one for reply and the other for mention
+        if mention_user_id != user_id {
+          let user_mention_form = UserMentionForm {
+            recipient_id: mention_user_id,
+            comment_id: data.edit_id,
+            read: None,
+          };
+
+          // Allow this to fail softly, since comment edits might re-update or replace it
+          // Let the uniqueness handle this fail
+          match UserMention::create(&conn, &user_mention_form) {
+            Ok(_mention) => (),
+            Err(_e) => eprintln!("{}", &_e),
+          }
+        }
+      }
+    }
 
     // Mod tables
     if let Some(removed) = data.removed.to_owned() {

@@ -396,11 +396,16 @@ export class Search extends Component<any, SearchState> {
     let res = this.state.searchResponse;
     return (
       <div>
-        {res && res.op && res.posts.length == 0 && res.comments.length == 0 && (
-          <span>
-            <T i18nKey="no_results">#</T>
-          </span>
-        )}
+        {res &&
+          res.op &&
+          res.posts.length == 0 &&
+          res.comments.length == 0 &&
+          res.communities.length == 0 &&
+          res.users.length == 0 && (
+            <span>
+              <T i18nKey="no_results">#</T>
+            </span>
+          )}
       </div>
     );
   }
@@ -420,7 +425,6 @@ export class Search extends Component<any, SearchState> {
   }
 
   search() {
-    // TODO community
     let form: SearchForm = {
       q: this.state.q,
       type_: SearchType[this.state.type_],

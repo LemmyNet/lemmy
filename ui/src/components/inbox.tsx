@@ -8,6 +8,9 @@ import {
   SortType,
   GetRepliesForm,
   GetRepliesResponse,
+  GetUserMentionsForm,
+  GetUserMentionsResponse,
+  UserMentionResponse,
   CommentResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
@@ -16,14 +19,22 @@ import { CommentNodes } from './comment-nodes';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 
-enum UnreadType {
+enum UnreadOrAll {
   Unread,
   All,
 }
 
+enum UnreadType {
+  Both,
+  Replies,
+  Mentions,
+}
+
 interface InboxState {
+  unreadOrAll: UnreadOrAll;
   unreadType: UnreadType;
   replies: Array<Comment>;
+  mentions: Array<Comment>;
   sort: SortType;
   page: number;
 }
@@ -31,8 +42,10 @@ interface InboxState {
 export class Inbox extends Component<any, InboxState> {
   private subscription: Subscription;
   private emptyState: InboxState = {
-    unreadType: UnreadType.Unread,
+    unreadOrAll: UnreadOrAll.Unread,
+    unreadType: UnreadType.Both,
     replies: [],
+    mentions: [],
     sort: SortType.New,
     page: 1,
   };
@@ -83,8 +96,8 @@ export class Inbox extends Component<any, InboxState> {
                 </T>
               </span>
             </h5>
-            {this.state.replies.length > 0 &&
-              this.state.unreadType == UnreadType.Unread && (
+            {this.state.replies.length + this.state.mentions.length > 0 &&
+              this.state.unreadOrAll == UnreadOrAll.Unread && (
                 <ul class="list-inline mb-1 text-muted small font-weight-bold">
                   <li className="list-inline-item">
                     <span class="pointer" onClick={this.markAllAsRead}>
@@ -94,7 +107,9 @@ export class Inbox extends Component<any, InboxState> {
                 </ul>
               )}
             {this.selects()}
-            {this.replies()}
+            {this.state.unreadType == UnreadType.Both && this.both()}
+            {this.state.unreadType == UnreadType.Replies && this.replies()}
+            {this.state.unreadType == UnreadType.Mentions && this.mentions()}
             {this.paginator()}
           </div>
         </div>
@@ -106,24 +121,42 @@ export class Inbox extends Component<any, InboxState> {
     return (
       <div className="mb-2">
         <select
-          value={this.state.unreadType}
-          onChange={linkEvent(this, this.handleUnreadTypeChange)}
-          class="custom-select custom-select-sm w-auto"
+          value={this.state.unreadOrAll}
+          onChange={linkEvent(this, this.handleUnreadOrAllChange)}
+          class="custom-select custom-select-sm w-auto mr-2"
         >
           <option disabled>
             <T i18nKey="type">#</T>
           </option>
-          <option value={UnreadType.Unread}>
+          <option value={UnreadOrAll.Unread}>
             <T i18nKey="unread">#</T>
           </option>
-          <option value={UnreadType.All}>
+          <option value={UnreadOrAll.All}>
             <T i18nKey="all">#</T>
+          </option>
+        </select>
+        <select
+          value={this.state.unreadType}
+          onChange={linkEvent(this, this.handleUnreadTypeChange)}
+          class="custom-select custom-select-sm w-auto mr-2"
+        >
+          <option disabled>
+            <T i18nKey="type">#</T>
+          </option>
+          <option value={UnreadType.Both}>
+            <T i18nKey="both">#</T>
+          </option>
+          <option value={UnreadType.Replies}>
+            <T i18nKey="replies">#</T>
+          </option>
+          <option value={UnreadType.Mentions}>
+            <T i18nKey="mentions">#</T>
           </option>
         </select>
         <select
           value={this.state.sort}
           onChange={linkEvent(this, this.handleSortChange)}
-          class="custom-select custom-select-sm w-auto ml-2"
+          class="custom-select custom-select-sm w-auto"
         >
           <option disabled>
             <T i18nKey="sort_type">#</T>
@@ -151,11 +184,52 @@ export class Inbox extends Component<any, InboxState> {
     );
   }
 
+  both() {
+    let combined: Array<{
+      type_: string;
+      data: Comment;
+    }> = [];
+    let replies = this.state.replies.map(e => {
+      return { type_: 'replies', data: e };
+    });
+    let mentions = this.state.mentions.map(e => {
+      return { type_: 'mentions', data: e };
+    });
+
+    combined.push(...replies);
+    combined.push(...mentions);
+
+    // Sort it
+    if (this.state.sort == SortType.New) {
+      combined.sort((a, b) => b.data.published.localeCompare(a.data.published));
+    } else {
+      combined.sort((a, b) => b.data.score - a.data.score);
+    }
+
+    return (
+      <div>
+        {combined.map(i => (
+          <CommentNodes nodes={[{ comment: i.data }]} noIndent markable />
+        ))}
+      </div>
+    );
+  }
+
   replies() {
     return (
       <div>
         {this.state.replies.map(reply => (
           <CommentNodes nodes={[{ comment: reply }]} noIndent markable />
+        ))}
+      </div>
+    );
+  }
+
+  mentions() {
+    return (
+      <div>
+        {this.state.mentions.map(mention => (
+          <CommentNodes nodes={[{ comment: mention }]} noIndent markable />
         ))}
       </div>
     );
@@ -194,6 +268,13 @@ export class Inbox extends Component<any, InboxState> {
     i.refetch();
   }
 
+  handleUnreadOrAllChange(i: Inbox, event: any) {
+    i.state.unreadOrAll = Number(event.target.value);
+    i.state.page = 1;
+    i.setState(i.state);
+    i.refetch();
+  }
+
   handleUnreadTypeChange(i: Inbox, event: any) {
     i.state.unreadType = Number(event.target.value);
     i.state.page = 1;
@@ -202,13 +283,21 @@ export class Inbox extends Component<any, InboxState> {
   }
 
   refetch() {
-    let form: GetRepliesForm = {
+    let repliesForm: GetRepliesForm = {
       sort: SortType[this.state.sort],
-      unread_only: this.state.unreadType == UnreadType.Unread,
+      unread_only: this.state.unreadOrAll == UnreadOrAll.Unread,
       page: this.state.page,
       limit: 9999,
     };
-    WebSocketService.Instance.getReplies(form);
+    WebSocketService.Instance.getReplies(repliesForm);
+
+    let userMentionsForm: GetUserMentionsForm = {
+      sort: SortType[this.state.sort],
+      unread_only: this.state.unreadOrAll == UnreadOrAll.Unread,
+      page: this.state.page,
+      limit: 9999,
+    };
+    WebSocketService.Instance.getUserMentions(userMentionsForm);
   }
 
   handleSortChange(i: Inbox, event: any) {
@@ -228,13 +317,21 @@ export class Inbox extends Component<any, InboxState> {
     if (msg.error) {
       alert(i18n.t(msg.error));
       return;
-    } else if (
-      op == UserOperation.GetReplies ||
-      op == UserOperation.MarkAllAsRead
-    ) {
+    } else if (op == UserOperation.GetReplies) {
       let res: GetRepliesResponse = msg;
       this.state.replies = res.replies;
-      this.sendRepliesCount();
+      this.sendUnreadCount();
+      window.scrollTo(0, 0);
+      this.setState(this.state);
+    } else if (op == UserOperation.GetUserMentions) {
+      let res: GetUserMentionsResponse = msg;
+      this.state.mentions = res.mentions;
+      this.sendUnreadCount();
+      window.scrollTo(0, 0);
+      this.setState(this.state);
+    } else if (op == UserOperation.MarkAllAsRead) {
+      this.state.replies = [];
+      this.state.mentions = [];
       window.scrollTo(0, 0);
       this.setState(this.state);
     } else if (op == UserOperation.EditComment) {
@@ -250,7 +347,7 @@ export class Inbox extends Component<any, InboxState> {
       found.score = res.comment.score;
 
       // If youre in the unread view, just remove it from the list
-      if (this.state.unreadType == UnreadType.Unread && res.comment.read) {
+      if (this.state.unreadOrAll == UnreadOrAll.Unread && res.comment.read) {
         this.state.replies = this.state.replies.filter(
           r => r.id !== res.comment.id
         );
@@ -258,8 +355,30 @@ export class Inbox extends Component<any, InboxState> {
         let found = this.state.replies.find(c => c.id == res.comment.id);
         found.read = res.comment.read;
       }
-      this.sendRepliesCount();
+      this.sendUnreadCount();
+      this.setState(this.state);
+    } else if (op == UserOperation.EditUserMention) {
+      let res: UserMentionResponse = msg;
 
+      let found = this.state.mentions.find(c => c.id == res.mention.id);
+      found.content = res.mention.content;
+      found.updated = res.mention.updated;
+      found.removed = res.mention.removed;
+      found.deleted = res.mention.deleted;
+      found.upvotes = res.mention.upvotes;
+      found.downvotes = res.mention.downvotes;
+      found.score = res.mention.score;
+
+      // If youre in the unread view, just remove it from the list
+      if (this.state.unreadOrAll == UnreadOrAll.Unread && res.mention.read) {
+        this.state.mentions = this.state.mentions.filter(
+          r => r.id !== res.mention.id
+        );
+      } else {
+        let found = this.state.mentions.find(c => c.id == res.mention.id);
+        found.read = res.mention.read;
+      }
+      this.sendUnreadCount();
       this.setState(this.state);
     } else if (op == UserOperation.CreateComment) {
       // let res: CommentResponse = msg;
@@ -284,10 +403,13 @@ export class Inbox extends Component<any, InboxState> {
     }
   }
 
-  sendRepliesCount() {
+  sendUnreadCount() {
+    let count =
+      this.state.replies.filter(r => !r.read).length +
+      this.state.mentions.filter(r => !r.read).length;
     UserService.Instance.sub.next({
       user: UserService.Instance.user,
-      unreadCount: this.state.replies.filter(r => !r.read).length,
+      unreadCount: count,
     });
   }
 }

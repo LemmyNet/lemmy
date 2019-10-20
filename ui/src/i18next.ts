@@ -11,7 +11,6 @@ import { zh } from './translations/zh';
 import { nl } from './translations/nl';
 
 // https://github.com/nimbusec-oss/inferno-i18next/blob/master/tests/T.test.js#L66
-// TODO don't forget to add moment locales for new languages.
 const resources = {
   en,
   eo,
@@ -30,7 +29,7 @@ function format(value: any, format: any, lng: any) {
 }
 
 i18n.init({
-  debug: true,
+  debug: false,
   // load: 'languageOnly',
 
   // initImmediate: false,

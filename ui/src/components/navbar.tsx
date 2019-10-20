@@ -7,6 +7,8 @@ import {
   UserOperation,
   GetRepliesForm,
   GetRepliesResponse,
+  GetUserMentionsForm,
+  GetUserMentionsResponse,
   SortType,
   GetSiteResponse,
   Comment,
@@ -21,6 +23,7 @@ interface NavbarState {
   expanded: boolean;
   expandUserDropdown: boolean;
   replies: Array<Comment>;
+  mentions: Array<Comment>;
   fetchCount: number;
   unreadCount: number;
   siteName: string;
@@ -34,6 +37,7 @@ export class Navbar extends Component<any, NavbarState> {
     unreadCount: 0,
     fetchCount: 0,
     replies: [],
+    mentions: [],
     expanded: false,
     expandUserDropdown: false,
     siteName: undefined,
@@ -44,7 +48,7 @@ export class Navbar extends Component<any, NavbarState> {
     this.state = this.emptyState;
     this.handleOverviewClick = this.handleOverviewClick.bind(this);
 
-    this.keepFetchingReplies();
+    this.keepFetchingUnreads();
 
     // Subscribe to user changes
     this.userSub = UserService.Instance.sub.subscribe(user => {
@@ -233,7 +237,22 @@ export class Navbar extends Component<any, NavbarState> {
       }
 
       this.state.replies = unreadReplies;
-      this.sendRepliesCount(res);
+      this.setState(this.state);
+      this.sendUnreadCount();
+    } else if (op == UserOperation.GetUserMentions) {
+      let res: GetUserMentionsResponse = msg;
+      let unreadMentions = res.mentions.filter(r => !r.read);
+      if (
+        unreadMentions.length > 0 &&
+        this.state.fetchCount > 1 &&
+        JSON.stringify(this.state.mentions) !== JSON.stringify(unreadMentions)
+      ) {
+        this.notify(unreadMentions);
+      }
+
+      this.state.mentions = unreadMentions;
+      this.setState(this.state);
+      this.sendUnreadCount();
     } else if (op == UserOperation.GetSite) {
       let res: GetSiteResponse = msg;
 
@@ -245,12 +264,12 @@ export class Navbar extends Component<any, NavbarState> {
     }
   }
 
-  keepFetchingReplies() {
-    this.fetchReplies();
-    setInterval(() => this.fetchReplies(), 15000);
+  keepFetchingUnreads() {
+    this.fetchUnreads();
+    setInterval(() => this.fetchUnreads(), 15000);
   }
 
-  fetchReplies() {
+  fetchUnreads() {
     if (this.state.isLoggedIn) {
       let repliesForm: GetRepliesForm = {
         sort: SortType[SortType.New],
@@ -258,8 +277,16 @@ export class Navbar extends Component<any, NavbarState> {
         page: 1,
         limit: 9999,
       };
+
+      let userMentionsForm: GetUserMentionsForm = {
+        sort: SortType[SortType.New],
+        unread_only: true,
+        page: 1,
+        limit: 9999,
+      };
       if (this.currentLocation !== '/inbox') {
         WebSocketService.Instance.getReplies(repliesForm);
+        WebSocketService.Instance.getUserMentions(userMentionsForm);
         this.state.fetchCount++;
       }
     }
@@ -269,11 +296,18 @@ export class Navbar extends Component<any, NavbarState> {
     return this.context.router.history.location.pathname;
   }
 
-  sendRepliesCount(res: GetRepliesResponse) {
+  sendUnreadCount() {
     UserService.Instance.sub.next({
       user: UserService.Instance.user,
-      unreadCount: res.replies.filter(r => !r.read).length,
+      unreadCount: this.unreadCount,
     });
+  }
+
+  get unreadCount() {
+    return (
+      this.state.replies.filter(r => !r.read).length +
+      this.state.mentions.filter(r => !r.read).length
+    );
   }
 
   requestNotificationPermission() {

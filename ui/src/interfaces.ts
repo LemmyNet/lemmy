@@ -20,6 +20,8 @@ export enum UserOperation {
   GetFollowedCommunities,
   GetUserDetails,
   GetReplies,
+  GetUserMentions,
+  EditUserMention,
   GetModlog,
   BanFromCommunity,
   AddModToCommunity,
@@ -171,6 +173,8 @@ export interface Comment {
   user_id?: number;
   my_vote?: number;
   saved?: boolean;
+  user_mention_id?: number; // For mention type
+  recipient_id?: number;
 }
 
 export interface Category {
@@ -229,7 +233,7 @@ export interface UserDetailsResponse {
 }
 
 export interface GetRepliesForm {
-  sort: string; // TODO figure this one out
+  sort: string;
   page?: number;
   limit?: number;
   unread_only: boolean;
@@ -239,6 +243,30 @@ export interface GetRepliesForm {
 export interface GetRepliesResponse {
   op: string;
   replies: Array<Comment>;
+}
+
+export interface GetUserMentionsForm {
+  sort: string;
+  page?: number;
+  limit?: number;
+  unread_only: boolean;
+  auth?: string;
+}
+
+export interface GetUserMentionsResponse {
+  op: string;
+  mentions: Array<Comment>;
+}
+
+export interface EditUserMentionForm {
+  user_mention_id: number;
+  read?: boolean;
+  auth?: string;
+}
+
+export interface UserMentionResponse {
+  op: string;
+  mention: Comment;
 }
 
 export interface BanFromCommunityForm {
