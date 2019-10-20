@@ -101,6 +101,8 @@ export const en = {
     mark_all_as_read: 'mark all as read',
     type: 'Type',
     unread: 'Unread',
+    replies: 'Replies',
+    mentions: 'Mentions',
     reply_sent: 'Reply sent',
     search: 'Search',
     overview: 'Overview',

@@ -61,6 +61,12 @@ pub struct GetRepliesResponse {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct GetUserMentionsResponse {
+  op: String,
+  mentions: Vec<UserMentionView>,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct MarkAllAsRead {
   auth: String,
 }
@@ -101,6 +107,28 @@ pub struct GetReplies {
   limit: Option<i64>,
   unread_only: bool,
   auth: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetUserMentions {
+  sort: String,
+  page: Option<i64>,
+  limit: Option<i64>,
+  unread_only: bool,
+  auth: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct EditUserMention {
+  user_mention_id: i32,
+  read: Option<bool>,
+  auth: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct UserMentionResponse {
+  op: String,
+  mention: UserMentionView,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -299,7 +327,6 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
       None => false,
     };
 
-    //TODO add save
     let sort = SortType::from_str(&data.sort)?;
 
     let user_details_id = match data.user_id {
@@ -541,10 +568,74 @@ impl Perform<GetRepliesResponse> for Oper<GetReplies> {
       data.limit,
     )?;
 
-    // Return the jwt
     Ok(GetRepliesResponse {
       op: self.op.to_string(),
       replies: replies,
+    })
+  }
+}
+
+impl Perform<GetUserMentionsResponse> for Oper<GetUserMentions> {
+  fn perform(&self) -> Result<GetUserMentionsResponse, Error> {
+    let data: &GetUserMentions = &self.data;
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
+    };
+
+    let user_id = claims.id;
+
+    let sort = SortType::from_str(&data.sort)?;
+
+    let mentions = UserMentionView::get_mentions(
+      &conn,
+      user_id,
+      &sort,
+      data.unread_only,
+      data.page,
+      data.limit,
+    )?;
+
+    Ok(GetUserMentionsResponse {
+      op: self.op.to_string(),
+      mentions: mentions,
+    })
+  }
+}
+
+impl Perform<UserMentionResponse> for Oper<EditUserMention> {
+  fn perform(&self) -> Result<UserMentionResponse, Error> {
+    let data: &EditUserMention = &self.data;
+    let conn = establish_connection();
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
+    };
+
+    let user_id = claims.id;
+
+    let user_mention = UserMention::read(&conn, data.user_mention_id)?;
+
+    let user_mention_form = UserMentionForm {
+      recipient_id: user_id,
+      comment_id: user_mention.comment_id,
+      read: data.read.to_owned(),
+    };
+
+    let _updated_user_mention =
+      match UserMention::update(&conn, user_mention.id, &user_mention_form) {
+        Ok(comment) => comment,
+        Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_comment"))?,
+      };
+
+    let user_mention_view = UserMentionView::read(&conn, user_mention.id, user_id)?;
+
+    Ok(UserMentionResponse {
+      op: self.op.to_string(),
+      mention: user_mention_view,
     })
   }
 }
@@ -581,11 +672,27 @@ impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
       };
     }
 
-    let replies = ReplyView::get_replies(&conn, user_id, &SortType::New, true, Some(1), Some(999))?;
+    // Mentions
+    let mentions =
+      UserMentionView::get_mentions(&conn, user_id, &SortType::New, true, Some(1), Some(999))?;
+
+    for mention in &mentions {
+      let mention_form = UserMentionForm {
+        recipient_id: mention.to_owned().recipient_id,
+        comment_id: mention.to_owned().id,
+        read: Some(true),
+      };
+
+      let _updated_mention =
+        match UserMention::update(&conn, mention.user_mention_id, &mention_form) {
+          Ok(mention) => mention,
+          Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_comment"))?,
+        };
+    }
 
     Ok(GetRepliesResponse {
       op: self.op.to_string(),
-      replies: replies,
+      replies: vec![],
     })
   }
 }

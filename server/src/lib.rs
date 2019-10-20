@@ -104,9 +104,23 @@ pub fn has_slurs(test: &str) -> bool {
   SLUR_REGEX.is_match(test)
 }
 
+pub fn extract_usernames(test: &str) -> Vec<&str> {
+  let mut matches: Vec<&str> = USERNAME_MATCHES_REGEX
+    .find_iter(test)
+    .map(|mat| mat.as_str())
+    .collect();
+
+  // Unique
+  matches.sort_unstable();
+  matches.dedup();
+
+  // Remove /u/
+  matches.iter().map(|t| &t[3..]).collect()
+}
+
 #[cfg(test)]
 mod tests {
-  use crate::{has_slurs, is_email_regex, remove_slurs, Settings};
+  use crate::{extract_usernames, has_slurs, is_email_regex, remove_slurs, Settings};
   #[test]
   fn test_api() {
     assert_eq!(Settings::get().api_endpoint(), "rrr/api/v1");
@@ -131,9 +145,17 @@ mod tests {
     assert!(has_slurs(&test));
     assert!(!has_slurs(slur_free));
   }
+
+  #[test]
+  fn test_extract_usernames() {
+    let usernames = extract_usernames("this is a user mention for [/u/testme](/u/testme) and thats all. Oh [/u/another](/u/another) user. And the first again [/u/testme](/u/testme) okay");
+    let expected = vec!["another", "testme"];
+    assert_eq!(usernames, expected);
+  }
 }
 
 lazy_static! {
   static ref EMAIL_REGEX: Regex = Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$").unwrap();
   static ref SLUR_REGEX: Regex = Regex::new(r"(fag(g|got|tard)?|maricos?|cock\s?sucker(s|ing)?|nig(\b|g?(a|er)?s?)\b|dindu(s?)|mudslime?s?|kikes?|mongoloids?|towel\s*heads?|\bspi(c|k)s?\b|\bchinks?|niglets?|beaners?|\bnips?\b|\bcoons?\b|jungle\s*bunn(y|ies?)|jigg?aboo?s?|\bpakis?\b|rag\s*heads?|gooks?|cunts?|bitch(es|ing|y)?|puss(y|ies?)|twats?|feminazis?|whor(es?|ing)|\bslut(s|t?y)?|\btrann?(y|ies?)|ladyboy(s?)|\b(b|re|r)tard(ed)?s?)").unwrap();
+  static ref USERNAME_MATCHES_REGEX: Regex = Regex::new(r"/u/[a-zA-Z][0-9a-zA-Z_]*").unwrap();
 }

@@ -25,6 +25,8 @@ import {
   Site,
   UserView,
   GetRepliesForm,
+  GetUserMentionsForm,
+  EditUserMentionForm,
   SearchForm,
   UserSettingsForm,
   DeleteAccountForm,
@@ -220,6 +222,16 @@ export class WebSocketService {
   public getReplies(form: GetRepliesForm) {
     this.setAuth(form);
     this.subject.next(this.wsSendWrapper(UserOperation.GetReplies, form));
+  }
+
+  public getUserMentions(form: GetUserMentionsForm) {
+    this.setAuth(form);
+    this.subject.next(this.wsSendWrapper(UserOperation.GetUserMentions, form));
+  }
+
+  public editUserMention(form: EditUserMentionForm) {
+    this.setAuth(form);
+    this.subject.next(this.wsSendWrapper(UserOperation.EditUserMention, form));
   }
 
   public getModlog(form: GetModlogForm) {

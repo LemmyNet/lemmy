@@ -343,6 +343,16 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       let res = Oper::new(user_operation, get_replies).perform()?;
       Ok(serde_json::to_string(&res)?)
     }
+    UserOperation::GetUserMentions => {
+      let get_user_mentions: GetUserMentions = serde_json::from_str(data)?;
+      let res = Oper::new(user_operation, get_user_mentions).perform()?;
+      Ok(serde_json::to_string(&res)?)
+    }
+    UserOperation::EditUserMention => {
+      let edit_user_mention: EditUserMention = serde_json::from_str(data)?;
+      let res = Oper::new(user_operation, edit_user_mention).perform()?;
+      Ok(serde_json::to_string(&res)?)
+    }
     UserOperation::MarkAllAsRead => {
       let mark_all_as_read: MarkAllAsRead = serde_json::from_str(data)?;
       let res = Oper::new(user_operation, mark_all_as_read).perform()?;

@@ -14,6 +14,8 @@ pub mod moderator_views;
 pub mod post;
 pub mod post_view;
 pub mod user;
+pub mod user_mention;
+pub mod user_mention_view;
 pub mod user_view;
 
 pub trait Crud<T> {
