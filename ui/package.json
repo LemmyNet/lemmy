@@ -22,6 +22,7 @@
     "classcat": "^1.1.3",
     "dotenv": "^6.1.0",
     "emoji-short-name": "^0.1.0",
+    "husky": "^3.0.9",
     "i18next": "^17.0.9",
     "inferno": "^7.0.1",
     "inferno-i18next": "nimbusec-oss/inferno-i18next",
@@ -45,7 +46,6 @@
     "eslint-plugin-inferno": "^7.14.3",
     "eslint-plugin-jane": "^7.0.0",
     "fuse-box": "^3.1.3",
-    "husky": "^3.0.9",
     "lint-staged": "^9.4.2",
     "sortpack": "^2.0.1",
     "ts-transform-classcat": "^0.0.2",
@@ -58,8 +58,7 @@
   "engineStrict": true,
   "husky": {
     "hooks": {
-      "pre-commit": "lint-staged",
-      "pre-push": "yarn run lint"
+      "pre-commit": "yarn run lint && lint-staged"
     }
   },
   "lint-staged": {
