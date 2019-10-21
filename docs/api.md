@@ -150,6 +150,8 @@ Only the first user will be able to be the admin.
   data: {
     show_nsfw: bool,
     theme: String, // Default 'darkly'
+    default_sort_type: i16, // The Sort types from above, zero indexed as a number
+    default_listing_type: i16, // Post listing types are `All, Subscribed, Community`
     auth: String
   }
 }
