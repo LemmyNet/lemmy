@@ -255,6 +255,8 @@ table! {
         updated -> Nullable<Timestamp>,
         show_nsfw -> Bool,
         theme -> Varchar,
+        default_sort_type -> Int2,
+        default_listing_type -> Int2,
     }
 }
 
@@ -262,6 +264,16 @@ table! {
     user_ban (id) {
         id -> Int4,
         user_id -> Int4,
+        published -> Timestamp,
+    }
+}
+
+table! {
+    user_mention (id) {
+        id -> Int4,
+        recipient_id -> Int4,
+        comment_id -> Int4,
+        read -> Bool,
         published -> Timestamp,
     }
 }
@@ -303,6 +315,8 @@ joinable!(post_saved -> post (post_id));
 joinable!(post_saved -> user_ (user_id));
 joinable!(site -> user_ (creator_id));
 joinable!(user_ban -> user_ (user_id));
+joinable!(user_mention -> comment (comment_id));
+joinable!(user_mention -> user_ (recipient_id));
 
 allow_tables_to_appear_in_same_query!(
   category,
@@ -329,4 +343,5 @@ allow_tables_to_appear_in_same_query!(
   site,
   user_,
   user_ban,
+  user_mention,
 );

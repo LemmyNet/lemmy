@@ -58,7 +58,7 @@ Each lemmy server can set its own moderation policy; appointing site-wide admins
 
 ## Why's it called Lemmy?
 
-- Lead singer from [motorhead](https://invidio.us/watch?v=pWB5JZRGl0U).
+- Lead singer from [Motörhead](https://invidio.us/watch?v=pWB5JZRGl0U).
 - The old school [video game](<https://en.wikipedia.org/wiki/Lemmings_(video_game)>).
 - The [Koopa from Super Mario](https://www.mariowiki.com/Lemmy_Koopa).
 - The [furry rodents](http://sunchild.fpwc.org/lemming-the-little-giant-of-the-north/).
@@ -69,7 +69,7 @@ Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Infern
 
 ### Docker
 
-Make sure you have both docker and docker-compose(>=`1.24.0`) installed.
+Make sure you have both docker and docker-compose(>=`1.24.0`) installed:
 
 ```bash
 mkdir lemmy/
@@ -80,7 +80,7 @@ wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/.env
 docker-compose up -d
 ```
 
-and goto http://localhost:8536
+and go to http://localhost:8536.
 
 [A sample nginx config](/ansible/templates/nginx.conf), could be setup with:
 
@@ -100,8 +100,7 @@ docker-compose up -d
 
 ### Ansible
 
-First, you need to [install Ansible on your local computer](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html),
-eg using `sudo apt install ansible`, or the equivalent for you platform.
+First, you need to [install Ansible on your local computer](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html) (e.g. using `sudo apt install ansible`) or the equivalent for you platform.
 
 Then run the following commands on your local computer:
 
@@ -142,13 +141,15 @@ If you used a `LoadBalancer`, you should see it in your cloud provider's console
 
 ### Docker Development
 
+Run:
+
 ```bash
 git clone https://github.com/dessalines/lemmy
 cd lemmy/docker/dev
 ./docker_update.sh # This builds and runs it, updating for your changes
 ```
 
-and goto http://localhost:8536
+and go to http://localhost:8536.
 
 ### Local Development
 
@@ -195,21 +196,28 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 
 ## Translations 
 
-If you'd like to add translations, take a look a look at the [english translation file](ui/src/translations/en.ts).
+If you'd like to add translations, take a look a look at the [English translation file](ui/src/translations/en.ts).
 
 - Languages supported: English (`en`), Chinese (`zh`), Dutch (`nl`), Esperanto (`eo`), French (`fr`), Spanish (`es`), Swedish (`sv`), German (`de`), Russian (`ru`).
 
 lang | done | missing
 --- | --- | ---
-de | 82% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,settings,stickied,delete_account,delete_account_confirm,banned,creator,number_online,subscribed,expires,recent_comments,nsfw,show_nsfw,theme,crypto,monero,joined,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
-eo | 91% | number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,stickied,delete_account,delete_account_confirm,banned,creator,number_online,theme,are_you_sure,yes,no 
-es | 100% |  
-fr | 95% | view_source,sticky,unsticky,stickied,delete_account,delete_account_confirm,creator,number_online,theme 
-nl | 93% | preview,upload_image,formatting_help,view_source,sticky,unsticky,stickied,delete_account,delete_account_confirm,banned,creator,number_online,theme 
-ru | 86% | cross_posts,cross_post,number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,stickied,delete_account,delete_account_confirm,banned,creator,number_online,recent_comments,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
-sv | 100% |  
-zh | 84% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,settings,stickied,delete_account,delete_account_confirm,banned,creator,number_online,recent_comments,nsfw,show_nsfw,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+de | 81% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,settings,stickied,delete_account,delete_account_confirm,banned,creator,number_online,subscribed,replies,mentions,expires,recent_comments,nsfw,show_nsfw,theme,crypto,monero,joined,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+eo | 90% | number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,stickied,delete_account,delete_account_confirm,banned,creator,number_online,replies,mentions,theme,are_you_sure,yes,no 
+es | 99% | replies,mentions 
+fr | 99% | replies,mentions 
+nl | 92% | preview,upload_image,formatting_help,view_source,sticky,unsticky,stickied,delete_account,delete_account_confirm,banned,creator,number_online,replies,mentions,theme 
+ru | 86% | cross_posts,cross_post,number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,stickied,delete_account,delete_account_confirm,banned,creator,number_online,replies,mentions,recent_comments,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+sv | 99% | replies,mentions 
+zh | 83% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,settings,stickied,delete_account,delete_account_confirm,banned,creator,number_online,replies,mentions,recent_comments,nsfw,show_nsfw,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+
+If you'd like to update this report, run:
+
+```bash 
+cd ui
+ts-node translation_report.ts > tmp # And replace the text above.
+```
 
 ## Credits
 
-Logo made by Andy Cuccaro (@andycuccaro) under the CC-BY-SA 4.0 license
+Logo made by Andy Cuccaro (@andycuccaro) under the CC-BY-SA 4.0 license.

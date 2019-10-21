@@ -69,7 +69,6 @@ impl CommentView {
 
     let (limit, offset) = limit_and_offset(page, limit);
 
-    // TODO no limits here?
     let mut query = comment_view.into_boxed();
 
     // The view lets you pass a null user_id, if you're not logged in
@@ -265,6 +264,8 @@ mod tests {
       updated: None,
       show_nsfw: false,
       theme: "darkly".into(),
+      default_sort_type: SortType::Hot as i16,
+      default_listing_type: ListingType::Subscribed as i16,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();

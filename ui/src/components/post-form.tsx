@@ -1,10 +1,31 @@
 import { Component, linkEvent } from 'inferno';
 import { PostListings } from './post-listings';
-import { Subscription } from "rxjs";
+import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { PostForm as PostFormI, PostFormParams, Post, PostResponse, UserOperation, Community, ListCommunitiesResponse, ListCommunitiesForm, SortType, SearchForm, SearchType, SearchResponse } from '../interfaces';
+import {
+  PostForm as PostFormI,
+  PostFormParams,
+  Post,
+  PostResponse,
+  UserOperation,
+  Community,
+  ListCommunitiesResponse,
+  ListCommunitiesForm,
+  SortType,
+  SearchForm,
+  SearchType,
+  SearchResponse,
+} from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { msgOp, getPageTitle, debounce, validURL, capitalizeFirstLetter, markdownHelpUrl, mdToHtml } from '../utils';
+import {
+  msgOp,
+  getPageTitle,
+  debounce,
+  validURL,
+  capitalizeFirstLetter,
+  markdownHelpUrl,
+  mdToHtml,
+} from '../utils';
 import * as autosize from 'autosize';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -29,7 +50,6 @@ interface PostFormState {
 }
 
 export class PostForm extends Component<PostFormProps, PostFormState> {
-
   private subscription: Subscription;
   private emptyState: PostFormState = {
     postForm: {
@@ -37,7 +57,9 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       nsfw: false,
       auth: null,
       community_id: null,
-      creator_id: (UserService.Instance.user) ? UserService.Instance.user.id : null,
+      creator_id: UserService.Instance.user
+        ? UserService.Instance.user.id
+        : null,
     },
     communities: [],
     loading: false,
@@ -46,7 +68,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     suggestedTitle: undefined,
     suggestedPosts: [],
     crossPosts: [],
-  }
+  };
 
   constructor(props: any, context: any) {
     super(props, context);
@@ -62,8 +84,8 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
         creator_id: this.props.post.creator_id,
         url: this.props.post.url,
         nsfw: this.props.post.nsfw,
-        auth: null
-      }
+        auth: null,
+      };
     }
 
     if (this.props.params) {
@@ -77,17 +99,24 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     }
 
     this.subscription = WebSocketService.Instance.subject
-    .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
-    .subscribe(
-      (msg) => this.parseMessage(msg),
-        (err) => console.error(err),
+      .pipe(
+        retryWhen(errors =>
+          errors.pipe(
+            delay(3000),
+            take(10)
+          )
+        )
+      )
+      .subscribe(
+        msg => this.parseMessage(msg),
+        err => console.error(err),
         () => console.log('complete')
-    );
+      );
 
     let listCommunitiesForm: ListCommunitiesForm = {
       sort: SortType[SortType.TopAll],
       limit: 9999,
-    }
+    };
 
     WebSocketService.Instance.listCommunities(listCommunitiesForm);
   }
@@ -105,79 +134,177 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       <div>
         <form onSubmit={linkEvent(this, this.handlePostSubmit)}>
           <div class="form-group row">
-            <label class="col-sm-2 col-form-label"><T i18nKey="url">#</T></label>
+            <label class="col-sm-2 col-form-label">
+              <T i18nKey="url">#</T>
+            </label>
             <div class="col-sm-10">
-              <input type="url" class="form-control" value={this.state.postForm.url} onInput={linkEvent(this, this.handlePostUrlChange)} />
-              {this.state.suggestedTitle && 
-                <div class="mt-1 text-muted small font-weight-bold pointer" onClick={linkEvent(this, this.copySuggestedTitle)}><T i18nKey="copy_suggested_title" interpolation={{title: this.state.suggestedTitle}}>#</T></div>
-              }
+              <input
+                type="url"
+                class="form-control"
+                value={this.state.postForm.url}
+                onInput={linkEvent(this, this.handlePostUrlChange)}
+              />
+              {this.state.suggestedTitle && (
+                <div
+                  class="mt-1 text-muted small font-weight-bold pointer"
+                  onClick={linkEvent(this, this.copySuggestedTitle)}
+                >
+                  <T
+                    i18nKey="copy_suggested_title"
+                    interpolation={{ title: this.state.suggestedTitle }}
+                  >
+                    #
+                  </T>
+                </div>
+              )}
               <form>
-                <label htmlFor="file-upload" className={`${UserService.Instance.user && 'pointer'} d-inline-block mr-2 float-right text-muted small font-weight-bold`}><T i18nKey="upload_image">#</T></label>
-                <input id="file-upload" type="file" accept="image/*,video/*" name="file" class="d-none" disabled={!UserService.Instance.user} onChange={linkEvent(this, this.handleImageUpload)} />
+                <label
+                  htmlFor="file-upload"
+                  className={`${UserService.Instance.user &&
+                    'pointer'} d-inline-block mr-2 float-right text-muted small font-weight-bold`}
+                >
+                  <T i18nKey="upload_image">#</T>
+                </label>
+                <input
+                  id="file-upload"
+                  type="file"
+                  accept="image/*,video/*"
+                  name="file"
+                  class="d-none"
+                  disabled={!UserService.Instance.user}
+                  onChange={linkEvent(this, this.handleImageUpload)}
+                />
               </form>
-              {this.state.imageLoading && 
-                <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg>
-              }
-              {this.state.crossPosts.length > 0 && 
+              {this.state.imageLoading && (
+                <svg class="icon icon-spinner spin">
+                  <use xlinkHref="#icon-spinner"></use>
+                </svg>
+              )}
+              {this.state.crossPosts.length > 0 && (
                 <>
-                  <div class="my-1 text-muted small font-weight-bold"><T i18nKey="cross_posts">#</T></div>
+                  <div class="my-1 text-muted small font-weight-bold">
+                    <T i18nKey="cross_posts">#</T>
+                  </div>
                   <PostListings showCommunity posts={this.state.crossPosts} />
                 </>
-              }
+              )}
             </div>
           </div>
           <div class="form-group row">
-            <label class="col-sm-2 col-form-label"><T i18nKey="title">#</T></label>
+            <label class="col-sm-2 col-form-label">
+              <T i18nKey="title">#</T>
+            </label>
             <div class="col-sm-10">
-              <textarea value={this.state.postForm.name} onInput={linkEvent(this, this.handlePostNameChange)} class="form-control" required rows={2} minLength={3} maxLength={100} />
-              {this.state.suggestedPosts.length > 0 && 
+              <textarea
+                value={this.state.postForm.name}
+                onInput={linkEvent(this, this.handlePostNameChange)}
+                class="form-control"
+                required
+                rows={2}
+                minLength={3}
+                maxLength={100}
+              />
+              {this.state.suggestedPosts.length > 0 && (
                 <>
-                  <div class="my-1 text-muted small font-weight-bold"><T i18nKey="related_posts">#</T></div>
+                  <div class="my-1 text-muted small font-weight-bold">
+                    <T i18nKey="related_posts">#</T>
+                  </div>
                   <PostListings posts={this.state.suggestedPosts} />
                 </>
-              }
+              )}
             </div>
           </div>
           <div class="form-group row">
-            <label class="col-sm-2 col-form-label"><T i18nKey="body">#</T></label>
+            <label class="col-sm-2 col-form-label">
+              <T i18nKey="body">#</T>
+            </label>
             <div class="col-sm-10">
-              <textarea value={this.state.postForm.body} onInput={linkEvent(this, this.handlePostBodyChange)} className={`form-control ${this.state.previewMode && 'd-none'}`} rows={4} maxLength={10000} />
-              {this.state.previewMode && 
-                <div className="md-div" dangerouslySetInnerHTML={mdToHtml(this.state.postForm.body)} />
-              }
-              {this.state.postForm.body &&
-                <button className={`mt-1 mr-2 btn btn-sm btn-secondary ${this.state.previewMode && 'active'}`} onClick={linkEvent(this, this.handlePreviewToggle)}><T i18nKey="preview">#</T></button>
-              }
-              <a href={markdownHelpUrl} target="_blank" class="d-inline-block float-right text-muted small font-weight-bold"><T i18nKey="formatting_help">#</T></a>
+              <textarea
+                value={this.state.postForm.body}
+                onInput={linkEvent(this, this.handlePostBodyChange)}
+                className={`form-control ${this.state.previewMode && 'd-none'}`}
+                rows={4}
+                maxLength={10000}
+              />
+              {this.state.previewMode && (
+                <div
+                  className="md-div"
+                  dangerouslySetInnerHTML={mdToHtml(this.state.postForm.body)}
+                />
+              )}
+              {this.state.postForm.body && (
+                <button
+                  className={`mt-1 mr-2 btn btn-sm btn-secondary ${this.state
+                    .previewMode && 'active'}`}
+                  onClick={linkEvent(this, this.handlePreviewToggle)}
+                >
+                  <T i18nKey="preview">#</T>
+                </button>
+              )}
+              <a
+                href={markdownHelpUrl}
+                target="_blank"
+                class="d-inline-block float-right text-muted small font-weight-bold"
+              >
+                <T i18nKey="formatting_help">#</T>
+              </a>
             </div>
           </div>
-          {!this.props.post &&
+          {!this.props.post && (
             <div class="form-group row">
-            <label class="col-sm-2 col-form-label"><T i18nKey="community">#</T></label>
-            <div class="col-sm-10">
-              <select class="form-control" value={this.state.postForm.community_id} onInput={linkEvent(this, this.handlePostCommunityChange)}>
-                {this.state.communities.map(community =>
-                  <option value={community.id}>{community.name}</option>
-                )}
-              </select>
+              <label class="col-sm-2 col-form-label">
+                <T i18nKey="community">#</T>
+              </label>
+              <div class="col-sm-10">
+                <select
+                  class="form-control"
+                  value={this.state.postForm.community_id}
+                  onInput={linkEvent(this, this.handlePostCommunityChange)}
+                >
+                  {this.state.communities.map(community => (
+                    <option value={community.id}>{community.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            </div>
-            }
+          )}
           <div class="form-group row">
             <div class="col-sm-10">
               <div class="form-check">
-                <input class="form-check-input" type="checkbox" checked={this.state.postForm.nsfw} onChange={linkEvent(this, this.handlePostNsfwChange)}/>
-                <label class="form-check-label"><T i18nKey="nsfw">#</T></label>
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  checked={this.state.postForm.nsfw}
+                  onChange={linkEvent(this, this.handlePostNsfwChange)}
+                />
+                <label class="form-check-label">
+                  <T i18nKey="nsfw">#</T>
+                </label>
               </div>
             </div>
           </div>
           <div class="form-group row">
             <div class="col-sm-10">
               <button type="submit" class="btn btn-secondary mr-2">
-              {this.state.loading ? 
-              <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : 
-              this.props.post ? capitalizeFirstLetter(i18n.t('save')) : capitalizeFirstLetter(i18n.t('create'))}</button>
-              {this.props.post && <button type="button" class="btn btn-secondary" onClick={linkEvent(this, this.handleCancel)}><T i18nKey="cancel">#</T></button>}
+                {this.state.loading ? (
+                  <svg class="icon icon-spinner spin">
+                    <use xlinkHref="#icon-spinner"></use>
+                  </svg>
+                ) : this.props.post ? (
+                  capitalizeFirstLetter(i18n.t('save'))
+                ) : (
+                  capitalizeFirstLetter(i18n.t('create'))
+                )}
+              </button>
+              {this.props.post && (
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  onClick={linkEvent(this, this.handleCancel)}
+                >
+                  <T i18nKey="cancel">#</T>
+                </button>
+              )}
             </div>
           </div>
         </form>
@@ -205,7 +332,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
   handlePostUrlChange(i: PostForm, event: any) {
     i.state.postForm.url = event.target.value;
     if (validURL(i.state.postForm.url)) {
-
       let form: SearchForm = {
         q: i.state.postForm.url,
         type_: SearchType[SearchType.Url],
@@ -288,21 +414,21 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       method: 'POST',
       body: formData,
     })
-    .then(res => res.json())
-    .then(res => {
-      let url = `${window.location.origin}/pictshare/${res.url}`;
-      if (res.filetype == 'mp4') {
-        url += '/raw';
-      }
-      i.state.postForm.url = url;
-      i.state.imageLoading = false;
-      i.setState(i.state);
-    })
-    .catch((error) => {
-      i.state.imageLoading = false;
-      i.setState(i.state);
-      alert(error);
-    })
+      .then(res => res.json())
+      .then(res => {
+        let url = `${window.location.origin}/pictshare/${res.url}`;
+        if (res.filetype == 'mp4') {
+          url += '/raw';
+        }
+        i.state.postForm.url = url;
+        i.state.imageLoading = false;
+        i.setState(i.state);
+      })
+      .catch(error => {
+        i.state.imageLoading = false;
+        i.setState(i.state);
+        alert(error);
+      });
   }
 
   parseMessage(msg: any) {
@@ -318,7 +444,9 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       if (this.props.post) {
         this.state.postForm.community_id = this.props.post.community_id;
       } else if (this.props.params && this.props.params.community) {
-        let foundCommunityId = res.communities.find(r => r.name == this.props.params.community).id;
+        let foundCommunityId = res.communities.find(
+          r => r.name == this.props.params.community
+        ).id;
         this.state.postForm.community_id = foundCommunityId;
       } else {
         this.state.postForm.community_id = res.communities[0].id;
@@ -334,7 +462,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       this.props.onEdit(res.post);
     } else if (op == UserOperation.Search) {
       let res: SearchResponse = msg;
-      
+
       if (res.type_ == SearchType[SearchType.Posts]) {
         this.state.suggestedPosts = res.posts;
       } else if (res.type_ == SearchType[SearchType.Url]) {
@@ -343,7 +471,4 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       this.setState(this.state);
     }
   }
-
 }
-
-

@@ -136,7 +136,7 @@ impl ChatServer {
     let conn = establish_connection();
     let posts = PostView::list(
       &conn,
-      PostListingType::Community,
+      ListingType::Community,
       &SortType::New,
       Some(*community_id),
       None,
@@ -341,6 +341,16 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
     UserOperation::GetReplies => {
       let get_replies: GetReplies = serde_json::from_str(data)?;
       let res = Oper::new(user_operation, get_replies).perform()?;
+      Ok(serde_json::to_string(&res)?)
+    }
+    UserOperation::GetUserMentions => {
+      let get_user_mentions: GetUserMentions = serde_json::from_str(data)?;
+      let res = Oper::new(user_operation, get_user_mentions).perform()?;
+      Ok(serde_json::to_string(&res)?)
+    }
+    UserOperation::EditUserMention => {
+      let edit_user_mention: EditUserMention = serde_json::from_str(data)?;
+      let res = Oper::new(user_operation, edit_user_mention).perform()?;
       Ok(serde_json::to_string(&res)?)
     }
     UserOperation::MarkAllAsRead => {

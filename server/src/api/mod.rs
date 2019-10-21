@@ -8,9 +8,11 @@ use crate::db::moderator_views::*;
 use crate::db::post::*;
 use crate::db::post_view::*;
 use crate::db::user::*;
+use crate::db::user_mention::*;
+use crate::db::user_mention_view::*;
 use crate::db::user_view::*;
 use crate::db::*;
-use crate::{has_slurs, naive_from_unix, naive_now, remove_slurs, Settings};
+use crate::{extract_usernames, has_slurs, naive_from_unix, naive_now, remove_slurs, Settings};
 use failure::Error;
 use serde::{Deserialize, Serialize};
 
@@ -43,6 +45,8 @@ pub enum UserOperation {
   GetFollowedCommunities,
   GetUserDetails,
   GetReplies,
+  GetUserMentions,
+  EditUserMention,
   GetModlog,
   BanFromCommunity,
   AddModToCommunity,
