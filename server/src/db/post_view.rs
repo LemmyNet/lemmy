@@ -1,12 +1,5 @@
 use super::*;
 
-#[derive(EnumString, ToString, Debug, Serialize, Deserialize)]
-pub enum PostListingType {
-  All,
-  Subscribed,
-  Community,
-}
-
 // The faked schema since diesel doesn't do views
 table! {
   post_view (id) {
@@ -83,7 +76,7 @@ pub struct PostView {
 impl PostView {
   pub fn list(
     conn: &PgConnection,
-    type_: PostListingType,
+    type_: ListingType,
     sort: &SortType,
     for_community_id: Option<i32>,
     for_creator_id: Option<i32>,
@@ -129,7 +122,7 @@ impl PostView {
     };
 
     match type_ {
-      PostListingType::Subscribed => {
+      ListingType::Subscribed => {
         query = query.filter(subscribed.eq(true));
       }
       _ => {}
@@ -226,6 +219,8 @@ mod tests {
       banned: false,
       show_nsfw: false,
       theme: "darkly".into(),
+      default_sort_type: SortType::Hot as i16,
+      default_listing_type: ListingType::Subscribed as i16,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -351,7 +346,7 @@ mod tests {
 
     let read_post_listings_with_user = PostView::list(
       &conn,
-      PostListingType::Community,
+      ListingType::Community,
       &SortType::New,
       Some(inserted_community.id),
       None,
@@ -367,7 +362,7 @@ mod tests {
     .unwrap();
     let read_post_listings_no_user = PostView::list(
       &conn,
-      PostListingType::Community,
+      ListingType::Community,
       &SortType::New,
       Some(inserted_community.id),
       None,

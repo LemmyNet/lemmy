@@ -21,6 +21,7 @@ import {
 import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
 import { SortSelect } from './sort-select';
+import { ListingTypeSelect } from './listing-type-select';
 import { SiteForm } from './site-form';
 import {
   msgOp,
@@ -81,13 +82,15 @@ export class Main extends Component<any, MainState> {
     return props.match.params.type
       ? routeListingTypeToEnum(props.match.params.type)
       : UserService.Instance.user
-      ? ListingType.Subscribed
+      ? UserService.Instance.user.default_listing_type
       : ListingType.All;
   }
 
   getSortTypeFromProps(props: any): SortType {
     return props.match.params.sort
       ? routeSortTypeToEnum(props.match.params.sort)
+      : UserService.Instance.user
+      ? UserService.Instance.user.default_sort_type
       : SortType.Hot;
   }
 
@@ -101,6 +104,7 @@ export class Main extends Component<any, MainState> {
     this.state = this.emptyState;
     this.handleEditCancel = this.handleEditCancel.bind(this);
     this.handleSortChange = this.handleSortChange.bind(this);
+    this.handleTypeChange = this.handleTypeChange.bind(this);
 
     this.subscription = WebSocketService.Instance.subject
       .pipe(
@@ -423,35 +427,10 @@ export class Main extends Component<any, MainState> {
   selects() {
     return (
       <div className="mb-3">
-        <div class="btn-group btn-group-toggle">
-          <label
-            className={`btn btn-sm btn-secondary 
-            ${this.state.type_ == ListingType.Subscribed && 'active'}
-            ${UserService.Instance.user == undefined ? 'disabled' : 'pointer'}
-            `}
-          >
-            <input
-              type="radio"
-              value={ListingType.Subscribed}
-              checked={this.state.type_ == ListingType.Subscribed}
-              onChange={linkEvent(this, this.handleTypeChange)}
-              disabled={UserService.Instance.user == undefined}
-            />
-            {i18n.t('subscribed')}
-          </label>
-          <label
-            className={`pointer btn btn-sm btn-secondary ${this.state.type_ ==
-              ListingType.All && 'active'}`}
-          >
-            <input
-              type="radio"
-              value={ListingType.All}
-              checked={this.state.type_ == ListingType.All}
-              onChange={linkEvent(this, this.handleTypeChange)}
-            />
-            {i18n.t('all')}
-          </label>
-        </div>
+        <ListingTypeSelect
+          type_={this.state.type_}
+          onChange={this.handleTypeChange}
+        />
         <span class="ml-2">
           <SortSelect sort={this.state.sort} onChange={this.handleSortChange} />
         </span>
@@ -527,13 +506,13 @@ export class Main extends Component<any, MainState> {
     window.scrollTo(0, 0);
   }
 
-  handleTypeChange(i: Main, event: any) {
-    i.state.type_ = Number(event.target.value);
-    i.state.page = 1;
-    i.state.loading = true;
-    i.setState(i.state);
-    i.updateUrl();
-    i.fetchPosts();
+  handleTypeChange(val: ListingType) {
+    this.state.type_ = val;
+    this.state.page = 1;
+    this.state.loading = true;
+    this.setState(this.state);
+    this.updateUrl();
+    this.fetchPosts();
     window.scrollTo(0, 0);
   }
 

@@ -321,7 +321,7 @@ impl Perform<SearchResponse> for Oper<Search> {
       SearchType::Posts => {
         posts = PostView::list(
           &conn,
-          PostListingType::All,
+          ListingType::All,
           &sort,
           data.community_id,
           None,
@@ -365,7 +365,7 @@ impl Perform<SearchResponse> for Oper<Search> {
       SearchType::All => {
         posts = PostView::list(
           &conn,
-          PostListingType::All,
+          ListingType::All,
           &sort,
           data.community_id,
           None,
@@ -403,7 +403,7 @@ impl Perform<SearchResponse> for Oper<Search> {
       SearchType::Url => {
         posts = PostView::list(
           &conn,
-          PostListingType::All,
+          ListingType::All,
           &sort,
           data.community_id,
           None,

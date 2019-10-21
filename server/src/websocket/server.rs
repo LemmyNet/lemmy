@@ -136,7 +136,7 @@ impl ChatServer {
     let conn = establish_connection();
     let posts = PostView::list(
       &conn,
-      PostListingType::Community,
+      ListingType::Community,
       &SortType::New,
       Some(*community_id),
       None,
