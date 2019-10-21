@@ -20,6 +20,8 @@ import {
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
+import { SortSelect } from './sort-select';
+import { ListingTypeSelect } from './listing-type-select';
 import { SiteForm } from './site-form';
 import {
   msgOp,
@@ -80,13 +82,15 @@ export class Main extends Component<any, MainState> {
     return props.match.params.type
       ? routeListingTypeToEnum(props.match.params.type)
       : UserService.Instance.user
-      ? ListingType.Subscribed
+      ? UserService.Instance.user.default_listing_type
       : ListingType.All;
   }
 
   getSortTypeFromProps(props: any): SortType {
     return props.match.params.sort
       ? routeSortTypeToEnum(props.match.params.sort)
+      : UserService.Instance.user
+      ? UserService.Instance.user.default_sort_type
       : SortType.Hot;
   }
 
@@ -99,6 +103,8 @@ export class Main extends Component<any, MainState> {
 
     this.state = this.emptyState;
     this.handleEditCancel = this.handleEditCancel.bind(this);
+    this.handleSortChange = this.handleSortChange.bind(this);
+    this.handleTypeChange = this.handleTypeChange.bind(this);
 
     this.subscription = WebSocketService.Instance.subject
       .pipe(
@@ -421,66 +427,13 @@ export class Main extends Component<any, MainState> {
   selects() {
     return (
       <div className="mb-3">
-        <div class="btn-group btn-group-toggle">
-          <label
-            className={`btn btn-sm btn-secondary 
-            ${this.state.type_ == ListingType.Subscribed && 'active'}
-            ${UserService.Instance.user == undefined ? 'disabled' : 'pointer'}
-            `}
-          >
-            <input
-              type="radio"
-              value={ListingType.Subscribed}
-              checked={this.state.type_ == ListingType.Subscribed}
-              onChange={linkEvent(this, this.handleTypeChange)}
-              disabled={UserService.Instance.user == undefined}
-            />
-            {i18n.t('subscribed')}
-          </label>
-          <label
-            className={`pointer btn btn-sm btn-secondary ${this.state.type_ ==
-              ListingType.All && 'active'}`}
-          >
-            <input
-              type="radio"
-              value={ListingType.All}
-              checked={this.state.type_ == ListingType.All}
-              onChange={linkEvent(this, this.handleTypeChange)}
-            />
-            {i18n.t('all')}
-          </label>
-        </div>
-        <select
-          value={this.state.sort}
-          onChange={linkEvent(this, this.handleSortChange)}
-          class="ml-2 custom-select custom-select-sm w-auto"
-        >
-          <option disabled>
-            <T i18nKey="sort_type">#</T>
-          </option>
-          <option value={SortType.Hot}>
-            <T i18nKey="hot">#</T>
-          </option>
-          <option value={SortType.New}>
-            <T i18nKey="new">#</T>
-          </option>
-          <option disabled>─────</option>
-          <option value={SortType.TopDay}>
-            <T i18nKey="top_day">#</T>
-          </option>
-          <option value={SortType.TopWeek}>
-            <T i18nKey="week">#</T>
-          </option>
-          <option value={SortType.TopMonth}>
-            <T i18nKey="month">#</T>
-          </option>
-          <option value={SortType.TopYear}>
-            <T i18nKey="year">#</T>
-          </option>
-          <option value={SortType.TopAll}>
-            <T i18nKey="all">#</T>
-          </option>
-        </select>
+        <ListingTypeSelect
+          type_={this.state.type_}
+          onChange={this.handleTypeChange}
+        />
+        <span class="ml-2">
+          <SortSelect sort={this.state.sort} onChange={this.handleSortChange} />
+        </span>
       </div>
     );
   }
@@ -543,23 +496,23 @@ export class Main extends Component<any, MainState> {
     window.scrollTo(0, 0);
   }
 
-  handleSortChange(i: Main, event: any) {
-    i.state.sort = Number(event.target.value);
-    i.state.page = 1;
-    i.state.loading = true;
-    i.setState(i.state);
-    i.updateUrl();
-    i.fetchPosts();
+  handleSortChange(val: SortType) {
+    this.state.sort = val;
+    this.state.page = 1;
+    this.state.loading = true;
+    this.setState(this.state);
+    this.updateUrl();
+    this.fetchPosts();
     window.scrollTo(0, 0);
   }
 
-  handleTypeChange(i: Main, event: any) {
-    i.state.type_ = Number(event.target.value);
-    i.state.page = 1;
-    i.state.loading = true;
-    i.setState(i.state);
-    i.updateUrl();
-    i.fetchPosts();
+  handleTypeChange(val: ListingType) {
+    this.state.type_ = val;
+    this.state.page = 1;
+    this.state.loading = true;
+    this.setState(this.state);
+    this.updateUrl();
+    this.fetchPosts();
     window.scrollTo(0, 0);
   }
 

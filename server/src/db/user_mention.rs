@@ -73,6 +73,8 @@ mod tests {
       updated: None,
       show_nsfw: false,
       theme: "darkly".into(),
+      default_sort_type: SortType::Hot as i16,
+      default_listing_type: ListingType::Subscribed as i16,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -88,6 +90,8 @@ mod tests {
       updated: None,
       show_nsfw: false,
       theme: "darkly".into(),
+      default_sort_type: SortType::Hot as i16,
+      default_listing_type: ListingType::Subscribed as i16,
     };
 
     let inserted_recipient = User_::create(&conn, &recipient_form).unwrap();

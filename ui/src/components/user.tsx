@@ -9,6 +9,7 @@ import {
   CommunityUser,
   GetUserDetailsForm,
   SortType,
+  ListingType,
   UserDetailsResponse,
   UserView,
   CommentResponse,
@@ -28,6 +29,8 @@ import {
   setTheme,
 } from '../utils';
 import { PostListing } from './post-listing';
+import { SortSelect } from './sort-select';
+import { ListingTypeSelect } from './listing-type-select';
 import { CommentNodes } from './comment-nodes';
 import { MomentTime } from './moment-time';
 import { i18n } from '../i18next';
@@ -89,6 +92,8 @@ export class User extends Component<any, UserState> {
     userSettingsForm: {
       show_nsfw: null,
       theme: null,
+      default_sort_type: null,
+      default_listing_type: null,
       auth: null,
     },
     userSettingsLoading: null,
@@ -103,6 +108,13 @@ export class User extends Component<any, UserState> {
     super(props, context);
 
     this.state = this.emptyState;
+    this.handleSortChange = this.handleSortChange.bind(this);
+    this.handleUserSettingsSortTypeChange = this.handleUserSettingsSortTypeChange.bind(
+      this
+    );
+    this.handleUserSettingsListingTypeChange = this.handleUserSettingsListingTypeChange.bind(
+      this
+    );
 
     this.state.user_id = Number(this.props.match.params.id);
     this.state.username = this.props.match.params.username;
@@ -154,11 +166,14 @@ export class User extends Component<any, UserState> {
 
   // Necessary for back button for some reason
   componentWillReceiveProps(nextProps: any) {
-    if (nextProps.history.action == 'POP') {
-      this.state = this.emptyState;
+    if (
+      nextProps.history.action == 'POP' ||
+      nextProps.history.action == 'PUSH'
+    ) {
       this.state.view = this.getViewFromProps(nextProps);
       this.state.sort = this.getSortTypeFromProps(nextProps);
       this.state.page = this.getPageFromProps(nextProps);
+      this.setState(this.state);
       this.refetch();
     }
   }
@@ -219,33 +234,13 @@ export class User extends Component<any, UserState> {
             <T i18nKey="saved">#</T>
           </option>
         </select>
-        <select
-          value={this.state.sort}
-          onChange={linkEvent(this, this.handleSortChange)}
-          class="custom-select custom-select-sm w-auto ml-2"
-        >
-          <option disabled>
-            <T i18nKey="sort_type">#</T>
-          </option>
-          <option value={SortType.New}>
-            <T i18nKey="new">#</T>
-          </option>
-          <option value={SortType.TopDay}>
-            <T i18nKey="top_day">#</T>
-          </option>
-          <option value={SortType.TopWeek}>
-            <T i18nKey="week">#</T>
-          </option>
-          <option value={SortType.TopMonth}>
-            <T i18nKey="month">#</T>
-          </option>
-          <option value={SortType.TopYear}>
-            <T i18nKey="year">#</T>
-          </option>
-          <option value={SortType.TopAll}>
-            <T i18nKey="all">#</T>
-          </option>
-        </select>
+        <span class="ml-2">
+          <SortSelect
+            sort={this.state.sort}
+            onChange={this.handleSortChange}
+            hideHot
+          />
+        </span>
       </div>
     );
   }
@@ -418,6 +413,32 @@ export class User extends Component<any, UserState> {
                   </select>
                 </div>
               </div>
+              <form className="form-group">
+                <div class="col-12">
+                  <label>
+                    <T i18nKey="sort_type" class="mr-2">
+                      #
+                    </T>
+                  </label>
+                  <ListingTypeSelect
+                    type_={this.state.userSettingsForm.default_listing_type}
+                    onChange={this.handleUserSettingsListingTypeChange}
+                  />
+                </div>
+              </form>
+              <form className="form-group">
+                <div class="col-12">
+                  <label>
+                    <T i18nKey="type" class="mr-2">
+                      #
+                    </T>
+                  </label>
+                  <SortSelect
+                    sort={this.state.userSettingsForm.default_sort_type}
+                    onChange={this.handleUserSettingsSortTypeChange}
+                  />
+                </div>
+              </form>
               <div class="form-group">
                 <div class="col-12">
                   <div class="form-check">
@@ -436,9 +457,12 @@ export class User extends Component<any, UserState> {
                   </div>
                 </div>
               </div>
-              <div class="form-group row mb-0">
+              <div class="form-group">
                 <div class="col-12">
-                  <button type="submit" class="btn btn-secondary mr-4">
+                  <button
+                    type="submit"
+                    class="btn btn-block btn-secondary mr-4"
+                  >
                     {this.state.userSettingsLoading ? (
                       <svg class="icon icon-spinner spin">
                         <use xlinkHref="#icon-spinner"></use>
@@ -447,8 +471,13 @@ export class User extends Component<any, UserState> {
                       capitalizeFirstLetter(i18n.t('save'))
                     )}
                   </button>
+                </div>
+              </div>
+              <hr />
+              <div class="form-group mb-0">
+                <div class="col-12">
                   <button
-                    class="btn btn-danger"
+                    class="btn btn-block btn-danger"
                     onClick={linkEvent(
                       this,
                       this.handleDeleteAccountShowConfirmToggle
@@ -608,12 +637,12 @@ export class User extends Component<any, UserState> {
     WebSocketService.Instance.getUserDetails(form);
   }
 
-  handleSortChange(i: User, event: any) {
-    i.state.sort = Number(event.target.value);
-    i.state.page = 1;
-    i.setState(i.state);
-    i.updateUrl();
-    i.refetch();
+  handleSortChange(val: SortType) {
+    this.state.sort = val;
+    this.state.page = 1;
+    this.setState(this.state);
+    this.updateUrl();
+    this.refetch();
   }
 
   handleViewChange(i: User, event: any) {
@@ -633,6 +662,16 @@ export class User extends Component<any, UserState> {
     i.state.userSettingsForm.theme = event.target.value;
     setTheme(event.target.value);
     i.setState(i.state);
+  }
+
+  handleUserSettingsSortTypeChange(val: SortType) {
+    this.state.userSettingsForm.default_sort_type = val;
+    this.setState(this.state);
+  }
+
+  handleUserSettingsListingTypeChange(val: ListingType) {
+    this.state.userSettingsForm.default_listing_type = val;
+    this.setState(this.state);
   }
 
   handleUserSettingsSubmit(i: User, event: any) {
@@ -685,6 +724,10 @@ export class User extends Component<any, UserState> {
         this.state.userSettingsForm.theme = UserService.Instance.user.theme
           ? UserService.Instance.user.theme
           : 'darkly';
+        this.state.userSettingsForm.default_sort_type =
+          UserService.Instance.user.default_sort_type;
+        this.state.userSettingsForm.default_listing_type =
+          UserService.Instance.user.default_listing_type;
       }
       document.title = `/u/${this.state.user.name} - ${WebSocketService.Instance.site.name}`;
       window.scrollTo(0, 0);

@@ -235,7 +235,7 @@ impl Perform<GetPostsResponse> for Oper<GetPosts> {
       None => false,
     };
 
-    let type_ = PostListingType::from_str(&data.type_)?;
+    let type_ = ListingType::from_str(&data.type_)?;
     let sort = SortType::from_str(&data.sort)?;
 
     let posts = match PostView::list(

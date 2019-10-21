@@ -255,6 +255,8 @@ table! {
         updated -> Nullable<Timestamp>,
         show_nsfw -> Bool,
         theme -> Varchar,
+        default_sort_type -> Int2,
+        default_listing_type -> Int2,
     }
 }
 

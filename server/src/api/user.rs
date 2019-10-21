@@ -22,6 +22,8 @@ pub struct Register {
 pub struct SaveUserSettings {
   show_nsfw: bool,
   theme: String,
+  default_sort_type: i16,
+  default_listing_type: i16,
   auth: String,
 }
 
@@ -198,6 +200,8 @@ impl Perform<LoginResponse> for Oper<Register> {
       banned: false,
       show_nsfw: data.show_nsfw,
       theme: "darkly".into(),
+      default_sort_type: SortType::Hot as i16,
+      default_listing_type: ListingType::Subscribed as i16,
     };
 
     // Create the user
@@ -289,6 +293,8 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
       banned: read_user.banned,
       show_nsfw: data.show_nsfw,
       theme: data.theme.to_owned(),
+      default_sort_type: data.default_sort_type,
+      default_listing_type: data.default_listing_type,
     };
 
     let updated_user = match User_::update(&conn, user_id, &user_form) {
@@ -346,7 +352,7 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
     let posts = if data.saved_only {
       PostView::list(
         &conn,
-        PostListingType::All,
+        ListingType::All,
         &sort,
         data.community_id,
         None,
@@ -362,7 +368,7 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
     } else {
       PostView::list(
         &conn,
-        PostListingType::All,
+        ListingType::All,
         &sort,
         data.community_id,
         Some(user_details_id),
@@ -453,6 +459,8 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
       banned: read_user.banned,
       show_nsfw: read_user.show_nsfw,
       theme: read_user.theme,
+      default_sort_type: read_user.default_sort_type,
+      default_listing_type: read_user.default_listing_type,
     };
 
     match User_::update(&conn, data.user_id, &user_form) {
@@ -512,6 +520,8 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
       banned: data.ban,
       show_nsfw: read_user.show_nsfw,
       theme: read_user.theme,
+      default_sort_type: read_user.default_sort_type,
+      default_listing_type: read_user.default_listing_type,
     };
 
     match User_::update(&conn, data.user_id, &user_form) {
@@ -751,7 +761,7 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
     // Posts
     let posts = PostView::list(
       &conn,
-      PostListingType::All,
+      ListingType::All,
       &SortType::New,
       None,
       Some(user_id),

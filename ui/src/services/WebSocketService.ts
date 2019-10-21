@@ -53,8 +53,8 @@ export class WebSocketService {
       .pipe(
         retryWhen(errors =>
           errors.pipe(
-            delay(60000),
-            take(999)
+            delay(1000)
+            // take(999)
           )
         )
       )
