@@ -28,6 +28,7 @@ import {
   setTheme,
 } from '../utils';
 import { PostListing } from './post-listing';
+import { SortSelect } from './sort-select';
 import { CommentNodes } from './comment-nodes';
 import { MomentTime } from './moment-time';
 import { i18n } from '../i18next';
@@ -103,6 +104,7 @@ export class User extends Component<any, UserState> {
     super(props, context);
 
     this.state = this.emptyState;
+    this.handleSortChange = this.handleSortChange.bind(this);
 
     this.state.user_id = Number(this.props.match.params.id);
     this.state.username = this.props.match.params.username;
@@ -154,11 +156,14 @@ export class User extends Component<any, UserState> {
 
   // Necessary for back button for some reason
   componentWillReceiveProps(nextProps: any) {
-    if (nextProps.history.action == 'POP') {
-      this.state = this.emptyState;
+    if (
+      nextProps.history.action == 'POP' ||
+      nextProps.history.action == 'PUSH'
+    ) {
       this.state.view = this.getViewFromProps(nextProps);
       this.state.sort = this.getSortTypeFromProps(nextProps);
       this.state.page = this.getPageFromProps(nextProps);
+      this.setState(this.state);
       this.refetch();
     }
   }
@@ -219,33 +224,13 @@ export class User extends Component<any, UserState> {
             <T i18nKey="saved">#</T>
           </option>
         </select>
-        <select
-          value={this.state.sort}
-          onChange={linkEvent(this, this.handleSortChange)}
-          class="custom-select custom-select-sm w-auto ml-2"
-        >
-          <option disabled>
-            <T i18nKey="sort_type">#</T>
-          </option>
-          <option value={SortType.New}>
-            <T i18nKey="new">#</T>
-          </option>
-          <option value={SortType.TopDay}>
-            <T i18nKey="top_day">#</T>
-          </option>
-          <option value={SortType.TopWeek}>
-            <T i18nKey="week">#</T>
-          </option>
-          <option value={SortType.TopMonth}>
-            <T i18nKey="month">#</T>
-          </option>
-          <option value={SortType.TopYear}>
-            <T i18nKey="year">#</T>
-          </option>
-          <option value={SortType.TopAll}>
-            <T i18nKey="all">#</T>
-          </option>
-        </select>
+        <span class="ml-2">
+          <SortSelect
+            sort={this.state.sort}
+            onChange={this.handleSortChange}
+            hideHot
+          />
+        </span>
       </div>
     );
   }
@@ -608,12 +593,12 @@ export class User extends Component<any, UserState> {
     WebSocketService.Instance.getUserDetails(form);
   }
 
-  handleSortChange(i: User, event: any) {
-    i.state.sort = Number(event.target.value);
-    i.state.page = 1;
-    i.setState(i.state);
-    i.updateUrl();
-    i.refetch();
+  handleSortChange(val: SortType) {
+    this.state.sort = val;
+    this.state.page = 1;
+    this.setState(this.state);
+    this.updateUrl();
+    this.refetch();
   }
 
   handleViewChange(i: User, event: any) {

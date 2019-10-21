@@ -17,6 +17,7 @@ import {
 } from '../interfaces';
 import { WebSocketService } from '../services';
 import { PostListings } from './post-listings';
+import { SortSelect } from './sort-select';
 import { Sidebar } from './sidebar';
 import {
   msgOp,
@@ -82,6 +83,7 @@ export class Community extends Component<any, State> {
     super(props, context);
 
     this.state = this.emptyState;
+    this.handleSortChange = this.handleSortChange.bind(this);
 
     this.subscription = WebSocketService.Instance.subject
       .pipe(
@@ -112,10 +114,13 @@ export class Community extends Component<any, State> {
 
   // Necessary for back button for some reason
   componentWillReceiveProps(nextProps: any) {
-    if (nextProps.history.action == 'POP') {
-      this.state = this.emptyState;
+    if (
+      nextProps.history.action == 'POP' ||
+      nextProps.history.action == 'PUSH'
+    ) {
       this.state.sort = this.getSortTypeFromProps(nextProps);
       this.state.page = this.getPageFromProps(nextProps);
+      this.setState(this.state);
       this.fetchPosts();
     }
   }
@@ -164,38 +169,8 @@ export class Community extends Component<any, State> {
 
   selects() {
     return (
-      <div className="mb-2">
-        <select
-          value={this.state.sort}
-          onChange={linkEvent(this, this.handleSortChange)}
-          class="custom-select custom-select-sm w-auto"
-        >
-          <option disabled>
-            <T i18nKey="sort_type">#</T>
-          </option>
-          <option value={SortType.Hot}>
-            <T i18nKey="hot">#</T>
-          </option>
-          <option value={SortType.New}>
-            <T i18nKey="new">#</T>
-          </option>
-          <option disabled>──────</option>
-          <option value={SortType.TopDay}>
-            <T i18nKey="top_day">#</T>
-          </option>
-          <option value={SortType.TopWeek}>
-            <T i18nKey="week">#</T>
-          </option>
-          <option value={SortType.TopMonth}>
-            <T i18nKey="month">#</T>
-          </option>
-          <option value={SortType.TopYear}>
-            <T i18nKey="year">#</T>
-          </option>
-          <option value={SortType.TopAll}>
-            <T i18nKey="all">#</T>
-          </option>
-        </select>
+      <div class="mb-2">
+        <SortSelect sort={this.state.sort} onChange={this.handleSortChange} />
       </div>
     );
   }
@@ -237,12 +212,13 @@ export class Community extends Component<any, State> {
     window.scrollTo(0, 0);
   }
 
-  handleSortChange(i: Community, event: any) {
-    i.state.sort = Number(event.target.value);
-    i.state.page = 1;
-    i.setState(i.state);
-    i.updateUrl();
-    i.fetchPosts();
+  handleSortChange(val: SortType) {
+    this.state.sort = val;
+    this.state.page = 1;
+    this.state.loading = true;
+    this.setState(this.state);
+    this.updateUrl();
+    this.fetchPosts();
     window.scrollTo(0, 0);
   }
 

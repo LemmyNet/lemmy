@@ -21,6 +21,7 @@ import {
   routeSortTypeToEnum,
 } from '../utils';
 import { PostListing } from './post-listing';
+import { SortSelect } from './sort-select';
 import { CommentNodes } from './comment-nodes';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -76,6 +77,7 @@ export class Search extends Component<any, SearchState> {
     super(props, context);
 
     this.state = this.emptyState;
+    this.handleSortChange = this.handleSortChange.bind(this);
 
     this.subscription = WebSocketService.Instance.subject
       .pipe(
@@ -203,33 +205,13 @@ export class Search extends Component<any, SearchState> {
             <T i18nKey="users">#</T>
           </option>
         </select>
-        <select
-          value={this.state.sort}
-          onChange={linkEvent(this, this.handleSortChange)}
-          class="custom-select custom-select-sm w-auto ml-2"
-        >
-          <option disabled>
-            <T i18nKey="sort_type">#</T>
-          </option>
-          <option value={SortType.New}>
-            <T i18nKey="new">#</T>
-          </option>
-          <option value={SortType.TopDay}>
-            <T i18nKey="top_day">#</T>
-          </option>
-          <option value={SortType.TopWeek}>
-            <T i18nKey="week">#</T>
-          </option>
-          <option value={SortType.TopMonth}>
-            <T i18nKey="month">#</T>
-          </option>
-          <option value={SortType.TopYear}>
-            <T i18nKey="year">#</T>
-          </option>
-          <option value={SortType.TopAll}>
-            <T i18nKey="all">#</T>
-          </option>
-        </select>
+        <span class="ml-2">
+          <SortSelect
+            sort={this.state.sort}
+            onChange={this.handleSortChange}
+            hideHot
+          />
+        </span>
       </div>
     );
   }
@@ -438,11 +420,11 @@ export class Search extends Component<any, SearchState> {
     }
   }
 
-  handleSortChange(i: Search, event: any) {
-    i.state.sort = Number(event.target.value);
-    i.state.page = 1;
-    i.setState(i.state);
-    i.updateUrl();
+  handleSortChange(val: SortType) {
+    this.state.sort = val;
+    this.state.page = 1;
+    this.setState(this.state);
+    this.updateUrl();
   }
 
   handleTypeChange(i: Search, event: any) {
