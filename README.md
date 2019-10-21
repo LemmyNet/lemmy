@@ -29,19 +29,24 @@ Front Page|Post
 - Open source, [AGPL License](/LICENSE).
 - Self hostable, easy to deploy.
   - Comes with [Docker](#docker), [Ansible](#ansible), [Kubernetes](#kubernetes).
-- Live-updating Comment threads.
-- Full vote scores `(+/-)` like old reddit.
+- Clean, mobile-friendly interface.
+  - Live-updating Comment threads.
+  - Full vote scores `(+/-)` like old reddit.
+  - Themes, including light, dark, and solarized.
+  - Emojis with autocomplete support. Start typing `:`
+  - User tagging using `@`, Community tagging using `#`.
+  - Notifications, on comment replies and when you're tagged.
+  - i18n / internationalization support.
+- Cross-posting support.
+  - A *similar post search* when creating new posts. Great for question / answer communities.
 - Moderation abilities.
   - Public Moderation Logs.
   - Both site admins, and community moderators, who can appoint other moderators.
   - Can lock, remove, and restore posts and comments.
   - Can ban and unban users from communities and the site.
   - Can transfer site and communities to others.
-- Clean, mobile-friendly interface.
-- i18n / internationalization support.
+- Can fully erase your data, replacing all posts and comments.
 - NSFW post / community support.
-- Cross-posting support.
-- A *similar post search* when creating new posts. Great for question / answer communities.
 - High performance.
   - Server is written in rust.
   - Front end is `~80kB` gzipped.
@@ -188,6 +193,7 @@ cd lemmy
 ## Support
 
 Lemmy is free, open-source software, meaning no advertising, monetizing, or venture capital, ever. Your donations directly support full-time development of the project.
+
 - [Support on Patreon](https://www.patreon.com/dessalines).
 - [Sponsor List](https://dev.lemmy.ml/sponsors).
 - bitcoin: `1Hefs7miXS5ff5Ck5xvmjKjXf5242KzRtK`
