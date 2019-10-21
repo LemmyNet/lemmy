@@ -6,6 +6,7 @@ import 'moment/locale/fr';
 import 'moment/locale/sv';
 import 'moment/locale/ru';
 import 'moment/locale/nl';
+import 'moment/locale/it';
 
 import {
   UserOperation,
@@ -263,6 +264,8 @@ export function getMomentLanguage(): string {
     lang = 'eo';
   } else if (lang.startsWith('nl')) {
     lang = 'nl';
+  } else if (lang.startsWith('it')) {
+    lang = 'it';
   } else {
     lang = 'en';
   }
