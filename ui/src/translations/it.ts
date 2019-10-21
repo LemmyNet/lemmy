@@ -100,6 +100,8 @@ export const it = {
     mark_all_as_read: 'segna tutti come letti',
     type: 'Tipo',
     unread: 'Non letti',
+    replies: 'Risposte',
+    mentions: 'Menzioni',
     reply_sent: 'Risposta inviata',
     search: 'Cerca',
     overview: 'Panoramica',
