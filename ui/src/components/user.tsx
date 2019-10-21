@@ -9,6 +9,7 @@ import {
   CommunityUser,
   GetUserDetailsForm,
   SortType,
+  ListingType,
   UserDetailsResponse,
   UserView,
   CommentResponse,
@@ -29,6 +30,7 @@ import {
 } from '../utils';
 import { PostListing } from './post-listing';
 import { SortSelect } from './sort-select';
+import { ListingTypeSelect } from './listing-type-select';
 import { CommentNodes } from './comment-nodes';
 import { MomentTime } from './moment-time';
 import { i18n } from '../i18next';
@@ -90,6 +92,8 @@ export class User extends Component<any, UserState> {
     userSettingsForm: {
       show_nsfw: null,
       theme: null,
+      default_sort_type: null,
+      default_listing_type: null,
       auth: null,
     },
     userSettingsLoading: null,
@@ -105,6 +109,12 @@ export class User extends Component<any, UserState> {
 
     this.state = this.emptyState;
     this.handleSortChange = this.handleSortChange.bind(this);
+    this.handleUserSettingsSortTypeChange = this.handleUserSettingsSortTypeChange.bind(
+      this
+    );
+    this.handleUserSettingsListingTypeChange = this.handleUserSettingsListingTypeChange.bind(
+      this
+    );
 
     this.state.user_id = Number(this.props.match.params.id);
     this.state.username = this.props.match.params.username;
@@ -403,6 +413,32 @@ export class User extends Component<any, UserState> {
                   </select>
                 </div>
               </div>
+              <form className="form-group">
+                <div class="col-12">
+                  <label>
+                    <T i18nKey="sort_type" class="mr-2">
+                      #
+                    </T>
+                  </label>
+                  <ListingTypeSelect
+                    type_={this.state.userSettingsForm.default_listing_type}
+                    onChange={this.handleUserSettingsListingTypeChange}
+                  />
+                </div>
+              </form>
+              <form className="form-group">
+                <div class="col-12">
+                  <label>
+                    <T i18nKey="type" class="mr-2">
+                      #
+                    </T>
+                  </label>
+                  <SortSelect
+                    sort={this.state.userSettingsForm.default_sort_type}
+                    onChange={this.handleUserSettingsSortTypeChange}
+                  />
+                </div>
+              </form>
               <div class="form-group">
                 <div class="col-12">
                   <div class="form-check">
@@ -421,9 +457,12 @@ export class User extends Component<any, UserState> {
                   </div>
                 </div>
               </div>
-              <div class="form-group row mb-0">
+              <div class="form-group">
                 <div class="col-12">
-                  <button type="submit" class="btn btn-secondary mr-4">
+                  <button
+                    type="submit"
+                    class="btn btn-block btn-secondary mr-4"
+                  >
                     {this.state.userSettingsLoading ? (
                       <svg class="icon icon-spinner spin">
                         <use xlinkHref="#icon-spinner"></use>
@@ -432,8 +471,13 @@ export class User extends Component<any, UserState> {
                       capitalizeFirstLetter(i18n.t('save'))
                     )}
                   </button>
+                </div>
+              </div>
+              <hr />
+              <div class="form-group mb-0">
+                <div class="col-12">
                   <button
-                    class="btn btn-danger"
+                    class="btn btn-block btn-danger"
                     onClick={linkEvent(
                       this,
                       this.handleDeleteAccountShowConfirmToggle
@@ -620,6 +664,16 @@ export class User extends Component<any, UserState> {
     i.setState(i.state);
   }
 
+  handleUserSettingsSortTypeChange(val: SortType) {
+    this.state.userSettingsForm.default_sort_type = val;
+    this.setState(this.state);
+  }
+
+  handleUserSettingsListingTypeChange(val: ListingType) {
+    this.state.userSettingsForm.default_listing_type = val;
+    this.setState(this.state);
+  }
+
   handleUserSettingsSubmit(i: User, event: any) {
     event.preventDefault();
     i.state.userSettingsLoading = true;
@@ -670,6 +724,10 @@ export class User extends Component<any, UserState> {
         this.state.userSettingsForm.theme = UserService.Instance.user.theme
           ? UserService.Instance.user.theme
           : 'darkly';
+        this.state.userSettingsForm.default_sort_type =
+          UserService.Instance.user.default_sort_type;
+        this.state.userSettingsForm.default_listing_type =
+          UserService.Instance.user.default_listing_type;
       }
       document.title = `/u/${this.state.user.name} - ${WebSocketService.Instance.site.name}`;
       window.scrollTo(0, 0);

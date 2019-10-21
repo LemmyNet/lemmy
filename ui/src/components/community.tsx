@@ -15,7 +15,7 @@ import {
   GetPostsResponse,
   CreatePostLikeResponse,
 } from '../interfaces';
-import { WebSocketService } from '../services';
+import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
 import { SortSelect } from './sort-select';
 import { Sidebar } from './sidebar';
@@ -72,6 +72,8 @@ export class Community extends Component<any, State> {
   getSortTypeFromProps(props: any): SortType {
     return props.match.params.sort
       ? routeSortTypeToEnum(props.match.params.sort)
+      : UserService.Instance.user
+      ? UserService.Instance.user.default_sort_type
       : SortType.Hot;
   }
 
