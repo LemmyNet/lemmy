@@ -40,7 +40,7 @@ i18n.init({
   resources,
   interpolation: {
     format: format,
-  }
+  },
 });
 
 export { i18n, resources };
