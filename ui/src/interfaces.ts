@@ -75,6 +75,8 @@ export interface User {
   username: string;
   show_nsfw: boolean;
   theme: string;
+  default_sort_type: SortType;
+  default_listing_type: ListingType;
 }
 
 export interface UserView {
@@ -463,6 +465,8 @@ export interface LoginResponse {
 export interface UserSettingsForm {
   show_nsfw: boolean;
   theme: string;
+  default_sort_type: SortType;
+  default_listing_type: ListingType;
   auth: string;
 }
 
