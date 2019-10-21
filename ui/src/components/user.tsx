@@ -1,18 +1,46 @@
 import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
-import { Subscription } from "rxjs";
+import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Post, Comment, CommunityUser, GetUserDetailsForm, SortType, UserDetailsResponse, UserView, CommentResponse, UserSettingsForm, LoginResponse, BanUserResponse, AddAdminResponse, DeleteAccountForm } from '../interfaces';
+import {
+  UserOperation,
+  Post,
+  Comment,
+  CommunityUser,
+  GetUserDetailsForm,
+  SortType,
+  ListingType,
+  UserDetailsResponse,
+  UserView,
+  CommentResponse,
+  UserSettingsForm,
+  LoginResponse,
+  BanUserResponse,
+  AddAdminResponse,
+  DeleteAccountForm,
+} from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { msgOp, fetchLimit, routeSortTypeToEnum, capitalizeFirstLetter, themes, setTheme } from '../utils';
+import {
+  msgOp,
+  fetchLimit,
+  routeSortTypeToEnum,
+  capitalizeFirstLetter,
+  themes,
+  setTheme,
+} from '../utils';
 import { PostListing } from './post-listing';
+import { SortSelect } from './sort-select';
+import { ListingTypeSelect } from './listing-type-select';
 import { CommentNodes } from './comment-nodes';
 import { MomentTime } from './moment-time';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 
 enum View {
-  Overview, Comments, Posts, Saved
+  Overview,
+  Comments,
+  Posts,
+  Saved,
 }
 
 interface UserState {
@@ -37,7 +65,6 @@ interface UserState {
 }
 
 export class User extends Component<any, UserState> {
-
   private subscription: Subscription;
   private emptyState: UserState = {
     user: {
@@ -65,6 +92,8 @@ export class User extends Component<any, UserState> {
     userSettingsForm: {
       show_nsfw: null,
       theme: null,
+      default_sort_type: null,
+      default_listing_type: null,
       auth: null,
     },
     userSettingsLoading: null,
@@ -72,46 +101,63 @@ export class User extends Component<any, UserState> {
     deleteAccountShowConfirm: false,
     deleteAccountForm: {
       password: null,
-    }
-  }
+    },
+  };
 
   constructor(props: any, context: any) {
     super(props, context);
 
     this.state = this.emptyState;
+    this.handleSortChange = this.handleSortChange.bind(this);
+    this.handleUserSettingsSortTypeChange = this.handleUserSettingsSortTypeChange.bind(
+      this
+    );
+    this.handleUserSettingsListingTypeChange = this.handleUserSettingsListingTypeChange.bind(
+      this
+    );
 
     this.state.user_id = Number(this.props.match.params.id);
     this.state.username = this.props.match.params.username;
 
     this.subscription = WebSocketService.Instance.subject
-    .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
-    .subscribe(
-      (msg) => this.parseMessage(msg),
-        (err) => console.error(err),
+      .pipe(
+        retryWhen(errors =>
+          errors.pipe(
+            delay(3000),
+            take(10)
+          )
+        )
+      )
+      .subscribe(
+        msg => this.parseMessage(msg),
+        err => console.error(err),
         () => console.log('complete')
-    );
+      );
 
     this.refetch();
   }
 
   get isCurrentUser() {
-    return UserService.Instance.user && UserService.Instance.user.id == this.state.user.id;
+    return (
+      UserService.Instance.user &&
+      UserService.Instance.user.id == this.state.user.id
+    );
   }
 
   getViewFromProps(props: any): View {
-    return (props.match.params.view) ? 
-      View[capitalizeFirstLetter(props.match.params.view)] : 
-      View.Overview;
+    return props.match.params.view
+      ? View[capitalizeFirstLetter(props.match.params.view)]
+      : View.Overview;
   }
 
   getSortTypeFromProps(props: any): SortType {
-    return (props.match.params.sort) ? 
-      routeSortTypeToEnum(props.match.params.sort) : 
-      SortType.New;
+    return props.match.params.sort
+      ? routeSortTypeToEnum(props.match.params.sort)
+      : SortType.New;
   }
 
   getPageFromProps(props: any): number {
-    return (props.match.params.page) ? Number(props.match.params.page) : 1;
+    return props.match.params.page ? Number(props.match.params.page) : 1;
   }
 
   componentWillUnmount() {
@@ -120,11 +166,14 @@ export class User extends Component<any, UserState> {
 
   // Necessary for back button for some reason
   componentWillReceiveProps(nextProps: any) {
-    if (nextProps.history.action == 'POP') {
-      this.state = this.emptyState;
+    if (
+      nextProps.history.action == 'POP' ||
+      nextProps.history.action == 'PUSH'
+    ) {
       this.state.view = this.getViewFromProps(nextProps);
       this.state.sort = this.getSortTypeFromProps(nextProps);
       this.state.page = this.getPageFromProps(nextProps);
+      this.setState(this.state);
       this.refetch();
     }
   }
@@ -132,68 +181,78 @@ export class User extends Component<any, UserState> {
   render() {
     return (
       <div class="container">
-        {this.state.loading ? 
-        <h5><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> : 
-        <div class="row">
-          <div class="col-12 col-md-8">
-            <h5>/u/{this.state.user.name}</h5>
-            {this.selects()}
-            {this.state.view == View.Overview &&
-              this.overview()
-            }
-            {this.state.view == View.Comments &&
-              this.comments()
-            }
-            {this.state.view == View.Posts &&
-              this.posts()
-            }
-            {this.state.view == View.Saved &&
-              this.overview()
-            }
-            {this.paginator()}
+        {this.state.loading ? (
+          <h5>
+            <svg class="icon icon-spinner spin">
+              <use xlinkHref="#icon-spinner"></use>
+            </svg>
+          </h5>
+        ) : (
+          <div class="row">
+            <div class="col-12 col-md-8">
+              <h5>/u/{this.state.user.name}</h5>
+              {this.selects()}
+              {this.state.view == View.Overview && this.overview()}
+              {this.state.view == View.Comments && this.comments()}
+              {this.state.view == View.Posts && this.posts()}
+              {this.state.view == View.Saved && this.overview()}
+              {this.paginator()}
+            </div>
+            <div class="col-12 col-md-4">
+              {this.userInfo()}
+              {this.isCurrentUser && this.userSettings()}
+              {this.moderates()}
+              {this.follows()}
+            </div>
           </div>
-          <div class="col-12 col-md-4">
-            {this.userInfo()}
-            {this.isCurrentUser &&
-              this.userSettings()
-            }
-            {this.moderates()}
-            {this.follows()}
-          </div>
-        </div>
-        }
+        )}
       </div>
-    )
+    );
   }
 
   selects() {
     return (
       <div className="mb-2">
-        <select value={this.state.view} onChange={linkEvent(this, this.handleViewChange)} class="custom-select custom-select-sm w-auto">
-          <option disabled><T i18nKey="view">#</T></option>
-          <option value={View.Overview}><T i18nKey="overview">#</T></option>
-          <option value={View.Comments}><T i18nKey="comments">#</T></option>
-          <option value={View.Posts}><T i18nKey="posts">#</T></option>
-          <option value={View.Saved}><T i18nKey="saved">#</T></option>
+        <select
+          value={this.state.view}
+          onChange={linkEvent(this, this.handleViewChange)}
+          class="custom-select custom-select-sm w-auto"
+        >
+          <option disabled>
+            <T i18nKey="view">#</T>
+          </option>
+          <option value={View.Overview}>
+            <T i18nKey="overview">#</T>
+          </option>
+          <option value={View.Comments}>
+            <T i18nKey="comments">#</T>
+          </option>
+          <option value={View.Posts}>
+            <T i18nKey="posts">#</T>
+          </option>
+          <option value={View.Saved}>
+            <T i18nKey="saved">#</T>
+          </option>
         </select>
-        <select value={this.state.sort} onChange={linkEvent(this, this.handleSortChange)} class="custom-select custom-select-sm w-auto ml-2">
-          <option disabled><T i18nKey="sort_type">#</T></option>
-          <option value={SortType.New}><T i18nKey="new">#</T></option>
-          <option value={SortType.TopDay}><T i18nKey="top_day">#</T></option>
-          <option value={SortType.TopWeek}><T i18nKey="week">#</T></option>
-          <option value={SortType.TopMonth}><T i18nKey="month">#</T></option>
-          <option value={SortType.TopYear}><T i18nKey="year">#</T></option>
-          <option value={SortType.TopAll}><T i18nKey="all">#</T></option>
-        </select>
+        <span class="ml-2">
+          <SortSelect
+            sort={this.state.sort}
+            onChange={this.handleSortChange}
+            hideHot
+          />
+        </span>
       </div>
-    )
-
+    );
   }
 
   overview() {
-    let combined: Array<{type_: string, data: Comment | Post}> = [];
-    let comments = this.state.comments.map(e => {return {type_: "comments", data: e}});
-    let posts = this.state.posts.map(e => {return {type_: "posts", data: e}});
+    let combined: Array<{ type_: string; data: Comment | Post }> = [];
+    let comments = this.state.comments.map(e => {
+      return { type_: 'comments', data: e };
+    });
+    let posts = this.state.posts.map(e => {
+      return { type_: 'posts', data: e };
+    });
 
     combined.push(...comments);
     combined.push(...posts);
@@ -207,35 +266,38 @@ export class User extends Component<any, UserState> {
 
     return (
       <div>
-        {combined.map(i =>
+        {combined.map(i => (
           <div>
-            {i.type_ == "posts"
-              ? <PostListing 
-              post={i.data as Post} 
-              admins={this.state.admins}
-              showCommunity 
-              viewOnly />
-              : 
-              <CommentNodes 
-                nodes={[{comment: i.data as Comment}]} 
+            {i.type_ == 'posts' ? (
+              <PostListing
+                post={i.data as Post}
                 admins={this.state.admins}
-                noIndent />
-            }
+                showCommunity
+                viewOnly
+              />
+            ) : (
+              <CommentNodes
+                nodes={[{ comment: i.data as Comment }]}
+                admins={this.state.admins}
+                noIndent
+              />
+            )}
           </div>
-                     )
-        }
+        ))}
       </div>
-    )
+    );
   }
 
   comments() {
     return (
       <div>
-        {this.state.comments.map(comment => 
-          <CommentNodes nodes={[{comment: comment}]} 
+        {this.state.comments.map(comment => (
+          <CommentNodes
+            nodes={[{ comment: comment }]}
             admins={this.state.admins}
-            noIndent />
-        )}
+            noIndent
+          />
+        ))}
       </div>
     );
   }
@@ -243,13 +305,14 @@ export class User extends Component<any, UserState> {
   posts() {
     return (
       <div>
-        {this.state.posts.map(post => 
-          <PostListing 
-            post={post} 
+        {this.state.posts.map(post => (
+          <PostListing
+            post={post}
             admins={this.state.admins}
-            showCommunity 
-            viewOnly />
-        )}
+            showCommunity
+            viewOnly
+          />
+        ))}
       </div>
     );
   }
@@ -263,124 +326,279 @@ export class User extends Component<any, UserState> {
             <h5>
               <ul class="list-inline mb-0">
                 <li className="list-inline-item">{user.name}</li>
-                {user.banned &&  
-                  <li className="list-inline-item badge badge-danger"><T i18nKey="banned">#</T></li>
-                }
+                {user.banned && (
+                  <li className="list-inline-item badge badge-danger">
+                    <T i18nKey="banned">#</T>
+                  </li>
+                )}
               </ul>
             </h5>
-            <div>{i18n.t('joined')} <MomentTime data={user} /></div>
+            <div>
+              {i18n.t('joined')} <MomentTime data={user} />
+            </div>
             <div class="table-responsive">
               <table class="table table-bordered table-sm mt-2 mb-0">
                 <tr>
-                  <td><T i18nKey="number_of_points" interpolation={{count: user.post_score}}>#</T></td>
-                  <td><T i18nKey="number_of_posts" interpolation={{count: user.number_of_posts}}>#</T></td>
+                  <td>
+                    <T
+                      i18nKey="number_of_points"
+                      interpolation={{ count: user.post_score }}
+                    >
+                      #
+                    </T>
+                  </td>
+                  <td>
+                    <T
+                      i18nKey="number_of_posts"
+                      interpolation={{ count: user.number_of_posts }}
+                    >
+                      #
+                    </T>
+                  </td>
                 </tr>
                 <tr>
-                  <td><T i18nKey="number_of_points" interpolation={{count: user.comment_score}}>#</T></td>
-                  <td><T i18nKey="number_of_comments" interpolation={{count: user.number_of_comments}}>#</T></td>
+                  <td>
+                    <T
+                      i18nKey="number_of_points"
+                      interpolation={{ count: user.comment_score }}
+                    >
+                      #
+                    </T>
+                  </td>
+                  <td>
+                    <T
+                      i18nKey="number_of_comments"
+                      interpolation={{ count: user.number_of_comments }}
+                    >
+                      #
+                    </T>
+                  </td>
                 </tr>
               </table>
             </div>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
-  userSettings() {  
+  userSettings() {
     return (
       <div>
         <div class="card border-secondary mb-3">
           <div class="card-body">
-            <h5><T i18nKey="settings">#</T></h5>
+            <h5>
+              <T i18nKey="settings">#</T>
+            </h5>
             <form onSubmit={linkEvent(this, this.handleUserSettingsSubmit)}>
               <div class="form-group">
                 <div class="col-12">
-                  <label><T i18nKey="theme">#</T></label>
-                  <select value={this.state.userSettingsForm.theme} onChange={linkEvent(this, this.handleUserSettingsThemeChange)} class="ml-2 custom-select custom-select-sm w-auto">
-                    <option disabled><T i18nKey="theme">#</T></option>
-                    {themes.map(theme =>
-                      <option value={theme}>{theme}</option>
+                  <label>
+                    <T i18nKey="theme">#</T>
+                  </label>
+                  <select
+                    value={this.state.userSettingsForm.theme}
+                    onChange={linkEvent(
+                      this,
+                      this.handleUserSettingsThemeChange
                     )}
+                    class="ml-2 custom-select custom-select-sm w-auto"
+                  >
+                    <option disabled>
+                      <T i18nKey="theme">#</T>
+                    </option>
+                    {themes.map(theme => (
+                      <option value={theme}>{theme}</option>
+                    ))}
                   </select>
+                </div>
+              </div>
+              <form className="form-group">
+                <div class="col-12">
+                  <label>
+                    <T i18nKey="sort_type" class="mr-2">
+                      #
+                    </T>
+                  </label>
+                  <ListingTypeSelect
+                    type_={this.state.userSettingsForm.default_listing_type}
+                    onChange={this.handleUserSettingsListingTypeChange}
+                  />
+                </div>
+              </form>
+              <form className="form-group">
+                <div class="col-12">
+                  <label>
+                    <T i18nKey="type" class="mr-2">
+                      #
+                    </T>
+                  </label>
+                  <SortSelect
+                    sort={this.state.userSettingsForm.default_sort_type}
+                    onChange={this.handleUserSettingsSortTypeChange}
+                  />
+                </div>
+              </form>
+              <div class="form-group">
+                <div class="col-12">
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      checked={this.state.userSettingsForm.show_nsfw}
+                      onChange={linkEvent(
+                        this,
+                        this.handleUserSettingsShowNsfwChange
+                      )}
+                    />
+                    <label class="form-check-label">
+                      <T i18nKey="show_nsfw">#</T>
+                    </label>
+                  </div>
                 </div>
               </div>
               <div class="form-group">
                 <div class="col-12">
-                  <div class="form-check">
-                    <input class="form-check-input" type="checkbox" checked={this.state.userSettingsForm.show_nsfw} onChange={linkEvent(this, this.handleUserSettingsShowNsfwChange)}/>
-                    <label class="form-check-label"><T i18nKey="show_nsfw">#</T></label>
-                  </div>
+                  <button
+                    type="submit"
+                    class="btn btn-block btn-secondary mr-4"
+                  >
+                    {this.state.userSettingsLoading ? (
+                      <svg class="icon icon-spinner spin">
+                        <use xlinkHref="#icon-spinner"></use>
+                      </svg>
+                    ) : (
+                      capitalizeFirstLetter(i18n.t('save'))
+                    )}
+                  </button>
                 </div>
               </div>
-              <div class="form-group row mb-0">
+              <hr />
+              <div class="form-group mb-0">
                 <div class="col-12">
-                  <button type="submit" class="btn btn-secondary mr-4">{this.state.userSettingsLoading ? 
-                  <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : capitalizeFirstLetter(i18n.t('save'))}</button>
-                  <button class="btn btn-danger" onClick={linkEvent(this, this.handleDeleteAccountShowConfirmToggle)}><T i18nKey="delete_account">#</T></button>
-                  {this.state.deleteAccountShowConfirm && 
+                  <button
+                    class="btn btn-block btn-danger"
+                    onClick={linkEvent(
+                      this,
+                      this.handleDeleteAccountShowConfirmToggle
+                    )}
+                  >
+                    <T i18nKey="delete_account">#</T>
+                  </button>
+                  {this.state.deleteAccountShowConfirm && (
                     <>
-                      <div class="my-2 alert alert-danger" role="alert"><T i18nKey="delete_account_confirm">#</T></div>
-                      <input type="password" value={this.state.deleteAccountForm.password}  onInput={linkEvent(this, this.handleDeleteAccountPasswordChange)} class="form-control my-2" />
-                      <button class="btn btn-danger mr-4" disabled={!this.state.deleteAccountForm.password} onClick={linkEvent(this, this.handleDeleteAccount)}>{this.state.deleteAccountLoading ? 
-                      <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> : capitalizeFirstLetter(i18n.t('delete'))}</button>
-                      <button class="btn btn-secondary" onClick={linkEvent(this, this.handleDeleteAccountShowConfirmToggle)}><T i18nKey="cancel">#</T></button>
+                      <div class="my-2 alert alert-danger" role="alert">
+                        <T i18nKey="delete_account_confirm">#</T>
+                      </div>
+                      <input
+                        type="password"
+                        value={this.state.deleteAccountForm.password}
+                        onInput={linkEvent(
+                          this,
+                          this.handleDeleteAccountPasswordChange
+                        )}
+                        class="form-control my-2"
+                      />
+                      <button
+                        class="btn btn-danger mr-4"
+                        disabled={!this.state.deleteAccountForm.password}
+                        onClick={linkEvent(this, this.handleDeleteAccount)}
+                      >
+                        {this.state.deleteAccountLoading ? (
+                          <svg class="icon icon-spinner spin">
+                            <use xlinkHref="#icon-spinner"></use>
+                          </svg>
+                        ) : (
+                          capitalizeFirstLetter(i18n.t('delete'))
+                        )}
+                      </button>
+                      <button
+                        class="btn btn-secondary"
+                        onClick={linkEvent(
+                          this,
+                          this.handleDeleteAccountShowConfirmToggle
+                        )}
+                      >
+                        <T i18nKey="cancel">#</T>
+                      </button>
                     </>
-                  }
+                  )}
                 </div>
               </div>
             </form>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   moderates() {
     return (
       <div>
-        {this.state.moderates.length > 0 &&
+        {this.state.moderates.length > 0 && (
           <div class="card border-secondary mb-3">
             <div class="card-body">
-              <h5><T i18nKey="moderates">#</T></h5>
-              <ul class="list-unstyled mb-0"> 
-                {this.state.moderates.map(community =>
-                  <li><Link to={`/c/${community.community_name}`}>{community.community_name}</Link></li>
-                )}
+              <h5>
+                <T i18nKey="moderates">#</T>
+              </h5>
+              <ul class="list-unstyled mb-0">
+                {this.state.moderates.map(community => (
+                  <li>
+                    <Link to={`/c/${community.community_name}`}>
+                      {community.community_name}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
-        }
+        )}
       </div>
-    )
+    );
   }
 
   follows() {
     return (
       <div>
-        {this.state.follows.length > 0 &&
+        {this.state.follows.length > 0 && (
           <div class="card border-secondary mb-3">
             <div class="card-body">
-              <h5><T i18nKey="subscribed">#</T></h5>
-              <ul class="list-unstyled mb-0"> 
-                {this.state.follows.map(community =>
-                  <li><Link to={`/c/${community.community_name}`}>{community.community_name}</Link></li>
-                )}
+              <h5>
+                <T i18nKey="subscribed">#</T>
+              </h5>
+              <ul class="list-unstyled mb-0">
+                {this.state.follows.map(community => (
+                  <li>
+                    <Link to={`/c/${community.community_name}`}>
+                      {community.community_name}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
-        }
+        )}
       </div>
-    )
+    );
   }
 
   paginator() {
     return (
       <div class="my-2">
-        {this.state.page > 1 && 
-          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}><T i18nKey="prev">#</T></button>
-        }
-        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}><T i18nKey="next">#</T></button>
+        {this.state.page > 1 && (
+          <button
+            class="btn btn-sm btn-secondary mr-1"
+            onClick={linkEvent(this, this.prevPage)}
+          >
+            <T i18nKey="prev">#</T>
+          </button>
+        )}
+        <button
+          class="btn btn-sm btn-secondary"
+          onClick={linkEvent(this, this.nextPage)}
+        >
+          <T i18nKey="next">#</T>
+        </button>
       </div>
     );
   }
@@ -388,17 +606,19 @@ export class User extends Component<any, UserState> {
   updateUrl() {
     let viewStr = View[this.state.view].toLowerCase();
     let sortStr = SortType[this.state.sort].toLowerCase();
-    this.props.history.push(`/u/${this.state.user.name}/view/${viewStr}/sort/${sortStr}/page/${this.state.page}`);
+    this.props.history.push(
+      `/u/${this.state.user.name}/view/${viewStr}/sort/${sortStr}/page/${this.state.page}`
+    );
   }
 
-  nextPage(i: User) { 
+  nextPage(i: User) {
     i.state.page++;
     i.setState(i.state);
     i.updateUrl();
     i.refetch();
   }
 
-  prevPage(i: User) { 
+  prevPage(i: User) {
     i.state.page--;
     i.setState(i.state);
     i.updateUrl();
@@ -417,12 +637,12 @@ export class User extends Component<any, UserState> {
     WebSocketService.Instance.getUserDetails(form);
   }
 
-  handleSortChange(i: User, event: any) {
-    i.state.sort = Number(event.target.value);
-    i.state.page = 1;
-    i.setState(i.state);
-    i.updateUrl();
-    i.refetch();
+  handleSortChange(val: SortType) {
+    this.state.sort = val;
+    this.state.page = 1;
+    this.setState(this.state);
+    this.updateUrl();
+    this.refetch();
   }
 
   handleViewChange(i: User, event: any) {
@@ -442,6 +662,16 @@ export class User extends Component<any, UserState> {
     i.state.userSettingsForm.theme = event.target.value;
     setTheme(event.target.value);
     i.setState(i.state);
+  }
+
+  handleUserSettingsSortTypeChange(val: SortType) {
+    this.state.userSettingsForm.default_sort_type = val;
+    this.setState(this.state);
+  }
+
+  handleUserSettingsListingTypeChange(val: ListingType) {
+    this.state.userSettingsForm.default_listing_type = val;
+    this.setState(this.state);
   }
 
   handleUserSettingsSubmit(i: User, event: any) {
@@ -489,11 +719,18 @@ export class User extends Component<any, UserState> {
       this.state.admins = res.admins;
       this.state.loading = false;
       if (this.isCurrentUser) {
-        this.state.userSettingsForm.show_nsfw = UserService.Instance.user.show_nsfw;
-        this.state.userSettingsForm.theme = UserService.Instance.user.theme ? UserService.Instance.user.theme : 'darkly';
+        this.state.userSettingsForm.show_nsfw =
+          UserService.Instance.user.show_nsfw;
+        this.state.userSettingsForm.theme = UserService.Instance.user.theme
+          ? UserService.Instance.user.theme
+          : 'darkly';
+        this.state.userSettingsForm.default_sort_type =
+          UserService.Instance.user.default_sort_type;
+        this.state.userSettingsForm.default_listing_type =
+          UserService.Instance.user.default_listing_type;
       }
       document.title = `/u/${this.state.user.name} - ${WebSocketService.Instance.site.name}`;
-      window.scrollTo(0,0);
+      window.scrollTo(0, 0);
       this.setState(this.state);
     } else if (op == UserOperation.EditComment) {
       let res: CommentResponse = msg;
@@ -520,36 +757,38 @@ export class User extends Component<any, UserState> {
       this.setState(this.state);
     } else if (op == UserOperation.CreateCommentLike) {
       let res: CommentResponse = msg;
-      let found: Comment = this.state.comments.find(c => c.id === res.comment.id);
+      let found: Comment = this.state.comments.find(
+        c => c.id === res.comment.id
+      );
       found.score = res.comment.score;
       found.upvotes = res.comment.upvotes;
       found.downvotes = res.comment.downvotes;
-      if (res.comment.my_vote !== null) 
-        found.my_vote = res.comment.my_vote;
+      if (res.comment.my_vote !== null) found.my_vote = res.comment.my_vote;
       this.setState(this.state);
     } else if (op == UserOperation.BanUser) {
       let res: BanUserResponse = msg;
-      this.state.comments.filter(c => c.creator_id == res.user.id)
-      .forEach(c => c.banned = res.banned);
-      this.state.posts.filter(c => c.creator_id == res.user.id)
-      .forEach(c => c.banned = res.banned);
+      this.state.comments
+        .filter(c => c.creator_id == res.user.id)
+        .forEach(c => (c.banned = res.banned));
+      this.state.posts
+        .filter(c => c.creator_id == res.user.id)
+        .forEach(c => (c.banned = res.banned));
       this.setState(this.state);
     } else if (op == UserOperation.AddAdmin) {
       let res: AddAdminResponse = msg;
       this.state.admins = res.admins;
       this.setState(this.state);
     } else if (op == UserOperation.SaveUserSettings) {
-        this.state = this.emptyState;
-        this.state.userSettingsLoading = false;
-        this.setState(this.state);
-        let res: LoginResponse = msg;
-        UserService.Instance.login(res);
+      this.state = this.emptyState;
+      this.state.userSettingsLoading = false;
+      this.setState(this.state);
+      let res: LoginResponse = msg;
+      UserService.Instance.login(res);
     } else if (op == UserOperation.DeleteAccount) {
-        this.state.deleteAccountLoading = false;
-        this.state.deleteAccountShowConfirm = false;
-        this.setState(this.state);
-        this.context.router.history.push('/');
+      this.state.deleteAccountLoading = false;
+      this.state.deleteAccountShowConfirm = false;
+      this.setState(this.state);
+      this.context.router.history.push('/');
     }
   }
 }
-

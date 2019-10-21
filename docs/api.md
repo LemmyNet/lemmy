@@ -210,6 +210,7 @@ Only the first user will be able to be the admin.
 {
   op: "DeleteAccount",
   data: {
+    password: String,
     auth: String
   }
 }

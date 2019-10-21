@@ -1,0 +1,57 @@
+{
+  "root": true,
+  "env": {
+    "browser": true
+  },
+  "plugins": [
+    "jane",
+    "inferno"
+  ],
+  "extends": [
+    "plugin:jane/recommended",
+    "plugin:jane/typescript",
+    "plugin:inferno/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": "./tsconfig.json",
+    "warnOnUnsupportedTypeScriptVersion": false
+  },
+  "rules": {
+    "@typescript-eslint/camelcase": 0,
+    "@typescript-eslint/member-delimiter-style": 0,
+    "@typescript-eslint/no-empty-interface": 0,
+    "@typescript-eslint/no-explicit-any": 0,
+    "@typescript-eslint/no-this-alias": 0,
+    "@typescript-eslint/no-unused-vars": 0,
+    "@typescript-eslint/no-use-before-define": 0,
+    "@typescript-eslint/no-useless-constructor": 0,
+    "arrow-body-style": 0,
+    "curly": 0,
+    "eol-last": 0,
+    "eqeqeq": 0,
+    "func-style": 0,
+    "import/no-duplicates": 0,
+    "inferno/jsx-key": 0,
+    "inferno/jsx-no-target-blank": 0,
+    "inferno/jsx-props-class-name": 0,
+    "inferno/no-direct-mutation-state": 0,
+    "inferno/no-unknown-property": 0,
+    "max-statements": 0,
+    "new-cap": 0,
+    "no-console": 0,
+    "no-duplicate-imports": 0,
+    "no-extra-parens": 0,
+    "no-return-assign": 0,
+    "no-throw-literal": 0,
+    "no-trailing-spaces": 0,
+    "no-unused-expressions": 0,
+    "no-useless-constructor": 0,
+    "no-useless-escape": 0,
+    "no-var": 0,
+    "prefer-const": 0,
+    "prefer-rest-params": 0,
+    "quote-props": 0,
+    "unicorn/filename-case": 0
+  }
+}

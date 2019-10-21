@@ -21,6 +21,8 @@ pub struct User_ {
   pub updated: Option<chrono::NaiveDateTime>,
   pub show_nsfw: bool,
   pub theme: String,
+  pub default_sort_type: i16,
+  pub default_listing_type: i16,
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
@@ -36,6 +38,8 @@ pub struct UserForm {
   pub updated: Option<chrono::NaiveDateTime>,
   pub show_nsfw: bool,
   pub theme: String,
+  pub default_sort_type: i16,
+  pub default_listing_type: i16,
 }
 
 impl Crud<UserForm> for User_ {
@@ -77,6 +81,8 @@ pub struct Claims {
   pub iss: String,
   pub show_nsfw: bool,
   pub theme: String,
+  pub default_sort_type: i16,
+  pub default_listing_type: i16,
 }
 
 impl Claims {
@@ -98,6 +104,8 @@ impl User_ {
       iss: self.fedi_name.to_owned(),
       show_nsfw: self.show_nsfw,
       theme: self.theme.to_owned(),
+      default_sort_type: self.default_sort_type,
+      default_listing_type: self.default_listing_type,
     };
     encode(
       &Header::default(),
@@ -146,6 +154,8 @@ mod tests {
       updated: None,
       show_nsfw: false,
       theme: "darkly".into(),
+      default_sort_type: SortType::Hot as i16,
+      default_listing_type: ListingType::Subscribed as i16,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -164,6 +174,8 @@ mod tests {
       updated: None,
       show_nsfw: false,
       theme: "darkly".into(),
+      default_sort_type: SortType::Hot as i16,
+      default_listing_type: ListingType::Subscribed as i16,
     };
 
     let read_user = User_::read(&conn, inserted_user.id).unwrap();

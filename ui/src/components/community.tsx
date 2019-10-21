@@ -1,11 +1,30 @@
 import { Component, linkEvent } from 'inferno';
-import { Subscription } from "rxjs";
+import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community as CommunityI, GetCommunityResponse, CommunityResponse,  CommunityUser, UserView, SortType, Post, GetPostsForm, ListingType, GetPostsResponse, CreatePostLikeResponse } from '../interfaces';
-import { WebSocketService } from '../services';
+import {
+  UserOperation,
+  Community as CommunityI,
+  GetCommunityResponse,
+  CommunityResponse,
+  CommunityUser,
+  UserView,
+  SortType,
+  Post,
+  GetPostsForm,
+  ListingType,
+  GetPostsResponse,
+  CreatePostLikeResponse,
+} from '../interfaces';
+import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
+import { SortSelect } from './sort-select';
 import { Sidebar } from './sidebar';
-import { msgOp, routeSortTypeToEnum, fetchLimit, postRefetchSeconds } from '../utils';
+import {
+  msgOp,
+  routeSortTypeToEnum,
+  fetchLimit,
+  postRefetchSeconds,
+} from '../utils';
 import { T, i18n } from 'inferno-i18next';
 
 interface State {
@@ -21,7 +40,6 @@ interface State {
 }
 
 export class Community extends Component<any, State> {
-
   private subscription: Subscription;
   private postFetcher: any;
   private emptyState: State = {
@@ -49,38 +67,46 @@ export class Community extends Component<any, State> {
     posts: [],
     sort: this.getSortTypeFromProps(this.props),
     page: this.getPageFromProps(this.props),
-  }
+  };
 
   getSortTypeFromProps(props: any): SortType {
-    return (props.match.params.sort) ? 
-      routeSortTypeToEnum(props.match.params.sort) : 
-      SortType.Hot;
+    return props.match.params.sort
+      ? routeSortTypeToEnum(props.match.params.sort)
+      : UserService.Instance.user
+      ? UserService.Instance.user.default_sort_type
+      : SortType.Hot;
   }
 
   getPageFromProps(props: any): number {
-    return (props.match.params.page) ? Number(props.match.params.page) : 1;
+    return props.match.params.page ? Number(props.match.params.page) : 1;
   }
 
   constructor(props: any, context: any) {
     super(props, context);
 
     this.state = this.emptyState;
+    this.handleSortChange = this.handleSortChange.bind(this);
 
     this.subscription = WebSocketService.Instance.subject
-    .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
-    .subscribe(
-      (msg) => this.parseMessage(msg),
-        (err) => console.error(err),
+      .pipe(
+        retryWhen(errors =>
+          errors.pipe(
+            delay(3000),
+            take(10)
+          )
+        )
+      )
+      .subscribe(
+        msg => this.parseMessage(msg),
+        err => console.error(err),
         () => console.log('complete')
-    );
+      );
 
     if (this.state.communityId) {
       WebSocketService.Instance.getCommunity(this.state.communityId);
     } else if (this.state.communityName) {
       WebSocketService.Instance.getCommunityByName(this.state.communityName);
     }
-
-    this.keepFetchingPosts();
   }
 
   componentWillUnmount() {
@@ -90,10 +116,13 @@ export class Community extends Component<any, State> {
 
   // Necessary for back button for some reason
   componentWillReceiveProps(nextProps: any) {
-    if (nextProps.history.action == 'POP') {
-      this.state = this.emptyState;
+    if (
+      nextProps.history.action == 'POP' ||
+      nextProps.history.action == 'PUSH'
+    ) {
       this.state.sort = this.getSortTypeFromProps(nextProps);
       this.state.page = this.getPageFromProps(nextProps);
+      this.setState(this.state);
       this.fetchPosts();
     }
   }
@@ -101,92 +130,105 @@ export class Community extends Component<any, State> {
   render() {
     return (
       <div class="container">
-        {this.state.loading ? 
-        <h5><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> : 
-        <div class="row">
-          <div class="col-12 col-md-8">
-            <h5>{this.state.community.title}
-            {this.state.community.removed &&
-              <small className="ml-2 text-muted font-italic"><T i18nKey="removed">#</T></small>
-            }
-            {this.state.community.nsfw &&
-              <small className="ml-2 text-muted font-italic"><T i18nKey="nsfw">#</T></small>
-            }
+        {this.state.loading ? (
+          <h5>
+            <svg class="icon icon-spinner spin">
+              <use xlinkHref="#icon-spinner"></use>
+            </svg>
           </h5>
-          {this.selects()}
-          <PostListings posts={this.state.posts} />
-          {this.paginator()}
+        ) : (
+          <div class="row">
+            <div class="col-12 col-md-8">
+              <h5>
+                {this.state.community.title}
+                {this.state.community.removed && (
+                  <small className="ml-2 text-muted font-italic">
+                    <T i18nKey="removed">#</T>
+                  </small>
+                )}
+                {this.state.community.nsfw && (
+                  <small className="ml-2 text-muted font-italic">
+                    <T i18nKey="nsfw">#</T>
+                  </small>
+                )}
+              </h5>
+              {this.selects()}
+              <PostListings posts={this.state.posts} />
+              {this.paginator()}
+            </div>
+            <div class="col-12 col-md-4">
+              <Sidebar
+                community={this.state.community}
+                moderators={this.state.moderators}
+                admins={this.state.admins}
+              />
+            </div>
           </div>
-          <div class="col-12 col-md-4">
-            <Sidebar 
-              community={this.state.community} 
-              moderators={this.state.moderators} 
-              admins={this.state.admins}
-            />
-          </div>
-        </div>
-        }
+        )}
       </div>
-    )
+    );
   }
 
   selects() {
     return (
-      <div className="mb-2">
-        <select value={this.state.sort} onChange={linkEvent(this, this.handleSortChange)} class="custom-select custom-select-sm w-auto">
-          <option disabled><T i18nKey="sort_type">#</T></option>
-          <option value={SortType.Hot}><T i18nKey="hot">#</T></option>
-          <option value={SortType.New}><T i18nKey="new">#</T></option>
-          <option disabled>──────</option>
-          <option value={SortType.TopDay}><T i18nKey="top_day">#</T></option>
-          <option value={SortType.TopWeek}><T i18nKey="week">#</T></option>
-          <option value={SortType.TopMonth}><T i18nKey="month">#</T></option>
-          <option value={SortType.TopYear}><T i18nKey="year">#</T></option>
-          <option value={SortType.TopAll}><T i18nKey="all">#</T></option>
-        </select>
+      <div class="mb-2">
+        <SortSelect sort={this.state.sort} onChange={this.handleSortChange} />
       </div>
-    )
+    );
   }
 
   paginator() {
     return (
       <div class="my-2">
-        {this.state.page > 1 && 
-          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}><T i18nKey="prev">#</T></button>
-        }
-        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}><T i18nKey="next">#</T></button>
+        {this.state.page > 1 && (
+          <button
+            class="btn btn-sm btn-secondary mr-1"
+            onClick={linkEvent(this, this.prevPage)}
+          >
+            <T i18nKey="prev">#</T>
+          </button>
+        )}
+        <button
+          class="btn btn-sm btn-secondary"
+          onClick={linkEvent(this, this.nextPage)}
+        >
+          <T i18nKey="next">#</T>
+        </button>
       </div>
     );
   }
 
-  nextPage(i: Community) { 
+  nextPage(i: Community) {
     i.state.page++;
     i.setState(i.state);
     i.updateUrl();
     i.fetchPosts();
-    window.scrollTo(0,0);
+    window.scrollTo(0, 0);
   }
 
-  prevPage(i: Community) { 
+  prevPage(i: Community) {
     i.state.page--;
     i.setState(i.state);
     i.updateUrl();
     i.fetchPosts();
-    window.scrollTo(0,0);
+    window.scrollTo(0, 0);
   }
 
-  handleSortChange(i: Community, event: any) {
-    i.state.sort = Number(event.target.value);
-    i.state.page = 1;
-    i.setState(i.state);
-    i.updateUrl();
-    i.fetchPosts();
-    window.scrollTo(0,0);
+  handleSortChange(val: SortType) {
+    this.state.sort = val;
+    this.state.page = 1;
+    this.state.loading = true;
+    this.setState(this.state);
+    this.updateUrl();
+    this.fetchPosts();
+    window.scrollTo(0, 0);
   }
 
   updateUrl() {
     let sortStr = SortType[this.state.sort].toLowerCase();
-    this.props.history.push(`/c/${this.state.community.name}/sort/${sortStr}/page/${this.state.page}`);
+    this.props.history.push(
+      `/c/${this.state.community.name}/sort/${sortStr}/page/${this.state.page}`
+    );
   }
 
   keepFetchingPosts() {
@@ -201,7 +243,7 @@ export class Community extends Component<any, State> {
       sort: SortType[this.state.sort],
       type_: ListingType[ListingType.Community],
       community_id: this.state.community.id,
-    }
+    };
     WebSocketService.Instance.getPosts(getPostsForm);
   }
 
@@ -218,7 +260,7 @@ export class Community extends Component<any, State> {
       this.state.admins = res.admins;
       document.title = `/c/${this.state.community.name} - ${WebSocketService.Instance.site.name}`;
       this.setState(this.state);
-      this.fetchPosts();
+      this.keepFetchingPosts();
     } else if (op == UserOperation.EditCommunity) {
       let res: CommunityResponse = msg;
       this.state.community = res.community;
@@ -226,7 +268,8 @@ export class Community extends Component<any, State> {
     } else if (op == UserOperation.FollowCommunity) {
       let res: CommunityResponse = msg;
       this.state.community.subscribed = res.community.subscribed;
-      this.state.community.number_of_subscribers = res.community.number_of_subscribers;
+      this.state.community.number_of_subscribers =
+        res.community.number_of_subscribers;
       this.setState(this.state);
     } else if (op == UserOperation.GetPosts) {
       let res: GetPostsResponse = msg;
@@ -244,4 +287,3 @@ export class Community extends Component<any, State> {
     }
   }
 }
-

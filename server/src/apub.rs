@@ -55,6 +55,7 @@ impl User_ {
 #[cfg(test)]
 mod tests {
   use super::User_;
+  use crate::db::{ListingType, SortType};
   use crate::naive_now;
 
   #[test]
@@ -73,6 +74,8 @@ mod tests {
       updated: None,
       show_nsfw: false,
       theme: "darkly".into(),
+      default_sort_type: SortType::Hot as i16,
+      default_listing_type: ListingType::Subscribed as i16,
     };
 
     let person = expected_user.person();

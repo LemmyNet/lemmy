@@ -8,7 +8,14 @@ import 'moment/locale/ru';
 import 'moment/locale/nl';
 import 'moment/locale/it';
 
-import { UserOperation, Comment, User, SortType, ListingType, SearchType } from './interfaces';
+import {
+  UserOperation,
+  Comment,
+  User,
+  SortType,
+  ListingType,
+  SearchType,
+} from './interfaces';
 import * as markdown_it from 'markdown-it';
 import * as markdownitEmoji from 'markdown-it-emoji/light';
 import * as markdown_it_container from 'markdown-it-container';
@@ -18,11 +25,16 @@ import * as emojiShortName from 'emoji-short-name';
 export const repoUrl = 'https://github.com/dessalines/lemmy';
 export const markdownHelpUrl = 'https://commonmark.org/help/';
 
-export const postRefetchSeconds: number = 60*1000;
+export const postRefetchSeconds: number = 60 * 1000;
 export const fetchLimit: number = 20;
 export const mentionDropdownFetchLimit = 6;
 
-export function randomStr() {return Math.random().toString(36).replace(/[^a-z]+/g, '').substr(2, 10)}
+export function randomStr() {
+  return Math.random()
+    .toString(36)
+    .replace(/[^a-z]+/g, '')
+    .substr(2, 10);
+}
 
 export function msgOp(msg: any): UserOperation {
   let opStr: string = msg.op;
@@ -32,27 +44,30 @@ export function msgOp(msg: any): UserOperation {
 export const md = new markdown_it({
   html: false,
   linkify: true,
-  typographer: true
-}).use(markdown_it_container, 'spoiler', {
-  validate: function(params: any) {
-    return params.trim().match(/^spoiler\s+(.*)$/);
-  },
+  typographer: true,
+})
+  .use(markdown_it_container, 'spoiler', {
+    validate: function(params: any) {
+      return params.trim().match(/^spoiler\s+(.*)$/);
+    },
 
-  render: function (tokens: any, idx: any) {
-    var m = tokens[idx].info.trim().match(/^spoiler\s+(.*)$/);
+    render: function(tokens: any, idx: any) {
+      var m = tokens[idx].info.trim().match(/^spoiler\s+(.*)$/);
 
-    if (tokens[idx].nesting === 1) {
-      // opening tag
-      return '<details><summary>' + md.utils.escapeHtml(m[1]) + '</summary>\n';
-
-    } else {
-      // closing tag
-      return '</details>\n';
-    }
-  }
-}).use(markdownitEmoji, {
-  defs: objectFlip(emojiShortName)
-});
+      if (tokens[idx].nesting === 1) {
+        // opening tag
+        return (
+          '<details><summary>' + md.utils.escapeHtml(m[1]) + '</summary>\n'
+        );
+      } else {
+        // closing tag
+        return '</details>\n';
+      }
+    },
+  })
+  .use(markdownitEmoji, {
+    defs: objectFlip(emojiShortName),
+  });
 
 md.renderer.rules.emoji = function(token, idx) {
   return twemoji.parse(token[idx].content);
@@ -65,7 +80,9 @@ export function hotRank(comment: Comment): number {
   let now: Date = new Date();
   let hoursElapsed: number = (now.getTime() - date.getTime()) / 36e5;
 
-  let rank = (10000 *  Math.log10(Math.max(1, 3 + comment.score))) / Math.pow(hoursElapsed + 2, 1.8);
+  let rank =
+    (10000 * Math.log10(Math.max(1, 3 + comment.score))) /
+    Math.pow(hoursElapsed + 2, 1.8);
 
   // console.log(`Comment: ${comment.content}\nRank: ${rank}\nScore: ${comment.score}\nHours: ${hoursElapsed}`);
 
@@ -73,26 +90,36 @@ export function hotRank(comment: Comment): number {
 }
 
 export function mdToHtml(text: string) {
-  return {__html: md.render(text)};
+  return { __html: md.render(text) };
 }
 
-export function getUnixTime(text: string): number { 
-  return text ? new Date(text).getTime()/1000 : undefined;
+export function getUnixTime(text: string): number {
+  return text ? new Date(text).getTime() / 1000 : undefined;
 }
 
-export function addTypeInfo<T>(arr: Array<T>, name: string): Array<{type_: string, data: T}> {  
-  return arr.map(e => {return {type_: name, data: e}});
+export function addTypeInfo<T>(
+  arr: Array<T>,
+  name: string
+): Array<{ type_: string; data: T }> {
+  return arr.map(e => {
+    return { type_: name, data: e };
+  });
 }
 
-export function canMod(user: User, modIds: Array<number>, creator_id: number, onSelf: boolean = false): boolean {
+export function canMod(
+  user: User,
+  modIds: Array<number>,
+  creator_id: number,
+  onSelf: boolean = false
+): boolean {
   // You can do moderator actions only on the mods added after you.
   if (user) {
     let yourIndex = modIds.findIndex(id => id == user.id);
     if (yourIndex == -1) {
       return false;
-    } else { 
+    } else {
       // onSelf +1 on mod actions not for yourself, IE ban, remove, etc
-      modIds = modIds.slice(0, yourIndex+(onSelf ? 0 : 1)); 
+      modIds = modIds.slice(0, yourIndex + (onSelf ? 0 : 1));
       return !modIds.includes(creator_id);
     }
   } else {
@@ -104,8 +131,9 @@ export function isMod(modIds: Array<number>, creator_id: number): boolean {
   return modIds.includes(creator_id);
 }
 
-
-var imageRegex = new RegExp(`(http)?s?:?(\/\/[^"']*\.(?:png|jpg|jpeg|gif|png|svg))`);
+var imageRegex = new RegExp(
+  `(http)?s?:?(\/\/[^"']*\.(?:png|jpg|jpeg|gif|png|svg))`
+);
 var videoRegex = new RegExp(`(http)?s?:?(\/\/[^"']*\.(?:mp4))`);
 
 export function isImage(url: string) {
@@ -128,7 +156,6 @@ export function capitalizeFirstLetter(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-
 export function routeSortTypeToEnum(sort: string): SortType {
   if (sort == 'new') {
     return SortType.New;
@@ -140,6 +167,8 @@ export function routeSortTypeToEnum(sort: string): SortType {
     return SortType.TopWeek;
   } else if (sort == 'topmonth') {
     return SortType.TopMonth;
+  } else if (sort == 'topyear') {
+    return SortType.TopYear;
   } else if (sort == 'topall') {
     return SortType.TopAll;
   }
@@ -159,7 +188,11 @@ export async function getPageTitle(url: string) {
   return data;
 }
 
-export function debounce(func: any, wait: number = 500, immediate: boolean = false) {
+export function debounce(
+  func: any,
+  wait: number = 500,
+  immediate: boolean = false
+) {
   // 'private' variable for instance
   // The returned function will be able to reference this due to closure.
   // Each call to the returned function will share this common timer.
@@ -169,46 +202,45 @@ export function debounce(func: any, wait: number = 500, immediate: boolean = fal
   return function() {
     // reference the context and args for the setTimeout function
     var context = this,
-    args = arguments;
+      args = arguments;
 
-  // Should the function be called now? If immediate is true
-  //   and not already in a timeout then the answer is: Yes
-  var callNow = immediate && !timeout;
+    // Should the function be called now? If immediate is true
+    //   and not already in a timeout then the answer is: Yes
+    var callNow = immediate && !timeout;
 
-  // This is the basic debounce behaviour where you can call this 
-  //   function several times, but it will only execute once 
-  //   [before or after imposing a delay]. 
-  //   Each time the returned function is called, the timer starts over.
-  clearTimeout(timeout);
+    // This is the basic debounce behaviour where you can call this
+    //   function several times, but it will only execute once
+    //   [before or after imposing a delay].
+    //   Each time the returned function is called, the timer starts over.
+    clearTimeout(timeout);
 
-  // Set the new timeout
-  timeout = setTimeout(function() {
+    // Set the new timeout
+    timeout = setTimeout(function() {
+      // Inside the timeout function, clear the timeout variable
+      // which will let the next execution run when in 'immediate' mode
+      timeout = null;
 
-    // Inside the timeout function, clear the timeout variable
-    // which will let the next execution run when in 'immediate' mode
-    timeout = null;
+      // Check if the function already ran with the immediate flag
+      if (!immediate) {
+        // Call the original function with apply
+        // apply lets you define the 'this' object as well as the arguments
+        //    (both captured before setTimeout)
+        func.apply(context, args);
+      }
+    }, wait);
 
-    // Check if the function already ran with the immediate flag
-    if (!immediate) {
-      // Call the original function with apply
-      // apply lets you define the 'this' object as well as the arguments 
-      //    (both captured before setTimeout)
-      func.apply(context, args);
-    }
-  }, wait);
-
-  // Immediate mode and no wait timer? Execute the function..
-  if (callNow) func.apply(context, args);
-  }
+    // Immediate mode and no wait timer? Execute the function..
+    if (callNow) func.apply(context, args);
+  };
 }
 
 export function getLanguage(): string {
-  return (navigator.language || navigator.userLanguage);
+  return navigator.language || navigator.userLanguage;
 }
 
 export function objectFlip(obj: any) {
   const ret = {};
-  Object.keys(obj).forEach((key) => {
+  Object.keys(obj).forEach(key => {
     ret[obj[key]] = key;
   });
   return ret;
@@ -240,16 +272,24 @@ export function getMomentLanguage(): string {
   return lang;
 }
 
-export const themes = ['litera', 'minty', 'solar', 'united', 'cyborg','darkly', 'journal', 'sketchy'];
+export const themes = [
+  'litera',
+  'minty',
+  'solar',
+  'united',
+  'cyborg',
+  'darkly',
+  'journal',
+  'sketchy',
+];
 
 export function setTheme(theme: string = 'darkly') {
-  for (var i=0; i < themes.length; i++) {
-
+  for (var i = 0; i < themes.length; i++) {
     let styleSheet = document.getElementById(themes[i]);
     if (themes[i] == theme) {
-      styleSheet.removeAttribute("disabled");
+      styleSheet.removeAttribute('disabled');
     } else {
-      styleSheet.setAttribute("disabled", "disabled");
-    }      
+      styleSheet.setAttribute('disabled', 'disabled');
+    }
   }
 }

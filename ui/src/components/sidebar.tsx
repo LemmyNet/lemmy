@@ -1,6 +1,12 @@
 import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
-import { Community, CommunityUser, FollowCommunityForm, CommunityForm as CommunityFormI, UserView } from '../interfaces';
+import {
+  Community,
+  CommunityUser,
+  FollowCommunityForm,
+  CommunityForm as CommunityFormI,
+  UserView,
+} from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { mdToHtml, getUnixTime } from '../utils';
 import { CommunityForm } from './community-form';
@@ -21,13 +27,12 @@ interface SidebarState {
 }
 
 export class Sidebar extends Component<SidebarProps, SidebarState> {
-
   private emptyState: SidebarState = {
     showEdit: false,
     showRemoveDialog: false,
     removeReason: null,
-    removeExpires: null
-  }
+    removeExpires: null,
+  };
 
   constructor(props: any, context: any) {
     super(props, context);
@@ -39,15 +44,17 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   render() {
     return (
       <div>
-        {!this.state.showEdit 
-          ? this.sidebar()
-          : <CommunityForm 
-          community={this.props.community} 
-          onEdit={this.handleEditCommunity} 
-          onCancel={this.handleEditCancel} />
-        }
+        {!this.state.showEdit ? (
+          this.sidebar()
+        ) : (
+          <CommunityForm
+            community={this.props.community}
+            onEdit={this.handleEditCommunity}
+            onCancel={this.handleEditCancel}
+          />
+        )}
       </div>
-    )
+    );
   }
 
   sidebar() {
@@ -58,86 +65,178 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
           <div class="card-body">
             <h5 className="mb-0">
               <span>{community.title}</span>
-              {community.removed &&
-                <small className="ml-2 text-muted font-italic"><T i18nKey="removed">#</T></small>
-              }
-              {community.deleted &&
-                <small className="ml-2 text-muted font-italic"><T i18nKey="deleted">#</T></small>
-              }
+              {community.removed && (
+                <small className="ml-2 text-muted font-italic">
+                  <T i18nKey="removed">#</T>
+                </small>
+              )}
+              {community.deleted && (
+                <small className="ml-2 text-muted font-italic">
+                  <T i18nKey="deleted">#</T>
+                </small>
+              )}
             </h5>
-            <Link className="text-muted" to={`/c/${community.name}`}>/c/{community.name}</Link>
-            <ul class="list-inline mb-1 text-muted small font-weight-bold"> 
-              {this.canMod && 
+            <Link className="text-muted" to={`/c/${community.name}`}>
+              /c/{community.name}
+            </Link>
+            <ul class="list-inline mb-1 text-muted small font-weight-bold">
+              {this.canMod && (
                 <>
                   <li className="list-inline-item">
-                    <span class="pointer" onClick={linkEvent(this, this.handleEditClick)}><T i18nKey="edit">#</T></span>
+                    <span
+                      class="pointer"
+                      onClick={linkEvent(this, this.handleEditClick)}
+                    >
+                      <T i18nKey="edit">#</T>
+                    </span>
                   </li>
-                  {this.amCreator && 
+                  {this.amCreator && (
                     <li className="list-inline-item">
-                      <span class="pointer" onClick={linkEvent(this, this.handleDeleteClick)}>
-                        {!community.deleted ? i18n.t('delete') : i18n.t('restore')}
+                      <span
+                        class="pointer"
+                        onClick={linkEvent(this, this.handleDeleteClick)}
+                      >
+                        {!community.deleted
+                          ? i18n.t('delete')
+                          : i18n.t('restore')}
                       </span>
                     </li>
-                  }
+                  )}
                 </>
-              }
-              {this.canAdmin &&
+              )}
+              {this.canAdmin && (
                 <li className="list-inline-item">
-                  {!this.props.community.removed ? 
-                  <span class="pointer" onClick={linkEvent(this, this.handleModRemoveShow)}><T i18nKey="remove">#</T></span> :
-                  <span class="pointer" onClick={linkEvent(this, this.handleModRemoveSubmit)}><T i18nKey="restore">#</T></span>
-                  }
+                  {!this.props.community.removed ? (
+                    <span
+                      class="pointer"
+                      onClick={linkEvent(this, this.handleModRemoveShow)}
+                    >
+                      <T i18nKey="remove">#</T>
+                    </span>
+                  ) : (
+                    <span
+                      class="pointer"
+                      onClick={linkEvent(this, this.handleModRemoveSubmit)}
+                    >
+                      <T i18nKey="restore">#</T>
+                    </span>
+                  )}
                 </li>
-
-              }
+              )}
             </ul>
-            {this.state.showRemoveDialog && 
+            {this.state.showRemoveDialog && (
               <form onSubmit={linkEvent(this, this.handleModRemoveSubmit)}>
                 <div class="form-group row">
-                  <label class="col-form-label"><T i18nKey="reason">#</T></label>
-                  <input type="text" class="form-control mr-2" placeholder={i18n.t('optional')} value={this.state.removeReason} onInput={linkEvent(this, this.handleModRemoveReasonChange)} />
+                  <label class="col-form-label">
+                    <T i18nKey="reason">#</T>
+                  </label>
+                  <input
+                    type="text"
+                    class="form-control mr-2"
+                    placeholder={i18n.t('optional')}
+                    value={this.state.removeReason}
+                    onInput={linkEvent(this, this.handleModRemoveReasonChange)}
+                  />
                 </div>
                 {/* TODO hold off on expires for now */}
                 {/* <div class="form-group row"> */}
-                  {/*   <label class="col-form-label">Expires</label> */}
-                  {/*   <input type="date" class="form-control mr-2" placeholder={i18n.t('expires')} value={this.state.removeExpires} onInput={linkEvent(this, this.handleModRemoveExpiresChange)} /> */}
-                  {/* </div> */}
-                  <div class="form-group row">
-                    <button type="submit" class="btn btn-secondary"><T i18nKey="remove_community">#</T></button>
-                  </div>
-                </form>
-            }
+                {/*   <label class="col-form-label">Expires</label> */}
+                {/*   <input type="date" class="form-control mr-2" placeholder={i18n.t('expires')} value={this.state.removeExpires} onInput={linkEvent(this, this.handleModRemoveExpiresChange)} /> */}
+                {/* </div> */}
+                <div class="form-group row">
+                  <button type="submit" class="btn btn-secondary">
+                    <T i18nKey="remove_community">#</T>
+                  </button>
+                </div>
+              </form>
+            )}
             <ul class="my-1 list-inline">
-              <li className="list-inline-item"><Link className="badge badge-secondary" to="/communities">{community.category_name}</Link></li>
-              <li className="list-inline-item badge badge-secondary"><T i18nKey="number_of_subscribers" interpolation={{count: community.number_of_subscribers}}>#</T></li>
-              <li className="list-inline-item badge badge-secondary"><T i18nKey="number_of_posts" interpolation={{count: community.number_of_posts}}>#</T></li>
-              <li className="list-inline-item badge badge-secondary"><T i18nKey="number_of_comments" interpolation={{count: community.number_of_comments}}>#</T></li>
-              <li className="list-inline-item"><Link className="badge badge-secondary" to={`/modlog/community/${this.props.community.id}`}><T i18nKey="modlog">#</T></Link></li>
+              <li className="list-inline-item">
+                <Link className="badge badge-secondary" to="/communities">
+                  {community.category_name}
+                </Link>
+              </li>
+              <li className="list-inline-item badge badge-secondary">
+                <T
+                  i18nKey="number_of_subscribers"
+                  interpolation={{ count: community.number_of_subscribers }}
+                >
+                  #
+                </T>
+              </li>
+              <li className="list-inline-item badge badge-secondary">
+                <T
+                  i18nKey="number_of_posts"
+                  interpolation={{ count: community.number_of_posts }}
+                >
+                  #
+                </T>
+              </li>
+              <li className="list-inline-item badge badge-secondary">
+                <T
+                  i18nKey="number_of_comments"
+                  interpolation={{ count: community.number_of_comments }}
+                >
+                  #
+                </T>
+              </li>
+              <li className="list-inline-item">
+                <Link
+                  className="badge badge-secondary"
+                  to={`/modlog/community/${this.props.community.id}`}
+                >
+                  <T i18nKey="modlog">#</T>
+                </Link>
+              </li>
             </ul>
-            <ul class="list-inline small"> 
+            <ul class="list-inline small">
               <li class="list-inline-item">{i18n.t('mods')}: </li>
-              {this.props.moderators.map(mod =>
-                <li class="list-inline-item"><Link class="text-info" to={`/u/${mod.user_name}`}>{mod.user_name}</Link></li>
-              )}
+              {this.props.moderators.map(mod => (
+                <li class="list-inline-item">
+                  <Link class="text-info" to={`/u/${mod.user_name}`}>
+                    {mod.user_name}
+                  </Link>
+                </li>
+              ))}
             </ul>
-            <Link class={`btn btn-sm btn-secondary btn-block mb-3 ${(community.deleted || community.removed) && 'no-click'}`}
-            to={`/create_post?community=${community.name}`}><T i18nKey="create_a_post">#</T></Link>
-          <div>
-            {community.subscribed 
-              ? <button class="btn btn-sm btn-secondary btn-block" onClick={linkEvent(community.id, this.handleUnsubscribe)}><T i18nKey="unsubscribe">#</T></button>
-              : <button class="btn btn-sm btn-secondary btn-block" onClick={linkEvent(community.id, this.handleSubscribe)}><T i18nKey="subscribe">#</T></button>
-            }
-          </div>
-        </div>
-        </div>
-        {community.description && 
-          <div class="card border-secondary">
-            <div class="card-body">
-              <div className="md-div" dangerouslySetInnerHTML={mdToHtml(community.description)} />
+            <Link
+              class={`btn btn-sm btn-secondary btn-block mb-3 ${(community.deleted ||
+                community.removed) &&
+                'no-click'}`}
+              to={`/create_post?community=${community.name}`}
+            >
+              <T i18nKey="create_a_post">#</T>
+            </Link>
+            <div>
+              {community.subscribed ? (
+                <button
+                  class="btn btn-sm btn-secondary btn-block"
+                  onClick={linkEvent(community.id, this.handleUnsubscribe)}
+                >
+                  <T i18nKey="unsubscribe">#</T>
+                </button>
+              ) : (
+                <button
+                  class="btn btn-sm btn-secondary btn-block"
+                  onClick={linkEvent(community.id, this.handleSubscribe)}
+                >
+                  <T i18nKey="subscribe">#</T>
+                </button>
+              )}
             </div>
           </div>
-        }
         </div>
+        {community.description && (
+          <div class="card border-secondary">
+            <div class="card-body">
+              <div
+                className="md-div"
+                dangerouslySetInnerHTML={mdToHtml(community.description)}
+              />
+            </div>
+          </div>
+        )}
+      </div>
     );
   }
 
@@ -173,7 +272,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   handleUnsubscribe(communityId: number) {
     let form: FollowCommunityForm = {
       community_id: communityId,
-      follow: false
+      follow: false,
     };
     WebSocketService.Instance.followCommunity(form);
   }
@@ -181,7 +280,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   handleSubscribe(communityId: number) {
     let form: FollowCommunityForm = {
       community_id: communityId,
-      follow: true
+      follow: true,
     };
     WebSocketService.Instance.followCommunity(form);
   }
@@ -191,11 +290,19 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   }
 
   get canMod(): boolean {
-    return UserService.Instance.user && this.props.moderators.map(m => m.user_id).includes(UserService.Instance.user.id);
+    return (
+      UserService.Instance.user &&
+      this.props.moderators
+        .map(m => m.user_id)
+        .includes(UserService.Instance.user.id)
+    );
   }
 
   get canAdmin(): boolean {
-    return UserService.Instance.user && this.props.admins.map(a => a.id).includes(UserService.Instance.user.id);
+    return (
+      UserService.Instance.user &&
+      this.props.admins.map(a => a.id).includes(UserService.Instance.user.id)
+    );
   }
 
   handleModRemoveShow(i: Sidebar) {
