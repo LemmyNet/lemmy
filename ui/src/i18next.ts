@@ -9,6 +9,7 @@ import { sv } from './translations/sv';
 import { ru } from './translations/ru';
 import { zh } from './translations/zh';
 import { nl } from './translations/nl';
+import { it } from './translations/it';
 
 // https://github.com/nimbusec-oss/inferno-i18next/blob/master/tests/T.test.js#L66
 const resources = {
@@ -21,6 +22,7 @@ const resources = {
   sv,
   ru,
   nl,
+  it,
 };
 
 function format(value: any, format: any, lng: any) {
