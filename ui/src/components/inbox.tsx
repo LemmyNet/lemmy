@@ -16,6 +16,7 @@ import {
 import { WebSocketService, UserService } from '../services';
 import { msgOp } from '../utils';
 import { CommentNodes } from './comment-nodes';
+import { SortSelect } from './sort-select';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 
@@ -54,6 +55,7 @@ export class Inbox extends Component<any, InboxState> {
     super(props, context);
 
     this.state = this.emptyState;
+    this.handleSortChange = this.handleSortChange.bind(this);
 
     this.subscription = WebSocketService.Instance.subject
       .pipe(
@@ -153,33 +155,11 @@ export class Inbox extends Component<any, InboxState> {
             <T i18nKey="mentions">#</T>
           </option>
         </select>
-        <select
-          value={this.state.sort}
-          onChange={linkEvent(this, this.handleSortChange)}
-          class="custom-select custom-select-sm w-auto"
-        >
-          <option disabled>
-            <T i18nKey="sort_type">#</T>
-          </option>
-          <option value={SortType.New}>
-            <T i18nKey="new">#</T>
-          </option>
-          <option value={SortType.TopDay}>
-            <T i18nKey="top_day">#</T>
-          </option>
-          <option value={SortType.TopWeek}>
-            <T i18nKey="week">#</T>
-          </option>
-          <option value={SortType.TopMonth}>
-            <T i18nKey="month">#</T>
-          </option>
-          <option value={SortType.TopYear}>
-            <T i18nKey="year">#</T>
-          </option>
-          <option value={SortType.TopAll}>
-            <T i18nKey="all">#</T>
-          </option>
-        </select>
+        <SortSelect
+          sort={this.state.sort}
+          onChange={this.handleSortChange}
+          hideHot
+        />
       </div>
     );
   }
@@ -300,11 +280,11 @@ export class Inbox extends Component<any, InboxState> {
     WebSocketService.Instance.getUserMentions(userMentionsForm);
   }
 
-  handleSortChange(i: Inbox, event: any) {
-    i.state.sort = Number(event.target.value);
-    i.state.page = 1;
-    i.setState(i.state);
-    i.refetch();
+  handleSortChange(val: SortType) {
+    this.state.sort = val;
+    this.state.page = 1;
+    this.setState(this.state);
+    this.refetch();
   }
 
   markAllAsRead() {

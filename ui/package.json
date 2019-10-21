@@ -58,23 +58,13 @@
   "engineStrict": true,
   "husky": {
     "hooks": {
-      "pre-commit": "yarn run lint && lint-staged"
+      "pre-commit": "lint-staged"
     }
   },
   "lint-staged": {
-    "*.js": [
+    "*.{ts,tsx,js}": [
       "prettier --write",
-      "yarn run lint",
-      "git add"
-    ],
-    "*.ts": [
-      "prettier --write",
-      "yarn run lint",
-      "git add"
-    ],
-    "*.tsx": [
-      "prettier --write",
-      "yarn run lint",
+      "eslint --fix",
       "git add"
     ],
     "package.json": [

@@ -166,6 +166,8 @@ export function routeSortTypeToEnum(sort: string): SortType {
     return SortType.TopWeek;
   } else if (sort == 'topmonth') {
     return SortType.TopMonth;
+  } else if (sort == 'topyear') {
+    return SortType.TopYear;
   } else if (sort == 'topall') {
     return SortType.TopAll;
   }
