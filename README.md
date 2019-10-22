@@ -40,28 +40,28 @@ Front Page|Post
 
 <!-- toc -->
 
-- [🎥 Features](#%F0%9F%8E%A5-features)
-- [💭 About](#%F0%9F%92%AD-about)
+- [Features](#features)
+- [About](#about)
   * [Why's it called Lemmy?](#whys-it-called-lemmy)
-- [🚀 Install](#%F0%9F%9A%80-install)
+- [Install](#install)
   * [Docker](#docker)
     + [Updating](#updating)
   * [Ansible](#ansible)
   * [Kubernetes](#kubernetes)
-- [⛓️ Develop](#%E2%9B%93%EF%B8%8F-develop)
+- [Develop](#develop)
   * [Docker Development](#docker-development)
   * [Local Development](#local-development)
     + [Requirements](#requirements)
     + [Set up Postgres DB](#set-up-postgres-db)
     + [Running](#running)
-- [💡 Documentation](#%F0%9F%92%A1-documentation)
-- [🚑 Support](#%F0%9F%9A%91-support)
+- [Documentation](#documentation)
+- [Support](#support)
 - [Translations](#translations)
 - [Credits](#credits)
 
 <!-- tocstop -->
 
-## 🎥 Features
+## Features
 
 - Open source, [AGPL License](/LICENSE).
 - Self hostable, easy to deploy.
@@ -88,7 +88,7 @@ Front Page|Post
   - Server is written in rust.
   - Front end is `~80kB` gzipped.
 
-## 💭 About
+## About
 
 [Lemmy](https://github.com/dessalines/lemmy) is similar to sites like [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), [Raddle](https://raddle.me), or [Hacker News](https://news.ycombinator.com/): you subscribe to forums you're interested in, post links and discussions, then vote, and comment on them. Behind the scenes, it is very different; anyone can easily run a server, and all these servers are federated (think email), and connected to the same universe, called the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
 
@@ -107,7 +107,7 @@ Each lemmy server can set its own moderation policy; appointing site-wide admins
 
 Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Inferno](https://www.infernojs.org), [Typescript](https://www.typescriptlang.org/) and [Diesel](http://diesel.rs/).
 
-## 🚀 Install
+## Install
 
 ### Docker
 
@@ -179,7 +179,7 @@ kubectl apply -f docker/k8s/lemmy.yml
 
 If you used a `LoadBalancer`, you should see it in your cloud provider's console.
 
-## ⛓️ Develop
+## Develop
 
 ### Docker Development
 
@@ -220,14 +220,14 @@ cd lemmy
 # cd server && cargo watch -x run
 ```
 
-## 💡 Documentation
+## Documentation
 
 - [Websocket API for App developers](docs/api.md)
 - [ActivityPub API.md](docs/apub_api_outline.md)
 - [Goals](docs/goals.md)
 - [Ranking Algorithm](docs/ranking.md)
 
-## 🚑 Support
+## Support
 
 Lemmy is free, open-source software, meaning no advertising, monetizing, or venture capital, ever. Your donations directly support full-time development of the project.
 
