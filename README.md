@@ -1,6 +1,6 @@
 <p align="center">
   <a href="" rel="noopener">
- <img width=50px height=50px src="ui/assets/favicon.svg"></a>
+ <img width=200px height=200px src="ui/assets/favicon.svg"></a>
 </p>
 
 <h3 align="center">Lemmy</h3>
@@ -55,7 +55,7 @@ Front Page|Post
     + [Set up Postgres DB](#set-up-postgres-db)
     + [Running](#running)
 - [💡 Documentation](#%F0%9F%92%A1-documentation)
-- [Support](#support)
+- [🚑 Support](#%F0%9F%9A%91-support)
 - [Translations](#translations)
 - [Credits](#credits)
 
