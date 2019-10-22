@@ -1,4 +1,11 @@
-<h1><img src="ui/assets/favicon.svg" width="50px" height="50px" style="vertical-align:bottom" /><span>Lemmy</span></h1>
+<p align="center">
+  <a href="" rel="noopener">
+ <img width=50px height=50px src="ui/assets/favicon.svg"></a>
+</p>
+
+<h3 align="center">Lemmy</h3>
+
+<div align="center">
 
 [![Github](https://img.shields.io/badge/-Github-blue)](https://github.com/dessalines/lemmy)
 [![Gitlab](https://img.shields.io/badge/-Gitlab-yellowgreen)](https://gitlab.com/dessalines/lemmy)
@@ -13,8 +20,13 @@
 ![GitHub repo size](https://img.shields.io/github/repo-size/dessalines/lemmy.svg)
 [![License](https://img.shields.io/github/license/dessalines/lemmy.svg)](LICENSE)
 [![Patreon](https://img.shields.io/badge/-Support%20on%20Patreon-blueviolet.svg)](https://www.patreon.com/dessalines)
+</div>
 
-A link aggregator / reddit clone for the fediverse.
+---
+
+<p align="center">A link aggregator / reddit clone for the fediverse.
+    <br> 
+</p>
 
 [Lemmy Dev instance](https://dev.lemmy.ml) *for testing purposes only*
 
@@ -24,7 +36,32 @@ Front Page|Post
 ---|---
 ![main screen](https://i.imgur.com/y64BtXC.png)|![chat screen](https://i.imgur.com/vsOr87q.png)
 
-## Features
+## 📝 Table of Contents
+
+<!-- toc -->
+
+- [🎥 Features](#%F0%9F%8E%A5-features)
+- [💭 About](#%F0%9F%92%AD-about)
+  * [Why's it called Lemmy?](#whys-it-called-lemmy)
+- [🚀 Install](#%F0%9F%9A%80-install)
+  * [Docker](#docker)
+    + [Updating](#updating)
+  * [Ansible](#ansible)
+  * [Kubernetes](#kubernetes)
+- [⛓️ Develop](#%E2%9B%93%EF%B8%8F-develop)
+  * [Docker Development](#docker-development)
+  * [Local Development](#local-development)
+    + [Requirements](#requirements)
+    + [Set up Postgres DB](#set-up-postgres-db)
+    + [Running](#running)
+- [💡 Documentation](#%F0%9F%92%A1-documentation)
+- [Support](#support)
+- [Translations](#translations)
+- [Credits](#credits)
+
+<!-- tocstop -->
+
+## 🎥 Features
 
 - Open source, [AGPL License](/LICENSE).
 - Self hostable, easy to deploy.
@@ -51,7 +88,7 @@ Front Page|Post
   - Server is written in rust.
   - Front end is `~80kB` gzipped.
 
-## About
+## 💭 About
 
 [Lemmy](https://github.com/dessalines/lemmy) is similar to sites like [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), [Raddle](https://raddle.me), or [Hacker News](https://news.ycombinator.com/): you subscribe to forums you're interested in, post links and discussions, then vote, and comment on them. Behind the scenes, it is very different; anyone can easily run a server, and all these servers are federated (think email), and connected to the same universe, called the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
 
@@ -61,7 +98,7 @@ The overall goal is to create an easily self-hostable, decentralized alternative
 
 Each lemmy server can set its own moderation policy; appointing site-wide admins, and community moderators to keep out the trolls, and foster a healthy, non-toxic environment where all can feel comfortable contributing.
 
-## Why's it called Lemmy?
+### Why's it called Lemmy?
 
 - Lead singer from [Motörhead](https://invidio.us/watch?v=pWB5JZRGl0U).
 - The old school [video game](<https://en.wikipedia.org/wiki/Lemmings_(video_game)>).
@@ -70,7 +107,7 @@ Each lemmy server can set its own moderation policy; appointing site-wide admins
 
 Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Inferno](https://www.infernojs.org), [Typescript](https://www.typescriptlang.org/) and [Diesel](http://diesel.rs/).
 
-## Install
+## 🚀 Install
 
 ### Docker
 
@@ -142,7 +179,7 @@ kubectl apply -f docker/k8s/lemmy.yml
 
 If you used a `LoadBalancer`, you should see it in your cloud provider's console.
 
-## Develop
+## ⛓️ Develop
 
 ### Docker Development
 
@@ -183,14 +220,14 @@ cd lemmy
 # cd server && cargo watch -x run
 ```
 
-## Documentation
+## 💡 Documentation
 
 - [Websocket API for App developers](docs/api.md)
 - [ActivityPub API.md](docs/apub_api_outline.md)
 - [Goals](docs/goals.md)
 - [Ranking Algorithm](docs/ranking.md)
 
-## Support
+## 🚑 Support
 
 Lemmy is free, open-source software, meaning no advertising, monetizing, or venture capital, ever. Your donations directly support full-time development of the project.
 
