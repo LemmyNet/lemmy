@@ -17,6 +17,7 @@ pub mod user;
 pub mod user_mention;
 pub mod user_mention_view;
 pub mod user_view;
+pub mod password_reset_request;
 
 pub trait Crud<T> {
   fn create(conn: &PgConnection, form: &T) -> Result<Self, Error>

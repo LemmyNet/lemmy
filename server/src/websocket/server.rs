@@ -534,5 +534,15 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       let res = Oper::new(user_operation, delete_account).perform()?;
       Ok(serde_json::to_string(&res)?)
     }
+    UserOperation::PasswordReset => {
+      let password_reset: PasswordReset = serde_json::from_str(data)?;
+      let res = Oper::new(user_operation, password_reset).perform()?;
+      Ok(serde_json::to_string(&res)?)
+    }
+    UserOperation::PasswordChange => {
+      let password_change: PasswordChange = serde_json::from_str(data)?;
+      let res = Oper::new(user_operation, password_change).perform()?;
+      Ok(serde_json::to_string(&res)?)
+    }
   }
 }
