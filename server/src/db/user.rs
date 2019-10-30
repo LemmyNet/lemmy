@@ -44,7 +44,6 @@ pub struct UserForm {
 
 impl Crud<UserForm> for User_ {
   fn read(conn: &PgConnection, user_id: i32) -> Result<Self, Error> {
-    use crate::schema::user_::dsl::*;
     user_.find(user_id).first::<Self>(conn)
   }
   fn delete(conn: &PgConnection, user_id: i32) -> Result<usize, Error> {
@@ -69,6 +68,16 @@ impl User_ {
 
     Self::create(&conn, &edited_user)
   }
+
+  pub fn update_password(conn: &PgConnection, user_id: i32, form: &UserForm) -> Result<Self, Error> {
+    let mut edited_user = form.clone();
+    let password_hash =
+      hash(&form.password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
+    edited_user.password_encrypted = password_hash;
+
+    Self::update(&conn, user_id, &edited_user)
+  }
+
   pub fn read_from_name(conn: &PgConnection, from_user_name: String) -> Result<Self, Error> {
     user_.filter(name.eq(from_user_name)).first::<Self>(conn)
   }
@@ -129,6 +138,16 @@ impl User_ {
         .first::<User_>(conn)
     }
   }
+  
+  pub fn find_by_email(
+    conn: &PgConnection,
+    from_email: &str,
+  ) -> Result<Self, Error> {
+    user_
+      .filter(email.eq(from_email))
+      .first::<User_>(conn)
+  }
+
 
   pub fn find_by_jwt(conn: &PgConnection, jwt: &str) -> Result<Self, Error> {
     let claims: Claims = Claims::decode(&jwt).expect("Invalid token").claims;
@@ -139,6 +158,8 @@ impl User_ {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use super::User_;
+
   #[test]
   fn test_crud() {
     let conn = establish_connection();

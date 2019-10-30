@@ -30,6 +30,7 @@ import {
   SearchForm,
   UserSettingsForm,
   DeleteAccountForm,
+  PasswordResetForm,
 } from '../interfaces';
 import { webSocket } from 'rxjs/webSocket';
 import { Subject } from 'rxjs';
@@ -272,6 +273,10 @@ export class WebSocketService {
   public deleteAccount(form: DeleteAccountForm) {
     this.setAuth(form);
     this.subject.next(this.wsSendWrapper(UserOperation.DeleteAccount, form));
+  }
+
+  public passwordReset(form: PasswordResetForm) {
+    this.subject.next(this.wsSendWrapper(UserOperation.PasswordReset, form));
   }
 
   private wsSendWrapper(op: UserOperation, data: any) {

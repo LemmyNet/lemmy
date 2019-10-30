@@ -21,7 +21,6 @@ import { T } from 'inferno-i18next';
 interface NavbarState {
   isLoggedIn: boolean;
   expanded: boolean;
-  expandUserDropdown: boolean;
   replies: Array<Comment>;
   mentions: Array<Comment>;
   fetchCount: number;
@@ -39,14 +38,12 @@ export class Navbar extends Component<any, NavbarState> {
     replies: [],
     mentions: [],
     expanded: false,
-    expandUserDropdown: false,
     siteName: undefined,
   };
 
   constructor(props: any, context: any) {
     super(props, context);
     this.state = this.emptyState;
-    this.handleOverviewClick = this.handleOverviewClick.bind(this);
 
     this.keepFetchingUnreads();
 
@@ -137,50 +134,25 @@ export class Navbar extends Component<any, NavbarState> {
           <ul class="navbar-nav ml-auto mr-2">
             {this.state.isLoggedIn ? (
               <>
-                {
-                  <li className="nav-item">
-                    <Link class="nav-link" to="/inbox">
-                      <svg class="icon">
-                        <use xlinkHref="#icon-mail"></use>
-                      </svg>
-                      {this.state.unreadCount > 0 && (
-                        <span class="ml-1 badge badge-light">
-                          {this.state.unreadCount}
-                        </span>
-                      )}
-                    </Link>
-                  </li>
-                }
-                <li
-                  className={`nav-item dropdown ${this.state
-                    .expandUserDropdown && 'show'}`}
-                >
-                  <a
-                    class="pointer nav-link dropdown-toggle"
-                    onClick={linkEvent(this, this.expandUserDropdown)}
-                    role="button"
+                <li className="nav-item">
+                  <Link class="nav-link" to="/inbox">
+                    <svg class="icon">
+                      <use xlinkHref="#icon-mail"></use>
+                    </svg>
+                    {this.state.unreadCount > 0 && (
+                      <span class="ml-1 badge badge-light">
+                        {this.state.unreadCount}
+                      </span>
+                    )}
+                  </Link>
+                </li>
+                <li className="nav-item">
+                  <Link
+                    class="nav-link"
+                    to={`/u/${UserService.Instance.user.username}`}
                   >
                     {UserService.Instance.user.username}
-                  </a>
-                  <div
-                    className={`dropdown-menu dropdown-menu-right ${this.state
-                      .expandUserDropdown && 'show'}`}
-                  >
-                    <a
-                      role="button"
-                      class="dropdown-item pointer"
-                      onClick={linkEvent(this, this.handleOverviewClick)}
-                    >
-                      <T i18nKey="overview">#</T>
-                    </a>
-                    <a
-                      role="button"
-                      class="dropdown-item pointer"
-                      onClick={linkEvent(this, this.handleLogoutClick)}
-                    >
-                      <T i18nKey="logout">#</T>
-                    </a>
-                  </div>
+                  </Link>
                 </li>
               </>
             ) : (
@@ -192,24 +164,6 @@ export class Navbar extends Component<any, NavbarState> {
         </div>
       </nav>
     );
-  }
-
-  expandUserDropdown(i: Navbar) {
-    i.state.expandUserDropdown = !i.state.expandUserDropdown;
-    i.setState(i.state);
-  }
-
-  handleLogoutClick(i: Navbar) {
-    i.state.expandUserDropdown = false;
-    UserService.Instance.logout();
-    i.context.router.history.push('/');
-  }
-
-  handleOverviewClick(i: Navbar) {
-    i.state.expandUserDropdown = false;
-    i.setState(i.state);
-    let userPage = `/u/${UserService.Instance.user.username}`;
-    i.context.router.history.push(userPage);
   }
 
   expandNavbar(i: Navbar) {

@@ -1,6 +1,7 @@
 use super::*;
 use bcrypt::verify;
 use std::str::FromStr;
+use crate::{generate_random_string,send_email};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Login {
@@ -137,6 +138,24 @@ pub struct UserMentionResponse {
 pub struct DeleteAccount {
   password: String,
   auth: String,
+}
+
+
+#[derive(Serialize, Deserialize)]
+pub struct PasswordReset {
+  email: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct PasswordResetResponse {
+  op: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct PasswordChange {
+  token: String,
+  password: String,
+  password_verify: String,
 }
 
 impl Perform<LoginResponse> for Oper<Login> {
@@ -799,6 +818,95 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
     Ok(LoginResponse {
       op: self.op.to_string(),
       jwt: data.auth.to_owned(),
+    })
+  }
+}
+
+impl Perform<PasswordResetResponse> for Oper<PasswordReset> {
+  fn perform(&self) -> Result<PasswordResetResponse, Error> {
+    let data: &PasswordReset = &self.data;
+    let conn = establish_connection();
+
+    // Fetch that email
+    let user: User_ = match User_::find_by_email(&conn, &data.email) {
+      Ok(user) => user,
+      Err(_e) => {
+        return Err(APIError::err(
+          &self.op,
+          "couldnt_find_that_username_or_email",
+        ))?
+      }
+    };
+
+    // Generate a random token
+    let token = generate_random_string();
+    
+    // Insert the row
+    PasswordResetRequest::create_token(&conn, user.id, &token)?;
+
+    // Email the pure token to the user.
+    // TODO no i18n support here.
+    let user_email = &user.email.expect("email");
+    let subject = &format!("Password reset for {}", user.name);
+    let hostname = Settings::get().hostname;
+    let html = &format!("<h1>Password Reset Request for {}</h1><br><a href={}/{}>Click here to reset your password</a>", user.name, hostname, &token);
+    match send_email(subject, user_email, &user.name, html) {
+      Ok(_o) => _o,
+      Err(_e) => {
+        return Err(APIError::err(
+          &self.op,
+          &_e.to_string(),
+        ))?
+      }
+    };
+
+    Ok(PasswordResetResponse {
+      op: self.op.to_string(),
+    })
+  }
+}
+
+impl Perform<LoginResponse> for Oper<PasswordChange> {
+  fn perform(&self) -> Result<LoginResponse, Error> {
+    let data: &PasswordChange = &self.data;
+    let conn = establish_connection();
+
+    // Fetch the user_id from the token
+    let user_id = PasswordResetRequest::read_from_token(&conn, &data.token)?.user_id;
+
+    // Make sure passwords match
+    if &data.password != &data.password_verify {
+      return Err(APIError::err(&self.op, "passwords_dont_match"))?;
+    }
+
+    // Fetch the user
+    let read_user = User_::read(&conn, user_id)?;
+
+    // Update the user with the new password
+    let user_form = UserForm {
+      name: read_user.name,
+      fedi_name: read_user.fedi_name,
+      email: read_user.email,
+      password_encrypted: data.password.to_owned(),
+      preferred_username: read_user.preferred_username,
+      updated: Some(naive_now()),
+      admin: read_user.admin,
+      banned: read_user.banned,
+      show_nsfw: read_user.show_nsfw,
+      theme: read_user.theme,
+      default_sort_type: read_user.default_sort_type,
+      default_listing_type: read_user.default_listing_type,
+    };
+
+    let updated_user = match User_::update_password(&conn, user_id, &user_form) {
+      Ok(user) => user,
+      Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_user"))?,
+    };
+
+    // Return the jwt
+    Ok(LoginResponse {
+      op: self.op.to_string(),
+      jwt: updated_user.jwt(),
     })
   }
 }

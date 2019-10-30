@@ -184,6 +184,15 @@ table! {
 }
 
 table! {
+    password_reset_request (id) {
+        id -> Int4,
+        user_id -> Int4,
+        token_encrypted -> Text,
+        published -> Timestamp,
+    }
+}
+
+table! {
     post (id) {
         id -> Int4,
         name -> Varchar,
@@ -305,6 +314,7 @@ joinable!(mod_remove_post -> post (post_id));
 joinable!(mod_remove_post -> user_ (mod_user_id));
 joinable!(mod_sticky_post -> post (post_id));
 joinable!(mod_sticky_post -> user_ (mod_user_id));
+joinable!(password_reset_request -> user_ (user_id));
 joinable!(post -> community (community_id));
 joinable!(post -> user_ (creator_id));
 joinable!(post_like -> post (post_id));
@@ -319,29 +329,30 @@ joinable!(user_mention -> comment (comment_id));
 joinable!(user_mention -> user_ (recipient_id));
 
 allow_tables_to_appear_in_same_query!(
-  category,
-  comment,
-  comment_like,
-  comment_saved,
-  community,
-  community_follower,
-  community_moderator,
-  community_user_ban,
-  mod_add,
-  mod_add_community,
-  mod_ban,
-  mod_ban_from_community,
-  mod_lock_post,
-  mod_remove_comment,
-  mod_remove_community,
-  mod_remove_post,
-  mod_sticky_post,
-  post,
-  post_like,
-  post_read,
-  post_saved,
-  site,
-  user_,
-  user_ban,
-  user_mention,
+    category,
+    comment,
+    comment_like,
+    comment_saved,
+    community,
+    community_follower,
+    community_moderator,
+    community_user_ban,
+    mod_add,
+    mod_add_community,
+    mod_ban,
+    mod_ban_from_community,
+    mod_lock_post,
+    mod_remove_comment,
+    mod_remove_community,
+    mod_remove_post,
+    mod_sticky_post,
+    password_reset_request,
+    post,
+    post_like,
+    post_read,
+    post_saved,
+    site,
+    user_,
+    user_ban,
+    user_mention,
 );

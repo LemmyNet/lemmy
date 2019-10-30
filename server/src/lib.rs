@@ -18,6 +18,8 @@ pub extern crate regex;
 pub extern crate serde;
 pub extern crate serde_json;
 pub extern crate strum;
+pub extern crate lettre;
+pub extern crate lettre_email;
 
 pub mod api;
 pub mod apub;
@@ -29,6 +31,13 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use dotenv::dotenv;
 use regex::Regex;
 use std::env;
+use rand::{thread_rng, Rng};
+use rand::distributions::Alphanumeric;
+use lettre::{SmtpClient, Transport};
+use lettre_email::{Email};
+use lettre::smtp::authentication::{Credentials, Mechanism};
+use lettre::smtp::extension::ClientId;
+use lettre::smtp::ConnectionReuseParameters;
 
 pub struct Settings {
   db_url: String,
@@ -40,11 +49,31 @@ pub struct Settings {
   rate_limit_post_per_second: i32,
   rate_limit_register: i32,
   rate_limit_register_per_second: i32,
+  email_config: Option<EmailConfig>,
+}
+
+pub struct EmailConfig {
+  smtp_server: String,
+  smtp_login: String,
+  smtp_password: String,
+  smtp_from_address: String,
 }
 
 impl Settings {
   fn get() -> Self {
     dotenv().ok();
+    
+    let email_config = if env::var("SMTP_SERVER").is_ok() {
+      Some(EmailConfig {
+        smtp_server: env::var("SMTP_SERVER").expect("SMTP_SERVER must be set"),
+        smtp_login: env::var("SMTP_LOGIN").expect("SMTP_LOGIN must be set"),
+        smtp_password: env::var("SMTP_PASSWORD").expect("SMTP_PASSWORD must be set"),
+        smtp_from_address: env::var("SMTP_FROM_ADDRESS").expect("SMTP_FROM_ADDRESS must be set")
+      })
+    } else {
+      None
+    };
+
     Settings {
       db_url: env::var("DATABASE_URL").expect("DATABASE_URL must be set"),
       hostname: env::var("HOSTNAME").unwrap_or("rrr".to_string()),
@@ -73,6 +102,7 @@ impl Settings {
         .unwrap_or("3600".to_string())
         .parse()
         .unwrap(),
+        email_config: email_config,
     }
   }
   fn api_endpoint(&self) -> String {
@@ -118,6 +148,44 @@ pub fn extract_usernames(test: &str) -> Vec<&str> {
   matches.iter().map(|t| &t[3..]).collect()
 }
 
+pub fn generate_random_string() -> String {
+  thread_rng()
+    .sample_iter(&Alphanumeric)
+    .take(30)
+    .collect()
+}
+
+pub fn send_email(subject: &str, to_email: &str, to_username: &str, html: &str) -> Result<(), String> {
+
+  let email_config = Settings::get().email_config.ok_or("no_email_setup")?;
+
+  let email = Email::builder()
+    // .to((to_email, username))
+    .to((to_email, to_username))
+    .from((email_config.smtp_login.to_owned(), email_config.smtp_from_address))
+    .subject(subject)
+    .html(html)
+    .build()
+    .unwrap();
+
+    let mut mailer = SmtpClient::new_simple(&email_config.smtp_server).unwrap()
+      .hello_name(ClientId::Domain("localhost".to_string()))
+      .credentials(Credentials::new(
+          email_config.smtp_login.to_owned(), 
+          email_config.smtp_password.to_owned()))
+      .smtp_utf8(true)
+      .authentication_mechanism(Mechanism::Plain)
+      .connection_reuse(ConnectionReuseParameters::ReuseUnlimited)
+      .transport();
+
+  let result = mailer.send(email.into());
+
+  match result {
+    Ok(_) => Ok(()),
+    Err(_) => Err("no_email_setup".to_string()),
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use crate::{extract_usernames, has_slurs, is_email_regex, remove_slurs, Settings};
@@ -152,6 +220,12 @@ mod tests {
     let expected = vec!["another", "testme"];
     assert_eq!(usernames, expected);
   }
+
+  // #[test]
+  // fn test_send_email() {
+  //  let result =  send_email("not a subject", "test_email@gmail.com", "ur user", "<h1>HI there</h1>");
+  //   assert!(result.is_ok());
+  // }
 }
 
 lazy_static! {

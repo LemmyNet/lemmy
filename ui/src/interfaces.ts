@@ -36,6 +36,8 @@ export enum UserOperation {
   TransferCommunity,
   TransferSite,
   DeleteAccount,
+  PasswordReset,
+  PasswordChange,
 }
 
 export enum CommentSortType {
@@ -685,4 +687,18 @@ export interface SearchResponse {
 
 export interface DeleteAccountForm {
   password: string;
+}
+
+export interface PasswordResetForm {
+  email: string;
+}
+
+export interface PasswordResetResponse {
+  op: string;
+}
+
+export interface PasswordChangeForm {
+  token: string;
+  password: string;
+  password_verify: string;
 }

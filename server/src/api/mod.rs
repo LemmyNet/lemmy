@@ -11,6 +11,7 @@ use crate::db::user::*;
 use crate::db::user_mention::*;
 use crate::db::user_mention_view::*;
 use crate::db::user_view::*;
+use crate::db::password_reset_request::*;
 use crate::db::*;
 use crate::{extract_usernames, has_slurs, naive_from_unix, naive_now, remove_slurs, Settings};
 use failure::Error;
@@ -61,6 +62,8 @@ pub enum UserOperation {
   TransferCommunity,
   TransferSite,
   DeleteAccount,
+  PasswordReset,    
+  PasswordChange,
 }
 
 #[derive(Fail, Debug)]

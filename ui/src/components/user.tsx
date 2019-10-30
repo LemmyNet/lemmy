@@ -376,6 +376,14 @@ export class User extends Component<any, UserState> {
                 </tr>
               </table>
             </div>
+            {this.isCurrentUser && (
+              <button
+                class="btn btn-block btn-secondary mt-3"
+                onClick={linkEvent(this, this.handleLogoutClick)}
+              >
+                <T i18nKey="logout">#</T>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -691,6 +699,11 @@ export class User extends Component<any, UserState> {
   handleDeleteAccountPasswordChange(i: User, event: any) {
     i.state.deleteAccountForm.password = event.target.value;
     i.setState(i.state);
+  }
+
+  handleLogoutClick(i: User) {
+    UserService.Instance.logout();
+    i.context.router.history.push('/');
   }
 
   handleDeleteAccount(i: User, event: any) {

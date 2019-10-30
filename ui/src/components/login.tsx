@@ -6,6 +6,7 @@ import {
   RegisterForm,
   LoginResponse,
   UserOperation,
+  PasswordResetForm,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { msgOp } from '../utils';
@@ -112,6 +113,12 @@ export class Login extends Component<any, State> {
                 class="form-control"
                 required
               />
+              <div
+                onClick={linkEvent(this, this.handlePasswordReset)}
+                class="pointer d-inline-block float-right text-muted small font-weight-bold"
+              >
+                <T i18nKey="forgot_password">#</T>
+              </div>
             </div>
           </div>
           <div class="form-group row">
@@ -279,6 +286,13 @@ export class Login extends Component<any, State> {
     i.setState(i.state);
   }
 
+  handlePasswordReset(i: Login) {
+    let resetForm: PasswordResetForm = {
+      email: i.state.loginForm.username_or_email,
+    };
+    WebSocketService.Instance.passwordReset(resetForm);
+  }
+
   parseMessage(msg: any) {
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
@@ -299,6 +313,8 @@ export class Login extends Component<any, State> {
         let res: LoginResponse = msg;
         UserService.Instance.login(res);
         this.props.history.push('/communities');
+      } else if (op == UserOperation.PasswordReset) {
+        alert(i18n.t('reset_password_mail_sent'));
       }
     }
   }
