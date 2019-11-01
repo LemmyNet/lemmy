@@ -10,7 +10,7 @@ services:
     volumes:
       - lemmy_db:/var/lib/postgresql/data
   lemmy:
-    image: dessalines/lemmy:v0.3.0.10
+    image: dessalines/lemmy:v0.3.0.11
     ports:
       - "127.0.0.1:8536:8536"
     environment:
