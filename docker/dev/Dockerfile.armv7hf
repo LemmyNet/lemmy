@@ -35,7 +35,8 @@ COPY server/Cargo.toml server/Cargo.lock ./
 RUN  mkdir -p ./src/bin \
   && echo 'fn main() { println!("Dummy") }' > ./src/bin/main.rs
 #RUN cargo build --release
-RUN cargo build
+# RUN cargo build
+  RUN RUSTFLAGS='-Ccodegen-units=1' cargo build
 COPY server/src ./src/
 COPY server/migrations ./migrations/
 RUN rm -f ./target/release/deps/lemmy_server* ; rm -f ./target/debug/deps/lemmy_server*
