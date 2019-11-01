@@ -87,6 +87,7 @@ Front Page|Post
 - High performance.
   - Server is written in rust.
   - Front end is `~80kB` gzipped.
+  - Supports arm64 / Raspberry Pi.
 
 ## About
 
