@@ -21,10 +21,32 @@ git commit -m"Version $new_tag"
 git push origin $new_tag
 git push
 
+# Registering qemu binaries
+docker run --rm --privileged multiarch/qemu-user-static:register --reset
+
 # Rebuilding docker
 docker-compose build
-docker tag dev_lemmy:latest dessalines/lemmy:$new_tag
-docker push dessalines/lemmy:$new_tag
+docker tag dev_lemmy:latest dessalines/lemmy:x64-$new_tag
+docker push dessalines/lemmy:x64-$new_tag
+
+# Build for Raspberry Pi / other archs
+
+# Arm currently not working
+# docker build -t lemmy:armv7hf -f Dockerfile.armv7hf ../../
+# docker tag lemmy:armv7hf dessalines/lemmy:armv7hf-$new_tag
+# docker push dessalines/lemmy:armv7hf-$new_tag
+
+# aarch64
+docker build -t lemmy:aarch64 -f Dockerfile.aarch64 ../../
+docker tag lemmy:aarch64 dessalines/lemmy:arm64-$new_tag
+docker push dessalines/lemmy:arm64-$new_tag
+
+# Creating the manifest for the multi-arch build
+docker manifest create dessalines/lemmy:$new_tag \
+  dessalines/lemmy:x64-$new_tag \
+  dessalines/lemmy:arm64-$new_tag
+
+docker manifest push dessalines/lemmy:$new_tag
 
 # Pushing to any ansible deploys
 cd ../../ansible
