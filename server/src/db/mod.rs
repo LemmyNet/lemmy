@@ -11,13 +11,13 @@ pub mod community;
 pub mod community_view;
 pub mod moderator;
 pub mod moderator_views;
+pub mod password_reset_request;
 pub mod post;
 pub mod post_view;
 pub mod user;
 pub mod user_mention;
 pub mod user_mention_view;
 pub mod user_view;
-pub mod password_reset_request;
 
 pub trait Crud<T> {
   fn create(conn: &PgConnection, form: &T) -> Result<Self, Error>

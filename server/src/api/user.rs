@@ -1,7 +1,7 @@
 use super::*;
+use crate::{generate_random_string, send_email};
 use bcrypt::verify;
 use std::str::FromStr;
-use crate::{generate_random_string,send_email};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Login {
@@ -139,7 +139,6 @@ pub struct DeleteAccount {
   password: String,
   auth: String,
 }
-
 
 #[derive(Serialize, Deserialize)]
 pub struct PasswordReset {
@@ -840,7 +839,7 @@ impl Perform<PasswordResetResponse> for Oper<PasswordReset> {
 
     // Generate a random token
     let token = generate_random_string();
-    
+
     // Insert the row
     PasswordResetRequest::create_token(&conn, user.id, &token)?;
 
@@ -852,12 +851,7 @@ impl Perform<PasswordResetResponse> for Oper<PasswordReset> {
     let html = &format!("<h1>Password Reset Request for {}</h1><br><a href={}/password_change/{}>Click here to reset your password</a>", user.name, hostname, &token);
     match send_email(subject, user_email, &user.name, html) {
       Ok(_o) => _o,
-      Err(_e) => {
-        return Err(APIError::err(
-          &self.op,
-          &_e.to_string(),
-        ))?
-      }
+      Err(_e) => return Err(APIError::err(&self.op, &_e.to_string()))?,
     };
 
     Ok(PasswordResetResponse {

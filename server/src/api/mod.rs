@@ -5,13 +5,13 @@ use crate::db::community::*;
 use crate::db::community_view::*;
 use crate::db::moderator::*;
 use crate::db::moderator_views::*;
+use crate::db::password_reset_request::*;
 use crate::db::post::*;
 use crate::db::post_view::*;
 use crate::db::user::*;
 use crate::db::user_mention::*;
 use crate::db::user_mention_view::*;
 use crate::db::user_view::*;
-use crate::db::password_reset_request::*;
 use crate::db::*;
 use crate::{extract_usernames, has_slurs, naive_from_unix, naive_now, remove_slurs, Settings};
 use failure::Error;
@@ -62,7 +62,7 @@ pub enum UserOperation {
   TransferCommunity,
   TransferSite,
   DeleteAccount,
-  PasswordReset,    
+  PasswordReset,
   PasswordChange,
 }
 
