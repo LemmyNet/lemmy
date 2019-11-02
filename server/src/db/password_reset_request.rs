@@ -1,8 +1,8 @@
 use super::*;
 use crate::schema::password_reset_request;
 use crate::schema::password_reset_request::dsl::*;
-
-use bcrypt::{hash, DEFAULT_COST};
+use crypto::sha2::Sha256;
+use crypto::digest::Digest;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "password_reset_request"]
@@ -40,8 +40,9 @@ impl Crud<PasswordResetRequestForm> for PasswordResetRequest {
 
 impl PasswordResetRequest {
   pub fn create_token(conn: &PgConnection, from_user_id: i32, token: &str) -> Result<Self, Error> {
-    let token_hash = 
-      hash(token, DEFAULT_COST).expect("Couldn't hash token");
+    let mut hasher = Sha256::new();
+    hasher.input_str(token);
+    let token_hash = hasher.result_str();
 
     let form = PasswordResetRequestForm {
       user_id: from_user_id,
@@ -51,10 +52,13 @@ impl PasswordResetRequest {
     Self::create(&conn, &form)
   }
   pub fn read_from_token(conn: &PgConnection, token: &str) -> Result<Self, Error> {
-    let token_hash =
-      hash(token, DEFAULT_COST).expect("Couldn't hash token");
-
-    password_reset_request.filter(token_encrypted.eq(token_hash)).first::<Self>(conn)
+    let mut hasher = Sha256::new();
+    hasher.input_str(token);
+    let token_hash = hasher.result_str();
+    password_reset_request
+      .filter(token_encrypted.eq(token_hash))
+      .filter(published.gt(now - 1.days()))
+      .first::<Self>(conn)
   }
 }
 

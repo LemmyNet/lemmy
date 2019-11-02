@@ -849,7 +849,7 @@ impl Perform<PasswordResetResponse> for Oper<PasswordReset> {
     let user_email = &user.email.expect("email");
     let subject = &format!("Password reset for {}", user.name);
     let hostname = Settings::get().hostname;
-    let html = &format!("<h1>Password Reset Request for {}</h1><br><a href={}/{}>Click here to reset your password</a>", user.name, hostname, &token);
+    let html = &format!("<h1>Password Reset Request for {}</h1><br><a href={}/password_change/{}>Click here to reset your password</a>", user.name, hostname, &token);
     match send_email(subject, user_email, &user.name, html) {
       Ok(_o) => _o,
       Err(_e) => {

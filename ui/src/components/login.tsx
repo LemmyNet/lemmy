@@ -9,7 +9,7 @@ import {
   PasswordResetForm,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { msgOp } from '../utils';
+import { msgOp, validEmail } from '../utils';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 
@@ -113,12 +113,13 @@ export class Login extends Component<any, State> {
                 class="form-control"
                 required
               />
-              <div
+              <button
+                disabled={!validEmail(this.state.loginForm.username_or_email)}
                 onClick={linkEvent(this, this.handlePasswordReset)}
-                class="pointer d-inline-block float-right text-muted small font-weight-bold"
+                className="btn p-0 btn-link d-inline-block float-right text-muted small font-weight-bold"
               >
                 <T i18nKey="forgot_password">#</T>
-              </div>
+              </button>
             </div>
           </div>
           <div class="form-group row">
@@ -287,6 +288,7 @@ export class Login extends Component<any, State> {
   }
 
   handlePasswordReset(i: Login) {
+    event.preventDefault();
     let resetForm: PasswordResetForm = {
       email: i.state.loginForm.username_or_email,
     };
