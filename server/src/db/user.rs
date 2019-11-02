@@ -69,7 +69,11 @@ impl User_ {
     Self::create(&conn, &edited_user)
   }
 
-  pub fn update_password(conn: &PgConnection, user_id: i32, form: &UserForm) -> Result<Self, Error> {
+  pub fn update_password(
+    conn: &PgConnection,
+    user_id: i32,
+    form: &UserForm,
+  ) -> Result<Self, Error> {
     let mut edited_user = form.clone();
     let password_hash =
       hash(&form.password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
@@ -138,16 +142,10 @@ impl User_ {
         .first::<User_>(conn)
     }
   }
-  
-  pub fn find_by_email(
-    conn: &PgConnection,
-    from_email: &str,
-  ) -> Result<Self, Error> {
-    user_
-      .filter(email.eq(from_email))
-      .first::<User_>(conn)
-  }
 
+  pub fn find_by_email(conn: &PgConnection, from_email: &str) -> Result<Self, Error> {
+    user_.filter(email.eq(from_email)).first::<User_>(conn)
+  }
 
   pub fn find_by_jwt(conn: &PgConnection, jwt: &str) -> Result<Self, Error> {
     let claims: Claims = Claims::decode(&jwt).expect("Invalid token").claims;
@@ -157,8 +155,8 @@ impl User_ {
 
 #[cfg(test)]
 mod tests {
-  use super::*;
   use super::User_;
+  use super::*;
 
   #[test]
   fn test_crud() {

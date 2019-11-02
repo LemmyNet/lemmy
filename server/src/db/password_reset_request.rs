@@ -1,8 +1,8 @@
 use super::*;
 use crate::schema::password_reset_request;
 use crate::schema::password_reset_request::dsl::*;
-use crypto::sha2::Sha256;
 use crypto::digest::Digest;
+use crypto::sha2::Sha256;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "password_reset_request"]
@@ -23,15 +23,23 @@ pub struct PasswordResetRequestForm {
 impl Crud<PasswordResetRequestForm> for PasswordResetRequest {
   fn read(conn: &PgConnection, password_reset_request_id: i32) -> Result<Self, Error> {
     use crate::schema::password_reset_request::dsl::*;
-    password_reset_request.find(password_reset_request_id).first::<Self>(conn)
+    password_reset_request
+      .find(password_reset_request_id)
+      .first::<Self>(conn)
   }
   fn delete(conn: &PgConnection, password_reset_request_id: i32) -> Result<usize, Error> {
     diesel::delete(password_reset_request.find(password_reset_request_id)).execute(conn)
   }
   fn create(conn: &PgConnection, form: &PasswordResetRequestForm) -> Result<Self, Error> {
-    insert_into(password_reset_request).values(form).get_result::<Self>(conn)
+    insert_into(password_reset_request)
+      .values(form)
+      .get_result::<Self>(conn)
   }
-  fn update(conn: &PgConnection, password_reset_request_id: i32, form: &PasswordResetRequestForm) -> Result<Self, Error> {
+  fn update(
+    conn: &PgConnection,
+    password_reset_request_id: i32,
+    form: &PasswordResetRequestForm,
+  ) -> Result<Self, Error> {
     diesel::update(password_reset_request.find(password_reset_request_id))
       .set(form)
       .get_result::<Self>(conn)
@@ -64,8 +72,8 @@ impl PasswordResetRequest {
 
 #[cfg(test)]
 mod tests {
-  use super::*;
   use super::super::user::*;
+  use super::*;
 
   #[test]
   fn test_crud() {
@@ -92,8 +100,9 @@ mod tests {
       user_id: inserted_user.id,
       token_encrypted: "no".into(),
     };
-    
-    let inserted_password_reset_request = PasswordResetRequest::create(&conn, &new_password_reset_request).unwrap();
+
+    let inserted_password_reset_request =
+      PasswordResetRequest::create(&conn, &new_password_reset_request).unwrap();
 
     let expected_password_reset_request = PasswordResetRequest {
       id: inserted_password_reset_request.id,
@@ -102,11 +111,15 @@ mod tests {
       published: inserted_password_reset_request.published,
     };
 
-    let read_password_reset_request = PasswordResetRequest::read(&conn, inserted_password_reset_request.id).unwrap();
+    let read_password_reset_request =
+      PasswordResetRequest::read(&conn, inserted_password_reset_request.id).unwrap();
     let num_deleted = User_::delete(&conn, inserted_user.id).unwrap();
 
     assert_eq!(expected_password_reset_request, read_password_reset_request);
-    assert_eq!(expected_password_reset_request, inserted_password_reset_request);
+    assert_eq!(
+      expected_password_reset_request,
+      inserted_password_reset_request
+    );
     assert_eq!(1, num_deleted);
   }
 }
