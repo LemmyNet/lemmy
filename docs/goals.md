@@ -23,7 +23,6 @@
 - [Activitypub main](https://www.w3.org/TR/activitypub/)
 - [Diesel to Postgres data types](https://kotiri.com/2018/01/31/postgresql-diesel-rust-types.html)
 - [helpful diesel examples](http://siciarz.net/24-days-rust-diesel/)
-- [Mastodon public key server example](https://blog.joinmastodon.org/2018/06/how-to-implement-a-basic-activitypub-server/)
 - [Recursive query for adjacency list for nested comments](https://stackoverflow.com/questions/192220/what-is-the-most-efficient-elegant-way-to-parse-a-flat-table-into-a-tree/192462#192462)
 - https://github.com/sparksuite/simplemde-markdown-editor
 - [Markdown-it](https://github.com/markdown-it/markdown-it)
