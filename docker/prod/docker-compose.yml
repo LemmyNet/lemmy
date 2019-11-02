@@ -28,7 +28,7 @@ services:
     depends_on:
       - lemmy_db
   lemmy_pictshare:
-    image: hascheksolutions/pictshare:latest
+    image: shtripok/pictshare:latest
     ports:
       - "127.0.0.1:8537:80"
     volumes:
