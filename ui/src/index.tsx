@@ -7,6 +7,7 @@ import { Footer } from './components/footer';
 import { Login } from './components/login';
 import { CreatePost } from './components/create-post';
 import { CreateCommunity } from './components/create-community';
+import { PasswordChange } from './components/password_change';
 import { Post } from './components/post';
 import { Community } from './components/community';
 import { Communities } from './components/communities';
@@ -74,6 +75,10 @@ class Index extends Component<any, any> {
               />
               <Route path={`/search`} component={Search} />
               <Route path={`/sponsors`} component={Sponsors} />
+              <Route
+                path={`/password_change/:token`}
+                component={PasswordChange}
+              />
             </Switch>
             <Symbols />
           </div>

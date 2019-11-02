@@ -20,6 +20,7 @@ pub extern crate serde_json;
 pub extern crate strum;
 pub extern crate lettre;
 pub extern crate lettre_email;
+pub extern crate crypto;
 
 pub mod api;
 pub mod apub;
@@ -63,7 +64,8 @@ impl Settings {
   fn get() -> Self {
     dotenv().ok();
     
-    let email_config = if env::var("SMTP_SERVER").is_ok() {
+    let email_config = if env::var("SMTP_SERVER").is_ok() && 
+      !env::var("SMTP_SERVER").unwrap().eq("") {
       Some(EmailConfig {
         smtp_server: env::var("SMTP_SERVER").expect("SMTP_SERVER must be set"),
         smtp_login: env::var("SMTP_LOGIN").expect("SMTP_LOGIN must be set"),
@@ -160,7 +162,6 @@ pub fn send_email(subject: &str, to_email: &str, to_username: &str, html: &str) 
   let email_config = Settings::get().email_config.ok_or("no_email_setup")?;
 
   let email = Email::builder()
-    // .to((to_email, username))
     .to((to_email, to_username))
     .from((email_config.smtp_login.to_owned(), email_config.smtp_from_address))
     .subject(subject)
@@ -168,15 +169,15 @@ pub fn send_email(subject: &str, to_email: &str, to_username: &str, html: &str) 
     .build()
     .unwrap();
 
-    let mut mailer = SmtpClient::new_simple(&email_config.smtp_server).unwrap()
-      .hello_name(ClientId::Domain("localhost".to_string()))
-      .credentials(Credentials::new(
-          email_config.smtp_login.to_owned(), 
-          email_config.smtp_password.to_owned()))
-      .smtp_utf8(true)
-      .authentication_mechanism(Mechanism::Plain)
-      .connection_reuse(ConnectionReuseParameters::ReuseUnlimited)
-      .transport();
+  let mut mailer = SmtpClient::new_simple(&email_config.smtp_server).unwrap()
+    .hello_name(ClientId::Domain("localhost".to_string()))
+    .credentials(Credentials::new(
+        email_config.smtp_login.to_owned(), 
+        email_config.smtp_password.to_owned()))
+    .smtp_utf8(true)
+    .authentication_mechanism(Mechanism::Plain)
+    .connection_reuse(ConnectionReuseParameters::ReuseUnlimited)
+    .transport();
 
   let result = mailer.send(email.into());
 

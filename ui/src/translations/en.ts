@@ -118,6 +118,8 @@ export const en = {
     verify_password: 'Verify Password',
     forgot_password: 'forgot password',
     reset_password_mail_sent: 'Sent an Email to reset your password.',
+    password_change: 'Password Change',
+    new_password: 'New Password',
     no_email_setup: "This server hasn't correctly set up email.",
     email: 'Email',
     optional: 'Optional',
