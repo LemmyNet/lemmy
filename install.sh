@@ -9,7 +9,7 @@ cd ui
 yarn
 yarn build
 cd ../server
-cargo run
+cargo run --release
 
 # For live coding, where both the front and back end, automagically reload on any save, do:
 # cd ui && yarn start
