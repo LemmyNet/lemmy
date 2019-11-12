@@ -5,11 +5,13 @@ extern crate diesel_migrations;
 use actix::prelude::*;
 use actix_files::NamedFile;
 use actix_web::*;
+use actix_web::web::Json;
 use actix_web_actors::ws;
 use lemmy_server::db::establish_connection;
 use lemmy_server::websocket::server::*;
 use std::env;
 use std::time::{Duration, Instant};
+use serde::Serialize;
 
 embed_migrations!();
 
@@ -197,6 +199,7 @@ fn main() {
       .service(web::resource("/").to(index))
       // static resources
       .service(actix_files::Files::new("/static", front_end_dir()))
+      .route("/nodeinfo/2.0.json", web::get().to(node_info))
   })
   .bind("0.0.0.0:8536")
   .unwrap()
@@ -204,6 +207,56 @@ fn main() {
 
   println!("Started http server: 0.0.0.0:8536");
   let _ = sys.run();
+}
+
+#[derive(Serialize)]
+struct Software {
+  name: String,
+  version: String,
+}
+
+#[derive(Serialize)]
+struct Usage {
+  users: Users,
+  localPosts: i32,
+  localComments: i32,
+}
+
+#[derive(Serialize)]
+struct Users {
+  total: i32,
+}
+
+#[derive(Serialize)]
+struct NodeInfo {
+  version: String,
+  software: Software,
+  protocols: [String; 0],
+  usage: Usage,
+  openRegistrations: bool,
+}
+
+fn node_info() -> Result<Json<NodeInfo>> {
+  // TODO: get info from database
+  // TODO: need to get lemmy version from somewhere else
+  let conn = establish_connection();
+  let userCount = User_::count(conn)
+  let json = Json(NodeInfo {
+    version: "2.0".to_string(),
+    software: Software {
+      name: "lemmy".to_string(),
+      version: "0.1".to_string()
+    },
+    protocols: [], // TODO: activitypub once that is implemented
+    usage: Usage {
+      users: Users {
+        total: 123,
+      },
+      localPosts: 123,
+      localComments: 123,
+    },
+    openRegistrations: true });
+  return Ok(json);
 }
 
 fn index() -> Result<NamedFile, actix_web::error::Error> {
