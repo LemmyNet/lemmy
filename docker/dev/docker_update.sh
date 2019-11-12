@@ -1,2 +1,2 @@
 #!/bin/sh
-docker-compose up -d --no-deps --build
+sudo docker-compose up --no-deps --build

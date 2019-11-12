@@ -21,13 +21,13 @@ COPY server/Cargo.toml server/Cargo.lock ./
 RUN sudo chown -R rust:rust .
 RUN mkdir -p ./src/bin \
   && echo 'fn main() { println!("Dummy") }' > ./src/bin/main.rs 
-RUN cargo build --release
-RUN rm -f ./target/x86_64-unknown-linux-musl/release/deps/lemmy_server*
+RUN cargo build
+#RUN rm -f ./target/x86_64-unknown-linux-musl/debug/deps/lemmy_server*
 COPY server/src ./src/
 COPY server/migrations ./migrations/
 
-# Build for release
-RUN cargo build --frozen --release
+# Build for debug
+RUN cargo build --frozen
 
 # Get diesel-cli on there just in case
 # RUN cargo install diesel_cli --no-default-features --features postgres
@@ -38,7 +38,7 @@ FROM alpine:3.10
 RUN apk add libpq
 
 # Copy resources
-COPY --from=rust /app/server/target/x86_64-unknown-linux-musl/release/lemmy_server /app/lemmy
+COPY --from=rust /app/server/target/x86_64-unknown-linux-musl/debug/lemmy_server /app/lemmy
 COPY --from=node /app/ui/dist /app/dist
 RUN addgroup -g 1000 lemmy
 RUN adduser -D -s /bin/sh -u 1000 -G lemmy lemmy
