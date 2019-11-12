@@ -290,12 +290,24 @@ export const themes = [
 ];
 
 export function setTheme(theme: string = 'darkly') {
+  // unload all the other themes
   for (var i = 0; i < themes.length; i++) {
     let styleSheet = document.getElementById(themes[i]);
-    if (themes[i] == theme) {
-      styleSheet.removeAttribute('disabled');
-    } else {
+    if (styleSheet) {
       styleSheet.setAttribute('disabled', 'disabled');
     }
   }
+
+  // Load the theme dynamically
+  if (!document.getElementById(theme)) {
+    var head = document.getElementsByTagName('head')[0];
+    var link = document.createElement('link');
+    link.id = theme;
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href = `/static/assets/css/themes/${theme}.min.css`;
+    link.media = 'all';
+    head.appendChild(link);
+  }
+  document.getElementById(theme).removeAttribute('disabled');
 }

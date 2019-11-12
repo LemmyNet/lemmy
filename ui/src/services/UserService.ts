@@ -17,7 +17,9 @@ export class UserService {
     if (jwt) {
       this.setUser(jwt);
     } else {
-      setTheme();
+      if (this.user.theme != 'darkly') {
+        setTheme();
+      }
       console.log('No JWT cookie found.');
     }
   }
@@ -42,7 +44,9 @@ export class UserService {
 
   private setUser(jwt: string) {
     this.user = jwt_decode(jwt);
-    setTheme(this.user.theme);
+    if (this.user.theme != 'darkly') {
+      setTheme(this.user.theme);
+    }
     this.sub.next({ user: this.user, unreadCount: 0 });
     console.log(this.user);
   }
