@@ -17,9 +17,7 @@ export class UserService {
     if (jwt) {
       this.setUser(jwt);
     } else {
-      if (this.user.theme != 'darkly') {
-        setTheme();
-      }
+      setTheme();
       console.log('No JWT cookie found.');
     }
   }
