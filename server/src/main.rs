@@ -7,10 +7,11 @@ use actix_files::NamedFile;
 use actix_web::*;
 use actix_web_actors::ws;
 use lemmy_server::db::establish_connection;
+use lemmy_server::nodeinfo;
 use lemmy_server::websocket::server::*;
 use std::env;
 use std::time::{Duration, Instant};
-use lemmy_server::nodeinfo;
+use actix_web::http::header::ContentType;
 
 embed_migrations!();
 
@@ -190,6 +191,7 @@ fn main() {
   // Start chat server actor in separate thread
   let server = ChatServer::default().start();
   // Create Http server with websocket support
+
   HttpServer::new(move || {
     App::new()
       .data(server.clone())
@@ -199,6 +201,7 @@ fn main() {
       // static resources
       .service(actix_files::Files::new("/static", front_end_dir()))
       .route("/nodeinfo/2.0.json", web::get().to(nodeinfo::node_info))
+      .route("/.well-known/nodeinfo", web::get().to(nodeinfo::node_info_well_known))
   })
   .bind("0.0.0.0:8536")
   .unwrap()
