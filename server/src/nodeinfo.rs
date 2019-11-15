@@ -42,10 +42,10 @@ pub fn node_info() -> Result<Json<NodeInfo>, Error> {
         Err(_e) => return Err(_e)?,
     };
     let json = Json(NodeInfo {
-        version: "2.0".to_string(),
+        version: String::from("2.0"),
         software: Software {
-            name: "lemmy".to_string(),
-            version: version::VERSION.to_string(),
+            name: String::from("lemmy"),
+            version: String::from(version::VERSION),
         },
         protocols: [], // TODO: put 'activitypub' once that is implemented
         usage: Usage {
