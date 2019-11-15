@@ -11,7 +11,6 @@ use lemmy_server::nodeinfo;
 use lemmy_server::websocket::server::*;
 use std::env;
 use std::time::{Duration, Instant};
-use actix_web::http::header::ContentType;
 
 embed_migrations!();
 

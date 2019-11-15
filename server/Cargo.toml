@@ -12,7 +12,7 @@ bcrypt = "0.5.0"
 activitypub = "0.1.5"
 chrono = { version = "0.4.7", features = ["serde"] }
 failure = "0.1.5"
-serde_json = "1.0.40"
+serde_json = { version = "1.0.40", features = ["preserve_order"]}
 serde = { version = "1.0.94", features = ["derive"] }
 actix = "0.8.3"
 actix-web = "1.0"
