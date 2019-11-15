@@ -27,6 +27,8 @@ pub mod apub;
 pub mod db;
 pub mod schema;
 pub mod websocket;
+pub mod nodeinfo;
+pub mod version;
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 use dotenv::dotenv;
