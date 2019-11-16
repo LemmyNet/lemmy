@@ -6,10 +6,10 @@ new_tag="$1"
 git tag $new_tag
 
 # Setting the version on the front end
-echo "export let version: string = '$(git describe --tags --long)';" > "ui/src/version.ts"
+echo "export let version: string = '$(git describe --tags)';" > "ui/src/version.ts"
 git add "ui/src/version.ts"
 # Setting the version on the backend
-echo "pub const VERSION: &'static str = \"$(git describe --tags --long)\";" > "server/src/version.rs"
+echo "pub const VERSION: &'static str = \"$(git describe --tags)\";" > "server/src/version.rs"
 git add "server/src/version.rs"
 
 # Changing the docker-compose prod
