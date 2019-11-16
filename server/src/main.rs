@@ -7,7 +7,11 @@ use actix_files::NamedFile;
 use actix_web::*;
 use actix_web_actors::ws;
 use lemmy_server::db::establish_connection;
+<<<<<<< HEAD
 use lemmy_server::nodeinfo;
+=======
+use lemmy_server::feeds;
+>>>>>>> Implement RSS feeds (fixes #118)
 use lemmy_server::websocket::server::*;
 use std::env;
 use std::time::{Duration, Instant};
@@ -197,13 +201,14 @@ fn main() {
       .service(web::resource("/api/v1/ws").to(chat_route))
       //            .service(web::resource("/api/v1/rest").route(web::post().to(||{})))
       .service(web::resource("/").to(index))
-      // static resources
-      .service(actix_files::Files::new("/static", front_end_dir()))
       .route("/nodeinfo/2.0.json", web::get().to(nodeinfo::node_info))
       .route(
         "/.well-known/nodeinfo",
         web::get().to(nodeinfo::node_info_well_known),
       )
+      .route("/feed.xml", web::get().to(feeds::get_feed))
+      // static resources
+      .service(actix_files::Files::new("/static", front_end_dir()))
   })
   .bind("0.0.0.0:8536")
   .unwrap()

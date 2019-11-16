@@ -21,7 +21,7 @@ COPY server/Cargo.toml server/Cargo.lock ./
 RUN sudo chown -R rust:rust .
 RUN mkdir -p ./src/bin \
   && echo 'fn main() { println!("Dummy") }' > ./src/bin/main.rs 
-RUN cargo build --release
+RUN cargo build --releasecargo
 RUN rm -f ./target/x86_64-unknown-linux-musl/release/deps/lemmy_server*
 COPY server/src ./src/
 COPY server/migrations ./migrations/

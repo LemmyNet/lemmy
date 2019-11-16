@@ -29,6 +29,7 @@ pub mod nodeinfo;
 pub mod schema;
 pub mod version;
 pub mod websocket;
+pub mod feeds;
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 use dotenv::dotenv;
