@@ -206,7 +206,7 @@ fn main() {
         "/.well-known/nodeinfo",
         web::get().to(nodeinfo::node_info_well_known),
       )
-      .route("/feed.xml", web::get().to(feeds::get_feed))
+      .route("/feeds/{type}/{name}.xml", web::get().to(feeds::get_feed))
       // static resources
       .service(actix_files::Files::new("/static", front_end_dir()))
   })
