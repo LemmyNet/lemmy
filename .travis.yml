@@ -9,13 +9,13 @@ cache: cargo
 before_script:
   - psql -c "create user rrr with password 'rrr' superuser;" -U postgres
   - psql -c 'create database rrr with owner rrr;' -U postgres
+  - cargo install --force diesel_cli --no-default-features --features postgres
 before_install:
   - cd server
 script:
-  - cargo install --force diesel_cli --no-default-features --features postgres
   - diesel migration run
-  - cargo build --all
-  - cargo test --all
+  - cargo build
+  - cargo test
 env:
   - DATABASE_URL=postgres://rrr:rrr@localhost/rrr
 addons:
