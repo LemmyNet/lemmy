@@ -16,7 +16,7 @@ before_script:
 before_install:
   - cd server
 script:
-  - cargo install --force diesel_cli --no-default-features --features postgres
+  - cargo install diesel_cli --no-default-features --features postgres
   - diesel migration run
   - cargo build
   - cargo test
