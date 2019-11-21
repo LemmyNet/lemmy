@@ -6,10 +6,11 @@ new_tag="$1"
 git tag $new_tag
 
 # Setting the version on the front end
-pushd ../../ui/
-node set_version.js
-git add src/version.ts
-popd
+echo "export let version: string = '$(git describe --tags)';" > "ui/src/version.ts"
+git add "ui/src/version.ts"
+# Setting the version on the backend
+echo "pub const VERSION: &'static str = \"$(git describe --tags)\";" > "server/src/version.rs"
+git add "server/src/version.rs"
 
 # Changing the docker-compose prod
 sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../prod/docker-compose.yml
