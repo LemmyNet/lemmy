@@ -9,6 +9,7 @@ services:
       - POSTGRES_DB=lemmy
     volumes:
       - lemmy_db:/var/lib/postgresql/data
+    restart: always
   lemmy:
     build: 
       context: ../../
@@ -39,6 +40,7 @@ services:
       - "127.0.0.1:8537:80"
     volumes:
       - lemmy_pictshare:/usr/share/nginx/html/data
+    restart: always
 volumes:
   lemmy_db:
   lemmy_pictshare:
