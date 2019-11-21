@@ -36,9 +36,9 @@ pub fn node_info() -> HttpResponse<Body> {
       "users": {
         "total": site_view.number_of_users
       },
-      "local_posts": site_view.number_of_posts,
-      "local_comments": site_view.number_of_comments,
-      "open_registrations": true,
+      "localPosts": site_view.number_of_posts,
+      "localComments": site_view.number_of_comments,
+      "openRegistrations": true,
       }
   });
   return HttpResponse::Ok()
