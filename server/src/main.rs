@@ -200,7 +200,10 @@ fn main() {
       // static resources
       .service(actix_files::Files::new("/static", front_end_dir()))
       .route("/nodeinfo/2.0.json", web::get().to(nodeinfo::node_info))
-      .route("/.well-known/nodeinfo", web::get().to(nodeinfo::node_info_well_known))
+      .route(
+        "/.well-known/nodeinfo",
+        web::get().to(nodeinfo::node_info_well_known),
+      )
   })
   .bind("0.0.0.0:8536")
   .unwrap()

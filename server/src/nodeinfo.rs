@@ -2,8 +2,8 @@ use crate::db::community_view::SiteView;
 use crate::db::establish_connection;
 use crate::version;
 use crate::Settings;
-use actix_web::HttpResponse;
 use actix_web::body::Body;
+use actix_web::HttpResponse;
 use serde_json::json;
 
 pub fn node_info_well_known() -> HttpResponse<Body> {
