@@ -1,2 +1,4 @@
 ansible/inventory
 ansible/passwords/
+build/
+.idea/
