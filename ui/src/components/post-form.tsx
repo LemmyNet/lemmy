@@ -24,6 +24,7 @@ import {
   validURL,
   capitalizeFirstLetter,
   markdownHelpUrl,
+  archiveUrl,
   mdToHtml,
 } from '../utils';
 import * as autosize from 'autosize';
@@ -175,6 +176,17 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
                   onChange={linkEvent(this, this.handleImageUpload)}
                 />
               </form>
+              {validURL(this.state.postForm.url) && (
+                <a
+                  href={`${archiveUrl}/?run=1&url=${encodeURIComponent(
+                    this.state.postForm.url
+                  )}`}
+                  target="_blank"
+                  class="mr-2 d-inline-block float-right text-muted small font-weight-bold"
+                >
+                  <T i18nKey="archive_link">#</T>
+                </a>
+              )}
               {this.state.imageLoading && (
                 <svg class="icon icon-spinner spin">
                   <use xlinkHref="#icon-spinner"></use>
