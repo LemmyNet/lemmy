@@ -287,6 +287,7 @@ export const themes = [
   'journal',
   'sketchy',
   'vaporwave',
+  'vaporwave-dark',
 ];
 
 export function setTheme(theme: string = 'darkly') {
