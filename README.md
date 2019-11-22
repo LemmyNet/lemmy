@@ -246,15 +246,15 @@ If you'd like to add translations, take a look a look at the [English translatio
 
 lang | done | missing
 --- | --- | ---
-de | 79% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,settings,stickied,delete_account,delete_account_confirm,banned,creator,number_online,subscribed,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,expires,recent_comments,nsfw,show_nsfw,theme,crypto,monero,joined,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
-eo | 88% | number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,stickied,delete_account,delete_account_confirm,banned,creator,number_online,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,theme,are_you_sure,yes,no 
-es | 96% | replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup 
-fr | 96% | replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup 
-it | 97% | forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup 
-nl | 90% | preview,upload_image,formatting_help,view_source,sticky,unsticky,stickied,delete_account,delete_account_confirm,banned,creator,number_online,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,theme 
-ru | 83% | cross_posts,cross_post,number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,stickied,delete_account,delete_account_confirm,banned,creator,number_online,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,recent_comments,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
-sv | 96% | replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup 
-zh | 81% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,settings,stickied,delete_account,delete_account_confirm,banned,creator,number_online,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,recent_comments,nsfw,show_nsfw,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+de | 79% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,archive_link,settings,stickied,delete_account,delete_account_confirm,banned,creator,number_online,subscribed,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,expires,recent_comments,nsfw,show_nsfw,theme,crypto,monero,joined,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+eo | 87% | number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,theme,are_you_sure,yes,no 
+es | 96% | archive_link,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup 
+fr | 96% | archive_link,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup 
+it | 97% | archive_link,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup 
+nl | 89% | preview,upload_image,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,theme 
+ru | 83% | cross_posts,cross_post,number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,recent_comments,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+sv | 96% | archive_link,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup 
+zh | 81% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,archive_link,settings,stickied,delete_account,delete_account_confirm,banned,creator,number_online,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,recent_comments,nsfw,show_nsfw,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
 
 
 If you'd like to update this report, run:

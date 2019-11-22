@@ -35,6 +35,7 @@ export const en = {
     sticky: 'sticky',
     unsticky: 'unsticky',
     link: 'link',
+    archive_link: 'archive link',
     mod: 'mod',
     mods: 'mods',
     moderates: 'Moderates',
