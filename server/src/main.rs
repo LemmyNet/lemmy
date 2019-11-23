@@ -207,6 +207,9 @@ fn main() {
         web::get().to(nodeinfo::node_info_well_known),
       )
       .route("/feeds/{type}/{name}.xml", web::get().to(feeds::get_feed))
+      // TODO: probably need a different function for this (or just handle all of /feeds?
+      // TODO: would be nice to use ListingType, but that doesnt include user
+      .route("/feeds/all.xml", web::get().to(feeds::get_feed))
       // static resources
       .service(actix_files::Files::new("/static", front_end_dir()))
   })

@@ -15,7 +15,6 @@ use diesel::result::Error;
 use std::str::FromStr;
 use self::rss::Guid;
 
-
 pub fn get_feed(path: web::Path<(char, String)>, req: HttpRequest) -> HttpResponse<Body> {
   let sort_query = match req.match_info().query("sort").parse()  {
     Ok(param) => param,
