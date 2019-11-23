@@ -22,9 +22,6 @@ git add ../prod/docker-compose.yml
 # The commit
 git commit -m"Version $new_tag"
 
-git push origin $new_tag
-git push
-
 # Registering qemu binaries
 docker run --rm --privileged multiarch/qemu-user-static:register --reset
 
@@ -51,6 +48,10 @@ docker manifest create dessalines/lemmy:$new_tag \
   dessalines/lemmy:arm64-$new_tag
 
 docker manifest push dessalines/lemmy:$new_tag
+
+# Push
+git push origin $new_tag
+git push
 
 # Pushing to any ansible deploys
 cd ../../ansible
