@@ -125,7 +125,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             </svg>
           </button>
         </div>
-        {post.url && isImage(post.url) && (
+        {post.url && isImage(post.url) && !post.nsfw && !post.community_nsfw && (
           <span
             title={i18n.t('expand_here')}
             class="pointer"
