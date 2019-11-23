@@ -28,100 +28,103 @@
     + [Get Replies / Inbox](#get-replies--inbox)
       - [Request](#request-4)
       - [Response](#response-4)
-    + [Mark all replies as read](#mark-all-replies-as-read)
+    + [Get User Mentions](#get-user-mentions)
       - [Request](#request-5)
       - [Response](#response-5)
-    + [Delete Account](#delete-account)
+    + [Mark All As Read](#mark-all-as-read)
       - [Request](#request-6)
       - [Response](#response-6)
-    + [Add admin](#add-admin)
+    + [Delete Account](#delete-account)
       - [Request](#request-7)
       - [Response](#response-7)
-    + [Ban user](#ban-user)
+    + [Add admin](#add-admin)
       - [Request](#request-8)
       - [Response](#response-8)
-  * [Site](#site)
-    + [List Categories](#list-categories)
+    + [Ban user](#ban-user)
       - [Request](#request-9)
       - [Response](#response-9)
-    + [Search](#search)
+  * [Site](#site)
+    + [List Categories](#list-categories)
       - [Request](#request-10)
       - [Response](#response-10)
-    + [Get Modlog](#get-modlog)
+    + [Search](#search)
       - [Request](#request-11)
       - [Response](#response-11)
-    + [Create Site](#create-site)
+    + [Get Modlog](#get-modlog)
       - [Request](#request-12)
       - [Response](#response-12)
-    + [Edit Site](#edit-site)
+    + [Create Site](#create-site)
       - [Request](#request-13)
       - [Response](#response-13)
-    + [Get Site](#get-site)
+    + [Edit Site](#edit-site)
       - [Request](#request-14)
       - [Response](#response-14)
-    + [Transfer Site](#transfer-site)
+    + [Get Site](#get-site)
       - [Request](#request-15)
       - [Response](#response-15)
-  * [Community](#community)
-    + [Get Community](#get-community)
+    + [Transfer Site](#transfer-site)
       - [Request](#request-16)
       - [Response](#response-16)
-    + [Create Community](#create-community)
+  * [Community](#community)
+    + [Get Community](#get-community)
       - [Request](#request-17)
       - [Response](#response-17)
-    + [List Communities](#list-communities)
+    + [Create Community](#create-community)
       - [Request](#request-18)
       - [Response](#response-18)
-    + [Ban from Community](#ban-from-community)
+    + [List Communities](#list-communities)
       - [Request](#request-19)
       - [Response](#response-19)
-    + [Add Mod to Community](#add-mod-to-community)
+    + [Ban from Community](#ban-from-community)
       - [Request](#request-20)
       - [Response](#response-20)
-    + [Edit Community](#edit-community)
+    + [Add Mod to Community](#add-mod-to-community)
       - [Request](#request-21)
       - [Response](#response-21)
-    + [Follow Community](#follow-community)
+    + [Edit Community](#edit-community)
       - [Request](#request-22)
       - [Response](#response-22)
-    + [Get Followed Communities](#get-followed-communities)
+    + [Follow Community](#follow-community)
       - [Request](#request-23)
       - [Response](#response-23)
-    + [Transfer Community](#transfer-community)
+    + [Get Followed Communities](#get-followed-communities)
       - [Request](#request-24)
       - [Response](#response-24)
-  * [Post](#post)
-    + [Create Post](#create-post)
+    + [Transfer Community](#transfer-community)
       - [Request](#request-25)
       - [Response](#response-25)
-    + [Get Post](#get-post)
+  * [Post](#post)
+    + [Create Post](#create-post)
       - [Request](#request-26)
       - [Response](#response-26)
-    + [Get Posts](#get-posts)
+    + [Get Post](#get-post)
       - [Request](#request-27)
       - [Response](#response-27)
-    + [Create Post Like](#create-post-like)
+    + [Get Posts](#get-posts)
       - [Request](#request-28)
       - [Response](#response-28)
-    + [Edit Post](#edit-post)
+    + [Create Post Like](#create-post-like)
       - [Request](#request-29)
       - [Response](#response-29)
-    + [Save Post](#save-post)
+    + [Edit Post](#edit-post)
       - [Request](#request-30)
       - [Response](#response-30)
-  * [Comment](#comment)
-    + [Create Comment](#create-comment)
+    + [Save Post](#save-post)
       - [Request](#request-31)
       - [Response](#response-31)
-    + [Edit Comment](#edit-comment)
+  * [Comment](#comment)
+    + [Create Comment](#create-comment)
       - [Request](#request-32)
       - [Response](#response-32)
-    + [Save Comment](#save-comment)
+    + [Edit Comment](#edit-comment)
       - [Request](#request-33)
       - [Response](#response-33)
-    + [Create Comment Like](#create-comment-like)
+    + [Save Comment](#save-comment)
       - [Request](#request-34)
       - [Response](#response-34)
+    + [Create Comment Like](#create-comment-like)
+      - [Request](#request-35)
+      - [Response](#response-35)
 
 <!-- tocstop -->
 
@@ -314,7 +317,32 @@ Only the first user will be able to be the admin.
 }
 ```
 
-#### Mark all replies as read
+#### Get User Mentions
+##### Request
+```rust
+{
+  op: "GetUserMentions",
+  data: {
+    sort: String,
+    page: Option<i64>,
+    limit: Option<i64>,
+    unread_only: bool,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: String,
+  mentions: Vec<UserMentionView>,
+}
+```
+
+#### Mark All As Read
+
+Marks all user replies and mentions as read.
+
 ##### Request
 ```rust
 {
