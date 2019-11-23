@@ -25,7 +25,8 @@ import {
   fetchLimit,
   postRefetchSeconds,
 } from '../utils';
-import { T, i18n } from 'inferno-i18next';
+import { T } from 'inferno-i18next';
+import { i18n } from '../i18next';
 
 interface State {
   community: CommunityI;
@@ -252,6 +253,7 @@ export class Community extends Component<any, State> {
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
       alert(i18n.t(msg.error));
+      this.context.router.history.push('/');
       return;
     } else if (op == UserOperation.GetCommunity) {
       let res: GetCommunityResponse = msg;
