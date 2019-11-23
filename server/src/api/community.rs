@@ -136,7 +136,10 @@ impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
     let community_id = match data.id {
       Some(id) => id,
       None => {
-        Community::read_from_name(&conn, data.name.to_owned().unwrap_or("main".to_string()))?.id
+        match Community::read_from_name(&conn, data.name.to_owned().unwrap_or("main".to_string())) {
+          Ok(community) => community.id,
+          Err(_e) => return Err(APIError::err(&self.op, "couldnt_find_community"))?,
+        }
       }
     };
 
