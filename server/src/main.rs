@@ -7,11 +7,8 @@ use actix_files::NamedFile;
 use actix_web::*;
 use actix_web_actors::ws;
 use lemmy_server::db::establish_connection;
-<<<<<<< HEAD
 use lemmy_server::nodeinfo;
-=======
 use lemmy_server::feeds;
->>>>>>> Implement RSS feeds (fixes #118)
 use lemmy_server::websocket::server::*;
 use std::env;
 use std::time::{Duration, Instant};

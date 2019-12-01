@@ -8,29 +8,38 @@ use crate::db::community_view::SiteView;
 use crate::db::post_view::PostView;
 use crate::db::user::User_;
 use crate::db::community::Community;
-use actix_web::{HttpResponse, web, Result, HttpRequest};
+use actix_web::{HttpResponse, web, Result};
 use actix_web::body::Body;
 use rss::{ChannelBuilder, Item, ItemBuilder};
 use diesel::result::Error;
 use std::str::FromStr;
 use self::rss::Guid;
+use serde::Deserialize;
 
-pub fn get_feed(path: web::Path<(char, String)>, req: HttpRequest) -> HttpResponse<Body> {
-  let sort_query = match req.match_info().query("sort").parse()  {
-    Ok(param) => param,
-    Err(_) => SortType::Hot.to_string(),
-  };
-  let sort_type = match SortType::from_str(&sort_query) {
+#[derive(Deserialize)]
+pub struct Params {
+  sort: Option<String>,
+}
+
+pub fn get_feed(path: web::Path<(char, String)>, info: web::Query<Params>) -> HttpResponse<Body> {
+  let sort_query = info.sort.clone().unwrap_or(SortType::Hot.to_string());
+  let sort_type: SortType = match SortType::from_str(&sort_query) {
     Ok(sort) => sort,
     Err(_) => return HttpResponse::BadRequest().finish(),
   };
 
-  return match  get_feed_internal(path, &sort_type) {
-    Ok(body) => HttpResponse::Ok()
+  let result = get_feed_internal(path, &sort_type);
+  if result.is_ok() {
+    let rss = result.unwrap();
+    return HttpResponse::Ok()
       .content_type("application/rss+xml")
-      .body(body),
-    // TODO: handle the specific type of error (403, 500, etc)
-    Err(_) => HttpResponse::InternalServerError().finish(),
+      .body(rss);
+  } else {
+    let error = result.err().unwrap();
+    return match error {
+      Error::NotFound => HttpResponse::NotFound().finish(),
+      _ => HttpResponse::InternalServerError().finish(),
+    }
   }
 }
 
@@ -66,7 +75,6 @@ fn get_feed_internal(info: web::Path<(char, String)>, sort_type: &SortType) -> R
     i.title(htmlescape::encode_minimal(&p.name));
     i.pub_date(htmlescape::encode_minimal(&dt.to_rfc2822()));
 
-    // TODO: there is probably a better way to get the lemmy post url
     let post_url = format!("https://{}/post/{}", Settings::get().hostname, p.id);
     let mut guid = Guid::default();
     guid.set_permalink(true);
