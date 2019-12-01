@@ -15,20 +15,47 @@ use diesel::result::Error;
 use std::str::FromStr;
 use self::rss::Guid;
 use serde::Deserialize;
+use strum::ParseError;
 
 #[derive(Deserialize)]
 pub struct Params {
   sort: Option<String>,
 }
 
+enum RequestType {
+  All,
+  Community,
+  User,
+}
+
+pub fn get_all_feed(info: web::Query<Params>) -> HttpResponse<Body> {
+  let sort_type = get_sort_type(info);
+  if sort_type.is_err() {
+    return HttpResponse::BadRequest().finish();
+  }
+
+  let result = get_feed_internal(&sort_type.unwrap(), RequestType::All, None);
+  return match result {
+    Ok(rss) => HttpResponse::Ok()
+    .content_type("application/rss+xml")
+    .body(rss),
+    Err(_) => HttpResponse::InternalServerError().finish(),
+  };
+}
+
 pub fn get_feed(path: web::Path<(char, String)>, info: web::Query<Params>) -> HttpResponse<Body> {
-  let sort_query = info.sort.clone().unwrap_or(SortType::Hot.to_string());
-  let sort_type: SortType = match SortType::from_str(&sort_query) {
-    Ok(sort) => sort,
-    Err(_) => return HttpResponse::BadRequest().finish(),
+  let sort_type = get_sort_type(info);
+  if sort_type.is_err() {
+    return HttpResponse::BadRequest().finish();
+  }
+
+  let request_type = match path.0 {
+    'u' => RequestType::User,
+    'c' =>  RequestType::Community,
+    _ => return HttpResponse::NotFound().finish(),
   };
 
-  let result = get_feed_internal(path, &sort_type);
+  let result = get_feed_internal(&sort_type.unwrap(), request_type, Some(path.1.clone()));
   if result.is_ok() {
     let rss = result.unwrap();
     return HttpResponse::Ok()
@@ -43,15 +70,21 @@ pub fn get_feed(path: web::Path<(char, String)>, info: web::Query<Params>) -> Ht
   }
 }
 
-fn get_feed_internal(info: web::Path<(char, String)>, sort_type: &SortType) -> Result<String, Error> {
+fn get_sort_type(info: web::Query<Params>) -> Result<SortType, ParseError> {
+  let sort_query = info.sort.clone().unwrap_or(SortType::Hot.to_string());
+  return SortType::from_str(&sort_query);
+}
+
+fn get_feed_internal(sort_type: &SortType, request_type: RequestType, name: Option<String>)
+    -> Result<String, Error> {
   let conn = establish_connection();
 
   let mut community_id: Option<i32> = None;
   let mut creator_id: Option<i32> = None;
-  match info.0 {
-    'c' =>  community_id = Some(Community::read_from_name(&conn,info.1.clone())?.id),
-    'u' => creator_id = Some(User_::find_by_email_or_username(&conn,&info.1)?.id),
-    _ => return Err(Error::NotFound),
+  match request_type {
+    RequestType::All =>(),
+    RequestType::Community =>  community_id = Some(Community::read_from_name(&conn,name.unwrap())?.id),
+    RequestType::User => creator_id = Some(User_::find_by_email_or_username(&conn,&name.unwrap())?.id),
   }
 
   let post = PostView::list(&conn,
