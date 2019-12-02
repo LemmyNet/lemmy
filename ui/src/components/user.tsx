@@ -249,6 +249,13 @@ export class User extends Component<any, UserState> {
             hideHot
           />
         </span>
+        <a
+          href={`${document.location.origin}/feeds/u/${this.state.username}.xml`}
+        >
+          <svg class="icon mx-2 text-muted small">
+            <use xlinkHref="#icon-rss">#</use>
+          </svg>
+        </a>
       </div>
     );
   }
