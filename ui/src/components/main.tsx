@@ -431,9 +431,16 @@ export class Main extends Component<any, MainState> {
           type_={this.state.type_}
           onChange={this.handleTypeChange}
         />
-        <span class="ml-2">
+        <span class="mx-2">
           <SortSelect sort={this.state.sort} onChange={this.handleSortChange} />
         </span>
+        {this.state.type_ == ListingType.All && (
+          <a href={`${document.location.origin}/feeds/all.xml`}>
+            <svg class="icon mx-1 text-muted small">
+              <use xlinkHref="#icon-rss">#</use>
+            </svg>
+          </a>
+        )}
       </div>
     );
   }

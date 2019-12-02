@@ -174,6 +174,13 @@ export class Community extends Component<any, State> {
     return (
       <div class="mb-2">
         <SortSelect sort={this.state.sort} onChange={this.handleSortChange} />
+        <a
+          href={`${document.location.origin}/feeds/c/${this.state.communityName}.xml`}
+        >
+          <svg class="icon mx-2 text-muted small">
+            <use xlinkHref="#icon-rss">#</use>
+          </svg>
+        </a>
       </div>
     );
   }

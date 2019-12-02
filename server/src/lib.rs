@@ -25,11 +25,11 @@ pub extern crate strum;
 pub mod api;
 pub mod apub;
 pub mod db;
+pub mod feeds;
 pub mod nodeinfo;
 pub mod schema;
 pub mod version;
 pub mod websocket;
-pub mod feeds;
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 use dotenv::dotenv;
