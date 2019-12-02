@@ -435,7 +435,10 @@ export class Main extends Component<any, MainState> {
           <SortSelect sort={this.state.sort} onChange={this.handleSortChange} />
         </span>
         {this.state.type_ == ListingType.All && (
-          <a href={`${document.location.origin}/feeds/all.xml`}>
+          <a
+            href={`/feeds/all.xml?sort=${SortType[this.state.sort]}`}
+            target="_blank"
+          >
             <svg class="icon mx-1 text-muted small">
               <use xlinkHref="#icon-rss">#</use>
             </svg>

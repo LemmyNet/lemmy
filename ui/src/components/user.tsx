@@ -250,7 +250,10 @@ export class User extends Component<any, UserState> {
           />
         </span>
         <a
-          href={`${document.location.origin}/feeds/u/${this.state.username}.xml`}
+          href={`/feeds/u/${this.state.username}.xml?sort=${
+            SortType[this.state.sort]
+          }`}
+          target="_blank"
         >
           <svg class="icon mx-2 text-muted small">
             <use xlinkHref="#icon-rss">#</use>
