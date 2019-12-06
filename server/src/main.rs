@@ -10,6 +10,7 @@ use lemmy_server::db::establish_connection;
 use lemmy_server::feeds;
 use lemmy_server::nodeinfo;
 use lemmy_server::websocket::server::*;
+use lemmy_server::Settings;
 use std::env;
 use std::time::{Duration, Instant};
 
@@ -191,7 +192,7 @@ fn main() {
   // Start chat server actor in separate thread
   let server = ChatServer::default().start();
 
-  let settings = lemmy_server::Settings::get();
+  let settings = Settings::get();
 
   // Create Http server with websocket support
   HttpServer::new(move || {
