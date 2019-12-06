@@ -190,8 +190,10 @@ fn main() {
 
   // Start chat server actor in separate thread
   let server = ChatServer::default().start();
-  // Create Http server with websocket support
 
+  let settings = lemmy_server::Settings::get();
+
+  // Create Http server with websocket support
   HttpServer::new(move || {
     App::new()
       .data(server.clone())
@@ -210,11 +212,11 @@ fn main() {
       // static resources
       .service(actix_files::Files::new("/static", front_end_dir()))
   })
-  .bind("0.0.0.0:8536")
+  .bind((settings.bind, settings.port))
   .unwrap()
   .start();
 
-  println!("Started http server: 0.0.0.0:8536");
+  println!("Started http server at {}:{}", settings.bind, settings.port);
   let _ = sys.run();
 }
 
