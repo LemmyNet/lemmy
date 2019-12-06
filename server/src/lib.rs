@@ -42,18 +42,21 @@ use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use regex::Regex;
 use std::env;
+use std::net::IpAddr;
 
 pub struct Settings {
-  db_url: String,
-  hostname: String,
-  jwt_secret: String,
-  rate_limit_message: i32,
-  rate_limit_message_per_second: i32,
-  rate_limit_post: i32,
-  rate_limit_post_per_second: i32,
-  rate_limit_register: i32,
-  rate_limit_register_per_second: i32,
-  email_config: Option<EmailConfig>,
+  pub db_url: String,
+  pub hostname: String,
+  pub bind: IpAddr,
+  pub port: u16,
+  pub jwt_secret: String,
+  pub rate_limit_message: i32,
+  pub rate_limit_message_per_second: i32,
+  pub rate_limit_post: i32,
+  pub rate_limit_post_per_second: i32,
+  pub rate_limit_register: i32,
+  pub rate_limit_register_per_second: i32,
+  pub email_config: Option<EmailConfig>,
 }
 
 pub struct EmailConfig {
@@ -64,7 +67,7 @@ pub struct EmailConfig {
 }
 
 impl Settings {
-  fn get() -> Self {
+  pub fn get() -> Self {
     dotenv().ok();
 
     let email_config =
@@ -82,6 +85,14 @@ impl Settings {
     Settings {
       db_url: env::var("DATABASE_URL").expect("DATABASE_URL must be set"),
       hostname: env::var("HOSTNAME").unwrap_or("rrr".to_string()),
+      bind: env::var("BIND")
+        .unwrap_or("0.0.0.0".to_string())
+        .parse()
+        .unwrap(),
+      port: env::var("PORT")
+        .unwrap_or("8536".to_string())
+        .parse()
+        .unwrap(),
       jwt_secret: env::var("JWT_SECRET").unwrap_or("changeme".to_string()),
       rate_limit_message: env::var("RATE_LIMIT_MESSAGE")
         .unwrap_or("30".to_string())
