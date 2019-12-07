@@ -1,11 +1,11 @@
-# Lemmy WebSocket API
+# Lemmy API
 *Note: this may lag behind the actual API endpoints [here](../server/src/api).*
 
 <!-- toc -->
 
 - [Data types](#data-types)
 - [Basic usage](#basic-usage)
-  * [Endpoint](#endpoint)
+  * [WebSocket Endpoint](#websocket-endpoint)
   * [Testing with Websocat](#testing-with-websocat)
   * [Testing with the WebSocket JavaScript API](#testing-with-the-websocket-javascript-api)
 - [Rate limits](#rate-limits)
@@ -125,6 +125,10 @@
     + [Create Comment Like](#create-comment-like)
       - [Request](#request-35)
       - [Response](#response-35)
+  * [RSS / Atom feeds](#rss--atom-feeds)
+    + [All](#all)
+    + [Community](#community-1)
+    + [User](#user)
 
 <!-- tocstop -->
 
@@ -140,7 +144,7 @@
 
 Request and response strings are in [JSON format](https://www.json.org).
 
-### Endpoint
+### WebSocket Endpoint
 
 Connect to <code>ws://***host***/api/v1/ws</code> to get started.
 
@@ -1010,3 +1014,18 @@ Mods and admins can remove a comment, creators can delete it.
   comment: CommentView
 }
 ```
+
+### RSS / Atom feeds
+
+#### All
+
+`/feeds/all.xml?sort=Hot`
+
+#### Community
+
+`/feeds/c/community-name.xml?sort=Hot`
+
+#### User
+
+`/feeds/u/user-name.xml?sort=Hot`
+
