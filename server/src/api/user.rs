@@ -366,40 +366,26 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
 
     let user_view = UserView::read(&conn, user_details_id)?;
 
+    let mut posts_query = PostViewQuery::create(
+      &conn,
+      ListingType::All,
+      &sort,
+      show_nsfw,
+      data.saved_only,
+      false,
+    )
+    .for_community_id_optional(data.community_id)
+    .my_user_id_optional(user_id)
+    .page_optional(data.page)
+    .limit_optional(data.limit);
+
     // If its saved only, you don't care what creator it was
-    let posts = if data.saved_only {
-      PostView::list(
-        &conn,
-        ListingType::All,
-        &sort,
-        data.community_id,
-        None,
-        None,
-        None,
-        Some(user_details_id),
-        show_nsfw,
-        data.saved_only,
-        false,
-        data.page,
-        data.limit,
-      )?
-    } else {
-      PostView::list(
-        &conn,
-        ListingType::All,
-        &sort,
-        data.community_id,
-        Some(user_details_id),
-        None,
-        None,
-        user_id,
-        show_nsfw,
-        data.saved_only,
-        false,
-        data.page,
-        data.limit,
-      )?
-    };
+    if !data.saved_only {
+      posts_query = posts_query.for_creator_id(user_details_id);
+    }
+
+    let posts = posts_query.list()?;
+
     let comments = if data.saved_only {
       CommentView::list(
         &conn,
@@ -777,21 +763,10 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
     }
 
     // Posts
-    let posts = PostView::list(
-      &conn,
-      ListingType::All,
-      &SortType::New,
-      None,
-      Some(user_id),
-      None,
-      None,
-      None,
-      true,
-      false,
-      false,
-      None,
-      Some(std::i64::MAX),
-    )?;
+    let posts = PostViewQuery::create(&conn, ListingType::All, &SortType::New, true, false, false)
+      .for_creator_id(user_id)
+      .limit(std::i64::MAX)
+      .list()?;
 
     for post in &posts {
       let post_form = PostForm {

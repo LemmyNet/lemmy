@@ -4,7 +4,7 @@ extern crate rss;
 use super::*;
 use crate::db::community::Community;
 use crate::db::community_view::SiteView;
-use crate::db::post_view::PostView;
+use crate::db::post_view::PostViewQuery;
 use crate::db::user::User_;
 use crate::db::{establish_connection, ListingType, SortType};
 use crate::Settings;
@@ -124,21 +124,10 @@ fn get_feed_internal(
     }
   }
 
-  let posts = PostView::list(
-    &conn,
-    ListingType::All,
-    sort_type,
-    community_id,
-    creator_id,
-    None,
-    None,
-    None,
-    true,
-    false,
-    false,
-    None,
-    None,
-  )?;
+  let posts = PostViewQuery::create(&conn, ListingType::All, sort_type, true, false, false)
+    .for_community_id_optional(community_id)
+    .for_creator_id_optional(creator_id)
+    .list()?;
 
   let mut items: Vec<Item> = Vec::new();
 

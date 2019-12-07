@@ -238,21 +238,13 @@ impl Perform<GetPostsResponse> for Oper<GetPosts> {
     let type_ = ListingType::from_str(&data.type_)?;
     let sort = SortType::from_str(&data.sort)?;
 
-    let posts = match PostView::list(
-      &conn,
-      type_,
-      &sort,
-      data.community_id,
-      None,
-      None,
-      None,
-      user_id,
-      show_nsfw,
-      false,
-      false,
-      data.page,
-      data.limit,
-    ) {
+    let posts = match PostViewQuery::create(&conn, type_, &sort, show_nsfw, false, false)
+      .for_community_id_optional(data.community_id)
+      .my_user_id_optional(user_id)
+      .page_optional(data.page)
+      .limit_optional(data.limit)
+      .list()
+    {
       Ok(posts) => posts,
       Err(_e) => return Err(APIError::err(&self.op, "couldnt_get_posts"))?,
     };
