@@ -95,8 +95,15 @@ impl PostView {
 
     let mut query = post_view.into_boxed();
 
+    // If its for a specific user, show the removed / deleted
     if let Some(for_creator_id) = for_creator_id {
       query = query.filter(creator_id.eq(for_creator_id));
+    } else {
+      query = query
+        .filter(removed.eq(false))
+        .filter(deleted.eq(false))
+        .filter(community_removed.eq(false))
+        .filter(community_deleted.eq(false));
     };
 
     if let Some(search_term) = search_term {
@@ -161,13 +168,7 @@ impl PostView {
         .then_order_by(score.desc()),
     };
 
-    query = query
-      .limit(limit)
-      .offset(offset)
-      .filter(removed.eq(false))
-      .filter(deleted.eq(false))
-      .filter(community_removed.eq(false))
-      .filter(community_deleted.eq(false));
+    query = query.limit(limit).offset(offset);
 
     query.load::<Self>(conn)
   }
