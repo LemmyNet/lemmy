@@ -4,9 +4,9 @@ extern crate rss;
 use super::*;
 use crate::db::community::Community;
 use crate::db::community_view::SiteView;
-use crate::db::post_view::PostViewQuery;
+use crate::db::post_view::PostQueryBuilder;
 use crate::db::user::User_;
-use crate::db::{establish_connection, ListingType, SortType};
+use crate::db::{establish_connection, SortType};
 use crate::Settings;
 use actix_web::body::Body;
 use actix_web::{web, HttpResponse, Result};
@@ -124,7 +124,9 @@ fn get_feed_internal(
     }
   }
 
-  let posts = PostViewQuery::create(&conn, ListingType::All, sort_type, true, false, false)
+  let posts = PostQueryBuilder::create(&conn)
+    .sort(sort_type)
+    .show_nsfw(true)
     .for_community_id_optional(community_id)
     .for_creator_id_optional(creator_id)
     .list()?;

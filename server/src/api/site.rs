@@ -319,7 +319,9 @@ impl Perform<SearchResponse> for Oper<Search> {
 
     match type_ {
       SearchType::Posts => {
-        posts = PostViewQuery::create(&conn, ListingType::All, &sort, true, false, false)
+        posts = PostQueryBuilder::create(&conn)
+          .sort(&sort)
+          .show_nsfw(true)
           .for_community_id_optional(data.community_id)
           .search_term(data.q.to_owned())
           .page_optional(data.page)
@@ -354,7 +356,9 @@ impl Perform<SearchResponse> for Oper<Search> {
         users = UserView::list(&conn, &sort, Some(data.q.to_owned()), data.page, data.limit)?;
       }
       SearchType::All => {
-        posts = PostViewQuery::create(&conn, ListingType::All, &sort, true, false, false)
+        posts = PostQueryBuilder::create(&conn)
+          .sort(&sort)
+          .show_nsfw(true)
           .for_community_id_optional(data.community_id)
           .search_term(data.q.to_owned())
           .page_optional(data.page)
@@ -384,7 +388,9 @@ impl Perform<SearchResponse> for Oper<Search> {
         users = UserView::list(&conn, &sort, Some(data.q.to_owned()), data.page, data.limit)?;
       }
       SearchType::Url => {
-        posts = PostViewQuery::create(&conn, ListingType::All, &sort, true, false, false)
+        posts = PostQueryBuilder::create(&conn)
+          .sort(&sort)
+          .show_nsfw(true)
           .for_community_id_optional(data.community_id)
           .url_search(data.q.to_owned())
           .page_optional(data.page)
