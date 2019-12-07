@@ -79,6 +79,7 @@ pub struct PostViewQuery<'a> {
   conn: &'a PgConnection,
   query: BoxedQuery<'a, Pg>,
   my_user_id: Option<i32>,
+  for_creator_id: Option<i32>,
   page: Option<i64>,
   limit: Option<i64>,
 }
@@ -142,6 +143,7 @@ impl<'a> PostViewQuery<'a> {
       conn,
       query,
       my_user_id: None,
+      for_creator_id: None,
       page: None,
       limit: None,
     }
@@ -162,8 +164,7 @@ impl<'a> PostViewQuery<'a> {
   }
 
   pub fn for_creator_id(mut self, for_creator_id: i32) -> Self {
-    use super::post_view::post_view::dsl::*;
-    self.query = self.query.filter(creator_id.eq(for_creator_id));
+    self.for_creator_id = Some(for_creator_id);
     self
   }
 
@@ -238,6 +239,17 @@ impl<'a> PostViewQuery<'a> {
     } else {
       self.query.filter(user_id.is_null())
     };
+
+    // If its for a specific user, show the removed / deleted
+    if let Some(for_creator_id) = self.for_creator_id {
+      self.query = self.query.filter(creator_id.eq(for_creator_id));
+    } else {
+      self.query = self.query
+        .filter(removed.eq(false))
+        .filter(deleted.eq(false))
+        .filter(community_removed.eq(false))
+        .filter(community_deleted.eq(false));
+    }
 
     let (limit, offset) = limit_and_offset(self.page, self.limit);
     let query = self
