@@ -135,17 +135,12 @@ impl ChatServer {
     use crate::db::*;
     let conn = establish_connection();
 
-    let posts = PostViewQuery::create(
-      &conn,
-      ListingType::Community,
-      &SortType::New,
-      false,
-      false,
-      false,
-    )
-    .for_community_id(*community_id)
-    .limit(9999)
-    .list()?;
+    let posts = PostQueryBuilder::create(&conn)
+      .listing_type(ListingType::Community)
+      .sort(&SortType::New)
+      .for_community_id(*community_id)
+      .limit(9999)
+      .list()?;
 
     for post in posts {
       self.send_room_message(&post.id, message, skip_id);

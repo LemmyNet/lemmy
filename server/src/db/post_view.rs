@@ -75,78 +75,49 @@ pub struct PostView {
   pub saved: Option<bool>,
 }
 
-pub struct PostViewQuery<'a> {
+pub struct PostQueryBuilder<'a> {
   conn: &'a PgConnection,
   query: BoxedQuery<'a, Pg>,
+  listing_type: ListingType,
+  sort: &'a SortType,
   my_user_id: Option<i32>,
   for_creator_id: Option<i32>,
+  show_nsfw: bool,
+  saved_only: bool,
+  unread_only: bool,
   page: Option<i64>,
   limit: Option<i64>,
 }
 
-impl<'a> PostViewQuery<'a> {
-  pub fn create(
-    conn: &'a PgConnection,
-    r#type: ListingType,
-    sort: &'a SortType,
-    show_nsfw: bool,
-    saved_only: bool,
-    unread_only: bool,
-  ) -> Self {
+impl<'a> PostQueryBuilder<'a> {
+  pub fn create(conn: &'a PgConnection) -> Self {
     use super::post_view::post_view::dsl::*;
 
-    let mut query = post_view.into_boxed();
+    let query = post_view.into_boxed();
 
-    match r#type {
-      ListingType::Subscribed => {
-        query = query.filter(subscribed.eq(true));
-      }
-      _ => {}
-    };
-
-    query = match sort {
-      SortType::Hot => query
-        .then_order_by(hot_rank.desc())
-        .then_order_by(published.desc()),
-      SortType::New => query.then_order_by(published.desc()),
-      SortType::TopAll => query.then_order_by(score.desc()),
-      SortType::TopYear => query
-        .filter(published.gt(now - 1.years()))
-        .then_order_by(score.desc()),
-      SortType::TopMonth => query
-        .filter(published.gt(now - 1.months()))
-        .then_order_by(score.desc()),
-      SortType::TopWeek => query
-        .filter(published.gt(now - 1.weeks()))
-        .then_order_by(score.desc()),
-      SortType::TopDay => query
-        .filter(published.gt(now - 1.days()))
-        .then_order_by(score.desc()),
-    };
-
-    if !show_nsfw {
-      query = query
-        .filter(nsfw.eq(false))
-        .filter(community_nsfw.eq(false));
-    };
-
-    // TODO these are wrong, bc they'll only show saved for your logged in user, not theirs
-    if saved_only {
-      query = query.filter(saved.eq(true));
-    };
-
-    if unread_only {
-      query = query.filter(read.eq(false));
-    };
-
-    PostViewQuery {
+    PostQueryBuilder {
       conn,
       query,
       my_user_id: None,
       for_creator_id: None,
+      listing_type: ListingType::All,
+      sort: &SortType::Hot,
+      show_nsfw: false,
+      saved_only: false,
+      unread_only: false,
       page: None,
       limit: None,
     }
+  }
+
+  pub fn listing_type(mut self, listing_type: ListingType) -> Self {
+    self.listing_type = listing_type;
+    self
+  }
+
+  pub fn sort(mut self, sort: &'a SortType) -> Self {
+    self.sort = sort;
+    self
   }
 
   pub fn for_community_id(mut self, for_community_id: i32) -> Self {
@@ -211,6 +182,21 @@ impl<'a> PostViewQuery<'a> {
     self
   }
 
+  pub fn show_nsfw(mut self, show_nsfw: bool) -> Self {
+    self.show_nsfw = show_nsfw;
+    self
+  }
+
+  pub fn saved_only(mut self, saved_only: bool) -> Self {
+    self.saved_only = saved_only;
+    self
+  }
+
+  pub fn unread_only(mut self, unread_only: bool) -> Self {
+    self.unread_only = unread_only;
+    self
+  }
+
   pub fn page(mut self, page: i64) -> Self {
     self.page = Some(page);
     self
@@ -231,29 +217,73 @@ impl<'a> PostViewQuery<'a> {
     self
   }
 
-  pub fn list(mut self) -> Result<Vec<PostView>, Error> {
+  pub fn list(self) -> Result<Vec<PostView>, Error> {
     use super::post_view::post_view::dsl::*;
+
+    let mut query = self.query;
+
+    match self.listing_type {
+      ListingType::Subscribed => {
+        query = query.filter(subscribed.eq(true));
+      }
+      _ => {}
+    };
+
+    query = match self.sort {
+      SortType::Hot => query
+        .then_order_by(hot_rank.desc())
+        .then_order_by(published.desc()),
+      SortType::New => query.then_order_by(published.desc()),
+      SortType::TopAll => query.then_order_by(score.desc()),
+      SortType::TopYear => query
+        .filter(published.gt(now - 1.years()))
+        .then_order_by(score.desc()),
+      SortType::TopMonth => query
+        .filter(published.gt(now - 1.months()))
+        .then_order_by(score.desc()),
+      SortType::TopWeek => query
+        .filter(published.gt(now - 1.weeks()))
+        .then_order_by(score.desc()),
+      SortType::TopDay => query
+        .filter(published.gt(now - 1.days()))
+        .then_order_by(score.desc()),
+    };
+
     // The view lets you pass a null user_id, if you're not logged in
-    self.query = if let Some(my_user_id) = self.my_user_id {
-      self.query.filter(user_id.eq(my_user_id))
+    query = if let Some(my_user_id) = self.my_user_id {
+      query.filter(user_id.eq(my_user_id))
     } else {
-      self.query.filter(user_id.is_null())
+      query.filter(user_id.is_null())
     };
 
     // If its for a specific user, show the removed / deleted
     if let Some(for_creator_id) = self.for_creator_id {
-      self.query = self.query.filter(creator_id.eq(for_creator_id));
+      query = query.filter(creator_id.eq(for_creator_id));
     } else {
-      self.query = self.query
+      query = query
         .filter(removed.eq(false))
         .filter(deleted.eq(false))
         .filter(community_removed.eq(false))
         .filter(community_deleted.eq(false));
     }
 
+    if !self.show_nsfw {
+      query = query
+        .filter(nsfw.eq(false))
+        .filter(community_nsfw.eq(false));
+    };
+
+    // TODO these are wrong, bc they'll only show saved for your logged in user, not theirs
+    if self.saved_only {
+      query = query.filter(saved.eq(true));
+    };
+
+    if self.unread_only {
+      query = query.filter(read.eq(false));
+    };
+
     let (limit, offset) = limit_and_offset(self.page, self.limit);
-    let query = self
-      .query
+    query = query
       .limit(limit)
       .offset(offset)
       .filter(removed.eq(false))
@@ -438,30 +468,20 @@ mod tests {
       nsfw: false,
     };
 
-    let read_post_listings_with_user = PostViewQuery::create(
-      &conn,
-      ListingType::Community,
-      &SortType::New,
-      false,
-      false,
-      false,
-    )
-    .for_community_id(inserted_community.id)
-    .my_user_id(inserted_user.id)
-    .list()
-    .unwrap();
+    let read_post_listings_with_user = PostQueryBuilder::create(&conn)
+      .listing_type(ListingType::Community)
+      .sort(&SortType::New)
+      .for_community_id(inserted_community.id)
+      .my_user_id(inserted_user.id)
+      .list()
+      .unwrap();
 
-    let read_post_listings_no_user = PostViewQuery::create(
-      &conn,
-      ListingType::Community,
-      &SortType::New,
-      false,
-      false,
-      false,
-    )
-    .for_community_id(inserted_community.id)
-    .list()
-    .unwrap();
+    let read_post_listings_no_user = PostQueryBuilder::create(&conn)
+      .listing_type(ListingType::Community)
+      .sort(&SortType::New)
+      .for_community_id(inserted_community.id)
+      .list()
+      .unwrap();
 
     let read_post_listing_no_user = PostView::read(&conn, inserted_post.id, None).unwrap();
     let read_post_listing_with_user =

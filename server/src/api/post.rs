@@ -238,7 +238,10 @@ impl Perform<GetPostsResponse> for Oper<GetPosts> {
     let type_ = ListingType::from_str(&data.type_)?;
     let sort = SortType::from_str(&data.sort)?;
 
-    let posts = match PostViewQuery::create(&conn, type_, &sort, show_nsfw, false, false)
+    let posts = match PostQueryBuilder::create(&conn)
+      .listing_type(type_)
+      .sort(&sort)
+      .show_nsfw(show_nsfw)
       .for_community_id_optional(data.community_id)
       .my_user_id_optional(user_id)
       .page_optional(data.page)

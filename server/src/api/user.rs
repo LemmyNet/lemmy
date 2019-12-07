@@ -366,18 +366,14 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
 
     let user_view = UserView::read(&conn, user_details_id)?;
 
-    let mut posts_query = PostViewQuery::create(
-      &conn,
-      ListingType::All,
-      &sort,
-      show_nsfw,
-      data.saved_only,
-      false,
-    )
-    .for_community_id_optional(data.community_id)
-    .my_user_id_optional(user_id)
-    .page_optional(data.page)
-    .limit_optional(data.limit);
+    let mut posts_query = PostQueryBuilder::create(&conn)
+      .sort(&sort)
+      .show_nsfw(show_nsfw)
+      .saved_only(data.saved_only)
+      .for_community_id_optional(data.community_id)
+      .my_user_id_optional(user_id)
+      .page_optional(data.page)
+      .limit_optional(data.limit);
 
     // If its saved only, you don't care what creator it was
     if !data.saved_only {
@@ -763,7 +759,9 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
     }
 
     // Posts
-    let posts = PostViewQuery::create(&conn, ListingType::All, &SortType::New, true, false, false)
+    let posts = PostQueryBuilder::create(&conn)
+      .sort(&SortType::New)
+      .show_nsfw(true)
       .for_creator_id(user_id)
       .limit(std::i64::MAX)
       .list()?;
