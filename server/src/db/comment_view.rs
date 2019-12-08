@@ -523,7 +523,7 @@ mod tests {
       .unwrap();
     let read_comment_views_with_user = CommentQueryBuilder::create(&conn)
       .for_post_id(inserted_post.id)
-      .for_creator_id(inserted_user.id)
+      .my_user_id(inserted_user.id)
       .list()
       .unwrap();
 
