@@ -74,6 +74,7 @@ Front Page|Post
   - User tagging using `@`, Community tagging using `#`.
   - Notifications, on comment replies and when you're tagged.
   - i18n / internationalization support.
+  - RSS / Atom feeds for `All`, `Subscribed`, `Inbox`, `User`, and `Community`.
 - Cross-posting support.
   - A *similar post search* when creating new posts. Great for question / answer communities.
 - Moderation abilities.
