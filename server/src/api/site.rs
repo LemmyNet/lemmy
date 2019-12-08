@@ -329,31 +329,28 @@ impl Perform<SearchResponse> for Oper<Search> {
           .list()?;
       }
       SearchType::Comments => {
-        comments = CommentView::list(
-          &conn,
-          &sort,
-          None,
-          None,
-          Some(data.q.to_owned()),
-          None,
-          false,
-          data.page,
-          data.limit,
-        )?;
+        comments = CommentQueryBuilder::create(&conn)
+          .sort(&sort)
+          .search_term(data.q.to_owned())
+          .page_optional(data.page)
+          .limit_optional(data.limit)
+          .list()?;
       }
       SearchType::Communities => {
-        communities = CommunityView::list(
-          &conn,
-          &sort,
-          None,
-          true,
-          Some(data.q.to_owned()),
-          data.page,
-          data.limit,
-        )?;
+        communities = CommunityQueryBuilder::create(&conn)
+          .sort(&sort)
+          .search_term(data.q.to_owned())
+          .page_optional(data.page)
+          .limit_optional(data.limit)
+          .list()?;
       }
       SearchType::Users => {
-        users = UserView::list(&conn, &sort, Some(data.q.to_owned()), data.page, data.limit)?;
+        users = UserQueryBuilder::create(&conn)
+          .sort(&sort)
+          .search_term(data.q.to_owned())
+          .page_optional(data.page)
+          .limit_optional(data.limit)
+          .list()?;
       }
       SearchType::All => {
         posts = PostQueryBuilder::create(&conn)
@@ -365,27 +362,26 @@ impl Perform<SearchResponse> for Oper<Search> {
           .limit_optional(data.limit)
           .list()?;
 
-        comments = CommentView::list(
-          &conn,
-          &sort,
-          None,
-          None,
-          Some(data.q.to_owned()),
-          None,
-          false,
-          data.page,
-          data.limit,
-        )?;
-        communities = CommunityView::list(
-          &conn,
-          &sort,
-          None,
-          true,
-          Some(data.q.to_owned()),
-          data.page,
-          data.limit,
-        )?;
-        users = UserView::list(&conn, &sort, Some(data.q.to_owned()), data.page, data.limit)?;
+        comments = CommentQueryBuilder::create(&conn)
+          .sort(&sort)
+          .search_term(data.q.to_owned())
+          .page_optional(data.page)
+          .limit_optional(data.limit)
+          .list()?;
+
+        communities = CommunityQueryBuilder::create(&conn)
+          .sort(&sort)
+          .search_term(data.q.to_owned())
+          .page_optional(data.page)
+          .limit_optional(data.limit)
+          .list()?;
+
+        users = UserQueryBuilder::create(&conn)
+          .sort(&sort)
+          .search_term(data.q.to_owned())
+          .page_optional(data.page)
+          .limit_optional(data.limit)
+          .list()?;
       }
       SearchType::Url => {
         posts = PostQueryBuilder::create(&conn)

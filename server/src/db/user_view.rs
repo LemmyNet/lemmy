@@ -1,4 +1,6 @@
+use super::user_view::user_view::BoxedQuery;
 use super::*;
+use diesel::pg::Pg;
 
 table! {
   user_view (id) {
@@ -32,25 +34,73 @@ pub struct UserView {
   pub comment_score: i64,
 }
 
-impl UserView {
-  pub fn list(
-    conn: &PgConnection,
-    sort: &SortType,
-    search_term: Option<String>,
-    page: Option<i64>,
-    limit: Option<i64>,
-  ) -> Result<Vec<Self>, Error> {
+pub struct UserQueryBuilder<'a> {
+  conn: &'a PgConnection,
+  query: BoxedQuery<'a, Pg>,
+  sort: &'a SortType,
+  page: Option<i64>,
+  limit: Option<i64>,
+}
+
+impl<'a> UserQueryBuilder<'a> {
+  pub fn create(conn: &'a PgConnection) -> Self {
     use super::user_view::user_view::dsl::*;
 
-    let (limit, offset) = limit_and_offset(page, limit);
+    let query = user_view.into_boxed();
 
-    let mut query = user_view.into_boxed();
+    UserQueryBuilder {
+      conn,
+      query,
+      sort: &SortType::Hot,
+      page: None,
+      limit: None,
+    }
+  }
 
-    if let Some(search_term) = search_term {
-      query = query.filter(name.ilike(fuzzy_search(&search_term)));
-    };
+  pub fn sort(mut self, sort: &'a SortType) -> Self {
+    self.sort = sort;
+    self
+  }
 
-    query = match sort {
+  pub fn search_term(mut self, search_term: String) -> Self {
+    use super::user_view::user_view::dsl::*;
+    self.query = self.query.filter(name.ilike(fuzzy_search(&search_term)));
+    self
+  }
+
+  pub fn search_term_optional(self, search_term: Option<String>) -> Self {
+    match search_term {
+      Some(search_term) => self.search_term(search_term),
+      None => self,
+    }
+  }
+
+  pub fn page(mut self, page: i64) -> Self {
+    self.page = Some(page);
+    self
+  }
+
+  pub fn page_optional(mut self, page: Option<i64>) -> Self {
+    self.page = page;
+    self
+  }
+
+  pub fn limit(mut self, limit: i64) -> Self {
+    self.limit = Some(limit);
+    self
+  }
+
+  pub fn limit_optional(mut self, limit: Option<i64>) -> Self {
+    self.limit = limit;
+    self
+  }
+
+  pub fn list(self) -> Result<Vec<UserView>, Error> {
+    use super::user_view::user_view::dsl::*;
+
+    let mut query = self.query;
+
+    query = match self.sort {
       SortType::Hot => query
         .order_by(comment_score.desc())
         .then_order_by(published.desc()),
@@ -70,11 +120,14 @@ impl UserView {
         .order_by(comment_score.desc()),
     };
 
+    let (limit, offset) = limit_and_offset(self.page, self.limit);
     query = query.limit(limit).offset(offset);
 
-    query.load::<Self>(conn)
+    query.load::<UserView>(self.conn)
   }
+}
 
+impl UserView {
   pub fn read(conn: &PgConnection, from_user_id: i32) -> Result<Self, Error> {
     use super::user_view::user_view::dsl::*;
 

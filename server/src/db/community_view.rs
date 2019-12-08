@@ -1,4 +1,6 @@
+use super::community_view::community_view::BoxedQuery;
 use super::*;
+use diesel::pg::Pg;
 
 table! {
   community_view (id) {
@@ -99,6 +101,134 @@ pub struct CommunityView {
   pub subscribed: Option<bool>,
 }
 
+pub struct CommunityQueryBuilder<'a> {
+  conn: &'a PgConnection,
+  query: BoxedQuery<'a, Pg>,
+  sort: &'a SortType,
+  from_user_id: Option<i32>,
+  show_nsfw: bool,
+  search_term: Option<String>,
+  page: Option<i64>,
+  limit: Option<i64>,
+}
+
+impl<'a> CommunityQueryBuilder<'a> {
+  pub fn create(conn: &'a PgConnection) -> Self {
+    use super::community_view::community_view::dsl::*;
+
+    let query = community_view.into_boxed();
+
+    CommunityQueryBuilder {
+      conn,
+      query,
+      sort: &SortType::Hot,
+      from_user_id: None,
+      show_nsfw: true,
+      search_term: None,
+      page: None,
+      limit: None,
+    }
+  }
+
+  pub fn sort(mut self, sort: &'a SortType) -> Self {
+    self.sort = sort;
+    self
+  }
+
+  pub fn from_user_id(mut self, from_user_id: i32) -> Self {
+    self.from_user_id = Some(from_user_id);
+    self
+  }
+
+  pub fn from_user_id_optional(self, from_user_id: Option<i32>) -> Self {
+    match from_user_id {
+      Some(from_user_id) => self.from_user_id(from_user_id),
+      None => self,
+    }
+  }
+
+  pub fn show_nsfw(mut self, show_nsfw: bool) -> Self {
+    self.show_nsfw = show_nsfw;
+    self
+  }
+
+  pub fn search_term(mut self, search_term: String) -> Self {
+    self.search_term = Some(search_term);
+    self
+  }
+
+  pub fn search_term_optional(mut self, search_term: Option<String>) -> Self {
+    self.search_term = search_term;
+    self
+  }
+
+  pub fn page(mut self, page: i64) -> Self {
+    self.page = Some(page);
+    self
+  }
+
+  pub fn page_optional(mut self, page: Option<i64>) -> Self {
+    self.page = page;
+    self
+  }
+
+  pub fn limit(mut self, limit: i64) -> Self {
+    self.limit = Some(limit);
+    self
+  }
+
+  pub fn limit_optional(mut self, limit: Option<i64>) -> Self {
+    self.limit = limit;
+    self
+  }
+
+  pub fn list(self) -> Result<Vec<CommunityView>, Error> {
+    use super::community_view::community_view::dsl::*;
+
+    let mut query = self.query;
+
+    if let Some(search_term) = self.search_term {
+      query = query.filter(name.ilike(fuzzy_search(&search_term)));
+    };
+
+    // The view lets you pass a null user_id, if you're not logged in
+    match self.sort {
+      SortType::Hot => {
+        query = query
+          .order_by(hot_rank.desc())
+          .then_order_by(number_of_subscribers.desc())
+          .filter(user_id.is_null())
+      }
+      SortType::New => query = query.order_by(published.desc()).filter(user_id.is_null()),
+      SortType::TopAll => match self.from_user_id {
+        Some(from_user_id) => {
+          query = query
+            .filter(user_id.eq(from_user_id))
+            .order_by((subscribed.asc(), number_of_subscribers.desc()))
+        }
+        None => {
+          query = query
+            .order_by(number_of_subscribers.desc())
+            .filter(user_id.is_null())
+        }
+      },
+      _ => (),
+    };
+
+    if !self.show_nsfw {
+      query = query.filter(nsfw.eq(false));
+    };
+
+    let (limit, offset) = limit_and_offset(self.page, self.limit);
+    query
+      .limit(limit)
+      .offset(offset)
+      .filter(removed.eq(false))
+      .filter(deleted.eq(false))
+      .load::<CommunityView>(self.conn)
+  }
+}
+
 impl CommunityView {
   pub fn read(
     conn: &PgConnection,
@@ -119,60 +249,6 @@ impl CommunityView {
     };
 
     query.first::<Self>(conn)
-  }
-
-  pub fn list(
-    conn: &PgConnection,
-    sort: &SortType,
-    from_user_id: Option<i32>,
-    show_nsfw: bool,
-    search_term: Option<String>,
-    page: Option<i64>,
-    limit: Option<i64>,
-  ) -> Result<Vec<Self>, Error> {
-    use super::community_view::community_view::dsl::*;
-    let mut query = community_view.into_boxed();
-
-    let (limit, offset) = limit_and_offset(page, limit);
-
-    if let Some(search_term) = search_term {
-      query = query.filter(name.ilike(fuzzy_search(&search_term)));
-    };
-
-    // The view lets you pass a null user_id, if you're not logged in
-    match sort {
-      SortType::Hot => {
-        query = query
-          .order_by(hot_rank.desc())
-          .then_order_by(number_of_subscribers.desc())
-          .filter(user_id.is_null())
-      }
-      SortType::New => query = query.order_by(published.desc()).filter(user_id.is_null()),
-      SortType::TopAll => match from_user_id {
-        Some(from_user_id) => {
-          query = query
-            .filter(user_id.eq(from_user_id))
-            .order_by((subscribed.asc(), number_of_subscribers.desc()))
-        }
-        None => {
-          query = query
-            .order_by(number_of_subscribers.desc())
-            .filter(user_id.is_null())
-        }
-      },
-      _ => (),
-    };
-
-    if !show_nsfw {
-      query = query.filter(nsfw.eq(false));
-    };
-
-    query
-      .limit(limit)
-      .offset(offset)
-      .filter(removed.eq(false))
-      .filter(deleted.eq(false))
-      .load::<Self>(conn)
   }
 }
 
