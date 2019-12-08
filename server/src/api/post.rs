@@ -178,17 +178,11 @@ impl Perform<GetPostResponse> for Oper<GetPost> {
       Err(_e) => return Err(APIError::err(&self.op, "couldnt_find_post"))?,
     };
 
-    let comments = CommentView::list(
-      &conn,
-      &SortType::New,
-      Some(data.id),
-      None,
-      None,
-      user_id,
-      false,
-      None,
-      Some(9999),
-    )?;
+    let comments = CommentQueryBuilder::create(&conn)
+      .for_post_id(data.id)
+      .my_user_id_optional(user_id)
+      .limit(9999)
+      .list()?;
 
     let community = CommunityView::read(&conn, post_view.community_id, user_id)?;
 

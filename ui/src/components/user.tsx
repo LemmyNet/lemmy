@@ -180,7 +180,10 @@ export class User extends Component<any, UserState> {
 
   componentDidUpdate(lastProps: any, _lastState: UserState, _snapshot: any) {
     // Necessary if you are on a post and you click another post (same route)
-    if (lastProps.location.pathname !== lastProps.history.location.pathname) {
+    if (
+      lastProps.location.pathname.split('/')[2] !==
+      lastProps.history.location.pathname.split('/')[2]
+    ) {
       // Couldnt get a refresh working. This does for now.
       location.reload();
     }
