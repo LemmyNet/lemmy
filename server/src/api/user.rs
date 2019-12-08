@@ -761,7 +761,6 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
     // Posts
     let posts = PostQueryBuilder::create(&conn)
       .sort(&SortType::New)
-      .show_nsfw(true)
       .for_creator_id(user_id)
       .limit(std::i64::MAX)
       .list()?;
