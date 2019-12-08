@@ -375,38 +375,22 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
       .page_optional(data.page)
       .limit_optional(data.limit);
 
+    let mut comments_query = CommentQueryBuilder::create(&conn)
+      .sort(&sort)
+      .saved_only(data.saved_only)
+      .my_user_id_optional(user_id)
+      .page_optional(data.page)
+      .limit_optional(data.limit);
+
     // If its saved only, you don't care what creator it was
+    // Or, if its not saved, then you only want it for that specific creator
     if !data.saved_only {
       posts_query = posts_query.for_creator_id(user_details_id);
+      comments_query = comments_query.for_creator_id(user_details_id);
     }
 
     let posts = posts_query.list()?;
-
-    let comments = if data.saved_only {
-      CommentView::list(
-        &conn,
-        &sort,
-        None,
-        None,
-        None,
-        Some(user_details_id),
-        data.saved_only,
-        data.page,
-        data.limit,
-      )?
-    } else {
-      CommentView::list(
-        &conn,
-        &sort,
-        None,
-        Some(user_details_id),
-        None,
-        user_id,
-        data.saved_only,
-        data.page,
-        data.limit,
-      )?
-    };
+    let comments = comments_query.list()?;
 
     let follows = CommunityFollowerView::for_user(&conn, user_details_id)?;
     let moderates = CommunityModeratorView::for_user(&conn, user_details_id)?;
@@ -569,14 +553,12 @@ impl Perform<GetRepliesResponse> for Oper<GetReplies> {
 
     let sort = SortType::from_str(&data.sort)?;
 
-    let replies = ReplyView::get_replies(
-      &conn,
-      user_id,
-      &sort,
-      data.unread_only,
-      data.page,
-      data.limit,
-    )?;
+    let replies = ReplyQueryBuilder::create(&conn, user_id)
+      .sort(&sort)
+      .unread_only(data.unread_only)
+      .page_optional(data.page)
+      .limit_optional(data.limit)
+      .list()?;
 
     Ok(GetRepliesResponse {
       op: self.op.to_string(),
@@ -599,14 +581,12 @@ impl Perform<GetUserMentionsResponse> for Oper<GetUserMentions> {
 
     let sort = SortType::from_str(&data.sort)?;
 
-    let mentions = UserMentionView::get_mentions(
-      &conn,
-      user_id,
-      &sort,
-      data.unread_only,
-      data.page,
-      data.limit,
-    )?;
+    let mentions = UserMentionQueryBuilder::create(&conn, user_id)
+      .sort(&sort)
+      .unread_only(data.unread_only)
+      .page_optional(data.page)
+      .limit_optional(data.limit)
+      .list()?;
 
     Ok(GetUserMentionsResponse {
       op: self.op.to_string(),
@@ -662,7 +642,11 @@ impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
 
     let user_id = claims.id;
 
-    let replies = ReplyView::get_replies(&conn, user_id, &SortType::New, true, Some(1), Some(999))?;
+    let replies = ReplyQueryBuilder::create(&conn, user_id)
+      .unread_only(true)
+      .page(1)
+      .limit(999)
+      .list()?;
 
     for reply in &replies {
       let comment_form = CommentForm {
@@ -683,8 +667,11 @@ impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
     }
 
     // Mentions
-    let mentions =
-      UserMentionView::get_mentions(&conn, user_id, &SortType::New, true, Some(1), Some(999))?;
+    let mentions = UserMentionQueryBuilder::create(&conn, user_id)
+      .unread_only(true)
+      .page(1)
+      .limit(999)
+      .list()?;
 
     for mention in &mentions {
       let mention_form = UserMentionForm {
@@ -728,17 +715,10 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
     }
 
     // Comments
-    let comments = CommentView::list(
-      &conn,
-      &SortType::New,
-      None,
-      Some(user_id),
-      None,
-      None,
-      false,
-      None,
-      Some(std::i64::MAX),
-    )?;
+    let comments = CommentQueryBuilder::create(&conn)
+      .for_creator_id(user_id)
+      .limit(std::i64::MAX)
+      .list()?;
 
     for comment in &comments {
       let comment_form = CommentForm {
