@@ -4,7 +4,7 @@ use super::*;
 use crate::db::comment_view::ReplyView;
 use crate::db::community::Community;
 use crate::db::community_view::SiteView;
-use crate::db::post_view::{PostView, PostQueryBuilder};
+use crate::db::post_view::{PostQueryBuilder, PostView};
 use crate::db::user::User_;
 use crate::db::user_mention_view::UserMentionView;
 use crate::db::{establish_connection, ListingType, SortType};
