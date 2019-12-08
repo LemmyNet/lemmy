@@ -92,11 +92,23 @@ export class Inbox extends Component<any, InboxState> {
         <div class="row">
           <div class="col-12">
             <h5 class="mb-0">
-              <span>
-                <T i18nKey="inbox_for" interpolation={{ user: user.username }}>
-                  #<Link to={`/u/${user.username}`}>#</Link>
-                </T>
-              </span>
+              <T
+                class="d-inline"
+                i18nKey="inbox_for"
+                interpolation={{ user: user.username }}
+              >
+                #<Link to={`/u/${user.username}`}>#</Link>
+              </T>
+              <small>
+                <a
+                  href={`/feeds/inbox/${UserService.Instance.auth}.xml`}
+                  target="_blank"
+                >
+                  <svg class="icon mx-2 text-muted small">
+                    <use xlinkHref="#icon-rss">#</use>
+                  </svg>
+                </a>
+              </small>
             </h5>
             {this.state.replies.length + this.state.mentions.length > 0 &&
               this.state.unreadOrAll == UnreadOrAll.Unread && (
