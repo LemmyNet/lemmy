@@ -4,10 +4,14 @@ use super::*;
 use crate::db::comment_view::ReplyView;
 use crate::db::community::Community;
 use crate::db::community_view::SiteView;
-use crate::db::post_view::{PostView, PostQueryBuilder};
+use crate::db::post_view::PostQueryBuilder;
 use crate::db::user::User_;
+<<<<<<< HEAD
 use crate::db::user_mention_view::UserMentionView;
 use crate::db::{establish_connection, ListingType, SortType};
+=======
+use crate::db::{establish_connection, SortType};
+>>>>>>> teromene-config_dif_addr
 use crate::Settings;
 use actix_web::body::Body;
 use actix_web::{web, HttpResponse, Result};
@@ -86,10 +90,21 @@ fn get_feed_all_data(sort_type: &SortType) -> Result<String, Error> {
 
   let site_view = SiteView::read(&conn)?;
 
-  let posts = PostQueryBuilder::create(&conn)
-    .listing_type(ListingType::All)
-    .sort(sort_type)
-    .list()?;
+  let posts = PostView::list(
+    &conn,
+    ListingType::All,
+    sort_type,
+    None,
+    None,
+    None,
+    None,
+    None,
+    true,
+    false,
+    false,
+    None,
+    None,
+  )?;
 
   let items = create_post_items(posts);
 
@@ -113,11 +128,21 @@ fn get_feed_user(sort_type: &SortType, user_name: String) -> Result<String, Erro
   let user = User_::find_by_email_or_username(&conn, &user_name)?;
   let user_url = format!("https://{}/u/{}", Settings::get().hostname, user.name);
 
-  let posts = PostQueryBuilder::create(&conn)
-    .listing_type(ListingType::All)
-    .sort(sort_type)
-    .for_creator_id(user.id)
-    .list()?;
+  let posts = PostView::list(
+    &conn,
+    ListingType::All,
+    sort_type,
+    None,
+    Some(user.id),
+    None,
+    None,
+    None,
+    true,
+    false,
+    false,
+    None,
+    None,
+  )?;
 
   let items = create_post_items(posts);
 
@@ -137,11 +162,30 @@ fn get_feed_community(sort_type: &SortType, community_name: String) -> Result<St
   let community = Community::read_from_name(&conn, community_name)?;
   let community_url = format!("https://{}/c/{}", Settings::get().hostname, community.name);
 
+<<<<<<< HEAD
+  let posts = PostView::list(
+    &conn,
+    ListingType::All,
+    sort_type,
+    Some(community.id),
+    None,
+    None,
+    None,
+    None,
+    true,
+    false,
+    false,
+    None,
+    None,
+  )?;
+=======
   let posts = PostQueryBuilder::create(&conn)
-    .listing_type(ListingType::All)
     .sort(sort_type)
-    .for_community_id(community.id)
+    .show_nsfw(true)
+    .for_community_id_optional(community_id)
+    .for_creator_id_optional(creator_id)
     .list()?;
+>>>>>>> teromene-config_dif_addr
 
   let items = create_post_items(posts);
 
@@ -164,11 +208,21 @@ fn get_feed_front(sort_type: &SortType, jwt: String) -> Result<String, Error> {
   let site_view = SiteView::read(&conn)?;
   let user_id = db::user::Claims::decode(&jwt)?.claims.id;
 
-  let posts = PostQueryBuilder::create(&conn)
-    .listing_type(ListingType::Subscribed)
-    .sort(sort_type)
-    .my_user_id(user_id)
-    .list()?;
+  let posts = PostView::list(
+    &conn,
+    ListingType::Subscribed,
+    sort_type,
+    None,
+    None,
+    None,
+    None,
+    Some(user_id),
+    true,
+    false,
+    false,
+    None,
+    None,
+  )?;
 
   let items = create_post_items(posts);
 

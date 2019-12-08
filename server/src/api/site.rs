@@ -319,21 +319,14 @@ impl Perform<SearchResponse> for Oper<Search> {
 
     match type_ {
       SearchType::Posts => {
-        posts = PostView::list(
-          &conn,
-          ListingType::All,
-          &sort,
-          data.community_id,
-          None,
-          Some(data.q.to_owned()),
-          None,
-          None,
-          true,
-          false,
-          false,
-          data.page,
-          data.limit,
-        )?;
+        posts = PostQueryBuilder::create(&conn)
+          .sort(&sort)
+          .show_nsfw(true)
+          .for_community_id_optional(data.community_id)
+          .search_term(data.q.to_owned())
+          .page_optional(data.page)
+          .limit_optional(data.limit)
+          .list()?;
       }
       SearchType::Comments => {
         comments = CommentView::list(
@@ -363,21 +356,15 @@ impl Perform<SearchResponse> for Oper<Search> {
         users = UserView::list(&conn, &sort, Some(data.q.to_owned()), data.page, data.limit)?;
       }
       SearchType::All => {
-        posts = PostView::list(
-          &conn,
-          ListingType::All,
-          &sort,
-          data.community_id,
-          None,
-          Some(data.q.to_owned()),
-          None,
-          None,
-          true,
-          false,
-          false,
-          data.page,
-          data.limit,
-        )?;
+        posts = PostQueryBuilder::create(&conn)
+          .sort(&sort)
+          .show_nsfw(true)
+          .for_community_id_optional(data.community_id)
+          .search_term(data.q.to_owned())
+          .page_optional(data.page)
+          .limit_optional(data.limit)
+          .list()?;
+
         comments = CommentView::list(
           &conn,
           &sort,
@@ -401,21 +388,14 @@ impl Perform<SearchResponse> for Oper<Search> {
         users = UserView::list(&conn, &sort, Some(data.q.to_owned()), data.page, data.limit)?;
       }
       SearchType::Url => {
-        posts = PostView::list(
-          &conn,
-          ListingType::All,
-          &sort,
-          data.community_id,
-          None,
-          None,
-          Some(data.q.to_owned()),
-          None,
-          true,
-          false,
-          false,
-          data.page,
-          data.limit,
-        )?;
+        posts = PostQueryBuilder::create(&conn)
+          .sort(&sort)
+          .show_nsfw(true)
+          .for_community_id_optional(data.community_id)
+          .url_search(data.q.to_owned())
+          .page_optional(data.page)
+          .limit_optional(data.limit)
+          .list()?;
       }
     };
 
