@@ -1,12 +1,12 @@
 extern crate rss;
 
 use super::*;
-use crate::db::comment_view::ReplyView;
+use crate::db::comment_view::{ReplyQueryBuilder, ReplyView};
 use crate::db::community::Community;
 use crate::db::community_view::SiteView;
 use crate::db::post_view::{PostQueryBuilder, PostView};
 use crate::db::user::User_;
-use crate::db::user_mention_view::UserMentionView;
+use crate::db::user_mention_view::{UserMentionQueryBuilder, UserMentionView};
 use crate::db::{establish_connection, ListingType, SortType};
 use crate::Settings;
 use actix_web::body::Body;
@@ -193,9 +193,13 @@ fn get_feed_inbox(jwt: String) -> Result<String, Error> {
 
   let sort = SortType::New;
 
-  let replies = ReplyView::get_replies(&conn, user_id, &sort, false, None, None)?;
+  let replies = ReplyQueryBuilder::create(&conn, user_id)
+    .sort(&sort)
+    .list()?;
 
-  let mentions = UserMentionView::get_mentions(&conn, user_id, &sort, false, None, None)?;
+  let mentions = UserMentionQueryBuilder::create(&conn, user_id)
+    .sort(&sort)
+    .list()?;
 
   let items = create_reply_and_mention_items(replies, mentions);
 

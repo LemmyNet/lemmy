@@ -1,4 +1,6 @@
+use super::user_mention_view::user_mention_view::BoxedQuery;
 use super::*;
+use diesel::pg::Pg;
 
 // The faked schema since diesel doesn't do views
 table! {
@@ -57,30 +59,77 @@ pub struct UserMentionView {
   pub recipient_id: i32,
 }
 
-impl UserMentionView {
-  pub fn get_mentions(
-    conn: &PgConnection,
-    for_user_id: i32,
-    sort: &SortType,
-    unread_only: bool,
-    page: Option<i64>,
-    limit: Option<i64>,
-  ) -> Result<Vec<Self>, Error> {
+pub struct UserMentionQueryBuilder<'a> {
+  conn: &'a PgConnection,
+  query: BoxedQuery<'a, Pg>,
+  for_user_id: i32,
+  sort: &'a SortType,
+  unread_only: bool,
+  page: Option<i64>,
+  limit: Option<i64>,
+}
+
+impl<'a> UserMentionQueryBuilder<'a> {
+  pub fn create(conn: &'a PgConnection, for_user_id: i32) -> Self {
     use super::user_mention_view::user_mention_view::dsl::*;
 
-    let (limit, offset) = limit_and_offset(page, limit);
+    let query = user_mention_view.into_boxed();
 
-    let mut query = user_mention_view.into_boxed();
+    UserMentionQueryBuilder {
+      conn,
+      query,
+      for_user_id: for_user_id,
+      sort: &SortType::New,
+      unread_only: false,
+      page: None,
+      limit: None,
+    }
+  }
 
-    query = query
-      .filter(user_id.eq(for_user_id))
-      .filter(recipient_id.eq(for_user_id));
+  pub fn sort(mut self, sort: &'a SortType) -> Self {
+    self.sort = sort;
+    self
+  }
 
-    if unread_only {
+  pub fn unread_only(mut self, unread_only: bool) -> Self {
+    self.unread_only = unread_only;
+    self
+  }
+
+  pub fn page(mut self, page: i64) -> Self {
+    self.page = Some(page);
+    self
+  }
+
+  pub fn page_optional(mut self, page: Option<i64>) -> Self {
+    self.page = page;
+    self
+  }
+
+  pub fn limit(mut self, limit: i64) -> Self {
+    self.limit = Some(limit);
+    self
+  }
+
+  pub fn limit_optional(mut self, limit: Option<i64>) -> Self {
+    self.limit = limit;
+    self
+  }
+
+  pub fn list(self) -> Result<Vec<UserMentionView>, Error> {
+    use super::user_mention_view::user_mention_view::dsl::*;
+
+    let mut query = self.query;
+
+    if self.unread_only {
       query = query.filter(read.eq(false));
     }
 
-    query = match sort {
+    query = query
+      .filter(user_id.eq(self.for_user_id))
+      .filter(recipient_id.eq(self.for_user_id));
+
+    query = match self.sort {
       // SortType::Hot => query.order_by(hot_rank.desc()),
       SortType::New => query.order_by(published.desc()),
       SortType::TopAll => query.order_by(score.desc()),
@@ -99,9 +148,15 @@ impl UserMentionView {
       _ => query.order_by(published.desc()),
     };
 
-    query.limit(limit).offset(offset).load::<Self>(conn)
+    let (limit, offset) = limit_and_offset(self.page, self.limit);
+    query
+      .limit(limit)
+      .offset(offset)
+      .load::<UserMentionView>(self.conn)
   }
+}
 
+impl UserMentionView {
   pub fn read(
     conn: &PgConnection,
     from_user_mention_id: i32,
