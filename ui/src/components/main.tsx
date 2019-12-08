@@ -444,6 +444,19 @@ export class Main extends Component<any, MainState> {
             </svg>
           </a>
         )}
+        {UserService.Instance.user &&
+          this.state.type_ == ListingType.Subscribed && (
+            <a
+              href={`/feeds/front/${UserService.Instance.auth}.xml?sort=${
+                SortType[this.state.sort]
+              }`}
+              target="_blank"
+            >
+              <svg class="icon mx-1 text-muted small">
+                <use xlinkHref="#icon-rss">#</use>
+              </svg>
+            </a>
+          )}
       </div>
     );
   }
