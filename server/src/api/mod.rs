@@ -89,7 +89,7 @@ pub struct Oper<T> {
 
 impl<T> Oper<T> {
   pub fn new(op: UserOperation, data: T) -> Oper<T> {
-    Oper { op: op, data: data }
+    Oper { op, data }
   }
 }
 
