@@ -134,7 +134,7 @@ impl Perform<PostResponse> for Oper<CreatePost> {
     // They like their own post by default
     let like_form = PostLikeForm {
       post_id: inserted_post.id,
-      user_id: user_id,
+      user_id,
       score: 1,
     };
 
@@ -198,10 +198,10 @@ impl Perform<GetPostResponse> for Oper<GetPost> {
     Ok(GetPostResponse {
       op: self.op.to_string(),
       post: post_view,
-      comments: comments,
-      community: community,
-      moderators: moderators,
-      admins: admins,
+      comments,
+      community,
+      moderators,
+      admins,
     })
   }
 }
@@ -248,7 +248,7 @@ impl Perform<GetPostsResponse> for Oper<GetPosts> {
 
     Ok(GetPostsResponse {
       op: self.op.to_string(),
-      posts: posts,
+      posts,
     })
   }
 }
@@ -278,7 +278,7 @@ impl Perform<CreatePostLikeResponse> for Oper<CreatePostLike> {
 
     let like_form = PostLikeForm {
       post_id: data.post_id,
-      user_id: user_id,
+      user_id,
       score: data.score,
     };
 
@@ -417,7 +417,7 @@ impl Perform<PostResponse> for Oper<SavePost> {
 
     let post_saved_form = PostSavedForm {
       post_id: data.post_id,
-      user_id: user_id,
+      user_id,
     };
 
     if data.save {

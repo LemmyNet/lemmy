@@ -118,7 +118,7 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
     let like_form = CommentLikeForm {
       comment_id: inserted_comment.id,
       post_id: data.post_id,
-      user_id: user_id,
+      user_id,
       score: 1,
     };
 
@@ -262,7 +262,7 @@ impl Perform<CommentResponse> for Oper<SaveComment> {
 
     let comment_saved_form = CommentSavedForm {
       comment_id: data.comment_id,
-      user_id: user_id,
+      user_id,
     };
 
     if data.save {
@@ -312,7 +312,7 @@ impl Perform<CommentResponse> for Oper<CreateCommentLike> {
     let like_form = CommentLikeForm {
       comment_id: data.comment_id,
       post_id: data.post_id,
-      user_id: user_id,
+      user_id,
       score: data.score,
     };
 

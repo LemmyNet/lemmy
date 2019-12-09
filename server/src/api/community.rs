@@ -163,8 +163,8 @@ impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
     Ok(GetCommunityResponse {
       op: self.op.to_string(),
       community: community_view,
-      moderators: moderators,
-      admins: admins,
+      moderators,
+      admins,
     })
   }
 }
@@ -213,7 +213,7 @@ impl Perform<CommunityResponse> for Oper<CreateCommunity> {
 
     let community_moderator_form = CommunityModeratorForm {
       community_id: inserted_community.id,
-      user_id: user_id,
+      user_id,
     };
 
     let _inserted_community_moderator =
@@ -229,7 +229,7 @@ impl Perform<CommunityResponse> for Oper<CreateCommunity> {
 
     let community_follower_form = CommunityFollowerForm {
       community_id: inserted_community.id,
-      user_id: user_id,
+      user_id,
     };
 
     let _inserted_community_follower =
@@ -310,7 +310,7 @@ impl Perform<CommunityResponse> for Oper<EditCommunity> {
         community_id: data.edit_id,
         removed: Some(removed),
         reason: data.reason.to_owned(),
-        expires: expires,
+        expires,
       };
       ModRemoveCommunity::create(&conn, &form)?;
     }
@@ -360,7 +360,7 @@ impl Perform<ListCommunitiesResponse> for Oper<ListCommunities> {
     // Return the jwt
     Ok(ListCommunitiesResponse {
       op: self.op.to_string(),
-      communities: communities,
+      communities,
     })
   }
 }
@@ -379,7 +379,7 @@ impl Perform<CommunityResponse> for Oper<FollowCommunity> {
 
     let community_follower_form = CommunityFollowerForm {
       community_id: data.community_id,
-      user_id: user_id,
+      user_id,
     };
 
     if data.follow {
@@ -424,7 +424,7 @@ impl Perform<GetFollowedCommunitiesResponse> for Oper<GetFollowedCommunities> {
     // Return the jwt
     Ok(GetFollowedCommunitiesResponse {
       op: self.op.to_string(),
-      communities: communities,
+      communities,
     })
   }
 }
@@ -470,7 +470,7 @@ impl Perform<BanFromCommunityResponse> for Oper<BanFromCommunity> {
       community_id: data.community_id,
       reason: data.reason.to_owned(),
       banned: Some(data.ban),
-      expires: expires,
+      expires,
     };
     ModBanFromCommunity::create(&conn, &form)?;
 
@@ -536,7 +536,7 @@ impl Perform<AddModToCommunityResponse> for Oper<AddModToCommunity> {
 
     Ok(AddModToCommunityResponse {
       op: self.op.to_string(),
-      moderators: moderators,
+      moderators,
     })
   }
 }
@@ -641,8 +641,8 @@ impl Perform<GetCommunityResponse> for Oper<TransferCommunity> {
     Ok(GetCommunityResponse {
       op: self.op.to_string(),
       community: community_view,
-      moderators: moderators,
-      admins: admins,
+      moderators,
+      admins,
     })
   }
 }

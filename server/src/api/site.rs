@@ -100,7 +100,7 @@ impl Perform<ListCategoriesResponse> for Oper<ListCategories> {
     // Return the jwt
     Ok(ListCategoriesResponse {
       op: self.op.to_string(),
-      categories: categories,
+      categories,
     })
   }
 }
@@ -168,15 +168,15 @@ impl Perform<GetModlogResponse> for Oper<GetModlog> {
     // Return the jwt
     Ok(GetModlogResponse {
       op: self.op.to_string(),
-      removed_posts: removed_posts,
-      locked_posts: locked_posts,
-      stickied_posts: stickied_posts,
-      removed_comments: removed_comments,
-      removed_communities: removed_communities,
-      banned_from_community: banned_from_community,
-      banned: banned,
-      added_to_community: added_to_community,
-      added: added,
+      removed_posts,
+      locked_posts,
+      stickied_posts,
+      removed_comments,
+      removed_communities,
+      banned_from_community,
+      banned,
+      added_to_community,
+      added,
     })
   }
 }
@@ -295,8 +295,8 @@ impl Perform<GetSiteResponse> for Oper<GetSite> {
     Ok(GetSiteResponse {
       op: self.op.to_string(),
       site: site_view,
-      admins: admins,
-      banned: banned,
+      admins,
+      banned,
       online: 0,
     })
   }
@@ -399,10 +399,10 @@ impl Perform<SearchResponse> for Oper<Search> {
     Ok(SearchResponse {
       op: self.op.to_string(),
       type_: data.type_.to_owned(),
-      comments: comments,
-      posts: posts,
-      communities: communities,
-      users: users,
+      comments,
+      posts,
+      communities,
+      users,
     })
   }
 }
@@ -462,8 +462,8 @@ impl Perform<GetSiteResponse> for Oper<TransferSite> {
     Ok(GetSiteResponse {
       op: self.op.to_string(),
       site: Some(site_view),
-      admins: admins,
-      banned: banned,
+      admins,
+      banned,
       online: 0,
     })
   }

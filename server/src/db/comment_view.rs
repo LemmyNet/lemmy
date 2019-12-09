@@ -313,7 +313,7 @@ impl<'a> ReplyQueryBuilder<'a> {
     ReplyQueryBuilder {
       conn,
       query,
-      for_user_id: for_user_id,
+      for_user_id,
       sort: &SortType::New,
       unread_only: false,
       page: None,

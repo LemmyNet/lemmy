@@ -407,11 +407,11 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
     Ok(GetUserDetailsResponse {
       op: self.op.to_string(),
       user: user_view,
-      follows: follows,
-      moderates: moderates,
-      comments: comments,
-      posts: posts,
-      admins: admins,
+      follows,
+      moderates,
+      comments,
+      posts,
+      admins,
     })
   }
 }
@@ -473,7 +473,7 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
 
     Ok(AddAdminResponse {
       op: self.op.to_string(),
-      admins: admins,
+      admins,
     })
   }
 }
@@ -529,7 +529,7 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
       other_user_id: data.user_id,
       reason: data.reason.to_owned(),
       banned: Some(data.ban),
-      expires: expires,
+      expires,
     };
 
     ModBan::create(&conn, &form)?;
@@ -567,7 +567,7 @@ impl Perform<GetRepliesResponse> for Oper<GetReplies> {
 
     Ok(GetRepliesResponse {
       op: self.op.to_string(),
-      replies: replies,
+      replies,
     })
   }
 }
@@ -595,7 +595,7 @@ impl Perform<GetUserMentionsResponse> for Oper<GetUserMentions> {
 
     Ok(GetUserMentionsResponse {
       op: self.op.to_string(),
-      mentions: mentions,
+      mentions,
     })
   }
 }
