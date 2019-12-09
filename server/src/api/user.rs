@@ -25,6 +25,7 @@ pub struct SaveUserSettings {
   theme: String,
   default_sort_type: i16,
   default_listing_type: i16,
+  lang: String,
   auth: String,
 }
 
@@ -220,6 +221,7 @@ impl Perform<LoginResponse> for Oper<Register> {
       theme: "darkly".into(),
       default_sort_type: SortType::Hot as i16,
       default_listing_type: ListingType::Subscribed as i16,
+      lang: "browser".into(),
     };
 
     // Create the user
@@ -313,6 +315,7 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
       theme: data.theme.to_owned(),
       default_sort_type: data.default_sort_type,
       default_listing_type: data.default_listing_type,
+      lang: data.lang.to_owned(),
     };
 
     let updated_user = match User_::update(&conn, user_id, &user_form) {
@@ -445,6 +448,7 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
       theme: read_user.theme,
       default_sort_type: read_user.default_sort_type,
       default_listing_type: read_user.default_listing_type,
+      lang: read_user.lang,
     };
 
     match User_::update(&conn, data.user_id, &user_form) {
@@ -506,6 +510,7 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
       theme: read_user.theme,
       default_sort_type: read_user.default_sort_type,
       default_listing_type: read_user.default_listing_type,
+      lang: read_user.lang,
     };
 
     match User_::update(&conn, data.user_id, &user_form) {
@@ -842,6 +847,7 @@ impl Perform<LoginResponse> for Oper<PasswordChange> {
       theme: read_user.theme,
       default_sort_type: read_user.default_sort_type,
       default_listing_type: read_user.default_listing_type,
+      lang: read_user.lang,
     };
 
     let updated_user = match User_::update_password(&conn, user_id, &user_form) {

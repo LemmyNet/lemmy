@@ -16,6 +16,7 @@ import {
   ListingType,
   SearchType,
 } from './interfaces';
+import { UserService } from './services/UserService';
 import * as markdown_it from 'markdown-it';
 import * as markdownitEmoji from 'markdown-it-emoji/light';
 import * as markdown_it_container from 'markdown-it-container';
@@ -240,16 +241,32 @@ export function debounce(
   };
 }
 
+export const languages = [
+  { code: 'en', name: 'English' },
+  { code: 'eo', name: 'Esperanto' },
+  { code: 'es', name: 'Español' },
+  { code: 'de', name: 'Deutsch' },
+  { code: 'zh', name: '中文' },
+  { code: 'fr', name: 'Français' },
+  { code: 'sv', name: 'Svenska' },
+  { code: 'ru', name: 'Русский' },
+  { code: 'nl', name: 'Nederlands' },
+  { code: 'it', name: 'Italiano' },
+];
+
 export function getLanguage(): string {
-  return navigator.language || navigator.userLanguage;
+  let user = UserService.Instance.user;
+  let lang = user && user.lang ? user.lang : 'browser';
+
+  if (lang == 'browser') {
+    return getBrowserLanguage();
+  } else {
+    return lang;
+  }
 }
 
-export function objectFlip(obj: any) {
-  const ret = {};
-  Object.keys(obj).forEach(key => {
-    ret[obj[key]] = key;
-  });
-  return ret;
+export function getBrowserLanguage(): string {
+  return navigator.language || navigator.userLanguage;
 }
 
 export function getMomentLanguage(): string {
@@ -312,4 +329,12 @@ export function setTheme(theme: string = 'darkly') {
     head.appendChild(link);
   }
   document.getElementById(theme).removeAttribute('disabled');
+}
+
+export function objectFlip(obj: any) {
+  const ret = {};
+  Object.keys(obj).forEach(key => {
+    ret[obj[key]] = key;
+  });
+  return ret;
 }

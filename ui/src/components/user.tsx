@@ -27,6 +27,7 @@ import {
   capitalizeFirstLetter,
   themes,
   setTheme,
+  languages,
 } from '../utils';
 import { PostListing } from './post-listing';
 import { SortSelect } from './sort-select';
@@ -94,6 +95,7 @@ export class User extends Component<any, UserState> {
       theme: null,
       default_sort_type: null,
       default_listing_type: null,
+      lang: null,
       auth: null,
     },
     userSettingsLoading: null,
@@ -423,6 +425,32 @@ export class User extends Component<any, UserState> {
               <div class="form-group">
                 <div class="col-12">
                   <label>
+                    <T i18nKey="language">#</T>
+                  </label>
+                  <select
+                    value={this.state.userSettingsForm.lang}
+                    onChange={linkEvent(
+                      this,
+                      this.handleUserSettingsLangChange
+                    )}
+                    class="ml-2 custom-select custom-select-sm w-auto"
+                  >
+                    <option disabled>
+                      <T i18nKey="language">#</T>
+                    </option>
+                    <option value="browser">
+                      <T i18nKey="browser_default">#</T>
+                    </option>
+                    <option disabled>──</option>
+                    {languages.map(lang => (
+                      <option value={lang.code}>{lang.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <div class="col-12">
+                  <label>
                     <T i18nKey="theme">#</T>
                   </label>
                   <select
@@ -693,6 +721,12 @@ export class User extends Component<any, UserState> {
     i.setState(i.state);
   }
 
+  handleUserSettingsLangChange(i: User, event: any) {
+    i.state.userSettingsForm.lang = event.target.value;
+    i18n.changeLanguage(i.state.userSettingsForm.lang);
+    i.setState(i.state);
+  }
+
   handleUserSettingsSortTypeChange(val: SortType) {
     this.state.userSettingsForm.default_sort_type = val;
     this.setState(this.state);
@@ -762,6 +796,7 @@ export class User extends Component<any, UserState> {
           UserService.Instance.user.default_sort_type;
         this.state.userSettingsForm.default_listing_type =
           UserService.Instance.user.default_listing_type;
+        this.state.userSettingsForm.lang = UserService.Instance.user.lang;
       }
       document.title = `/u/${this.state.user.name} - ${WebSocketService.Instance.site.name}`;
       window.scrollTo(0, 0);

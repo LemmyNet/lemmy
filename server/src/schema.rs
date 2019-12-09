@@ -266,6 +266,7 @@ table! {
         theme -> Varchar,
         default_sort_type -> Int2,
         default_listing_type -> Int2,
+        lang -> Varchar,
     }
 }
 

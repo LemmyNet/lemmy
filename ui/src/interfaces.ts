@@ -79,6 +79,7 @@ export interface User {
   theme: string;
   default_sort_type: SortType;
   default_listing_type: ListingType;
+  lang: string;
 }
 
 export interface UserView {
@@ -469,6 +470,7 @@ export interface UserSettingsForm {
   theme: string;
   default_sort_type: SortType;
   default_listing_type: ListingType;
+  lang: string;
   auth: string;
 }
 
