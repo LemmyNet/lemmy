@@ -125,6 +125,8 @@ export const en = {
     email: 'Email',
     optional: 'Optional',
     expires: 'Expires',
+    language: 'Language',
+    browser_default: 'Browser Default',
     url: 'URL',
     body: 'Body',
     copy_suggested_title: 'copy suggested title: {{title}}',

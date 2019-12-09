@@ -23,6 +23,7 @@ pub struct User_ {
   pub theme: String,
   pub default_sort_type: i16,
   pub default_listing_type: i16,
+  pub lang: String,
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
@@ -40,6 +41,7 @@ pub struct UserForm {
   pub theme: String,
   pub default_sort_type: i16,
   pub default_listing_type: i16,
+  pub lang: String,
 }
 
 impl Crud<UserForm> for User_ {
@@ -96,6 +98,7 @@ pub struct Claims {
   pub theme: String,
   pub default_sort_type: i16,
   pub default_listing_type: i16,
+  pub lang: String,
 }
 
 impl Claims {
@@ -119,6 +122,7 @@ impl User_ {
       theme: self.theme.to_owned(),
       default_sort_type: self.default_sort_type,
       default_listing_type: self.default_listing_type,
+      lang: self.lang.to_owned(),
     };
     encode(
       &Header::default(),
@@ -175,6 +179,7 @@ mod tests {
       theme: "darkly".into(),
       default_sort_type: SortType::Hot as i16,
       default_listing_type: ListingType::Subscribed as i16,
+      lang: "browser".into(),
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -195,6 +200,7 @@ mod tests {
       theme: "darkly".into(),
       default_sort_type: SortType::Hot as i16,
       default_listing_type: ListingType::Subscribed as i16,
+      lang: "browser".into(),
     };
 
     let read_user = User_::read(&conn, inserted_user.id).unwrap();
