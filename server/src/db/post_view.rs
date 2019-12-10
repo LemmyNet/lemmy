@@ -120,65 +120,40 @@ impl<'a> PostQueryBuilder<'a> {
     self
   }
 
-  pub fn for_community_id(mut self, for_community_id: i32) -> Self {
+  pub fn for_community_id<T: MaybeOptional<i32>>(mut self, for_community_id: T) -> Self {
     use super::post_view::post_view::dsl::*;
-    self.query = self.query.filter(community_id.eq(for_community_id));
-    self.query = self.query.then_order_by(stickied.desc());
+    if let Some(for_community_id) = for_community_id.get_optional() {
+      self.query = self.query.filter(community_id.eq(for_community_id));
+      self.query = self.query.then_order_by(stickied.desc());
+    }
     self
   }
 
-  pub fn for_community_id_optional(self, for_community_id: Option<i32>) -> Self {
-    match for_community_id {
-      Some(for_community_id) => self.for_community_id(for_community_id),
-      None => self,
+  pub fn for_creator_id<T: MaybeOptional<i32>>(mut self, for_creator_id: T) -> Self {
+    if let Some(for_creator_id) = for_creator_id.get_optional() {
+      self.for_creator_id = Some(for_creator_id);
     }
-  }
-
-  pub fn for_creator_id(mut self, for_creator_id: i32) -> Self {
-    self.for_creator_id = Some(for_creator_id);
     self
   }
 
-  pub fn for_creator_id_optional(self, for_creator_id: Option<i32>) -> Self {
-    match for_creator_id {
-      Some(for_creator_id) => self.for_creator_id(for_creator_id),
-      None => self,
-    }
-  }
-
-  pub fn search_term(mut self, search_term: String) -> Self {
+  pub fn search_term<T: MaybeOptional<String>>(mut self, search_term: T) -> Self {
     use super::post_view::post_view::dsl::*;
-    self.query = self.query.filter(name.ilike(fuzzy_search(&search_term)));
+    if let Some(search_term) = search_term.get_optional() {
+      self.query = self.query.filter(name.ilike(fuzzy_search(&search_term)));
+    }
     self
   }
 
-  pub fn search_term_optional(self, search_term: Option<String>) -> Self {
-    match search_term {
-      Some(search_term) => self.search_term(search_term),
-      None => self,
-    }
-  }
-
-  pub fn url_search(mut self, url_search: String) -> Self {
+  pub fn url_search<T: MaybeOptional<String>>(mut self, url_search: T) -> Self {
     use super::post_view::post_view::dsl::*;
-    self.query = self.query.filter(url.eq(url_search));
-    self
-  }
-
-  pub fn url_search_optional(self, url_search: Option<String>) -> Self {
-    match url_search {
-      Some(url_search) => self.url_search(url_search),
-      None => self,
+    if let Some(url_search) = url_search.get_optional() {
+      self.query = self.query.filter(url.eq(url_search));
     }
-  }
-
-  pub fn my_user_id(mut self, my_user_id: i32) -> Self {
-    self.my_user_id = Some(my_user_id);
     self
   }
 
-  pub fn my_user_id_optional(mut self, my_user_id: Option<i32>) -> Self {
-    self.my_user_id = my_user_id;
+  pub fn my_user_id<T: MaybeOptional<i32>>(mut self, my_user_id: T) -> Self {
+    self.my_user_id = my_user_id.get_optional();
     self
   }
 
@@ -197,23 +172,13 @@ impl<'a> PostQueryBuilder<'a> {
     self
   }
 
-  pub fn page(mut self, page: i64) -> Self {
-    self.page = Some(page);
+  pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
+    self.page = page.get_optional();
     self
   }
 
-  pub fn page_optional(mut self, page: Option<i64>) -> Self {
-    self.page = page;
-    self
-  }
-
-  pub fn limit(mut self, limit: i64) -> Self {
-    self.limit = Some(limit);
-    self
-  }
-
-  pub fn limit_optional(mut self, limit: Option<i64>) -> Self {
-    self.limit = limit;
+  pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
+    self.limit = limit.get_optional();
     self
   }
 

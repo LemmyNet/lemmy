@@ -322,75 +322,75 @@ impl Perform<SearchResponse> for Oper<Search> {
         posts = PostQueryBuilder::create(&conn)
           .sort(&sort)
           .show_nsfw(true)
-          .for_community_id_optional(data.community_id)
+          .for_community_id(data.community_id)
           .search_term(data.q.to_owned())
-          .page_optional(data.page)
-          .limit_optional(data.limit)
+          .page(data.page)
+          .limit(data.limit)
           .list()?;
       }
       SearchType::Comments => {
         comments = CommentQueryBuilder::create(&conn)
           .sort(&sort)
           .search_term(data.q.to_owned())
-          .page_optional(data.page)
-          .limit_optional(data.limit)
+          .page(data.page)
+          .limit(data.limit)
           .list()?;
       }
       SearchType::Communities => {
         communities = CommunityQueryBuilder::create(&conn)
           .sort(&sort)
           .search_term(data.q.to_owned())
-          .page_optional(data.page)
-          .limit_optional(data.limit)
+          .page(data.page)
+          .limit(data.limit)
           .list()?;
       }
       SearchType::Users => {
         users = UserQueryBuilder::create(&conn)
           .sort(&sort)
           .search_term(data.q.to_owned())
-          .page_optional(data.page)
-          .limit_optional(data.limit)
+          .page(data.page)
+          .limit(data.limit)
           .list()?;
       }
       SearchType::All => {
         posts = PostQueryBuilder::create(&conn)
           .sort(&sort)
           .show_nsfw(true)
-          .for_community_id_optional(data.community_id)
+          .for_community_id(data.community_id)
           .search_term(data.q.to_owned())
-          .page_optional(data.page)
-          .limit_optional(data.limit)
+          .page(data.page)
+          .limit(data.limit)
           .list()?;
 
         comments = CommentQueryBuilder::create(&conn)
           .sort(&sort)
           .search_term(data.q.to_owned())
-          .page_optional(data.page)
-          .limit_optional(data.limit)
+          .page(data.page)
+          .limit(data.limit)
           .list()?;
 
         communities = CommunityQueryBuilder::create(&conn)
           .sort(&sort)
           .search_term(data.q.to_owned())
-          .page_optional(data.page)
-          .limit_optional(data.limit)
+          .page(data.page)
+          .limit(data.limit)
           .list()?;
 
         users = UserQueryBuilder::create(&conn)
           .sort(&sort)
           .search_term(data.q.to_owned())
-          .page_optional(data.page)
-          .limit_optional(data.limit)
+          .page(data.page)
+          .limit(data.limit)
           .list()?;
       }
       SearchType::Url => {
         posts = PostQueryBuilder::create(&conn)
           .sort(&sort)
           .show_nsfw(true)
-          .for_community_id_optional(data.community_id)
+          .for_community_id(data.community_id)
           .url_search(data.q.to_owned())
-          .page_optional(data.page)
-          .limit_optional(data.limit)
+          .page(data.page)
+          .limit(data.limit)
           .list()?;
       }
     };

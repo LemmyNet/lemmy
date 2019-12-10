@@ -351,10 +351,10 @@ impl Perform<ListCommunitiesResponse> for Oper<ListCommunities> {
 
     let communities = CommunityQueryBuilder::create(&conn)
       .sort(&sort)
-      .from_user_id_optional(user_id)
+      .from_user_id(user_id)
       .show_nsfw(show_nsfw)
-      .page_optional(data.page)
-      .limit_optional(data.limit)
+      .page(data.page)
+      .limit(data.limit)
       .list()?;
 
     // Return the jwt
