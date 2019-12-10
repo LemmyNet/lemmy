@@ -373,17 +373,17 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
       .sort(&sort)
       .show_nsfw(show_nsfw)
       .saved_only(data.saved_only)
-      .for_community_id_optional(data.community_id)
-      .my_user_id_optional(user_id)
-      .page_optional(data.page)
-      .limit_optional(data.limit);
+      .for_community_id(data.community_id)
+      .my_user_id(user_id)
+      .page(data.page)
+      .limit(data.limit);
 
     let mut comments_query = CommentQueryBuilder::create(&conn)
       .sort(&sort)
       .saved_only(data.saved_only)
-      .my_user_id_optional(user_id)
-      .page_optional(data.page)
-      .limit_optional(data.limit);
+      .my_user_id(user_id)
+      .page(data.page)
+      .limit(data.limit);
 
     // If its saved only, you don't care what creator it was
     // Or, if its not saved, then you only want it for that specific creator
@@ -561,8 +561,8 @@ impl Perform<GetRepliesResponse> for Oper<GetReplies> {
     let replies = ReplyQueryBuilder::create(&conn, user_id)
       .sort(&sort)
       .unread_only(data.unread_only)
-      .page_optional(data.page)
-      .limit_optional(data.limit)
+      .page(data.page)
+      .limit(data.limit)
       .list()?;
 
     Ok(GetRepliesResponse {
@@ -589,8 +589,8 @@ impl Perform<GetUserMentionsResponse> for Oper<GetUserMentions> {
     let mentions = UserMentionQueryBuilder::create(&conn, user_id)
       .sort(&sort)
       .unread_only(data.unread_only)
-      .page_optional(data.page)
-      .limit_optional(data.limit)
+      .page(data.page)
+      .limit(data.limit)
       .list()?;
 
     Ok(GetUserMentionsResponse {

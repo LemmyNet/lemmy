@@ -135,16 +135,9 @@ impl<'a> CommunityQueryBuilder<'a> {
     self
   }
 
-  pub fn from_user_id(mut self, from_user_id: i32) -> Self {
-    self.from_user_id = Some(from_user_id);
+  pub fn from_user_id<T: MaybeOptional<i32>>(mut self, from_user_id: T) -> Self {
+    self.from_user_id = from_user_id.get_optional();
     self
-  }
-
-  pub fn from_user_id_optional(self, from_user_id: Option<i32>) -> Self {
-    match from_user_id {
-      Some(from_user_id) => self.from_user_id(from_user_id),
-      None => self,
-    }
   }
 
   pub fn show_nsfw(mut self, show_nsfw: bool) -> Self {
@@ -152,33 +145,18 @@ impl<'a> CommunityQueryBuilder<'a> {
     self
   }
 
-  pub fn search_term(mut self, search_term: String) -> Self {
-    self.search_term = Some(search_term);
+  pub fn search_term<T: MaybeOptional<String>>(mut self, search_term: T) -> Self {
+    self.search_term = search_term.get_optional();
     self
   }
 
-  pub fn search_term_optional(mut self, search_term: Option<String>) -> Self {
-    self.search_term = search_term;
+  pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
+    self.page = page.get_optional();
     self
   }
 
-  pub fn page(mut self, page: i64) -> Self {
-    self.page = Some(page);
-    self
-  }
-
-  pub fn page_optional(mut self, page: Option<i64>) -> Self {
-    self.page = page;
-    self
-  }
-
-  pub fn limit(mut self, limit: i64) -> Self {
-    self.limit = Some(limit);
-    self
-  }
-
-  pub fn limit_optional(mut self, limit: Option<i64>) -> Self {
-    self.limit = limit;
+  pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
+    self.limit = limit.get_optional();
     self
   }
 

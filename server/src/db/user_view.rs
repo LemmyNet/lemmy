@@ -62,36 +62,21 @@ impl<'a> UserQueryBuilder<'a> {
     self
   }
 
-  pub fn search_term(mut self, search_term: String) -> Self {
+  pub fn search_term<T: MaybeOptional<String>>(mut self, search_term: T) -> Self {
     use super::user_view::user_view::dsl::*;
-    self.query = self.query.filter(name.ilike(fuzzy_search(&search_term)));
-    self
-  }
-
-  pub fn search_term_optional(self, search_term: Option<String>) -> Self {
-    match search_term {
-      Some(search_term) => self.search_term(search_term),
-      None => self,
+    if let Some(search_term) = search_term.get_optional() {
+      self.query = self.query.filter(name.ilike(fuzzy_search(&search_term)));
     }
-  }
-
-  pub fn page(mut self, page: i64) -> Self {
-    self.page = Some(page);
     self
   }
 
-  pub fn page_optional(mut self, page: Option<i64>) -> Self {
-    self.page = page;
+  pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
+    self.page = page.get_optional();
     self
   }
 
-  pub fn limit(mut self, limit: i64) -> Self {
-    self.limit = Some(limit);
-    self
-  }
-
-  pub fn limit_optional(mut self, limit: Option<i64>) -> Self {
-    self.limit = limit;
+  pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
+    self.limit = limit.get_optional();
     self
   }
 

@@ -91,6 +91,22 @@ pub trait Readable<T> {
     Self: Sized;
 }
 
+pub trait MaybeOptional<T> {
+  fn get_optional(self) -> Option<T>;
+}
+
+impl<T> MaybeOptional<T> for T {
+  fn get_optional(self) -> Option<T> {
+    return Some(self);
+  }
+}
+
+impl<T> MaybeOptional<T> for Option<T> {
+  fn get_optional(self) -> Option<T> {
+    return self;
+  }
+}
+
 pub fn establish_connection() -> PgConnection {
   let db_url = Settings::get().db_url;
   PgConnection::establish(&db_url).expect(&format!("Error connecting to {}", db_url))
