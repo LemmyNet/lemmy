@@ -96,23 +96,13 @@ impl<'a> UserMentionQueryBuilder<'a> {
     self
   }
 
-  pub fn page(mut self, page: i64) -> Self {
-    self.page = Some(page);
+  pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
+    self.page = page.get_optional();
     self
   }
 
-  pub fn page_optional(mut self, page: Option<i64>) -> Self {
-    self.page = page;
-    self
-  }
-
-  pub fn limit(mut self, limit: i64) -> Self {
-    self.limit = Some(limit);
-    self
-  }
-
-  pub fn limit_optional(mut self, limit: Option<i64>) -> Self {
-    self.limit = limit;
+  pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
+    self.limit = limit.get_optional();
     self
   }
 

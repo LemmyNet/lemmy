@@ -180,7 +180,7 @@ impl Perform<GetPostResponse> for Oper<GetPost> {
 
     let comments = CommentQueryBuilder::create(&conn)
       .for_post_id(data.id)
-      .my_user_id_optional(user_id)
+      .my_user_id(user_id)
       .limit(9999)
       .list()?;
 
@@ -236,10 +236,10 @@ impl Perform<GetPostsResponse> for Oper<GetPosts> {
       .listing_type(type_)
       .sort(&sort)
       .show_nsfw(show_nsfw)
-      .for_community_id_optional(data.community_id)
-      .my_user_id_optional(user_id)
-      .page_optional(data.page)
-      .limit_optional(data.limit)
+      .for_community_id(data.community_id)
+      .my_user_id(user_id)
+      .page(data.page)
+      .limit(data.limit)
       .list()
     {
       Ok(posts) => posts,
