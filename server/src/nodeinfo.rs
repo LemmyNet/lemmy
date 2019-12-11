@@ -1,5 +1,5 @@
-use crate::db::community_view::SiteView;
 use crate::db::establish_connection;
+use crate::db::site_view::SiteView;
 use crate::version;
 use crate::Settings;
 use actix_web::body::Body;

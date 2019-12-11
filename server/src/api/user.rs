@@ -193,6 +193,13 @@ impl Perform<LoginResponse> for Oper<Register> {
     let data: &Register = &self.data;
     let conn = establish_connection();
 
+    // Make sure site has open registration
+    if let Ok(site) = SiteView::read(&conn) {
+      if !site.open_registration {
+        return Err(APIError::err(&self.op, "registration_closed"))?;
+      }
+    }
+
     // Make sure passwords match
     if &data.password != &data.password_verify {
       return Err(APIError::err(&self.op, "passwords_dont_match"))?;

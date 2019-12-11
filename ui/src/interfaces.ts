@@ -199,6 +199,9 @@ export interface Site {
   number_of_posts: number;
   number_of_comments: number;
   number_of_communities: number;
+  enable_downvotes: boolean;
+  open_registration: boolean;
+  enable_nsfw: boolean;
 }
 
 export enum BanType {
@@ -625,9 +628,9 @@ export interface CreatePostLikeResponse {
 export interface SiteForm {
   name: string;
   description?: string;
-  removed?: boolean;
-  reason?: string;
-  expires?: number;
+  enable_downvotes: boolean;
+  open_registration: boolean;
+  enable_nsfw: boolean;
   auth?: string;
 }
 

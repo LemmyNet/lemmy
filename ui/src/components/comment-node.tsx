@@ -102,16 +102,18 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             <div class={`font-weight-bold text-muted`}>
               {node.comment.score}
             </div>
-            <button
-              className={`btn p-0 ${
-                node.comment.my_vote == -1 ? 'text-danger' : 'text-muted'
-              }`}
-              onClick={linkEvent(node, this.handleCommentDisLike)}
-            >
-              <svg class="icon downvote">
-                <use xlinkHref="#icon-arrow-down"></use>
-              </svg>
-            </button>
+            {WebSocketService.Instance.site.enable_downvotes && (
+              <button
+                className={`btn p-0 ${
+                  node.comment.my_vote == -1 ? 'text-danger' : 'text-muted'
+                }`}
+                onClick={linkEvent(node, this.handleCommentDisLike)}
+              >
+                <svg class="icon downvote">
+                  <use xlinkHref="#icon-arrow-down"></use>
+                </svg>
+              </button>
+            )}
           </div>
         )}
         <div
