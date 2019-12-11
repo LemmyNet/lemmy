@@ -92,43 +92,23 @@ impl<'a> CommentQueryBuilder<'a> {
     self
   }
 
-  pub fn for_post_id(mut self, for_post_id: i32) -> Self {
-    self.for_post_id = Some(for_post_id);
+  pub fn for_post_id<T: MaybeOptional<i32>>(mut self, for_post_id: T) -> Self {
+    self.for_post_id = for_post_id.get_optional();
     self
   }
 
-  pub fn for_post_id_optional(mut self, for_post_id: Option<i32>) -> Self {
-    self.for_post_id = for_post_id;
+  pub fn for_creator_id<T: MaybeOptional<i32>>(mut self, for_creator_id: T) -> Self {
+    self.for_creator_id = for_creator_id.get_optional();
     self
   }
 
-  pub fn for_creator_id(mut self, for_creator_id: i32) -> Self {
-    self.for_creator_id = Some(for_creator_id);
+  pub fn search_term<T: MaybeOptional<String>>(mut self, search_term: T) -> Self {
+    self.search_term = search_term.get_optional();
     self
   }
 
-  pub fn for_creator_id_optional(mut self, for_creator_id: Option<i32>) -> Self {
-    self.for_creator_id = for_creator_id;
-    self
-  }
-
-  pub fn search_term(mut self, search_term: String) -> Self {
-    self.search_term = Some(search_term);
-    self
-  }
-
-  pub fn search_term_optional(mut self, search_term: Option<String>) -> Self {
-    self.search_term = search_term;
-    self
-  }
-
-  pub fn my_user_id(mut self, my_user_id: i32) -> Self {
-    self.my_user_id = Some(my_user_id);
-    self
-  }
-
-  pub fn my_user_id_optional(mut self, my_user_id: Option<i32>) -> Self {
-    self.my_user_id = my_user_id;
+  pub fn my_user_id<T: MaybeOptional<i32>>(mut self, my_user_id: T) -> Self {
+    self.my_user_id = my_user_id.get_optional();
     self
   }
 
@@ -137,23 +117,13 @@ impl<'a> CommentQueryBuilder<'a> {
     self
   }
 
-  pub fn page(mut self, page: i64) -> Self {
-    self.page = Some(page);
+  pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
+    self.page = page.get_optional();
     self
   }
 
-  pub fn page_optional(mut self, page: Option<i64>) -> Self {
-    self.page = page;
-    self
-  }
-
-  pub fn limit(mut self, limit: i64) -> Self {
-    self.limit = Some(limit);
-    self
-  }
-
-  pub fn limit_optional(mut self, limit: Option<i64>) -> Self {
-    self.limit = limit;
+  pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
+    self.limit = limit.get_optional();
     self
   }
 
@@ -331,23 +301,13 @@ impl<'a> ReplyQueryBuilder<'a> {
     self
   }
 
-  pub fn page(mut self, page: i64) -> Self {
-    self.page = Some(page);
+  pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
+    self.page = page.get_optional();
     self
   }
 
-  pub fn page_optional(mut self, page: Option<i64>) -> Self {
-    self.page = page;
-    self
-  }
-
-  pub fn limit(mut self, limit: i64) -> Self {
-    self.limit = Some(limit);
-    self
-  }
-
-  pub fn limit_optional(mut self, limit: Option<i64>) -> Self {
-    self.limit = limit;
+  pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
+    self.limit = limit.get_optional();
     self
   }
 
