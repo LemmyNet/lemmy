@@ -247,7 +247,7 @@ If you'd like to add translations, take a look a look at the [English translatio
 
 lang | done | missing
 --- | --- | ---
-de | 78% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,archive_link,settings,stickied,delete_account,delete_account_confirm,banned,creator,number_online,subscribed,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,expires,language,browser_default,recent_comments,nsfw,show_nsfw,theme,crypto,monero,joined,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+de | 100% |  
 eo | 86% | number_of_communities,preview,upload_image,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,theme,are_you_sure,yes,no 
 es | 95% | archive_link,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default 
 fr | 95% | archive_link,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default 
