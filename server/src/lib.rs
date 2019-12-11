@@ -118,7 +118,7 @@ impl Settings {
         .unwrap_or("3600".to_string())
         .parse()
         .unwrap(),
-      email_config: email_config,
+      email_config,
     }
   }
   fn api_endpoint(&self) -> String {

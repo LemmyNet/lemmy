@@ -8,6 +8,8 @@ use crate::db::moderator_views::*;
 use crate::db::password_reset_request::*;
 use crate::db::post::*;
 use crate::db::post_view::*;
+use crate::db::site::*;
+use crate::db::site_view::*;
 use crate::db::user::*;
 use crate::db::user_mention::*;
 use crate::db::user_mention_view::*;

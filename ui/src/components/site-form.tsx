@@ -19,6 +19,9 @@ interface SiteFormState {
 export class SiteForm extends Component<SiteFormProps, SiteFormState> {
   private emptyState: SiteFormState = {
     siteForm: {
+      enable_downvotes: true,
+      open_registration: true,
+      enable_nsfw: true,
       name: null,
     },
     loading: false,
@@ -31,6 +34,9 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
       this.state.siteForm = {
         name: this.props.site.name,
         description: this.props.site.description,
+        enable_downvotes: this.props.site.enable_downvotes,
+        open_registration: this.props.site.open_registration,
+        enable_nsfw: this.props.site.enable_nsfw,
       };
     }
   }
@@ -79,6 +85,54 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
         </div>
         <div class="form-group row">
           <div class="col-12">
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                checked={this.state.siteForm.enable_downvotes}
+                onChange={linkEvent(this, this.handleSiteEnableDownvotesChange)}
+              />
+              <label class="form-check-label">
+                <T i18nKey="enable_downvotes">#</T>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="form-group row">
+          <div class="col-12">
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                checked={this.state.siteForm.enable_nsfw}
+                onChange={linkEvent(this, this.handleSiteEnableNsfwChange)}
+              />
+              <label class="form-check-label">
+                <T i18nKey="enable_nsfw">#</T>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="form-group row">
+          <div class="col-12">
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                checked={this.state.siteForm.open_registration}
+                onChange={linkEvent(
+                  this,
+                  this.handleSiteOpenRegistrationChange
+                )}
+              />
+              <label class="form-check-label">
+                <T i18nKey="open_registration">#</T>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="form-group row">
+          <div class="col-12">
             <button type="submit" class="btn btn-secondary mr-2">
               {this.state.loading ? (
                 <svg class="icon icon-spinner spin">
@@ -123,6 +177,21 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
 
   handleSiteDescriptionChange(i: SiteForm, event: any) {
     i.state.siteForm.description = event.target.value;
+    i.setState(i.state);
+  }
+
+  handleSiteEnableNsfwChange(i: SiteForm, event: any) {
+    i.state.siteForm.enable_nsfw = event.target.checked;
+    i.setState(i.state);
+  }
+
+  handleSiteOpenRegistrationChange(i: SiteForm, event: any) {
+    i.state.siteForm.open_registration = event.target.checked;
+    i.setState(i.state);
+  }
+
+  handleSiteEnableDownvotesChange(i: SiteForm, event: any) {
+    i.state.siteForm.enable_downvotes = event.target.checked;
     i.setState(i.state);
   }
 

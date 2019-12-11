@@ -114,16 +114,18 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             </svg>
           </button>
           <div class={`font-weight-bold text-muted`}>{post.score}</div>
-          <button
-            className={`btn p-0 ${
-              post.my_vote == -1 ? 'text-danger' : 'text-muted'
-            }`}
-            onClick={linkEvent(this, this.handlePostDisLike)}
-          >
-            <svg class="icon downvote">
-              <use xlinkHref="#icon-arrow-down"></use>
-            </svg>
-          </button>
+          {WebSocketService.Instance.site.enable_downvotes && (
+            <button
+              className={`btn p-0 ${
+                post.my_vote == -1 ? 'text-danger' : 'text-muted'
+              }`}
+              onClick={linkEvent(this, this.handlePostDisLike)}
+            >
+              <svg class="icon downvote">
+                <use xlinkHref="#icon-arrow-down"></use>
+              </svg>
+            </button>
+          )}
         </div>
         {post.url && isImage(post.url) && !post.nsfw && !post.community_nsfw && (
           <span

@@ -298,6 +298,14 @@ impl Perform<CommentResponse> for Oper<CreateCommentLike> {
 
     let user_id = claims.id;
 
+    // Don't do a downvote if site has downvotes disabled
+    if data.score == -1 {
+      let site = SiteView::read(&conn)?;
+      if site.enable_downvotes == false {
+        return Err(APIError::err(&self.op, "downvotes_disabled"))?;
+      }
+    }
+
     // Check for a community ban
     let post = Post::read(&conn, data.post_id)?;
     if CommunityUserBanView::get(&conn, user_id, post.community_id).is_ok() {

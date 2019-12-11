@@ -496,24 +496,26 @@ export class User extends Component<any, UserState> {
                   />
                 </div>
               </form>
-              <div class="form-group">
-                <div class="col-12">
-                  <div class="form-check">
-                    <input
-                      class="form-check-input"
-                      type="checkbox"
-                      checked={this.state.userSettingsForm.show_nsfw}
-                      onChange={linkEvent(
-                        this,
-                        this.handleUserSettingsShowNsfwChange
-                      )}
-                    />
-                    <label class="form-check-label">
-                      <T i18nKey="show_nsfw">#</T>
-                    </label>
+              {WebSocketService.Instance.site.enable_nsfw && (
+                <div class="form-group">
+                  <div class="col-12">
+                    <div class="form-check">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        checked={this.state.userSettingsForm.show_nsfw}
+                        onChange={linkEvent(
+                          this,
+                          this.handleUserSettingsShowNsfwChange
+                        )}
+                      />
+                      <label class="form-check-label">
+                        <T i18nKey="show_nsfw">#</T>
+                      </label>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
               <div class="form-group">
                 <div class="col-12">
                   <button

@@ -56,6 +56,9 @@ pub struct GetModlogResponse {
 pub struct CreateSite {
   name: String,
   description: Option<String>,
+  enable_downvotes: bool,
+  open_registration: bool,
+  enable_nsfw: bool,
   auth: String,
 }
 
@@ -63,6 +66,9 @@ pub struct CreateSite {
 pub struct EditSite {
   name: String,
   description: Option<String>,
+  enable_downvotes: bool,
+  open_registration: bool,
+  enable_nsfw: bool,
   auth: String,
 }
 
@@ -208,6 +214,9 @@ impl Perform<SiteResponse> for Oper<CreateSite> {
       name: data.name.to_owned(),
       description: data.description.to_owned(),
       creator_id: user_id,
+      enable_downvotes: data.enable_downvotes,
+      open_registration: data.open_registration,
+      enable_nsfw: data.enable_nsfw,
       updated: None,
     };
 
@@ -255,6 +264,9 @@ impl Perform<SiteResponse> for Oper<EditSite> {
       description: data.description.to_owned(),
       creator_id: found_site.creator_id,
       updated: Some(naive_now()),
+      enable_downvotes: data.enable_downvotes,
+      open_registration: data.open_registration,
+      enable_nsfw: data.enable_nsfw,
     };
 
     match Site::update(&conn, 1, &site_form) {
@@ -431,6 +443,9 @@ impl Perform<GetSiteResponse> for Oper<TransferSite> {
       description: read_site.description,
       creator_id: data.user_id,
       updated: Some(naive_now()),
+      enable_downvotes: read_site.enable_downvotes,
+      open_registration: read_site.open_registration,
+      enable_nsfw: read_site.enable_nsfw,
     };
 
     match Site::update(&conn, 1, &site_form) {

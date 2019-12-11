@@ -246,6 +246,9 @@ table! {
         creator_id -> Int4,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
+        enable_downvotes -> Bool,
+        open_registration -> Bool,
+        enable_nsfw -> Bool,
     }
 }
 

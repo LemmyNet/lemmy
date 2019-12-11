@@ -205,21 +205,23 @@ export class Login extends Component<any, State> {
             />
           </div>
         </div>
-        <div class="form-group row">
-          <div class="col-sm-10">
-            <div class="form-check">
-              <input
-                class="form-check-input"
-                type="checkbox"
-                checked={this.state.registerForm.show_nsfw}
-                onChange={linkEvent(this, this.handleRegisterShowNsfwChange)}
-              />
-              <label class="form-check-label">
-                <T i18nKey="show_nsfw">#</T>
-              </label>
+        {WebSocketService.Instance.site.enable_nsfw && (
+          <div class="form-group row">
+            <div class="col-sm-10">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  checked={this.state.registerForm.show_nsfw}
+                  onChange={linkEvent(this, this.handleRegisterShowNsfwChange)}
+                />
+                <label class="form-check-label">
+                  <T i18nKey="show_nsfw">#</T>
+                </label>
+              </div>
             </div>
           </div>
-        </div>
+        )}
         <div class="form-group row">
           <div class="col-sm-10">
             <button type="submit" class="btn btn-secondary">

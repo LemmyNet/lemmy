@@ -14,6 +14,8 @@ pub mod moderator_views;
 pub mod password_reset_request;
 pub mod post;
 pub mod post_view;
+pub mod site;
+pub mod site_view;
 pub mod user;
 pub mod user_mention;
 pub mod user_mention_view;
