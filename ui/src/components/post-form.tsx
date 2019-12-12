@@ -343,7 +343,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     i.setState(i.state);
   }
 
-  handlePostUrlChange(i: PostForm, event: any) {
+  handlePostUrlChange = debounce((i: PostForm, event: any) => {
     i.state.postForm.url = event.target.value;
     if (validURL(i.state.postForm.url)) {
       let form: SearchForm = {
@@ -367,9 +367,9 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     }
 
     i.setState(i.state);
-  }
+  });
 
-  handlePostNameChange(i: PostForm, event: any) {
+  handlePostNameChange = debounce((i: PostForm, event: any) => {
     i.state.postForm.name = event.target.value;
     let form: SearchForm = {
       q: i.state.postForm.name,
@@ -387,7 +387,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     }
 
     i.setState(i.state);
-  }
+  });
 
   handlePostBodyChange(i: PostForm, event: any) {
     i.state.postForm.body = event.target.value;
