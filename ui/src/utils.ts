@@ -197,7 +197,7 @@ export async function getPageTitle(url: string) {
 
 export function debounce(
   func: any,
-  wait: number = 500,
+  wait: number = 1000,
   immediate: boolean = false
 ) {
   // 'private' variable for instance

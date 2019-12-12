@@ -198,20 +198,51 @@ fn main() {
   HttpServer::new(move || {
     App::new()
       .data(server.clone())
+      // Front end routes
+      .service(actix_files::Files::new("/static", front_end_dir()))
+      .route("/", web::get().to(index))
+      .route(
+        "/home/type/{type}/sort/{sort}/page/{page}",
+        web::get().to(index),
+      )
+      .route("/login", web::get().to(index))
+      .route("/create_post", web::get().to(index))
+      .route("/create_community", web::get().to(index))
+      .route("/communities/page/{page}", web::get().to(index))
+      .route("/communities", web::get().to(index))
+      .route("/post/{id}/comment/{id2}", web::get().to(index))
+      .route("/post/{id}", web::get().to(index))
+      .route("/c/{name}/sort/{sort}/page/{page}", web::get().to(index))
+      .route("/c/{name}", web::get().to(index))
+      .route("/community/{id}", web::get().to(index))
+      .route(
+        "/u/{username}/view/{view}/sort/{sort}/page/{page}",
+        web::get().to(index),
+      )
+      .route("/u/{username}", web::get().to(index))
+      .route("/user/{id}", web::get().to(index))
+      .route("/inbox", web::get().to(index))
+      .route("/modlog/community/{community_id}", web::get().to(index))
+      .route("/modlog", web::get().to(index))
+      .route("/setup", web::get().to(index))
+      .route(
+        "/search/q/{q}/type/{type}/sort/{sort}/page/{page}",
+        web::get().to(index),
+      )
+      .route("/search", web::get().to(index))
+      .route("/sponsors", web::get().to(index))
+      .route("/password_change/{token}", web::get().to(index))
+      // Websocket
       .service(web::resource("/api/v1/ws").to(chat_route))
-      //            .service(web::resource("/api/v1/rest").route(web::post().to(||{})))
-      .service(web::resource("/").to(index))
+      // NodeInfo
       .route("/nodeinfo/2.0.json", web::get().to(nodeinfo::node_info))
       .route(
         "/.well-known/nodeinfo",
         web::get().to(nodeinfo::node_info_well_known),
       )
+      // RSS
       .route("/feeds/{type}/{name}.xml", web::get().to(feeds::get_feed))
-      // TODO: probably need a different function for this (or just handle all of /feeds?
-      // TODO: would be nice to use ListingType, but that doesnt include user
       .route("/feeds/all.xml", web::get().to(feeds::get_all_feed))
-      // static resources
-      .service(actix_files::Files::new("/static", front_end_dir()))
   })
   .bind((settings.bind, settings.port))
   .unwrap()
