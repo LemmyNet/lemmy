@@ -38,11 +38,11 @@ class Index extends Component<any, any> {
           <Navbar />
           <div class="mt-4 p-0">
             <Switch>
+              <Route exact path={`/`} component={Main} />
               <Route
                 path={`/home/type/:type/sort/:sort/page/:page`}
                 component={Main}
               />
-              <Route exact path={`/`} component={Main} />
               <Route path={`/login`} component={Login} />
               <Route path={`/create_post`} component={CreatePost} />
               <Route path={`/create_community`} component={CreateCommunity} />
