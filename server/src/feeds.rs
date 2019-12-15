@@ -331,7 +331,7 @@ fn create_post_items(posts: Vec<PostView>) -> Vec<Item> {
         "/c/{} <a href=\"{}\">(link)</a>",
         p.community_name, community_url
       ))
-      .domain(Settings::get().hostname)
+      .domain(Settings::get().hostname.to_owned())
       .build();
     i.categories(vec![category.unwrap()]);
 

@@ -1,0 +1,27 @@
+{
+  database: {
+      user: "lemmy"
+      password: "password"
+      host: "localhost"
+      port: 5432
+      database: "lemmy"
+    }
+  hostname: "rrr"
+  bind: "0.0.0.0"
+  port: 8536
+  jwt_secret: "changeme"
+  rate_limit: {
+    message: 30,
+    message_per_second: 60,
+    post: 6,
+    post_per_second: 600,
+    register: 3,
+    register_per_second: 3600,
+  }
+#  email: {
+#    smtp_server: ""
+#    smtp_login: ""
+#    smtp_password: ""
+#    smtp_from_address: ""
+#  }
+}

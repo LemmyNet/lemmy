@@ -28,11 +28,12 @@ pub mod db;
 pub mod feeds;
 pub mod nodeinfo;
 pub mod schema;
+pub mod settings;
 pub mod version;
 pub mod websocket;
 
+use crate::settings::Settings;
 use chrono::{DateTime, NaiveDateTime, Utc};
-use dotenv::dotenv;
 use lettre::smtp::authentication::{Credentials, Mechanism};
 use lettre::smtp::extension::ClientId;
 use lettre::smtp::ConnectionReuseParameters;
@@ -41,87 +42,6 @@ use lettre_email::Email;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use regex::Regex;
-use std::env;
-use std::net::IpAddr;
-
-pub struct Settings {
-  pub db_url: String,
-  pub hostname: String,
-  pub bind: IpAddr,
-  pub port: u16,
-  pub jwt_secret: String,
-  pub rate_limit_message: i32,
-  pub rate_limit_message_per_second: i32,
-  pub rate_limit_post: i32,
-  pub rate_limit_post_per_second: i32,
-  pub rate_limit_register: i32,
-  pub rate_limit_register_per_second: i32,
-  pub email_config: Option<EmailConfig>,
-}
-
-pub struct EmailConfig {
-  smtp_server: String,
-  smtp_login: String,
-  smtp_password: String,
-  smtp_from_address: String,
-}
-
-impl Settings {
-  pub fn get() -> Self {
-    dotenv().ok();
-
-    let email_config =
-      if env::var("SMTP_SERVER").is_ok() && !env::var("SMTP_SERVER").unwrap().eq("") {
-        Some(EmailConfig {
-          smtp_server: env::var("SMTP_SERVER").expect("SMTP_SERVER must be set"),
-          smtp_login: env::var("SMTP_LOGIN").expect("SMTP_LOGIN must be set"),
-          smtp_password: env::var("SMTP_PASSWORD").expect("SMTP_PASSWORD must be set"),
-          smtp_from_address: env::var("SMTP_FROM_ADDRESS").expect("SMTP_FROM_ADDRESS must be set"),
-        })
-      } else {
-        None
-      };
-
-    Settings {
-      db_url: env::var("DATABASE_URL").expect("DATABASE_URL must be set"),
-      hostname: env::var("HOSTNAME").unwrap_or("rrr".to_string()),
-      bind: env::var("BIND")
-        .unwrap_or("0.0.0.0".to_string())
-        .parse()
-        .unwrap(),
-      port: env::var("PORT")
-        .unwrap_or("8536".to_string())
-        .parse()
-        .unwrap(),
-      jwt_secret: env::var("JWT_SECRET").unwrap_or("changeme".to_string()),
-      rate_limit_message: env::var("RATE_LIMIT_MESSAGE")
-        .unwrap_or("30".to_string())
-        .parse()
-        .unwrap(),
-      rate_limit_message_per_second: env::var("RATE_LIMIT_MESSAGE_PER_SECOND")
-        .unwrap_or("60".to_string())
-        .parse()
-        .unwrap(),
-      rate_limit_post: env::var("RATE_LIMIT_POST")
-        .unwrap_or("3".to_string())
-        .parse()
-        .unwrap(),
-      rate_limit_post_per_second: env::var("RATE_LIMIT_POST_PER_SECOND")
-        .unwrap_or("600".to_string())
-        .parse()
-        .unwrap(),
-      rate_limit_register: env::var("RATE_LIMIT_REGISTER")
-        .unwrap_or("1".to_string())
-        .parse()
-        .unwrap(),
-      rate_limit_register_per_second: env::var("RATE_LIMIT_REGISTER_PER_SECOND")
-        .unwrap_or("3600".to_string())
-        .parse()
-        .unwrap(),
-      email_config,
-    }
-  }
-}
 
 pub fn to_datetime_utc(ndt: NaiveDateTime) -> DateTime<Utc> {
   DateTime::<Utc>::from_utc(ndt, Utc)
@@ -171,13 +91,13 @@ pub fn send_email(
   to_username: &str,
   html: &str,
 ) -> Result<(), String> {
-  let email_config = Settings::get().email_config.ok_or("no_email_setup")?;
+  let email_config = Settings::get().email.as_ref().ok_or("no_email_setup")?;
 
   let email = Email::builder()
     .to((to_email, to_username))
     .from((
       email_config.smtp_login.to_owned(),
-      email_config.smtp_from_address,
+      email_config.smtp_from_address.to_owned(),
     ))
     .subject(subject)
     .html(html)

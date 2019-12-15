@@ -1,4 +1,4 @@
-use crate::Settings;
+use crate::settings::Settings;
 use diesel::dsl::*;
 use diesel::result::Error;
 use diesel::*;
@@ -110,7 +110,7 @@ impl<T> MaybeOptional<T> for Option<T> {
 }
 
 pub fn establish_connection() -> PgConnection {
-  let db_url = Settings::get().db_url;
+  let db_url = Settings::get().get_database_url();
   PgConnection::establish(&db_url).expect(&format!("Error connecting to {}", db_url))
 }
 
