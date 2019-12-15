@@ -20,12 +20,12 @@ import { WebSocketService, UserService } from '../services';
 import {
   msgOp,
   getPageTitle,
-  debounce,
   validURL,
   capitalizeFirstLetter,
   markdownHelpUrl,
   archiveUrl,
   mdToHtml,
+  debounce,
 } from '../utils';
 import * as autosize from 'autosize';
 import { i18n } from '../i18next';
@@ -79,6 +79,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     if (this.props.post) {
       this.state.postForm = {
         body: this.props.post.body,
+        // NOTE: debouncing breaks both these for some reason, unless you use defaultValue
         name: this.props.post.name,
         community_id: this.props.post.community_id,
         edit_id: this.props.post.id,
@@ -142,7 +143,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               <input
                 type="url"
                 class="form-control"
-                value={this.state.postForm.url}
+                defaultValue={this.state.postForm.url}
                 onInput={linkEvent(this, this.handlePostUrlChange)}
               />
               {this.state.suggestedTitle && (
@@ -208,7 +209,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
             </label>
             <div class="col-sm-10">
               <textarea
-                value={this.state.postForm.name}
+                defaultValue={this.state.postForm.name}
                 onInput={linkEvent(this, this.handlePostNameChange)}
                 class="form-control"
                 required
