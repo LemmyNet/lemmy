@@ -1,4 +1,5 @@
 use super::*;
+use crate::settings::Settings;
 use crate::{generate_random_string, send_email};
 use bcrypt::verify;
 use std::str::FromStr;
@@ -217,7 +218,7 @@ impl Perform<LoginResponse> for Oper<Register> {
     // Register the new user
     let user_form = UserForm {
       name: data.username.to_owned(),
-      fedi_name: Settings::get().hostname.into(),
+      fedi_name: Settings::get().hostname.to_owned(),
       email: data.email.to_owned(),
       password_encrypted: data.password.to_owned(),
       preferred_username: None,

@@ -15,7 +15,7 @@ use crate::db::user_mention::*;
 use crate::db::user_mention_view::*;
 use crate::db::user_view::*;
 use crate::db::*;
-use crate::{extract_usernames, has_slurs, naive_from_unix, naive_now, remove_slurs, Settings};
+use crate::{extract_usernames, has_slurs, naive_from_unix, naive_now, remove_slurs};
 use failure::Error;
 use serde::{Deserialize, Serialize};
 

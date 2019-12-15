@@ -10,8 +10,8 @@ use lemmy_server::apub;
 use lemmy_server::db::establish_connection;
 use lemmy_server::feeds;
 use lemmy_server::nodeinfo;
+use lemmy_server::settings::Settings;
 use lemmy_server::websocket::server::*;
-use lemmy_server::Settings;
 use std::env;
 use std::time::{Duration, Instant};
 

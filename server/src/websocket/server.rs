@@ -152,24 +152,24 @@ impl ChatServer {
   fn check_rate_limit_register(&mut self, id: usize) -> Result<(), Error> {
     self.check_rate_limit_full(
       id,
-      Settings::get().rate_limit_register,
-      Settings::get().rate_limit_register_per_second,
+      Settings::get().rate_limit.register,
+      Settings::get().rate_limit.register_per_second,
     )
   }
 
   fn check_rate_limit_post(&mut self, id: usize) -> Result<(), Error> {
     self.check_rate_limit_full(
       id,
-      Settings::get().rate_limit_post,
-      Settings::get().rate_limit_post_per_second,
+      Settings::get().rate_limit.post,
+      Settings::get().rate_limit.post_per_second,
     )
   }
 
   fn check_rate_limit_message(&mut self, id: usize) -> Result<(), Error> {
     self.check_rate_limit_full(
       id,
-      Settings::get().rate_limit_message,
-      Settings::get().rate_limit_message_per_second,
+      Settings::get().rate_limit.message,
+      Settings::get().rate_limit.message_per_second,
     )
   }
 
