@@ -80,7 +80,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       this.state.postForm = {
         body: this.props.post.body,
         // NOTE: debouncing breaks both these for some reason, unless you use defaultValue
-        name: this.props.post.name,
+        name: undefined,
         community_id: this.props.post.community_id,
         edit_id: this.props.post.id,
         creator_id: this.props.post.creator_id,
@@ -209,7 +209,11 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
             </label>
             <div class="col-sm-10">
               <textarea
-                defaultValue={this.state.postForm.name}
+                defaultValue={
+                  this.props.post ? this.props.post.name : undefined
+                }
+                /* This needs to be undefined for some weird reason */
+                value={this.state.postForm.name}
                 onInput={linkEvent(this, this.handlePostNameChange)}
                 class="form-control"
                 required
