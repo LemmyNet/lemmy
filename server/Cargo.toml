@@ -5,7 +5,7 @@ authors = ["Dessalines <happydooby@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-diesel = { version = "1.4.2", features = ["postgres","chrono"] }
+diesel = { version = "1.4.2", features = ["postgres","chrono", "r2d2"] }
 diesel_migrations = "1.4.0"
 dotenv = "0.14.1"
 bcrypt = "0.5.0"

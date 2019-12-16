@@ -43,6 +43,7 @@ pub struct Database {
   pub host: String,
   pub port: i32,
   pub database: String,
+  pub pool_size: u32,
 }
 
 lazy_static! {

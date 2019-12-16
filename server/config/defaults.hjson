@@ -5,6 +5,7 @@
       host: "localhost"
       port: 5432
       database: "lemmy"
+      pool_size: 5
     }
   hostname: "rrr"
   bind: "0.0.0.0"
