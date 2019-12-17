@@ -1,0 +1,13 @@
+{
+  database: {
+    password: "{{ postgres_password }}"
+  }
+  hostname: "{{ domain }}"
+  jwt_secret: "{{ jwt_password }}"
+  email: {
+    smtp_server: "{{ smtp_server }}"
+    smtp_login: "{{ smtp_login }}"
+    smtp_password: "{{ smtp_password }}"
+    smtp_from_address: "{{ smtp_from_address }}"
+  }
+}

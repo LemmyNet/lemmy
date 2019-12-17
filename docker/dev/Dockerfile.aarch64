@@ -69,6 +69,7 @@ RUN addgroup --gid 1000 lemmy
 RUN adduser --disabled-password --shell /bin/sh --uid 1000 --ingroup lemmy lemmy
 
 # Copy resources
+COPY server/config /app/config
 COPY --from=rust /app/server/ready /app/lemmy
 COPY --from=node /app/ui/dist /app/dist
 

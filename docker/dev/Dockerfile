@@ -38,8 +38,10 @@ FROM alpine:3.10
 RUN apk add libpq
 
 # Copy resources
+COPY server/config /config
 COPY --from=rust /app/server/target/x86_64-unknown-linux-musl/release/lemmy_server /app/lemmy
 COPY --from=node /app/ui/dist /app/dist
+
 RUN addgroup -g 1000 lemmy
 RUN adduser -D -s /bin/sh -u 1000 -G lemmy lemmy
 RUN chown lemmy:lemmy /app/lemmy
