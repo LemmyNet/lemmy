@@ -5,7 +5,7 @@ use std::env;
 use std::net::IpAddr;
 
 static CONFIG_FILE_DEFAULTS: &str = "config/defaults.hjson";
-static CONFIG_FILE_COSTUMIZED: &str = "config/custom.hjson";
+static CONFIG_FILE: &str = "config/config.hjson";
 
 #[derive(Debug, Deserialize)]
 pub struct Settings {
@@ -59,21 +59,18 @@ impl Settings {
   
   /// Reads config from the files and environment.
   /// First, defaults are loaded from CONFIG_FILE_DEFAULTS, then these values can be overwritten
-  /// from CONFIG_FILE_COSTUMIZED (optional). Finally, values from the environment
-  /// (with prefix LEMMY) are added to the config.
+  /// from CONFIG_FILE (optional). Finally, values from the environment (with prefix LEMMY) are
+  /// added to the config.
   fn init() -> Result<Self, ConfigError> {
     let mut s = Config::new();
 
-    // Start off by merging in the "default" configuration file
     s.merge(File::with_name(CONFIG_FILE_DEFAULTS))?;
 
-    // TODO: we could also automatically load dev/prod configs based on environment
-    // https://github.com/mehcode/config-rs/blob/master/examples/hierarchical-env/src/settings.rs#L49
-    s.merge(File::with_name(CONFIG_FILE_COSTUMIZED).required(false))?;
+    s.merge(File::with_name(CONFIG_FILE).required(false))?;
 
     // Add in settings from the environment (with a prefix of LEMMY)
     // Eg.. `LEMMY_DEBUG=1 ./target/app` would set the `debug` key
-    s.merge(Environment::with_prefix("LEMMY"))?;
+    s.merge(Environment::with_prefix("LEMMY").separator("_"))?;
 
     return s.try_into();
   }

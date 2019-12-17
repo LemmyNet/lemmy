@@ -33,6 +33,7 @@
     template: src={{item.src}} dest={{item.dest}}
     with_items:
       - { src: 'templates/env', dest: '/lemmy/.env' }
+      - { src: 'templates/config.hjson', dest: '/lemmy/config.hjson' }
       - { src: '../docker/prod/docker-compose.yml', dest: '/lemmy/docker-compose.yml' }
       - { src: 'templates/nginx.conf', dest: '/etc/nginx/sites-enabled/lemmy.conf' }
     vars:
