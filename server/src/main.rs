@@ -11,6 +11,7 @@ use lemmy_server::db::establish_connection;
 use lemmy_server::feeds;
 use lemmy_server::nodeinfo;
 use lemmy_server::settings::Settings;
+use lemmy_server::webfinger;
 use lemmy_server::websocket::server::*;
 use std::env;
 use std::time::{Duration, Instant};
@@ -255,7 +256,10 @@ fn main() {
       )
       .route(
         "/federation/u/{user_name}",
-        web::get().to(apub::user::get_apub_user),
+        web::get().to(apub::user::get_apub_user))
+      .route(
+        ".well-known/webfinger",
+        web::get().to(webfinger::get_webfinger_response),
       )
   })
   .bind((settings.bind, settings.port))

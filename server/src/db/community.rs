@@ -68,6 +68,10 @@ impl Community {
       .filter(name.eq(community_name))
       .first::<Self>(conn)
   }
+
+  pub fn get_community_url(community_name: &str) -> String {
+    format!("https://{}/c/{}", Settings::get().hostname, community_name)
+  }
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]

@@ -30,6 +30,7 @@ pub mod nodeinfo;
 pub mod schema;
 pub mod settings;
 pub mod version;
+pub mod webfinger;
 pub mod websocket;
 
 use crate::settings::Settings;

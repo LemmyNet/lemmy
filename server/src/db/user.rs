@@ -132,23 +132,27 @@ impl User_ {
     .unwrap()
   }
 
+  pub fn find_by_username(conn: &PgConnection, username: &str) -> Result<Self, Error> {
+    user_.filter(name.eq(username)).first::<User_>(conn)
+  }
+
+  pub fn find_by_email(conn: &PgConnection, from_email: &str) -> Result<Self, Error> {
+    user_.filter(email.eq(from_email)).first::<User_>(conn)
+  }
+
   pub fn find_by_email_or_username(
     conn: &PgConnection,
     username_or_email: &str,
   ) -> Result<Self, Error> {
     if is_email_regex(username_or_email) {
-      user_
-        .filter(email.eq(username_or_email))
-        .first::<User_>(conn)
+      User_::find_by_email(conn, username_or_email)
     } else {
-      user_
-        .filter(name.eq(username_or_email))
-        .first::<User_>(conn)
+      User_::find_by_username(conn, username_or_email)
     }
   }
 
-  pub fn find_by_email(conn: &PgConnection, from_email: &str) -> Result<Self, Error> {
-    user_.filter(email.eq(from_email)).first::<User_>(conn)
+  pub fn get_user_profile_url(username: &str) -> String {
+    format!("https://{}/u/{}", Settings::get().hostname, username)
   }
 
   pub fn find_by_jwt(conn: &PgConnection, jwt: &str) -> Result<Self, Error> {
