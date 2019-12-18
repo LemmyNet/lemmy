@@ -56,7 +56,6 @@ lazy_static! {
 }
 
 impl Settings {
-  
   /// Reads config from the files and environment.
   /// First, defaults are loaded from CONFIG_FILE_DEFAULTS, then these values can be overwritten
   /// from CONFIG_FILE (optional). Finally, values from the environment (with prefix LEMMY) are
