@@ -25,13 +25,18 @@ pub fn node_info() -> HttpResponse<Body> {
     Ok(site_view) => site_view,
     Err(_e) => return HttpResponse::InternalServerError().finish(),
   };
+  let protocols = if Settings::get().federation_enabled {
+    vec!["activitypub"]
+  } else {
+    vec![]
+  };
   let json = json!({
     "version": "2.0",
     "software": {
       "name": "lemmy",
       "version": version::VERSION,
     },
-    "protocols": [],
+    "protocols": protocols,
     "usage": {
       "users": {
         "total": site_view.number_of_users

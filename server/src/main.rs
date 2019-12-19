@@ -198,7 +198,7 @@ fn main() {
 
   // Create Http server with websocket support
   HttpServer::new(move || {
-    App::new()
+    let app = App::new()
       .data(server.clone())
       // Front end routes
       .service(actix_files::Files::new("/static", front_end_dir()))
@@ -257,10 +257,17 @@ fn main() {
       .route(
         "/federation/u/{user_name}",
         web::get().to(apub::user::get_apub_user))
-      .route(
+      .route("/feeds/all.xml", web::get().to(feeds::get_all_feed));
+
+    // Federation
+    if Settings::get().federation_enabled {
+      app.route(
         ".well-known/webfinger",
         web::get().to(webfinger::get_webfinger_response),
       )
+    } else {
+      app
+    }
   })
   .bind((settings.bind, settings.port))
   .unwrap()

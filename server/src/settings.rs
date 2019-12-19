@@ -16,6 +16,7 @@ pub struct Settings {
   pub jwt_secret: String,
   pub rate_limit: RateLimitConfig,
   pub email: Option<EmailConfig>,
+  pub federation_enabled: bool,
 }
 
 #[derive(Debug, Deserialize)]
