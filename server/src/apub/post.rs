@@ -13,7 +13,7 @@ impl Post {
     page.object_props.set_name_string(self.name.to_owned()).ok();
 
     if let Some(body) = &self.body {
-        page.object_props.set_content_string(body.to_owned()).ok();
+      page.object_props.set_content_string(body.to_owned()).ok();
     }
 
     if let Some(url) = &self.url {
