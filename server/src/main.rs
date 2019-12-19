@@ -6,6 +6,7 @@ use actix::prelude::*;
 use actix_files::NamedFile;
 use actix_web::*;
 use actix_web_actors::ws;
+use lemmy_server::apub;
 use lemmy_server::db::establish_connection;
 use lemmy_server::feeds;
 use lemmy_server::nodeinfo;
@@ -243,6 +244,19 @@ fn main() {
       // RSS
       .route("/feeds/{type}/{name}.xml", web::get().to(feeds::get_feed))
       .route("/feeds/all.xml", web::get().to(feeds::get_all_feed))
+      // Federation
+      .route(
+        "/federation/c/{community_name}",
+        web::get().to(apub::community::get_apub_community),
+      )
+      .route(
+        "/federation/c/{community_name}/followers",
+        web::get().to(apub::community::get_apub_community_followers),
+      )
+      .route(
+        "/federation/u/{user_name}",
+        web::get().to(apub::user::get_apub_user),
+      )
   })
   .bind((settings.bind, settings.port))
   .unwrap()
