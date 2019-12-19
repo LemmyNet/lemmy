@@ -22,6 +22,9 @@
   port: 8536
   # json web token for authorization between server and client
   jwt_secret: "changeme"
+  # whether to enable activitypub federation. this feature is in alpha, do not enable in production, as might
+  # cause problems like remote instances fetching and permanently storing bad data.
+  federation_enabled: false
   # rate limits for various user actions, by user ip
   rate_limit: {
     # maximum number of messages created in interval
