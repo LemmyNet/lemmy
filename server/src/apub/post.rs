@@ -11,6 +11,17 @@ impl Post {
     page.object_props.set_context_object(context()).ok();
     page.object_props.set_id_string(base_url.to_string()).ok();
     page.object_props.set_name_string(self.name.to_owned()).ok();
+
+    if let Some(body) = &self.body {
+        page.object_props.set_content_string(body.to_owned()).ok();
+    }
+
+    if let Some(url) = &self.url {
+      page.object_props.set_url_string(url.to_owned()).ok();
+    }
+
+    //page.object_props.set_attributed_to_string
+
     page
       .object_props
       .set_published_utctime(to_datetime_utc(self.published))
