@@ -121,9 +121,6 @@ impl Settings {
       email_config,
     }
   }
-  fn api_endpoint(&self) -> String {
-    format!("{}/api/v1", self.hostname)
-  }
 }
 
 pub fn to_datetime_utc(ndt: NaiveDateTime) -> DateTime<Utc> {
@@ -210,10 +207,6 @@ pub fn send_email(
 #[cfg(test)]
 mod tests {
   use crate::{extract_usernames, has_slurs, is_email_regex, remove_slurs, Settings};
-  #[test]
-  fn test_api() {
-    assert_eq!(Settings::get().api_endpoint(), "rrr/api/v1");
-  }
 
   #[test]
   fn test_email() {
