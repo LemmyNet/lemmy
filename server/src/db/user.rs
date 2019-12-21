@@ -87,6 +87,10 @@ impl User_ {
   pub fn read_from_name(conn: &PgConnection, from_user_name: String) -> Result<Self, Error> {
     user_.filter(name.eq(from_user_name)).first::<Self>(conn)
   }
+
+  pub fn get_user_url(user_name: &str) -> String {
+    format!("https://{}/u/{}", Settings::get().hostname, user_name)
+  }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

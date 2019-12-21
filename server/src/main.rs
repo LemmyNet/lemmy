@@ -6,6 +6,7 @@ use actix::prelude::*;
 use actix_files::NamedFile;
 use actix_web::*;
 use actix_web_actors::ws;
+use lemmy_server::apub::webfinger;
 use lemmy_server::db::establish_connection;
 use lemmy_server::feeds;
 use lemmy_server::nodeinfo;
@@ -13,7 +14,6 @@ use lemmy_server::websocket::server::*;
 use lemmy_server::Settings;
 use std::env;
 use std::time::{Duration, Instant};
-
 embed_migrations!();
 
 /// How often heartbeat pings are sent
@@ -243,6 +243,11 @@ fn main() {
       // RSS
       .route("/feeds/{type}/{name}.xml", web::get().to(feeds::get_feed))
       .route("/feeds/all.xml", web::get().to(feeds::get_all_feed))
+      // Federation
+      .route(
+        "/.well-known/webfinger",
+        web::get().to(webfinger::get_webfinger),
+      )
   })
   .bind((settings.bind, settings.port))
   .unwrap()

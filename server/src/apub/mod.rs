@@ -1,6 +1,7 @@
 pub mod community;
 pub mod post;
 pub mod user;
+pub mod webfinger;
 
 use crate::Settings;
 use std::fmt::Display;
