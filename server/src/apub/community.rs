@@ -1,7 +1,13 @@
 use crate::apub::make_apub_endpoint;
 use crate::db::community::Community;
+use crate::db::community_view::CommunityFollowerView;
 use crate::to_datetime_utc;
-use activitypub::{actor::Group, context};
+use crate::db::establish_connection;
+use activitypub::{actor::Group, collection::UnorderedCollection, context};
+use actix_web::body::Body;
+use actix_web::web::Path;
+use actix_web::HttpResponse;
+use serde::Deserialize;
 
 impl Community {
   pub fn as_group(&self) -> Group {
@@ -48,4 +54,55 @@ impl Community {
 
     group
   }
+
+  pub fn followers_as_collection(&self) -> UnorderedCollection {
+
+    let base_url = make_apub_endpoint("community", &self.name);
+
+    let mut collection = UnorderedCollection::default();
+    collection.object_props.set_context_object(context()).ok();
+    collection.object_props.set_id_string(base_url.to_string()).ok();
+
+    let connection = establish_connection();
+    //As we are an object, we validated that the community id was valid
+    let community_followers = CommunityFollowerView::for_community(&connection, self.id).unwrap();
+
+    let ap_followers = community_followers.iter()
+                            .map(|follower| make_apub_endpoint("user", &follower.user_name))
+                            .collect();
+
+    collection.collection_props.set_items_string_vec(ap_followers).unwrap();
+    collection
+
+  }
+
+}
+
+#[derive(Deserialize)]
+pub struct CommunityQuery {
+  community_name: String,
+}
+
+pub fn get_apub_community(info: Path<CommunityQuery>) -> HttpResponse<Body> {
+    let connection = establish_connection();
+
+    if let Ok(community) = Community::read_from_name(&connection, info.community_name.to_owned()) {
+        HttpResponse::Ok()
+        .content_type("application/activity+json")
+        .body(serde_json::to_string(&community.as_group()).unwrap())
+    } else {
+      HttpResponse::NotFound().finish()
+    }
+}
+
+pub fn get_apub_community_followers(info: Path<CommunityQuery>) -> HttpResponse<Body> {
+    let connection = establish_connection();
+
+    if let Ok(community) = Community::read_from_name(&connection, info.community_name.to_owned()) {
+      HttpResponse::Ok()
+        .content_type("application/activity+json")
+        .body(serde_json::to_string(&community.followers_as_collection()).unwrap())
+    } else {
+      HttpResponse::NotFound().finish()
+    }
 }

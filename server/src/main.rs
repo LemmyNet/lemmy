@@ -6,7 +6,7 @@ use actix::prelude::*;
 use actix_files::NamedFile;
 use actix_web::*;
 use actix_web_actors::ws;
-use lemmy_server::apub::webfinger;
+use lemmy_server::apub;
 use lemmy_server::db::establish_connection;
 use lemmy_server::feeds;
 use lemmy_server::nodeinfo;
@@ -246,7 +246,19 @@ fn main() {
       // Federation
       .route(
         "/.well-known/webfinger",
-        web::get().to(webfinger::get_webfinger),
+        web::get().to(apub::webfinger::get_webfinger),
+      )
+      .route(
+        "/api/v1/federation/community/{community_name}",
+        web::get().to(apub::community::get_apub_community)
+      )
+      .route(
+        "/api/v1/federation/community/{community_name}/followers",
+        web::get().to(apub::community::get_apub_community_followers)
+      )
+      .route(
+        "/api/v1/federation/user/{user_name}",
+        web::get().to(apub::user::get_apub_user)
       )
   })
   .bind((settings.bind, settings.port))

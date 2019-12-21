@@ -1,7 +1,12 @@
 use crate::apub::make_apub_endpoint;
+use actix_web::body::Body;
+use actix_web::web::Path;
+use actix_web::HttpResponse;
 use crate::db::user::User_;
+use crate::db::establish_connection;
 use crate::to_datetime_utc;
 use activitypub::{actor::Person, context};
+use serde::Deserialize;
 
 impl User_ {
   pub fn as_person(&self) -> Person {
@@ -50,3 +55,21 @@ impl User_ {
     person
   }
 }
+
+#[derive(Deserialize)]
+pub struct UserQuery {
+  user_name: String,
+}
+
+pub fn get_apub_user(info: Path<UserQuery>) -> HttpResponse<Body> {
+    let connection = establish_connection();
+
+    if let Ok(user) = User_::find_by_email_or_username(&connection, &info.user_name) {
+        HttpResponse::Ok()
+        .content_type("application/activity+json")
+        .body(serde_json::to_string(&user.as_person()).unwrap())
+    } else {
+      HttpResponse::NotFound().finish()
+    }
+}
+
