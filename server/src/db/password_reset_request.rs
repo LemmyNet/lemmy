@@ -1,8 +1,7 @@
 use super::*;
 use crate::schema::password_reset_request;
 use crate::schema::password_reset_request::dsl::*;
-use crypto::digest::Digest;
-use crypto::sha2::Sha256;
+use sha2::{Sha256, Digest};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "password_reset_request"]
@@ -49,8 +48,8 @@ impl Crud<PasswordResetRequestForm> for PasswordResetRequest {
 impl PasswordResetRequest {
   pub fn create_token(conn: &PgConnection, from_user_id: i32, token: &str) -> Result<Self, Error> {
     let mut hasher = Sha256::new();
-    hasher.input_str(token);
-    let token_hash = hasher.result_str();
+    hasher.input(token);
+    let token_hash: String = PasswordResetRequest::bytes_to_hex(hasher.result().to_vec());
 
     let form = PasswordResetRequestForm {
       user_id: from_user_id,
@@ -61,12 +60,20 @@ impl PasswordResetRequest {
   }
   pub fn read_from_token(conn: &PgConnection, token: &str) -> Result<Self, Error> {
     let mut hasher = Sha256::new();
-    hasher.input_str(token);
-    let token_hash = hasher.result_str();
+    hasher.input(token);
+    let token_hash: String = PasswordResetRequest::bytes_to_hex(hasher.result().to_vec());
     password_reset_request
       .filter(token_encrypted.eq(token_hash))
       .filter(published.gt(now - 1.days()))
       .first::<Self>(conn)
+  }
+
+  fn bytes_to_hex(bytes: Vec<u8>) -> String {
+    let mut str = String::new();
+    for byte in bytes {
+      str = format!("{}{:02x}", str, byte);
+    }
+    str
   }
 }
 
