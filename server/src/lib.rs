@@ -11,7 +11,7 @@ pub extern crate actix;
 pub extern crate actix_web;
 pub extern crate bcrypt;
 pub extern crate chrono;
-pub extern crate crypto;
+pub extern crate sha2;
 pub extern crate dotenv;
 pub extern crate jsonwebtoken;
 pub extern crate lettre;
