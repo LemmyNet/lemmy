@@ -1,7 +1,7 @@
 use super::*;
 use crate::schema::password_reset_request;
 use crate::schema::password_reset_request::dsl::*;
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "password_reset_request"]

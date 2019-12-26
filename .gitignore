@@ -2,4 +2,3 @@ ansible/inventory
 ansible/passwords/
 build/
 .idea/
-docker/dev/config/config.hjson

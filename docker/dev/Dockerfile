@@ -38,7 +38,7 @@ FROM alpine:3.10
 RUN apk add libpq
 
 # Copy resources
-COPY server/config /config
+COPY server/config/defaults.hjson /config/defaults.hjson
 COPY --from=rust /app/server/target/x86_64-unknown-linux-musl/release/lemmy_server /app/lemmy
 COPY --from=node /app/ui/dist /app/dist
 

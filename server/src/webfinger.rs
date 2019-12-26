@@ -4,12 +4,21 @@ use crate::Settings;
 use actix_web::body::Body;
 use actix_web::web::Query;
 use actix_web::HttpResponse;
+use regex::Regex;
 use serde::Deserialize;
 use serde_json::json;
 
 #[derive(Deserialize)]
 pub struct Params {
   resource: String,
+}
+
+lazy_static! {
+  static ref WEBFINGER_COMMUNITY_REGEX: Regex = Regex::new(&format!(
+    "^group:([a-z0-9_]{{3, 20}})@{}$",
+    Settings::get().hostname
+  ))
+  .unwrap();
 }
 
 /// Responds to webfinger requests of the following format. There isn't any real documentation for
@@ -19,26 +28,27 @@ pub struct Params {
 /// You can also view the webfinger response that Mastodon sends:
 /// https://radical.town/.well-known/webfinger?resource=acct:felix@radical.town
 pub fn get_webfinger_response(info: Query<Params>) -> HttpResponse<Body> {
-  // NOTE: Calling the parameter "account" maybe doesn't really make sense, but should give us the
-  // best compatibility with existing implementations. We could also support an alternative name
-  // like "group", and encourage others to use that.
-  let community_identifier = info.resource.replace("acct:", "");
-  let split_identifier: Vec<&str> = community_identifier.split("@").collect();
-  let community_name = split_identifier[0];
-  // It looks like Mastodon does not return webfinger requests for users from other instances, so we
-  // don't do that either.
-  if split_identifier.len() != 2 || split_identifier[1] != Settings::get().hostname {
-    return HttpResponse::NotFound().finish();
-  }
+  let regex_parsed = WEBFINGER_COMMUNITY_REGEX
+    .captures(&info.resource)
+    .map(|c| c.get(1));
+  // TODO: replace this with .flatten() once we are running rust 1.40
+  let regex_parsed_flattened = match regex_parsed {
+    Some(s) => s,
+    None => None,
+  };
+  let community_name = match regex_parsed_flattened {
+    Some(c) => c.as_str(),
+    None => return HttpResponse::NotFound().finish(),
+  };
 
   // Make sure the requested community exists.
   let conn = establish_connection();
-  match Community::read_from_name(&conn, community_name.to_owned()) {
+  let community = match Community::read_from_name(&conn, community_name.to_string()) {
+    Ok(o) => o,
     Err(_) => return HttpResponse::NotFound().finish(),
-    Ok(c) => c,
   };
 
-  let community_url = Community::get_community_url(&community_name);
+  let community_url = community.get_url();
 
   let json = json!({
     "subject": info.resource,
@@ -54,7 +64,8 @@ pub fn get_webfinger_response(info: Query<Params>) -> HttpResponse<Body> {
       {
         "rel": "self",
         "type": "application/activity+json",
-        "href": community_url // Yes this is correct, this link doesn't include the `.json` extension
+        // Yes this is correct, this link doesn't include the `.json` extension
+        "href": community_url
       }
       // TODO: this also needs to return the subscribe link once that's implemented
       //{
@@ -63,7 +74,7 @@ pub fn get_webfinger_response(info: Query<Params>) -> HttpResponse<Body> {
       //}
     ]
   });
-  return HttpResponse::Ok()
+  HttpResponse::Ok()
     .content_type("application/activity+json")
-    .body(json.to_string());
+    .body(json.to_string())
 }

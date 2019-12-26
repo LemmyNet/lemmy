@@ -69,8 +69,8 @@ impl Community {
       .first::<Self>(conn)
   }
 
-  pub fn get_community_url(community_name: &str) -> String {
-    format!("https://{}/c/{}", Settings::get().hostname, community_name)
+  pub fn get_url(&self) -> String {
+    format!("https://{}/c/{}", Settings::get().hostname, self.name)
   }
 }
 
