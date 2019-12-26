@@ -111,7 +111,7 @@ fn get_feed_user(sort_type: &SortType, user_name: String) -> Result<String, Erro
 
   let site_view = SiteView::read(&conn)?;
   let user = User_::find_by_username(&conn, &user_name)?;
-  let user_url = User_::get_user_profile_url(&user_name);
+  let user_url = user.get_profile_url();
 
   let posts = PostQueryBuilder::create(&conn)
     .listing_type(ListingType::All)
@@ -135,7 +135,7 @@ fn get_feed_community(sort_type: &SortType, community_name: String) -> Result<St
 
   let site_view = SiteView::read(&conn)?;
   let community = Community::read_from_name(&conn, community_name)?;
-  let community_url = Community::get_community_url(&community.name);
+  let community_url = community.get_url();
 
   let posts = PostQueryBuilder::create(&conn)
     .listing_type(ListingType::All)

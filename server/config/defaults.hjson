@@ -1,19 +1,19 @@
 {
   # settings related to the postgresql database
   database: {
-      # username to connect to postgres
-      user: "lemmy"
-      # password to connect to postgres
-      password: "password"
-      # host where postgres is running
-      host: "localhost"
-      # port where postgres can be accessed
-      port: 5432
-      # name of the postgres database for lemmy
-      database: "lemmy"
-      # maximum number of active sql connections
-      pool_size: 5
-    }
+    # username to connect to postgres
+    user: "lemmy"
+    # password to connect to postgres
+    password: "password"
+    # host where postgres is running
+    host: "localhost"
+    # port where postgres can be accessed
+    port: 5432
+    # name of the postgres database for lemmy
+    database: "lemmy"
+    # maximum number of active sql connections
+    pool_size: 5
+  }
   # the domain name of your instance (eg "dev.lemmy.ml")
   hostname: "rrr"
   # address where lemmy should listen for incoming requests

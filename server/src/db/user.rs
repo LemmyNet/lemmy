@@ -151,8 +151,8 @@ impl User_ {
     }
   }
 
-  pub fn get_user_profile_url(username: &str) -> String {
-    format!("https://{}/u/{}", Settings::get().hostname, username)
+  pub fn get_profile_url(&self) -> String {
+    format!("https://{}/u/{}", Settings::get().hostname, self.name)
   }
 
   pub fn find_by_jwt(conn: &PgConnection, jwt: &str) -> Result<Self, Error> {
