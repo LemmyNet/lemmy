@@ -1,0 +1,4 @@
+{
+  hostname: "localhost:8536"
+  federation_enabled: true
+}

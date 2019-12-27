@@ -17,6 +17,7 @@ use crate::api::post::*;
 use crate::api::site::*;
 use crate::api::user::*;
 use crate::api::*;
+use crate::apub::puller::*;
 use crate::Settings;
 
 /// Chat server sends this messages to session
@@ -352,14 +353,35 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       Ok(serde_json::to_string(&res)?)
     }
     UserOperation::GetCommunity => {
-      let get_community: GetCommunity = serde_json::from_str(data)?;
-      let res = Oper::new(user_operation, get_community).perform()?;
-      Ok(serde_json::to_string(&res)?)
+      let mut get_community: GetCommunity = serde_json::from_str(data)?;
+      if Settings::get().federation_enabled && get_community.name.is_some() {
+        let name = &get_community.name.unwrap();
+        let remote_community = if name.contains("@") {
+          // TODO: need to support sort, filter etc for remote communities
+          get_remote_community(name.to_owned())?
+        } else {
+          get_community.name = Some(name.replace("!", ""));
+          Oper::new(user_operation, get_community).perform()?
+        };
+        Ok(serde_json::to_string(&remote_community)?)
+      } else {
+        let res = Oper::new(user_operation, get_community).perform()?;
+        Ok(serde_json::to_string(&res)?)
+      }
     }
     UserOperation::ListCommunities => {
-      let list_communities: ListCommunities = serde_json::from_str(data)?;
-      let res = Oper::new(user_operation, list_communities).perform()?;
-      Ok(serde_json::to_string(&res)?)
+      if Settings::get().federation_enabled {
+        let res = get_all_communities()?;
+        let val = ListCommunitiesResponse {
+          op: UserOperation::ListCommunities.to_string(),
+          communities: res,
+        };
+        Ok(serde_json::to_string(&val)?)
+      } else {
+        let list_communities: ListCommunities = serde_json::from_str(data)?;
+        let res = Oper::new(user_operation, list_communities).perform()?;
+        Ok(serde_json::to_string(&res)?)
+      }
     }
     UserOperation::CreateCommunity => {
       chat.check_rate_limit_register(msg.id)?;

@@ -48,7 +48,13 @@ pub fn get_webfinger_response(info: Query<Params>) -> HttpResponse<Body> {
     Err(_) => return HttpResponse::NotFound().finish(),
   };
 
-  let community_url = community.get_url();
+  // TODO: might want to move this into community or apub
+  // TODO: should use http during local testing, and https during production
+  let community_url = format!(
+    "http://{}/federation/c/{}",
+    Settings::get().hostname,
+    community.name
+  );
 
   let json = json!({
     "subject": info.resource,
@@ -59,7 +65,7 @@ pub fn get_webfinger_response(info: Query<Params>) -> HttpResponse<Body> {
       {
         "rel": "http://webfinger.net/rel/profile-page",
         "type": "text/html",
-        "href": community_url
+        "href": community.get_url(),
       },
       {
         "rel": "self",
