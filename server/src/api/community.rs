@@ -4,16 +4,16 @@ use std::str::FromStr;
 #[derive(Serialize, Deserialize)]
 pub struct GetCommunity {
   id: Option<i32>,
-  name: Option<String>,
+  pub name: Option<String>,
   auth: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct GetCommunityResponse {
-  op: String,
-  community: CommunityView,
-  moderators: Vec<CommunityModeratorView>,
-  admins: Vec<UserView>,
+  pub op: String,
+  pub community: CommunityView,
+  pub moderators: Vec<CommunityModeratorView>,
+  pub admins: Vec<UserView>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -40,10 +40,10 @@ pub struct ListCommunities {
   auth: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ListCommunitiesResponse {
-  op: String,
-  communities: Vec<CommunityView>,
+  pub op: String,
+  pub communities: Vec<CommunityView>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

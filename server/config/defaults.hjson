@@ -15,7 +15,7 @@
     pool_size: 5
   }
   # the domain name of your instance (eg "dev.lemmy.ml")
-  hostname: "rrr"
+  hostname: null
   # address where lemmy should listen for incoming requests
   bind: "0.0.0.0"
   # port where lemmy should listen for incoming requests
@@ -24,9 +24,11 @@
   jwt_secret: "changeme"
   # The dir for the front end
   front_end_dir: "../ui/dist"
-  # whether to enable activitypub federation. this feature is in alpha, do not enable in production, as might
-  # cause problems like remote instances fetching and permanently storing bad data.
+  # whether to enable activitypub federation. this feature is in alpha, do not enable in production.
   federation_enabled: false
+  // another instance to federate with. this should be a list, but it seems like lists cant be set from environment
+  // https://github.com/mehcode/config-rs/issues/117
+  federated_instance: null
   # rate limits for various user actions, by user ip
   rate_limit: {
     # maximum number of messages created in interval

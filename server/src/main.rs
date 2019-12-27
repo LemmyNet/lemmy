@@ -4,8 +4,13 @@ extern crate diesel_migrations;
 
 use actix::prelude::*;
 use actix_files::NamedFile;
+use actix_web::web::Query;
 use actix_web::*;
 use actix_web_actors::ws;
+use lemmy_server::api::community::ListCommunities;
+use lemmy_server::api::Oper;
+use lemmy_server::api::Perform;
+use lemmy_server::api::UserOperation;
 use lemmy_server::apub;
 use lemmy_server::db::establish_connection;
 use lemmy_server::feeds;
@@ -263,11 +268,25 @@ fn main() {
       .route("/feeds/all.xml", web::get().to(feeds::get_all_feed));
 
     // Federation
-    if settings.federation_enabled {
-      app.route(
-        ".well-known/webfinger",
-        web::get().to(webfinger::get_webfinger_response),
-      )
+    if Settings::get().federation_enabled {
+      println!("federation enabled, host is {}", Settings::get().hostname);
+      app
+        .route(
+          ".well-known/webfinger",
+          web::get().to(webfinger::get_webfinger_response),
+        )
+        // TODO: this is a very quick and dirty implementation for http api calls
+        .route(
+          "/api/v1/communities/list",
+          web::get().to(|query: Query<ListCommunities>| {
+            let res = Oper::new(UserOperation::ListCommunities, query.into_inner())
+              .perform()
+              .unwrap();
+            HttpResponse::Ok()
+              .content_type("application/json")
+              .body(serde_json::to_string(&res).unwrap())
+          }),
+        )
     } else {
       app
     }
@@ -277,6 +296,7 @@ fn main() {
   .start();
 
   println!("Started http server at {}:{}", settings.bind, settings.port);
+
   let _ = sys.run();
 }
 

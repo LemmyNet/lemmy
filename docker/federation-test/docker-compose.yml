@@ -1,0 +1,74 @@
+version: '3.3'
+
+services:
+  lemmy_alpha:
+    build:
+      context: ../../
+      dockerfile: docker/dev/Dockerfile
+    ports:
+      - "127.0.0.1:8536:8536"
+    environment:
+      - LEMMY_HOSTNAME=localhost:8536
+      - LEMMY_DATABASE_URL=postgres://lemmy:password@lemmy_db_alpha:5432/lemmy
+      - LEMMY_JWT_SECRET=changeme
+      - LEMMY_FRONT_END_DIR=/app/dist
+      - LEMMY_FEDERATION_ENABLED=true
+      - LEMMY_FEDERATED_INSTANCE=lemmy_beta:8537
+      - LEMMY_PORT=8536
+    restart: always
+    depends_on:
+      - lemmy_db_alpha
+  lemmy_db_alpha:
+    image: postgres:12-alpine
+    environment:
+      - POSTGRES_USER=lemmy
+      - POSTGRES_PASSWORD=${LEMMY_DATABASE_PASSWORD}
+      - POSTGRES_DB=lemmy
+    restart: always
+  lemmy_pictshare_alpha:
+    image: shtripok/pictshare:latest
+    ports:
+      - "127.0.0.1:8540:80"
+    volumes:
+      - lemmy_pictshare_alpha:/usr/share/nginx/html/data
+    restart: always
+
+  lemmy_beta:
+    build:
+      context: ../../
+      dockerfile: docker/dev/Dockerfile
+    ports:
+      - "127.0.0.1:8537:8537"
+    environment:
+      - LEMMY_HOSTNAME=localhost:8537
+      - LEMMY_DATABASE_URL=postgres://lemmy:password@lemmy_db_beta:5432/lemmy
+      - LEMMY_JWT_SECRET=changeme
+      - LEMMY_FRONT_END_DIR=/app/dist
+      - LEMMY_FEDERATION_ENABLED=true
+      - LEMMY_FEDERATED_INSTANCE=lemmy_alpha:8536
+      - LEMMY_PORT=8537
+    restart: always
+    depends_on:
+      - lemmy_db_beta
+  lemmy_db_beta:
+    image: postgres:12-alpine
+    environment:
+      - POSTGRES_USER=lemmy
+      - POSTGRES_PASSWORD=${LEMMY_DATABASE_PASSWORD}
+      - POSTGRES_DB=lemmy
+    volumes:
+      - lemmy_db_beta:/var/lib/postgresql/data
+    restart: always
+  lemmy_pictshare_beta:
+    image: shtripok/pictshare:latest
+    ports:
+      - "127.0.0.1:8541:80"
+    volumes:
+      - lemmy_pictshare_beta:/usr/share/nginx/html/data
+    restart: always
+
+volumes:
+  lemmy_db_alpha:
+  lemmy_pictshare_alpha:
+  lemmy_db_beta:
+  lemmy_pictshare_beta:
