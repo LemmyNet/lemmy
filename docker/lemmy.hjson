@@ -1,12 +1,11 @@
 {
-  # settings related to the postgresql database
   database: {
     # username to connect to postgres
     user: "lemmy"
     # password to connect to postgres
     password: "password"
     # host where postgres is running
-    host: "localhost"
+    host: "lemmy_db"
     # port where postgres can be accessed
     port: 5432
     # name of the postgres database for lemmy
@@ -23,7 +22,7 @@
   # json web token for authorization between server and client
   jwt_secret: "changeme"
   # The dir for the front end
-  front_end_dir: "../ui/dist"
+  front_end_dir: "/app/dist"
   # whether to enable activitypub federation. this feature is in alpha, do not enable in production, as might
   # cause problems like remote instances fetching and permanently storing bad data.
   federation_enabled: false
@@ -54,3 +53,4 @@
 #    smtp_from_address: ""
 #  }
 }
+

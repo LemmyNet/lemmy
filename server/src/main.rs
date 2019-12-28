@@ -13,7 +13,6 @@ use lemmy_server::nodeinfo;
 use lemmy_server::settings::Settings;
 use lemmy_server::webfinger;
 use lemmy_server::websocket::server::*;
-use std::env;
 use std::time::{Duration, Instant};
 
 embed_migrations!();
@@ -201,7 +200,10 @@ fn main() {
     let app = App::new()
       .data(server.clone())
       // Front end routes
-      .service(actix_files::Files::new("/static", front_end_dir()))
+      .service(actix_files::Files::new(
+        "/static",
+        settings.front_end_dir.to_owned(),
+      ))
       .route("/", web::get().to(index))
       .route(
         "/home/type/{type}/sort/{sort}/page/{page}",
@@ -256,11 +258,12 @@ fn main() {
       )
       .route(
         "/federation/u/{user_name}",
-        web::get().to(apub::user::get_apub_user))
+        web::get().to(apub::user::get_apub_user),
+      )
       .route("/feeds/all.xml", web::get().to(feeds::get_all_feed));
 
     // Federation
-    if Settings::get().federation_enabled {
+    if settings.federation_enabled {
       app.route(
         ".well-known/webfinger",
         web::get().to(webfinger::get_webfinger_response),
@@ -278,9 +281,7 @@ fn main() {
 }
 
 fn index() -> Result<NamedFile, actix_web::error::Error> {
-  Ok(NamedFile::open(front_end_dir() + "/index.html")?)
-}
-
-fn front_end_dir() -> String {
-  env::var("LEMMY_FRONT_END_DIR").unwrap_or("../ui/dist".to_string())
+  Ok(NamedFile::open(
+    Settings::get().front_end_dir.to_owned() + "/index.html",
+  )?)
 }

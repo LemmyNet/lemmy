@@ -127,7 +127,7 @@ pub fn send_email(
 
 #[cfg(test)]
 mod tests {
-  use crate::{extract_usernames, has_slurs, is_email_regex, remove_slurs, Settings};
+  use crate::{extract_usernames, has_slurs, is_email_regex, remove_slurs};
 
   #[test]
   fn test_email() {

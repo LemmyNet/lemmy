@@ -5,7 +5,7 @@ services:
     image: postgres:12-alpine
     environment:
       - POSTGRES_USER=lemmy
-      - POSTGRES_PASSWORD=${LEMMY_DATABASE_PASSWORD}
+      - POSTGRES_PASSWORD=password
       - POSTGRES_DB=lemmy
     volumes:
       - lemmy_db:/var/lib/postgresql/data
@@ -16,11 +16,9 @@ services:
       dockerfile: docker/dev/Dockerfile
     ports:
       - "127.0.0.1:8536:8536"
-    env_file:
-      - .env
     restart: always
     volumes:
-      - ./config/config.hjson:/config/config.hjson:ro
+      - ../lemmy.hjson:/config/config.hjson:ro
     depends_on: 
       - lemmy_db
   lemmy_pictshare:
