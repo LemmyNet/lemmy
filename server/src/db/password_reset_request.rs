@@ -104,23 +104,20 @@ mod tests {
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
 
-    let new_password_reset_request = PasswordResetRequestForm {
-      user_id: inserted_user.id,
-      token_encrypted: "no".into(),
-    };
+    let token = "nope";
+    let token_encrypted_ = "ca3704aa0b06f5954c79ee837faa152d84d6b2d42838f0637a15eda8337dbdce";
 
     let inserted_password_reset_request =
-      PasswordResetRequest::create(&conn, &new_password_reset_request).unwrap();
+      PasswordResetRequest::create_token(&conn, inserted_user.id, token).unwrap();
 
     let expected_password_reset_request = PasswordResetRequest {
       id: inserted_password_reset_request.id,
       user_id: inserted_user.id,
-      token_encrypted: "no".into(),
+      token_encrypted: token_encrypted_.to_string(),
       published: inserted_password_reset_request.published,
     };
 
-    let read_password_reset_request =
-      PasswordResetRequest::read(&conn, inserted_password_reset_request.id).unwrap();
+    let read_password_reset_request = PasswordResetRequest::read_from_token(&conn, token).unwrap();
     let num_deleted = User_::delete(&conn, inserted_user.id).unwrap();
 
     assert_eq!(expected_password_reset_request, read_password_reset_request);

@@ -32,21 +32,12 @@
   - name:  add all template files
     template: src={{item.src}} dest={{item.dest}}
     with_items:
-      - { src: 'templates/env', dest: '/lemmy/.env' }
-      - { src: 'templates/config.hjson', dest: '/lemmy/config.hjson' }
+      - { src: '../docker/lemmy.hjson', dest: '/lemmy/lemmy.hjson' }
       - { src: '../docker/prod/docker-compose.yml', dest: '/lemmy/docker-compose.yml' }
       - { src: 'templates/nginx.conf', dest: '/etc/nginx/sites-enabled/lemmy.conf' }
     vars:
       postgres_password: "{{ lookup('password', 'passwords/{{ inventory_hostname }}/postgres chars=ascii_letters,digits') }}"
       jwt_password: "{{ lookup('password', 'passwords/{{ inventory_hostname }}/jwt chars=ascii_letters,digits') }}"
-
-  - name: set env file permissions
-    file:
-      path: "/lemmy/.env"
-      state: touch
-      mode: 0600
-      access_time: preserve
-      modification_time: preserve
 
   - name: enable and start docker service
     systemd:

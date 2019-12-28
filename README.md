@@ -120,7 +120,7 @@ Make sure you have both docker and docker-compose(>=`1.24.0`) installed:
 mkdir lemmy/
 cd lemmy/
 wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/docker-compose.yml
-wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/.env
+wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/lemmy.hjson
 # Edit the .env if you want custom passwords
 docker-compose up -d
 ```
@@ -225,16 +225,12 @@ cd lemmy
 
 ## Configuration
 
-The configuration is based on the file [defaults.hjson](server/config/defaults.hjson). This file also contains
-documentation for all the available options. To override the defaults, you can copy the options you want to change
-into your local `config.hjson` file. 
+The configuration is based on the file [defaults.hjson](server/config/defaults.hjson). This file also contains documentation for all the available options. To override the defaults, you can copy the options you want to change into your local `config.hjson` file. 
 
-Additionally, you can override any config files with environment variables. These have the same name as the config
-options, and are prefixed with `LEMMY_`. For example, you can override the `database.password` with 
+Additionally, you can override any config files with environment variables. These have the same name as the config options, and are prefixed with `LEMMY_`. For example, you can override the `database.password` with 
 `LEMMY__DATABASE__POOL_SIZE=10`.
 
-An additional option `LEMMY_DATABASE_URL` is available, which can be used with a PostgreSQL connection string like
-`postgres://lemmy:password@lemmy_db:5432/lemmy`, passing all connection details at once.
+An additional option `LEMMY_DATABASE_URL` is available, which can be used with a PostgreSQL connection string like `postgres://lemmy:password@lemmy_db:5432/lemmy`, passing all connection details at once.
 
 ## Documentation
 

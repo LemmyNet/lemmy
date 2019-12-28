@@ -1,2 +1,0 @@
-DATABASE_PASSWORD={{ postgres_password }}
-LEMMY_FRONT_END_DIR=/app/dist
