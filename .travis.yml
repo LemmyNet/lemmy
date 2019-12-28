@@ -21,6 +21,6 @@ script:
   - diesel migration run
   - cargo test
 env:
-  - LEMMY_DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
+  - DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
 addons:
   postgresql: "9.4"
