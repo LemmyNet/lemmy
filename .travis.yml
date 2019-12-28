@@ -16,8 +16,9 @@ before_script:
 before_install:
   - cd server
 script:
-  - diesel migration run
   - cargo build
+  - cargo install diesel_cli --no-default-features --features postgres
+  - diesel migration run
   - cargo test
 env:
   - LEMMY_DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
