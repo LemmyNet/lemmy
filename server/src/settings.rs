@@ -70,7 +70,10 @@ impl Settings {
 
     // Add in settings from the environment (with a prefix of LEMMY)
     // Eg.. `LEMMY_DEBUG=1 ./target/app` would set the `debug` key
-    s.merge(Environment::with_prefix("LEMMY").separator("_"))?;
+    // Note: we need to use double underscore here, because otherwise variables containing
+    //       underscore cant be set from environmnet.
+    // https://github.com/mehcode/config-rs/issues/73
+    s.merge(Environment::with_prefix("LEMMY").separator("__"))?;
 
     return s.try_into();
   }
