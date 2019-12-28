@@ -11,15 +11,13 @@ cache:
 before_cache:
   - rm -rf /home/travis/.cargo/registry
 before_script:
-  - psql -c "create user rrr with password 'rrr' superuser;" -U postgres
-  - psql -c 'create database rrr with owner rrr;' -U postgres
+  - psql -c "create user lemmy with password 'password' superuser;" -U postgres
+  - psql -c 'create database lemmy with owner lemmy;' -U postgres
 before_install:
   - cd server
 script:
   - diesel migration run
   - cargo build
   - cargo test
-env:
-  - DATABASE_URL=postgres://rrr:rrr@localhost/rrr
 addons:
   postgresql: "9.4"
