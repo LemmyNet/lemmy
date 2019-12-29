@@ -367,11 +367,13 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
     let user_details_id = match data.user_id {
       Some(id) => id,
       None => {
-        User_::read_from_name(
+        match User_::read_from_name(
           &conn,
           data.username.to_owned().unwrap_or("admin".to_string()),
-        )?
-        .id
+        ) {
+          Ok(user) => user.id,
+          Err(_e) => return Err(APIError::err(&self.op, "couldnt_find_that_username_or_email"))?
+        }
       }
     };
 

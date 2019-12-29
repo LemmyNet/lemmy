@@ -777,6 +777,9 @@ export class User extends Component<any, UserState> {
     if (msg.error) {
       alert(i18n.t(msg.error));
       this.state.deleteAccountLoading = false;
+      if (msg.error == 'couldnt_find_that_username_or_email') {
+        this.context.router.history.push('/');
+      }
       this.setState(this.state);
       return;
     } else if (op == UserOperation.GetUserDetails) {
