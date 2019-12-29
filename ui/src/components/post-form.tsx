@@ -26,6 +26,7 @@ import {
   archiveUrl,
   mdToHtml,
   debounce,
+  isImage,
 } from '../utils';
 import * as autosize from 'autosize';
 import { i18n } from '../i18next';
@@ -192,6 +193,9 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
                 <svg class="icon icon-spinner spin">
                   <use xlinkHref="#icon-spinner"></use>
                 </svg>
+              )}
+              {isImage(this.state.postForm.url) && (
+                <img src={this.state.postForm.url} class="img-fluid" />
               )}
               {this.state.crossPosts.length > 0 && (
                 <>
