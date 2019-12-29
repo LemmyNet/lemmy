@@ -143,7 +143,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               <input
                 type="url"
                 class="form-control"
-                defaultValue={this.state.postForm.url}
+                value={this.state.postForm.url}
                 onInput={linkEvent(this, this.handlePostUrlChange)}
               />
               {this.state.suggestedTitle && (
@@ -209,10 +209,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
             </label>
             <div class="col-sm-10">
               <textarea
-                defaultValue={
-                  this.props.post ? this.props.post.name : undefined
-                }
-                /* This needs to be undefined for some weird reason */
                 value={this.state.postForm.name}
                 onInput={linkEvent(this, this.handlePostNameChange)}
                 class="form-control"
@@ -348,7 +344,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     i.setState(i.state);
   }
 
-  handlePostUrlChange = debounce((i: PostForm, event: any) => {
+  handlePostUrlChange(i: PostForm, event: any) {
     i.state.postForm.url = event.target.value;
     if (validURL(i.state.postForm.url)) {
       let form: SearchForm = {
@@ -372,9 +368,9 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     }
 
     i.setState(i.state);
-  });
+  }
 
-  handlePostNameChange = debounce((i: PostForm, event: any) => {
+  handlePostNameChange(i: PostForm, event: any) {
     i.state.postForm.name = event.target.value;
     let form: SearchForm = {
       q: i.state.postForm.name,
@@ -392,7 +388,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     }
 
     i.setState(i.state);
-  });
+  }
 
   handlePostBodyChange(i: PostForm, event: any) {
     i.state.postForm.body = event.target.value;
