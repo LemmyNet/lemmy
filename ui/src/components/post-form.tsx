@@ -80,7 +80,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       this.state.postForm = {
         body: this.props.post.body,
         // NOTE: debouncing breaks both these for some reason, unless you use defaultValue
-        name: undefined,
+        name: this.props.post.name,
         community_id: this.props.post.community_id,
         edit_id: this.props.post.id,
         creator_id: this.props.post.creator_id,
