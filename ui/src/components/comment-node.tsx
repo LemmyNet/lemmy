@@ -17,7 +17,13 @@ import {
   BanType,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { mdToHtml, getUnixTime, canMod, isMod } from '../utils';
+import {
+  mdToHtml,
+  getUnixTime,
+  canMod,
+  isMod,
+  pictshareAvatarThumbnail,
+} from '../utils';
 import * as moment from 'moment';
 import { MomentTime } from './moment-time';
 import { CommentForm } from './comment-form';
@@ -128,7 +134,15 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 className="text-info"
                 to={`/u/${node.comment.creator_name}`}
               >
-                {node.comment.creator_name}
+                {node.comment.creator_avatar && (
+                  <img
+                    height="32"
+                    width="32"
+                    src={pictshareAvatarThumbnail(node.comment.creator_avatar)}
+                    class="rounded-circle mr-1"
+                  />
+                )}
+                <span>{node.comment.creator_name}</span>
               </Link>
             </li>
             {this.isMod && (

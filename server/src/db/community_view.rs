@@ -16,6 +16,7 @@ table! {
     deleted -> Bool,
     nsfw -> Bool,
     creator_name -> Varchar,
+    creator_avatar -> Nullable<Text>,
     category_name -> Varchar,
     number_of_subscribers -> BigInt,
     number_of_posts -> BigInt,
@@ -33,6 +34,7 @@ table! {
     user_id -> Int4,
     published -> Timestamp,
     user_name -> Varchar,
+    avatar -> Nullable<Text>,
     community_name -> Varchar,
   }
 }
@@ -44,6 +46,7 @@ table! {
     user_id -> Int4,
     published -> Timestamp,
     user_name -> Varchar,
+    avatar -> Nullable<Text>,
     community_name -> Varchar,
   }
 }
@@ -55,6 +58,7 @@ table! {
     user_id -> Int4,
     published -> Timestamp,
     user_name -> Varchar,
+    avatar -> Nullable<Text>,
     community_name -> Varchar,
   }
 }
@@ -76,6 +80,7 @@ pub struct CommunityView {
   pub deleted: bool,
   pub nsfw: bool,
   pub creator_name: String,
+  pub creator_avatar: Option<String>,
   pub category_name: String,
   pub number_of_subscribers: i64,
   pub number_of_posts: i64,
@@ -224,6 +229,7 @@ pub struct CommunityModeratorView {
   pub user_id: i32,
   pub published: chrono::NaiveDateTime,
   pub user_name: String,
+  pub avatar: Option<String>,
   pub community_name: String,
 }
 
@@ -253,6 +259,7 @@ pub struct CommunityFollowerView {
   pub user_id: i32,
   pub published: chrono::NaiveDateTime,
   pub user_name: String,
+  pub avatar: Option<String>,
   pub community_name: String,
 }
 
@@ -282,6 +289,7 @@ pub struct CommunityUserBanView {
   pub user_id: i32,
   pub published: chrono::NaiveDateTime,
   pub user_name: String,
+  pub avatar: Option<String>,
   pub community_name: String,
 }
 

@@ -260,7 +260,7 @@ table! {
         preferred_username -> Nullable<Varchar>,
         password_encrypted -> Text,
         email -> Nullable<Text>,
-        icon -> Nullable<Bytea>,
+        avatar -> Nullable<Text>,
         admin -> Bool,
         banned -> Bool,
         published -> Timestamp,

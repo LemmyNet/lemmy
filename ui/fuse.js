@@ -1,11 +1,11 @@
-const {
+import {
   FuseBox,
   Sparky,
   EnvPlugin,
   CSSPlugin,
   WebIndexPlugin,
-  QuantumPlugin
-} = require('fuse-box');
+  QuantumPlugin,
+} from 'fuse-box';
 // const transformInferno = require('../../dist').default
 const transformInferno = require('ts-transform-inferno').default;
 const transformClasscat = require('ts-transform-classcat').default;
@@ -25,22 +25,22 @@ Sparky.task('config', _ => {
       before: [transformClasscat(), transformInferno()],
     },
     alias: {
-      'locale': 'moment/locale'
-		},
+      locale: 'moment/locale',
+    },
     plugins: [
       EnvPlugin({ NODE_ENV: isProduction ? 'production' : 'development' }),
       CSSPlugin(),
       WebIndexPlugin({
         title: 'Inferno Typescript FuseBox Example',
         template: 'src/index.html',
-        path: isProduction ? "/static" : "/"
+        path: isProduction ? '/static' : '/',
       }),
       isProduction &&
-      QuantumPlugin({
-        bakeApiIntoBundle: 'app',
-        treeshake: true,
-        uglify: true,
-      }),
+        QuantumPlugin({
+          bakeApiIntoBundle: 'app',
+          treeshake: true,
+          uglify: true,
+        }),
     ],
   });
   app = fuse.bundle('app').instructions('>index.tsx');
@@ -48,7 +48,9 @@ Sparky.task('config', _ => {
 // Sparky.task('version', _ => setVersion());
 Sparky.task('clean', _ => Sparky.src('dist/').clean('dist/'));
 Sparky.task('env', _ => (isProduction = true));
-Sparky.task('copy-assets', () => Sparky.src('assets/**/**.*').dest(isProduction ? 'dist/' : 'dist/static'));
+Sparky.task('copy-assets', () =>
+  Sparky.src('assets/**/**.*').dest(isProduction ? 'dist/' : 'dist/static')
+);
 Sparky.task('dev', ['clean', 'config', 'copy-assets'], _ => {
   fuse.dev();
   app.hmr().watch();

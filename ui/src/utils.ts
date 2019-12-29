@@ -338,3 +338,10 @@ export function objectFlip(obj: any) {
   });
   return ret;
 }
+
+export function pictshareAvatarThumbnail(src: string): string {
+  // sample url: http://localhost:8535/pictshare/gs7xuu.jpg
+  let split = src.split('pictshare');
+  let out = `${split[0]}pictshare/96x96${split[1]}`;
+  return out;
+}
