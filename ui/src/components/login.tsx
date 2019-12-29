@@ -271,6 +271,9 @@ export class Login extends Component<any, State> {
 
   handleRegisterEmailChange(i: Login, event: any) {
     i.state.registerForm.email = event.target.value;
+    if (i.state.registerForm.email == '') {
+      i.state.registerForm.email = undefined;
+    }
     i.setState(i.state);
   }
 
