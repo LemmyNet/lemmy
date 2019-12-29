@@ -19,6 +19,7 @@ import {
   fetchLimit,
   routeSearchTypeToEnum,
   routeSortTypeToEnum,
+  pictshareAvatarThumbnail,
 } from '../utils';
 import { PostListing } from './post-listing';
 import { SortSelect } from './sort-select';
@@ -286,7 +287,19 @@ export class Search extends Component<any, SearchState> {
                   <Link
                     className="text-info"
                     to={`/u/${(i.data as UserView).name}`}
-                  >{`/u/${(i.data as UserView).name}`}</Link>
+                  >
+                    {(i.data as UserView).avatar && (
+                      <img
+                        height="32"
+                        width="32"
+                        src={pictshareAvatarThumbnail(
+                          (i.data as UserView).avatar
+                        )}
+                        class="rounded-circle mr-1"
+                      />
+                    )}
+                    <span>{`/u/${(i.data as UserView).name}`}</span>
+                  </Link>
                 </span>
                 <span>{` - ${
                   (i.data as UserView).comment_score

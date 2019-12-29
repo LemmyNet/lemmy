@@ -22,7 +22,7 @@ mod tests {
       preferred_username: None,
       password_encrypted: "here".into(),
       email: None,
-      icon: None,
+      avatar: None,
       published: naive_now(),
       admin: false,
       banned: false,

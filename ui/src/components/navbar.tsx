@@ -13,7 +13,7 @@ import {
   GetSiteResponse,
   Comment,
 } from '../interfaces';
-import { msgOp } from '../utils';
+import { msgOp, pictshareAvatarThumbnail } from '../utils';
 import { version } from '../version';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -151,7 +151,19 @@ export class Navbar extends Component<any, NavbarState> {
                     class="nav-link"
                     to={`/u/${UserService.Instance.user.username}`}
                   >
-                    {UserService.Instance.user.username}
+                    <span>
+                      {UserService.Instance.user.avatar && (
+                        <img
+                          src={pictshareAvatarThumbnail(
+                            UserService.Instance.user.avatar
+                          )}
+                          height="32"
+                          width="32"
+                          class="rounded-circle mr-2"
+                        />
+                      )}
+                      {UserService.Instance.user.username}
+                    </span>
                   </Link>
                 </li>
               </>

@@ -58,6 +58,7 @@ interface UserState {
   sort: SortType;
   page: number;
   loading: boolean;
+  avatarLoading: boolean;
   userSettingsForm: UserSettingsForm;
   userSettingsLoading: boolean;
   deleteAccountLoading: boolean;
@@ -78,6 +79,7 @@ export class User extends Component<any, UserState> {
       number_of_comments: null,
       comment_score: null,
       banned: null,
+      avatar: null,
     },
     user_id: null,
     username: null,
@@ -87,6 +89,7 @@ export class User extends Component<any, UserState> {
     posts: [],
     admins: [],
     loading: true,
+    avatarLoading: false,
     view: this.getViewFromProps(this.props),
     sort: this.getSortTypeFromProps(this.props),
     page: this.getPageFromProps(this.props),
@@ -96,6 +99,7 @@ export class User extends Component<any, UserState> {
       default_sort_type: null,
       default_listing_type: null,
       lang: null,
+      avatar: null,
       auth: null,
     },
     userSettingsLoading: null,
@@ -203,7 +207,17 @@ export class User extends Component<any, UserState> {
         ) : (
           <div class="row">
             <div class="col-12 col-md-8">
-              <h5>/u/{this.state.user.name}</h5>
+              <h5>
+                {this.state.user.avatar && (
+                  <img
+                    height="80"
+                    width="80"
+                    src={this.state.user.avatar}
+                    class="rounded-circle mr-2"
+                  />
+                )}
+                <span>/u/{this.state.user.name}</span>
+              </h5>
               {this.selects()}
               {this.state.view == View.Overview && this.overview()}
               {this.state.view == View.Comments && this.comments()}
@@ -422,6 +436,39 @@ export class User extends Component<any, UserState> {
               <T i18nKey="settings">#</T>
             </h5>
             <form onSubmit={linkEvent(this, this.handleUserSettingsSubmit)}>
+              <div class="form-group">
+                <div class="col-12">
+                  <label>
+                    <T i18nKey="avatar">#</T>
+                  </label>
+                  <form class="d-inline">
+                    <label
+                      htmlFor="file-upload"
+                      class="pointer ml-4 text-muted small font-weight-bold"
+                    >
+                      <img
+                        height="80"
+                        width="80"
+                        src={
+                          this.state.userSettingsForm.avatar
+                            ? this.state.userSettingsForm.avatar
+                            : 'https://via.placeholder.com/300/000?text=Avatar'
+                        }
+                        class="rounded-circle"
+                      />
+                    </label>
+                    <input
+                      id="file-upload"
+                      type="file"
+                      accept="image/*,video/*"
+                      name="file"
+                      class="d-none"
+                      disabled={!UserService.Instance.user}
+                      onChange={linkEvent(this, this.handleImageUpload)}
+                    />
+                  </form>
+                </div>
+              </div>
               <div class="form-group">
                 <div class="col-12">
                   <label>
@@ -739,6 +786,38 @@ export class User extends Component<any, UserState> {
     this.setState(this.state);
   }
 
+  handleImageUpload(i: User, event: any) {
+    event.preventDefault();
+    let file = event.target.files[0];
+    const imageUploadUrl = `/pictshare/api/upload.php`;
+    const formData = new FormData();
+    formData.append('file', file);
+
+    i.state.avatarLoading = true;
+    i.setState(i.state);
+
+    fetch(imageUploadUrl, {
+      method: 'POST',
+      body: formData,
+    })
+      .then(res => res.json())
+      .then(res => {
+        let url = `${window.location.origin}/pictshare/${res.url}`;
+        if (res.filetype == 'mp4') {
+          url += '/raw';
+        }
+        i.state.userSettingsForm.avatar = url;
+        console.log(url);
+        i.state.avatarLoading = false;
+        i.setState(i.state);
+      })
+      .catch(error => {
+        i.state.avatarLoading = false;
+        i.setState(i.state);
+        alert(error);
+      });
+  }
+
   handleUserSettingsSubmit(i: User, event: any) {
     event.preventDefault();
     i.state.userSettingsLoading = true;
@@ -802,6 +881,7 @@ export class User extends Component<any, UserState> {
         this.state.userSettingsForm.default_listing_type =
           UserService.Instance.user.default_listing_type;
         this.state.userSettingsForm.lang = UserService.Instance.user.lang;
+        this.state.userSettingsForm.avatar = UserService.Instance.user.avatar;
       }
       document.title = `/u/${this.state.user.name} - ${WebSocketService.Instance.site.name}`;
       window.scrollTo(0, 0);

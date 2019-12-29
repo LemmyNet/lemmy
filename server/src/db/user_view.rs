@@ -6,6 +6,7 @@ table! {
   user_view (id) {
     id -> Int4,
     name -> Varchar,
+    avatar -> Nullable<Text>,
     fedi_name -> Varchar,
     admin -> Bool,
     banned -> Bool,
@@ -24,6 +25,7 @@ table! {
 pub struct UserView {
   pub id: i32,
   pub name: String,
+  pub avatar: Option<String>,
   pub fedi_name: String,
   pub admin: bool,
   pub banned: bool,

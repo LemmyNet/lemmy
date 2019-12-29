@@ -25,6 +25,7 @@ import {
   isImage,
   isVideo,
   getUnixTime,
+  pictshareAvatarThumbnail,
 } from '../utils';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -248,7 +249,15 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             <li className="list-inline-item">
               <span>{i18n.t('by')} </span>
               <Link className="text-info" to={`/u/${post.creator_name}`}>
-                {post.creator_name}
+                {post.creator_avatar && (
+                  <img
+                    height="32"
+                    width="32"
+                    src={pictshareAvatarThumbnail(post.creator_avatar)}
+                    class="rounded-circle mr-1"
+                  />
+                )}
+                <span>{post.creator_name}</span>
               </Link>
               {this.isMod && (
                 <span className="mx-1 badge badge-light">

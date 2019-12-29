@@ -28,6 +28,7 @@ export const en = {
     cancel: 'Cancel',
     preview: 'Preview',
     upload_image: 'upload image',
+    avatar: 'Avatar',
     formatting_help: 'formatting help',
     view_source: 'view source',
     unlock: 'unlock',

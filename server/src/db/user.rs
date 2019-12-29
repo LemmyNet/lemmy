@@ -14,7 +14,7 @@ pub struct User_ {
   pub preferred_username: Option<String>,
   pub password_encrypted: String,
   pub email: Option<String>,
-  pub icon: Option<Vec<u8>>,
+  pub avatar: Option<String>,
   pub admin: bool,
   pub banned: bool,
   pub published: chrono::NaiveDateTime,
@@ -36,6 +36,7 @@ pub struct UserForm {
   pub admin: bool,
   pub banned: bool,
   pub email: Option<String>,
+  pub avatar: Option<String>,
   pub updated: Option<chrono::NaiveDateTime>,
   pub show_nsfw: bool,
   pub theme: String,
@@ -99,6 +100,7 @@ pub struct Claims {
   pub default_sort_type: i16,
   pub default_listing_type: i16,
   pub lang: String,
+  pub avatar: Option<String>,
 }
 
 impl Claims {
@@ -123,6 +125,7 @@ impl User_ {
       default_sort_type: self.default_sort_type,
       default_listing_type: self.default_listing_type,
       lang: self.lang.to_owned(),
+      avatar: self.avatar.to_owned(),
     };
     encode(
       &Header::default(),
@@ -176,6 +179,7 @@ mod tests {
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
+      avatar: None,
       admin: false,
       banned: false,
       updated: None,
@@ -195,7 +199,7 @@ mod tests {
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
-      icon: None,
+      avatar: None,
       admin: false,
       banned: false,
       published: inserted_user.published,

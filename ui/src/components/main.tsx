@@ -31,6 +31,7 @@ import {
   routeSortTypeToEnum,
   routeListingTypeToEnum,
   postRefetchSeconds,
+  pictshareAvatarThumbnail,
 } from '../utils';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -65,6 +66,9 @@ export class Main extends Component<any, MainState> {
         number_of_posts: null,
         number_of_comments: null,
         number_of_communities: null,
+        enable_downvotes: null,
+        open_registration: null,
+        enable_nsfw: null,
       },
       admins: [],
       banned: [],
@@ -341,7 +345,15 @@ export class Main extends Component<any, MainState> {
               {this.state.site.admins.map(admin => (
                 <li class="list-inline-item">
                   <Link class="text-info" to={`/u/${admin.name}`}>
-                    {admin.name}
+                    {admin.avatar && (
+                      <img
+                        height="32"
+                        width="32"
+                        src={pictshareAvatarThumbnail(admin.avatar)}
+                        class="rounded-circle mr-1"
+                      />
+                    )}
+                    <span>{admin.name}</span>
                   </Link>
                 </li>
               ))}

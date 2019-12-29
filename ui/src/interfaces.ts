@@ -80,11 +80,13 @@ export interface User {
   default_sort_type: SortType;
   default_listing_type: ListingType;
   lang: string;
+  avatar?: string;
 }
 
 export interface UserView {
   id: number;
   name: string;
+  avatar?: string;
   fedi_name: string;
   published: string;
   number_of_posts: number;
@@ -98,6 +100,7 @@ export interface CommunityUser {
   id: number;
   user_id: number;
   user_name: string;
+  avatar?: string;
   community_id: number;
   community_name: string;
   published: string;
@@ -116,6 +119,7 @@ export interface Community {
   published: string;
   updated?: string;
   creator_name: string;
+  creator_avatar?: string;
   category_name: string;
   number_of_subscribers: number;
   number_of_posts: number;
@@ -141,6 +145,7 @@ export interface Post {
   published: string;
   updated?: string;
   creator_name: string;
+  creator_avatar?: string;
   community_name: string;
   community_removed: boolean;
   community_deleted: boolean;
@@ -172,6 +177,7 @@ export interface Comment {
   banned: boolean;
   banned_from_community: boolean;
   creator_name: string;
+  creator_avatar?: string;
   score: number;
   upvotes: number;
   downvotes: number;
@@ -474,6 +480,7 @@ export interface UserSettingsForm {
   default_sort_type: SortType;
   default_listing_type: ListingType;
   lang: string;
+  avatar?: string;
   auth: string;
 }
 

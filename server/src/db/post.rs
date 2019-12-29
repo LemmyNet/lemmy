@@ -187,6 +187,7 @@ mod tests {
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
+      avatar: None,
       admin: false,
       banned: false,
       updated: None,

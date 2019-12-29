@@ -27,6 +27,7 @@ pub struct SaveUserSettings {
   default_sort_type: i16,
   default_listing_type: i16,
   lang: String,
+  avatar: Option<String>,
   auth: String,
 }
 
@@ -220,6 +221,7 @@ impl Perform<LoginResponse> for Oper<Register> {
       name: data.username.to_owned(),
       fedi_name: Settings::get().hostname.to_owned(),
       email: data.email.to_owned(),
+      avatar: None,
       password_encrypted: data.password.to_owned(),
       preferred_username: None,
       updated: None,
@@ -314,6 +316,7 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
       name: read_user.name,
       fedi_name: read_user.fedi_name,
       email: read_user.email,
+      avatar: data.avatar.to_owned(),
       password_encrypted: read_user.password_encrypted,
       preferred_username: read_user.preferred_username,
       updated: Some(naive_now()),
@@ -372,7 +375,12 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
           data.username.to_owned().unwrap_or("admin".to_string()),
         ) {
           Ok(user) => user.id,
-          Err(_e) => return Err(APIError::err(&self.op, "couldnt_find_that_username_or_email"))?
+          Err(_e) => {
+            return Err(APIError::err(
+              &self.op,
+              "couldnt_find_that_username_or_email",
+            ))?
+          }
         }
       }
     };
@@ -449,6 +457,7 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
       name: read_user.name,
       fedi_name: read_user.fedi_name,
       email: read_user.email,
+      avatar: read_user.avatar,
       password_encrypted: read_user.password_encrypted,
       preferred_username: read_user.preferred_username,
       updated: Some(naive_now()),
@@ -511,6 +520,7 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
       name: read_user.name,
       fedi_name: read_user.fedi_name,
       email: read_user.email,
+      avatar: read_user.avatar,
       password_encrypted: read_user.password_encrypted,
       preferred_username: read_user.preferred_username,
       updated: Some(naive_now()),
@@ -848,6 +858,7 @@ impl Perform<LoginResponse> for Oper<PasswordChange> {
       name: read_user.name,
       fedi_name: read_user.fedi_name,
       email: read_user.email,
+      avatar: read_user.avatar,
       password_encrypted: data.password.to_owned(),
       preferred_username: read_user.preferred_username,
       updated: Some(naive_now()),
