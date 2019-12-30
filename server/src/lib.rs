@@ -42,7 +42,7 @@ use lettre::{SmtpClient, Transport};
 use lettre_email::Email;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
-use regex::Regex;
+use regex::{Regex, RegexBuilder};
 
 pub fn to_datetime_utc(ndt: NaiveDateTime) -> DateTime<Utc> {
   DateTime::<Utc>::from_utc(ndt, Utc)
@@ -138,11 +138,11 @@ mod tests {
   #[test]
   fn test_slur_filter() {
     let test =
-      "coons test dindu ladyboy tranny retardeds. This is a bunch of other safe text.".to_string();
+      "coons test dindu ladyboy tranny retardeds. Capitalized Nigger. This is a bunch of other safe text.".to_string();
     let slur_free = "No slurs here";
     assert_eq!(
       remove_slurs(&test),
-      "*removed* test *removed* *removed* *removed* *removed*. This is a bunch of other safe text."
+      "*removed* test *removed* *removed* *removed* *removed*. Capitalized *removed*. This is a bunch of other safe text."
         .to_string()
     );
     assert!(has_slurs(&test));
@@ -165,6 +165,6 @@ mod tests {
 
 lazy_static! {
   static ref EMAIL_REGEX: Regex = Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$").unwrap();
-  static ref SLUR_REGEX: Regex = Regex::new(r"(fag(g|got|tard)?|maricos?|cock\s?sucker(s|ing)?|nig(\b|g?(a|er)?s?)\b|dindu(s?)|mudslime?s?|kikes?|mongoloids?|towel\s*heads?|\bspi(c|k)s?\b|\bchinks?|niglets?|beaners?|\bnips?\b|\bcoons?\b|jungle\s*bunn(y|ies?)|jigg?aboo?s?|\bpakis?\b|rag\s*heads?|gooks?|cunts?|bitch(es|ing|y)?|puss(y|ies?)|twats?|feminazis?|whor(es?|ing)|\bslut(s|t?y)?|\btrann?(y|ies?)|ladyboy(s?)|\b(b|re|r)tard(ed)?s?)").unwrap();
+  static ref SLUR_REGEX: Regex = RegexBuilder::new(r"(fag(g|got|tard)?|maricos?|cock\s?sucker(s|ing)?|nig(\b|g?(a|er)?s?)\b|dindu(s?)|mudslime?s?|kikes?|mongoloids?|towel\s*heads?|\bspi(c|k)s?\b|\bchinks?|niglets?|beaners?|\bnips?\b|\bcoons?\b|jungle\s*bunn(y|ies?)|jigg?aboo?s?|\bpakis?\b|rag\s*heads?|gooks?|cunts?|bitch(es|ing|y)?|puss(y|ies?)|twats?|feminazis?|whor(es?|ing)|\bslut(s|t?y)?|\btrann?(y|ies?)|ladyboy(s?)|\b(b|re|r)tard(ed)?s?)").case_insensitive(true).build().unwrap();
   static ref USERNAME_MATCHES_REGEX: Regex = Regex::new(r"/u/[a-zA-Z][0-9a-zA-Z_]*").unwrap();
 }
