@@ -9,7 +9,7 @@
 
 [![Github](https://img.shields.io/badge/-Github-blue)](https://github.com/dessalines/lemmy)
 [![Gitlab](https://img.shields.io/badge/-Gitlab-yellowgreen)](https://gitlab.com/dessalines/lemmy)
-![Mastodon Follow](https://img.shields.io/mastodon/follow/810572?domain=https%3A%2F%2Fmastodon.social&style=social)
+[![Mastodon Follow](https://img.shields.io/mastodon/follow/810572?domain=https%3A%2F%2Fmastodon.social&style=social)](https://mastodon.social/@LemmyDev)
 ![GitHub stars](https://img.shields.io/github/stars/dessalines/lemmy?style=social)
 [![Matrix](https://img.shields.io/matrix/rust-reddit-fediverse:matrix.org.svg?label=matrix-chat)](https://riot.im/app/#/room/#rust-reddit-fediverse:matrix.org)
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/dessalines/lemmy.svg)
@@ -121,7 +121,7 @@ mkdir lemmy/
 cd lemmy/
 wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/docker-compose.yml
 wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/lemmy.hjson
-# Edit the .env if you want custom passwords
+# Edit lemmy.hjson to do more configuration
 docker-compose up -d
 ```
 
