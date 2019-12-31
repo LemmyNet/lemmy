@@ -5,12 +5,13 @@ use crate::db::comment_view::{ReplyQueryBuilder, ReplyView};
 use crate::db::community::Community;
 use crate::db::post_view::{PostQueryBuilder, PostView};
 use crate::db::site_view::SiteView;
-use crate::db::user::User_;
+use crate::db::user::{Claims, User_};
 use crate::db::user_mention_view::{UserMentionQueryBuilder, UserMentionView};
 use crate::db::{establish_connection, ListingType, SortType};
 use crate::Settings;
 use actix_web::body::Body;
 use actix_web::{web, HttpResponse, Result};
+use chrono::{DateTime, Utc};
 use failure::Error;
 use rss::{CategoryBuilder, ChannelBuilder, GuidBuilder, Item, ItemBuilder};
 use serde::Deserialize;
@@ -29,7 +30,14 @@ enum RequestType {
   Inbox,
 }
 
-pub fn get_all_feed(info: web::Query<Params>) -> HttpResponse<Body> {
+pub fn config(cfg: &mut web::ServiceConfig) {
+  cfg
+    .route("/feeds/{type}/{name}.xml", web::get().to(feeds::get_feed))
+    .route("/feeds/all.xml", web::get().to(feeds::get_all_feed))
+    .route("/feeds/all.xml", web::get().to(feeds::get_all_feed));
+}
+
+fn get_all_feed(info: web::Query<Params>) -> HttpResponse<Body> {
   let sort_type = match get_sort_type(info) {
     Ok(sort_type) => sort_type,
     Err(_) => return HttpResponse::BadRequest().finish(),
@@ -45,7 +53,7 @@ pub fn get_all_feed(info: web::Query<Params>) -> HttpResponse<Body> {
   }
 }
 
-pub fn get_feed(path: web::Path<(String, String)>, info: web::Query<Params>) -> HttpResponse<Body> {
+fn get_feed(path: web::Path<(String, String)>, info: web::Query<Params>) -> HttpResponse<Body> {
   let sort_type = match get_sort_type(info) {
     Ok(sort_type) => sort_type,
     Err(_) => return HttpResponse::BadRequest().finish(),
@@ -162,7 +170,7 @@ fn get_feed_front(sort_type: &SortType, jwt: String) -> Result<String, Error> {
   let conn = establish_connection();
 
   let site_view = SiteView::read(&conn)?;
-  let user_id = db::user::Claims::decode(&jwt)?.claims.id;
+  let user_id = Claims::decode(&jwt)?.claims.id;
 
   let posts = PostQueryBuilder::create(&conn)
     .listing_type(ListingType::Subscribed)
@@ -189,7 +197,7 @@ fn get_feed_inbox(jwt: String) -> Result<String, Error> {
   let conn = establish_connection();
 
   let site_view = SiteView::read(&conn)?;
-  let user_id = db::user::Claims::decode(&jwt)?.claims.id;
+  let user_id = Claims::decode(&jwt)?.claims.id;
 
   let sort = SortType::New;
 

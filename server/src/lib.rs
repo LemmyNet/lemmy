@@ -25,12 +25,10 @@ pub extern crate strum;
 pub mod api;
 pub mod apub;
 pub mod db;
-pub mod feeds;
-pub mod nodeinfo;
+pub mod routes;
 pub mod schema;
 pub mod settings;
 pub mod version;
-pub mod webfinger;
 pub mod websocket;
 
 use crate::settings::Settings;

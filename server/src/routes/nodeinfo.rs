@@ -3,8 +3,15 @@ use crate::db::site_view::SiteView;
 use crate::version;
 use crate::Settings;
 use actix_web::body::Body;
+use actix_web::web;
 use actix_web::HttpResponse;
 use serde_json::json;
+
+pub fn config(cfg: &mut web::ServiceConfig) {
+  cfg
+    .route("/nodeinfo/2.0.json", web::get().to(node_info))
+    .route("/.well-known/nodeinfo", web::get().to(node_info_well_known));
+}
 
 pub fn node_info_well_known() -> HttpResponse<Body> {
   let json = json!({
@@ -19,7 +26,7 @@ pub fn node_info_well_known() -> HttpResponse<Body> {
     .body(json.to_string());
 }
 
-pub fn node_info() -> HttpResponse<Body> {
+fn node_info() -> HttpResponse<Body> {
   let conn = establish_connection();
   let site_view = match SiteView::read(&conn) {
     Ok(site_view) => site_view,
