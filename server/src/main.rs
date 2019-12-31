@@ -4,12 +4,7 @@ extern crate diesel_migrations;
 
 use actix_web::*;
 use lemmy_server::db::establish_connection;
-use lemmy_server::routes::federation;
-use lemmy_server::routes::feeds;
-use lemmy_server::routes::index;
-use lemmy_server::routes::nodeinfo;
-use lemmy_server::routes::webfinger;
-use lemmy_server::routes::websocket;
+use lemmy_server::routes::{federation, feeds, index, nodeinfo, webfinger, websocket};
 use lemmy_server::settings::Settings;
 
 embed_migrations!();

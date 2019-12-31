@@ -50,7 +50,7 @@ fn node_info() -> HttpResponse<Body> {
       },
       "localPosts": site_view.number_of_posts,
       "localComments": site_view.number_of_comments,
-      "openRegistrations": true,
+      "openRegistrations": site_view.open_registration,
       }
   });
   return HttpResponse::Ok()
