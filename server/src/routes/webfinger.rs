@@ -2,6 +2,7 @@ use crate::db::community::Community;
 use crate::db::establish_connection;
 use crate::Settings;
 use actix_web::body::Body;
+use actix_web::web;
 use actix_web::web::Query;
 use actix_web::HttpResponse;
 use regex::Regex;
@@ -11,6 +12,15 @@ use serde_json::json;
 #[derive(Deserialize)]
 pub struct Params {
   resource: String,
+}
+
+pub fn config(cfg: &mut web::ServiceConfig) {
+  if Settings::get().federation_enabled {
+    cfg.route(
+      ".well-known/webfinger",
+      web::get().to(get_webfinger_response),
+    );
+  }
 }
 
 lazy_static! {
@@ -27,7 +37,7 @@ lazy_static! {
 ///
 /// You can also view the webfinger response that Mastodon sends:
 /// https://radical.town/.well-known/webfinger?resource=acct:felix@radical.town
-pub fn get_webfinger_response(info: Query<Params>) -> HttpResponse<Body> {
+fn get_webfinger_response(info: Query<Params>) -> HttpResponse<Body> {
   let regex_parsed = WEBFINGER_COMMUNITY_REGEX
     .captures(&info.resource)
     .map(|c| c.get(1));
