@@ -10,7 +10,6 @@
   - [Install with Kubernetes](administration_install_kubernetes.md)
   - [Configuration](administration_configuration.md)
 - [Contributing](contributing.md)
-  - [Translations](contributing_translations.md)
   - [Docker Development](contributing_docker_development.md)
   - [Local Development](contributing_local_development.md)
   - [Websocket API](contributing_websocket_api.md)
