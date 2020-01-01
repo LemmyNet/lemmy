@@ -98,6 +98,7 @@ export const en = {
     all: 'All',
     top: 'Top',
     api: 'API',
+    docs: 'Docs',
     inbox: 'Inbox',
     inbox_for: 'Inbox for <1>{{user}}</1>',
     mark_all_as_read: 'mark all as read',

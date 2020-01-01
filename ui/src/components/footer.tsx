@@ -23,8 +23,8 @@ export class Footer extends Component<any, any> {
               </Link>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href={`${repoUrl}/blob/master/docs/api.md`}>
-                <T i18nKey="api">#</T>
+              <a class="nav-link" href={'/docs/index.html'}>
+                <T i18nKey="docs">#</T>
               </a>
             </li>
             <li class="nav-item">

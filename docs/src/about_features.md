@@ -1,3 +1,4 @@
+# Features
 - Open source, [AGPL License](/LICENSE).
 - Self hostable, easy to deploy.
   - Comes with [Docker](#docker), [Ansible](#ansible), [Kubernetes](#kubernetes).
