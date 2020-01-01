@@ -118,6 +118,7 @@ export const en = {
     unread_messages: 'Unread Messages',
     password: 'Password',
     verify_password: 'Verify Password',
+    old_password: 'Old Password',
     forgot_password: 'forgot password',
     reset_password_mail_sent: 'Sent an Email to reset your password.',
     password_change: 'Password Change',

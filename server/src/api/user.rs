@@ -28,6 +28,10 @@ pub struct SaveUserSettings {
   default_listing_type: i16,
   lang: String,
   avatar: Option<String>,
+  email: Option<String>,
+  new_password: Option<String>,
+  new_password_verify: Option<String>,
+  old_password: Option<String>,
   auth: String,
 }
 
@@ -312,12 +316,45 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
 
     let read_user = User_::read(&conn, user_id)?;
 
+    let email = match &data.email {
+      Some(email) => Some(email.to_owned()),
+      None => read_user.email,
+    };
+
+    let password_encrypted = match &data.new_password {
+      Some(new_password) => {
+        match &data.new_password_verify {
+          Some(new_password_verify) => {
+            // Make sure passwords match
+            if new_password != new_password_verify {
+              return Err(APIError::err(&self.op, "passwords_dont_match"))?;
+            }
+
+            // Check the old password
+            match &data.old_password {
+              Some(old_password) => {
+                let valid: bool =
+                  verify(old_password, &read_user.password_encrypted).unwrap_or(false);
+                if !valid {
+                  return Err(APIError::err(&self.op, "password_incorrect"))?;
+                }
+                User_::update_password(&conn, user_id, &new_password)?.password_encrypted
+              }
+              None => return Err(APIError::err(&self.op, "password_incorrect"))?,
+            }
+          }
+          None => return Err(APIError::err(&self.op, "passwords_dont_match"))?,
+        }
+      }
+      None => read_user.password_encrypted,
+    };
+
     let user_form = UserForm {
       name: read_user.name,
       fedi_name: read_user.fedi_name,
-      email: read_user.email,
+      email,
       avatar: data.avatar.to_owned(),
-      password_encrypted: read_user.password_encrypted,
+      password_encrypted,
       preferred_username: read_user.preferred_username,
       updated: Some(naive_now()),
       admin: read_user.admin,
@@ -850,28 +887,8 @@ impl Perform<LoginResponse> for Oper<PasswordChange> {
       return Err(APIError::err(&self.op, "passwords_dont_match"))?;
     }
 
-    // Fetch the user
-    let read_user = User_::read(&conn, user_id)?;
-
     // Update the user with the new password
-    let user_form = UserForm {
-      name: read_user.name,
-      fedi_name: read_user.fedi_name,
-      email: read_user.email,
-      avatar: read_user.avatar,
-      password_encrypted: data.password.to_owned(),
-      preferred_username: read_user.preferred_username,
-      updated: Some(naive_now()),
-      admin: read_user.admin,
-      banned: read_user.banned,
-      show_nsfw: read_user.show_nsfw,
-      theme: read_user.theme,
-      default_sort_type: read_user.default_sort_type,
-      default_listing_type: read_user.default_listing_type,
-      lang: read_user.lang,
-    };
-
-    let updated_user = match User_::update_password(&conn, user_id, &user_form) {
+    let updated_user = match User_::update_password(&conn, user_id, &data.password) {
       Ok(user) => user,
       Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_user"))?,
     };
