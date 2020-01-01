@@ -1,0 +1,1 @@
+Information about contributing to Lemmy, whether it is translating, testing, designing or programming.

@@ -1,0 +1,6 @@
+[book]
+authors = ["Felix Ableitner"]
+language = "en"
+multilingual = false
+src = "src"
+title = "Lemmy Documentation"

@@ -36,63 +36,6 @@ Front Page|Post
 ---|---
 ![main screen](https://i.imgur.com/kZSRcRu.png)|![chat screen](https://i.imgur.com/4XghNh6.png)
 
-## 📝 Table of Contents
-
-<!-- toc -->
-
-- [Features](#features)
-- [About](#about)
-  * [Why's it called Lemmy?](#whys-it-called-lemmy)
-- [Install](#install)
-  * [Docker](#docker)
-    + [Updating](#updating)
-  * [Ansible](#ansible)
-  * [Kubernetes](#kubernetes)
-- [Develop](#develop)
-  * [Docker Development](#docker-development)
-  * [Local Development](#local-development)
-    + [Requirements](#requirements)
-    + [Set up Postgres DB](#set-up-postgres-db)
-    + [Running](#running)
-- [Configuration](#configuration)
-- [Documentation](#documentation)
-- [Support](#support)
-- [Translations](#translations)
-- [Credits](#credits)
-
-<!-- tocstop -->
-
-## Features
-
-- Open source, [AGPL License](/LICENSE).
-- Self hostable, easy to deploy.
-  - Comes with [Docker](#docker), [Ansible](#ansible), [Kubernetes](#kubernetes).
-- Clean, mobile-friendly interface.
-  - Live-updating Comment threads.
-  - Full vote scores `(+/-)` like old reddit.
-  - Themes, including light, dark, and solarized.
-  - Emojis with autocomplete support. Start typing `:`
-  - User tagging using `@`, Community tagging using `#`.
-  - Notifications, on comment replies and when you're tagged.
-  - i18n / internationalization support.
-  - RSS / Atom feeds for `All`, `Subscribed`, `Inbox`, `User`, and `Community`.
-- Cross-posting support.
-  - A *similar post search* when creating new posts. Great for question / answer communities.
-- Moderation abilities.
-  - Public Moderation Logs.
-  - Both site admins, and community moderators, who can appoint other moderators.
-  - Can lock, remove, and restore posts and comments.
-  - Can ban and unban users from communities and the site.
-  - Can transfer site and communities to others.
-- Can fully erase your data, replacing all posts and comments.
-- NSFW post / community support.
-- High performance.
-  - Server is written in rust.
-  - Front end is `~80kB` gzipped.
-  - Supports arm64 / Raspberry Pi.
-
-## About
-
 [Lemmy](https://github.com/dessalines/lemmy) is similar to sites like [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), [Raddle](https://raddle.me), or [Hacker News](https://news.ycombinator.com/): you subscribe to forums you're interested in, post links and discussions, then vote, and comment on them. Behind the scenes, it is very different; anyone can easily run a server, and all these servers are federated (think email), and connected to the same universe, called the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
 
 For a link aggregator, this means a user registered on one server can subscribe to forums on any other server, and can have discussions with users registered elsewhere.
@@ -100,15 +43,6 @@ For a link aggregator, this means a user registered on one server can subscribe 
 The overall goal is to create an easily self-hostable, decentralized alternative to reddit and other link aggregators, outside of their corporate control and meddling.
 
 Each lemmy server can set its own moderation policy; appointing site-wide admins, and community moderators to keep out the trolls, and foster a healthy, non-toxic environment where all can feel comfortable contributing.
-
-### Why's it called Lemmy?
-
-- Lead singer from [Motörhead](https://invidio.us/watch?v=pWB5JZRGl0U).
-- The old school [video game](<https://en.wikipedia.org/wiki/Lemmings_(video_game)>).
-- The [Koopa from Super Mario](https://www.mariowiki.com/Lemmy_Koopa).
-- The [furry rodents](http://sunchild.fpwc.org/lemming-the-little-giant-of-the-north/).
-
-Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Inferno](https://www.infernojs.org), [Typescript](https://www.typescriptlang.org/) and [Diesel](http://diesel.rs/).
 
 ## Install
 
@@ -156,88 +90,6 @@ cp inventory.example inventory
 nano inventory # enter your server, domain, contact email
 ansible-playbook lemmy.yml --become
 ```
-
-### Kubernetes
-
-You'll need to have an existing Kubernetes cluster and [storage class](https://kubernetes.io/docs/concepts/storage/storage-classes/).
-Setting this up will vary depending on your provider.
-To try it locally, you can use [MicroK8s](https://microk8s.io/) or [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/).
-
-Once you have a working cluster, edit the environment variables and volume sizes in `docker/k8s/*.yml`.
-You may also want to change the service types to use `LoadBalancer`s depending on where you're running your cluster (add `type: LoadBalancer` to `ports)`, or `NodePort`s.
-By default they will use `ClusterIP`s, which will allow access only within the cluster. See the [docs](https://kubernetes.io/docs/concepts/services-networking/service/) for more on networking in Kubernetes.
-
-**Important** Running a database in Kubernetes will work, but is generally not recommended.
-If you're deploying on any of the common cloud providers, you should consider using their managed database service instead (RDS, Cloud SQL, Azure Databse, etc.).
-
-Now you can deploy:
-
-```bash
-# Add `-n foo` if you want to deploy into a specific namespace `foo`;
-# otherwise your resources will be created in the `default` namespace.
-kubectl apply -f docker/k8s/db.yml
-kubectl apply -f docker/k8s/pictshare.yml
-kubectl apply -f docker/k8s/lemmy.yml
-```
-
-If you used a `LoadBalancer`, you should see it in your cloud provider's console.
-
-## Develop
-
-### Docker Development
-
-Run:
-
-```bash
-git clone https://github.com/dessalines/lemmy
-cd lemmy/docker/dev
-./docker_update.sh # This builds and runs it, updating for your changes
-```
-
-and go to http://localhost:8536.
-
-### Local Development
-
-#### Requirements
-
-- [Rust](https://www.rust-lang.org/)
-- [Yarn](https://yarnpkg.com/en/)
-- [Postgres](https://www.postgresql.org/)
-
-#### Set up Postgres DB
-
-```bash
- psql -c "create user lemmy with password 'password' superuser;" -U postgres
- psql -c 'create database lemmy with owner lemmy;' -U postgres
- export DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
-```
-
-#### Running
-
-```bash
-git clone https://github.com/dessalines/lemmy
-cd lemmy
-./install.sh
-# For live coding, where both the front and back end, automagically reload on any save, do:
-# cd ui && yarn start
-# cd server && cargo watch -x run
-```
-
-## Configuration
-
-The configuration is based on the file [defaults.hjson](server/config/defaults.hjson). This file also contains documentation for all the available options. To override the defaults, you can copy the options you want to change into your local `config.hjson` file. 
-
-Additionally, you can override any config files with environment variables. These have the same name as the config options, and are prefixed with `LEMMY_`. For example, you can override the `database.password` with 
-`LEMMY__DATABASE__POOL_SIZE=10`.
-
-An additional option `LEMMY_DATABASE_URL` is available, which can be used with a PostgreSQL connection string like `postgres://lemmy:password@lemmy_db:5432/lemmy`, passing all connection details at once.
-
-## Documentation
-
-- [Websocket API for App developers](docs/api.md)
-- [ActivityPub API.md](docs/apub_api_outline.md)
-- [Goals](docs/goals.md)
-- [Ranking Algorithm](docs/ranking.md)
 
 ## Support
 
