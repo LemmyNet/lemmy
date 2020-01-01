@@ -5,6 +5,8 @@ git checkout master
 new_tag="$1"
 git tag $new_tag
 
+third_semver=$(echo $new_tag | cut -d "." -f 3)
+
 # Setting the version on the front end
 cd ../../
 echo "export let version: string = '$(git describe --tags)';" > "ui/src/version.ts"
@@ -38,14 +40,22 @@ docker push dessalines/lemmy:x64-$new_tag
 # docker push dessalines/lemmy:armv7hf-$new_tag
 
 # aarch64
-docker build -t lemmy:aarch64 -f Dockerfile.aarch64 ../../
-docker tag lemmy:aarch64 dessalines/lemmy:arm64-$new_tag
-docker push dessalines/lemmy:arm64-$new_tag
+# Only do this on major releases (IE the third semver is 0)
+if [ $third_semver -eq 0 ]; then
+  docker build -t lemmy:aarch64 -f Dockerfile.aarch64 ../../
+  docker tag lemmy:aarch64 dessalines/lemmy:arm64-$new_tag
+  docker push dessalines/lemmy:arm64-$new_tag
+fi
 
 # Creating the manifest for the multi-arch build
-docker manifest create dessalines/lemmy:$new_tag \
+if [ $third_semver -eq 0 ]; then
+  docker manifest create dessalines/lemmy:$new_tag \
   dessalines/lemmy:x64-$new_tag \
   dessalines/lemmy:arm64-$new_tag
+else
+  docker manifest create dessalines/lemmy:$new_tag \
+  dessalines/lemmy:x64-$new_tag
+fi
 
 docker manifest push dessalines/lemmy:$new_tag
 
