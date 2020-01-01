@@ -1,1 +1,1 @@
-export let version: string = 'v0.5.11';
+export let version: string = 'v0.5.12';
