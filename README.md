@@ -44,6 +44,46 @@ The overall goal is to create an easily self-hostable, decentralized alternative
 
 Each lemmy server can set its own moderation policy; appointing site-wide admins, and community moderators to keep out the trolls, and foster a healthy, non-toxic environment where all can feel comfortable contributing.
 
+Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Inferno](https://www.infernojs.org), [Typescript](https://www.typescriptlang.org/) and [Diesel](http://diesel.rs/).
+
+[Documentation](https://dev.lemmy.ml/docs/index.html)
+
+## Features
+
+- Open source, [AGPL License](/LICENSE).
+- Self hostable, easy to deploy.
+  - Comes with [Docker](#docker), [Ansible](#ansible), [Kubernetes](#kubernetes).
+- Clean, mobile-friendly interface.
+  - Live-updating Comment threads.
+  - Full vote scores `(+/-)` like old reddit.
+  - Themes, including light, dark, and solarized.
+  - Emojis with autocomplete support. Start typing `:`
+  - User tagging using `@`, Community tagging using `#`.
+  - Notifications, on comment replies and when you're tagged.
+  - i18n / internationalization support.
+  - RSS / Atom feeds for `All`, `Subscribed`, `Inbox`, `User`, and `Community`.
+- Cross-posting support.
+  - A *similar post search* when creating new posts. Great for question / answer communities.
+- Moderation abilities.
+  - Public Moderation Logs.
+  - Both site admins, and community moderators, who can appoint other moderators.
+  - Can lock, remove, and restore posts and comments.
+  - Can ban and unban users from communities and the site.
+  - Can transfer site and communities to others.
+- Can fully erase your data, replacing all posts and comments.
+- NSFW post / community support.
+- High performance.
+  - Server is written in rust.
+  - Front end is `~80kB` gzipped.
+  - Supports arm64 / Raspberry Pi.
+
+## Why's it called Lemmy?
+
+- Lead singer from [Motörhead](https://invidio.us/watch?v=pWB5JZRGl0U).
+- The old school [video game](<https://en.wikipedia.org/wiki/Lemmings_(video_game)>).
+- The [Koopa from Super Mario](https://www.mariowiki.com/Lemmy_Koopa).
+- The [furry rodents](http://sunchild.fpwc.org/lemming-the-little-giant-of-the-north/).
+
 ## Install
 
 ### Docker
@@ -109,15 +149,15 @@ If you'd like to add translations, take a look a look at the [English translatio
 
 lang | done | missing
 --- | --- | ---
-de | 97% | avatar,old_password,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
-eo | 83% | number_of_communities,preview,upload_image,avatar,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,theme,are_you_sure,yes,no 
-es | 92% | avatar,archive_link,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
-fr | 92% | avatar,archive_link,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
-it | 93% | avatar,archive_link,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
-nl | 85% | preview,upload_image,avatar,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,theme 
-ru | 79% | cross_posts,cross_post,number_of_communities,preview,upload_image,avatar,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,recent_comments,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
-sv | 92% | avatar,archive_link,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
-zh | 77% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,avatar,formatting_help,view_source,sticky,unsticky,archive_link,settings,stickied,delete_account,delete_account_confirm,banned,creator,number_online,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,recent_comments,nsfw,show_nsfw,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+de | 96% | avatar,docs,old_password,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
+eo | 83% | number_of_communities,preview,upload_image,avatar,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,theme,are_you_sure,yes,no 
+es | 91% | avatar,archive_link,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
+fr | 91% | avatar,archive_link,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
+it | 92% | avatar,archive_link,docs,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
+nl | 85% | preview,upload_image,avatar,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,theme 
+ru | 79% | cross_posts,cross_post,number_of_communities,preview,upload_image,avatar,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,recent_comments,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+sv | 91% | avatar,archive_link,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
+zh | 77% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,avatar,formatting_help,view_source,sticky,unsticky,archive_link,settings,stickied,delete_account,delete_account_confirm,banned,creator,number_online,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,recent_comments,nsfw,show_nsfw,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
 
 If you'd like to update this report, run:
 

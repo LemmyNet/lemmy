@@ -1,6 +1,4 @@
-<p align="center">A link aggregator / reddit clone for the fediverse.
-    <br> 
-</p>
+# Lemmy - A link aggregator / reddit clone for the fediverse.
 
 [Lemmy Dev instance](https://dev.lemmy.ml) *for testing purposes only*
 
