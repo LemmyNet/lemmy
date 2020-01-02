@@ -345,3 +345,10 @@ export function pictshareAvatarThumbnail(src: string): string {
   let out = `${split[0]}pictshare/96x96${split[1]}`;
   return out;
 }
+
+export function showAvatars(): boolean {
+  return (
+    (UserService.Instance.user && UserService.Instance.user.show_avatars) ||
+    !UserService.Instance.user
+  );
+}

@@ -20,6 +20,7 @@ import {
   routeSearchTypeToEnum,
   routeSortTypeToEnum,
   pictshareAvatarThumbnail,
+  showAvatars,
 } from '../utils';
 import { PostListing } from './post-listing';
 import { SortSelect } from './sort-select';
@@ -288,7 +289,7 @@ export class Search extends Component<any, SearchState> {
                     className="text-info"
                     to={`/u/${(i.data as UserView).name}`}
                   >
-                    {(i.data as UserView).avatar && (
+                    {(i.data as UserView).avatar && showAvatars() && (
                       <img
                         height="32"
                         width="32"

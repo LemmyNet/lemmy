@@ -32,6 +32,7 @@ import {
   routeListingTypeToEnum,
   postRefetchSeconds,
   pictshareAvatarThumbnail,
+  showAvatars,
 } from '../utils';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -345,7 +346,7 @@ export class Main extends Component<any, MainState> {
               {this.state.site.admins.map(admin => (
                 <li class="list-inline-item">
                   <Link class="text-info" to={`/u/${admin.name}`}>
-                    {admin.avatar && (
+                    {admin.avatar && showAvatars() && (
                       <img
                         height="32"
                         width="32"
