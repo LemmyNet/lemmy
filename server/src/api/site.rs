@@ -160,16 +160,15 @@ impl Perform<GetModlogResponse> for Oper<GetModlog> {
     )?;
 
     // These arrays are only for the full modlog, when a community isn't given
-    let mut removed_communities = Vec::new();
-    let mut banned = Vec::new();
-    let mut added = Vec::new();
-
-    if data.community_id.is_none() {
-      removed_communities =
-        ModRemoveCommunityView::list(&conn, data.mod_user_id, data.page, data.limit)?;
-      banned = ModBanView::list(&conn, data.mod_user_id, data.page, data.limit)?;
-      added = ModAddView::list(&conn, data.mod_user_id, data.page, data.limit)?;
-    }
+    let (removed_communities, banned, added) = if data.community_id.is_none() {
+      (
+        ModRemoveCommunityView::list(&conn, data.mod_user_id, data.page, data.limit)?,
+        ModBanView::list(&conn, data.mod_user_id, data.page, data.limit)?,
+        ModAddView::list(&conn, data.mod_user_id, data.page, data.limit)?,
+      )
+    } else {
+      (Vec::new(), Vec::new(), Vec::new())
+    };
 
     // Return the jwt
     Ok(GetModlogResponse {
@@ -194,20 +193,20 @@ impl Perform<SiteResponse> for Oper<CreateSite> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in").into()),
     };
 
     if has_slurs(&data.name)
       || (data.description.is_some() && has_slurs(&data.description.to_owned().unwrap()))
     {
-      return Err(APIError::err(&self.op, "no_slurs"))?;
+      return Err(APIError::err(&self.op, "no_slurs").into());
     }
 
     let user_id = claims.id;
 
     // Make sure user is an admin
     if !UserView::read(&conn, user_id)?.admin {
-      return Err(APIError::err(&self.op, "not_an_admin"))?;
+      return Err(APIError::err(&self.op, "not_an_admin").into());
     }
 
     let site_form = SiteForm {
@@ -222,7 +221,7 @@ impl Perform<SiteResponse> for Oper<CreateSite> {
 
     match Site::create(&conn, &site_form) {
       Ok(site) => site,
-      Err(_e) => return Err(APIError::err(&self.op, "site_already_exists"))?,
+      Err(_e) => return Err(APIError::err(&self.op, "site_already_exists").into()),
     };
 
     let site_view = SiteView::read(&conn)?;
@@ -241,20 +240,20 @@ impl Perform<SiteResponse> for Oper<EditSite> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in").into()),
     };
 
     if has_slurs(&data.name)
       || (data.description.is_some() && has_slurs(&data.description.to_owned().unwrap()))
     {
-      return Err(APIError::err(&self.op, "no_slurs"))?;
+      return Err(APIError::err(&self.op, "no_slurs").into());
     }
 
     let user_id = claims.id;
 
     // Make sure user is an admin
-    if UserView::read(&conn, user_id)?.admin == false {
-      return Err(APIError::err(&self.op, "not_an_admin"))?;
+    if !UserView::read(&conn, user_id)?.admin {
+      return Err(APIError::err(&self.op, "not_an_admin").into());
     }
 
     let found_site = Site::read(&conn, 1)?;
@@ -271,7 +270,7 @@ impl Perform<SiteResponse> for Oper<EditSite> {
 
     match Site::update(&conn, 1, &site_form) {
       Ok(site) => site,
-      Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_site"))?,
+      Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_site").into()),
     };
 
     let site_view = SiteView::read(&conn)?;
@@ -426,7 +425,7 @@ impl Perform<GetSiteResponse> for Oper<TransferSite> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in"))?,
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in").into()),
     };
 
     let user_id = claims.id;
@@ -435,7 +434,7 @@ impl Perform<GetSiteResponse> for Oper<TransferSite> {
 
     // Make sure user is the creator
     if read_site.creator_id != user_id {
-      return Err(APIError::err(&self.op, "not_an_admin"))?;
+      return Err(APIError::err(&self.op, "not_an_admin").into());
     }
 
     let site_form = SiteForm {
@@ -450,7 +449,7 @@ impl Perform<GetSiteResponse> for Oper<TransferSite> {
 
     match Site::update(&conn, 1, &site_form) {
       Ok(site) => site,
-      Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_site"))?,
+      Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_site").into()),
     };
 
     // Mod tables

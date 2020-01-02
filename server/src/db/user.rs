@@ -75,14 +75,13 @@ impl User_ {
   pub fn update_password(
     conn: &PgConnection,
     user_id: i32,
-    form: &UserForm,
+    new_password: &str,
   ) -> Result<Self, Error> {
-    let mut edited_user = form.clone();
-    let password_hash =
-      hash(&form.password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
-    edited_user.password_encrypted = password_hash;
+    let password_hash = hash(new_password, DEFAULT_COST).expect("Couldn't hash password");
 
-    Self::update(&conn, user_id, &edited_user)
+    diesel::update(user_.find(user_id))
+      .set(password_encrypted.eq(password_hash))
+      .get_result::<Self>(conn)
   }
 
   pub fn read_from_name(conn: &PgConnection, from_user_name: String) -> Result<Self, Error> {

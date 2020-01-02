@@ -9,7 +9,7 @@
 
 [![Github](https://img.shields.io/badge/-Github-blue)](https://github.com/dessalines/lemmy)
 [![Gitlab](https://img.shields.io/badge/-Gitlab-yellowgreen)](https://gitlab.com/dessalines/lemmy)
-![Mastodon Follow](https://img.shields.io/mastodon/follow/810572?domain=https%3A%2F%2Fmastodon.social&style=social)
+[![Mastodon Follow](https://img.shields.io/mastodon/follow/810572?domain=https%3A%2F%2Fmastodon.social&style=social)](https://mastodon.social/@LemmyDev)
 ![GitHub stars](https://img.shields.io/github/stars/dessalines/lemmy?style=social)
 [![Matrix](https://img.shields.io/matrix/rust-reddit-fediverse:matrix.org.svg?label=matrix-chat)](https://riot.im/app/#/room/#rust-reddit-fediverse:matrix.org)
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/dessalines/lemmy.svg)
@@ -36,31 +36,17 @@ Front Page|Post
 ---|---
 ![main screen](https://i.imgur.com/kZSRcRu.png)|![chat screen](https://i.imgur.com/4XghNh6.png)
 
-## 📝 Table of Contents
+[Lemmy](https://github.com/dessalines/lemmy) is similar to sites like [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), [Raddle](https://raddle.me), or [Hacker News](https://news.ycombinator.com/): you subscribe to forums you're interested in, post links and discussions, then vote, and comment on them. Behind the scenes, it is very different; anyone can easily run a server, and all these servers are federated (think email), and connected to the same universe, called the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
 
-<!-- toc -->
+For a link aggregator, this means a user registered on one server can subscribe to forums on any other server, and can have discussions with users registered elsewhere.
 
-- [Features](#features)
-- [About](#about)
-  * [Why's it called Lemmy?](#whys-it-called-lemmy)
-- [Install](#install)
-  * [Docker](#docker)
-    + [Updating](#updating)
-  * [Ansible](#ansible)
-  * [Kubernetes](#kubernetes)
-- [Develop](#develop)
-  * [Docker Development](#docker-development)
-  * [Local Development](#local-development)
-    + [Requirements](#requirements)
-    + [Set up Postgres DB](#set-up-postgres-db)
-    + [Running](#running)
-- [Configuration](#configuration)
-- [Documentation](#documentation)
-- [Support](#support)
-- [Translations](#translations)
-- [Credits](#credits)
+The overall goal is to create an easily self-hostable, decentralized alternative to reddit and other link aggregators, outside of their corporate control and meddling.
 
-<!-- tocstop -->
+Each lemmy server can set its own moderation policy; appointing site-wide admins, and community moderators to keep out the trolls, and foster a healthy, non-toxic environment where all can feel comfortable contributing.
+
+Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Inferno](https://www.infernojs.org), [Typescript](https://www.typescriptlang.org/) and [Diesel](http://diesel.rs/).
+
+[Documentation](https://dev.lemmy.ml/docs/index.html)
 
 ## Features
 
@@ -91,24 +77,12 @@ Front Page|Post
   - Front end is `~80kB` gzipped.
   - Supports arm64 / Raspberry Pi.
 
-## About
-
-[Lemmy](https://github.com/dessalines/lemmy) is similar to sites like [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), [Raddle](https://raddle.me), or [Hacker News](https://news.ycombinator.com/): you subscribe to forums you're interested in, post links and discussions, then vote, and comment on them. Behind the scenes, it is very different; anyone can easily run a server, and all these servers are federated (think email), and connected to the same universe, called the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
-
-For a link aggregator, this means a user registered on one server can subscribe to forums on any other server, and can have discussions with users registered elsewhere.
-
-The overall goal is to create an easily self-hostable, decentralized alternative to reddit and other link aggregators, outside of their corporate control and meddling.
-
-Each lemmy server can set its own moderation policy; appointing site-wide admins, and community moderators to keep out the trolls, and foster a healthy, non-toxic environment where all can feel comfortable contributing.
-
-### Why's it called Lemmy?
+## Why's it called Lemmy?
 
 - Lead singer from [Motörhead](https://invidio.us/watch?v=pWB5JZRGl0U).
 - The old school [video game](<https://en.wikipedia.org/wiki/Lemmings_(video_game)>).
 - The [Koopa from Super Mario](https://www.mariowiki.com/Lemmy_Koopa).
 - The [furry rodents](http://sunchild.fpwc.org/lemming-the-little-giant-of-the-north/).
-
-Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Inferno](https://www.infernojs.org), [Typescript](https://www.typescriptlang.org/) and [Diesel](http://diesel.rs/).
 
 ## Install
 
@@ -121,7 +95,7 @@ mkdir lemmy/
 cd lemmy/
 wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/docker-compose.yml
 wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/lemmy.hjson
-# Edit the .env if you want custom passwords
+# Edit lemmy.hjson to do more configuration
 docker-compose up -d
 ```
 
@@ -157,88 +131,6 @@ nano inventory # enter your server, domain, contact email
 ansible-playbook lemmy.yml --become
 ```
 
-### Kubernetes
-
-You'll need to have an existing Kubernetes cluster and [storage class](https://kubernetes.io/docs/concepts/storage/storage-classes/).
-Setting this up will vary depending on your provider.
-To try it locally, you can use [MicroK8s](https://microk8s.io/) or [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/).
-
-Once you have a working cluster, edit the environment variables and volume sizes in `docker/k8s/*.yml`.
-You may also want to change the service types to use `LoadBalancer`s depending on where you're running your cluster (add `type: LoadBalancer` to `ports)`, or `NodePort`s.
-By default they will use `ClusterIP`s, which will allow access only within the cluster. See the [docs](https://kubernetes.io/docs/concepts/services-networking/service/) for more on networking in Kubernetes.
-
-**Important** Running a database in Kubernetes will work, but is generally not recommended.
-If you're deploying on any of the common cloud providers, you should consider using their managed database service instead (RDS, Cloud SQL, Azure Databse, etc.).
-
-Now you can deploy:
-
-```bash
-# Add `-n foo` if you want to deploy into a specific namespace `foo`;
-# otherwise your resources will be created in the `default` namespace.
-kubectl apply -f docker/k8s/db.yml
-kubectl apply -f docker/k8s/pictshare.yml
-kubectl apply -f docker/k8s/lemmy.yml
-```
-
-If you used a `LoadBalancer`, you should see it in your cloud provider's console.
-
-## Develop
-
-### Docker Development
-
-Run:
-
-```bash
-git clone https://github.com/dessalines/lemmy
-cd lemmy/docker/dev
-./docker_update.sh # This builds and runs it, updating for your changes
-```
-
-and go to http://localhost:8536.
-
-### Local Development
-
-#### Requirements
-
-- [Rust](https://www.rust-lang.org/)
-- [Yarn](https://yarnpkg.com/en/)
-- [Postgres](https://www.postgresql.org/)
-
-#### Set up Postgres DB
-
-```bash
- psql -c "create user lemmy with password 'password' superuser;" -U postgres
- psql -c 'create database lemmy with owner lemmy;' -U postgres
- export DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
-```
-
-#### Running
-
-```bash
-git clone https://github.com/dessalines/lemmy
-cd lemmy
-./install.sh
-# For live coding, where both the front and back end, automagically reload on any save, do:
-# cd ui && yarn start
-# cd server && cargo watch -x run
-```
-
-## Configuration
-
-The configuration is based on the file [defaults.hjson](server/config/defaults.hjson). This file also contains documentation for all the available options. To override the defaults, you can copy the options you want to change into your local `config.hjson` file. 
-
-Additionally, you can override any config files with environment variables. These have the same name as the config options, and are prefixed with `LEMMY_`. For example, you can override the `database.password` with 
-`LEMMY__DATABASE__POOL_SIZE=10`.
-
-An additional option `LEMMY_DATABASE_URL` is available, which can be used with a PostgreSQL connection string like `postgres://lemmy:password@lemmy_db:5432/lemmy`, passing all connection details at once.
-
-## Documentation
-
-- [Websocket API for App developers](docs/api.md)
-- [ActivityPub API.md](docs/apub_api_outline.md)
-- [Goals](docs/goals.md)
-- [Ranking Algorithm](docs/ranking.md)
-
 ## Support
 
 Lemmy is free, open-source software, meaning no advertising, monetizing, or venture capital, ever. Your donations directly support full-time development of the project.
@@ -257,16 +149,15 @@ If you'd like to add translations, take a look a look at the [English translatio
 
 lang | done | missing
 --- | --- | ---
-de | 97% | avatar,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
-eo | 84% | number_of_communities,preview,upload_image,avatar,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,theme,are_you_sure,yes,no 
-es | 92% | avatar,archive_link,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
-fr | 92% | avatar,archive_link,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
-it | 93% | avatar,archive_link,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
-nl | 86% | preview,upload_image,avatar,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,theme 
-ru | 80% | cross_posts,cross_post,number_of_communities,preview,upload_image,avatar,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,recent_comments,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
-sv | 92% | avatar,archive_link,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
-zh | 78% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,avatar,formatting_help,view_source,sticky,unsticky,archive_link,settings,stickied,delete_account,delete_account_confirm,banned,creator,number_online,replies,mentions,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,recent_comments,nsfw,show_nsfw,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
-
+de | 96% | avatar,docs,old_password,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
+eo | 83% | number_of_communities,preview,upload_image,avatar,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,theme,are_you_sure,yes,no 
+es | 91% | avatar,archive_link,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
+fr | 91% | avatar,archive_link,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
+it | 92% | avatar,archive_link,docs,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
+nl | 85% | preview,upload_image,avatar,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,theme 
+ru | 79% | cross_posts,cross_post,number_of_communities,preview,upload_image,avatar,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,recent_comments,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+sv | 91% | avatar,archive_link,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
+zh | 77% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,avatar,formatting_help,view_source,sticky,unsticky,archive_link,settings,stickied,delete_account,delete_account_confirm,banned,creator,number_online,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,recent_comments,nsfw,show_nsfw,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
 
 If you'd like to update this report, run:
 

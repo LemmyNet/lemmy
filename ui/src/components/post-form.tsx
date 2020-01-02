@@ -74,6 +74,8 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
 
   constructor(props: any, context: any) {
     super(props, context);
+    this.fetchSimilarPosts = debounce(this.fetchSimilarPosts).bind(this);
+    this.fetchPageTitle = debounce(this.fetchPageTitle).bind(this);
 
     this.state = this.emptyState;
 
@@ -350,9 +352,14 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
 
   handlePostUrlChange(i: PostForm, event: any) {
     i.state.postForm.url = event.target.value;
-    if (validURL(i.state.postForm.url)) {
+    i.setState(i.state);
+    i.fetchPageTitle();
+  }
+
+  fetchPageTitle() {
+    if (validURL(this.state.postForm.url)) {
       let form: SearchForm = {
-        q: i.state.postForm.url,
+        q: this.state.postForm.url,
         type_: SearchType[SearchType.Url],
         sort: SortType[SortType.TopAll],
         page: 1,
@@ -362,36 +369,39 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       WebSocketService.Instance.search(form);
 
       // Fetch the page title
-      getPageTitle(i.state.postForm.url).then(d => {
-        i.state.suggestedTitle = d;
-        i.setState(i.state);
+      getPageTitle(this.state.postForm.url).then(d => {
+        this.state.suggestedTitle = d;
+        this.setState(this.state);
       });
     } else {
-      i.state.suggestedTitle = undefined;
-      i.state.crossPosts = [];
+      this.state.suggestedTitle = undefined;
+      this.state.crossPosts = [];
     }
-
-    i.setState(i.state);
   }
 
   handlePostNameChange(i: PostForm, event: any) {
     i.state.postForm.name = event.target.value;
+    i.setState(i.state);
+    i.fetchSimilarPosts();
+  }
+
+  fetchSimilarPosts() {
     let form: SearchForm = {
-      q: i.state.postForm.name,
+      q: this.state.postForm.name,
       type_: SearchType[SearchType.Posts],
       sort: SortType[SortType.TopAll],
-      community_id: i.state.postForm.community_id,
+      community_id: this.state.postForm.community_id,
       page: 1,
       limit: 6,
     };
 
-    if (i.state.postForm.name !== '') {
+    if (this.state.postForm.name !== '') {
       WebSocketService.Instance.search(form);
     } else {
-      i.state.suggestedPosts = [];
+      this.state.suggestedPosts = [];
     }
 
-    i.setState(i.state);
+    this.setState(this.state);
   }
 
   handlePostBodyChange(i: PostForm, event: any) {

@@ -13,9 +13,12 @@ before_cache:
 before_script:
   - psql -c "create user lemmy with password 'password' superuser;" -U postgres
   - psql -c 'create database lemmy with owner lemmy;' -U postgres
+  - rustup component add clippy --toolchain stable-x86_64-unknown-linux-gnu
 before_install:
   - cd server
 script:
+  # Default checks, but fail if anything is detected
+  - cargo clippy -- -D clippy::style -D clippy::correctness -D clippy::complexity -D clippy::perf
   - cargo build
   - diesel migration run
   - cargo test

@@ -99,7 +99,6 @@ export class User extends Component<any, UserState> {
       default_sort_type: null,
       default_listing_type: null,
       lang: null,
-      avatar: null,
       auth: null,
     },
     userSettingsLoading: null,
@@ -437,199 +436,240 @@ export class User extends Component<any, UserState> {
             </h5>
             <form onSubmit={linkEvent(this, this.handleUserSettingsSubmit)}>
               <div class="form-group">
-                <div class="col-12">
-                  <label>
-                    <T i18nKey="avatar">#</T>
-                  </label>
-                  <form class="d-inline">
-                    <label
-                      htmlFor="file-upload"
-                      class="pointer ml-4 text-muted small font-weight-bold"
-                    >
-                      <img
-                        height="80"
-                        width="80"
-                        src={
-                          this.state.userSettingsForm.avatar
-                            ? this.state.userSettingsForm.avatar
-                            : 'https://via.placeholder.com/300/000?text=Avatar'
-                        }
-                        class="rounded-circle"
-                      />
-                    </label>
-                    <input
-                      id="file-upload"
-                      type="file"
-                      accept="image/*,video/*"
-                      name="file"
-                      class="d-none"
-                      disabled={!UserService.Instance.user}
-                      onChange={linkEvent(this, this.handleImageUpload)}
+                <label>
+                  <T i18nKey="avatar">#</T>
+                </label>
+                <form class="d-inline">
+                  <label
+                    htmlFor="file-upload"
+                    class="pointer ml-4 text-muted small font-weight-bold"
+                  >
+                    <img
+                      height="80"
+                      width="80"
+                      src={
+                        this.state.userSettingsForm.avatar
+                          ? this.state.userSettingsForm.avatar
+                          : 'https://via.placeholder.com/300/000?text=Avatar'
+                      }
+                      class="rounded-circle"
                     />
-                  </form>
-                </div>
+                  </label>
+                  <input
+                    id="file-upload"
+                    type="file"
+                    accept="image/*,video/*"
+                    name="file"
+                    class="d-none"
+                    disabled={!UserService.Instance.user}
+                    onChange={linkEvent(this, this.handleImageUpload)}
+                  />
+                </form>
               </div>
               <div class="form-group">
-                <div class="col-12">
-                  <label>
+                <label>
+                  <T i18nKey="language">#</T>
+                </label>
+                <select
+                  value={this.state.userSettingsForm.lang}
+                  onChange={linkEvent(this, this.handleUserSettingsLangChange)}
+                  class="ml-2 custom-select custom-select-sm w-auto"
+                >
+                  <option disabled>
                     <T i18nKey="language">#</T>
-                  </label>
-                  <select
-                    value={this.state.userSettingsForm.lang}
-                    onChange={linkEvent(
-                      this,
-                      this.handleUserSettingsLangChange
-                    )}
-                    class="ml-2 custom-select custom-select-sm w-auto"
-                  >
-                    <option disabled>
-                      <T i18nKey="language">#</T>
-                    </option>
-                    <option value="browser">
-                      <T i18nKey="browser_default">#</T>
-                    </option>
-                    <option disabled>──</option>
-                    {languages.map(lang => (
-                      <option value={lang.code}>{lang.name}</option>
-                    ))}
-                  </select>
-                </div>
+                  </option>
+                  <option value="browser">
+                    <T i18nKey="browser_default">#</T>
+                  </option>
+                  <option disabled>──</option>
+                  {languages.map(lang => (
+                    <option value={lang.code}>{lang.name}</option>
+                  ))}
+                </select>
               </div>
               <div class="form-group">
-                <div class="col-12">
-                  <label>
+                <label>
+                  <T i18nKey="theme">#</T>
+                </label>
+                <select
+                  value={this.state.userSettingsForm.theme}
+                  onChange={linkEvent(this, this.handleUserSettingsThemeChange)}
+                  class="ml-2 custom-select custom-select-sm w-auto"
+                >
+                  <option disabled>
                     <T i18nKey="theme">#</T>
-                  </label>
-                  <select
-                    value={this.state.userSettingsForm.theme}
-                    onChange={linkEvent(
-                      this,
-                      this.handleUserSettingsThemeChange
-                    )}
-                    class="ml-2 custom-select custom-select-sm w-auto"
-                  >
-                    <option disabled>
-                      <T i18nKey="theme">#</T>
-                    </option>
-                    {themes.map(theme => (
-                      <option value={theme}>{theme}</option>
-                    ))}
-                  </select>
-                </div>
+                  </option>
+                  {themes.map(theme => (
+                    <option value={theme}>{theme}</option>
+                  ))}
+                </select>
               </div>
               <form className="form-group">
-                <div class="col-12">
-                  <label>
-                    <T i18nKey="sort_type" class="mr-2">
-                      #
-                    </T>
-                  </label>
-                  <ListingTypeSelect
-                    type_={this.state.userSettingsForm.default_listing_type}
-                    onChange={this.handleUserSettingsListingTypeChange}
-                  />
-                </div>
+                <label>
+                  <T i18nKey="sort_type" class="mr-2">
+                    #
+                  </T>
+                </label>
+                <ListingTypeSelect
+                  type_={this.state.userSettingsForm.default_listing_type}
+                  onChange={this.handleUserSettingsListingTypeChange}
+                />
               </form>
               <form className="form-group">
-                <div class="col-12">
-                  <label>
-                    <T i18nKey="type" class="mr-2">
-                      #
-                    </T>
-                  </label>
-                  <SortSelect
-                    sort={this.state.userSettingsForm.default_sort_type}
-                    onChange={this.handleUserSettingsSortTypeChange}
+                <label>
+                  <T i18nKey="type" class="mr-2">
+                    #
+                  </T>
+                </label>
+                <SortSelect
+                  sort={this.state.userSettingsForm.default_sort_type}
+                  onChange={this.handleUserSettingsSortTypeChange}
+                />
+              </form>
+              <div class="form-group row">
+                <label class="col-lg-3 col-form-label">
+                  <T i18nKey="email">#</T>
+                </label>
+                <div class="col-lg-9">
+                  <input
+                    type="email"
+                    class="form-control"
+                    placeholder={i18n.t('optional')}
+                    value={this.state.userSettingsForm.email}
+                    onInput={linkEvent(
+                      this,
+                      this.handleUserSettingsEmailChange
+                    )}
+                    minLength={3}
                   />
                 </div>
-              </form>
+              </div>
+              <div class="form-group row">
+                <label class="col-lg-5 col-form-label">
+                  <T i18nKey="new_password">#</T>
+                </label>
+                <div class="col-lg-7">
+                  <input
+                    type="password"
+                    class="form-control"
+                    value={this.state.userSettingsForm.new_password}
+                    onInput={linkEvent(
+                      this,
+                      this.handleUserSettingsNewPasswordChange
+                    )}
+                  />
+                </div>
+              </div>
+              <div class="form-group row">
+                <label class="col-lg-5 col-form-label">
+                  <T i18nKey="verify_password">#</T>
+                </label>
+                <div class="col-lg-7">
+                  <input
+                    type="password"
+                    class="form-control"
+                    value={this.state.userSettingsForm.new_password_verify}
+                    onInput={linkEvent(
+                      this,
+                      this.handleUserSettingsNewPasswordVerifyChange
+                    )}
+                  />
+                </div>
+              </div>
+              <div class="form-group row">
+                <label class="col-lg-5 col-form-label">
+                  <T i18nKey="old_password">#</T>
+                </label>
+                <div class="col-lg-7">
+                  <input
+                    type="password"
+                    class="form-control"
+                    value={this.state.userSettingsForm.old_password}
+                    onInput={linkEvent(
+                      this,
+                      this.handleUserSettingsOldPasswordChange
+                    )}
+                  />
+                </div>
+              </div>
               {WebSocketService.Instance.site.enable_nsfw && (
                 <div class="form-group">
-                  <div class="col-12">
-                    <div class="form-check">
-                      <input
-                        class="form-check-input"
-                        type="checkbox"
-                        checked={this.state.userSettingsForm.show_nsfw}
-                        onChange={linkEvent(
-                          this,
-                          this.handleUserSettingsShowNsfwChange
-                        )}
-                      />
-                      <label class="form-check-label">
-                        <T i18nKey="show_nsfw">#</T>
-                      </label>
-                    </div>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      checked={this.state.userSettingsForm.show_nsfw}
+                      onChange={linkEvent(
+                        this,
+                        this.handleUserSettingsShowNsfwChange
+                      )}
+                    />
+                    <label class="form-check-label">
+                      <T i18nKey="show_nsfw">#</T>
+                    </label>
                   </div>
                 </div>
               )}
               <div class="form-group">
-                <div class="col-12">
-                  <button
-                    type="submit"
-                    class="btn btn-block btn-secondary mr-4"
-                  >
-                    {this.state.userSettingsLoading ? (
-                      <svg class="icon icon-spinner spin">
-                        <use xlinkHref="#icon-spinner"></use>
-                      </svg>
-                    ) : (
-                      capitalizeFirstLetter(i18n.t('save'))
-                    )}
-                  </button>
-                </div>
+                <button type="submit" class="btn btn-block btn-secondary mr-4">
+                  {this.state.userSettingsLoading ? (
+                    <svg class="icon icon-spinner spin">
+                      <use xlinkHref="#icon-spinner"></use>
+                    </svg>
+                  ) : (
+                    capitalizeFirstLetter(i18n.t('save'))
+                  )}
+                </button>
               </div>
               <hr />
               <div class="form-group mb-0">
-                <div class="col-12">
-                  <button
-                    class="btn btn-block btn-danger"
-                    onClick={linkEvent(
-                      this,
-                      this.handleDeleteAccountShowConfirmToggle
-                    )}
-                  >
-                    <T i18nKey="delete_account">#</T>
-                  </button>
-                  {this.state.deleteAccountShowConfirm && (
-                    <>
-                      <div class="my-2 alert alert-danger" role="alert">
-                        <T i18nKey="delete_account_confirm">#</T>
-                      </div>
-                      <input
-                        type="password"
-                        value={this.state.deleteAccountForm.password}
-                        onInput={linkEvent(
-                          this,
-                          this.handleDeleteAccountPasswordChange
-                        )}
-                        class="form-control my-2"
-                      />
-                      <button
-                        class="btn btn-danger mr-4"
-                        disabled={!this.state.deleteAccountForm.password}
-                        onClick={linkEvent(this, this.handleDeleteAccount)}
-                      >
-                        {this.state.deleteAccountLoading ? (
-                          <svg class="icon icon-spinner spin">
-                            <use xlinkHref="#icon-spinner"></use>
-                          </svg>
-                        ) : (
-                          capitalizeFirstLetter(i18n.t('delete'))
-                        )}
-                      </button>
-                      <button
-                        class="btn btn-secondary"
-                        onClick={linkEvent(
-                          this,
-                          this.handleDeleteAccountShowConfirmToggle
-                        )}
-                      >
-                        <T i18nKey="cancel">#</T>
-                      </button>
-                    </>
+                <button
+                  class="btn btn-block btn-danger"
+                  onClick={linkEvent(
+                    this,
+                    this.handleDeleteAccountShowConfirmToggle
                   )}
-                </div>
+                >
+                  <T i18nKey="delete_account">#</T>
+                </button>
+                {this.state.deleteAccountShowConfirm && (
+                  <>
+                    <div class="my-2 alert alert-danger" role="alert">
+                      <T i18nKey="delete_account_confirm">#</T>
+                    </div>
+                    <input
+                      type="password"
+                      value={this.state.deleteAccountForm.password}
+                      onInput={linkEvent(
+                        this,
+                        this.handleDeleteAccountPasswordChange
+                      )}
+                      class="form-control my-2"
+                    />
+                    <button
+                      class="btn btn-danger mr-4"
+                      disabled={!this.state.deleteAccountForm.password}
+                      onClick={linkEvent(this, this.handleDeleteAccount)}
+                    >
+                      {this.state.deleteAccountLoading ? (
+                        <svg class="icon icon-spinner spin">
+                          <use xlinkHref="#icon-spinner"></use>
+                        </svg>
+                      ) : (
+                        capitalizeFirstLetter(i18n.t('delete'))
+                      )}
+                    </button>
+                    <button
+                      class="btn btn-secondary"
+                      onClick={linkEvent(
+                        this,
+                        this.handleDeleteAccountShowConfirmToggle
+                      )}
+                    >
+                      <T i18nKey="cancel">#</T>
+                    </button>
+                  </>
+                )}
               </div>
             </form>
           </div>
@@ -786,6 +826,38 @@ export class User extends Component<any, UserState> {
     this.setState(this.state);
   }
 
+  handleUserSettingsEmailChange(i: User, event: any) {
+    i.state.userSettingsForm.email = event.target.value;
+    if (i.state.userSettingsForm.email == '' && !i.state.user.email) {
+      i.state.userSettingsForm.email = undefined;
+    }
+    i.setState(i.state);
+  }
+
+  handleUserSettingsNewPasswordChange(i: User, event: any) {
+    i.state.userSettingsForm.new_password = event.target.value;
+    if (i.state.userSettingsForm.new_password == '') {
+      i.state.userSettingsForm.new_password = undefined;
+    }
+    i.setState(i.state);
+  }
+
+  handleUserSettingsNewPasswordVerifyChange(i: User, event: any) {
+    i.state.userSettingsForm.new_password_verify = event.target.value;
+    if (i.state.userSettingsForm.new_password_verify == '') {
+      i.state.userSettingsForm.new_password_verify = undefined;
+    }
+    i.setState(i.state);
+  }
+
+  handleUserSettingsOldPasswordChange(i: User, event: any) {
+    i.state.userSettingsForm.old_password = event.target.value;
+    if (i.state.userSettingsForm.old_password == '') {
+      i.state.userSettingsForm.old_password = undefined;
+    }
+    i.setState(i.state);
+  }
+
   handleImageUpload(i: User, event: any) {
     event.preventDefault();
     let file = event.target.files[0];
@@ -856,6 +928,8 @@ export class User extends Component<any, UserState> {
     if (msg.error) {
       alert(i18n.t(msg.error));
       this.state.deleteAccountLoading = false;
+      this.state.avatarLoading = false;
+      this.state.userSettingsLoading = false;
       if (msg.error == 'couldnt_find_that_username_or_email') {
         this.context.router.history.push('/');
       }
@@ -882,6 +956,7 @@ export class User extends Component<any, UserState> {
           UserService.Instance.user.default_listing_type;
         this.state.userSettingsForm.lang = UserService.Instance.user.lang;
         this.state.userSettingsForm.avatar = UserService.Instance.user.avatar;
+        this.state.userSettingsForm.email = this.state.user.email;
       }
       document.title = `/u/${this.state.user.name} - ${WebSocketService.Instance.site.name}`;
       window.scrollTo(0, 0);

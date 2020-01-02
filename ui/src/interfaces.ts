@@ -87,6 +87,7 @@ export interface UserView {
   id: number;
   name: string;
   avatar?: string;
+  email?: string;
   fedi_name: string;
   published: string;
   number_of_posts: number;
@@ -481,6 +482,10 @@ export interface UserSettingsForm {
   default_listing_type: ListingType;
   lang: string;
   avatar?: string;
+  email?: string;
+  new_password?: string;
+  new_password_verify?: string;
+  old_password?: string;
   auth: string;
 }
 
