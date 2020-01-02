@@ -51,10 +51,10 @@ pub struct Database {
 
 lazy_static! {
   static ref SETTINGS: Settings = {
-    return match Settings::init() {
+    match Settings::init() {
       Ok(c) => c,
       Err(e) => panic!("{}", e),
-    };
+    }
   };
 }
 
@@ -77,7 +77,7 @@ impl Settings {
     // https://github.com/mehcode/config-rs/issues/73
     s.merge(Environment::with_prefix("LEMMY").separator("__"))?;
 
-    return s.try_into();
+    s.try_into()
   }
 
   /// Returns the config as a struct.

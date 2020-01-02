@@ -9,7 +9,7 @@ impl Post {
     let mut page = Page::default();
 
     page.object_props.set_context_object(context()).ok();
-    page.object_props.set_id_string(base_url.to_string()).ok();
+    page.object_props.set_id_string(base_url).ok();
     page.object_props.set_name_string(self.name.to_owned()).ok();
 
     if let Some(body) = &self.body {

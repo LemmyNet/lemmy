@@ -101,13 +101,13 @@ pub trait MaybeOptional<T> {
 
 impl<T> MaybeOptional<T> for T {
   fn get_optional(self) -> Option<T> {
-    return Some(self);
+    Some(self)
   }
 }
 
 impl<T> MaybeOptional<T> for Option<T> {
   fn get_optional(self) -> Option<T> {
-    return self;
+    self
   }
 }
 
@@ -118,12 +118,12 @@ lazy_static! {
     Pool::builder()
       .max_size(Settings::get().database.pool_size)
       .build(manager)
-      .expect(&format!("Error connecting to {}", db_url))
+      .unwrap_or_else(|_| panic!("Error connecting to {}", db_url))
   };
 }
 
 pub fn establish_connection() -> PooledConnection<ConnectionManager<PgConnection>> {
-  return PG_POOL.get().unwrap();
+  PG_POOL.get().unwrap()
 }
 
 #[derive(EnumString, ToString, Debug, Serialize, Deserialize)]

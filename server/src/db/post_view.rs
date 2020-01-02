@@ -189,12 +189,9 @@ impl<'a> PostQueryBuilder<'a> {
 
     let mut query = self.query;
 
-    match self.listing_type {
-      ListingType::Subscribed => {
-        query = query.filter(subscribed.eq(true));
-      }
-      _ => {}
-    };
+    if let ListingType::Subscribed = self.listing_type {
+      query = query.filter(subscribed.eq(true));
+    }
 
     query = match self.sort {
       SortType::Hot => query

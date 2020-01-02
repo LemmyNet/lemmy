@@ -55,11 +55,12 @@ pub fn get_remote_community(identifier: String) -> Result<GetCommunityResponse, 
       category_id: -1,
       creator_id: -1,
       removed: false,
-      published: naive_now(), // TODO: community.object_props.published
+      published: naive_now(),     // TODO: community.object_props.published
       updated: Some(naive_now()), // TODO: community.object_props.updated
       deleted: false,
       nsfw: false,
       creator_name: "".to_string(),
+      creator_avatar: None,
       category_name: "".to_string(),
       number_of_subscribers: -1,
       number_of_posts: -1,

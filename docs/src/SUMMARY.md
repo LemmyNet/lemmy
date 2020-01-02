@@ -1,0 +1,16 @@
+# Summary
+
+- [About](about.md)
+  - [Features](about_features.md)
+  - [Goals](about_goals.md)
+  - [Post and Comment Ranking](about_ranking.md)
+- [Administration](administration.md)
+  - [Install with Docker](administration_install_docker.md)
+  - [Install with Ansible](administration_install_ansible.md)
+  - [Install with Kubernetes](administration_install_kubernetes.md)
+  - [Configuration](administration_configuration.md)
+- [Contributing](contributing.md)
+  - [Docker Development](contributing_docker_development.md)
+  - [Local Development](contributing_local_development.md)
+  - [Websocket API](contributing_websocket_api.md)
+  - [ActivityPub API Outline](contributing_apub_api_outline.md)
