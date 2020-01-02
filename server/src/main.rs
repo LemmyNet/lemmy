@@ -10,7 +10,7 @@ use lemmy_server::settings::Settings;
 embed_migrations!();
 
 fn main() {
-  let _ = env_logger::init();
+  env_logger::init();
   let sys = actix::System::new("lemmy");
 
   // Run the migrations from code

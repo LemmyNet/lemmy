@@ -124,7 +124,7 @@ impl<'a> CommunityQueryBuilder<'a> {
     self
   }
 
-  pub fn from_user_id<T: MaybeOptional<i32>>(mut self, from_user_id: T) -> Self {
+  pub fn for_user<T: MaybeOptional<i32>>(mut self, from_user_id: T) -> Self {
     self.from_user_id = from_user_id.get_optional();
     self
   }
