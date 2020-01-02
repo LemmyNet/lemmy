@@ -24,6 +24,8 @@ pub struct User_ {
   pub default_sort_type: i16,
   pub default_listing_type: i16,
   pub lang: String,
+  pub show_avatars: bool,
+  pub send_notifications_to_email: bool,
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
@@ -43,6 +45,8 @@ pub struct UserForm {
   pub default_sort_type: i16,
   pub default_listing_type: i16,
   pub lang: String,
+  pub show_avatars: bool,
+  pub send_notifications_to_email: bool,
 }
 
 impl Crud<UserForm> for User_ {
@@ -100,6 +104,7 @@ pub struct Claims {
   pub default_listing_type: i16,
   pub lang: String,
   pub avatar: Option<String>,
+  pub show_avatars: bool,
 }
 
 impl Claims {
@@ -125,6 +130,7 @@ impl User_ {
       default_listing_type: self.default_listing_type,
       lang: self.lang.to_owned(),
       avatar: self.avatar.to_owned(),
+      show_avatars: self.show_avatars.to_owned(),
     };
     encode(
       &Header::default(),
@@ -187,6 +193,8 @@ mod tests {
       default_sort_type: SortType::Hot as i16,
       default_listing_type: ListingType::Subscribed as i16,
       lang: "browser".into(),
+      show_avatars: true,
+      send_notifications_to_email: false,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -208,6 +216,8 @@ mod tests {
       default_sort_type: SortType::Hot as i16,
       default_listing_type: ListingType::Subscribed as i16,
       lang: "browser".into(),
+      show_avatars: true,
+      send_notifications_to_email: false,
     };
 
     let read_user = User_::read(&conn, inserted_user.id).unwrap();

@@ -32,6 +32,8 @@ pub struct SaveUserSettings {
   new_password: Option<String>,
   new_password_verify: Option<String>,
   old_password: Option<String>,
+  show_avatars: bool,
+  send_notifications_to_email: bool,
   auth: String,
 }
 
@@ -231,6 +233,8 @@ impl Perform<LoginResponse> for Oper<Register> {
       default_sort_type: SortType::Hot as i16,
       default_listing_type: ListingType::Subscribed as i16,
       lang: "browser".into(),
+      show_avatars: true,
+      send_notifications_to_email: false,
     };
 
     // Create the user
@@ -356,6 +360,8 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
       default_sort_type: data.default_sort_type,
       default_listing_type: data.default_listing_type,
       lang: data.lang.to_owned(),
+      show_avatars: data.show_avatars,
+      send_notifications_to_email: data.send_notifications_to_email,
     };
 
     let updated_user = match User_::update(&conn, user_id, &user_form) {
@@ -497,6 +503,8 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
       default_sort_type: read_user.default_sort_type,
       default_listing_type: read_user.default_listing_type,
       lang: read_user.lang,
+      show_avatars: read_user.show_avatars,
+      send_notifications_to_email: read_user.send_notifications_to_email,
     };
 
     match User_::update(&conn, data.user_id, &user_form) {
@@ -560,6 +568,8 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
       default_sort_type: read_user.default_sort_type,
       default_listing_type: read_user.default_listing_type,
       lang: read_user.lang,
+      show_avatars: read_user.show_avatars,
+      send_notifications_to_email: read_user.send_notifications_to_email,
     };
 
     match User_::update(&conn, data.user_id, &user_form) {
