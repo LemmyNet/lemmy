@@ -42,6 +42,8 @@ interface CommentNodeState {
   banType: BanType;
   showConfirmTransferSite: boolean;
   showConfirmTransferCommunity: boolean;
+  showConfirmAppointAsMod: boolean;
+  showConfirmAppointAsAdmin: boolean;
   collapsed: boolean;
   viewSource: boolean;
 }
@@ -71,6 +73,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     viewSource: false,
     showConfirmTransferSite: false,
     showConfirmTransferCommunity: false,
+    showConfirmAppointAsMod: false,
+    showConfirmAppointAsAdmin: false,
   };
 
   constructor(props: any, context: any) {
@@ -206,6 +210,18 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 />
               )}
               <ul class="list-inline mb-1 text-muted small font-weight-bold">
+                {this.props.markable && (
+                  <li className="list-inline-item">
+                    <span
+                      class="pointer"
+                      onClick={linkEvent(this, this.handleMarkRead)}
+                    >
+                      {node.comment.read
+                        ? i18n.t('mark_as_unread')
+                        : i18n.t('mark_as_read')}
+                    </span>
+                  </li>
+                )}
                 {UserService.Instance.user && !this.props.viewOnly && (
                   <>
                     <li className="list-inline-item">
@@ -246,28 +262,51 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                         </li>
                       </>
                     )}
+                    <li className="list-inline-item">•</li>
+                    <li className="list-inline-item">
+                      <span
+                        className="pointer"
+                        onClick={linkEvent(this, this.handleViewSource)}
+                      >
+                        <T i18nKey="view_source">#</T>
+                      </span>
+                    </li>
+                    <li className="list-inline-item">
+                      <Link
+                        className="text-muted"
+                        to={`/post/${node.comment.post_id}/comment/${node.comment.id}`}
+                      >
+                        <T i18nKey="link">#</T>
+                      </Link>
+                    </li>
                     {/* Admins and mods can remove comments */}
                     {(this.canMod || this.canAdmin) && (
-                      <li className="list-inline-item">
-                        {!node.comment.removed ? (
-                          <span
-                            class="pointer"
-                            onClick={linkEvent(this, this.handleModRemoveShow)}
-                          >
-                            <T i18nKey="remove">#</T>
-                          </span>
-                        ) : (
-                          <span
-                            class="pointer"
-                            onClick={linkEvent(
-                              this,
-                              this.handleModRemoveSubmit
-                            )}
-                          >
-                            <T i18nKey="restore">#</T>
-                          </span>
-                        )}
-                      </li>
+                      <>
+                        <li className="list-inline-item">•</li>
+                        <li className="list-inline-item">
+                          {!node.comment.removed ? (
+                            <span
+                              class="pointer"
+                              onClick={linkEvent(
+                                this,
+                                this.handleModRemoveShow
+                              )}
+                            >
+                              <T i18nKey="remove">#</T>
+                            </span>
+                          ) : (
+                            <span
+                              class="pointer"
+                              onClick={linkEvent(
+                                this,
+                                this.handleModRemoveSubmit
+                              )}
+                            >
+                              <T i18nKey="restore">#</T>
+                            </span>
+                          )}
+                        </li>
+                      </>
                     )}
                     {/* Mods can ban from community, and appoint as mods to community */}
                     {this.canMod && (
@@ -299,17 +338,43 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                         )}
                         {!node.comment.banned_from_community && (
                           <li className="list-inline-item">
-                            <span
-                              class="pointer"
-                              onClick={linkEvent(
-                                this,
-                                this.handleAddModToCommunity
-                              )}
-                            >
-                              {this.isMod
-                                ? i18n.t('remove_as_mod')
-                                : i18n.t('appoint_as_mod')}
-                            </span>
+                            {!this.state.showConfirmAppointAsMod ? (
+                              <span
+                                class="pointer"
+                                onClick={linkEvent(
+                                  this,
+                                  this.handleShowConfirmAppointAsMod
+                                )}
+                              >
+                                {this.isMod
+                                  ? i18n.t('remove_as_mod')
+                                  : i18n.t('appoint_as_mod')}
+                              </span>
+                            ) : (
+                              <>
+                                <span class="d-inline-block mr-1">
+                                  <T i18nKey="are_you_sure">#</T>
+                                </span>
+                                <span
+                                  class="pointer d-inline-block mr-1"
+                                  onClick={linkEvent(
+                                    this,
+                                    this.handleAddModToCommunity
+                                  )}
+                                >
+                                  <T i18nKey="yes">#</T>
+                                </span>
+                                <span
+                                  class="pointer d-inline-block"
+                                  onClick={linkEvent(
+                                    this,
+                                    this.handleCancelConfirmAppointAsMod
+                                  )}
+                                >
+                                  <T i18nKey="no">#</T>
+                                </span>
+                              </>
+                            )}
                           </li>
                         )}
                       </>
@@ -381,14 +446,40 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                         )}
                         {!node.comment.banned && (
                           <li className="list-inline-item">
-                            <span
-                              class="pointer"
-                              onClick={linkEvent(this, this.handleAddAdmin)}
-                            >
-                              {this.isAdmin
-                                ? i18n.t('remove_as_admin')
-                                : i18n.t('appoint_as_admin')}
-                            </span>
+                            {!this.state.showConfirmAppointAsAdmin ? (
+                              <span
+                                class="pointer"
+                                onClick={linkEvent(
+                                  this,
+                                  this.handleShowConfirmAppointAsAdmin
+                                )}
+                              >
+                                {this.isAdmin
+                                  ? i18n.t('remove_as_admin')
+                                  : i18n.t('appoint_as_admin')}
+                              </span>
+                            ) : (
+                              <>
+                                <span class="d-inline-block mr-1">
+                                  <T i18nKey="are_you_sure">#</T>
+                                </span>
+                                <span
+                                  class="pointer d-inline-block mr-1"
+                                  onClick={linkEvent(this, this.handleAddAdmin)}
+                                >
+                                  <T i18nKey="yes">#</T>
+                                </span>
+                                <span
+                                  class="pointer d-inline-block"
+                                  onClick={linkEvent(
+                                    this,
+                                    this.handleCancelConfirmAppointAsAdmin
+                                  )}
+                                >
+                                  <T i18nKey="no">#</T>
+                                </span>
+                              </>
+                            )}
                           </li>
                         )}
                       </>
@@ -431,34 +522,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                       </li>
                     )}
                   </>
-                )}
-                <li className="list-inline-item">
-                  <span
-                    className="pointer"
-                    onClick={linkEvent(this, this.handleViewSource)}
-                  >
-                    <T i18nKey="view_source">#</T>
-                  </span>
-                </li>
-                <li className="list-inline-item">
-                  <Link
-                    className="text-muted"
-                    to={`/post/${node.comment.post_id}/comment/${node.comment.id}`}
-                  >
-                    <T i18nKey="link">#</T>
-                  </Link>
-                </li>
-                {this.props.markable && (
-                  <li className="list-inline-item">
-                    <span
-                      class="pointer"
-                      onClick={linkEvent(this, this.handleMarkRead)}
-                    >
-                      {node.comment.read
-                        ? i18n.t('mark_as_unread')
-                        : i18n.t('mark_as_read')}
-                    </span>
-                  </li>
                 )}
               </ul>
             </div>
@@ -725,13 +788,13 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   handleModBanFromCommunityShow(i: CommentNode) {
-    i.state.showBanDialog = true;
+    i.state.showBanDialog = !i.state.showBanDialog;
     i.state.banType = BanType.Community;
     i.setState(i.state);
   }
 
   handleModBanShow(i: CommentNode) {
-    i.state.showBanDialog = true;
+    i.state.showBanDialog = !i.state.showBanDialog;
     i.state.banType = BanType.Site;
     i.setState(i.state);
   }
@@ -784,6 +847,16 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     i.setState(i.state);
   }
 
+  handleShowConfirmAppointAsMod(i: CommentNode) {
+    i.state.showConfirmAppointAsMod = true;
+    i.setState(i.state);
+  }
+
+  handleCancelConfirmAppointAsMod(i: CommentNode) {
+    i.state.showConfirmAppointAsMod = false;
+    i.setState(i.state);
+  }
+
   handleAddModToCommunity(i: CommentNode) {
     let form: AddModToCommunityForm = {
       user_id: i.props.node.comment.creator_id,
@@ -791,6 +864,17 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       added: !i.isMod,
     };
     WebSocketService.Instance.addModToCommunity(form);
+    i.state.showConfirmAppointAsMod = false;
+    i.setState(i.state);
+  }
+
+  handleShowConfirmAppointAsAdmin(i: CommentNode) {
+    i.state.showConfirmAppointAsAdmin = true;
+    i.setState(i.state);
+  }
+
+  handleCancelConfirmAppointAsAdmin(i: CommentNode) {
+    i.state.showConfirmAppointAsAdmin = false;
     i.setState(i.state);
   }
 
@@ -800,6 +884,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       added: !i.isAdmin,
     };
     WebSocketService.Instance.addAdmin(form);
+    i.state.showConfirmAppointAsAdmin = false;
     i.setState(i.state);
   }
 
