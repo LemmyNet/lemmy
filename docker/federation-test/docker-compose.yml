@@ -2,9 +2,7 @@ version: '3.3'
 
 services:
   lemmy_alpha:
-    build:
-      context: ../../
-      dockerfile: docker/dev/Dockerfile
+    image: lemmy-federation-test:latest
     ports:
       - "127.0.0.1:8536:8536"
     environment:
@@ -15,6 +13,7 @@ services:
       - LEMMY_FEDERATION_ENABLED=true
       - LEMMY_FEDERATED_INSTANCE=lemmy_beta:8537
       - LEMMY_PORT=8536
+      - RUST_BACKTRACE=1
     restart: always
     depends_on:
       - lemmy_db_alpha
@@ -24,6 +23,8 @@ services:
       - POSTGRES_USER=lemmy
       - POSTGRES_PASSWORD=${LEMMY_DATABASE_PASSWORD}
       - POSTGRES_DB=lemmy
+    volumes:
+      - lemmy_db_alpha:/var/lib/postgresql/data
     restart: always
   lemmy_pictshare_alpha:
     image: shtripok/pictshare:latest
@@ -34,9 +35,7 @@ services:
     restart: always
 
   lemmy_beta:
-    build:
-      context: ../../
-      dockerfile: docker/dev/Dockerfile
+    image: lemmy-federation-test:latest
     ports:
       - "127.0.0.1:8537:8537"
     environment:
@@ -47,6 +46,7 @@ services:
       - LEMMY_FEDERATION_ENABLED=true
       - LEMMY_FEDERATED_INSTANCE=lemmy_alpha:8536
       - LEMMY_PORT=8537
+      - RUST_BACKTRACE=1
     restart: always
     depends_on:
       - lemmy_db_beta
