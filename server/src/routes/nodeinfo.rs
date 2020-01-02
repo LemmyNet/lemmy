@@ -21,9 +21,9 @@ pub fn node_info_well_known() -> HttpResponse<Body> {
     }
   });
 
-  return HttpResponse::Ok()
+  HttpResponse::Ok()
     .content_type("application/json")
-    .body(json.to_string());
+    .body(json.to_string())
 }
 
 fn node_info() -> HttpResponse<Body> {
@@ -53,7 +53,7 @@ fn node_info() -> HttpResponse<Body> {
       "openRegistrations": site_view.open_registration,
       }
   });
-  return HttpResponse::Ok()
+  HttpResponse::Ok()
     .content_type("application/json")
-    .body(json.to_string());
+    .body(json.to_string())
 }

@@ -60,10 +60,7 @@ impl Community {
 
     let mut collection = UnorderedCollection::default();
     collection.object_props.set_context_object(context()).ok();
-    collection
-      .object_props
-      .set_id_string(base_url.to_string())
-      .ok();
+    collection.object_props.set_id_string(base_url).ok();
 
     let connection = establish_connection();
     //As we are an object, we validated that the community id was valid

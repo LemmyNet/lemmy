@@ -85,7 +85,10 @@ fn get_feed(path: web::Path<(String, String)>, info: web::Query<Params>) -> Http
 }
 
 fn get_sort_type(info: web::Query<Params>) -> Result<SortType, ParseError> {
-  let sort_query = info.sort.to_owned().unwrap_or(SortType::Hot.to_string());
+  let sort_query = info
+    .sort
+    .to_owned()
+    .unwrap_or_else(|| SortType::Hot.to_string());
   SortType::from_str(&sort_query)
 }
 

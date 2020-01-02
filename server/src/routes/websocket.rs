@@ -9,7 +9,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
   // Start chat server actor in separate thread
   let server = ChatServer::default().start();
   cfg
-    .data(server.clone())
+    .data(server)
     .service(web::resource("/api/v1/ws").to(chat_route));
 }
 
@@ -33,7 +33,7 @@ fn chat_route(
         .connection_info()
         .remote()
         .unwrap_or("127.0.0.1:12345")
-        .split(":")
+        .split(':')
         .next()
         .unwrap_or("127.0.0.1")
         .to_string(),
