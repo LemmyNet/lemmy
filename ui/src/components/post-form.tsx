@@ -15,6 +15,7 @@ import {
   SearchForm,
   SearchType,
   SearchResponse,
+  GetSiteResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import {
@@ -49,6 +50,7 @@ interface PostFormState {
   suggestedTitle: string;
   suggestedPosts: Array<Post>;
   crossPosts: Array<Post>;
+  enable_nsfw: boolean;
 }
 
 export class PostForm extends Component<PostFormProps, PostFormState> {
@@ -70,6 +72,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     suggestedTitle: undefined,
     suggestedPosts: [],
     crossPosts: [],
+    enable_nsfw: undefined,
   };
 
   constructor(props: any, context: any) {
@@ -124,6 +127,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     };
 
     WebSocketService.Instance.listCommunities(listCommunitiesForm);
+    WebSocketService.Instance.getSite();
   }
 
   componentDidMount() {
@@ -287,7 +291,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               </div>
             </div>
           )}
-          {WebSocketService.Instance.site.enable_nsfw && (
+          {this.state.enable_nsfw && (
             <div class="form-group row">
               <div class="col-sm-10">
                 <div class="form-check">
@@ -497,6 +501,10 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       } else if (res.type_ == SearchType[SearchType.Url]) {
         this.state.crossPosts = res.posts;
       }
+      this.setState(this.state);
+    } else if (op == UserOperation.GetSite) {
+      let res: GetSiteResponse = msg;
+      this.state.enable_nsfw = res.site.enable_nsfw;
       this.setState(this.state);
     }
   }
