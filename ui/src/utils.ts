@@ -352,3 +352,14 @@ export function showAvatars(): boolean {
     !UserService.Instance.user
   );
 }
+
+/// Converts to image thumbnail (only supports pictshare currently)
+export function imageThumbnailer(url: string): string {
+  let split = url.split('pictshare');
+  if (split.length > 1) {
+    let out = `${split[0]}pictshare/140x140${split[1]}`;
+    return out;
+  } else {
+    return url;
+  }
+}
