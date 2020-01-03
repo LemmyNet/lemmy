@@ -7,12 +7,11 @@ matrix:
   fast_finish: true
 cache: cargo
 before_cache:
-  - rm -rfv target/debug/incremental/lemmy-*
-  - rm -rfv target/debug/.fingerprint/lemmy-*
-  - rm -rfv target/debug/build/lemmy-*
-  - rm -rfv target/debug/deps/liblemmy-*
-  - rm -rfv target/debug/deps/lemmy-*
-  - rm -rfv target/debug/{lemmy,liblemmy}.d
+  - rm -rfv target/debug/incremental/lemmy_server-*
+  - rm -rfv target/debug/.fingerprint/lemmy_server-*
+  - rm -rfv target/debug/build/lemmy_server-*
+  - rm -rfv target/debug/deps/lemmy_server-*
+  - rm -rfv target/debug/lemmy_server.d
   - cargo clean
 before_script:
   - psql -c "create user lemmy with password 'password' superuser;" -U postgres
