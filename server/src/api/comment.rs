@@ -137,43 +137,47 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
     match data.parent_id {
       Some(parent_id) => {
         let parent_comment = Comment::read(&conn, parent_id)?;
-        let parent_user = User_::read(&conn, parent_comment.creator_id)?;
-        if parent_user.send_notifications_to_email {
-          if let Some(comment_reply_email) = parent_user.email {
-            let subject = &format!(
-              "{} - Reply from {}",
-              Settings::get().hostname,
-              claims.username
-            );
-            let html = &format!(
-              "<h1>Comment Reply</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
-              claims.username, comment_form.content, hostname
-            );
-            match send_email(subject, &comment_reply_email, &parent_user.name, html) {
-              Ok(_o) => _o,
-              Err(e) => eprintln!("{}", e),
-            };
+        if parent_comment.creator_id != user_id {
+          let parent_user = User_::read(&conn, parent_comment.creator_id)?;
+          if parent_user.send_notifications_to_email {
+            if let Some(comment_reply_email) = parent_user.email {
+              let subject = &format!(
+                "{} - Reply from {}",
+                Settings::get().hostname,
+                claims.username
+              );
+              let html = &format!(
+                "<h1>Comment Reply</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
+                claims.username, comment_form.content, hostname
+              );
+              match send_email(subject, &comment_reply_email, &parent_user.name, html) {
+                Ok(_o) => _o,
+                Err(e) => eprintln!("{}", e),
+              };
+            }
           }
         }
       }
       // Its a post
       None => {
-        let parent_user = User_::read(&conn, post.creator_id)?;
-        if parent_user.send_notifications_to_email {
-          if let Some(post_reply_email) = parent_user.email {
-            let subject = &format!(
-              "{} - Reply from {}",
-              Settings::get().hostname,
-              claims.username
-            );
-            let html = &format!(
-              "<h1>Post Reply</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
-              claims.username, comment_form.content, hostname
-            );
-            match send_email(subject, &post_reply_email, &parent_user.name, html) {
-              Ok(_o) => _o,
-              Err(e) => eprintln!("{}", e),
-            };
+        if post.creator_id != user_id {
+          let parent_user = User_::read(&conn, post.creator_id)?;
+          if parent_user.send_notifications_to_email {
+            if let Some(post_reply_email) = parent_user.email {
+              let subject = &format!(
+                "{} - Reply from {}",
+                Settings::get().hostname,
+                claims.username
+              );
+              let html = &format!(
+                "<h1>Post Reply</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
+                claims.username, comment_form.content, hostname
+              );
+              match send_email(subject, &post_reply_email, &parent_user.name, html) {
+                Ok(_o) => _o,
+                Err(e) => eprintln!("{}", e),
+              };
+            }
           }
         }
       }
