@@ -13,7 +13,7 @@ before_cache:
   - rm -rfv target/debug/deps/liblemmy-*
   - rm -rfv target/debug/deps/lemmy-*
   - rm -rfv target/debug/{lemmy,liblemmy}.d
-  - cargo clean -p lemmy
+  - cargo clean
 before_script:
   - psql -c "create user lemmy with password 'password' superuser;" -U postgres
   - psql -c 'create database lemmy with owner lemmy;' -U postgres
