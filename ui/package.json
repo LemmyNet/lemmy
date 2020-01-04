@@ -58,13 +58,16 @@
   "engineStrict": true,
   "husky": {
     "hooks": {
-      "pre-commit": "lint-staged"
+      "pre-commit": "cargo fmt --manifest-path ../server/Cargo.toml && cargo clippy --manifest-path ../server/Cargo.toml --all-targets --all-features -- -D warnings && lint-staged"
     }
   },
   "lint-staged": {
     "*.{ts,tsx,js}": [
       "prettier --write",
       "eslint --fix",
+      "git add"
+    ],
+    "../server/src/**/*.rs": [
       "git add"
     ],
     "package.json": [
