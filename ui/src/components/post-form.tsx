@@ -29,7 +29,7 @@ import {
   debounce,
   isImage,
 } from '../utils';
-import * as autosize from 'autosize';
+import autosize from 'autosize';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 
@@ -107,14 +107,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     }
 
     this.subscription = WebSocketService.Instance.subject
-      .pipe(
-        retryWhen(errors =>
-          errors.pipe(
-            delay(3000),
-            take(10)
-          )
-        )
-      )
+      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
       .subscribe(
         msg => this.parseMessage(msg),
         err => console.error(err),

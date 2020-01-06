@@ -17,9 +17,9 @@ import {
   SearchType,
 } from './interfaces';
 import { UserService } from './services/UserService';
-import * as markdown_it from 'markdown-it';
-import * as markdownitEmoji from 'markdown-it-emoji/light';
-import * as markdown_it_container from 'markdown-it-container';
+import markdown_it from 'markdown-it';
+import markdownitEmoji from 'markdown-it-emoji/light';
+import markdown_it_container from 'markdown-it-container';
 import * as twemoji from 'twemoji';
 import * as emojiShortName from 'emoji-short-name';
 
@@ -58,9 +58,7 @@ export const md = new markdown_it({
 
       if (tokens[idx].nesting === 1) {
         // opening tag
-        return (
-          '<details><summary>' + md.utils.escapeHtml(m[1]) + '</summary>\n'
-        );
+        return `<details><summary> ${md.utils.escapeHtml(m[1])} </summary>\n`;
       } else {
         // closing tag
         return '</details>\n';
@@ -266,7 +264,7 @@ export function getLanguage(): string {
 }
 
 export function getBrowserLanguage(): string {
-  return navigator.language || navigator.userLanguage;
+  return navigator.language;
 }
 
 export function getMomentLanguage(): string {

@@ -2,7 +2,7 @@ import { Component, linkEvent } from 'inferno';
 import { Site, SiteForm as SiteFormI } from '../interfaces';
 import { WebSocketService } from '../services';
 import { capitalizeFirstLetter } from '../utils';
-import * as autosize from 'autosize';
+import autosize from 'autosize';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 

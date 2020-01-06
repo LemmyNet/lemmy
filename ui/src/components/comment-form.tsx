@@ -18,11 +18,11 @@ import {
   markdownHelpUrl,
 } from '../utils';
 import { WebSocketService, UserService } from '../services';
-import * as autosize from 'autosize';
+import autosize from 'autosize';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 import Tribute from 'tributejs/src/Tribute.js';
-import * as emojiShortName from 'emoji-short-name';
+import emojiShortName from 'emoji-short-name';
 
 interface CommentFormProps {
   postId?: number;
