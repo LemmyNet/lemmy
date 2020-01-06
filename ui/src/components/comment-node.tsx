@@ -25,7 +25,7 @@ import {
   pictshareAvatarThumbnail,
   showAvatars,
 } from '../utils';
-import * as moment from 'moment';
+import moment from 'moment';
 import { MomentTime } from './moment-time';
 import { CommentForm } from './comment-form';
 import { CommentNodes } from './comment-nodes';
