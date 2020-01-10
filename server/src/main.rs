@@ -39,7 +39,7 @@ fn main() {
   })
   .bind((settings.bind, settings.port))
   .unwrap()
-  .start();
+  .run();
 
   println!("Started http server at {}:{}", settings.bind, settings.port);
   let _ = sys.run();
