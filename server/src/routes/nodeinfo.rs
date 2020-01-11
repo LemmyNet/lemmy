@@ -13,7 +13,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route("/.well-known/nodeinfo", web::get().to(node_info_well_known));
 }
 
-pub fn node_info_well_known() -> HttpResponse<Body> {
+async fn node_info_well_known() -> HttpResponse<Body> {
   let json = json!({
     "links": {
       "rel": "http://nodeinfo.diaspora.software/ns/schema/2.0",
@@ -26,7 +26,7 @@ pub fn node_info_well_known() -> HttpResponse<Body> {
     .body(json.to_string())
 }
 
-fn node_info() -> HttpResponse<Body> {
+async fn node_info() -> HttpResponse<Body> {
   let conn = establish_connection();
   let site_view = match SiteView::read(&conn) {
     Ok(site_view) => site_view,

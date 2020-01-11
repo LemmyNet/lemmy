@@ -61,7 +61,7 @@ pub struct UserQuery {
   user_name: String,
 }
 
-pub fn get_apub_user(info: Path<UserQuery>) -> HttpResponse<Body> {
+pub async fn get_apub_user(info: Path<UserQuery>) -> HttpResponse<Body> {
   let connection = establish_connection();
 
   if let Ok(user) = User_::find_by_email_or_username(&connection, &info.user_name) {

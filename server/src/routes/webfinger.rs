@@ -37,7 +37,7 @@ lazy_static! {
 ///
 /// You can also view the webfinger response that Mastodon sends:
 /// https://radical.town/.well-known/webfinger?resource=acct:felix@radical.town
-fn get_webfinger_response(info: Query<Params>) -> HttpResponse<Body> {
+async fn get_webfinger_response(info: Query<Params>) -> HttpResponse<Body> {
   let regex_parsed = WEBFINGER_COMMUNITY_REGEX
     .captures(&info.resource)
     .map(|c| c.get(1));
