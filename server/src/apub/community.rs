@@ -84,7 +84,7 @@ pub struct CommunityQuery {
   community_name: String,
 }
 
-pub fn get_apub_community(info: Path<CommunityQuery>) -> HttpResponse<Body> {
+pub async fn get_apub_community(info: Path<CommunityQuery>) -> HttpResponse<Body> {
   let connection = establish_connection();
 
   if let Ok(community) = Community::read_from_name(&connection, info.community_name.to_owned()) {
@@ -96,7 +96,7 @@ pub fn get_apub_community(info: Path<CommunityQuery>) -> HttpResponse<Body> {
   }
 }
 
-pub fn get_apub_community_followers(info: Path<CommunityQuery>) -> HttpResponse<Body> {
+pub async fn get_apub_community_followers(info: Path<CommunityQuery>) -> HttpResponse<Body> {
   let connection = establish_connection();
 
   if let Ok(community) = Community::read_from_name(&connection, info.community_name.to_owned()) {
