@@ -7,11 +7,12 @@ use crate::db::post_view::{PostQueryBuilder, PostView};
 use crate::db::site_view::SiteView;
 use crate::db::user::{Claims, User_};
 use crate::db::user_mention_view::{UserMentionQueryBuilder, UserMentionView};
-use crate::db::{establish_connection, ListingType, SortType};
+use crate::db::{ListingType, SortType};
 use crate::Settings;
-use actix_web::body::Body;
 use actix_web::{web, HttpResponse, Result};
 use chrono::{DateTime, Utc};
+use diesel::r2d2::{ConnectionManager, Pool};
+use diesel::PgConnection;
 use failure::Error;
 use rss::{CategoryBuilder, ChannelBuilder, GuidBuilder, Item, ItemBuilder};
 use serde::Deserialize;
@@ -37,54 +38,61 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route("/feeds/all.xml", web::get().to(feeds::get_all_feed));
 }
 
-async fn get_all_feed(info: web::Query<Params>) -> HttpResponse<Body> {
-  let sort_type = match get_sort_type(info) {
-    Ok(sort_type) => sort_type,
-    Err(_) => return HttpResponse::BadRequest().finish(),
-  };
+async fn get_all_feed(
+  info: web::Query<Params>,
+  db: web::Data<Pool<ConnectionManager<PgConnection>>>,
+) -> Result<HttpResponse, actix_web::Error> {
+  let res = web::block(move || {
+    let conn = db.get()?;
 
-  let feed_result = get_feed_all_data(&sort_type);
-
-  match feed_result {
-    Ok(rss) => HttpResponse::Ok()
+    let sort_type = get_sort_type(info)?;
+    get_feed_all_data(&conn, &sort_type)
+  })
+  .await
+  .map(|rss| {
+    HttpResponse::Ok()
       .content_type("application/rss+xml")
-      .body(rss),
-    Err(_) => HttpResponse::NotFound().finish(),
-  }
+      .body(rss)
+  })
+  .map_err(|_| HttpResponse::InternalServerError())?;
+  Ok(res)
 }
 
 async fn get_feed(
   path: web::Path<(String, String)>,
   info: web::Query<Params>,
-) -> HttpResponse<Body> {
-  let sort_type = match get_sort_type(info) {
-    Ok(sort_type) => sort_type,
-    Err(_) => return HttpResponse::BadRequest().finish(),
-  };
+  db: web::Data<Pool<ConnectionManager<PgConnection>>>,
+) -> Result<HttpResponse, actix_web::Error> {
+  let res = web::block(move || {
+    let conn = db.get()?;
 
-  let request_type = match path.0.as_ref() {
-    "u" => RequestType::User,
-    "c" => RequestType::Community,
-    "front" => RequestType::Front,
-    "inbox" => RequestType::Inbox,
-    _ => return HttpResponse::NotFound().finish(),
-  };
+    let sort_type = get_sort_type(info)?;
 
-  let param = path.1.to_owned();
+    let request_type = match path.0.as_ref() {
+      "u" => RequestType::User,
+      "c" => RequestType::Community,
+      "front" => RequestType::Front,
+      "inbox" => RequestType::Inbox,
+      _ => return Err(format_err!("wrong_type")),
+    };
 
-  let feed_result = match request_type {
-    RequestType::User => get_feed_user(&sort_type, param),
-    RequestType::Community => get_feed_community(&sort_type, param),
-    RequestType::Front => get_feed_front(&sort_type, param),
-    RequestType::Inbox => get_feed_inbox(param),
-  };
+    let param = path.1.to_owned();
 
-  match feed_result {
-    Ok(rss) => HttpResponse::Ok()
+    match request_type {
+      RequestType::User => get_feed_user(&conn, &sort_type, param),
+      RequestType::Community => get_feed_community(&conn, &sort_type, param),
+      RequestType::Front => get_feed_front(&conn, &sort_type, param),
+      RequestType::Inbox => get_feed_inbox(&conn, param),
+    }
+  })
+  .await
+  .map(|rss| {
+    HttpResponse::Ok()
       .content_type("application/rss+xml")
-      .body(rss),
-    Err(_) => HttpResponse::NotFound().finish(),
-  }
+      .body(rss)
+  })
+  .map_err(|_| HttpResponse::InternalServerError())?;
+  Ok(res)
 }
 
 fn get_sort_type(info: web::Query<Params>) -> Result<SortType, ParseError> {
@@ -95,9 +103,7 @@ fn get_sort_type(info: web::Query<Params>) -> Result<SortType, ParseError> {
   SortType::from_str(&sort_query)
 }
 
-fn get_feed_all_data(sort_type: &SortType) -> Result<String, Error> {
-  let conn = establish_connection();
-
+fn get_feed_all_data(conn: &PgConnection, sort_type: &SortType) -> Result<String, failure::Error> {
   let site_view = SiteView::read(&conn)?;
 
   let posts = PostQueryBuilder::create(&conn)
@@ -120,9 +126,11 @@ fn get_feed_all_data(sort_type: &SortType) -> Result<String, Error> {
   Ok(channel_builder.build().unwrap().to_string())
 }
 
-fn get_feed_user(sort_type: &SortType, user_name: String) -> Result<String, Error> {
-  let conn = establish_connection();
-
+fn get_feed_user(
+  conn: &PgConnection,
+  sort_type: &SortType,
+  user_name: String,
+) -> Result<String, Error> {
   let site_view = SiteView::read(&conn)?;
   let user = User_::find_by_username(&conn, &user_name)?;
   let user_url = user.get_profile_url();
@@ -144,9 +152,11 @@ fn get_feed_user(sort_type: &SortType, user_name: String) -> Result<String, Erro
   Ok(channel_builder.build().unwrap().to_string())
 }
 
-fn get_feed_community(sort_type: &SortType, community_name: String) -> Result<String, Error> {
-  let conn = establish_connection();
-
+fn get_feed_community(
+  conn: &PgConnection,
+  sort_type: &SortType,
+  community_name: String,
+) -> Result<String, Error> {
   let site_view = SiteView::read(&conn)?;
   let community = Community::read_from_name(&conn, community_name)?;
   let community_url = community.get_url();
@@ -172,9 +182,7 @@ fn get_feed_community(sort_type: &SortType, community_name: String) -> Result<St
   Ok(channel_builder.build().unwrap().to_string())
 }
 
-fn get_feed_front(sort_type: &SortType, jwt: String) -> Result<String, Error> {
-  let conn = establish_connection();
-
+fn get_feed_front(conn: &PgConnection, sort_type: &SortType, jwt: String) -> Result<String, Error> {
   let site_view = SiteView::read(&conn)?;
   let user_id = Claims::decode(&jwt)?.claims.id;
 
@@ -199,9 +207,7 @@ fn get_feed_front(sort_type: &SortType, jwt: String) -> Result<String, Error> {
   Ok(channel_builder.build().unwrap().to_string())
 }
 
-fn get_feed_inbox(jwt: String) -> Result<String, Error> {
-  let conn = establish_connection();
-
+fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<String, Error> {
   let site_view = SiteView::read(&conn)?;
   let user_id = Claims::decode(&jwt)?.claims.id;
 

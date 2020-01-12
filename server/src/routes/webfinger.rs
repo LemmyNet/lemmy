@@ -1,10 +1,10 @@
 use crate::db::community::Community;
-use crate::db::establish_connection;
 use crate::Settings;
-use actix_web::body::Body;
 use actix_web::web;
 use actix_web::web::Query;
 use actix_web::HttpResponse;
+use diesel::r2d2::{ConnectionManager, Pool};
+use diesel::PgConnection;
 use regex::Regex;
 use serde::Deserialize;
 use serde_json::json;
@@ -37,54 +37,61 @@ lazy_static! {
 ///
 /// You can also view the webfinger response that Mastodon sends:
 /// https://radical.town/.well-known/webfinger?resource=acct:felix@radical.town
-async fn get_webfinger_response(info: Query<Params>) -> HttpResponse<Body> {
-  let regex_parsed = WEBFINGER_COMMUNITY_REGEX
-    .captures(&info.resource)
-    .map(|c| c.get(1));
-  // TODO: replace this with .flatten() once we are running rust 1.40
-  let regex_parsed_flattened = match regex_parsed {
-    Some(s) => s,
-    None => None,
-  };
-  let community_name = match regex_parsed_flattened {
-    Some(c) => c.as_str(),
-    None => return HttpResponse::NotFound().finish(),
-  };
+async fn get_webfinger_response(
+  info: Query<Params>,
+  db: web::Data<Pool<ConnectionManager<PgConnection>>>,
+) -> Result<HttpResponse, actix_web::Error> {
+  let res = web::block(move || {
+    let conn = db.get()?;
 
-  // Make sure the requested community exists.
-  let conn = establish_connection();
-  let community = match Community::read_from_name(&conn, community_name.to_string()) {
-    Ok(o) => o,
-    Err(_) => return HttpResponse::NotFound().finish(),
-  };
+    let regex_parsed = WEBFINGER_COMMUNITY_REGEX
+      .captures(&info.resource)
+      .map(|c| c.get(1));
+    // TODO: replace this with .flatten() once we are running rust 1.40
+    let regex_parsed_flattened = match regex_parsed {
+      Some(s) => s,
+      None => None,
+    };
+    let community_name = match regex_parsed_flattened {
+      Some(c) => c.as_str(),
+      None => return Err(format_err!("not_found")),
+    };
 
-  let community_url = community.get_url();
+    // Make sure the requested community exists.
+    let community = match Community::read_from_name(&conn, community_name.to_string()) {
+      Ok(o) => o,
+      Err(_) => return Err(format_err!("not_found")),
+    };
 
-  let json = json!({
+    let community_url = community.get_url();
+
+    Ok(json!({
     "subject": info.resource,
     "aliases": [
       community_url,
     ],
     "links": [
-      {
-        "rel": "http://webfinger.net/rel/profile-page",
-        "type": "text/html",
-        "href": community_url
-      },
-      {
-        "rel": "self",
-        "type": "application/activity+json",
-        // Yes this is correct, this link doesn't include the `.json` extension
-        "href": community_url
-      }
-      // TODO: this also needs to return the subscribe link once that's implemented
-      //{
-      //  "rel": "http://ostatus.org/schema/1.0/subscribe",
-      //  "template": "https://my_instance.com/authorize_interaction?uri={uri}"
-      //}
+    {
+      "rel": "http://webfinger.net/rel/profile-page",
+      "type": "text/html",
+      "href": community_url
+    },
+    {
+      "rel": "self",
+      "type": "application/activity+json",
+      // Yes this is correct, this link doesn't include the `.json` extension
+      "href": community_url
+    }
+    // TODO: this also needs to return the subscribe link once that's implemented
+    //{
+    //  "rel": "http://ostatus.org/schema/1.0/subscribe",
+    //  "template": "https://my_instance.com/authorize_interaction?uri={uri}"
+    //}
     ]
-  });
-  HttpResponse::Ok()
-    .content_type("application/activity+json")
-    .body(json.to_string())
+    }))
+  })
+  .await
+  .map(|json| HttpResponse::Ok().json(json))
+  .map_err(|_| HttpResponse::InternalServerError())?;
+  Ok(res)
 }
