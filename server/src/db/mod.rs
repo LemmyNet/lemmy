@@ -112,7 +112,7 @@ impl<T> MaybeOptional<T> for Option<T> {
 
 pub fn establish_unpooled_connection() -> PgConnection {
   let db_url = Settings::get().get_database_url();
-  PgConnection::establish(&db_url).expect(&format!("Error connecting to {}", db_url))
+  PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url))
 }
 
 #[derive(EnumString, ToString, Debug, Serialize, Deserialize)]
