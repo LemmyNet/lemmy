@@ -44,8 +44,6 @@ async fn main() -> io::Result<()> {
       .configure(nodeinfo::config)
       .configure(webfinger::config)
       .configure(websocket::config)
-      // .configure(websocket.config(pool))
-      // .configure(websocket.
       // static files
       .service(actix_files::Files::new(
         "/static",
