@@ -37,7 +37,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route("/feeds/all.xml", web::get().to(feeds::get_all_feed));
 }
 
-fn get_all_feed(info: web::Query<Params>) -> HttpResponse<Body> {
+async fn get_all_feed(info: web::Query<Params>) -> HttpResponse<Body> {
   let sort_type = match get_sort_type(info) {
     Ok(sort_type) => sort_type,
     Err(_) => return HttpResponse::BadRequest().finish(),
@@ -53,7 +53,10 @@ fn get_all_feed(info: web::Query<Params>) -> HttpResponse<Body> {
   }
 }
 
-fn get_feed(path: web::Path<(String, String)>, info: web::Query<Params>) -> HttpResponse<Body> {
+async fn get_feed(
+  path: web::Path<(String, String)>,
+  info: web::Query<Params>,
+) -> HttpResponse<Body> {
   let sort_type = match get_sort_type(info) {
     Ok(sort_type) => sort_type,
     Err(_) => return HttpResponse::BadRequest().finish(),
