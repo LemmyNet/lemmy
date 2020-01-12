@@ -19,7 +19,7 @@ const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Entry point for our route
-fn chat_route(
+async fn chat_route(
   req: HttpRequest,
   stream: web::Payload,
   chat_server: web::Data<Addr<ChatServer>>,
@@ -80,7 +80,7 @@ impl Actor for WSSession {
           // something is wrong with chat server
           _ => ctx.stop(),
         }
-        fut::ok(())
+        actix::fut::ready(())
       })
       .wait(ctx);
   }
@@ -107,10 +107,17 @@ impl Handler<WSMessage> for WSSession {
 }
 
 /// WebSocket message handler
-impl StreamHandler<ws::Message, ws::ProtocolError> for WSSession {
-  fn handle(&mut self, msg: ws::Message, ctx: &mut Self::Context) {
+impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WSSession {
+  fn handle(&mut self, result: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
     // println!("WEBSOCKET MESSAGE: {:?} from id: {}", msg, self.id);
-    match msg {
+    let message = match result {
+      Ok(m) => m,
+      Err(e) => {
+        println!("{}", e);
+        return;
+      }
+    };
+    match message {
       ws::Message::Ping(msg) => {
         self.hb = Instant::now();
         ctx.pong(&msg);
@@ -136,7 +143,7 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WSSession {
                 eprintln!("{}", &e);
               }
             }
-            fut::ok(())
+            actix::fut::ready(())
           })
           .wait(ctx);
       }
@@ -173,7 +180,7 @@ impl WSSession {
         return;
       }
 
-      ctx.ping("");
+      ctx.ping(b"");
     });
   }
 }

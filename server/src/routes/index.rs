@@ -38,7 +38,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route("/password_change/{token}", web::get().to(index));
 }
 
-fn index() -> Result<NamedFile, actix_web::error::Error> {
+async fn index() -> Result<NamedFile, actix_web::error::Error> {
   Ok(NamedFile::open(
     Settings::get().front_end_dir.to_owned() + "/index.html",
   )?)

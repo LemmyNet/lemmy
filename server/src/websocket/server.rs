@@ -21,6 +21,7 @@ use crate::Settings;
 
 /// Chat server sends this messages to session
 #[derive(Message)]
+#[rtype(result = "()")]
 pub struct WSMessage(pub String);
 
 /// Message for chat server communications
@@ -35,6 +36,7 @@ pub struct Connect {
 
 /// Session is disconnected
 #[derive(Message)]
+#[rtype(result = "()")]
 pub struct Disconnect {
   pub id: usize,
   pub ip: String,
@@ -42,6 +44,7 @@ pub struct Disconnect {
 
 /// Send message to specific room
 #[derive(Message)]
+#[rtype(result = "()")]
 pub struct ClientMessage {
   /// Id of the client session
   pub id: usize,
@@ -51,16 +54,13 @@ pub struct ClientMessage {
   pub room: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Message)]
+#[rtype(String)]
 pub struct StandardMessage {
   /// Id of the client session
   pub id: usize,
   /// Peer message
   pub msg: String,
-}
-
-impl actix::Message for StandardMessage {
-  type Result = String;
 }
 
 #[derive(Debug)]
