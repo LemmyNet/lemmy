@@ -16,6 +16,7 @@ use crate::db::user_mention_view::*;
 use crate::db::user_view::*;
 use crate::db::*;
 use crate::{extract_usernames, has_slurs, naive_from_unix, naive_now, remove_slurs};
+use diesel::PgConnection;
 use failure::Error;
 use serde::{Deserialize, Serialize};
 
@@ -96,7 +97,7 @@ impl<T> Oper<T> {
 }
 
 pub trait Perform<T> {
-  fn perform(&self) -> Result<T, Error>
+  fn perform(&self, conn: &PgConnection) -> Result<T, Error>
   where
     T: Sized;
 }

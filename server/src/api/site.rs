@@ -1,4 +1,5 @@
 use super::*;
+use diesel::PgConnection;
 use std::str::FromStr;
 
 #[derive(Serialize, Deserialize)]
@@ -97,9 +98,8 @@ pub struct TransferSite {
 }
 
 impl Perform<ListCategoriesResponse> for Oper<ListCategories> {
-  fn perform(&self) -> Result<ListCategoriesResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<ListCategoriesResponse, Error> {
     let _data: &ListCategories = &self.data;
-    let conn = establish_connection();
 
     let categories: Vec<Category> = Category::list_all(&conn)?;
 
@@ -112,9 +112,8 @@ impl Perform<ListCategoriesResponse> for Oper<ListCategories> {
 }
 
 impl Perform<GetModlogResponse> for Oper<GetModlog> {
-  fn perform(&self) -> Result<GetModlogResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<GetModlogResponse, Error> {
     let data: &GetModlog = &self.data;
-    let conn = establish_connection();
 
     let removed_posts = ModRemovePostView::list(
       &conn,
@@ -187,9 +186,8 @@ impl Perform<GetModlogResponse> for Oper<GetModlog> {
 }
 
 impl Perform<SiteResponse> for Oper<CreateSite> {
-  fn perform(&self) -> Result<SiteResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<SiteResponse, Error> {
     let data: &CreateSite = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -234,9 +232,8 @@ impl Perform<SiteResponse> for Oper<CreateSite> {
 }
 
 impl Perform<SiteResponse> for Oper<EditSite> {
-  fn perform(&self) -> Result<SiteResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<SiteResponse, Error> {
     let data: &EditSite = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -283,9 +280,8 @@ impl Perform<SiteResponse> for Oper<EditSite> {
 }
 
 impl Perform<GetSiteResponse> for Oper<GetSite> {
-  fn perform(&self) -> Result<GetSiteResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<GetSiteResponse, Error> {
     let _data: &GetSite = &self.data;
-    let conn = establish_connection();
 
     // It can return a null site in order to redirect
     let site_view = match Site::read(&conn, 1) {
@@ -314,9 +310,8 @@ impl Perform<GetSiteResponse> for Oper<GetSite> {
 }
 
 impl Perform<SearchResponse> for Oper<Search> {
-  fn perform(&self) -> Result<SearchResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<SearchResponse, Error> {
     let data: &Search = &self.data;
-    let conn = establish_connection();
 
     let sort = SortType::from_str(&data.sort)?;
     let type_ = SearchType::from_str(&data.type_)?;
@@ -419,9 +414,8 @@ impl Perform<SearchResponse> for Oper<Search> {
 }
 
 impl Perform<GetSiteResponse> for Oper<TransferSite> {
-  fn perform(&self) -> Result<GetSiteResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<GetSiteResponse, Error> {
     let data: &TransferSite = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,

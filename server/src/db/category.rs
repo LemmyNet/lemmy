@@ -52,7 +52,7 @@ mod tests {
   use super::*;
   #[test]
   fn test_crud() {
-    let conn = establish_connection();
+    let conn = establish_unpooled_connection();
 
     let categories = Category::list_all(&conn).unwrap();
     let expected_first_category = Category {

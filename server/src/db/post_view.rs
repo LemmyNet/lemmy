@@ -290,7 +290,7 @@ mod tests {
   use super::*;
   #[test]
   fn test_crud() {
-    let conn = establish_connection();
+    let conn = establish_unpooled_connection();
 
     let user_name = "tegan".to_string();
     let community_name = "test_community_3".to_string();
