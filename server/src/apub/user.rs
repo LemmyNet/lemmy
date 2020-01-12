@@ -1,5 +1,5 @@
 use crate::apub::make_apub_endpoint;
-use crate::db::establish_connection;
+use crate::db::establish_unpooled_connection;
 use crate::db::user::User_;
 use crate::to_datetime_utc;
 use activitypub::{actor::Person, context};
@@ -62,7 +62,7 @@ pub struct UserQuery {
 }
 
 pub async fn get_apub_user(info: Path<UserQuery>) -> HttpResponse<Body> {
-  let connection = establish_connection();
+  let connection = establish_unpooled_connection();
 
   if let Ok(user) = User_::find_by_email_or_username(&connection, &info.user_name) {
     HttpResponse::Ok()

@@ -1,7 +1,7 @@
 use crate::apub::make_apub_endpoint;
 use crate::db::community::Community;
 use crate::db::community_view::CommunityFollowerView;
-use crate::db::establish_connection;
+use crate::db::establish_unpooled_connection;
 use crate::to_datetime_utc;
 use activitypub::{actor::Group, collection::UnorderedCollection, context};
 use actix_web::body::Body;
@@ -62,7 +62,7 @@ impl Community {
     collection.object_props.set_context_object(context()).ok();
     collection.object_props.set_id_string(base_url).ok();
 
-    let connection = establish_connection();
+    let connection = establish_unpooled_connection();
     //As we are an object, we validated that the community id was valid
     let community_followers = CommunityFollowerView::for_community(&connection, self.id).unwrap();
 
@@ -85,7 +85,7 @@ pub struct CommunityQuery {
 }
 
 pub async fn get_apub_community(info: Path<CommunityQuery>) -> HttpResponse<Body> {
-  let connection = establish_connection();
+  let connection = establish_unpooled_connection();
 
   if let Ok(community) = Community::read_from_name(&connection, info.community_name.to_owned()) {
     HttpResponse::Ok()
@@ -97,7 +97,7 @@ pub async fn get_apub_community(info: Path<CommunityQuery>) -> HttpResponse<Body
 }
 
 pub async fn get_apub_community_followers(info: Path<CommunityQuery>) -> HttpResponse<Body> {
-  let connection = establish_connection();
+  let connection = establish_unpooled_connection();
 
   if let Ok(community) = Community::read_from_name(&connection, info.community_name.to_owned()) {
     HttpResponse::Ok()

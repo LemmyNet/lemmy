@@ -1,6 +1,7 @@
 use super::*;
 use crate::send_email;
 use crate::settings::Settings;
+use diesel::PgConnection;
 
 #[derive(Serialize, Deserialize)]
 pub struct CreateComment {
@@ -47,9 +48,8 @@ pub struct CreateCommentLike {
 }
 
 impl Perform<CommentResponse> for Oper<CreateComment> {
-  fn perform(&self) -> Result<CommentResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<CommentResponse, Error> {
     let data: &CreateComment = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -206,9 +206,8 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
 }
 
 impl Perform<CommentResponse> for Oper<EditComment> {
-  fn perform(&self) -> Result<CommentResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<CommentResponse, Error> {
     let data: &EditComment = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -318,9 +317,8 @@ impl Perform<CommentResponse> for Oper<EditComment> {
 }
 
 impl Perform<CommentResponse> for Oper<SaveComment> {
-  fn perform(&self) -> Result<CommentResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<CommentResponse, Error> {
     let data: &SaveComment = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -356,9 +354,8 @@ impl Perform<CommentResponse> for Oper<SaveComment> {
 }
 
 impl Perform<CommentResponse> for Oper<CreateCommentLike> {
-  fn perform(&self) -> Result<CommentResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<CommentResponse, Error> {
     let data: &CreateCommentLike = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,

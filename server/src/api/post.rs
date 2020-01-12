@@ -1,4 +1,5 @@
 use super::*;
+use diesel::PgConnection;
 use std::str::FromStr;
 
 #[derive(Serialize, Deserialize)]
@@ -87,9 +88,8 @@ pub struct SavePost {
 }
 
 impl Perform<PostResponse> for Oper<CreatePost> {
-  fn perform(&self) -> Result<PostResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<PostResponse, Error> {
     let data: &CreatePost = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -158,9 +158,8 @@ impl Perform<PostResponse> for Oper<CreatePost> {
 }
 
 impl Perform<GetPostResponse> for Oper<GetPost> {
-  fn perform(&self) -> Result<GetPostResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<GetPostResponse, Error> {
     let data: &GetPost = &self.data;
-    let conn = establish_connection();
 
     let user_id: Option<i32> = match &data.auth {
       Some(auth) => match Claims::decode(&auth) {
@@ -207,9 +206,8 @@ impl Perform<GetPostResponse> for Oper<GetPost> {
 }
 
 impl Perform<GetPostsResponse> for Oper<GetPosts> {
-  fn perform(&self) -> Result<GetPostsResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<GetPostsResponse, Error> {
     let data: &GetPosts = &self.data;
-    let conn = establish_connection();
 
     let user_claims: Option<Claims> = match &data.auth {
       Some(auth) => match Claims::decode(&auth) {
@@ -254,9 +252,8 @@ impl Perform<GetPostsResponse> for Oper<GetPosts> {
 }
 
 impl Perform<CreatePostLikeResponse> for Oper<CreatePostLike> {
-  fn perform(&self) -> Result<CreatePostLikeResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<CreatePostLikeResponse, Error> {
     let data: &CreatePostLike = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -316,13 +313,11 @@ impl Perform<CreatePostLikeResponse> for Oper<CreatePostLike> {
 }
 
 impl Perform<PostResponse> for Oper<EditPost> {
-  fn perform(&self) -> Result<PostResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<PostResponse, Error> {
     let data: &EditPost = &self.data;
     if has_slurs(&data.name) || (data.body.is_some() && has_slurs(&data.body.to_owned().unwrap())) {
       return Err(APIError::err(&self.op, "no_slurs").into());
     }
-
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -412,9 +407,8 @@ impl Perform<PostResponse> for Oper<EditPost> {
 }
 
 impl Perform<PostResponse> for Oper<SavePost> {
-  fn perform(&self) -> Result<PostResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<PostResponse, Error> {
     let data: &SavePost = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
