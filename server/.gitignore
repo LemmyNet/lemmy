@@ -2,3 +2,4 @@
 .env
 .idea
 env_setup.sh
+query_testing/*.json
