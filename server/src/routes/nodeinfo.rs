@@ -22,9 +22,7 @@ async fn node_info_well_known() -> HttpResponse<Body> {
     }
   });
 
-  HttpResponse::Ok()
-    .content_type("application/json")
-    .body(json.to_string())
+  HttpResponse::Ok().json(json.to_string())
 }
 
 async fn node_info(
