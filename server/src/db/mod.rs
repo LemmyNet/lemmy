@@ -1,7 +1,6 @@
 extern crate lazy_static;
 use crate::settings::Settings;
 use diesel::dsl::*;
-use diesel::r2d2::*;
 use diesel::result::Error;
 use diesel::*;
 use serde::{Deserialize, Serialize};
@@ -111,19 +110,9 @@ impl<T> MaybeOptional<T> for Option<T> {
   }
 }
 
-lazy_static! {
-  static ref PG_POOL: Pool<ConnectionManager<PgConnection>> = {
-    let db_url = Settings::get().get_database_url();
-    let manager = ConnectionManager::<PgConnection>::new(&db_url);
-    Pool::builder()
-      .max_size(Settings::get().database.pool_size)
-      .build(manager)
-      .unwrap_or_else(|_| panic!("Error connecting to {}", db_url))
-  };
-}
-
-pub fn establish_connection() -> PooledConnection<ConnectionManager<PgConnection>> {
-  PG_POOL.get().unwrap()
+pub fn establish_unpooled_connection() -> PgConnection {
+  let db_url = Settings::get().get_database_url();
+  PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url))
 }
 
 #[derive(EnumString, ToString, Debug, Serialize, Deserialize)]

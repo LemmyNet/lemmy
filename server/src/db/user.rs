@@ -176,7 +176,7 @@ mod tests {
 
   #[test]
   fn test_crud() {
-    let conn = establish_connection();
+    let conn = establish_unpooled_connection();
 
     let new_user = UserForm {
       name: "thommy".into(),
