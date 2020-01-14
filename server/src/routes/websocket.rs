@@ -1,13 +1,24 @@
 use crate::websocket::server::*;
+use crate::Settings;
 use actix::prelude::*;
 use actix_web::web;
 use actix_web::*;
 use actix_web_actors::ws;
+use diesel::r2d2::{ConnectionManager, Pool};
+use diesel::PgConnection;
 use std::time::{Duration, Instant};
 
 pub fn config(cfg: &mut web::ServiceConfig) {
+  // TODO couldn't figure out how to get this method to recieve the other pool
+  let settings = Settings::get();
+  let manager = ConnectionManager::<PgConnection>::new(&settings.get_database_url());
+  let pool = Pool::builder()
+    .max_size(settings.database.pool_size)
+    .build(manager)
+    .unwrap_or_else(|_| panic!("Error connecting to {}", settings.get_database_url()));
+
   // Start chat server actor in separate thread
-  let server = ChatServer::default().start();
+  let server = ChatServer::startup(pool).start();
   cfg
     .data(server)
     .service(web::resource("/api/v1/ws").to(chat_route));
@@ -19,14 +30,16 @@ const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Entry point for our route
-fn chat_route(
+async fn chat_route(
   req: HttpRequest,
   stream: web::Payload,
   chat_server: web::Data<Addr<ChatServer>>,
 ) -> Result<HttpResponse, Error> {
+  // TODO not sure if the blocking should be here or not
   ws::start(
     WSSession {
-      cs_addr: chat_server.get_ref().to_owned(),
+      // db: db.get_ref().clone(),
+      cs_addr: chat_server.get_ref().clone(),
       id: 0,
       hb: Instant::now(),
       ip: req
@@ -51,6 +64,7 @@ struct WSSession {
   /// Client must send ping at least once per 10 seconds (CLIENT_TIMEOUT),
   /// otherwise we drop connection.
   hb: Instant,
+  // db: Pool<ConnectionManager<PgConnection>>,
 }
 
 impl Actor for WSSession {
@@ -80,7 +94,7 @@ impl Actor for WSSession {
           // something is wrong with chat server
           _ => ctx.stop(),
         }
-        fut::ok(())
+        actix::fut::ready(())
       })
       .wait(ctx);
   }
@@ -107,10 +121,17 @@ impl Handler<WSMessage> for WSSession {
 }
 
 /// WebSocket message handler
-impl StreamHandler<ws::Message, ws::ProtocolError> for WSSession {
-  fn handle(&mut self, msg: ws::Message, ctx: &mut Self::Context) {
+impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WSSession {
+  fn handle(&mut self, result: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
     // println!("WEBSOCKET MESSAGE: {:?} from id: {}", msg, self.id);
-    match msg {
+    let message = match result {
+      Ok(m) => m,
+      Err(e) => {
+        println!("{}", e);
+        return;
+      }
+    };
+    match message {
       ws::Message::Ping(msg) => {
         self.hb = Instant::now();
         ctx.pong(&msg);
@@ -120,7 +141,7 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WSSession {
       }
       ws::Message::Text(text) => {
         let m = text.trim().to_owned();
-        println!("WEBSOCKET MESSAGE: {:?} from id: {}", &m, self.id);
+        // println!("WEBSOCKET MESSAGE: {:?} from id: {}", &m, self.id);
 
         self
           .cs_addr
@@ -136,7 +157,7 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WSSession {
                 eprintln!("{}", &e);
               }
             }
-            fut::ok(())
+            actix::fut::ready(())
           })
           .wait(ctx);
       }
@@ -173,7 +194,7 @@ impl WSSession {
         return;
       }
 
-      ctx.ping("");
+      ctx.ping(b"");
     });
   }
 }

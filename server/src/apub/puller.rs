@@ -19,7 +19,7 @@ fn fetch_communities_from_instance(domain: &str) -> Result<Vec<CommunityView>, E
   // TODO: see if there is any standard for discovering remote actors, so we dont have to rely on lemmy apis
   let communities_uri = format!("http://{}/api/v1/communities/list?sort=Hot", domain);
   let communities1: ListCommunitiesResponse = reqwest::get(&communities_uri)?.json()?;
-  let mut communities2 = communities1.communities.to_owned();
+  let mut communities2 = communities1.communities;
   for c in &mut communities2 {
     c.name = format_community_name(&c.name, domain);
   }
@@ -34,7 +34,7 @@ pub fn get_remote_community_posts(name: String) -> Result<GetPosts, Error> {
 }
 
 pub fn get_remote_community(identifier: String) -> Result<GetCommunityResponse, Error> {
-  let x: Vec<&str> = identifier.split("@").collect();
+  let x: Vec<&str> = identifier.split('@').collect();
   let name = x[0].replace("!", "");
   let instance = x[1];
   let community_uri = format!("http://{}/federation/c/{}", instance, name);

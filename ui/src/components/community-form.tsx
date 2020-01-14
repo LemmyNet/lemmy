@@ -7,6 +7,7 @@ import {
   Category,
   ListCategoriesResponse,
   CommunityResponse,
+  GetSiteResponse,
 } from '../interfaces';
 import { WebSocketService } from '../services';
 import { msgOp, capitalizeFirstLetter } from '../utils';
@@ -27,6 +28,7 @@ interface CommunityFormState {
   communityForm: CommunityFormI;
   categories: Array<Category>;
   loading: boolean;
+  enable_nsfw: boolean;
 }
 
 export class CommunityForm extends Component<
@@ -44,6 +46,7 @@ export class CommunityForm extends Component<
     },
     categories: [],
     loading: false,
+    enable_nsfw: null,
   };
 
   constructor(props: any, context: any) {
@@ -79,6 +82,7 @@ export class CommunityForm extends Component<
       );
 
     WebSocketService.Instance.listCategories();
+    WebSocketService.Instance.getSite();
   }
 
   componentDidMount() {
@@ -157,7 +161,7 @@ export class CommunityForm extends Component<
           </div>
         </div>
 
-        {WebSocketService.Instance.site.enable_nsfw && (
+        {this.state.enable_nsfw && (
           <div class="form-group row">
             <div class="col-12">
               <div class="form-check">
@@ -267,6 +271,10 @@ export class CommunityForm extends Component<
       let res: CommunityResponse = msg;
       this.state.loading = false;
       this.props.onEdit(res.community);
+    } else if (op == UserOperation.GetSite) {
+      let res: GetSiteResponse = msg;
+      this.state.enable_nsfw = res.site.enable_nsfw;
+      this.setState(this.state);
     }
   }
 }

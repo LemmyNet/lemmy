@@ -7,6 +7,7 @@ import {
   LoginResponse,
   UserOperation,
   PasswordResetForm,
+  GetSiteResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { msgOp, validEmail } from '../utils';
@@ -18,6 +19,7 @@ interface State {
   registerForm: RegisterForm;
   loginLoading: boolean;
   registerLoading: boolean;
+  enable_nsfw: boolean;
 }
 
 export class Login extends Component<any, State> {
@@ -37,6 +39,7 @@ export class Login extends Component<any, State> {
     },
     loginLoading: false,
     registerLoading: false,
+    enable_nsfw: undefined,
   };
 
   constructor(props: any, context: any) {
@@ -58,16 +61,12 @@ export class Login extends Component<any, State> {
         err => console.error(err),
         () => console.log('complete')
       );
+
+    WebSocketService.Instance.getSite();
   }
 
   componentWillUnmount() {
     this.subscription.unsubscribe();
-  }
-
-  componentDidMount() {
-    document.title = `${i18n.t('login')} - ${
-      WebSocketService.Instance.site.name
-    }`;
   }
 
   render() {
@@ -205,7 +204,7 @@ export class Login extends Component<any, State> {
             />
           </div>
         </div>
-        {WebSocketService.Instance.site.enable_nsfw && (
+        {this.state.enable_nsfw && (
           <div class="form-group row">
             <div class="col-sm-10">
               <div class="form-check">
@@ -322,6 +321,13 @@ export class Login extends Component<any, State> {
         this.props.history.push('/communities');
       } else if (op == UserOperation.PasswordReset) {
         alert(i18n.t('reset_password_mail_sent'));
+      } else if (op == UserOperation.GetSite) {
+        let res: GetSiteResponse = msg;
+        this.state.enable_nsfw = res.site.enable_nsfw;
+        this.setState(this.state);
+        document.title = `${i18n.t('login')} - ${
+          WebSocketService.Instance.site.name
+        }`;
       }
     }
   }

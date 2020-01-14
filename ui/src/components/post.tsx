@@ -34,7 +34,7 @@ import { PostListings } from './post-listings';
 import { Sidebar } from './sidebar';
 import { CommentForm } from './comment-form';
 import { CommentNodes } from './comment-nodes';
-import * as autosize from 'autosize';
+import autosize from 'autosize';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 
@@ -169,7 +169,6 @@ export class Post extends Component<any, PostState> {
                 post={this.state.post}
                 showBody
                 showCommunity
-                editable
                 moderators={this.state.moderators}
                 admins={this.state.admins}
               />

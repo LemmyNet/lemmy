@@ -1,4 +1,4 @@
-import * as i18n from 'i18next';
+import i18next from 'i18next';
 import { getLanguage } from './utils';
 import { en } from './translations/en';
 import { eo } from './translations/eo';
@@ -30,7 +30,7 @@ function format(value: any, format: any, lng: any) {
   return value;
 }
 
-i18n.init({
+i18next.init({
   debug: false,
   // load: 'languageOnly',
 
@@ -43,4 +43,4 @@ i18n.init({
   },
 });
 
-export { i18n, resources };
+export { i18next as i18n, resources };

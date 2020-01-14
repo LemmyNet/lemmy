@@ -26,6 +26,8 @@ import {
   isVideo,
   getUnixTime,
   pictshareAvatarThumbnail,
+  showAvatars,
+  imageThumbnailer,
 } from '../utils';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -136,7 +138,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           >
             <img
               class="mx-2 mt-1 float-left img-fluid thumbnail rounded"
-              src={post.url}
+              src={imageThumbnailer(post.url)}
             />
           </span>
         )}
@@ -249,7 +251,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             <li className="list-inline-item">
               <span>{i18n.t('by')} </span>
               <Link className="text-info" to={`/u/${post.creator_name}`}>
-                {post.creator_avatar && (
+                {post.creator_avatar && showAvatars() && (
                   <img
                     height="32"
                     width="32"
