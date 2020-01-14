@@ -162,7 +162,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           </video>
         )}
         <div className="ml-4">
-          <div className="post-title">
+          <div className="post-title text-wrap-truncate">
             <h5 className="mb-0 d-inline">
               {post.url ? (
                 <a
