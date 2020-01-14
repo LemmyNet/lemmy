@@ -23,6 +23,7 @@ script:
   # Default checks, but fail if anything is detected
   - cargo clippy -- -D clippy::style -D clippy::correctness -D clippy::complexity -D clippy::perf
   - cargo build
+  - cargo install diesel_cli --no-default-features --features postgres
   - diesel migration run
   - cargo test
 env:
