@@ -82,14 +82,7 @@ export class Search extends Component<any, SearchState> {
     this.handleSortChange = this.handleSortChange.bind(this);
 
     this.subscription = WebSocketService.Instance.subject
-      .pipe(
-        retryWhen(errors =>
-          errors.pipe(
-            delay(3000),
-            take(10)
-          )
-        )
-      )
+      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
       .subscribe(
         msg => this.parseMessage(msg),
         err => console.error(err),
@@ -266,7 +259,7 @@ export class Search extends Component<any, SearchState> {
             {i.type_ == 'comments' && (
               <CommentNodes
                 nodes={[{ comment: i.data as Comment }]}
-                viewOnly
+                locked
                 noIndent
               />
             )}
@@ -317,7 +310,7 @@ export class Search extends Component<any, SearchState> {
     return (
       <div>
         {this.state.searchResponse.comments.map(comment => (
-          <CommentNodes nodes={[{ comment: comment }]} noIndent viewOnly />
+          <CommentNodes nodes={[{ comment: comment }]} locked noIndent />
         ))}
       </div>
     );
