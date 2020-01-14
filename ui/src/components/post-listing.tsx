@@ -44,6 +44,8 @@ interface PostListingState {
   showConfirmTransferCommunity: boolean;
   imageExpanded: boolean;
   viewSource: boolean;
+  my_vote: number;
+  score: number;
 }
 
 interface PostListingProps {
@@ -68,6 +70,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     showConfirmTransferCommunity: false,
     imageExpanded: false,
     viewSource: false,
+    my_vote: this.props.post.my_vote,
+    score: this.props.post.score,
   };
 
   constructor(props: any, context: any) {
@@ -108,7 +112,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         >
           <button
             className={`btn p-0 ${
-              post.my_vote == 1 ? 'text-info' : 'text-muted'
+              this.state.my_vote == 1 ? 'text-info' : 'text-muted'
             }`}
             onClick={linkEvent(this, this.handlePostLike)}
           >
@@ -116,11 +120,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               <use xlinkHref="#icon-arrow-up"></use>
             </svg>
           </button>
-          <div class={`font-weight-bold text-muted`}>{post.score}</div>
+          <div class={`font-weight-bold text-muted`}>{this.state.score}</div>
           {WebSocketService.Instance.site.enable_downvotes && (
             <button
               className={`btn p-0 ${
-                post.my_vote == -1 ? 'text-danger' : 'text-muted'
+                this.state.my_vote == -1 ? 'text-danger' : 'text-muted'
               }`}
               onClick={linkEvent(this, this.handlePostDisLike)}
             >
@@ -642,7 +646,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   get isAdmin(): boolean {
     return (
       this.props.admins &&
-      isMod(this.props.admins.map(a => a.id), this.props.post.creator_id)
+      isMod(
+        this.props.admins.map(a => a.id),
+        this.props.post.creator_id
+      )
     );
   }
 
@@ -709,17 +716,38 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   handlePostLike(i: PostListing) {
+    this.state.my_vote = i.props.post.my_vote == 1 ? 0 : 1;
+    let add = 1;
+    if (i.props.post.my_vote == 1) {
+      add = -1;
+    } else if (i.props.post.my_vote == -1) {
+      add = 2;
+    }
+
+    this.state.score = i.props.post.score + add;
+    this.setState(this.state);
+
     let form: CreatePostLikeForm = {
       post_id: i.props.post.id,
-      score: i.props.post.my_vote == 1 ? 0 : 1,
+      score: this.state.my_vote,
     };
     WebSocketService.Instance.likePost(form);
   }
 
   handlePostDisLike(i: PostListing) {
+    this.state.my_vote = i.props.post.my_vote == -1 ? 0 : -1;
+    let add = -1;
+    if (i.props.post.my_vote == 1) {
+      add = -2;
+    } else if (i.props.post.my_vote == -1) {
+      add = 1;
+    }
+    this.state.score = i.props.post.score + add;
+    this.setState(this.state);
+
     let form: CreatePostLikeForm = {
       post_id: i.props.post.id,
-      score: i.props.post.my_vote == -1 ? 0 : -1,
+      score: this.state.my_vote,
     };
     WebSocketService.Instance.likePost(form);
   }
