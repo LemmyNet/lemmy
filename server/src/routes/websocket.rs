@@ -141,7 +141,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WSSession {
       }
       ws::Message::Text(text) => {
         let m = text.trim().to_owned();
-        // println!("WEBSOCKET MESSAGE: {:?} from id: {}", &m, self.id);
+        println!("WEBSOCKET MESSAGE: {:?} from id: {}", &m, self.id);
 
         self
           .cs_addr
