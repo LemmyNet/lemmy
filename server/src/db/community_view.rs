@@ -1,9 +1,34 @@
-use super::community_view::community_view::BoxedQuery;
+use super::community_view::community_mview::BoxedQuery;
 use super::*;
 use diesel::pg::Pg;
 
 table! {
   community_view (id) {
+    id -> Int4,
+    name -> Varchar,
+    title -> Varchar,
+    description -> Nullable<Text>,
+    category_id -> Int4,
+    creator_id -> Int4,
+    removed -> Bool,
+    published -> Timestamp,
+    updated -> Nullable<Timestamp>,
+    deleted -> Bool,
+    nsfw -> Bool,
+    creator_name -> Varchar,
+    creator_avatar -> Nullable<Text>,
+    category_name -> Varchar,
+    number_of_subscribers -> BigInt,
+    number_of_posts -> BigInt,
+    number_of_comments -> BigInt,
+    hot_rank -> Int4,
+    user_id -> Nullable<Int4>,
+    subscribed -> Nullable<Bool>,
+  }
+}
+
+table! {
+  community_mview (id) {
     id -> Int4,
     name -> Varchar,
     title -> Varchar,
@@ -103,9 +128,9 @@ pub struct CommunityQueryBuilder<'a> {
 
 impl<'a> CommunityQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection) -> Self {
-    use super::community_view::community_view::dsl::*;
+    use super::community_view::community_mview::dsl::*;
 
-    let query = community_view.into_boxed();
+    let query = community_mview.into_boxed();
 
     CommunityQueryBuilder {
       conn,
@@ -150,7 +175,7 @@ impl<'a> CommunityQueryBuilder<'a> {
   }
 
   pub fn list(self) -> Result<Vec<CommunityView>, Error> {
-    use super::community_view::community_view::dsl::*;
+    use super::community_view::community_mview::dsl::*;
 
     let mut query = self.query;
 
