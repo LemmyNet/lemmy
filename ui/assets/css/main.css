@@ -27,6 +27,11 @@
   margin-top: -10px;
 }
 
+.md-div p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .md-div p:last-child {
   margin-bottom: 0px;
 }
@@ -137,4 +142,9 @@ hr {
 
 .emoji {
   height: 1.2em !important;
+}
+
+.text-wrap-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis
 }
