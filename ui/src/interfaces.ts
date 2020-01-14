@@ -81,6 +81,7 @@ export interface User {
   default_listing_type: ListingType;
   lang: string;
   avatar?: string;
+  show_avatars: boolean;
 }
 
 export interface UserView {
@@ -95,6 +96,8 @@ export interface UserView {
   number_of_comments: number;
   comment_score: number;
   banned: boolean;
+  show_avatars: boolean;
+  send_notifications_to_email: boolean;
 }
 
 export interface CommunityUser {
@@ -486,6 +489,8 @@ export interface UserSettingsForm {
   new_password?: string;
   new_password_verify?: string;
   old_password?: string;
+  show_avatars: boolean;
+  send_notifications_to_email: boolean;
   auth: string;
 }
 

@@ -23,8 +23,9 @@ import {
   canMod,
   isMod,
   pictshareAvatarThumbnail,
+  showAvatars,
 } from '../utils';
-import * as moment from 'moment';
+import moment from 'moment';
 import { MomentTime } from './moment-time';
 import { CommentForm } from './comment-form';
 import { CommentNodes } from './comment-nodes';
@@ -138,7 +139,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 className="text-info"
                 to={`/u/${node.comment.creator_name}`}
               >
-                {node.comment.creator_avatar && (
+                {node.comment.creator_avatar && showAvatars() && (
                   <img
                     height="32"
                     width="32"

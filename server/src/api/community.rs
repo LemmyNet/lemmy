@@ -1,4 +1,5 @@
 use super::*;
+use diesel::PgConnection;
 use std::str::FromStr;
 
 #[derive(Serialize, Deserialize)]
@@ -118,9 +119,8 @@ pub struct TransferCommunity {
 }
 
 impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
-  fn perform(&self) -> Result<GetCommunityResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<GetCommunityResponse, Error> {
     let data: &GetCommunity = &self.data;
-    let conn = establish_connection();
 
     let user_id: Option<i32> = match &data.auth {
       Some(auth) => match Claims::decode(&auth) {
@@ -173,9 +173,8 @@ impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
 }
 
 impl Perform<CommunityResponse> for Oper<CreateCommunity> {
-  fn perform(&self) -> Result<CommunityResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<CommunityResponse, Error> {
     let data: &CreateCommunity = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -248,14 +247,12 @@ impl Perform<CommunityResponse> for Oper<CreateCommunity> {
 }
 
 impl Perform<CommunityResponse> for Oper<EditCommunity> {
-  fn perform(&self) -> Result<CommunityResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<CommunityResponse, Error> {
     let data: &EditCommunity = &self.data;
 
     if has_slurs(&data.name) || has_slurs(&data.title) {
       return Err(APIError::err(&self.op, "no_slurs").into());
     }
-
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -325,9 +322,8 @@ impl Perform<CommunityResponse> for Oper<EditCommunity> {
 }
 
 impl Perform<ListCommunitiesResponse> for Oper<ListCommunities> {
-  fn perform(&self) -> Result<ListCommunitiesResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<ListCommunitiesResponse, Error> {
     let data: &ListCommunities = &self.data;
-    let conn = establish_connection();
 
     let user_claims: Option<Claims> = match &data.auth {
       Some(auth) => match Claims::decode(&auth) {
@@ -366,9 +362,8 @@ impl Perform<ListCommunitiesResponse> for Oper<ListCommunities> {
 }
 
 impl Perform<CommunityResponse> for Oper<FollowCommunity> {
-  fn perform(&self) -> Result<CommunityResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<CommunityResponse, Error> {
     let data: &FollowCommunity = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -404,9 +399,8 @@ impl Perform<CommunityResponse> for Oper<FollowCommunity> {
 }
 
 impl Perform<GetFollowedCommunitiesResponse> for Oper<GetFollowedCommunities> {
-  fn perform(&self) -> Result<GetFollowedCommunitiesResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<GetFollowedCommunitiesResponse, Error> {
     let data: &GetFollowedCommunities = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -430,9 +424,8 @@ impl Perform<GetFollowedCommunitiesResponse> for Oper<GetFollowedCommunities> {
 }
 
 impl Perform<BanFromCommunityResponse> for Oper<BanFromCommunity> {
-  fn perform(&self) -> Result<BanFromCommunityResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<BanFromCommunityResponse, Error> {
     let data: &BanFromCommunity = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -485,9 +478,8 @@ impl Perform<BanFromCommunityResponse> for Oper<BanFromCommunity> {
 }
 
 impl Perform<AddModToCommunityResponse> for Oper<AddModToCommunity> {
-  fn perform(&self) -> Result<AddModToCommunityResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<AddModToCommunityResponse, Error> {
     let data: &AddModToCommunity = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -536,9 +528,8 @@ impl Perform<AddModToCommunityResponse> for Oper<AddModToCommunity> {
 }
 
 impl Perform<GetCommunityResponse> for Oper<TransferCommunity> {
-  fn perform(&self) -> Result<GetCommunityResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<GetCommunityResponse, Error> {
     let data: &TransferCommunity = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,

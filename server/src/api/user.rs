@@ -2,6 +2,7 @@ use super::*;
 use crate::settings::Settings;
 use crate::{generate_random_string, send_email};
 use bcrypt::verify;
+use diesel::PgConnection;
 use std::str::FromStr;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -32,6 +33,8 @@ pub struct SaveUserSettings {
   new_password: Option<String>,
   new_password_verify: Option<String>,
   old_password: Option<String>,
+  show_avatars: bool,
+  send_notifications_to_email: bool,
   auth: String,
 }
 
@@ -165,9 +168,8 @@ pub struct PasswordChange {
 }
 
 impl Perform<LoginResponse> for Oper<Login> {
-  fn perform(&self) -> Result<LoginResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<LoginResponse, Error> {
     let data: &Login = &self.data;
-    let conn = establish_connection();
 
     // Fetch that username / email
     let user: User_ = match User_::find_by_email_or_username(&conn, &data.username_or_email) {
@@ -190,9 +192,8 @@ impl Perform<LoginResponse> for Oper<Login> {
 }
 
 impl Perform<LoginResponse> for Oper<Register> {
-  fn perform(&self) -> Result<LoginResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<LoginResponse, Error> {
     let data: &Register = &self.data;
-    let conn = establish_connection();
 
     // Make sure site has open registration
     if let Ok(site) = SiteView::read(&conn) {
@@ -231,6 +232,8 @@ impl Perform<LoginResponse> for Oper<Register> {
       default_sort_type: SortType::Hot as i16,
       default_listing_type: ListingType::Subscribed as i16,
       lang: "browser".into(),
+      show_avatars: true,
+      send_notifications_to_email: false,
     };
 
     // Create the user
@@ -295,9 +298,8 @@ impl Perform<LoginResponse> for Oper<Register> {
 }
 
 impl Perform<LoginResponse> for Oper<SaveUserSettings> {
-  fn perform(&self) -> Result<LoginResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<LoginResponse, Error> {
     let data: &SaveUserSettings = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -356,6 +358,8 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
       default_sort_type: data.default_sort_type,
       default_listing_type: data.default_listing_type,
       lang: data.lang.to_owned(),
+      show_avatars: data.show_avatars,
+      send_notifications_to_email: data.send_notifications_to_email,
     };
 
     let updated_user = match User_::update(&conn, user_id, &user_form) {
@@ -372,9 +376,8 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
 }
 
 impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
-  fn perform(&self) -> Result<GetUserDetailsResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<GetUserDetailsResponse, Error> {
     let data: &GetUserDetails = &self.data;
-    let conn = establish_connection();
 
     let user_claims: Option<Claims> = match &data.auth {
       Some(auth) => match Claims::decode(&auth) {
@@ -464,9 +467,8 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
 }
 
 impl Perform<AddAdminResponse> for Oper<AddAdmin> {
-  fn perform(&self) -> Result<AddAdminResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<AddAdminResponse, Error> {
     let data: &AddAdmin = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -497,6 +499,8 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
       default_sort_type: read_user.default_sort_type,
       default_listing_type: read_user.default_listing_type,
       lang: read_user.lang,
+      show_avatars: read_user.show_avatars,
+      send_notifications_to_email: read_user.send_notifications_to_email,
     };
 
     match User_::update(&conn, data.user_id, &user_form) {
@@ -527,9 +531,8 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
 }
 
 impl Perform<BanUserResponse> for Oper<BanUser> {
-  fn perform(&self) -> Result<BanUserResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<BanUserResponse, Error> {
     let data: &BanUser = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -560,6 +563,8 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
       default_sort_type: read_user.default_sort_type,
       default_listing_type: read_user.default_listing_type,
       lang: read_user.lang,
+      show_avatars: read_user.show_avatars,
+      send_notifications_to_email: read_user.send_notifications_to_email,
     };
 
     match User_::update(&conn, data.user_id, &user_form) {
@@ -594,9 +599,8 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
 }
 
 impl Perform<GetRepliesResponse> for Oper<GetReplies> {
-  fn perform(&self) -> Result<GetRepliesResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<GetRepliesResponse, Error> {
     let data: &GetReplies = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -622,9 +626,8 @@ impl Perform<GetRepliesResponse> for Oper<GetReplies> {
 }
 
 impl Perform<GetUserMentionsResponse> for Oper<GetUserMentions> {
-  fn perform(&self) -> Result<GetUserMentionsResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<GetUserMentionsResponse, Error> {
     let data: &GetUserMentions = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -650,9 +653,8 @@ impl Perform<GetUserMentionsResponse> for Oper<GetUserMentions> {
 }
 
 impl Perform<UserMentionResponse> for Oper<EditUserMention> {
-  fn perform(&self) -> Result<UserMentionResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<UserMentionResponse, Error> {
     let data: &EditUserMention = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -685,9 +687,8 @@ impl Perform<UserMentionResponse> for Oper<EditUserMention> {
 }
 
 impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
-  fn perform(&self) -> Result<GetRepliesResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<GetRepliesResponse, Error> {
     let data: &MarkAllAsRead = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -749,9 +750,8 @@ impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
 }
 
 impl Perform<LoginResponse> for Oper<DeleteAccount> {
-  fn perform(&self) -> Result<LoginResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<LoginResponse, Error> {
     let data: &DeleteAccount = &self.data;
-    let conn = establish_connection();
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -828,9 +828,8 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
 }
 
 impl Perform<PasswordResetResponse> for Oper<PasswordReset> {
-  fn perform(&self) -> Result<PasswordResetResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<PasswordResetResponse, Error> {
     let data: &PasswordReset = &self.data;
-    let conn = establish_connection();
 
     // Fetch that email
     let user: User_ = match User_::find_by_email(&conn, &data.email) {
@@ -862,9 +861,8 @@ impl Perform<PasswordResetResponse> for Oper<PasswordReset> {
 }
 
 impl Perform<LoginResponse> for Oper<PasswordChange> {
-  fn perform(&self) -> Result<LoginResponse, Error> {
+  fn perform(&self, conn: &PgConnection) -> Result<LoginResponse, Error> {
     let data: &PasswordChange = &self.data;
-    let conn = establish_connection();
 
     // Fetch the user_id from the token
     let user_id = PasswordResetRequest::read_from_token(&conn, &data.token)?.user_id;

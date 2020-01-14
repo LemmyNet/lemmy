@@ -1,7 +1,7 @@
-import * as Cookies from 'js-cookie';
+import Cookies from 'js-cookie';
 import { User, LoginResponse } from '../interfaces';
 import { setTheme } from '../utils';
-import * as jwt_decode from 'jwt-decode';
+import jwt_decode from 'jwt-decode';
 import { Subject } from 'rxjs';
 
 export class UserService {

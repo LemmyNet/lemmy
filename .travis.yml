@@ -5,11 +5,14 @@ matrix:
   allow_failures:
     - rust: nightly
   fast_finish: true
-cache:
-  directories:
-    - /home/travis/.cargo
+cache: cargo
 before_cache:
-  - rm -rf /home/travis/.cargo/registry
+  - rm -rfv target/debug/incremental/lemmy_server-*
+  - rm -rfv target/debug/.fingerprint/lemmy_server-*
+  - rm -rfv target/debug/build/lemmy_server-*
+  - rm -rfv target/debug/deps/lemmy_server-*
+  - rm -rfv target/debug/lemmy_server.d
+  - cargo clean
 before_script:
   - psql -c "create user lemmy with password 'password' superuser;" -U postgres
   - psql -c 'create database lemmy with owner lemmy;' -U postgres

@@ -290,7 +290,7 @@ mod tests {
   use super::*;
   #[test]
   fn test_crud() {
-    let conn = establish_connection();
+    let conn = establish_unpooled_connection();
 
     let user_name = "tegan".to_string();
     let community_name = "test_community_3".to_string();
@@ -311,6 +311,8 @@ mod tests {
       default_sort_type: SortType::Hot as i16,
       default_listing_type: ListingType::Subscribed as i16,
       lang: "browser".into(),
+      show_avatars: true,
+      send_notifications_to_email: false,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -406,7 +408,7 @@ mod tests {
       user_id: Some(inserted_user.id),
       my_vote: Some(1),
       id: inserted_post.id,
-      name: post_name.to_owned(),
+      name: post_name,
       url: None,
       body: None,
       removed: false,
@@ -414,12 +416,12 @@ mod tests {
       locked: false,
       stickied: false,
       creator_id: inserted_user.id,
-      creator_name: user_name.to_owned(),
+      creator_name: user_name,
       creator_avatar: None,
       banned: false,
       banned_from_community: false,
       community_id: inserted_community.id,
-      community_name: community_name.to_owned(),
+      community_name,
       community_removed: false,
       community_deleted: false,
       community_nsfw: false,

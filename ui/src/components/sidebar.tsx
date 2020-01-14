@@ -8,7 +8,12 @@ import {
   UserView,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { mdToHtml, getUnixTime, pictshareAvatarThumbnail } from '../utils';
+import {
+  mdToHtml,
+  getUnixTime,
+  pictshareAvatarThumbnail,
+  showAvatars,
+} from '../utils';
 import { CommunityForm } from './community-form';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -194,7 +199,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
               {this.props.moderators.map(mod => (
                 <li class="list-inline-item">
                   <Link class="text-info" to={`/u/${mod.user_name}`}>
-                    {mod.avatar && (
+                    {mod.avatar && showAvatars() && (
                       <img
                         height="32"
                         width="32"

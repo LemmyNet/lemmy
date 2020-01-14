@@ -28,6 +28,7 @@ import {
   themes,
   setTheme,
   languages,
+  showAvatars,
 } from '../utils';
 import { PostListing } from './post-listing';
 import { SortSelect } from './sort-select';
@@ -80,6 +81,8 @@ export class User extends Component<any, UserState> {
       comment_score: null,
       banned: null,
       avatar: null,
+      show_avatars: null,
+      send_notifications_to_email: null,
     },
     user_id: null,
     username: null,
@@ -99,6 +102,8 @@ export class User extends Component<any, UserState> {
       default_sort_type: null,
       default_listing_type: null,
       lang: null,
+      show_avatars: null,
+      send_notifications_to_email: null,
       auth: null,
     },
     userSettingsLoading: null,
@@ -207,7 +212,7 @@ export class User extends Component<any, UserState> {
           <div class="row">
             <div class="col-12 col-md-8">
               <h5>
-                {this.state.user.avatar && (
+                {this.state.user.avatar && showAvatars() && (
                   <img
                     height="80"
                     width="80"
@@ -611,6 +616,41 @@ export class User extends Component<any, UserState> {
                 </div>
               )}
               <div class="form-group">
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    checked={this.state.userSettingsForm.show_avatars}
+                    onChange={linkEvent(
+                      this,
+                      this.handleUserSettingsShowAvatarsChange
+                    )}
+                  />
+                  <label class="form-check-label">
+                    <T i18nKey="show_avatars">#</T>
+                  </label>
+                </div>
+              </div>
+              <div class="form-group">
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    disabled={!this.state.user.email}
+                    checked={
+                      this.state.userSettingsForm.send_notifications_to_email
+                    }
+                    onChange={linkEvent(
+                      this,
+                      this.handleUserSettingsSendNotificationsToEmailChange
+                    )}
+                  />
+                  <label class="form-check-label">
+                    <T i18nKey="send_notifications_to_email">#</T>
+                  </label>
+                </div>
+              </div>
+              <div class="form-group">
                 <button type="submit" class="btn btn-block btn-secondary mr-4">
                   {this.state.userSettingsLoading ? (
                     <svg class="icon icon-spinner spin">
@@ -804,6 +844,17 @@ export class User extends Component<any, UserState> {
     i.setState(i.state);
   }
 
+  handleUserSettingsShowAvatarsChange(i: User, event: any) {
+    i.state.userSettingsForm.show_avatars = event.target.checked;
+    UserService.Instance.user.show_avatars = event.target.checked; // Just for instant updates
+    i.setState(i.state);
+  }
+
+  handleUserSettingsSendNotificationsToEmailChange(i: User, event: any) {
+    i.state.userSettingsForm.send_notifications_to_email = event.target.checked;
+    i.setState(i.state);
+  }
+
   handleUserSettingsThemeChange(i: User, event: any) {
     i.state.userSettingsForm.theme = event.target.value;
     setTheme(event.target.value);
@@ -957,6 +1008,9 @@ export class User extends Component<any, UserState> {
         this.state.userSettingsForm.lang = UserService.Instance.user.lang;
         this.state.userSettingsForm.avatar = UserService.Instance.user.avatar;
         this.state.userSettingsForm.email = this.state.user.email;
+        this.state.userSettingsForm.send_notifications_to_email = this.state.user.send_notifications_to_email;
+        this.state.userSettingsForm.show_avatars =
+          UserService.Instance.user.show_avatars;
       }
       document.title = `/u/${this.state.user.name} - ${WebSocketService.Instance.site.name}`;
       window.scrollTo(0, 0);
