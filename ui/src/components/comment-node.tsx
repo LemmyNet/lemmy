@@ -105,6 +105,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               .viewOnly && 'no-click'}`}
           >
             <button
+              disabled={!UserService.Instance.user}
               className={`btn p-0 ${
                 this.state.my_vote == 1 ? 'text-info' : 'text-muted'
               }`}
@@ -117,6 +118,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             <div class={`font-weight-bold text-muted`}>{this.state.score}</div>
             {WebSocketService.Instance.site.enable_downvotes && (
               <button
+                disabled={!UserService.Instance.user}
                 className={`btn p-0 ${
                   this.state.my_vote == -1 ? 'text-danger' : 'text-muted'
                 }`}
