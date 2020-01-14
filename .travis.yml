@@ -27,8 +27,9 @@ script:
   - diesel migration run
   - cargo test
 env:
-  - DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
-  - RUST_TEST_THREADS=1
+  global:
+    - DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
+    - RUST_TEST_THREADS=1
 
 addons:
   postgresql: "9.4"
