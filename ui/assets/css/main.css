@@ -40,6 +40,30 @@
   font-size:1.171875rem;
 }
 
+.md-div table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 1rem;
+  border: 1px solid var(--dark);
+}
+
+.md-div table th,
+.md-div table td {
+  padding: 0.3rem;
+  vertical-align: top;
+  border-top: 1px solid var(--dark);
+  border: 1px solid var(--dark);
+}
+
+.md-div table thead th {
+  vertical-align: bottom;
+  border-bottom: 2px solid var(--dark);
+}
+
+.md-div table tbody + tbody {
+  border-top: 2px solid var(--dark);
+}
+
 .comment-node {
   margin-bottom: 10px;
 }
