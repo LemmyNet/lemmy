@@ -130,14 +130,7 @@ export class User extends Component<any, UserState> {
     this.state.username = this.props.match.params.username;
 
     this.subscription = WebSocketService.Instance.subject
-      .pipe(
-        retryWhen(errors =>
-          errors.pipe(
-            delay(3000),
-            take(10)
-          )
-        )
-      )
+      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
       .subscribe(
         msg => this.parseMessage(msg),
         err => console.error(err),
@@ -449,16 +442,18 @@ export class User extends Component<any, UserState> {
                     htmlFor="file-upload"
                     class="pointer ml-4 text-muted small font-weight-bold"
                   >
-                    <img
-                      height="80"
-                      width="80"
-                      src={
-                        this.state.userSettingsForm.avatar
-                          ? this.state.userSettingsForm.avatar
-                          : 'https://via.placeholder.com/300/000?text=Avatar'
-                      }
-                      class="rounded-circle"
-                    />
+                    {!this.state.userSettingsForm.avatar ? (
+                      <span class="btn btn-sm btn-secondary">
+                        <T i18nKey="upload_avatar">#</T>
+                      </span>
+                    ) : (
+                      <img
+                        height="80"
+                        width="80"
+                        src={this.state.userSettingsForm.avatar}
+                        class="rounded-circle"
+                      />
+                    )}
                   </label>
                   <input
                     id="file-upload"

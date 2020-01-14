@@ -29,6 +29,7 @@ export const en = {
     preview: 'Preview',
     upload_image: 'upload image',
     avatar: 'Avatar',
+    upload_avatar: 'Upload Avatar',
     show_avatars: 'Show Avatars',
     formatting_help: 'formatting help',
     view_source: 'view source',
