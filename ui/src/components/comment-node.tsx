@@ -47,6 +47,8 @@ interface CommentNodeState {
   showConfirmAppointAsAdmin: boolean;
   collapsed: boolean;
   viewSource: boolean;
+  my_vote: number;
+  score: number;
 }
 
 interface CommentNodeProps {
@@ -76,6 +78,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     showConfirmTransferCommunity: false,
     showConfirmAppointAsMod: false,
     showConfirmAppointAsAdmin: false,
+    my_vote: this.props.node.comment.my_vote,
+    score: this.props.node.comment.score,
   };
 
   constructor(props: any, context: any) {
@@ -102,7 +106,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
           >
             <button
               className={`btn p-0 ${
-                node.comment.my_vote == 1 ? 'text-info' : 'text-muted'
+                this.state.my_vote == 1 ? 'text-info' : 'text-muted'
               }`}
               onClick={linkEvent(node, this.handleCommentLike)}
             >
@@ -110,13 +114,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 <use xlinkHref="#icon-arrow-up"></use>
               </svg>
             </button>
-            <div class={`font-weight-bold text-muted`}>
-              {node.comment.score}
-            </div>
+            <div class={`font-weight-bold text-muted`}>{this.state.score}</div>
             {WebSocketService.Instance.site.enable_downvotes && (
               <button
                 className={`btn p-0 ${
-                  node.comment.my_vote == -1 ? 'text-danger' : 'text-muted'
+                  this.state.my_vote == -1 ? 'text-danger' : 'text-muted'
                 }`}
                 onClick={linkEvent(node, this.handleCommentDisLike)}
               >
@@ -721,19 +723,40 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   handleCommentLike(i: CommentNodeI) {
+    this.state.my_vote = i.comment.my_vote == 1 ? 0 : 1;
+    let add = 1;
+    if (i.comment.my_vote == 1) {
+      add = -1;
+    } else if (i.comment.my_vote == -1) {
+      add = 2;
+    }
+
+    this.state.score = i.comment.score + add;
+    this.setState(this.state);
+
     let form: CommentLikeForm = {
       comment_id: i.comment.id,
       post_id: i.comment.post_id,
-      score: i.comment.my_vote == 1 ? 0 : 1,
+      score: this.state.my_vote,
     };
     WebSocketService.Instance.likeComment(form);
   }
 
   handleCommentDisLike(i: CommentNodeI) {
+    this.state.my_vote = i.comment.my_vote == -1 ? 0 : -1;
+    let add = -1;
+    if (i.comment.my_vote == 1) {
+      add = -2;
+    } else if (i.comment.my_vote == -1) {
+      add = 1;
+    }
+    this.state.score = i.comment.score + add;
+    this.setState(this.state);
+
     let form: CommentLikeForm = {
       comment_id: i.comment.id,
       post_id: i.comment.post_id,
-      score: i.comment.my_vote == -1 ? 0 : -1,
+      score: this.state.my_vote,
     };
     WebSocketService.Instance.likeComment(form);
   }
