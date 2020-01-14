@@ -1,4 +1,4 @@
-use super::post_view::post_view::BoxedQuery;
+use super::post_view::post_mview::BoxedQuery;
 use super::*;
 use diesel::pg::Pg;
 
@@ -77,6 +77,43 @@ pub struct PostView {
   pub saved: Option<bool>,
 }
 
+// The faked schema since diesel doesn't do views
+table! {
+  post_mview (id) {
+    id -> Int4,
+    name -> Varchar,
+    url -> Nullable<Text>,
+    body -> Nullable<Text>,
+    creator_id -> Int4,
+    community_id -> Int4,
+    removed -> Bool,
+    locked -> Bool,
+    published -> Timestamp,
+    updated -> Nullable<Timestamp>,
+    deleted -> Bool,
+    nsfw -> Bool,
+    banned -> Bool,
+    banned_from_community -> Bool,
+    stickied -> Bool,
+    creator_name -> Varchar,
+    creator_avatar -> Nullable<Text>,
+    community_name -> Varchar,
+    community_removed -> Bool,
+    community_deleted -> Bool,
+    community_nsfw -> Bool,
+    number_of_comments -> BigInt,
+    score -> BigInt,
+    upvotes -> BigInt,
+    downvotes -> BigInt,
+    hot_rank -> Int4,
+    user_id -> Nullable<Int4>,
+    my_vote -> Nullable<Int4>,
+    subscribed -> Nullable<Bool>,
+    read -> Nullable<Bool>,
+    saved -> Nullable<Bool>,
+  }
+}
+
 pub struct PostQueryBuilder<'a> {
   conn: &'a PgConnection,
   query: BoxedQuery<'a, Pg>,
@@ -93,9 +130,9 @@ pub struct PostQueryBuilder<'a> {
 
 impl<'a> PostQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection) -> Self {
-    use super::post_view::post_view::dsl::*;
+    use super::post_view::post_mview::dsl::*;
 
-    let query = post_view.into_boxed();
+    let query = post_mview.into_boxed();
 
     PostQueryBuilder {
       conn,
@@ -123,7 +160,7 @@ impl<'a> PostQueryBuilder<'a> {
   }
 
   pub fn for_community_id<T: MaybeOptional<i32>>(mut self, for_community_id: T) -> Self {
-    use super::post_view::post_view::dsl::*;
+    use super::post_view::post_mview::dsl::*;
     if let Some(for_community_id) = for_community_id.get_optional() {
       self.query = self.query.filter(community_id.eq(for_community_id));
       self.query = self.query.then_order_by(stickied.desc());
@@ -139,7 +176,7 @@ impl<'a> PostQueryBuilder<'a> {
   }
 
   pub fn search_term<T: MaybeOptional<String>>(mut self, search_term: T) -> Self {
-    use super::post_view::post_view::dsl::*;
+    use super::post_view::post_mview::dsl::*;
     if let Some(search_term) = search_term.get_optional() {
       self.query = self.query.filter(name.ilike(fuzzy_search(&search_term)));
     }
@@ -147,7 +184,7 @@ impl<'a> PostQueryBuilder<'a> {
   }
 
   pub fn url_search<T: MaybeOptional<String>>(mut self, url_search: T) -> Self {
-    use super::post_view::post_view::dsl::*;
+    use super::post_view::post_mview::dsl::*;
     if let Some(url_search) = url_search.get_optional() {
       self.query = self.query.filter(url.eq(url_search));
     }
@@ -185,7 +222,7 @@ impl<'a> PostQueryBuilder<'a> {
   }
 
   pub fn list(self) -> Result<Vec<PostView>, Error> {
-    use super::post_view::post_view::dsl::*;
+    use super::post_view::post_mview::dsl::*;
 
     let mut query = self.query;
 

@@ -21,11 +21,15 @@ before_install:
   - cd server
 script:
   # Default checks, but fail if anything is detected
-  - cargo clippy -- -D clippy::style -D clippy::correctness -D clippy::complexity -D clippy::perf
   - cargo build
+  - cargo clippy -- -D clippy::style -D clippy::correctness -D clippy::complexity -D clippy::perf
+  - cargo install diesel_cli --no-default-features --features postgres --force
   - diesel migration run
   - cargo test
 env:
-  - DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
+  global:
+    - DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
+    - RUST_TEST_THREADS=1
+
 addons:
   postgresql: "9.4"

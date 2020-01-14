@@ -1,9 +1,28 @@
-use super::user_view::user_view::BoxedQuery;
+use super::user_view::user_mview::BoxedQuery;
 use super::*;
 use diesel::pg::Pg;
 
 table! {
   user_view (id) {
+    id -> Int4,
+    name -> Varchar,
+    avatar -> Nullable<Text>,
+    email -> Nullable<Text>,
+    fedi_name -> Varchar,
+    admin -> Bool,
+    banned -> Bool,
+    show_avatars -> Bool,
+    send_notifications_to_email -> Bool,
+    published -> Timestamp,
+    number_of_posts -> BigInt,
+    post_score -> BigInt,
+    number_of_comments -> BigInt,
+    comment_score -> BigInt,
+  }
+}
+
+table! {
+  user_mview (id) {
     id -> Int4,
     name -> Varchar,
     avatar -> Nullable<Text>,
@@ -52,9 +71,9 @@ pub struct UserQueryBuilder<'a> {
 
 impl<'a> UserQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection) -> Self {
-    use super::user_view::user_view::dsl::*;
+    use super::user_view::user_mview::dsl::*;
 
-    let query = user_view.into_boxed();
+    let query = user_mview.into_boxed();
 
     UserQueryBuilder {
       conn,
@@ -71,7 +90,7 @@ impl<'a> UserQueryBuilder<'a> {
   }
 
   pub fn search_term<T: MaybeOptional<String>>(mut self, search_term: T) -> Self {
-    use super::user_view::user_view::dsl::*;
+    use super::user_view::user_mview::dsl::*;
     if let Some(search_term) = search_term.get_optional() {
       self.query = self.query.filter(name.ilike(fuzzy_search(&search_term)));
     }
@@ -89,7 +108,7 @@ impl<'a> UserQueryBuilder<'a> {
   }
 
   pub fn list(self) -> Result<Vec<UserView>, Error> {
-    use super::user_view::user_view::dsl::*;
+    use super::user_view::user_mview::dsl::*;
 
     let mut query = self.query;
 
@@ -128,12 +147,12 @@ impl UserView {
   }
 
   pub fn admins(conn: &PgConnection) -> Result<Vec<Self>, Error> {
-    use super::user_view::user_view::dsl::*;
-    user_view.filter(admin.eq(true)).load::<Self>(conn)
+    use super::user_view::user_mview::dsl::*;
+    user_mview.filter(admin.eq(true)).load::<Self>(conn)
   }
 
   pub fn banned(conn: &PgConnection) -> Result<Vec<Self>, Error> {
-    use super::user_view::user_view::dsl::*;
-    user_view.filter(banned.eq(true)).load::<Self>(conn)
+    use super::user_view::user_mview::dsl::*;
+    user_mview.filter(banned.eq(true)).load::<Self>(conn)
   }
 }
