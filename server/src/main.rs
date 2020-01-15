@@ -6,7 +6,7 @@ use actix::prelude::*;
 use actix_web::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
-use lemmy_server::routes::{federation, feeds, index, nodeinfo, webfinger, websocket};
+use lemmy_server::routes::{api, federation, feeds, index, nodeinfo, webfinger, websocket};
 use lemmy_server::settings::Settings;
 use lemmy_server::websocket::server::*;
 use std::io;
@@ -44,6 +44,7 @@ async fn main() -> io::Result<()> {
       .data(pool.clone())
       .data(server.clone())
       // The routes
+      .configure(api::config)
       .configure(federation::config)
       .configure(feeds::config)
       .configure(index::config)
