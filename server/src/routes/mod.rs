@@ -1,3 +1,4 @@
+pub mod api;
 pub mod federation;
 pub mod feeds;
 pub mod index;
