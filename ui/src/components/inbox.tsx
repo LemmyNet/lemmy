@@ -14,7 +14,7 @@ import {
   CommentResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { msgOp } from '../utils';
+import { msgOp, fetchLimit } from '../utils';
 import { CommentNodes } from './comment-nodes';
 import { SortSelect } from './sort-select';
 import { i18n } from '../i18next';
@@ -58,14 +58,7 @@ export class Inbox extends Component<any, InboxState> {
     this.handleSortChange = this.handleSortChange.bind(this);
 
     this.subscription = WebSocketService.Instance.subject
-      .pipe(
-        retryWhen(errors =>
-          errors.pipe(
-            delay(3000),
-            take(10)
-          )
-        )
-      )
+      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
       .subscribe(
         msg => this.parseMessage(msg),
         err => console.error(err),
@@ -279,7 +272,7 @@ export class Inbox extends Component<any, InboxState> {
       sort: SortType[this.state.sort],
       unread_only: this.state.unreadOrAll == UnreadOrAll.Unread,
       page: this.state.page,
-      limit: 9999,
+      limit: fetchLimit,
     };
     WebSocketService.Instance.getReplies(repliesForm);
 
@@ -287,7 +280,7 @@ export class Inbox extends Component<any, InboxState> {
       sort: SortType[this.state.sort],
       unread_only: this.state.unreadOrAll == UnreadOrAll.Unread,
       page: this.state.page,
-      limit: 9999,
+      limit: fetchLimit,
     };
     WebSocketService.Instance.getUserMentions(userMentionsForm);
   }
