@@ -89,14 +89,7 @@ export class Community extends Component<any, State> {
     this.handleSortChange = this.handleSortChange.bind(this);
 
     this.subscription = WebSocketService.Instance.subject
-      .pipe(
-        retryWhen(errors =>
-          errors.pipe(
-            delay(3000),
-            take(10)
-          )
-        )
-      )
+      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
       .subscribe(
         msg => this.parseMessage(msg),
         err => console.error(err),
@@ -154,7 +147,7 @@ export class Community extends Component<any, State> {
                 )}
               </h5>
               {this.selects()}
-              <PostListings posts={this.state.posts} />
+              {this.state.posts && <PostListings posts={this.state.posts} />}
               {this.paginator()}
             </div>
             <div class="col-12 col-md-4">
@@ -285,6 +278,11 @@ export class Community extends Component<any, State> {
       this.setState(this.state);
     } else if (op == UserOperation.GetPosts) {
       let res: GetPostsResponse = msg;
+
+      // This is needed to refresh the view
+      this.state.posts = undefined;
+      this.setState(this.state);
+
       this.state.posts = res.posts;
       this.state.loading = false;
       this.setState(this.state);
