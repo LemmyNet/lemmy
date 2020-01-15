@@ -3,8 +3,8 @@ import { WebSocketService } from '../services';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 
-let general = ['riccardo', 'NotTooHighToHack'];
-// let highlighted = [];
+let general = ['Andre Vallestero', 'riccardo', 'NotTooHighToHack'];
+let highlighted = ['Alex Benishek'];
 // let silver = [];
 // let gold = [];
 // let latinum = [];
@@ -59,6 +59,11 @@ export class Sponsors extends Component<any, any> {
           <T i18nKey="general_sponsors">#</T>
         </p>
         <div class="row card-columns">
+          {highlighted.map(s => (
+            <div class="card bg-primary col-12 col-md-2 font-weight-bold">
+              <div>{s}</div>
+            </div>
+          ))}
           {general.map(s => (
             <div class="card col-12 col-md-2">
               <div>{s}</div>
