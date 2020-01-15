@@ -16,15 +16,15 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     // TODO: need to repeat this for every endpoint
     .route(
       "/api/v1/list_communities",
-      web::get().to(|info, db| {
-        route::<ListCommunities, ListCommunitiesResponse>(UserOperation::ListCommunities, info, db)
-      }),
+      web::get().to(
+        route::<ListCommunities, ListCommunitiesResponse>(UserOperation::ListCommunities)
+      ),
     )
     .route(
       "/api/v1/get_community",
-      web::get().to(|info, db| {
-        route::<GetCommunity, GetCommunityResponse>(UserOperation::GetCommunity, info, db)
-      }),
+      web::get().to(route::<GetCommunity, GetCommunityResponse>(
+        UserOperation::GetCommunity,
+      )),
     );
 }
 
@@ -46,11 +46,9 @@ where
   Ok(HttpResponse::Ok().json(response?))
 }
 
-async fn route<Data, Response>(
+fn route<Data, Response>(
   op: UserOperation,
-  info: web::Query<Data>,
-  db: DbParam,
-) -> Result<HttpResponse, Error>
+) -> Box<(dyn Fn(web::Query<Data>, DbParam) -> Result<HttpResponse, Error> + 'static)>
 where
   Data: Serialize,
   Response: Serialize,
@@ -58,5 +56,5 @@ where
 {
   // TODO: want an implementation like this, where useroperation is passed without explicitly passing the other params
   //       maybe with a higher order functions? (but that would probably have worse performance)
-  perform::<Data, Response>(op, info.0, db)
+  Box::new(|data, db| perform::<Data, Response>(op, data.0, db))
 }
