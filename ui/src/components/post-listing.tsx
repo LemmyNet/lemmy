@@ -338,7 +338,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                     </li>
                   </>
                 )}
-                {this.myPost && (
+                {this.myPost && this.props.showBody && (
                   <>
                     <li className="list-inline-item">
                       <span
