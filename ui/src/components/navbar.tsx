@@ -13,7 +13,12 @@ import {
   GetSiteResponse,
   Comment,
 } from '../interfaces';
-import { msgOp, pictshareAvatarThumbnail, showAvatars } from '../utils';
+import {
+  msgOp,
+  pictshareAvatarThumbnail,
+  showAvatars,
+  fetchLimit,
+} from '../utils';
 import { version } from '../version';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -56,14 +61,7 @@ export class Navbar extends Component<any, NavbarState> {
     });
 
     this.wsSub = WebSocketService.Instance.subject
-      .pipe(
-        retryWhen(errors =>
-          errors.pipe(
-            delay(3000),
-            take(10)
-          )
-        )
-      )
+      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
       .subscribe(
         msg => this.parseMessage(msg),
         err => console.error(err),
@@ -241,14 +239,14 @@ export class Navbar extends Component<any, NavbarState> {
         sort: SortType[SortType.New],
         unread_only: true,
         page: 1,
-        limit: 9999,
+        limit: fetchLimit,
       };
 
       let userMentionsForm: GetUserMentionsForm = {
         sort: SortType[SortType.New],
         unread_only: true,
         page: 1,
-        limit: 9999,
+        limit: fetchLimit,
       };
       if (this.currentLocation !== '/inbox') {
         WebSocketService.Instance.getReplies(repliesForm);
