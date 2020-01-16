@@ -23,7 +23,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route("/api/v1/list_categories", web::get().to(route::<ListCategories, ListCategoriesResponse>))
     .route("/api/v1/get_post", web::get().to(route::<GetPost, GetPostResponse>))
     .route("/api/v1/get_community", web::get().to(route::<GetCommunity, GetCommunityResponse>))
-    .route("/api/v1/create_communent", web::post().to(route::<CreateComment, CommentResponse>))
+    .route("/api/v1/create_comment", web::post().to(route::<CreateComment, CommentResponse>))
     .route("/api/v1/edit_comment", web::post().to(route::<EditComment, CommentResponse>))
     .route("/api/v1/save_comment", web::post().to(route::<SaveComment, CommentResponse>))
     .route("/api/v1/create_comment_like", web::post().to(route::<CreateCommentLike, CommentResponse>))
