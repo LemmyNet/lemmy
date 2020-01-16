@@ -87,21 +87,6 @@ pub struct ChatServer {
   db: Pool<ConnectionManager<PgConnection>>,
 }
 
-// impl Default for ChatServer {
-//   fn default(nah: String) -> ChatServer {
-//     // default room
-//     let rooms = HashMap::new();
-
-//     ChatServer {
-//       sessions: HashMap::new(),
-//       rate_limits: HashMap::new(),
-//       rooms,
-//       rng: rand::thread_rng(),
-//       nah: nah,
-//     }
-//   }
-// }
-
 impl ChatServer {
   pub fn startup(db: Pool<ConnectionManager<PgConnection>>) -> ChatServer {
     // default room
