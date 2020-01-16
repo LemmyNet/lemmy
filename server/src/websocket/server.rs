@@ -295,11 +295,10 @@ impl Handler<StandardMessage> for ChatServer {
   }
 }
 
-fn to_json_string<T>(op: UserOperation, data: T) -> Result<String, Error>
+fn to_json_string<T>(op: &UserOperation, data: T) -> Result<String, Error>
 where
   T: Serialize,
 {
-  dbg!(&op);
   let mut json = serde_json::to_value(&data)?;
   match json.as_object_mut() {
     Some(j) => j.insert("op".to_string(), serde_json::to_value(op.to_string())?),
@@ -325,7 +324,7 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
     UserOperation::Login => {
       let login: Login = serde_json::from_str(data)?;
       let res = Oper::new(login).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::Register => {
       let register: Register = serde_json::from_str(data)?;
@@ -333,63 +332,63 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       if res.is_ok() {
         chat.check_rate_limit_register(msg.id)?;
       }
-      Ok(serde_json::to_string(&res?)?)
+      to_json_string(&user_operation, &res?)
     }
     UserOperation::GetUserDetails => {
       let get_user_details: GetUserDetails = serde_json::from_str(data)?;
       let res = Oper::new(get_user_details).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::SaveUserSettings => {
       let save_user_settings: SaveUserSettings = serde_json::from_str(data)?;
       let res = Oper::new(save_user_settings).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::AddAdmin => {
       let add_admin: AddAdmin = serde_json::from_str(data)?;
       let res = Oper::new(add_admin).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::BanUser => {
       let ban_user: BanUser = serde_json::from_str(data)?;
       let res = Oper::new(ban_user).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::GetReplies => {
       let get_replies: GetReplies = serde_json::from_str(data)?;
       let res = Oper::new(get_replies).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::GetUserMentions => {
       let get_user_mentions: GetUserMentions = serde_json::from_str(data)?;
       let res = Oper::new(get_user_mentions).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::EditUserMention => {
       let edit_user_mention: EditUserMention = serde_json::from_str(data)?;
       let res = Oper::new(edit_user_mention).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::MarkAllAsRead => {
       let mark_all_as_read: MarkAllAsRead = serde_json::from_str(data)?;
       let res = Oper::new(mark_all_as_read).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::GetCommunity => {
       let get_community: GetCommunity = serde_json::from_str(data)?;
       let res = Oper::new(get_community).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::ListCommunities => {
       let list_communities: ListCommunities = serde_json::from_str(data)?;
       let res = Oper::new(list_communities).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::CreateCommunity => {
       chat.check_rate_limit_register(msg.id)?;
       let create_community: CreateCommunity = serde_json::from_str(data)?;
       let res = Oper::new(create_community).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::EditCommunity => {
       let edit_community: EditCommunity = serde_json::from_str(data)?;
@@ -397,25 +396,25 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       let mut community_sent: CommunityResponse = res.clone();
       community_sent.community.user_id = None;
       community_sent.community.subscribed = None;
-      let community_sent_str = serde_json::to_string(&community_sent)?;
+      let community_sent_str = to_json_string(&user_operation, &community_sent)?;
       chat.send_community_message(community_sent.community.id, &community_sent_str, msg.id)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::FollowCommunity => {
       let follow_community: FollowCommunity = serde_json::from_str(data)?;
       let res = Oper::new(follow_community).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::GetFollowedCommunities => {
       let followed_communities: GetFollowedCommunities = serde_json::from_str(data)?;
       let res = Oper::new(followed_communities).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::BanFromCommunity => {
       let ban_from_community: BanFromCommunity = serde_json::from_str(data)?;
       let community_id = ban_from_community.community_id;
       let res = Oper::new(ban_from_community).perform(&conn)?;
-      let res_str = serde_json::to_string(&res)?;
+      let res_str = to_json_string(&user_operation, &res)?;
       chat.send_community_message(community_id, &res_str, msg.id)?;
       Ok(res_str)
     }
@@ -423,51 +422,51 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       let mod_add_to_community: AddModToCommunity = serde_json::from_str(data)?;
       let community_id = mod_add_to_community.community_id;
       let res = Oper::new(mod_add_to_community).perform(&conn)?;
-      let res_str = serde_json::to_string(&res)?;
+      let res_str = to_json_string(&user_operation, &res)?;
       chat.send_community_message(community_id, &res_str, msg.id)?;
       Ok(res_str)
     }
     UserOperation::ListCategories => {
       let list_categories: ListCategories = ListCategories;
       let res = Oper::new(list_categories).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::CreatePost => {
       chat.check_rate_limit_post(msg.id)?;
       let create_post: CreatePost = serde_json::from_str(data)?;
       let res = Oper::new(create_post).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::GetPost => {
       let get_post: GetPost = serde_json::from_str(data)?;
       chat.join_room(get_post.id, msg.id);
       let res = Oper::new(get_post).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::GetPosts => {
       let get_posts: GetPosts = serde_json::from_str(data)?;
       let res = Oper::new(get_posts).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::CreatePostLike => {
       chat.check_rate_limit_message(msg.id)?;
       let create_post_like: CreatePostLike = serde_json::from_str(data)?;
       let res = Oper::new(create_post_like).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::EditPost => {
       let edit_post: EditPost = serde_json::from_str(data)?;
       let res = Oper::new(edit_post).perform(&conn)?;
       let mut post_sent = res.clone();
       post_sent.post.my_vote = None;
-      let post_sent_str = serde_json::to_string(&post_sent)?;
+      let post_sent_str = to_json_string(&user_operation, &post_sent)?;
       chat.send_room_message(post_sent.post.id, &post_sent_str, msg.id);
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::SavePost => {
       let save_post: SavePost = serde_json::from_str(data)?;
       let res = Oper::new(save_post).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::CreateComment => {
       chat.check_rate_limit_message(msg.id)?;
@@ -477,9 +476,9 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       let mut comment_sent = res.clone();
       comment_sent.comment.my_vote = None;
       comment_sent.comment.user_id = None;
-      let comment_sent_str = serde_json::to_string(&comment_sent)?;
+      let comment_sent_str = to_json_string(&user_operation, &comment_sent)?;
       chat.send_room_message(post_id, &comment_sent_str, msg.id);
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::EditComment => {
       let edit_comment: EditComment = serde_json::from_str(data)?;
@@ -488,14 +487,14 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       let mut comment_sent = res.clone();
       comment_sent.comment.my_vote = None;
       comment_sent.comment.user_id = None;
-      let comment_sent_str = serde_json::to_string(&comment_sent)?;
+      let comment_sent_str = to_json_string(&user_operation, &comment_sent)?;
       chat.send_room_message(post_id, &comment_sent_str, msg.id);
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::SaveComment => {
       let save_comment: SaveComment = serde_json::from_str(data)?;
       let res = Oper::new(save_comment).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::CreateCommentLike => {
       chat.check_rate_limit_message(msg.id)?;
@@ -505,61 +504,61 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       let mut comment_sent = res.clone();
       comment_sent.comment.my_vote = None;
       comment_sent.comment.user_id = None;
-      let comment_sent_str = serde_json::to_string(&comment_sent)?;
+      let comment_sent_str = to_json_string(&user_operation, &comment_sent)?;
       chat.send_room_message(post_id, &comment_sent_str, msg.id);
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::GetModlog => {
       let get_modlog: GetModlog = serde_json::from_str(data)?;
       let res = Oper::new(get_modlog).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::CreateSite => {
       let create_site: CreateSite = serde_json::from_str(data)?;
       let res = Oper::new(create_site).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::EditSite => {
       let edit_site: EditSite = serde_json::from_str(data)?;
       let res = Oper::new(edit_site).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::GetSite => {
       let online: usize = chat.sessions.len();
       let get_site: GetSite = serde_json::from_str(data)?;
       let mut res = Oper::new(get_site).perform(&conn)?;
       res.online = online;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::Search => {
       let search: Search = serde_json::from_str(data)?;
       let res = Oper::new(search).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::TransferCommunity => {
       let transfer_community: TransferCommunity = serde_json::from_str(data)?;
       let res = Oper::new(transfer_community).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::TransferSite => {
       let transfer_site: TransferSite = serde_json::from_str(data)?;
       let res = Oper::new(transfer_site).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::DeleteAccount => {
       let delete_account: DeleteAccount = serde_json::from_str(data)?;
       let res = Oper::new(delete_account).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::PasswordReset => {
       let password_reset: PasswordReset = serde_json::from_str(data)?;
       let res = Oper::new(password_reset).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
     UserOperation::PasswordChange => {
       let password_change: PasswordChange = serde_json::from_str(data)?;
       let res = Oper::new(password_change).perform(&conn)?;
-      to_json_string(user_operation, &res)
+      to_json_string(&user_operation, &res)
     }
   }
 }
