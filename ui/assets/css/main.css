@@ -148,3 +148,13 @@ hr {
   overflow: hidden;
   text-overflow: ellipsis
 }
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.fl-1 {
+  flex: 1;
+}
