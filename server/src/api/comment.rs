@@ -35,7 +35,6 @@ pub struct SaveComment {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct CommentResponse {
-  op: String,
   pub comment: CommentView,
 }
 
@@ -53,7 +52,7 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in").into()),
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
     };
 
     let user_id = claims.id;
@@ -63,12 +62,12 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
     // Check for a community ban
     let post = Post::read(&conn, data.post_id)?;
     if CommunityUserBanView::get(&conn, user_id, post.community_id).is_ok() {
-      return Err(APIError::err(&self.op, "community_ban").into());
+      return Err(APIError::err("community_ban").into());
     }
 
     // Check for a site ban
     if UserView::read(&conn, user_id)?.banned {
-      return Err(APIError::err(&self.op, "site_ban").into());
+      return Err(APIError::err("site_ban").into());
     }
 
     let content_slurs_removed = remove_slurs(&data.content.to_owned());
@@ -86,7 +85,7 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
 
     let inserted_comment = match Comment::create(&conn, &comment_form) {
       Ok(comment) => comment,
-      Err(_e) => return Err(APIError::err(&self.op, "couldnt_create_comment").into()),
+      Err(_e) => return Err(APIError::err("couldnt_create_comment").into()),
     };
 
     // Scan the comment for user mentions, add those rows
@@ -193,13 +192,12 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
 
     let _inserted_like = match CommentLike::like(&conn, &like_form) {
       Ok(like) => like,
-      Err(_e) => return Err(APIError::err(&self.op, "couldnt_like_comment").into()),
+      Err(_e) => return Err(APIError::err("couldnt_like_comment").into()),
     };
 
     let comment_view = CommentView::read(&conn, inserted_comment.id, Some(user_id))?;
 
     Ok(CommentResponse {
-      op: self.op.to_string(),
       comment: comment_view,
     })
   }
@@ -211,7 +209,7 @@ impl Perform<CommentResponse> for Oper<EditComment> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in").into()),
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
     };
 
     let user_id = claims.id;
@@ -231,17 +229,17 @@ impl Perform<CommentResponse> for Oper<EditComment> {
       editors.append(&mut UserView::admins(&conn)?.into_iter().map(|a| a.id).collect());
 
       if !editors.contains(&user_id) {
-        return Err(APIError::err(&self.op, "no_comment_edit_allowed").into());
+        return Err(APIError::err("no_comment_edit_allowed").into());
       }
 
       // Check for a community ban
       if CommunityUserBanView::get(&conn, user_id, orig_comment.community_id).is_ok() {
-        return Err(APIError::err(&self.op, "community_ban").into());
+        return Err(APIError::err("community_ban").into());
       }
 
       // Check for a site ban
       if UserView::read(&conn, user_id)?.banned {
-        return Err(APIError::err(&self.op, "site_ban").into());
+        return Err(APIError::err("site_ban").into());
       }
     }
 
@@ -264,7 +262,7 @@ impl Perform<CommentResponse> for Oper<EditComment> {
 
     let _updated_comment = match Comment::update(&conn, data.edit_id, &comment_form) {
       Ok(comment) => comment,
-      Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_comment").into()),
+      Err(_e) => return Err(APIError::err("couldnt_update_comment").into()),
     };
 
     // Scan the comment for user mentions, add those rows
@@ -310,7 +308,6 @@ impl Perform<CommentResponse> for Oper<EditComment> {
     let comment_view = CommentView::read(&conn, data.edit_id, Some(user_id))?;
 
     Ok(CommentResponse {
-      op: self.op.to_string(),
       comment: comment_view,
     })
   }
@@ -322,7 +319,7 @@ impl Perform<CommentResponse> for Oper<SaveComment> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in").into()),
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
     };
 
     let user_id = claims.id;
@@ -335,19 +332,18 @@ impl Perform<CommentResponse> for Oper<SaveComment> {
     if data.save {
       match CommentSaved::save(&conn, &comment_saved_form) {
         Ok(comment) => comment,
-        Err(_e) => return Err(APIError::err(&self.op, "couldnt_save_comment").into()),
+        Err(_e) => return Err(APIError::err("couldnt_save_comment").into()),
       };
     } else {
       match CommentSaved::unsave(&conn, &comment_saved_form) {
         Ok(comment) => comment,
-        Err(_e) => return Err(APIError::err(&self.op, "couldnt_save_comment").into()),
+        Err(_e) => return Err(APIError::err("couldnt_save_comment").into()),
       };
     }
 
     let comment_view = CommentView::read(&conn, data.comment_id, Some(user_id))?;
 
     Ok(CommentResponse {
-      op: self.op.to_string(),
       comment: comment_view,
     })
   }
@@ -359,7 +355,7 @@ impl Perform<CommentResponse> for Oper<CreateCommentLike> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in").into()),
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
     };
 
     let user_id = claims.id;
@@ -368,19 +364,19 @@ impl Perform<CommentResponse> for Oper<CreateCommentLike> {
     if data.score == -1 {
       let site = SiteView::read(&conn)?;
       if !site.enable_downvotes {
-        return Err(APIError::err(&self.op, "downvotes_disabled").into());
+        return Err(APIError::err("downvotes_disabled").into());
       }
     }
 
     // Check for a community ban
     let post = Post::read(&conn, data.post_id)?;
     if CommunityUserBanView::get(&conn, user_id, post.community_id).is_ok() {
-      return Err(APIError::err(&self.op, "community_ban").into());
+      return Err(APIError::err("community_ban").into());
     }
 
     // Check for a site ban
     if UserView::read(&conn, user_id)?.banned {
-      return Err(APIError::err(&self.op, "site_ban").into());
+      return Err(APIError::err("site_ban").into());
     }
 
     let like_form = CommentLikeForm {
@@ -398,7 +394,7 @@ impl Perform<CommentResponse> for Oper<CreateCommentLike> {
     if do_add {
       let _inserted_like = match CommentLike::like(&conn, &like_form) {
         Ok(like) => like,
-        Err(_e) => return Err(APIError::err(&self.op, "couldnt_like_comment").into()),
+        Err(_e) => return Err(APIError::err("couldnt_like_comment").into()),
       };
     }
 
@@ -406,7 +402,6 @@ impl Perform<CommentResponse> for Oper<CreateCommentLike> {
     let liked_comment = CommentView::read(&conn, data.comment_id, Some(user_id))?;
 
     Ok(CommentResponse {
-      op: self.op.to_string(),
       comment: liked_comment,
     })
   }
