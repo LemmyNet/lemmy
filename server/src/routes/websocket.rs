@@ -1,27 +1,12 @@
 use crate::websocket::server::*;
-use crate::Settings;
 use actix::prelude::*;
 use actix_web::web;
 use actix_web::*;
 use actix_web_actors::ws;
-use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::PgConnection;
 use std::time::{Duration, Instant};
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-  // TODO couldn't figure out how to get this method to recieve the other pool
-  let settings = Settings::get();
-  let manager = ConnectionManager::<PgConnection>::new(&settings.get_database_url());
-  let pool = Pool::builder()
-    .max_size(settings.database.pool_size)
-    .build(manager)
-    .unwrap_or_else(|_| panic!("Error connecting to {}", settings.get_database_url()));
-
-  // Start chat server actor in separate thread
-  let server = ChatServer::startup(pool).start();
-  cfg
-    .data(server)
-    .service(web::resource("/api/v1/ws").to(chat_route));
+  cfg.service(web::resource("/api/v1/ws").to(chat_route));
 }
 
 /// How often heartbeat pings are sent
@@ -38,8 +23,7 @@ async fn chat_route(
   // TODO not sure if the blocking should be here or not
   ws::start(
     WSSession {
-      // db: db.get_ref().clone(),
-      cs_addr: chat_server.get_ref().clone(),
+      cs_addr: chat_server.get_ref().to_owned(),
       id: 0,
       hb: Instant::now(),
       ip: req
