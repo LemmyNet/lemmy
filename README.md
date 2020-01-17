@@ -28,7 +28,7 @@
     <br> 
 </p>
 
-[Lemmy Dev instance](https://dev.lemmy.ml) *for testing purposes only*
+[Lemmy Dev instance](https://dev.lemmy.ml) *This data is being backed up, and once federation is working, it will be the basis for a main instance.*
 
 This is a **very early beta version**, and a lot of features are currently broken or in active development, such as federation.
 
@@ -154,10 +154,11 @@ eo | 82% | number_of_communities,preview,upload_image,avatar,upload_avatar,show_
 es | 90% | avatar,upload_avatar,show_avatars,archive_link,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
 fr | 90% | avatar,upload_avatar,show_avatars,archive_link,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
 it | 91% | avatar,upload_avatar,show_avatars,archive_link,docs,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
-nl | 83% | preview,upload_image,avatar,upload_avatar,show_avatars,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,theme 
+nl | 100% |  
 ru | 78% | cross_posts,cross_post,number_of_communities,preview,upload_image,avatar,upload_avatar,show_avatars,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,recent_comments,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
 sv | 90% | avatar,upload_avatar,show_avatars,archive_link,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw 
 zh | 76% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,avatar,upload_avatar,show_avatars,formatting_help,view_source,sticky,unsticky,archive_link,settings,stickied,delete_account,delete_account_confirm,banned,creator,number_online,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,recent_comments,nsfw,show_nsfw,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no 
+
 
 If you'd like to update this report, run:
 
