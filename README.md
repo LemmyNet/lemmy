@@ -47,7 +47,7 @@ Each lemmy server can set its own moderation policy; appointing site-wide admins
 Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Inferno](https://www.infernojs.org), [Typescript](https://www.typescriptlang.org/) and [Diesel](http://diesel.rs/).
 
 - [Documentation](https://dev.lemmy.ml/docs/index.html)
-- [Releases / Changelog](/CHANGELOG)
+- [Releases / Changelog](/RELEASES.md)
 - [Contributing](https://dev.lemmy.ml/docs/contributing.html)
 
 ## Features
