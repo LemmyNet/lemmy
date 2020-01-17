@@ -15,7 +15,7 @@ RUN yarn build
 FROM multiarch/qemu-user-static as qemu
 
 
-FROM arm64v8/rust:1.37-buster as rust
+FROM arm64v8/rust:1.40-buster as rust
 
 COPY --from=qemu /usr/bin/qemu-aarch64-static /usr/bin
 #COPY --from=qemu /usr/bin/qemu-arm-static /usr/bin
