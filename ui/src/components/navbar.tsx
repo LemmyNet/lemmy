@@ -94,6 +94,7 @@ export class Navbar extends Component<any, NavbarState> {
         <button
           class="navbar-toggler"
           type="button"
+          aria-label="menu"
           onClick={linkEvent(this, this.expandNavbar)}
         >
           <span class="navbar-toggler-icon"></span>
@@ -104,12 +105,12 @@ export class Navbar extends Component<any, NavbarState> {
           <ul class="navbar-nav mr-auto">
             <li class="nav-item">
               <Link class="nav-link" to="/communities">
-                <T i18nKey="communities">#</T>
+                { i18n.t('communities') }
               </Link>
             </li>
             <li class="nav-item">
               <Link class="nav-link" to="/search">
-                <T i18nKey="search">#</T>
+                { i18n.t('search') }
               </Link>
             </li>
             <li class="nav-item">
@@ -120,12 +121,12 @@ export class Navbar extends Component<any, NavbarState> {
                   state: { prevPath: this.currentLocation },
                 }}
               >
-                <T i18nKey="create_post">#</T>
+                { i18n.t('create_post') }
               </Link>
             </li>
             <li class="nav-item">
               <Link class="nav-link" to="/create_community">
-                <T i18nKey="create_community">#</T>
+                { i18n.t('create_community') }
               </Link>
             </li>
           </ul>
@@ -167,7 +168,7 @@ export class Navbar extends Component<any, NavbarState> {
               </>
             ) : (
               <Link class="nav-link" to="/login">
-                <T i18nKey="login_sign_up">#</T>
+                { i18n.t('login_sign_up') }
               </Link>
             )}
           </ul>
