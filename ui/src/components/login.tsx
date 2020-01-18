@@ -78,15 +78,16 @@ export class Login extends Component<any, State> {
     return (
       <div>
         <form onSubmit={linkEvent(this, this.handleLoginSubmit)}>
-          <h5>Login</h5>
+          <h2>{ i18n.t('login') }</h2>
           <div class="form-group row">
-            <label class="col-sm-2 col-form-label">
-              <T i18nKey="email_or_username">#</T>
+            <label class="col-sm-2 col-form-label" for="login-email-or-username">
+                { i18n.t('email_or_username') }
             </label>
             <div class="col-sm-10">
               <input
                 type="text"
                 class="form-control"
+                id="login-email-or-username"
                 value={this.state.loginForm.username_or_email}
                 onInput={linkEvent(this, this.handleLoginUsernameChange)}
                 required
@@ -95,12 +96,13 @@ export class Login extends Component<any, State> {
             </div>
           </div>
           <div class="form-group row">
-            <label class="col-sm-2 col-form-label">
-              <T i18nKey="password">#</T>
+            <label class="col-sm-2 col-form-label" for="login-password">
+                { i18n.t('password') }
             </label>
             <div class="col-sm-10">
               <input
                 type="password"
+                id="login-password"
                 value={this.state.loginForm.password}
                 onInput={linkEvent(this, this.handleLoginPasswordChange)}
                 class="form-control"
@@ -111,10 +113,11 @@ export class Login extends Component<any, State> {
                 onClick={linkEvent(this, this.handlePasswordReset)}
                 className="btn p-0 btn-link d-inline-block float-right text-muted small font-weight-bold"
               >
-                <T i18nKey="forgot_password">#</T>
+                { i18n.t('forgot_password') }
               </button>
             </div>
           </div>
+
           <div class="form-group row">
             <div class="col-sm-10">
               <button type="submit" class="btn btn-secondary">
@@ -135,16 +138,19 @@ export class Login extends Component<any, State> {
   registerForm() {
     return (
       <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
-        <h5>
-          <T i18nKey="sign_up">#</T>
-        </h5>
+        <h2>
+          { i18n.t('sign_up') }
+        </h2>
+
         <div class="form-group row">
-          <label class="col-sm-2 col-form-label">
-            <T i18nKey="username">#</T>
+          <label class="col-sm-2 col-form-label" for="register-username">
+            { i18n.t('username') }
           </label>
+
           <div class="col-sm-10">
             <input
               type="text"
+              id="register-username"
               class="form-control"
               value={this.state.registerForm.username}
               onInput={linkEvent(this, this.handleRegisterUsernameChange)}
@@ -155,13 +161,15 @@ export class Login extends Component<any, State> {
             />
           </div>
         </div>
+
         <div class="form-group row">
-          <label class="col-sm-2 col-form-label">
-            <T i18nKey="email">#</T>
+          <label class="col-sm-2 col-form-label" for="register-email">
+            { i18n.t('email') }
           </label>
           <div class="col-sm-10">
             <input
               type="email"
+              id="register-email"
               class="form-control"
               placeholder={i18n.t('optional')}
               value={this.state.registerForm.email}
@@ -170,13 +178,15 @@ export class Login extends Component<any, State> {
             />
           </div>
         </div>
+
         <div class="form-group row">
-          <label class="col-sm-2 col-form-label">
-            <T i18nKey="password">#</T>
+          <label class="col-sm-2 col-form-label" for="register-password">
+            { i18n.t('password') }
           </label>
           <div class="col-sm-10">
             <input
               type="password"
+              id="register-password"
               value={this.state.registerForm.password}
               onInput={linkEvent(this, this.handleRegisterPasswordChange)}
               class="form-control"
@@ -184,13 +194,15 @@ export class Login extends Component<any, State> {
             />
           </div>
         </div>
+
         <div class="form-group row">
-          <label class="col-sm-2 col-form-label">
-            <T i18nKey="verify_password">#</T>
+          <label class="col-sm-2 col-form-label" for="register-verify-password">
+            { i18n.t('verify_password') }
           </label>
           <div class="col-sm-10">
             <input
               type="password"
+              id="register-verify-password"
               value={this.state.registerForm.password_verify}
               onInput={linkEvent(this, this.handleRegisterPasswordVerifyChange)}
               class="form-control"
@@ -198,18 +210,20 @@ export class Login extends Component<any, State> {
             />
           </div>
         </div>
-        {this.state.enable_nsfw && (
+
+        { this.state.enable_nsfw && (
           <div class="form-group row">
             <div class="col-sm-10">
               <div class="form-check">
                 <input
                   class="form-check-input"
+                  id="register-show-nsfw"
                   type="checkbox"
                   checked={this.state.registerForm.show_nsfw}
                   onChange={linkEvent(this, this.handleRegisterShowNsfwChange)}
                 />
-                <label class="form-check-label">
-                  <T i18nKey="show_nsfw">#</T>
+                <label class="form-check-label" for="register-show-nsfw">
+                    { i18n.t('show_nsfw') }
                 </label>
               </div>
             </div>
