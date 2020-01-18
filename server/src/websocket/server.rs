@@ -295,18 +295,21 @@ impl Handler<StandardMessage> for ChatServer {
   }
 }
 
+#[derive(Serialize)]
+struct WebsocketResponse<T> {
+  op: String,
+  data: T,
+}
+
 fn to_json_string<T>(op: &UserOperation, data: T) -> Result<String, Error>
 where
   T: Serialize,
 {
-  let mut json = serde_json::to_value(&data)?;
-  match json.as_object_mut() {
-    Some(j) => j.insert("op".to_string(), serde_json::to_value(op.to_string())?),
-    None => return Err(format_err!("")),
+  let response = WebsocketResponse {
+    op: op.to_string(),
+    data,
   };
-  // TODO: it seems like this is never called?
-  let x = serde_json::to_string(&json)?;
-  Ok(x)
+  Ok(serde_json::to_string(&response)?)
 }
 
 fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<String, Error> {
