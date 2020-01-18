@@ -239,7 +239,17 @@ impl Perform<LoginResponse> for Oper<Register> {
     // Create the user
     let inserted_user = match User_::register(&conn, &user_form) {
       Ok(user) => user,
-      Err(_e) => return Err(APIError::err(&self.op, "user_already_exists").into()),
+      Err(e) => {
+        let err_type = if e.to_string()
+          == "duplicate key value violates unique constraint \"user__email_key\""
+        {
+          "email_already_exists"
+        } else {
+          "user_already_exists"
+        };
+
+        return Err(APIError::err(&self.op, err_type).into());
+      }
     };
 
     // Create the main community if it doesn't exist
@@ -364,7 +374,17 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
 
     let updated_user = match User_::update(&conn, user_id, &user_form) {
       Ok(user) => user,
-      Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_user").into()),
+      Err(e) => {
+        let err_type = if e.to_string()
+          == "duplicate key value violates unique constraint \"user__email_key\""
+        {
+          "email_already_exists"
+        } else {
+          "user_already_exists"
+        };
+
+        return Err(APIError::err(&self.op, err_type).into());
+      }
     };
 
     // Return the jwt

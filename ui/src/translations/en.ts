@@ -210,6 +210,7 @@ export const en = {
     passwords_dont_match: 'Passwords do not match.',
     admin_already_created: "Sorry, there's already an admin.",
     user_already_exists: 'User already exists.',
+    email_already_exists: 'Email already exists.',
     couldnt_update_user: "Couldn't update user.",
     system_err_login: 'System error. Try logging out and back in.',
   },

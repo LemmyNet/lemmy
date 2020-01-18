@@ -15,7 +15,7 @@
     pool_size: 5
   }
   # the domain name of your instance (eg "dev.lemmy.ml")
-  hostname: "rrr"
+  hostname: "my_domain"
   # address where lemmy should listen for incoming requests
   bind: "0.0.0.0"
   # port where lemmy should listen for incoming requests
