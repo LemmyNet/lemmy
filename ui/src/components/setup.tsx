@@ -62,7 +62,7 @@ export class Setup extends Component<any, State> {
         <div class="row">
           <div class="col-12 offset-lg-3 col-lg-6">
             <h3>
-              <T i18nKey="lemmy_instance_setup">#</T>
+                { i18n.t('lemmy_instance_setup') }
             </h3>
             {!this.state.doneRegisteringUser ? (
               this.registerUser()
