@@ -41,7 +41,11 @@
   height: auto;
 }
 
-.md-div h1,h2,h3,h4,h5 {
+.md-div h1,
+.md-div h2,
+.md-div h3,
+.md-div h4,
+.md-div h5 {
   font-size:1.171875rem;
 }
 
