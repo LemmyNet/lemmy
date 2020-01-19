@@ -20,7 +20,7 @@ import { PostListings } from './post-listings';
 import { SortSelect } from './sort-select';
 import { Sidebar } from './sidebar';
 import {
-  msgOp,
+  wsJsonToRes,
   routeSortTypeToEnum,
   fetchLimit,
   postRefetchSeconds,
@@ -253,46 +253,47 @@ export class Community extends Component<any, State> {
 
   parseMessage(msg: any) {
     console.log(msg);
-    let op: UserOperation = msgOp(msg);
-    if (msg.error) {
-      alert(i18n.t(msg.error));
+    let res = wsJsonToRes(msg);
+    if (res.error) {
+      alert(i18n.t(res.error));
       this.context.router.history.push('/');
       return;
-    } else if (op == UserOperation.GetCommunity) {
-      let res: GetCommunityResponse = msg;
-      this.state.community = res.community;
-      this.state.moderators = res.moderators;
-      this.state.admins = res.admins;
+    } else if (res.op == UserOperation.GetCommunity) {
+      let data = res.data as GetCommunityResponse;
+      this.state.community = data.community;
+      this.state.moderators = data.moderators;
+      this.state.admins = data.admins;
       document.title = `/c/${this.state.community.name} - ${WebSocketService.Instance.site.name}`;
       this.setState(this.state);
       this.keepFetchingPosts();
-    } else if (op == UserOperation.EditCommunity) {
-      let res: CommunityResponse = msg;
-      this.state.community = res.community;
+    } else if (res.op == UserOperation.EditCommunity) {
+      let data = res.data as CommunityResponse;
+      this.state.community = data.community;
       this.setState(this.state);
-    } else if (op == UserOperation.FollowCommunity) {
-      let res: CommunityResponse = msg;
-      this.state.community.subscribed = res.community.subscribed;
+    } else if (res.op == UserOperation.FollowCommunity) {
+      let data = res.data as CommunityResponse;
+      this.state.community.subscribed = data.community.subscribed;
       this.state.community.number_of_subscribers =
-        res.community.number_of_subscribers;
+        data.community.number_of_subscribers;
       this.setState(this.state);
-    } else if (op == UserOperation.GetPosts) {
-      let res: GetPostsResponse = msg;
+    } else if (res.op == UserOperation.GetPosts) {
+      let data = res.data as GetPostsResponse;
 
+      // TODO rework this
       // This is needed to refresh the view
       this.state.posts = undefined;
       this.setState(this.state);
 
-      this.state.posts = res.posts;
+      this.state.posts = data.posts;
       this.state.loading = false;
       this.setState(this.state);
-    } else if (op == UserOperation.CreatePostLike) {
-      let res: CreatePostLikeResponse = msg;
-      let found = this.state.posts.find(c => c.id == res.post.id);
-      found.my_vote = res.post.my_vote;
-      found.score = res.post.score;
-      found.upvotes = res.post.upvotes;
-      found.downvotes = res.post.downvotes;
+    } else if (res.op == UserOperation.CreatePostLike) {
+      let data = res.data as CreatePostLikeResponse;
+      let found = this.state.posts.find(c => c.id == data.post.id);
+      found.my_vote = data.post.my_vote;
+      found.score = data.post.score;
+      found.upvotes = data.post.upvotes;
+      found.downvotes = data.post.downvotes;
       this.setState(this.state);
     }
   }

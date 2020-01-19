@@ -24,7 +24,7 @@ import { SortSelect } from './sort-select';
 import { ListingTypeSelect } from './listing-type-select';
 import { SiteForm } from './site-form';
 import {
-  msgOp,
+  wsJsonToRes,
   repoUrl,
   mdToHtml,
   fetchLimit,
@@ -56,7 +56,6 @@ export class Main extends Component<any, MainState> {
     subscribedCommunities: [],
     trendingCommunities: [],
     site: {
-      op: null,
       site: {
         id: null,
         name: null,
@@ -564,53 +563,54 @@ export class Main extends Component<any, MainState> {
 
   parseMessage(msg: any) {
     console.log(msg);
-    let op: UserOperation = msgOp(msg);
-    if (msg.error) {
-      alert(i18n.t(msg.error));
+    let res = wsJsonToRes(msg);
+    if (res.error) {
+      alert(i18n.t(res.error));
       return;
-    } else if (op == UserOperation.GetFollowedCommunities) {
-      let res: GetFollowedCommunitiesResponse = msg;
-      this.state.subscribedCommunities = res.communities;
+    } else if (res.op == UserOperation.GetFollowedCommunities) {
+      let data = res.data as GetFollowedCommunitiesResponse;
+      this.state.subscribedCommunities = data.communities;
       this.setState(this.state);
-    } else if (op == UserOperation.ListCommunities) {
-      let res: ListCommunitiesResponse = msg;
-      this.state.trendingCommunities = res.communities;
+    } else if (res.op == UserOperation.ListCommunities) {
+      let data = res.data as ListCommunitiesResponse;
+      this.state.trendingCommunities = data.communities;
       this.setState(this.state);
-    } else if (op == UserOperation.GetSite) {
-      let res: GetSiteResponse = msg;
+    } else if (res.op == UserOperation.GetSite) {
+      let data = res.data as GetSiteResponse;
 
       // This means it hasn't been set up yet
-      if (!res.site) {
+      if (!data.site) {
         this.context.router.history.push('/setup');
       }
-      this.state.site.admins = res.admins;
-      this.state.site.site = res.site;
-      this.state.site.banned = res.banned;
-      this.state.site.online = res.online;
+      this.state.site.admins = data.admins;
+      this.state.site.site = data.site;
+      this.state.site.banned = data.banned;
+      this.state.site.online = data.online;
       this.setState(this.state);
       document.title = `${WebSocketService.Instance.site.name}`;
-    } else if (op == UserOperation.EditSite) {
-      let res: SiteResponse = msg;
-      this.state.site.site = res.site;
+    } else if (res.op == UserOperation.EditSite) {
+      let data = res.data as SiteResponse;
+      this.state.site.site = data.site;
       this.state.showEditSite = false;
       this.setState(this.state);
-    } else if (op == UserOperation.GetPosts) {
-      let res: GetPostsResponse = msg;
+    } else if (res.op == UserOperation.GetPosts) {
+      let data = res.data as GetPostsResponse;
 
       // This is needed to refresh the view
+      // TODO mess with this
       this.state.posts = undefined;
       this.setState(this.state);
 
-      this.state.posts = res.posts;
+      this.state.posts = data.posts;
       this.state.loading = false;
       this.setState(this.state);
-    } else if (op == UserOperation.CreatePostLike) {
-      let res: CreatePostLikeResponse = msg;
-      let found = this.state.posts.find(c => c.id == res.post.id);
-      found.my_vote = res.post.my_vote;
-      found.score = res.post.score;
-      found.upvotes = res.post.upvotes;
-      found.downvotes = res.post.downvotes;
+    } else if (res.op == UserOperation.CreatePostLike) {
+      let data = res.data as CreatePostLikeResponse;
+      let found = this.state.posts.find(c => c.id == data.post.id);
+      found.my_vote = data.post.my_vote;
+      found.score = data.post.score;
+      found.upvotes = data.post.upvotes;
+      found.downvotes = data.post.downvotes;
       this.setState(this.state);
     }
   }

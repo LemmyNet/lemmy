@@ -7,7 +7,7 @@ import {
   PasswordChangeForm,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { msgOp, capitalizeFirstLetter } from '../utils';
+import { wsJsonToRes, capitalizeFirstLetter } from '../utils';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 
@@ -34,14 +34,7 @@ export class PasswordChange extends Component<any, State> {
     this.state = this.emptyState;
 
     this.subscription = WebSocketService.Instance.subject
-      .pipe(
-        retryWhen(errors =>
-          errors.pipe(
-            delay(3000),
-            take(10)
-          )
-        )
-      )
+      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
       .subscribe(
         msg => this.parseMessage(msg),
         err => console.error(err),
@@ -141,18 +134,18 @@ export class PasswordChange extends Component<any, State> {
   }
 
   parseMessage(msg: any) {
-    let op: UserOperation = msgOp(msg);
+    let res = wsJsonToRes(msg);
     if (msg.error) {
       alert(i18n.t(msg.error));
       this.state.loading = false;
       this.setState(this.state);
       return;
     } else {
-      if (op == UserOperation.PasswordChange) {
+      if (res.op == UserOperation.PasswordChange) {
+        let data = res.data as LoginResponse;
         this.state = this.emptyState;
         this.setState(this.state);
-        let res: LoginResponse = msg;
-        UserService.Instance.login(res);
+        UserService.Instance.login(data);
         this.props.history.push('/');
       }
     }
