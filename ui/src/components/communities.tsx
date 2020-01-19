@@ -12,7 +12,7 @@ import {
   SortType,
 } from '../interfaces';
 import { WebSocketService } from '../services';
-import { msgOp } from '../utils';
+import { wsJsonToRes } from '../utils';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 
@@ -36,14 +36,7 @@ export class Communities extends Component<any, CommunitiesState> {
     super(props, context);
     this.state = this.emptyState;
     this.subscription = WebSocketService.Instance.subject
-      .pipe(
-        retryWhen(errors =>
-          errors.pipe(
-            delay(3000),
-            take(10)
-          )
-        )
-      )
+      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
       .subscribe(
         msg => this.parseMessage(msg),
         err => console.error(err),
@@ -236,13 +229,13 @@ export class Communities extends Component<any, CommunitiesState> {
 
   parseMessage(msg: any) {
     console.log(msg);
-    let op: UserOperation = msgOp(msg);
-    if (msg.error) {
-      alert(i18n.t(msg.error));
+    let res = wsJsonToRes(msg);
+    if (res.error) {
+      alert(i18n.t(res.error));
       return;
-    } else if (op == UserOperation.ListCommunities) {
-      let res: ListCommunitiesResponse = msg;
-      this.state.communities = res.communities;
+    } else if (res.op == UserOperation.ListCommunities) {
+      let data = res.data as ListCommunitiesResponse;
+      this.state.communities = data.communities;
       this.state.communities.sort(
         (a, b) => b.number_of_subscribers - a.number_of_subscribers
       );
@@ -251,11 +244,11 @@ export class Communities extends Component<any, CommunitiesState> {
       this.setState(this.state);
       let table = document.querySelector('#community_table');
       Sortable.initTable(table);
-    } else if (op == UserOperation.FollowCommunity) {
-      let res: CommunityResponse = msg;
-      let found = this.state.communities.find(c => c.id == res.community.id);
-      found.subscribed = res.community.subscribed;
-      found.number_of_subscribers = res.community.number_of_subscribers;
+    } else if (res.op == UserOperation.FollowCommunity) {
+      let data = res.data as CommunityResponse;
+      let found = this.state.communities.find(c => c.id == data.community.id);
+      found.subscribed = data.community.subscribed;
+      found.number_of_subscribers = data.community.number_of_subscribers;
       this.setState(this.state);
     }
   }

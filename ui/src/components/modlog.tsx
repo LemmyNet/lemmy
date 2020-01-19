@@ -17,9 +17,9 @@ import {
   ModAdd,
 } from '../interfaces';
 import { WebSocketService } from '../services';
-import { msgOp, addTypeInfo, fetchLimit } from '../utils';
+import { wsJsonToRes, addTypeInfo, fetchLimit } from '../utils';
 import { MomentTime } from './moment-time';
-import * as moment from 'moment';
+import moment from 'moment';
 import { i18n } from '../i18next';
 
 interface ModlogState {
@@ -55,14 +55,7 @@ export class Modlog extends Component<any, ModlogState> {
       ? Number(this.props.match.params.community_id)
       : undefined;
     this.subscription = WebSocketService.Instance.subject
-      .pipe(
-        retryWhen(errors =>
-          errors.pipe(
-            delay(3000),
-            take(10)
-          )
-        )
-      )
+      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
       .subscribe(
         msg => this.parseMessage(msg),
         err => console.error(err),
@@ -431,15 +424,15 @@ export class Modlog extends Component<any, ModlogState> {
 
   parseMessage(msg: any) {
     console.log(msg);
-    let op: UserOperation = msgOp(msg);
-    if (msg.error) {
-      alert(i18n.t(msg.error));
+    let res = wsJsonToRes(msg);
+    if (res.error) {
+      alert(i18n.t(res.error));
       return;
-    } else if (op == UserOperation.GetModlog) {
-      let res: GetModlogResponse = msg;
+    } else if (res.op == UserOperation.GetModlog) {
+      let data = res.data as GetModlogResponse;
       this.state.loading = false;
       window.scrollTo(0, 0);
-      this.setCombined(res);
+      this.setCombined(data);
     }
   }
 }

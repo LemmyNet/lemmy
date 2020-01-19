@@ -15,7 +15,7 @@ import {
 } from '../interfaces';
 import { WebSocketService } from '../services';
 import {
-  msgOp,
+  wsJsonToRes,
   fetchLimit,
   routeSearchTypeToEnum,
   routeSortTypeToEnum,
@@ -45,7 +45,6 @@ export class Search extends Component<any, SearchState> {
     sort: this.getSortTypeFromProps(this.props),
     page: this.getPageFromProps(this.props),
     searchResponse: {
-      op: null,
       type_: null,
       posts: [],
       comments: [],
@@ -386,7 +385,6 @@ export class Search extends Component<any, SearchState> {
     return (
       <div>
         {res &&
-          res.op &&
           res.posts.length == 0 &&
           res.comments.length == 0 &&
           res.communities.length == 0 &&
@@ -464,13 +462,13 @@ export class Search extends Component<any, SearchState> {
 
   parseMessage(msg: any) {
     console.log(msg);
-    let op: UserOperation = msgOp(msg);
-    if (msg.error) {
-      alert(i18n.t(msg.error));
+    let res = wsJsonToRes(msg);
+    if (res.error) {
+      alert(i18n.t(res.error));
       return;
-    } else if (op == UserOperation.Search) {
-      let res: SearchResponse = msg;
-      this.state.searchResponse = res;
+    } else if (res.op == UserOperation.Search) {
+      let data = res.data as SearchResponse;
+      this.state.searchResponse = data;
       this.state.loading = false;
       document.title = `${i18n.t('search')} - ${this.state.q} - ${
         WebSocketService.Instance.site.name

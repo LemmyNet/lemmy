@@ -21,7 +21,7 @@ import {
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import {
-  msgOp,
+  wsJsonToRes,
   fetchLimit,
   routeSortTypeToEnum,
   capitalizeFirstLetter,
@@ -970,25 +970,25 @@ export class User extends Component<any, UserState> {
 
   parseMessage(msg: any) {
     console.log(msg);
-    let op: UserOperation = msgOp(msg);
-    if (msg.error) {
-      alert(i18n.t(msg.error));
+    let res = wsJsonToRes(msg);
+    if (res.error) {
+      alert(i18n.t(res.error));
       this.state.deleteAccountLoading = false;
       this.state.avatarLoading = false;
       this.state.userSettingsLoading = false;
-      if (msg.error == 'couldnt_find_that_username_or_email') {
+      if (res.error == 'couldnt_find_that_username_or_email') {
         this.context.router.history.push('/');
       }
       this.setState(this.state);
       return;
-    } else if (op == UserOperation.GetUserDetails) {
-      let res: UserDetailsResponse = msg;
-      this.state.user = res.user;
-      this.state.comments = res.comments;
-      this.state.follows = res.follows;
-      this.state.moderates = res.moderates;
-      this.state.posts = res.posts;
-      this.state.admins = res.admins;
+    } else if (res.op == UserOperation.GetUserDetails) {
+      let data = res.data as UserDetailsResponse;
+      this.state.user = data.user;
+      this.state.comments = data.comments;
+      this.state.follows = data.follows;
+      this.state.moderates = data.moderates;
+      this.state.posts = data.posts;
+      this.state.admins = data.admins;
       this.state.loading = false;
       if (this.isCurrentUser) {
         this.state.userSettingsForm.show_nsfw =
@@ -1010,59 +1010,59 @@ export class User extends Component<any, UserState> {
       document.title = `/u/${this.state.user.name} - ${WebSocketService.Instance.site.name}`;
       window.scrollTo(0, 0);
       this.setState(this.state);
-    } else if (op == UserOperation.EditComment) {
-      let res: CommentResponse = msg;
+    } else if (res.op == UserOperation.EditComment) {
+      let data = res.data as CommentResponse;
 
-      let found = this.state.comments.find(c => c.id == res.comment.id);
-      found.content = res.comment.content;
-      found.updated = res.comment.updated;
-      found.removed = res.comment.removed;
-      found.deleted = res.comment.deleted;
-      found.upvotes = res.comment.upvotes;
-      found.downvotes = res.comment.downvotes;
-      found.score = res.comment.score;
+      let found = this.state.comments.find(c => c.id == data.comment.id);
+      found.content = data.comment.content;
+      found.updated = data.comment.updated;
+      found.removed = data.comment.removed;
+      found.deleted = data.comment.deleted;
+      found.upvotes = data.comment.upvotes;
+      found.downvotes = data.comment.downvotes;
+      found.score = data.comment.score;
 
       this.setState(this.state);
-    } else if (op == UserOperation.CreateComment) {
+    } else if (res.op == UserOperation.CreateComment) {
       // let res: CommentResponse = msg;
       alert(i18n.t('reply_sent'));
       // this.state.comments.unshift(res.comment); // TODO do this right
       // this.setState(this.state);
-    } else if (op == UserOperation.SaveComment) {
-      let res: CommentResponse = msg;
-      let found = this.state.comments.find(c => c.id == res.comment.id);
-      found.saved = res.comment.saved;
+    } else if (res.op == UserOperation.SaveComment) {
+      let data = res.data as CommentResponse;
+      let found = this.state.comments.find(c => c.id == data.comment.id);
+      found.saved = data.comment.saved;
       this.setState(this.state);
-    } else if (op == UserOperation.CreateCommentLike) {
-      let res: CommentResponse = msg;
+    } else if (res.op == UserOperation.CreateCommentLike) {
+      let data = res.data as CommentResponse;
       let found: Comment = this.state.comments.find(
-        c => c.id === res.comment.id
+        c => c.id === data.comment.id
       );
-      found.score = res.comment.score;
-      found.upvotes = res.comment.upvotes;
-      found.downvotes = res.comment.downvotes;
-      if (res.comment.my_vote !== null) found.my_vote = res.comment.my_vote;
+      found.score = data.comment.score;
+      found.upvotes = data.comment.upvotes;
+      found.downvotes = data.comment.downvotes;
+      if (data.comment.my_vote !== null) found.my_vote = data.comment.my_vote;
       this.setState(this.state);
-    } else if (op == UserOperation.BanUser) {
-      let res: BanUserResponse = msg;
+    } else if (res.op == UserOperation.BanUser) {
+      let data = res.data as BanUserResponse;
       this.state.comments
-        .filter(c => c.creator_id == res.user.id)
-        .forEach(c => (c.banned = res.banned));
+        .filter(c => c.creator_id == data.user.id)
+        .forEach(c => (c.banned = data.banned));
       this.state.posts
-        .filter(c => c.creator_id == res.user.id)
-        .forEach(c => (c.banned = res.banned));
+        .filter(c => c.creator_id == data.user.id)
+        .forEach(c => (c.banned = data.banned));
       this.setState(this.state);
-    } else if (op == UserOperation.AddAdmin) {
-      let res: AddAdminResponse = msg;
-      this.state.admins = res.admins;
+    } else if (res.op == UserOperation.AddAdmin) {
+      let data = res.data as AddAdminResponse;
+      this.state.admins = data.admins;
       this.setState(this.state);
-    } else if (op == UserOperation.SaveUserSettings) {
+    } else if (res.op == UserOperation.SaveUserSettings) {
+      let data = res.data as LoginResponse;
       this.state = this.emptyState;
       this.state.userSettingsLoading = false;
       this.setState(this.state);
-      let res: LoginResponse = msg;
-      UserService.Instance.login(res);
-    } else if (op == UserOperation.DeleteAccount) {
+      UserService.Instance.login(data);
+    } else if (res.op == UserOperation.DeleteAccount) {
       this.state.deleteAccountLoading = false;
       this.state.deleteAccountShowConfirm = false;
       this.setState(this.state);

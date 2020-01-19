@@ -14,7 +14,7 @@ import {
   Comment,
 } from '../interfaces';
 import {
-  msgOp,
+  wsJsonToRes,
   pictshareAvatarThumbnail,
   showAvatars,
   fetchLimit,
@@ -182,16 +182,16 @@ export class Navbar extends Component<any, NavbarState> {
   }
 
   parseMessage(msg: any) {
-    let op: UserOperation = msgOp(msg);
-    if (msg.error) {
-      if (msg.error == 'not_logged_in') {
+    let res = wsJsonToRes(msg);
+    if (res.error) {
+      if (res.error == 'not_logged_in') {
         UserService.Instance.logout();
         location.reload();
       }
       return;
-    } else if (op == UserOperation.GetReplies) {
-      let res: GetRepliesResponse = msg;
-      let unreadReplies = res.replies.filter(r => !r.read);
+    } else if (res.op == UserOperation.GetReplies) {
+      let data = res.data as GetRepliesResponse;
+      let unreadReplies = data.replies.filter(r => !r.read);
       if (
         unreadReplies.length > 0 &&
         this.state.fetchCount > 1 &&
@@ -203,9 +203,9 @@ export class Navbar extends Component<any, NavbarState> {
       this.state.replies = unreadReplies;
       this.setState(this.state);
       this.sendUnreadCount();
-    } else if (op == UserOperation.GetUserMentions) {
-      let res: GetUserMentionsResponse = msg;
-      let unreadMentions = res.mentions.filter(r => !r.read);
+    } else if (res.op == UserOperation.GetUserMentions) {
+      let data = res.data as GetUserMentionsResponse;
+      let unreadMentions = data.mentions.filter(r => !r.read);
       if (
         unreadMentions.length > 0 &&
         this.state.fetchCount > 1 &&
@@ -217,12 +217,12 @@ export class Navbar extends Component<any, NavbarState> {
       this.state.mentions = unreadMentions;
       this.setState(this.state);
       this.sendUnreadCount();
-    } else if (op == UserOperation.GetSite) {
-      let res: GetSiteResponse = msg;
+    } else if (res.op == UserOperation.GetSite) {
+      let data = res.data as GetSiteResponse;
 
-      if (res.site) {
-        this.state.siteName = res.site.name;
-        WebSocketService.Instance.site = res.site;
+      if (data.site) {
+        this.state.siteName = data.site.name;
+        WebSocketService.Instance.site = data.site;
         this.setState(this.state);
       }
     }
