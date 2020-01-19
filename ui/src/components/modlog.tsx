@@ -350,7 +350,7 @@ export class Modlog extends Component<any, ModlogState> {
     return (
       <div class="container">
         {this.state.loading ? (
-          <h5 class="">
+          <h5 class="text-center">
             <svg class="icon icon-spinner spin">
               <use xlinkHref="#icon-spinner"></use>
             </svg>
@@ -366,15 +366,15 @@ export class Modlog extends Component<any, ModlogState> {
                   /c/{this.state.communityName}{' '}
                 </Link>
               )}
-              <span>Modlog</span>
+              <span>{ i18n.t('modlog') }</span>
             </h5>
             <div class="table-responsive">
               <table id="modlog_table" class="table table-sm table-hover">
                 <thead class="pointer">
                   <tr>
-                    <th>Time</th>
-                    <th>Mod</th>
-                    <th>Action</th>
+                    <th> { i18n.t('time')}</th>
+                    <th>{ i18n.t('mod')}</th>
+                    <th>{ i18n.t('action')}</th>
                   </tr>
                 </thead>
                 {this.combined()}
@@ -395,14 +395,14 @@ export class Modlog extends Component<any, ModlogState> {
             class="btn btn-sm btn-secondary mr-1"
             onClick={linkEvent(this, this.prevPage)}
           >
-            Prev
+            { i18n.t('prev') }
           </button>
         )}
         <button
           class="btn btn-sm btn-secondary"
           onClick={linkEvent(this, this.nextPage)}
         >
-          Next
+          { i18n.t('next') }
         </button>
       </div>
     );
