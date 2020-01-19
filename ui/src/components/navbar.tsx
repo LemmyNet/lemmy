@@ -128,11 +128,22 @@ export class Navbar extends Component<any, NavbarState> {
                 <T i18nKey="create_community">#</T>
               </Link>
             </li>
+            <li className="nav-item">
+              <Link
+                class="nav-link ml-2"
+                to="/sponsors"
+                title={i18n.t('donate_to_lemmy')}
+              >
+                <svg class="icon">
+                  <use xlinkHref="#icon-coffee"></use>
+                </svg>
+              </Link>
+            </li>
           </ul>
-          <ul class="navbar-nav ml-auto mr-2">
+          <ul class="navbar-nav ml-auto">
             {this.state.isLoggedIn ? (
               <>
-                <li className="nav-item">
+                <li className="nav-item mt-1">
                   <Link class="nav-link" to="/inbox">
                     <svg class="icon">
                       <use xlinkHref="#icon-mail"></use>
