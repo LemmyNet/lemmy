@@ -80,37 +80,37 @@ export class Communities extends Component<any, CommunitiesState> {
     return (
       <div class="container">
         {this.state.loading ? (
-          <h5 class="">
+          <p class="text-center">
             <svg class="icon icon-spinner spin">
               <use xlinkHref="#icon-spinner"></use>
             </svg>
-          </h5>
+          </p>
         ) : (
           <div>
             <h5>
-              <T i18nKey="list_of_communities">#</T>
+              { i18n.t('list_of_communities') }
             </h5>
             <div class="table-responsive">
               <table id="community_table" class="table table-sm table-hover">
                 <thead class="pointer">
                   <tr>
                     <th>
-                      <T i18nKey="name">#</T>
+                      { i18n.t('name') }
                     </th>
                     <th class="d-none d-lg-table-cell">
-                      <T i18nKey="title">#</T>
+                      { i18n.t('title') }
                     </th>
                     <th>
-                      <T i18nKey="category">#</T>
+                      { i18n.t('category') }
                     </th>
                     <th class="text-right">
-                      <T i18nKey="subscribers">#</T>
+                      { i18n.t('subscribers') }
                     </th>
                     <th class="text-right d-none d-lg-table-cell">
-                      <T i18nKey="posts">#</T>
+                      { i18n.t('posts') }
                     </th>
                     <th class="text-right d-none d-lg-table-cell">
-                      <T i18nKey="comments">#</T>
+                      { i18n.t('comments') }
                     </th>
                     <th></th>
                   </tr>
@@ -153,7 +153,7 @@ export class Communities extends Component<any, CommunitiesState> {
                               this.handleSubscribe
                             )}
                           >
-                            <T i18nKey="subscribe">#</T>
+                            { i18n.t('subscribe') }
                           </span>
                         )}
                       </td>
@@ -177,14 +177,14 @@ export class Communities extends Component<any, CommunitiesState> {
             class="btn btn-sm btn-secondary mr-1"
             onClick={linkEvent(this, this.prevPage)}
           >
-            <T i18nKey="prev">#</T>
+            { i18n.t('prev') }
           </button>
         )}
         <button
           class="btn btn-sm btn-secondary"
           onClick={linkEvent(this, this.nextPage)}
         >
-          <T i18nKey="next">#</T>
+          { i18n.t('next') }
         </button>
       </div>
     );
