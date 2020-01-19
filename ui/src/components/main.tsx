@@ -414,7 +414,7 @@ export class Main extends Component<any, MainState> {
     return (
       <div class="main-content-wrapper">
         {this.state.loading ? (
-          <p style="text-align: center;">
+          <p class="text-center">
             <svg class="icon icon-spinner spin">
               <use xlinkHref="#icon-spinner"></use>
             </svg>
