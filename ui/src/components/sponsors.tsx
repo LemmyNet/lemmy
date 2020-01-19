@@ -18,6 +18,7 @@ export class Sponsors extends Component<any, any> {
     document.title = `${i18n.t('sponsors')} - ${
       WebSocketService.Instance.site.name
     }`;
+    window.scrollTo(0, 0);
   }
 
   render() {
@@ -36,7 +37,7 @@ export class Sponsors extends Component<any, any> {
     return (
       <div>
         <h5>
-          <T i18nKey="sponsors_of_lemmy">#</T>
+          <T i18nKey="donate_to_lemmy">#</T>
         </h5>
         <p>
           <T i18nKey="sponsor_message">

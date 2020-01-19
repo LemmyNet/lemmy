@@ -29,7 +29,7 @@ export class Footer extends Component<any, any> {
             </li>
             <li class="nav-item">
               <Link class="nav-link" to="/sponsors">
-                <T i18nKey="sponsors">#</T>
+                <T i18nKey="donate">#</T>
               </Link>
             </li>
             <li class="nav-item">
