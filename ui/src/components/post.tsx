@@ -178,7 +178,7 @@ export class Post extends Component<any, PostState> {
                 postId={this.state.post.id}
                 disabled={this.state.post.locked}
               />
-              {this.sortRadios()}
+              {this.state.comments.length > 0 && this.sortRadios()}
               {this.commentsTree()}
             </div>
             <div class="col-12 col-sm-12 col-md-4">

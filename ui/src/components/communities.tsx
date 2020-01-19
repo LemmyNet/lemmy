@@ -18,6 +18,8 @@ import { T } from 'inferno-i18next';
 
 declare const Sortable: any;
 
+const communityLimit = 100;
+
 interface CommunitiesState {
   communities: Array<Community>;
   page: number;
@@ -36,14 +38,7 @@ export class Communities extends Component<any, CommunitiesState> {
     super(props, context);
     this.state = this.emptyState;
     this.subscription = WebSocketService.Instance.subject
-      .pipe(
-        retryWhen(errors =>
-          errors.pipe(
-            delay(3000),
-            take(10)
-          )
-        )
-      )
+      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
       .subscribe(
         msg => this.parseMessage(msg),
         err => console.error(err),
@@ -180,12 +175,14 @@ export class Communities extends Component<any, CommunitiesState> {
             <T i18nKey="prev">#</T>
           </button>
         )}
-        <button
-          class="btn btn-sm btn-secondary"
-          onClick={linkEvent(this, this.nextPage)}
-        >
-          <T i18nKey="next">#</T>
-        </button>
+        {this.state.communities.length == communityLimit && (
+          <button
+            class="btn btn-sm btn-secondary"
+            onClick={linkEvent(this, this.nextPage)}
+          >
+            <T i18nKey="next">#</T>
+          </button>
+        )}
       </div>
     );
   }
@@ -227,7 +224,7 @@ export class Communities extends Component<any, CommunitiesState> {
   refetch() {
     let listCommunitiesForm: ListCommunitiesForm = {
       sort: SortType[SortType.TopAll],
-      limit: 100,
+      limit: communityLimit,
       page: this.state.page,
     };
 
