@@ -18,6 +18,7 @@ import {
   BanUserResponse,
   AddAdminResponse,
   DeleteAccountForm,
+  WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import {
@@ -968,7 +969,7 @@ export class User extends Component<any, UserState> {
     WebSocketService.Instance.deleteAccount(i.state.deleteAccountForm);
   }
 
-  parseMessage(msg: any) {
+  parseMessage(msg: WebSocketJsonResponse) {
     console.log(msg);
     let res = wsJsonToRes(msg);
     if (res.error) {

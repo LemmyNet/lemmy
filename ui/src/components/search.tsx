@@ -12,6 +12,7 @@ import {
   SearchForm,
   SearchResponse,
   SearchType,
+  WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService } from '../services';
 import {
@@ -460,7 +461,7 @@ export class Search extends Component<any, SearchState> {
     );
   }
 
-  parseMessage(msg: any) {
+  parseMessage(msg: WebSocketJsonResponse) {
     console.log(msg);
     let res = wsJsonToRes(msg);
     if (res.error) {

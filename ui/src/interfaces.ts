@@ -726,3 +726,9 @@ export interface WebSocketResponse {
   data: ResponseType;
   error?: string;
 }
+
+export interface WebSocketJsonResponse {
+  op: string;
+  data: ResponseType;
+  error?: string;
+}

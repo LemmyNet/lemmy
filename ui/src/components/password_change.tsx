@@ -5,6 +5,7 @@ import {
   UserOperation,
   LoginResponse,
   PasswordChangeForm,
+  WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { wsJsonToRes, capitalizeFirstLetter } from '../utils';
@@ -133,7 +134,7 @@ export class PasswordChange extends Component<any, State> {
     WebSocketService.Instance.passwordChange(i.state.passwordChangeForm);
   }
 
-  parseMessage(msg: any) {
+  parseMessage(msg: WebSocketJsonResponse) {
     let res = wsJsonToRes(msg);
     if (msg.error) {
       alert(i18n.t(msg.error));

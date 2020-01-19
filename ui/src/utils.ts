@@ -16,6 +16,7 @@ import {
   ListingType,
   SearchType,
   WebSocketResponse,
+  WebSocketJsonResponse,
 } from './interfaces';
 import { UserService } from './services/UserService';
 import markdown_it from 'markdown-it';
@@ -39,7 +40,7 @@ export function randomStr() {
     .substr(2, 10);
 }
 
-export function wsJsonToRes(msg: any): WebSocketResponse {
+export function wsJsonToRes(msg: WebSocketJsonResponse): WebSocketResponse {
   let opStr: string = msg.op;
   return {
     op: UserOperation[opStr],

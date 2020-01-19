@@ -26,6 +26,7 @@ import {
   SearchResponse,
   GetSiteResponse,
   GetCommunityResponse,
+  WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { wsJsonToRes, hotRank } from '../utils';
@@ -341,7 +342,7 @@ export class Post extends Component<any, PostState> {
     );
   }
 
-  parseMessage(msg: any) {
+  parseMessage(msg: WebSocketJsonResponse) {
     console.log(msg);
     let res = wsJsonToRes(msg);
     if (res.error) {

@@ -239,7 +239,7 @@ export class CommunityForm extends Component<
     i.props.onCancel();
   }
 
-  parseMessage(msg: any) {
+  parseMessage(msg: WebSocketJsonResponse) {
     let res = wsJsonToRes(msg);
     console.log(msg);
     if (res.error) {

@@ -422,7 +422,7 @@ export class Modlog extends Component<any, ModlogState> {
     WebSocketService.Instance.getModlog(modlogForm);
   }
 
-  parseMessage(msg: any) {
+  parseMessage(msg: WebSocketJsonResponse) {
     console.log(msg);
     let res = wsJsonToRes(msg);
     if (res.error) {
