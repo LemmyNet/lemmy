@@ -133,12 +133,16 @@ nano inventory # enter your server, domain, contact email
 ansible-playbook lemmy.yml --become
 ```
 
-## Support
+## Support / Donate
 
 Lemmy is free, open-source software, meaning no advertising, monetizing, or venture capital, ever. Your donations directly support full-time development of the project.
 
 - [Support on Patreon](https://www.patreon.com/dessalines).
-- [Sponsor List](https://dev.lemmy.ml/sponsors).
+- [List of Sponsors](https://dev.lemmy.ml/sponsors).
+- Soon to add either liberapay or opencollective.
+
+### Crypto
+
 - bitcoin: `1Hefs7miXS5ff5Ck5xvmjKjXf5242KzRtK`
 - ethereum: `0x400c96c96acbC6E7B3B43B1dc1BB446540a88A01`
 - monero: `41taVyY6e1xApqKyMVDRVxJ76sPkfZhALLTjRvVKpaAh2pBd4wv9RgYj1tSPrx8wc6iE1uWUfjtQdTmTy2FGMeChGVKPQuV`
