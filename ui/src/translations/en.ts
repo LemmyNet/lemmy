@@ -212,5 +212,7 @@ export const en = {
     user_already_exists: 'User already exists.',
     couldnt_update_user: "Couldn't update user.",
     system_err_login: 'System error. Try logging out and back in.',
+    time: 'Time',
+    action: 'Action'
   },
 };
