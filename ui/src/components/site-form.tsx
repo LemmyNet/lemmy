@@ -67,12 +67,13 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
             : capitalizeFirstLetter(i18n.t('name'))
         } ${i18n.t('your_site')}`}</h5>
         <div class="form-group row">
-          <label class="col-12 col-form-label">
-            <T i18nKey="name">#</T>
+          <label class="col-12 col-form-label" for="create-site-name">
+            { i18n.t('name') }
           </label>
           <div class="col-12">
             <input
               type="text"
+              id="create-site-name"
               class="form-control"
               value={this.state.siteForm.name}
               onInput={linkEvent(this, this.handleSiteNameChange)}
@@ -83,13 +84,14 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-12 col-form-label">
-            <T i18nKey="sidebar">#</T>
+          <label class="col-12 col-form-label" for="create-site-sidebar">
+            { i18n.t('sidebar') }
           </label>
           <div class="col-12">
             <textarea
               id={this.id}
               value={this.state.siteForm.description}
+              id="create-site-sidebar"
               onInput={linkEvent(this, this.handleSiteDescriptionChange)}
               class="form-control"
               rows={3}
@@ -102,12 +104,13 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
             <div class="form-check">
               <input
                 class="form-check-input"
+                id="create-site-downvotes"
                 type="checkbox"
                 checked={this.state.siteForm.enable_downvotes}
                 onChange={linkEvent(this, this.handleSiteEnableDownvotesChange)}
               />
-              <label class="form-check-label">
-                <T i18nKey="enable_downvotes">#</T>
+              <label class="form-check-label" for="create-site-downvotes">
+                { i18n.t('enable_downvotes') }
               </label>
             </div>
           </div>
@@ -117,12 +120,13 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
             <div class="form-check">
               <input
                 class="form-check-input"
+                id="create-site-enable-nsfw"
                 type="checkbox"
                 checked={this.state.siteForm.enable_nsfw}
                 onChange={linkEvent(this, this.handleSiteEnableNsfwChange)}
               />
-              <label class="form-check-label">
-                <T i18nKey="enable_nsfw">#</T>
+              <label class="form-check-label" for="create-site-enable-nsfw">
+                { i18n.t('enable_nsfw') }
               </label>
             </div>
           </div>
@@ -132,6 +136,7 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
             <div class="form-check">
               <input
                 class="form-check-input"
+                id="create-site-open-registration"
                 type="checkbox"
                 checked={this.state.siteForm.open_registration}
                 onChange={linkEvent(
@@ -139,8 +144,8 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
                   this.handleSiteOpenRegistrationChange
                 )}
               />
-              <label class="form-check-label">
-                <T i18nKey="open_registration">#</T>
+              <label class="form-check-label" for="create-site-open-registration">
+                { i18n.t('open_registration') }
               </label>
             </div>
           </div>
@@ -164,7 +169,7 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
                 class="btn btn-secondary"
                 onClick={linkEvent(this, this.handleCancel)}
               >
-                <T i18nKey="cancel">#</T>
+                { i18n.t('cancel') }
               </button>
             )}
           </div>
