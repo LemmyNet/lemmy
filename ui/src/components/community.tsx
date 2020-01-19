@@ -192,12 +192,14 @@ export class Community extends Component<any, State> {
             <T i18nKey="prev">#</T>
           </button>
         )}
-        <button
-          class="btn btn-sm btn-secondary"
-          onClick={linkEvent(this, this.nextPage)}
-        >
-          <T i18nKey="next">#</T>
-        </button>
+        {this.state.posts.length == fetchLimit && (
+          <button
+            class="btn btn-sm btn-secondary"
+            onClick={linkEvent(this, this.nextPage)}
+          >
+            <T i18nKey="next">#</T>
+          </button>
+        )}
       </div>
     );
   }
