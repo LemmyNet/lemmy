@@ -231,27 +231,27 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             )}
             {post.removed && (
               <small className="ml-2 text-muted font-italic">
-                <T i18nKey="removed">#</T>
+                { i18n.t('removed') }
               </small>
             )}
             {post.deleted && (
               <small className="ml-2 text-muted font-italic">
-                <T i18nKey="deleted">#</T>
+                { i18n.t('deleted') }
               </small>
             )}
             {post.locked && (
               <small className="ml-2 text-muted font-italic">
-                <T i18nKey="locked">#</T>
+                { i18n.t('locked') }
               </small>
             )}
             {post.stickied && (
               <small className="ml-2 text-muted font-italic">
-                <T i18nKey="stickied">#</T>
+                { i18n.t('stickied') }
               </small>
             )}
             {post.nsfw && (
               <small className="ml-2 text-muted font-italic">
-                <T i18nKey="nsfw">#</T>
+                { i18n.t('nsfw') }
               </small>
             )}
           </div>
@@ -273,17 +273,17 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               </Link>
               {this.isMod && (
                 <span className="mx-1 badge badge-light">
-                  <T i18nKey="mod">#</T>
+                  { i18n.t('mod') }
                 </span>
               )}
               {this.isAdmin && (
                 <span className="mx-1 badge badge-light">
-                  <T i18nKey="admin">#</T>
+                  { i18n.t('admin') }
                 </span>
               )}
               {(post.banned_from_community || post.banned) && (
                 <span className="mx-1 badge badge-danger">
-                  <T i18nKey="banned">#</T>
+                  { i18n.t('banned') }
                 </span>
               )}
               {this.props.showCommunity && (
@@ -390,14 +390,14 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                         class="pointer"
                         onClick={linkEvent(this, this.handleModRemoveShow)}
                       >
-                        <T i18nKey="remove">#</T>
+                        { i18n.t('remove') }
                       </span>
                     ) : (
                       <span
                         class="pointer"
                         onClick={linkEvent(this, this.handleModRemoveSubmit)}
                       >
-                        <T i18nKey="restore">#</T>
+                        { i18n.t('restore') }
                       </span>
                     )}
                   </li>
@@ -414,7 +414,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                               this.handleModBanFromCommunityShow
                             )}
                           >
-                            <T i18nKey="ban">#</T>
+                            { i18n.t('ban') }
                           </span>
                         ) : (
                           <span
@@ -424,7 +424,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                               this.handleModBanFromCommunitySubmit
                             )}
                           >
-                            <T i18nKey="unban">#</T>
+                            { i18n.t('unban') }
                           </span>
                         )}
                       </li>
@@ -471,7 +471,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                             this.handleTransferCommunity
                           )}
                         >
-                          <T i18nKey="yes">#</T>
+                          { i18n.t('yes') }
                         </span>
                         <span
                           class="pointer d-inline-block"
@@ -480,7 +480,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                             this.handleCancelShowConfirmTransferCommunity
                           )}
                         >
-                          <T i18nKey="no">#</T>
+                          { i18n.t('no') }
                         </span>
                       </>
                     )}
@@ -496,14 +496,14 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                             class="pointer"
                             onClick={linkEvent(this, this.handleModBanShow)}
                           >
-                            <T i18nKey="ban_from_site">#</T>
+                            { i18n.t('ban_from_site') }
                           </span>
                         ) : (
                           <span
                             class="pointer"
                             onClick={linkEvent(this, this.handleModBanSubmit)}
                           >
-                            <T i18nKey="unban_from_site">#</T>
+                            { i18n.t('unban_from_site') }
                           </span>
                         )}
                       </li>
@@ -533,18 +533,18 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                           this.handleShowConfirmTransferSite
                         )}
                       >
-                        <T i18nKey="transfer_site">#</T>
+                        { i18n.t('transfer_site') }
                       </span>
                     ) : (
                       <>
                         <span class="d-inline-block mr-1">
-                          <T i18nKey="are_you_sure">#</T>
+                          { i18n.t('are_you_sure') }
                         </span>
                         <span
                           class="pointer d-inline-block mr-1"
                           onClick={linkEvent(this, this.handleTransferSite)}
                         >
-                          <T i18nKey="yes">#</T>
+                          { i18n.t('yes') }
                         </span>
                         <span
                           class="pointer d-inline-block"
@@ -553,7 +553,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                             this.handleCancelShowConfirmTransferSite
                           )}
                         >
-                          <T i18nKey="no">#</T>
+                          { i18n.t('no') }
                         </span>
                       </>
                     )}
@@ -567,7 +567,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   className="pointer"
                   onClick={linkEvent(this, this.handleViewSource)}
                 >
-                  <T i18nKey="view_source">#</T>
+                  { i18n.t('view_source') }
                 </span>
               </li>
             )}
@@ -585,18 +585,19 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                 onInput={linkEvent(this, this.handleModRemoveReasonChange)}
               />
               <button type="submit" class="btn btn-secondary">
-                <T i18nKey="remove_post">#</T>
+                { i18n.t('remove_post') }
               </button>
             </form>
           )}
           {this.state.showBanDialog && (
             <form onSubmit={linkEvent(this, this.handleModBanBothSubmit)}>
               <div class="form-group row">
-                <label class="col-form-label">
-                  <T i18nKey="reason">#</T>
+                <label class="col-form-label" for="post-listing-reason">
+                  { i18n.t('reason') }
                 </label>
                 <input
                   type="text"
+                  id="post-listing-reason"
                   class="form-control mr-2"
                   placeholder={i18n.t('reason')}
                   value={this.state.banReason}
