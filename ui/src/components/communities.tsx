@@ -10,6 +10,7 @@ import {
   FollowCommunityForm,
   ListCommunitiesForm,
   SortType,
+  WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService } from '../services';
 import { wsJsonToRes } from '../utils';
@@ -227,7 +228,7 @@ export class Communities extends Component<any, CommunitiesState> {
     WebSocketService.Instance.listCommunities(listCommunitiesForm);
   }
 
-  parseMessage(msg: any) {
+  parseMessage(msg: WebSocketJsonResponse) {
     console.log(msg);
     let res = wsJsonToRes(msg);
     if (res.error) {

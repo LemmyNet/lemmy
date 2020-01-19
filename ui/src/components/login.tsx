@@ -8,6 +8,7 @@ import {
   UserOperation,
   PasswordResetForm,
   GetSiteResponse,
+  WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { wsJsonToRes, validEmail } from '../utils';
@@ -292,7 +293,7 @@ export class Login extends Component<any, State> {
     WebSocketService.Instance.passwordReset(resetForm);
   }
 
-  parseMessage(msg: any) {
+  parseMessage(msg: WebSocketJsonResponse) {
     let res = wsJsonToRes(msg);
     if (res.error) {
       alert(i18n.t(res.error));

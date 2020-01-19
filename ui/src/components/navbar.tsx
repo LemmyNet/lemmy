@@ -12,6 +12,7 @@ import {
   SortType,
   GetSiteResponse,
   Comment,
+  WebSocketJsonResponse,
 } from '../interfaces';
 import {
   wsJsonToRes,
@@ -181,7 +182,7 @@ export class Navbar extends Component<any, NavbarState> {
     i.setState(i.state);
   }
 
-  parseMessage(msg: any) {
+  parseMessage(msg: WebSocketJsonResponse) {
     let res = wsJsonToRes(msg);
     if (res.error) {
       if (res.error == 'not_logged_in') {

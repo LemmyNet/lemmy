@@ -1,7 +1,12 @@
 import { Component, linkEvent } from 'inferno';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { RegisterForm, LoginResponse, UserOperation } from '../interfaces';
+import {
+  RegisterForm,
+  LoginResponse,
+  UserOperation,
+  WebSocketJsonResponse,
+} from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { wsJsonToRes } from '../utils';
 import { SiteForm } from './site-form';
@@ -181,7 +186,7 @@ export class Setup extends Component<any, State> {
     i.setState(i.state);
   }
 
-  parseMessage(msg: any) {
+  parseMessage(msg: WebSocketJsonResponse) {
     let res = wsJsonToRes(msg);
     if (res.error) {
       alert(i18n.t(res.error));

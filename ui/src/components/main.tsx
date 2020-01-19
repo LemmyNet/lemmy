@@ -17,6 +17,7 @@ import {
   CreatePostLikeResponse,
   Post,
   GetPostsForm,
+  WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
@@ -561,7 +562,7 @@ export class Main extends Component<any, MainState> {
     WebSocketService.Instance.getPosts(getPostsForm);
   }
 
-  parseMessage(msg: any) {
+  parseMessage(msg: WebSocketJsonResponse) {
     console.log(msg);
     let res = wsJsonToRes(msg);
     if (res.error) {

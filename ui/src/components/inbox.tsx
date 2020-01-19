@@ -12,6 +12,7 @@ import {
   GetUserMentionsResponse,
   UserMentionResponse,
   CommentResponse,
+  WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { wsJsonToRes, fetchLimit } from '../utils';
@@ -296,7 +297,7 @@ export class Inbox extends Component<any, InboxState> {
     WebSocketService.Instance.markAllAsRead();
   }
 
-  parseMessage(msg: any) {
+  parseMessage(msg: WebSocketJsonResponse) {
     console.log(msg);
     let res = wsJsonToRes(msg);
     if (res.error) {

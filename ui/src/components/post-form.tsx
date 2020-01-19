@@ -16,6 +16,7 @@ import {
   SearchType,
   SearchResponse,
   GetSiteResponse,
+  WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import {
@@ -457,7 +458,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       });
   }
 
-  parseMessage(msg: any) {
+  parseMessage(msg: WebSocketJsonResponse) {
     let res = wsJsonToRes(msg);
     if (res.error) {
       alert(i18n.t(res.error));

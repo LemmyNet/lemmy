@@ -14,6 +14,7 @@ import {
   ListingType,
   GetPostsResponse,
   CreatePostLikeResponse,
+  WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
@@ -251,7 +252,7 @@ export class Community extends Component<any, State> {
     WebSocketService.Instance.getPosts(getPostsForm);
   }
 
-  parseMessage(msg: any) {
+  parseMessage(msg: WebSocketJsonResponse) {
     console.log(msg);
     let res = wsJsonToRes(msg);
     if (res.error) {
