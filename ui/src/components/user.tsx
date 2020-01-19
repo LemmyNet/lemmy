@@ -196,11 +196,11 @@ export class User extends Component<any, UserState> {
     return (
       <div class="container">
         {this.state.loading ? (
-          <h5>
+          <p class="text-center">
             <svg class="icon icon-spinner spin">
               <use xlinkHref="#icon-spinner"></use>
             </svg>
-          </h5>
+          </p>
         ) : (
           <div class="row">
             <div class="col-12 col-md-8">
@@ -243,19 +243,19 @@ export class User extends Component<any, UserState> {
           class="custom-select custom-select-sm w-auto"
         >
           <option disabled>
-            <T i18nKey="view">#</T>
+            { i18n.t('view') }
           </option>
           <option value={View.Overview}>
-            <T i18nKey="overview">#</T>
+            { i18n.t('overview') }
           </option>
           <option value={View.Comments}>
-            <T i18nKey="comments">#</T>
+            { i18n.t('comments') }
           </option>
           <option value={View.Posts}>
-            <T i18nKey="posts">#</T>
+            { i18n.t('posts') }
           </option>
           <option value={View.Saved}>
-            <T i18nKey="saved">#</T>
+            { i18n.t('saved') }
           </option>
         </select>
         <span class="ml-2">
@@ -362,7 +362,7 @@ export class User extends Component<any, UserState> {
                 <li className="list-inline-item">{user.name}</li>
                 {user.banned && (
                   <li className="list-inline-item badge badge-danger">
-                    <T i18nKey="banned">#</T>
+                    { i18n.t('banned') }
                   </li>
                 )}
               </ul>
@@ -415,7 +415,7 @@ export class User extends Component<any, UserState> {
                 class="btn btn-block btn-secondary mt-3"
                 onClick={linkEvent(this, this.handleLogoutClick)}
               >
-                <T i18nKey="logout">#</T>
+                { i18n.t('logout') }
               </button>
             )}
           </div>
@@ -430,12 +430,12 @@ export class User extends Component<any, UserState> {
         <div class="card border-secondary mb-3">
           <div class="card-body">
             <h5>
-              <T i18nKey="settings">#</T>
+              { i18n.t('settings') }
             </h5>
             <form onSubmit={linkEvent(this, this.handleUserSettingsSubmit)}>
               <div class="form-group">
                 <label>
-                  <T i18nKey="avatar">#</T>
+                  { i18n.t('avatar') }
                 </label>
                 <form class="d-inline">
                   <label
@@ -444,7 +444,7 @@ export class User extends Component<any, UserState> {
                   >
                     {!this.state.userSettingsForm.avatar ? (
                       <span class="btn btn-sm btn-secondary">
-                        <T i18nKey="upload_avatar">#</T>
+                        { i18n.t('upload_avatar') }
                       </span>
                     ) : (
                       <img
@@ -468,7 +468,7 @@ export class User extends Component<any, UserState> {
               </div>
               <div class="form-group">
                 <label>
-                  <T i18nKey="language">#</T>
+                  { i18n.t('language') }
                 </label>
                 <select
                   value={this.state.userSettingsForm.lang}
@@ -476,10 +476,10 @@ export class User extends Component<any, UserState> {
                   class="ml-2 custom-select custom-select-sm w-auto"
                 >
                   <option disabled>
-                    <T i18nKey="language">#</T>
+                    { i18n.t('language') }
                   </option>
                   <option value="browser">
-                    <T i18nKey="browser_default">#</T>
+                    { i18n.t('browser_default') }
                   </option>
                   <option disabled>──</option>
                   {languages.map(lang => (
@@ -489,7 +489,7 @@ export class User extends Component<any, UserState> {
               </div>
               <div class="form-group">
                 <label>
-                  <T i18nKey="theme">#</T>
+                  { i18n.t('theme') }
                 </label>
                 <select
                   value={this.state.userSettingsForm.theme}
@@ -497,7 +497,7 @@ export class User extends Component<any, UserState> {
                   class="ml-2 custom-select custom-select-sm w-auto"
                 >
                   <option disabled>
-                    <T i18nKey="theme">#</T>
+                    { i18n.t('theme') }
                   </option>
                   {themes.map(theme => (
                     <option value={theme}>{theme}</option>
@@ -527,12 +527,13 @@ export class User extends Component<any, UserState> {
                 />
               </form>
               <div class="form-group row">
-                <label class="col-lg-3 col-form-label">
-                  <T i18nKey="email">#</T>
+                <label class="col-lg-3 col-form-label" for="user-email">
+                  { i18n.t('email') }
                 </label>
                 <div class="col-lg-9">
                   <input
                     type="email"
+                    id="user-email"
                     class="form-control"
                     placeholder={i18n.t('optional')}
                     value={this.state.userSettingsForm.email}
@@ -545,12 +546,13 @@ export class User extends Component<any, UserState> {
                 </div>
               </div>
               <div class="form-group row">
-                <label class="col-lg-5 col-form-label">
-                  <T i18nKey="new_password">#</T>
+                <label class="col-lg-5 col-form-label" for="user-password">
+                  { i18n.t('new_password') }
                 </label>
                 <div class="col-lg-7">
                   <input
                     type="password"
+                    id="user-password"
                     class="form-control"
                     value={this.state.userSettingsForm.new_password}
                     onInput={linkEvent(
@@ -561,12 +563,13 @@ export class User extends Component<any, UserState> {
                 </div>
               </div>
               <div class="form-group row">
-                <label class="col-lg-5 col-form-label">
-                  <T i18nKey="verify_password">#</T>
+                <label class="col-lg-5 col-form-label" for="user-verify-password">
+                  { i18n.t('verify_password') }
                 </label>
                 <div class="col-lg-7">
                   <input
                     type="password"
+                    id="user-verify-password"
                     class="form-control"
                     value={this.state.userSettingsForm.new_password_verify}
                     onInput={linkEvent(
@@ -577,12 +580,13 @@ export class User extends Component<any, UserState> {
                 </div>
               </div>
               <div class="form-group row">
-                <label class="col-lg-5 col-form-label">
-                  <T i18nKey="old_password">#</T>
+                <label class="col-lg-5 col-form-label" for="user-old-password">
+                  { i18n.t('old_password') }
                 </label>
                 <div class="col-lg-7">
                   <input
                     type="password"
+                    id="user-old-password"
                     class="form-control"
                     value={this.state.userSettingsForm.old_password}
                     onInput={linkEvent(
@@ -597,6 +601,7 @@ export class User extends Component<any, UserState> {
                   <div class="form-check">
                     <input
                       class="form-check-input"
+                      id="user-show-nsfw"
                       type="checkbox"
                       checked={this.state.userSettingsForm.show_nsfw}
                       onChange={linkEvent(
@@ -604,8 +609,8 @@ export class User extends Component<any, UserState> {
                         this.handleUserSettingsShowNsfwChange
                       )}
                     />
-                    <label class="form-check-label">
-                      <T i18nKey="show_nsfw">#</T>
+                    <label class="form-check-label" for="user-show-nsfw">
+                      { i18n.t('show_nsfw') }
                     </label>
                   </div>
                 </div>
@@ -614,6 +619,7 @@ export class User extends Component<any, UserState> {
                 <div class="form-check">
                   <input
                     class="form-check-input"
+                    id="user-show-avatars"
                     type="checkbox"
                     checked={this.state.userSettingsForm.show_avatars}
                     onChange={linkEvent(
@@ -621,8 +627,8 @@ export class User extends Component<any, UserState> {
                       this.handleUserSettingsShowAvatarsChange
                     )}
                   />
-                  <label class="form-check-label">
-                    <T i18nKey="show_avatars">#</T>
+                  <label class="form-check-label" for="user-show-avatars">
+                    { i18n.t('show_avatars') }
                   </label>
                 </div>
               </div>
@@ -630,6 +636,7 @@ export class User extends Component<any, UserState> {
                 <div class="form-check">
                   <input
                     class="form-check-input"
+                    id="user-send-notifications-to-email"
                     type="checkbox"
                     disabled={!this.state.user.email}
                     checked={
@@ -640,8 +647,8 @@ export class User extends Component<any, UserState> {
                       this.handleUserSettingsSendNotificationsToEmailChange
                     )}
                   />
-                  <label class="form-check-label">
-                    <T i18nKey="send_notifications_to_email">#</T>
+                  <label class="form-check-label" for="user-send-notifications-to-email">
+                    { i18n.t('send_notifications_to_email') }
                   </label>
                 </div>
               </div>
@@ -665,12 +672,12 @@ export class User extends Component<any, UserState> {
                     this.handleDeleteAccountShowConfirmToggle
                   )}
                 >
-                  <T i18nKey="delete_account">#</T>
+                  { i18n.t('delete_account') }
                 </button>
                 {this.state.deleteAccountShowConfirm && (
                   <>
                     <div class="my-2 alert alert-danger" role="alert">
-                      <T i18nKey="delete_account_confirm">#</T>
+                      { i18n.t('delete_account_confirm') }
                     </div>
                     <input
                       type="password"
@@ -701,7 +708,7 @@ export class User extends Component<any, UserState> {
                         this.handleDeleteAccountShowConfirmToggle
                       )}
                     >
-                      <T i18nKey="cancel">#</T>
+                      { i18n.t('cancel') }
                     </button>
                   </>
                 )}
@@ -720,7 +727,7 @@ export class User extends Component<any, UserState> {
           <div class="card border-secondary mb-3">
             <div class="card-body">
               <h5>
-                <T i18nKey="moderates">#</T>
+                { i18n.t('moderates') }
               </h5>
               <ul class="list-unstyled mb-0">
                 {this.state.moderates.map(community => (
@@ -745,7 +752,7 @@ export class User extends Component<any, UserState> {
           <div class="card border-secondary mb-3">
             <div class="card-body">
               <h5>
-                <T i18nKey="subscribed">#</T>
+                { i18n.t('subscribed') }
               </h5>
               <ul class="list-unstyled mb-0">
                 {this.state.follows.map(community => (
@@ -778,7 +785,7 @@ export class User extends Component<any, UserState> {
           class="btn btn-sm btn-secondary"
           onClick={linkEvent(this, this.nextPage)}
         >
-          <T i18nKey="next">#</T>
+          { i18n.t('next') }
         </button>
       </div>
     );
