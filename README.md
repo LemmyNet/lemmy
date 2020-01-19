@@ -153,24 +153,27 @@ If you'd like to add translations, take a look a look at the [English translatio
 
 - Languages supported: English (`en`), Chinese (`zh`), Dutch (`nl`), Esperanto (`eo`), French (`fr`), Spanish (`es`), Swedish (`sv`), German (`de`), Russian (`ru`), Italian (`it`).
 
+<!-- translations -->
+
 lang | done | missing
 --- | --- | ---
-de | 94% | avatar,upload_avatar,show_avatars,docs,old_password,send_notifications_to_email,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,email_already_exists 
-eo | 81% | number_of_communities,preview,upload_image,avatar,upload_avatar,show_avatars,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,theme,are_you_sure,yes,no,email_already_exists 
-es | 89% | avatar,upload_avatar,show_avatars,archive_link,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,email_already_exists 
-fr | 89% | avatar,upload_avatar,show_avatars,archive_link,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,email_already_exists 
-it | 90% | avatar,upload_avatar,show_avatars,archive_link,docs,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,email_already_exists 
-nl | 100% | email_already_exists 
-ru | 77% | cross_posts,cross_post,number_of_communities,preview,upload_image,avatar,upload_avatar,show_avatars,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,recent_comments,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no,email_already_exists 
-sv | 89% | avatar,upload_avatar,show_avatars,archive_link,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,email_already_exists 
-zh | 75% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,avatar,upload_avatar,show_avatars,formatting_help,view_source,sticky,unsticky,archive_link,settings,stickied,delete_account,delete_account_confirm,banned,creator,number_online,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,recent_comments,nsfw,show_nsfw,theme,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no,email_already_exists 
+de | 93% | avatar,upload_avatar,show_avatars,docs,old_password,send_notifications_to_email,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,donate_to_lemmy,donate,email_already_exists 
+eo | 80% | number_of_communities,preview,upload_image,avatar,upload_avatar,show_avatars,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,theme,donate_to_lemmy,donate,are_you_sure,yes,no,email_already_exists 
+es | 89% | avatar,upload_avatar,show_avatars,archive_link,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,donate_to_lemmy,donate,email_already_exists 
+fr | 89% | avatar,upload_avatar,show_avatars,archive_link,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,donate_to_lemmy,donate,email_already_exists 
+it | 89% | avatar,upload_avatar,show_avatars,archive_link,docs,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,donate_to_lemmy,donate,email_already_exists 
+nl | 99% | donate_to_lemmy,donate,email_already_exists 
+ru | 77% | cross_posts,cross_post,number_of_communities,preview,upload_image,avatar,upload_avatar,show_avatars,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,recent_comments,theme,donate_to_lemmy,donate,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no,email_already_exists 
+sv | 89% | avatar,upload_avatar,show_avatars,archive_link,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,donate_to_lemmy,donate,email_already_exists 
+zh | 75% | cross_posts,cross_post,users,number_of_communities,preview,upload_image,avatar,upload_avatar,show_avatars,formatting_help,view_source,sticky,unsticky,archive_link,settings,stickied,delete_account,delete_account_confirm,banned,creator,number_online,docs,replies,mentions,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,recent_comments,nsfw,show_nsfw,theme,donate_to_lemmy,donate,monero,by,to,transfer_community,transfer_site,are_you_sure,yes,no,email_already_exists 
 
+<!-- translationsstop -->
 
 If you'd like to update this report, run:
 
 ```bash 
 cd ui
-ts-node translation_report.ts > tmp # And replace the text above.
+ts-node translation_report.ts
 ```
 
 ## Credits
