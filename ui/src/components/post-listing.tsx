@@ -44,8 +44,8 @@ interface PostListingState {
   showConfirmTransferCommunity: boolean;
   imageExpanded: boolean;
   viewSource: boolean;
-  my_vote: number;
-  score: number;
+  upvoteLoading: boolean;
+  downvoteLoading: boolean;
 }
 
 interface PostListingProps {
@@ -70,8 +70,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     showConfirmTransferCommunity: false,
     imageExpanded: false,
     viewSource: false,
-    my_vote: this.props.post.my_vote,
-    score: this.props.post.score,
+    upvoteLoading: this.props.post.upvoteLoading,
+    downvoteLoading: this.props.post.downvoteLoading,
   };
 
   constructor(props: any, context: any) {
@@ -84,11 +84,14 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     this.handleEditCancel = this.handleEditCancel.bind(this);
   }
 
-  componentDidUpdate(prevProps: PostListingProps) {
-    if (prevProps.post.my_vote !== this.props.post.my_vote) {
+  componentWillReceiveProps(nextProps: PostListingProps) {
+    if (
+      nextProps.post.upvoteLoading !== this.state.upvoteLoading ||
+      nextProps.post.downvoteLoading !== this.state.downvoteLoading
+    ) {
       this.setState({
-        my_vote: this.props.post.my_vote,
-        score: this.props.post.score,
+        upvoteLoading: false,
+        downvoteLoading: false,
       });
     }
   }
@@ -122,26 +125,38 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           <button
             disabled={!UserService.Instance.user}
             className={`btn p-0 ${
-              this.state.my_vote == 1 ? 'text-info' : 'text-muted'
+              post.my_vote == 1 ? 'text-info' : 'text-muted'
             }`}
             onClick={linkEvent(this, this.handlePostLike)}
           >
-            <svg class="icon upvote">
-              <use xlinkHref="#icon-arrow-up"></use>
-            </svg>
+            {this.state.upvoteLoading ? (
+              <svg class="icon icon-spinner spin upvote">
+                <use xlinkHref="#icon-spinner"></use>
+              </svg>
+            ) : (
+              <svg class="icon upvote">
+                <use xlinkHref="#icon-arrow-up"></use>
+              </svg>
+            )}
           </button>
-          <div class={`font-weight-bold text-muted`}>{this.state.score}</div>
+          <div class={`font-weight-bold text-muted`}>{post.score}</div>
           {WebSocketService.Instance.site.enable_downvotes && (
             <button
               disabled={!UserService.Instance.user}
               className={`btn p-0 ${
-                this.state.my_vote == -1 ? 'text-danger' : 'text-muted'
+                post.my_vote == -1 ? 'text-danger' : 'text-muted'
               }`}
               onClick={linkEvent(this, this.handlePostDisLike)}
             >
-              <svg class="icon downvote">
-                <use xlinkHref="#icon-arrow-down"></use>
-              </svg>
+              {this.state.downvoteLoading ? (
+                <svg class="icon icon-spinner spin downvote">
+                  <use xlinkHref="#icon-spinner"></use>
+                </svg>
+              ) : (
+                <svg class="icon downvote">
+                  <use xlinkHref="#icon-arrow-down"></use>
+                </svg>
+              )}
             </button>
           )}
         </div>
@@ -731,38 +746,21 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   handlePostLike(i: PostListing) {
-    this.state.my_vote = i.props.post.my_vote == 1 ? 0 : 1;
-    let add = 1;
-    if (i.props.post.my_vote == 1) {
-      add = -1;
-    } else if (i.props.post.my_vote == -1) {
-      add = 2;
-    }
-
-    this.state.score = i.props.post.score + add;
-    this.setState(this.state);
+    i.setState({ upvoteLoading: true });
 
     let form: CreatePostLikeForm = {
       post_id: i.props.post.id,
-      score: this.state.my_vote,
+      score: i.props.post.my_vote == 1 ? 0 : 1,
     };
     WebSocketService.Instance.likePost(form);
   }
 
   handlePostDisLike(i: PostListing) {
-    this.state.my_vote = i.props.post.my_vote == -1 ? 0 : -1;
-    let add = -1;
-    if (i.props.post.my_vote == 1) {
-      add = -2;
-    } else if (i.props.post.my_vote == -1) {
-      add = 1;
-    }
-    this.state.score = i.props.post.score + add;
-    this.setState(this.state);
+    i.setState({ downvoteLoading: true });
 
     let form: CreatePostLikeForm = {
       post_id: i.props.post.id,
-      score: this.state.my_vote,
+      score: i.props.post.my_vote == -1 ? 0 : -1,
     };
     WebSocketService.Instance.likePost(form);
   }
