@@ -700,6 +700,7 @@ export interface SearchForm {
   sort: string;
   page?: number;
   limit?: number;
+  auth?: string;
 }
 
 export interface SearchResponse {

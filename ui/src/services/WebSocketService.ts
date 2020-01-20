@@ -255,6 +255,7 @@ export class WebSocketService {
   }
 
   public search(form: SearchForm) {
+    this.setAuth(form, false);
     this.subject.next(this.wsSendWrapper(UserOperation.Search, form));
   }
 
