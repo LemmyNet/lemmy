@@ -84,6 +84,15 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     this.handleEditCancel = this.handleEditCancel.bind(this);
   }
 
+  componentDidUpdate(prevProps: PostListingProps) {
+    if (prevProps.post.my_vote !== this.props.post.my_vote) {
+      this.setState({
+        my_vote: this.props.post.my_vote,
+        score: this.props.post.score,
+      });
+    }
+  }
+
   render() {
     return (
       <div class="row">
