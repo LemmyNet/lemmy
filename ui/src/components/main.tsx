@@ -422,9 +422,7 @@ export class Main extends Component<any, MainState> {
         ) : (
           <div>
             {this.selects()}
-            {this.state.posts && (
-              <PostListings posts={this.state.posts} showCommunity />
-            )}
+            <PostListings posts={this.state.posts} showCommunity />
             {this.paginator()}
           </div>
         )}
@@ -598,11 +596,6 @@ export class Main extends Component<any, MainState> {
       this.setState(this.state);
     } else if (op == UserOperation.GetPosts) {
       let res: GetPostsResponse = msg;
-
-      // This is needed to refresh the view
-      this.state.posts = undefined;
-      this.setState(this.state);
-
       this.state.posts = res.posts;
       this.state.loading = false;
       this.setState(this.state);

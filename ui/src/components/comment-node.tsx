@@ -91,6 +91,18 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     this.handleCommentDisLike = this.handleCommentDisLike.bind(this);
   }
 
+  componentDidUpdate(prevProps: CommentNodeProps) {
+    if (
+      prevProps.node.comment.my_vote !== this.props.node.comment.my_vote ||
+      this.state.score !== this.props.node.comment.score
+    ) {
+      this.setState({
+        my_vote: this.props.node.comment.my_vote,
+        score: this.props.node.comment.score,
+      });
+    }
+  }
+
   render() {
     let node = this.props.node;
     return (
