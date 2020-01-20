@@ -35,7 +35,7 @@ export class CreatePost extends Component<any, any> {
   get params(): PostFormParams {
     let urlParams = new URLSearchParams(this.props.location.search);
     let params: PostFormParams = {
-      name: urlParams.get('name'),
+      name: urlParams.get('title'),
       community: urlParams.get('community') || this.prevCommunityName,
       body: urlParams.get('body'),
       url: urlParams.get('url'),
