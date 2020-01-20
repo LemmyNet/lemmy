@@ -400,7 +400,11 @@ export class Post extends Component<any, PostState> {
       found.score = res.comment.score;
       found.upvotes = res.comment.upvotes;
       found.downvotes = res.comment.downvotes;
-      if (res.comment.my_vote !== null) found.my_vote = res.comment.my_vote;
+      if (res.comment.my_vote !== null) {
+        found.my_vote = res.comment.my_vote;
+        found.upvoteLoading = false;
+        found.downvoteLoading = false;
+      }
       this.setState(this.state);
     } else if (op == UserOperation.CreatePostLike) {
       let res: CreatePostLikeResponse = msg;
@@ -408,6 +412,8 @@ export class Post extends Component<any, PostState> {
       this.state.post.score = res.post.score;
       this.state.post.upvotes = res.post.upvotes;
       this.state.post.downvotes = res.post.downvotes;
+      this.state.post.upvoteLoading = false;
+      this.state.post.downvoteLoading = false;
       this.setState(this.state);
     } else if (op == UserOperation.EditPost) {
       let res: PostResponse = msg;
