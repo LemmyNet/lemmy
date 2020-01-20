@@ -807,7 +807,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   get crossPostParams(): string {
-    let params = `?name=${this.props.post.name}`;
+    let params = `?title=${this.props.post.name}`;
     if (this.props.post.url) {
       params += `&url=${this.props.post.url}`;
     }
