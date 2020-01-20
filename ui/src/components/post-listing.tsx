@@ -160,22 +160,20 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             </button>
           )}
         </div>
-        {post.url &&
-          isImage(post.url) &&
-          !post.nsfw &&
-          !post.community_nsfw &&
-          !this.state.imageExpanded && (
-            <span
-              title={i18n.t('expand_here')}
-              class="pointer"
-              onClick={linkEvent(this, this.handleImageExpandClick)}
-            >
-              <img
-                class="mx-2 mt-1 float-left img-fluid thumbnail rounded"
-                src={imageThumbnailer(post.url)}
-              />
-            </span>
-          )}
+        {post.url && isImage(post.url) && !this.state.imageExpanded && (
+          <span
+            title={i18n.t('expand_here')}
+            class="pointer"
+            onClick={linkEvent(this, this.handleImageExpandClick)}
+          >
+            <img
+              className={`mx-2 mt-1 float-left img-fluid thumbnail rounded ${(post.nsfw ||
+                post.community_nsfw) &&
+                'img-blur'}`}
+              src={imageThumbnailer(post.url)}
+            />
+          </span>
+        )}
         {post.url && isVideo(post.url) && (
           <video
             playsinline
