@@ -611,7 +611,7 @@ Marks all user replies and mentions as read.
 
 #### Search
 
-Search types are `Both, Comments, Posts`.
+Search types are `All, Comments, Posts, Communities, Users, Url`
 
 ##### Request
 ```rust
@@ -624,6 +624,7 @@ Search types are `Both, Comments, Posts`.
     sort: String,
     page: Option<i64>,
     limit: Option<i64>,
+    auth?: Option<String>,
   }
 }
 ```
@@ -632,8 +633,11 @@ Search types are `Both, Comments, Posts`.
 {
   op: "Search",
   data: {
+    type_: String,
     comments: Vec<CommentView>,
     posts: Vec<PostView>,
+    communities: Vec<CommunityView>,
+    users: Vec<UserView>,
   }
 }
 ```
