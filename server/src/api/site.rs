@@ -19,6 +19,7 @@ pub struct Search {
   sort: String,
   page: Option<i64>,
   limit: Option<i64>,
+  auth: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -313,6 +314,17 @@ impl Perform<SearchResponse> for Oper<Search> {
   fn perform(&self, conn: &PgConnection) -> Result<SearchResponse, Error> {
     let data: &Search = &self.data;
 
+    let user_id: Option<i32> = match &data.auth {
+      Some(auth) => match Claims::decode(&auth) {
+        Ok(claims) => {
+          let user_id = claims.claims.id;
+          Some(user_id)
+        }
+        Err(_e) => None,
+      },
+      None => None,
+    };
+
     let sort = SortType::from_str(&data.sort)?;
     let type_ = SearchType::from_str(&data.type_)?;
 
@@ -330,6 +342,7 @@ impl Perform<SearchResponse> for Oper<Search> {
           .show_nsfw(true)
           .for_community_id(data.community_id)
           .search_term(data.q.to_owned())
+          .my_user_id(user_id)
           .page(data.page)
           .limit(data.limit)
           .list()?;
@@ -338,6 +351,7 @@ impl Perform<SearchResponse> for Oper<Search> {
         comments = CommentQueryBuilder::create(&conn)
           .sort(&sort)
           .search_term(data.q.to_owned())
+          .my_user_id(user_id)
           .page(data.page)
           .limit(data.limit)
           .list()?;
@@ -364,6 +378,7 @@ impl Perform<SearchResponse> for Oper<Search> {
           .show_nsfw(true)
           .for_community_id(data.community_id)
           .search_term(data.q.to_owned())
+          .my_user_id(user_id)
           .page(data.page)
           .limit(data.limit)
           .list()?;
@@ -371,6 +386,7 @@ impl Perform<SearchResponse> for Oper<Search> {
         comments = CommentQueryBuilder::create(&conn)
           .sort(&sort)
           .search_term(data.q.to_owned())
+          .my_user_id(user_id)
           .page(data.page)
           .limit(data.limit)
           .list()?;

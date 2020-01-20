@@ -12,6 +12,8 @@ import {
   SearchForm,
   SearchResponse,
   SearchType,
+  CreatePostLikeResponse,
+  CommentResponse,
 } from '../interfaces';
 import { WebSocketService } from '../services';
 import {
@@ -123,22 +125,18 @@ export class Search extends Component<any, SearchState> {
   render() {
     return (
       <div class="container">
-        <div class="row">
-          <div class="col-12">
-            <h5>
-              <T i18nKey="search">#</T>
-            </h5>
-            {this.selects()}
-            {this.searchForm()}
-            {this.state.type_ == SearchType.All && this.all()}
-            {this.state.type_ == SearchType.Comments && this.comments()}
-            {this.state.type_ == SearchType.Posts && this.posts()}
-            {this.state.type_ == SearchType.Communities && this.communities()}
-            {this.state.type_ == SearchType.Users && this.users()}
-            {this.noResults()}
-            {this.paginator()}
-          </div>
-        </div>
+        <h5>
+          <T i18nKey="search">#</T>
+        </h5>
+        {this.selects()}
+        {this.searchForm()}
+        {this.state.type_ == SearchType.All && this.all()}
+        {this.state.type_ == SearchType.Comments && this.comments()}
+        {this.state.type_ == SearchType.Posts && this.posts()}
+        {this.state.type_ == SearchType.Communities && this.communities()}
+        {this.state.type_ == SearchType.Users && this.users()}
+        {this.noResults()}
+        {this.paginator()}
       </div>
     );
   }
@@ -252,54 +250,56 @@ export class Search extends Component<any, SearchState> {
     return (
       <div>
         {combined.map(i => (
-          <div>
-            {i.type_ == 'posts' && (
-              <PostListing post={i.data as Post} showCommunity viewOnly />
-            )}
-            {i.type_ == 'comments' && (
-              <CommentNodes
-                nodes={[{ comment: i.data as Comment }]}
-                locked
-                noIndent
-              />
-            )}
-            {i.type_ == 'communities' && (
-              <div>
-                <span>
-                  <Link to={`/c/${(i.data as Community).name}`}>{`/c/${
-                    (i.data as Community).name
-                  }`}</Link>
-                </span>
-                <span>{` - ${(i.data as Community).title} - ${
-                  (i.data as Community).number_of_subscribers
-                } subscribers`}</span>
-              </div>
-            )}
-            {i.type_ == 'users' && (
-              <div>
-                <span>
-                  <Link
-                    className="text-info"
-                    to={`/u/${(i.data as UserView).name}`}
-                  >
-                    {(i.data as UserView).avatar && showAvatars() && (
-                      <img
-                        height="32"
-                        width="32"
-                        src={pictshareAvatarThumbnail(
-                          (i.data as UserView).avatar
-                        )}
-                        class="rounded-circle mr-1"
-                      />
-                    )}
-                    <span>{`/u/${(i.data as UserView).name}`}</span>
-                  </Link>
-                </span>
-                <span>{` - ${
-                  (i.data as UserView).comment_score
-                } comment karma`}</span>
-              </div>
-            )}
+          <div class="row">
+            <div class="col-12">
+              {i.type_ == 'posts' && (
+                <PostListing post={i.data as Post} showCommunity />
+              )}
+              {i.type_ == 'comments' && (
+                <CommentNodes
+                  nodes={[{ comment: i.data as Comment }]}
+                  locked
+                  noIndent
+                />
+              )}
+              {i.type_ == 'communities' && (
+                <div>
+                  <span>
+                    <Link to={`/c/${(i.data as Community).name}`}>{`/c/${
+                      (i.data as Community).name
+                    }`}</Link>
+                  </span>
+                  <span>{` - ${(i.data as Community).title} - ${
+                    (i.data as Community).number_of_subscribers
+                  } subscribers`}</span>
+                </div>
+              )}
+              {i.type_ == 'users' && (
+                <div>
+                  <span>
+                    <Link
+                      className="text-info"
+                      to={`/u/${(i.data as UserView).name}`}
+                    >
+                      {(i.data as UserView).avatar && showAvatars() && (
+                        <img
+                          height="32"
+                          width="32"
+                          src={pictshareAvatarThumbnail(
+                            (i.data as UserView).avatar
+                          )}
+                          class="rounded-circle mr-1"
+                        />
+                      )}
+                      <span>{`/u/${(i.data as UserView).name}`}</span>
+                    </Link>
+                  </span>
+                  <span>{` - ${
+                    (i.data as UserView).comment_score
+                  } comment karma`}</span>
+                </div>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -308,55 +308,69 @@ export class Search extends Component<any, SearchState> {
 
   comments() {
     return (
-      <div>
+      <>
         {this.state.searchResponse.comments.map(comment => (
-          <CommentNodes nodes={[{ comment: comment }]} locked noIndent />
+          <div class="row">
+            <div class="col-12">
+              <CommentNodes nodes={[{ comment: comment }]} locked noIndent />
+            </div>
+          </div>
         ))}
-      </div>
+      </>
     );
   }
 
   posts() {
     return (
-      <div>
+      <>
         {this.state.searchResponse.posts.map(post => (
-          <PostListing post={post} showCommunity viewOnly />
+          <div class="row">
+            <div class="col-12">
+              <PostListing post={post} showCommunity />
+            </div>
+          </div>
         ))}
-      </div>
+      </>
     );
   }
 
   // Todo possibly create UserListing and CommunityListing
   communities() {
     return (
-      <div>
+      <>
         {this.state.searchResponse.communities.map(community => (
-          <div>
-            <span>
-              <Link to={`/c/${community.name}`}>{`/c/${community.name}`}</Link>
-            </span>
-            <span>{` - ${community.title} - ${community.number_of_subscribers} subscribers`}</span>
+          <div class="row">
+            <div class="col-12">
+              <span>
+                <Link
+                  to={`/c/${community.name}`}
+                >{`/c/${community.name}`}</Link>
+              </span>
+              <span>{` - ${community.title} - ${community.number_of_subscribers} subscribers`}</span>
+            </div>
           </div>
         ))}
-      </div>
+      </>
     );
   }
 
   users() {
     return (
-      <div>
+      <>
         {this.state.searchResponse.users.map(user => (
-          <div>
-            <span>
-              <Link
-                className="text-info"
-                to={`/u/${user.name}`}
-              >{`/u/${user.name}`}</Link>
-            </span>
-            <span>{` - ${user.comment_score} comment karma`}</span>
+          <div class="row">
+            <div class="col-12">
+              <span>
+                <Link
+                  className="text-info"
+                  to={`/u/${user.name}`}
+                >{`/u/${user.name}`}</Link>
+              </span>
+              <span>{` - ${user.comment_score} comment karma`}</span>
+            </div>
           </div>
         ))}
-      </div>
+      </>
     );
   }
 
@@ -476,6 +490,30 @@ export class Search extends Component<any, SearchState> {
         WebSocketService.Instance.site.name
       }`;
       window.scrollTo(0, 0);
+      this.setState(this.state);
+    } else if (op == UserOperation.CreateCommentLike) {
+      let res: CommentResponse = msg;
+      let found: Comment = this.state.searchResponse.comments.find(
+        c => c.id === res.comment.id
+      );
+      found.score = res.comment.score;
+      found.upvotes = res.comment.upvotes;
+      found.downvotes = res.comment.downvotes;
+      if (res.comment.my_vote !== null) {
+        found.my_vote = res.comment.my_vote;
+        found.upvoteLoading = false;
+        found.downvoteLoading = false;
+      }
+      this.setState(this.state);
+    } else if (op == UserOperation.CreatePostLike) {
+      let res: CreatePostLikeResponse = msg;
+      let found = this.state.searchResponse.posts.find(
+        c => c.id == res.post.id
+      );
+      found.my_vote = res.post.my_vote;
+      found.score = res.post.score;
+      found.upvotes = res.post.upvotes;
+      found.downvotes = res.post.downvotes;
       this.setState(this.state);
     }
   }

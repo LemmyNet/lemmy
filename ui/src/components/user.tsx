@@ -18,6 +18,7 @@ import {
   BanUserResponse,
   AddAdminResponse,
   DeleteAccountForm,
+  CreatePostLikeResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import {
@@ -307,7 +308,6 @@ export class User extends Component<any, UserState> {
                 post={i.data as Post}
                 admins={this.state.admins}
                 showCommunity
-                viewOnly
               />
             ) : (
               <CommentNodes
@@ -340,12 +340,7 @@ export class User extends Component<any, UserState> {
     return (
       <div>
         {this.state.posts.map(post => (
-          <PostListing
-            post={post}
-            admins={this.state.admins}
-            showCommunity
-            viewOnly
-          />
+          <PostListing post={post} admins={this.state.admins} showCommunity />
         ))}
       </div>
     );
@@ -1042,6 +1037,14 @@ export class User extends Component<any, UserState> {
       found.upvotes = res.comment.upvotes;
       found.downvotes = res.comment.downvotes;
       if (res.comment.my_vote !== null) found.my_vote = res.comment.my_vote;
+      this.setState(this.state);
+    } else if (op == UserOperation.CreatePostLike) {
+      let res: CreatePostLikeResponse = msg;
+      let found = this.state.posts.find(c => c.id == res.post.id);
+      found.my_vote = res.post.my_vote;
+      found.score = res.post.score;
+      found.upvotes = res.post.upvotes;
+      found.downvotes = res.post.downvotes;
       this.setState(this.state);
     } else if (op == UserOperation.BanUser) {
       let res: BanUserResponse = msg;
