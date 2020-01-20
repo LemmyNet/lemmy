@@ -24,9 +24,6 @@ git add ../prod/docker-compose.yml
 # The commit
 git commit -m"Version $new_tag"
 
-# Registering qemu binaries
-docker run --rm --privileged multiarch/qemu-user-static:register --reset
-
 # Rebuilding docker
 docker-compose build
 docker tag dev_lemmy:latest dessalines/lemmy:x64-$new_tag
@@ -42,6 +39,9 @@ docker push dessalines/lemmy:x64-$new_tag
 # aarch64
 # Only do this on major releases (IE the third semver is 0)
 if [ $third_semver -eq 0 ]; then
+  # Registering qemu binaries
+  docker run --rm --privileged multiarch/qemu-user-static:register --reset
+
   docker build -t lemmy:aarch64 -f Dockerfile.aarch64 ../../
   docker tag lemmy:aarch64 dessalines/lemmy:arm64-$new_tag
   docker push dessalines/lemmy:arm64-$new_tag
