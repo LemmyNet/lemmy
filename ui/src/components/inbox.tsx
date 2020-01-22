@@ -12,10 +12,15 @@ import {
   GetUserMentionsResponse,
   UserMentionResponse,
   CommentResponse,
+  PrivateMessage as PrivateMessageI,
+  GetPrivateMessagesForm,
+  PrivateMessagesResponse,
+  PrivateMessageResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { msgOp, fetchLimit } from '../utils';
+import { msgOp, fetchLimit, isCommentType } from '../utils';
 import { CommentNodes } from './comment-nodes';
+import { PrivateMessage } from './private-message';
 import { SortSelect } from './sort-select';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -26,9 +31,10 @@ enum UnreadOrAll {
 }
 
 enum UnreadType {
-  Both,
+  All,
   Replies,
   Mentions,
+  Messages,
 }
 
 interface InboxState {
@@ -36,6 +42,7 @@ interface InboxState {
   unreadType: UnreadType;
   replies: Array<Comment>;
   mentions: Array<Comment>;
+  messages: Array<PrivateMessageI>;
   sort: SortType;
   page: number;
 }
@@ -44,9 +51,10 @@ export class Inbox extends Component<any, InboxState> {
   private subscription: Subscription;
   private emptyState: InboxState = {
     unreadOrAll: UnreadOrAll.Unread,
-    unreadType: UnreadType.Both,
+    unreadType: UnreadType.All,
     replies: [],
     mentions: [],
+    messages: [],
     sort: SortType.New,
     page: 1,
   };
@@ -103,7 +111,10 @@ export class Inbox extends Component<any, InboxState> {
                 </a>
               </small>
             </h5>
-            {this.state.replies.length + this.state.mentions.length > 0 &&
+            {this.state.replies.length +
+              this.state.mentions.length +
+              this.state.messages.length >
+              0 &&
               this.state.unreadOrAll == UnreadOrAll.Unread && (
                 <ul class="list-inline mb-1 text-muted small font-weight-bold">
                   <li className="list-inline-item">
@@ -114,9 +125,10 @@ export class Inbox extends Component<any, InboxState> {
                 </ul>
               )}
             {this.selects()}
-            {this.state.unreadType == UnreadType.Both && this.both()}
+            {this.state.unreadType == UnreadType.All && this.all()}
             {this.state.unreadType == UnreadType.Replies && this.replies()}
             {this.state.unreadType == UnreadType.Mentions && this.mentions()}
+            {this.state.unreadType == UnreadType.Messages && this.messages()}
             {this.paginator()}
           </div>
         </div>
@@ -150,14 +162,17 @@ export class Inbox extends Component<any, InboxState> {
           <option disabled>
             <T i18nKey="type">#</T>
           </option>
-          <option value={UnreadType.Both}>
-            <T i18nKey="both">#</T>
+          <option value={UnreadType.All}>
+            <T i18nKey="all">#</T>
           </option>
           <option value={UnreadType.Replies}>
             <T i18nKey="replies">#</T>
           </option>
           <option value={UnreadType.Mentions}>
             <T i18nKey="mentions">#</T>
+          </option>
+          <option value={UnreadType.Messages}>
+            <T i18nKey="messages">#</T>
           </option>
         </select>
         <SortSelect
@@ -169,33 +184,29 @@ export class Inbox extends Component<any, InboxState> {
     );
   }
 
-  both() {
-    let combined: Array<{
-      type_: string;
-      data: Comment;
-    }> = [];
-    let replies = this.state.replies.map(e => {
-      return { type_: 'replies', data: e };
-    });
-    let mentions = this.state.mentions.map(e => {
-      return { type_: 'mentions', data: e };
-    });
+  all() {
+    let combined: Array<Comment | PrivateMessageI> = [];
 
-    combined.push(...replies);
-    combined.push(...mentions);
+    combined.push(...this.state.replies);
+    combined.push(...this.state.mentions);
+    combined.push(...this.state.messages);
 
     // Sort it
-    if (this.state.sort == SortType.New) {
-      combined.sort((a, b) => b.data.published.localeCompare(a.data.published));
-    } else {
-      combined.sort((a, b) => b.data.score - a.data.score);
-    }
+    combined.sort((a, b) => b.published.localeCompare(a.published));
 
     return (
       <div>
-        {combined.map(i => (
-          <CommentNodes nodes={[{ comment: i.data }]} noIndent markable />
-        ))}
+        {combined.map(i =>
+          isCommentType(i) ? (
+            <CommentNodes
+              nodes={[{ comment: i }]}
+              noIndent
+              markable
+            />
+          ) : (
+            <PrivateMessage privateMessage={i} />
+          )
+        )}
       </div>
     );
   }
@@ -215,6 +226,16 @@ export class Inbox extends Component<any, InboxState> {
       <div>
         {this.state.mentions.map(mention => (
           <CommentNodes nodes={[{ comment: mention }]} noIndent markable />
+        ))}
+      </div>
+    );
+  }
+
+  messages() {
+    return (
+      <div>
+        {this.state.messages.map(message => (
+          <PrivateMessage privateMessage={message} />
         ))}
       </div>
     );
@@ -283,6 +304,13 @@ export class Inbox extends Component<any, InboxState> {
       limit: fetchLimit,
     };
     WebSocketService.Instance.getUserMentions(userMentionsForm);
+
+    let privateMessagesForm: GetPrivateMessagesForm = {
+      unread_only: this.state.unreadOrAll == UnreadOrAll.Unread,
+      page: this.state.page,
+      limit: fetchLimit,
+    };
+    WebSocketService.Instance.getPrivateMessages(privateMessagesForm);
   }
 
   handleSortChange(val: SortType) {
@@ -314,9 +342,37 @@ export class Inbox extends Component<any, InboxState> {
       this.sendUnreadCount();
       window.scrollTo(0, 0);
       this.setState(this.state);
+    } else if (op == UserOperation.GetPrivateMessages) {
+      let res: PrivateMessagesResponse = msg;
+      this.state.messages = res.messages;
+      this.sendUnreadCount();
+      window.scrollTo(0, 0);
+      this.setState(this.state);
+    } else if (op == UserOperation.EditPrivateMessage) {
+      let res: PrivateMessageResponse = msg;
+      let found: PrivateMessageI = this.state.messages.find(
+        m => m.id === res.message.id
+      );
+      found.content = res.message.content;
+      found.updated = res.message.updated;
+      found.deleted = res.message.deleted;
+      // If youre in the unread view, just remove it from the list
+      if (this.state.unreadOrAll == UnreadOrAll.Unread && res.message.read) {
+        this.state.messages = this.state.messages.filter(
+          r => r.id !== res.message.id
+        );
+      } else {
+        let found = this.state.messages.find(c => c.id == res.message.id);
+        found.read = res.message.read;
+      }
+      this.sendUnreadCount();
+      window.scrollTo(0, 0);
+      this.setState(this.state);
     } else if (op == UserOperation.MarkAllAsRead) {
       this.state.replies = [];
       this.state.mentions = [];
+      this.state.messages = [];
+      this.sendUnreadCount();
       window.scrollTo(0, 0);
       this.setState(this.state);
     } else if (op == UserOperation.EditComment) {
@@ -391,7 +447,10 @@ export class Inbox extends Component<any, InboxState> {
   sendUnreadCount() {
     let count =
       this.state.replies.filter(r => !r.read).length +
-      this.state.mentions.filter(r => !r.read).length;
+      this.state.mentions.filter(r => !r.read).length +
+      this.state.messages.filter(
+        r => !r.read && r.creator_id !== UserService.Instance.user.id
+      ).length;
     UserService.Instance.sub.next({
       user: UserService.Instance.user,
       unreadCount: count,
