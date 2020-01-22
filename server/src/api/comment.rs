@@ -7,7 +7,7 @@ use diesel::PgConnection;
 pub struct CreateComment {
   content: String,
   parent_id: Option<i32>,
-  edit_id: Option<i32>,
+  edit_id: Option<i32>, // TODO this isn't used
   pub post_id: i32,
   auth: String,
 }
@@ -15,7 +15,7 @@ pub struct CreateComment {
 #[derive(Serialize, Deserialize)]
 pub struct EditComment {
   content: String,
-  parent_id: Option<i32>,
+  parent_id: Option<i32>, // TODO why are the parent_id, creator_id, post_id, etc fields required? They aren't going to change
   edit_id: i32,
   creator_id: i32,
   pub post_id: i32,

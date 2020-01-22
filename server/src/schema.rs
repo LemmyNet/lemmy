@@ -239,6 +239,19 @@ table! {
 }
 
 table! {
+    private_message (id) {
+        id -> Int4,
+        creator_id -> Int4,
+        recipient_id -> Int4,
+        content -> Text,
+        deleted -> Bool,
+        read -> Bool,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
+    }
+}
+
+table! {
     site (id) {
         id -> Int4,
         name -> Varchar,
@@ -272,6 +285,7 @@ table! {
         lang -> Varchar,
         show_avatars -> Bool,
         send_notifications_to_email -> Bool,
+        matrix_user_id -> Nullable<Text>,
     }
 }
 
@@ -357,6 +371,7 @@ allow_tables_to_appear_in_same_query!(
   post_like,
   post_read,
   post_saved,
+  private_message,
   site,
   user_,
   user_ban,
