@@ -10,8 +10,8 @@ import {
   GetSiteResponse,
 } from '../interfaces';
 import { WebSocketService } from '../services';
-import { msgOp, capitalizeFirstLetter } from '../utils';
-import * as autosize from 'autosize';
+import { msgOp, capitalizeFirstLetter, toast } from '../utils';
+import autosize from 'autosize';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 
@@ -67,14 +67,7 @@ export class CommunityForm extends Component<
     }
 
     this.subscription = WebSocketService.Instance.subject
-      .pipe(
-        retryWhen(errors =>
-          errors.pipe(
-            delay(3000),
-            take(10)
-          )
-        )
-      )
+      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
       .subscribe(
         msg => this.parseMessage(msg),
         err => console.error(err),
@@ -250,7 +243,7 @@ export class CommunityForm extends Component<
     let op: UserOperation = msgOp(msg);
     console.log(msg);
     if (msg.error) {
-      alert(i18n.t(msg.error));
+      toast(i18n.t(msg.error), 'danger');
       this.state.loading = false;
       this.setState(this.state);
       return;

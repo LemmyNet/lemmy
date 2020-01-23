@@ -28,6 +28,7 @@ import {
   mdToHtml,
   debounce,
   isImage,
+  toast,
 } from '../utils';
 import autosize from 'autosize';
 import { i18n } from '../i18next';
@@ -453,14 +454,14 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       .catch(error => {
         i.state.imageLoading = false;
         i.setState(i.state);
-        alert(error);
+        toast(error, 'danger');
       });
   }
 
   parseMessage(msg: any) {
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(i18n.t(msg.error));
+      toast(i18n.t(msg.error), 'danger');
       this.state.loading = false;
       this.setState(this.state);
       return;

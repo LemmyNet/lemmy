@@ -12,7 +12,7 @@ import {
   SortType,
 } from '../interfaces';
 import { WebSocketService } from '../services';
-import { msgOp } from '../utils';
+import { msgOp, toast } from '../utils';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 
@@ -235,7 +235,7 @@ export class Communities extends Component<any, CommunitiesState> {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(i18n.t(msg.error));
+      toast(i18n.t(msg.error), 'danger');
       return;
     } else if (op == UserOperation.ListCommunities) {
       let res: ListCommunitiesResponse = msg;

@@ -18,7 +18,7 @@ import {
   PrivateMessageResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { msgOp, fetchLimit, isCommentType } from '../utils';
+import { msgOp, fetchLimit, isCommentType, toast } from '../utils';
 import { CommentNodes } from './comment-nodes';
 import { PrivateMessage } from './private-message';
 import { SortSelect } from './sort-select';
@@ -198,11 +198,7 @@ export class Inbox extends Component<any, InboxState> {
       <div>
         {combined.map(i =>
           isCommentType(i) ? (
-            <CommentNodes
-              nodes={[{ comment: i }]}
-              noIndent
-              markable
-            />
+            <CommentNodes nodes={[{ comment: i }]} noIndent markable />
           ) : (
             <PrivateMessage privateMessage={i} />
           )
@@ -328,7 +324,7 @@ export class Inbox extends Component<any, InboxState> {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(i18n.t(msg.error));
+      toast(i18n.t(msg.error), 'danger');
       return;
     } else if (op == UserOperation.GetReplies) {
       let res: GetRepliesResponse = msg;
@@ -423,7 +419,7 @@ export class Inbox extends Component<any, InboxState> {
       this.setState(this.state);
     } else if (op == UserOperation.CreateComment) {
       // let res: CommentResponse = msg;
-      alert(i18n.t('reply_sent'));
+      toast(i18n.t('reply_sent'));
       // this.state.replies.unshift(res.comment); // TODO do this right
       // this.setState(this.state);
     } else if (op == UserOperation.SaveComment) {

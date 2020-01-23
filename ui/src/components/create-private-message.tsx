@@ -2,6 +2,7 @@ import { Component } from 'inferno';
 import { PrivateMessageForm } from './private-message-form';
 import { WebSocketService } from '../services';
 import { PrivateMessageFormParams } from '../interfaces';
+import { toast } from '../utils';
 import { i18n } from '../i18next';
 
 export class CreatePrivateMessage extends Component<any, any> {
@@ -44,7 +45,7 @@ export class CreatePrivateMessage extends Component<any, any> {
   }
 
   handlePrivateMessageCreate() {
-    alert(i18n.t('message_sent'));
+    toast(i18n.t('message_sent'));
 
     // Navigate to the front
     this.props.history.push(`/`);

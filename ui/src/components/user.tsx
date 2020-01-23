@@ -30,6 +30,7 @@ import {
   setTheme,
   languages,
   showAvatars,
+  toast,
 } from '../utils';
 import { PostListing } from './post-listing';
 import { SortSelect } from './sort-select';
@@ -975,7 +976,7 @@ export class User extends Component<any, UserState> {
       .catch(error => {
         i.state.avatarLoading = false;
         i.setState(i.state);
-        alert(error);
+        toast(error, 'danger');
       });
   }
 
@@ -1015,7 +1016,7 @@ export class User extends Component<any, UserState> {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(i18n.t(msg.error));
+      toast(i18n.t(msg.error), 'danger');
       this.state.deleteAccountLoading = false;
       this.state.avatarLoading = false;
       this.state.userSettingsLoading = false;
@@ -1069,7 +1070,7 @@ export class User extends Component<any, UserState> {
       this.setState(this.state);
     } else if (op == UserOperation.CreateComment) {
       // let res: CommentResponse = msg;
-      alert(i18n.t('reply_sent'));
+      toast(i18n.t('reply_sent'));
       // this.state.comments.unshift(res.comment); // TODO do this right
       // this.setState(this.state);
     } else if (op == UserOperation.SaveComment) {

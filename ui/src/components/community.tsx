@@ -24,6 +24,7 @@ import {
   routeSortTypeToEnum,
   fetchLimit,
   postRefetchSeconds,
+  toast,
 } from '../utils';
 import { T } from 'inferno-i18next';
 import { i18n } from '../i18next';
@@ -257,7 +258,7 @@ export class Community extends Component<any, State> {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(i18n.t(msg.error));
+      toast(i18n.t(msg.error), 'danger');
       this.context.router.history.push('/');
       return;
     } else if (op == UserOperation.GetCommunity) {

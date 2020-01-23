@@ -22,6 +22,7 @@ import {
   mdToHtml,
   showAvatars,
   pictshareAvatarThumbnail,
+  toast,
 } from '../utils';
 import autosize from 'autosize';
 import { i18n } from '../i18next';
@@ -268,7 +269,7 @@ export class PrivateMessageForm extends Component<
   parseMessage(msg: any) {
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(i18n.t(msg.error));
+      toast(i18n.t(msg.error), 'danger');
       this.state.loading = false;
       this.setState(this.state);
       return;
