@@ -235,10 +235,10 @@ curl -i -H \
 "Content-Type: application/json" \
 -X POST \
 -d '{
-  comment_id: X,
-  pub post_id: X,
-  score: X,
-  auth: X,
+  "comment_id": X,
+  "post_id": X,
+  "score": X,
+  "auth": "..."
 }' \
 /comment/like
 ```
