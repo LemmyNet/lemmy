@@ -293,6 +293,16 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                         </li>
                       </>
                     )}
+                    {!this.myComment && (
+                      <li className="list-inline-item">
+                        <Link
+                          class="text-muted"
+                          to={`/create_private_message?recipient_id=${node.comment.creator_id}`}
+                        >
+                          {i18n.t('message').toLowerCase()}
+                        </Link>
+                      </li>
+                    )}
                     <li className="list-inline-item">•</li>
                     <li className="list-inline-item">
                       <span
