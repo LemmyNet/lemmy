@@ -32,10 +32,13 @@ import {
   DeleteAccountForm,
   PasswordResetForm,
   PasswordChangeForm,
+  PrivateMessageForm,
+  EditPrivateMessageForm,
+  GetPrivateMessagesForm,
 } from '../interfaces';
 import { webSocket } from 'rxjs/webSocket';
 import { Subject } from 'rxjs';
-import { retryWhen, delay, take } from 'rxjs/operators';
+import { retryWhen, delay } from 'rxjs/operators';
 import { UserService } from './';
 import { i18n } from '../i18next';
 
@@ -283,6 +286,27 @@ export class WebSocketService {
 
   public passwordChange(form: PasswordChangeForm) {
     this.subject.next(this.wsSendWrapper(UserOperation.PasswordChange, form));
+  }
+
+  public createPrivateMessage(form: PrivateMessageForm) {
+    this.setAuth(form);
+    this.subject.next(
+      this.wsSendWrapper(UserOperation.CreatePrivateMessage, form)
+    );
+  }
+
+  public editPrivateMessage(form: EditPrivateMessageForm) {
+    this.setAuth(form);
+    this.subject.next(
+      this.wsSendWrapper(UserOperation.EditPrivateMessage, form)
+    );
+  }
+
+  public getPrivateMessages(form: GetPrivateMessagesForm) {
+    this.setAuth(form);
+    this.subject.next(
+      this.wsSendWrapper(UserOperation.GetPrivateMessages, form)
+    );
   }
 
   private wsSendWrapper(op: UserOperation, data: any) {

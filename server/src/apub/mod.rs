@@ -22,6 +22,7 @@ mod tests {
       preferred_username: None,
       password_encrypted: "here".into(),
       email: None,
+      matrix_user_id: None,
       avatar: None,
       published: naive_now(),
       admin: false,

@@ -11,6 +11,7 @@ import 'moment/locale/it';
 import {
   UserOperation,
   Comment,
+  PrivateMessage,
   User,
   SortType,
   ListingType,
@@ -360,4 +361,8 @@ export function imageThumbnailer(url: string): string {
   } else {
     return url;
   }
+}
+
+export function isCommentType(item: Comment | PrivateMessage): item is Comment {
+  return (item as Comment).community_id !== undefined;
 }

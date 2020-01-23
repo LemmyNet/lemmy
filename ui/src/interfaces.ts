@@ -38,6 +38,9 @@ export enum UserOperation {
   DeleteAccount,
   PasswordReset,
   PasswordChange,
+  CreatePrivateMessage,
+  EditPrivateMessage,
+  GetPrivateMessages,
 }
 
 export enum CommentSortType {
@@ -89,6 +92,7 @@ export interface UserView {
   name: string;
   avatar?: string;
   email?: string;
+  matrix_user_id?: string;
   fedi_name: string;
   published: string;
   number_of_posts: number;
@@ -216,6 +220,21 @@ export interface Site {
   enable_downvotes: boolean;
   open_registration: boolean;
   enable_nsfw: boolean;
+}
+
+export interface PrivateMessage {
+  id: number;
+  creator_id: number;
+  recipient_id: number;
+  content: string;
+  deleted: boolean;
+  read: boolean;
+  published: string;
+  updated?: string;
+  creator_name: string;
+  creator_avatar?: string;
+  recipient_name: string;
+  recipient_avatar?: string;
 }
 
 export enum BanType {
@@ -490,6 +509,7 @@ export interface UserSettingsForm {
   lang: string;
   avatar?: string;
   email?: string;
+  matrix_user_id?: string;
   new_password?: string;
   new_password_verify?: string;
   old_password?: string;
@@ -728,4 +748,39 @@ export interface PasswordChangeForm {
   token: string;
   password: string;
   password_verify: string;
+}
+
+export interface PrivateMessageForm {
+  content: string;
+  recipient_id: number;
+  auth?: string;
+}
+
+export interface PrivateMessageFormParams {
+  recipient_id: number;
+}
+
+export interface EditPrivateMessageForm {
+  edit_id: number;
+  content?: string;
+  deleted?: boolean;
+  read?: boolean;
+  auth?: string;
+}
+
+export interface GetPrivateMessagesForm {
+  unread_only: boolean;
+  page?: number;
+  limit?: number;
+  auth?: string;
+}
+
+export interface PrivateMessagesResponse {
+  op: string;
+  messages: Array<PrivateMessage>;
+}
+
+export interface PrivateMessageResponse {
+  op: string;
+  message: PrivateMessage;
 }

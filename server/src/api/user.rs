@@ -30,6 +30,7 @@ pub struct SaveUserSettings {
   lang: String,
   avatar: Option<String>,
   email: Option<String>,
+  matrix_user_id: Option<String>,
   new_password: Option<String>,
   new_password_verify: Option<String>,
   old_password: Option<String>,
@@ -167,6 +168,42 @@ pub struct PasswordChange {
   password_verify: String,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct CreatePrivateMessage {
+  content: String,
+  recipient_id: i32,
+  auth: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct EditPrivateMessage {
+  edit_id: i32,
+  content: Option<String>,
+  deleted: Option<bool>,
+  read: Option<bool>,
+  auth: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetPrivateMessages {
+  unread_only: bool,
+  page: Option<i64>,
+  limit: Option<i64>,
+  auth: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct PrivateMessagesResponse {
+  op: String,
+  messages: Vec<PrivateMessageView>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct PrivateMessageResponse {
+  op: String,
+  message: PrivateMessageView,
+}
+
 impl Perform<LoginResponse> for Oper<Login> {
   fn perform(&self, conn: &PgConnection) -> Result<LoginResponse, Error> {
     let data: &Login = &self.data;
@@ -221,6 +258,7 @@ impl Perform<LoginResponse> for Oper<Register> {
       name: data.username.to_owned(),
       fedi_name: Settings::get().hostname.to_owned(),
       email: data.email.to_owned(),
+      matrix_user_id: None,
       avatar: None,
       password_encrypted: data.password.to_owned(),
       preferred_username: None,
@@ -357,6 +395,7 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
       name: read_user.name,
       fedi_name: read_user.fedi_name,
       email,
+      matrix_user_id: data.matrix_user_id.to_owned(),
       avatar: data.avatar.to_owned(),
       password_encrypted,
       preferred_username: read_user.preferred_username,
@@ -504,10 +543,12 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
 
     let read_user = User_::read(&conn, data.user_id)?;
 
+    // TODO make addadmin easier
     let user_form = UserForm {
       name: read_user.name,
       fedi_name: read_user.fedi_name,
       email: read_user.email,
+      matrix_user_id: read_user.matrix_user_id,
       avatar: read_user.avatar,
       password_encrypted: read_user.password_encrypted,
       preferred_username: read_user.preferred_username,
@@ -568,10 +609,12 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
 
     let read_user = User_::read(&conn, data.user_id)?;
 
+    // TODO make bans and addadmins easier
     let user_form = UserForm {
       name: read_user.name,
       fedi_name: read_user.fedi_name,
       email: read_user.email,
+      matrix_user_id: read_user.matrix_user_id,
       avatar: read_user.avatar,
       password_encrypted: read_user.password_encrypted,
       preferred_username: read_user.preferred_username,
@@ -762,6 +805,30 @@ impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
         };
     }
 
+    // messages
+    let messages = PrivateMessageQueryBuilder::create(&conn, user_id)
+      .page(1)
+      .limit(999)
+      .unread_only(true)
+      .list()?;
+
+    for message in &messages {
+      let private_message_form = PrivateMessageForm {
+        content: None,
+        creator_id: message.to_owned().creator_id,
+        recipient_id: message.to_owned().recipient_id,
+        deleted: None,
+        read: Some(true),
+        updated: None,
+      };
+
+      let _updated_message = match PrivateMessage::update(&conn, message.id, &private_message_form)
+      {
+        Ok(message) => message,
+        Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_private_message").into()),
+      };
+    }
+
     Ok(GetRepliesResponse {
       op: self.op.to_string(),
       replies: vec![],
@@ -902,6 +969,153 @@ impl Perform<LoginResponse> for Oper<PasswordChange> {
     Ok(LoginResponse {
       op: self.op.to_string(),
       jwt: updated_user.jwt(),
+    })
+  }
+}
+
+impl Perform<PrivateMessageResponse> for Oper<CreatePrivateMessage> {
+  fn perform(&self, conn: &PgConnection) -> Result<PrivateMessageResponse, Error> {
+    let data: &CreatePrivateMessage = &self.data;
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in").into()),
+    };
+
+    let user_id = claims.id;
+
+    let hostname = &format!("https://{}", Settings::get().hostname);
+
+    // Check for a site ban
+    if UserView::read(&conn, user_id)?.banned {
+      return Err(APIError::err(&self.op, "site_ban").into());
+    }
+
+    let content_slurs_removed = remove_slurs(&data.content.to_owned());
+
+    let private_message_form = PrivateMessageForm {
+      content: Some(content_slurs_removed.to_owned()),
+      creator_id: user_id,
+      recipient_id: data.recipient_id,
+      deleted: None,
+      read: None,
+      updated: None,
+    };
+
+    let inserted_private_message = match PrivateMessage::create(&conn, &private_message_form) {
+      Ok(private_message) => private_message,
+      Err(_e) => {
+        return Err(APIError::err(&self.op, "couldnt_create_private_message").into());
+      }
+    };
+
+    // Send notifications to the recipient
+    let recipient_user = User_::read(&conn, data.recipient_id)?;
+    if recipient_user.send_notifications_to_email {
+      if let Some(email) = recipient_user.email {
+        let subject = &format!(
+          "{} - Private Message from {}",
+          Settings::get().hostname,
+          claims.username
+        );
+        let html = &format!(
+          "<h1>Private Message</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
+          claims.username, &content_slurs_removed, hostname
+        );
+        match send_email(subject, &email, &recipient_user.name, html) {
+          Ok(_o) => _o,
+          Err(e) => eprintln!("{}", e),
+        };
+      }
+    }
+
+    let private_message_view = PrivateMessageView::read(&conn, inserted_private_message.id)?;
+
+    Ok(PrivateMessageResponse {
+      op: self.op.to_string(),
+      message: private_message_view,
+    })
+  }
+}
+
+impl Perform<PrivateMessageResponse> for Oper<EditPrivateMessage> {
+  fn perform(&self, conn: &PgConnection) -> Result<PrivateMessageResponse, Error> {
+    let data: &EditPrivateMessage = &self.data;
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in").into()),
+    };
+
+    let user_id = claims.id;
+
+    let orig_private_message = PrivateMessage::read(&conn, data.edit_id)?;
+
+    // Check for a site ban
+    if UserView::read(&conn, user_id)?.banned {
+      return Err(APIError::err(&self.op, "site_ban").into());
+    }
+
+    // Check to make sure they are the creator (or the recipient marking as read
+    if !(data.read.is_some() && orig_private_message.recipient_id.eq(&user_id)
+      || orig_private_message.creator_id.eq(&user_id))
+    {
+      return Err(APIError::err(&self.op, "no_private_message_edit_allowed").into());
+    }
+
+    let content_slurs_removed = match &data.content {
+      Some(content) => Some(remove_slurs(content)),
+      None => None,
+    };
+
+    let private_message_form = PrivateMessageForm {
+      content: content_slurs_removed,
+      creator_id: orig_private_message.creator_id,
+      recipient_id: orig_private_message.recipient_id,
+      deleted: data.deleted.to_owned(),
+      read: data.read.to_owned(),
+      updated: if data.read.is_some() {
+        orig_private_message.updated
+      } else {
+        Some(naive_now())
+      },
+    };
+
+    let _updated_private_message =
+      match PrivateMessage::update(&conn, data.edit_id, &private_message_form) {
+        Ok(private_message) => private_message,
+        Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_private_message").into()),
+      };
+
+    let private_message_view = PrivateMessageView::read(&conn, data.edit_id)?;
+
+    Ok(PrivateMessageResponse {
+      op: self.op.to_string(),
+      message: private_message_view,
+    })
+  }
+}
+
+impl Perform<PrivateMessagesResponse> for Oper<GetPrivateMessages> {
+  fn perform(&self, conn: &PgConnection) -> Result<PrivateMessagesResponse, Error> {
+    let data: &GetPrivateMessages = &self.data;
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in").into()),
+    };
+
+    let user_id = claims.id;
+
+    let messages = PrivateMessageQueryBuilder::create(&conn, user_id)
+      .page(data.page)
+      .limit(data.limit)
+      .unread_only(data.unread_only)
+      .list()?;
+
+    Ok(PrivateMessagesResponse {
+      op: self.op.to_string(),
+      messages,
     })
   }
 }

@@ -547,5 +547,21 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       let res = Oper::new(user_operation, password_change).perform(&conn)?;
       Ok(serde_json::to_string(&res)?)
     }
+    UserOperation::CreatePrivateMessage => {
+      chat.check_rate_limit_message(msg.id)?;
+      let create_private_message: CreatePrivateMessage = serde_json::from_str(data)?;
+      let res = Oper::new(user_operation, create_private_message).perform(&conn)?;
+      Ok(serde_json::to_string(&res)?)
+    }
+    UserOperation::EditPrivateMessage => {
+      let edit_private_message: EditPrivateMessage = serde_json::from_str(data)?;
+      let res = Oper::new(user_operation, edit_private_message).perform(&conn)?;
+      Ok(serde_json::to_string(&res)?)
+    }
+    UserOperation::GetPrivateMessages => {
+      let messages: GetPrivateMessages = serde_json::from_str(data)?;
+      let res = Oper::new(user_operation, messages).perform(&conn)?;
+      Ok(serde_json::to_string(&res)?)
+    }
   }
 }

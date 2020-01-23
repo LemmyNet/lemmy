@@ -12,6 +12,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route("/login", web::get().to(index))
     .route("/create_post", web::get().to(index))
     .route("/create_community", web::get().to(index))
+    .route("/create_private_message", web::get().to(index))
     .route("/communities/page/{page}", web::get().to(index))
     .route("/communities", web::get().to(index))
     .route("/post/{id}/comment/{id2}", web::get().to(index))

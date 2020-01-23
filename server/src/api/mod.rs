@@ -8,6 +8,8 @@ use crate::db::moderator_views::*;
 use crate::db::password_reset_request::*;
 use crate::db::post::*;
 use crate::db::post_view::*;
+use crate::db::private_message::*;
+use crate::db::private_message_view::*;
 use crate::db::site::*;
 use crate::db::site_view::*;
 use crate::db::user::*;
@@ -67,6 +69,9 @@ pub enum UserOperation {
   DeleteAccount,
   PasswordReset,
   PasswordChange,
+  CreatePrivateMessage,
+  EditPrivateMessage,
+  GetPrivateMessages,
 }
 
 #[derive(Fail, Debug)]

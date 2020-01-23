@@ -405,13 +405,30 @@ export class User extends Component<any, UserState> {
                 </tr>
               </table>
             </div>
-            {this.isCurrentUser && (
+            {this.isCurrentUser ? (
               <button
                 class="btn btn-block btn-secondary mt-3"
                 onClick={linkEvent(this, this.handleLogoutClick)}
               >
                 <T i18nKey="logout">#</T>
               </button>
+            ) : (
+              <>
+                <a
+                  className={`btn btn-block btn-secondary mt-3 ${!this.state
+                    .user.matrix_user_id && 'disabled'}`}
+                  target="_blank"
+                  href={`https://matrix.to/#/${this.state.user.matrix_user_id}`}
+                >
+                  {i18n.t('send_secure_message')}
+                </a>
+                <Link
+                  class="btn btn-block btn-secondary mt-3"
+                  to={`/create_private_message?recipient_id=${this.state.user.id}`}
+                >
+                  {i18n.t('send_message')}
+                </Link>
+              </>
             )}
           </div>
         </div>
@@ -534,6 +551,26 @@ export class User extends Component<any, UserState> {
                     onInput={linkEvent(
                       this,
                       this.handleUserSettingsEmailChange
+                    )}
+                    minLength={3}
+                  />
+                </div>
+              </div>
+              <div class="form-group row">
+                <label class="col-lg-5 col-form-label">
+                  <a href="https://about.riot.im/" target="_blank">
+                    {i18n.t('matrix_user_id')}
+                  </a>
+                </label>
+                <div class="col-lg-7">
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="@user:example.com"
+                    value={this.state.userSettingsForm.matrix_user_id}
+                    onInput={linkEvent(
+                      this,
+                      this.handleUserSettingsMatrixUserIdChange
                     )}
                     minLength={3}
                   />
@@ -875,6 +912,17 @@ export class User extends Component<any, UserState> {
     i.setState(i.state);
   }
 
+  handleUserSettingsMatrixUserIdChange(i: User, event: any) {
+    i.state.userSettingsForm.matrix_user_id = event.target.value;
+    if (
+      i.state.userSettingsForm.matrix_user_id == '' &&
+      !i.state.user.matrix_user_id
+    ) {
+      i.state.userSettingsForm.matrix_user_id = undefined;
+    }
+    i.setState(i.state);
+  }
+
   handleUserSettingsNewPasswordChange(i: User, event: any) {
     i.state.userSettingsForm.new_password = event.target.value;
     if (i.state.userSettingsForm.new_password == '') {
@@ -1001,6 +1049,7 @@ export class User extends Component<any, UserState> {
         this.state.userSettingsForm.send_notifications_to_email = this.state.user.send_notifications_to_email;
         this.state.userSettingsForm.show_avatars =
           UserService.Instance.user.show_avatars;
+        this.state.userSettingsForm.matrix_user_id = this.state.user.matrix_user_id;
       }
       document.title = `/u/${this.state.user.name} - ${WebSocketService.Instance.site.name}`;
       window.scrollTo(0, 0);
