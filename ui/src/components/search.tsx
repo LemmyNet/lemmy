@@ -23,6 +23,7 @@ import {
   routeSortTypeToEnum,
   pictshareAvatarThumbnail,
   showAvatars,
+  toast,
 } from '../utils';
 import { PostListing } from './post-listing';
 import { SortSelect } from './sort-select';
@@ -480,7 +481,7 @@ export class Search extends Component<any, SearchState> {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(i18n.t(msg.error));
+      toast(i18n.t(msg.error), 'danger');
       return;
     } else if (op == UserOperation.Search) {
       let res: SearchResponse = msg;

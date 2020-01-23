@@ -10,7 +10,7 @@ import {
   GetSiteResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { msgOp, validEmail } from '../utils';
+import { msgOp, validEmail, toast } from '../utils';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 
@@ -48,14 +48,7 @@ export class Login extends Component<any, State> {
     this.state = this.emptyState;
 
     this.subscription = WebSocketService.Instance.subject
-      .pipe(
-        retryWhen(errors =>
-          errors.pipe(
-            delay(3000),
-            take(10)
-          )
-        )
-      )
+      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
       .subscribe(
         msg => this.parseMessage(msg),
         err => console.error(err),
@@ -302,7 +295,7 @@ export class Login extends Component<any, State> {
   parseMessage(msg: any) {
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(i18n.t(msg.error));
+      toast(i18n.t(msg.error), 'danger');
       this.state = this.emptyState;
       this.setState(this.state);
       return;
@@ -312,6 +305,7 @@ export class Login extends Component<any, State> {
         this.setState(this.state);
         let res: LoginResponse = msg;
         UserService.Instance.login(res);
+        toast(i18n.t('logged_in'));
         this.props.history.push('/');
       } else if (op == UserOperation.Register) {
         this.state = this.emptyState;
@@ -320,7 +314,7 @@ export class Login extends Component<any, State> {
         UserService.Instance.login(res);
         this.props.history.push('/communities');
       } else if (op == UserOperation.PasswordReset) {
-        alert(i18n.t('reset_password_mail_sent'));
+        toast(i18n.t('reset_password_mail_sent'));
       } else if (op == UserOperation.GetSite) {
         let res: GetSiteResponse = msg;
         this.state.enable_nsfw = res.site.enable_nsfw;

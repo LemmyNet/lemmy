@@ -16,6 +16,7 @@ import {
   mdToHtml,
   randomStr,
   markdownHelpUrl,
+  toast,
 } from '../utils';
 import { WebSocketService, UserService } from '../services';
 import autosize from 'autosize';
@@ -293,7 +294,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
       .catch(error => {
         i.state.imageLoading = false;
         i.setState(i.state);
-        alert(error);
+        toast(error, 'danger');
       });
   }
 

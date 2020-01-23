@@ -22,6 +22,7 @@ import {
   showAvatars,
   fetchLimit,
   isCommentType,
+  toast,
 } from '../utils';
 import { version } from '../version';
 import { i18n } from '../i18next';
@@ -318,7 +319,7 @@ export class Navbar extends Component<any, NavbarState> {
     if (UserService.Instance.user) {
       document.addEventListener('DOMContentLoaded', function() {
         if (!Notification) {
-          alert(i18n.t('notifications_error'));
+          toast(i18n.t('notifications_error'), 'danger');
           return;
         }
 

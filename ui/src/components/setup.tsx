@@ -3,7 +3,7 @@ import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { RegisterForm, LoginResponse, UserOperation } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { msgOp } from '../utils';
+import { msgOp, toast } from '../utils';
 import { SiteForm } from './site-form';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -35,14 +35,7 @@ export class Setup extends Component<any, State> {
     this.state = this.emptyState;
 
     this.subscription = WebSocketService.Instance.subject
-      .pipe(
-        retryWhen(errors =>
-          errors.pipe(
-            delay(3000),
-            take(10)
-          )
-        )
-      )
+      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
       .subscribe(
         msg => this.parseMessage(msg),
         err => console.error(err),
@@ -191,7 +184,7 @@ export class Setup extends Component<any, State> {
   parseMessage(msg: any) {
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(i18n.t(msg.error));
+      toast(i18n.t(msg.error), 'danger');
       this.state.userLoading = false;
       this.setState(this.state);
       return;

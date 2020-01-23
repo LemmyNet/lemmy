@@ -1,5 +1,5 @@
 import { Component } from 'inferno';
-import * as moment from 'moment';
+import moment from 'moment';
 import { getMomentLanguage } from '../utils';
 import { i18n } from '../i18next';
 

@@ -33,6 +33,7 @@ import {
   postRefetchSeconds,
   pictshareAvatarThumbnail,
   showAvatars,
+  toast,
 } from '../utils';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -566,7 +567,7 @@ export class Main extends Component<any, MainState> {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(i18n.t(msg.error));
+      toast(i18n.t(msg.error), 'danger');
       return;
     } else if (op == UserOperation.GetFollowedCommunities) {
       let res: GetFollowedCommunitiesResponse = msg;

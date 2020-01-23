@@ -28,7 +28,7 @@ import {
   GetCommunityResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { msgOp, hotRank } from '../utils';
+import { msgOp, hotRank, toast } from '../utils';
 import { PostListing } from './post-listing';
 import { PostListings } from './post-listings';
 import { Sidebar } from './sidebar';
@@ -345,7 +345,7 @@ export class Post extends Component<any, PostState> {
     console.log(msg);
     let op: UserOperation = msgOp(msg);
     if (msg.error) {
-      alert(i18n.t(msg.error));
+      toast(i18n.t(msg.error), 'danger');
       return;
     } else if (op == UserOperation.GetPost) {
       let res: GetPostResponse = msg;

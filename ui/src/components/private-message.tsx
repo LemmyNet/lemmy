@@ -5,7 +5,12 @@ import {
   EditPrivateMessageForm,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { mdToHtml, pictshareAvatarThumbnail, showAvatars } from '../utils';
+import {
+  mdToHtml,
+  pictshareAvatarThumbnail,
+  showAvatars,
+  toast,
+} from '../utils';
 import { MomentTime } from './moment-time';
 import { PrivateMessageForm } from './private-message-form';
 import { i18n } from '../i18next';
@@ -244,6 +249,6 @@ export class PrivateMessage extends Component<
   handlePrivateMessageCreate() {
     this.state.showReply = false;
     this.setState(this.state);
-    alert(i18n.t('message_sent'));
+    toast(i18n.t('message_sent'), 'danger');
   }
 }

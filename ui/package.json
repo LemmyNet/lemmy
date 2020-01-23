@@ -36,6 +36,7 @@
     "prettier": "^1.18.2",
     "rxjs": "^6.4.0",
     "terser": "^4.6.0",
+    "toastify-js": "^1.6.2",
     "tributejs": "^4.1.1",
     "twemoji": "^12.1.2",
     "ws": "^7.0.0"
