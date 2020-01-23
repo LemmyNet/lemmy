@@ -105,7 +105,7 @@ pub fn send_email(
 
   let mut mailer = SmtpClient::new_simple(&email_config.smtp_server)
     .unwrap()
-    .hello_name(ClientId::Domain("localhost".to_string()))
+    .hello_name(ClientId::Domain(Settings::get().hostname.to_owned()))
     .credentials(Credentials::new(
       email_config.smtp_login.to_owned(),
       email_config.smtp_password.to_owned(),
@@ -116,6 +116,8 @@ pub fn send_email(
     .transport();
 
   let result = mailer.send(email.into());
+
+  mailer.close();
 
   match result {
     Ok(_) => Ok(()),
