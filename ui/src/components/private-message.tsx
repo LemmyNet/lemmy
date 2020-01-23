@@ -249,6 +249,6 @@ export class PrivateMessage extends Component<
   handlePrivateMessageCreate() {
     this.state.showReply = false;
     this.setState(this.state);
-    toast(i18n.t('message_sent'), 'danger');
+    toast(i18n.t('message_sent'));
   }
 }
