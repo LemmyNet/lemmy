@@ -151,15 +151,6 @@ export class PrivateMessageForm extends Component<
                 />
               )}
 
-              {this.state.privateMessageForm.content && (
-                <button
-                  className={`mt-1 mr-2 btn btn-sm btn-secondary ${this.state
-                    .previewMode && 'active'}`}
-                  onClick={linkEvent(this, this.handlePreviewToggle)}
-                >
-                  {i18n.t('preview')}
-                </button>
-              )}
               <ul class="float-right list-inline mb-1 text-muted small font-weight-bold">
                 <li class="list-inline-item">
                   <span
@@ -209,6 +200,15 @@ export class PrivateMessageForm extends Component<
                   capitalizeFirstLetter(i18n.t('send_message'))
                 )}
               </button>
+              {this.state.privateMessageForm.content && (
+                <button
+                  className={`btn btn-secondary mr-2 ${this.state.previewMode &&
+                    'active'}`}
+                  onClick={linkEvent(this, this.handlePreviewToggle)}
+                >
+                  {i18n.t('preview')}
+                </button>
+              )}
               {this.props.privateMessage && (
                 <button
                   type="button"
