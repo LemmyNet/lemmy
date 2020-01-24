@@ -8,9 +8,10 @@ import {
   UserOperation,
   PasswordResetForm,
   GetSiteResponse,
+  WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { msgOp, validEmail, toast } from '../utils';
+import { wsJsonToRes, validEmail, toast } from '../utils';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 
@@ -292,32 +293,32 @@ export class Login extends Component<any, State> {
     WebSocketService.Instance.passwordReset(resetForm);
   }
 
-  parseMessage(msg: any) {
-    let op: UserOperation = msgOp(msg);
-    if (msg.error) {
+  parseMessage(msg: WebSocketJsonResponse) {
+    let res = wsJsonToRes(msg);
+    if (res.error) {
       toast(i18n.t(msg.error), 'danger');
       this.state = this.emptyState;
       this.setState(this.state);
       return;
     } else {
-      if (op == UserOperation.Login) {
+      if (res.op == UserOperation.Login) {
+        let data = res.data as LoginResponse;
         this.state = this.emptyState;
         this.setState(this.state);
-        let res: LoginResponse = msg;
-        UserService.Instance.login(res);
+        UserService.Instance.login(data);
         toast(i18n.t('logged_in'));
         this.props.history.push('/');
-      } else if (op == UserOperation.Register) {
+      } else if (res.op == UserOperation.Register) {
+        let data = res.data as LoginResponse;
         this.state = this.emptyState;
         this.setState(this.state);
-        let res: LoginResponse = msg;
-        UserService.Instance.login(res);
+        UserService.Instance.login(data);
         this.props.history.push('/communities');
-      } else if (op == UserOperation.PasswordReset) {
+      } else if (res.op == UserOperation.PasswordReset) {
         toast(i18n.t('reset_password_mail_sent'));
-      } else if (op == UserOperation.GetSite) {
-        let res: GetSiteResponse = msg;
-        this.state.enable_nsfw = res.site.enable_nsfw;
+      } else if (res.op == UserOperation.GetSite) {
+        let data = res.data as GetSiteResponse;
+        this.state.enable_nsfw = data.site.enable_nsfw;
         this.setState(this.state);
         document.title = `${i18n.t('login')} - ${
           WebSocketService.Instance.site.name

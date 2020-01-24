@@ -8,9 +8,10 @@ import {
   ListCategoriesResponse,
   CommunityResponse,
   GetSiteResponse,
+  WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService } from '../services';
-import { msgOp, capitalizeFirstLetter, toast } from '../utils';
+import { wsJsonToRes, capitalizeFirstLetter, toast } from '../utils';
 import autosize from 'autosize';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -239,34 +240,34 @@ export class CommunityForm extends Component<
     i.props.onCancel();
   }
 
-  parseMessage(msg: any) {
-    let op: UserOperation = msgOp(msg);
+  parseMessage(msg: WebSocketJsonResponse) {
+    let res = wsJsonToRes(msg);
     console.log(msg);
-    if (msg.error) {
+    if (res.error) {
       toast(i18n.t(msg.error), 'danger');
       this.state.loading = false;
       this.setState(this.state);
       return;
-    } else if (op == UserOperation.ListCategories) {
-      let res: ListCategoriesResponse = msg;
-      this.state.categories = res.categories;
+    } else if (res.op == UserOperation.ListCategories) {
+      let data = res.data as ListCategoriesResponse;
+      this.state.categories = data.categories;
       if (!this.props.community) {
-        this.state.communityForm.category_id = res.categories[0].id;
+        this.state.communityForm.category_id = data.categories[0].id;
       }
       this.setState(this.state);
-    } else if (op == UserOperation.CreateCommunity) {
-      let res: CommunityResponse = msg;
+    } else if (res.op == UserOperation.CreateCommunity) {
+      let data = res.data as CommunityResponse;
       this.state.loading = false;
-      this.props.onCreate(res.community);
+      this.props.onCreate(data.community);
     }
-    // TODO is ths necessary
-    else if (op == UserOperation.EditCommunity) {
-      let res: CommunityResponse = msg;
+    // TODO is this necessary
+    else if (res.op == UserOperation.EditCommunity) {
+      let data = res.data as CommunityResponse;
       this.state.loading = false;
-      this.props.onEdit(res.community);
-    } else if (op == UserOperation.GetSite) {
-      let res: GetSiteResponse = msg;
-      this.state.enable_nsfw = res.site.enable_nsfw;
+      this.props.onEdit(data.community);
+    } else if (res.op == UserOperation.GetSite) {
+      let data = res.data as GetSiteResponse;
+      this.state.enable_nsfw = data.site.enable_nsfw;
       this.setState(this.state);
     }
   }

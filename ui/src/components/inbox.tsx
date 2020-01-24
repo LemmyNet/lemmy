@@ -12,13 +12,14 @@ import {
   GetUserMentionsResponse,
   UserMentionResponse,
   CommentResponse,
+  WebSocketJsonResponse,
   PrivateMessage as PrivateMessageI,
   GetPrivateMessagesForm,
   PrivateMessagesResponse,
   PrivateMessageResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { msgOp, fetchLimit, isCommentType, toast } from '../utils';
+import { wsJsonToRes, fetchLimit, isCommentType, toast } from '../utils';
 import { CommentNodes } from './comment-nodes';
 import { PrivateMessage } from './private-message';
 import { SortSelect } from './sort-select';
@@ -320,122 +321,122 @@ export class Inbox extends Component<any, InboxState> {
     WebSocketService.Instance.markAllAsRead();
   }
 
-  parseMessage(msg: any) {
+  parseMessage(msg: WebSocketJsonResponse) {
     console.log(msg);
-    let op: UserOperation = msgOp(msg);
-    if (msg.error) {
+    let res = wsJsonToRes(msg);
+    if (res.error) {
       toast(i18n.t(msg.error), 'danger');
       return;
-    } else if (op == UserOperation.GetReplies) {
-      let res: GetRepliesResponse = msg;
-      this.state.replies = res.replies;
+    } else if (res.op == UserOperation.GetReplies) {
+      let data = res.data as GetRepliesResponse;
+      this.state.replies = data.replies;
       this.sendUnreadCount();
       window.scrollTo(0, 0);
       this.setState(this.state);
-    } else if (op == UserOperation.GetUserMentions) {
-      let res: GetUserMentionsResponse = msg;
-      this.state.mentions = res.mentions;
+    } else if (res.op == UserOperation.GetUserMentions) {
+      let data = res.data as GetUserMentionsResponse;
+      this.state.mentions = data.mentions;
       this.sendUnreadCount();
       window.scrollTo(0, 0);
       this.setState(this.state);
-    } else if (op == UserOperation.GetPrivateMessages) {
-      let res: PrivateMessagesResponse = msg;
-      this.state.messages = res.messages;
+    } else if (res.op == UserOperation.GetPrivateMessages) {
+      let data = res.data as PrivateMessagesResponse;
+      this.state.messages = data.messages;
       this.sendUnreadCount();
       window.scrollTo(0, 0);
       this.setState(this.state);
-    } else if (op == UserOperation.EditPrivateMessage) {
-      let res: PrivateMessageResponse = msg;
+    } else if (res.op == UserOperation.EditPrivateMessage) {
+      let data = res.data as PrivateMessageResponse;
       let found: PrivateMessageI = this.state.messages.find(
-        m => m.id === res.message.id
+        m => m.id === data.message.id
       );
-      found.content = res.message.content;
-      found.updated = res.message.updated;
-      found.deleted = res.message.deleted;
+      found.content = data.message.content;
+      found.updated = data.message.updated;
+      found.deleted = data.message.deleted;
       // If youre in the unread view, just remove it from the list
-      if (this.state.unreadOrAll == UnreadOrAll.Unread && res.message.read) {
+      if (this.state.unreadOrAll == UnreadOrAll.Unread && data.message.read) {
         this.state.messages = this.state.messages.filter(
-          r => r.id !== res.message.id
+          r => r.id !== data.message.id
         );
       } else {
-        let found = this.state.messages.find(c => c.id == res.message.id);
-        found.read = res.message.read;
+        let found = this.state.messages.find(c => c.id == data.message.id);
+        found.read = data.message.read;
       }
       this.sendUnreadCount();
       window.scrollTo(0, 0);
       this.setState(this.state);
-    } else if (op == UserOperation.MarkAllAsRead) {
+    } else if (res.op == UserOperation.MarkAllAsRead) {
       this.state.replies = [];
       this.state.mentions = [];
       this.state.messages = [];
       this.sendUnreadCount();
       window.scrollTo(0, 0);
       this.setState(this.state);
-    } else if (op == UserOperation.EditComment) {
-      let res: CommentResponse = msg;
+    } else if (res.op == UserOperation.EditComment) {
+      let data = res.data as CommentResponse;
 
-      let found = this.state.replies.find(c => c.id == res.comment.id);
-      found.content = res.comment.content;
-      found.updated = res.comment.updated;
-      found.removed = res.comment.removed;
-      found.deleted = res.comment.deleted;
-      found.upvotes = res.comment.upvotes;
-      found.downvotes = res.comment.downvotes;
-      found.score = res.comment.score;
+      let found = this.state.replies.find(c => c.id == data.comment.id);
+      found.content = data.comment.content;
+      found.updated = data.comment.updated;
+      found.removed = data.comment.removed;
+      found.deleted = data.comment.deleted;
+      found.upvotes = data.comment.upvotes;
+      found.downvotes = data.comment.downvotes;
+      found.score = data.comment.score;
 
       // If youre in the unread view, just remove it from the list
-      if (this.state.unreadOrAll == UnreadOrAll.Unread && res.comment.read) {
+      if (this.state.unreadOrAll == UnreadOrAll.Unread && data.comment.read) {
         this.state.replies = this.state.replies.filter(
-          r => r.id !== res.comment.id
+          r => r.id !== data.comment.id
         );
       } else {
-        let found = this.state.replies.find(c => c.id == res.comment.id);
-        found.read = res.comment.read;
+        let found = this.state.replies.find(c => c.id == data.comment.id);
+        found.read = data.comment.read;
       }
       this.sendUnreadCount();
       this.setState(this.state);
-    } else if (op == UserOperation.EditUserMention) {
-      let res: UserMentionResponse = msg;
+    } else if (res.op == UserOperation.EditUserMention) {
+      let data = res.data as UserMentionResponse;
 
-      let found = this.state.mentions.find(c => c.id == res.mention.id);
-      found.content = res.mention.content;
-      found.updated = res.mention.updated;
-      found.removed = res.mention.removed;
-      found.deleted = res.mention.deleted;
-      found.upvotes = res.mention.upvotes;
-      found.downvotes = res.mention.downvotes;
-      found.score = res.mention.score;
+      let found = this.state.mentions.find(c => c.id == data.mention.id);
+      found.content = data.mention.content;
+      found.updated = data.mention.updated;
+      found.removed = data.mention.removed;
+      found.deleted = data.mention.deleted;
+      found.upvotes = data.mention.upvotes;
+      found.downvotes = data.mention.downvotes;
+      found.score = data.mention.score;
 
       // If youre in the unread view, just remove it from the list
-      if (this.state.unreadOrAll == UnreadOrAll.Unread && res.mention.read) {
+      if (this.state.unreadOrAll == UnreadOrAll.Unread && data.mention.read) {
         this.state.mentions = this.state.mentions.filter(
-          r => r.id !== res.mention.id
+          r => r.id !== data.mention.id
         );
       } else {
-        let found = this.state.mentions.find(c => c.id == res.mention.id);
-        found.read = res.mention.read;
+        let found = this.state.mentions.find(c => c.id == data.mention.id);
+        found.read = data.mention.read;
       }
       this.sendUnreadCount();
       this.setState(this.state);
-    } else if (op == UserOperation.CreateComment) {
+    } else if (res.op == UserOperation.CreateComment) {
       // let res: CommentResponse = msg;
       toast(i18n.t('reply_sent'));
       // this.state.replies.unshift(res.comment); // TODO do this right
       // this.setState(this.state);
-    } else if (op == UserOperation.SaveComment) {
-      let res: CommentResponse = msg;
-      let found = this.state.replies.find(c => c.id == res.comment.id);
-      found.saved = res.comment.saved;
+    } else if (res.op == UserOperation.SaveComment) {
+      let data = res.data as CommentResponse;
+      let found = this.state.replies.find(c => c.id == data.comment.id);
+      found.saved = data.comment.saved;
       this.setState(this.state);
-    } else if (op == UserOperation.CreateCommentLike) {
-      let res: CommentResponse = msg;
+    } else if (res.op == UserOperation.CreateCommentLike) {
+      let data = res.data as CommentResponse;
       let found: Comment = this.state.replies.find(
-        c => c.id === res.comment.id
+        c => c.id === data.comment.id
       );
-      found.score = res.comment.score;
-      found.upvotes = res.comment.upvotes;
-      found.downvotes = res.comment.downvotes;
-      if (res.comment.my_vote !== null) found.my_vote = res.comment.my_vote;
+      found.score = data.comment.score;
+      found.upvotes = data.comment.upvotes;
+      found.downvotes = data.comment.downvotes;
+      if (data.comment.my_vote !== null) found.my_vote = data.comment.my_vote;
       this.setState(this.state);
     }
   }

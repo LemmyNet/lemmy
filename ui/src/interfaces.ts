@@ -249,7 +249,6 @@ export interface FollowCommunityForm {
 }
 
 export interface GetFollowedCommunitiesResponse {
-  op: string;
   communities: Array<CommunityUser>;
 }
 
@@ -264,7 +263,6 @@ export interface GetUserDetailsForm {
 }
 
 export interface UserDetailsResponse {
-  op: string;
   user: UserView;
   follows: Array<CommunityUser>;
   moderates: Array<CommunityUser>;
@@ -282,7 +280,6 @@ export interface GetRepliesForm {
 }
 
 export interface GetRepliesResponse {
-  op: string;
   replies: Array<Comment>;
 }
 
@@ -295,7 +292,6 @@ export interface GetUserMentionsForm {
 }
 
 export interface GetUserMentionsResponse {
-  op: string;
   mentions: Array<Comment>;
 }
 
@@ -306,7 +302,6 @@ export interface EditUserMentionForm {
 }
 
 export interface UserMentionResponse {
-  op: string;
   mention: Comment;
 }
 
@@ -320,7 +315,6 @@ export interface BanFromCommunityForm {
 }
 
 export interface BanFromCommunityResponse {
-  op: string;
   user: UserView;
   banned: boolean;
 }
@@ -344,7 +338,6 @@ export interface TransferSiteForm {
 }
 
 export interface AddModToCommunityResponse {
-  op: string;
   moderators: Array<CommunityUser>;
 }
 
@@ -356,7 +349,6 @@ export interface GetModlogForm {
 }
 
 export interface GetModlogResponse {
-  op: string;
   removed_posts: Array<ModRemovePost>;
   locked_posts: Array<ModLockPost>;
   stickied_posts: Array<ModStickyPost>;
@@ -497,7 +489,6 @@ export interface RegisterForm {
 }
 
 export interface LoginResponse {
-  op: string;
   jwt: string;
 }
 
@@ -533,14 +524,12 @@ export interface CommunityForm {
 }
 
 export interface GetCommunityResponse {
-  op: string;
   community: Community;
   moderators: Array<CommunityUser>;
   admins: Array<UserView>;
 }
 
 export interface CommunityResponse {
-  op: string;
   community: Community;
 }
 
@@ -552,12 +541,10 @@ export interface ListCommunitiesForm {
 }
 
 export interface ListCommunitiesResponse {
-  op: string;
   communities: Array<Community>;
 }
 
 export interface ListCategoriesResponse {
-  op: string;
   categories: Array<Category>;
 }
 
@@ -586,7 +573,6 @@ export interface PostFormParams {
 }
 
 export interface GetPostResponse {
-  op: string;
   post: Post;
   comments: Array<Comment>;
   community: Community;
@@ -601,7 +587,6 @@ export interface SavePostForm {
 }
 
 export interface PostResponse {
-  op: string;
   post: Post;
 }
 
@@ -625,7 +610,6 @@ export interface SaveCommentForm {
 }
 
 export interface CommentResponse {
-  op: string;
   comment: Comment;
 }
 
@@ -651,7 +635,6 @@ export interface GetPostsForm {
 }
 
 export interface GetPostsResponse {
-  op: string;
   posts: Array<Post>;
 }
 
@@ -662,7 +645,6 @@ export interface CreatePostLikeForm {
 }
 
 export interface CreatePostLikeResponse {
-  op: string;
   post: Post;
 }
 
@@ -676,7 +658,6 @@ export interface SiteForm {
 }
 
 export interface GetSiteResponse {
-  op: string;
   site: Site;
   admins: Array<UserView>;
   banned: Array<UserView>;
@@ -684,7 +665,6 @@ export interface GetSiteResponse {
 }
 
 export interface SiteResponse {
-  op: string;
   site: Site;
 }
 
@@ -697,7 +677,6 @@ export interface BanUserForm {
 }
 
 export interface BanUserResponse {
-  op: string;
   user: UserView;
   banned: boolean;
 }
@@ -709,7 +688,6 @@ export interface AddAdminForm {
 }
 
 export interface AddAdminResponse {
-  op: string;
   admins: Array<UserView>;
 }
 
@@ -724,7 +702,6 @@ export interface SearchForm {
 }
 
 export interface SearchResponse {
-  op: string;
   type_: string;
   posts?: Array<Post>;
   comments?: Array<Comment>;
@@ -740,9 +717,8 @@ export interface PasswordResetForm {
   email: string;
 }
 
-export interface PasswordResetResponse {
-  op: string;
-}
+// export interface PasswordResetResponse {
+// }
 
 export interface PasswordChangeForm {
   token: string;
@@ -776,11 +752,43 @@ export interface GetPrivateMessagesForm {
 }
 
 export interface PrivateMessagesResponse {
-  op: string;
   messages: Array<PrivateMessage>;
 }
 
 export interface PrivateMessageResponse {
-  op: string;
   message: PrivateMessage;
+}
+
+type ResponseType =
+  | SiteResponse
+  | GetFollowedCommunitiesResponse
+  | ListCommunitiesResponse
+  | GetPostsResponse
+  | CreatePostLikeResponse
+  | GetRepliesResponse
+  | GetUserMentionsResponse
+  | ListCategoriesResponse
+  | CommunityResponse
+  | CommentResponse
+  | UserMentionResponse
+  | LoginResponse
+  | GetModlogResponse
+  | SearchResponse
+  | BanFromCommunityResponse
+  | AddModToCommunityResponse
+  | BanUserResponse
+  | AddAdminResponse
+  | PrivateMessageResponse
+  | PrivateMessagesResponse;
+
+export interface WebSocketResponse {
+  op: UserOperation;
+  data: ResponseType;
+  error?: string;
+}
+
+export interface WebSocketJsonResponse {
+  op: string;
+  data: ResponseType;
+  error?: string;
 }

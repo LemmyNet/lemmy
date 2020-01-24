@@ -1,9 +1,14 @@
 import { Component, linkEvent } from 'inferno';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { RegisterForm, LoginResponse, UserOperation } from '../interfaces';
+import {
+  RegisterForm,
+  LoginResponse,
+  UserOperation,
+  WebSocketJsonResponse,
+} from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { msgOp, toast } from '../utils';
+import { wsJsonToRes, toast } from '../utils';
 import { SiteForm } from './site-form';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -181,21 +186,20 @@ export class Setup extends Component<any, State> {
     i.setState(i.state);
   }
 
-  parseMessage(msg: any) {
-    let op: UserOperation = msgOp(msg);
-    if (msg.error) {
+  parseMessage(msg: WebSocketJsonResponse) {
+    let res = wsJsonToRes(msg);
+    if (res.error) {
       toast(i18n.t(msg.error), 'danger');
       this.state.userLoading = false;
       this.setState(this.state);
       return;
-    } else if (op == UserOperation.Register) {
+    } else if (res.op == UserOperation.Register) {
+      let data = res.data as LoginResponse;
       this.state.userLoading = false;
       this.state.doneRegisteringUser = true;
-      let res: LoginResponse = msg;
-      UserService.Instance.login(res);
-      console.log(res);
+      UserService.Instance.login(data);
       this.setState(this.state);
-    } else if (op == UserOperation.CreateSite) {
+    } else if (res.op == UserOperation.CreateSite) {
       this.props.history.push('/');
     }
   }
