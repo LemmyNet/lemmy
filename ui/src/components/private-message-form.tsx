@@ -13,15 +13,16 @@ import {
   UserDetailsResponse,
   GetUserDetailsForm,
   SortType,
+  WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService } from '../services';
 import {
-  msgOp,
   capitalizeFirstLetter,
   markdownHelpUrl,
   mdToHtml,
   showAvatars,
   pictshareAvatarThumbnail,
+  wsJsonToRes,
   toast,
 } from '../utils';
 import autosize from 'autosize';
@@ -266,26 +267,26 @@ export class PrivateMessageForm extends Component<
     i.setState(i.state);
   }
 
-  parseMessage(msg: any) {
-    let op: UserOperation = msgOp(msg);
-    if (msg.error) {
+  parseMessage(msg: WebSocketJsonResponse) {
+    let res = wsJsonToRes(msg);
+    if (res.error) {
       toast(i18n.t(msg.error), 'danger');
       this.state.loading = false;
       this.setState(this.state);
       return;
-    } else if (op == UserOperation.EditPrivateMessage) {
+    } else if (res.op == UserOperation.EditPrivateMessage) {
+      let data = res.data as PrivateMessageResponse;
       this.state.loading = false;
-      let res: PrivateMessageResponse = msg;
-      this.props.onEdit(res.message);
-    } else if (op == UserOperation.GetUserDetails) {
-      let res: UserDetailsResponse = msg;
-      this.state.recipient = res.user;
-      this.state.privateMessageForm.recipient_id = res.user.id;
+      this.props.onEdit(data.message);
+    } else if (res.op == UserOperation.GetUserDetails) {
+      let data = res.data as UserDetailsResponse;
+      this.state.recipient = data.user;
+      this.state.privateMessageForm.recipient_id = data.user.id;
       this.setState(this.state);
-    } else if (op == UserOperation.CreatePrivateMessage) {
+    } else if (res.op == UserOperation.CreatePrivateMessage) {
+      let data = res.data as PrivateMessageResponse;
       this.state.loading = false;
-      let res: PrivateMessageResponse = msg;
-      this.props.onCreate(res.message);
+      this.props.onCreate(data.message);
       this.setState(this.state);
     }
   }
