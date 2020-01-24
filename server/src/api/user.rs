@@ -30,6 +30,7 @@ pub struct SaveUserSettings {
   lang: String,
   avatar: Option<String>,
   email: Option<String>,
+  matrix_user_id: Option<String>,
   new_password: Option<String>,
   new_password_verify: Option<String>,
   old_password: Option<String>,
@@ -40,7 +41,6 @@ pub struct SaveUserSettings {
 
 #[derive(Serialize, Deserialize)]
 pub struct LoginResponse {
-  op: String,
   jwt: String,
 }
 
@@ -58,7 +58,6 @@ pub struct GetUserDetails {
 
 #[derive(Serialize, Deserialize)]
 pub struct GetUserDetailsResponse {
-  op: String,
   user: UserView,
   follows: Vec<CommunityFollowerView>,
   moderates: Vec<CommunityModeratorView>,
@@ -69,13 +68,11 @@ pub struct GetUserDetailsResponse {
 
 #[derive(Serialize, Deserialize)]
 pub struct GetRepliesResponse {
-  op: String,
   replies: Vec<ReplyView>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct GetUserMentionsResponse {
-  op: String,
   mentions: Vec<UserMentionView>,
 }
 
@@ -93,7 +90,6 @@ pub struct AddAdmin {
 
 #[derive(Serialize, Deserialize)]
 pub struct AddAdminResponse {
-  op: String,
   admins: Vec<UserView>,
 }
 
@@ -108,7 +104,6 @@ pub struct BanUser {
 
 #[derive(Serialize, Deserialize)]
 pub struct BanUserResponse {
-  op: String,
   user: UserView,
   banned: bool,
 }
@@ -140,7 +135,6 @@ pub struct EditUserMention {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct UserMentionResponse {
-  op: String,
   mention: UserMentionView,
 }
 
@@ -156,15 +150,47 @@ pub struct PasswordReset {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct PasswordResetResponse {
-  op: String,
-}
+pub struct PasswordResetResponse {}
 
 #[derive(Serialize, Deserialize)]
 pub struct PasswordChange {
   token: String,
   password: String,
   password_verify: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CreatePrivateMessage {
+  content: String,
+  recipient_id: i32,
+  auth: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct EditPrivateMessage {
+  edit_id: i32,
+  content: Option<String>,
+  deleted: Option<bool>,
+  read: Option<bool>,
+  auth: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetPrivateMessages {
+  unread_only: bool,
+  page: Option<i64>,
+  limit: Option<i64>,
+  auth: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct PrivateMessagesResponse {
+  messages: Vec<PrivateMessageView>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct PrivateMessageResponse {
+  message: PrivateMessageView,
 }
 
 impl Perform<LoginResponse> for Oper<Login> {
@@ -174,20 +200,17 @@ impl Perform<LoginResponse> for Oper<Login> {
     // Fetch that username / email
     let user: User_ = match User_::find_by_email_or_username(&conn, &data.username_or_email) {
       Ok(user) => user,
-      Err(_e) => return Err(APIError::err(&self.op, "couldnt_find_that_username_or_email").into()),
+      Err(_e) => return Err(APIError::err("couldnt_find_that_username_or_email").into()),
     };
 
     // Verify the password
     let valid: bool = verify(&data.password, &user.password_encrypted).unwrap_or(false);
     if !valid {
-      return Err(APIError::err(&self.op, "password_incorrect").into());
+      return Err(APIError::err("password_incorrect").into());
     }
 
     // Return the jwt
-    Ok(LoginResponse {
-      op: self.op.to_string(),
-      jwt: user.jwt(),
-    })
+    Ok(LoginResponse { jwt: user.jwt() })
   }
 }
 
@@ -198,22 +221,22 @@ impl Perform<LoginResponse> for Oper<Register> {
     // Make sure site has open registration
     if let Ok(site) = SiteView::read(&conn) {
       if !site.open_registration {
-        return Err(APIError::err(&self.op, "registration_closed").into());
+        return Err(APIError::err("registration_closed").into());
       }
     }
 
     // Make sure passwords match
     if data.password != data.password_verify {
-      return Err(APIError::err(&self.op, "passwords_dont_match").into());
+      return Err(APIError::err("passwords_dont_match").into());
     }
 
     if has_slurs(&data.username) {
-      return Err(APIError::err(&self.op, "no_slurs").into());
+      return Err(APIError::err("no_slurs").into());
     }
 
     // Make sure there are no admins
     if data.admin && !UserView::admins(&conn)?.is_empty() {
-      return Err(APIError::err(&self.op, "admin_already_created").into());
+      return Err(APIError::err("admin_already_created").into());
     }
 
     // Register the new user
@@ -221,6 +244,7 @@ impl Perform<LoginResponse> for Oper<Register> {
       name: data.username.to_owned(),
       fedi_name: Settings::get().hostname.to_owned(),
       email: data.email.to_owned(),
+      matrix_user_id: None,
       avatar: None,
       password_encrypted: data.password.to_owned(),
       preferred_username: None,
@@ -248,7 +272,7 @@ impl Perform<LoginResponse> for Oper<Register> {
           "user_already_exists"
         };
 
-        return Err(APIError::err(&self.op, err_type).into());
+        return Err(APIError::err(err_type).into());
       }
     };
 
@@ -280,7 +304,7 @@ impl Perform<LoginResponse> for Oper<Register> {
     let _inserted_community_follower =
       match CommunityFollower::follow(&conn, &community_follower_form) {
         Ok(user) => user,
-        Err(_e) => return Err(APIError::err(&self.op, "community_follower_already_exists").into()),
+        Err(_e) => return Err(APIError::err("community_follower_already_exists").into()),
       };
 
     // If its an admin, add them as a mod and follower to main
@@ -293,15 +317,12 @@ impl Perform<LoginResponse> for Oper<Register> {
       let _inserted_community_moderator =
         match CommunityModerator::join(&conn, &community_moderator_form) {
           Ok(user) => user,
-          Err(_e) => {
-            return Err(APIError::err(&self.op, "community_moderator_already_exists").into())
-          }
+          Err(_e) => return Err(APIError::err("community_moderator_already_exists").into()),
         };
     }
 
     // Return the jwt
     Ok(LoginResponse {
-      op: self.op.to_string(),
       jwt: inserted_user.jwt(),
     })
   }
@@ -313,7 +334,7 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in").into()),
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
     };
 
     let user_id = claims.id;
@@ -331,7 +352,7 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
           Some(new_password_verify) => {
             // Make sure passwords match
             if new_password != new_password_verify {
-              return Err(APIError::err(&self.op, "passwords_dont_match").into());
+              return Err(APIError::err("passwords_dont_match").into());
             }
 
             // Check the old password
@@ -340,14 +361,14 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
                 let valid: bool =
                   verify(old_password, &read_user.password_encrypted).unwrap_or(false);
                 if !valid {
-                  return Err(APIError::err(&self.op, "password_incorrect").into());
+                  return Err(APIError::err("password_incorrect").into());
                 }
                 User_::update_password(&conn, user_id, &new_password)?.password_encrypted
               }
-              None => return Err(APIError::err(&self.op, "password_incorrect").into()),
+              None => return Err(APIError::err("password_incorrect").into()),
             }
           }
-          None => return Err(APIError::err(&self.op, "passwords_dont_match").into()),
+          None => return Err(APIError::err("passwords_dont_match").into()),
         }
       }
       None => read_user.password_encrypted,
@@ -357,6 +378,7 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
       name: read_user.name,
       fedi_name: read_user.fedi_name,
       email,
+      matrix_user_id: data.matrix_user_id.to_owned(),
       avatar: data.avatar.to_owned(),
       password_encrypted,
       preferred_username: read_user.preferred_username,
@@ -383,13 +405,12 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
           "user_already_exists"
         };
 
-        return Err(APIError::err(&self.op, err_type).into());
+        return Err(APIError::err(err_type).into());
       }
     };
 
     // Return the jwt
     Ok(LoginResponse {
-      op: self.op.to_string(),
       jwt: updated_user.jwt(),
     })
   }
@@ -430,9 +451,7 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
             .unwrap_or_else(|| "admin".to_string()),
         ) {
           Ok(user) => user.id,
-          Err(_e) => {
-            return Err(APIError::err(&self.op, "couldnt_find_that_username_or_email").into())
-          }
+          Err(_e) => return Err(APIError::err("couldnt_find_that_username_or_email").into()),
         }
       }
     };
@@ -475,7 +494,6 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
 
     // Return the jwt
     Ok(GetUserDetailsResponse {
-      op: self.op.to_string(),
       user: user_view,
       follows,
       moderates,
@@ -492,22 +510,24 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in").into()),
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
     };
 
     let user_id = claims.id;
 
     // Make sure user is an admin
     if !UserView::read(&conn, user_id)?.admin {
-      return Err(APIError::err(&self.op, "not_an_admin").into());
+      return Err(APIError::err("not_an_admin").into());
     }
 
     let read_user = User_::read(&conn, data.user_id)?;
 
+    // TODO make addadmin easier
     let user_form = UserForm {
       name: read_user.name,
       fedi_name: read_user.fedi_name,
       email: read_user.email,
+      matrix_user_id: read_user.matrix_user_id,
       avatar: read_user.avatar,
       password_encrypted: read_user.password_encrypted,
       preferred_username: read_user.preferred_username,
@@ -525,7 +545,7 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
 
     match User_::update(&conn, data.user_id, &user_form) {
       Ok(user) => user,
-      Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_user").into()),
+      Err(_e) => return Err(APIError::err("couldnt_update_user").into()),
     };
 
     // Mod tables
@@ -543,10 +563,7 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
 
-    Ok(AddAdminResponse {
-      op: self.op.to_string(),
-      admins,
-    })
+    Ok(AddAdminResponse { admins })
   }
 }
 
@@ -556,22 +573,24 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in").into()),
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
     };
 
     let user_id = claims.id;
 
     // Make sure user is an admin
     if !UserView::read(&conn, user_id)?.admin {
-      return Err(APIError::err(&self.op, "not_an_admin").into());
+      return Err(APIError::err("not_an_admin").into());
     }
 
     let read_user = User_::read(&conn, data.user_id)?;
 
+    // TODO make bans and addadmins easier
     let user_form = UserForm {
       name: read_user.name,
       fedi_name: read_user.fedi_name,
       email: read_user.email,
+      matrix_user_id: read_user.matrix_user_id,
       avatar: read_user.avatar,
       password_encrypted: read_user.password_encrypted,
       preferred_username: read_user.preferred_username,
@@ -589,7 +608,7 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
 
     match User_::update(&conn, data.user_id, &user_form) {
       Ok(user) => user,
-      Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_user").into()),
+      Err(_e) => return Err(APIError::err("couldnt_update_user").into()),
     };
 
     // Mod tables
@@ -611,7 +630,6 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
     let user_view = UserView::read(&conn, data.user_id)?;
 
     Ok(BanUserResponse {
-      op: self.op.to_string(),
       user: user_view,
       banned: data.ban,
     })
@@ -624,7 +642,7 @@ impl Perform<GetRepliesResponse> for Oper<GetReplies> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in").into()),
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
     };
 
     let user_id = claims.id;
@@ -638,10 +656,7 @@ impl Perform<GetRepliesResponse> for Oper<GetReplies> {
       .limit(data.limit)
       .list()?;
 
-    Ok(GetRepliesResponse {
-      op: self.op.to_string(),
-      replies,
-    })
+    Ok(GetRepliesResponse { replies })
   }
 }
 
@@ -651,7 +666,7 @@ impl Perform<GetUserMentionsResponse> for Oper<GetUserMentions> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in").into()),
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
     };
 
     let user_id = claims.id;
@@ -665,10 +680,7 @@ impl Perform<GetUserMentionsResponse> for Oper<GetUserMentions> {
       .limit(data.limit)
       .list()?;
 
-    Ok(GetUserMentionsResponse {
-      op: self.op.to_string(),
-      mentions,
-    })
+    Ok(GetUserMentionsResponse { mentions })
   }
 }
 
@@ -678,7 +690,7 @@ impl Perform<UserMentionResponse> for Oper<EditUserMention> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in").into()),
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
     };
 
     let user_id = claims.id;
@@ -694,13 +706,12 @@ impl Perform<UserMentionResponse> for Oper<EditUserMention> {
     let _updated_user_mention =
       match UserMention::update(&conn, user_mention.id, &user_mention_form) {
         Ok(comment) => comment,
-        Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_comment").into()),
+        Err(_e) => return Err(APIError::err("couldnt_update_comment").into()),
       };
 
     let user_mention_view = UserMentionView::read(&conn, user_mention.id, user_id)?;
 
     Ok(UserMentionResponse {
-      op: self.op.to_string(),
       mention: user_mention_view,
     })
   }
@@ -712,7 +723,7 @@ impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in").into()),
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
     };
 
     let user_id = claims.id;
@@ -737,7 +748,7 @@ impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
 
       let _updated_comment = match Comment::update(&conn, reply.id, &comment_form) {
         Ok(comment) => comment,
-        Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_comment").into()),
+        Err(_e) => return Err(APIError::err("couldnt_update_comment").into()),
       };
     }
 
@@ -758,14 +769,35 @@ impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
       let _updated_mention =
         match UserMention::update(&conn, mention.user_mention_id, &mention_form) {
           Ok(mention) => mention,
-          Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_comment").into()),
+          Err(_e) => return Err(APIError::err("couldnt_update_comment").into()),
         };
     }
 
-    Ok(GetRepliesResponse {
-      op: self.op.to_string(),
-      replies: vec![],
-    })
+    // messages
+    let messages = PrivateMessageQueryBuilder::create(&conn, user_id)
+      .page(1)
+      .limit(999)
+      .unread_only(true)
+      .list()?;
+
+    for message in &messages {
+      let private_message_form = PrivateMessageForm {
+        content: None,
+        creator_id: message.to_owned().creator_id,
+        recipient_id: message.to_owned().recipient_id,
+        deleted: None,
+        read: Some(true),
+        updated: None,
+      };
+
+      let _updated_message = match PrivateMessage::update(&conn, message.id, &private_message_form)
+      {
+        Ok(message) => message,
+        Err(_e) => return Err(APIError::err("couldnt_update_private_message").into()),
+      };
+    }
+
+    Ok(GetRepliesResponse { replies: vec![] })
   }
 }
 
@@ -775,7 +807,7 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err(&self.op, "not_logged_in").into()),
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
     };
 
     let user_id = claims.id;
@@ -785,7 +817,7 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
     // Verify the password
     let valid: bool = verify(&data.password, &user.password_encrypted).unwrap_or(false);
     if !valid {
-      return Err(APIError::err(&self.op, "password_incorrect").into());
+      return Err(APIError::err("password_incorrect").into());
     }
 
     // Comments
@@ -808,7 +840,7 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
 
       let _updated_comment = match Comment::update(&conn, comment.id, &comment_form) {
         Ok(comment) => comment,
-        Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_comment").into()),
+        Err(_e) => return Err(APIError::err("couldnt_update_comment").into()),
       };
     }
 
@@ -836,12 +868,11 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
 
       let _updated_post = match Post::update(&conn, post.id, &post_form) {
         Ok(post) => post,
-        Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_post").into()),
+        Err(_e) => return Err(APIError::err("couldnt_update_post").into()),
       };
     }
 
     Ok(LoginResponse {
-      op: self.op.to_string(),
       jwt: data.auth.to_owned(),
     })
   }
@@ -854,7 +885,7 @@ impl Perform<PasswordResetResponse> for Oper<PasswordReset> {
     // Fetch that email
     let user: User_ = match User_::find_by_email(&conn, &data.email) {
       Ok(user) => user,
-      Err(_e) => return Err(APIError::err(&self.op, "couldnt_find_that_username_or_email").into()),
+      Err(_e) => return Err(APIError::err("couldnt_find_that_username_or_email").into()),
     };
 
     // Generate a random token
@@ -871,12 +902,10 @@ impl Perform<PasswordResetResponse> for Oper<PasswordReset> {
     let html = &format!("<h1>Password Reset Request for {}</h1><br><a href={}/password_change/{}>Click here to reset your password</a>", user.name, hostname, &token);
     match send_email(subject, user_email, &user.name, html) {
       Ok(_o) => _o,
-      Err(_e) => return Err(APIError::err(&self.op, &_e).into()),
+      Err(_e) => return Err(APIError::err(&_e).into()),
     };
 
-    Ok(PasswordResetResponse {
-      op: self.op.to_string(),
-    })
+    Ok(PasswordResetResponse {})
   }
 }
 
@@ -889,19 +918,156 @@ impl Perform<LoginResponse> for Oper<PasswordChange> {
 
     // Make sure passwords match
     if data.password != data.password_verify {
-      return Err(APIError::err(&self.op, "passwords_dont_match").into());
+      return Err(APIError::err("passwords_dont_match").into());
     }
 
     // Update the user with the new password
     let updated_user = match User_::update_password(&conn, user_id, &data.password) {
       Ok(user) => user,
-      Err(_e) => return Err(APIError::err(&self.op, "couldnt_update_user").into()),
+      Err(_e) => return Err(APIError::err("couldnt_update_user").into()),
     };
 
     // Return the jwt
     Ok(LoginResponse {
-      op: self.op.to_string(),
       jwt: updated_user.jwt(),
     })
+  }
+}
+
+impl Perform<PrivateMessageResponse> for Oper<CreatePrivateMessage> {
+  fn perform(&self, conn: &PgConnection) -> Result<PrivateMessageResponse, Error> {
+    let data: &CreatePrivateMessage = &self.data;
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
+    };
+
+    let user_id = claims.id;
+
+    let hostname = &format!("https://{}", Settings::get().hostname);
+
+    // Check for a site ban
+    if UserView::read(&conn, user_id)?.banned {
+      return Err(APIError::err("site_ban").into());
+    }
+
+    let content_slurs_removed = remove_slurs(&data.content.to_owned());
+
+    let private_message_form = PrivateMessageForm {
+      content: Some(content_slurs_removed.to_owned()),
+      creator_id: user_id,
+      recipient_id: data.recipient_id,
+      deleted: None,
+      read: None,
+      updated: None,
+    };
+
+    let inserted_private_message = match PrivateMessage::create(&conn, &private_message_form) {
+      Ok(private_message) => private_message,
+      Err(_e) => {
+        return Err(APIError::err("couldnt_create_private_message").into());
+      }
+    };
+
+    // Send notifications to the recipient
+    let recipient_user = User_::read(&conn, data.recipient_id)?;
+    if recipient_user.send_notifications_to_email {
+      if let Some(email) = recipient_user.email {
+        let subject = &format!(
+          "{} - Private Message from {}",
+          Settings::get().hostname,
+          claims.username
+        );
+        let html = &format!(
+          "<h1>Private Message</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
+          claims.username, &content_slurs_removed, hostname
+        );
+        match send_email(subject, &email, &recipient_user.name, html) {
+          Ok(_o) => _o,
+          Err(e) => eprintln!("{}", e),
+        };
+      }
+    }
+
+    let message = PrivateMessageView::read(&conn, inserted_private_message.id)?;
+
+    Ok(PrivateMessageResponse { message })
+  }
+}
+
+impl Perform<PrivateMessageResponse> for Oper<EditPrivateMessage> {
+  fn perform(&self, conn: &PgConnection) -> Result<PrivateMessageResponse, Error> {
+    let data: &EditPrivateMessage = &self.data;
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
+    };
+
+    let user_id = claims.id;
+
+    let orig_private_message = PrivateMessage::read(&conn, data.edit_id)?;
+
+    // Check for a site ban
+    if UserView::read(&conn, user_id)?.banned {
+      return Err(APIError::err("site_ban").into());
+    }
+
+    // Check to make sure they are the creator (or the recipient marking as read
+    if !(data.read.is_some() && orig_private_message.recipient_id.eq(&user_id)
+      || orig_private_message.creator_id.eq(&user_id))
+    {
+      return Err(APIError::err("no_private_message_edit_allowed").into());
+    }
+
+    let content_slurs_removed = match &data.content {
+      Some(content) => Some(remove_slurs(content)),
+      None => None,
+    };
+
+    let private_message_form = PrivateMessageForm {
+      content: content_slurs_removed,
+      creator_id: orig_private_message.creator_id,
+      recipient_id: orig_private_message.recipient_id,
+      deleted: data.deleted.to_owned(),
+      read: data.read.to_owned(),
+      updated: if data.read.is_some() {
+        orig_private_message.updated
+      } else {
+        Some(naive_now())
+      },
+    };
+
+    let _updated_private_message =
+      match PrivateMessage::update(&conn, data.edit_id, &private_message_form) {
+        Ok(private_message) => private_message,
+        Err(_e) => return Err(APIError::err("couldnt_update_private_message").into()),
+      };
+
+    let message = PrivateMessageView::read(&conn, data.edit_id)?;
+
+    Ok(PrivateMessageResponse { message })
+  }
+}
+
+impl Perform<PrivateMessagesResponse> for Oper<GetPrivateMessages> {
+  fn perform(&self, conn: &PgConnection) -> Result<PrivateMessagesResponse, Error> {
+    let data: &GetPrivateMessages = &self.data;
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
+    };
+
+    let user_id = claims.id;
+
+    let messages = PrivateMessageQueryBuilder::create(&conn, user_id)
+      .page(data.page)
+      .limit(data.limit)
+      .unread_only(data.unread_only)
+      .list()?;
+
+    Ok(PrivateMessagesResponse { messages })
   }
 }

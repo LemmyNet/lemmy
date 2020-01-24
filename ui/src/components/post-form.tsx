@@ -16,10 +16,11 @@ import {
   SearchType,
   SearchResponse,
   GetSiteResponse,
+  WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import {
-  msgOp,
+  wsJsonToRes,
   getPageTitle,
   validURL,
   capitalizeFirstLetter,
@@ -28,6 +29,7 @@ import {
   mdToHtml,
   debounce,
   isImage,
+  toast,
 } from '../utils';
 import autosize from 'autosize';
 import { i18n } from '../i18next';
@@ -453,51 +455,51 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       .catch(error => {
         i.state.imageLoading = false;
         i.setState(i.state);
-        alert(error);
+        toast(error, 'danger');
       });
   }
 
-  parseMessage(msg: any) {
-    let op: UserOperation = msgOp(msg);
-    if (msg.error) {
-      alert(i18n.t(msg.error));
+  parseMessage(msg: WebSocketJsonResponse) {
+    let res = wsJsonToRes(msg);
+    if (res.error) {
+      toast(i18n.t(msg.error), 'danger');
       this.state.loading = false;
       this.setState(this.state);
       return;
-    } else if (op == UserOperation.ListCommunities) {
-      let res: ListCommunitiesResponse = msg;
-      this.state.communities = res.communities;
+    } else if (res.op == UserOperation.ListCommunities) {
+      let data = res.data as ListCommunitiesResponse;
+      this.state.communities = data.communities;
       if (this.props.post) {
         this.state.postForm.community_id = this.props.post.community_id;
       } else if (this.props.params && this.props.params.community) {
-        let foundCommunityId = res.communities.find(
+        let foundCommunityId = data.communities.find(
           r => r.name == this.props.params.community
         ).id;
         this.state.postForm.community_id = foundCommunityId;
       } else {
-        this.state.postForm.community_id = res.communities[0].id;
+        this.state.postForm.community_id = data.communities[0].id;
       }
       this.setState(this.state);
-    } else if (op == UserOperation.CreatePost) {
+    } else if (res.op == UserOperation.CreatePost) {
+      let data = res.data as PostResponse;
       this.state.loading = false;
-      let res: PostResponse = msg;
-      this.props.onCreate(res.post.id);
-    } else if (op == UserOperation.EditPost) {
+      this.props.onCreate(data.post.id);
+    } else if (res.op == UserOperation.EditPost) {
+      let data = res.data as PostResponse;
       this.state.loading = false;
-      let res: PostResponse = msg;
-      this.props.onEdit(res.post);
-    } else if (op == UserOperation.Search) {
-      let res: SearchResponse = msg;
+      this.props.onEdit(data.post);
+    } else if (res.op == UserOperation.Search) {
+      let data = res.data as SearchResponse;
 
-      if (res.type_ == SearchType[SearchType.Posts]) {
-        this.state.suggestedPosts = res.posts;
-      } else if (res.type_ == SearchType[SearchType.Url]) {
-        this.state.crossPosts = res.posts;
+      if (data.type_ == SearchType[SearchType.Posts]) {
+        this.state.suggestedPosts = data.posts;
+      } else if (data.type_ == SearchType[SearchType.Url]) {
+        this.state.crossPosts = data.posts;
       }
       this.setState(this.state);
-    } else if (op == UserOperation.GetSite) {
-      let res: GetSiteResponse = msg;
-      this.state.enable_nsfw = res.site.enable_nsfw;
+    } else if (res.op == UserOperation.GetSite) {
+      let data = res.data as GetSiteResponse;
+      this.state.enable_nsfw = data.site.enable_nsfw;
       this.setState(this.state);
     }
   }

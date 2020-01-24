@@ -7,6 +7,7 @@ import { Footer } from './components/footer';
 import { Login } from './components/login';
 import { CreatePost } from './components/create-post';
 import { CreateCommunity } from './components/create-community';
+import { CreatePrivateMessage } from './components/create-private-message';
 import { PasswordChange } from './components/password_change';
 import { Post } from './components/post';
 import { Community } from './components/community';
@@ -46,6 +47,10 @@ class Index extends Component<any, any> {
               <Route path={`/login`} component={Login} />
               <Route path={`/create_post`} component={CreatePost} />
               <Route path={`/create_community`} component={CreateCommunity} />
+              <Route
+                path={`/create_private_message`}
+                component={CreatePrivateMessage}
+              />
               <Route path={`/communities/page/:page`} component={Communities} />
               <Route path={`/communities`} component={Communities} />
               <Route path={`/post/:id/comment/:comment_id`} component={Post} />

@@ -5,126 +5,171 @@
 
 - [Data types](#data-types)
 - [Basic usage](#basic-usage)
-  * [WebSocket Endpoint](#websocket-endpoint)
-  * [Testing with Websocat](#testing-with-websocat)
-  * [Testing with the WebSocket JavaScript API](#testing-with-the-websocket-javascript-api)
+  * [WebSocket](#websocket)
+    + [Testing with Websocat](#testing-with-websocat)
+    + [Testing with the WebSocket JavaScript API](#testing-with-the-websocket-javascript-api)
+  * [HTTP](#http)
+    + [Testing with Curl](#testing-with-curl)
+      - [Get Example](#get-example)
+      - [Post Example](#post-example)
 - [Rate limits](#rate-limits)
 - [Errors](#errors)
 - [API documentation](#api-documentation)
   * [Sort Types](#sort-types)
+  * [Websocket vs HTTP](#websocket-vs-http)
   * [User / Authentication / Admin actions](#user--authentication--admin-actions)
     + [Login](#login)
       - [Request](#request)
       - [Response](#response)
+      - [HTTP](#http-1)
     + [Register](#register)
       - [Request](#request-1)
       - [Response](#response-1)
+      - [HTTP](#http-2)
     + [Get User Details](#get-user-details)
       - [Request](#request-2)
       - [Response](#response-2)
+      - [HTTP](#http-3)
     + [Save User Settings](#save-user-settings)
       - [Request](#request-3)
       - [Response](#response-3)
+      - [HTTP](#http-4)
     + [Get Replies / Inbox](#get-replies--inbox)
       - [Request](#request-4)
       - [Response](#response-4)
+      - [HTTP](#http-5)
     + [Get User Mentions](#get-user-mentions)
       - [Request](#request-5)
       - [Response](#response-5)
-    + [Mark All As Read](#mark-all-as-read)
+      - [HTTP](#http-6)
+    + [Edit User Mention](#edit-user-mention)
       - [Request](#request-6)
       - [Response](#response-6)
-    + [Delete Account](#delete-account)
+      - [HTTP](#http-7)
+    + [Mark All As Read](#mark-all-as-read)
       - [Request](#request-7)
       - [Response](#response-7)
-    + [Add admin](#add-admin)
+      - [HTTP](#http-8)
+    + [Delete Account](#delete-account)
       - [Request](#request-8)
       - [Response](#response-8)
-    + [Ban user](#ban-user)
+      - [HTTP](#http-9)
+    + [Add admin](#add-admin)
       - [Request](#request-9)
       - [Response](#response-9)
-  * [Site](#site)
-    + [List Categories](#list-categories)
+      - [HTTP](#http-10)
+    + [Ban user](#ban-user)
       - [Request](#request-10)
       - [Response](#response-10)
-    + [Search](#search)
+      - [HTTP](#http-11)
+  * [Site](#site)
+    + [List Categories](#list-categories)
       - [Request](#request-11)
       - [Response](#response-11)
-    + [Get Modlog](#get-modlog)
+      - [HTTP](#http-12)
+    + [Search](#search)
       - [Request](#request-12)
       - [Response](#response-12)
-    + [Create Site](#create-site)
+      - [HTTP](#http-13)
+    + [Get Modlog](#get-modlog)
       - [Request](#request-13)
       - [Response](#response-13)
-    + [Edit Site](#edit-site)
+      - [HTTP](#http-14)
+    + [Create Site](#create-site)
       - [Request](#request-14)
       - [Response](#response-14)
-    + [Get Site](#get-site)
+      - [HTTP](#http-15)
+    + [Edit Site](#edit-site)
       - [Request](#request-15)
       - [Response](#response-15)
-    + [Transfer Site](#transfer-site)
+      - [HTTP](#http-16)
+    + [Get Site](#get-site)
       - [Request](#request-16)
       - [Response](#response-16)
-  * [Community](#community)
-    + [Get Community](#get-community)
+      - [HTTP](#http-17)
+    + [Transfer Site](#transfer-site)
       - [Request](#request-17)
       - [Response](#response-17)
-    + [Create Community](#create-community)
+      - [HTTP](#http-18)
+  * [Community](#community)
+    + [Get Community](#get-community)
       - [Request](#request-18)
       - [Response](#response-18)
-    + [List Communities](#list-communities)
+      - [HTTP](#http-19)
+    + [Create Community](#create-community)
       - [Request](#request-19)
       - [Response](#response-19)
-    + [Ban from Community](#ban-from-community)
+      - [HTTP](#http-20)
+    + [List Communities](#list-communities)
       - [Request](#request-20)
       - [Response](#response-20)
-    + [Add Mod to Community](#add-mod-to-community)
+      - [HTTP](#http-21)
+    + [Ban from Community](#ban-from-community)
       - [Request](#request-21)
       - [Response](#response-21)
-    + [Edit Community](#edit-community)
+      - [HTTP](#http-22)
+    + [Add Mod to Community](#add-mod-to-community)
       - [Request](#request-22)
       - [Response](#response-22)
-    + [Follow Community](#follow-community)
+      - [HTTP](#http-23)
+    + [Edit Community](#edit-community)
       - [Request](#request-23)
       - [Response](#response-23)
-    + [Get Followed Communities](#get-followed-communities)
+      - [HTTP](#http-24)
+    + [Follow Community](#follow-community)
       - [Request](#request-24)
       - [Response](#response-24)
-    + [Transfer Community](#transfer-community)
+      - [HTTP](#http-25)
+    + [Get Followed Communities](#get-followed-communities)
       - [Request](#request-25)
       - [Response](#response-25)
-  * [Post](#post)
-    + [Create Post](#create-post)
+      - [HTTP](#http-26)
+    + [Transfer Community](#transfer-community)
       - [Request](#request-26)
       - [Response](#response-26)
-    + [Get Post](#get-post)
+      - [HTTP](#http-27)
+  * [Post](#post)
+    + [Create Post](#create-post)
       - [Request](#request-27)
       - [Response](#response-27)
-    + [Get Posts](#get-posts)
+      - [HTTP](#http-28)
+    + [Get Post](#get-post)
       - [Request](#request-28)
       - [Response](#response-28)
-    + [Create Post Like](#create-post-like)
+      - [HTTP](#http-29)
+    + [Get Posts](#get-posts)
       - [Request](#request-29)
       - [Response](#response-29)
-    + [Edit Post](#edit-post)
+      - [HTTP](#http-30)
+    + [Create Post Like](#create-post-like)
       - [Request](#request-30)
       - [Response](#response-30)
-    + [Save Post](#save-post)
+      - [HTTP](#http-31)
+    + [Edit Post](#edit-post)
       - [Request](#request-31)
       - [Response](#response-31)
-  * [Comment](#comment)
-    + [Create Comment](#create-comment)
+      - [HTTP](#http-32)
+    + [Save Post](#save-post)
       - [Request](#request-32)
       - [Response](#response-32)
-    + [Edit Comment](#edit-comment)
+      - [HTTP](#http-33)
+  * [Comment](#comment)
+    + [Create Comment](#create-comment)
       - [Request](#request-33)
       - [Response](#response-33)
-    + [Save Comment](#save-comment)
+      - [HTTP](#http-34)
+    + [Edit Comment](#edit-comment)
       - [Request](#request-34)
       - [Response](#response-34)
-    + [Create Comment Like](#create-comment-like)
+      - [HTTP](#http-35)
+    + [Save Comment](#save-comment)
       - [Request](#request-35)
       - [Response](#response-35)
+      - [HTTP](#http-36)
+    + [Create Comment Like](#create-comment-like)
+      - [Request](#request-36)
+      - [Response](#response-36)
+      - [HTTP](#http-37)
   * [RSS / Atom feeds](#rss--atom-feeds)
     + [All](#all)
     + [Community](#community-1)
@@ -144,13 +189,13 @@
 
 Request and response strings are in [JSON format](https://www.json.org).
 
-### WebSocket Endpoint
+### WebSocket
 
 Connect to <code>ws://***host***/api/v1/ws</code> to get started.
 
 If the ***`host`*** supports secure connections, you can use <code>wss://***host***/api/v1/ws</code>.
 
-### Testing with Websocat
+#### Testing with Websocat
 
 [Websocat link](https://github.com/vi/websocat)
 
@@ -159,7 +204,7 @@ If the ***`host`*** supports secure connections, you can use <code>wss://***host
 A simple test command:
 `{"op": "ListCategories"}`
 
-### Testing with the WebSocket JavaScript API
+#### Testing with the WebSocket JavaScript API
 
 [WebSocket JavaScript API](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API)
 ```javascript
@@ -170,6 +215,32 @@ ws.onopen = function () {
     op: "ListCategories"
   }));
 };
+```
+### HTTP
+
+Endpoints are at <code>http://***host***/api/v1/***endpoint***</code>. They'll be listed below for each action.
+
+#### Testing with Curl
+
+##### Get Example
+
+```
+curl /community/list?sort=Hot
+```
+
+##### Post Example
+
+```
+curl -i -H \
+"Content-Type: application/json" \
+-X POST \
+-d '{
+  "comment_id": X,
+  "post_id": X,
+  "score": X,
+  "auth": "..."
+}' \
+/comment/like
 ```
 
 ## Rate limits
@@ -201,6 +272,11 @@ These go wherever there is a `sort` field. The available sort types are:
 - `TopYear` - the most upvoted posts/communities of the current year.
 - `TopAll` - the most upvoted posts/communities on the current instance.
 
+### Websocket vs HTTP
+
+- Below are the websocket JSON requests / responses. For HTTP, ignore all fields except those inside `data`.
+- For example, an http login will be a `POST` `{username_or_email: X, password: X}`
+
 ### User / Authentication / Admin actions
 
 #### Login
@@ -220,13 +296,19 @@ The `jwt` string should be stored and used anywhere `auth` is called for.
 ##### Response
 ```rust
 {
-  op: String,
-  jwt: String
+  op: "Login",
+  data: {
+    jwt: String,
+  }
 }
 ```
 
+##### HTTP
+
+`POST /user/login`
 
 #### Register
+
 Only the first user will be able to be the admin.
 
 ##### Request
@@ -245,10 +327,16 @@ Only the first user will be able to be the admin.
 ##### Response
 ```rust
 {
-  op: String,
-  jwt: String
+  op: "Register",
+  data: {
+    jwt: String,
+  }
 }
 ```
+
+##### HTTP
+
+`POST /user/register`
 
 #### Get User Details
 ##### Request
@@ -270,14 +358,20 @@ Only the first user will be able to be the admin.
 ##### Response
 ```rust
 {
-  op: String,
-  user: UserView,
-  follows: Vec<CommunityFollowerView>,
-  moderates: Vec<CommunityModeratorView>,
-  comments: Vec<CommentView>,
-  posts: Vec<PostView>,
+  op: "GetUserDetails",
+  data: {
+    user: UserView,
+    follows: Vec<CommunityFollowerView>,
+    moderates: Vec<CommunityModeratorView>,
+    comments: Vec<CommentView>,
+    posts: Vec<PostView>,
+  }
 }
 ```
+##### HTTP
+
+`GET /user`
+
 #### Save User Settings
 ##### Request
 ```rust
@@ -295,10 +389,16 @@ Only the first user will be able to be the admin.
 ##### Response
 ```rust
 {
-  op: String,
-  jwt: String
+  op: "SaveUserSettings",
+  data: {
+    jwt: String
+  }
 }
 ```
+##### HTTP
+
+`PUT /save_user_settings`
+
 #### Get Replies / Inbox
 ##### Request
 ```rust
@@ -316,10 +416,16 @@ Only the first user will be able to be the admin.
 ##### Response
 ```rust
 {
-  op: String,
-  replies: Vec<ReplyView>,
+  op: "GetReplies",
+  data: {
+    replies: Vec<ReplyView>,
+  }
 }
 ```
+##### HTTP
+
+`GET /user/replies`
+
 
 #### Get User Mentions
 ##### Request
@@ -338,10 +444,41 @@ Only the first user will be able to be the admin.
 ##### Response
 ```rust
 {
-  op: String,
-  mentions: Vec<UserMentionView>,
+  op: "GetUserMentions",
+  data: {
+    mentions: Vec<UserMentionView>,
+  }
 }
 ```
+
+##### HTTP
+
+`GET /user/mentions`
+
+#### Edit User Mention
+##### Request
+```rust
+{
+  op: "EditUserMention",
+  data: {
+    user_mention_id: i32,
+    read: Option<bool>,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "EditUserMention",
+  data: {
+    mention: UserMentionView,
+  }
+}
+```
+##### HTTP
+
+`PUT /user/mention`
 
 #### Mark All As Read
 
@@ -359,10 +496,16 @@ Marks all user replies and mentions as read.
 ##### Response
 ```rust
 {
-  op: String,
-  replies: Vec<ReplyView>,
+  op: "MarkAllAsRead",
+  data: {
+    replies: Vec<ReplyView>,
+  }
 }
 ```
+
+##### HTTP
+
+`POST /user/mark_all_as_read`
 
 #### Delete Account
 
@@ -381,10 +524,16 @@ Marks all user replies and mentions as read.
 ##### Response
 ```rust
 {
-  op: String,
-  jwt: String,
+  op: "DeleteAccount",
+  data: {
+    jwt: String,
+  }
 }
 ```
+
+##### HTTP
+
+`POST /user/delete_account`
 
 #### Add admin
 ##### Request
@@ -401,10 +550,15 @@ Marks all user replies and mentions as read.
 ##### Response
 ```rust
 {
-  op: String,
-  admins: Vec<UserView>,
+  op: "AddAdmin",
+  data: {
+    admins: Vec<UserView>,
+  }
 }
 ```
+##### HTTP
+
+`POST /admin/add`
 
 #### Ban user
 ##### Request
@@ -423,11 +577,16 @@ Marks all user replies and mentions as read.
 ##### Response
 ```rust
 {
-  op: String,
-  user: UserView,
-  banned: bool,
+  op: "BanUser",
+  data: {
+    user: UserView,
+    banned: bool,
+  }
 }
 ```
+##### HTTP
+
+`POST /user/ban`
 
 ### Site
 #### List Categories
@@ -440,13 +599,19 @@ Marks all user replies and mentions as read.
 ##### Response
 ```rust
 {
-  op: String,
-  categories: Vec<Category>
+  op: "ListCategories",
+  data: {
+    categories: Vec<Category>
+  }
 }
 ```
+##### HTTP
+
+`GET /categories`
 
 #### Search
-Search types are `Both, Comments, Posts`.
+
+Search types are `All, Comments, Posts, Communities, Users, Url`
 
 ##### Request
 ```rust
@@ -459,17 +624,26 @@ Search types are `Both, Comments, Posts`.
     sort: String,
     page: Option<i64>,
     limit: Option<i64>,
+    auth?: Option<String>,
   }
 }
 ```
 ##### Response
 ```rust
 {
-  op: String,
-  comments: Vec<CommentView>,
-  posts: Vec<PostView>,
+  op: "Search",
+  data: {
+    type_: String,
+    comments: Vec<CommentView>,
+    posts: Vec<PostView>,
+    communities: Vec<CommunityView>,
+    users: Vec<UserView>,
+  }
 }
 ```
+##### HTTP
+
+`POST /search`
 
 #### Get Modlog
 ##### Request
@@ -487,17 +661,23 @@ Search types are `Both, Comments, Posts`.
 ##### Response
 ```rust
 {
-  op: String,
-  removed_posts: Vec<ModRemovePostView>,
-  locked_posts: Vec<ModLockPostView>,
-  removed_comments: Vec<ModRemoveCommentView>,
-  removed_communities: Vec<ModRemoveCommunityView>,
-  banned_from_community: Vec<ModBanFromCommunityView>,
-  banned: Vec<ModBanView>,
-  added_to_community: Vec<ModAddCommunityView>,
-  added: Vec<ModAddView>,
+  op: "GetModlog",
+  data: {
+    removed_posts: Vec<ModRemovePostView>,
+    locked_posts: Vec<ModLockPostView>,
+    removed_comments: Vec<ModRemoveCommentView>,
+    removed_communities: Vec<ModRemoveCommunityView>,
+    banned_from_community: Vec<ModBanFromCommunityView>,
+    banned: Vec<ModBanView>,
+    added_to_community: Vec<ModAddCommunityView>,
+    added: Vec<ModAddView>,
+  }
 }
 ```
+
+##### HTTP
+
+`GET /modlog`
 
 #### Create Site
 ##### Request
@@ -514,10 +694,16 @@ Search types are `Both, Comments, Posts`.
 ##### Response
 ```rust
 {
-  op: String,
-  site: SiteView,
+  op: "CreateSite",
+    data: {
+    site: SiteView,
+  }
 }
 ```
+
+##### HTTP
+
+`POST /site`
 
 #### Edit Site
 ##### Request
@@ -534,10 +720,15 @@ Search types are `Both, Comments, Posts`.
 ##### Response
 ```rust
 {
-  op: String,
-  site: SiteView,
+  op: "EditSite",
+  data: {
+    site: SiteView,
+  }
 }
 ```
+##### HTTP
+
+`PUT /site`
 
 #### Get Site
 ##### Request
@@ -549,12 +740,17 @@ Search types are `Both, Comments, Posts`.
 ##### Response
 ```rust
 {
-  op: String,
-  site: Option<SiteView>,
-  admins: Vec<UserView>,
-  banned: Vec<UserView>,
+  op: "GetSite",
+  data: {
+    site: Option<SiteView>,
+    admins: Vec<UserView>,
+    banned: Vec<UserView>,
+  }
 }
 ```
+##### HTTP
+
+`GET /site`
 
 #### Transfer Site
 ##### Request
@@ -570,12 +766,17 @@ Search types are `Both, Comments, Posts`.
 ##### Response
 ```rust
 {
-  op: String,
-  site: Option<SiteView>,
-  admins: Vec<UserView>,
-  banned: Vec<UserView>,
+  op: "TransferSite",
+  data: {
+    site: Option<SiteView>,
+    admins: Vec<UserView>,
+    banned: Vec<UserView>,
+  }
 }
 ```
+##### HTTP
+
+`POST /site/transfer`
 
 ### Community
 #### Get Community
@@ -593,12 +794,17 @@ Search types are `Both, Comments, Posts`.
 ##### Response
 ```rust
 {
-  op: String,
-  community: CommunityView,
-  moderators: Vec<CommunityModeratorView>,
-  admins: Vec<UserView>,
+  op: "GetCommunity",
+  data: {
+    community: CommunityView,
+    moderators: Vec<CommunityModeratorView>,
+    admins: Vec<UserView>,
+  }
 }
 ```
+##### HTTP
+
+`GET /community`
 
 #### Create Community
 ##### Request
@@ -617,10 +823,15 @@ Search types are `Both, Comments, Posts`.
 ##### Response
 ```rust
 {
-  op: String,
-  community: CommunityView
+  op: "CreateCommunity",
+  data: {
+    community: CommunityView
+  }
 }
 ```
+##### HTTP
+
+`POST /community`
 
 #### List Communities
 ##### Request
@@ -638,10 +849,15 @@ Search types are `Both, Comments, Posts`.
 ##### Response
 ```rust
 {
-  op: String,
-  communities: Vec<CommunityView>
+  op: "ListCommunities",
+  data: {
+    communities: Vec<CommunityView>
+  }
 }
 ```
+##### HTTP
+
+`GET /community/list`
 
 #### Ban from Community
 ##### Request
@@ -661,11 +877,16 @@ Search types are `Both, Comments, Posts`.
 ##### Response
 ```rust
 {
-  op: String,
-  user: UserView,
-  banned: bool,
+  op: "BanFromCommunity",
+  data: {
+    user: UserView,
+    banned: bool,
+  }
 }
 ```
+##### HTTP
+
+`POST /community/ban_user`
 
 #### Add Mod to Community
 ##### Request
@@ -683,10 +904,15 @@ Search types are `Both, Comments, Posts`.
 ##### Response
 ```rust
 {
-  op: String,
-  moderators: Vec<CommunityModeratorView>,
+  op: "AddModToCommunity",
+  data: {
+    moderators: Vec<CommunityModeratorView>,
+  }
 }
 ```
+##### HTTP
+
+`POST /community/mod`
 
 #### Edit Community
 Mods and admins can remove and lock a community, creators can delete it.
@@ -712,10 +938,15 @@ Mods and admins can remove and lock a community, creators can delete it.
 ##### Response
 ```rust
 {
-  op: String,
-  community: CommunityView
+  op: "EditCommunity",
+  data: {
+    community: CommunityView
+  }
 }
 ```
+##### HTTP
+
+`PUT /community`
 
 #### Follow Community
 ##### Request
@@ -732,10 +963,15 @@ Mods and admins can remove and lock a community, creators can delete it.
 ##### Response
 ```rust
 {
-  op: String,
-  community: CommunityView
+  op: "FollowCommunity",
+  data: {
+    community: CommunityView
+  }
 }
 ```
+##### HTTP
+
+`POST /community/follow`
 
 #### Get Followed Communities
 ##### Request
@@ -750,10 +986,15 @@ Mods and admins can remove and lock a community, creators can delete it.
 ##### Response
 ```rust
 {
-  op: String,
-  communities: Vec<CommunityFollowerView>
+  op: "GetFollowedCommunities",
+  data: {
+    communities: Vec<CommunityFollowerView>
+  }
 }
 ```
+##### HTTP
+
+`GET /user/followed_communities`
 
 #### Transfer Community
 ##### Request
@@ -770,12 +1011,17 @@ Mods and admins can remove and lock a community, creators can delete it.
 ##### Response
 ```rust
 {
-  op: String,
-  community: CommunityView,
-  moderators: Vec<CommunityModeratorView>,
-  admins: Vec<UserView>,
+  op: "TransferCommunity",
+  data: {
+    community: CommunityView,
+    moderators: Vec<CommunityModeratorView>,
+    admins: Vec<UserView>,
+  }
 }
 ```
+##### HTTP
+
+`POST /community/transfer`
 
 ### Post
 #### Create Post
@@ -795,10 +1041,15 @@ Mods and admins can remove and lock a community, creators can delete it.
 ##### Response
 ```rust
 {
-  op: String,
-  post: PostView
+  op: "CreatePost",
+  data: {
+    post: PostView
+  }
 }
 ```
+##### HTTP
+
+`POST /post`
 
 #### Get Post
 ##### Request
@@ -814,16 +1065,22 @@ Mods and admins can remove and lock a community, creators can delete it.
 ##### Response
 ```rust
 {
-  op: String,
-  post: PostView,
-  comments: Vec<CommentView>,
-  community: CommunityView,
-  moderators: Vec<CommunityModeratorView>,
-  admins: Vec<UserView>,
+  op: "GetPost",
+  data: {
+    post: PostView,
+    comments: Vec<CommentView>,
+    community: CommunityView,
+    moderators: Vec<CommunityModeratorView>,
+    admins: Vec<UserView>,
+  }
 }
 ```
+##### HTTP
+
+`GET /post`
 
 #### Get Posts
+
 Post listing types are `All, Subscribed, Community`
 
 ##### Request
@@ -843,12 +1100,18 @@ Post listing types are `All, Subscribed, Community`
 ##### Response
 ```rust
 {
-  op: String,
-  posts: Vec<PostView>,
+  op: "GetPosts",
+  data: {
+    posts: Vec<PostView>,
+  }
 }
 ```
+##### HTTP
+
+`GET /post/list`
 
 #### Create Post Like
+
 `score` can be 0, -1, or 1
 
 ##### Request
@@ -865,12 +1128,18 @@ Post listing types are `All, Subscribed, Community`
 ##### Response
 ```rust
 {
-  op: String,
-  post: PostView
+  op: "CreatePostLike",
+  data: {
+    post: PostView
+  }
 }
 ```
+##### HTTP
+
+`POST /post/like`
 
 #### Edit Post
+
 Mods and admins can remove and lock a post, creators can delete it.
 
 ##### Request
@@ -895,10 +1164,16 @@ Mods and admins can remove and lock a post, creators can delete it.
 ##### Response
 ```rust
 {
-  op: String,
-  post: PostView
+  op: "EditPost",
+  data: {
+    post: PostView
+  }
 }
 ```
+
+##### HTTP
+
+`PUT /post`
 
 #### Save Post
 ##### Request
@@ -915,10 +1190,15 @@ Mods and admins can remove and lock a post, creators can delete it.
 ##### Response
 ```rust
 {
-  op: String,
-  post: PostView
+  op: "SavePost",
+  data: {
+    post: PostView
+  }
 }
 ```
+##### HTTP
+
+`POST /post/save`
 
 ### Comment
 #### Create Comment
@@ -938,12 +1218,19 @@ Mods and admins can remove and lock a post, creators can delete it.
 ##### Response
 ```rust
 {
-  op: String,
-  comment: CommentView
+  op: "CreateComment",
+  data: {
+    comment: CommentView
+  }
 }
 ```
 
+##### HTTP
+
+`POST /comment`
+
 #### Edit Comment
+
 Mods and admins can remove a comment, creators can delete it.
 
 ##### Request
@@ -967,10 +1254,15 @@ Mods and admins can remove a comment, creators can delete it.
 ##### Response
 ```rust
 {
-  op: String,
-  comment: CommentView
+  op: "EditComment",
+  data: {
+    comment: CommentView
+  }
 }
 ```
+##### HTTP
+
+`PUT /comment`
 
 #### Save Comment
 ##### Request
@@ -987,12 +1279,18 @@ Mods and admins can remove a comment, creators can delete it.
 ##### Response
 ```rust
 {
-  op: String,
-  comment: CommentView
+  op: "SaveComment",
+  data: {
+    comment: CommentView
+  }
 }
 ```
+##### HTTP
+
+`POST /comment/save`
 
 #### Create Comment Like
+
 `score` can be 0, -1, or 1
 
 ##### Request
@@ -1010,10 +1308,15 @@ Mods and admins can remove a comment, creators can delete it.
 ##### Response
 ```rust
 {
-  op: String,
-  comment: CommentView
+  op: "CreateCommentLike",
+  data: {
+    comment: CommentView
+  }
 }
 ```
+##### HTTP
+
+`POST /comment/like`
 
 ### RSS / Atom feeds
 

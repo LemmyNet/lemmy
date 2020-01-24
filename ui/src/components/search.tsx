@@ -14,15 +14,17 @@ import {
   SearchType,
   CreatePostLikeResponse,
   CommentResponse,
+  WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService } from '../services';
 import {
-  msgOp,
+  wsJsonToRes,
   fetchLimit,
   routeSearchTypeToEnum,
   routeSortTypeToEnum,
   pictshareAvatarThumbnail,
   showAvatars,
+  toast,
 } from '../utils';
 import { PostListing } from './post-listing';
 import { SortSelect } from './sort-select';
@@ -47,7 +49,6 @@ export class Search extends Component<any, SearchState> {
     sort: this.getSortTypeFromProps(this.props),
     page: this.getPageFromProps(this.props),
     searchResponse: {
-      op: null,
       type_: null,
       posts: [],
       comments: [],
@@ -400,7 +401,6 @@ export class Search extends Component<any, SearchState> {
     return (
       <div>
         {res &&
-          res.op &&
           res.posts.length == 0 &&
           res.comments.length == 0 &&
           res.communities.length == 0 &&
@@ -476,44 +476,44 @@ export class Search extends Component<any, SearchState> {
     );
   }
 
-  parseMessage(msg: any) {
+  parseMessage(msg: WebSocketJsonResponse) {
     console.log(msg);
-    let op: UserOperation = msgOp(msg);
-    if (msg.error) {
-      alert(i18n.t(msg.error));
+    let res = wsJsonToRes(msg);
+    if (res.error) {
+      toast(i18n.t(msg.error), 'danger');
       return;
-    } else if (op == UserOperation.Search) {
-      let res: SearchResponse = msg;
-      this.state.searchResponse = res;
+    } else if (res.op == UserOperation.Search) {
+      let data = res.data as SearchResponse;
+      this.state.searchResponse = data;
       this.state.loading = false;
       document.title = `${i18n.t('search')} - ${this.state.q} - ${
         WebSocketService.Instance.site.name
       }`;
       window.scrollTo(0, 0);
       this.setState(this.state);
-    } else if (op == UserOperation.CreateCommentLike) {
-      let res: CommentResponse = msg;
+    } else if (res.op == UserOperation.CreateCommentLike) {
+      let data = res.data as CommentResponse;
       let found: Comment = this.state.searchResponse.comments.find(
-        c => c.id === res.comment.id
+        c => c.id === data.comment.id
       );
-      found.score = res.comment.score;
-      found.upvotes = res.comment.upvotes;
-      found.downvotes = res.comment.downvotes;
-      if (res.comment.my_vote !== null) {
-        found.my_vote = res.comment.my_vote;
+      found.score = data.comment.score;
+      found.upvotes = data.comment.upvotes;
+      found.downvotes = data.comment.downvotes;
+      if (data.comment.my_vote !== null) {
+        found.my_vote = data.comment.my_vote;
         found.upvoteLoading = false;
         found.downvoteLoading = false;
       }
       this.setState(this.state);
-    } else if (op == UserOperation.CreatePostLike) {
-      let res: CreatePostLikeResponse = msg;
+    } else if (res.op == UserOperation.CreatePostLike) {
+      let data = res.data as CreatePostLikeResponse;
       let found = this.state.searchResponse.posts.find(
-        c => c.id == res.post.id
+        c => c.id == data.post.id
       );
-      found.my_vote = res.post.my_vote;
-      found.score = res.post.score;
-      found.upvotes = res.post.upvotes;
-      found.downvotes = res.post.downvotes;
+      found.my_vote = data.post.my_vote;
+      found.score = data.post.score;
+      found.upvotes = data.post.upvotes;
+      found.downvotes = data.post.downvotes;
       this.setState(this.state);
     }
   }

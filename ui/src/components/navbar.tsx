@@ -9,15 +9,21 @@ import {
   GetRepliesResponse,
   GetUserMentionsForm,
   GetUserMentionsResponse,
+  GetPrivateMessagesForm,
+  PrivateMessagesResponse,
   SortType,
   GetSiteResponse,
   Comment,
+  PrivateMessage,
+  WebSocketJsonResponse,
 } from '../interfaces';
 import {
-  msgOp,
+  wsJsonToRes,
   pictshareAvatarThumbnail,
   showAvatars,
   fetchLimit,
+  isCommentType,
+  toast,
 } from '../utils';
 import { version } from '../version';
 import { i18n } from '../i18next';
@@ -28,6 +34,7 @@ interface NavbarState {
   expanded: boolean;
   replies: Array<Comment>;
   mentions: Array<Comment>;
+  messages: Array<PrivateMessage>;
   fetchCount: number;
   unreadCount: number;
   siteName: string;
@@ -42,6 +49,7 @@ export class Navbar extends Component<any, NavbarState> {
     fetchCount: 0,
     replies: [],
     mentions: [],
+    messages: [],
     expanded: false,
     siteName: undefined,
   };
@@ -192,17 +200,17 @@ export class Navbar extends Component<any, NavbarState> {
     i.setState(i.state);
   }
 
-  parseMessage(msg: any) {
-    let op: UserOperation = msgOp(msg);
-    if (msg.error) {
-      if (msg.error == 'not_logged_in') {
+  parseMessage(msg: WebSocketJsonResponse) {
+    let res = wsJsonToRes(msg);
+    if (res.error) {
+      if (res.error == 'not_logged_in') {
         UserService.Instance.logout();
         location.reload();
       }
       return;
-    } else if (op == UserOperation.GetReplies) {
-      let res: GetRepliesResponse = msg;
-      let unreadReplies = res.replies.filter(r => !r.read);
+    } else if (res.op == UserOperation.GetReplies) {
+      let data = res.data as GetRepliesResponse;
+      let unreadReplies = data.replies.filter(r => !r.read);
       if (
         unreadReplies.length > 0 &&
         this.state.fetchCount > 1 &&
@@ -214,9 +222,9 @@ export class Navbar extends Component<any, NavbarState> {
       this.state.replies = unreadReplies;
       this.setState(this.state);
       this.sendUnreadCount();
-    } else if (op == UserOperation.GetUserMentions) {
-      let res: GetUserMentionsResponse = msg;
-      let unreadMentions = res.mentions.filter(r => !r.read);
+    } else if (res.op == UserOperation.GetUserMentions) {
+      let data = res.data as GetUserMentionsResponse;
+      let unreadMentions = data.mentions.filter(r => !r.read);
       if (
         unreadMentions.length > 0 &&
         this.state.fetchCount > 1 &&
@@ -228,12 +236,26 @@ export class Navbar extends Component<any, NavbarState> {
       this.state.mentions = unreadMentions;
       this.setState(this.state);
       this.sendUnreadCount();
-    } else if (op == UserOperation.GetSite) {
-      let res: GetSiteResponse = msg;
+    } else if (res.op == UserOperation.GetPrivateMessages) {
+      let data = res.data as PrivateMessagesResponse;
+      let unreadMessages = data.messages.filter(r => !r.read);
+      if (
+        unreadMessages.length > 0 &&
+        this.state.fetchCount > 1 &&
+        JSON.stringify(this.state.messages) !== JSON.stringify(unreadMessages)
+      ) {
+        this.notify(unreadMessages);
+      }
 
-      if (res.site) {
-        this.state.siteName = res.site.name;
-        WebSocketService.Instance.site = res.site;
+      this.state.messages = unreadMessages;
+      this.setState(this.state);
+      this.sendUnreadCount();
+    } else if (res.op == UserOperation.GetSite) {
+      let data = res.data as GetSiteResponse;
+
+      if (data.site) {
+        this.state.siteName = data.site.name;
+        WebSocketService.Instance.site = data.site;
         this.setState(this.state);
       }
     }
@@ -259,9 +281,17 @@ export class Navbar extends Component<any, NavbarState> {
         page: 1,
         limit: fetchLimit,
       };
+
+      let privateMessagesForm: GetPrivateMessagesForm = {
+        unread_only: true,
+        page: 1,
+        limit: fetchLimit,
+      };
+
       if (this.currentLocation !== '/inbox') {
         WebSocketService.Instance.getReplies(repliesForm);
         WebSocketService.Instance.getUserMentions(userMentionsForm);
+        WebSocketService.Instance.getPrivateMessages(privateMessagesForm);
         this.state.fetchCount++;
       }
     }
@@ -281,7 +311,8 @@ export class Navbar extends Component<any, NavbarState> {
   get unreadCount() {
     return (
       this.state.replies.filter(r => !r.read).length +
-      this.state.mentions.filter(r => !r.read).length
+      this.state.mentions.filter(r => !r.read).length +
+      this.state.messages.filter(r => !r.read).length
     );
   }
 
@@ -289,7 +320,7 @@ export class Navbar extends Component<any, NavbarState> {
     if (UserService.Instance.user) {
       document.addEventListener('DOMContentLoaded', function() {
         if (!Notification) {
-          alert(i18n.t('notifications_error'));
+          toast(i18n.t('notifications_error'), 'danger');
           return;
         }
 
@@ -299,21 +330,25 @@ export class Navbar extends Component<any, NavbarState> {
     }
   }
 
-  notify(replies: Array<Comment>) {
+  notify(replies: Array<Comment | PrivateMessage>) {
     let recentReply = replies[0];
     if (Notification.permission !== 'granted') Notification.requestPermission();
     else {
       var notification = new Notification(
         `${replies.length} ${i18n.t('unread_messages')}`,
         {
-          icon: `${window.location.protocol}//${window.location.host}/static/assets/apple-touch-icon.png`,
+          icon: recentReply.creator_avatar
+            ? recentReply.creator_avatar
+            : `${window.location.protocol}//${window.location.host}/static/assets/apple-touch-icon.png`,
           body: `${recentReply.creator_name}: ${recentReply.content}`,
         }
       );
 
       notification.onclick = () => {
         this.context.router.history.push(
-          `/post/${recentReply.post_id}/comment/${recentReply.id}`
+          isCommentType(recentReply)
+            ? `/post/${recentReply.post_id}/comment/${recentReply.id}`
+            : `/inbox`
         );
       };
     }

@@ -32,12 +32,16 @@ import {
   DeleteAccountForm,
   PasswordResetForm,
   PasswordChangeForm,
+  PrivateMessageForm,
+  EditPrivateMessageForm,
+  GetPrivateMessagesForm,
 } from '../interfaces';
 import { webSocket } from 'rxjs/webSocket';
 import { Subject } from 'rxjs';
-import { retryWhen, delay, take } from 'rxjs/operators';
+import { retryWhen, delay } from 'rxjs/operators';
 import { UserService } from './';
 import { i18n } from '../i18next';
+import { toast } from '../utils';
 
 export class WebSocketService {
   private static _instance: WebSocketService;
@@ -285,6 +289,27 @@ export class WebSocketService {
     this.subject.next(this.wsSendWrapper(UserOperation.PasswordChange, form));
   }
 
+  public createPrivateMessage(form: PrivateMessageForm) {
+    this.setAuth(form);
+    this.subject.next(
+      this.wsSendWrapper(UserOperation.CreatePrivateMessage, form)
+    );
+  }
+
+  public editPrivateMessage(form: EditPrivateMessageForm) {
+    this.setAuth(form);
+    this.subject.next(
+      this.wsSendWrapper(UserOperation.EditPrivateMessage, form)
+    );
+  }
+
+  public getPrivateMessages(form: GetPrivateMessagesForm) {
+    this.setAuth(form);
+    this.subject.next(
+      this.wsSendWrapper(UserOperation.GetPrivateMessages, form)
+    );
+  }
+
   private wsSendWrapper(op: UserOperation, data: any) {
     let send = { op: UserOperation[op], data: data };
     console.log(send);
@@ -294,7 +319,7 @@ export class WebSocketService {
   private setAuth(obj: any, throwErr: boolean = true) {
     obj.auth = UserService.Instance.auth;
     if (obj.auth == null && throwErr) {
-      alert(i18n.t('not_logged_in'));
+      toast(i18n.t('not_logged_in'), 'danger');
       throw 'Not logged in';
     }
   }
