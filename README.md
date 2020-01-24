@@ -44,7 +44,7 @@ The overall goal is to create an easily self-hostable, decentralized alternative
 
 Each lemmy server can set its own moderation policy; appointing site-wide admins, and community moderators to keep out the trolls, and foster a healthy, non-toxic environment where all can feel comfortable contributing.
 
-Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Inferno](https://www.infernojs.org), [Typescript](https://www.typescriptlang.org/) and [Diesel](http://diesel.rs/).
+Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Inferno](https://infernojs.org), [Typescript](https://www.typescriptlang.org/) and [Diesel](http://diesel.rs/).
 
 - [Documentation](https://dev.lemmy.ml/docs/index.html)
 - [Releases / Changelog](/RELEASES.md)
