@@ -11,10 +11,13 @@ import 'moment/locale/it';
 import {
   UserOperation,
   Comment,
+  PrivateMessage,
   User,
   SortType,
   ListingType,
   SearchType,
+  WebSocketResponse,
+  WebSocketJsonResponse,
 } from './interfaces';
 import { UserService } from './services/UserService';
 import markdown_it from 'markdown-it';
@@ -22,6 +25,7 @@ import markdownitEmoji from 'markdown-it-emoji/light';
 import markdown_it_container from 'markdown-it-container';
 import * as twemoji from 'twemoji';
 import * as emojiShortName from 'emoji-short-name';
+import Toastify from 'toastify-js';
 
 export const repoUrl = 'https://github.com/dessalines/lemmy';
 export const markdownHelpUrl = 'https://commonmark.org/help/';
@@ -38,9 +42,12 @@ export function randomStr() {
     .substr(2, 10);
 }
 
-export function msgOp(msg: any): UserOperation {
+export function wsJsonToRes(msg: WebSocketJsonResponse): WebSocketResponse {
   let opStr: string = msg.op;
-  return UserOperation[opStr];
+  return {
+    op: UserOperation[opStr],
+    data: msg.data,
+  };
 }
 
 export const md = new markdown_it({
@@ -360,4 +367,16 @@ export function imageThumbnailer(url: string): string {
   } else {
     return url;
   }
+}
+
+export function isCommentType(item: Comment | PrivateMessage): item is Comment {
+  return (item as Comment).community_id !== undefined;
+}
+
+export function toast(text: string, background: string = 'success') {
+  let backgroundColor = `var(--${background})`;
+  Toastify({
+    text: text,
+    backgroundColor: backgroundColor,
+  }).showToast();
 }

@@ -26,9 +26,10 @@ import {
   SearchResponse,
   GetSiteResponse,
   GetCommunityResponse,
+  WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { msgOp, hotRank } from '../utils';
+import { wsJsonToRes, hotRank, toast } from '../utils';
 import { PostListing } from './post-listing';
 import { PostListings } from './post-listings';
 import { Sidebar } from './sidebar';
@@ -341,19 +342,19 @@ export class Post extends Component<any, PostState> {
     );
   }
 
-  parseMessage(msg: any) {
+  parseMessage(msg: WebSocketJsonResponse) {
     console.log(msg);
-    let op: UserOperation = msgOp(msg);
-    if (msg.error) {
-      alert(i18n.t(msg.error));
+    let res = wsJsonToRes(msg);
+    if (res.error) {
+      toast(i18n.t(msg.error), 'danger');
       return;
-    } else if (op == UserOperation.GetPost) {
-      let res: GetPostResponse = msg;
-      this.state.post = res.post;
-      this.state.comments = res.comments;
-      this.state.community = res.community;
-      this.state.moderators = res.moderators;
-      this.state.admins = res.admins;
+    } else if (res.op == UserOperation.GetPost) {
+      let data = res.data as GetPostResponse;
+      this.state.post = data.post;
+      this.state.comments = data.comments;
+      this.state.community = data.community;
+      this.state.moderators = data.moderators;
+      this.state.admins = data.admins;
       this.state.loading = false;
       document.title = `${this.state.post.name} - ${WebSocketService.Instance.site.name}`;
 
@@ -370,111 +371,111 @@ export class Post extends Component<any, PostState> {
       }
 
       this.setState(this.state);
-    } else if (op == UserOperation.CreateComment) {
-      let res: CommentResponse = msg;
-      this.state.comments.unshift(res.comment);
+    } else if (res.op == UserOperation.CreateComment) {
+      let data = res.data as CommentResponse;
+      this.state.comments.unshift(data.comment);
       this.setState(this.state);
-    } else if (op == UserOperation.EditComment) {
-      let res: CommentResponse = msg;
-      let found = this.state.comments.find(c => c.id == res.comment.id);
-      found.content = res.comment.content;
-      found.updated = res.comment.updated;
-      found.removed = res.comment.removed;
-      found.deleted = res.comment.deleted;
-      found.upvotes = res.comment.upvotes;
-      found.downvotes = res.comment.downvotes;
-      found.score = res.comment.score;
-      found.read = res.comment.read;
+    } else if (res.op == UserOperation.EditComment) {
+      let data = res.data as CommentResponse;
+      let found = this.state.comments.find(c => c.id == data.comment.id);
+      found.content = data.comment.content;
+      found.updated = data.comment.updated;
+      found.removed = data.comment.removed;
+      found.deleted = data.comment.deleted;
+      found.upvotes = data.comment.upvotes;
+      found.downvotes = data.comment.downvotes;
+      found.score = data.comment.score;
+      found.read = data.comment.read;
 
       this.setState(this.state);
-    } else if (op == UserOperation.SaveComment) {
-      let res: CommentResponse = msg;
-      let found = this.state.comments.find(c => c.id == res.comment.id);
-      found.saved = res.comment.saved;
+    } else if (res.op == UserOperation.SaveComment) {
+      let data = res.data as CommentResponse;
+      let found = this.state.comments.find(c => c.id == data.comment.id);
+      found.saved = data.comment.saved;
       this.setState(this.state);
-    } else if (op == UserOperation.CreateCommentLike) {
-      let res: CommentResponse = msg;
+    } else if (res.op == UserOperation.CreateCommentLike) {
+      let data = res.data as CommentResponse;
       let found: Comment = this.state.comments.find(
-        c => c.id === res.comment.id
+        c => c.id === data.comment.id
       );
-      found.score = res.comment.score;
-      found.upvotes = res.comment.upvotes;
-      found.downvotes = res.comment.downvotes;
-      if (res.comment.my_vote !== null) {
-        found.my_vote = res.comment.my_vote;
+      found.score = data.comment.score;
+      found.upvotes = data.comment.upvotes;
+      found.downvotes = data.comment.downvotes;
+      if (data.comment.my_vote !== null) {
+        found.my_vote = data.comment.my_vote;
         found.upvoteLoading = false;
         found.downvoteLoading = false;
       }
       this.setState(this.state);
-    } else if (op == UserOperation.CreatePostLike) {
-      let res: CreatePostLikeResponse = msg;
-      this.state.post.my_vote = res.post.my_vote;
-      this.state.post.score = res.post.score;
-      this.state.post.upvotes = res.post.upvotes;
-      this.state.post.downvotes = res.post.downvotes;
-      this.state.post.upvoteLoading = false;
-      this.state.post.downvoteLoading = false;
+    } else if (res.op == UserOperation.CreatePostLike) {
+      let data = res.data as CreatePostLikeResponse;
+      this.state.post.my_vote = data.post.my_vote;
+      this.state.post.score = data.post.score;
+      this.state.post.upvotes = data.post.upvotes;
+      this.state.post.downvotes = data.post.downvotes;
       this.setState(this.state);
-    } else if (op == UserOperation.EditPost) {
-      let res: PostResponse = msg;
-      this.state.post = res.post;
+    } else if (res.op == UserOperation.EditPost) {
+      let data = res.data as PostResponse;
+      this.state.post = data.post;
       this.setState(this.state);
-    } else if (op == UserOperation.SavePost) {
-      let res: PostResponse = msg;
-      this.state.post = res.post;
+    } else if (res.op == UserOperation.SavePost) {
+      let data = res.data as PostResponse;
+      this.state.post = data.post;
       this.setState(this.state);
-    } else if (op == UserOperation.EditCommunity) {
-      let res: CommunityResponse = msg;
-      this.state.community = res.community;
-      this.state.post.community_id = res.community.id;
-      this.state.post.community_name = res.community.name;
+    } else if (res.op == UserOperation.EditCommunity) {
+      let data = res.data as CommunityResponse;
+      this.state.community = data.community;
+      this.state.post.community_id = data.community.id;
+      this.state.post.community_name = data.community.name;
       this.setState(this.state);
-    } else if (op == UserOperation.FollowCommunity) {
-      let res: CommunityResponse = msg;
-      this.state.community.subscribed = res.community.subscribed;
+    } else if (res.op == UserOperation.FollowCommunity) {
+      let data = res.data as CommunityResponse;
+      this.state.community.subscribed = data.community.subscribed;
       this.state.community.number_of_subscribers =
-        res.community.number_of_subscribers;
+        data.community.number_of_subscribers;
       this.setState(this.state);
-    } else if (op == UserOperation.BanFromCommunity) {
-      let res: BanFromCommunityResponse = msg;
+    } else if (res.op == UserOperation.BanFromCommunity) {
+      let data = res.data as BanFromCommunityResponse;
       this.state.comments
-        .filter(c => c.creator_id == res.user.id)
-        .forEach(c => (c.banned_from_community = res.banned));
-      if (this.state.post.creator_id == res.user.id) {
-        this.state.post.banned_from_community = res.banned;
+        .filter(c => c.creator_id == data.user.id)
+        .forEach(c => (c.banned_from_community = data.banned));
+      if (this.state.post.creator_id == data.user.id) {
+        this.state.post.banned_from_community = data.banned;
       }
       this.setState(this.state);
-    } else if (op == UserOperation.AddModToCommunity) {
-      let res: AddModToCommunityResponse = msg;
-      this.state.moderators = res.moderators;
+    } else if (res.op == UserOperation.AddModToCommunity) {
+      let data = res.data as AddModToCommunityResponse;
+      this.state.moderators = data.moderators;
       this.setState(this.state);
-    } else if (op == UserOperation.BanUser) {
-      let res: BanUserResponse = msg;
+    } else if (res.op == UserOperation.BanUser) {
+      let data = res.data as BanUserResponse;
       this.state.comments
-        .filter(c => c.creator_id == res.user.id)
-        .forEach(c => (c.banned = res.banned));
-      if (this.state.post.creator_id == res.user.id) {
-        this.state.post.banned = res.banned;
+        .filter(c => c.creator_id == data.user.id)
+        .forEach(c => (c.banned = data.banned));
+      if (this.state.post.creator_id == data.user.id) {
+        this.state.post.banned = data.banned;
       }
       this.setState(this.state);
-    } else if (op == UserOperation.AddAdmin) {
-      let res: AddAdminResponse = msg;
-      this.state.admins = res.admins;
+    } else if (res.op == UserOperation.AddAdmin) {
+      let data = res.data as AddAdminResponse;
+      this.state.admins = data.admins;
       this.setState(this.state);
-    } else if (op == UserOperation.Search) {
-      let res: SearchResponse = msg;
-      this.state.crossPosts = res.posts.filter(p => p.id != this.state.post.id);
+    } else if (res.op == UserOperation.Search) {
+      let data = res.data as SearchResponse;
+      this.state.crossPosts = data.posts.filter(
+        p => p.id != this.state.post.id
+      );
       this.setState(this.state);
-    } else if (op == UserOperation.TransferSite) {
-      let res: GetSiteResponse = msg;
+    } else if (res.op == UserOperation.TransferSite) {
+      let data = res.data as GetSiteResponse;
 
-      this.state.admins = res.admins;
+      this.state.admins = data.admins;
       this.setState(this.state);
-    } else if (op == UserOperation.TransferCommunity) {
-      let res: GetCommunityResponse = msg;
-      this.state.community = res.community;
-      this.state.moderators = res.moderators;
-      this.state.admins = res.admins;
+    } else if (res.op == UserOperation.TransferCommunity) {
+      let data = res.data as GetCommunityResponse;
+      this.state.community = data.community;
+      this.state.moderators = data.moderators;
+      this.state.admins = data.admins;
       this.setState(this.state);
     }
   }

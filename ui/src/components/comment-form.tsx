@@ -10,12 +10,13 @@ import {
 } from '../interfaces';
 import { Subscription } from 'rxjs';
 import {
+  wsJsonToRes,
   capitalizeFirstLetter,
   mentionDropdownFetchLimit,
-  msgOp,
   mdToHtml,
   randomStr,
   markdownHelpUrl,
+  toast,
 } from '../utils';
 import { WebSocketService, UserService } from '../services';
 import autosize from 'autosize';
@@ -293,7 +294,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
       .catch(error => {
         i.state.imageLoading = false;
         i.setState(i.state);
-        alert(error);
+        toast(error, 'danger');
       });
   }
 
@@ -311,10 +312,10 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
 
       this.userSub = WebSocketService.Instance.subject.subscribe(
         msg => {
-          let op: UserOperation = msgOp(msg);
-          if (op == UserOperation.Search) {
-            let res: SearchResponse = msg;
-            let users = res.users.map(u => {
+          let res = wsJsonToRes(msg);
+          if (res.op == UserOperation.Search) {
+            let data = res.data as SearchResponse;
+            let users = data.users.map(u => {
               return { key: u.name };
             });
             cb(users);
@@ -343,10 +344,10 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
 
       this.communitySub = WebSocketService.Instance.subject.subscribe(
         msg => {
-          let op: UserOperation = msgOp(msg);
-          if (op == UserOperation.Search) {
-            let res: SearchResponse = msg;
-            let communities = res.communities.map(u => {
+          let res = wsJsonToRes(msg);
+          if (res.op == UserOperation.Search) {
+            let data = res.data as SearchResponse;
+            let communities = data.communities.map(u => {
               return { key: u.name };
             });
             cb(communities);

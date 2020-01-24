@@ -19,10 +19,11 @@ import {
   AddAdminResponse,
   DeleteAccountForm,
   CreatePostLikeResponse,
+  WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import {
-  msgOp,
+  wsJsonToRes,
   fetchLimit,
   routeSortTypeToEnum,
   capitalizeFirstLetter,
@@ -30,6 +31,7 @@ import {
   setTheme,
   languages,
   showAvatars,
+  toast,
 } from '../utils';
 import { PostListing } from './post-listing';
 import { SortSelect } from './sort-select';
@@ -405,13 +407,30 @@ export class User extends Component<any, UserState> {
                 </tr>
               </table>
             </div>
-            {this.isCurrentUser && (
+            {this.isCurrentUser ? (
               <button
                 class="btn btn-block btn-secondary mt-3"
                 onClick={linkEvent(this, this.handleLogoutClick)}
               >
                 <T i18nKey="logout">#</T>
               </button>
+            ) : (
+              <>
+                <a
+                  className={`btn btn-block btn-secondary mt-3 ${!this.state
+                    .user.matrix_user_id && 'disabled'}`}
+                  target="_blank"
+                  href={`https://matrix.to/#/${this.state.user.matrix_user_id}`}
+                >
+                  {i18n.t('send_secure_message')}
+                </a>
+                <Link
+                  class="btn btn-block btn-secondary mt-3"
+                  to={`/create_private_message?recipient_id=${this.state.user.id}`}
+                >
+                  {i18n.t('send_message')}
+                </Link>
+              </>
             )}
           </div>
         </div>
@@ -534,6 +553,26 @@ export class User extends Component<any, UserState> {
                     onInput={linkEvent(
                       this,
                       this.handleUserSettingsEmailChange
+                    )}
+                    minLength={3}
+                  />
+                </div>
+              </div>
+              <div class="form-group row">
+                <label class="col-lg-5 col-form-label">
+                  <a href="https://about.riot.im/" target="_blank">
+                    {i18n.t('matrix_user_id')}
+                  </a>
+                </label>
+                <div class="col-lg-7">
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="@user:example.com"
+                    value={this.state.userSettingsForm.matrix_user_id}
+                    onInput={linkEvent(
+                      this,
+                      this.handleUserSettingsMatrixUserIdChange
                     )}
                     minLength={3}
                   />
@@ -875,6 +914,17 @@ export class User extends Component<any, UserState> {
     i.setState(i.state);
   }
 
+  handleUserSettingsMatrixUserIdChange(i: User, event: any) {
+    i.state.userSettingsForm.matrix_user_id = event.target.value;
+    if (
+      i.state.userSettingsForm.matrix_user_id == '' &&
+      !i.state.user.matrix_user_id
+    ) {
+      i.state.userSettingsForm.matrix_user_id = undefined;
+    }
+    i.setState(i.state);
+  }
+
   handleUserSettingsNewPasswordChange(i: User, event: any) {
     i.state.userSettingsForm.new_password = event.target.value;
     if (i.state.userSettingsForm.new_password == '') {
@@ -927,7 +977,7 @@ export class User extends Component<any, UserState> {
       .catch(error => {
         i.state.avatarLoading = false;
         i.setState(i.state);
-        alert(error);
+        toast(error, 'danger');
       });
   }
 
@@ -963,27 +1013,27 @@ export class User extends Component<any, UserState> {
     WebSocketService.Instance.deleteAccount(i.state.deleteAccountForm);
   }
 
-  parseMessage(msg: any) {
+  parseMessage(msg: WebSocketJsonResponse) {
     console.log(msg);
-    let op: UserOperation = msgOp(msg);
-    if (msg.error) {
-      alert(i18n.t(msg.error));
+    let res = wsJsonToRes(msg);
+    if (res.error) {
+      toast(i18n.t(msg.error), 'danger');
       this.state.deleteAccountLoading = false;
       this.state.avatarLoading = false;
       this.state.userSettingsLoading = false;
-      if (msg.error == 'couldnt_find_that_username_or_email') {
+      if (res.error == 'couldnt_find_that_username_or_email') {
         this.context.router.history.push('/');
       }
       this.setState(this.state);
       return;
-    } else if (op == UserOperation.GetUserDetails) {
-      let res: UserDetailsResponse = msg;
-      this.state.user = res.user;
-      this.state.comments = res.comments;
-      this.state.follows = res.follows;
-      this.state.moderates = res.moderates;
-      this.state.posts = res.posts;
-      this.state.admins = res.admins;
+    } else if (res.op == UserOperation.GetUserDetails) {
+      let data = res.data as UserDetailsResponse;
+      this.state.user = data.user;
+      this.state.comments = data.comments;
+      this.state.follows = data.follows;
+      this.state.moderates = data.moderates;
+      this.state.posts = data.posts;
+      this.state.admins = data.admins;
       this.state.loading = false;
       if (this.isCurrentUser) {
         this.state.userSettingsForm.show_nsfw =
@@ -1001,71 +1051,72 @@ export class User extends Component<any, UserState> {
         this.state.userSettingsForm.send_notifications_to_email = this.state.user.send_notifications_to_email;
         this.state.userSettingsForm.show_avatars =
           UserService.Instance.user.show_avatars;
+        this.state.userSettingsForm.matrix_user_id = this.state.user.matrix_user_id;
       }
       document.title = `/u/${this.state.user.name} - ${WebSocketService.Instance.site.name}`;
       window.scrollTo(0, 0);
       this.setState(this.state);
-    } else if (op == UserOperation.EditComment) {
-      let res: CommentResponse = msg;
+    } else if (res.op == UserOperation.EditComment) {
+      let data = res.data as CommentResponse;
 
-      let found = this.state.comments.find(c => c.id == res.comment.id);
-      found.content = res.comment.content;
-      found.updated = res.comment.updated;
-      found.removed = res.comment.removed;
-      found.deleted = res.comment.deleted;
-      found.upvotes = res.comment.upvotes;
-      found.downvotes = res.comment.downvotes;
-      found.score = res.comment.score;
+      let found = this.state.comments.find(c => c.id == data.comment.id);
+      found.content = data.comment.content;
+      found.updated = data.comment.updated;
+      found.removed = data.comment.removed;
+      found.deleted = data.comment.deleted;
+      found.upvotes = data.comment.upvotes;
+      found.downvotes = data.comment.downvotes;
+      found.score = data.comment.score;
 
       this.setState(this.state);
-    } else if (op == UserOperation.CreateComment) {
+    } else if (res.op == UserOperation.CreateComment) {
       // let res: CommentResponse = msg;
-      alert(i18n.t('reply_sent'));
+      toast(i18n.t('reply_sent'));
       // this.state.comments.unshift(res.comment); // TODO do this right
       // this.setState(this.state);
-    } else if (op == UserOperation.SaveComment) {
-      let res: CommentResponse = msg;
-      let found = this.state.comments.find(c => c.id == res.comment.id);
-      found.saved = res.comment.saved;
+    } else if (res.op == UserOperation.SaveComment) {
+      let data = res.data as CommentResponse;
+      let found = this.state.comments.find(c => c.id == data.comment.id);
+      found.saved = data.comment.saved;
       this.setState(this.state);
-    } else if (op == UserOperation.CreateCommentLike) {
-      let res: CommentResponse = msg;
+    } else if (res.op == UserOperation.CreateCommentLike) {
+      let data = res.data as CommentResponse;
       let found: Comment = this.state.comments.find(
-        c => c.id === res.comment.id
+        c => c.id === data.comment.id
       );
-      found.score = res.comment.score;
-      found.upvotes = res.comment.upvotes;
-      found.downvotes = res.comment.downvotes;
-      if (res.comment.my_vote !== null) found.my_vote = res.comment.my_vote;
+      found.score = data.comment.score;
+      found.upvotes = data.comment.upvotes;
+      found.downvotes = data.comment.downvotes;
+      if (data.comment.my_vote !== null) found.my_vote = data.comment.my_vote;
       this.setState(this.state);
-    } else if (op == UserOperation.CreatePostLike) {
-      let res: CreatePostLikeResponse = msg;
-      let found = this.state.posts.find(c => c.id == res.post.id);
-      found.my_vote = res.post.my_vote;
-      found.score = res.post.score;
-      found.upvotes = res.post.upvotes;
-      found.downvotes = res.post.downvotes;
+    } else if (res.op == UserOperation.CreatePostLike) {
+      let data = res.data as CreatePostLikeResponse;
+      let found = this.state.posts.find(c => c.id == data.post.id);
+      found.my_vote = data.post.my_vote;
+      found.score = data.post.score;
+      found.upvotes = data.post.upvotes;
+      found.downvotes = data.post.downvotes;
       this.setState(this.state);
-    } else if (op == UserOperation.BanUser) {
-      let res: BanUserResponse = msg;
+    } else if (res.op == UserOperation.BanUser) {
+      let data = res.data as BanUserResponse;
       this.state.comments
-        .filter(c => c.creator_id == res.user.id)
-        .forEach(c => (c.banned = res.banned));
+        .filter(c => c.creator_id == data.user.id)
+        .forEach(c => (c.banned = data.banned));
       this.state.posts
-        .filter(c => c.creator_id == res.user.id)
-        .forEach(c => (c.banned = res.banned));
+        .filter(c => c.creator_id == data.user.id)
+        .forEach(c => (c.banned = data.banned));
       this.setState(this.state);
-    } else if (op == UserOperation.AddAdmin) {
-      let res: AddAdminResponse = msg;
-      this.state.admins = res.admins;
+    } else if (res.op == UserOperation.AddAdmin) {
+      let data = res.data as AddAdminResponse;
+      this.state.admins = data.admins;
       this.setState(this.state);
-    } else if (op == UserOperation.SaveUserSettings) {
+    } else if (res.op == UserOperation.SaveUserSettings) {
+      let data = res.data as LoginResponse;
       this.state = this.emptyState;
       this.state.userSettingsLoading = false;
       this.setState(this.state);
-      let res: LoginResponse = msg;
-      UserService.Instance.login(res);
-    } else if (op == UserOperation.DeleteAccount) {
+      UserService.Instance.login(data);
+    } else if (res.op == UserOperation.DeleteAccount) {
       this.state.deleteAccountLoading = false;
       this.state.deleteAccountShowConfirm = false;
       this.setState(this.state);
