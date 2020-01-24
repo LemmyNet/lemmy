@@ -1,8 +1,9 @@
 import { Component, linkEvent } from 'inferno';
 import { Site, SiteForm as SiteFormI } from '../interfaces';
 import { WebSocketService } from '../services';
-import { capitalizeFirstLetter } from '../utils';
+import { capitalizeFirstLetter, randomStr, setupTribute } from '../utils';
 import autosize from 'autosize';
+import Tribute from 'tributejs/src/Tribute.js';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 
@@ -17,6 +18,8 @@ interface SiteFormState {
 }
 
 export class SiteForm extends Component<SiteFormProps, SiteFormState> {
+  private id = `site-form-${randomStr()}`;
+  private tribute: Tribute;
   private emptyState: SiteFormState = {
     siteForm: {
       enable_downvotes: true,
@@ -29,7 +32,10 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
 
   constructor(props: any, context: any) {
     super(props, context);
+
+    this.tribute = setupTribute();
     this.state = this.emptyState;
+
     if (this.props.site) {
       this.state.siteForm = {
         name: this.props.site.name,
@@ -42,7 +48,14 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
   }
 
   componentDidMount() {
-    autosize(document.querySelectorAll('textarea'));
+    var textarea: any = document.getElementById(this.id);
+    autosize(textarea);
+    this.tribute.attach(textarea);
+    textarea.addEventListener('tribute-replaced', () => {
+      this.state.siteForm.description = textarea.value;
+      this.setState(this.state);
+      autosize.update(textarea);
+    });
   }
 
   render() {
@@ -75,6 +88,7 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
           </label>
           <div class="col-12">
             <textarea
+              id={this.id}
               value={this.state.siteForm.description}
               onInput={linkEvent(this, this.handleSiteDescriptionChange)}
               class="form-control"

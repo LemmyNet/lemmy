@@ -2,28 +2,20 @@ import { Component, linkEvent } from 'inferno';
 import {
   CommentNode as CommentNodeI,
   CommentForm as CommentFormI,
-  SearchForm,
-  SearchType,
-  SortType,
-  UserOperation,
-  SearchResponse,
 } from '../interfaces';
-import { Subscription } from 'rxjs';
 import {
-  wsJsonToRes,
   capitalizeFirstLetter,
-  mentionDropdownFetchLimit,
   mdToHtml,
   randomStr,
   markdownHelpUrl,
   toast,
+  setupTribute,
 } from '../utils';
 import { WebSocketService, UserService } from '../services';
 import autosize from 'autosize';
+import Tribute from 'tributejs/src/Tribute.js';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
-import Tribute from 'tributejs/src/Tribute.js';
-import emojiShortName from 'emoji-short-name';
 
 interface CommentFormProps {
   postId?: number;
@@ -42,9 +34,7 @@ interface CommentFormState {
 
 export class CommentForm extends Component<CommentFormProps, CommentFormState> {
   private id = `comment-form-${randomStr()}`;
-  private userSub: Subscription;
-  private communitySub: Subscription;
-  private tribute: any;
+  private tribute: Tribute;
   private emptyState: CommentFormState = {
     commentForm: {
       auth: null,
@@ -68,55 +58,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
   constructor(props: any, context: any) {
     super(props, context);
 
-    this.tribute = new Tribute({
-      collection: [
-        // Emojis
-        {
-          trigger: ':',
-          menuItemTemplate: (item: any) => {
-            let emoji = `:${item.original.key}:`;
-            return `${item.original.val} ${emoji}`;
-          },
-          selectTemplate: (item: any) => {
-            return `:${item.original.key}:`;
-          },
-          values: Object.entries(emojiShortName).map(e => {
-            return { key: e[1], val: e[0] };
-          }),
-          allowSpaces: false,
-          autocompleteMode: true,
-          menuItemLimit: mentionDropdownFetchLimit,
-        },
-        // Users
-        {
-          trigger: '@',
-          selectTemplate: (item: any) => {
-            return `[/u/${item.original.key}](/u/${item.original.key})`;
-          },
-          values: (text: string, cb: any) => {
-            this.userSearch(text, (users: any) => cb(users));
-          },
-          allowSpaces: false,
-          autocompleteMode: true,
-          menuItemLimit: mentionDropdownFetchLimit,
-        },
-
-        // Communities
-        {
-          trigger: '#',
-          selectTemplate: (item: any) => {
-            return `[/c/${item.original.key}](/c/${item.original.key})`;
-          },
-          values: (text: string, cb: any) => {
-            this.communitySearch(text, (communities: any) => cb(communities));
-          },
-          allowSpaces: false,
-          autocompleteMode: true,
-          menuItemLimit: mentionDropdownFetchLimit,
-        },
-      ],
-    });
-
+    this.tribute = setupTribute();
     this.state = this.emptyState;
 
     if (this.props.node) {
@@ -296,69 +238,5 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
         i.setState(i.state);
         toast(error, 'danger');
       });
-  }
-
-  userSearch(text: string, cb: any) {
-    if (text) {
-      let form: SearchForm = {
-        q: text,
-        type_: SearchType[SearchType.Users],
-        sort: SortType[SortType.TopAll],
-        page: 1,
-        limit: mentionDropdownFetchLimit,
-      };
-
-      WebSocketService.Instance.search(form);
-
-      this.userSub = WebSocketService.Instance.subject.subscribe(
-        msg => {
-          let res = wsJsonToRes(msg);
-          if (res.op == UserOperation.Search) {
-            let data = res.data as SearchResponse;
-            let users = data.users.map(u => {
-              return { key: u.name };
-            });
-            cb(users);
-            this.userSub.unsubscribe();
-          }
-        },
-        err => console.error(err),
-        () => console.log('complete')
-      );
-    } else {
-      cb([]);
-    }
-  }
-
-  communitySearch(text: string, cb: any) {
-    if (text) {
-      let form: SearchForm = {
-        q: text,
-        type_: SearchType[SearchType.Communities],
-        sort: SortType[SortType.TopAll],
-        page: 1,
-        limit: mentionDropdownFetchLimit,
-      };
-
-      WebSocketService.Instance.search(form);
-
-      this.communitySub = WebSocketService.Instance.subject.subscribe(
-        msg => {
-          let res = wsJsonToRes(msg);
-          if (res.op == UserOperation.Search) {
-            let data = res.data as SearchResponse;
-            let communities = data.communities.map(u => {
-              return { key: u.name };
-            });
-            cb(communities);
-            this.communitySub.unsubscribe();
-          }
-        },
-        err => console.error(err),
-        () => console.log('complete')
-      );
-    } else {
-      cb([]);
-    }
   }
 }

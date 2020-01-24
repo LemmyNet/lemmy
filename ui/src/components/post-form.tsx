@@ -30,8 +30,11 @@ import {
   debounce,
   isImage,
   toast,
+  randomStr,
+  setupTribute,
 } from '../utils';
 import autosize from 'autosize';
+import Tribute from 'tributejs/src/Tribute.js';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 
@@ -56,6 +59,8 @@ interface PostFormState {
 }
 
 export class PostForm extends Component<PostFormProps, PostFormState> {
+  private id = `post-form-${randomStr()}`;
+  private tribute: Tribute;
   private subscription: Subscription;
   private emptyState: PostFormState = {
     postForm: {
@@ -82,6 +87,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     this.fetchSimilarPosts = debounce(this.fetchSimilarPosts).bind(this);
     this.fetchPageTitle = debounce(this.fetchPageTitle).bind(this);
 
+    this.tribute = setupTribute();
     this.state = this.emptyState;
 
     if (this.props.post) {
@@ -126,7 +132,14 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
   }
 
   componentDidMount() {
-    autosize(document.querySelectorAll('textarea'));
+    var textarea: any = document.getElementById(this.id);
+    autosize(textarea);
+    this.tribute.attach(textarea);
+    textarea.addEventListener('tribute-replaced', () => {
+      this.state.postForm.body = textarea.value;
+      this.setState(this.state);
+      autosize.update(textarea);
+    });
   }
 
   componentWillUnmount() {
@@ -238,6 +251,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
             </label>
             <div class="col-sm-10">
               <textarea
+                id={this.id}
                 value={this.state.postForm.body}
                 onInput={linkEvent(this, this.handlePostBodyChange)}
                 className={`form-control ${this.state.previewMode && 'd-none'}`}
