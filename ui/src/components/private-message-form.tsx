@@ -24,7 +24,10 @@ import {
   pictshareAvatarThumbnail,
   wsJsonToRes,
   toast,
+  randomStr,
+  setupTribute,
 } from '../utils';
+import Tribute from 'tributejs/src/Tribute.js';
 import autosize from 'autosize';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -49,6 +52,8 @@ export class PrivateMessageForm extends Component<
   PrivateMessageFormProps,
   PrivateMessageFormState
 > {
+  private id = `message-form-${randomStr()}`;
+  private tribute: Tribute;
   private subscription: Subscription;
   private emptyState: PrivateMessageFormState = {
     privateMessageForm: {
@@ -64,6 +69,7 @@ export class PrivateMessageForm extends Component<
   constructor(props: any, context: any) {
     super(props, context);
 
+    this.tribute = setupTribute();
     this.state = this.emptyState;
 
     if (this.props.privateMessage) {
@@ -93,7 +99,14 @@ export class PrivateMessageForm extends Component<
   }
 
   componentDidMount() {
-    autosize(document.querySelectorAll('textarea'));
+    var textarea: any = document.getElementById(this.id);
+    autosize(textarea);
+    this.tribute.attach(textarea);
+    textarea.addEventListener('tribute-replaced', () => {
+      this.state.privateMessageForm.content = textarea.value;
+      this.setState(this.state);
+      autosize.update(textarea);
+    });
   }
 
   componentWillUnmount() {
@@ -136,6 +149,7 @@ export class PrivateMessageForm extends Component<
             <label class="col-sm-2 col-form-label">{i18n.t('message')}</label>
             <div class="col-sm-10">
               <textarea
+                id={this.id}
                 value={this.state.privateMessageForm.content}
                 onInput={linkEvent(this, this.handleContentChange)}
                 className={`form-control ${this.state.previewMode && 'd-none'}`}
