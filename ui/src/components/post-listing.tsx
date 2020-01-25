@@ -119,7 +119,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       <div class="listing col-12">
         <div className={`vote-bar mr-2 float-left small text-center`}>
           <button
-            disabled={!UserService.Instance.user}
             className={`btn p-0 ${
               post.my_vote == 1 ? 'text-info' : 'text-muted'
             }`}
@@ -138,7 +137,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           <div class={`font-weight-bold text-muted`}>{post.score}</div>
           {WebSocketService.Instance.site.enable_downvotes && (
             <button
-              disabled={!UserService.Instance.user}
               className={`btn p-0 ${
                 post.my_vote == -1 ? 'text-danger' : 'text-muted'
               }`}
@@ -740,17 +738,22 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   handlePostLike(i: PostListing) {
-    i.setState({ upvoteLoading: true });
+    if (UserService.Instance.user) {
+      i.setState({ upvoteLoading: true });
+    }
 
     let form: CreatePostLikeForm = {
       post_id: i.props.post.id,
       score: i.props.post.my_vote == 1 ? 0 : 1,
     };
+
     WebSocketService.Instance.likePost(form);
   }
 
   handlePostDisLike(i: PostListing) {
-    i.setState({ downvoteLoading: true });
+    if (UserService.Instance.user) {
+      i.setState({ downvoteLoading: true });
+    }
 
     let form: CreatePostLikeForm = {
       post_id: i.props.post.id,
