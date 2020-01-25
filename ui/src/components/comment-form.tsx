@@ -225,13 +225,15 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
       .then(res => res.json())
       .then(res => {
         let url = `${window.location.origin}/pictshare/${res.url}`;
-        let markdown =
+        let imageMarkdown =
           res.filetype == 'mp4' ? `[vid](${url}/raw)` : `![](${url})`;
         let content = i.state.commentForm.content;
-        content = content ? `${content} ${markdown}` : markdown;
+        content = content ? `${content}\n${imageMarkdown}` : imageMarkdown;
         i.state.commentForm.content = content;
         i.state.imageLoading = false;
         i.setState(i.state);
+        var textarea: any = document.getElementById(i.id);
+        autosize.update(textarea);
       })
       .catch(error => {
         i.state.imageLoading = false;

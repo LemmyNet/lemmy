@@ -382,6 +382,8 @@ export function toast(text: string, background: string = 'success') {
   Toastify({
     text: text,
     backgroundColor: backgroundColor,
+    gravity: 'bottom',
+    position: 'left',
   }).showToast();
 }
 
