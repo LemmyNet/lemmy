@@ -7,10 +7,8 @@
 
 <div align="center">
 
-[![Github](https://img.shields.io/badge/-Github-blue)](https://github.com/dessalines/lemmy)
-[![Gitlab](https://img.shields.io/badge/-Gitlab-yellowgreen)](https://gitlab.com/dessalines/lemmy)
-[![Mastodon Follow](https://img.shields.io/mastodon/follow/810572?domain=https%3A%2F%2Fmastodon.social&style=social)](https://mastodon.social/@LemmyDev)
 ![GitHub stars](https://img.shields.io/github/stars/dessalines/lemmy?style=social)
+[![Mastodon Follow](https://img.shields.io/mastodon/follow/810572?domain=https%3A%2F%2Fmastodon.social&style=social)](https://mastodon.social/@LemmyDev)
 [![Matrix](https://img.shields.io/matrix/rust-reddit-fediverse:matrix.org.svg?label=matrix-chat)](https://riot.im/app/#/room/#rust-reddit-fediverse:matrix.org)
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/dessalines/lemmy.svg)
 [![Build Status](https://travis-ci.org/dessalines/lemmy.svg?branch=master)](https://travis-ci.org/dessalines/lemmy)
@@ -52,9 +50,9 @@ Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Infern
 
 ## Repository Mirrors
 
-- GitHub: https://github.com/dessalines/lemmy
-- Yerbamate.dev:  https://yerbamate.dev/dessalines/lemmy
-- GitLab: https://gitlab.com/dessalines/lemmy
+- [GitHub](https://github.com/dessalines/lemmy)
+- [Gitea](https://yerbamate.dev/dessalines/lemmy)
+- [GitLab](https://gitlab.com/dessalines/lemmy)
 
 ## Features
 
