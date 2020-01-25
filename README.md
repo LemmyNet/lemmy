@@ -50,10 +50,10 @@ Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Infern
 - [Releases / Changelog](/RELEASES.md)
 - [Contributing](https://dev.lemmy.ml/docs/contributing.html)
 
-## Official Repository Mirrors
+## Repository Mirrors
 
 - GitHub: https://github.com/dessalines/lemmy
-- yerbamate.dev:  https://yerbamate.dev/dessalines/lemmy
+- Yerbamate.dev:  https://yerbamate.dev/dessalines/lemmy
 - GitLab: https://gitlab.com/dessalines/lemmy
 
 ## Features
@@ -61,9 +61,9 @@ Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Infern
 - Open source, [AGPL License](/LICENSE).
 - Self hostable, easy to deploy.
   - Comes with [Docker](#docker), [Ansible](#ansible), [Kubernetes](#kubernetes).
-- Only a minimum of a username and password is required to sign up!
-- User avatar support.
 - Clean, mobile-friendly interface.
+  - Only a minimum of a username and password is required to sign up!
+  - User avatar support.
   - Live-updating Comment threads.
   - Full vote scores `(+/-)` like old reddit.
   - Themes, including light, dark, and solarized.
@@ -72,14 +72,14 @@ Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Infern
   - Integrated image uploading in both posts and comments.
   - A post can consist of a title and any combination of self text, a URL, or nothing else.
   - Notifications, on comment replies and when you're tagged.
-    - Optionally, notifications can be sent via email.
+    - Notifications can be sent via email.
   - i18n / internationalization support.
   - RSS / Atom feeds for `All`, `Subscribed`, `Inbox`, `User`, and `Community`.
 - Cross-posting support.
   - A *similar post search* when creating new posts. Great for question / answer communities.
 - Moderation abilities.
   - Public Moderation Logs.
-  - Can sticky posts to the top of the timeline.
+  - Can sticky posts to the top of communities.
   - Both site admins, and community moderators, who can appoint other moderators.
   - Can lock, remove, and restore posts and comments.
   - Can ban and unban users from communities and the site.
