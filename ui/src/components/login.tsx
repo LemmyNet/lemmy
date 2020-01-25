@@ -295,7 +295,7 @@ export class Login extends Component<any, State> {
 
   parseMessage(msg: WebSocketJsonResponse) {
     let res = wsJsonToRes(msg);
-    if (res.error) {
+    if (msg.error) {
       toast(i18n.t(msg.error), 'danger');
       this.state = this.emptyState;
       this.setState(this.state);
