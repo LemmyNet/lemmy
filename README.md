@@ -50,6 +50,12 @@ Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Infern
 - [Releases / Changelog](/RELEASES.md)
 - [Contributing](https://dev.lemmy.ml/docs/contributing.html)
 
+## Official Repository Mirrors
+
+- GitHub: https://github.com/dessalines/lemmy
+- yerbamate.dev:  https://yerbamate.dev/dessalines/lemmy
+- GitLab: https://gitlab.com/dessalines/lemmy
+
 ## Features
 
 - Open source, [AGPL License](/LICENSE).
