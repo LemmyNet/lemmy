@@ -784,11 +784,10 @@ type ResponseType =
 export interface WebSocketResponse {
   op: UserOperation;
   data: ResponseType;
-  error?: string;
 }
 
 export interface WebSocketJsonResponse {
-  op: string;
-  data: ResponseType;
+  op?: string;
+  data?: ResponseType;
   error?: string;
 }

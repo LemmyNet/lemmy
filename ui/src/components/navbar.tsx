@@ -202,8 +202,8 @@ export class Navbar extends Component<any, NavbarState> {
 
   parseMessage(msg: WebSocketJsonResponse) {
     let res = wsJsonToRes(msg);
-    if (res.error) {
-      if (res.error == 'not_logged_in') {
+    if (msg.error) {
+      if (msg.error == 'not_logged_in') {
         UserService.Instance.logout();
         location.reload();
       }

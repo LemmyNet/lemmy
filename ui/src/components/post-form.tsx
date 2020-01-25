@@ -475,7 +475,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
 
   parseMessage(msg: WebSocketJsonResponse) {
     let res = wsJsonToRes(msg);
-    if (res.error) {
+    if (msg.error) {
       toast(i18n.t(msg.error), 'danger');
       this.state.loading = false;
       this.setState(this.state);

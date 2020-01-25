@@ -1016,12 +1016,12 @@ export class User extends Component<any, UserState> {
   parseMessage(msg: WebSocketJsonResponse) {
     console.log(msg);
     let res = wsJsonToRes(msg);
-    if (res.error) {
+    if (msg.error) {
       toast(i18n.t(msg.error), 'danger');
       this.state.deleteAccountLoading = false;
       this.state.avatarLoading = false;
       this.state.userSettingsLoading = false;
-      if (res.error == 'couldnt_find_that_username_or_email') {
+      if (msg.error == 'couldnt_find_that_username_or_email') {
         this.context.router.history.push('/');
       }
       this.setState(this.state);
