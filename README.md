@@ -64,7 +64,7 @@ Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Infern
   - Emojis with autocomplete support. Start typing `:`
   - User tagging using `@`, Community tagging using `#`.
   - Integrated image uploading in both posts and comments.
-  - A post can consist of a title and any comination of self text, a URL, or nothing else.
+  - A post can consist of a title and any combination of self text, a URL, or nothing else.
   - Notifications, on comment replies and when you're tagged.
     - Optionally, notifications can be sent via email.
   - i18n / internationalization support.
