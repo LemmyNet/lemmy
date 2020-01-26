@@ -11,24 +11,26 @@ import { it } from './src/translations/it';
 import { fi } from './src/translations/fi';
 import fs from 'fs';
 
-let readmePath = '../README.md';
+const readmePath = '../README.md';
 
-let open = '<!-- translations -->';
-let close = '<!-- translationsstop -->';
+const open = '<!-- translations -->';
+const close = '<!-- translationsstop -->';
 
-let readmeTxt = fs.readFileSync(readmePath, { encoding: 'utf8' });
+const readmeTxt = fs.readFileSync(readmePath, { encoding: 'utf8' });
 
-let before = readmeTxt.split(open)[0];
-let after = readmeTxt.split(close)[1];
+const before = readmeTxt.split(open)[0];
+const after = readmeTxt.split(close)[1];
 
-let report = buildReport();
+const report = buildReport();
 
-let alteredReadmeTxt = `${before}${open}\n\n${report}\n${close}${after}`;
+const alteredReadmeTxt = `${before}${open}\n\n${report}\n${close}${after}`;
 
 fs.writeFileSync(readmePath, alteredReadmeTxt);
 
+const difference = (a: Array<string>, b: Array<string>): Array<string> => a.filter(x => !b.includes(x));
+
 function buildReport(): string {
-  let files = [
+  const files = [
     { t: de, n: 'de' },
     { t: eo, n: 'eo' },
     { t: es, n: 'es' },
@@ -40,21 +42,16 @@ function buildReport(): string {
     { t: sv, n: 'sv' },
     { t: zh, n: 'zh' },
   ];
-  let masterKeys = Object.keys(en.translation);
+  const masterKeys = Object.keys(en.translation);
 
-  let report = 'lang | done | missing\n';
-  report += '--- | --- | ---\n';
-
-  for (let file of files) {
-    let keys = Object.keys(file.t.translation);
-    let pct: number = (keys.length / masterKeys.length) * 100;
-    let missing = difference(masterKeys, keys);
-    report += `${file.n} | ${pct.toFixed(0)}% | ${missing} \n`;
-  }
+  const report = 'lang | done | missing\n' +
+    '--- | --- | ---\n' +
+    files.map(file => {
+      const keys = Object.keys(file.t.translation);
+      const pct: number = (keys.length / masterKeys.length) * 100;
+      const missing = difference(masterKeys, keys);
+      return `${file.n} | ${pct.toFixed(0)}% | ${missing}`;
+    }).join("\n");
 
   return report;
-}
-
-function difference(a: Array<string>, b: Array<string>): Array<string> {
-  return a.filter(x => !b.includes(x));
 }
