@@ -7,6 +7,7 @@ import 'moment/locale/sv';
 import 'moment/locale/ru';
 import 'moment/locale/nl';
 import 'moment/locale/it';
+import 'moment/locale/fi';
 
 import {
   UserOperation,
@@ -256,6 +257,7 @@ export const languages = [
   { code: 'es', name: 'Español' },
   { code: 'de', name: 'Deutsch' },
   { code: 'zh', name: '中文' },
+  { code: 'fi', name: 'Suomi' },
   { code: 'fr', name: 'Français' },
   { code: 'sv', name: 'Svenska' },
   { code: 'ru', name: 'Русский' },
@@ -298,6 +300,8 @@ export function getMomentLanguage(): string {
     lang = 'nl';
   } else if (lang.startsWith('it')) {
     lang = 'it';
+  } else if (lang.startsWith('fi')) {
+    lang = 'fi';
   } else {
     lang = 'en';
   }
