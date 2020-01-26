@@ -13,6 +13,7 @@ import { ca } from './src/translations/ca';
 import fs from 'fs';
 
 const files = [
+  { t: ca, n: 'ca' },
   { t: de, n: 'de' },
   { t: eo, n: 'eo' },
   { t: es, n: 'es' },
@@ -23,7 +24,6 @@ const files = [
   { t: ru, n: 'ru' },
   { t: sv, n: 'sv' },
   { t: zh, n: 'zh' },
-  { t: ca, n: 'ca' },
 ];
 const masterKeys = Object.keys(en.translation);
 
@@ -41,15 +41,17 @@ function difference(a: Array<string>, b: Array<string>): Array<string> {
   return a.filter(x => !b.includes(x));
 }
 
-const report = 
+const report =
   'lang | done | missing\n' +
   '---- | ---- | -------\n' +
-  files.map(file => {
-    const keys = Object.keys(file.t.translation);
-    const pct: number = (keys.length / masterKeys.length) * 100;
-    const missing = difference(masterKeys, keys);
-    return `${file.n} | ${pct.toFixed(0)}% | ${missing}`;
-  }).join("\n");
+  files
+    .map(file => {
+      const keys = Object.keys(file.t.translation);
+      const pct: number = (keys.length / masterKeys.length) * 100;
+      const missing = difference(masterKeys, keys);
+      return `${file.n} | ${pct.toFixed(0)}% | ${missing}`;
+    })
+    .join('\n');
 
 const alteredReadmeTxt = `${before}${open}\n\n${report}\n${close}${after}`;
 

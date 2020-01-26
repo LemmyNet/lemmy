@@ -161,12 +161,13 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 
 If you'd like to add translations, take a look a look at the [English translation file](ui/src/translations/en.ts).
 
-- Languages supported: English (`en`), Chinese (`zh`), Dutch (`nl`), Esperanto (`eo`), Finnish (`fi`), French (`fr`), Spanish (`es`), Swedish (`sv`), German (`de`), Russian (`ru`), Italian (`it`).
+- Languages supported: Catalan, (`ca`), English (`en`), Chinese (`zh`), Dutch (`nl`), Esperanto (`eo`), Finnish (`fi`), French (`fr`), Spanish (`es`), Swedish (`sv`), German (`de`), Russian (`ru`), Italian (`it`).
 
 <!-- translations -->
 
 lang | done | missing
 ---- | ---- | -------
+ca | 100% | 
 de | 88% | create_private_message,send_secure_message,send_message,message,avatar,upload_avatar,show_avatars,docs,message_sent,messages,old_password,matrix_user_id,private_message_disclaimer,send_notifications_to_email,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,donate_to_lemmy,donate,from,logged_in,email_already_exists,couldnt_create_private_message,no_private_message_edit_allowed,couldnt_update_private_message
 eo | 76% | number_of_communities,create_private_message,send_secure_message,send_message,message,preview,upload_image,avatar,upload_avatar,show_avatars,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,docs,replies,mentions,message_sent,messages,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,matrix_user_id,private_message_disclaimer,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,theme,donate_to_lemmy,donate,from,are_you_sure,yes,no,logged_in,email_already_exists,couldnt_create_private_message,no_private_message_edit_allowed,couldnt_update_private_message
 es | 100% | 
@@ -177,7 +178,6 @@ nl | 93% | create_private_message,send_secure_message,send_message,message,messa
 ru | 72% | cross_posts,cross_post,number_of_communities,create_private_message,send_secure_message,send_message,message,preview,upload_image,avatar,upload_avatar,show_avatars,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,docs,replies,mentions,message_sent,messages,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,matrix_user_id,private_message_disclaimer,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,recent_comments,theme,donate_to_lemmy,donate,monero,by,to,from,transfer_community,transfer_site,are_you_sure,yes,no,logged_in,email_already_exists,couldnt_create_private_message,no_private_message_edit_allowed,couldnt_update_private_message
 sv | 83% | create_private_message,send_secure_message,send_message,message,avatar,upload_avatar,show_avatars,archive_link,docs,replies,mentions,message_sent,messages,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,matrix_user_id,private_message_disclaimer,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,donate_to_lemmy,donate,from,logged_in,email_already_exists,couldnt_create_private_message,no_private_message_edit_allowed,couldnt_update_private_message
 zh | 70% | cross_posts,cross_post,users,number_of_communities,create_private_message,send_secure_message,send_message,message,preview,upload_image,avatar,upload_avatar,show_avatars,formatting_help,view_source,sticky,unsticky,archive_link,settings,stickied,delete_account,delete_account_confirm,banned,creator,number_online,docs,replies,mentions,message_sent,messages,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,matrix_user_id,private_message_disclaimer,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,recent_comments,nsfw,show_nsfw,theme,donate_to_lemmy,donate,monero,by,to,from,transfer_community,transfer_site,are_you_sure,yes,no,logged_in,email_already_exists,couldnt_create_private_message,no_private_message_edit_allowed,couldnt_update_private_message
-ca | 100% | 
 <!-- translationsstop -->
 
 If you'd like to update this report, run:
