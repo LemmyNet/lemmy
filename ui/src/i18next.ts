@@ -11,6 +11,7 @@ import { zh } from './translations/zh';
 import { nl } from './translations/nl';
 import { it } from './translations/it';
 import { fi } from './translations/fi';
+import { ca } from './translations/ca';
 
 // https://github.com/nimbusec-oss/inferno-i18next/blob/master/tests/T.test.js#L66
 const resources = {
@@ -25,6 +26,7 @@ const resources = {
   nl,
   it,
   fi,
+  ca,
 };
 
 const format = (value: any, format: any, lng: any) => format === 'uppercase' ? value.toUpperCase() : value;

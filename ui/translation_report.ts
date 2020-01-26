@@ -9,6 +9,7 @@ import { ru } from './src/translations/ru';
 import { nl } from './src/translations/nl';
 import { it } from './src/translations/it';
 import { fi } from './src/translations/fi';
+import { ca } from './src/translations/ca';
 import fs from 'fs';
 
 const files = [
@@ -22,6 +23,7 @@ const files = [
   { t: ru, n: 'ru' },
   { t: sv, n: 'sv' },
   { t: zh, n: 'zh' },
+  { t: ca, n: 'ca' },
 ];
 const masterKeys = Object.keys(en.translation);
 
