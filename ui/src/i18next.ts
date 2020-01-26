@@ -29,7 +29,9 @@ const resources = {
   ca,
 };
 
-const format = (value: any, format: any, lng: any) => format === 'uppercase' ? value.toUpperCase() : value;
+function format(value: any, format: any, lng: any): any {
+  return format === 'uppercase' ? value.toUpperCase() : value;
+}
 
 i18next.init({
   debug: false,
