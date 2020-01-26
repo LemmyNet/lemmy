@@ -27,10 +27,7 @@ const resources = {
   fi,
 };
 
-function format(value: any, format: any, lng: any) {
-  if (format === 'uppercase') return value.toUpperCase();
-  return value;
-}
+const format = (value, format, lng) => format === 'uppercase' ? value.toUpperCase() : value;
 
 i18next.init({
   debug: false,
@@ -40,9 +37,7 @@ i18next.init({
   lng: getLanguage(),
   fallbackLng: 'en',
   resources,
-  interpolation: {
-    format: format,
-  },
+  interpolation: { format },
 });
 
 export { i18next as i18n, resources };
