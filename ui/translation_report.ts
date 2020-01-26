@@ -37,7 +37,9 @@ const readmeTxt = fs.readFileSync(readmePath, { encoding: 'utf8' });
 const before = readmeTxt.split(open)[0];
 const after = readmeTxt.split(close)[1];
 
-const difference = (a: Array<string>, b: Array<string>): Array<string> => a.filter(x => !b.includes(x));
+function difference(a: Array<string>, b: Array<string>): Array<string> {
+  return a.filter(x => !b.includes(x));
+}
 
 const report = 
   'lang | done | missing\n' +
