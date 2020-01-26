@@ -8,6 +8,7 @@ import { sv } from './src/translations/sv';
 import { ru } from './src/translations/ru';
 import { nl } from './src/translations/nl';
 import { it } from './src/translations/it';
+import { fi } from './src/translations/fi';
 import fs from 'fs';
 
 let readmePath = '../README.md';
@@ -31,6 +32,7 @@ function buildReport(): string {
     { t: de, n: 'de' },
     { t: eo, n: 'eo' },
     { t: es, n: 'es' },
+    { t: fi, n: 'fi' },
     { t: fr, n: 'fr' },
     { t: it, n: 'it' },
     { t: nl, n: 'nl' },
