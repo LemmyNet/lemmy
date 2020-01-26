@@ -41,6 +41,7 @@ export enum UserOperation {
   CreatePrivateMessage,
   EditPrivateMessage,
   GetPrivateMessages,
+  UserJoin,
 }
 
 export enum CommentSortType {

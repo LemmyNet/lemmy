@@ -67,10 +67,17 @@ export class WebSocketService {
       .subscribe();
 
     console.log(`Connected to ${wsUri}`);
+
+    if (UserService.Instance.user) {
+    }
   }
 
   public static get Instance() {
     return this._instance || (this._instance = new this());
+  }
+
+  public userJoin() {
+    this.wsSendWrapper(UserOperation.ListCategories, undefined);
   }
 
   public login(loginForm: LoginForm) {
@@ -125,6 +132,7 @@ export class WebSocketService {
     this.subject.next(this.wsSendWrapper(UserOperation.CreatePost, postForm));
   }
 
+  // TODO strictly type these
   public getPost(postId: number) {
     let data = { id: postId, auth: UserService.Instance.auth };
     this.subject.next(this.wsSendWrapper(UserOperation.GetPost, data));
