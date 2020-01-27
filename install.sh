@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-export DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
+export LEMMY_DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
 export JWT_SECRET=changeme
 export HOSTNAME=rrr
 
