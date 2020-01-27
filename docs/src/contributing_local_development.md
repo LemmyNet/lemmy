@@ -9,7 +9,7 @@
 ```bash
  psql -c "create user lemmy with password 'password' superuser;" -U postgres
  psql -c 'create database lemmy with owner lemmy;' -U postgres
- export DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
+ export LEMMY_DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
 ```
 
 #### Running
