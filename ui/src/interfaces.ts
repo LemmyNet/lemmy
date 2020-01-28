@@ -248,6 +248,10 @@ export interface FollowCommunityForm {
   auth?: string;
 }
 
+export interface GetFollowedCommunitiesForm {
+  auth: string;
+}
+
 export interface GetFollowedCommunitiesResponse {
   communities: Array<CommunityUser>;
 }
@@ -523,6 +527,12 @@ export interface CommunityForm {
   auth?: string;
 }
 
+export interface GetCommunityForm {
+  id?: number;
+  name?: string;
+  auth?: string;
+}
+
 export interface GetCommunityResponse {
   community: Community;
   moderators: Array<CommunityUser>;
@@ -570,6 +580,11 @@ export interface PostFormParams {
   url?: string;
   body?: string;
   community?: string;
+}
+
+export interface GetPostForm {
+  id: number;
+  auth?: string;
 }
 
 export interface GetPostResponse {
@@ -758,6 +773,45 @@ export interface PrivateMessagesResponse {
 export interface PrivateMessageResponse {
   message: PrivateMessage;
 }
+
+export type MessageType =
+  | EditPrivateMessageForm
+  | LoginForm
+  | RegisterForm
+  | CommunityForm
+  | FollowCommunityForm
+  | ListCommunitiesForm
+  | GetFollowedCommunitiesForm
+  | PostForm
+  | GetPostForm
+  | GetPostsForm
+  | GetCommunityForm
+  | CommentForm
+  | CommentLikeForm
+  | SaveCommentForm
+  | CreatePostLikeForm
+  | BanFromCommunityForm
+  | AddAdminForm
+  | AddModToCommunityForm
+  | TransferCommunityForm
+  | TransferSiteForm
+  | SaveCommentForm
+  | BanUserForm
+  | AddAdminForm
+  | GetUserDetailsForm
+  | GetRepliesForm
+  | GetUserMentionsForm
+  | EditUserMentionForm
+  | GetModlogForm
+  | SiteForm
+  | SearchForm
+  | UserSettingsForm
+  | DeleteAccountForm
+  | PasswordResetForm
+  | PasswordChangeForm
+  | PrivateMessageForm
+  | EditPrivateMessageForm
+  | GetPrivateMessagesForm;
 
 type ResponseType =
   | SiteResponse

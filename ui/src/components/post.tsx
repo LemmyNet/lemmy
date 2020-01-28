@@ -23,6 +23,7 @@ import {
   SearchType,
   SortType,
   SearchForm,
+  GetPostForm,
   SearchResponse,
   GetSiteResponse,
   GetCommunityResponse,
@@ -84,7 +85,10 @@ export class Post extends Component<any, PostState> {
         () => console.log('complete')
       );
 
-    WebSocketService.Instance.getPost(postId);
+    let form: GetPostForm = {
+      id: postId,
+    };
+    WebSocketService.Instance.getPost(form);
   }
 
   componentWillUnmount() {
