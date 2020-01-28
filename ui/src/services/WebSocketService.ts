@@ -116,7 +116,7 @@ export class WebSocketService {
 
   public listCategories() {
     this.subject.next(
-      this.wsSendWrapper(UserOperation.ListCategories, undefined)
+      this.wsSendWrapper(UserOperation.ListCategories, {})
     );
   }
 
@@ -255,7 +255,7 @@ export class WebSocketService {
   }
 
   public getSite() {
-    this.subject.next(this.wsSendWrapper(UserOperation.GetSite, undefined));
+    this.subject.next(this.wsSendWrapper(UserOperation.GetSite, {}));
   }
 
   public search(form: SearchForm) {
