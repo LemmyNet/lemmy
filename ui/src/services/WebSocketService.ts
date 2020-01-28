@@ -130,12 +130,12 @@ export class WebSocketService {
   }
 
   public getPost(form: GetPostForm) {
-    this.setAuth(form);
+    this.setAuth(form, false);
     this.subject.next(this.wsSendWrapper(UserOperation.GetPost, form));
   }
 
   public getCommunity(form: GetCommunityForm) {
-    this.setAuth(form);
+    this.setAuth(form, false);
     this.subject.next(this.wsSendWrapper(UserOperation.GetCommunity, form));
   }
 
