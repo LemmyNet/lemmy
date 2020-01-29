@@ -96,6 +96,10 @@ Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Infern
 - The [Koopa from Super Mario](https://www.mariowiki.com/Lemmy_Koopa).
 - The [furry rodents](http://sunchild.fpwc.org/lemming-the-little-giant-of-the-north/).
 
+## Federation
+
+Currently, Federation is still being developed and is not yet working. If you would like to contribute to making lemmy federated, the code can be found in the `federation` branch, in [`server/src/apub`](./server/src/apub).
+
 ## Install
 
 ### Docker
