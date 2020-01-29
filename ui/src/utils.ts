@@ -7,6 +7,8 @@ import 'moment/locale/sv';
 import 'moment/locale/ru';
 import 'moment/locale/nl';
 import 'moment/locale/it';
+import 'moment/locale/fi';
+import 'moment/locale/ca';
 
 import {
   UserOperation,
@@ -251,11 +253,13 @@ export function debounce(
 }
 
 export const languages = [
+  { code: 'ca', name: 'Català' },
   { code: 'en', name: 'English' },
   { code: 'eo', name: 'Esperanto' },
   { code: 'es', name: 'Español' },
   { code: 'de', name: 'Deutsch' },
   { code: 'zh', name: '中文' },
+  { code: 'fi', name: 'Suomi' },
   { code: 'fr', name: 'Français' },
   { code: 'sv', name: 'Svenska' },
   { code: 'ru', name: 'Русский' },
@@ -298,6 +302,10 @@ export function getMomentLanguage(): string {
     lang = 'nl';
   } else if (lang.startsWith('it')) {
     lang = 'it';
+  } else if (lang.startsWith('fi')) {
+    lang = 'fi';
+  } else if (lang.startsWith('ca')) {
+    lang = 'ca';
   } else {
     lang = 'en';
   }

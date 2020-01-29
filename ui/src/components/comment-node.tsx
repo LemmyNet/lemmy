@@ -117,7 +117,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               .viewOnly && 'no-click'}`}
           >
             <button
-              disabled={!UserService.Instance.user}
               className={`btn p-0 ${
                 node.comment.my_vote == 1 ? 'text-info' : 'text-muted'
               }`}
@@ -138,7 +137,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             </div>
             {WebSocketService.Instance.site.enable_downvotes && (
               <button
-                disabled={!UserService.Instance.user}
                 className={`btn p-0 ${
                   node.comment.my_vote == -1 ? 'text-danger' : 'text-muted'
                 }`}
@@ -761,9 +759,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   handleCommentUpvote(i: CommentNodeI) {
-    this.setState({
-      upvoteLoading: true,
-    });
+    if (UserService.Instance.user) {
+      this.setState({
+        upvoteLoading: true,
+      });
+    }
     let form: CommentLikeForm = {
       comment_id: i.comment.id,
       post_id: i.comment.post_id,
@@ -773,9 +773,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   handleCommentDownvote(i: CommentNodeI) {
-    this.setState({
-      downvoteLoading: true,
-    });
+    if (UserService.Instance.user) {
+      this.setState({
+        downvoteLoading: true,
+      });
+    }
     let form: CommentLikeForm = {
       comment_id: i.comment.id,
       post_id: i.comment.post_id,

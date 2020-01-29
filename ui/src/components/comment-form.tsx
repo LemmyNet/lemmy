@@ -96,6 +96,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
                 className={`form-control ${this.state.previewMode && 'd-none'}`}
                 value={this.state.commentForm.content}
                 onInput={linkEvent(this, this.handleCommentContentChange)}
+                onPaste={linkEvent(this, this.handleImageUploadPaste)}
                 required
                 disabled={this.props.disabled}
                 rows={2}
@@ -208,9 +209,22 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     i.props.onReplyCancel();
   }
 
+  handleImageUploadPaste(i: CommentForm, event: any) {
+    let image = event.clipboardData.files[0];
+    if (image) {
+      i.handleImageUpload(i, image);
+    }
+  }
+
   handleImageUpload(i: CommentForm, event: any) {
-    event.preventDefault();
-    let file = event.target.files[0];
+    let file: any;
+    if (event.target) {
+      event.preventDefault();
+      file = event.target.files[0];
+    } else {
+      file = event;
+    }
+
     const imageUploadUrl = `/pictshare/api/upload.php`;
     const formData = new FormData();
     formData.append('file', file);

@@ -97,6 +97,7 @@ export const en = {
     sort_type: 'Sort type',
     hot: 'Hot',
     new: 'New',
+    old: 'Old',
     top_day: 'Top day',
     week: 'Week',
     month: 'Month',
