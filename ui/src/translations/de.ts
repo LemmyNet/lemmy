@@ -66,7 +66,7 @@ export const de = {
     unban_from_site: 'Von der Seite entbannen',
     banned: 'gesperrt',
     save: 'speichern',
-    unsave: 'rückgängig speichern',
+    unsave: 'rückgängig machen speichern',
     create: 'anlegen',
     creator: 'Ersteller',
     username: 'Benutzername',
