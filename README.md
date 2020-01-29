@@ -98,7 +98,7 @@ Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Infern
 
 ## Federation
 
-Currently, Federation is still being developed and is not yet working. If you would like to contribute to making lemmy federated, the code can be found in the `federation` branch, in [`server/src/apub`](./server/src/apub).
+Currently, Federation is still being developed and is not yet working. If you would like to contribute to making lemmy federated, the most up to date code can be found in the `federation` branch, in [`server/src/apub`](./server/src/apub).
 
 ## Install
 
