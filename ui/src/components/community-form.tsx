@@ -261,7 +261,7 @@ export class CommunityForm extends Component<
   parseMessage(msg: WebSocketJsonResponse) {
     let res = wsJsonToRes(msg);
     console.log(msg);
-    if (res.error) {
+    if (msg.error) {
       toast(i18n.t(msg.error), 'danger');
       this.state.loading = false;
       this.setState(this.state);
