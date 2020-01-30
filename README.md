@@ -159,7 +159,7 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 
 ## Translations 
 
-If you'd like to add translations, take a look a look at the [English translation file](ui/src/translations/en.ts).
+If you'd like to add translations, take a look at the [English translation file](ui/src/translations/en.ts).
 
 - Languages supported: Catalan, (`ca`), Farsi (`fa`), English (`en`), Chinese (`zh`), Dutch (`nl`), Esperanto (`eo`), Finnish (`fi`), French (`fr`), Spanish (`es`), Swedish (`sv`), German (`de`), Russian (`ru`), Italian (`it`).
 
