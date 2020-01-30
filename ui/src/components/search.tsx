@@ -479,7 +479,7 @@ export class Search extends Component<any, SearchState> {
   parseMessage(msg: WebSocketJsonResponse) {
     console.log(msg);
     let res = wsJsonToRes(msg);
-    if (res.error) {
+    if (msg.error) {
       toast(i18n.t(msg.error), 'danger');
       return;
     } else if (res.op == UserOperation.Search) {
