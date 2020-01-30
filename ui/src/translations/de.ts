@@ -151,7 +151,7 @@ export const de = {
     support_on_patreon: 'Auf Patreon unterstützen',
     general_sponsors:
       'Allgemeine Sponsoren sind die, die zwischen $10 und $39 zu Lemmy beitragen.',
-    crypto: 'Kryptographie',
+    crypto: 'Kryptowährung',
     bitcoin: 'Bitcoin',
     ethereum: 'Ethereum',
     monero: 'Monero',
