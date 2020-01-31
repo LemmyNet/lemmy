@@ -9,9 +9,12 @@ import {
   CommentForm,
   SaveCommentForm,
   CommentLikeForm,
+  GetPostForm,
   GetPostsForm,
   CreatePostLikeForm,
+  GetCommunityForm,
   FollowCommunityForm,
+  GetFollowedCommunitiesForm,
   GetUserDetailsForm,
   ListCommunitiesForm,
   GetModlogForm,
@@ -35,6 +38,7 @@ import {
   PrivateMessageForm,
   EditPrivateMessageForm,
   GetPrivateMessagesForm,
+  MessageType,
 } from '../interfaces';
 import { webSocket } from 'rxjs/webSocket';
 import { Subject } from 'rxjs';
@@ -115,9 +119,9 @@ export class WebSocketService {
   }
 
   public getFollowedCommunities() {
-    let data = { auth: UserService.Instance.auth };
+    let form: GetFollowedCommunitiesForm = { auth: UserService.Instance.auth };
     this.subject.next(
-      this.wsSendWrapper(UserOperation.GetFollowedCommunities, data)
+      this.wsSendWrapper(UserOperation.GetFollowedCommunities, form)
     );
   }
 
@@ -132,20 +136,14 @@ export class WebSocketService {
     this.subject.next(this.wsSendWrapper(UserOperation.CreatePost, postForm));
   }
 
-  // TODO strictly type these
-  public getPost(postId: number) {
-    let data = { id: postId, auth: UserService.Instance.auth };
-    this.subject.next(this.wsSendWrapper(UserOperation.GetPost, data));
+  public getPost(form: GetPostForm) {
+    this.setAuth(form, false);
+    this.subject.next(this.wsSendWrapper(UserOperation.GetPost, form));
   }
 
-  public getCommunity(communityId: number) {
-    let data = { id: communityId, auth: UserService.Instance.auth };
-    this.subject.next(this.wsSendWrapper(UserOperation.GetCommunity, data));
-  }
-
-  public getCommunityByName(name: string) {
-    let data = { name: name, auth: UserService.Instance.auth };
-    this.subject.next(this.wsSendWrapper(UserOperation.GetCommunity, data));
+  public getCommunity(form: GetCommunityForm) {
+    this.setAuth(form, false);
+    this.subject.next(this.wsSendWrapper(UserOperation.GetCommunity, form));
   }
 
   public createComment(commentForm: CommentForm) {
@@ -318,7 +316,7 @@ export class WebSocketService {
     );
   }
 
-  private wsSendWrapper(op: UserOperation, data: any) {
+  private wsSendWrapper(op: UserOperation, data: MessageType) {
     let send = { op: UserOperation[op], data: data };
     console.log(send);
     return send;
