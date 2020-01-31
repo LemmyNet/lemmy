@@ -23,7 +23,7 @@ export class CreatePost extends Component<any, any> {
         <div class="row">
           <div class="col-12 col-lg-6 offset-lg-3 mb-4">
             <h5>
-              <T i18nKey="create_post">#</T>
+              { i18n.t('create_post') }
             </h5>
             <PostForm onCreate={this.handlePostCreate} params={this.params} />
           </div>

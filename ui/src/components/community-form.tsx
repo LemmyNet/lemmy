@@ -108,12 +108,13 @@ export class CommunityForm extends Component<
     return (
       <form onSubmit={linkEvent(this, this.handleCreateCommunitySubmit)}>
         <div class="form-group row">
-          <label class="col-12 col-form-label">
-            <T i18nKey="name">#</T>
+          <label class="col-12 col-form-label" for="community-name">
+            { i18n.t('name') }
           </label>
           <div class="col-12">
             <input
               type="text"
+              id="community-name"
               class="form-control"
               value={this.state.communityForm.name}
               onInput={linkEvent(this, this.handleCommunityNameChange)}
@@ -125,13 +126,15 @@ export class CommunityForm extends Component<
             />
           </div>
         </div>
+
         <div class="form-group row">
-          <label class="col-12 col-form-label">
-            <T i18nKey="title">#</T>
+          <label class="col-12 col-form-label" for="community-title">
+            { i18n.t('title') }
           </label>
           <div class="col-12">
             <input
               type="text"
+              id="community-title"
               value={this.state.communityForm.title}
               onInput={linkEvent(this, this.handleCommunityTitleChange)}
               class="form-control"
@@ -142,13 +145,14 @@ export class CommunityForm extends Component<
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-12 col-form-label">
-            <T i18nKey="sidebar">#</T>
+          <label class="col-12 col-form-label" for="community-sidebar">
+            { i18n.t('sidebar') }
           </label>
           <div class="col-12">
             <textarea
               id={this.id}
               value={this.state.communityForm.description}
+              id="community-sidebar"
               onInput={linkEvent(this, this.handleCommunityDescriptionChange)}
               class="form-control"
               rows={3}
@@ -157,12 +161,13 @@ export class CommunityForm extends Component<
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-12 col-form-label">
-            <T i18nKey="category">#</T>
+          <label class="col-12 col-form-label" for="community-category">
+            { i18n.t('category') }
           </label>
           <div class="col-12">
             <select
               class="form-control"
+              id="community-category"
               value={this.state.communityForm.category_id}
               onInput={linkEvent(this, this.handleCommunityCategoryChange)}
             >
@@ -179,12 +184,13 @@ export class CommunityForm extends Component<
               <div class="form-check">
                 <input
                   class="form-check-input"
+                  id="community-nsfw"
                   type="checkbox"
                   checked={this.state.communityForm.nsfw}
                   onChange={linkEvent(this, this.handleCommunityNsfwChange)}
                 />
-                <label class="form-check-label">
-                  <T i18nKey="nsfw">#</T>
+                <label class="form-check-label" for="community-nsfw">
+                  { i18n.t('nsfw') }
                 </label>
               </div>
             </div>
@@ -209,7 +215,7 @@ export class CommunityForm extends Component<
                 class="btn btn-secondary"
                 onClick={linkEvent(this, this.handleCancel)}
               >
-                <T i18nKey="cancel">#</T>
+                { i18n.t('cancel') }
               </button>
             )}
           </div>
