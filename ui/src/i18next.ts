@@ -10,6 +10,9 @@ import { ru } from './translations/ru';
 import { zh } from './translations/zh';
 import { nl } from './translations/nl';
 import { it } from './translations/it';
+import { fi } from './translations/fi';
+import { ca } from './translations/ca';
+import { fa } from './translations/fa';
 
 // https://github.com/nimbusec-oss/inferno-i18next/blob/master/tests/T.test.js#L66
 const resources = {
@@ -23,11 +26,13 @@ const resources = {
   ru,
   nl,
   it,
+  fi,
+  ca,
+  fa,
 };
 
-function format(value: any, format: any, lng: any) {
-  if (format === 'uppercase') return value.toUpperCase();
-  return value;
+function format(value: any, format: any, lng: any): any {
+  return format === 'uppercase' ? value.toUpperCase() : value;
 }
 
 i18next.init({
@@ -38,9 +43,7 @@ i18next.init({
   lng: getLanguage(),
   fallbackLng: 'en',
   resources,
-  interpolation: {
-    format: format,
-  },
+  interpolation: { format },
 });
 
 export { i18next as i18n, resources };
