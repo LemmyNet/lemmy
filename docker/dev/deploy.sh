@@ -14,6 +14,9 @@ git add "ui/src/version.ts"
 # Setting the version on the backend
 echo "pub const VERSION: &str = \"$(git describe --tags)\";" > "server/src/version.rs"
 git add "server/src/version.rs"
+# Setting the version for Ansible
+git describe --tags > "ansible/VERSION"
+git add "ansible/VERSION"
 
 cd docker/dev
 

@@ -36,7 +36,7 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use lettre::smtp::authentication::{Credentials, Mechanism};
 use lettre::smtp::extension::ClientId;
 use lettre::smtp::ConnectionReuseParameters;
-use lettre::{SmtpClient, Transport};
+use lettre::{ClientSecurity, SmtpClient, Transport};
 use lettre_email::Email;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -110,34 +110,36 @@ pub fn send_email(
 
   let email = Email::builder()
     .to((to_email, to_username))
-    .from((
-      email_config.smtp_login.to_owned(),
-      email_config.smtp_from_address.to_owned(),
-    ))
+    .from(email_config.smtp_from_address.to_owned())
     .subject(subject)
     .html(html)
     .build()
     .unwrap();
 
-  let mut mailer = SmtpClient::new_simple(&email_config.smtp_server)
-    .unwrap()
-    .hello_name(ClientId::Domain(Settings::get().hostname.to_owned()))
-    .credentials(Credentials::new(
-      email_config.smtp_login.to_owned(),
-      email_config.smtp_password.to_owned(),
-    ))
-    .smtp_utf8(true)
-    .authentication_mechanism(Mechanism::Plain)
-    .connection_reuse(ConnectionReuseParameters::ReuseUnlimited)
-    .transport();
+  let mailer = if email_config.use_tls {
+    SmtpClient::new_simple(&email_config.smtp_server).unwrap()
+  } else {
+    SmtpClient::new(&email_config.smtp_server, ClientSecurity::None).unwrap()
+  }
+  .hello_name(ClientId::Domain(Settings::get().hostname.to_owned()))
+  .smtp_utf8(true)
+  .authentication_mechanism(Mechanism::Plain)
+  .connection_reuse(ConnectionReuseParameters::ReuseUnlimited);
+  let mailer = if let (Some(login), Some(password)) =
+    (&email_config.smtp_login, &email_config.smtp_password)
+  {
+    mailer.credentials(Credentials::new(login.to_owned(), password.to_owned()))
+  } else {
+    mailer
+  };
 
-  let result = mailer.send(email.into());
-
-  mailer.close();
+  let mut transport = mailer.transport();
+  let result = transport.send(email.into());
+  transport.close();
 
   match result {
     Ok(_) => Ok(()),
-    Err(_) => Err("no_email_setup".to_string()),
+    Err(e) => Err(e.to_string()),
   }
 }
 

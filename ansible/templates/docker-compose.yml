@@ -2,7 +2,7 @@ version: '3.3'
 
 services:
   lemmy:
-    image: dessalines/lemmy:v0.6.9
+    image: {{ lemmy_docker_image }}
     ports:
       - "127.0.0.1:8536:8536"
     restart: always
@@ -30,6 +30,11 @@ services:
       - lemmy_pictshare:/usr/share/nginx/html/data
     restart: always
 
+  postfix:
+    image: mwader/postfix-relay
+    environment:
+      - POSTFIX_myhostname={{ domain }}
+    restart: "always"
 volumes:
   lemmy_db:
   lemmy_pictshare:

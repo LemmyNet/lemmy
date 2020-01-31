@@ -1,5 +1,7 @@
 ---
 - hosts: all
+  vars:
+    lemmy_docker_image: "lemmy:dev"
 
   # Install python if required
   # https://www.josharcher.uk/code/ansible-python-connection-failure-ubuntu-server-1604/
@@ -41,7 +43,36 @@
     vars:
       postgres_password: "{{ lookup('password', 'passwords/{{ inventory_hostname }}/postgres chars=ascii_letters,digits') }}"
       jwt_password: "{{ lookup('password', 'passwords/{{ inventory_hostname }}/jwt chars=ascii_letters,digits') }}"
-      lemmy_docker_image: "dessalines/lemmy:{{ lookup('file', 'VERSION') }}"
+
+  - name: build the dev docker image
+    local_action: shell cd .. && sudo docker build . -f docker/dev/Dockerfile -t lemmy:dev
+    register: image_build
+
+  - name: find hash of the new docker image
+    set_fact:
+      image_hash: "{{ image_build.stdout | regex_search('(?<=Successfully built )[0-9a-f]{12}') }}"
+
+  # this does not use become so that the output file is written as non-root user and is easy to delete later
+  - name: save dev docker image to file
+    local_action: shell sudo docker save lemmy:dev > lemmy-dev.tar
+
+  - name: copy dev docker image to server
+    copy: src=lemmy-dev.tar dest=/lemmy/lemmy-dev.tar
+
+  - name: import docker image
+    docker_image:
+      name: lemmy
+      tag: dev
+      load_path: /lemmy/lemmy-dev.tar
+      source: load
+      force_source: yes
+    register: image_import
+
+  - name: delete remote image file
+    file: path=/lemmy/lemmy-dev.tar state=absent
+
+  - name: delete local image file
+    local_action: file path=lemmy-dev.tar state=absent
 
   - name: enable and start docker service
     systemd:
@@ -49,11 +80,14 @@
       enabled: yes
       state: started
 
+  # cant pull here because that fails due to lemmy:dev (without dessalines/) not being on docker hub, but that shouldnt
+  # be a problem for testing
   - name: start docker-compose
     docker_compose:
       project_src: /lemmy/
       state: present
-      pull: yes
+      recreate: always
+    ignore_errors: yes
 
   - name: reload nginx with new config
     shell: nginx -s reload
