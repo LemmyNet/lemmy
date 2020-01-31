@@ -159,8 +159,8 @@ export class Main extends Component<any, MainState> {
     return (
       <div class="container">
         <div class="row">
-          <div class="col-12 col-md-8">{this.posts()}</div>
-          <div class="col-12 col-md-4">{this.my_sidebar()}</div>
+          <main role="main" class="col-12 col-md-8">{this.posts()}</main>
+          <aside class="col-12 col-md-4">{this.my_sidebar()}</aside>
         </div>
       </div>
     );
@@ -413,13 +413,13 @@ export class Main extends Component<any, MainState> {
 
   posts() {
     return (
-      <div>
+      <div class="main-content-wrapper">
         {this.state.loading ? (
-          <h5>
+          <p class="text-center">
             <svg class="icon icon-spinner spin">
               <use xlinkHref="#icon-spinner"></use>
             </svg>
-          </h5>
+          </p>
         ) : (
           <div>
             {this.selects()}

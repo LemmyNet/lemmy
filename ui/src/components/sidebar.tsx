@@ -72,7 +72,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
               <span>{community.title}</span>
               {community.removed && (
                 <small className="ml-2 text-muted font-italic">
-                  <T i18nKey="removed">#</T>
+                  { i18n.t('removed') }
                 </small>
               )}
               {community.deleted && (
@@ -92,7 +92,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
                       class="pointer"
                       onClick={linkEvent(this, this.handleEditClick)}
                     >
-                      <T i18nKey="edit">#</T>
+                      { i18n.t('edit') }
                     </span>
                   </li>
                   {this.amCreator && (
@@ -116,14 +116,14 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
                       class="pointer"
                       onClick={linkEvent(this, this.handleModRemoveShow)}
                     >
-                      <T i18nKey="remove">#</T>
+                      { i18n.t('remove') }
                     </span>
                   ) : (
                     <span
                       class="pointer"
                       onClick={linkEvent(this, this.handleModRemoveSubmit)}
                     >
-                      <T i18nKey="restore">#</T>
+                      { i18n.t('restore') }
                     </span>
                   )}
                 </li>
@@ -132,11 +132,12 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
             {this.state.showRemoveDialog && (
               <form onSubmit={linkEvent(this, this.handleModRemoveSubmit)}>
                 <div class="form-group row">
-                  <label class="col-form-label">
-                    <T i18nKey="reason">#</T>
+                  <label class="col-form-label" for="remove-reason">
+                    { i18n.t('reason') }
                   </label>
                   <input
                     type="text"
+                    id="remove-reason"
                     class="form-control mr-2"
                     placeholder={i18n.t('optional')}
                     value={this.state.removeReason}
@@ -150,7 +151,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
                 {/* </div> */}
                 <div class="form-group row">
                   <button type="submit" class="btn btn-secondary">
-                    <T i18nKey="remove_community">#</T>
+                    { i18n.t('remove_community') }
                   </button>
                 </div>
               </form>
@@ -218,7 +219,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
                 'no-click'}`}
               to={`/create_post?community=${community.name}`}
             >
-              <T i18nKey="create_a_post">#</T>
+              { i18n.t('create_a_post') }
             </Link>
             <div>
               {community.subscribed ? (
@@ -226,14 +227,14 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
                   class="btn btn-sm btn-secondary btn-block"
                   onClick={linkEvent(community.id, this.handleUnsubscribe)}
                 >
-                  <T i18nKey="unsubscribe">#</T>
+                  { i18n.t('unsubscribe') }
                 </button>
               ) : (
                 <button
                   class="btn btn-sm btn-secondary btn-block"
                   onClick={linkEvent(community.id, this.handleSubscribe)}
                 >
-                  <T i18nKey="subscribe">#</T>
+                  { i18n.t('subscribe') }
                 </button>
               )}
             </div>
