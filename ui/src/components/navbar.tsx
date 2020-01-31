@@ -84,7 +84,7 @@ export class Navbar extends Component<any, NavbarState> {
   }
 
   render() {
-    return <div>{this.navbar()}</div>;
+    return this.navbar();
   }
 
   componentWillUnmount() {
