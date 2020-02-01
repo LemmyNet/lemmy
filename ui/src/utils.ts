@@ -318,6 +318,7 @@ export function getMomentLanguage(): string {
 
 export const themes = [
   'litera',
+  'materia',
   'minty',
   'solar',
   'united',
