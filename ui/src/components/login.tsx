@@ -306,6 +306,7 @@ export class Login extends Component<any, State> {
         this.state = this.emptyState;
         this.setState(this.state);
         UserService.Instance.login(data);
+        WebSocketService.Instance.userJoin();
         toast(i18n.t('logged_in'));
         this.props.history.push('/');
       } else if (res.op == UserOperation.Register) {
@@ -313,6 +314,7 @@ export class Login extends Component<any, State> {
         this.state = this.emptyState;
         this.setState(this.state);
         UserService.Instance.login(data);
+        WebSocketService.Instance.userJoin();
         this.props.history.push('/communities');
       } else if (res.op == UserOperation.PasswordReset) {
         toast(i18n.t('reset_password_mail_sent'));

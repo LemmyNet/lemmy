@@ -43,7 +43,6 @@ interface State {
 
 export class Community extends Component<any, State> {
   private subscription: Subscription;
-  private postFetcher: any;
   private emptyState: State = {
     community: {
       id: null,
@@ -107,7 +106,6 @@ export class Community extends Component<any, State> {
 
   componentWillUnmount() {
     this.subscription.unsubscribe();
-    clearInterval(this.postFetcher);
   }
 
   // Necessary for back button for some reason
