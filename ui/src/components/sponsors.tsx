@@ -37,7 +37,7 @@ export class Sponsors extends Component<any, any> {
     return (
       <div>
         <h5>
-          <T i18nKey="donate_to_lemmy">#</T>
+          { i18n.t('donate_to_lemmy') }
         </h5>
         <p>
           <T i18nKey="sponsor_message">
@@ -45,7 +45,7 @@ export class Sponsors extends Component<any, any> {
           </T>
         </p>
         <a class="btn btn-secondary" href="https://www.patreon.com/dessalines">
-          <T i18nKey="support_on_patreon">#</T>
+          { i18n.t('support_on_patreon') }
         </a>
       </div>
     );
@@ -54,10 +54,10 @@ export class Sponsors extends Component<any, any> {
     return (
       <div class="container">
         <h5>
-          <T i18nKey="sponsors">#</T>
+          { i18n.t('sponsors') }
         </h5>
         <p>
-          <T i18nKey="general_sponsors">#</T>
+          { i18n.t('general_sponsors') }
         </p>
         <div class="row card-columns">
           {highlighted.map(s => (
@@ -79,14 +79,14 @@ export class Sponsors extends Component<any, any> {
     return (
       <div>
         <h5>
-          <T i18nKey="crypto">#</T>
+          { i18n.t('crypto') }
         </h5>
         <div class="table-responsive">
           <table class="table table-hover text-center">
             <tbody>
               <tr>
                 <td>
-                  <T i18nKey="bitcoin">#</T>
+                  { i18n.t('bitcoin') }
                 </td>
                 <td>
                   <code>1Hefs7miXS5ff5Ck5xvmjKjXf5242KzRtK</code>
@@ -94,7 +94,7 @@ export class Sponsors extends Component<any, any> {
               </tr>
               <tr>
                 <td>
-                  <T i18nKey="ethereum">#</T>
+                  { i18n.t('ethereum') }
                 </td>
                 <td>
                   <code>0x400c96c96acbC6E7B3B43B1dc1BB446540a88A01</code>
@@ -102,7 +102,7 @@ export class Sponsors extends Component<any, any> {
               </tr>
               <tr>
                 <td>
-                  <T i18nKey="monero">#</T>
+                  { i18n.t('monero') }
                 </td>
                 <td>
                   <code>

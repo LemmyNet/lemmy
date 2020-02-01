@@ -127,7 +127,7 @@ export class Search extends Component<any, SearchState> {
     return (
       <div class="container">
         <h5>
-          <T i18nKey="search">#</T>
+          { i18n.t('search') }
         </h5>
         {this.selects()}
         {this.searchForm()}
@@ -164,7 +164,7 @@ export class Search extends Component<any, SearchState> {
             </svg>
           ) : (
             <span>
-              <T i18nKey="search">#</T>
+              { i18n.t('search') }
             </span>
           )}
         </button>
@@ -181,22 +181,22 @@ export class Search extends Component<any, SearchState> {
           class="custom-select custom-select-sm w-auto"
         >
           <option disabled>
-            <T i18nKey="type">#</T>
+            { i18n.t('type') }
           </option>
           <option value={SearchType.All}>
-            <T i18nKey="all">#</T>
+            { i18n.t('all') }
           </option>
           <option value={SearchType.Comments}>
-            <T i18nKey="comments">#</T>
+            { i18n.t('comments') }
           </option>
           <option value={SearchType.Posts}>
-            <T i18nKey="posts">#</T>
+            { i18n.t('posts') }
           </option>
           <option value={SearchType.Communities}>
-            <T i18nKey="communities">#</T>
+            { i18n.t('communities') }
           </option>
           <option value={SearchType.Users}>
-            <T i18nKey="users">#</T>
+            { i18n.t('users') }
           </option>
         </select>
         <span class="ml-2">
@@ -383,14 +383,14 @@ export class Search extends Component<any, SearchState> {
             class="btn btn-sm btn-secondary mr-1"
             onClick={linkEvent(this, this.prevPage)}
           >
-            <T i18nKey="prev">#</T>
+            { i18n.t('prev') }
           </button>
         )}
         <button
           class="btn btn-sm btn-secondary"
           onClick={linkEvent(this, this.nextPage)}
         >
-          <T i18nKey="next">#</T>
+          { i18n.t('next') }
         </button>
       </div>
     );
@@ -406,7 +406,7 @@ export class Search extends Component<any, SearchState> {
           res.communities.length == 0 &&
           res.users.length == 0 && (
             <span>
-              <T i18nKey="no_results">#</T>
+              { i18n.t('no_results') }
             </span>
           )}
       </div>

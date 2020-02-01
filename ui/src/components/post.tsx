@@ -155,11 +155,11 @@ export class Post extends Component<any, PostState> {
     return (
       <div class="container">
         {this.state.loading ? (
-          <h5>
+          <p class="text-center">
             <svg class="icon icon-spinner spin">
               <use xlinkHref="#icon-spinner"></use>
             </svg>
-          </h5>
+          </p>
         ) : (
           <div class="row">
             <div class="col-12 col-md-8 mb-3">
@@ -173,7 +173,7 @@ export class Post extends Component<any, PostState> {
               {this.state.crossPosts.length > 0 && (
                 <>
                   <div class="my-1 text-muted small font-weight-bold">
-                    <T i18nKey="cross_posts">#</T>
+                    { i18n.t('cross_posts') }
                   </div>
                   <PostListings showCommunity posts={this.state.crossPosts} />
                 </>
@@ -235,18 +235,6 @@ export class Post extends Component<any, PostState> {
             onChange={linkEvent(this, this.handleCommentSortChange)}
           />
         </label>
-        <label
-          className={`btn btn-sm btn-secondary pointer ${this.state
-            .commentSort === CommentSortType.Old && 'active'}`}
-        >
-          {i18n.t('old')}
-          <input
-            type="radio"
-            value={CommentSortType.Old}
-            checked={this.state.commentSort === CommentSortType.Old}
-            onChange={linkEvent(this, this.handleCommentSortChange)}
-          />
-        </label>
       </div>
     );
   }
@@ -256,7 +244,7 @@ export class Post extends Component<any, PostState> {
       <div class="d-none d-md-block new-comments mb-3 card border-secondary">
         <div class="card-body small">
           <h6>
-            <T i18nKey="recent_comments">#</T>
+            { i18n.t('recent_comments') }
           </h6>
           {this.state.comments.map(comment => (
             <CommentNodes
@@ -328,13 +316,6 @@ export class Post extends Component<any, PostState> {
           +a.comment.removed - +b.comment.removed ||
           +a.comment.deleted - +b.comment.deleted ||
           b.comment.published.localeCompare(a.comment.published)
-      );
-    } else if (this.state.commentSort == CommentSortType.Old) {
-      tree.sort(
-        (a, b) =>
-          +a.comment.removed - +b.comment.removed ||
-          +a.comment.deleted - +b.comment.deleted ||
-          a.comment.published.localeCompare(b.comment.published)
       );
     } else if (this.state.commentSort == CommentSortType.Hot) {
       tree.sort(
