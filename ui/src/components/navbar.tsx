@@ -138,7 +138,7 @@ export class Navbar extends Component<any, NavbarState> {
             </li>
             <li className="nav-item">
               <Link
-                class="nav-link ml-2"
+                class="nav-link"
                 to="/sponsors"
                 title={i18n.t('donate_to_lemmy')}
               >
