@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/bash
+set -e
 
 declare -a arr=(
 "https://mastodon.social/"

@@ -3,7 +3,7 @@ use diesel::PgConnection;
 use std::str::FromStr;
 
 #[derive(Serialize, Deserialize)]
-pub struct ListCategories;
+pub struct ListCategories {}
 
 #[derive(Serialize, Deserialize)]
 pub struct ListCategoriesResponse {
@@ -72,7 +72,7 @@ pub struct EditSite {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct GetSite;
+pub struct GetSite {}
 
 #[derive(Serialize, Deserialize)]
 pub struct SiteResponse {
