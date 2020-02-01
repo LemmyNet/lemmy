@@ -421,11 +421,25 @@ export class Inbox extends Component<any, InboxState> {
       this.sendUnreadCount();
       this.setState(this.state);
     } else if (res.op == UserOperation.CreateComment) {
-      // let res: CommentResponse = msg;
-      // TODO gotta remove this
-      toast(i18n.t('reply_sent'));
-      // this.state.replies.unshift(res.comment); // TODO do this right
-      // this.setState(this.state);
+      let data = res.data as CommentResponse;
+
+      if (data.recipient_ids.includes(UserService.Instance.user.id)) {
+        this.state.replies.unshift(data.comment);
+        this.setState(this.state);
+      } else if (data.comment.creator_id == UserService.Instance.user.id) {
+        toast(i18n.t('reply_sent'));
+      }
+      this.setState(this.state);
+    } else if (res.op == UserOperation.CreatePrivateMessage) {
+      let data = res.data as PrivateMessageResponse;
+
+      if (data.message.recipient_id == UserService.Instance.user.id) {
+        this.state.messages.unshift(data.message);
+        this.setState(this.state);
+      } else if (data.message.creator_id == UserService.Instance.user.id) {
+        toast(i18n.t('message_sent'));
+      }
+      this.setState(this.state);
     } else if (res.op == UserOperation.SaveComment) {
       let data = res.data as CommentResponse;
       let found = this.state.replies.find(c => c.id == data.comment.id);

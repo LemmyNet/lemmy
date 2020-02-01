@@ -16,6 +16,7 @@ import {
   Comment,
   CommentResponse,
   PrivateMessage,
+  PrivateMessageResponse,
   WebSocketJsonResponse,
 } from '../interfaces';
 import {
@@ -36,7 +37,6 @@ interface NavbarState {
   replies: Array<Comment>;
   mentions: Array<Comment>;
   messages: Array<PrivateMessage>;
-  fetchCount: number;
   unreadCount: number;
   siteName: string;
 }
@@ -47,7 +47,6 @@ export class Navbar extends Component<any, NavbarState> {
   emptyState: NavbarState = {
     isLoggedIn: UserService.Instance.user !== undefined,
     unreadCount: 0,
-    fetchCount: 0,
     replies: [],
     mentions: [],
     messages: [],
@@ -58,8 +57,6 @@ export class Navbar extends Component<any, NavbarState> {
   constructor(props: any, context: any) {
     super(props, context);
     this.state = this.emptyState;
-
-    this.fetchUnreads();
 
     // Subscribe to user changes
     this.userSub = UserService.Instance.sub.subscribe(user => {
@@ -79,6 +76,8 @@ export class Navbar extends Component<any, NavbarState> {
 
     if (this.state.isLoggedIn) {
       this.requestNotificationPermission();
+      // TODO couldn't get re-logging in to re-fetch unreads
+      this.fetchUnreads();
     }
 
     WebSocketService.Instance.getSite();
@@ -214,6 +213,7 @@ export class Navbar extends Component<any, NavbarState> {
       let unreadReplies = data.replies.filter(r => !r.read);
 
       this.state.replies = unreadReplies;
+      this.state.unreadCount = this.calculateUnreadCount();
       this.setState(this.state);
       this.sendUnreadCount();
     } else if (res.op == UserOperation.GetUserMentions) {
@@ -221,6 +221,7 @@ export class Navbar extends Component<any, NavbarState> {
       let unreadMentions = data.mentions.filter(r => !r.read);
 
       this.state.mentions = unreadMentions;
+      this.state.unreadCount = this.calculateUnreadCount();
       this.setState(this.state);
       this.sendUnreadCount();
     } else if (res.op == UserOperation.GetPrivateMessages) {
@@ -228,15 +229,31 @@ export class Navbar extends Component<any, NavbarState> {
       let unreadMessages = data.messages.filter(r => !r.read);
 
       this.state.messages = unreadMessages;
+      this.state.unreadCount = this.calculateUnreadCount();
       this.setState(this.state);
       this.sendUnreadCount();
     } else if (res.op == UserOperation.CreateComment) {
-      // TODO do private messages too
       let data = res.data as CommentResponse;
 
-      if (UserService.Instance.user) {
+      if (this.state.isLoggedIn) {
         if (data.recipient_ids.includes(UserService.Instance.user.id)) {
+          this.state.replies.push(data.comment);
+          this.state.unreadCount++;
+          this.setState(this.state);
+          this.sendUnreadCount();
           this.notify(data.comment);
+        }
+      }
+    } else if (res.op == UserOperation.CreatePrivateMessage) {
+      let data = res.data as PrivateMessageResponse;
+
+      if (this.state.isLoggedIn) {
+        if (data.message.recipient_id == UserService.Instance.user.id) {
+          this.state.messages.push(data.message);
+          this.state.unreadCount++;
+          this.setState(this.state);
+          this.sendUnreadCount();
+          this.notify(data.message);
         }
       }
     } else if (res.op == UserOperation.GetSite) {
@@ -276,7 +293,6 @@ export class Navbar extends Component<any, NavbarState> {
         WebSocketService.Instance.getReplies(repliesForm);
         WebSocketService.Instance.getUserMentions(userMentionsForm);
         WebSocketService.Instance.getPrivateMessages(privateMessagesForm);
-        this.state.fetchCount++;
       }
     }
   }
@@ -288,11 +304,11 @@ export class Navbar extends Component<any, NavbarState> {
   sendUnreadCount() {
     UserService.Instance.sub.next({
       user: UserService.Instance.user,
-      unreadCount: this.unreadCount,
+      unreadCount: this.state.unreadCount,
     });
   }
 
-  get unreadCount() {
+  calculateUnreadCount(): number {
     return (
       this.state.replies.filter(r => !r.read).length +
       this.state.mentions.filter(r => !r.read).length +
@@ -317,15 +333,12 @@ export class Navbar extends Component<any, NavbarState> {
   notify(reply: Comment | PrivateMessage) {
     if (Notification.permission !== 'granted') Notification.requestPermission();
     else {
-      var notification = new Notification(
-        `${this.state.unreadCount} ${i18n.t('unread_messages')}`,
-        {
-          icon: reply.creator_avatar
-            ? reply.creator_avatar
-            : `${window.location.protocol}//${window.location.host}/static/assets/apple-touch-icon.png`,
-          body: `${reply.creator_name}: ${reply.content}`,
-        }
-      );
+      var notification = new Notification(reply.creator_name, {
+        icon: reply.creator_avatar
+          ? reply.creator_avatar
+          : `${window.location.protocol}//${window.location.host}/static/assets/apple-touch-icon.png`,
+        body: `${reply.content}`,
+      });
 
       notification.onclick = () => {
         this.context.router.history.push(

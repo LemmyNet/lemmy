@@ -94,12 +94,6 @@ pub struct ChatServer {
   db: Pool<ConnectionManager<PgConnection>>,
 }
 
-// TODO show online users for communities too
-// TODO GetPosts is the community / front page join.
-// What is sent: New posts, post edits, post removes, post likes, community edits, community mod adds. Notifs for new posts?
-// GetPost is the PostJoin, LeavePost is the leave
-// What is sent: New comments, comment edits, comment likes
-// UserJoin is the user join, a disconnect should remove you from all the scopes
 impl ChatServer {
   pub fn startup(db: Pool<ConnectionManager<PgConnection>>) -> ChatServer {
     ChatServer {
@@ -501,7 +495,7 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       let res_str = to_json_string(&user_operation, &res)?;
 
       // Don't send my data with it
-      let mut post_sent = res.clone();
+      let mut post_sent = res;
       post_sent.post.my_vote = None;
       post_sent.post.user_id = None;
       let post_sent_str = to_json_string(&user_operation, &post_sent)?;
@@ -549,7 +543,7 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       let res_str = to_json_string(&user_operation, &res)?;
 
       // Don't send my data with it
-      let mut post_sent = res.clone();
+      let mut post_sent = res;
       post_sent.post.my_vote = None;
       post_sent.post.user_id = None;
       let post_sent_str = to_json_string(&user_operation, &post_sent)?;
