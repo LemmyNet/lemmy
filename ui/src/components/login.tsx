@@ -78,7 +78,7 @@ export class Login extends Component<any, State> {
     return (
       <div>
         <form onSubmit={linkEvent(this, this.handleLoginSubmit)}>
-          <h2>{ i18n.t('login') }</h2>
+          <h5>{ i18n.t('login') }</h5>
           <div class="form-group row">
             <label class="col-sm-2 col-form-label" for="login-email-or-username">
                 { i18n.t('email_or_username') }
