@@ -49,7 +49,6 @@ export class UserService {
     console.log(this.user);
   }
 
-  // TODO find all refs to this, make sure everything is well typed
   public static get Instance() {
     return this._instance || (this._instance = new this());
   }
