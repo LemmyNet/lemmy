@@ -23,7 +23,7 @@ export class CreateCommunity extends Component<any, any> {
         <div class="row">
           <div class="col-12 col-lg-6 offset-lg-3 mb-4">
             <h5>
-              <T i18nKey="create_community">#</T>
+              { i18n.t('create_community') }
             </h5>
             <CommunityForm onCreate={this.handleCommunityCreate} />
           </div>

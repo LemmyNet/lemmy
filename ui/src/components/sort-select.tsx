@@ -1,6 +1,6 @@
 import { Component, linkEvent } from 'inferno';
 import { SortType } from '../interfaces';
-
+import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 
 interface SortSelectProps {
@@ -31,31 +31,31 @@ export class SortSelect extends Component<SortSelectProps, SortSelectState> {
         class="custom-select custom-select-sm w-auto"
       >
         <option disabled>
-          <T i18nKey="sort_type">#</T>
+          { i18n.t('sort_type') }
         </option>
         {!this.props.hideHot && (
           <option value={SortType.Hot}>
-            <T i18nKey="hot">#</T>
+            { i18n.t('hot') }
           </option>
         )}
         <option value={SortType.New}>
-          <T i18nKey="new">#</T>
+          { i18n.t('new') }
         </option>
         <option disabled>─────</option>
         <option value={SortType.TopDay}>
-          <T i18nKey="top_day">#</T>
+          { i18n.t('top_day') }
         </option>
         <option value={SortType.TopWeek}>
-          <T i18nKey="week">#</T>
+          { i18n.t('week') }
         </option>
         <option value={SortType.TopMonth}>
-          <T i18nKey="month">#</T>
+          { i18n.t('month') }
         </option>
         <option value={SortType.TopYear}>
-          <T i18nKey="year">#</T>
+          { i18n.t('year') }
         </option>
         <option value={SortType.TopAll}>
-          <T i18nKey="all">#</T>
+          { i18n.t('all') }
         </option>
       </select>
     );

@@ -122,7 +122,7 @@ export class Inbox extends Component<any, InboxState> {
                 <ul class="list-inline mb-1 text-muted small font-weight-bold">
                   <li className="list-inline-item">
                     <span class="pointer" onClick={this.markAllAsRead}>
-                      <T i18nKey="mark_all_as_read">#</T>
+                      { i18n.t('mark_all_as_read') }
                     </span>
                   </li>
                 </ul>
@@ -148,13 +148,14 @@ export class Inbox extends Component<any, InboxState> {
           class="custom-select custom-select-sm w-auto mr-2"
         >
           <option disabled>
-            <T i18nKey="type">#</T>
+            { i18n.t('type') }
+            
           </option>
           <option value={UnreadOrAll.Unread}>
-            <T i18nKey="unread">#</T>
+            { i18n.t('unread') }
           </option>
           <option value={UnreadOrAll.All}>
-            <T i18nKey="all">#</T>
+            { i18n.t('all') }
           </option>
         </select>
         <select
@@ -163,19 +164,22 @@ export class Inbox extends Component<any, InboxState> {
           class="custom-select custom-select-sm w-auto mr-2"
         >
           <option disabled>
-            <T i18nKey="type">#</T>
+            { i18n.t('type') }
           </option>
           <option value={UnreadType.All}>
-            <T i18nKey="all">#</T>
+            { i18n.t('all') }
+          </option>
+          <option value={UnreadType.Both}>
+            { i18n.t('both') }
           </option>
           <option value={UnreadType.Replies}>
-            <T i18nKey="replies">#</T>
+            { i18n.t('replies') }
           </option>
           <option value={UnreadType.Mentions}>
-            <T i18nKey="mentions">#</T>
+            { i18n.t('mentions') }
           </option>
           <option value={UnreadType.Messages}>
-            <T i18nKey="messages">#</T>
+            { i18n.t('messages') }
           </option>
         </select>
         <SortSelect
@@ -248,14 +252,14 @@ export class Inbox extends Component<any, InboxState> {
             class="btn btn-sm btn-secondary mr-1"
             onClick={linkEvent(this, this.prevPage)}
           >
-            <T i18nKey="prev">#</T>
+            { i18n.t('prev') }
           </button>
         )}
         <button
           class="btn btn-sm btn-secondary"
           onClick={linkEvent(this, this.nextPage)}
         >
-          <T i18nKey="next">#</T>
+          { i18n.t('next') }
         </button>
       </div>
     );

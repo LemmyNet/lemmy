@@ -128,11 +128,11 @@ export class Community extends Component<any, State> {
     return (
       <div class="container">
         {this.state.loading ? (
-          <h5>
+          <p class="text-center">
             <svg class="icon icon-spinner spin">
               <use xlinkHref="#icon-spinner"></use>
             </svg>
-          </h5>
+          </p>
         ) : (
           <div class="row">
             <div class="col-12 col-md-8">
@@ -140,12 +140,12 @@ export class Community extends Component<any, State> {
                 {this.state.community.title}
                 {this.state.community.removed && (
                   <small className="ml-2 text-muted font-italic">
-                    <T i18nKey="removed">#</T>
+                    { i18n.t('removed') }
                   </small>
                 )}
                 {this.state.community.nsfw && (
                   <small className="ml-2 text-muted font-italic">
-                    <T i18nKey="nsfw">#</T>
+                    { i18n.t('nsfw') }
                   </small>
                 )}
               </h5>
@@ -192,7 +192,7 @@ export class Community extends Component<any, State> {
             class="btn btn-sm btn-secondary mr-1"
             onClick={linkEvent(this, this.prevPage)}
           >
-            <T i18nKey="prev">#</T>
+            { i18n.t('prev') }
           </button>
         )}
         {this.state.posts.length == fetchLimit && (
@@ -200,7 +200,7 @@ export class Community extends Component<any, State> {
             class="btn btn-sm btn-secondary"
             onClick={linkEvent(this, this.nextPage)}
           >
-            <T i18nKey="next">#</T>
+            { i18n.t('next') }
           </button>
         )}
       </div>
