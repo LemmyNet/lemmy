@@ -328,6 +328,7 @@ export const themes = [
   'sketchy',
   'vaporwave',
   'vaporwave-dark',
+  'i386',
 ];
 
 export function setTheme(theme: string = 'darkly') {
