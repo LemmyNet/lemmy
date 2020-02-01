@@ -15,8 +15,11 @@ import {
   SiteResponse,
   GetPostsResponse,
   CreatePostLikeResponse,
+  PostResponse,
   Post,
   GetPostsForm,
+  AddAdminResponse,
+  BanUserResponse,
   WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
@@ -31,7 +34,6 @@ import {
   fetchLimit,
   routeSortTypeToEnum,
   routeListingTypeToEnum,
-  postRefetchSeconds,
   pictshareAvatarThumbnail,
   showAvatars,
   toast,
@@ -42,7 +44,7 @@ import { T } from 'inferno-i18next';
 interface MainState {
   subscribedCommunities: Array<CommunityUser>;
   trendingCommunities: Array<Community>;
-  site: GetSiteResponse;
+  siteRes: GetSiteResponse;
   showEditSite: boolean;
   loading: boolean;
   posts: Array<Post>;
@@ -53,11 +55,10 @@ interface MainState {
 
 export class Main extends Component<any, MainState> {
   private subscription: Subscription;
-  private postFetcher: any;
   private emptyState: MainState = {
     subscribedCommunities: [],
     trendingCommunities: [],
-    site: {
+    siteRes: {
       site: {
         id: null,
         name: null,
@@ -133,12 +134,11 @@ export class Main extends Component<any, MainState> {
 
     WebSocketService.Instance.listCommunities(listCommunitiesForm);
 
-    this.keepFetchingPosts();
+    this.fetchPosts();
   }
 
   componentWillUnmount() {
     this.subscription.unsubscribe();
-    clearInterval(this.postFetcher);
   }
 
   // Necessary for back button for some reason
@@ -241,7 +241,7 @@ export class Main extends Component<any, MainState> {
           this.siteInfo()
         ) : (
           <SiteForm
-            site={this.state.site.site}
+            site={this.state.siteRes.site}
             onCancel={this.handleEditCancel}
           />
         )}
@@ -262,7 +262,7 @@ export class Main extends Component<any, MainState> {
       <div>
         <div class="card border-secondary mb-3">
           <div class="card-body">
-            <h5 class="mb-0">{`${this.state.site.site.name}`}</h5>
+            <h5 class="mb-0">{`${this.state.siteRes.site.name}`}</h5>
             {this.canAdmin && (
               <ul class="list-inline mb-1 text-muted small font-weight-bold">
                 <li className="list-inline-item">
@@ -279,7 +279,7 @@ export class Main extends Component<any, MainState> {
               <li className="list-inline-item badge badge-secondary">
                 <T
                   i18nKey="number_online"
-                  interpolation={{ count: this.state.site.online }}
+                  interpolation={{ count: this.state.siteRes.online }}
                 >
                   #
                 </T>
@@ -288,7 +288,7 @@ export class Main extends Component<any, MainState> {
                 <T
                   i18nKey="number_of_users"
                   interpolation={{
-                    count: this.state.site.site.number_of_users,
+                    count: this.state.siteRes.site.number_of_users,
                   }}
                 >
                   #
@@ -298,7 +298,7 @@ export class Main extends Component<any, MainState> {
                 <T
                   i18nKey="number_of_communities"
                   interpolation={{
-                    count: this.state.site.site.number_of_communities,
+                    count: this.state.siteRes.site.number_of_communities,
                   }}
                 >
                   #
@@ -308,7 +308,7 @@ export class Main extends Component<any, MainState> {
                 <T
                   i18nKey="number_of_posts"
                   interpolation={{
-                    count: this.state.site.site.number_of_posts,
+                    count: this.state.siteRes.site.number_of_posts,
                   }}
                 >
                   #
@@ -318,7 +318,7 @@ export class Main extends Component<any, MainState> {
                 <T
                   i18nKey="number_of_comments"
                   interpolation={{
-                    count: this.state.site.site.number_of_comments,
+                    count: this.state.siteRes.site.number_of_comments,
                   }}
                 >
                   #
@@ -337,7 +337,7 @@ export class Main extends Component<any, MainState> {
                 </T>
                 :
               </li>
-              {this.state.site.admins.map(admin => (
+              {this.state.siteRes.admins.map(admin => (
                 <li class="list-inline-item">
                   <Link class="text-info" to={`/u/${admin.name}`}>
                     {admin.avatar && showAvatars() && (
@@ -355,13 +355,13 @@ export class Main extends Component<any, MainState> {
             </ul>
           </div>
         </div>
-        {this.state.site.site.description && (
+        {this.state.siteRes.site.description && (
           <div class="card border-secondary mb-3">
             <div class="card-body">
               <div
                 className="md-div"
                 dangerouslySetInnerHTML={mdToHtml(
-                  this.state.site.site.description
+                  this.state.siteRes.site.description
                 )}
               />
             </div>
@@ -494,7 +494,7 @@ export class Main extends Component<any, MainState> {
   get canAdmin(): boolean {
     return (
       UserService.Instance.user &&
-      this.state.site.admins
+      this.state.siteRes.admins
         .map(a => a.id)
         .includes(UserService.Instance.user.id)
     );
@@ -548,11 +548,6 @@ export class Main extends Component<any, MainState> {
     window.scrollTo(0, 0);
   }
 
-  keepFetchingPosts() {
-    this.fetchPosts();
-    this.postFetcher = setInterval(() => this.fetchPosts(), postRefetchSeconds);
-  }
-
   fetchPosts() {
     let getPostsForm: GetPostsForm = {
       page: this.state.page,
@@ -584,15 +579,15 @@ export class Main extends Component<any, MainState> {
       if (!data.site) {
         this.context.router.history.push('/setup');
       }
-      this.state.site.admins = data.admins;
-      this.state.site.site = data.site;
-      this.state.site.banned = data.banned;
-      this.state.site.online = data.online;
+      this.state.siteRes.admins = data.admins;
+      this.state.siteRes.site = data.site;
+      this.state.siteRes.banned = data.banned;
+      this.state.siteRes.online = data.online;
       this.setState(this.state);
       document.title = `${WebSocketService.Instance.site.name}`;
     } else if (res.op == UserOperation.EditSite) {
       let data = res.data as SiteResponse;
-      this.state.site.site = data.site;
+      this.state.siteRes.site = data.site;
       this.state.showEditSite = false;
       this.setState(this.state);
     } else if (res.op == UserOperation.GetPosts) {
@@ -600,13 +595,67 @@ export class Main extends Component<any, MainState> {
       this.state.posts = data.posts;
       this.state.loading = false;
       this.setState(this.state);
+    } else if (res.op == UserOperation.CreatePost) {
+      let data = res.data as PostResponse;
+
+      // If you're on subscribed, only push it if you're subscribed.
+      if (this.state.type_ == ListingType.Subscribed) {
+        if (
+          this.state.subscribedCommunities
+            .map(c => c.community_id)
+            .includes(data.post.community_id)
+        ) {
+          this.state.posts.unshift(data.post);
+        }
+      } else {
+        this.state.posts.unshift(data.post);
+      }
+
+      this.setState(this.state);
+    } else if (res.op == UserOperation.EditPost) {
+      let data = res.data as PostResponse;
+      let found = this.state.posts.find(c => c.id == data.post.id);
+
+      found.url = data.post.url;
+      found.name = data.post.name;
+      found.nsfw = data.post.nsfw;
+
+      this.setState(this.state);
     } else if (res.op == UserOperation.CreatePostLike) {
       let data = res.data as CreatePostLikeResponse;
       let found = this.state.posts.find(c => c.id == data.post.id);
-      found.my_vote = data.post.my_vote;
+
       found.score = data.post.score;
       found.upvotes = data.post.upvotes;
       found.downvotes = data.post.downvotes;
+      if (data.post.my_vote !== null) {
+        found.my_vote = data.post.my_vote;
+        found.upvoteLoading = false;
+        found.downvoteLoading = false;
+      }
+
+      this.setState(this.state);
+    } else if (res.op == UserOperation.AddAdmin) {
+      let data = res.data as AddAdminResponse;
+      this.state.siteRes.admins = data.admins;
+      this.setState(this.state);
+    } else if (res.op == UserOperation.BanUser) {
+      let data = res.data as BanUserResponse;
+      let found = this.state.siteRes.banned.find(u => (u.id = data.user.id));
+
+      // Remove the banned if its found in the list, and the action is an unban
+      if (found && !data.banned) {
+        this.state.siteRes.banned = this.state.siteRes.banned.filter(
+          i => i.id !== data.user.id
+        );
+      } else {
+        this.state.siteRes.banned.push(data.user);
+      }
+
+      this.state.posts
+        .filter(p => p.creator_id == data.user.id)
+        .forEach(p => (p.banned = data.banned));
+
       this.setState(this.state);
     }
   }

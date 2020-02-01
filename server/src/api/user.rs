@@ -162,7 +162,7 @@ pub struct PasswordChange {
 #[derive(Serialize, Deserialize)]
 pub struct CreatePrivateMessage {
   content: String,
-  recipient_id: i32,
+  pub recipient_id: i32,
   auth: String,
 }
 
@@ -191,6 +191,16 @@ pub struct PrivateMessagesResponse {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PrivateMessageResponse {
   message: PrivateMessageView,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UserJoin {
+  auth: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct UserJoinResponse {
+  pub user_id: i32,
 }
 
 impl Perform<LoginResponse> for Oper<Login> {
@@ -1069,5 +1079,19 @@ impl Perform<PrivateMessagesResponse> for Oper<GetPrivateMessages> {
       .list()?;
 
     Ok(PrivateMessagesResponse { messages })
+  }
+}
+
+impl Perform<UserJoinResponse> for Oper<UserJoin> {
+  fn perform(&self, _conn: &PgConnection) -> Result<UserJoinResponse, Error> {
+    let data: &UserJoin = &self.data;
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
+    };
+
+    let user_id = claims.id;
+    Ok(UserJoinResponse { user_id })
   }
 }

@@ -47,6 +47,7 @@ interface PostState {
   community: Community;
   moderators: Array<CommunityUser>;
   admins: Array<UserView>;
+  online: number;
   scrolled?: boolean;
   scrolled_comment_id?: number;
   loading: boolean;
@@ -62,6 +63,7 @@ export class Post extends Component<any, PostState> {
     community: null,
     moderators: [],
     admins: [],
+    online: null,
     scrolled: false,
     loading: true,
     crossPosts: [],
@@ -280,6 +282,7 @@ export class Post extends Component<any, PostState> {
           community={this.state.community}
           moderators={this.state.moderators}
           admins={this.state.admins}
+          online={this.state.online}
         />
       </div>
     );
@@ -378,6 +381,7 @@ export class Post extends Component<any, PostState> {
       this.state.community = data.community;
       this.state.moderators = data.moderators;
       this.state.admins = data.admins;
+      this.state.online = data.online;
       this.state.loading = false;
       document.title = `${this.state.post.name} - ${WebSocketService.Instance.site.name}`;
 
@@ -432,10 +436,15 @@ export class Post extends Component<any, PostState> {
       this.setState(this.state);
     } else if (res.op == UserOperation.CreatePostLike) {
       let data = res.data as CreatePostLikeResponse;
-      this.state.post.my_vote = data.post.my_vote;
       this.state.post.score = data.post.score;
       this.state.post.upvotes = data.post.upvotes;
       this.state.post.downvotes = data.post.downvotes;
+      if (data.post.my_vote !== null) {
+        this.state.post.my_vote = data.post.my_vote;
+        this.state.post.upvoteLoading = false;
+        this.state.post.downvoteLoading = false;
+      }
+
       this.setState(this.state);
     } else if (res.op == UserOperation.EditPost) {
       let data = res.data as PostResponse;
