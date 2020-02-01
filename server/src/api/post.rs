@@ -8,7 +8,7 @@ pub struct CreatePost {
   url: Option<String>,
   body: Option<String>,
   nsfw: bool,
-  community_id: i32,
+  pub community_id: i32,
   auth: String,
 }
 
@@ -30,6 +30,7 @@ pub struct GetPostResponse {
   community: CommunityView,
   moderators: Vec<CommunityModeratorView>,
   admins: Vec<UserView>,
+  pub online: usize,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -38,7 +39,7 @@ pub struct GetPosts {
   sort: String,
   page: Option<i64>,
   limit: Option<i64>,
-  community_id: Option<i32>,
+  pub community_id: Option<i32>,
   auth: Option<String>,
 }
 
@@ -54,9 +55,9 @@ pub struct CreatePostLike {
   auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct CreatePostLikeResponse {
-  post: PostView,
+  pub post: PostView,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -193,6 +194,7 @@ impl Perform<GetPostResponse> for Oper<GetPost> {
       community,
       moderators,
       admins,
+      online: 0,
     })
   }
 }

@@ -36,6 +36,7 @@ pub struct SaveComment {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct CommentResponse {
   pub comment: CommentView,
+  pub recipient_ids: Vec<i32>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -88,6 +89,8 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
       Err(_e) => return Err(APIError::err("couldnt_create_comment").into()),
     };
 
+    let mut recipient_ids = Vec::new();
+
     // Scan the comment for user mentions, add those rows
     let extracted_usernames = extract_usernames(&comment_form.content);
 
@@ -97,6 +100,8 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
         // At some point, make it so you can't tag the parent creator either
         // This can cause two notifications, one for reply and the other for mention
         if mention_user.id != user_id {
+          recipient_ids.push(mention_user.id);
+
           let user_mention_form = UserMentionForm {
             recipient_id: mention_user.id,
             comment_id: inserted_comment.id,
@@ -138,6 +143,8 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
         let parent_comment = Comment::read(&conn, parent_id)?;
         if parent_comment.creator_id != user_id {
           let parent_user = User_::read(&conn, parent_comment.creator_id)?;
+          recipient_ids.push(parent_user.id);
+
           if parent_user.send_notifications_to_email {
             if let Some(comment_reply_email) = parent_user.email {
               let subject = &format!(
@@ -161,6 +168,8 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
       None => {
         if post.creator_id != user_id {
           let parent_user = User_::read(&conn, post.creator_id)?;
+          recipient_ids.push(parent_user.id);
+
           if parent_user.send_notifications_to_email {
             if let Some(post_reply_email) = parent_user.email {
               let subject = &format!(
@@ -199,6 +208,7 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
 
     Ok(CommentResponse {
       comment: comment_view,
+      recipient_ids,
     })
   }
 }
@@ -265,6 +275,8 @@ impl Perform<CommentResponse> for Oper<EditComment> {
       Err(_e) => return Err(APIError::err("couldnt_update_comment").into()),
     };
 
+    let mut recipient_ids = Vec::new();
+
     // Scan the comment for user mentions, add those rows
     let extracted_usernames = extract_usernames(&comment_form.content);
 
@@ -278,6 +290,8 @@ impl Perform<CommentResponse> for Oper<EditComment> {
         // At some point, make it so you can't tag the parent creator either
         // This can cause two notifications, one for reply and the other for mention
         if mention_user_id != user_id {
+          recipient_ids.push(mention_user_id);
+
           let user_mention_form = UserMentionForm {
             recipient_id: mention_user_id,
             comment_id: data.edit_id,
@@ -291,6 +305,21 @@ impl Perform<CommentResponse> for Oper<EditComment> {
             Err(_e) => eprintln!("{}", &_e),
           }
         }
+      }
+    }
+
+    // Add to recipient ids
+    match data.parent_id {
+      Some(parent_id) => {
+        let parent_comment = Comment::read(&conn, parent_id)?;
+        if parent_comment.creator_id != user_id {
+          let parent_user = User_::read(&conn, parent_comment.creator_id)?;
+          recipient_ids.push(parent_user.id);
+        }
+      }
+      None => {
+        let post = Post::read(&conn, data.post_id)?;
+        recipient_ids.push(post.creator_id);
       }
     }
 
@@ -309,6 +338,7 @@ impl Perform<CommentResponse> for Oper<EditComment> {
 
     Ok(CommentResponse {
       comment: comment_view,
+      recipient_ids,
     })
   }
 }
@@ -345,6 +375,7 @@ impl Perform<CommentResponse> for Oper<SaveComment> {
 
     Ok(CommentResponse {
       comment: comment_view,
+      recipient_ids: Vec::new(),
     })
   }
 }
@@ -359,6 +390,8 @@ impl Perform<CommentResponse> for Oper<CreateCommentLike> {
     };
 
     let user_id = claims.id;
+
+    let mut recipient_ids = Vec::new();
 
     // Don't do a downvote if site has downvotes disabled
     if data.score == -1 {
@@ -377,6 +410,22 @@ impl Perform<CommentResponse> for Oper<CreateCommentLike> {
     // Check for a site ban
     if UserView::read(&conn, user_id)?.banned {
       return Err(APIError::err("site_ban").into());
+    }
+
+    let comment = Comment::read(&conn, data.comment_id)?;
+
+    // Add to recipient ids
+    match comment.parent_id {
+      Some(parent_id) => {
+        let parent_comment = Comment::read(&conn, parent_id)?;
+        if parent_comment.creator_id != user_id {
+          let parent_user = User_::read(&conn, parent_comment.creator_id)?;
+          recipient_ids.push(parent_user.id);
+        }
+      }
+      None => {
+        recipient_ids.push(post.creator_id);
+      }
     }
 
     let like_form = CommentLikeForm {
@@ -403,6 +452,7 @@ impl Perform<CommentResponse> for Oper<CreateCommentLike> {
 
     Ok(CommentResponse {
       comment: liked_comment,
+      recipient_ids,
     })
   }
 }

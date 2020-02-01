@@ -11,9 +11,10 @@ pub struct GetCommunity {
 
 #[derive(Serialize, Deserialize)]
 pub struct GetCommunityResponse {
-  community: CommunityView,
+  pub community: CommunityView,
   moderators: Vec<CommunityModeratorView>,
   admins: Vec<UserView>,
+  pub online: usize,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -161,6 +162,7 @@ impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
       community: community_view,
       moderators,
       admins,
+      online: 0,
     })
   }
 }
@@ -590,6 +592,7 @@ impl Perform<GetCommunityResponse> for Oper<TransferCommunity> {
       community: community_view,
       moderators,
       admins,
+      online: 0,
     })
   }
 }

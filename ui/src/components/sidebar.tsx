@@ -22,6 +22,7 @@ interface SidebarProps {
   community: Community;
   moderators: Array<CommunityUser>;
   admins: Array<UserView>;
+  online: number;
 }
 
 interface SidebarState {
@@ -156,10 +157,13 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
               </form>
             )}
             <ul class="my-1 list-inline">
-              <li className="list-inline-item">
-                <Link className="badge badge-secondary" to="/communities">
-                  {community.category_name}
-                </Link>
+              <li className="list-inline-item badge badge-secondary">
+                <T
+                  i18nKey="number_online"
+                  interpolation={{ count: this.props.online }}
+                >
+                  #
+                </T>
               </li>
               <li className="list-inline-item badge badge-secondary">
                 <T
@@ -184,6 +188,11 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
                 >
                   #
                 </T>
+              </li>
+              <li className="list-inline-item">
+                <Link className="badge badge-secondary" to="/communities">
+                  {community.category_name}
+                </Link>
               </li>
               <li className="list-inline-item">
                 <Link

@@ -14,20 +14,17 @@ import {
   GetCommunityForm,
   ListingType,
   GetPostsResponse,
+  PostResponse,
   CreatePostLikeResponse,
+  AddModToCommunityResponse,
+  BanFromCommunityResponse,
   WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
 import { SortSelect } from './sort-select';
 import { Sidebar } from './sidebar';
-import {
-  wsJsonToRes,
-  routeSortTypeToEnum,
-  fetchLimit,
-  postRefetchSeconds,
-  toast,
-} from '../utils';
+import { wsJsonToRes, routeSortTypeToEnum, fetchLimit, toast } from '../utils';
 import { T } from 'inferno-i18next';
 import { i18n } from '../i18next';
 
@@ -37,6 +34,7 @@ interface State {
   communityName: string;
   moderators: Array<CommunityUser>;
   admins: Array<UserView>;
+  online: number;
   loading: boolean;
   posts: Array<Post>;
   sort: SortType;
@@ -67,6 +65,7 @@ export class Community extends Component<any, State> {
     admins: [],
     communityId: Number(this.props.match.params.id),
     communityName: this.props.match.params.name,
+    online: null,
     loading: true,
     posts: [],
     sort: this.getSortTypeFromProps(this.props),
@@ -158,6 +157,7 @@ export class Community extends Component<any, State> {
                 community={this.state.community}
                 moderators={this.state.moderators}
                 admins={this.state.admins}
+                online={this.state.online}
               />
             </div>
           </div>
@@ -240,11 +240,6 @@ export class Community extends Component<any, State> {
     );
   }
 
-  keepFetchingPosts() {
-    this.fetchPosts();
-    this.postFetcher = setInterval(() => this.fetchPosts(), postRefetchSeconds);
-  }
-
   fetchPosts() {
     let getPostsForm: GetPostsForm = {
       page: this.state.page,
@@ -268,9 +263,10 @@ export class Community extends Component<any, State> {
       this.state.community = data.community;
       this.state.moderators = data.moderators;
       this.state.admins = data.admins;
+      this.state.online = data.online;
       document.title = `/c/${this.state.community.name} - ${WebSocketService.Instance.site.name}`;
       this.setState(this.state);
-      this.keepFetchingPosts();
+      this.fetchPosts();
     } else if (res.op == UserOperation.EditCommunity) {
       let data = res.data as CommunityResponse;
       this.state.community = data.community;
@@ -286,13 +282,44 @@ export class Community extends Component<any, State> {
       this.state.posts = data.posts;
       this.state.loading = false;
       this.setState(this.state);
+    } else if (res.op == UserOperation.EditPost) {
+      let data = res.data as PostResponse;
+      let found = this.state.posts.find(c => c.id == data.post.id);
+
+      found.url = data.post.url;
+      found.name = data.post.name;
+      found.nsfw = data.post.nsfw;
+
+      this.setState(this.state);
+    } else if (res.op == UserOperation.CreatePost) {
+      let data = res.data as PostResponse;
+      this.state.posts.unshift(data.post);
+      this.setState(this.state);
     } else if (res.op == UserOperation.CreatePostLike) {
       let data = res.data as CreatePostLikeResponse;
       let found = this.state.posts.find(c => c.id == data.post.id);
-      found.my_vote = data.post.my_vote;
+
       found.score = data.post.score;
       found.upvotes = data.post.upvotes;
       found.downvotes = data.post.downvotes;
+      if (data.post.my_vote !== null) {
+        found.my_vote = data.post.my_vote;
+        found.upvoteLoading = false;
+        found.downvoteLoading = false;
+      }
+
+      this.setState(this.state);
+    } else if (res.op == UserOperation.AddModToCommunity) {
+      let data = res.data as AddModToCommunityResponse;
+      this.state.moderators = data.moderators;
+      this.setState(this.state);
+    } else if (res.op == UserOperation.BanFromCommunity) {
+      let data = res.data as BanFromCommunityResponse;
+
+      this.state.posts
+        .filter(p => p.creator_id == data.user.id)
+        .forEach(p => (p.banned = data.banned));
+
       this.setState(this.state);
     }
   }

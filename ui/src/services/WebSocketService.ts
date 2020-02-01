@@ -38,6 +38,7 @@ import {
   PrivateMessageForm,
   EditPrivateMessageForm,
   GetPrivateMessagesForm,
+  UserJoinForm,
   MessageType,
 } from '../interfaces';
 import { webSocket } from 'rxjs/webSocket';
@@ -73,6 +74,7 @@ export class WebSocketService {
     console.log(`Connected to ${wsUri}`);
 
     if (UserService.Instance.user) {
+      this.userJoin();
     }
   }
 
@@ -81,7 +83,8 @@ export class WebSocketService {
   }
 
   public userJoin() {
-    this.wsSendWrapper(UserOperation.ListCategories, undefined);
+    let form: UserJoinForm = { auth: UserService.Instance.auth };
+    this.subject.next(this.wsSendWrapper(UserOperation.UserJoin, form));
   }
 
   public login(loginForm: LoginForm) {

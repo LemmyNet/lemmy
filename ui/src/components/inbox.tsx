@@ -422,6 +422,7 @@ export class Inbox extends Component<any, InboxState> {
       this.setState(this.state);
     } else if (res.op == UserOperation.CreateComment) {
       // let res: CommentResponse = msg;
+      // TODO gotta remove this
       toast(i18n.t('reply_sent'));
       // this.state.replies.unshift(res.comment); // TODO do this right
       // this.setState(this.state);

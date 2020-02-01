@@ -14,6 +14,7 @@ import {
   SortType,
   GetSiteResponse,
   Comment,
+  CommentResponse,
   PrivateMessage,
   WebSocketJsonResponse,
 } from '../interfaces';
@@ -58,7 +59,7 @@ export class Navbar extends Component<any, NavbarState> {
     super(props, context);
     this.state = this.emptyState;
 
-    this.keepFetchingUnreads();
+    this.fetchUnreads();
 
     // Subscribe to user changes
     this.userSub = UserService.Instance.sub.subscribe(user => {
@@ -211,13 +212,6 @@ export class Navbar extends Component<any, NavbarState> {
     } else if (res.op == UserOperation.GetReplies) {
       let data = res.data as GetRepliesResponse;
       let unreadReplies = data.replies.filter(r => !r.read);
-      if (
-        unreadReplies.length > 0 &&
-        this.state.fetchCount > 1 &&
-        JSON.stringify(this.state.replies) !== JSON.stringify(unreadReplies)
-      ) {
-        this.notify(unreadReplies);
-      }
 
       this.state.replies = unreadReplies;
       this.setState(this.state);
@@ -225,13 +219,6 @@ export class Navbar extends Component<any, NavbarState> {
     } else if (res.op == UserOperation.GetUserMentions) {
       let data = res.data as GetUserMentionsResponse;
       let unreadMentions = data.mentions.filter(r => !r.read);
-      if (
-        unreadMentions.length > 0 &&
-        this.state.fetchCount > 1 &&
-        JSON.stringify(this.state.mentions) !== JSON.stringify(unreadMentions)
-      ) {
-        this.notify(unreadMentions);
-      }
 
       this.state.mentions = unreadMentions;
       this.setState(this.state);
@@ -239,17 +226,19 @@ export class Navbar extends Component<any, NavbarState> {
     } else if (res.op == UserOperation.GetPrivateMessages) {
       let data = res.data as PrivateMessagesResponse;
       let unreadMessages = data.messages.filter(r => !r.read);
-      if (
-        unreadMessages.length > 0 &&
-        this.state.fetchCount > 1 &&
-        JSON.stringify(this.state.messages) !== JSON.stringify(unreadMessages)
-      ) {
-        this.notify(unreadMessages);
-      }
 
       this.state.messages = unreadMessages;
       this.setState(this.state);
       this.sendUnreadCount();
+    } else if (res.op == UserOperation.CreateComment) {
+      // TODO do private messages too
+      let data = res.data as CommentResponse;
+
+      if (UserService.Instance.user) {
+        if (data.recipient_ids.includes(UserService.Instance.user.id)) {
+          this.notify(data.comment);
+        }
+      }
     } else if (res.op == UserOperation.GetSite) {
       let data = res.data as GetSiteResponse;
 
@@ -259,11 +248,6 @@ export class Navbar extends Component<any, NavbarState> {
         this.setState(this.state);
       }
     }
-  }
-
-  keepFetchingUnreads() {
-    this.fetchUnreads();
-    setInterval(() => this.fetchUnreads(), 15000);
   }
 
   fetchUnreads() {
@@ -330,24 +314,23 @@ export class Navbar extends Component<any, NavbarState> {
     }
   }
 
-  notify(replies: Array<Comment | PrivateMessage>) {
-    let recentReply = replies[0];
+  notify(reply: Comment | PrivateMessage) {
     if (Notification.permission !== 'granted') Notification.requestPermission();
     else {
       var notification = new Notification(
-        `${replies.length} ${i18n.t('unread_messages')}`,
+        `${this.state.unreadCount} ${i18n.t('unread_messages')}`,
         {
-          icon: recentReply.creator_avatar
-            ? recentReply.creator_avatar
+          icon: reply.creator_avatar
+            ? reply.creator_avatar
             : `${window.location.protocol}//${window.location.host}/static/assets/apple-touch-icon.png`,
-          body: `${recentReply.creator_name}: ${recentReply.content}`,
+          body: `${reply.creator_name}: ${reply.content}`,
         }
       );
 
       notification.onclick = () => {
         this.context.router.history.push(
-          isCommentType(recentReply)
-            ? `/post/${recentReply.post_id}/comment/${recentReply.id}`
+          isCommentType(reply)
+            ? `/post/${reply.post_id}/comment/${reply.id}`
             : `/inbox`
         );
       };
