@@ -38,6 +38,8 @@ enum UnreadType {
   Messages,
 }
 
+type ReplyType = Comment | PrivateMessageI;
+
 interface InboxState {
   unreadOrAll: UnreadOrAll;
   unreadType: UnreadType;
@@ -186,7 +188,7 @@ export class Inbox extends Component<any, InboxState> {
   }
 
   all() {
-    let combined: Array<Comment | PrivateMessageI> = [];
+    let combined: Array<ReplyType> = [];
 
     combined.push(...this.state.replies);
     combined.push(...this.state.mentions);

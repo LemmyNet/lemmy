@@ -160,6 +160,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
                 class="form-control"
                 value={this.state.postForm.url}
                 onInput={linkEvent(this, this.handlePostUrlChange)}
+                onPaste={linkEvent(this, this.handleImageUploadPaste)}
               />
               {this.state.suggestedTitle && (
                 <div
@@ -442,9 +443,22 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     i.setState(i.state);
   }
 
+  handleImageUploadPaste(i: PostForm, event: any) {
+    let image = event.clipboardData.files[0];
+    if (image) {
+      i.handleImageUpload(i, image);
+    }
+  }
+
   handleImageUpload(i: PostForm, event: any) {
-    event.preventDefault();
-    let file = event.target.files[0];
+    let file: any;
+    if (event.target) {
+      event.preventDefault();
+      file = event.target.files[0];
+    } else {
+      file = event;
+    }
+
     const imageUploadUrl = `/pictshare/api/upload.php`;
     const formData = new FormData();
     formData.append('file', file);
