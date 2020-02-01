@@ -138,7 +138,7 @@ export class Navbar extends Component<any, NavbarState> {
             </li>
             <li className="nav-item">
               <Link
-                class="nav-link ml-2"
+                class="nav-link"
                 to="/sponsors"
                 title={i18n.t('donate_to_lemmy')}
               >
@@ -202,8 +202,8 @@ export class Navbar extends Component<any, NavbarState> {
 
   parseMessage(msg: WebSocketJsonResponse) {
     let res = wsJsonToRes(msg);
-    if (res.error) {
-      if (res.error == 'not_logged_in') {
+    if (msg.error) {
+      if (msg.error == 'not_logged_in') {
         UserService.Instance.logout();
         location.reload();
       }

@@ -96,6 +96,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
                 className={`form-control ${this.state.previewMode && 'd-none'}`}
                 value={this.state.commentForm.content}
                 onInput={linkEvent(this, this.handleCommentContentChange)}
+                onPaste={linkEvent(this, this.handleImageUploadPaste)}
                 required
                 disabled={this.props.disabled}
                 rows={2}
@@ -208,9 +209,22 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     i.props.onReplyCancel();
   }
 
+  handleImageUploadPaste(i: CommentForm, event: any) {
+    let image = event.clipboardData.files[0];
+    if (image) {
+      i.handleImageUpload(i, image);
+    }
+  }
+
   handleImageUpload(i: CommentForm, event: any) {
-    event.preventDefault();
-    let file = event.target.files[0];
+    let file: any;
+    if (event.target) {
+      event.preventDefault();
+      file = event.target.files[0];
+    } else {
+      file = event;
+    }
+
     const imageUploadUrl = `/pictshare/api/upload.php`;
     const formData = new FormData();
     formData.append('file', file);
@@ -225,13 +239,15 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
       .then(res => res.json())
       .then(res => {
         let url = `${window.location.origin}/pictshare/${res.url}`;
-        let markdown =
+        let imageMarkdown =
           res.filetype == 'mp4' ? `[vid](${url}/raw)` : `![](${url})`;
         let content = i.state.commentForm.content;
-        content = content ? `${content} ${markdown}` : markdown;
+        content = content ? `${content}\n${imageMarkdown}` : imageMarkdown;
         i.state.commentForm.content = content;
         i.state.imageLoading = false;
         i.setState(i.state);
+        var textarea: any = document.getElementById(i.id);
+        autosize.update(textarea);
       })
       .catch(error => {
         i.state.imageLoading = false;
