@@ -283,7 +283,7 @@ export class PrivateMessageForm extends Component<
 
   parseMessage(msg: WebSocketJsonResponse) {
     let res = wsJsonToRes(msg);
-    if (res.error) {
+    if (msg.error) {
       toast(i18n.t(msg.error), 'danger');
       this.state.loading = false;
       this.setState(this.state);

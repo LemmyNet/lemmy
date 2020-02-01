@@ -291,6 +291,7 @@ impl Handler<StandardMessage> for ChatServer {
       Err(e) => e.to_string(),
     };
 
+    println!("Message Sent: {}", msg_out);
     MessageResult(msg_out)
   }
 }

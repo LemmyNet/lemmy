@@ -9,7 +9,7 @@ third_semver=$(echo $new_tag | cut -d "." -f 3)
 
 # Setting the version on the front end
 cd ../../
-echo "export let version: string = '$(git describe --tags)';" > "ui/src/version.ts"
+echo "export const version: string = '$(git describe --tags)';" > "ui/src/version.ts"
 git add "ui/src/version.ts"
 # Setting the version on the backend
 echo "pub const VERSION: &str = \"$(git describe --tags)\";" > "server/src/version.rs"

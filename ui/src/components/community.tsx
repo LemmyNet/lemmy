@@ -11,6 +11,7 @@ import {
   SortType,
   Post,
   GetPostsForm,
+  GetCommunityForm,
   ListingType,
   GetPostsResponse,
   CreatePostLikeResponse,
@@ -98,11 +99,11 @@ export class Community extends Component<any, State> {
         () => console.log('complete')
       );
 
-    if (this.state.communityId) {
-      WebSocketService.Instance.getCommunity(this.state.communityId);
-    } else if (this.state.communityName) {
-      WebSocketService.Instance.getCommunityByName(this.state.communityName);
-    }
+    let form: GetCommunityForm = {
+      id: this.state.communityId ? this.state.communityId : null,
+      name: this.state.communityName ? this.state.communityName : null,
+    };
+    WebSocketService.Instance.getCommunity(form);
   }
 
   componentWillUnmount() {
@@ -258,7 +259,7 @@ export class Community extends Component<any, State> {
   parseMessage(msg: WebSocketJsonResponse) {
     console.log(msg);
     let res = wsJsonToRes(msg);
-    if (res.error) {
+    if (msg.error) {
       toast(i18n.t(msg.error), 'danger');
       this.context.router.history.push('/');
       return;
