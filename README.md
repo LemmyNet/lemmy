@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="" rel="noopener">
+  <a href="https://dev.lemmy.ml/" rel="noopener">
  <img width=200px height=200px src="ui/assets/favicon.svg"></a>
 </p>
 
