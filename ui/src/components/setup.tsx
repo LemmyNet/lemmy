@@ -11,7 +11,6 @@ import { WebSocketService, UserService } from '../services';
 import { wsJsonToRes, toast } from '../utils';
 import { SiteForm } from './site-form';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 interface State {
   userForm: RegisterForm;
@@ -61,9 +60,7 @@ export class Setup extends Component<any, State> {
       <div class="container">
         <div class="row">
           <div class="col-12 offset-lg-3 col-lg-6">
-            <h3>
-                { i18n.t('lemmy_instance_setup') }
-            </h3>
+            <h3>{i18n.t('lemmy_instance_setup')}</h3>
             {!this.state.doneRegisteringUser ? (
               this.registerUser()
             ) : (
@@ -78,10 +75,10 @@ export class Setup extends Component<any, State> {
   registerUser() {
     return (
       <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
-        <h4>{ i18n.t('setup_admin')}</h4>
+        <h5>{i18n.t('setup_admin')}</h5>
         <div class="form-group row">
-          <label class="col-sm-2 col-form-label" for="username">
-            { i18n.t('username') } 
+          <label class="col-sm-2 col-form-label" htmlFor="username">
+            {i18n.t('username')}
           </label>
           <div class="col-sm-10">
             <input
@@ -98,8 +95,8 @@ export class Setup extends Component<any, State> {
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-sm-2 col-form-label" for="email">
-            { i18n.t('email') }
+          <label class="col-sm-2 col-form-label" htmlFor="email">
+            {i18n.t('email')}
           </label>
 
           <div class="col-sm-10">
@@ -115,8 +112,8 @@ export class Setup extends Component<any, State> {
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-sm-2 col-form-label" for="password">
-            { i18n.t('password')}
+          <label class="col-sm-2 col-form-label" htmlFor="password">
+            {i18n.t('password')}
           </label>
           <div class="col-sm-10">
             <input
@@ -130,8 +127,8 @@ export class Setup extends Component<any, State> {
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-sm-2 col-form-label" for="verify-password">
-            { i18n.t('verify_password') }
+          <label class="col-sm-2 col-form-label" htmlFor="verify-password">
+            {i18n.t('verify_password')}
           </label>
           <div class="col-sm-10">
             <input

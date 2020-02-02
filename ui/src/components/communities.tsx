@@ -15,7 +15,6 @@ import {
 import { WebSocketService } from '../services';
 import { wsJsonToRes, toast } from '../utils';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 declare const Sortable: any;
 
@@ -76,37 +75,27 @@ export class Communities extends Component<any, CommunitiesState> {
     return (
       <div class="container">
         {this.state.loading ? (
-          <p class="text-center">
+          <h5 class="">
             <svg class="icon icon-spinner spin">
               <use xlinkHref="#icon-spinner"></use>
             </svg>
-          </p>
+          </h5>
         ) : (
           <div>
-            <h5>
-              { i18n.t('list_of_communities') }
-            </h5>
+            <h5>{i18n.t('list_of_communities')}</h5>
             <div class="table-responsive">
               <table id="community_table" class="table table-sm table-hover">
                 <thead class="pointer">
                   <tr>
-                    <th>
-                      { i18n.t('name') }
-                    </th>
-                    <th class="d-none d-lg-table-cell">
-                      { i18n.t('title') }
-                    </th>
-                    <th>
-                      { i18n.t('category') }
-                    </th>
-                    <th class="text-right">
-                      { i18n.t('subscribers') }
+                    <th>{i18n.t('name')}</th>
+                    <th class="d-none d-lg-table-cell">{i18n.t('title')}</th>
+                    <th>{i18n.t('category')}</th>
+                    <th class="text-right">{i18n.t('subscribers')}</th>
+                    <th class="text-right d-none d-lg-table-cell">
+                      {i18n.t('posts')}
                     </th>
                     <th class="text-right d-none d-lg-table-cell">
-                      { i18n.t('posts') }
-                    </th>
-                    <th class="text-right d-none d-lg-table-cell">
-                      { i18n.t('comments') }
+                      {i18n.t('comments')}
                     </th>
                     <th></th>
                   </tr>
@@ -139,7 +128,7 @@ export class Communities extends Component<any, CommunitiesState> {
                               this.handleUnsubscribe
                             )}
                           >
-                            <T i18nKey="unsubscribe">#</T>
+                            {i18n.t('unsubscribe')}
                           </span>
                         ) : (
                           <span
@@ -149,7 +138,7 @@ export class Communities extends Component<any, CommunitiesState> {
                               this.handleSubscribe
                             )}
                           >
-                            { i18n.t('subscribe') }
+                            {i18n.t('subscribe')}
                           </span>
                         )}
                       </td>
@@ -173,7 +162,7 @@ export class Communities extends Component<any, CommunitiesState> {
             class="btn btn-sm btn-secondary mr-1"
             onClick={linkEvent(this, this.prevPage)}
           >
-            { i18n.t('prev') }
+            {i18n.t('prev')}
           </button>
         )}
 
@@ -182,7 +171,7 @@ export class Communities extends Component<any, CommunitiesState> {
             class="btn btn-sm btn-secondary"
             onClick={linkEvent(this, this.nextPage)}
           >
-            { i18n.t('next') }
+            {i18n.t('next')}
           </button>
         )}
       </div>

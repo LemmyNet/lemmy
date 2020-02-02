@@ -21,7 +21,6 @@ import {
 import Tribute from 'tributejs/src/Tribute.js';
 import autosize from 'autosize';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 import { Community } from '../interfaces';
 
@@ -108,8 +107,8 @@ export class CommunityForm extends Component<
     return (
       <form onSubmit={linkEvent(this, this.handleCreateCommunitySubmit)}>
         <div class="form-group row">
-          <label class="col-12 col-form-label" for="community-name">
-            { i18n.t('name') }
+          <label class="col-12 col-form-label" htmlFor="community-name">
+            {i18n.t('name')}
           </label>
           <div class="col-12">
             <input
@@ -128,8 +127,8 @@ export class CommunityForm extends Component<
         </div>
 
         <div class="form-group row">
-          <label class="col-12 col-form-label" for="community-title">
-            { i18n.t('title') }
+          <label class="col-12 col-form-label" htmlFor="community-title">
+            {i18n.t('title')}
           </label>
           <div class="col-12">
             <input
@@ -145,14 +144,13 @@ export class CommunityForm extends Component<
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-12 col-form-label" for="community-sidebar">
-            { i18n.t('sidebar') }
+          <label class="col-12 col-form-label" htmlFor={this.id}>
+            {i18n.t('sidebar')}
           </label>
           <div class="col-12">
             <textarea
               id={this.id}
               value={this.state.communityForm.description}
-              id="community-sidebar"
               onInput={linkEvent(this, this.handleCommunityDescriptionChange)}
               class="form-control"
               rows={3}
@@ -161,8 +159,8 @@ export class CommunityForm extends Component<
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-12 col-form-label" for="community-category">
-            { i18n.t('category') }
+          <label class="col-12 col-form-label" htmlFor="community-category">
+            {i18n.t('category')}
           </label>
           <div class="col-12">
             <select
@@ -189,8 +187,8 @@ export class CommunityForm extends Component<
                   checked={this.state.communityForm.nsfw}
                   onChange={linkEvent(this, this.handleCommunityNsfwChange)}
                 />
-                <label class="form-check-label" for="community-nsfw">
-                  { i18n.t('nsfw') }
+                <label class="form-check-label" htmlFor="community-nsfw">
+                  {i18n.t('nsfw')}
                 </label>
               </div>
             </div>
@@ -215,7 +213,7 @@ export class CommunityForm extends Component<
                 class="btn btn-secondary"
                 onClick={linkEvent(this, this.handleCancel)}
               >
-                { i18n.t('cancel') }
+                {i18n.t('cancel')}
               </button>
             )}
           </div>

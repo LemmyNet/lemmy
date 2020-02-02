@@ -16,7 +16,6 @@ import {
 } from '../utils';
 import { CommunityForm } from './community-form';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 interface SidebarProps {
   community: Community;
@@ -72,12 +71,12 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
               <span>{community.title}</span>
               {community.removed && (
                 <small className="ml-2 text-muted font-italic">
-                  { i18n.t('removed') }
+                  {i18n.t('removed')}
                 </small>
               )}
               {community.deleted && (
                 <small className="ml-2 text-muted font-italic">
-                  <T i18nKey="deleted">#</T>
+                  {i18n.t('deleted')}
                 </small>
               )}
             </h5>
@@ -92,7 +91,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
                       class="pointer"
                       onClick={linkEvent(this, this.handleEditClick)}
                     >
-                      { i18n.t('edit') }
+                      {i18n.t('edit')}
                     </span>
                   </li>
                   {this.amCreator && (
@@ -116,14 +115,14 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
                       class="pointer"
                       onClick={linkEvent(this, this.handleModRemoveShow)}
                     >
-                      { i18n.t('remove') }
+                      {i18n.t('remove')}
                     </span>
                   ) : (
                     <span
                       class="pointer"
                       onClick={linkEvent(this, this.handleModRemoveSubmit)}
                     >
-                      { i18n.t('restore') }
+                      {i18n.t('restore')}
                     </span>
                   )}
                 </li>
@@ -132,8 +131,8 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
             {this.state.showRemoveDialog && (
               <form onSubmit={linkEvent(this, this.handleModRemoveSubmit)}>
                 <div class="form-group row">
-                  <label class="col-form-label" for="remove-reason">
-                    { i18n.t('reason') }
+                  <label class="col-form-label" htmlFor="remove-reason">
+                    {i18n.t('reason')}
                   </label>
                   <input
                     type="text"
@@ -151,7 +150,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
                 {/* </div> */}
                 <div class="form-group row">
                   <button type="submit" class="btn btn-secondary">
-                    { i18n.t('remove_community') }
+                    {i18n.t('remove_community')}
                   </button>
                 </div>
               </form>
@@ -163,35 +162,26 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
                 </Link>
               </li>
               <li className="list-inline-item badge badge-secondary">
-                <T
-                  i18nKey="number_of_subscribers"
-                  interpolation={{ count: community.number_of_subscribers }}
-                >
-                  #
-                </T>
+                {i18n.t('number_of_subscribers', {
+                  count: community.number_of_subscribers,
+                })}
               </li>
               <li className="list-inline-item badge badge-secondary">
-                <T
-                  i18nKey="number_of_posts"
-                  interpolation={{ count: community.number_of_posts }}
-                >
-                  #
-                </T>
+                {i18n.t('number_of_posts', {
+                  count: community.number_of_posts,
+                })}
               </li>
               <li className="list-inline-item badge badge-secondary">
-                <T
-                  i18nKey="number_of_comments"
-                  interpolation={{ count: community.number_of_comments }}
-                >
-                  #
-                </T>
+                {i18n.t('number_of_comments', {
+                  count: community.number_of_comments,
+                })}
               </li>
               <li className="list-inline-item">
                 <Link
                   className="badge badge-secondary"
                   to={`/modlog/community/${this.props.community.id}`}
                 >
-                  <T i18nKey="modlog">#</T>
+                  {i18n.t('modlog')}
                 </Link>
               </li>
             </ul>
@@ -219,7 +209,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
                 'no-click'}`}
               to={`/create_post?community=${community.name}`}
             >
-              { i18n.t('create_a_post') }
+              {i18n.t('create_a_post')}
             </Link>
             <div>
               {community.subscribed ? (
@@ -227,14 +217,14 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
                   class="btn btn-sm btn-secondary btn-block"
                   onClick={linkEvent(community.id, this.handleUnsubscribe)}
                 >
-                  { i18n.t('unsubscribe') }
+                  {i18n.t('unsubscribe')}
                 </button>
               ) : (
                 <button
                   class="btn btn-sm btn-secondary btn-block"
                   onClick={linkEvent(community.id, this.handleSubscribe)}
                 >
-                  { i18n.t('subscribe') }
+                  {i18n.t('subscribe')}
                 </button>
               )}
             </div>

@@ -3,7 +3,6 @@ import { Link } from 'inferno-router';
 import { Post } from '../interfaces';
 import { PostListing } from './post-listing';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 interface PostListingsProps {
   posts: Array<Post>;
@@ -31,12 +30,12 @@ export class PostListings extends Component<PostListingsProps, any> {
           ))
         ) : (
           <>
-            <h5>
-              { i18n.t('no_posts') }
-            </h5>
+            <div>{i18n.t('no_posts')}</div>
             {this.props.showCommunity !== undefined && (
               <div>
-                <Link to="/communities">{ i18n.t('subscribe_to_communities') }</Link>
+                <Link to="/communities">
+                  {i18n.t('subscribe_to_communities')}
+                </Link>
               </div>
             )}
           </>

@@ -14,7 +14,7 @@ import {
   ListingType,
   SiteResponse,
   GetPostsResponse,
-  CreatePostLikeResponse,
+  PostResponse,
   Post,
   GetPostsForm,
   WebSocketJsonResponse,
@@ -159,7 +159,9 @@ export class Main extends Component<any, MainState> {
     return (
       <div class="container">
         <div class="row">
-          <main role="main" class="col-12 col-md-8">{this.posts()}</main>
+          <main role="main" class="col-12 col-md-8">
+            {this.posts()}
+          </main>
           <aside class="col-12 col-md-4">{this.my_sidebar()}</aside>
         </div>
       </div>
@@ -200,7 +202,7 @@ export class Main extends Component<any, MainState> {
                   class="btn btn-sm btn-secondary btn-block"
                   to="/create_community"
                 >
-                  <T i18nKey="create_a_community">#</T>
+                  {i18n.t('create_a_community')}
                 </Link>
               </div>
             </div>
@@ -270,73 +272,43 @@ export class Main extends Component<any, MainState> {
                     class="pointer"
                     onClick={linkEvent(this, this.handleEditClick)}
                   >
-                    <T i18nKey="edit">#</T>
+                    {i18n.t('edit')}
                   </span>
                 </li>
               </ul>
             )}
             <ul class="my-2 list-inline">
               <li className="list-inline-item badge badge-secondary">
-                <T
-                  i18nKey="number_online"
-                  interpolation={{ count: this.state.site.online }}
-                >
-                  #
-                </T>
+                {i18n.t('number_online', { count: this.state.site.online })}
               </li>
               <li className="list-inline-item badge badge-secondary">
-                <T
-                  i18nKey="number_of_users"
-                  interpolation={{
-                    count: this.state.site.site.number_of_users,
-                  }}
-                >
-                  #
-                </T>
+                {i18n.t('number_of_users', {
+                  count: this.state.site.site.number_of_users,
+                })}
               </li>
               <li className="list-inline-item badge badge-secondary">
-                <T
-                  i18nKey="number_of_communities"
-                  interpolation={{
-                    count: this.state.site.site.number_of_communities,
-                  }}
-                >
-                  #
-                </T>
+                {i18n.t('number_of_communities', {
+                  count: this.state.site.site.number_of_communities,
+                })}
               </li>
               <li className="list-inline-item badge badge-secondary">
-                <T
-                  i18nKey="number_of_posts"
-                  interpolation={{
-                    count: this.state.site.site.number_of_posts,
-                  }}
-                >
-                  #
-                </T>
+                {i18n.t('number_of_posts', {
+                  count: this.state.site.site.number_of_posts,
+                })}
               </li>
               <li className="list-inline-item badge badge-secondary">
-                <T
-                  i18nKey="number_of_comments"
-                  interpolation={{
-                    count: this.state.site.site.number_of_comments,
-                  }}
-                >
-                  #
-                </T>
+                {i18n.t('number_of_comments', {
+                  count: this.state.site.site.number_of_comments,
+                })}
               </li>
               <li className="list-inline-item">
                 <Link className="badge badge-secondary" to="/modlog">
-                  <T i18nKey="modlog">#</T>
+                  {i18n.t('modlog')}
                 </Link>
               </li>
             </ul>
             <ul class="mt-1 list-inline small mb-0">
-              <li class="list-inline-item">
-                <T i18nKey="admins" class="d-inline">
-                  #
-                </T>
-                :
-              </li>
+              <li class="list-inline-item">{i18n.t('admins')}:</li>
               {this.state.site.admins.map(admin => (
                 <li class="list-inline-item">
                   <Link class="text-info" to={`/u/${admin.name}`}>
@@ -376,9 +348,7 @@ export class Main extends Component<any, MainState> {
       <div class="card border-secondary">
         <div class="card-body">
           <h5>
-            <T i18nKey="powered_by" class="d-inline">
-              #
-            </T>
+            {i18n.t('powered_by')}
             <svg class="icon mx-2">
               <use xlinkHref="#icon-mouse">#</use>
             </svg>
@@ -415,11 +385,11 @@ export class Main extends Component<any, MainState> {
     return (
       <div class="main-content-wrapper">
         {this.state.loading ? (
-          <p class="text-center">
+          <h5>
             <svg class="icon icon-spinner spin">
               <use xlinkHref="#icon-spinner"></use>
             </svg>
-          </p>
+          </h5>
         ) : (
           <div>
             {this.selects()}
@@ -476,7 +446,7 @@ export class Main extends Component<any, MainState> {
             class="btn btn-sm btn-secondary mr-1"
             onClick={linkEvent(this, this.prevPage)}
           >
-            <T i18nKey="prev">#</T>
+            {i18n.t('prev')}
           </button>
         )}
         {this.state.posts.length == fetchLimit && (
@@ -484,7 +454,7 @@ export class Main extends Component<any, MainState> {
             class="btn btn-sm btn-secondary"
             onClick={linkEvent(this, this.nextPage)}
           >
-            <T i18nKey="next">#</T>
+            {i18n.t('next')}
           </button>
         )}
       </div>
@@ -601,7 +571,7 @@ export class Main extends Component<any, MainState> {
       this.state.loading = false;
       this.setState(this.state);
     } else if (res.op == UserOperation.CreatePostLike) {
-      let data = res.data as CreatePostLikeResponse;
+      let data = res.data as PostResponse;
       let found = this.state.posts.find(c => c.id == data.post.id);
       found.my_vote = data.post.my_vote;
       found.score = data.post.score;

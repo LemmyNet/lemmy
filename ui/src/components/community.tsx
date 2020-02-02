@@ -14,7 +14,7 @@ import {
   GetCommunityForm,
   ListingType,
   GetPostsResponse,
-  CreatePostLikeResponse,
+  PostResponse,
   WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
@@ -28,7 +28,6 @@ import {
   postRefetchSeconds,
   toast,
 } from '../utils';
-import { T } from 'inferno-i18next';
 import { i18n } from '../i18next';
 
 interface State {
@@ -128,11 +127,11 @@ export class Community extends Component<any, State> {
     return (
       <div class="container">
         {this.state.loading ? (
-          <p class="text-center">
+          <h5>
             <svg class="icon icon-spinner spin">
               <use xlinkHref="#icon-spinner"></use>
             </svg>
-          </p>
+          </h5>
         ) : (
           <div class="row">
             <div class="col-12 col-md-8">
@@ -140,12 +139,12 @@ export class Community extends Component<any, State> {
                 {this.state.community.title}
                 {this.state.community.removed && (
                   <small className="ml-2 text-muted font-italic">
-                    { i18n.t('removed') }
+                    {i18n.t('removed')}
                   </small>
                 )}
                 {this.state.community.nsfw && (
                   <small className="ml-2 text-muted font-italic">
-                    { i18n.t('nsfw') }
+                    {i18n.t('nsfw')}
                   </small>
                 )}
               </h5>
@@ -192,7 +191,7 @@ export class Community extends Component<any, State> {
             class="btn btn-sm btn-secondary mr-1"
             onClick={linkEvent(this, this.prevPage)}
           >
-            { i18n.t('prev') }
+            {i18n.t('prev')}
           </button>
         )}
         {this.state.posts.length == fetchLimit && (
@@ -200,7 +199,7 @@ export class Community extends Component<any, State> {
             class="btn btn-sm btn-secondary"
             onClick={linkEvent(this, this.nextPage)}
           >
-            { i18n.t('next') }
+            {i18n.t('next')}
           </button>
         )}
       </div>
@@ -287,7 +286,7 @@ export class Community extends Component<any, State> {
       this.state.loading = false;
       this.setState(this.state);
     } else if (res.op == UserOperation.CreatePostLike) {
-      let data = res.data as CreatePostLikeResponse;
+      let data = res.data as PostResponse;
       let found = this.state.posts.find(c => c.id == data.post.id);
       found.my_vote = data.post.my_vote;
       found.score = data.post.score;

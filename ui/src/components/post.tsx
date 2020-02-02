@@ -11,7 +11,6 @@ import {
   CommentForm as CommentFormI,
   CommentResponse,
   CommentSortType,
-  CreatePostLikeResponse,
   CommunityUser,
   CommunityResponse,
   CommentNode as CommentNodeI,
@@ -38,7 +37,6 @@ import { CommentForm } from './comment-form';
 import { CommentNodes } from './comment-nodes';
 import autosize from 'autosize';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 interface PostState {
   post: PostI;
@@ -155,11 +153,11 @@ export class Post extends Component<any, PostState> {
     return (
       <div class="container">
         {this.state.loading ? (
-          <p class="text-center">
+          <h5>
             <svg class="icon icon-spinner spin">
               <use xlinkHref="#icon-spinner"></use>
             </svg>
-          </p>
+          </h5>
         ) : (
           <div class="row">
             <div class="col-12 col-md-8 mb-3">
@@ -173,7 +171,7 @@ export class Post extends Component<any, PostState> {
               {this.state.crossPosts.length > 0 && (
                 <>
                   <div class="my-1 text-muted small font-weight-bold">
-                    { i18n.t('cross_posts') }
+                    {i18n.t('cross_posts')}
                   </div>
                   <PostListings showCommunity posts={this.state.crossPosts} />
                 </>
@@ -243,9 +241,7 @@ export class Post extends Component<any, PostState> {
     return (
       <div class="d-none d-md-block new-comments mb-3 card border-secondary">
         <div class="card-body small">
-          <h6>
-            { i18n.t('recent_comments') }
-          </h6>
+          <h6>{i18n.t('recent_comments')}</h6>
           {this.state.comments.map(comment => (
             <CommentNodes
               nodes={[{ comment: comment }]}
@@ -412,7 +408,7 @@ export class Post extends Component<any, PostState> {
       }
       this.setState(this.state);
     } else if (res.op == UserOperation.CreatePostLike) {
-      let data = res.data as CreatePostLikeResponse;
+      let data = res.data as PostResponse;
       this.state.post.my_vote = data.post.my_vote;
       this.state.post.score = data.post.score;
       this.state.post.upvotes = data.post.upvotes;
