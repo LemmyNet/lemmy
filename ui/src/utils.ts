@@ -318,6 +318,7 @@ export function getMomentLanguage(): string {
 
 export const themes = [
   'litera',
+  'materia',
   'minty',
   'solar',
   'united',
@@ -327,6 +328,7 @@ export const themes = [
   'sketchy',
   'vaporwave',
   'vaporwave-dark',
+  'i386',
 ];
 
 export function setTheme(theme: string = 'darkly') {
