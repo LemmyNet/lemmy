@@ -212,7 +212,6 @@ export class Login extends Component<any, State> {
             />
           </div>
         </div>
-
         {this.state.enable_nsfw && (
           <div class="form-group row">
             <div class="col-sm-10">
