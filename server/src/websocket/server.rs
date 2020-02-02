@@ -204,6 +204,61 @@ impl ChatServer {
     }
   }
 
+  fn comment_sends(
+    &self,
+    user_operation: UserOperation,
+    comment: CommentResponse,
+    id: ConnectionId,
+  ) -> Result<String, Error> {
+    let mut comment_reply_sent = comment.clone();
+    comment_reply_sent.comment.my_vote = None;
+    comment_reply_sent.comment.user_id = None;
+
+    // For the post room ones, and the directs back to the user
+    // strip out the recipient_ids, so that
+    // users don't get double notifs
+    let mut comment_user_sent = comment.clone();
+    comment_user_sent.recipient_ids = Vec::new();
+
+    let mut comment_post_sent = comment_reply_sent.clone();
+    comment_post_sent.recipient_ids = Vec::new();
+
+    let comment_reply_sent_str = to_json_string(&user_operation, &comment_reply_sent)?;
+    let comment_post_sent_str = to_json_string(&user_operation, &comment_post_sent)?;
+    let comment_user_sent_str = to_json_string(&user_operation, &comment_user_sent)?;
+
+    // Send it to the post room
+    self.send_post_room_message(comment.comment.post_id, &comment_post_sent_str, id);
+
+    // Send it to the recipient(s) including the mentioned users
+    for recipient_id in comment_reply_sent.recipient_ids {
+      self.send_user_room_message(recipient_id, &comment_reply_sent_str, id);
+    }
+
+    Ok(comment_user_sent_str)
+  }
+
+  fn post_sends(
+    &self,
+    user_operation: UserOperation,
+    post: PostResponse,
+    id: ConnectionId,
+  ) -> Result<String, Error> {
+    let community_id = post.post.community_id;
+
+    // Don't send my data with it
+    let mut post_sent = post.clone();
+    post_sent.post.my_vote = None;
+    post_sent.post.user_id = None;
+    let post_sent_str = to_json_string(&user_operation, &post_sent)?;
+
+    // Send it to /c/all and that community
+    self.send_community_room_message(0, &post_sent_str, id);
+    self.send_community_room_message(community_id, &post_sent_str, id);
+
+    to_json_string(&user_operation, post)
+  }
+
   fn check_rate_limit_register(&mut self, id: usize) -> Result<(), Error> {
     self.check_rate_limit_full(
       id,
@@ -487,25 +542,6 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
     UserOperation::ListCategories => {
       do_user_operation::<ListCategories, ListCategoriesResponse>(user_operation, data, &conn)
     }
-    UserOperation::CreatePost => {
-      chat.check_rate_limit_post(msg.id)?;
-      let create_post: CreatePost = serde_json::from_str(data)?;
-      let community_id = create_post.community_id;
-      let res = Oper::new(create_post).perform(&conn)?;
-      let res_str = to_json_string(&user_operation, &res)?;
-
-      // Don't send my data with it
-      let mut post_sent = res;
-      post_sent.post.my_vote = None;
-      post_sent.post.user_id = None;
-      let post_sent_str = to_json_string(&user_operation, &post_sent)?;
-
-      // Send it to /c/all and that community
-      chat.send_community_room_message(0, &post_sent_str, msg.id);
-      chat.send_community_room_message(community_id, &post_sent_str, msg.id);
-
-      Ok(res_str)
-    }
     UserOperation::GetPost => {
       let get_post: GetPost = serde_json::from_str(data)?;
       let post_id = get_post.id;
@@ -529,43 +565,25 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       let res = Oper::new(get_posts).perform(&conn)?;
       to_json_string(&user_operation, &res)
     }
-    UserOperation::UserJoin => {
-      let user_join: UserJoin = serde_json::from_str(data)?;
-      let res = Oper::new(user_join).perform(&conn)?;
-      chat.join_user_room(res.user_id, msg.id);
-      to_json_string(&user_operation, &res)
+    UserOperation::CreatePost => {
+      chat.check_rate_limit_post(msg.id)?;
+      let create_post: CreatePost = serde_json::from_str(data)?;
+      let res = Oper::new(create_post).perform(&conn)?;
+
+      chat.post_sends(UserOperation::CreatePost, res, msg.id)
     }
     UserOperation::CreatePostLike => {
       chat.check_rate_limit_message(msg.id)?;
       let create_post_like: CreatePostLike = serde_json::from_str(data)?;
       let res = Oper::new(create_post_like).perform(&conn)?;
-      let community_id = res.post.community_id;
-      let res_str = to_json_string(&user_operation, &res)?;
 
-      // Don't send my data with it
-      let mut post_sent = res;
-      post_sent.post.my_vote = None;
-      post_sent.post.user_id = None;
-      let post_sent_str = to_json_string(&user_operation, &post_sent)?;
-
-      // Send it to /c/all and that community
-      chat.send_community_room_message(0, &post_sent_str, msg.id);
-      chat.send_community_room_message(community_id, &post_sent_str, msg.id);
-
-      Ok(res_str)
+      chat.post_sends(UserOperation::CreatePostLike, res, msg.id)
     }
     UserOperation::EditPost => {
       let edit_post: EditPost = serde_json::from_str(data)?;
       let res = Oper::new(edit_post).perform(&conn)?;
-      let mut post_sent = res.clone();
-      post_sent.post.my_vote = None;
-      post_sent.post.user_id = None;
-      let post_sent_str = to_json_string(&user_operation, &post_sent)?;
 
-      // Send it to /c/all and that community
-      chat.send_community_room_message(0, &post_sent_str, msg.id);
-      chat.send_community_room_message(post_sent.post.community_id, &post_sent_str, msg.id);
-      to_json_string(&user_operation, &res)
+      chat.post_sends(UserOperation::EditPost, res, msg.id)
     }
     UserOperation::SavePost => {
       do_user_operation::<SavePost, PostResponse>(user_operation, data, &conn)
@@ -573,48 +591,15 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
     UserOperation::CreateComment => {
       chat.check_rate_limit_message(msg.id)?;
       let create_comment: CreateComment = serde_json::from_str(data)?;
-      let post_id = create_comment.post_id;
       let res = Oper::new(create_comment).perform(&conn)?;
 
-      let mut comment_user_sent = res.clone();
-      comment_user_sent.comment.my_vote = None;
-      comment_user_sent.comment.user_id = None;
-
-      // For the post room ones, strip out the recipient_ids, so that
-      // users don't get double notifs
-      let mut comment_post_sent = comment_user_sent.clone();
-      comment_post_sent.recipient_ids = Vec::new();
-
-      let comment_user_sent_str = to_json_string(&user_operation, &comment_user_sent)?;
-      let comment_post_sent_str = to_json_string(&user_operation, &comment_post_sent)?;
-
-      // Send it to the post room
-      chat.send_post_room_message(post_id, &comment_post_sent_str, msg.id);
-
-      // Send it to the recipient(s) including the mentioned users
-      for recipient_id in comment_user_sent.recipient_ids {
-        chat.send_user_room_message(recipient_id, &comment_user_sent_str, msg.id);
-      }
-
-      to_json_string(&user_operation, &res)
+      chat.comment_sends(UserOperation::CreateComment, res, msg.id)
     }
     UserOperation::EditComment => {
       let edit_comment: EditComment = serde_json::from_str(data)?;
-      let post_id = edit_comment.post_id;
       let res = Oper::new(edit_comment).perform(&conn)?;
-      let mut comment_sent = res.clone();
-      comment_sent.comment.my_vote = None;
-      comment_sent.comment.user_id = None;
-      let comment_sent_str = to_json_string(&user_operation, &comment_sent)?;
 
-      chat.send_post_room_message(post_id, &comment_sent_str, msg.id);
-
-      // Send it to the recipient(s) including the mentioned users
-      for recipient_id in comment_sent.recipient_ids {
-        chat.send_user_room_message(recipient_id, &comment_sent_str, msg.id);
-      }
-
-      to_json_string(&user_operation, &res)
+      chat.comment_sends(UserOperation::EditComment, res, msg.id)
     }
     UserOperation::SaveComment => {
       do_user_operation::<SaveComment, CommentResponse>(user_operation, data, &conn)
@@ -622,20 +607,9 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
     UserOperation::CreateCommentLike => {
       chat.check_rate_limit_message(msg.id)?;
       let create_comment_like: CreateCommentLike = serde_json::from_str(data)?;
-      let post_id = create_comment_like.post_id;
       let res = Oper::new(create_comment_like).perform(&conn)?;
-      let mut comment_sent = res.clone();
-      comment_sent.comment.my_vote = None;
-      comment_sent.comment.user_id = None;
-      let comment_sent_str = to_json_string(&user_operation, &comment_sent)?;
 
-      chat.send_post_room_message(post_id, &comment_sent_str, msg.id);
-
-      // Send it to the recipient(s) including the mentioned users
-      for recipient_id in comment_sent.recipient_ids {
-        chat.send_user_room_message(recipient_id, &comment_sent_str, msg.id);
-      }
-      to_json_string(&user_operation, &res)
+      chat.comment_sends(UserOperation::CreateCommentLike, res, msg.id)
     }
     UserOperation::GetModlog => {
       do_user_operation::<GetModlog, GetModlogResponse>(user_operation, data, &conn)
@@ -689,6 +663,12 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
     }
     UserOperation::GetPrivateMessages => {
       do_user_operation::<GetPrivateMessages, PrivateMessagesResponse>(user_operation, data, &conn)
+    }
+    UserOperation::UserJoin => {
+      let user_join: UserJoin = serde_json::from_str(data)?;
+      let res = Oper::new(user_join).perform(&conn)?;
+      chat.join_user_room(res.user_id, msg.id);
+      to_json_string(&user_operation, &res)
     }
   }
 }

@@ -14,7 +14,6 @@ import {
   ListingType,
   SiteResponse,
   GetPostsResponse,
-  CreatePostLikeResponse,
   PostResponse,
   Post,
   GetPostsForm,
@@ -622,7 +621,7 @@ export class Main extends Component<any, MainState> {
 
       this.setState(this.state);
     } else if (res.op == UserOperation.CreatePostLike) {
-      let data = res.data as CreatePostLikeResponse;
+      let data = res.data as PostResponse;
       let found = this.state.posts.find(c => c.id == data.post.id);
 
       found.score = data.post.score;

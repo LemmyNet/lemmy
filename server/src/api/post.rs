@@ -55,11 +55,6 @@ pub struct CreatePostLike {
   auth: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-pub struct CreatePostLikeResponse {
-  pub post: PostView,
-}
-
 #[derive(Serialize, Deserialize)]
 pub struct EditPost {
   pub edit_id: i32,
@@ -242,8 +237,8 @@ impl Perform<GetPostsResponse> for Oper<GetPosts> {
   }
 }
 
-impl Perform<CreatePostLikeResponse> for Oper<CreatePostLike> {
-  fn perform(&self, conn: &PgConnection) -> Result<CreatePostLikeResponse, Error> {
+impl Perform<PostResponse> for Oper<CreatePostLike> {
+  fn perform(&self, conn: &PgConnection) -> Result<PostResponse, Error> {
     let data: &CreatePostLike = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -296,7 +291,7 @@ impl Perform<CreatePostLikeResponse> for Oper<CreatePostLike> {
     };
 
     // just output the score
-    Ok(CreatePostLikeResponse { post: post_view })
+    Ok(PostResponse { post: post_view })
   }
 }
 

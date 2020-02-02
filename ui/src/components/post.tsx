@@ -11,7 +11,6 @@ import {
   CommentForm as CommentFormI,
   CommentResponse,
   CommentSortType,
-  CreatePostLikeResponse,
   CommunityUser,
   CommunityResponse,
   CommentNode as CommentNodeI,
@@ -401,8 +400,8 @@ export class Post extends Component<any, PostState> {
     } else if (res.op == UserOperation.CreateComment) {
       let data = res.data as CommentResponse;
 
-      // Necessary since a user might receive a comment reply on another thread
-      if (data.comment.post_id == this.state.post.id) {
+      // Necessary since it might be a user reply
+      if (data.recipient_ids.length == 0) {
         this.state.comments.unshift(data.comment);
         this.setState(this.state);
       }
@@ -439,7 +438,7 @@ export class Post extends Component<any, PostState> {
       }
       this.setState(this.state);
     } else if (res.op == UserOperation.CreatePostLike) {
-      let data = res.data as CreatePostLikeResponse;
+      let data = res.data as PostResponse;
       this.state.post.score = data.post.score;
       this.state.post.upvotes = data.post.upvotes;
       this.state.post.downvotes = data.post.downvotes;

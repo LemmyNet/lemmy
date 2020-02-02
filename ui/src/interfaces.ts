@@ -664,10 +664,6 @@ export interface CreatePostLikeForm {
   auth?: string;
 }
 
-export interface CreatePostLikeResponse {
-  post: Post;
-}
-
 export interface SiteForm {
   name: string;
   description?: string;
@@ -831,7 +827,7 @@ type ResponseType =
   | GetFollowedCommunitiesResponse
   | ListCommunitiesResponse
   | GetPostsResponse
-  | CreatePostLikeResponse
+  | PostResponse
   | GetRepliesResponse
   | GetUserMentionsResponse
   | ListCategoriesResponse
