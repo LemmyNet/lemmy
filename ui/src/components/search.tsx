@@ -12,7 +12,7 @@ import {
   SearchForm,
   SearchResponse,
   SearchType,
-  CreatePostLikeResponse,
+  PostResponse,
   CommentResponse,
   WebSocketJsonResponse,
 } from '../interfaces';
@@ -506,7 +506,7 @@ export class Search extends Component<any, SearchState> {
       }
       this.setState(this.state);
     } else if (res.op == UserOperation.CreatePostLike) {
-      let data = res.data as CreatePostLikeResponse;
+      let data = res.data as PostResponse;
       let found = this.state.searchResponse.posts.find(
         c => c.id == data.post.id
       );
