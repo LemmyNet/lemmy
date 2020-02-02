@@ -98,7 +98,7 @@ impl<'a> PrivateMessageQueryBuilder<'a> {
   pub fn list(self) -> Result<Vec<PrivateMessageView>, Error> {
     use super::private_message_view::private_message_mview::dsl::*;
 
-    let mut query = self.query;
+    let mut query = self.query.filter(deleted.eq(false));
 
     // If its unread, I only want the ones to me
     if self.unread_only {
