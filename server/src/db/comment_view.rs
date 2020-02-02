@@ -348,7 +348,9 @@ impl<'a> ReplyQueryBuilder<'a> {
 
     query = query
       .filter(user_id.eq(self.for_user_id))
-      .filter(recipient_id.eq(self.for_user_id));
+      .filter(recipient_id.eq(self.for_user_id))
+      .filter(deleted.eq(false))
+      .filter(removed.eq(false));
 
     if self.unread_only {
       query = query.filter(read.eq(false));
