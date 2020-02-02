@@ -61,6 +61,9 @@ export class WebSocketService {
     this.ws = new ReconnectingWebSocket(wsUri);
     this.ws.onopen = () => {
       console.log(`Connected to ${wsUri}`);
+      if (UserService.Instance.user) {
+        this.userJoin();
+      }
     };
 
     this.subject = Observable.create((obs: any) => {
@@ -68,10 +71,6 @@ export class WebSocketService {
         obs.next(JSON.parse(e.data));
       };
     }).pipe(share());
-
-    if (UserService.Instance.user) {
-      this.userJoin();
-    }
   }
 
   public static get Instance() {
