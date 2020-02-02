@@ -14,7 +14,6 @@ import {
 import { MomentTime } from './moment-time';
 import { PrivateMessageForm } from './private-message-form';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 interface PrivateMessageState {
   showReply: boolean;
@@ -140,7 +139,7 @@ export class PrivateMessage extends Component<
                         class="pointer"
                         onClick={linkEvent(this, this.handleReplyClick)}
                       >
-                        <T i18nKey="reply">#</T>
+                        {i18n.t('reply')}
                       </span>
                     </li>
                   </>
@@ -152,7 +151,7 @@ export class PrivateMessage extends Component<
                         class="pointer"
                         onClick={linkEvent(this, this.handleEditClick)}
                       >
-                        <T i18nKey="edit">#</T>
+                        {i18n.t('edit')}
                       </span>
                     </li>
                     <li className="list-inline-item">
@@ -173,7 +172,7 @@ export class PrivateMessage extends Component<
                     className="pointer"
                     onClick={linkEvent(this, this.handleViewSource)}
                   >
-                    <T i18nKey="view_source">#</T>
+                    {i18n.t('view_source')}
                   </span>
                 </li>
               </ul>

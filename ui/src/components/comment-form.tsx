@@ -15,7 +15,6 @@ import { WebSocketService, UserService } from '../services';
 import autosize from 'autosize';
 import Tribute from 'tributejs/src/Tribute.js';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 interface CommentFormProps {
   postId?: number;
@@ -127,7 +126,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
                     .previewMode && 'active'}`}
                   onClick={linkEvent(this, this.handlePreviewToggle)}
                 >
-                  <T i18nKey="preview">#</T>
+                  {i18n.t('preview')}
                 </button>
               )}
               {this.props.node && (
@@ -136,7 +135,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
                   class="btn btn-sm btn-secondary mr-2"
                   onClick={linkEvent(this, this.handleReplyCancel)}
                 >
-                  <T i18nKey="cancel">#</T>
+                  {i18n.t('cancel')}
                 </button>
               )}
               <a
@@ -144,14 +143,14 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
                 target="_blank"
                 class="d-inline-block float-right text-muted small font-weight-bold"
               >
-                <T i18nKey="formatting_help">#</T>
+                {i18n.t('formatting_help')}
               </a>
               <form class="d-inline-block mr-2 float-right text-muted small font-weight-bold">
                 <label
                   htmlFor={`file-upload-${this.id}`}
                   className={`${UserService.Instance.user && 'pointer'}`}
                 >
-                  <T i18nKey="upload_image">#</T>
+                  {i18n.t('upload_image')}
                 </label>
                 <input
                   id={`file-upload-${this.id}`}
