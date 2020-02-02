@@ -119,7 +119,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       <div class="listing col-12">
         <div className={`vote-bar mr-2 float-left small text-center`}>
           <button
-            className={`btn p-0 ${
+            className={`btn btn-link p-0 ${
               post.my_vote == 1 ? 'text-info' : 'text-muted'
             }`}
             onClick={linkEvent(this, this.handlePostLike)}
@@ -137,7 +137,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           <div class={`font-weight-bold text-muted`}>{post.score}</div>
           {WebSocketService.Instance.site.enable_downvotes && (
             <button
-              className={`btn p-0 ${
+              className={`btn btn-link p-0 ${
                 post.my_vote == -1 ? 'text-danger' : 'text-muted'
               }`}
               onClick={linkEvent(this, this.handlePostDisLike)}

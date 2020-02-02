@@ -117,7 +117,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               .viewOnly && 'no-click'}`}
           >
             <button
-              className={`btn p-0 ${
+              className={`btn btn-link p-0 ${
                 node.comment.my_vote == 1 ? 'text-info' : 'text-muted'
               }`}
               onClick={linkEvent(node, this.handleCommentUpvote)}
@@ -137,7 +137,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             </div>
             {WebSocketService.Instance.site.enable_downvotes && (
               <button
-                className={`btn p-0 ${
+                className={`btn btn-link p-0 ${
                   node.comment.my_vote == -1 ? 'text-danger' : 'text-muted'
                 }`}
                 onClick={linkEvent(node, this.handleCommentDownvote)}
