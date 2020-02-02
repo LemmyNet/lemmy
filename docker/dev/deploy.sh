@@ -19,7 +19,9 @@ cd docker/dev
 
 # Changing the docker-compose prod
 sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../prod/docker-compose.yml
+sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../../ansible/templates/docker-compose.yml
 git add ../prod/docker-compose.yml
+git add ../../ansible/templates/docker-compose.yml
 
 # The commit
 git commit -m"Version $new_tag"
