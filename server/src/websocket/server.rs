@@ -575,17 +575,25 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       let create_comment: CreateComment = serde_json::from_str(data)?;
       let post_id = create_comment.post_id;
       let res = Oper::new(create_comment).perform(&conn)?;
-      let mut comment_sent = res.clone();
-      comment_sent.comment.my_vote = None;
-      comment_sent.comment.user_id = None;
-      let comment_sent_str = to_json_string(&user_operation, &comment_sent)?;
+
+      let mut comment_user_sent = res.clone();
+      comment_user_sent.comment.my_vote = None;
+      comment_user_sent.comment.user_id = None;
+
+      // For the post room ones, strip out the recipient_ids, so that
+      // users don't get double notifs
+      let mut comment_post_sent = comment_user_sent.clone();
+      comment_post_sent.recipient_ids = Vec::new();
+
+      let comment_user_sent_str = to_json_string(&user_operation, &comment_user_sent)?;
+      let comment_post_sent_str = to_json_string(&user_operation, &comment_post_sent)?;
 
       // Send it to the post room
-      chat.send_post_room_message(post_id, &comment_sent_str, msg.id);
+      chat.send_post_room_message(post_id, &comment_post_sent_str, msg.id);
 
       // Send it to the recipient(s) including the mentioned users
-      for recipient_id in comment_sent.recipient_ids {
-        chat.send_user_room_message(recipient_id, &comment_sent_str, msg.id);
+      for recipient_id in comment_user_sent.recipient_ids {
+        chat.send_user_room_message(recipient_id, &comment_user_sent_str, msg.id);
       }
 
       to_json_string(&user_operation, &res)
