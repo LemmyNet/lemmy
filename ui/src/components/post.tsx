@@ -233,6 +233,18 @@ export class Post extends Component<any, PostState> {
             onChange={linkEvent(this, this.handleCommentSortChange)}
           />
         </label>
+        <label
+          className={`btn btn-sm btn-secondary pointer ${this.state
+            .commentSort === CommentSortType.Old && 'active'}`}
+        >
+          {i18n.t('old')}
+          <input
+            type="radio"
+            value={CommentSortType.Old}
+            checked={this.state.commentSort === CommentSortType.Old}
+            onChange={linkEvent(this, this.handleCommentSortChange)}
+          />
+        </label>
       </div>
     );
   }
@@ -312,6 +324,13 @@ export class Post extends Component<any, PostState> {
           +a.comment.removed - +b.comment.removed ||
           +a.comment.deleted - +b.comment.deleted ||
           b.comment.published.localeCompare(a.comment.published)
+      );
+    } else if (this.state.commentSort == CommentSortType.Old) {
+      tree.sort(
+        (a, b) =>
+          +a.comment.removed - +b.comment.removed ||
+          +a.comment.deleted - +b.comment.deleted ||
+          a.comment.published.localeCompare(b.comment.published)
       );
     } else if (this.state.commentSort == CommentSortType.Hot) {
       tree.sort(
