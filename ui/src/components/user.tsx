@@ -18,7 +18,7 @@ import {
   BanUserResponse,
   AddAdminResponse,
   DeleteAccountForm,
-  CreatePostLikeResponse,
+  PostResponse,
   WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
@@ -39,7 +39,6 @@ import { ListingTypeSelect } from './listing-type-select';
 import { CommentNodes } from './comment-nodes';
 import { MomentTime } from './moment-time';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 enum View {
   Overview,
@@ -199,11 +198,11 @@ export class User extends Component<any, UserState> {
     return (
       <div class="container">
         {this.state.loading ? (
-          <p class="text-center">
+          <h5>
             <svg class="icon icon-spinner spin">
               <use xlinkHref="#icon-spinner"></use>
             </svg>
-          </p>
+          </h5>
         ) : (
           <div class="row">
             <div class="col-12 col-md-8">
@@ -245,21 +244,11 @@ export class User extends Component<any, UserState> {
           onChange={linkEvent(this, this.handleViewChange)}
           class="custom-select custom-select-sm w-auto"
         >
-          <option disabled>
-            { i18n.t('view') }
-          </option>
-          <option value={View.Overview}>
-            { i18n.t('overview') }
-          </option>
-          <option value={View.Comments}>
-            { i18n.t('comments') }
-          </option>
-          <option value={View.Posts}>
-            { i18n.t('posts') }
-          </option>
-          <option value={View.Saved}>
-            { i18n.t('saved') }
-          </option>
+          <option disabled>{i18n.t('view')}</option>
+          <option value={View.Overview}>{i18n.t('overview')}</option>
+          <option value={View.Comments}>{i18n.t('comments')}</option>
+          <option value={View.Posts}>{i18n.t('posts')}</option>
+          <option value={View.Saved}>{i18n.t('saved')}</option>
         </select>
         <span class="ml-2">
           <SortSelect
@@ -359,7 +348,7 @@ export class User extends Component<any, UserState> {
                 <li className="list-inline-item">{user.name}</li>
                 {user.banned && (
                   <li className="list-inline-item badge badge-danger">
-                    { i18n.t('banned') }
+                    {i18n.t('banned')}
                   </li>
                 )}
               </ul>
@@ -371,38 +360,20 @@ export class User extends Component<any, UserState> {
               <table class="table table-bordered table-sm mt-2 mb-0">
                 <tr>
                   <td>
-                    <T
-                      i18nKey="number_of_points"
-                      interpolation={{ count: user.post_score }}
-                    >
-                      #
-                    </T>
+                    {i18n.t('number_of_points', { count: user.post_score })}
                   </td>
                   <td>
-                    <T
-                      i18nKey="number_of_posts"
-                      interpolation={{ count: user.number_of_posts }}
-                    >
-                      #
-                    </T>
+                    {i18n.t('number_of_posts', { count: user.number_of_posts })}
                   </td>
                 </tr>
                 <tr>
                   <td>
-                    <T
-                      i18nKey="number_of_points"
-                      interpolation={{ count: user.comment_score }}
-                    >
-                      #
-                    </T>
+                    {i18n.t('number_of_points', { count: user.comment_score })}
                   </td>
                   <td>
-                    <T
-                      i18nKey="number_of_comments"
-                      interpolation={{ count: user.number_of_comments }}
-                    >
-                      #
-                    </T>
+                    {i18n.t('number_of_comments', {
+                      count: user.number_of_comments,
+                    })}
                   </td>
                 </tr>
               </table>
@@ -412,7 +383,7 @@ export class User extends Component<any, UserState> {
                 class="btn btn-block btn-secondary mt-3"
                 onClick={linkEvent(this, this.handleLogoutClick)}
               >
-                { i18n.t('logout') }
+                {i18n.t('logout')}
               </button>
             ) : (
               <>
@@ -443,14 +414,10 @@ export class User extends Component<any, UserState> {
       <div>
         <div class="card border-secondary mb-3">
           <div class="card-body">
-            <h5>
-              { i18n.t('settings') }
-            </h5>
+            <h5>{i18n.t('settings')}</h5>
             <form onSubmit={linkEvent(this, this.handleUserSettingsSubmit)}>
               <div class="form-group">
-                <label>
-                  { i18n.t('avatar') }
-                </label>
+                <label>{i18n.t('avatar')}</label>
                 <form class="d-inline">
                   <label
                     htmlFor="file-upload"
@@ -458,7 +425,7 @@ export class User extends Component<any, UserState> {
                   >
                     {!this.state.userSettingsForm.avatar ? (
                       <span class="btn btn-sm btn-secondary">
-                        { i18n.t('upload_avatar') }
+                        {i18n.t('upload_avatar')}
                       </span>
                     ) : (
                       <img
@@ -481,20 +448,14 @@ export class User extends Component<any, UserState> {
                 </form>
               </div>
               <div class="form-group">
-                <label>
-                  { i18n.t('language') }
-                </label>
+                <label>{i18n.t('language')}</label>
                 <select
                   value={this.state.userSettingsForm.lang}
                   onChange={linkEvent(this, this.handleUserSettingsLangChange)}
                   class="ml-2 custom-select custom-select-sm w-auto"
                 >
-                  <option disabled>
-                    { i18n.t('language') }
-                  </option>
-                  <option value="browser">
-                    { i18n.t('browser_default') }
-                  </option>
+                  <option disabled>{i18n.t('language')}</option>
+                  <option value="browser">{i18n.t('browser_default')}</option>
                   <option disabled>──</option>
                   {languages.map(lang => (
                     <option value={lang.code}>{lang.name}</option>
@@ -502,17 +463,13 @@ export class User extends Component<any, UserState> {
                 </select>
               </div>
               <div class="form-group">
-                <label>
-                  { i18n.t('theme') }
-                </label>
+                <label>{i18n.t('theme')}</label>
                 <select
                   value={this.state.userSettingsForm.theme}
                   onChange={linkEvent(this, this.handleUserSettingsThemeChange)}
                   class="ml-2 custom-select custom-select-sm w-auto"
                 >
-                  <option disabled>
-                    { i18n.t('theme') }
-                  </option>
+                  <option disabled>{i18n.t('theme')}</option>
                   {themes.map(theme => (
                     <option value={theme}>{theme}</option>
                   ))}
@@ -520,9 +477,7 @@ export class User extends Component<any, UserState> {
               </div>
               <form className="form-group">
                 <label>
-                  <T i18nKey="sort_type" class="mr-2">
-                    #
-                  </T>
+                  <div class="mr-2">{i18n.t('sort_type')}</div>
                 </label>
                 <ListingTypeSelect
                   type_={this.state.userSettingsForm.default_listing_type}
@@ -531,9 +486,7 @@ export class User extends Component<any, UserState> {
               </form>
               <form className="form-group">
                 <label>
-                  <T i18nKey="type" class="mr-2">
-                    #
-                  </T>
+                  <div class="mr-2">{i18n.t('type')}</div>
                 </label>
                 <SortSelect
                   sort={this.state.userSettingsForm.default_sort_type}
@@ -541,8 +494,8 @@ export class User extends Component<any, UserState> {
                 />
               </form>
               <div class="form-group row">
-                <label class="col-lg-3 col-form-label" for="user-email">
-                  { i18n.t('email') }
+                <label class="col-lg-3 col-form-label" htmlFor="user-email">
+                  {i18n.t('email')}
                 </label>
                 <div class="col-lg-9">
                   <input
@@ -580,8 +533,8 @@ export class User extends Component<any, UserState> {
                 </div>
               </div>
               <div class="form-group row">
-                <label class="col-lg-5 col-form-label" for="user-password">
-                  { i18n.t('new_password') }
+                <label class="col-lg-5 col-form-label" htmlFor="user-password">
+                  {i18n.t('new_password')}
                 </label>
                 <div class="col-lg-7">
                   <input
@@ -597,8 +550,11 @@ export class User extends Component<any, UserState> {
                 </div>
               </div>
               <div class="form-group row">
-                <label class="col-lg-5 col-form-label" for="user-verify-password">
-                  { i18n.t('verify_password') }
+                <label
+                  class="col-lg-5 col-form-label"
+                  htmlFor="user-verify-password"
+                >
+                  {i18n.t('verify_password')}
                 </label>
                 <div class="col-lg-7">
                   <input
@@ -614,8 +570,11 @@ export class User extends Component<any, UserState> {
                 </div>
               </div>
               <div class="form-group row">
-                <label class="col-lg-5 col-form-label" for="user-old-password">
-                  { i18n.t('old_password') }
+                <label
+                  class="col-lg-5 col-form-label"
+                  htmlFor="user-old-password"
+                >
+                  {i18n.t('old_password')}
                 </label>
                 <div class="col-lg-7">
                   <input
@@ -643,8 +602,8 @@ export class User extends Component<any, UserState> {
                         this.handleUserSettingsShowNsfwChange
                       )}
                     />
-                    <label class="form-check-label" for="user-show-nsfw">
-                      { i18n.t('show_nsfw') }
+                    <label class="form-check-label" htmlFor="user-show-nsfw">
+                      {i18n.t('show_nsfw')}
                     </label>
                   </div>
                 </div>
@@ -661,8 +620,8 @@ export class User extends Component<any, UserState> {
                       this.handleUserSettingsShowAvatarsChange
                     )}
                   />
-                  <label class="form-check-label" for="user-show-avatars">
-                    { i18n.t('show_avatars') }
+                  <label class="form-check-label" htmlFor="user-show-avatars">
+                    {i18n.t('show_avatars')}
                   </label>
                 </div>
               </div>
@@ -681,8 +640,11 @@ export class User extends Component<any, UserState> {
                       this.handleUserSettingsSendNotificationsToEmailChange
                     )}
                   />
-                  <label class="form-check-label" for="user-send-notifications-to-email">
-                    { i18n.t('send_notifications_to_email') }
+                  <label
+                    class="form-check-label"
+                    htmlFor="user-send-notifications-to-email"
+                  >
+                    {i18n.t('send_notifications_to_email')}
                   </label>
                 </div>
               </div>
@@ -706,12 +668,12 @@ export class User extends Component<any, UserState> {
                     this.handleDeleteAccountShowConfirmToggle
                   )}
                 >
-                  { i18n.t('delete_account') }
+                  {i18n.t('delete_account')}
                 </button>
                 {this.state.deleteAccountShowConfirm && (
                   <>
                     <div class="my-2 alert alert-danger" role="alert">
-                      { i18n.t('delete_account_confirm') }
+                      {i18n.t('delete_account_confirm')}
                     </div>
                     <input
                       type="password"
@@ -742,7 +704,7 @@ export class User extends Component<any, UserState> {
                         this.handleDeleteAccountShowConfirmToggle
                       )}
                     >
-                      { i18n.t('cancel') }
+                      {i18n.t('cancel')}
                     </button>
                   </>
                 )}
@@ -760,9 +722,7 @@ export class User extends Component<any, UserState> {
         {this.state.moderates.length > 0 && (
           <div class="card border-secondary mb-3">
             <div class="card-body">
-              <h5>
-                { i18n.t('moderates') }
-              </h5>
+              <h5>{i18n.t('moderates')}</h5>
               <ul class="list-unstyled mb-0">
                 {this.state.moderates.map(community => (
                   <li>
@@ -785,9 +745,7 @@ export class User extends Component<any, UserState> {
         {this.state.follows.length > 0 && (
           <div class="card border-secondary mb-3">
             <div class="card-body">
-              <h5>
-                { i18n.t('subscribed') }
-              </h5>
+              <h5>{i18n.t('subscribed')}</h5>
               <ul class="list-unstyled mb-0">
                 {this.state.follows.map(community => (
                   <li>
@@ -812,14 +770,14 @@ export class User extends Component<any, UserState> {
             class="btn btn-sm btn-secondary mr-1"
             onClick={linkEvent(this, this.prevPage)}
           >
-            <T i18nKey="prev">#</T>
+            {i18n.t('prev')}
           </button>
         )}
         <button
           class="btn btn-sm btn-secondary"
           onClick={linkEvent(this, this.nextPage)}
         >
-          { i18n.t('next') }
+          {i18n.t('next')}
         </button>
       </div>
     );
@@ -1097,7 +1055,7 @@ export class User extends Component<any, UserState> {
       if (data.comment.my_vote !== null) found.my_vote = data.comment.my_vote;
       this.setState(this.state);
     } else if (res.op == UserOperation.CreatePostLike) {
-      let data = res.data as CreatePostLikeResponse;
+      let data = res.data as PostResponse;
       let found = this.state.posts.find(c => c.id == data.post.id);
       found.my_vote = data.post.my_vote;
       found.score = data.post.score;

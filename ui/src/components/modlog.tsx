@@ -15,6 +15,7 @@ import {
   ModBan,
   ModAddCommunity,
   ModAdd,
+  WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService } from '../services';
 import { wsJsonToRes, addTypeInfo, fetchLimit, toast } from '../utils';
@@ -343,7 +344,7 @@ export class Modlog extends Component<any, ModlogState> {
     return (
       <div class="container">
         {this.state.loading ? (
-          <h5 class="text-center">
+          <h5 class="">
             <svg class="icon icon-spinner spin">
               <use xlinkHref="#icon-spinner"></use>
             </svg>
@@ -359,15 +360,15 @@ export class Modlog extends Component<any, ModlogState> {
                   /c/{this.state.communityName}{' '}
                 </Link>
               )}
-              <span>{ i18n.t('modlog') }</span>
+              <span>{i18n.t('modlog')}</span>
             </h5>
             <div class="table-responsive">
               <table id="modlog_table" class="table table-sm table-hover">
                 <thead class="pointer">
                   <tr>
-                    <th> { i18n.t('time')}</th>
-                    <th>{ i18n.t('mod')}</th>
-                    <th>{ i18n.t('action')}</th>
+                    <th> {i18n.t('time')}</th>
+                    <th>{i18n.t('mod')}</th>
+                    <th>{i18n.t('action')}</th>
                   </tr>
                 </thead>
                 {this.combined()}
@@ -388,14 +389,14 @@ export class Modlog extends Component<any, ModlogState> {
             class="btn btn-sm btn-secondary mr-1"
             onClick={linkEvent(this, this.prevPage)}
           >
-            { i18n.t('prev') }
+            {i18n.t('prev')}
           </button>
         )}
         <button
           class="btn btn-sm btn-secondary"
           onClick={linkEvent(this, this.nextPage)}
         >
-          { i18n.t('next') }
+          {i18n.t('next')}
         </button>
       </div>
     );

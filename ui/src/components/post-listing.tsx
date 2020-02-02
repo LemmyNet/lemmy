@@ -30,7 +30,6 @@ import {
   imageThumbnailer,
 } from '../utils';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 interface PostListingState {
   showEdit: boolean;
@@ -247,27 +246,27 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             )}
             {post.removed && (
               <small className="ml-2 text-muted font-italic">
-                { i18n.t('removed') }
+                {i18n.t('removed')}
               </small>
             )}
             {post.deleted && (
               <small className="ml-2 text-muted font-italic">
-                { i18n.t('deleted') }
+                {i18n.t('deleted')}
               </small>
             )}
             {post.locked && (
               <small className="ml-2 text-muted font-italic">
-                { i18n.t('locked') }
+                {i18n.t('locked')}
               </small>
             )}
             {post.stickied && (
               <small className="ml-2 text-muted font-italic">
-                { i18n.t('stickied') }
+                {i18n.t('stickied')}
               </small>
             )}
             {post.nsfw && (
               <small className="ml-2 text-muted font-italic">
-                { i18n.t('nsfw') }
+                {i18n.t('nsfw')}
               </small>
             )}
           </div>
@@ -288,18 +287,16 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                 <span>{post.creator_name}</span>
               </Link>
               {this.isMod && (
-                <span className="mx-1 badge badge-light">
-                  { i18n.t('mod') }
-                </span>
+                <span className="mx-1 badge badge-light">{i18n.t('mod')}</span>
               )}
               {this.isAdmin && (
                 <span className="mx-1 badge badge-light">
-                  { i18n.t('admin') }
+                  {i18n.t('admin')}
                 </span>
               )}
               {(post.banned_from_community || post.banned) && (
                 <span className="mx-1 badge badge-danger">
-                  { i18n.t('banned') }
+                  {i18n.t('banned')}
                 </span>
               )}
               {this.props.showCommunity && (
@@ -326,12 +323,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             </li>
             <li className="list-inline-item">
               <Link className="text-muted" to={`/post/${post.id}`}>
-                <T
-                  i18nKey="number_of_comments"
-                  interpolation={{ count: post.number_of_comments }}
-                >
-                  #
-                </T>
+                {i18n.t('number_of_comments', {
+                  count: post.number_of_comments,
+                })}
               </Link>
             </li>
           </ul>
@@ -353,7 +347,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                         className="text-muted"
                         to={`/create_post${this.crossPostParams}`}
                       >
-                        <T i18nKey="cross_post">#</T>
+                        {i18n.t('cross_post')}
                       </Link>
                     </li>
                   </>
@@ -365,7 +359,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                         class="pointer"
                         onClick={linkEvent(this, this.handleEditClick)}
                       >
-                        <T i18nKey="edit">#</T>
+                        {i18n.t('edit')}
                       </span>
                     </li>
                     <li className="list-inline-item mr-2">
@@ -406,14 +400,14 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                         class="pointer"
                         onClick={linkEvent(this, this.handleModRemoveShow)}
                       >
-                        { i18n.t('remove') }
+                        {i18n.t('remove')}
                       </span>
                     ) : (
                       <span
                         class="pointer"
                         onClick={linkEvent(this, this.handleModRemoveSubmit)}
                       >
-                        { i18n.t('restore') }
+                        {i18n.t('restore')}
                       </span>
                     )}
                   </li>
@@ -430,7 +424,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                               this.handleModBanFromCommunityShow
                             )}
                           >
-                            { i18n.t('ban') }
+                            {i18n.t('ban')}
                           </span>
                         ) : (
                           <span
@@ -440,7 +434,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                               this.handleModBanFromCommunitySubmit
                             )}
                           >
-                            { i18n.t('unban') }
+                            {i18n.t('unban')}
                           </span>
                         )}
                       </li>
@@ -473,12 +467,12 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                           this.handleShowConfirmTransferCommunity
                         )}
                       >
-                        <T i18nKey="transfer_community">#</T>
+                        {i18n.t('transfer_community')}
                       </span>
                     ) : (
                       <>
                         <span class="d-inline-block mr-1">
-                          <T i18nKey="are_you_sure">#</T>
+                          {i18n.t('are_you_sure')}
                         </span>
                         <span
                           class="pointer d-inline-block mr-1"
@@ -487,7 +481,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                             this.handleTransferCommunity
                           )}
                         >
-                          { i18n.t('yes') }
+                          {i18n.t('yes')}
                         </span>
                         <span
                           class="pointer d-inline-block"
@@ -496,7 +490,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                             this.handleCancelShowConfirmTransferCommunity
                           )}
                         >
-                          { i18n.t('no') }
+                          {i18n.t('no')}
                         </span>
                       </>
                     )}
@@ -512,14 +506,14 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                             class="pointer"
                             onClick={linkEvent(this, this.handleModBanShow)}
                           >
-                            { i18n.t('ban_from_site') }
+                            {i18n.t('ban_from_site')}
                           </span>
                         ) : (
                           <span
                             class="pointer"
                             onClick={linkEvent(this, this.handleModBanSubmit)}
                           >
-                            { i18n.t('unban_from_site') }
+                            {i18n.t('unban_from_site')}
                           </span>
                         )}
                       </li>
@@ -549,18 +543,18 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                           this.handleShowConfirmTransferSite
                         )}
                       >
-                        { i18n.t('transfer_site') }
+                        {i18n.t('transfer_site')}
                       </span>
                     ) : (
                       <>
                         <span class="d-inline-block mr-1">
-                          { i18n.t('are_you_sure') }
+                          {i18n.t('are_you_sure')}
                         </span>
                         <span
                           class="pointer d-inline-block mr-1"
                           onClick={linkEvent(this, this.handleTransferSite)}
                         >
-                          { i18n.t('yes') }
+                          {i18n.t('yes')}
                         </span>
                         <span
                           class="pointer d-inline-block"
@@ -569,7 +563,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                             this.handleCancelShowConfirmTransferSite
                           )}
                         >
-                          { i18n.t('no') }
+                          {i18n.t('no')}
                         </span>
                       </>
                     )}
@@ -583,7 +577,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   className="pointer"
                   onClick={linkEvent(this, this.handleViewSource)}
                 >
-                  { i18n.t('view_source') }
+                  {i18n.t('view_source')}
                 </span>
               </li>
             )}
@@ -601,15 +595,15 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                 onInput={linkEvent(this, this.handleModRemoveReasonChange)}
               />
               <button type="submit" class="btn btn-secondary">
-                { i18n.t('remove_post') }
+                {i18n.t('remove_post')}
               </button>
             </form>
           )}
           {this.state.showBanDialog && (
             <form onSubmit={linkEvent(this, this.handleModBanBothSubmit)}>
               <div class="form-group row">
-                <label class="col-form-label" for="post-listing-reason">
-                  { i18n.t('reason') }
+                <label class="col-form-label" htmlFor="post-listing-reason">
+                  {i18n.t('reason')}
                 </label>
                 <input
                   type="text"

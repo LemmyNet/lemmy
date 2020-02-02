@@ -13,7 +13,6 @@ import {
 import { WebSocketService, UserService } from '../services';
 import { wsJsonToRes, validEmail, toast } from '../utils';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 interface State {
   loginForm: LoginForm;
@@ -78,10 +77,13 @@ export class Login extends Component<any, State> {
     return (
       <div>
         <form onSubmit={linkEvent(this, this.handleLoginSubmit)}>
-          <h5>{ i18n.t('login') }</h5>
+          <h5>{i18n.t('login')}</h5>
           <div class="form-group row">
-            <label class="col-sm-2 col-form-label" for="login-email-or-username">
-                { i18n.t('email_or_username') }
+            <label
+              class="col-sm-2 col-form-label"
+              htmlFor="login-email-or-username"
+            >
+              {i18n.t('email_or_username')}
             </label>
             <div class="col-sm-10">
               <input
@@ -96,8 +98,8 @@ export class Login extends Component<any, State> {
             </div>
           </div>
           <div class="form-group row">
-            <label class="col-sm-2 col-form-label" for="login-password">
-                { i18n.t('password') }
+            <label class="col-sm-2 col-form-label" htmlFor="login-password">
+              {i18n.t('password')}
             </label>
             <div class="col-sm-10">
               <input
@@ -113,7 +115,7 @@ export class Login extends Component<any, State> {
                 onClick={linkEvent(this, this.handlePasswordReset)}
                 className="btn p-0 btn-link d-inline-block float-right text-muted small font-weight-bold"
               >
-                { i18n.t('forgot_password') }
+                {i18n.t('forgot_password')}
               </button>
             </div>
           </div>
@@ -137,13 +139,11 @@ export class Login extends Component<any, State> {
   registerForm() {
     return (
       <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
-        <h2>
-          { i18n.t('sign_up') }
-        </h2>
+        <h5>{i18n.t('sign_up')}</h5>
 
         <div class="form-group row">
-          <label class="col-sm-2 col-form-label" for="register-username">
-            { i18n.t('username') }
+          <label class="col-sm-2 col-form-label" htmlFor="register-username">
+            {i18n.t('username')}
           </label>
 
           <div class="col-sm-10">
@@ -162,8 +162,8 @@ export class Login extends Component<any, State> {
         </div>
 
         <div class="form-group row">
-          <label class="col-sm-2 col-form-label" for="register-email">
-            { i18n.t('email') }
+          <label class="col-sm-2 col-form-label" htmlFor="register-email">
+            {i18n.t('email')}
           </label>
           <div class="col-sm-10">
             <input
@@ -179,8 +179,8 @@ export class Login extends Component<any, State> {
         </div>
 
         <div class="form-group row">
-          <label class="col-sm-2 col-form-label" for="register-password">
-            { i18n.t('password') }
+          <label class="col-sm-2 col-form-label" htmlFor="register-password">
+            {i18n.t('password')}
           </label>
           <div class="col-sm-10">
             <input
@@ -195,8 +195,11 @@ export class Login extends Component<any, State> {
         </div>
 
         <div class="form-group row">
-          <label class="col-sm-2 col-form-label" for="register-verify-password">
-            { i18n.t('verify_password') }
+          <label
+            class="col-sm-2 col-form-label"
+            htmlFor="register-verify-password"
+          >
+            {i18n.t('verify_password')}
           </label>
           <div class="col-sm-10">
             <input
@@ -210,7 +213,7 @@ export class Login extends Component<any, State> {
           </div>
         </div>
 
-        { this.state.enable_nsfw && (
+        {this.state.enable_nsfw && (
           <div class="form-group row">
             <div class="col-sm-10">
               <div class="form-check">
@@ -221,8 +224,8 @@ export class Login extends Component<any, State> {
                   checked={this.state.registerForm.show_nsfw}
                   onChange={linkEvent(this, this.handleRegisterShowNsfwChange)}
                 />
-                <label class="form-check-label" for="register-show-nsfw">
-                    { i18n.t('show_nsfw') }
+                <label class="form-check-label" htmlFor="register-show-nsfw">
+                  {i18n.t('show_nsfw')}
                 </label>
               </div>
             </div>

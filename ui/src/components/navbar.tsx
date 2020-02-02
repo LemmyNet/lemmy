@@ -27,7 +27,6 @@ import {
 } from '../utils';
 import { version } from '../version';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 interface NavbarState {
   isLoggedIn: boolean;
@@ -113,12 +112,12 @@ export class Navbar extends Component<any, NavbarState> {
           <ul class="navbar-nav mr-auto">
             <li class="nav-item">
               <Link class="nav-link" to="/communities">
-                { i18n.t('communities') }
+                {i18n.t('communities')}
               </Link>
             </li>
             <li class="nav-item">
               <Link class="nav-link" to="/search">
-                { i18n.t('search') }
+                {i18n.t('search')}
               </Link>
             </li>
             <li class="nav-item">
@@ -129,17 +128,17 @@ export class Navbar extends Component<any, NavbarState> {
                   state: { prevPath: this.currentLocation },
                 }}
               >
-                { i18n.t('create_post') }
+                {i18n.t('create_post')}
               </Link>
             </li>
             <li class="nav-item">
               <Link class="nav-link" to="/create_community">
-                { i18n.t('create_community') }
+                {i18n.t('create_community')}
               </Link>
             </li>
             <li className="nav-item">
               <Link
-                class="nav-link ml-2"
+                class="nav-link"
                 to="/sponsors"
                 title={i18n.t('donate_to_lemmy')}
               >
@@ -187,7 +186,7 @@ export class Navbar extends Component<any, NavbarState> {
               </>
             ) : (
               <Link class="nav-link" to="/login">
-                { i18n.t('login_sign_up') }
+                {i18n.t('login_sign_up')}
               </Link>
             )}
           </ul>

@@ -122,7 +122,7 @@ export class Inbox extends Component<any, InboxState> {
                 <ul class="list-inline mb-1 text-muted small font-weight-bold">
                   <li className="list-inline-item">
                     <span class="pointer" onClick={this.markAllAsRead}>
-                      { i18n.t('mark_all_as_read') }
+                      {i18n.t('mark_all_as_read')}
                     </span>
                   </li>
                 </ul>
@@ -147,40 +147,20 @@ export class Inbox extends Component<any, InboxState> {
           onChange={linkEvent(this, this.handleUnreadOrAllChange)}
           class="custom-select custom-select-sm w-auto mr-2"
         >
-          <option disabled>
-            { i18n.t('type') }
-            
-          </option>
-          <option value={UnreadOrAll.Unread}>
-            { i18n.t('unread') }
-          </option>
-          <option value={UnreadOrAll.All}>
-            { i18n.t('all') }
-          </option>
+          <option disabled>{i18n.t('type')}</option>
+          <option value={UnreadOrAll.Unread}>{i18n.t('unread')}</option>
+          <option value={UnreadOrAll.All}>{i18n.t('all')}</option>
         </select>
         <select
           value={this.state.unreadType}
           onChange={linkEvent(this, this.handleUnreadTypeChange)}
           class="custom-select custom-select-sm w-auto mr-2"
         >
-          <option disabled>
-            { i18n.t('type') }
-          </option>
-          <option value={UnreadType.All}>
-            { i18n.t('all') }
-          </option>
-          <option value={UnreadType.Both}>
-            { i18n.t('both') }
-          </option>
-          <option value={UnreadType.Replies}>
-            { i18n.t('replies') }
-          </option>
-          <option value={UnreadType.Mentions}>
-            { i18n.t('mentions') }
-          </option>
-          <option value={UnreadType.Messages}>
-            { i18n.t('messages') }
-          </option>
+          <option disabled>{i18n.t('type')}</option>
+          <option value={UnreadType.All}>{i18n.t('all')}</option>
+          <option value={UnreadType.Replies}>{i18n.t('replies')}</option>
+          <option value={UnreadType.Mentions}>{i18n.t('mentions')}</option>
+          <option value={UnreadType.Messages}>{i18n.t('messages')}</option>
         </select>
         <SortSelect
           sort={this.state.sort}
@@ -252,14 +232,14 @@ export class Inbox extends Component<any, InboxState> {
             class="btn btn-sm btn-secondary mr-1"
             onClick={linkEvent(this, this.prevPage)}
           >
-            { i18n.t('prev') }
+            {i18n.t('prev')}
           </button>
         )}
         <button
           class="btn btn-sm btn-secondary"
           onClick={linkEvent(this, this.nextPage)}
         >
-          { i18n.t('next') }
+          {i18n.t('next')}
         </button>
       </div>
     );
