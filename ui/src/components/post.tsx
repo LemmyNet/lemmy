@@ -37,7 +37,6 @@ import { CommentForm } from './comment-form';
 import { CommentNodes } from './comment-nodes';
 import autosize from 'autosize';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 interface PostState {
   post: PostI;
@@ -174,7 +173,7 @@ export class Post extends Component<any, PostState> {
               {this.state.crossPosts.length > 0 && (
                 <>
                   <div class="my-1 text-muted small font-weight-bold">
-                    <T i18nKey="cross_posts">#</T>
+                    {i18n.t('cross_posts')}
                   </div>
                   <PostListings showCommunity posts={this.state.crossPosts} />
                 </>
@@ -256,9 +255,7 @@ export class Post extends Component<any, PostState> {
     return (
       <div class="d-none d-md-block new-comments mb-3 card border-secondary">
         <div class="card-body small">
-          <h6>
-            <T i18nKey="recent_comments">#</T>
-          </h6>
+          <h6>{i18n.t('recent_comments')}</h6>
           {this.state.comments.map(comment => (
             <CommentNodes
               nodes={[{ comment: comment }]}
