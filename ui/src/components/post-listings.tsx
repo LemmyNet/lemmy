@@ -31,9 +31,9 @@ export class PostListings extends Component<PostListingsProps, any> {
           ))
         ) : (
           <>
-            <h2>
+            <h5>
               { i18n.t('no_posts') }
-            </h2>
+            </h5>
             {this.props.showCommunity !== undefined && (
               <div>
                 <Link to="/communities">{ i18n.t('subscribe_to_communities') }</Link>
