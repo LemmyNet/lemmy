@@ -230,5 +230,7 @@ export const en = {
     couldnt_create_private_message: "Couldn't create private message.",
     no_private_message_edit_allowed: 'Not allowed to edit private message.',
     couldnt_update_private_message: "Couldn't update private message.",
+    time: 'Time',
+    action: 'Action',
   },
 };

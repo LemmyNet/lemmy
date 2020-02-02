@@ -24,7 +24,6 @@ import { PostListings } from './post-listings';
 import { SortSelect } from './sort-select';
 import { Sidebar } from './sidebar';
 import { wsJsonToRes, routeSortTypeToEnum, fetchLimit, toast } from '../utils';
-import { T } from 'inferno-i18next';
 import { i18n } from '../i18next';
 
 interface State {
@@ -136,12 +135,12 @@ export class Community extends Component<any, State> {
                 {this.state.community.title}
                 {this.state.community.removed && (
                   <small className="ml-2 text-muted font-italic">
-                    <T i18nKey="removed">#</T>
+                    {i18n.t('removed')}
                   </small>
                 )}
                 {this.state.community.nsfw && (
                   <small className="ml-2 text-muted font-italic">
-                    <T i18nKey="nsfw">#</T>
+                    {i18n.t('nsfw')}
                   </small>
                 )}
               </h5>
@@ -189,7 +188,7 @@ export class Community extends Component<any, State> {
             class="btn btn-sm btn-secondary mr-1"
             onClick={linkEvent(this, this.prevPage)}
           >
-            <T i18nKey="prev">#</T>
+            {i18n.t('prev')}
           </button>
         )}
         {this.state.posts.length == fetchLimit && (
@@ -197,7 +196,7 @@ export class Community extends Component<any, State> {
             class="btn btn-sm btn-secondary"
             onClick={linkEvent(this, this.nextPage)}
           >
-            <T i18nKey="next">#</T>
+            {i18n.t('next')}
           </button>
         )}
       </div>
