@@ -17,7 +17,7 @@
     "@types/jwt-decode": "^2.2.1",
     "@types/markdown-it": "^0.0.9",
     "@types/markdown-it-container": "^2.0.2",
-    "@types/node": "^13.5.0",
+    "@types/node": "^13.7.0",
     "autosize": "^4.0.2",
     "bootswatch": "^4.3.1",
     "classcat": "^1.1.3",

@@ -400,8 +400,12 @@ export class Post extends Component<any, PostState> {
       this.setState(this.state);
     } else if (res.op == UserOperation.CreateComment) {
       let data = res.data as CommentResponse;
-      this.state.comments.unshift(data.comment);
-      this.setState(this.state);
+
+      // Necessary since a user might receive a comment reply on another thread
+      if (data.comment.post_id == this.state.post.id) {
+        this.state.comments.unshift(data.comment);
+        this.setState(this.state);
+      }
     } else if (res.op == UserOperation.EditComment) {
       let data = res.data as CommentResponse;
       let found = this.state.comments.find(c => c.id == data.comment.id);
