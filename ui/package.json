@@ -35,6 +35,7 @@
     "markdown-it-emoji": "^1.4.0",
     "moment": "^2.24.0",
     "prettier": "^1.18.2",
+    "reconnecting-websocket": "^4.3.0",
     "rxjs": "^6.4.0",
     "terser": "^4.6.3",
     "toastify-js": "^1.6.2",
