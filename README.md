@@ -113,7 +113,7 @@ docker-compose up -d
 
 and go to http://localhost:8536.
 
-[A sample nginx config](/ansible/templates/nginx.conf), could be setup with:
+[A sample nginx config](/ansible/templates/nginx.conf) (Image uploading won't work without this), could be setup with:
 
 ```bash
 wget https://raw.githubusercontent.com/dessalines/lemmy/master/ansible/templates/nginx.conf
