@@ -88,8 +88,14 @@ impl Perform<PostResponse> for Oper<CreatePost> {
       Err(_e) => return Err(APIError::err("not_logged_in").into()),
     };
 
-    if has_slurs(&data.name) || (data.body.is_some() && has_slurs(&data.body.to_owned().unwrap())) {
-      return Err(APIError::err("no_slurs").into());
+    if let Err(slurs) = slur_check(&data.name) {
+      return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
+    }
+
+    if let Some(body) = &data.body {
+      if let Err(slurs) = slur_check(body) {
+        return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
+      }
     }
 
     let user_id = claims.id;
@@ -298,8 +304,15 @@ impl Perform<PostResponse> for Oper<CreatePostLike> {
 impl Perform<PostResponse> for Oper<EditPost> {
   fn perform(&self, conn: &PgConnection) -> Result<PostResponse, Error> {
     let data: &EditPost = &self.data;
-    if has_slurs(&data.name) || (data.body.is_some() && has_slurs(&data.body.to_owned().unwrap())) {
-      return Err(APIError::err("no_slurs").into());
+
+    if let Err(slurs) = slur_check(&data.name) {
+      return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
+    }
+
+    if let Some(body) = &data.body {
+      if let Err(slurs) = slur_check(body) {
+        return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
+      }
     }
 
     let claims = match Claims::decode(&data.auth) {
