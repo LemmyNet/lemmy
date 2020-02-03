@@ -122,7 +122,7 @@ export class Inbox extends Component<any, InboxState> {
                 <ul class="list-inline mb-1 text-muted small font-weight-bold">
                   <li className="list-inline-item">
                     <span class="pointer" onClick={this.markAllAsRead}>
-                      <T i18nKey="mark_all_as_read">#</T>
+                      {i18n.t('mark_all_as_read')}
                     </span>
                   </li>
                 </ul>
@@ -147,36 +147,20 @@ export class Inbox extends Component<any, InboxState> {
           onChange={linkEvent(this, this.handleUnreadOrAllChange)}
           class="custom-select custom-select-sm w-auto mr-2"
         >
-          <option disabled>
-            <T i18nKey="type">#</T>
-          </option>
-          <option value={UnreadOrAll.Unread}>
-            <T i18nKey="unread">#</T>
-          </option>
-          <option value={UnreadOrAll.All}>
-            <T i18nKey="all">#</T>
-          </option>
+          <option disabled>{i18n.t('type')}</option>
+          <option value={UnreadOrAll.Unread}>{i18n.t('unread')}</option>
+          <option value={UnreadOrAll.All}>{i18n.t('all')}</option>
         </select>
         <select
           value={this.state.unreadType}
           onChange={linkEvent(this, this.handleUnreadTypeChange)}
           class="custom-select custom-select-sm w-auto mr-2"
         >
-          <option disabled>
-            <T i18nKey="type">#</T>
-          </option>
-          <option value={UnreadType.All}>
-            <T i18nKey="all">#</T>
-          </option>
-          <option value={UnreadType.Replies}>
-            <T i18nKey="replies">#</T>
-          </option>
-          <option value={UnreadType.Mentions}>
-            <T i18nKey="mentions">#</T>
-          </option>
-          <option value={UnreadType.Messages}>
-            <T i18nKey="messages">#</T>
-          </option>
+          <option disabled>{i18n.t('type')}</option>
+          <option value={UnreadType.All}>{i18n.t('all')}</option>
+          <option value={UnreadType.Replies}>{i18n.t('replies')}</option>
+          <option value={UnreadType.Mentions}>{i18n.t('mentions')}</option>
+          <option value={UnreadType.Messages}>{i18n.t('messages')}</option>
         </select>
         <SortSelect
           sort={this.state.sort}
@@ -248,14 +232,14 @@ export class Inbox extends Component<any, InboxState> {
             class="btn btn-sm btn-secondary mr-1"
             onClick={linkEvent(this, this.prevPage)}
           >
-            <T i18nKey="prev">#</T>
+            {i18n.t('prev')}
           </button>
         )}
         <button
           class="btn btn-sm btn-secondary"
           onClick={linkEvent(this, this.nextPage)}
         >
-          <T i18nKey="next">#</T>
+          {i18n.t('next')}
         </button>
       </div>
     );
@@ -421,10 +405,25 @@ export class Inbox extends Component<any, InboxState> {
       this.sendUnreadCount();
       this.setState(this.state);
     } else if (res.op == UserOperation.CreateComment) {
-      // let res: CommentResponse = msg;
-      toast(i18n.t('reply_sent'));
-      // this.state.replies.unshift(res.comment); // TODO do this right
-      // this.setState(this.state);
+      let data = res.data as CommentResponse;
+
+      if (data.recipient_ids.includes(UserService.Instance.user.id)) {
+        this.state.replies.unshift(data.comment);
+        this.setState(this.state);
+      } else if (data.comment.creator_id == UserService.Instance.user.id) {
+        toast(i18n.t('reply_sent'));
+      }
+      this.setState(this.state);
+    } else if (res.op == UserOperation.CreatePrivateMessage) {
+      let data = res.data as PrivateMessageResponse;
+
+      if (data.message.recipient_id == UserService.Instance.user.id) {
+        this.state.messages.unshift(data.message);
+        this.setState(this.state);
+      } else if (data.message.creator_id == UserService.Instance.user.id) {
+        toast(i18n.t('message_sent'));
+      }
+      this.setState(this.state);
     } else if (res.op == UserOperation.SaveComment) {
       let data = res.data as CommentResponse;
       let found = this.state.replies.find(c => c.id == data.comment.id);

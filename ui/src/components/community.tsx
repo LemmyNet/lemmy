@@ -14,21 +14,16 @@ import {
   GetCommunityForm,
   ListingType,
   GetPostsResponse,
-  CreatePostLikeResponse,
+  PostResponse,
+  AddModToCommunityResponse,
+  BanFromCommunityResponse,
   WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
 import { SortSelect } from './sort-select';
 import { Sidebar } from './sidebar';
-import {
-  wsJsonToRes,
-  routeSortTypeToEnum,
-  fetchLimit,
-  postRefetchSeconds,
-  toast,
-} from '../utils';
-import { T } from 'inferno-i18next';
+import { wsJsonToRes, routeSortTypeToEnum, fetchLimit, toast } from '../utils';
 import { i18n } from '../i18next';
 
 interface State {
@@ -37,6 +32,7 @@ interface State {
   communityName: string;
   moderators: Array<CommunityUser>;
   admins: Array<UserView>;
+  online: number;
   loading: boolean;
   posts: Array<Post>;
   sort: SortType;
@@ -45,7 +41,6 @@ interface State {
 
 export class Community extends Component<any, State> {
   private subscription: Subscription;
-  private postFetcher: any;
   private emptyState: State = {
     community: {
       id: null,
@@ -67,6 +62,7 @@ export class Community extends Component<any, State> {
     admins: [],
     communityId: Number(this.props.match.params.id),
     communityName: this.props.match.params.name,
+    online: null,
     loading: true,
     posts: [],
     sort: this.getSortTypeFromProps(this.props),
@@ -108,7 +104,6 @@ export class Community extends Component<any, State> {
 
   componentWillUnmount() {
     this.subscription.unsubscribe();
-    clearInterval(this.postFetcher);
   }
 
   // Necessary for back button for some reason
@@ -140,12 +135,12 @@ export class Community extends Component<any, State> {
                 {this.state.community.title}
                 {this.state.community.removed && (
                   <small className="ml-2 text-muted font-italic">
-                    <T i18nKey="removed">#</T>
+                    {i18n.t('removed')}
                   </small>
                 )}
                 {this.state.community.nsfw && (
                   <small className="ml-2 text-muted font-italic">
-                    <T i18nKey="nsfw">#</T>
+                    {i18n.t('nsfw')}
                   </small>
                 )}
               </h5>
@@ -158,6 +153,7 @@ export class Community extends Component<any, State> {
                 community={this.state.community}
                 moderators={this.state.moderators}
                 admins={this.state.admins}
+                online={this.state.online}
               />
             </div>
           </div>
@@ -192,7 +188,7 @@ export class Community extends Component<any, State> {
             class="btn btn-sm btn-secondary mr-1"
             onClick={linkEvent(this, this.prevPage)}
           >
-            <T i18nKey="prev">#</T>
+            {i18n.t('prev')}
           </button>
         )}
         {this.state.posts.length == fetchLimit && (
@@ -200,7 +196,7 @@ export class Community extends Component<any, State> {
             class="btn btn-sm btn-secondary"
             onClick={linkEvent(this, this.nextPage)}
           >
-            <T i18nKey="next">#</T>
+            {i18n.t('next')}
           </button>
         )}
       </div>
@@ -240,11 +236,6 @@ export class Community extends Component<any, State> {
     );
   }
 
-  keepFetchingPosts() {
-    this.fetchPosts();
-    this.postFetcher = setInterval(() => this.fetchPosts(), postRefetchSeconds);
-  }
-
   fetchPosts() {
     let getPostsForm: GetPostsForm = {
       page: this.state.page,
@@ -268,9 +259,10 @@ export class Community extends Component<any, State> {
       this.state.community = data.community;
       this.state.moderators = data.moderators;
       this.state.admins = data.admins;
+      this.state.online = data.online;
       document.title = `/c/${this.state.community.name} - ${WebSocketService.Instance.site.name}`;
       this.setState(this.state);
-      this.keepFetchingPosts();
+      this.fetchPosts();
     } else if (res.op == UserOperation.EditCommunity) {
       let data = res.data as CommunityResponse;
       this.state.community = data.community;
@@ -286,13 +278,44 @@ export class Community extends Component<any, State> {
       this.state.posts = data.posts;
       this.state.loading = false;
       this.setState(this.state);
-    } else if (res.op == UserOperation.CreatePostLike) {
-      let data = res.data as CreatePostLikeResponse;
+    } else if (res.op == UserOperation.EditPost) {
+      let data = res.data as PostResponse;
       let found = this.state.posts.find(c => c.id == data.post.id);
-      found.my_vote = data.post.my_vote;
+
+      found.url = data.post.url;
+      found.name = data.post.name;
+      found.nsfw = data.post.nsfw;
+
+      this.setState(this.state);
+    } else if (res.op == UserOperation.CreatePost) {
+      let data = res.data as PostResponse;
+      this.state.posts.unshift(data.post);
+      this.setState(this.state);
+    } else if (res.op == UserOperation.CreatePostLike) {
+      let data = res.data as PostResponse;
+      let found = this.state.posts.find(c => c.id == data.post.id);
+
       found.score = data.post.score;
       found.upvotes = data.post.upvotes;
       found.downvotes = data.post.downvotes;
+      if (data.post.my_vote !== null) {
+        found.my_vote = data.post.my_vote;
+        found.upvoteLoading = false;
+        found.downvoteLoading = false;
+      }
+
+      this.setState(this.state);
+    } else if (res.op == UserOperation.AddModToCommunity) {
+      let data = res.data as AddModToCommunityResponse;
+      this.state.moderators = data.moderators;
+      this.setState(this.state);
+    } else if (res.op == UserOperation.BanFromCommunity) {
+      let data = res.data as BanFromCommunityResponse;
+
+      this.state.posts
+        .filter(p => p.creator_id == data.user.id)
+        .forEach(p => (p.banned = data.banned));
+
       this.setState(this.state);
     }
   }

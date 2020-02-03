@@ -3,7 +3,7 @@ use crate::schema::user_;
 use crate::schema::user_::dsl::*;
 use crate::{is_email_regex, Settings};
 use bcrypt::{hash, DEFAULT_COST};
-use jsonwebtoken::{decode, encode, Header, TokenData, Validation};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "user_"]
@@ -115,7 +115,11 @@ impl Claims {
       validate_exp: false,
       ..Validation::default()
     };
-    decode::<Claims>(&jwt, Settings::get().jwt_secret.as_ref(), &v)
+    decode::<Claims>(
+      &jwt,
+      &DecodingKey::from_secret(Settings::get().jwt_secret.as_ref()),
+      &v,
+    )
   }
 }
 
@@ -137,7 +141,7 @@ impl User_ {
     encode(
       &Header::default(),
       &my_claims,
-      Settings::get().jwt_secret.as_ref(),
+      &EncodingKey::from_secret(Settings::get().jwt_secret.as_ref()),
     )
     .unwrap()
   }

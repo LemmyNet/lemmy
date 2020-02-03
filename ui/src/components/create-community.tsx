@@ -3,7 +3,6 @@ import { CommunityForm } from './community-form';
 import { Community } from '../interfaces';
 import { WebSocketService } from '../services';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 export class CreateCommunity extends Component<any, any> {
   constructor(props: any, context: any) {
@@ -22,9 +21,7 @@ export class CreateCommunity extends Component<any, any> {
       <div class="container">
         <div class="row">
           <div class="col-12 col-lg-6 offset-lg-3 mb-4">
-            <h5>
-              <T i18nKey="create_community">#</T>
-            </h5>
+            <h5>{i18n.t('create_community')}</h5>
             <CommunityForm onCreate={this.handleCommunityCreate} />
           </div>
         </div>

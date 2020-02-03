@@ -2,7 +2,7 @@ import { Component } from 'inferno';
 import { Link } from 'inferno-router';
 import { repoUrl } from '../utils';
 import { version } from '../version';
-import { T } from 'inferno-i18next';
+import { i18n } from '../i18next';
 
 export class Footer extends Component<any, any> {
   constructor(props: any, context: any) {
@@ -19,22 +19,22 @@ export class Footer extends Component<any, any> {
             </li>
             <li class="nav-item">
               <Link class="nav-link" to="/modlog">
-                <T i18nKey="modlog">#</T>
+                {i18n.t('modlog')}
               </Link>
             </li>
             <li class="nav-item">
               <a class="nav-link" href={'/docs/index.html'}>
-                <T i18nKey="docs">#</T>
+                {i18n.t('docs')}
               </a>
             </li>
             <li class="nav-item">
               <Link class="nav-link" to="/sponsors">
-                <T i18nKey="donate">#</T>
+                {i18n.t('donate')}
               </Link>
             </li>
             <li class="nav-item">
               <a class="nav-link" href={repoUrl}>
-                <T i18nKey="code">#</T>
+                {i18n.t('code')}
               </a>
             </li>
           </ul>

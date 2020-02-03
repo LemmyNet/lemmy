@@ -132,7 +132,7 @@ export const es = {
     reset_password_mail_sent: 'Enviar correo para reestablecer la contraseña.',
     password_change: 'Cambio de Contraseña',
     new_password: 'Nueva Contraseña',
-    no_email_setup: "Este servidor no ha activado correctamente el correo.",
+    no_email_setup: 'Este servidor no ha activado correctamente el correo.',
     email: 'Correo electrónico',
     matrix_user_id: 'Usuario Matricial',
     private_message_disclaimer:
@@ -204,9 +204,12 @@ export const es = {
     couldnt_find_community: 'No se pudo encontrar la comunidad.',
     couldnt_update_community: 'No se pudo actualizar la comunidad.',
     community_already_exists: 'Esta comunidad ya existe.',
-    community_moderator_already_exists: 'Este moderador de la comunidad ya existe.',
-    community_follower_already_exists: 'Este seguidor de la comunidad ya existe.',
-    community_user_already_banned: 'Este usuario de la comunidad ya fue expulsado.',
+    community_moderator_already_exists:
+      'Este moderador de la comunidad ya existe.',
+    community_follower_already_exists:
+      'Este seguidor de la comunidad ya existe.',
+    community_user_already_banned:
+      'Este usuario de la comunidad ya fue expulsado.',
     couldnt_create_post: 'No se pudo crear la publicación.',
     couldnt_like_post: 'No se pudo gustar la publicación.',
     couldnt_find_post: 'No se pudo encontrar la publicación.',
@@ -225,9 +228,11 @@ export const es = {
     user_already_exists: 'El usuario ya existe.',
     email_already_exists: 'El correo ya está en uso.',
     couldnt_update_user: 'No se pudo actualizar el usuario.',
-    system_err_login: 'Error del sistema. Intente cerrar sesión e ingresar de nuevo.',
-    couldnt_create_private_message: "No se pudo crear el mensaje privado.",
-    no_private_message_edit_allowed: 'Sin permisos para editar el mensaje privado.',
-    couldnt_update_private_message: "No se pudo actualizar el mensaje privado.",
+    system_err_login:
+      'Error del sistema. Intente cerrar sesión e ingresar de nuevo.',
+    couldnt_create_private_message: 'No se pudo crear el mensaje privado.',
+    no_private_message_edit_allowed:
+      'Sin permisos para editar el mensaje privado.',
+    couldnt_update_private_message: 'No se pudo actualizar el mensaje privado.',
   },
 };

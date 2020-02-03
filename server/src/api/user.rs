@@ -162,7 +162,7 @@ pub struct PasswordChange {
 #[derive(Serialize, Deserialize)]
 pub struct CreatePrivateMessage {
   content: String,
-  recipient_id: i32,
+  pub recipient_id: i32,
   auth: String,
 }
 
@@ -191,6 +191,16 @@ pub struct PrivateMessagesResponse {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PrivateMessageResponse {
   message: PrivateMessageView,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UserJoin {
+  auth: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct UserJoinResponse {
+  pub user_id: i32,
 }
 
 impl Perform<LoginResponse> for Oper<Login> {
@@ -230,8 +240,8 @@ impl Perform<LoginResponse> for Oper<Register> {
       return Err(APIError::err("passwords_dont_match").into());
     }
 
-    if has_slurs(&data.username) {
-      return Err(APIError::err("no_slurs").into());
+    if let Err(slurs) = slur_check(&data.username) {
+      return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
     }
 
     // Make sure there are no admins
@@ -1069,5 +1079,19 @@ impl Perform<PrivateMessagesResponse> for Oper<GetPrivateMessages> {
       .list()?;
 
     Ok(PrivateMessagesResponse { messages })
+  }
+}
+
+impl Perform<UserJoinResponse> for Oper<UserJoin> {
+  fn perform(&self, _conn: &PgConnection) -> Result<UserJoinResponse, Error> {
+    let data: &UserJoin = &self.data;
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
+    };
+
+    let user_id = claims.id;
+    Ok(UserJoinResponse { user_id })
   }
 }

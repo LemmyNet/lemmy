@@ -10,7 +10,6 @@ import {
 import { WebSocketService, UserService } from '../services';
 import { wsJsonToRes, capitalizeFirstLetter, toast } from '../utils';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 interface State {
   passwordChangeForm: PasswordChangeForm;
@@ -58,9 +57,7 @@ export class PasswordChange extends Component<any, State> {
       <div class="container">
         <div class="row">
           <div class="col-12 col-lg-6 offset-lg-3 mb-4">
-            <h5>
-              <T i18nKey="password_change">#</T>
-            </h5>
+            <h5>{i18n.t('password_change')}</h5>
             {this.passwordChangeForm()}
           </div>
         </div>
@@ -73,7 +70,7 @@ export class PasswordChange extends Component<any, State> {
       <form onSubmit={linkEvent(this, this.handlePasswordChangeSubmit)}>
         <div class="form-group row">
           <label class="col-sm-2 col-form-label">
-            <T i18nKey="new_password">#</T>
+            {i18n.t('new_password')}
           </label>
           <div class="col-sm-10">
             <input
@@ -87,7 +84,7 @@ export class PasswordChange extends Component<any, State> {
         </div>
         <div class="form-group row">
           <label class="col-sm-2 col-form-label">
-            <T i18nKey="verify_password">#</T>
+            {i18n.t('verify_password')}
           </label>
           <div class="col-sm-10">
             <input

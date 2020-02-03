@@ -11,7 +11,6 @@ import {
   CommentForm as CommentFormI,
   CommentResponse,
   CommentSortType,
-  CreatePostLikeResponse,
   CommunityUser,
   CommunityResponse,
   CommentNode as CommentNodeI,
@@ -38,7 +37,6 @@ import { CommentForm } from './comment-form';
 import { CommentNodes } from './comment-nodes';
 import autosize from 'autosize';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 interface PostState {
   post: PostI;
@@ -47,6 +45,7 @@ interface PostState {
   community: Community;
   moderators: Array<CommunityUser>;
   admins: Array<UserView>;
+  online: number;
   scrolled?: boolean;
   scrolled_comment_id?: number;
   loading: boolean;
@@ -62,6 +61,7 @@ export class Post extends Component<any, PostState> {
     community: null,
     moderators: [],
     admins: [],
+    online: null,
     scrolled: false,
     loading: true,
     crossPosts: [],
@@ -173,7 +173,7 @@ export class Post extends Component<any, PostState> {
               {this.state.crossPosts.length > 0 && (
                 <>
                   <div class="my-1 text-muted small font-weight-bold">
-                    <T i18nKey="cross_posts">#</T>
+                    {i18n.t('cross_posts')}
                   </div>
                   <PostListings showCommunity posts={this.state.crossPosts} />
                 </>
@@ -255,9 +255,7 @@ export class Post extends Component<any, PostState> {
     return (
       <div class="d-none d-md-block new-comments mb-3 card border-secondary">
         <div class="card-body small">
-          <h6>
-            <T i18nKey="recent_comments">#</T>
-          </h6>
+          <h6>{i18n.t('recent_comments')}</h6>
           {this.state.comments.map(comment => (
             <CommentNodes
               nodes={[{ comment: comment }]}
@@ -280,6 +278,7 @@ export class Post extends Component<any, PostState> {
           community={this.state.community}
           moderators={this.state.moderators}
           admins={this.state.admins}
+          online={this.state.online}
         />
       </div>
     );
@@ -378,6 +377,7 @@ export class Post extends Component<any, PostState> {
       this.state.community = data.community;
       this.state.moderators = data.moderators;
       this.state.admins = data.admins;
+      this.state.online = data.online;
       this.state.loading = false;
       document.title = `${this.state.post.name} - ${WebSocketService.Instance.site.name}`;
 
@@ -396,8 +396,12 @@ export class Post extends Component<any, PostState> {
       this.setState(this.state);
     } else if (res.op == UserOperation.CreateComment) {
       let data = res.data as CommentResponse;
-      this.state.comments.unshift(data.comment);
-      this.setState(this.state);
+
+      // Necessary since it might be a user reply
+      if (data.recipient_ids.length == 0) {
+        this.state.comments.unshift(data.comment);
+        this.setState(this.state);
+      }
     } else if (res.op == UserOperation.EditComment) {
       let data = res.data as CommentResponse;
       let found = this.state.comments.find(c => c.id == data.comment.id);
@@ -431,11 +435,16 @@ export class Post extends Component<any, PostState> {
       }
       this.setState(this.state);
     } else if (res.op == UserOperation.CreatePostLike) {
-      let data = res.data as CreatePostLikeResponse;
-      this.state.post.my_vote = data.post.my_vote;
+      let data = res.data as PostResponse;
       this.state.post.score = data.post.score;
       this.state.post.upvotes = data.post.upvotes;
       this.state.post.downvotes = data.post.downvotes;
+      if (data.post.my_vote !== null) {
+        this.state.post.my_vote = data.post.my_vote;
+        this.state.post.upvoteLoading = false;
+        this.state.post.downvoteLoading = false;
+      }
+
       this.setState(this.state);
     } else if (res.op == UserOperation.EditPost) {
       let data = res.data as PostResponse;

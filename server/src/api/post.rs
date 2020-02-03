@@ -8,7 +8,7 @@ pub struct CreatePost {
   url: Option<String>,
   body: Option<String>,
   nsfw: bool,
-  community_id: i32,
+  pub community_id: i32,
   auth: String,
 }
 
@@ -30,6 +30,7 @@ pub struct GetPostResponse {
   community: CommunityView,
   moderators: Vec<CommunityModeratorView>,
   admins: Vec<UserView>,
+  pub online: usize,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -38,7 +39,7 @@ pub struct GetPosts {
   sort: String,
   page: Option<i64>,
   limit: Option<i64>,
-  community_id: Option<i32>,
+  pub community_id: Option<i32>,
   auth: Option<String>,
 }
 
@@ -52,11 +53,6 @@ pub struct CreatePostLike {
   post_id: i32,
   score: i16,
   auth: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct CreatePostLikeResponse {
-  post: PostView,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -92,8 +88,14 @@ impl Perform<PostResponse> for Oper<CreatePost> {
       Err(_e) => return Err(APIError::err("not_logged_in").into()),
     };
 
-    if has_slurs(&data.name) || (data.body.is_some() && has_slurs(&data.body.to_owned().unwrap())) {
-      return Err(APIError::err("no_slurs").into());
+    if let Err(slurs) = slur_check(&data.name) {
+      return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
+    }
+
+    if let Some(body) = &data.body {
+      if let Err(slurs) = slur_check(body) {
+        return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
+      }
     }
 
     let user_id = claims.id;
@@ -193,6 +195,7 @@ impl Perform<GetPostResponse> for Oper<GetPost> {
       community,
       moderators,
       admins,
+      online: 0,
     })
   }
 }
@@ -240,8 +243,8 @@ impl Perform<GetPostsResponse> for Oper<GetPosts> {
   }
 }
 
-impl Perform<CreatePostLikeResponse> for Oper<CreatePostLike> {
-  fn perform(&self, conn: &PgConnection) -> Result<CreatePostLikeResponse, Error> {
+impl Perform<PostResponse> for Oper<CreatePostLike> {
+  fn perform(&self, conn: &PgConnection) -> Result<PostResponse, Error> {
     let data: &CreatePostLike = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -294,15 +297,22 @@ impl Perform<CreatePostLikeResponse> for Oper<CreatePostLike> {
     };
 
     // just output the score
-    Ok(CreatePostLikeResponse { post: post_view })
+    Ok(PostResponse { post: post_view })
   }
 }
 
 impl Perform<PostResponse> for Oper<EditPost> {
   fn perform(&self, conn: &PgConnection) -> Result<PostResponse, Error> {
     let data: &EditPost = &self.data;
-    if has_slurs(&data.name) || (data.body.is_some() && has_slurs(&data.body.to_owned().unwrap())) {
-      return Err(APIError::err("no_slurs").into());
+
+    if let Err(slurs) = slur_check(&data.name) {
+      return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
+    }
+
+    if let Some(body) = &data.body {
+      if let Err(slurs) = slur_check(body) {
+        return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
+      }
     }
 
     let claims = match Claims::decode(&data.auth) {
