@@ -81,6 +81,7 @@ export const en = {
     number_of_users: '{{count}} Users',
     number_of_subscribers: '{{count}} Subscribers',
     number_of_points: '{{count}} Points',
+    total_number_of_points: '{{count}} Total Points',
     number_online: '{{count}} Users Online',
     name: 'Name',
     title: 'Title',
