@@ -62,8 +62,24 @@ pub fn remove_slurs(test: &str) -> String {
   SLUR_REGEX.replace_all(test, "*removed*").to_string()
 }
 
-pub fn has_slurs(test: &str) -> bool {
-  SLUR_REGEX.is_match(test)
+pub fn slur_check(test: &str) -> Result<(), Vec<&str>> {
+  let mut matches: Vec<&str> = SLUR_REGEX.find_iter(test).map(|mat| mat.as_str()).collect();
+
+  // Unique
+  matches.sort_unstable();
+  matches.dedup();
+
+  if matches.is_empty() {
+    Ok(())
+  } else {
+    Err(matches)
+  }
+}
+
+pub fn slurs_vec_to_str(slurs: Vec<&str>) -> String {
+  let start = "No slurs - ";
+  let combined = &slurs.join(", ");
+  [start, combined].concat()
 }
 
 pub fn extract_usernames(test: &str) -> Vec<&str> {
@@ -127,7 +143,7 @@ pub fn send_email(
 
 #[cfg(test)]
 mod tests {
-  use crate::{extract_usernames, has_slurs, is_email_regex, remove_slurs};
+  use crate::{extract_usernames, is_email_regex, remove_slurs, slur_check, slurs_vec_to_str};
 
   #[test]
   fn test_email() {
@@ -138,15 +154,29 @@ mod tests {
   #[test]
   fn test_slur_filter() {
     let test =
-      "coons test dindu ladyboy tranny retardeds. Capitalized Niggerz. This is a bunch of other safe text.".to_string();
+      "coons test dindu ladyboy tranny retardeds. Capitalized Niggerz. This is a bunch of other safe text.";
     let slur_free = "No slurs here";
     assert_eq!(
       remove_slurs(&test),
       "*removed* test *removed* *removed* *removed* *removed*. Capitalized *removed*. This is a bunch of other safe text."
         .to_string()
     );
-    assert!(has_slurs(&test));
-    assert!(!has_slurs(slur_free));
+
+    let has_slurs_vec = vec![
+      "Niggerz",
+      "coons",
+      "dindu",
+      "ladyboy",
+      "retardeds",
+      "tranny",
+    ];
+    let has_slurs_err_str = "No slurs - Niggerz, coons, dindu, ladyboy, retardeds, tranny";
+
+    assert_eq!(slur_check(test), Err(has_slurs_vec));
+    assert_eq!(slur_check(slur_free), Ok(()));
+    if let Err(slur_vec) = slur_check(test) {
+      assert_eq!(&slurs_vec_to_str(slur_vec), has_slurs_err_str);
+    }
   }
 
   #[test]

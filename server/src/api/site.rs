@@ -186,10 +186,14 @@ impl Perform<SiteResponse> for Oper<CreateSite> {
       Err(_e) => return Err(APIError::err("not_logged_in").into()),
     };
 
-    if has_slurs(&data.name)
-      || (data.description.is_some() && has_slurs(&data.description.to_owned().unwrap()))
-    {
-      return Err(APIError::err("no_slurs").into());
+    if let Err(slurs) = slur_check(&data.name) {
+      return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
+    }
+
+    if let Some(description) = &data.description {
+      if let Err(slurs) = slur_check(description) {
+        return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
+      }
     }
 
     let user_id = claims.id;
@@ -229,10 +233,14 @@ impl Perform<SiteResponse> for Oper<EditSite> {
       Err(_e) => return Err(APIError::err("not_logged_in").into()),
     };
 
-    if has_slurs(&data.name)
-      || (data.description.is_some() && has_slurs(&data.description.to_owned().unwrap()))
-    {
-      return Err(APIError::err("no_slurs").into());
+    if let Err(slurs) = slur_check(&data.name) {
+      return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
+    }
+
+    if let Some(description) = &data.description {
+      if let Err(slurs) = slur_check(description) {
+        return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
+      }
     }
 
     let user_id = claims.id;

@@ -240,8 +240,8 @@ impl Perform<LoginResponse> for Oper<Register> {
       return Err(APIError::err("passwords_dont_match").into());
     }
 
-    if has_slurs(&data.username) {
-      return Err(APIError::err("no_slurs").into());
+    if let Err(slurs) = slur_check(&data.username) {
+      return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
     }
 
     // Make sure there are no admins
