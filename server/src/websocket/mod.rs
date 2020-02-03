@@ -44,4 +44,5 @@ pub enum UserOperation {
   CreatePrivateMessage,
   EditPrivateMessage,
   GetPrivateMessages,
+  UserJoin,
 }

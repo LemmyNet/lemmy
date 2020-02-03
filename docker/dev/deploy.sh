@@ -14,12 +14,17 @@ git add "ui/src/version.ts"
 # Setting the version on the backend
 echo "pub const VERSION: &str = \"$(git describe --tags)\";" > "server/src/version.rs"
 git add "server/src/version.rs"
+# Setting the version for Ansible
+git describe --tags > "ansible/VERSION"
+git add "ansible/VERSION"
 
 cd docker/dev
 
 # Changing the docker-compose prod
 sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../prod/docker-compose.yml
+sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../../ansible/templates/docker-compose.yml
 git add ../prod/docker-compose.yml
+git add ../../ansible/templates/docker-compose.yml
 
 # The commit
 git commit -m"Version $new_tag"

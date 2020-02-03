@@ -36,7 +36,7 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use lettre::smtp::authentication::{Credentials, Mechanism};
 use lettre::smtp::extension::ClientId;
 use lettre::smtp::ConnectionReuseParameters;
-use lettre::{SmtpClient, Transport};
+use lettre::{ClientSecurity, SmtpClient, Transport};
 use lettre_email::Email;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -62,8 +62,24 @@ pub fn remove_slurs(test: &str) -> String {
   SLUR_REGEX.replace_all(test, "*removed*").to_string()
 }
 
-pub fn has_slurs(test: &str) -> bool {
-  SLUR_REGEX.is_match(test)
+pub fn slur_check(test: &str) -> Result<(), Vec<&str>> {
+  let mut matches: Vec<&str> = SLUR_REGEX.find_iter(test).map(|mat| mat.as_str()).collect();
+
+  // Unique
+  matches.sort_unstable();
+  matches.dedup();
+
+  if matches.is_empty() {
+    Ok(())
+  } else {
+    Err(matches)
+  }
+}
+
+pub fn slurs_vec_to_str(slurs: Vec<&str>) -> String {
+  let start = "No slurs - ";
+  let combined = &slurs.join(", ");
+  [start, combined].concat()
 }
 
 pub fn extract_usernames(test: &str) -> Vec<&str> {
@@ -94,40 +110,42 @@ pub fn send_email(
 
   let email = Email::builder()
     .to((to_email, to_username))
-    .from((
-      email_config.smtp_login.to_owned(),
-      email_config.smtp_from_address.to_owned(),
-    ))
+    .from(email_config.smtp_from_address.to_owned())
     .subject(subject)
     .html(html)
     .build()
     .unwrap();
 
-  let mut mailer = SmtpClient::new_simple(&email_config.smtp_server)
-    .unwrap()
-    .hello_name(ClientId::Domain(Settings::get().hostname.to_owned()))
-    .credentials(Credentials::new(
-      email_config.smtp_login.to_owned(),
-      email_config.smtp_password.to_owned(),
-    ))
-    .smtp_utf8(true)
-    .authentication_mechanism(Mechanism::Plain)
-    .connection_reuse(ConnectionReuseParameters::ReuseUnlimited)
-    .transport();
+  let mailer = if email_config.use_tls {
+    SmtpClient::new_simple(&email_config.smtp_server).unwrap()
+  } else {
+    SmtpClient::new(&email_config.smtp_server, ClientSecurity::None).unwrap()
+  }
+  .hello_name(ClientId::Domain(Settings::get().hostname.to_owned()))
+  .smtp_utf8(true)
+  .authentication_mechanism(Mechanism::Plain)
+  .connection_reuse(ConnectionReuseParameters::ReuseUnlimited);
+  let mailer = if let (Some(login), Some(password)) =
+    (&email_config.smtp_login, &email_config.smtp_password)
+  {
+    mailer.credentials(Credentials::new(login.to_owned(), password.to_owned()))
+  } else {
+    mailer
+  };
 
-  let result = mailer.send(email.into());
-
-  mailer.close();
+  let mut transport = mailer.transport();
+  let result = transport.send(email.into());
+  transport.close();
 
   match result {
     Ok(_) => Ok(()),
-    Err(_) => Err("no_email_setup".to_string()),
+    Err(e) => Err(e.to_string()),
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use crate::{extract_usernames, has_slurs, is_email_regex, remove_slurs};
+  use crate::{extract_usernames, is_email_regex, remove_slurs, slur_check, slurs_vec_to_str};
 
   #[test]
   fn test_email() {
@@ -138,15 +156,29 @@ mod tests {
   #[test]
   fn test_slur_filter() {
     let test =
-      "coons test dindu ladyboy tranny retardeds. Capitalized Niggerz. This is a bunch of other safe text.".to_string();
+      "coons test dindu ladyboy tranny retardeds. Capitalized Niggerz. This is a bunch of other safe text.";
     let slur_free = "No slurs here";
     assert_eq!(
       remove_slurs(&test),
       "*removed* test *removed* *removed* *removed* *removed*. Capitalized *removed*. This is a bunch of other safe text."
         .to_string()
     );
-    assert!(has_slurs(&test));
-    assert!(!has_slurs(slur_free));
+
+    let has_slurs_vec = vec![
+      "Niggerz",
+      "coons",
+      "dindu",
+      "ladyboy",
+      "retardeds",
+      "tranny",
+    ];
+    let has_slurs_err_str = "No slurs - Niggerz, coons, dindu, ladyboy, retardeds, tranny";
+
+    assert_eq!(slur_check(test), Err(has_slurs_vec));
+    assert_eq!(slur_check(slur_free), Ok(()));
+    if let Err(slur_vec) = slur_check(test) {
+      assert_eq!(&slurs_vec_to_str(slur_vec), has_slurs_err_str);
+    }
   }
 
   #[test]

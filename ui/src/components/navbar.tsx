@@ -14,7 +14,9 @@ import {
   SortType,
   GetSiteResponse,
   Comment,
+  CommentResponse,
   PrivateMessage,
+  PrivateMessageResponse,
   WebSocketJsonResponse,
 } from '../interfaces';
 import {
@@ -27,7 +29,6 @@ import {
 } from '../utils';
 import { version } from '../version';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 interface NavbarState {
   isLoggedIn: boolean;
@@ -35,7 +36,6 @@ interface NavbarState {
   replies: Array<Comment>;
   mentions: Array<Comment>;
   messages: Array<PrivateMessage>;
-  fetchCount: number;
   unreadCount: number;
   siteName: string;
 }
@@ -46,7 +46,6 @@ export class Navbar extends Component<any, NavbarState> {
   emptyState: NavbarState = {
     isLoggedIn: UserService.Instance.user !== undefined,
     unreadCount: 0,
-    fetchCount: 0,
     replies: [],
     mentions: [],
     messages: [],
@@ -57,8 +56,6 @@ export class Navbar extends Component<any, NavbarState> {
   constructor(props: any, context: any) {
     super(props, context);
     this.state = this.emptyState;
-
-    this.keepFetchingUnreads();
 
     // Subscribe to user changes
     this.userSub = UserService.Instance.sub.subscribe(user => {
@@ -78,13 +75,15 @@ export class Navbar extends Component<any, NavbarState> {
 
     if (this.state.isLoggedIn) {
       this.requestNotificationPermission();
+      // TODO couldn't get re-logging in to re-fetch unreads
+      this.fetchUnreads();
     }
 
     WebSocketService.Instance.getSite();
   }
 
   render() {
-    return <div>{this.navbar()}</div>;
+    return this.navbar();
   }
 
   componentWillUnmount() {
@@ -102,6 +101,7 @@ export class Navbar extends Component<any, NavbarState> {
         <button
           class="navbar-toggler"
           type="button"
+          aria-label="menu"
           onClick={linkEvent(this, this.expandNavbar)}
         >
           <span class="navbar-toggler-icon"></span>
@@ -112,12 +112,12 @@ export class Navbar extends Component<any, NavbarState> {
           <ul class="navbar-nav mr-auto">
             <li class="nav-item">
               <Link class="nav-link" to="/communities">
-                <T i18nKey="communities">#</T>
+                {i18n.t('communities')}
               </Link>
             </li>
             <li class="nav-item">
               <Link class="nav-link" to="/search">
-                <T i18nKey="search">#</T>
+                {i18n.t('search')}
               </Link>
             </li>
             <li class="nav-item">
@@ -128,12 +128,12 @@ export class Navbar extends Component<any, NavbarState> {
                   state: { prevPath: this.currentLocation },
                 }}
               >
-                <T i18nKey="create_post">#</T>
+                {i18n.t('create_post')}
               </Link>
             </li>
             <li class="nav-item">
               <Link class="nav-link" to="/create_community">
-                <T i18nKey="create_community">#</T>
+                {i18n.t('create_community')}
               </Link>
             </li>
             <li className="nav-item">
@@ -186,7 +186,7 @@ export class Navbar extends Component<any, NavbarState> {
               </>
             ) : (
               <Link class="nav-link" to="/login">
-                <T i18nKey="login_sign_up">#</T>
+                {i18n.t('login_sign_up')}
               </Link>
             )}
           </ul>
@@ -211,45 +211,51 @@ export class Navbar extends Component<any, NavbarState> {
     } else if (res.op == UserOperation.GetReplies) {
       let data = res.data as GetRepliesResponse;
       let unreadReplies = data.replies.filter(r => !r.read);
-      if (
-        unreadReplies.length > 0 &&
-        this.state.fetchCount > 1 &&
-        JSON.stringify(this.state.replies) !== JSON.stringify(unreadReplies)
-      ) {
-        this.notify(unreadReplies);
-      }
 
       this.state.replies = unreadReplies;
+      this.state.unreadCount = this.calculateUnreadCount();
       this.setState(this.state);
       this.sendUnreadCount();
     } else if (res.op == UserOperation.GetUserMentions) {
       let data = res.data as GetUserMentionsResponse;
       let unreadMentions = data.mentions.filter(r => !r.read);
-      if (
-        unreadMentions.length > 0 &&
-        this.state.fetchCount > 1 &&
-        JSON.stringify(this.state.mentions) !== JSON.stringify(unreadMentions)
-      ) {
-        this.notify(unreadMentions);
-      }
 
       this.state.mentions = unreadMentions;
+      this.state.unreadCount = this.calculateUnreadCount();
       this.setState(this.state);
       this.sendUnreadCount();
     } else if (res.op == UserOperation.GetPrivateMessages) {
       let data = res.data as PrivateMessagesResponse;
       let unreadMessages = data.messages.filter(r => !r.read);
-      if (
-        unreadMessages.length > 0 &&
-        this.state.fetchCount > 1 &&
-        JSON.stringify(this.state.messages) !== JSON.stringify(unreadMessages)
-      ) {
-        this.notify(unreadMessages);
-      }
 
       this.state.messages = unreadMessages;
+      this.state.unreadCount = this.calculateUnreadCount();
       this.setState(this.state);
       this.sendUnreadCount();
+    } else if (res.op == UserOperation.CreateComment) {
+      let data = res.data as CommentResponse;
+
+      if (this.state.isLoggedIn) {
+        if (data.recipient_ids.includes(UserService.Instance.user.id)) {
+          this.state.replies.push(data.comment);
+          this.state.unreadCount++;
+          this.setState(this.state);
+          this.sendUnreadCount();
+          this.notify(data.comment);
+        }
+      }
+    } else if (res.op == UserOperation.CreatePrivateMessage) {
+      let data = res.data as PrivateMessageResponse;
+
+      if (this.state.isLoggedIn) {
+        if (data.message.recipient_id == UserService.Instance.user.id) {
+          this.state.messages.push(data.message);
+          this.state.unreadCount++;
+          this.setState(this.state);
+          this.sendUnreadCount();
+          this.notify(data.message);
+        }
+      }
     } else if (res.op == UserOperation.GetSite) {
       let data = res.data as GetSiteResponse;
 
@@ -259,11 +265,6 @@ export class Navbar extends Component<any, NavbarState> {
         this.setState(this.state);
       }
     }
-  }
-
-  keepFetchingUnreads() {
-    this.fetchUnreads();
-    setInterval(() => this.fetchUnreads(), 15000);
   }
 
   fetchUnreads() {
@@ -292,7 +293,6 @@ export class Navbar extends Component<any, NavbarState> {
         WebSocketService.Instance.getReplies(repliesForm);
         WebSocketService.Instance.getUserMentions(userMentionsForm);
         WebSocketService.Instance.getPrivateMessages(privateMessagesForm);
-        this.state.fetchCount++;
       }
     }
   }
@@ -304,11 +304,11 @@ export class Navbar extends Component<any, NavbarState> {
   sendUnreadCount() {
     UserService.Instance.sub.next({
       user: UserService.Instance.user,
-      unreadCount: this.unreadCount,
+      unreadCount: this.state.unreadCount,
     });
   }
 
-  get unreadCount() {
+  calculateUnreadCount(): number {
     return (
       this.state.replies.filter(r => !r.read).length +
       this.state.mentions.filter(r => !r.read).length +
@@ -330,24 +330,20 @@ export class Navbar extends Component<any, NavbarState> {
     }
   }
 
-  notify(replies: Array<Comment | PrivateMessage>) {
-    let recentReply = replies[0];
+  notify(reply: Comment | PrivateMessage) {
     if (Notification.permission !== 'granted') Notification.requestPermission();
     else {
-      var notification = new Notification(
-        `${replies.length} ${i18n.t('unread_messages')}`,
-        {
-          icon: recentReply.creator_avatar
-            ? recentReply.creator_avatar
-            : `${window.location.protocol}//${window.location.host}/static/assets/apple-touch-icon.png`,
-          body: `${recentReply.creator_name}: ${recentReply.content}`,
-        }
-      );
+      var notification = new Notification(reply.creator_name, {
+        icon: reply.creator_avatar
+          ? reply.creator_avatar
+          : `${window.location.protocol}//${window.location.host}/static/assets/apple-touch-icon.png`,
+        body: `${reply.content}`,
+      });
 
       notification.onclick = () => {
         this.context.router.history.push(
-          isCommentType(recentReply)
-            ? `/post/${recentReply.post_id}/comment/${recentReply.id}`
+          isCommentType(reply)
+            ? `/post/${reply.post_id}/comment/${reply.id}`
             : `/inbox`
         );
       };

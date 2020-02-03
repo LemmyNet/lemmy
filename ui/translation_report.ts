@@ -2,6 +2,7 @@ import { en } from './src/translations/en';
 import { eo } from './src/translations/eo';
 import { es } from './src/translations/es';
 import { de } from './src/translations/de';
+import { fa } from './src/translations/fa';
 import { zh } from './src/translations/zh';
 import { fr } from './src/translations/fr';
 import { sv } from './src/translations/sv';
@@ -15,6 +16,7 @@ import fs from 'fs';
 const files = [
   { t: ca, n: 'ca' },
   { t: de, n: 'de' },
+  { t: fa, n: 'fa' },
   { t: eo, n: 'eo' },
   { t: es, n: 'es' },
   { t: fi, n: 'fi' },

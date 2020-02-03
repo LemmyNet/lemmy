@@ -12,7 +12,7 @@ import {
   SearchForm,
   SearchResponse,
   SearchType,
-  CreatePostLikeResponse,
+  PostResponse,
   CommentResponse,
   WebSocketJsonResponse,
 } from '../interfaces';
@@ -30,7 +30,6 @@ import { PostListing } from './post-listing';
 import { SortSelect } from './sort-select';
 import { CommentNodes } from './comment-nodes';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 interface SearchState {
   q: string;
@@ -126,9 +125,7 @@ export class Search extends Component<any, SearchState> {
   render() {
     return (
       <div class="container">
-        <h5>
-          <T i18nKey="search">#</T>
-        </h5>
+        <h5>{i18n.t('search')}</h5>
         {this.selects()}
         {this.searchForm()}
         {this.state.type_ == SearchType.All && this.all()}
@@ -163,9 +160,7 @@ export class Search extends Component<any, SearchState> {
               <use xlinkHref="#icon-spinner"></use>
             </svg>
           ) : (
-            <span>
-              <T i18nKey="search">#</T>
-            </span>
+            <span>{i18n.t('search')}</span>
           )}
         </button>
       </form>
@@ -180,24 +175,14 @@ export class Search extends Component<any, SearchState> {
           onChange={linkEvent(this, this.handleTypeChange)}
           class="custom-select custom-select-sm w-auto"
         >
-          <option disabled>
-            <T i18nKey="type">#</T>
-          </option>
-          <option value={SearchType.All}>
-            <T i18nKey="all">#</T>
-          </option>
-          <option value={SearchType.Comments}>
-            <T i18nKey="comments">#</T>
-          </option>
-          <option value={SearchType.Posts}>
-            <T i18nKey="posts">#</T>
-          </option>
+          <option disabled>{i18n.t('type')}</option>
+          <option value={SearchType.All}>{i18n.t('all')}</option>
+          <option value={SearchType.Comments}>{i18n.t('comments')}</option>
+          <option value={SearchType.Posts}>{i18n.t('posts')}</option>
           <option value={SearchType.Communities}>
-            <T i18nKey="communities">#</T>
+            {i18n.t('communities')}
           </option>
-          <option value={SearchType.Users}>
-            <T i18nKey="users">#</T>
-          </option>
+          <option value={SearchType.Users}>{i18n.t('users')}</option>
         </select>
         <span class="ml-2">
           <SortSelect
@@ -383,14 +368,14 @@ export class Search extends Component<any, SearchState> {
             class="btn btn-sm btn-secondary mr-1"
             onClick={linkEvent(this, this.prevPage)}
           >
-            <T i18nKey="prev">#</T>
+            {i18n.t('prev')}
           </button>
         )}
         <button
           class="btn btn-sm btn-secondary"
           onClick={linkEvent(this, this.nextPage)}
         >
-          <T i18nKey="next">#</T>
+          {i18n.t('next')}
         </button>
       </div>
     );
@@ -404,11 +389,7 @@ export class Search extends Component<any, SearchState> {
           res.posts.length == 0 &&
           res.comments.length == 0 &&
           res.communities.length == 0 &&
-          res.users.length == 0 && (
-            <span>
-              <T i18nKey="no_results">#</T>
-            </span>
-          )}
+          res.users.length == 0 && <span>{i18n.t('no_results')}</span>}
       </div>
     );
   }
@@ -506,7 +487,7 @@ export class Search extends Component<any, SearchState> {
       }
       this.setState(this.state);
     } else if (res.op == UserOperation.CreatePostLike) {
-      let data = res.data as CreatePostLikeResponse;
+      let data = res.data as PostResponse;
       let found = this.state.searchResponse.posts.find(
         c => c.id == data.post.id
       );

@@ -31,7 +31,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route("/api/v1/post", web::put().to(route_post::<EditPost, PostResponse>))
     .route("/api/v1/post", web::get().to(route_get::<GetPost, GetPostResponse>))
     .route("/api/v1/post/list", web::get().to(route_get::<GetPosts, GetPostsResponse>))
-    .route("/api/v1/post/like", web::post().to(route_post::<CreatePostLike, CreatePostLikeResponse>))
+    .route("/api/v1/post/like", web::post().to(route_post::<CreatePostLike, PostResponse>))
     .route("/api/v1/post/save", web::put().to(route_post::<SavePost, PostResponse>))
     // Comment
     .route("/api/v1/comment", web::post().to(route_post::<CreateComment, CommentResponse>))

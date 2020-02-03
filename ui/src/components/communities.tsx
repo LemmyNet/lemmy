@@ -15,7 +15,6 @@ import {
 import { WebSocketService } from '../services';
 import { wsJsonToRes, toast } from '../utils';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 declare const Sortable: any;
 
@@ -83,30 +82,20 @@ export class Communities extends Component<any, CommunitiesState> {
           </h5>
         ) : (
           <div>
-            <h5>
-              <T i18nKey="list_of_communities">#</T>
-            </h5>
+            <h5>{i18n.t('list_of_communities')}</h5>
             <div class="table-responsive">
               <table id="community_table" class="table table-sm table-hover">
                 <thead class="pointer">
                   <tr>
-                    <th>
-                      <T i18nKey="name">#</T>
-                    </th>
-                    <th class="d-none d-lg-table-cell">
-                      <T i18nKey="title">#</T>
-                    </th>
-                    <th>
-                      <T i18nKey="category">#</T>
-                    </th>
-                    <th class="text-right">
-                      <T i18nKey="subscribers">#</T>
+                    <th>{i18n.t('name')}</th>
+                    <th class="d-none d-lg-table-cell">{i18n.t('title')}</th>
+                    <th>{i18n.t('category')}</th>
+                    <th class="text-right">{i18n.t('subscribers')}</th>
+                    <th class="text-right d-none d-lg-table-cell">
+                      {i18n.t('posts')}
                     </th>
                     <th class="text-right d-none d-lg-table-cell">
-                      <T i18nKey="posts">#</T>
-                    </th>
-                    <th class="text-right d-none d-lg-table-cell">
-                      <T i18nKey="comments">#</T>
+                      {i18n.t('comments')}
                     </th>
                     <th></th>
                   </tr>
@@ -139,7 +128,7 @@ export class Communities extends Component<any, CommunitiesState> {
                               this.handleUnsubscribe
                             )}
                           >
-                            <T i18nKey="unsubscribe">#</T>
+                            {i18n.t('unsubscribe')}
                           </span>
                         ) : (
                           <span
@@ -149,7 +138,7 @@ export class Communities extends Component<any, CommunitiesState> {
                               this.handleSubscribe
                             )}
                           >
-                            <T i18nKey="subscribe">#</T>
+                            {i18n.t('subscribe')}
                           </span>
                         )}
                       </td>
@@ -173,15 +162,16 @@ export class Communities extends Component<any, CommunitiesState> {
             class="btn btn-sm btn-secondary mr-1"
             onClick={linkEvent(this, this.prevPage)}
           >
-            <T i18nKey="prev">#</T>
+            {i18n.t('prev')}
           </button>
         )}
+
         {this.state.communities.length == communityLimit && (
           <button
             class="btn btn-sm btn-secondary"
             onClick={linkEvent(this, this.nextPage)}
           >
-            <T i18nKey="next">#</T>
+            {i18n.t('next')}
           </button>
         )}
       </div>
