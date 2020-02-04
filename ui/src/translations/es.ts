@@ -81,7 +81,7 @@ export const es = {
     number_of_users: '{{count}} Usuarios',
     number_of_subscribers: '{{count}} Suscriptores',
     number_of_points: '{{count}} Puntos',
-    number_online: '{{count}} Usaurios En Línea',
+    number_online: '{{count}} Usuarios En Línea',
     name: 'Nombre',
     title: 'Titulo',
     category: 'Categoría',
@@ -234,5 +234,8 @@ export const es = {
     no_private_message_edit_allowed:
       'Sin permisos para editar el mensaje privado.',
     couldnt_update_private_message: 'No se pudo actualizar el mensaje privado.',
+    old: 'Antiguo',
+    time: 'Tiempo',
+    action: 'Acción',
   },
 };
