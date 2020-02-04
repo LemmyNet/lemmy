@@ -172,6 +172,7 @@ export interface Post {
   saved?: boolean;
   upvoteLoading?: boolean;
   downvoteLoading?: boolean;
+  duplicates?: Array<Post>;
 }
 
 export interface Comment {

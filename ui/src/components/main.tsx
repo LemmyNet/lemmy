@@ -392,7 +392,11 @@ export class Main extends Component<any, MainState> {
         ) : (
           <div>
             {this.selects()}
-            <PostListings posts={this.state.posts} showCommunity />
+            <PostListings
+              posts={this.state.posts}
+              showCommunity
+              removeDuplicates
+            />
             {this.paginator()}
           </div>
         )}
