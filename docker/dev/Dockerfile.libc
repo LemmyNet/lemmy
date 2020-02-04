@@ -1,0 +1,88 @@
+# can be build on x64, arm32, arm64 platforms
+# to build on target platform run 
+# docker build -f Dockerfile.libc -t dessalines/lemmy:version ../..
+#
+# to use docker buildx run
+# docker buildx build --platform linux/amd64,linux/arm64 -f Dockerfile.libc -t YOURNAME/lemmy --push ../..
+
+FROM node:12-buster as node
+# use this if use docker buildx 
+#FROM --platform=$BUILDPLATFORM node:12-buster as node
+
+WORKDIR /app/ui
+
+# Cache deps
+COPY ui/package.json ui/yarn.lock ./
+RUN yarn install --pure-lockfile --network-timeout 100000
+
+# Build
+COPY ui /app/ui
+RUN yarn build
+
+
+FROM rust:1.40 as rust
+
+# Cache deps
+WORKDIR /app
+
+RUN USER=root cargo new server
+WORKDIR /app/server
+COPY server/Cargo.toml server/Cargo.lock ./
+RUN  mkdir -p ./src/bin \
+  && echo 'fn main() { println!("Dummy") }' > ./src/bin/main.rs
+
+
+RUN cargo build --release
+#RUN cargo build && \
+#    rm -f ./target/release/deps/lemmy_server* ; rm -f ./target/debug/deps/lemmy_server*
+COPY server/src ./src/
+COPY server/migrations ./migrations/
+
+
+# build for release
+# workaround for https://github.com/rust-lang/rust/issues/62896
+#RUN RUSTFLAGS='-Ccodegen-units=1' cargo build --release
+RUN cargo build --release --frozen
+#RUN cargo build --frozen
+
+# Get diesel-cli on there just in case
+# RUN cargo install diesel_cli --no-default-features --features postgres
+
+# make result place always the same for lemmy container
+RUN cp /app/server/target/release/lemmy_server /app/server/ready
+#RUN cp /app/server/target/debug/lemmy_server /app/server/ready
+
+
+FROM rust:1.40 as docs
+
+WORKDIR /app
+
+# Build docs
+COPY docs ./docs
+RUN cargo install mdbook
+RUN mdbook build docs/
+
+
+#FROM alpine:3.10
+# debian because build with dynamic linking with debian:buster
+FROM debian:buster as lemmy
+
+# Install libpq for postgres
+#RUN apk add libpq
+RUN apt-get update && apt-get install -y libpq5
+RUN addgroup --gid 1000 lemmy
+# for alpine
+#RUN adduser -D -s /bin/sh -u 1000 -G lemmy lemmy
+# for debian
+RUN adduser --disabled-password --shell /bin/sh --uid 1000 --ingroup lemmy lemmy
+
+# Copy resources
+COPY server/config/defaults.hjson /config/defaults.hjson
+COPY --from=node /app/ui/dist /app/dist
+COPY --from=docs /app/docs/book/ /app/dist/documentation/
+COPY --from=rust /app/server/ready /app/lemmy
+
+RUN chown lemmy:lemmy /app/lemmy
+USER lemmy
+EXPOSE 8536
+CMD ["/app/lemmy"]

@@ -1,0 +1,79 @@
+FROM node:10-jessie as node
+
+WORKDIR /app/ui
+
+# Cache deps
+COPY ui/package.json ui/yarn.lock ./
+RUN yarn install --pure-lockfile
+
+# Build
+COPY ui /app/ui
+RUN yarn build
+
+
+# contains qemu-*-static for cross-compilation
+FROM multiarch/qemu-user-static as qemu
+
+
+FROM arm32v7/rust:1.37-buster as rust
+
+#COPY --from=qemu /usr/bin/qemu-aarch64-static /usr/bin
+COPY --from=qemu /usr/bin/qemu-arm-static /usr/bin
+
+
+# Install musl
+#RUN apt-get update && apt-get install -y mc
+#RUN apt-get install -y musl-tools mc
+#libpq-dev mc
+#RUN rustup target add ${TARGET}
+
+# Cache deps
+WORKDIR /app
+RUN USER=root cargo new server
+WORKDIR /app/server
+COPY server/Cargo.toml server/Cargo.lock ./
+RUN  mkdir -p ./src/bin \
+  && echo 'fn main() { println!("Dummy") }' > ./src/bin/main.rs
+#RUN cargo build --release
+# RUN cargo build
+  RUN RUSTFLAGS='-Ccodegen-units=1' cargo build
+COPY server/src ./src/
+COPY server/migrations ./migrations/
+RUN rm -f ./target/release/deps/lemmy_server* ; rm -f ./target/debug/deps/lemmy_server*
+
+
+# build for release
+#RUN cargo build --frozen --release
+RUN cargo build --frozen
+
+# Get diesel-cli on there just in case
+# RUN cargo install diesel_cli --no-default-features --features postgres
+
+RUN cp /app/server/target/debug/lemmy_server /app/server/ready
+#RUN cp /app/server/target/release/lemmy_server /app/server/ready
+
+#FROM alpine:3.10
+# debian because build with dynamic linking with debian:buster
+FROM arm32v7/debian:buster-slim as lemmy
+
+COPY --from=qemu /usr/bin/qemu-arm-static /usr/bin
+
+# Install libpq for postgres
+#RUN apk add libpq
+RUN apt-get update && apt-get install -y libpq5
+
+RUN addgroup --gid 1000 lemmy
+# for alpine
+#RUN adduser -D -s /bin/sh -u 1000 -G lemmy lemmy
+# for debian
+RUN adduser --disabled-password --shell /bin/sh --uid 1000 --ingroup lemmy lemmy
+
+# Copy resources
+COPY server/config/defaults.hjson /config/defaults.hjson
+COPY --from=rust /app/server/ready /app/lemmy
+COPY --from=node /app/ui/dist /app/dist
+
+RUN chown lemmy:lemmy /app/lemmy
+USER lemmy
+EXPOSE 8536
+CMD ["/app/lemmy"]

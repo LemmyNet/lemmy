@@ -3,7 +3,7 @@ use crate::schema::user_;
 use crate::schema::user_::dsl::*;
 use crate::{is_email_regex, Settings};
 use bcrypt::{hash, DEFAULT_COST};
-use jsonwebtoken::{decode, encode, Header, TokenData, Validation};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "user_"]
@@ -14,13 +14,19 @@ pub struct User_ {
   pub preferred_username: Option<String>,
   pub password_encrypted: String,
   pub email: Option<String>,
-  pub icon: Option<Vec<u8>>,
+  pub avatar: Option<String>,
   pub admin: bool,
   pub banned: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
   pub show_nsfw: bool,
   pub theme: String,
+  pub default_sort_type: i16,
+  pub default_listing_type: i16,
+  pub lang: String,
+  pub show_avatars: bool,
+  pub send_notifications_to_email: bool,
+  pub matrix_user_id: Option<String>,
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
@@ -33,14 +39,20 @@ pub struct UserForm {
   pub admin: bool,
   pub banned: bool,
   pub email: Option<String>,
+  pub avatar: Option<String>,
   pub updated: Option<chrono::NaiveDateTime>,
   pub show_nsfw: bool,
   pub theme: String,
+  pub default_sort_type: i16,
+  pub default_listing_type: i16,
+  pub lang: String,
+  pub show_avatars: bool,
+  pub send_notifications_to_email: bool,
+  pub matrix_user_id: Option<String>,
 }
 
 impl Crud<UserForm> for User_ {
   fn read(conn: &PgConnection, user_id: i32) -> Result<Self, Error> {
-    use crate::schema::user_::dsl::*;
     user_.find(user_id).first::<Self>(conn)
   }
   fn delete(conn: &PgConnection, user_id: i32) -> Result<usize, Error> {
@@ -65,6 +77,19 @@ impl User_ {
 
     Self::create(&conn, &edited_user)
   }
+
+  pub fn update_password(
+    conn: &PgConnection,
+    user_id: i32,
+    new_password: &str,
+  ) -> Result<Self, Error> {
+    let password_hash = hash(new_password, DEFAULT_COST).expect("Couldn't hash password");
+
+    diesel::update(user_.find(user_id))
+      .set(password_encrypted.eq(password_hash))
+      .get_result::<Self>(conn)
+  }
+
   pub fn read_from_name(conn: &PgConnection, from_user_name: String) -> Result<Self, Error> {
     user_.filter(name.eq(from_user_name)).first::<Self>(conn)
   }
@@ -77,6 +102,11 @@ pub struct Claims {
   pub iss: String,
   pub show_nsfw: bool,
   pub theme: String,
+  pub default_sort_type: i16,
+  pub default_listing_type: i16,
+  pub lang: String,
+  pub avatar: Option<String>,
+  pub show_avatars: bool,
 }
 
 impl Claims {
@@ -85,7 +115,11 @@ impl Claims {
       validate_exp: false,
       ..Validation::default()
     };
-    decode::<Claims>(&jwt, Settings::get().jwt_secret.as_ref(), &v)
+    decode::<Claims>(
+      &jwt,
+      &DecodingKey::from_secret(Settings::get().jwt_secret.as_ref()),
+      &v,
+    )
   }
 }
 
@@ -98,13 +132,26 @@ impl User_ {
       iss: self.fedi_name.to_owned(),
       show_nsfw: self.show_nsfw,
       theme: self.theme.to_owned(),
+      default_sort_type: self.default_sort_type,
+      default_listing_type: self.default_listing_type,
+      lang: self.lang.to_owned(),
+      avatar: self.avatar.to_owned(),
+      show_avatars: self.show_avatars.to_owned(),
     };
     encode(
       &Header::default(),
       &my_claims,
-      Settings::get().jwt_secret.as_ref(),
+      &EncodingKey::from_secret(Settings::get().jwt_secret.as_ref()),
     )
     .unwrap()
+  }
+
+  pub fn find_by_username(conn: &PgConnection, username: &str) -> Result<Self, Error> {
+    user_.filter(name.eq(username)).first::<User_>(conn)
+  }
+
+  pub fn find_by_email(conn: &PgConnection, from_email: &str) -> Result<Self, Error> {
+    user_.filter(email.eq(from_email)).first::<User_>(conn)
   }
 
   pub fn find_by_email_or_username(
@@ -112,14 +159,14 @@ impl User_ {
     username_or_email: &str,
   ) -> Result<Self, Error> {
     if is_email_regex(username_or_email) {
-      user_
-        .filter(email.eq(username_or_email))
-        .first::<User_>(conn)
+      User_::find_by_email(conn, username_or_email)
     } else {
-      user_
-        .filter(name.eq(username_or_email))
-        .first::<User_>(conn)
+      User_::find_by_username(conn, username_or_email)
     }
+  }
+
+  pub fn get_profile_url(&self) -> String {
+    format!("https://{}/u/{}", Settings::get().hostname, self.name)
   }
 
   pub fn find_by_jwt(conn: &PgConnection, jwt: &str) -> Result<Self, Error> {
@@ -130,10 +177,12 @@ impl User_ {
 
 #[cfg(test)]
 mod tests {
+  use super::User_;
   use super::*;
+
   #[test]
   fn test_crud() {
-    let conn = establish_connection();
+    let conn = establish_unpooled_connection();
 
     let new_user = UserForm {
       name: "thommy".into(),
@@ -141,11 +190,18 @@ mod tests {
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
+      matrix_user_id: None,
+      avatar: None,
       admin: false,
       banned: false,
       updated: None,
       show_nsfw: false,
       theme: "darkly".into(),
+      default_sort_type: SortType::Hot as i16,
+      default_listing_type: ListingType::Subscribed as i16,
+      lang: "browser".into(),
+      show_avatars: true,
+      send_notifications_to_email: false,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -157,13 +213,19 @@ mod tests {
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
-      icon: None,
+      matrix_user_id: None,
+      avatar: None,
       admin: false,
       banned: false,
       published: inserted_user.published,
       updated: None,
       show_nsfw: false,
       theme: "darkly".into(),
+      default_sort_type: SortType::Hot as i16,
+      default_listing_type: ListingType::Subscribed as i16,
+      lang: "browser".into(),
+      show_avatars: true,
+      send_notifications_to_email: false,
     };
 
     let read_user = User_::read(&conn, inserted_user.id).unwrap();

@@ -1,3 +1,6 @@
 /target
 .env
 .idea
+env_setup.sh
+query_testing/*.json
+query_testing/*.json.old

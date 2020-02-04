@@ -1,4 +1,5 @@
-use crate::Settings;
+extern crate lazy_static;
+use crate::settings::Settings;
 use diesel::dsl::*;
 use diesel::result::Error;
 use diesel::*;
@@ -11,9 +12,16 @@ pub mod community;
 pub mod community_view;
 pub mod moderator;
 pub mod moderator_views;
+pub mod password_reset_request;
 pub mod post;
 pub mod post_view;
+pub mod private_message;
+pub mod private_message_view;
+pub mod site;
+pub mod site_view;
 pub mod user;
+pub mod user_mention;
+pub mod user_mention_view;
 pub mod user_view;
 
 pub trait Crud<T> {
@@ -88,9 +96,25 @@ pub trait Readable<T> {
     Self: Sized;
 }
 
-pub fn establish_connection() -> PgConnection {
-  let db_url = Settings::get().db_url;
-  PgConnection::establish(&db_url).expect(&format!("Error connecting to {}", db_url))
+pub trait MaybeOptional<T> {
+  fn get_optional(self) -> Option<T>;
+}
+
+impl<T> MaybeOptional<T> for T {
+  fn get_optional(self) -> Option<T> {
+    Some(self)
+  }
+}
+
+impl<T> MaybeOptional<T> for Option<T> {
+  fn get_optional(self) -> Option<T> {
+    self
+  }
+}
+
+pub fn establish_unpooled_connection() -> PgConnection {
+  let db_url = Settings::get().get_database_url();
+  PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url))
 }
 
 #[derive(EnumString, ToString, Debug, Serialize, Deserialize)]
@@ -102,6 +126,13 @@ pub enum SortType {
   TopMonth,
   TopYear,
   TopAll,
+}
+
+#[derive(EnumString, ToString, Debug, Serialize, Deserialize)]
+pub enum ListingType {
+  All,
+  Subscribed,
+  Community,
 }
 
 #[derive(EnumString, ToString, Debug, Serialize, Deserialize)]

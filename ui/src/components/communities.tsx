@@ -1,14 +1,24 @@
 import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
-import { Subscription } from "rxjs";
+import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Community, ListCommunitiesResponse, CommunityResponse, FollowCommunityForm, ListCommunitiesForm, SortType } from '../interfaces';
+import {
+  UserOperation,
+  Community,
+  ListCommunitiesResponse,
+  CommunityResponse,
+  FollowCommunityForm,
+  ListCommunitiesForm,
+  SortType,
+  WebSocketJsonResponse,
+} from '../interfaces';
 import { WebSocketService } from '../services';
-import { msgOp } from '../utils';
+import { wsJsonToRes, toast } from '../utils';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 declare const Sortable: any;
+
+const communityLimit = 100;
 
 interface CommunitiesState {
   communities: Array<Community>;
@@ -22,7 +32,7 @@ export class Communities extends Component<any, CommunitiesState> {
     communities: [],
     loading: true,
     page: this.getPageFromProps(this.props),
-  }
+  };
 
   constructor(props: any, context: any) {
     super(props, context);
@@ -30,17 +40,16 @@ export class Communities extends Component<any, CommunitiesState> {
     this.subscription = WebSocketService.Instance.subject
       .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
       .subscribe(
-        (msg) => this.parseMessage(msg),
-        (err) => console.error(err),
+        msg => this.parseMessage(msg),
+        err => console.error(err),
         () => console.log('complete')
       );
 
     this.refetch();
-
   }
 
   getPageFromProps(props: any): number {
-    return (props.match.params.page) ? Number(props.match.params.page) : 1;
+    return props.match.params.page ? Number(props.match.params.page) : 1;
   }
 
   componentWillUnmount() {
@@ -48,7 +57,9 @@ export class Communities extends Component<any, CommunitiesState> {
   }
 
   componentDidMount() {
-    document.title = `${i18n.t('communities')} - ${WebSocketService.Instance.site.name}`;
+    document.title = `${i18n.t('communities')} - ${
+      WebSocketService.Instance.site.name
+    }`;
   }
 
   // Necessary for back button for some reason
@@ -63,46 +74,82 @@ export class Communities extends Component<any, CommunitiesState> {
   render() {
     return (
       <div class="container">
-        {this.state.loading ? 
-        <h5 class=""><svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg></h5> : 
-        <div>
-          <h5><T i18nKey="list_of_communities">#</T></h5>
-          <div class="table-responsive">
-            <table id="community_table" class="table table-sm table-hover">
-              <thead class="pointer">
-                <tr>
-                  <th><T i18nKey="name">#</T></th>
-                  <th class="d-none d-lg-table-cell"><T i18nKey="title">#</T></th>
-                  <th><T i18nKey="category">#</T></th>
-                  <th class="text-right"><T i18nKey="subscribers">#</T></th>
-                  <th class="text-right d-none d-lg-table-cell"><T i18nKey="posts">#</T></th>
-                  <th class="text-right d-none d-lg-table-cell"><T i18nKey="comments">#</T></th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {this.state.communities.map(community =>
+        {this.state.loading ? (
+          <h5 class="">
+            <svg class="icon icon-spinner spin">
+              <use xlinkHref="#icon-spinner"></use>
+            </svg>
+          </h5>
+        ) : (
+          <div>
+            <h5>{i18n.t('list_of_communities')}</h5>
+            <div class="table-responsive">
+              <table id="community_table" class="table table-sm table-hover">
+                <thead class="pointer">
                   <tr>
-                    <td><Link to={`/c/${community.name}`}>{community.name}</Link></td>
-                    <td class="d-none d-lg-table-cell">{community.title}</td>
-                    <td>{community.category_name}</td>
-                    <td class="text-right">{community.number_of_subscribers}</td>
-                    <td class="text-right d-none d-lg-table-cell">{community.number_of_posts}</td>
-                    <td class="text-right d-none d-lg-table-cell">{community.number_of_comments}</td>
-                    <td class="text-right">
-                      {community.subscribed ? 
-                      <span class="pointer btn-link" onClick={linkEvent(community.id, this.handleUnsubscribe)}><T i18nKey="unsubscribe">#</T></span> : 
-                      <span class="pointer btn-link" onClick={linkEvent(community.id, this.handleSubscribe)}><T i18nKey="subscribe">#</T></span>
-                      }
-                    </td>
+                    <th>{i18n.t('name')}</th>
+                    <th class="d-none d-lg-table-cell">{i18n.t('title')}</th>
+                    <th>{i18n.t('category')}</th>
+                    <th class="text-right">{i18n.t('subscribers')}</th>
+                    <th class="text-right d-none d-lg-table-cell">
+                      {i18n.t('posts')}
+                    </th>
+                    <th class="text-right d-none d-lg-table-cell">
+                      {i18n.t('comments')}
+                    </th>
+                    <th></th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {this.state.communities.map(community => (
+                    <tr>
+                      <td>
+                        <Link to={`/c/${community.name}`}>
+                          {community.name}
+                        </Link>
+                      </td>
+                      <td class="d-none d-lg-table-cell">{community.title}</td>
+                      <td>{community.category_name}</td>
+                      <td class="text-right">
+                        {community.number_of_subscribers}
+                      </td>
+                      <td class="text-right d-none d-lg-table-cell">
+                        {community.number_of_posts}
+                      </td>
+                      <td class="text-right d-none d-lg-table-cell">
+                        {community.number_of_comments}
+                      </td>
+                      <td class="text-right">
+                        {community.subscribed ? (
+                          <span
+                            class="pointer btn-link"
+                            onClick={linkEvent(
+                              community.id,
+                              this.handleUnsubscribe
+                            )}
+                          >
+                            {i18n.t('unsubscribe')}
+                          </span>
+                        ) : (
+                          <span
+                            class="pointer btn-link"
+                            onClick={linkEvent(
+                              community.id,
+                              this.handleSubscribe
+                            )}
+                          >
+                            {i18n.t('subscribe')}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {this.paginator()}
           </div>
-          {this.paginator()}
-        </div>
-        }
+        )}
       </div>
     );
   }
@@ -110,10 +157,23 @@ export class Communities extends Component<any, CommunitiesState> {
   paginator() {
     return (
       <div class="mt-2">
-        {this.state.page > 1 && 
-          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}><T i18nKey="prev">#</T></button>
-        }
-        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}><T i18nKey="next">#</T></button>
+        {this.state.page > 1 && (
+          <button
+            class="btn btn-sm btn-secondary mr-1"
+            onClick={linkEvent(this, this.prevPage)}
+          >
+            {i18n.t('prev')}
+          </button>
+        )}
+
+        {this.state.communities.length == communityLimit && (
+          <button
+            class="btn btn-sm btn-secondary"
+            onClick={linkEvent(this, this.nextPage)}
+          >
+            {i18n.t('next')}
+          </button>
+        )}
       </div>
     );
   }
@@ -122,14 +182,14 @@ export class Communities extends Component<any, CommunitiesState> {
     this.props.history.push(`/communities/page/${this.state.page}`);
   }
 
-  nextPage(i: Communities) { 
+  nextPage(i: Communities) {
     i.state.page++;
     i.setState(i.state);
     i.updateUrl();
     i.refetch();
   }
 
-  prevPage(i: Communities) { 
+  prevPage(i: Communities) {
     i.state.page--;
     i.setState(i.state);
     i.updateUrl();
@@ -139,7 +199,7 @@ export class Communities extends Component<any, CommunitiesState> {
   handleUnsubscribe(communityId: number) {
     let form: FollowCommunityForm = {
       community_id: communityId,
-      follow: false
+      follow: false,
     };
     WebSocketService.Instance.followCommunity(form);
   }
@@ -147,7 +207,7 @@ export class Communities extends Component<any, CommunitiesState> {
   handleSubscribe(communityId: number) {
     let form: FollowCommunityForm = {
       community_id: communityId,
-      follow: true
+      follow: true,
     };
     WebSocketService.Instance.followCommunity(form);
   }
@@ -155,35 +215,36 @@ export class Communities extends Component<any, CommunitiesState> {
   refetch() {
     let listCommunitiesForm: ListCommunitiesForm = {
       sort: SortType[SortType.TopAll],
-      limit: 100,
+      limit: communityLimit,
       page: this.state.page,
-    }
+    };
 
     WebSocketService.Instance.listCommunities(listCommunitiesForm);
-
   }
 
-  parseMessage(msg: any) {
+  parseMessage(msg: WebSocketJsonResponse) {
     console.log(msg);
-    let op: UserOperation = msgOp(msg);
+    let res = wsJsonToRes(msg);
     if (msg.error) {
-      alert(i18n.t(msg.error));
+      toast(i18n.t(msg.error), 'danger');
       return;
-    } else if (op == UserOperation.ListCommunities) {
-      let res: ListCommunitiesResponse = msg;
-      this.state.communities = res.communities;
-      this.state.communities.sort((a, b) => b.number_of_subscribers - a.number_of_subscribers);
+    } else if (res.op == UserOperation.ListCommunities) {
+      let data = res.data as ListCommunitiesResponse;
+      this.state.communities = data.communities;
+      this.state.communities.sort(
+        (a, b) => b.number_of_subscribers - a.number_of_subscribers
+      );
       this.state.loading = false;
-      window.scrollTo(0,0);
+      window.scrollTo(0, 0);
       this.setState(this.state);
       let table = document.querySelector('#community_table');
       Sortable.initTable(table);
-    } else if (op == UserOperation.FollowCommunity) {
-      let res: CommunityResponse = msg;
-      let found = this.state.communities.find(c => c.id == res.community.id);
-      found.subscribed = res.community.subscribed;
-      found.number_of_subscribers = res.community.number_of_subscribers;
+    } else if (res.op == UserOperation.FollowCommunity) {
+      let data = res.data as CommunityResponse;
+      let found = this.state.communities.find(c => c.id == data.community.id);
+      found.subscribed = data.community.subscribed;
+      found.number_of_subscribers = data.community.number_of_subscribers;
       this.setState(this.state);
-    } 
+    }
   }
 }

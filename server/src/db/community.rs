@@ -1,5 +1,5 @@
 use super::*;
-use crate::schema::{community, community_follower, community_moderator, community_user_ban, site};
+use crate::schema::{community, community_follower, community_moderator, community_user_ban};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "community"]
@@ -67,6 +67,10 @@ impl Community {
     community
       .filter(name.eq(community_name))
       .first::<Self>(conn)
+  }
+
+  pub fn get_url(&self) -> String {
+    format!("https://{}/c/{}", Settings::get().hostname, self.name)
   }
 }
 
@@ -202,57 +206,13 @@ impl Followable<CommunityFollowerForm> for CommunityFollower {
   }
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
-#[table_name = "site"]
-pub struct Site {
-  pub id: i32,
-  pub name: String,
-  pub description: Option<String>,
-  pub creator_id: i32,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
-}
-
-#[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize)]
-#[table_name = "site"]
-pub struct SiteForm {
-  pub name: String,
-  pub description: Option<String>,
-  pub creator_id: i32,
-  pub updated: Option<chrono::NaiveDateTime>,
-}
-
-impl Crud<SiteForm> for Site {
-  fn read(conn: &PgConnection, _site_id: i32) -> Result<Self, Error> {
-    use crate::schema::site::dsl::*;
-    site.first::<Self>(conn)
-  }
-
-  fn delete(conn: &PgConnection, site_id: i32) -> Result<usize, Error> {
-    use crate::schema::site::dsl::*;
-    diesel::delete(site.find(site_id)).execute(conn)
-  }
-
-  fn create(conn: &PgConnection, new_site: &SiteForm) -> Result<Self, Error> {
-    use crate::schema::site::dsl::*;
-    insert_into(site).values(new_site).get_result::<Self>(conn)
-  }
-
-  fn update(conn: &PgConnection, site_id: i32, new_site: &SiteForm) -> Result<Self, Error> {
-    use crate::schema::site::dsl::*;
-    diesel::update(site.find(site_id))
-      .set(new_site)
-      .get_result::<Self>(conn)
-  }
-}
-
 #[cfg(test)]
 mod tests {
   use super::super::user::*;
   use super::*;
   #[test]
   fn test_crud() {
-    let conn = establish_connection();
+    let conn = establish_unpooled_connection();
 
     let new_user = UserForm {
       name: "bobbee".into(),
@@ -260,11 +220,18 @@ mod tests {
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
+      matrix_user_id: None,
+      avatar: None,
       admin: false,
       banned: false,
       updated: None,
       show_nsfw: false,
       theme: "darkly".into(),
+      default_sort_type: SortType::Hot as i16,
+      default_listing_type: ListingType::Subscribed as i16,
+      lang: "browser".into(),
+      show_avatars: true,
+      send_notifications_to_email: false,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();

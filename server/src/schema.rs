@@ -184,6 +184,15 @@ table! {
 }
 
 table! {
+    password_reset_request (id) {
+        id -> Int4,
+        user_id -> Int4,
+        token_encrypted -> Text,
+        published -> Timestamp,
+    }
+}
+
+table! {
     post (id) {
         id -> Int4,
         name -> Varchar,
@@ -230,6 +239,19 @@ table! {
 }
 
 table! {
+    private_message (id) {
+        id -> Int4,
+        creator_id -> Int4,
+        recipient_id -> Int4,
+        content -> Text,
+        deleted -> Bool,
+        read -> Bool,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
+    }
+}
+
+table! {
     site (id) {
         id -> Int4,
         name -> Varchar,
@@ -237,6 +259,9 @@ table! {
         creator_id -> Int4,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
+        enable_downvotes -> Bool,
+        open_registration -> Bool,
+        enable_nsfw -> Bool,
     }
 }
 
@@ -248,13 +273,19 @@ table! {
         preferred_username -> Nullable<Varchar>,
         password_encrypted -> Text,
         email -> Nullable<Text>,
-        icon -> Nullable<Bytea>,
+        avatar -> Nullable<Text>,
         admin -> Bool,
         banned -> Bool,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
         show_nsfw -> Bool,
         theme -> Varchar,
+        default_sort_type -> Int2,
+        default_listing_type -> Int2,
+        lang -> Varchar,
+        show_avatars -> Bool,
+        send_notifications_to_email -> Bool,
+        matrix_user_id -> Nullable<Text>,
     }
 }
 
@@ -262,6 +293,16 @@ table! {
     user_ban (id) {
         id -> Int4,
         user_id -> Int4,
+        published -> Timestamp,
+    }
+}
+
+table! {
+    user_mention (id) {
+        id -> Int4,
+        recipient_id -> Int4,
+        comment_id -> Int4,
+        read -> Bool,
         published -> Timestamp,
     }
 }
@@ -293,6 +334,7 @@ joinable!(mod_remove_post -> post (post_id));
 joinable!(mod_remove_post -> user_ (mod_user_id));
 joinable!(mod_sticky_post -> post (post_id));
 joinable!(mod_sticky_post -> user_ (mod_user_id));
+joinable!(password_reset_request -> user_ (user_id));
 joinable!(post -> community (community_id));
 joinable!(post -> user_ (creator_id));
 joinable!(post_like -> post (post_id));
@@ -303,6 +345,8 @@ joinable!(post_saved -> post (post_id));
 joinable!(post_saved -> user_ (user_id));
 joinable!(site -> user_ (creator_id));
 joinable!(user_ban -> user_ (user_id));
+joinable!(user_mention -> comment (comment_id));
+joinable!(user_mention -> user_ (recipient_id));
 
 allow_tables_to_appear_in_same_query!(
   category,
@@ -322,11 +366,14 @@ allow_tables_to_appear_in_same_query!(
   mod_remove_community,
   mod_remove_post,
   mod_sticky_post,
+  password_reset_request,
   post,
   post_like,
   post_read,
   post_saved,
+  private_message,
   site,
   user_,
   user_ban,
+  user_mention,
 );

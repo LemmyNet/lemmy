@@ -14,13 +14,13 @@ spec:
     spec:
       containers:
       - env:
-        - name: DATABASE_URL
+        - name: LEMMY_DATABASE_URL
           # example: 'postgres://lemmy:password@db:5432/lemmy'
           value: CHANGE_ME
-        - name: HOSTNAME
+        - name: LEMMY_HOSTNAME
           # example: 'lemmy.example.com'
           value: CHANGE_ME
-        - name: JWT_SECRET
+        - name: LEMMY_JWT_SECRET
           # example: 'very-super-good-secret'
           value: CHANGE_ME
         - name: LEMMY_FRONT_END_DIR

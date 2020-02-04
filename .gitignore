@@ -1,2 +1,6 @@
 ansible/inventory
 ansible/passwords/
+docker/lemmy_mine.hjson
+docker/dev/env_deploy.sh
+build/
+.idea/

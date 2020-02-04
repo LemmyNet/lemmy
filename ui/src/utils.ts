@@ -6,52 +6,82 @@ import 'moment/locale/fr';
 import 'moment/locale/sv';
 import 'moment/locale/ru';
 import 'moment/locale/nl';
+import 'moment/locale/it';
+import 'moment/locale/fi';
+import 'moment/locale/ca';
+import 'moment/locale/fa';
 
-import { UserOperation, Comment, User, SortType, ListingType, SearchType } from './interfaces';
-import * as markdown_it from 'markdown-it';
-import * as markdownitEmoji from 'markdown-it-emoji/light';
-import * as markdown_it_container from 'markdown-it-container';
-import * as twemoji from 'twemoji';
-import * as emojiShortName from 'emoji-short-name';
+import {
+  UserOperation,
+  Comment,
+  PrivateMessage,
+  User,
+  SortType,
+  ListingType,
+  SearchType,
+  WebSocketResponse,
+  WebSocketJsonResponse,
+  SearchForm,
+  SearchResponse,
+} from './interfaces';
+import { UserService, WebSocketService } from './services';
+
+import Tribute from 'tributejs/src/Tribute.js';
+import markdown_it from 'markdown-it';
+import markdownitEmoji from 'markdown-it-emoji/light';
+import markdown_it_container from 'markdown-it-container';
+import twemoji from 'twemoji';
+import emojiShortName from 'emoji-short-name';
+import Toastify from 'toastify-js';
 
 export const repoUrl = 'https://github.com/dessalines/lemmy';
 export const markdownHelpUrl = 'https://commonmark.org/help/';
+export const archiveUrl = 'https://archive.is';
 
-export const postRefetchSeconds: number = 60*1000;
+export const postRefetchSeconds: number = 60 * 1000;
 export const fetchLimit: number = 20;
-export const mentionDropdownFetchLimit = 6;
+export const mentionDropdownFetchLimit = 10;
 
-export function randomStr() {return Math.random().toString(36).replace(/[^a-z]+/g, '').substr(2, 10)}
+export function randomStr() {
+  return Math.random()
+    .toString(36)
+    .replace(/[^a-z]+/g, '')
+    .substr(2, 10);
+}
 
-export function msgOp(msg: any): UserOperation {
+export function wsJsonToRes(msg: WebSocketJsonResponse): WebSocketResponse {
   let opStr: string = msg.op;
-  return UserOperation[opStr];
+  return {
+    op: UserOperation[opStr],
+    data: msg.data,
+  };
 }
 
 export const md = new markdown_it({
   html: false,
   linkify: true,
-  typographer: true
-}).use(markdown_it_container, 'spoiler', {
-  validate: function(params: any) {
-    return params.trim().match(/^spoiler\s+(.*)$/);
-  },
+  typographer: true,
+})
+  .use(markdown_it_container, 'spoiler', {
+    validate: function(params: any) {
+      return params.trim().match(/^spoiler\s+(.*)$/);
+    },
 
-  render: function (tokens: any, idx: any) {
-    var m = tokens[idx].info.trim().match(/^spoiler\s+(.*)$/);
+    render: function(tokens: any, idx: any) {
+      var m = tokens[idx].info.trim().match(/^spoiler\s+(.*)$/);
 
-    if (tokens[idx].nesting === 1) {
-      // opening tag
-      return '<details><summary>' + md.utils.escapeHtml(m[1]) + '</summary>\n';
-
-    } else {
-      // closing tag
-      return '</details>\n';
-    }
-  }
-}).use(markdownitEmoji, {
-  defs: objectFlip(emojiShortName)
-});
+      if (tokens[idx].nesting === 1) {
+        // opening tag
+        return `<details><summary> ${md.utils.escapeHtml(m[1])} </summary>\n`;
+      } else {
+        // closing tag
+        return '</details>\n';
+      }
+    },
+  })
+  .use(markdownitEmoji, {
+    defs: objectFlip(emojiShortName),
+  });
 
 md.renderer.rules.emoji = function(token, idx) {
   return twemoji.parse(token[idx].content);
@@ -64,7 +94,9 @@ export function hotRank(comment: Comment): number {
   let now: Date = new Date();
   let hoursElapsed: number = (now.getTime() - date.getTime()) / 36e5;
 
-  let rank = (10000 *  Math.log10(Math.max(1, 3 + comment.score))) / Math.pow(hoursElapsed + 2, 1.8);
+  let rank =
+    (10000 * Math.log10(Math.max(1, 3 + comment.score))) /
+    Math.pow(hoursElapsed + 2, 1.8);
 
   // console.log(`Comment: ${comment.content}\nRank: ${rank}\nScore: ${comment.score}\nHours: ${hoursElapsed}`);
 
@@ -72,26 +104,36 @@ export function hotRank(comment: Comment): number {
 }
 
 export function mdToHtml(text: string) {
-  return {__html: md.render(text)};
+  return { __html: md.render(text) };
 }
 
-export function getUnixTime(text: string): number { 
-  return text ? new Date(text).getTime()/1000 : undefined;
+export function getUnixTime(text: string): number {
+  return text ? new Date(text).getTime() / 1000 : undefined;
 }
 
-export function addTypeInfo<T>(arr: Array<T>, name: string): Array<{type_: string, data: T}> {  
-  return arr.map(e => {return {type_: name, data: e}});
+export function addTypeInfo<T>(
+  arr: Array<T>,
+  name: string
+): Array<{ type_: string; data: T }> {
+  return arr.map(e => {
+    return { type_: name, data: e };
+  });
 }
 
-export function canMod(user: User, modIds: Array<number>, creator_id: number, onSelf: boolean = false): boolean {
+export function canMod(
+  user: User,
+  modIds: Array<number>,
+  creator_id: number,
+  onSelf: boolean = false
+): boolean {
   // You can do moderator actions only on the mods added after you.
   if (user) {
     let yourIndex = modIds.findIndex(id => id == user.id);
     if (yourIndex == -1) {
       return false;
-    } else { 
+    } else {
       // onSelf +1 on mod actions not for yourself, IE ban, remove, etc
-      modIds = modIds.slice(0, yourIndex+(onSelf ? 0 : 1)); 
+      modIds = modIds.slice(0, yourIndex + (onSelf ? 0 : 1));
       return !modIds.includes(creator_id);
     }
   } else {
@@ -103,8 +145,9 @@ export function isMod(modIds: Array<number>, creator_id: number): boolean {
   return modIds.includes(creator_id);
 }
 
-
-var imageRegex = new RegExp(`(http)?s?:?(\/\/[^"']*\.(?:png|jpg|jpeg|gif|png|svg))`);
+var imageRegex = new RegExp(
+  `(http)?s?:?(\/\/[^"']*\.(?:png|jpg|jpeg|gif|png|svg))`
+);
 var videoRegex = new RegExp(`(http)?s?:?(\/\/[^"']*\.(?:mp4))`);
 
 export function isImage(url: string) {
@@ -116,19 +159,21 @@ export function isVideo(url: string) {
 }
 
 export function validURL(str: string) {
-  var pattern = new RegExp('^(https?:\\/\\/)?'+ // protocol
-    '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // domain name
-    '((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
-    '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
-    '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
-    '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
-  return !!pattern.test(str);
+  try {
+    return !!new URL(str);
+  } catch {
+    return false;
+  }
+}
+
+export function validEmail(email: string) {
+  let re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  return re.test(String(email).toLowerCase());
 }
 
 export function capitalizeFirstLetter(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
-
 
 export function routeSortTypeToEnum(sort: string): SortType {
   if (sort == 'new') {
@@ -141,6 +186,8 @@ export function routeSortTypeToEnum(sort: string): SortType {
     return SortType.TopWeek;
   } else if (sort == 'topmonth') {
     return SortType.TopMonth;
+  } else if (sort == 'topyear') {
+    return SortType.TopYear;
   } else if (sort == 'topall') {
     return SortType.TopAll;
   }
@@ -160,59 +207,81 @@ export async function getPageTitle(url: string) {
   return data;
 }
 
-export function debounce(func: any, wait: number = 500, immediate: boolean = false) {
+export function debounce(
+  func: any,
+  wait: number = 1000,
+  immediate: boolean = false
+) {
   // 'private' variable for instance
   // The returned function will be able to reference this due to closure.
   // Each call to the returned function will share this common timer.
-  let timeout: number;
+  let timeout: any;
 
   // Calling debounce returns a new anonymous function
   return function() {
     // reference the context and args for the setTimeout function
     var context = this,
-    args = arguments;
+      args = arguments;
 
-  // Should the function be called now? If immediate is true
-  //   and not already in a timeout then the answer is: Yes
-  var callNow = immediate && !timeout;
+    // Should the function be called now? If immediate is true
+    //   and not already in a timeout then the answer is: Yes
+    var callNow = immediate && !timeout;
 
-  // This is the basic debounce behaviour where you can call this 
-  //   function several times, but it will only execute once 
-  //   [before or after imposing a delay]. 
-  //   Each time the returned function is called, the timer starts over.
-  clearTimeout(timeout);
+    // This is the basic debounce behaviour where you can call this
+    //   function several times, but it will only execute once
+    //   [before or after imposing a delay].
+    //   Each time the returned function is called, the timer starts over.
+    clearTimeout(timeout);
 
-  // Set the new timeout
-  timeout = setTimeout(function() {
+    // Set the new timeout
+    timeout = setTimeout(function() {
+      // Inside the timeout function, clear the timeout variable
+      // which will let the next execution run when in 'immediate' mode
+      timeout = null;
 
-    // Inside the timeout function, clear the timeout variable
-    // which will let the next execution run when in 'immediate' mode
-    timeout = null;
+      // Check if the function already ran with the immediate flag
+      if (!immediate) {
+        // Call the original function with apply
+        // apply lets you define the 'this' object as well as the arguments
+        //    (both captured before setTimeout)
+        func.apply(context, args);
+      }
+    }, wait);
 
-    // Check if the function already ran with the immediate flag
-    if (!immediate) {
-      // Call the original function with apply
-      // apply lets you define the 'this' object as well as the arguments 
-      //    (both captured before setTimeout)
-      func.apply(context, args);
-    }
-  }, wait);
+    // Immediate mode and no wait timer? Execute the function..
+    if (callNow) func.apply(context, args);
+  };
+}
 
-  // Immediate mode and no wait timer? Execute the function..
-  if (callNow) func.apply(context, args);
+export const languages = [
+  { code: 'ca', name: 'Català' },
+  { code: 'en', name: 'English' },
+  { code: 'eo', name: 'Esperanto' },
+  { code: 'es', name: 'Español' },
+  { code: 'de', name: 'Deutsch' },
+  { code: 'fa', name: 'فارسی' },
+  { code: 'zh', name: '中文' },
+  { code: 'fi', name: 'Suomi' },
+  { code: 'fr', name: 'Français' },
+  { code: 'sv', name: 'Svenska' },
+  { code: 'ru', name: 'Русский' },
+  { code: 'nl', name: 'Nederlands' },
+  { code: 'it', name: 'Italiano' },
+];
+
+export function getLanguage(): string {
+  let user = UserService.Instance.user;
+  let lang = user && user.lang ? user.lang : 'browser';
+
+  if (lang == 'browser') {
+    return getBrowserLanguage();
+  } else {
+    return lang;
   }
 }
 
-export function getLanguage(): string {
-  return (navigator.language || navigator.userLanguage);
-}
-
-export function objectFlip(obj: any) {
-  const ret = {};
-  Object.keys(obj).forEach((key) => {
-    ret[obj[key]] = key;
-  });
-  return ret;
+export function getBrowserLanguage(): string {
+  return navigator.language;
 }
 
 export function getMomentLanguage(): string {
@@ -233,22 +302,216 @@ export function getMomentLanguage(): string {
     lang = 'eo';
   } else if (lang.startsWith('nl')) {
     lang = 'nl';
+  } else if (lang.startsWith('it')) {
+    lang = 'it';
+  } else if (lang.startsWith('fi')) {
+    lang = 'fi';
+  } else if (lang.startsWith('ca')) {
+    lang = 'ca';
+  } else if (lang.startsWith('fa')) {
+    lang = 'fa';
   } else {
     lang = 'en';
   }
   return lang;
 }
 
-export const themes = ['litera', 'minty', 'solar', 'united', 'cyborg','darkly', 'journal', 'sketchy'];
+export const themes = [
+  'litera',
+  'materia',
+  'minty',
+  'solar',
+  'united',
+  'cyborg',
+  'darkly',
+  'journal',
+  'sketchy',
+  'vaporwave',
+  'vaporwave-dark',
+  'i386',
+];
 
 export function setTheme(theme: string = 'darkly') {
-  for (var i=0; i < themes.length; i++) {
-
+  // unload all the other themes
+  for (var i = 0; i < themes.length; i++) {
     let styleSheet = document.getElementById(themes[i]);
-    if (themes[i] == theme) {
-      styleSheet.removeAttribute("disabled");
-    } else {
-      styleSheet.setAttribute("disabled", "disabled");
-    }      
+    if (styleSheet) {
+      styleSheet.setAttribute('disabled', 'disabled');
+    }
+  }
+
+  // Load the theme dynamically
+  if (!document.getElementById(theme)) {
+    var head = document.getElementsByTagName('head')[0];
+    var link = document.createElement('link');
+    link.id = theme;
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href = `/static/assets/css/themes/${theme}.min.css`;
+    link.media = 'all';
+    head.appendChild(link);
+  }
+  document.getElementById(theme).removeAttribute('disabled');
+}
+
+export function objectFlip(obj: any) {
+  const ret = {};
+  Object.keys(obj).forEach(key => {
+    ret[obj[key]] = key;
+  });
+  return ret;
+}
+
+export function pictshareAvatarThumbnail(src: string): string {
+  // sample url: http://localhost:8535/pictshare/gs7xuu.jpg
+  let split = src.split('pictshare');
+  let out = `${split[0]}pictshare/96x96${split[1]}`;
+  return out;
+}
+
+export function showAvatars(): boolean {
+  return (
+    (UserService.Instance.user && UserService.Instance.user.show_avatars) ||
+    !UserService.Instance.user
+  );
+}
+
+/// Converts to image thumbnail (only supports pictshare currently)
+export function imageThumbnailer(url: string): string {
+  let split = url.split('pictshare');
+  if (split.length > 1) {
+    let out = `${split[0]}pictshare/140x140${split[1]}`;
+    return out;
+  } else {
+    return url;
+  }
+}
+
+export function isCommentType(item: Comment | PrivateMessage): item is Comment {
+  return (item as Comment).community_id !== undefined;
+}
+
+export function toast(text: string, background: string = 'success') {
+  let backgroundColor = `var(--${background})`;
+  Toastify({
+    text: text,
+    backgroundColor: backgroundColor,
+    gravity: 'bottom',
+    position: 'left',
+  }).showToast();
+}
+
+export function setupTribute(): Tribute {
+  return new Tribute({
+    collection: [
+      // Emojis
+      {
+        trigger: ':',
+        menuItemTemplate: (item: any) => {
+          let emoji = `:${item.original.key}:`;
+          return `${item.original.val} ${emoji}`;
+        },
+        selectTemplate: (item: any) => {
+          return `:${item.original.key}:`;
+        },
+        values: Object.entries(emojiShortName).map(e => {
+          return { key: e[1], val: e[0] };
+        }),
+        allowSpaces: false,
+        autocompleteMode: true,
+        menuItemLimit: mentionDropdownFetchLimit,
+      },
+      // Users
+      {
+        trigger: '@',
+        selectTemplate: (item: any) => {
+          return `[/u/${item.original.key}](/u/${item.original.key})`;
+        },
+        values: (text: string, cb: any) => {
+          userSearch(text, (users: any) => cb(users));
+        },
+        allowSpaces: false,
+        autocompleteMode: true,
+        menuItemLimit: mentionDropdownFetchLimit,
+      },
+
+      // Communities
+      {
+        trigger: '#',
+        selectTemplate: (item: any) => {
+          return `[/c/${item.original.key}](/c/${item.original.key})`;
+        },
+        values: (text: string, cb: any) => {
+          communitySearch(text, (communities: any) => cb(communities));
+        },
+        allowSpaces: false,
+        autocompleteMode: true,
+        menuItemLimit: mentionDropdownFetchLimit,
+      },
+    ],
+  });
+}
+
+function userSearch(text: string, cb: any) {
+  if (text) {
+    let form: SearchForm = {
+      q: text,
+      type_: SearchType[SearchType.Users],
+      sort: SortType[SortType.TopAll],
+      page: 1,
+      limit: mentionDropdownFetchLimit,
+    };
+
+    WebSocketService.Instance.search(form);
+
+    this.userSub = WebSocketService.Instance.subject.subscribe(
+      msg => {
+        let res = wsJsonToRes(msg);
+        if (res.op == UserOperation.Search) {
+          let data = res.data as SearchResponse;
+          let users = data.users.map(u => {
+            return { key: u.name };
+          });
+          cb(users);
+          this.userSub.unsubscribe();
+        }
+      },
+      err => console.error(err),
+      () => console.log('complete')
+    );
+  } else {
+    cb([]);
+  }
+}
+
+function communitySearch(text: string, cb: any) {
+  if (text) {
+    let form: SearchForm = {
+      q: text,
+      type_: SearchType[SearchType.Communities],
+      sort: SortType[SortType.TopAll],
+      page: 1,
+      limit: mentionDropdownFetchLimit,
+    };
+
+    WebSocketService.Instance.search(form);
+
+    this.communitySub = WebSocketService.Instance.subject.subscribe(
+      msg => {
+        let res = wsJsonToRes(msg);
+        if (res.op == UserOperation.Search) {
+          let data = res.data as SearchResponse;
+          let communities = data.communities.map(u => {
+            return { key: u.name };
+          });
+          cb(communities);
+          this.communitySub.unsubscribe();
+        }
+      },
+      err => console.error(err),
+      () => console.log('complete')
+    );
+  } else {
+    cb([]);
   }
 }
