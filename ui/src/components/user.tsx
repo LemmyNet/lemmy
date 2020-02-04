@@ -991,6 +991,8 @@ export class User extends Component<any, UserState> {
       }
       this.setState(this.state);
       return;
+    } else if (msg.reconnect) {
+      this.refetch();
     } else if (res.op == UserOperation.GetUserDetails) {
       let data = res.data as UserDetailsResponse;
       this.state.user = data.user;

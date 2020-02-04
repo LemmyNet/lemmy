@@ -537,6 +537,8 @@ export class Main extends Component<any, MainState> {
     if (msg.error) {
       toast(i18n.t(msg.error), 'danger');
       return;
+    } else if (msg.reconnect) {
+      this.fetchPosts();
     } else if (res.op == UserOperation.GetFollowedCommunities) {
       let data = res.data as GetFollowedCommunitiesResponse;
       this.state.subscribedCommunities = data.communities;
