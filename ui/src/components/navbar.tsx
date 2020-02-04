@@ -208,6 +208,8 @@ export class Navbar extends Component<any, NavbarState> {
         location.reload();
       }
       return;
+    } else if (msg.reconnect) {
+      this.fetchUnreads();
     } else if (res.op == UserOperation.GetReplies) {
       let data = res.data as GetRepliesResponse;
       let unreadReplies = data.replies.filter(r => !r.read);
