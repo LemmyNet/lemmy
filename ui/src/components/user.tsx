@@ -356,11 +356,15 @@ export class User extends Component<any, UserState> {
             <div>
               {i18n.t('joined')} <MomentTime data={user} />
             </div>
-            <div>
-              {i18n.t('total_number_of_points', { count: (user.post_score + user.comment_score) })}
-            </div>
-            <div class="table-responsive">
+            <div class="table-responsive mt-1">
               <table class="table table-bordered table-sm mt-2 mb-0">
+                <tr>
+                  <td class="text-center" colSpan={2}>
+                    {i18n.t('number_of_points', {
+                      count: user.post_score + user.comment_score,
+                    })}
+                  </td>
+                </tr>
                 <tr>
                   <td>
                     {i18n.t('number_of_points', { count: user.post_score })}

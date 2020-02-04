@@ -74,7 +74,6 @@ export const de = {
     number_of_users: '{{count}} Benutzer',
     number_of_subscribers: '{{count}} Abonnenten',
     number_of_points: '{{count}} Punkte',
-    total_number_of_points: '{{count}} Gesamtpunkte',
     number_online: '{{count}} Benutzer online',
     name: 'Name',
     title: 'Titel',
