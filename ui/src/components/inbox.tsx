@@ -313,6 +313,8 @@ export class Inbox extends Component<any, InboxState> {
     if (msg.error) {
       toast(i18n.t(msg.error), 'danger');
       return;
+    } else if (msg.reconnect) {
+      this.refetch();
     } else if (res.op == UserOperation.GetReplies) {
       let data = res.data as GetRepliesResponse;
       this.state.replies = data.replies;
