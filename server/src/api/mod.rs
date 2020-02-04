@@ -5,12 +5,22 @@ use crate::db::community::*;
 use crate::db::community_view::*;
 use crate::db::moderator::*;
 use crate::db::moderator_views::*;
+use crate::db::password_reset_request::*;
 use crate::db::post::*;
 use crate::db::post_view::*;
+use crate::db::private_message::*;
+use crate::db::private_message_view::*;
+use crate::db::site::*;
+use crate::db::site_view::*;
 use crate::db::user::*;
+use crate::db::user_mention::*;
+use crate::db::user_mention_view::*;
 use crate::db::user_view::*;
 use crate::db::*;
-use crate::{has_slurs, naive_from_unix, naive_now, remove_slurs, Settings};
+use crate::{
+  extract_usernames, naive_from_unix, naive_now, remove_slurs, slur_check, slurs_vec_to_str,
+};
+use diesel::PgConnection;
 use failure::Error;
 use serde::{Deserialize, Serialize};
 
@@ -20,74 +30,32 @@ pub mod post;
 pub mod site;
 pub mod user;
 
-#[derive(EnumString, ToString, Debug)]
-pub enum UserOperation {
-  Login,
-  Register,
-  CreateCommunity,
-  CreatePost,
-  ListCommunities,
-  ListCategories,
-  GetPost,
-  GetCommunity,
-  CreateComment,
-  EditComment,
-  SaveComment,
-  CreateCommentLike,
-  GetPosts,
-  CreatePostLike,
-  EditPost,
-  SavePost,
-  EditCommunity,
-  FollowCommunity,
-  GetFollowedCommunities,
-  GetUserDetails,
-  GetReplies,
-  GetModlog,
-  BanFromCommunity,
-  AddModToCommunity,
-  CreateSite,
-  EditSite,
-  GetSite,
-  AddAdmin,
-  BanUser,
-  Search,
-  MarkAllAsRead,
-  SaveUserSettings,
-  TransferCommunity,
-  TransferSite,
-  DeleteAccount,
-}
-
 #[derive(Fail, Debug)]
-#[fail(display = "{{\"op\":\"{}\", \"error\":\"{}\"}}", op, message)]
+#[fail(display = "{{\"error\":\"{}\"}}", message)]
 pub struct APIError {
-  pub op: String,
   pub message: String,
 }
 
 impl APIError {
-  pub fn err(op: &UserOperation, msg: &str) -> Self {
+  pub fn err(msg: &str) -> Self {
     APIError {
-      op: op.to_string(),
       message: msg.to_string(),
     }
   }
 }
 
 pub struct Oper<T> {
-  op: UserOperation,
   data: T,
 }
 
 impl<T> Oper<T> {
-  pub fn new(op: UserOperation, data: T) -> Oper<T> {
-    Oper { op: op, data: data }
+  pub fn new(data: T) -> Oper<T> {
+    Oper { data }
   }
 }
 
 pub trait Perform<T> {
-  fn perform(&self) -> Result<T, Error>
+  fn perform(&self, conn: &PgConnection) -> Result<T, Error>
   where
     T: Sized;
 }

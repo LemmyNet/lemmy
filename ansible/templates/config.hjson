@@ -1,0 +1,14 @@
+{
+  database: {
+    password: "{{ postgres_password }}"
+    host: "lemmy_db"
+  }
+  hostname: "{{ domain }}"
+  jwt_secret: "{{ jwt_password }}"
+  front_end_dir: "/app/dist"
+  email: {
+    smtp_server: "postfix:25"
+    smtp_from_address: "noreply@{{ domain }}"
+    use_tls: false
+  }
+}

@@ -1,26 +1,46 @@
 import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
-import { Subscription } from "rxjs";
+import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
-import { UserOperation, Post, Comment, Community, UserView, SortType, SearchForm, SearchResponse, SearchType } from '../interfaces';
+import {
+  UserOperation,
+  Post,
+  Comment,
+  Community,
+  UserView,
+  SortType,
+  SearchForm,
+  SearchResponse,
+  SearchType,
+  PostResponse,
+  CommentResponse,
+  WebSocketJsonResponse,
+} from '../interfaces';
 import { WebSocketService } from '../services';
-import { msgOp, fetchLimit, routeSearchTypeToEnum, routeSortTypeToEnum } from '../utils';
+import {
+  wsJsonToRes,
+  fetchLimit,
+  routeSearchTypeToEnum,
+  routeSortTypeToEnum,
+  pictshareAvatarThumbnail,
+  showAvatars,
+  toast,
+} from '../utils';
 import { PostListing } from './post-listing';
+import { SortSelect } from './sort-select';
 import { CommentNodes } from './comment-nodes';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 interface SearchState {
-  q: string,
-  type_: SearchType,
-  sort: SortType,
-  page: number,
+  q: string;
+  type_: SearchType;
+  sort: SortType;
+  page: number;
   searchResponse: SearchResponse;
   loading: boolean;
 }
 
 export class Search extends Component<any, SearchState> {
-
   private subscription: Subscription;
   private emptyState: SearchState = {
     q: this.getSearchQueryFromProps(this.props),
@@ -28,7 +48,6 @@ export class Search extends Component<any, SearchState> {
     sort: this.getSortTypeFromProps(this.props),
     page: this.getPageFromProps(this.props),
     searchResponse: {
-      op: null,
       type_: null,
       posts: [],
       comments: [],
@@ -36,45 +55,45 @@ export class Search extends Component<any, SearchState> {
       users: [],
     },
     loading: false,
-  }
+  };
 
   getSearchQueryFromProps(props: any): string {
-    return (props.match.params.q) ? props.match.params.q : '';
+    return props.match.params.q ? props.match.params.q : '';
   }
 
   getSearchTypeFromProps(props: any): SearchType {
-    return (props.match.params.type) ? 
-      routeSearchTypeToEnum(props.match.params.type) : 
-      SearchType.All;
+    return props.match.params.type
+      ? routeSearchTypeToEnum(props.match.params.type)
+      : SearchType.All;
   }
 
   getSortTypeFromProps(props: any): SortType {
-    return (props.match.params.sort) ? 
-      routeSortTypeToEnum(props.match.params.sort) : 
-      SortType.TopAll;
+    return props.match.params.sort
+      ? routeSortTypeToEnum(props.match.params.sort)
+      : SortType.TopAll;
   }
 
   getPageFromProps(props: any): number {
-    return (props.match.params.page) ? Number(props.match.params.page) : 1;
+    return props.match.params.page ? Number(props.match.params.page) : 1;
   }
 
   constructor(props: any, context: any) {
     super(props, context);
 
     this.state = this.emptyState;
+    this.handleSortChange = this.handleSortChange.bind(this);
 
     this.subscription = WebSocketService.Instance.subject
-    .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
-    .subscribe(
-      (msg) => this.parseMessage(msg),
-        (err) => console.error(err),
+      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
+      .subscribe(
+        msg => this.parseMessage(msg),
+        err => console.error(err),
         () => console.log('complete')
-    );
-    
+      );
+
     if (this.state.q) {
       this.search();
     }
-
   }
 
   componentWillUnmount() {
@@ -83,7 +102,10 @@ export class Search extends Component<any, SearchState> {
 
   // Necessary for back button for some reason
   componentWillReceiveProps(nextProps: any) {
-    if (nextProps.history.action == 'POP' || nextProps.history.action == 'PUSH') {
+    if (
+      nextProps.history.action == 'POP' ||
+      nextProps.history.action == 'PUSH'
+    ) {
       this.state = this.emptyState;
       this.state.q = this.getSearchQueryFromProps(nextProps);
       this.state.type_ = this.getSearchTypeFromProps(nextProps);
@@ -95,85 +117,101 @@ export class Search extends Component<any, SearchState> {
   }
 
   componentDidMount() {
-    document.title = `${i18n.t('search')} - ${WebSocketService.Instance.site.name}`;
+    document.title = `${i18n.t('search')} - ${
+      WebSocketService.Instance.site.name
+    }`;
   }
 
   render() {
     return (
       <div class="container">
-        <div class="row">
-          <div class="col-12">
-            <h5><T i18nKey="search">#</T></h5>
-            {this.selects()}
-            {this.searchForm()}
-            {this.state.type_ == SearchType.All &&
-              this.all()
-            }
-            {this.state.type_ == SearchType.Comments &&
-              this.comments()
-            }
-            {this.state.type_ == SearchType.Posts &&
-              this.posts()
-            }
-            {this.state.type_ == SearchType.Communities &&
-              this.communities()
-            }
-            {this.state.type_ == SearchType.Users &&
-              this.users()
-            }
-            {this.noResults()}
-            {this.paginator()}
-          </div>
-        </div>
+        <h5>{i18n.t('search')}</h5>
+        {this.selects()}
+        {this.searchForm()}
+        {this.state.type_ == SearchType.All && this.all()}
+        {this.state.type_ == SearchType.Comments && this.comments()}
+        {this.state.type_ == SearchType.Posts && this.posts()}
+        {this.state.type_ == SearchType.Communities && this.communities()}
+        {this.state.type_ == SearchType.Users && this.users()}
+        {this.noResults()}
+        {this.paginator()}
       </div>
-    )
+    );
   }
 
   searchForm() {
     return (
-      <form class="form-inline" onSubmit={linkEvent(this, this.handleSearchSubmit)}>
-        <input type="text" class="form-control mr-2" value={this.state.q} placeholder={`${i18n.t('search')}...`} onInput={linkEvent(this, this.handleQChange)} required minLength={3} />
+      <form
+        class="form-inline"
+        onSubmit={linkEvent(this, this.handleSearchSubmit)}
+      >
+        <input
+          type="text"
+          class="form-control mr-2"
+          value={this.state.q}
+          placeholder={`${i18n.t('search')}...`}
+          onInput={linkEvent(this, this.handleQChange)}
+          required
+          minLength={3}
+        />
         <button type="submit" class="btn btn-secondary mr-2">
-          {this.state.loading ?
-          <svg class="icon icon-spinner spin"><use xlinkHref="#icon-spinner"></use></svg> :
-          <span><T i18nKey="search">#</T></span>
-          }
+          {this.state.loading ? (
+            <svg class="icon icon-spinner spin">
+              <use xlinkHref="#icon-spinner"></use>
+            </svg>
+          ) : (
+            <span>{i18n.t('search')}</span>
+          )}
         </button>
       </form>
-    )
+    );
   }
 
   selects() {
     return (
       <div className="mb-2">
-        <select value={this.state.type_} onChange={linkEvent(this, this.handleTypeChange)} class="custom-select custom-select-sm w-auto">
-          <option disabled><T i18nKey="type">#</T></option>
-          <option value={SearchType.All}><T i18nKey="all">#</T></option>
-          <option value={SearchType.Comments}><T i18nKey="comments">#</T></option>
-          <option value={SearchType.Posts}><T i18nKey="posts">#</T></option>
-          <option value={SearchType.Communities}><T i18nKey="communities">#</T></option>
-          <option value={SearchType.Users}><T i18nKey="users">#</T></option>
+        <select
+          value={this.state.type_}
+          onChange={linkEvent(this, this.handleTypeChange)}
+          class="custom-select custom-select-sm w-auto"
+        >
+          <option disabled>{i18n.t('type')}</option>
+          <option value={SearchType.All}>{i18n.t('all')}</option>
+          <option value={SearchType.Comments}>{i18n.t('comments')}</option>
+          <option value={SearchType.Posts}>{i18n.t('posts')}</option>
+          <option value={SearchType.Communities}>
+            {i18n.t('communities')}
+          </option>
+          <option value={SearchType.Users}>{i18n.t('users')}</option>
         </select>
-        <select value={this.state.sort} onChange={linkEvent(this, this.handleSortChange)} class="custom-select custom-select-sm w-auto ml-2">
-          <option disabled><T i18nKey="sort_type">#</T></option>
-          <option value={SortType.New}><T i18nKey="new">#</T></option>
-          <option value={SortType.TopDay}><T i18nKey="top_day">#</T></option>
-          <option value={SortType.TopWeek}><T i18nKey="week">#</T></option>
-          <option value={SortType.TopMonth}><T i18nKey="month">#</T></option>
-          <option value={SortType.TopYear}><T i18nKey="year">#</T></option>
-          <option value={SortType.TopAll}><T i18nKey="all">#</T></option>
-        </select>
+        <span class="ml-2">
+          <SortSelect
+            sort={this.state.sort}
+            onChange={this.handleSortChange}
+            hideHot
+          />
+        </span>
       </div>
-    )
-
+    );
   }
 
   all() {
-    let combined: Array<{type_: string, data: Comment | Post | Community | UserView}> = [];
-    let comments = this.state.searchResponse.comments.map(e => {return {type_: "comments", data: e}});
-    let posts = this.state.searchResponse.posts.map(e => {return {type_: "posts", data: e}});
-    let communities = this.state.searchResponse.communities.map(e => {return {type_: "communities", data: e}});
-    let users = this.state.searchResponse.users.map(e => {return {type_: "users", data: e}});
+    let combined: Array<{
+      type_: string;
+      data: Comment | Post | Community | UserView;
+    }> = [];
+    let comments = this.state.searchResponse.comments.map(e => {
+      return { type_: 'comments', data: e };
+    });
+    let posts = this.state.searchResponse.posts.map(e => {
+      return { type_: 'posts', data: e };
+    });
+    let communities = this.state.searchResponse.communities.map(e => {
+      return { type_: 'communities', data: e };
+    });
+    let users = this.state.searchResponse.users.map(e => {
+      return { type_: 'users', data: e };
+    });
 
     combined.push(...comments);
     combined.push(...posts);
@@ -184,97 +222,161 @@ export class Search extends Component<any, SearchState> {
     if (this.state.sort == SortType.New) {
       combined.sort((a, b) => b.data.published.localeCompare(a.data.published));
     } else {
-      combined.sort((a, b) => ((b.data as Comment | Post).score 
-        | (b.data as Community).number_of_subscribers
-          | (b.data as UserView).comment_score) 
-          - ((a.data as Comment | Post).score 
-            | (a.data as Community).number_of_subscribers 
-              | (a.data as UserView).comment_score));
+      combined.sort(
+        (a, b) =>
+          ((b.data as Comment | Post).score |
+            (b.data as Community).number_of_subscribers |
+            (b.data as UserView).comment_score) -
+          ((a.data as Comment | Post).score |
+            (a.data as Community).number_of_subscribers |
+            (a.data as UserView).comment_score)
+      );
     }
 
     return (
       <div>
-        {combined.map(i =>
-          <div>
-            {i.type_ == "posts" &&
-              <PostListing post={i.data as Post} showCommunity viewOnly />
-            }
-            {i.type_ == "comments" && 
-              <CommentNodes nodes={[{comment: i.data as Comment}]} viewOnly noIndent />
-            }
-            {i.type_ == "communities" && 
-              <div>
-                <span><Link to={`/c/${(i.data as Community).name}`}>{`/c/${(i.data as Community).name}`}</Link></span>
-                <span>{` - ${(i.data as Community).title} - ${(i.data as Community).number_of_subscribers} subscribers`}</span>
-              </div>
-            }
-            {i.type_ == "users" && 
-              <div>
-                <span><Link className="text-info" to={`/u/${(i.data as UserView).name}`}>{`/u/${(i.data as UserView).name}`}</Link></span>
-                <span>{` - ${(i.data as UserView).comment_score} comment karma`}</span>
-              </div>
-            }
+        {combined.map(i => (
+          <div class="row">
+            <div class="col-12">
+              {i.type_ == 'posts' && (
+                <PostListing post={i.data as Post} showCommunity />
+              )}
+              {i.type_ == 'comments' && (
+                <CommentNodes
+                  nodes={[{ comment: i.data as Comment }]}
+                  locked
+                  noIndent
+                />
+              )}
+              {i.type_ == 'communities' && (
+                <div>
+                  <span>
+                    <Link to={`/c/${(i.data as Community).name}`}>{`/c/${
+                      (i.data as Community).name
+                    }`}</Link>
+                  </span>
+                  <span>{` - ${(i.data as Community).title} - ${
+                    (i.data as Community).number_of_subscribers
+                  } subscribers`}</span>
+                </div>
+              )}
+              {i.type_ == 'users' && (
+                <div>
+                  <span>
+                    <Link
+                      className="text-info"
+                      to={`/u/${(i.data as UserView).name}`}
+                    >
+                      {(i.data as UserView).avatar && showAvatars() && (
+                        <img
+                          height="32"
+                          width="32"
+                          src={pictshareAvatarThumbnail(
+                            (i.data as UserView).avatar
+                          )}
+                          class="rounded-circle mr-1"
+                        />
+                      )}
+                      <span>{`/u/${(i.data as UserView).name}`}</span>
+                    </Link>
+                  </span>
+                  <span>{` - ${
+                    (i.data as UserView).comment_score
+                  } comment karma`}</span>
+                </div>
+              )}
+            </div>
           </div>
-                     )
-        }
+        ))}
       </div>
-    )
+    );
   }
 
   comments() {
     return (
-      <div>
-        {this.state.searchResponse.comments.map(comment => 
-          <CommentNodes nodes={[{comment: comment}]} noIndent viewOnly />
-        )}
-      </div>
+      <>
+        {this.state.searchResponse.comments.map(comment => (
+          <div class="row">
+            <div class="col-12">
+              <CommentNodes nodes={[{ comment: comment }]} locked noIndent />
+            </div>
+          </div>
+        ))}
+      </>
     );
   }
 
   posts() {
     return (
-      <div>
-        {this.state.searchResponse.posts.map(post => 
-          <PostListing post={post} showCommunity viewOnly />
-        )}
-      </div>
+      <>
+        {this.state.searchResponse.posts.map(post => (
+          <div class="row">
+            <div class="col-12">
+              <PostListing post={post} showCommunity />
+            </div>
+          </div>
+        ))}
+      </>
     );
   }
 
   // Todo possibly create UserListing and CommunityListing
   communities() {
     return (
-      <div>
-        {this.state.searchResponse.communities.map(community => 
-          <div>
-            <span><Link to={`/c/${community.name}`}>{`/c/${community.name}`}</Link></span>
-            <span>{` - ${community.title} - ${community.number_of_subscribers} subscribers`}</span>
+      <>
+        {this.state.searchResponse.communities.map(community => (
+          <div class="row">
+            <div class="col-12">
+              <span>
+                <Link
+                  to={`/c/${community.name}`}
+                >{`/c/${community.name}`}</Link>
+              </span>
+              <span>{` - ${community.title} - ${community.number_of_subscribers} subscribers`}</span>
+            </div>
           </div>
-        )}
-      </div>
+        ))}
+      </>
     );
   }
 
   users() {
     return (
-      <div>
-        {this.state.searchResponse.users.map(user => 
-          <div>
-            <span><Link className="text-info" to={`/u/${user.name}`}>{`/u/${user.name}`}</Link></span>
-            <span>{` - ${user.comment_score} comment karma`}</span>
+      <>
+        {this.state.searchResponse.users.map(user => (
+          <div class="row">
+            <div class="col-12">
+              <span>
+                <Link
+                  className="text-info"
+                  to={`/u/${user.name}`}
+                >{`/u/${user.name}`}</Link>
+              </span>
+              <span>{` - ${user.comment_score} comment karma`}</span>
+            </div>
           </div>
-        )}
-      </div>
+        ))}
+      </>
     );
   }
 
   paginator() {
     return (
       <div class="mt-2">
-        {this.state.page > 1 && 
-          <button class="btn btn-sm btn-secondary mr-1" onClick={linkEvent(this, this.prevPage)}><T i18nKey="prev">#</T></button>
-        }
-        <button class="btn btn-sm btn-secondary" onClick={linkEvent(this, this.nextPage)}><T i18nKey="next">#</T></button>
+        {this.state.page > 1 && (
+          <button
+            class="btn btn-sm btn-secondary mr-1"
+            onClick={linkEvent(this, this.prevPage)}
+          >
+            {i18n.t('prev')}
+          </button>
+        )}
+        <button
+          class="btn btn-sm btn-secondary"
+          onClick={linkEvent(this, this.nextPage)}
+        >
+          {i18n.t('next')}
+        </button>
       </div>
     );
   }
@@ -283,21 +385,23 @@ export class Search extends Component<any, SearchState> {
     let res = this.state.searchResponse;
     return (
       <div>
-        {res && res.op && res.posts.length == 0 && res.comments.length == 0 && 
-          <span><T i18nKey="no_results">#</T></span>
-        }
+        {res &&
+          res.posts.length == 0 &&
+          res.comments.length == 0 &&
+          res.communities.length == 0 &&
+          res.users.length == 0 && <span>{i18n.t('no_results')}</span>}
       </div>
-    )
+    );
   }
 
-  nextPage(i: Search) { 
+  nextPage(i: Search) {
     i.state.page++;
     i.setState(i.state);
     i.updateUrl();
     i.search();
   }
 
-  prevPage(i: Search) { 
+  prevPage(i: Search) {
     i.state.page--;
     i.setState(i.state);
     i.updateUrl();
@@ -305,7 +409,6 @@ export class Search extends Component<any, SearchState> {
   }
 
   search() {
-    // TODO community
     let form: SearchForm = {
       q: this.state.q,
       type_: SearchType[this.state.type_],
@@ -319,11 +422,11 @@ export class Search extends Component<any, SearchState> {
     }
   }
 
-  handleSortChange(i: Search, event: any) {
-    i.state.sort = Number(event.target.value);
-    i.state.page = 1;
-    i.setState(i.state);
-    i.updateUrl();
+  handleSortChange(val: SortType) {
+    this.state.sort = val;
+    this.state.page = 1;
+    this.setState(this.state);
+    this.updateUrl();
   }
 
   handleTypeChange(i: Search, event: any) {
@@ -349,23 +452,50 @@ export class Search extends Component<any, SearchState> {
   updateUrl() {
     let typeStr = SearchType[this.state.type_].toLowerCase();
     let sortStr = SortType[this.state.sort].toLowerCase();
-    this.props.history.push(`/search/q/${this.state.q}/type/${typeStr}/sort/${sortStr}/page/${this.state.page}`);
+    this.props.history.push(
+      `/search/q/${this.state.q}/type/${typeStr}/sort/${sortStr}/page/${this.state.page}`
+    );
   }
 
-  parseMessage(msg: any) {
+  parseMessage(msg: WebSocketJsonResponse) {
     console.log(msg);
-    let op: UserOperation = msgOp(msg);
+    let res = wsJsonToRes(msg);
     if (msg.error) {
-      alert(i18n.t(msg.error));
+      toast(i18n.t(msg.error), 'danger');
       return;
-    } else if (op == UserOperation.Search) {
-      let res: SearchResponse = msg;
-      this.state.searchResponse = res;
+    } else if (res.op == UserOperation.Search) {
+      let data = res.data as SearchResponse;
+      this.state.searchResponse = data;
       this.state.loading = false;
-      document.title = `${i18n.t('search')} - ${this.state.q} - ${WebSocketService.Instance.site.name}`;
-      window.scrollTo(0,0);
+      document.title = `${i18n.t('search')} - ${this.state.q} - ${
+        WebSocketService.Instance.site.name
+      }`;
+      window.scrollTo(0, 0);
+      this.setState(this.state);
+    } else if (res.op == UserOperation.CreateCommentLike) {
+      let data = res.data as CommentResponse;
+      let found: Comment = this.state.searchResponse.comments.find(
+        c => c.id === data.comment.id
+      );
+      found.score = data.comment.score;
+      found.upvotes = data.comment.upvotes;
+      found.downvotes = data.comment.downvotes;
+      if (data.comment.my_vote !== null) {
+        found.my_vote = data.comment.my_vote;
+        found.upvoteLoading = false;
+        found.downvoteLoading = false;
+      }
+      this.setState(this.state);
+    } else if (res.op == UserOperation.CreatePostLike) {
+      let data = res.data as PostResponse;
+      let found = this.state.searchResponse.posts.find(
+        c => c.id == data.post.id
+      );
+      found.my_vote = data.post.my_vote;
+      found.score = data.post.score;
+      found.upvotes = data.post.upvotes;
+      found.downvotes = data.post.downvotes;
       this.setState(this.state);
     }
   }
 }
-

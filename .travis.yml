@@ -6,17 +6,30 @@ matrix:
     - rust: nightly
   fast_finish: true
 cache: cargo
+before_cache:
+  - rm -rfv target/debug/incremental/lemmy_server-*
+  - rm -rfv target/debug/.fingerprint/lemmy_server-*
+  - rm -rfv target/debug/build/lemmy_server-*
+  - rm -rfv target/debug/deps/lemmy_server-*
+  - rm -rfv target/debug/lemmy_server.d
+  - cargo clean
 before_script:
-  - psql -c "create user rrr with password 'rrr' superuser;" -U postgres
-  - psql -c 'create database rrr with owner rrr;' -U postgres
+  - psql -c "create user lemmy with password 'password' superuser;" -U postgres
+  - psql -c 'create database lemmy with owner lemmy;' -U postgres
+  - rustup component add clippy --toolchain stable-x86_64-unknown-linux-gnu
 before_install:
   - cd server
 script:
-  - cargo install --force diesel_cli --no-default-features --features postgres
+  # Default checks, but fail if anything is detected
+  - cargo build
+  - cargo clippy -- -D clippy::style -D clippy::correctness -D clippy::complexity -D clippy::perf
+  - cargo install diesel_cli --no-default-features --features postgres --force
   - diesel migration run
-  - cargo build --all
-  - cargo test --all
+  - cargo test
 env:
-  - DATABASE_URL=postgres://rrr:rrr@localhost/rrr
+  global:
+    - DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
+    - RUST_TEST_THREADS=1
+
 addons:
   postgresql: "9.4"

@@ -27,6 +27,11 @@
   margin-top: -10px;
 }
 
+.md-div p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .md-div p:last-child {
   margin-bottom: 0px;
 }
@@ -36,8 +41,36 @@
   height: auto;
 }
 
-.md-div h1,h2,h3,h4,h5 {
+.md-div h1,
+.md-div h2,
+.md-div h3,
+.md-div h4,
+.md-div h5 {
   font-size:1.171875rem;
+}
+
+.md-div table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 1rem;
+  border: 1px solid var(--dark);
+}
+
+.md-div table th,
+.md-div table td {
+  padding: 0.3rem;
+  vertical-align: top;
+  border-top: 1px solid var(--dark);
+  border: 1px solid var(--dark);
+}
+
+.md-div table thead th {
+  vertical-align: bottom;
+  border-bottom: 2px solid var(--dark);
+}
+
+.md-div table tbody + tbody {
+  border-top: 2px solid var(--dark);
 }
 
 .comment-node {
@@ -113,4 +146,27 @@ hr {
 
 .emoji {
   height: 1.2em !important;
+}
+
+.text-wrap-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.fl-1 {
+  flex: 1;
+}
+
+.img-blur {
+  filter: blur(10px);
+  -webkit-filter: blur(10px);
+  -moz-filter: blur(10px);
+  -o-filter: blur(10px);
+  -ms-filter: blur(10px);
 }

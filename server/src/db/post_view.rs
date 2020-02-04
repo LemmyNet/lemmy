@@ -1,11 +1,6 @@
+use super::post_view::post_mview::BoxedQuery;
 use super::*;
-
-#[derive(EnumString, ToString, Debug, Serialize, Deserialize)]
-pub enum PostListingType {
-  All,
-  Subscribed,
-  Community,
-}
+use diesel::pg::Pg;
 
 // The faked schema since diesel doesn't do views
 table! {
@@ -26,6 +21,7 @@ table! {
     banned_from_community -> Bool,
     stickied -> Bool,
     creator_name -> Varchar,
+    creator_avatar -> Nullable<Text>,
     community_name -> Varchar,
     community_removed -> Bool,
     community_deleted -> Bool,
@@ -64,6 +60,7 @@ pub struct PostView {
   pub banned_from_community: bool,
   pub stickied: bool,
   pub creator_name: String,
+  pub creator_avatar: Option<String>,
   pub community_name: String,
   pub community_removed: bool,
   pub community_deleted: bool,
@@ -80,75 +77,160 @@ pub struct PostView {
   pub saved: Option<bool>,
 }
 
-impl PostView {
-  pub fn list(
-    conn: &PgConnection,
-    type_: PostListingType,
-    sort: &SortType,
-    for_community_id: Option<i32>,
-    for_creator_id: Option<i32>,
-    search_term: Option<String>,
-    url_search: Option<String>,
-    my_user_id: Option<i32>,
-    show_nsfw: bool,
-    saved_only: bool,
-    unread_only: bool,
-    page: Option<i64>,
-    limit: Option<i64>,
-  ) -> Result<Vec<Self>, Error> {
-    use super::post_view::post_view::dsl::*;
+// The faked schema since diesel doesn't do views
+table! {
+  post_mview (id) {
+    id -> Int4,
+    name -> Varchar,
+    url -> Nullable<Text>,
+    body -> Nullable<Text>,
+    creator_id -> Int4,
+    community_id -> Int4,
+    removed -> Bool,
+    locked -> Bool,
+    published -> Timestamp,
+    updated -> Nullable<Timestamp>,
+    deleted -> Bool,
+    nsfw -> Bool,
+    banned -> Bool,
+    banned_from_community -> Bool,
+    stickied -> Bool,
+    creator_name -> Varchar,
+    creator_avatar -> Nullable<Text>,
+    community_name -> Varchar,
+    community_removed -> Bool,
+    community_deleted -> Bool,
+    community_nsfw -> Bool,
+    number_of_comments -> BigInt,
+    score -> BigInt,
+    upvotes -> BigInt,
+    downvotes -> BigInt,
+    hot_rank -> Int4,
+    user_id -> Nullable<Int4>,
+    my_vote -> Nullable<Int4>,
+    subscribed -> Nullable<Bool>,
+    read -> Nullable<Bool>,
+    saved -> Nullable<Bool>,
+  }
+}
 
-    let (limit, offset) = limit_and_offset(page, limit);
+pub struct PostQueryBuilder<'a> {
+  conn: &'a PgConnection,
+  query: BoxedQuery<'a, Pg>,
+  listing_type: ListingType,
+  sort: &'a SortType,
+  my_user_id: Option<i32>,
+  for_creator_id: Option<i32>,
+  show_nsfw: bool,
+  saved_only: bool,
+  unread_only: bool,
+  page: Option<i64>,
+  limit: Option<i64>,
+}
 
-    let mut query = post_view.into_boxed();
+impl<'a> PostQueryBuilder<'a> {
+  pub fn create(conn: &'a PgConnection) -> Self {
+    use super::post_view::post_mview::dsl::*;
 
-    if let Some(for_creator_id) = for_creator_id {
-      query = query.filter(creator_id.eq(for_creator_id));
-    };
+    let query = post_mview.into_boxed();
 
-    if let Some(search_term) = search_term {
-      query = query.filter(name.ilike(fuzzy_search(&search_term)));
-    };
+    PostQueryBuilder {
+      conn,
+      query,
+      my_user_id: None,
+      for_creator_id: None,
+      listing_type: ListingType::All,
+      sort: &SortType::Hot,
+      show_nsfw: true,
+      saved_only: false,
+      unread_only: false,
+      page: None,
+      limit: None,
+    }
+  }
 
-    if let Some(url_search) = url_search {
-      query = query.filter(url.eq(url_search));
-    };
+  pub fn listing_type(mut self, listing_type: ListingType) -> Self {
+    self.listing_type = listing_type;
+    self
+  }
 
-    if let Some(for_community_id) = for_community_id {
-      query = query.filter(community_id.eq(for_community_id));
-      query = query.then_order_by(stickied.desc());
-    };
+  pub fn sort(mut self, sort: &'a SortType) -> Self {
+    self.sort = sort;
+    self
+  }
 
-    // TODO these are wrong, bc they'll only show saved for your logged in user, not theirs
-    if saved_only {
-      query = query.filter(saved.eq(true));
-    };
+  pub fn for_community_id<T: MaybeOptional<i32>>(mut self, for_community_id: T) -> Self {
+    use super::post_view::post_mview::dsl::*;
+    if let Some(for_community_id) = for_community_id.get_optional() {
+      self.query = self.query.filter(community_id.eq(for_community_id));
+      self.query = self.query.then_order_by(stickied.desc());
+    }
+    self
+  }
 
-    if unread_only {
-      query = query.filter(read.eq(false));
-    };
+  pub fn for_creator_id<T: MaybeOptional<i32>>(mut self, for_creator_id: T) -> Self {
+    if let Some(for_creator_id) = for_creator_id.get_optional() {
+      self.for_creator_id = Some(for_creator_id);
+    }
+    self
+  }
 
-    match type_ {
-      PostListingType::Subscribed => {
-        query = query.filter(subscribed.eq(true));
-      }
-      _ => {}
-    };
+  pub fn search_term<T: MaybeOptional<String>>(mut self, search_term: T) -> Self {
+    use super::post_view::post_mview::dsl::*;
+    if let Some(search_term) = search_term.get_optional() {
+      self.query = self.query.filter(name.ilike(fuzzy_search(&search_term)));
+    }
+    self
+  }
 
-    // The view lets you pass a null user_id, if you're not logged in
-    if let Some(my_user_id) = my_user_id {
-      query = query.filter(user_id.eq(my_user_id));
-    } else {
-      query = query.filter(user_id.is_null());
+  pub fn url_search<T: MaybeOptional<String>>(mut self, url_search: T) -> Self {
+    use super::post_view::post_mview::dsl::*;
+    if let Some(url_search) = url_search.get_optional() {
+      self.query = self.query.filter(url.eq(url_search));
+    }
+    self
+  }
+
+  pub fn my_user_id<T: MaybeOptional<i32>>(mut self, my_user_id: T) -> Self {
+    self.my_user_id = my_user_id.get_optional();
+    self
+  }
+
+  pub fn show_nsfw(mut self, show_nsfw: bool) -> Self {
+    self.show_nsfw = show_nsfw;
+    self
+  }
+
+  pub fn saved_only(mut self, saved_only: bool) -> Self {
+    self.saved_only = saved_only;
+    self
+  }
+
+  pub fn unread_only(mut self, unread_only: bool) -> Self {
+    self.unread_only = unread_only;
+    self
+  }
+
+  pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
+    self.page = page.get_optional();
+    self
+  }
+
+  pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
+    self.limit = limit.get_optional();
+    self
+  }
+
+  pub fn list(self) -> Result<Vec<PostView>, Error> {
+    use super::post_view::post_mview::dsl::*;
+
+    let mut query = self.query;
+
+    if let ListingType::Subscribed = self.listing_type {
+      query = query.filter(subscribed.eq(true));
     }
 
-    if !show_nsfw {
-      query = query
-        .filter(nsfw.eq(false))
-        .filter(community_nsfw.eq(false));
-    };
-
-    query = match sort {
+    query = match self.sort {
       SortType::Hot => query
         .then_order_by(hot_rank.desc())
         .then_order_by(published.desc()),
@@ -168,6 +250,40 @@ impl PostView {
         .then_order_by(score.desc()),
     };
 
+    // The view lets you pass a null user_id, if you're not logged in
+    query = if let Some(my_user_id) = self.my_user_id {
+      query.filter(user_id.eq(my_user_id))
+    } else {
+      query.filter(user_id.is_null())
+    };
+
+    // If its for a specific user, show the removed / deleted
+    if let Some(for_creator_id) = self.for_creator_id {
+      query = query.filter(creator_id.eq(for_creator_id));
+    } else {
+      query = query
+        .filter(removed.eq(false))
+        .filter(deleted.eq(false))
+        .filter(community_removed.eq(false))
+        .filter(community_deleted.eq(false));
+    }
+
+    if !self.show_nsfw {
+      query = query
+        .filter(nsfw.eq(false))
+        .filter(community_nsfw.eq(false));
+    };
+
+    // TODO these are wrong, bc they'll only show saved for your logged in user, not theirs
+    if self.saved_only {
+      query = query.filter(saved.eq(true));
+    };
+
+    if self.unread_only {
+      query = query.filter(read.eq(false));
+    };
+
+    let (limit, offset) = limit_and_offset(self.page, self.limit);
     query = query
       .limit(limit)
       .offset(offset)
@@ -176,9 +292,11 @@ impl PostView {
       .filter(community_removed.eq(false))
       .filter(community_deleted.eq(false));
 
-    query.load::<Self>(conn)
+    query.load::<PostView>(self.conn)
   }
+}
 
+impl PostView {
   pub fn read(
     conn: &PgConnection,
     from_post_id: i32,
@@ -209,7 +327,7 @@ mod tests {
   use super::*;
   #[test]
   fn test_crud() {
-    let conn = establish_connection();
+    let conn = establish_unpooled_connection();
 
     let user_name = "tegan".to_string();
     let community_name = "test_community_3".to_string();
@@ -221,11 +339,18 @@ mod tests {
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
+      matrix_user_id: None,
+      avatar: None,
       updated: None,
       admin: false,
       banned: false,
       show_nsfw: false,
       theme: "darkly".into(),
+      default_sort_type: SortType::Hot as i16,
+      default_listing_type: ListingType::Subscribed as i16,
+      lang: "browser".into(),
+      show_avatars: true,
+      send_notifications_to_email: false,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -292,6 +417,7 @@ mod tests {
       body: None,
       creator_id: inserted_user.id,
       creator_name: user_name.to_owned(),
+      creator_avatar: None,
       banned: false,
       banned_from_community: false,
       community_id: inserted_community.id,
@@ -320,7 +446,7 @@ mod tests {
       user_id: Some(inserted_user.id),
       my_vote: Some(1),
       id: inserted_post.id,
-      name: post_name.to_owned(),
+      name: post_name,
       url: None,
       body: None,
       removed: false,
@@ -328,11 +454,12 @@ mod tests {
       locked: false,
       stickied: false,
       creator_id: inserted_user.id,
-      creator_name: user_name.to_owned(),
+      creator_name: user_name,
+      creator_avatar: None,
       banned: false,
       banned_from_community: false,
       community_id: inserted_community.id,
-      community_name: community_name.to_owned(),
+      community_name,
       community_removed: false,
       community_deleted: false,
       community_nsfw: false,
@@ -349,38 +476,21 @@ mod tests {
       nsfw: false,
     };
 
-    let read_post_listings_with_user = PostView::list(
-      &conn,
-      PostListingType::Community,
-      &SortType::New,
-      Some(inserted_community.id),
-      None,
-      None,
-      None,
-      Some(inserted_user.id),
-      false,
-      false,
-      false,
-      None,
-      None,
-    )
-    .unwrap();
-    let read_post_listings_no_user = PostView::list(
-      &conn,
-      PostListingType::Community,
-      &SortType::New,
-      Some(inserted_community.id),
-      None,
-      None,
-      None,
-      None,
-      false,
-      false,
-      false,
-      None,
-      None,
-    )
-    .unwrap();
+    let read_post_listings_with_user = PostQueryBuilder::create(&conn)
+      .listing_type(ListingType::Community)
+      .sort(&SortType::New)
+      .for_community_id(inserted_community.id)
+      .my_user_id(inserted_user.id)
+      .list()
+      .unwrap();
+
+    let read_post_listings_no_user = PostQueryBuilder::create(&conn)
+      .listing_type(ListingType::Community)
+      .sort(&SortType::New)
+      .for_community_id(inserted_community.id)
+      .list()
+      .unwrap();
+
     let read_post_listing_no_user = PostView::read(&conn, inserted_post.id, None).unwrap();
     let read_post_listing_with_user =
       PostView::read(&conn, inserted_post.id, Some(inserted_user.id)).unwrap();

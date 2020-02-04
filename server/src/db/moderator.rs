@@ -434,7 +434,7 @@ mod tests {
   // use Crud;
   #[test]
   fn test_crud() {
-    let conn = establish_connection();
+    let conn = establish_unpooled_connection();
 
     let new_mod = UserForm {
       name: "the mod".into(),
@@ -442,11 +442,18 @@ mod tests {
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
+      matrix_user_id: None,
+      avatar: None,
       admin: false,
       banned: false,
       updated: None,
       show_nsfw: false,
       theme: "darkly".into(),
+      default_sort_type: SortType::Hot as i16,
+      default_listing_type: ListingType::Subscribed as i16,
+      lang: "browser".into(),
+      show_avatars: true,
+      send_notifications_to_email: false,
     };
 
     let inserted_mod = User_::create(&conn, &new_mod).unwrap();
@@ -457,11 +464,18 @@ mod tests {
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
+      matrix_user_id: None,
+      avatar: None,
       admin: false,
       banned: false,
       updated: None,
       show_nsfw: false,
       theme: "darkly".into(),
+      default_sort_type: SortType::Hot as i16,
+      default_listing_type: ListingType::Subscribed as i16,
+      lang: "browser".into(),
+      show_avatars: true,
+      send_notifications_to_email: false,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();

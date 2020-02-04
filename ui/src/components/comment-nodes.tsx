@@ -1,9 +1,12 @@
 import { Component } from 'inferno';
-import { CommentNode as CommentNodeI, CommunityUser, UserView } from '../interfaces';
+import {
+  CommentNode as CommentNodeI,
+  CommunityUser,
+  UserView,
+} from '../interfaces';
 import { CommentNode } from './comment-node';
 
-interface CommentNodesState {
-}
+interface CommentNodesState {}
 
 interface CommentNodesProps {
   nodes: Array<CommentNodeI>;
@@ -16,8 +19,10 @@ interface CommentNodesProps {
   markable?: boolean;
 }
 
-export class CommentNodes extends Component<CommentNodesProps, CommentNodesState> {
-
+export class CommentNodes extends Component<
+  CommentNodesProps,
+  CommentNodesState
+> {
   constructor(props: any, context: any) {
     super(props, context);
   }
@@ -25,20 +30,19 @@ export class CommentNodes extends Component<CommentNodesProps, CommentNodesState
   render() {
     return (
       <div className="comments">
-        {this.props.nodes.map(node =>
-          <CommentNode node={node} 
-            noIndent={this.props.noIndent} 
-            viewOnly={this.props.viewOnly} 
-            locked={this.props.locked} 
+        {this.props.nodes.map(node => (
+          <CommentNode
+            node={node}
+            noIndent={this.props.noIndent}
+            viewOnly={this.props.viewOnly}
+            locked={this.props.locked}
             moderators={this.props.moderators}
             admins={this.props.admins}
             postCreatorId={this.props.postCreatorId}
             markable={this.props.markable}
           />
-        )}
+        ))}
       </div>
-    )
+    );
   }
-
 }
-
