@@ -145,7 +145,7 @@ export class Community extends Component<any, State> {
                 )}
               </h5>
               {this.selects()}
-              <PostListings posts={this.state.posts} />
+              <PostListings posts={this.state.posts} removeDuplicates />
               {this.paginator()}
             </div>
             <div class="col-12 col-md-4">
