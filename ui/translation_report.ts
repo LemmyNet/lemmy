@@ -11,6 +11,7 @@ import { nl } from './src/translations/nl';
 import { it } from './src/translations/it';
 import { fi } from './src/translations/fi';
 import { ca } from './src/translations/ca';
+import { pt_BR } from './src/translations/pt_br';
 import fs from 'fs';
 
 const files = [
@@ -23,6 +24,7 @@ const files = [
   { t: fr, n: 'fr' },
   { t: it, n: 'it' },
   { t: nl, n: 'nl' },
+  { t: pt_BR, n: 'pt-br' },
   { t: ru, n: 'ru' },
   { t: sv, n: 'sv' },
   { t: zh, n: 'zh' },
