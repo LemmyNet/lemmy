@@ -283,12 +283,12 @@ export class Community extends Component<any, State> {
     } else if (res.op == UserOperation.EditPost) {
       let data = res.data as PostResponse;
       let found = this.state.posts.find(c => c.id == data.post.id);
-
-      found.url = data.post.url;
-      found.name = data.post.name;
-      found.nsfw = data.post.nsfw;
-
-      this.setState(this.state);
+      if (found) {
+        found.url = data.post.url;
+        found.name = data.post.name;
+        found.nsfw = data.post.nsfw;
+        this.setState(this.state);
+      }
     } else if (res.op == UserOperation.CreatePost) {
       let data = res.data as PostResponse;
       this.state.posts.unshift(data.post);
@@ -296,16 +296,16 @@ export class Community extends Component<any, State> {
     } else if (res.op == UserOperation.CreatePostLike) {
       let data = res.data as PostResponse;
       let found = this.state.posts.find(c => c.id == data.post.id);
-
-      found.score = data.post.score;
-      found.upvotes = data.post.upvotes;
-      found.downvotes = data.post.downvotes;
-      if (data.post.my_vote !== null) {
-        found.my_vote = data.post.my_vote;
-        found.upvoteLoading = false;
-        found.downvoteLoading = false;
+      if (found) {
+        found.score = data.post.score;
+        found.upvotes = data.post.upvotes;
+        found.downvotes = data.post.downvotes;
+        if (data.post.my_vote !== null) {
+          found.my_vote = data.post.my_vote;
+          found.upvoteLoading = false;
+          found.downvoteLoading = false;
+        }
       }
-
       this.setState(this.state);
     } else if (res.op == UserOperation.AddModToCommunity) {
       let data = res.data as AddModToCommunityResponse;
