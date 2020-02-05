@@ -590,26 +590,27 @@ export class Main extends Component<any, MainState> {
     } else if (res.op == UserOperation.EditPost) {
       let data = res.data as PostResponse;
       let found = this.state.posts.find(c => c.id == data.post.id);
+      if (found) {
+        found.url = data.post.url;
+        found.name = data.post.name;
+        found.nsfw = data.post.nsfw;
 
-      found.url = data.post.url;
-      found.name = data.post.name;
-      found.nsfw = data.post.nsfw;
-
-      this.setState(this.state);
+        this.setState(this.state);
+      }
     } else if (res.op == UserOperation.CreatePostLike) {
       let data = res.data as PostResponse;
       let found = this.state.posts.find(c => c.id == data.post.id);
-
-      found.score = data.post.score;
-      found.upvotes = data.post.upvotes;
-      found.downvotes = data.post.downvotes;
-      if (data.post.my_vote !== null) {
-        found.my_vote = data.post.my_vote;
-        found.upvoteLoading = false;
-        found.downvoteLoading = false;
+      if (found) {
+        found.score = data.post.score;
+        found.upvotes = data.post.upvotes;
+        found.downvotes = data.post.downvotes;
+        if (data.post.my_vote !== null) {
+          found.my_vote = data.post.my_vote;
+          found.upvoteLoading = false;
+          found.downvoteLoading = false;
+        }
+        this.setState(this.state);
       }
-
-      this.setState(this.state);
     } else if (res.op == UserOperation.AddAdmin) {
       let data = res.data as AddAdminResponse;
       this.state.siteRes.admins = data.admins;

@@ -409,33 +409,39 @@ export class Post extends Component<any, PostState> {
     } else if (res.op == UserOperation.EditComment) {
       let data = res.data as CommentResponse;
       let found = this.state.comments.find(c => c.id == data.comment.id);
-      found.content = data.comment.content;
-      found.updated = data.comment.updated;
-      found.removed = data.comment.removed;
-      found.deleted = data.comment.deleted;
-      found.upvotes = data.comment.upvotes;
-      found.downvotes = data.comment.downvotes;
-      found.score = data.comment.score;
-      found.read = data.comment.read;
+      if (found) {
+        found.content = data.comment.content;
+        found.updated = data.comment.updated;
+        found.removed = data.comment.removed;
+        found.deleted = data.comment.deleted;
+        found.upvotes = data.comment.upvotes;
+        found.downvotes = data.comment.downvotes;
+        found.score = data.comment.score;
+        found.read = data.comment.read;
 
-      this.setState(this.state);
+        this.setState(this.state);
+      }
     } else if (res.op == UserOperation.SaveComment) {
       let data = res.data as CommentResponse;
       let found = this.state.comments.find(c => c.id == data.comment.id);
-      found.saved = data.comment.saved;
-      this.setState(this.state);
+      if (found) {
+        found.saved = data.comment.saved;
+        this.setState(this.state);
+      }
     } else if (res.op == UserOperation.CreateCommentLike) {
       let data = res.data as CommentResponse;
       let found: Comment = this.state.comments.find(
         c => c.id === data.comment.id
       );
-      found.score = data.comment.score;
-      found.upvotes = data.comment.upvotes;
-      found.downvotes = data.comment.downvotes;
-      if (data.comment.my_vote !== null) {
-        found.my_vote = data.comment.my_vote;
-        found.upvoteLoading = false;
-        found.downvoteLoading = false;
+      if (found) {
+        found.score = data.comment.score;
+        found.upvotes = data.comment.upvotes;
+        found.downvotes = data.comment.downvotes;
+        if (data.comment.my_vote !== null) {
+          found.my_vote = data.comment.my_vote;
+          found.upvoteLoading = false;
+          found.downvoteLoading = false;
+        }
       }
       this.setState(this.state);
     } else if (res.op == UserOperation.CreatePostLike) {
