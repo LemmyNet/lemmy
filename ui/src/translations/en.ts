@@ -171,6 +171,7 @@ export const en = {
     sponsor_message:
       'Lemmy is free, <1>open-source</1> software, meaning no advertising, monetizing, or venture capital, ever. Your donations directly support full-time development of the project. Thank you to the following people:',
     support_on_patreon: 'Support on Patreon',
+    support_on_liberapay: 'Support on Liberapay',
     donate_to_lemmy: 'Donate to Lemmy',
     donate: 'Donate',
     general_sponsors:
