@@ -5,15 +5,15 @@ use std::str::FromStr;
 #[derive(Serialize, Deserialize)]
 pub struct GetCommunity {
   id: Option<i32>,
-  name: Option<String>,
+  pub name: Option<String>,
   auth: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct GetCommunityResponse {
   pub community: CommunityView,
-  moderators: Vec<CommunityModeratorView>,
-  admins: Vec<UserView>,
+  pub moderators: Vec<CommunityModeratorView>,
+  pub admins: Vec<UserView>,
   pub online: usize,
 }
 
@@ -40,9 +40,9 @@ pub struct ListCommunities {
   auth: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ListCommunitiesResponse {
-  communities: Vec<CommunityView>,
+  pub communities: Vec<CommunityView>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

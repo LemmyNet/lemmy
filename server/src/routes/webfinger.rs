@@ -71,22 +71,22 @@ async fn get_webfinger_response(
       community_url,
     ],
     "links": [
-    {
-      "rel": "http://webfinger.net/rel/profile-page",
-      "type": "text/html",
-      "href": community_url
-    },
-    {
-      "rel": "self",
-      "type": "application/activity+json",
-      // Yes this is correct, this link doesn't include the `.json` extension
-      "href": community_url
-    }
-    // TODO: this also needs to return the subscribe link once that's implemented
-    //{
-    //  "rel": "http://ostatus.org/schema/1.0/subscribe",
-    //  "template": "https://my_instance.com/authorize_interaction?uri={uri}"
-    //}
+      {
+        "rel": "http://webfinger.net/rel/profile-page",
+        "type": "text/html",
+        "href": community.get_url(),
+      },
+      {
+        "rel": "self",
+        "type": "application/activity+json",
+        // Yes this is correct, this link doesn't include the `.json` extension
+        "href": community_url
+      }
+      // TODO: this also needs to return the subscribe link once that's implemented
+      //{
+      //  "rel": "http://ostatus.org/schema/1.0/subscribe",
+      //  "template": "https://my_instance.com/authorize_interaction?uri={uri}"
+      //}
     ]
     }))
   })

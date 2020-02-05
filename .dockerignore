@@ -1,4 +1,6 @@
 ui/node_modules
-ui/dist
-server/target
+server/target/debug
+!server/target/debug/lemmy_server
+server/target/release
+server/target/debug/incremental
 .git
