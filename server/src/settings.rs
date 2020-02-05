@@ -18,6 +18,7 @@ pub struct Settings {
   pub rate_limit: RateLimitConfig,
   pub email: Option<EmailConfig>,
   pub federation_enabled: bool,
+  pub federated_instance: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

@@ -19,6 +19,7 @@ use crate::api::post::*;
 use crate::api::site::*;
 use crate::api::user::*;
 use crate::api::*;
+use crate::apub::puller::*;
 use crate::websocket::UserOperation;
 use crate::Settings;
 
@@ -486,7 +487,24 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
     }
     UserOperation::GetCommunity => {
       let get_community: GetCommunity = serde_json::from_str(data)?;
-      let mut res = Oper::new(get_community).perform(&conn)?;
+
+      let mut res = if Settings::get().federation_enabled {
+        if let Some(community_name) = get_community.name.to_owned() {
+          if community_name.contains('@') {
+            // TODO: need to support sort, filter etc for remote communities
+            get_remote_community(community_name)?
+          // TODO what is this about
+          // get_community.name = Some(name.replace("!", ""));
+          } else {
+            Oper::new(get_community).perform(&conn)?
+          }
+        } else {
+          Oper::new(get_community).perform(&conn)?
+        }
+      } else {
+        Oper::new(get_community).perform(&conn)?
+      };
+
       let community_id = res.community.id;
 
       chat.join_community_room(community_id, msg.id);
@@ -500,7 +518,13 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       to_json_string(&user_operation, &res)
     }
     UserOperation::ListCommunities => {
-      do_user_operation::<ListCommunities, ListCommunitiesResponse>(user_operation, data, &conn)
+      if Settings::get().federation_enabled {
+        let res = get_all_communities()?;
+        let val = ListCommunitiesResponse { communities: res };
+        to_json_string(&user_operation, &val)
+      } else {
+        do_user_operation::<ListCommunities, ListCommunitiesResponse>(user_operation, data, &conn)
+      }
     }
     UserOperation::CreateCommunity => {
       chat.check_rate_limit_register(msg.id)?;

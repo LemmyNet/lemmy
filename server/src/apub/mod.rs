@@ -1,5 +1,6 @@
 pub mod community;
 pub mod post;
+pub mod puller;
 pub mod user;
 use crate::Settings;
 
