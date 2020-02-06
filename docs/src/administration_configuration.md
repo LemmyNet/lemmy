@@ -10,8 +10,6 @@ An additional option `LEMMY_DATABASE_URL` is available, which can be used with a
 If the Docker container is not used, manually create the database specified above by running the following commands:
 
 ```bash
-# Start at the root of the Lemmy repository
-
 cd server
 ./db-init.sh
 ```

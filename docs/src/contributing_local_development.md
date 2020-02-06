@@ -7,8 +7,6 @@
 #### Set up Postgres DB
 
 ```bash
-# Start at the root of the Lemmy repository
-
 cd server
 ./db-init.sh
 ```
