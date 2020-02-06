@@ -40,6 +40,7 @@ import {
   GetPrivateMessagesForm,
   UserJoinForm,
   MessageType,
+  WebSocketJsonResponse,
 } from '../interfaces';
 import { UserService } from './';
 import { i18n } from '../i18next';
@@ -59,16 +60,20 @@ export class WebSocketService {
 
   private constructor() {
     this.ws = new ReconnectingWebSocket(wsUri);
-    this.ws.onopen = () => {
-      console.log(`Connected to ${wsUri}`);
-      if (UserService.Instance.user) {
-        this.userJoin();
-      }
-    };
 
     this.subject = Observable.create((obs: any) => {
       this.ws.onmessage = e => {
         obs.next(JSON.parse(e.data));
+      };
+      this.ws.onopen = () => {
+        console.log(`Connected to ${wsUri}`);
+        if (UserService.Instance.user) {
+          this.userJoin();
+        }
+        let res: WebSocketJsonResponse = {
+          reconnect: true,
+        };
+        obs.next(res);
       };
     }).pipe(share());
   }

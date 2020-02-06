@@ -254,6 +254,8 @@ export class Community extends Component<any, State> {
       toast(i18n.t(msg.error), 'danger');
       this.context.router.history.push('/');
       return;
+    } else if (msg.reconnect) {
+      this.fetchPosts();
     } else if (res.op == UserOperation.GetCommunity) {
       let data = res.data as GetCommunityResponse;
       this.state.community = data.community;
