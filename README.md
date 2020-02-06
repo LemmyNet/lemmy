@@ -1,34 +1,35 @@
-<p align="center">
-  <a href="https://dev.lemmy.ml/" rel="noopener">
- <img width=200px height=200px src="ui/assets/favicon.svg"></a>
-</p>
-
-<h3 align="center">Lemmy</h3>
-
 <div align="center">
 
-![GitHub stars](https://img.shields.io/github/stars/dessalines/lemmy?style=social)
-[![Mastodon Follow](https://img.shields.io/mastodon/follow/810572?domain=https%3A%2F%2Fmastodon.social&style=social)](https://mastodon.social/@LemmyDev)
-[![Matrix](https://img.shields.io/matrix/rust-reddit-fediverse:matrix.org.svg?label=matrix-chat)](https://riot.im/app/#/room/#rust-reddit-fediverse:matrix.org)
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/dessalines/lemmy.svg)
 [![Build Status](https://travis-ci.org/dessalines/lemmy.svg?branch=master)](https://travis-ci.org/dessalines/lemmy)
 [![GitHub issues](https://img.shields.io/github/issues-raw/dessalines/lemmy.svg)](https://github.com/dessalines/lemmy/issues)
 [![Docker Pulls](https://img.shields.io/docker/pulls/dessalines/lemmy.svg)](https://cloud.docker.com/repository/docker/dessalines/lemmy/)
-![GitHub commit activity](https://img.shields.io/github/commit-activity/m/dessalines/lemmy.svg)
-![GitHub repo size](https://img.shields.io/github/repo-size/dessalines/lemmy.svg)
 [![License](https://img.shields.io/github/license/dessalines/lemmy.svg)](LICENSE)
-[![Patreon](https://img.shields.io/badge/-Support%20on%20Patreon-blueviolet.svg)](https://www.patreon.com/dessalines)
+![GitHub stars](https://img.shields.io/github/stars/dessalines/lemmy?style=social)
 </div>
 
----
+<p align="center">
+  <a href="https://dev.lemmy.ml/" rel="noopener">
+ <img width=200px height=200px src="ui/assets/favicon.svg"></a>
 
-<p align="center">A link aggregator / reddit clone for the fediverse.
-    <br> 
+ <h3 align="center"><a href="https://dev.lemmy.ml">Lemmy</a></h3>
+  <p align="center">
+    A link aggregator / reddit clone for the fediverse.
+    <br />
+    <br />
+    <a href="https://dev.lemmy.ml">View Site</a>
+    ·
+    <a href="https://dev.lemmy.ml/docs/index.html">Documentation</a>
+    ·
+    <a href="https://github.com/dessalines/lemmy/issues">Report Bug</a>
+    ·
+    <a href="https://github.com/dessalines/lemmy/issues">Request Feature</a>
+    ·
+    <a href="https://github.com/dessalines/lemmy/blob/master/RELEASES.md">Releases</a>
+  </p>
 </p>
 
-[Lemmy Dev instance](https://dev.lemmy.ml) *This data is being backed up, and once federation is working, it will be the basis for a main instance.*
-
-This is a **very early beta version**, and a lot of features are currently broken or in active development, such as federation.
+## About The Project
 
 Front Page|Post
 ---|---
@@ -42,17 +43,22 @@ The overall goal is to create an easily self-hostable, decentralized alternative
 
 Each lemmy server can set its own moderation policy; appointing site-wide admins, and community moderators to keep out the trolls, and foster a healthy, non-toxic environment where all can feel comfortable contributing.
 
-Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Inferno](https://infernojs.org), [Typescript](https://www.typescriptlang.org/) and [Diesel](http://diesel.rs/).
+*Note: Federation is still in active development*
 
-- [Documentation](https://dev.lemmy.ml/docs/index.html)
-- [Releases / Changelog](/RELEASES.md)
-- [Contributing](https://dev.lemmy.ml/docs/contributing.html)
+### Why's it called Lemmy?
 
-## Repository Mirrors
+- Lead singer from [Motörhead](https://invidio.us/watch?v=pWB5JZRGl0U).
+- The old school [video game](<https://en.wikipedia.org/wiki/Lemmings_(video_game)>).
+- The [Koopa from Super Mario](https://www.mariowiki.com/Lemmy_Koopa).
+- The [furry rodents](http://sunchild.fpwc.org/lemming-the-little-giant-of-the-north/).
 
-- [GitHub](https://github.com/dessalines/lemmy)
-- [Gitea](https://yerbamate.dev/dessalines/lemmy)
-- [GitLab](https://gitlab.com/dessalines/lemmy)
+### Built With
+
+- [Rust](https://www.rust-lang.org)
+- [Actix](https://actix.rs/)
+- [Diesel](http://diesel.rs/)
+- [Inferno](https://infernojs.org)
+- [Typescript](https://www.typescriptlang.org/)
 
 ## Features
 
@@ -89,60 +95,11 @@ Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Infern
   - Front end is `~80kB` gzipped.
   - Supports arm64 / Raspberry Pi.
 
-## Why's it called Lemmy?
+## Installation
 
-- Lead singer from [Motörhead](https://invidio.us/watch?v=pWB5JZRGl0U).
-- The old school [video game](<https://en.wikipedia.org/wiki/Lemmings_(video_game)>).
-- The [Koopa from Super Mario](https://www.mariowiki.com/Lemmy_Koopa).
-- The [furry rodents](http://sunchild.fpwc.org/lemming-the-little-giant-of-the-north/).
-
-## Install
-
-### Docker
-
-Make sure you have both docker and docker-compose(>=`1.24.0`) installed:
-
-```bash
-mkdir lemmy/
-cd lemmy/
-wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/docker-compose.yml
-wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/lemmy.hjson
-# Edit lemmy.hjson to do more configuration
-docker-compose up -d
-```
-
-and go to http://localhost:8536.
-
-[A sample nginx config](/ansible/templates/nginx.conf) (Image uploading won't work without this), could be setup with:
-
-```bash
-wget https://raw.githubusercontent.com/dessalines/lemmy/master/ansible/templates/nginx.conf
-# Replace the {{ vars }}
-sudo mv nginx.conf /etc/nginx/sites-enabled/lemmy.conf
-```
-#### Updating
-
-To update to the newest version, run:
-
-```bash
-wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/docker-compose.yml
-docker-compose up -d
-```
-
-### Ansible
-
-First, you need to [install Ansible on your local computer](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html) (e.g. using `sudo apt install ansible`) or the equivalent for you platform.
-
-Then run the following commands on your local computer:
-
-```bash
-git clone https://github.com/dessalines/lemmy.git
-cd lemmy/ansible/
-cp inventory.example inventory
-nano inventory # enter your server, domain, contact email
-ansible-playbook lemmy.yml --become
-```
-
+- [Docker](https://dev.lemmy.ml/docs/administration_install_docker.html)
+- [Ansible](https://dev.lemmy.ml/docs/administration_install_ansible.html)
+- [Kubernetes](https://dev.lemmy.ml/docs/administration_install_kubernetes.html)
 ## Support / Donate
 
 Lemmy is free, open-source software, meaning no advertising, monetizing, or venture capital, ever. Your donations directly support full-time development of the project.
@@ -157,7 +114,13 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 - ethereum: `0x400c96c96acbC6E7B3B43B1dc1BB446540a88A01`
 - monero: `41taVyY6e1xApqKyMVDRVxJ76sPkfZhALLTjRvVKpaAh2pBd4wv9RgYj1tSPrx8wc6iE1uWUfjtQdTmTy2FGMeChGVKPQuV`
 
-## Translations 
+## Contributing
+
+- [Contributing instructions](https://dev.lemmy.ml/docs/contributing.html)
+- [Docker Development](https://dev.lemmy.ml/docs/contributing_docker_development.html)
+- [Local Development](https://dev.lemmy.ml/docs/contributing_local_development.html)
+
+### Translations 
 
 If you'd like to add translations, take a look at the [English translation file](ui/src/translations/en.ts).
 
@@ -188,6 +151,14 @@ If you'd like to update this report, run:
 cd ui
 ts-node translation_report.ts
 ```
+
+## Contact
+
+- [Mastodon](https://mastodon.social/@LemmyDev) - [![Mastodon Follow](https://img.shields.io/mastodon/follow/810572?domain=https%3A%2F%2Fmastodon.social&style=social)](https://mastodon.social/@LemmyDev)
+- [Matrix](https://riot.im/app/#/room/#rust-reddit-fediverse:matrix.org) - [![Matrix](https://img.shields.io/matrix/rust-reddit-fediverse:matrix.org.svg?label=matrix-chat)](https://riot.im/app/#/room/#rust-reddit-fediverse:matrix.org)
+- [GitHub](https://github.com/dessalines/lemmy)
+- [Gitea](https://yerbamate.dev/dessalines/lemmy)
+- [GitLab](https://gitlab.com/dessalines/lemmy)
 
 ## Credits
 
