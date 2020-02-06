@@ -211,6 +211,7 @@ export const en = {
     community_follower_already_exists: 'Community follower already exists.',
     community_user_already_banned: 'Community user already banned.',
     couldnt_create_post: "Couldn't create post.",
+    post_title_too_long: 'Post title too long.',
     couldnt_like_post: "Couldn't like post.",
     couldnt_find_post: "Couldn't find post.",
     couldnt_get_posts: "Couldn't get posts",
