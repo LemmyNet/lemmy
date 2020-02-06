@@ -6,3 +6,12 @@ Additionally, you can override any config files with environment variables. Thes
 `LEMMY__DATABASE__POOL_SIZE=10`.
 
 An additional option `LEMMY_DATABASE_URL` is available, which can be used with a PostgreSQL connection string like `postgres://lemmy:password@lemmy_db:5432/lemmy`, passing all connection details at once.
+
+If the Docker container is not used, manually create the database specified above by running the following commands:
+
+```bash
+# Start at the root of the Lemmy repository
+
+cd server
+./db-init.sh
+```
