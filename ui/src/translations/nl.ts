@@ -125,6 +125,7 @@ export const nl = {
     sponsor_message:
       'Lemmy is vrije, <1>open-source</1> software, dus zonder reclame, winstoogmerk en durfkapitaal, punt. Jouw donaties gaan direct naar de full-time-ontwikkeling van het project. Met veel dank aan de volgende mensen:',
     support_on_patreon: 'Ondersteun op Patreon',
+    support_on_liberapay: 'Ondersteun op Liberapay',
     general_sponsors:
       'Algemene sponsors zijn sponsors die tussen de $10 en $39 hebben gegeven aan Lemmy.',
     crypto: 'Cryptovaluta',
