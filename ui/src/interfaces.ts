@@ -854,4 +854,5 @@ export interface WebSocketJsonResponse {
   op?: string;
   data?: ResponseType;
   error?: string;
+  reconnect?: boolean;
 }
