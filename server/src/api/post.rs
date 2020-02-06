@@ -126,7 +126,15 @@ impl Perform<PostResponse> for Oper<CreatePost> {
 
     let inserted_post = match Post::create(&conn, &post_form) {
       Ok(post) => post,
-      Err(_e) => return Err(APIError::err("couldnt_create_post").into()),
+      Err(e) => {
+        let err_type = if e.to_string() == "value too long for type character varying(200)" {
+          "post_title_too_long"
+        } else {
+          "couldnt_create_post"
+        };
+
+        return Err(APIError::err(err_type).into());
+      }
     };
 
     // They like their own post by default
@@ -361,7 +369,15 @@ impl Perform<PostResponse> for Oper<EditPost> {
 
     let _updated_post = match Post::update(&conn, data.edit_id, &post_form) {
       Ok(post) => post,
-      Err(_e) => return Err(APIError::err("couldnt_update_post").into()),
+      Err(e) => {
+        let err_type = if e.to_string() == "value too long for type character varying(200)" {
+          "post_title_too_long"
+        } else {
+          "couldnt_update_post"
+        };
+
+        return Err(APIError::err(err_type).into());
+      }
     };
 
     // Mod tables
