@@ -138,6 +138,7 @@ export const it = {
     sponsors_of_lemmy: 'Sponsors di Lemmy',
     sponsor_message: 'Lemmy è un software gratuito e <1>open-source</1>, il che significa nessuna pubblicità, monetizzazione o investitori esterni, per sempre. Le tue donazioni supportano direttamente lo sviluppo full-time del progetto. Si ringraziano le seguenti persone:',
     support_on_patreon: 'Supporta su Patreon',
+    support_on_liberapay: 'Supporta su Liberapay',
     general_sponsors: 'I "General Sponsors" sono quelli che hanno investito dai 10$ ai 39$ su Lemmy.',
     crypto: 'Crypto',
     bitcoin: 'Bitcoin',
