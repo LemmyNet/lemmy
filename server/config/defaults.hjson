@@ -30,7 +30,7 @@
   # rate limits for various user actions, by user ip
   rate_limit: {
     # maximum number of messages created in interval
-    message: 30
+    message: 180
     # interval length for message limit
     message_per_second: 60
     # maximum number of posts created in interval
