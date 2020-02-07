@@ -37,6 +37,7 @@
 }
 
 .md-div img {
+  max-height: 90vh;
   max-width: 100%;
   height: auto;
 }
@@ -169,4 +170,8 @@ hr {
   -moz-filter: blur(10px);
   -o-filter: blur(10px);
   -ms-filter: blur(10px);
+}
+
+.img-expanded {
+  max-height: 90vh;
 }

@@ -1,4 +1,5 @@
 # Lemmy API
+
 *Note: this may lag behind the actual API endpoints [here](../server/src/api).*
 
 <!-- toc -->
