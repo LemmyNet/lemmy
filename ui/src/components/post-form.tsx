@@ -516,12 +516,16 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       this.setState(this.state);
     } else if (res.op == UserOperation.CreatePost) {
       let data = res.data as PostResponse;
-      this.state.loading = false;
-      this.props.onCreate(data.post.id);
+      if (data.post.creator_id == UserService.Instance.user.id) {
+        this.state.loading = false;
+        this.props.onCreate(data.post.id);
+      }
     } else if (res.op == UserOperation.EditPost) {
       let data = res.data as PostResponse;
-      this.state.loading = false;
-      this.props.onEdit(data.post);
+      if (data.post.creator_id == UserService.Instance.user.id) {
+        this.state.loading = false;
+        this.props.onEdit(data.post);
+      }
     } else if (res.op == UserOperation.Search) {
       let data = res.data as SearchResponse;
 
