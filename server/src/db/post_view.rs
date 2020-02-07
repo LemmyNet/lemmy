@@ -178,7 +178,11 @@ impl<'a> PostQueryBuilder<'a> {
   pub fn search_term<T: MaybeOptional<String>>(mut self, search_term: T) -> Self {
     use super::post_view::post_mview::dsl::*;
     if let Some(search_term) = search_term.get_optional() {
-      self.query = self.query.filter(name.ilike(fuzzy_search(&search_term)));
+      let searcher = fuzzy_search(&search_term);
+      self.query = self
+        .query
+        .filter(name.ilike(searcher.to_owned()))
+        .or_filter(body.ilike(searcher));
     }
     self
   }
