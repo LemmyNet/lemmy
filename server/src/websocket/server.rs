@@ -318,11 +318,9 @@ impl ChatServer {
           };
 
           rate_limit.last_checked = current;
-          if !check_only {
-            rate_limit.allowance += time_passed * (rate as f64 / per as f64);
-            if rate_limit.allowance > rate as f64 {
-              rate_limit.allowance = rate as f64;
-            }
+          rate_limit.allowance += time_passed * (rate as f64 / per as f64);
+          if !check_only && rate_limit.allowance > rate as f64 {
+            rate_limit.allowance = rate as f64;
           }
 
           if rate_limit.allowance < 1.0 {
