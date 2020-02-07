@@ -384,7 +384,7 @@ export function showAvatars(): boolean {
 export function imageThumbnailer(url: string): string {
   let split = url.split('pictshare');
   if (split.length > 1) {
-    let out = `${split[0]}pictshare/140x140${split[1]}`;
+    let out = `${split[0]}pictshare/192x192${split[1]}`;
     return out;
   } else {
     return url;
