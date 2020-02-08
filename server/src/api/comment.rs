@@ -2,6 +2,7 @@ use super::*;
 use crate::send_email;
 use crate::settings::Settings;
 use diesel::PgConnection;
+use std::str::FromStr;
 
 #[derive(Serialize, Deserialize)]
 pub struct CreateComment {
@@ -45,6 +46,21 @@ pub struct CreateCommentLike {
   pub post_id: i32,
   score: i16,
   auth: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetComments {
+  type_: String,
+  sort: String,
+  page: Option<i64>,
+  limit: Option<i64>,
+  pub community_id: Option<i32>,
+  auth: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetCommentsResponse {
+  comments: Vec<CommentView>,
 }
 
 impl Perform<CommentResponse> for Oper<CreateComment> {
@@ -454,5 +470,42 @@ impl Perform<CommentResponse> for Oper<CreateCommentLike> {
       comment: liked_comment,
       recipient_ids,
     })
+  }
+}
+
+impl Perform<GetCommentsResponse> for Oper<GetComments> {
+  fn perform(&self, conn: &PgConnection) -> Result<GetCommentsResponse, Error> {
+    let data: &GetComments = &self.data;
+
+    let user_claims: Option<Claims> = match &data.auth {
+      Some(auth) => match Claims::decode(&auth) {
+        Ok(claims) => Some(claims.claims),
+        Err(_e) => None,
+      },
+      None => None,
+    };
+
+    let user_id = match &user_claims {
+      Some(claims) => Some(claims.id),
+      None => None,
+    };
+
+    let type_ = ListingType::from_str(&data.type_)?;
+    let sort = SortType::from_str(&data.sort)?;
+
+    let comments = match CommentQueryBuilder::create(&conn)
+      .listing_type(type_)
+      .sort(&sort)
+      .for_community_id(data.community_id)
+      .my_user_id(user_id)
+      .page(data.page)
+      .limit(data.limit)
+      .list()
+    {
+      Ok(comments) => comments,
+      Err(_e) => return Err(APIError::err("couldnt_get_comments").into()),
+    };
+
+    Ok(GetCommentsResponse { comments })
   }
 }

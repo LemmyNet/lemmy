@@ -169,6 +169,7 @@ export const es = {
     sponsor_message:
       'Lemmy es software libre y de <1>código abierto</1>, lo que significa que no tendrá publicidades, monetización, ni capitales emprendedores, nunca. Tus donaciones apoyan directamente el desarrollo a tiempo completo del proyecto. Muchas gracias a las siguientes personas:',
     support_on_patreon: 'Apoyo en Patreon',
+    support_on_liberapay: 'Apoyo en Liberapay',
     donate_to_lemmy: 'Donar a Lemmy',
     donate: 'Donar',
     general_sponsors:
