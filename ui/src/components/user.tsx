@@ -1034,20 +1034,24 @@ export class User extends Component<any, UserState> {
       let data = res.data as CommentResponse;
 
       let found = this.state.comments.find(c => c.id == data.comment.id);
-      found.content = data.comment.content;
-      found.updated = data.comment.updated;
-      found.removed = data.comment.removed;
-      found.deleted = data.comment.deleted;
-      found.upvotes = data.comment.upvotes;
-      found.downvotes = data.comment.downvotes;
-      found.score = data.comment.score;
-
-      this.setState(this.state);
+      if (found) {
+        found.content = data.comment.content;
+        found.updated = data.comment.updated;
+        found.removed = data.comment.removed;
+        found.deleted = data.comment.deleted;
+        found.upvotes = data.comment.upvotes;
+        found.downvotes = data.comment.downvotes;
+        found.score = data.comment.score;
+        this.setState(this.state);
+      }
     } else if (res.op == UserOperation.CreateComment) {
-      // let res: CommentResponse = msg;
-      toast(i18n.t('reply_sent'));
-      // this.state.comments.unshift(res.comment); // TODO do this right
-      // this.setState(this.state);
+      let data = res.data as CommentResponse;
+      if (
+        UserService.Instance.user &&
+        data.comment.creator_id == UserService.Instance.user.id
+      ) {
+        toast(i18n.t('reply_sent'));
+      }
     } else if (res.op == UserOperation.SaveComment) {
       let data = res.data as CommentResponse;
       let found = this.state.comments.find(c => c.id == data.comment.id);

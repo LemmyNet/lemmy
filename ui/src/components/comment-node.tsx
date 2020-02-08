@@ -58,7 +58,9 @@ interface CommentNodeProps {
   markable?: boolean;
   moderators: Array<CommunityUser>;
   admins: Array<UserView>;
+  // TODO is this necessary, can't I get it from the node itself?
   postCreatorId?: number;
+  showCommunity?: boolean;
 }
 
 export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
@@ -205,6 +207,14 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 <span>) </span>
               </span>
             </li>
+            {this.props.showCommunity && (
+              <li className="list-inline-item">
+                <span> {i18n.t('to')} </span>
+                <Link to={`/c/${node.comment.community_name}`}>
+                  {node.comment.community_name}
+                </Link>
+              </li>
+            )}
             <li className="list-inline-item">
               <span>
                 <MomentTime data={node.comment} />

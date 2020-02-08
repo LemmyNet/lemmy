@@ -7,9 +7,16 @@
 #### Set up Postgres DB
 
 ```bash
- psql -c "create user lemmy with password 'password' superuser;" -U postgres
- psql -c 'create database lemmy with owner lemmy;' -U postgres
- export LEMMY_DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
+cd server
+./db-init.sh
+```
+
+Or run the commands manually:
+
+```bash
+psql -c "create user lemmy with password 'password' superuser;" -U postgres
+psql -c 'create database lemmy with owner lemmy;' -U postgres
+export LEMMY_DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
 ```
 
 #### Running
