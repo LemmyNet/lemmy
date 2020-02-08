@@ -171,6 +171,7 @@ export interface Post {
   upvotes: number;
   downvotes: number;
   hot_rank: number;
+  newest_activity_time: string;
   user_id?: number;
   my_vote?: number;
   subscribed?: boolean;
