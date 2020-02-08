@@ -25,7 +25,7 @@ done
 if [ "$init_db_final" = 1 ]
 then
   source ./server/db-init.sh
-  read -n 1 -s -r -p "Press ENTER to continue execution of this script, press CTRL+C to quit..."
+  read -n 1 -s -r -p "Press ANY KEY to continue execution of this script, press CTRL+C to quit..."
 fi
 
 # Build the web client
