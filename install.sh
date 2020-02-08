@@ -18,7 +18,7 @@ do
   read -p "Initialize database (y/n)? " init_db
   case "${init_db,,}" in 
     y|yes ) init_db_valid=1; init_db_final=1;;
-    n|no ) init_db_valid=1 init_db_final=0;;
+    n|no ) init_db_valid=1; init_db_final=0;;
     * ) echo "Invalid input" 1>&2;;
   esac
 done
