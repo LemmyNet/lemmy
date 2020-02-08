@@ -15,6 +15,7 @@ table! {
     updated -> Nullable<Timestamp>,
     deleted -> Bool,
     community_id -> Int4,
+    community_name -> Varchar,
     banned -> Bool,
     banned_from_community -> Bool,
     creator_name -> Varchar,
@@ -22,8 +23,10 @@ table! {
     score -> BigInt,
     upvotes -> BigInt,
     downvotes -> BigInt,
+    hot_rank -> Int4,
     user_id -> Nullable<Int4>,
     my_vote -> Nullable<Int4>,
+    subscribed -> Nullable<Bool>,
     saved -> Nullable<Bool>,
   }
 }
@@ -41,6 +44,7 @@ table! {
     updated -> Nullable<Timestamp>,
     deleted -> Bool,
     community_id -> Int4,
+    community_name -> Varchar,
     banned -> Bool,
     banned_from_community -> Bool,
     creator_name -> Varchar,
@@ -48,8 +52,10 @@ table! {
     score -> BigInt,
     upvotes -> BigInt,
     downvotes -> BigInt,
+    hot_rank -> Int4,
     user_id -> Nullable<Int4>,
     my_vote -> Nullable<Int4>,
+    subscribed -> Nullable<Bool>,
     saved -> Nullable<Bool>,
   }
 }
@@ -70,6 +76,7 @@ pub struct CommentView {
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
   pub community_id: i32,
+  pub community_name: String,
   pub banned: bool,
   pub banned_from_community: bool,
   pub creator_name: String,
@@ -77,15 +84,19 @@ pub struct CommentView {
   pub score: i64,
   pub upvotes: i64,
   pub downvotes: i64,
+  pub hot_rank: i32,
   pub user_id: Option<i32>,
   pub my_vote: Option<i32>,
+  pub subscribed: Option<bool>,
   pub saved: Option<bool>,
 }
 
 pub struct CommentQueryBuilder<'a> {
   conn: &'a PgConnection,
   query: super::comment_view::comment_mview::BoxedQuery<'a, Pg>,
+  listing_type: ListingType,
   sort: &'a SortType,
+  for_community_id: Option<i32>,
   for_post_id: Option<i32>,
   for_creator_id: Option<i32>,
   search_term: Option<String>,
@@ -104,7 +115,9 @@ impl<'a> CommentQueryBuilder<'a> {
     CommentQueryBuilder {
       conn,
       query,
+      listing_type: ListingType::All,
       sort: &SortType::New,
+      for_community_id: None,
       for_post_id: None,
       for_creator_id: None,
       search_term: None,
@@ -113,6 +126,11 @@ impl<'a> CommentQueryBuilder<'a> {
       page: None,
       limit: None,
     }
+  }
+
+  pub fn listing_type(mut self, listing_type: ListingType) -> Self {
+    self.listing_type = listing_type;
+    self
   }
 
   pub fn sort(mut self, sort: &'a SortType) -> Self {
@@ -127,6 +145,11 @@ impl<'a> CommentQueryBuilder<'a> {
 
   pub fn for_creator_id<T: MaybeOptional<i32>>(mut self, for_creator_id: T) -> Self {
     self.for_creator_id = for_creator_id.get_optional();
+    self
+  }
+
+  pub fn for_community_id<T: MaybeOptional<i32>>(mut self, for_community_id: T) -> Self {
+    self.for_community_id = for_community_id.get_optional();
     self
   }
 
@@ -171,6 +194,10 @@ impl<'a> CommentQueryBuilder<'a> {
       query = query.filter(creator_id.eq(for_creator_id));
     };
 
+    if let Some(for_community_id) = self.for_community_id {
+      query = query.filter(community_id.eq(for_community_id));
+    }
+
     if let Some(for_post_id) = self.for_post_id {
       query = query.filter(post_id.eq(for_post_id));
     };
@@ -179,12 +206,18 @@ impl<'a> CommentQueryBuilder<'a> {
       query = query.filter(content.ilike(fuzzy_search(&search_term)));
     };
 
+    if let ListingType::Subscribed = self.listing_type {
+      query = query.filter(subscribed.eq(true));
+    }
+
     if self.saved_only {
       query = query.filter(saved.eq(true));
     }
 
     query = match self.sort {
-      // SortType::Hot => query.order(hot_rank.desc(), published.desc()),
+      SortType::Hot => query
+        .order_by(hot_rank.desc())
+        .then_order_by(published.desc()),
       SortType::New => query.order_by(published.desc()),
       SortType::TopAll => query.order_by(score.desc()),
       SortType::TopYear => query
@@ -199,7 +232,7 @@ impl<'a> CommentQueryBuilder<'a> {
       SortType::TopDay => query
         .filter(published.gt(now - 1.days()))
         .order_by(score.desc()),
-      _ => query.order_by(published.desc()),
+      // _ => query.order_by(published.desc()),
     };
 
     let (limit, offset) = limit_and_offset(self.page, self.limit);
@@ -251,6 +284,7 @@ table! {
     updated -> Nullable<Timestamp>,
     deleted -> Bool,
     community_id -> Int4,
+    community_name -> Varchar,
     banned -> Bool,
     banned_from_community -> Bool,
     creator_name -> Varchar,
@@ -258,8 +292,10 @@ table! {
     score -> BigInt,
     upvotes -> BigInt,
     downvotes -> BigInt,
+    hot_rank -> Int4,
     user_id -> Nullable<Int4>,
     my_vote -> Nullable<Int4>,
+    subscribed -> Nullable<Bool>,
     saved -> Nullable<Bool>,
     recipient_id -> Int4,
   }
@@ -281,6 +317,7 @@ pub struct ReplyView {
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
   pub community_id: i32,
+  pub community_name: String,
   pub banned: bool,
   pub banned_from_community: bool,
   pub creator_name: String,
@@ -288,8 +325,10 @@ pub struct ReplyView {
   pub score: i64,
   pub upvotes: i64,
   pub downvotes: i64,
+  pub hot_rank: i32,
   pub user_id: Option<i32>,
   pub my_vote: Option<i32>,
+  pub subscribed: Option<bool>,
   pub saved: Option<bool>,
   pub recipient_id: i32,
 }
@@ -474,6 +513,7 @@ mod tests {
       creator_id: inserted_user.id,
       post_id: inserted_post.id,
       community_id: inserted_community.id,
+      community_name: inserted_community.name.to_owned(),
       parent_id: None,
       removed: false,
       deleted: false,
@@ -486,9 +526,11 @@ mod tests {
       creator_avatar: None,
       score: 1,
       downvotes: 0,
+      hot_rank: 0,
       upvotes: 1,
       user_id: None,
       my_vote: None,
+      subscribed: None,
       saved: None,
     };
 
@@ -498,6 +540,7 @@ mod tests {
       creator_id: inserted_user.id,
       post_id: inserted_post.id,
       community_id: inserted_community.id,
+      community_name: inserted_community.name.to_owned(),
       parent_id: None,
       removed: false,
       deleted: false,
@@ -510,21 +553,26 @@ mod tests {
       creator_avatar: None,
       score: 1,
       downvotes: 0,
+      hot_rank: 0,
       upvotes: 1,
       user_id: Some(inserted_user.id),
       my_vote: Some(1),
+      subscribed: None,
       saved: None,
     };
 
-    let read_comment_views_no_user = CommentQueryBuilder::create(&conn)
+    let mut read_comment_views_no_user = CommentQueryBuilder::create(&conn)
       .for_post_id(inserted_post.id)
       .list()
       .unwrap();
-    let read_comment_views_with_user = CommentQueryBuilder::create(&conn)
+    read_comment_views_no_user[0].hot_rank = 0;
+
+    let mut read_comment_views_with_user = CommentQueryBuilder::create(&conn)
       .for_post_id(inserted_post.id)
       .my_user_id(inserted_user.id)
       .list()
       .unwrap();
+    read_comment_views_with_user[0].hot_rank = 0;
 
     let like_removed = CommentLike::remove(&conn, &comment_like_form).unwrap();
     let num_deleted = Comment::delete(&conn, inserted_comment.id).unwrap();

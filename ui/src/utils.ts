@@ -19,6 +19,7 @@ import {
   User,
   SortType,
   ListingType,
+  DataType,
   SearchType,
   WebSocketResponse,
   WebSocketJsonResponse,
@@ -196,6 +197,10 @@ export function routeSortTypeToEnum(sort: string): SortType {
 
 export function routeListingTypeToEnum(type: string): ListingType {
   return ListingType[capitalizeFirstLetter(type)];
+}
+
+export function routeDataTypeToEnum(type: string): DataType {
+  return DataType[capitalizeFirstLetter(type)];
 }
 
 export function routeSearchTypeToEnum(type: string): SearchType {
@@ -518,4 +523,31 @@ function communitySearch(text: string, cb: any) {
   } else {
     cb([]);
   }
+}
+
+export function getListingTypeFromProps(props: any): ListingType {
+  return props.match.params.listing_type
+    ? routeListingTypeToEnum(props.match.params.listing_type)
+    : UserService.Instance.user
+    ? UserService.Instance.user.default_listing_type
+    : ListingType.All;
+}
+
+// TODO might need to add a user setting for this too
+export function getDataTypeFromProps(props: any): DataType {
+  return props.match.params.data_type
+    ? routeDataTypeToEnum(props.match.params.data_type)
+    : DataType.Post;
+}
+
+export function getSortTypeFromProps(props: any): SortType {
+  return props.match.params.sort
+    ? routeSortTypeToEnum(props.match.params.sort)
+    : UserService.Instance.user
+    ? UserService.Instance.user.default_sort_type
+    : SortType.Hot;
+}
+
+export function getPageFromProps(props: any): number {
+  return props.match.params.page ? Number(props.match.params.page) : 1;
 }
