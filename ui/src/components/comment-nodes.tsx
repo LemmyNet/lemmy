@@ -17,6 +17,7 @@ interface CommentNodesProps {
   viewOnly?: boolean;
   locked?: boolean;
   markable?: boolean;
+  showCommunity?: boolean;
 }
 
 export class CommentNodes extends Component<
@@ -40,6 +41,7 @@ export class CommentNodes extends Component<
             admins={this.props.admins}
             postCreatorId={this.props.postCreatorId}
             markable={this.props.markable}
+            showCommunity={this.props.showCommunity}
           />
         ))}
       </div>

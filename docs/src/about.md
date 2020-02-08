@@ -1,6 +1,8 @@
-# Lemmy - A link aggregator / reddit clone for the fediverse.
+## About The Project
 
-[Lemmy Dev instance](https://dev.lemmy.ml) *for testing purposes only*
+Front Page|Post
+---|---
+![main screen](https://i.imgur.com/kZSRcRu.png)|![chat screen](https://i.imgur.com/4XghNh6.png)
 
 [Lemmy](https://github.com/dessalines/lemmy) is similar to sites like [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), [Raddle](https://raddle.me), or [Hacker News](https://news.ycombinator.com/): you subscribe to forums you're interested in, post links and discussions, then vote, and comment on them. Behind the scenes, it is very different; anyone can easily run a server, and all these servers are federated (think email), and connected to the same universe, called the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
 
@@ -10,6 +12,8 @@ The overall goal is to create an easily self-hostable, decentralized alternative
 
 Each lemmy server can set its own moderation policy; appointing site-wide admins, and community moderators to keep out the trolls, and foster a healthy, non-toxic environment where all can feel comfortable contributing.
 
+*Note: Federation is still in active development*
+
 ### Why's it called Lemmy?
 
 - Lead singer from [Motörhead](https://invidio.us/watch?v=pWB5JZRGl0U).
@@ -17,4 +21,10 @@ Each lemmy server can set its own moderation policy; appointing site-wide admins
 - The [Koopa from Super Mario](https://www.mariowiki.com/Lemmy_Koopa).
 - The [furry rodents](http://sunchild.fpwc.org/lemming-the-little-giant-of-the-north/).
 
-Made with [Rust](https://www.rust-lang.org), [Actix](https://actix.rs/), [Inferno](https://infernojs.org), [Typescript](https://www.typescriptlang.org/) and [Diesel](http://diesel.rs/).
+### Built With
+
+- [Rust](https://www.rust-lang.org)
+- [Actix](https://actix.rs/)
+- [Diesel](http://diesel.rs/)
+- [Inferno](https://infernojs.org)
+- [Typescript](https://www.typescriptlang.org/)

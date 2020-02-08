@@ -37,6 +37,8 @@ import autosize from 'autosize';
 import Tribute from 'tributejs/src/Tribute.js';
 import { i18n } from '../i18next';
 
+const MAX_POST_TITLE_LENGTH = 200;
+
 interface PostFormProps {
   post?: Post; // If a post is given, that means this is an edit
   params?: PostFormParams;
@@ -232,7 +234,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
                 required
                 rows={2}
                 minLength={3}
-                maxLength={100}
+                maxLength={MAX_POST_TITLE_LENGTH}
               />
               {this.state.suggestedPosts.length > 0 && (
                 <>
@@ -360,7 +362,10 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
   }
 
   copySuggestedTitle(i: PostForm) {
-    i.state.postForm.name = i.state.suggestedTitle;
+    i.state.postForm.name = i.state.suggestedTitle.substring(
+      0,
+      MAX_POST_TITLE_LENGTH
+    );
     i.state.suggestedTitle = undefined;
     i.setState(i.state);
   }
@@ -511,12 +516,16 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       this.setState(this.state);
     } else if (res.op == UserOperation.CreatePost) {
       let data = res.data as PostResponse;
-      this.state.loading = false;
-      this.props.onCreate(data.post.id);
+      if (data.post.creator_id == UserService.Instance.user.id) {
+        this.state.loading = false;
+        this.props.onCreate(data.post.id);
+      }
     } else if (res.op == UserOperation.EditPost) {
       let data = res.data as PostResponse;
-      this.state.loading = false;
-      this.props.onEdit(data.post);
+      if (data.post.creator_id == UserService.Instance.user.id) {
+        this.state.loading = false;
+        this.props.onEdit(data.post);
+      }
     } else if (res.op == UserOperation.Search) {
       let data = res.data as SearchResponse;
 

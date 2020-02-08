@@ -237,7 +237,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                         class="pointer"
                         onClick={linkEvent(this, this.handleImageExpandClick)}
                       >
-                        <img class="img-fluid" src={post.url} />
+                        <img class="img-fluid img-expanded" src={post.url} />
                       </span>
                     </div>
                   </span>
