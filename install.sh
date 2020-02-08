@@ -21,11 +21,13 @@ do
     n|no ) init_db_valid=1; init_db_final=0;;
     * ) echo "Invalid input" 1>&2;;
   esac
+  echo
 done
 if [ "$init_db_final" = 1 ]
 then
   source ./server/db-init.sh
   read -n 1 -s -r -p "Press ANY KEY to continue execution of this script, press CTRL+C to quit..."
+  echo
 fi
 
 # Build the web client
