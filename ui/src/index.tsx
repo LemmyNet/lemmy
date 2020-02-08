@@ -41,7 +41,7 @@ class Index extends Component<any, any> {
             <Switch>
               <Route exact path={`/`} component={Main} />
               <Route
-                path={`/home/type/:type/sort/:sort/page/:page`}
+                path={`/home/data_type/:data_type/listing_type/:listing_type/sort/:sort/page/:page`}
                 component={Main}
               />
               <Route path={`/login`} component={Login} />
@@ -56,7 +56,7 @@ class Index extends Component<any, any> {
               <Route path={`/post/:id/comment/:comment_id`} component={Post} />
               <Route path={`/post/:id`} component={Post} />
               <Route
-                path={`/c/:name/sort/:sort/page/:page`}
+                path={`/c/:name/data_type/:data_type/sort/:sort/page/:page`}
                 component={Community}
               />
               <Route path={`/community/:id`} component={Community} />

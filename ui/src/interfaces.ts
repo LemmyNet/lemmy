@@ -42,6 +42,7 @@ export enum UserOperation {
   EditPrivateMessage,
   GetPrivateMessages,
   UserJoin,
+  GetComments,
 }
 
 export enum CommentSortType {
@@ -55,6 +56,11 @@ export enum ListingType {
   All,
   Subscribed,
   Community,
+}
+
+export enum DataType {
+  Post,
+  Comment,
 }
 
 export enum SortType {
@@ -187,6 +193,7 @@ export interface Comment {
   published: string;
   updated?: string;
   community_id: number;
+  community_name: string;
   banned: boolean;
   banned_from_community: boolean;
   creator_name: string;
@@ -194,8 +201,10 @@ export interface Comment {
   score: number;
   upvotes: number;
   downvotes: number;
+  hot_rank: number;
   user_id?: number;
   my_vote?: number;
+  subscribed?: number;
   saved?: boolean;
   user_mention_id?: number; // For mention type
   recipient_id?: number;
@@ -657,6 +666,19 @@ export interface GetPostsForm {
 
 export interface GetPostsResponse {
   posts: Array<Post>;
+}
+
+export interface GetCommentsForm {
+  type_: string;
+  sort: string;
+  page?: number;
+  limit: number;
+  community_id?: number;
+  auth?: string;
+}
+
+export interface GetCommentsResponse {
+  comments: Array<Comment>;
 }
 
 export interface CreatePostLikeForm {
