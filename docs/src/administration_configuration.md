@@ -1,3 +1,5 @@
+# Configuration
+
 The configuration is based on the file [defaults.hjson](server/config/defaults.hjson). This file also contains documentation for all the available options. To override the defaults, you can copy the options you want to change into your local `config.hjson` file. 
 
 Additionally, you can override any config files with environment variables. These have the same name as the config options, and are prefixed with `LEMMY_`. For example, you can override the `database.password` with 
@@ -8,8 +10,6 @@ An additional option `LEMMY_DATABASE_URL` is available, which can be used with a
 If the Docker container is not used, manually create the database specified above by running the following commands:
 
 ```bash
-# Start at the root of the Lemmy repository
-
 cd server
 ./db-init.sh
 ```
