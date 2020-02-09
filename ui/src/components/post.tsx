@@ -31,7 +31,6 @@ import {
 import { WebSocketService, UserService } from '../services';
 import {
   wsJsonToRes,
-  hotRank,
   toast,
   editCommentRes,
   saveCommentRes,
@@ -314,46 +313,7 @@ export class Post extends Component<any, PostState> {
       }
     }
 
-    this.sortTree(tree);
-
     return tree;
-  }
-
-  sortTree(tree: Array<CommentNodeI>) {
-    // First, put removed and deleted comments at the bottom, then do your other sorts
-    if (this.state.commentSort == CommentSortType.Top) {
-      tree.sort(
-        (a, b) =>
-          +a.comment.removed - +b.comment.removed ||
-          +a.comment.deleted - +b.comment.deleted ||
-          b.comment.score - a.comment.score
-      );
-    } else if (this.state.commentSort == CommentSortType.New) {
-      tree.sort(
-        (a, b) =>
-          +a.comment.removed - +b.comment.removed ||
-          +a.comment.deleted - +b.comment.deleted ||
-          b.comment.published.localeCompare(a.comment.published)
-      );
-    } else if (this.state.commentSort == CommentSortType.Old) {
-      tree.sort(
-        (a, b) =>
-          +a.comment.removed - +b.comment.removed ||
-          +a.comment.deleted - +b.comment.deleted ||
-          a.comment.published.localeCompare(b.comment.published)
-      );
-    } else if (this.state.commentSort == CommentSortType.Hot) {
-      tree.sort(
-        (a, b) =>
-          +a.comment.removed - +b.comment.removed ||
-          +a.comment.deleted - +b.comment.deleted ||
-          hotRank(b.comment) - hotRank(a.comment)
-      );
-    }
-
-    for (let node of tree) {
-      this.sortTree(node.children);
-    }
   }
 
   commentsTree() {
@@ -366,6 +326,7 @@ export class Post extends Component<any, PostState> {
           moderators={this.state.moderators}
           admins={this.state.admins}
           postCreatorId={this.state.post.creator_id}
+          sort={this.state.commentSort}
         />
       </div>
     );

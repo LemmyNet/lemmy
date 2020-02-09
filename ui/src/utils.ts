@@ -20,6 +20,7 @@ import {
   PrivateMessage,
   User,
   SortType,
+  CommentSortType,
   ListingType,
   DataType,
   SearchType,
@@ -93,15 +94,22 @@ md.renderer.rules.emoji = function(token, idx) {
   return twemoji.parse(token[idx].content);
 };
 
-export function hotRank(comment: Comment): number {
-  // Rank = ScaleFactor * sign(Score) * log(1 + abs(Score)) / (Time + 2)^Gravity
+export function hotRankComment(comment: Comment): number {
+  return hotRank(comment.score, comment.published);
+}
 
-  let date: Date = new Date(comment.published + 'Z'); // Add Z to convert from UTC date
+export function hotRankPost(post: Post): number {
+  return hotRank(post.score, post.newest_activity_time);
+}
+
+export function hotRank(score: number, timeStr: string): number {
+  // Rank = ScaleFactor * sign(Score) * log(1 + abs(Score)) / (Time + 2)^Gravity
+  let date: Date = new Date(timeStr + 'Z'); // Add Z to convert from UTC date
   let now: Date = new Date();
   let hoursElapsed: number = (now.getTime() - date.getTime()) / 36e5;
 
   let rank =
-    (10000 * Math.log10(Math.max(1, 3 + comment.score))) /
+    (10000 * Math.log10(Math.max(1, 3 + score))) /
     Math.pow(hoursElapsed + 2, 1.8);
 
   // console.log(`Comment: ${comment.content}\nRank: ${rank}\nScore: ${comment.score}\nHours: ${hoursElapsed}`);
@@ -638,4 +646,96 @@ export function commentsToFlatNodes(
     nodes.push({ comment: comment });
   }
   return nodes;
+}
+
+export function commentSort(tree: Array<CommentNode>, sort: CommentSortType) {
+  // First, put removed and deleted comments at the bottom, then do your other sorts
+  if (sort == CommentSortType.Top) {
+    tree.sort(
+      (a, b) =>
+        +a.comment.removed - +b.comment.removed ||
+        +a.comment.deleted - +b.comment.deleted ||
+        b.comment.score - a.comment.score
+    );
+  } else if (sort == CommentSortType.New) {
+    tree.sort(
+      (a, b) =>
+        +a.comment.removed - +b.comment.removed ||
+        +a.comment.deleted - +b.comment.deleted ||
+        b.comment.published.localeCompare(a.comment.published)
+    );
+  } else if (sort == CommentSortType.Old) {
+    tree.sort(
+      (a, b) =>
+        +a.comment.removed - +b.comment.removed ||
+        +a.comment.deleted - +b.comment.deleted ||
+        a.comment.published.localeCompare(b.comment.published)
+    );
+  } else if (sort == CommentSortType.Hot) {
+    tree.sort(
+      (a, b) =>
+        +a.comment.removed - +b.comment.removed ||
+        +a.comment.deleted - +b.comment.deleted ||
+        hotRankComment(b.comment) - hotRankComment(a.comment)
+    );
+  }
+
+  // Go through the children recursively
+  for (let node of tree) {
+    if (node.children) {
+      commentSort(node.children, sort);
+    }
+  }
+}
+
+export function commentSortSortType(tree: Array<CommentNode>, sort: SortType) {
+  commentSort(tree, convertCommentSortType(sort));
+}
+
+function convertCommentSortType(sort: SortType): CommentSortType {
+  if (
+    sort == SortType.TopAll ||
+    sort == SortType.TopDay ||
+    sort == SortType.TopWeek ||
+    sort == SortType.TopMonth ||
+    sort == SortType.TopYear
+  ) {
+    return CommentSortType.Top;
+  } else if (sort == SortType.New) {
+    return CommentSortType.New;
+  } else if (sort == SortType.Hot) {
+    return CommentSortType.Hot;
+  } else {
+    return CommentSortType.Hot;
+  }
+}
+
+export function postSort(posts: Array<Post>, sort: SortType) {
+  // First, put removed and deleted comments at the bottom, then do your other sorts
+  if (
+    sort == SortType.TopAll ||
+    sort == SortType.TopDay ||
+    sort == SortType.TopWeek ||
+    sort == SortType.TopMonth ||
+    sort == SortType.TopYear
+  ) {
+    posts.sort(
+      (a, b) =>
+        +a.removed - +b.removed || +a.deleted - +b.deleted || b.score - a.score
+    );
+  } else if (sort == SortType.New) {
+    posts.sort(
+      (a, b) =>
+        +a.removed - +b.removed ||
+        +a.deleted - +b.deleted ||
+        b.published.localeCompare(a.published)
+    );
+  } else if (sort == SortType.Hot) {
+    posts.sort(
+      (a, b) =>
+        +a.removed - +b.removed ||
+        +a.deleted - +b.deleted ||
+        hotRankPost(b) - hotRankPost(a)
+    );
+  }
 }
