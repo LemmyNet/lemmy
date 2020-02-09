@@ -15,6 +15,8 @@ import {
   TransferCommunityForm,
   TransferSiteForm,
   BanType,
+  CommentSortType,
+  SortType,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import {
@@ -61,6 +63,8 @@ interface CommentNodeProps {
   // TODO is this necessary, can't I get it from the node itself?
   postCreatorId?: number;
   showCommunity?: boolean;
+  sort?: CommentSortType;
+  sortType?: SortType;
 }
 
 export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
@@ -630,6 +634,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             moderators={this.props.moderators}
             admins={this.props.admins}
             postCreatorId={this.props.postCreatorId}
+            sort={this.props.sort}
+            sortType={this.props.sortType}
           />
         )}
         {/* A collapsed clearfix */}
