@@ -51,6 +51,7 @@ import {
   createPostLikeFindRes,
   editPostFindRes,
   commentsToFlatNodes,
+  commentSortSortType,
 } from '../utils';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -404,12 +405,18 @@ export class Main extends Component<any, MainState> {
 
   listings() {
     return this.state.dataType == DataType.Post ? (
-      <PostListings posts={this.state.posts} showCommunity removeDuplicates />
+      <PostListings
+        posts={this.state.posts}
+        showCommunity
+        removeDuplicates
+        sort={this.state.sort}
+      />
     ) : (
       <CommentNodes
         nodes={commentsToFlatNodes(this.state.comments)}
         noIndent
         showCommunity
+        sortType={this.state.sort}
       />
     );
   }

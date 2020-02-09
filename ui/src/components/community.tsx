@@ -178,9 +178,17 @@ export class Community extends Component<any, State> {
 
   listings() {
     return this.state.dataType == DataType.Post ? (
-      <PostListings posts={this.state.posts} removeDuplicates />
+      <PostListings
+        posts={this.state.posts}
+        removeDuplicates
+        sort={this.state.sort}
+      />
     ) : (
-      <CommentNodes nodes={commentsToFlatNodes(this.state.comments)} noIndent />
+      <CommentNodes
+        nodes={commentsToFlatNodes(this.state.comments)}
+        noIndent
+        sortType={this.state.sort}
+      />
     );
   }
 
