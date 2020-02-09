@@ -37,6 +37,12 @@ import {
   getPageFromProps,
   getSortTypeFromProps,
   getDataTypeFromProps,
+  editCommentRes,
+  saveCommentRes,
+  createCommentLikeRes,
+  createPostLikeFindRes,
+  editPostFindRes,
+  commentsToFlatNodes,
 } from '../utils';
 import { i18n } from '../i18next';
 
@@ -174,13 +180,7 @@ export class Community extends Component<any, State> {
     return this.state.dataType == DataType.Post ? (
       <PostListings posts={this.state.posts} removeDuplicates />
     ) : (
-      this.state.comments.map(comment => (
-        <div class="row">
-          <div class="col-12">
-            <CommentNodes nodes={[{ comment: comment }]} noIndent />
-          </div>
-        </div>
-      ))
+      <CommentNodes nodes={commentsToFlatNodes(this.state.comments)} noIndent />
     );
   }
 
@@ -333,30 +333,15 @@ export class Community extends Component<any, State> {
       this.setState(this.state);
     } else if (res.op == UserOperation.EditPost) {
       let data = res.data as PostResponse;
-      let found = this.state.posts.find(c => c.id == data.post.id);
-      if (found) {
-        found.url = data.post.url;
-        found.name = data.post.name;
-        found.nsfw = data.post.nsfw;
-        this.setState(this.state);
-      }
+      editPostFindRes(data, this.state.posts);
+      this.setState(this.state);
     } else if (res.op == UserOperation.CreatePost) {
       let data = res.data as PostResponse;
       this.state.posts.unshift(data.post);
       this.setState(this.state);
     } else if (res.op == UserOperation.CreatePostLike) {
       let data = res.data as PostResponse;
-      let found = this.state.posts.find(c => c.id == data.post.id);
-      if (found) {
-        found.score = data.post.score;
-        found.upvotes = data.post.upvotes;
-        found.downvotes = data.post.downvotes;
-        if (data.post.my_vote !== null) {
-          found.my_vote = data.post.my_vote;
-          found.upvoteLoading = false;
-          found.downvoteLoading = false;
-        }
-      }
+      createPostLikeFindRes(data, this.state.posts);
       this.setState(this.state);
     } else if (res.op == UserOperation.AddModToCommunity) {
       let data = res.data as AddModToCommunityResponse;
@@ -377,18 +362,8 @@ export class Community extends Component<any, State> {
       this.setState(this.state);
     } else if (res.op == UserOperation.EditComment) {
       let data = res.data as CommentResponse;
-
-      let found = this.state.comments.find(c => c.id == data.comment.id);
-      if (found) {
-        found.content = data.comment.content;
-        found.updated = data.comment.updated;
-        found.removed = data.comment.removed;
-        found.deleted = data.comment.deleted;
-        found.upvotes = data.comment.upvotes;
-        found.downvotes = data.comment.downvotes;
-        found.score = data.comment.score;
-        this.setState(this.state);
-      }
+      editCommentRes(data, this.state.comments);
+      this.setState(this.state);
     } else if (res.op == UserOperation.CreateComment) {
       let data = res.data as CommentResponse;
 
@@ -399,18 +374,11 @@ export class Community extends Component<any, State> {
       }
     } else if (res.op == UserOperation.SaveComment) {
       let data = res.data as CommentResponse;
-      let found = this.state.comments.find(c => c.id == data.comment.id);
-      found.saved = data.comment.saved;
+      saveCommentRes(data, this.state.comments);
       this.setState(this.state);
     } else if (res.op == UserOperation.CreateCommentLike) {
       let data = res.data as CommentResponse;
-      let found: Comment = this.state.comments.find(
-        c => c.id === data.comment.id
-      );
-      found.score = data.comment.score;
-      found.upvotes = data.comment.upvotes;
-      found.downvotes = data.comment.downvotes;
-      if (data.comment.my_vote !== null) found.my_vote = data.comment.my_vote;
+      createCommentLikeRes(data, this.state.comments);
       this.setState(this.state);
     }
   }
