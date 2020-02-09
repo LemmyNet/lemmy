@@ -48,8 +48,10 @@ interface CommentNodeState {
   showConfirmAppointAsAdmin: boolean;
   collapsed: boolean;
   viewSource: boolean;
-  upvoteLoading: boolean;
-  downvoteLoading: boolean;
+  my_vote: number;
+  score: number;
+  upvotes: number;
+  downvotes: number;
 }
 
 interface CommentNodeProps {
@@ -83,8 +85,10 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     showConfirmTransferCommunity: false,
     showConfirmAppointAsMod: false,
     showConfirmAppointAsAdmin: false,
-    upvoteLoading: this.props.node.comment.upvoteLoading,
-    downvoteLoading: this.props.node.comment.downvoteLoading,
+    my_vote: this.props.node.comment.my_vote,
+    score: this.props.node.comment.score,
+    upvotes: this.props.node.comment.upvotes,
+    downvotes: this.props.node.comment.downvotes,
   };
 
   constructor(props: any, context: any) {
@@ -97,15 +101,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   componentWillReceiveProps(nextProps: CommentNodeProps) {
-    if (
-      nextProps.node.comment.upvoteLoading !== this.state.upvoteLoading ||
-      nextProps.node.comment.downvoteLoading !== this.state.downvoteLoading
-    ) {
-      this.setState({
-        upvoteLoading: false,
-        downvoteLoading: false,
-      });
-    }
+    this.state.my_vote = nextProps.node.comment.my_vote;
+    this.state.upvotes = nextProps.node.comment.upvotes;
+    this.state.downvotes = nextProps.node.comment.downvotes;
+    this.state.score = nextProps.node.comment.score;
+    this.setState(this.state);
   }
 
   render() {
@@ -122,40 +122,26 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               .viewOnly && 'no-click'}`}
           >
             <button
-              className={`btn btn-link p-0 ${
-                node.comment.my_vote == 1 ? 'text-info' : 'text-muted'
+              className={`vote-animate btn btn-link p-0 ${
+                this.state.my_vote == 1 ? 'text-info' : 'text-muted'
               }`}
               onClick={linkEvent(node, this.handleCommentUpvote)}
             >
-              {this.state.upvoteLoading ? (
-                <svg class="icon icon-spinner spin upvote">
-                  <use xlinkHref="#icon-spinner"></use>
-                </svg>
-              ) : (
-                <svg class="icon upvote">
-                  <use xlinkHref="#icon-arrow-up"></use>
-                </svg>
-              )}
+              <svg class="icon upvote">
+                <use xlinkHref="#icon-arrow-up"></use>
+              </svg>
             </button>
-            <div class={`font-weight-bold text-muted`}>
-              {node.comment.score}
-            </div>
+            <div class={`font-weight-bold text-muted`}>{this.state.score}</div>
             {WebSocketService.Instance.site.enable_downvotes && (
               <button
-                className={`btn btn-link p-0 ${
-                  node.comment.my_vote == -1 ? 'text-danger' : 'text-muted'
+                className={`vote-animate btn btn-link p-0 ${
+                  this.state.my_vote == -1 ? 'text-danger' : 'text-muted'
                 }`}
                 onClick={linkEvent(node, this.handleCommentDownvote)}
               >
-                {this.state.downvoteLoading ? (
-                  <svg class="icon icon-spinner spin downvote">
-                    <use xlinkHref="#icon-spinner"></use>
-                  </svg>
-                ) : (
-                  <svg class="icon downvote">
-                    <use xlinkHref="#icon-arrow-down"></use>
-                  </svg>
-                )}
+                <svg class="icon downvote">
+                  <use xlinkHref="#icon-arrow-down"></use>
+                </svg>
               </button>
             )}
           </div>
@@ -205,9 +191,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             )}
             <li className="list-inline-item">
               <span>
-                (<span className="text-info">+{node.comment.upvotes}</span>
+                (<span className="text-info">+{this.state.upvotes}</span>
                 <span> | </span>
-                <span className="text-danger">-{node.comment.downvotes}</span>
+                <span className="text-danger">-{this.state.downvotes}</span>
                 <span>) </span>
               </span>
             </li>
@@ -772,31 +758,57 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   handleCommentUpvote(i: CommentNodeI) {
-    if (UserService.Instance.user) {
-      this.setState({
-        upvoteLoading: true,
-      });
+    let new_vote = this.state.my_vote == 1 ? 0 : 1;
+
+    if (this.state.my_vote == 1) {
+      this.state.score--;
+      this.state.upvotes--;
+    } else if (this.state.my_vote == -1) {
+      this.state.downvotes--;
+      this.state.upvotes++;
+      this.state.score += 2;
+    } else {
+      this.state.upvotes++;
+      this.state.score++;
     }
+
+    this.state.my_vote = new_vote;
+
     let form: CommentLikeForm = {
       comment_id: i.comment.id,
       post_id: i.comment.post_id,
-      score: i.comment.my_vote == 1 ? 0 : 1,
+      score: this.state.my_vote,
     };
+
     WebSocketService.Instance.likeComment(form);
+    this.setState(this.state);
   }
 
   handleCommentDownvote(i: CommentNodeI) {
-    if (UserService.Instance.user) {
-      this.setState({
-        downvoteLoading: true,
-      });
+    let new_vote = this.state.my_vote == -1 ? 0 : -1;
+
+    if (this.state.my_vote == 1) {
+      this.state.score -= 2;
+      this.state.upvotes--;
+      this.state.downvotes++;
+    } else if (this.state.my_vote == -1) {
+      this.state.downvotes--;
+      this.state.score++;
+    } else {
+      this.state.downvotes++;
+      this.state.score--;
     }
+
+    this.state.my_vote = new_vote;
+
     let form: CommentLikeForm = {
       comment_id: i.comment.id,
       post_id: i.comment.post_id,
-      score: i.comment.my_vote == -1 ? 0 : -1,
+      score: this.state.my_vote,
     };
+
     WebSocketService.Instance.likeComment(form);
+    this.setState(this.state);
   }
 
   handleModRemoveShow(i: CommentNode) {
