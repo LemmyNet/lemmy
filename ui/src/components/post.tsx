@@ -29,7 +29,16 @@ import {
   WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { wsJsonToRes, hotRank, toast } from '../utils';
+import {
+  wsJsonToRes,
+  hotRank,
+  toast,
+  editCommentRes,
+  saveCommentRes,
+  createCommentLikeRes,
+  createPostLikeRes,
+  commentsToFlatNodes,
+} from '../utils';
 import { PostListing } from './post-listing';
 import { PostListings } from './post-listings';
 import { Sidebar } from './sidebar';
@@ -256,16 +265,14 @@ export class Post extends Component<any, PostState> {
       <div class="d-none d-md-block new-comments mb-3 card border-secondary">
         <div class="card-body small">
           <h6>{i18n.t('recent_comments')}</h6>
-          {this.state.comments.map(comment => (
-            <CommentNodes
-              nodes={[{ comment: comment }]}
-              noIndent
-              locked={this.state.post.locked}
-              moderators={this.state.moderators}
-              admins={this.state.admins}
-              postCreatorId={this.state.post.creator_id}
-            />
-          ))}
+          <CommentNodes
+            nodes={commentsToFlatNodes(this.state.comments)}
+            noIndent
+            locked={this.state.post.locked}
+            moderators={this.state.moderators}
+            admins={this.state.admins}
+            postCreatorId={this.state.post.creator_id}
+          />
         </div>
       </div>
     );
@@ -408,53 +415,19 @@ export class Post extends Component<any, PostState> {
       }
     } else if (res.op == UserOperation.EditComment) {
       let data = res.data as CommentResponse;
-      let found = this.state.comments.find(c => c.id == data.comment.id);
-      if (found) {
-        found.content = data.comment.content;
-        found.updated = data.comment.updated;
-        found.removed = data.comment.removed;
-        found.deleted = data.comment.deleted;
-        found.upvotes = data.comment.upvotes;
-        found.downvotes = data.comment.downvotes;
-        found.score = data.comment.score;
-        found.read = data.comment.read;
-
-        this.setState(this.state);
-      }
+      editCommentRes(data, this.state.comments);
+      this.setState(this.state);
     } else if (res.op == UserOperation.SaveComment) {
       let data = res.data as CommentResponse;
-      let found = this.state.comments.find(c => c.id == data.comment.id);
-      if (found) {
-        found.saved = data.comment.saved;
-        this.setState(this.state);
-      }
+      saveCommentRes(data, this.state.comments);
+      this.setState(this.state);
     } else if (res.op == UserOperation.CreateCommentLike) {
       let data = res.data as CommentResponse;
-      let found: Comment = this.state.comments.find(
-        c => c.id === data.comment.id
-      );
-      if (found) {
-        found.score = data.comment.score;
-        found.upvotes = data.comment.upvotes;
-        found.downvotes = data.comment.downvotes;
-        if (data.comment.my_vote !== null) {
-          found.my_vote = data.comment.my_vote;
-          found.upvoteLoading = false;
-          found.downvoteLoading = false;
-        }
-      }
+      createCommentLikeRes(data, this.state.comments);
       this.setState(this.state);
     } else if (res.op == UserOperation.CreatePostLike) {
       let data = res.data as PostResponse;
-      this.state.post.score = data.post.score;
-      this.state.post.upvotes = data.post.upvotes;
-      this.state.post.downvotes = data.post.downvotes;
-      if (data.post.my_vote !== null) {
-        this.state.post.my_vote = data.post.my_vote;
-        this.state.post.upvoteLoading = false;
-        this.state.post.downvoteLoading = false;
-      }
-
+      createPostLikeRes(data, this.state.post);
       this.setState(this.state);
     } else if (res.op == UserOperation.EditPost) {
       let data = res.data as PostResponse;
@@ -510,7 +483,6 @@ export class Post extends Component<any, PostState> {
       this.setState(this.state);
     } else if (res.op == UserOperation.TransferSite) {
       let data = res.data as GetSiteResponse;
-
       this.state.admins = data.admins;
       this.setState(this.state);
     } else if (res.op == UserOperation.TransferCommunity) {

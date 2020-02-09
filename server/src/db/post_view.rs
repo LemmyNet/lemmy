@@ -315,10 +315,10 @@ impl PostView {
     from_post_id: i32,
     my_user_id: Option<i32>,
   ) -> Result<Self, Error> {
-    use super::post_view::post_view::dsl::*;
+    use super::post_view::post_mview::dsl::*;
     use diesel::prelude::*;
 
-    let mut query = post_view.into_boxed();
+    let mut query = post_mview.into_boxed();
 
     query = query.filter(id.eq(from_post_id));
 

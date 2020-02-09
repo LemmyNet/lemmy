@@ -15,6 +15,8 @@ import 'moment/locale/pt-br';
 import {
   UserOperation,
   Comment,
+  CommentNode,
+  Post,
   PrivateMessage,
   User,
   SortType,
@@ -25,6 +27,8 @@ import {
   WebSocketJsonResponse,
   SearchForm,
   SearchResponse,
+  CommentResponse,
+  PostResponse,
 } from './interfaces';
 import { UserService, WebSocketService } from './services';
 
@@ -550,4 +554,88 @@ export function getSortTypeFromProps(props: any): SortType {
 
 export function getPageFromProps(props: any): number {
   return props.match.params.page ? Number(props.match.params.page) : 1;
+}
+
+export function editCommentRes(
+  data: CommentResponse,
+  comments: Array<Comment>
+) {
+  let found = comments.find(c => c.id == data.comment.id);
+  if (found) {
+    found.content = data.comment.content;
+    found.updated = data.comment.updated;
+    found.removed = data.comment.removed;
+    found.deleted = data.comment.deleted;
+    found.upvotes = data.comment.upvotes;
+    found.downvotes = data.comment.downvotes;
+    found.score = data.comment.score;
+  }
+}
+
+export function saveCommentRes(
+  data: CommentResponse,
+  comments: Array<Comment>
+) {
+  let found = comments.find(c => c.id == data.comment.id);
+  if (found) {
+    found.saved = data.comment.saved;
+  }
+}
+
+export function createCommentLikeRes(
+  data: CommentResponse,
+  comments: Array<Comment>
+) {
+  let found: Comment = comments.find(c => c.id === data.comment.id);
+  if (found) {
+    found.score = data.comment.score;
+    found.upvotes = data.comment.upvotes;
+    found.downvotes = data.comment.downvotes;
+    if (data.comment.my_vote !== null) {
+      found.my_vote = data.comment.my_vote;
+      found.upvoteLoading = false;
+      found.downvoteLoading = false;
+    }
+  }
+}
+
+export function createPostLikeFindRes(data: PostResponse, posts: Array<Post>) {
+  let found = posts.find(c => c.id == data.post.id);
+  if (found) {
+    createPostLikeRes(data, found);
+  }
+}
+
+export function createPostLikeRes(data: PostResponse, post: Post) {
+  post.score = data.post.score;
+  post.upvotes = data.post.upvotes;
+  post.downvotes = data.post.downvotes;
+  if (data.post.my_vote !== null) {
+    post.my_vote = data.post.my_vote;
+    post.upvoteLoading = false;
+    post.downvoteLoading = false;
+  }
+}
+
+export function editPostFindRes(data: PostResponse, posts: Array<Post>) {
+  let found = posts.find(c => c.id == data.post.id);
+  if (found) {
+    editPostRes(data, found);
+  }
+}
+
+export function editPostRes(data: PostResponse, post: Post) {
+  post.url = data.post.url;
+  post.name = data.post.name;
+  post.nsfw = data.post.nsfw;
+}
+
+export function commentsToFlatNodes(
+  comments: Array<Comment>
+): Array<CommentNode> {
+  let nodes: Array<CommentNode> = [];
+  for (let comment of comments) {
+    nodes.push({ comment: comment });
+  }
+  return nodes;
 }

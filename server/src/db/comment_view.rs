@@ -251,9 +251,8 @@ impl CommentView {
     from_comment_id: i32,
     my_user_id: Option<i32>,
   ) -> Result<Self, Error> {
-    use super::comment_view::comment_view::dsl::*;
-
-    let mut query = comment_view.into_boxed();
+    use super::comment_view::comment_mview::dsl::*;
+    let mut query = comment_mview.into_boxed();
 
     // The view lets you pass a null user_id, if you're not logged in
     if let Some(my_user_id) = my_user_id {
