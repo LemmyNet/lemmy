@@ -601,8 +601,6 @@ export function createCommentLikeRes(
     found.downvotes = data.comment.downvotes;
     if (data.comment.my_vote !== null) {
       found.my_vote = data.comment.my_vote;
-      found.upvoteLoading = false;
-      found.downvoteLoading = false;
     }
   }
 }
@@ -620,8 +618,6 @@ export function createPostLikeRes(data: PostResponse, post: Post) {
   post.downvotes = data.post.downvotes;
   if (data.post.my_vote !== null) {
     post.my_vote = data.post.my_vote;
-    post.upvoteLoading = false;
-    post.downvoteLoading = false;
   }
 }
 

@@ -175,3 +175,9 @@ hr {
 .img-expanded {
   max-height: 90vh;
 }
+
+.vote-animate:active {
+  transform: scale(1.2);
+  -webkit-transform: scale(1.2);
+  -ms-transform: scale(1.2);
+}
