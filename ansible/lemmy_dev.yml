@@ -97,4 +97,4 @@
       special_time=daily
       name=certbot-renew-lemmy
       user=root
-      job="certbot certonly --nginx -d '{{ domain }}' --deploy-hook 'docker-compose -f /peertube/docker-compose.yml exec nginx nginx -s reload'"
+      job="certbot certonly --nginx -d '{{ domain }}' --deploy-hook 'nginx -s reload'"
