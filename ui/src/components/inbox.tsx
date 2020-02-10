@@ -19,7 +19,16 @@ import {
   PrivateMessageResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { wsJsonToRes, fetchLimit, isCommentType, toast } from '../utils';
+import {
+  wsJsonToRes,
+  fetchLimit,
+  isCommentType,
+  toast,
+  editCommentRes,
+  saveCommentRes,
+  createCommentLikeRes,
+  commentsToFlatNodes,
+} from '../utils';
 import { CommentNodes } from './comment-nodes';
 import { PrivateMessage } from './private-message';
 import { SortSelect } from './sort-select';
@@ -197,9 +206,11 @@ export class Inbox extends Component<any, InboxState> {
   replies() {
     return (
       <div>
-        {this.state.replies.map(reply => (
-          <CommentNodes nodes={[{ comment: reply }]} noIndent markable />
-        ))}
+        <CommentNodes
+          nodes={commentsToFlatNodes(this.state.replies)}
+          noIndent
+          markable
+        />
       </div>
     );
   }
@@ -362,15 +373,7 @@ export class Inbox extends Component<any, InboxState> {
       this.setState(this.state);
     } else if (res.op == UserOperation.EditComment) {
       let data = res.data as CommentResponse;
-
-      let found = this.state.replies.find(c => c.id == data.comment.id);
-      found.content = data.comment.content;
-      found.updated = data.comment.updated;
-      found.removed = data.comment.removed;
-      found.deleted = data.comment.deleted;
-      found.upvotes = data.comment.upvotes;
-      found.downvotes = data.comment.downvotes;
-      found.score = data.comment.score;
+      editCommentRes(data, this.state.replies);
 
       // If youre in the unread view, just remove it from the list
       if (this.state.unreadOrAll == UnreadOrAll.Unread && data.comment.read) {
@@ -418,28 +421,17 @@ export class Inbox extends Component<any, InboxState> {
       this.setState(this.state);
     } else if (res.op == UserOperation.CreatePrivateMessage) {
       let data = res.data as PrivateMessageResponse;
-
       if (data.message.recipient_id == UserService.Instance.user.id) {
         this.state.messages.unshift(data.message);
         this.setState(this.state);
-      } else if (data.message.creator_id == UserService.Instance.user.id) {
-        toast(i18n.t('message_sent'));
       }
-      this.setState(this.state);
     } else if (res.op == UserOperation.SaveComment) {
       let data = res.data as CommentResponse;
-      let found = this.state.replies.find(c => c.id == data.comment.id);
-      found.saved = data.comment.saved;
+      saveCommentRes(data, this.state.replies);
       this.setState(this.state);
     } else if (res.op == UserOperation.CreateCommentLike) {
       let data = res.data as CommentResponse;
-      let found: Comment = this.state.replies.find(
-        c => c.id === data.comment.id
-      );
-      found.score = data.comment.score;
-      found.upvotes = data.comment.upvotes;
-      found.downvotes = data.comment.downvotes;
-      if (data.comment.my_vote !== null) found.my_vote = data.comment.my_vote;
+      createCommentLikeRes(data, this.state.replies);
       this.setState(this.state);
     }
   }

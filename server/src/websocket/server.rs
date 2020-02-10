@@ -122,6 +122,12 @@ impl ChatServer {
       sessions.remove(&id);
     }
 
+    // Also leave all post rooms
+    // This avoids double messages
+    for sessions in self.post_rooms.values_mut() {
+      sessions.remove(&id);
+    }
+
     // If the room doesn't exist yet
     if self.community_rooms.get_mut(&community_id).is_none() {
       self.community_rooms.insert(community_id, HashSet::new());
@@ -137,6 +143,12 @@ impl ChatServer {
   fn join_post_room(&mut self, post_id: PostId, id: ConnectionId) {
     // remove session from all rooms
     for sessions in self.post_rooms.values_mut() {
+      sessions.remove(&id);
+    }
+
+    // Also leave all communities
+    // This avoids double messages
+    for sessions in self.community_rooms.values_mut() {
       sessions.remove(&id);
     }
 
@@ -244,6 +256,10 @@ impl ChatServer {
       self.send_user_room_message(recipient_id, &comment_reply_sent_str, id);
     }
 
+    // Send it to the community too
+    self.send_community_room_message(0, &comment_post_sent_str, id);
+    self.send_community_room_message(comment.comment.community_id, &comment_post_sent_str, id);
+
     Ok(comment_user_sent_str)
   }
 
@@ -264,6 +280,9 @@ impl ChatServer {
     // Send it to /c/all and that community
     self.send_community_room_message(0, &post_sent_str, id);
     self.send_community_room_message(community_id, &post_sent_str, id);
+
+    // Send it to the post room
+    self.send_post_room_message(post_sent.post.id, &post_sent_str, id);
 
     to_json_string(&user_operation, post)
   }
@@ -635,6 +654,15 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
         chat.join_community_room(0, msg.id);
       }
       let res = Oper::new(get_posts).perform(&conn)?;
+      to_json_string(&user_operation, &res)
+    }
+    UserOperation::GetComments => {
+      let get_comments: GetComments = serde_json::from_str(data)?;
+      if get_comments.community_id.is_none() {
+        // 0 is the "all" community
+        chat.join_community_room(0, msg.id);
+      }
+      let res = Oper::new(get_comments).perform(&conn)?;
       to_json_string(&user_operation, &res)
     }
     UserOperation::CreatePost => {

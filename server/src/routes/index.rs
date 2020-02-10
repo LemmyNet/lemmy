@@ -6,7 +6,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
   cfg
     .route("/", web::get().to(index))
     .route(
-      "/home/type/{type}/sort/{sort}/page/{page}",
+      "/home/data_type/{data_type}/listing_type/{listing_type}/sort/{sort}/page/{page}",
       web::get().to(index),
     )
     .route("/login", web::get().to(index))
@@ -17,7 +17,10 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route("/communities", web::get().to(index))
     .route("/post/{id}/comment/{id2}", web::get().to(index))
     .route("/post/{id}", web::get().to(index))
-    .route("/c/{name}/sort/{sort}/page/{page}", web::get().to(index))
+    .route(
+      "/c/{name}/data_type/{data_type}/sort/{sort}/page/{page}",
+      web::get().to(index),
+    )
     .route("/c/{name}", web::get().to(index))
     .route("/community/{id}", web::get().to(index))
     .route(

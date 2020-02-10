@@ -201,6 +201,7 @@ export const en = {
     couldnt_like_comment: "Couldn't like comment.",
     couldnt_update_comment: "Couldn't update comment.",
     couldnt_save_comment: "Couldn't save comment.",
+    couldnt_get_comments: "Couldn't get comments.",
     no_comment_edit_allowed: 'Not allowed to edit comment.',
     no_post_edit_allowed: 'Not allowed to edit post.',
     no_community_edit_allowed: 'Not allowed to edit community.',

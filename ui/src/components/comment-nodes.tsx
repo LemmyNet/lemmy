@@ -3,7 +3,10 @@ import {
   CommentNode as CommentNodeI,
   CommunityUser,
   UserView,
+  CommentSortType,
+  SortType,
 } from '../interfaces';
+import { commentSort, commentSortSortType } from '../utils';
 import { CommentNode } from './comment-node';
 
 interface CommentNodesState {}
@@ -17,6 +20,9 @@ interface CommentNodesProps {
   viewOnly?: boolean;
   locked?: boolean;
   markable?: boolean;
+  showCommunity?: boolean;
+  sort?: CommentSortType;
+  sortType?: SortType;
 }
 
 export class CommentNodes extends Component<
@@ -30,7 +36,7 @@ export class CommentNodes extends Component<
   render() {
     return (
       <div className="comments">
-        {this.props.nodes.map(node => (
+        {this.sorter().map(node => (
           <CommentNode
             node={node}
             noIndent={this.props.noIndent}
@@ -40,9 +46,22 @@ export class CommentNodes extends Component<
             admins={this.props.admins}
             postCreatorId={this.props.postCreatorId}
             markable={this.props.markable}
+            showCommunity={this.props.showCommunity}
+            sort={this.props.sort}
+            sortType={this.props.sortType}
           />
         ))}
       </div>
     );
+  }
+
+  sorter(): Array<CommentNodeI> {
+    if (this.props.sort !== undefined) {
+      commentSort(this.props.nodes, this.props.sort);
+    } else if (this.props.sortType !== undefined) {
+      commentSortSortType(this.props.nodes, this.props.sortType);
+    }
+
+    return this.props.nodes;
   }
 }
