@@ -15,15 +15,21 @@ import 'moment/locale/pt-br';
 import {
   UserOperation,
   Comment,
+  CommentNode,
+  Post,
   PrivateMessage,
   User,
   SortType,
+  CommentSortType,
   ListingType,
+  DataType,
   SearchType,
   WebSocketResponse,
   WebSocketJsonResponse,
   SearchForm,
   SearchResponse,
+  CommentResponse,
+  PostResponse,
 } from './interfaces';
 import { UserService, WebSocketService } from './services';
 
@@ -88,15 +94,22 @@ md.renderer.rules.emoji = function(token, idx) {
   return twemoji.parse(token[idx].content);
 };
 
-export function hotRank(comment: Comment): number {
-  // Rank = ScaleFactor * sign(Score) * log(1 + abs(Score)) / (Time + 2)^Gravity
+export function hotRankComment(comment: Comment): number {
+  return hotRank(comment.score, comment.published);
+}
 
-  let date: Date = new Date(comment.published + 'Z'); // Add Z to convert from UTC date
+export function hotRankPost(post: Post): number {
+  return hotRank(post.score, post.newest_activity_time);
+}
+
+export function hotRank(score: number, timeStr: string): number {
+  // Rank = ScaleFactor * sign(Score) * log(1 + abs(Score)) / (Time + 2)^Gravity
+  let date: Date = new Date(timeStr + 'Z'); // Add Z to convert from UTC date
   let now: Date = new Date();
   let hoursElapsed: number = (now.getTime() - date.getTime()) / 36e5;
 
   let rank =
-    (10000 * Math.log10(Math.max(1, 3 + comment.score))) /
+    (10000 * Math.log10(Math.max(1, 3 + score))) /
     Math.pow(hoursElapsed + 2, 1.8);
 
   // console.log(`Comment: ${comment.content}\nRank: ${rank}\nScore: ${comment.score}\nHours: ${hoursElapsed}`);
@@ -196,6 +209,10 @@ export function routeSortTypeToEnum(sort: string): SortType {
 
 export function routeListingTypeToEnum(type: string): ListingType {
   return ListingType[capitalizeFirstLetter(type)];
+}
+
+export function routeDataTypeToEnum(type: string): DataType {
+  return DataType[capitalizeFirstLetter(type)];
 }
 
 export function routeSearchTypeToEnum(type: string): SearchType {
@@ -517,5 +534,204 @@ function communitySearch(text: string, cb: any) {
     );
   } else {
     cb([]);
+  }
+}
+
+export function getListingTypeFromProps(props: any): ListingType {
+  return props.match.params.listing_type
+    ? routeListingTypeToEnum(props.match.params.listing_type)
+    : UserService.Instance.user
+    ? UserService.Instance.user.default_listing_type
+    : ListingType.All;
+}
+
+// TODO might need to add a user setting for this too
+export function getDataTypeFromProps(props: any): DataType {
+  return props.match.params.data_type
+    ? routeDataTypeToEnum(props.match.params.data_type)
+    : DataType.Post;
+}
+
+export function getSortTypeFromProps(props: any): SortType {
+  return props.match.params.sort
+    ? routeSortTypeToEnum(props.match.params.sort)
+    : UserService.Instance.user
+    ? UserService.Instance.user.default_sort_type
+    : SortType.Hot;
+}
+
+export function getPageFromProps(props: any): number {
+  return props.match.params.page ? Number(props.match.params.page) : 1;
+}
+
+export function editCommentRes(
+  data: CommentResponse,
+  comments: Array<Comment>
+) {
+  let found = comments.find(c => c.id == data.comment.id);
+  if (found) {
+    found.content = data.comment.content;
+    found.updated = data.comment.updated;
+    found.removed = data.comment.removed;
+    found.deleted = data.comment.deleted;
+    found.upvotes = data.comment.upvotes;
+    found.downvotes = data.comment.downvotes;
+    found.score = data.comment.score;
+  }
+}
+
+export function saveCommentRes(
+  data: CommentResponse,
+  comments: Array<Comment>
+) {
+  let found = comments.find(c => c.id == data.comment.id);
+  if (found) {
+    found.saved = data.comment.saved;
+  }
+}
+
+export function createCommentLikeRes(
+  data: CommentResponse,
+  comments: Array<Comment>
+) {
+  let found: Comment = comments.find(c => c.id === data.comment.id);
+  if (found) {
+    found.score = data.comment.score;
+    found.upvotes = data.comment.upvotes;
+    found.downvotes = data.comment.downvotes;
+    if (data.comment.my_vote !== null) {
+      found.my_vote = data.comment.my_vote;
+    }
+  }
+}
+
+export function createPostLikeFindRes(data: PostResponse, posts: Array<Post>) {
+  let found = posts.find(c => c.id == data.post.id);
+  if (found) {
+    createPostLikeRes(data, found);
+  }
+}
+
+export function createPostLikeRes(data: PostResponse, post: Post) {
+  post.score = data.post.score;
+  post.upvotes = data.post.upvotes;
+  post.downvotes = data.post.downvotes;
+  if (data.post.my_vote !== null) {
+    post.my_vote = data.post.my_vote;
+  }
+}
+
+export function editPostFindRes(data: PostResponse, posts: Array<Post>) {
+  let found = posts.find(c => c.id == data.post.id);
+  if (found) {
+    editPostRes(data, found);
+  }
+}
+
+export function editPostRes(data: PostResponse, post: Post) {
+  post.url = data.post.url;
+  post.name = data.post.name;
+  post.nsfw = data.post.nsfw;
+}
+
+export function commentsToFlatNodes(
+  comments: Array<Comment>
+): Array<CommentNode> {
+  let nodes: Array<CommentNode> = [];
+  for (let comment of comments) {
+    nodes.push({ comment: comment });
+  }
+  return nodes;
+}
+
+export function commentSort(tree: Array<CommentNode>, sort: CommentSortType) {
+  // First, put removed and deleted comments at the bottom, then do your other sorts
+  if (sort == CommentSortType.Top) {
+    tree.sort(
+      (a, b) =>
+        +a.comment.removed - +b.comment.removed ||
+        +a.comment.deleted - +b.comment.deleted ||
+        b.comment.score - a.comment.score
+    );
+  } else if (sort == CommentSortType.New) {
+    tree.sort(
+      (a, b) =>
+        +a.comment.removed - +b.comment.removed ||
+        +a.comment.deleted - +b.comment.deleted ||
+        b.comment.published.localeCompare(a.comment.published)
+    );
+  } else if (sort == CommentSortType.Old) {
+    tree.sort(
+      (a, b) =>
+        +a.comment.removed - +b.comment.removed ||
+        +a.comment.deleted - +b.comment.deleted ||
+        a.comment.published.localeCompare(b.comment.published)
+    );
+  } else if (sort == CommentSortType.Hot) {
+    tree.sort(
+      (a, b) =>
+        +a.comment.removed - +b.comment.removed ||
+        +a.comment.deleted - +b.comment.deleted ||
+        hotRankComment(b.comment) - hotRankComment(a.comment)
+    );
+  }
+
+  // Go through the children recursively
+  for (let node of tree) {
+    if (node.children) {
+      commentSort(node.children, sort);
+    }
+  }
+}
+
+export function commentSortSortType(tree: Array<CommentNode>, sort: SortType) {
+  commentSort(tree, convertCommentSortType(sort));
+}
+
+function convertCommentSortType(sort: SortType): CommentSortType {
+  if (
+    sort == SortType.TopAll ||
+    sort == SortType.TopDay ||
+    sort == SortType.TopWeek ||
+    sort == SortType.TopMonth ||
+    sort == SortType.TopYear
+  ) {
+    return CommentSortType.Top;
+  } else if (sort == SortType.New) {
+    return CommentSortType.New;
+  } else if (sort == SortType.Hot) {
+    return CommentSortType.Hot;
+  } else {
+    return CommentSortType.Hot;
+  }
+}
+
+export function postSort(posts: Array<Post>, sort: SortType) {
+  // First, put removed and deleted comments at the bottom, then do your other sorts
+  if (
+    sort == SortType.TopAll ||
+    sort == SortType.TopDay ||
+    sort == SortType.TopWeek ||
+    sort == SortType.TopMonth ||
+    sort == SortType.TopYear
+  ) {
+    posts.sort(
+      (a, b) =>
+        +a.removed - +b.removed || +a.deleted - +b.deleted || b.score - a.score
+    );
+  } else if (sort == SortType.New) {
+    posts.sort(
+      (a, b) =>
+        +a.removed - +b.removed ||
+        +a.deleted - +b.deleted ||
+        b.published.localeCompare(a.published)
+    );
+  } else if (sort == SortType.Hot) {
+    posts.sort(
+      (a, b) =>
+        +a.removed - +b.removed ||
+        +a.deleted - +b.deleted ||
+        hotRankPost(b) - hotRankPost(a)
+    );
   }
 }

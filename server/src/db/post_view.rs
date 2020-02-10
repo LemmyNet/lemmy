@@ -31,6 +31,7 @@ table! {
     upvotes -> BigInt,
     downvotes -> BigInt,
     hot_rank -> Int4,
+    newest_activity_time -> Timestamp,
     user_id -> Nullable<Int4>,
     my_vote -> Nullable<Int4>,
     subscribed -> Nullable<Bool>,
@@ -70,6 +71,7 @@ pub struct PostView {
   pub upvotes: i64,
   pub downvotes: i64,
   pub hot_rank: i32,
+  pub newest_activity_time: chrono::NaiveDateTime,
   pub user_id: Option<i32>,
   pub my_vote: Option<i32>,
   pub subscribed: Option<bool>,
@@ -106,6 +108,7 @@ table! {
     upvotes -> BigInt,
     downvotes -> BigInt,
     hot_rank -> Int4,
+    newest_activity_time -> Timestamp,
     user_id -> Nullable<Int4>,
     my_vote -> Nullable<Int4>,
     subscribed -> Nullable<Bool>,
@@ -121,6 +124,9 @@ pub struct PostQueryBuilder<'a> {
   sort: &'a SortType,
   my_user_id: Option<i32>,
   for_creator_id: Option<i32>,
+  for_community_id: Option<i32>,
+  search_term: Option<String>,
+  url_search: Option<String>,
   show_nsfw: bool,
   saved_only: bool,
   unread_only: bool,
@@ -137,10 +143,13 @@ impl<'a> PostQueryBuilder<'a> {
     PostQueryBuilder {
       conn,
       query,
-      my_user_id: None,
-      for_creator_id: None,
       listing_type: ListingType::All,
       sort: &SortType::Hot,
+      my_user_id: None,
+      for_creator_id: None,
+      for_community_id: None,
+      search_term: None,
+      url_search: None,
       show_nsfw: true,
       saved_only: false,
       unread_only: false,
@@ -160,38 +169,22 @@ impl<'a> PostQueryBuilder<'a> {
   }
 
   pub fn for_community_id<T: MaybeOptional<i32>>(mut self, for_community_id: T) -> Self {
-    use super::post_view::post_mview::dsl::*;
-    if let Some(for_community_id) = for_community_id.get_optional() {
-      self.query = self.query.filter(community_id.eq(for_community_id));
-      self.query = self.query.then_order_by(stickied.desc());
-    }
+    self.for_community_id = for_community_id.get_optional();
     self
   }
 
   pub fn for_creator_id<T: MaybeOptional<i32>>(mut self, for_creator_id: T) -> Self {
-    if let Some(for_creator_id) = for_creator_id.get_optional() {
-      self.for_creator_id = Some(for_creator_id);
-    }
+    self.for_creator_id = for_creator_id.get_optional();
     self
   }
 
   pub fn search_term<T: MaybeOptional<String>>(mut self, search_term: T) -> Self {
-    use super::post_view::post_mview::dsl::*;
-    if let Some(search_term) = search_term.get_optional() {
-      let searcher = fuzzy_search(&search_term);
-      self.query = self
-        .query
-        .filter(name.ilike(searcher.to_owned()))
-        .or_filter(body.ilike(searcher));
-    }
+    self.search_term = search_term.get_optional();
     self
   }
 
   pub fn url_search<T: MaybeOptional<String>>(mut self, url_search: T) -> Self {
-    use super::post_view::post_mview::dsl::*;
-    if let Some(url_search) = url_search.get_optional() {
-      self.query = self.query.filter(url.eq(url_search));
-    }
+    self.url_search = url_search.get_optional();
     self
   }
 
@@ -232,6 +225,22 @@ impl<'a> PostQueryBuilder<'a> {
 
     if let ListingType::Subscribed = self.listing_type {
       query = query.filter(subscribed.eq(true));
+    }
+
+    if let Some(for_community_id) = self.for_community_id {
+      query = query.filter(community_id.eq(for_community_id));
+      query = query.then_order_by(stickied.desc());
+    }
+
+    if let Some(url_search) = self.url_search {
+      query = query.filter(url.eq(url_search));
+    }
+
+    if let Some(search_term) = self.search_term {
+      let searcher = fuzzy_search(&search_term);
+      query = query
+        .filter(name.ilike(searcher.to_owned()))
+        .or_filter(body.ilike(searcher));
     }
 
     query = match self.sort {
@@ -306,10 +315,10 @@ impl PostView {
     from_post_id: i32,
     my_user_id: Option<i32>,
   ) -> Result<Self, Error> {
-    use super::post_view::post_view::dsl::*;
+    use super::post_view::post_mview::dsl::*;
     use diesel::prelude::*;
 
-    let mut query = post_view.into_boxed();
+    let mut query = post_mview.into_boxed();
 
     query = query.filter(id.eq(from_post_id));
 
@@ -439,6 +448,7 @@ mod tests {
       downvotes: 0,
       hot_rank: 1728,
       published: inserted_post.published,
+      newest_activity_time: inserted_post.published,
       updated: None,
       subscribed: None,
       read: None,
@@ -473,6 +483,7 @@ mod tests {
       downvotes: 0,
       hot_rank: 1728,
       published: inserted_post.published,
+      newest_activity_time: inserted_post.published,
       updated: None,
       subscribed: None,
       read: None,
