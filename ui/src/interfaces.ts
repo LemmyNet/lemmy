@@ -93,6 +93,7 @@ export interface User {
   lang: string;
   avatar?: string;
   show_avatars: boolean;
+  unreadCount?: number;
 }
 
 export interface UserView {
