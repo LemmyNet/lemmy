@@ -60,8 +60,10 @@ export class Navbar extends Component<any, NavbarState> {
     // Subscribe to user changes
     this.userSub = UserService.Instance.sub.subscribe(user => {
       this.state.isLoggedIn = user.user !== undefined;
-      this.state.unreadCount = user.unreadCount;
-      this.requestNotificationPermission();
+      if (this.state.isLoggedIn) {
+        this.state.unreadCount = user.user.unreadCount;
+        this.requestNotificationPermission();
+      }
       this.setState(this.state);
     });
 
@@ -304,9 +306,9 @@ export class Navbar extends Component<any, NavbarState> {
   }
 
   sendUnreadCount() {
+    UserService.Instance.user.unreadCount = this.state.unreadCount;
     UserService.Instance.sub.next({
       user: UserService.Instance.user,
-      unreadCount: this.state.unreadCount,
     });
   }
 

@@ -443,9 +443,9 @@ export class Inbox extends Component<any, InboxState> {
       this.state.messages.filter(
         r => !r.read && r.creator_id !== UserService.Instance.user.id
       ).length;
+    UserService.Instance.user.unreadCount = count;
     UserService.Instance.sub.next({
       user: UserService.Instance.user,
-      unreadCount: count,
     });
   }
 }
