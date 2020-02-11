@@ -156,6 +156,10 @@ export class Post extends Component<any, PostState> {
         auth: null,
       };
       WebSocketService.Instance.editComment(form);
+      UserService.Instance.user.unreadCount--;
+      UserService.Instance.sub.next({
+        user: UserService.Instance.user,
+      });
     }
   }
 
