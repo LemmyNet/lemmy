@@ -43,8 +43,10 @@ interface PostListingState {
   showConfirmTransferCommunity: boolean;
   imageExpanded: boolean;
   viewSource: boolean;
-  upvoteLoading: boolean;
-  downvoteLoading: boolean;
+  my_vote: number;
+  score: number;
+  upvotes: number;
+  downvotes: number;
 }
 
 interface PostListingProps {
@@ -68,8 +70,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     showConfirmTransferCommunity: false,
     imageExpanded: false,
     viewSource: false,
-    upvoteLoading: this.props.post.upvoteLoading,
-    downvoteLoading: this.props.post.downvoteLoading,
+    my_vote: this.props.post.my_vote,
+    score: this.props.post.score,
+    upvotes: this.props.post.upvotes,
+    downvotes: this.props.post.downvotes,
   };
 
   constructor(props: any, context: any) {
@@ -83,15 +87,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   componentWillReceiveProps(nextProps: PostListingProps) {
-    if (
-      nextProps.post.upvoteLoading !== this.state.upvoteLoading ||
-      nextProps.post.downvoteLoading !== this.state.downvoteLoading
-    ) {
-      this.setState({
-        upvoteLoading: false,
-        downvoteLoading: false,
-      });
-    }
+    this.state.my_vote = nextProps.post.my_vote;
+    this.state.upvotes = nextProps.post.upvotes;
+    this.state.downvotes = nextProps.post.downvotes;
+    this.state.score = nextProps.post.score;
+    this.setState(this.state);
   }
 
   render() {
@@ -118,38 +118,26 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       <div class="listing col-12">
         <div className={`vote-bar mr-2 float-left small text-center`}>
           <button
-            className={`btn btn-link p-0 ${
-              post.my_vote == 1 ? 'text-info' : 'text-muted'
+            className={`vote-animate btn btn-link p-0 ${
+              this.state.my_vote == 1 ? 'text-info' : 'text-muted'
             }`}
             onClick={linkEvent(this, this.handlePostLike)}
           >
-            {this.state.upvoteLoading ? (
-              <svg class="icon icon-spinner spin upvote">
-                <use xlinkHref="#icon-spinner"></use>
-              </svg>
-            ) : (
-              <svg class="icon upvote">
-                <use xlinkHref="#icon-arrow-up"></use>
-              </svg>
-            )}
+            <svg class="icon upvote">
+              <use xlinkHref="#icon-arrow-up"></use>
+            </svg>
           </button>
-          <div class={`font-weight-bold text-muted`}>{post.score}</div>
+          <div class={`font-weight-bold text-muted`}>{this.state.score}</div>
           {WebSocketService.Instance.site.enable_downvotes && (
             <button
-              className={`btn btn-link p-0 ${
-                post.my_vote == -1 ? 'text-danger' : 'text-muted'
+              className={`vote-animate btn btn-link p-0 ${
+                this.state.my_vote == -1 ? 'text-danger' : 'text-muted'
               }`}
               onClick={linkEvent(this, this.handlePostDisLike)}
             >
-              {this.state.downvoteLoading ? (
-                <svg class="icon icon-spinner spin downvote">
-                  <use xlinkHref="#icon-spinner"></use>
-                </svg>
-              ) : (
-                <svg class="icon downvote">
-                  <use xlinkHref="#icon-arrow-down"></use>
-                </svg>
-              )}
+              <svg class="icon downvote">
+                <use xlinkHref="#icon-arrow-down"></use>
+              </svg>
             </button>
           )}
         </div>
@@ -315,9 +303,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             </li>
             <li className="list-inline-item">
               <span>
-                (<span className="text-info">+{post.upvotes}</span>
+                (<span className="text-info">+{this.state.upvotes}</span>
                 <span> | </span>
-                <span className="text-danger">-{post.downvotes}</span>
+                <span className="text-danger">-{this.state.downvotes}</span>
                 <span>) </span>
               </span>
             </li>
@@ -747,28 +735,55 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   handlePostLike(i: PostListing) {
-    if (UserService.Instance.user) {
-      i.setState({ upvoteLoading: true });
+    let new_vote = i.state.my_vote == 1 ? 0 : 1;
+
+    if (i.state.my_vote == 1) {
+      i.state.score--;
+      i.state.upvotes--;
+    } else if (i.state.my_vote == -1) {
+      i.state.downvotes--;
+      i.state.upvotes++;
+      i.state.score += 2;
+    } else {
+      i.state.upvotes++;
+      i.state.score++;
     }
+
+    i.state.my_vote = new_vote;
 
     let form: CreatePostLikeForm = {
       post_id: i.props.post.id,
-      score: i.props.post.my_vote == 1 ? 0 : 1,
+      score: i.state.my_vote,
     };
 
     WebSocketService.Instance.likePost(form);
+    i.setState(i.state);
   }
 
   handlePostDisLike(i: PostListing) {
-    if (UserService.Instance.user) {
-      i.setState({ downvoteLoading: true });
+    let new_vote = i.state.my_vote == -1 ? 0 : -1;
+
+    if (i.state.my_vote == 1) {
+      i.state.score -= 2;
+      i.state.upvotes--;
+      i.state.downvotes++;
+    } else if (i.state.my_vote == -1) {
+      i.state.downvotes--;
+      i.state.score++;
+    } else {
+      i.state.downvotes++;
+      i.state.score--;
     }
+
+    i.state.my_vote = new_vote;
 
     let form: CreatePostLikeForm = {
       post_id: i.props.post.id,
-      score: i.props.post.my_vote == -1 ? 0 : -1,
+      score: i.state.my_vote,
     };
+
     WebSocketService.Instance.likePost(form);
+    i.setState(i.state);
   }
 
   handleEditClick(i: PostListing) {

@@ -25,6 +25,9 @@ import {
   pictshareAvatarThumbnail,
   showAvatars,
   toast,
+  createCommentLikeRes,
+  createPostLikeFindRes,
+  commentsToFlatNodes,
 } from '../utils';
 import { PostListing } from './post-listing';
 import { SortSelect } from './sort-select';
@@ -294,15 +297,11 @@ export class Search extends Component<any, SearchState> {
 
   comments() {
     return (
-      <>
-        {this.state.searchResponse.comments.map(comment => (
-          <div class="row">
-            <div class="col-12">
-              <CommentNodes nodes={[{ comment: comment }]} locked noIndent />
-            </div>
-          </div>
-        ))}
-      </>
+      <CommentNodes
+        nodes={commentsToFlatNodes(this.state.searchResponse.comments)}
+        locked
+        noIndent
+      />
     );
   }
 
@@ -474,27 +473,11 @@ export class Search extends Component<any, SearchState> {
       this.setState(this.state);
     } else if (res.op == UserOperation.CreateCommentLike) {
       let data = res.data as CommentResponse;
-      let found: Comment = this.state.searchResponse.comments.find(
-        c => c.id === data.comment.id
-      );
-      found.score = data.comment.score;
-      found.upvotes = data.comment.upvotes;
-      found.downvotes = data.comment.downvotes;
-      if (data.comment.my_vote !== null) {
-        found.my_vote = data.comment.my_vote;
-        found.upvoteLoading = false;
-        found.downvoteLoading = false;
-      }
+      createCommentLikeRes(data, this.state.searchResponse.comments);
       this.setState(this.state);
     } else if (res.op == UserOperation.CreatePostLike) {
       let data = res.data as PostResponse;
-      let found = this.state.searchResponse.posts.find(
-        c => c.id == data.post.id
-      );
-      found.my_vote = data.post.my_vote;
-      found.score = data.post.score;
-      found.upvotes = data.post.upvotes;
-      found.downvotes = data.post.downvotes;
+      createPostLikeFindRes(data, this.state.searchResponse.posts);
       this.setState(this.state);
     }
   }

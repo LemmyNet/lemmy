@@ -93,6 +93,7 @@ export interface User {
   lang: string;
   avatar?: string;
   show_avatars: boolean;
+  unreadCount?: number;
 }
 
 export interface UserView {
@@ -177,8 +178,6 @@ export interface Post {
   subscribed?: boolean;
   read?: boolean;
   saved?: boolean;
-  upvoteLoading?: boolean;
-  downvoteLoading?: boolean;
   duplicates?: Array<Post>;
 }
 
@@ -209,8 +208,6 @@ export interface Comment {
   saved?: boolean;
   user_mention_id?: number; // For mention type
   recipient_id?: number;
-  upvoteLoading?: boolean;
-  downvoteLoading?: boolean;
 }
 
 export interface Category {

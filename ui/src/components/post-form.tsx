@@ -35,6 +35,7 @@ import {
 } from '../utils';
 import autosize from 'autosize';
 import Tribute from 'tributejs/src/Tribute.js';
+import Selectr from 'mobius1-selectr';
 import { i18n } from '../i18next';
 
 const MAX_POST_TITLE_LENGTH = 200;
@@ -514,6 +515,13 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
         this.state.postForm.community_id = data.communities[0].id;
       }
       this.setState(this.state);
+
+      // Set up select searching
+      let selectId: any = document.getElementById('post-community');
+      let selector = new Selectr(selectId, {});
+      selector.on('selectr.select', option => {
+        this.state.postForm.community_id = Number(option.value);
+      });
     } else if (res.op == UserOperation.CreatePost) {
       let data = res.data as PostResponse;
       if (data.post.creator_id == UserService.Instance.user.id) {
