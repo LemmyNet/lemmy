@@ -68,6 +68,7 @@ interface MainState {
   dataType: DataType;
   sort: SortType;
   page: number;
+  hasUnsavedData: boolean,
 }
 
 export class Main extends Component<any, MainState> {
@@ -102,6 +103,7 @@ export class Main extends Component<any, MainState> {
     dataType: getDataTypeFromProps(this.props),
     sort: getSortTypeFromProps(this.props),
     page: getPageFromProps(this.props),
+    hasUnsavedData: false,
   };
 
   constructor(props: any, context: any) {
