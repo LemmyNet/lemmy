@@ -33,6 +33,7 @@
     "markdown-it": "^10.0.0",
     "markdown-it-container": "^2.0.0",
     "markdown-it-emoji": "^1.4.0",
+    "mobius1-selectr": "^2.4.13",
     "moment": "^2.24.0",
     "prettier": "^1.18.2",
     "reconnecting-websocket": "^4.4.0",
