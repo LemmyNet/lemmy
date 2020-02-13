@@ -34,6 +34,7 @@ fi
 cd ui
 yarn
 yarn build
+source ./dist-collectstatic.sh
 
 # Build and run the backend
 cd ../server
