@@ -518,10 +518,12 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
 
       // Set up select searching
       let selectId: any = document.getElementById('post-community');
-      let selector = new Selectr(selectId, {});
-      selector.on('selectr.select', option => {
-        this.state.postForm.community_id = Number(option.value);
-      });
+      if (selectId) {
+        let selector = new Selectr(selectId, { nativeDropdown: false });
+        selector.on('selectr.select', option => {
+          this.state.postForm.community_id = Number(option.value);
+        });
+      }
     } else if (res.op == UserOperation.CreatePost) {
       let data = res.data as PostResponse;
       if (data.post.creator_id == UserService.Instance.user.id) {
