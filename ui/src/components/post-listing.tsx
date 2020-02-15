@@ -169,7 +169,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           </video>
         )}
         <div className="ml-4">
-          <div className="post-title text-wrap-truncate">
+          <div className="post-title">
             <h5 className="mb-0 d-inline">
               <Link
                 className="text-body"
@@ -180,7 +180,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               </Link>
             </h5>
             {post.url && (
-              <small>
+              <small class="d-inline-block">
                 <a
                   className="ml-2 text-muted font-italic"
                   href={post.url}
