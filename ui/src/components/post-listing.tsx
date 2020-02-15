@@ -188,6 +188,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   title={post.url}
                 >
                   {new URL(post.url).hostname}
+                  <svg class="ml-1 icon">
+                    <use xlinkHref="#icon-external-link"></use>
+                  </svg>
                 </a>
               </small>
             )}
