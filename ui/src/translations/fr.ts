@@ -140,8 +140,7 @@ export const fr = {
       "Lemmy est gratuit et <1>open-source</1>, c'est à dire sans publicité et sans monétisation. Pour toujours. Vos dons soutiennent directement le développement du projet. Merci à nos soutiens.",
     support_on_patreon: 'Soutenir sur Patreon',
     support_on_liberapay: 'Soutenir sur Liberapay',
-    general_sponsors:
-      'General Sponsors are those that pledged $10 to $39 to Lemmy.',
+    general_sponsors: 'Les sponsors généraux sont ceux garantissant de 10 à 39$.',
     crypto: 'Cryptomonnaies',
     bitcoin: 'Bitcoin',
     ethereum: 'Ethereum',
