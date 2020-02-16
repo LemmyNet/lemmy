@@ -386,6 +386,7 @@ export class Main extends Component<any, MainState> {
   posts() {
     return (
       <div class="main-content-wrapper">
+        {this.selects()}
         {this.state.loading ? (
           <h5>
             <svg class="icon icon-spinner spin">
@@ -394,7 +395,6 @@ export class Main extends Component<any, MainState> {
           </h5>
         ) : (
           <div>
-            {this.selects()}
             {this.listings()}
             {this.paginator()}
           </div>
@@ -428,7 +428,7 @@ export class Main extends Component<any, MainState> {
           type_={this.state.dataType}
           onChange={this.handleDataTypeChange}
         />
-        <span class="mx-2">
+        <span class="mx-3">
           <ListingTypeSelect
             type_={this.state.listingType}
             onChange={this.handleListingTypeChange}
