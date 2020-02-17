@@ -90,6 +90,7 @@ Each lemmy server can set its own moderation policy; appointing site-wide admins
   - Can transfer site and communities to others.
 - Can fully erase your data, replacing all posts and comments.
 - NSFW post / community support.
+- OEmbed support via Iframely.
 - High performance.
   - Server is written in rust.
   - Front end is `~80kB` gzipped.
@@ -136,7 +137,7 @@ fa | 71% | cross_post,cross_posted_to,subscribed_to_communities,trending_communi
 eo | 73% | cross_posted_to,number_of_communities,create_private_message,send_secure_message,send_message,message,preview,upload_image,avatar,upload_avatar,show_avatars,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,old,docs,replies,mentions,message_sent,messages,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,matrix_user_id,private_message_disclaimer,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,theme,support_on_liberapay,donate_to_lemmy,donate,from,are_you_sure,yes,no,logged_in,couldnt_get_comments,post_title_too_long,email_already_exists,couldnt_create_private_message,no_private_message_edit_allowed,couldnt_update_private_message,time,action
 es | 99% | cross_posted_to,couldnt_get_comments,post_title_too_long
 fi | 97% | cross_posted_to,old,support_on_liberapay,couldnt_get_comments,post_title_too_long,time,action
-fr | 81% | cross_posted_to,create_private_message,send_secure_message,send_message,message,avatar,upload_avatar,show_avatars,archive_link,old,docs,replies,mentions,message_sent,messages,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,matrix_user_id,private_message_disclaimer,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,donate_to_lemmy,donate,from,logged_in,couldnt_get_comments,post_title_too_long,email_already_exists,couldnt_create_private_message,no_private_message_edit_allowed,couldnt_update_private_message,time,action
+fr | 100% | show_avatars
 it | 82% | cross_posted_to,create_private_message,send_secure_message,send_message,message,avatar,upload_avatar,show_avatars,archive_link,old,docs,message_sent,messages,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,matrix_user_id,private_message_disclaimer,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,donate_to_lemmy,donate,from,logged_in,couldnt_get_comments,post_title_too_long,email_already_exists,couldnt_create_private_message,no_private_message_edit_allowed,couldnt_update_private_message,time,action
 nl | 98% | cross_posted_to,couldnt_get_comments,post_title_too_long,time,action
 pt-br | 99% | couldnt_get_comments,post_title_too_long
