@@ -15,9 +15,11 @@ import {
   AddAdminForm,
   TransferSiteForm,
   TransferCommunityForm,
+  FramelyData,
 } from '../interfaces';
 import { MomentTime } from './moment-time';
 import { PostForm } from './post-form';
+import { IFramelyCard } from './iframely-card';
 import {
   mdToHtml,
   canMod,
@@ -47,6 +49,7 @@ interface PostListingState {
   score: number;
   upvotes: number;
   downvotes: number;
+  iframely: FramelyData;
 }
 
 interface PostListingProps {
@@ -74,6 +77,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     score: this.props.post.score,
     upvotes: this.props.post.upvotes,
     downvotes: this.props.post.downvotes,
+    iframely: null,
   };
 
   constructor(props: any, context: any) {
@@ -84,6 +88,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     this.handlePostDisLike = this.handlePostDisLike.bind(this);
     this.handleEditPost = this.handleEditPost.bind(this);
     this.handleEditCancel = this.handleEditCancel.bind(this);
+
+    if (this.props.post.url) {
+      this.fetchIframely();
+    }
   }
 
   componentWillReceiveProps(nextProps: PostListingProps) {
@@ -141,7 +149,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             </button>
           )}
         </div>
-        {post.url && isImage(post.url) && !this.state.imageExpanded && (
+        {this.hasImage() && !this.state.imageExpanded && (
           <span
             title={i18n.t('expand_here')}
             class="pointer"
@@ -151,7 +159,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               className={`mx-2 mt-1 float-left img-fluid thumbnail rounded ${(post.nsfw ||
                 post.community_nsfw) &&
                 'img-blur'}`}
-              src={imageThumbnailer(post.url)}
+              src={imageThumbnailer(this.getImage())}
             />
           </span>
         )}
@@ -205,7 +213,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                 </a>
               </small>
             )}
-            {post.url && isImage(post.url) && (
+            {this.hasImage() && (
               <>
                 {!this.state.imageExpanded ? (
                   <span
@@ -228,7 +236,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                         class="pointer"
                         onClick={linkEvent(this, this.handleImageExpandClick)}
                       >
-                        <img class="img-fluid img-expanded" src={post.url} />
+                        <img
+                          class="img-fluid img-expanded"
+                          src={this.getImage()}
+                        />
                       </span>
                     </div>
                   </span>
@@ -587,6 +598,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               </li>
             )}
           </ul>
+          {post.url && this.props.showBody && this.state.iframely && (
+            <IFramelyCard iframely={this.state.iframely} />
+          )}
           {this.state.showRemoveDialog && (
             <form
               class="form-inline"
@@ -735,6 +749,37 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       this.props.post.creator_id != UserService.Instance.user.id &&
       UserService.Instance.user.id == this.props.admins[0].id
     );
+  }
+
+  fetchIframely() {
+    fetch(`/iframely/oembed?url=${this.props.post.url}`)
+      .then(res => res.json())
+      .then(res => {
+        this.state.iframely = res;
+        this.setState(this.state);
+      })
+      .catch(error => {
+        console.error(`Iframely service not set up properly. ${error}`);
+      });
+  }
+
+  hasImage(): boolean {
+    return (
+      (this.props.post.url && isImage(this.props.post.url)) ||
+      (this.state.iframely && this.state.iframely.thumbnail_url !== undefined)
+    );
+  }
+
+  getImage(): string {
+    let simpleImg = isImage(this.props.post.url);
+    if (simpleImg) {
+      return this.props.post.url;
+    } else if (this.state.iframely) {
+      let iframelyThumbnail = this.state.iframely.thumbnail_url;
+      if (iframelyThumbnail) {
+        return iframelyThumbnail;
+      }
+    }
   }
 
   handlePostLike(i: PostListing) {
