@@ -34,7 +34,7 @@ export const fr = {
     preview: 'prévisualiser',
     upload_image: 'envoyer une image',
     avatar: 'Avatar',
-    upload_avatar: 'Télécharger une avatar',
+    upload_avatars: 'Télécharger une avatar',
     show_avatar: 'Afficher les avatars',
     formatting_help: 'aide au formattage',
     view_source: 'voir la source',
