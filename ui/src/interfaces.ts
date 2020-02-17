@@ -876,3 +876,18 @@ export interface WebSocketJsonResponse {
   error?: string;
   reconnect?: boolean;
 }
+
+export interface FramelyData {
+  url: string;
+  type: string;
+  version?: string;
+  title: string;
+  author?: string;
+  author_url?: string;
+  provider_name?: string;
+  thumbnail_url?: string;
+  thumbnail_width?: number;
+  thumbnail_height?: number;
+  description?: string;
+  html?: string;
+}

@@ -7,6 +7,7 @@ mkdir lemmy/
 cd lemmy/
 wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/docker-compose.yml
 wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/lemmy.hjson
+wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/iframely.config.local.js
 # Edit lemmy.hjson, and docker-compose.yml to do more configuration (like adding a custom password)
 docker-compose up -d
 ```
