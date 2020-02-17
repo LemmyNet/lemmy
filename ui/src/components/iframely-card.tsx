@@ -52,7 +52,7 @@ export class IFramelyCard extends Component<
                     </a>
                     {iframely.html && (
                       <span
-                        class="ml-2 pointer"
+                        class="ml-2 pointer text-monospace"
                         onClick={linkEvent(this, this.handleIframeExpand)}
                       >
                         {this.state.expanded ? '[-]' : '[+]'}
@@ -72,7 +72,7 @@ export class IFramelyCard extends Component<
         )}
         {this.state.expanded && (
           <div
-            class="my-2"
+            class="mt-3 mb-2"
             dangerouslySetInnerHTML={{ __html: iframely.html }}
           />
         )}

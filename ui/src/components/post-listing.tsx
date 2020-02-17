@@ -49,6 +49,7 @@ interface PostListingState {
   score: number;
   upvotes: number;
   downvotes: number;
+  url: string;
   iframely: FramelyData;
 }
 
@@ -77,6 +78,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     score: this.props.post.score,
     upvotes: this.props.post.upvotes,
     downvotes: this.props.post.downvotes,
+    url: this.props.post.url,
     iframely: null,
   };
 
@@ -89,7 +91,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     this.handleEditPost = this.handleEditPost.bind(this);
     this.handleEditCancel = this.handleEditCancel.bind(this);
 
-    if (this.props.post.url) {
+    if (this.state.url) {
       this.fetchIframely();
     }
   }
@@ -99,6 +101,13 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     this.state.upvotes = nextProps.post.upvotes;
     this.state.downvotes = nextProps.post.downvotes;
     this.state.score = nextProps.post.score;
+    this.state.url = nextProps.post.url;
+    this.state.iframely = null;
+
+    if (nextProps.post.url) {
+      this.fetchIframely();
+    }
+
     this.setState(this.state);
   }
 
@@ -163,7 +172,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             />
           </span>
         )}
-        {post.url && isVideo(post.url) && (
+        {this.state.url && isVideo(this.state.url) && (
           <video
             playsinline
             muted
@@ -173,18 +182,18 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             height="100"
             width="150"
           >
-            <source src={post.url} type="video/mp4" />
+            <source src={this.state.url} type="video/mp4" />
           </video>
         )}
         <div className="ml-4">
           <div className="post-title">
             <h5 className="mb-0 d-inline">
-              {this.props.showBody && post.url ? (
+              {this.props.showBody && this.state.url ? (
                 <a
                   className="text-body"
-                  href={post.url}
+                  href={this.state.url}
                   target="_blank"
-                  title={post.url}
+                  title={this.state.url}
                 >
                   {post.name}
                 </a>
@@ -198,15 +207,15 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                 </Link>
               )}
             </h5>
-            {post.url && (
+            {this.state.url && (
               <small class="d-inline-block">
                 <a
                   className="ml-2 text-muted font-italic"
-                  href={post.url}
+                  href={this.state.url}
                   target="_blank"
-                  title={post.url}
+                  title={this.state.url}
                 >
-                  {new URL(post.url).hostname}
+                  {new URL(this.state.url).hostname}
                   <svg class="ml-1 icon">
                     <use xlinkHref="#icon-external-link"></use>
                   </svg>
@@ -598,7 +607,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               </li>
             )}
           </ul>
-          {post.url && this.props.showBody && this.state.iframely && (
+          {this.state.url && this.props.showBody && this.state.iframely && (
             <IFramelyCard iframely={this.state.iframely} />
           )}
           {this.state.showRemoveDialog && (
@@ -752,7 +761,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   fetchIframely() {
-    fetch(`/iframely/oembed?url=${this.props.post.url}`)
+    fetch(`/iframely/oembed?url=${this.state.url}`)
       .then(res => res.json())
       .then(res => {
         this.state.iframely = res;
@@ -765,15 +774,15 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
   hasImage(): boolean {
     return (
-      (this.props.post.url && isImage(this.props.post.url)) ||
+      (this.state.url && isImage(this.state.url)) ||
       (this.state.iframely && this.state.iframely.thumbnail_url !== undefined)
     );
   }
 
   getImage(): string {
-    let simpleImg = isImage(this.props.post.url);
+    let simpleImg = isImage(this.state.url);
     if (simpleImg) {
-      return this.props.post.url;
+      return this.state.url;
     } else if (this.state.iframely) {
       let iframelyThumbnail = this.state.iframely.thumbnail_url;
       if (iframelyThumbnail) {
@@ -877,8 +886,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
   get crossPostParams(): string {
     let params = `?title=${this.props.post.name}`;
-    if (this.props.post.url) {
-      params += `&url=${this.props.post.url}`;
+    if (this.state.url) {
+      params += `&url=${this.state.url}`;
     }
     if (this.props.post.body) {
       params += `&body=${this.props.post.body}`;
