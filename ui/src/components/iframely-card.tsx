@@ -27,27 +27,10 @@ export class IFramelyCard extends Component<
     let iframely = this.props.iframely;
     return (
       <>
-        {iframely.title && (
-          <div class="card my-2">
-            <div class="row no-gutters">
-              {iframely.thumbnail_url && (
-                <div class="col-sm-3">
-                  {iframely.html ? (
-                    <span
-                      class="pointer"
-                      onClick={linkEvent(this, this.handleIframeExpand)}
-                    >
-                      <img class="card-img" src={iframely.thumbnail_url} />
-                    </span>
-                  ) : (
-                    <img
-                      class="img-fluid card-img"
-                      src={iframely.thumbnail_url}
-                    />
-                  )}
-                </div>
-              )}
-              <div class="col-sm-9">
+        {iframely.title && !this.state.expanded && (
+          <div class="card mt-3 mb-2">
+            <div class="row">
+              <div class="col-12">
                 <div class="card-body">
                   <h5 class="card-title d-inline">
                     <span>
@@ -57,7 +40,11 @@ export class IFramelyCard extends Component<
                     </span>
                   </h5>
                   <span class="d-inline-block ml-2 mb-2 small text-muted">
-                    <a class="text-muted" target="_blank" href={iframely.url}>
+                    <a
+                      class="text-muted font-italic"
+                      target="_blank"
+                      href={iframely.url}
+                    >
                       {new URL(iframely.url).hostname}
                       <svg class="ml-1 icon">
                         <use xlinkHref="#icon-external-link"></use>
