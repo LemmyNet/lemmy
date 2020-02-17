@@ -84,12 +84,10 @@ export class IFramelyCard extends Component<
           </div>
         )}
         {this.state.expanded && (
-          <div class="my-2 embed-responsive embed-responsive-16by9">
-            <div
-              class="embed-responsive-item"
-              dangerouslySetInnerHTML={{ __html: iframely.html }}
-            />
-          </div>
+          <div
+            class="my-2"
+            dangerouslySetInnerHTML={{ __html: iframely.html }}
+          />
         )}
       </>
     );
