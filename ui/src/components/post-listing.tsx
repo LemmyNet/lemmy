@@ -101,11 +101,14 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     this.state.upvotes = nextProps.post.upvotes;
     this.state.downvotes = nextProps.post.downvotes;
     this.state.score = nextProps.post.score;
-    this.state.url = nextProps.post.url;
-    this.state.iframely = null;
 
-    if (nextProps.post.url) {
-      this.fetchIframely();
+    if (nextProps.post.url !== this.state.url) {
+      this.state.url = nextProps.post.url;
+      if (this.state.url) {
+        this.fetchIframely();
+      } else {
+        this.state.iframely = null;
+      }
     }
 
     this.setState(this.state);
