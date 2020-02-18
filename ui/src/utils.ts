@@ -42,7 +42,7 @@ import emojiShortName from 'emoji-short-name';
 import Toastify from 'toastify-js';
 
 export const repoUrl = 'https://github.com/dessalines/lemmy';
-export const markdownHelpUrl = 'https://commonmark.org/help/';
+export const markdownHelpUrl = '/docs/about_guide.html';
 export const archiveUrl = 'https://archive.is';
 
 export const postRefetchSeconds: number = 60 * 1000;

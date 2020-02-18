@@ -101,6 +101,7 @@ Each lemmy server can set its own moderation policy; appointing site-wide admins
 - [Docker](https://dev.lemmy.ml/docs/administration_install_docker.html)
 - [Ansible](https://dev.lemmy.ml/docs/administration_install_ansible.html)
 - [Kubernetes](https://dev.lemmy.ml/docs/administration_install_kubernetes.html)
+
 ## Support / Donate
 
 Lemmy is free, open-source software, meaning no advertising, monetizing, or venture capital, ever. Your donations directly support full-time development of the project.
