@@ -210,21 +210,24 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                 </Link>
               )}
             </h5>
-            {this.state.url && (
-              <small class="d-inline-block">
-                <a
-                  className="ml-2 text-muted font-italic"
-                  href={this.state.url}
-                  target="_blank"
-                  title={this.state.url}
-                >
-                  {new URL(this.state.url).hostname}
-                  <svg class="ml-1 icon">
-                    <use xlinkHref="#icon-external-link"></use>
-                  </svg>
-                </a>
-              </small>
-            )}
+            {this.state.url &&
+              !(
+                new URL(this.state.url).hostname == window.location.hostname
+              ) && (
+                <small class="d-inline-block">
+                  <a
+                    className="ml-2 text-muted font-italic"
+                    href={this.state.url}
+                    target="_blank"
+                    title={this.state.url}
+                  >
+                    {new URL(this.state.url).hostname}
+                    <svg class="ml-1 icon">
+                      <use xlinkHref="#icon-external-link"></use>
+                    </svg>
+                  </a>
+                </small>
+              )}
             {this.hasImage() && (
               <>
                 {!this.state.imageExpanded ? (
