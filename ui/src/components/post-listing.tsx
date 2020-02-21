@@ -162,18 +162,30 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           )}
         </div>
         {this.hasImage() && !this.state.imageExpanded && (
-          <span
-            title={i18n.t('expand_here')}
-            class="pointer"
-            onClick={linkEvent(this, this.handleImageExpandClick)}
-          >
-            <img
-              className={`mx-2 mt-1 float-left img-fluid thumbnail rounded ${(post.nsfw ||
-                post.community_nsfw) &&
-                'img-blur'}`}
-              src={imageThumbnailer(this.getImage())}
-            />
-          </span>
+          <div class="mx-2 mt-1 float-left position-relative">
+            <span
+              title={i18n.t('expand_here')}
+              class="pointer"
+              onClick={linkEvent(this, this.handleImageExpandClick)}
+            >
+              <img
+                className={`img-fluid thumbnail rounded ${(post.nsfw ||
+                  post.community_nsfw) &&
+                  'img-blur'}`}
+                src={imageThumbnailer(this.getImage())}
+              />
+            </span>
+            <a
+              className="text-body"
+              href={this.state.url}
+              target="_blank"
+              title={this.state.url}
+            >
+              <svg class="icon link-overlay">
+                <use xlinkHref="#icon-external-link"></use>
+              </svg>
+            </a>
+          </div>
         )}
         {this.state.url && isVideo(this.state.url) && (
           <video
