@@ -15,9 +15,11 @@ import {
   AddAdminForm,
   TransferSiteForm,
   TransferCommunityForm,
+  FramelyData,
 } from '../interfaces';
 import { MomentTime } from './moment-time';
 import { PostForm } from './post-form';
+import { IFramelyCard } from './iframely-card';
 import {
   mdToHtml,
   canMod,
@@ -47,6 +49,8 @@ interface PostListingState {
   score: number;
   upvotes: number;
   downvotes: number;
+  url: string;
+  iframely: FramelyData;
 }
 
 interface PostListingProps {
@@ -74,6 +78,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     score: this.props.post.score,
     upvotes: this.props.post.upvotes,
     downvotes: this.props.post.downvotes,
+    url: this.props.post.url,
+    iframely: null,
   };
 
   constructor(props: any, context: any) {
@@ -84,6 +90,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     this.handlePostDisLike = this.handlePostDisLike.bind(this);
     this.handleEditPost = this.handleEditPost.bind(this);
     this.handleEditCancel = this.handleEditCancel.bind(this);
+
+    if (this.state.url) {
+      this.fetchIframely();
+    }
   }
 
   componentWillReceiveProps(nextProps: PostListingProps) {
@@ -91,6 +101,16 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     this.state.upvotes = nextProps.post.upvotes;
     this.state.downvotes = nextProps.post.downvotes;
     this.state.score = nextProps.post.score;
+
+    if (nextProps.post.url !== this.state.url) {
+      this.state.url = nextProps.post.url;
+      if (this.state.url) {
+        this.fetchIframely();
+      } else {
+        this.state.iframely = null;
+      }
+    }
+
     this.setState(this.state);
   }
 
@@ -141,21 +161,33 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             </button>
           )}
         </div>
-        {post.url && isImage(post.url) && !this.state.imageExpanded && (
-          <span
-            title={i18n.t('expand_here')}
-            class="pointer"
-            onClick={linkEvent(this, this.handleImageExpandClick)}
-          >
-            <img
-              className={`mx-2 mt-1 float-left img-fluid thumbnail rounded ${(post.nsfw ||
-                post.community_nsfw) &&
-                'img-blur'}`}
-              src={imageThumbnailer(post.url)}
-            />
-          </span>
+        {this.hasImage() && !this.state.imageExpanded && (
+          <div class="mx-2 mt-1 float-left position-relative">
+            <span
+              title={i18n.t('expand_here')}
+              class="pointer"
+              onClick={linkEvent(this, this.handleImageExpandClick)}
+            >
+              <img
+                className={`img-fluid thumbnail rounded ${(post.nsfw ||
+                  post.community_nsfw) &&
+                  'img-blur'}`}
+                src={imageThumbnailer(this.getImage())}
+              />
+            </span>
+            <a
+              className="text-body"
+              href={this.state.url}
+              target="_blank"
+              title={this.state.url}
+            >
+              <svg class="icon link-overlay">
+                <use xlinkHref="#icon-external-link"></use>
+              </svg>
+            </a>
+          </div>
         )}
-        {post.url && isVideo(post.url) && (
+        {this.state.url && isVideo(this.state.url) && (
           <video
             playsinline
             muted
@@ -165,18 +197,18 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             height="100"
             width="150"
           >
-            <source src={post.url} type="video/mp4" />
+            <source src={this.state.url} type="video/mp4" />
           </video>
         )}
         <div className="ml-4">
-          <div className="post-title text-wrap-truncate">
+          <div className="post-title">
             <h5 className="mb-0 d-inline">
-              {post.url ? (
+              {this.props.showBody && this.state.url ? (
                 <a
                   className="text-body"
-                  href={post.url}
+                  href={this.state.url}
                   target="_blank"
-                  title={post.url}
+                  title={this.state.url}
                 >
                   {post.name}
                 </a>
@@ -190,19 +222,25 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                 </Link>
               )}
             </h5>
-            {post.url && (
-              <small>
-                <a
-                  className="ml-2 text-muted font-italic"
-                  href={post.url}
-                  target="_blank"
-                  title={post.url}
-                >
-                  {new URL(post.url).hostname}
-                </a>
-              </small>
-            )}
-            {post.url && isImage(post.url) && (
+            {this.state.url &&
+              !(
+                new URL(this.state.url).hostname == window.location.hostname
+              ) && (
+                <small class="d-inline-block">
+                  <a
+                    className="ml-2 text-muted font-italic"
+                    href={this.state.url}
+                    target="_blank"
+                    title={this.state.url}
+                  >
+                    {new URL(this.state.url).hostname}
+                    <svg class="ml-1 icon">
+                      <use xlinkHref="#icon-external-link"></use>
+                    </svg>
+                  </a>
+                </small>
+              )}
+            {this.hasImage() && (
               <>
                 {!this.state.imageExpanded ? (
                   <span
@@ -225,7 +263,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                         class="pointer"
                         onClick={linkEvent(this, this.handleImageExpandClick)}
                       >
-                        <img class="img-fluid img-expanded" src={post.url} />
+                        <img
+                          class="img-fluid img-expanded"
+                          src={this.getImage()}
+                        />
                       </span>
                     </div>
                   </span>
@@ -584,6 +625,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               </li>
             )}
           </ul>
+          {this.state.url && this.props.showBody && this.state.iframely && (
+            <IFramelyCard iframely={this.state.iframely} />
+          )}
           {this.state.showRemoveDialog && (
             <form
               class="form-inline"
@@ -734,6 +778,37 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     );
   }
 
+  fetchIframely() {
+    fetch(`/iframely/oembed?url=${this.state.url}`)
+      .then(res => res.json())
+      .then(res => {
+        this.state.iframely = res;
+        this.setState(this.state);
+      })
+      .catch(error => {
+        console.error(`Iframely service not set up properly. ${error}`);
+      });
+  }
+
+  hasImage(): boolean {
+    return (
+      (this.state.url && isImage(this.state.url)) ||
+      (this.state.iframely && this.state.iframely.thumbnail_url !== undefined)
+    );
+  }
+
+  getImage(): string {
+    let simpleImg = isImage(this.state.url);
+    if (simpleImg) {
+      return this.state.url;
+    } else if (this.state.iframely) {
+      let iframelyThumbnail = this.state.iframely.thumbnail_url;
+      if (iframelyThumbnail) {
+        return iframelyThumbnail;
+      }
+    }
+  }
+
   handlePostLike(i: PostListing) {
     let new_vote = i.state.my_vote == 1 ? 0 : 1;
 
@@ -829,8 +904,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
   get crossPostParams(): string {
     let params = `?title=${this.props.post.name}`;
-    if (this.props.post.url) {
-      params += `&url=${this.props.post.url}`;
+    if (this.state.url) {
+      params += `&url=${this.state.url}`;
     }
     if (this.props.post.body) {
       params += `&body=${this.props.post.body}`;

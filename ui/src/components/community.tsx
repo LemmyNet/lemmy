@@ -136,6 +136,7 @@ export class Community extends Component<any, State> {
   render() {
     return (
       <div class="container">
+        {this.selects()}
         {this.state.loading ? (
           <h5>
             <svg class="icon icon-spinner spin">
@@ -158,7 +159,6 @@ export class Community extends Component<any, State> {
                   </small>
                 )}
               </h5>
-              {this.selects()}
               {this.listings()}
               {this.paginator()}
             </div>
@@ -200,7 +200,7 @@ export class Community extends Component<any, State> {
           onChange={this.handleDataTypeChange}
         />
 
-        <span class="mx-2">
+        <span class="mx-3">
           <SortSelect sort={this.state.sort} onChange={this.handleSortChange} />
         </span>
         <a
@@ -209,7 +209,7 @@ export class Community extends Component<any, State> {
           }`}
           target="_blank"
         >
-          <svg class="icon mx-2 text-muted small">
+          <svg class="icon text-muted small">
             <use xlinkHref="#icon-rss">#</use>
           </svg>
         </a>

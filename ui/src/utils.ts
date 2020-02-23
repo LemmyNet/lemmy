@@ -42,7 +42,7 @@ import emojiShortName from 'emoji-short-name';
 import Toastify from 'toastify-js';
 
 export const repoUrl = 'https://github.com/dessalines/lemmy';
-export const markdownHelpUrl = 'https://commonmark.org/help/';
+export const markdownHelpUrl = '/docs/about_guide.html';
 export const archiveUrl = 'https://archive.is';
 
 export const postRefetchSeconds: number = 60 * 1000;
@@ -613,11 +613,13 @@ export function createPostLikeFindRes(data: PostResponse, posts: Array<Post>) {
 }
 
 export function createPostLikeRes(data: PostResponse, post: Post) {
-  post.score = data.post.score;
-  post.upvotes = data.post.upvotes;
-  post.downvotes = data.post.downvotes;
-  if (data.post.my_vote !== null) {
-    post.my_vote = data.post.my_vote;
+  if (post) {
+    post.score = data.post.score;
+    post.upvotes = data.post.upvotes;
+    post.downvotes = data.post.downvotes;
+    if (data.post.my_vote !== null) {
+      post.my_vote = data.post.my_vote;
+    }
   }
 }
 
@@ -629,9 +631,11 @@ export function editPostFindRes(data: PostResponse, posts: Array<Post>) {
 }
 
 export function editPostRes(data: PostResponse, post: Post) {
-  post.url = data.post.url;
-  post.name = data.post.name;
-  post.nsfw = data.post.nsfw;
+  if (post) {
+    post.url = data.post.url;
+    post.name = data.post.name;
+    post.nsfw = data.post.nsfw;
+  }
 }
 
 export function commentsToFlatNodes(
