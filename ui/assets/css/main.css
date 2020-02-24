@@ -188,7 +188,7 @@ hr {
   border: unset;
 }
 
-.link-overlay {
+.img-expand-overlay {
   position: absolute;
   top: 0;
   right: 0;
@@ -196,4 +196,25 @@ hr {
   background: rgba(0,0,0,.4);
   border-bottom-left-radius: 0.25rem !important;
   border-top-right-radius: 0.25rem !important;
+}
+
+.link-overlay:hover {
+  transition: .1s;
+  opacity: 1;
+}
+
+.link-overlay {
+  transition: opacity .1s ease-in-out;
+  position: absolute;
+  opacity: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  padding: 10px;
+  background: rgba(0,0,0,.6);
+}
+  
+.placeholder {
+  height: 50px;
+  width: 50px;
 }
