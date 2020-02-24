@@ -163,28 +163,35 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         </div>
         {this.hasImage() && !this.state.imageExpanded && (
           <div class="mx-2 mt-1 float-left position-relative">
-            <span
-              title={i18n.t('expand_here')}
-              class="pointer"
-              onClick={linkEvent(this, this.handleImageExpandClick)}
-            >
-              <img
-                className={`img-fluid thumbnail rounded ${(post.nsfw ||
-                  post.community_nsfw) &&
-                  'img-blur'}`}
-                src={imageThumbnailer(this.getImage())}
-              />
-            </span>
             <a
               className="text-body"
               href={this.state.url}
               target="_blank"
               title={this.state.url}
             >
-              <svg class="icon link-overlay">
+              <object
+                className={`img-fluid thumbnail rounded ${(post.nsfw ||
+                  post.community_nsfw) &&
+                  'img-blur'}`}
+                data={imageThumbnailer(this.getImage())}
+              >
+                <svg class="icon rounded placeholder">
+                  <use xlinkHref="#icon-external-link"></use>
+                </svg>
+              </object>
+              <svg class="icon rounded link-overlay hover-link">
                 <use xlinkHref="#icon-external-link"></use>
               </svg>
             </a>
+            <span
+              title={i18n.t('expand_here')}
+              class="pointer"
+              onClick={linkEvent(this, this.handleImageExpandClick)}
+            >
+              <svg class="icon img-expand-overlay">
+                <use xlinkHref="#icon-image"></use>
+              </svg>
+            </span>
           </div>
         )}
         {this.state.url && isVideo(this.state.url) && (
@@ -263,10 +270,14 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                         class="pointer"
                         onClick={linkEvent(this, this.handleImageExpandClick)}
                       >
-                        <img
+                        <object
                           class="img-fluid img-expanded"
-                          src={this.getImage()}
-                        />
+                          data={this.getImage()}
+                        >
+                          <svg class="icon rounded placeholder">
+                            <use xlinkHref="#icon-external-link"></use>
+                          </svg>
+                        </object>
                       </span>
                     </div>
                   </span>
