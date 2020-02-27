@@ -188,16 +188,6 @@ hr {
   border: unset;
 }
 
-.img-expand-overlay {
-  position: absolute;
-  top: 0;
-  right: 0;
-  padding: 2px;
-  background: rgba(0,0,0,.4);
-  border-bottom-left-radius: 0.25rem !important;
-  border-top-right-radius: 0.25rem !important;
-}
-
 .link-overlay:hover {
   transition: .1s;
   opacity: 1;

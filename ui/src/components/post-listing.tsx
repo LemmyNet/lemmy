@@ -51,6 +51,7 @@ interface PostListingState {
   downvotes: number;
   url: string;
   iframely: FramelyData;
+  thumbnail: string;
 }
 
 interface PostListingProps {
@@ -80,6 +81,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     downvotes: this.props.post.downvotes,
     url: this.props.post.url,
     iframely: null,
+    thumbnail: null,
   };
 
   constructor(props: any, context: any) {
@@ -92,6 +94,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     this.handleEditCancel = this.handleEditCancel.bind(this);
 
     if (this.state.url) {
+      this.setThumbnail();
       this.fetchIframely();
     }
   }
@@ -105,9 +108,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     if (nextProps.post.url !== this.state.url) {
       this.state.url = nextProps.post.url;
       if (this.state.url) {
+        this.setThumbnail();
         this.fetchIframely();
       } else {
         this.state.iframely = null;
+        this.state.thumbnail = null;
       }
     }
 
@@ -129,6 +134,18 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           </div>
         )}
       </div>
+    );
+  }
+
+  imgThumbnail() {
+    let post = this.props.post;
+    return (
+      <object
+        className={`img-fluid thumbnail rounded ${(post.nsfw ||
+          post.community_nsfw) &&
+          'img-blur'}`}
+        data={imageThumbnailer(this.state.thumbnail)}
+      ></object>
     );
   }
 
@@ -161,37 +178,32 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             </button>
           )}
         </div>
-        {this.hasImage() && !this.state.imageExpanded && (
+        {this.state.thumbnail && !this.state.imageExpanded && (
           <div class="mx-2 mt-1 float-left position-relative">
-            <a
-              className="text-body"
-              href={this.state.url}
-              target="_blank"
-              title={this.state.url}
-            >
-              <object
-                className={`img-fluid thumbnail rounded ${(post.nsfw ||
-                  post.community_nsfw) &&
-                  'img-blur'}`}
-                data={imageThumbnailer(this.getImage())}
+            {isImage(this.state.url) ? (
+              <span
+                class="text-body pointer"
+                title={i18n.t('expand_here')}
+                onClick={linkEvent(this, this.handleImageExpandClick)}
               >
-                <svg class="icon rounded placeholder">
+                {this.imgThumbnail()}
+                <svg class="icon rounded link-overlay hover-link">
+                  <use xlinkHref="#icon-image"></use>
+                </svg>
+              </span>
+            ) : (
+              <a
+                className="text-body"
+                href={this.state.url}
+                target="_blank"
+                title={this.state.url}
+              >
+                {this.imgThumbnail()}
+                <svg class="icon rounded link-overlay hover-link">
                   <use xlinkHref="#icon-external-link"></use>
                 </svg>
-              </object>
-              <svg class="icon rounded link-overlay hover-link">
-                <use xlinkHref="#icon-external-link"></use>
-              </svg>
-            </a>
-            <span
-              title={i18n.t('expand_here')}
-              class="pointer"
-              onClick={linkEvent(this, this.handleImageExpandClick)}
-            >
-              <svg class="icon img-expand-overlay">
-                <use xlinkHref="#icon-image"></use>
-              </svg>
-            </span>
+              </a>
+            )}
           </div>
         )}
         {this.state.url && isVideo(this.state.url) && (
@@ -247,7 +259,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   </a>
                 </small>
               )}
-            {this.hasImage() && (
+            {this.state.thumbnail && (
               <>
                 {!this.state.imageExpanded ? (
                   <span
@@ -272,7 +284,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                       >
                         <object
                           class="img-fluid img-expanded"
-                          data={this.getImage()}
+                          data={this.state.thumbnail}
                         >
                           <svg class="icon rounded placeholder">
                             <use xlinkHref="#icon-external-link"></use>
@@ -795,29 +807,39 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       .then(res => {
         this.state.iframely = res;
         this.setState(this.state);
+
+        // Store and fetch the image in pictshare
+        if (
+          this.state.iframely.thumbnail_url &&
+          isImage(this.state.iframely.thumbnail_url)
+        ) {
+          fetch(
+            `/pictshare/api/geturl.php?url=${this.state.iframely.thumbnail_url}`
+          )
+            .then(res => res.json())
+            .then(res => {
+              let url = `${window.location.origin}/pictshare/${res.url}`;
+              if (res.filetype == 'mp4') {
+                url += '/raw';
+              }
+              this.state.thumbnail = url;
+              this.setState(this.state);
+            });
+        }
       })
       .catch(error => {
         console.error(`Iframely service not set up properly. ${error}`);
       });
   }
 
-  hasImage(): boolean {
-    return (
-      (this.state.url && isImage(this.state.url)) ||
-      (this.state.iframely && this.state.iframely.thumbnail_url !== undefined)
-    );
-  }
-
-  getImage(): string {
+  setThumbnail() {
     let simpleImg = isImage(this.state.url);
     if (simpleImg) {
-      return this.state.url;
-    } else if (this.state.iframely) {
-      let iframelyThumbnail = this.state.iframely.thumbnail_url;
-      if (iframelyThumbnail) {
-        return iframelyThumbnail;
-      }
+      this.state.thumbnail = this.state.url;
+    } else {
+      this.state.thumbnail = null;
     }
+    this.setState(this.state);
   }
 
   handlePostLike(i: PostListing) {
