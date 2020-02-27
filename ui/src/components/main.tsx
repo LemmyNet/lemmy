@@ -626,10 +626,20 @@ export class Main extends Component<any, MainState> {
           this.state.posts.unshift(data.post);
         }
       } else {
-        this.state.posts.unshift(data.post);
-      }
+        // NSFW posts
+        let nsfw = data.post.nsfw || data.post.community_nsfw;
 
-      this.setState(this.state);
+        // Don't push the post if its nsfw, and don't have that setting on
+        if (
+          !nsfw ||
+          (nsfw &&
+            UserService.Instance.user &&
+            UserService.Instance.user.show_nsfw)
+        ) {
+          this.state.posts.unshift(data.post);
+          this.setState(this.state);
+        }
+      }
     } else if (res.op == UserOperation.EditPost) {
       let data = res.data as PostResponse;
       editPostFindRes(data, this.state.posts);

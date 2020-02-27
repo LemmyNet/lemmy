@@ -846,7 +846,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     } else {
       this.state.thumbnail = null;
     }
-    this.setState(this.state);
   }
 
   handlePostLike(i: PostListing) {
