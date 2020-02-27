@@ -818,12 +818,19 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           )
             .then(res => res.json())
             .then(res => {
-              let url = `${window.location.origin}/pictshare/${res.url}`;
-              if (res.filetype == 'mp4') {
-                url += '/raw';
+              if (res.status == 'ok') {
+                let url = `${window.location.origin}/pictshare/${res.url}`;
+                if (res.filetype == 'mp4') {
+                  url += '/raw';
+                }
+                this.state.thumbnail = url;
+                this.setState(this.state);
+              } else {
+                console.error(
+                  `Couldn't cache pictshare url: ${this.state.iframely.thumbnail_url}`
+                );
+                console.error(res);
               }
-              this.state.thumbnail = url;
-              this.setState(this.state);
             });
         }
       })
