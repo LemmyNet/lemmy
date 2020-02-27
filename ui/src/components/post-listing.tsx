@@ -187,7 +187,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                 onClick={linkEvent(this, this.handleImageExpandClick)}
               >
                 {this.imgThumbnail()}
-                <svg class="icon rounded link-overlay hover-link">
+                <svg class="icon thumbnail rounded link-overlay hover-link">
                   <use xlinkHref="#icon-image"></use>
                 </svg>
               </span>
@@ -199,7 +199,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                 title={this.state.url}
               >
                 {this.imgThumbnail()}
-                <svg class="icon rounded link-overlay hover-link">
+                <svg class="icon thumbnail rounded link-overlay hover-link">
                   <use xlinkHref="#icon-external-link"></use>
                 </svg>
               </a>
