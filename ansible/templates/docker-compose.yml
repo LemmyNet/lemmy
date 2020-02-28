@@ -30,6 +30,14 @@ services:
       - lemmy_pictshare:/usr/share/nginx/html/data
     restart: always
 
+  lemmy_iframely:
+    image: dogbin/iframely:latest
+    ports:
+      - "127.0.0.1:8061:8061"
+    volumes:
+      - ./iframely.config.local.js:/iframely/config.local.js:ro
+    restart: always
+
   postfix:
     image: mwader/postfix-relay
     environment:
@@ -38,3 +46,4 @@ services:
 volumes:
   lemmy_db:
   lemmy_pictshare:
+  lemmy_iframely:

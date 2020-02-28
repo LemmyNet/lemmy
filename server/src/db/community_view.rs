@@ -227,9 +227,9 @@ impl CommunityView {
     from_community_id: i32,
     from_user_id: Option<i32>,
   ) -> Result<Self, Error> {
-    use super::community_view::community_view::dsl::*;
+    use super::community_view::community_mview::dsl::*;
 
-    let mut query = community_view.into_boxed();
+    let mut query = community_mview.into_boxed();
 
     query = query.filter(id.eq(from_community_id));
 

@@ -42,6 +42,7 @@ export enum UserOperation {
   EditPrivateMessage,
   GetPrivateMessages,
   UserJoin,
+  GetComments,
 }
 
 export enum CommentSortType {
@@ -55,6 +56,11 @@ export enum ListingType {
   All,
   Subscribed,
   Community,
+}
+
+export enum DataType {
+  Post,
+  Comment,
 }
 
 export enum SortType {
@@ -87,6 +93,7 @@ export interface User {
   lang: string;
   avatar?: string;
   show_avatars: boolean;
+  unreadCount?: number;
 }
 
 export interface UserView {
@@ -165,13 +172,12 @@ export interface Post {
   upvotes: number;
   downvotes: number;
   hot_rank: number;
+  newest_activity_time: string;
   user_id?: number;
   my_vote?: number;
   subscribed?: boolean;
   read?: boolean;
   saved?: boolean;
-  upvoteLoading?: boolean;
-  downvoteLoading?: boolean;
   duplicates?: Array<Post>;
 }
 
@@ -187,6 +193,7 @@ export interface Comment {
   published: string;
   updated?: string;
   community_id: number;
+  community_name: string;
   banned: boolean;
   banned_from_community: boolean;
   creator_name: string;
@@ -194,13 +201,13 @@ export interface Comment {
   score: number;
   upvotes: number;
   downvotes: number;
+  hot_rank: number;
   user_id?: number;
   my_vote?: number;
+  subscribed?: number;
   saved?: boolean;
   user_mention_id?: number; // For mention type
   recipient_id?: number;
-  upvoteLoading?: boolean;
-  downvoteLoading?: boolean;
 }
 
 export interface Category {
@@ -659,6 +666,19 @@ export interface GetPostsResponse {
   posts: Array<Post>;
 }
 
+export interface GetCommentsForm {
+  type_: string;
+  sort: string;
+  page?: number;
+  limit: number;
+  community_id?: number;
+  auth?: string;
+}
+
+export interface GetCommentsResponse {
+  comments: Array<Comment>;
+}
+
 export interface CreatePostLikeForm {
   post_id: number;
   score: number;
@@ -855,4 +875,19 @@ export interface WebSocketJsonResponse {
   data?: ResponseType;
   error?: string;
   reconnect?: boolean;
+}
+
+export interface FramelyData {
+  url: string;
+  type: string;
+  version?: string;
+  title: string;
+  author?: string;
+  author_url?: string;
+  provider_name?: string;
+  thumbnail_url?: string;
+  thumbnail_width?: number;
+  thumbnail_height?: number;
+  description?: string;
+  html?: string;
 }

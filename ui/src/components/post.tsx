@@ -29,7 +29,15 @@ import {
   WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { wsJsonToRes, hotRank, toast } from '../utils';
+import {
+  wsJsonToRes,
+  toast,
+  editCommentRes,
+  saveCommentRes,
+  createCommentLikeRes,
+  createPostLikeRes,
+  commentsToFlatNodes,
+} from '../utils';
 import { PostListing } from './post-listing';
 import { PostListings } from './post-listings';
 import { Sidebar } from './sidebar';
@@ -148,6 +156,10 @@ export class Post extends Component<any, PostState> {
         auth: null,
       };
       WebSocketService.Instance.editComment(form);
+      UserService.Instance.user.unreadCount--;
+      UserService.Instance.sub.next({
+        user: UserService.Instance.user,
+      });
     }
   }
 
@@ -256,16 +268,14 @@ export class Post extends Component<any, PostState> {
       <div class="d-none d-md-block new-comments mb-3 card border-secondary">
         <div class="card-body small">
           <h6>{i18n.t('recent_comments')}</h6>
-          {this.state.comments.map(comment => (
-            <CommentNodes
-              nodes={[{ comment: comment }]}
-              noIndent
-              locked={this.state.post.locked}
-              moderators={this.state.moderators}
-              admins={this.state.admins}
-              postCreatorId={this.state.post.creator_id}
-            />
-          ))}
+          <CommentNodes
+            nodes={commentsToFlatNodes(this.state.comments)}
+            noIndent
+            locked={this.state.post.locked}
+            moderators={this.state.moderators}
+            admins={this.state.admins}
+            postCreatorId={this.state.post.creator_id}
+          />
         </div>
       </div>
     );
@@ -307,46 +317,7 @@ export class Post extends Component<any, PostState> {
       }
     }
 
-    this.sortTree(tree);
-
     return tree;
-  }
-
-  sortTree(tree: Array<CommentNodeI>) {
-    // First, put removed and deleted comments at the bottom, then do your other sorts
-    if (this.state.commentSort == CommentSortType.Top) {
-      tree.sort(
-        (a, b) =>
-          +a.comment.removed - +b.comment.removed ||
-          +a.comment.deleted - +b.comment.deleted ||
-          b.comment.score - a.comment.score
-      );
-    } else if (this.state.commentSort == CommentSortType.New) {
-      tree.sort(
-        (a, b) =>
-          +a.comment.removed - +b.comment.removed ||
-          +a.comment.deleted - +b.comment.deleted ||
-          b.comment.published.localeCompare(a.comment.published)
-      );
-    } else if (this.state.commentSort == CommentSortType.Old) {
-      tree.sort(
-        (a, b) =>
-          +a.comment.removed - +b.comment.removed ||
-          +a.comment.deleted - +b.comment.deleted ||
-          a.comment.published.localeCompare(b.comment.published)
-      );
-    } else if (this.state.commentSort == CommentSortType.Hot) {
-      tree.sort(
-        (a, b) =>
-          +a.comment.removed - +b.comment.removed ||
-          +a.comment.deleted - +b.comment.deleted ||
-          hotRank(b.comment) - hotRank(a.comment)
-      );
-    }
-
-    for (let node of tree) {
-      this.sortTree(node.children);
-    }
   }
 
   commentsTree() {
@@ -359,6 +330,7 @@ export class Post extends Component<any, PostState> {
           moderators={this.state.moderators}
           admins={this.state.admins}
           postCreatorId={this.state.post.creator_id}
+          sort={this.state.commentSort}
         />
       </div>
     );
@@ -408,47 +380,19 @@ export class Post extends Component<any, PostState> {
       }
     } else if (res.op == UserOperation.EditComment) {
       let data = res.data as CommentResponse;
-      let found = this.state.comments.find(c => c.id == data.comment.id);
-      found.content = data.comment.content;
-      found.updated = data.comment.updated;
-      found.removed = data.comment.removed;
-      found.deleted = data.comment.deleted;
-      found.upvotes = data.comment.upvotes;
-      found.downvotes = data.comment.downvotes;
-      found.score = data.comment.score;
-      found.read = data.comment.read;
-
+      editCommentRes(data, this.state.comments);
       this.setState(this.state);
     } else if (res.op == UserOperation.SaveComment) {
       let data = res.data as CommentResponse;
-      let found = this.state.comments.find(c => c.id == data.comment.id);
-      found.saved = data.comment.saved;
+      saveCommentRes(data, this.state.comments);
       this.setState(this.state);
     } else if (res.op == UserOperation.CreateCommentLike) {
       let data = res.data as CommentResponse;
-      let found: Comment = this.state.comments.find(
-        c => c.id === data.comment.id
-      );
-      found.score = data.comment.score;
-      found.upvotes = data.comment.upvotes;
-      found.downvotes = data.comment.downvotes;
-      if (data.comment.my_vote !== null) {
-        found.my_vote = data.comment.my_vote;
-        found.upvoteLoading = false;
-        found.downvoteLoading = false;
-      }
+      createCommentLikeRes(data, this.state.comments);
       this.setState(this.state);
     } else if (res.op == UserOperation.CreatePostLike) {
       let data = res.data as PostResponse;
-      this.state.post.score = data.post.score;
-      this.state.post.upvotes = data.post.upvotes;
-      this.state.post.downvotes = data.post.downvotes;
-      if (data.post.my_vote !== null) {
-        this.state.post.my_vote = data.post.my_vote;
-        this.state.post.upvoteLoading = false;
-        this.state.post.downvoteLoading = false;
-      }
-
+      createPostLikeRes(data, this.state.post);
       this.setState(this.state);
     } else if (res.op == UserOperation.EditPost) {
       let data = res.data as PostResponse;
@@ -504,7 +448,6 @@ export class Post extends Component<any, PostState> {
       this.setState(this.state);
     } else if (res.op == UserOperation.TransferSite) {
       let data = res.data as GetSiteResponse;
-
       this.state.admins = data.admins;
       this.setState(this.state);
     } else if (res.op == UserOperation.TransferCommunity) {

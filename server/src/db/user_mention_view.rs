@@ -16,6 +16,7 @@ table! {
     updated -> Nullable<Timestamp>,
     deleted -> Bool,
     community_id -> Int4,
+    community_name -> Varchar,
     banned -> Bool,
     banned_from_community -> Bool,
     creator_name -> Varchar,
@@ -23,6 +24,7 @@ table! {
     score -> BigInt,
     upvotes -> BigInt,
     downvotes -> BigInt,
+    hot_rank -> Int4,
     user_id -> Nullable<Int4>,
     my_vote -> Nullable<Int4>,
     saved -> Nullable<Bool>,
@@ -44,6 +46,7 @@ table! {
     updated -> Nullable<Timestamp>,
     deleted -> Bool,
     community_id -> Int4,
+    community_name -> Varchar,
     banned -> Bool,
     banned_from_community -> Bool,
     creator_name -> Varchar,
@@ -51,6 +54,7 @@ table! {
     score -> BigInt,
     upvotes -> BigInt,
     downvotes -> BigInt,
+    hot_rank -> Int4,
     user_id -> Nullable<Int4>,
     my_vote -> Nullable<Int4>,
     saved -> Nullable<Bool>,
@@ -75,6 +79,7 @@ pub struct UserMentionView {
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
   pub community_id: i32,
+  pub community_name: String,
   pub banned: bool,
   pub banned_from_community: bool,
   pub creator_name: String,
@@ -82,6 +87,7 @@ pub struct UserMentionView {
   pub score: i64,
   pub upvotes: i64,
   pub downvotes: i64,
+  pub hot_rank: i32,
   pub user_id: Option<i32>,
   pub my_vote: Option<i32>,
   pub saved: Option<bool>,
@@ -149,7 +155,9 @@ impl<'a> UserMentionQueryBuilder<'a> {
       .filter(recipient_id.eq(self.for_user_id));
 
     query = match self.sort {
-      // SortType::Hot => query.order_by(hot_rank.desc()),
+      SortType::Hot => query
+        .order_by(hot_rank.desc())
+        .then_order_by(published.desc()),
       SortType::New => query.order_by(published.desc()),
       SortType::TopAll => query.order_by(score.desc()),
       SortType::TopYear => query
@@ -164,7 +172,7 @@ impl<'a> UserMentionQueryBuilder<'a> {
       SortType::TopDay => query
         .filter(published.gt(now - 1.days()))
         .order_by(score.desc()),
-      _ => query.order_by(published.desc()),
+      // _ => query.order_by(published.desc()),
     };
 
     let (limit, offset) = limit_and_offset(self.page, self.limit);

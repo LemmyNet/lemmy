@@ -1079,10 +1079,10 @@ emoji-regex@^8.0.0:
   resolved "https://registry.yarnpkg.com/emoji-regex/-/emoji-regex-8.0.0.tgz#e818fd69ce5ccfcb404594f842963bf53164cc37"
   integrity sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==
 
-emoji-short-name@^0.1.0:
-  version "0.1.4"
-  resolved "https://registry.yarnpkg.com/emoji-short-name/-/emoji-short-name-0.1.4.tgz#125a452adc22a399b089f802f9d8d46ecb6e5b08"
-  integrity sha512-VTjEKkhN1UARtHLqlK70N5K3SwxuZAkmdm5sXvSjkV677kr0jt/O7mvB5eQqM+3rKCa+w3Qb5G7wwU/fezonKQ==
+emoji-short-name@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/emoji-short-name/-/emoji-short-name-1.0.0.tgz#82e6f543b6c68984d69bdc80eac735104fdd4af8"
+  integrity sha512-+tiniHvgRR7XMI1jAaGveumWg5LALE/nWkFD6CcOn6M5IDM9w4PkMs8UwzLTMoZtDLdTdQmzxGvLOxHVIjPzjg==
 
 encodeurl@~1.0.2:
   version "1.0.2"
@@ -3076,6 +3076,11 @@ mkdirp@^0.5.1:
   dependencies:
     minimist "0.0.8"
 
+mobius1-selectr@^2.4.13:
+  version "2.4.13"
+  resolved "https://registry.yarnpkg.com/mobius1-selectr/-/mobius1-selectr-2.4.13.tgz#0019dfd9f984840d6e40f70683ab3ec78ce3b5df"
+  integrity sha512-Mk9qDrvU44UUL0EBhbAA1phfQZ7aMZPjwtL7wkpiBzGh8dETGqfsh50mWoX9EkjDlkONlErWXArHCKfoxVg0Bw==
+
 moment@^2.24.0:
   version "2.24.0"
   resolved "https://registry.yarnpkg.com/moment/-/moment-2.24.0.tgz#0d055d53f5052aa653c9f6eb68bb5d12bf5c2b5b"
@@ -3731,10 +3736,10 @@ realm-utils@^1.0.9:
     app-root-path "^1.3.0"
     mkdirp "^0.5.1"
 
-reconnecting-websocket@^4.3.0:
-  version "4.3.0"
-  resolved "https://registry.yarnpkg.com/reconnecting-websocket/-/reconnecting-websocket-4.3.0.tgz#aaefbc7629a89450aa45324b89aec2276e728cc5"
-  integrity sha512-3eaHIEVYB9Zb0GfYy1xdEHKJLA2JaawAegByZ1AZ8Npb3AiRgUN5l89cvE2H+pHTsFcoC88t32ky9qET6DJ75Q==
+reconnecting-websocket@^4.4.0:
+  version "4.4.0"
+  resolved "https://registry.yarnpkg.com/reconnecting-websocket/-/reconnecting-websocket-4.4.0.tgz#3b0e5b96ef119e78a03135865b8bb0af1b948783"
+  integrity sha512-D2E33ceRPga0NvTDhJmphEgJ7FUYF0v4lr1ki0csq06OdlxKfugGzN0dSkxM/NfqCxYELK4KcaTOUOjTV6Dcng==
 
 regenerate-unicode-properties@^8.1.0:
   version "8.1.0"

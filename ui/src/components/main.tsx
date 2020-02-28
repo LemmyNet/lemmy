@@ -12,30 +12,46 @@ import {
   SortType,
   GetSiteResponse,
   ListingType,
+  DataType,
   SiteResponse,
   GetPostsResponse,
   PostResponse,
   Post,
   GetPostsForm,
+  Comment,
+  GetCommentsForm,
+  GetCommentsResponse,
+  CommentResponse,
   AddAdminResponse,
   BanUserResponse,
   WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
+import { CommentNodes } from './comment-nodes';
 import { SortSelect } from './sort-select';
 import { ListingTypeSelect } from './listing-type-select';
+import { DataTypeSelect } from './data-type-select';
 import { SiteForm } from './site-form';
 import {
   wsJsonToRes,
   repoUrl,
   mdToHtml,
   fetchLimit,
-  routeSortTypeToEnum,
-  routeListingTypeToEnum,
   pictshareAvatarThumbnail,
   showAvatars,
   toast,
+  getListingTypeFromProps,
+  getPageFromProps,
+  getSortTypeFromProps,
+  getDataTypeFromProps,
+  editCommentRes,
+  saveCommentRes,
+  createCommentLikeRes,
+  createPostLikeFindRes,
+  editPostFindRes,
+  commentsToFlatNodes,
+  commentSortSortType,
 } from '../utils';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -47,7 +63,9 @@ interface MainState {
   showEditSite: boolean;
   loading: boolean;
   posts: Array<Post>;
-  type_: ListingType;
+  comments: Array<Comment>;
+  listingType: ListingType;
+  dataType: DataType;
   sort: SortType;
   page: number;
 }
@@ -79,30 +97,12 @@ export class Main extends Component<any, MainState> {
     showEditSite: false,
     loading: true,
     posts: [],
-    type_: this.getListingTypeFromProps(this.props),
-    sort: this.getSortTypeFromProps(this.props),
-    page: this.getPageFromProps(this.props),
+    comments: [],
+    listingType: getListingTypeFromProps(this.props),
+    dataType: getDataTypeFromProps(this.props),
+    sort: getSortTypeFromProps(this.props),
+    page: getPageFromProps(this.props),
   };
-
-  getListingTypeFromProps(props: any): ListingType {
-    return props.match.params.type
-      ? routeListingTypeToEnum(props.match.params.type)
-      : UserService.Instance.user
-      ? UserService.Instance.user.default_listing_type
-      : ListingType.All;
-  }
-
-  getSortTypeFromProps(props: any): SortType {
-    return props.match.params.sort
-      ? routeSortTypeToEnum(props.match.params.sort)
-      : UserService.Instance.user
-      ? UserService.Instance.user.default_sort_type
-      : SortType.Hot;
-  }
-
-  getPageFromProps(props: any): number {
-    return props.match.params.page ? Number(props.match.params.page) : 1;
-  }
 
   constructor(props: any, context: any) {
     super(props, context);
@@ -110,7 +110,8 @@ export class Main extends Component<any, MainState> {
     this.state = this.emptyState;
     this.handleEditCancel = this.handleEditCancel.bind(this);
     this.handleSortChange = this.handleSortChange.bind(this);
-    this.handleTypeChange = this.handleTypeChange.bind(this);
+    this.handleListingTypeChange = this.handleListingTypeChange.bind(this);
+    this.handleDataTypeChange = this.handleDataTypeChange.bind(this);
 
     this.subscription = WebSocketService.Instance.subject
       .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
@@ -133,7 +134,7 @@ export class Main extends Component<any, MainState> {
 
     WebSocketService.Instance.listCommunities(listCommunitiesForm);
 
-    this.fetchPosts();
+    this.fetchData();
   }
 
   componentWillUnmount() {
@@ -146,11 +147,12 @@ export class Main extends Component<any, MainState> {
       nextProps.history.action == 'POP' ||
       nextProps.history.action == 'PUSH'
     ) {
-      this.state.type_ = this.getListingTypeFromProps(nextProps);
-      this.state.sort = this.getSortTypeFromProps(nextProps);
-      this.state.page = this.getPageFromProps(nextProps);
+      this.state.listingType = getListingTypeFromProps(nextProps);
+      this.state.dataType = getDataTypeFromProps(nextProps);
+      this.state.sort = getSortTypeFromProps(nextProps);
+      this.state.page = getPageFromProps(nextProps);
       this.setState(this.state);
-      this.fetchPosts();
+      this.fetchData();
     }
   }
 
@@ -251,10 +253,11 @@ export class Main extends Component<any, MainState> {
   }
 
   updateUrl() {
-    let typeStr = ListingType[this.state.type_].toLowerCase();
+    let listingTypeStr = ListingType[this.state.listingType].toLowerCase();
+    let dataTypeStr = DataType[this.state.dataType].toLowerCase();
     let sortStr = SortType[this.state.sort].toLowerCase();
     this.props.history.push(
-      `/home/type/${typeStr}/sort/${sortStr}/page/${this.state.page}`
+      `/home/data_type/${dataTypeStr}/listing_type/${listingTypeStr}/sort/${sortStr}/page/${this.state.page}`
     );
   }
 
@@ -383,6 +386,7 @@ export class Main extends Component<any, MainState> {
   posts() {
     return (
       <div class="main-content-wrapper">
+        {this.selects()}
         {this.state.loading ? (
           <h5>
             <svg class="icon icon-spinner spin">
@@ -391,12 +395,7 @@ export class Main extends Component<any, MainState> {
           </h5>
         ) : (
           <div>
-            {this.selects()}
-            <PostListings
-              posts={this.state.posts}
-              showCommunity
-              removeDuplicates
-            />
+            {this.listings()}
             {this.paginator()}
           </div>
         )}
@@ -404,17 +403,41 @@ export class Main extends Component<any, MainState> {
     );
   }
 
+  listings() {
+    return this.state.dataType == DataType.Post ? (
+      <PostListings
+        posts={this.state.posts}
+        showCommunity
+        removeDuplicates
+        sort={this.state.sort}
+      />
+    ) : (
+      <CommentNodes
+        nodes={commentsToFlatNodes(this.state.comments)}
+        noIndent
+        showCommunity
+        sortType={this.state.sort}
+      />
+    );
+  }
+
   selects() {
     return (
       <div className="mb-3">
-        <ListingTypeSelect
-          type_={this.state.type_}
-          onChange={this.handleTypeChange}
+        <DataTypeSelect
+          type_={this.state.dataType}
+          onChange={this.handleDataTypeChange}
         />
-        <span class="mx-2">
+        <span class="mx-3">
+          <ListingTypeSelect
+            type_={this.state.listingType}
+            onChange={this.handleListingTypeChange}
+          />
+        </span>
+        <span class="mr-2">
           <SortSelect sort={this.state.sort} onChange={this.handleSortChange} />
         </span>
-        {this.state.type_ == ListingType.All && (
+        {this.state.listingType == ListingType.All && (
           <a
             href={`/feeds/all.xml?sort=${SortType[this.state.sort]}`}
             target="_blank"
@@ -425,7 +448,7 @@ export class Main extends Component<any, MainState> {
           </a>
         )}
         {UserService.Instance.user &&
-          this.state.type_ == ListingType.Subscribed && (
+          this.state.listingType == ListingType.Subscribed && (
             <a
               href={`/feeds/front/${UserService.Instance.auth}.xml?sort=${
                 SortType[this.state.sort]
@@ -488,7 +511,7 @@ export class Main extends Component<any, MainState> {
     i.state.loading = true;
     i.setState(i.state);
     i.updateUrl();
-    i.fetchPosts();
+    i.fetchData();
     window.scrollTo(0, 0);
   }
 
@@ -497,7 +520,7 @@ export class Main extends Component<any, MainState> {
     i.state.loading = true;
     i.setState(i.state);
     i.updateUrl();
-    i.fetchPosts();
+    i.fetchData();
     window.scrollTo(0, 0);
   }
 
@@ -507,28 +530,48 @@ export class Main extends Component<any, MainState> {
     this.state.loading = true;
     this.setState(this.state);
     this.updateUrl();
-    this.fetchPosts();
+    this.fetchData();
     window.scrollTo(0, 0);
   }
 
-  handleTypeChange(val: ListingType) {
-    this.state.type_ = val;
+  handleListingTypeChange(val: ListingType) {
+    this.state.listingType = val;
     this.state.page = 1;
     this.state.loading = true;
     this.setState(this.state);
     this.updateUrl();
-    this.fetchPosts();
+    this.fetchData();
     window.scrollTo(0, 0);
   }
 
-  fetchPosts() {
-    let getPostsForm: GetPostsForm = {
-      page: this.state.page,
-      limit: fetchLimit,
-      sort: SortType[this.state.sort],
-      type_: ListingType[this.state.type_],
-    };
-    WebSocketService.Instance.getPosts(getPostsForm);
+  handleDataTypeChange(val: DataType) {
+    this.state.dataType = val;
+    this.state.page = 1;
+    this.state.loading = true;
+    this.setState(this.state);
+    this.updateUrl();
+    this.fetchData();
+    window.scrollTo(0, 0);
+  }
+
+  fetchData() {
+    if (this.state.dataType == DataType.Post) {
+      let getPostsForm: GetPostsForm = {
+        page: this.state.page,
+        limit: fetchLimit,
+        sort: SortType[this.state.sort],
+        type_: ListingType[this.state.listingType],
+      };
+      WebSocketService.Instance.getPosts(getPostsForm);
+    } else {
+      let getCommentsForm: GetCommentsForm = {
+        page: this.state.page,
+        limit: fetchLimit,
+        sort: SortType[this.state.sort],
+        type_: ListingType[this.state.listingType],
+      };
+      WebSocketService.Instance.getComments(getCommentsForm);
+    }
   }
 
   parseMessage(msg: WebSocketJsonResponse) {
@@ -538,7 +581,7 @@ export class Main extends Component<any, MainState> {
       toast(i18n.t(msg.error), 'danger');
       return;
     } else if (msg.reconnect) {
-      this.fetchPosts();
+      this.fetchData();
     } else if (res.op == UserOperation.GetFollowedCommunities) {
       let data = res.data as GetFollowedCommunitiesResponse;
       this.state.subscribedCommunities = data.communities;
@@ -574,7 +617,7 @@ export class Main extends Component<any, MainState> {
       let data = res.data as PostResponse;
 
       // If you're on subscribed, only push it if you're subscribed.
-      if (this.state.type_ == ListingType.Subscribed) {
+      if (this.state.listingType == ListingType.Subscribed) {
         if (
           this.state.subscribedCommunities
             .map(c => c.community_id)
@@ -589,26 +632,11 @@ export class Main extends Component<any, MainState> {
       this.setState(this.state);
     } else if (res.op == UserOperation.EditPost) {
       let data = res.data as PostResponse;
-      let found = this.state.posts.find(c => c.id == data.post.id);
-
-      found.url = data.post.url;
-      found.name = data.post.name;
-      found.nsfw = data.post.nsfw;
-
+      editPostFindRes(data, this.state.posts);
       this.setState(this.state);
     } else if (res.op == UserOperation.CreatePostLike) {
       let data = res.data as PostResponse;
-      let found = this.state.posts.find(c => c.id == data.post.id);
-
-      found.score = data.post.score;
-      found.upvotes = data.post.upvotes;
-      found.downvotes = data.post.downvotes;
-      if (data.post.my_vote !== null) {
-        found.my_vote = data.post.my_vote;
-        found.upvoteLoading = false;
-        found.downvoteLoading = false;
-      }
-
+      createPostLikeFindRes(data, this.state.posts);
       this.setState(this.state);
     } else if (res.op == UserOperation.AddAdmin) {
       let data = res.data as AddAdminResponse;
@@ -631,6 +659,42 @@ export class Main extends Component<any, MainState> {
         .filter(p => p.creator_id == data.user.id)
         .forEach(p => (p.banned = data.banned));
 
+      this.setState(this.state);
+    } else if (res.op == UserOperation.GetComments) {
+      let data = res.data as GetCommentsResponse;
+      this.state.comments = data.comments;
+      this.state.loading = false;
+      this.setState(this.state);
+    } else if (res.op == UserOperation.EditComment) {
+      let data = res.data as CommentResponse;
+      editCommentRes(data, this.state.comments);
+      this.setState(this.state);
+    } else if (res.op == UserOperation.CreateComment) {
+      let data = res.data as CommentResponse;
+
+      // Necessary since it might be a user reply
+      if (data.recipient_ids.length == 0) {
+        // If you're on subscribed, only push it if you're subscribed.
+        if (this.state.listingType == ListingType.Subscribed) {
+          if (
+            this.state.subscribedCommunities
+              .map(c => c.community_id)
+              .includes(data.comment.community_id)
+          ) {
+            this.state.comments.unshift(data.comment);
+          }
+        } else {
+          this.state.comments.unshift(data.comment);
+        }
+        this.setState(this.state);
+      }
+    } else if (res.op == UserOperation.SaveComment) {
+      let data = res.data as CommentResponse;
+      saveCommentRes(data, this.state.comments);
+      this.setState(this.state);
+    } else if (res.op == UserOperation.CreateCommentLike) {
+      let data = res.data as CommentResponse;
+      createCommentLikeRes(data, this.state.comments);
       this.setState(this.state);
     }
   }

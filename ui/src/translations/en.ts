@@ -171,6 +171,7 @@ export const en = {
     sponsor_message:
       'Lemmy is free, <1>open-source</1> software, meaning no advertising, monetizing, or venture capital, ever. Your donations directly support full-time development of the project. Thank you to the following people:',
     support_on_patreon: 'Support on Patreon',
+    support_on_liberapay: 'Support on Liberapay',
     donate_to_lemmy: 'Donate to Lemmy',
     donate: 'Donate',
     general_sponsors:
@@ -200,6 +201,7 @@ export const en = {
     couldnt_like_comment: "Couldn't like comment.",
     couldnt_update_comment: "Couldn't update comment.",
     couldnt_save_comment: "Couldn't save comment.",
+    couldnt_get_comments: "Couldn't get comments.",
     no_comment_edit_allowed: 'Not allowed to edit comment.',
     no_post_edit_allowed: 'Not allowed to edit post.',
     no_community_edit_allowed: 'Not allowed to edit community.',
@@ -210,6 +212,7 @@ export const en = {
     community_follower_already_exists: 'Community follower already exists.',
     community_user_already_banned: 'Community user already banned.',
     couldnt_create_post: "Couldn't create post.",
+    post_title_too_long: 'Post title too long.',
     couldnt_like_post: "Couldn't like post.",
     couldnt_find_post: "Couldn't find post.",
     couldnt_get_posts: "Couldn't get posts",

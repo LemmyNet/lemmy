@@ -11,7 +11,7 @@ services:
       - lemmy_db:/var/lib/postgresql/data
     restart: always
   lemmy:
-    image: dessalines/lemmy:v0.6.11
+    image: dessalines/lemmy:v0.6.25
     ports:
       - "127.0.0.1:8536:8536"
     restart: always
@@ -26,6 +26,14 @@ services:
     volumes:
       - lemmy_pictshare:/usr/share/nginx/html/data
     restart: always
+  lemmy_iframely:
+    image: dogbin/iframely:latest
+    ports:
+      - "127.0.0.1:8061:8061"
+    volumes:
+      - ./iframely.config.local.js:/iframely/config.local.js:ro
+    restart: always
 volumes:
   lemmy_db:
   lemmy_pictshare:
+  lemmy_iframely:

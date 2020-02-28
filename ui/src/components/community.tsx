@@ -13,17 +13,37 @@ import {
   GetPostsForm,
   GetCommunityForm,
   ListingType,
+  DataType,
   GetPostsResponse,
   PostResponse,
   AddModToCommunityResponse,
   BanFromCommunityResponse,
+  Comment,
+  GetCommentsForm,
+  GetCommentsResponse,
+  CommentResponse,
   WebSocketJsonResponse,
 } from '../interfaces';
-import { WebSocketService, UserService } from '../services';
+import { WebSocketService } from '../services';
 import { PostListings } from './post-listings';
+import { CommentNodes } from './comment-nodes';
 import { SortSelect } from './sort-select';
+import { DataTypeSelect } from './data-type-select';
 import { Sidebar } from './sidebar';
-import { wsJsonToRes, routeSortTypeToEnum, fetchLimit, toast } from '../utils';
+import {
+  wsJsonToRes,
+  fetchLimit,
+  toast,
+  getPageFromProps,
+  getSortTypeFromProps,
+  getDataTypeFromProps,
+  editCommentRes,
+  saveCommentRes,
+  createCommentLikeRes,
+  createPostLikeFindRes,
+  editPostFindRes,
+  commentsToFlatNodes,
+} from '../utils';
 import { i18n } from '../i18next';
 
 interface State {
@@ -35,6 +55,8 @@ interface State {
   online: number;
   loading: boolean;
   posts: Array<Post>;
+  comments: Array<Comment>;
+  dataType: DataType;
   sort: SortType;
   page: number;
 }
@@ -65,27 +87,18 @@ export class Community extends Component<any, State> {
     online: null,
     loading: true,
     posts: [],
-    sort: this.getSortTypeFromProps(this.props),
-    page: this.getPageFromProps(this.props),
+    comments: [],
+    dataType: getDataTypeFromProps(this.props),
+    sort: getSortTypeFromProps(this.props),
+    page: getPageFromProps(this.props),
   };
-
-  getSortTypeFromProps(props: any): SortType {
-    return props.match.params.sort
-      ? routeSortTypeToEnum(props.match.params.sort)
-      : UserService.Instance.user
-      ? UserService.Instance.user.default_sort_type
-      : SortType.Hot;
-  }
-
-  getPageFromProps(props: any): number {
-    return props.match.params.page ? Number(props.match.params.page) : 1;
-  }
 
   constructor(props: any, context: any) {
     super(props, context);
 
     this.state = this.emptyState;
     this.handleSortChange = this.handleSortChange.bind(this);
+    this.handleDataTypeChange = this.handleDataTypeChange.bind(this);
 
     this.subscription = WebSocketService.Instance.subject
       .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
@@ -112,16 +125,18 @@ export class Community extends Component<any, State> {
       nextProps.history.action == 'POP' ||
       nextProps.history.action == 'PUSH'
     ) {
-      this.state.sort = this.getSortTypeFromProps(nextProps);
-      this.state.page = this.getPageFromProps(nextProps);
+      this.state.dataType = getDataTypeFromProps(nextProps);
+      this.state.sort = getSortTypeFromProps(nextProps);
+      this.state.page = getPageFromProps(nextProps);
       this.setState(this.state);
-      this.fetchPosts();
+      this.fetchData();
     }
   }
 
   render() {
     return (
       <div class="container">
+        {this.selects()}
         {this.state.loading ? (
           <h5>
             <svg class="icon icon-spinner spin">
@@ -144,8 +159,7 @@ export class Community extends Component<any, State> {
                   </small>
                 )}
               </h5>
-              {this.selects()}
-              <PostListings posts={this.state.posts} removeDuplicates />
+              {this.listings()}
               {this.paginator()}
             </div>
             <div class="col-12 col-md-4">
@@ -162,17 +176,40 @@ export class Community extends Component<any, State> {
     );
   }
 
+  listings() {
+    return this.state.dataType == DataType.Post ? (
+      <PostListings
+        posts={this.state.posts}
+        removeDuplicates
+        sort={this.state.sort}
+      />
+    ) : (
+      <CommentNodes
+        nodes={commentsToFlatNodes(this.state.comments)}
+        noIndent
+        sortType={this.state.sort}
+      />
+    );
+  }
+
   selects() {
     return (
       <div class="mb-2">
-        <SortSelect sort={this.state.sort} onChange={this.handleSortChange} />
+        <DataTypeSelect
+          type_={this.state.dataType}
+          onChange={this.handleDataTypeChange}
+        />
+
+        <span class="mx-3">
+          <SortSelect sort={this.state.sort} onChange={this.handleSortChange} />
+        </span>
         <a
           href={`/feeds/c/${this.state.communityName}.xml?sort=${
             SortType[this.state.sort]
           }`}
           target="_blank"
         >
-          <svg class="icon mx-2 text-muted small">
+          <svg class="icon text-muted small">
             <use xlinkHref="#icon-rss">#</use>
           </svg>
         </a>
@@ -207,7 +244,7 @@ export class Community extends Component<any, State> {
     i.state.page++;
     i.setState(i.state);
     i.updateUrl();
-    i.fetchPosts();
+    i.fetchData();
     window.scrollTo(0, 0);
   }
 
@@ -215,7 +252,7 @@ export class Community extends Component<any, State> {
     i.state.page--;
     i.setState(i.state);
     i.updateUrl();
-    i.fetchPosts();
+    i.fetchData();
     window.scrollTo(0, 0);
   }
 
@@ -225,26 +262,48 @@ export class Community extends Component<any, State> {
     this.state.loading = true;
     this.setState(this.state);
     this.updateUrl();
-    this.fetchPosts();
+    this.fetchData();
+    window.scrollTo(0, 0);
+  }
+
+  handleDataTypeChange(val: DataType) {
+    this.state.dataType = val;
+    this.state.page = 1;
+    this.state.loading = true;
+    this.setState(this.state);
+    this.updateUrl();
+    this.fetchData();
     window.scrollTo(0, 0);
   }
 
   updateUrl() {
+    let dataTypeStr = DataType[this.state.dataType].toLowerCase();
     let sortStr = SortType[this.state.sort].toLowerCase();
     this.props.history.push(
-      `/c/${this.state.community.name}/sort/${sortStr}/page/${this.state.page}`
+      `/c/${this.state.community.name}/data_type/${dataTypeStr}/sort/${sortStr}/page/${this.state.page}`
     );
   }
 
-  fetchPosts() {
-    let getPostsForm: GetPostsForm = {
-      page: this.state.page,
-      limit: fetchLimit,
-      sort: SortType[this.state.sort],
-      type_: ListingType[ListingType.Community],
-      community_id: this.state.community.id,
-    };
-    WebSocketService.Instance.getPosts(getPostsForm);
+  fetchData() {
+    if (this.state.dataType == DataType.Post) {
+      let getPostsForm: GetPostsForm = {
+        page: this.state.page,
+        limit: fetchLimit,
+        sort: SortType[this.state.sort],
+        type_: ListingType[ListingType.Community],
+        community_id: this.state.community.id,
+      };
+      WebSocketService.Instance.getPosts(getPostsForm);
+    } else {
+      let getCommentsForm: GetCommentsForm = {
+        page: this.state.page,
+        limit: fetchLimit,
+        sort: SortType[this.state.sort],
+        type_: ListingType[ListingType.Community],
+        community_id: this.state.community.id,
+      };
+      WebSocketService.Instance.getComments(getCommentsForm);
+    }
   }
 
   parseMessage(msg: WebSocketJsonResponse) {
@@ -255,7 +314,7 @@ export class Community extends Component<any, State> {
       this.context.router.history.push('/');
       return;
     } else if (msg.reconnect) {
-      this.fetchPosts();
+      this.fetchData();
     } else if (res.op == UserOperation.GetCommunity) {
       let data = res.data as GetCommunityResponse;
       this.state.community = data.community;
@@ -264,7 +323,7 @@ export class Community extends Component<any, State> {
       this.state.online = data.online;
       document.title = `/c/${this.state.community.name} - ${WebSocketService.Instance.site.name}`;
       this.setState(this.state);
-      this.fetchPosts();
+      this.fetchData();
     } else if (res.op == UserOperation.EditCommunity) {
       let data = res.data as CommunityResponse;
       this.state.community = data.community;
@@ -282,12 +341,7 @@ export class Community extends Component<any, State> {
       this.setState(this.state);
     } else if (res.op == UserOperation.EditPost) {
       let data = res.data as PostResponse;
-      let found = this.state.posts.find(c => c.id == data.post.id);
-
-      found.url = data.post.url;
-      found.name = data.post.name;
-      found.nsfw = data.post.nsfw;
-
+      editPostFindRes(data, this.state.posts);
       this.setState(this.state);
     } else if (res.op == UserOperation.CreatePost) {
       let data = res.data as PostResponse;
@@ -295,17 +349,7 @@ export class Community extends Component<any, State> {
       this.setState(this.state);
     } else if (res.op == UserOperation.CreatePostLike) {
       let data = res.data as PostResponse;
-      let found = this.state.posts.find(c => c.id == data.post.id);
-
-      found.score = data.post.score;
-      found.upvotes = data.post.upvotes;
-      found.downvotes = data.post.downvotes;
-      if (data.post.my_vote !== null) {
-        found.my_vote = data.post.my_vote;
-        found.upvoteLoading = false;
-        found.downvoteLoading = false;
-      }
-
+      createPostLikeFindRes(data, this.state.posts);
       this.setState(this.state);
     } else if (res.op == UserOperation.AddModToCommunity) {
       let data = res.data as AddModToCommunityResponse;
@@ -318,6 +362,31 @@ export class Community extends Component<any, State> {
         .filter(p => p.creator_id == data.user.id)
         .forEach(p => (p.banned = data.banned));
 
+      this.setState(this.state);
+    } else if (res.op == UserOperation.GetComments) {
+      let data = res.data as GetCommentsResponse;
+      this.state.comments = data.comments;
+      this.state.loading = false;
+      this.setState(this.state);
+    } else if (res.op == UserOperation.EditComment) {
+      let data = res.data as CommentResponse;
+      editCommentRes(data, this.state.comments);
+      this.setState(this.state);
+    } else if (res.op == UserOperation.CreateComment) {
+      let data = res.data as CommentResponse;
+
+      // Necessary since it might be a user reply
+      if (data.recipient_ids.length == 0) {
+        this.state.comments.unshift(data.comment);
+        this.setState(this.state);
+      }
+    } else if (res.op == UserOperation.SaveComment) {
+      let data = res.data as CommentResponse;
+      saveCommentRes(data, this.state.comments);
+      this.setState(this.state);
+    } else if (res.op == UserOperation.CreateCommentLike) {
+      let data = res.data as CommentResponse;
+      createCommentLikeRes(data, this.state.comments);
       this.setState(this.state);
     }
   }
