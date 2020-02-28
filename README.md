@@ -71,32 +71,24 @@ Each lemmy server can set its own moderation policy; appointing site-wide admins
   - Live-updating Comment threads.
   - Full vote scores `(+/-)` like old reddit.
   - Themes, including light, dark, and solarized.
-  - Emojis with autocomplete support. Start typing `:`
+  - Emojis with autocomplete support. Start typing `:`.
   - User tagging using `@`, Community tagging using `#`, both with autocomplete support.
   - Integrated image uploading in both posts and comments.
-  - Direct image links (including locally hosted images) are viewable without switching tabs.
   - A post can consist of a title and any combination of self text, a URL, or nothing else.
-  - Each thread page has a section displaying the most recent comments.
-  - Notifications on comment replies and when you're tagged.
-    - Notifications can be sent via email.
-  - i18n / internationalization support.
+  - Notification support, which can also be sent via email.
   - RSS / Atom feeds for `All`, `Subscribed`, `Inbox`, `User`, and `Community`.
 - Cross-posting support.
-  - Displays communities that a post has been cross-posted to.
   - A *similar post search* when creating new posts. Great for question / answer communities.
 - Moderation and site-wide administration abilities.
   - Can rename communities.
-  - Moderators can edit the community sidebar to display rules and information.
-    - Administrators can also edit the homepage sidebar and site title.
-  - Moderators and administrators have identifying user flairs.
   - Public Moderation Logs.
   - Can sticky posts to the top of communities.
   - Both site admins, and community moderators, who can appoint other moderators.
-  - Can lock, remove, and restore posts and comments.
-  - Can ban and unban users from communities and the site-wide.
-  - Administrators can remove communities.
+  - Can lock, remove, and restore posts and comments. Administrators can remove communities.
+  - Can ban and unban users from communities and site-wide.
   - Can transfer site and communities to others.
 - Direct messaging support.
+- i18n / internationalization support.
 - Can fully erase your data, replacing all posts and comments.
 - NSFW post / community support.
 - OEmbed support via Iframely.
