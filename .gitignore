@@ -5,3 +5,4 @@ docker/lemmy_mine.hjson
 docker/dev/env_deploy.sh
 build/
 .idea/
+ui/src/translations

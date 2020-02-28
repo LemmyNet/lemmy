@@ -8,6 +8,7 @@
   "scripts": {
     "build": "node fuse prod",
     "lint": "tsc --noEmit && eslint --report-unused-disable-directives --ext .js,.ts,.tsx src",
+    "prebuild": "node generate_translations.js",
     "start": "node fuse dev"
   },
   "keywords": [],
@@ -25,7 +26,6 @@
     "emoji-short-name": "^1.0.0",
     "husky": "^4.2.1",
     "i18next": "^19.0.3",
-    "i18next-xhr-backend": "^2.0.0",
     "inferno": "^7.0.1",
     "inferno-i18next": "nimbusec-oss/inferno-i18next",
     "inferno-router": "^7.0.1",
@@ -55,7 +55,7 @@
     "ts-node": "^8.6.2",
     "ts-transform-classcat": "^0.0.2",
     "ts-transform-inferno": "^4.0.2",
-    "typescript": "^3.7.5"
+    "typescript": "^3.8.3"
   },
   "engines": {
     "node": ">=8.9.0"
