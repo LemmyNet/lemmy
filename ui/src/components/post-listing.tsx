@@ -286,7 +286,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                           class="img-fluid img-expanded"
                           data={this.state.thumbnail}
                         >
-                          <svg class="icon rounded placeholder">
+                          <svg class="icon thumbnail rounded placeholder">
                             <use xlinkHref="#icon-external-link"></use>
                           </svg>
                         </object>
