@@ -1,9 +1,9 @@
 {
   "name": "lemmy",
-  "description": "A simple UI for lemmy",
+  "description": "The official Lemmy UI",
   "version": "1.0.0",
   "author": "Dessalines",
-  "license": "GPL-2.0-or-later",
+  "license": "AGPL-3.0-or-later",
   "main": "index.js",
   "scripts": {
     "build": "node fuse prod",
