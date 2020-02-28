@@ -1,13 +1,16 @@
 import { Component } from 'inferno';
 import { Link } from 'inferno-router';
-import { Post } from '../interfaces';
+import { Post, SortType } from '../interfaces';
+import { postSort } from '../utils';
 import { PostListing } from './post-listing';
 import { i18n } from '../i18next';
+import { T } from 'inferno-i18next';
 
 interface PostListingsProps {
   posts: Array<Post>;
   showCommunity?: boolean;
   removeDuplicates?: boolean;
+  sort?: SortType;
 }
 
 export class PostListings extends Component<PostListingsProps, any> {
@@ -19,10 +22,7 @@ export class PostListings extends Component<PostListingsProps, any> {
     return (
       <div>
         {this.props.posts.length > 0 ? (
-          (this.props.removeDuplicates
-            ? this.removeDuplicates(this.props.posts)
-            : this.props.posts
-          ).map(post => (
+          this.outer().map(post => (
             <>
               <PostListing
                 post={post}
@@ -36,16 +36,27 @@ export class PostListings extends Component<PostListingsProps, any> {
           <>
             <div>{i18n.t('no_posts')}</div>
             {this.props.showCommunity !== undefined && (
-              <div>
-                <Link to="/communities">
-                  {i18n.t('subscribe_to_communities')}
-                </Link>
-              </div>
+              <T i18nKey="subscribe_to_communities">
+                #<Link to="/communities">#</Link>
+              </T>
             )}
           </>
         )}
       </div>
     );
+  }
+
+  outer(): Array<Post> {
+    let out = this.props.posts;
+    if (this.props.removeDuplicates) {
+      out = this.removeDuplicates(out);
+    }
+
+    if (this.props.sort !== undefined) {
+      postSort(out, this.props.sort);
+    }
+
+    return out;
   }
 
   removeDuplicates(posts: Array<Post>): Array<Post> {

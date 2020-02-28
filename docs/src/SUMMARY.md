@@ -4,6 +4,7 @@
   - [Features](about_features.md)
   - [Goals](about_goals.md)
   - [Post and Comment Ranking](about_ranking.md)
+  - [Guide](about_guide.md)
 - [Administration](administration.md)
   - [Install with Docker](administration_install_docker.md)
   - [Install with Ansible](administration_install_ansible.md)

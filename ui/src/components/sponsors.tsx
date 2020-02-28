@@ -47,7 +47,13 @@ export class Sponsors extends Component<any, any> {
             #<a href="https://github.com/dessalines/lemmy">#</a>
           </T>
         </p>
-        <a class="btn btn-secondary" href="https://www.patreon.com/dessalines">
+        <a class="btn btn-secondary" href="https://liberapay.com/Lemmy/">
+          {i18n.t('support_on_liberapay')}
+        </a>
+        <a
+          class="btn btn-secondary ml-2"
+          href="https://www.patreon.com/dessalines"
+        >
           {i18n.t('support_on_patreon')}
         </a>
       </div>

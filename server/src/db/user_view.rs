@@ -144,9 +144,8 @@ impl<'a> UserQueryBuilder<'a> {
 
 impl UserView {
   pub fn read(conn: &PgConnection, from_user_id: i32) -> Result<Self, Error> {
-    use super::user_view::user_view::dsl::*;
-
-    user_view.find(from_user_id).first::<Self>(conn)
+    use super::user_view::user_mview::dsl::*;
+    user_mview.find(from_user_id).first::<Self>(conn)
   }
 
   pub fn admins(conn: &PgConnection) -> Result<Vec<Self>, Error> {

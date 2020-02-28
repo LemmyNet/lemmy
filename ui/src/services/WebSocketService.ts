@@ -38,6 +38,7 @@ import {
   PrivateMessageForm,
   EditPrivateMessageForm,
   GetPrivateMessagesForm,
+  GetCommentsForm,
   UserJoinForm,
   MessageType,
   WebSocketJsonResponse,
@@ -170,6 +171,11 @@ export class WebSocketService {
   public getPosts(form: GetPostsForm) {
     this.setAuth(form, false);
     this.ws.send(this.wsSendWrapper(UserOperation.GetPosts, form));
+  }
+
+  public getComments(form: GetCommentsForm) {
+    this.setAuth(form, false);
+    this.ws.send(this.wsSendWrapper(UserOperation.GetComments, form));
   }
 
   public likePost(form: CreatePostLikeForm) {

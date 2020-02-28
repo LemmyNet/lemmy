@@ -15,9 +15,11 @@ import {
   AddAdminForm,
   TransferSiteForm,
   TransferCommunityForm,
+  FramelyData,
 } from '../interfaces';
 import { MomentTime } from './moment-time';
 import { PostForm } from './post-form';
+import { IFramelyCard } from './iframely-card';
 import {
   mdToHtml,
   canMod,
@@ -43,8 +45,13 @@ interface PostListingState {
   showConfirmTransferCommunity: boolean;
   imageExpanded: boolean;
   viewSource: boolean;
-  upvoteLoading: boolean;
-  downvoteLoading: boolean;
+  my_vote: number;
+  score: number;
+  upvotes: number;
+  downvotes: number;
+  url: string;
+  iframely: FramelyData;
+  thumbnail: string;
 }
 
 interface PostListingProps {
@@ -68,8 +75,13 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     showConfirmTransferCommunity: false,
     imageExpanded: false,
     viewSource: false,
-    upvoteLoading: this.props.post.upvoteLoading,
-    downvoteLoading: this.props.post.downvoteLoading,
+    my_vote: this.props.post.my_vote,
+    score: this.props.post.score,
+    upvotes: this.props.post.upvotes,
+    downvotes: this.props.post.downvotes,
+    url: this.props.post.url,
+    iframely: null,
+    thumbnail: null,
   };
 
   constructor(props: any, context: any) {
@@ -80,18 +92,31 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     this.handlePostDisLike = this.handlePostDisLike.bind(this);
     this.handleEditPost = this.handleEditPost.bind(this);
     this.handleEditCancel = this.handleEditCancel.bind(this);
+
+    if (this.state.url) {
+      this.setThumbnail();
+      this.fetchIframely();
+    }
   }
 
   componentWillReceiveProps(nextProps: PostListingProps) {
-    if (
-      nextProps.post.upvoteLoading !== this.state.upvoteLoading ||
-      nextProps.post.downvoteLoading !== this.state.downvoteLoading
-    ) {
-      this.setState({
-        upvoteLoading: false,
-        downvoteLoading: false,
-      });
+    this.state.my_vote = nextProps.post.my_vote;
+    this.state.upvotes = nextProps.post.upvotes;
+    this.state.downvotes = nextProps.post.downvotes;
+    this.state.score = nextProps.post.score;
+
+    if (nextProps.post.url !== this.state.url) {
+      this.state.url = nextProps.post.url;
+      if (this.state.url) {
+        this.setThumbnail();
+        this.fetchIframely();
+      } else {
+        this.state.iframely = null;
+        this.state.thumbnail = null;
+      }
     }
+
+    this.setState(this.state);
   }
 
   render() {
@@ -112,62 +137,76 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     );
   }
 
+  imgThumbnail() {
+    let post = this.props.post;
+    return (
+      <object
+        className={`img-fluid thumbnail rounded ${(post.nsfw ||
+          post.community_nsfw) &&
+          'img-blur'}`}
+        data={imageThumbnailer(this.state.thumbnail)}
+      ></object>
+    );
+  }
+
   listing() {
     let post = this.props.post;
     return (
       <div class="listing col-12">
         <div className={`vote-bar mr-2 float-left small text-center`}>
           <button
-            className={`btn btn-link p-0 ${
-              post.my_vote == 1 ? 'text-info' : 'text-muted'
+            className={`vote-animate btn btn-link p-0 ${
+              this.state.my_vote == 1 ? 'text-info' : 'text-muted'
             }`}
             onClick={linkEvent(this, this.handlePostLike)}
           >
-            {this.state.upvoteLoading ? (
-              <svg class="icon icon-spinner spin upvote">
-                <use xlinkHref="#icon-spinner"></use>
-              </svg>
-            ) : (
-              <svg class="icon upvote">
-                <use xlinkHref="#icon-arrow-up"></use>
-              </svg>
-            )}
+            <svg class="icon upvote">
+              <use xlinkHref="#icon-arrow-up"></use>
+            </svg>
           </button>
-          <div class={`font-weight-bold text-muted`}>{post.score}</div>
+          <div class={`font-weight-bold text-muted`}>{this.state.score}</div>
           {WebSocketService.Instance.site.enable_downvotes && (
             <button
-              className={`btn btn-link p-0 ${
-                post.my_vote == -1 ? 'text-danger' : 'text-muted'
+              className={`vote-animate btn btn-link p-0 ${
+                this.state.my_vote == -1 ? 'text-danger' : 'text-muted'
               }`}
               onClick={linkEvent(this, this.handlePostDisLike)}
             >
-              {this.state.downvoteLoading ? (
-                <svg class="icon icon-spinner spin downvote">
-                  <use xlinkHref="#icon-spinner"></use>
-                </svg>
-              ) : (
-                <svg class="icon downvote">
-                  <use xlinkHref="#icon-arrow-down"></use>
-                </svg>
-              )}
+              <svg class="icon downvote">
+                <use xlinkHref="#icon-arrow-down"></use>
+              </svg>
             </button>
           )}
         </div>
-        {post.url && isImage(post.url) && !this.state.imageExpanded && (
-          <span
-            title={i18n.t('expand_here')}
-            class="pointer"
-            onClick={linkEvent(this, this.handleImageExpandClick)}
-          >
-            <img
-              className={`mx-2 mt-1 float-left img-fluid thumbnail rounded ${(post.nsfw ||
-                post.community_nsfw) &&
-                'img-blur'}`}
-              src={imageThumbnailer(post.url)}
-            />
-          </span>
+        {this.state.thumbnail && !this.state.imageExpanded && (
+          <div class="mx-2 mt-1 float-left position-relative">
+            {isImage(this.state.url) ? (
+              <span
+                class="text-body pointer"
+                title={i18n.t('expand_here')}
+                onClick={linkEvent(this, this.handleImageExpandClick)}
+              >
+                {this.imgThumbnail()}
+                <svg class="icon rounded link-overlay hover-link">
+                  <use xlinkHref="#icon-image"></use>
+                </svg>
+              </span>
+            ) : (
+              <a
+                className="text-body"
+                href={this.state.url}
+                target="_blank"
+                title={this.state.url}
+              >
+                {this.imgThumbnail()}
+                <svg class="icon rounded link-overlay hover-link">
+                  <use xlinkHref="#icon-external-link"></use>
+                </svg>
+              </a>
+            )}
+          </div>
         )}
-        {post.url && isVideo(post.url) && (
+        {this.state.url && isVideo(this.state.url) && (
           <video
             playsinline
             muted
@@ -177,18 +216,18 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             height="100"
             width="150"
           >
-            <source src={post.url} type="video/mp4" />
+            <source src={this.state.url} type="video/mp4" />
           </video>
         )}
         <div className="ml-4">
-          <div className="post-title text-wrap-truncate">
+          <div className="post-title">
             <h5 className="mb-0 d-inline">
-              {post.url ? (
+              {this.props.showBody && this.state.url ? (
                 <a
                   className="text-body"
-                  href={post.url}
+                  href={this.state.url}
                   target="_blank"
-                  title={post.url}
+                  title={this.state.url}
                 >
                   {post.name}
                 </a>
@@ -202,19 +241,25 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                 </Link>
               )}
             </h5>
-            {post.url && (
-              <small>
-                <a
-                  className="ml-2 text-muted font-italic"
-                  href={post.url}
-                  target="_blank"
-                  title={post.url}
-                >
-                  {new URL(post.url).hostname}
-                </a>
-              </small>
-            )}
-            {post.url && isImage(post.url) && (
+            {this.state.url &&
+              !(
+                new URL(this.state.url).hostname == window.location.hostname
+              ) && (
+                <small class="d-inline-block">
+                  <a
+                    className="ml-2 text-muted font-italic"
+                    href={this.state.url}
+                    target="_blank"
+                    title={this.state.url}
+                  >
+                    {new URL(this.state.url).hostname}
+                    <svg class="ml-1 icon">
+                      <use xlinkHref="#icon-external-link"></use>
+                    </svg>
+                  </a>
+                </small>
+              )}
+            {this.state.thumbnail && (
               <>
                 {!this.state.imageExpanded ? (
                   <span
@@ -237,7 +282,14 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                         class="pointer"
                         onClick={linkEvent(this, this.handleImageExpandClick)}
                       >
-                        <img class="img-fluid" src={post.url} />
+                        <object
+                          class="img-fluid img-expanded"
+                          data={this.state.thumbnail}
+                        >
+                          <svg class="icon rounded placeholder">
+                            <use xlinkHref="#icon-external-link"></use>
+                          </svg>
+                        </object>
                       </span>
                     </div>
                   </span>
@@ -315,9 +367,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             </li>
             <li className="list-inline-item">
               <span>
-                (<span className="text-info">+{post.upvotes}</span>
+                (<span className="text-info">+{this.state.upvotes}</span>
                 <span> | </span>
-                <span className="text-danger">-{post.downvotes}</span>
+                <span className="text-danger">-{this.state.downvotes}</span>
                 <span>) </span>
               </span>
             </li>
@@ -596,6 +648,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               </li>
             )}
           </ul>
+          {this.state.url && this.props.showBody && this.state.iframely && (
+            <IFramelyCard iframely={this.state.iframely} />
+          )}
           {this.state.showRemoveDialog && (
             <form
               class="form-inline"
@@ -746,29 +801,97 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     );
   }
 
-  handlePostLike(i: PostListing) {
-    if (UserService.Instance.user) {
-      i.setState({ upvoteLoading: true });
+  fetchIframely() {
+    fetch(`/iframely/oembed?url=${this.state.url}`)
+      .then(res => res.json())
+      .then(res => {
+        this.state.iframely = res;
+        this.setState(this.state);
+
+        // Store and fetch the image in pictshare
+        if (
+          this.state.iframely.thumbnail_url &&
+          isImage(this.state.iframely.thumbnail_url)
+        ) {
+          fetch(
+            `/pictshare/api/geturl.php?url=${this.state.iframely.thumbnail_url}`
+          )
+            .then(res => res.json())
+            .then(res => {
+              let url = `${window.location.origin}/pictshare/${res.url}`;
+              if (res.filetype == 'mp4') {
+                url += '/raw';
+              }
+              this.state.thumbnail = url;
+              this.setState(this.state);
+            });
+        }
+      })
+      .catch(error => {
+        console.error(`Iframely service not set up properly. ${error}`);
+      });
+  }
+
+  setThumbnail() {
+    let simpleImg = isImage(this.state.url);
+    if (simpleImg) {
+      this.state.thumbnail = this.state.url;
+    } else {
+      this.state.thumbnail = null;
     }
+    this.setState(this.state);
+  }
+
+  handlePostLike(i: PostListing) {
+    let new_vote = i.state.my_vote == 1 ? 0 : 1;
+
+    if (i.state.my_vote == 1) {
+      i.state.score--;
+      i.state.upvotes--;
+    } else if (i.state.my_vote == -1) {
+      i.state.downvotes--;
+      i.state.upvotes++;
+      i.state.score += 2;
+    } else {
+      i.state.upvotes++;
+      i.state.score++;
+    }
+
+    i.state.my_vote = new_vote;
 
     let form: CreatePostLikeForm = {
       post_id: i.props.post.id,
-      score: i.props.post.my_vote == 1 ? 0 : 1,
+      score: i.state.my_vote,
     };
 
     WebSocketService.Instance.likePost(form);
+    i.setState(i.state);
   }
 
   handlePostDisLike(i: PostListing) {
-    if (UserService.Instance.user) {
-      i.setState({ downvoteLoading: true });
+    let new_vote = i.state.my_vote == -1 ? 0 : -1;
+
+    if (i.state.my_vote == 1) {
+      i.state.score -= 2;
+      i.state.upvotes--;
+      i.state.downvotes++;
+    } else if (i.state.my_vote == -1) {
+      i.state.downvotes--;
+      i.state.score++;
+    } else {
+      i.state.downvotes++;
+      i.state.score--;
     }
+
+    i.state.my_vote = new_vote;
 
     let form: CreatePostLikeForm = {
       post_id: i.props.post.id,
-      score: i.props.post.my_vote == -1 ? 0 : -1,
+      score: i.state.my_vote,
     };
+
     WebSocketService.Instance.likePost(form);
+    i.setState(i.state);
   }
 
   handleEditClick(i: PostListing) {
@@ -814,8 +937,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
   get crossPostParams(): string {
     let params = `?title=${this.props.post.name}`;
-    if (this.props.post.url) {
-      params += `&url=${this.props.post.url}`;
+    if (this.state.url) {
+      params += `&url=${this.state.url}`;
     }
     if (this.props.post.body) {
       params += `&body=${this.props.post.body}`;

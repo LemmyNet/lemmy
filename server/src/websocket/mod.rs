@@ -45,4 +45,5 @@ pub enum UserOperation {
   EditPrivateMessage,
   GetPrivateMessages,
   UserJoin,
+  GetComments,
 }
