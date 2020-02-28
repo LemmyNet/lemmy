@@ -77,6 +77,7 @@ Each lemmy server can set its own moderation policy; appointing site-wide admins
   - A post can consist of a title and any combination of self text, a URL, or nothing else.
   - Notifications, on comment replies and when you're tagged.
     - Notifications can be sent via email.
+    - Private messaging support.
   - i18n / internationalization support.
   - RSS / Atom feeds for `All`, `Subscribed`, `Inbox`, `User`, and `Community`.
 - Cross-posting support.
