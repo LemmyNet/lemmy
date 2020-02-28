@@ -280,6 +280,9 @@ impl ChatServer {
     self.send_community_room_message(0, &post_sent_str, id);
     self.send_community_room_message(community_id, &post_sent_str, id);
 
+    // Send it to the post room
+    self.send_post_room_message(post_sent.post.id, &post_sent_str, id);
+
     to_json_string(&user_operation, post)
   }
 

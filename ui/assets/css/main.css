@@ -175,3 +175,25 @@ hr {
 .img-expanded {
   max-height: 90vh;
 }
+
+.vote-animate:active {
+  transform: scale(1.2);
+  -webkit-transform: scale(1.2);
+  -ms-transform: scale(1.2);
+}
+
+.selectr-selected, .selectr-options-container {
+  background-color: var(--secondary);
+  color: var(--white);
+  border: unset;
+}
+
+.link-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 2px;
+  background: rgba(0,0,0,.4);
+  border-bottom-left-radius: 0.25rem !important;
+  border-top-right-radius: 0.25rem !important;
+}
