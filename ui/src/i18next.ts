@@ -1,24 +1,51 @@
 import i18next from 'i18next';
 import { getLanguage } from './utils';
-import XHR from 'i18next-xhr-backend';
+import { en } from './translations/en';
+import { eo } from './translations/eo';
+import { es } from './translations/es';
+import { de } from './translations/de';
+import { fr } from './translations/fr';
+import { sv } from './translations/sv';
+import { ru } from './translations/ru';
+import { zh } from './translations/zh';
+import { nl } from './translations/nl';
+import { it } from './translations/it';
+import { fi } from './translations/fi';
+import { ca } from './translations/ca';
+import { fa } from './translations/fa';
+import { pt_br } from './translations/pt_br';
+
+// https://github.com/nimbusec-oss/inferno-i18next/blob/master/tests/T.test.js#L66
+const resources = {
+  en,
+  eo,
+  es,
+  de,
+  zh,
+  fr,
+  sv,
+  ru,
+  nl,
+  it,
+  fi,
+  ca,
+  fa,
+  pt_br,
+};
 
 function format(value: any, format: any, lng: any): any {
   return format === 'uppercase' ? value.toUpperCase() : value;
 }
 
-i18next
-  .use(XHR)
-  .init({
-    debug: true,
-    //load: 'languageOnly',
+i18next.init({
+  debug: false,
+  // load: 'languageOnly',
 
-    // initImmediate: false,
-    lng: getLanguage(),
-    fallbackLng: 'en',
-    interpolation: { format },
-    backend: {
-      loadPath: '/static/assets/translations/{{lng}}.json',
-    }
+  // initImmediate: false,
+  lng: getLanguage(),
+  fallbackLng: 'en',
+  resources,
+  interpolation: { format },
 });
 
 export { i18next as i18n, resources };
