@@ -220,9 +220,9 @@ export function routeSearchTypeToEnum(type: string): SearchType {
 }
 
 export async function getPageTitle(url: string) {
-  let res = await fetch(`https://textance.herokuapp.com/title/${url}`);
-  let data = await res.text();
-  return data;
+  let res = await fetch(`/iframely/oembed?url=${url}`).then(res => res.json());
+  let title = await res.title;
+  return title;
 }
 
 export function debounce(
@@ -386,7 +386,7 @@ export function objectFlip(obj: any) {
 export function pictshareAvatarThumbnail(src: string): string {
   // sample url: http://localhost:8535/pictshare/gs7xuu.jpg
   let split = src.split('pictshare');
-  let out = `${split[0]}pictshare/96x96${split[1]}`;
+  let out = `${split[0]}pictshare/96${split[1]}`;
   return out;
 }
 
@@ -401,7 +401,7 @@ export function showAvatars(): boolean {
 export function imageThumbnailer(url: string): string {
   let split = url.split('pictshare');
   if (split.length > 1) {
-    let out = `${split[0]}pictshare/192x192${split[1]}`;
+    let out = `${split[0]}pictshare/192${split[1]}`;
     return out;
   } else {
     return url;
