@@ -25,6 +25,7 @@
     "emoji-short-name": "^1.0.0",
     "husky": "^4.2.1",
     "i18next": "^19.0.3",
+    "i18next-xhr-backend": "^2.0.0",
     "inferno": "^7.0.1",
     "inferno-i18next": "nimbusec-oss/inferno-i18next",
     "inferno-router": "^7.0.1",
