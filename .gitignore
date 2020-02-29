@@ -3,5 +3,6 @@ ansible/inventory_dev
 ansible/passwords/
 docker/lemmy_mine.hjson
 docker/dev/env_deploy.sh
+docker/federation-test/volumes
 build/
 .idea/

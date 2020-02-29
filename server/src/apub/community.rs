@@ -8,6 +8,7 @@ use actix_web::body::Body;
 use actix_web::web::Path;
 use actix_web::HttpResponse;
 use serde::Deserialize;
+use serde_json::json;
 
 impl Community {
   pub fn as_group(&self) -> Group {
@@ -15,16 +16,18 @@ impl Community {
 
     let mut group = Group::default();
 
+    // TODO: why the hell is this code so awkward?
     group.object_props.set_context_object(context()).ok();
-    group.object_props.set_id_string(base_url.to_string()).ok();
+    group.object_props.set_id_string(self.id.to_string()).ok();
     group
       .object_props
-      .set_name_string(self.name.to_owned())
+      .set_name_string(self.title.to_owned())
       .ok();
     group
       .object_props
       .set_published_utctime(to_datetime_utc(self.published))
       .ok();
+    group.object_props.attributed_to = Some(json!(self.creator_id.to_string()));
     if let Some(updated) = self.updated {
       group
         .object_props
@@ -34,9 +37,7 @@ impl Community {
 
     if let Some(description) = &self.description {
       group
-        .object_props
-        .set_summary_string(description.to_string())
-        .ok();
+        .object_props.summary = Some(json!(description.to_string()));
     }
 
     group
@@ -66,6 +67,7 @@ impl Community {
     //As we are an object, we validated that the community id was valid
     let community_followers = CommunityFollowerView::for_community(&connection, self.id).unwrap();
 
+    // TODO: we definitely dont want to make our follower list public, we should only expose the count
     let ap_followers = community_followers
       .iter()
       .map(|follower| make_apub_endpoint("u", &follower.user_name))
