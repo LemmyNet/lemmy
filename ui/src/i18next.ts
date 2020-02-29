@@ -13,7 +13,7 @@ import { it } from './translations/it';
 import { fi } from './translations/fi';
 import { ca } from './translations/ca';
 import { fa } from './translations/fa';
-import { pt_BR } from './translations/pt_br';
+import { pt_br } from './translations/pt_br';
 
 // https://github.com/nimbusec-oss/inferno-i18next/blob/master/tests/T.test.js#L66
 const resources = {
@@ -30,7 +30,7 @@ const resources = {
   fi,
   ca,
   fa,
-  pt_BR,
+  pt_br,
 };
 
 function format(value: any, format: any, lng: any): any {
