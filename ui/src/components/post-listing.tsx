@@ -227,7 +227,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           title={i18n.t('comments')}
         >
           <svg class="icon thumbnail">
-            <use xlinkHref="#icon-bubble2"></use>
+            <use xlinkHref="#icon-message-square"></use>
           </svg>
         </Link>
       );
