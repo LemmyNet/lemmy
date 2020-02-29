@@ -8,6 +8,8 @@
   "scripts": {
     "build": "node fuse prod",
     "lint": "tsc --noEmit && eslint --report-unused-disable-directives --ext .js,.ts,.tsx src",
+    "prebuild": "node generate_translations.js",
+    "prestart": "node generate_translations.js",
     "start": "node fuse dev"
   },
   "keywords": [],
@@ -54,7 +56,7 @@
     "ts-node": "^8.6.2",
     "ts-transform-classcat": "^0.0.2",
     "ts-transform-inferno": "^4.0.2",
-    "typescript": "^3.7.5"
+    "typescript": "^3.8.3"
   },
   "engines": {
     "node": ">=8.9.0"
@@ -62,7 +64,7 @@
   "engineStrict": true,
   "husky": {
     "hooks": {
-      "pre-commit": "yarn run ts-node translation_report.ts && git add ../README.md && cargo clippy --manifest-path ../server/Cargo.toml --all-targets --all-features -- -D warnings && lint-staged"
+      "pre-commit": "cargo clippy --manifest-path ../server/Cargo.toml --all-targets --all-features -- -D warnings && lint-staged"
     }
   },
   "lint-staged": {
