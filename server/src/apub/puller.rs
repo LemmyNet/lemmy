@@ -7,6 +7,7 @@ use crate::api::post::GetPosts;
 use crate::db::community_view::CommunityView;
 use crate::naive_now;
 use crate::settings::Settings;
+use serde_json::Value;
 
 // TODO: right now all of the data is requested on demand, for production we will need to store
 //       things in the local database to not ruin the performance
@@ -32,7 +33,7 @@ pub fn get_remote_community_posts(name: String) -> Result<GetPosts, Error> {
   unimplemented!()
 }
 
-pub fn get_remote_community(identifier: String) -> Result<GetCommunityResponse, Error> {
+pub fn get_remote_community(identifier: String) -> Result<GetCommunityResponse, failure::Error> {
   let x: Vec<&str> = identifier.split('@').collect();
   let name = x[0].replace("!", "");
   let instance = x[1];
@@ -48,34 +49,13 @@ pub fn get_remote_community(identifier: String) -> Result<GetCommunityResponse, 
     admins: vec![],
     community: CommunityView {
       // TODO: why does the stupid library have everything stored as value without working autocomplete for methods???
-      //       i want to pull that whole lib in here and treat it as part of lemmy so we can fix this shit
       // TODO: we need to merge id and name into a single thing (stuff like @user@instance.com)
-      id: community
-        .object_props
-        .id
-        .unwrap()
-        .as_str()
-        .unwrap()
-        .parse::<i32>()
-        .unwrap(),
+      id: get_string_value(community.object_props.id).parse::<i32>()?,
       name,
-      title: community
-        .object_props
-        .name
-        .unwrap()
-        .as_str()
-        .unwrap()
-        .to_string(), // TODO: why does it still show !main@lemmy_beta:8541
-      description: community.object_props.summary.map(|c| c.to_string()), // TODO: this has an extra quote somehow
+      title: get_string_value(community.object_props.name),
+      description: get_string_value_opt(community.object_props.summary),
       category_id: -1,
-      creator_id: community
-        .object_props
-        .attributed_to
-        .unwrap()
-        .as_str()
-        .unwrap()
-        .parse::<i32>()
-        .unwrap(),
+      creator_id: get_string_value(community.object_props.attributed_to).parse::<i32>()?,
       removed: false,
       published: naive_now(), // TODO: need to handle time conversion (or handle it in apub lib)
       updated: Some(naive_now()), // TODO: community.object_props.updated
@@ -93,6 +73,18 @@ pub fn get_remote_community(identifier: String) -> Result<GetCommunityResponse, 
     },
     online: 0,
   })
+}
+
+fn get_string_value_opt(value: Option<Value>) -> Option<String> {
+  value
+    .as_ref()
+    .map(Value::as_str)
+    .flatten()
+    .map(str::to_string)
+}
+
+fn get_string_value(value: Option<Value>) -> String {
+  get_string_value_opt(value).unwrap()
 }
 
 pub fn get_following_instances() -> Result<Vec<String>, Error> {
