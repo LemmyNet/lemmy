@@ -96,9 +96,14 @@ mod tests {
 
 pub fn make_apub_endpoint<S: Display, T: Display>(point: S, value: T) -> String {
   format!(
-    "https://{}/federation/{}/{}",
+    "{}://{}/federation/{}/{}",
+    get_apub_protocol_string(),
     Settings::get().hostname,
     point,
     value
   )
+}
+
+pub fn get_apub_protocol_string() -> &'static str {
+  "http"
 }

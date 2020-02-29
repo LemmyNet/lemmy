@@ -18,6 +18,7 @@ impl Community {
 
     // TODO: why the hell is this code so awkward?
     group.object_props.set_context_object(context()).ok();
+    // TODO: id really needs to be a url
     group.object_props.set_id_string(self.id.to_string()).ok();
     group
       .object_props
@@ -64,17 +65,12 @@ impl Community {
 
     let connection = establish_unpooled_connection();
     //As we are an object, we validated that the community id was valid
+    // TODO: add a method that only returns count for better performance
     let community_followers = CommunityFollowerView::for_community(&connection, self.id).unwrap();
-
-    // TODO: we definitely dont want to make our follower list public, we should only expose the count
-    let ap_followers = community_followers
-      .iter()
-      .map(|follower| make_apub_endpoint("u", &follower.user_name))
-      .collect();
 
     collection
       .collection_props
-      .set_items_string_vec(ap_followers)
+      .set_total_items_u64(community_followers.len() as u64)
       .unwrap();
     collection
   }
