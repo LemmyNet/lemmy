@@ -134,7 +134,7 @@
     "no_email_setup": "Ce serveur n'a pas correctement configuré la messagerie de email.",
     "email": "Email",
     "matrix_user_id": "Utilisateur Matrix",
-    "private_message_disclaimer": "Attention: les messages privés dans Lemmy ne sont pas sécurisés. Veuillez créer un compte sur <1>Riot.im</1> pour pouvoir utiliser envoyer des messages sécurisés.",
+    "private_message_disclaimer": "Attention : les messages privés dans Lemmy ne sont pas sécurisés. Veuillez créer un compte sur <1>Riot.im</1> pour pouvoir envoyer des messages sécurisés.",
     "send_notifications_to_email": "Envoyer des notifications par email",
     "optional": "Optionnel",
     "expires": "Expire",
