@@ -9,6 +9,7 @@
     "build": "node fuse prod",
     "lint": "tsc --noEmit && eslint --report-unused-disable-directives --ext .js,.ts,.tsx src",
     "prebuild": "node generate_translations.js",
+    "prestart": "node generate_translations.js",
     "start": "node fuse dev"
   },
   "keywords": [],
@@ -63,7 +64,7 @@
   "engineStrict": true,
   "husky": {
     "hooks": {
-      "pre-commit": "git add ../README.md && cargo clippy --manifest-path ../server/Cargo.toml --all-targets --all-features -- -D warnings && lint-staged"
+      "pre-commit": "cargo clippy --manifest-path ../server/Cargo.toml --all-targets --all-features -- -D warnings && lint-staged"
     }
   },
   "lint-staged": {
