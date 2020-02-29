@@ -11,6 +11,7 @@ import 'moment/locale/fi';
 import 'moment/locale/ca';
 import 'moment/locale/fa';
 import 'moment/locale/pt-br';
+import 'moment/locale/ja';
 
 import {
   UserOperation,
@@ -278,6 +279,7 @@ export const languages = [
   { code: 'es', name: 'Español' },
   { code: 'de', name: 'Deutsch' },
   { code: 'fa', name: 'فارسی' },
+  { code: 'ja', name: '日本語' },
   { code: 'pt_BR', name: 'Português Brasileiro' },
   { code: 'zh', name: '中文' },
   { code: 'fi', name: 'Suomi' },
@@ -331,6 +333,8 @@ export function getMomentLanguage(): string {
     lang = 'fa';
   } else if (lang.startsWith('pt')) {
     lang = 'pt-br';
+  } else if (lang.startsWith('ja')) {
+    lang = 'ja';
   } else {
     lang = 'en';
   }
