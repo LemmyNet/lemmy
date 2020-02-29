@@ -198,6 +198,8 @@ hr {
   top: 0;
   right: 0;
   padding: 2px;
+  height: 1.5em;  
+  width: 1.5em;
   background: rgba(0,0,0,.4);
   border-bottom-left-radius: 0.25rem !important;
   border-top-right-radius: 0.25rem !important;
