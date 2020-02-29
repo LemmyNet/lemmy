@@ -13,6 +13,7 @@ activitypub = "0.2.0"
 chrono = { version = "0.4.7", features = ["serde"] }
 failure = "0.1.5"
 serde_json = { version = "1.0.45", features = ["preserve_order"]}
+serde_derive = "1.0"
 serde = { version = "1.0.94", features = ["derive"] }
 actix = "0.9.0"
 actix-web = "2.0.0"
@@ -34,3 +35,10 @@ htmlescape = "0.3.1"
 config = "0.10.1"
 hjson = "0.8.2"
 reqwest = "0.9.24"
+activitystreams-derive = "0.2"
+activitystreams-traits = "0.2"
+activitystreams-types = "0.3"
+
+
+[dev-dependencies]
+anyhow = "1.0"

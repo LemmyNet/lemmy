@@ -1,7 +1,7 @@
+use crate::activitypub::{context, object::Page};
 use crate::apub::make_apub_endpoint;
 use crate::db::post::Post;
 use crate::to_datetime_utc;
-use activitypub::{context, object::Page};
 
 impl Post {
   pub fn as_page(&self) -> Page {

@@ -165,3 +165,9 @@ ts-node translation_report.ts
 ## Credits
 
 Logo made by Andy Cuccaro (@andycuccaro) under the CC-BY-SA 4.0 license.
+
+## License
+
+All code is licensed under AGPLv3 unless otherwise indicated.
+
+The code in `server/src/activitypub` is taken from the [Aardwolf/activitypub](https://crates.io/crates/activitypub) crate and licensed under GPLv3.

@@ -1493,11 +1493,15 @@ name = "lemmy_server"
 version = "0.0.1"
 dependencies = [
  "activitypub 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "activitystreams-derive 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "activitystreams-traits 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "activitystreams-types 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix-files 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix-rt 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix-web 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix-web-actors 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "anyhow 1.0.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "bcrypt 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "config 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1517,6 +1521,7 @@ dependencies = [
  "reqwest 0.9.24 (registry+https://github.com/rust-lang/crates.io-index)",
  "rss 1.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.45 (registry+https://github.com/rust-lang/crates.io-index)",
  "sha2 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "strum 0.17.1 (registry+https://github.com/rust-lang/crates.io-index)",
