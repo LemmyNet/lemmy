@@ -131,8 +131,13 @@ blockquote {
 }
 
 .thumbnail {
-  max-height: 62px;
-  max-width: 400px;
+  object-fit: cover;
+  max-height: 80px;
+  width: 100%;
+}
+
+svg.thumbnail {
+  height: 40px;
 }
 
 .no-s-hows {
@@ -186,6 +191,16 @@ hr {
   background-color: var(--secondary);
   color: var(--white);
   border: unset;
+}
+
+.mini-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 2px;
+  background: rgba(0,0,0,.4);
+  border-bottom-left-radius: 0.25rem !important;
+  border-top-right-radius: 0.25rem !important;
 }
 
 .link-overlay:hover {
