@@ -38,6 +38,7 @@ pub fn get_remote_community(identifier: String) -> Result<GetCommunityResponse, 
   let instance = x[1];
   let community_uri = format!("http://{}/federation/c/{}", instance, name);
   let community: Group = reqwest::get(&community_uri)?.json()?;
+  dbg!(&community);
 
   // TODO: looks like a bunch of data is missing from the activitypub response
   // TODO: i dont think simple numeric ids are going to work, we probably need something like uuids
@@ -46,14 +47,17 @@ pub fn get_remote_community(identifier: String) -> Result<GetCommunityResponse, 
     moderators: vec![],
     admins: vec![],
     community: CommunityView {
-      id: -1,
-      name: identifier.clone(),
-      title: identifier,
-      description: community.object_props.summary.map(|c| c.to_string()),
+      // TODO: why does the stupid library have everything stored as value without working autocomplete for methods???
+      //       i want to pull that whole lib in here and treat it as part of lemmy so we can fix this shit
+      // TODO: we need to merge id and name into a single thing (stuff like @user@instance.com)
+      id: community.object_props.id.unwrap().as_str().unwrap().parse::<i32>().unwrap(),
+      name: name,
+      title: community.object_props.name.unwrap().as_str().unwrap().to_string(), // TODO: why does it still show !main@lemmy_beta:8541
+      description: community.object_props.summary.map(|c| c.to_string()), // TODO: this has an extra quote somehow
       category_id: -1,
-      creator_id: -1,
+      creator_id: community.object_props.attributed_to.unwrap().as_str().unwrap().parse::<i32>().unwrap(),
       removed: false,
-      published: naive_now(),     // TODO: community.object_props.published
+      published: naive_now(),     // TODO: need to handle time conversion (or handle it in apub lib)
       updated: Some(naive_now()), // TODO: community.object_props.updated
       deleted: false,
       nsfw: false,
