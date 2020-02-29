@@ -3,7 +3,8 @@ git checkout master
 
 # Import translations
 wget "https://weblate.yerbamate.dev/download/lemmy/lemmy/?format=zip" -O /tmp/lemmy_l10n.zip
-unzip -j -o /tmp/lemmy_l10n.zip -d ui/translations/
+unzip -j -o /tmp/lemmy_l10n.zip -d ../../ui/translations/
+git add ../../ui/translations
 rm /tmp/lemmy_l10n.zip
 
 # Creating the new tag
@@ -18,7 +19,7 @@ git add "ui/src/version.ts"
 echo "pub const VERSION: &str = \"$new_tag\";" > "server/src/version.rs"
 git add "server/src/version.rs"
 # Setting the version for Ansible
-$new_tag > "ansible/VERSION"
+echo $new_tag > "ansible/VERSION"
 git add "ansible/VERSION"
 
 cd docker/dev || exit
