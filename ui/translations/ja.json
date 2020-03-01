@@ -183,7 +183,7 @@
     "not_logged_in": "ログインしていません。",
     "logged_in": "ログインしました。",
     "community_ban": "このコミュニティへのアクセスを禁止されています。",
-    "site_ban": "サイトへのアクセスを禁止されています。",
+    "site_ban": "サイトへのアクセスを禁止されています",
     "couldnt_create_comment": "投稿を作成できませんでした。",
     "couldnt_find_community": "コミュニティが見付かりません。",
     "couldnt_find_post": "投稿が見付かりません。",
@@ -191,7 +191,8 @@
     "password_incorrect": "パスワードが不正です。",
     "passwords_dont_match": "パスワードが一致しません。",
     "admin_already_created": "済みませんが、既に管理者が設定されています。",
-    "email_already_exists": "メールアドレスが既に使用されています",
+    "email_already_exists": "メールアドレスが既に使用されています。",
     "time": "時刻",
-    "action": "行動"
+    "action": "行動",
+    "more": "さらに表示"
 }
