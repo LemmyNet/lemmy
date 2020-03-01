@@ -249,7 +249,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               <use xlinkHref="#icon-arrow-up"></use>
             </svg>
           </button>
-          <div class={`font-weight-bold text-muted`}>{this.state.score}</div>
+          <div class={`font-weight-bold text-muted px-1`}>
+            {this.state.score}
+          </div>
           {WebSocketService.Instance.site.enable_downvotes && (
             <button
               className={`vote-animate btn btn-link p-0 ${
@@ -264,7 +266,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           )}
         </div>
         {!this.state.imageExpanded && (
-          <div class="col-2 pr-0 mt-1">
+          <div class="col-11 col-sm-2 pr-0 mt-1">
             <div class="position-relative">{this.thumbnail()}</div>
           </div>
         )}
@@ -274,14 +276,14 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             muted
             loop
             controls
-            class="col-2 pr-0 mt-1"
+            class="col-11 col-sm-2 pr-0 mt-1"
             height="100"
             width="150"
           >
             <source src={this.state.url} type="video/mp4" />
           </video>
         )}
-        <div class="col-9">
+        <div class="col-12 col-sm-9">
           <div class="row">
             <div className="col-12">
               <div className="post-title">
