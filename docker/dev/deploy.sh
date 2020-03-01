@@ -2,10 +2,8 @@
 git checkout master
 
 # Import translations
-wget "https://weblate.yerbamate.dev/download/lemmy/lemmy/?format=zip" -O /tmp/lemmy_l10n.zip
-unzip -j -o /tmp/lemmy_l10n.zip -d ../../ui/translations/
-git add ../../ui/translations
-rm /tmp/lemmy_l10n.zip
+git fetch weblate
+git merge weblate/master
 
 # Creating the new tag
 new_tag="$1"
