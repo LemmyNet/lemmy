@@ -268,7 +268,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           )}
         </div>
         {!this.state.imageExpanded && (
-          <div class="col-11 col-sm-2 pr-0 mt-1">
+          <div class="col-3 col-sm-2 pr-0 mt-1">
             <div class="position-relative">{this.thumbnail()}</div>
           </div>
         )}
@@ -285,7 +285,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             <source src={this.state.url} type="video/mp4" />
           </video>
         )}
-        <div class="col-12 col-sm-9">
+        <div class="col-8 col-sm-9">
           <div class="row">
             <div className="col-12">
               <div className="post-title">
