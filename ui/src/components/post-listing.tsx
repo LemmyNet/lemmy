@@ -525,6 +525,16 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                       </li>
                     ) : (
                       <>
+                        {this.props.showBody && post.body && (
+                          <li className="list-inline-item">
+                            <span
+                              className="pointer"
+                              onClick={linkEvent(this, this.handleViewSource)}
+                            >
+                              {i18n.t('view_source')}
+                            </span>
+                          </li>
+                        )}
                         {this.canModOnSelf && (
                           <>
                             <li className="list-inline-item">
@@ -746,16 +756,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                       </>
                     )}
                   </>
-                )}
-                {this.props.showBody && post.body && (
-                  <li className="list-inline-item">
-                    <span
-                      className="pointer"
-                      onClick={linkEvent(this, this.handleViewSource)}
-                    >
-                      {i18n.t('view_source')}
-                    </span>
-                  </li>
                 )}
               </ul>
               {this.state.showRemoveDialog && (
