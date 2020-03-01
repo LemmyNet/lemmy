@@ -4,6 +4,7 @@
 [![Build Status](https://travis-ci.org/dessalines/lemmy.svg?branch=master)](https://travis-ci.org/dessalines/lemmy)
 [![GitHub issues](https://img.shields.io/github/issues-raw/dessalines/lemmy.svg)](https://github.com/dessalines/lemmy/issues)
 [![Docker Pulls](https://img.shields.io/docker/pulls/dessalines/lemmy.svg)](https://cloud.docker.com/repository/docker/dessalines/lemmy/)
+[![Translation status](http://weblate.yerbamate.dev/widgets/lemmy/-/lemmy/svg-badge.svg)](http://weblate.yerbamate.dev/engage/lemmy/?utm_source=widget)
 [![License](https://img.shields.io/github/license/dessalines/lemmy.svg)](LICENSE)
 ![GitHub stars](https://img.shields.io/github/stars/dessalines/lemmy?style=social)
 </div>
