@@ -124,5 +124,21 @@
     "language": "اللغة",
     "body": "المحتوى",
     "setup_admin": "إنشاء مدير",
-    "are_you_sure": "هل أنت متأكّد؟"
+    "are_you_sure": "هل أنت متأكّد؟",
+    "logged_in": "إنّك متّصل.",
+    "user_already_exists": "هذا المستخدِم موجود بالفعل.",
+    "number_of_communities": "{{count}} مجتمعات",
+    "subscribed": "مُتابِعون",
+    "url": "الرابط",
+    "nsfw": "محتوى حساس",
+    "couldnt_create_comment": "تعذّر إنشاءالتعليق.",
+    "site_ban": "لقد تم طردك مِن هذا الموقع",
+    "not_an_admin": "لستَ مديرا.",
+    "password_incorrect": "الكلمة السرية خاطئة.",
+    "passwords_dont_match": "الكلمات السرية غير متطابقة.",
+    "email_already_exists": "عنوان البريد الإلكتروني هذا موجود بالفعل.",
+    "time": "الساعة",
+    "more": "المزيد",
+    "community_ban": "لقد تم طردك مِن هذا المجتمع.",
+    "action": "الإجراء"
 }
