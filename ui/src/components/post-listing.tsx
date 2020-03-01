@@ -45,6 +45,7 @@ interface PostListingState {
   showConfirmTransferCommunity: boolean;
   imageExpanded: boolean;
   viewSource: boolean;
+  showAdvanced: boolean;
   my_vote: number;
   score: number;
   upvotes: number;
@@ -75,6 +76,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     showConfirmTransferCommunity: false,
     imageExpanded: false,
     viewSource: false,
+    showAdvanced: false,
     my_vote: this.props.post.my_vote,
     score: this.props.post.score,
     upvotes: this.props.post.upvotes,
@@ -511,210 +513,237 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                         </li>
                       </>
                     )}
-                    {this.canModOnSelf && (
-                      <>
-                        <li className="list-inline-item">
-                          <span
-                            class="pointer"
-                            onClick={linkEvent(this, this.handleModLock)}
-                          >
-                            {post.locked ? i18n.t('unlock') : i18n.t('lock')}
-                          </span>
-                        </li>
-                        <li className="list-inline-item">
-                          <span
-                            class="pointer"
-                            onClick={linkEvent(this, this.handleModSticky)}
-                          >
-                            {post.stickied
-                              ? i18n.t('unsticky')
-                              : i18n.t('sticky')}
-                          </span>
-                        </li>
-                      </>
-                    )}
-                    {/* Mods can ban from community, and appoint as mods to community */}
-                    {(this.canMod || this.canAdmin) && (
+
+                    {!this.state.showAdvanced && this.props.showBody ? (
                       <li className="list-inline-item">
-                        {!post.removed ? (
-                          <span
-                            class="pointer"
-                            onClick={linkEvent(this, this.handleModRemoveShow)}
-                          >
-                            {i18n.t('remove')}
-                          </span>
-                        ) : (
-                          <span
-                            class="pointer"
-                            onClick={linkEvent(
-                              this,
-                              this.handleModRemoveSubmit
-                            )}
-                          >
-                            {i18n.t('restore')}
-                          </span>
-                        )}
+                        <span
+                          className="pointer"
+                          onClick={linkEvent(this, this.handleShowAdvanced)}
+                        >
+                          {i18n.t('more')}
+                        </span>
                       </li>
-                    )}
-                    {this.canMod && (
+                    ) : (
                       <>
-                        {!this.isMod && (
+                        {this.canModOnSelf && (
+                          <>
+                            <li className="list-inline-item">
+                              <span
+                                class="pointer"
+                                onClick={linkEvent(this, this.handleModLock)}
+                              >
+                                {post.locked
+                                  ? i18n.t('unlock')
+                                  : i18n.t('lock')}
+                              </span>
+                            </li>
+                            <li className="list-inline-item">
+                              <span
+                                class="pointer"
+                                onClick={linkEvent(this, this.handleModSticky)}
+                              >
+                                {post.stickied
+                                  ? i18n.t('unsticky')
+                                  : i18n.t('sticky')}
+                              </span>
+                            </li>
+                          </>
+                        )}
+                        {/* Mods can ban from community, and appoint as mods to community */}
+                        {(this.canMod || this.canAdmin) && (
                           <li className="list-inline-item">
-                            {!post.banned_from_community ? (
+                            {!post.removed ? (
                               <span
                                 class="pointer"
                                 onClick={linkEvent(
                                   this,
-                                  this.handleModBanFromCommunityShow
+                                  this.handleModRemoveShow
                                 )}
                               >
-                                {i18n.t('ban')}
+                                {i18n.t('remove')}
                               </span>
                             ) : (
                               <span
                                 class="pointer"
                                 onClick={linkEvent(
                                   this,
-                                  this.handleModBanFromCommunitySubmit
+                                  this.handleModRemoveSubmit
                                 )}
                               >
-                                {i18n.t('unban')}
+                                {i18n.t('restore')}
                               </span>
                             )}
                           </li>
                         )}
-                        {!post.banned_from_community && (
-                          <li className="list-inline-item">
-                            <span
-                              class="pointer"
-                              onClick={linkEvent(
-                                this,
-                                this.handleAddModToCommunity
-                              )}
-                            >
-                              {this.isMod
-                                ? i18n.t('remove_as_mod')
-                                : i18n.t('appoint_as_mod')}
-                            </span>
-                          </li>
-                        )}
-                      </>
-                    )}
-                    {/* Community creators and admins can transfer community to another mod */}
-                    {(this.amCommunityCreator || this.canAdmin) && this.isMod && (
-                      <li className="list-inline-item">
-                        {!this.state.showConfirmTransferCommunity ? (
-                          <span
-                            class="pointer"
-                            onClick={linkEvent(
-                              this,
-                              this.handleShowConfirmTransferCommunity
-                            )}
-                          >
-                            {i18n.t('transfer_community')}
-                          </span>
-                        ) : (
+                        {this.canMod && (
                           <>
-                            <span class="d-inline-block mr-1">
-                              {i18n.t('are_you_sure')}
-                            </span>
-                            <span
-                              class="pointer d-inline-block mr-1"
-                              onClick={linkEvent(
-                                this,
-                                this.handleTransferCommunity
-                              )}
-                            >
-                              {i18n.t('yes')}
-                            </span>
-                            <span
-                              class="pointer d-inline-block"
-                              onClick={linkEvent(
-                                this,
-                                this.handleCancelShowConfirmTransferCommunity
-                              )}
-                            >
-                              {i18n.t('no')}
-                            </span>
+                            {!this.isMod && (
+                              <li className="list-inline-item">
+                                {!post.banned_from_community ? (
+                                  <span
+                                    class="pointer"
+                                    onClick={linkEvent(
+                                      this,
+                                      this.handleModBanFromCommunityShow
+                                    )}
+                                  >
+                                    {i18n.t('ban')}
+                                  </span>
+                                ) : (
+                                  <span
+                                    class="pointer"
+                                    onClick={linkEvent(
+                                      this,
+                                      this.handleModBanFromCommunitySubmit
+                                    )}
+                                  >
+                                    {i18n.t('unban')}
+                                  </span>
+                                )}
+                              </li>
+                            )}
+                            {!post.banned_from_community && (
+                              <li className="list-inline-item">
+                                <span
+                                  class="pointer"
+                                  onClick={linkEvent(
+                                    this,
+                                    this.handleAddModToCommunity
+                                  )}
+                                >
+                                  {this.isMod
+                                    ? i18n.t('remove_as_mod')
+                                    : i18n.t('appoint_as_mod')}
+                                </span>
+                              </li>
+                            )}
                           </>
                         )}
-                      </li>
-                    )}
-                    {/* Admins can ban from all, and appoint other admins */}
-                    {this.canAdmin && (
-                      <>
-                        {!this.isAdmin && (
+                        {/* Community creators and admins can transfer community to another mod */}
+                        {(this.amCommunityCreator || this.canAdmin) &&
+                          this.isMod && (
+                            <li className="list-inline-item">
+                              {!this.state.showConfirmTransferCommunity ? (
+                                <span
+                                  class="pointer"
+                                  onClick={linkEvent(
+                                    this,
+                                    this.handleShowConfirmTransferCommunity
+                                  )}
+                                >
+                                  {i18n.t('transfer_community')}
+                                </span>
+                              ) : (
+                                <>
+                                  <span class="d-inline-block mr-1">
+                                    {i18n.t('are_you_sure')}
+                                  </span>
+                                  <span
+                                    class="pointer d-inline-block mr-1"
+                                    onClick={linkEvent(
+                                      this,
+                                      this.handleTransferCommunity
+                                    )}
+                                  >
+                                    {i18n.t('yes')}
+                                  </span>
+                                  <span
+                                    class="pointer d-inline-block"
+                                    onClick={linkEvent(
+                                      this,
+                                      this
+                                        .handleCancelShowConfirmTransferCommunity
+                                    )}
+                                  >
+                                    {i18n.t('no')}
+                                  </span>
+                                </>
+                              )}
+                            </li>
+                          )}
+                        {/* Admins can ban from all, and appoint other admins */}
+                        {this.canAdmin && (
+                          <>
+                            {!this.isAdmin && (
+                              <li className="list-inline-item">
+                                {!post.banned ? (
+                                  <span
+                                    class="pointer"
+                                    onClick={linkEvent(
+                                      this,
+                                      this.handleModBanShow
+                                    )}
+                                  >
+                                    {i18n.t('ban_from_site')}
+                                  </span>
+                                ) : (
+                                  <span
+                                    class="pointer"
+                                    onClick={linkEvent(
+                                      this,
+                                      this.handleModBanSubmit
+                                    )}
+                                  >
+                                    {i18n.t('unban_from_site')}
+                                  </span>
+                                )}
+                              </li>
+                            )}
+                            {!post.banned && (
+                              <li className="list-inline-item">
+                                <span
+                                  class="pointer"
+                                  onClick={linkEvent(this, this.handleAddAdmin)}
+                                >
+                                  {this.isAdmin
+                                    ? i18n.t('remove_as_admin')
+                                    : i18n.t('appoint_as_admin')}
+                                </span>
+                              </li>
+                            )}
+                          </>
+                        )}
+                        {/* Site Creator can transfer to another admin */}
+                        {this.amSiteCreator && this.isAdmin && (
                           <li className="list-inline-item">
-                            {!post.banned ? (
-                              <span
-                                class="pointer"
-                                onClick={linkEvent(this, this.handleModBanShow)}
-                              >
-                                {i18n.t('ban_from_site')}
-                              </span>
-                            ) : (
+                            {!this.state.showConfirmTransferSite ? (
                               <span
                                 class="pointer"
                                 onClick={linkEvent(
                                   this,
-                                  this.handleModBanSubmit
+                                  this.handleShowConfirmTransferSite
                                 )}
                               >
-                                {i18n.t('unban_from_site')}
+                                {i18n.t('transfer_site')}
                               </span>
+                            ) : (
+                              <>
+                                <span class="d-inline-block mr-1">
+                                  {i18n.t('are_you_sure')}
+                                </span>
+                                <span
+                                  class="pointer d-inline-block mr-1"
+                                  onClick={linkEvent(
+                                    this,
+                                    this.handleTransferSite
+                                  )}
+                                >
+                                  {i18n.t('yes')}
+                                </span>
+                                <span
+                                  class="pointer d-inline-block"
+                                  onClick={linkEvent(
+                                    this,
+                                    this.handleCancelShowConfirmTransferSite
+                                  )}
+                                >
+                                  {i18n.t('no')}
+                                </span>
+                              </>
                             )}
-                          </li>
-                        )}
-                        {!post.banned && (
-                          <li className="list-inline-item">
-                            <span
-                              class="pointer"
-                              onClick={linkEvent(this, this.handleAddAdmin)}
-                            >
-                              {this.isAdmin
-                                ? i18n.t('remove_as_admin')
-                                : i18n.t('appoint_as_admin')}
-                            </span>
                           </li>
                         )}
                       </>
-                    )}
-                    {/* Site Creator can transfer to another admin */}
-                    {this.amSiteCreator && this.isAdmin && (
-                      <li className="list-inline-item">
-                        {!this.state.showConfirmTransferSite ? (
-                          <span
-                            class="pointer"
-                            onClick={linkEvent(
-                              this,
-                              this.handleShowConfirmTransferSite
-                            )}
-                          >
-                            {i18n.t('transfer_site')}
-                          </span>
-                        ) : (
-                          <>
-                            <span class="d-inline-block mr-1">
-                              {i18n.t('are_you_sure')}
-                            </span>
-                            <span
-                              class="pointer d-inline-block mr-1"
-                              onClick={linkEvent(this, this.handleTransferSite)}
-                            >
-                              {i18n.t('yes')}
-                            </span>
-                            <span
-                              class="pointer d-inline-block"
-                              onClick={linkEvent(
-                                this,
-                                this.handleCancelShowConfirmTransferSite
-                              )}
-                            >
-                              {i18n.t('no')}
-                            </span>
-                          </>
-                        )}
-                      </li>
                     )}
                   </>
                 )}
@@ -1199,6 +1228,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
   handleViewSource(i: PostListing) {
     i.state.viewSource = !i.state.viewSource;
+    i.setState(i.state);
+  }
+
+  handleShowAdvanced(i: PostListing) {
+    i.state.showAdvanced = !i.state.showAdvanced;
     i.setState(i.state);
   }
 }
