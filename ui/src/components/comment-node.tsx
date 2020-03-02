@@ -270,28 +270,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                         {node.comment.saved ? i18n.t('unsave') : i18n.t('save')}
                       </span>
                     </li>
-                    {this.myComment && (
-                      <>
-                        <li className="list-inline-item">
-                          <span
-                            class="pointer"
-                            onClick={linkEvent(this, this.handleEditClick)}
-                          >
-                            {i18n.t('edit')}
-                          </span>
-                        </li>
-                        <li className="list-inline-item">
-                          <span
-                            class="pointer"
-                            onClick={linkEvent(this, this.handleDeleteClick)}
-                          >
-                            {!node.comment.deleted
-                              ? i18n.t('delete')
-                              : i18n.t('restore')}
-                          </span>
-                        </li>
-                      </>
-                    )}
                     {!this.myComment && (
                       <li className="list-inline-item">
                         <Link
@@ -302,6 +280,14 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                         </Link>
                       </li>
                     )}
+                    <li className="list-inline-item">
+                      <Link
+                        className="text-muted"
+                        to={`/post/${node.comment.post_id}/comment/${node.comment.id}`}
+                      >
+                        {i18n.t('link')}
+                      </Link>
+                    </li>
                     {!this.state.showAdvanced ? (
                       <li className="list-inline-item">
                         <span
@@ -322,18 +308,35 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                             {i18n.t('view_source')}
                           </span>
                         </li>
-                        <li className="list-inline-item">
-                          <Link
-                            className="text-muted"
-                            to={`/post/${node.comment.post_id}/comment/${node.comment.id}`}
-                          >
-                            {i18n.t('link')}
-                          </Link>
-                        </li>
+                        <li className="list-inline-item">•</li>
+                        {this.myComment && (
+                          <>
+                            <li className="list-inline-item">
+                              <span
+                                class="pointer"
+                                onClick={linkEvent(this, this.handleEditClick)}
+                              >
+                                {i18n.t('edit')}
+                              </span>
+                            </li>
+                            <li className="list-inline-item">
+                              <span
+                                class="pointer"
+                                onClick={linkEvent(
+                                  this,
+                                  this.handleDeleteClick
+                                )}
+                              >
+                                {!node.comment.deleted
+                                  ? i18n.t('delete')
+                                  : i18n.t('restore')}
+                              </span>
+                            </li>
+                          </>
+                        )}
                         {/* Admins and mods can remove comments */}
                         {(this.canMod || this.canAdmin) && (
                           <>
-                            <li className="list-inline-item">•</li>
                             <li className="list-inline-item">
                               {!node.comment.removed ? (
                                 <span
