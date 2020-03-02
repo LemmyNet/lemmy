@@ -285,7 +285,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             <source src={this.state.url} type="video/mp4" />
           </video>
         )}
-        <div class="col-8 col-sm-9">
+        <div
+          class={`${this.state.imageExpanded ? 'col-12' : 'col-8 col-sm-9'}`}
+        >
           <div class="row">
             <div className="col-12">
               <div className="post-title">
