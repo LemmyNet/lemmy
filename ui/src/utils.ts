@@ -34,7 +34,7 @@ import {
 } from './interfaces';
 import { UserService, WebSocketService } from './services';
 
-import Tribute from 'tributejs/src/Tribute.js';
+import Tribute from 'tributejs';
 import markdown_it from 'markdown-it';
 import markdownitEmoji from 'markdown-it-emoji/light';
 import markdown_it_container from 'markdown-it-container';
@@ -427,7 +427,7 @@ export function toast(text: string, background: string = 'success') {
   }).showToast();
 }
 
-export function setupTribute(): Tribute {
+export function setupTribute(): any {
   return new Tribute({
     collection: [
       // Emojis
@@ -445,7 +445,7 @@ export function setupTribute(): Tribute {
         }),
         allowSpaces: false,
         autocompleteMode: true,
-        menuItemLimit: mentionDropdownFetchLimit,
+        // menuItemLimit: mentionDropdownFetchLimit,
         menuShowMinLength: 3,
       },
       // Users
@@ -459,7 +459,7 @@ export function setupTribute(): Tribute {
         },
         allowSpaces: false,
         autocompleteMode: true,
-        menuItemLimit: mentionDropdownFetchLimit,
+        // menuItemLimit: mentionDropdownFetchLimit,
         menuShowMinLength: 3,
       },
 
@@ -474,7 +474,7 @@ export function setupTribute(): Tribute {
         },
         allowSpaces: false,
         autocompleteMode: true,
-        menuItemLimit: mentionDropdownFetchLimit,
+        // menuItemLimit: mentionDropdownFetchLimit,
         menuShowMinLength: 3,
       },
     ],
