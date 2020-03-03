@@ -102,8 +102,17 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     }
   }
 
-  componentDidUpdate() {
-    setupTippy();
+  componentDidUpdate(prevProps: PostListingProps) {
+    let prevPost = prevProps.post;
+    let post = this.props.post;
+    if (
+      prevPost.saved !== post.saved ||
+      prevPost.deleted !== post.deleted ||
+      prevPost.locked !== post.locked ||
+      prevPost.stickied !== post.stickied
+    ) {
+      setupTippy();
+    }
   }
 
   componentWillReceiveProps(nextProps: PostListingProps) {
@@ -492,7 +501,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   </>
                 )}
               </ul>
-              <ul class="list-inline mb-1 text-muted h6 font-weight-bold">
+              <ul class="list-inline mb-1 text-muted h5 font-weight-bold">
                 {UserService.Instance.user && (
                   <>
                     {this.props.showBody && (
@@ -1305,5 +1314,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   handleShowAdvanced(i: PostListing) {
     i.state.showAdvanced = !i.state.showAdvanced;
     i.setState(i.state);
+    setupTippy();
   }
 }
