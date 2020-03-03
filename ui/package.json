@@ -43,7 +43,7 @@
     "terser": "^4.6.3",
     "tippy.js": "^6.0.0",
     "toastify-js": "^1.6.2",
-    "tributejs": "^4.1.1",
+    "tributejs": "^5.0.0",
     "twemoji": "^12.1.2",
     "ws": "^7.0.0"
   },

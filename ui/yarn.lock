@@ -4506,10 +4506,10 @@ tough-cookie@~2.4.3:
     psl "^1.1.24"
     punycode "^1.4.1"
 
-tributejs@^4.1.1:
-  version "4.1.1"
-  resolved "https://registry.yarnpkg.com/tributejs/-/tributejs-4.1.1.tgz#f169a4ad12e485241140ec1ab987b460950c974c"
-  integrity sha512-jc+PcaiNzMjCn2LAQb3i4ic94EsSfLW8Jlk1sK2cb6hLcZFalU9ThcF8rxuKkTUKv1GIvTwN8XseLzCXLxB4lw==
+tributejs@^5.0.0:
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/tributejs/-/tributejs-5.0.0.tgz#2c5301a79c19d7a72d23e995bf7c9f47c2a34f23"
+  integrity sha512-aPUpq4+NTXRq1OcdoeiFg9d+wM+J0b7dpL7MNVxqo8JIgChtkx8HnsPVl/uZ4Z1ChTF9UI1ffbvTfJRHqJjjAw==
 
 ts-node@^8.6.2:
   version "8.6.2"
