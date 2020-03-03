@@ -321,7 +321,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                           to={`/create_private_message?recipient_id=${node.comment.creator_id}`}
                           title={i18n.t('message').toLowerCase()}
                         >
-                          <svg class="icon icon-inline">
+                          <svg class="icon">
                             <use xlinkHref="#icon-mail"></use>
                           </svg>
                         </Link>
