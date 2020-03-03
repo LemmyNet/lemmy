@@ -116,6 +116,7 @@ export class Inbox extends Component<any, InboxState> {
                 <a
                   href={`/feeds/inbox/${UserService.Instance.auth}.xml`}
                   target="_blank"
+                  title="RSS"
                 >
                   <svg class="icon mx-2 text-muted small">
                     <use xlinkHref="#icon-rss">#</use>

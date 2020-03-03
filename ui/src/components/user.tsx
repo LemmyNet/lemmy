@@ -267,6 +267,7 @@ export class User extends Component<any, UserState> {
             SortType[this.state.sort]
           }`}
           target="_blank"
+          title="RSS"
         >
           <svg class="icon mx-2 text-muted small">
             <use xlinkHref="#icon-rss">#</use>

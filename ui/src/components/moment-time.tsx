@@ -1,6 +1,6 @@
 import { Component } from 'inferno';
 import moment from 'moment';
-import { getMomentLanguage } from '../utils';
+import { getMomentLanguage, setupTippy } from '../utils';
 import { i18n } from '../i18next';
 
 interface MomentTimeProps {
@@ -20,16 +20,37 @@ export class MomentTime extends Component<MomentTimeProps, any> {
     moment.locale(lang);
   }
 
+  componentDidMount() {
+    setupTippy();
+  }
+
   render() {
     if (this.props.data.updated) {
       return (
-        <span title={this.props.data.updated} className="font-italics">
+        <span
+          data-tippy-content={this.format(this.props.data.updated)}
+          className="font-italics pointer unselectable"
+        >
           {i18n.t('modified')} {moment.utc(this.props.data.updated).fromNow()}
         </span>
       );
     } else {
       let str = this.props.data.published || this.props.data.when_;
-      return <span title={str}>{moment.utc(str).fromNow()}</span>;
+      return (
+        <span
+          className="pointer unselectable"
+          data-tippy-content={this.format(str)}
+        >
+          {moment.utc(str).fromNow()}
+        </span>
+      );
     }
+  }
+
+  format(input: string): string {
+    return moment
+      .utc(input)
+      .local()
+      .format('LLLL');
   }
 }

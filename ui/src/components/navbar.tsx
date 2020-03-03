@@ -26,6 +26,7 @@ import {
   fetchLimit,
   isCommentType,
   toast,
+  setupTippy,
 } from '../utils';
 import { version } from '../version';
 import { i18n } from '../i18next';
@@ -84,6 +85,10 @@ export class Navbar extends Component<any, NavbarState> {
     WebSocketService.Instance.getSite();
   }
 
+  componentDidMount() {
+    setupTippy();
+  }
+
   render() {
     return this.navbar();
   }
@@ -105,6 +110,7 @@ export class Navbar extends Component<any, NavbarState> {
           type="button"
           aria-label="menu"
           onClick={linkEvent(this, this.expandNavbar)}
+          data-tippy-content={i18n.t('expand_here')}
         >
           <span class="navbar-toggler-icon"></span>
         </button>
@@ -113,12 +119,16 @@ export class Navbar extends Component<any, NavbarState> {
         >
           <ul class="navbar-nav mr-auto">
             <li class="nav-item">
-              <Link class="nav-link" to="/communities">
+              <Link
+                class="nav-link"
+                to="/communities"
+                title={i18n.t('communities')}
+              >
                 {i18n.t('communities')}
               </Link>
             </li>
             <li class="nav-item">
-              <Link class="nav-link" to="/search">
+              <Link class="nav-link" to="/search" title={i18n.t('search')}>
                 {i18n.t('search')}
               </Link>
             </li>
@@ -129,12 +139,17 @@ export class Navbar extends Component<any, NavbarState> {
                   pathname: '/create_post',
                   state: { prevPath: this.currentLocation },
                 }}
+                title={i18n.t('create_post')}
               >
                 {i18n.t('create_post')}
               </Link>
             </li>
             <li class="nav-item">
-              <Link class="nav-link" to="/create_community">
+              <Link
+                class="nav-link"
+                to="/create_community"
+                title={i18n.t('create_community')}
+              >
                 {i18n.t('create_community')}
               </Link>
             </li>
@@ -154,9 +169,9 @@ export class Navbar extends Component<any, NavbarState> {
             {this.state.isLoggedIn ? (
               <>
                 <li className="nav-item mt-1">
-                  <Link class="nav-link" to="/inbox">
+                  <Link class="nav-link" to="/inbox" title={i18n.t('inbox')}>
                     <svg class="icon">
-                      <use xlinkHref="#icon-mail"></use>
+                      <use xlinkHref="#icon-bell"></use>
                     </svg>
                     {this.state.unreadCount > 0 && (
                       <span class="ml-1 badge badge-light">
@@ -169,6 +184,7 @@ export class Navbar extends Component<any, NavbarState> {
                   <Link
                     class="nav-link"
                     to={`/u/${UserService.Instance.user.username}`}
+                    title={i18n.t('settings')}
                   >
                     <span>
                       {UserService.Instance.user.avatar && showAvatars() && (
@@ -187,7 +203,11 @@ export class Navbar extends Component<any, NavbarState> {
                 </li>
               </>
             ) : (
-              <Link class="nav-link" to="/login">
+              <Link
+                class="nav-link"
+                to="/login"
+                title={i18n.t('login_sign_up')}
+              >
                 {i18n.t('login_sign_up')}
               </Link>
             )}

@@ -41,6 +41,7 @@ import markdown_it_container from 'markdown-it-container';
 import twemoji from 'twemoji';
 import emojiShortName from 'emoji-short-name';
 import Toastify from 'toastify-js';
+import tippy from 'tippy.js';
 
 export const repoUrl = 'https://github.com/dessalines/lemmy';
 export const markdownHelpUrl = '/docs/about_guide.html';
@@ -474,6 +475,17 @@ export function setupTribute(): Tribute {
         menuItemLimit: mentionDropdownFetchLimit,
       },
     ],
+  });
+}
+
+let tippyInstance = tippy('[data-tippy-content]');
+
+export function setupTippy() {
+  tippyInstance.forEach(e => e.destroy());
+  tippyInstance = tippy('[data-tippy-content]', {
+    delay: [500, 0],
+    // Display on "long press"
+    touch: ['hold', 500],
   });
 }
 

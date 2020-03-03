@@ -30,6 +30,7 @@ import {
   pictshareAvatarThumbnail,
   showAvatars,
   imageThumbnailer,
+  setupTippy,
 } from '../utils';
 import { i18n } from '../i18next';
 
@@ -99,6 +100,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       this.setThumbnail();
       this.fetchIframely();
     }
+  }
+
+  componentDidUpdate() {
+    setupTippy();
   }
 
   componentWillReceiveProps(nextProps: PostListingProps) {
@@ -185,7 +190,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       return (
         <span
           class="text-body pointer"
-          title={i18n.t('expand_here')}
+          data-tippy-content={i18n.t('expand_here')}
           onClick={linkEvent(this, this.handleImageExpandClick)}
         >
           {this.imgThumb()}
@@ -246,12 +251,13 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               this.state.my_vote == 1 ? 'text-info' : 'text-muted'
             }`}
             onClick={linkEvent(this, this.handlePostLike)}
+            data-tippy-content={i18n.t('upvote')}
           >
             <svg class="icon upvote">
               <use xlinkHref="#icon-arrow-up"></use>
             </svg>
           </button>
-          <div class={`font-weight-bold text-muted px-1`}>
+          <div class={`unselectable font-weight-bold text-muted px-1`}>
             {this.state.score}
           </div>
           {WebSocketService.Instance.site.enable_downvotes && (
@@ -260,6 +266,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                 this.state.my_vote == -1 ? 'text-danger' : 'text-muted'
               }`}
               onClick={linkEvent(this, this.handlePostDisLike)}
+              data-tippy-content={i18n.t('downvote')}
             >
               <svg class="icon downvote">
                 <use xlinkHref="#icon-arrow-down"></use>
@@ -333,8 +340,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   <>
                     {!this.state.imageExpanded ? (
                       <span
-                        class="text-monospace pointer ml-2 text-muted small"
-                        title={i18n.t('expand_here')}
+                        class="text-monospace unselectable pointer ml-2 text-muted small"
+                        data-tippy-content={i18n.t('expand_here')}
                         onClick={linkEvent(this, this.handleImageExpandClick)}
                       >
                         [+]
@@ -342,7 +349,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                     ) : (
                       <span>
                         <span
-                          class="text-monospace pointer ml-2 text-muted small"
+                          class="text-monospace unselectable pointer ml-2 text-muted small"
                           onClick={linkEvent(this, this.handleImageExpandClick)}
                         >
                           [-]
@@ -439,22 +446,37 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   </span>
                 </li>
                 <li className="list-inline-item">
-                  <span>
-                    (<span className="text-info">+{this.state.upvotes}</span>
-                    <span> | </span>
-                    <span className="text-danger">-{this.state.downvotes}</span>
-                    <span>) </span>
+                  <span className="text-info">
+                    <svg class="small icon icon-inline mr-1">
+                      <use xlinkHref="#icon-arrow-up"></use>
+                    </svg>
+                    {this.state.upvotes}
                   </span>
                 </li>
                 <li className="list-inline-item">
-                  <Link className="text-muted" to={`/post/${post.id}`}>
-                    {i18n.t('number_of_comments', {
+                  <span className="text-danger">
+                    <svg class="small icon icon-inline mr-1">
+                      <use xlinkHref="#icon-arrow-down"></use>
+                    </svg>
+                    {this.state.downvotes}
+                  </span>
+                </li>
+                <li className="list-inline-item">
+                  <Link
+                    className="text-muted"
+                    title={i18n.t('number_of_comments', {
                       count: post.number_of_comments,
                     })}
+                    to={`/post/${post.id}`}
+                  >
+                    <svg class="mr-1 icon icon-inline">
+                      <use xlinkHref="#icon-message-square"></use>
+                    </svg>
+                    {post.number_of_comments}
                   </Link>
                 </li>
               </ul>
-              <ul class="list-inline mb-1 text-muted small">
+              <ul class="list-inline mb-1 text-muted">
                 {this.props.post.duplicates && (
                   <>
                     <li className="list-inline-item mr-2">
@@ -470,65 +492,90 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   </>
                 )}
               </ul>
-              <ul class="list-inline mb-1 text-muted small font-weight-bold">
+              <ul class="list-inline mb-1 text-muted h6 font-weight-bold">
                 {UserService.Instance.user && (
                   <>
                     {this.props.showBody && (
                       <>
-                        <li className="list-inline-item mr-2">
+                        <li className="list-inline-item-action">
                           <span
                             class="pointer"
                             onClick={linkEvent(this, this.handleSavePostClick)}
+                            data-tippy-content={
+                              post.saved ? i18n.t('unsave') : i18n.t('save')
+                            }
                           >
-                            {post.saved ? i18n.t('unsave') : i18n.t('save')}
+                            <svg
+                              class={`icon icon-inline ${post.saved &&
+                                'text-warning'}`}
+                            >
+                              <use xlinkHref="#icon-star"></use>
+                            </svg>
                           </span>
                         </li>
-                        <li className="list-inline-item mr-2">
+                        <li className="list-inline-item-action">
                           <Link
                             className="text-muted"
                             to={`/create_post${this.crossPostParams}`}
+                            title={i18n.t('cross_post')}
                           >
-                            {i18n.t('cross_post')}
+                            <svg class="icon icon-inline">
+                              <use xlinkHref="#icon-copy"></use>
+                            </svg>
                           </Link>
                         </li>
                       </>
                     )}
                     {this.myPost && this.props.showBody && (
                       <>
-                        <li className="list-inline-item">
+                        <li className="list-inline-item-action">
                           <span
                             class="pointer"
                             onClick={linkEvent(this, this.handleEditClick)}
+                            data-tippy-content={i18n.t('edit')}
                           >
-                            {i18n.t('edit')}
+                            <svg class="icon icon-inline">
+                              <use xlinkHref="#icon-edit"></use>
+                            </svg>
                           </span>
                         </li>
-                        <li className="list-inline-item mr-2">
+                        <li className="list-inline-item-action">
                           <span
                             class="pointer"
                             onClick={linkEvent(this, this.handleDeleteClick)}
+                            data-tippy-content={
+                              !post.deleted
+                                ? i18n.t('delete')
+                                : i18n.t('restore')
+                            }
                           >
-                            {!post.deleted
-                              ? i18n.t('delete')
-                              : i18n.t('restore')}
+                            <svg
+                              class={`icon icon-inline ${post.deleted &&
+                                'text-danger'}`}
+                            >
+                              <use xlinkHref="#icon-trash"></use>
+                            </svg>
                           </span>
                         </li>
                       </>
                     )}
 
                     {!this.state.showAdvanced && this.props.showBody ? (
-                      <li className="list-inline-item">
+                      <li className="list-inline-item-action">
                         <span
                           className="pointer"
                           onClick={linkEvent(this, this.handleShowAdvanced)}
+                          data-tippy-content={i18n.t('more')}
                         >
-                          {i18n.t('more')}
+                          <svg class="icon icon-inline">
+                            <use xlinkHref="#icon-more-vertical"></use>
+                          </svg>
                         </span>
                       </li>
                     ) : (
                       <>
                         {this.props.showBody && post.body && (
-                          <li className="list-inline-item">
+                          <li className="list-inline-item-action">
                             <span
                               className="pointer"
                               onClick={linkEvent(this, this.handleViewSource)}
@@ -539,24 +586,40 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                         )}
                         {this.canModOnSelf && (
                           <>
-                            <li className="list-inline-item">
+                            <li className="list-inline-item-action">
                               <span
                                 class="pointer"
                                 onClick={linkEvent(this, this.handleModLock)}
+                                data-tippy-content={
+                                  post.locked
+                                    ? i18n.t('unlock')
+                                    : i18n.t('lock')
+                                }
                               >
-                                {post.locked
-                                  ? i18n.t('unlock')
-                                  : i18n.t('lock')}
+                                <svg
+                                  class={`icon icon-inline ${post.locked &&
+                                    'text-danger'}`}
+                                >
+                                  <use xlinkHref="#icon-lock"></use>
+                                </svg>
                               </span>
                             </li>
-                            <li className="list-inline-item">
+                            <li className="list-inline-item-action">
                               <span
                                 class="pointer"
                                 onClick={linkEvent(this, this.handleModSticky)}
+                                data-tippy-content={
+                                  post.stickied
+                                    ? i18n.t('unsticky')
+                                    : i18n.t('sticky')
+                                }
                               >
-                                {post.stickied
-                                  ? i18n.t('unsticky')
-                                  : i18n.t('sticky')}
+                                <svg
+                                  class={`icon icon-inline ${post.stickied &&
+                                    'text-success'}`}
+                                >
+                                  <use xlinkHref="#icon-pin"></use>
+                                </svg>
                               </span>
                             </li>
                           </>
