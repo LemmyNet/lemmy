@@ -476,7 +476,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   </Link>
                 </li>
               </ul>
-              <ul class="list-inline mb-1 text-muted">
+              <ul class="list-inline mb-1 small text-muted">
                 {this.props.post.duplicates && (
                   <>
                     <li className="list-inline-item mr-2">
