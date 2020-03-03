@@ -1,6 +1,6 @@
 import { Component } from 'inferno';
 import moment from 'moment';
-import { getMomentLanguage, setupTippy } from '../utils';
+import { getMomentLanguage, setupTippy, capitalizeFirstLetter } from '../utils';
 import { i18n } from '../i18next';
 
 interface MomentTimeProps {
@@ -28,10 +28,15 @@ export class MomentTime extends Component<MomentTimeProps, any> {
     if (this.props.data.updated) {
       return (
         <span
-          data-tippy-content={this.format(this.props.data.updated)}
+          data-tippy-content={`${capitalizeFirstLetter(
+            i18n.t('modified')
+          )} ${this.format(this.props.data.updated)}`}
           className="font-italics pointer unselectable"
         >
-          {i18n.t('modified')} {moment.utc(this.props.data.updated).fromNow()}
+          <svg class="icon icon-inline mr-1">
+            <use xlinkHref="#icon-edit-2"></use>
+          </svg>
+          {moment.utc(this.props.data.updated).fromNow()}
         </span>
       );
     } else {

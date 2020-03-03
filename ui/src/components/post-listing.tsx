@@ -579,8 +579,14 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                             <span
                               className="pointer"
                               onClick={linkEvent(this, this.handleViewSource)}
+                              data-tippy-content={i18n.t('view_source')}
                             >
-                              {i18n.t('view_source')}
+                              <svg
+                                class={`icon icon-inline ${this.state
+                                  .viewSource && 'text-success'}`}
+                              >
+                                <use xlinkHref="#icon-eye"></use>
+                              </svg>
                             </span>
                           </li>
                         )}
