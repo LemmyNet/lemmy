@@ -13,6 +13,7 @@ import {
   getUnixTime,
   pictshareAvatarThumbnail,
   showAvatars,
+  setupTippy,
 } from '../utils';
 import { CommunityForm } from './community-form';
 import { i18n } from '../i18next';
@@ -44,6 +45,10 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     this.state = this.emptyState;
     this.handleEditCommunity = this.handleEditCommunity.bind(this);
     this.handleEditCancel = this.handleEditCancel.bind(this);
+  }
+
+  componentDidUpdate() {
+    setupTippy();
   }
 
   render() {
@@ -84,26 +89,37 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
             <Link className="text-muted" to={`/c/${community.name}`}>
               /c/{community.name}
             </Link>
-            <ul class="list-inline mb-1 text-muted small font-weight-bold">
+            <ul class="list-inline mb-1 text-muted font-weight-bold">
               {this.canMod && (
                 <>
-                  <li className="list-inline-item">
+                  <li className="list-inline-item-action">
                     <span
                       class="pointer"
                       onClick={linkEvent(this, this.handleEditClick)}
+                      data-tippy-content={i18n.t('edit')}
                     >
-                      {i18n.t('edit')}
+                      <svg class="icon icon-inline">
+                        <use xlinkHref="#icon-edit"></use>
+                      </svg>
                     </span>
                   </li>
                   {this.amCreator && (
-                    <li className="list-inline-item">
+                    <li className="list-inline-item-action">
                       <span
                         class="pointer"
                         onClick={linkEvent(this, this.handleDeleteClick)}
+                        data-tippy-content={
+                          !community.deleted
+                            ? i18n.t('delete')
+                            : i18n.t('restore')
+                        }
                       >
-                        {!community.deleted
-                          ? i18n.t('delete')
-                          : i18n.t('restore')}
+                        <svg
+                          class={`icon icon-inline ${community.deleted &&
+                            'text-danger'}`}
+                        >
+                          <use xlinkHref="#icon-trash"></use>
+                        </svg>
                       </span>
                     </li>
                   )}

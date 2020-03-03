@@ -268,13 +268,16 @@ export class Main extends Component<any, MainState> {
           <div class="card-body">
             <h5 class="mb-0">{`${this.state.siteRes.site.name}`}</h5>
             {this.canAdmin && (
-              <ul class="list-inline mb-1 text-muted small font-weight-bold">
-                <li className="list-inline-item">
+              <ul class="list-inline mb-1 text-muted font-weight-bold">
+                <li className="list-inline-item-action">
                   <span
                     class="pointer"
                     onClick={linkEvent(this, this.handleEditClick)}
+                    data-tippy-content={i18n.t('edit')}
                   >
-                    {i18n.t('edit')}
+                    <svg class="icon icon-inline">
+                      <use xlinkHref="#icon-edit"></use>
+                    </svg>
                   </span>
                 </li>
               </ul>
