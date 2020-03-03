@@ -1,6 +1,7 @@
 import { Component, linkEvent } from 'inferno';
 import { FramelyData } from '../interfaces';
 import { mdToHtml } from '../utils';
+import { i18n } from '../i18next';
 
 interface FramelyCardProps {
   iframely: FramelyData;
@@ -54,6 +55,7 @@ export class IFramelyCard extends Component<
                       <span
                         class="ml-2 pointer text-monospace"
                         onClick={linkEvent(this, this.handleIframeExpand)}
+                        data-tippy-content={i18n.t('expand_here')}
                       >
                         {this.state.expanded ? '[-]' : '[+]'}
                       </span>

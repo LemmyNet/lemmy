@@ -208,6 +208,7 @@ export class Community extends Component<any, State> {
             SortType[this.state.sort]
           }`}
           target="_blank"
+          title="RSS"
         >
           <svg class="icon text-muted small">
             <use xlinkHref="#icon-rss">#</use>

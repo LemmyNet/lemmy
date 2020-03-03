@@ -146,6 +146,8 @@
     "browser_default": "Browser Default",
     "downvotes_disabled": "Downvotes disabled",
     "enable_downvotes": "Enable Downvotes",
+    "upvote": "Upvote",
+    "downvote": "Downvote",
     "open_registration": "Open Registration",
     "registration_closed": "Registration closed",
     "enable_nsfw": "Enable NSFW",
