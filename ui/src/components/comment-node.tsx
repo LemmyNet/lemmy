@@ -103,8 +103,16 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     this.handleCommentDownvote = this.handleCommentDownvote.bind(this);
   }
 
-  componentDidUpdate() {
-    setupTippy();
+  componentDidUpdate(prevProps: CommentNodeProps) {
+    let prevComment = prevProps.node.comment;
+    let comment = this.props.node.comment;
+    if (
+      prevComment.saved !== comment.saved ||
+      prevComment.deleted !== comment.deleted ||
+      prevComment.read !== comment.read
+    ) {
+      setupTippy();
+    }
   }
 
   componentWillReceiveProps(nextProps: CommentNodeProps) {
@@ -256,7 +264,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                   dangerouslySetInnerHTML={mdToHtml(this.commentUnlessRemoved)}
                 />
               )}
-              <ul class="list-inline mb-1 text-muted font-weight-bold h6">
+              <ul class="list-inline mb-1 text-muted font-weight-bold h5">
                 {this.props.markable && (
                   <li className="list-inline-item-action">
                     <span
@@ -1110,5 +1118,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   handleShowAdvanced(i: CommentNode) {
     i.state.showAdvanced = !i.state.showAdvanced;
     i.setState(i.state);
+    setupTippy();
   }
 }
