@@ -174,6 +174,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 {i18n.t('banned')}
               </li>
             )}
+            <li className="list-inline-item">•</li>
             <span
               class="unselectable pointer mr-2"
               data-tippy-content={i18n.t('number_of_points', {
@@ -209,6 +210,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 </Link>
               </li>
             )}
+            <li className="list-inline-item">•</li>
             <li className="list-inline-item">
               <span>
                 <MomentTime data={node.comment} />
