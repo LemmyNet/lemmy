@@ -36,7 +36,7 @@ export class MomentTime extends Component<MomentTimeProps, any> {
           <svg class="icon icon-inline mr-1">
             <use xlinkHref="#icon-edit-2"></use>
           </svg>
-          {moment.utc(this.props.data.updated).fromNow()}
+          {moment.utc(this.props.data.updated).fromNow(true)}
         </span>
       );
     } else {
@@ -46,7 +46,7 @@ export class MomentTime extends Component<MomentTimeProps, any> {
           className="pointer unselectable"
           data-tippy-content={this.format(str)}
         >
-          {moment.utc(str).fromNow()}
+          {moment.utc(str).fromNow(true)}
         </span>
       );
     }
