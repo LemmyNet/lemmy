@@ -729,7 +729,11 @@ function convertCommentSortType(sort: SortType): CommentSortType {
   }
 }
 
-export function postSort(posts: Array<Post>, sort: SortType) {
+export function postSort(
+  posts: Array<Post>,
+  sort: SortType,
+  communityType: boolean
+) {
   // First, put removed and deleted comments at the bottom, then do your other sorts
   if (
     sort == SortType.TopAll ||
@@ -740,13 +744,17 @@ export function postSort(posts: Array<Post>, sort: SortType) {
   ) {
     posts.sort(
       (a, b) =>
-        +a.removed - +b.removed || +a.deleted - +b.deleted || b.score - a.score
+        +a.removed - +b.removed ||
+        +a.deleted - +b.deleted ||
+        (communityType && +b.stickied - +a.stickied) ||
+        b.score - a.score
     );
   } else if (sort == SortType.New) {
     posts.sort(
       (a, b) =>
         +a.removed - +b.removed ||
         +a.deleted - +b.deleted ||
+        (communityType && +b.stickied - +a.stickied) ||
         b.published.localeCompare(a.published)
     );
   } else if (sort == SortType.Hot) {
@@ -754,6 +762,7 @@ export function postSort(posts: Array<Post>, sort: SortType) {
       (a, b) =>
         +a.removed - +b.removed ||
         +a.deleted - +b.deleted ||
+        (communityType && +b.stickied - +a.stickied) ||
         hotRankPost(b) - hotRankPost(a)
     );
   }
