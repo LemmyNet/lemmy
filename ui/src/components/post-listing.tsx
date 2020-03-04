@@ -353,7 +353,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                         data-tippy-content={i18n.t('expand_here')}
                         onClick={linkEvent(this, this.handleImageExpandClick)}
                       >
-                        [+]
+                        <svg class="icon icon-inline">
+                          <use xlinkHref="#icon-plus-square"></use>
+                        </svg>
                       </span>
                     ) : (
                       <span>
@@ -361,7 +363,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                           class="text-monospace unselectable pointer ml-2 text-muted small"
                           onClick={linkEvent(this, this.handleImageExpandClick)}
                         >
-                          [-]
+                          <svg class="icon icon-inline">
+                            <use xlinkHref="#icon-minus-square"></use>
+                          </svg>
                         </span>
                         <div>
                           <span
