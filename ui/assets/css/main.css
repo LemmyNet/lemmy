@@ -74,10 +74,6 @@
   border-top: 2px solid var(--dark);
 }
 
-.comment-node {
-  margin-bottom: 10px;
-}
-
 .vote-bar {
   margin-top: -6.5px;
 }

@@ -131,47 +131,13 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
           node.comment.parent_id && !this.props.noIndent ? 'ml-4' : ''
         }`}
       >
-        {!this.state.collapsed && (
-          <div
-            className={`vote-bar mr-2 float-left small text-center ${this.props
-              .viewOnly && 'no-click'}`}
-          >
-            <button
-              className={`vote-animate btn btn-link p-0 ${
-                this.state.my_vote == 1 ? 'text-info' : 'text-muted'
-              }`}
-              onClick={linkEvent(node, this.handleCommentUpvote)}
-              data-tippy-content={i18n.t('upvote')}
-            >
-              <svg class="icon upvote">
-                <use xlinkHref="#icon-arrow-up"></use>
-              </svg>
-            </button>
-            <div class={`unselectable font-weight-bold text-muted`}>
-              {this.state.score}
-            </div>
-            {WebSocketService.Instance.site.enable_downvotes && (
-              <button
-                className={`vote-animate btn btn-link p-0 ${
-                  this.state.my_vote == -1 ? 'text-danger' : 'text-muted'
-                }`}
-                onClick={linkEvent(node, this.handleCommentDownvote)}
-                data-tippy-content={i18n.t('downvote')}
-              >
-                <svg class="icon downvote">
-                  <use xlinkHref="#icon-arrow-down"></use>
-                </svg>
-              </button>
-            )}
-          </div>
-        )}
         <div
           id={`comment-${node.comment.id}`}
-          className={`details comment-node ml-4 ${
+          className={`details comment-node mb-1 ${
             this.isCommentNew ? 'mark' : ''
           }`}
         >
-          <ul class="list-inline mb-0 text-muted small">
+          <ul class="list-inline mb-1 text-muted small">
             <li className="list-inline-item">
               <Link
                 className="text-info"
@@ -208,22 +174,37 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 {i18n.t('banned')}
               </li>
             )}
-            <li className="list-inline-item">
-              <span className="text-info">
-                <svg class="small icon icon-inline mr-1">
-                  <use xlinkHref="#icon-arrow-up"></use>
-                </svg>
-                {this.state.upvotes}
-              </span>
-            </li>
-            <li className="list-inline-item">
-              <span className="text-danger">
-                <svg class="small icon icon-inline mr-1">
-                  <use xlinkHref="#icon-arrow-down"></use>
-                </svg>
-                {this.state.downvotes}
-              </span>
-            </li>
+            <span
+              class="unselectable pointer mr-2"
+              data-tippy-content={i18n.t('number_of_points', {
+                count: this.state.score,
+              })}
+            >
+              <li className="list-inline-item">
+                <span className="text-danger">
+                  <svg class="small icon icon-inline mr-1">
+                    <use xlinkHref="#icon-heart"></use>
+                  </svg>
+                  {this.state.score}
+                </span>
+              </li>
+              <li className="list-inline-item">
+                <span className="text-info">
+                  <svg class="small icon icon-inline mr-1">
+                    <use xlinkHref="#icon-arrow-up"></use>
+                  </svg>
+                  {this.state.upvotes}
+                </span>
+              </li>
+              <li className="list-inline-item">
+                <span className="text-danger">
+                  <svg class="small icon icon-inline mr-1">
+                    <use xlinkHref="#icon-arrow-down"></use>
+                  </svg>
+                  {this.state.downvotes}
+                </span>
+              </li>
+            </span>
             {this.props.showCommunity && (
               <li className="list-inline-item">
                 <span> {i18n.t('to')} </span>
@@ -272,7 +253,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                   dangerouslySetInnerHTML={mdToHtml(this.commentUnlessRemoved)}
                 />
               )}
-              <ul class="list-inline mb-1 text-muted font-weight-bold h5">
+              <ul class="list-inline mb-0 text-muted font-weight-bold h5">
                 {this.props.markable && (
                   <li className="list-inline-item-action">
                     <span
@@ -296,6 +277,36 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 {UserService.Instance.user && !this.props.viewOnly && (
                   <>
                     <li className="list-inline-item-action">
+                      <button
+                        className={`vote-animate btn btn-link p-0 mb-1 ${
+                          this.state.my_vote == 1 ? 'text-info' : 'text-muted'
+                        }`}
+                        onClick={linkEvent(node, this.handleCommentUpvote)}
+                        data-tippy-content={i18n.t('upvote')}
+                      >
+                        <svg class="icon">
+                          <use xlinkHref="#icon-arrow-up"></use>
+                        </svg>
+                      </button>
+                    </li>
+                    {WebSocketService.Instance.site.enable_downvotes && (
+                      <li className="list-inline-item-action">
+                        <button
+                          className={`vote-animate btn btn-link p-0 mb-1 ${
+                            this.state.my_vote == -1
+                              ? 'text-danger'
+                              : 'text-muted'
+                          }`}
+                          onClick={linkEvent(node, this.handleCommentDownvote)}
+                          data-tippy-content={i18n.t('downvote')}
+                        >
+                          <svg class="icon">
+                            <use xlinkHref="#icon-arrow-down"></use>
+                          </svg>
+                        </button>
+                      </li>
+                    )}
+                    <li className="list-inline-item-action">
                       <span
                         class="pointer"
                         onClick={linkEvent(this, this.handleReplyClick)}
@@ -303,22 +314,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                       >
                         <svg class="icon icon-inline">
                           <use xlinkHref="#icon-reply1"></use>
-                        </svg>
-                      </span>
-                    </li>
-                    <li className="list-inline-item-action">
-                      <span
-                        class="pointer"
-                        onClick={linkEvent(this, this.handleSaveCommentClick)}
-                        data-tippy-content={
-                          node.comment.saved ? i18n.t('unsave') : i18n.t('save')
-                        }
-                      >
-                        <svg
-                          class={`icon icon-inline ${node.comment.saved &&
-                            'text-warning'}`}
-                        >
-                          <use xlinkHref="#icon-star"></use>
                         </svg>
                       </span>
                     </li>
@@ -342,7 +337,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                         title={i18n.t('link')}
                       >
                         <svg class="icon icon-inline">
-                          <use xlinkHref="#icon-external-link"></use>
+                          <use xlinkHref="#icon-link"></use>
                         </svg>
                       </Link>
                     </li>
@@ -360,6 +355,27 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                       </li>
                     ) : (
                       <>
+                        <li className="list-inline-item-action">
+                          <span
+                            class="pointer"
+                            onClick={linkEvent(
+                              this,
+                              this.handleSaveCommentClick
+                            )}
+                            data-tippy-content={
+                              node.comment.saved
+                                ? i18n.t('unsave')
+                                : i18n.t('save')
+                            }
+                          >
+                            <svg
+                              class={`icon icon-inline ${node.comment.saved &&
+                                'text-warning'}`}
+                            >
+                              <use xlinkHref="#icon-star"></use>
+                            </svg>
+                          </span>
+                        </li>
                         <li className="list-inline-item-action">
                           <span
                             className="pointer"
