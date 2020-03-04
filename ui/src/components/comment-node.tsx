@@ -181,7 +181,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               })}
             >
               <li className="list-inline-item">
-                <span className="text-danger">
+                <span className={this.scoreColor}>
                   <svg class="small icon icon-inline mr-1">
                     <use xlinkHref="#icon-heart"></use>
                   </svg>
@@ -1143,5 +1143,15 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     i.state.showAdvanced = !i.state.showAdvanced;
     i.setState(i.state);
     setupTippy();
+  }
+
+  get scoreColor() {
+    if (this.state.my_vote == 1) {
+      return 'text-info';
+    } else if (this.state.my_vote == -1) {
+      return 'text-danger';
+    } else {
+      return 'text-muted';
+    }
   }
 }
