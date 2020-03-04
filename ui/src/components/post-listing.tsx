@@ -613,7 +613,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                                 class={`icon icon-inline ${this.state
                                   .viewSource && 'text-success'}`}
                               >
-                                <use xlinkHref="#icon-eye"></use>
+                                <use xlinkHref="#icon-file-text"></use>
                               </svg>
                             </span>
                           </li>
