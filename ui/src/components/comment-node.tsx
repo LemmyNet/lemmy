@@ -183,7 +183,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               <li className="list-inline-item">
                 <span className={this.scoreColor}>
                   <svg class="small icon icon-inline mr-1">
-                    <use xlinkHref="#icon-heart"></use>
+                    <use xlinkHref="#icon-zap"></use>
                   </svg>
                   {this.state.score}
                 </span>
