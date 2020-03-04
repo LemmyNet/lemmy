@@ -266,7 +266,12 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               <use xlinkHref="#icon-arrow-up"></use>
             </svg>
           </button>
-          <div class={`unselectable font-weight-bold text-muted px-1`}>
+          <div
+            class={`unselectable pointer font-weight-bold text-muted px-1`}
+            data-tippy-content={i18n.t('number_of_points', {
+              count: this.state.score,
+            })}
+          >
             {this.state.score}
           </div>
           {WebSocketService.Instance.site.enable_downvotes && (

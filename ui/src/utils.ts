@@ -446,7 +446,7 @@ export function setupTribute(): Tribute {
         allowSpaces: false,
         autocompleteMode: true,
         menuItemLimit: mentionDropdownFetchLimit,
-        menuShowMinLength: 3,
+        menuShowMinLength: 2,
       },
       // Users
       {
@@ -460,7 +460,7 @@ export function setupTribute(): Tribute {
         allowSpaces: false,
         autocompleteMode: true,
         menuItemLimit: mentionDropdownFetchLimit,
-        menuShowMinLength: 3,
+        menuShowMinLength: 2,
       },
 
       // Communities
@@ -475,7 +475,7 @@ export function setupTribute(): Tribute {
         allowSpaces: false,
         autocompleteMode: true,
         menuItemLimit: mentionDropdownFetchLimit,
-        menuShowMinLength: 3,
+        menuShowMinLength: 2,
       },
     ],
   });
