@@ -182,27 +182,23 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             >
               <li className="list-inline-item">
                 <span className={this.scoreColor}>
-                  <svg class="small icon icon-inline mr-1">
+                  <svg className="small icon icon-inline mr-1">
                     <use xlinkHref="#icon-zap"></use>
                   </svg>
                   {this.state.score}
                 </span>
               </li>
               <li className="list-inline-item">
-                <span className="text-info">
-                  <svg class="small icon icon-inline mr-1">
-                    <use xlinkHref="#icon-arrow-up"></use>
-                  </svg>
-                  {this.state.upvotes}
-                </span>
+                <svg class="small icon icon-inline mr-1">
+                  <use xlinkHref="#icon-arrow-up"></use>
+                </svg>
+                {this.state.upvotes}
               </li>
               <li className="list-inline-item">
-                <span className="text-danger">
-                  <svg class="small icon icon-inline mr-1">
-                    <use xlinkHref="#icon-arrow-down"></use>
-                  </svg>
-                  {this.state.downvotes}
-                </span>
+                <svg class="small icon icon-inline mr-1">
+                  <use xlinkHref="#icon-arrow-down"></use>
+                </svg>
+                {this.state.downvotes}
               </li>
             </span>
             {this.props.showCommunity && (
