@@ -370,7 +370,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                               class={`icon icon-inline ${this.state
                                 .viewSource && 'text-success'}`}
                             >
-                              <use xlinkHref="#icon-eye"></use>
+                              <use xlinkHref="#icon-file-text"></use>
                             </svg>
                           </span>
                         </li>
