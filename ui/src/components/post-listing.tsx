@@ -339,7 +339,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                         title={this.state.url}
                       >
                         {new URL(this.state.url).hostname}
-                        <svg class="ml-1 icon">
+                        <svg class="ml-1 icon icon-inline">
                           <use xlinkHref="#icon-external-link"></use>
                         </svg>
                       </a>
@@ -391,18 +391,33 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   </small>
                 )}
                 {post.deleted && (
-                  <small className="ml-2 text-muted font-italic">
-                    {i18n.t('deleted')}
+                  <small
+                    className="unselectable pointer ml-2 text-muted font-italic"
+                    data-tippy-content={i18n.t('deleted')}
+                  >
+                    <svg class={`icon icon-inline text-danger`}>
+                      <use xlinkHref="#icon-trash"></use>
+                    </svg>
                   </small>
                 )}
                 {post.locked && (
-                  <small className="ml-2 text-muted font-italic">
-                    {i18n.t('locked')}
+                  <small
+                    className="unselectable pointer ml-2 text-muted font-italic"
+                    data-tippy-content={i18n.t('locked')}
+                  >
+                    <svg class={`icon icon-inline text-danger`}>
+                      <use xlinkHref="#icon-lock"></use>
+                    </svg>
                   </small>
                 )}
                 {post.stickied && (
-                  <small className="ml-2 text-muted font-italic">
-                    {i18n.t('stickied')}
+                  <small
+                    className="unselectable pointer ml-2 text-muted font-italic"
+                    data-tippy-content={i18n.t('stickied')}
+                  >
+                    <svg class={`icon icon-inline text-success`}>
+                      <use xlinkHref="#icon-pin"></use>
+                    </svg>
                   </small>
                 )}
                 {post.nsfw && (
