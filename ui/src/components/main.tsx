@@ -427,11 +427,13 @@ export class Main extends Component<any, MainState> {
   selects() {
     return (
       <div className="mb-3">
-        <DataTypeSelect
-          type_={this.state.dataType}
-          onChange={this.handleDataTypeChange}
-        />
-        <span class="mx-3">
+        <span class="mr-3">
+          <DataTypeSelect
+            type_={this.state.dataType}
+            onChange={this.handleDataTypeChange}
+          />
+        </span>
+        <span class="mr-3">
           <ListingTypeSelect
             type_={this.state.listingType}
             onChange={this.handleListingTypeChange}
@@ -446,7 +448,7 @@ export class Main extends Component<any, MainState> {
             target="_blank"
             title="RSS"
           >
-            <svg class="icon mx-1 text-muted small">
+            <svg class="icon text-muted small">
               <use xlinkHref="#icon-rss">#</use>
             </svg>
           </a>
@@ -460,7 +462,7 @@ export class Main extends Component<any, MainState> {
               target="_blank"
               title="RSS"
             >
-              <svg class="icon mx-1 text-muted small">
+              <svg class="icon text-muted small">
                 <use xlinkHref="#icon-rss">#</use>
               </svg>
             </a>
