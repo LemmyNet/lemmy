@@ -242,7 +242,15 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 className="unselectable pointer text-monospace"
                 onClick={linkEvent(this, this.handleCommentCollapse)}
               >
-                {this.state.collapsed ? '[+]' : '[-]'}
+                {this.state.collapsed ? (
+                  <svg class="icon">
+                    <use xlinkHref="#icon-plus-square"></use>
+                  </svg>
+                ) : (
+                  <svg class="icon">
+                    <use xlinkHref="#icon-minus-square"></use>
+                  </svg>
+                )}
               </div>
             </li>
           </ul>
