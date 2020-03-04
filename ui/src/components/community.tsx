@@ -194,13 +194,14 @@ export class Community extends Component<any, State> {
 
   selects() {
     return (
-      <div class="mb-2">
-        <DataTypeSelect
-          type_={this.state.dataType}
-          onChange={this.handleDataTypeChange}
-        />
-
-        <span class="mx-3">
+      <div class="mb-3">
+        <span class="mr-3">
+          <DataTypeSelect
+            type_={this.state.dataType}
+            onChange={this.handleDataTypeChange}
+          />
+        </span>
+        <span class="mr-2">
           <SortSelect sort={this.state.sort} onChange={this.handleSortChange} />
         </span>
         <a
