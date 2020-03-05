@@ -22,7 +22,6 @@ pub extern crate serde_json;
 pub extern crate sha2;
 pub extern crate strum;
 
-pub mod activitypub;
 pub mod api;
 pub mod apub;
 pub mod db;
