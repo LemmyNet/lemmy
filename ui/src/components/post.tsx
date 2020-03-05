@@ -37,6 +37,7 @@ import {
   createCommentLikeRes,
   createPostLikeRes,
   commentsToFlatNodes,
+  setupTippy,
 } from '../utils';
 import { PostListing } from './post-listing';
 import { PostListings } from './post-listings';
@@ -370,6 +371,7 @@ export class Post extends Component<any, PostState> {
       }
 
       this.setState(this.state);
+      setupTippy();
     } else if (res.op == UserOperation.CreateComment) {
       let data = res.data as CommentResponse;
 
@@ -386,6 +388,7 @@ export class Post extends Component<any, PostState> {
       let data = res.data as CommentResponse;
       saveCommentRes(data, this.state.comments);
       this.setState(this.state);
+      setupTippy();
     } else if (res.op == UserOperation.CreateCommentLike) {
       let data = res.data as CommentResponse;
       createCommentLikeRes(data, this.state.comments);
@@ -398,10 +401,12 @@ export class Post extends Component<any, PostState> {
       let data = res.data as PostResponse;
       this.state.post = data.post;
       this.setState(this.state);
+      setupTippy();
     } else if (res.op == UserOperation.SavePost) {
       let data = res.data as PostResponse;
       this.state.post = data.post;
       this.setState(this.state);
+      setupTippy();
     } else if (res.op == UserOperation.EditCommunity) {
       let data = res.data as CommunityResponse;
       this.state.community = data.community;

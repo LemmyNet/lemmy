@@ -26,7 +26,6 @@ import {
   fetchLimit,
   isCommentType,
   toast,
-  setupTippy,
 } from '../utils';
 import { version } from '../version';
 import { i18n } from '../i18next';
@@ -83,10 +82,6 @@ export class Navbar extends Component<any, NavbarState> {
     }
 
     WebSocketService.Instance.getSite();
-  }
-
-  componentDidMount() {
-    setupTippy();
   }
 
   render() {
@@ -283,7 +278,7 @@ export class Navbar extends Component<any, NavbarState> {
     } else if (res.op == UserOperation.GetSite) {
       let data = res.data as GetSiteResponse;
 
-      if (data.site) {
+      if (data.site && !this.state.siteName) {
         this.state.siteName = data.site.name;
         WebSocketService.Instance.site = data.site;
         this.setState(this.state);

@@ -43,6 +43,7 @@ import {
   createPostLikeFindRes,
   editPostFindRes,
   commentsToFlatNodes,
+  setupTippy,
 } from '../utils';
 import { i18n } from '../i18next';
 
@@ -341,6 +342,7 @@ export class Community extends Component<any, State> {
       this.state.posts = data.posts;
       this.state.loading = false;
       this.setState(this.state);
+      setupTippy();
     } else if (res.op == UserOperation.EditPost) {
       let data = res.data as PostResponse;
       editPostFindRes(data, this.state.posts);

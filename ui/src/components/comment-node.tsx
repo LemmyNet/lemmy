@@ -103,18 +103,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     this.handleCommentDownvote = this.handleCommentDownvote.bind(this);
   }
 
-  componentDidUpdate(prevProps: CommentNodeProps) {
-    let prevComment = prevProps.node.comment;
-    let comment = this.props.node.comment;
-    if (
-      prevComment.saved !== comment.saved ||
-      prevComment.deleted !== comment.deleted ||
-      prevComment.read !== comment.read
-    ) {
-      setupTippy();
-    }
-  }
-
   componentWillReceiveProps(nextProps: CommentNodeProps) {
     this.state.my_vote = nextProps.node.comment.my_vote;
     this.state.upvotes = nextProps.node.comment.upvotes;
