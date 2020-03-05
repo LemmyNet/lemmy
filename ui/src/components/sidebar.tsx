@@ -13,7 +13,6 @@ import {
   getUnixTime,
   pictshareAvatarThumbnail,
   showAvatars,
-  setupTippy,
 } from '../utils';
 import { CommunityForm } from './community-form';
 import { i18n } from '../i18next';
@@ -45,10 +44,6 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     this.state = this.emptyState;
     this.handleEditCommunity = this.handleEditCommunity.bind(this);
     this.handleEditCancel = this.handleEditCancel.bind(this);
-  }
-
-  componentDidUpdate() {
-    setupTippy();
   }
 
   render() {

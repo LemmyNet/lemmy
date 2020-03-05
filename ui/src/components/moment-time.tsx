@@ -1,6 +1,6 @@
 import { Component } from 'inferno';
 import moment from 'moment';
-import { getMomentLanguage, setupTippy, capitalizeFirstLetter } from '../utils';
+import { getMomentLanguage, capitalizeFirstLetter } from '../utils';
 import { i18n } from '../i18next';
 
 interface MomentTimeProps {
@@ -18,10 +18,6 @@ export class MomentTime extends Component<MomentTimeProps, any> {
     let lang = getMomentLanguage();
 
     moment.locale(lang);
-  }
-
-  componentDidMount() {
-    setupTippy();
   }
 
   render() {

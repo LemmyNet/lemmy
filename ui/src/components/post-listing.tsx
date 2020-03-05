@@ -102,19 +102,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     }
   }
 
-  componentDidUpdate(prevProps: PostListingProps) {
-    let prevPost = prevProps.post;
-    let post = this.props.post;
-    if (
-      prevPost.saved !== post.saved ||
-      prevPost.deleted !== post.deleted ||
-      prevPost.locked !== post.locked ||
-      prevPost.stickied !== post.stickied
-    ) {
-      setupTippy();
-    }
-  }
-
   componentWillReceiveProps(nextProps: PostListingProps) {
     this.state.my_vote = nextProps.post.my_vote;
     this.state.upvotes = nextProps.post.upvotes;

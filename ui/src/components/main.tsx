@@ -52,6 +52,7 @@ import {
   editPostFindRes,
   commentsToFlatNodes,
   commentSortSortType,
+  setupTippy,
 } from '../utils';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -620,6 +621,7 @@ export class Main extends Component<any, MainState> {
       this.state.posts = data.posts;
       this.state.loading = false;
       this.setState(this.state);
+      setupTippy();
     } else if (res.op == UserOperation.CreatePost) {
       let data = res.data as PostResponse;
 
