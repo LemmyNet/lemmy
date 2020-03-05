@@ -311,14 +311,25 @@ export class Post extends Component<any, PostState> {
     }
     let tree: Array<CommentNodeI> = [];
     for (let comment of this.state.comments) {
+      let child = map.get(comment.id);
       if (comment.parent_id) {
-        map.get(comment.parent_id).children.push(map.get(comment.id));
+        let parent_ = map.get(comment.parent_id);
+        parent_.children.push(child);
       } else {
-        tree.push(map.get(comment.id));
+        tree.push(child);
       }
+
+      this.setDepth(child);
     }
 
     return tree;
+  }
+
+  setDepth(node: CommentNodeI, i: number = 0): void {
+    for (let child of node.children) {
+      child.comment.depth = i;
+      this.setDepth(child, i + 1);
+    }
   }
 
   commentsTree() {

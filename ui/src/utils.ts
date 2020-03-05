@@ -768,6 +768,8 @@ export function postSort(
   }
 }
 
+export const colorList: Array<string> = [...Array(10)].map(() => randomHsl());
+
 export function randomHsl() {
   return `hsla(${Math.random() * 360}, 100%, 50%, 1)`;
 }
