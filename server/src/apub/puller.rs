@@ -69,7 +69,7 @@ pub fn get_remote_community(identifier: String) -> Result<GetCommunityResponse, 
       number_of_comments: -1,
       hot_rank: -1,
       user_id: None,
-      subscribed: None,
+      subscribed: None, // TODO: looks like lemmy uses None/true for this value
     },
     online: 0,
   })
