@@ -1,12 +1,12 @@
 extern crate reqwest;
 
 use self::reqwest::Error;
-use crate::activitypub::actor::Group;
 use crate::api::community::{GetCommunityResponse, ListCommunitiesResponse};
 use crate::api::post::GetPosts;
 use crate::db::community_view::CommunityView;
 use crate::naive_now;
 use crate::settings::Settings;
+use activitypub::actor::Group;
 use serde_json::Value;
 
 // TODO: right now all of the data is requested on demand, for production we will need to store

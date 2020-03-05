@@ -1,9 +1,9 @@
-use crate::activitypub::{actor::Group, collection::UnorderedCollection, context};
 use crate::apub::make_apub_endpoint;
 use crate::db::community::Community;
 use crate::db::community_view::CommunityFollowerView;
 use crate::db::establish_unpooled_connection;
 use crate::to_datetime_utc;
+use activitypub::{actor::Group, collection::UnorderedCollection, context};
 use actix_web::body::Body;
 use actix_web::web::Path;
 use actix_web::HttpResponse;
