@@ -469,7 +469,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   </span>
                 </li>
                 <li className="list-inline-item">
-                  <span className="text-info">
+                  <span className="text-muted">
                     <svg class="small icon icon-inline mr-1">
                       <use xlinkHref="#icon-arrow-up"></use>
                     </svg>
@@ -477,7 +477,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   </span>
                 </li>
                 <li className="list-inline-item">
-                  <span className="text-danger">
+                  <span className="text-muted">
                     <svg class="small icon icon-inline mr-1">
                       <use xlinkHref="#icon-arrow-down"></use>
                     </svg>
