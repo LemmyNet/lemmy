@@ -425,7 +425,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               <ul class="list-inline mb-0 text-muted small">
                 <li className="list-inline-item">
                   <span>{i18n.t('by')} </span>
-                  <Link className="text-info" to={`/u/${post.creator_name}`}>
+                  <Link
+                    className="text-body font-weight-bold"
+                    to={`/u/${post.creator_name}`}
+                  >
                     {post.creator_avatar && showAvatars() && (
                       <img
                         height="32"

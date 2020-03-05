@@ -204,7 +204,10 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
               <li class="list-inline-item">{i18n.t('mods')}: </li>
               {this.props.moderators.map(mod => (
                 <li class="list-inline-item">
-                  <Link class="text-info" to={`/u/${mod.user_name}`}>
+                  <Link
+                    class="text-body font-weight-bold"
+                    to={`/u/${mod.user_name}`}
+                  >
                     {mod.avatar && showAvatars() && (
                       <img
                         height="32"
