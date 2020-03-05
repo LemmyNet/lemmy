@@ -126,7 +126,7 @@ export class PrivateMessageForm extends Component<
               {this.state.recipient && (
                 <div class="col-sm-10 form-control-plaintext">
                   <Link
-                    className="text-info"
+                    className="text-body font-weight-bold"
                     to={`/u/${this.state.recipient.name}`}
                   >
                     {this.state.recipient.avatar && showAvatars() && (
