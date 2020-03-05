@@ -122,6 +122,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
           node.comment.parent_id && !this.props.noIndent ? 'ml-2' : ''
         }`}
       >
+        {!node.comment.parent_id && !this.props.noIndent && (
+          <hr class="d-sm-none my-2" />
+        )}
         <div
           id={`comment-${node.comment.id}`}
           className={`details comment-node mb-1 ${
@@ -130,7 +133,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
           style={
             !this.props.noIndent &&
             this.props.node.comment.parent_id &&
-            `border-left: 1px solid; border-color: ${this.state.borderColor} !important`
+            `border-left: 1px ${this.state.borderColor} solid !important`
           }
         >
           <div
@@ -697,6 +700,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             )}
           </div>
         </div>
+        {/* end of details */}
         {this.state.showRemoveDialog && (
           <form
             class="form-inline"
