@@ -184,7 +184,7 @@ export class Main extends Component<any, MainState> {
                       <h5>
                         <T i18nKey="subscribed_to_communities">
                           #
-                          <Link class="text-white" to="/communities">
+                          <Link class="text-body" to="/communities">
                             #
                           </Link>
                         </T>
@@ -222,7 +222,7 @@ export class Main extends Component<any, MainState> {
         <h5>
           <T i18nKey="trending_communities">
             #
-            <Link class="text-white" to="/communities">
+            <Link class="text-body" to="/communities">
               #
             </Link>
           </T>
@@ -317,7 +317,10 @@ export class Main extends Component<any, MainState> {
               <li class="list-inline-item">{i18n.t('admins')}:</li>
               {this.state.siteRes.admins.map(admin => (
                 <li class="list-inline-item">
-                  <Link class="text-info" to={`/u/${admin.name}`}>
+                  <Link
+                    class="text-body font-weight-bold"
+                    to={`/u/${admin.name}`}
+                  >
                     {admin.avatar && showAvatars() && (
                       <img
                         height="32"

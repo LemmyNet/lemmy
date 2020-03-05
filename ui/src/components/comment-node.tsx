@@ -129,14 +129,19 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
           }`}
           style={
             !this.props.noIndent &&
+            this.props.node.comment.parent_id &&
             `border-left: 1px solid; border-color: ${this.state.borderColor} !important`
           }
         >
-          <div class={`${!this.props.noIndent && 'ml-2'}`}>
+          <div
+            class={`${!this.props.noIndent &&
+              this.props.node.comment.parent_id &&
+              'ml-2'}`}
+          >
             <ul class="list-inline mb-1 text-muted small">
               <li className="list-inline-item">
                 <Link
-                  className="text-info"
+                  className="text-body font-weight-bold"
                   to={`/u/${node.comment.creator_name}`}
                 >
                   {node.comment.creator_avatar && showAvatars() && (
