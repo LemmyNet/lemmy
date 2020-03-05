@@ -27,7 +27,7 @@ import {
   pictshareAvatarThumbnail,
   showAvatars,
   setupTippy,
-  randomHsl,
+  colorList,
 } from '../utils';
 import moment from 'moment';
 import { MomentTime } from './moment-time';
@@ -94,7 +94,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     score: this.props.node.comment.score,
     upvotes: this.props.node.comment.upvotes,
     downvotes: this.props.node.comment.downvotes,
-    borderColor: randomHsl(),
+    borderColor: this.props.node.comment.depth
+      ? colorList[this.props.node.comment.depth % colorList.length]
+      : colorList[0],
   };
 
   constructor(props: any, context: any) {
