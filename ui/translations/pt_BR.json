@@ -64,8 +64,7 @@
     "delete": "apagar",
     "deleted": "apagado",
     "delete_account": "Apagar conta",
-    "delete_account_confirm":
-      "Aviso: isso vai apagar seus dados de forma permanente. Escreva sua senha para confirmar.",
+    "delete_account_confirm": "Aviso: isso vai apagar seus dados de forma permanente. Escreva sua senha para confirmar.",
     "restore": "restaurar",
     "ban": "banir",
     "ban_from_site": "banido do site",
@@ -122,8 +121,7 @@
     "login_sign_up": "Entrar / Inscrever-se",
     "login": "Entrar",
     "sign_up": "Inscrever-se",
-    "notifications_error":
-      "Seu navegador não oferece notificações para a área de trabalho. Tente o Firefox ou o Chrome.",
+    "notifications_error": "Seu navegador não oferece notificações para a área de trabalho. Tente o Firefox ou o Chrome.",
     "unread_messages": "Mensagens não lidas",
     "messages": "Mensagens",
     "password": "Senha",
@@ -136,8 +134,7 @@
     "no_email_setup": "Esse servidor não configurou corretamente o e-mail.",
     "email": "E-mail",
     "matrix_user_id": "Usuário Matrix",
-    "private_message_disclaimer":
-      "Aviso: mensagens privadas no Lemmy não são seguras. Crie uma conta em <1>Riot.im</1> para troca segura de mensagens.",
+    "private_message_disclaimer": "Aviso: mensagens privadas no Lemmy não são seguras. Crie uma conta em <1>Riot.im</1> para troca segura de mensagens.",
     "send_notifications_to_email": "Enviar notificações para o e-mail",
     "optional": "Opcional",
     "expires": "Expira",
@@ -167,15 +164,13 @@
     "theme": "Tema",
     "sponsors": "Patrocinadores",
     "sponsors_of_lemmy": "Patrocinadores do Lemmy",
-    "sponsor_message":
-      "Lemmy é um programa livre e de código aberto, o que significa que não haverá publicidade, monetização ou capital de risco, jamais. Suas doações apoiam de forma direta o desenvolvimento em tempo integral do projeto. Muitos agradecimentos às sequintes pessoas:",
+    "sponsor_message": "Lemmy é um programa livre e de código aberto, o que significa que não haverá publicidade, monetização ou capital de risco, jamais. Suas doações apoiam de forma direta o desenvolvimento em tempo integral do projeto. Muitos agradecimentos às sequintes pessoas:",
     "support_on_patreon": "Colabore no Patreon",
     "support_on_liberapay": "Colabore no Liberapay",
     "donate_to_lemmy": "Faça uma doação ao Lemmy",
     "donate": "Doar",
-    "general_sponsors":
-      "Patrocinadores são aqueles que doaram entre $10 e $39 ao Lemmy.",
-    "crypto": "Crypto",
+    "general_sponsors": "Patrocinadores são aqueles que doaram entre $10 e $39 ao Lemmy.",
+    "crypto": "Cryptomoedas",
     "bitcoin": "Bitcoin",
     "ethereum": "Ethereum",
     "monero": "Monero",
@@ -189,9 +184,8 @@
     "are_you_sure": "tem certeza?",
     "yes": "sim",
     "no": "não",
-    "powered_by": "Powered by",
-    "landing_0":
-      "Lemmy é um <1>agregador de links</1> / alternativa ao reddit, com a intenção de funcionar junto ao <2>fediverso</2>.<3></3>Pode ser hospedado em servidor próprio, tem atualização de comentários em tempo real e é minúsculo (<4>~80kB</4>). A federação com a rede ActivityPub está no roteiro do projeto. <5></5>Esta é uma <6>versão beta bastante antecipada</6>, e muitas funcionalidades ainda estão quebradas ou ausentes. <7></7>Sugira novas funcionalidades ou reporte erros <8>aqui.</8><9></9>Feito com <10>Rust</10>, <11>Actix</11>, <12>Inferno</12>, <13>Typescript</13>.",
+    "powered_by": "Fornecido por",
+    "landing_0": "Lemmy é um <1>agregador de links</1> / alternativa ao reddit, com a intenção de funcionar junto ao <2>fediverso</2>.<3></3>Pode ser hospedado em servidor próprio, tem atualização de comentários em tempo real e é minúsculo (<4>~80kB</4>). A federação com a rede ActivityPub está no roteiro do projeto. <5></5>Esta é uma <6>versão beta bastante antecipada</6>, e muitas funcionalidades ainda estão quebradas ou ausentes. <7></7>Sugira novas funcionalidades ou reporte erros <8>aqui.</8><9></9>Feito com <10>Rust</10>, <11>Actix</11>, <12>Inferno</12>, <13>Typescript</13>.",
     "not_logged_in": "Não autenticado.",
     "logged_in": "Autenticado.",
     "community_ban": "Você foi banido desta comunidade.",
@@ -199,15 +193,14 @@
     "couldnt_create_comment": "Não foi possível criar o comentário.",
     "couldnt_like_comment": "Não foi possível curtir o comentário.",
     "couldnt_update_comment": "Não foi possível atualizar o comentário.",
-    "couldnt_save_comment": "Não foi possível guardar o comentário.",
-    "no_comment_edit_allowed": "Sem permissão para editar de comentário.",
+    "couldnt_save_comment": "Não foi possível salvar o comentário.",
+    "no_comment_edit_allowed": "Sem permissão para editar comentário.",
     "no_post_edit_allowed": "Sem permissão para editar publicação.",
     "no_community_edit_allowed": "Sem permissão para editar comunidade.",
     "couldnt_find_community": "Não foi possível encontrar a comunidade.",
     "couldnt_update_community": "Não foi possível atualizar a comunidade.",
     "community_already_exists": "Esta comunidade já existe.",
-    "community_moderator_already_exists":
-      "Este moderador da comunidade já existe.",
+    "community_moderator_already_exists": "Este moderador da comunidade já existe.",
     "community_follower_already_exists": "Este seguidor da comunidade já existe.",
     "community_user_already_banned": "Este usuário da comunidade já foi banido.",
     "couldnt_create_post": "Não foi possível criar a publicação.",
@@ -220,8 +213,7 @@
     "not_an_admin": "Não é administrador.",
     "site_already_exists": "O site já existe.",
     "couldnt_update_site": "Não foi possível atualizar o site.",
-    "couldnt_find_that_username_or_email":
-      "Não foi possível encontrar esse usuário ou e-mail.",
+    "couldnt_find_that_username_or_email": "Não foi possível encontrar esse usuário ou e-mail.",
     "password_incorrect": "Senha incorreta.",
     "passwords_dont_match": "As senhas não são iguais.",
     "admin_already_created": "Desculpe, já há um administrador.",
@@ -230,10 +222,11 @@
     "couldnt_update_user": "Não foi possível atualizar o usuário.",
     "system_err_login": "Erro no sistema. Tente sair e autenticar-se outra vez.",
     "couldnt_create_private_message": "Não foi possível criar mensagem privada.",
-    "no_private_message_edit_allowed":
-      "Sem permissão para editar mensagem privada.",
-    "couldnt_update_private_message":
-      "Não foi possível atualizar a mensagem privada.",
+    "no_private_message_edit_allowed": "Sem permissão para editar mensagem privada.",
+    "couldnt_update_private_message": "Não foi possível atualizar a mensagem privada.",
     "time": "Tempo",
-    "action": "Ação"
+    "action": "Ação",
+    "more": "mais",
+    "couldnt_get_comments": "Não foi possível obter os comentários.",
+    "post_title_too_long": "Título da publicação muito longo."
 }
