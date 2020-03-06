@@ -463,27 +463,34 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                     </span>
                   )}
                 </li>
+                <li className="list-inline-item">•</li>
                 <li className="list-inline-item">
                   <span>
                     <MomentTime data={post} />
                   </span>
                 </li>
-                <li className="list-inline-item">
-                  <span className="text-muted">
-                    <svg class="small icon icon-inline mr-1">
-                      <use xlinkHref="#icon-arrow-up"></use>
-                    </svg>
-                    {this.state.upvotes}
-                  </span>
-                </li>
-                <li className="list-inline-item">
-                  <span className="text-muted">
-                    <svg class="small icon icon-inline mr-1">
-                      <use xlinkHref="#icon-arrow-down"></use>
-                    </svg>
-                    {this.state.downvotes}
-                  </span>
-                </li>
+                <li className="list-inline-item">•</li>
+                {this.state.upvotes !== this.state.score && (
+                  <>
+                    <li className="list-inline-item">
+                      <span className="text-muted">
+                        <svg class="small icon icon-inline mr-1">
+                          <use xlinkHref="#icon-arrow-up"></use>
+                        </svg>
+                        {this.state.upvotes}
+                      </span>
+                    </li>
+                    <li className="list-inline-item">
+                      <span className="text-muted">
+                        <svg class="small icon icon-inline mr-1">
+                          <use xlinkHref="#icon-arrow-down"></use>
+                        </svg>
+                        {this.state.downvotes}
+                      </span>
+                    </li>
+                    <li className="list-inline-item">•</li>
+                  </>
+                )}
                 <li className="list-inline-item">
                   <Link
                     className="text-muted"
