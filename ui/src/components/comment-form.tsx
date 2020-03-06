@@ -1,4 +1,5 @@
 import { Component, linkEvent } from 'inferno';
+import { Prompt } from 'inferno-router';
 import {
   CommentNode as CommentNodeI,
   CommentForm as CommentFormI,
@@ -87,6 +88,10 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
   render() {
     return (
       <div class="mb-3">
+        <Prompt
+          when={this.state.commentForm.content}
+          message={i18n.t('block_leaving')}
+        />
         <form onSubmit={linkEvent(this, this.handleCommentSubmit)}>
           <div class="form-group row">
             <div className={`col-sm-12`}>

@@ -1,4 +1,5 @@
 import { Component, linkEvent } from 'inferno';
+import { Prompt } from 'inferno-router';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import {
@@ -105,120 +106,131 @@ export class CommunityForm extends Component<
 
   render() {
     return (
-      <form onSubmit={linkEvent(this, this.handleCreateCommunitySubmit)}>
-        <div class="form-group row">
-          <label class="col-12 col-form-label" htmlFor="community-name">
-            {i18n.t('name')}
-          </label>
-          <div class="col-12">
-            <input
-              type="text"
-              id="community-name"
-              class="form-control"
-              value={this.state.communityForm.name}
-              onInput={linkEvent(this, this.handleCommunityNameChange)}
-              required
-              minLength={3}
-              maxLength={20}
-              pattern="[a-z0-9_]+"
-              title={i18n.t('community_reqs')}
-            />
-          </div>
-        </div>
-
-        <div class="form-group row">
-          <label class="col-12 col-form-label" htmlFor="community-title">
-            {i18n.t('title')}
-          </label>
-          <div class="col-12">
-            <input
-              type="text"
-              id="community-title"
-              value={this.state.communityForm.title}
-              onInput={linkEvent(this, this.handleCommunityTitleChange)}
-              class="form-control"
-              required
-              minLength={3}
-              maxLength={100}
-            />
-          </div>
-        </div>
-        <div class="form-group row">
-          <label class="col-12 col-form-label" htmlFor={this.id}>
-            {i18n.t('sidebar')}
-          </label>
-          <div class="col-12">
-            <textarea
-              id={this.id}
-              value={this.state.communityForm.description}
-              onInput={linkEvent(this, this.handleCommunityDescriptionChange)}
-              class="form-control"
-              rows={3}
-              maxLength={10000}
-            />
-          </div>
-        </div>
-        <div class="form-group row">
-          <label class="col-12 col-form-label" htmlFor="community-category">
-            {i18n.t('category')}
-          </label>
-          <div class="col-12">
-            <select
-              class="form-control"
-              id="community-category"
-              value={this.state.communityForm.category_id}
-              onInput={linkEvent(this, this.handleCommunityCategoryChange)}
-            >
-              {this.state.categories.map(category => (
-                <option value={category.id}>{category.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {this.state.enable_nsfw && (
+      <>
+        <Prompt
+          when={
+            !this.state.loading &&
+            (this.state.communityForm.name ||
+              this.state.communityForm.title ||
+              this.state.communityForm.description)
+          }
+          message={i18n.t('block_leaving')}
+        />
+        <form onSubmit={linkEvent(this, this.handleCreateCommunitySubmit)}>
           <div class="form-group row">
+            <label class="col-12 col-form-label" htmlFor="community-name">
+              {i18n.t('name')}
+            </label>
             <div class="col-12">
-              <div class="form-check">
-                <input
-                  class="form-check-input"
-                  id="community-nsfw"
-                  type="checkbox"
-                  checked={this.state.communityForm.nsfw}
-                  onChange={linkEvent(this, this.handleCommunityNsfwChange)}
-                />
-                <label class="form-check-label" htmlFor="community-nsfw">
-                  {i18n.t('nsfw')}
-                </label>
-              </div>
+              <input
+                type="text"
+                id="community-name"
+                class="form-control"
+                value={this.state.communityForm.name}
+                onInput={linkEvent(this, this.handleCommunityNameChange)}
+                required
+                minLength={3}
+                maxLength={20}
+                pattern="[a-z0-9_]+"
+                title={i18n.t('community_reqs')}
+              />
             </div>
           </div>
-        )}
-        <div class="form-group row">
-          <div class="col-12">
-            <button type="submit" class="btn btn-secondary mr-2">
-              {this.state.loading ? (
-                <svg class="icon icon-spinner spin">
-                  <use xlinkHref="#icon-spinner"></use>
-                </svg>
-              ) : this.props.community ? (
-                capitalizeFirstLetter(i18n.t('save'))
-              ) : (
-                capitalizeFirstLetter(i18n.t('create'))
-              )}
-            </button>
-            {this.props.community && (
-              <button
-                type="button"
-                class="btn btn-secondary"
-                onClick={linkEvent(this, this.handleCancel)}
-              >
-                {i18n.t('cancel')}
-              </button>
-            )}
+
+          <div class="form-group row">
+            <label class="col-12 col-form-label" htmlFor="community-title">
+              {i18n.t('title')}
+            </label>
+            <div class="col-12">
+              <input
+                type="text"
+                id="community-title"
+                value={this.state.communityForm.title}
+                onInput={linkEvent(this, this.handleCommunityTitleChange)}
+                class="form-control"
+                required
+                minLength={3}
+                maxLength={100}
+              />
+            </div>
           </div>
-        </div>
-      </form>
+          <div class="form-group row">
+            <label class="col-12 col-form-label" htmlFor={this.id}>
+              {i18n.t('sidebar')}
+            </label>
+            <div class="col-12">
+              <textarea
+                id={this.id}
+                value={this.state.communityForm.description}
+                onInput={linkEvent(this, this.handleCommunityDescriptionChange)}
+                class="form-control"
+                rows={3}
+                maxLength={10000}
+              />
+            </div>
+          </div>
+          <div class="form-group row">
+            <label class="col-12 col-form-label" htmlFor="community-category">
+              {i18n.t('category')}
+            </label>
+            <div class="col-12">
+              <select
+                class="form-control"
+                id="community-category"
+                value={this.state.communityForm.category_id}
+                onInput={linkEvent(this, this.handleCommunityCategoryChange)}
+              >
+                {this.state.categories.map(category => (
+                  <option value={category.id}>{category.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {this.state.enable_nsfw && (
+            <div class="form-group row">
+              <div class="col-12">
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    id="community-nsfw"
+                    type="checkbox"
+                    checked={this.state.communityForm.nsfw}
+                    onChange={linkEvent(this, this.handleCommunityNsfwChange)}
+                  />
+                  <label class="form-check-label" htmlFor="community-nsfw">
+                    {i18n.t('nsfw')}
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+          <div class="form-group row">
+            <div class="col-12">
+              <button type="submit" class="btn btn-secondary mr-2">
+                {this.state.loading ? (
+                  <svg class="icon icon-spinner spin">
+                    <use xlinkHref="#icon-spinner"></use>
+                  </svg>
+                ) : this.props.community ? (
+                  capitalizeFirstLetter(i18n.t('save'))
+                ) : (
+                  capitalizeFirstLetter(i18n.t('create'))
+                )}
+              </button>
+              {this.props.community && (
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  onClick={linkEvent(this, this.handleCancel)}
+                >
+                  {i18n.t('cancel')}
+                </button>
+              )}
+            </div>
+          </div>
+        </form>
+      </>
     );
   }
 

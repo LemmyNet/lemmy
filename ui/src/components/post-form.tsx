@@ -1,4 +1,5 @@
 import { Component, linkEvent } from 'inferno';
+import { Prompt } from 'inferno-router';
 import { PostListings } from './post-listings';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
@@ -153,6 +154,15 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
   render() {
     return (
       <div>
+        <Prompt
+          when={
+            !this.state.loading &&
+            (this.state.postForm.name ||
+              this.state.postForm.url ||
+              this.state.postForm.body)
+          }
+          message={i18n.t('block_leaving')}
+        />
         <form onSubmit={linkEvent(this, this.handlePostSubmit)}>
           <div class="form-group row">
             <label class="col-sm-2 col-form-label" htmlFor="post-url">
