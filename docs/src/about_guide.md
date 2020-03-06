@@ -6,6 +6,18 @@ Start typing...
 - `#a_community` to get a list of communities.
 - `:emoji` to get a list of emojis.
 
+## Sorting
+
+*Applies to both posts and comments*
+
+Type | Description
+--- | ---
+Hot | Shows *trending* posts, based on the score, and the most recent comment time.
+New | Newest posts.
+Top | Shows the highest scoring posts in the given time frame.
+
+For more detail, check the [Post and Comment Ranking details](about_ranking.md).
+
 ## Markdown Guide
 
 Type | Or | … to Get 
