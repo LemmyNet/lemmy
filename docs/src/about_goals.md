@@ -1,4 +1,5 @@
 # Goals
+
 - Come up with a name / codename.
 - Must have communities.
 - Must have threaded comments.
@@ -7,6 +8,7 @@
   - Use websockets for post / gets to your own instance.
 
 # Questions
+
 - How does voting work? Should we go back to the old way of showing up and downvote counts? Or just a score?
 - Decide on tech to be used
   - Backend: Actix, Diesel.
@@ -17,10 +19,7 @@
   - On mobile, allow you to switch between them. Default?
 
 # Resources / Potential Libraries
-- Use the [activitypub crate.](https://docs.rs/activitypub/0.1.4/activitypub/)
-- https://docs.rs/activitypub/0.1.4/activitypub/
-- [Activitypub vocab.](https://www.w3.org/TR/activitystreams-vocabulary/)
-- [Activitypub main](https://www.w3.org/TR/activitypub/)
+
 - [Diesel to Postgres data types](https://kotiri.com/2018/01/31/postgresql-diesel-rust-types.html)
 - [helpful diesel examples](http://siciarz.net/24-days-rust-diesel/)
 - [Recursive query for adjacency list for nested comments](https://stackoverflow.com/questions/192220/what-is-the-most-efficient-elegant-way-to-parse-a-flat-table-into-a-tree/192462#192462)
@@ -36,9 +35,15 @@
 - [Temp Icon](https://www.flaticon.com/free-icon/mouse_194242)
 - [Rust docker build](https://shaneutt.com/blog/rust-fast-small-docker-image-builds/)
 - [Zurb mentions](https://github.com/zurb/tribute)
-- Activitypub guides
-  - https://blog.joinmastodon.org/2018/06/how-to-implement-a-basic-activitypub-server/
-  - https://raw.githubusercontent.com/w3c/activitypub/gh-pages/activitypub-tutorial.txt
-  - https://github.com/tOkeshu/activitypub-example
-  - https://blog.joinmastodon.org/2018/07/how-to-make-friends-and-verify-requests/
+- [TippyJS](https://github.com/atomiks/tippyjs)
 
+## Activitypub guides
+
+- https://blog.joinmastodon.org/2018/06/how-to-implement-a-basic-activitypub-server/
+- https://raw.githubusercontent.com/w3c/activitypub/gh-pages/activitypub-tutorial.txt
+- https://github.com/tOkeshu/activitypub-example
+- https://blog.joinmastodon.org/2018/07/how-to-make-friends-and-verify-requests/
+- Use the [activitypub crate.](https://docs.rs/activitypub/0.1.4/activitypub/)
+- https://docs.rs/activitypub/0.1.4/activitypub/
+- [Activitypub vocab.](https://www.w3.org/TR/activitystreams-vocabulary/)
+- [Activitypub main](https://www.w3.org/TR/activitypub/)
