@@ -117,7 +117,7 @@
 }
 
 blockquote {
-  border-left: 1px solid var(--secondary);
+  border-left: 2px solid var(--secondary);
   margin: 0.5em 5px;
   padding: 0.1em 5px;
 }

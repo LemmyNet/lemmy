@@ -125,7 +125,10 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         }`}
       >
         {!node.comment.parent_id && !this.props.noIndent && (
-          <hr class="d-sm-none my-2" />
+          <>
+            <hr class="d-sm-none my-2" />
+            <div class="d-none d-sm-block d-sm-none my-3" />
+          </>
         )}
         <div
           id={`comment-${node.comment.id}`}
@@ -135,7 +138,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
           style={
             !this.props.noIndent &&
             this.props.node.comment.parent_id &&
-            `border-left: 1px ${this.state.borderColor} solid !important`
+            `border-left: 2px ${this.state.borderColor} solid !important`
           }
         >
           <div
@@ -182,34 +185,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                   {i18n.t('banned')}
                 </li>
               )}
-              <li className="list-inline-item">•</li>
-              <span
-                class="unselectable pointer mr-2"
-                data-tippy-content={i18n.t('number_of_points', {
-                  count: this.state.score,
-                })}
-              >
-                <li className="list-inline-item">
-                  <span className={this.scoreColor}>
-                    <svg className="small icon icon-inline mr-1">
-                      <use xlinkHref="#icon-zap"></use>
-                    </svg>
-                    {this.state.score}
-                  </span>
-                </li>
-                <li className="list-inline-item">
-                  <svg class="small icon icon-inline mr-1">
-                    <use xlinkHref="#icon-arrow-up"></use>
-                  </svg>
-                  {this.state.upvotes}
-                </li>
-                <li className="list-inline-item">
-                  <svg class="small icon icon-inline mr-1">
-                    <use xlinkHref="#icon-arrow-down"></use>
-                  </svg>
-                  {this.state.downvotes}
-                </li>
-              </span>
               {this.props.showCommunity && (
                 <li className="list-inline-item">
                   <span> {i18n.t('to')} </span>
@@ -218,6 +193,21 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                   </Link>
                 </li>
               )}
+              <li className="list-inline-item">•</li>
+              <li className="list-inline-item">
+                <span
+                  className={`unselectable pointer ${this.scoreColor}`}
+                  onClick={linkEvent(node, this.handleCommentUpvote)}
+                  data-tippy-content={i18n.t('number_of_points', {
+                    count: this.state.score,
+                  })}
+                >
+                  <svg class="icon icon-inline mr-1">
+                    <use xlinkHref="#icon-zap"></use>
+                  </svg>
+                  {this.state.score}
+                </span>
+              </li>
               <li className="list-inline-item">•</li>
               <li className="list-inline-item">
                 <span>
@@ -230,11 +220,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                   onClick={linkEvent(this, this.handleCommentCollapse)}
                 >
                   {this.state.collapsed ? (
-                    <svg class="icon">
+                    <svg class="icon icon-inline">
                       <use xlinkHref="#icon-plus-square"></use>
                     </svg>
                   ) : (
-                    <svg class="icon">
+                    <svg class="icon icon-inline">
                       <use xlinkHref="#icon-minus-square"></use>
                     </svg>
                   )}
@@ -292,9 +282,12 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                           onClick={linkEvent(node, this.handleCommentUpvote)}
                           data-tippy-content={i18n.t('upvote')}
                         >
-                          <svg class="icon">
+                          <svg class="icon icon-inline">
                             <use xlinkHref="#icon-arrow-up"></use>
                           </svg>
+                          {this.state.upvotes !== this.state.score && (
+                            <span class="ml-1">{this.state.upvotes}</span>
+                          )}
                         </button>
                       </li>
                       {WebSocketService.Instance.site.enable_downvotes && (
@@ -311,9 +304,12 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                             )}
                             data-tippy-content={i18n.t('downvote')}
                           >
-                            <svg class="icon">
+                            <svg class="icon icon-inline">
                               <use xlinkHref="#icon-arrow-down"></use>
                             </svg>
+                            {this.state.upvotes !== this.state.score && (
+                              <span class="ml-1">{this.state.downvotes}</span>
+                            )}
                           </button>
                         </li>
                       )}
@@ -328,19 +324,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                           </svg>
                         </span>
                       </li>
-                      {!this.myComment && (
-                        <li className="list-inline-item-action">
-                          <Link
-                            class="text-muted"
-                            to={`/create_private_message?recipient_id=${node.comment.creator_id}`}
-                            title={i18n.t('message').toLowerCase()}
-                          >
-                            <svg class="icon">
-                              <use xlinkHref="#icon-mail"></use>
-                            </svg>
-                          </Link>
-                        </li>
-                      )}
                       <li className="list-inline-item-action">
                         <Link
                           className="text-muted"
@@ -366,6 +349,19 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                         </li>
                       ) : (
                         <>
+                          {!this.myComment && (
+                            <li className="list-inline-item-action">
+                              <Link
+                                class="text-muted"
+                                to={`/create_private_message?recipient_id=${node.comment.creator_id}`}
+                                title={i18n.t('message').toLowerCase()}
+                              >
+                                <svg class="icon">
+                                  <use xlinkHref="#icon-mail"></use>
+                                </svg>
+                              </Link>
+                            </li>
+                          )}
                           <li className="list-inline-item-action">
                             <span
                               class="pointer"
