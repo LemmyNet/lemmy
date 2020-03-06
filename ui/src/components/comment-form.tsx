@@ -141,16 +141,22 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
               <a
                 href={markdownHelpUrl}
                 target="_blank"
-                class="d-inline-block float-right text-muted small font-weight-bold"
+                class="d-inline-block float-right text-muted font-weight-bold"
+                title={i18n.t('formatting_help')}
               >
-                {i18n.t('formatting_help')}
+                <svg class="icon icon-inline">
+                  <use xlinkHref="#icon-help-circle"></use>
+                </svg>
               </a>
-              <form class="d-inline-block mr-2 float-right text-muted small font-weight-bold">
+              <form class="d-inline-block mr-3 float-right text-muted font-weight-bold">
                 <label
                   htmlFor={`file-upload-${this.id}`}
                   className={`${UserService.Instance.user && 'pointer'}`}
+                  data-tippy-content={i18n.t('upload_image')}
                 >
-                  {i18n.t('upload_image')}
+                  <svg class="icon icon-inline">
+                    <use xlinkHref="#icon-image"></use>
+                  </svg>
                 </label>
                 <input
                   id={`file-upload-${this.id}`}

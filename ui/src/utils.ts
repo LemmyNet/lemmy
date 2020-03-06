@@ -41,6 +41,7 @@ import markdown_it_container from 'markdown-it-container';
 import twemoji from 'twemoji';
 import emojiShortName from 'emoji-short-name';
 import Toastify from 'toastify-js';
+import tippy from 'tippy.js';
 
 export const repoUrl = 'https://github.com/dessalines/lemmy';
 export const markdownHelpUrl = '/docs/about_guide.html';
@@ -445,6 +446,7 @@ export function setupTribute(): Tribute {
         allowSpaces: false,
         autocompleteMode: true,
         menuItemLimit: mentionDropdownFetchLimit,
+        menuShowMinLength: 2,
       },
       // Users
       {
@@ -458,6 +460,7 @@ export function setupTribute(): Tribute {
         allowSpaces: false,
         autocompleteMode: true,
         menuItemLimit: mentionDropdownFetchLimit,
+        menuShowMinLength: 2,
       },
 
       // Communities
@@ -472,8 +475,20 @@ export function setupTribute(): Tribute {
         allowSpaces: false,
         autocompleteMode: true,
         menuItemLimit: mentionDropdownFetchLimit,
+        menuShowMinLength: 2,
       },
     ],
+  });
+}
+
+let tippyInstance = tippy('[data-tippy-content]');
+
+export function setupTippy() {
+  tippyInstance.forEach(e => e.destroy());
+  tippyInstance = tippy('[data-tippy-content]', {
+    delay: [500, 0],
+    // Display on "long press"
+    touch: ['hold', 500],
   });
 }
 
@@ -714,7 +729,11 @@ function convertCommentSortType(sort: SortType): CommentSortType {
   }
 }
 
-export function postSort(posts: Array<Post>, sort: SortType) {
+export function postSort(
+  posts: Array<Post>,
+  sort: SortType,
+  communityType: boolean
+) {
   // First, put removed and deleted comments at the bottom, then do your other sorts
   if (
     sort == SortType.TopAll ||
@@ -725,13 +744,17 @@ export function postSort(posts: Array<Post>, sort: SortType) {
   ) {
     posts.sort(
       (a, b) =>
-        +a.removed - +b.removed || +a.deleted - +b.deleted || b.score - a.score
+        +a.removed - +b.removed ||
+        +a.deleted - +b.deleted ||
+        (communityType && +b.stickied - +a.stickied) ||
+        b.score - a.score
     );
   } else if (sort == SortType.New) {
     posts.sort(
       (a, b) =>
         +a.removed - +b.removed ||
         +a.deleted - +b.deleted ||
+        (communityType && +b.stickied - +a.stickied) ||
         b.published.localeCompare(a.published)
     );
   } else if (sort == SortType.Hot) {
@@ -739,7 +762,25 @@ export function postSort(posts: Array<Post>, sort: SortType) {
       (a, b) =>
         +a.removed - +b.removed ||
         +a.deleted - +b.deleted ||
+        (communityType && +b.stickied - +a.stickied) ||
         hotRankPost(b) - hotRankPost(a)
     );
   }
+}
+
+export const colorList: Array<string> = [
+  hsl(0),
+  hsl(100),
+  hsl(150),
+  hsl(200),
+  hsl(250),
+  hsl(300),
+];
+
+function hsl(num: number) {
+  return `hsla(${num}, 35%, 50%, 1)`;
+}
+
+function randomHsl() {
+  return `hsla(${Math.random() * 360}, 100%, 50%, 1)`;
 }

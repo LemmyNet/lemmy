@@ -52,6 +52,7 @@ import {
   editPostFindRes,
   commentsToFlatNodes,
   commentSortSortType,
+  setupTippy,
 } from '../utils';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -183,7 +184,7 @@ export class Main extends Component<any, MainState> {
                       <h5>
                         <T i18nKey="subscribed_to_communities">
                           #
-                          <Link class="text-white" to="/communities">
+                          <Link class="text-body" to="/communities">
                             #
                           </Link>
                         </T>
@@ -221,7 +222,7 @@ export class Main extends Component<any, MainState> {
         <h5>
           <T i18nKey="trending_communities">
             #
-            <Link class="text-white" to="/communities">
+            <Link class="text-body" to="/communities">
               #
             </Link>
           </T>
@@ -268,13 +269,16 @@ export class Main extends Component<any, MainState> {
           <div class="card-body">
             <h5 class="mb-0">{`${this.state.siteRes.site.name}`}</h5>
             {this.canAdmin && (
-              <ul class="list-inline mb-1 text-muted small font-weight-bold">
-                <li className="list-inline-item">
+              <ul class="list-inline mb-1 text-muted font-weight-bold">
+                <li className="list-inline-item-action">
                   <span
                     class="pointer"
                     onClick={linkEvent(this, this.handleEditClick)}
+                    data-tippy-content={i18n.t('edit')}
                   >
-                    {i18n.t('edit')}
+                    <svg class="icon icon-inline">
+                      <use xlinkHref="#icon-edit"></use>
+                    </svg>
                   </span>
                 </li>
               </ul>
@@ -313,7 +317,10 @@ export class Main extends Component<any, MainState> {
               <li class="list-inline-item">{i18n.t('admins')}:</li>
               {this.state.siteRes.admins.map(admin => (
                 <li class="list-inline-item">
-                  <Link class="text-info" to={`/u/${admin.name}`}>
+                  <Link
+                    class="text-body font-weight-bold"
+                    to={`/u/${admin.name}`}
+                  >
                     {admin.avatar && showAvatars() && (
                       <img
                         height="32"
@@ -424,11 +431,13 @@ export class Main extends Component<any, MainState> {
   selects() {
     return (
       <div className="mb-3">
-        <DataTypeSelect
-          type_={this.state.dataType}
-          onChange={this.handleDataTypeChange}
-        />
-        <span class="mx-3">
+        <span class="mr-3">
+          <DataTypeSelect
+            type_={this.state.dataType}
+            onChange={this.handleDataTypeChange}
+          />
+        </span>
+        <span class="mr-3">
           <ListingTypeSelect
             type_={this.state.listingType}
             onChange={this.handleListingTypeChange}
@@ -441,8 +450,9 @@ export class Main extends Component<any, MainState> {
           <a
             href={`/feeds/all.xml?sort=${SortType[this.state.sort]}`}
             target="_blank"
+            title="RSS"
           >
-            <svg class="icon mx-1 text-muted small">
+            <svg class="icon text-muted small">
               <use xlinkHref="#icon-rss">#</use>
             </svg>
           </a>
@@ -454,8 +464,9 @@ export class Main extends Component<any, MainState> {
                 SortType[this.state.sort]
               }`}
               target="_blank"
+              title="RSS"
             >
-              <svg class="icon mx-1 text-muted small">
+              <svg class="icon text-muted small">
                 <use xlinkHref="#icon-rss">#</use>
               </svg>
             </a>
@@ -613,6 +624,7 @@ export class Main extends Component<any, MainState> {
       this.state.posts = data.posts;
       this.state.loading = false;
       this.setState(this.state);
+      setupTippy();
     } else if (res.op == UserOperation.CreatePost) {
       let data = res.data as PostResponse;
 

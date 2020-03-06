@@ -32,6 +32,7 @@ import {
   toast,
   randomStr,
   setupTribute,
+  setupTippy,
 } from '../utils';
 import autosize from 'autosize';
 import Tribute from 'tributejs/src/Tribute.js';
@@ -142,6 +143,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       this.setState(this.state);
       autosize.update(textarea);
     });
+    setupTippy();
   }
 
   componentWillUnmount() {
@@ -179,9 +181,12 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
                 <label
                   htmlFor="file-upload"
                   className={`${UserService.Instance.user &&
-                    'pointer'} d-inline-block mr-2 float-right text-muted small font-weight-bold`}
+                    'pointer'} d-inline-block float-right text-muted h6 font-weight-bold`}
+                  data-tippy-content={i18n.t('upload_image')}
                 >
-                  {i18n.t('upload_image')}
+                  <svg class="icon icon-inline">
+                    <use xlinkHref="#icon-image"></use>
+                  </svg>
                 </label>
                 <input
                   id="file-upload"
@@ -279,9 +284,12 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               <a
                 href={markdownHelpUrl}
                 target="_blank"
-                class="d-inline-block float-right text-muted small font-weight-bold"
+                class="d-inline-block float-right text-muted h6 font-weight-bold"
+                title={i18n.t('formatting_help')}
               >
-                {i18n.t('formatting_help')}
+                <svg class="icon icon-inline">
+                  <use xlinkHref="#icon-help-circle"></use>
+                </svg>
               </a>
             </div>
           </div>

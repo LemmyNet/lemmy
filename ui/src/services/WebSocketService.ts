@@ -61,6 +61,7 @@ export class WebSocketService {
 
   private constructor() {
     this.ws = new ReconnectingWebSocket(wsUri);
+    let firstConnect = true;
 
     this.subject = Observable.create((obs: any) => {
       this.ws.onmessage = e => {
@@ -68,13 +69,19 @@ export class WebSocketService {
       };
       this.ws.onopen = () => {
         console.log(`Connected to ${wsUri}`);
+
         if (UserService.Instance.user) {
           this.userJoin();
         }
-        let res: WebSocketJsonResponse = {
-          reconnect: true,
-        };
-        obs.next(res);
+
+        if (!firstConnect) {
+          let res: WebSocketJsonResponse = {
+            reconnect: true,
+          };
+          obs.next(res);
+        }
+
+        firstConnect = false;
       };
     }).pipe(share());
   }

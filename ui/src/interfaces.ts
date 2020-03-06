@@ -208,6 +208,7 @@ export interface Comment {
   saved?: boolean;
   user_mention_id?: number; // For mention type
   recipient_id?: number;
+  depth?: number;
 }
 
 export interface Category {
