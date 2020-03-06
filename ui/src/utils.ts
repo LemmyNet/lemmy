@@ -44,7 +44,9 @@ import Toastify from 'toastify-js';
 import tippy from 'tippy.js';
 
 export const repoUrl = 'https://github.com/dessalines/lemmy';
-export const markdownHelpUrl = '/docs/about_guide.html';
+export const helpGuideUrl = '/docs/about_guide.html';
+export const markdownHelpUrl = `${helpGuideUrl}#markdown-guide`;
+export const sortingHelpUrl = `${helpGuideUrl}#sorting`;
 export const archiveUrl = 'https://archive.is';
 
 export const postRefetchSeconds: number = 60 * 1000;
