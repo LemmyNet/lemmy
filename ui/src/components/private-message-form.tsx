@@ -1,4 +1,5 @@
 import { Component, linkEvent } from 'inferno';
+import { Prompt } from 'inferno-router';
 import { Link } from 'inferno-router';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
@@ -116,6 +117,10 @@ export class PrivateMessageForm extends Component<
   render() {
     return (
       <div>
+        <Prompt
+          when={!this.state.loading && this.state.privateMessageForm.content}
+          message={i18n.t('block_leaving')}
+        />
         <form onSubmit={linkEvent(this, this.handlePrivateMessageSubmit)}>
           {!this.props.privateMessage && (
             <div class="form-group row">
