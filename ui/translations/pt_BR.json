@@ -184,7 +184,7 @@
     "are_you_sure": "tem certeza?",
     "yes": "sim",
     "no": "não",
-    "powered_by": "Powered by",
+    "powered_by": "Fornecido por",
     "landing_0": "Lemmy é um <1>agregador de links</1> / alternativa ao reddit, com a intenção de funcionar junto ao <2>fediverso</2>.<3></3>Pode ser hospedado em servidor próprio, tem atualização de comentários em tempo real e é minúsculo (<4>~80kB</4>). A federação com a rede ActivityPub está no roteiro do projeto. <5></5>Esta é uma <6>versão beta bastante antecipada</6>, e muitas funcionalidades ainda estão quebradas ou ausentes. <7></7>Sugira novas funcionalidades ou reporte erros <8>aqui.</8><9></9>Feito com <10>Rust</10>, <11>Actix</11>, <12>Inferno</12>, <13>Typescript</13>.",
     "not_logged_in": "Não autenticado.",
     "logged_in": "Autenticado.",
@@ -193,7 +193,7 @@
     "couldnt_create_comment": "Não foi possível criar o comentário.",
     "couldnt_like_comment": "Não foi possível curtir o comentário.",
     "couldnt_update_comment": "Não foi possível atualizar o comentário.",
-    "couldnt_save_comment": "Não foi possível guardar o comentário.",
+    "couldnt_save_comment": "Não foi possível salvar o comentário.",
     "no_comment_edit_allowed": "Sem permissão para editar comentário.",
     "no_post_edit_allowed": "Sem permissão para editar publicação.",
     "no_community_edit_allowed": "Sem permissão para editar comunidade.",
@@ -227,6 +227,6 @@
     "time": "Tempo",
     "action": "Ação",
     "more": "mais",
-    "couldnt_get_comments": "Não foi possível receber os comentários.",
+    "couldnt_get_comments": "Não foi possível obter os comentários.",
     "post_title_too_long": "Título da publicação muito longo."
 }
