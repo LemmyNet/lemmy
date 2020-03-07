@@ -83,6 +83,10 @@ mod tests {
       nsfw: false,
       deleted: false,
       updated: None,
+      embed_title: None,
+      embed_description: None,
+      embed_html: None,
+      thumbnail_url: None,
     };
 
     let page = post.as_page();

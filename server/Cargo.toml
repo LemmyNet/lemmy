@@ -5,7 +5,7 @@ authors = ["Dessalines <happydooby@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-diesel = { version = "1.4.2", features = ["postgres","chrono", "r2d2"] }
+diesel = { version = "1.4.2", features = ["postgres","chrono", "r2d2", "64-column-tables"] }
 diesel_migrations = "1.4.0"
 dotenv = "0.15.0"
 bcrypt = "0.6.1"
@@ -33,3 +33,5 @@ rss = "1.9.0"
 htmlescape = "0.3.1"
 config = "0.10.1"
 hjson = "0.8.2"
+percent-encoding = "2.1.0"
+chttp = "0.5.5"
