@@ -194,5 +194,9 @@
     "email_already_exists": "メールアドレスが既に使用されています。",
     "time": "時刻",
     "action": "行動",
-    "more": "さらに表示"
+    "more": "さらに表示",
+    "upvote": "賛成票",
+    "downvote": "反対票",
+    "sorting_help": "並び順のヘルプ",
+    "block_leaving": "このページから離れてもよろしいですか？"
 }
