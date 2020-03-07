@@ -497,7 +497,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     })
       .then(res => res.json())
       .then(res => {
-        let url = `${window.location.origin}/pictshare/${res.url}`;
+        let url = `${window.location.origin}/pictshare/${encodeURI(res.url)}`;
         if (res.filetype == 'mp4') {
           url += '/raw';
         }

@@ -17,9 +17,54 @@ table! {
     updated -> Nullable<Timestamp>,
     deleted -> Bool,
     nsfw -> Bool,
+    stickied -> Bool,
+    embed_title -> Nullable<Text>,
+    embed_description -> Nullable<Text>,
+    embed_html -> Nullable<Text>,
+    thumbnail_url -> Nullable<Text>,
     banned -> Bool,
     banned_from_community -> Bool,
+    creator_name -> Varchar,
+    creator_avatar -> Nullable<Text>,
+    community_name -> Varchar,
+    community_removed -> Bool,
+    community_deleted -> Bool,
+    community_nsfw -> Bool,
+    number_of_comments -> BigInt,
+    score -> BigInt,
+    upvotes -> BigInt,
+    downvotes -> BigInt,
+    hot_rank -> Int4,
+    newest_activity_time -> Timestamp,
+    user_id -> Nullable<Int4>,
+    my_vote -> Nullable<Int4>,
+    subscribed -> Nullable<Bool>,
+    read -> Nullable<Bool>,
+    saved -> Nullable<Bool>,
+  }
+}
+
+table! {
+  post_mview (id) {
+    id -> Int4,
+    name -> Varchar,
+    url -> Nullable<Text>,
+    body -> Nullable<Text>,
+    creator_id -> Int4,
+    community_id -> Int4,
+    removed -> Bool,
+    locked -> Bool,
+    published -> Timestamp,
+    updated -> Nullable<Timestamp>,
+    deleted -> Bool,
+    nsfw -> Bool,
     stickied -> Bool,
+    embed_title -> Nullable<Text>,
+    embed_description -> Nullable<Text>,
+    embed_html -> Nullable<Text>,
+    thumbnail_url -> Nullable<Text>,
+    banned -> Bool,
+    banned_from_community -> Bool,
     creator_name -> Varchar,
     creator_avatar -> Nullable<Text>,
     community_name -> Varchar,
@@ -57,9 +102,13 @@ pub struct PostView {
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
   pub nsfw: bool,
+  pub stickied: bool,
+  pub embed_title: Option<String>,
+  pub embed_description: Option<String>,
+  pub embed_html: Option<String>,
+  pub thumbnail_url: Option<String>,
   pub banned: bool,
   pub banned_from_community: bool,
-  pub stickied: bool,
   pub creator_name: String,
   pub creator_avatar: Option<String>,
   pub community_name: String,
@@ -77,44 +126,6 @@ pub struct PostView {
   pub subscribed: Option<bool>,
   pub read: Option<bool>,
   pub saved: Option<bool>,
-}
-
-// The faked schema since diesel doesn't do views
-table! {
-  post_mview (id) {
-    id -> Int4,
-    name -> Varchar,
-    url -> Nullable<Text>,
-    body -> Nullable<Text>,
-    creator_id -> Int4,
-    community_id -> Int4,
-    removed -> Bool,
-    locked -> Bool,
-    published -> Timestamp,
-    updated -> Nullable<Timestamp>,
-    deleted -> Bool,
-    nsfw -> Bool,
-    banned -> Bool,
-    banned_from_community -> Bool,
-    stickied -> Bool,
-    creator_name -> Varchar,
-    creator_avatar -> Nullable<Text>,
-    community_name -> Varchar,
-    community_removed -> Bool,
-    community_deleted -> Bool,
-    community_nsfw -> Bool,
-    number_of_comments -> BigInt,
-    score -> BigInt,
-    upvotes -> BigInt,
-    downvotes -> BigInt,
-    hot_rank -> Int4,
-    newest_activity_time -> Timestamp,
-    user_id -> Nullable<Int4>,
-    my_vote -> Nullable<Int4>,
-    subscribed -> Nullable<Bool>,
-    read -> Nullable<Bool>,
-    saved -> Nullable<Bool>,
-  }
 }
 
 pub struct PostQueryBuilder<'a> {
@@ -394,6 +405,10 @@ mod tests {
       stickied: None,
       updated: None,
       nsfw: false,
+      embed_title: None,
+      embed_description: None,
+      embed_html: None,
+      thumbnail_url: None,
     };
 
     let inserted_post = Post::create(&conn, &new_post).unwrap();
@@ -454,6 +469,10 @@ mod tests {
       read: None,
       saved: None,
       nsfw: false,
+      embed_title: None,
+      embed_description: None,
+      embed_html: None,
+      thumbnail_url: None,
     };
 
     let expected_post_listing_with_user = PostView {
@@ -489,6 +508,10 @@ mod tests {
       read: None,
       saved: None,
       nsfw: false,
+      embed_title: None,
+      embed_description: None,
+      embed_html: None,
+      thumbnail_url: None,
     };
 
     let read_post_listings_with_user = PostQueryBuilder::create(&conn)

@@ -404,15 +404,22 @@ export function showAvatars(): boolean {
   );
 }
 
-/// Converts to image thumbnail (only supports pictshare currently)
-export function imageThumbnailer(url: string): string {
-  let split = url.split('pictshare');
-  if (split.length > 1) {
-    let out = `${split[0]}pictshare/192${split[1]}`;
-    return out;
-  } else {
-    return url;
+// Converts to image thumbnail
+export function pictshareImage(
+  hash: string,
+  thumbnail: boolean = false
+): string {
+  let root = `/pictshare`;
+
+  // Necessary for other servers / domains
+  if (hash.includes('pictshare')) {
+    let split = hash.split('/pictshare/');
+    root = `${split[0]}/pictshare`;
+    hash = split[1];
   }
+
+  let out = `${root}/${thumbnail ? '192/' : ''}${hash}`;
+  return out;
 }
 
 export function isCommentType(item: Comment | PrivateMessage): item is Comment {

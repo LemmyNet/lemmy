@@ -883,6 +883,10 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
         locked: None,
         stickied: None,
         updated: Some(naive_now()),
+        embed_title: None,
+        embed_description: None,
+        embed_html: None,
+        thumbnail_url: None,
       };
 
       let _updated_post = match Post::update(&conn, post.id, &post_form) {
