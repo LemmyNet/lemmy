@@ -363,6 +363,7 @@ export class User extends Component<any, UserState> {
             </div>
             <div class="table-responsive mt-1">
               <table class="table table-bordered table-sm mt-2 mb-0">
+                {/*
                 <tr>
                   <td class="text-center" colSpan={2}>
                     {i18n.t('number_of_points', {
@@ -370,18 +371,23 @@ export class User extends Component<any, UserState> {
                     })}
                   </td>
                 </tr>
+                */}
                 <tr>
+                  {/* 
                   <td>
                     {i18n.t('number_of_points', { count: user.post_score })}
                   </td>
+                  */}
                   <td>
                     {i18n.t('number_of_posts', { count: user.number_of_posts })}
                   </td>
+                  {/* 
                 </tr>
                 <tr>
                   <td>
                     {i18n.t('number_of_points', { count: user.comment_score })}
                   </td>
+                  */}
                   <td>
                     {i18n.t('number_of_comments', {
                       count: user.number_of_comments,
