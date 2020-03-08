@@ -34,11 +34,21 @@ export class IFramelyCard extends Component<
               <div class="col-12">
                 <div class="card-body">
                   <h5 class="card-title d-inline">
-                    <span>
-                      <a class="text-body" target="_blank" href={post.url}>
+                    {post.embed_html ? (
+                      <span
+                        class="unselectable pointer"
+                        onClick={linkEvent(this, this.handleIframeExpand)}
+                        data-tippy-content={i18n.t('expand_here')}
+                      >
                         {post.embed_title}
-                      </a>
-                    </span>
+                      </span>
+                    ) : (
+                      <span>
+                        <a class="text-body" target="_blank" href={post.url}>
+                          {post.embed_title}
+                        </a>
+                      </span>
+                    )}
                   </h5>
                   <span class="d-inline-block ml-2 mb-2 small text-muted">
                     <a
