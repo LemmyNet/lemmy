@@ -247,3 +247,8 @@ hr {
 .list-inline-item-action:not(:last-child) {
   margin-right: 1.2rem;
 }
+
+pre {
+  white-space: pre-wrap;
+  word-break: keep-all;
+}
