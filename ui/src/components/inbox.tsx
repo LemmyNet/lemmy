@@ -369,6 +369,7 @@ export class Inbox extends Component<any, InboxState> {
       this.sendUnreadCount();
       window.scrollTo(0, 0);
       this.setState(this.state);
+      setupTippy();
     } else if (res.op == UserOperation.MarkAllAsRead) {
       this.state.replies = [];
       this.state.mentions = [];

@@ -63,7 +63,7 @@ export class PrivateMessage extends Component<
             </li>
             <li className="list-inline-item">
               <Link
-                className="text-info"
+                className="text-body font-weight-bold"
                 to={
                   this.mine
                     ? `/u/${message.recipient_name}`
@@ -100,7 +100,15 @@ export class PrivateMessage extends Component<
                 className="pointer text-monospace"
                 onClick={linkEvent(this, this.handleMessageCollapse)}
               >
-                {this.state.collapsed ? '[+]' : '[-]'}
+                {this.state.collapsed ? (
+                  <svg class="icon icon-inline">
+                    <use xlinkHref="#icon-plus-square"></use>
+                  </svg>
+                ) : (
+                  <svg class="icon icon-inline">
+                    <use xlinkHref="#icon-minus-square"></use>
+                  </svg>
+                )}
               </div>
             </li>
           </ul>
@@ -121,58 +129,85 @@ export class PrivateMessage extends Component<
                   dangerouslySetInnerHTML={mdToHtml(this.messageUnlessRemoved)}
                 />
               )}
-              <ul class="list-inline mb-1 text-muted small font-weight-bold">
+              <ul class="list-inline mb-1 text-muted h5 font-weight-bold">
                 {!this.mine && (
                   <>
-                    <li className="list-inline-item">
+                    <li className="list-inline-item-action">
                       <span
                         class="pointer"
                         onClick={linkEvent(this, this.handleMarkRead)}
+                        data-tippy-content={
+                          message.read
+                            ? i18n.t('mark_as_unread')
+                            : i18n.t('mark_as_read')
+                        }
                       >
-                        {message.read
-                          ? i18n.t('mark_as_unread')
-                          : i18n.t('mark_as_read')}
+                        <svg
+                          class={`icon icon-inline ${message.read &&
+                            'text-success'}`}
+                        >
+                          <use xlinkHref="#icon-check"></use>
+                        </svg>
                       </span>
                     </li>
-                    <li className="list-inline-item">
+                    <li className="list-inline-item-action">
                       <span
                         class="pointer"
                         onClick={linkEvent(this, this.handleReplyClick)}
+                        data-tippy-content={i18n.t('reply')}
                       >
-                        {i18n.t('reply')}
+                        <svg class="icon icon-inline">
+                          <use xlinkHref="#icon-reply1"></use>
+                        </svg>
                       </span>
                     </li>
                   </>
                 )}
                 {this.mine && (
                   <>
-                    <li className="list-inline-item">
+                    <li className="list-inline-item-action">
                       <span
                         class="pointer"
                         onClick={linkEvent(this, this.handleEditClick)}
+                        data-tippy-content={i18n.t('edit')}
                       >
-                        {i18n.t('edit')}
+                        <svg class="icon icon-inline">
+                          <use xlinkHref="#icon-edit"></use>
+                        </svg>
                       </span>
                     </li>
-                    <li className="list-inline-item">
+                    <li className="list-inline-item-action">
                       <span
                         class="pointer"
                         onClick={linkEvent(this, this.handleDeleteClick)}
+                        data-tippy-content={
+                          !message.deleted
+                            ? i18n.t('delete')
+                            : i18n.t('restore')
+                        }
                       >
-                        {!message.deleted
-                          ? i18n.t('delete')
-                          : i18n.t('restore')}
+                        <svg
+                          class={`icon icon-inline ${message.deleted &&
+                            'text-danger'}`}
+                        >
+                          <use xlinkHref="#icon-trash"></use>
+                        </svg>
                       </span>
                     </li>
                   </>
                 )}
-                <li className="list-inline-item">•</li>
-                <li className="list-inline-item">
+                <li className="list-inline-item-action">
                   <span
                     className="pointer"
                     onClick={linkEvent(this, this.handleViewSource)}
+                    data-tippy-content={i18n.t('view_source')}
                   >
-                    {i18n.t('view_source')}
+                    <svg
+                      class={`icon icon-inline ${this.state.viewSource &&
+                        'text-success'}`}
+                    >
+                      <use xlinkHref="#icon-file-text"></use>
+                    </svg>
                   </span>
                 </li>
               </ul>
