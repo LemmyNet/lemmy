@@ -37,6 +37,7 @@ import {
   createCommentLikeRes,
   createPostLikeFindRes,
   commentsToFlatNodes,
+  setupTippy,
 } from '../utils';
 import { PostListing } from './post-listing';
 import { SortSelect } from './sort-select';
@@ -358,7 +359,7 @@ export class User extends Component<any, UserState> {
               </ul>
             </h5>
             <div>
-              {i18n.t('joined')} <MomentTime data={user} />
+              {i18n.t('joined')} <MomentTime data={user} showAgo />
             </div>
             <div class="table-responsive mt-1">
               <table class="table table-bordered table-sm mt-2 mb-0">
@@ -1034,6 +1035,7 @@ export class User extends Component<any, UserState> {
       document.title = `/u/${this.state.user.name} - ${WebSocketService.Instance.site.name}`;
       window.scrollTo(0, 0);
       this.setState(this.state);
+      setupTippy();
     } else if (res.op == UserOperation.EditComment) {
       let data = res.data as CommentResponse;
       editCommentRes(data, this.state.comments);
