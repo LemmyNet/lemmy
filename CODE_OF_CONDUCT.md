@@ -19,7 +19,7 @@ These are the policies for upholding our community’s standards of conduct. If 
 
 1. Remarks that violate the Lemmy standards of conduct, including hateful, hurtful, oppressive, or exclusionary remarks, are not allowed. (Cursing is allowed, but never targeting another user, and never in a hateful manner.)
 2. Remarks that moderators find inappropriate, whether listed in the code of conduct or not, are also not allowed.
-3. Moderators will first respond to such remarks with a warning.
+3. Moderators will first respond to such remarks with a warning, at the same time the offending content will likely be removed whenever possible.
 4. If the warning is unheeded, the user will be “kicked,” i.e., kicked out of the communication channel to cool off.
 5. If the user comes back and continues to make trouble, they will be banned, i.e., indefinitely excluded.
 6. Moderators may choose at their discretion to un-ban the user if it was a first offense and they offer the offended party a genuine apology.
