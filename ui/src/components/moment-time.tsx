@@ -9,6 +9,7 @@ interface MomentTimeProps {
     when_?: string;
     updated?: string;
   };
+  showAgo?: boolean;
 }
 
 export class MomentTime extends Component<MomentTimeProps, any> {
@@ -32,7 +33,7 @@ export class MomentTime extends Component<MomentTimeProps, any> {
           <svg class="icon icon-inline mr-1">
             <use xlinkHref="#icon-edit-2"></use>
           </svg>
-          {moment.utc(this.props.data.updated).fromNow(true)}
+          {moment.utc(this.props.data.updated).fromNow(!this.props.showAgo)}
         </span>
       );
     } else {
@@ -42,7 +43,7 @@ export class MomentTime extends Component<MomentTimeProps, any> {
           className="pointer unselectable"
           data-tippy-content={this.format(str)}
         >
-          {moment.utc(str).fromNow(true)}
+          {moment.utc(str).fromNow(!this.props.showAgo)}
         </span>
       );
     }
