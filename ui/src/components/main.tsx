@@ -51,7 +51,6 @@ import {
   createPostLikeFindRes,
   editPostFindRes,
   commentsToFlatNodes,
-  commentSortSortType,
   setupTippy,
 } from '../utils';
 import { i18n } from '../i18next';
@@ -649,9 +648,9 @@ export class Main extends Component<any, MainState> {
             UserService.Instance.user.show_nsfw)
         ) {
           this.state.posts.unshift(data.post);
-          this.setState(this.state);
         }
       }
+      this.setState(this.state);
     } else if (res.op == UserOperation.EditPost) {
       let data = res.data as PostResponse;
       editPostFindRes(data, this.state.posts);
