@@ -5,7 +5,7 @@
     # password to connect to postgres
     password: "password"
     # host where postgres is running
-    host: "lemmy_db"
+    host: "postgres"
     # port where postgres can be accessed
     port: 5432
     # name of the postgres database for lemmy
