@@ -6,3 +6,4 @@ docker/dev/env_deploy.sh
 build/
 .idea/
 ui/src/translations
+docker/dev/volumes
