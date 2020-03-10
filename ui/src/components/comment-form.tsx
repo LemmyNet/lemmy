@@ -220,6 +220,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     this.state.previewMode = false;
     this.state.loading = false;
     this.state.commentForm.content = '';
+    this.setState(this.state);
     let form: any = document.getElementById(this.formId);
     form.reset();
     if (this.props.node) {
