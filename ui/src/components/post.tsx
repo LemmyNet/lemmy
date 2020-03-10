@@ -300,7 +300,7 @@ export class Post extends Component<any, PostState> {
     i.setState(i.state);
   }
 
-  private buildCommentsTree(): Array<CommentNodeI> {
+  buildCommentsTree(): Array<CommentNodeI> {
     let map = new Map<number, CommentNodeI>();
     for (let comment of this.state.comments) {
       let node: CommentNodeI = {
