@@ -198,9 +198,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 <span
                   className={`unselectable pointer ${this.scoreColor}`}
                   onClick={linkEvent(node, this.handleCommentUpvote)}
-                  data-tippy-content={i18n.t('number_of_points', {
-                    count: this.state.score,
-                  })}
+                  data-tippy-content={this.pointsTippy}
                 >
                   <svg class="icon icon-inline mr-1">
                     <use xlinkHref="#icon-zap"></use>
@@ -916,6 +914,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
 
     WebSocketService.Instance.likeComment(form);
     this.setState(this.state);
+    setupTippy();
   }
 
   handleCommentDownvote(i: CommentNodeI) {
@@ -943,6 +942,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
 
     WebSocketService.Instance.likeComment(form);
     this.setState(this.state);
+    setupTippy();
   }
 
   handleModRemoveShow(i: CommentNode) {
@@ -1165,5 +1165,21 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     } else {
       return 'text-muted';
     }
+  }
+
+  get pointsTippy(): string {
+    let points = i18n.t('number_of_points', {
+      count: this.state.score,
+    });
+
+    let upvotes = i18n.t('number_of_upvotes', {
+      count: this.state.upvotes,
+    });
+
+    let downvotes = i18n.t('number_of_downvotes', {
+      count: this.state.downvotes,
+    });
+
+    return `${points} • ${upvotes} • ${downvotes}`;
   }
 }
