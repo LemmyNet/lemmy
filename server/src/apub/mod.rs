@@ -1,4 +1,5 @@
 pub mod community;
+pub mod group_wrapper;
 pub mod post;
 pub mod puller;
 pub mod user;

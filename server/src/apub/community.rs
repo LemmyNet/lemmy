@@ -1,14 +1,14 @@
+use crate::apub::group_wrapper::GroupHelper;
 use crate::apub::make_apub_endpoint;
 use crate::db::community::Community;
 use crate::db::community_view::CommunityFollowerView;
 use crate::db::establish_unpooled_connection;
-use crate::to_datetime_utc;
 use activitypub::{actor::Group, collection::UnorderedCollection, context};
 use actix_web::body::Body;
 use actix_web::web::Path;
 use actix_web::HttpResponse;
 use serde::Deserialize;
-use serde_json::json;
+use serde_json::{Value};
 
 impl Community {
   pub fn as_group(&self) -> Group {
@@ -16,42 +16,18 @@ impl Community {
 
     let mut group = Group::default();
 
-    // TODO: why the hell is this code so awkward?
     group.object_props.set_context_object(context()).ok();
-    // TODO: id really needs to be a url
-    group.object_props.set_id_string(self.id.to_string()).ok();
-    group
-      .object_props
-      .set_name_string(self.title.to_owned())
-      .ok();
-    group
-      .object_props
-      .set_published_utctime(to_datetime_utc(self.published))
-      .ok();
-    group.object_props.attributed_to = Some(json!(self.creator_id.to_string()));
-    if let Some(updated) = self.updated {
-      group
-        .object_props
-        .set_updated_utctime(to_datetime_utc(updated))
-        .ok();
-    }
+    Group::set_id(&mut group, self.id);
+    Group::set_title(&mut group, &self.title);
+    Group::set_published(&mut group, self.published);
+    Group::set_updated(&mut group, self.updated);
+    Group::set_creator_id(&mut group, self.creator_id);
 
-    if let Some(description) = &self.description {
-      group.object_props.summary = Some(json!(description.to_string()));
-    }
+    Group::set_description(&mut group, &self.description);
 
-    group
-      .ap_actor_props
-      .set_inbox_string(format!("{}/inbox", &base_url))
-      .ok();
-    group
-      .ap_actor_props
-      .set_outbox_string(format!("{}/outbox", &base_url))
-      .ok();
-    group
-      .ap_actor_props
-      .set_followers_string(format!("{}/followers", &base_url))
-      .ok();
+    group.ap_actor_props.inbox = Value::String(format!("{}/inbox", &base_url));
+    group.ap_actor_props.outbox = Value::String(format!("{}/outbox", &base_url));
+    group.ap_actor_props.followers = Some(Value::String(format!("{}/followers", &base_url)));
 
     group
   }
@@ -65,7 +41,6 @@ impl Community {
 
     let connection = establish_unpooled_connection();
     //As we are an object, we validated that the community id was valid
-    // TODO: add a method that only returns count for better performance
     let community_followers = CommunityFollowerView::for_community(&connection, self.id).unwrap();
 
     collection

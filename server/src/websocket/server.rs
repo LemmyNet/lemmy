@@ -557,8 +557,6 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
           if community_name.contains('@') {
             // TODO: need to support sort, filter etc for remote communities
             get_remote_community(community_name)?
-          // TODO what is this about
-          // get_community.name = Some(name.replace("!", ""));
           } else {
             Oper::new(get_community).perform(&conn)?
           }
