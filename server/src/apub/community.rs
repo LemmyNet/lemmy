@@ -12,16 +12,17 @@ use serde_json::{Value};
 
 impl Community {
   pub fn as_group(&self) -> Group {
-    let base_url = make_apub_endpoint("c", &self.name);
+    let base_url = make_apub_endpoint("c", &self.id);
 
     let mut group = Group::default();
 
     group.object_props.set_context_object(context()).ok();
-    Group::set_id(&mut group, self.id);
+    Group::set_id(&mut group, &base_url);
+
     Group::set_title(&mut group, &self.title);
     Group::set_published(&mut group, self.published);
     Group::set_updated(&mut group, self.updated);
-    Group::set_creator_id(&mut group, self.creator_id);
+    Group::set_creator_id(&mut group, make_apub_endpoint("u", &self.creator_id));
 
     Group::set_description(&mut group, &self.description);
 
