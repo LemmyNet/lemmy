@@ -16,7 +16,7 @@ import 'moment/locale/ja';
 import {
   UserOperation,
   Comment,
-  CommentNode,
+  CommentNode as CommentNodeI,
   Post,
   PrivateMessage,
   User,
@@ -668,15 +668,15 @@ export function editPostRes(data: PostResponse, post: Post) {
 
 export function commentsToFlatNodes(
   comments: Array<Comment>
-): Array<CommentNode> {
-  let nodes: Array<CommentNode> = [];
+): Array<CommentNodeI> {
+  let nodes: Array<CommentNodeI> = [];
   for (let comment of comments) {
     nodes.push({ comment: comment });
   }
   return nodes;
 }
 
-export function commentSort(tree: Array<CommentNode>, sort: CommentSortType) {
+export function commentSort(tree: Array<CommentNodeI>, sort: CommentSortType) {
   // First, put removed and deleted comments at the bottom, then do your other sorts
   if (sort == CommentSortType.Top) {
     tree.sort(
@@ -716,7 +716,7 @@ export function commentSort(tree: Array<CommentNode>, sort: CommentSortType) {
   }
 }
 
-export function commentSortSortType(tree: Array<CommentNode>, sort: SortType) {
+export function commentSortSortType(tree: Array<CommentNodeI>, sort: SortType) {
   commentSort(tree, convertCommentSortType(sort));
 }
 
