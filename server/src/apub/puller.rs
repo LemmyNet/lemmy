@@ -7,6 +7,7 @@ use crate::apub::group_wrapper::GroupHelper;
 use crate::db::community_view::CommunityView;
 use crate::settings::Settings;
 use activitypub::actor::Group;
+use crate::apub::parse_apub_endpoint;
 
 // TODO: right now all of the data is requested on demand, for production we will need to store
 //       things in the local database to not ruin the performance
@@ -38,7 +39,6 @@ pub fn get_remote_community(identifier: String) -> Result<GetCommunityResponse, 
   let instance = x[1];
   let community_uri = format!("http://{}/federation/c/{}", instance, name);
   let community: Group = reqwest::get(&community_uri)?.json()?;
-  dbg!(&community);
 
   // TODO: looks like a bunch of data is missing from the activitypub response
   // TODO: i dont think simple numeric ids are going to work, we probably need something like uuids
@@ -47,12 +47,12 @@ pub fn get_remote_community(identifier: String) -> Result<GetCommunityResponse, 
     admins: vec![],
     community: CommunityView {
       // TODO: we need to merge id and name into a single thing (stuff like @user@instance.com)
-      id: Group::get_id(&community)?,
+      id: parse_apub_endpoint(&Group::get_id(&community)?)?.1.parse::<i32>()?,
       name,
       title: Group::get_title(&community)?,
       description: Group::get_description(&community)?,
       category_id: -1,
-      creator_id: Group::get_creator_id(&community)?,
+      creator_id: parse_apub_endpoint(&Group::get_creator_id(&community)?)?.1.parse::<i32>()?,
       removed: false,
       published: Group::get_published(&community)?,
       updated: Group::get_updated(&community)?,

@@ -5,9 +5,8 @@ use failure::Error;
 use serde_json::Value;
 
 pub trait GroupHelper {
-  // TODO: id really needs to be a url
-  fn set_id(group: &mut Group, id: i32);
-  fn get_id(group: &Group) -> Result<i32, Error>;
+  fn set_id(group: &mut Group, id: &str);
+  fn get_id(group: &Group) -> Result<String, Error>;
 
   fn set_title(group: &mut Group, title: &str);
   fn get_title(group: &Group) -> Result<String, Error>;
@@ -15,9 +14,8 @@ pub trait GroupHelper {
   fn set_description(group: &mut Group, description: &Option<String>);
   fn get_description(group: &Group) -> Result<Option<String>, Error>;
 
-  // TODO: also needs to be changed to url
-  fn set_creator_id(group: &mut Group, creator_id: i32);
-  fn get_creator_id(group: &Group) -> Result<i32, Error>;
+  fn set_creator_id(group: &mut Group, creator_id: String);
+  fn get_creator_id(group: &Group) -> Result<String, Error>;
 
   fn set_published(group: &mut Group, published: NaiveDateTime);
   fn get_published(group: &Group) -> Result<NaiveDateTime, Error>;
@@ -28,11 +26,11 @@ pub trait GroupHelper {
 
 // TODO: something is crashing and not reporting the error
 impl GroupHelper for Group {
-  fn set_id(group: &mut Group, id: i32) {
+  fn set_id(group: &mut Group, id: &str) {
     group.object_props.id = Some(Value::String(id.to_string()));
   }
-  fn get_id(group: &Group) -> Result<i32, Error> {
-    Ok(get_string_value(group.clone().object_props.id).parse::<i32>()?)
+  fn get_id(group: &Group) -> Result<String, Error> {
+    Ok(get_string_value(group.clone().object_props.id))
   }
 
   fn set_title(group: &mut Group, title: &str) {
@@ -49,11 +47,11 @@ impl GroupHelper for Group {
     Ok(get_string_value_opt(group.to_owned().object_props.summary))
   }
 
-  fn set_creator_id(group: &mut Group, creator_id: i32) {
+  fn set_creator_id(group: &mut Group, creator_id: String) {
     group.object_props.attributed_to = Some(Value::String(creator_id.to_string()));
   }
-  fn get_creator_id(group: &Group) -> Result<i32, Error> {
-    Ok(get_string_value(group.clone().object_props.attributed_to).parse::<i32>()?)
+  fn get_creator_id(group: &Group) -> Result<String, Error> {
+    Ok(get_string_value(group.clone().object_props.attributed_to))
   }
 
   fn set_published(group: &mut Group, published: NaiveDateTime) {
@@ -61,8 +59,10 @@ impl GroupHelper for Group {
   }
   fn get_published(group: &Group) -> Result<NaiveDateTime, Error> {
     let str = get_string_value(group.to_owned().object_props.published);
-    // TODO: no idea which date format
+    // TODO: date parsing is failing, no idea if this is even the right format
+    dbg!(&str);
     let date = DateTime::parse_from_rfc2822(&str)?;
+    dbg!(&date);
     Ok(date.naive_local())
   }
 
