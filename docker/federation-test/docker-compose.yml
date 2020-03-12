@@ -6,7 +6,7 @@ services:
     ports:
       - "127.0.0.1:8540:8540"
     environment:
-      - LEMMY_HOSTNAME=localhost:8540
+      - LEMMY_HOSTNAME=lemmy_alpha:8540
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_alpha:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
       - LEMMY_FRONT_END_DIR=/app/dist
@@ -32,7 +32,7 @@ services:
     ports:
       - "127.0.0.1:8541:8541"
     environment:
-      - LEMMY_HOSTNAME=localhost:8541
+      - LEMMY_HOSTNAME=lemmy_beta:8541
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_beta:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
       - LEMMY_FRONT_END_DIR=/app/dist

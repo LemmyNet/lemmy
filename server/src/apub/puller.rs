@@ -2,10 +2,10 @@ extern crate reqwest;
 
 use crate::api::community::{GetCommunityResponse, ListCommunitiesResponse};
 use crate::api::post::GetPosts;
-use crate::apub::parse_apub_endpoint;
 use crate::db::community_view::CommunityView;
 use crate::settings::Settings;
 use activitystreams::actor::apub::Group;
+use activitystreams::collection::apub::UnorderedCollection;
 use failure::Error;
 
 // TODO: right now all of the data is requested on demand, for production we will need to store
@@ -38,6 +38,12 @@ pub fn get_remote_community(identifier: String) -> Result<GetCommunityResponse, 
   let instance = x[1];
   let community_uri = format!("http://{}/federation/c/{}", instance, name);
   let community: Group = reqwest::get(&community_uri)?.json()?;
+  let followers_uri = &community
+    .ap_actor_props
+    .get_followers()
+    .unwrap()
+    .to_string();
+  let followers: UnorderedCollection = reqwest::get(followers_uri)?.json()?;
 
   // TODO: looks like a bunch of data is missing from the activitypub response
   // TODO: i dont think simple numeric ids are going to work, we probably need something like uuids
@@ -46,9 +52,7 @@ pub fn get_remote_community(identifier: String) -> Result<GetCommunityResponse, 
     admins: vec![],
     community: CommunityView {
       // TODO: we need to merge id and name into a single thing (stuff like @user@instance.com)
-      id: parse_apub_endpoint(&community.object_props.get_id().unwrap().to_string())?
-        .1
-        .parse::<i32>()?,
+      id: -1, //community.object_props.get_id()
       name,
       title: community
         .object_props
@@ -60,15 +64,7 @@ pub fn get_remote_community(identifier: String) -> Result<GetCommunityResponse, 
         .get_summary_xsd_string()
         .map(|s| s.to_string()),
       category_id: -1,
-      creator_id: parse_apub_endpoint(
-        &community
-          .object_props
-          .get_attributed_to_xsd_any_uri()
-          .unwrap()
-          .to_string(),
-      )?
-      .1
-      .parse::<i32>()?,
+      creator_id: -1, //community.object_props.get_attributed_to_xsd_any_uri()
       removed: false,
       published: community
         .object_props
@@ -86,7 +82,11 @@ pub fn get_remote_community(identifier: String) -> Result<GetCommunityResponse, 
       creator_name: "".to_string(),
       creator_avatar: None,
       category_name: "".to_string(),
-      number_of_subscribers: -1,
+      number_of_subscribers: *followers
+        .collection_props
+        .get_total_items()
+        .unwrap()
+        .as_ref() as i64, // TODO: need to use the same type
       number_of_posts: -1,
       number_of_comments: -1,
       hot_rank: -1,
