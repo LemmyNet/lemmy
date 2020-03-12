@@ -6,6 +6,7 @@ use actix::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
 use diesel::PgConnection;
 use failure::Error;
+use log::warn;
 use rand::{rngs::ThreadRng, Rng};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -448,13 +449,16 @@ impl Handler<StandardMessage> for ChatServer {
   type Result = MessageResult<StandardMessage>;
 
   fn handle(&mut self, msg: StandardMessage, _: &mut Context<Self>) -> Self::Result {
-    let msg_out = match parse_json_message(self, msg) {
-      Ok(m) => m,
-      Err(e) => e.to_string(),
-    };
-
-    println!("Message Sent: {}", msg_out);
-    MessageResult(msg_out)
+    match parse_json_message(self, msg) {
+      Ok(m) => {
+        println!("Message Sent: {}", m);
+        MessageResult(m)
+      }
+      Err(e) => {
+        warn!("Error during message handling {}", e);
+        MessageResult(e.to_string())
+      }
+    }
   }
 }
 
