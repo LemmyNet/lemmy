@@ -1,13 +1,12 @@
 extern crate reqwest;
 
-use self::reqwest::Error;
 use crate::api::community::{GetCommunityResponse, ListCommunitiesResponse};
 use crate::api::post::GetPosts;
-use crate::apub::group_wrapper::GroupHelper;
+use crate::apub::parse_apub_endpoint;
 use crate::db::community_view::CommunityView;
 use crate::settings::Settings;
-use activitypub::actor::Group;
-use crate::apub::parse_apub_endpoint;
+use activitystreams::actor::apub::Group;
+use failure::Error;
 
 // TODO: right now all of the data is requested on demand, for production we will need to store
 //       things in the local database to not ruin the performance
@@ -47,15 +46,41 @@ pub fn get_remote_community(identifier: String) -> Result<GetCommunityResponse, 
     admins: vec![],
     community: CommunityView {
       // TODO: we need to merge id and name into a single thing (stuff like @user@instance.com)
-      id: parse_apub_endpoint(&Group::get_id(&community)?)?.1.parse::<i32>()?,
+      id: parse_apub_endpoint(&community.object_props.get_id().unwrap().to_string())?
+        .1
+        .parse::<i32>()?,
       name,
-      title: Group::get_title(&community)?,
-      description: Group::get_description(&community)?,
+      title: community
+        .object_props
+        .get_name_xsd_string()
+        .unwrap()
+        .to_string(),
+      description: community
+        .object_props
+        .get_summary_xsd_string()
+        .map(|s| s.to_string()),
       category_id: -1,
-      creator_id: parse_apub_endpoint(&Group::get_creator_id(&community)?)?.1.parse::<i32>()?,
+      creator_id: parse_apub_endpoint(
+        &community
+          .object_props
+          .get_attributed_to_xsd_any_uri()
+          .unwrap()
+          .to_string(),
+      )?
+      .1
+      .parse::<i32>()?,
       removed: false,
-      published: Group::get_published(&community)?,
-      updated: Group::get_updated(&community)?,
+      published: community
+        .object_props
+        .get_published()
+        .unwrap()
+        .as_ref()
+        .naive_local()
+        .to_owned(),
+      updated: community
+        .object_props
+        .get_updated()
+        .map(|u| u.as_ref().to_owned().naive_local()),
       deleted: false,
       nsfw: false,
       creator_name: "".to_string(),
