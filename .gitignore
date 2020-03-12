@@ -1,10 +1,17 @@
+# local ansible configuration
 ansible/inventory
 ansible/inventory_dev
 ansible/passwords/
+
+# docker build files
 docker/lemmy_mine.hjson
 docker/dev/env_deploy.sh
 docker/federation-test/volumes
-build/
-.idea/
-ui/src/translations
 docker/dev/volumes
+
+# local build files
+build/
+ui/src/translations
+
+# ide config
+.idea/
