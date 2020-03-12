@@ -1,9 +1,10 @@
 import { Component, linkEvent } from 'inferno';
-import { FramelyData } from '../interfaces';
+import { Post } from '../interfaces';
 import { mdToHtml } from '../utils';
+import { i18n } from '../i18next';
 
 interface FramelyCardProps {
-  iframely: FramelyData;
+  post: Post;
 }
 
 interface FramelyCardState {
@@ -24,45 +25,56 @@ export class IFramelyCard extends Component<
   }
 
   render() {
-    let iframely = this.props.iframely;
+    let post = this.props.post;
     return (
       <>
-        {iframely.title && !this.state.expanded && (
+        {post.embed_title && !this.state.expanded && (
           <div class="card mt-3 mb-2">
             <div class="row">
               <div class="col-12">
                 <div class="card-body">
                   <h5 class="card-title d-inline">
-                    <span>
-                      <a class="text-body" target="_blank" href={iframely.url}>
-                        {iframely.title}
-                      </a>
-                    </span>
+                    {post.embed_html ? (
+                      <span
+                        class="unselectable pointer"
+                        onClick={linkEvent(this, this.handleIframeExpand)}
+                        data-tippy-content={i18n.t('expand_here')}
+                      >
+                        {post.embed_title}
+                      </span>
+                    ) : (
+                      <span>
+                        <a class="text-body" target="_blank" href={post.url}>
+                          {post.embed_title}
+                        </a>
+                      </span>
+                    )}
                   </h5>
                   <span class="d-inline-block ml-2 mb-2 small text-muted">
                     <a
                       class="text-muted font-italic"
                       target="_blank"
-                      href={iframely.url}
+                      href={post.url}
                     >
-                      {new URL(iframely.url).hostname}
+                      {new URL(post.url).hostname}
                       <svg class="ml-1 icon">
                         <use xlinkHref="#icon-external-link"></use>
                       </svg>
                     </a>
-                    {iframely.html && (
+                    {post.embed_html && (
                       <span
                         class="ml-2 pointer text-monospace"
                         onClick={linkEvent(this, this.handleIframeExpand)}
+                        data-tippy-content={i18n.t('expand_here')}
                       >
                         {this.state.expanded ? '[-]' : '[+]'}
                       </span>
                     )}
                   </span>
-                  {iframely.description && (
+                  {post.embed_description && (
                     <div
                       className="card-text small text-muted md-div"
-                      dangerouslySetInnerHTML={mdToHtml(iframely.description)}
+                      dangerouslySetInnerHTML={mdToHtml(post.embed_description)}
                     />
                   )}
                 </div>
@@ -73,7 +85,7 @@ export class IFramelyCard extends Component<
         {this.state.expanded && (
           <div
             class="mt-3 mb-2"
-            dangerouslySetInnerHTML={{ __html: iframely.html }}
+            dangerouslySetInnerHTML={{ __html: post.embed_html }}
           />
         )}
       </>

@@ -17,6 +17,10 @@ pub struct Post {
   pub deleted: bool,
   pub nsfw: bool,
   pub stickied: bool,
+  pub embed_title: Option<String>,
+  pub embed_description: Option<String>,
+  pub embed_html: Option<String>,
+  pub thumbnail_url: Option<String>,
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
@@ -33,6 +37,10 @@ pub struct PostForm {
   pub deleted: Option<bool>,
   pub nsfw: bool,
   pub stickied: Option<bool>,
+  pub embed_title: Option<String>,
+  pub embed_description: Option<String>,
+  pub embed_html: Option<String>,
+  pub thumbnail_url: Option<String>,
 }
 
 impl Crud<PostForm> for Post {
@@ -229,6 +237,10 @@ mod tests {
       stickied: None,
       nsfw: false,
       updated: None,
+      embed_title: None,
+      embed_description: None,
+      embed_html: None,
+      thumbnail_url: None,
     };
 
     let inserted_post = Post::create(&conn, &new_post).unwrap();
@@ -247,6 +259,10 @@ mod tests {
       nsfw: false,
       deleted: false,
       updated: None,
+      embed_title: None,
+      embed_description: None,
+      embed_html: None,
+      thumbnail_url: None,
     };
 
     // Post Like

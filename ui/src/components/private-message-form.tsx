@@ -1,4 +1,5 @@
 import { Component, linkEvent } from 'inferno';
+import { Prompt } from 'inferno-router';
 import { Link } from 'inferno-router';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
@@ -26,6 +27,7 @@ import {
   toast,
   randomStr,
   setupTribute,
+  setupTippy,
 } from '../utils';
 import Tribute from 'tributejs/src/Tribute.js';
 import autosize from 'autosize';
@@ -107,6 +109,7 @@ export class PrivateMessageForm extends Component<
       this.setState(this.state);
       autosize.update(textarea);
     });
+    setupTippy();
   }
 
   componentWillUnmount() {
@@ -116,6 +119,10 @@ export class PrivateMessageForm extends Component<
   render() {
     return (
       <div>
+        <Prompt
+          when={!this.state.loading && this.state.privateMessageForm.content}
+          message={i18n.t('block_leaving')}
+        />
         <form onSubmit={linkEvent(this, this.handlePrivateMessageSubmit)}>
           {!this.props.privateMessage && (
             <div class="form-group row">
@@ -126,7 +133,7 @@ export class PrivateMessageForm extends Component<
               {this.state.recipient && (
                 <div class="col-sm-10 form-control-plaintext">
                   <Link
-                    className="text-info"
+                    className="text-body font-weight-bold"
                     to={`/u/${this.state.recipient.name}`}
                   >
                     {this.state.recipient.avatar && showAvatars() && (
@@ -165,18 +172,28 @@ export class PrivateMessageForm extends Component<
                 />
               )}
 
-              <ul class="float-right list-inline mb-1 text-muted small font-weight-bold">
+              <ul class="float-right list-inline mb-1 text-muted font-weight-bold">
                 <li class="list-inline-item">
                   <span
                     onClick={linkEvent(this, this.handleShowDisclaimer)}
                     class="pointer"
+                    data-tippy-content={i18n.t('disclaimer')}
                   >
-                    {i18n.t('disclaimer')}
+                    <svg class={`icon icon-inline`}>
+                      <use xlinkHref="#icon-alert-triangle"></use>
+                    </svg>
                   </span>
                 </li>
                 <li class="list-inline-item">
-                  <a href={markdownHelpUrl} target="_blank" class="text-muted">
-                    {i18n.t('formatting_help')}
+                  <a
+                    href={markdownHelpUrl}
+                    target="_blank"
+                    class="text-muted"
+                    title={i18n.t('formatting_help')}
+                  >
+                    <svg class="icon icon-inline">
+                      <use xlinkHref="#icon-help-circle"></use>
+                    </svg>
                   </a>
                 </li>
               </ul>

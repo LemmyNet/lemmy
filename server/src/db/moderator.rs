@@ -506,6 +506,10 @@ mod tests {
       stickied: None,
       updated: None,
       nsfw: false,
+      embed_title: None,
+      embed_description: None,
+      embed_html: None,
+      thumbnail_url: None,
     };
 
     let inserted_post = Post::create(&conn, &new_post).unwrap();

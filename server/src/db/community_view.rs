@@ -180,7 +180,11 @@ impl<'a> CommunityQueryBuilder<'a> {
     let mut query = self.query;
 
     if let Some(search_term) = self.search_term {
-      query = query.filter(name.ilike(fuzzy_search(&search_term)));
+      let searcher = fuzzy_search(&search_term);
+      query = query
+        .filter(name.ilike(searcher.to_owned()))
+        .or_filter(title.ilike(searcher.to_owned()))
+        .or_filter(description.ilike(searcher));
     };
 
     // The view lets you pass a null user_id, if you're not logged in

@@ -156,6 +156,10 @@ export interface Post {
   deleted: boolean;
   locked: boolean;
   stickied: boolean;
+  embed_title?: string;
+  embed_description?: string;
+  embed_html?: string;
+  thumbnail_url?: string;
   nsfw: boolean;
   banned: boolean;
   banned_from_community: boolean;
@@ -208,6 +212,7 @@ export interface Comment {
   saved?: boolean;
   user_mention_id?: number; // For mention type
   recipient_id?: number;
+  depth?: number;
 }
 
 export interface Category {
@@ -875,19 +880,4 @@ export interface WebSocketJsonResponse {
   data?: ResponseType;
   error?: string;
   reconnect?: boolean;
-}
-
-export interface FramelyData {
-  url: string;
-  type: string;
-  version?: string;
-  title: string;
-  author?: string;
-  author_url?: string;
-  provider_name?: string;
-  thumbnail_url?: string;
-  thumbnail_width?: number;
-  thumbnail_height?: number;
-  description?: string;
-  html?: string;
 }

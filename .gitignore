@@ -6,3 +6,5 @@ docker/dev/env_deploy.sh
 docker/federation-test/volumes
 build/
 .idea/
+ui/src/translations
+docker/dev/volumes

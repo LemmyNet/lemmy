@@ -37,6 +37,7 @@ import {
   createCommentLikeRes,
   createPostLikeRes,
   commentsToFlatNodes,
+  setupTippy,
 } from '../utils';
 import { PostListing } from './post-listing';
 import { PostListings } from './post-listings';
@@ -210,7 +211,7 @@ export class Post extends Component<any, PostState> {
 
   sortRadios() {
     return (
-      <div class="btn-group btn-group-toggle mb-3">
+      <div class="btn-group btn-group-toggle">
         <label
           className={`btn btn-sm btn-secondary pointer ${this.state
             .commentSort === CommentSortType.Hot && 'active'}`}
@@ -299,7 +300,7 @@ export class Post extends Component<any, PostState> {
     i.setState(i.state);
   }
 
-  private buildCommentsTree(): Array<CommentNodeI> {
+  buildCommentsTree(): Array<CommentNodeI> {
     let map = new Map<number, CommentNodeI>();
     for (let comment of this.state.comments) {
       let node: CommentNodeI = {
@@ -310,14 +311,25 @@ export class Post extends Component<any, PostState> {
     }
     let tree: Array<CommentNodeI> = [];
     for (let comment of this.state.comments) {
+      let child = map.get(comment.id);
       if (comment.parent_id) {
-        map.get(comment.parent_id).children.push(map.get(comment.id));
+        let parent_ = map.get(comment.parent_id);
+        parent_.children.push(child);
       } else {
-        tree.push(map.get(comment.id));
+        tree.push(child);
       }
+
+      this.setDepth(child);
     }
 
     return tree;
+  }
+
+  setDepth(node: CommentNodeI, i: number = 0): void {
+    for (let child of node.children) {
+      child.comment.depth = i;
+      this.setDepth(child, i + 1);
+    }
   }
 
   commentsTree() {
@@ -370,6 +382,7 @@ export class Post extends Component<any, PostState> {
       }
 
       this.setState(this.state);
+      setupTippy();
     } else if (res.op == UserOperation.CreateComment) {
       let data = res.data as CommentResponse;
 
@@ -386,6 +399,7 @@ export class Post extends Component<any, PostState> {
       let data = res.data as CommentResponse;
       saveCommentRes(data, this.state.comments);
       this.setState(this.state);
+      setupTippy();
     } else if (res.op == UserOperation.CreateCommentLike) {
       let data = res.data as CommentResponse;
       createCommentLikeRes(data, this.state.comments);
@@ -398,10 +412,12 @@ export class Post extends Component<any, PostState> {
       let data = res.data as PostResponse;
       this.state.post = data.post;
       this.setState(this.state);
+      setupTippy();
     } else if (res.op == UserOperation.SavePost) {
       let data = res.data as PostResponse;
       this.state.post = data.post;
       this.setState(this.state);
+      setupTippy();
     } else if (res.op == UserOperation.EditCommunity) {
       let data = res.data as CommunityResponse;
       this.state.community = data.community;

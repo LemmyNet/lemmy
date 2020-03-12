@@ -11,6 +11,7 @@ import 'moment/locale/fi';
 import 'moment/locale/ca';
 import 'moment/locale/fa';
 import 'moment/locale/pt-br';
+import 'moment/locale/ja';
 
 import {
   UserOperation,
@@ -40,9 +41,12 @@ import markdown_it_container from 'markdown-it-container';
 import twemoji from 'twemoji';
 import emojiShortName from 'emoji-short-name';
 import Toastify from 'toastify-js';
+import tippy from 'tippy.js';
 
 export const repoUrl = 'https://github.com/dessalines/lemmy';
-export const markdownHelpUrl = '/docs/about_guide.html';
+export const helpGuideUrl = '/docs/about_guide.html';
+export const markdownHelpUrl = `${helpGuideUrl}#markdown-guide`;
+export const sortingHelpUrl = `${helpGuideUrl}#sorting`;
 export const archiveUrl = 'https://archive.is';
 
 export const postRefetchSeconds: number = 60 * 1000;
@@ -159,10 +163,10 @@ export function isMod(modIds: Array<number>, creator_id: number): boolean {
   return modIds.includes(creator_id);
 }
 
-var imageRegex = new RegExp(
-  `(http)?s?:?(\/\/[^"']*\.(?:png|jpg|jpeg|gif|png|svg))`
+const imageRegex = new RegExp(
+  /(http)?s?:?(\/\/[^"']*\.(?:jpg|jpeg|gif|png|svg))/
 );
-var videoRegex = new RegExp(`(http)?s?:?(\/\/[^"']*\.(?:mp4))`);
+const videoRegex = new RegExp(`(http)?s?:?(\/\/[^"']*\.(?:mp4))`);
 
 export function isImage(url: string) {
   return imageRegex.test(url);
@@ -278,6 +282,7 @@ export const languages = [
   { code: 'es', name: 'Español' },
   { code: 'de', name: 'Deutsch' },
   { code: 'fa', name: 'فارسی' },
+  { code: 'ja', name: '日本語' },
   { code: 'pt_BR', name: 'Português Brasileiro' },
   { code: 'zh', name: '中文' },
   { code: 'fi', name: 'Suomi' },
@@ -331,6 +336,8 @@ export function getMomentLanguage(): string {
     lang = 'fa';
   } else if (lang.startsWith('pt')) {
     lang = 'pt-br';
+  } else if (lang.startsWith('ja')) {
+    lang = 'ja';
   } else {
     lang = 'en';
   }
@@ -397,15 +404,22 @@ export function showAvatars(): boolean {
   );
 }
 
-/// Converts to image thumbnail (only supports pictshare currently)
-export function imageThumbnailer(url: string): string {
-  let split = url.split('pictshare');
-  if (split.length > 1) {
-    let out = `${split[0]}pictshare/192${split[1]}`;
-    return out;
-  } else {
-    return url;
+// Converts to image thumbnail
+export function pictshareImage(
+  hash: string,
+  thumbnail: boolean = false
+): string {
+  let root = `/pictshare`;
+
+  // Necessary for other servers / domains
+  if (hash.includes('pictshare')) {
+    let split = hash.split('/pictshare/');
+    root = `${split[0]}/pictshare`;
+    hash = split[1];
   }
+
+  let out = `${root}/${thumbnail ? '192/' : ''}${hash}`;
+  return out;
 }
 
 export function isCommentType(item: Comment | PrivateMessage): item is Comment {
@@ -441,6 +455,7 @@ export function setupTribute(): Tribute {
         allowSpaces: false,
         autocompleteMode: true,
         menuItemLimit: mentionDropdownFetchLimit,
+        menuShowMinLength: 2,
       },
       // Users
       {
@@ -454,6 +469,7 @@ export function setupTribute(): Tribute {
         allowSpaces: false,
         autocompleteMode: true,
         menuItemLimit: mentionDropdownFetchLimit,
+        menuShowMinLength: 2,
       },
 
       // Communities
@@ -468,8 +484,20 @@ export function setupTribute(): Tribute {
         allowSpaces: false,
         autocompleteMode: true,
         menuItemLimit: mentionDropdownFetchLimit,
+        menuShowMinLength: 2,
       },
     ],
+  });
+}
+
+let tippyInstance = tippy('[data-tippy-content]');
+
+export function setupTippy() {
+  tippyInstance.forEach(e => e.destroy());
+  tippyInstance = tippy('[data-tippy-content]', {
+    delay: [500, 0],
+    // Display on "long press"
+    touch: ['hold', 500],
   });
 }
 
@@ -710,7 +738,11 @@ function convertCommentSortType(sort: SortType): CommentSortType {
   }
 }
 
-export function postSort(posts: Array<Post>, sort: SortType) {
+export function postSort(
+  posts: Array<Post>,
+  sort: SortType,
+  communityType: boolean
+) {
   // First, put removed and deleted comments at the bottom, then do your other sorts
   if (
     sort == SortType.TopAll ||
@@ -721,13 +753,17 @@ export function postSort(posts: Array<Post>, sort: SortType) {
   ) {
     posts.sort(
       (a, b) =>
-        +a.removed - +b.removed || +a.deleted - +b.deleted || b.score - a.score
+        +a.removed - +b.removed ||
+        +a.deleted - +b.deleted ||
+        (communityType && +b.stickied - +a.stickied) ||
+        b.score - a.score
     );
   } else if (sort == SortType.New) {
     posts.sort(
       (a, b) =>
         +a.removed - +b.removed ||
         +a.deleted - +b.deleted ||
+        (communityType && +b.stickied - +a.stickied) ||
         b.published.localeCompare(a.published)
     );
   } else if (sort == SortType.Hot) {
@@ -735,7 +771,25 @@ export function postSort(posts: Array<Post>, sort: SortType) {
       (a, b) =>
         +a.removed - +b.removed ||
         +a.deleted - +b.deleted ||
+        (communityType && +b.stickied - +a.stickied) ||
         hotRankPost(b) - hotRankPost(a)
     );
   }
+}
+
+export const colorList: Array<string> = [
+  hsl(0),
+  hsl(100),
+  hsl(150),
+  hsl(200),
+  hsl(250),
+  hsl(300),
+];
+
+function hsl(num: number) {
+  return `hsla(${num}, 35%, 50%, 1)`;
+}
+
+function randomHsl() {
+  return `hsla(${Math.random() * 360}, 100%, 50%, 1)`;
 }
