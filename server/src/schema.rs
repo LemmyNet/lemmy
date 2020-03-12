@@ -207,6 +207,10 @@ table! {
         deleted -> Bool,
         nsfw -> Bool,
         stickied -> Bool,
+        embed_title -> Nullable<Text>,
+        embed_description -> Nullable<Text>,
+        embed_html -> Nullable<Text>,
+        thumbnail_url -> Nullable<Text>,
     }
 }
 

@@ -3,4 +3,7 @@ server/target/debug
 !server/target/debug/lemmy_server
 server/target/release
 server/target/debug/incremental
+ui/dist
+server/target
+docker/dev/volumes
 .git

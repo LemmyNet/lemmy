@@ -28,6 +28,7 @@ import {
   saveCommentRes,
   createCommentLikeRes,
   commentsToFlatNodes,
+  setupTippy,
 } from '../utils';
 import { CommentNodes } from './comment-nodes';
 import { PrivateMessage } from './private-message';
@@ -116,6 +117,7 @@ export class Inbox extends Component<any, InboxState> {
                 <a
                   href={`/feeds/inbox/${UserService.Instance.auth}.xml`}
                   target="_blank"
+                  title="RSS"
                 >
                   <svg class="icon mx-2 text-muted small">
                     <use xlinkHref="#icon-rss">#</use>
@@ -332,18 +334,21 @@ export class Inbox extends Component<any, InboxState> {
       this.sendUnreadCount();
       window.scrollTo(0, 0);
       this.setState(this.state);
+      setupTippy();
     } else if (res.op == UserOperation.GetUserMentions) {
       let data = res.data as GetUserMentionsResponse;
       this.state.mentions = data.mentions;
       this.sendUnreadCount();
       window.scrollTo(0, 0);
       this.setState(this.state);
+      setupTippy();
     } else if (res.op == UserOperation.GetPrivateMessages) {
       let data = res.data as PrivateMessagesResponse;
       this.state.messages = data.messages;
       this.sendUnreadCount();
       window.scrollTo(0, 0);
       this.setState(this.state);
+      setupTippy();
     } else if (res.op == UserOperation.EditPrivateMessage) {
       let data = res.data as PrivateMessageResponse;
       let found: PrivateMessageI = this.state.messages.find(
@@ -364,6 +369,7 @@ export class Inbox extends Component<any, InboxState> {
       this.sendUnreadCount();
       window.scrollTo(0, 0);
       this.setState(this.state);
+      setupTippy();
     } else if (res.op == UserOperation.MarkAllAsRead) {
       this.state.replies = [];
       this.state.mentions = [];
@@ -386,6 +392,7 @@ export class Inbox extends Component<any, InboxState> {
       }
       this.sendUnreadCount();
       this.setState(this.state);
+      setupTippy();
     } else if (res.op == UserOperation.EditUserMention) {
       let data = res.data as UserMentionResponse;
 
@@ -429,6 +436,7 @@ export class Inbox extends Component<any, InboxState> {
       let data = res.data as CommentResponse;
       saveCommentRes(data, this.state.replies);
       this.setState(this.state);
+      setupTippy();
     } else if (res.op == UserOperation.CreateCommentLike) {
       let data = res.data as CommentResponse;
       createCommentLikeRes(data, this.state.replies);

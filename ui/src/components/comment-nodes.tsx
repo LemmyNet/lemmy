@@ -38,6 +38,7 @@ export class CommentNodes extends Component<
       <div className="comments">
         {this.sorter().map(node => (
           <CommentNode
+            key={node.comment.id}
             node={node}
             noIndent={this.props.noIndent}
             viewOnly={this.props.viewOnly}

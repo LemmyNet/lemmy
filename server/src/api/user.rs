@@ -466,7 +466,7 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
       }
     };
 
-    let user_view = UserView::read(&conn, user_details_id)?;
+    let mut user_view = UserView::read(&conn, user_details_id)?;
 
     let mut posts_query = PostQueryBuilder::create(&conn)
       .sort(&sort)
@@ -501,6 +501,15 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
     let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
+
+    // If its not the same user, remove the email
+    if let Some(user_id) = user_id {
+      if user_details_id != user_id {
+        user_view.email = None;
+      }
+    } else {
+      user_view.email = None;
+    }
 
     // Return the jwt
     Ok(GetUserDetailsResponse {
@@ -874,6 +883,10 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
         locked: None,
         stickied: None,
         updated: Some(naive_now()),
+        embed_title: None,
+        embed_description: None,
+        embed_html: None,
+        thumbnail_url: None,
       };
 
       let _updated_post = match Post::update(&conn, post.id, &post_form) {
