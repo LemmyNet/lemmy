@@ -15,7 +15,7 @@ use serde::Deserialize;
 
 impl Community {
   pub fn as_group(&self) -> Result<Group, Error> {
-    let base_url = make_apub_endpoint("c", &self.id);
+    let base_url = make_apub_endpoint("c", &self.name);
 
     let mut group = Group::default();
     let oprops: &mut ObjectProperties = group.as_mut();
