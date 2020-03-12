@@ -6,14 +6,11 @@ _site
 .git
 build
 .build
-.git
-.history
 .idea
 .jshintrc
 .nyc_output
 .sass-cache
 .vscode
-build
 coverage
 jsconfig.json
 Gemfile.lock
