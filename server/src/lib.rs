@@ -32,7 +32,7 @@ pub mod version;
 pub mod websocket;
 
 use crate::settings::Settings;
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, FixedOffset, Local, NaiveDateTime};
 use lettre::smtp::authentication::{Credentials, Mechanism};
 use lettre::smtp::extension::ClientId;
 use lettre::smtp::ConnectionReuseParameters;
@@ -42,16 +42,17 @@ use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use regex::{Regex, RegexBuilder};
 
-pub fn to_datetime_utc(ndt: NaiveDateTime) -> DateTime<Utc> {
-  DateTime::<Utc>::from_utc(ndt, Utc)
-}
-
 pub fn naive_now() -> NaiveDateTime {
   chrono::prelude::Utc::now().naive_utc()
 }
 
 pub fn naive_from_unix(time: i64) -> NaiveDateTime {
   NaiveDateTime::from_timestamp(time, 0)
+}
+
+pub fn convert_datetime(datetime: NaiveDateTime) -> DateTime<FixedOffset> {
+  let now = Local::now();
+  DateTime::<FixedOffset>::from_utc(datetime, *now.offset())
 }
 
 pub fn is_email_regex(test: &str) -> bool {

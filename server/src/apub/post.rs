@@ -1,38 +1,36 @@
 use crate::apub::make_apub_endpoint;
+use crate::convert_datetime;
 use crate::db::post::Post;
-use crate::to_datetime_utc;
-use activitypub::{context, object::Page};
+use activitystreams::{context, object::apub::Page, object::properties::ObjectProperties};
+use failure::Error;
 
 impl Post {
-  pub fn as_page(&self) -> Page {
+  pub fn as_page(&self) -> Result<Page, Error> {
     let base_url = make_apub_endpoint("post", self.id);
     let mut page = Page::default();
+    let oprops: &mut ObjectProperties = page.as_mut();
 
-    page.object_props.set_context_object(context()).ok();
-    page.object_props.set_id_string(base_url).ok();
-    page.object_props.set_name_string(self.name.to_owned()).ok();
+    oprops
+      .set_context_xsd_any_uri(context())?
+      .set_id(base_url)?
+      .set_name_xsd_string(self.name.to_owned())?
+      .set_published(convert_datetime(self.published))?
+      .set_attributed_to_xsd_any_uri(make_apub_endpoint("u", &self.creator_id))?;
 
     if let Some(body) = &self.body {
-      page.object_props.set_content_string(body.to_owned()).ok();
+      oprops.set_content_xsd_string(body.to_owned())?;
     }
 
     if let Some(url) = &self.url {
-      page.object_props.set_url_string(url.to_owned()).ok();
+      oprops.set_url_xsd_any_uri(url.to_owned())?;
     }
 
-    //page.object_props.set_attributed_to_string
-
-    page
-      .object_props
-      .set_published_utctime(to_datetime_utc(self.published))
-      .ok();
-    if let Some(updated) = self.updated {
-      page
-        .object_props
-        .set_updated_utctime(to_datetime_utc(updated))
-        .ok();
+    if let Some(u) = self.updated {
+      oprops.set_updated(convert_datetime(u))?;
     }
 
-    page
+    Ok(page)
   }
 }
+
+// TODO: need to serve this via actix
