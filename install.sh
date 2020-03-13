@@ -16,7 +16,7 @@ init_db_final=0
 while [ "$init_db_valid" == 0 ]
 do
   read -p "Initialize database (y/n)? " init_db
-  case "${init_db,,}" in 
+  case "${init_db,,}" in
     y|yes ) init_db_valid=1; init_db_final=1;;
     n|no ) init_db_valid=1; init_db_final=0;;
     * ) echo "Invalid input" 1>&2;;
@@ -37,7 +37,7 @@ yarn build
 
 # Build and run the backend
 cd ../server
-cargo run
+RUST_LOG=debug cargo run
 
 # For live coding, where both the front and back end, automagically reload on any save, do:
 # cd ui && yarn start

@@ -2,6 +2,7 @@ use super::*;
 use crate::send_email;
 use crate::settings::Settings;
 use diesel::PgConnection;
+use log::error;
 use std::str::FromStr;
 
 #[derive(Serialize, Deserialize)]
@@ -128,7 +129,7 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
           // Let the uniqueness handle this fail
           match UserMention::create(&conn, &user_mention_form) {
             Ok(_mention) => (),
-            Err(_e) => eprintln!("{}", &_e),
+            Err(_e) => error!("{}", &_e),
           };
 
           // Send an email to those users that have notifications on
@@ -145,7 +146,7 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
               );
               match send_email(subject, &mention_email, &mention_user.name, html) {
                 Ok(_o) => _o,
-                Err(e) => eprintln!("{}", e),
+                Err(e) => error!("{}", e),
               };
             }
           }
@@ -174,7 +175,7 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
               );
               match send_email(subject, &comment_reply_email, &parent_user.name, html) {
                 Ok(_o) => _o,
-                Err(e) => eprintln!("{}", e),
+                Err(e) => error!("{}", e),
               };
             }
           }
@@ -199,7 +200,7 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
               );
               match send_email(subject, &post_reply_email, &parent_user.name, html) {
                 Ok(_o) => _o,
-                Err(e) => eprintln!("{}", e),
+                Err(e) => error!("{}", e),
               };
             }
           }
@@ -318,7 +319,7 @@ impl Perform<CommentResponse> for Oper<EditComment> {
           // Let the uniqueness handle this fail
           match UserMention::create(&conn, &user_mention_form) {
             Ok(_mention) => (),
-            Err(_e) => eprintln!("{}", &_e),
+            Err(_e) => error!("{}", &_e),
           }
         }
       }
