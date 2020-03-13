@@ -3,6 +3,7 @@ use actix::prelude::*;
 use actix_web::web;
 use actix_web::*;
 use actix_web_actors::ws;
+use log::{error, info};
 use std::time::{Duration, Instant};
 
 pub fn config(cfg: &mut web::ServiceConfig) {
@@ -99,7 +100,6 @@ impl Handler<WSMessage> for WSSession {
   type Result = ();
 
   fn handle(&mut self, msg: WSMessage, ctx: &mut Self::Context) {
-    // println!("id: {} msg: {}", self.id, msg.0);
     ctx.text(msg.0);
   }
 }
@@ -107,11 +107,10 @@ impl Handler<WSMessage> for WSSession {
 /// WebSocket message handler
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WSSession {
   fn handle(&mut self, result: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
-    // println!("WEBSOCKET MESSAGE: {:?} from id: {}", msg, self.id);
     let message = match result {
       Ok(m) => m,
       Err(e) => {
-        println!("{}", e);
+        error!("{}", e);
         return;
       }
     };
@@ -125,7 +124,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WSSession {
       }
       ws::Message::Text(text) => {
         let m = text.trim().to_owned();
-        println!("WEBSOCKET MESSAGE: {:?} from id: {}", &m, self.id);
+        info!("Message received: {:?} from id: {}", &m, self.id);
 
         self
           .cs_addr
@@ -138,14 +137,14 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WSSession {
             match res {
               Ok(res) => ctx.text(res),
               Err(e) => {
-                eprintln!("{}", &e);
+                error!("{}", &e);
               }
             }
             actix::fut::ready(())
           })
           .wait(ctx);
       }
-      ws::Message::Binary(_bin) => println!("Unexpected binary"),
+      ws::Message::Binary(_bin) => info!("Unexpected binary"),
       ws::Message::Close(_) => {
         ctx.stop();
       }
@@ -163,7 +162,7 @@ impl WSSession {
       // check client heartbeats
       if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
         // heartbeat timed out
-        println!("Websocket Client heartbeat failed, disconnecting!");
+        error!("Websocket Client heartbeat failed, disconnecting!");
 
         // notify chat server
         act.cs_addr.do_send(Disconnect {

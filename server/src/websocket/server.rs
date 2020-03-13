@@ -6,7 +6,7 @@ use actix::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
 use diesel::PgConnection;
 use failure::Error;
-use log::warn;
+use log::{error, info, warn};
 use rand::{rngs::ThreadRng, Rng};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -344,7 +344,7 @@ impl ChatServer {
           }
 
           if rate_limit.allowance < 1.0 {
-            println!(
+            warn!(
               "Rate limited IP: {}, time_passed: {}, allowance: {}",
               &info.ip, time_passed, rate_limit.allowance
             );
@@ -388,7 +388,7 @@ impl Handler<Connect> for ChatServer {
   fn handle(&mut self, msg: Connect, _ctx: &mut Context<Self>) -> Self::Result {
     // register session with random id
     let id = self.rng.gen::<usize>();
-    println!("{} joined", &msg.ip);
+    info!("{} joined", &msg.ip);
 
     self.sessions.insert(
       id,
@@ -451,11 +451,11 @@ impl Handler<StandardMessage> for ChatServer {
   fn handle(&mut self, msg: StandardMessage, _: &mut Context<Self>) -> Self::Result {
     match parse_json_message(self, msg) {
       Ok(m) => {
-        println!("Message Sent: {}", m);
+        info!("Message Sent: {}", m);
         MessageResult(m)
       }
       Err(e) => {
-        warn!("Error during message handling {}", e);
+        error!("Error during message handling {}", e);
         MessageResult(e.to_string())
       }
     }
