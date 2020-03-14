@@ -28,7 +28,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
         "/federation/u/{user_name}",
         web::get().to(apub::user::get_apub_user),
       )
-      // TODO: this is a very quick and dirty implementation for http api calls
+      // TODO: we should be able to remove this but somehow that breaks the remote community list
       .route(
         "/api/v1/communities/list",
         web::get().to(

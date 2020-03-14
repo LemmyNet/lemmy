@@ -9,7 +9,7 @@ diesel = { version = "1.4.2", features = ["postgres","chrono", "r2d2", "64-colum
 diesel_migrations = "1.4.0"
 dotenv = "0.15.0"
 bcrypt = "0.6.1"
-activitystreams = "0.5.0-alpha.0"
+activitystreams = "0.5.0-alpha.4"
 chrono = { version = "0.4.7", features = ["serde"] }
 failure = "0.1.5"
 serde_json = { version = "1.0.45", features = ["preserve_order"]}
@@ -19,6 +19,7 @@ actix-web = "2.0.0"
 actix-files = "0.2.1"
 actix-web-actors = "2.0.0"
 actix-rt = "1.0.0"
+log = "0.4.0"
 env_logger = "0.7.1"
 rand = "0.7.3"
 strum = "0.17.1"

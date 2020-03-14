@@ -44,9 +44,9 @@ pub struct GetPosts {
   auth: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct GetPostsResponse {
-  posts: Vec<PostView>,
+  pub posts: Vec<PostView>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -222,7 +222,6 @@ impl Perform<GetPostsResponse> for Oper<GetPosts> {
     let data: &GetPosts = &self.data;
 
     if Settings::get().federation_enabled {
-      dbg!(&data);
       // TODO: intercept here (but the type is wrong)
       //get_remote_community_posts(get_posts.community_id.unwrap())
     }

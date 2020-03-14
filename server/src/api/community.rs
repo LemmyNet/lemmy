@@ -34,12 +34,13 @@ pub struct CommunityResponse {
   pub community: CommunityView,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ListCommunities {
   sort: String,
   page: Option<i64>,
   limit: Option<i64>,
   auth: Option<String>,
+  local_only: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -342,7 +343,8 @@ impl Perform<ListCommunitiesResponse> for Oper<ListCommunities> {
   fn perform(&self, conn: &PgConnection) -> Result<ListCommunitiesResponse, Error> {
     let data: &ListCommunities = &self.data;
 
-    if Settings::get().federation_enabled {
+    let local_only = data.local_only.unwrap_or(false);
+    if Settings::get().federation_enabled && !local_only {
       return Ok(ListCommunitiesResponse {
         communities: get_all_communities()?,
       });
