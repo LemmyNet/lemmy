@@ -52,3 +52,11 @@ services:
     volumes:
       - ./volumes/postgres_beta:/var/lib/postgresql/data
     restart: always
+
+  iframely:
+    image: dogbin/iframely:latest
+    ports:
+      - "127.0.0.1:8061:80"
+    volumes:
+      - ./iframely.config.local.js:/iframely/config.local.js:ro
+    restart: always

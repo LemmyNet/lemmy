@@ -33,7 +33,7 @@ pub struct GetPostResponse {
   pub online: usize,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct GetPosts {
   type_: String,
   sort: String,

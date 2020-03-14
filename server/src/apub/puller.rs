@@ -1,11 +1,11 @@
 extern crate reqwest;
 
 use crate::api::community::{GetCommunityResponse, ListCommunitiesResponse};
-use crate::api::post::GetPosts;
+use crate::api::post::GetPostsResponse;
 use crate::db::community_view::CommunityView;
 use crate::settings::Settings;
 use activitystreams::actor::apub::Group;
-use activitystreams::collection::apub::UnorderedCollection;
+use activitystreams::collection::apub::{OrderedCollection, UnorderedCollection};
 use failure::Error;
 
 // TODO: right now all of the data is requested on demand, for production we will need to store
@@ -25,24 +25,33 @@ fn fetch_communities_from_instance(domain: &str) -> Result<Vec<CommunityView>, E
   Ok(communities2)
 }
 
-pub fn get_remote_community_posts(name: String) -> Result<GetPosts, Error> {
-  // TODO: this is for urls like /c/!main@example.com, activitypub exposes it through the outbox
-  //       https://www.w3.org/TR/activitypub/#outbox
-  dbg!(name);
+// TODO: this should be cached or stored in the database
+fn get_remote_community_uri(identifier: String) -> String {
+  let x: Vec<&str> = identifier.split('@').collect();
+  let name = x[0].replace("!", "");
+  let instance = x[1];
+  format!("http://{}/federation/c/{}", instance, name)
+}
+
+pub fn get_remote_community_posts(identifier: String) -> Result<GetPostsResponse, Error> {
+  let community: Group = reqwest::get(&get_remote_community_uri(identifier))?.json()?;
+  let outbox_uri = &community.ap_actor_props.get_outbox().to_string();
+  let outbox: OrderedCollection = reqwest::get(outbox_uri)?.json()?;
+  let items = outbox.collection_props.get_many_items_object_boxs();
+  dbg!(items);
   unimplemented!()
 }
 
 pub fn get_remote_community(identifier: String) -> Result<GetCommunityResponse, failure::Error> {
-  let x: Vec<&str> = identifier.split('@').collect();
-  let name = x[0].replace("!", "");
-  let instance = x[1];
-  let community_uri = format!("http://{}/federation/c/{}", instance, name);
-  let community: Group = reqwest::get(&community_uri)?.json()?;
+  let community: Group = reqwest::get(&get_remote_community_uri(identifier.clone()))?.json()?;
   let followers_uri = &community
     .ap_actor_props
     .get_followers()
     .unwrap()
     .to_string();
+  let outbox_uri = &community.ap_actor_props.get_outbox().to_string();
+  let outbox: OrderedCollection = reqwest::get(outbox_uri)?.json()?;
+  // TODO: this need to be done in get_remote_community_posts() (meaning we need to store the outbox uri?)
   let followers: UnorderedCollection = reqwest::get(followers_uri)?.json()?;
 
   // TODO: looks like a bunch of data is missing from the activitypub response
@@ -52,8 +61,8 @@ pub fn get_remote_community(identifier: String) -> Result<GetCommunityResponse, 
     admins: vec![],
     community: CommunityView {
       // TODO: we need to merge id and name into a single thing (stuff like @user@instance.com)
-      id: -1, //community.object_props.get_id()
-      name,
+      id: 1337, //community.object_props.get_id()
+      name: identifier,
       title: community
         .object_props
         .get_name_xsd_string()
@@ -87,7 +96,7 @@ pub fn get_remote_community(identifier: String) -> Result<GetCommunityResponse, 
         .get_total_items()
         .unwrap()
         .as_ref() as i64, // TODO: need to use the same type
-      number_of_posts: -1,
+      number_of_posts: *outbox.collection_props.get_total_items().unwrap().as_ref() as i64,
       number_of_comments: -1,
       hot_rank: -1,
       user_id: None,
