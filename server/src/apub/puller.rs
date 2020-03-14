@@ -26,14 +26,14 @@ fn fetch_communities_from_instance(domain: &str) -> Result<Vec<CommunityView>, E
 }
 
 // TODO: this should be cached or stored in the database
-fn get_remote_community_uri(identifier: String) -> String {
+fn get_remote_community_uri(identifier: &str) -> String {
   let x: Vec<&str> = identifier.split('@').collect();
   let name = x[0].replace("!", "");
   let instance = x[1];
   format!("http://{}/federation/c/{}", instance, name)
 }
 
-pub fn get_remote_community_posts(identifier: String) -> Result<GetPostsResponse, Error> {
+pub fn get_remote_community_posts(identifier: &str) -> Result<GetPostsResponse, Error> {
   let community: Group = reqwest::get(&get_remote_community_uri(identifier))?.json()?;
   let outbox_uri = &community.ap_actor_props.get_outbox().to_string();
   let outbox: OrderedCollection = reqwest::get(outbox_uri)?.json()?;
@@ -42,8 +42,8 @@ pub fn get_remote_community_posts(identifier: String) -> Result<GetPostsResponse
   unimplemented!()
 }
 
-pub fn get_remote_community(identifier: String) -> Result<GetCommunityResponse, failure::Error> {
-  let community: Group = reqwest::get(&get_remote_community_uri(identifier.clone()))?.json()?;
+pub fn get_remote_community(identifier: &str) -> Result<GetCommunityResponse, failure::Error> {
+  let community: Group = reqwest::get(&get_remote_community_uri(identifier))?.json()?;
   let followers_uri = &community
     .ap_actor_props
     .get_followers()
@@ -62,7 +62,7 @@ pub fn get_remote_community(identifier: String) -> Result<GetCommunityResponse, 
     community: CommunityView {
       // TODO: we need to merge id and name into a single thing (stuff like @user@instance.com)
       id: 1337, //community.object_props.get_id()
-      name: identifier,
+      name: identifier.to_string(),
       title: community
         .object_props
         .get_name_xsd_string()
