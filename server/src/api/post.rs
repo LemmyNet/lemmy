@@ -1,4 +1,5 @@
 use super::*;
+use crate::settings::Settings;
 use diesel::PgConnection;
 use std::str::FromStr;
 
@@ -219,6 +220,12 @@ impl Perform<GetPostResponse> for Oper<GetPost> {
 impl Perform<GetPostsResponse> for Oper<GetPosts> {
   fn perform(&self, conn: &PgConnection) -> Result<GetPostsResponse, Error> {
     let data: &GetPosts = &self.data;
+
+    if Settings::get().federation_enabled {
+      dbg!(&data);
+      // TODO: intercept here (but the type is wrong)
+      //get_remote_community_posts(get_posts.community_id.unwrap())
+    }
 
     let user_claims: Option<Claims> = match &data.auth {
       Some(auth) => match Claims::decode(&auth) {
