@@ -648,6 +648,9 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
     }
     UserOperation::GetPosts => {
       let get_posts: GetPosts = serde_json::from_str(data)?;
+      dbg!(&get_posts);
+      // TODO: intercept here (but the type is wrong)
+      //get_remote_community_posts(get_posts.community_id.unwrap())
       if get_posts.community_id.is_none() {
         // 0 is the "all" community
         chat.join_community_room(0, msg.id);

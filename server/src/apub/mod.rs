@@ -11,7 +11,6 @@ use url::Url;
 #[cfg(test)]
 mod tests {
   use crate::db::community::Community;
-  use crate::db::post::Post;
   use crate::db::user::User_;
   use crate::db::{ListingType, SortType};
   use crate::{naive_now, Settings};
@@ -67,35 +66,6 @@ mod tests {
     assert_eq!(
       format!("https://{}/federation/c/Test", Settings::get().hostname),
       group.unwrap().object_props.get_id().unwrap().to_string()
-    );
-  }
-
-  #[test]
-  fn test_post() {
-    let post = Post {
-      id: 62,
-      name: "A test post".into(),
-      url: None,
-      body: None,
-      creator_id: 52,
-      community_id: 42,
-      published: naive_now(),
-      removed: false,
-      locked: false,
-      stickied: false,
-      nsfw: false,
-      deleted: false,
-      updated: None,
-      embed_title: None,
-      embed_description: None,
-      embed_html: None,
-      thumbnail_url: None,
-    };
-
-    let page = post.as_page();
-    assert_eq!(
-      format!("https://{}/federation/post/62", Settings::get().hostname),
-      page.unwrap().object_props.get_id().unwrap().to_string()
     );
   }
 }

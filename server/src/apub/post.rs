@@ -1,17 +1,18 @@
 use crate::apub::make_apub_endpoint;
 use crate::convert_datetime;
-use crate::db::post::Post;
-use activitystreams::{context, object::apub::Page, object::properties::ObjectProperties};
+use crate::db::post_view::PostView;
+use activitystreams::{object::apub::Page, object::properties::ObjectProperties};
 use failure::Error;
 
-impl Post {
+impl PostView {
   pub fn as_page(&self) -> Result<Page, Error> {
     let base_url = make_apub_endpoint("post", self.id);
     let mut page = Page::default();
     let oprops: &mut ObjectProperties = page.as_mut();
 
     oprops
-      .set_context_xsd_any_uri(context())?
+      // Not needed when the Post is embedded in a collection (like for community outbox)
+      //.set_context_xsd_any_uri(context())?
       .set_id(base_url)?
       .set_name_xsd_string(self.name.to_owned())?
       .set_published(convert_datetime(self.published))?
@@ -21,8 +22,9 @@ impl Post {
       oprops.set_content_xsd_string(body.to_owned())?;
     }
 
-    if let Some(url) = &self.url {
-      oprops.set_url_xsd_any_uri(url.to_owned())?;
+    if let Some(_url) = &self.url {
+      // TODO: crashes here
+      //oprops.set_url_xsd_any_uri(url.to_owned())?;
     }
 
     if let Some(u) = self.updated {

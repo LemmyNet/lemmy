@@ -21,6 +21,10 @@ pub fn config(cfg: &mut web::ServiceConfig) {
         web::get().to(apub::community::get_apub_community_followers),
       )
       .route(
+        "/federation/c/{community_name}/outbox",
+        web::get().to(apub::community::get_apub_community_outbox),
+      )
+      .route(
         "/federation/u/{user_name}",
         web::get().to(apub::user::get_apub_user),
       )
