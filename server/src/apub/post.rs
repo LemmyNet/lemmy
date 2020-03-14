@@ -22,9 +22,10 @@ impl PostView {
       oprops.set_content_xsd_string(body.to_owned())?;
     }
 
-    if let Some(_url) = &self.url {
-      // TODO: crashes here
-      //oprops.set_url_xsd_any_uri(url.to_owned())?;
+    // TODO: hacky code because we get self.url == Some("")
+    let url = self.url.as_ref();
+    if url.is_some() && !url.unwrap().is_empty() {
+      oprops.set_url_xsd_any_uri(url.unwrap().to_owned())?;
     }
 
     if let Some(u) = self.updated {

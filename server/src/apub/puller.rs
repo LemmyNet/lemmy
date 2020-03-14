@@ -3,21 +3,27 @@ extern crate reqwest;
 use crate::api::community::{GetCommunityResponse, ListCommunitiesResponse};
 use crate::api::post::GetPostsResponse;
 use crate::db::community_view::CommunityView;
+use crate::db::post_view::PostView;
+use crate::naive_now;
 use crate::settings::Settings;
 use activitystreams::actor::apub::Group;
 use activitystreams::collection::apub::{OrderedCollection, UnorderedCollection};
+use activitystreams::object::apub::Page;
+use activitystreams::object::ObjectBox;
 use failure::Error;
-
-// TODO: right now all of the data is requested on demand, for production we will need to store
-//       things in the local database to not ruin the performance
+use log::warn;
+use serde::Deserialize;
 
 fn fetch_communities_from_instance(domain: &str) -> Result<Vec<CommunityView>, Error> {
   // TODO: check nodeinfo to make sure we are dealing with a lemmy instance
   //       -> means we need proper nodeinfo json classes instead of inline generation
   // TODO: follow pagination (seems like page count is missing?)
   // TODO: see if there is any standard for discovering remote actors, so we dont have to rely on lemmy apis
-  let communities_uri = format!("http://{}/api/v1/communities/list?sort=Hot", domain);
-  let communities1: ListCommunitiesResponse = reqwest::get(&communities_uri)?.json()?;
+  let communities_uri = format!(
+    "http://{}/api/v1/communities/list?sort=Hot&local_only=true",
+    domain
+  );
+  let communities1 = fetch_remote_object::<ListCommunitiesResponse>(&communities_uri)?;
   let mut communities2 = communities1.communities;
   for c in &mut communities2 {
     c.name = format_community_name(&c.name, domain);
@@ -25,7 +31,6 @@ fn fetch_communities_from_instance(domain: &str) -> Result<Vec<CommunityView>, E
   Ok(communities2)
 }
 
-// TODO: this should be cached or stored in the database
 fn get_remote_community_uri(identifier: &str) -> String {
   let x: Vec<&str> = identifier.split('@').collect();
   let name = x[0].replace("!", "");
@@ -33,29 +38,84 @@ fn get_remote_community_uri(identifier: &str) -> String {
   format!("http://{}/federation/c/{}", instance, name)
 }
 
+fn fetch_remote_object<Response>(uri: &str) -> Result<Response, Error>
+where
+  Response: for<'de> Deserialize<'de>,
+{
+  // TODO: should cache responses here when we are in production
+  // TODO: this function should return a future
+  let x: Response = reqwest::get(uri)?.json()?;
+  Ok(x)
+}
+
 pub fn get_remote_community_posts(identifier: &str) -> Result<GetPostsResponse, Error> {
-  let community: Group = reqwest::get(&get_remote_community_uri(identifier))?.json()?;
+  let community = fetch_remote_object::<Group>(&get_remote_community_uri(identifier))?;
   let outbox_uri = &community.ap_actor_props.get_outbox().to_string();
-  let outbox: OrderedCollection = reqwest::get(outbox_uri)?.json()?;
+  let outbox = fetch_remote_object::<OrderedCollection>(outbox_uri)?;
   let items = outbox.collection_props.get_many_items_object_boxs();
-  dbg!(items);
-  unimplemented!()
+
+  let posts: Vec<PostView> = items
+    .unwrap()
+    .map(|obox: &ObjectBox| {
+      let page: Page = obox.clone().to_concrete::<Page>().unwrap();
+      // TODO: need to populate this
+      PostView {
+        id: -1,
+        name: page.object_props.get_name_xsd_string().unwrap().to_string(),
+        url: None,
+        body: None,
+        creator_id: -1,
+        community_id: -1,
+        removed: false,
+        locked: false,
+        published: naive_now(),
+        updated: None,
+        deleted: false,
+        nsfw: false,
+        stickied: false,
+        embed_title: None,
+        embed_description: None,
+        embed_html: None,
+        thumbnail_url: None,
+        banned: false,
+        banned_from_community: false,
+        creator_name: "".to_string(),
+        creator_avatar: None,
+        community_name: "".to_string(),
+        community_removed: false,
+        community_deleted: false,
+        community_nsfw: false,
+        number_of_comments: -1,
+        score: -1,
+        upvotes: -1,
+        downvotes: -1,
+        hot_rank: -1,
+        newest_activity_time: naive_now(),
+        user_id: None,
+        my_vote: None,
+        subscribed: None,
+        read: None,
+        saved: None,
+      }
+    })
+    .collect();
+  Ok(GetPostsResponse { posts })
 }
 
 pub fn get_remote_community(identifier: &str) -> Result<GetCommunityResponse, failure::Error> {
-  let community: Group = reqwest::get(&get_remote_community_uri(identifier))?.json()?;
+  let community = fetch_remote_object::<Group>(&get_remote_community_uri(identifier))?;
   let followers_uri = &community
     .ap_actor_props
     .get_followers()
     .unwrap()
     .to_string();
   let outbox_uri = &community.ap_actor_props.get_outbox().to_string();
-  let outbox: OrderedCollection = reqwest::get(outbox_uri)?.json()?;
-  // TODO: this need to be done in get_remote_community_posts() (meaning we need to store the outbox uri?)
-  let followers: UnorderedCollection = reqwest::get(followers_uri)?.json()?;
+  let outbox = fetch_remote_object::<OrderedCollection>(outbox_uri)?;
+  let followers = fetch_remote_object::<UnorderedCollection>(followers_uri)?;
+  // TODO: this is only for testing until we can call that function from GetPosts
+  // (once string ids are supported)
+  //dbg!(get_remote_community_posts(identifier)?);
 
-  // TODO: looks like a bunch of data is missing from the activitypub response
-  // TODO: i dont think simple numeric ids are going to work, we probably need something like uuids
   Ok(GetCommunityResponse {
     moderators: vec![],
     admins: vec![],
@@ -106,18 +166,20 @@ pub fn get_remote_community(identifier: &str) -> Result<GetCommunityResponse, fa
   })
 }
 
-pub fn get_following_instances() -> Result<Vec<String>, Error> {
-  let instance_list = match Settings::get().federated_instance.clone() {
+pub fn get_following_instances() -> Vec<String> {
+  match Settings::get().federated_instance.clone() {
     Some(f) => vec![f, Settings::get().hostname.clone()],
     None => vec![Settings::get().hostname.clone()],
-  };
-  Ok(instance_list)
+  }
 }
 
 pub fn get_all_communities() -> Result<Vec<CommunityView>, Error> {
   let mut communities_list: Vec<CommunityView> = vec![];
-  for instance in &get_following_instances()? {
-    communities_list.append(fetch_communities_from_instance(instance)?.as_mut());
+  for instance in &get_following_instances() {
+    match fetch_communities_from_instance(instance) {
+      Ok(mut c) => communities_list.append(c.as_mut()),
+      Err(e) => warn!("Failed to fetch instance list from remote instance: {}", e),
+    };
   }
   Ok(communities_list)
 }
