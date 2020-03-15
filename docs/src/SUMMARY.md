@@ -15,4 +15,5 @@
   - [Local Development](contributing_local_development.md)
   - [Websocket/HTTP API](contributing_websocket_http_api.md)
   - [ActivityPub API Outline](contributing_apub_api_outline.md)
+  - [Theming Guide](contributing_theming.md)
 - [Lemmy Council](lemmy_council.md)
