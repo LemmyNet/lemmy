@@ -7,3 +7,4 @@ build/
 .idea/
 ui/src/translations
 docker/dev/volumes
+docker/federation-test/volumes
