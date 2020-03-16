@@ -6,7 +6,6 @@ use crate::Settings;
 
 use actix_web::body::Body;
 use actix_web::HttpResponse;
-use std::fmt::Display;
 use url::Url;
 
 fn create_apub_response(json_data: String) -> HttpResponse<Body> {
@@ -15,15 +14,25 @@ fn create_apub_response(json_data: String) -> HttpResponse<Body> {
     .body(json_data)
 }
 
-// TODO: this should take an enum community/user/post for `point`
-// TODO: also not sure what exactly `value` should be (numeric id, name string, ...)
-fn make_apub_endpoint<S: Display, T: Display>(point: S, value: T) -> Url {
+enum EndpointType {
+  Community,
+  User,
+  Post,
+}
+
+fn make_apub_endpoint(endpoint_type: EndpointType, name: &str) -> Url {
+  let point = match endpoint_type {
+    EndpointType::Community => "c",
+    EndpointType::User => "u",
+    EndpointType::Post => "p",
+  };
+
   Url::parse(&format!(
     "{}://{}/federation/{}/{}",
     get_apub_protocol_string(),
     Settings::get().hostname,
     point,
-    value
+    name
   ))
   .unwrap()
 }

@@ -1,4 +1,4 @@
-use crate::apub::{create_apub_response, make_apub_endpoint};
+use crate::apub::{create_apub_response, make_apub_endpoint, EndpointType};
 use crate::convert_datetime;
 use crate::db::community::Community;
 use crate::db::community_view::CommunityFollowerView;
@@ -28,7 +28,7 @@ pub async fn get_apub_community(
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
 ) -> Result<HttpResponse<Body>, Error> {
   let community = Community::read_from_name(&&db.get()?, info.community_name.to_owned())?;
-  let base_url = make_apub_endpoint("c", &community.name);
+  let base_url = make_apub_endpoint(EndpointType::Community, &community.name);
 
   let mut group = Group::default();
   let oprops: &mut ObjectProperties = group.as_mut();
@@ -38,7 +38,10 @@ pub async fn get_apub_community(
     .set_id(base_url.to_owned())?
     .set_name_xsd_string(community.title.to_owned())?
     .set_published(convert_datetime(community.published))?
-    .set_attributed_to_xsd_any_uri(make_apub_endpoint("u", &community.creator_id))?;
+    .set_attributed_to_xsd_any_uri(make_apub_endpoint(
+      EndpointType::User,
+      &community.creator_id.to_string(),
+    ))?;
 
   if let Some(u) = community.updated.to_owned() {
     oprops.set_updated(convert_datetime(u))?;
@@ -61,7 +64,7 @@ pub async fn get_apub_community_followers(
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
 ) -> Result<HttpResponse<Body>, Error> {
   let community = Community::read_from_name(&&db.get()?, info.community_name.to_owned())?;
-  let base_url = make_apub_endpoint("c", &community.name);
+  let base_url = make_apub_endpoint(EndpointType::Community, &community.name);
 
   let connection = establish_unpooled_connection();
   //As we are an object, we validated that the community id was valid
@@ -84,7 +87,7 @@ pub async fn get_apub_community_outbox(
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
 ) -> Result<HttpResponse<Body>, Error> {
   let community = Community::read_from_name(&&db.get()?, info.community_name.to_owned())?;
-  let base_url = make_apub_endpoint("c", &community.name);
+  let base_url = make_apub_endpoint(EndpointType::Community, &community.name);
 
   let connection = establish_unpooled_connection();
   //As we are an object, we validated that the community id was valid
