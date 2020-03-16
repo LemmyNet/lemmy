@@ -44,6 +44,7 @@ where
 {
   // TODO: should cache responses here when we are in production
   // TODO: this function should return a future
+  // TODO: in production mode, fail if protocol is not https
   let x: Response = reqwest::get(uri)?.json()?;
   Ok(x)
 }
