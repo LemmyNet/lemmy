@@ -1,4 +1,4 @@
-use crate::apub::make_apub_endpoint;
+use crate::apub::{create_apub_response, make_apub_endpoint};
 use crate::convert_datetime;
 use crate::db::community::Community;
 use crate::db::community_view::CommunityFollowerView;
@@ -12,134 +12,101 @@ use activitystreams::{
 use actix_web::body::Body;
 use actix_web::web::Path;
 use actix_web::HttpResponse;
+use actix_web::{web, Result};
+use diesel::r2d2::{ConnectionManager, Pool};
+use diesel::PgConnection;
 use failure::Error;
 use serde::Deserialize;
-
-impl Community {
-  pub fn as_group(&self) -> Result<Group, Error> {
-    let base_url = make_apub_endpoint("c", &self.name);
-
-    let mut group = Group::default();
-    let oprops: &mut ObjectProperties = group.as_mut();
-
-    oprops
-      .set_context_xsd_any_uri(context())?
-      .set_id(base_url.to_owned())?
-      .set_name_xsd_string(self.title.to_owned())?
-      .set_published(convert_datetime(self.published))?
-      .set_attributed_to_xsd_any_uri(make_apub_endpoint("u", &self.creator_id))?;
-
-    if let Some(u) = self.updated.to_owned() {
-      oprops.set_updated(convert_datetime(u))?;
-    }
-    if let Some(d) = self.description.to_owned() {
-      oprops.set_summary_xsd_string(d)?;
-    }
-
-    group
-      .ap_actor_props
-      .set_inbox(format!("{}/inbox", &base_url))?
-      .set_outbox(format!("{}/outbox", &base_url))?
-      .set_followers(format!("{}/followers", &base_url))?;
-
-    Ok(group)
-  }
-
-  pub fn get_followers(&self) -> Result<UnorderedCollection, Error> {
-    let base_url = make_apub_endpoint("c", &self.name);
-
-    let connection = establish_unpooled_connection();
-    //As we are an object, we validated that the community id was valid
-    let community_followers = CommunityFollowerView::for_community(&connection, self.id).unwrap();
-
-    let mut collection = UnorderedCollection::default();
-    let oprops: &mut ObjectProperties = collection.as_mut();
-    oprops
-      .set_context_xsd_any_uri(context())?
-      .set_id(base_url)?;
-    collection
-      .collection_props
-      .set_total_items(community_followers.len() as u64)?;
-    Ok(collection)
-  }
-
-  pub fn get_outbox(&self) -> Result<OrderedCollection, Error> {
-    let base_url = make_apub_endpoint("c", &self.name);
-
-    let connection = establish_unpooled_connection();
-    //As we are an object, we validated that the community id was valid
-    let community_posts: Vec<PostView> = PostQueryBuilder::create(&connection)
-      .for_community_id(self.id)
-      .list()
-      .unwrap();
-
-    let mut collection = OrderedCollection::default();
-    let oprops: &mut ObjectProperties = collection.as_mut();
-    oprops
-      .set_context_xsd_any_uri(context())?
-      .set_id(base_url)?;
-    collection
-      .collection_props
-      .set_many_items_object_boxs(
-        community_posts
-          .iter()
-          .map(|c| c.as_page().unwrap())
-          .collect(),
-      )?
-      .set_total_items(community_posts.len() as u64)?;
-
-    Ok(collection)
-  }
-}
 
 #[derive(Deserialize)]
 pub struct CommunityQuery {
   community_name: String,
 }
 
-// TODO: move all this boilerplate code to routes::federation or such
-pub async fn get_apub_community(info: Path<CommunityQuery>) -> Result<HttpResponse<Body>, Error> {
-  let connection = establish_unpooled_connection();
+pub async fn get_apub_community(
+  info: Path<CommunityQuery>,
+  db: web::Data<Pool<ConnectionManager<PgConnection>>>,
+) -> Result<HttpResponse<Body>, Error> {
+  let community = Community::read_from_name(&&db.get()?, info.community_name.to_owned())?;
+  let base_url = make_apub_endpoint("c", &community.name);
 
-  if let Ok(community) = Community::read_from_name(&connection, info.community_name.to_owned()) {
-    Ok(
-      HttpResponse::Ok()
-        .content_type("application/activity+json")
-        .body(serde_json::to_string(&community.as_group()?).unwrap()),
-    )
-  } else {
-    Ok(HttpResponse::NotFound().finish())
+  let mut group = Group::default();
+  let oprops: &mut ObjectProperties = group.as_mut();
+
+  oprops
+    .set_context_xsd_any_uri(context())?
+    .set_id(base_url.to_owned())?
+    .set_name_xsd_string(community.title.to_owned())?
+    .set_published(convert_datetime(community.published))?
+    .set_attributed_to_xsd_any_uri(make_apub_endpoint("u", &community.creator_id))?;
+
+  if let Some(u) = community.updated.to_owned() {
+    oprops.set_updated(convert_datetime(u))?;
   }
+  if let Some(d) = community.description {
+    oprops.set_summary_xsd_string(d)?;
+  }
+
+  group
+    .ap_actor_props
+    .set_inbox(format!("{}/inbox", &base_url))?
+    .set_outbox(format!("{}/outbox", &base_url))?
+    .set_followers(format!("{}/followers", &base_url))?;
+
+  Ok(create_apub_response(serde_json::to_string(&group)?))
 }
 
 pub async fn get_apub_community_followers(
   info: Path<CommunityQuery>,
+  db: web::Data<Pool<ConnectionManager<PgConnection>>>,
 ) -> Result<HttpResponse<Body>, Error> {
-  let connection = establish_unpooled_connection();
+  let community = Community::read_from_name(&&db.get()?, info.community_name.to_owned())?;
+  let base_url = make_apub_endpoint("c", &community.name);
 
-  if let Ok(community) = Community::read_from_name(&connection, info.community_name.to_owned()) {
-    Ok(
-      HttpResponse::Ok()
-        .content_type("application/activity+json")
-        .body(serde_json::to_string(&community.get_followers()?).unwrap()),
-    )
-  } else {
-    Ok(HttpResponse::NotFound().finish())
-  }
+  let connection = establish_unpooled_connection();
+  //As we are an object, we validated that the community id was valid
+  let community_followers =
+    CommunityFollowerView::for_community(&connection, community.id).unwrap();
+
+  let mut collection = UnorderedCollection::default();
+  let oprops: &mut ObjectProperties = collection.as_mut();
+  oprops
+    .set_context_xsd_any_uri(context())?
+    .set_id(base_url)?;
+  collection
+    .collection_props
+    .set_total_items(community_followers.len() as u64)?;
+  Ok(create_apub_response(serde_json::to_string(&collection)?))
 }
 
 pub async fn get_apub_community_outbox(
   info: Path<CommunityQuery>,
+  db: web::Data<Pool<ConnectionManager<PgConnection>>>,
 ) -> Result<HttpResponse<Body>, Error> {
-  let connection = establish_unpooled_connection();
+  let community = Community::read_from_name(&&db.get()?, info.community_name.to_owned())?;
+  let base_url = make_apub_endpoint("c", &community.name);
 
-  if let Ok(community) = Community::read_from_name(&connection, info.community_name.to_owned()) {
-    Ok(
-      HttpResponse::Ok()
-        .content_type("application/activity+json")
-        .body(serde_json::to_string(&community.get_outbox()?).unwrap()),
-    )
-  } else {
-    Ok(HttpResponse::NotFound().finish())
-  }
+  let connection = establish_unpooled_connection();
+  //As we are an object, we validated that the community id was valid
+  let community_posts: Vec<PostView> = PostQueryBuilder::create(&connection)
+    .for_community_id(community.id)
+    .list()
+    .unwrap();
+
+  let mut collection = OrderedCollection::default();
+  let oprops: &mut ObjectProperties = collection.as_mut();
+  oprops
+    .set_context_xsd_any_uri(context())?
+    .set_id(base_url)?;
+  collection
+    .collection_props
+    .set_many_items_object_boxs(
+      community_posts
+        .iter()
+        .map(|c| c.as_page().unwrap())
+        .collect(),
+    )?
+    .set_total_items(community_posts.len() as u64)?;
+
+  Ok(create_apub_response(serde_json::to_string(&collection)?))
 }
