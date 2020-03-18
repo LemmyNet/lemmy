@@ -121,7 +121,7 @@ impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
     let data: &GetCommunity = &self.data;
 
     if data.name.is_some()
-      && Settings::get().federation_enabled
+      && Settings::get().federation.enabled
       && data.name.as_ref().unwrap().contains('@')
     {
       return get_remote_community(data.name.as_ref().unwrap());
@@ -344,7 +344,7 @@ impl Perform<ListCommunitiesResponse> for Oper<ListCommunities> {
     let data: &ListCommunities = &self.data;
 
     let local_only = data.local_only.unwrap_or(false);
-    if Settings::get().federation_enabled && !local_only {
+    if Settings::get().federation.enabled && !local_only {
       return Ok(ListCommunitiesResponse {
         communities: get_all_communities()?,
       });

@@ -17,8 +17,7 @@ pub struct Settings {
   pub front_end_dir: String,
   pub rate_limit: RateLimitConfig,
   pub email: Option<EmailConfig>,
-  pub federation_enabled: bool,
-  pub federated_instance: Option<String>,
+  pub federation: Federation,
 }
 
 #[derive(Debug, Deserialize)]
@@ -48,6 +47,13 @@ pub struct Database {
   pub port: i32,
   pub database: String,
   pub pool_size: u32,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Federation {
+  pub enabled: bool,
+  pub followed_instances: String,
+  pub tls_enabled: bool,
 }
 
 lazy_static! {

@@ -38,5 +38,9 @@ fn make_apub_endpoint(endpoint_type: EndpointType, name: &str) -> Url {
 }
 
 pub fn get_apub_protocol_string() -> &'static str {
-  "http"
+  if Settings::get().federation.tls_enabled {
+    "https"
+  } else {
+    "http"
+  }
 }
