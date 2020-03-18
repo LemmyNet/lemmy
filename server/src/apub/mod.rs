@@ -37,6 +37,6 @@ fn make_apub_endpoint(endpoint_type: EndpointType, name: &str) -> Url {
   .unwrap()
 }
 
-fn get_apub_protocol_string() -> &'static str {
+pub fn get_apub_protocol_string() -> &'static str {
   "http"
 }
