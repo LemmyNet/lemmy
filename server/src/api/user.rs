@@ -3,6 +3,7 @@ use crate::settings::Settings;
 use crate::{generate_random_string, send_email};
 use bcrypt::verify;
 use diesel::PgConnection;
+use log::error;
 use std::str::FromStr;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -1008,7 +1009,7 @@ impl Perform<PrivateMessageResponse> for Oper<CreatePrivateMessage> {
         );
         match send_email(subject, &email, &recipient_user.name, html) {
           Ok(_o) => _o,
-          Err(e) => eprintln!("{}", e),
+          Err(e) => error!("{}", e),
         };
       }
     }
