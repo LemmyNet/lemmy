@@ -2,6 +2,12 @@
 
 Information about contributing to Lemmy, whether it is translating, testing, designing or programming.
 
+## Issue tracking / Repositories
+
+- [GitHub (for issues)](https://github.com/dessalines/lemmy)
+- [Gitea](https://yerbamate.dev/dessalines/lemmy)
+- [GitLab](https://gitlab.com/dessalines/lemmy)
+
 ## Translating
 
 Go [here](https://github.com/dessalines/lemmy#translations) for translation instructions.
