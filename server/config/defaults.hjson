@@ -24,11 +24,6 @@
   jwt_secret: "changeme"
   # The dir for the front end
   front_end_dir: "../ui/dist"
-  # whether to enable activitypub federation. this feature is in alpha, do not enable in production.
-  federation_enabled: false
-  // another instance to federate with. this should be a list, but it seems like lists cant be set from environment
-  // https://github.com/mehcode/config-rs/issues/117
-  federated_instance: null
   # rate limits for various user actions, by user ip
   rate_limit: {
     # maximum number of messages created in interval
@@ -43,6 +38,15 @@
     register: 3
     # interval length for registration limit
     register_per_second: 3600
+  }
+  # settings related to activitypub federation
+  federation: {
+    # whether to enable activitypub federation. this feature is in alpha, do not enable in production.
+    enabled: false
+    # comma seperated list of instances to follow
+    followed_instances: ""
+    # whether tls is required for activitypub. only disable this for debugging, never for producion.
+    tls_enabled: true
   }
 #  # email sending configuration
 #  email: {

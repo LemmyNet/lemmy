@@ -9,7 +9,7 @@ use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-  if Settings::get().federation_enabled {
+  if Settings::get().federation.enabled {
     println!("federation enabled, host is {}", Settings::get().hostname);
     cfg
       .route(

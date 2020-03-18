@@ -10,8 +10,9 @@ services:
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_alpha:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
       - LEMMY_FRONT_END_DIR=/app/dist
-      - LEMMY_FEDERATION_ENABLED=true
-      - LEMMY_FEDERATED_INSTANCE=lemmy_beta:8541
+      - LEMMY_FEDERATION__ENABLED=true
+      - LEMMY_FEDERATION__FOLLOWED_INSTANCES=lemmy_beta:8541
+      - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_PORT=8540
       - RUST_BACKTRACE=1
     restart: always
@@ -36,8 +37,9 @@ services:
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_beta:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
       - LEMMY_FRONT_END_DIR=/app/dist
-      - LEMMY_FEDERATION_ENABLED=true
-      - LEMMY_FEDERATED_INSTANCE=lemmy_alpha:8540
+      - LEMMY_FEDERATION__ENABLED=true
+      - LEMMY_FEDERATION__FOLLOWED_INSTANCES=lemmy_alpha:8540
+      - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_PORT=8541
       - RUST_BACKTRACE=1
     restart: always

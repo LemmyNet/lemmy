@@ -221,7 +221,7 @@ impl Perform<GetPostsResponse> for Oper<GetPosts> {
   fn perform(&self, conn: &PgConnection) -> Result<GetPostsResponse, Error> {
     let data: &GetPosts = &self.data;
 
-    if Settings::get().federation_enabled {
+    if Settings::get().federation.enabled {
       // TODO: intercept here (but the type is wrong)
       //get_remote_community_posts(get_posts.community_id.unwrap())
     }

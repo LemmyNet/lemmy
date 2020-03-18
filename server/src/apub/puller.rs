@@ -2,6 +2,7 @@ extern crate reqwest;
 
 use crate::api::community::{GetCommunityResponse, ListCommunitiesResponse};
 use crate::api::post::GetPostsResponse;
+use crate::apub::get_apub_protocol_string;
 use crate::db::community_view::CommunityView;
 use crate::db::post_view::PostView;
 use crate::naive_now;
@@ -16,10 +17,15 @@ use log::warn;
 use serde::Deserialize;
 
 fn fetch_node_info(domain: &str) -> Result<NodeInfo, Error> {
-  let well_known: NodeInfoWellKnown =
-    reqwest::get(&format!("http://{}/.well-known/nodeinfo", domain))?.json()?;
-  Ok(reqwest::get(&well_known.links.href)?.json()?)
+  let well_known_uri = format!(
+    "{}://{}/.well-known/nodeinfo",
+    get_apub_protocol_string(),
+    domain
+  );
+  let well_known = fetch_remote_object::<NodeInfoWellKnown>(&well_known_uri)?;
+  Ok(fetch_remote_object::<NodeInfo>(&well_known.links.href)?)
 }
+
 fn fetch_communities_from_instance(domain: &str) -> Result<Vec<CommunityView>, Error> {
   let node_info = fetch_node_info(domain)?;
   if node_info.software.name != "lemmy" {
@@ -54,6 +60,9 @@ fn fetch_remote_object<Response>(uri: &str) -> Result<Response, Error>
 where
   Response: for<'de> Deserialize<'de>,
 {
+  if Settings::get().federation.tls_enabled && !uri.starts_with("https") {
+    return Err(format_err!("Activitypub uri is insecure: {}", uri));
+  }
   // TODO: should cache responses here when we are in production
   // TODO: this function should return a future
   // TODO: in production mode, fail if protocol is not https
@@ -179,11 +188,12 @@ pub fn get_remote_community(identifier: &str) -> Result<GetCommunityResponse, fa
   })
 }
 
-pub fn get_following_instances() -> Vec<String> {
-  match Settings::get().federated_instance.clone() {
-    Some(f) => vec![f, Settings::get().hostname.clone()],
-    None => vec![Settings::get().hostname.clone()],
-  }
+pub fn get_following_instances() -> Vec<&'static str> {
+  Settings::get()
+    .federation
+    .followed_instances
+    .split(',')
+    .collect()
 }
 
 pub fn get_all_communities() -> Result<Vec<CommunityView>, Error> {
