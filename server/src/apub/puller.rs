@@ -5,6 +5,7 @@ use crate::api::post::GetPostsResponse;
 use crate::db::community_view::CommunityView;
 use crate::db::post_view::PostView;
 use crate::naive_now;
+use crate::routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use crate::settings::Settings;
 use activitystreams::actor::apub::Group;
 use activitystreams::collection::apub::{OrderedCollection, UnorderedCollection};
@@ -14,9 +15,20 @@ use failure::Error;
 use log::warn;
 use serde::Deserialize;
 
+fn fetch_node_info(domain: &str) -> Result<NodeInfo, Error> {
+  let well_known: NodeInfoWellKnown =
+    reqwest::get(&format!("http://{}/.well-known/nodeinfo", domain))?.json()?;
+  Ok(reqwest::get(&well_known.links.href)?.json()?)
+}
 fn fetch_communities_from_instance(domain: &str) -> Result<Vec<CommunityView>, Error> {
-  // TODO: check nodeinfo to make sure we are dealing with a lemmy instance
-  //       -> means we need proper nodeinfo json classes instead of inline generation
+  let node_info = fetch_node_info(domain)?;
+  if node_info.software.name != "lemmy" {
+    return Err(format_err!(
+      "{} is not a Lemmy instance, federation is not supported",
+      domain
+    ));
+  }
+
   // TODO: follow pagination (seems like page count is missing?)
   // TODO: see if there is any standard for discovering remote actors, so we dont have to rely on lemmy apis
   let communities_uri = format!(
