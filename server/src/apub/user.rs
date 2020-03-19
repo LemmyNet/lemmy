@@ -1,7 +1,12 @@
 use crate::apub::{create_apub_response, make_apub_endpoint, EndpointType};
 use crate::convert_datetime;
 use crate::db::user::User_;
-use activitystreams::{actor::apub::Person, context, object::properties::ObjectProperties};
+use activitystreams::{
+  actor::{properties::ApActorProperties, Person},
+  context,
+  ext::Extensible,
+  object::properties::ObjectProperties,
+};
 use actix_web::body::Body;
 use actix_web::web::Path;
 use actix_web::HttpResponse;
@@ -38,12 +43,13 @@ pub async fn get_apub_user(
     oprops.set_name_xsd_string(i.to_owned())?;
   }
 
-  person
-    .ap_actor_props
+  let mut actor_props = ApActorProperties::default();
+
+  actor_props
     .set_inbox(format!("{}/inbox", &base_url))?
     .set_outbox(format!("{}/outbox", &base_url))?
     .set_following(format!("{}/following", &base_url))?
     .set_liked(format!("{}/liked", &base_url))?;
 
-  Ok(create_apub_response(serde_json::to_string(&person)?))
+  Ok(create_apub_response(&person.extend(actor_props)))
 }

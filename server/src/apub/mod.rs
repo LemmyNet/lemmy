@@ -8,10 +8,13 @@ use actix_web::body::Body;
 use actix_web::HttpResponse;
 use url::Url;
 
-fn create_apub_response(json_data: String) -> HttpResponse<Body> {
+fn create_apub_response<T>(json: &T) -> HttpResponse<Body>
+where
+  T: serde::ser::Serialize,
+{
   HttpResponse::Ok()
     .content_type("application/activity+json")
-    .body(json_data)
+    .json(json)
 }
 
 enum EndpointType {
