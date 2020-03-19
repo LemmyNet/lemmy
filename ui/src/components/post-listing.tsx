@@ -262,9 +262,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           </button>
           <div
             class={`unselectable pointer font-weight-bold text-muted px-1`}
-            data-tippy-content={i18n.t('number_of_points', {
-              count: this.state.score,
-            })}
+            data-tippy-content={this.pointsTippy}
           >
             {this.state.score}
           </div>
@@ -466,9 +464,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   <>
                     <span
                       class="unselectable pointer mr-2"
-                      data-tippy-content={i18n.t('number_of_points', {
-                        count: this.state.score,
-                      })}
+                      data-tippy-content={this.pointsTippy}
                     >
                       <li className="list-inline-item">
                         <span className="text-muted">
@@ -1022,6 +1018,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
     WebSocketService.Instance.likePost(form);
     i.setState(i.state);
+    setupTippy();
   }
 
   handlePostDisLike(i: PostListing) {
@@ -1048,6 +1045,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
     WebSocketService.Instance.likePost(form);
     i.setState(i.state);
+    setupTippy();
   }
 
   handleEditClick(i: PostListing) {
@@ -1290,5 +1288,21 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     i.state.showAdvanced = !i.state.showAdvanced;
     i.setState(i.state);
     setupTippy();
+  }
+
+  get pointsTippy(): string {
+    let points = i18n.t('number_of_points', {
+      count: this.state.score,
+    });
+
+    let upvotes = i18n.t('number_of_upvotes', {
+      count: this.state.upvotes,
+    });
+
+    let downvotes = i18n.t('number_of_downvotes', {
+      count: this.state.downvotes,
+    });
+
+    return `${points} • ${upvotes} • ${downvotes}`;
   }
 }

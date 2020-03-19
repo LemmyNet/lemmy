@@ -40,6 +40,7 @@ use lettre::smtp::extension::ClientId;
 use lettre::smtp::ConnectionReuseParameters;
 use lettre::{ClientSecurity, SmtpClient, Transport};
 use lettre_email::Email;
+use log::error;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -192,7 +193,7 @@ fn fetch_iframely_and_pictshare_data(
     Some(url) => match fetch_iframely(&url) {
       Ok(res) => (res.title, res.description, res.thumbnail_url, res.html),
       Err(e) => {
-        eprintln!("iframely err: {}", e);
+        error!("iframely err: {}", e);
         (None, None, None, None)
       }
     },
@@ -204,7 +205,7 @@ fn fetch_iframely_and_pictshare_data(
     Some(iframely_thumbnail_url) => match fetch_pictshare(&iframely_thumbnail_url) {
       Ok(res) => Some(res.url),
       Err(e) => {
-        eprintln!("pictshare err: {}", e);
+        error!("pictshare err: {}", e);
         None
       }
     },
