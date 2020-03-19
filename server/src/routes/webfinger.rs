@@ -46,13 +46,9 @@ async fn get_webfinger_response(
 
     let regex_parsed = WEBFINGER_COMMUNITY_REGEX
       .captures(&info.resource)
-      .map(|c| c.get(1));
-    // TODO: replace this with .flatten() once we are running rust 1.40
-    let regex_parsed_flattened = match regex_parsed {
-      Some(s) => s,
-      None => None,
-    };
-    let community_name = match regex_parsed_flattened {
+      .map(|c| c.get(1))
+      .flatten();
+    let community_name = match regex_parsed {
       Some(c) => c.as_str(),
       None => return Err(format_err!("not_found")),
     };
@@ -79,7 +75,6 @@ async fn get_webfinger_response(
       {
         "rel": "self",
         "type": "application/activity+json",
-        // Yes this is correct, this link doesn't include the `.json` extension
         "href": community_url
       }
       // TODO: this also needs to return the subscribe link once that's implemented
