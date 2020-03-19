@@ -56,6 +56,8 @@ interface CommentNodeState {
   upvotes: number;
   downvotes: number;
   borderColor: string;
+  readLoading: boolean;
+  saveLoading: boolean;
 }
 
 interface CommentNodeProps {
@@ -97,6 +99,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     borderColor: this.props.node.comment.depth
       ? colorList[this.props.node.comment.depth % colorList.length]
       : colorList[0],
+    readLoading: false,
+    saveLoading: false,
   };
 
   constructor(props: any, context: any) {
@@ -113,6 +117,8 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     this.state.upvotes = nextProps.node.comment.upvotes;
     this.state.downvotes = nextProps.node.comment.downvotes;
     this.state.score = nextProps.node.comment.score;
+    this.state.readLoading = false;
+    this.state.saveLoading = false;
     this.setState(this.state);
   }
 
@@ -255,12 +261,16 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                             : i18n.t('mark_as_read')
                         }
                       >
-                        <svg
-                          class={`icon icon-inline ${node.comment.read &&
-                            'text-success'}`}
-                        >
-                          <use xlinkHref="#icon-check"></use>
-                        </svg>
+                        {this.state.readLoading ? (
+                          this.loadingIcon
+                        ) : (
+                          <svg
+                            class={`icon icon-inline ${node.comment.read &&
+                              'text-success'}`}
+                          >
+                            <use xlinkHref="#icon-check"></use>
+                          </svg>
+                        )}
                       </button>
                     </li>
                   )}
@@ -308,6 +318,28 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                       <li className="list-inline-item">
                         <button
                           class="btn btn-link btn-sm btn-animate text-muted"
+                          onClick={linkEvent(this, this.handleSaveCommentClick)}
+                          data-tippy-content={
+                            node.comment.saved
+                              ? i18n.t('unsave')
+                              : i18n.t('save')
+                          }
+                        >
+                          {this.state.saveLoading ? (
+                            this.loadingIcon
+                          ) : (
+                            <svg
+                              class={`icon icon-inline ${node.comment.saved &&
+                                'text-warning'}`}
+                            >
+                              <use xlinkHref="#icon-star"></use>
+                            </svg>
+                          )}
+                        </button>
+                      </li>
+                      <li className="list-inline-item">
+                        <button
+                          class="btn btn-link btn-sm btn-animate text-muted"
                           onClick={linkEvent(this, this.handleReplyClick)}
                           data-tippy-content={i18n.t('reply')}
                         >
@@ -316,17 +348,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                           </svg>
                         </button>
                       </li>
-                      <li className="list-inline-item">
-                        <Link
-                          className="btn btn-link btn-sm btn-animate text-muted"
-                          to={`/post/${node.comment.post_id}/comment/${node.comment.id}`}
-                          title={i18n.t('link')}
-                        >
-                          <svg class="icon icon-inline">
-                            <use xlinkHref="#icon-link"></use>
-                          </svg>
-                        </Link>
-                      </li>
+                      {this.props.markable && this.linkBtn}
                       {!this.state.showAdvanced ? (
                         <li className="list-inline-item">
                           <button
@@ -354,27 +376,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                               </Link>
                             </li>
                           )}
-                          <li className="list-inline-item">
-                            <button
-                              class="btn btn-link btn-sm btn-animate text-muted"
-                              onClick={linkEvent(
-                                this,
-                                this.handleSaveCommentClick
-                              )}
-                              data-tippy-content={
-                                node.comment.saved
-                                  ? i18n.t('unsave')
-                                  : i18n.t('save')
-                              }
-                            >
-                              <svg
-                                class={`icon icon-inline ${node.comment.saved &&
-                                  'text-warning'}`}
-                              >
-                                <use xlinkHref="#icon-star"></use>
-                              </svg>
-                            </button>
-                          </li>
+                          {!this.props.markable && this.linkBtn}
                           <li className="list-inline-item">
                             <button
                               className="btn btn-link btn-sm btn-animate text-muted"
@@ -756,6 +758,31 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     );
   }
 
+  get linkBtn() {
+    let node = this.props.node;
+    return (
+      <li className="list-inline-item">
+        <Link
+          className="btn btn-link btn-sm btn-animate text-muted"
+          to={`/post/${node.comment.post_id}/comment/${node.comment.id}`}
+          title={i18n.t('link')}
+        >
+          <svg class="icon icon-inline">
+            <use xlinkHref="#icon-link"></use>
+          </svg>
+        </Link>
+      </li>
+    );
+  }
+
+  get loadingIcon() {
+    return (
+      <svg class="icon icon-spinner spin">
+        <use xlinkHref="#icon-spinner"></use>
+      </svg>
+    );
+  }
+
   get myComment(): boolean {
     return (
       UserService.Instance.user &&
@@ -875,6 +902,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     };
 
     WebSocketService.Instance.saveComment(form);
+
+    i.state.saveLoading = true;
+    i.setState(this.state);
   }
 
   handleReplyCancel() {
@@ -987,6 +1017,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       };
       WebSocketService.Instance.editComment(form);
     }
+
+    i.state.readLoading = true;
+    i.setState(this.state);
   }
 
   handleModBanFromCommunityShow(i: CommentNode) {
