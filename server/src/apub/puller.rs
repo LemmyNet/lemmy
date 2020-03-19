@@ -8,10 +8,11 @@ use crate::db::post_view::PostView;
 use crate::naive_now;
 use crate::routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use crate::settings::Settings;
-use activitystreams::actor::apub::Group;
-use activitystreams::collection::apub::{OrderedCollection, UnorderedCollection};
-use activitystreams::object::apub::Page;
+use activitystreams::actor::{properties::ApActorProperties, Group};
+use activitystreams::collection::{OrderedCollection, UnorderedCollection};
+use activitystreams::ext::Ext;
 use activitystreams::object::ObjectBox;
+use activitystreams::object::Page;
 use failure::Error;
 use log::warn;
 use serde::Deserialize;
@@ -71,8 +72,9 @@ where
 }
 
 pub fn get_remote_community_posts(identifier: &str) -> Result<GetPostsResponse, Error> {
-  let community = fetch_remote_object::<Group>(&get_remote_community_uri(identifier))?;
-  let outbox_uri = &community.ap_actor_props.get_outbox().to_string();
+  let community =
+    fetch_remote_object::<Ext<Group, ApActorProperties>>(&get_remote_community_uri(identifier))?;
+  let outbox_uri = &community.extension.get_outbox().to_string();
   let outbox = fetch_remote_object::<OrderedCollection>(outbox_uri)?;
   let items = outbox.collection_props.get_many_items_object_boxs();
 
@@ -125,13 +127,10 @@ pub fn get_remote_community_posts(identifier: &str) -> Result<GetPostsResponse, 
 }
 
 pub fn get_remote_community(identifier: &str) -> Result<GetCommunityResponse, failure::Error> {
-  let community = fetch_remote_object::<Group>(&get_remote_community_uri(identifier))?;
-  let followers_uri = &community
-    .ap_actor_props
-    .get_followers()
-    .unwrap()
-    .to_string();
-  let outbox_uri = &community.ap_actor_props.get_outbox().to_string();
+  let community =
+    fetch_remote_object::<Ext<Group, ApActorProperties>>(&get_remote_community_uri(identifier))?;
+  let followers_uri = &community.extension.get_followers().unwrap().to_string();
+  let outbox_uri = &community.extension.get_outbox().to_string();
   let outbox = fetch_remote_object::<OrderedCollection>(outbox_uri)?;
   let followers = fetch_remote_object::<UnorderedCollection>(followers_uri)?;
   // TODO: this is only for testing until we can call that function from GetPosts
@@ -146,26 +145,26 @@ pub fn get_remote_community(identifier: &str) -> Result<GetCommunityResponse, fa
       id: 1337, //community.object_props.get_id()
       name: identifier.to_string(),
       title: community
-        .object_props
+        .as_ref()
         .get_name_xsd_string()
         .unwrap()
         .to_string(),
       description: community
-        .object_props
+        .as_ref()
         .get_summary_xsd_string()
         .map(|s| s.to_string()),
       category_id: -1,
       creator_id: -1, //community.object_props.get_attributed_to_xsd_any_uri()
       removed: false,
       published: community
-        .object_props
+        .as_ref()
         .get_published()
         .unwrap()
         .as_ref()
         .naive_local()
         .to_owned(),
       updated: community
-        .object_props
+        .as_ref()
         .get_updated()
         .map(|u| u.as_ref().to_owned().naive_local()),
       deleted: false,

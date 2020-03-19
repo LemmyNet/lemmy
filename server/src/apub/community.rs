@@ -4,9 +4,12 @@ use crate::db::community::Community;
 use crate::db::community_view::CommunityFollowerView;
 use crate::db::establish_unpooled_connection;
 use crate::db::post_view::{PostQueryBuilder, PostView};
-use activitystreams::collection::apub::OrderedCollection;
+use activitystreams::collection::OrderedCollection;
 use activitystreams::{
-  actor::apub::Group, collection::apub::UnorderedCollection, context,
+  actor::{properties::ApActorProperties, Group},
+  collection::UnorderedCollection,
+  context,
+  ext::Extensible,
   object::properties::ObjectProperties,
 };
 use actix_web::body::Body;
@@ -50,13 +53,14 @@ pub async fn get_apub_community(
     oprops.set_summary_xsd_string(d)?;
   }
 
-  group
-    .ap_actor_props
+  let mut actor_props = ApActorProperties::default();
+
+  actor_props
     .set_inbox(format!("{}/inbox", &base_url))?
     .set_outbox(format!("{}/outbox", &base_url))?
     .set_followers(format!("{}/followers", &base_url))?;
 
-  Ok(create_apub_response(serde_json::to_string(&group)?))
+  Ok(create_apub_response(&group.extend(actor_props)))
 }
 
 pub async fn get_apub_community_followers(
@@ -79,7 +83,7 @@ pub async fn get_apub_community_followers(
   collection
     .collection_props
     .set_total_items(community_followers.len() as u64)?;
-  Ok(create_apub_response(serde_json::to_string(&collection)?))
+  Ok(create_apub_response(&collection))
 }
 
 pub async fn get_apub_community_outbox(
@@ -111,5 +115,5 @@ pub async fn get_apub_community_outbox(
     )?
     .set_total_items(community_posts.len() as u64)?;
 
-  Ok(create_apub_response(serde_json::to_string(&collection)?))
+  Ok(create_apub_response(&collection))
 }
