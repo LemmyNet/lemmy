@@ -66,7 +66,6 @@ where
   }
   // TODO: should cache responses here when we are in production
   // TODO: this function should return a future
-  // TODO: in production mode, fail if protocol is not https
   let x: Response = reqwest::get(uri)?.json()?;
   Ok(x)
 }
@@ -82,18 +81,32 @@ pub fn get_remote_community_posts(identifier: &str) -> Result<GetPostsResponse, 
     .unwrap()
     .map(|obox: &ObjectBox| {
       let page: Page = obox.clone().to_concrete::<Page>().unwrap();
-      // TODO: need to populate this
       PostView {
         id: -1,
         name: page.object_props.get_name_xsd_string().unwrap().to_string(),
-        url: None,
-        body: None,
+        url: page
+          .object_props
+          .get_url_xsd_any_uri()
+          .map(|u| u.to_string()),
+        body: page
+          .object_props
+          .get_content_xsd_string()
+          .map(|c| c.to_string()),
         creator_id: -1,
         community_id: -1,
         removed: false,
         locked: false,
-        published: naive_now(),
-        updated: None,
+        published: page
+          .object_props
+          .get_published()
+          .unwrap()
+          .as_ref()
+          .naive_local()
+          .to_owned(),
+        updated: page
+          .object_props
+          .get_updated()
+          .map(|u| u.as_ref().to_owned().naive_local()),
         deleted: false,
         nsfw: false,
         stickied: false,
@@ -206,7 +219,8 @@ pub fn get_all_communities() -> Result<Vec<CommunityView>, Error> {
   Ok(communities_list)
 }
 
-/// If community is on local instance, don't include the @instance part
+/// If community is on local instance, don't include the @instance part. This is only for displaying
+/// to the user and should never be used otherwise.
 pub fn format_community_name(name: &str, instance: &str) -> String {
   if instance == Settings::get().hostname {
     format!("!{}", name)
