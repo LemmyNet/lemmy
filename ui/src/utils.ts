@@ -16,7 +16,7 @@ import 'moment/locale/ja';
 import {
   UserOperation,
   Comment,
-  CommentNode,
+  CommentNode as CommentNodeI,
   Post,
   PrivateMessage,
   User,
@@ -52,6 +52,39 @@ export const archiveUrl = 'https://archive.is';
 export const postRefetchSeconds: number = 60 * 1000;
 export const fetchLimit: number = 20;
 export const mentionDropdownFetchLimit = 10;
+
+export const languages = [
+  { code: 'ca', name: 'Català' },
+  { code: 'en', name: 'English' },
+  { code: 'eo', name: 'Esperanto' },
+  { code: 'es', name: 'Español' },
+  { code: 'de', name: 'Deutsch' },
+  { code: 'fa', name: 'فارسی' },
+  { code: 'ja', name: '日本語' },
+  { code: 'pt_BR', name: 'Português Brasileiro' },
+  { code: 'zh', name: '中文' },
+  { code: 'fi', name: 'Suomi' },
+  { code: 'fr', name: 'Français' },
+  { code: 'sv', name: 'Svenska' },
+  { code: 'ru', name: 'Русский' },
+  { code: 'nl', name: 'Nederlands' },
+  { code: 'it', name: 'Italiano' },
+];
+
+export const themes = [
+  'litera',
+  'materia',
+  'minty',
+  'solar',
+  'united',
+  'cyborg',
+  'darkly',
+  'journal',
+  'sketchy',
+  'vaporwave',
+  'vaporwave-dark',
+  'i386',
+];
 
 export function randomStr() {
   return Math.random()
@@ -275,24 +308,6 @@ export function debounce(
   };
 }
 
-export const languages = [
-  { code: 'ca', name: 'Català' },
-  { code: 'en', name: 'English' },
-  { code: 'eo', name: 'Esperanto' },
-  { code: 'es', name: 'Español' },
-  { code: 'de', name: 'Deutsch' },
-  { code: 'fa', name: 'فارسی' },
-  { code: 'ja', name: '日本語' },
-  { code: 'pt_BR', name: 'Português Brasileiro' },
-  { code: 'zh', name: '中文' },
-  { code: 'fi', name: 'Suomi' },
-  { code: 'fr', name: 'Français' },
-  { code: 'sv', name: 'Svenska' },
-  { code: 'ru', name: 'Русский' },
-  { code: 'nl', name: 'Nederlands' },
-  { code: 'it', name: 'Italiano' },
-];
-
 export function getLanguage(): string {
   let user = UserService.Instance.user;
   let lang = user && user.lang ? user.lang : 'browser';
@@ -343,21 +358,6 @@ export function getMomentLanguage(): string {
   }
   return lang;
 }
-
-export const themes = [
-  'litera',
-  'materia',
-  'minty',
-  'solar',
-  'united',
-  'cyborg',
-  'darkly',
-  'journal',
-  'sketchy',
-  'vaporwave',
-  'vaporwave-dark',
-  'i386',
-];
 
 export function setTheme(theme: string = 'darkly') {
   // unload all the other themes
@@ -668,15 +668,15 @@ export function editPostRes(data: PostResponse, post: Post) {
 
 export function commentsToFlatNodes(
   comments: Array<Comment>
-): Array<CommentNode> {
-  let nodes: Array<CommentNode> = [];
+): Array<CommentNodeI> {
+  let nodes: Array<CommentNodeI> = [];
   for (let comment of comments) {
     nodes.push({ comment: comment });
   }
   return nodes;
 }
 
-export function commentSort(tree: Array<CommentNode>, sort: CommentSortType) {
+export function commentSort(tree: Array<CommentNodeI>, sort: CommentSortType) {
   // First, put removed and deleted comments at the bottom, then do your other sorts
   if (sort == CommentSortType.Top) {
     tree.sort(
@@ -716,7 +716,7 @@ export function commentSort(tree: Array<CommentNode>, sort: CommentSortType) {
   }
 }
 
-export function commentSortSortType(tree: Array<CommentNode>, sort: SortType) {
+export function commentSortSortType(tree: Array<CommentNodeI>, sort: SortType) {
   commentSort(tree, convertCommentSortType(sort));
 }
 
