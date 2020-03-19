@@ -121,18 +121,12 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     return (
       <div
         className={`comment ${
-          node.comment.parent_id && !this.props.noIndent ? 'ml-2' : ''
+          node.comment.parent_id && !this.props.noIndent ? 'ml-1' : ''
         }`}
       >
-        {!node.comment.parent_id && !this.props.noIndent && (
-          <>
-            <hr class="d-sm-none my-2" />
-            <div class="d-none d-sm-block d-sm-none my-3" />
-          </>
-        )}
         <div
           id={`comment-${node.comment.id}`}
-          className={`details comment-node mb-1 ${
+          className={`details comment-node border-top border-light ${
             this.isCommentNew ? 'mark' : ''
           }`}
           style={
@@ -147,7 +141,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               'ml-2'}`}
           >
             <ul class="list-inline mb-1 text-muted small">
-              <li className="list-inline-item">
+              <li className="mt-1 list-inline-item">
                 <Link
                   className="text-body font-weight-bold"
                   to={`/u/${node.comment.creator_name}`}
@@ -185,6 +179,22 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                   {i18n.t('banned')}
                 </li>
               )}
+              <li className="list-inline-item">
+                <div
+                  className="unselectable pointer text-monospace"
+                  onClick={linkEvent(this, this.handleCommentCollapse)}
+                >
+                  {this.state.collapsed ? (
+                    <svg class="icon icon-inline">
+                      <use xlinkHref="#icon-plus-square"></use>
+                    </svg>
+                  ) : (
+                    <svg class="icon icon-inline">
+                      <use xlinkHref="#icon-minus-square"></use>
+                    </svg>
+                  )}
+                </div>
+              </li>
               {this.props.showCommunity && (
                 <li className="list-inline-item">
                   <span> {i18n.t('to')} </span>
@@ -212,22 +222,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                   <MomentTime data={node.comment} />
                 </span>
               </li>
-              <li className="list-inline-item">
-                <div
-                  className="unselectable pointer text-monospace"
-                  onClick={linkEvent(this, this.handleCommentCollapse)}
-                >
-                  {this.state.collapsed ? (
-                    <svg class="icon icon-inline">
-                      <use xlinkHref="#icon-plus-square"></use>
-                    </svg>
-                  ) : (
-                    <svg class="icon icon-inline">
-                      <use xlinkHref="#icon-minus-square"></use>
-                    </svg>
-                  )}
-                </div>
-              </li>
             </ul>
             {this.state.showEdit && (
               <CommentForm
@@ -249,11 +243,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                     )}
                   />
                 )}
-                <ul class="list-inline mb-0 text-muted font-weight-bold h5">
+                <ul class="list-inline mb-0 text-muted font-weight-bold small">
                   {this.props.markable && (
-                    <li className="list-inline-item-action">
-                      <span
-                        class="pointer"
+                    <li className="list-inline-item">
+                      <button
+                        class="btn btn-link btn-sm btn-animate text-muted"
                         onClick={linkEvent(this, this.handleMarkRead)}
                         data-tippy-content={
                           node.comment.read
@@ -267,14 +261,14 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                         >
                           <use xlinkHref="#icon-check"></use>
                         </svg>
-                      </span>
+                      </button>
                     </li>
                   )}
                   {UserService.Instance.user && !this.props.viewOnly && (
                     <>
-                      <li className="list-inline-item-action">
+                      <li className="list-inline-item">
                         <button
-                          className={`vote-animate btn btn-link p-0 mb-1 ${
+                          className={`btn btn-link btn-sm btn-animate ${
                             this.state.my_vote == 1 ? 'text-info' : 'text-muted'
                           }`}
                           onClick={linkEvent(node, this.handleCommentUpvote)}
@@ -289,9 +283,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                         </button>
                       </li>
                       {WebSocketService.Instance.site.enable_downvotes && (
-                        <li className="list-inline-item-action">
+                        <li className="list-inline-item">
                           <button
-                            className={`vote-animate btn btn-link p-0 mb-1 ${
+                            className={`btn btn-link btn-sm btn-animate ${
                               this.state.my_vote == -1
                                 ? 'text-danger'
                                 : 'text-muted'
@@ -311,20 +305,20 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                           </button>
                         </li>
                       )}
-                      <li className="list-inline-item-action">
-                        <span
-                          class="pointer"
+                      <li className="list-inline-item">
+                        <button
+                          class="btn btn-link btn-sm btn-animate text-muted"
                           onClick={linkEvent(this, this.handleReplyClick)}
                           data-tippy-content={i18n.t('reply')}
                         >
                           <svg class="icon icon-inline">
                             <use xlinkHref="#icon-reply1"></use>
                           </svg>
-                        </span>
+                        </button>
                       </li>
-                      <li className="list-inline-item-action">
+                      <li className="list-inline-item">
                         <Link
-                          className="text-muted"
+                          className="btn btn-link btn-sm btn-animate text-muted"
                           to={`/post/${node.comment.post_id}/comment/${node.comment.id}`}
                           title={i18n.t('link')}
                         >
@@ -334,23 +328,23 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                         </Link>
                       </li>
                       {!this.state.showAdvanced ? (
-                        <li className="list-inline-item-action">
-                          <span
-                            className="unselectable pointer"
+                        <li className="list-inline-item">
+                          <button
+                            className="btn btn-link btn-sm btn-animate text-muted"
                             onClick={linkEvent(this, this.handleShowAdvanced)}
                             data-tippy-content={i18n.t('more')}
                           >
                             <svg class="icon icon-inline">
                               <use xlinkHref="#icon-more-vertical"></use>
                             </svg>
-                          </span>
+                          </button>
                         </li>
                       ) : (
                         <>
                           {!this.myComment && (
-                            <li className="list-inline-item-action">
+                            <li className="list-inline-item">
                               <Link
-                                class="text-muted"
+                                class="btn btn-link btn-sm btn-animate text-muted"
                                 to={`/create_private_message?recipient_id=${node.comment.creator_id}`}
                                 title={i18n.t('message').toLowerCase()}
                               >
@@ -360,9 +354,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                               </Link>
                             </li>
                           )}
-                          <li className="list-inline-item-action">
-                            <span
-                              class="pointer"
+                          <li className="list-inline-item">
+                            <button
+                              class="btn btn-link btn-sm btn-animate text-muted"
                               onClick={linkEvent(
                                 this,
                                 this.handleSaveCommentClick
@@ -379,11 +373,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                               >
                                 <use xlinkHref="#icon-star"></use>
                               </svg>
-                            </span>
+                            </button>
                           </li>
-                          <li className="list-inline-item-action">
-                            <span
-                              className="pointer"
+                          <li className="list-inline-item">
+                            <button
+                              className="btn btn-link btn-sm btn-animate text-muted"
                               onClick={linkEvent(this, this.handleViewSource)}
                               data-tippy-content={i18n.t('view_source')}
                             >
@@ -393,14 +387,14 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                               >
                                 <use xlinkHref="#icon-file-text"></use>
                               </svg>
-                            </span>
+                            </button>
                           </li>
                           {this.myComment && (
                             <>
-                              <li className="list-inline-item-action">•</li>
-                              <li className="list-inline-item-action">
-                                <span
-                                  class="pointer"
+                              <li className="list-inline-item">•</li>
+                              <li className="list-inline-item">
+                                <button
+                                  class="btn btn-link btn-sm btn-animate text-muted"
                                   onClick={linkEvent(
                                     this,
                                     this.handleEditClick
@@ -410,11 +404,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                                   <svg class="icon icon-inline">
                                     <use xlinkHref="#icon-edit"></use>
                                   </svg>
-                                </span>
+                                </button>
                               </li>
-                              <li className="list-inline-item-action">
-                                <span
-                                  class="pointer"
+                              <li className="list-inline-item">
+                                <button
+                                  class="btn btn-link btn-sm btn-animate text-muted"
                                   onClick={linkEvent(
                                     this,
                                     this.handleDeleteClick
@@ -431,14 +425,14 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                                   >
                                     <use xlinkHref="#icon-trash"></use>
                                   </svg>
-                                </span>
+                                </button>
                               </li>
                             </>
                           )}
                           {/* Admins and mods can remove comments */}
                           {(this.canMod || this.canAdmin) && (
                             <>
-                              <li className="list-inline-item-action">
+                              <li className="list-inline-item">
                                 {!node.comment.removed ? (
                                   <span
                                     class="pointer"
@@ -467,7 +461,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                           {this.canMod && (
                             <>
                               {!this.isMod && (
-                                <li className="list-inline-item-action">
+                                <li className="list-inline-item">
                                   {!node.comment.banned_from_community ? (
                                     <span
                                       class="pointer"
@@ -492,7 +486,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                                 </li>
                               )}
                               {!node.comment.banned_from_community && (
-                                <li className="list-inline-item-action">
+                                <li className="list-inline-item">
                                   {!this.state.showConfirmAppointAsMod ? (
                                     <span
                                       class="pointer"
@@ -537,7 +531,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                           {/* Community creators and admins can transfer community to another mod */}
                           {(this.amCommunityCreator || this.canAdmin) &&
                             this.isMod && (
-                              <li className="list-inline-item-action">
+                              <li className="list-inline-item">
                                 {!this.state.showConfirmTransferCommunity ? (
                                   <span
                                     class="pointer"
@@ -580,7 +574,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                           {this.canAdmin && (
                             <>
                               {!this.isAdmin && (
-                                <li className="list-inline-item-action">
+                                <li className="list-inline-item">
                                   {!node.comment.banned ? (
                                     <span
                                       class="pointer"
@@ -605,7 +599,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                                 </li>
                               )}
                               {!node.comment.banned && (
-                                <li className="list-inline-item-action">
+                                <li className="list-inline-item">
                                   {!this.state.showConfirmAppointAsAdmin ? (
                                     <span
                                       class="pointer"
@@ -649,7 +643,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                           )}
                           {/* Site Creator can transfer to another admin */}
                           {this.amSiteCreator && this.isAdmin && (
-                            <li className="list-inline-item-action">
+                            <li className="list-inline-item">
                               {!this.state.showConfirmTransferSite ? (
                                 <span
                                   class="pointer"
