@@ -1,7 +1,7 @@
 use crate::apub::{create_apub_response, make_apub_endpoint, EndpointType};
 use crate::convert_datetime;
 use crate::db::post_view::PostView;
-use activitystreams::{object::apub::Page, object::properties::ObjectProperties};
+use activitystreams::{object::properties::ObjectProperties, object::Page};
 use actix_web::body::Body;
 use actix_web::web::Path;
 use actix_web::{web, HttpResponse};
@@ -22,9 +22,7 @@ pub async fn get_apub_post(
   let id = info.post_id.parse::<i32>()?;
   // TODO: shows error: missing field `user_name`
   let post = PostView::read(&&db.get()?, id, None)?;
-  Ok(create_apub_response(serde_json::to_string(
-    &post.as_page()?,
-  )?))
+  Ok(create_apub_response(&post.as_page()?))
 }
 
 impl PostView {
