@@ -242,27 +242,74 @@ export class User extends Component<any, UserState> {
     );
   }
 
+  viewRadios() {
+    return (
+      <div class="btn-group btn-group-toggle">
+        <label
+          className={`btn btn-sm btn-secondary pointer btn-outline-light
+            ${this.state.view == View.Overview && 'active'}
+          `}
+        >
+          <input
+            type="radio"
+            value={View.Overview}
+            checked={this.state.view == View.Overview}
+            onChange={linkEvent(this, this.handleViewChange)}
+          />
+          {i18n.t('overview')}
+        </label>
+        <label
+          className={`btn btn-sm btn-secondary pointer btn-outline-light
+            ${this.state.view == View.Comments && 'active'}
+          `}
+        >
+          <input
+            type="radio"
+            value={View.Comments}
+            checked={this.state.view == View.Comments}
+            onChange={linkEvent(this, this.handleViewChange)}
+          />
+          {i18n.t('comments')}
+        </label>
+        <label
+          className={`btn btn-sm btn-secondary pointer btn-outline-light
+            ${this.state.view == View.Posts && 'active'}
+          `}
+        >
+          <input
+            type="radio"
+            value={View.Posts}
+            checked={this.state.view == View.Posts}
+            onChange={linkEvent(this, this.handleViewChange)}
+          />
+          {i18n.t('posts')}
+        </label>
+        <label
+          className={`btn btn-sm btn-secondary pointer btn-outline-light
+            ${this.state.view == View.Saved && 'active'}
+          `}
+        >
+          <input
+            type="radio"
+            value={View.Saved}
+            checked={this.state.view == View.Saved}
+            onChange={linkEvent(this, this.handleViewChange)}
+          />
+          {i18n.t('saved')}
+        </label>
+      </div>
+    );
+  }
+
   selects() {
     return (
       <div className="mb-2">
-        <select
-          value={this.state.view}
-          onChange={linkEvent(this, this.handleViewChange)}
-          class="custom-select custom-select-sm w-auto"
-        >
-          <option disabled>{i18n.t('view')}</option>
-          <option value={View.Overview}>{i18n.t('overview')}</option>
-          <option value={View.Comments}>{i18n.t('comments')}</option>
-          <option value={View.Posts}>{i18n.t('posts')}</option>
-          <option value={View.Saved}>{i18n.t('saved')}</option>
-        </select>
-        <span class="ml-2">
-          <SortSelect
-            sort={this.state.sort}
-            onChange={this.handleSortChange}
-            hideHot
-          />
-        </span>
+        <span class="mr-3">{this.viewRadios()}</span>
+        <SortSelect
+          sort={this.state.sort}
+          onChange={this.handleSortChange}
+          hideHot
+        />
         <a
           href={`/feeds/u/${this.state.username}.xml?sort=${
             SortType[this.state.sort]
@@ -312,6 +359,7 @@ export class User extends Component<any, UserState> {
                 nodes={[{ comment: i.data as Comment }]}
                 admins={this.state.admins}
                 noIndent
+                showContext
               />
             )}
           </div>
@@ -327,6 +375,7 @@ export class User extends Component<any, UserState> {
           nodes={commentsToFlatNodes(this.state.comments)}
           admins={this.state.admins}
           noIndent
+          showContext
         />
       </div>
     );

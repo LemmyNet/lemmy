@@ -38,6 +38,7 @@
     "inferno/no-direct-mutation-state": 0,
     "inferno/no-unknown-property": 0,
     "max-statements": 0,
+    "max-params": 0,
     "new-cap": 0,
     "no-console": 0,
     "no-duplicate-imports": 0,
