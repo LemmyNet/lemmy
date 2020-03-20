@@ -1,5 +1,3 @@
-extern crate reqwest;
-
 use crate::api::community::{GetCommunityResponse, ListCommunitiesResponse};
 use crate::api::post::GetPostsResponse;
 use crate::apub::get_apub_protocol_string;
@@ -13,6 +11,7 @@ use activitystreams::collection::{OrderedCollection, UnorderedCollection};
 use activitystreams::ext::Ext;
 use activitystreams::object::ObjectBox;
 use activitystreams::object::Page;
+use chttp::prelude::*;
 use failure::Error;
 use log::warn;
 use serde::Deserialize;
@@ -66,8 +65,9 @@ where
   }
   // TODO: should cache responses here when we are in production
   // TODO: this function should return a future
-  let x: Response = reqwest::get(uri)?.json()?;
-  Ok(x)
+  let text = chttp::get(uri)?.text()?;
+  let res: Response = serde_json::from_str(&text)?;
+  Ok(res)
 }
 
 pub fn get_remote_community_posts(identifier: &str) -> Result<GetPostsResponse, Error> {
