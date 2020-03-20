@@ -254,7 +254,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                   {this.props.markable && (
                     <li className="list-inline-item">
                       <button
-                        class="btn btn-link btn-animate text-muted"
+                        class="btn btn-link btn-sm btn-animate text-muted"
                         onClick={linkEvent(this, this.handleMarkRead)}
                         data-tippy-content={
                           node.comment.read
@@ -279,7 +279,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                     <>
                       <li className="list-inline-item">
                         <button
-                          className={`btn btn-link btn-animate ${
+                          className={`btn btn-link btn-sm btn-animate ${
                             this.state.my_vote == 1 ? 'text-info' : 'text-muted'
                           }`}
                           onClick={linkEvent(node, this.handleCommentUpvote)}
@@ -296,7 +296,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                       {WebSocketService.Instance.site.enable_downvotes && (
                         <li className="list-inline-item">
                           <button
-                            className={`btn btn-link btn-animate ${
+                            className={`btn btn-link btn-sm btn-animate ${
                               this.state.my_vote == -1
                                 ? 'text-danger'
                                 : 'text-muted'
@@ -318,7 +318,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                       )}
                       <li className="list-inline-item">
                         <button
-                          class="btn btn-link btn-animate text-muted"
+                          class="btn btn-link btn-sm btn-animate text-muted"
                           onClick={linkEvent(this, this.handleSaveCommentClick)}
                           data-tippy-content={
                             node.comment.saved
@@ -340,7 +340,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                       </li>
                       <li className="list-inline-item">
                         <button
-                          class="btn btn-link btn-animate text-muted"
+                          class="btn btn-link btn-sm btn-animate text-muted"
                           onClick={linkEvent(this, this.handleReplyClick)}
                           data-tippy-content={i18n.t('reply')}
                         >
@@ -352,7 +352,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                       {!this.state.showAdvanced ? (
                         <li className="list-inline-item">
                           <button
-                            className="btn btn-link btn-animate text-muted"
+                            className="btn btn-link btn-sm btn-animate text-muted"
                             onClick={linkEvent(this, this.handleShowAdvanced)}
                             data-tippy-content={i18n.t('more')}
                           >
@@ -366,7 +366,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                           {!this.myComment && (
                             <li className="list-inline-item">
                               <Link
-                                class="btn btn-link btn-animate text-muted"
+                                class="btn btn-link btn-sm btn-animate text-muted"
                                 to={`/create_private_message?recipient_id=${node.comment.creator_id}`}
                                 title={i18n.t('message').toLowerCase()}
                               >
@@ -379,7 +379,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                           {!this.props.showContext && this.linkBtn}
                           <li className="list-inline-item">
                             <button
-                              className="btn btn-link btn-animate text-muted"
+                              className="btn btn-link btn-sm btn-animate text-muted"
                               onClick={linkEvent(this, this.handleViewSource)}
                               data-tippy-content={i18n.t('view_source')}
                             >
@@ -396,7 +396,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                               <li className="list-inline-item">•</li>
                               <li className="list-inline-item">
                                 <button
-                                  class="btn btn-link btn-animate text-muted"
+                                  class="btn btn-link btn-sm btn-animate text-muted"
                                   onClick={linkEvent(
                                     this,
                                     this.handleEditClick
@@ -410,7 +410,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                               </li>
                               <li className="list-inline-item">
                                 <button
-                                  class="btn btn-link btn-animate text-muted"
+                                  class="btn btn-link btn-sm btn-animate text-muted"
                                   onClick={linkEvent(
                                     this,
                                     this.handleDeleteClick
@@ -763,7 +763,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     return (
       <li className="list-inline-item">
         <Link
-          className="btn btn-link btn-animate text-muted"
+          className="btn btn-link btn-sm btn-animate text-muted"
           to={`/post/${node.comment.post_id}/comment/${node.comment.id}`}
           title={
             this.props.showContext ? i18n.t('show_context') : i18n.t('link')
