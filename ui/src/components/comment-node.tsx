@@ -66,6 +66,7 @@ interface CommentNodeProps {
   viewOnly?: boolean;
   locked?: boolean;
   markable?: boolean;
+  showContext?: boolean;
   moderators: Array<CommunityUser>;
   admins: Array<UserView>;
   // TODO is this necessary, can't I get it from the node itself?
@@ -166,17 +167,17 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 </Link>
               </li>
               {this.isMod && (
-                <li className="list-inline-item badge badge-light">
+                <li className="list-inline-item badge badge-light d-none d-sm-inline">
                   {i18n.t('mod')}
                 </li>
               )}
               {this.isAdmin && (
-                <li className="list-inline-item badge badge-light">
+                <li className="list-inline-item badge badge-light d-none d-sm-inline">
                   {i18n.t('admin')}
                 </li>
               )}
               {this.isPostCreator && (
-                <li className="list-inline-item badge badge-light">
+                <li className="list-inline-item badge badge-light d-none d-sm-inline">
                   {i18n.t('creator')}
                 </li>
               )}
@@ -209,8 +210,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                   </Link>
                 </li>
               )}
-              <li className="list-inline-item">•</li>
-              <li className="list-inline-item">
+              <li className="ml-3 list-inline-item">
                 <span
                   className={`unselectable pointer ${this.scoreColor}`}
                   onClick={linkEvent(node, this.handleCommentUpvote)}
@@ -250,6 +250,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                   />
                 )}
                 <ul class="list-inline mb-0 text-muted font-weight-bold small">
+                  {this.props.showContext && this.linkBtn}
                   {this.props.markable && (
                     <li className="list-inline-item">
                       <button
@@ -348,7 +349,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                           </svg>
                         </button>
                       </li>
-                      {this.props.markable && this.linkBtn}
                       {!this.state.showAdvanced ? (
                         <li className="list-inline-item">
                           <button
@@ -376,7 +376,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                               </Link>
                             </li>
                           )}
-                          {!this.props.markable && this.linkBtn}
+                          {!this.props.showContext && this.linkBtn}
                           <li className="list-inline-item">
                             <button
                               className="btn btn-link btn-sm btn-animate text-muted"
@@ -765,7 +765,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
         <Link
           className="btn btn-link btn-sm btn-animate text-muted"
           to={`/post/${node.comment.post_id}/comment/${node.comment.id}`}
-          title={i18n.t('link')}
+          title={
+            this.props.showContext ? i18n.t('show_context') : i18n.t('link')
+          }
         >
           <svg class="icon icon-inline">
             <use xlinkHref="#icon-link"></use>
