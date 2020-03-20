@@ -178,7 +178,7 @@ export class Inbox extends Component<any, InboxState> {
     return (
       <div class="btn-group btn-group-toggle">
         <label
-          className={`btn btn-sm btn-secondary pointer
+          className={`btn btn-sm btn-secondary pointer btn-outline-light
             ${this.state.messageType == MessageType.All && 'active'}
           `}
         >
@@ -191,7 +191,7 @@ export class Inbox extends Component<any, InboxState> {
           {i18n.t('all')}
         </label>
         <label
-          className={`btn btn-sm btn-secondary pointer border-right border-light
+          className={`btn btn-sm btn-secondary pointer btn-outline-light
             ${this.state.messageType == MessageType.Replies && 'active'}
           `}
         >
@@ -204,7 +204,7 @@ export class Inbox extends Component<any, InboxState> {
           {i18n.t('replies')}
         </label>
         <label
-          className={`btn btn-sm btn-secondary pointer border-right border-light
+          className={`btn btn-sm btn-secondary pointer btn-outline-light
             ${this.state.messageType == MessageType.Mentions && 'active'}
           `}
         >
@@ -217,7 +217,7 @@ export class Inbox extends Component<any, InboxState> {
           {i18n.t('mentions')}
         </label>
         <label
-          className={`btn btn-sm btn-secondary pointer border-right border-light
+          className={`btn btn-sm btn-secondary pointer btn-outline-light
             ${this.state.messageType == MessageType.Messages && 'active'}
           `}
         >
