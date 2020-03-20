@@ -166,17 +166,17 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 </Link>
               </li>
               {this.isMod && (
-                <li className="list-inline-item badge badge-light">
+                <li className="list-inline-item badge badge-light d-none d-sm-inline">
                   {i18n.t('mod')}
                 </li>
               )}
               {this.isAdmin && (
-                <li className="list-inline-item badge badge-light">
+                <li className="list-inline-item badge badge-light d-none d-sm-inline">
                   {i18n.t('admin')}
                 </li>
               )}
               {this.isPostCreator && (
-                <li className="list-inline-item badge badge-light">
+                <li className="list-inline-item badge badge-light d-none d-sm-inline">
                   {i18n.t('creator')}
                 </li>
               )}
@@ -209,8 +209,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                   </Link>
                 </li>
               )}
-              <li className="list-inline-item">•</li>
-              <li className="list-inline-item">
+              <li className="ml-3 list-inline-item">
                 <span
                   className={`unselectable pointer ${this.scoreColor}`}
                   onClick={linkEvent(node, this.handleCommentUpvote)}
