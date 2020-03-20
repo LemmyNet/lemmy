@@ -246,7 +246,7 @@ export class User extends Component<any, UserState> {
     return (
       <div class="btn-group btn-group-toggle">
         <label
-          className={`btn btn-sm btn-secondary pointer border-right border-light
+          className={`btn btn-sm btn-secondary pointer btn-outline-light
             ${this.state.view == View.Overview && 'active'}
           `}
         >
@@ -259,7 +259,7 @@ export class User extends Component<any, UserState> {
           {i18n.t('overview')}
         </label>
         <label
-          className={`btn btn-sm btn-secondary pointer border-right border-light
+          className={`btn btn-sm btn-secondary pointer btn-outline-light
             ${this.state.view == View.Comments && 'active'}
           `}
         >
@@ -272,7 +272,7 @@ export class User extends Component<any, UserState> {
           {i18n.t('comments')}
         </label>
         <label
-          className={`btn btn-sm btn-secondary pointer border-right border-light
+          className={`btn btn-sm btn-secondary pointer btn-outline-light
             ${this.state.view == View.Posts && 'active'}
           `}
         >
@@ -285,7 +285,7 @@ export class User extends Component<any, UserState> {
           {i18n.t('posts')}
         </label>
         <label
-          className={`btn btn-sm btn-secondary pointer border-right border-light
+          className={`btn btn-sm btn-secondary pointer btn-outline-light
             ${this.state.view == View.Saved && 'active'}
           `}
         >
