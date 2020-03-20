@@ -1,5 +1,4 @@
 import { Component, linkEvent } from 'inferno';
-import { Link } from 'inferno-router';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import {
@@ -34,7 +33,6 @@ import { CommentNodes } from './comment-nodes';
 import { PrivateMessage } from './private-message';
 import { SortSelect } from './sort-select';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 enum UnreadOrAll {
   Unread,
@@ -100,26 +98,19 @@ export class Inbox extends Component<any, InboxState> {
   }
 
   render() {
-    let user = UserService.Instance.user;
     return (
       <div class="container">
         <div class="row">
           <div class="col-12">
-            <h5 class="mb-0">
-              <T
-                class="d-inline"
-                i18nKey="inbox_for"
-                interpolation={{ user: user.username }}
-              >
-                #<Link to={`/u/${user.username}`}>#</Link>
-              </T>
+            <h5 class="mb-1">
+              {i18n.t('inbox')}
               <small>
                 <a
                   href={`/feeds/inbox/${UserService.Instance.auth}.xml`}
                   target="_blank"
                   title="RSS"
                 >
-                  <svg class="icon mx-2 text-muted small">
+                  <svg class="icon ml-2 text-muted small">
                     <use xlinkHref="#icon-rss">#</use>
                   </svg>
                 </a>
@@ -196,7 +187,12 @@ export class Inbox extends Component<any, InboxState> {
       <div>
         {combined.map(i =>
           isCommentType(i) ? (
-            <CommentNodes nodes={[{ comment: i }]} noIndent markable />
+            <CommentNodes
+              nodes={[{ comment: i }]}
+              noIndent
+              markable
+              showContext
+            />
           ) : (
             <PrivateMessage privateMessage={i} />
           )
@@ -212,6 +208,7 @@ export class Inbox extends Component<any, InboxState> {
           nodes={commentsToFlatNodes(this.state.replies)}
           noIndent
           markable
+          showContext
         />
       </div>
     );
@@ -221,7 +218,12 @@ export class Inbox extends Component<any, InboxState> {
     return (
       <div>
         {this.state.mentions.map(mention => (
-          <CommentNodes nodes={[{ comment: mention }]} noIndent markable />
+          <CommentNodes
+            nodes={[{ comment: mention }]}
+            noIndent
+            markable
+            showContext
+          />
         ))}
       </div>
     );

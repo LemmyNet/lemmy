@@ -312,6 +312,7 @@ export class User extends Component<any, UserState> {
                 nodes={[{ comment: i.data as Comment }]}
                 admins={this.state.admins}
                 noIndent
+                showContext
               />
             )}
           </div>
@@ -327,6 +328,7 @@ export class User extends Component<any, UserState> {
           nodes={commentsToFlatNodes(this.state.comments)}
           admins={this.state.admins}
           noIndent
+          showContext
         />
       </div>
     );

@@ -524,7 +524,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                       <>
                         <li className="list-inline-item">
                           <button
-                            class="btn btn-link btn-animate btn-sm text-muted"
+                            class="btn btn-link btn-animate text-muted"
                             onClick={linkEvent(this, this.handleSavePostClick)}
                             data-tippy-content={
                               post.saved ? i18n.t('unsave') : i18n.t('save')
@@ -540,7 +540,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                         </li>
                         <li className="list-inline-item">
                           <Link
-                            class="btn btn-link btn-animate btn-sm text-muted"
+                            class="btn btn-link btn-animate text-muted"
                             to={`/create_post${this.crossPostParams}`}
                             title={i18n.t('cross_post')}
                           >
@@ -555,7 +555,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                       <>
                         <li className="list-inline-item">
                           <button
-                            class="btn btn-link btn-animate btn-sm text-muted"
+                            class="btn btn-link btn-animate text-muted"
                             onClick={linkEvent(this, this.handleEditClick)}
                             data-tippy-content={i18n.t('edit')}
                           >
@@ -566,7 +566,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                         </li>
                         <li className="list-inline-item">
                           <button
-                            class="btn btn-link btn-animate btn-sm text-muted"
+                            class="btn btn-link btn-animate text-muted"
                             onClick={linkEvent(this, this.handleDeleteClick)}
                             data-tippy-content={
                               !post.deleted
@@ -588,7 +588,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                     {!this.state.showAdvanced && this.props.showBody ? (
                       <li className="list-inline-item">
                         <button
-                          class="btn btn-link btn-animate btn-sm text-muted"
+                          class="btn btn-link btn-animate text-muted"
                           onClick={linkEvent(this, this.handleShowAdvanced)}
                           data-tippy-content={i18n.t('more')}
                         >
@@ -602,7 +602,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                         {this.props.showBody && post.body && (
                           <li className="list-inline-item">
                             <button
-                              class="btn btn-link btn-animate btn-sm text-muted"
+                              class="btn btn-link btn-animate text-muted"
                               onClick={linkEvent(this, this.handleViewSource)}
                               data-tippy-content={i18n.t('view_source')}
                             >
@@ -619,7 +619,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                           <>
                             <li className="list-inline-item">
                               <button
-                                class="btn btn-link btn-animate btn-sm text-muted"
+                                class="btn btn-link btn-animate text-muted"
                                 onClick={linkEvent(this, this.handleModLock)}
                                 data-tippy-content={
                                   post.locked
@@ -637,7 +637,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                             </li>
                             <li className="list-inline-item">
                               <button
-                                class="btn btn-link btn-animate btn-sm text-muted"
+                                class="btn btn-link btn-animate text-muted"
                                 onClick={linkEvent(this, this.handleModSticky)}
                                 data-tippy-content={
                                   post.stickied
