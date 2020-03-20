@@ -218,7 +218,7 @@ export function validURL(str: string) {
 }
 
 export function validEmail(email: string) {
-  let re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  let re = /^(([^\s"(),.:;<>@[\\\]]+(\.[^\s"(),.:;<>@[\\\]]+)*)|(".+"))@((\[(?:\d{1,3}\.){3}\d{1,3}])|(([\dA-Za-z\-]+\.)+[A-Za-z]{2,}))$/;
   return re.test(String(email).toLowerCase());
 }
 
@@ -433,6 +433,28 @@ export function toast(text: string, background: string = 'success') {
     backgroundColor: backgroundColor,
     gravity: 'bottom',
     position: 'left',
+  }).showToast();
+}
+
+export function messageToastify(
+  creator: string,
+  avatar: string,
+  body: string,
+  link: string,
+  router: any
+) {
+  let backgroundColor = `var(--light)`;
+  Toastify({
+    text: `${body}<br />${creator}`,
+    avatar: avatar,
+    backgroundColor: backgroundColor,
+    close: true,
+    gravity: 'top',
+    position: 'right',
+    duration: 0,
+    onClick: () => {
+      router.history.push(link);
+    },
   }).showToast();
 }
 
