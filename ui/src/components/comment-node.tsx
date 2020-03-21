@@ -147,88 +147,79 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               this.props.node.comment.parent_id &&
               'ml-2'}`}
           >
-            <ul class="list-inline mb-1 text-muted small">
-              <li className="mt-1 list-inline-item">
-                <Link
-                  className="text-body font-weight-bold"
-                  to={`/u/${node.comment.creator_name}`}
-                >
-                  {node.comment.creator_avatar && showAvatars() && (
-                    <img
-                      height="32"
-                      width="32"
-                      src={pictshareAvatarThumbnail(
-                        node.comment.creator_avatar
-                      )}
-                      class="rounded-circle mr-1"
-                    />
-                  )}
-                  <span>{node.comment.creator_name}</span>
-                </Link>
-              </li>
+            <div class="d-flex align-items-center mb-1 mt-1 text-muted small">
+              <Link
+                className="mr-2 text-body font-weight-bold"
+                to={`/u/${node.comment.creator_name}`}
+              >
+                {node.comment.creator_avatar && showAvatars() && (
+                  <img
+                    height="32"
+                    width="32"
+                    src={pictshareAvatarThumbnail(node.comment.creator_avatar)}
+                    class="rounded-circle mr-1"
+                  />
+                )}
+                <span>{node.comment.creator_name}</span>
+              </Link>
               {this.isMod && (
-                <li className="list-inline-item badge badge-light d-none d-sm-inline">
+                <div className="badge badge-light d-none d-sm-inline mr-2">
                   {i18n.t('mod')}
-                </li>
+                </div>
               )}
               {this.isAdmin && (
-                <li className="list-inline-item badge badge-light d-none d-sm-inline">
+                <div className="badge badge-light d-none d-sm-inline mr-2">
                   {i18n.t('admin')}
-                </li>
+                </div>
               )}
               {this.isPostCreator && (
-                <li className="list-inline-item badge badge-light d-none d-sm-inline">
+                <div className="badge badge-light d-none d-sm-inline mr-2">
                   {i18n.t('creator')}
-                </li>
+                </div>
               )}
               {(node.comment.banned_from_community || node.comment.banned) && (
-                <li className="list-inline-item badge badge-danger">
+                <div className="badge badge-danger mr-2">
                   {i18n.t('banned')}
-                </li>
-              )}
-              <li className="list-inline-item">
-                <div
-                  className="unselectable pointer text-monospace"
-                  onClick={linkEvent(this, this.handleCommentCollapse)}
-                >
-                  {this.state.collapsed ? (
-                    <svg class="icon icon-inline">
-                      <use xlinkHref="#icon-plus-square"></use>
-                    </svg>
-                  ) : (
-                    <svg class="icon icon-inline">
-                      <use xlinkHref="#icon-minus-square"></use>
-                    </svg>
-                  )}
                 </div>
-              </li>
+              )}
               {this.props.showCommunity && (
-                <li className="list-inline-item">
-                  <span> {i18n.t('to')} </span>
-                  <Link to={`/c/${node.comment.community_name}`}>
+                <>
+                  <span class="mx-1">{i18n.t('to')}</span>
+                  <Link class="mr-2" to={`/c/${node.comment.community_name}`}>
                     {node.comment.community_name}
                   </Link>
-                </li>
+                </>
               )}
-              <li className="ml-3 list-inline-item">
-                <span
-                  className={`unselectable pointer ${this.scoreColor}`}
-                  onClick={linkEvent(node, this.handleCommentUpvote)}
-                  data-tippy-content={this.pointsTippy}
-                >
-                  <svg class="icon icon-inline mr-1">
-                    <use xlinkHref="#icon-zap"></use>
+              <div
+                className="mr-lg-4 flex-grow-1 flex-lg-grow-0 unselectable pointer mr-2"
+                onClick={linkEvent(this, this.handleCommentCollapse)}
+              >
+                {this.state.collapsed ? (
+                  <svg class="icon icon-inline">
+                    <use xlinkHref="#icon-plus-square"></use>
                   </svg>
-                  {this.state.score}
-                </span>
-              </li>
-              <li className="list-inline-item">•</li>
-              <li className="list-inline-item">
-                <span>
-                  <MomentTime data={node.comment} />
-                </span>
-              </li>
-            </ul>
+                ) : (
+                  <svg class="icon icon-inline">
+                    <use xlinkHref="#icon-minus-square"></use>
+                  </svg>
+                )}
+              </div>
+              <span
+                className={`unselectable pointer ${this.scoreColor}`}
+                onClick={linkEvent(node, this.handleCommentUpvote)}
+                data-tippy-content={this.pointsTippy}
+              >
+                <svg class="icon icon-inline mr-1">
+                  <use xlinkHref="#icon-zap"></use>
+                </svg>
+                <span class="mr-1">{this.state.score}</span>
+              </span>
+              <span className="mr-1">•</span>
+              <span>
+                <MomentTime data={node.comment} />
+              </span>
+            </div>
+            {/* end of user row */}
             {this.state.showEdit && (
               <CommentForm
                 node={node}
@@ -249,124 +240,107 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                     )}
                   />
                 )}
-                <ul class="list-inline mb-0 text-muted font-weight-bold small">
+                <div class="d-flex justify-content-between justify-content-lg-start flex-wrap text-muted font-weight-bold">
                   {this.props.showContext && this.linkBtn}
                   {this.props.markable && (
-                    <li className="list-inline-item">
-                      <button
-                        class="btn btn-link btn-sm btn-animate text-muted"
-                        onClick={linkEvent(this, this.handleMarkRead)}
-                        data-tippy-content={
-                          node.comment.read
-                            ? i18n.t('mark_as_unread')
-                            : i18n.t('mark_as_read')
-                        }
-                      >
-                        {this.state.readLoading ? (
-                          this.loadingIcon
-                        ) : (
-                          <svg
-                            class={`icon icon-inline ${node.comment.read &&
-                              'text-success'}`}
-                          >
-                            <use xlinkHref="#icon-check"></use>
-                          </svg>
-                        )}
-                      </button>
-                    </li>
+                    <button
+                      class="btn btn-link btn-animate text-muted"
+                      onClick={linkEvent(this, this.handleMarkRead)}
+                      data-tippy-content={
+                        node.comment.read
+                          ? i18n.t('mark_as_unread')
+                          : i18n.t('mark_as_read')
+                      }
+                    >
+                      {this.state.readLoading ? (
+                        this.loadingIcon
+                      ) : (
+                        <svg
+                          class={`icon icon-inline ${node.comment.read &&
+                            'text-success'}`}
+                        >
+                          <use xlinkHref="#icon-check"></use>
+                        </svg>
+                      )}
+                    </button>
                   )}
                   {UserService.Instance.user && !this.props.viewOnly && (
                     <>
-                      <li className="list-inline-item">
+                      <button
+                        className={`btn btn-link btn-animate ${
+                          this.state.my_vote == 1 ? 'text-info' : 'text-muted'
+                        }`}
+                        onClick={linkEvent(node, this.handleCommentUpvote)}
+                        data-tippy-content={i18n.t('upvote')}
+                      >
+                        <svg class="icon icon-inline">
+                          <use xlinkHref="#icon-arrow-up"></use>
+                        </svg>
+                        {this.state.upvotes !== this.state.score && (
+                          <span class="ml-1">{this.state.upvotes}</span>
+                        )}
+                      </button>
+                      {WebSocketService.Instance.site.enable_downvotes && (
                         <button
-                          className={`btn btn-link btn-sm btn-animate ${
-                            this.state.my_vote == 1 ? 'text-info' : 'text-muted'
+                          className={`btn btn-link btn-animate ${
+                            this.state.my_vote == -1
+                              ? 'text-danger'
+                              : 'text-muted'
                           }`}
-                          onClick={linkEvent(node, this.handleCommentUpvote)}
-                          data-tippy-content={i18n.t('upvote')}
+                          onClick={linkEvent(node, this.handleCommentDownvote)}
+                          data-tippy-content={i18n.t('downvote')}
                         >
                           <svg class="icon icon-inline">
-                            <use xlinkHref="#icon-arrow-up"></use>
+                            <use xlinkHref="#icon-arrow-down"></use>
                           </svg>
                           {this.state.upvotes !== this.state.score && (
-                            <span class="ml-1">{this.state.upvotes}</span>
+                            <span class="ml-1">{this.state.downvotes}</span>
                           )}
                         </button>
-                      </li>
-                      {WebSocketService.Instance.site.enable_downvotes && (
-                        <li className="list-inline-item">
-                          <button
-                            className={`btn btn-link btn-sm btn-animate ${
-                              this.state.my_vote == -1
-                                ? 'text-danger'
-                                : 'text-muted'
-                            }`}
-                            onClick={linkEvent(
-                              node,
-                              this.handleCommentDownvote
-                            )}
-                            data-tippy-content={i18n.t('downvote')}
-                          >
-                            <svg class="icon icon-inline">
-                              <use xlinkHref="#icon-arrow-down"></use>
-                            </svg>
-                            {this.state.upvotes !== this.state.score && (
-                              <span class="ml-1">{this.state.downvotes}</span>
-                            )}
-                          </button>
-                        </li>
                       )}
-                      <li className="list-inline-item">
+                      <button
+                        class="btn btn-link btn-animate text-muted"
+                        onClick={linkEvent(this, this.handleSaveCommentClick)}
+                        data-tippy-content={
+                          node.comment.saved ? i18n.t('unsave') : i18n.t('save')
+                        }
+                      >
+                        {this.state.saveLoading ? (
+                          this.loadingIcon
+                        ) : (
+                          <svg
+                            class={`icon icon-inline ${node.comment.saved &&
+                              'text-warning'}`}
+                          >
+                            <use xlinkHref="#icon-star"></use>
+                          </svg>
+                        )}
+                      </button>
+                      <button
+                        class="btn btn-link btn-animate text-muted"
+                        onClick={linkEvent(this, this.handleReplyClick)}
+                        data-tippy-content={i18n.t('reply')}
+                      >
+                        <svg class="icon icon-inline">
+                          <use xlinkHref="#icon-reply1"></use>
+                        </svg>
+                      </button>
+                      {!this.state.showAdvanced ? (
                         <button
-                          class="btn btn-link btn-sm btn-animate text-muted"
-                          onClick={linkEvent(this, this.handleSaveCommentClick)}
-                          data-tippy-content={
-                            node.comment.saved
-                              ? i18n.t('unsave')
-                              : i18n.t('save')
-                          }
-                        >
-                          {this.state.saveLoading ? (
-                            this.loadingIcon
-                          ) : (
-                            <svg
-                              class={`icon icon-inline ${node.comment.saved &&
-                                'text-warning'}`}
-                            >
-                              <use xlinkHref="#icon-star"></use>
-                            </svg>
-                          )}
-                        </button>
-                      </li>
-                      <li className="list-inline-item">
-                        <button
-                          class="btn btn-link btn-sm btn-animate text-muted"
-                          onClick={linkEvent(this, this.handleReplyClick)}
-                          data-tippy-content={i18n.t('reply')}
+                          className="btn btn-link btn-animate text-muted"
+                          onClick={linkEvent(this, this.handleShowAdvanced)}
+                          data-tippy-content={i18n.t('more')}
                         >
                           <svg class="icon icon-inline">
-                            <use xlinkHref="#icon-reply1"></use>
+                            <use xlinkHref="#icon-more-vertical"></use>
                           </svg>
                         </button>
-                      </li>
-                      {!this.state.showAdvanced ? (
-                        <li className="list-inline-item">
-                          <button
-                            className="btn btn-link btn-sm btn-animate text-muted"
-                            onClick={linkEvent(this, this.handleShowAdvanced)}
-                            data-tippy-content={i18n.t('more')}
-                          >
-                            <svg class="icon icon-inline">
-                              <use xlinkHref="#icon-more-vertical"></use>
-                            </svg>
-                          </button>
-                        </li>
                       ) : (
                         <>
                           {!this.myComment && (
-                            <li className="list-inline-item">
+                            <button class="btn btn-link btn-animate">
                               <Link
-                                class="btn btn-link btn-sm btn-animate text-muted"
+                                class="text-muted"
                                 to={`/create_private_message?recipient_id=${node.comment.creator_id}`}
                                 title={i18n.t('message').toLowerCase()}
                               >
@@ -374,320 +348,292 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                                   <use xlinkHref="#icon-mail"></use>
                                 </svg>
                               </Link>
-                            </li>
+                            </button>
                           )}
                           {!this.props.showContext && this.linkBtn}
-                          <li className="list-inline-item">
-                            <button
-                              className="btn btn-link btn-sm btn-animate text-muted"
-                              onClick={linkEvent(this, this.handleViewSource)}
-                              data-tippy-content={i18n.t('view_source')}
+                          <button
+                            className="btn btn-link btn-animate text-muted"
+                            onClick={linkEvent(this, this.handleViewSource)}
+                            data-tippy-content={i18n.t('view_source')}
+                          >
+                            <svg
+                              class={`icon icon-inline ${this.state
+                                .viewSource && 'text-success'}`}
                             >
-                              <svg
-                                class={`icon icon-inline ${this.state
-                                  .viewSource && 'text-success'}`}
-                              >
-                                <use xlinkHref="#icon-file-text"></use>
-                              </svg>
-                            </button>
-                          </li>
+                              <use xlinkHref="#icon-file-text"></use>
+                            </svg>
+                          </button>
                           {this.myComment && (
                             <>
-                              <li className="list-inline-item">•</li>
-                              <li className="list-inline-item">
-                                <button
-                                  class="btn btn-link btn-sm btn-animate text-muted"
-                                  onClick={linkEvent(
-                                    this,
-                                    this.handleEditClick
-                                  )}
-                                  data-tippy-content={i18n.t('edit')}
+                              <button
+                                class="btn btn-link btn-animate text-muted"
+                                onClick={linkEvent(this, this.handleEditClick)}
+                                data-tippy-content={i18n.t('edit')}
+                              >
+                                <svg class="icon icon-inline">
+                                  <use xlinkHref="#icon-edit"></use>
+                                </svg>
+                              </button>
+                              <button
+                                class="btn btn-link btn-animate text-muted"
+                                onClick={linkEvent(
+                                  this,
+                                  this.handleDeleteClick
+                                )}
+                                data-tippy-content={
+                                  !node.comment.deleted
+                                    ? i18n.t('delete')
+                                    : i18n.t('restore')
+                                }
+                              >
+                                <svg
+                                  class={`icon icon-inline ${node.comment
+                                    .deleted && 'text-danger'}`}
                                 >
-                                  <svg class="icon icon-inline">
-                                    <use xlinkHref="#icon-edit"></use>
-                                  </svg>
-                                </button>
-                              </li>
-                              <li className="list-inline-item">
-                                <button
-                                  class="btn btn-link btn-sm btn-animate text-muted"
-                                  onClick={linkEvent(
-                                    this,
-                                    this.handleDeleteClick
-                                  )}
-                                  data-tippy-content={
-                                    !node.comment.deleted
-                                      ? i18n.t('delete')
-                                      : i18n.t('restore')
-                                  }
-                                >
-                                  <svg
-                                    class={`icon icon-inline ${node.comment
-                                      .deleted && 'text-danger'}`}
-                                  >
-                                    <use xlinkHref="#icon-trash"></use>
-                                  </svg>
-                                </button>
-                              </li>
+                                  <use xlinkHref="#icon-trash"></use>
+                                </svg>
+                              </button>
                             </>
                           )}
                           {/* Admins and mods can remove comments */}
                           {(this.canMod || this.canAdmin) && (
                             <>
-                              <li className="list-inline-item">
-                                {!node.comment.removed ? (
-                                  <span
-                                    class="pointer"
-                                    onClick={linkEvent(
-                                      this,
-                                      this.handleModRemoveShow
-                                    )}
-                                  >
-                                    {i18n.t('remove')}
-                                  </span>
-                                ) : (
-                                  <span
-                                    class="pointer"
-                                    onClick={linkEvent(
-                                      this,
-                                      this.handleModRemoveSubmit
-                                    )}
-                                  >
-                                    {i18n.t('restore')}
-                                  </span>
-                                )}
-                              </li>
+                              {!node.comment.removed ? (
+                                <button
+                                  class="btn btn-link btn-animate text-muted"
+                                  onClick={linkEvent(
+                                    this,
+                                    this.handleModRemoveShow
+                                  )}
+                                >
+                                  {i18n.t('remove')}
+                                </button>
+                              ) : (
+                                <button
+                                  class="btn btn-link btn-animate text-muted"
+                                  onClick={linkEvent(
+                                    this,
+                                    this.handleModRemoveSubmit
+                                  )}
+                                >
+                                  {i18n.t('restore')}
+                                </button>
+                              )}
                             </>
                           )}
                           {/* Mods can ban from community, and appoint as mods to community */}
                           {this.canMod && (
                             <>
-                              {!this.isMod && (
-                                <li className="list-inline-item">
-                                  {!node.comment.banned_from_community ? (
-                                    <span
-                                      class="pointer"
+                              {!this.isMod &&
+                                (!node.comment.banned_from_community ? (
+                                  <button
+                                    class="btn btn-link btn-animate text-muted"
+                                    onClick={linkEvent(
+                                      this,
+                                      this.handleModBanFromCommunityShow
+                                    )}
+                                  >
+                                    {i18n.t('ban')}
+                                  </button>
+                                ) : (
+                                  <button
+                                    class="btn btn-link btn-animate text-muted"
+                                    onClick={linkEvent(
+                                      this,
+                                      this.handleModBanFromCommunitySubmit
+                                    )}
+                                  >
+                                    {i18n.t('unban')}
+                                  </button>
+                                ))}
+                              {!node.comment.banned_from_community &&
+                                (!this.state.showConfirmAppointAsMod ? (
+                                  <button
+                                    class="btn btn-link btn-animate text-muted"
+                                    onClick={linkEvent(
+                                      this,
+                                      this.handleShowConfirmAppointAsMod
+                                    )}
+                                  >
+                                    {this.isMod
+                                      ? i18n.t('remove_as_mod')
+                                      : i18n.t('appoint_as_mod')}
+                                  </button>
+                                ) : (
+                                  <>
+                                    <button class="btn btn-link btn-animate text-muted">
+                                      {i18n.t('are_you_sure')}
+                                    </button>
+                                    <button
+                                      class="btn btn-link btn-animate text-muted"
                                       onClick={linkEvent(
                                         this,
-                                        this.handleModBanFromCommunityShow
+                                        this.handleAddModToCommunity
                                       )}
                                     >
-                                      {i18n.t('ban')}
-                                    </span>
-                                  ) : (
-                                    <span
-                                      class="pointer"
+                                      {i18n.t('yes')}
+                                    </button>
+                                    <button
+                                      class="btn btn-link btn-animate text-muted"
                                       onClick={linkEvent(
                                         this,
-                                        this.handleModBanFromCommunitySubmit
+                                        this.handleCancelConfirmAppointAsMod
                                       )}
                                     >
-                                      {i18n.t('unban')}
-                                    </span>
-                                  )}
-                                </li>
-                              )}
-                              {!node.comment.banned_from_community && (
-                                <li className="list-inline-item">
-                                  {!this.state.showConfirmAppointAsMod ? (
-                                    <span
-                                      class="pointer"
-                                      onClick={linkEvent(
-                                        this,
-                                        this.handleShowConfirmAppointAsMod
-                                      )}
-                                    >
-                                      {this.isMod
-                                        ? i18n.t('remove_as_mod')
-                                        : i18n.t('appoint_as_mod')}
-                                    </span>
-                                  ) : (
-                                    <>
-                                      <span class="d-inline-block mr-1">
-                                        {i18n.t('are_you_sure')}
-                                      </span>
-                                      <span
-                                        class="pointer d-inline-block mr-1"
-                                        onClick={linkEvent(
-                                          this,
-                                          this.handleAddModToCommunity
-                                        )}
-                                      >
-                                        {i18n.t('yes')}
-                                      </span>
-                                      <span
-                                        class="pointer d-inline-block"
-                                        onClick={linkEvent(
-                                          this,
-                                          this.handleCancelConfirmAppointAsMod
-                                        )}
-                                      >
-                                        {i18n.t('no')}
-                                      </span>
-                                    </>
-                                  )}
-                                </li>
-                              )}
+                                      {i18n.t('no')}
+                                    </button>
+                                  </>
+                                ))}
                             </>
                           )}
                           {/* Community creators and admins can transfer community to another mod */}
                           {(this.amCommunityCreator || this.canAdmin) &&
-                            this.isMod && (
-                              <li className="list-inline-item">
-                                {!this.state.showConfirmTransferCommunity ? (
-                                  <span
-                                    class="pointer"
-                                    onClick={linkEvent(
-                                      this,
-                                      this.handleShowConfirmTransferCommunity
-                                    )}
-                                  >
-                                    {i18n.t('transfer_community')}
-                                  </span>
-                                ) : (
-                                  <>
-                                    <span class="d-inline-block mr-1">
-                                      {i18n.t('are_you_sure')}
-                                    </span>
-                                    <span
-                                      class="pointer d-inline-block mr-1"
-                                      onClick={linkEvent(
-                                        this,
-                                        this.handleTransferCommunity
-                                      )}
-                                    >
-                                      {i18n.t('yes')}
-                                    </span>
-                                    <span
-                                      class="pointer d-inline-block"
-                                      onClick={linkEvent(
-                                        this,
-                                        this
-                                          .handleCancelShowConfirmTransferCommunity
-                                      )}
-                                    >
-                                      {i18n.t('no')}
-                                    </span>
-                                  </>
+                            this.isMod &&
+                            (!this.state.showConfirmTransferCommunity ? (
+                              <button
+                                class="btn btn-link btn-animate text-muted"
+                                onClick={linkEvent(
+                                  this,
+                                  this.handleShowConfirmTransferCommunity
                                 )}
-                              </li>
-                            )}
+                              >
+                                {i18n.t('transfer_community')}
+                              </button>
+                            ) : (
+                              <>
+                                <button class="btn btn-link btn-animate text-muted">
+                                  {i18n.t('are_you_sure')}
+                                </button>
+                                <button
+                                  class="btn btn-link btn-animate text-muted"
+                                  onClick={linkEvent(
+                                    this,
+                                    this.handleTransferCommunity
+                                  )}
+                                >
+                                  {i18n.t('yes')}
+                                </button>
+                                <button
+                                  class="btn btn-link btn-animate text-muted"
+                                  onClick={linkEvent(
+                                    this,
+                                    this
+                                      .handleCancelShowConfirmTransferCommunity
+                                  )}
+                                >
+                                  {i18n.t('no')}
+                                </button>
+                              </>
+                            ))}
                           {/* Admins can ban from all, and appoint other admins */}
                           {this.canAdmin && (
                             <>
-                              {!this.isAdmin && (
-                                <li className="list-inline-item">
-                                  {!node.comment.banned ? (
-                                    <span
-                                      class="pointer"
+                              {!this.isAdmin &&
+                                (!node.comment.banned ? (
+                                  <button
+                                    class="btn btn-link btn-animate text-muted"
+                                    onClick={linkEvent(
+                                      this,
+                                      this.handleModBanShow
+                                    )}
+                                  >
+                                    {i18n.t('ban_from_site')}
+                                  </button>
+                                ) : (
+                                  <button
+                                    class="btn btn-link btn-animate text-muted"
+                                    onClick={linkEvent(
+                                      this,
+                                      this.handleModBanSubmit
+                                    )}
+                                  >
+                                    {i18n.t('unban_from_site')}
+                                  </button>
+                                ))}
+                              {!node.comment.banned &&
+                                (!this.state.showConfirmAppointAsAdmin ? (
+                                  <button
+                                    class="btn btn-link btn-animate text-muted"
+                                    onClick={linkEvent(
+                                      this,
+                                      this.handleShowConfirmAppointAsAdmin
+                                    )}
+                                  >
+                                    {this.isAdmin
+                                      ? i18n.t('remove_as_admin')
+                                      : i18n.t('appoint_as_admin')}
+                                  </button>
+                                ) : (
+                                  <>
+                                    <button class="btn btn-link btn-animate text-muted">
+                                      {i18n.t('are_you_sure')}
+                                    </button>
+                                    <button
+                                      class="btn btn-link btn-animate text-muted"
                                       onClick={linkEvent(
                                         this,
-                                        this.handleModBanShow
+                                        this.handleAddAdmin
                                       )}
                                     >
-                                      {i18n.t('ban_from_site')}
-                                    </span>
-                                  ) : (
-                                    <span
-                                      class="pointer"
+                                      {i18n.t('yes')}
+                                    </button>
+                                    <button
+                                      class="btn btn-link btn-animate text-muted"
                                       onClick={linkEvent(
                                         this,
-                                        this.handleModBanSubmit
+                                        this.handleCancelConfirmAppointAsAdmin
                                       )}
                                     >
-                                      {i18n.t('unban_from_site')}
-                                    </span>
-                                  )}
-                                </li>
-                              )}
-                              {!node.comment.banned && (
-                                <li className="list-inline-item">
-                                  {!this.state.showConfirmAppointAsAdmin ? (
-                                    <span
-                                      class="pointer"
-                                      onClick={linkEvent(
-                                        this,
-                                        this.handleShowConfirmAppointAsAdmin
-                                      )}
-                                    >
-                                      {this.isAdmin
-                                        ? i18n.t('remove_as_admin')
-                                        : i18n.t('appoint_as_admin')}
-                                    </span>
-                                  ) : (
-                                    <>
-                                      <span class="d-inline-block mr-1">
-                                        {i18n.t('are_you_sure')}
-                                      </span>
-                                      <span
-                                        class="pointer d-inline-block mr-1"
-                                        onClick={linkEvent(
-                                          this,
-                                          this.handleAddAdmin
-                                        )}
-                                      >
-                                        {i18n.t('yes')}
-                                      </span>
-                                      <span
-                                        class="pointer d-inline-block"
-                                        onClick={linkEvent(
-                                          this,
-                                          this.handleCancelConfirmAppointAsAdmin
-                                        )}
-                                      >
-                                        {i18n.t('no')}
-                                      </span>
-                                    </>
-                                  )}
-                                </li>
-                              )}
+                                      {i18n.t('no')}
+                                    </button>
+                                  </>
+                                ))}
                             </>
                           )}
                           {/* Site Creator can transfer to another admin */}
-                          {this.amSiteCreator && this.isAdmin && (
-                            <li className="list-inline-item">
-                              {!this.state.showConfirmTransferSite ? (
-                                <span
-                                  class="pointer"
+                          {this.amSiteCreator &&
+                            this.isAdmin &&
+                            (!this.state.showConfirmTransferSite ? (
+                              <button
+                                class="btn btn-link btn-animate text-muted"
+                                onClick={linkEvent(
+                                  this,
+                                  this.handleShowConfirmTransferSite
+                                )}
+                              >
+                                {i18n.t('transfer_site')}
+                              </button>
+                            ) : (
+                              <>
+                                <button class="btn btn-link btn-animate text-muted">
+                                  {i18n.t('are_you_sure')}
+                                </button>
+                                <button
+                                  class="btn btn-link btn-animate text-muted"
                                   onClick={linkEvent(
                                     this,
-                                    this.handleShowConfirmTransferSite
+                                    this.handleTransferSite
                                   )}
                                 >
-                                  {i18n.t('transfer_site')}
-                                </span>
-                              ) : (
-                                <>
-                                  <span class="d-inline-block mr-1">
-                                    {i18n.t('are_you_sure')}
-                                  </span>
-                                  <span
-                                    class="pointer d-inline-block mr-1"
-                                    onClick={linkEvent(
-                                      this,
-                                      this.handleTransferSite
-                                    )}
-                                  >
-                                    {i18n.t('yes')}
-                                  </span>
-                                  <span
-                                    class="pointer d-inline-block"
-                                    onClick={linkEvent(
-                                      this,
-                                      this.handleCancelShowConfirmTransferSite
-                                    )}
-                                  >
-                                    {i18n.t('no')}
-                                  </span>
-                                </>
-                              )}
-                            </li>
-                          )}
+                                  {i18n.t('yes')}
+                                </button>
+                                <button
+                                  class="btn btn-link btn-animate text-muted"
+                                  onClick={linkEvent(
+                                    this,
+                                    this.handleCancelShowConfirmTransferSite
+                                  )}
+                                >
+                                  {i18n.t('no')}
+                                </button>
+                              </>
+                            ))}
                         </>
                       )}
                     </>
                   )}
-                </ul>
+                </div>
+                {/* end of button group */}
               </div>
             )}
           </div>
@@ -761,9 +707,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   get linkBtn() {
     let node = this.props.node;
     return (
-      <li className="list-inline-item">
+      <button className="btn btn-link btn-animate">
         <Link
-          className="btn btn-link btn-sm btn-animate text-muted"
+          class="text-muted"
           to={`/post/${node.comment.post_id}/comment/${node.comment.id}`}
           title={
             this.props.showContext ? i18n.t('show_context') : i18n.t('link')
@@ -773,7 +719,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             <use xlinkHref="#icon-link"></use>
           </svg>
         </Link>
-      </li>
+      </button>
     );
   }
 
