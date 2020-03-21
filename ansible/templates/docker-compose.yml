@@ -7,7 +7,7 @@ services:
       - "127.0.0.1:{{ lemmy_port }}:8536"
     restart: always
     environment:
-      - RUST_LOG=debug
+      - RUST_LOG=error
     volumes:
       - ./lemmy.hjson:/config/config.hjson:ro
     depends_on:
