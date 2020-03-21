@@ -189,6 +189,7 @@ export class Community extends Component<any, State> {
         nodes={commentsToFlatNodes(this.state.comments)}
         noIndent
         sortType={this.state.sort}
+        showContext
       />
     );
   }

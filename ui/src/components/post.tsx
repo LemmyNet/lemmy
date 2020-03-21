@@ -276,6 +276,7 @@ export class Post extends Component<any, PostState> {
             moderators={this.state.moderators}
             admins={this.state.admins}
             postCreatorId={this.state.post.creator_id}
+            showContext
           />
         </div>
       </div>
