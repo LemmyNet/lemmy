@@ -444,7 +444,8 @@ export function messageToastify(
   router: any
 ) {
   let backgroundColor = `var(--light)`;
-  Toastify({
+
+  let toast = Toastify({
     text: `${body}<br />${creator}`,
     avatar: avatar,
     backgroundColor: backgroundColor,
@@ -453,7 +454,10 @@ export function messageToastify(
     position: 'right',
     duration: 0,
     onClick: () => {
-      router.history.push(link);
+      if (toast) {
+        toast.hideToast();
+        router.history.push(link);
+      }
     },
   }).showToast();
 }
