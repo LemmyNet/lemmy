@@ -147,7 +147,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               this.props.node.comment.parent_id &&
               'ml-2'}`}
           >
-            <div class="d-flex align-items-center mb-1 mt-1 text-muted small">
+            <div class="d-flex flex-wrap align-items-center mb-1 mt-1 text-muted small">
               <Link
                 className="mr-2 text-body font-weight-bold"
                 to={`/u/${node.comment.creator_name}`}
