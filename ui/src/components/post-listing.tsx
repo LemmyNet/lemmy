@@ -250,14 +250,14 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       <div class="row">
         <div className={`vote-bar col-1 pr-0 small text-center`}>
           <button
-            className={`btn-animate btn btn-link btn-lg p-0 ${
+            className={`btn-animate btn btn-link p-0 ${
               this.state.my_vote == 1 ? 'text-info' : 'text-muted'
             }`}
             onClick={linkEvent(this, this.handlePostLike)}
             data-tippy-content={i18n.t('upvote')}
           >
             <svg class="icon upvote">
-              <use xlinkHref="#icon-arrow-up"></use>
+              <use xlinkHref="#icon-arrow-up1"></use>
             </svg>
           </button>
           <div
@@ -268,14 +268,14 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           </div>
           {WebSocketService.Instance.site.enable_downvotes && (
             <button
-              className={`btn-animate btn btn-link btn-lg p-0 ${
+              className={`btn-animate btn btn-link p-0 ${
                 this.state.my_vote == -1 ? 'text-danger' : 'text-muted'
               }`}
               onClick={linkEvent(this, this.handlePostDisLike)}
               data-tippy-content={i18n.t('downvote')}
             >
               <svg class="icon downvote">
-                <use xlinkHref="#icon-arrow-down"></use>
+                <use xlinkHref="#icon-arrow-down1"></use>
               </svg>
             </button>
           )}
