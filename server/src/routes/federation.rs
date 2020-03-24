@@ -9,7 +9,7 @@ use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-  if Settings::get().federation_enabled {
+  if Settings::get().federation.enabled {
     println!("federation enabled, host is {}", Settings::get().hostname);
     cfg
       .route(
@@ -21,10 +21,18 @@ pub fn config(cfg: &mut web::ServiceConfig) {
         web::get().to(apub::community::get_apub_community_followers),
       )
       .route(
+        "/federation/c/{community_name}/outbox",
+        web::get().to(apub::community::get_apub_community_outbox),
+      )
+      .route(
         "/federation/u/{user_name}",
         web::get().to(apub::user::get_apub_user),
       )
-      // TODO: this is a very quick and dirty implementation for http api calls
+      .route(
+        "/federation/p/{post_id}",
+        web::get().to(apub::user::get_apub_user),
+      )
+      // TODO: we should be able to remove this but somehow that breaks the remote community list
       .route(
         "/api/v1/communities/list",
         web::get().to(

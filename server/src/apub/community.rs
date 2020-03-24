@@ -1,109 +1,119 @@
-use crate::apub::make_apub_endpoint;
+use crate::apub::{create_apub_response, make_apub_endpoint, EndpointType};
+use crate::convert_datetime;
 use crate::db::community::Community;
 use crate::db::community_view::CommunityFollowerView;
 use crate::db::establish_unpooled_connection;
-use crate::to_datetime_utc;
-use activitypub::{actor::Group, collection::UnorderedCollection, context};
+use crate::db::post_view::{PostQueryBuilder, PostView};
+use activitystreams::collection::OrderedCollection;
+use activitystreams::{
+  actor::{properties::ApActorProperties, Group},
+  collection::UnorderedCollection,
+  context,
+  ext::Extensible,
+  object::properties::ObjectProperties,
+};
 use actix_web::body::Body;
 use actix_web::web::Path;
 use actix_web::HttpResponse;
+use actix_web::{web, Result};
+use diesel::r2d2::{ConnectionManager, Pool};
+use diesel::PgConnection;
+use failure::Error;
 use serde::Deserialize;
-
-impl Community {
-  pub fn as_group(&self) -> Group {
-    let base_url = make_apub_endpoint("c", &self.name);
-
-    let mut group = Group::default();
-
-    group.object_props.set_context_object(context()).ok();
-    group.object_props.set_id_string(base_url.to_string()).ok();
-    group
-      .object_props
-      .set_name_string(self.name.to_owned())
-      .ok();
-    group
-      .object_props
-      .set_published_utctime(to_datetime_utc(self.published))
-      .ok();
-    if let Some(updated) = self.updated {
-      group
-        .object_props
-        .set_updated_utctime(to_datetime_utc(updated))
-        .ok();
-    }
-
-    if let Some(description) = &self.description {
-      group
-        .object_props
-        .set_summary_string(description.to_string())
-        .ok();
-    }
-
-    group
-      .ap_actor_props
-      .set_inbox_string(format!("{}/inbox", &base_url))
-      .ok();
-    group
-      .ap_actor_props
-      .set_outbox_string(format!("{}/outbox", &base_url))
-      .ok();
-    group
-      .ap_actor_props
-      .set_followers_string(format!("{}/followers", &base_url))
-      .ok();
-
-    group
-  }
-
-  pub fn followers_as_collection(&self) -> UnorderedCollection {
-    let base_url = make_apub_endpoint("c", &self.name);
-
-    let mut collection = UnorderedCollection::default();
-    collection.object_props.set_context_object(context()).ok();
-    collection.object_props.set_id_string(base_url).ok();
-
-    let connection = establish_unpooled_connection();
-    //As we are an object, we validated that the community id was valid
-    let community_followers = CommunityFollowerView::for_community(&connection, self.id).unwrap();
-
-    let ap_followers = community_followers
-      .iter()
-      .map(|follower| make_apub_endpoint("u", &follower.user_name))
-      .collect();
-
-    collection
-      .collection_props
-      .set_items_string_vec(ap_followers)
-      .unwrap();
-    collection
-  }
-}
 
 #[derive(Deserialize)]
 pub struct CommunityQuery {
   community_name: String,
 }
 
-pub async fn get_apub_community(info: Path<CommunityQuery>) -> HttpResponse<Body> {
-  let connection = establish_unpooled_connection();
+pub async fn get_apub_community(
+  info: Path<CommunityQuery>,
+  db: web::Data<Pool<ConnectionManager<PgConnection>>>,
+) -> Result<HttpResponse<Body>, Error> {
+  let community = Community::read_from_name(&&db.get()?, info.community_name.to_owned())?;
+  let base_url = make_apub_endpoint(EndpointType::Community, &community.name);
 
-  if let Ok(community) = Community::read_from_name(&connection, info.community_name.to_owned()) {
-    HttpResponse::Ok()
-      .content_type("application/activity+json")
-      .body(serde_json::to_string(&community.as_group()).unwrap())
-  } else {
-    HttpResponse::NotFound().finish()
+  let mut group = Group::default();
+  let oprops: &mut ObjectProperties = group.as_mut();
+
+  oprops
+    .set_context_xsd_any_uri(context())?
+    .set_id(base_url.to_owned())?
+    .set_name_xsd_string(community.title.to_owned())?
+    .set_published(convert_datetime(community.published))?
+    .set_attributed_to_xsd_any_uri(make_apub_endpoint(
+      EndpointType::User,
+      &community.creator_id.to_string(),
+    ))?;
+
+  if let Some(u) = community.updated.to_owned() {
+    oprops.set_updated(convert_datetime(u))?;
   }
+  if let Some(d) = community.description {
+    oprops.set_summary_xsd_string(d)?;
+  }
+
+  let mut actor_props = ApActorProperties::default();
+
+  actor_props
+    .set_inbox(format!("{}/inbox", &base_url))?
+    .set_outbox(format!("{}/outbox", &base_url))?
+    .set_followers(format!("{}/followers", &base_url))?;
+
+  Ok(create_apub_response(&group.extend(actor_props)))
 }
 
-pub async fn get_apub_community_followers(info: Path<CommunityQuery>) -> HttpResponse<Body> {
-  let connection = establish_unpooled_connection();
+pub async fn get_apub_community_followers(
+  info: Path<CommunityQuery>,
+  db: web::Data<Pool<ConnectionManager<PgConnection>>>,
+) -> Result<HttpResponse<Body>, Error> {
+  let community = Community::read_from_name(&&db.get()?, info.community_name.to_owned())?;
+  let base_url = make_apub_endpoint(EndpointType::Community, &community.name);
 
-  if let Ok(community) = Community::read_from_name(&connection, info.community_name.to_owned()) {
-    HttpResponse::Ok()
-      .content_type("application/activity+json")
-      .body(serde_json::to_string(&community.followers_as_collection()).unwrap())
-  } else {
-    HttpResponse::NotFound().finish()
-  }
+  let connection = establish_unpooled_connection();
+  //As we are an object, we validated that the community id was valid
+  let community_followers =
+    CommunityFollowerView::for_community(&connection, community.id).unwrap();
+
+  let mut collection = UnorderedCollection::default();
+  let oprops: &mut ObjectProperties = collection.as_mut();
+  oprops
+    .set_context_xsd_any_uri(context())?
+    .set_id(base_url)?;
+  collection
+    .collection_props
+    .set_total_items(community_followers.len() as u64)?;
+  Ok(create_apub_response(&collection))
+}
+
+pub async fn get_apub_community_outbox(
+  info: Path<CommunityQuery>,
+  db: web::Data<Pool<ConnectionManager<PgConnection>>>,
+) -> Result<HttpResponse<Body>, Error> {
+  let community = Community::read_from_name(&&db.get()?, info.community_name.to_owned())?;
+  let base_url = make_apub_endpoint(EndpointType::Community, &community.name);
+
+  let connection = establish_unpooled_connection();
+  //As we are an object, we validated that the community id was valid
+  let community_posts: Vec<PostView> = PostQueryBuilder::create(&connection)
+    .for_community_id(community.id)
+    .list()
+    .unwrap();
+
+  let mut collection = OrderedCollection::default();
+  let oprops: &mut ObjectProperties = collection.as_mut();
+  oprops
+    .set_context_xsd_any_uri(context())?
+    .set_id(base_url)?;
+  collection
+    .collection_props
+    .set_many_items_object_boxs(
+      community_posts
+        .iter()
+        .map(|c| c.as_page().unwrap())
+        .collect(),
+    )?
+    .set_total_items(community_posts.len() as u64)?;
+
+  Ok(create_apub_response(&collection))
 }

@@ -3,6 +3,7 @@ use crate::settings::Settings;
 use crate::{generate_random_string, send_email};
 use bcrypt::verify;
 use diesel::PgConnection;
+use log::error;
 use std::str::FromStr;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -466,7 +467,7 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
       }
     };
 
-    let user_view = UserView::read(&conn, user_details_id)?;
+    let mut user_view = UserView::read(&conn, user_details_id)?;
 
     let mut posts_query = PostQueryBuilder::create(&conn)
       .sort(&sort)
@@ -501,6 +502,15 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
     let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
+
+    // If its not the same user, remove the email
+    if let Some(user_id) = user_id {
+      if user_details_id != user_id {
+        user_view.email = None;
+      }
+    } else {
+      user_view.email = None;
+    }
 
     // Return the jwt
     Ok(GetUserDetailsResponse {
@@ -874,6 +884,10 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
         locked: None,
         stickied: None,
         updated: Some(naive_now()),
+        embed_title: None,
+        embed_description: None,
+        embed_html: None,
+        thumbnail_url: None,
       };
 
       let _updated_post = match Post::update(&conn, post.id, &post_form) {
@@ -995,7 +1009,7 @@ impl Perform<PrivateMessageResponse> for Oper<CreatePrivateMessage> {
         );
         match send_email(subject, &email, &recipient_user.name, html) {
           Ok(_o) => _o,
-          Err(e) => eprintln!("{}", e),
+          Err(e) => error!("{}", e),
         };
       }
     }

@@ -4,6 +4,7 @@
 [![Build Status](https://travis-ci.org/dessalines/lemmy.svg?branch=master)](https://travis-ci.org/dessalines/lemmy)
 [![GitHub issues](https://img.shields.io/github/issues-raw/dessalines/lemmy.svg)](https://github.com/dessalines/lemmy/issues)
 [![Docker Pulls](https://img.shields.io/docker/pulls/dessalines/lemmy.svg)](https://cloud.docker.com/repository/docker/dessalines/lemmy/)
+[![Translation status](http://weblate.yerbamate.dev/widgets/lemmy/-/lemmy/svg-badge.svg)](http://weblate.yerbamate.dev/engage/lemmy/)
 [![License](https://img.shields.io/github/license/dessalines/lemmy.svg)](LICENSE)
 ![GitHub stars](https://img.shields.io/github/stars/dessalines/lemmy?style=social)
 </div>
@@ -77,6 +78,7 @@ Each lemmy server can set its own moderation policy; appointing site-wide admins
   - A post can consist of a title and any combination of self text, a URL, or nothing else.
   - Notifications, on comment replies and when you're tagged.
     - Notifications can be sent via email.
+    - Private messaging support.
   - i18n / internationalization support.
   - RSS / Atom feeds for `All`, `Subscribed`, `Inbox`, `User`, and `Community`.
 - Cross-posting support.
@@ -90,6 +92,7 @@ Each lemmy server can set its own moderation policy; appointing site-wide admins
   - Can transfer site and communities to others.
 - Can fully erase your data, replacing all posts and comments.
 - NSFW post / community support.
+- OEmbed support via Iframely.
 - High performance.
   - Server is written in rust.
   - Front end is `~80kB` gzipped.
@@ -100,6 +103,7 @@ Each lemmy server can set its own moderation policy; appointing site-wide admins
 - [Docker](https://dev.lemmy.ml/docs/administration_install_docker.html)
 - [Ansible](https://dev.lemmy.ml/docs/administration_install_ansible.html)
 - [Kubernetes](https://dev.lemmy.ml/docs/administration_install_kubernetes.html)
+
 ## Support / Donate
 
 Lemmy is free, open-source software, meaning no advertising, monetizing, or venture capital, ever. Your donations directly support full-time development of the project.
@@ -122,35 +126,7 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 
 ### Translations 
 
-If you'd like to add translations, take a look at the [English translation file](ui/src/translations/en.ts).
-
-- Languages supported: Brazilian Portuguese (`pt-br`), Catalan, (`ca`), Farsi (`fa`), English (`en`), Chinese (`zh`), Dutch (`nl`), Esperanto (`eo`), Finnish (`fi`), French (`fr`), Spanish (`es`), Swedish (`sv`), German (`de`), Russian (`ru`), Italian (`it`).
-
-<!-- translations -->
-
-lang | done | missing
----- | ---- | -------
-ca | 97% | cross_posted_to,old,support_on_liberapay,couldnt_get_comments,post_title_too_long,time,action
-de | 86% | cross_posted_to,create_private_message,send_secure_message,send_message,message,avatar,upload_avatar,show_avatars,old,docs,message_sent,messages,old_password,matrix_user_id,private_message_disclaimer,send_notifications_to_email,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,donate_to_lemmy,donate,from,logged_in,couldnt_get_comments,post_title_too_long,email_already_exists,couldnt_create_private_message,no_private_message_edit_allowed,couldnt_update_private_message,time,action
-fa | 71% | cross_post,cross_posted_to,subscribed_to_communities,trending_communities,create_private_message,send_secure_message,send_message,message,mod,mods,moderates,remove_as_mod,appoint_as_mod,modlog,stickied,ban,ban_from_site,unban,unban_from_site,banned,number_of_subscribers,subscribers,both,saved,unsubscribe,subscribe,subscribed,old,api,docs,inbox,inbox_for,message_sent,notifications_error,messages,no_email_setup,matrix_user_id,private_message_disclaimer,url,body,copy_suggested_title,community,expand_here,subscribe_to_communities,theme,sponsor_message,support_on_liberapay,general_sponsors,joined,by,to,from,landing_0,logged_in,couldnt_get_comments,community_moderator_already_exists,community_follower_already_exists,community_user_already_banned,post_title_too_long,no_slurs,admin_already_created,couldnt_create_private_message,no_private_message_edit_allowed,couldnt_update_private_message,time,action
-eo | 73% | cross_posted_to,number_of_communities,create_private_message,send_secure_message,send_message,message,preview,upload_image,avatar,upload_avatar,show_avatars,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,old,docs,replies,mentions,message_sent,messages,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,matrix_user_id,private_message_disclaimer,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,theme,support_on_liberapay,donate_to_lemmy,donate,from,are_you_sure,yes,no,logged_in,couldnt_get_comments,post_title_too_long,email_already_exists,couldnt_create_private_message,no_private_message_edit_allowed,couldnt_update_private_message,time,action
-es | 99% | cross_posted_to,couldnt_get_comments,post_title_too_long
-fi | 97% | cross_posted_to,old,support_on_liberapay,couldnt_get_comments,post_title_too_long,time,action
-fr | 81% | cross_posted_to,create_private_message,send_secure_message,send_message,message,avatar,upload_avatar,show_avatars,archive_link,old,docs,replies,mentions,message_sent,messages,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,matrix_user_id,private_message_disclaimer,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,donate_to_lemmy,donate,from,logged_in,couldnt_get_comments,post_title_too_long,email_already_exists,couldnt_create_private_message,no_private_message_edit_allowed,couldnt_update_private_message,time,action
-it | 82% | cross_posted_to,create_private_message,send_secure_message,send_message,message,avatar,upload_avatar,show_avatars,archive_link,old,docs,message_sent,messages,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,matrix_user_id,private_message_disclaimer,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,donate_to_lemmy,donate,from,logged_in,couldnt_get_comments,post_title_too_long,email_already_exists,couldnt_create_private_message,no_private_message_edit_allowed,couldnt_update_private_message,time,action
-nl | 98% | cross_posted_to,couldnt_get_comments,post_title_too_long,time,action
-pt-br | 99% | couldnt_get_comments,post_title_too_long
-ru | 70% | cross_posts,cross_post,cross_posted_to,number_of_communities,create_private_message,send_secure_message,send_message,message,preview,upload_image,avatar,upload_avatar,show_avatars,formatting_help,view_source,sticky,unsticky,archive_link,stickied,delete_account,delete_account_confirm,banned,creator,number_online,old,docs,replies,mentions,message_sent,messages,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,matrix_user_id,private_message_disclaimer,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,recent_comments,theme,support_on_liberapay,donate_to_lemmy,donate,monero,by,to,from,transfer_community,transfer_site,are_you_sure,yes,no,logged_in,couldnt_get_comments,post_title_too_long,email_already_exists,couldnt_create_private_message,no_private_message_edit_allowed,couldnt_update_private_message,time,action
-sv | 81% | cross_posted_to,create_private_message,send_secure_message,send_message,message,avatar,upload_avatar,show_avatars,archive_link,old,docs,replies,mentions,message_sent,messages,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,matrix_user_id,private_message_disclaimer,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,support_on_liberapay,donate_to_lemmy,donate,from,logged_in,couldnt_get_comments,post_title_too_long,email_already_exists,couldnt_create_private_message,no_private_message_edit_allowed,couldnt_update_private_message,time,action
-zh | 69% | cross_posts,cross_post,cross_posted_to,users,number_of_communities,create_private_message,send_secure_message,send_message,message,preview,upload_image,avatar,upload_avatar,show_avatars,formatting_help,view_source,sticky,unsticky,archive_link,settings,stickied,delete_account,delete_account_confirm,banned,creator,number_online,old,docs,replies,mentions,message_sent,messages,old_password,forgot_password,reset_password_mail_sent,password_change,new_password,no_email_setup,matrix_user_id,private_message_disclaimer,send_notifications_to_email,language,browser_default,downvotes_disabled,enable_downvotes,open_registration,registration_closed,enable_nsfw,recent_comments,nsfw,show_nsfw,theme,donate_to_lemmy,donate,monero,by,to,from,transfer_community,transfer_site,are_you_sure,yes,no,logged_in,couldnt_get_comments,post_title_too_long,email_already_exists,couldnt_create_private_message,no_private_message_edit_allowed,couldnt_update_private_message,time,action
-<!-- translationsstop -->
-
-If you'd like to update this report, run:
-
-```bash 
-cd ui
-ts-node translation_report.ts
-```
+If you want to help with translating, take a look at [Weblate](https://weblate.yerbamate.dev/projects/lemmy/).
 
 ## Contact
 

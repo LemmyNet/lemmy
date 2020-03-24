@@ -6,69 +6,59 @@ services:
     ports:
       - "127.0.0.1:8540:8540"
     environment:
-      - LEMMY_HOSTNAME=localhost:8540
-      - LEMMY_DATABASE_URL=postgres://lemmy:password@lemmy_db_alpha:5432/lemmy
+      - LEMMY_HOSTNAME=lemmy_alpha:8540
+      - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_alpha:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
       - LEMMY_FRONT_END_DIR=/app/dist
-      - LEMMY_FEDERATION_ENABLED=true
-      - LEMMY_FEDERATED_INSTANCE=lemmy_beta:8541
+      - LEMMY_FEDERATION__ENABLED=true
+      - LEMMY_FEDERATION__FOLLOWED_INSTANCES=lemmy_beta:8541
+      - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_PORT=8540
       - RUST_BACKTRACE=1
     restart: always
     depends_on:
-      - lemmy_db_alpha
-  lemmy_db_alpha:
+      - postgres_alpha
+  postgres_alpha:
     image: postgres:12-alpine
     environment:
       - POSTGRES_USER=lemmy
-      - POSTGRES_PASSWORD=${LEMMY_DATABASE_PASSWORD}
+      - POSTGRES_PASSWORD=password
       - POSTGRES_DB=lemmy
     volumes:
-      - lemmy_db_alpha:/var/lib/postgresql/data
+      - ./volumes/postgres_alpha:/var/lib/postgresql/data
     restart: always
-  # lemmy_pictshare_alpha:
-  #   image: shtripok/pictshare:latest
-  #   ports:
-  #     - "127.0.0.1:8550:80"
-  #   volumes:
-  #     - lemmy_pictshare_alpha:/usr/share/nginx/html/data
-  #   restart: always
 
   lemmy_beta:
     image: lemmy-federation-test:latest
     ports:
       - "127.0.0.1:8541:8541"
     environment:
-      - LEMMY_HOSTNAME=localhost:8541
-      - LEMMY_DATABASE_URL=postgres://lemmy:password@lemmy_db_beta:5432/lemmy
+      - LEMMY_HOSTNAME=lemmy_beta:8541
+      - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_beta:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
       - LEMMY_FRONT_END_DIR=/app/dist
-      - LEMMY_FEDERATION_ENABLED=true
-      - LEMMY_FEDERATED_INSTANCE=lemmy_alpha:8540
+      - LEMMY_FEDERATION__ENABLED=true
+      - LEMMY_FEDERATION__FOLLOWED_INSTANCES=lemmy_alpha:8540
+      - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_PORT=8541
       - RUST_BACKTRACE=1
     restart: always
     depends_on:
-      - lemmy_db_beta
-  lemmy_db_beta:
+      - postgres_beta
+  postgres_beta:
     image: postgres:12-alpine
     environment:
       - POSTGRES_USER=lemmy
-      - POSTGRES_PASSWORD=${LEMMY_DATABASE_PASSWORD}
+      - POSTGRES_PASSWORD=password
       - POSTGRES_DB=lemmy
     volumes:
-      - lemmy_db_beta:/var/lib/postgresql/data
+      - ./volumes/postgres_beta:/var/lib/postgresql/data
     restart: always
-  # lemmy_pictshare_beta:
-  #   image: shtripok/pictshare:latest
-  #   ports:
-  #     - "127.0.0.1:8551:80"
-  #   volumes:
-  #     - lemmy_pictshare_beta:/usr/share/nginx/html/data
-  #   restart: always
 
-volumes:
-  lemmy_db_alpha:
-  # lemmy_pictshare_alpha:
-  lemmy_db_beta:
-  # lemmy_pictshare_beta:
+  iframely:
+    image: dogbin/iframely:latest
+    ports:
+      - "127.0.0.1:8061:80"
+    volumes:
+      - ../iframely.config.local.js:/iframely/config.local.js:ro
+    restart: always

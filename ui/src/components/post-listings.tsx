@@ -53,7 +53,7 @@ export class PostListings extends Component<PostListingsProps, any> {
     }
 
     if (this.props.sort !== undefined) {
-      postSort(out, this.props.sort);
+      postSort(out, this.props.sort, this.props.showCommunity == undefined);
     }
 
     return out;

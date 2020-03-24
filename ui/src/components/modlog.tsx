@@ -354,7 +354,7 @@ export class Modlog extends Component<any, ModlogState> {
             <h5>
               {this.state.communityName && (
                 <Link
-                  className="text-white"
+                  className="text-body"
                   to={`/c/${this.state.communityName}`}
                 >
                   /c/{this.state.communityName}{' '}

@@ -5,11 +5,11 @@ authors = ["Dessalines <happydooby@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-diesel = { version = "1.4.2", features = ["postgres","chrono", "r2d2"] }
+diesel = { version = "1.4.2", features = ["postgres","chrono", "r2d2", "64-column-tables"] }
 diesel_migrations = "1.4.0"
 dotenv = "0.15.0"
 bcrypt = "0.6.1"
-activitypub = "0.2.0"
+activitystreams = "0.5.0-alpha.10"
 chrono = { version = "0.4.7", features = ["serde"] }
 failure = "0.1.5"
 serde_json = { version = "1.0.45", features = ["preserve_order"]}
@@ -19,6 +19,7 @@ actix-web = "2.0.0"
 actix-files = "0.2.1"
 actix-web-actors = "2.0.0"
 actix-rt = "1.0.0"
+log = "0.4.0"
 env_logger = "0.7.1"
 rand = "0.7.3"
 strum = "0.17.1"
@@ -33,4 +34,6 @@ rss = "1.9.0"
 htmlescape = "0.3.1"
 config = "0.10.1"
 hjson = "0.8.2"
-reqwest = "0.9.24"
+url = "2.1.1"
+percent-encoding = "2.1.0"
+chttp = "0.5.5"

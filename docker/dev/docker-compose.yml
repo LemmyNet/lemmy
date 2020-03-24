@@ -1,15 +1,16 @@
 version: '3.3'
 
 services:
-  lemmy_db:
+  postgres:
     image: postgres:12-alpine
     environment:
       - POSTGRES_USER=lemmy
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=lemmy
     volumes:
-      - lemmy_db:/var/lib/postgresql/data
+      - ./volumes/postgres:/var/lib/postgresql/data
     restart: always
+
   lemmy:
     build: 
       context: ../../
@@ -17,17 +18,27 @@ services:
     ports:
       - "127.0.0.1:8536:8536"
     restart: always
+    environment:
+      - RUST_LOG=debug
     volumes:
       - ../lemmy.hjson:/config/config.hjson:ro
     depends_on: 
-      - lemmy_db
-  lemmy_pictshare:
+      - postgres
+      - pictshare
+      - iframely
+
+  pictshare:
     image: shtripok/pictshare:latest
     ports:
       - "127.0.0.1:8537:80"
     volumes:
-      - lemmy_pictshare:/usr/share/nginx/html/data
+      - ./volumes/pictshare:/usr/share/nginx/html/data
     restart: always
-volumes:
-  lemmy_db:
-  lemmy_pictshare:
+
+  iframely:
+    image: dogbin/iframely:latest
+    ports:
+      - "127.0.0.1:8061:80"
+    volumes:
+      - ../iframely.config.local.js:/iframely/config.local.js:ro
+    restart: always

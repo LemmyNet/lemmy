@@ -1,4 +1,6 @@
 use super::*;
+use crate::apub::puller::{get_all_communities, get_remote_community};
+use crate::settings::Settings;
 use diesel::PgConnection;
 use std::str::FromStr;
 
@@ -32,12 +34,13 @@ pub struct CommunityResponse {
   pub community: CommunityView,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ListCommunities {
   sort: String,
   page: Option<i64>,
   limit: Option<i64>,
   auth: Option<String>,
+  local_only: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -116,6 +119,13 @@ pub struct TransferCommunity {
 impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
   fn perform(&self, conn: &PgConnection) -> Result<GetCommunityResponse, Error> {
     let data: &GetCommunity = &self.data;
+
+    if data.name.is_some()
+      && Settings::get().federation.enabled
+      && data.name.as_ref().unwrap().contains('@')
+    {
+      return get_remote_community(data.name.as_ref().unwrap());
+    }
 
     let user_id: Option<i32> = match &data.auth {
       Some(auth) => match Claims::decode(&auth) {
@@ -332,6 +342,13 @@ impl Perform<CommunityResponse> for Oper<EditCommunity> {
 impl Perform<ListCommunitiesResponse> for Oper<ListCommunities> {
   fn perform(&self, conn: &PgConnection) -> Result<ListCommunitiesResponse, Error> {
     let data: &ListCommunities = &self.data;
+
+    let local_only = data.local_only.unwrap_or(false);
+    if Settings::get().federation.enabled && !local_only {
+      return Ok(ListCommunitiesResponse {
+        communities: get_all_communities()?,
+      });
+    }
 
     let user_claims: Option<Claims> = match &data.auth {
       Some(auth) => match Claims::decode(&auth) {

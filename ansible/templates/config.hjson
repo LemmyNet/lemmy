@@ -1,7 +1,7 @@
 {
   database: {
     password: "{{ postgres_password }}"
-    host: "lemmy_db"
+    host: "postgres"
   }
   hostname: "{{ domain }}"
   jwt_secret: "{{ jwt_password }}"
