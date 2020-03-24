@@ -250,7 +250,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       <div class="row">
         <div className={`vote-bar col-1 pr-0 small text-center`}>
           <button
-            className={`btn-animate btn btn-link p-0 ${
+            className={`btn-animate btn btn-link btn-lg p-0 ${
               this.state.my_vote == 1 ? 'text-info' : 'text-muted'
             }`}
             onClick={linkEvent(this, this.handlePostLike)}
@@ -268,7 +268,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           </div>
           {WebSocketService.Instance.site.enable_downvotes && (
             <button
-              className={`btn-animate btn btn-link p-0 ${
+              className={`btn-animate btn btn-link btn-lg p-0 ${
                 this.state.my_vote == -1 ? 'text-danger' : 'text-muted'
               }`}
               onClick={linkEvent(this, this.handlePostDisLike)}
