@@ -1,4 +1,5 @@
 use super::*;
+use crate::settings::Settings;
 use diesel::PgConnection;
 use std::str::FromStr;
 
@@ -33,7 +34,7 @@ pub struct GetPostResponse {
   pub online: usize,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct GetPosts {
   type_: String,
   sort: String,
@@ -43,9 +44,9 @@ pub struct GetPosts {
   auth: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct GetPostsResponse {
-  posts: Vec<PostView>,
+  pub posts: Vec<PostView>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -110,6 +111,10 @@ impl Perform<PostResponse> for Oper<CreatePost> {
       return Err(APIError::err("site_ban").into());
     }
 
+    // Fetch Iframely and Pictshare cached image
+    let (iframely_title, iframely_description, iframely_html, pictshare_thumbnail) =
+      fetch_iframely_and_pictshare_data(data.url.to_owned());
+
     let post_form = PostForm {
       name: data.name.to_owned(),
       url: data.url.to_owned(),
@@ -122,6 +127,10 @@ impl Perform<PostResponse> for Oper<CreatePost> {
       locked: None,
       stickied: None,
       updated: None,
+      embed_title: iframely_title,
+      embed_description: iframely_description,
+      embed_html: iframely_html,
+      thumbnail_url: pictshare_thumbnail,
     };
 
     let inserted_post = match Post::create(&conn, &post_form) {
@@ -211,6 +220,11 @@ impl Perform<GetPostResponse> for Oper<GetPost> {
 impl Perform<GetPostsResponse> for Oper<GetPosts> {
   fn perform(&self, conn: &PgConnection) -> Result<GetPostsResponse, Error> {
     let data: &GetPosts = &self.data;
+
+    if Settings::get().federation.enabled {
+      // TODO: intercept here (but the type is wrong)
+      //get_remote_community_posts(get_posts.community_id.unwrap())
+    }
 
     let user_claims: Option<Claims> = match &data.auth {
       Some(auth) => match Claims::decode(&auth) {
@@ -353,6 +367,10 @@ impl Perform<PostResponse> for Oper<EditPost> {
       return Err(APIError::err("site_ban").into());
     }
 
+    // Fetch Iframely and Pictshare cached image
+    let (iframely_title, iframely_description, iframely_html, pictshare_thumbnail) =
+      fetch_iframely_and_pictshare_data(data.url.to_owned());
+
     let post_form = PostForm {
       name: data.name.to_owned(),
       url: data.url.to_owned(),
@@ -365,6 +383,10 @@ impl Perform<PostResponse> for Oper<EditPost> {
       locked: data.locked.to_owned(),
       stickied: data.stickied.to_owned(),
       updated: Some(naive_now()),
+      embed_title: iframely_title,
+      embed_description: iframely_description,
+      embed_html: iframely_html,
+      thumbnail_url: pictshare_thumbnail,
     };
 
     let _updated_post = match Post::update(&conn, data.edit_id, &post_form) {

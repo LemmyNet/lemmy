@@ -7,9 +7,8 @@ import { Subject } from 'rxjs';
 export class UserService {
   private static _instance: UserService;
   public user: User;
-  public sub: Subject<{ user: User; unreadCount: number }> = new Subject<{
+  public sub: Subject<{ user: User }> = new Subject<{
     user: User;
-    unreadCount: number;
   }>();
 
   private constructor() {
@@ -32,7 +31,7 @@ export class UserService {
     this.user = undefined;
     Cookies.remove('jwt');
     setTheme();
-    this.sub.next({ user: undefined, unreadCount: 0 });
+    this.sub.next({ user: undefined });
     console.log('Logged out.');
   }
 
@@ -45,7 +44,7 @@ export class UserService {
     if (this.user.theme != 'darkly') {
       setTheme(this.user.theme);
     }
-    this.sub.next({ user: this.user, unreadCount: 0 });
+    this.sub.next({ user: this.user });
     console.log(this.user);
   }
 

@@ -43,6 +43,7 @@ import {
   createPostLikeFindRes,
   editPostFindRes,
   commentsToFlatNodes,
+  setupTippy,
 } from '../utils';
 import { i18n } from '../i18next';
 
@@ -136,6 +137,7 @@ export class Community extends Component<any, State> {
   render() {
     return (
       <div class="container">
+        {this.selects()}
         {this.state.loading ? (
           <h5>
             <svg class="icon icon-spinner spin">
@@ -158,7 +160,6 @@ export class Community extends Component<any, State> {
                   </small>
                 )}
               </h5>
-              {this.selects()}
               {this.listings()}
               {this.paginator()}
             </div>
@@ -194,13 +195,14 @@ export class Community extends Component<any, State> {
 
   selects() {
     return (
-      <div class="mb-2">
-        <DataTypeSelect
-          type_={this.state.dataType}
-          onChange={this.handleDataTypeChange}
-        />
-
-        <span class="mx-2">
+      <div class="mb-3">
+        <span class="mr-3">
+          <DataTypeSelect
+            type_={this.state.dataType}
+            onChange={this.handleDataTypeChange}
+          />
+        </span>
+        <span class="mr-2">
           <SortSelect sort={this.state.sort} onChange={this.handleSortChange} />
         </span>
         <a
@@ -208,8 +210,9 @@ export class Community extends Component<any, State> {
             SortType[this.state.sort]
           }`}
           target="_blank"
+          title="RSS"
         >
-          <svg class="icon mx-2 text-muted small">
+          <svg class="icon text-muted small">
             <use xlinkHref="#icon-rss">#</use>
           </svg>
         </a>
@@ -339,6 +342,7 @@ export class Community extends Component<any, State> {
       this.state.posts = data.posts;
       this.state.loading = false;
       this.setState(this.state);
+      setupTippy();
     } else if (res.op == UserOperation.EditPost) {
       let data = res.data as PostResponse;
       editPostFindRes(data, this.state.posts);

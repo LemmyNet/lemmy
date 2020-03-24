@@ -11,11 +11,12 @@ import 'moment/locale/fi';
 import 'moment/locale/ca';
 import 'moment/locale/fa';
 import 'moment/locale/pt-br';
+import 'moment/locale/ja';
 
 import {
   UserOperation,
   Comment,
-  CommentNode,
+  CommentNode as CommentNodeI,
   Post,
   PrivateMessage,
   User,
@@ -40,14 +41,50 @@ import markdown_it_container from 'markdown-it-container';
 import twemoji from 'twemoji';
 import emojiShortName from 'emoji-short-name';
 import Toastify from 'toastify-js';
+import tippy from 'tippy.js';
 
 export const repoUrl = 'https://github.com/dessalines/lemmy';
-export const markdownHelpUrl = 'https://commonmark.org/help/';
+export const helpGuideUrl = '/docs/about_guide.html';
+export const markdownHelpUrl = `${helpGuideUrl}#markdown-guide`;
+export const sortingHelpUrl = `${helpGuideUrl}#sorting`;
 export const archiveUrl = 'https://archive.is';
 
 export const postRefetchSeconds: number = 60 * 1000;
 export const fetchLimit: number = 20;
 export const mentionDropdownFetchLimit = 10;
+
+export const languages = [
+  { code: 'ca', name: 'Català' },
+  { code: 'en', name: 'English' },
+  { code: 'eo', name: 'Esperanto' },
+  { code: 'es', name: 'Español' },
+  { code: 'de', name: 'Deutsch' },
+  { code: 'fa', name: 'فارسی' },
+  { code: 'ja', name: '日本語' },
+  { code: 'pt_BR', name: 'Português Brasileiro' },
+  { code: 'zh', name: '中文' },
+  { code: 'fi', name: 'Suomi' },
+  { code: 'fr', name: 'Français' },
+  { code: 'sv', name: 'Svenska' },
+  { code: 'ru', name: 'Русский' },
+  { code: 'nl', name: 'Nederlands' },
+  { code: 'it', name: 'Italiano' },
+];
+
+export const themes = [
+  'litera',
+  'materia',
+  'minty',
+  'solar',
+  'united',
+  'cyborg',
+  'darkly',
+  'journal',
+  'sketchy',
+  'vaporwave',
+  'vaporwave-dark',
+  'i386',
+];
 
 export function randomStr() {
   return Math.random()
@@ -159,10 +196,10 @@ export function isMod(modIds: Array<number>, creator_id: number): boolean {
   return modIds.includes(creator_id);
 }
 
-var imageRegex = new RegExp(
-  `(http)?s?:?(\/\/[^"']*\.(?:png|jpg|jpeg|gif|png|svg))`
+const imageRegex = new RegExp(
+  /(http)?s?:?(\/\/[^"']*\.(?:jpg|jpeg|gif|png|svg))/
 );
-var videoRegex = new RegExp(`(http)?s?:?(\/\/[^"']*\.(?:mp4))`);
+const videoRegex = new RegExp(`(http)?s?:?(\/\/[^"']*\.(?:mp4))`);
 
 export function isImage(url: string) {
   return imageRegex.test(url);
@@ -220,9 +257,9 @@ export function routeSearchTypeToEnum(type: string): SearchType {
 }
 
 export async function getPageTitle(url: string) {
-  let res = await fetch(`https://textance.herokuapp.com/title/${url}`);
-  let data = await res.text();
-  return data;
+  let res = await fetch(`/iframely/oembed?url=${url}`).then(res => res.json());
+  let title = await res.title;
+  return title;
 }
 
 export function debounce(
@@ -271,23 +308,6 @@ export function debounce(
   };
 }
 
-export const languages = [
-  { code: 'ca', name: 'Català' },
-  { code: 'en', name: 'English' },
-  { code: 'eo', name: 'Esperanto' },
-  { code: 'es', name: 'Español' },
-  { code: 'de', name: 'Deutsch' },
-  { code: 'fa', name: 'فارسی' },
-  { code: 'pt_BR', name: 'Português Brasileiro' },
-  { code: 'zh', name: '中文' },
-  { code: 'fi', name: 'Suomi' },
-  { code: 'fr', name: 'Français' },
-  { code: 'sv', name: 'Svenska' },
-  { code: 'ru', name: 'Русский' },
-  { code: 'nl', name: 'Nederlands' },
-  { code: 'it', name: 'Italiano' },
-];
-
 export function getLanguage(): string {
   let user = UserService.Instance.user;
   let lang = user && user.lang ? user.lang : 'browser';
@@ -331,26 +351,13 @@ export function getMomentLanguage(): string {
     lang = 'fa';
   } else if (lang.startsWith('pt')) {
     lang = 'pt-br';
+  } else if (lang.startsWith('ja')) {
+    lang = 'ja';
   } else {
     lang = 'en';
   }
   return lang;
 }
-
-export const themes = [
-  'litera',
-  'materia',
-  'minty',
-  'solar',
-  'united',
-  'cyborg',
-  'darkly',
-  'journal',
-  'sketchy',
-  'vaporwave',
-  'vaporwave-dark',
-  'i386',
-];
 
 export function setTheme(theme: string = 'darkly') {
   // unload all the other themes
@@ -386,7 +393,7 @@ export function objectFlip(obj: any) {
 export function pictshareAvatarThumbnail(src: string): string {
   // sample url: http://localhost:8535/pictshare/gs7xuu.jpg
   let split = src.split('pictshare');
-  let out = `${split[0]}pictshare/96x96${split[1]}`;
+  let out = `${split[0]}pictshare/96${split[1]}`;
   return out;
 }
 
@@ -397,15 +404,22 @@ export function showAvatars(): boolean {
   );
 }
 
-/// Converts to image thumbnail (only supports pictshare currently)
-export function imageThumbnailer(url: string): string {
-  let split = url.split('pictshare');
-  if (split.length > 1) {
-    let out = `${split[0]}pictshare/192x192${split[1]}`;
-    return out;
-  } else {
-    return url;
+// Converts to image thumbnail
+export function pictshareImage(
+  hash: string,
+  thumbnail: boolean = false
+): string {
+  let root = `/pictshare`;
+
+  // Necessary for other servers / domains
+  if (hash.includes('pictshare')) {
+    let split = hash.split('/pictshare/');
+    root = `${split[0]}/pictshare`;
+    hash = split[1];
   }
+
+  let out = `${root}/${thumbnail ? '192/' : ''}${hash}`;
+  return out;
 }
 
 export function isCommentType(item: Comment | PrivateMessage): item is Comment {
@@ -441,6 +455,7 @@ export function setupTribute(): Tribute {
         allowSpaces: false,
         autocompleteMode: true,
         menuItemLimit: mentionDropdownFetchLimit,
+        menuShowMinLength: 2,
       },
       // Users
       {
@@ -454,6 +469,7 @@ export function setupTribute(): Tribute {
         allowSpaces: false,
         autocompleteMode: true,
         menuItemLimit: mentionDropdownFetchLimit,
+        menuShowMinLength: 2,
       },
 
       // Communities
@@ -468,8 +484,20 @@ export function setupTribute(): Tribute {
         allowSpaces: false,
         autocompleteMode: true,
         menuItemLimit: mentionDropdownFetchLimit,
+        menuShowMinLength: 2,
       },
     ],
+  });
+}
+
+let tippyInstance = tippy('[data-tippy-content]');
+
+export function setupTippy() {
+  tippyInstance.forEach(e => e.destroy());
+  tippyInstance = tippy('[data-tippy-content]', {
+    delay: [500, 0],
+    // Display on "long press"
+    touch: ['hold', 500],
   });
 }
 
@@ -613,11 +641,13 @@ export function createPostLikeFindRes(data: PostResponse, posts: Array<Post>) {
 }
 
 export function createPostLikeRes(data: PostResponse, post: Post) {
-  post.score = data.post.score;
-  post.upvotes = data.post.upvotes;
-  post.downvotes = data.post.downvotes;
-  if (data.post.my_vote !== null) {
-    post.my_vote = data.post.my_vote;
+  if (post) {
+    post.score = data.post.score;
+    post.upvotes = data.post.upvotes;
+    post.downvotes = data.post.downvotes;
+    if (data.post.my_vote !== null) {
+      post.my_vote = data.post.my_vote;
+    }
   }
 }
 
@@ -629,22 +659,24 @@ export function editPostFindRes(data: PostResponse, posts: Array<Post>) {
 }
 
 export function editPostRes(data: PostResponse, post: Post) {
-  post.url = data.post.url;
-  post.name = data.post.name;
-  post.nsfw = data.post.nsfw;
+  if (post) {
+    post.url = data.post.url;
+    post.name = data.post.name;
+    post.nsfw = data.post.nsfw;
+  }
 }
 
 export function commentsToFlatNodes(
   comments: Array<Comment>
-): Array<CommentNode> {
-  let nodes: Array<CommentNode> = [];
+): Array<CommentNodeI> {
+  let nodes: Array<CommentNodeI> = [];
   for (let comment of comments) {
     nodes.push({ comment: comment });
   }
   return nodes;
 }
 
-export function commentSort(tree: Array<CommentNode>, sort: CommentSortType) {
+export function commentSort(tree: Array<CommentNodeI>, sort: CommentSortType) {
   // First, put removed and deleted comments at the bottom, then do your other sorts
   if (sort == CommentSortType.Top) {
     tree.sort(
@@ -684,7 +716,7 @@ export function commentSort(tree: Array<CommentNode>, sort: CommentSortType) {
   }
 }
 
-export function commentSortSortType(tree: Array<CommentNode>, sort: SortType) {
+export function commentSortSortType(tree: Array<CommentNodeI>, sort: SortType) {
   commentSort(tree, convertCommentSortType(sort));
 }
 
@@ -706,7 +738,11 @@ function convertCommentSortType(sort: SortType): CommentSortType {
   }
 }
 
-export function postSort(posts: Array<Post>, sort: SortType) {
+export function postSort(
+  posts: Array<Post>,
+  sort: SortType,
+  communityType: boolean
+) {
   // First, put removed and deleted comments at the bottom, then do your other sorts
   if (
     sort == SortType.TopAll ||
@@ -717,13 +753,17 @@ export function postSort(posts: Array<Post>, sort: SortType) {
   ) {
     posts.sort(
       (a, b) =>
-        +a.removed - +b.removed || +a.deleted - +b.deleted || b.score - a.score
+        +a.removed - +b.removed ||
+        +a.deleted - +b.deleted ||
+        (communityType && +b.stickied - +a.stickied) ||
+        b.score - a.score
     );
   } else if (sort == SortType.New) {
     posts.sort(
       (a, b) =>
         +a.removed - +b.removed ||
         +a.deleted - +b.deleted ||
+        (communityType && +b.stickied - +a.stickied) ||
         b.published.localeCompare(a.published)
     );
   } else if (sort == SortType.Hot) {
@@ -731,7 +771,25 @@ export function postSort(posts: Array<Post>, sort: SortType) {
       (a, b) =>
         +a.removed - +b.removed ||
         +a.deleted - +b.deleted ||
+        (communityType && +b.stickied - +a.stickied) ||
         hotRankPost(b) - hotRankPost(a)
     );
   }
+}
+
+export const colorList: Array<string> = [
+  hsl(0),
+  hsl(100),
+  hsl(150),
+  hsl(200),
+  hsl(250),
+  hsl(300),
+];
+
+function hsl(num: number) {
+  return `hsla(${num}, 35%, 50%, 1)`;
+}
+
+function randomHsl() {
+  return `hsla(${Math.random() * 360}, 100%, 50%, 1)`;
 }

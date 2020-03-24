@@ -1,4 +1,5 @@
 extern crate lazy_static;
+use crate::apub::get_apub_protocol_string;
 use crate::db::site_view::SiteView;
 use crate::version;
 use crate::Settings;
@@ -7,7 +8,8 @@ use actix_web::web;
 use actix_web::HttpResponse;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
   cfg
@@ -19,7 +21,11 @@ async fn node_info_well_known() -> HttpResponse<Body> {
   let node_info = NodeInfoWellKnown {
     links: NodeInfoWellKnownLinks {
       rel: "http://nodeinfo.diaspora.software/ns/schema/2.0".to_string(),
-      href: format!("https://{}/nodeinfo/2.0.json", Settings::get().hostname),
+      href: format!(
+        "{}://{}/nodeinfo/2.0.json",
+        get_apub_protocol_string(),
+        Settings::get().hostname
+      ),
     },
   };
   HttpResponse::Ok().json(node_info)
@@ -34,7 +40,7 @@ async fn node_info(
       Ok(site_view) => site_view,
       Err(_) => return Err(format_err!("not_found")),
     };
-    let protocols = if Settings::get().federation_enabled {
+    let protocols = if Settings::get().federation.enabled {
       vec!["activitypub".to_string()]
     } else {
       vec![]
@@ -62,41 +68,41 @@ async fn node_info(
   Ok(res)
 }
 
-#[derive(Serialize)]
-struct NodeInfoWellKnown {
-  links: NodeInfoWellKnownLinks,
+#[derive(Serialize, Deserialize, Debug)]
+pub struct NodeInfoWellKnown {
+  pub links: NodeInfoWellKnownLinks,
 }
 
-#[derive(Serialize)]
-struct NodeInfoWellKnownLinks {
-  rel: String,
-  href: String,
+#[derive(Serialize, Deserialize, Debug)]
+pub struct NodeInfoWellKnownLinks {
+  pub rel: String,
+  pub href: String,
 }
 
-#[derive(Serialize)]
-struct NodeInfo {
-  version: String,
-  software: NodeInfoSoftware,
-  protocols: Vec<String>,
-  usage: NodeInfoUsage,
+#[derive(Serialize, Deserialize, Debug)]
+pub struct NodeInfo {
+  pub version: String,
+  pub software: NodeInfoSoftware,
+  pub protocols: Vec<String>,
+  pub usage: NodeInfoUsage,
 }
 
-#[derive(Serialize)]
-struct NodeInfoSoftware {
-  name: String,
-  version: String,
+#[derive(Serialize, Deserialize, Debug)]
+pub struct NodeInfoSoftware {
+  pub name: String,
+  pub version: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-struct NodeInfoUsage {
-  users: NodeInfoUsers,
-  local_posts: i64,
-  local_comments: i64,
-  open_registrations: bool,
+pub struct NodeInfoUsage {
+  pub users: NodeInfoUsers,
+  pub local_posts: i64,
+  pub local_comments: i64,
+  pub open_registrations: bool,
 }
 
-#[derive(Serialize)]
-struct NodeInfoUsers {
-  total: i64,
+#[derive(Serialize, Deserialize, Debug)]
+pub struct NodeInfoUsers {
+  pub total: i64,
 }

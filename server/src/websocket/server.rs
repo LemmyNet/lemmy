@@ -6,6 +6,7 @@ use actix::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
 use diesel::PgConnection;
 use failure::Error;
+use log::{error, info, warn};
 use rand::{rngs::ThreadRng, Rng};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -20,7 +21,6 @@ use crate::api::post::*;
 use crate::api::site::*;
 use crate::api::user::*;
 use crate::api::*;
-use crate::apub::puller::*;
 use crate::websocket::UserOperation;
 use crate::Settings;
 
@@ -344,7 +344,7 @@ impl ChatServer {
           }
 
           if rate_limit.allowance < 1.0 {
-            println!(
+            warn!(
               "Rate limited IP: {}, time_passed: {}, allowance: {}",
               &info.ip, time_passed, rate_limit.allowance
             );
@@ -388,7 +388,7 @@ impl Handler<Connect> for ChatServer {
   fn handle(&mut self, msg: Connect, _ctx: &mut Context<Self>) -> Self::Result {
     // register session with random id
     let id = self.rng.gen::<usize>();
-    println!("{} joined", &msg.ip);
+    info!("{} joined", &msg.ip);
 
     self.sessions.insert(
       id,
@@ -449,13 +449,16 @@ impl Handler<StandardMessage> for ChatServer {
   type Result = MessageResult<StandardMessage>;
 
   fn handle(&mut self, msg: StandardMessage, _: &mut Context<Self>) -> Self::Result {
-    let msg_out = match parse_json_message(self, msg) {
-      Ok(m) => m,
-      Err(e) => e.to_string(),
-    };
-
-    println!("Message Sent: {}", msg_out);
-    MessageResult(msg_out)
+    match parse_json_message(self, msg) {
+      Ok(m) => {
+        info!("Message Sent: {}", m);
+        MessageResult(m)
+      }
+      Err(e) => {
+        error!("Error during message handling {}", e);
+        MessageResult(e.to_string())
+      }
+    }
   }
 }
 
@@ -501,9 +504,6 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
   let conn = chat.db.get()?;
 
   let user_operation: UserOperation = UserOperation::from_str(&op)?;
-
-  // TODO: none of the chat messages are going to work if stuff is submitted via http api,
-  //       need to move that handling elsewhere
 
   // A DDOS check
   chat.check_rate_limit_message(msg.id, false)?;
@@ -552,22 +552,7 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
     UserOperation::GetCommunity => {
       let get_community: GetCommunity = serde_json::from_str(data)?;
 
-      let mut res = if Settings::get().federation_enabled {
-        if let Some(community_name) = get_community.name.to_owned() {
-          if community_name.contains('@') {
-            // TODO: need to support sort, filter etc for remote communities
-            get_remote_community(community_name)?
-          // TODO what is this about
-          // get_community.name = Some(name.replace("!", ""));
-          } else {
-            Oper::new(get_community).perform(&conn)?
-          }
-        } else {
-          Oper::new(get_community).perform(&conn)?
-        }
-      } else {
-        Oper::new(get_community).perform(&conn)?
-      };
+      let mut res = Oper::new(get_community).perform(&conn)?;
 
       let community_id = res.community.id;
 
@@ -582,13 +567,7 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       to_json_string(&user_operation, &res)
     }
     UserOperation::ListCommunities => {
-      if Settings::get().federation_enabled {
-        let res = get_all_communities()?;
-        let val = ListCommunitiesResponse { communities: res };
-        to_json_string(&user_operation, &val)
-      } else {
-        do_user_operation::<ListCommunities, ListCommunitiesResponse>(user_operation, data, &conn)
-      }
+      do_user_operation::<ListCommunities, ListCommunitiesResponse>(user_operation, data, &conn)
     }
     UserOperation::CreateCommunity => {
       chat.check_rate_limit_register(msg.id, true)?;
@@ -649,6 +628,7 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
     }
     UserOperation::GetPosts => {
       let get_posts: GetPosts = serde_json::from_str(data)?;
+
       if get_posts.community_id.is_none() {
         // 0 is the "all" community
         chat.join_community_room(0, msg.id);

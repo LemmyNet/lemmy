@@ -93,6 +93,7 @@ export interface User {
   lang: string;
   avatar?: string;
   show_avatars: boolean;
+  unreadCount?: number;
 }
 
 export interface UserView {
@@ -155,6 +156,10 @@ export interface Post {
   deleted: boolean;
   locked: boolean;
   stickied: boolean;
+  embed_title?: string;
+  embed_description?: string;
+  embed_html?: string;
+  thumbnail_url?: string;
   nsfw: boolean;
   banned: boolean;
   banned_from_community: boolean;
@@ -207,6 +212,7 @@ export interface Comment {
   saved?: boolean;
   user_mention_id?: number; // For mention type
   recipient_id?: number;
+  depth?: number;
 }
 
 export interface Category {

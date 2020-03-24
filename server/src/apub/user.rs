@@ -1,74 +1,55 @@
-use crate::apub::make_apub_endpoint;
-use crate::db::establish_unpooled_connection;
+use crate::apub::{create_apub_response, make_apub_endpoint, EndpointType};
+use crate::convert_datetime;
 use crate::db::user::User_;
-use crate::to_datetime_utc;
-use activitypub::{actor::Person, context};
+use activitystreams::{
+  actor::{properties::ApActorProperties, Person},
+  context,
+  ext::Extensible,
+  object::properties::ObjectProperties,
+};
 use actix_web::body::Body;
 use actix_web::web::Path;
 use actix_web::HttpResponse;
+use actix_web::{web, Result};
+use diesel::r2d2::{ConnectionManager, Pool};
+use diesel::PgConnection;
+use failure::Error;
 use serde::Deserialize;
-
-impl User_ {
-  pub fn as_person(&self) -> Person {
-    let base_url = make_apub_endpoint("u", &self.name);
-    let mut person = Person::default();
-    person.object_props.set_context_object(context()).ok();
-    person.object_props.set_id_string(base_url.to_string()).ok();
-    person
-      .object_props
-      .set_name_string(self.name.to_owned())
-      .ok();
-    person
-      .object_props
-      .set_published_utctime(to_datetime_utc(self.published))
-      .ok();
-    if let Some(updated) = self.updated {
-      person
-        .object_props
-        .set_updated_utctime(to_datetime_utc(updated))
-        .ok();
-    }
-
-    person
-      .ap_actor_props
-      .set_inbox_string(format!("{}/inbox", &base_url))
-      .ok();
-    person
-      .ap_actor_props
-      .set_outbox_string(format!("{}/outbox", &base_url))
-      .ok();
-    person
-      .ap_actor_props
-      .set_following_string(format!("{}/following", &base_url))
-      .ok();
-    person
-      .ap_actor_props
-      .set_liked_string(format!("{}/liked", &base_url))
-      .ok();
-    if let Some(i) = &self.preferred_username {
-      person
-        .ap_actor_props
-        .set_preferred_username_string(i.to_string())
-        .ok();
-    }
-
-    person
-  }
-}
 
 #[derive(Deserialize)]
 pub struct UserQuery {
   user_name: String,
 }
 
-pub async fn get_apub_user(info: Path<UserQuery>) -> HttpResponse<Body> {
-  let connection = establish_unpooled_connection();
+pub async fn get_apub_user(
+  info: Path<UserQuery>,
+  db: web::Data<Pool<ConnectionManager<PgConnection>>>,
+) -> Result<HttpResponse<Body>, Error> {
+  let user = User_::find_by_email_or_username(&&db.get()?, &info.user_name)?;
+  let base_url = make_apub_endpoint(EndpointType::User, &user.name);
 
-  if let Ok(user) = User_::find_by_email_or_username(&connection, &info.user_name) {
-    HttpResponse::Ok()
-      .content_type("application/activity+json")
-      .body(serde_json::to_string(&user.as_person()).unwrap())
-  } else {
-    HttpResponse::NotFound().finish()
+  let mut person = Person::default();
+  let oprops: &mut ObjectProperties = person.as_mut();
+  oprops
+    .set_context_xsd_any_uri(context())?
+    .set_id(base_url.to_string())?
+    .set_published(convert_datetime(user.published))?;
+
+  if let Some(u) = user.updated {
+    oprops.set_updated(convert_datetime(u))?;
   }
+
+  if let Some(i) = &user.preferred_username {
+    oprops.set_name_xsd_string(i.to_owned())?;
+  }
+
+  let mut actor_props = ApActorProperties::default();
+
+  actor_props
+    .set_inbox(format!("{}/inbox", &base_url))?
+    .set_outbox(format!("{}/outbox", &base_url))?
+    .set_following(format!("{}/following", &base_url))?
+    .set_liked(format!("{}/liked", &base_url))?;
+
+  Ok(create_apub_response(&person.extend(actor_props)))
 }

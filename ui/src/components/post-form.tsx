@@ -1,4 +1,5 @@
 import { Component, linkEvent } from 'inferno';
+import { Prompt } from 'inferno-router';
 import { PostListings } from './post-listings';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
@@ -32,9 +33,11 @@ import {
   toast,
   randomStr,
   setupTribute,
+  setupTippy,
 } from '../utils';
 import autosize from 'autosize';
 import Tribute from 'tributejs/src/Tribute.js';
+import Selectr from 'mobius1-selectr';
 import { i18n } from '../i18next';
 
 const MAX_POST_TITLE_LENGTH = 200;
@@ -141,6 +144,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       this.setState(this.state);
       autosize.update(textarea);
     });
+    setupTippy();
   }
 
   componentWillUnmount() {
@@ -150,6 +154,15 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
   render() {
     return (
       <div>
+        <Prompt
+          when={
+            !this.state.loading &&
+            (this.state.postForm.name ||
+              this.state.postForm.url ||
+              this.state.postForm.body)
+          }
+          message={i18n.t('block_leaving')}
+        />
         <form onSubmit={linkEvent(this, this.handlePostSubmit)}>
           <div class="form-group row">
             <label class="col-sm-2 col-form-label" htmlFor="post-url">
@@ -178,9 +191,12 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
                 <label
                   htmlFor="file-upload"
                   className={`${UserService.Instance.user &&
-                    'pointer'} d-inline-block mr-2 float-right text-muted small font-weight-bold`}
+                    'pointer'} d-inline-block float-right text-muted h6 font-weight-bold`}
+                  data-tippy-content={i18n.t('upload_image')}
                 >
-                  {i18n.t('upload_image')}
+                  <svg class="icon icon-inline">
+                    <use xlinkHref="#icon-image"></use>
+                  </svg>
                 </label>
                 <input
                   id="file-upload"
@@ -278,9 +294,12 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               <a
                 href={markdownHelpUrl}
                 target="_blank"
-                class="d-inline-block float-right text-muted small font-weight-bold"
+                class="d-inline-block float-right text-muted h6 font-weight-bold"
+                title={i18n.t('formatting_help')}
               >
-                {i18n.t('formatting_help')}
+                <svg class="icon icon-inline">
+                  <use xlinkHref="#icon-help-circle"></use>
+                </svg>
               </a>
             </div>
           </div>
@@ -478,7 +497,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     })
       .then(res => res.json())
       .then(res => {
-        let url = `${window.location.origin}/pictshare/${res.url}`;
+        let url = `${window.location.origin}/pictshare/${encodeURI(res.url)}`;
         if (res.filetype == 'mp4') {
           url += '/raw';
         }
@@ -514,6 +533,15 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
         this.state.postForm.community_id = data.communities[0].id;
       }
       this.setState(this.state);
+
+      // Set up select searching
+      let selectId: any = document.getElementById('post-community');
+      if (selectId) {
+        let selector = new Selectr(selectId, { nativeDropdown: false });
+        selector.on('selectr.select', option => {
+          this.state.postForm.community_id = Number(option.value);
+        });
+      }
     } else if (res.op == UserOperation.CreatePost) {
       let data = res.data as PostResponse;
       if (data.post.creator_id == UserService.Instance.user.id) {

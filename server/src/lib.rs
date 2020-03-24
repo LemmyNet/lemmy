@@ -15,6 +15,7 @@ pub extern crate dotenv;
 pub extern crate jsonwebtoken;
 pub extern crate lettre;
 pub extern crate lettre_email;
+extern crate log;
 pub extern crate rand;
 pub extern crate regex;
 pub extern crate serde;
@@ -32,19 +33,19 @@ pub mod version;
 pub mod websocket;
 
 use crate::settings::Settings;
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, FixedOffset, Local, NaiveDateTime};
+use chttp::prelude::*;
 use lettre::smtp::authentication::{Credentials, Mechanism};
 use lettre::smtp::extension::ClientId;
 use lettre::smtp::ConnectionReuseParameters;
 use lettre::{ClientSecurity, SmtpClient, Transport};
 use lettre_email::Email;
+use log::error;
+use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use regex::{Regex, RegexBuilder};
-
-pub fn to_datetime_utc(ndt: NaiveDateTime) -> DateTime<Utc> {
-  DateTime::<Utc>::from_utc(ndt, Utc)
-}
+use serde::Deserialize;
 
 pub fn naive_now() -> NaiveDateTime {
   chrono::prelude::Utc::now().naive_utc()
@@ -52,6 +53,11 @@ pub fn naive_now() -> NaiveDateTime {
 
 pub fn naive_from_unix(time: i64) -> NaiveDateTime {
   NaiveDateTime::from_timestamp(time, 0)
+}
+
+pub fn convert_datetime(datetime: NaiveDateTime) -> DateTime<FixedOffset> {
+  let now = Local::now();
+  DateTime::<FixedOffset>::from_utc(datetime, *now.offset())
 }
 
 pub fn is_email_regex(test: &str) -> bool {
@@ -143,6 +149,77 @@ pub fn send_email(
   }
 }
 
+#[derive(Deserialize, Debug)]
+pub struct IframelyResponse {
+  title: Option<String>,
+  description: Option<String>,
+  thumbnail_url: Option<String>,
+  html: Option<String>,
+}
+
+pub fn fetch_iframely(url: &str) -> Result<IframelyResponse, failure::Error> {
+  let fetch_url = format!("http://iframely/oembed?url={}", url);
+  let text = chttp::get(&fetch_url)?.text()?;
+  let res: IframelyResponse = serde_json::from_str(&text)?;
+  Ok(res)
+}
+
+#[derive(Deserialize, Debug)]
+pub struct PictshareResponse {
+  status: String,
+  url: String,
+}
+
+pub fn fetch_pictshare(image_url: &str) -> Result<PictshareResponse, failure::Error> {
+  let fetch_url = format!(
+    "http://pictshare/api/geturl.php?url={}",
+    utf8_percent_encode(image_url, NON_ALPHANUMERIC)
+  );
+  let text = chttp::get(&fetch_url)?.text()?;
+  let res: PictshareResponse = serde_json::from_str(&text)?;
+  Ok(res)
+}
+
+fn fetch_iframely_and_pictshare_data(
+  url: Option<String>,
+) -> (
+  Option<String>,
+  Option<String>,
+  Option<String>,
+  Option<String>,
+) {
+  // Fetch iframely data
+  let (iframely_title, iframely_description, iframely_thumbnail_url, iframely_html) = match url {
+    Some(url) => match fetch_iframely(&url) {
+      Ok(res) => (res.title, res.description, res.thumbnail_url, res.html),
+      Err(e) => {
+        error!("iframely err: {}", e);
+        (None, None, None, None)
+      }
+    },
+    None => (None, None, None, None),
+  };
+
+  // Fetch pictshare thumbnail
+  let pictshare_thumbnail = match iframely_thumbnail_url {
+    Some(iframely_thumbnail_url) => match fetch_pictshare(&iframely_thumbnail_url) {
+      Ok(res) => Some(res.url),
+      Err(e) => {
+        error!("pictshare err: {}", e);
+        None
+      }
+    },
+    None => None,
+  };
+
+  (
+    iframely_title,
+    iframely_description,
+    iframely_html,
+    pictshare_thumbnail,
+  )
+}
+
 #[cfg(test)]
 mod tests {
   use crate::{extract_usernames, is_email_regex, remove_slurs, slur_check, slurs_vec_to_str};
@@ -187,6 +264,21 @@ mod tests {
     let expected = vec!["another", "testme"];
     assert_eq!(usernames, expected);
   }
+
+  // These helped with testing
+  // #[test]
+  // fn test_iframely() {
+  //   let res = fetch_iframely("https://www.redspark.nu/?p=15341");
+  //   assert!(res.is_ok());
+  // }
+
+  // #[test]
+  // fn test_pictshare() {
+  //   let res = fetch_pictshare("https://upload.wikimedia.org/wikipedia/en/2/27/The_Mandalorian_logo.jpg");
+  //   assert!(res.is_ok());
+  //   let res_other = fetch_pictshare("https://upload.wikimedia.org/wikipedia/en/2/27/The_Mandalorian_logo.jpgaoeu");
+  //   assert!(res_other.is_err());
+  // }
 
   // #[test]
   // fn test_send_email() {

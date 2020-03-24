@@ -37,6 +37,7 @@ import {
   createCommentLikeRes,
   createPostLikeFindRes,
   commentsToFlatNodes,
+  setupTippy,
 } from '../utils';
 import { PostListing } from './post-listing';
 import { SortSelect } from './sort-select';
@@ -267,6 +268,7 @@ export class User extends Component<any, UserState> {
             SortType[this.state.sort]
           }`}
           target="_blank"
+          title="RSS"
         >
           <svg class="icon mx-2 text-muted small">
             <use xlinkHref="#icon-rss">#</use>
@@ -357,10 +359,11 @@ export class User extends Component<any, UserState> {
               </ul>
             </h5>
             <div>
-              {i18n.t('joined')} <MomentTime data={user} />
+              {i18n.t('joined')} <MomentTime data={user} showAgo />
             </div>
             <div class="table-responsive mt-1">
               <table class="table table-bordered table-sm mt-2 mb-0">
+                {/*
                 <tr>
                   <td class="text-center" colSpan={2}>
                     {i18n.t('number_of_points', {
@@ -368,18 +371,23 @@ export class User extends Component<any, UserState> {
                     })}
                   </td>
                 </tr>
+                */}
                 <tr>
+                  {/* 
                   <td>
                     {i18n.t('number_of_points', { count: user.post_score })}
                   </td>
+                  */}
                   <td>
                     {i18n.t('number_of_posts', { count: user.number_of_posts })}
                   </td>
+                  {/* 
                 </tr>
                 <tr>
                   <td>
                     {i18n.t('number_of_points', { count: user.comment_score })}
                   </td>
+                  */}
                   <td>
                     {i18n.t('number_of_comments', {
                       count: user.number_of_comments,
@@ -1033,6 +1041,7 @@ export class User extends Component<any, UserState> {
       document.title = `/u/${this.state.user.name} - ${WebSocketService.Instance.site.name}`;
       window.scrollTo(0, 0);
       this.setState(this.state);
+      setupTippy();
     } else if (res.op == UserOperation.EditComment) {
       let data = res.data as CommentResponse;
       editCommentRes(data, this.state.comments);
