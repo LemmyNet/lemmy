@@ -14,12 +14,12 @@ pub struct Login {
 
 #[derive(Serialize, Deserialize)]
 pub struct Register {
-  username: String,
-  email: Option<String>,
-  password: String,
-  password_verify: String,
-  admin: bool,
-  show_nsfw: bool,
+  pub username: String,
+  pub email: Option<String>,
+  pub password: String,
+  pub password_verify: String,
+  pub admin: bool,
+  pub show_nsfw: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -42,7 +42,7 @@ pub struct SaveUserSettings {
 
 #[derive(Serialize, Deserialize)]
 pub struct LoginResponse {
-  jwt: String,
+  pub jwt: String,
 }
 
 #[derive(Serialize, Deserialize)]
