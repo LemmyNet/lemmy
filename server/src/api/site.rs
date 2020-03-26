@@ -1,5 +1,9 @@
 use super::*;
+use crate::api::user::Register;
+use crate::api::{Oper, Perform};
+use crate::settings::Settings;
 use diesel::PgConnection;
+use log::info;
 use std::str::FromStr;
 
 #[derive(Serialize, Deserialize)]
@@ -53,12 +57,12 @@ pub struct GetModlogResponse {
 
 #[derive(Serialize, Deserialize)]
 pub struct CreateSite {
-  name: String,
-  description: Option<String>,
-  enable_downvotes: bool,
-  open_registration: bool,
-  enable_nsfw: bool,
-  auth: String,
+  pub name: String,
+  pub description: Option<String>,
+  pub enable_downvotes: bool,
+  pub open_registration: bool,
+  pub enable_nsfw: bool,
+  pub auth: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -277,10 +281,34 @@ impl Perform<GetSiteResponse> for Oper<GetSite> {
   fn perform(&self, conn: &PgConnection) -> Result<GetSiteResponse, Error> {
     let _data: &GetSite = &self.data;
 
-    // It can return a null site in order to redirect
-    let site_view = match Site::read(&conn, 1) {
-      Ok(_site) => Some(SiteView::read(&conn)?),
-      Err(_e) => None,
+    let site = Site::read(&conn, 1);
+    let site_view = if site.is_ok() {
+      Some(SiteView::read(&conn)?)
+    } else if let Some(setup) = Settings::get().setup.as_ref() {
+      let register = Register {
+        username: setup.admin_username.to_owned(),
+        email: setup.admin_email.to_owned(),
+        password: setup.admin_password.to_owned(),
+        password_verify: setup.admin_password.to_owned(),
+        admin: true,
+        show_nsfw: true,
+      };
+      let login_response = Oper::new(register).perform(&conn)?;
+      info!("Admin {} created", setup.admin_username);
+
+      let create_site = CreateSite {
+        name: setup.site_name.to_owned(),
+        description: None,
+        enable_downvotes: false,
+        open_registration: false,
+        enable_nsfw: false,
+        auth: login_response.jwt,
+      };
+      Oper::new(create_site).perform(&conn)?;
+      info!("Site {} created", setup.site_name);
+      Some(SiteView::read(&conn)?)
+    } else {
+      None
     };
 
     let mut admins = UserView::admins(&conn)?;
