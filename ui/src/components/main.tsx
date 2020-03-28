@@ -423,6 +423,7 @@ export class Main extends Component<any, MainState> {
         noIndent
         showCommunity
         sortType={this.state.sort}
+        showContext
       />
     );
   }

@@ -55,7 +55,7 @@ export class PrivateMessage extends Component<
   render() {
     let message = this.props.privateMessage;
     return (
-      <div class="mb-2">
+      <div class="border-top border-light">
         <div>
           <ul class="list-inline mb-0 text-muted small">
             <li className="list-inline-item">
@@ -129,12 +129,12 @@ export class PrivateMessage extends Component<
                   dangerouslySetInnerHTML={mdToHtml(this.messageUnlessRemoved)}
                 />
               )}
-              <ul class="list-inline mb-1 text-muted h5 font-weight-bold">
+              <ul class="list-inline mb-0 text-muted font-weight-bold">
                 {!this.mine && (
                   <>
-                    <li className="list-inline-item-action">
-                      <span
-                        class="pointer"
+                    <li className="list-inline-item">
+                      <button
+                        class="btn btn-link btn-sm btn-animate text-muted"
                         onClick={linkEvent(this, this.handleMarkRead)}
                         data-tippy-content={
                           message.read
@@ -148,37 +148,37 @@ export class PrivateMessage extends Component<
                         >
                           <use xlinkHref="#icon-check"></use>
                         </svg>
-                      </span>
+                      </button>
                     </li>
-                    <li className="list-inline-item-action">
-                      <span
-                        class="pointer"
+                    <li className="list-inline-item">
+                      <button
+                        class="btn btn-link btn-sm btn-animate text-muted"
                         onClick={linkEvent(this, this.handleReplyClick)}
                         data-tippy-content={i18n.t('reply')}
                       >
                         <svg class="icon icon-inline">
                           <use xlinkHref="#icon-reply1"></use>
                         </svg>
-                      </span>
+                      </button>
                     </li>
                   </>
                 )}
                 {this.mine && (
                   <>
-                    <li className="list-inline-item-action">
-                      <span
-                        class="pointer"
+                    <li className="list-inline-item">
+                      <button
+                        class="btn btn-link btn-sm btn-animate text-muted"
                         onClick={linkEvent(this, this.handleEditClick)}
                         data-tippy-content={i18n.t('edit')}
                       >
                         <svg class="icon icon-inline">
                           <use xlinkHref="#icon-edit"></use>
                         </svg>
-                      </span>
+                      </button>
                     </li>
-                    <li className="list-inline-item-action">
-                      <span
-                        class="pointer"
+                    <li className="list-inline-item">
+                      <button
+                        class="btn btn-link btn-sm btn-animate text-muted"
                         onClick={linkEvent(this, this.handleDeleteClick)}
                         data-tippy-content={
                           !message.deleted
@@ -192,13 +192,13 @@ export class PrivateMessage extends Component<
                         >
                           <use xlinkHref="#icon-trash"></use>
                         </svg>
-                      </span>
+                      </button>
                     </li>
                   </>
                 )}
-                <li className="list-inline-item-action">
-                  <span
-                    className="pointer"
+                <li className="list-inline-item">
+                  <button
+                    class="btn btn-link btn-sm btn-animate text-muted"
                     onClick={linkEvent(this, this.handleViewSource)}
                     data-tippy-content={i18n.t('view_source')}
                   >
@@ -208,7 +208,7 @@ export class PrivateMessage extends Component<
                     >
                       <use xlinkHref="#icon-file-text"></use>
                     </svg>
-                  </span>
+                  </button>
                 </li>
               </ul>
             </div>

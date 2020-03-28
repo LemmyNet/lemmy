@@ -1,5 +1,4 @@
 import { Component, linkEvent } from 'inferno';
-import { Link } from 'inferno-router';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import {
@@ -34,14 +33,13 @@ import { CommentNodes } from './comment-nodes';
 import { PrivateMessage } from './private-message';
 import { SortSelect } from './sort-select';
 import { i18n } from '../i18next';
-import { T } from 'inferno-i18next';
 
 enum UnreadOrAll {
   Unread,
   All,
 }
 
-enum UnreadType {
+enum MessageType {
   All,
   Replies,
   Mentions,
@@ -52,7 +50,7 @@ type ReplyType = Comment | PrivateMessageI;
 
 interface InboxState {
   unreadOrAll: UnreadOrAll;
-  unreadType: UnreadType;
+  messageType: MessageType;
   replies: Array<Comment>;
   mentions: Array<Comment>;
   messages: Array<PrivateMessageI>;
@@ -64,7 +62,7 @@ export class Inbox extends Component<any, InboxState> {
   private subscription: Subscription;
   private emptyState: InboxState = {
     unreadOrAll: UnreadOrAll.Unread,
-    unreadType: UnreadType.All,
+    messageType: MessageType.All,
     replies: [],
     mentions: [],
     messages: [],
@@ -100,26 +98,19 @@ export class Inbox extends Component<any, InboxState> {
   }
 
   render() {
-    let user = UserService.Instance.user;
     return (
       <div class="container">
         <div class="row">
           <div class="col-12">
-            <h5 class="mb-0">
-              <T
-                class="d-inline"
-                i18nKey="inbox_for"
-                interpolation={{ user: user.username }}
-              >
-                #<Link to={`/u/${user.username}`}>#</Link>
-              </T>
+            <h5 class="mb-1">
+              {i18n.t('inbox')}
               <small>
                 <a
                   href={`/feeds/inbox/${UserService.Instance.auth}.xml`}
                   target="_blank"
                   title="RSS"
                 >
-                  <svg class="icon mx-2 text-muted small">
+                  <svg class="icon ml-2 text-muted small">
                     <use xlinkHref="#icon-rss">#</use>
                   </svg>
                 </a>
@@ -139,10 +130,10 @@ export class Inbox extends Component<any, InboxState> {
                 </ul>
               )}
             {this.selects()}
-            {this.state.unreadType == UnreadType.All && this.all()}
-            {this.state.unreadType == UnreadType.Replies && this.replies()}
-            {this.state.unreadType == UnreadType.Mentions && this.mentions()}
-            {this.state.unreadType == UnreadType.Messages && this.messages()}
+            {this.state.messageType == MessageType.All && this.all()}
+            {this.state.messageType == MessageType.Replies && this.replies()}
+            {this.state.messageType == MessageType.Mentions && this.mentions()}
+            {this.state.messageType == MessageType.Messages && this.messages()}
             {this.paginator()}
           </div>
         </div>
@@ -150,29 +141,103 @@ export class Inbox extends Component<any, InboxState> {
     );
   }
 
+  unreadOrAllRadios() {
+    return (
+      <div class="btn-group btn-group-toggle">
+        <label
+          className={`btn btn-sm btn-secondary pointer
+            ${this.state.unreadOrAll == UnreadOrAll.Unread && 'active'}
+          `}
+        >
+          <input
+            type="radio"
+            value={UnreadOrAll.Unread}
+            checked={this.state.unreadOrAll == UnreadOrAll.Unread}
+            onChange={linkEvent(this, this.handleUnreadOrAllChange)}
+          />
+          {i18n.t('unread')}
+        </label>
+        <label
+          className={`btn btn-sm btn-secondary pointer
+            ${this.state.unreadOrAll == UnreadOrAll.All && 'active'}
+          `}
+        >
+          <input
+            type="radio"
+            value={UnreadOrAll.All}
+            checked={this.state.unreadOrAll == UnreadOrAll.All}
+            onChange={linkEvent(this, this.handleUnreadOrAllChange)}
+          />
+          {i18n.t('all')}
+        </label>
+      </div>
+    );
+  }
+
+  messageTypeRadios() {
+    return (
+      <div class="btn-group btn-group-toggle">
+        <label
+          className={`btn btn-sm btn-secondary pointer btn-outline-light
+            ${this.state.messageType == MessageType.All && 'active'}
+          `}
+        >
+          <input
+            type="radio"
+            value={MessageType.All}
+            checked={this.state.messageType == MessageType.All}
+            onChange={linkEvent(this, this.handleMessageTypeChange)}
+          />
+          {i18n.t('all')}
+        </label>
+        <label
+          className={`btn btn-sm btn-secondary pointer btn-outline-light
+            ${this.state.messageType == MessageType.Replies && 'active'}
+          `}
+        >
+          <input
+            type="radio"
+            value={MessageType.Replies}
+            checked={this.state.messageType == MessageType.Replies}
+            onChange={linkEvent(this, this.handleMessageTypeChange)}
+          />
+          {i18n.t('replies')}
+        </label>
+        <label
+          className={`btn btn-sm btn-secondary pointer btn-outline-light
+            ${this.state.messageType == MessageType.Mentions && 'active'}
+          `}
+        >
+          <input
+            type="radio"
+            value={MessageType.Mentions}
+            checked={this.state.messageType == MessageType.Mentions}
+            onChange={linkEvent(this, this.handleMessageTypeChange)}
+          />
+          {i18n.t('mentions')}
+        </label>
+        <label
+          className={`btn btn-sm btn-secondary pointer btn-outline-light
+            ${this.state.messageType == MessageType.Messages && 'active'}
+          `}
+        >
+          <input
+            type="radio"
+            value={MessageType.Messages}
+            checked={this.state.messageType == MessageType.Messages}
+            onChange={linkEvent(this, this.handleMessageTypeChange)}
+          />
+          {i18n.t('messages')}
+        </label>
+      </div>
+    );
+  }
+
   selects() {
     return (
       <div className="mb-2">
-        <select
-          value={this.state.unreadOrAll}
-          onChange={linkEvent(this, this.handleUnreadOrAllChange)}
-          class="custom-select custom-select-sm w-auto mr-2"
-        >
-          <option disabled>{i18n.t('type')}</option>
-          <option value={UnreadOrAll.Unread}>{i18n.t('unread')}</option>
-          <option value={UnreadOrAll.All}>{i18n.t('all')}</option>
-        </select>
-        <select
-          value={this.state.unreadType}
-          onChange={linkEvent(this, this.handleUnreadTypeChange)}
-          class="custom-select custom-select-sm w-auto mr-2"
-        >
-          <option disabled>{i18n.t('type')}</option>
-          <option value={UnreadType.All}>{i18n.t('all')}</option>
-          <option value={UnreadType.Replies}>{i18n.t('replies')}</option>
-          <option value={UnreadType.Mentions}>{i18n.t('mentions')}</option>
-          <option value={UnreadType.Messages}>{i18n.t('messages')}</option>
-        </select>
+        <span class="mr-3">{this.unreadOrAllRadios()}</span>
+        <span class="mr-3">{this.messageTypeRadios()}</span>
         <SortSelect
           sort={this.state.sort}
           onChange={this.handleSortChange}
@@ -196,7 +261,12 @@ export class Inbox extends Component<any, InboxState> {
       <div>
         {combined.map(i =>
           isCommentType(i) ? (
-            <CommentNodes nodes={[{ comment: i }]} noIndent markable />
+            <CommentNodes
+              nodes={[{ comment: i }]}
+              noIndent
+              markable
+              showContext
+            />
           ) : (
             <PrivateMessage privateMessage={i} />
           )
@@ -212,6 +282,7 @@ export class Inbox extends Component<any, InboxState> {
           nodes={commentsToFlatNodes(this.state.replies)}
           noIndent
           markable
+          showContext
         />
       </div>
     );
@@ -221,7 +292,12 @@ export class Inbox extends Component<any, InboxState> {
     return (
       <div>
         {this.state.mentions.map(mention => (
-          <CommentNodes nodes={[{ comment: mention }]} noIndent markable />
+          <CommentNodes
+            nodes={[{ comment: mention }]}
+            noIndent
+            markable
+            showContext
+          />
         ))}
       </div>
     );
@@ -277,8 +353,8 @@ export class Inbox extends Component<any, InboxState> {
     i.refetch();
   }
 
-  handleUnreadTypeChange(i: Inbox, event: any) {
-    i.state.unreadType = Number(event.target.value);
+  handleMessageTypeChange(i: Inbox, event: any) {
+    i.state.messageType = Number(event.target.value);
     i.state.page = 1;
     i.setState(i.state);
     i.refetch();

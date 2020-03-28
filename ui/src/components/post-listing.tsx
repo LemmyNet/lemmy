@@ -250,7 +250,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
       <div class="row">
         <div className={`vote-bar col-1 pr-0 small text-center`}>
           <button
-            className={`vote-animate btn btn-link p-0 ${
+            className={`btn-animate btn btn-link btn-lg p-0 ${
               this.state.my_vote == 1 ? 'text-info' : 'text-muted'
             }`}
             onClick={linkEvent(this, this.handlePostLike)}
@@ -268,7 +268,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           </div>
           {WebSocketService.Instance.site.enable_downvotes && (
             <button
-              className={`vote-animate btn btn-link p-0 ${
+              className={`btn-animate btn btn-link btn-lg p-0 ${
                 this.state.my_vote == -1 ? 'text-danger' : 'text-muted'
               }`}
               onClick={linkEvent(this, this.handlePostDisLike)}
@@ -501,8 +501,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   </Link>
                 </li>
               </ul>
-              <ul class="list-inline mb-1 small text-muted">
-                {this.props.post.duplicates && (
+              {this.props.post.duplicates && (
+                <ul class="list-inline mb-1 small text-muted">
                   <>
                     <li className="list-inline-item mr-2">
                       {i18n.t('cross_posted_to')}
@@ -515,16 +515,16 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                       </li>
                     ))}
                   </>
-                )}
-              </ul>
-              <ul class="list-inline mb-1 text-muted h5 font-weight-bold">
+                </ul>
+              )}
+              <ul class="list-inline mb-1 text-muted font-weight-bold">
                 {UserService.Instance.user && (
                   <>
                     {this.props.showBody && (
                       <>
-                        <li className="list-inline-item-action">
-                          <span
-                            class="pointer"
+                        <li className="list-inline-item">
+                          <button
+                            class="btn btn-sm btn-link btn-animate text-muted"
                             onClick={linkEvent(this, this.handleSavePostClick)}
                             data-tippy-content={
                               post.saved ? i18n.t('unsave') : i18n.t('save')
@@ -536,11 +536,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                             >
                               <use xlinkHref="#icon-star"></use>
                             </svg>
-                          </span>
+                          </button>
                         </li>
-                        <li className="list-inline-item-action">
+                        <li className="list-inline-item">
                           <Link
-                            className="text-muted"
+                            class="btn btn-sm btn-link btn-animate text-muted"
                             to={`/create_post${this.crossPostParams}`}
                             title={i18n.t('cross_post')}
                           >
@@ -553,20 +553,20 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                     )}
                     {this.myPost && this.props.showBody && (
                       <>
-                        <li className="list-inline-item-action">
-                          <span
-                            class="pointer"
+                        <li className="list-inline-item">
+                          <button
+                            class="btn btn-sm btn-link btn-animate text-muted"
                             onClick={linkEvent(this, this.handleEditClick)}
                             data-tippy-content={i18n.t('edit')}
                           >
                             <svg class="icon icon-inline">
                               <use xlinkHref="#icon-edit"></use>
                             </svg>
-                          </span>
+                          </button>
                         </li>
-                        <li className="list-inline-item-action">
-                          <span
-                            class="pointer"
+                        <li className="list-inline-item">
+                          <button
+                            class="btn btn-sm btn-link btn-animate text-muted"
                             onClick={linkEvent(this, this.handleDeleteClick)}
                             data-tippy-content={
                               !post.deleted
@@ -580,29 +580,29 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                             >
                               <use xlinkHref="#icon-trash"></use>
                             </svg>
-                          </span>
+                          </button>
                         </li>
                       </>
                     )}
 
                     {!this.state.showAdvanced && this.props.showBody ? (
-                      <li className="list-inline-item-action">
-                        <span
-                          className="pointer"
+                      <li className="list-inline-item">
+                        <button
+                          class="btn btn-sm btn-link btn-animate text-muted"
                           onClick={linkEvent(this, this.handleShowAdvanced)}
                           data-tippy-content={i18n.t('more')}
                         >
                           <svg class="icon icon-inline">
                             <use xlinkHref="#icon-more-vertical"></use>
                           </svg>
-                        </span>
+                        </button>
                       </li>
                     ) : (
                       <>
                         {this.props.showBody && post.body && (
-                          <li className="list-inline-item-action">
-                            <span
-                              className="pointer"
+                          <li className="list-inline-item">
+                            <button
+                              class="btn btn-sm btn-link btn-animate text-muted"
                               onClick={linkEvent(this, this.handleViewSource)}
                               data-tippy-content={i18n.t('view_source')}
                             >
@@ -612,14 +612,14 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                               >
                                 <use xlinkHref="#icon-file-text"></use>
                               </svg>
-                            </span>
+                            </button>
                           </li>
                         )}
                         {this.canModOnSelf && (
                           <>
-                            <li className="list-inline-item-action">
-                              <span
-                                class="pointer"
+                            <li className="list-inline-item">
+                              <button
+                                class="btn btn-sm btn-link btn-animate text-muted"
                                 onClick={linkEvent(this, this.handleModLock)}
                                 data-tippy-content={
                                   post.locked
@@ -633,11 +633,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                                 >
                                   <use xlinkHref="#icon-lock"></use>
                                 </svg>
-                              </span>
+                              </button>
                             </li>
-                            <li className="list-inline-item-action">
-                              <span
-                                class="pointer"
+                            <li className="list-inline-item">
+                              <button
+                                class="btn btn-sm btn-link btn-animate text-muted"
                                 onClick={linkEvent(this, this.handleModSticky)}
                                 data-tippy-content={
                                   post.stickied
@@ -651,7 +651,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                                 >
                                   <use xlinkHref="#icon-pin"></use>
                                 </svg>
-                              </span>
+                              </button>
                             </li>
                           </>
                         )}

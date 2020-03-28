@@ -2,6 +2,7 @@
 ansible/inventory
 ansible/inventory_dev
 ansible/passwords/
+ansible/vars/
 
 # docker build files
 docker/lemmy_mine.hjson
