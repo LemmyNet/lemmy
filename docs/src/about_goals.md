@@ -50,3 +50,4 @@
 - [Federation.md](https://github.com/dariusk/gathio/blob/7fc93dbe9d4d99457a0e85c6c532112f415b7af2/FEDERATION.md)
 - [Activitypub implementers guide](https://socialhub.activitypub.rocks/t/draft-guide-for-new-activitypub-implementers/479)
 - [Data storage questions](https://socialhub.activitypub.rocks/t/data-storage-questions/579/3)
+- [Activitypub as it has been understood](https://flak.tedunangst.com/post/ActivityPub-as-it-has-been-understood)
