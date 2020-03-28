@@ -20,6 +20,7 @@ interface CommentNodesProps {
   viewOnly?: boolean;
   locked?: boolean;
   markable?: boolean;
+  showContext?: boolean;
   showCommunity?: boolean;
   sort?: CommentSortType;
   sortType?: SortType;
@@ -47,6 +48,7 @@ export class CommentNodes extends Component<
             admins={this.props.admins}
             postCreatorId={this.props.postCreatorId}
             markable={this.props.markable}
+            showContext={this.props.showContext}
             showCommunity={this.props.showCommunity}
             sort={this.props.sort}
             sortType={this.props.sortType}

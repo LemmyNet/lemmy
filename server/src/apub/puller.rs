@@ -11,8 +11,8 @@ use activitystreams::collection::{OrderedCollection, UnorderedCollection};
 use activitystreams::ext::Ext;
 use activitystreams::object::ObjectBox;
 use activitystreams::object::Page;
-use chttp::prelude::*;
 use failure::Error;
+use isahc::prelude::*;
 use log::warn;
 use serde::Deserialize;
 
@@ -65,7 +65,7 @@ where
   }
   // TODO: should cache responses here when we are in production
   // TODO: this function should return a future
-  let text = chttp::get(uri)?.text()?;
+  let text = isahc::get(uri)?.text()?;
   let res: Response = serde_json::from_str(&text)?;
   Ok(res)
 }

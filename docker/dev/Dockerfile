@@ -10,7 +10,7 @@ RUN yarn install --pure-lockfile
 COPY ui /app/ui
 RUN yarn build
 
-FROM ekidd/rust-musl-builder:1.40.0-openssl11 as rust
+FROM ekidd/rust-musl-builder:1.42.0-openssl11 as rust
 
 # Cache deps
 WORKDIR /app
@@ -33,7 +33,7 @@ RUN cargo build --frozen --release
 # RUN cargo install diesel_cli --no-default-features --features postgres
 
 
-FROM ekidd/rust-musl-builder:1.40.0-openssl11 as docs
+FROM ekidd/rust-musl-builder:1.42.0-openssl11 as docs
 WORKDIR /app
 COPY docs ./docs
 RUN sudo chown -R rust:rust .
