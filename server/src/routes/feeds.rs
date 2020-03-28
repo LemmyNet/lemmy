@@ -10,7 +10,7 @@ use crate::db::user_mention_view::{UserMentionQueryBuilder, UserMentionView};
 use crate::db::{ListingType, SortType};
 use crate::Settings;
 use actix_web::{web, HttpResponse, Result};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use failure::Error;
@@ -18,6 +18,7 @@ use rss::{CategoryBuilder, ChannelBuilder, GuidBuilder, Item, ItemBuilder};
 use serde::Deserialize;
 use std::str::FromStr;
 use strum::ParseError;
+extern crate Markdown_to_HTML_rs;
 
 #[derive(Deserialize)]
 pub struct Params {
@@ -34,7 +35,6 @@ enum RequestType {
 pub fn config(cfg: &mut web::ServiceConfig) {
   cfg
     .route("/feeds/{type}/{name}.xml", web::get().to(feeds::get_feed))
-    .route("/feeds/all.xml", web::get().to(feeds::get_all_feed))
     .route("/feeds/all.xml", web::get().to(feeds::get_all_feed));
 }
 
@@ -44,9 +44,7 @@ async fn get_all_feed(
 ) -> Result<HttpResponse, actix_web::Error> {
   let res = web::block(move || {
     let conn = db.get()?;
-
-    let sort_type = get_sort_type(info)?;
-    get_feed_all_data(&conn, &sort_type)
+    get_feed_all_data(&conn, &get_sort_type(info)?)
   })
   .await
   .map(|rss| {
@@ -56,6 +54,29 @@ async fn get_all_feed(
   })
   .map_err(|_| HttpResponse::InternalServerError())?;
   Ok(res)
+}
+
+fn get_feed_all_data(conn: &PgConnection, sort_type: &SortType) -> Result<String, failure::Error> {
+  let site_view = SiteView::read(&conn)?;
+
+  let posts = PostQueryBuilder::create(&conn)
+    .listing_type(ListingType::All)
+    .sort(sort_type)
+    .list()?;
+
+  let items = create_post_items(posts);
+
+  let mut channel_builder = ChannelBuilder::default();
+  channel_builder
+    .title(&format!("{} - All", site_view.name))
+    .link(format!("https://{}", Settings::get().hostname))
+    .items(items);
+
+  if let Some(site_desc) = site_view.description {
+    channel_builder.description(&site_desc);
+  }
+
+  Ok(channel_builder.build().unwrap().to_string())
 }
 
 async fn get_feed(
@@ -86,6 +107,7 @@ async fn get_feed(
     }
   })
   .await
+  .map(|builder| builder.build().unwrap().to_string())
   .map(|rss| {
     HttpResponse::Ok()
       .content_type("application/rss+xml")
@@ -103,34 +125,11 @@ fn get_sort_type(info: web::Query<Params>) -> Result<SortType, ParseError> {
   SortType::from_str(&sort_query)
 }
 
-fn get_feed_all_data(conn: &PgConnection, sort_type: &SortType) -> Result<String, failure::Error> {
-  let site_view = SiteView::read(&conn)?;
-
-  let posts = PostQueryBuilder::create(&conn)
-    .listing_type(ListingType::All)
-    .sort(sort_type)
-    .list()?;
-
-  let items = create_post_items(posts);
-
-  let mut channel_builder = ChannelBuilder::default();
-  channel_builder
-    .title(&format!("{} - All", site_view.name))
-    .link(format!("https://{}", Settings::get().hostname))
-    .items(items);
-
-  if let Some(site_desc) = site_view.description {
-    channel_builder.description(&site_desc);
-  }
-
-  Ok(channel_builder.build().unwrap().to_string())
-}
-
 fn get_feed_user(
   conn: &PgConnection,
   sort_type: &SortType,
   user_name: String,
-) -> Result<String, Error> {
+) -> Result<ChannelBuilder, Error> {
   let site_view = SiteView::read(&conn)?;
   let user = User_::find_by_username(&conn, &user_name)?;
   let user_url = user.get_profile_url();
@@ -149,14 +148,14 @@ fn get_feed_user(
     .link(user_url)
     .items(items);
 
-  Ok(channel_builder.build().unwrap().to_string())
+  Ok(channel_builder)
 }
 
 fn get_feed_community(
   conn: &PgConnection,
   sort_type: &SortType,
   community_name: String,
-) -> Result<String, Error> {
+) -> Result<ChannelBuilder, Error> {
   let site_view = SiteView::read(&conn)?;
   let community = Community::read_from_name(&conn, community_name)?;
   let community_url = community.get_url();
@@ -179,10 +178,14 @@ fn get_feed_community(
     channel_builder.description(&community_desc);
   }
 
-  Ok(channel_builder.build().unwrap().to_string())
+  Ok(channel_builder)
 }
 
-fn get_feed_front(conn: &PgConnection, sort_type: &SortType, jwt: String) -> Result<String, Error> {
+fn get_feed_front(
+  conn: &PgConnection,
+  sort_type: &SortType,
+  jwt: String,
+) -> Result<ChannelBuilder, Error> {
   let site_view = SiteView::read(&conn)?;
   let user_id = Claims::decode(&jwt)?.claims.id;
 
@@ -204,10 +207,10 @@ fn get_feed_front(conn: &PgConnection, sort_type: &SortType, jwt: String) -> Res
     channel_builder.description(&site_desc);
   }
 
-  Ok(channel_builder.build().unwrap().to_string())
+  Ok(channel_builder)
 }
 
-fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<String, Error> {
+fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, Error> {
   let site_view = SiteView::read(&conn)?;
   let user_id = Claims::decode(&jwt)?.claims.id;
 
@@ -233,86 +236,61 @@ fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<String, Error> {
     channel_builder.description(&site_desc);
   }
 
-  Ok(channel_builder.build().unwrap().to_string())
+  Ok(channel_builder)
 }
 
 fn create_reply_and_mention_items(
   replies: Vec<ReplyView>,
   mentions: Vec<UserMentionView>,
 ) -> Vec<Item> {
-  let mut items: Vec<Item> = Vec::new();
+  let mut reply_items: Vec<Item> = replies
+    .iter()
+    .map(|r| {
+      let reply_url = format!(
+        "https://{}/post/{}/comment/{}",
+        Settings::get().hostname,
+        r.post_id,
+        r.id
+      );
+      build_item(&r.creator_name, &r.published, &reply_url, &r.content)
+    })
+    .collect();
 
-  for r in replies {
-    let mut i = ItemBuilder::default();
+  let mut mention_items: Vec<Item> = mentions
+    .iter()
+    .map(|m| {
+      let mention_url = format!(
+        "https://{}/post/{}/comment/{}",
+        Settings::get().hostname,
+        m.post_id,
+        m.id
+      );
+      build_item(&m.creator_name, &m.published, &mention_url, &m.content)
+    })
+    .collect();
 
-    i.title(format!("Reply from {}", r.creator_name));
+  reply_items.append(&mut mention_items);
+  reply_items
+}
 
-    let author_url = format!("https://{}/u/{}", Settings::get().hostname, r.creator_name);
-    i.author(format!(
-      "/u/{} <a href=\"{}\">(link)</a>",
-      r.creator_name, author_url
-    ));
-
-    let dt = DateTime::<Utc>::from_utc(r.published, Utc);
-    i.pub_date(dt.to_rfc2822());
-
-    let reply_url = format!(
-      "https://{}/post/{}/comment/{}",
-      Settings::get().hostname,
-      r.post_id,
-      r.id
-    );
-    i.comments(reply_url.to_owned());
-    let guid = GuidBuilder::default()
-      .permalink(true)
-      .value(&reply_url)
-      .build();
-    i.guid(guid.unwrap());
-
-    i.link(reply_url);
-
-    // TODO find a markdown to html parser here, do images, etc
-    i.description(r.content);
-
-    items.push(i.build().unwrap());
-  }
-
-  for m in mentions {
-    let mut i = ItemBuilder::default();
-
-    i.title(format!("Mention from {}", m.creator_name));
-
-    let author_url = format!("https://{}/u/{}", Settings::get().hostname, m.creator_name);
-    i.author(format!(
-      "/u/{} <a href=\"{}\">(link)</a>",
-      m.creator_name, author_url
-    ));
-
-    let dt = DateTime::<Utc>::from_utc(m.published, Utc);
-    i.pub_date(dt.to_rfc2822());
-
-    let mention_url = format!(
-      "https://{}/post/{}/comment/{}",
-      Settings::get().hostname,
-      m.post_id,
-      m.id
-    );
-    i.comments(mention_url.to_owned());
-    let guid = GuidBuilder::default()
-      .permalink(true)
-      .value(&mention_url)
-      .build();
-    i.guid(guid.unwrap());
-
-    i.link(mention_url);
-
-    // TODO find a markdown to html parser here, do images, etc
-    i.description(m.content);
-
-    items.push(i.build().unwrap());
-  }
-
-  items
+fn build_item(creator_name: &str, published: &NaiveDateTime, url: &str, content: &str) -> Item {
+  let mut i = ItemBuilder::default();
+  i.title(format!("Reply from {}", creator_name));
+  let author_url = format!("https://{}/u/{}", Settings::get().hostname, creator_name);
+  i.author(format!(
+    "/u/{} <a href=\"{}\">(link)</a>",
+    creator_name, author_url
+  ));
+  let dt = DateTime::<Utc>::from_utc(*published, Utc);
+  i.pub_date(dt.to_rfc2822());
+  i.comments(url.to_owned());
+  let guid = GuidBuilder::default().permalink(true).value(url).build();
+  i.guid(guid.unwrap());
+  i.link(url.to_owned());
+  // TODO add images
+  let html = Markdown_to_HTML_rs::replace_all(&content.to_string());
+  i.description(html);
+  i.build().unwrap()
 }
 
 fn create_post_items(posts: Vec<PostView>) -> Vec<Item> {
@@ -359,9 +337,8 @@ fn create_post_items(posts: Vec<PostView>) -> Vec<Item> {
       i.link(url);
     }
 
-    // TODO find a markdown to html parser here, do images, etc
-    let mut description = format!("
-    submitted by <a href=\"{}\">{}</a> to <a href=\"{}\">{}</a><br>{} points | <a href=\"{}\">{} comments</a>",
+    // TODO add images
+    let mut description = format!("submitted by <a href=\"{}\">{}</a> to <a href=\"{}\">{}</a><br>{} points | <a href=\"{}\">{} comments</a>",
     author_url,
     p.creator_name,
     community_url,
@@ -371,7 +348,8 @@ fn create_post_items(posts: Vec<PostView>) -> Vec<Item> {
     p.number_of_comments);
 
     if let Some(body) = p.body {
-      description.push_str(&format!("<br><br>{}", body));
+      let html = Markdown_to_HTML_rs::replace_all(&body);
+      description.push_str(&format!("<br><br>{}", html));
     }
 
     i.description(description);
