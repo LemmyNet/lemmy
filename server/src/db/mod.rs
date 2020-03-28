@@ -1,4 +1,3 @@
-extern crate lazy_static;
 use crate::settings::Settings;
 use diesel::dsl::*;
 use diesel::result::Error;

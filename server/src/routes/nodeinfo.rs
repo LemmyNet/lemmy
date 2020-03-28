@@ -1,4 +1,3 @@
-extern crate lazy_static;
 use crate::db::site_view::SiteView;
 use crate::version;
 use crate::Settings;
