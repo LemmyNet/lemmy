@@ -1,4 +1,3 @@
-extern crate lazy_static;
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 use std::env;

@@ -1,5 +1,3 @@
-extern crate rss;
-
 use super::*;
 use crate::db::comment_view::{ReplyQueryBuilder, ReplyView};
 use crate::db::community::Community;
@@ -8,7 +6,7 @@ use crate::db::site_view::SiteView;
 use crate::db::user::{Claims, User_};
 use crate::db::user_mention_view::{UserMentionQueryBuilder, UserMentionView};
 use crate::db::{ListingType, SortType};
-use crate::Settings;
+use crate::{markdown_to_html, Settings};
 use actix_web::{web, HttpResponse, Result};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::r2d2::{ConnectionManager, Pool};
@@ -18,7 +16,6 @@ use rss::{CategoryBuilder, ChannelBuilder, GuidBuilder, Item, ItemBuilder};
 use serde::Deserialize;
 use std::str::FromStr;
 use strum::ParseError;
-extern crate Markdown_to_HTML_rs;
 
 #[derive(Deserialize)]
 pub struct Params {
@@ -288,7 +285,7 @@ fn build_item(creator_name: &str, published: &NaiveDateTime, url: &str, content:
   i.guid(guid.unwrap());
   i.link(url.to_owned());
   // TODO add images
-  let html = Markdown_to_HTML_rs::replace_all(&content.to_string());
+  let html = markdown_to_html(&content.to_string());
   i.description(html);
   i.build().unwrap()
 }
@@ -348,8 +345,8 @@ fn create_post_items(posts: Vec<PostView>) -> Vec<Item> {
     p.number_of_comments);
 
     if let Some(body) = p.body {
-      let html = Markdown_to_HTML_rs::replace_all(&body);
-      description.push_str(&format!("<br><br>{}", html));
+      let html = markdown_to_html(&body);
+      description.push_str(&html);
     }
 
     i.description(description);
