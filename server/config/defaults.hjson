@@ -1,4 +1,15 @@
 {
+#  # optional: parameters for automatic configuration of new instance (only used at first start)
+#  setup: {
+#    # username for the admin user
+#    admin_username: ""
+#    # password for the admin user
+#    admin_password: ""
+#    # optional: email for the admin user (can be omitted and set later through the website)
+#    admin_email: ""
+#    # name of the site (can be changed later)
+#    site_name: ""
+#  }
   # settings related to the postgresql database
   database: {
     # username to connect to postgres
