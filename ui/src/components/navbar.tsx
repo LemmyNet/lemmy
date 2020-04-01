@@ -375,12 +375,13 @@ export class Navbar extends Component<any, NavbarState> {
     let link = isCommentType(reply)
       ? `/post/${reply.post_id}/comment/${reply.id}`
       : `/inbox`;
-    let body = md.render(reply.content);
+    let htmlBody = md.render(reply.content);
+    let body = reply.content; // Unfortunately the notifications API can't do html
 
     messageToastify(
       creator_name,
       creator_avatar,
-      body,
+      htmlBody,
       link,
       this.context.router
     );
