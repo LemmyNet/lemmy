@@ -1,4 +1,3 @@
-extern crate lazy_static;
 use crate::apub::get_apub_protocol_string;
 use crate::db::site_view::SiteView;
 use crate::version;

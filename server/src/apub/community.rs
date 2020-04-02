@@ -107,7 +107,7 @@ pub async fn get_apub_community_outbox(
     .set_id(base_url)?;
   collection
     .collection_props
-    .set_many_items_object_boxs(
+    .set_many_items_base_boxes(
       community_posts
         .iter()
         .map(|c| c.as_page().unwrap())

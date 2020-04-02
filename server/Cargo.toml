@@ -8,7 +8,7 @@ edition = "2018"
 diesel = { version = "1.4.2", features = ["postgres","chrono", "r2d2", "64-column-tables"] }
 diesel_migrations = "1.4.0"
 dotenv = "0.15.0"
-activitystreams = "0.5.0-alpha.10"
+activitystreams = "0.5.0-alpha.16"
 bcrypt = "0.6.2"
 chrono = { version = "0.4.7", features = ["serde"] }
 failure = "0.1.5"
@@ -37,3 +37,4 @@ hjson = "0.8.2"
 url = "2.1.1"
 percent-encoding = "2.1.0"
 isahc = "0.9"
+comrak = "0.7"
