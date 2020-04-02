@@ -11,6 +11,7 @@ pub extern crate actix;
 pub extern crate actix_web;
 pub extern crate bcrypt;
 pub extern crate chrono;
+pub extern crate comrak;
 pub extern crate dotenv;
 pub extern crate jsonwebtoken;
 pub extern crate lettre;
@@ -18,6 +19,7 @@ pub extern crate lettre_email;
 extern crate log;
 pub extern crate rand;
 pub extern crate regex;
+pub extern crate rss;
 pub extern crate serde;
 pub extern crate serde_json;
 pub extern crate sha2;
@@ -218,6 +220,10 @@ fn fetch_iframely_and_pictshare_data(
     iframely_html,
     pictshare_thumbnail,
   )
+}
+
+pub fn markdown_to_html(text: &str) -> String {
+  comrak::markdown_to_html(text, &comrak::ComrakOptions::default())
 }
 
 #[cfg(test)]

@@ -1,4 +1,3 @@
-extern crate lazy_static;
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 use std::env;
@@ -9,6 +8,7 @@ static CONFIG_FILE: &str = "config/config.hjson";
 
 #[derive(Debug, Deserialize)]
 pub struct Settings {
+  pub setup: Option<Setup>,
   pub database: Database,
   pub hostname: String,
   pub bind: IpAddr,
@@ -18,6 +18,14 @@ pub struct Settings {
   pub rate_limit: RateLimitConfig,
   pub email: Option<EmailConfig>,
   pub federation: Federation,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Setup {
+  pub admin_username: String,
+  pub admin_password: String,
+  pub admin_email: Option<String>,
+  pub site_name: String,
 }
 
 #[derive(Debug, Deserialize)]

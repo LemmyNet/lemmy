@@ -9,8 +9,8 @@ use crate::settings::Settings;
 use activitystreams::actor::{properties::ApActorProperties, Group};
 use activitystreams::collection::{OrderedCollection, UnorderedCollection};
 use activitystreams::ext::Ext;
-use activitystreams::object::ObjectBox;
 use activitystreams::object::Page;
+use activitystreams::BaseBox;
 use failure::Error;
 use isahc::prelude::*;
 use log::warn;
@@ -75,11 +75,11 @@ pub fn get_remote_community_posts(identifier: &str) -> Result<GetPostsResponse, 
     fetch_remote_object::<Ext<Group, ApActorProperties>>(&get_remote_community_uri(identifier))?;
   let outbox_uri = &community.extension.get_outbox().to_string();
   let outbox = fetch_remote_object::<OrderedCollection>(outbox_uri)?;
-  let items = outbox.collection_props.get_many_items_object_boxs();
+  let items = outbox.collection_props.get_many_items_base_boxes();
 
   let posts: Vec<PostView> = items
     .unwrap()
-    .map(|obox: &ObjectBox| {
+    .map(|obox: &BaseBox| {
       let page: Page = obox.clone().to_concrete::<Page>().unwrap();
       PostView {
         id: -1,
