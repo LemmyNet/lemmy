@@ -1,5 +1,6 @@
 use super::*;
 use crate::apub::puller::{get_all_communities, get_remote_community};
+use crate::apub::{gen_keypair_str, make_apub_endpoint, EndpointType};
 use crate::settings::Settings;
 use diesel::PgConnection;
 use std::str::FromStr;
@@ -208,6 +209,8 @@ impl Perform<CommunityResponse> for Oper<CreateCommunity> {
     }
 
     // When you create a community, make sure the user becomes a moderator and a follower
+    let (community_public_key, community_private_key) = gen_keypair_str();
+
     let community_form = CommunityForm {
       name: data.name.to_owned(),
       title: data.title.to_owned(),
@@ -218,6 +221,11 @@ impl Perform<CommunityResponse> for Oper<CreateCommunity> {
       deleted: None,
       nsfw: data.nsfw,
       updated: None,
+      actor_id: make_apub_endpoint(EndpointType::Community, &data.name).to_string(),
+      local: true,
+      private_key: Some(community_private_key),
+      public_key: Some(community_public_key),
+      last_refreshed_at: None,
     };
 
     let inserted_community = match Community::create(&conn, &community_form) {
@@ -298,6 +306,8 @@ impl Perform<CommunityResponse> for Oper<EditCommunity> {
       return Err(APIError::err("no_community_edit_allowed").into());
     }
 
+    let read_community = Community::read(&conn, data.edit_id)?;
+
     let community_form = CommunityForm {
       name: data.name.to_owned(),
       title: data.title.to_owned(),
@@ -308,6 +318,11 @@ impl Perform<CommunityResponse> for Oper<EditCommunity> {
       deleted: data.deleted.to_owned(),
       nsfw: data.nsfw,
       updated: Some(naive_now()),
+      actor_id: read_community.actor_id,
+      local: read_community.local,
+      private_key: read_community.private_key,
+      public_key: read_community.public_key,
+      last_refreshed_at: None,
     };
 
     let _updated_community = match Community::update(&conn, data.edit_id, &community_form) {
@@ -571,6 +586,11 @@ impl Perform<GetCommunityResponse> for Oper<TransferCommunity> {
       deleted: None,
       nsfw: read_community.nsfw,
       updated: Some(naive_now()),
+      actor_id: read_community.actor_id,
+      local: read_community.local,
+      private_key: read_community.private_key,
+      public_key: read_community.public_key,
+      last_refreshed_at: None,
     };
 
     let _updated_community = match Community::update(&conn, data.community_id, &community_form) {

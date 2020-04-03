@@ -26,6 +26,8 @@ import {
   fetchLimit,
   isCommentType,
   toast,
+  messageToastify,
+  md,
 } from '../utils';
 import { version } from '../version';
 import { i18n } from '../i18next';
@@ -100,6 +102,22 @@ export class Navbar extends Component<any, NavbarState> {
         <Link title={version} class="navbar-brand" to="/">
           {this.state.siteName}
         </Link>
+        {this.state.isLoggedIn && (
+          <Link
+            class="ml-auto p-0 navbar-toggler nav-link"
+            to="/inbox"
+            title={i18n.t('inbox')}
+          >
+            <svg class="icon">
+              <use xlinkHref="#icon-bell"></use>
+            </svg>
+            {this.state.unreadCount > 0 && (
+              <span class="ml-1 badge badge-light">
+                {this.state.unreadCount}
+              </span>
+            )}
+          </Link>
+        )}
         <button
           class="navbar-toggler"
           type="button"
@@ -350,21 +368,34 @@ export class Navbar extends Component<any, NavbarState> {
   }
 
   notify(reply: Comment | PrivateMessage) {
+    let creator_name = reply.creator_name;
+    let creator_avatar = reply.creator_avatar
+      ? reply.creator_avatar
+      : `${window.location.protocol}//${window.location.host}/static/assets/apple-touch-icon.png`;
+    let link = isCommentType(reply)
+      ? `/post/${reply.post_id}/comment/${reply.id}`
+      : `/inbox`;
+    let htmlBody = md.render(reply.content);
+    let body = reply.content; // Unfortunately the notifications API can't do html
+
+    messageToastify(
+      creator_name,
+      creator_avatar,
+      htmlBody,
+      link,
+      this.context.router
+    );
+
     if (Notification.permission !== 'granted') Notification.requestPermission();
     else {
       var notification = new Notification(reply.creator_name, {
-        icon: reply.creator_avatar
-          ? reply.creator_avatar
-          : `${window.location.protocol}//${window.location.host}/static/assets/apple-touch-icon.png`,
-        body: `${reply.content}`,
+        icon: creator_avatar,
+        body: body,
       });
 
       notification.onclick = () => {
-        this.context.router.history.push(
-          isCommentType(reply)
-            ? `/post/${reply.post_id}/comment/${reply.id}`
-            : `/inbox`
-        );
+        event.preventDefault();
+        this.context.router.history.push(link);
       };
     }
   }

@@ -152,7 +152,7 @@ svg.thumbnail {
 }
 
 hr {
-  border-top: 1px solid var(--secondary);
+  border-top: 1px solid var(--light);
 }
 
 .emoji {
@@ -186,7 +186,7 @@ hr {
   max-height: 90vh;
 }
 
-.vote-animate:active {
+.btn-animate:active {
   transform: scale(1.2);
   -webkit-transform: scale(1.2);
   -ms-transform: scale(1.2);

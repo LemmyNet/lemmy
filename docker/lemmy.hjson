@@ -41,7 +41,16 @@
     # interval length for registration limit
     register_per_second: 3600
   }
-#  # email sending configuration
+#  # optional: parameters for automatic configuration of new instance (only used at first start)
+#  setup: {
+#    # username for the admin user
+#    admin_username: "lemmy"
+#    # password for the admin user
+#    admin_password: "lemmy"
+#    # name of the site (can be changed later)
+#    site_name: "Lemmy Test"
+#  }
+#  # optional: email sending configuration
 #  email: {
 #    # hostname of the smtp server
 #    smtp_server: ""

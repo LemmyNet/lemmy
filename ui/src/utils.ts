@@ -12,6 +12,7 @@ import 'moment/locale/ca';
 import 'moment/locale/fa';
 import 'moment/locale/pt-br';
 import 'moment/locale/ja';
+import 'moment/locale/ka';
 
 import {
   UserOperation,
@@ -59,6 +60,7 @@ export const languages = [
   { code: 'eo', name: 'Esperanto' },
   { code: 'es', name: 'Español' },
   { code: 'de', name: 'Deutsch' },
+  { code: 'ka', name: 'ქართული ენა' },
   { code: 'fa', name: 'فارسی' },
   { code: 'ja', name: '日本語' },
   { code: 'pt_BR', name: 'Português Brasileiro' },
@@ -218,7 +220,7 @@ export function validURL(str: string) {
 }
 
 export function validEmail(email: string) {
-  let re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  let re = /^(([^\s"(),.:;<>@[\\\]]+(\.[^\s"(),.:;<>@[\\\]]+)*)|(".+"))@((\[(?:\d{1,3}\.){3}\d{1,3}])|(([\dA-Za-z\-]+\.)+[A-Za-z]{2,}))$/;
   return re.test(String(email).toLowerCase());
 }
 
@@ -353,6 +355,8 @@ export function getMomentLanguage(): string {
     lang = 'pt-br';
   } else if (lang.startsWith('ja')) {
     lang = 'ja';
+  } else if (lang.startsWith('ka')) {
+    lang = 'ka';
   } else {
     lang = 'en';
   }
@@ -433,6 +437,32 @@ export function toast(text: string, background: string = 'success') {
     backgroundColor: backgroundColor,
     gravity: 'bottom',
     position: 'left',
+  }).showToast();
+}
+
+export function messageToastify(
+  creator: string,
+  avatar: string,
+  body: string,
+  link: string,
+  router: any
+) {
+  let backgroundColor = `var(--light)`;
+
+  let toast = Toastify({
+    text: `${body}<br />${creator}`,
+    avatar: avatar,
+    backgroundColor: backgroundColor,
+    close: true,
+    gravity: 'top',
+    position: 'right',
+    duration: 0,
+    onClick: () => {
+      if (toast) {
+        toast.hideToast();
+        router.history.push(link);
+      }
+    },
   }).showToast();
 }
 

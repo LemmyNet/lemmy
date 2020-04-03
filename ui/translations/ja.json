@@ -198,5 +198,7 @@
     "upvote": "賛成票",
     "downvote": "反対票",
     "sorting_help": "並び順のヘルプ",
-    "block_leaving": "このページから離れてもよろしいですか？"
+    "block_leaving": "このページから離れてもよろしいですか？",
+    "number_of_upvotes": "{{count}} 票の賛成",
+    "number_of_downvotes": "{{count}} 票の反対"
 }
