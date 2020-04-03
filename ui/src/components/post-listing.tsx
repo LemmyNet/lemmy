@@ -20,6 +20,7 @@ import { MomentTime } from './moment-time';
 import { PostForm } from './post-form';
 import { IFramelyCard } from './iframely-card';
 import {
+  md,
   mdToHtml,
   canMod,
   isMod,
@@ -30,6 +31,7 @@ import {
   showAvatars,
   pictshareImage,
   setupTippy,
+  previewLines,
 } from '../utils';
 import { i18n } from '../i18next';
 
@@ -459,6 +461,24 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                     <MomentTime data={post} />
                   </span>
                 </li>
+                {post.body && (
+                  <>
+                    <li className="list-inline-item">•</li>
+                    <li className="list-inline-item">
+                      {/* Using a link with tippy doesn't work on touch devices unfortunately */}
+                      <Link
+                        className="text-muted"
+                        data-tippy-content={md.render(previewLines(post.body))}
+                        data-tippy-allowHtml={true}
+                        to={`/post/${post.id}`}
+                      >
+                        <svg class="mr-1 icon icon-inline">
+                          <use xlinkHref="#icon-book-open"></use>
+                        </svg>
+                      </Link>
+                    </li>
+                  </>
+                )}
                 <li className="list-inline-item">•</li>
                 {this.state.upvotes !== this.state.score && (
                   <>
