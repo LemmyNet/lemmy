@@ -51,3 +51,4 @@
 - [Activitypub implementers guide](https://socialhub.activitypub.rocks/t/draft-guide-for-new-activitypub-implementers/479)
 - [Data storage questions](https://socialhub.activitypub.rocks/t/data-storage-questions/579/3)
 - [Activitypub as it has been understood](https://flak.tedunangst.com/post/ActivityPub-as-it-has-been-understood)
+- [Asonix http signatures in rust](https://git.asonix.dog/Aardwolf/http-signature-normalization)
