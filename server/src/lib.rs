@@ -17,6 +17,7 @@ pub extern crate jsonwebtoken;
 pub extern crate lettre;
 pub extern crate lettre_email;
 extern crate log;
+pub extern crate openssl;
 pub extern crate rand;
 pub extern crate regex;
 pub extern crate rss;

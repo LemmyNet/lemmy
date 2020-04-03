@@ -3,6 +3,7 @@ pub mod post;
 pub mod puller;
 pub mod user;
 use crate::Settings;
+use openssl::{pkey::PKey, rsa::Rsa};
 
 use actix_web::body::Body;
 use actix_web::HttpResponse;
@@ -17,13 +18,13 @@ where
     .json(json)
 }
 
-enum EndpointType {
+pub enum EndpointType {
   Community,
   User,
   Post,
 }
 
-fn make_apub_endpoint(endpoint_type: EndpointType, name: &str) -> Url {
+pub fn make_apub_endpoint(endpoint_type: EndpointType, name: &str) -> Url {
   let point = match endpoint_type {
     EndpointType::Community => "c",
     EndpointType::User => "u",
@@ -46,4 +47,26 @@ pub fn get_apub_protocol_string() -> &'static str {
   } else {
     "http"
   }
+}
+
+pub fn gen_keypair() -> (Vec<u8>, Vec<u8>) {
+  let rsa = Rsa::generate(2048).expect("sign::gen_keypair: key generation error");
+  let pkey = PKey::from_rsa(rsa).expect("sign::gen_keypair: parsing error");
+  (
+    pkey
+      .public_key_to_pem()
+      .expect("sign::gen_keypair: public key encoding error"),
+    pkey
+      .private_key_to_pem_pkcs8()
+      .expect("sign::gen_keypair: private key encoding error"),
+  )
+}
+
+pub fn gen_keypair_str() -> (String, String) {
+  let (public_key, private_key) = gen_keypair();
+  (vec_bytes_to_str(public_key), vec_bytes_to_str(private_key))
+}
+
+fn vec_bytes_to_str(bytes: Vec<u8>) -> String {
+  String::from_utf8_lossy(&bytes).into_owned()
 }

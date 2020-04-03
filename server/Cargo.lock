@@ -1545,6 +1545,7 @@ dependencies = [
  "lettre",
  "lettre_email",
  "log",
+ "openssl",
  "percent-encoding",
  "rand 0.7.3",
  "regex 1.3.6",

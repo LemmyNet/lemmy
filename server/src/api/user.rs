@@ -1,4 +1,5 @@
 use super::*;
+use crate::apub::{gen_keypair_str, make_apub_endpoint, EndpointType};
 use crate::settings::Settings;
 use crate::{generate_random_string, send_email};
 use bcrypt::verify;
@@ -250,6 +251,8 @@ impl Perform<LoginResponse> for Oper<Register> {
       return Err(APIError::err("admin_already_created").into());
     }
 
+    let (user_public_key, user_private_key) = gen_keypair_str();
+
     // Register the new user
     let user_form = UserForm {
       name: data.username.to_owned(),
@@ -269,6 +272,12 @@ impl Perform<LoginResponse> for Oper<Register> {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
+      actor_id: make_apub_endpoint(EndpointType::User, &data.username).to_string(),
+      bio: None,
+      local: true,
+      private_key: Some(user_private_key),
+      public_key: Some(user_public_key),
+      last_refreshed_at: None,
     };
 
     // Create the user
@@ -287,12 +296,15 @@ impl Perform<LoginResponse> for Oper<Register> {
       }
     };
 
+    let (community_public_key, community_private_key) = gen_keypair_str();
+
     // Create the main community if it doesn't exist
     let main_community: Community = match Community::read(&conn, 2) {
       Ok(c) => c,
       Err(_e) => {
+        let default_community_name = "main";
         let community_form = CommunityForm {
-          name: "main".to_string(),
+          name: default_community_name.to_string(),
           title: "The Default Community".to_string(),
           description: Some("The Default Community".to_string()),
           category_id: 1,
@@ -301,6 +313,11 @@ impl Perform<LoginResponse> for Oper<Register> {
           removed: None,
           deleted: None,
           updated: None,
+          actor_id: make_apub_endpoint(EndpointType::Community, default_community_name).to_string(),
+          local: true,
+          private_key: Some(community_private_key),
+          public_key: Some(community_public_key),
+          last_refreshed_at: None,
         };
         Community::create(&conn, &community_form).unwrap()
       }
@@ -403,6 +420,12 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
       lang: data.lang.to_owned(),
       show_avatars: data.show_avatars,
       send_notifications_to_email: data.send_notifications_to_email,
+      actor_id: read_user.actor_id,
+      bio: read_user.bio,
+      local: read_user.local,
+      private_key: read_user.private_key,
+      public_key: read_user.public_key,
+      last_refreshed_at: None,
     };
 
     let updated_user = match User_::update(&conn, user_id, &user_form) {
@@ -561,6 +584,12 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
       lang: read_user.lang,
       show_avatars: read_user.show_avatars,
       send_notifications_to_email: read_user.send_notifications_to_email,
+      actor_id: read_user.actor_id,
+      bio: read_user.bio,
+      local: read_user.local,
+      private_key: read_user.private_key,
+      public_key: read_user.public_key,
+      last_refreshed_at: None,
     };
 
     match User_::update(&conn, data.user_id, &user_form) {
@@ -624,6 +653,12 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
       lang: read_user.lang,
       show_avatars: read_user.show_avatars,
       send_notifications_to_email: read_user.send_notifications_to_email,
+      actor_id: read_user.actor_id,
+      bio: read_user.bio,
+      local: read_user.local,
+      private_key: read_user.private_key,
+      public_key: read_user.public_key,
+      last_refreshed_at: None,
     };
 
     match User_::update(&conn, data.user_id, &user_form) {
