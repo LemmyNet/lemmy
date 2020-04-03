@@ -60,6 +60,13 @@ async fn node_info(
         local_comments: site_view.number_of_comments,
         open_registrations: site_view.open_registration,
       },
+      metadata: NodeInfoMetadata {
+        community_list_url: Some(format!(
+          "{}://{}/federation/communities",
+          get_apub_protocol_string(),
+          Settings::get().hostname
+        )),
+      },
     })
   })
   .await
@@ -85,6 +92,7 @@ pub struct NodeInfo {
   pub software: NodeInfoSoftware,
   pub protocols: Vec<String>,
   pub usage: NodeInfoUsage,
+  pub metadata: NodeInfoMetadata,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -105,4 +113,9 @@ pub struct NodeInfoUsage {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct NodeInfoUsers {
   pub total: i64,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct NodeInfoMetadata {
+  pub community_list_url: Option<String>,
 }

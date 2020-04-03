@@ -36,11 +36,11 @@ pub struct CommunityResponse {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ListCommunities {
-  sort: String,
-  page: Option<i64>,
-  limit: Option<i64>,
-  auth: Option<String>,
-  local_only: Option<bool>,
+  pub sort: String,
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+  pub auth: Option<String>,
+  pub local_only: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
