@@ -6,6 +6,7 @@ use actix::prelude::*;
 use actix_web::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
+use lemmy_server::db::code_migrations::run_advanced_migrations;
 use lemmy_server::routes::{api, federation, feeds, index, nodeinfo, webfinger, websocket};
 use lemmy_server::settings::Settings;
 use lemmy_server::websocket::server::*;
@@ -28,6 +29,7 @@ async fn main() -> io::Result<()> {
   // Run the migrations from code
   let conn = pool.get().unwrap();
   embedded_migrations::run(&conn).unwrap();
+  run_advanced_migrations(&conn).unwrap();
 
   // Set up websocket server
   let server = ChatServer::startup(pool.clone()).start();

@@ -239,5 +239,10 @@
     "upvote": "Voto positivo",
     "downvote": "Voto negativo",
     "block_leaving": "Tem certeza que quer sair?",
-    "sorting_help": "ajuda sobre ordenação"
+    "sorting_help": "ajuda sobre ordenação",
+    "number_of_upvotes": "{{count}} voto positivo",
+    "number_of_upvotes_plural": "{{count}} votos positivos",
+    "number_of_downvotes": "{{count}} voto negativo",
+    "number_of_downvotes_plural": "{{count}} votos negativos",
+    "show_context": "Mostrar contexto"
 }

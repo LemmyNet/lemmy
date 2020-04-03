@@ -450,6 +450,12 @@ mod tests {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
+      actor_id: "changeme".into(),
+      bio: None,
+      local: true,
+      private_key: None,
+      public_key: None,
+      last_refreshed_at: None,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -464,6 +470,11 @@ mod tests {
       deleted: None,
       updated: None,
       nsfw: false,
+      actor_id: "changeme".into(),
+      local: true,
+      private_key: None,
+      public_key: None,
+      last_refreshed_at: None,
     };
 
     let inserted_community = Community::create(&conn, &new_community).unwrap();

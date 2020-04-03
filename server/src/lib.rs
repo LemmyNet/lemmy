@@ -11,13 +11,16 @@ pub extern crate actix;
 pub extern crate actix_web;
 pub extern crate bcrypt;
 pub extern crate chrono;
+pub extern crate comrak;
 pub extern crate dotenv;
 pub extern crate jsonwebtoken;
 pub extern crate lettre;
 pub extern crate lettre_email;
 extern crate log;
+pub extern crate openssl;
 pub extern crate rand;
 pub extern crate regex;
+pub extern crate rss;
 pub extern crate serde;
 pub extern crate serde_json;
 pub extern crate sha2;
@@ -34,7 +37,7 @@ pub mod websocket;
 
 use crate::settings::Settings;
 use chrono::{DateTime, FixedOffset, Local, NaiveDateTime};
-use chttp::prelude::*;
+use isahc::prelude::*;
 use lettre::smtp::authentication::{Credentials, Mechanism};
 use lettre::smtp::extension::ClientId;
 use lettre::smtp::ConnectionReuseParameters;
@@ -159,7 +162,7 @@ pub struct IframelyResponse {
 
 pub fn fetch_iframely(url: &str) -> Result<IframelyResponse, failure::Error> {
   let fetch_url = format!("http://iframely/oembed?url={}", url);
-  let text = chttp::get(&fetch_url)?.text()?;
+  let text = isahc::get(&fetch_url)?.text()?;
   let res: IframelyResponse = serde_json::from_str(&text)?;
   Ok(res)
 }
@@ -175,7 +178,7 @@ pub fn fetch_pictshare(image_url: &str) -> Result<PictshareResponse, failure::Er
     "http://pictshare/api/geturl.php?url={}",
     utf8_percent_encode(image_url, NON_ALPHANUMERIC)
   );
-  let text = chttp::get(&fetch_url)?.text()?;
+  let text = isahc::get(&fetch_url)?.text()?;
   let res: PictshareResponse = serde_json::from_str(&text)?;
   Ok(res)
 }
@@ -218,6 +221,10 @@ fn fetch_iframely_and_pictshare_data(
     iframely_html,
     pictshare_thumbnail,
   )
+}
+
+pub fn markdown_to_html(text: &str) -> String {
+  comrak::markdown_to_html(text, &comrak::ComrakOptions::default())
 }
 
 #[cfg(test)]

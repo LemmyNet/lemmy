@@ -15,6 +15,11 @@ pub struct Community {
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
   pub nsfw: bool,
+  pub actor_id: String,
+  pub local: bool,
+  pub private_key: Option<String>,
+  pub public_key: Option<String>,
+  pub last_refreshed_at: chrono::NaiveDateTime,
 }
 
 #[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize)]
@@ -29,6 +34,11 @@ pub struct CommunityForm {
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: Option<bool>,
   pub nsfw: bool,
+  pub actor_id: String,
+  pub local: bool,
+  pub private_key: Option<String>,
+  pub public_key: Option<String>,
+  pub last_refreshed_at: Option<chrono::NaiveDateTime>,
 }
 
 impl Crud<CommunityForm> for Community {
@@ -232,6 +242,12 @@ mod tests {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
+      actor_id: "changeme".into(),
+      bio: None,
+      local: true,
+      private_key: None,
+      public_key: None,
+      last_refreshed_at: None,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -246,6 +262,11 @@ mod tests {
       removed: None,
       deleted: None,
       updated: None,
+      actor_id: "changeme".into(),
+      local: true,
+      private_key: None,
+      public_key: None,
+      last_refreshed_at: None,
     };
 
     let inserted_community = Community::create(&conn, &new_community).unwrap();
@@ -262,6 +283,11 @@ mod tests {
       deleted: false,
       published: inserted_community.published,
       updated: None,
+      actor_id: "changeme".into(),
+      local: true,
+      private_key: None,
+      public_key: None,
+      last_refreshed_at: inserted_community.published,
     };
 
     let community_follower_form = CommunityFollowerForm {
