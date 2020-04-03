@@ -1,5 +1,3 @@
-use crate::api::community::ListCommunities;
-use crate::api::{Oper, Perform};
 use crate::apub::puller::{fetch_remote_object, format_community_name};
 use crate::apub::{
   create_apub_response, get_apub_protocol_string, make_apub_endpoint, EndpointType, GroupExt,
@@ -8,7 +6,7 @@ use crate::convert_datetime;
 use crate::db::community::Community;
 use crate::db::community_view::{CommunityFollowerView, CommunityView};
 use crate::db::establish_unpooled_connection;
-use crate::db::post_view::{PostQueryBuilder, PostView};
+use crate::db::post::Post;
 use crate::settings::Settings;
 use activitystreams::actor::properties::ApActorProperties;
 use activitystreams::collection::OrderedCollection;
@@ -34,20 +32,10 @@ pub async fn get_apub_community_list(
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
 ) -> Result<HttpResponse<Body>, Error> {
   // TODO: implement pagination
-  let query = ListCommunities {
-    sort: "Hot".to_string(),
-    page: None,
-    limit: None,
-    auth: None,
-    local_only: Some(true),
-  };
-  let communities = Oper::new(query)
-    .perform(&db.get().unwrap())
-    .unwrap()
-    .communities
+  let communities = Community::list(&db.get().unwrap())?
     .iter()
     .map(|c| c.as_group())
-    .collect::<Result<Vec<GroupExt>, failure::Error>>()?;
+    .collect::<Result<Vec<GroupExt>, Error>>()?;
   let mut collection = UnorderedCollection::default();
   let oprops: &mut ObjectProperties = collection.as_mut();
   oprops.set_context_xsd_any_uri(context())?.set_id(format!(
@@ -63,7 +51,7 @@ pub async fn get_apub_community_list(
   Ok(create_apub_response(&collection))
 }
 
-impl CommunityView {
+impl Community {
   fn as_group(&self) -> Result<GroupExt, Error> {
     let base_url = make_apub_endpoint(EndpointType::Community, &self.name);
 
@@ -97,7 +85,9 @@ impl CommunityView {
 
     Ok(group.extend(actor_props))
   }
+}
 
+impl CommunityView {
   pub fn from_group(group: &GroupExt, domain: &str) -> Result<CommunityView, Error> {
     let followers_uri = &group.extension.get_followers().unwrap().to_string();
     let outbox_uri = &group.extension.get_outbox().to_string();
@@ -147,8 +137,7 @@ pub async fn get_apub_community_http(
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
 ) -> Result<HttpResponse<Body>, Error> {
   let community = Community::read_from_name(&&db.get()?, info.community_name.to_owned())?;
-  let community_view = CommunityView::read(&&db.get()?, community.id, None)?;
-  let c = community_view.as_group()?;
+  let c = community.as_group()?;
   Ok(create_apub_response(&c))
 }
 
@@ -184,10 +173,7 @@ pub async fn get_apub_community_outbox(
 
   let connection = establish_unpooled_connection();
   //As we are an object, we validated that the community id was valid
-  let community_posts: Vec<PostView> = PostQueryBuilder::create(&connection)
-    .for_community_id(community.id)
-    .list()
-    .unwrap();
+  let community_posts: Vec<Post> = Post::list_for_community(&connection, community.id)?;
 
   let mut collection = OrderedCollection::default();
   let oprops: &mut ObjectProperties = collection.as_mut();

@@ -1,4 +1,5 @@
 use crate::apub::{create_apub_response, make_apub_endpoint, EndpointType};
+use crate::db::post::Post;
 use crate::db::post_view::PostView;
 use crate::{convert_datetime, naive_now};
 use activitystreams::{object::properties::ObjectProperties, object::Page};
@@ -20,12 +21,11 @@ pub async fn get_apub_post(
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
 ) -> Result<HttpResponse<Body>, Error> {
   let id = info.post_id.parse::<i32>()?;
-  // TODO: shows error: missing field `user_name`
-  let post = PostView::read(&&db.get()?, id, None)?;
+  let post = Post::read(&&db.get()?, id)?;
   Ok(create_apub_response(&post.as_page()?))
 }
 
-impl PostView {
+impl Post {
   pub fn as_page(&self) -> Result<Page, Error> {
     let base_url = make_apub_endpoint(EndpointType::Post, &self.id.to_string());
     let mut page = Page::default();
@@ -59,7 +59,9 @@ impl PostView {
 
     Ok(page)
   }
+}
 
+impl PostView {
   pub fn from_page(page: &Page) -> Result<PostView, Error> {
     let oprops = &page.object_props;
     Ok(PostView {

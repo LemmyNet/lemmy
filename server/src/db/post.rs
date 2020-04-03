@@ -43,6 +43,23 @@ pub struct PostForm {
   pub thumbnail_url: Option<String>,
 }
 
+impl Post {
+  pub fn read(conn: &PgConnection, post_id: i32) -> Result<Self, Error> {
+    use crate::schema::post::dsl::*;
+    post.filter(id.eq(post_id)).first::<Self>(conn)
+  }
+
+  pub fn list_for_community(
+    conn: &PgConnection,
+    the_community_id: i32,
+  ) -> Result<Vec<Self>, Error> {
+    use crate::schema::post::dsl::*;
+    post
+      .filter(community_id.eq(the_community_id))
+      .load::<Self>(conn)
+  }
+}
+
 impl Crud<PostForm> for Post {
   fn read(conn: &PgConnection, post_id: i32) -> Result<Self, Error> {
     use crate::schema::post::dsl::*;
