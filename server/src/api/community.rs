@@ -1,5 +1,5 @@
 use super::*;
-use crate::apub::puller::{get_all_communities, get_remote_community};
+use crate::apub::puller::{fetch_all_communities, fetch_remote_community};
 use crate::apub::{gen_keypair_str, make_apub_endpoint, EndpointType};
 use crate::settings::Settings;
 use diesel::PgConnection;
@@ -125,7 +125,7 @@ impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
       && Settings::get().federation.enabled
       && data.name.as_ref().unwrap().contains('@')
     {
-      return get_remote_community(data.name.as_ref().unwrap());
+      return fetch_remote_community(data.name.as_ref().unwrap());
     }
 
     let user_id: Option<i32> = match &data.auth {
@@ -361,7 +361,7 @@ impl Perform<ListCommunitiesResponse> for Oper<ListCommunities> {
     let local_only = data.local_only.unwrap_or(false);
     if Settings::get().federation.enabled && !local_only {
       return Ok(ListCommunitiesResponse {
-        communities: get_all_communities()?,
+        communities: fetch_all_communities()?,
       });
     }
 
