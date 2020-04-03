@@ -27,6 +27,12 @@ pub struct User_ {
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
   pub matrix_user_id: Option<String>,
+  pub actor_id: String,
+  pub bio: Option<String>,
+  pub local: bool,
+  pub private_key: Option<String>,
+  pub public_key: Option<String>,
+  pub last_refreshed_at: chrono::NaiveDateTime,
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
@@ -49,6 +55,12 @@ pub struct UserForm {
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
   pub matrix_user_id: Option<String>,
+  pub actor_id: String,
+  pub bio: Option<String>,
+  pub local: bool,
+  pub private_key: Option<String>,
+  pub public_key: Option<String>,
+  pub last_refreshed_at: Option<chrono::NaiveDateTime>,
 }
 
 impl Crud<UserForm> for User_ {
@@ -78,6 +90,7 @@ impl User_ {
     Self::create(&conn, &edited_user)
   }
 
+  // TODO do more individual updates like these
   pub fn update_password(
     conn: &PgConnection,
     user_id: i32,
@@ -202,6 +215,12 @@ mod tests {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
+      actor_id: "changeme".into(),
+      bio: None,
+      local: true,
+      private_key: None,
+      public_key: None,
+      last_refreshed_at: None,
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
@@ -226,6 +245,12 @@ mod tests {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
+      actor_id: "changeme".into(),
+      bio: None,
+      local: true,
+      private_key: None,
+      public_key: None,
+      last_refreshed_at: inserted_user.published,
     };
 
     let read_user = User_::read(&conn, inserted_user.id).unwrap();
