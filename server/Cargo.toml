@@ -9,7 +9,7 @@ diesel = { version = "1.4.2", features = ["postgres","chrono", "r2d2", "64-colum
 diesel_migrations = "1.4.0"
 dotenv = "0.15.0"
 bcrypt = "0.6.1"
-activitystreams = "0.5.0-alpha.10"
+activitystreams = "0.5.0-alpha.15"
 chrono = { version = "0.4.7", features = ["serde"] }
 failure = "0.1.5"
 serde_json = { version = "1.0.45", features = ["preserve_order"]}

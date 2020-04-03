@@ -4,9 +4,13 @@ pub mod puller;
 pub mod user;
 use crate::Settings;
 
+use activitystreams::actor::{properties::ApActorProperties, Group};
+use activitystreams::ext::Ext;
 use actix_web::body::Body;
 use actix_web::HttpResponse;
 use url::Url;
+
+type GroupExt = Ext<Group, ApActorProperties>;
 
 fn create_apub_response<T>(json: &T) -> HttpResponse<Body>
 where

@@ -13,8 +13,12 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     println!("federation enabled, host is {}", Settings::get().hostname);
     cfg
       .route(
+        "/federation/communities",
+        web::get().to(apub::community::get_apub_community_list),
+      )
+      .route(
         "/federation/c/{community_name}",
-        web::get().to(apub::community::get_apub_community),
+        web::get().to(apub::community::get_apub_community_http),
       )
       .route(
         "/federation/c/{community_name}/followers",

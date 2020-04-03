@@ -2,10 +2,10 @@
 # It is not intended for manual editing.
 [[package]]
 name = "activitystreams"
-version = "0.5.0-alpha.10"
+version = "0.5.0-alpha.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "activitystreams-derive 0.5.0-alpha.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "activitystreams-derive 0.5.0-alpha.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.4.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "mime 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.105 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -16,7 +16,7 @@ dependencies = [
 
 [[package]]
 name = "activitystreams-derive"
-version = "0.5.0-alpha.4"
+version = "0.5.0-alpha.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "proc-macro2 1.0.9 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1401,7 +1401,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "lemmy_server"
 version = "0.0.1"
 dependencies = [
- "activitystreams 0.5.0-alpha.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "activitystreams 0.5.0-alpha.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix-files 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix-rt 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2855,8 +2855,8 @@ dependencies = [
 ]
 
 [metadata]
-"checksum activitystreams 0.5.0-alpha.10 (registry+https://github.com/rust-lang/crates.io-index)" = "04827f3390831f772d15ff3171336cc4fbac714f59233d24731beb7c865293a6"
-"checksum activitystreams-derive 0.5.0-alpha.4 (registry+https://github.com/rust-lang/crates.io-index)" = "c2bc640808dceb2efac81e6bcb77a7f4e2e76af7fb60e88f966b48123b625d2f"
+"checksum activitystreams 0.5.0-alpha.15 (registry+https://github.com/rust-lang/crates.io-index)" = "1ecff5b18578fac8cff5f139009cd0a4f605b6f5eddc91f2b8319bfef76cc2c3"
+"checksum activitystreams-derive 0.5.0-alpha.7 (registry+https://github.com/rust-lang/crates.io-index)" = "d7498811842309cc5b54c123bcf328e33eebe9841037067b1e9b93caa820085d"
 "checksum actix 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a4af87564ff659dee8f9981540cac9418c45e910c8072fdedd643a262a38fcaf"
 "checksum actix-codec 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "09e55f0a5c2ca15795035d90c46bd0e73a5123b72f68f12596d6ba5282051380"
 "checksum actix-connect 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "c95cc9569221e9802bf4c377f6c18b90ef10227d787611decf79fd47d2a8e76c"
