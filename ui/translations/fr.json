@@ -227,5 +227,6 @@
     "no_private_message_edit_allowed": "Pas autorisé à modifier un message privé.",
     "couldnt_update_private_message": "Impossible de modifier un message privé.",
     "time": "Temps",
-    "action": "Action"
+    "action": "Action",
+    "more": "plus"
 }
