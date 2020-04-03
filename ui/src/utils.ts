@@ -823,3 +823,11 @@ function hsl(num: number) {
 function randomHsl() {
   return `hsla(${Math.random() * 360}, 100%, 50%, 1)`;
 }
+
+export function previewLines(text: string, lines: number = 3): string {
+  // Use lines * 2 because markdown requires 2 lines
+  return text
+    .split('\n')
+    .slice(0, lines * 2)
+    .join('\n');
+}
