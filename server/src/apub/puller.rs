@@ -1,6 +1,6 @@
 use crate::api::community::GetCommunityResponse;
 use crate::api::post::GetPostsResponse;
-use crate::apub::{get_apub_protocol_string, GroupExt};
+use crate::apub::*;
 use crate::db::community_view::CommunityView;
 use crate::db::post_view::PostView;
 use crate::routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
@@ -47,17 +47,6 @@ fn fetch_communities_from_instance(domain: &str) -> Result<Vec<CommunityView>, E
   }
 }
 
-/// Returns a tuple of (username, domain) from an identifier like "main@dev.lemmy.ml"
-fn split_identifier(identifier: &str) -> (String, String) {
-  let x: Vec<&str> = identifier.split('@').collect();
-  (x[0].replace("!", ""), x[1].to_string())
-}
-
-fn get_remote_community_uri(identifier: &str) -> String {
-  let (name, domain) = split_identifier(identifier);
-  format!("http://{}/federation/c/{}", domain, name)
-}
-
 pub fn fetch_remote_object<Response>(uri: &str) -> Result<Response, Error>
 where
   Response: for<'de> Deserialize<'de>,
@@ -72,7 +61,7 @@ where
   Ok(res)
 }
 
-pub fn get_remote_community_posts(identifier: &str) -> Result<GetPostsResponse, Error> {
+pub fn fetch_remote_community_posts(identifier: &str) -> Result<GetPostsResponse, Error> {
   let community = fetch_remote_object::<GroupExt>(&get_remote_community_uri(identifier))?;
   let outbox_uri = &community.extension.get_outbox().to_string();
   let outbox = fetch_remote_object::<OrderedCollection>(outbox_uri)?;
@@ -88,7 +77,7 @@ pub fn get_remote_community_posts(identifier: &str) -> Result<GetPostsResponse, 
   Ok(GetPostsResponse { posts: posts? })
 }
 
-pub fn get_remote_community(identifier: &str) -> Result<GetCommunityResponse, failure::Error> {
+pub fn fetch_remote_community(identifier: &str) -> Result<GetCommunityResponse, failure::Error> {
   let group = fetch_remote_object::<GroupExt>(&get_remote_community_uri(identifier))?;
   // TODO: this is only for testing until we can call that function from GetPosts
   // (once string ids are supported)
@@ -103,15 +92,7 @@ pub fn get_remote_community(identifier: &str) -> Result<GetCommunityResponse, fa
   })
 }
 
-pub fn get_following_instances() -> Vec<&'static str> {
-  Settings::get()
-    .federation
-    .followed_instances
-    .split(',')
-    .collect()
-}
-
-pub fn get_all_communities() -> Result<Vec<CommunityView>, Error> {
+pub fn fetch_all_communities() -> Result<Vec<CommunityView>, Error> {
   let mut communities_list: Vec<CommunityView> = vec![];
   for instance in &get_following_instances() {
     match fetch_communities_from_instance(instance) {
@@ -120,14 +101,4 @@ pub fn get_all_communities() -> Result<Vec<CommunityView>, Error> {
     };
   }
   Ok(communities_list)
-}
-
-/// If community is on local instance, don't include the @instance part. This is only for displaying
-/// to the user and should never be used otherwise.
-pub fn format_community_name(name: &str, instance: &str) -> String {
-  if instance == Settings::get().hostname {
-    format!("!{}", name)
-  } else {
-    format!("!{}@{}", name, instance)
-  }
 }
