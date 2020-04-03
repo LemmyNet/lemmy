@@ -79,6 +79,11 @@ impl Community {
       .first::<Self>(conn)
   }
 
+  pub fn list(conn: &PgConnection) -> Result<Vec<Self>, Error> {
+    use crate::schema::community::dsl::*;
+    community.load::<Community>(conn)
+  }
+
   pub fn get_url(&self) -> String {
     format!("https://{}/c/{}", Settings::get().hostname, self.name)
   }
