@@ -26,13 +26,15 @@ pub enum EndpointType {
   Community,
   User,
   Post,
+  Comment,
 }
 
 pub fn make_apub_endpoint(endpoint_type: EndpointType, name: &str) -> Url {
   let point = match endpoint_type {
-    EndpointType::Community => "c",
-    EndpointType::User => "u",
-    EndpointType::Post => "p",
+    EndpointType::Community => "community",
+    EndpointType::User => "user",
+    EndpointType::Post => "post",
+    EndpointType::Comment => "comment",
   };
 
   Url::parse(&format!(

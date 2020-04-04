@@ -28,6 +28,8 @@ table! {
     published -> Timestamp,
     updated -> Nullable<Timestamp>,
     deleted -> Bool,
+    ap_id -> Varchar,
+    local -> Bool,
   }
 }
 
@@ -227,6 +229,8 @@ table! {
     embed_description -> Nullable<Text>,
     embed_html -> Nullable<Text>,
     thumbnail_url -> Nullable<Text>,
+    ap_id -> Varchar,
+    local -> Bool,
   }
 }
 

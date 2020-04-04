@@ -563,36 +563,7 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
       return Err(APIError::err("not_an_admin").into());
     }
 
-    let read_user = User_::read(&conn, data.user_id)?;
-
-    // TODO make addadmin easier
-    let user_form = UserForm {
-      name: read_user.name,
-      fedi_name: read_user.fedi_name,
-      email: read_user.email,
-      matrix_user_id: read_user.matrix_user_id,
-      avatar: read_user.avatar,
-      password_encrypted: read_user.password_encrypted,
-      preferred_username: read_user.preferred_username,
-      updated: Some(naive_now()),
-      admin: data.added,
-      banned: read_user.banned,
-      show_nsfw: read_user.show_nsfw,
-      theme: read_user.theme,
-      default_sort_type: read_user.default_sort_type,
-      default_listing_type: read_user.default_listing_type,
-      lang: read_user.lang,
-      show_avatars: read_user.show_avatars,
-      send_notifications_to_email: read_user.send_notifications_to_email,
-      actor_id: read_user.actor_id,
-      bio: read_user.bio,
-      local: read_user.local,
-      private_key: read_user.private_key,
-      public_key: read_user.public_key,
-      last_refreshed_at: None,
-    };
-
-    match User_::update(&conn, data.user_id, &user_form) {
+    match User_::add_admin(&conn, user_id, data.added) {
       Ok(user) => user,
       Err(_e) => return Err(APIError::err("couldnt_update_user").into()),
     };
@@ -632,36 +603,7 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
       return Err(APIError::err("not_an_admin").into());
     }
 
-    let read_user = User_::read(&conn, data.user_id)?;
-
-    // TODO make bans and addadmins easier
-    let user_form = UserForm {
-      name: read_user.name,
-      fedi_name: read_user.fedi_name,
-      email: read_user.email,
-      matrix_user_id: read_user.matrix_user_id,
-      avatar: read_user.avatar,
-      password_encrypted: read_user.password_encrypted,
-      preferred_username: read_user.preferred_username,
-      updated: Some(naive_now()),
-      admin: read_user.admin,
-      banned: data.ban,
-      show_nsfw: read_user.show_nsfw,
-      theme: read_user.theme,
-      default_sort_type: read_user.default_sort_type,
-      default_listing_type: read_user.default_listing_type,
-      lang: read_user.lang,
-      show_avatars: read_user.show_avatars,
-      send_notifications_to_email: read_user.send_notifications_to_email,
-      actor_id: read_user.actor_id,
-      bio: read_user.bio,
-      local: read_user.local,
-      private_key: read_user.private_key,
-      public_key: read_user.public_key,
-      last_refreshed_at: None,
-    };
-
-    match User_::update(&conn, data.user_id, &user_form) {
+    match User_::ban_user(&conn, user_id, data.ban) {
       Ok(user) => user,
       Err(_e) => return Err(APIError::err("couldnt_update_user").into()),
     };
@@ -790,18 +732,7 @@ impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
       .list()?;
 
     for reply in &replies {
-      let comment_form = CommentForm {
-        content: reply.to_owned().content,
-        parent_id: reply.to_owned().parent_id,
-        post_id: reply.to_owned().post_id,
-        creator_id: reply.to_owned().creator_id,
-        removed: None,
-        deleted: None,
-        read: Some(true),
-        updated: reply.to_owned().updated,
-      };
-
-      let _updated_comment = match Comment::update(&conn, reply.id, &comment_form) {
+      match Comment::mark_as_read(&conn, reply.id) {
         Ok(comment) => comment,
         Err(_e) => return Err(APIError::err("couldnt_update_comment").into()),
       };
@@ -882,18 +813,7 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
       .list()?;
 
     for comment in &comments {
-      let comment_form = CommentForm {
-        content: "*Permananently Deleted*".to_string(),
-        parent_id: comment.to_owned().parent_id,
-        post_id: comment.to_owned().post_id,
-        creator_id: comment.to_owned().creator_id,
-        removed: None,
-        deleted: Some(true),
-        read: None,
-        updated: Some(naive_now()),
-      };
-
-      let _updated_comment = match Comment::update(&conn, comment.id, &comment_form) {
+      let _updated_comment = match Comment::permadelete(&conn, comment.id) {
         Ok(comment) => comment,
         Err(_e) => return Err(APIError::err("couldnt_update_comment").into()),
       };
@@ -907,25 +827,7 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
       .list()?;
 
     for post in &posts {
-      let post_form = PostForm {
-        name: "*Permananently Deleted*".to_string(),
-        url: Some("https://deleted.com".to_string()),
-        body: Some("*Permananently Deleted*".to_string()),
-        creator_id: post.to_owned().creator_id,
-        community_id: post.to_owned().community_id,
-        removed: None,
-        deleted: Some(true),
-        nsfw: post.to_owned().nsfw,
-        locked: None,
-        stickied: None,
-        updated: Some(naive_now()),
-        embed_title: None,
-        embed_description: None,
-        embed_html: None,
-        thumbnail_url: None,
-      };
-
-      let _updated_post = match Post::update(&conn, post.id, &post_form) {
+      let _updated_post = match Post::permadelete(&conn, post.id) {
         Ok(post) => post,
         Err(_e) => return Err(APIError::err("couldnt_update_post").into()),
       };
