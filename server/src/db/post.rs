@@ -1,4 +1,6 @@
 use super::*;
+use crate::apub::{make_apub_endpoint, EndpointType};
+use crate::naive_now;
 use crate::schema::{post, post_like, post_read, post_saved};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
@@ -21,6 +23,8 @@ pub struct Post {
   pub embed_description: Option<String>,
   pub embed_html: Option<String>,
   pub thumbnail_url: Option<String>,
+  pub ap_id: String,
+  pub local: bool,
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
@@ -41,6 +45,8 @@ pub struct PostForm {
   pub embed_description: Option<String>,
   pub embed_html: Option<String>,
   pub thumbnail_url: Option<String>,
+  pub ap_id: String,
+  pub local: bool,
 }
 
 impl Post {
@@ -57,6 +63,32 @@ impl Post {
     post
       .filter(community_id.eq(the_community_id))
       .load::<Self>(conn)
+  }
+
+  pub fn update_ap_id(conn: &PgConnection, post_id: i32) -> Result<Self, Error> {
+    use crate::schema::post::dsl::*;
+
+    let apid = make_apub_endpoint(EndpointType::Post, &post_id.to_string()).to_string();
+    diesel::update(post.find(post_id))
+      .set(ap_id.eq(apid))
+      .get_result::<Self>(conn)
+  }
+
+  pub fn permadelete(conn: &PgConnection, post_id: i32) -> Result<Self, Error> {
+    use crate::schema::post::dsl::*;
+
+    let perma_deleted = "*Permananently Deleted*";
+    let perma_deleted_url = "https://deleted.com";
+
+    diesel::update(post.find(post_id))
+      .set((
+        name.eq(perma_deleted),
+        url.eq(perma_deleted_url),
+        body.eq(perma_deleted),
+        deleted.eq(true),
+        updated.eq(naive_now()),
+      ))
+      .get_result::<Self>(conn)
   }
 }
 
@@ -269,6 +301,8 @@ mod tests {
       embed_description: None,
       embed_html: None,
       thumbnail_url: None,
+      ap_id: "changeme".into(),
+      local: true,
     };
 
     let inserted_post = Post::create(&conn, &new_post).unwrap();
@@ -291,6 +325,8 @@ mod tests {
       embed_description: None,
       embed_html: None,
       thumbnail_url: None,
+      ap_id: "changeme".into(),
+      local: true,
     };
 
     // Post Like

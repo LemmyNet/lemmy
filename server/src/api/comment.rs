@@ -99,9 +99,16 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
       deleted: None,
       read: None,
       updated: None,
+      ap_id: "changeme".into(),
+      local: true,
     };
 
     let inserted_comment = match Comment::create(&conn, &comment_form) {
+      Ok(comment) => comment,
+      Err(_e) => return Err(APIError::err("couldnt_create_comment").into()),
+    };
+
+    match Comment::update_ap_id(&conn, inserted_comment.id) {
       Ok(comment) => comment,
       Err(_e) => return Err(APIError::err("couldnt_create_comment").into()),
     };
@@ -272,6 +279,8 @@ impl Perform<CommentResponse> for Oper<EditComment> {
 
     let content_slurs_removed = remove_slurs(&data.content.to_owned());
 
+    let read_comment = Comment::read(&conn, data.edit_id)?;
+
     let comment_form = CommentForm {
       content: content_slurs_removed,
       parent_id: data.parent_id,
@@ -285,6 +294,8 @@ impl Perform<CommentResponse> for Oper<EditComment> {
       } else {
         Some(naive_now())
       },
+      ap_id: read_comment.ap_id,
+      local: read_comment.local,
     };
 
     let _updated_comment = match Comment::update(&conn, data.edit_id, &comment_form) {

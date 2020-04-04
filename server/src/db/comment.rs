@@ -1,5 +1,7 @@
 use super::post::Post;
 use super::*;
+use crate::apub::{make_apub_endpoint, EndpointType};
+use crate::naive_now;
 use crate::schema::{comment, comment_like, comment_saved};
 
 // WITH RECURSIVE MyTree AS (
@@ -23,6 +25,8 @@ pub struct Comment {
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
+  pub ap_id: String,
+  pub local: bool,
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
@@ -36,6 +40,8 @@ pub struct CommentForm {
   pub read: Option<bool>,
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: Option<bool>,
+  pub ap_id: String,
+  pub local: bool,
 }
 
 impl Crud<CommentForm> for Comment {
@@ -64,6 +70,37 @@ impl Crud<CommentForm> for Comment {
     use crate::schema::comment::dsl::*;
     diesel::update(comment.find(comment_id))
       .set(comment_form)
+      .get_result::<Self>(conn)
+  }
+}
+
+impl Comment {
+  pub fn update_ap_id(conn: &PgConnection, comment_id: i32) -> Result<Self, Error> {
+    use crate::schema::comment::dsl::*;
+
+    let apid = make_apub_endpoint(EndpointType::Comment, &comment_id.to_string()).to_string();
+    diesel::update(comment.find(comment_id))
+      .set(ap_id.eq(apid))
+      .get_result::<Self>(conn)
+  }
+
+  pub fn mark_as_read(conn: &PgConnection, comment_id: i32) -> Result<Self, Error> {
+    use crate::schema::comment::dsl::*;
+
+    diesel::update(comment.find(comment_id))
+      .set(read.eq(true))
+      .get_result::<Self>(conn)
+  }
+
+  pub fn permadelete(conn: &PgConnection, comment_id: i32) -> Result<Self, Error> {
+    use crate::schema::comment::dsl::*;
+
+    diesel::update(comment.find(comment_id))
+      .set((
+        content.eq("*Permananently Deleted*"),
+        deleted.eq(true),
+        updated.eq(naive_now()),
+      ))
       .get_result::<Self>(conn)
   }
 }
@@ -231,6 +268,8 @@ mod tests {
       embed_description: None,
       embed_html: None,
       thumbnail_url: None,
+      ap_id: "changeme".into(),
+      local: true,
     };
 
     let inserted_post = Post::create(&conn, &new_post).unwrap();
@@ -244,6 +283,8 @@ mod tests {
       read: None,
       parent_id: None,
       updated: None,
+      ap_id: "changeme".into(),
+      local: true,
     };
 
     let inserted_comment = Comment::create(&conn, &comment_form).unwrap();
@@ -259,6 +300,8 @@ mod tests {
       parent_id: None,
       published: inserted_comment.published,
       updated: None,
+      ap_id: "changeme".into(),
+      local: true,
     };
 
     let child_comment_form = CommentForm {
@@ -270,6 +313,8 @@ mod tests {
       deleted: None,
       read: None,
       updated: None,
+      ap_id: "changeme".into(),
+      local: true,
     };
 
     let inserted_child_comment = Comment::create(&conn, &child_comment_form).unwrap();

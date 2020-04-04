@@ -1,5 +1,7 @@
 // This is for db migrations that require code
+use super::comment::Comment;
 use super::community::{Community, CommunityForm};
+use super::post::Post;
 use super::user::{UserForm, User_};
 use super::*;
 use crate::apub::{gen_keypair_str, make_apub_endpoint, EndpointType};
@@ -9,6 +11,8 @@ use log::info;
 pub fn run_advanced_migrations(conn: &PgConnection) -> Result<(), Error> {
   user_updates_2020_04_02(conn)?;
   community_updates_2020_04_02(conn)?;
+  post_updates_2020_04_03(conn)?;
+  comment_updates_2020_04_03(conn)?;
 
   Ok(())
 }
@@ -96,6 +100,46 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), Error> {
   }
 
   info!("{} community rows updated.", incorrect_communities.len());
+
+  Ok(())
+}
+
+fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), Error> {
+  use crate::schema::post::dsl::*;
+
+  info!("Running post_updates_2020_04_03");
+
+  // Update the ap_id
+  let incorrect_posts = post
+    .filter(ap_id.eq("changeme"))
+    .filter(local.eq(true))
+    .load::<Post>(conn)?;
+
+  for cpost in &incorrect_posts {
+    Post::update_ap_id(&conn, cpost.id)?;
+  }
+
+  info!("{} post rows updated.", incorrect_posts.len());
+
+  Ok(())
+}
+
+fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), Error> {
+  use crate::schema::comment::dsl::*;
+
+  info!("Running comment_updates_2020_04_03");
+
+  // Update the ap_id
+  let incorrect_comments = comment
+    .filter(ap_id.eq("changeme"))
+    .filter(local.eq(true))
+    .load::<Comment>(conn)?;
+
+  for ccomment in &incorrect_comments {
+    Comment::update_ap_id(&conn, ccomment.id)?;
+  }
+
+  info!("{} comment rows updated.", incorrect_comments.len());
 
   Ok(())
 }

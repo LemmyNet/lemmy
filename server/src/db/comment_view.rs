@@ -495,6 +495,8 @@ mod tests {
       embed_description: None,
       embed_html: None,
       thumbnail_url: None,
+      ap_id: "changeme".into(),
+      local: true,
     };
 
     let inserted_post = Post::create(&conn, &new_post).unwrap();
@@ -508,6 +510,8 @@ mod tests {
       deleted: None,
       read: None,
       updated: None,
+      ap_id: "changeme".into(),
+      local: true,
     };
 
     let inserted_comment = Comment::create(&conn, &comment_form).unwrap();

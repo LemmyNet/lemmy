@@ -1,7 +1,7 @@
 use super::*;
 use crate::schema::user_;
 use crate::schema::user_::dsl::*;
-use crate::{is_email_regex, Settings};
+use crate::{is_email_regex, naive_now, Settings};
 use bcrypt::{hash, DEFAULT_COST};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 
@@ -99,12 +99,27 @@ impl User_ {
     let password_hash = hash(new_password, DEFAULT_COST).expect("Couldn't hash password");
 
     diesel::update(user_.find(user_id))
-      .set(password_encrypted.eq(password_hash))
+      .set((
+        password_encrypted.eq(password_hash),
+        updated.eq(naive_now()),
+      ))
       .get_result::<Self>(conn)
   }
 
   pub fn read_from_name(conn: &PgConnection, from_user_name: String) -> Result<Self, Error> {
     user_.filter(name.eq(from_user_name)).first::<Self>(conn)
+  }
+
+  pub fn add_admin(conn: &PgConnection, user_id: i32, added: bool) -> Result<Self, Error> {
+    diesel::update(user_.find(user_id))
+      .set(admin.eq(added))
+      .get_result::<Self>(conn)
+  }
+
+  pub fn ban_user(conn: &PgConnection, user_id: i32, ban: bool) -> Result<Self, Error> {
+    diesel::update(user_.find(user_id))
+      .set(banned.eq(ban))
+      .get_result::<Self>(conn)
   }
 }
 

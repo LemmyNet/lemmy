@@ -131,6 +131,8 @@ impl Perform<PostResponse> for Oper<CreatePost> {
       embed_description: iframely_description,
       embed_html: iframely_html,
       thumbnail_url: pictshare_thumbnail,
+      ap_id: "changeme".into(),
+      local: true,
     };
 
     let inserted_post = match Post::create(&conn, &post_form) {
@@ -144,6 +146,11 @@ impl Perform<PostResponse> for Oper<CreatePost> {
 
         return Err(APIError::err(err_type).into());
       }
+    };
+
+    match Post::update_ap_id(&conn, inserted_post.id) {
+      Ok(post) => post,
+      Err(_e) => return Err(APIError::err("couldnt_create_post").into()),
     };
 
     // They like their own post by default
@@ -371,6 +378,8 @@ impl Perform<PostResponse> for Oper<EditPost> {
     let (iframely_title, iframely_description, iframely_html, pictshare_thumbnail) =
       fetch_iframely_and_pictshare_data(data.url.to_owned());
 
+    let read_post = Post::read(&conn, data.edit_id)?;
+
     let post_form = PostForm {
       name: data.name.to_owned(),
       url: data.url.to_owned(),
@@ -387,6 +396,8 @@ impl Perform<PostResponse> for Oper<EditPost> {
       embed_description: iframely_description,
       embed_html: iframely_html,
       thumbnail_url: pictshare_thumbnail,
+      ap_id: read_post.ap_id,
+      local: read_post.local,
     };
 
     let _updated_post = match Post::update(&conn, data.edit_id, &post_form) {
