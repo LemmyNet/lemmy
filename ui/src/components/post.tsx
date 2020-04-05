@@ -460,7 +460,7 @@ export class Post extends Component<any, PostState> {
     } else if (res.op == UserOperation.Search) {
       let data = res.data as SearchResponse;
       this.state.crossPosts = data.posts.filter(
-        p => p.id != this.state.post.id
+        p => p.id != Number(this.props.match.params.id)
       );
       this.setState(this.state);
     } else if (res.op == UserOperation.TransferSite) {
