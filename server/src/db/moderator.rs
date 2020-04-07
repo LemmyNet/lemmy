@@ -438,7 +438,6 @@ mod tests {
 
     let new_mod = UserForm {
       name: "the mod".into(),
-      fedi_name: "rrf".into(),
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
@@ -466,7 +465,6 @@ mod tests {
 
     let new_user = UserForm {
       name: "jim2".into(),
-      fedi_name: "rrf".into(),
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
