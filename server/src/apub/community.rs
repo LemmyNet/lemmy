@@ -1,8 +1,8 @@
 use crate::apub::puller::fetch_remote_object;
 use crate::apub::*;
 use crate::convert_datetime;
-use crate::db::community::Community;
-use crate::db::community_view::{CommunityFollowerView, CommunityView};
+use crate::db::community::{Community, CommunityForm};
+use crate::db::community_view::CommunityFollowerView;
 use crate::db::establish_unpooled_connection;
 use crate::db::post::Post;
 use crate::settings::Settings;
@@ -85,47 +85,34 @@ impl Community {
   }
 }
 
-impl CommunityView {
-  pub fn from_group(group: &GroupExt, domain: &str) -> Result<CommunityView, Error> {
+impl CommunityForm {
+  pub fn from_group(group: &GroupExt) -> Result<Self, Error> {
     let followers_uri = &group.extension.get_followers().unwrap().to_string();
     let outbox_uri = &group.extension.get_outbox().to_string();
-    let outbox = fetch_remote_object::<OrderedCollection>(outbox_uri)?;
-    let followers = fetch_remote_object::<UnorderedCollection>(followers_uri)?;
+    let _outbox = fetch_remote_object::<OrderedCollection>(outbox_uri)?;
+    let _followers = fetch_remote_object::<UnorderedCollection>(followers_uri)?;
     let oprops = &group.base.object_props;
     let aprops = &group.extension;
-    Ok(CommunityView {
-      // TODO: we need to merge id and name into a single thing (stuff like @user@instance.com)
-      id: 1337, //community.object_props.get_id()
-      name: format_community_name(&oprops.get_name_xsd_string().unwrap().to_string(), domain),
+    Ok(CommunityForm {
+      name: oprops.get_name_xsd_string().unwrap().to_string(),
       title: aprops.get_preferred_username().unwrap().to_string(),
       description: oprops.get_summary_xsd_string().map(|s| s.to_string()),
-      category_id: -1,
-      creator_id: -1, //community.object_props.get_attributed_to_xsd_any_uri()
-      removed: false,
+      category_id: 1,
+      creator_id: 2, //community.object_props.get_attributed_to_xsd_any_uri()
+      removed: None,
       published: oprops
         .get_published()
-        .unwrap()
-        .as_ref()
-        .naive_local()
-        .to_owned(),
+        .map(|u| u.as_ref().to_owned().naive_local()),
       updated: oprops
         .get_updated()
         .map(|u| u.as_ref().to_owned().naive_local()),
-      deleted: false,
+      deleted: None,
       nsfw: false,
-      creator_name: "".to_string(),
-      creator_avatar: None,
-      category_name: "".to_string(),
-      number_of_subscribers: *followers
-        .collection_props
-        .get_total_items()
-        .unwrap()
-        .as_ref() as i64,
-      number_of_posts: *outbox.collection_props.get_total_items().unwrap().as_ref() as i64,
-      number_of_comments: -1,
-      hot_rank: -1,
-      user_id: None,
-      subscribed: None,
+      actor_id: oprops.get_id().unwrap().to_string(),
+      local: false,
+      private_key: None,
+      public_key: None,
+      last_refreshed_at: None,
     })
   }
 }

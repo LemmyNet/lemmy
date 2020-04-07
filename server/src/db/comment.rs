@@ -247,6 +247,7 @@ mod tests {
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
+      published: None,
     };
 
     let inserted_community = Community::create(&conn, &new_community).unwrap();
@@ -269,6 +270,7 @@ mod tests {
       thumbnail_url: None,
       ap_id: "changeme".into(),
       local: true,
+      published: None,
     };
 
     let inserted_post = Post::create(&conn, &new_post).unwrap();
