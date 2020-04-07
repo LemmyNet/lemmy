@@ -65,7 +65,6 @@ mod tests {
 
     let creator_form = UserForm {
       name: "creator_pm".into(),
-      fedi_name: "rrf".into(),
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
@@ -93,7 +92,6 @@ mod tests {
 
     let recipient_form = UserForm {
       name: "recipient_pm".into(),
-      fedi_name: "rrf".into(),
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,

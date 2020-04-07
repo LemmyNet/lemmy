@@ -359,7 +359,6 @@ mod tests {
 
     let new_user = UserForm {
       name: user_name.to_owned(),
-      fedi_name: "rrf".into(),
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,

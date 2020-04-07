@@ -293,7 +293,6 @@ table! {
   user_ (id) {
     id -> Int4,
     name -> Varchar,
-    fedi_name -> Varchar,
     preferred_username -> Nullable<Varchar>,
     password_encrypted -> Text,
     email -> Nullable<Text>,
