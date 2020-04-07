@@ -33,7 +33,6 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), Error> {
 
     let form = UserForm {
       name: cuser.name.to_owned(),
-      fedi_name: cuser.fedi_name.to_owned(),
       email: cuser.email.to_owned(),
       matrix_user_id: cuser.matrix_user_id.to_owned(),
       avatar: cuser.avatar.to_owned(),

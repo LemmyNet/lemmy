@@ -102,7 +102,6 @@ export interface UserView {
   avatar?: string;
   email?: string;
   matrix_user_id?: string;
-  fedi_name: string;
   published: string;
   number_of_posts: number;
   post_score: number;
