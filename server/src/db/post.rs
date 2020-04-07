@@ -111,13 +111,11 @@ impl Crud<PostForm> for Post {
 
   fn create(conn: &PgConnection, new_post: &PostForm) -> Result<Self, Error> {
     use crate::schema::post::dsl::*;
-    dbg!(&new_post);
     insert_into(post).values(new_post).get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, post_id: i32, new_post: &PostForm) -> Result<Self, Error> {
     use crate::schema::post::dsl::*;
-    dbg!(&new_post);
     diesel::update(post.find(post_id))
       .set(new_post)
       .get_result::<Self>(conn)
