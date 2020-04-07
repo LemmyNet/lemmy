@@ -10,7 +10,6 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, 
 pub struct User_ {
   pub id: i32,
   pub name: String,
-  pub fedi_name: String,
   pub preferred_username: Option<String>,
   pub password_encrypted: String,
   pub email: Option<String>,
@@ -39,7 +38,6 @@ pub struct User_ {
 #[table_name = "user_"]
 pub struct UserForm {
   pub name: String,
-  pub fedi_name: String,
   pub preferred_username: Option<String>,
   pub password_encrypted: String,
   pub admin: bool,
@@ -157,7 +155,7 @@ impl User_ {
     let my_claims = Claims {
       id: self.id,
       username: self.name.to_owned(),
-      iss: self.fedi_name.to_owned(),
+      iss: Settings::get().hostname.to_owned(),
       show_nsfw: self.show_nsfw,
       theme: self.theme.to_owned(),
       default_sort_type: self.default_sort_type,
@@ -214,7 +212,6 @@ mod tests {
 
     let new_user = UserForm {
       name: "thommy".into(),
-      fedi_name: "rrf".into(),
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
@@ -243,7 +240,6 @@ mod tests {
     let expected_user = User_ {
       id: inserted_user.id,
       name: "thommy".into(),
-      fedi_name: "rrf".into(),
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,

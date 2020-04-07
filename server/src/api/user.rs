@@ -256,7 +256,6 @@ impl Perform<LoginResponse> for Oper<Register> {
     // Register the new user
     let user_form = UserForm {
       name: data.username.to_owned(),
-      fedi_name: Settings::get().hostname.to_owned(),
       email: data.email.to_owned(),
       matrix_user_id: None,
       avatar: None,
@@ -404,7 +403,6 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
 
     let user_form = UserForm {
       name: read_user.name,
-      fedi_name: read_user.fedi_name,
       email,
       matrix_user_id: data.matrix_user_id.to_owned(),
       avatar: data.avatar.to_owned(),

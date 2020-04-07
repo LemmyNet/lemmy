@@ -240,7 +240,6 @@ mod tests {
 
     let new_user = UserForm {
       name: "jim".into(),
-      fedi_name: "rrf".into(),
       preferred_username: None,
       password_encrypted: "nope".into(),
       email: None,
