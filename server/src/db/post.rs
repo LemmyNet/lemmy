@@ -27,7 +27,7 @@ pub struct Post {
   pub local: bool,
 }
 
-#[derive(Insertable, AsChangeset, Clone)]
+#[derive(Insertable, AsChangeset, Clone, Debug)]
 #[table_name = "post"]
 pub struct PostForm {
   pub name: String,
@@ -37,6 +37,7 @@ pub struct PostForm {
   pub community_id: i32,
   pub removed: Option<bool>,
   pub locked: Option<bool>,
+  pub published: Option<chrono::NaiveDateTime>,
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: Option<bool>,
   pub nsfw: bool,
@@ -63,6 +64,11 @@ impl Post {
     post
       .filter(community_id.eq(the_community_id))
       .load::<Self>(conn)
+  }
+
+  pub fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
+    use crate::schema::post::dsl::*;
+    post.filter(ap_id.eq(object_id)).first::<Self>(conn)
   }
 
   pub fn update_ap_id(conn: &PgConnection, post_id: i32) -> Result<Self, Error> {
@@ -105,11 +111,13 @@ impl Crud<PostForm> for Post {
 
   fn create(conn: &PgConnection, new_post: &PostForm) -> Result<Self, Error> {
     use crate::schema::post::dsl::*;
+    dbg!(&new_post);
     insert_into(post).values(new_post).get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, post_id: i32, new_post: &PostForm) -> Result<Self, Error> {
     use crate::schema::post::dsl::*;
+    dbg!(&new_post);
     diesel::update(post.find(post_id))
       .set(new_post)
       .get_result::<Self>(conn)
@@ -280,6 +288,7 @@ mod tests {
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
+      published: None,
     };
 
     let inserted_community = Community::create(&conn, &new_community).unwrap();
@@ -302,6 +311,7 @@ mod tests {
       thumbnail_url: None,
       ap_id: "changeme".into(),
       local: true,
+      published: None,
     };
 
     let inserted_post = Post::create(&conn, &new_post).unwrap();

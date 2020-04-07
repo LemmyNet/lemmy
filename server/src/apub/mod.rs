@@ -99,14 +99,3 @@ pub fn get_following_instances() -> Vec<&'static str> {
     .split(',')
     .collect()
 }
-
-/// Returns a tuple of (username, domain) from an identifier like "main@dev.lemmy.ml"
-fn split_identifier(identifier: &str) -> (String, String) {
-  let x: Vec<&str> = identifier.split('@').collect();
-  (x[0].replace("!", ""), x[1].to_string())
-}
-
-fn get_remote_community_uri(identifier: &str) -> String {
-  let (name, domain) = split_identifier(identifier);
-  format!("http://{}/federation/c/{}", domain, name)
-}

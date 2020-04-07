@@ -1,9 +1,8 @@
 use super::*;
-use crate::apub::puller::{fetch_all_communities, fetch_remote_community};
-use crate::apub::{gen_keypair_str, make_apub_endpoint, EndpointType};
-use crate::settings::Settings;
+use crate::apub::{format_community_name, gen_keypair_str, make_apub_endpoint, EndpointType};
 use diesel::PgConnection;
 use std::str::FromStr;
+use url::Url;
 
 #[derive(Serialize, Deserialize)]
 pub struct GetCommunity {
@@ -41,7 +40,6 @@ pub struct ListCommunities {
   pub page: Option<i64>,
   pub limit: Option<i64>,
   pub auth: Option<String>,
-  pub local_only: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -121,13 +119,6 @@ impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
   fn perform(&self, conn: &PgConnection) -> Result<GetCommunityResponse, Error> {
     let data: &GetCommunity = &self.data;
 
-    if data.name.is_some()
-      && Settings::get().federation.enabled
-      && data.name.as_ref().unwrap().contains('@')
-    {
-      return fetch_remote_community(data.name.as_ref().unwrap());
-    }
-
     let user_id: Option<i32> = match &data.auth {
       Some(auth) => match Claims::decode(&auth) {
         Ok(claims) => {
@@ -139,25 +130,25 @@ impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
       None => None,
     };
 
-    let community_id = match data.id {
-      Some(id) => id,
+    let community = match data.id {
+      Some(id) => Community::read(&conn, id)?,
       None => {
         match Community::read_from_name(
           &conn,
           data.name.to_owned().unwrap_or_else(|| "main".to_string()),
         ) {
-          Ok(community) => community.id,
+          Ok(community) => community,
           Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
         }
       }
     };
 
-    let community_view = match CommunityView::read(&conn, community_id, user_id) {
+    let mut community_view = match CommunityView::read(&conn, community.id, user_id) {
       Ok(community) => community,
       Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
     };
 
-    let moderators = match CommunityModeratorView::for_community(&conn, community_id) {
+    let moderators = match CommunityModeratorView::for_community(&conn, community.id) {
       Ok(moderators) => moderators,
       Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
     };
@@ -167,6 +158,12 @@ impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
     let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
+
+    if !community.local {
+      let domain = Url::parse(&community.actor_id)?;
+      community_view.name =
+        format_community_name(&community_view.name.to_string(), domain.host_str().unwrap());
+    }
 
     // Return the jwt
     Ok(GetCommunityResponse {
@@ -226,6 +223,7 @@ impl Perform<CommunityResponse> for Oper<CreateCommunity> {
       private_key: Some(community_private_key),
       public_key: Some(community_public_key),
       last_refreshed_at: None,
+      published: None,
     };
 
     let inserted_community = match Community::create(&conn, &community_form) {
@@ -323,6 +321,7 @@ impl Perform<CommunityResponse> for Oper<EditCommunity> {
       private_key: read_community.private_key,
       public_key: read_community.public_key,
       last_refreshed_at: None,
+      published: None,
     };
 
     let _updated_community = match Community::update(&conn, data.edit_id, &community_form) {
@@ -357,13 +356,6 @@ impl Perform<CommunityResponse> for Oper<EditCommunity> {
 impl Perform<ListCommunitiesResponse> for Oper<ListCommunities> {
   fn perform(&self, conn: &PgConnection) -> Result<ListCommunitiesResponse, Error> {
     let data: &ListCommunities = &self.data;
-
-    let local_only = data.local_only.unwrap_or(false);
-    if Settings::get().federation.enabled && !local_only {
-      return Ok(ListCommunitiesResponse {
-        communities: fetch_all_communities()?,
-      });
-    }
 
     let user_claims: Option<Claims> = match &data.auth {
       Some(auth) => match Claims::decode(&auth) {
@@ -591,6 +583,7 @@ impl Perform<GetCommunityResponse> for Oper<TransferCommunity> {
       private_key: read_community.private_key,
       public_key: read_community.public_key,
       last_refreshed_at: None,
+      published: None,
     };
 
     let _updated_community = match Community::update(&conn, data.community_id, &community_form) {

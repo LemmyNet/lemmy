@@ -1,7 +1,6 @@
 use crate::apub::{create_apub_response, make_apub_endpoint, EndpointType};
-use crate::db::post::Post;
-use crate::db::post_view::PostView;
-use crate::{convert_datetime, naive_now};
+use crate::convert_datetime;
+use crate::db::post::{Post, PostForm};
 use activitystreams::{object::properties::ObjectProperties, object::Page};
 use actix_web::body::Body;
 use actix_web::web::Path;
@@ -61,53 +60,32 @@ impl Post {
   }
 }
 
-impl PostView {
-  pub fn from_page(page: &Page) -> Result<PostView, Error> {
+impl PostForm {
+  pub fn from_page(page: &Page) -> Result<PostForm, Error> {
     let oprops = &page.object_props;
-    Ok(PostView {
-      id: -1,
+    Ok(PostForm {
       name: oprops.get_name_xsd_string().unwrap().to_string(),
       url: oprops.get_url_xsd_any_uri().map(|u| u.to_string()),
       body: oprops.get_content_xsd_string().map(|c| c.to_string()),
-      creator_id: -1,
+      creator_id: 2,
       community_id: -1,
-      removed: false,
-      locked: false,
+      removed: None,
+      locked: None,
       published: oprops
         .get_published()
-        .unwrap()
-        .as_ref()
-        .naive_local()
-        .to_owned(),
+        .map(|u| u.as_ref().to_owned().naive_local()),
       updated: oprops
         .get_updated()
         .map(|u| u.as_ref().to_owned().naive_local()),
-      deleted: false,
+      deleted: None,
       nsfw: false,
-      stickied: false,
+      stickied: None,
       embed_title: None,
       embed_description: None,
       embed_html: None,
       thumbnail_url: None,
-      banned: false,
-      banned_from_community: false,
-      creator_name: "".to_string(),
-      creator_avatar: None,
-      community_name: "".to_string(),
-      community_removed: false,
-      community_deleted: false,
-      community_nsfw: false,
-      number_of_comments: -1,
-      score: -1,
-      upvotes: -1,
-      downvotes: -1,
-      hot_rank: -1,
-      newest_activity_time: naive_now(),
-      user_id: None,
-      my_vote: None,
-      subscribed: None,
-      read: None,
-      saved: None,
+      ap_id: oprops.get_id().unwrap().to_string(),
+      local: false,
     })
   }
 }

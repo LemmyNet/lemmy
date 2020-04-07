@@ -317,6 +317,7 @@ impl Perform<LoginResponse> for Oper<Register> {
           private_key: Some(community_private_key),
           public_key: Some(community_public_key),
           last_refreshed_at: None,
+          published: None,
         };
         Community::create(&conn, &community_form).unwrap()
       }

@@ -93,6 +93,7 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), Error> {
       private_key: Some(community_private_key),
       public_key: Some(community_public_key),
       last_refreshed_at: Some(naive_now()),
+      published: None,
     };
 
     Community::update(&conn, ccommunity.id, &form)?;

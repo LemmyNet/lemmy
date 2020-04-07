@@ -22,7 +22,7 @@ pub struct Community {
   pub last_refreshed_at: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize)]
+#[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize, Debug)]
 #[table_name = "community"]
 pub struct CommunityForm {
   pub name: String,
@@ -31,6 +31,7 @@ pub struct CommunityForm {
   pub category_id: i32,
   pub creator_id: i32,
   pub removed: Option<bool>,
+  pub published: Option<chrono::NaiveDateTime>,
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: Option<bool>,
   pub nsfw: bool,
@@ -76,6 +77,13 @@ impl Community {
     use crate::schema::community::dsl::*;
     community
       .filter(name.eq(community_name))
+      .first::<Self>(conn)
+  }
+
+  pub fn read_from_actor_id(conn: &PgConnection, community_id: &str) -> Result<Self, Error> {
+    use crate::schema::community::dsl::*;
+    community
+      .filter(actor_id.eq(community_id))
       .first::<Self>(conn)
   }
 
@@ -271,6 +279,7 @@ mod tests {
       private_key: None,
       public_key: None,
       last_refreshed_at: None,
+      published: None,
     };
 
     let inserted_community = Community::create(&conn, &new_community).unwrap();

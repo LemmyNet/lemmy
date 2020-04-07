@@ -1,16 +1,15 @@
-use crate::api::community::GetCommunityResponse;
-use crate::api::post::GetPostsResponse;
 use crate::apub::*;
-use crate::db::community_view::CommunityView;
-use crate::db::post_view::PostView;
+use crate::db::community::{Community, CommunityForm};
+use crate::db::post::{Post, PostForm};
+use crate::db::Crud;
 use crate::routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use crate::settings::Settings;
 use activitystreams::collection::{OrderedCollection, UnorderedCollection};
 use activitystreams::object::Page;
 use activitystreams::BaseBox;
+use diesel::PgConnection;
 use failure::Error;
 use isahc::prelude::*;
-use log::warn;
 use serde::Deserialize;
 use std::time::Duration;
 
@@ -24,7 +23,7 @@ fn fetch_node_info(domain: &str) -> Result<NodeInfo, Error> {
   Ok(fetch_remote_object::<NodeInfo>(&well_known.links.href)?)
 }
 
-fn fetch_communities_from_instance(domain: &str) -> Result<Vec<CommunityView>, Error> {
+fn fetch_communities_from_instance(domain: &str) -> Result<Vec<CommunityForm>, Error> {
   let node_info = fetch_node_info(domain)?;
 
   if let Some(community_list_url) = node_info.metadata.community_list_url {
@@ -33,10 +32,10 @@ fn fetch_communities_from_instance(domain: &str) -> Result<Vec<CommunityView>, E
       .collection_props
       .get_many_items_base_boxes()
       .unwrap();
-    let communities: Result<Vec<CommunityView>, Error> = object_boxes
-      .map(|c| -> Result<CommunityView, Error> {
+    let communities: Result<Vec<CommunityForm>, Error> = object_boxes
+      .map(|c| {
         let group = c.to_owned().to_concrete::<GroupExt>()?;
-        CommunityView::from_group(&group, domain)
+        CommunityForm::from_group(&group)
       })
       .collect();
     Ok(communities?)
@@ -69,44 +68,51 @@ where
   Ok(res)
 }
 
-pub fn fetch_remote_community_posts(identifier: &str) -> Result<GetPostsResponse, Error> {
-  let community = fetch_remote_object::<GroupExt>(&get_remote_community_uri(identifier))?;
+fn fetch_remote_community_posts(instance: &str, community: &str) -> Result<Vec<PostForm>, Error> {
+  let endpoint = format!("http://{}/federation/c/{}", instance, community);
+  let community = fetch_remote_object::<GroupExt>(&endpoint)?;
   let outbox_uri = &community.extension.get_outbox().to_string();
   let outbox = fetch_remote_object::<OrderedCollection>(outbox_uri)?;
   let items = outbox.collection_props.get_many_items_base_boxes();
 
-  let posts: Result<Vec<PostView>, Error> = items
+  let posts = items
     .unwrap()
     .map(|obox: &BaseBox| {
       let page = obox.clone().to_concrete::<Page>().unwrap();
-      PostView::from_page(&page)
+      PostForm::from_page(&page)
     })
-    .collect();
-  Ok(GetPostsResponse { posts: posts? })
+    .collect::<Result<Vec<PostForm>, Error>>()?;
+  Ok(posts)
 }
 
-pub fn fetch_remote_community(identifier: &str) -> Result<GetCommunityResponse, failure::Error> {
-  let group = fetch_remote_object::<GroupExt>(&get_remote_community_uri(identifier))?;
-  // TODO: this is only for testing until we can call that function from GetPosts
-  // (once string ids are supported)
-  //dbg!(get_remote_community_posts(identifier)?);
-
-  let (_, domain) = split_identifier(identifier);
-  Ok(GetCommunityResponse {
-    moderators: vec![],
-    admins: vec![],
-    community: CommunityView::from_group(&group, &domain)?,
-    online: 0,
-  })
-}
-
-pub fn fetch_all_communities() -> Result<Vec<CommunityView>, Error> {
-  let mut communities_list: Vec<CommunityView> = vec![];
+// TODO: in the future, this should only be done when an instance is followed for the first time
+//       after that, we should rely in the inbox, and fetch on demand when needed
+pub fn fetch_all(conn: &PgConnection) -> Result<(), Error> {
   for instance in &get_following_instances() {
-    match fetch_communities_from_instance(instance) {
-      Ok(mut c) => communities_list.append(c.as_mut()),
-      Err(e) => warn!("Failed to fetch instance list from remote instance: {}", e),
-    };
+    let communities = fetch_communities_from_instance(instance)?;
+
+    for community in &communities {
+      let existing = Community::read_from_actor_id(conn, &community.actor_id);
+      let community_id = match existing {
+        // TODO: should make sure that this is actually a `NotFound` error
+        Err(_) => Community::create(conn, community)?.id,
+        Ok(c) => Community::update(conn, c.id, community)?.id,
+      };
+      let mut posts = fetch_remote_community_posts(instance, &community.name)?;
+      for post_ in &mut posts {
+        post_.community_id = community_id;
+        let existing = Post::read_from_apub_id(conn, &post_.ap_id);
+        match existing {
+          // TODO: should make sure that this is actually a `NotFound` error
+          Err(_) => {
+            Post::create(conn, post_)?;
+          }
+          Ok(p) => {
+            Post::update(conn, p.id, post_)?;
+          }
+        }
+      }
+    }
   }
-  Ok(communities_list)
+  Ok(())
 }

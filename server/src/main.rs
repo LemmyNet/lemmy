@@ -6,16 +6,21 @@ use actix::prelude::*;
 use actix_web::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
+use failure::Error;
+use lemmy_server::apub::puller::fetch_all;
 use lemmy_server::db::code_migrations::run_advanced_migrations;
 use lemmy_server::routes::{api, federation, feeds, index, nodeinfo, webfinger, websocket};
 use lemmy_server::settings::Settings;
 use lemmy_server::websocket::server::*;
-use std::io;
+use log::warn;
+use std::thread;
+use std::thread::sleep;
+use std::time::Duration;
 
 embed_migrations!();
 
 #[actix_rt::main]
-async fn main() -> io::Result<()> {
+async fn main() -> Result<(), Error> {
   env_logger::init();
   let settings = Settings::get();
 
@@ -34,36 +39,50 @@ async fn main() -> io::Result<()> {
   // Set up websocket server
   let server = ChatServer::startup(pool.clone()).start();
 
+  // TODO: its probably failing because the other instance is not up yet
+  //       need to make a new thread and wait a bit before fetching
+  thread::spawn(move || {
+    // some work here
+    sleep(Duration::from_secs(5));
+    println!("Fetching apub data");
+    match fetch_all(&conn) {
+      Ok(_) => {}
+      Err(e) => warn!("Error during apub fetch: {}", e),
+    }
+  });
+
   println!(
     "Starting http server at {}:{}",
     settings.bind, settings.port
   );
 
   // Create Http server with websocket support
-  HttpServer::new(move || {
-    App::new()
-      .wrap(middleware::Logger::default())
-      .data(pool.clone())
-      .data(server.clone())
-      // The routes
-      .configure(api::config)
-      .configure(federation::config)
-      .configure(feeds::config)
-      .configure(index::config)
-      .configure(nodeinfo::config)
-      .configure(webfinger::config)
-      .configure(websocket::config)
-      // static files
-      .service(actix_files::Files::new(
-        "/static",
-        settings.front_end_dir.to_owned(),
-      ))
-      .service(actix_files::Files::new(
-        "/docs",
-        settings.front_end_dir.to_owned() + "/documentation",
-      ))
-  })
-  .bind((settings.bind, settings.port))?
-  .run()
-  .await
+  Ok(
+    HttpServer::new(move || {
+      App::new()
+        .wrap(middleware::Logger::default())
+        .data(pool.clone())
+        .data(server.clone())
+        // The routes
+        .configure(api::config)
+        .configure(federation::config)
+        .configure(feeds::config)
+        .configure(index::config)
+        .configure(nodeinfo::config)
+        .configure(webfinger::config)
+        .configure(websocket::config)
+        // static files
+        .service(actix_files::Files::new(
+          "/static",
+          settings.front_end_dir.to_owned(),
+        ))
+        .service(actix_files::Files::new(
+          "/docs",
+          settings.front_end_dir.to_owned() + "/documentation",
+        ))
+    })
+    .bind((settings.bind, settings.port))?
+    .run()
+    .await?,
+  )
 }

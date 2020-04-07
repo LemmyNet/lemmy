@@ -1,5 +1,4 @@
 use super::*;
-use crate::settings::Settings;
 use diesel::PgConnection;
 use std::str::FromStr;
 
@@ -133,6 +132,7 @@ impl Perform<PostResponse> for Oper<CreatePost> {
       thumbnail_url: pictshare_thumbnail,
       ap_id: "changeme".into(),
       local: true,
+      published: None,
     };
 
     let inserted_post = match Post::create(&conn, &post_form) {
@@ -227,11 +227,6 @@ impl Perform<GetPostResponse> for Oper<GetPost> {
 impl Perform<GetPostsResponse> for Oper<GetPosts> {
   fn perform(&self, conn: &PgConnection) -> Result<GetPostsResponse, Error> {
     let data: &GetPosts = &self.data;
-
-    if Settings::get().federation.enabled {
-      // TODO: intercept here (but the type is wrong)
-      //get_remote_community_posts(get_posts.community_id.unwrap())
-    }
 
     let user_claims: Option<Claims> = match &data.auth {
       Some(auth) => match Claims::decode(&auth) {
@@ -398,6 +393,7 @@ impl Perform<PostResponse> for Oper<EditPost> {
       thumbnail_url: pictshare_thumbnail,
       ap_id: read_post.ap_id,
       local: read_post.local,
+      published: None,
     };
 
     let _updated_post = match Post::update(&conn, data.edit_id, &post_form) {
