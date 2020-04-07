@@ -5,13 +5,14 @@ pub mod user;
 use crate::Settings;
 use openssl::{pkey::PKey, rsa::Rsa};
 
-use activitystreams::actor::{properties::ApActorProperties, Group};
+use activitystreams::actor::{properties::ApActorProperties, Group, Person};
 use activitystreams::ext::Ext;
 use actix_web::body::Body;
 use actix_web::HttpResponse;
 use url::Url;
 
 type GroupExt = Ext<Group, ApActorProperties>;
+type PersonExt = Ext<Person, ApActorProperties>;
 
 static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 

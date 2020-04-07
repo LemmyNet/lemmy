@@ -34,7 +34,7 @@ pub struct User_ {
   pub last_refreshed_at: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Clone)]
+#[derive(Insertable, AsChangeset, Clone, Debug)]
 #[table_name = "user_"]
 pub struct UserForm {
   pub name: String,
@@ -118,6 +118,11 @@ impl User_ {
     diesel::update(user_.find(user_id))
       .set(banned.eq(ban))
       .get_result::<Self>(conn)
+  }
+
+  pub fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
+    use crate::schema::user_::dsl::*;
+    user_.filter(actor_id.eq(object_id)).first::<Self>(conn)
   }
 }
 

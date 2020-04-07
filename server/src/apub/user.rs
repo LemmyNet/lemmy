@@ -1,6 +1,6 @@
-use crate::apub::{create_apub_response, make_apub_endpoint, EndpointType};
-use crate::convert_datetime;
-use crate::db::user::User_;
+use crate::apub::{create_apub_response, make_apub_endpoint, EndpointType, PersonExt};
+use crate::db::user::{UserForm, User_};
+use crate::{convert_datetime, naive_now};
 use activitystreams::{
   actor::{properties::ApActorProperties, Person},
   context,
@@ -25,6 +25,7 @@ pub async fn get_apub_user(
   info: Path<UserQuery>,
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
 ) -> Result<HttpResponse<Body>, Error> {
+  dbg!(&info.user_name);
   let user = User_::find_by_email_or_username(&&db.get()?, &info.user_name)?;
   let base_url = make_apub_endpoint(EndpointType::User, &user.name);
 
@@ -33,6 +34,7 @@ pub async fn get_apub_user(
   oprops
     .set_context_xsd_any_uri(context())?
     .set_id(base_url.to_string())?
+    .set_name_xsd_string(user.name.to_owned())?
     .set_published(convert_datetime(user.published))?;
 
   if let Some(u) = user.updated {
@@ -52,4 +54,37 @@ pub async fn get_apub_user(
     .set_liked(format!("{}/liked", &base_url))?;
 
   Ok(create_apub_response(&person.extend(actor_props)))
+}
+
+impl UserForm {
+  pub fn from_person(person: &PersonExt) -> Result<Self, Error> {
+    let oprops = &person.base.object_props;
+    let aprops = &person.extension;
+    Ok(UserForm {
+      name: oprops.get_name_xsd_string().unwrap().to_string(),
+      preferred_username: aprops.get_preferred_username().map(|u| u.to_string()),
+      password_encrypted: "".to_string(),
+      admin: false,
+      banned: false,
+      email: None,
+      avatar: None,
+      updated: oprops
+        .get_updated()
+        .map(|u| u.as_ref().to_owned().naive_local()),
+      show_nsfw: false,
+      theme: "".to_string(),
+      default_sort_type: 0,
+      default_listing_type: 0,
+      lang: "".to_string(),
+      show_avatars: false,
+      send_notifications_to_email: false,
+      matrix_user_id: None,
+      actor_id: oprops.get_id().unwrap().to_string(),
+      bio: oprops.get_summary_xsd_string().map(|s| s.to_string()),
+      local: false,
+      private_key: None,
+      public_key: None,
+      last_refreshed_at: Some(naive_now()),
+    })
+  }
 }
