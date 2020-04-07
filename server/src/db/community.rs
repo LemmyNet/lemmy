@@ -87,9 +87,9 @@ impl Community {
       .first::<Self>(conn)
   }
 
-  pub fn list(conn: &PgConnection) -> Result<Vec<Self>, Error> {
+  pub fn list_local(conn: &PgConnection) -> Result<Vec<Self>, Error> {
     use crate::schema::community::dsl::*;
-    community.load::<Community>(conn)
+    community.filter(local.eq(true)).load::<Community>(conn)
   }
 
   pub fn get_url(&self) -> String {

@@ -1,6 +1,7 @@
 use crate::apub::*;
 use crate::db::community::{Community, CommunityForm};
 use crate::db::post::{Post, PostForm};
+use crate::db::user::{UserForm, User_};
 use crate::db::Crud;
 use crate::routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use crate::settings::Settings;
@@ -23,7 +24,10 @@ fn fetch_node_info(domain: &str) -> Result<NodeInfo, Error> {
   Ok(fetch_remote_object::<NodeInfo>(&well_known.links.href)?)
 }
 
-fn fetch_communities_from_instance(domain: &str) -> Result<Vec<CommunityForm>, Error> {
+fn fetch_communities_from_instance(
+  domain: &str,
+  conn: &PgConnection,
+) -> Result<Vec<CommunityForm>, Error> {
   let node_info = fetch_node_info(domain)?;
 
   if let Some(community_list_url) = node_info.metadata.community_list_url {
@@ -35,7 +39,7 @@ fn fetch_communities_from_instance(domain: &str) -> Result<Vec<CommunityForm>, E
     let communities: Result<Vec<CommunityForm>, Error> = object_boxes
       .map(|c| {
         let group = c.to_owned().to_concrete::<GroupExt>()?;
-        CommunityForm::from_group(&group)
+        CommunityForm::from_group(&group, conn)
       })
       .collect();
     Ok(communities?)
@@ -47,6 +51,7 @@ fn fetch_communities_from_instance(domain: &str) -> Result<Vec<CommunityForm>, E
   }
 }
 
+// TODO: add an optional param last_updated and only fetch if its too old
 pub fn fetch_remote_object<Response>(uri: &str) -> Result<Response, Error>
 where
   Response: for<'de> Deserialize<'de>,
@@ -68,7 +73,11 @@ where
   Ok(res)
 }
 
-fn fetch_remote_community_posts(instance: &str, community: &str) -> Result<Vec<PostForm>, Error> {
+fn fetch_remote_community_posts(
+  instance: &str,
+  community: &str,
+  conn: &PgConnection,
+) -> Result<Vec<PostForm>, Error> {
   let endpoint = format!("http://{}/federation/c/{}", instance, community);
   let community = fetch_remote_object::<GroupExt>(&endpoint)?;
   let outbox_uri = &community.extension.get_outbox().to_string();
@@ -79,17 +88,28 @@ fn fetch_remote_community_posts(instance: &str, community: &str) -> Result<Vec<P
     .unwrap()
     .map(|obox: &BaseBox| {
       let page = obox.clone().to_concrete::<Page>().unwrap();
-      PostForm::from_page(&page)
+      PostForm::from_page(&page, conn)
     })
     .collect::<Result<Vec<PostForm>, Error>>()?;
   Ok(posts)
+}
+
+pub fn fetch_remote_user(apub_id: &str, conn: &PgConnection) -> Result<User_, Error> {
+  let person = fetch_remote_object::<PersonExt>(apub_id)?;
+  let uf = UserForm::from_person(&person)?;
+  let existing = User_::read_from_apub_id(conn, &uf.actor_id);
+  Ok(match existing {
+    // TODO: should make sure that this is actually a `NotFound` error
+    Err(_) => User_::create(conn, &uf)?,
+    Ok(u) => User_::update(conn, u.id, &uf)?,
+  })
 }
 
 // TODO: in the future, this should only be done when an instance is followed for the first time
 //       after that, we should rely in the inbox, and fetch on demand when needed
 pub fn fetch_all(conn: &PgConnection) -> Result<(), Error> {
   for instance in &get_following_instances() {
-    let communities = fetch_communities_from_instance(instance)?;
+    let communities = fetch_communities_from_instance(instance, conn)?;
 
     for community in &communities {
       let existing = Community::read_from_actor_id(conn, &community.actor_id);
@@ -98,19 +118,15 @@ pub fn fetch_all(conn: &PgConnection) -> Result<(), Error> {
         Err(_) => Community::create(conn, community)?.id,
         Ok(c) => Community::update(conn, c.id, community)?.id,
       };
-      let mut posts = fetch_remote_community_posts(instance, &community.name)?;
+      let mut posts = fetch_remote_community_posts(instance, &community.name, conn)?;
       for post_ in &mut posts {
         post_.community_id = community_id;
         let existing = Post::read_from_apub_id(conn, &post_.ap_id);
         match existing {
           // TODO: should make sure that this is actually a `NotFound` error
-          Err(_) => {
-            Post::create(conn, post_)?;
-          }
-          Ok(p) => {
-            Post::update(conn, p.id, post_)?;
-          }
-        }
+          Err(_) => Post::create(conn, post_)?,
+          Ok(p) => Post::update(conn, p.id, post_)?,
+        };
       }
     }
   }
