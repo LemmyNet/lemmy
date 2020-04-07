@@ -29,12 +29,15 @@ pub enum EndpointType {
   Comment,
 }
 
+// TODO: we will probably need to change apub endpoint urls so that html and activity+json content
+//       types are handled at the same endpoint, so that you can copy the url into mastodon search
+//       and have it fetch the object.
 pub fn make_apub_endpoint(endpoint_type: EndpointType, name: &str) -> Url {
   let point = match endpoint_type {
-    EndpointType::Community => "community",
-    EndpointType::User => "user",
-    EndpointType::Post => "post",
-    EndpointType::Comment => "comment",
+    EndpointType::Community => "c",
+    EndpointType::User => "u",
+    EndpointType::Post => "p",
+    EndpointType::Comment => todo!(),
   };
 
   Url::parse(&format!(
