@@ -12,6 +12,7 @@ use failure::Error;
 use isahc::prelude::*;
 use log::warn;
 use serde::Deserialize;
+use std::time::Duration;
 
 fn fetch_node_info(domain: &str) -> Result<NodeInfo, Error> {
   let well_known_uri = format!(
@@ -56,7 +57,14 @@ where
   }
   // TODO: should cache responses here when we are in production
   // TODO: this function should return a future
-  let text = isahc::get(uri)?.text()?;
+  let timeout = Duration::from_secs(60);
+  let text = Request::get(uri)
+    .header("Accept", APUB_JSON_CONTENT_TYPE)
+    .connect_timeout(timeout)
+    .timeout(timeout)
+    .body(())?
+    .send()?
+    .text()?;
   let res: Response = serde_json::from_str(&text)?;
   Ok(res)
 }

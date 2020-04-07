@@ -13,12 +13,14 @@ use url::Url;
 
 type GroupExt = Ext<Group, ApActorProperties>;
 
+static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
+
 fn create_apub_response<T>(json: &T) -> HttpResponse<Body>
 where
   T: serde::ser::Serialize,
 {
   HttpResponse::Ok()
-    .content_type("application/activity+json")
+    .content_type(APUB_JSON_CONTENT_TYPE)
     .json(json)
 }
 
