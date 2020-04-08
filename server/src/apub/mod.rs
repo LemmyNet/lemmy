@@ -16,6 +16,17 @@ type PersonExt = Ext<Person, ApActorProperties>;
 
 static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 
+pub enum EndpointType {
+  Community,
+  User,
+  Post,
+  Comment,
+}
+
+pub struct Instance {
+  domain: String,
+}
+
 fn create_apub_response<T>(json: &T) -> HttpResponse<Body>
 where
   T: serde::ser::Serialize,
@@ -23,13 +34,6 @@ where
   HttpResponse::Ok()
     .content_type(APUB_JSON_CONTENT_TYPE)
     .json(json)
-}
-
-pub enum EndpointType {
-  Community,
-  User,
-  Post,
-  Comment,
 }
 
 // TODO: we will probably need to change apub endpoint urls so that html and activity+json content
@@ -93,10 +97,13 @@ pub fn format_community_name(name: &str, instance: &str) -> String {
   }
 }
 
-pub fn get_following_instances() -> Vec<&'static str> {
+pub fn get_following_instances() -> Vec<Instance> {
   Settings::get()
     .federation
     .followed_instances
     .split(',')
+    .map(|i| Instance {
+      domain: i.to_string(),
+    })
     .collect()
 }
