@@ -17,11 +17,11 @@ use serde::Deserialize;
 use std::time::Duration;
 use url::Url;
 
-fn fetch_node_info(domain: &str) -> Result<NodeInfo, Error> {
+fn fetch_node_info(instance: &Instance) -> Result<NodeInfo, Error> {
   let well_known_uri = Url::parse(&format!(
     "{}://{}/.well-known/nodeinfo",
     get_apub_protocol_string(),
-    domain
+    instance.domain
   ))?;
   let well_known = fetch_remote_object::<NodeInfoWellKnown>(&well_known_uri)?;
   Ok(fetch_remote_object::<NodeInfo>(&well_known.links.href)?)
@@ -75,17 +75,17 @@ where
 }
 
 fn fetch_remote_community_posts(
-  instance: &str,
+  instance: &Instance,
   community: &Community,
   conn: &PgConnection,
 ) -> Result<Vec<Post>, Error> {
+  // TODO: need to add outbox field to Community
   let endpoint = Url::parse(&format!(
     "http://{}/federation/c/{}",
-    instance, community.name
+    instance.domain, community.name
   ))?;
   let group = fetch_remote_object::<GroupExt>(&endpoint)?;
   let outbox_uri = Url::parse(&group.extension.get_outbox().to_string())?;
-  // TODO: outbox url etc should be stored in local db
   let outbox = fetch_remote_object::<OrderedCollection>(&outbox_uri)?;
   let items = outbox.collection_props.get_many_items_base_boxes();
 
@@ -134,7 +134,7 @@ pub fn fetch_all(conn: &PgConnection) -> Result<(), Error> {
     } else {
       warn!(
         "{} is not a Lemmy instance, federation is not supported",
-        instance
+        instance.domain
       );
     }
   }
