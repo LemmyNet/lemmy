@@ -22,6 +22,7 @@ use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use failure::Error;
 use serde::Deserialize;
+use url::Url;
 
 #[derive(Deserialize)]
 pub struct CommunityQuery {
@@ -87,16 +88,14 @@ impl Community {
 
 impl CommunityForm {
   pub fn from_group(group: &GroupExt, conn: &PgConnection) -> Result<Self, Error> {
-    let followers_uri = &group.extension.get_followers().unwrap().to_string();
-    let outbox_uri = &group.extension.get_outbox().to_string();
-    let _outbox = fetch_remote_object::<OrderedCollection>(outbox_uri)?;
-    let _followers = fetch_remote_object::<UnorderedCollection>(followers_uri)?;
+    let followers_uri = Url::parse(&group.extension.get_followers().unwrap().to_string())?;
+    let outbox_uri = Url::parse(&group.extension.get_outbox().to_string())?;
+    let _outbox = fetch_remote_object::<OrderedCollection>(&outbox_uri)?;
+    let _followers = fetch_remote_object::<UnorderedCollection>(&followers_uri)?;
     let oprops = &group.base.object_props;
     let aprops = &group.extension;
-    let creator = fetch_remote_user(
-      &oprops.get_attributed_to_xsd_any_uri().unwrap().to_string(),
-      conn,
-    )?;
+    let apub_id = Url::parse(&oprops.get_attributed_to_xsd_any_uri().unwrap().to_string())?;
+    let creator = fetch_remote_user(&apub_id, conn)?;
     Ok(CommunityForm {
       name: oprops.get_name_xsd_string().unwrap().to_string(),
       title: aprops.get_preferred_username().unwrap().to_string(),

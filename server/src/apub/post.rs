@@ -12,6 +12,7 @@ use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use failure::Error;
 use serde::Deserialize;
+use url::Url;
 
 #[derive(Deserialize)]
 pub struct PostQuery {
@@ -64,10 +65,8 @@ impl Post {
 impl PostForm {
   pub fn from_page(page: &Page, conn: &PgConnection) -> Result<PostForm, Error> {
     let oprops = &page.object_props;
-    let creator = fetch_remote_user(
-      &oprops.get_attributed_to_xsd_any_uri().unwrap().to_string(),
-      conn,
-    )?;
+    let apub_id = Url::parse(&oprops.get_attributed_to_xsd_any_uri().unwrap().to_string())?;
+    let creator = fetch_remote_user(&apub_id, conn)?;
     Ok(PostForm {
       name: oprops.get_name_xsd_string().unwrap().to_string(),
       url: oprops.get_url_xsd_any_uri().map(|u| u.to_string()),
