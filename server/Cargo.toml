@@ -34,7 +34,7 @@ rss = "1.9.0"
 htmlescape = "0.3.1"
 config = "0.10.1"
 hjson = "0.8.2"
-url = "2.1.1"
+url = { version = "2.1.1", features = ["serde"] }
 percent-encoding = "2.1.0"
 isahc = "0.9"
 comrak = "0.7"

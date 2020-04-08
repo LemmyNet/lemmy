@@ -7,8 +7,10 @@ use actix_web::web;
 use actix_web::HttpResponse;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
+use failure::Error;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
+use url::Url;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
   cfg
@@ -16,18 +18,18 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route("/.well-known/nodeinfo", web::get().to(node_info_well_known));
 }
 
-async fn node_info_well_known() -> HttpResponse<Body> {
+async fn node_info_well_known() -> Result<HttpResponse<Body>, Error> {
   let node_info = NodeInfoWellKnown {
     links: NodeInfoWellKnownLinks {
-      rel: "http://nodeinfo.diaspora.software/ns/schema/2.0".to_string(),
-      href: format!(
+      rel: Url::parse("http://nodeinfo.diaspora.software/ns/schema/2.0")?,
+      href: Url::parse(&format!(
         "{}://{}/nodeinfo/2.0.json",
         get_apub_protocol_string(),
         Settings::get().hostname
-      ),
+      ))?,
     },
   };
-  HttpResponse::Ok().json(node_info)
+  Ok(HttpResponse::Ok().json(node_info))
 }
 
 async fn node_info(
@@ -60,11 +62,11 @@ async fn node_info(
         open_registrations: site_view.open_registration,
       },
       metadata: NodeInfoMetadata {
-        community_list_url: Some(format!(
+        community_list_url: Some(Url::parse(&format!(
           "{}://{}/federation/communities",
           get_apub_protocol_string(),
           Settings::get().hostname
-        )),
+        ))?),
       },
     })
   })
@@ -81,8 +83,8 @@ pub struct NodeInfoWellKnown {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct NodeInfoWellKnownLinks {
-  pub rel: String,
-  pub href: String,
+  pub rel: Url,
+  pub href: Url,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -116,5 +118,5 @@ pub struct NodeInfoUsers {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct NodeInfoMetadata {
-  pub community_list_url: Option<String>,
+  pub community_list_url: Option<Url>,
 }
