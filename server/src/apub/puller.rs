@@ -8,6 +8,7 @@ use crate::settings::Settings;
 use activitystreams::collection::{OrderedCollection, UnorderedCollection};
 use activitystreams::object::Page;
 use activitystreams::BaseBox;
+use diesel::result::Error::NotFound;
 use diesel::PgConnection;
 use failure::Error;
 use isahc::prelude::*;
@@ -99,9 +100,9 @@ pub fn fetch_remote_user(apub_id: &str, conn: &PgConnection) -> Result<User_, Er
   let uf = UserForm::from_person(&person)?;
   let existing = User_::read_from_apub_id(conn, &uf.actor_id);
   Ok(match existing {
-    // TODO: should make sure that this is actually a `NotFound` error
-    Err(_) => User_::create(conn, &uf)?,
+    Err(NotFound {}) => User_::create(conn, &uf)?,
     Ok(u) => User_::update(conn, u.id, &uf)?,
+    Err(e) => return Err(Error::from(e)),
   })
 }
 
@@ -114,18 +115,18 @@ pub fn fetch_all(conn: &PgConnection) -> Result<(), Error> {
     for community in &communities {
       let existing = Community::read_from_actor_id(conn, &community.actor_id);
       let community_id = match existing {
-        // TODO: should make sure that this is actually a `NotFound` error
-        Err(_) => Community::create(conn, community)?.id,
+        Err(NotFound {}) => Community::create(conn, community)?.id,
         Ok(c) => Community::update(conn, c.id, community)?.id,
+        Err(e) => return Err(Error::from(e)),
       };
       let mut posts = fetch_remote_community_posts(instance, &community.name, conn)?;
       for post_ in &mut posts {
         post_.community_id = community_id;
         let existing = Post::read_from_apub_id(conn, &post_.ap_id);
         match existing {
-          // TODO: should make sure that this is actually a `NotFound` error
-          Err(_) => Post::create(conn, post_)?,
+          Err(NotFound {}) => Post::create(conn, post_)?,
           Ok(p) => Post::update(conn, p.id, post_)?,
+          Err(e) => return Err(Error::from(e)),
         };
       }
     }
