@@ -75,18 +75,12 @@ where
 }
 
 fn fetch_remote_community_posts(
-  instance: &Instance,
   community: &Community,
   conn: &PgConnection,
 ) -> Result<Vec<Post>, Error> {
   // TODO: need to add outbox field to Community
-  let endpoint = Url::parse(&format!(
-    "http://{}/federation/c/{}",
-    instance.domain, community.name
-  ))?;
-  let group = fetch_remote_object::<GroupExt>(&endpoint)?;
-  let outbox_uri = Url::parse(&group.extension.get_outbox().to_string())?;
-  let outbox = fetch_remote_object::<OrderedCollection>(&outbox_uri)?;
+  let outbox_url = Url::parse(&format!("{}/outbox", community.actor_id))?;
+  let outbox = fetch_remote_object::<OrderedCollection>(&outbox_url)?;
   let items = outbox.collection_props.get_many_items_base_boxes();
 
   Ok(
@@ -129,7 +123,7 @@ pub fn fetch_all(conn: &PgConnection) -> Result<(), Error> {
     if let Some(community_list) = node_info.metadata.community_list_url {
       let communities = fetch_communities_from_instance(&community_list, conn)?;
       for c in communities {
-        fetch_remote_community_posts(instance, &c, conn)?;
+        fetch_remote_community_posts(&c, conn)?;
       }
     } else {
       warn!(
