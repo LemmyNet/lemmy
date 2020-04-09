@@ -1,6 +1,7 @@
-use crate::apub::puller::fetch_remote_user;
+use crate::apub::puller::{fetch_remote_community, fetch_remote_user};
 use crate::apub::{create_apub_response, make_apub_endpoint, EndpointType};
 use crate::convert_datetime;
+use crate::db::community::Community;
 use crate::db::post::{Post, PostForm};
 use crate::db::user::User_;
 use crate::db::Crud;
@@ -34,6 +35,7 @@ impl Post {
     let mut page = Page::default();
     let oprops: &mut ObjectProperties = page.as_mut();
     let creator = User_::read(conn, self.creator_id)?;
+    let community = Community::read(conn, self.community_id)?;
 
     oprops
       // Not needed when the Post is embedded in a collection (like for community outbox)
@@ -41,6 +43,7 @@ impl Post {
       .set_id(base_url)?
       .set_name_xsd_string(self.name.to_owned())?
       .set_published(convert_datetime(self.published))?
+      .set_to_xsd_any_uri(community.actor_id)?
       .set_attributed_to_xsd_any_uri(make_apub_endpoint(EndpointType::User, &creator.name))?;
 
     if let Some(body) = &self.body {
@@ -65,14 +68,17 @@ impl Post {
 impl PostForm {
   pub fn from_page(page: &Page, conn: &PgConnection) -> Result<PostForm, Error> {
     let oprops = &page.object_props;
-    let apub_id = Url::parse(&oprops.get_attributed_to_xsd_any_uri().unwrap().to_string())?;
-    let creator = fetch_remote_user(&apub_id, conn)?;
+    let creator_id = Url::parse(&oprops.get_attributed_to_xsd_any_uri().unwrap().to_string())?;
+    let creator = fetch_remote_user(&creator_id, conn)?;
+    let community_id = Url::parse(&oprops.get_to_xsd_any_uri().unwrap().to_string())?;
+    let community = fetch_remote_community(&community_id, conn)?;
+
     Ok(PostForm {
       name: oprops.get_name_xsd_string().unwrap().to_string(),
       url: oprops.get_url_xsd_any_uri().map(|u| u.to_string()),
       body: oprops.get_content_xsd_string().map(|c| c.to_string()),
       creator_id: creator.id,
-      community_id: -1,
+      community_id: community.id,
       removed: None,
       locked: None,
       published: oprops

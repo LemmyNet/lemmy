@@ -1,4 +1,6 @@
+pub mod activities;
 pub mod community;
+pub mod inbox;
 pub mod post;
 pub mod puller;
 pub mod user;

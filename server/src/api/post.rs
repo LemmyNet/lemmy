@@ -1,4 +1,5 @@
 use super::*;
+use crate::apub::activities::post_create;
 use diesel::PgConnection;
 use std::str::FromStr;
 
@@ -152,6 +153,8 @@ impl Perform<PostResponse> for Oper<CreatePost> {
       Ok(post) => post,
       Err(_e) => return Err(APIError::err("couldnt_create_post").into()),
     };
+
+    post_create(&inserted_post, conn)?;
 
     // They like their own post by default
     let like_form = PostLikeForm {
