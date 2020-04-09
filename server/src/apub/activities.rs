@@ -1,15 +1,13 @@
 use crate::apub::{get_apub_protocol_string, get_following_instances};
 use crate::db::post::Post;
 use crate::db::user::User_;
-use crate::db::Crud;
 use activitystreams::activity::Create;
 use activitystreams::context;
 use diesel::PgConnection;
 use failure::Error;
 use isahc::prelude::*;
 
-pub fn post_create(post: &Post, conn: &PgConnection) -> Result<(), Error> {
-  let user = User_::read(conn, post.creator_id)?;
+pub fn post_create(post: &Post, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
   let page = post.as_page(conn)?;
   let mut create = Create::new();
   create.object_props.set_context_xsd_any_uri(context())?;
@@ -17,7 +15,9 @@ pub fn post_create(post: &Post, conn: &PgConnection) -> Result<(), Error> {
   create
     .object_props
     .set_id(page.object_props.get_id().unwrap().to_string())?;
-  create.create_props.set_actor_xsd_any_uri(user.actor_id)?;
+  create
+    .create_props
+    .set_actor_xsd_any_uri(creator.actor_id.to_owned())?;
   create.create_props.set_object_base_box(page)?;
   let json = serde_json::to_string(&create)?;
   for i in get_following_instances() {

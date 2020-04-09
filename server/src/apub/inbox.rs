@@ -7,7 +7,9 @@ use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use failure::Error;
 
-pub async fn inbox(
+// TODO: need a proper actor that has this inbox
+
+pub async fn create_inbox(
   create: web::Json<Create>,
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
 ) -> Result<HttpResponse, Error> {
