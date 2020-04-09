@@ -7,7 +7,7 @@ First, you need to [install Ansible on your local computer](https://docs.ansible
 Then run the following commands on your local computer:
 
 ```bash
-git clone https://github.com/dessalines/lemmy.git
+git clone https://github.com/LemmyNet/lemmy.git
 cd lemmy/ansible/
 cp inventory.example inventory
 nano inventory # enter your server, domain, contact email

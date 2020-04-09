@@ -2,6 +2,7 @@ import { Component } from 'inferno';
 import { WebSocketService } from '../services';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
+import { repoUrl } from '../utils';
 
 let general = [
   'Nathan J. Goode',
@@ -44,7 +45,7 @@ export class Sponsors extends Component<any, any> {
         <h5>{i18n.t('donate_to_lemmy')}</h5>
         <p>
           <T i18nKey="sponsor_message">
-            #<a href="https://github.com/dessalines/lemmy">#</a>
+            #<a href={repoUrl}>#</a>
           </T>
         </p>
         <a class="btn btn-secondary" href="https://liberapay.com/Lemmy/">
