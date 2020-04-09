@@ -107,7 +107,8 @@ impl Perform<PostResponse> for Oper<CreatePost> {
     }
 
     // Check for a site ban
-    if UserView::read(&conn, user_id)?.banned {
+    let user = User_::read(&conn, user_id)?;
+    if user.banned {
       return Err(APIError::err("site_ban").into());
     }
 
@@ -154,7 +155,7 @@ impl Perform<PostResponse> for Oper<CreatePost> {
       Err(_e) => return Err(APIError::err("couldnt_create_post").into()),
     };
 
-    post_create(&inserted_post, conn)?;
+    post_create(&inserted_post, &user, conn)?;
 
     // They like their own post by default
     let like_form = PostLikeForm {
