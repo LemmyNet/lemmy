@@ -91,8 +91,7 @@ fn fetch_remote_community_posts(
         PostForm::from_page(&page, conn)
       })
       .map(|pf: Result<PostForm, Error>| -> Result<Post, Error> {
-        let mut pf2 = pf?;
-        pf2.community_id = community.id;
+        let pf2 = pf?;
         let existing = Post::read_from_apub_id(conn, &pf2.ap_id);
         match existing {
           Err(NotFound {}) => Ok(Post::create(conn, &pf2)?),
@@ -104,6 +103,7 @@ fn fetch_remote_community_posts(
   )
 }
 
+// TODO: can probably merge these two methods?
 pub fn fetch_remote_user(apub_id: &Url, conn: &PgConnection) -> Result<User_, Error> {
   let person = fetch_remote_object::<PersonExt>(apub_id)?;
   let uf = UserForm::from_person(&person)?;
@@ -111,6 +111,16 @@ pub fn fetch_remote_user(apub_id: &Url, conn: &PgConnection) -> Result<User_, Er
   Ok(match existing {
     Err(NotFound {}) => User_::create(conn, &uf)?,
     Ok(u) => User_::update(conn, u.id, &uf)?,
+    Err(e) => return Err(Error::from(e)),
+  })
+}
+pub fn fetch_remote_community(apub_id: &Url, conn: &PgConnection) -> Result<Community, Error> {
+  let group = fetch_remote_object::<GroupExt>(apub_id)?;
+  let cf = CommunityForm::from_group(&group, conn)?;
+  let existing = Community::read_from_actor_id(conn, &cf.actor_id);
+  Ok(match existing {
+    Err(NotFound {}) => Community::create(conn, &cf)?,
+    Ok(u) => Community::update(conn, u.id, &cf)?,
     Err(e) => return Err(Error::from(e)),
   })
 }

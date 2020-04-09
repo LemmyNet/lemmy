@@ -1,12 +1,6 @@
-use crate::api::community::ListCommunities;
-use crate::api::Oper;
-use crate::api::Perform;
 use crate::apub;
 use crate::settings::Settings;
-use actix_web::web::Query;
-use actix_web::{web, HttpResponse};
-use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::PgConnection;
+use actix_web::web;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
   if Settings::get().federation.enabled {
@@ -16,6 +10,8 @@ pub fn config(cfg: &mut web::ServiceConfig) {
         "/federation/communities",
         web::get().to(apub::community::get_apub_community_list),
       )
+      // TODO: need a proper actor that has this inbox
+      .route("/federation/inbox", web::post().to(apub::inbox::inbox))
       .route(
         "/federation/c/{community_name}",
         web::get().to(apub::community::get_apub_community_http),
@@ -35,20 +31,6 @@ pub fn config(cfg: &mut web::ServiceConfig) {
       .route(
         "/federation/p/{post_id}",
         web::get().to(apub::user::get_apub_user),
-      )
-      // TODO: we should be able to remove this but somehow that breaks the remote community list
-      .route(
-        "/api/v1/communities/list",
-        web::get().to(
-          |query: Query<ListCommunities>, db: web::Data<Pool<ConnectionManager<PgConnection>>>| {
-            let res = Oper::new(query.into_inner())
-              .perform(&db.get().unwrap())
-              .unwrap();
-            HttpResponse::Ok()
-              .content_type("application/json")
-              .body(serde_json::to_string(&res).unwrap())
-          },
-        ),
       );
   }
 }
