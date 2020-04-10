@@ -16,6 +16,7 @@ import {
   Comment,
   CommentResponse,
   PrivateMessage,
+  UserView,
   PrivateMessageResponse,
   WebSocketJsonResponse,
 } from '../interfaces';
@@ -40,6 +41,7 @@ interface NavbarState {
   messages: Array<PrivateMessage>;
   unreadCount: number;
   siteName: string;
+  admins: Array<UserView>;
 }
 
 export class Navbar extends Component<any, NavbarState> {
@@ -53,6 +55,7 @@ export class Navbar extends Component<any, NavbarState> {
     messages: [],
     expanded: false,
     siteName: undefined,
+    admins: [],
   };
 
   constructor(props: any, context: any) {
@@ -179,6 +182,19 @@ export class Navbar extends Component<any, NavbarState> {
             </li>
           </ul>
           <ul class="navbar-nav ml-auto">
+            {this.canAdmin && (
+              <li className="nav-item mt-1">
+                <Link
+                  class="nav-link"
+                  to={`/admin`}
+                  title={i18n.t('admin_settings')}
+                >
+                  <svg class="icon">
+                    <use xlinkHref="#icon-settings"></use>
+                  </svg>
+                </Link>
+              </li>
+            )}
             {this.state.isLoggedIn ? (
               <>
                 <li className="nav-item mt-1">
@@ -298,7 +314,10 @@ export class Navbar extends Component<any, NavbarState> {
 
       if (data.site && !this.state.siteName) {
         this.state.siteName = data.site.name;
+        this.state.admins = data.admins;
         WebSocketService.Instance.site = data.site;
+        WebSocketService.Instance.admins = data.admins;
+
         this.setState(this.state);
       }
     }
@@ -350,6 +369,13 @@ export class Navbar extends Component<any, NavbarState> {
       this.state.replies.filter(r => !r.read).length +
       this.state.mentions.filter(r => !r.read).length +
       this.state.messages.filter(r => !r.read).length
+    );
+  }
+
+  get canAdmin(): boolean {
+    return (
+      UserService.Instance.user &&
+      this.state.admins.map(a => a.id).includes(UserService.Instance.user.id)
     );
   }
 

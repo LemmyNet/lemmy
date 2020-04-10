@@ -1,6 +1,8 @@
 use config::{Config, ConfigError, Environment, File};
+use failure::Error;
 use serde::Deserialize;
 use std::env;
+use std::fs;
 use std::net::IpAddr;
 
 static CONFIG_FILE_DEFAULTS: &str = "config/defaults.hjson";
@@ -111,5 +113,15 @@ impl Settings {
 
   pub fn api_endpoint(&self) -> String {
     format!("{}/api/v1", self.hostname)
+  }
+
+  pub fn read_config_file() -> Result<String, Error> {
+    Ok(fs::read_to_string(CONFIG_FILE)?)
+  }
+
+  pub fn save_config_file(data: &str) -> Result<String, Error> {
+    fs::write(CONFIG_FILE, data)?;
+    Self::init()?;
+    Self::read_config_file()
   }
 }

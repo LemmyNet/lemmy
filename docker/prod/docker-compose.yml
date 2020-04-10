@@ -19,7 +19,7 @@ services:
     environment:
       - RUST_LOG=error
     volumes:
-      - ./lemmy.hjson:/config/config.hjson:ro
+      - ./lemmy.hjson:/config/config.hjson
     depends_on:
       - postgres
       - pictshare
