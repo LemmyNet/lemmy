@@ -1,8 +1,8 @@
 pub mod activities;
 pub mod community;
+pub mod fetcher;
 pub mod inbox;
 pub mod post;
-pub mod puller;
 pub mod user;
 use crate::Settings;
 use openssl::{pkey::PKey, rsa::Rsa};

@@ -7,7 +7,7 @@ use actix_web::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use failure::Error;
-use lemmy_server::apub::puller::fetch_all;
+use lemmy_server::apub::fetcher::fetch_all;
 use lemmy_server::db::code_migrations::run_advanced_migrations;
 use lemmy_server::routes::{api, federation, feeds, index, nodeinfo, webfinger, websocket};
 use lemmy_server::settings::Settings;
