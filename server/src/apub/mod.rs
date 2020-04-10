@@ -5,12 +5,11 @@ pub mod inbox;
 pub mod post;
 pub mod user;
 use crate::Settings;
-use openssl::{pkey::PKey, rsa::Rsa};
-
 use activitystreams::actor::{properties::ApActorProperties, Group, Person};
 use activitystreams::ext::Ext;
 use actix_web::body::Body;
 use actix_web::HttpResponse;
+use openssl::{pkey::PKey, rsa::Rsa};
 use url::Url;
 
 type GroupExt = Ext<Group, ApActorProperties>;

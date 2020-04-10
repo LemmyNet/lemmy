@@ -71,6 +71,8 @@ impl Community {
       oprops.set_updated(convert_datetime(u))?;
     }
     if let Some(d) = self.description.to_owned() {
+      // TODO: this should be html, also add source field with raw markdown
+      //       -> same for post.content and others
       oprops.set_summary_xsd_string(d)?;
     }
 
@@ -99,7 +101,9 @@ impl CommunityForm {
     Ok(CommunityForm {
       name: oprops.get_name_xsd_string().unwrap().to_string(),
       title: aprops.get_preferred_username().unwrap().to_string(),
-      description: oprops.get_summary_xsd_string().map(|s| s.to_string()),
+      // TODO: should be parsed as html and tags like <script> removed (or use markdown source)
+      //       -> same for post.content etc
+      description: oprops.get_content_xsd_string().map(|s| s.to_string()),
       category_id: 1,
       creator_id: creator.id,
       removed: None,
