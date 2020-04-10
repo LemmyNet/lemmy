@@ -21,14 +21,13 @@ import {
   capitalizeFirstLetter,
   markdownHelpUrl,
   mdToHtml,
-  showAvatars,
-  pictshareAvatarThumbnail,
   wsJsonToRes,
   toast,
   randomStr,
   setupTribute,
   setupTippy,
 } from '../utils';
+import { UserListing } from './user-listing';
 import Tribute from 'tributejs/src/Tribute.js';
 import autosize from 'autosize';
 import { i18n } from '../i18next';
@@ -132,22 +131,12 @@ export class PrivateMessageForm extends Component<
 
               {this.state.recipient && (
                 <div class="col-sm-10 form-control-plaintext">
-                  <Link
-                    className="text-body font-weight-bold"
-                    to={`/u/${this.state.recipient.name}`}
-                  >
-                    {this.state.recipient.avatar && showAvatars() && (
-                      <img
-                        height="32"
-                        width="32"
-                        src={pictshareAvatarThumbnail(
-                          this.state.recipient.avatar
-                        )}
-                        class="rounded-circle mr-1"
-                      />
-                    )}
-                    <span>{this.state.recipient.name}</span>
-                  </Link>
+                  <UserListing
+                    user={{
+                      name: this.state.recipient.name,
+                      avatar: this.state.recipient.avatar,
+                    }}
+                  />
                 </div>
               )}
             </div>

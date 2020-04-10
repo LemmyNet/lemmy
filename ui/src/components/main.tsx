@@ -33,13 +33,12 @@ import { SortSelect } from './sort-select';
 import { ListingTypeSelect } from './listing-type-select';
 import { DataTypeSelect } from './data-type-select';
 import { SiteForm } from './site-form';
+import { UserListing } from './user-listing';
 import {
   wsJsonToRes,
   repoUrl,
   mdToHtml,
   fetchLimit,
-  pictshareAvatarThumbnail,
-  showAvatars,
   toast,
   getListingTypeFromProps,
   getPageFromProps,
@@ -316,20 +315,12 @@ export class Main extends Component<any, MainState> {
               <li class="list-inline-item">{i18n.t('admins')}:</li>
               {this.state.siteRes.admins.map(admin => (
                 <li class="list-inline-item">
-                  <Link
-                    class="text-body font-weight-bold"
-                    to={`/u/${admin.name}`}
-                  >
-                    {admin.avatar && showAvatars() && (
-                      <img
-                        height="32"
-                        width="32"
-                        src={pictshareAvatarThumbnail(admin.avatar)}
-                        class="rounded-circle mr-1"
-                      />
-                    )}
-                    <span>{admin.name}</span>
-                  </Link>
+                  <UserListing
+                    user={{
+                      name: admin.name,
+                      avatar: admin.avatar,
+                    }}
+                  />
                 </li>
               ))}
             </ul>
@@ -619,6 +610,7 @@ export class Main extends Component<any, MainState> {
       this.state.siteRes.site = data.site;
       this.state.showEditSite = false;
       this.setState(this.state);
+      toast(i18n.t('site_saved'));
     } else if (res.op == UserOperation.GetPosts) {
       let data = res.data as GetPostsResponse;
       this.state.posts = data.posts;
