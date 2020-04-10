@@ -17,7 +17,7 @@ services:
     restart: "always"
 
   lemmy_alpha:
-    image: lemmy-federation-test:latest
+    image: lemmy-federation:latest
     environment:
       - LEMMY_HOSTNAME=lemmy_alpha:8540
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_alpha:5432/lemmy
@@ -47,7 +47,7 @@ services:
     restart: always
 
   lemmy_beta:
-    image: lemmy-federation-test:latest
+    image: lemmy-federation:latest
     environment:
       - LEMMY_HOSTNAME=lemmy_beta:8550
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_beta:5432/lemmy

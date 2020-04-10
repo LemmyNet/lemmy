@@ -1,4 +1,4 @@
-use crate::apub::puller::{fetch_remote_community, fetch_remote_user};
+use crate::apub::fetcher::{fetch_remote_community, fetch_remote_user};
 use crate::apub::{create_apub_response, make_apub_endpoint, EndpointType};
 use crate::convert_datetime;
 use crate::db::community::Community;

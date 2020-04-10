@@ -6,7 +6,7 @@ ansible/passwords/
 # docker build files
 docker/lemmy_mine.hjson
 docker/dev/env_deploy.sh
-docker/federation-test/volumes
+docker/federation/volumes
 docker/dev/volumes
 
 # local build files

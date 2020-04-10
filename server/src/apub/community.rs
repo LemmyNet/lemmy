@@ -1,4 +1,4 @@
-use crate::apub::puller::{fetch_remote_object, fetch_remote_user};
+use crate::apub::fetcher::{fetch_remote_object, fetch_remote_user};
 use crate::apub::*;
 use crate::db::community::{Community, CommunityForm};
 use crate::db::community_view::CommunityFollowerView;
