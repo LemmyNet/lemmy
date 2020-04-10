@@ -1,4 +1,5 @@
 use crate::apub::fetcher::{fetch_remote_object, fetch_remote_user};
+use crate::apub::signatures::PublicKey;
 use crate::apub::*;
 use crate::db::community::{Community, CommunityForm};
 use crate::db::community_view::CommunityFollowerView;
@@ -54,15 +55,13 @@ pub async fn get_apub_community_list(
 
 impl Community {
   fn as_group(&self, conn: &PgConnection) -> Result<GroupExt, Error> {
-    let base_url = make_apub_endpoint(EndpointType::Community, &self.name);
-
     let mut group = Group::default();
     let oprops: &mut ObjectProperties = group.as_mut();
 
     let creator = User_::read(conn, self.creator_id)?;
     oprops
       .set_context_xsd_any_uri(context())?
-      .set_id(base_url.to_owned())?
+      .set_id(self.actor_id.to_owned())?
       .set_name_xsd_string(self.name.to_owned())?
       .set_published(convert_datetime(self.published))?
       .set_attributed_to_xsd_any_uri(make_apub_endpoint(EndpointType::User, &creator.name))?;
@@ -80,24 +79,33 @@ impl Community {
 
     actor_props
       .set_preferred_username(self.title.to_owned())?
-      .set_inbox(format!("{}/inbox", &base_url))?
-      .set_outbox(format!("{}/outbox", &base_url))?
-      .set_followers(format!("{}/followers", &base_url))?;
+      .set_inbox(format!("{}/inbox", &self.actor_id))?
+      .set_outbox(format!("{}/outbox", &self.actor_id))?
+      .set_followers(format!("{}/followers", &self.actor_id))?;
 
-    Ok(group.extend(actor_props))
+    let public_key = PublicKey {
+      id: format!("{}#main-key", self.actor_id),
+      owner: self.actor_id.to_owned(),
+      public_key_pem: self.public_key.to_owned().unwrap(),
+    };
+
+    Ok(group.extend(actor_props).extend(public_key.to_ext()))
   }
 }
 
 impl CommunityForm {
   pub fn from_group(group: &GroupExt, conn: &PgConnection) -> Result<Self, Error> {
-    let followers_uri = Url::parse(&group.extension.get_followers().unwrap().to_string())?;
-    let outbox_uri = Url::parse(&group.extension.get_outbox().to_string())?;
+    let oprops = &group.base.base.object_props;
+    let aprops = &group.base.extension;
+    let public_key: &PublicKey = &group.extension.public_key;
+
+    let followers_uri = Url::parse(&aprops.get_followers().unwrap().to_string())?;
+    let outbox_uri = Url::parse(&aprops.get_outbox().to_string())?;
     let _outbox = fetch_remote_object::<OrderedCollection>(&outbox_uri)?;
     let _followers = fetch_remote_object::<UnorderedCollection>(&followers_uri)?;
-    let oprops = &group.base.object_props;
-    let aprops = &group.extension;
     let apub_id = Url::parse(&oprops.get_attributed_to_xsd_any_uri().unwrap().to_string())?;
     let creator = fetch_remote_user(&apub_id, conn)?;
+
     Ok(CommunityForm {
       name: oprops.get_name_xsd_string().unwrap().to_string(),
       title: aprops.get_preferred_username().unwrap().to_string(),
@@ -118,7 +126,7 @@ impl CommunityForm {
       actor_id: oprops.get_id().unwrap().to_string(),
       local: false,
       private_key: None,
-      public_key: None,
+      public_key: Some(public_key.to_owned().public_key_pem),
       last_refreshed_at: Some(naive_now()),
     })
   }
