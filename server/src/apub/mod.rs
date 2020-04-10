@@ -3,7 +3,9 @@ pub mod community;
 pub mod fetcher;
 pub mod inbox;
 pub mod post;
+pub mod signatures;
 pub mod user;
+use crate::apub::signatures::PublicKeyExtension;
 use crate::Settings;
 use activitystreams::actor::{properties::ApActorProperties, Group, Person};
 use activitystreams::ext::Ext;
@@ -12,8 +14,8 @@ use actix_web::HttpResponse;
 use openssl::{pkey::PKey, rsa::Rsa};
 use url::Url;
 
-type GroupExt = Ext<Group, ApActorProperties>;
-type PersonExt = Ext<Person, ApActorProperties>;
+type GroupExt = Ext<Ext<Group, ApActorProperties>, PublicKeyExtension>;
+type PersonExt = Ext<Ext<Person, ApActorProperties>, PublicKeyExtension>;
 
 static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 
