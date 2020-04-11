@@ -45,6 +45,6 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 
 async fn index() -> Result<NamedFile, actix_web::error::Error> {
   Ok(NamedFile::open(
-    Settings::get().front_end_dir.to_owned() + "/index.html",
+    Settings::get().front_end_dir + "/index.html",
   )?)
 }
