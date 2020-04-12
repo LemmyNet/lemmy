@@ -251,5 +251,6 @@
     "couldnt_update_private_message": "Couldn't update private message.",
     "time": "Time",
     "action": "Action",
+    "emoji_picker": "Emoji Picker",
     "block_leaving": "Are you sure you want to leave?"
 }
