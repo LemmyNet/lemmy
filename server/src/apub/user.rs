@@ -76,7 +76,7 @@ impl UserForm {
       admin: false,
       banned: false,
       email: None,
-      avatar: None,
+      avatar: None, // -> icon, image
       updated: oprops
         .get_updated()
         .map(|u| u.as_ref().to_owned().naive_local()),
