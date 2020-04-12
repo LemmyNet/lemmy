@@ -43,6 +43,7 @@ import twemoji from 'twemoji';
 import emojiShortName from 'emoji-short-name';
 import Toastify from 'toastify-js';
 import tippy from 'tippy.js';
+import EmojiButton from '@joeattardi/emoji-button';
 
 export const repoUrl = 'https://github.com/LemmyNet/lemmy';
 export const helpGuideUrl = '/docs/about_guide.html';
@@ -87,6 +88,14 @@ export const themes = [
   'vaporwave-dark',
   'i386',
 ];
+
+export const emojiPicker = new EmojiButton({
+  // Use the emojiShortName from native
+  // style: 'twemoji',
+  theme: 'dark',
+  position: 'auto-start',
+  // TODO i18n
+});
 
 export function randomStr() {
   return Math.random()
@@ -473,8 +482,9 @@ export function setupTribute(): Tribute {
       {
         trigger: ':',
         menuItemTemplate: (item: any) => {
-          let emoji = `:${item.original.key}:`;
-          return `${item.original.val} ${emoji}`;
+          let shortName = `:${item.original.key}:`;
+          let twemojiIcon = twemoji.parse(item.original.val);
+          return `${twemojiIcon} ${shortName}`;
         },
         selectTemplate: (item: any) => {
           return `:${item.original.key}:`;
