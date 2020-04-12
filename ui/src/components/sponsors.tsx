@@ -57,6 +57,12 @@ export class Sponsors extends Component<any, any> {
         >
           {i18n.t('support_on_patreon')}
         </a>
+        <a
+          class="btn btn-secondary ml-2"
+          href="https://opencollective.com/lemmy"
+        >
+          {i18n.t('support_on_open_collective')}
+        </a>
       </div>
     );
   }
