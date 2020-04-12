@@ -482,8 +482,9 @@ export function setupTribute(): Tribute {
       {
         trigger: ':',
         menuItemTemplate: (item: any) => {
-          let emoji = `:${item.original.key}:`;
-          return `${item.original.val} ${emoji}`;
+          let shortName = `:${item.original.key}:`;
+          let twemojiIcon = twemoji.parse(item.original.val);
+          return `${twemojiIcon} ${shortName}`;
         },
         selectTemplate: (item: any) => {
           return `:${item.original.key}:`;
