@@ -383,11 +383,14 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
   }
 
   setupEmojiPicker() {
-    emojiPicker.on('emoji', emoji => {
+    emojiPicker.on('emoji', twemojiHtmlStr => {
       if (this.state.postForm.body == null) {
         this.state.postForm.body = '';
       }
-      let shortName = `:${emojiShortName[emoji]}:`;
+      var el = document.createElement('div');
+      el.innerHTML = twemojiHtmlStr;
+      let nativeUnicode = (el.childNodes[0] as HTMLElement).getAttribute('alt');
+      let shortName = `:${emojiShortName[nativeUnicode]}:`;
       this.state.postForm.body += shortName;
       this.setState(this.state);
     });
