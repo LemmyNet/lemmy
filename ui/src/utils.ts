@@ -91,7 +91,7 @@ export const themes = [
 
 export const emojiPicker = new EmojiButton({
   // Use the emojiShortName from native
-  // style: 'twemoji',
+  style: 'twemoji',
   theme: 'dark',
   position: 'auto-start',
   // TODO i18n

@@ -230,11 +230,14 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
   }
 
   setupEmojiPicker() {
-    emojiPicker.on('emoji', emoji => {
+    emojiPicker.on('emoji', twemojiHtmlStr => {
       if (this.state.commentForm.content == null) {
         this.state.commentForm.content = '';
       }
-      let shortName = `:${emojiShortName[emoji]}:`;
+      var el = document.createElement('div');
+      el.innerHTML = twemojiHtmlStr;
+      let nativeUnicode = (el.childNodes[0] as HTMLElement).getAttribute('alt');
+      let shortName = `:${emojiShortName[nativeUnicode]}:`;
       this.state.commentForm.content += shortName;
       this.setState(this.state);
     });
