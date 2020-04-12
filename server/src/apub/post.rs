@@ -79,18 +79,18 @@ impl PostForm {
       body: oprops.get_content_xsd_string().map(|c| c.to_string()),
       creator_id: creator.id,
       community_id: community.id,
-      removed: None,
-      locked: None,
+      removed: None, // -> Delete activity / tombstone
+      locked: None,  // -> commentsEnabled
       published: oprops
         .get_published()
         .map(|u| u.as_ref().to_owned().naive_local()),
       updated: oprops
         .get_updated()
         .map(|u| u.as_ref().to_owned().naive_local()),
-      deleted: None,
-      nsfw: false,
-      stickied: None,
-      embed_title: None,
+      deleted: None,     // -> Delete activity / tombstone
+      nsfw: false,       // -> sensitive
+      stickied: None,    // -> put it in "featured" collection of the community
+      embed_title: None, // -> attachment?
       embed_description: None,
       embed_html: None,
       thumbnail_url: None,

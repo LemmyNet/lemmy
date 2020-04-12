@@ -112,7 +112,7 @@ impl CommunityForm {
       // TODO: should be parsed as html and tags like <script> removed (or use markdown source)
       //       -> same for post.content etc
       description: oprops.get_content_xsd_string().map(|s| s.to_string()),
-      category_id: 1,
+      category_id: 1, // -> peertube uses `"category": {"identifier": "9","name": "Comedy"},`
       creator_id: creator.id,
       removed: None,
       published: oprops
