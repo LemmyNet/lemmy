@@ -27,6 +27,9 @@ services:
       - LEMMY_FEDERATION__FOLLOWED_INSTANCES=lemmy_beta:8550
       - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_PORT=8540
+      - LEMMY_SETUP__ADMIN_USERNAME=lemmy_alpha
+      - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
+      - LEMMY_SETUP__SITE_NAME=lemmy_alpha
       - RUST_BACKTRACE=1
       - RUST_LOG=actix_web=debug
     restart: always
@@ -58,6 +61,9 @@ services:
       - LEMMY_FEDERATION__FOLLOWED_INSTANCES=lemmy_alpha:8540
       - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_PORT=8550
+      - LEMMY_SETUP__ADMIN_USERNAME=lemmy_beta
+      - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
+      - LEMMY_SETUP__SITE_NAME=lemmy_beta
       - RUST_BACKTRACE=1
       - RUST_LOG=actix_web=debug
     restart: always
