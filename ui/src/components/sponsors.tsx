@@ -5,9 +5,9 @@ import { T } from 'inferno-i18next';
 import { repoUrl } from '../utils';
 
 let general = [
+  'alexx henry',
   'Nathan J. Goode',
   'Andre Vallestero',
-  'riccardo',
   'NotTooHighToHack',
 ];
 let highlighted = ['Alex Benishek'];
