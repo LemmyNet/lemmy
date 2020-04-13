@@ -41,7 +41,9 @@ impl Post {
       // Not needed when the Post is embedded in a collection (like for community outbox)
       .set_context_xsd_any_uri(context())?
       .set_id(base_url)?
-      .set_name_xsd_string(self.name.to_owned())?
+        // Use summary field to be consistent with mastodon content warning.
+      // https://mastodon.xyz/@Louisa/103987265222901387.json
+      .set_summary_xsd_string(self.name.to_owned())?
       .set_published(convert_datetime(self.published))?
       .set_to_xsd_any_uri(community.actor_id)?
       .set_attributed_to_xsd_any_uri(make_apub_endpoint(EndpointType::User, &creator.name))?;
@@ -74,7 +76,7 @@ impl PostForm {
     let community = fetch_remote_community(&community_id, conn)?;
 
     Ok(PostForm {
-      name: oprops.get_name_xsd_string().unwrap().to_string(),
+      name: oprops.get_summary_xsd_string().unwrap().to_string(),
       url: oprops.get_url_xsd_any_uri().map(|u| u.to_string()),
       body: oprops.get_content_xsd_string().map(|c| c.to_string()),
       creator_id: creator.id,
