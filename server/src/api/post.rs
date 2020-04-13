@@ -1,9 +1,9 @@
 use super::*;
-use crate::apub::activities::post_create;
+use crate::apub::activities::{post_create, post_update};
 use diesel::PgConnection;
 use std::str::FromStr;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CreatePost {
   name: String,
   url: Option<String>,
@@ -150,12 +150,12 @@ impl Perform<PostResponse> for Oper<CreatePost> {
       }
     };
 
-    match Post::update_ap_id(&conn, inserted_post.id) {
+    let updated_post = match Post::update_ap_id(&conn, inserted_post.id) {
       Ok(post) => post,
       Err(_e) => return Err(APIError::err("couldnt_create_post").into()),
     };
 
-    post_create(&inserted_post, &user, conn)?;
+    post_create(&updated_post, &user, conn)?;
 
     // They like their own post by default
     let like_form = PostLikeForm {
@@ -369,7 +369,8 @@ impl Perform<PostResponse> for Oper<EditPost> {
     }
 
     // Check for a site ban
-    if UserView::read(&conn, user_id)?.banned {
+    let user = User_::read(&conn, user_id)?;
+    if user.banned {
       return Err(APIError::err("site_ban").into());
     }
 
@@ -400,7 +401,7 @@ impl Perform<PostResponse> for Oper<EditPost> {
       published: None,
     };
 
-    let _updated_post = match Post::update(&conn, data.edit_id, &post_form) {
+    let updated_post = match Post::update(&conn, data.edit_id, &post_form) {
       Ok(post) => post,
       Err(e) => {
         let err_type = if e.to_string() == "value too long for type character varying(200)" {
@@ -441,6 +442,8 @@ impl Perform<PostResponse> for Oper<EditPost> {
       };
       ModStickyPost::create(&conn, &form)?;
     }
+
+    post_update(&updated_post, &user, conn)?;
 
     let post_view = PostView::read(&conn, data.edit_id, Some(user_id))?;
 

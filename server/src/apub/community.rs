@@ -79,9 +79,9 @@ impl Community {
 
     actor_props
       .set_preferred_username(self.title.to_owned())?
-      .set_inbox(format!("{}/inbox", &self.actor_id))?
-      .set_outbox(format!("{}/outbox", &self.actor_id))?
-      .set_followers(format!("{}/followers", &self.actor_id))?;
+      .set_inbox(self.get_inbox_url())?
+      .set_outbox(self.get_outbox_url())?
+      .set_followers(self.get_followers_url())?;
 
     let public_key = PublicKey {
       id: format!("{}#main-key", self.actor_id),
@@ -90,6 +90,16 @@ impl Community {
     };
 
     Ok(group.extend(actor_props).extend(public_key.to_ext()))
+  }
+
+  pub fn get_followers_url(&self) -> String {
+    format!("{}/followers", &self.actor_id)
+  }
+  pub fn get_inbox_url(&self) -> String {
+    format!("{}/inbox", &self.actor_id)
+  }
+  pub fn get_outbox_url(&self) -> String {
+    format!("{}/outbox", &self.actor_id)
   }
 }
 

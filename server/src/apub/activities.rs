@@ -3,30 +3,36 @@ use crate::db::community::Community;
 use crate::db::post::Post;
 use crate::db::user::User_;
 use crate::db::Crud;
-use activitystreams::activity::Create;
-use activitystreams::context;
+use activitystreams::activity::{Create, Update};
+use activitystreams::object::properties::ObjectProperties;
+use activitystreams::{context, public};
 use diesel::PgConnection;
 use failure::Error;
+use failure::_core::fmt::Debug;
 use isahc::prelude::*;
+use serde::Serialize;
 
-pub fn post_create(post: &Post, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
-  let page = post.as_page(conn)?;
-  let community = Community::read(conn, post.community_id)?;
-  let mut create = Create::new();
-  create.object_props.set_context_xsd_any_uri(context())?;
-  create
-    .object_props
-    // TODO: seems like the create activity needs its own id (and be fetchable there)
-    .set_id(page.object_props.get_id().unwrap().to_string())?
+fn populate_object_props(
+  props: &mut ObjectProperties,
+  addressed_to: &str,
+  object_id: &str,
+) -> Result<(), Error> {
+  props
+    .set_context_xsd_any_uri(context())?
+    // TODO: the activity needs a seperate id from the object
+    .set_id(object_id)?
     // TODO: should to/cc go on the Create, or on the Post? or on both?
     // TODO: handle privacy on the receiving side (at least ignore anything thats not public)
-    .set_to_xsd_any_uri("https://www.w3.org/ns/activitystreams#Public")?
-    .set_cc_xsd_any_uri(format!("{}/followers", community.actor_id))?;
-  create
-    .create_props
-    .set_actor_xsd_any_uri(creator.actor_id.to_owned())?;
-  create.create_props.set_object_base_box(page)?;
-  let json = serde_json::to_string(&create)?;
+    .set_to_xsd_any_uri(public())?
+    .set_cc_xsd_any_uri(addressed_to)?;
+  Ok(())
+}
+
+fn send_activity<A>(activity: &A) -> Result<(), Error>
+where
+  A: Serialize + Debug,
+{
+  let json = serde_json::to_string(&activity)?;
   for i in get_following_instances() {
     // TODO: need to send this to the inbox of following users
     let inbox = format!(
@@ -40,5 +46,39 @@ pub fn post_create(post: &Post, creator: &User_, conn: &PgConnection) -> Result<
       .send()?;
     dbg!(res);
   }
+  Ok(())
+}
+
+pub fn post_create(post: &Post, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
+  let page = post.as_page(conn)?;
+  let community = Community::read(conn, post.community_id)?;
+  let mut create = Create::new();
+  populate_object_props(
+    &mut create.object_props,
+    &community.get_followers_url(),
+    &post.ap_id,
+  )?;
+  create
+    .create_props
+    .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
+    .set_object_base_box(page)?;
+  send_activity(&create)?;
+  Ok(())
+}
+
+pub fn post_update(post: &Post, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
+  let page = post.as_page(conn)?;
+  let community = Community::read(conn, post.community_id)?;
+  let mut update = Update::new();
+  populate_object_props(
+    &mut update.object_props,
+    &community.get_followers_url(),
+    &post.ap_id,
+  )?;
+  update
+    .update_props
+    .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
+    .set_object_base_box(page)?;
+  send_activity(&update)?;
   Ok(())
 }
