@@ -28,6 +28,7 @@ services:
       - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_PORT=8540
       - RUST_BACKTRACE=1
+      - RUST_LOG=actix_web=debug
     restart: always
     depends_on:
       - postgres_alpha
@@ -58,6 +59,7 @@ services:
       - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_PORT=8550
       - RUST_BACKTRACE=1
+      - RUST_LOG=actix_web=debug
     restart: always
     depends_on:
       - postgres_beta

@@ -41,7 +41,7 @@ impl Post {
       // Not needed when the Post is embedded in a collection (like for community outbox)
       .set_context_xsd_any_uri(context())?
       .set_id(base_url)?
-        // Use summary field to be consistent with mastodon content warning.
+      // Use summary field to be consistent with mastodon content warning.
       // https://mastodon.xyz/@Louisa/103987265222901387.json
       .set_summary_xsd_string(self.name.to_owned())?
       .set_published(convert_datetime(self.published))?

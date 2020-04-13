@@ -11,10 +11,8 @@ pub fn config(cfg: &mut web::ServiceConfig) {
         web::get().to(apub::community::get_apub_community_list),
       )
       // TODO: this needs to be moved to the actors (eg /federation/u/{}/inbox)
-      .route(
-        "/federation/inbox",
-        web::post().to(apub::inbox::create_inbox),
-      )
+      .route("/federation/inbox", web::post().to(apub::inbox::inbox))
+      .route("/federation/inbox", web::post().to(apub::inbox::inbox))
       .route(
         "/federation/c/{community_name}",
         web::get().to(apub::community::get_apub_community_http),

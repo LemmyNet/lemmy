@@ -1,9 +1,11 @@
 #!/bin/bash
 set -e
 
-pushd ../../ui/ || exit
-yarn build
-popd || exit
+if [ "$1" = "-yarn" ]; then
+  pushd ../../ui/ || exit
+  yarn build
+  popd || exit
+fi
 
 pushd ../../server/ || exit
 cargo build
