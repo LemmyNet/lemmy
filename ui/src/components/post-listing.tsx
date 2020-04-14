@@ -30,6 +30,7 @@ import {
   showAvatars,
   pictshareImage,
   setupTippy,
+  hostname,
 } from '../utils';
 import { i18n } from '../i18next';
 
@@ -149,9 +150,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     let post = this.props.post;
     return (
       <img
-        className={`img-fluid thumbnail rounded ${(post.nsfw ||
-          post.community_nsfw) &&
-          'img-blur'}`}
+        className={`img-fluid thumbnail rounded ${
+          (post.nsfw || post.community_nsfw) && 'img-blur'
+        }`}
         src={src}
       />
     );
@@ -311,22 +312,21 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                     </Link>
                   )}
                 </h5>
-                {post.url &&
-                  !(new URL(post.url).hostname == window.location.hostname) && (
-                    <small class="d-inline-block">
-                      <a
-                        className="ml-2 text-muted font-italic"
-                        href={post.url}
-                        target="_blank"
-                        title={post.url}
-                      >
-                        {new URL(post.url).hostname}
-                        <svg class="ml-1 icon icon-inline">
-                          <use xlinkHref="#icon-external-link"></use>
-                        </svg>
-                      </a>
-                    </small>
-                  )}
+                {post.url && !(hostname(post.url) == window.location.hostname) && (
+                  <small class="d-inline-block">
+                    <a
+                      className="ml-2 text-muted font-italic"
+                      href={post.url}
+                      target="_blank"
+                      title={post.url}
+                    >
+                      {hostname(post.url)}
+                      <svg class="ml-1 icon icon-inline">
+                        <use xlinkHref="#icon-external-link"></use>
+                      </svg>
+                    </a>
+                  </small>
+                )}
                 {(isImage(post.url) || this.props.post.thumbnail_url) && (
                   <>
                     {!this.state.imageExpanded ? (
@@ -447,9 +447,15 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   {this.props.showCommunity && (
                     <span>
                       <span> {i18n.t('to')} </span>
-                      <Link to={`/c/${post.community_name}`}>
-                        {post.community_name}
-                      </Link>
+                      {post.local ? (
+                        <Link to={`/c/${post.community_name}`}>
+                          {post.community_name}
+                        </Link>
+                      ) : (
+                        <a href={post.community_actor_id} target="_blank">
+                          {hostname(post.ap_id)}/{post.community_name}
+                        </a>
+                      )}
                     </span>
                   )}
                 </li>
@@ -531,8 +537,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                             }
                           >
                             <svg
-                              class={`icon icon-inline ${post.saved &&
-                                'text-warning'}`}
+                              class={`icon icon-inline ${
+                                post.saved && 'text-warning'
+                              }`}
                             >
                               <use xlinkHref="#icon-star"></use>
                             </svg>
@@ -575,8 +582,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                             }
                           >
                             <svg
-                              class={`icon icon-inline ${post.deleted &&
-                                'text-danger'}`}
+                              class={`icon icon-inline ${
+                                post.deleted && 'text-danger'
+                              }`}
                             >
                               <use xlinkHref="#icon-trash"></use>
                             </svg>
@@ -607,8 +615,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                               data-tippy-content={i18n.t('view_source')}
                             >
                               <svg
-                                class={`icon icon-inline ${this.state
-                                  .viewSource && 'text-success'}`}
+                                class={`icon icon-inline ${
+                                  this.state.viewSource && 'text-success'
+                                }`}
                               >
                                 <use xlinkHref="#icon-file-text"></use>
                               </svg>
@@ -628,8 +637,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                                 }
                               >
                                 <svg
-                                  class={`icon icon-inline ${post.locked &&
-                                    'text-danger'}`}
+                                  class={`icon icon-inline ${
+                                    post.locked && 'text-danger'
+                                  }`}
                                 >
                                   <use xlinkHref="#icon-lock"></use>
                                 </svg>
@@ -646,8 +656,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                                 }
                               >
                                 <svg
-                                  class={`icon icon-inline ${post.stickied &&
-                                    'text-success'}`}
+                                  class={`icon icon-inline ${
+                                    post.stickied && 'text-success'
+                                  }`}
                                 >
                                   <use xlinkHref="#icon-pin"></use>
                                 </svg>
