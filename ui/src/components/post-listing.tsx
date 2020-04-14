@@ -19,6 +19,7 @@ import {
 import { MomentTime } from './moment-time';
 import { PostForm } from './post-form';
 import { IFramelyCard } from './iframely-card';
+import { UserListing } from './user-listing';
 import {
   md,
   mdToHtml,
@@ -27,8 +28,6 @@ import {
   isImage,
   isVideo,
   getUnixTime,
-  pictshareAvatarThumbnail,
-  showAvatars,
   pictshareImage,
   setupTippy,
   previewLines,
@@ -417,20 +416,12 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               <ul class="list-inline mb-0 text-muted small">
                 <li className="list-inline-item">
                   <span>{i18n.t('by')} </span>
-                  <Link
-                    className="text-body font-weight-bold"
-                    to={`/u/${post.creator_name}`}
-                  >
-                    {post.creator_avatar && showAvatars() && (
-                      <img
-                        height="32"
-                        width="32"
-                        src={pictshareAvatarThumbnail(post.creator_avatar)}
-                        class="rounded-circle mr-1"
-                      />
-                    )}
-                    <span>{post.creator_name}</span>
-                  </Link>
+                  <UserListing
+                    user={{
+                      name: post.creator_name,
+                      avatar: post.creator_avatar,
+                    }}
+                  />
                   {this.isMod && (
                     <span className="mx-1 badge badge-light">
                       {i18n.t('mod')}

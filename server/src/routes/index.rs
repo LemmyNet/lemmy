@@ -33,6 +33,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route("/modlog/community/{community_id}", web::get().to(index))
     .route("/modlog", web::get().to(index))
     .route("/setup", web::get().to(index))
+    .route("/admin", web::get().to(index))
     .route(
       "/search/q/{q}/type/{type}/sort/{sort}/page/{page}",
       web::get().to(index),
@@ -44,6 +45,6 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 
 async fn index() -> Result<NamedFile, actix_web::error::Error> {
   Ok(NamedFile::open(
-    Settings::get().front_end_dir.to_owned() + "/index.html",
+    Settings::get().front_end_dir + "/index.html",
   )?)
 }

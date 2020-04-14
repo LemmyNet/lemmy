@@ -253,7 +253,7 @@ impl Perform<LoginResponse> for Oper<Register> {
     // Register the new user
     let user_form = UserForm {
       name: data.username.to_owned(),
-      fedi_name: Settings::get().hostname.to_owned(),
+      fedi_name: Settings::get().hostname,
       email: data.email.to_owned(),
       matrix_user_id: None,
       avatar: None,
