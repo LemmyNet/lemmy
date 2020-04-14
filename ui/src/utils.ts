@@ -109,11 +109,11 @@ export const md = new markdown_it({
   typographer: true,
 })
   .use(markdown_it_container, 'spoiler', {
-    validate: function(params: any) {
+    validate: function (params: any) {
       return params.trim().match(/^spoiler\s+(.*)$/);
     },
 
-    render: function(tokens: any, idx: any) {
+    render: function (tokens: any, idx: any) {
       var m = tokens[idx].info.trim().match(/^spoiler\s+(.*)$/);
 
       if (tokens[idx].nesting === 1) {
@@ -129,7 +129,7 @@ export const md = new markdown_it({
     defs: objectFlip(emojiShortName),
   });
 
-md.renderer.rules.emoji = function(token, idx) {
+md.renderer.rules.emoji = function (token, idx) {
   return twemoji.parse(token[idx].content);
 };
 
@@ -275,7 +275,7 @@ export function debounce(
   let timeout: any;
 
   // Calling debounce returns a new anonymous function
-  return function() {
+  return function () {
     // reference the context and args for the setTimeout function
     var context = this,
       args = arguments;
@@ -291,7 +291,7 @@ export function debounce(
     clearTimeout(timeout);
 
     // Set the new timeout
-    timeout = setTimeout(function() {
+    timeout = setTimeout(function () {
       // Inside the timeout function, clear the timeout variable
       // which will let the next execution run when in 'immediate' mode
       timeout = null;
@@ -822,4 +822,8 @@ function hsl(num: number) {
 
 function randomHsl() {
   return `hsla(${Math.random() * 360}, 100%, 50%, 1)`;
+}
+
+export function hostname(url: string): string {
+  return new URL(url).hostname;
 }
