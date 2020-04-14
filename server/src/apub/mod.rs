@@ -92,16 +92,6 @@ fn vec_bytes_to_str(bytes: Vec<u8>) -> String {
   String::from_utf8_lossy(&bytes).into_owned()
 }
 
-/// If community is on local instance, don't include the @instance part. This is only for displaying
-/// to the user and should never be used otherwise.
-pub fn format_community_name(name: &str, instance: &str) -> String {
-  if instance == Settings::get().hostname {
-    format!("!{}", name)
-  } else {
-    format!("!{}@{}", name, instance)
-  }
-}
-
 pub fn get_following_instances() -> Vec<Instance> {
   Settings::get()
     .federation

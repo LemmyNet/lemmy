@@ -1,9 +1,8 @@
 use super::*;
 use crate::apub::activities::follow_community;
-use crate::apub::{format_community_name, gen_keypair_str, make_apub_endpoint, EndpointType};
+use crate::apub::{gen_keypair_str, make_apub_endpoint, EndpointType};
 use diesel::PgConnection;
 use std::str::FromStr;
-use url::Url;
 
 #[derive(Serialize, Deserialize)]
 pub struct GetCommunity {
@@ -144,7 +143,7 @@ impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
       }
     };
 
-    let mut community_view = match CommunityView::read(&conn, community.id, user_id) {
+    let community_view = match CommunityView::read(&conn, community.id, user_id) {
       Ok(community) => community,
       Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
     };
@@ -159,12 +158,6 @@ impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
     let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
-
-    if !community.local {
-      let domain = Url::parse(&community.actor_id)?;
-      community_view.name =
-        format_community_name(&community_view.name.to_string(), domain.host_str().unwrap());
-    }
 
     // Return the jwt
     Ok(GetCommunityResponse {

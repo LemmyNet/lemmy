@@ -135,6 +135,9 @@ export class PrivateMessageForm extends Component<
                     user={{
                       name: this.state.recipient.name,
                       avatar: this.state.recipient.avatar,
+                      id: this.state.recipient.id,
+                      local: this.state.recipient.local,
+                      actor_id: this.state.recipient.actor_id,
                     }}
                   />
                 </div>

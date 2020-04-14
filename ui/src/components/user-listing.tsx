@@ -1,11 +1,14 @@
 import { Component } from 'inferno';
 import { Link } from 'inferno-router';
 import { UserView } from '../interfaces';
-import { pictshareAvatarThumbnail, showAvatars } from '../utils';
+import { pictshareAvatarThumbnail, showAvatars, hostname } from '../utils';
 
 interface UserOther {
   name: string;
+  id?: number; // Necessary if its federated
   avatar?: string;
+  local?: boolean;
+  actor_id?: string;
 }
 
 interface UserListingProps {
@@ -19,8 +22,19 @@ export class UserListing extends Component<UserListingProps, any> {
 
   render() {
     let user = this.props.user;
+    let local = user.local == null ? true : user.local;
+    let name_: string, link: string;
+
+    if (local) {
+      name_ = user.name;
+      link = `/u/${user.name}`;
+    } else {
+      name_ = `${hostname(user.actor_id)}/${user.name}`;
+      link = `/user/${user.id}`;
+    }
+
     return (
-      <Link className="text-body font-weight-bold" to={`/u/${user.name}`}>
+      <Link className="text-body font-weight-bold" to={link}>
         {user.avatar && showAvatars() && (
           <img
             height="32"
@@ -29,7 +43,7 @@ export class UserListing extends Component<UserListingProps, any> {
             class="rounded-circle mr-2"
           />
         )}
-        <span>{user.name}</span>
+        <span>{name_}</span>
       </Link>
     );
   }

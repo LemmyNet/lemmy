@@ -35,6 +35,7 @@ import {
   setupTribute,
   setupTippy,
   emojiPicker,
+  hostname,
 } from '../utils';
 import autosize from 'autosize';
 import Tribute from 'tributejs/src/Tribute.js';
@@ -331,7 +332,11 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
                   onInput={linkEvent(this, this.handlePostCommunityChange)}
                 >
                   {this.state.communities.map(community => (
-                    <option value={community.id}>{community.name}</option>
+                    <option value={community.id}>
+                      {community.local
+                        ? community.name
+                        : `${hostname(community.actor_id)}/${community.name}`}
+                    </option>
                   ))}
                 </select>
               </div>

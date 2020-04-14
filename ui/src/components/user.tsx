@@ -40,6 +40,7 @@ import {
   setupTippy,
 } from '../utils';
 import { PostListing } from './post-listing';
+import { UserListing } from './user-listing';
 import { SortSelect } from './sort-select';
 import { ListingTypeSelect } from './listing-type-select';
 import { CommentNodes } from './comment-nodes';
@@ -81,7 +82,6 @@ export class User extends Component<any, UserState> {
     user: {
       id: null,
       name: null,
-      fedi_name: null,
       published: null,
       number_of_posts: null,
       post_score: null,
@@ -91,6 +91,8 @@ export class User extends Component<any, UserState> {
       avatar: null,
       show_avatars: null,
       send_notifications_to_email: null,
+      actor_id: null,
+      local: null,
     },
     user_id: null,
     username: null,
@@ -399,7 +401,9 @@ export class User extends Component<any, UserState> {
           <div class="card-body">
             <h5>
               <ul class="list-inline mb-0">
-                <li className="list-inline-item">{user.name}</li>
+                <li className="list-inline-item">
+                  <UserListing user={user} />
+                </li>
                 {user.banned && (
                   <li className="list-inline-item badge badge-danger">
                     {i18n.t('banned')}
@@ -455,8 +459,9 @@ export class User extends Component<any, UserState> {
             ) : (
               <>
                 <a
-                  className={`btn btn-block btn-secondary mt-3 ${!this.state
-                    .user.matrix_user_id && 'disabled'}`}
+                  className={`btn btn-block btn-secondary mt-3 ${
+                    !this.state.user.matrix_user_id && 'disabled'
+                  }`}
                   target="_blank"
                   href={`https://matrix.to/#/${this.state.user.matrix_user_id}`}
                 >
