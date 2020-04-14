@@ -20,6 +20,7 @@ import { MomentTime } from './moment-time';
 import { PostForm } from './post-form';
 import { IFramelyCard } from './iframely-card';
 import { UserListing } from './user-listing';
+import { CommunityLink } from './community-link';
 import {
   md,
   mdToHtml,
@@ -420,6 +421,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                     user={{
                       name: post.creator_name,
                       avatar: post.creator_avatar,
+                      id: post.creator_id,
+                      local: post.creator_local,
+                      actor_id: post.creator_actor_id,
                     }}
                   />
                   {this.isMod && (
@@ -440,15 +444,14 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   {this.props.showCommunity && (
                     <span>
                       <span> {i18n.t('to')} </span>
-                      {post.local ? (
-                        <Link to={`/c/${post.community_name}`}>
-                          {post.community_name}
-                        </Link>
-                      ) : (
-                        <a href={post.community_actor_id} target="_blank">
-                          {hostname(post.ap_id)}/{post.community_name}
-                        </a>
-                      )}
+                      <CommunityLink
+                        community={{
+                          name: post.community_name,
+                          id: post.community_id,
+                          local: post.community_local,
+                          actor_id: post.community_actor_id,
+                        }}
+                      />
                     </span>
                   )}
                 </li>

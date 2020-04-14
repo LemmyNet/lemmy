@@ -14,6 +14,7 @@ import {
 } from '../interfaces';
 import { WebSocketService } from '../services';
 import { wsJsonToRes, toast } from '../utils';
+import { CommunityLink } from './community-link';
 import { i18n } from '../i18next';
 
 declare const Sortable: any;
@@ -104,9 +105,7 @@ export class Communities extends Component<any, CommunitiesState> {
                   {this.state.communities.map(community => (
                     <tr>
                       <td>
-                        <Link to={`/c/${community.name}`}>
-                          {community.name}
-                        </Link>
+                        <CommunityLink community={community} />
                       </td>
                       <td class="d-none d-lg-table-cell">{community.title}</td>
                       <td>{community.category_name}</td>

@@ -154,6 +154,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                   user={{
                     name: node.comment.creator_name,
                     avatar: node.comment.creator_avatar,
+                    id: node.comment.creator_id,
+                    local: node.comment.creator_local,
+                    actor_id: node.comment.creator_actor_id,
                   }}
                 />
               </span>

@@ -113,6 +113,9 @@ export class AdminSettings extends Component<any, AdminSettingsState> {
                 user={{
                   name: admin.name,
                   avatar: admin.avatar,
+                  id: admin.id,
+                  local: admin.local,
+                  actor_id: admin.actor_id,
                 }}
               />
             </li>
@@ -133,6 +136,9 @@ export class AdminSettings extends Component<any, AdminSettingsState> {
                 user={{
                   name: banned.name,
                   avatar: banned.avatar,
+                  id: banned.id,
+                  local: banned.local,
+                  actor_id: banned.actor_id,
                 }}
               />
             </li>

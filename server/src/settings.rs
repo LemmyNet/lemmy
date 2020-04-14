@@ -60,7 +60,7 @@ pub struct Database {
   pub pool_size: u32,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Federation {
   pub enabled: bool,
   pub followed_instances: String,

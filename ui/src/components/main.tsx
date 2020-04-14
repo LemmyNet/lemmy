@@ -34,6 +34,7 @@ import { ListingTypeSelect } from './listing-type-select';
 import { DataTypeSelect } from './data-type-select';
 import { SiteForm } from './site-form';
 import { UserListing } from './user-listing';
+import { CommunityLink } from './community-link';
 import {
   wsJsonToRes,
   repoUrl,
@@ -190,9 +191,14 @@ export class Main extends Component<any, MainState> {
                       <ul class="list-inline">
                         {this.state.subscribedCommunities.map(community => (
                           <li class="list-inline-item">
-                            <Link to={`/c/${community.community_name}`}>
-                              {community.community_name}
-                            </Link>
+                            <CommunityLink
+                              community={{
+                                name: community.community_name,
+                                id: community.community_id,
+                                local: community.community_local,
+                                actor_id: community.community_actor_id,
+                              }}
+                            />
                           </li>
                         ))}
                       </ul>
@@ -228,7 +234,7 @@ export class Main extends Component<any, MainState> {
         <ul class="list-inline">
           {this.state.trendingCommunities.map(community => (
             <li class="list-inline-item">
-              <Link to={`/c/${community.name}`}>{community.name}</Link>
+              <CommunityLink community={community} />
             </li>
           ))}
         </ul>
@@ -319,6 +325,9 @@ export class Main extends Component<any, MainState> {
                     user={{
                       name: admin.name,
                       avatar: admin.avatar,
+                      local: admin.local,
+                      actor_id: admin.actor_id,
+                      id: admin.id,
                     }}
                   />
                 </li>
