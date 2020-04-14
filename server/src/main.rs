@@ -39,6 +39,7 @@ async fn main() -> io::Result<()> {
 
   // Create Http server with websocket support
   HttpServer::new(move || {
+    let settings = Settings::get();
     App::new()
       .wrap(middleware::Logger::default())
       .data(pool.clone())
@@ -58,7 +59,7 @@ async fn main() -> io::Result<()> {
       ))
       .service(actix_files::Files::new(
         "/docs",
-        settings.front_end_dir.to_owned() + "/documentation",
+        settings.front_end_dir + "/documentation",
       ))
   })
   .bind((settings.bind, settings.port))?

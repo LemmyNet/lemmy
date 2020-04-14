@@ -52,6 +52,8 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route("/api/v1/site", web::post().to(route_post::<CreateSite, SiteResponse>))
     .route("/api/v1/site", web::put().to(route_post::<EditSite, SiteResponse>))
     .route("/api/v1/site/transfer", web::post().to(route_post::<TransferSite, GetSiteResponse>))
+    .route("/api/v1/site/config", web::get().to(route_get::<GetSiteConfig, GetSiteConfigResponse>))
+    .route("/api/v1/site/config", web::put().to(route_post::<SaveSiteConfig, GetSiteConfigResponse>))
     .route("/api/v1/admin/add", web::post().to(route_post::<AddAdmin, AddAdminResponse>))
     .route("/api/v1/user/ban", web::post().to(route_post::<BanUser, BanUserResponse>))
     // User account actions

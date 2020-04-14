@@ -97,6 +97,22 @@ pub struct TransferSite {
   auth: String,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct GetSiteConfig {
+  auth: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetSiteConfigResponse {
+  config_hjson: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SaveSiteConfig {
+  config_hjson: String,
+  auth: String,
+}
+
 impl Perform<ListCategoriesResponse> for Oper<ListCategories> {
   fn perform(&self, conn: &PgConnection) -> Result<ListCategoriesResponse, Error> {
     let _data: &ListCategories = &self.data;
@@ -508,5 +524,59 @@ impl Perform<GetSiteResponse> for Oper<TransferSite> {
       banned,
       online: 0,
     })
+  }
+}
+
+impl Perform<GetSiteConfigResponse> for Oper<GetSiteConfig> {
+  fn perform(&self, conn: &PgConnection) -> Result<GetSiteConfigResponse, Error> {
+    let data: &GetSiteConfig = &self.data;
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
+    };
+
+    let user_id = claims.id;
+
+    // Only let admins read this
+    let admins = UserView::admins(&conn)?;
+    let admin_ids: Vec<i32> = admins.into_iter().map(|m| m.id).collect();
+
+    if !admin_ids.contains(&user_id) {
+      return Err(APIError::err("not_an_admin").into());
+    }
+
+    let config_hjson = Settings::read_config_file()?;
+
+    Ok(GetSiteConfigResponse { config_hjson })
+  }
+}
+
+impl Perform<GetSiteConfigResponse> for Oper<SaveSiteConfig> {
+  fn perform(&self, conn: &PgConnection) -> Result<GetSiteConfigResponse, Error> {
+    let data: &SaveSiteConfig = &self.data;
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
+    };
+
+    let user_id = claims.id;
+
+    // Only let admins read this
+    let admins = UserView::admins(&conn)?;
+    let admin_ids: Vec<i32> = admins.into_iter().map(|m| m.id).collect();
+
+    if !admin_ids.contains(&user_id) {
+      return Err(APIError::err("not_an_admin").into());
+    }
+
+    // Make sure docker doesn't have :ro at the end of the volume, so its not a read-only filesystem
+    let config_hjson = match Settings::save_config_file(&data.config_hjson) {
+      Ok(config_hjson) => config_hjson,
+      Err(_e) => return Err(APIError::err("couldnt_update_site").into()),
+    };
+
+    Ok(GetSiteConfigResponse { config_hjson })
   }
 }

@@ -43,6 +43,8 @@ export enum UserOperation {
   GetPrivateMessages,
   UserJoin,
   GetComments,
+  GetSiteConfig,
+  SaveSiteConfig,
 }
 
 export enum CommentSortType {
@@ -102,7 +104,6 @@ export interface UserView {
   avatar?: string;
   email?: string;
   matrix_user_id?: string;
-  fedi_name: string;
   published: string;
   number_of_posts: number;
   post_score: number;
@@ -699,6 +700,19 @@ export interface SiteForm {
   auth?: string;
 }
 
+export interface GetSiteConfig {
+  auth?: string;
+}
+
+export interface GetSiteConfigResponse {
+  config_hjson: string;
+}
+
+export interface SiteConfigForm {
+  config_hjson: string;
+  auth?: string;
+}
+
 export interface GetSiteResponse {
   site: Site;
   admins: Array<UserView>;
@@ -846,7 +860,8 @@ export type MessageType =
   | PasswordChangeForm
   | PrivateMessageForm
   | EditPrivateMessageForm
-  | GetPrivateMessagesForm;
+  | GetPrivateMessagesForm
+  | SiteConfigForm;
 
 type ResponseType =
   | SiteResponse
@@ -868,7 +883,8 @@ type ResponseType =
   | BanUserResponse
   | AddAdminResponse
   | PrivateMessageResponse
-  | PrivateMessagesResponse;
+  | PrivateMessagesResponse
+  | GetSiteConfigResponse;
 
 export interface WebSocketResponse {
   op: UserOperation;

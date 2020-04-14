@@ -21,7 +21,7 @@ services:
     environment:
       - RUST_LOG=debug
     volumes:
-      - ../lemmy.hjson:/config/config.hjson:ro
+      - ../lemmy.hjson:/config/config.hjson
     depends_on: 
       - postgres
       - pictshare

@@ -58,6 +58,7 @@ export class PrivateMessage extends Component<
       <div class="border-top border-light">
         <div>
           <ul class="list-inline mb-0 text-muted small">
+            {/* TODO refactor this */}
             <li className="list-inline-item">
               {this.mine ? i18n.t('to') : i18n.t('from')}
             </li>
