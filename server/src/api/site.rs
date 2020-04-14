@@ -281,8 +281,7 @@ impl Perform<GetSiteResponse> for Oper<GetSite> {
   fn perform(&self, conn: &PgConnection) -> Result<GetSiteResponse, Error> {
     let _data: &GetSite = &self.data;
 
-    let site = Site::read(&conn, 1);
-    let site_view = if site.is_ok() {
+    let site_view = if let Ok(_site) = Site::read(&conn, 1) {
       Some(SiteView::read(&conn)?)
     } else if let Some(setup) = Settings::get().setup.as_ref() {
       let register = Register {
@@ -312,11 +311,16 @@ impl Perform<GetSiteResponse> for Oper<GetSite> {
     };
 
     let mut admins = UserView::admins(&conn)?;
-    if site_view.is_some() {
-      let site_creator_id = site_view.to_owned().unwrap().creator_id;
-      let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
-      let creator_user = admins.remove(creator_index);
-      admins.insert(0, creator_user);
+
+    // Make sure the site creator is the top admin
+    if let Some(site_view) = site_view.to_owned() {
+      let site_creator_id = site_view.creator_id;
+      // TODO investigate why this is sometimes coming back null
+      // Maybe user_.admin isn't being set to true?
+      if let Some(creator_index) = admins.iter().position(|r| r.id == site_creator_id) {
+        let creator_user = admins.remove(creator_index);
+        admins.insert(0, creator_user);
+      }
     }
 
     let banned = UserView::banned(&conn)?;
