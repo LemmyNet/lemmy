@@ -15,6 +15,7 @@ import {
   showAvatars,
 } from '../utils';
 import { CommunityForm } from './community-form';
+import { UserListing } from './user-listing';
 import { i18n } from '../i18next';
 
 interface SidebarProps {
@@ -110,8 +111,9 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
                         }
                       >
                         <svg
-                          class={`icon icon-inline ${community.deleted &&
-                            'text-danger'}`}
+                          class={`icon icon-inline ${
+                            community.deleted && 'text-danger'
+                          }`}
                         >
                           <use xlinkHref="#icon-trash"></use>
                         </svg>
@@ -204,27 +206,19 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
               <li class="list-inline-item">{i18n.t('mods')}: </li>
               {this.props.moderators.map(mod => (
                 <li class="list-inline-item">
-                  <Link
-                    class="text-body font-weight-bold"
-                    to={`/u/${mod.user_name}`}
-                  >
-                    {mod.avatar && showAvatars() && (
-                      <img
-                        height="32"
-                        width="32"
-                        src={pictshareAvatarThumbnail(mod.avatar)}
-                        class="rounded-circle mr-1"
-                      />
-                    )}
-                    <span>{mod.user_name}</span>
-                  </Link>
+                  <UserListing
+                    user={{
+                      name: mod.user_name,
+                      avatar: mod.avatar,
+                    }}
+                  />
                 </li>
               ))}
             </ul>
             <Link
-              class={`btn btn-sm btn-secondary btn-block mb-3 ${(community.deleted ||
-                community.removed) &&
-                'no-click'}`}
+              class={`btn btn-sm btn-secondary btn-block mb-3 ${
+                (community.deleted || community.removed) && 'no-click'
+              }`}
               to={`/create_post?community=${community.name}`}
             >
               {i18n.t('create_a_post')}

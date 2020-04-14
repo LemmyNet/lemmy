@@ -12,14 +12,14 @@ services:
     restart: always
 
   lemmy:
-    image: dessalines/lemmy:v0.6.44
+    image: dessalines/lemmy:v0.6.49
     ports:
       - "127.0.0.1:8536:8536"
     restart: always
     environment:
       - RUST_LOG=error
     volumes:
-      - ./lemmy.hjson:/config/config.hjson:ro
+      - ./lemmy.hjson:/config/config.hjson
     depends_on:
       - postgres
       - pictshare

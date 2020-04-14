@@ -57,6 +57,7 @@ async fn main() -> Result<(), Error> {
   // Create Http server with websocket support
   Ok(
     HttpServer::new(move || {
+      let settings = Settings::get();
       App::new()
         .wrap(middleware::Logger::default())
         .data(pool.clone())

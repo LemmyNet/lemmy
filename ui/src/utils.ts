@@ -43,8 +43,9 @@ import twemoji from 'twemoji';
 import emojiShortName from 'emoji-short-name';
 import Toastify from 'toastify-js';
 import tippy from 'tippy.js';
+import EmojiButton from '@joeattardi/emoji-button';
 
-export const repoUrl = 'https://github.com/dessalines/lemmy';
+export const repoUrl = 'https://github.com/LemmyNet/lemmy';
 export const helpGuideUrl = '/docs/about_guide.html';
 export const markdownHelpUrl = `${helpGuideUrl}#markdown-guide`;
 export const sortingHelpUrl = `${helpGuideUrl}#sorting`;
@@ -87,6 +88,14 @@ export const themes = [
   'vaporwave-dark',
   'i386',
 ];
+
+export const emojiPicker = new EmojiButton({
+  // Use the emojiShortName from native
+  style: 'twemoji',
+  theme: 'dark',
+  position: 'auto-start',
+  // TODO i18n
+});
 
 export function randomStr() {
   return Math.random()
@@ -473,8 +482,9 @@ export function setupTribute(): Tribute {
       {
         trigger: ':',
         menuItemTemplate: (item: any) => {
-          let emoji = `:${item.original.key}:`;
-          return `${item.original.val} ${emoji}`;
+          let shortName = `:${item.original.key}:`;
+          let twemojiIcon = twemoji.parse(item.original.val);
+          return `${twemojiIcon} ${shortName}`;
         },
         selectTemplate: (item: any) => {
           return `:${item.original.key}:`;
@@ -822,6 +832,14 @@ function hsl(num: number) {
 
 function randomHsl() {
   return `hsla(${Math.random() * 360}, 100%, 50%, 1)`;
+}
+
+export function previewLines(text: string, lines: number = 3): string {
+  // Use lines * 2 because markdown requires 2 lines
+  return text
+    .split('\n')
+    .slice(0, lines * 2)
+    .join('\n');
 }
 
 export function hostname(url: string): string {

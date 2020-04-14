@@ -58,6 +58,7 @@ export class PrivateMessage extends Component<
       <div class="border-top border-light">
         <div>
           <ul class="list-inline mb-0 text-muted small">
+            {/* TODO refactor this */}
             <li className="list-inline-item">
               {this.mine ? i18n.t('to') : i18n.t('from')}
             </li>
@@ -143,8 +144,9 @@ export class PrivateMessage extends Component<
                         }
                       >
                         <svg
-                          class={`icon icon-inline ${message.read &&
-                            'text-success'}`}
+                          class={`icon icon-inline ${
+                            message.read && 'text-success'
+                          }`}
                         >
                           <use xlinkHref="#icon-check"></use>
                         </svg>
@@ -187,8 +189,9 @@ export class PrivateMessage extends Component<
                         }
                       >
                         <svg
-                          class={`icon icon-inline ${message.deleted &&
-                            'text-danger'}`}
+                          class={`icon icon-inline ${
+                            message.deleted && 'text-danger'
+                          }`}
                         >
                           <use xlinkHref="#icon-trash"></use>
                         </svg>
@@ -203,8 +206,9 @@ export class PrivateMessage extends Component<
                     data-tippy-content={i18n.t('view_source')}
                   >
                     <svg
-                      class={`icon icon-inline ${this.state.viewSource &&
-                        'text-success'}`}
+                      class={`icon icon-inline ${
+                        this.state.viewSource && 'text-success'
+                      }`}
                     >
                       <use xlinkHref="#icon-file-text"></use>
                     </svg>

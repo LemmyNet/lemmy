@@ -2,11 +2,12 @@ import { Component } from 'inferno';
 import { WebSocketService } from '../services';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
+import { repoUrl } from '../utils';
 
 let general = [
+  'alexx henry',
   'Nathan J. Goode',
   'Andre Vallestero',
-  'riccardo',
   'NotTooHighToHack',
 ];
 let highlighted = ['Alex Benishek'];
@@ -44,7 +45,7 @@ export class Sponsors extends Component<any, any> {
         <h5>{i18n.t('donate_to_lemmy')}</h5>
         <p>
           <T i18nKey="sponsor_message">
-            #<a href="https://github.com/dessalines/lemmy">#</a>
+            #<a href={repoUrl}>#</a>
           </T>
         </p>
         <a class="btn btn-secondary" href="https://liberapay.com/Lemmy/">
@@ -55,6 +56,12 @@ export class Sponsors extends Component<any, any> {
           href="https://www.patreon.com/dessalines"
         >
           {i18n.t('support_on_patreon')}
+        </a>
+        <a
+          class="btn btn-secondary ml-2"
+          href="https://opencollective.com/lemmy"
+        >
+          {i18n.t('support_on_open_collective')}
         </a>
       </div>
     );

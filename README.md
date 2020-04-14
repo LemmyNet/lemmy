@@ -1,12 +1,12 @@
 <div align="center">
 
-![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/dessalines/lemmy.svg)
-[![Build Status](https://travis-ci.org/dessalines/lemmy.svg?branch=master)](https://travis-ci.org/dessalines/lemmy)
-[![GitHub issues](https://img.shields.io/github/issues-raw/dessalines/lemmy.svg)](https://github.com/dessalines/lemmy/issues)
+![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/LemmyNet/lemmy.svg)
+[![Build Status](https://travis-ci.org/LemmyNet/lemmy.svg?branch=master)](https://travis-ci.org/LemmyNet/lemmy)
+[![GitHub issues](https://img.shields.io/github/issues-raw/LemmyNet/lemmy.svg)](https://github.com/LemmyNet/lemmy/issues)
 [![Docker Pulls](https://img.shields.io/docker/pulls/dessalines/lemmy.svg)](https://cloud.docker.com/repository/docker/dessalines/lemmy/)
 [![Translation status](http://weblate.yerbamate.dev/widgets/lemmy/-/lemmy/svg-badge.svg)](http://weblate.yerbamate.dev/engage/lemmy/)
-[![License](https://img.shields.io/github/license/dessalines/lemmy.svg)](LICENSE)
-![GitHub stars](https://img.shields.io/github/stars/dessalines/lemmy?style=social)
+[![License](https://img.shields.io/github/license/LemmyNet/lemmy.svg)](LICENSE)
+![GitHub stars](https://img.shields.io/github/stars/LemmyNet/lemmy?style=social)
 </div>
 
 <p align="center">
@@ -22,11 +22,11 @@
     ·
     <a href="https://dev.lemmy.ml/docs/index.html">Documentation</a>
     ·
-    <a href="https://github.com/dessalines/lemmy/issues">Report Bug</a>
+    <a href="https://github.com/LemmyNet/lemmy/issues">Report Bug</a>
     ·
-    <a href="https://github.com/dessalines/lemmy/issues">Request Feature</a>
+    <a href="https://github.com/LemmyNet/lemmy/issues">Request Feature</a>
     ·
-    <a href="https://github.com/dessalines/lemmy/blob/master/RELEASES.md">Releases</a>
+    <a href="https://github.com/LemmyNet/lemmy/blob/master/RELEASES.md">Releases</a>
   </p>
 </p>
 
@@ -36,7 +36,7 @@ Front Page|Post
 ---|---
 ![main screen](https://i.imgur.com/kZSRcRu.png)|![chat screen](https://i.imgur.com/4XghNh6.png)
 
-[Lemmy](https://github.com/dessalines/lemmy) is similar to sites like [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), [Raddle](https://raddle.me), or [Hacker News](https://news.ycombinator.com/): you subscribe to forums you're interested in, post links and discussions, then vote, and comment on them. Behind the scenes, it is very different; anyone can easily run a server, and all these servers are federated (think email), and connected to the same universe, called the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
+[Lemmy](https://github.com/LemmyNet/lemmy) is similar to sites like [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), [Raddle](https://raddle.me), or [Hacker News](https://news.ycombinator.com/): you subscribe to forums you're interested in, post links and discussions, then vote, and comment on them. Behind the scenes, it is very different; anyone can easily run a server, and all these servers are federated (think email), and connected to the same universe, called the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
 
 For a link aggregator, this means a user registered on one server can subscribe to forums on any other server, and can have discussions with users registered elsewhere.
 
@@ -108,8 +108,9 @@ Each lemmy server can set its own moderation policy; appointing site-wide admins
 
 Lemmy is free, open-source software, meaning no advertising, monetizing, or venture capital, ever. Your donations directly support full-time development of the project.
 
-- [Support on Liberapay.](https://liberapay.com/Lemmy)
+- [Support on Liberapay](https://liberapay.com/Lemmy).
 - [Support on Patreon](https://www.patreon.com/dessalines).
+- [Support on OpenCollective](https://opencollective.com/lemmy).
 - [List of Sponsors](https://dev.lemmy.ml/sponsors).
 
 ### Crypto
@@ -132,7 +133,7 @@ If you want to help with translating, take a look at [Weblate](https://weblate.y
 
 - [Mastodon](https://mastodon.social/@LemmyDev) - [![Mastodon Follow](https://img.shields.io/mastodon/follow/810572?domain=https%3A%2F%2Fmastodon.social&style=social)](https://mastodon.social/@LemmyDev)
 - [Matrix](https://riot.im/app/#/room/#rust-reddit-fediverse:matrix.org) - [![Matrix](https://img.shields.io/matrix/rust-reddit-fediverse:matrix.org.svg?label=matrix-chat)](https://riot.im/app/#/room/#rust-reddit-fediverse:matrix.org)
-- [GitHub](https://github.com/dessalines/lemmy)
+- [GitHub](https://github.com/LemmyNet/lemmy)
 - [Gitea](https://yerbamate.dev/dessalines/lemmy)
 - [GitLab](https://gitlab.com/dessalines/lemmy)
 

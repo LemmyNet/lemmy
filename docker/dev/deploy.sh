@@ -72,5 +72,5 @@ git push origin $new_tag
 git push
 
 # Pushing to any ansible deploys
-cd ../../ansible || exit
-ansible-playbook lemmy.yml --become
+cd ../../../lemmy-ansible || exit
+ansible-playbook -i prod playbooks/site.yml --vault-password-file vault_pass

@@ -40,6 +40,8 @@ import {
   GetPrivateMessagesForm,
   GetCommentsForm,
   UserJoinForm,
+  GetSiteConfig,
+  SiteConfigForm,
   MessageType,
   WebSocketJsonResponse,
 } from '../interfaces';
@@ -268,6 +270,12 @@ export class WebSocketService {
     this.ws.send(this.wsSendWrapper(UserOperation.GetSite, {}));
   }
 
+  public getSiteConfig() {
+    let siteConfig: GetSiteConfig = {};
+    this.setAuth(siteConfig);
+    this.ws.send(this.wsSendWrapper(UserOperation.GetSiteConfig, siteConfig));
+  }
+
   public search(form: SearchForm) {
     this.setAuth(form, false);
     this.ws.send(this.wsSendWrapper(UserOperation.Search, form));
@@ -312,6 +320,11 @@ export class WebSocketService {
   public getPrivateMessages(form: GetPrivateMessagesForm) {
     this.setAuth(form);
     this.ws.send(this.wsSendWrapper(UserOperation.GetPrivateMessages, form));
+  }
+
+  public saveSiteConfig(form: SiteConfigForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.SaveSiteConfig, form));
   }
 
   private wsSendWrapper(op: UserOperation, data: MessageType) {

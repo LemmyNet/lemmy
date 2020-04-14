@@ -213,8 +213,9 @@ export class Post extends Component<any, PostState> {
     return (
       <div class="btn-group btn-group-toggle mb-2">
         <label
-          className={`btn btn-sm btn-secondary pointer ${this.state
-            .commentSort === CommentSortType.Hot && 'active'}`}
+          className={`btn btn-sm btn-secondary pointer ${
+            this.state.commentSort === CommentSortType.Hot && 'active'
+          }`}
         >
           {i18n.t('hot')}
           <input
@@ -225,8 +226,9 @@ export class Post extends Component<any, PostState> {
           />
         </label>
         <label
-          className={`btn btn-sm btn-secondary pointer ${this.state
-            .commentSort === CommentSortType.Top && 'active'}`}
+          className={`btn btn-sm btn-secondary pointer ${
+            this.state.commentSort === CommentSortType.Top && 'active'
+          }`}
         >
           {i18n.t('top')}
           <input
@@ -237,8 +239,9 @@ export class Post extends Component<any, PostState> {
           />
         </label>
         <label
-          className={`btn btn-sm btn-secondary pointer ${this.state
-            .commentSort === CommentSortType.New && 'active'}`}
+          className={`btn btn-sm btn-secondary pointer ${
+            this.state.commentSort === CommentSortType.New && 'active'
+          }`}
         >
           {i18n.t('new')}
           <input
@@ -249,8 +252,9 @@ export class Post extends Component<any, PostState> {
           />
         </label>
         <label
-          className={`btn btn-sm btn-secondary pointer ${this.state
-            .commentSort === CommentSortType.Old && 'active'}`}
+          className={`btn btn-sm btn-secondary pointer ${
+            this.state.commentSort === CommentSortType.Old && 'active'
+          }`}
         >
           {i18n.t('old')}
           <input
@@ -460,7 +464,7 @@ export class Post extends Component<any, PostState> {
     } else if (res.op == UserOperation.Search) {
       let data = res.data as SearchResponse;
       this.state.crossPosts = data.posts.filter(
-        p => p.id != this.state.post.id
+        p => p.id != Number(this.props.match.params.id)
       );
       this.setState(this.state);
     } else if (res.op == UserOperation.TransferSite) {

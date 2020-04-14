@@ -19,18 +19,19 @@ import {
 import { MomentTime } from './moment-time';
 import { PostForm } from './post-form';
 import { IFramelyCard } from './iframely-card';
+import { UserListing } from './user-listing';
 import {
+  md,
   mdToHtml,
   canMod,
   isMod,
   isImage,
   isVideo,
   getUnixTime,
-  pictshareAvatarThumbnail,
-  showAvatars,
   pictshareImage,
   setupTippy,
   hostname,
+  previewLines,
 } from '../utils';
 import { i18n } from '../i18next';
 
@@ -415,20 +416,12 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               <ul class="list-inline mb-0 text-muted small">
                 <li className="list-inline-item">
                   <span>{i18n.t('by')} </span>
-                  <Link
-                    className="text-body font-weight-bold"
-                    to={`/u/${post.creator_name}`}
-                  >
-                    {post.creator_avatar && showAvatars() && (
-                      <img
-                        height="32"
-                        width="32"
-                        src={pictshareAvatarThumbnail(post.creator_avatar)}
-                        class="rounded-circle mr-1"
-                      />
-                    )}
-                    <span>{post.creator_name}</span>
-                  </Link>
+                  <UserListing
+                    user={{
+                      name: post.creator_name,
+                      avatar: post.creator_avatar,
+                    }}
+                  />
                   {this.isMod && (
                     <span className="mx-1 badge badge-light">
                       {i18n.t('mod')}
@@ -465,6 +458,24 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                     <MomentTime data={post} />
                   </span>
                 </li>
+                {post.body && (
+                  <>
+                    <li className="list-inline-item">•</li>
+                    <li className="list-inline-item">
+                      {/* Using a link with tippy doesn't work on touch devices unfortunately */}
+                      <Link
+                        className="text-muted"
+                        data-tippy-content={md.render(previewLines(post.body))}
+                        data-tippy-allowHtml={true}
+                        to={`/post/${post.id}`}
+                      >
+                        <svg class="mr-1 icon icon-inline">
+                          <use xlinkHref="#icon-book-open"></use>
+                        </svg>
+                      </Link>
+                    </li>
+                  </>
+                )}
                 <li className="list-inline-item">•</li>
                 {this.state.upvotes !== this.state.score && (
                   <>
