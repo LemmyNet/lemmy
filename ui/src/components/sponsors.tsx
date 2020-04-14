@@ -5,9 +5,9 @@ import { T } from 'inferno-i18next';
 import { repoUrl } from '../utils';
 
 let general = [
+  'alexx henry',
   'Nathan J. Goode',
   'Andre Vallestero',
-  'riccardo',
   'NotTooHighToHack',
 ];
 let highlighted = ['Alex Benishek'];
@@ -56,6 +56,12 @@ export class Sponsors extends Component<any, any> {
           href="https://www.patreon.com/dessalines"
         >
           {i18n.t('support_on_patreon')}
+        </a>
+        <a
+          class="btn btn-secondary ml-2"
+          href="https://opencollective.com/lemmy"
+        >
+          {i18n.t('support_on_open_collective')}
         </a>
       </div>
     );

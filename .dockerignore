@@ -2,5 +2,5 @@ ui/node_modules
 ui/dist
 server/target
 docker/dev/volumes
-docker/federation-test/volumes
+docker/federation/volumes
 .git
