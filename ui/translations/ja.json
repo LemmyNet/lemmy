@@ -200,5 +200,6 @@
     "sorting_help": "並び順のヘルプ",
     "block_leaving": "このページから離れてもよろしいですか？",
     "number_of_upvotes": "{{count}} 票の賛成",
-    "number_of_downvotes": "{{count}} 票の反対"
+    "number_of_downvotes": "{{count}} 票の反対",
+    "show_context": "前後を表示"
 }
