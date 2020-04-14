@@ -160,7 +160,7 @@ impl User_ {
     let my_claims = Claims {
       id: self.id,
       username: self.name.to_owned(),
-      iss: Settings::get().hostname.to_owned(),
+      iss: Settings::get().hostname,
       show_nsfw: self.show_nsfw,
       theme: self.theme.to_owned(),
       default_sort_type: self.default_sort_type,

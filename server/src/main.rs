@@ -77,7 +77,7 @@ async fn main() -> Result<(), Error> {
         ))
         .service(actix_files::Files::new(
           "/docs",
-          settings.front_end_dir.to_owned() + "/documentation",
+          settings.front_end_dir + "/documentation",
         ))
     })
     .bind((settings.bind, settings.port))?
