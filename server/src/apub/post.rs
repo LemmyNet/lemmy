@@ -1,5 +1,5 @@
+use crate::apub::create_apub_response;
 use crate::apub::fetcher::{fetch_remote_community, fetch_remote_user};
-use crate::apub::{create_apub_response, make_apub_endpoint, EndpointType};
 use crate::convert_datetime;
 use crate::db::community::Community;
 use crate::db::post::{Post, PostForm};
@@ -31,7 +31,6 @@ pub async fn get_apub_post(
 
 impl Post {
   pub fn as_page(&self, conn: &PgConnection) -> Result<Page, Error> {
-    let base_url = make_apub_endpoint(EndpointType::Post, &self.id.to_string());
     let mut page = Page::default();
     let oprops: &mut ObjectProperties = page.as_mut();
     let creator = User_::read(conn, self.creator_id)?;
@@ -40,13 +39,13 @@ impl Post {
     oprops
       // Not needed when the Post is embedded in a collection (like for community outbox)
       .set_context_xsd_any_uri(context())?
-      .set_id(base_url)?
+      .set_id(self.ap_id.to_owned())?
       // Use summary field to be consistent with mastodon content warning.
       // https://mastodon.xyz/@Louisa/103987265222901387.json
       .set_summary_xsd_string(self.name.to_owned())?
       .set_published(convert_datetime(self.published))?
       .set_to_xsd_any_uri(community.actor_id)?
-      .set_attributed_to_xsd_any_uri(make_apub_endpoint(EndpointType::User, &creator.name))?;
+      .set_attributed_to_xsd_any_uri(creator.actor_id)?;
 
     if let Some(body) = &self.body {
       oprops.set_content_xsd_string(body.to_owned())?;

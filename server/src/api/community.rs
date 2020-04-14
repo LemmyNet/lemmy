@@ -1,4 +1,5 @@
 use super::*;
+use crate::apub::activities::follow_community;
 use crate::apub::{format_community_name, gen_keypair_str, make_apub_endpoint, EndpointType};
 use diesel::PgConnection;
 use std::str::FromStr;
@@ -401,21 +402,29 @@ impl Perform<CommunityResponse> for Oper<FollowCommunity> {
 
     let user_id = claims.id;
 
-    let community_follower_form = CommunityFollowerForm {
-      community_id: data.community_id,
-      user_id,
-    };
+    let community = Community::read(conn, data.community_id)?;
+    if community.local {
+      let community_follower_form = CommunityFollowerForm {
+        community_id: data.community_id,
+        user_id,
+      };
 
-    if data.follow {
-      match CommunityFollower::follow(&conn, &community_follower_form) {
-        Ok(user) => user,
-        Err(_e) => return Err(APIError::err("community_follower_already_exists").into()),
-      };
+      if data.follow {
+        match CommunityFollower::follow(&conn, &community_follower_form) {
+          Ok(user) => user,
+          Err(_e) => return Err(APIError::err("community_follower_already_exists").into()),
+        };
+      } else {
+        match CommunityFollower::ignore(&conn, &community_follower_form) {
+          Ok(user) => user,
+          Err(_e) => return Err(APIError::err("community_follower_already_exists").into()),
+        };
+      }
     } else {
-      match CommunityFollower::ignore(&conn, &community_follower_form) {
-        Ok(user) => user,
-        Err(_e) => return Err(APIError::err("community_follower_already_exists").into()),
-      };
+      // TODO: still have to implement unfollow
+      let user = User_::read(conn, user_id)?;
+      follow_community(&community, &user, conn)?;
+      // TODO: this needs to return a "pending" state, until Accept is received from the remote server
     }
 
     let community_view = CommunityView::read(&conn, data.community_id, Some(user_id))?;

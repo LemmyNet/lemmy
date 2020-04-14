@@ -1,16 +1,16 @@
+use crate::apub::activities::accept_follow;
+use crate::apub::fetcher::fetch_remote_user;
+use crate::db::community::{Community, CommunityFollower, CommunityFollowerForm};
 use crate::db::post::{Post, PostForm};
 use crate::db::Crud;
+use crate::db::Followable;
+use activitystreams::activity::{Accept, Create, Follow, Update};
 use activitystreams::object::Page;
-use activitystreams::{
-  object::{Object, ObjectBox},
-  primitives::XsdAnyUri,
-  Base, BaseBox, PropRefs,
-};
 use actix_web::{web, HttpResponse};
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use failure::Error;
-use std::collections::HashMap;
+use url::Url;
 
 // TODO: need a proper actor that has this inbox
 
@@ -18,24 +18,40 @@ pub async fn inbox(
   input: web::Json<AcceptedObjects>,
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
 ) -> Result<HttpResponse, Error> {
+  // TODO: make sure that things are received in the correct inbox
+  //      (by using seperate handler functions and checking the user/community name in the path)
   let input = input.into_inner();
   let conn = &db.get().unwrap();
-  match input.kind {
-    ValidTypes::Create => handle_create(&input, conn),
-    ValidTypes::Update => handle_update(&input, conn),
+  match input {
+    AcceptedObjects::Create(c) => handle_create(&c, conn),
+    AcceptedObjects::Update(u) => handle_update(&u, conn),
+    AcceptedObjects::Follow(f) => handle_follow(&f, conn),
+    AcceptedObjects::Accept(a) => handle_accept(&a, conn),
   }
 }
 
-fn handle_create(create: &AcceptedObjects, conn: &PgConnection) -> Result<HttpResponse, Error> {
-  let page = create.object.to_owned().to_concrete::<Page>()?;
+fn handle_create(create: &Create, conn: &PgConnection) -> Result<HttpResponse, Error> {
+  let page = create
+    .create_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .to_owned()
+    .to_concrete::<Page>()?;
   let post = PostForm::from_page(&page, conn)?;
   Post::create(conn, &post)?;
   // TODO: send the new post out via websocket
   Ok(HttpResponse::Ok().finish())
 }
 
-fn handle_update(update: &AcceptedObjects, conn: &PgConnection) -> Result<HttpResponse, Error> {
-  let page = update.object.to_owned().to_concrete::<Page>()?;
+fn handle_update(update: &Update, conn: &PgConnection) -> Result<HttpResponse, Error> {
+  let page = update
+    .update_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .to_owned()
+    .to_concrete::<Page>()?;
   let post = PostForm::from_page(&page, conn)?;
   let id = Post::read_from_apub_id(conn, &post.ap_id)?.id;
   Post::update(conn, id, &post)?;
@@ -43,46 +59,43 @@ fn handle_update(update: &AcceptedObjects, conn: &PgConnection) -> Result<HttpRe
   Ok(HttpResponse::Ok().finish())
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AcceptedObjects {
-  pub id: XsdAnyUri,
+fn handle_follow(follow: &Follow, conn: &PgConnection) -> Result<HttpResponse, Error> {
+  println!("received follow: {:?}", &follow);
 
-  #[serde(rename = "type")]
-  pub kind: ValidTypes,
-
-  pub actor: XsdAnyUri,
-
-  pub object: BaseBox,
-
-  #[serde(flatten)]
-  ext: HashMap<String, serde_json::Value>,
+  // TODO: make sure this is a local community
+  let community_uri = follow
+    .follow_props
+    .get_object_xsd_any_uri()
+    .unwrap()
+    .to_string();
+  let community = Community::read_from_actor_id(conn, &community_uri)?;
+  let user_uri = follow
+    .follow_props
+    .get_actor_xsd_any_uri()
+    .unwrap()
+    .to_string();
+  let user = fetch_remote_user(&Url::parse(&user_uri)?, conn)?;
+  // TODO: insert ID of the user into follows of the community
+  let community_follower_form = CommunityFollowerForm {
+    community_id: community.id,
+    user_id: user.id,
+  };
+  CommunityFollower::follow(&conn, &community_follower_form)?;
+  accept_follow(&follow)?;
+  Ok(HttpResponse::Ok().finish())
 }
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Deserialize, serde::Serialize)]
-#[serde(rename_all = "PascalCase")]
-pub enum ValidTypes {
-  Create,
-  Update,
+fn handle_accept(accept: &Accept, _conn: &PgConnection) -> Result<HttpResponse, Error> {
+  println!("received accept: {:?}", &accept);
+  // TODO: at this point, indicate to the user that they are following the community
+  Ok(HttpResponse::Ok().finish())
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(untagged)]
-#[serde(rename_all = "camelCase")]
-pub enum ValidObjects {
-  Id(XsdAnyUri),
-  Object(AnyExistingObject),
-}
-
-#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize, PropRefs)]
-#[serde(rename_all = "camelCase")]
-#[prop_refs(Object)]
-pub struct AnyExistingObject {
-  pub id: XsdAnyUri,
-
-  #[serde(rename = "type")]
-  pub kind: String,
-
-  #[serde(flatten)]
-  ext: HashMap<String, serde_json::Value>,
+#[derive(serde::Deserialize)]
+pub enum AcceptedObjects {
+  Create(Create),
+  Update(Update),
+  Follow(Follow),
+  Accept(Accept),
 }

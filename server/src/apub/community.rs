@@ -64,7 +64,7 @@ impl Community {
       .set_id(self.actor_id.to_owned())?
       .set_name_xsd_string(self.name.to_owned())?
       .set_published(convert_datetime(self.published))?
-      .set_attributed_to_xsd_any_uri(make_apub_endpoint(EndpointType::User, &creator.name))?;
+      .set_attributed_to_xsd_any_uri(creator.actor_id)?;
 
     if let Some(u) = self.updated.to_owned() {
       oprops.set_updated(convert_datetime(u))?;
@@ -156,7 +156,6 @@ pub async fn get_apub_community_followers(
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
 ) -> Result<HttpResponse<Body>, Error> {
   let community = Community::read_from_name(&&db.get()?, info.community_name.to_owned())?;
-  let base_url = make_apub_endpoint(EndpointType::Community, &community.name);
 
   let connection = establish_unpooled_connection();
   //As we are an object, we validated that the community id was valid
@@ -167,7 +166,7 @@ pub async fn get_apub_community_followers(
   let oprops: &mut ObjectProperties = collection.as_mut();
   oprops
     .set_context_xsd_any_uri(context())?
-    .set_id(base_url)?;
+    .set_id(community.actor_id)?;
   collection
     .collection_props
     .set_total_items(community_followers.len() as u64)?;
@@ -179,7 +178,6 @@ pub async fn get_apub_community_outbox(
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
 ) -> Result<HttpResponse<Body>, Error> {
   let community = Community::read_from_name(&&db.get()?, info.community_name.to_owned())?;
-  let base_url = make_apub_endpoint(EndpointType::Community, &community.name);
 
   let conn = establish_unpooled_connection();
   //As we are an object, we validated that the community id was valid
@@ -189,7 +187,7 @@ pub async fn get_apub_community_outbox(
   let oprops: &mut ObjectProperties = collection.as_mut();
   oprops
     .set_context_xsd_any_uri(context())?
-    .set_id(base_url)?;
+    .set_id(community.actor_id)?;
   collection
     .collection_props
     .set_many_items_base_boxes(
