@@ -30,6 +30,7 @@ import {
   commentsToFlatNodes,
 } from '../utils';
 import { PostListing } from './post-listing';
+import { UserListing } from './user-listing';
 import { SortSelect } from './sort-select';
 import { CommentNodes } from './comment-nodes';
 import { i18n } from '../i18next';
@@ -266,22 +267,12 @@ export class Search extends Component<any, SearchState> {
               {i.type_ == 'users' && (
                 <div>
                   <span>
-                    <Link
-                      className="text-info"
-                      to={`/u/${(i.data as UserView).name}`}
-                    >
-                      {(i.data as UserView).avatar && showAvatars() && (
-                        <img
-                          height="32"
-                          width="32"
-                          src={pictshareAvatarThumbnail(
-                            (i.data as UserView).avatar
-                          )}
-                          class="rounded-circle mr-1"
-                        />
-                      )}
-                      <span>{`/u/${(i.data as UserView).name}`}</span>
-                    </Link>
+                    <UserListing
+                      user={{
+                        name: (i.data as UserView).name,
+                        avatar: (i.data as UserView).avatar,
+                      }}
+                    />
                   </span>
                   <span>{` - ${
                     (i.data as UserView).comment_score

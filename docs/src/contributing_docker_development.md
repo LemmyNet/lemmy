@@ -3,7 +3,7 @@
 ## Running
 
 ```bash
-git clone https://github.com/dessalines/lemmy
+git clone https://github.com/LemmyNet/lemmy
 cd lemmy/docker/dev
 ./docker_update.sh # This builds and runs it, updating for your changes
 ```

@@ -24,8 +24,6 @@ import {
   getUnixTime,
   canMod,
   isMod,
-  pictshareAvatarThumbnail,
-  showAvatars,
   setupTippy,
   colorList,
 } from '../utils';
@@ -33,6 +31,7 @@ import moment from 'moment';
 import { MomentTime } from './moment-time';
 import { CommentForm } from './comment-form';
 import { CommentNodes } from './comment-nodes';
+import { UserListing } from './user-listing';
 import { i18n } from '../i18next';
 
 interface CommentNodeState {
@@ -143,25 +142,21 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
           }
         >
           <div
-            class={`${!this.props.noIndent &&
+            class={`${
+              !this.props.noIndent &&
               this.props.node.comment.parent_id &&
-              'ml-2'}`}
+              'ml-2'
+            }`}
           >
             <div class="d-flex flex-wrap align-items-center mb-1 mt-1 text-muted small">
-              <Link
-                className="mr-2 text-body font-weight-bold"
-                to={`/u/${node.comment.creator_name}`}
-              >
-                {node.comment.creator_avatar && showAvatars() && (
-                  <img
-                    height="32"
-                    width="32"
-                    src={pictshareAvatarThumbnail(node.comment.creator_avatar)}
-                    class="rounded-circle mr-1"
-                  />
-                )}
-                <span>{node.comment.creator_name}</span>
-              </Link>
+              <span class="mr-2">
+                <UserListing
+                  user={{
+                    name: node.comment.creator_name,
+                    avatar: node.comment.creator_avatar,
+                  }}
+                />
+              </span>
               {this.isMod && (
                 <div className="badge badge-light d-none d-sm-inline mr-2">
                   {i18n.t('mod')}
@@ -191,7 +186,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 </>
               )}
               <div
-                className="mr-lg-4 flex-grow-1 flex-lg-grow-0 unselectable pointer mr-2"
+                className="mr-lg-4 flex-grow-1 flex-lg-grow-0 unselectable pointer mx-2"
                 onClick={linkEvent(this, this.handleCommentCollapse)}
               >
                 {this.state.collapsed ? (
@@ -256,8 +251,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                         this.loadingIcon
                       ) : (
                         <svg
-                          class={`icon icon-inline ${node.comment.read &&
-                            'text-success'}`}
+                          class={`icon icon-inline ${
+                            node.comment.read && 'text-success'
+                          }`}
                         >
                           <use xlinkHref="#icon-check"></use>
                         </svg>
@@ -309,8 +305,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                           this.loadingIcon
                         ) : (
                           <svg
-                            class={`icon icon-inline ${node.comment.saved &&
-                              'text-warning'}`}
+                            class={`icon icon-inline ${
+                              node.comment.saved && 'text-warning'
+                            }`}
                           >
                             <use xlinkHref="#icon-star"></use>
                           </svg>
@@ -357,8 +354,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                             data-tippy-content={i18n.t('view_source')}
                           >
                             <svg
-                              class={`icon icon-inline ${this.state
-                                .viewSource && 'text-success'}`}
+                              class={`icon icon-inline ${
+                                this.state.viewSource && 'text-success'
+                              }`}
                             >
                               <use xlinkHref="#icon-file-text"></use>
                             </svg>
@@ -387,8 +385,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                                 }
                               >
                                 <svg
-                                  class={`icon icon-inline ${node.comment
-                                    .deleted && 'text-danger'}`}
+                                  class={`icon icon-inline ${
+                                    node.comment.deleted && 'text-danger'
+                                  }`}
                                 >
                                   <use xlinkHref="#icon-trash"></use>
                                 </svg>

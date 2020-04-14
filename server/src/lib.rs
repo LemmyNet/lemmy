@@ -115,7 +115,7 @@ pub fn send_email(
   to_username: &str,
   html: &str,
 ) -> Result<(), String> {
-  let email_config = Settings::get().email.as_ref().ok_or("no_email_setup")?;
+  let email_config = Settings::get().email.ok_or("no_email_setup")?;
 
   let email = Email::builder()
     .to((to_email, to_username))
@@ -130,7 +130,7 @@ pub fn send_email(
   } else {
     SmtpClient::new(&email_config.smtp_server, ClientSecurity::None).unwrap()
   }
-  .hello_name(ClientId::Domain(Settings::get().hostname.to_owned()))
+  .hello_name(ClientId::Domain(Settings::get().hostname))
   .smtp_utf8(true)
   .authentication_mechanism(Mechanism::Plain)
   .connection_reuse(ConnectionReuseParameters::ReuseUnlimited);

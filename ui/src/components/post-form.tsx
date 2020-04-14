@@ -34,9 +34,11 @@ import {
   randomStr,
   setupTribute,
   setupTippy,
+  emojiPicker,
 } from '../utils';
 import autosize from 'autosize';
 import Tribute from 'tributejs/src/Tribute.js';
+import emojiShortName from 'emoji-short-name';
 import Selectr from 'mobius1-selectr';
 import { i18n } from '../i18next';
 
@@ -92,6 +94,8 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     this.fetchPageTitle = debounce(this.fetchPageTitle).bind(this);
 
     this.tribute = setupTribute();
+    this.setupEmojiPicker();
+
     this.state = this.emptyState;
 
     if (this.props.post) {
@@ -190,8 +194,9 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               <form>
                 <label
                   htmlFor="file-upload"
-                  className={`${UserService.Instance.user &&
-                    'pointer'} d-inline-block float-right text-muted h6 font-weight-bold`}
+                  className={`${
+                    UserService.Instance.user && 'pointer'
+                  } d-inline-block float-right text-muted font-weight-bold`}
                   data-tippy-content={i18n.t('upload_image')}
                 >
                   <svg class="icon icon-inline">
@@ -284,8 +289,9 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               )}
               {this.state.postForm.body && (
                 <button
-                  className={`mt-1 mr-2 btn btn-sm btn-secondary ${this.state
-                    .previewMode && 'active'}`}
+                  className={`mt-1 mr-2 btn btn-sm btn-secondary ${
+                    this.state.previewMode && 'active'
+                  }`}
                   onClick={linkEvent(this, this.handlePreviewToggle)}
                 >
                   {i18n.t('preview')}
@@ -294,13 +300,22 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               <a
                 href={markdownHelpUrl}
                 target="_blank"
-                class="d-inline-block float-right text-muted h6 font-weight-bold"
+                class="d-inline-block float-right text-muted font-weight-bold"
                 title={i18n.t('formatting_help')}
               >
                 <svg class="icon icon-inline">
                   <use xlinkHref="#icon-help-circle"></use>
                 </svg>
               </a>
+              <span
+                onClick={linkEvent(this, this.handleEmojiPickerClick)}
+                class="pointer unselectable d-inline-block mr-3 float-right text-muted font-weight-bold"
+                data-tippy-content={i18n.t('emoji_picker')}
+              >
+                <svg class="icon icon-inline">
+                  <use xlinkHref="#icon-smile"></use>
+                </svg>
+              </span>
             </div>
           </div>
           {!this.props.post && (
@@ -367,6 +382,20 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
         </form>
       </div>
     );
+  }
+
+  setupEmojiPicker() {
+    emojiPicker.on('emoji', twemojiHtmlStr => {
+      if (this.state.postForm.body == null) {
+        this.state.postForm.body = '';
+      }
+      var el = document.createElement('div');
+      el.innerHTML = twemojiHtmlStr;
+      let nativeUnicode = (el.childNodes[0] as HTMLElement).getAttribute('alt');
+      let shortName = `:${emojiShortName[nativeUnicode]}:`;
+      this.state.postForm.body += shortName;
+      this.setState(this.state);
+    });
   }
 
   handlePostSubmit(i: PostForm, event: any) {
@@ -510,6 +539,10 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
         i.setState(i.state);
         toast(error, 'danger');
       });
+  }
+
+  handleEmojiPickerClick(_i: PostForm, event: any) {
+    emojiPicker.togglePicker(event.target);
   }
 
   parseMessage(msg: WebSocketJsonResponse) {

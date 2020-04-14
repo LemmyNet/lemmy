@@ -92,85 +92,93 @@
       - [Request](#request-17)
       - [Response](#response-17)
       - [HTTP](#http-18)
-  * [Community](#community)
-    + [Get Community](#get-community)
+    + [Get Site Config](#get-site-config)
       - [Request](#request-18)
       - [Response](#response-18)
       - [HTTP](#http-19)
-    + [Create Community](#create-community)
+    + [Save Site Config](#save-site-config)
       - [Request](#request-19)
       - [Response](#response-19)
       - [HTTP](#http-20)
-    + [List Communities](#list-communities)
+  * [Community](#community)
+    + [Get Community](#get-community)
       - [Request](#request-20)
       - [Response](#response-20)
       - [HTTP](#http-21)
-    + [Ban from Community](#ban-from-community)
+    + [Create Community](#create-community)
       - [Request](#request-21)
       - [Response](#response-21)
       - [HTTP](#http-22)
-    + [Add Mod to Community](#add-mod-to-community)
+    + [List Communities](#list-communities)
       - [Request](#request-22)
       - [Response](#response-22)
       - [HTTP](#http-23)
-    + [Edit Community](#edit-community)
+    + [Ban from Community](#ban-from-community)
       - [Request](#request-23)
       - [Response](#response-23)
       - [HTTP](#http-24)
-    + [Follow Community](#follow-community)
+    + [Add Mod to Community](#add-mod-to-community)
       - [Request](#request-24)
       - [Response](#response-24)
       - [HTTP](#http-25)
-    + [Get Followed Communities](#get-followed-communities)
+    + [Edit Community](#edit-community)
       - [Request](#request-25)
       - [Response](#response-25)
       - [HTTP](#http-26)
-    + [Transfer Community](#transfer-community)
+    + [Follow Community](#follow-community)
       - [Request](#request-26)
       - [Response](#response-26)
       - [HTTP](#http-27)
-  * [Post](#post)
-    + [Create Post](#create-post)
+    + [Get Followed Communities](#get-followed-communities)
       - [Request](#request-27)
       - [Response](#response-27)
       - [HTTP](#http-28)
-    + [Get Post](#get-post)
+    + [Transfer Community](#transfer-community)
       - [Request](#request-28)
       - [Response](#response-28)
       - [HTTP](#http-29)
-    + [Get Posts](#get-posts)
+  * [Post](#post)
+    + [Create Post](#create-post)
       - [Request](#request-29)
       - [Response](#response-29)
       - [HTTP](#http-30)
-    + [Create Post Like](#create-post-like)
+    + [Get Post](#get-post)
       - [Request](#request-30)
       - [Response](#response-30)
       - [HTTP](#http-31)
-    + [Edit Post](#edit-post)
+    + [Get Posts](#get-posts)
       - [Request](#request-31)
       - [Response](#response-31)
       - [HTTP](#http-32)
-    + [Save Post](#save-post)
+    + [Create Post Like](#create-post-like)
       - [Request](#request-32)
       - [Response](#response-32)
       - [HTTP](#http-33)
-  * [Comment](#comment)
-    + [Create Comment](#create-comment)
+    + [Edit Post](#edit-post)
       - [Request](#request-33)
       - [Response](#response-33)
       - [HTTP](#http-34)
-    + [Edit Comment](#edit-comment)
+    + [Save Post](#save-post)
       - [Request](#request-34)
       - [Response](#response-34)
       - [HTTP](#http-35)
-    + [Save Comment](#save-comment)
+  * [Comment](#comment)
+    + [Create Comment](#create-comment)
       - [Request](#request-35)
       - [Response](#response-35)
       - [HTTP](#http-36)
-    + [Create Comment Like](#create-comment-like)
+    + [Edit Comment](#edit-comment)
       - [Request](#request-36)
       - [Response](#response-36)
       - [HTTP](#http-37)
+    + [Save Comment](#save-comment)
+      - [Request](#request-37)
+      - [Response](#response-37)
+      - [HTTP](#http-38)
+    + [Create Comment Like](#create-comment-like)
+      - [Request](#request-38)
+      - [Response](#response-38)
+      - [HTTP](#http-39)
   * [RSS / Atom feeds](#rss--atom-feeds)
     + [All](#all)
     + [Community](#community-1)
@@ -778,6 +786,53 @@ Search types are `All, Comments, Posts, Communities, Users, Url`
 ##### HTTP
 
 `POST /site/transfer`
+
+#### Get Site Config
+##### Request
+```rust
+{
+  op: "GetSiteConfig",
+  data: {
+    auth: String
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "GetSiteConfig",
+  data: {
+    config_hjson: String,
+  }
+}
+```
+##### HTTP
+
+`GET /site/config`
+
+#### Save Site Config
+##### Request
+```rust
+{
+  op: "SaveSiteConfig",
+  data: {
+    config_hjson: String,
+    auth: String
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "SaveSiteConfig",
+  data: {
+    config_hjson: String,
+  }
+}
+```
+##### HTTP
+
+`PUT /site/config`
 
 ### Community
 #### Get Community

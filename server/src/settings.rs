@@ -1,12 +1,15 @@
 use config::{Config, ConfigError, Environment, File};
+use failure::Error;
 use serde::Deserialize;
 use std::env;
+use std::fs;
 use std::net::IpAddr;
+use std::sync::RwLock;
 
 static CONFIG_FILE_DEFAULTS: &str = "config/defaults.hjson";
 static CONFIG_FILE: &str = "config/config.hjson";
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Settings {
   pub setup: Option<Setup>,
   pub database: Database,
@@ -20,7 +23,7 @@ pub struct Settings {
   pub federation: Federation,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Setup {
   pub admin_username: String,
   pub admin_password: String,
@@ -28,7 +31,7 @@ pub struct Setup {
   pub site_name: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct RateLimitConfig {
   pub message: i32,
   pub message_per_second: i32,
@@ -38,7 +41,7 @@ pub struct RateLimitConfig {
   pub register_per_second: i32,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct EmailConfig {
   pub smtp_server: String,
   pub smtp_login: Option<String>,
@@ -47,7 +50,7 @@ pub struct EmailConfig {
   pub use_tls: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Database {
   pub user: String,
   pub password: String,
@@ -65,12 +68,10 @@ pub struct Federation {
 }
 
 lazy_static! {
-  static ref SETTINGS: Settings = {
-    match Settings::init() {
-      Ok(c) => c,
-      Err(e) => panic!("{}", e),
-    }
-  };
+  static ref SETTINGS: RwLock<Settings> = RwLock::new(match Settings::init() {
+    Ok(c) => c,
+    Err(e) => panic!("{}", e),
+  });
 }
 
 impl Settings {
@@ -96,8 +97,8 @@ impl Settings {
   }
 
   /// Returns the config as a struct.
-  pub fn get() -> &'static Self {
-    &SETTINGS
+  pub fn get() -> Self {
+    SETTINGS.read().unwrap().to_owned()
   }
 
   /// Returns the postgres connection url. If LEMMY_DATABASE_URL is set, that is used,
@@ -118,5 +119,23 @@ impl Settings {
 
   pub fn api_endpoint(&self) -> String {
     format!("{}/api/v1", self.hostname)
+  }
+
+  pub fn read_config_file() -> Result<String, Error> {
+    Ok(fs::read_to_string(CONFIG_FILE)?)
+  }
+
+  pub fn save_config_file(data: &str) -> Result<String, Error> {
+    fs::write(CONFIG_FILE, data)?;
+
+    // Reload the new settings
+    // From https://stackoverflow.com/questions/29654927/how-do-i-assign-a-string-to-a-mutable-static-variable/47181804#47181804
+    let mut new_settings = SETTINGS.write().unwrap();
+    *new_settings = match Settings::init() {
+      Ok(c) => c,
+      Err(e) => panic!("{}", e),
+    };
+
+    Self::read_config_file()
   }
 }

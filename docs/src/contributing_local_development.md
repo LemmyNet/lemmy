@@ -22,7 +22,7 @@ export LEMMY_DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
 #### Running
 
 ```bash
-git clone https://github.com/dessalines/lemmy
+git clone https://github.com/LemmyNet/lemmy
 cd lemmy
 ./install.sh
 # For live coding, where both the front and back end, automagically reload on any save, do:

@@ -708,6 +708,16 @@ fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<Str
       res.online = chat.sessions.len();
       to_json_string(&user_operation, &res)
     }
+    UserOperation::GetSiteConfig => {
+      let get_site_config: GetSiteConfig = serde_json::from_str(data)?;
+      let res = Oper::new(get_site_config).perform(&conn)?;
+      to_json_string(&user_operation, &res)
+    }
+    UserOperation::SaveSiteConfig => {
+      let save_site_config: SaveSiteConfig = serde_json::from_str(data)?;
+      let res = Oper::new(save_site_config).perform(&conn)?;
+      to_json_string(&user_operation, &res)
+    }
     UserOperation::Search => {
       do_user_operation::<Search, SearchResponse>(user_operation, data, &conn)
     }

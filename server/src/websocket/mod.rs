@@ -46,4 +46,6 @@ pub enum UserOperation {
   GetPrivateMessages,
   UserJoin,
   GetComments,
+  GetSiteConfig,
+  SaveSiteConfig,
 }
