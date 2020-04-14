@@ -2,7 +2,7 @@
 ui/node_modules
 server/target
 docker/dev/volumes
-docker/federation-test/volumes
+docker/federation/volumes
 .git
 ansible
 
