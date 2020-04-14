@@ -5,10 +5,13 @@ use diesel::pg::Pg;
 table! {
   user_view (id) {
     id -> Int4,
+    actor_id -> Text,
     name -> Varchar,
     avatar -> Nullable<Text>,
     email -> Nullable<Text>,
     matrix_user_id -> Nullable<Text>,
+    bio -> Nullable<Text>,
+    local -> Bool,
     admin -> Bool,
     banned -> Bool,
     show_avatars -> Bool,
@@ -24,10 +27,13 @@ table! {
 table! {
   user_mview (id) {
     id -> Int4,
+    actor_id -> Text,
     name -> Varchar,
     avatar -> Nullable<Text>,
     email -> Nullable<Text>,
     matrix_user_id -> Nullable<Text>,
+    bio -> Nullable<Text>,
+    local -> Bool,
     admin -> Bool,
     banned -> Bool,
     show_avatars -> Bool,
@@ -46,10 +52,13 @@ table! {
 #[table_name = "user_view"]
 pub struct UserView {
   pub id: i32,
+  pub actor_id: String,
   pub name: String,
   pub avatar: Option<String>,
   pub email: Option<String>,
   pub matrix_user_id: Option<String>,
+  pub bio: Option<String>,
+  pub local: bool,
   pub admin: bool,
   pub banned: bool,
   pub show_avatars: bool,

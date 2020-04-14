@@ -47,7 +47,9 @@ pub fn make_apub_endpoint(endpoint_type: EndpointType, name: &str) -> Url {
     EndpointType::Community => "c",
     EndpointType::User => "u",
     EndpointType::Post => "p",
-    EndpointType::Comment => todo!(),
+    // TODO I have to change this else my update advanced_migrations crashes the
+    // server if a comment exists.
+    EndpointType::Comment => "comment",
   };
 
   Url::parse(&format!(
