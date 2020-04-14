@@ -3,8 +3,9 @@ use crate::db::community::Community;
 use crate::db::post::Post;
 use crate::db::user::User_;
 use crate::db::Crud;
-use activitystreams::activity::{Create, Update};
+use activitystreams::activity::{Accept, Create, Follow, Update};
 use activitystreams::object::properties::ObjectProperties;
+use activitystreams::BaseBox;
 use activitystreams::{context, public};
 use diesel::PgConnection;
 use failure::Error;
@@ -28,25 +29,35 @@ fn populate_object_props(
   Ok(())
 }
 
-fn send_activity<A>(activity: &A) -> Result<(), Error>
+fn send_activity<A>(activity: &A, to: Vec<String>) -> Result<(), Error>
 where
   A: Serialize + Debug,
 {
   let json = serde_json::to_string(&activity)?;
-  for i in get_following_instances() {
-    // TODO: need to send this to the inbox of following users
-    let inbox = format!(
-      "{}://{}/federation/inbox",
-      get_apub_protocol_string(),
-      i.domain
-    );
-    let res = Request::post(inbox)
+  println!("sending data {}", json);
+  for t in to {
+    println!("to: {}", t);
+    let res = Request::post(t)
       .header("Content-Type", "application/json")
       .body(json.to_owned())?
       .send()?;
     dbg!(res);
   }
   Ok(())
+}
+
+fn get_followers(_community: &Community) -> Vec<String> {
+  // TODO: this is wrong, needs to go to the (non-local) followers of the community
+  get_following_instances()
+    .iter()
+    .map(|i| {
+      format!(
+        "{}://{}/federation/inbox",
+        get_apub_protocol_string(),
+        i.domain
+      )
+    })
+    .collect()
 }
 
 pub fn post_create(post: &Post, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
@@ -62,7 +73,7 @@ pub fn post_create(post: &Post, creator: &User_, conn: &PgConnection) -> Result<
     .create_props
     .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
     .set_object_base_box(page)?;
-  send_activity(&create)?;
+  send_activity(&create, get_followers(&community))?;
   Ok(())
 }
 
@@ -79,6 +90,54 @@ pub fn post_update(post: &Post, creator: &User_, conn: &PgConnection) -> Result<
     .update_props
     .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
     .set_object_base_box(page)?;
-  send_activity(&update)?;
+  send_activity(&update, get_followers(&community))?;
+  Ok(())
+}
+
+pub fn follow_community(
+  community: &Community,
+  user: &User_,
+  _conn: &PgConnection,
+) -> Result<(), Error> {
+  let mut follow = Follow::new();
+  follow
+    .object_props
+    .set_context_xsd_any_uri(context())?
+    // TODO: needs proper id
+    .set_id(user.actor_id.clone())?;
+  follow
+    .follow_props
+    .set_actor_xsd_any_uri(user.actor_id.clone())?
+    .set_object_xsd_any_uri(community.actor_id.clone())?;
+  let to = format!("{}/inbox", community.actor_id);
+  send_activity(&follow, vec![to])?;
+  Ok(())
+}
+
+pub fn accept_follow(follow: &Follow) -> Result<(), Error> {
+  let mut accept = Accept::new();
+  accept
+    .object_props
+    .set_context_xsd_any_uri(context())?
+    // TODO: needs proper id
+    .set_id(
+      follow
+        .follow_props
+        .get_actor_xsd_any_uri()
+        .unwrap()
+        .to_string(),
+    )?;
+  accept
+    .accept_props
+    .set_object_base_box(BaseBox::from_concrete(follow.clone())?)?;
+  let to = format!(
+    "{}/inbox",
+    follow
+      .follow_props
+      .get_actor_xsd_any_uri()
+      .unwrap()
+      .to_string()
+  );
+  send_activity(&accept, vec![to])?;
   Ok(())
 }

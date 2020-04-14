@@ -39,8 +39,6 @@ async fn main() -> Result<(), Error> {
   // Set up websocket server
   let server = ChatServer::startup(pool.clone()).start();
 
-  // TODO: its probably failing because the other instance is not up yet
-  //       need to make a new thread and wait a bit before fetching
   thread::spawn(move || {
     // some work here
     sleep(Duration::from_secs(5));
