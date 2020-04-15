@@ -3,6 +3,7 @@ set -e
 
 if [ "$1" = "-yarn" ]; then
   pushd ../../ui/ || exit
+  yarn
   yarn build
   popd || exit
 fi

@@ -1,5 +1,5 @@
-use crate::apub::{get_apub_protocol_string, get_following_instances};
 use crate::db::community::Community;
+use crate::db::community_view::CommunityFollowerView;
 use crate::db::post::Post;
 use crate::db::user::User_;
 use crate::db::Crud;
@@ -46,18 +46,14 @@ where
   Ok(())
 }
 
-fn get_followers(_community: &Community) -> Vec<String> {
-  // TODO: this is wrong, needs to go to the (non-local) followers of the community
-  get_following_instances()
-    .iter()
-    .map(|i| {
-      format!(
-        "{}://{}/federation/inbox",
-        get_apub_protocol_string(),
-        i.domain
-      )
-    })
-    .collect()
+fn get_followers(conn: &PgConnection, community: &Community) -> Result<Vec<String>, Error> {
+  Ok(
+    CommunityFollowerView::for_community(conn, community.id)?
+      .iter()
+      .filter(|c| !c.user_local)
+      .map(|c| format!("{}/inbox", c.user_actor_id.to_owned()))
+      .collect(),
+  )
 }
 
 pub fn post_create(post: &Post, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
@@ -73,7 +69,7 @@ pub fn post_create(post: &Post, creator: &User_, conn: &PgConnection) -> Result<
     .create_props
     .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
     .set_object_base_box(page)?;
-  send_activity(&create, get_followers(&community))?;
+  send_activity(&create, get_followers(conn, &community)?)?;
   Ok(())
 }
 
@@ -90,7 +86,7 @@ pub fn post_update(post: &Post, creator: &User_, conn: &PgConnection) -> Result<
     .update_props
     .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
     .set_object_base_box(page)?;
-  send_activity(&update, get_followers(&community))?;
+  send_activity(&update, get_followers(conn, &community)?)?;
   Ok(())
 }
 
