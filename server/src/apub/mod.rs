@@ -1,10 +1,11 @@
 pub mod activities;
 pub mod community;
+pub mod community_inbox;
 pub mod fetcher;
-pub mod inbox;
 pub mod post;
 pub mod signatures;
 pub mod user;
+pub mod user_inbox;
 use crate::apub::signatures::PublicKeyExtension;
 use crate::Settings;
 use activitystreams::actor::{properties::ApActorProperties, Group, Person};
