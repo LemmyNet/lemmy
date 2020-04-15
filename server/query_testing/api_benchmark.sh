@@ -15,6 +15,12 @@ declare -a arr=(
 "/api/v1/post/list?sort=Hot&type_=All"
 )
 
+## check if ab installed
+if ! [ -x "$(command -v ab)" ]; then
+  echo 'Error: ab (Apache Bench) is not installed. https://httpd.apache.org/docs/2.4/programs/ab.html' >&2
+  exit 1
+fi
+
 ## now loop through the above array
 for path in "${arr[@]}"
 do
