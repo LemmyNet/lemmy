@@ -1,11 +1,12 @@
 // For this example, we'll use the Extensible trait, the Extension trait, the Actor trait, and
 // the Person type
 use activitystreams::{actor::Actor, ext::Extension};
+use serde::{Deserialize, Serialize};
 
 // The following is taken from here:
 // https://docs.rs/activitystreams/0.5.0-alpha.17/activitystreams/ext/index.html
 
-#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicKey {
   pub id: String,
@@ -13,7 +14,7 @@ pub struct PublicKey {
   pub public_key_pem: String,
 }
 
-#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicKeyExtension {
   pub public_key: PublicKey,
