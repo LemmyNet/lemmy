@@ -9,23 +9,22 @@ use crate::db::user_view::UserView;
 use crate::db::{Crud, SearchType};
 use crate::routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use crate::settings::Settings;
-use activitystreams::collection::{OrderedCollection, UnorderedCollection};
+use activitystreams::collection::OrderedCollection;
 use activitystreams::object::Page;
 use activitystreams::BaseBox;
 use diesel::result::Error::NotFound;
 use diesel::PgConnection;
 use failure::Error;
 use isahc::prelude::*;
-use log::warn;
 use serde::Deserialize;
 use std::time::Duration;
 use url::Url;
 
-fn fetch_node_info(instance: &Instance) -> Result<NodeInfo, Error> {
+fn _fetch_node_info(domain: &str) -> Result<NodeInfo, Error> {
   let well_known_uri = Url::parse(&format!(
     "{}://{}/.well-known/nodeinfo",
     get_apub_protocol_string(),
-    instance.domain
+    domain
   ))?;
   let well_known = fetch_remote_object::<NodeInfoWellKnown>(&well_known_uri)?;
   Ok(fetch_remote_object::<NodeInfo>(&well_known.links.href)?)
@@ -59,22 +58,6 @@ fn upsert_post(post_form: &PostForm, conn: &PgConnection) -> Result<Post, Error>
     Ok(p) => Ok(Post::update(conn, p.id, &post_form)?),
     Err(e) => Err(Error::from(e)),
   }
-}
-
-fn fetch_communities_from_instance(
-  community_list: &Url,
-  conn: &PgConnection,
-) -> Result<Vec<Community>, Error> {
-  fetch_remote_object::<UnorderedCollection>(community_list)?
-    .collection_props
-    .get_many_items_base_boxes()
-    .unwrap()
-    .map(|b| -> Result<CommunityForm, Error> {
-      let group = b.to_owned().to_concrete::<GroupExt>()?;
-      Ok(CommunityForm::from_group(&group, conn)?)
-    })
-    .map(|cf| upsert_community(&cf?, conn))
-    .collect()
 }
 
 // TODO: add an optional param last_updated and only fetch if its too old
@@ -126,6 +109,7 @@ pub fn search_by_apub_id(query: &str, conn: &PgConnection) -> Result<SearchRespo
     }
     SearchAcceptedObjects::Group(g) => {
       let c = upsert_community(&CommunityForm::from_group(&g, conn)?, conn)?;
+      fetch_community_outbox(&c, conn)?;
       response.communities = vec![CommunityView::read(conn, c.id, None)?];
     }
     SearchAcceptedObjects::Page(p) => {
@@ -133,14 +117,10 @@ pub fn search_by_apub_id(query: &str, conn: &PgConnection) -> Result<SearchRespo
       response.posts = vec![PostView::read(conn, p.id, None)?];
     }
   }
-  dbg!(&response);
   Ok(response)
 }
 
-fn fetch_remote_community_posts(
-  community: &Community,
-  conn: &PgConnection,
-) -> Result<Vec<Post>, Error> {
+fn fetch_community_outbox(community: &Community, conn: &PgConnection) -> Result<Vec<Post>, Error> {
   let outbox_url = Url::parse(&community.get_outbox_url())?;
   let outbox = fetch_remote_object::<OrderedCollection>(&outbox_url)?;
   let items = outbox.collection_props.get_many_items_base_boxes();
@@ -167,24 +147,4 @@ pub fn fetch_remote_community(apub_id: &Url, conn: &PgConnection) -> Result<Comm
   let group = fetch_remote_object::<GroupExt>(apub_id)?;
   let cf = CommunityForm::from_group(&group, conn)?;
   upsert_community(&cf, conn)
-}
-
-// TODO: in the future, this should only be done when an instance is followed for the first time
-//       after that, we should rely in the inbox, and fetch on demand when needed
-pub fn fetch_all(conn: &PgConnection) -> Result<(), Error> {
-  for instance in &get_following_instances() {
-    let node_info = fetch_node_info(instance)?;
-    if let Some(community_list) = node_info.metadata.community_list_url {
-      let communities = fetch_communities_from_instance(&community_list, conn)?;
-      for c in communities {
-        fetch_remote_community_posts(&c, conn)?;
-      }
-    } else {
-      warn!(
-        "{} is not a Lemmy instance, federation is not supported",
-        instance.domain
-      );
-    }
-  }
-  Ok(())
 }
