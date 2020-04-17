@@ -7,28 +7,38 @@ use actix_web::{web, HttpResponse};
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use failure::Error;
+use log::debug;
+use serde::Deserialize;
 use url::Url;
 
 #[serde(untagged)]
-#[derive(serde::Deserialize)]
+#[derive(Deserialize, Debug)]
 pub enum CommunityAcceptedObjects {
   Follow(Follow),
 }
 
+#[derive(Deserialize)]
+pub struct Params {
+  community_name: String,
+}
+
 pub async fn community_inbox(
   input: web::Json<CommunityAcceptedObjects>,
+  params: web::Query<Params>,
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
 ) -> Result<HttpResponse, Error> {
   let input = input.into_inner();
   let conn = &db.get().unwrap();
+  debug!(
+    "Community {} received activity {:?}",
+    &params.community_name, &input
+  );
   match input {
     CommunityAcceptedObjects::Follow(f) => handle_follow(&f, conn),
   }
 }
 
 fn handle_follow(follow: &Follow, conn: &PgConnection) -> Result<HttpResponse, Error> {
-  println!("received follow: {:?}", &follow);
-
   // TODO: make sure this is a local community
   let community_uri = follow
     .follow_props
@@ -42,7 +52,6 @@ fn handle_follow(follow: &Follow, conn: &PgConnection) -> Result<HttpResponse, E
     .unwrap()
     .to_string();
   let user = fetch_remote_user(&Url::parse(&user_uri)?, conn)?;
-  // TODO: insert ID of the user into follows of the community
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,
     user_id: user.id,

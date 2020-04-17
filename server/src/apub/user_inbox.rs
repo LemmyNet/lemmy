@@ -6,21 +6,31 @@ use actix_web::{web, HttpResponse};
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use failure::Error;
+use log::debug;
+use serde::Deserialize;
 
 #[serde(untagged)]
-#[derive(serde::Deserialize)]
+#[derive(Deserialize, Debug)]
 pub enum UserAcceptedObjects {
   Create(Create),
   Update(Update),
   Accept(Accept),
 }
 
+#[derive(Deserialize)]
+pub struct Params {
+  user_name: String,
+}
+
 pub async fn user_inbox(
   input: web::Json<UserAcceptedObjects>,
+  params: web::Query<Params>,
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
 ) -> Result<HttpResponse, Error> {
   let input = input.into_inner();
   let conn = &db.get().unwrap();
+  debug!("User {} received activity: {:?}", &params.user_name, &input);
+
   match input {
     UserAcceptedObjects::Create(c) => handle_create(&c, conn),
     UserAcceptedObjects::Update(u) => handle_update(&u, conn),
@@ -57,8 +67,8 @@ fn handle_update(update: &Update, conn: &PgConnection) -> Result<HttpResponse, E
   Ok(HttpResponse::Ok().finish())
 }
 
-fn handle_accept(accept: &Accept, _conn: &PgConnection) -> Result<HttpResponse, Error> {
-  println!("received accept: {:?}", &accept);
+fn handle_accept(_accept: &Accept, _conn: &PgConnection) -> Result<HttpResponse, Error> {
+  // TODO: make sure that we actually requested a follow
   // TODO: at this point, indicate to the user that they are following the community
   Ok(HttpResponse::Ok().finish())
 }
