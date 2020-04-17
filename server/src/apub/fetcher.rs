@@ -8,7 +8,6 @@ use crate::db::user::{UserForm, User_};
 use crate::db::user_view::UserView;
 use crate::db::{Crud, SearchType};
 use crate::routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
-use crate::settings::Settings;
 use activitystreams::collection::OrderedCollection;
 use activitystreams::object::Page;
 use activitystreams::BaseBox;
@@ -68,8 +67,8 @@ pub fn fetch_remote_object<Response>(url: &Url) -> Result<Response, Error>
 where
   Response: for<'de> Deserialize<'de>,
 {
-  if Settings::get().federation.tls_enabled && url.scheme() != "https" {
-    return Err(format_err!("Activitypub uri is insecure: {}", url));
+  if !is_apub_id_valid(&url.to_string()) {
+    return Err(format_err!("Activitypub uri invalid or blocked: {}", url));
   }
   // TODO: this function should return a future
   let timeout = Duration::from_secs(60);
@@ -86,7 +85,7 @@ where
 
 /// The types of ActivityPub objects that can be fetched directly by searching for their ID.
 #[serde(untagged)]
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug)]
 pub enum SearchAcceptedObjects {
   Person(Box<PersonExt>),
   Group(Box<GroupExt>),

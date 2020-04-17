@@ -88,3 +88,26 @@ pub fn gen_keypair_str() -> (String, String) {
 fn vec_bytes_to_str(bytes: Vec<u8>) -> String {
   String::from_utf8_lossy(&bytes).into_owned()
 }
+
+// Checks if the ID has a valid format, correct scheme, and is in the whitelist.
+fn is_apub_id_valid(apub_id: &str) -> bool {
+  let url = match Url::parse(apub_id) {
+    Ok(u) => u,
+    Err(_) => return false,
+  };
+
+  if url.scheme() != get_apub_protocol_string() {
+    return false;
+  }
+
+  let whitelist: Vec<String> = Settings::get()
+    .federation
+    .instance_whitelist
+    .split(',')
+    .map(|d| d.to_string())
+    .collect();
+  match url.domain() {
+    Some(d) => whitelist.contains(&d.to_owned()),
+    None => false,
+  }
+}

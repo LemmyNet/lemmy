@@ -64,6 +64,7 @@ pub struct Database {
 pub struct Federation {
   pub enabled: bool,
   pub tls_enabled: bool,
+  pub instance_whitelist: String,
 }
 
 lazy_static! {
