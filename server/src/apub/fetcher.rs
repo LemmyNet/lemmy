@@ -1,8 +1,12 @@
+use crate::api::site::SearchResponse;
 use crate::apub::*;
 use crate::db::community::{Community, CommunityForm};
+use crate::db::community_view::CommunityView;
 use crate::db::post::{Post, PostForm};
+use crate::db::post_view::PostView;
 use crate::db::user::{UserForm, User_};
-use crate::db::Crud;
+use crate::db::user_view::UserView;
+use crate::db::{Crud, SearchType};
 use crate::routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use crate::settings::Settings;
 use activitystreams::collection::{OrderedCollection, UnorderedCollection};
@@ -27,6 +31,36 @@ fn fetch_node_info(instance: &Instance) -> Result<NodeInfo, Error> {
   Ok(fetch_remote_object::<NodeInfo>(&well_known.links.href)?)
 }
 
+// TODO: move these to db
+fn upsert_community(
+  community_form: &CommunityForm,
+  conn: &PgConnection,
+) -> Result<Community, Error> {
+  let existing = Community::read_from_actor_id(conn, &community_form.actor_id);
+  match existing {
+    Err(NotFound {}) => Ok(Community::create(conn, &community_form)?),
+    Ok(c) => Ok(Community::update(conn, c.id, &community_form)?),
+    Err(e) => Err(Error::from(e)),
+  }
+}
+fn upsert_user(user_form: &UserForm, conn: &PgConnection) -> Result<User_, Error> {
+  let existing = User_::read_from_apub_id(conn, &user_form.actor_id);
+  Ok(match existing {
+    Err(NotFound {}) => User_::create(conn, &user_form)?,
+    Ok(u) => User_::update(conn, u.id, &user_form)?,
+    Err(e) => return Err(Error::from(e)),
+  })
+}
+
+fn upsert_post(post_form: &PostForm, conn: &PgConnection) -> Result<Post, Error> {
+  let existing = Post::read_from_apub_id(conn, &post_form.ap_id);
+  match existing {
+    Err(NotFound {}) => Ok(Post::create(conn, &post_form)?),
+    Ok(p) => Ok(Post::update(conn, p.id, &post_form)?),
+    Err(e) => Err(Error::from(e)),
+  }
+}
+
 fn fetch_communities_from_instance(
   community_list: &Url,
   conn: &PgConnection,
@@ -39,17 +73,7 @@ fn fetch_communities_from_instance(
       let group = b.to_owned().to_concrete::<GroupExt>()?;
       Ok(CommunityForm::from_group(&group, conn)?)
     })
-    .map(
-      |cf: Result<CommunityForm, Error>| -> Result<Community, Error> {
-        let cf2 = cf?;
-        let existing = Community::read_from_actor_id(conn, &cf2.actor_id);
-        match existing {
-          Err(NotFound {}) => Ok(Community::create(conn, &cf2)?),
-          Ok(c) => Ok(Community::update(conn, c.id, &cf2)?),
-          Err(e) => Err(Error::from(e)),
-        }
-      },
-    )
+    .map(|cf| upsert_community(&cf?, conn))
     .collect()
 }
 
@@ -74,6 +98,45 @@ where
   Ok(res)
 }
 
+#[serde(untagged)]
+#[derive(serde::Deserialize)]
+pub enum SearchAcceptedObjects {
+  Person(Box<PersonExt>),
+  Group(Box<GroupExt>),
+  Page(Box<Page>),
+}
+
+pub fn search_by_apub_id(query: &str, conn: &PgConnection) -> Result<SearchResponse, Error> {
+  let query_url = Url::parse(&query)?;
+  let mut response = SearchResponse {
+    type_: SearchType::All.to_string(),
+    comments: vec![],
+    posts: vec![],
+    communities: vec![],
+    users: vec![],
+  };
+  // test with:
+  // http://lemmy_alpha:8540/federation/c/main
+  // http://lemmy_alpha:8540/federation/u/lemmy_alpha
+  // http://lemmy_alpha:8540/federation/p/3
+  match fetch_remote_object::<SearchAcceptedObjects>(&query_url)? {
+    SearchAcceptedObjects::Person(p) => {
+      let u = upsert_user(&UserForm::from_person(&p)?, conn)?;
+      response.users = vec![UserView::read(conn, u.id)?];
+    }
+    SearchAcceptedObjects::Group(g) => {
+      let c = upsert_community(&CommunityForm::from_group(&g, conn)?, conn)?;
+      response.communities = vec![CommunityView::read(conn, c.id, None)?];
+    }
+    SearchAcceptedObjects::Page(p) => {
+      let p = upsert_post(&PostForm::from_page(&p, conn)?, conn)?;
+      response.posts = vec![PostView::read(conn, p.id, None)?];
+    }
+  }
+  dbg!(&response);
+  Ok(response)
+}
+
 fn fetch_remote_community_posts(
   community: &Community,
   conn: &PgConnection,
@@ -89,39 +152,21 @@ fn fetch_remote_community_posts(
         let page = obox.clone().to_concrete::<Page>()?;
         PostForm::from_page(&page, conn)
       })
-      .map(|pf: Result<PostForm, Error>| -> Result<Post, Error> {
-        let pf2 = pf?;
-        let existing = Post::read_from_apub_id(conn, &pf2.ap_id);
-        match existing {
-          Err(NotFound {}) => Ok(Post::create(conn, &pf2)?),
-          Ok(p) => Ok(Post::update(conn, p.id, &pf2)?),
-          Err(e) => Err(Error::from(e)),
-        }
-      })
+      .map(|pf| upsert_post(&pf?, conn))
       .collect::<Result<Vec<Post>, Error>>()?,
   )
 }
 
-// TODO: can probably merge these two methods?
 pub fn fetch_remote_user(apub_id: &Url, conn: &PgConnection) -> Result<User_, Error> {
   let person = fetch_remote_object::<PersonExt>(apub_id)?;
   let uf = UserForm::from_person(&person)?;
-  let existing = User_::read_from_apub_id(conn, &uf.actor_id);
-  Ok(match existing {
-    Err(NotFound {}) => User_::create(conn, &uf)?,
-    Ok(u) => User_::update(conn, u.id, &uf)?,
-    Err(e) => return Err(Error::from(e)),
-  })
+  upsert_user(&uf, conn)
 }
+
 pub fn fetch_remote_community(apub_id: &Url, conn: &PgConnection) -> Result<Community, Error> {
   let group = fetch_remote_object::<GroupExt>(apub_id)?;
   let cf = CommunityForm::from_group(&group, conn)?;
-  let existing = Community::read_from_actor_id(conn, &cf.actor_id);
-  Ok(match existing {
-    Err(NotFound {}) => Community::create(conn, &cf)?,
-    Ok(u) => Community::update(conn, u.id, &cf)?,
-    Err(e) => return Err(Error::from(e)),
-  })
+  upsert_community(&cf, conn)
 }
 
 // TODO: in the future, this should only be done when an instance is followed for the first time
