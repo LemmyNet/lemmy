@@ -17,22 +17,18 @@ pub enum CommunityAcceptedObjects {
   Follow(Follow),
 }
 
-#[derive(Deserialize)]
-pub struct Params {
-  community_name: String,
-}
-
 /// Handler for all incoming activities to community inboxes.
 pub async fn community_inbox(
   input: web::Json<CommunityAcceptedObjects>,
-  params: web::Query<Params>,
+  path: web::Path<String>,
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
 ) -> Result<HttpResponse, Error> {
   let input = input.into_inner();
   let conn = &db.get().unwrap();
   debug!(
     "Community {} received activity {:?}",
-    &params.community_name, &input
+    &path.into_inner(),
+    &input
   );
   match input {
     CommunityAcceptedObjects::Follow(f) => handle_follow(&f, conn),

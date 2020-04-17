@@ -1,3 +1,4 @@
+use crate::apub::is_apub_id_valid;
 use crate::db::community::Community;
 use crate::db::community_view::CommunityFollowerView;
 use crate::db::post::Post;
@@ -36,9 +37,12 @@ where
   A: Serialize + Debug,
 {
   let json = serde_json::to_string(&activity)?;
-  debug!("Sending activitypub activity {}", json);
+  debug!("Sending activitypub activity {} to {:?}", json, to);
   for t in to {
-    debug!("Sending activity to: {}", t);
+    if is_apub_id_valid(&t) {
+      debug!("Not sending activity to {} (invalid or blacklisted)", t);
+      continue;
+    }
     let res = Request::post(t)
       .header("Content-Type", "application/json")
       .body(json.to_owned())?

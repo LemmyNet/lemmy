@@ -17,20 +17,19 @@ pub enum UserAcceptedObjects {
   Accept(Accept),
 }
 
-#[derive(Deserialize)]
-pub struct Params {
-  user_name: String,
-}
-
 /// Handler for all incoming activities to user inboxes.
 pub async fn user_inbox(
   input: web::Json<UserAcceptedObjects>,
-  params: web::Query<Params>,
+  path: web::Path<String>,
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
 ) -> Result<HttpResponse, Error> {
   let input = input.into_inner();
   let conn = &db.get().unwrap();
-  debug!("User {} received activity: {:?}", &params.user_name, &input);
+  debug!(
+    "User {} received activity: {:?}",
+    &path.into_inner(),
+    &input
+  );
 
   match input {
     UserAcceptedObjects::Create(c) => handle_create(&c, conn),
