@@ -63,7 +63,6 @@ pub struct Database {
 #[derive(Debug, Deserialize, Clone)]
 pub struct Federation {
   pub enabled: bool,
-  pub followed_instances: String,
   pub tls_enabled: bool,
 }
 

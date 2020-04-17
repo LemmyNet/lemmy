@@ -27,10 +27,6 @@ pub enum EndpointType {
   Comment,
 }
 
-pub struct Instance {
-  domain: String,
-}
-
 fn create_apub_response<T>(json: &T) -> HttpResponse<Body>
 where
   T: serde::ser::Serialize,
@@ -91,15 +87,4 @@ pub fn gen_keypair_str() -> (String, String) {
 
 fn vec_bytes_to_str(bytes: Vec<u8>) -> String {
   String::from_utf8_lossy(&bytes).into_owned()
-}
-
-pub fn get_following_instances() -> Vec<Instance> {
-  Settings::get()
-    .federation
-    .followed_instances
-    .split(',')
-    .map(|i| Instance {
-      domain: i.to_string(),
-    })
-    .collect()
 }

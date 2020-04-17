@@ -6,10 +6,6 @@ pub fn config(cfg: &mut web::ServiceConfig) {
   if Settings::get().federation.enabled {
     println!("federation enabled, host is {}", Settings::get().hostname);
     cfg
-      .route(
-        "/federation/communities",
-        web::get().to(apub::community::get_apub_community_list),
-      )
       // TODO: check the user/community params for these
       .route(
         "/federation/c/{_}/inbox",

@@ -7,15 +7,10 @@ use actix_web::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use failure::Error;
-use lemmy_server::apub::fetcher::fetch_all;
 use lemmy_server::db::code_migrations::run_advanced_migrations;
 use lemmy_server::routes::{api, federation, feeds, index, nodeinfo, webfinger, websocket};
 use lemmy_server::settings::Settings;
 use lemmy_server::websocket::server::*;
-use log::warn;
-use std::thread;
-use std::thread::sleep;
-use std::time::Duration;
 
 embed_migrations!();
 
@@ -38,16 +33,6 @@ async fn main() -> Result<(), Error> {
 
   // Set up websocket server
   let server = ChatServer::startup(pool.clone()).start();
-
-  thread::spawn(move || {
-    // some work here
-    sleep(Duration::from_secs(5));
-    println!("Fetching apub data");
-    match fetch_all(&conn) {
-      Ok(_) => {}
-      Err(e) => warn!("Error during apub fetch: {}", e),
-    }
-  });
 
   println!(
     "Starting http server at {}:{}",

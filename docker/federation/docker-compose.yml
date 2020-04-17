@@ -24,7 +24,6 @@ services:
       - LEMMY_JWT_SECRET=changeme
       - LEMMY_FRONT_END_DIR=/app/dist
       - LEMMY_FEDERATION__ENABLED=true
-      - LEMMY_FEDERATION__FOLLOWED_INSTANCES=lemmy_beta:8550
       - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_PORT=8540
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_alpha
@@ -58,7 +57,6 @@ services:
       - LEMMY_JWT_SECRET=changeme
       - LEMMY_FRONT_END_DIR=/app/dist
       - LEMMY_FEDERATION__ENABLED=true
-      - LEMMY_FEDERATION__FOLLOWED_INSTANCES=lemmy_alpha:8540
       - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_PORT=8550
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_beta

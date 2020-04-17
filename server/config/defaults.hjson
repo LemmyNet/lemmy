@@ -54,8 +54,6 @@
   federation: {
     # whether to enable activitypub federation. this feature is in alpha, do not enable in production.
     enabled: false
-    # comma seperated list of instances to follow
-    followed_instances: ""
     # whether tls is required for activitypub. only disable this for debugging, never for producion.
     tls_enabled: true
   }
