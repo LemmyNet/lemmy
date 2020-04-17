@@ -20,6 +20,7 @@ use serde::Deserialize;
 use std::time::Duration;
 use url::Url;
 
+// Fetch nodeinfo metadata from a remote instance.
 fn _fetch_node_info(domain: &str) -> Result<NodeInfo, Error> {
   let well_known_uri = Url::parse(&format!(
     "{}://{}/.well-known/nodeinfo",
@@ -60,7 +61,9 @@ fn upsert_post(post_form: &PostForm, conn: &PgConnection) -> Result<Post, Error>
   }
 }
 
-// TODO: add an optional param last_updated and only fetch if its too old
+/// Fetch any type of ActivityPub object, handling things like HTTP headers, deserialisation,
+/// timeouts etc.
+/// TODO: add an optional param last_updated and only fetch if its too old
 pub fn fetch_remote_object<Response>(url: &Url) -> Result<Response, Error>
 where
   Response: for<'de> Deserialize<'de>,
@@ -81,6 +84,7 @@ where
   Ok(res)
 }
 
+/// The types of ActivityPub objects that can be fetched directly by searching for their ID.
 #[serde(untagged)]
 #[derive(serde::Deserialize)]
 pub enum SearchAcceptedObjects {
@@ -89,6 +93,12 @@ pub enum SearchAcceptedObjects {
   Page(Box<Page>),
 }
 
+/// Attempt to parse the query as URL, and fetch an ActivityPub object from it.
+///
+/// Some working examples for use with the docker/federation/ setup:
+/// http://lemmy_alpha:8540/federation/c/main
+/// http://lemmy_alpha:8540/federation/u/lemmy_alpha
+/// http://lemmy_alpha:8540/federation/p/3
 pub fn search_by_apub_id(query: &str, conn: &PgConnection) -> Result<SearchResponse, Error> {
   let query_url = Url::parse(&query)?;
   let mut response = SearchResponse {
@@ -98,10 +108,6 @@ pub fn search_by_apub_id(query: &str, conn: &PgConnection) -> Result<SearchRespo
     communities: vec![],
     users: vec![],
   };
-  // test with:
-  // http://lemmy_alpha:8540/federation/c/main
-  // http://lemmy_alpha:8540/federation/u/lemmy_alpha
-  // http://lemmy_alpha:8540/federation/p/3
   match fetch_remote_object::<SearchAcceptedObjects>(&query_url)? {
     SearchAcceptedObjects::Person(p) => {
       let u = upsert_user(&UserForm::from_person(&p)?, conn)?;
@@ -120,6 +126,7 @@ pub fn search_by_apub_id(query: &str, conn: &PgConnection) -> Result<SearchRespo
   Ok(response)
 }
 
+/// Fetch all posts in the outbox of the given user, and insert them into the database.
 fn fetch_community_outbox(community: &Community, conn: &PgConnection) -> Result<Vec<Post>, Error> {
   let outbox_url = Url::parse(&community.get_outbox_url())?;
   let outbox = fetch_remote_object::<OrderedCollection>(&outbox_url)?;
@@ -137,12 +144,14 @@ fn fetch_community_outbox(community: &Community, conn: &PgConnection) -> Result<
   )
 }
 
+/// Fetch a user, insert/update it in the database and return the user.
 pub fn fetch_remote_user(apub_id: &Url, conn: &PgConnection) -> Result<User_, Error> {
   let person = fetch_remote_object::<PersonExt>(apub_id)?;
   let uf = UserForm::from_person(&person)?;
   upsert_user(&uf, conn)
 }
 
+/// Fetch a community, insert/update it in the database and return the community.
 pub fn fetch_remote_community(apub_id: &Url, conn: &PgConnection) -> Result<Community, Error> {
   let group = fetch_remote_object::<GroupExt>(apub_id)?;
   let cf = CommunityForm::from_group(&group, conn)?;

@@ -22,6 +22,7 @@ pub struct Params {
   user_name: String,
 }
 
+/// Handler for all incoming activities to user inboxes.
 pub async fn user_inbox(
   input: web::Json<UserAcceptedObjects>,
   params: web::Query<Params>,
@@ -38,6 +39,7 @@ pub async fn user_inbox(
   }
 }
 
+/// Handle create activities and insert them in the database.
 fn handle_create(create: &Create, conn: &PgConnection) -> Result<HttpResponse, Error> {
   let page = create
     .create_props
@@ -52,6 +54,7 @@ fn handle_create(create: &Create, conn: &PgConnection) -> Result<HttpResponse, E
   Ok(HttpResponse::Ok().finish())
 }
 
+/// Handle update activities and insert them in the database.
 fn handle_update(update: &Update, conn: &PgConnection) -> Result<HttpResponse, Error> {
   let page = update
     .update_props
@@ -67,6 +70,7 @@ fn handle_update(update: &Update, conn: &PgConnection) -> Result<HttpResponse, E
   Ok(HttpResponse::Ok().finish())
 }
 
+/// Handle accepted follows.
 fn handle_accept(_accept: &Accept, _conn: &PgConnection) -> Result<HttpResponse, Error> {
   // TODO: make sure that we actually requested a follow
   // TODO: at this point, indicate to the user that they are following the community

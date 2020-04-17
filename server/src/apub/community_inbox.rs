@@ -22,6 +22,7 @@ pub struct Params {
   community_name: String,
 }
 
+/// Handler for all incoming activities to community inboxes.
 pub async fn community_inbox(
   input: web::Json<CommunityAcceptedObjects>,
   params: web::Query<Params>,
@@ -38,6 +39,8 @@ pub async fn community_inbox(
   }
 }
 
+/// Handle a follow request from a remote user, adding it to the local database and returning an
+/// Accept activity.
 fn handle_follow(follow: &Follow, conn: &PgConnection) -> Result<HttpResponse, Error> {
   // TODO: make sure this is a local community
   let community_uri = follow

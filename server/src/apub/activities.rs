@@ -30,6 +30,7 @@ fn populate_object_props(
   Ok(())
 }
 
+/// Send an activity to a list of recipients, using the correct headers etc.
 fn send_activity<A>(activity: &A, to: Vec<String>) -> Result<(), Error>
 where
   A: Serialize + Debug,
@@ -47,7 +48,8 @@ where
   Ok(())
 }
 
-fn get_followers(conn: &PgConnection, community: &Community) -> Result<Vec<String>, Error> {
+/// For a given community, returns the inboxes of all followers.
+fn get_follower_inboxes(conn: &PgConnection, community: &Community) -> Result<Vec<String>, Error> {
   Ok(
     CommunityFollowerView::for_community(conn, community.id)?
       .iter()
@@ -57,6 +59,7 @@ fn get_followers(conn: &PgConnection, community: &Community) -> Result<Vec<Strin
   )
 }
 
+/// Send out information about a newly created post, to the followers of the community.
 pub fn post_create(post: &Post, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
   let page = post.as_page(conn)?;
   let community = Community::read(conn, post.community_id)?;
@@ -70,10 +73,11 @@ pub fn post_create(post: &Post, creator: &User_, conn: &PgConnection) -> Result<
     .create_props
     .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
     .set_object_base_box(page)?;
-  send_activity(&create, get_followers(conn, &community)?)?;
+  send_activity(&create, get_follower_inboxes(conn, &community)?)?;
   Ok(())
 }
 
+/// Send out information about an edited post, to the followers of the community.
 pub fn post_update(post: &Post, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
   let page = post.as_page(conn)?;
   let community = Community::read(conn, post.community_id)?;
@@ -87,10 +91,11 @@ pub fn post_update(post: &Post, creator: &User_, conn: &PgConnection) -> Result<
     .update_props
     .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
     .set_object_base_box(page)?;
-  send_activity(&update, get_followers(conn, &community)?)?;
+  send_activity(&update, get_follower_inboxes(conn, &community)?)?;
   Ok(())
 }
 
+/// As a given local user, send out a follow request to a remote community.
 pub fn follow_community(
   community: &Community,
   user: &User_,
@@ -111,6 +116,7 @@ pub fn follow_community(
   Ok(())
 }
 
+/// As a local community, accept the follow request from a remote user.
 pub fn accept_follow(follow: &Follow) -> Result<(), Error> {
   let mut accept = Accept::new();
   accept
