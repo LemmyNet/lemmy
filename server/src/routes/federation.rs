@@ -37,7 +37,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
       )
       .route(
         "/federation/p/{post_id}",
-        web::get().to(apub::user::get_apub_user),
+        web::get().to(apub::post::get_apub_post),
       );
   }
 }

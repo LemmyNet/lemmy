@@ -1,9 +1,10 @@
 use super::*;
 use crate::api::user::Register;
 use crate::api::{Oper, Perform};
+use crate::apub::fetcher::search_by_apub_id;
 use crate::settings::Settings;
 use diesel::PgConnection;
-use log::info;
+use log::{debug, info};
 use std::str::FromStr;
 
 #[derive(Serialize, Deserialize)]
@@ -14,7 +15,7 @@ pub struct ListCategoriesResponse {
   categories: Vec<Category>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Search {
   q: String,
   type_: String,
@@ -25,13 +26,13 @@ pub struct Search {
   auth: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SearchResponse {
-  type_: String,
-  comments: Vec<CommentView>,
-  posts: Vec<PostView>,
-  communities: Vec<CommunityView>,
-  users: Vec<UserView>,
+  pub type_: String,
+  pub comments: Vec<CommentView>,
+  pub posts: Vec<PostView>,
+  pub communities: Vec<CommunityView>,
+  pub users: Vec<UserView>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -353,6 +354,12 @@ impl Perform<GetSiteResponse> for Oper<GetSite> {
 impl Perform<SearchResponse> for Oper<Search> {
   fn perform(&self, conn: &PgConnection) -> Result<SearchResponse, Error> {
     let data: &Search = &self.data;
+
+    dbg!(&data);
+    match search_by_apub_id(&data.q, conn) {
+      Ok(r) => return Ok(r),
+      Err(e) => debug!("Failed to resolve search query as activitypub ID: {}", e),
+    }
 
     let user_id: Option<i32> = match &data.auth {
       Some(auth) => match Claims::decode(&auth) {
