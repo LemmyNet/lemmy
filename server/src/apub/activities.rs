@@ -11,6 +11,7 @@ use diesel::PgConnection;
 use failure::Error;
 use failure::_core::fmt::Debug;
 use isahc::prelude::*;
+use log::debug;
 use serde::Serialize;
 
 fn populate_object_props(
@@ -34,14 +35,14 @@ where
   A: Serialize + Debug,
 {
   let json = serde_json::to_string(&activity)?;
-  println!("sending data {}", json);
+  debug!("Sending activitypub activity {}", json);
   for t in to {
-    println!("to: {}", t);
+    debug!("Sending activity to: {}", t);
     let res = Request::post(t)
       .header("Content-Type", "application/json")
       .body(json.to_owned())?
       .send()?;
-    dbg!(res);
+    debug!("Result for activity send: {:?}", res);
   }
   Ok(())
 }

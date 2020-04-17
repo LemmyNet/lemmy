@@ -8,11 +8,11 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     cfg
       // TODO: check the user/community params for these
       .route(
-        "/federation/c/{_}/inbox",
+        "/federation/c/{community_name}/inbox",
         web::post().to(apub::community_inbox::community_inbox),
       )
       .route(
-        "/federation/u/{_}/inbox",
+        "/federation/u/{user_name}/inbox",
         web::post().to(apub::user_inbox::user_inbox),
       )
       .route(
