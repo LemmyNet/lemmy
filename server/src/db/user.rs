@@ -1,4 +1,5 @@
 use super::*;
+use crate::apub::signatures::Keypair;
 use crate::schema::user_;
 use crate::schema::user_::dsl::*;
 use crate::{is_email_regex, naive_now, Settings};
@@ -123,6 +124,21 @@ impl User_ {
   pub fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
     use crate::schema::user_::dsl::*;
     user_.filter(actor_id.eq(object_id)).first::<Self>(conn)
+  }
+
+  pub fn get_keypair(&self) -> Option<Keypair> {
+    if let Some(private) = self.private_key.to_owned() {
+      if let Some(public) = self.public_key.to_owned() {
+        Some(Keypair {
+          private_key: private,
+          public_key: public,
+        })
+      } else {
+        None
+      }
+    } else {
+      None
+    }
   }
 }
 

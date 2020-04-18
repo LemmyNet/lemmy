@@ -1,6 +1,7 @@
 use super::*;
 use crate::apub::activities::follow_community;
-use crate::apub::{gen_keypair_str, make_apub_endpoint, EndpointType};
+use crate::apub::signatures::generate_actor_keypair;
+use crate::apub::{make_apub_endpoint, EndpointType};
 use diesel::PgConnection;
 use std::str::FromStr;
 
@@ -200,7 +201,7 @@ impl Perform<CommunityResponse> for Oper<CreateCommunity> {
     }
 
     // When you create a community, make sure the user becomes a moderator and a follower
-    let (community_public_key, community_private_key) = gen_keypair_str();
+    let keypair = generate_actor_keypair();
 
     let community_form = CommunityForm {
       name: data.name.to_owned(),
@@ -214,8 +215,8 @@ impl Perform<CommunityResponse> for Oper<CreateCommunity> {
       updated: None,
       actor_id: make_apub_endpoint(EndpointType::Community, &data.name).to_string(),
       local: true,
-      private_key: Some(community_private_key),
-      public_key: Some(community_public_key),
+      private_key: Some(keypair.private_key),
+      public_key: Some(keypair.public_key),
       last_refreshed_at: None,
       published: None,
     };

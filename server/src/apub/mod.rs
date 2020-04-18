@@ -12,7 +12,6 @@ use activitystreams::actor::{properties::ApActorProperties, Group, Person};
 use activitystreams::ext::Ext;
 use actix_web::body::Body;
 use actix_web::HttpResponse;
-use openssl::{pkey::PKey, rsa::Rsa};
 use serde::ser::Serialize;
 use url::Url;
 
@@ -72,31 +71,9 @@ pub fn get_apub_protocol_string() -> &'static str {
   }
 }
 
-/// Generate the asymmetric keypair for ActivityPub HTTP signatures.
-pub fn gen_keypair_str() -> (String, String) {
-  let rsa = Rsa::generate(2048).expect("sign::gen_keypair: key generation error");
-  let pkey = PKey::from_rsa(rsa).expect("sign::gen_keypair: parsing error");
-  let public_key = pkey
-    .public_key_to_pem()
-    .expect("sign::gen_keypair: public key encoding error");
-  let private_key = pkey
-    .private_key_to_pem_pkcs8()
-    .expect("sign::gen_keypair: private key encoding error");
-  (vec_bytes_to_str(public_key), vec_bytes_to_str(private_key))
-}
-
-fn vec_bytes_to_str(bytes: Vec<u8>) -> String {
-  String::from_utf8_lossy(&bytes).into_owned()
-}
-
 // Checks if the ID has a valid format, correct scheme, and is in the whitelist.
-fn is_apub_id_valid(apub_id: &str) -> bool {
-  let url = match Url::parse(apub_id) {
-    Ok(u) => u,
-    Err(_) => return false,
-  };
-
-  if url.scheme() != get_apub_protocol_string() {
+fn is_apub_id_valid(apub_id: &Url) -> bool {
+  if apub_id.scheme() != get_apub_protocol_string() {
     return false;
   }
 
@@ -106,7 +83,7 @@ fn is_apub_id_valid(apub_id: &str) -> bool {
     .split(',')
     .map(|d| d.to_string())
     .collect();
-  match url.domain() {
+  match apub_id.domain() {
     Some(d) => whitelist.contains(&d.to_owned()),
     None => false,
   }
