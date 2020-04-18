@@ -39,7 +39,7 @@ where
   let json = serde_json::to_string(&activity)?;
   debug!("Sending activitypub activity {} to {:?}", json, to);
   for t in to {
-    if is_apub_id_valid(&t) {
+    if !is_apub_id_valid(&t) {
       debug!("Not sending activity to {} (invalid or blacklisted)", t);
       continue;
     }
