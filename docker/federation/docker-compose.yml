@@ -65,7 +65,7 @@ services:
       - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
       - LEMMY_SETUP__SITE_NAME=lemmy_beta
       - RUST_BACKTRACE=1
-      - RUST_LOG=actix_web=debug
+      - RUST_LOG=debug
     restart: always
     depends_on:
       - postgres_beta
