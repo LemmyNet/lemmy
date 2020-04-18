@@ -4,7 +4,8 @@ use super::community::{Community, CommunityForm};
 use super::post::Post;
 use super::user::{UserForm, User_};
 use super::*;
-use crate::apub::{gen_keypair_str, make_apub_endpoint, EndpointType};
+use crate::apub::signatures::generate_actor_keypair;
+use crate::apub::{make_apub_endpoint, EndpointType};
 use crate::naive_now;
 use log::info;
 
@@ -29,7 +30,7 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), Error> {
     .load::<User_>(conn)?;
 
   for cuser in &incorrect_users {
-    let (user_public_key, user_private_key) = gen_keypair_str();
+    let keypair = generate_actor_keypair();
 
     let form = UserForm {
       name: cuser.name.to_owned(),
@@ -51,8 +52,8 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), Error> {
       actor_id: make_apub_endpoint(EndpointType::User, &cuser.name).to_string(),
       bio: cuser.bio.to_owned(),
       local: cuser.local,
-      private_key: Some(user_private_key),
-      public_key: Some(user_public_key),
+      private_key: Some(keypair.private_key),
+      public_key: Some(keypair.public_key),
       last_refreshed_at: Some(naive_now()),
     };
 
@@ -76,7 +77,7 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), Error> {
     .load::<Community>(conn)?;
 
   for ccommunity in &incorrect_communities {
-    let (community_public_key, community_private_key) = gen_keypair_str();
+    let keypair = generate_actor_keypair();
 
     let form = CommunityForm {
       name: ccommunity.name.to_owned(),
@@ -90,8 +91,8 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), Error> {
       updated: None,
       actor_id: make_apub_endpoint(EndpointType::Community, &ccommunity.name).to_string(),
       local: ccommunity.local,
-      private_key: Some(community_private_key),
-      public_key: Some(community_public_key),
+      private_key: Some(keypair.private_key),
+      public_key: Some(keypair.public_key),
       last_refreshed_at: Some(naive_now()),
       published: None,
     };

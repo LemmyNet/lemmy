@@ -56,6 +56,6 @@ fn handle_follow(follow: &Follow, conn: &PgConnection) -> Result<HttpResponse, E
     user_id: user.id,
   };
   CommunityFollower::follow(&conn, &community_follower_form)?;
-  accept_follow(&follow)?;
+  accept_follow(&follow, conn)?;
   Ok(HttpResponse::Ok().finish())
 }

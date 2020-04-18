@@ -1,5 +1,6 @@
 use super::*;
-use crate::apub::{gen_keypair_str, make_apub_endpoint, EndpointType};
+use crate::apub::signatures::generate_actor_keypair;
+use crate::apub::{make_apub_endpoint, EndpointType};
 use crate::settings::Settings;
 use crate::{generate_random_string, send_email};
 use bcrypt::verify;
@@ -251,7 +252,7 @@ impl Perform<LoginResponse> for Oper<Register> {
       return Err(APIError::err("admin_already_created").into());
     }
 
-    let (user_public_key, user_private_key) = gen_keypair_str();
+    let keypair = generate_actor_keypair();
 
     // Register the new user
     let user_form = UserForm {
@@ -274,8 +275,8 @@ impl Perform<LoginResponse> for Oper<Register> {
       actor_id: make_apub_endpoint(EndpointType::User, &data.username).to_string(),
       bio: None,
       local: true,
-      private_key: Some(user_private_key),
-      public_key: Some(user_public_key),
+      private_key: Some(keypair.private_key),
+      public_key: Some(keypair.public_key),
       last_refreshed_at: None,
     };
 
@@ -295,7 +296,7 @@ impl Perform<LoginResponse> for Oper<Register> {
       }
     };
 
-    let (community_public_key, community_private_key) = gen_keypair_str();
+    let keypair = generate_actor_keypair();
 
     // Create the main community if it doesn't exist
     let main_community: Community = match Community::read(&conn, 2) {
@@ -314,8 +315,8 @@ impl Perform<LoginResponse> for Oper<Register> {
           updated: None,
           actor_id: make_apub_endpoint(EndpointType::Community, default_community_name).to_string(),
           local: true,
-          private_key: Some(community_private_key),
-          public_key: Some(community_public_key),
+          private_key: Some(keypair.private_key),
+          public_key: Some(keypair.public_key),
           last_refreshed_at: None,
           published: None,
         };

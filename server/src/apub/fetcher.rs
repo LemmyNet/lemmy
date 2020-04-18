@@ -67,7 +67,7 @@ pub fn fetch_remote_object<Response>(url: &Url) -> Result<Response, Error>
 where
   Response: for<'de> Deserialize<'de>,
 {
-  if !is_apub_id_valid(&url.to_string()) {
+  if !is_apub_id_valid(&url) {
     return Err(format_err!("Activitypub uri invalid or blocked: {}", url));
   }
   // TODO: this function should return a future
