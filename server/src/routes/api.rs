@@ -1,16 +1,9 @@
+use super::*;
 use crate::api::comment::*;
 use crate::api::community::*;
 use crate::api::post::*;
 use crate::api::site::*;
 use crate::api::user::*;
-use crate::api::{Oper, Perform};
-use actix_web::{web, HttpResponse};
-use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::PgConnection;
-use failure::Error;
-use serde::Serialize;
-
-type DbParam = web::Data<Pool<ConnectionManager<PgConnection>>>;
 
 #[rustfmt::skip]
 pub fn config(cfg: &mut web::ServiceConfig) {
@@ -66,40 +59,64 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route("/api/v1/user/save_user_settings", web::put().to(route_post::<SaveUserSettings, LoginResponse>));
 }
 
-fn perform<Request, Response>(data: Request, db: DbParam) -> Result<HttpResponse, Error>
+fn perform<Request, Response>(
+  data: Request,
+  db: DbPoolParam,
+  rate_limit_param: RateLimitParam,
+  chat_server: ChatServerParam,
+  req: HttpRequest,
+) -> Result<HttpResponse, Error>
 where
   Response: Serialize,
   Oper<Request>: Perform<Response>,
 {
-  let conn = match db.get() {
-    Ok(c) => c,
-    Err(e) => return Err(format_err!("{}", e)),
+  let ws_info = WebsocketInfo {
+    chatserver: chat_server.get_ref().to_owned(),
+    id: None,
   };
+
+  let rate_limit_info = RateLimitInfo {
+    rate_limiter: rate_limit_param.get_ref().to_owned(),
+    ip: get_ip(&req),
+  };
+
   let oper: Oper<Request> = Oper::new(data);
-  let response = oper.perform(&conn);
-  Ok(HttpResponse::Ok().json(response?))
+
+  let res = oper.perform(
+    db.get_ref().to_owned(),
+    Some(ws_info),
+    Some(rate_limit_info),
+  );
+
+  Ok(HttpResponse::Ok().json(res?))
 }
 
 async fn route_get<Data, Response>(
   data: web::Query<Data>,
-  db: DbParam,
+  db: DbPoolParam,
+  rate_limit_param: RateLimitParam,
+  chat_server: ChatServerParam,
+  req: HttpRequest,
 ) -> Result<HttpResponse, Error>
 where
   Data: Serialize,
   Response: Serialize,
   Oper<Data>: Perform<Response>,
 {
-  perform::<Data, Response>(data.0, db)
+  perform::<Data, Response>(data.0, db, rate_limit_param, chat_server, req)
 }
 
 async fn route_post<Data, Response>(
   data: web::Json<Data>,
-  db: DbParam,
+  db: DbPoolParam,
+  rate_limit_param: RateLimitParam,
+  chat_server: ChatServerParam,
+  req: HttpRequest,
 ) -> Result<HttpResponse, Error>
 where
   Data: Serialize,
   Response: Serialize,
   Oper<Data>: Perform<Response>,
 {
-  perform::<Data, Response>(data.0, db)
+  perform::<Data, Response>(data.0, db, rate_limit_param, chat_server, req)
 }

@@ -6,16 +6,6 @@ use crate::db::site_view::SiteView;
 use crate::db::user::{Claims, User_};
 use crate::db::user_mention_view::{UserMentionQueryBuilder, UserMentionView};
 use crate::db::{ListingType, SortType};
-use crate::{markdown_to_html, Settings};
-use actix_web::{web, HttpResponse, Result};
-use chrono::{DateTime, NaiveDateTime, Utc};
-use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::PgConnection;
-use failure::Error;
-use rss::{CategoryBuilder, ChannelBuilder, GuidBuilder, Item, ItemBuilder};
-use serde::Deserialize;
-use std::str::FromStr;
-use strum::ParseError;
 
 #[derive(Deserialize)]
 pub struct Params {

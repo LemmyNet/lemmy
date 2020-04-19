@@ -2,33 +2,16 @@
 //! And manages available rooms. Peers send messages to other peers in same
 //! room through `ChatServer`.
 
-use actix::prelude::*;
-use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
-use diesel::PgConnection;
-use failure::Error;
-use log::{error, info, warn};
-use rand::{rngs::ThreadRng, Rng};
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use std::collections::{HashMap, HashSet};
-use std::str::FromStr;
-use std::time::SystemTime;
-use strum::IntoEnumIterator;
-
+use super::*;
 use crate::api::comment::*;
 use crate::api::community::*;
 use crate::api::post::*;
 use crate::api::site::*;
 use crate::api::user::*;
 use crate::api::*;
+use crate::rate_limit::{rate_limiter::RateLimiter, RateLimitInfo};
 use crate::websocket::UserOperation;
-use crate::Settings;
-
-type ConnectionId = usize;
-type PostId = i32;
-type CommunityId = i32;
-type UserId = i32;
-type IPAddr = String;
+use crate::{CommunityId, ConnectionId, IPAddr, PostId, UserId};
 
 /// Chat server sends this messages to session
 #[derive(Message)]
@@ -53,6 +36,7 @@ pub struct Disconnect {
   pub ip: IPAddr,
 }
 
+/// The messages sent to websocket clients
 #[derive(Serialize, Deserialize, Message)]
 #[rtype(String)]
 pub struct StandardMessage {
@@ -62,10 +46,83 @@ pub struct StandardMessage {
   pub msg: String,
 }
 
-#[derive(Debug)]
-pub struct RateLimitBucket {
-  last_checked: SystemTime,
-  allowance: f64,
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct SendAllMessage<Response> {
+  pub op: UserOperation,
+  pub response: Response,
+  pub my_id: Option<ConnectionId>,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct SendUserRoomMessage<Response> {
+  pub op: UserOperation,
+  pub response: Response,
+  pub recipient_id: UserId,
+  pub my_id: Option<ConnectionId>,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct SendCommunityRoomMessage<Response> {
+  pub op: UserOperation,
+  pub response: Response,
+  pub community_id: CommunityId,
+  pub my_id: Option<ConnectionId>,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct SendPost {
+  pub op: UserOperation,
+  pub post: PostResponse,
+  pub my_id: Option<ConnectionId>,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct SendComment {
+  pub op: UserOperation,
+  pub comment: CommentResponse,
+  pub my_id: Option<ConnectionId>,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct JoinUserRoom {
+  pub user_id: UserId,
+  pub id: ConnectionId,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct JoinCommunityRoom {
+  pub community_id: CommunityId,
+  pub id: ConnectionId,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct JoinPostRoom {
+  pub post_id: PostId,
+  pub id: ConnectionId,
+}
+
+#[derive(Message)]
+#[rtype(usize)]
+pub struct GetUsersOnline;
+
+#[derive(Message)]
+#[rtype(usize)]
+pub struct GetPostUsersOnline {
+  pub post_id: PostId,
+}
+
+#[derive(Message)]
+#[rtype(usize)]
+pub struct GetCommunityUsersOnline {
+  pub community_id: CommunityId,
 }
 
 pub struct SessionInfo {
@@ -73,50 +130,48 @@ pub struct SessionInfo {
   pub ip: IPAddr,
 }
 
-#[derive(Eq, PartialEq, Hash, Debug, EnumIter, Copy, Clone)]
-pub enum RateLimitType {
-  Message,
-  Register,
-  Post,
-}
-
 /// `ChatServer` manages chat rooms and responsible for coordinating chat
 /// session.
 pub struct ChatServer {
   /// A map from generated random ID to session addr
-  sessions: HashMap<ConnectionId, SessionInfo>,
+  pub sessions: HashMap<ConnectionId, SessionInfo>,
 
   /// A map from post_id to set of connectionIDs
-  post_rooms: HashMap<PostId, HashSet<ConnectionId>>,
+  pub post_rooms: HashMap<PostId, HashSet<ConnectionId>>,
 
   /// A map from community to set of connectionIDs
-  community_rooms: HashMap<CommunityId, HashSet<ConnectionId>>,
+  pub community_rooms: HashMap<CommunityId, HashSet<ConnectionId>>,
 
   /// A map from user id to its connection ID for joined users. Remember a user can have multiple
   /// sessions (IE clients)
   user_rooms: HashMap<UserId, HashSet<ConnectionId>>,
 
-  /// Rate limiting based on rate type and IP addr
-  rate_limit_buckets: HashMap<RateLimitType, HashMap<IPAddr, RateLimitBucket>>,
-
   rng: ThreadRng,
-  db: Pool<ConnectionManager<PgConnection>>,
+
+  /// The DB Pool
+  pool: Pool<ConnectionManager<PgConnection>>,
+
+  /// Rate limiting based on rate type and IP addr
+  rate_limiter: Arc<Mutex<RateLimiter>>,
 }
 
 impl ChatServer {
-  pub fn startup(db: Pool<ConnectionManager<PgConnection>>) -> ChatServer {
+  pub fn startup(
+    pool: Pool<ConnectionManager<PgConnection>>,
+    rate_limiter: Arc<Mutex<RateLimiter>>,
+  ) -> ChatServer {
     ChatServer {
       sessions: HashMap::new(),
-      rate_limit_buckets: HashMap::new(),
       post_rooms: HashMap::new(),
       community_rooms: HashMap::new(),
       user_rooms: HashMap::new(),
       rng: rand::thread_rng(),
-      db,
+      pool,
+      rate_limiter,
     }
   }
 
-  fn join_community_room(&mut self, community_id: CommunityId, id: ConnectionId) {
+  pub fn join_community_room(&mut self, community_id: CommunityId, id: ConnectionId) {
     // remove session from all rooms
     for sessions in self.community_rooms.values_mut() {
       sessions.remove(&id);
@@ -140,7 +195,7 @@ impl ChatServer {
       .insert(id);
   }
 
-  fn join_post_room(&mut self, post_id: PostId, id: ConnectionId) {
+  pub fn join_post_room(&mut self, post_id: PostId, id: ConnectionId) {
     // remove session from all rooms
     for sessions in self.post_rooms.values_mut() {
       sessions.remove(&id);
@@ -160,7 +215,7 @@ impl ChatServer {
     self.post_rooms.get_mut(&post_id).unwrap().insert(id);
   }
 
-  fn join_user_room(&mut self, user_id: UserId, id: ConnectionId) {
+  pub fn join_user_room(&mut self, user_id: UserId, id: ConnectionId) {
     // remove session from all rooms
     for sessions in self.user_rooms.values_mut() {
       sessions.remove(&id);
@@ -174,200 +229,508 @@ impl ChatServer {
     self.user_rooms.get_mut(&user_id).unwrap().insert(id);
   }
 
-  fn send_post_room_message(&self, post_id: PostId, message: &str, skip_id: ConnectionId) {
+  fn send_post_room_message<Response>(
+    &self,
+    op: &UserOperation,
+    response: &Response,
+    post_id: PostId,
+    my_id: Option<ConnectionId>,
+  ) -> Result<(), Error>
+  where
+    Response: Serialize,
+  {
+    let res_str = &to_json_string(op, response)?;
     if let Some(sessions) = self.post_rooms.get(&post_id) {
       for id in sessions {
-        if *id != skip_id {
-          if let Some(info) = self.sessions.get(id) {
-            let _ = info.addr.do_send(WSMessage(message.to_owned()));
+        if let Some(my_id) = my_id {
+          if *id == my_id {
+            continue;
           }
         }
+        self.sendit(res_str, *id);
       }
     }
+    Ok(())
   }
 
-  fn send_community_room_message(
+  pub fn send_community_room_message<Response>(
     &self,
+    op: &UserOperation,
+    response: &Response,
     community_id: CommunityId,
-    message: &str,
-    skip_id: ConnectionId,
-  ) {
+    my_id: Option<ConnectionId>,
+  ) -> Result<(), Error>
+  where
+    Response: Serialize,
+  {
+    let res_str = &to_json_string(op, response)?;
     if let Some(sessions) = self.community_rooms.get(&community_id) {
       for id in sessions {
-        if *id != skip_id {
-          if let Some(info) = self.sessions.get(id) {
-            let _ = info.addr.do_send(WSMessage(message.to_owned()));
+        if let Some(my_id) = my_id {
+          if *id == my_id {
+            continue;
           }
         }
+        self.sendit(res_str, *id);
       }
     }
+    Ok(())
   }
 
-  fn send_user_room_message(&self, user_id: UserId, message: &str, skip_id: ConnectionId) {
-    if let Some(sessions) = self.user_rooms.get(&user_id) {
-      for id in sessions {
-        if *id != skip_id {
-          if let Some(info) = self.sessions.get(id) {
-            let _ = info.addr.do_send(WSMessage(message.to_owned()));
-          }
-        }
-      }
-    }
-  }
-
-  fn send_all_message(&self, message: &str, skip_id: ConnectionId) {
-    for id in self.sessions.keys() {
-      if *id != skip_id {
-        if let Some(info) = self.sessions.get(id) {
-          let _ = info.addr.do_send(WSMessage(message.to_owned()));
-        }
-      }
-    }
-  }
-
-  fn comment_sends(
+  pub fn send_all_message<Response>(
     &self,
-    user_operation: UserOperation,
-    comment: CommentResponse,
-    id: ConnectionId,
-  ) -> Result<String, Error> {
+    op: &UserOperation,
+    response: &Response,
+    my_id: Option<ConnectionId>,
+  ) -> Result<(), Error>
+  where
+    Response: Serialize,
+  {
+    let res_str = &to_json_string(op, response)?;
+    for id in self.sessions.keys() {
+      if let Some(my_id) = my_id {
+        if *id == my_id {
+          continue;
+        }
+      }
+      self.sendit(res_str, *id);
+    }
+    Ok(())
+  }
+
+  pub fn send_user_room_message<Response>(
+    &self,
+    op: &UserOperation,
+    response: &Response,
+    recipient_id: UserId,
+    my_id: Option<ConnectionId>,
+  ) -> Result<(), Error>
+  where
+    Response: Serialize,
+  {
+    let res_str = &to_json_string(op, response)?;
+    if let Some(sessions) = self.user_rooms.get(&recipient_id) {
+      for id in sessions {
+        if let Some(my_id) = my_id {
+          if *id == my_id {
+            continue;
+          }
+        }
+        self.sendit(res_str, *id);
+      }
+    }
+    Ok(())
+  }
+
+  pub fn send_comment(
+    &self,
+    user_operation: &UserOperation,
+    comment: &CommentResponse,
+    my_id: Option<ConnectionId>,
+  ) -> Result<(), Error> {
     let mut comment_reply_sent = comment.clone();
     comment_reply_sent.comment.my_vote = None;
     comment_reply_sent.comment.user_id = None;
 
-    // For the post room ones, and the directs back to the user
-    // strip out the recipient_ids, so that
-    // users don't get double notifs
-    let mut comment_user_sent = comment.clone();
-    comment_user_sent.recipient_ids = Vec::new();
-
     let mut comment_post_sent = comment_reply_sent.clone();
     comment_post_sent.recipient_ids = Vec::new();
 
-    let comment_reply_sent_str = to_json_string(&user_operation, &comment_reply_sent)?;
-    let comment_post_sent_str = to_json_string(&user_operation, &comment_post_sent)?;
-    let comment_user_sent_str = to_json_string(&user_operation, &comment_user_sent)?;
-
     // Send it to the post room
-    self.send_post_room_message(comment.comment.post_id, &comment_post_sent_str, id);
+    self.send_post_room_message(
+      user_operation,
+      &comment_post_sent,
+      comment_post_sent.comment.post_id,
+      my_id,
+    )?;
 
     // Send it to the recipient(s) including the mentioned users
-    for recipient_id in comment_reply_sent.recipient_ids {
-      self.send_user_room_message(recipient_id, &comment_reply_sent_str, id);
+    for recipient_id in &comment_reply_sent.recipient_ids {
+      self.send_user_room_message(user_operation, &comment_reply_sent, *recipient_id, my_id)?;
     }
 
     // Send it to the community too
-    self.send_community_room_message(0, &comment_post_sent_str, id);
-    self.send_community_room_message(comment.comment.community_id, &comment_post_sent_str, id);
+    self.send_community_room_message(user_operation, &comment_post_sent, 0, my_id)?;
+    self.send_community_room_message(
+      user_operation,
+      &comment_post_sent,
+      comment.comment.community_id,
+      my_id,
+    )?;
 
-    Ok(comment_user_sent_str)
+    Ok(())
   }
 
-  fn post_sends(
+  pub fn send_post(
     &self,
-    user_operation: UserOperation,
-    post: PostResponse,
-    id: ConnectionId,
-  ) -> Result<String, Error> {
+    user_operation: &UserOperation,
+    post: &PostResponse,
+    my_id: Option<ConnectionId>,
+  ) -> Result<(), Error> {
     let community_id = post.post.community_id;
 
     // Don't send my data with it
     let mut post_sent = post.clone();
     post_sent.post.my_vote = None;
     post_sent.post.user_id = None;
-    let post_sent_str = to_json_string(&user_operation, &post_sent)?;
 
     // Send it to /c/all and that community
-    self.send_community_room_message(0, &post_sent_str, id);
-    self.send_community_room_message(community_id, &post_sent_str, id);
+    self.send_community_room_message(user_operation, &post_sent, 0, my_id)?;
+    self.send_community_room_message(user_operation, &post_sent, community_id, my_id)?;
 
     // Send it to the post room
-    self.send_post_room_message(post_sent.post.id, &post_sent_str, id);
+    self.send_post_room_message(user_operation, &post_sent, post.post.id, my_id)?;
 
-    to_json_string(&user_operation, post)
+    Ok(())
   }
 
-  fn check_rate_limit_register(&mut self, id: usize, check_only: bool) -> Result<(), Error> {
-    self.check_rate_limit_full(
-      RateLimitType::Register,
-      id,
-      Settings::get().rate_limit.register,
-      Settings::get().rate_limit.register_per_second,
-      check_only,
-    )
-  }
-
-  fn check_rate_limit_post(&mut self, id: usize, check_only: bool) -> Result<(), Error> {
-    self.check_rate_limit_full(
-      RateLimitType::Post,
-      id,
-      Settings::get().rate_limit.post,
-      Settings::get().rate_limit.post_per_second,
-      check_only,
-    )
-  }
-
-  fn check_rate_limit_message(&mut self, id: usize, check_only: bool) -> Result<(), Error> {
-    self.check_rate_limit_full(
-      RateLimitType::Message,
-      id,
-      Settings::get().rate_limit.message,
-      Settings::get().rate_limit.message_per_second,
-      check_only,
-    )
-  }
-
-  #[allow(clippy::float_cmp)]
-  fn check_rate_limit_full(
-    &mut self,
-    type_: RateLimitType,
-    id: usize,
-    rate: i32,
-    per: i32,
-    check_only: bool,
-  ) -> Result<(), Error> {
+  fn sendit(&self, message: &str, id: ConnectionId) {
     if let Some(info) = self.sessions.get(&id) {
-      if let Some(bucket) = self.rate_limit_buckets.get_mut(&type_) {
-        if let Some(rate_limit) = bucket.get_mut(&info.ip) {
-          let current = SystemTime::now();
-          let time_passed = current.duration_since(rate_limit.last_checked)?.as_secs() as f64;
+      let _ = info.addr.do_send(WSMessage(message.to_owned()));
+    }
+  }
 
-          // The initial value
-          if rate_limit.allowance == -2f64 {
-            rate_limit.allowance = rate as f64;
-          };
+  fn do_user_operation<'a, Data, Response>(
+    &self,
+    id: ConnectionId,
+    ip: IPAddr,
+    op: UserOperation,
+    data: &str,
+    ctx: &mut Context<Self>,
+  ) -> Result<String, Error>
+  where
+    for<'de> Data: Deserialize<'de> + 'a,
+    Response: Serialize,
+    Oper<Data>: Perform<Response>,
+  {
+    let parsed_data: Data = serde_json::from_str(data)?;
 
-          rate_limit.last_checked = current;
-          rate_limit.allowance += time_passed * (rate as f64 / per as f64);
-          if !check_only && rate_limit.allowance > rate as f64 {
-            rate_limit.allowance = rate as f64;
-          }
+    let ws_info = WebsocketInfo {
+      chatserver: ctx.address(),
+      id: Some(id),
+    };
 
-          if rate_limit.allowance < 1.0 {
-            warn!(
-              "Rate limited IP: {}, time_passed: {}, allowance: {}",
-              &info.ip, time_passed, rate_limit.allowance
-            );
-            Err(
-              APIError {
-                message: format!("Too many requests. {} per {} seconds", rate, per),
-              }
-              .into(),
-            )
-          } else {
-            if !check_only {
-              rate_limit.allowance -= 1.0;
-            }
-            Ok(())
-          }
-        } else {
-          Ok(())
-        }
-      } else {
-        Ok(())
+    let rate_limit_info = RateLimitInfo {
+      rate_limiter: self.rate_limiter.clone(),
+      ip,
+    };
+
+    let new_pool = self.pool.clone();
+    let res = Oper::new(parsed_data).perform(new_pool, Some(ws_info), Some(rate_limit_info))?;
+    to_json_string(&op, &res)
+  }
+
+  fn parse_json_message(
+    &mut self,
+    msg: StandardMessage,
+    ctx: &mut Context<Self>,
+  ) -> Result<String, Error> {
+    let json: Value = serde_json::from_str(&msg.msg)?;
+    let data = &json["data"].to_string();
+    let op = &json["op"].as_str().ok_or(APIError {
+      message: "Unknown op type".to_string(),
+    })?;
+
+    let user_operation: UserOperation = UserOperation::from_str(&op)?;
+
+    let ip: IPAddr = match self.sessions.get(&msg.id) {
+      Some(info) => info.ip.to_owned(),
+      None => "blank_ip".to_string(),
+    };
+
+    match user_operation {
+      // User ops
+      UserOperation::Login => {
+        self.do_user_operation::<Login, LoginResponse>(msg.id, ip, user_operation, data, ctx)
       }
-    } else {
-      Ok(())
+      UserOperation::Register => {
+        self.do_user_operation::<Register, LoginResponse>(msg.id, ip, user_operation, data, ctx)
+      }
+      UserOperation::GetUserDetails => self
+        .do_user_operation::<GetUserDetails, GetUserDetailsResponse>(
+          msg.id,
+          ip,
+          user_operation,
+          data,
+          ctx,
+        ),
+      UserOperation::GetReplies => self.do_user_operation::<GetReplies, GetRepliesResponse>(
+        msg.id,
+        ip,
+        user_operation,
+        data,
+        ctx,
+      ),
+      UserOperation::AddAdmin => {
+        self.do_user_operation::<AddAdmin, AddAdminResponse>(msg.id, ip, user_operation, data, ctx)
+      }
+      UserOperation::BanUser => {
+        self.do_user_operation::<BanUser, BanUserResponse>(msg.id, ip, user_operation, data, ctx)
+      }
+      UserOperation::GetUserMentions => self
+        .do_user_operation::<GetUserMentions, GetUserMentionsResponse>(
+          msg.id,
+          ip,
+          user_operation,
+          data,
+          ctx,
+        ),
+      UserOperation::EditUserMention => self
+        .do_user_operation::<EditUserMention, UserMentionResponse>(
+          msg.id,
+          ip,
+          user_operation,
+          data,
+          ctx,
+        ),
+      UserOperation::MarkAllAsRead => self.do_user_operation::<MarkAllAsRead, GetRepliesResponse>(
+        msg.id,
+        ip,
+        user_operation,
+        data,
+        ctx,
+      ),
+      UserOperation::DeleteAccount => self.do_user_operation::<DeleteAccount, LoginResponse>(
+        msg.id,
+        ip,
+        user_operation,
+        data,
+        ctx,
+      ),
+      UserOperation::PasswordReset => self
+        .do_user_operation::<PasswordReset, PasswordResetResponse>(
+          msg.id,
+          ip,
+          user_operation,
+          data,
+          ctx,
+        ),
+      UserOperation::PasswordChange => self.do_user_operation::<PasswordChange, LoginResponse>(
+        msg.id,
+        ip,
+        user_operation,
+        data,
+        ctx,
+      ),
+      UserOperation::CreatePrivateMessage => self
+        .do_user_operation::<CreatePrivateMessage, PrivateMessageResponse>(
+          msg.id,
+          ip,
+          user_operation,
+          data,
+          ctx,
+        ),
+      UserOperation::EditPrivateMessage => self
+        .do_user_operation::<EditPrivateMessage, PrivateMessageResponse>(
+          msg.id,
+          ip,
+          user_operation,
+          data,
+          ctx,
+        ),
+      UserOperation::GetPrivateMessages => self
+        .do_user_operation::<GetPrivateMessages, PrivateMessagesResponse>(
+          msg.id,
+          ip,
+          user_operation,
+          data,
+          ctx,
+        ),
+      UserOperation::UserJoin => {
+        self.do_user_operation::<UserJoin, UserJoinResponse>(msg.id, ip, user_operation, data, ctx)
+      }
+      UserOperation::SaveUserSettings => self.do_user_operation::<SaveUserSettings, LoginResponse>(
+        msg.id,
+        ip,
+        user_operation,
+        data,
+        ctx,
+      ),
+
+      // Site ops
+      UserOperation::GetModlog => self.do_user_operation::<GetModlog, GetModlogResponse>(
+        msg.id,
+        ip,
+        user_operation,
+        data,
+        ctx,
+      ),
+      UserOperation::CreateSite => {
+        self.do_user_operation::<CreateSite, SiteResponse>(msg.id, ip, user_operation, data, ctx)
+      }
+      UserOperation::EditSite => {
+        self.do_user_operation::<EditSite, SiteResponse>(msg.id, ip, user_operation, data, ctx)
+      }
+      UserOperation::GetSite => {
+        self.do_user_operation::<GetSite, GetSiteResponse>(msg.id, ip, user_operation, data, ctx)
+      }
+      UserOperation::GetSiteConfig => self
+        .do_user_operation::<GetSiteConfig, GetSiteConfigResponse>(
+          msg.id,
+          ip,
+          user_operation,
+          data,
+          ctx,
+        ),
+      UserOperation::SaveSiteConfig => self
+        .do_user_operation::<SaveSiteConfig, GetSiteConfigResponse>(
+          msg.id,
+          ip,
+          user_operation,
+          data,
+          ctx,
+        ),
+      UserOperation::Search => {
+        self.do_user_operation::<Search, SearchResponse>(msg.id, ip, user_operation, data, ctx)
+      }
+      UserOperation::TransferCommunity => self
+        .do_user_operation::<TransferCommunity, GetCommunityResponse>(
+          msg.id,
+          ip,
+          user_operation,
+          data,
+          ctx,
+        ),
+      UserOperation::TransferSite => self.do_user_operation::<TransferSite, GetSiteResponse>(
+        msg.id,
+        ip,
+        user_operation,
+        data,
+        ctx,
+      ),
+      UserOperation::ListCategories => self
+        .do_user_operation::<ListCategories, ListCategoriesResponse>(
+          msg.id,
+          ip,
+          user_operation,
+          data,
+          ctx,
+        ),
+
+      // Community ops
+      UserOperation::GetCommunity => self.do_user_operation::<GetCommunity, GetCommunityResponse>(
+        msg.id,
+        ip,
+        user_operation,
+        data,
+        ctx,
+      ),
+      UserOperation::ListCommunities => self
+        .do_user_operation::<ListCommunities, ListCommunitiesResponse>(
+          msg.id,
+          ip,
+          user_operation,
+          data,
+          ctx,
+        ),
+      UserOperation::CreateCommunity => self
+        .do_user_operation::<CreateCommunity, CommunityResponse>(
+          msg.id,
+          ip,
+          user_operation,
+          data,
+          ctx,
+        ),
+      UserOperation::EditCommunity => self.do_user_operation::<EditCommunity, CommunityResponse>(
+        msg.id,
+        ip,
+        user_operation,
+        data,
+        ctx,
+      ),
+      UserOperation::FollowCommunity => self
+        .do_user_operation::<FollowCommunity, CommunityResponse>(
+          msg.id,
+          ip,
+          user_operation,
+          data,
+          ctx,
+        ),
+      UserOperation::GetFollowedCommunities => self
+        .do_user_operation::<GetFollowedCommunities, GetFollowedCommunitiesResponse>(
+          msg.id,
+          ip,
+          user_operation,
+          data,
+          ctx,
+        ),
+      UserOperation::BanFromCommunity => self
+        .do_user_operation::<BanFromCommunity, BanFromCommunityResponse>(
+          msg.id,
+          ip,
+          user_operation,
+          data,
+          ctx,
+        ),
+      UserOperation::AddModToCommunity => self
+        .do_user_operation::<AddModToCommunity, AddModToCommunityResponse>(
+          msg.id,
+          ip,
+          user_operation,
+          data,
+          ctx,
+        ),
+
+      // Post ops
+      UserOperation::CreatePost => {
+        self.do_user_operation::<CreatePost, PostResponse>(msg.id, ip, user_operation, data, ctx)
+      }
+      UserOperation::GetPost => {
+        self.do_user_operation::<GetPost, GetPostResponse>(msg.id, ip, user_operation, data, ctx)
+      }
+      UserOperation::GetPosts => {
+        self.do_user_operation::<GetPosts, GetPostsResponse>(msg.id, ip, user_operation, data, ctx)
+      }
+      UserOperation::EditPost => {
+        self.do_user_operation::<EditPost, PostResponse>(msg.id, ip, user_operation, data, ctx)
+      }
+      UserOperation::CreatePostLike => self.do_user_operation::<CreatePostLike, PostResponse>(
+        msg.id,
+        ip,
+        user_operation,
+        data,
+        ctx,
+      ),
+      UserOperation::SavePost => {
+        self.do_user_operation::<SavePost, PostResponse>(msg.id, ip, user_operation, data, ctx)
+      }
+
+      // Comment ops
+      UserOperation::CreateComment => self.do_user_operation::<CreateComment, CommentResponse>(
+        msg.id,
+        ip,
+        user_operation,
+        data,
+        ctx,
+      ),
+      UserOperation::EditComment => self.do_user_operation::<EditComment, CommentResponse>(
+        msg.id,
+        ip,
+        user_operation,
+        data,
+        ctx,
+      ),
+      UserOperation::SaveComment => self.do_user_operation::<SaveComment, CommentResponse>(
+        msg.id,
+        ip,
+        user_operation,
+        data,
+        ctx,
+      ),
+      UserOperation::GetComments => self.do_user_operation::<GetComments, GetCommentsResponse>(
+        msg.id,
+        ip,
+        user_operation,
+        data,
+        ctx,
+      ),
+      UserOperation::CreateCommentLike => self
+        .do_user_operation::<CreateCommentLike, CommentResponse>(
+          msg.id,
+          ip,
+          user_operation,
+          data,
+          ctx,
+        ),
     }
   }
 }
@@ -397,26 +760,6 @@ impl Handler<Connect> for ChatServer {
         ip: msg.ip.to_owned(),
       },
     );
-
-    for rate_limit_type in RateLimitType::iter() {
-      if self.rate_limit_buckets.get(&rate_limit_type).is_none() {
-        self
-          .rate_limit_buckets
-          .insert(rate_limit_type, HashMap::new());
-      }
-
-      if let Some(bucket) = self.rate_limit_buckets.get_mut(&rate_limit_type) {
-        if bucket.get(&msg.ip).is_none() {
-          bucket.insert(
-            msg.ip.to_owned(),
-            RateLimitBucket {
-              last_checked: SystemTime::now(),
-              allowance: -2f64,
-            },
-          );
-        }
-      }
-    }
 
     id
   }
@@ -448,8 +791,8 @@ impl Handler<Disconnect> for ChatServer {
 impl Handler<StandardMessage> for ChatServer {
   type Result = MessageResult<StandardMessage>;
 
-  fn handle(&mut self, msg: StandardMessage, _: &mut Context<Self>) -> Self::Result {
-    match parse_json_message(self, msg) {
+  fn handle(&mut self, msg: StandardMessage, ctx: &mut Context<Self>) -> Self::Result {
+    match self.parse_json_message(msg, ctx) {
       Ok(m) => {
         info!("Message Sent: {}", m);
         MessageResult(m)
@@ -462,300 +805,130 @@ impl Handler<StandardMessage> for ChatServer {
   }
 }
 
+impl<Response> Handler<SendAllMessage<Response>> for ChatServer
+where
+  Response: Serialize,
+{
+  type Result = ();
+
+  fn handle(&mut self, msg: SendAllMessage<Response>, _: &mut Context<Self>) {
+    self
+      .send_all_message(&msg.op, &msg.response, msg.my_id)
+      .unwrap();
+  }
+}
+
+impl<Response> Handler<SendUserRoomMessage<Response>> for ChatServer
+where
+  Response: Serialize,
+{
+  type Result = ();
+
+  fn handle(&mut self, msg: SendUserRoomMessage<Response>, _: &mut Context<Self>) {
+    self
+      .send_user_room_message(&msg.op, &msg.response, msg.recipient_id, msg.my_id)
+      .unwrap();
+  }
+}
+
+impl<Response> Handler<SendCommunityRoomMessage<Response>> for ChatServer
+where
+  Response: Serialize,
+{
+  type Result = ();
+
+  fn handle(&mut self, msg: SendCommunityRoomMessage<Response>, _: &mut Context<Self>) {
+    self
+      .send_community_room_message(&msg.op, &msg.response, msg.community_id, msg.my_id)
+      .unwrap();
+  }
+}
+
+impl Handler<SendPost> for ChatServer {
+  type Result = ();
+
+  fn handle(&mut self, msg: SendPost, _: &mut Context<Self>) {
+    self.send_post(&msg.op, &msg.post, msg.my_id).unwrap();
+  }
+}
+
+impl Handler<SendComment> for ChatServer {
+  type Result = ();
+
+  fn handle(&mut self, msg: SendComment, _: &mut Context<Self>) {
+    self.send_comment(&msg.op, &msg.comment, msg.my_id).unwrap();
+  }
+}
+
+impl Handler<JoinUserRoom> for ChatServer {
+  type Result = ();
+
+  fn handle(&mut self, msg: JoinUserRoom, _: &mut Context<Self>) {
+    self.join_user_room(msg.user_id, msg.id);
+  }
+}
+
+impl Handler<JoinCommunityRoom> for ChatServer {
+  type Result = ();
+
+  fn handle(&mut self, msg: JoinCommunityRoom, _: &mut Context<Self>) {
+    self.join_community_room(msg.community_id, msg.id);
+  }
+}
+
+impl Handler<JoinPostRoom> for ChatServer {
+  type Result = ();
+
+  fn handle(&mut self, msg: JoinPostRoom, _: &mut Context<Self>) {
+    self.join_post_room(msg.post_id, msg.id);
+  }
+}
+
+impl Handler<GetUsersOnline> for ChatServer {
+  type Result = usize;
+
+  fn handle(&mut self, _msg: GetUsersOnline, _: &mut Context<Self>) -> Self::Result {
+    self.sessions.len()
+  }
+}
+
+impl Handler<GetPostUsersOnline> for ChatServer {
+  type Result = usize;
+
+  fn handle(&mut self, msg: GetPostUsersOnline, _: &mut Context<Self>) -> Self::Result {
+    if let Some(users) = self.post_rooms.get(&msg.post_id) {
+      users.len()
+    } else {
+      0
+    }
+  }
+}
+
+impl Handler<GetCommunityUsersOnline> for ChatServer {
+  type Result = usize;
+
+  fn handle(&mut self, msg: GetCommunityUsersOnline, _: &mut Context<Self>) -> Self::Result {
+    if let Some(users) = self.community_rooms.get(&msg.community_id) {
+      users.len()
+    } else {
+      0
+    }
+  }
+}
+
 #[derive(Serialize)]
 struct WebsocketResponse<T> {
   op: String,
   data: T,
 }
 
-fn to_json_string<T>(op: &UserOperation, data: T) -> Result<String, Error>
+fn to_json_string<Response>(op: &UserOperation, data: &Response) -> Result<String, Error>
 where
-  T: Serialize,
+  Response: Serialize,
 {
   let response = WebsocketResponse {
     op: op.to_string(),
     data,
   };
   Ok(serde_json::to_string(&response)?)
-}
-
-fn do_user_operation<'a, Data, Response>(
-  op: UserOperation,
-  data: &str,
-  conn: &PooledConnection<ConnectionManager<PgConnection>>,
-) -> Result<String, Error>
-where
-  for<'de> Data: Deserialize<'de> + 'a,
-  Response: Serialize,
-  Oper<Data>: Perform<Response>,
-{
-  let parsed_data: Data = serde_json::from_str(data)?;
-  let res = Oper::new(parsed_data).perform(&conn)?;
-  to_json_string(&op, &res)
-}
-
-fn parse_json_message(chat: &mut ChatServer, msg: StandardMessage) -> Result<String, Error> {
-  let json: Value = serde_json::from_str(&msg.msg)?;
-  let data = &json["data"].to_string();
-  let op = &json["op"].as_str().ok_or(APIError {
-    message: "Unknown op type".to_string(),
-  })?;
-
-  let conn = chat.db.get()?;
-
-  let user_operation: UserOperation = UserOperation::from_str(&op)?;
-
-  // TODO: none of the chat messages are going to work if stuff is submitted via http api,
-  //       need to move that handling elsewhere
-
-  // A DDOS check
-  chat.check_rate_limit_message(msg.id, false)?;
-
-  match user_operation {
-    UserOperation::Login => do_user_operation::<Login, LoginResponse>(user_operation, data, &conn),
-    UserOperation::Register => {
-      chat.check_rate_limit_register(msg.id, true)?;
-      let register: Register = serde_json::from_str(data)?;
-      let res = Oper::new(register).perform(&conn)?;
-      chat.check_rate_limit_register(msg.id, false)?;
-      to_json_string(&user_operation, &res)
-    }
-    UserOperation::GetUserDetails => {
-      do_user_operation::<GetUserDetails, GetUserDetailsResponse>(user_operation, data, &conn)
-    }
-    UserOperation::SaveUserSettings => {
-      do_user_operation::<SaveUserSettings, LoginResponse>(user_operation, data, &conn)
-    }
-    UserOperation::AddAdmin => {
-      let add_admin: AddAdmin = serde_json::from_str(data)?;
-      let res = Oper::new(add_admin).perform(&conn)?;
-      let res_str = to_json_string(&user_operation, &res)?;
-      chat.send_all_message(&res_str, msg.id);
-      Ok(res_str)
-    }
-    UserOperation::BanUser => {
-      let ban_user: BanUser = serde_json::from_str(data)?;
-      let res = Oper::new(ban_user).perform(&conn)?;
-      let res_str = to_json_string(&user_operation, &res)?;
-      chat.send_all_message(&res_str, msg.id);
-      Ok(res_str)
-    }
-    UserOperation::GetReplies => {
-      do_user_operation::<GetReplies, GetRepliesResponse>(user_operation, data, &conn)
-    }
-    UserOperation::GetUserMentions => {
-      do_user_operation::<GetUserMentions, GetUserMentionsResponse>(user_operation, data, &conn)
-    }
-    UserOperation::EditUserMention => {
-      do_user_operation::<EditUserMention, UserMentionResponse>(user_operation, data, &conn)
-    }
-    UserOperation::MarkAllAsRead => {
-      do_user_operation::<MarkAllAsRead, GetRepliesResponse>(user_operation, data, &conn)
-    }
-    UserOperation::GetCommunity => {
-      let get_community: GetCommunity = serde_json::from_str(data)?;
-      let mut res = Oper::new(get_community).perform(&conn)?;
-      let community_id = res.community.id;
-
-      chat.join_community_room(community_id, msg.id);
-
-      res.online = if let Some(community_users) = chat.community_rooms.get(&community_id) {
-        community_users.len()
-      } else {
-        0
-      };
-
-      to_json_string(&user_operation, &res)
-    }
-    UserOperation::ListCommunities => {
-      do_user_operation::<ListCommunities, ListCommunitiesResponse>(user_operation, data, &conn)
-    }
-    UserOperation::CreateCommunity => {
-      chat.check_rate_limit_register(msg.id, true)?;
-      let create_community: CreateCommunity = serde_json::from_str(data)?;
-      let res = Oper::new(create_community).perform(&conn)?;
-      chat.check_rate_limit_register(msg.id, false)?;
-      to_json_string(&user_operation, &res)
-    }
-    UserOperation::EditCommunity => {
-      let edit_community: EditCommunity = serde_json::from_str(data)?;
-      let res = Oper::new(edit_community).perform(&conn)?;
-      let mut community_sent: CommunityResponse = res.clone();
-      community_sent.community.user_id = None;
-      community_sent.community.subscribed = None;
-      let community_sent_str = to_json_string(&user_operation, &community_sent)?;
-      chat.send_community_room_message(community_sent.community.id, &community_sent_str, msg.id);
-      to_json_string(&user_operation, &res)
-    }
-    UserOperation::FollowCommunity => {
-      do_user_operation::<FollowCommunity, CommunityResponse>(user_operation, data, &conn)
-    }
-    UserOperation::GetFollowedCommunities => do_user_operation::<
-      GetFollowedCommunities,
-      GetFollowedCommunitiesResponse,
-    >(user_operation, data, &conn),
-    UserOperation::BanFromCommunity => {
-      let ban_from_community: BanFromCommunity = serde_json::from_str(data)?;
-      let community_id = ban_from_community.community_id;
-      let res = Oper::new(ban_from_community).perform(&conn)?;
-      let res_str = to_json_string(&user_operation, &res)?;
-      chat.send_community_room_message(community_id, &res_str, msg.id);
-      Ok(res_str)
-    }
-    UserOperation::AddModToCommunity => {
-      let mod_add_to_community: AddModToCommunity = serde_json::from_str(data)?;
-      let community_id = mod_add_to_community.community_id;
-      let res = Oper::new(mod_add_to_community).perform(&conn)?;
-      let res_str = to_json_string(&user_operation, &res)?;
-      chat.send_community_room_message(community_id, &res_str, msg.id);
-      Ok(res_str)
-    }
-    UserOperation::ListCategories => {
-      do_user_operation::<ListCategories, ListCategoriesResponse>(user_operation, data, &conn)
-    }
-    UserOperation::GetPost => {
-      let get_post: GetPost = serde_json::from_str(data)?;
-      let post_id = get_post.id;
-      chat.join_post_room(post_id, msg.id);
-      let mut res = Oper::new(get_post).perform(&conn)?;
-
-      res.online = if let Some(post_users) = chat.post_rooms.get(&post_id) {
-        post_users.len()
-      } else {
-        0
-      };
-
-      to_json_string(&user_operation, &res)
-    }
-    UserOperation::GetPosts => {
-      let get_posts: GetPosts = serde_json::from_str(data)?;
-      if get_posts.community_id.is_none() {
-        // 0 is the "all" community
-        chat.join_community_room(0, msg.id);
-      }
-      let res = Oper::new(get_posts).perform(&conn)?;
-      to_json_string(&user_operation, &res)
-    }
-    UserOperation::GetComments => {
-      let get_comments: GetComments = serde_json::from_str(data)?;
-      if get_comments.community_id.is_none() {
-        // 0 is the "all" community
-        chat.join_community_room(0, msg.id);
-      }
-      let res = Oper::new(get_comments).perform(&conn)?;
-      to_json_string(&user_operation, &res)
-    }
-    UserOperation::CreatePost => {
-      chat.check_rate_limit_post(msg.id, true)?;
-      let create_post: CreatePost = serde_json::from_str(data)?;
-      let res = Oper::new(create_post).perform(&conn)?;
-      chat.check_rate_limit_post(msg.id, false)?;
-
-      chat.post_sends(UserOperation::CreatePost, res, msg.id)
-    }
-    UserOperation::CreatePostLike => {
-      let create_post_like: CreatePostLike = serde_json::from_str(data)?;
-      let res = Oper::new(create_post_like).perform(&conn)?;
-
-      chat.post_sends(UserOperation::CreatePostLike, res, msg.id)
-    }
-    UserOperation::EditPost => {
-      let edit_post: EditPost = serde_json::from_str(data)?;
-      let res = Oper::new(edit_post).perform(&conn)?;
-
-      chat.post_sends(UserOperation::EditPost, res, msg.id)
-    }
-    UserOperation::SavePost => {
-      do_user_operation::<SavePost, PostResponse>(user_operation, data, &conn)
-    }
-    UserOperation::CreateComment => {
-      let create_comment: CreateComment = serde_json::from_str(data)?;
-      let res = Oper::new(create_comment).perform(&conn)?;
-
-      chat.comment_sends(UserOperation::CreateComment, res, msg.id)
-    }
-    UserOperation::EditComment => {
-      let edit_comment: EditComment = serde_json::from_str(data)?;
-      let res = Oper::new(edit_comment).perform(&conn)?;
-
-      chat.comment_sends(UserOperation::EditComment, res, msg.id)
-    }
-    UserOperation::SaveComment => {
-      do_user_operation::<SaveComment, CommentResponse>(user_operation, data, &conn)
-    }
-    UserOperation::CreateCommentLike => {
-      let create_comment_like: CreateCommentLike = serde_json::from_str(data)?;
-      let res = Oper::new(create_comment_like).perform(&conn)?;
-
-      chat.comment_sends(UserOperation::CreateCommentLike, res, msg.id)
-    }
-    UserOperation::GetModlog => {
-      do_user_operation::<GetModlog, GetModlogResponse>(user_operation, data, &conn)
-    }
-    UserOperation::CreateSite => {
-      do_user_operation::<CreateSite, SiteResponse>(user_operation, data, &conn)
-    }
-    UserOperation::EditSite => {
-      let edit_site: EditSite = serde_json::from_str(data)?;
-      let res = Oper::new(edit_site).perform(&conn)?;
-      let res_str = to_json_string(&user_operation, &res)?;
-      chat.send_all_message(&res_str, msg.id);
-      Ok(res_str)
-    }
-    UserOperation::GetSite => {
-      let get_site: GetSite = serde_json::from_str(data)?;
-      let mut res = Oper::new(get_site).perform(&conn)?;
-      res.online = chat.sessions.len();
-      to_json_string(&user_operation, &res)
-    }
-    UserOperation::GetSiteConfig => {
-      let get_site_config: GetSiteConfig = serde_json::from_str(data)?;
-      let res = Oper::new(get_site_config).perform(&conn)?;
-      to_json_string(&user_operation, &res)
-    }
-    UserOperation::SaveSiteConfig => {
-      let save_site_config: SaveSiteConfig = serde_json::from_str(data)?;
-      let res = Oper::new(save_site_config).perform(&conn)?;
-      to_json_string(&user_operation, &res)
-    }
-    UserOperation::Search => {
-      do_user_operation::<Search, SearchResponse>(user_operation, data, &conn)
-    }
-    UserOperation::TransferCommunity => {
-      do_user_operation::<TransferCommunity, GetCommunityResponse>(user_operation, data, &conn)
-    }
-    UserOperation::TransferSite => {
-      do_user_operation::<TransferSite, GetSiteResponse>(user_operation, data, &conn)
-    }
-    UserOperation::DeleteAccount => {
-      do_user_operation::<DeleteAccount, LoginResponse>(user_operation, data, &conn)
-    }
-    UserOperation::PasswordReset => {
-      do_user_operation::<PasswordReset, PasswordResetResponse>(user_operation, data, &conn)
-    }
-    UserOperation::PasswordChange => {
-      do_user_operation::<PasswordChange, LoginResponse>(user_operation, data, &conn)
-    }
-    UserOperation::CreatePrivateMessage => {
-      let create_private_message: CreatePrivateMessage = serde_json::from_str(data)?;
-      let recipient_id = create_private_message.recipient_id;
-      let res = Oper::new(create_private_message).perform(&conn)?;
-      let res_str = to_json_string(&user_operation, &res)?;
-
-      chat.send_user_room_message(recipient_id, &res_str, msg.id);
-      Ok(res_str)
-    }
-    UserOperation::EditPrivateMessage => {
-      do_user_operation::<EditPrivateMessage, PrivateMessageResponse>(user_operation, data, &conn)
-    }
-    UserOperation::GetPrivateMessages => {
-      do_user_operation::<GetPrivateMessages, PrivateMessagesResponse>(user_operation, data, &conn)
-    }
-    UserOperation::UserJoin => {
-      let user_join: UserJoin = serde_json::from_str(data)?;
-      let res = Oper::new(user_join).perform(&conn)?;
-      chat.join_user_room(res.user_id, msg.id);
-      to_json_string(&user_operation, &res)
-    }
-  }
 }

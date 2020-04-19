@@ -1,13 +1,5 @@
+use super::*;
 use crate::db::community::Community;
-use crate::Settings;
-use actix_web::web;
-use actix_web::web::Query;
-use actix_web::HttpResponse;
-use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::PgConnection;
-use regex::Regex;
-use serde::Deserialize;
-use serde_json::json;
 
 #[derive(Deserialize)]
 pub struct Params {

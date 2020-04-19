@@ -18,12 +18,26 @@ use crate::db::user_mention_view::*;
 use crate::db::user_view::*;
 use crate::db::*;
 use crate::{
-  extract_usernames, fetch_iframely_and_pictshare_data, naive_from_unix, naive_now, remove_slurs,
-  slur_check, slurs_vec_to_str,
+  extract_usernames, fetch_iframely_and_pictshare_data, generate_random_string, naive_from_unix,
+  naive_now, remove_slurs, send_email, slur_check, slurs_vec_to_str,
 };
+
+use crate::rate_limit::RateLimitInfo;
+use crate::settings::Settings;
+use crate::websocket::UserOperation;
+use crate::websocket::{
+  server::{
+    JoinCommunityRoom, JoinPostRoom, JoinUserRoom, SendAllMessage, SendComment,
+    SendCommunityRoomMessage, SendPost, SendUserRoomMessage,
+  },
+  WebsocketInfo,
+};
+use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use failure::Error;
+use log::{error, info};
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 pub mod comment;
 pub mod community;
@@ -56,7 +70,12 @@ impl<T> Oper<T> {
 }
 
 pub trait Perform<T> {
-  fn perform(&self, conn: &PgConnection) -> Result<T, Error>
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    websocket_info: Option<WebsocketInfo>,
+    rate_limit_info: Option<RateLimitInfo>,
+  ) -> Result<T, Error>
   where
     T: Sized;
 }

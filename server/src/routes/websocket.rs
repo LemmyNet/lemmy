@@ -1,10 +1,6 @@
+use super::*;
 use crate::websocket::server::*;
-use actix::prelude::*;
-use actix_web::web;
-use actix_web::*;
-use actix_web_actors::ws;
-use log::{error, info};
-use std::time::{Duration, Instant};
+use actix_web::{Error, Result};
 
 pub fn config(cfg: &mut web::ServiceConfig) {
   cfg.service(web::resource("/api/v1/ws").to(chat_route));
@@ -21,20 +17,12 @@ async fn chat_route(
   stream: web::Payload,
   chat_server: web::Data<Addr<ChatServer>>,
 ) -> Result<HttpResponse, Error> {
-  // TODO not sure if the blocking should be here or not
   ws::start(
     WSSession {
       cs_addr: chat_server.get_ref().to_owned(),
       id: 0,
       hb: Instant::now(),
-      ip: req
-        .connection_info()
-        .remote()
-        .unwrap_or("127.0.0.1:12345")
-        .split(':')
-        .next()
-        .unwrap_or("127.0.0.1")
-        .to_string(),
+      ip: get_ip(&req),
     },
     &req,
     stream,
