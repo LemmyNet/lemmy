@@ -201,7 +201,7 @@ impl Perform<CommunityResponse> for Oper<CreateCommunity> {
     }
 
     // When you create a community, make sure the user becomes a moderator and a follower
-    let keypair = generate_actor_keypair();
+    let keypair = generate_actor_keypair()?;
 
     let community_form = CommunityForm {
       name: data.name.to_owned(),

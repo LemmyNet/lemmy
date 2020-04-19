@@ -1,5 +1,4 @@
 use super::*;
-use crate::apub::signatures::Keypair;
 use crate::schema::{community, community_follower, community_moderator, community_user_ban};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
@@ -95,21 +94,6 @@ impl Community {
 
   pub fn get_url(&self) -> String {
     format!("https://{}/c/{}", Settings::get().hostname, self.name)
-  }
-
-  pub fn get_keypair(&self) -> Option<Keypair> {
-    if let Some(private) = self.private_key.to_owned() {
-      if let Some(public) = self.public_key.to_owned() {
-        Some(Keypair {
-          private_key: private,
-          public_key: public,
-        })
-      } else {
-        None
-      }
-    } else {
-      None
-    }
   }
 }
 

@@ -252,7 +252,7 @@ impl Perform<LoginResponse> for Oper<Register> {
       return Err(APIError::err("admin_already_created").into());
     }
 
-    let keypair = generate_actor_keypair();
+    let keypair = generate_actor_keypair()?;
 
     // Register the new user
     let user_form = UserForm {
@@ -296,7 +296,7 @@ impl Perform<LoginResponse> for Oper<Register> {
       }
     };
 
-    let keypair = generate_actor_keypair();
+    let keypair = generate_actor_keypair()?;
 
     // Create the main community if it doesn't exist
     let main_community: Community = match Community::read(&conn, 2) {
