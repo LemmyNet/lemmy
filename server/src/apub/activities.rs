@@ -139,7 +139,7 @@ pub fn follow_community(
   let to = format!("{}/inbox", community.actor_id);
   send_activity(
     &follow,
-    &community.private_key.as_ref().unwrap(),
+    &user.private_key.as_ref().unwrap(),
     &community.actor_id,
     vec![to],
   )?;
@@ -150,7 +150,7 @@ pub fn follow_community(
 pub fn accept_follow(follow: &Follow, conn: &PgConnection) -> Result<(), Error> {
   let community_uri = follow
     .follow_props
-    .get_actor_xsd_any_uri()
+    .get_object_xsd_any_uri()
     .unwrap()
     .to_string();
   let community = Community::read_from_actor_id(conn, &community_uri)?;
