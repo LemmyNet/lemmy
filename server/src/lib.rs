@@ -27,13 +27,14 @@ pub extern crate strum;
 pub mod api;
 pub mod apub;
 pub mod db;
+pub mod rate_limit;
 pub mod routes;
 pub mod schema;
 pub mod settings;
 pub mod version;
 pub mod websocket;
 
-use crate::settings::Settings;
+use actix_web::HttpRequest;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use isahc::prelude::*;
 use lettre::smtp::authentication::{Credentials, Mechanism};
@@ -47,6 +48,14 @@ use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use regex::{Regex, RegexBuilder};
 use serde::Deserialize;
+
+use crate::settings::Settings;
+
+pub type ConnectionId = usize;
+pub type PostId = i32;
+pub type CommunityId = i32;
+pub type UserId = i32;
+pub type IPAddr = String;
 
 pub fn to_datetime_utc(ndt: NaiveDateTime) -> DateTime<Utc> {
   DateTime::<Utc>::from_utc(ndt, Utc)
@@ -222,6 +231,17 @@ fn fetch_iframely_and_pictshare_data(
 
 pub fn markdown_to_html(text: &str) -> String {
   comrak::markdown_to_html(text, &comrak::ComrakOptions::default())
+}
+
+pub fn get_ip(req: &HttpRequest) -> String {
+  req
+    .connection_info()
+    .remote()
+    .unwrap_or("127.0.0.1:12345")
+    .split(':')
+    .next()
+    .unwrap_or("127.0.0.1")
+    .to_string()
 }
 
 #[cfg(test)]

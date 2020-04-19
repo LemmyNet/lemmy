@@ -6,10 +6,16 @@ use actix::prelude::*;
 use actix_web::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
-use lemmy_server::routes::{api, federation, feeds, index, nodeinfo, webfinger, websocket};
-use lemmy_server::settings::Settings;
-use lemmy_server::websocket::server::*;
-use std::io;
+use lemmy_server::{
+  rate_limit::rate_limiter::RateLimiter,
+  routes::{api, federation, feeds, index, nodeinfo, webfinger, websocket},
+  settings::Settings,
+  websocket::server::*,
+};
+use std::{
+  io,
+  sync::{Arc, Mutex},
+};
 
 embed_migrations!();
 
@@ -29,8 +35,11 @@ async fn main() -> io::Result<()> {
   let conn = pool.get().unwrap();
   embedded_migrations::run(&conn).unwrap();
 
+  // Set up the rate limiter
+  let rate_limiter = Arc::new(Mutex::new(RateLimiter::default()));
+
   // Set up websocket server
-  let server = ChatServer::startup(pool.clone()).start();
+  let server = ChatServer::startup(pool.clone(), rate_limiter.clone()).start();
 
   println!(
     "Starting http server at {}:{}",
@@ -44,6 +53,7 @@ async fn main() -> io::Result<()> {
       .wrap(middleware::Logger::default())
       .data(pool.clone())
       .data(server.clone())
+      .data(rate_limiter.clone())
       // The routes
       .configure(api::config)
       .configure(federation::config)

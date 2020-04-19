@@ -1,6 +1,21 @@
 pub mod server;
 
-#[derive(EnumString, ToString, Debug)]
+use crate::ConnectionId;
+use actix::prelude::*;
+use diesel::r2d2::{ConnectionManager, Pool};
+use diesel::PgConnection;
+use failure::Error;
+use log::{error, info};
+use rand::{rngs::ThreadRng, Rng};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use server::ChatServer;
+use std::collections::{HashMap, HashSet};
+use std::str::FromStr;
+use std::sync::Arc;
+use std::sync::Mutex;
+
+#[derive(EnumString, ToString, Debug, Clone)]
 pub enum UserOperation {
   Login,
   Register,
@@ -48,4 +63,10 @@ pub enum UserOperation {
   GetComments,
   GetSiteConfig,
   SaveSiteConfig,
+}
+
+#[derive(Clone)]
+pub struct WebsocketInfo {
+  pub chatserver: Addr<ChatServer>,
+  pub id: Option<ConnectionId>,
 }
