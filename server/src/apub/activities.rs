@@ -1,5 +1,5 @@
 use crate::apub::is_apub_id_valid;
-use crate::apub::signatures::{sign, Keypair};
+use crate::apub::signatures::sign;
 use crate::db::community::Community;
 use crate::db::community_view::CommunityFollowerView;
 use crate::db::post::Post;
@@ -36,7 +36,7 @@ fn populate_object_props(
 /// Send an activity to a list of recipients, using the correct headers etc.
 fn send_activity<A>(
   activity: &A,
-  keypair: &Keypair,
+  private_key: &str,
   sender_id: &str,
   to: Vec<String>,
 ) -> Result<(), Error>
@@ -52,7 +52,7 @@ where
       continue;
     }
     let request = Request::post(t).header("Host", to_url.domain().unwrap());
-    let signature = sign(&request, keypair, sender_id)?;
+    let signature = sign(&request, private_key, sender_id)?;
     let res = request
       .header("Signature", signature)
       .header("Content-Type", "application/json")
@@ -90,7 +90,7 @@ pub fn post_create(post: &Post, creator: &User_, conn: &PgConnection) -> Result<
     .set_object_base_box(page)?;
   send_activity(
     &create,
-    &creator.get_keypair().unwrap(),
+    &creator.private_key.as_ref().unwrap(),
     &creator.actor_id,
     get_follower_inboxes(conn, &community)?,
   )?;
@@ -113,7 +113,7 @@ pub fn post_update(post: &Post, creator: &User_, conn: &PgConnection) -> Result<
     .set_object_base_box(page)?;
   send_activity(
     &update,
-    &creator.get_keypair().unwrap(),
+    &creator.private_key.as_ref().unwrap(),
     &creator.actor_id,
     get_follower_inboxes(conn, &community)?,
   )?;
@@ -139,7 +139,7 @@ pub fn follow_community(
   let to = format!("{}/inbox", community.actor_id);
   send_activity(
     &follow,
-    &community.get_keypair().unwrap(),
+    &community.private_key.as_ref().unwrap(),
     &community.actor_id,
     vec![to],
   )?;
@@ -172,7 +172,7 @@ pub fn accept_follow(follow: &Follow, conn: &PgConnection) -> Result<(), Error> 
   let to = format!("{}/inbox", community_uri);
   send_activity(
     &accept,
-    &community.get_keypair().unwrap(),
+    &community.private_key.unwrap(),
     &community.actor_id,
     vec![to],
   )?;

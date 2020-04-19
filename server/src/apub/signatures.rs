@@ -14,23 +14,20 @@ pub struct Keypair {
 }
 
 /// Generate the asymmetric keypair for ActivityPub HTTP signatures.
-pub fn generate_actor_keypair() -> Keypair {
-  let rsa = Rsa::generate(2048).expect("sign::gen_keypair: key generation error");
-  let pkey = PKey::from_rsa(rsa).expect("sign::gen_keypair: parsing error");
-  let public_key = pkey
-    .public_key_to_pem()
-    .expect("sign::gen_keypair: public key encoding error");
-  let private_key = pkey
-    .private_key_to_pem_pkcs8()
-    .expect("sign::gen_keypair: private key encoding error");
-  Keypair {
-    private_key: String::from_utf8_lossy(&private_key).into_owned(),
-    public_key: String::from_utf8_lossy(&public_key).into_owned(),
-  }
+pub fn generate_actor_keypair() -> Result<Keypair, Error> {
+  let rsa = Rsa::generate(2048)?;
+  let pkey = PKey::from_rsa(rsa)?;
+  let public_key = pkey.public_key_to_pem()?;
+  let private_key = pkey.private_key_to_pem_pkcs8()?;
+  Ok(Keypair {
+    private_key: String::from_utf8(private_key)?,
+    public_key: String::from_utf8(public_key)?,
+  })
 }
 
 /// Signs request headers with the given keypair.
-pub fn sign(request: &Builder, keypair: &Keypair, sender_id: &str) -> Result<String, Error> {
+/// TODO: would be nice to pass the sending actor in, instead of raw privatekey/id strings
+pub fn sign(request: &Builder, private_key: &str, sender_id: &str) -> Result<String, Error> {
   let signing_key_id = format!("{}#main-key", sender_id);
   let config = Config::new();
 
@@ -55,7 +52,7 @@ pub fn sign(request: &Builder, keypair: &Keypair, sender_id: &str) -> Result<Str
       headers,
     )
     .sign(signing_key_id, |signing_string| {
-      let private_key = PKey::private_key_from_pem(keypair.private_key.as_bytes())?;
+      let private_key = PKey::private_key_from_pem(private_key.as_bytes())?;
       let mut signer = Signer::new(MessageDigest::sha256(), &private_key).unwrap();
       signer.update(signing_string.as_bytes()).unwrap();
       Ok(base64::encode(signer.sign_to_vec()?)) as Result<_, Error>

@@ -7,6 +7,7 @@ use super::*;
 use crate::apub::signatures::generate_actor_keypair;
 use crate::apub::{make_apub_endpoint, EndpointType};
 use crate::naive_now;
+use failure::Error;
 use log::info;
 
 pub fn run_advanced_migrations(conn: &PgConnection) -> Result<(), Error> {
@@ -30,7 +31,7 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), Error> {
     .load::<User_>(conn)?;
 
   for cuser in &incorrect_users {
-    let keypair = generate_actor_keypair();
+    let keypair = generate_actor_keypair()?;
 
     let form = UserForm {
       name: cuser.name.to_owned(),
@@ -77,7 +78,7 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), Error> {
     .load::<Community>(conn)?;
 
   for ccommunity in &incorrect_communities {
-    let keypair = generate_actor_keypair();
+    let keypair = generate_actor_keypair()?;
 
     let form = CommunityForm {
       name: ccommunity.name.to_owned(),
