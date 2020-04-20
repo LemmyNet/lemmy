@@ -38,7 +38,7 @@ pub struct Disconnect {
 
 /// The messages sent to websocket clients
 #[derive(Serialize, Deserialize, Message)]
-#[rtype(result = "Result<String, failure::Error>")]
+#[rtype(result = "Result<String, std::convert::Infallible>")]
 pub struct StandardMessage {
   /// Id of the client session
   pub id: ConnectionId,
@@ -905,6 +905,7 @@ where
   match op2 {
     UserOperation::Register => rate_limiter.register().wrap(ip, fut).await,
     UserOperation::CreatePost => rate_limiter.post().wrap(ip, fut).await,
+    UserOperation::CreateCommunity => rate_limiter.post().wrap(ip, fut).await,
     _ => rate_limiter.message().wrap(ip, fut).await,
   }
 }
@@ -963,7 +964,7 @@ impl Handler<Disconnect> for ChatServer {
 
 /// Handler for Message message.
 impl Handler<StandardMessage> for ChatServer {
-  type Result = ResponseFuture<Result<String, failure::Error>>;
+  type Result = ResponseFuture<Result<String, std::convert::Infallible>>;
 
   fn handle(&mut self, msg: StandardMessage, ctx: &mut Context<Self>) -> Self::Result {
     let fut = self.parse_json_message(msg, ctx);

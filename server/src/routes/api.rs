@@ -41,9 +41,14 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
       )
       // Community
       .service(
+        web::resource("/community")
+          .guard(guard::Post())
+          .wrap(rate_limit.post())
+          .route(web::post().to(route_post::<CreateCommunity>)),
+      )
+      .service(
         web::scope("/community")
           .wrap(rate_limit.message())
-          .route("", web::post().to(route_post::<CreateCommunity>))
           .route("", web::get().to(route_get::<GetCommunity>))
           .route("", web::put().to(route_post::<EditCommunity>))
           .route("/list", web::get().to(route_get::<ListCommunities>))
