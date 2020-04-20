@@ -22,7 +22,6 @@ use crate::{
   naive_now, remove_slurs, send_email, slur_check, slurs_vec_to_str,
 };
 
-use crate::rate_limit::RateLimitInfo;
 use crate::settings::Settings;
 use crate::websocket::UserOperation;
 use crate::websocket::{
@@ -69,13 +68,12 @@ impl<T> Oper<T> {
   }
 }
 
-pub trait Perform<T> {
+pub trait Perform {
+  type Response: serde::ser::Serialize;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
-  ) -> Result<T, Error>
-  where
-    T: Sized;
+  ) -> Result<Self::Response, Error>;
 }

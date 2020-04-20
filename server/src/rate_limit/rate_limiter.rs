@@ -79,7 +79,7 @@ impl RateLimiter {
   }
 
   #[allow(clippy::float_cmp)]
-  fn check_rate_limit_full(
+  pub(super) fn check_rate_limit_full(
     &mut self,
     type_: RateLimitType,
     ip: &str,
