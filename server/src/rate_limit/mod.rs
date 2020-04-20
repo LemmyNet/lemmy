@@ -54,7 +54,7 @@ impl RateLimited {
   {
     let rate_limit: RateLimitConfig = actix_web::web::block(move || {
       // needs to be in a web::block because the RwLock in settings is from stdlib
-      Ok(Settings::get().rate_limit.clone()) as Result<_, failure::Error>
+      Ok(Settings::get().rate_limit) as Result<_, failure::Error>
     })
     .await
     .map_err(|e| match e {
@@ -150,6 +150,8 @@ where
   }
 }
 
+type FutResult<T, E> = dyn Future<Output = Result<T, E>>;
+
 impl<S> Service for RateLimitedMiddleware<S>
 where
   S: Service<Request = ServiceRequest, Response = ServiceResponse, Error = actix_web::Error>,
@@ -158,7 +160,7 @@ where
   type Request = S::Request;
   type Response = S::Response;
   type Error = actix_web::Error;
-  type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
+  type Future = Pin<Box<FutResult<Self::Response, Self::Error>>>;
 
   fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
     self.1.poll_ready(cx)
