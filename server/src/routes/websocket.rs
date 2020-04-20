@@ -2,17 +2,13 @@ use super::*;
 use crate::websocket::server::*;
 use actix_web::{Error, Result};
 
-pub fn config(cfg: &mut web::ServiceConfig) {
-  cfg.service(web::resource("/api/v1/ws").to(chat_route));
-}
-
 /// How often heartbeat pings are sent
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 /// How long before lack of client response causes a timeout
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Entry point for our route
-async fn chat_route(
+pub async fn chat_route(
   req: HttpRequest,
   stream: web::Payload,
   chat_server: web::Data<Addr<ChatServer>>,

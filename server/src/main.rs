@@ -8,7 +8,7 @@ use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use lemmy_server::{
   rate_limit::{rate_limiter::RateLimiter, RateLimit},
-  routes::{api, federation, feeds, index, nodeinfo, webfinger, websocket},
+  routes::{api, federation, feeds, index, nodeinfo, webfinger},
   settings::Settings,
   websocket::server::*,
 };
@@ -59,7 +59,6 @@ async fn main() -> io::Result<()> {
       .configure(index::config)
       .configure(nodeinfo::config)
       .configure(webfinger::config)
-      .configure(websocket::config)
       // static files
       .service(actix_files::Files::new(
         "/static",
