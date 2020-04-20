@@ -1,6 +1,6 @@
 use crate::api::{Oper, Perform};
 use crate::db::site_view::SiteView;
-use crate::rate_limit::{rate_limiter::RateLimiter, RateLimitInfo};
+use crate::rate_limit::rate_limiter::RateLimiter;
 use crate::websocket::{server::ChatServer, WebsocketInfo};
 use crate::{get_ip, markdown_to_html, version, Settings};
 use actix::prelude::*;

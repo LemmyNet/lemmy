@@ -77,12 +77,13 @@ pub struct SavePost {
   auth: String,
 }
 
-impl Perform<PostResponse> for Oper<CreatePost> {
+impl Perform for Oper<CreatePost> {
+  type Response = PostResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<PostResponse, Error> {
     let data: &CreatePost = &self.data;
 
@@ -102,13 +103,6 @@ impl Perform<PostResponse> for Oper<CreatePost> {
     }
 
     let user_id = claims.id;
-
-    if let Some(rl) = &rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_post(&rl.ip, true)?;
-    }
 
     let conn = pool.get()?;
 
@@ -176,13 +170,6 @@ impl Perform<PostResponse> for Oper<CreatePost> {
       Err(_e) => return Err(APIError::err("couldnt_find_post").into()),
     };
 
-    if let Some(rl) = &rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_post(&rl.ip, false)?;
-    }
-
     let res = PostResponse { post: post_view };
 
     if let Some(ws) = websocket_info {
@@ -197,12 +184,13 @@ impl Perform<PostResponse> for Oper<CreatePost> {
   }
 }
 
-impl Perform<GetPostResponse> for Oper<GetPost> {
+impl Perform for Oper<GetPost> {
+  type Response = GetPostResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<GetPostResponse, Error> {
     let data: &GetPost = &self.data;
 
@@ -216,13 +204,6 @@ impl Perform<GetPostResponse> for Oper<GetPost> {
       },
       None => None,
     };
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -277,12 +258,13 @@ impl Perform<GetPostResponse> for Oper<GetPost> {
   }
 }
 
-impl Perform<GetPostsResponse> for Oper<GetPosts> {
+impl Perform for Oper<GetPosts> {
+  type Response = GetPostsResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<GetPostsResponse, Error> {
     let data: &GetPosts = &self.data;
 
@@ -306,13 +288,6 @@ impl Perform<GetPostsResponse> for Oper<GetPosts> {
 
     let type_ = ListingType::from_str(&data.type_)?;
     let sort = SortType::from_str(&data.sort)?;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -348,12 +323,13 @@ impl Perform<GetPostsResponse> for Oper<GetPosts> {
   }
 }
 
-impl Perform<PostResponse> for Oper<CreatePostLike> {
+impl Perform for Oper<CreatePostLike> {
+  type Response = PostResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<PostResponse, Error> {
     let data: &CreatePostLike = &self.data;
 
@@ -363,13 +339,6 @@ impl Perform<PostResponse> for Oper<CreatePostLike> {
     };
 
     let user_id = claims.id;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -429,12 +398,13 @@ impl Perform<PostResponse> for Oper<CreatePostLike> {
   }
 }
 
-impl Perform<PostResponse> for Oper<EditPost> {
+impl Perform for Oper<EditPost> {
+  type Response = PostResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<PostResponse, Error> {
     let data: &EditPost = &self.data;
 
@@ -454,13 +424,6 @@ impl Perform<PostResponse> for Oper<EditPost> {
     };
 
     let user_id = claims.id;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -567,12 +530,13 @@ impl Perform<PostResponse> for Oper<EditPost> {
   }
 }
 
-impl Perform<PostResponse> for Oper<SavePost> {
+impl Perform for Oper<SavePost> {
+  type Response = PostResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<PostResponse, Error> {
     let data: &SavePost = &self.data;
 
@@ -587,13 +551,6 @@ impl Perform<PostResponse> for Oper<SavePost> {
       post_id: data.post_id,
       user_id,
     };
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 

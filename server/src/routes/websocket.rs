@@ -123,10 +123,9 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WSSession {
           .into_actor(self)
           .then(|res, _, ctx| {
             match res {
-              Ok(res) => ctx.text(res),
-              Err(e) => {
-                error!("{}", &e);
-              }
+              Ok(Ok(res)) => ctx.text(res),
+              Ok(Err(e)) => error!("{}", e),
+              Err(e) => error!("{}", &e),
             }
             actix::fut::ready(())
           })

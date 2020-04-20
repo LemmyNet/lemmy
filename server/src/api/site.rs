@@ -108,21 +108,15 @@ pub struct SaveSiteConfig {
   auth: String,
 }
 
-impl Perform<ListCategoriesResponse> for Oper<ListCategories> {
+impl Perform for Oper<ListCategories> {
+  type Response = ListCategoriesResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<ListCategoriesResponse, Error> {
     let _data: &ListCategories = &self.data;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -133,21 +127,15 @@ impl Perform<ListCategoriesResponse> for Oper<ListCategories> {
   }
 }
 
-impl Perform<GetModlogResponse> for Oper<GetModlog> {
+impl Perform for Oper<GetModlog> {
+  type Response = GetModlogResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<GetModlogResponse, Error> {
     let data: &GetModlog = &self.data;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -220,12 +208,13 @@ impl Perform<GetModlogResponse> for Oper<GetModlog> {
   }
 }
 
-impl Perform<SiteResponse> for Oper<CreateSite> {
+impl Perform for Oper<CreateSite> {
+  type Response = SiteResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<SiteResponse, Error> {
     let data: &CreateSite = &self.data;
 
@@ -245,13 +234,6 @@ impl Perform<SiteResponse> for Oper<CreateSite> {
     }
 
     let user_id = claims.id;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -281,12 +263,12 @@ impl Perform<SiteResponse> for Oper<CreateSite> {
   }
 }
 
-impl Perform<SiteResponse> for Oper<EditSite> {
+impl Perform for Oper<EditSite> {
+  type Response = SiteResponse;
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<SiteResponse, Error> {
     let data: &EditSite = &self.data;
 
@@ -306,13 +288,6 @@ impl Perform<SiteResponse> for Oper<EditSite> {
     }
 
     let user_id = claims.id;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -354,21 +329,15 @@ impl Perform<SiteResponse> for Oper<EditSite> {
   }
 }
 
-impl Perform<GetSiteResponse> for Oper<GetSite> {
+impl Perform for Oper<GetSite> {
+  type Response = GetSiteResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<GetSiteResponse, Error> {
     let _data: &GetSite = &self.data;
-
-    if let Some(rl) = &rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -385,11 +354,7 @@ impl Perform<GetSiteResponse> for Oper<GetSite> {
         admin: true,
         show_nsfw: true,
       };
-      let login_response = Oper::new(register).perform(
-        pool.clone(),
-        websocket_info.clone(),
-        rate_limit_info.clone(),
-      )?;
+      let login_response = Oper::new(register).perform(pool.clone(), websocket_info.clone())?;
       info!("Admin {} created", setup.admin_username);
 
       let create_site = CreateSite {
@@ -400,7 +365,7 @@ impl Perform<GetSiteResponse> for Oper<GetSite> {
         enable_nsfw: false,
         auth: login_response.jwt,
       };
-      Oper::new(create_site).perform(pool, websocket_info.clone(), rate_limit_info)?;
+      Oper::new(create_site).perform(pool, websocket_info.clone())?;
       info!("Site {} created", setup.site_name);
       Some(SiteView::read(&conn)?)
     } else {
@@ -437,12 +402,13 @@ impl Perform<GetSiteResponse> for Oper<GetSite> {
   }
 }
 
-impl Perform<SearchResponse> for Oper<Search> {
+impl Perform for Oper<Search> {
+  type Response = SearchResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<SearchResponse, Error> {
     let data: &Search = &self.data;
 
@@ -466,13 +432,6 @@ impl Perform<SearchResponse> for Oper<Search> {
     let mut users = Vec::new();
 
     // TODO no clean / non-nsfw searching rn
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -569,12 +528,13 @@ impl Perform<SearchResponse> for Oper<Search> {
   }
 }
 
-impl Perform<GetSiteResponse> for Oper<TransferSite> {
+impl Perform for Oper<TransferSite> {
+  type Response = GetSiteResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<GetSiteResponse, Error> {
     let data: &TransferSite = &self.data;
 
@@ -584,13 +544,6 @@ impl Perform<GetSiteResponse> for Oper<TransferSite> {
     };
 
     let user_id = claims.id;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -646,12 +599,13 @@ impl Perform<GetSiteResponse> for Oper<TransferSite> {
   }
 }
 
-impl Perform<GetSiteConfigResponse> for Oper<GetSiteConfig> {
+impl Perform for Oper<GetSiteConfig> {
+  type Response = GetSiteConfigResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<GetSiteConfigResponse, Error> {
     let data: &GetSiteConfig = &self.data;
 
@@ -661,13 +615,6 @@ impl Perform<GetSiteConfigResponse> for Oper<GetSiteConfig> {
     };
 
     let user_id = claims.id;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -685,12 +632,13 @@ impl Perform<GetSiteConfigResponse> for Oper<GetSiteConfig> {
   }
 }
 
-impl Perform<GetSiteConfigResponse> for Oper<SaveSiteConfig> {
+impl Perform for Oper<SaveSiteConfig> {
+  type Response = GetSiteConfigResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<GetSiteConfigResponse, Error> {
     let data: &SaveSiteConfig = &self.data;
 
@@ -700,13 +648,6 @@ impl Perform<GetSiteConfigResponse> for Oper<SaveSiteConfig> {
     };
 
     let user_id = claims.id;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
