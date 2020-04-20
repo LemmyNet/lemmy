@@ -7,7 +7,6 @@ use crate::api::user::*;
 use crate::rate_limit::RateLimit;
 use actix_web::guard;
 
-#[rustfmt::skip]
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
   cfg.service(
     web::scope("/api/v1")
@@ -95,17 +94,35 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("/mention", web::get().to(route_get::<GetUserMentions>))
           .route("/mention", web::put().to(route_post::<EditUserMention>))
           .route("/replies", web::get().to(route_get::<GetReplies>))
-          .route("/followed_communities", web::get().to(route_get::<GetFollowedCommunities>))
+          .route(
+            "/followed_communities",
+            web::get().to(route_get::<GetFollowedCommunities>),
+          )
           // Admin action. I don't like that it's in /user
           .route("/ban", web::post().to(route_post::<BanUser>))
           // Account actions. I don't like that they're in /user maybe /accounts
           .route("/login", web::post().to(route_post::<Login>))
-          .route("/delete_account", web::post().to(route_post::<DeleteAccount>))
-          .route("/password_reset", web::post().to(route_post::<PasswordReset>))
-          .route("/password_change", web::post().to(route_post::<PasswordChange>))
+          .route(
+            "/delete_account",
+            web::post().to(route_post::<DeleteAccount>),
+          )
+          .route(
+            "/password_reset",
+            web::post().to(route_post::<PasswordReset>),
+          )
+          .route(
+            "/password_change",
+            web::post().to(route_post::<PasswordChange>),
+          )
           // mark_all_as_read feels off being in this section as well
-          .route("/mark_all_as_read", web::post().to(route_post::<MarkAllAsRead>))
-          .route("/save_user_settings", web::put().to(route_post::<SaveUserSettings>)),
+          .route(
+            "/mark_all_as_read",
+            web::post().to(route_post::<MarkAllAsRead>),
+          )
+          .route(
+            "/save_user_settings",
+            web::put().to(route_post::<SaveUserSettings>),
+          ),
       )
       // Admin Actions
       .service(
