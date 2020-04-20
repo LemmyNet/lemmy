@@ -10,7 +10,7 @@ let general = [
   'Andre Vallestero',
   'NotTooHighToHack',
 ];
-let highlighted = ['Alex Benishek'];
+let highlighted = ['Oskenso Kashi', 'Alex Benishek'];
 // let silver = [];
 // let gold = [];
 // let latinum = [];
