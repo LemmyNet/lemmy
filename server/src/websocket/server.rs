@@ -905,7 +905,7 @@ where
   match op2 {
     UserOperation::Register => rate_limiter.register().wrap(ip, fut).await,
     UserOperation::CreatePost => rate_limiter.post().wrap(ip, fut).await,
-    UserOperation::CreateCommunity => rate_limiter.post().wrap(ip, fut).await,
+    UserOperation::CreateCommunity => rate_limiter.register().wrap(ip, fut).await,
     _ => rate_limiter.message().wrap(ip, fut).await,
   }
 }
