@@ -48,36 +48,6 @@ impl RateLimiter {
     }
   }
 
-  pub fn check_rate_limit_register(&mut self, ip: &str, check_only: bool) -> Result<(), Error> {
-    self.check_rate_limit_full(
-      RateLimitType::Register,
-      ip,
-      Settings::get().rate_limit.register,
-      Settings::get().rate_limit.register_per_second,
-      check_only,
-    )
-  }
-
-  pub fn check_rate_limit_post(&mut self, ip: &str, check_only: bool) -> Result<(), Error> {
-    self.check_rate_limit_full(
-      RateLimitType::Post,
-      ip,
-      Settings::get().rate_limit.post,
-      Settings::get().rate_limit.post_per_second,
-      check_only,
-    )
-  }
-
-  pub fn check_rate_limit_message(&mut self, ip: &str, check_only: bool) -> Result<(), Error> {
-    self.check_rate_limit_full(
-      RateLimitType::Message,
-      ip,
-      Settings::get().rate_limit.message,
-      Settings::get().rate_limit.message_per_second,
-      check_only,
-    )
-  }
-
   #[allow(clippy::float_cmp)]
   pub(super) fn check_rate_limit_full(
     &mut self,
