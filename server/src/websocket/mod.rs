@@ -12,8 +12,6 @@ use serde_json::Value;
 use server::ChatServer;
 use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
-use std::sync::Arc;
-use std::sync::Mutex;
 
 #[derive(EnumString, ToString, Debug, Clone)]
 pub enum UserOperation {

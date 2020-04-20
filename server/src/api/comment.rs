@@ -59,12 +59,13 @@ pub struct GetCommentsResponse {
   comments: Vec<CommentView>,
 }
 
-impl Perform<CommentResponse> for Oper<CreateComment> {
+impl Perform for Oper<CreateComment> {
+  type Response = CommentResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<CommentResponse, Error> {
     let data: &CreateComment = &self.data;
 
@@ -76,13 +77,6 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
     let user_id = claims.id;
 
     let hostname = &format!("https://{}", Settings::get().hostname);
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -253,12 +247,13 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
   }
 }
 
-impl Perform<CommentResponse> for Oper<EditComment> {
+impl Perform for Oper<EditComment> {
+  type Response = CommentResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<CommentResponse, Error> {
     let data: &EditComment = &self.data;
 
@@ -268,13 +263,6 @@ impl Perform<CommentResponse> for Oper<EditComment> {
     };
 
     let user_id = claims.id;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -411,12 +399,13 @@ impl Perform<CommentResponse> for Oper<EditComment> {
   }
 }
 
-impl Perform<CommentResponse> for Oper<SaveComment> {
+impl Perform for Oper<SaveComment> {
+  type Response = CommentResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<CommentResponse, Error> {
     let data: &SaveComment = &self.data;
 
@@ -431,13 +420,6 @@ impl Perform<CommentResponse> for Oper<SaveComment> {
       comment_id: data.comment_id,
       user_id,
     };
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -462,12 +444,13 @@ impl Perform<CommentResponse> for Oper<SaveComment> {
   }
 }
 
-impl Perform<CommentResponse> for Oper<CreateCommentLike> {
+impl Perform for Oper<CreateCommentLike> {
+  type Response = CommentResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<CommentResponse, Error> {
     let data: &CreateCommentLike = &self.data;
 
@@ -479,13 +462,6 @@ impl Perform<CommentResponse> for Oper<CreateCommentLike> {
     let user_id = claims.id;
 
     let mut recipient_ids = Vec::new();
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -567,12 +543,13 @@ impl Perform<CommentResponse> for Oper<CreateCommentLike> {
   }
 }
 
-impl Perform<GetCommentsResponse> for Oper<GetComments> {
+impl Perform for Oper<GetComments> {
+  type Response = GetCommentsResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<GetCommentsResponse, Error> {
     let data: &GetComments = &self.data;
 
@@ -591,13 +568,6 @@ impl Perform<GetCommentsResponse> for Oper<GetComments> {
 
     let type_ = ListingType::from_str(&data.type_)?;
     let sort = SortType::from_str(&data.sort)?;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 

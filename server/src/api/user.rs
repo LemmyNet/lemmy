@@ -199,21 +199,15 @@ pub struct UserJoinResponse {
   pub user_id: i32,
 }
 
-impl Perform<LoginResponse> for Oper<Login> {
+impl Perform for Oper<Login> {
+  type Response = LoginResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<LoginResponse, Error> {
     let data: &Login = &self.data;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -234,21 +228,15 @@ impl Perform<LoginResponse> for Oper<Login> {
   }
 }
 
-impl Perform<LoginResponse> for Oper<Register> {
+impl Perform for Oper<Register> {
+  type Response = LoginResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<LoginResponse, Error> {
     let data: &Register = &self.data;
-
-    if let Some(rl) = &rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_register(&rl.ip, true)?;
-    }
 
     let conn = pool.get()?;
 
@@ -355,13 +343,6 @@ impl Perform<LoginResponse> for Oper<Register> {
         };
     }
 
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_register(&rl.ip, false)?;
-    }
-
     // Return the jwt
     Ok(LoginResponse {
       jwt: inserted_user.jwt(),
@@ -369,12 +350,13 @@ impl Perform<LoginResponse> for Oper<Register> {
   }
 }
 
-impl Perform<LoginResponse> for Oper<SaveUserSettings> {
+impl Perform for Oper<SaveUserSettings> {
+  type Response = LoginResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<LoginResponse, Error> {
     let data: &SaveUserSettings = &self.data;
 
@@ -384,13 +366,6 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
     };
 
     let user_id = claims.id;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -471,21 +446,15 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
   }
 }
 
-impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
+impl Perform for Oper<GetUserDetails> {
+  type Response = GetUserDetailsResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<GetUserDetailsResponse, Error> {
     let data: &GetUserDetails = &self.data;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -582,12 +551,13 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
   }
 }
 
-impl Perform<AddAdminResponse> for Oper<AddAdmin> {
+impl Perform for Oper<AddAdmin> {
+  type Response = AddAdminResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<AddAdminResponse, Error> {
     let data: &AddAdmin = &self.data;
 
@@ -597,13 +567,6 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
     };
 
     let user_id = claims.id;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -669,12 +632,13 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
   }
 }
 
-impl Perform<BanUserResponse> for Oper<BanUser> {
+impl Perform for Oper<BanUser> {
+  type Response = BanUserResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<BanUserResponse, Error> {
     let data: &BanUser = &self.data;
 
@@ -684,13 +648,6 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
     };
 
     let user_id = claims.id;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -762,12 +719,13 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
   }
 }
 
-impl Perform<GetRepliesResponse> for Oper<GetReplies> {
+impl Perform for Oper<GetReplies> {
+  type Response = GetRepliesResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<GetRepliesResponse, Error> {
     let data: &GetReplies = &self.data;
 
@@ -779,13 +737,6 @@ impl Perform<GetRepliesResponse> for Oper<GetReplies> {
     let user_id = claims.id;
 
     let sort = SortType::from_str(&data.sort)?;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -800,12 +751,13 @@ impl Perform<GetRepliesResponse> for Oper<GetReplies> {
   }
 }
 
-impl Perform<GetUserMentionsResponse> for Oper<GetUserMentions> {
+impl Perform for Oper<GetUserMentions> {
+  type Response = GetUserMentionsResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<GetUserMentionsResponse, Error> {
     let data: &GetUserMentions = &self.data;
 
@@ -817,13 +769,6 @@ impl Perform<GetUserMentionsResponse> for Oper<GetUserMentions> {
     let user_id = claims.id;
 
     let sort = SortType::from_str(&data.sort)?;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -838,12 +783,13 @@ impl Perform<GetUserMentionsResponse> for Oper<GetUserMentions> {
   }
 }
 
-impl Perform<UserMentionResponse> for Oper<EditUserMention> {
+impl Perform for Oper<EditUserMention> {
+  type Response = UserMentionResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<UserMentionResponse, Error> {
     let data: &EditUserMention = &self.data;
 
@@ -853,13 +799,6 @@ impl Perform<UserMentionResponse> for Oper<EditUserMention> {
     };
 
     let user_id = claims.id;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -885,12 +824,13 @@ impl Perform<UserMentionResponse> for Oper<EditUserMention> {
   }
 }
 
-impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
+impl Perform for Oper<MarkAllAsRead> {
+  type Response = GetRepliesResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<GetRepliesResponse, Error> {
     let data: &MarkAllAsRead = &self.data;
 
@@ -900,13 +840,6 @@ impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
     };
 
     let user_id = claims.id;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -983,12 +916,13 @@ impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
   }
 }
 
-impl Perform<LoginResponse> for Oper<DeleteAccount> {
+impl Perform for Oper<DeleteAccount> {
+  type Response = LoginResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<LoginResponse, Error> {
     let data: &DeleteAccount = &self.data;
 
@@ -998,13 +932,6 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
     };
 
     let user_id = claims.id;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -1078,21 +1005,15 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
   }
 }
 
-impl Perform<PasswordResetResponse> for Oper<PasswordReset> {
+impl Perform for Oper<PasswordReset> {
+  type Response = PasswordResetResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<PasswordResetResponse, Error> {
     let data: &PasswordReset = &self.data;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -1123,21 +1044,15 @@ impl Perform<PasswordResetResponse> for Oper<PasswordReset> {
   }
 }
 
-impl Perform<LoginResponse> for Oper<PasswordChange> {
+impl Perform for Oper<PasswordChange> {
+  type Response = LoginResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<LoginResponse, Error> {
     let data: &PasswordChange = &self.data;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -1162,12 +1077,13 @@ impl Perform<LoginResponse> for Oper<PasswordChange> {
   }
 }
 
-impl Perform<PrivateMessageResponse> for Oper<CreatePrivateMessage> {
+impl Perform for Oper<CreatePrivateMessage> {
+  type Response = PrivateMessageResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<PrivateMessageResponse, Error> {
     let data: &CreatePrivateMessage = &self.data;
 
@@ -1179,13 +1095,6 @@ impl Perform<PrivateMessageResponse> for Oper<CreatePrivateMessage> {
     let user_id = claims.id;
 
     let hostname = &format!("https://{}", Settings::get().hostname);
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -1249,12 +1158,13 @@ impl Perform<PrivateMessageResponse> for Oper<CreatePrivateMessage> {
   }
 }
 
-impl Perform<PrivateMessageResponse> for Oper<EditPrivateMessage> {
+impl Perform for Oper<EditPrivateMessage> {
+  type Response = PrivateMessageResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<PrivateMessageResponse, Error> {
     let data: &EditPrivateMessage = &self.data;
 
@@ -1264,13 +1174,6 @@ impl Perform<PrivateMessageResponse> for Oper<EditPrivateMessage> {
     };
 
     let user_id = claims.id;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -1318,12 +1221,13 @@ impl Perform<PrivateMessageResponse> for Oper<EditPrivateMessage> {
   }
 }
 
-impl Perform<PrivateMessagesResponse> for Oper<GetPrivateMessages> {
+impl Perform for Oper<GetPrivateMessages> {
+  type Response = PrivateMessagesResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<PrivateMessagesResponse, Error> {
     let data: &GetPrivateMessages = &self.data;
 
@@ -1333,13 +1237,6 @@ impl Perform<PrivateMessagesResponse> for Oper<GetPrivateMessages> {
     };
 
     let user_id = claims.id;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -1353,12 +1250,13 @@ impl Perform<PrivateMessagesResponse> for Oper<GetPrivateMessages> {
   }
 }
 
-impl Perform<UserJoinResponse> for Oper<UserJoin> {
+impl Perform for Oper<UserJoin> {
+  type Response = UserJoinResponse;
+
   fn perform(
     &self,
     _pool: Pool<ConnectionManager<PgConnection>>,
     websocket_info: Option<WebsocketInfo>,
-    _rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<UserJoinResponse, Error> {
     let data: &UserJoin = &self.data;
 
