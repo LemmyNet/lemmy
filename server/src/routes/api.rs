@@ -1,105 +1,185 @@
+use super::*;
 use crate::api::comment::*;
 use crate::api::community::*;
 use crate::api::post::*;
 use crate::api::site::*;
 use crate::api::user::*;
-use crate::api::{Oper, Perform};
-use actix_web::{web, HttpResponse};
-use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::PgConnection;
-use failure::Error;
-use serde::Serialize;
+use crate::rate_limit::RateLimit;
+use actix_web::guard;
 
-type DbParam = web::Data<Pool<ConnectionManager<PgConnection>>>;
-
-#[rustfmt::skip]
-pub fn config(cfg: &mut web::ServiceConfig) {
-  cfg
-    // Site
-    .route("/api/v1/site", web::get().to(route_get::<GetSite, GetSiteResponse>))
-    .route("/api/v1/categories", web::get().to(route_get::<ListCategories, ListCategoriesResponse>))
-    .route("/api/v1/modlog", web::get().to(route_get::<GetModlog, GetModlogResponse>))
-    .route("/api/v1/search", web::get().to(route_get::<Search, SearchResponse>))
-    // Community
-    .route("/api/v1/community", web::post().to(route_post::<CreateCommunity, CommunityResponse>))
-    .route("/api/v1/community", web::get().to(route_get::<GetCommunity, GetCommunityResponse>))
-    .route("/api/v1/community", web::put().to(route_post::<EditCommunity, CommunityResponse>))
-    .route("/api/v1/community/list", web::get().to(route_get::<ListCommunities, ListCommunitiesResponse>))
-    .route("/api/v1/community/follow", web::post().to(route_post::<FollowCommunity, CommunityResponse>))
-    // Post
-    .route("/api/v1/post", web::post().to(route_post::<CreatePost, PostResponse>))
-    .route("/api/v1/post", web::put().to(route_post::<EditPost, PostResponse>))
-    .route("/api/v1/post", web::get().to(route_get::<GetPost, GetPostResponse>))
-    .route("/api/v1/post/list", web::get().to(route_get::<GetPosts, GetPostsResponse>))
-    .route("/api/v1/post/like", web::post().to(route_post::<CreatePostLike, PostResponse>))
-    .route("/api/v1/post/save", web::put().to(route_post::<SavePost, PostResponse>))
-    // Comment
-    .route("/api/v1/comment", web::post().to(route_post::<CreateComment, CommentResponse>))
-    .route("/api/v1/comment", web::put().to(route_post::<EditComment, CommentResponse>))
-    .route("/api/v1/comment/like", web::post().to(route_post::<CreateCommentLike, CommentResponse>))
-    .route("/api/v1/comment/save", web::put().to(route_post::<SaveComment, CommentResponse>))
-    // User
-    .route("/api/v1/user", web::get().to(route_get::<GetUserDetails, GetUserDetailsResponse>))
-    .route("/api/v1/user/mention", web::get().to(route_get::<GetUserMentions, GetUserMentionsResponse>))
-    .route("/api/v1/user/mention", web::put().to(route_post::<EditUserMention, UserMentionResponse>))
-    .route("/api/v1/user/replies", web::get().to(route_get::<GetReplies, GetRepliesResponse>))
-    .route("/api/v1/user/followed_communities", web::get().to(route_get::<GetFollowedCommunities, GetFollowedCommunitiesResponse>))
-    // Mod actions
-    .route("/api/v1/community/transfer", web::post().to(route_post::<TransferCommunity, GetCommunityResponse>))
-    .route("/api/v1/community/ban_user", web::post().to(route_post::<BanFromCommunity, BanFromCommunityResponse>))
-    .route("/api/v1/community/mod", web::post().to(route_post::<AddModToCommunity, AddModToCommunityResponse>))
-    // Admin actions
-    .route("/api/v1/site", web::post().to(route_post::<CreateSite, SiteResponse>))
-    .route("/api/v1/site", web::put().to(route_post::<EditSite, SiteResponse>))
-    .route("/api/v1/site/transfer", web::post().to(route_post::<TransferSite, GetSiteResponse>))
-    .route("/api/v1/site/config", web::get().to(route_get::<GetSiteConfig, GetSiteConfigResponse>))
-    .route("/api/v1/site/config", web::put().to(route_post::<SaveSiteConfig, GetSiteConfigResponse>))
-    .route("/api/v1/admin/add", web::post().to(route_post::<AddAdmin, AddAdminResponse>))
-    .route("/api/v1/user/ban", web::post().to(route_post::<BanUser, BanUserResponse>))
-    // User account actions
-    .route("/api/v1/user/login", web::post().to(route_post::<Login, LoginResponse>))
-    .route("/api/v1/user/register", web::post().to(route_post::<Register, LoginResponse>))
-    .route("/api/v1/user/delete_account", web::post().to(route_post::<DeleteAccount, LoginResponse>))
-    .route("/api/v1/user/password_reset", web::post().to(route_post::<PasswordReset, PasswordResetResponse>))
-    .route("/api/v1/user/password_change", web::post().to(route_post::<PasswordChange, LoginResponse>))
-    .route("/api/v1/user/mark_all_as_read", web::post().to(route_post::<MarkAllAsRead, GetRepliesResponse>))
-    .route("/api/v1/user/save_user_settings", web::put().to(route_post::<SaveUserSettings, LoginResponse>));
+pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
+  cfg.service(
+    web::scope("/api/v1")
+      // Websockets
+      .service(web::resource("/ws").to(super::websocket::chat_route))
+      // Site
+      .service(
+        web::scope("/site")
+          .wrap(rate_limit.message())
+          .route("", web::get().to(route_get::<GetSite>))
+          // Admin Actions
+          .route("", web::post().to(route_post::<CreateSite>))
+          .route("", web::put().to(route_post::<EditSite>))
+          .route("/transfer", web::post().to(route_post::<TransferSite>))
+          .route("/config", web::get().to(route_get::<GetSiteConfig>))
+          .route("/config", web::put().to(route_post::<SaveSiteConfig>)),
+      )
+      .service(
+        web::resource("/categories")
+          .wrap(rate_limit.message())
+          .route(web::get().to(route_get::<ListCategories>)),
+      )
+      .service(
+        web::resource("/modlog")
+          .wrap(rate_limit.message())
+          .route(web::get().to(route_get::<GetModlog>)),
+      )
+      .service(
+        web::resource("/search")
+          .wrap(rate_limit.message())
+          .route(web::get().to(route_get::<Search>)),
+      )
+      // Community
+      .service(
+        web::resource("/community")
+          .guard(guard::Post())
+          .wrap(rate_limit.register())
+          .route(web::post().to(route_post::<CreateCommunity>)),
+      )
+      .service(
+        web::scope("/community")
+          .wrap(rate_limit.message())
+          .route("", web::get().to(route_get::<GetCommunity>))
+          .route("", web::put().to(route_post::<EditCommunity>))
+          .route("/list", web::get().to(route_get::<ListCommunities>))
+          .route("/follow", web::post().to(route_post::<FollowCommunity>))
+          // Mod Actions
+          .route("/transfer", web::post().to(route_post::<TransferCommunity>))
+          .route("/ban_user", web::post().to(route_post::<BanFromCommunity>))
+          .route("/mod", web::post().to(route_post::<AddModToCommunity>)),
+      )
+      // Post
+      .service(
+        // Handle POST to /post separately to add the post() rate limitter
+        web::resource("/post")
+          .guard(guard::Post())
+          .wrap(rate_limit.post())
+          .route(web::post().to(route_post::<CreatePost>)),
+      )
+      .service(
+        web::scope("/post")
+          .wrap(rate_limit.message())
+          .route("", web::get().to(route_get::<GetPost>))
+          .route("", web::put().to(route_post::<EditPost>))
+          .route("/list", web::get().to(route_get::<GetPosts>))
+          .route("/like", web::post().to(route_post::<CreatePostLike>))
+          .route("/save", web::put().to(route_post::<SavePost>)),
+      )
+      // Comment
+      .service(
+        web::scope("/comment")
+          .wrap(rate_limit.message())
+          .route("", web::post().to(route_post::<CreateComment>))
+          .route("", web::put().to(route_post::<EditComment>))
+          .route("/like", web::post().to(route_post::<CreateCommentLike>))
+          .route("/save", web::put().to(route_post::<SaveComment>)),
+      )
+      // User
+      .service(
+        // Account action, I don't like that it's in /user maybe /accounts
+        // Handle /user/register separately to add the register() rate limitter
+        web::resource("/user/register")
+          .guard(guard::Post())
+          .wrap(rate_limit.register())
+          .route(web::post().to(route_post::<Register>)),
+      )
+      // User actions
+      .service(
+        web::scope("/user")
+          .wrap(rate_limit.message())
+          .route("", web::get().to(route_get::<GetUserDetails>))
+          .route("/mention", web::get().to(route_get::<GetUserMentions>))
+          .route("/mention", web::put().to(route_post::<EditUserMention>))
+          .route("/replies", web::get().to(route_get::<GetReplies>))
+          .route(
+            "/followed_communities",
+            web::get().to(route_get::<GetFollowedCommunities>),
+          )
+          // Admin action. I don't like that it's in /user
+          .route("/ban", web::post().to(route_post::<BanUser>))
+          // Account actions. I don't like that they're in /user maybe /accounts
+          .route("/login", web::post().to(route_post::<Login>))
+          .route(
+            "/delete_account",
+            web::post().to(route_post::<DeleteAccount>),
+          )
+          .route(
+            "/password_reset",
+            web::post().to(route_post::<PasswordReset>),
+          )
+          .route(
+            "/password_change",
+            web::post().to(route_post::<PasswordChange>),
+          )
+          // mark_all_as_read feels off being in this section as well
+          .route(
+            "/mark_all_as_read",
+            web::post().to(route_post::<MarkAllAsRead>),
+          )
+          .route(
+            "/save_user_settings",
+            web::put().to(route_post::<SaveUserSettings>),
+          ),
+      )
+      // Admin Actions
+      .service(
+        web::resource("/admin/add")
+          .wrap(rate_limit.message())
+          .route(web::post().to(route_post::<AddAdmin>)),
+      ),
+  );
 }
 
-fn perform<Request, Response>(data: Request, db: DbParam) -> Result<HttpResponse, Error>
+fn perform<Request>(
+  data: Request,
+  db: DbPoolParam,
+  chat_server: ChatServerParam,
+) -> Result<HttpResponse, Error>
 where
-  Response: Serialize,
-  Oper<Request>: Perform<Response>,
+  Oper<Request>: Perform,
 {
-  let conn = match db.get() {
-    Ok(c) => c,
-    Err(e) => return Err(format_err!("{}", e)),
+  let ws_info = WebsocketInfo {
+    chatserver: chat_server.get_ref().to_owned(),
+    id: None,
   };
+
   let oper: Oper<Request> = Oper::new(data);
-  let response = oper.perform(&conn);
-  Ok(HttpResponse::Ok().json(response?))
+
+  let res = oper.perform(db.get_ref().to_owned(), Some(ws_info));
+
+  Ok(HttpResponse::Ok().json(res?))
 }
 
-async fn route_get<Data, Response>(
+async fn route_get<Data>(
   data: web::Query<Data>,
-  db: DbParam,
+  db: DbPoolParam,
+  chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error>
 where
   Data: Serialize,
-  Response: Serialize,
-  Oper<Data>: Perform<Response>,
+  Oper<Data>: Perform,
 {
-  perform::<Data, Response>(data.0, db)
+  perform::<Data>(data.0, db, chat_server)
 }
 
-async fn route_post<Data, Response>(
+async fn route_post<Data>(
   data: web::Json<Data>,
-  db: DbParam,
+  db: DbPoolParam,
+  chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error>
 where
   Data: Serialize,
-  Response: Serialize,
-  Oper<Data>: Perform<Response>,
+  Oper<Data>: Perform,
 {
-  perform::<Data, Response>(data.0, db)
+  perform::<Data>(data.0, db, chat_server)
 }
