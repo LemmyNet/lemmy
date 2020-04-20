@@ -34,7 +34,9 @@ async fn main() -> io::Result<()> {
   embedded_migrations::run(&conn).unwrap();
 
   // Set up the rate limiter
-  let rate_limiter = RateLimit(Arc::new(Mutex::new(RateLimiter::default())));
+  let rate_limiter = RateLimit {
+    rate_limiter: Arc::new(Mutex::new(RateLimiter::default())),
+  };
 
   // Set up websocket server
   let server = ChatServer::startup(pool.clone(), rate_limiter.clone()).start();
