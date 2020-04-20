@@ -105,7 +105,7 @@ impl RateLimiter {
         }
 
         if rate_limit.allowance < 1.0 {
-          warn!(
+          debug!(
             "Rate limited IP: {}, time_passed: {}, allowance: {}",
             ip, time_passed, rate_limit.allowance
           );
