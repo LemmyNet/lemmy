@@ -3,7 +3,7 @@ pub mod rate_limiter;
 use super::{IPAddr, Settings};
 use crate::api::APIError;
 use failure::Error;
-use log::warn;
+use log::debug;
 use rate_limiter::RateLimiter;
 use std::collections::HashMap;
 use std::sync::Arc;
