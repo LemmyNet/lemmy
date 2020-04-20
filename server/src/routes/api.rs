@@ -10,6 +10,8 @@ use actix_web::guard;
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
   cfg.service(
     web::scope("/api/v1")
+      // Websockets
+      .service(web::resource("/ws").to(super::websocket::chat_route))
       // Site
       .service(
         web::scope("/site")
