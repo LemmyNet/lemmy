@@ -2,6 +2,7 @@ pub mod rate_limiter;
 
 use super::{IPAddr, Settings};
 use crate::api::APIError;
+use crate::get_ip;
 use crate::settings::RateLimitConfig;
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use failure::Error;
@@ -181,14 +182,7 @@ where
   }
 
   fn call(&mut self, req: S::Request) -> Self::Future {
-    let ip_addr = req
-      .connection_info()
-      .remote()
-      .unwrap_or("127.0.0.1:12345")
-      .split(':')
-      .next()
-      .unwrap_or("127.0.0.1")
-      .to_string();
+    let ip_addr = get_ip(&req.connection_info());
 
     let fut = self
       .rate_limited
