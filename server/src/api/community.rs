@@ -111,12 +111,13 @@ pub struct TransferCommunity {
   auth: String,
 }
 
-impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
+impl Perform for Oper<GetCommunity> {
+  type Response = GetCommunityResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<GetCommunityResponse, Error> {
     let data: &GetCommunity = &self.data;
 
@@ -130,13 +131,6 @@ impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
       },
       None => None,
     };
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -197,12 +191,13 @@ impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
   }
 }
 
-impl Perform<CommunityResponse> for Oper<CreateCommunity> {
+impl Perform for Oper<CreateCommunity> {
+  type Response = CommunityResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<CommunityResponse, Error> {
     let data: &CreateCommunity = &self.data;
 
@@ -226,13 +221,6 @@ impl Perform<CommunityResponse> for Oper<CreateCommunity> {
     }
 
     let user_id = claims.id;
-
-    if let Some(rl) = &rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_register(&rl.ip, true)?;
-    }
 
     let conn = pool.get()?;
 
@@ -283,25 +271,19 @@ impl Perform<CommunityResponse> for Oper<CreateCommunity> {
 
     let community_view = CommunityView::read(&conn, inserted_community.id, Some(user_id))?;
 
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_register(&rl.ip, false)?;
-    }
-
     Ok(CommunityResponse {
       community: community_view,
     })
   }
 }
 
-impl Perform<CommunityResponse> for Oper<EditCommunity> {
+impl Perform for Oper<EditCommunity> {
+  type Response = CommunityResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<CommunityResponse, Error> {
     let data: &EditCommunity = &self.data;
 
@@ -325,13 +307,6 @@ impl Perform<CommunityResponse> for Oper<EditCommunity> {
     };
 
     let user_id = claims.id;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -410,12 +385,13 @@ impl Perform<CommunityResponse> for Oper<EditCommunity> {
   }
 }
 
-impl Perform<ListCommunitiesResponse> for Oper<ListCommunities> {
+impl Perform for Oper<ListCommunities> {
+  type Response = ListCommunitiesResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<ListCommunitiesResponse, Error> {
     let data: &ListCommunities = &self.data;
 
@@ -439,13 +415,6 @@ impl Perform<ListCommunitiesResponse> for Oper<ListCommunities> {
 
     let sort = SortType::from_str(&data.sort)?;
 
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
-
     let conn = pool.get()?;
 
     let communities = CommunityQueryBuilder::create(&conn)
@@ -461,12 +430,13 @@ impl Perform<ListCommunitiesResponse> for Oper<ListCommunities> {
   }
 }
 
-impl Perform<CommunityResponse> for Oper<FollowCommunity> {
+impl Perform for Oper<FollowCommunity> {
+  type Response = CommunityResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<CommunityResponse, Error> {
     let data: &FollowCommunity = &self.data;
 
@@ -481,13 +451,6 @@ impl Perform<CommunityResponse> for Oper<FollowCommunity> {
       community_id: data.community_id,
       user_id,
     };
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -511,12 +474,13 @@ impl Perform<CommunityResponse> for Oper<FollowCommunity> {
   }
 }
 
-impl Perform<GetFollowedCommunitiesResponse> for Oper<GetFollowedCommunities> {
+impl Perform for Oper<GetFollowedCommunities> {
+  type Response = GetFollowedCommunitiesResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<GetFollowedCommunitiesResponse, Error> {
     let data: &GetFollowedCommunities = &self.data;
 
@@ -526,13 +490,6 @@ impl Perform<GetFollowedCommunitiesResponse> for Oper<GetFollowedCommunities> {
     };
 
     let user_id = claims.id;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -547,12 +504,13 @@ impl Perform<GetFollowedCommunitiesResponse> for Oper<GetFollowedCommunities> {
   }
 }
 
-impl Perform<BanFromCommunityResponse> for Oper<BanFromCommunity> {
+impl Perform for Oper<BanFromCommunity> {
+  type Response = BanFromCommunityResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<BanFromCommunityResponse, Error> {
     let data: &BanFromCommunity = &self.data;
 
@@ -567,13 +525,6 @@ impl Perform<BanFromCommunityResponse> for Oper<BanFromCommunity> {
       community_id: data.community_id,
       user_id: data.user_id,
     };
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -625,12 +576,13 @@ impl Perform<BanFromCommunityResponse> for Oper<BanFromCommunity> {
   }
 }
 
-impl Perform<AddModToCommunityResponse> for Oper<AddModToCommunity> {
+impl Perform for Oper<AddModToCommunity> {
+  type Response = AddModToCommunityResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<AddModToCommunityResponse, Error> {
     let data: &AddModToCommunity = &self.data;
 
@@ -645,13 +597,6 @@ impl Perform<AddModToCommunityResponse> for Oper<AddModToCommunity> {
       community_id: data.community_id,
       user_id: data.user_id,
     };
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 
@@ -693,12 +638,13 @@ impl Perform<AddModToCommunityResponse> for Oper<AddModToCommunity> {
   }
 }
 
-impl Perform<GetCommunityResponse> for Oper<TransferCommunity> {
+impl Perform for Oper<TransferCommunity> {
+  type Response = GetCommunityResponse;
+
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
     _websocket_info: Option<WebsocketInfo>,
-    rate_limit_info: Option<RateLimitInfo>,
   ) -> Result<GetCommunityResponse, Error> {
     let data: &TransferCommunity = &self.data;
 
@@ -708,13 +654,6 @@ impl Perform<GetCommunityResponse> for Oper<TransferCommunity> {
     };
 
     let user_id = claims.id;
-
-    if let Some(rl) = rate_limit_info {
-      rl.rate_limiter
-        .lock()
-        .unwrap()
-        .check_rate_limit_message(&rl.ip, false)?;
-    }
 
     let conn = pool.get()?;
 

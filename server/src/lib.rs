@@ -34,7 +34,7 @@ pub mod settings;
 pub mod version;
 pub mod websocket;
 
-use actix_web::HttpRequest;
+use actix_web::dev::ConnectionInfo;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use isahc::prelude::*;
 use lettre::smtp::authentication::{Credentials, Mechanism};
@@ -233,9 +233,8 @@ pub fn markdown_to_html(text: &str) -> String {
   comrak::markdown_to_html(text, &comrak::ComrakOptions::default())
 }
 
-pub fn get_ip(req: &HttpRequest) -> String {
-  req
-    .connection_info()
+pub fn get_ip(conn_info: &ConnectionInfo) -> String {
+  conn_info
     .remote()
     .unwrap_or("127.0.0.1:12345")
     .split(':')
