@@ -18,7 +18,7 @@ pub async fn chat_route(
       cs_addr: chat_server.get_ref().to_owned(),
       id: 0,
       hb: Instant::now(),
-      ip: get_ip(&req),
+      ip: get_ip(&req.connection_info()),
     },
     &req,
     stream,
