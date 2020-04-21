@@ -1,6 +1,5 @@
+use super::*;
 use crate::apub;
-use crate::settings::Settings;
-use actix_web::web;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
   if Settings::get().federation.enabled {
