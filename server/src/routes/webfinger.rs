@@ -84,6 +84,6 @@ async fn get_webfinger_response(
   })
   .await
   .map(|json| HttpResponse::Ok().json(json))
-  .map_err(|e| ErrorBadRequest(e))?;
+  .map_err(ErrorBadRequest)?;
   Ok(res)
 }

@@ -39,7 +39,7 @@ async fn get_all_feed(
       .content_type("application/rss+xml")
       .body(rss)
   })
-  .map_err(|e| ErrorBadRequest(e))?;
+  .map_err(ErrorBadRequest)?;
   Ok(res)
 }
 
@@ -100,7 +100,7 @@ async fn get_feed(
       .content_type("application/rss+xml")
       .body(rss)
   })
-  .map_err(|e| ErrorBadRequest(e))?;
+  .map_err(ErrorBadRequest)?;
   Ok(res)
 }
 
