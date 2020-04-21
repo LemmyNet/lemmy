@@ -158,7 +158,7 @@ where
   let res = web::block(move || oper.perform(db.get_ref().to_owned(), Some(ws_info)))
     .await
     .map(|json| HttpResponse::Ok().json(json))
-    .map_err(|e| ErrorBadRequest(e))?;
+    .map_err(ErrorBadRequest)?;
   Ok(res)
 }
 
