@@ -1,9 +1,4 @@
 use super::*;
-use crate::send_email;
-use crate::settings::Settings;
-use diesel::PgConnection;
-use log::error;
-use std::str::FromStr;
 
 #[derive(Serialize, Deserialize)]
 pub struct CreateComment {
@@ -64,8 +59,14 @@ pub struct GetCommentsResponse {
   comments: Vec<CommentView>,
 }
 
-impl Perform<CommentResponse> for Oper<CreateComment> {
-  fn perform(&self, conn: &PgConnection) -> Result<CommentResponse, Error> {
+impl Perform for Oper<CreateComment> {
+  type Response = CommentResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<CommentResponse, Error> {
     let data: &CreateComment = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -76,6 +77,8 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
     let user_id = claims.id;
 
     let hostname = &format!("https://{}", Settings::get().hostname);
+
+    let conn = pool.get()?;
 
     // Check for a community ban
     let post = Post::read(&conn, data.post_id)?;
@@ -230,15 +233,35 @@ impl Perform<CommentResponse> for Oper<CreateComment> {
 
     let comment_view = CommentView::read(&conn, inserted_comment.id, Some(user_id))?;
 
-    Ok(CommentResponse {
+    let mut res = CommentResponse {
       comment: comment_view,
       recipient_ids,
-    })
+    };
+
+    if let Some(ws) = websocket_info {
+      ws.chatserver.do_send(SendComment {
+        op: UserOperation::CreateComment,
+        comment: res.clone(),
+        my_id: ws.id,
+      });
+
+      // strip out the recipient_ids, so that
+      // users don't get double notifs
+      res.recipient_ids = Vec::new();
+    }
+
+    Ok(res)
   }
 }
 
-impl Perform<CommentResponse> for Oper<EditComment> {
-  fn perform(&self, conn: &PgConnection) -> Result<CommentResponse, Error> {
+impl Perform for Oper<EditComment> {
+  type Response = CommentResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<CommentResponse, Error> {
     let data: &EditComment = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -247,6 +270,8 @@ impl Perform<CommentResponse> for Oper<EditComment> {
     };
 
     let user_id = claims.id;
+
+    let conn = pool.get()?;
 
     let orig_comment = CommentView::read(&conn, data.edit_id, None)?;
 
@@ -364,15 +389,35 @@ impl Perform<CommentResponse> for Oper<EditComment> {
 
     let comment_view = CommentView::read(&conn, data.edit_id, Some(user_id))?;
 
-    Ok(CommentResponse {
+    let mut res = CommentResponse {
       comment: comment_view,
       recipient_ids,
-    })
+    };
+
+    if let Some(ws) = websocket_info {
+      ws.chatserver.do_send(SendComment {
+        op: UserOperation::EditComment,
+        comment: res.clone(),
+        my_id: ws.id,
+      });
+
+      // strip out the recipient_ids, so that
+      // users don't get double notifs
+      res.recipient_ids = Vec::new();
+    }
+
+    Ok(res)
   }
 }
 
-impl Perform<CommentResponse> for Oper<SaveComment> {
-  fn perform(&self, conn: &PgConnection) -> Result<CommentResponse, Error> {
+impl Perform for Oper<SaveComment> {
+  type Response = CommentResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<CommentResponse, Error> {
     let data: &SaveComment = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -386,6 +431,8 @@ impl Perform<CommentResponse> for Oper<SaveComment> {
       comment_id: data.comment_id,
       user_id,
     };
+
+    let conn = pool.get()?;
 
     if data.save {
       match CommentSaved::save(&conn, &comment_saved_form) {
@@ -408,8 +455,14 @@ impl Perform<CommentResponse> for Oper<SaveComment> {
   }
 }
 
-impl Perform<CommentResponse> for Oper<CreateCommentLike> {
-  fn perform(&self, conn: &PgConnection) -> Result<CommentResponse, Error> {
+impl Perform for Oper<CreateCommentLike> {
+  type Response = CommentResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<CommentResponse, Error> {
     let data: &CreateCommentLike = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -420,6 +473,8 @@ impl Perform<CommentResponse> for Oper<CreateCommentLike> {
     let user_id = claims.id;
 
     let mut recipient_ids = Vec::new();
+
+    let conn = pool.get()?;
 
     // Don't do a downvote if site has downvotes disabled
     if data.score == -1 {
@@ -478,15 +533,35 @@ impl Perform<CommentResponse> for Oper<CreateCommentLike> {
     // Have to refetch the comment to get the current state
     let liked_comment = CommentView::read(&conn, data.comment_id, Some(user_id))?;
 
-    Ok(CommentResponse {
+    let mut res = CommentResponse {
       comment: liked_comment,
       recipient_ids,
-    })
+    };
+
+    if let Some(ws) = websocket_info {
+      ws.chatserver.do_send(SendComment {
+        op: UserOperation::CreateCommentLike,
+        comment: res.clone(),
+        my_id: ws.id,
+      });
+
+      // strip out the recipient_ids, so that
+      // users don't get double notifs
+      res.recipient_ids = Vec::new();
+    }
+
+    Ok(res)
   }
 }
 
-impl Perform<GetCommentsResponse> for Oper<GetComments> {
-  fn perform(&self, conn: &PgConnection) -> Result<GetCommentsResponse, Error> {
+impl Perform for Oper<GetComments> {
+  type Response = GetCommentsResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<GetCommentsResponse, Error> {
     let data: &GetComments = &self.data;
 
     let user_claims: Option<Claims> = match &data.auth {
@@ -505,6 +580,8 @@ impl Perform<GetCommentsResponse> for Oper<GetComments> {
     let type_ = ListingType::from_str(&data.type_)?;
     let sort = SortType::from_str(&data.sort)?;
 
+    let conn = pool.get()?;
+
     let comments = match CommentQueryBuilder::create(&conn)
       .listing_type(type_)
       .sort(&sort)
@@ -517,6 +594,20 @@ impl Perform<GetCommentsResponse> for Oper<GetComments> {
       Ok(comments) => comments,
       Err(_e) => return Err(APIError::err("couldnt_get_comments").into()),
     };
+
+    if let Some(ws) = websocket_info {
+      // You don't need to join the specific community room, bc this is already handled by
+      // GetCommunity
+      if data.community_id.is_none() {
+        if let Some(id) = ws.id {
+          // 0 is the "all" community
+          ws.chatserver.do_send(JoinCommunityRoom {
+            community_id: 0,
+            id,
+          });
+        }
+      }
+    }
 
     Ok(GetCommentsResponse { comments })
   }

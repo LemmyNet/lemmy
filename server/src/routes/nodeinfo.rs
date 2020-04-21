@@ -1,16 +1,4 @@
-use crate::apub::get_apub_protocol_string;
-use crate::db::site_view::SiteView;
-use crate::version;
-use crate::Settings;
-use actix_web::body::Body;
-use actix_web::web;
-use actix_web::HttpResponse;
-use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::PgConnection;
-use failure::Error;
-use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
-use url::Url;
+use super::*;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
   cfg
