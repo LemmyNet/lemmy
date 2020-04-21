@@ -11,6 +11,12 @@ declare -a arr=(
 "https://torrents-csv.ml/service/search?q=wheel&page=1&type_=torrent"
 )
 
+## check if ab installed
+if ! [ -x "$(command -v ab)" ]; then
+  echo 'Error: ab (Apache Bench) is not installed. https://httpd.apache.org/docs/2.4/programs/ab.html' >&2
+  exit 1
+fi
+
 ## now loop through the above array
 for i in "${arr[@]}"
 do

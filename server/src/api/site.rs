@@ -1,11 +1,5 @@
+use super::user::Register;
 use super::*;
-use crate::api::user::Register;
-use crate::api::{Oper, Perform};
-use crate::apub::fetcher::search_by_apub_id;
-use crate::settings::Settings;
-use diesel::PgConnection;
-use log::{debug, info};
-use std::str::FromStr;
 
 #[derive(Serialize, Deserialize)]
 pub struct ListCategories {}
@@ -79,7 +73,7 @@ pub struct EditSite {
 #[derive(Serialize, Deserialize)]
 pub struct GetSite {}
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct SiteResponse {
   site: SiteView,
 }
@@ -114,9 +108,17 @@ pub struct SaveSiteConfig {
   auth: String,
 }
 
-impl Perform<ListCategoriesResponse> for Oper<ListCategories> {
-  fn perform(&self, conn: &PgConnection) -> Result<ListCategoriesResponse, Error> {
+impl Perform for Oper<ListCategories> {
+  type Response = ListCategoriesResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<ListCategoriesResponse, Error> {
     let _data: &ListCategories = &self.data;
+
+    let conn = pool.get()?;
 
     let categories: Vec<Category> = Category::list_all(&conn)?;
 
@@ -125,9 +127,17 @@ impl Perform<ListCategoriesResponse> for Oper<ListCategories> {
   }
 }
 
-impl Perform<GetModlogResponse> for Oper<GetModlog> {
-  fn perform(&self, conn: &PgConnection) -> Result<GetModlogResponse, Error> {
+impl Perform for Oper<GetModlog> {
+  type Response = GetModlogResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<GetModlogResponse, Error> {
     let data: &GetModlog = &self.data;
+
+    let conn = pool.get()?;
 
     let removed_posts = ModRemovePostView::list(
       &conn,
@@ -198,8 +208,14 @@ impl Perform<GetModlogResponse> for Oper<GetModlog> {
   }
 }
 
-impl Perform<SiteResponse> for Oper<CreateSite> {
-  fn perform(&self, conn: &PgConnection) -> Result<SiteResponse, Error> {
+impl Perform for Oper<CreateSite> {
+  type Response = SiteResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<SiteResponse, Error> {
     let data: &CreateSite = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -218,6 +234,8 @@ impl Perform<SiteResponse> for Oper<CreateSite> {
     }
 
     let user_id = claims.id;
+
+    let conn = pool.get()?;
 
     // Make sure user is an admin
     if !UserView::read(&conn, user_id)?.admin {
@@ -245,8 +263,13 @@ impl Perform<SiteResponse> for Oper<CreateSite> {
   }
 }
 
-impl Perform<SiteResponse> for Oper<EditSite> {
-  fn perform(&self, conn: &PgConnection) -> Result<SiteResponse, Error> {
+impl Perform for Oper<EditSite> {
+  type Response = SiteResponse;
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<SiteResponse, Error> {
     let data: &EditSite = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -265,6 +288,8 @@ impl Perform<SiteResponse> for Oper<EditSite> {
     }
 
     let user_id = claims.id;
+
+    let conn = pool.get()?;
 
     // Make sure user is an admin
     if !UserView::read(&conn, user_id)?.admin {
@@ -290,14 +315,33 @@ impl Perform<SiteResponse> for Oper<EditSite> {
 
     let site_view = SiteView::read(&conn)?;
 
-    Ok(SiteResponse { site: site_view })
+    let res = SiteResponse { site: site_view };
+
+    if let Some(ws) = websocket_info {
+      ws.chatserver.do_send(SendAllMessage {
+        op: UserOperation::EditSite,
+        response: res.clone(),
+        my_id: ws.id,
+      });
+    }
+
+    Ok(res)
   }
 }
 
-impl Perform<GetSiteResponse> for Oper<GetSite> {
-  fn perform(&self, conn: &PgConnection) -> Result<GetSiteResponse, Error> {
+impl Perform for Oper<GetSite> {
+  type Response = GetSiteResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<GetSiteResponse, Error> {
     let _data: &GetSite = &self.data;
 
+    let conn = pool.get()?;
+
+    // TODO refactor this a little
     let site_view = if let Ok(_site) = Site::read(&conn, 1) {
       Some(SiteView::read(&conn)?)
     } else if let Some(setup) = Settings::get().setup.as_ref() {
@@ -309,7 +353,7 @@ impl Perform<GetSiteResponse> for Oper<GetSite> {
         admin: true,
         show_nsfw: true,
       };
-      let login_response = Oper::new(register).perform(&conn)?;
+      let login_response = Oper::new(register).perform(pool.clone(), websocket_info.clone())?;
       info!("Admin {} created", setup.admin_username);
 
       let create_site = CreateSite {
@@ -320,7 +364,7 @@ impl Perform<GetSiteResponse> for Oper<GetSite> {
         enable_nsfw: false,
         auth: login_response.jwt,
       };
-      Oper::new(create_site).perform(&conn)?;
+      Oper::new(create_site).perform(pool, websocket_info.clone())?;
       info!("Site {} created", setup.site_name);
       Some(SiteView::read(&conn)?)
     } else {
@@ -342,21 +386,41 @@ impl Perform<GetSiteResponse> for Oper<GetSite> {
 
     let banned = UserView::banned(&conn)?;
 
+    let online = if let Some(_ws) = websocket_info {
+      // TODO
+      1
+    // let fut = async {
+    //   ws.chatserver.send(GetUsersOnline).await.unwrap()
+    // };
+    // Runtime::new().unwrap().block_on(fut)
+    } else {
+      0
+    };
+
     Ok(GetSiteResponse {
       site: site_view,
       admins,
       banned,
-      online: 0,
+      online,
     })
   }
 }
 
-impl Perform<SearchResponse> for Oper<Search> {
-  fn perform(&self, conn: &PgConnection) -> Result<SearchResponse, Error> {
+impl Perform for Oper<Search> {
+  type Response = SearchResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<SearchResponse, Error> {
     let data: &Search = &self.data;
 
     dbg!(&data);
-    match search_by_apub_id(&data.q, conn) {
+
+    let conn = pool.get()?;
+
+    match search_by_apub_id(&data.q, &conn) {
       Ok(r) => return Ok(r),
       Err(e) => debug!("Failed to resolve search query as activitypub ID: {}", e),
     }
@@ -475,8 +539,14 @@ impl Perform<SearchResponse> for Oper<Search> {
   }
 }
 
-impl Perform<GetSiteResponse> for Oper<TransferSite> {
-  fn perform(&self, conn: &PgConnection) -> Result<GetSiteResponse, Error> {
+impl Perform for Oper<TransferSite> {
+  type Response = GetSiteResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<GetSiteResponse, Error> {
     let data: &TransferSite = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -485,6 +555,8 @@ impl Perform<GetSiteResponse> for Oper<TransferSite> {
     };
 
     let user_id = claims.id;
+
+    let conn = pool.get()?;
 
     let read_site = Site::read(&conn, 1)?;
 
@@ -538,8 +610,14 @@ impl Perform<GetSiteResponse> for Oper<TransferSite> {
   }
 }
 
-impl Perform<GetSiteConfigResponse> for Oper<GetSiteConfig> {
-  fn perform(&self, conn: &PgConnection) -> Result<GetSiteConfigResponse, Error> {
+impl Perform for Oper<GetSiteConfig> {
+  type Response = GetSiteConfigResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<GetSiteConfigResponse, Error> {
     let data: &GetSiteConfig = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -548,6 +626,8 @@ impl Perform<GetSiteConfigResponse> for Oper<GetSiteConfig> {
     };
 
     let user_id = claims.id;
+
+    let conn = pool.get()?;
 
     // Only let admins read this
     let admins = UserView::admins(&conn)?;
@@ -563,8 +643,14 @@ impl Perform<GetSiteConfigResponse> for Oper<GetSiteConfig> {
   }
 }
 
-impl Perform<GetSiteConfigResponse> for Oper<SaveSiteConfig> {
-  fn perform(&self, conn: &PgConnection) -> Result<GetSiteConfigResponse, Error> {
+impl Perform for Oper<SaveSiteConfig> {
+  type Response = GetSiteConfigResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<GetSiteConfigResponse, Error> {
     let data: &SaveSiteConfig = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -573,6 +659,8 @@ impl Perform<GetSiteConfigResponse> for Oper<SaveSiteConfig> {
     };
 
     let user_id = claims.id;
+
+    let conn = pool.get()?;
 
     // Only let admins read this
     let admins = UserView::admins(&conn)?;

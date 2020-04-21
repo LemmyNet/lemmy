@@ -1,12 +1,5 @@
 use super::*;
-use crate::apub::signatures::generate_actor_keypair;
-use crate::apub::{make_apub_endpoint, EndpointType};
-use crate::settings::Settings;
-use crate::{generate_random_string, send_email};
 use bcrypt::verify;
-use diesel::PgConnection;
-use log::error;
-use std::str::FromStr;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Login {
@@ -91,7 +84,7 @@ pub struct AddAdmin {
   auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct AddAdminResponse {
   admins: Vec<UserView>,
 }
@@ -105,7 +98,7 @@ pub struct BanUser {
   auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct BanUserResponse {
   user: UserView,
   banned: bool,
@@ -206,9 +199,17 @@ pub struct UserJoinResponse {
   pub user_id: i32,
 }
 
-impl Perform<LoginResponse> for Oper<Login> {
-  fn perform(&self, conn: &PgConnection) -> Result<LoginResponse, Error> {
+impl Perform for Oper<Login> {
+  type Response = LoginResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<LoginResponse, Error> {
     let data: &Login = &self.data;
+
+    let conn = pool.get()?;
 
     // Fetch that username / email
     let user: User_ = match User_::find_by_email_or_username(&conn, &data.username_or_email) {
@@ -227,9 +228,17 @@ impl Perform<LoginResponse> for Oper<Login> {
   }
 }
 
-impl Perform<LoginResponse> for Oper<Register> {
-  fn perform(&self, conn: &PgConnection) -> Result<LoginResponse, Error> {
+impl Perform for Oper<Register> {
+  type Response = LoginResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<LoginResponse, Error> {
     let data: &Register = &self.data;
+
+    let conn = pool.get()?;
 
     // Make sure site has open registration
     if let Ok(site) = SiteView::read(&conn) {
@@ -357,8 +366,14 @@ impl Perform<LoginResponse> for Oper<Register> {
   }
 }
 
-impl Perform<LoginResponse> for Oper<SaveUserSettings> {
-  fn perform(&self, conn: &PgConnection) -> Result<LoginResponse, Error> {
+impl Perform for Oper<SaveUserSettings> {
+  type Response = LoginResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<LoginResponse, Error> {
     let data: &SaveUserSettings = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -367,6 +382,8 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
     };
 
     let user_id = claims.id;
+
+    let conn = pool.get()?;
 
     let read_user = User_::read(&conn, user_id)?;
 
@@ -450,9 +467,17 @@ impl Perform<LoginResponse> for Oper<SaveUserSettings> {
   }
 }
 
-impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
-  fn perform(&self, conn: &PgConnection) -> Result<GetUserDetailsResponse, Error> {
+impl Perform for Oper<GetUserDetails> {
+  type Response = GetUserDetailsResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<GetUserDetailsResponse, Error> {
     let data: &GetUserDetails = &self.data;
+
+    let conn = pool.get()?;
 
     let user_claims: Option<Claims> = match &data.auth {
       Some(auth) => match Claims::decode(&auth) {
@@ -547,8 +572,14 @@ impl Perform<GetUserDetailsResponse> for Oper<GetUserDetails> {
   }
 }
 
-impl Perform<AddAdminResponse> for Oper<AddAdmin> {
-  fn perform(&self, conn: &PgConnection) -> Result<AddAdminResponse, Error> {
+impl Perform for Oper<AddAdmin> {
+  type Response = AddAdminResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<AddAdminResponse, Error> {
     let data: &AddAdmin = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -557,6 +588,8 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
     };
 
     let user_id = claims.id;
+
+    let conn = pool.get()?;
 
     // Make sure user is an admin
     if !UserView::read(&conn, user_id)?.admin {
@@ -583,12 +616,28 @@ impl Perform<AddAdminResponse> for Oper<AddAdmin> {
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
 
-    Ok(AddAdminResponse { admins })
+    let res = AddAdminResponse { admins };
+
+    if let Some(ws) = websocket_info {
+      ws.chatserver.do_send(SendAllMessage {
+        op: UserOperation::AddAdmin,
+        response: res.clone(),
+        my_id: ws.id,
+      });
+    }
+
+    Ok(res)
   }
 }
 
-impl Perform<BanUserResponse> for Oper<BanUser> {
-  fn perform(&self, conn: &PgConnection) -> Result<BanUserResponse, Error> {
+impl Perform for Oper<BanUser> {
+  type Response = BanUserResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<BanUserResponse, Error> {
     let data: &BanUser = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -597,6 +646,8 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
     };
 
     let user_id = claims.id;
+
+    let conn = pool.get()?;
 
     // Make sure user is an admin
     if !UserView::read(&conn, user_id)?.admin {
@@ -626,15 +677,31 @@ impl Perform<BanUserResponse> for Oper<BanUser> {
 
     let user_view = UserView::read(&conn, data.user_id)?;
 
-    Ok(BanUserResponse {
+    let res = BanUserResponse {
       user: user_view,
       banned: data.ban,
-    })
+    };
+
+    if let Some(ws) = websocket_info {
+      ws.chatserver.do_send(SendAllMessage {
+        op: UserOperation::BanUser,
+        response: res.clone(),
+        my_id: ws.id,
+      });
+    }
+
+    Ok(res)
   }
 }
 
-impl Perform<GetRepliesResponse> for Oper<GetReplies> {
-  fn perform(&self, conn: &PgConnection) -> Result<GetRepliesResponse, Error> {
+impl Perform for Oper<GetReplies> {
+  type Response = GetRepliesResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<GetRepliesResponse, Error> {
     let data: &GetReplies = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -645,6 +712,8 @@ impl Perform<GetRepliesResponse> for Oper<GetReplies> {
     let user_id = claims.id;
 
     let sort = SortType::from_str(&data.sort)?;
+
+    let conn = pool.get()?;
 
     let replies = ReplyQueryBuilder::create(&conn, user_id)
       .sort(&sort)
@@ -657,8 +726,14 @@ impl Perform<GetRepliesResponse> for Oper<GetReplies> {
   }
 }
 
-impl Perform<GetUserMentionsResponse> for Oper<GetUserMentions> {
-  fn perform(&self, conn: &PgConnection) -> Result<GetUserMentionsResponse, Error> {
+impl Perform for Oper<GetUserMentions> {
+  type Response = GetUserMentionsResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<GetUserMentionsResponse, Error> {
     let data: &GetUserMentions = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -669,6 +744,8 @@ impl Perform<GetUserMentionsResponse> for Oper<GetUserMentions> {
     let user_id = claims.id;
 
     let sort = SortType::from_str(&data.sort)?;
+
+    let conn = pool.get()?;
 
     let mentions = UserMentionQueryBuilder::create(&conn, user_id)
       .sort(&sort)
@@ -681,8 +758,14 @@ impl Perform<GetUserMentionsResponse> for Oper<GetUserMentions> {
   }
 }
 
-impl Perform<UserMentionResponse> for Oper<EditUserMention> {
-  fn perform(&self, conn: &PgConnection) -> Result<UserMentionResponse, Error> {
+impl Perform for Oper<EditUserMention> {
+  type Response = UserMentionResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<UserMentionResponse, Error> {
     let data: &EditUserMention = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -691,6 +774,8 @@ impl Perform<UserMentionResponse> for Oper<EditUserMention> {
     };
 
     let user_id = claims.id;
+
+    let conn = pool.get()?;
 
     let user_mention = UserMention::read(&conn, data.user_mention_id)?;
 
@@ -714,8 +799,14 @@ impl Perform<UserMentionResponse> for Oper<EditUserMention> {
   }
 }
 
-impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
-  fn perform(&self, conn: &PgConnection) -> Result<GetRepliesResponse, Error> {
+impl Perform for Oper<MarkAllAsRead> {
+  type Response = GetRepliesResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<GetRepliesResponse, Error> {
     let data: &MarkAllAsRead = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -724,6 +815,8 @@ impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
     };
 
     let user_id = claims.id;
+
+    let conn = pool.get()?;
 
     let replies = ReplyQueryBuilder::create(&conn, user_id)
       .unread_only(true)
@@ -787,8 +880,14 @@ impl Perform<GetRepliesResponse> for Oper<MarkAllAsRead> {
   }
 }
 
-impl Perform<LoginResponse> for Oper<DeleteAccount> {
-  fn perform(&self, conn: &PgConnection) -> Result<LoginResponse, Error> {
+impl Perform for Oper<DeleteAccount> {
+  type Response = LoginResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<LoginResponse, Error> {
     let data: &DeleteAccount = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -797,6 +896,8 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
     };
 
     let user_id = claims.id;
+
+    let conn = pool.get()?;
 
     let user: User_ = User_::read(&conn, user_id)?;
 
@@ -839,9 +940,17 @@ impl Perform<LoginResponse> for Oper<DeleteAccount> {
   }
 }
 
-impl Perform<PasswordResetResponse> for Oper<PasswordReset> {
-  fn perform(&self, conn: &PgConnection) -> Result<PasswordResetResponse, Error> {
+impl Perform for Oper<PasswordReset> {
+  type Response = PasswordResetResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<PasswordResetResponse, Error> {
     let data: &PasswordReset = &self.data;
+
+    let conn = pool.get()?;
 
     // Fetch that email
     let user: User_ = match User_::find_by_email(&conn, &data.email) {
@@ -870,9 +979,17 @@ impl Perform<PasswordResetResponse> for Oper<PasswordReset> {
   }
 }
 
-impl Perform<LoginResponse> for Oper<PasswordChange> {
-  fn perform(&self, conn: &PgConnection) -> Result<LoginResponse, Error> {
+impl Perform for Oper<PasswordChange> {
+  type Response = LoginResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<LoginResponse, Error> {
     let data: &PasswordChange = &self.data;
+
+    let conn = pool.get()?;
 
     // Fetch the user_id from the token
     let user_id = PasswordResetRequest::read_from_token(&conn, &data.token)?.user_id;
@@ -895,8 +1012,14 @@ impl Perform<LoginResponse> for Oper<PasswordChange> {
   }
 }
 
-impl Perform<PrivateMessageResponse> for Oper<CreatePrivateMessage> {
-  fn perform(&self, conn: &PgConnection) -> Result<PrivateMessageResponse, Error> {
+impl Perform for Oper<CreatePrivateMessage> {
+  type Response = PrivateMessageResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<PrivateMessageResponse, Error> {
     let data: &CreatePrivateMessage = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -907,6 +1030,8 @@ impl Perform<PrivateMessageResponse> for Oper<CreatePrivateMessage> {
     let user_id = claims.id;
 
     let hostname = &format!("https://{}", Settings::get().hostname);
+
+    let conn = pool.get()?;
 
     // Check for a site ban
     if UserView::read(&conn, user_id)?.banned {
@@ -953,12 +1078,29 @@ impl Perform<PrivateMessageResponse> for Oper<CreatePrivateMessage> {
 
     let message = PrivateMessageView::read(&conn, inserted_private_message.id)?;
 
-    Ok(PrivateMessageResponse { message })
+    let res = PrivateMessageResponse { message };
+
+    if let Some(ws) = websocket_info {
+      ws.chatserver.do_send(SendUserRoomMessage {
+        op: UserOperation::CreatePrivateMessage,
+        response: res.clone(),
+        recipient_id: recipient_user.id,
+        my_id: ws.id,
+      });
+    }
+
+    Ok(res)
   }
 }
 
-impl Perform<PrivateMessageResponse> for Oper<EditPrivateMessage> {
-  fn perform(&self, conn: &PgConnection) -> Result<PrivateMessageResponse, Error> {
+impl Perform for Oper<EditPrivateMessage> {
+  type Response = PrivateMessageResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<PrivateMessageResponse, Error> {
     let data: &EditPrivateMessage = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -967,6 +1109,8 @@ impl Perform<PrivateMessageResponse> for Oper<EditPrivateMessage> {
     };
 
     let user_id = claims.id;
+
+    let conn = pool.get()?;
 
     let orig_private_message = PrivateMessage::read(&conn, data.edit_id)?;
 
@@ -1012,8 +1156,14 @@ impl Perform<PrivateMessageResponse> for Oper<EditPrivateMessage> {
   }
 }
 
-impl Perform<PrivateMessagesResponse> for Oper<GetPrivateMessages> {
-  fn perform(&self, conn: &PgConnection) -> Result<PrivateMessagesResponse, Error> {
+impl Perform for Oper<GetPrivateMessages> {
+  type Response = PrivateMessagesResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<PrivateMessagesResponse, Error> {
     let data: &GetPrivateMessages = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -1022,6 +1172,8 @@ impl Perform<PrivateMessagesResponse> for Oper<GetPrivateMessages> {
     };
 
     let user_id = claims.id;
+
+    let conn = pool.get()?;
 
     let messages = PrivateMessageQueryBuilder::create(&conn, user_id)
       .page(data.page)
@@ -1033,8 +1185,14 @@ impl Perform<PrivateMessagesResponse> for Oper<GetPrivateMessages> {
   }
 }
 
-impl Perform<UserJoinResponse> for Oper<UserJoin> {
-  fn perform(&self, _conn: &PgConnection) -> Result<UserJoinResponse, Error> {
+impl Perform for Oper<UserJoin> {
+  type Response = UserJoinResponse;
+
+  fn perform(
+    &self,
+    _pool: Pool<ConnectionManager<PgConnection>>,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<UserJoinResponse, Error> {
     let data: &UserJoin = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -1043,6 +1201,13 @@ impl Perform<UserJoinResponse> for Oper<UserJoin> {
     };
 
     let user_id = claims.id;
+
+    if let Some(ws) = websocket_info {
+      if let Some(id) = ws.id {
+        ws.chatserver.do_send(JoinUserRoom { user_id, id });
+      }
+    }
+
     Ok(UserJoinResponse { user_id })
   }
 }

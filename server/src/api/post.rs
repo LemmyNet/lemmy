@@ -1,7 +1,4 @@
 use super::*;
-use crate::apub::activities::{post_create, post_update};
-use diesel::PgConnection;
-use std::str::FromStr;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CreatePost {
@@ -80,8 +77,14 @@ pub struct SavePost {
   auth: String,
 }
 
-impl Perform<PostResponse> for Oper<CreatePost> {
-  fn perform(&self, conn: &PgConnection) -> Result<PostResponse, Error> {
+impl Perform for Oper<CreatePost> {
+  type Response = PostResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<PostResponse, Error> {
     let data: &CreatePost = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -100,6 +103,8 @@ impl Perform<PostResponse> for Oper<CreatePost> {
     }
 
     let user_id = claims.id;
+
+    let conn = pool.get()?;
 
     // Check for a community ban
     if CommunityUserBanView::get(&conn, user_id, data.community_id).is_ok() {
@@ -155,7 +160,7 @@ impl Perform<PostResponse> for Oper<CreatePost> {
       Err(_e) => return Err(APIError::err("couldnt_create_post").into()),
     };
 
-    post_create(&updated_post, &user, conn)?;
+    post_create(&updated_post, &user, &conn)?;
 
     // They like their own post by default
     let like_form = PostLikeForm {
@@ -176,12 +181,28 @@ impl Perform<PostResponse> for Oper<CreatePost> {
       Err(_e) => return Err(APIError::err("couldnt_find_post").into()),
     };
 
-    Ok(PostResponse { post: post_view })
+    let res = PostResponse { post: post_view };
+
+    if let Some(ws) = websocket_info {
+      ws.chatserver.do_send(SendPost {
+        op: UserOperation::CreatePost,
+        post: res.clone(),
+        my_id: ws.id,
+      });
+    }
+
+    Ok(res)
   }
 }
 
-impl Perform<GetPostResponse> for Oper<GetPost> {
-  fn perform(&self, conn: &PgConnection) -> Result<GetPostResponse, Error> {
+impl Perform for Oper<GetPost> {
+  type Response = GetPostResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<GetPostResponse, Error> {
     let data: &GetPost = &self.data;
 
     let user_id: Option<i32> = match &data.auth {
@@ -194,6 +215,8 @@ impl Perform<GetPostResponse> for Oper<GetPost> {
       },
       None => None,
     };
+
+    let conn = pool.get()?;
 
     let post_view = match PostView::read(&conn, data.id, user_id) {
       Ok(post) => post,
@@ -216,6 +239,24 @@ impl Perform<GetPostResponse> for Oper<GetPost> {
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
 
+    let online = if let Some(ws) = websocket_info {
+      if let Some(id) = ws.id {
+        ws.chatserver.do_send(JoinPostRoom {
+          post_id: data.id,
+          id,
+        });
+      }
+
+      // TODO
+      1
+    // let fut = async {
+    //   ws.chatserver.send(GetPostUsersOnline {post_id: data.id}).await.unwrap()
+    // };
+    // Runtime::new().unwrap().block_on(fut)
+    } else {
+      0
+    };
+
     // Return the jwt
     Ok(GetPostResponse {
       post: post_view,
@@ -223,13 +264,19 @@ impl Perform<GetPostResponse> for Oper<GetPost> {
       community,
       moderators,
       admins,
-      online: 0,
+      online,
     })
   }
 }
 
-impl Perform<GetPostsResponse> for Oper<GetPosts> {
-  fn perform(&self, conn: &PgConnection) -> Result<GetPostsResponse, Error> {
+impl Perform for Oper<GetPosts> {
+  type Response = GetPostsResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<GetPostsResponse, Error> {
     let data: &GetPosts = &self.data;
 
     let user_claims: Option<Claims> = match &data.auth {
@@ -253,6 +300,8 @@ impl Perform<GetPostsResponse> for Oper<GetPosts> {
     let type_ = ListingType::from_str(&data.type_)?;
     let sort = SortType::from_str(&data.sort)?;
 
+    let conn = pool.get()?;
+
     let posts = match PostQueryBuilder::create(&conn)
       .listing_type(type_)
       .sort(&sort)
@@ -267,12 +316,32 @@ impl Perform<GetPostsResponse> for Oper<GetPosts> {
       Err(_e) => return Err(APIError::err("couldnt_get_posts").into()),
     };
 
+    if let Some(ws) = websocket_info {
+      // You don't need to join the specific community room, bc this is already handled by
+      // GetCommunity
+      if data.community_id.is_none() {
+        if let Some(id) = ws.id {
+          // 0 is the "all" community
+          ws.chatserver.do_send(JoinCommunityRoom {
+            community_id: 0,
+            id,
+          });
+        }
+      }
+    }
+
     Ok(GetPostsResponse { posts })
   }
 }
 
-impl Perform<PostResponse> for Oper<CreatePostLike> {
-  fn perform(&self, conn: &PgConnection) -> Result<PostResponse, Error> {
+impl Perform for Oper<CreatePostLike> {
+  type Response = PostResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<PostResponse, Error> {
     let data: &CreatePostLike = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -281,6 +350,8 @@ impl Perform<PostResponse> for Oper<CreatePostLike> {
     };
 
     let user_id = claims.id;
+
+    let conn = pool.get()?;
 
     // Don't do a downvote if site has downvotes disabled
     if data.score == -1 {
@@ -324,13 +395,28 @@ impl Perform<PostResponse> for Oper<CreatePostLike> {
       Err(_e) => return Err(APIError::err("couldnt_find_post").into()),
     };
 
-    // just output the score
-    Ok(PostResponse { post: post_view })
+    let res = PostResponse { post: post_view };
+
+    if let Some(ws) = websocket_info {
+      ws.chatserver.do_send(SendPost {
+        op: UserOperation::CreatePostLike,
+        post: res.clone(),
+        my_id: ws.id,
+      });
+    }
+
+    Ok(res)
   }
 }
 
-impl Perform<PostResponse> for Oper<EditPost> {
-  fn perform(&self, conn: &PgConnection) -> Result<PostResponse, Error> {
+impl Perform for Oper<EditPost> {
+  type Response = PostResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<PostResponse, Error> {
     let data: &EditPost = &self.data;
 
     if let Err(slurs) = slur_check(&data.name) {
@@ -349,6 +435,8 @@ impl Perform<PostResponse> for Oper<EditPost> {
     };
 
     let user_id = claims.id;
+
+    let conn = pool.get()?;
 
     // Verify its the creator or a mod or admin
     let mut editors: Vec<i32> = vec![data.creator_id];
@@ -443,16 +531,32 @@ impl Perform<PostResponse> for Oper<EditPost> {
       ModStickyPost::create(&conn, &form)?;
     }
 
-    post_update(&updated_post, &user, conn)?;
+    post_update(&updated_post, &user, &conn)?;
 
     let post_view = PostView::read(&conn, data.edit_id, Some(user_id))?;
 
-    Ok(PostResponse { post: post_view })
+    let res = PostResponse { post: post_view };
+
+    if let Some(ws) = websocket_info {
+      ws.chatserver.do_send(SendPost {
+        op: UserOperation::EditPost,
+        post: res.clone(),
+        my_id: ws.id,
+      });
+    }
+
+    Ok(res)
   }
 }
 
-impl Perform<PostResponse> for Oper<SavePost> {
-  fn perform(&self, conn: &PgConnection) -> Result<PostResponse, Error> {
+impl Perform for Oper<SavePost> {
+  type Response = PostResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<PostResponse, Error> {
     let data: &SavePost = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -466,6 +570,8 @@ impl Perform<PostResponse> for Oper<SavePost> {
       post_id: data.post_id,
       user_id,
     };
+
+    let conn = pool.get()?;
 
     if data.save {
       match PostSaved::save(&conn, &post_saved_form) {
