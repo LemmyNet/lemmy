@@ -20,6 +20,7 @@ pub struct PostQuery {
   post_id: String,
 }
 
+/// Return the post json over HTTP.
 pub async fn get_apub_post(
   info: Path<PostQuery>,
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
@@ -30,6 +31,7 @@ pub async fn get_apub_post(
 }
 
 impl Post {
+  // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
   pub fn as_page(&self, conn: &PgConnection) -> Result<Page, Error> {
     let mut page = Page::default();
     let oprops: &mut ObjectProperties = page.as_mut();
@@ -67,6 +69,7 @@ impl Post {
 }
 
 impl PostForm {
+  /// Parse an ActivityPub page received from another instance into a Lemmy post.
   pub fn from_page(page: &Page, conn: &PgConnection) -> Result<PostForm, Error> {
     let oprops = &page.object_props;
     let creator_id = Url::parse(&oprops.get_attributed_to_xsd_any_uri().unwrap().to_string())?;

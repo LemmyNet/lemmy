@@ -1,5 +1,7 @@
-use crate::apub::{get_apub_protocol_string, get_following_instances};
+use crate::apub::is_apub_id_valid;
+use crate::apub::signatures::sign;
 use crate::db::community::Community;
+use crate::db::community_view::CommunityFollowerView;
 use crate::db::post::Post;
 use crate::db::user::User_;
 use crate::db::Crud;
@@ -11,7 +13,9 @@ use diesel::PgConnection;
 use failure::Error;
 use failure::_core::fmt::Debug;
 use isahc::prelude::*;
+use log::debug;
 use serde::Serialize;
+use url::Url;
 
 fn populate_object_props(
   props: &mut ObjectProperties,
@@ -29,37 +33,48 @@ fn populate_object_props(
   Ok(())
 }
 
-fn send_activity<A>(activity: &A, to: Vec<String>) -> Result<(), Error>
+/// Send an activity to a list of recipients, using the correct headers etc.
+fn send_activity<A>(
+  activity: &A,
+  private_key: &str,
+  sender_id: &str,
+  to: Vec<String>,
+) -> Result<(), Error>
 where
   A: Serialize + Debug,
 {
   let json = serde_json::to_string(&activity)?;
-  println!("sending data {}", json);
+  debug!("Sending activitypub activity {} to {:?}", json, to);
   for t in to {
-    println!("to: {}", t);
-    let res = Request::post(t)
+    let to_url = Url::parse(&t)?;
+    if !is_apub_id_valid(&to_url) {
+      debug!("Not sending activity to {} (invalid or blacklisted)", t);
+      continue;
+    }
+    let request = Request::post(t).header("Host", to_url.domain().unwrap());
+    let signature = sign(&request, private_key, sender_id)?;
+    let res = request
+      .header("Signature", signature)
       .header("Content-Type", "application/json")
       .body(json.to_owned())?
       .send()?;
-    dbg!(res);
+    debug!("Result for activity send: {:?}", res);
   }
   Ok(())
 }
 
-fn get_followers(_community: &Community) -> Vec<String> {
-  // TODO: this is wrong, needs to go to the (non-local) followers of the community
-  get_following_instances()
-    .iter()
-    .map(|i| {
-      format!(
-        "{}://{}/federation/inbox",
-        get_apub_protocol_string(),
-        i.domain
-      )
-    })
-    .collect()
+/// For a given community, returns the inboxes of all followers.
+fn get_follower_inboxes(conn: &PgConnection, community: &Community) -> Result<Vec<String>, Error> {
+  Ok(
+    CommunityFollowerView::for_community(conn, community.id)?
+      .iter()
+      .filter(|c| !c.user_local)
+      .map(|c| format!("{}/inbox", c.user_actor_id.to_owned()))
+      .collect(),
+  )
 }
 
+/// Send out information about a newly created post, to the followers of the community.
 pub fn post_create(post: &Post, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
   let page = post.as_page(conn)?;
   let community = Community::read(conn, post.community_id)?;
@@ -73,10 +88,16 @@ pub fn post_create(post: &Post, creator: &User_, conn: &PgConnection) -> Result<
     .create_props
     .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
     .set_object_base_box(page)?;
-  send_activity(&create, get_followers(&community))?;
+  send_activity(
+    &create,
+    &creator.private_key.as_ref().unwrap(),
+    &creator.actor_id,
+    get_follower_inboxes(conn, &community)?,
+  )?;
   Ok(())
 }
 
+/// Send out information about an edited post, to the followers of the community.
 pub fn post_update(post: &Post, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
   let page = post.as_page(conn)?;
   let community = Community::read(conn, post.community_id)?;
@@ -90,10 +111,16 @@ pub fn post_update(post: &Post, creator: &User_, conn: &PgConnection) -> Result<
     .update_props
     .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
     .set_object_base_box(page)?;
-  send_activity(&update, get_followers(&community))?;
+  send_activity(
+    &update,
+    &creator.private_key.as_ref().unwrap(),
+    &creator.actor_id,
+    get_follower_inboxes(conn, &community)?,
+  )?;
   Ok(())
 }
 
+/// As a given local user, send out a follow request to a remote community.
 pub fn follow_community(
   community: &Community,
   user: &User_,
@@ -110,11 +137,23 @@ pub fn follow_community(
     .set_actor_xsd_any_uri(user.actor_id.clone())?
     .set_object_xsd_any_uri(community.actor_id.clone())?;
   let to = format!("{}/inbox", community.actor_id);
-  send_activity(&follow, vec![to])?;
+  send_activity(
+    &follow,
+    &user.private_key.as_ref().unwrap(),
+    &community.actor_id,
+    vec![to],
+  )?;
   Ok(())
 }
 
-pub fn accept_follow(follow: &Follow) -> Result<(), Error> {
+/// As a local community, accept the follow request from a remote user.
+pub fn accept_follow(follow: &Follow, conn: &PgConnection) -> Result<(), Error> {
+  let community_uri = follow
+    .follow_props
+    .get_object_xsd_any_uri()
+    .unwrap()
+    .to_string();
+  let community = Community::read_from_actor_id(conn, &community_uri)?;
   let mut accept = Accept::new();
   accept
     .object_props
@@ -130,14 +169,12 @@ pub fn accept_follow(follow: &Follow) -> Result<(), Error> {
   accept
     .accept_props
     .set_object_base_box(BaseBox::from_concrete(follow.clone())?)?;
-  let to = format!(
-    "{}/inbox",
-    follow
-      .follow_props
-      .get_actor_xsd_any_uri()
-      .unwrap()
-      .to_string()
-  );
-  send_activity(&accept, vec![to])?;
+  let to = format!("{}/inbox", community_uri);
+  send_activity(
+    &accept,
+    &community.private_key.unwrap(),
+    &community.actor_id,
+    vec![to],
+  )?;
   Ok(())
 }

@@ -22,6 +22,7 @@ pub struct UserQuery {
   user_name: String,
 }
 
+// Turn a Lemmy user into an ActivityPub person and return it as json.
 pub async fn get_apub_user(
   info: Path<UserQuery>,
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
@@ -64,6 +65,7 @@ pub async fn get_apub_user(
 }
 
 impl UserForm {
+  /// Parse an ActivityPub person received from another instance into a Lemmy user.
   pub fn from_person(person: &PersonExt) -> Result<Self, Error> {
     let oprops = &person.base.base.object_props;
     let aprops = &person.base.extension;
