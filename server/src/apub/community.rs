@@ -7,7 +7,6 @@ use crate::db::establish_unpooled_connection;
 use crate::db::post::Post;
 use crate::db::user::User_;
 use crate::db::Crud;
-use crate::settings::Settings;
 use crate::{convert_datetime, naive_now};
 use activitystreams::actor::properties::ApActorProperties;
 use activitystreams::collection::OrderedCollection;
@@ -30,30 +29,8 @@ pub struct CommunityQuery {
   community_name: String,
 }
 
-pub async fn get_apub_community_list(
-  db: web::Data<Pool<ConnectionManager<PgConnection>>>,
-) -> Result<HttpResponse<Body>, Error> {
-  // TODO: implement pagination
-  let communities = Community::list_local(&db.get().unwrap())?
-    .iter()
-    .map(|c| c.as_group(&db.get().unwrap()))
-    .collect::<Result<Vec<GroupExt>, Error>>()?;
-  let mut collection = UnorderedCollection::default();
-  let oprops: &mut ObjectProperties = collection.as_mut();
-  oprops.set_context_xsd_any_uri(context())?.set_id(format!(
-    "{}://{}/federation/communities",
-    get_apub_protocol_string(),
-    Settings::get().hostname
-  ))?;
-
-  collection
-    .collection_props
-    .set_total_items(communities.len() as u64)?
-    .set_many_items_base_boxes(communities)?;
-  Ok(create_apub_response(&collection))
-}
-
 impl Community {
+  // Turn a Lemmy Community into an ActivityPub group that can be sent out over the network.
   fn as_group(&self, conn: &PgConnection) -> Result<GroupExt, Error> {
     let mut group = Group::default();
     let oprops: &mut ObjectProperties = group.as_mut();
@@ -104,6 +81,7 @@ impl Community {
 }
 
 impl CommunityForm {
+  /// Parse an ActivityPub group received from another instance into a Lemmy community.
   pub fn from_group(group: &GroupExt, conn: &PgConnection) -> Result<Self, Error> {
     let oprops = &group.base.base.object_props;
     let aprops = &group.base.extension;
@@ -142,6 +120,7 @@ impl CommunityForm {
   }
 }
 
+/// Return the community json over HTTP.
 pub async fn get_apub_community_http(
   info: Path<CommunityQuery>,
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
@@ -151,6 +130,7 @@ pub async fn get_apub_community_http(
   Ok(create_apub_response(&c))
 }
 
+/// Returns an empty followers collection, only populating the siz (for privacy).
 pub async fn get_apub_community_followers(
   info: Path<CommunityQuery>,
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
@@ -173,6 +153,7 @@ pub async fn get_apub_community_followers(
   Ok(create_apub_response(&collection))
 }
 
+/// Returns an UnorderedCollection with the latest posts from the community.
 pub async fn get_apub_community_outbox(
   info: Path<CommunityQuery>,
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,

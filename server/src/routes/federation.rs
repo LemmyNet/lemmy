@@ -6,19 +6,14 @@ pub fn config(cfg: &mut web::ServiceConfig) {
   if Settings::get().federation.enabled {
     println!("federation enabled, host is {}", Settings::get().hostname);
     cfg
+      // TODO: check the user/community params for these
       .route(
-        "/federation/communities",
-        web::get().to(apub::community::get_apub_community_list),
-      )
-      // TODO: this needs to be moved to the actors (eg /federation/u/{}/inbox)
-      .route("/federation/inbox", web::post().to(apub::inbox::inbox))
-      .route(
-        "/federation/c/{_}/inbox",
-        web::post().to(apub::inbox::inbox),
+        "/federation/c/{community_name}/inbox",
+        web::post().to(apub::community_inbox::community_inbox),
       )
       .route(
-        "/federation/u/{_}/inbox",
-        web::post().to(apub::inbox::inbox),
+        "/federation/u/{user_name}/inbox",
+        web::post().to(apub::user_inbox::user_inbox),
       )
       .route(
         "/federation/c/{community_name}",
@@ -38,7 +33,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
       )
       .route(
         "/federation/p/{post_id}",
-        web::get().to(apub::user::get_apub_user),
+        web::get().to(apub::post::get_apub_post),
       );
   }
 }
