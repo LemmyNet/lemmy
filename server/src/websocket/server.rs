@@ -896,10 +896,18 @@ where
 
   let data = data.to_string();
   let op2 = op.clone();
+
   let fut = async move {
-    let parsed_data: Data = serde_json::from_str(&data)?;
-    let res = Oper::new(parsed_data).perform(pool, Some(ws_info))?;
-    to_json_string(&op, &res)
+    actix_web::web::block(move || {
+      let parsed_data: Data = serde_json::from_str(&data)?;
+      let res = Oper::new(parsed_data).perform(pool, Some(ws_info))?;
+      to_json_string(&op, &res)
+    })
+    .await
+    .map_err(|e| match e {
+      actix_web::error::BlockingError::Error(e) => e,
+      _ => APIError::err("Operation canceled").into(),
+    })
   };
 
   match op2 {
