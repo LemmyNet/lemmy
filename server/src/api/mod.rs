@@ -75,7 +75,7 @@ impl<T> Oper<T> {
 }
 
 pub trait Perform {
-  type Response: serde::ser::Serialize;
+  type Response: serde::ser::Serialize + Send;
 
   fn perform(
     &self,
