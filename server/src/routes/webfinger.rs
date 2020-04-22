@@ -1,13 +1,5 @@
+use super::*;
 use crate::db::community::Community;
-use crate::Settings;
-use actix_web::web;
-use actix_web::web::Query;
-use actix_web::HttpResponse;
-use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::PgConnection;
-use regex::Regex;
-use serde::Deserialize;
-use serde_json::json;
 
 #[derive(Deserialize)]
 pub struct Params {
@@ -40,7 +32,7 @@ lazy_static! {
 async fn get_webfinger_response(
   info: Query<Params>,
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
-) -> Result<HttpResponse, actix_web::Error> {
+) -> Result<HttpResponse, Error> {
   let res = web::block(move || {
     let conn = db.get()?;
 
@@ -92,6 +84,6 @@ async fn get_webfinger_response(
   })
   .await
   .map(|json| HttpResponse::Ok().json(json))
-  .map_err(|_| HttpResponse::InternalServerError())?;
+  .map_err(ErrorBadRequest)?;
   Ok(res)
 }

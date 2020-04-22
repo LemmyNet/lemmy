@@ -1,6 +1,4 @@
 use super::*;
-use diesel::PgConnection;
-use std::str::FromStr;
 
 #[derive(Serialize, Deserialize)]
 pub struct GetCommunity {
@@ -55,7 +53,7 @@ pub struct BanFromCommunity {
   auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct BanFromCommunityResponse {
   user: UserView,
   banned: bool,
@@ -69,7 +67,7 @@ pub struct AddModToCommunity {
   auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct AddModToCommunityResponse {
   moderators: Vec<CommunityModeratorView>,
 }
@@ -113,8 +111,14 @@ pub struct TransferCommunity {
   auth: String,
 }
 
-impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
-  fn perform(&self, conn: &PgConnection) -> Result<GetCommunityResponse, Error> {
+impl Perform for Oper<GetCommunity> {
+  type Response = GetCommunityResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<GetCommunityResponse, Error> {
     let data: &GetCommunity = &self.data;
 
     let user_id: Option<i32> = match &data.auth {
@@ -127,6 +131,8 @@ impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
       },
       None => None,
     };
+
+    let conn = pool.get()?;
 
     let community_id = match data.id {
       Some(id) => id,
@@ -157,18 +163,42 @@ impl Perform<GetCommunityResponse> for Oper<GetCommunity> {
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
 
-    // Return the jwt
-    Ok(GetCommunityResponse {
+    let online = if let Some(ws) = websocket_info {
+      if let Some(id) = ws.id {
+        ws.chatserver
+          .do_send(JoinCommunityRoom { community_id, id });
+      }
+
+      // TODO
+      1
+    // let fut = async {
+    //   ws.chatserver.send(GetCommunityUsersOnline {community_id}).await.unwrap()
+    // };
+    // Runtime::new().unwrap().block_on(fut)
+    } else {
+      0
+    };
+
+    let res = GetCommunityResponse {
       community: community_view,
       moderators,
       admins,
-      online: 0,
-    })
+      online,
+    };
+
+    // Return the jwt
+    Ok(res)
   }
 }
 
-impl Perform<CommunityResponse> for Oper<CreateCommunity> {
-  fn perform(&self, conn: &PgConnection) -> Result<CommunityResponse, Error> {
+impl Perform for Oper<CreateCommunity> {
+  type Response = CommunityResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<CommunityResponse, Error> {
     let data: &CreateCommunity = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -191,6 +221,8 @@ impl Perform<CommunityResponse> for Oper<CreateCommunity> {
     }
 
     let user_id = claims.id;
+
+    let conn = pool.get()?;
 
     // Check for a site ban
     if UserView::read(&conn, user_id)?.banned {
@@ -245,8 +277,14 @@ impl Perform<CommunityResponse> for Oper<CreateCommunity> {
   }
 }
 
-impl Perform<CommunityResponse> for Oper<EditCommunity> {
-  fn perform(&self, conn: &PgConnection) -> Result<CommunityResponse, Error> {
+impl Perform for Oper<EditCommunity> {
+  type Response = CommunityResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<CommunityResponse, Error> {
     let data: &EditCommunity = &self.data;
 
     if let Err(slurs) = slur_check(&data.name) {
@@ -269,6 +307,8 @@ impl Perform<CommunityResponse> for Oper<EditCommunity> {
     };
 
     let user_id = claims.id;
+
+    let conn = pool.get()?;
 
     // Check for a site ban
     if UserView::read(&conn, user_id)?.banned {
@@ -323,14 +363,36 @@ impl Perform<CommunityResponse> for Oper<EditCommunity> {
 
     let community_view = CommunityView::read(&conn, data.edit_id, Some(user_id))?;
 
-    Ok(CommunityResponse {
+    let res = CommunityResponse {
       community: community_view,
-    })
+    };
+
+    if let Some(ws) = websocket_info {
+      // Strip out the user id and subscribed when sending to others
+      let mut res_sent = res.clone();
+      res_sent.community.user_id = None;
+      res_sent.community.subscribed = None;
+
+      ws.chatserver.do_send(SendCommunityRoomMessage {
+        op: UserOperation::EditCommunity,
+        response: res_sent,
+        community_id: data.edit_id,
+        my_id: ws.id,
+      });
+    }
+
+    Ok(res)
   }
 }
 
-impl Perform<ListCommunitiesResponse> for Oper<ListCommunities> {
-  fn perform(&self, conn: &PgConnection) -> Result<ListCommunitiesResponse, Error> {
+impl Perform for Oper<ListCommunities> {
+  type Response = ListCommunitiesResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<ListCommunitiesResponse, Error> {
     let data: &ListCommunities = &self.data;
 
     let user_claims: Option<Claims> = match &data.auth {
@@ -353,6 +415,8 @@ impl Perform<ListCommunitiesResponse> for Oper<ListCommunities> {
 
     let sort = SortType::from_str(&data.sort)?;
 
+    let conn = pool.get()?;
+
     let communities = CommunityQueryBuilder::create(&conn)
       .sort(&sort)
       .for_user(user_id)
@@ -366,8 +430,14 @@ impl Perform<ListCommunitiesResponse> for Oper<ListCommunities> {
   }
 }
 
-impl Perform<CommunityResponse> for Oper<FollowCommunity> {
-  fn perform(&self, conn: &PgConnection) -> Result<CommunityResponse, Error> {
+impl Perform for Oper<FollowCommunity> {
+  type Response = CommunityResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<CommunityResponse, Error> {
     let data: &FollowCommunity = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -381,6 +451,8 @@ impl Perform<CommunityResponse> for Oper<FollowCommunity> {
       community_id: data.community_id,
       user_id,
     };
+
+    let conn = pool.get()?;
 
     if data.follow {
       match CommunityFollower::follow(&conn, &community_follower_form) {
@@ -402,8 +474,14 @@ impl Perform<CommunityResponse> for Oper<FollowCommunity> {
   }
 }
 
-impl Perform<GetFollowedCommunitiesResponse> for Oper<GetFollowedCommunities> {
-  fn perform(&self, conn: &PgConnection) -> Result<GetFollowedCommunitiesResponse, Error> {
+impl Perform for Oper<GetFollowedCommunities> {
+  type Response = GetFollowedCommunitiesResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<GetFollowedCommunitiesResponse, Error> {
     let data: &GetFollowedCommunities = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -412,6 +490,8 @@ impl Perform<GetFollowedCommunitiesResponse> for Oper<GetFollowedCommunities> {
     };
 
     let user_id = claims.id;
+
+    let conn = pool.get()?;
 
     let communities: Vec<CommunityFollowerView> =
       match CommunityFollowerView::for_user(&conn, user_id) {
@@ -424,8 +504,14 @@ impl Perform<GetFollowedCommunitiesResponse> for Oper<GetFollowedCommunities> {
   }
 }
 
-impl Perform<BanFromCommunityResponse> for Oper<BanFromCommunity> {
-  fn perform(&self, conn: &PgConnection) -> Result<BanFromCommunityResponse, Error> {
+impl Perform for Oper<BanFromCommunity> {
+  type Response = BanFromCommunityResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<BanFromCommunityResponse, Error> {
     let data: &BanFromCommunity = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -439,6 +525,8 @@ impl Perform<BanFromCommunityResponse> for Oper<BanFromCommunity> {
       community_id: data.community_id,
       user_id: data.user_id,
     };
+
+    let conn = pool.get()?;
 
     if data.ban {
       match CommunityUserBan::ban(&conn, &community_user_ban_form) {
@@ -470,15 +558,32 @@ impl Perform<BanFromCommunityResponse> for Oper<BanFromCommunity> {
 
     let user_view = UserView::read(&conn, data.user_id)?;
 
-    Ok(BanFromCommunityResponse {
+    let res = BanFromCommunityResponse {
       user: user_view,
       banned: data.ban,
-    })
+    };
+
+    if let Some(ws) = websocket_info {
+      ws.chatserver.do_send(SendCommunityRoomMessage {
+        op: UserOperation::BanFromCommunity,
+        response: res.clone(),
+        community_id: data.community_id,
+        my_id: ws.id,
+      });
+    }
+
+    Ok(res)
   }
 }
 
-impl Perform<AddModToCommunityResponse> for Oper<AddModToCommunity> {
-  fn perform(&self, conn: &PgConnection) -> Result<AddModToCommunityResponse, Error> {
+impl Perform for Oper<AddModToCommunity> {
+  type Response = AddModToCommunityResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<AddModToCommunityResponse, Error> {
     let data: &AddModToCommunity = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -492,6 +597,8 @@ impl Perform<AddModToCommunityResponse> for Oper<AddModToCommunity> {
       community_id: data.community_id,
       user_id: data.user_id,
     };
+
+    let conn = pool.get()?;
 
     if data.added {
       match CommunityModerator::join(&conn, &community_moderator_form) {
@@ -516,12 +623,29 @@ impl Perform<AddModToCommunityResponse> for Oper<AddModToCommunity> {
 
     let moderators = CommunityModeratorView::for_community(&conn, data.community_id)?;
 
-    Ok(AddModToCommunityResponse { moderators })
+    let res = AddModToCommunityResponse { moderators };
+
+    if let Some(ws) = websocket_info {
+      ws.chatserver.do_send(SendCommunityRoomMessage {
+        op: UserOperation::AddModToCommunity,
+        response: res.clone(),
+        community_id: data.community_id,
+        my_id: ws.id,
+      });
+    }
+
+    Ok(res)
   }
 }
 
-impl Perform<GetCommunityResponse> for Oper<TransferCommunity> {
-  fn perform(&self, conn: &PgConnection) -> Result<GetCommunityResponse, Error> {
+impl Perform for Oper<TransferCommunity> {
+  type Response = GetCommunityResponse;
+
+  fn perform(
+    &self,
+    pool: Pool<ConnectionManager<PgConnection>>,
+    _websocket_info: Option<WebsocketInfo>,
+  ) -> Result<GetCommunityResponse, Error> {
     let data: &TransferCommunity = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -530,6 +654,8 @@ impl Perform<GetCommunityResponse> for Oper<TransferCommunity> {
     };
 
     let user_id = claims.id;
+
+    let conn = pool.get()?;
 
     let read_community = Community::read(&conn, data.community_id)?;
 

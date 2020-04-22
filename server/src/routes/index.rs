@@ -1,6 +1,4 @@
-use crate::settings::Settings;
-use actix_files::NamedFile;
-use actix_web::web;
+use super::*;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
   cfg
@@ -43,7 +41,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route("/password_change/{token}", web::get().to(index));
 }
 
-async fn index() -> Result<NamedFile, actix_web::error::Error> {
+async fn index() -> Result<NamedFile, Error> {
   Ok(NamedFile::open(
     Settings::get().front_end_dir + "/index.html",
   )?)

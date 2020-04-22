@@ -6,16 +6,6 @@ use crate::db::site_view::SiteView;
 use crate::db::user::{Claims, User_};
 use crate::db::user_mention_view::{UserMentionQueryBuilder, UserMentionView};
 use crate::db::{ListingType, SortType};
-use crate::{markdown_to_html, Settings};
-use actix_web::{web, HttpResponse, Result};
-use chrono::{DateTime, NaiveDateTime, Utc};
-use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::PgConnection;
-use failure::Error;
-use rss::{CategoryBuilder, ChannelBuilder, GuidBuilder, Item, ItemBuilder};
-use serde::Deserialize;
-use std::str::FromStr;
-use strum::ParseError;
 
 #[derive(Deserialize)]
 pub struct Params {
@@ -38,7 +28,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 async fn get_all_feed(
   info: web::Query<Params>,
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
-) -> Result<HttpResponse, actix_web::Error> {
+) -> Result<HttpResponse, Error> {
   let res = web::block(move || {
     let conn = db.get()?;
     get_feed_all_data(&conn, &get_sort_type(info)?)
@@ -49,7 +39,7 @@ async fn get_all_feed(
       .content_type("application/rss+xml")
       .body(rss)
   })
-  .map_err(|_| HttpResponse::InternalServerError())?;
+  .map_err(ErrorBadRequest)?;
   Ok(res)
 }
 
@@ -80,7 +70,7 @@ async fn get_feed(
   path: web::Path<(String, String)>,
   info: web::Query<Params>,
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
-) -> Result<HttpResponse, actix_web::Error> {
+) -> Result<HttpResponse, Error> {
   let res = web::block(move || {
     let conn = db.get()?;
 
@@ -110,7 +100,7 @@ async fn get_feed(
       .content_type("application/rss+xml")
       .body(rss)
   })
-  .map_err(|_| HttpResponse::InternalServerError())?;
+  .map_err(ErrorBadRequest)?;
   Ok(res)
 }
 
@@ -126,7 +116,7 @@ fn get_feed_user(
   conn: &PgConnection,
   sort_type: &SortType,
   user_name: String,
-) -> Result<ChannelBuilder, Error> {
+) -> Result<ChannelBuilder, failure::Error> {
   let site_view = SiteView::read(&conn)?;
   let user = User_::find_by_username(&conn, &user_name)?;
   let user_url = user.get_profile_url();
@@ -152,7 +142,7 @@ fn get_feed_community(
   conn: &PgConnection,
   sort_type: &SortType,
   community_name: String,
-) -> Result<ChannelBuilder, Error> {
+) -> Result<ChannelBuilder, failure::Error> {
   let site_view = SiteView::read(&conn)?;
   let community = Community::read_from_name(&conn, community_name)?;
   let community_url = community.get_url();
@@ -182,7 +172,7 @@ fn get_feed_front(
   conn: &PgConnection,
   sort_type: &SortType,
   jwt: String,
-) -> Result<ChannelBuilder, Error> {
+) -> Result<ChannelBuilder, failure::Error> {
   let site_view = SiteView::read(&conn)?;
   let user_id = Claims::decode(&jwt)?.claims.id;
 
@@ -207,7 +197,7 @@ fn get_feed_front(
   Ok(channel_builder)
 }
 
-fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, Error> {
+fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, failure::Error> {
   let site_view = SiteView::read(&conn)?;
   let user_id = Claims::decode(&jwt)?.claims.id;
 
