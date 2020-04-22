@@ -26,4 +26,4 @@ Gravity = Decay gravity, 1.8 is default
 
 A plot of rank over 24 hours, of scores of 1, 5, 10, 100, 1000, with a scale factor of 10k.
 
-![](https://i.imgur.com/w8oBLlL.png)
+![](https://i.imgur.com/QukPR03.png)
