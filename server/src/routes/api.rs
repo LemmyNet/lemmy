@@ -5,7 +5,6 @@ use crate::api::post::*;
 use crate::api::site::*;
 use crate::api::user::*;
 use crate::rate_limit::RateLimit;
-use actix_web::guard;
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
   cfg.service(
@@ -140,13 +139,14 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
   );
 }
 
-fn perform<Request>(
+async fn perform<Request>(
   data: Request,
   db: DbPoolParam,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error>
 where
   Oper<Request>: Perform,
+  Request: Send + 'static,
 {
   let ws_info = WebsocketInfo {
     chatserver: chat_server.get_ref().to_owned(),
@@ -155,9 +155,11 @@ where
 
   let oper: Oper<Request> = Oper::new(data);
 
-  let res = oper.perform(db.get_ref().to_owned(), Some(ws_info));
-
-  Ok(HttpResponse::Ok().json(res?))
+  let res = web::block(move || oper.perform(db.get_ref().to_owned(), Some(ws_info)))
+    .await
+    .map(|json| HttpResponse::Ok().json(json))
+    .map_err(ErrorBadRequest)?;
+  Ok(res)
 }
 
 async fn route_get<Data>(
@@ -166,10 +168,10 @@ async fn route_get<Data>(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error>
 where
-  Data: Serialize,
+  Data: Serialize + Send + 'static,
   Oper<Data>: Perform,
 {
-  perform::<Data>(data.0, db, chat_server)
+  perform::<Data>(data.0, db, chat_server).await
 }
 
 async fn route_post<Data>(
@@ -178,8 +180,8 @@ async fn route_post<Data>(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error>
 where
-  Data: Serialize,
+  Data: Serialize + Send + 'static,
   Oper<Data>: Perform,
 {
-  perform::<Data>(data.0, db, chat_server)
+  perform::<Data>(data.0, db, chat_server).await
 }
