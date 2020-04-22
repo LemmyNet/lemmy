@@ -131,10 +131,13 @@ If you want to help with translating, take a look at [Weblate](https://weblate.y
 
 ## Contact
 
-- [Mastodon](https://mastodon.social/@LemmyDev) - [![Mastodon Follow](https://img.shields.io/mastodon/follow/810572?domain=https%3A%2F%2Fmastodon.social&style=social)](https://mastodon.social/@LemmyDev)
-- [Matrix](https://riot.im/app/#/room/#rust-reddit-fediverse:matrix.org) - [![Matrix](https://img.shields.io/matrix/rust-reddit-fediverse:matrix.org.svg?label=matrix-chat)](https://riot.im/app/#/room/#rust-reddit-fediverse:matrix.org)
+- [Mastodon](https://mastodon.social/@LemmyDev)
+- [Matrix](https://riot.im/app/#/room/#rust-reddit-fediverse:matrix.org) 
+
+## Code Mirrors
+
 - [GitHub](https://github.com/LemmyNet/lemmy)
-- [Gitea](https://yerbamate.dev/dessalines/lemmy)
+- [Gitea](https://yerbamate.dev/LemmyNet/lemmy)
 - [GitLab](https://gitlab.com/dessalines/lemmy)
 
 ## Credits
