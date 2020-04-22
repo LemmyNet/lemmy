@@ -144,7 +144,7 @@
     "enable_nsfw": "閲覧注意を有効化",
     "url": "URL",
     "body": "本文",
-    "copy_suggested_title": "タイトルの提案をコピーする: {{title}}",
+    "copy_suggested_title": "提案されたタイトルをコピーする: {{title}}",
     "community": "コミュニティ",
     "expand_here": "拡大表示",
     "subscribe_to_communities": "<1>コミュニティ</1>をいくつか登録してみましょう。",
@@ -233,5 +233,7 @@
     "system_err_login": "システムエラーが発生しました。一度ログアウトして、再度ログインをお試しください。",
     "couldnt_create_private_message": "プライベートメッセージが作成されない。",
     "no_private_message_edit_allowed": "プライベートメッセージの編集許可がありません。",
-    "couldnt_update_private_message": "プライベートメッセージが更新されない。"
+    "couldnt_update_private_message": "プライベートメッセージが更新されない。",
+    "couldnt_like_comment": "コメントが「いいね」できない。",
+    "couldnt_like_post": "投稿が「いいね」できない。"
 }
