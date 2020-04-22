@@ -18,7 +18,7 @@ use url::Url;
 type GroupExt = Ext<Ext<Group, ApActorProperties>, PublicKeyExtension>;
 type PersonExt = Ext<Ext<Person, ApActorProperties>, PublicKeyExtension>;
 
-static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
+pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 
 pub enum EndpointType {
   Community,
@@ -47,14 +47,14 @@ pub fn make_apub_endpoint(endpoint_type: EndpointType, name: &str) -> Url {
   let point = match endpoint_type {
     EndpointType::Community => "c",
     EndpointType::User => "u",
-    EndpointType::Post => "p",
+    EndpointType::Post => "post",
     // TODO I have to change this else my update advanced_migrations crashes the
     // server if a comment exists.
     EndpointType::Comment => "comment",
   };
 
   Url::parse(&format!(
-    "{}://{}/federation/{}/{}",
+    "{}://{}/{}/{}",
     get_apub_protocol_string(),
     Settings::get().hostname,
     point,
