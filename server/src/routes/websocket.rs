@@ -1,6 +1,5 @@
 use super::*;
 use crate::websocket::server::*;
-use actix_web::{Error, Result};
 
 /// How often heartbeat pings are sent
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
@@ -120,7 +119,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WSSession {
           .then(|res, _, ctx| {
             match res {
               Ok(Ok(res)) => ctx.text(res),
-              Ok(Err(e)) => match e {},
+              Ok(Err(_)) => {}
               Err(e) => error!("{}", &e),
             }
             actix::fut::ready(())

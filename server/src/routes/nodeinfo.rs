@@ -22,7 +22,7 @@ async fn node_info_well_known() -> Result<HttpResponse<Body>, Error> {
 
 async fn node_info(
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
-) -> Result<HttpResponse, actix_web::Error> {
+) -> Result<HttpResponse, Error> {
   let res = web::block(move || {
     let conn = db.get()?;
     let site_view = match SiteView::read(&conn) {
@@ -53,7 +53,7 @@ async fn node_info(
   })
   .await
   .map(|json| HttpResponse::Ok().json(json))
-  .map_err(|_| HttpResponse::InternalServerError())?;
+  .map_err(ErrorBadRequest)?;
   Ok(res)
 }
 
