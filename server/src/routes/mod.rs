@@ -5,14 +5,13 @@ use crate::websocket::{server::ChatServer, WebsocketInfo};
 use crate::{get_ip, markdown_to_html, version, Settings};
 use actix::prelude::*;
 use actix_files::NamedFile;
-use actix_web::{body::Body, web::Query, *};
+use actix_web::{body::Body, error::ErrorBadRequest, web::Query, *};
 use actix_web_actors::ws;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::{
   r2d2::{ConnectionManager, Pool},
   PgConnection,
 };
-use failure::Error;
 use log::{error, info};
 use regex::Regex;
 use rss::{CategoryBuilder, ChannelBuilder, GuidBuilder, Item, ItemBuilder};
