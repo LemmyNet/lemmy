@@ -124,7 +124,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WSSession {
             }
             actix::fut::ready(())
           })
-          .wait(ctx);
+          .spawn(ctx);
       }
       ws::Message::Binary(_bin) => info!("Unexpected binary"),
       ws::Message::Close(_) => {
