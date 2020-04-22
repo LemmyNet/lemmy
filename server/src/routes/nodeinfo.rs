@@ -6,7 +6,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route("/.well-known/nodeinfo", web::get().to(node_info_well_known));
 }
 
-async fn node_info_well_known() -> Result<HttpResponse<Body>, Error> {
+async fn node_info_well_known() -> Result<HttpResponse<Body>, failure::Error> {
   let node_info = NodeInfoWellKnown {
     links: NodeInfoWellKnownLinks {
       rel: Url::parse("http://nodeinfo.diaspora.software/ns/schema/2.0")?,
