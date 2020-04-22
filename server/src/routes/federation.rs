@@ -12,7 +12,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     cfg
       .service(
         web::scope("/")
-          .guard(guard::Header("Content-Type", APUB_JSON_CONTENT_TYPE))
+          .guard(guard::Header("Accept", APUB_JSON_CONTENT_TYPE))
           .route(
             "/c/{community_name}",
             web::get().to(get_apub_community_http),
