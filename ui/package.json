@@ -6,6 +6,7 @@
   "license": "AGPL-3.0-or-later",
   "main": "index.js",
   "scripts": {
+    "api-test": "jest src/api_tests/api.spec.ts",
     "build": "node fuse prod",
     "lint": "tsc --noEmit && eslint --report-unused-disable-directives --ext .js,.ts,.tsx src",
     "prebuild": "node generate_translations.js",
@@ -38,6 +39,7 @@
     "markdown-it-emoji": "^1.4.0",
     "mobius1-selectr": "^2.4.13",
     "moment": "^2.24.0",
+    "node-fetch": "^2.6.0",
     "prettier": "^2.0.4",
     "reconnecting-websocket": "^4.4.0",
     "rxjs": "^6.5.5",
@@ -49,12 +51,16 @@
     "ws": "^7.2.3"
   },
   "devDependencies": {
+    "@types/jest": "^25.2.1",
+    "@types/node-fetch": "^2.5.6",
     "eslint": "^6.5.1",
     "eslint-plugin-inferno": "^7.14.3",
     "eslint-plugin-jane": "^7.2.1",
     "fuse-box": "^3.1.3",
+    "jest": "^25.4.0",
     "lint-staged": "^10.1.3",
     "sortpack": "^2.1.4",
+    "ts-jest": "^25.4.0",
     "ts-node": "^8.8.2",
     "ts-transform-classcat": "^1.0.0",
     "ts-transform-inferno": "^4.0.3",
