@@ -73,7 +73,7 @@ where
   // TODO: this function should return a future
   let timeout = Duration::from_secs(60);
   let text = Request::get(url.as_str())
-    .header("Content-Type", APUB_JSON_CONTENT_TYPE)
+    .header("Accept", APUB_JSON_CONTENT_TYPE)
     .connect_timeout(timeout)
     .timeout(timeout)
     .body(())?
