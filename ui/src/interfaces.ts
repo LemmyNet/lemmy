@@ -654,7 +654,7 @@ export interface CommentForm {
   post_id: number;
   parent_id?: number;
   edit_id?: number;
-  creator_id: number;
+  creator_id?: number;
   removed?: boolean;
   deleted?: boolean;
   reason?: string;
