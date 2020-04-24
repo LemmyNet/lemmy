@@ -1,34 +1,11 @@
-use crate::apub::fetcher::{fetch_remote_object, fetch_remote_user};
-use crate::apub::signatures::PublicKey;
-use crate::apub::*;
-use crate::db::community::{Community, CommunityForm};
-use crate::db::community_view::CommunityFollowerView;
-use crate::db::establish_unpooled_connection;
-use crate::db::post::Post;
-use crate::db::user::User_;
-use crate::db::Crud;
-use crate::{convert_datetime, naive_now};
-use activitystreams::actor::properties::ApActorProperties;
-use activitystreams::collection::OrderedCollection;
-use activitystreams::{
-  actor::Group, collection::UnorderedCollection, context, ext::Extensible,
-  object::properties::ObjectProperties,
-};
-use actix_web::body::Body;
-use actix_web::web::Path;
-use actix_web::HttpResponse;
-use actix_web::{web, Result};
-use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::PgConnection;
-use failure::Error;
-use serde::Deserialize;
-use url::Url;
+use super::*;
 
 #[derive(Deserialize)]
 pub struct CommunityQuery {
   community_name: String,
 }
 
+// TODO turn these as_group, as_page, into apub trait... something like to_apub
 impl Community {
   // Turn a Lemmy Community into an ActivityPub group that can be sent out over the network.
   fn as_group(&self, conn: &PgConnection) -> Result<GroupExt, Error> {
@@ -91,8 +68,8 @@ impl CommunityForm {
     let outbox_uri = Url::parse(&aprops.get_outbox().to_string())?;
     let _outbox = fetch_remote_object::<OrderedCollection>(&outbox_uri)?;
     let _followers = fetch_remote_object::<UnorderedCollection>(&followers_uri)?;
-    let apub_id = Url::parse(&oprops.get_attributed_to_xsd_any_uri().unwrap().to_string())?;
-    let creator = fetch_remote_user(&apub_id, conn)?;
+    let apub_id = &oprops.get_attributed_to_xsd_any_uri().unwrap().to_string();
+    let creator = get_or_fetch_and_upsert_remote_user(&apub_id, conn)?;
 
     Ok(CommunityForm {
       name: oprops.get_name_xsd_string().unwrap().to_string(),
@@ -123,19 +100,22 @@ impl CommunityForm {
 /// Return the community json over HTTP.
 pub async fn get_apub_community_http(
   info: Path<CommunityQuery>,
-  db: web::Data<Pool<ConnectionManager<PgConnection>>>,
+  db: DbPoolParam,
+  chat_server: ChatServerParam,
 ) -> Result<HttpResponse<Body>, Error> {
-  let community = Community::read_from_name(&&db.get()?, info.community_name.to_owned())?;
+  let community = Community::read_from_name(&&db.get()?, &info.community_name)?;
   let c = community.as_group(&db.get().unwrap())?;
   Ok(create_apub_response(&c))
 }
 
 /// Returns an empty followers collection, only populating the siz (for privacy).
+// TODO this needs to return the actual followers, and the to: field needs this
 pub async fn get_apub_community_followers(
   info: Path<CommunityQuery>,
-  db: web::Data<Pool<ConnectionManager<PgConnection>>>,
+  db: DbPoolParam,
+  chat_server: ChatServerParam,
 ) -> Result<HttpResponse<Body>, Error> {
-  let community = Community::read_from_name(&&db.get()?, info.community_name.to_owned())?;
+  let community = Community::read_from_name(&&db.get()?, &info.community_name)?;
 
   let connection = establish_unpooled_connection();
   //As we are an object, we validated that the community id was valid
@@ -156,9 +136,10 @@ pub async fn get_apub_community_followers(
 /// Returns an UnorderedCollection with the latest posts from the community.
 pub async fn get_apub_community_outbox(
   info: Path<CommunityQuery>,
-  db: web::Data<Pool<ConnectionManager<PgConnection>>>,
+  db: DbPoolParam,
+  chat_server: ChatServerParam,
 ) -> Result<HttpResponse<Body>, Error> {
-  let community = Community::read_from_name(&&db.get()?, info.community_name.to_owned())?;
+  let community = Community::read_from_name(&&db.get()?, &info.community_name)?;
 
   let conn = establish_unpooled_connection();
   //As we are an object, we validated that the community id was valid

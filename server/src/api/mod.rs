@@ -68,8 +68,8 @@ pub struct Oper<T> {
   data: T,
 }
 
-impl<T> Oper<T> {
-  pub fn new(data: T) -> Oper<T> {
+impl<Data> Oper<Data> {
+  pub fn new(data: Data) -> Oper<Data> {
     Oper { data }
   }
 }

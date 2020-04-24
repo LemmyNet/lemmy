@@ -139,7 +139,7 @@ impl Perform for Oper<GetCommunity> {
       None => {
         match Community::read_from_name(
           &conn,
-          data.name.to_owned().unwrap_or_else(|| "main".to_string()),
+          &data.name.to_owned().unwrap_or_else(|| "main".to_string()),
         ) {
           Ok(community) => community,
           Err(_e) => return Err(APIError::err("couldnt_find_community").into()),

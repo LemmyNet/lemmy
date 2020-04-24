@@ -1,21 +1,4 @@
-use crate::apub::is_apub_id_valid;
-use crate::apub::signatures::sign;
-use crate::db::community::Community;
-use crate::db::community_view::CommunityFollowerView;
-use crate::db::post::Post;
-use crate::db::user::User_;
-use crate::db::Crud;
-use activitystreams::activity::{Accept, Create, Follow, Update};
-use activitystreams::object::properties::ObjectProperties;
-use activitystreams::BaseBox;
-use activitystreams::{context, public};
-use diesel::PgConnection;
-use failure::Error;
-use failure::_core::fmt::Debug;
-use isahc::prelude::*;
-use log::debug;
-use serde::Serialize;
-use url::Url;
+use super::*;
 
 fn populate_object_props(
   props: &mut ObjectProperties,
@@ -45,6 +28,8 @@ where
 {
   let json = serde_json::to_string(&activity)?;
   debug!("Sending activitypub activity {} to {:?}", json, to);
+  // TODO it needs to expand, the to field needs to expand and dedup the followers urls
+  // The inbox is determined by first retrieving the target actor's JSON-LD representation and then looking up the inbox property. If a recipient is a Collection or OrderedCollection, then the server MUST dereference the collection (with the user's credentials) and discover inboxes for each item in the collection. Servers MUST limit the number of layers of indirections through collections which will be performed, which MAY be one. 
   for t in to {
     let to_url = Url::parse(&t)?;
     if !is_apub_id_valid(&to_url) {
@@ -136,6 +121,7 @@ pub fn follow_community(
     .follow_props
     .set_actor_xsd_any_uri(user.actor_id.clone())?
     .set_object_xsd_any_uri(community.actor_id.clone())?;
+  // TODO this is incorrect, the to field should not be the inbox, but the followers url
   let to = format!("{}/inbox", community.actor_id);
   send_activity(
     &follow,
@@ -153,6 +139,7 @@ pub fn accept_follow(follow: &Follow, conn: &PgConnection) -> Result<(), Error> 
     .get_object_xsd_any_uri()
     .unwrap()
     .to_string();
+  let actor_uri = follow.follow_props.get_actor_xsd_any_uri().unwrap().to_string();
   let community = Community::read_from_actor_id(conn, &community_uri)?;
   let mut accept = Accept::new();
   accept
@@ -164,12 +151,14 @@ pub fn accept_follow(follow: &Follow, conn: &PgConnection) -> Result<(), Error> 
         .follow_props
         .get_actor_xsd_any_uri()
         .unwrap()
-        .to_string(),
+        .to_string()
     )?;
   accept
     .accept_props
+    .set_actor_xsd_any_uri(community.actor_id.clone())?
     .set_object_base_box(BaseBox::from_concrete(follow.clone())?)?;
-  let to = format!("{}/inbox", community_uri);
+  // TODO this is incorrect, the to field should not be the inbox, but the followers url
+  let to = format!("{}/inbox", actor_uri);
   send_activity(
     &accept,
     &community.private_key.unwrap(),

@@ -1,21 +1,4 @@
-use crate::apub::signatures::PublicKey;
-use crate::apub::{create_apub_response, PersonExt};
-use crate::db::user::{UserForm, User_};
-use crate::{convert_datetime, naive_now};
-use activitystreams::{
-  actor::{properties::ApActorProperties, Person},
-  context,
-  ext::Extensible,
-  object::properties::ObjectProperties,
-};
-use actix_web::body::Body;
-use actix_web::web::Path;
-use actix_web::HttpResponse;
-use actix_web::{web, Result};
-use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::PgConnection;
-use failure::Error;
-use serde::Deserialize;
+use super::*;
 
 #[derive(Deserialize)]
 pub struct UserQuery {
@@ -25,7 +8,8 @@ pub struct UserQuery {
 // Turn a Lemmy user into an ActivityPub person and return it as json.
 pub async fn get_apub_user(
   info: Path<UserQuery>,
-  db: web::Data<Pool<ConnectionManager<PgConnection>>>,
+  db: DbPoolParam,
+  chat_server: ChatServerParam,
 ) -> Result<HttpResponse<Body>, Error> {
   let user = User_::find_by_email_or_username(&&db.get()?, &info.user_name)?;
 

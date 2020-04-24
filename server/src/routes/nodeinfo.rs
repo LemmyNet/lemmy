@@ -21,7 +21,7 @@ async fn node_info_well_known() -> Result<HttpResponse<Body>, failure::Error> {
 }
 
 async fn node_info(
-  db: web::Data<Pool<ConnectionManager<PgConnection>>>,
+  db: DbPoolParam,
 ) -> Result<HttpResponse, Error> {
   let res = web::block(move || {
     let conn = db.get()?;
