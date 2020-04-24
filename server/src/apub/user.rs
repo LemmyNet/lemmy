@@ -5,7 +5,9 @@ pub struct UserQuery {
   user_name: String,
 }
 
-impl ToApub<PersonExt> for User_ {
+impl ToApub for User_ {
+  type Response = PersonExt;
+
   // Turn a Lemmy Community into an ActivityPub group that can be sent out over the network.
   fn to_apub(&self, _conn: &PgConnection) -> Result<PersonExt, Error> {
     // TODO go through all these to_string and to_owned()
@@ -50,7 +52,8 @@ impl ActorType for User_ {
   }
 }
 
-impl FromApub<PersonExt> for UserForm {
+impl FromApub for UserForm {
+  type ApubType = PersonExt;
   /// Parse an ActivityPub person received from another instance into a Lemmy user.
   fn from_apub(person: &PersonExt, _conn: &PgConnection) -> Result<Self, Error> {
     let oprops = &person.base.base.object_props;

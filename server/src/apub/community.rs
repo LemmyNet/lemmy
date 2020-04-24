@@ -5,7 +5,9 @@ pub struct CommunityQuery {
   community_name: String,
 }
 
-impl ToApub<GroupExt> for Community {
+impl ToApub for Community {
+  type Response = GroupExt;
+
   // Turn a Lemmy Community into an ActivityPub group that can be sent out over the network.
   fn to_apub(&self, conn: &PgConnection) -> Result<GroupExt, Error> {
     let mut group = Group::default();
@@ -52,7 +54,9 @@ impl ActorType for Community {
   }
 }
 
-impl FromApub<GroupExt> for CommunityForm {
+impl FromApub for CommunityForm {
+  type ApubType = GroupExt;
+
   /// Parse an ActivityPub group received from another instance into a Lemmy community.
   fn from_apub(group: &GroupExt, conn: &PgConnection) -> Result<Self, Error> {
     let oprops = &group.base.base.object_props;
