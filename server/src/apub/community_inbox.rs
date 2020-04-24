@@ -6,6 +6,7 @@ pub enum CommunityAcceptedObjects {
   Follow(Follow),
 }
 
+// TODO Consolidate community and user inboxes into a single shared one
 /// Handler for all incoming activities to community inboxes.
 pub async fn community_inbox(
   request: HttpRequest,
@@ -18,11 +19,12 @@ pub async fn community_inbox(
   let community_name = path.into_inner();
   debug!(
     "Community {} received activity {:?}",
-    &community_name,
-    &input
+    &community_name, &input
   );
   match input {
-    CommunityAcceptedObjects::Follow(f) => handle_follow(&f, &request, &community_name, db, chat_server),
+    CommunityAcceptedObjects::Follow(f) => {
+      handle_follow(&f, &request, &community_name, db, chat_server)
+    }
   }
 }
 
@@ -33,14 +35,14 @@ fn handle_follow(
   request: &HttpRequest,
   community_name: &str,
   db: DbPoolParam,
-  chat_server: ChatServerParam,
+  _chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
   let user_uri = follow
     .follow_props
     .get_actor_xsd_any_uri()
     .unwrap()
     .to_string();
-  let community_uri = follow
+  let _community_uri = follow
     .follow_props
     .get_object_xsd_any_uri()
     .unwrap()

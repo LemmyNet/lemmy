@@ -8,64 +8,48 @@ pub mod user;
 pub mod user_inbox;
 
 use activitystreams::{
-  context, public, BaseBox,
-  actor::{
-    Actor,
-    Person,
-    Group,
-    properties::ApActorProperties, 
-  },
   activity::{Accept, Create, Follow, Update},
-  object::{
-    Page,
-    properties::ObjectProperties,
-  },
-  ext::{
-    Ext,
-    Extensible,
-    Extension,
-  },
-  collection::{
-    UnorderedCollection, 
-    OrderedCollection,
-  },
+  actor::{properties::ApActorProperties, Actor, Group, Person},
+  collection::UnorderedCollection,
+  context,
+  ext::{Ext, Extensible, Extension},
+  object::{properties::ObjectProperties, Page},
+  public, BaseBox,
 };
 use actix_web::body::Body;
-use actix_web::{web, Result, HttpRequest, HttpResponse};
 use actix_web::web::Path;
-use url::Url;
-use failure::Error;
-use failure::_core::fmt::Debug;
-use log::debug;
-use isahc::prelude::*;
+use actix_web::{web, HttpRequest, HttpResponse, Result};
 use diesel::result::Error::NotFound;
 use diesel::PgConnection;
+use failure::Error;
+use failure::_core::fmt::Debug;
 use http::request::Builder;
 use http_signature_normalization::Config;
+use isahc::prelude::*;
+use log::debug;
 use openssl::hash::MessageDigest;
 use openssl::sign::{Signer, Verifier};
 use openssl::{pkey::PKey, rsa::Rsa};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::time::Duration;
+use url::Url;
 
-use crate::routes::{DbPoolParam, ChatServerParam};
-use crate::routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
-use crate::{convert_datetime, naive_now, Settings};
-use crate::db::community::{Community, CommunityForm, CommunityFollower, CommunityFollowerForm};
+use crate::api::site::SearchResponse;
+use crate::db::community::{Community, CommunityFollower, CommunityFollowerForm, CommunityForm};
 use crate::db::community_view::{CommunityFollowerView, CommunityView};
 use crate::db::post::{Post, PostForm};
-use crate::db::post_view::PostView;
 use crate::db::user::{UserForm, User_};
 use crate::db::user_view::UserView;
-// TODO check on unpooled connection
-use crate::db::{Crud, Followable, SearchType, establish_unpooled_connection};
-use crate::api::site::SearchResponse;
+use crate::db::{Crud, Followable, SearchType};
+use crate::routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
+use crate::routes::{ChatServerParam, DbPoolParam};
+use crate::{convert_datetime, naive_now, Settings};
 
-use signatures::{PublicKey, PublicKeyExtension, sign};
 use activities::accept_follow;
+use fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user};
 use signatures::verify;
-use fetcher::{fetch_remote_object, get_or_fetch_and_upsert_remote_user, get_or_fetch_and_upsert_remote_community};
+use signatures::{sign, PublicKey, PublicKeyExtension};
 
 type GroupExt = Ext<Ext<Group, ApActorProperties>, PublicKeyExtension>;
 type PersonExt = Ext<Ext<Person, ApActorProperties>, PublicKeyExtension>;
@@ -138,5 +122,37 @@ fn is_apub_id_valid(apub_id: &Url) -> bool {
   match apub_id.domain() {
     Some(d) => whitelist.contains(&d.to_owned()),
     None => false,
+  }
+}
+
+// TODO Not sure good names for these
+pub trait ToApub<Response> {
+  fn to_apub(&self, conn: &PgConnection) -> Result<Response, Error>;
+}
+
+pub trait FromApub<ApubType> {
+  fn from_apub(apub: &ApubType, conn: &PgConnection) -> Result<Self, Error>
+  where
+    Self: Sized;
+}
+
+pub trait ActorType {
+  fn actor_id(&self) -> String;
+
+  fn get_inbox_url(&self) -> String {
+    format!("{}/inbox", &self.actor_id())
+  }
+  fn get_outbox_url(&self) -> String {
+    format!("{}/outbox", &self.actor_id())
+  }
+
+  fn get_followers_url(&self) -> String {
+    format!("{}/followers", &self.actor_id())
+  }
+  fn get_following_url(&self) -> String {
+    format!("{}/following", &self.actor_id())
+  }
+  fn get_liked_url(&self) -> String {
+    format!("{}/liked", &self.actor_id())
   }
 }

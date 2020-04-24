@@ -5,52 +5,54 @@ pub struct UserQuery {
   user_name: String,
 }
 
-// Turn a Lemmy user into an ActivityPub person and return it as json.
-pub async fn get_apub_user(
-  info: Path<UserQuery>,
-  db: DbPoolParam,
-  chat_server: ChatServerParam,
-) -> Result<HttpResponse<Body>, Error> {
-  let user = User_::find_by_email_or_username(&&db.get()?, &info.user_name)?;
+impl ToApub<PersonExt> for User_ {
+  // Turn a Lemmy Community into an ActivityPub group that can be sent out over the network.
+  fn to_apub(&self, _conn: &PgConnection) -> Result<PersonExt, Error> {
+    // TODO go through all these to_string and to_owned()
+    let mut person = Person::default();
+    let oprops: &mut ObjectProperties = person.as_mut();
+    oprops
+      .set_context_xsd_any_uri(context())?
+      .set_id(self.actor_id.to_string())?
+      .set_name_xsd_string(self.name.to_owned())?
+      .set_published(convert_datetime(self.published))?;
 
-  let mut person = Person::default();
-  let oprops: &mut ObjectProperties = person.as_mut();
-  oprops
-    .set_context_xsd_any_uri(context())?
-    .set_id(user.actor_id.to_string())?
-    .set_name_xsd_string(user.name.to_owned())?
-    .set_published(convert_datetime(user.published))?;
+    if let Some(u) = self.updated {
+      oprops.set_updated(convert_datetime(u))?;
+    }
 
-  if let Some(u) = user.updated {
-    oprops.set_updated(convert_datetime(u))?;
+    if let Some(i) = &self.preferred_username {
+      oprops.set_name_xsd_string(i.to_owned())?;
+    }
+
+    let mut actor_props = ApActorProperties::default();
+
+    actor_props
+      .set_inbox(self.get_inbox_url())?
+      .set_outbox(self.get_outbox_url())?
+      .set_followers(self.get_followers_url())?
+      .set_following(self.get_following_url())?
+      .set_liked(self.get_liked_url())?;
+
+    let public_key = PublicKey {
+      id: format!("{}#main-key", self.actor_id),
+      owner: self.actor_id.to_owned(),
+      public_key_pem: self.public_key.to_owned().unwrap(),
+    };
+
+    Ok(person.extend(actor_props).extend(public_key.to_ext()))
   }
-
-  if let Some(i) = &user.preferred_username {
-    oprops.set_name_xsd_string(i.to_owned())?;
-  }
-
-  let mut actor_props = ApActorProperties::default();
-
-  actor_props
-    .set_inbox(format!("{}/inbox", &user.actor_id))?
-    .set_outbox(format!("{}/outbox", &user.actor_id))?
-    .set_following(format!("{}/following", &user.actor_id))?
-    .set_liked(format!("{}/liked", &user.actor_id))?;
-
-  let public_key = PublicKey {
-    id: format!("{}#main-key", user.actor_id),
-    owner: user.actor_id.to_owned(),
-    public_key_pem: user.public_key.unwrap(),
-  };
-
-  Ok(create_apub_response(
-    &person.extend(actor_props).extend(public_key.to_ext()),
-  ))
 }
 
-impl UserForm {
+impl ActorType for User_ {
+  fn actor_id(&self) -> String {
+    self.actor_id.to_owned()
+  }
+}
+
+impl FromApub<PersonExt> for UserForm {
   /// Parse an ActivityPub person received from another instance into a Lemmy user.
-  pub fn from_person(person: &PersonExt) -> Result<Self, Error> {
+  fn from_apub(person: &PersonExt, _conn: &PgConnection) -> Result<Self, Error> {
     let oprops = &person.base.base.object_props;
     let aprops = &person.base.extension;
     let public_key: &PublicKey = &person.extension.public_key;
@@ -82,4 +84,14 @@ impl UserForm {
       last_refreshed_at: Some(naive_now()),
     })
   }
+}
+
+/// Return the user json over HTTP.
+pub async fn get_apub_user_http(
+  info: Path<UserQuery>,
+  db: DbPoolParam,
+) -> Result<HttpResponse<Body>, Error> {
+  let user = User_::find_by_email_or_username(&&db.get()?, &info.user_name)?;
+  let u = user.to_apub(&db.get().unwrap())?;
+  Ok(create_apub_response(&u))
 }

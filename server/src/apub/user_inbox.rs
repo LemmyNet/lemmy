@@ -14,17 +14,13 @@ pub async fn user_inbox(
   input: web::Json<UserAcceptedObjects>,
   path: web::Path<String>,
   db: DbPoolParam,
-  chat_server: ChatServerParam,
+  _chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
   // TODO: would be nice if we could do the signature check here, but we cant access the actor property
   let input = input.into_inner();
   let conn = &db.get().unwrap();
   let username = path.into_inner();
-  debug!(
-    "User {} received activity: {:?}",
-    &username,
-    &input
-  );
+  debug!("User {} received activity: {:?}", &username, &input);
 
   match input {
     UserAcceptedObjects::Create(c) => handle_create(&c, &request, &username, &conn),
@@ -37,18 +33,18 @@ pub async fn user_inbox(
 fn handle_create(
   create: &Create,
   request: &HttpRequest,
-  username: &str,
+  _username: &str,
   conn: &PgConnection,
 ) -> Result<HttpResponse, Error> {
   // TODO before this even gets named, because we don't know what type of object it is, we need
   // to parse this out
-  let community_uri = create
+  let user_uri = create
     .create_props
     .get_actor_xsd_any_uri()
     .unwrap()
     .to_string();
-  // TODO: should do this in a generic way so we dont need to know if its a user or a community
-  let user = fetch_remote_user(&Url::parse(&community_uri)?, conn)?;
+
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
 
   let page = create
@@ -58,7 +54,7 @@ fn handle_create(
     .unwrap()
     .to_owned()
     .to_concrete::<Page>()?;
-  let post = PostForm::from_page(&page, conn)?;
+  let post = PostForm::from_apub(&page, conn)?;
   Post::create(conn, &post)?;
   // TODO: send the new post out via websocket
   Ok(HttpResponse::Ok().finish())
@@ -68,15 +64,16 @@ fn handle_create(
 fn handle_update(
   update: &Update,
   request: &HttpRequest,
-  username: &str,
+  _username: &str,
   conn: &PgConnection,
 ) -> Result<HttpResponse, Error> {
-  let community_uri = update
+  let user_uri = update
     .update_props
     .get_actor_xsd_any_uri()
     .unwrap()
     .to_string();
-  let user = fetch_remote_user(&Url::parse(&community_uri)?, conn)?;
+
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
 
   let page = update
@@ -86,7 +83,7 @@ fn handle_update(
     .unwrap()
     .to_owned()
     .to_concrete::<Page>()?;
-  let post = PostForm::from_page(&page, conn)?;
+  let post = PostForm::from_apub(&page, conn)?;
   let id = Post::read_from_apub_id(conn, &post.ap_id)?.id;
   Post::update(conn, id, &post)?;
   // TODO: send the new post out via websocket
@@ -105,7 +102,7 @@ fn handle_accept(
     .get_actor_xsd_any_uri()
     .unwrap()
     .to_string();
-    
+
   let community = get_or_fetch_and_upsert_remote_community(&community_uri, conn)?;
   verify(request, &community.public_key.unwrap())?;
 

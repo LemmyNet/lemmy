@@ -21,11 +21,12 @@ pub fn config(cfg: &mut web::ServiceConfig) {
             "/c/{community_name}/followers",
             web::get().to(get_apub_community_followers),
           )
-          .route(
-            "/c/{community_name}/outbox",
-            web::get().to(get_apub_community_outbox),
-          )
-          .route("/u/{user_name}", web::get().to(get_apub_user))
+          // TODO This is only useful for history which we aren't doing right now
+          // .route(
+          //   "/c/{community_name}/outbox",
+          //   web::get().to(get_apub_community_outbox),
+          // )
+          .route("/u/{user_name}", web::get().to(get_apub_user_http))
           .route("/post/{post_id}", web::get().to(get_apub_post)),
       )
       // Inboxes dont work with the header guard for some reason.
