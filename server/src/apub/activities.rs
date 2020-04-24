@@ -29,7 +29,7 @@ where
   let json = serde_json::to_string(&activity)?;
   debug!("Sending activitypub activity {} to {:?}", json, to);
   // TODO it needs to expand, the to field needs to expand and dedup the followers urls
-  // The inbox is determined by first retrieving the target actor's JSON-LD representation and then looking up the inbox property. If a recipient is a Collection or OrderedCollection, then the server MUST dereference the collection (with the user's credentials) and discover inboxes for each item in the collection. Servers MUST limit the number of layers of indirections through collections which will be performed, which MAY be one. 
+  // The inbox is determined by first retrieving the target actor's JSON-LD representation and then looking up the inbox property. If a recipient is a Collection or OrderedCollection, then the server MUST dereference the collection (with the user's credentials) and discover inboxes for each item in the collection. Servers MUST limit the number of layers of indirections through collections which will be performed, which MAY be one.
   for t in to {
     let to_url = Url::parse(&t)?;
     if !is_apub_id_valid(&to_url) {
@@ -61,7 +61,7 @@ fn get_follower_inboxes(conn: &PgConnection, community: &Community) -> Result<Ve
 
 /// Send out information about a newly created post, to the followers of the community.
 pub fn post_create(post: &Post, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
-  let page = post.as_page(conn)?;
+  let page = post.to_apub(conn)?;
   let community = Community::read(conn, post.community_id)?;
   let mut create = Create::new();
   populate_object_props(
@@ -84,7 +84,7 @@ pub fn post_create(post: &Post, creator: &User_, conn: &PgConnection) -> Result<
 
 /// Send out information about an edited post, to the followers of the community.
 pub fn post_update(post: &Post, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
-  let page = post.as_page(conn)?;
+  let page = post.to_apub(conn)?;
   let community = Community::read(conn, post.community_id)?;
   let mut update = Update::new();
   populate_object_props(
@@ -139,7 +139,11 @@ pub fn accept_follow(follow: &Follow, conn: &PgConnection) -> Result<(), Error> 
     .get_object_xsd_any_uri()
     .unwrap()
     .to_string();
-  let actor_uri = follow.follow_props.get_actor_xsd_any_uri().unwrap().to_string();
+  let actor_uri = follow
+    .follow_props
+    .get_actor_xsd_any_uri()
+    .unwrap()
+    .to_string();
   let community = Community::read_from_actor_id(conn, &community_uri)?;
   let mut accept = Accept::new();
   accept
@@ -151,7 +155,7 @@ pub fn accept_follow(follow: &Follow, conn: &PgConnection) -> Result<(), Error> 
         .follow_props
         .get_actor_xsd_any_uri()
         .unwrap()
-        .to_string()
+        .to_string(),
     )?;
   accept
     .accept_props

@@ -9,16 +9,15 @@ pub struct PostQuery {
 pub async fn get_apub_post(
   info: Path<PostQuery>,
   db: DbPoolParam,
-  chat_server: ChatServerParam,
 ) -> Result<HttpResponse<Body>, Error> {
   let id = info.post_id.parse::<i32>()?;
   let post = Post::read(&&db.get()?, id)?;
-  Ok(create_apub_response(&post.as_page(&db.get().unwrap())?))
+  Ok(create_apub_response(&post.to_apub(&db.get().unwrap())?))
 }
 
-impl Post {
+impl ToApub<Page> for Post {
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
-  pub fn as_page(&self, conn: &PgConnection) -> Result<Page, Error> {
+  fn to_apub(&self, conn: &PgConnection) -> Result<Page, Error> {
     let mut page = Page::default();
     let oprops: &mut ObjectProperties = page.as_mut();
     let creator = User_::read(conn, self.creator_id)?;
@@ -54,9 +53,9 @@ impl Post {
   }
 }
 
-impl PostForm {
+impl FromApub<Page> for PostForm {
   /// Parse an ActivityPub page received from another instance into a Lemmy post.
-  pub fn from_page(page: &Page, conn: &PgConnection) -> Result<PostForm, Error> {
+  fn from_apub(page: &Page, conn: &PgConnection) -> Result<PostForm, Error> {
     let oprops = &page.object_props;
     let creator_actor_id = &oprops.get_attributed_to_xsd_any_uri().unwrap().to_string();
     let creator = get_or_fetch_and_upsert_remote_user(&creator_actor_id, &conn)?;
