@@ -15,7 +15,9 @@ pub async fn get_apub_post(
   Ok(create_apub_response(&post.to_apub(&db.get().unwrap())?))
 }
 
-impl ToApub<Page> for Post {
+impl ToApub for Post {
+  type Response = Page;
+
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
   fn to_apub(&self, conn: &PgConnection) -> Result<Page, Error> {
     let mut page = Page::default();
@@ -53,7 +55,9 @@ impl ToApub<Page> for Post {
   }
 }
 
-impl FromApub<Page> for PostForm {
+impl FromApub for PostForm {
+  type ApubType = Page;
+
   /// Parse an ActivityPub page received from another instance into a Lemmy post.
   fn from_apub(page: &Page, conn: &PgConnection) -> Result<PostForm, Error> {
     let oprops = &page.object_props;

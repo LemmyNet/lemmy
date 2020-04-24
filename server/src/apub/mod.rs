@@ -126,12 +126,14 @@ fn is_apub_id_valid(apub_id: &Url) -> bool {
 }
 
 // TODO Not sure good names for these
-pub trait ToApub<Response> {
-  fn to_apub(&self, conn: &PgConnection) -> Result<Response, Error>;
+pub trait ToApub {
+  type Response;
+  fn to_apub(&self, conn: &PgConnection) -> Result<Self::Response, Error>;
 }
 
-pub trait FromApub<ApubType> {
-  fn from_apub(apub: &ApubType, conn: &PgConnection) -> Result<Self, Error>
+pub trait FromApub {
+  type ApubType;
+  fn from_apub(apub: &Self::ApubType, conn: &PgConnection) -> Result<Self, Error>
   where
     Self: Sized;
 }
