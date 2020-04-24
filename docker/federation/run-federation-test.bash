@@ -12,6 +12,6 @@ pushd ../../server/ || exit
 cargo build
 popd || exit
 
-sudo docker build ../../ -f Dockerfile -t lemmy-federation:latest
+sudo docker build ../../ --file Dockerfile -t lemmy-federation:latest
 
 sudo docker-compose up
