@@ -1,23 +1,4 @@
-use crate::api::site::SearchResponse;
-use crate::apub::*;
-use crate::db::community::{Community, CommunityForm};
-use crate::db::community_view::CommunityView;
-use crate::db::post::{Post, PostForm};
-use crate::db::post_view::PostView;
-use crate::db::user::{UserForm, User_};
-use crate::db::user_view::UserView;
-use crate::db::{Crud, SearchType};
-use crate::routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
-use activitystreams::collection::OrderedCollection;
-use activitystreams::object::Page;
-use activitystreams::BaseBox;
-use diesel::result::Error::NotFound;
-use diesel::PgConnection;
-use failure::Error;
-use isahc::prelude::*;
-use serde::Deserialize;
-use std::time::Duration;
-use url::Url;
+use super::*;
 
 // Fetch nodeinfo metadata from a remote instance.
 fn _fetch_node_info(domain: &str) -> Result<NodeInfo, Error> {
@@ -30,26 +11,27 @@ fn _fetch_node_info(domain: &str) -> Result<NodeInfo, Error> {
   Ok(fetch_remote_object::<NodeInfo>(&well_known.links.href)?)
 }
 
-// TODO: move these to db
-fn upsert_community(
-  community_form: &CommunityForm,
-  conn: &PgConnection,
-) -> Result<Community, Error> {
-  let existing = Community::read_from_actor_id(conn, &community_form.actor_id);
-  match existing {
-    Err(NotFound {}) => Ok(Community::create(conn, &community_form)?),
-    Ok(c) => Ok(Community::update(conn, c.id, &community_form)?),
-    Err(e) => Err(Error::from(e)),
-  }
-}
-fn upsert_user(user_form: &UserForm, conn: &PgConnection) -> Result<User_, Error> {
-  let existing = User_::read_from_apub_id(conn, &user_form.actor_id);
-  Ok(match existing {
-    Err(NotFound {}) => User_::create(conn, &user_form)?,
-    Ok(u) => User_::update(conn, u.id, &user_form)?,
-    Err(e) => return Err(Error::from(e)),
-  })
-}
+// // TODO: move these to db
+// // TODO use the last_refreshed_at
+// fn upsert_community(
+//   community_form: &CommunityForm,
+//   conn: &PgConnection,
+// ) -> Result<Community, Error> {
+//   let existing = Community::read_from_actor_id(conn, &community_form.actor_id);
+//   match existing {
+//     Err(NotFound {}) => Ok(Community::create(conn, &community_form)?),
+//     Ok(c) => Ok(Community::update(conn, c.id, &community_form)?),
+//     Err(e) => Err(Error::from(e)),
+//   }
+// }
+// fn upsert_user(user_form: &UserForm, conn: &PgConnection) -> Result<User_, Error> {
+//   let existing = User_::read_from_actor_id(conn, &user_form.actor_id);
+//   Ok(match existing {
+//     Err(NotFound {}) => User_::create(conn, &user_form)?,
+//     Ok(u) => User_::update(conn, u.id, &user_form)?,
+//     Err(e) => return Err(Error::from(e)),
+//   })
+// }
 
 fn upsert_post(post_form: &PostForm, conn: &PgConnection) -> Result<Post, Error> {
   let existing = Post::read_from_apub_id(conn, &post_form.ap_id);
@@ -89,7 +71,7 @@ where
 pub enum SearchAcceptedObjects {
   Person(Box<PersonExt>),
   Group(Box<GroupExt>),
-  Page(Box<Page>),
+  // Page(Box<Page>),
 }
 
 /// Attempt to parse the query as URL, and fetch an ActivityPub object from it.
@@ -109,22 +91,27 @@ pub fn search_by_apub_id(query: &str, conn: &PgConnection) -> Result<SearchRespo
   };
   match fetch_remote_object::<SearchAcceptedObjects>(&query_url)? {
     SearchAcceptedObjects::Person(p) => {
-      let u = upsert_user(&UserForm::from_person(&p)?, conn)?;
-      response.users = vec![UserView::read(conn, u.id)?];
+      let user = get_or_fetch_and_upsert_remote_user(query, &conn)?;
+      response.users = vec![UserView::read(conn, user.id)?];
     }
     SearchAcceptedObjects::Group(g) => {
-      let c = upsert_community(&CommunityForm::from_group(&g, conn)?, conn)?;
-      fetch_community_outbox(&c, conn)?;
-      response.communities = vec![CommunityView::read(conn, c.id, None)?];
+      let community = get_or_fetch_and_upsert_remote_community(query, &conn)?;
+      // fetch_community_outbox(&c, conn)?;
+      response.communities = vec![CommunityView::read(conn, community.id, None)?];
     }
-    SearchAcceptedObjects::Page(p) => {
-      let p = upsert_post(&PostForm::from_page(&p, conn)?, conn)?;
-      response.posts = vec![PostView::read(conn, p.id, None)?];
-    }
+    // SearchAcceptedObjects::Page(p) => {
+    //   let p = upsert_post(&PostForm::from_page(&p, conn)?, conn)?;
+    //   response.posts = vec![PostView::read(conn, p.id, None)?];
+    // }
   }
   Ok(response)
 }
 
+// TODO It should not be fetching data from a community outbox.
+// All posts, comments, comment likes, etc should be posts to our community_inbox
+// The only data we should be periodically fetching (if it hasn't been fetched in the last day
+// maybe), is community and user actors
+// and user actors
 /// Fetch all posts in the outbox of the given user, and insert them into the database.
 fn fetch_community_outbox(community: &Community, conn: &PgConnection) -> Result<Vec<Post>, Error> {
   let outbox_url = Url::parse(&community.get_outbox_url())?;
@@ -143,16 +130,54 @@ fn fetch_community_outbox(community: &Community, conn: &PgConnection) -> Result<
   )
 }
 
-/// Fetch a user, insert/update it in the database and return the user.
-pub fn fetch_remote_user(apub_id: &Url, conn: &PgConnection) -> Result<User_, Error> {
-  let person = fetch_remote_object::<PersonExt>(apub_id)?;
-  let uf = UserForm::from_person(&person)?;
-  upsert_user(&uf, conn)
+/// Check if a remote user exists, create if not found, if its too old update it.Fetch a user, insert/update it in the database and return the user.
+pub fn get_or_fetch_and_upsert_remote_user(apub_id: &str, conn: &PgConnection) -> Result<User_, Error> {
+  match User_::read_from_actor_id(&conn, &apub_id) {
+    Ok(u) => {
+      // If its older than a day, re-fetch it
+      // TODO the less than needs to be tested
+      if u.last_refreshed_at.lt(&(naive_now() - chrono::Duration::days(1))) {   
+        debug!("Fetching and updating from remote user: {}", apub_id);
+        let person = fetch_remote_object::<PersonExt>(&Url::parse(apub_id)?)?;
+        let uf = UserForm::from_person(&person)?;
+        uf.last_refreshed_at = Some(naive_now());
+        Ok(User_::update(&conn, u.id, &uf)?)
+      } else {
+        Ok(u)
+      }
+    },
+    Err(NotFound {}) => {
+      debug!("Fetching and creating remote user: {}", apub_id);
+      let person = fetch_remote_object::<PersonExt>(&Url::parse(apub_id)?)?;
+      let uf = UserForm::from_person(&person)?;
+      Ok(User_::create(conn, &uf)?)
+    }
+    Err(e) => Err(Error::from(e)),
+  }
 }
 
-/// Fetch a community, insert/update it in the database and return the community.
-pub fn fetch_remote_community(apub_id: &Url, conn: &PgConnection) -> Result<Community, Error> {
-  let group = fetch_remote_object::<GroupExt>(apub_id)?;
-  let cf = CommunityForm::from_group(&group, conn)?;
-  upsert_community(&cf, conn)
+/// Check if a remote community exists, create if not found, if its too old update it.Fetch a community, insert/update it in the database and return the community.
+pub fn get_or_fetch_and_upsert_remote_community(apub_id: &str, conn: &PgConnection) -> Result<Community, Error> {
+  match Community::read_from_actor_id(&conn, &apub_id) {
+    Ok(c) => {
+      // If its older than a day, re-fetch it
+      // TODO the less than needs to be tested
+      if c.last_refreshed_at.lt(&(naive_now() - chrono::Duration::days(1))) {   
+        debug!("Fetching and updating from remote community: {}", apub_id);
+        let group = fetch_remote_object::<GroupExt>(&Url::parse(apub_id)?)?;
+        let cf = CommunityForm::from_group(&group, conn)?;
+        cf.last_refreshed_at = Some(naive_now());
+        Ok(Community::update(&conn, c.id, &cf)?)
+      } else {
+        Ok(c)
+      }
+    },
+    Err(NotFound {}) => {
+      debug!("Fetching and creating remote community: {}", apub_id);
+      let group = fetch_remote_object::<GroupExt>(&Url::parse(apub_id)?)?;
+      let cf = CommunityForm::from_group(&group, conn)?;
+      Ok(Community::create(conn, &cf)?)
+    }
+    Err(e) => Err(Error::from(e)),
+  }
 }

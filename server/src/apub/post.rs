@@ -1,19 +1,4 @@
-use crate::apub::create_apub_response;
-use crate::apub::fetcher::{fetch_remote_community, fetch_remote_user};
-use crate::convert_datetime;
-use crate::db::community::Community;
-use crate::db::post::{Post, PostForm};
-use crate::db::user::User_;
-use crate::db::Crud;
-use activitystreams::{context, object::properties::ObjectProperties, object::Page};
-use actix_web::body::Body;
-use actix_web::web::Path;
-use actix_web::{web, HttpResponse};
-use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::PgConnection;
-use failure::Error;
-use serde::Deserialize;
-use url::Url;
+use super::*;
 
 #[derive(Deserialize)]
 pub struct PostQuery {
@@ -23,7 +8,8 @@ pub struct PostQuery {
 /// Return the post json over HTTP.
 pub async fn get_apub_post(
   info: Path<PostQuery>,
-  db: web::Data<Pool<ConnectionManager<PgConnection>>>,
+  db: DbPoolParam,
+  chat_server: ChatServerParam,
 ) -> Result<HttpResponse<Body>, Error> {
   let id = info.post_id.parse::<i32>()?;
   let post = Post::read(&&db.get()?, id)?;
@@ -72,10 +58,10 @@ impl PostForm {
   /// Parse an ActivityPub page received from another instance into a Lemmy post.
   pub fn from_page(page: &Page, conn: &PgConnection) -> Result<PostForm, Error> {
     let oprops = &page.object_props;
-    let creator_id = Url::parse(&oprops.get_attributed_to_xsd_any_uri().unwrap().to_string())?;
-    let creator = fetch_remote_user(&creator_id, conn)?;
-    let community_id = Url::parse(&oprops.get_to_xsd_any_uri().unwrap().to_string())?;
-    let community = fetch_remote_community(&community_id, conn)?;
+    let creator_actor_id = &oprops.get_attributed_to_xsd_any_uri().unwrap().to_string();
+    let creator = get_or_fetch_and_upsert_remote_user(&creator_actor_id, &conn)?;
+    let community_actor_id = &oprops.get_to_xsd_any_uri().unwrap().to_string();
+    let community = get_or_fetch_and_upsert_remote_community(&community_actor_id, &conn)?;
 
     Ok(PostForm {
       name: oprops.get_summary_xsd_string().unwrap().to_string(),

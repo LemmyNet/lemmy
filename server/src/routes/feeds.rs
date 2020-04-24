@@ -27,7 +27,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 
 async fn get_all_feed(
   info: web::Query<Params>,
-  db: web::Data<Pool<ConnectionManager<PgConnection>>>,
+  db: DbPoolParam,
 ) -> Result<HttpResponse, Error> {
   let res = web::block(move || {
     let conn = db.get()?;
@@ -144,7 +144,7 @@ fn get_feed_community(
   community_name: String,
 ) -> Result<ChannelBuilder, failure::Error> {
   let site_view = SiteView::read(&conn)?;
-  let community = Community::read_from_name(&conn, community_name)?;
+  let community = Community::read_from_name(&conn, &community_name)?;
   let community_url = community.get_url();
 
   let posts = PostQueryBuilder::create(&conn)

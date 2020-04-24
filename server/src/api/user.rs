@@ -261,7 +261,7 @@ impl Perform for Oper<Register> {
       return Err(APIError::err("admin_already_created").into());
     }
 
-    let keypair = generate_actor_keypair()?;
+    let user_keypair = generate_actor_keypair()?;
 
     // Register the new user
     let user_form = UserForm {
@@ -284,8 +284,8 @@ impl Perform for Oper<Register> {
       actor_id: make_apub_endpoint(EndpointType::User, &data.username).to_string(),
       bio: None,
       local: true,
-      private_key: Some(keypair.private_key),
-      public_key: Some(keypair.public_key),
+      private_key: Some(user_keypair.private_key),
+      public_key: Some(user_keypair.public_key),
       last_refreshed_at: None,
     };
 
@@ -305,7 +305,7 @@ impl Perform for Oper<Register> {
       }
     };
 
-    let keypair = generate_actor_keypair()?;
+    let main_community_keypair = generate_actor_keypair()?;
 
     // Create the main community if it doesn't exist
     let main_community: Community = match Community::read(&conn, 2) {
@@ -324,8 +324,8 @@ impl Perform for Oper<Register> {
           updated: None,
           actor_id: make_apub_endpoint(EndpointType::Community, default_community_name).to_string(),
           local: true,
-          private_key: Some(keypair.private_key),
-          public_key: Some(keypair.public_key),
+          private_key: Some(main_community_keypair.private_key),
+          public_key: Some(main_community_keypair.public_key),
           last_refreshed_at: None,
           published: None,
         };
@@ -504,7 +504,7 @@ impl Perform for Oper<GetUserDetails> {
       None => {
         match User_::read_from_name(
           &conn,
-          data
+          &data
             .username
             .to_owned()
             .unwrap_or_else(|| "admin".to_string()),
