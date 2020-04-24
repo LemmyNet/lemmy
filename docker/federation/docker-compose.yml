@@ -7,7 +7,8 @@ services:
       - "8540:8540"
       - "8550:8550"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
+      # Hack to make this work from both docker/federation/ and docker/federation-test/
+      - ../federation/nginx.conf:/etc/nginx/nginx.conf
     depends_on:
       - lemmy_alpha
       - pictshare_alpha
