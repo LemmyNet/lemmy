@@ -39,6 +39,7 @@ use crate::api::site::SearchResponse;
 use crate::db::community::{Community, CommunityFollower, CommunityFollowerForm, CommunityForm};
 use crate::db::community_view::{CommunityFollowerView, CommunityView};
 use crate::db::post::{Post, PostForm};
+use crate::db::post_view::PostView;
 use crate::db::user::{UserForm, User_};
 use crate::db::user_view::UserView;
 use crate::db::{Crud, Followable, SearchType};
