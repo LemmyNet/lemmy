@@ -39,6 +39,7 @@ where
 pub enum SearchAcceptedObjects {
   Person(Box<PersonExt>),
   Group(Box<GroupExt>),
+  Page(Box<Page>),
 }
 
 /// Attempt to parse the query as URL, and fetch an ActivityPub object from it.
@@ -68,6 +69,10 @@ pub fn search_by_apub_id(query: &str, conn: &PgConnection) -> Result<SearchRespo
       // TODO Maybe at some point in the future, fetch all the history of a community
       // fetch_community_outbox(&c, conn)?;
       response.communities = vec![CommunityView::read(conn, community.id, None)?];
+    }
+    SearchAcceptedObjects::Page(p) => {
+      let p = upsert_post(&PostForm::from_apub(&p, conn)?, conn)?;
+      response.posts = vec![PostView::read(conn, p.id, None)?];
     }
   }
   Ok(response)
@@ -137,15 +142,14 @@ pub fn get_or_fetch_and_upsert_remote_community(
   }
 }
 
-// TODO Maybe add post, comment searching / caching at a later time
-// fn upsert_post(post_form: &PostForm, conn: &PgConnection) -> Result<Post, Error> {
-//   let existing = Post::read_from_apub_id(conn, &post_form.ap_id);
-//   match existing {
-//     Err(NotFound {}) => Ok(Post::create(conn, &post_form)?),
-//     Ok(p) => Ok(Post::update(conn, p.id, &post_form)?),
-//     Err(e) => Err(Error::from(e)),
-//   }
-// }
+fn upsert_post(post_form: &PostForm, conn: &PgConnection) -> Result<Post, Error> {
+  let existing = Post::read_from_apub_id(conn, &post_form.ap_id);
+  match existing {
+    Err(NotFound {}) => Ok(Post::create(conn, &post_form)?),
+    Ok(p) => Ok(Post::update(conn, p.id, &post_form)?),
+    Err(e) => Err(Error::from(e)),
+  }
+}
 
 // TODO It should not be fetching data from a community outbox.
 // All posts, comments, comment likes, etc should be posts to our community_inbox
