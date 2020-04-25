@@ -9,8 +9,6 @@ sudo docker build ../../ --file ../federation/Dockerfile --tag lemmy-federation:
 
 sudo docker-compose --file ../federation/docker-compose.yml --project-directory . up -d
 
-# TODO: need to wait until the instances are initialised
-
 pushd ../../ui
 yarn
 echo "Waiting for Lemmy to start..."
