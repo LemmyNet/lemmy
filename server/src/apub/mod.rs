@@ -141,6 +141,8 @@ pub trait FromApub {
 pub trait ActorType {
   fn actor_id(&self) -> String;
 
+  fn public_key(&self) -> String;
+
   fn get_inbox_url(&self) -> String {
     format!("{}/inbox", &self.actor_id())
   }
@@ -156,5 +158,14 @@ pub trait ActorType {
   }
   fn get_liked_url(&self) -> String {
     format!("{}/liked", &self.actor_id())
+  }
+
+  fn get_public_key_ext(&self) -> PublicKeyExtension {
+    PublicKey {
+      id: format!("{}#main-key", self.actor_id()),
+      owner: self.actor_id(),
+      public_key_pem: self.public_key(),
+    }
+    .to_ext()
   }
 }

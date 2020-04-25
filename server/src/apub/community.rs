@@ -38,19 +38,17 @@ impl ToApub for Community {
       .set_outbox(self.get_outbox_url())?
       .set_followers(self.get_followers_url())?;
 
-    let public_key = PublicKey {
-      id: format!("{}#main-key", self.actor_id),
-      owner: self.actor_id.to_owned(),
-      public_key_pem: self.public_key.to_owned().unwrap(),
-    };
-
-    Ok(group.extend(actor_props).extend(public_key.to_ext()))
+    Ok(group.extend(actor_props).extend(self.get_public_key_ext()))
   }
 }
 
 impl ActorType for Community {
   fn actor_id(&self) -> String {
     self.actor_id.to_owned()
+  }
+
+  fn public_key(&self) -> String {
+    self.public_key.to_owned().unwrap()
   }
 }
 

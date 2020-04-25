@@ -36,19 +36,17 @@ impl ToApub for User_ {
       .set_following(self.get_following_url())?
       .set_liked(self.get_liked_url())?;
 
-    let public_key = PublicKey {
-      id: format!("{}#main-key", self.actor_id),
-      owner: self.actor_id.to_owned(),
-      public_key_pem: self.public_key.to_owned().unwrap(),
-    };
-
-    Ok(person.extend(actor_props).extend(public_key.to_ext()))
+    Ok(person.extend(actor_props).extend(self.get_public_key_ext()))
   }
 }
 
 impl ActorType for User_ {
   fn actor_id(&self) -> String {
     self.actor_id.to_owned()
+  }
+
+  fn public_key(&self) -> String {
+    self.public_key.to_owned().unwrap()
   }
 }
 
