@@ -27,11 +27,16 @@ impl ToApub for User_ {
       oprops.set_name_xsd_string(i.to_owned())?;
     }
 
+    let mut endpoint_props = EndpointProperties::default();
+
+    endpoint_props.set_shared_inbox(self.get_shared_inbox_url())?;
+
     let mut actor_props = ApActorProperties::default();
 
     actor_props
       .set_inbox(self.get_inbox_url())?
       .set_outbox(self.get_outbox_url())?
+      .set_endpoints(endpoint_props)?
       .set_followers(self.get_followers_url())?
       .set_following(self.get_following_url())?
       .set_liked(self.get_liked_url())?;
@@ -47,6 +52,29 @@ impl ActorType for User_ {
 
   fn public_key(&self) -> String {
     self.public_key.to_owned().unwrap()
+  }
+
+  // TODO might be able to move this to a default trait fn
+  /// As a given local user, send out a follow request to a remote community.
+  fn send_follow(&self, follow_actor_id: &str) -> Result<(), Error> {
+    let mut follow = Follow::new();
+    follow
+      .object_props
+      .set_context_xsd_any_uri(context())?
+      // TODO: needs proper id
+      .set_id(self.actor_id.to_owned())?;
+    follow
+      .follow_props
+      .set_actor_xsd_any_uri(self.actor_id.to_owned())?
+      .set_object_xsd_any_uri(follow_actor_id)?;
+    let to = format!("{}/inbox", follow_actor_id);
+    send_activity(
+      &follow,
+      &self.private_key.as_ref().unwrap(),
+      &follow_actor_id,
+      vec![to],
+    )?;
+    Ok(())
   }
 }
 

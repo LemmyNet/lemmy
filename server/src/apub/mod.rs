@@ -3,6 +3,7 @@ pub mod community;
 pub mod community_inbox;
 pub mod fetcher;
 pub mod post;
+pub mod shared_inbox;
 pub mod signatures;
 pub mod user;
 pub mod user_inbox;
@@ -12,6 +13,7 @@ use activitystreams::{
   actor::{properties::ApActorProperties, Actor, Group, Person},
   collection::UnorderedCollection,
   context,
+  endpoint::EndpointProperties,
   ext::{Ext, Extensible, Extension},
   object::{properties::ObjectProperties, Page},
   public, BaseBox,
@@ -26,6 +28,7 @@ use failure::_core::fmt::Debug;
 use http::request::Builder;
 use http_signature_normalization::Config;
 use isahc::prelude::*;
+use itertools::Itertools;
 use log::debug;
 use openssl::hash::MessageDigest;
 use openssl::sign::{Signer, Verifier};
@@ -47,7 +50,7 @@ use crate::routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use crate::routes::{ChatServerParam, DbPoolParam};
 use crate::{convert_datetime, naive_now, Settings};
 
-use activities::accept_follow;
+use activities::send_activity;
 use fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user};
 use signatures::verify;
 use signatures::{sign, PublicKey, PublicKeyExtension};
@@ -144,9 +147,38 @@ pub trait ActorType {
 
   fn public_key(&self) -> String;
 
+  // These two have default impls, since currently a community can't follow anything,
+  // and a user can't be followed (yet)
+  #[allow(unused_variables)]
+  fn send_follow(&self, follow_actor_id: &str) -> Result<(), Error> {
+    Ok(())
+  }
+
+  #[allow(unused_variables)]
+  fn send_accept_follow(&self, follow: &Follow) -> Result<(), Error> {
+    Ok(())
+  }
+
+  // TODO move these to the db rows
   fn get_inbox_url(&self) -> String {
     format!("{}/inbox", &self.actor_id())
   }
+
+  fn get_shared_inbox_url(&self) -> String {
+    let url = Url::parse(&self.actor_id()).unwrap();
+    let url_str = format!(
+      "{}://{}{}/inbox",
+      &url.scheme(),
+      &url.host_str().unwrap(),
+      if let Some(port) = url.port() {
+        format!(":{}", port)
+      } else {
+        "".to_string()
+      },
+    );
+    format!("{}/inbox", &url_str)
+  }
+
   fn get_outbox_url(&self) -> String {
     format!("{}/outbox", &self.actor_id())
   }
@@ -154,9 +186,11 @@ pub trait ActorType {
   fn get_followers_url(&self) -> String {
     format!("{}/followers", &self.actor_id())
   }
+
   fn get_following_url(&self) -> String {
     format!("{}/following", &self.actor_id())
   }
+
   fn get_liked_url(&self) -> String {
     format!("{}/liked", &self.actor_id())
   }

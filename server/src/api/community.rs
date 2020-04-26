@@ -488,7 +488,7 @@ impl Perform for Oper<FollowCommunity> {
     } else {
       // TODO: still have to implement unfollow
       let user = User_::read(&conn, user_id)?;
-      follow_community(&community, &user, &conn)?;
+      user.send_follow(&community.actor_id)?;
       // TODO: this needs to return a "pending" state, until Accept is received from the remote server
     }
 

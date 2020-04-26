@@ -17,7 +17,7 @@ fn populate_object_props(
 }
 
 /// Send an activity to a list of recipients, using the correct headers etc.
-fn send_activity<A>(
+pub fn send_activity<A>(
   activity: &A,
   private_key: &str,
   sender_id: &str,
@@ -52,15 +52,18 @@ where
 fn get_follower_inboxes(conn: &PgConnection, community: &Community) -> Result<Vec<String>, Error> {
   Ok(
     CommunityFollowerView::for_community(conn, community.id)?
-      .iter()
+      .into_iter()
       .filter(|c| !c.user_local)
+      // TODO eventually this will have to use the inbox or shared_inbox column, meaning that view
+      // will have to change
       .map(|c| format!("{}/inbox", c.user_actor_id.to_owned()))
+      .unique()
       .collect(),
   )
 }
 
 /// Send out information about a newly created post, to the followers of the community.
-pub fn post_create(post: &Post, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
+pub fn send_post_create(post: &Post, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
   let page = post.to_apub(conn)?;
   let community = Community::read(conn, post.community_id)?;
   let mut create = Create::new();
@@ -83,7 +86,7 @@ pub fn post_create(post: &Post, creator: &User_, conn: &PgConnection) -> Result<
 }
 
 /// Send out information about an edited post, to the followers of the community.
-pub fn post_update(post: &Post, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
+pub fn send_post_update(post: &Post, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
   let page = post.to_apub(conn)?;
   let community = Community::read(conn, post.community_id)?;
   let mut update = Update::new();
@@ -101,73 +104,6 @@ pub fn post_update(post: &Post, creator: &User_, conn: &PgConnection) -> Result<
     &creator.private_key.as_ref().unwrap(),
     &creator.actor_id,
     get_follower_inboxes(conn, &community)?,
-  )?;
-  Ok(())
-}
-
-/// As a given local user, send out a follow request to a remote community.
-pub fn follow_community(
-  community: &Community,
-  user: &User_,
-  _conn: &PgConnection,
-) -> Result<(), Error> {
-  let mut follow = Follow::new();
-  follow
-    .object_props
-    .set_context_xsd_any_uri(context())?
-    // TODO: needs proper id
-    .set_id(user.actor_id.clone())?;
-  follow
-    .follow_props
-    .set_actor_xsd_any_uri(user.actor_id.clone())?
-    .set_object_xsd_any_uri(community.actor_id.clone())?;
-  // TODO this is incorrect, the to field should not be the inbox, but the followers url
-  let to = format!("{}/inbox", community.actor_id);
-  send_activity(
-    &follow,
-    &user.private_key.as_ref().unwrap(),
-    &community.actor_id,
-    vec![to],
-  )?;
-  Ok(())
-}
-
-/// As a local community, accept the follow request from a remote user.
-pub fn accept_follow(follow: &Follow, conn: &PgConnection) -> Result<(), Error> {
-  let community_uri = follow
-    .follow_props
-    .get_object_xsd_any_uri()
-    .unwrap()
-    .to_string();
-  let actor_uri = follow
-    .follow_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-  let community = Community::read_from_actor_id(conn, &community_uri)?;
-  let mut accept = Accept::new();
-  accept
-    .object_props
-    .set_context_xsd_any_uri(context())?
-    // TODO: needs proper id
-    .set_id(
-      follow
-        .follow_props
-        .get_actor_xsd_any_uri()
-        .unwrap()
-        .to_string(),
-    )?;
-  accept
-    .accept_props
-    .set_actor_xsd_any_uri(community.actor_id.clone())?
-    .set_object_base_box(BaseBox::from_concrete(follow.clone())?)?;
-  // TODO this is incorrect, the to field should not be the inbox, but the followers url
-  let to = format!("{}/inbox", actor_uri);
-  send_activity(
-    &accept,
-    &community.private_key.unwrap(),
-    &community.actor_id,
-    vec![to],
   )?;
   Ok(())
 }

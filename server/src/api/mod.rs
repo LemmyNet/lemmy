@@ -23,10 +23,10 @@ use crate::{
 };
 
 use crate::apub::{
-  activities::{follow_community, post_create, post_update},
+  activities::{send_post_create, send_post_update},
   fetcher::search_by_apub_id,
   signatures::generate_actor_keypair,
-  {make_apub_endpoint, EndpointType},
+  {make_apub_endpoint, ActorType, EndpointType},
 };
 use crate::settings::Settings;
 use crate::websocket::UserOperation;
