@@ -111,8 +111,9 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
                         }
                       >
                         <svg
-                          class={`icon icon-inline ${community.deleted &&
-                            'text-danger'}`}
+                          class={`icon icon-inline ${
+                            community.deleted && 'text-danger'
+                          }`}
                         >
                           <use xlinkHref="#icon-trash"></use>
                         </svg>
@@ -169,9 +170,11 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
               </form>
             )}
             <ul class="my-1 list-inline">
+              {/*
               <li className="list-inline-item badge badge-secondary">
                 {i18n.t('number_online', { count: this.props.online })}
               </li>
+              */}
               <li className="list-inline-item badge badge-secondary">
                 {i18n.t('number_of_subscribers', {
                   count: community.number_of_subscribers,
@@ -215,9 +218,9 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
               ))}
             </ul>
             <Link
-              class={`btn btn-sm btn-secondary btn-block mb-3 ${(community.deleted ||
-                community.removed) &&
-                'no-click'}`}
+              class={`btn btn-sm btn-secondary btn-block mb-3 ${
+                (community.deleted || community.removed) && 'no-click'
+              }`}
               to={`/create_post?community=${community.name}`}
             >
               {i18n.t('create_a_post')}
