@@ -305,12 +305,15 @@ impl Perform for Oper<EditComment> {
       removed: data.removed.to_owned(),
       deleted: data.deleted.to_owned(),
       read: data.read.to_owned(),
-      updated: if data.read.is_some() {
-        orig_comment.updated
-      } else {
-        Some(naive_now())
-      },
-    };
+      updated: match data.read {
+          Some(read) => {
+              orig_comment.updated;
+          }
+
+          None => {
+              Some(naive_now());
+          }
+      }
 
     let _updated_comment = match Comment::update(&conn, data.edit_id, &comment_form) {
       Ok(comment) => comment,
