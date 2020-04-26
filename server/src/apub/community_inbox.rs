@@ -63,6 +63,7 @@ fn handle_follow(
   // This will fail if they're already a follower, but ignore the error.
   CommunityFollower::follow(&conn, &community_follower_form).ok();
 
-  accept_follow(&follow, &conn)?;
+  community.send_accept_follow(&follow)?;
+
   Ok(HttpResponse::Ok().finish())
 }

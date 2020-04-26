@@ -30,12 +30,17 @@ impl ToApub for Community {
       oprops.set_summary_xsd_string(d)?;
     }
 
+    let mut endpoint_props = EndpointProperties::default();
+
+    endpoint_props.set_shared_inbox(self.get_shared_inbox_url())?;
+
     let mut actor_props = ApActorProperties::default();
 
     actor_props
       .set_preferred_username(self.title.to_owned())?
       .set_inbox(self.get_inbox_url())?
       .set_outbox(self.get_outbox_url())?
+      .set_endpoints(endpoint_props)?
       .set_followers(self.get_followers_url())?;
 
     Ok(group.extend(actor_props).extend(self.get_public_key_ext()))
@@ -49,6 +54,40 @@ impl ActorType for Community {
 
   fn public_key(&self) -> String {
     self.public_key.to_owned().unwrap()
+  }
+
+  /// As a local community, accept the follow request from a remote user.
+  fn send_accept_follow(&self, follow: &Follow) -> Result<(), Error> {
+    let actor_uri = follow
+      .follow_props
+      .get_actor_xsd_any_uri()
+      .unwrap()
+      .to_string();
+
+    let mut accept = Accept::new();
+    accept
+      .object_props
+      .set_context_xsd_any_uri(context())?
+      // TODO: needs proper id
+      .set_id(
+        follow
+          .follow_props
+          .get_actor_xsd_any_uri()
+          .unwrap()
+          .to_string(),
+      )?;
+    accept
+      .accept_props
+      .set_actor_xsd_any_uri(self.actor_id.to_owned())?
+      .set_object_base_box(BaseBox::from_concrete(follow.clone())?)?;
+    let to = format!("{}/inbox", actor_uri);
+    send_activity(
+      &accept,
+      &self.private_key.to_owned().unwrap(),
+      &self.actor_id,
+      vec![to],
+    )?;
+    Ok(())
   }
 }
 
