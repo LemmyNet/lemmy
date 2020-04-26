@@ -5,6 +5,7 @@ import { T } from 'inferno-i18next';
 import { repoUrl } from '../utils';
 
 let general = [
+  'Serge Tarkovsky',
   'alexx henry',
   'Nathan J. Goode',
   'Andre Vallestero',
