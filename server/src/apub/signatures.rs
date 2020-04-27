@@ -1,14 +1,4 @@
-use activitystreams::{actor::Actor, ext::Extension};
-use actix_web::HttpRequest;
-use failure::Error;
-use http::request::Builder;
-use http_signature_normalization::Config;
-use log::debug;
-use openssl::hash::MessageDigest;
-use openssl::sign::{Signer, Verifier};
-use openssl::{pkey::PKey, rsa::Rsa};
-use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use super::*;
 
 lazy_static! {
   static ref HTTP_SIG_CONFIG: Config = Config::new();

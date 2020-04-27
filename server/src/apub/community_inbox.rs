@@ -1,16 +1,4 @@
-use crate::apub::activities::accept_follow;
-use crate::apub::fetcher::fetch_remote_user;
-use crate::apub::signatures::verify;
-use crate::db::community::{Community, CommunityFollower, CommunityFollowerForm};
-use crate::db::Followable;
-use activitystreams::activity::Follow;
-use actix_web::{web, HttpRequest, HttpResponse};
-use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::PgConnection;
-use failure::Error;
-use log::debug;
-use serde::Deserialize;
-use url::Url;
+use super::*;
 
 #[serde(untagged)]
 #[derive(Deserialize, Debug)]
@@ -18,22 +6,25 @@ pub enum CommunityAcceptedObjects {
   Follow(Follow),
 }
 
+// TODO Consolidate community and user inboxes into a single shared one
 /// Handler for all incoming activities to community inboxes.
 pub async fn community_inbox(
   request: HttpRequest,
   input: web::Json<CommunityAcceptedObjects>,
   path: web::Path<String>,
-  db: web::Data<Pool<ConnectionManager<PgConnection>>>,
+  db: DbPoolParam,
+  chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
   let input = input.into_inner();
-  let conn = &db.get().unwrap();
+  let community_name = path.into_inner();
   debug!(
     "Community {} received activity {:?}",
-    &path.into_inner(),
-    &input
+    &community_name, &input
   );
   match input {
-    CommunityAcceptedObjects::Follow(f) => handle_follow(&f, &request, conn),
+    CommunityAcceptedObjects::Follow(f) => {
+      handle_follow(&f, &request, &community_name, db, chat_server)
+    }
   }
 }
 
@@ -42,28 +33,36 @@ pub async fn community_inbox(
 fn handle_follow(
   follow: &Follow,
   request: &HttpRequest,
-  conn: &PgConnection,
+  community_name: &str,
+  db: DbPoolParam,
+  _chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
   let user_uri = follow
     .follow_props
     .get_actor_xsd_any_uri()
     .unwrap()
     .to_string();
-  let user = fetch_remote_user(&Url::parse(&user_uri)?, conn)?;
-  verify(&request, &user.public_key.unwrap())?;
-
-  // TODO: make sure this is a local community
-  let community_uri = follow
+  let _community_uri = follow
     .follow_props
     .get_object_xsd_any_uri()
     .unwrap()
     .to_string();
-  let community = Community::read_from_actor_id(conn, &community_uri)?;
+
+  let conn = db.get()?;
+
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
+  let community = Community::read_from_name(&conn, &community_name)?;
+
+  verify(&request, &user.public_key.unwrap())?;
+
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,
     user_id: user.id,
   };
-  CommunityFollower::follow(&conn, &community_follower_form)?;
-  accept_follow(&follow, conn)?;
+
+  // This will fail if they're already a follower, but ignore the error.
+  CommunityFollower::follow(&conn, &community_follower_form).ok();
+
+  accept_follow(&follow, &conn)?;
   Ok(HttpResponse::Ok().finish())
 }

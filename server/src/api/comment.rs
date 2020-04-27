@@ -122,7 +122,7 @@ impl Perform for Oper<CreateComment> {
     let extracted_usernames = extract_usernames(&comment_form.content);
 
     for username_mention in &extracted_usernames {
-      if let Ok(mention_user) = User_::read_from_name(&conn, (*username_mention).to_string()) {
+      if let Ok(mention_user) = User_::read_from_name(&conn, username_mention) {
         // You can't mention yourself
         // At some point, make it so you can't tag the parent creator either
         // This can cause two notifications, one for reply and the other for mention
@@ -334,7 +334,7 @@ impl Perform for Oper<EditComment> {
     let extracted_usernames = extract_usernames(&comment_form.content);
 
     for username_mention in &extracted_usernames {
-      let mention_user = User_::read_from_name(&conn, (*username_mention).to_string());
+      let mention_user = User_::read_from_name(&conn, username_mention);
 
       if mention_user.is_ok() {
         let mention_user_id = mention_user?.id;

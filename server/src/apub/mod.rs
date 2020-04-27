@@ -6,14 +6,51 @@ pub mod post;
 pub mod signatures;
 pub mod user;
 pub mod user_inbox;
-use crate::apub::signatures::PublicKeyExtension;
-use crate::Settings;
-use activitystreams::actor::{properties::ApActorProperties, Group, Person};
-use activitystreams::ext::Ext;
+
+use activitystreams::{
+  activity::{Accept, Create, Follow, Update},
+  actor::{properties::ApActorProperties, Actor, Group, Person},
+  collection::UnorderedCollection,
+  context,
+  ext::{Ext, Extensible, Extension},
+  object::{properties::ObjectProperties, Page},
+  public, BaseBox,
+};
 use actix_web::body::Body;
-use actix_web::HttpResponse;
-use serde::ser::Serialize;
+use actix_web::web::Path;
+use actix_web::{web, HttpRequest, HttpResponse, Result};
+use diesel::result::Error::NotFound;
+use diesel::PgConnection;
+use failure::Error;
+use failure::_core::fmt::Debug;
+use http::request::Builder;
+use http_signature_normalization::Config;
+use isahc::prelude::*;
+use log::debug;
+use openssl::hash::MessageDigest;
+use openssl::sign::{Signer, Verifier};
+use openssl::{pkey::PKey, rsa::Rsa};
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+use std::time::Duration;
 use url::Url;
+
+use crate::api::site::SearchResponse;
+use crate::db::community::{Community, CommunityFollower, CommunityFollowerForm, CommunityForm};
+use crate::db::community_view::{CommunityFollowerView, CommunityView};
+use crate::db::post::{Post, PostForm};
+use crate::db::post_view::PostView;
+use crate::db::user::{UserForm, User_};
+use crate::db::user_view::UserView;
+use crate::db::{Crud, Followable, SearchType};
+use crate::routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
+use crate::routes::{ChatServerParam, DbPoolParam};
+use crate::{convert_datetime, naive_now, Settings};
+
+use activities::accept_follow;
+use fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user};
+use signatures::verify;
+use signatures::{sign, PublicKey, PublicKeyExtension};
 
 type GroupExt = Ext<Ext<Group, ApActorProperties>, PublicKeyExtension>;
 type PersonExt = Ext<Ext<Person, ApActorProperties>, PublicKeyExtension>;
@@ -86,5 +123,50 @@ fn is_apub_id_valid(apub_id: &Url) -> bool {
   match apub_id.domain() {
     Some(d) => whitelist.contains(&d.to_owned()),
     None => false,
+  }
+}
+
+// TODO Not sure good names for these
+pub trait ToApub {
+  type Response;
+  fn to_apub(&self, conn: &PgConnection) -> Result<Self::Response, Error>;
+}
+
+pub trait FromApub {
+  type ApubType;
+  fn from_apub(apub: &Self::ApubType, conn: &PgConnection) -> Result<Self, Error>
+  where
+    Self: Sized;
+}
+
+pub trait ActorType {
+  fn actor_id(&self) -> String;
+
+  fn public_key(&self) -> String;
+
+  fn get_inbox_url(&self) -> String {
+    format!("{}/inbox", &self.actor_id())
+  }
+  fn get_outbox_url(&self) -> String {
+    format!("{}/outbox", &self.actor_id())
+  }
+
+  fn get_followers_url(&self) -> String {
+    format!("{}/followers", &self.actor_id())
+  }
+  fn get_following_url(&self) -> String {
+    format!("{}/following", &self.actor_id())
+  }
+  fn get_liked_url(&self) -> String {
+    format!("{}/liked", &self.actor_id())
+  }
+
+  fn get_public_key_ext(&self) -> PublicKeyExtension {
+    PublicKey {
+      id: format!("{}#main-key", self.actor_id()),
+      owner: self.actor_id(),
+      public_key_pem: self.public_key(),
+    }
+    .to_ext()
   }
 }

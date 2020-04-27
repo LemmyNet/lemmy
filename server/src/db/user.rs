@@ -104,7 +104,7 @@ impl User_ {
       .get_result::<Self>(conn)
   }
 
-  pub fn read_from_name(conn: &PgConnection, from_user_name: String) -> Result<Self, Error> {
+  pub fn read_from_name(conn: &PgConnection, from_user_name: &str) -> Result<Self, Error> {
     user_.filter(name.eq(from_user_name)).first::<Self>(conn)
   }
 
@@ -120,7 +120,7 @@ impl User_ {
       .get_result::<Self>(conn)
   }
 
-  pub fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
+  pub fn read_from_actor_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
     use crate::schema::user_::dsl::*;
     user_.filter(actor_id.eq(object_id)).first::<Self>(conn)
   }
