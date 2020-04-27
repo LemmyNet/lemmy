@@ -87,7 +87,8 @@ impl Perform for Oper<CreateComment> {
     }
 
     // Check for a site ban
-    if UserView::read(&conn, user_id)?.banned {
+    let user = User_::read(&conn, user_id)?;
+    if user.banned {
       return Err(APIError::err("site_ban").into());
     }
 
@@ -101,6 +102,7 @@ impl Perform for Oper<CreateComment> {
       removed: None,
       deleted: None,
       read: None,
+      published: None,
       updated: None,
       ap_id: "changeme".into(),
       local: true,
@@ -111,10 +113,12 @@ impl Perform for Oper<CreateComment> {
       Err(_e) => return Err(APIError::err("couldnt_create_comment").into()),
     };
 
-    match Comment::update_ap_id(&conn, inserted_comment.id) {
+    let updated_comment = match Comment::update_ap_id(&conn, inserted_comment.id) {
       Ok(comment) => comment,
       Err(_e) => return Err(APIError::err("couldnt_create_comment").into()),
     };
+
+    updated_comment.send_create(&user, &conn)?;
 
     let mut recipient_ids = Vec::new();
 
@@ -273,6 +277,8 @@ impl Perform for Oper<EditComment> {
 
     let conn = pool.get()?;
 
+    let user = User_::read(&conn, user_id)?;
+
     let orig_comment = CommentView::read(&conn, data.edit_id, None)?;
 
     // You are allowed to mark the comment as read even if you're banned.
@@ -297,7 +303,7 @@ impl Perform for Oper<EditComment> {
       }
 
       // Check for a site ban
-      if UserView::read(&conn, user_id)?.banned {
+      if user.banned {
         return Err(APIError::err("site_ban").into());
       }
     }
@@ -314,6 +320,7 @@ impl Perform for Oper<EditComment> {
       removed: data.removed.to_owned(),
       deleted: data.deleted.to_owned(),
       read: data.read.to_owned(),
+      published: None,
       updated: if data.read.is_some() {
         orig_comment.updated
       } else {
@@ -323,10 +330,12 @@ impl Perform for Oper<EditComment> {
       local: read_comment.local,
     };
 
-    let _updated_comment = match Comment::update(&conn, data.edit_id, &comment_form) {
+    let updated_comment = match Comment::update(&conn, data.edit_id, &comment_form) {
       Ok(comment) => comment,
       Err(_e) => return Err(APIError::err("couldnt_update_comment").into()),
     };
+
+    updated_comment.send_update(&user, &conn)?;
 
     let mut recipient_ids = Vec::new();
 

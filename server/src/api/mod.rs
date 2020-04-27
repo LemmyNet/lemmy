@@ -23,19 +23,17 @@ use crate::{
 };
 
 use crate::apub::{
-  activities::{send_post_create, send_post_update},
   fetcher::search_by_apub_id,
   signatures::generate_actor_keypair,
-  {make_apub_endpoint, ActorType, EndpointType},
+  {make_apub_endpoint, ActorType, ApubObjectType, EndpointType},
 };
 use crate::settings::Settings;
-use crate::websocket::UserOperation;
 use crate::websocket::{
   server::{
     JoinCommunityRoom, JoinPostRoom, JoinUserRoom, SendAllMessage, SendComment,
     SendCommunityRoomMessage, SendPost, SendUserRoomMessage,
   },
-  WebsocketInfo,
+  UserOperation, WebsocketInfo,
 };
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;

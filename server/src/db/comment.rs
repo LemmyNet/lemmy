@@ -38,6 +38,7 @@ pub struct CommentForm {
   pub content: String,
   pub removed: Option<bool>,
   pub read: Option<bool>,
+  pub published: Option<chrono::NaiveDateTime>,
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: Option<bool>,
   pub ap_id: String,
@@ -82,6 +83,11 @@ impl Comment {
     diesel::update(comment.find(comment_id))
       .set(ap_id.eq(apid))
       .get_result::<Self>(conn)
+  }
+
+  pub fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
+    use crate::schema::comment::dsl::*;
+    comment.filter(ap_id.eq(object_id)).first::<Self>(conn)
   }
 
   pub fn mark_as_read(conn: &PgConnection, comment_id: i32) -> Result<Self, Error> {
@@ -283,6 +289,7 @@ mod tests {
       deleted: None,
       read: None,
       parent_id: None,
+      published: None,
       updated: None,
       ap_id: "changeme".into(),
       local: true,
@@ -313,6 +320,7 @@ mod tests {
       removed: None,
       deleted: None,
       read: None,
+      published: None,
       updated: None,
       ap_id: "changeme".into(),
       local: true,

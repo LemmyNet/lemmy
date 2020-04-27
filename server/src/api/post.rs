@@ -160,7 +160,7 @@ impl Perform for Oper<CreatePost> {
       Err(_e) => return Err(APIError::err("couldnt_create_post").into()),
     };
 
-    send_post_create(&updated_post, &user, &conn)?;
+    updated_post.send_create(&user, &conn)?;
 
     // They like their own post by default
     let like_form = PostLikeForm {
@@ -531,7 +531,7 @@ impl Perform for Oper<EditPost> {
       ModStickyPost::create(&conn, &form)?;
     }
 
-    send_post_update(&updated_post, &user, &conn)?;
+    updated_post.send_update(&user, &conn)?;
 
     let post_view = PostView::read(&conn, data.edit_id, Some(user_id))?;
 

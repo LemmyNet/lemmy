@@ -1,4 +1,5 @@
 pub mod activities;
+pub mod comment;
 pub mod community;
 pub mod community_inbox;
 pub mod fetcher;
@@ -15,7 +16,11 @@ use activitystreams::{
   context,
   endpoint::EndpointProperties,
   ext::{Ext, Extensible, Extension},
-  object::{properties::ObjectProperties, Page},
+  object::{
+    kind::{NoteType, PageType},
+    properties::ObjectProperties,
+    Note, Page,
+  },
   public, BaseBox,
 };
 use actix_web::body::Body;
@@ -38,7 +43,11 @@ use std::collections::BTreeMap;
 use std::time::Duration;
 use url::Url;
 
+use crate::api::comment::CommentResponse;
+use crate::api::post::PostResponse;
 use crate::api::site::SearchResponse;
+use crate::db::comment::{Comment, CommentForm};
+use crate::db::comment_view::CommentView;
 use crate::db::community::{Community, CommunityFollower, CommunityFollowerForm, CommunityForm};
 use crate::db::community_view::{CommunityFollowerView, CommunityView};
 use crate::db::post::{Post, PostForm};
@@ -48,9 +57,13 @@ use crate::db::user_view::UserView;
 use crate::db::{Crud, Followable, SearchType};
 use crate::routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use crate::routes::{ChatServerParam, DbPoolParam};
+use crate::websocket::{
+  server::{SendComment, SendPost},
+  UserOperation,
+};
 use crate::{convert_datetime, naive_now, Settings};
 
-use activities::send_activity;
+use activities::{populate_object_props, send_activity};
 use fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user};
 use signatures::verify;
 use signatures::{sign, PublicKey, PublicKeyExtension};
@@ -142,6 +155,25 @@ pub trait FromApub {
     Self: Sized;
 }
 
+pub trait ApubObjectType {
+  fn send_create(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
+  fn send_update(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
+}
+
+pub fn get_shared_inbox(actor_id: &str) -> String {
+  let url = Url::parse(actor_id).unwrap();
+  format!(
+    "{}://{}{}/inbox",
+    &url.scheme(),
+    &url.host_str().unwrap(),
+    if let Some(port) = url.port() {
+      format!(":{}", port)
+    } else {
+      "".to_string()
+    },
+  )
+}
+
 pub trait ActorType {
   fn actor_id(&self) -> String;
 
@@ -159,24 +191,20 @@ pub trait ActorType {
     Ok(())
   }
 
+  // TODO default because there is no user following yet.
+  #[allow(unused_variables)]
+  /// For a given community, returns the inboxes of all followers.
+  fn get_follower_inboxes(&self, conn: &PgConnection) -> Result<Vec<String>, Error> {
+    Ok(vec![])
+  }
+
   // TODO move these to the db rows
   fn get_inbox_url(&self) -> String {
     format!("{}/inbox", &self.actor_id())
   }
 
   fn get_shared_inbox_url(&self) -> String {
-    let url = Url::parse(&self.actor_id()).unwrap();
-    let url_str = format!(
-      "{}://{}{}/inbox",
-      &url.scheme(),
-      &url.host_str().unwrap(),
-      if let Some(port) = url.port() {
-        format!(":{}", port)
-      } else {
-        "".to_string()
-      },
-    );
-    format!("{}/inbox", &url_str)
+    get_shared_inbox(&self.actor_id())
   }
 
   fn get_outbox_url(&self) -> String {

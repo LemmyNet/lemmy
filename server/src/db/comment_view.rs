@@ -540,6 +540,7 @@ mod tests {
       removed: None,
       deleted: None,
       read: None,
+      published: None,
       updated: None,
       ap_id: "changeme".into(),
       local: true,
