@@ -73,7 +73,7 @@ impl Crud<CommunityForm> for Community {
 }
 
 impl Community {
-  pub fn read_from_name(conn: &PgConnection, community_name: String) -> Result<Self, Error> {
+  pub fn read_from_name(conn: &PgConnection, community_name: &str) -> Result<Self, Error> {
     use crate::schema::community::dsl::*;
     community
       .filter(name.eq(community_name))

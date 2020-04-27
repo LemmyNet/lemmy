@@ -31,7 +31,7 @@ lazy_static! {
 /// https://radical.town/.well-known/webfinger?resource=acct:felix@radical.town
 async fn get_webfinger_response(
   info: Query<Params>,
-  db: web::Data<Pool<ConnectionManager<PgConnection>>>,
+  db: DbPoolParam,
 ) -> Result<HttpResponse, Error> {
   let res = web::block(move || {
     let conn = db.get()?;
@@ -46,7 +46,7 @@ async fn get_webfinger_response(
     };
 
     // Make sure the requested community exists.
-    let community = match Community::read_from_name(&conn, community_name.to_string()) {
+    let community = match Community::read_from_name(&conn, &community_name) {
       Ok(o) => o,
       Err(_) => return Err(format_err!("not_found")),
     };

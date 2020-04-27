@@ -32,7 +32,6 @@ struct WSSession {
   /// Client must send ping at least once per 10 seconds (CLIENT_TIMEOUT),
   /// otherwise we drop connection.
   hb: Instant,
-  // db: Pool<ConnectionManager<PgConnection>>,
 }
 
 impl Actor for WSSession {
