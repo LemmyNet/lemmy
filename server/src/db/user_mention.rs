@@ -167,6 +167,7 @@ mod tests {
       deleted: None,
       read: None,
       parent_id: None,
+      published: None,
       updated: None,
       ap_id: "changeme".into(),
       local: true,

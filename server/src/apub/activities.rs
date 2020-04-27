@@ -1,6 +1,6 @@
 use super::*;
 
-fn populate_object_props(
+pub fn populate_object_props(
   props: &mut ObjectProperties,
   addressed_to: &str,
   object_id: &str,
@@ -45,65 +45,5 @@ where
       .send()?;
     debug!("Result for activity send: {:?}", res);
   }
-  Ok(())
-}
-
-/// For a given community, returns the inboxes of all followers.
-fn get_follower_inboxes(conn: &PgConnection, community: &Community) -> Result<Vec<String>, Error> {
-  Ok(
-    CommunityFollowerView::for_community(conn, community.id)?
-      .into_iter()
-      .filter(|c| !c.user_local)
-      // TODO eventually this will have to use the inbox or shared_inbox column, meaning that view
-      // will have to change
-      .map(|c| format!("{}/inbox", c.user_actor_id.to_owned()))
-      .unique()
-      .collect(),
-  )
-}
-
-/// Send out information about a newly created post, to the followers of the community.
-pub fn send_post_create(post: &Post, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
-  let page = post.to_apub(conn)?;
-  let community = Community::read(conn, post.community_id)?;
-  let mut create = Create::new();
-  populate_object_props(
-    &mut create.object_props,
-    &community.get_followers_url(),
-    &post.ap_id,
-  )?;
-  create
-    .create_props
-    .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-    .set_object_base_box(page)?;
-  send_activity(
-    &create,
-    &creator.private_key.as_ref().unwrap(),
-    &creator.actor_id,
-    get_follower_inboxes(conn, &community)?,
-  )?;
-  Ok(())
-}
-
-/// Send out information about an edited post, to the followers of the community.
-pub fn send_post_update(post: &Post, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
-  let page = post.to_apub(conn)?;
-  let community = Community::read(conn, post.community_id)?;
-  let mut update = Update::new();
-  populate_object_props(
-    &mut update.object_props,
-    &community.get_followers_url(),
-    &post.ap_id,
-  )?;
-  update
-    .update_props
-    .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-    .set_object_base_box(page)?;
-  send_activity(
-    &update,
-    &creator.private_key.as_ref().unwrap(),
-    &creator.actor_id,
-    get_follower_inboxes(conn, &community)?,
-  )?;
   Ok(())
 }

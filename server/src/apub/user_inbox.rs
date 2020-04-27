@@ -3,8 +3,6 @@ use super::*;
 #[serde(untagged)]
 #[derive(Deserialize, Debug)]
 pub enum UserAcceptedObjects {
-  Create(Create),
-  Update(Update),
   Accept(Accept),
 }
 
@@ -23,71 +21,8 @@ pub async fn user_inbox(
   debug!("User {} received activity: {:?}", &username, &input);
 
   match input {
-    UserAcceptedObjects::Create(c) => handle_create(&c, &request, &username, &conn),
-    UserAcceptedObjects::Update(u) => handle_update(&u, &request, &username, &conn),
     UserAcceptedObjects::Accept(a) => handle_accept(&a, &request, &username, &conn),
   }
-}
-
-/// Handle create activities and insert them in the database.
-fn handle_create(
-  create: &Create,
-  request: &HttpRequest,
-  _username: &str,
-  conn: &PgConnection,
-) -> Result<HttpResponse, Error> {
-  // TODO before this even gets named, because we don't know what type of object it is, we need
-  // to parse this out
-  let user_uri = create
-    .create_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
-
-  let page = create
-    .create_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .to_concrete::<Page>()?;
-  let post = PostForm::from_apub(&page, conn)?;
-  Post::create(conn, &post)?;
-  // TODO: send the new post out via websocket
-  Ok(HttpResponse::Ok().finish())
-}
-
-/// Handle update activities and insert them in the database.
-fn handle_update(
-  update: &Update,
-  request: &HttpRequest,
-  _username: &str,
-  conn: &PgConnection,
-) -> Result<HttpResponse, Error> {
-  let user_uri = update
-    .update_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
-
-  let page = update
-    .update_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .to_concrete::<Page>()?;
-  let post = PostForm::from_apub(&page, conn)?;
-  let id = Post::read_from_apub_id(conn, &post.ap_id)?.id;
-  Post::update(conn, id, &post)?;
-  // TODO: send the new post out via websocket
-  Ok(HttpResponse::Ok().finish())
 }
 
 /// Handle accepted follows.

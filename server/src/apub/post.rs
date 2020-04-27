@@ -92,3 +92,51 @@ impl FromApub for PostForm {
     })
   }
 }
+
+impl ApubObjectType for Post {
+  /// Send out information about a newly created post, to the followers of the community.
+  fn send_create(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
+    let page = self.to_apub(conn)?;
+    let community = Community::read(conn, self.community_id)?;
+    let mut create = Create::new();
+    populate_object_props(
+      &mut create.object_props,
+      &community.get_followers_url(),
+      &self.ap_id,
+    )?;
+    create
+      .create_props
+      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
+      .set_object_base_box(page)?;
+    send_activity(
+      &create,
+      &creator.private_key.as_ref().unwrap(),
+      &creator.actor_id,
+      community.get_follower_inboxes(&conn)?,
+    )?;
+    Ok(())
+  }
+
+  /// Send out information about an edited post, to the followers of the community.
+  fn send_update(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
+    let page = self.to_apub(conn)?;
+    let community = Community::read(conn, self.community_id)?;
+    let mut update = Update::new();
+    populate_object_props(
+      &mut update.object_props,
+      &community.get_followers_url(),
+      &self.ap_id,
+    )?;
+    update
+      .update_props
+      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
+      .set_object_base_box(page)?;
+    send_activity(
+      &update,
+      &creator.private_key.as_ref().unwrap(),
+      &creator.actor_id,
+      community.get_follower_inboxes(&conn)?,
+    )?;
+    Ok(())
+  }
+}
