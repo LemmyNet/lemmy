@@ -77,6 +77,15 @@ fn receive_create_post(
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
 
+  // Insert the received activity into the activity table
+  let activity_form = activity::ActivityForm {
+    user_id: user.id,
+    data: serde_json::to_value(&create)?,
+    local: false,
+    updated: None,
+  };
+  activity::Activity::create(&conn, &activity_form)?;
+
   let post = PostForm::from_apub(&page, &conn)?;
   let inserted_post = Post::create(conn, &post)?;
 
@@ -109,6 +118,15 @@ fn receive_create_comment(
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
+
+  // Insert the received activity into the activity table
+  let activity_form = activity::ActivityForm {
+    user_id: user.id,
+    data: serde_json::to_value(&create)?,
+    local: false,
+    updated: None,
+  };
+  activity::Activity::create(&conn, &activity_form)?;
 
   let comment = CommentForm::from_apub(&note, &conn)?;
   let inserted_comment = Comment::create(conn, &comment)?;
@@ -183,6 +201,15 @@ fn receive_update_post(
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
 
+  // Insert the received activity into the activity table
+  let activity_form = activity::ActivityForm {
+    user_id: user.id,
+    data: serde_json::to_value(&update)?,
+    local: false,
+    updated: None,
+  };
+  activity::Activity::create(&conn, &activity_form)?;
+
   let post = PostForm::from_apub(&page, conn)?;
   let post_id = Post::read_from_apub_id(conn, &post.ap_id)?.id;
   Post::update(conn, post_id, &post)?;
@@ -216,6 +243,15 @@ fn receive_update_comment(
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
+
+  // Insert the received activity into the activity table
+  let activity_form = activity::ActivityForm {
+    user_id: user.id,
+    data: serde_json::to_value(&update)?,
+    local: false,
+    updated: None,
+  };
+  activity::Activity::create(&conn, &activity_form)?;
 
   let comment = CommentForm::from_apub(&note, &conn)?;
   let comment_id = Comment::read_from_apub_id(conn, &comment.ap_id)?.id;

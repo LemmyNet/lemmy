@@ -57,7 +57,7 @@ impl ActorType for Community {
   }
 
   /// As a local community, accept the follow request from a remote user.
-  fn send_accept_follow(&self, follow: &Follow) -> Result<(), Error> {
+  fn send_accept_follow(&self, follow: &Follow, conn: &PgConnection) -> Result<(), Error> {
     let actor_uri = follow
       .follow_props
       .get_actor_xsd_any_uri()
@@ -65,22 +65,28 @@ impl ActorType for Community {
       .to_string();
 
     let mut accept = Accept::new();
+    // TODO using a fake accept id
+    let id = format!("{}/accept/{}", self.actor_id, uuid::Uuid::new_v4());
+    //follow
     accept
       .object_props
       .set_context_xsd_any_uri(context())?
-      // TODO: needs proper id
-      .set_id(
-        follow
-          .follow_props
-          .get_actor_xsd_any_uri()
-          .unwrap()
-          .to_string(),
-      )?;
+      .set_id(id)?;
     accept
       .accept_props
       .set_actor_xsd_any_uri(self.actor_id.to_owned())?
       .set_object_base_box(BaseBox::from_concrete(follow.clone())?)?;
     let to = format!("{}/inbox", actor_uri);
+
+    // Insert the sent activity into the activity table
+    let activity_form = activity::ActivityForm {
+      user_id: self.creator_id,
+      data: serde_json::to_value(&accept)?,
+      local: true,
+      updated: None,
+    };
+    activity::Activity::create(&conn, &activity_form)?;
+
     send_activity(
       &accept,
       &self.private_key.to_owned().unwrap(),

@@ -25,10 +25,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route("/feeds/all.xml", web::get().to(feeds::get_all_feed));
 }
 
-async fn get_all_feed(
-  info: web::Query<Params>,
-  db: DbPoolParam,
-) -> Result<HttpResponse, Error> {
+async fn get_all_feed(info: web::Query<Params>, db: DbPoolParam) -> Result<HttpResponse, Error> {
   let res = web::block(move || {
     let conn = db.get()?;
     get_feed_all_data(&conn, &get_sort_type(info)?)
