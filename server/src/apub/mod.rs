@@ -46,6 +46,7 @@ use url::Url;
 use crate::api::comment::CommentResponse;
 use crate::api::post::PostResponse;
 use crate::api::site::SearchResponse;
+use crate::db::activity;
 use crate::db::comment::{Comment, CommentForm};
 use crate::db::comment_view::CommentView;
 use crate::db::community::{Community, CommunityFollower, CommunityFollowerForm, CommunityForm};
@@ -182,12 +183,12 @@ pub trait ActorType {
   // These two have default impls, since currently a community can't follow anything,
   // and a user can't be followed (yet)
   #[allow(unused_variables)]
-  fn send_follow(&self, follow_actor_id: &str) -> Result<(), Error> {
+  fn send_follow(&self, follow_actor_id: &str, conn: &PgConnection) -> Result<(), Error> {
     Ok(())
   }
 
   #[allow(unused_variables)]
-  fn send_accept_follow(&self, follow: &Follow) -> Result<(), Error> {
+  fn send_accept_follow(&self, follow: &Follow, conn: &PgConnection) -> Result<(), Error> {
     Ok(())
   }
 

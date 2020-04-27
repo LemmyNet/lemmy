@@ -4,6 +4,7 @@ use diesel::result::Error;
 use diesel::*;
 use serde::{Deserialize, Serialize};
 
+pub mod activity;
 pub mod category;
 pub mod code_migrations;
 pub mod comment;

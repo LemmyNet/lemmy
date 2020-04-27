@@ -43,6 +43,15 @@ fn handle_accept(
 
   let user = User_::read_from_name(&conn, username)?;
 
+  // Insert the received activity into the activity table
+  let activity_form = activity::ActivityForm {
+    user_id: community.creator_id,
+    data: serde_json::to_value(&accept)?,
+    local: false,
+    updated: None,
+  };
+  activity::Activity::create(&conn, &activity_form)?;
+
   // Now you need to add this to the community follower
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,

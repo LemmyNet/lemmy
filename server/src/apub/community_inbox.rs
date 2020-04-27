@@ -55,6 +55,15 @@ fn handle_follow(
 
   verify(&request, &user.public_key.unwrap())?;
 
+  // Insert the received activity into the activity table
+  let activity_form = activity::ActivityForm {
+    user_id: user.id,
+    data: serde_json::to_value(&follow)?,
+    local: false,
+    updated: None,
+  };
+  activity::Activity::create(&conn, &activity_form)?;
+
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,
     user_id: user.id,
@@ -63,7 +72,7 @@ fn handle_follow(
   // This will fail if they're already a follower, but ignore the error.
   CommunityFollower::follow(&conn, &community_follower_form).ok();
 
-  community.send_accept_follow(&follow)?;
+  community.send_accept_follow(&follow, &conn)?;
 
   Ok(HttpResponse::Ok().finish())
 }

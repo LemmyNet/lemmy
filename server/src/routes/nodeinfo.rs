@@ -20,9 +20,7 @@ async fn node_info_well_known() -> Result<HttpResponse<Body>, failure::Error> {
   Ok(HttpResponse::Ok().json(node_info))
 }
 
-async fn node_info(
-  db: DbPoolParam,
-) -> Result<HttpResponse, Error> {
+async fn node_info(db: DbPoolParam) -> Result<HttpResponse, Error> {
   let res = web::block(move || {
     let conn = db.get()?;
     let site_view = match SiteView::read(&conn) {

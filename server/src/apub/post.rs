@@ -108,6 +108,16 @@ impl ApubObjectType for Post {
       .create_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(page)?;
+
+    // Insert the sent activity into the activity table
+    let activity_form = activity::ActivityForm {
+      user_id: creator.id,
+      data: serde_json::to_value(&create)?,
+      local: true,
+      updated: None,
+    };
+    activity::Activity::create(&conn, &activity_form)?;
+
     send_activity(
       &create,
       &creator.private_key.as_ref().unwrap(),
@@ -131,6 +141,16 @@ impl ApubObjectType for Post {
       .update_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(page)?;
+
+    // Insert the sent activity into the activity table
+    let activity_form = activity::ActivityForm {
+      user_id: creator.id,
+      data: serde_json::to_value(&update)?,
+      local: true,
+      updated: None,
+    };
+    activity::Activity::create(&conn, &activity_form)?;
+
     send_activity(
       &update,
       &creator.private_key.as_ref().unwrap(),
