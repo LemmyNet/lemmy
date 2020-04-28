@@ -102,8 +102,6 @@ describe('main', () => {
 
       expect(searchResponse.communities[0].name).toBe('main');
 
-      // TODO
-      // Unfortunately the search is correctly
       let followForm: FollowCommunityForm = {
         community_id: searchResponse.communities[0].id,
         follow: true,
