@@ -358,7 +358,7 @@ impl Perform for Oper<EditCommunity> {
       published: None,
     };
 
-    let _updated_community = match Community::update(&conn, data.edit_id, &community_form) {
+    let updated_community = match Community::update(&conn, data.edit_id, &community_form) {
       Ok(community) => community,
       Err(_e) => return Err(APIError::err("couldnt_update_community").into()),
     };
@@ -377,6 +377,11 @@ impl Perform for Oper<EditCommunity> {
         expires,
       };
       ModRemoveCommunity::create(&conn, &form)?;
+      updated_community.send_delete(&conn)?;
+    }
+
+    if let Some(_deleted) = data.deleted.to_owned() {
+      updated_community.send_delete(&conn)?;
     }
 
     let community_view = CommunityView::read(&conn, data.edit_id, Some(user_id))?;

@@ -9,7 +9,17 @@ impl ToApub for Community {
   type Response = GroupExt;
 
   // Turn a Lemmy Community into an ActivityPub group that can be sent out over the network.
-  fn to_apub(&self, conn: &PgConnection) -> Result<GroupExt, Error> {
+  fn to_apub(&self, conn: &PgConnection) -> Result<ResponseOrTombstone<GroupExt>, Error> {
+    if self.deleted || self.removed {
+      let mut tombstone = Tombstone::default();
+      // TODO: might want to include updated/deleted times as well
+      tombstone
+        .object_props
+        .set_id(self.actor_id.to_owned())?
+        .set_published(convert_datetime(self.published))?;
+      return Ok(ResponseOrTombstone::Tombstone(Box::new(tombstone)));
+    }
+
     let mut group = Group::default();
     let oprops: &mut ObjectProperties = group.as_mut();
 
@@ -43,7 +53,9 @@ impl ToApub for Community {
       .set_endpoints(endpoint_props)?
       .set_followers(self.get_followers_url())?;
 
-    Ok(group.extend(actor_props).extend(self.get_public_key_ext()))
+    Ok(ResponseOrTombstone::Response(
+      group.extend(actor_props).extend(self.get_public_key_ext()),
+    ))
   }
 }
 
@@ -94,10 +106,36 @@ impl ActorType for Community {
     Ok(())
   }
 
+  fn send_delete(&self, conn: &PgConnection) -> Result<(), Error> {
+    let community = self.to_apub(conn)?;
+    let mut delete = Delete::default();
+    delete
+      .delete_props
+      .set_actor_xsd_any_uri(self.actor_id.to_owned())?
+      .set_object_base_box(BaseBox::from_concrete(
+        community.as_tombstone()?.to_owned(),
+      )?)?;
+
+    // Insert the sent activity into the activity table
+    let activity_form = activity::ActivityForm {
+      user_id: self.creator_id,
+      data: serde_json::to_value(&delete)?,
+      local: true,
+      updated: None,
+    };
+    activity::Activity::create(&conn, &activity_form)?;
+
+    send_activity(
+      &delete,
+      &self.private_key.to_owned().unwrap(),
+      &self.actor_id,
+      self.get_follower_inboxes(&conn)?,
+    )?;
+    Ok(())
+  }
+
   /// For a given community, returns the inboxes of all followers.
   fn get_follower_inboxes(&self, conn: &PgConnection) -> Result<Vec<String>, Error> {
-    debug!("got here.");
-
     Ok(
       CommunityFollowerView::for_community(conn, self.id)?
         .into_iter()
