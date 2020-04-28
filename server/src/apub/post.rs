@@ -19,7 +19,7 @@ impl ToApub for Post {
   type Response = Page;
 
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
-  fn to_apub(&self, conn: &PgConnection) -> Result<Page, Error> {
+  fn to_apub(&self, conn: &PgConnection) -> Result<ResponseOrTombstone<Page>, Error> {
     let mut page = Page::default();
     let oprops: &mut ObjectProperties = page.as_mut();
     let creator = User_::read(conn, self.creator_id)?;
@@ -51,7 +51,7 @@ impl ToApub for Post {
       oprops.set_updated(convert_datetime(u))?;
     }
 
-    Ok(page)
+    Ok(ResponseOrTombstone::Response(page))
   }
 }
 
@@ -109,7 +109,7 @@ impl ApubObjectType for Post {
     create
       .create_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(page)?;
+      .set_object_base_box(page.as_response()?.to_owned())?;
 
     // Insert the sent activity into the activity table
     let activity_form = activity::ActivityForm {
@@ -144,7 +144,7 @@ impl ApubObjectType for Post {
     update
       .update_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(page)?;
+      .set_object_base_box(page.as_response()?.to_owned())?;
 
     // Insert the sent activity into the activity table
     let activity_form = activity::ActivityForm {
@@ -176,7 +176,7 @@ impl ApubLikeableType for Post {
     like
       .like_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(page)?;
+      .set_object_base_box(page.as_response()?.to_owned())?;
 
     // Insert the sent activity into the activity table
     let activity_form = activity::ActivityForm {
@@ -210,7 +210,7 @@ impl ApubLikeableType for Post {
     dislike
       .dislike_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(page)?;
+      .set_object_base_box(page.as_response()?.to_owned())?;
 
     // Insert the sent activity into the activity table
     let activity_form = activity::ActivityForm {

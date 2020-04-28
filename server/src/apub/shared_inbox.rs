@@ -1,4 +1,6 @@
 use super::*;
+use crate::api::community::CommunityResponse;
+use crate::websocket::server::SendCommunityRoomMessage;
 
 #[serde(untagged)]
 #[derive(Serialize, Deserialize, Debug)]
@@ -7,6 +9,7 @@ pub enum SharedAcceptedObjects {
   Update(Update),
   Like(Like),
   Dislike(Dislike),
+  Delete(Delete),
 }
 
 impl SharedAcceptedObjects {
@@ -16,6 +19,7 @@ impl SharedAcceptedObjects {
       SharedAcceptedObjects::Update(u) => u.update_props.get_object_base_box(),
       SharedAcceptedObjects::Like(l) => l.like_props.get_object_base_box(),
       SharedAcceptedObjects::Dislike(d) => d.dislike_props.get_object_base_box(),
+      SharedAcceptedObjects::Delete(d) => d.delete_props.get_object_base_box(),
     }
   }
 }
@@ -60,6 +64,9 @@ pub async fn shared_inbox(
     }
     (SharedAcceptedObjects::Dislike(d), Some("Note")) => {
       receive_dislike_comment(&d, &request, &conn, chat_server)
+    }
+    (SharedAcceptedObjects::Delete(d), Some("Tombstone")) => {
+      receive_delete_community(&d, &request, &conn, chat_server)
     }
     _ => Err(format_err!("Unknown incoming activity type.")),
   }
@@ -497,6 +504,67 @@ fn receive_dislike_comment(
   chat_server.do_send(SendComment {
     op: UserOperation::CreateCommentLike,
     comment: res,
+    my_id: None,
+  });
+
+  Ok(HttpResponse::Ok().finish())
+}
+
+fn receive_delete_community(
+  delete: &Delete,
+  request: &HttpRequest,
+  conn: &PgConnection,
+  chat_server: ChatServerParam,
+) -> Result<HttpResponse, Error> {
+  let tombstone = delete
+    .delete_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .to_owned()
+    .to_concrete::<Tombstone>()?;
+  let community_apub_id = tombstone.object_props.get_id().unwrap().to_string();
+
+  let community = Community::read_from_actor_id(conn, &community_apub_id)?;
+  verify(request, &community.public_key.clone().unwrap())?;
+
+  // Insert the received activity into the activity table
+  let activity_form = activity::ActivityForm {
+    user_id: community.creator_id,
+    data: serde_json::to_value(&delete)?,
+    local: false,
+    updated: None,
+  };
+  activity::Activity::create(&conn, &activity_form)?;
+
+  let community_form = CommunityForm {
+    name: "".to_string(),
+    title: "".to_string(),
+    description: None,
+    category_id: community.category_id, // Note: need to keep this due to foreign key constraint
+    creator_id: community.creator_id,   // Note: need to keep this due to foreign key constraint
+    removed: None,
+    published: None,
+    updated: None,
+    deleted: Some(true),
+    nsfw: false,
+    actor_id: community.actor_id,
+    local: false,
+    private_key: None,
+    public_key: community.public_key,
+    last_refreshed_at: Some(community.last_refreshed_at),
+  };
+
+  Community::update(conn, community.id, &community_form)?;
+
+  let res = CommunityResponse {
+    community: CommunityView::read(&conn, community.id, None)?,
+  };
+
+  chat_server.do_send(SendCommunityRoomMessage {
+    op: UserOperation::EditCommunity,
+    response: res,
+    community_id: community.id,
     my_id: None,
   });
 

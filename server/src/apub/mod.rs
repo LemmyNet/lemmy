@@ -10,13 +10,13 @@ pub mod user;
 pub mod user_inbox;
 
 use activitystreams::{
-  activity::{Accept, Create, Dislike, Follow, Like, Update},
+  activity::{Accept, Create, Delete, Dislike, Follow, Like, Update},
   actor::{properties::ApActorProperties, Actor, Group, Person},
   collection::UnorderedCollection,
   context,
   endpoint::EndpointProperties,
   ext::{Ext, Extensible, Extension},
-  object::{properties::ObjectProperties, Note, Page},
+  object::{properties::ObjectProperties, Note, Page, Tombstone},
   public, BaseBox,
 };
 use actix_web::body::Body;
@@ -138,10 +138,31 @@ fn is_apub_id_valid(apub_id: &Url) -> bool {
   }
 }
 
+#[derive(Serialize)]
+pub enum ResponseOrTombstone<Response> {
+  Response(Response),
+  Tombstone(Box<Tombstone>),
+}
+
+impl<Response> ResponseOrTombstone<Response> {
+  fn as_response(&self) -> Result<&Response, Error> {
+    match self {
+      ResponseOrTombstone::Response(r) => Ok(r),
+      ResponseOrTombstone::Tombstone(_t) => Err(format_err!("Value is a tombstone")),
+    }
+  }
+  fn as_tombstone(&self) -> Result<&Tombstone, Error> {
+    match self {
+      ResponseOrTombstone::Tombstone(t) => Ok(t),
+      ResponseOrTombstone::Response(_r) => Err(format_err!("Value is a response")),
+    }
+  }
+}
+
 // TODO Not sure good names for these
 pub trait ToApub {
   type Response;
-  fn to_apub(&self, conn: &PgConnection) -> Result<Self::Response, Error>;
+  fn to_apub(&self, conn: &PgConnection) -> Result<ResponseOrTombstone<Self::Response>, Error>;
 }
 
 pub trait FromApub {
@@ -154,6 +175,7 @@ pub trait FromApub {
 pub trait ApubObjectType {
   fn send_create(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
   fn send_update(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
+  //fn send_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
 }
 
 pub trait ApubLikeableType {
@@ -191,6 +213,8 @@ pub trait ActorType {
   fn send_accept_follow(&self, follow: &Follow, conn: &PgConnection) -> Result<(), Error> {
     Err(format_err!("Accept not implemented."))
   }
+
+  fn send_delete(&self, conn: &PgConnection) -> Result<(), Error>;
 
   // TODO default because there is no user following yet.
   #[allow(unused_variables)]

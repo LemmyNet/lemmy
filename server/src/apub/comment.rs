@@ -3,7 +3,7 @@ use super::*;
 impl ToApub for Comment {
   type Response = Note;
 
-  fn to_apub(&self, conn: &PgConnection) -> Result<Note, Error> {
+  fn to_apub(&self, conn: &PgConnection) -> Result<ResponseOrTombstone<Note>, Error> {
     let mut comment = Note::default();
     let oprops: &mut ObjectProperties = comment.as_mut();
     let creator = User_::read(&conn, self.creator_id)?;
@@ -33,7 +33,7 @@ impl ToApub for Comment {
       oprops.set_updated(convert_datetime(u))?;
     }
 
-    Ok(comment)
+    Ok(ResponseOrTombstone::Response(comment))
   }
 }
 
@@ -102,7 +102,7 @@ impl ApubObjectType for Comment {
     create
       .create_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(note)?;
+      .set_object_base_box(note.as_response()?.to_owned())?;
 
     // Insert the sent activity into the activity table
     let activity_form = activity::ActivityForm {
@@ -138,7 +138,7 @@ impl ApubObjectType for Comment {
     update
       .update_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(note)?;
+      .set_object_base_box(note.as_response()?.to_owned())?;
 
     // Insert the sent activity into the activity table
     let activity_form = activity::ActivityForm {
@@ -171,7 +171,7 @@ impl ApubLikeableType for Comment {
     like
       .like_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(note)?;
+      .set_object_base_box(note.as_response()?.to_owned())?;
 
     // Insert the sent activity into the activity table
     let activity_form = activity::ActivityForm {
@@ -206,7 +206,7 @@ impl ApubLikeableType for Comment {
     dislike
       .dislike_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(note)?;
+      .set_object_base_box(note.as_response()?.to_owned())?;
 
     // Insert the sent activity into the activity table
     let activity_form = activity::ActivityForm {
