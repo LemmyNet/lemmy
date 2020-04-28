@@ -25,7 +25,7 @@ use crate::{
 use crate::apub::{
   fetcher::search_by_apub_id,
   signatures::generate_actor_keypair,
-  {make_apub_endpoint, ActorType, ApubObjectType, EndpointType},
+  {make_apub_endpoint, ActorType, ApubLikeableType, ApubObjectType, EndpointType},
 };
 use crate::settings::Settings;
 use crate::websocket::{

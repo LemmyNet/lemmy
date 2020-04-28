@@ -10,7 +10,7 @@ pub mod user;
 pub mod user_inbox;
 
 use activitystreams::{
-  activity::{Accept, Create, Follow, Update},
+  activity::{Accept, Create, Dislike, Follow, Like, Update},
   actor::{properties::ApActorProperties, Actor, Group, Person},
   collection::UnorderedCollection,
   context,
@@ -159,6 +159,11 @@ pub trait FromApub {
 pub trait ApubObjectType {
   fn send_create(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
   fn send_update(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
+}
+
+pub trait ApubLikeableType {
+  fn send_like(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
+  fn send_dislike(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
 }
 
 pub fn get_shared_inbox(actor_id: &str) -> String {

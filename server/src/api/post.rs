@@ -169,11 +169,12 @@ impl Perform for Oper<CreatePost> {
       score: 1,
     };
 
-    // Only add the like if the score isnt 0
     let _inserted_like = match PostLike::like(&conn, &like_form) {
       Ok(like) => like,
       Err(_e) => return Err(APIError::err("couldnt_like_post").into()),
     };
+
+    updated_post.send_like(&user, &conn)?;
 
     // Refetch the view
     let post_view = match PostView::read(&conn, inserted_post.id, Some(user_id)) {
@@ -368,7 +369,8 @@ impl Perform for Oper<CreatePostLike> {
     }
 
     // Check for a site ban
-    if UserView::read(&conn, user_id)?.banned {
+    let user = User_::read(&conn, user_id)?;
+    if user.banned {
       return Err(APIError::err("site_ban").into());
     }
 
@@ -388,6 +390,14 @@ impl Perform for Oper<CreatePostLike> {
         Ok(like) => like,
         Err(_e) => return Err(APIError::err("couldnt_like_post").into()),
       };
+
+      if like_form.score == 1 {
+        post.send_like(&user, &conn)?;
+      } else if like_form.score == -1 {
+        post.send_dislike(&user, &conn)?;
+      }
+    } else {
+      // TODO tombstone the post like
     }
 
     let post_view = match PostView::read(&conn, data.post_id, Some(user_id)) {
