@@ -160,3 +160,69 @@ impl ApubObjectType for Post {
     Ok(())
   }
 }
+
+impl ApubLikeableType for Post {
+  fn send_like(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
+    let page = self.to_apub(conn)?;
+    let community = Community::read(conn, self.community_id)?;
+    let mut like = Like::new();
+    populate_object_props(
+      &mut like.object_props,
+      &community.get_followers_url(),
+      &self.ap_id,
+    )?;
+    like
+      .like_props
+      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
+      .set_object_base_box(page)?;
+
+    // Insert the sent activity into the activity table
+    let activity_form = activity::ActivityForm {
+      user_id: creator.id,
+      data: serde_json::to_value(&like)?,
+      local: true,
+      updated: None,
+    };
+    activity::Activity::create(&conn, &activity_form)?;
+
+    send_activity(
+      &like,
+      &creator.private_key.as_ref().unwrap(),
+      &creator.actor_id,
+      community.get_follower_inboxes(&conn)?,
+    )?;
+    Ok(())
+  }
+
+  fn send_dislike(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
+    let page = self.to_apub(conn)?;
+    let community = Community::read(conn, self.community_id)?;
+    let mut dislike = Dislike::new();
+    populate_object_props(
+      &mut dislike.object_props,
+      &community.get_followers_url(),
+      &self.ap_id,
+    )?;
+    dislike
+      .dislike_props
+      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
+      .set_object_base_box(page)?;
+
+    // Insert the sent activity into the activity table
+    let activity_form = activity::ActivityForm {
+      user_id: creator.id,
+      data: serde_json::to_value(&dislike)?,
+      local: true,
+      updated: None,
+    };
+    activity::Activity::create(&conn, &activity_form)?;
+
+    send_activity(
+      &dislike,
+      &creator.private_key.as_ref().unwrap(),
+      &creator.actor_id,
+      community.get_follower_inboxes(&conn)?,
+    )?;
+    Ok(())
+  }
+}
