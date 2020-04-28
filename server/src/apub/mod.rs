@@ -179,12 +179,12 @@ pub trait ActorType {
   // and a user can't be followed (yet)
   #[allow(unused_variables)]
   fn send_follow(&self, follow_actor_id: &str) -> Result<(), Error> {
-    Ok(())
+    Err(format_err!("Follow not implemented."))
   }
 
   #[allow(unused_variables)]
   fn send_accept_follow(&self, follow: &Follow) -> Result<(), Error> {
-    Ok(())
+    Err(format_err!("Accept not implemented."))
   }
 
   // TODO default because there is no user following yet.
