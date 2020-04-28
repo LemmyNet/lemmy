@@ -7,6 +7,15 @@ pub enum SharedAcceptedObjects {
   Update(Update),
 }
 
+impl SharedAcceptedObjects {
+  fn object(&self) -> Option<&BaseBox> {
+    match self {
+      SharedAcceptedObjects::Create(c) => c.create_props.get_object_base_box(),
+      SharedAcceptedObjects::Update(u) => u.update_props.get_object_base_box(),
+    }
+  }
+}
+
 /// Handler for all incoming activities to user inboxes.
 pub async fn shared_inbox(
   request: HttpRequest,
@@ -15,59 +24,45 @@ pub async fn shared_inbox(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
   // TODO: would be nice if we could do the signature check here, but we cant access the actor property
-  let input = input.into_inner();
+  let activity = input.into_inner();
   let conn = &db.get().unwrap();
 
-  let json = serde_json::to_string(&input)?;
-  debug!("Shared inbox received activity: {:?}", &json);
+  let json = serde_json::to_string(&activity)?;
+  debug!("Shared inbox received activity: {}", json);
 
-  match input {
-    SharedAcceptedObjects::Create(c) => handle_create(&c, &request, &conn, chat_server),
-    SharedAcceptedObjects::Update(u) => handle_update(&u, &request, &conn, chat_server),
+  let object = activity.object().cloned().unwrap();
+
+  match (activity, object.kind()) {
+    (SharedAcceptedObjects::Create(c), Some("Note")) => {
+      receive_create_comment(&c, &request, &conn, chat_server)
+    }
+    (SharedAcceptedObjects::Create(c), Some("Page")) => {
+      receive_create_post(&c, &request, &conn, chat_server)
+    }
+    (SharedAcceptedObjects::Update(u), Some("Note")) => {
+      receive_update_comment(&u, &request, &conn, chat_server)
+    }
+    (SharedAcceptedObjects::Update(u), Some("Page")) => {
+      receive_update_post(&u, &request, &conn, chat_server)
+    }
+    _ => Err(format_err!("Unknown incoming activity type.")),
   }
 }
 
-/// Handle create activities and insert them in the database.
-fn handle_create(
+fn receive_create_post(
   create: &Create,
   request: &HttpRequest,
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
-  let base_box = create.create_props.get_object_base_box().unwrap();
+  let page = create
+    .create_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .to_owned()
+    .to_concrete::<Page>()?;
 
-  if base_box.is_kind(PageType) {
-    let page = create
-      .create_props
-      .get_object_base_box()
-      .to_owned()
-      .unwrap()
-      .to_owned()
-      .to_concrete::<Page>()?;
-    receive_create_post(&create, &page, &request, &conn, chat_server)?;
-  } else if base_box.is_kind(NoteType) {
-    let note = create
-      .create_props
-      .get_object_base_box()
-      .to_owned()
-      .unwrap()
-      .to_owned()
-      .to_concrete::<Note>()?;
-    receive_create_comment(&create, &note, &request, &conn, chat_server)?;
-  } else {
-    return Err(format_err!("Unknown base box type"));
-  }
-
-  Ok(HttpResponse::Ok().finish())
-}
-
-fn receive_create_post(
-  create: &Create,
-  page: &Page,
-  request: &HttpRequest,
-  conn: &PgConnection,
-  chat_server: ChatServerParam,
-) -> Result<(), Error> {
   let user_uri = create
     .create_props
     .get_actor_xsd_any_uri()
@@ -100,16 +95,23 @@ fn receive_create_post(
     my_id: None,
   });
 
-  Ok(())
+  Ok(HttpResponse::Ok().finish())
 }
 
 fn receive_create_comment(
   create: &Create,
-  note: &Note,
   request: &HttpRequest,
   conn: &PgConnection,
   chat_server: ChatServerParam,
-) -> Result<(), Error> {
+) -> Result<HttpResponse, Error> {
+  let note = create
+    .create_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .to_owned()
+    .to_concrete::<Note>()?;
+
   let user_uri = create
     .create_props
     .get_actor_xsd_any_uri()
@@ -147,51 +149,23 @@ fn receive_create_comment(
     my_id: None,
   });
 
-  Ok(())
-}
-
-/// Handle create activities and insert them in the database.
-fn handle_update(
-  update: &Update,
-  request: &HttpRequest,
-  conn: &PgConnection,
-  chat_server: ChatServerParam,
-) -> Result<HttpResponse, Error> {
-  let base_box = update.update_props.get_object_base_box().unwrap();
-
-  if base_box.is_kind(PageType) {
-    let page = update
-      .update_props
-      .get_object_base_box()
-      .to_owned()
-      .unwrap()
-      .to_owned()
-      .to_concrete::<Page>()?;
-
-    receive_update_post(&update, &page, &request, &conn, chat_server)?;
-  } else if base_box.is_kind(NoteType) {
-    let note = update
-      .update_props
-      .get_object_base_box()
-      .to_owned()
-      .unwrap()
-      .to_owned()
-      .to_concrete::<Note>()?;
-    receive_update_comment(&update, &note, &request, &conn, chat_server)?;
-  } else {
-    return Err(format_err!("Unknown base box type"));
-  }
-
   Ok(HttpResponse::Ok().finish())
 }
 
 fn receive_update_post(
   update: &Update,
-  page: &Page,
   request: &HttpRequest,
   conn: &PgConnection,
   chat_server: ChatServerParam,
-) -> Result<(), Error> {
+) -> Result<HttpResponse, Error> {
+  let page = update
+    .update_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .to_owned()
+    .to_concrete::<Page>()?;
+
   let user_uri = update
     .update_props
     .get_actor_xsd_any_uri()
@@ -225,16 +199,23 @@ fn receive_update_post(
     my_id: None,
   });
 
-  Ok(())
+  Ok(HttpResponse::Ok().finish())
 }
 
 fn receive_update_comment(
   update: &Update,
-  note: &Note,
   request: &HttpRequest,
   conn: &PgConnection,
   chat_server: ChatServerParam,
-) -> Result<(), Error> {
+) -> Result<HttpResponse, Error> {
+  let note = update
+    .update_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .to_owned()
+    .to_concrete::<Note>()?;
+
   let user_uri = update
     .update_props
     .get_actor_xsd_any_uri()
@@ -273,5 +254,5 @@ fn receive_update_comment(
     my_id: None,
   });
 
-  Ok(())
+  Ok(HttpResponse::Ok().finish())
 }
