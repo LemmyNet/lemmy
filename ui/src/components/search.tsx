@@ -22,8 +22,6 @@ import {
   fetchLimit,
   routeSearchTypeToEnum,
   routeSortTypeToEnum,
-  pictshareAvatarThumbnail,
-  showAvatars,
   toast,
   createCommentLikeRes,
   createPostLikeFindRes,
@@ -31,6 +29,7 @@ import {
 } from '../utils';
 import { PostListing } from './post-listing';
 import { UserListing } from './user-listing';
+import { CommunityLink } from './community-link';
 import { SortSelect } from './sort-select';
 import { CommentNodes } from './comment-nodes';
 import { i18n } from '../i18next';
@@ -253,16 +252,7 @@ export class Search extends Component<any, SearchState> {
                 />
               )}
               {i.type_ == 'communities' && (
-                <div>
-                  <span>
-                    <Link to={`/c/${(i.data as Community).name}`}>{`/c/${
-                      (i.data as Community).name
-                    }`}</Link>
-                  </span>
-                  <span>{` - ${(i.data as Community).title} - ${
-                    (i.data as Community).number_of_subscribers
-                  } subscribers`}</span>
-                </div>
+                <div>{this.communityListing(i.data as Community)}</div>
               )}
               {i.type_ == 'users' && (
                 <div>
@@ -316,16 +306,24 @@ export class Search extends Component<any, SearchState> {
       <>
         {this.state.searchResponse.communities.map(community => (
           <div class="row">
-            <div class="col-12">
-              <span>
-                <Link
-                  to={`/c/${community.name}`}
-                >{`/c/${community.name}`}</Link>
-              </span>
-              <span>{` - ${community.title} - ${community.number_of_subscribers} subscribers`}</span>
-            </div>
+            <div class="col-12">{this.communityListing(community)}</div>
           </div>
         ))}
+      </>
+    );
+  }
+
+  communityListing(community: Community) {
+    return (
+      <>
+        <span>
+          <CommunityLink community={community} />
+        </span>
+        <span>{` - ${community.title} - 
+        ${i18n.t('number_of_subscribers', {
+          count: community.number_of_subscribers,
+        })}
+      `}</span>
       </>
     );
   }
