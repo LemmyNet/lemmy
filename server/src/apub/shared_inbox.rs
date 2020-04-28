@@ -5,6 +5,8 @@ use super::*;
 pub enum SharedAcceptedObjects {
   Create(Create),
   Update(Update),
+  Like(Like),
+  Dislike(Dislike),
 }
 
 impl SharedAcceptedObjects {
@@ -12,6 +14,8 @@ impl SharedAcceptedObjects {
     match self {
       SharedAcceptedObjects::Create(c) => c.create_props.get_object_base_box(),
       SharedAcceptedObjects::Update(u) => u.update_props.get_object_base_box(),
+      SharedAcceptedObjects::Like(l) => l.like_props.get_object_base_box(),
+      SharedAcceptedObjects::Dislike(d) => d.dislike_props.get_object_base_box(),
     }
   }
 }
@@ -33,17 +37,29 @@ pub async fn shared_inbox(
   let object = activity.object().cloned().unwrap();
 
   match (activity, object.kind()) {
-    (SharedAcceptedObjects::Create(c), Some("Note")) => {
-      receive_create_comment(&c, &request, &conn, chat_server)
-    }
     (SharedAcceptedObjects::Create(c), Some("Page")) => {
       receive_create_post(&c, &request, &conn, chat_server)
+    }
+    (SharedAcceptedObjects::Update(u), Some("Page")) => {
+      receive_update_post(&u, &request, &conn, chat_server)
+    }
+    (SharedAcceptedObjects::Like(l), Some("Page")) => {
+      receive_like_post(&l, &request, &conn, chat_server)
+    }
+    (SharedAcceptedObjects::Dislike(d), Some("Page")) => {
+      receive_dislike_post(&d, &request, &conn, chat_server)
+    }
+    (SharedAcceptedObjects::Create(c), Some("Note")) => {
+      receive_create_comment(&c, &request, &conn, chat_server)
     }
     (SharedAcceptedObjects::Update(u), Some("Note")) => {
       receive_update_comment(&u, &request, &conn, chat_server)
     }
-    (SharedAcceptedObjects::Update(u), Some("Page")) => {
-      receive_update_post(&u, &request, &conn, chat_server)
+    (SharedAcceptedObjects::Like(l), Some("Note")) => {
+      receive_like_comment(&l, &request, &conn, chat_server)
+    }
+    (SharedAcceptedObjects::Dislike(d), Some("Note")) => {
+      receive_dislike_comment(&d, &request, &conn, chat_server)
     }
     _ => Err(format_err!("Unknown incoming activity type.")),
   }
@@ -202,6 +218,116 @@ fn receive_update_post(
   Ok(HttpResponse::Ok().finish())
 }
 
+fn receive_like_post(
+  like: &Like,
+  request: &HttpRequest,
+  conn: &PgConnection,
+  chat_server: ChatServerParam,
+) -> Result<HttpResponse, Error> {
+  let page = like
+    .like_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .to_owned()
+    .to_concrete::<Page>()?;
+
+  let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
+
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
+  verify(request, &user.public_key.unwrap())?;
+
+  // Insert the received activity into the activity table
+  let activity_form = activity::ActivityForm {
+    user_id: user.id,
+    data: serde_json::to_value(&like)?,
+    local: false,
+    updated: None,
+  };
+  activity::Activity::create(&conn, &activity_form)?;
+
+  let post = PostForm::from_apub(&page, conn)?;
+  let post_id = Post::read_from_apub_id(conn, &post.ap_id)?.id;
+
+  let like_form = PostLikeForm {
+    post_id,
+    user_id: user.id,
+    score: 1,
+  };
+  PostLike::remove(&conn, &like_form)?;
+  PostLike::like(&conn, &like_form)?;
+
+  // Refetch the view
+  let post_view = PostView::read(&conn, post_id, None)?;
+
+  let res = PostResponse { post: post_view };
+
+  chat_server.do_send(SendPost {
+    op: UserOperation::CreatePostLike,
+    post: res,
+    my_id: None,
+  });
+
+  Ok(HttpResponse::Ok().finish())
+}
+
+fn receive_dislike_post(
+  dislike: &Dislike,
+  request: &HttpRequest,
+  conn: &PgConnection,
+  chat_server: ChatServerParam,
+) -> Result<HttpResponse, Error> {
+  let page = dislike
+    .dislike_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .to_owned()
+    .to_concrete::<Page>()?;
+
+  let user_uri = dislike
+    .dislike_props
+    .get_actor_xsd_any_uri()
+    .unwrap()
+    .to_string();
+
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
+  verify(request, &user.public_key.unwrap())?;
+
+  // Insert the received activity into the activity table
+  let activity_form = activity::ActivityForm {
+    user_id: user.id,
+    data: serde_json::to_value(&dislike)?,
+    local: false,
+    updated: None,
+  };
+  activity::Activity::create(&conn, &activity_form)?;
+
+  let post = PostForm::from_apub(&page, conn)?;
+  let post_id = Post::read_from_apub_id(conn, &post.ap_id)?.id;
+
+  let like_form = PostLikeForm {
+    post_id,
+    user_id: user.id,
+    score: -1,
+  };
+  PostLike::remove(&conn, &like_form)?;
+  PostLike::like(&conn, &like_form)?;
+
+  // Refetch the view
+  let post_view = PostView::read(&conn, post_id, None)?;
+
+  let res = PostResponse { post: post_view };
+
+  chat_server.do_send(SendPost {
+    op: UserOperation::CreatePostLike,
+    post: res,
+    my_id: None,
+  });
+
+  Ok(HttpResponse::Ok().finish())
+}
+
 fn receive_update_comment(
   update: &Update,
   request: &HttpRequest,
@@ -250,6 +376,126 @@ fn receive_update_comment(
 
   chat_server.do_send(SendComment {
     op: UserOperation::EditComment,
+    comment: res,
+    my_id: None,
+  });
+
+  Ok(HttpResponse::Ok().finish())
+}
+
+fn receive_like_comment(
+  like: &Like,
+  request: &HttpRequest,
+  conn: &PgConnection,
+  chat_server: ChatServerParam,
+) -> Result<HttpResponse, Error> {
+  let note = like
+    .like_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .to_owned()
+    .to_concrete::<Note>()?;
+
+  let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
+
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
+  verify(request, &user.public_key.unwrap())?;
+
+  // Insert the received activity into the activity table
+  let activity_form = activity::ActivityForm {
+    user_id: user.id,
+    data: serde_json::to_value(&like)?,
+    local: false,
+    updated: None,
+  };
+  activity::Activity::create(&conn, &activity_form)?;
+
+  let comment = CommentForm::from_apub(&note, &conn)?;
+  let comment_id = Comment::read_from_apub_id(conn, &comment.ap_id)?.id;
+  let like_form = CommentLikeForm {
+    comment_id,
+    post_id: comment.post_id,
+    user_id: user.id,
+    score: 1,
+  };
+  CommentLike::remove(&conn, &like_form)?;
+  CommentLike::like(&conn, &like_form)?;
+
+  // Refetch the view
+  let comment_view = CommentView::read(&conn, comment_id, None)?;
+
+  // TODO get those recipient actor ids from somewhere
+  let recipient_ids = vec![];
+  let res = CommentResponse {
+    comment: comment_view,
+    recipient_ids,
+  };
+
+  chat_server.do_send(SendComment {
+    op: UserOperation::CreateCommentLike,
+    comment: res,
+    my_id: None,
+  });
+
+  Ok(HttpResponse::Ok().finish())
+}
+
+fn receive_dislike_comment(
+  dislike: &Dislike,
+  request: &HttpRequest,
+  conn: &PgConnection,
+  chat_server: ChatServerParam,
+) -> Result<HttpResponse, Error> {
+  let note = dislike
+    .dislike_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .to_owned()
+    .to_concrete::<Note>()?;
+
+  let user_uri = dislike
+    .dislike_props
+    .get_actor_xsd_any_uri()
+    .unwrap()
+    .to_string();
+
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
+  verify(request, &user.public_key.unwrap())?;
+
+  // Insert the received activity into the activity table
+  let activity_form = activity::ActivityForm {
+    user_id: user.id,
+    data: serde_json::to_value(&dislike)?,
+    local: false,
+    updated: None,
+  };
+  activity::Activity::create(&conn, &activity_form)?;
+
+  let comment = CommentForm::from_apub(&note, &conn)?;
+  let comment_id = Comment::read_from_apub_id(conn, &comment.ap_id)?.id;
+  let like_form = CommentLikeForm {
+    comment_id,
+    post_id: comment.post_id,
+    user_id: user.id,
+    score: -1,
+  };
+  CommentLike::remove(&conn, &like_form)?;
+  CommentLike::like(&conn, &like_form)?;
+
+  // Refetch the view
+  let comment_view = CommentView::read(&conn, comment_id, None)?;
+
+  // TODO get those recipient actor ids from somewhere
+  let recipient_ids = vec![];
+  let res = CommentResponse {
+    comment: comment_view,
+    recipient_ids,
+  };
+
+  chat_server.do_send(SendComment {
+    op: UserOperation::CreateCommentLike,
     comment: res,
     my_id: None,
   });

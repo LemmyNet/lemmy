@@ -58,7 +58,6 @@ impl ActorType for User_ {
   fn send_follow(&self, follow_actor_id: &str, conn: &PgConnection) -> Result<(), Error> {
     let mut follow = Follow::new();
 
-    // TODO using a fake accept id
     let id = format!("{}/follow/{}", self.actor_id, uuid::Uuid::new_v4());
 
     follow
