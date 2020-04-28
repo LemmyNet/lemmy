@@ -98,11 +98,13 @@ impl ApubObjectType for Post {
   fn send_create(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
     let page = self.to_apub(conn)?;
     let community = Community::read(conn, self.community_id)?;
+    let id = format!("{}/create/{}", self.ap_id, uuid::Uuid::new_v4());
+
     let mut create = Create::new();
     populate_object_props(
       &mut create.object_props,
       &community.get_followers_url(),
-      &self.ap_id,
+      &id,
     )?;
     create
       .create_props
@@ -131,11 +133,13 @@ impl ApubObjectType for Post {
   fn send_update(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
     let page = self.to_apub(conn)?;
     let community = Community::read(conn, self.community_id)?;
+    let id = format!("{}/update/{}", self.ap_id, uuid::Uuid::new_v4());
+
     let mut update = Update::new();
     populate_object_props(
       &mut update.object_props,
       &community.get_followers_url(),
-      &self.ap_id,
+      &id,
     )?;
     update
       .update_props
@@ -165,12 +169,10 @@ impl ApubLikeableType for Post {
   fn send_like(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
     let page = self.to_apub(conn)?;
     let community = Community::read(conn, self.community_id)?;
+    let id = format!("{}/like/{}", self.ap_id, uuid::Uuid::new_v4());
+
     let mut like = Like::new();
-    populate_object_props(
-      &mut like.object_props,
-      &community.get_followers_url(),
-      &self.ap_id,
-    )?;
+    populate_object_props(&mut like.object_props, &community.get_followers_url(), &id)?;
     like
       .like_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
@@ -197,11 +199,13 @@ impl ApubLikeableType for Post {
   fn send_dislike(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
     let page = self.to_apub(conn)?;
     let community = Community::read(conn, self.community_id)?;
+    let id = format!("{}/dislike/{}", self.ap_id, uuid::Uuid::new_v4());
+
     let mut dislike = Dislike::new();
     populate_object_props(
       &mut dislike.object_props,
       &community.get_followers_url(),
-      &self.ap_id,
+      &id,
     )?;
     dislike
       .dislike_props

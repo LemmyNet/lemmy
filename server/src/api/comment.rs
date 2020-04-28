@@ -235,6 +235,8 @@ impl Perform for Oper<CreateComment> {
       Err(_e) => return Err(APIError::err("couldnt_like_comment").into()),
     };
 
+    updated_comment.send_like(&user, &conn)?;
+
     let comment_view = CommentView::read(&conn, inserted_comment.id, Some(user_id))?;
 
     let mut res = CommentResponse {
@@ -500,7 +502,8 @@ impl Perform for Oper<CreateCommentLike> {
     }
 
     // Check for a site ban
-    if UserView::read(&conn, user_id)?.banned {
+    let user = User_::read(&conn, user_id)?;
+    if user.banned {
       return Err(APIError::err("site_ban").into());
     }
 
@@ -537,6 +540,14 @@ impl Perform for Oper<CreateCommentLike> {
         Ok(like) => like,
         Err(_e) => return Err(APIError::err("couldnt_like_comment").into()),
       };
+
+      if like_form.score == 1 {
+        comment.send_like(&user, &conn)?;
+      } else if like_form.score == -1 {
+        comment.send_dislike(&user, &conn)?;
+      }
+    } else {
+      // TODO tombstone the like
     }
 
     // Have to refetch the comment to get the current state

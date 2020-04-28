@@ -163,6 +163,7 @@ describe('main', () => {
       expect(createResponse.post.name).toBe(name);
       expect(createResponse.post.community_local).toBe(false);
       expect(createResponse.post.creator_local).toBe(true);
+      expect(createResponse.post.score).toBe(1);
 
       let getPostUrl = `${lemmyBetaApiUrl}/post?id=2`;
       let getPostRes: GetPostResponse = await fetch(getPostUrl, {
@@ -172,6 +173,7 @@ describe('main', () => {
       expect(getPostRes.post.name).toBe(name);
       expect(getPostRes.post.community_local).toBe(true);
       expect(getPostRes.post.creator_local).toBe(false);
+      expect(getPostRes.post.score).toBe(1);
     });
   });
 
@@ -236,6 +238,7 @@ describe('main', () => {
       expect(createResponse.comment.content).toBe(content);
       expect(createResponse.comment.community_local).toBe(false);
       expect(createResponse.comment.creator_local).toBe(true);
+      expect(createResponse.comment.score).toBe(1);
 
       let getPostUrl = `${lemmyBetaApiUrl}/post?id=2`;
       let getPostRes: GetPostResponse = await fetch(getPostUrl, {
@@ -245,6 +248,7 @@ describe('main', () => {
       expect(getPostRes.comments[0].content).toBe(content);
       expect(getPostRes.comments[0].community_local).toBe(true);
       expect(getPostRes.comments[0].creator_local).toBe(false);
+      expect(getPostRes.comments[0].score).toBe(1);
 
       // Now do beta replying to that comment, as a child comment
       let contentBeta = 'A child federated comment from beta';
@@ -270,6 +274,7 @@ describe('main', () => {
       expect(createResponseBeta.comment.community_local).toBe(true);
       expect(createResponseBeta.comment.creator_local).toBe(true);
       expect(createResponseBeta.comment.parent_id).toBe(1);
+      expect(createResponseBeta.comment.score).toBe(1);
 
       // Make sure lemmy alpha sees that new child comment from beta
       let getPostUrlAlpha = `${lemmyAlphaApiUrl}/post?id=2`;
@@ -281,6 +286,7 @@ describe('main', () => {
       expect(getPostResAlpha.comments[0].content).toBe(contentBeta);
       expect(getPostResAlpha.comments[0].community_local).toBe(false);
       expect(getPostResAlpha.comments[0].creator_local).toBe(false);
+      expect(getPostResAlpha.comments[0].score).toBe(1);
     });
   });
 

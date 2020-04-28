@@ -63,11 +63,9 @@ impl ActorType for Community {
       .get_actor_xsd_any_uri()
       .unwrap()
       .to_string();
+    let id = format!("{}/accept/{}", self.actor_id, uuid::Uuid::new_v4());
 
     let mut accept = Accept::new();
-    // TODO using a fake accept id
-    let id = format!("{}/accept/{}", self.actor_id, uuid::Uuid::new_v4());
-    //follow
     accept
       .object_props
       .set_context_xsd_any_uri(context())?
