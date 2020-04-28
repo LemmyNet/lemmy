@@ -16,11 +16,7 @@ use activitystreams::{
   context,
   endpoint::EndpointProperties,
   ext::{Ext, Extensible, Extension},
-  object::{
-    kind::{NoteType, PageType},
-    properties::ObjectProperties,
-    Note, Page,
-  },
+  object::{properties::ObjectProperties, Note, Page},
   public, BaseBox,
 };
 use actix_web::body::Body;
@@ -184,12 +180,12 @@ pub trait ActorType {
   // and a user can't be followed (yet)
   #[allow(unused_variables)]
   fn send_follow(&self, follow_actor_id: &str, conn: &PgConnection) -> Result<(), Error> {
-    Ok(())
+    Err(format_err!("Follow not implemented."))
   }
 
   #[allow(unused_variables)]
   fn send_accept_follow(&self, follow: &Follow, conn: &PgConnection) -> Result<(), Error> {
-    Ok(())
+    Err(format_err!("Accept not implemented."))
   }
 
   // TODO default because there is no user following yet.
