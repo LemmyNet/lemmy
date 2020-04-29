@@ -45,11 +45,19 @@ pub enum SearchAcceptedObjects {
 /// Attempt to parse the query as URL, and fetch an ActivityPub object from it.
 ///
 /// Some working examples for use with the docker/federation/ setup:
-/// http://lemmy_alpha:8540/c/main
-/// http://lemmy_alpha:8540/u/lemmy_alpha
+/// http://lemmy_alpha:8540/c/main, or /c/main@lemmy_alpha:8540
+/// http://lemmy_alpha:8540/u/lemmy_alpha, or /u/lemmy_alpha@lemmy_alpha:8540
 /// http://lemmy_alpha:8540/p/3
 pub fn search_by_apub_id(query: &str, conn: &PgConnection) -> Result<SearchResponse, Error> {
-  let query_url = Url::parse(&query)?;
+  // Parse the shorthand query url
+  let query_url = if query.contains('@') {
+    let split = query.split('@').collect::<Vec<&str>>();
+    let url = format!("{}://{}{}", get_apub_protocol_string(), split[1], split[0]);
+    Url::parse(&url)?
+  } else {
+    Url::parse(&query)?
+  };
+
   let mut response = SearchResponse {
     type_: SearchType::All.to_string(),
     comments: vec![],
