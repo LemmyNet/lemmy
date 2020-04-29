@@ -60,6 +60,7 @@ use crate::websocket::{
 use crate::{convert_datetime, naive_now, Settings};
 
 use activities::{populate_object_props, send_activity};
+use chrono::NaiveDateTime;
 use fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user};
 use signatures::verify;
 use signatures::{sign, PublicKey, PublicKeyExtension};
@@ -83,6 +84,14 @@ where
   T: Serialize,
 {
   HttpResponse::Ok()
+    .content_type(APUB_JSON_CONTENT_TYPE)
+    .json(data)
+}
+fn create_apub_tombstone_response<T>(data: &T) -> HttpResponse<Body>
+where
+  T: Serialize,
+{
+  HttpResponse::Gone()
     .content_type(APUB_JSON_CONTENT_TYPE)
     .json(data)
 }
@@ -138,31 +147,40 @@ fn is_apub_id_valid(apub_id: &Url) -> bool {
   }
 }
 
-#[derive(Serialize)]
-pub enum ResponseOrTombstone<Response> {
-  Response(Response),
-  Tombstone(Box<Tombstone>),
-}
-
-impl<Response> ResponseOrTombstone<Response> {
-  fn as_response(&self) -> Result<&Response, Error> {
-    match self {
-      ResponseOrTombstone::Response(r) => Ok(r),
-      ResponseOrTombstone::Tombstone(_t) => Err(format_err!("Value is a tombstone")),
-    }
-  }
-  fn as_tombstone(&self) -> Result<&Tombstone, Error> {
-    match self {
-      ResponseOrTombstone::Tombstone(t) => Ok(t),
-      ResponseOrTombstone::Response(_r) => Err(format_err!("Value is a response")),
-    }
-  }
-}
-
 // TODO Not sure good names for these
 pub trait ToApub {
   type Response;
-  fn to_apub(&self, conn: &PgConnection) -> Result<ResponseOrTombstone<Self::Response>, Error>;
+  fn to_apub(&self, conn: &PgConnection) -> Result<Self::Response, Error>;
+}
+
+fn create_tombstone(
+  deleted: bool,
+  object_id: &str,
+  published: NaiveDateTime,
+  updated: Option<NaiveDateTime>,
+) -> Result<Tombstone, Error> {
+  if deleted {
+    let mut tombstone = Tombstone::default();
+    // TODO: might want to include deleted time as well
+    tombstone
+      .object_props
+      .set_id(object_id)?
+      .set_published(convert_datetime(published))?;
+    if let Some(updated) = updated {
+      tombstone
+        .object_props
+        .set_updated(convert_datetime(updated))?;
+    }
+    Ok(tombstone)
+  } else {
+    Err(format_err!(
+      "Cant convert object to tombstone if it wasnt deleted"
+    ))
+  }
+}
+
+pub trait ToTombstone {
+  fn to_tombstone(&self) -> Result<Tombstone, Error>;
 }
 
 pub trait FromApub {
@@ -175,7 +193,7 @@ pub trait FromApub {
 pub trait ApubObjectType {
   fn send_create(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
   fn send_update(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
-  //fn send_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
+  fn send_delete(&self, actor: &User_, conn: &PgConnection) -> Result<(), Error>;
 }
 
 pub trait ApubLikeableType {

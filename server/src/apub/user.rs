@@ -9,7 +9,7 @@ impl ToApub for User_ {
   type Response = PersonExt;
 
   // Turn a Lemmy Community into an ActivityPub group that can be sent out over the network.
-  fn to_apub(&self, _conn: &PgConnection) -> Result<ResponseOrTombstone<PersonExt>, Error> {
+  fn to_apub(&self, _conn: &PgConnection) -> Result<PersonExt, Error> {
     // TODO go through all these to_string and to_owned()
     let mut person = Person::default();
     let oprops: &mut ObjectProperties = person.as_mut();
@@ -41,9 +41,7 @@ impl ToApub for User_ {
       .set_following(self.get_following_url())?
       .set_liked(self.get_liked_url())?;
 
-    Ok(ResponseOrTombstone::Response(
-      person.extend(actor_props).extend(self.get_public_key_ext()),
-    ))
+    Ok(person.extend(actor_props).extend(self.get_public_key_ext()))
   }
 }
 

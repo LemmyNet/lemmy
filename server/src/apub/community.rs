@@ -9,17 +9,7 @@ impl ToApub for Community {
   type Response = GroupExt;
 
   // Turn a Lemmy Community into an ActivityPub group that can be sent out over the network.
-  fn to_apub(&self, conn: &PgConnection) -> Result<ResponseOrTombstone<GroupExt>, Error> {
-    if self.deleted || self.removed {
-      let mut tombstone = Tombstone::default();
-      // TODO: might want to include updated/deleted times as well
-      tombstone
-        .object_props
-        .set_id(self.actor_id.to_owned())?
-        .set_published(convert_datetime(self.published))?;
-      return Ok(ResponseOrTombstone::Tombstone(Box::new(tombstone)));
-    }
-
+  fn to_apub(&self, conn: &PgConnection) -> Result<GroupExt, Error> {
     let mut group = Group::default();
     let oprops: &mut ObjectProperties = group.as_mut();
 
@@ -53,9 +43,13 @@ impl ToApub for Community {
       .set_endpoints(endpoint_props)?
       .set_followers(self.get_followers_url())?;
 
-    Ok(ResponseOrTombstone::Response(
-      group.extend(actor_props).extend(self.get_public_key_ext()),
-    ))
+    Ok(group.extend(actor_props).extend(self.get_public_key_ext()))
+  }
+}
+
+impl ToTombstone for Community {
+  fn to_tombstone(&self) -> Result<Tombstone, Error> {
+    create_tombstone(self.deleted, &self.actor_id, self.published, self.updated)
   }
 }
 
@@ -107,14 +101,11 @@ impl ActorType for Community {
   }
 
   fn send_delete(&self, conn: &PgConnection) -> Result<(), Error> {
-    let community = self.to_apub(conn)?;
     let mut delete = Delete::default();
     delete
       .delete_props
       .set_actor_xsd_any_uri(self.actor_id.to_owned())?
-      .set_object_base_box(BaseBox::from_concrete(
-        community.as_tombstone()?.to_owned(),
-      )?)?;
+      .set_object_base_box(BaseBox::from_concrete(self.to_tombstone()?)?)?;
 
     // Insert the sent activity into the activity table
     let activity_form = activity::ActivityForm {
@@ -208,8 +199,13 @@ pub async fn get_apub_community_http(
   db: DbPoolParam,
 ) -> Result<HttpResponse<Body>, Error> {
   let community = Community::read_from_name(&&db.get()?, &info.community_name)?;
-  let c = community.to_apub(&db.get().unwrap())?;
-  Ok(create_apub_response(&c))
+  if !community.deleted {
+    Ok(create_apub_response(
+      &community.to_apub(&db.get().unwrap())?,
+    ))
+  } else {
+    Ok(create_apub_tombstone_response(&community.to_tombstone()?))
+  }
 }
 
 /// Returns an empty followers collection, only populating the siz (for privacy).

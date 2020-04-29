@@ -3,7 +3,7 @@ use super::*;
 impl ToApub for Comment {
   type Response = Note;
 
-  fn to_apub(&self, conn: &PgConnection) -> Result<ResponseOrTombstone<Note>, Error> {
+  fn to_apub(&self, conn: &PgConnection) -> Result<Note, Error> {
     let mut comment = Note::default();
     let oprops: &mut ObjectProperties = comment.as_mut();
     let creator = User_::read(&conn, self.creator_id)?;
@@ -33,7 +33,13 @@ impl ToApub for Comment {
       oprops.set_updated(convert_datetime(u))?;
     }
 
-    Ok(ResponseOrTombstone::Response(comment))
+    Ok(comment)
+  }
+}
+
+impl ToTombstone for Comment {
+  fn to_tombstone(&self) -> Result<Tombstone, Error> {
+    create_tombstone(self.deleted, &self.ap_id, self.published, self.updated)
   }
 }
 
@@ -102,7 +108,7 @@ impl ApubObjectType for Comment {
     create
       .create_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(note.as_response()?.to_owned())?;
+      .set_object_base_box(note)?;
 
     // Insert the sent activity into the activity table
     let activity_form = activity::ActivityForm {
@@ -138,7 +144,7 @@ impl ApubObjectType for Comment {
     update
       .update_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(note.as_response()?.to_owned())?;
+      .set_object_base_box(note)?;
 
     // Insert the sent activity into the activity table
     let activity_form = activity::ActivityForm {
@@ -157,6 +163,34 @@ impl ApubObjectType for Comment {
     )?;
     Ok(())
   }
+
+  // TODO: this code is literally copied from post.rs
+  fn send_delete(&self, actor: &User_, conn: &PgConnection) -> Result<(), Error> {
+    let mut delete = Delete::default();
+    delete
+      .delete_props
+      .set_actor_xsd_any_uri(actor.actor_id.to_owned())?
+      .set_object_base_box(BaseBox::from_concrete(self.to_tombstone()?)?)?;
+
+    // Insert the sent activity into the activity table
+    let activity_form = activity::ActivityForm {
+      user_id: self.creator_id,
+      data: serde_json::to_value(&delete)?,
+      local: true,
+      updated: None,
+    };
+    activity::Activity::create(&conn, &activity_form)?;
+
+    let post = Post::read(conn, self.post_id)?;
+    let community = Community::read(conn, post.community_id)?;
+    send_activity(
+      &delete,
+      &actor.private_key.to_owned().unwrap(),
+      &actor.actor_id,
+      community.get_follower_inboxes(&conn)?,
+    )?;
+    Ok(())
+  }
 }
 
 impl ApubLikeableType for Comment {
@@ -171,7 +205,7 @@ impl ApubLikeableType for Comment {
     like
       .like_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(note.as_response()?.to_owned())?;
+      .set_object_base_box(note)?;
 
     // Insert the sent activity into the activity table
     let activity_form = activity::ActivityForm {
@@ -206,7 +240,7 @@ impl ApubLikeableType for Comment {
     dislike
       .dislike_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(note.as_response()?.to_owned())?;
+      .set_object_base_box(note)?;
 
     // Insert the sent activity into the activity table
     let activity_form = activity::ActivityForm {

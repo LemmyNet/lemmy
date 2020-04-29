@@ -12,14 +12,18 @@ pub async fn get_apub_post(
 ) -> Result<HttpResponse<Body>, Error> {
   let id = info.post_id.parse::<i32>()?;
   let post = Post::read(&&db.get()?, id)?;
-  Ok(create_apub_response(&post.to_apub(&db.get().unwrap())?))
+  if !post.deleted {
+    Ok(create_apub_response(&post.to_apub(&db.get().unwrap())?))
+  } else {
+    Ok(create_apub_tombstone_response(&post.to_tombstone()?))
+  }
 }
 
 impl ToApub for Post {
   type Response = Page;
 
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
-  fn to_apub(&self, conn: &PgConnection) -> Result<ResponseOrTombstone<Page>, Error> {
+  fn to_apub(&self, conn: &PgConnection) -> Result<Page, Error> {
     let mut page = Page::default();
     let oprops: &mut ObjectProperties = page.as_mut();
     let creator = User_::read(conn, self.creator_id)?;
@@ -51,7 +55,13 @@ impl ToApub for Post {
       oprops.set_updated(convert_datetime(u))?;
     }
 
-    Ok(ResponseOrTombstone::Response(page))
+    Ok(page)
+  }
+}
+
+impl ToTombstone for Post {
+  fn to_tombstone(&self) -> Result<Tombstone, Error> {
+    create_tombstone(self.deleted, &self.ap_id, self.published, self.updated)
   }
 }
 
@@ -109,7 +119,7 @@ impl ApubObjectType for Post {
     create
       .create_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(page.as_response()?.to_owned())?;
+      .set_object_base_box(page)?;
 
     // Insert the sent activity into the activity table
     let activity_form = activity::ActivityForm {
@@ -144,7 +154,7 @@ impl ApubObjectType for Post {
     update
       .update_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(page.as_response()?.to_owned())?;
+      .set_object_base_box(page)?;
 
     // Insert the sent activity into the activity table
     let activity_form = activity::ActivityForm {
@@ -163,6 +173,32 @@ impl ApubObjectType for Post {
     )?;
     Ok(())
   }
+
+  fn send_delete(&self, actor: &User_, conn: &PgConnection) -> Result<(), Error> {
+    let mut delete = Delete::default();
+    delete
+      .delete_props
+      .set_actor_xsd_any_uri(actor.actor_id.to_owned())?
+      .set_object_base_box(BaseBox::from_concrete(self.to_tombstone()?)?)?;
+
+    // Insert the sent activity into the activity table
+    let activity_form = activity::ActivityForm {
+      user_id: self.creator_id,
+      data: serde_json::to_value(&delete)?,
+      local: true,
+      updated: None,
+    };
+    activity::Activity::create(&conn, &activity_form)?;
+
+    let community = Community::read(conn, self.community_id)?;
+    send_activity(
+      &delete,
+      &actor.private_key.to_owned().unwrap(),
+      &actor.actor_id,
+      community.get_follower_inboxes(&conn)?,
+    )?;
+    Ok(())
+  }
 }
 
 impl ApubLikeableType for Post {
@@ -176,7 +212,7 @@ impl ApubLikeableType for Post {
     like
       .like_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(page.as_response()?.to_owned())?;
+      .set_object_base_box(page)?;
 
     // Insert the sent activity into the activity table
     let activity_form = activity::ActivityForm {
@@ -210,7 +246,7 @@ impl ApubLikeableType for Post {
     dislike
       .dislike_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(page.as_response()?.to_owned())?;
+      .set_object_base_box(page)?;
 
     // Insert the sent activity into the activity table
     let activity_form = activity::ActivityForm {

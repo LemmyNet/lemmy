@@ -339,6 +339,14 @@ impl Perform for Oper<EditComment> {
 
     updated_comment.send_update(&user, &conn)?;
 
+    if let Some(deleted) = data.deleted.to_owned() {
+      if deleted {
+        updated_comment.send_delete(&user, &conn)?;
+      } else {
+        // TODO: undo delete
+      }
+    }
+
     let mut recipient_ids = Vec::new();
 
     // Scan the comment for user mentions, add those rows
