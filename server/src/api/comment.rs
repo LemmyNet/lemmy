@@ -82,9 +82,10 @@ impl Perform for Oper<CreateComment> {
 
     // Check for a community ban
     let post = Post::read(&conn, data.post_id)?;
-    if CommunityUserBanView::get(&conn, user_id, post.community_id).is_ok() {
-      return Err(APIError::err("community_ban").into());
-    }
+    let _ban_check = match CommunityUserBanView::get(&conn, user_id, post.community_id) {
+        Ok(_) => { return Err(APIError::err("community_ban").into()) },
+        Err(_e) => {},
+    };
 
     // Check for a site ban
     if UserView::read(&conn, user_id)?.banned {
@@ -284,10 +285,10 @@ impl Perform for Oper<EditComment> {
         return Err(APIError::err("no_comment_edit_allowed").into());
       }
 
-      // Check for a community ban
-      if CommunityUserBanView::get(&conn, user_id, orig_comment.community_id).is_ok() {
-        return Err(APIError::err("community_ban").into());
-      }
+      let _ban_check = match CommunityUserBanView::get(&conn, user_id, orig_comment.community_id) {
+          Ok(_) => { return Err(APIError::err("community_ban").into()) },
+          Err(_e) => {},
+      };
 
       // Check for a site ban
       if UserView::read(&conn, user_id)?.banned {

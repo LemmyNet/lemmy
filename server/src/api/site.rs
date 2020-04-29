@@ -373,11 +373,11 @@ impl Perform for Oper<GetSite> {
     };
 
     let mut admins = UserView::admins(&conn)?;
-    if site_view.is_some() {
-      let site_creator_id = site_view.to_owned().unwrap().creator_id;
-      let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
-      let creator_user = admins.remove(creator_index);
-      admins.insert(0, creator_user);
+    if let Some(site_view_owned) = site_view.to_owned() {
+        let site_creator_id = site_view_owned.creator_id;
+        let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
+        let creator_user = admins.remove(creator_index);
+        admins.insert(0, creator_user);
     }
 
     let banned = UserView::banned(&conn)?;
