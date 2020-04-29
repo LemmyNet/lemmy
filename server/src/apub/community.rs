@@ -1,4 +1,5 @@
 use super::*;
+use activitystreams::actor::kind::GroupType;
 
 #[derive(Deserialize)]
 pub struct CommunityQuery {
@@ -49,7 +50,7 @@ impl ToApub for Community {
 
 impl ToTombstone for Community {
   fn to_tombstone(&self) -> Result<Tombstone, Error> {
-    create_tombstone(self.deleted, &self.actor_id, self.published, self.updated)
+    create_tombstone(self.deleted, &self.actor_id, self.published, self.updated, GroupType.to_string())
   }
 }
 

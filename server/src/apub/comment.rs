@@ -39,7 +39,7 @@ impl ToApub for Comment {
 
 impl ToTombstone for Comment {
   fn to_tombstone(&self) -> Result<Tombstone, Error> {
-    create_tombstone(self.deleted, &self.ap_id, self.published, self.updated)
+    create_tombstone(self.deleted, &self.ap_id, self.published, self.updated, NoteType.to_string())
   }
 }
 
