@@ -1,6 +1,4 @@
 use super::*;
-use crate::api::community::CommunityResponse;
-use crate::websocket::server::SendCommunityRoomMessage;
 
 #[serde(untagged)]
 #[derive(Serialize, Deserialize, Debug)]
@@ -66,8 +64,7 @@ pub async fn shared_inbox(
       receive_dislike_comment(&d, &request, &conn, chat_server)
     }
     (SharedAcceptedObjects::Delete(d), Some("Tombstone")) => {
-      // TODO: is this deleting a community, post, comment or what?
-      receive_delete_community(&d, &request, &conn, chat_server)
+      receive_delete(&d, &request, &conn, chat_server)
     }
     _ => Err(format_err!("Unknown incoming activity type.")),
   }
@@ -511,7 +508,7 @@ fn receive_dislike_comment(
   Ok(HttpResponse::Ok().finish())
 }
 
-fn receive_delete_community(
+fn receive_delete(
   delete: &Delete,
   request: &HttpRequest,
   conn: &PgConnection,
@@ -524,6 +521,13 @@ fn receive_delete_community(
     .unwrap()
     .to_owned()
     .to_concrete::<Tombstone>()?;
+  // TODO: not sure how to handle formerType (should be a string)
+  // https://www.w3.org/TR/activitystreams-vocabulary/#dfn-formertype
+  let former_type: &str = tombstone.tombstone_props.get_former_type_object_box().unwrap().to_concrete::<String>();
+  match former_type {
+    "Group" => {},
+    d => return Err(format_err!("Delete type {} not supported", d)),
+  }
   let community_apub_id = tombstone.object_props.get_id().unwrap().to_string();
 
   let community = Community::read_from_actor_id(conn, &community_apub_id)?;

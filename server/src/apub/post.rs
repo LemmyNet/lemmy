@@ -61,7 +61,7 @@ impl ToApub for Post {
 
 impl ToTombstone for Post {
   fn to_tombstone(&self) -> Result<Tombstone, Error> {
-    create_tombstone(self.deleted, &self.ap_id, self.published, self.updated)
+    create_tombstone(self.deleted, &self.ap_id, self.published, self.updated, PageType.to_string())
   }
 }
 
