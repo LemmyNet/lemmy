@@ -160,8 +160,60 @@ export class PrivateMessageForm extends Component<
                   )}
                 />
               )}
+            </div>
+          </div>
 
-              <ul class="float-right list-inline mb-1 text-muted font-weight-bold">
+          {this.state.showDisclaimer && (
+            <div class="form-group row">
+              <div class="offset-sm-2 col-sm-10">
+                <div class="alert alert-danger" role="alert">
+                  <T i18nKey="private_message_disclaimer">
+                    #
+                    <a
+                      class="alert-link"
+                      target="_blank"
+                      href="https://about.riot.im/"
+                    >
+                      #
+                    </a>
+                  </T>
+                </div>
+              </div>
+            </div>
+          )}
+          <div class="form-group row">
+            <div class="offset-sm-2 col-sm-10">
+              <button type="submit" class="btn btn-secondary mr-2">
+                {this.state.loading ? (
+                  <svg class="icon icon-spinner spin">
+                    <use xlinkHref="#icon-spinner"></use>
+                  </svg>
+                ) : this.props.privateMessage ? (
+                  capitalizeFirstLetter(i18n.t('save'))
+                ) : (
+                  capitalizeFirstLetter(i18n.t('send_message'))
+                )}
+              </button>
+              {this.state.privateMessageForm.content && (
+                <button
+                  className={`btn btn-secondary mr-2 ${
+                    this.state.previewMode && 'active'
+                  }`}
+                  onClick={linkEvent(this, this.handlePreviewToggle)}
+                >
+                  {i18n.t('preview')}
+                </button>
+              )}
+              {this.props.privateMessage && (
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  onClick={linkEvent(this, this.handleCancel)}
+                >
+                  {i18n.t('cancel')}
+                </button>
+              )}
+              <ul class="d-inline-block float-right list-inline mb-1 text-muted font-weight-bold">
                 <li class="list-inline-item">
                   <span
                     onClick={linkEvent(this, this.handleShowDisclaimer)}
@@ -186,58 +238,6 @@ export class PrivateMessageForm extends Component<
                   </a>
                 </li>
               </ul>
-            </div>
-          </div>
-
-          {this.state.showDisclaimer && (
-            <div class="form-group row">
-              <div class="col-sm-10">
-                <div class="alert alert-danger" role="alert">
-                  <T i18nKey="private_message_disclaimer">
-                    #
-                    <a
-                      class="alert-link"
-                      target="_blank"
-                      href="https://about.riot.im/"
-                    >
-                      #
-                    </a>
-                  </T>
-                </div>
-              </div>
-            </div>
-          )}
-          <div class="form-group row">
-            <div class="col-sm-10">
-              <button type="submit" class="btn btn-secondary mr-2">
-                {this.state.loading ? (
-                  <svg class="icon icon-spinner spin">
-                    <use xlinkHref="#icon-spinner"></use>
-                  </svg>
-                ) : this.props.privateMessage ? (
-                  capitalizeFirstLetter(i18n.t('save'))
-                ) : (
-                  capitalizeFirstLetter(i18n.t('send_message'))
-                )}
-              </button>
-              {this.state.privateMessageForm.content && (
-                <button
-                  className={`btn btn-secondary mr-2 ${this.state.previewMode &&
-                    'active'}`}
-                  onClick={linkEvent(this, this.handlePreviewToggle)}
-                >
-                  {i18n.t('preview')}
-                </button>
-              )}
-              {this.props.privateMessage && (
-                <button
-                  type="button"
-                  class="btn btn-secondary"
-                  onClick={linkEvent(this, this.handleCancel)}
-                >
-                  {i18n.t('cancel')}
-                </button>
-              )}
             </div>
           </div>
         </form>
