@@ -377,11 +377,14 @@ impl Perform for Oper<EditCommunity> {
         expires,
       };
       ModRemoveCommunity::create(&conn, &form)?;
-      updated_community.send_delete(&conn)?;
     }
 
-    if let Some(_deleted) = data.deleted.to_owned() {
-      updated_community.send_delete(&conn)?;
+    if let Some(deleted) = data.deleted.to_owned() {
+      if deleted {
+        updated_community.send_delete(&conn)?;
+      } else {
+        // TODO: undo delete
+      }
     }
 
     let community_view = CommunityView::read(&conn, data.edit_id, Some(user_id))?;

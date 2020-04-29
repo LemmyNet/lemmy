@@ -543,6 +543,14 @@ impl Perform for Oper<EditPost> {
 
     updated_post.send_update(&user, &conn)?;
 
+    if let Some(deleted) = data.deleted.to_owned() {
+      if deleted {
+        updated_post.send_delete(&user, &conn)?;
+      } else {
+        // TODO: undo delete
+      }
+    }
+
     let post_view = PostView::read(&conn, data.edit_id, Some(user_id))?;
 
     let res = PostResponse { post: post_view };

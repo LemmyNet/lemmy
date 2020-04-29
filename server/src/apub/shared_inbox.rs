@@ -66,6 +66,7 @@ pub async fn shared_inbox(
       receive_dislike_comment(&d, &request, &conn, chat_server)
     }
     (SharedAcceptedObjects::Delete(d), Some("Tombstone")) => {
+      // TODO: is this deleting a community, post, comment or what?
       receive_delete_community(&d, &request, &conn, chat_server)
     }
     _ => Err(format_err!("Unknown incoming activity type.")),
