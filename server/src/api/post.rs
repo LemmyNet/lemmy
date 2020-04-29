@@ -107,9 +107,10 @@ impl Perform for Oper<CreatePost> {
     let conn = pool.get()?;
 
     // Check for a community ban
-    if CommunityUserBanView::get(&conn, user_id, data.community_id).is_ok() {
-      return Err(APIError::err("community_ban").into());
-    }
+    match CommunityUserBanView::get(&conn, user_id, data.community_id) {
+        Ok(_) => { return Err(APIError::err("community_ban").into()) },
+        Err(_e) => {},
+    };
 
     // Check for a site ban
     if UserView::read(&conn, user_id)?.banned {
@@ -352,9 +353,10 @@ impl Perform for Oper<CreatePostLike> {
 
     // Check for a community ban
     let post = Post::read(&conn, data.post_id)?;
-    if CommunityUserBanView::get(&conn, user_id, post.community_id).is_ok() {
-      return Err(APIError::err("community_ban").into());
-    }
+    match CommunityUserBanView::get(&conn, user_id, post.community_id) {
+        Ok(_) => { return Err(APIError::err("community_ban").into()) },
+        Err(_e) => {},
+    };
 
     // Check for a site ban
     if UserView::read(&conn, user_id)?.banned {
@@ -441,9 +443,12 @@ impl Perform for Oper<EditPost> {
     }
 
     // Check for a community ban
-    if CommunityUserBanView::get(&conn, user_id, data.community_id).is_ok() {
-      return Err(APIError::err("community_ban").into());
-    }
+    match CommunityUserBanView::get(&conn, user_id, data.community_id) {
+        Ok(_) => { return Err(APIError::err("community_ban").into()) },
+        Err(_e) => {},
+    };
+
+
 
     // Check for a site ban
     if UserView::read(&conn, user_id)?.banned {
