@@ -82,7 +82,7 @@ fn receive_create_post(
     .to_owned()
     .unwrap()
     .to_owned()
-    .to_concrete::<Page>()?;
+    .into_concrete::<Page>()?;
 
   let user_uri = create
     .create_props
@@ -131,7 +131,7 @@ fn receive_create_comment(
     .to_owned()
     .unwrap()
     .to_owned()
-    .to_concrete::<Note>()?;
+    .into_concrete::<Note>()?;
 
   let user_uri = create
     .create_props
@@ -185,7 +185,7 @@ fn receive_update_post(
     .to_owned()
     .unwrap()
     .to_owned()
-    .to_concrete::<Page>()?;
+    .into_concrete::<Page>()?;
 
   let user_uri = update
     .update_props
@@ -235,7 +235,7 @@ fn receive_like_post(
     .to_owned()
     .unwrap()
     .to_owned()
-    .to_concrete::<Page>()?;
+    .into_concrete::<Page>()?;
 
   let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
 
@@ -288,7 +288,7 @@ fn receive_dislike_post(
     .to_owned()
     .unwrap()
     .to_owned()
-    .to_concrete::<Page>()?;
+    .into_concrete::<Page>()?;
 
   let user_uri = dislike
     .dislike_props
@@ -345,7 +345,7 @@ fn receive_update_comment(
     .to_owned()
     .unwrap()
     .to_owned()
-    .to_concrete::<Note>()?;
+    .into_concrete::<Note>()?;
 
   let user_uri = update
     .update_props
@@ -400,7 +400,7 @@ fn receive_like_comment(
     .to_owned()
     .unwrap()
     .to_owned()
-    .to_concrete::<Note>()?;
+    .into_concrete::<Note>()?;
 
   let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
 
@@ -458,7 +458,7 @@ fn receive_dislike_comment(
     .to_owned()
     .unwrap()
     .to_owned()
-    .to_concrete::<Note>()?;
+    .into_concrete::<Note>()?;
 
   let user_uri = dislike
     .dislike_props
@@ -520,11 +520,10 @@ fn receive_delete(
     .to_owned()
     .unwrap()
     .to_owned()
-    .to_concrete::<Tombstone>()?;
-  // TODO: not sure how to handle formerType (should be a string)
-  // https://www.w3.org/TR/activitystreams-vocabulary/#dfn-formertype
-  let former_type: &str = tombstone.tombstone_props.get_former_type_object_box().unwrap().to_concrete::<String>();
-  match former_type {
+    .into_concrete::<Tombstone>()?;
+  let former_type = tombstone.tombstone_props.get_former_type_xsd_string().unwrap().to_string();
+  // TODO: handle these
+  match former_type.as_str() {
     "Group" => {},
     d => return Err(format_err!("Delete type {} not supported", d)),
   }
