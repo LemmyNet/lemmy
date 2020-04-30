@@ -67,7 +67,6 @@ use chrono::NaiveDateTime;
 use fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user};
 use signatures::verify;
 use signatures::{sign, PublicKey, PublicKeyExtension};
-use activitystreams::primitives::XsdString;
 
 type GroupExt = Ext<Ext<Group, ApActorProperties>, PublicKeyExtension>;
 type PersonExt = Ext<Ext<Person, ApActorProperties>, PublicKeyExtension>;
@@ -171,13 +170,13 @@ fn create_tombstone(
     tombstone
       .object_props
       .set_id(object_id)?
-      .set_published(convert_datetime(published));
+      .set_published(convert_datetime(published))?;
     if let Some(updated) = updated {
       tombstone
         .object_props
         .set_updated(convert_datetime(updated))?;
     }
-    tombstone.tombstone_props.set_former_type_object_box(XsdString::from_string(former_type))?;
+    tombstone.tombstone_props.set_former_type_xsd_string(former_type)?;
     Ok(tombstone)
   } else {
     Err(format_err!(
