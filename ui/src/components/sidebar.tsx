@@ -11,6 +11,7 @@ import { WebSocketService, UserService } from '../services';
 import { mdToHtml, getUnixTime, hostname } from '../utils';
 import { CommunityForm } from './community-form';
 import { UserListing } from './user-listing';
+import { CommunityLink } from './community-link';
 import { i18n } from '../i18next';
 
 interface SidebarProps {
@@ -66,7 +67,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
       name_ = community.name;
       link = `/c/${community.name}`;
     } else {
-      name_ = `${hostname(community.actor_id)}/${community.name}`;
+      name_ = `${community.name}@${hostname(community.actor_id)}`;
       link = community.actor_id;
     }
     return (
@@ -86,15 +87,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
                 </small>
               )}
             </h5>
-            {community.local ? (
-              <Link className="text-muted" to={link}>
-                {name_}
-              </Link>
-            ) : (
-              <a className="text-muted" href={link} target="_blank">
-                {name_}
-              </a>
-            )}
+            <CommunityLink community={community} realLink />
             <ul class="list-inline mb-1 text-muted font-weight-bold">
               {this.canMod && (
                 <>
