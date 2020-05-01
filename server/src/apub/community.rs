@@ -46,11 +46,14 @@ impl ToApub for Community {
 
     Ok(group.extend(actor_props).extend(self.get_public_key_ext()))
   }
-}
 
-impl ToTombstone for Community {
   fn to_tombstone(&self) -> Result<Tombstone, Error> {
-    create_tombstone(self.deleted, &self.actor_id, self.published, self.updated, GroupType.to_string())
+    create_tombstone(
+      self.deleted,
+      &self.actor_id,
+      self.updated,
+      GroupType.to_string(),
+    )
   }
 }
 
@@ -101,12 +104,17 @@ impl ActorType for Community {
     Ok(())
   }
 
-  fn send_delete(&self, conn: &PgConnection) -> Result<(), Error> {
+  fn send_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
+    let group = self.to_apub(conn)?;
+    let id = format!("{}/delete/{}", self.actor_id, uuid::Uuid::new_v4());
+
     let mut delete = Delete::default();
+    populate_object_props(&mut delete.object_props, &self.get_followers_url(), &id)?;
+
     delete
       .delete_props
-      .set_actor_xsd_any_uri(self.actor_id.to_owned())?
-      .set_object_base_box(BaseBox::from_concrete(self.to_tombstone()?)?)?;
+      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
+      .set_object_base_box(group)?;
 
     // Insert the sent activity into the activity table
     let activity_form = activity::ActivityForm {
@@ -117,10 +125,13 @@ impl ActorType for Community {
     };
     activity::Activity::create(&conn, &activity_form)?;
 
+    // Note: For an accept, since it was automatic, no one pushed a button,
+    // the community was the actor.
+    // But for delete, the creator is the actor, and does the signing
     send_activity(
       &delete,
-      &self.private_key.to_owned().unwrap(),
-      &self.actor_id,
+      &creator.private_key.as_ref().unwrap(),
+      &creator.actor_id,
       self.get_follower_inboxes(&conn)?,
     )?;
     Ok(())
