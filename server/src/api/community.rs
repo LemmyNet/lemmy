@@ -321,7 +321,8 @@ impl Perform for Oper<EditCommunity> {
     let conn = pool.get()?;
 
     // Check for a site ban
-    if UserView::read(&conn, user_id)?.banned {
+    let user = User_::read(&conn, user_id)?;
+    if user.banned {
       return Err(APIError::err("site_ban").into());
     }
 
@@ -381,7 +382,7 @@ impl Perform for Oper<EditCommunity> {
 
     if let Some(deleted) = data.deleted.to_owned() {
       if deleted {
-        updated_community.send_delete(&conn)?;
+        updated_community.send_delete(&user, &conn)?;
       } else {
         // TODO: undo delete
       }
@@ -709,7 +710,7 @@ impl Perform for Oper<TransferCommunity> {
       title: read_community.title,
       description: read_community.description,
       category_id: read_community.category_id,
-      creator_id: data.user_id,
+      creator_id: data.user_id, // This makes the new user the community creator
       removed: None,
       deleted: None,
       nsfw: read_community.nsfw,

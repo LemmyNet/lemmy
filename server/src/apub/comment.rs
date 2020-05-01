@@ -35,11 +35,14 @@ impl ToApub for Comment {
 
     Ok(comment)
   }
-}
 
-impl ToTombstone for Comment {
   fn to_tombstone(&self) -> Result<Tombstone, Error> {
-    create_tombstone(self.deleted, &self.ap_id, self.published, self.updated, NoteType.to_string())
+    create_tombstone(
+      self.deleted,
+      &self.ap_id,
+      self.updated,
+      NoteType.to_string(),
+    )
   }
 }
 
@@ -164,13 +167,23 @@ impl ApubObjectType for Comment {
     Ok(())
   }
 
-  // TODO: this code is literally copied from post.rs
-  fn send_delete(&self, actor: &User_, conn: &PgConnection) -> Result<(), Error> {
+  fn send_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
+    let note = self.to_apub(&conn)?;
+    let post = Post::read(&conn, self.post_id)?;
+    let community = Community::read(&conn, post.community_id)?;
+    let id = format!("{}/delete/{}", self.ap_id, uuid::Uuid::new_v4());
     let mut delete = Delete::default();
+
+    populate_object_props(
+      &mut delete.object_props,
+      &community.get_followers_url(),
+      &id,
+    )?;
+
     delete
       .delete_props
-      .set_actor_xsd_any_uri(actor.actor_id.to_owned())?
-      .set_object_base_box(BaseBox::from_concrete(self.to_tombstone()?)?)?;
+      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
+      .set_object_base_box(note)?;
 
     // Insert the sent activity into the activity table
     let activity_form = activity::ActivityForm {
@@ -181,12 +194,10 @@ impl ApubObjectType for Comment {
     };
     activity::Activity::create(&conn, &activity_form)?;
 
-    let post = Post::read(conn, self.post_id)?;
-    let community = Community::read(conn, post.community_id)?;
     send_activity(
       &delete,
-      &actor.private_key.to_owned().unwrap(),
-      &actor.actor_id,
+      &creator.private_key.as_ref().unwrap(),
+      &creator.actor_id,
       community.get_follower_inboxes(&conn)?,
     )?;
     Ok(())
