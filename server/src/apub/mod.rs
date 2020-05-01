@@ -13,7 +13,7 @@ use crate::api::community::CommunityResponse;
 use crate::websocket::server::SendCommunityRoomMessage;
 use activitystreams::object::kind::{NoteType, PageType};
 use activitystreams::{
-  activity::{Accept, Create, Delete, Dislike, Follow, Like, Update},
+  activity::{Accept, Create, Delete, Dislike, Follow, Like, Undo, Update},
   actor::{properties::ApActorProperties, Actor, Group, Person},
   collection::UnorderedCollection,
   context,
@@ -196,11 +196,13 @@ pub trait ApubObjectType {
   fn send_create(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
   fn send_update(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
   fn send_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
+  fn send_undo_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
 }
 
 pub trait ApubLikeableType {
   fn send_like(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
   fn send_dislike(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
+  // TODO add send_undo_like / undo_dislike
 }
 
 pub fn get_shared_inbox(actor_id: &str) -> String {
@@ -235,6 +237,7 @@ pub trait ActorType {
   }
 
   fn send_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
+  fn send_undo_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
 
   // TODO default because there is no user following yet.
   #[allow(unused_variables)]

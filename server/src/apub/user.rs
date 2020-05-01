@@ -94,6 +94,10 @@ impl ActorType for User_ {
   fn send_delete(&self, _creator: &User_, _conn: &PgConnection) -> Result<(), Error> {
     unimplemented!()
   }
+
+  fn send_undo_delete(&self, _creator: &User_, _conn: &PgConnection) -> Result<(), Error> {
+    unimplemented!()
+  }
 }
 
 impl FromApub for UserForm {

@@ -341,7 +341,7 @@ impl Perform for Oper<EditComment> {
       if deleted {
         updated_comment.send_delete(&user, &conn)?;
       } else {
-        // TODO: undo delete
+        updated_comment.send_undo_delete(&user, &conn)?;
       }
     } else {
       updated_comment.send_update(&user, &conn)?;

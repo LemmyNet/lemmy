@@ -328,8 +328,8 @@ describe('main', () => {
     });
   });
 
-  describe('delete community', () => {
-    test('/u/lemmy_beta deletes a federated comment, post, and community, lemmy_alpha sees its deleted.', async () => {
+  describe('delete things', () => {
+    test('/u/lemmy_beta deletes and undeletes a federated comment, post, and community, lemmy_alpha sees its deleted.', async () => {
       // Create a test community
       let communityName = 'test_community';
       let communityForm: CommunityForm = {
@@ -452,6 +452,34 @@ describe('main', () => {
       }).then(d => d.json());
       expect(getPostRes.comments[0].deleted).toBe(true);
 
+      // lemmy_beta undeletes the comment
+      let undeleteCommentForm: CommentForm = {
+        content: commentContent,
+        edit_id: createCommentRes.comment.id,
+        post_id: createPostRes.post.id,
+        deleted: false,
+        auth: lemmyBetaAuth,
+        creator_id: createCommentRes.comment.creator_id,
+      };
+
+      let undeleteCommentRes: CommentResponse = await fetch(
+        `${lemmyBetaApiUrl}/comment`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(undeleteCommentForm),
+        }
+      ).then(d => d.json());
+      expect(undeleteCommentRes.comment.deleted).toBe(false);
+
+      // lemmy_alpha sees that the comment is undeleted
+      let getPostUndeleteRes: GetPostResponse = await fetch(getPostUrl, {
+        method: 'GET',
+      }).then(d => d.json());
+      expect(getPostUndeleteRes.comments[0].deleted).toBe(false);
+
       // lemmy_beta deletes the post
       let deletePostForm: PostForm = {
         name: postName,
@@ -477,6 +505,35 @@ describe('main', () => {
         method: 'GET',
       }).then(d => d.json());
       expect(getPostResAgain.post.deleted).toBe(true);
+
+      // lemmy_beta undeletes the post
+      let undeletePostForm: PostForm = {
+        name: postName,
+        edit_id: createPostRes.post.id,
+        auth: lemmyBetaAuth,
+        community_id: createPostRes.post.community_id,
+        creator_id: createPostRes.post.creator_id,
+        nsfw: false,
+        deleted: false,
+      };
+
+      let undeletePostRes: PostResponse = await fetch(
+        `${lemmyBetaApiUrl}/post`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(undeletePostForm),
+        }
+      ).then(d => d.json());
+      expect(undeletePostRes.post.deleted).toBe(false);
+
+      // Make sure lemmy_alpha sees the post is undeleted
+      let getPostResAgainTwo: GetPostResponse = await fetch(getPostUrl, {
+        method: 'GET',
+      }).then(d => d.json());
+      expect(getPostResAgainTwo.post.deleted).toBe(false);
 
       // lemmy_beta deletes the community
       let deleteCommunityForm: CommunityForm = {
@@ -510,6 +567,40 @@ describe('main', () => {
       }).then(d => d.json());
 
       expect(getCommunityRes.community.deleted).toBe(true);
+
+      // lemmy_beta undeletes the community
+      let undeleteCommunityForm: CommunityForm = {
+        name: communityName,
+        title: communityName,
+        category_id: 1,
+        edit_id: createCommunityRes.community.id,
+        nsfw: false,
+        deleted: false,
+        auth: lemmyBetaAuth,
+      };
+
+      let undeleteCommunityRes: CommunityResponse = await fetch(
+        `${lemmyBetaApiUrl}/community`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(undeleteCommunityForm),
+        }
+      ).then(d => d.json());
+
+      // Make sure the delete went through
+      expect(undeleteCommunityRes.community.deleted).toBe(false);
+
+      // Re-get it from alpha, make sure its deleted there too
+      let getCommunityResAgain: GetCommunityResponse = await fetch(
+        getCommunityUrl,
+        {
+          method: 'GET',
+        }
+      ).then(d => d.json());
+      expect(getCommunityResAgain.community.deleted).toBe(false);
     });
   });
 });
