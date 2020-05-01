@@ -17,9 +17,9 @@ while [ "$init_db_valid" == 0 ]
 do
   read -p "Initialize database (y/n)? " init_db
   case "$init_db" in
-    [yY] ) init_db_valid=1; init_db_final=1;;
-    [nN] ) init_db_valid=1; init_db_final=0;;
-    * ) echo "Invalid input" 1>&2;;
+    [yY]* ) init_db_valid=1; init_db_final=1;;
+    [nN]* ) init_db_valid=1; init_db_final=0;;
+    * ) echo "Invalid input. Please enter either \"y\" or \"n\"." 1>&2;;
   esac
   echo
 done
