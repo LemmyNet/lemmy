@@ -3,7 +3,7 @@
 Start typing...
 
 - `@a_user_name` to get a list of usernames.
-- `#a_community` to get a list of communities.
+- `!a_community` to get a list of communities.
 - `:emoji` to get a list of emojis.
 
 ## Sorting

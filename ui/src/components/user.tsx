@@ -402,7 +402,7 @@ export class User extends Component<any, UserState> {
             <h5>
               <ul class="list-inline mb-0">
                 <li className="list-inline-item">
-                  <UserListing user={user} />
+                  <UserListing user={user} realLink />
                 </li>
                 {user.banned && (
                   <li className="list-inline-item badge badge-danger">

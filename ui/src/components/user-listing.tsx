@@ -13,6 +13,7 @@ interface UserOther {
 
 interface UserListingProps {
   user: UserView | UserOther;
+  realLink?: boolean;
 }
 
 export class UserListing extends Component<UserListingProps, any> {
@@ -29,8 +30,8 @@ export class UserListing extends Component<UserListingProps, any> {
       name_ = user.name;
       link = `/u/${user.name}`;
     } else {
-      name_ = `${hostname(user.actor_id)}/${user.name}`;
-      link = `/user/${user.id}`;
+      name_ = `${user.name}@${hostname(user.actor_id)}`;
+      link = !this.props.realLink ? `/user/${user.id}` : user.actor_id;
     }
 
     return (
