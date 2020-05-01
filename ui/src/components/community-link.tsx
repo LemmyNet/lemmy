@@ -12,6 +12,7 @@ interface CommunityOther {
 
 interface CommunityLinkProps {
   community: Community | CommunityOther;
+  realLink?: boolean;
 }
 
 export class CommunityLink extends Component<CommunityLinkProps, any> {
@@ -27,8 +28,10 @@ export class CommunityLink extends Component<CommunityLinkProps, any> {
       name_ = community.name;
       link = `/c/${community.name}`;
     } else {
-      name_ = `${hostname(community.actor_id)}/${community.name}`;
-      link = `/community/${community.id}`;
+      name_ = `${community.name}@${hostname(community.actor_id)}`;
+      link = !this.props.realLink
+        ? `/community/${community.id}`
+        : community.actor_id;
     }
     return <Link to={link}>{name_}</Link>;
   }
