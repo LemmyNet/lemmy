@@ -545,7 +545,7 @@ impl Perform for Oper<EditPost> {
       if deleted {
         updated_post.send_delete(&user, &conn)?;
       } else {
-        // TODO: undo delete
+        updated_post.send_undo_delete(&user, &conn)?;
       }
     } else {
       updated_post.send_update(&user, &conn)?;
