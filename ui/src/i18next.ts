@@ -13,14 +13,18 @@ import { it } from './translations/it';
 import { fi } from './translations/fi';
 import { ca } from './translations/ca';
 import { fa } from './translations/fa';
+import { hi } from './translations/hi';
 import { pt_BR } from './translations/pt_BR';
 import { ja } from './translations/ja';
+import { ka } from './translations/ka';
 
 // https://github.com/nimbusec-oss/inferno-i18next/blob/master/tests/T.test.js#L66
 const resources = {
   en,
   eo,
   es,
+  ka,
+  hi,
   de,
   zh,
   fr,
