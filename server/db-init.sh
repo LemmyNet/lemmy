@@ -37,7 +37,7 @@ done
 
 
 psql -c "CREATE USER $username WITH PASSWORD '$password' SUPERUSER;" -U postgres
-psql -c 'CREATE DATABASE $dbname WITH OWNER $username;' -U postgres
+psql -c "CREATE DATABASE $dbname WITH OWNER $username;" -U postgres
 export LEMMY_DATABASE_URL=postgres://$username:$password@localhost:$port/$dbname
 
 echo $LEMMY_DATABASE_URL
