@@ -223,6 +223,7 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
+    // TODO
     // Undo that fake activity
     let undo_id = format!("{}/undo/delete/{}", self.ap_id, uuid::Uuid::new_v4());
     let mut undo = Undo::default();

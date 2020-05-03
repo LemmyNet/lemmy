@@ -1,5 +1,4 @@
 use super::*;
-use activitystreams::actor::kind::GroupType;
 
 #[derive(Deserialize)]
 pub struct CommunityQuery {
@@ -157,6 +156,7 @@ impl ActorType for Community {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(group)?;
 
+    // TODO
     // Undo that fake activity
     let undo_id = format!("{}/undo/delete/{}", self.actor_id, uuid::Uuid::new_v4());
     let mut undo = Undo::default();
