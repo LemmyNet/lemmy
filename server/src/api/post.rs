@@ -541,7 +541,15 @@ impl Perform for Oper<EditPost> {
       ModStickyPost::create(&conn, &form)?;
     }
 
-    updated_post.send_update(&user, &conn)?;
+    if let Some(deleted) = data.deleted.to_owned() {
+      if deleted {
+        updated_post.send_delete(&user, &conn)?;
+      } else {
+        updated_post.send_undo_delete(&user, &conn)?;
+      }
+    } else {
+      updated_post.send_update(&user, &conn)?;
+    }
 
     let post_view = PostView::read(&conn, data.edit_id, Some(user_id))?;
 

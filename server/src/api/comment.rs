@@ -337,7 +337,15 @@ impl Perform for Oper<EditComment> {
       Err(_e) => return Err(APIError::err("couldnt_update_comment").into()),
     };
 
-    updated_comment.send_update(&user, &conn)?;
+    if let Some(deleted) = data.deleted.to_owned() {
+      if deleted {
+        updated_comment.send_delete(&user, &conn)?;
+      } else {
+        updated_comment.send_undo_delete(&user, &conn)?;
+      }
+    } else {
+      updated_comment.send_update(&user, &conn)?;
+    }
 
     let mut recipient_ids = Vec::new();
 

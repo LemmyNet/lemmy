@@ -43,6 +43,9 @@ impl ToApub for User_ {
 
     Ok(person.extend(actor_props).extend(self.get_public_key_ext()))
   }
+  fn to_tombstone(&self) -> Result<Tombstone, Error> {
+    unimplemented!()
+  }
 }
 
 impl ActorType for User_ {
@@ -86,6 +89,14 @@ impl ActorType for User_ {
       vec![to],
     )?;
     Ok(())
+  }
+
+  fn send_delete(&self, _creator: &User_, _conn: &PgConnection) -> Result<(), Error> {
+    unimplemented!()
+  }
+
+  fn send_undo_delete(&self, _creator: &User_, _conn: &PgConnection) -> Result<(), Error> {
+    unimplemented!()
   }
 }
 
