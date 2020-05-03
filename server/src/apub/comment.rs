@@ -187,7 +187,7 @@ impl ApubObjectType for Comment {
 
     // Insert the sent activity into the activity table
     let activity_form = activity::ActivityForm {
-      user_id: self.creator_id,
+      user_id: creator.id,
       data: serde_json::to_value(&delete)?,
       local: true,
       updated: None,
@@ -240,7 +240,7 @@ impl ApubObjectType for Comment {
 
     // Insert the sent activity into the activity table
     let activity_form = activity::ActivityForm {
-      user_id: self.creator_id,
+      user_id: creator.id,
       data: serde_json::to_value(&undo)?,
       local: true,
       updated: None,
@@ -251,6 +251,95 @@ impl ApubObjectType for Comment {
       &undo,
       &creator.private_key.as_ref().unwrap(),
       &creator.actor_id,
+      community.get_follower_inboxes(&conn)?,
+    )?;
+    Ok(())
+  }
+
+  fn send_remove(&self, mod_: &User_, conn: &PgConnection) -> Result<(), Error> {
+    let note = self.to_apub(&conn)?;
+    let post = Post::read(&conn, self.post_id)?;
+    let community = Community::read(&conn, post.community_id)?;
+    let id = format!("{}/remove/{}", self.ap_id, uuid::Uuid::new_v4());
+    let mut remove = Remove::default();
+
+    populate_object_props(
+      &mut remove.object_props,
+      &community.get_followers_url(),
+      &id,
+    )?;
+
+    remove
+      .remove_props
+      .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
+      .set_object_base_box(note)?;
+
+    // Insert the sent activity into the activity table
+    let activity_form = activity::ActivityForm {
+      user_id: mod_.id,
+      data: serde_json::to_value(&remove)?,
+      local: true,
+      updated: None,
+    };
+    activity::Activity::create(&conn, &activity_form)?;
+
+    send_activity(
+      &remove,
+      &mod_.private_key.as_ref().unwrap(),
+      &mod_.actor_id,
+      community.get_follower_inboxes(&conn)?,
+    )?;
+    Ok(())
+  }
+
+  fn send_undo_remove(&self, mod_: &User_, conn: &PgConnection) -> Result<(), Error> {
+    let note = self.to_apub(&conn)?;
+    let post = Post::read(&conn, self.post_id)?;
+    let community = Community::read(&conn, post.community_id)?;
+
+    // Generate a fake delete activity, with the correct object
+    let id = format!("{}/remove/{}", self.ap_id, uuid::Uuid::new_v4());
+    let mut remove = Remove::default();
+
+    populate_object_props(
+      &mut remove.object_props,
+      &community.get_followers_url(),
+      &id,
+    )?;
+
+    remove
+      .remove_props
+      .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
+      .set_object_base_box(note)?;
+
+    // Undo that fake activity
+    let undo_id = format!("{}/undo/remove/{}", self.ap_id, uuid::Uuid::new_v4());
+    let mut undo = Undo::default();
+
+    populate_object_props(
+      &mut undo.object_props,
+      &community.get_followers_url(),
+      &undo_id,
+    )?;
+
+    undo
+      .undo_props
+      .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
+      .set_object_base_box(remove)?;
+
+    // Insert the sent activity into the activity table
+    let activity_form = activity::ActivityForm {
+      user_id: mod_.id,
+      data: serde_json::to_value(&undo)?,
+      local: true,
+      updated: None,
+    };
+    activity::Activity::create(&conn, &activity_form)?;
+
+    send_activity(
+      &undo,
+      &mod_.private_key.as_ref().unwrap(),
+      &mod_.actor_id,
       community.get_follower_inboxes(&conn)?,
     )?;
     Ok(())

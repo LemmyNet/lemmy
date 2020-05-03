@@ -386,6 +386,12 @@ impl Perform for Oper<EditCommunity> {
       } else {
         updated_community.send_undo_delete(&user, &conn)?;
       }
+    } else if let Some(removed) = data.removed.to_owned() {
+      if removed {
+        updated_community.send_remove(&user, &conn)?;
+      } else {
+        updated_community.send_undo_remove(&user, &conn)?;
+      }
     }
 
     let community_view = CommunityView::read(&conn, data.edit_id, Some(user_id))?;

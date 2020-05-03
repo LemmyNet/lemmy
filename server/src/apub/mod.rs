@@ -13,7 +13,7 @@ use crate::api::community::CommunityResponse;
 use crate::websocket::server::SendCommunityRoomMessage;
 use activitystreams::object::kind::{NoteType, PageType};
 use activitystreams::{
-  activity::{Accept, Create, Delete, Dislike, Follow, Like, Undo, Update},
+  activity::{Accept, Create, Delete, Dislike, Follow, Like, Remove, Undo, Update},
   actor::{properties::ApActorProperties, Actor, Group, Person},
   collection::UnorderedCollection,
   context,
@@ -47,13 +47,16 @@ use crate::api::post::PostResponse;
 use crate::api::site::SearchResponse;
 use crate::db::comment::{Comment, CommentForm, CommentLike, CommentLikeForm};
 use crate::db::comment_view::CommentView;
-use crate::db::community::{Community, CommunityFollower, CommunityFollowerForm, CommunityForm};
-use crate::db::community_view::{CommunityFollowerView, CommunityView};
+use crate::db::community::{
+  Community, CommunityFollower, CommunityFollowerForm, CommunityForm, CommunityModerator,
+  CommunityModeratorForm,
+};
+use crate::db::community_view::{CommunityFollowerView, CommunityModeratorView, CommunityView};
 use crate::db::post::{Post, PostForm, PostLike, PostLikeForm};
 use crate::db::post_view::PostView;
 use crate::db::user::{UserForm, User_};
 use crate::db::user_view::UserView;
-use crate::db::{activity, Crud, Followable, Likeable, SearchType};
+use crate::db::{activity, Crud, Followable, Joinable, Likeable, SearchType};
 use crate::routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use crate::routes::{ChatServerParam, DbPoolParam};
 use crate::websocket::{
@@ -197,6 +200,8 @@ pub trait ApubObjectType {
   fn send_update(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
   fn send_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
   fn send_undo_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
+  fn send_remove(&self, mod_: &User_, conn: &PgConnection) -> Result<(), Error>;
+  fn send_undo_remove(&self, mod_: &User_, conn: &PgConnection) -> Result<(), Error>;
 }
 
 pub trait ApubLikeableType {
@@ -238,6 +243,9 @@ pub trait ActorType {
 
   fn send_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
   fn send_undo_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
+
+  fn send_remove(&self, mod_: &User_, conn: &PgConnection) -> Result<(), Error>;
+  fn send_undo_remove(&self, mod_: &User_, conn: &PgConnection) -> Result<(), Error>;
 
   // TODO default because there is no user following yet.
   #[allow(unused_variables)]

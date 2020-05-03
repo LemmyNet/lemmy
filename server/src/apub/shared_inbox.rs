@@ -3,12 +3,13 @@ use super::*;
 #[serde(untagged)]
 #[derive(Serialize, Deserialize, Debug)]
 pub enum SharedAcceptedObjects {
-  Create(Create),
-  Update(Update),
-  Like(Like),
-  Dislike(Dislike),
-  Delete(Delete),
-  Undo(Undo),
+  Create(Box<Create>),
+  Update(Box<Update>),
+  Like(Box<Like>),
+  Dislike(Box<Dislike>),
+  Delete(Box<Delete>),
+  Undo(Box<Undo>),
+  Remove(Box<Remove>),
 }
 
 impl SharedAcceptedObjects {
@@ -20,6 +21,7 @@ impl SharedAcceptedObjects {
       SharedAcceptedObjects::Dislike(d) => d.dislike_props.get_object_base_box(),
       SharedAcceptedObjects::Delete(d) => d.delete_props.get_object_base_box(),
       SharedAcceptedObjects::Undo(d) => d.undo_props.get_object_base_box(),
+      SharedAcceptedObjects::Remove(r) => r.remove_props.get_object_base_box(),
     }
   }
 }
@@ -56,6 +58,9 @@ pub async fn shared_inbox(
     (SharedAcceptedObjects::Delete(d), Some("Page")) => {
       receive_delete_post(&d, &request, &conn, chat_server)
     }
+    (SharedAcceptedObjects::Remove(r), Some("Page")) => {
+      receive_remove_post(&r, &request, &conn, chat_server)
+    }
     (SharedAcceptedObjects::Create(c), Some("Note")) => {
       receive_create_comment(&c, &request, &conn, chat_server)
     }
@@ -71,11 +76,20 @@ pub async fn shared_inbox(
     (SharedAcceptedObjects::Delete(d), Some("Note")) => {
       receive_delete_comment(&d, &request, &conn, chat_server)
     }
+    (SharedAcceptedObjects::Remove(r), Some("Note")) => {
+      receive_remove_comment(&r, &request, &conn, chat_server)
+    }
     (SharedAcceptedObjects::Delete(d), Some("Group")) => {
       receive_delete_community(&d, &request, &conn, chat_server)
     }
+    (SharedAcceptedObjects::Remove(r), Some("Group")) => {
+      receive_remove_community(&r, &request, &conn, chat_server)
+    }
     (SharedAcceptedObjects::Undo(u), Some("Delete")) => {
       receive_undo_delete(&u, &request, &conn, chat_server)
+    }
+    (SharedAcceptedObjects::Undo(u), Some("Remove")) => {
+      receive_undo_remove(&u, &request, &conn, chat_server)
     }
     _ => Err(format_err!("Unknown incoming activity type.")),
   }
@@ -588,6 +602,75 @@ fn receive_delete_community(
   Ok(HttpResponse::Ok().finish())
 }
 
+fn receive_remove_community(
+  remove: &Remove,
+  request: &HttpRequest,
+  conn: &PgConnection,
+  chat_server: ChatServerParam,
+) -> Result<HttpResponse, Error> {
+  let mod_uri = remove
+    .remove_props
+    .get_actor_xsd_any_uri()
+    .unwrap()
+    .to_string();
+
+  let group = remove
+    .remove_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .to_owned()
+    .into_concrete::<GroupExt>()?;
+
+  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
+  verify(request, &mod_.public_key.unwrap())?;
+
+  // Insert the received activity into the activity table
+  let activity_form = activity::ActivityForm {
+    user_id: mod_.id,
+    data: serde_json::to_value(&remove)?,
+    local: false,
+    updated: None,
+  };
+  activity::Activity::create(&conn, &activity_form)?;
+
+  let community_actor_id = CommunityForm::from_apub(&group, &conn)?.actor_id;
+  let community = Community::read_from_actor_id(conn, &community_actor_id)?;
+
+  let community_form = CommunityForm {
+    name: community.name.to_owned(),
+    title: community.title.to_owned(),
+    description: community.description.to_owned(),
+    category_id: community.category_id, // Note: need to keep this due to foreign key constraint
+    creator_id: community.creator_id,   // Note: need to keep this due to foreign key constraint
+    removed: Some(true),
+    published: None,
+    updated: Some(naive_now()),
+    deleted: None,
+    nsfw: community.nsfw,
+    actor_id: community.actor_id,
+    local: community.local,
+    private_key: community.private_key,
+    public_key: community.public_key,
+    last_refreshed_at: None,
+  };
+
+  Community::update(&conn, community.id, &community_form)?;
+
+  let res = CommunityResponse {
+    community: CommunityView::read(&conn, community.id, None)?,
+  };
+
+  chat_server.do_send(SendCommunityRoomMessage {
+    op: UserOperation::EditCommunity,
+    response: res,
+    community_id: community.id,
+    my_id: None,
+  });
+
+  Ok(HttpResponse::Ok().finish())
+}
+
 fn receive_delete_post(
   delete: &Delete,
   request: &HttpRequest,
@@ -631,6 +714,77 @@ fn receive_delete_post(
     community_id: post.community_id,
     removed: None,
     deleted: Some(true),
+    nsfw: post.nsfw,
+    locked: None,
+    stickied: None,
+    updated: Some(naive_now()),
+    embed_title: post.embed_title,
+    embed_description: post.embed_description,
+    embed_html: post.embed_html,
+    thumbnail_url: post.thumbnail_url,
+    ap_id: post.ap_id,
+    local: post.local,
+    published: None,
+  };
+  Post::update(&conn, post.id, &post_form)?;
+
+  // Refetch the view
+  let post_view = PostView::read(&conn, post.id, None)?;
+
+  let res = PostResponse { post: post_view };
+
+  chat_server.do_send(SendPost {
+    op: UserOperation::EditPost,
+    post: res,
+    my_id: None,
+  });
+
+  Ok(HttpResponse::Ok().finish())
+}
+
+fn receive_remove_post(
+  remove: &Remove,
+  request: &HttpRequest,
+  conn: &PgConnection,
+  chat_server: ChatServerParam,
+) -> Result<HttpResponse, Error> {
+  let mod_uri = remove
+    .remove_props
+    .get_actor_xsd_any_uri()
+    .unwrap()
+    .to_string();
+
+  let page = remove
+    .remove_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .to_owned()
+    .into_concrete::<Page>()?;
+
+  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
+  verify(request, &mod_.public_key.unwrap())?;
+
+  // Insert the received activity into the activity table
+  let activity_form = activity::ActivityForm {
+    user_id: mod_.id,
+    data: serde_json::to_value(&remove)?,
+    local: false,
+    updated: None,
+  };
+  activity::Activity::create(&conn, &activity_form)?;
+
+  let post_ap_id = PostForm::from_apub(&page, conn)?.ap_id;
+  let post = Post::read_from_apub_id(conn, &post_ap_id)?;
+
+  let post_form = PostForm {
+    name: post.name.to_owned(),
+    url: post.url.to_owned(),
+    body: post.body.to_owned(),
+    creator_id: post.creator_id.to_owned(),
+    community_id: post.community_id,
+    removed: Some(true),
+    deleted: None,
     nsfw: post.nsfw,
     locked: None,
     stickied: None,
@@ -727,6 +881,74 @@ fn receive_delete_comment(
   Ok(HttpResponse::Ok().finish())
 }
 
+fn receive_remove_comment(
+  remove: &Remove,
+  request: &HttpRequest,
+  conn: &PgConnection,
+  chat_server: ChatServerParam,
+) -> Result<HttpResponse, Error> {
+  let mod_uri = remove
+    .remove_props
+    .get_actor_xsd_any_uri()
+    .unwrap()
+    .to_string();
+
+  let note = remove
+    .remove_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .to_owned()
+    .into_concrete::<Note>()?;
+
+  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
+  verify(request, &mod_.public_key.unwrap())?;
+
+  // Insert the received activity into the activity table
+  let activity_form = activity::ActivityForm {
+    user_id: mod_.id,
+    data: serde_json::to_value(&remove)?,
+    local: false,
+    updated: None,
+  };
+  activity::Activity::create(&conn, &activity_form)?;
+
+  let comment_ap_id = CommentForm::from_apub(&note, &conn)?.ap_id;
+  let comment = Comment::read_from_apub_id(conn, &comment_ap_id)?;
+  let comment_form = CommentForm {
+    content: comment.content.to_owned(),
+    parent_id: comment.parent_id,
+    post_id: comment.post_id,
+    creator_id: comment.creator_id,
+    removed: Some(true),
+    deleted: None,
+    read: None,
+    published: None,
+    updated: Some(naive_now()),
+    ap_id: comment.ap_id,
+    local: comment.local,
+  };
+  Comment::update(&conn, comment.id, &comment_form)?;
+
+  // Refetch the view
+  let comment_view = CommentView::read(&conn, comment.id, None)?;
+
+  // TODO get those recipient actor ids from somewhere
+  let recipient_ids = vec![];
+  let res = CommentResponse {
+    comment: comment_view,
+    recipient_ids,
+  };
+
+  chat_server.do_send(SendComment {
+    op: UserOperation::EditComment,
+    comment: res,
+    my_id: None,
+  });
+
+  Ok(HttpResponse::Ok().finish())
+}
+
 fn receive_undo_delete(
   undo: &Undo,
   request: &HttpRequest,
@@ -753,6 +975,36 @@ fn receive_undo_delete(
     "Note" => receive_undo_delete_comment(&delete, &request, &conn, chat_server),
     "Page" => receive_undo_delete_post(&delete, &request, &conn, chat_server),
     "Group" => receive_undo_delete_community(&delete, &request, &conn, chat_server),
+    d => Err(format_err!("Undo Delete type {} not supported", d)),
+  }
+}
+
+fn receive_undo_remove(
+  undo: &Undo,
+  request: &HttpRequest,
+  conn: &PgConnection,
+  chat_server: ChatServerParam,
+) -> Result<HttpResponse, Error> {
+  let remove = undo
+    .undo_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .to_owned()
+    .into_concrete::<Remove>()?;
+
+  let type_ = remove
+    .remove_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .kind()
+    .unwrap();
+
+  match type_ {
+    "Note" => receive_undo_remove_comment(&remove, &request, &conn, chat_server),
+    "Page" => receive_undo_remove_post(&remove, &request, &conn, chat_server),
+    "Group" => receive_undo_remove_community(&remove, &request, &conn, chat_server),
     d => Err(format_err!("Undo Delete type {} not supported", d)),
   }
 }
@@ -798,6 +1050,74 @@ fn receive_undo_delete_comment(
     creator_id: comment.creator_id,
     removed: None,
     deleted: Some(false),
+    read: None,
+    published: None,
+    updated: Some(naive_now()),
+    ap_id: comment.ap_id,
+    local: comment.local,
+  };
+  Comment::update(&conn, comment.id, &comment_form)?;
+
+  // Refetch the view
+  let comment_view = CommentView::read(&conn, comment.id, None)?;
+
+  // TODO get those recipient actor ids from somewhere
+  let recipient_ids = vec![];
+  let res = CommentResponse {
+    comment: comment_view,
+    recipient_ids,
+  };
+
+  chat_server.do_send(SendComment {
+    op: UserOperation::EditComment,
+    comment: res,
+    my_id: None,
+  });
+
+  Ok(HttpResponse::Ok().finish())
+}
+
+fn receive_undo_remove_comment(
+  remove: &Remove,
+  request: &HttpRequest,
+  conn: &PgConnection,
+  chat_server: ChatServerParam,
+) -> Result<HttpResponse, Error> {
+  let mod_uri = remove
+    .remove_props
+    .get_actor_xsd_any_uri()
+    .unwrap()
+    .to_string();
+
+  let note = remove
+    .remove_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .to_owned()
+    .into_concrete::<Note>()?;
+
+  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
+  verify(request, &mod_.public_key.unwrap())?;
+
+  // Insert the received activity into the activity table
+  let activity_form = activity::ActivityForm {
+    user_id: mod_.id,
+    data: serde_json::to_value(&remove)?,
+    local: false,
+    updated: None,
+  };
+  activity::Activity::create(&conn, &activity_form)?;
+
+  let comment_ap_id = CommentForm::from_apub(&note, &conn)?.ap_id;
+  let comment = Comment::read_from_apub_id(conn, &comment_ap_id)?;
+  let comment_form = CommentForm {
+    content: comment.content.to_owned(),
+    parent_id: comment.parent_id,
+    post_id: comment.post_id,
+    creator_id: comment.creator_id,
+    removed: Some(false),
+    deleted: None,
     read: None,
     published: None,
     updated: Some(naive_now()),
@@ -896,6 +1216,77 @@ fn receive_undo_delete_post(
   Ok(HttpResponse::Ok().finish())
 }
 
+fn receive_undo_remove_post(
+  remove: &Remove,
+  request: &HttpRequest,
+  conn: &PgConnection,
+  chat_server: ChatServerParam,
+) -> Result<HttpResponse, Error> {
+  let mod_uri = remove
+    .remove_props
+    .get_actor_xsd_any_uri()
+    .unwrap()
+    .to_string();
+
+  let page = remove
+    .remove_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .to_owned()
+    .into_concrete::<Page>()?;
+
+  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
+  verify(request, &mod_.public_key.unwrap())?;
+
+  // Insert the received activity into the activity table
+  let activity_form = activity::ActivityForm {
+    user_id: mod_.id,
+    data: serde_json::to_value(&remove)?,
+    local: false,
+    updated: None,
+  };
+  activity::Activity::create(&conn, &activity_form)?;
+
+  let post_ap_id = PostForm::from_apub(&page, conn)?.ap_id;
+  let post = Post::read_from_apub_id(conn, &post_ap_id)?;
+
+  let post_form = PostForm {
+    name: post.name.to_owned(),
+    url: post.url.to_owned(),
+    body: post.body.to_owned(),
+    creator_id: post.creator_id.to_owned(),
+    community_id: post.community_id,
+    removed: Some(false),
+    deleted: None,
+    nsfw: post.nsfw,
+    locked: None,
+    stickied: None,
+    updated: Some(naive_now()),
+    embed_title: post.embed_title,
+    embed_description: post.embed_description,
+    embed_html: post.embed_html,
+    thumbnail_url: post.thumbnail_url,
+    ap_id: post.ap_id,
+    local: post.local,
+    published: None,
+  };
+  Post::update(&conn, post.id, &post_form)?;
+
+  // Refetch the view
+  let post_view = PostView::read(&conn, post.id, None)?;
+
+  let res = PostResponse { post: post_view };
+
+  chat_server.do_send(SendPost {
+    op: UserOperation::EditPost,
+    post: res,
+    my_id: None,
+  });
+
+  Ok(HttpResponse::Ok().finish())
+}
+
 fn receive_undo_delete_community(
   delete: &Delete,
   request: &HttpRequest,
@@ -941,6 +1332,75 @@ fn receive_undo_delete_community(
     published: None,
     updated: Some(naive_now()),
     deleted: Some(false),
+    nsfw: community.nsfw,
+    actor_id: community.actor_id,
+    local: community.local,
+    private_key: community.private_key,
+    public_key: community.public_key,
+    last_refreshed_at: None,
+  };
+
+  Community::update(&conn, community.id, &community_form)?;
+
+  let res = CommunityResponse {
+    community: CommunityView::read(&conn, community.id, None)?,
+  };
+
+  chat_server.do_send(SendCommunityRoomMessage {
+    op: UserOperation::EditCommunity,
+    response: res,
+    community_id: community.id,
+    my_id: None,
+  });
+
+  Ok(HttpResponse::Ok().finish())
+}
+
+fn receive_undo_remove_community(
+  remove: &Remove,
+  request: &HttpRequest,
+  conn: &PgConnection,
+  chat_server: ChatServerParam,
+) -> Result<HttpResponse, Error> {
+  let mod_uri = remove
+    .remove_props
+    .get_actor_xsd_any_uri()
+    .unwrap()
+    .to_string();
+
+  let group = remove
+    .remove_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .to_owned()
+    .into_concrete::<GroupExt>()?;
+
+  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
+  verify(request, &mod_.public_key.unwrap())?;
+
+  // Insert the received activity into the activity table
+  let activity_form = activity::ActivityForm {
+    user_id: mod_.id,
+    data: serde_json::to_value(&remove)?,
+    local: false,
+    updated: None,
+  };
+  activity::Activity::create(&conn, &activity_form)?;
+
+  let community_actor_id = CommunityForm::from_apub(&group, &conn)?.actor_id;
+  let community = Community::read_from_actor_id(conn, &community_actor_id)?;
+
+  let community_form = CommunityForm {
+    name: community.name.to_owned(),
+    title: community.title.to_owned(),
+    description: community.description.to_owned(),
+    category_id: community.category_id, // Note: need to keep this due to foreign key constraint
+    creator_id: community.creator_id,   // Note: need to keep this due to foreign key constraint
+    removed: Some(false),
+    published: None,
+    updated: Some(naive_now()),
+    deleted: None,
     nsfw: community.nsfw,
     actor_id: community.actor_id,
     local: community.local,
