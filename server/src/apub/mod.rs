@@ -9,14 +9,17 @@ pub mod signatures;
 pub mod user;
 pub mod user_inbox;
 
+use crate::api::community::CommunityResponse;
+use crate::websocket::server::SendCommunityRoomMessage;
+use activitystreams::object::kind::{NoteType, PageType};
 use activitystreams::{
-  activity::{Accept, Create, Dislike, Follow, Like, Update},
-  actor::{properties::ApActorProperties, Actor, Group, Person},
+  activity::{Accept, Create, Delete, Dislike, Follow, Like, Undo, Update},
+  actor::{kind::GroupType, properties::ApActorProperties, Actor, Group, Person},
   collection::UnorderedCollection,
   context,
   endpoint::EndpointProperties,
   ext::{Ext, Extensible, Extension},
-  object::{properties::ObjectProperties, Note, Page},
+  object::{properties::ObjectProperties, Note, Page, Tombstone},
   public, BaseBox,
 };
 use actix_web::body::Body;
@@ -60,6 +63,7 @@ use crate::websocket::{
 use crate::{convert_datetime, naive_now, Settings};
 
 use activities::{populate_object_props, send_activity};
+use chrono::NaiveDateTime;
 use fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user};
 use signatures::verify;
 use signatures::{sign, PublicKey, PublicKeyExtension};
@@ -83,6 +87,15 @@ where
   T: Serialize,
 {
   HttpResponse::Ok()
+    .content_type(APUB_JSON_CONTENT_TYPE)
+    .json(data)
+}
+
+fn create_apub_tombstone_response<T>(data: &T) -> HttpResponse<Body>
+where
+  T: Serialize,
+{
+  HttpResponse::Gone()
     .content_type(APUB_JSON_CONTENT_TYPE)
     .json(data)
 }
@@ -142,6 +155,35 @@ fn is_apub_id_valid(apub_id: &Url) -> bool {
 pub trait ToApub {
   type Response;
   fn to_apub(&self, conn: &PgConnection) -> Result<Self::Response, Error>;
+  fn to_tombstone(&self) -> Result<Tombstone, Error>;
+}
+
+/// Updated is actually the deletion time
+fn create_tombstone(
+  deleted: bool,
+  object_id: &str,
+  updated: Option<NaiveDateTime>,
+  former_type: String,
+) -> Result<Tombstone, Error> {
+  if deleted {
+    if let Some(updated) = updated {
+      let mut tombstone = Tombstone::default();
+      tombstone.object_props.set_id(object_id)?;
+      tombstone
+        .tombstone_props
+        .set_former_type_xsd_string(former_type)?
+        .set_deleted(convert_datetime(updated))?;
+      Ok(tombstone)
+    } else {
+      Err(format_err!(
+        "Cant convert to tombstone because updated time was None."
+      ))
+    }
+  } else {
+    Err(format_err!(
+      "Cant convert object to tombstone if it wasnt deleted"
+    ))
+  }
 }
 
 pub trait FromApub {
@@ -154,11 +196,14 @@ pub trait FromApub {
 pub trait ApubObjectType {
   fn send_create(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
   fn send_update(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
+  fn send_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
+  fn send_undo_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
 }
 
 pub trait ApubLikeableType {
   fn send_like(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
   fn send_dislike(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
+  // TODO add send_undo_like / undo_dislike
 }
 
 pub fn get_shared_inbox(actor_id: &str) -> String {
@@ -191,6 +236,9 @@ pub trait ActorType {
   fn send_accept_follow(&self, follow: &Follow, conn: &PgConnection) -> Result<(), Error> {
     Err(format_err!("Accept not implemented."))
   }
+
+  fn send_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
+  fn send_undo_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
 
   // TODO default because there is no user following yet.
   #[allow(unused_variables)]

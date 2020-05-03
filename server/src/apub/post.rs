@@ -12,7 +12,11 @@ pub async fn get_apub_post(
 ) -> Result<HttpResponse<Body>, Error> {
   let id = info.post_id.parse::<i32>()?;
   let post = Post::read(&&db.get()?, id)?;
-  Ok(create_apub_response(&post.to_apub(&db.get().unwrap())?))
+  if !post.deleted {
+    Ok(create_apub_response(&post.to_apub(&db.get().unwrap())?))
+  } else {
+    Ok(create_apub_tombstone_response(&post.to_tombstone()?))
+  }
 }
 
 impl ToApub for Post {
@@ -52,6 +56,15 @@ impl ToApub for Post {
     }
 
     Ok(page)
+  }
+
+  fn to_tombstone(&self) -> Result<Tombstone, Error> {
+    create_tombstone(
+      self.deleted,
+      &self.ap_id,
+      self.updated,
+      PageType.to_string(),
+    )
   }
 }
 
@@ -157,6 +170,94 @@ impl ApubObjectType for Post {
 
     send_activity(
       &update,
+      &creator.private_key.as_ref().unwrap(),
+      &creator.actor_id,
+      community.get_follower_inboxes(&conn)?,
+    )?;
+    Ok(())
+  }
+
+  fn send_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
+    let page = self.to_apub(conn)?;
+    let community = Community::read(conn, self.community_id)?;
+    let id = format!("{}/delete/{}", self.ap_id, uuid::Uuid::new_v4());
+    let mut delete = Delete::default();
+
+    populate_object_props(
+      &mut delete.object_props,
+      &community.get_followers_url(),
+      &id,
+    )?;
+
+    delete
+      .delete_props
+      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
+      .set_object_base_box(page)?;
+
+    // Insert the sent activity into the activity table
+    let activity_form = activity::ActivityForm {
+      user_id: self.creator_id,
+      data: serde_json::to_value(&delete)?,
+      local: true,
+      updated: None,
+    };
+    activity::Activity::create(&conn, &activity_form)?;
+
+    let community = Community::read(conn, self.community_id)?;
+    send_activity(
+      &delete,
+      &creator.private_key.as_ref().unwrap(),
+      &creator.actor_id,
+      community.get_follower_inboxes(&conn)?,
+    )?;
+    Ok(())
+  }
+
+  fn send_undo_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
+    let page = self.to_apub(conn)?;
+    let community = Community::read(conn, self.community_id)?;
+    let id = format!("{}/delete/{}", self.ap_id, uuid::Uuid::new_v4());
+    let mut delete = Delete::default();
+
+    populate_object_props(
+      &mut delete.object_props,
+      &community.get_followers_url(),
+      &id,
+    )?;
+
+    delete
+      .delete_props
+      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
+      .set_object_base_box(page)?;
+
+    // TODO
+    // Undo that fake activity
+    let undo_id = format!("{}/undo/delete/{}", self.ap_id, uuid::Uuid::new_v4());
+    let mut undo = Undo::default();
+
+    populate_object_props(
+      &mut undo.object_props,
+      &community.get_followers_url(),
+      &undo_id,
+    )?;
+
+    undo
+      .undo_props
+      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
+      .set_object_base_box(delete)?;
+
+    // Insert the sent activity into the activity table
+    let activity_form = activity::ActivityForm {
+      user_id: self.creator_id,
+      data: serde_json::to_value(&undo)?,
+      local: true,
+      updated: None,
+    };
+    activity::Activity::create(&conn, &activity_form)?;
+
+    let community = Community::read(conn, self.community_id)?;
+    send_activity(
+      &undo,
       &creator.private_key.as_ref().unwrap(),
       &creator.actor_id,
       community.get_follower_inboxes(&conn)?,

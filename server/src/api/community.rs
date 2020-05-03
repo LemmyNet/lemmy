@@ -321,7 +321,8 @@ impl Perform for Oper<EditCommunity> {
     let conn = pool.get()?;
 
     // Check for a site ban
-    if UserView::read(&conn, user_id)?.banned {
+    let user = User_::read(&conn, user_id)?;
+    if user.banned {
       return Err(APIError::err("site_ban").into());
     }
 
@@ -358,7 +359,7 @@ impl Perform for Oper<EditCommunity> {
       published: None,
     };
 
-    let _updated_community = match Community::update(&conn, data.edit_id, &community_form) {
+    let updated_community = match Community::update(&conn, data.edit_id, &community_form) {
       Ok(community) => community,
       Err(_e) => return Err(APIError::err("couldnt_update_community").into()),
     };
@@ -377,6 +378,14 @@ impl Perform for Oper<EditCommunity> {
         expires,
       };
       ModRemoveCommunity::create(&conn, &form)?;
+    }
+
+    if let Some(deleted) = data.deleted.to_owned() {
+      if deleted {
+        updated_community.send_delete(&user, &conn)?;
+      } else {
+        updated_community.send_undo_delete(&user, &conn)?;
+      }
     }
 
     let community_view = CommunityView::read(&conn, data.edit_id, Some(user_id))?;
@@ -701,7 +710,7 @@ impl Perform for Oper<TransferCommunity> {
       title: read_community.title,
       description: read_community.description,
       category_id: read_community.category_id,
-      creator_id: data.user_id,
+      creator_id: data.user_id, // This makes the new user the community creator
       removed: None,
       deleted: None,
       nsfw: read_community.nsfw,

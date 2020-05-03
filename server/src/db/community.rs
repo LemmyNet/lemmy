@@ -22,6 +22,7 @@ pub struct Community {
   pub last_refreshed_at: chrono::NaiveDateTime,
 }
 
+// TODO add better delete, remove, lock actions here.
 #[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize, Debug)]
 #[table_name = "community"]
 pub struct CommunityForm {

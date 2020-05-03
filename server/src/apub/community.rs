@@ -45,6 +45,15 @@ impl ToApub for Community {
 
     Ok(group.extend(actor_props).extend(self.get_public_key_ext()))
   }
+
+  fn to_tombstone(&self) -> Result<Tombstone, Error> {
+    create_tombstone(
+      self.deleted,
+      &self.actor_id,
+      self.updated,
+      GroupType.to_string(),
+    )
+  }
 }
 
 impl ActorType for Community {
@@ -94,10 +103,86 @@ impl ActorType for Community {
     Ok(())
   }
 
+  fn send_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
+    let group = self.to_apub(conn)?;
+    let id = format!("{}/delete/{}", self.actor_id, uuid::Uuid::new_v4());
+
+    let mut delete = Delete::default();
+    populate_object_props(&mut delete.object_props, &self.get_followers_url(), &id)?;
+
+    delete
+      .delete_props
+      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
+      .set_object_base_box(group)?;
+
+    // Insert the sent activity into the activity table
+    let activity_form = activity::ActivityForm {
+      user_id: self.creator_id,
+      data: serde_json::to_value(&delete)?,
+      local: true,
+      updated: None,
+    };
+    activity::Activity::create(&conn, &activity_form)?;
+
+    // Note: For an accept, since it was automatic, no one pushed a button,
+    // the community was the actor.
+    // But for delete, the creator is the actor, and does the signing
+    send_activity(
+      &delete,
+      &creator.private_key.as_ref().unwrap(),
+      &creator.actor_id,
+      self.get_follower_inboxes(&conn)?,
+    )?;
+    Ok(())
+  }
+
+  fn send_undo_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
+    let group = self.to_apub(conn)?;
+    let id = format!("{}/delete/{}", self.actor_id, uuid::Uuid::new_v4());
+
+    let mut delete = Delete::default();
+    populate_object_props(&mut delete.object_props, &self.get_followers_url(), &id)?;
+
+    delete
+      .delete_props
+      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
+      .set_object_base_box(group)?;
+
+    // TODO
+    // Undo that fake activity
+    let undo_id = format!("{}/undo/delete/{}", self.actor_id, uuid::Uuid::new_v4());
+    let mut undo = Undo::default();
+
+    populate_object_props(&mut undo.object_props, &self.get_followers_url(), &undo_id)?;
+
+    undo
+      .undo_props
+      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
+      .set_object_base_box(delete)?;
+
+    // Insert the sent activity into the activity table
+    let activity_form = activity::ActivityForm {
+      user_id: self.creator_id,
+      data: serde_json::to_value(&undo)?,
+      local: true,
+      updated: None,
+    };
+    activity::Activity::create(&conn, &activity_form)?;
+
+    // Note: For an accept, since it was automatic, no one pushed a button,
+    // the community was the actor.
+    // But for delete, the creator is the actor, and does the signing
+    send_activity(
+      &undo,
+      &creator.private_key.as_ref().unwrap(),
+      &creator.actor_id,
+      self.get_follower_inboxes(&conn)?,
+    )?;
+    Ok(())
+  }
+
   /// For a given community, returns the inboxes of all followers.
   fn get_follower_inboxes(&self, conn: &PgConnection) -> Result<Vec<String>, Error> {
-    debug!("got here.");
-
     Ok(
       CommunityFollowerView::for_community(conn, self.id)?
         .into_iter()
@@ -170,8 +255,13 @@ pub async fn get_apub_community_http(
   db: DbPoolParam,
 ) -> Result<HttpResponse<Body>, Error> {
   let community = Community::read_from_name(&&db.get()?, &info.community_name)?;
-  let c = community.to_apub(&db.get().unwrap())?;
-  Ok(create_apub_response(&c))
+  if !community.deleted {
+    Ok(create_apub_response(
+      &community.to_apub(&db.get().unwrap())?,
+    ))
+  } else {
+    Ok(create_apub_tombstone_response(&community.to_tombstone()?))
+  }
 }
 
 /// Returns an empty followers collection, only populating the siz (for privacy).
