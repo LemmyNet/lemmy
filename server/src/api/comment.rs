@@ -343,6 +343,12 @@ impl Perform for Oper<EditComment> {
       } else {
         updated_comment.send_undo_delete(&user, &conn)?;
       }
+    } else if let Some(removed) = data.removed.to_owned() {
+      if removed {
+        updated_comment.send_remove(&user, &conn)?;
+      } else {
+        updated_comment.send_undo_remove(&user, &conn)?;
+      }
     } else {
       updated_comment.send_update(&user, &conn)?;
     }

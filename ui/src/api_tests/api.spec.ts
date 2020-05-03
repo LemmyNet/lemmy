@@ -603,6 +603,282 @@ describe('main', () => {
       expect(getCommunityResAgain.community.deleted).toBe(false);
     });
   });
+
+  describe('remove things', () => {
+    test('/u/lemmy_beta removes and unremoves a federated comment, post, and community, lemmy_alpha sees its removed.', async () => {
+      // Create a test community
+      let communityName = 'test_community_rem';
+      let communityForm: CommunityForm = {
+        name: communityName,
+        title: communityName,
+        category_id: 1,
+        nsfw: false,
+        auth: lemmyBetaAuth,
+      };
+
+      let createCommunityRes: CommunityResponse = await fetch(
+        `${lemmyBetaApiUrl}/community`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(communityForm),
+        }
+      ).then(d => d.json());
+
+      expect(createCommunityRes.community.name).toBe(communityName);
+
+      // Cache it on lemmy_alpha
+      let searchUrl = `${lemmyAlphaApiUrl}/search?q=http://lemmy_beta:8550/c/${communityName}&type_=All&sort=TopAll`;
+      let searchResponse: SearchResponse = await fetch(searchUrl, {
+        method: 'GET',
+      }).then(d => d.json());
+
+      let communityOnAlphaId = searchResponse.communities[0].id;
+
+      // Follow it
+      let followForm: FollowCommunityForm = {
+        community_id: communityOnAlphaId,
+        follow: true,
+        auth: lemmyAlphaAuth,
+      };
+
+      let followRes: CommunityResponse = await fetch(
+        `${lemmyAlphaApiUrl}/community/follow`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(followForm),
+        }
+      ).then(d => d.json());
+
+      // Make sure the follow response went through
+      expect(followRes.community.local).toBe(false);
+      expect(followRes.community.name).toBe(communityName);
+
+      // Lemmy beta creates a test post
+      let postName = 'A jest test post with remove';
+      let createPostForm: PostForm = {
+        name: postName,
+        auth: lemmyBetaAuth,
+        community_id: createCommunityRes.community.id,
+        creator_id: 2,
+        nsfw: false,
+      };
+
+      let createPostRes: PostResponse = await fetch(`${lemmyBetaApiUrl}/post`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: wrapper(createPostForm),
+      }).then(d => d.json());
+      expect(createPostRes.post.name).toBe(postName);
+
+      // Lemmy beta creates a test comment
+      let commentContent = 'A jest test federated comment with remove';
+      let createCommentForm: CommentForm = {
+        content: commentContent,
+        post_id: createPostRes.post.id,
+        auth: lemmyBetaAuth,
+      };
+
+      let createCommentRes: CommentResponse = await fetch(
+        `${lemmyBetaApiUrl}/comment`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(createCommentForm),
+        }
+      ).then(d => d.json());
+
+      expect(createCommentRes.comment.content).toBe(commentContent);
+
+      // lemmy_beta removes the comment
+      let removeCommentForm: CommentForm = {
+        content: commentContent,
+        edit_id: createCommentRes.comment.id,
+        post_id: createPostRes.post.id,
+        removed: true,
+        auth: lemmyBetaAuth,
+        creator_id: createCommentRes.comment.creator_id,
+      };
+
+      let removeCommentRes: CommentResponse = await fetch(
+        `${lemmyBetaApiUrl}/comment`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(removeCommentForm),
+        }
+      ).then(d => d.json());
+      expect(removeCommentRes.comment.removed).toBe(true);
+
+      // lemmy_alpha sees that the comment is removed
+      let getPostUrl = `${lemmyAlphaApiUrl}/post?id=4`;
+      let getPostRes: GetPostResponse = await fetch(getPostUrl, {
+        method: 'GET',
+      }).then(d => d.json());
+      expect(getPostRes.comments[0].removed).toBe(true);
+
+      // lemmy_beta undeletes the comment
+      let unremoveCommentForm: CommentForm = {
+        content: commentContent,
+        edit_id: createCommentRes.comment.id,
+        post_id: createPostRes.post.id,
+        removed: false,
+        auth: lemmyBetaAuth,
+        creator_id: createCommentRes.comment.creator_id,
+      };
+
+      let unremoveCommentRes: CommentResponse = await fetch(
+        `${lemmyBetaApiUrl}/comment`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(unremoveCommentForm),
+        }
+      ).then(d => d.json());
+      expect(unremoveCommentRes.comment.removed).toBe(false);
+
+      // lemmy_alpha sees that the comment is undeleted
+      let getPostUnremoveRes: GetPostResponse = await fetch(getPostUrl, {
+        method: 'GET',
+      }).then(d => d.json());
+      expect(getPostUnremoveRes.comments[0].removed).toBe(false);
+
+      // lemmy_beta deletes the post
+      let removePostForm: PostForm = {
+        name: postName,
+        edit_id: createPostRes.post.id,
+        auth: lemmyBetaAuth,
+        community_id: createPostRes.post.community_id,
+        creator_id: createPostRes.post.creator_id,
+        nsfw: false,
+        removed: true,
+      };
+
+      let removePostRes: PostResponse = await fetch(`${lemmyBetaApiUrl}/post`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: wrapper(removePostForm),
+      }).then(d => d.json());
+      expect(removePostRes.post.removed).toBe(true);
+
+      // Make sure lemmy_alpha sees the post is deleted
+      let getPostResAgain: GetPostResponse = await fetch(getPostUrl, {
+        method: 'GET',
+      }).then(d => d.json());
+      expect(getPostResAgain.post.removed).toBe(true);
+
+      // lemmy_beta unremoves the post
+      let unremovePostForm: PostForm = {
+        name: postName,
+        edit_id: createPostRes.post.id,
+        auth: lemmyBetaAuth,
+        community_id: createPostRes.post.community_id,
+        creator_id: createPostRes.post.creator_id,
+        nsfw: false,
+        removed: false,
+      };
+
+      let unremovePostRes: PostResponse = await fetch(
+        `${lemmyBetaApiUrl}/post`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(unremovePostForm),
+        }
+      ).then(d => d.json());
+      expect(unremovePostRes.post.removed).toBe(false);
+
+      // Make sure lemmy_alpha sees the post is unremoved
+      let getPostResAgainTwo: GetPostResponse = await fetch(getPostUrl, {
+        method: 'GET',
+      }).then(d => d.json());
+      expect(getPostResAgainTwo.post.removed).toBe(false);
+
+      // lemmy_beta deletes the community
+      let removeCommunityForm: CommunityForm = {
+        name: communityName,
+        title: communityName,
+        category_id: 1,
+        edit_id: createCommunityRes.community.id,
+        nsfw: false,
+        removed: true,
+        auth: lemmyBetaAuth,
+      };
+
+      let removeCommunityRes: CommunityResponse = await fetch(
+        `${lemmyBetaApiUrl}/community`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(removeCommunityForm),
+        }
+      ).then(d => d.json());
+
+      // Make sure the delete went through
+      expect(removeCommunityRes.community.removed).toBe(true);
+
+      // Re-get it from alpha, make sure its removed there too
+      let getCommunityUrl = `${lemmyAlphaApiUrl}/community?id=${communityOnAlphaId}&auth=${lemmyAlphaAuth}`;
+      let getCommunityRes: GetCommunityResponse = await fetch(getCommunityUrl, {
+        method: 'GET',
+      }).then(d => d.json());
+
+      expect(getCommunityRes.community.removed).toBe(true);
+
+      // lemmy_beta unremoves the community
+      let unremoveCommunityForm: CommunityForm = {
+        name: communityName,
+        title: communityName,
+        category_id: 1,
+        edit_id: createCommunityRes.community.id,
+        nsfw: false,
+        removed: false,
+        auth: lemmyBetaAuth,
+      };
+
+      let unremoveCommunityRes: CommunityResponse = await fetch(
+        `${lemmyBetaApiUrl}/community`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(unremoveCommunityForm),
+        }
+      ).then(d => d.json());
+
+      // Make sure the delete went through
+      expect(unremoveCommunityRes.community.removed).toBe(false);
+
+      // Re-get it from alpha, make sure its deleted there too
+      let getCommunityResAgain: GetCommunityResponse = await fetch(
+        getCommunityUrl,
+        {
+          method: 'GET',
+        }
+      ).then(d => d.json());
+      expect(getCommunityResAgain.community.removed).toBe(false);
+    });
+  });
 });
 
 function wrapper(form: any): string {

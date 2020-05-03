@@ -547,6 +547,12 @@ impl Perform for Oper<EditPost> {
       } else {
         updated_post.send_undo_delete(&user, &conn)?;
       }
+    } else if let Some(removed) = data.removed.to_owned() {
+      if removed {
+        updated_post.send_remove(&user, &conn)?;
+      } else {
+        updated_post.send_undo_remove(&user, &conn)?;
+      }
     } else {
       updated_post.send_update(&user, &conn)?;
     }

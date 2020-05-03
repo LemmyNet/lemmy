@@ -86,10 +86,10 @@ pub fn get_or_fetch_and_upsert_remote_user(
   match User_::read_from_actor_id(&conn, &apub_id) {
     Ok(u) => {
       // If its older than a day, re-fetch it
-      // TODO the less than needs to be tested
-      if u
-        .last_refreshed_at
-        .lt(&(naive_now() - chrono::Duration::days(1)))
+      if !u.local
+        && u
+          .last_refreshed_at
+          .lt(&(naive_now() - chrono::Duration::days(1)))
       {
         debug!("Fetching and updating from remote user: {}", apub_id);
         let person = fetch_remote_object::<PersonExt>(&Url::parse(apub_id)?)?;
@@ -118,10 +118,10 @@ pub fn get_or_fetch_and_upsert_remote_community(
   match Community::read_from_actor_id(&conn, &apub_id) {
     Ok(c) => {
       // If its older than a day, re-fetch it
-      // TODO the less than needs to be tested
-      if c
-        .last_refreshed_at
-        .lt(&(naive_now() - chrono::Duration::days(1)))
+      if !c.local
+        && c
+          .last_refreshed_at
+          .lt(&(naive_now() - chrono::Duration::days(1)))
       {
         debug!("Fetching and updating from remote community: {}", apub_id);
         let group = fetch_remote_object::<GroupExt>(&Url::parse(apub_id)?)?;
@@ -136,7 +136,28 @@ pub fn get_or_fetch_and_upsert_remote_community(
       debug!("Fetching and creating remote community: {}", apub_id);
       let group = fetch_remote_object::<GroupExt>(&Url::parse(apub_id)?)?;
       let cf = CommunityForm::from_apub(&group, conn)?;
-      Ok(Community::create(conn, &cf)?)
+      let community = Community::create(conn, &cf)?;
+
+      // Also add the community moderators too
+      let creator_and_moderator_uris = group
+        .base
+        .base
+        .object_props
+        .get_many_attributed_to_xsd_any_uris()
+        .unwrap();
+      let creator_and_moderators = creator_and_moderator_uris
+        .map(|c| get_or_fetch_and_upsert_remote_user(&c.to_string(), &conn).unwrap())
+        .collect::<Vec<User_>>();
+
+      for mod_ in creator_and_moderators {
+        let community_moderator_form = CommunityModeratorForm {
+          community_id: community.id,
+          user_id: mod_.id,
+        };
+        CommunityModerator::join(&conn, &community_moderator_form)?;
+      }
+
+      Ok(community)
     }
     Err(e) => Err(Error::from(e)),
   }
