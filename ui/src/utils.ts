@@ -501,7 +501,10 @@ export function setupTribute(): Tribute {
       {
         trigger: '@',
         selectTemplate: (item: any) => {
-          return `[/u/${item.original.key}](/u/${item.original.key})`;
+          let link = item.original.local
+            ? `[@${item.original.key}](/u/${item.original.key})`
+            : `[@${item.original.key}](/user/${item.original.id})`;
+          return link;
         },
         values: (text: string, cb: any) => {
           userSearch(text, (users: any) => cb(users));
@@ -514,9 +517,12 @@ export function setupTribute(): Tribute {
 
       // Communities
       {
-        trigger: '#',
+        trigger: '!',
         selectTemplate: (item: any) => {
-          return `[/c/${item.original.key}](/c/${item.original.key})`;
+          let link = item.original.local
+            ? `[!${item.original.key}](/c/${item.original.key})`
+            : `[!${item.original.key}](/community/${item.original.id})`;
+          return link;
         },
         values: (text: string, cb: any) => {
           communitySearch(text, (communities: any) => cb(communities));
@@ -559,7 +565,12 @@ function userSearch(text: string, cb: any) {
         if (res.op == UserOperation.Search) {
           let data = res.data as SearchResponse;
           let users = data.users.map(u => {
-            return { key: u.name };
+            let name_ = u.local ? u.name : `${u.name}@${hostname(u.actor_id)}`;
+            return {
+              key: name_,
+              local: u.local,
+              id: u.id,
+            };
           });
           cb(users);
           this.userSub.unsubscribe();
@@ -590,8 +601,13 @@ function communitySearch(text: string, cb: any) {
         let res = wsJsonToRes(msg);
         if (res.op == UserOperation.Search) {
           let data = res.data as SearchResponse;
-          let communities = data.communities.map(u => {
-            return { key: u.name };
+          let communities = data.communities.map(c => {
+            let name_ = c.local ? c.name : `${c.name}@${hostname(c.actor_id)}`;
+            return {
+              key: name_,
+              local: c.local,
+              id: c.id,
+            };
           });
           cb(communities);
           this.communitySub.unsubscribe();

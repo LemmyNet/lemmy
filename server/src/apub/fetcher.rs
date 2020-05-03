@@ -45,11 +45,36 @@ pub enum SearchAcceptedObjects {
 /// Attempt to parse the query as URL, and fetch an ActivityPub object from it.
 ///
 /// Some working examples for use with the docker/federation/ setup:
-/// http://lemmy_alpha:8540/c/main
-/// http://lemmy_alpha:8540/u/lemmy_alpha
+/// http://lemmy_alpha:8540/c/main, or !main@lemmy_alpha:8540
+/// http://lemmy_alpha:8540/u/lemmy_alpha, or @lemmy_alpha@lemmy_alpha:8540
 /// http://lemmy_alpha:8540/p/3
 pub fn search_by_apub_id(query: &str, conn: &PgConnection) -> Result<SearchResponse, Error> {
-  let query_url = Url::parse(&query)?;
+  // Parse the shorthand query url
+  let query_url = if query.contains('@') {
+    debug!("{}", query);
+    let split = query.split('@').collect::<Vec<&str>>();
+
+    // User type will look like ['', username, instance]
+    // Community will look like [!community, instance]
+    let (name, instance) = if split.len() == 3 {
+      (format!("/u/{}", split[1]), split[2])
+    } else if split.len() == 2 {
+      if split[0].contains('!') {
+        let split2 = split[0].split('!').collect::<Vec<&str>>();
+        (format!("/c/{}", split2[1]), split[1])
+      } else {
+        return Err(format_err!("Invalid search query: {}", query));
+      }
+    } else {
+      return Err(format_err!("Invalid search query: {}", query));
+    };
+
+    let url = format!("{}://{}{}", get_apub_protocol_string(), instance, name);
+    Url::parse(&url)?
+  } else {
+    Url::parse(&query)?
+  };
+
   let mut response = SearchResponse {
     type_: SearchType::All.to_string(),
     comments: vec![],

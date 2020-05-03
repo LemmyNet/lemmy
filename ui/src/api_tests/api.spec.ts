@@ -98,7 +98,9 @@ describe('main', () => {
   describe('follow_accept', () => {
     test('/u/lemmy_alpha follows and accepts lemmy_beta/c/main', async () => {
       // Make sure lemmy_beta/c/main is cached on lemmy_alpha
-      let searchUrl = `${lemmyAlphaApiUrl}/search?q=http://lemmy_beta:8550/c/main&type_=All&sort=TopAll`;
+      // Use short-hand search url
+      let searchUrl = `${lemmyAlphaApiUrl}/search?q=!main@lemmy_beta:8550&type_=All&sort=TopAll`;
+
       let searchResponse: SearchResponse = await fetch(searchUrl, {
         method: 'GET',
       }).then(d => d.json());

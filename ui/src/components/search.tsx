@@ -109,7 +109,6 @@ export class Search extends Component<any, SearchState> {
       nextProps.history.action == 'POP' ||
       nextProps.history.action == 'PUSH'
     ) {
-      this.state = this.emptyState;
       this.state.q = this.getSearchQueryFromProps(nextProps);
       this.state.type_ = this.getSearchTypeFromProps(nextProps);
       this.state.sort = this.getSortTypeFromProps(nextProps);
