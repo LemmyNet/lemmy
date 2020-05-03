@@ -14,7 +14,7 @@ use crate::websocket::server::SendCommunityRoomMessage;
 use activitystreams::object::kind::{NoteType, PageType};
 use activitystreams::{
   activity::{Accept, Create, Delete, Dislike, Follow, Like, Undo, Update},
-  actor::{properties::ApActorProperties, Actor, Group, Person},
+  actor::{kind::GroupType, properties::ApActorProperties, Actor, Group, Person},
   collection::UnorderedCollection,
   context,
   endpoint::EndpointProperties,
@@ -158,6 +158,7 @@ pub trait ToApub {
   fn to_tombstone(&self) -> Result<Tombstone, Error>;
 }
 
+/// Updated is actually the deletion time
 fn create_tombstone(
   deleted: bool,
   object_id: &str,
