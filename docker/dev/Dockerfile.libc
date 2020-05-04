@@ -5,15 +5,15 @@
 # to use docker buildx run
 # docker buildx build --platform linux/amd64,linux/arm64 -f Dockerfile.libc -t YOURNAME/lemmy --push ../..
 
-FROM node:12-buster as node
+#FROM node:12-buster as node
 # use this if use docker buildx 
-#FROM --platform=$BUILDPLATFORM node:12-buster as node
+FROM --platform=$BUILDPLATFORM node:13-buster as node
 
 WORKDIR /app/ui
 
 # Cache deps
 COPY ui/package.json ui/yarn.lock ./
-RUN yarn install --pure-lockfile --network-timeout 100000
+RUN yarn install --pure-lockfile --network-timeout 600000
 
 # Build
 COPY ui /app/ui
@@ -28,11 +28,11 @@ WORKDIR /app
 RUN USER=root cargo new server
 WORKDIR /app/server
 COPY server/Cargo.toml server/Cargo.lock ./
-RUN  mkdir -p ./src/bin \
-  && echo 'fn main() { println!("Dummy") }' > ./src/bin/main.rs
+#RUN  mkdir -p ./src/bin \
+#  && echo 'fn main() { println!("Dummy") }' > ./src/bin/main.rs
 
 
-RUN cargo build --release
+#RUN cargo build --release
 #RUN cargo build && \
 #    rm -f ./target/release/deps/lemmy_server* ; rm -f ./target/debug/deps/lemmy_server*
 COPY server/src ./src/
@@ -42,8 +42,8 @@ COPY server/migrations ./migrations/
 # build for release
 # workaround for https://github.com/rust-lang/rust/issues/62896
 #RUN RUSTFLAGS='-Ccodegen-units=1' cargo build --release
-RUN cargo build --release --frozen
-#RUN cargo build --frozen
+#RUN cargo build --release --frozen
+RUN cargo build --release
 
 # Get diesel-cli on there just in case
 # RUN cargo install diesel_cli --no-default-features --features postgres
@@ -53,14 +53,15 @@ RUN cp /app/server/target/release/lemmy_server /app/server/ready
 #RUN cp /app/server/target/debug/lemmy_server /app/server/ready
 
 
-FROM rust:1.42 as docs
+#FROM rust:1.42 as docs
+#FROM --platform=$BUILDPLATFORM rust:1.42 as docs
 
-WORKDIR /app
+#WORKDIR /app
 
 # Build docs
-COPY docs ./docs
-RUN cargo install mdbook
-RUN mdbook build docs/
+#COPY docs ./docs
+#RUN cargo install mdbook
+#RUN mdbook build docs/
 
 
 #FROM alpine:3.10
@@ -79,7 +80,7 @@ RUN adduser --disabled-password --shell /bin/sh --uid 1000 --ingroup lemmy lemmy
 # Copy resources
 COPY server/config/defaults.hjson /config/defaults.hjson
 COPY --from=node /app/ui/dist /app/dist
-COPY --from=docs /app/docs/book/ /app/dist/documentation/
+#COPY --from=docs /app/docs/book/ /app/dist/documentation/
 COPY --from=rust /app/server/ready /app/lemmy
 
 RUN chown lemmy:lemmy /app/lemmy
