@@ -289,6 +289,14 @@ impl ActorType for Community {
         .collect(),
     )
   }
+
+  fn send_follow(&self, _follow_actor_id: &str, _conn: &PgConnection) -> Result<(), Error> {
+    unimplemented!()
+  }
+
+  fn send_unfollow(&self, _follow_actor_id: &str, _conn: &PgConnection) -> Result<(), Error> {
+    unimplemented!()
+  }
 }
 
 impl FromApub for CommunityForm {

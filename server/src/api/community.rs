@@ -483,12 +483,12 @@ impl Perform for Oper<FollowCommunity> {
     let conn = pool.get()?;
 
     let community = Community::read(&conn, data.community_id)?;
-    if community.local {
-      let community_follower_form = CommunityFollowerForm {
-        community_id: data.community_id,
-        user_id,
-      };
+    let community_follower_form = CommunityFollowerForm {
+      community_id: data.community_id,
+      user_id,
+    };
 
+    if community.local {
       if data.follow {
         match CommunityFollower::follow(&conn, &community_follower_form) {
           Ok(user) => user,
@@ -501,9 +501,19 @@ impl Perform for Oper<FollowCommunity> {
         };
       }
     } else {
-      // TODO: still have to implement unfollow
       let user = User_::read(&conn, user_id)?;
-      user.send_follow(&community.actor_id, &conn)?;
+
+      if data.follow {
+        // Dont actually add to the community followers here, because you need
+        // to wait for the accept
+        user.send_follow(&community.actor_id, &conn)?;
+      } else {
+        user.send_unfollow(&community.actor_id, &conn)?;
+        match CommunityFollower::ignore(&conn, &community_follower_form) {
+          Ok(user) => user,
+          Err(_e) => return Err(APIError::err("community_follower_already_exists").into()),
+        };
+      }
       // TODO: this needs to return a "pending" state, until Accept is received from the remote server
     }
 

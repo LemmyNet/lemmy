@@ -140,6 +140,50 @@ describe('main', () => {
       ).then(d => d.json());
 
       expect(followedCommunitiesRes.communities[1].community_local).toBe(false);
+
+      // Test out unfollowing
+      let unfollowForm: FollowCommunityForm = {
+        community_id: searchResponse.communities[0].id,
+        follow: false,
+        auth: lemmyAlphaAuth,
+      };
+
+      let unfollowRes: CommunityResponse = await fetch(
+        `${lemmyAlphaApiUrl}/community/follow`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(unfollowForm),
+        }
+      ).then(d => d.json());
+
+      // Check that you are unsubscribed to it locally
+      let followedCommunitiesResAgain: GetFollowedCommunitiesResponse = await fetch(
+        followedCommunitiesUrl,
+        {
+          method: 'GET',
+        }
+      ).then(d => d.json());
+
+      expect(followedCommunitiesResAgain.communities.length).toBe(1);
+
+      // Follow again, for other tests
+      let followResAgain: CommunityResponse = await fetch(
+        `${lemmyAlphaApiUrl}/community/follow`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(followForm),
+        }
+      ).then(d => d.json());
+
+      // Make sure the follow response went through
+      expect(followResAgain.community.local).toBe(false);
+      expect(followResAgain.community.name).toBe('main');
     });
   });
 
