@@ -1,0 +1,149 @@
+# This is a basic workflow to help you get started with Actions
+
+name: buildx for dockerhub
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    #branches: [ master ]
+
+    # Publish `v1.2.3` tags as releases.
+    tags:
+      - v*
+env:
+  # TODO: Change variable to your image's name.
+  IMAGE_NAME: dessalines/lemmy
+  DOCKER_REGISTRY_USERNAME: dessalines
+  # DOCKERHUB_TOKEN should be set in "secrets" property of github repository
+  
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  buildx:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - 
+        # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+        name: Checkout
+        uses: actions/checkout@v2
+      - 
+        # Enable experimental features in Docker client
+        name: Enable experimental docker client
+        run: |
+          mkdir $HOME/.docker
+          echo -e "{\n  \"experimental\": \"enabled\"\n}" | tee $HOME/.docker/config.json
+          docker version
+
+      - name: list packages
+        run: |
+          ls -l /opt
+          #dpkg-query -l
+      
+      - name: try to free some space
+        run: |
+          sudo apt-get remove -y cabal* gfortran* ghc* dotnet* libmono* mono* libmono* php* \
+            clang* openjd* mongo* zulu*
+          #llvm* 
+          sudo apt-get autoremove -y
+          sudo df -h
+          
+      -
+        name: create small fs for docker cache
+        run: |
+          #sudo swapon --show
+          sudo systemctl stop docker
+          sudo rm -rf /var/lib/docker/*
+          #apt list --installed
+          sudo dd if=/dev/zero of=/swapfile1 bs=1M count=24K 
+          sudo chmod 600 /swapfile1
+          #sudo mkswap /swapfile1
+          sudo mkfs.xfs /swapfile1
+          #sudo swapon /swapfile1
+          sudo swapon --show
+          sudo free -h
+                    
+          #sudo mount -t tmpfs -o size=10G tmpfs /var/lib/docker
+          sudo mount -t xfs /swapfile1 /var/lib/docker
+          df -h
+          sudo systemctl start docker
+          
+      -
+        name: Set up Docker Buildx
+        id: buildx
+        uses: crazy-max/ghaction-docker-buildx@v1
+        with:
+          version: latest
+      -
+        name: Available platforms
+        run: echo ${{ steps.buildx.outputs.platforms }}
+        
+      - name: Log into registry
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u $DOCKER_REGISTRY_USERNAME --password-stdin
+
+      -
+        name: Run Buildx
+        run: |
+          IMAGE_ID=$IMAGE_NAME
+          
+          # Change all uppercase to lowercase
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+
+          # Strip git ref prefix from version
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+
+          # Strip "v" prefix from tag name
+          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+
+          # Use Docker `latest` tag convention
+          [ "$VERSION" == "master" ] && VERSION=latest
+
+          echo IMAGE_ID=$IMAGE_ID
+          echo VERSION=$VERSION
+          
+          #cd docker/dev/
+          #V=$VERSION docker buildx bake -f bake.hcl --push
+
+          docker buildx build \
+            --platform linux/amd64 \
+            --tag $IMAGE_ID:$VERSION-amd64 \
+            --tag $IMAGE_ID:$VERSION \
+            --push \
+            --progress plain \
+            --file docker/dev/Dockerfile .
+          df -h
+          
+          docker buildx build \
+            --platform linux/arm/v7 \
+            --tag $IMAGE_ID:$VERSION-armv7 \
+            --push \
+            --progress plain \
+            --file docker/dev/Dockerfile.libc . 
+          
+          docker buildx build \
+            --platform linux/arm64 \
+            --tag $IMAGE_ID:$VERSION-arm64 \
+            --push \
+            --file docker/dev/Dockerfile.libc . 
+             
+          #df -h
+          sudo free -h
+          #docker buildx du
+          
+          docker manifest create $IMAGE_ID:$VERSION \
+            $IMAGE_ID:$VERSION-amd64 \
+            $IMAGE_ID:$VERSION-arm64 \
+            $IMAGE_ID:$VERSION-armv7
+          docker manifest annotate $IMAGE_ID:$VERSION $IMAGE_ID:$VERSION-armv7 \
+            --os=linux --arch=arm --variant=v7
+          docker manifest annotate $IMAGE_ID:$VERSION $IMAGE_ID:$VERSION-arm64 \
+            --os=linux --arch=arm64
+          docker manifest inspect $IMAGE_ID:$VERSION
+          docker manifest push $IMAGE_ID:$VERSION
+      -
+        name: Post-build space check
+        run: sudo df -h
+        
