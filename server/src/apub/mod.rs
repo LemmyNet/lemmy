@@ -233,14 +233,11 @@ pub trait ActorType {
   // These two have default impls, since currently a community can't follow anything,
   // and a user can't be followed (yet)
   #[allow(unused_variables)]
-  fn send_follow(&self, follow_actor_id: &str, conn: &PgConnection) -> Result<(), Error> {
-    Err(format_err!("Follow not implemented."))
-  }
+  fn send_follow(&self, follow_actor_id: &str, conn: &PgConnection) -> Result<(), Error>;
+  fn send_unfollow(&self, follow_actor_id: &str, conn: &PgConnection) -> Result<(), Error>;
 
   #[allow(unused_variables)]
-  fn send_accept_follow(&self, follow: &Follow, conn: &PgConnection) -> Result<(), Error> {
-    Err(format_err!("Accept not implemented."))
-  }
+  fn send_accept_follow(&self, follow: &Follow, conn: &PgConnection) -> Result<(), Error>;
 
   fn send_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
   fn send_undo_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
@@ -248,12 +245,8 @@ pub trait ActorType {
   fn send_remove(&self, mod_: &User_, conn: &PgConnection) -> Result<(), Error>;
   fn send_undo_remove(&self, mod_: &User_, conn: &PgConnection) -> Result<(), Error>;
 
-  // TODO default because there is no user following yet.
-  #[allow(unused_variables)]
   /// For a given community, returns the inboxes of all followers.
-  fn get_follower_inboxes(&self, conn: &PgConnection) -> Result<Vec<String>, Error> {
-    Ok(vec![])
-  }
+  fn get_follower_inboxes(&self, conn: &PgConnection) -> Result<Vec<String>, Error>;
 
   // TODO move these to the db rows
   fn get_inbox_url(&self) -> String {

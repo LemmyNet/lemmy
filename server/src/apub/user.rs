@@ -91,6 +91,54 @@ impl ActorType for User_ {
     Ok(())
   }
 
+  fn send_unfollow(&self, follow_actor_id: &str, conn: &PgConnection) -> Result<(), Error> {
+    let mut follow = Follow::new();
+
+    let id = format!("{}/follow/{}", self.actor_id, uuid::Uuid::new_v4());
+
+    follow
+      .object_props
+      .set_context_xsd_any_uri(context())?
+      .set_id(id)?;
+    follow
+      .follow_props
+      .set_actor_xsd_any_uri(self.actor_id.to_owned())?
+      .set_object_xsd_any_uri(follow_actor_id)?;
+    let to = format!("{}/inbox", follow_actor_id);
+
+    // TODO
+    // Undo that fake activity
+    let undo_id = format!("{}/undo/follow/{}", self.actor_id, uuid::Uuid::new_v4());
+    let mut undo = Undo::default();
+
+    undo
+      .object_props
+      .set_context_xsd_any_uri(context())?
+      .set_id(undo_id)?;
+
+    undo
+      .undo_props
+      .set_actor_xsd_any_uri(self.actor_id.to_owned())?
+      .set_object_base_box(follow)?;
+
+    // Insert the sent activity into the activity table
+    let activity_form = activity::ActivityForm {
+      user_id: self.id,
+      data: serde_json::to_value(&undo)?,
+      local: true,
+      updated: None,
+    };
+    activity::Activity::create(&conn, &activity_form)?;
+
+    send_activity(
+      &undo,
+      &self.private_key.as_ref().unwrap(),
+      &follow_actor_id,
+      vec![to],
+    )?;
+    Ok(())
+  }
+
   fn send_delete(&self, _creator: &User_, _conn: &PgConnection) -> Result<(), Error> {
     unimplemented!()
   }
@@ -104,6 +152,14 @@ impl ActorType for User_ {
   }
 
   fn send_undo_remove(&self, _creator: &User_, _conn: &PgConnection) -> Result<(), Error> {
+    unimplemented!()
+  }
+
+  fn send_accept_follow(&self, _follow: &Follow, _conn: &PgConnection) -> Result<(), Error> {
+    unimplemented!()
+  }
+
+  fn get_follower_inboxes(&self, _conn: &PgConnection) -> Result<Vec<String>, Error> {
     unimplemented!()
   }
 }
