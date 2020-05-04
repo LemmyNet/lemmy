@@ -16,6 +16,8 @@ import {
   CommunityForm,
   GetCommunityForm,
   GetCommunityResponse,
+  CommentLikeForm,
+  CreatePostLikeForm,
 } from '../interfaces';
 
 let lemmyAlphaUrl = 'http://localhost:8540';
@@ -163,10 +165,27 @@ describe('main', () => {
         }
       ).then(d => d.json());
 
+      let unlikePostForm: CreatePostLikeForm = {
+        post_id: createResponse.post.id,
+        score: 0,
+        auth: lemmyAlphaAuth,
+      };
       expect(createResponse.post.name).toBe(name);
       expect(createResponse.post.community_local).toBe(false);
       expect(createResponse.post.creator_local).toBe(true);
       expect(createResponse.post.score).toBe(1);
+
+      let unlikePostRes: PostResponse = await fetch(
+        `${lemmyAlphaApiUrl}/post/like`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(unlikePostForm),
+        }
+      ).then(d => d.json());
+      expect(unlikePostRes.post.score).toBe(0);
 
       let getPostUrl = `${lemmyBetaApiUrl}/post?id=2`;
       let getPostRes: GetPostResponse = await fetch(getPostUrl, {
@@ -176,7 +195,7 @@ describe('main', () => {
       expect(getPostRes.post.name).toBe(name);
       expect(getPostRes.post.community_local).toBe(true);
       expect(getPostRes.post.creator_local).toBe(false);
-      expect(getPostRes.post.score).toBe(1);
+      expect(getPostRes.post.score).toBe(0);
     });
   });
 
@@ -243,6 +262,27 @@ describe('main', () => {
       expect(createResponse.comment.creator_local).toBe(true);
       expect(createResponse.comment.score).toBe(1);
 
+      // Do an unlike, to test it
+      let unlikeCommentForm: CommentLikeForm = {
+        comment_id: createResponse.comment.id,
+        score: 0,
+        post_id: 2,
+        auth: lemmyAlphaAuth,
+      };
+
+      let unlikeCommentRes: CommentResponse = await fetch(
+        `${lemmyAlphaApiUrl}/comment/like`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(unlikeCommentForm),
+        }
+      ).then(d => d.json());
+
+      expect(unlikeCommentRes.comment.score).toBe(0);
+
       let getPostUrl = `${lemmyBetaApiUrl}/post?id=2`;
       let getPostRes: GetPostResponse = await fetch(getPostUrl, {
         method: 'GET',
@@ -251,7 +291,7 @@ describe('main', () => {
       expect(getPostRes.comments[0].content).toBe(content);
       expect(getPostRes.comments[0].community_local).toBe(true);
       expect(getPostRes.comments[0].creator_local).toBe(false);
-      expect(getPostRes.comments[0].score).toBe(1);
+      expect(getPostRes.comments[0].score).toBe(0);
 
       // Now do beta replying to that comment, as a child comment
       let contentBeta = 'A child federated comment from beta';
