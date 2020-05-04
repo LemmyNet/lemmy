@@ -495,7 +495,7 @@ impl Perform for Oper<FollowCommunity> {
           Err(_e) => return Err(APIError::err("community_follower_already_exists").into()),
         };
       } else {
-        match CommunityFollower::ignore(&conn, &community_follower_form) {
+        match CommunityFollower::unfollow(&conn, &community_follower_form) {
           Ok(user) => user,
           Err(_e) => return Err(APIError::err("community_follower_already_exists").into()),
         };
@@ -509,7 +509,7 @@ impl Perform for Oper<FollowCommunity> {
         user.send_follow(&community.actor_id, &conn)?;
       } else {
         user.send_unfollow(&community.actor_id, &conn)?;
-        match CommunityFollower::ignore(&conn, &community_follower_form) {
+        match CommunityFollower::unfollow(&conn, &community_follower_form) {
           Ok(user) => user,
           Err(_e) => return Err(APIError::err("community_follower_already_exists").into()),
         };

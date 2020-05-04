@@ -216,7 +216,7 @@ impl Followable<CommunityFollowerForm> for CommunityFollower {
       .values(community_follower_form)
       .get_result::<Self>(conn)
   }
-  fn ignore(
+  fn unfollow(
     conn: &PgConnection,
     community_follower_form: &CommunityFollowerForm,
   ) -> Result<usize, Error> {
@@ -351,7 +351,7 @@ mod tests {
     let read_community = Community::read(&conn, inserted_community.id).unwrap();
     let updated_community =
       Community::update(&conn, inserted_community.id, &new_community).unwrap();
-    let ignored_community = CommunityFollower::ignore(&conn, &community_follower_form).unwrap();
+    let ignored_community = CommunityFollower::unfollow(&conn, &community_follower_form).unwrap();
     let left_community = CommunityModerator::leave(&conn, &community_user_form).unwrap();
     let unban = CommunityUserBan::unban(&conn, &community_user_ban_form).unwrap();
     let num_deleted = Community::delete(&conn, inserted_community.id).unwrap();

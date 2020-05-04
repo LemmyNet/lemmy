@@ -129,7 +129,7 @@ fn handle_undo_follow(
     user_id: user.id,
   };
 
-  CommunityFollower::ignore(&conn, &community_follower_form).ok();
+  CommunityFollower::unfollow(&conn, &community_follower_form).ok();
 
   Ok(HttpResponse::Ok().finish())
 }

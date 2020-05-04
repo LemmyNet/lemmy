@@ -44,7 +44,7 @@ pub trait Followable<T> {
   fn follow(conn: &PgConnection, form: &T) -> Result<Self, Error>
   where
     Self: Sized;
-  fn ignore(conn: &PgConnection, form: &T) -> Result<usize, Error>
+  fn unfollow(conn: &PgConnection, form: &T) -> Result<usize, Error>
   where
     Self: Sized;
 }
