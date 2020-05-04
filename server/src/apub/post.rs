@@ -416,4 +416,50 @@ impl ApubLikeableType for Post {
     )?;
     Ok(())
   }
+
+  fn send_undo_like(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
+    let page = self.to_apub(conn)?;
+    let community = Community::read(conn, self.community_id)?;
+    let id = format!("{}/like/{}", self.ap_id, uuid::Uuid::new_v4());
+
+    let mut like = Like::new();
+    populate_object_props(&mut like.object_props, &community.get_followers_url(), &id)?;
+    like
+      .like_props
+      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
+      .set_object_base_box(page)?;
+
+    // TODO
+    // Undo that fake activity
+    let undo_id = format!("{}/undo/like/{}", self.ap_id, uuid::Uuid::new_v4());
+    let mut undo = Undo::default();
+
+    populate_object_props(
+      &mut undo.object_props,
+      &community.get_followers_url(),
+      &undo_id,
+    )?;
+
+    undo
+      .undo_props
+      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
+      .set_object_base_box(like)?;
+
+    // Insert the sent activity into the activity table
+    let activity_form = activity::ActivityForm {
+      user_id: creator.id,
+      data: serde_json::to_value(&undo)?,
+      local: true,
+      updated: None,
+    };
+    activity::Activity::create(&conn, &activity_form)?;
+
+    send_activity(
+      &undo,
+      &creator.private_key.as_ref().unwrap(),
+      &creator.actor_id,
+      community.get_follower_inboxes(&conn)?,
+    )?;
+    Ok(())
+  }
 }

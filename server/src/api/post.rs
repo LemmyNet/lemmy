@@ -397,7 +397,7 @@ impl Perform for Oper<CreatePostLike> {
         post.send_dislike(&user, &conn)?;
       }
     } else {
-      // TODO tombstone the post like
+      post.send_undo_like(&user, &conn)?;
     }
 
     let post_view = match PostView::read(&conn, data.post_id, Some(user_id)) {

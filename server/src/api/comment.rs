@@ -561,7 +561,7 @@ impl Perform for Oper<CreateCommentLike> {
         comment.send_dislike(&user, &conn)?;
       }
     } else {
-      // TODO tombstone the like
+      comment.send_undo_like(&user, &conn)?;
     }
 
     // Have to refetch the comment to get the current state

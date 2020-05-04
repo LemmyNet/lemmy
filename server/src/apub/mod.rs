@@ -208,7 +208,7 @@ pub trait ApubObjectType {
 pub trait ApubLikeableType {
   fn send_like(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
   fn send_dislike(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
-  // TODO add send_undo_like / undo_dislike
+  fn send_undo_like(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
 }
 
 pub fn get_shared_inbox(actor_id: &str) -> String {

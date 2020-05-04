@@ -91,6 +91,9 @@ pub async fn shared_inbox(
     (SharedAcceptedObjects::Undo(u), Some("Remove")) => {
       receive_undo_remove(&u, &request, &conn, chat_server)
     }
+    (SharedAcceptedObjects::Undo(u), Some("Like")) => {
+      receive_undo_like(&u, &request, &conn, chat_server)
+    }
     _ => Err(format_err!("Unknown incoming activity type.")),
   }
 }
@@ -1419,6 +1422,144 @@ fn receive_undo_remove_community(
     op: UserOperation::EditCommunity,
     response: res,
     community_id: community.id,
+    my_id: None,
+  });
+
+  Ok(HttpResponse::Ok().finish())
+}
+
+fn receive_undo_like(
+  undo: &Undo,
+  request: &HttpRequest,
+  conn: &PgConnection,
+  chat_server: ChatServerParam,
+) -> Result<HttpResponse, Error> {
+  let like = undo
+    .undo_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .to_owned()
+    .into_concrete::<Like>()?;
+
+  let type_ = like
+    .like_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .kind()
+    .unwrap();
+
+  match type_ {
+    "Note" => receive_undo_like_comment(&like, &request, &conn, chat_server),
+    "Page" => receive_undo_like_post(&like, &request, &conn, chat_server),
+    d => Err(format_err!("Undo Delete type {} not supported", d)),
+  }
+}
+
+fn receive_undo_like_comment(
+  like: &Like,
+  request: &HttpRequest,
+  conn: &PgConnection,
+  chat_server: ChatServerParam,
+) -> Result<HttpResponse, Error> {
+  let note = like
+    .like_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .to_owned()
+    .into_concrete::<Note>()?;
+
+  let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
+
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
+  verify(request, &user.public_key.unwrap())?;
+
+  // Insert the received activity into the activity table
+  let activity_form = activity::ActivityForm {
+    user_id: user.id,
+    data: serde_json::to_value(&like)?,
+    local: false,
+    updated: None,
+  };
+  activity::Activity::create(&conn, &activity_form)?;
+
+  let comment = CommentForm::from_apub(&note, &conn)?;
+  let comment_id = Comment::read_from_apub_id(conn, &comment.ap_id)?.id;
+  let like_form = CommentLikeForm {
+    comment_id,
+    post_id: comment.post_id,
+    user_id: user.id,
+    score: 0,
+  };
+  CommentLike::remove(&conn, &like_form)?;
+
+  // Refetch the view
+  let comment_view = CommentView::read(&conn, comment_id, None)?;
+
+  // TODO get those recipient actor ids from somewhere
+  let recipient_ids = vec![];
+  let res = CommentResponse {
+    comment: comment_view,
+    recipient_ids,
+  };
+
+  chat_server.do_send(SendComment {
+    op: UserOperation::CreateCommentLike,
+    comment: res,
+    my_id: None,
+  });
+
+  Ok(HttpResponse::Ok().finish())
+}
+
+fn receive_undo_like_post(
+  like: &Like,
+  request: &HttpRequest,
+  conn: &PgConnection,
+  chat_server: ChatServerParam,
+) -> Result<HttpResponse, Error> {
+  let page = like
+    .like_props
+    .get_object_base_box()
+    .to_owned()
+    .unwrap()
+    .to_owned()
+    .into_concrete::<Page>()?;
+
+  let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
+
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
+  verify(request, &user.public_key.unwrap())?;
+
+  // Insert the received activity into the activity table
+  let activity_form = activity::ActivityForm {
+    user_id: user.id,
+    data: serde_json::to_value(&like)?,
+    local: false,
+    updated: None,
+  };
+  activity::Activity::create(&conn, &activity_form)?;
+
+  let post = PostForm::from_apub(&page, conn)?;
+  let post_id = Post::read_from_apub_id(conn, &post.ap_id)?.id;
+
+  let like_form = PostLikeForm {
+    post_id,
+    user_id: user.id,
+    score: 1,
+  };
+  PostLike::remove(&conn, &like_form)?;
+
+  // Refetch the view
+  let post_view = PostView::read(&conn, post_id, None)?;
+
+  let res = PostResponse { post: post_view };
+
+  chat_server.do_send(SendPost {
+    op: UserOperation::CreatePostLike,
+    post: res,
     my_id: None,
   });
 
