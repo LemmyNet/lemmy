@@ -23,8 +23,8 @@ use crate::{
 };
 
 use crate::apub::{
+  extensions::signatures::generate_actor_keypair,
   fetcher::search_by_apub_id,
-  signatures::generate_actor_keypair,
   {make_apub_endpoint, ActorType, ApubLikeableType, ApubObjectType, EndpointType},
 };
 use crate::settings::Settings;

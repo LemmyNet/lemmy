@@ -4,7 +4,7 @@ use super::community::{Community, CommunityForm};
 use super::post::Post;
 use super::user::{UserForm, User_};
 use super::*;
-use crate::apub::signatures::generate_actor_keypair;
+use crate::apub::extensions::signatures::generate_actor_keypair;
 use crate::apub::{make_apub_endpoint, EndpointType};
 use crate::naive_now;
 use failure::Error;

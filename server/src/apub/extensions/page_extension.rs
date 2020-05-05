@@ -1,4 +1,6 @@
-use super::*;
+use activitystreams::ext::Extension;
+use activitystreams::Base;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]

@@ -2,11 +2,10 @@ pub mod activities;
 pub mod comment;
 pub mod community;
 pub mod community_inbox;
+pub mod extensions;
 pub mod fetcher;
-pub mod page_extension;
 pub mod post;
 pub mod shared_inbox;
-pub mod signatures;
 pub mod user;
 pub mod user_inbox;
 
@@ -15,11 +14,11 @@ use crate::websocket::server::SendCommunityRoomMessage;
 use activitystreams::object::kind::{NoteType, PageType};
 use activitystreams::{
   activity::{Accept, Create, Delete, Dislike, Follow, Like, Remove, Undo, Update},
-  actor::{kind::GroupType, properties::ApActorProperties, Actor, Group, Person},
+  actor::{kind::GroupType, properties::ApActorProperties, Group, Person},
   collection::UnorderedCollection,
   context,
   endpoint::EndpointProperties,
-  ext::{Ext, Extensible, Extension},
+  ext::{Ext, Extensible},
   object::{properties::ObjectProperties, Note, Page, Tombstone},
   public, BaseBox,
 };
@@ -30,16 +29,10 @@ use diesel::result::Error::NotFound;
 use diesel::PgConnection;
 use failure::Error;
 use failure::_core::fmt::Debug;
-use http::request::Builder;
-use http_signature_normalization::Config;
 use isahc::prelude::*;
 use itertools::Itertools;
 use log::debug;
-use openssl::hash::MessageDigest;
-use openssl::sign::{Signer, Verifier};
-use openssl::{pkey::PKey, rsa::Rsa};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
 use std::time::Duration;
 use url::Url;
 
@@ -66,15 +59,15 @@ use crate::websocket::{
 };
 use crate::{convert_datetime, naive_now, Settings};
 
-use crate::apub::page_extension::PageExtension;
+use crate::apub::extensions::group_extensions::GroupExtension;
+use crate::apub::extensions::page_extension::PageExtension;
 use activities::{populate_object_props, send_activity};
-use activitystreams::Base;
 use chrono::NaiveDateTime;
+use extensions::signatures::verify;
+use extensions::signatures::{sign, PublicKey, PublicKeyExtension};
 use fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user};
-use signatures::verify;
-use signatures::{sign, PublicKey, PublicKeyExtension};
 
-type GroupExt = Ext<Ext<Group, ApActorProperties>, PublicKeyExtension>;
+type GroupExt = Ext<Ext<Ext<Group, GroupExtension>, ApActorProperties>, PublicKeyExtension>;
 type PersonExt = Ext<Ext<Person, ApActorProperties>, PublicKeyExtension>;
 type PageExt = Ext<Page, PageExtension>;
 
