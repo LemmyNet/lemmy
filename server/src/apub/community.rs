@@ -51,7 +51,14 @@ impl ToApub for Community {
       .set_endpoints(endpoint_props)?
       .set_followers(self.get_followers_url())?;
 
-    Ok(group.extend(actor_props).extend(self.get_public_key_ext()))
+    let group_extension = GroupExtension::new(conn, self.category_id, self.nsfw)?;
+
+    Ok(
+      group
+        .extend(group_extension)
+        .extend(actor_props)
+        .extend(self.get_public_key_ext()),
+    )
   }
 
   fn to_tombstone(&self) -> Result<Tombstone, Error> {
@@ -304,7 +311,8 @@ impl FromApub for CommunityForm {
 
   /// Parse an ActivityPub group received from another instance into a Lemmy community.
   fn from_apub(group: &GroupExt, conn: &PgConnection) -> Result<Self, Error> {
-    let oprops = &group.base.base.object_props;
+    let group_extensions: &GroupExtension = &group.base.base.extension;
+    let oprops = &group.base.base.base.object_props;
     let aprops = &group.base.extension;
     let public_key: &PublicKey = &group.extension.public_key;
 
@@ -325,7 +333,7 @@ impl FromApub for CommunityForm {
       // TODO: should be parsed as html and tags like <script> removed (or use markdown source)
       //       -> same for post.content etc
       description: oprops.get_content_xsd_string().map(|s| s.to_string()),
-      category_id: 1, // -> peertube uses `"category": {"identifier": "9","name": "Comedy"},`
+      category_id: group_extensions.category.identifier.parse::<i32>()?,
       creator_id: creator.id,
       removed: None,
       published: oprops
@@ -335,7 +343,7 @@ impl FromApub for CommunityForm {
         .get_updated()
         .map(|u| u.as_ref().to_owned().naive_local()),
       deleted: None,
-      nsfw: false,
+      nsfw: group_extensions.sensitive,
       actor_id: oprops.get_id().unwrap().to_string(),
       local: false,
       private_key: None,
