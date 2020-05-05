@@ -20,10 +20,10 @@ pub async fn get_apub_post(
 }
 
 impl ToApub for Post {
-  type Response = Page;
+  type Response = PageExt;
 
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
-  fn to_apub(&self, conn: &PgConnection) -> Result<Page, Error> {
+  fn to_apub(&self, conn: &PgConnection) -> Result<PageExt, Error> {
     let mut page = Page::default();
     let oprops: &mut ObjectProperties = page.as_mut();
     let creator = User_::read(conn, self.creator_id)?;
@@ -31,6 +31,8 @@ impl ToApub for Post {
 
     oprops
       // Not needed when the Post is embedded in a collection (like for community outbox)
+      // TODO: need to set proper context defining sensitive/commentsEnabled fields
+      // https://git.asonix.dog/Aardwolf/activitystreams/issues/5
       .set_context_xsd_any_uri(context())?
       .set_id(self.ap_id.to_owned())?
       // Use summary field to be consistent with mastodon content warning.
@@ -45,7 +47,7 @@ impl ToApub for Post {
     }
 
     // TODO: hacky code because we get self.url == Some("")
-    // https://github.com/dessalines/lemmy/issues/602
+    // https://github.com/LemmyNet/lemmy/issues/602
     let url = self.url.as_ref().filter(|u| !u.is_empty());
     if let Some(u) = url {
       oprops.set_url_xsd_any_uri(u.to_owned())?;
@@ -55,7 +57,11 @@ impl ToApub for Post {
       oprops.set_updated(convert_datetime(u))?;
     }
 
-    Ok(page)
+    let ext = PageExtension {
+      comments_enabled: !self.locked,
+      sensitive: self.nsfw,
+    };
+    Ok(page.extend(ext))
   }
 
   fn to_tombstone(&self) -> Result<Tombstone, Error> {
@@ -69,10 +75,12 @@ impl ToApub for Post {
 }
 
 impl FromApub for PostForm {
-  type ApubType = Page;
+  type ApubType = PageExt;
 
   /// Parse an ActivityPub page received from another instance into a Lemmy post.
-  fn from_apub(page: &Page, conn: &PgConnection) -> Result<PostForm, Error> {
+  fn from_apub(page: &PageExt, conn: &PgConnection) -> Result<PostForm, Error> {
+    let ext = &page.extension;
+    let page = &page.base;
     let oprops = &page.object_props;
     let creator_actor_id = &oprops.get_attributed_to_xsd_any_uri().unwrap().to_string();
     let creator = get_or_fetch_and_upsert_remote_user(&creator_actor_id, &conn)?;
@@ -85,18 +93,18 @@ impl FromApub for PostForm {
       body: oprops.get_content_xsd_string().map(|c| c.to_string()),
       creator_id: creator.id,
       community_id: community.id,
-      removed: None, // -> Delete activity / tombstone
-      locked: None,  // -> commentsEnabled
+      removed: None,
+      locked: Some(!ext.comments_enabled),
       published: oprops
         .get_published()
         .map(|u| u.as_ref().to_owned().naive_local()),
       updated: oprops
         .get_updated()
         .map(|u| u.as_ref().to_owned().naive_local()),
-      deleted: None,     // -> Delete activity / tombstone
-      nsfw: false,       // -> sensitive
+      deleted: None,
+      nsfw: ext.sensitive,
       stickied: None,    // -> put it in "featured" collection of the community
-      embed_title: None, // -> attachment?
+      embed_title: None, // -> attachment? or fetch the embed locally
       embed_description: None,
       embed_html: None,
       thumbnail_url: None,
