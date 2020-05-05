@@ -359,9 +359,9 @@ impl Perform for Oper<GetSite> {
       let create_site = CreateSite {
         name: setup.site_name.to_owned(),
         description: None,
-        enable_downvotes: false,
-        open_registration: false,
-        enable_nsfw: false,
+        enable_downvotes: true,
+        open_registration: true,
+        enable_nsfw: true,
         auth: login_response.jwt,
       };
       Oper::new(create_site).perform(pool, websocket_info.clone())?;
