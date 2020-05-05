@@ -3,6 +3,7 @@ pub mod comment;
 pub mod community;
 pub mod community_inbox;
 pub mod fetcher;
+pub mod page_extension;
 pub mod post;
 pub mod shared_inbox;
 pub mod signatures;
@@ -65,7 +66,9 @@ use crate::websocket::{
 };
 use crate::{convert_datetime, naive_now, Settings};
 
+use crate::apub::page_extension::PageExtension;
 use activities::{populate_object_props, send_activity};
+use activitystreams::Base;
 use chrono::NaiveDateTime;
 use fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user};
 use signatures::verify;
@@ -73,6 +76,7 @@ use signatures::{sign, PublicKey, PublicKeyExtension};
 
 type GroupExt = Ext<Ext<Group, ApActorProperties>, PublicKeyExtension>;
 type PersonExt = Ext<Ext<Person, ApActorProperties>, PublicKeyExtension>;
+type PageExt = Ext<Page, PageExtension>;
 
 pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 

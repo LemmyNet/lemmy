@@ -39,7 +39,7 @@ where
 pub enum SearchAcceptedObjects {
   Person(Box<PersonExt>),
   Group(Box<GroupExt>),
-  Page(Box<Page>),
+  Page(Box<PageExt>),
 }
 
 /// Attempt to parse the query as URL, and fetch an ActivityPub object from it.

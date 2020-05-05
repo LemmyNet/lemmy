@@ -110,7 +110,7 @@ fn receive_create_post(
     .to_owned()
     .unwrap()
     .to_owned()
-    .into_concrete::<Page>()?;
+    .into_concrete::<PageExt>()?;
 
   let user_uri = create
     .create_props
@@ -213,7 +213,7 @@ fn receive_update_post(
     .to_owned()
     .unwrap()
     .to_owned()
-    .into_concrete::<Page>()?;
+    .into_concrete::<PageExt>()?;
 
   let user_uri = update
     .update_props
@@ -263,7 +263,7 @@ fn receive_like_post(
     .to_owned()
     .unwrap()
     .to_owned()
-    .into_concrete::<Page>()?;
+    .into_concrete::<PageExt>()?;
 
   let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
 
@@ -316,7 +316,7 @@ fn receive_dislike_post(
     .to_owned()
     .unwrap()
     .to_owned()
-    .into_concrete::<Page>()?;
+    .into_concrete::<PageExt>()?;
 
   let user_uri = dislike
     .dislike_props
@@ -692,7 +692,7 @@ fn receive_delete_post(
     .to_owned()
     .unwrap()
     .to_owned()
-    .into_concrete::<Page>()?;
+    .into_concrete::<PageExt>()?;
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
@@ -763,7 +763,7 @@ fn receive_remove_post(
     .to_owned()
     .unwrap()
     .to_owned()
-    .into_concrete::<Page>()?;
+    .into_concrete::<PageExt>()?;
 
   let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
   verify(request, &mod_.public_key.unwrap())?;
@@ -1166,7 +1166,7 @@ fn receive_undo_delete_post(
     .to_owned()
     .unwrap()
     .to_owned()
-    .into_concrete::<Page>()?;
+    .into_concrete::<PageExt>()?;
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
@@ -1237,7 +1237,7 @@ fn receive_undo_remove_post(
     .to_owned()
     .unwrap()
     .to_owned()
-    .into_concrete::<Page>()?;
+    .into_concrete::<PageExt>()?;
 
   let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
   verify(request, &mod_.public_key.unwrap())?;
@@ -1526,7 +1526,7 @@ fn receive_undo_like_post(
     .to_owned()
     .unwrap()
     .to_owned()
-    .into_concrete::<Page>()?;
+    .into_concrete::<PageExt>()?;
 
   let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
 
