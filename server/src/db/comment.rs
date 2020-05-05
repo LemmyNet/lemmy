@@ -21,7 +21,7 @@ pub struct Comment {
   pub parent_id: Option<i32>,
   pub content: String,
   pub removed: bool,
-  pub read: bool,
+  pub read: bool, // Whether the recipient has read the comment or not
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
   pub deleted: bool,
