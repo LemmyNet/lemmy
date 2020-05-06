@@ -186,7 +186,7 @@ pub struct PrivateMessagesResponse {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct PrivateMessageResponse {
-  message: PrivateMessageView,
+  pub message: PrivateMessageView,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -861,12 +861,15 @@ impl Perform for Oper<MarkAllAsRead> {
 
     for message in &messages {
       let private_message_form = PrivateMessageForm {
-        content: None,
+        content: message.to_owned().content,
         creator_id: message.to_owned().creator_id,
         recipient_id: message.to_owned().recipient_id,
         deleted: None,
         read: Some(true),
         updated: None,
+        ap_id: message.to_owned().ap_id,
+        local: message.local,
+        published: None,
       };
 
       let _updated_message = match PrivateMessage::update(&conn, message.id, &private_message_form)
@@ -1034,19 +1037,23 @@ impl Perform for Oper<CreatePrivateMessage> {
     let conn = pool.get()?;
 
     // Check for a site ban
-    if UserView::read(&conn, user_id)?.banned {
+    let user = User_::read(&conn, user_id)?;
+    if user.banned {
       return Err(APIError::err("site_ban").into());
     }
 
     let content_slurs_removed = remove_slurs(&data.content.to_owned());
 
     let private_message_form = PrivateMessageForm {
-      content: Some(content_slurs_removed.to_owned()),
+      content: content_slurs_removed.to_owned(),
       creator_id: user_id,
       recipient_id: data.recipient_id,
       deleted: None,
       read: None,
       updated: None,
+      ap_id: "changeme".into(),
+      local: true,
+      published: None,
     };
 
     let inserted_private_message = match PrivateMessage::create(&conn, &private_message_form) {
@@ -1055,6 +1062,14 @@ impl Perform for Oper<CreatePrivateMessage> {
         return Err(APIError::err("couldnt_create_private_message").into());
       }
     };
+
+    let updated_private_message =
+      match PrivateMessage::update_ap_id(&conn, inserted_private_message.id) {
+        Ok(private_message) => private_message,
+        Err(_e) => return Err(APIError::err("couldnt_create_private_message").into()),
+      };
+
+    updated_private_message.send_create(&user, &conn)?;
 
     // Send notifications to the recipient
     let recipient_user = User_::read(&conn, data.recipient_id)?;
@@ -1099,7 +1114,7 @@ impl Perform for Oper<EditPrivateMessage> {
   fn perform(
     &self,
     pool: Pool<ConnectionManager<PgConnection>>,
-    _websocket_info: Option<WebsocketInfo>,
+    websocket_info: Option<WebsocketInfo>,
   ) -> Result<PrivateMessageResponse, Error> {
     let data: &EditPrivateMessage = &self.data;
 
@@ -1115,7 +1130,8 @@ impl Perform for Oper<EditPrivateMessage> {
     let orig_private_message = PrivateMessage::read(&conn, data.edit_id)?;
 
     // Check for a site ban
-    if UserView::read(&conn, user_id)?.banned {
+    let user = User_::read(&conn, user_id)?;
+    if user.banned {
       return Err(APIError::err("site_ban").into());
     }
 
@@ -1127,8 +1143,8 @@ impl Perform for Oper<EditPrivateMessage> {
     }
 
     let content_slurs_removed = match &data.content {
-      Some(content) => Some(remove_slurs(content)),
-      None => None,
+      Some(content) => remove_slurs(content),
+      None => orig_private_message.content,
     };
 
     let private_message_form = PrivateMessageForm {
@@ -1142,17 +1158,41 @@ impl Perform for Oper<EditPrivateMessage> {
       } else {
         Some(naive_now())
       },
+      ap_id: orig_private_message.ap_id,
+      local: orig_private_message.local,
+      published: None,
     };
 
-    let _updated_private_message =
+    let updated_private_message =
       match PrivateMessage::update(&conn, data.edit_id, &private_message_form) {
         Ok(private_message) => private_message,
         Err(_e) => return Err(APIError::err("couldnt_update_private_message").into()),
       };
 
+    if let Some(deleted) = data.deleted.to_owned() {
+      if deleted {
+        updated_private_message.send_delete(&user, &conn)?;
+      } else {
+        updated_private_message.send_undo_delete(&user, &conn)?;
+      }
+    } else {
+      updated_private_message.send_update(&user, &conn)?;
+    }
+
     let message = PrivateMessageView::read(&conn, data.edit_id)?;
 
-    Ok(PrivateMessageResponse { message })
+    let res = PrivateMessageResponse { message };
+
+    if let Some(ws) = websocket_info {
+      ws.chatserver.do_send(SendUserRoomMessage {
+        op: UserOperation::EditPrivateMessage,
+        response: res.clone(),
+        recipient_id: orig_private_message.recipient_id,
+        my_id: ws.id,
+      });
+    }
+
+    Ok(res)
   }
 }
 
