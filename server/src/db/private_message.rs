@@ -1,4 +1,5 @@
 use super::*;
+use crate::apub::{make_apub_endpoint, EndpointType};
 use crate::schema::private_message;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
@@ -12,6 +13,8 @@ pub struct PrivateMessage {
   pub read: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
+  pub ap_id: String,
+  pub local: bool,
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
@@ -19,10 +22,13 @@ pub struct PrivateMessage {
 pub struct PrivateMessageForm {
   pub creator_id: i32,
   pub recipient_id: i32,
-  pub content: Option<String>,
+  pub content: String,
   pub deleted: Option<bool>,
   pub read: Option<bool>,
+  pub published: Option<chrono::NaiveDateTime>,
   pub updated: Option<chrono::NaiveDateTime>,
+  pub ap_id: String,
+  pub local: bool,
 }
 
 impl Crud<PrivateMessageForm> for PrivateMessage {
@@ -52,6 +58,28 @@ impl Crud<PrivateMessageForm> for PrivateMessage {
     diesel::update(private_message.find(private_message_id))
       .set(private_message_form)
       .get_result::<Self>(conn)
+  }
+}
+
+impl PrivateMessage {
+  pub fn update_ap_id(conn: &PgConnection, private_message_id: i32) -> Result<Self, Error> {
+    use crate::schema::private_message::dsl::*;
+
+    let apid = make_apub_endpoint(
+      EndpointType::PrivateMessage,
+      &private_message_id.to_string(),
+    )
+    .to_string();
+    diesel::update(private_message.find(private_message_id))
+      .set(ap_id.eq(apid))
+      .get_result::<Self>(conn)
+  }
+
+  pub fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
+    use crate::schema::private_message::dsl::*;
+    private_message
+      .filter(ap_id.eq(object_id))
+      .first::<Self>(conn)
   }
 }
 
@@ -118,12 +146,15 @@ mod tests {
     let inserted_recipient = User_::create(&conn, &recipient_form).unwrap();
 
     let private_message_form = PrivateMessageForm {
-      content: Some("A test private message".into()),
+      content: "A test private message".into(),
       creator_id: inserted_creator.id,
       recipient_id: inserted_recipient.id,
       deleted: None,
       read: None,
+      published: None,
       updated: None,
+      ap_id: "changeme".into(),
+      local: true,
     };
 
     let inserted_private_message = PrivateMessage::create(&conn, &private_message_form).unwrap();
@@ -137,6 +168,8 @@ mod tests {
       read: false,
       updated: None,
       published: inserted_private_message.published,
+      ap_id: "changeme".into(),
+      local: true,
     };
 
     let read_private_message = PrivateMessage::read(&conn, inserted_private_message.id).unwrap();

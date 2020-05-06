@@ -2,6 +2,7 @@
 use super::comment::Comment;
 use super::community::{Community, CommunityForm};
 use super::post::Post;
+use super::private_message::PrivateMessage;
 use super::user::{UserForm, User_};
 use super::*;
 use crate::apub::signatures::generate_actor_keypair;
@@ -15,6 +16,7 @@ pub fn run_advanced_migrations(conn: &PgConnection) -> Result<(), Error> {
   community_updates_2020_04_02(conn)?;
   post_updates_2020_04_03(conn)?;
   comment_updates_2020_04_03(conn)?;
+  private_message_updates_2020_05_05(conn)?;
 
   Ok(())
 }
@@ -142,6 +144,26 @@ fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), Error> {
   }
 
   info!("{} comment rows updated.", incorrect_comments.len());
+
+  Ok(())
+}
+
+fn private_message_updates_2020_05_05(conn: &PgConnection) -> Result<(), Error> {
+  use crate::schema::private_message::dsl::*;
+
+  info!("Running private_message_updates_2020_05_05");
+
+  // Update the ap_id
+  let incorrect_pms = private_message
+    .filter(ap_id.eq("changeme"))
+    .filter(local.eq(true))
+    .load::<PrivateMessage>(conn)?;
+
+  for cpm in &incorrect_pms {
+    PrivateMessage::update_ap_id(&conn, cpm.id)?;
+  }
+
+  info!("{} private message rows updated.", incorrect_pms.len());
 
   Ok(())
 }

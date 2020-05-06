@@ -5,6 +5,7 @@ pub mod community_inbox;
 pub mod fetcher;
 pub mod page_extension;
 pub mod post;
+pub mod private_message;
 pub mod shared_inbox;
 pub mod signatures;
 pub mod user;
@@ -46,6 +47,7 @@ use url::Url;
 use crate::api::comment::CommentResponse;
 use crate::api::post::PostResponse;
 use crate::api::site::SearchResponse;
+use crate::api::user::PrivateMessageResponse;
 use crate::db::comment::{Comment, CommentForm, CommentLike, CommentLikeForm};
 use crate::db::comment_view::CommentView;
 use crate::db::community::{
@@ -55,13 +57,15 @@ use crate::db::community::{
 use crate::db::community_view::{CommunityFollowerView, CommunityModeratorView, CommunityView};
 use crate::db::post::{Post, PostForm, PostLike, PostLikeForm};
 use crate::db::post_view::PostView;
+use crate::db::private_message::{PrivateMessage, PrivateMessageForm};
+use crate::db::private_message_view::PrivateMessageView;
 use crate::db::user::{UserForm, User_};
 use crate::db::user_view::UserView;
 use crate::db::{activity, Crud, Followable, Joinable, Likeable, SearchType};
 use crate::routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use crate::routes::{ChatServerParam, DbPoolParam};
 use crate::websocket::{
-  server::{SendComment, SendPost},
+  server::{SendComment, SendPost, SendUserRoomMessage},
   UserOperation,
 };
 use crate::{convert_datetime, naive_now, Settings};
@@ -85,6 +89,7 @@ pub enum EndpointType {
   User,
   Post,
   Comment,
+  PrivateMessage,
 }
 
 /// Convert the data to json and turn it into an HTTP Response with the correct ActivityPub
@@ -120,6 +125,7 @@ pub fn make_apub_endpoint(endpoint_type: EndpointType, name: &str) -> Url {
     // TODO I have to change this else my update advanced_migrations crashes the
     // server if a comment exists.
     EndpointType::Comment => "comment",
+    EndpointType::PrivateMessage => "private_message",
   };
 
   Url::parse(&format!(
