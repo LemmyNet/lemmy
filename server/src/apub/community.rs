@@ -283,19 +283,7 @@ impl ActorType for Community {
     Ok(
       CommunityFollowerView::for_community(conn, self.id)?
         .into_iter()
-        // TODO eventually this will have to use the inbox or shared_inbox column, meaning that view
-        // will have to change
-        .map(|c| {
-          // If the user is local, but the community isn't, get the community shared inbox
-          // and vice versa
-          if c.user_local && !c.community_local {
-            get_shared_inbox(&c.community_actor_id)
-          } else if !c.user_local && c.community_local {
-            get_shared_inbox(&c.user_actor_id)
-          } else {
-            "".to_string()
-          }
-        })
+        .map(|c| get_shared_inbox(&c.user_actor_id))
         .filter(|s| !s.is_empty())
         .unique()
         .collect(),

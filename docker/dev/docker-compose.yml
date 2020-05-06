@@ -22,7 +22,7 @@ services:
       - RUST_LOG=debug
     volumes:
       - ../lemmy.hjson:/config/config.hjson
-    depends_on: 
+    depends_on:
       - postgres
       - pictshare
       - iframely
