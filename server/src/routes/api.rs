@@ -83,6 +83,14 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("/like", web::post().to(route_post::<CreateCommentLike>))
           .route("/save", web::put().to(route_post::<SaveComment>)),
       )
+      // Private Message
+      .service(
+        web::scope("/private_message")
+          .wrap(rate_limit.message())
+          .route("/list", web::get().to(route_get::<GetPrivateMessages>))
+          .route("", web::post().to(route_post::<CreatePrivateMessage>))
+          .route("", web::put().to(route_post::<EditPrivateMessage>)),
+      )
       // User
       .service(
         // Account action, I don't like that it's in /user maybe /accounts
