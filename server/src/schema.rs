@@ -1,339 +1,341 @@
 table! {
-  activity (id) {
-    id -> Int4,
-    user_id -> Int4,
-    data -> Jsonb,
-    local -> Bool,
-    published -> Timestamp,
-    updated -> Nullable<Timestamp>,
-  }
+    activity (id) {
+        id -> Int4,
+        user_id -> Int4,
+        data -> Jsonb,
+        local -> Bool,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
+    }
 }
 
 table! {
-  category (id) {
-    id -> Int4,
-    name -> Varchar,
-  }
+    category (id) {
+        id -> Int4,
+        name -> Varchar,
+    }
 }
 
 table! {
-  comment (id) {
-    id -> Int4,
-    creator_id -> Int4,
-    post_id -> Int4,
-    parent_id -> Nullable<Int4>,
-    content -> Text,
-    removed -> Bool,
-    read -> Bool,
-    published -> Timestamp,
-    updated -> Nullable<Timestamp>,
-    deleted -> Bool,
-    ap_id -> Varchar,
-    local -> Bool,
-  }
+    comment (id) {
+        id -> Int4,
+        creator_id -> Int4,
+        post_id -> Int4,
+        parent_id -> Nullable<Int4>,
+        content -> Text,
+        removed -> Bool,
+        read -> Bool,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
+        deleted -> Bool,
+        ap_id -> Varchar,
+        local -> Bool,
+    }
 }
 
 table! {
-  comment_like (id) {
-    id -> Int4,
-    user_id -> Int4,
-    comment_id -> Int4,
-    post_id -> Int4,
-    score -> Int2,
-    published -> Timestamp,
-  }
+    comment_like (id) {
+        id -> Int4,
+        user_id -> Int4,
+        comment_id -> Int4,
+        post_id -> Int4,
+        score -> Int2,
+        published -> Timestamp,
+    }
 }
 
 table! {
-  comment_saved (id) {
-    id -> Int4,
-    comment_id -> Int4,
-    user_id -> Int4,
-    published -> Timestamp,
-  }
+    comment_saved (id) {
+        id -> Int4,
+        comment_id -> Int4,
+        user_id -> Int4,
+        published -> Timestamp,
+    }
 }
 
 table! {
-  community (id) {
-    id -> Int4,
-    name -> Varchar,
-    title -> Varchar,
-    description -> Nullable<Text>,
-    category_id -> Int4,
-    creator_id -> Int4,
-    removed -> Bool,
-    published -> Timestamp,
-    updated -> Nullable<Timestamp>,
-    deleted -> Bool,
-    nsfw -> Bool,
-    actor_id -> Varchar,
-    local -> Bool,
-    private_key -> Nullable<Text>,
-    public_key -> Nullable<Text>,
-    last_refreshed_at -> Timestamp,
-  }
+    community (id) {
+        id -> Int4,
+        name -> Varchar,
+        title -> Varchar,
+        description -> Nullable<Text>,
+        category_id -> Int4,
+        creator_id -> Int4,
+        removed -> Bool,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
+        deleted -> Bool,
+        nsfw -> Bool,
+        actor_id -> Varchar,
+        local -> Bool,
+        private_key -> Nullable<Text>,
+        public_key -> Nullable<Text>,
+        last_refreshed_at -> Timestamp,
+    }
 }
 
 table! {
-  community_follower (id) {
-    id -> Int4,
-    community_id -> Int4,
-    user_id -> Int4,
-    published -> Timestamp,
-  }
+    community_follower (id) {
+        id -> Int4,
+        community_id -> Int4,
+        user_id -> Int4,
+        published -> Timestamp,
+    }
 }
 
 table! {
-  community_moderator (id) {
-    id -> Int4,
-    community_id -> Int4,
-    user_id -> Int4,
-    published -> Timestamp,
-  }
+    community_moderator (id) {
+        id -> Int4,
+        community_id -> Int4,
+        user_id -> Int4,
+        published -> Timestamp,
+    }
 }
 
 table! {
-  community_user_ban (id) {
-    id -> Int4,
-    community_id -> Int4,
-    user_id -> Int4,
-    published -> Timestamp,
-  }
+    community_user_ban (id) {
+        id -> Int4,
+        community_id -> Int4,
+        user_id -> Int4,
+        published -> Timestamp,
+    }
 }
 
 table! {
-  mod_add (id) {
-    id -> Int4,
-    mod_user_id -> Int4,
-    other_user_id -> Int4,
-    removed -> Nullable<Bool>,
-    when_ -> Timestamp,
-  }
+    mod_add (id) {
+        id -> Int4,
+        mod_user_id -> Int4,
+        other_user_id -> Int4,
+        removed -> Nullable<Bool>,
+        when_ -> Timestamp,
+    }
 }
 
 table! {
-  mod_add_community (id) {
-    id -> Int4,
-    mod_user_id -> Int4,
-    other_user_id -> Int4,
-    community_id -> Int4,
-    removed -> Nullable<Bool>,
-    when_ -> Timestamp,
-  }
+    mod_add_community (id) {
+        id -> Int4,
+        mod_user_id -> Int4,
+        other_user_id -> Int4,
+        community_id -> Int4,
+        removed -> Nullable<Bool>,
+        when_ -> Timestamp,
+    }
 }
 
 table! {
-  mod_ban (id) {
-    id -> Int4,
-    mod_user_id -> Int4,
-    other_user_id -> Int4,
-    reason -> Nullable<Text>,
-    banned -> Nullable<Bool>,
-    expires -> Nullable<Timestamp>,
-    when_ -> Timestamp,
-  }
+    mod_ban (id) {
+        id -> Int4,
+        mod_user_id -> Int4,
+        other_user_id -> Int4,
+        reason -> Nullable<Text>,
+        banned -> Nullable<Bool>,
+        expires -> Nullable<Timestamp>,
+        when_ -> Timestamp,
+    }
 }
 
 table! {
-  mod_ban_from_community (id) {
-    id -> Int4,
-    mod_user_id -> Int4,
-    other_user_id -> Int4,
-    community_id -> Int4,
-    reason -> Nullable<Text>,
-    banned -> Nullable<Bool>,
-    expires -> Nullable<Timestamp>,
-    when_ -> Timestamp,
-  }
+    mod_ban_from_community (id) {
+        id -> Int4,
+        mod_user_id -> Int4,
+        other_user_id -> Int4,
+        community_id -> Int4,
+        reason -> Nullable<Text>,
+        banned -> Nullable<Bool>,
+        expires -> Nullable<Timestamp>,
+        when_ -> Timestamp,
+    }
 }
 
 table! {
-  mod_lock_post (id) {
-    id -> Int4,
-    mod_user_id -> Int4,
-    post_id -> Int4,
-    locked -> Nullable<Bool>,
-    when_ -> Timestamp,
-  }
+    mod_lock_post (id) {
+        id -> Int4,
+        mod_user_id -> Int4,
+        post_id -> Int4,
+        locked -> Nullable<Bool>,
+        when_ -> Timestamp,
+    }
 }
 
 table! {
-  mod_remove_comment (id) {
-    id -> Int4,
-    mod_user_id -> Int4,
-    comment_id -> Int4,
-    reason -> Nullable<Text>,
-    removed -> Nullable<Bool>,
-    when_ -> Timestamp,
-  }
+    mod_remove_comment (id) {
+        id -> Int4,
+        mod_user_id -> Int4,
+        comment_id -> Int4,
+        reason -> Nullable<Text>,
+        removed -> Nullable<Bool>,
+        when_ -> Timestamp,
+    }
 }
 
 table! {
-  mod_remove_community (id) {
-    id -> Int4,
-    mod_user_id -> Int4,
-    community_id -> Int4,
-    reason -> Nullable<Text>,
-    removed -> Nullable<Bool>,
-    expires -> Nullable<Timestamp>,
-    when_ -> Timestamp,
-  }
+    mod_remove_community (id) {
+        id -> Int4,
+        mod_user_id -> Int4,
+        community_id -> Int4,
+        reason -> Nullable<Text>,
+        removed -> Nullable<Bool>,
+        expires -> Nullable<Timestamp>,
+        when_ -> Timestamp,
+    }
 }
 
 table! {
-  mod_remove_post (id) {
-    id -> Int4,
-    mod_user_id -> Int4,
-    post_id -> Int4,
-    reason -> Nullable<Text>,
-    removed -> Nullable<Bool>,
-    when_ -> Timestamp,
-  }
+    mod_remove_post (id) {
+        id -> Int4,
+        mod_user_id -> Int4,
+        post_id -> Int4,
+        reason -> Nullable<Text>,
+        removed -> Nullable<Bool>,
+        when_ -> Timestamp,
+    }
 }
 
 table! {
-  mod_sticky_post (id) {
-    id -> Int4,
-    mod_user_id -> Int4,
-    post_id -> Int4,
-    stickied -> Nullable<Bool>,
-    when_ -> Timestamp,
-  }
+    mod_sticky_post (id) {
+        id -> Int4,
+        mod_user_id -> Int4,
+        post_id -> Int4,
+        stickied -> Nullable<Bool>,
+        when_ -> Timestamp,
+    }
 }
 
 table! {
-  password_reset_request (id) {
-    id -> Int4,
-    user_id -> Int4,
-    token_encrypted -> Text,
-    published -> Timestamp,
-  }
+    password_reset_request (id) {
+        id -> Int4,
+        user_id -> Int4,
+        token_encrypted -> Text,
+        published -> Timestamp,
+    }
 }
 
 table! {
-  post (id) {
-    id -> Int4,
-    name -> Varchar,
-    url -> Nullable<Text>,
-    body -> Nullable<Text>,
-    creator_id -> Int4,
-    community_id -> Int4,
-    removed -> Bool,
-    locked -> Bool,
-    published -> Timestamp,
-    updated -> Nullable<Timestamp>,
-    deleted -> Bool,
-    nsfw -> Bool,
-    stickied -> Bool,
-    embed_title -> Nullable<Text>,
-    embed_description -> Nullable<Text>,
-    embed_html -> Nullable<Text>,
-    thumbnail_url -> Nullable<Text>,
-    ap_id -> Varchar,
-    local -> Bool,
-  }
+    post (id) {
+        id -> Int4,
+        name -> Varchar,
+        url -> Nullable<Text>,
+        body -> Nullable<Text>,
+        creator_id -> Int4,
+        community_id -> Int4,
+        removed -> Bool,
+        locked -> Bool,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
+        deleted -> Bool,
+        nsfw -> Bool,
+        stickied -> Bool,
+        embed_title -> Nullable<Text>,
+        embed_description -> Nullable<Text>,
+        embed_html -> Nullable<Text>,
+        thumbnail_url -> Nullable<Text>,
+        ap_id -> Varchar,
+        local -> Bool,
+    }
 }
 
 table! {
-  post_like (id) {
-    id -> Int4,
-    post_id -> Int4,
-    user_id -> Int4,
-    score -> Int2,
-    published -> Timestamp,
-  }
+    post_like (id) {
+        id -> Int4,
+        post_id -> Int4,
+        user_id -> Int4,
+        score -> Int2,
+        published -> Timestamp,
+    }
 }
 
 table! {
-  post_read (id) {
-    id -> Int4,
-    post_id -> Int4,
-    user_id -> Int4,
-    published -> Timestamp,
-  }
+    post_read (id) {
+        id -> Int4,
+        post_id -> Int4,
+        user_id -> Int4,
+        published -> Timestamp,
+    }
 }
 
 table! {
-  post_saved (id) {
-    id -> Int4,
-    post_id -> Int4,
-    user_id -> Int4,
-    published -> Timestamp,
-  }
+    post_saved (id) {
+        id -> Int4,
+        post_id -> Int4,
+        user_id -> Int4,
+        published -> Timestamp,
+    }
 }
 
 table! {
-  private_message (id) {
-    id -> Int4,
-    creator_id -> Int4,
-    recipient_id -> Int4,
-    content -> Text,
-    deleted -> Bool,
-    read -> Bool,
-    published -> Timestamp,
-    updated -> Nullable<Timestamp>,
-  }
+    private_message (id) {
+        id -> Int4,
+        creator_id -> Int4,
+        recipient_id -> Int4,
+        content -> Text,
+        deleted -> Bool,
+        read -> Bool,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
+        ap_id -> Varchar,
+        local -> Bool,
+    }
 }
 
 table! {
-  site (id) {
-    id -> Int4,
-    name -> Varchar,
-    description -> Nullable<Text>,
-    creator_id -> Int4,
-    published -> Timestamp,
-    updated -> Nullable<Timestamp>,
-    enable_downvotes -> Bool,
-    open_registration -> Bool,
-    enable_nsfw -> Bool,
-  }
+    site (id) {
+        id -> Int4,
+        name -> Varchar,
+        description -> Nullable<Text>,
+        creator_id -> Int4,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
+        enable_downvotes -> Bool,
+        open_registration -> Bool,
+        enable_nsfw -> Bool,
+    }
 }
 
 table! {
-  user_ (id) {
-    id -> Int4,
-    name -> Varchar,
-    preferred_username -> Nullable<Varchar>,
-    password_encrypted -> Text,
-    email -> Nullable<Text>,
-    avatar -> Nullable<Text>,
-    admin -> Bool,
-    banned -> Bool,
-    published -> Timestamp,
-    updated -> Nullable<Timestamp>,
-    show_nsfw -> Bool,
-    theme -> Varchar,
-    default_sort_type -> Int2,
-    default_listing_type -> Int2,
-    lang -> Varchar,
-    show_avatars -> Bool,
-    send_notifications_to_email -> Bool,
-    matrix_user_id -> Nullable<Text>,
-    actor_id -> Varchar,
-    bio -> Nullable<Text>,
-    local -> Bool,
-    private_key -> Nullable<Text>,
-    public_key -> Nullable<Text>,
-    last_refreshed_at -> Timestamp,
-  }
+    user_ (id) {
+        id -> Int4,
+        name -> Varchar,
+        preferred_username -> Nullable<Varchar>,
+        password_encrypted -> Text,
+        email -> Nullable<Text>,
+        avatar -> Nullable<Text>,
+        admin -> Bool,
+        banned -> Bool,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
+        show_nsfw -> Bool,
+        theme -> Varchar,
+        default_sort_type -> Int2,
+        default_listing_type -> Int2,
+        lang -> Varchar,
+        show_avatars -> Bool,
+        send_notifications_to_email -> Bool,
+        matrix_user_id -> Nullable<Text>,
+        actor_id -> Varchar,
+        bio -> Nullable<Text>,
+        local -> Bool,
+        private_key -> Nullable<Text>,
+        public_key -> Nullable<Text>,
+        last_refreshed_at -> Timestamp,
+    }
 }
 
 table! {
-  user_ban (id) {
-    id -> Int4,
-    user_id -> Int4,
-    published -> Timestamp,
-  }
+    user_ban (id) {
+        id -> Int4,
+        user_id -> Int4,
+        published -> Timestamp,
+    }
 }
 
 table! {
-  user_mention (id) {
-    id -> Int4,
-    recipient_id -> Int4,
-    comment_id -> Int4,
-    read -> Bool,
-    published -> Timestamp,
-  }
+    user_mention (id) {
+        id -> Int4,
+        recipient_id -> Int4,
+        comment_id -> Int4,
+        read -> Bool,
+        published -> Timestamp,
+    }
 }
 
 joinable!(activity -> user_ (user_id));

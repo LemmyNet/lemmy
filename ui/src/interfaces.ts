@@ -273,10 +273,16 @@ export interface PrivateMessage {
   read: boolean;
   published: string;
   updated?: string;
+  ap_id: string;
+  local: boolean;
   creator_name: string;
   creator_avatar?: string;
+  creator_actor_id: string;
+  creator_local: boolean;
   recipient_name: string;
   recipient_avatar?: string;
+  recipient_actor_id: string;
+  recipient_local: boolean;
 }
 
 export enum BanType {

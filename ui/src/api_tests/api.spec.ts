@@ -18,6 +18,10 @@ import {
   GetCommunityResponse,
   CommentLikeForm,
   CreatePostLikeForm,
+  PrivateMessageForm,
+  EditPrivateMessageForm,
+  PrivateMessageResponse,
+  PrivateMessagesResponse,
 } from '../interfaces';
 
 let lemmyAlphaUrl = 'http://localhost:8540';
@@ -158,6 +162,7 @@ describe('main', () => {
           body: wrapper(unfollowForm),
         }
       ).then(d => d.json());
+      expect(unfollowRes.community.local).toBe(false);
 
       // Check that you are unsubscribed to it locally
       let followedCommunitiesResAgain: GetFollowedCommunitiesResponse = await fetch(
@@ -963,6 +968,143 @@ describe('main', () => {
         }
       ).then(d => d.json());
       expect(getCommunityResAgain.community.removed).toBe(false);
+    });
+  });
+
+  describe('private message', () => {
+    test('/u/lemmy_alpha creates/updates/deletes/undeletes a private_message to /u/lemmy_beta, its on both instances', async () => {
+      let content = 'A jest test federated private message';
+      let privateMessageForm: PrivateMessageForm = {
+        content,
+        recipient_id: 3,
+        auth: lemmyAlphaAuth,
+      };
+
+      let createRes: PrivateMessageResponse = await fetch(
+        `${lemmyAlphaApiUrl}/private_message`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(privateMessageForm),
+        }
+      ).then(d => d.json());
+      expect(createRes.message.content).toBe(content);
+      expect(createRes.message.local).toBe(true);
+      expect(createRes.message.creator_local).toBe(true);
+      expect(createRes.message.recipient_local).toBe(false);
+
+      // Get it from beta
+      let getPrivateMessagesUrl = `${lemmyBetaApiUrl}/private_message/list?auth=${lemmyBetaAuth}&unread_only=false`;
+
+      let getPrivateMessagesRes: PrivateMessagesResponse = await fetch(
+        getPrivateMessagesUrl,
+        {
+          method: 'GET',
+        }
+      ).then(d => d.json());
+
+      expect(getPrivateMessagesRes.messages[0].content).toBe(content);
+      expect(getPrivateMessagesRes.messages[0].local).toBe(false);
+      expect(getPrivateMessagesRes.messages[0].creator_local).toBe(false);
+      expect(getPrivateMessagesRes.messages[0].recipient_local).toBe(true);
+
+      // lemmy alpha updates the private message
+      let updatedContent = 'A jest test federated private message edited';
+      let updatePrivateMessageForm: EditPrivateMessageForm = {
+        content: updatedContent,
+        edit_id: createRes.message.id,
+        auth: lemmyAlphaAuth,
+      };
+
+      let updateRes: PrivateMessageResponse = await fetch(
+        `${lemmyAlphaApiUrl}/private_message`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(updatePrivateMessageForm),
+        }
+      ).then(d => d.json());
+
+      expect(updateRes.message.content).toBe(updatedContent);
+
+      // Fetch from beta again
+      let getPrivateMessagesUpdatedRes: PrivateMessagesResponse = await fetch(
+        getPrivateMessagesUrl,
+        {
+          method: 'GET',
+        }
+      ).then(d => d.json());
+
+      expect(getPrivateMessagesUpdatedRes.messages[0].content).toBe(
+        updatedContent
+      );
+
+      // lemmy alpha deletes the private message
+      let deletePrivateMessageForm: EditPrivateMessageForm = {
+        deleted: true,
+        edit_id: createRes.message.id,
+        auth: lemmyAlphaAuth,
+      };
+
+      let deleteRes: PrivateMessageResponse = await fetch(
+        `${lemmyAlphaApiUrl}/private_message`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(deletePrivateMessageForm),
+        }
+      ).then(d => d.json());
+
+      expect(deleteRes.message.deleted).toBe(true);
+
+      // Fetch from beta again
+      let getPrivateMessagesDeletedRes: PrivateMessagesResponse = await fetch(
+        getPrivateMessagesUrl,
+        {
+          method: 'GET',
+        }
+      ).then(d => d.json());
+
+      // The GetPrivateMessages filters out deleted,
+      // even though they are in the actual database.
+      // no reason to show them
+      expect(getPrivateMessagesDeletedRes.messages.length).toBe(0);
+
+      // lemmy alpha undeletes the private message
+      let undeletePrivateMessageForm: EditPrivateMessageForm = {
+        deleted: false,
+        edit_id: createRes.message.id,
+        auth: lemmyAlphaAuth,
+      };
+
+      let undeleteRes: PrivateMessageResponse = await fetch(
+        `${lemmyAlphaApiUrl}/private_message`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(undeletePrivateMessageForm),
+        }
+      ).then(d => d.json());
+
+      expect(undeleteRes.message.deleted).toBe(false);
+
+      // Fetch from beta again
+      let getPrivateMessagesUnDeletedRes: PrivateMessagesResponse = await fetch(
+        getPrivateMessagesUrl,
+        {
+          method: 'GET',
+        }
+      ).then(d => d.json());
+
+      expect(getPrivateMessagesUnDeletedRes.messages[0].deleted).toBe(false);
     });
   });
 });
