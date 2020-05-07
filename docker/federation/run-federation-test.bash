@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+# already start rust build in the background
+pushd ../../server/ || exit
+cargo build &
+popd || exit
+
 if [ "$1" = "-yarn" ]; then
   pushd ../../ui/ || exit
   yarn
@@ -8,6 +13,7 @@ if [ "$1" = "-yarn" ]; then
   popd || exit
 fi
 
+# wait for rust build to finish
 pushd ../../server/ || exit
 cargo build
 popd || exit

@@ -37,7 +37,6 @@ use failure::{Error, _core::fmt::Debug};
 use log::debug;
 use serde::{Deserialize, Serialize};
 use crate::apub::fetcher::get_or_fetch_and_upsert_remote_community;
-use activitystreams_new::primitives::XsdAnyUri;
 use crate::apub::activities::{populate_object_props, send_activity};
 use crate::apub::ActorType;
 use activitystreams::activity::Announce;
@@ -68,7 +67,7 @@ impl SharedAcceptedObjects {
       SharedAcceptedObjects::Announce(a) => a.announce_props.get_object_base_box(),
     }
   }
-  fn sender(&self) -> XsdAnyUri {
+  fn sender(&self) -> String {
     let uri = match self {
       SharedAcceptedObjects::Create(c) => c.create_props.get_actor_xsd_any_uri(),
       SharedAcceptedObjects::Update(u) => u.update_props.get_actor_xsd_any_uri(),
@@ -79,9 +78,9 @@ impl SharedAcceptedObjects {
       SharedAcceptedObjects::Remove(r) => r.remove_props.get_actor_xsd_any_uri(),
       SharedAcceptedObjects::Announce(a) => a.announce_props.get_actor_xsd_any_uri(),
     };
-    uri.unwrap().clone()
+    uri.unwrap().clone().to_string()
   }
-  fn cc(&self) -> XsdAnyUri {
+  fn cc(&self) -> String {
     // TODO: there is probably an easier way to do this
     let oprops = match self {
       SharedAcceptedObjects::Create(c) => &c.object_props,
@@ -93,7 +92,7 @@ impl SharedAcceptedObjects {
       SharedAcceptedObjects::Remove(r) => &r.object_props,
       SharedAcceptedObjects::Announce(a) => &a.object_props,
     };
-    oprops.get_cc_xsd_any_uri().unwrap().to_owned()
+    oprops.get_cc_xsd_any_uri().unwrap().to_owned().to_string()
   }
 }
 
@@ -111,10 +110,9 @@ pub async fn shared_inbox(
   debug!("Shared inbox received activity: {}", json);
 
   let object = activity.object().cloned().unwrap();
-  let sender = activity.sender();
-  let cc = activity.cc();
+  let sender = &activity.sender();
+  let cc = &activity.cc();
 
-  // TODO: should make an enum Actor that contains user and community, and has methods like get_public_key()
   match get_or_fetch_and_upsert_remote_user(&sender.to_string(), &conn) {
     Ok(u) => verify(&request, &u),
     Err(_) => {
@@ -127,7 +125,7 @@ pub async fn shared_inbox(
     (SharedAcceptedObjects::Create(c), Some("Page")) => {
       // TODO: first check that it is addressed to a local community
       receive_create_post(&c, &conn, chat_server)?;
-      do_announce(*c, &cc, &sender, conn)
+      do_announce(*c, cc, sender, conn)
     }
     (SharedAcceptedObjects::Update(u), Some("Page")) => {
       receive_update_post(&u, &conn, chat_server)?;
@@ -1499,22 +1497,22 @@ fn receive_undo_like_post(
   Ok(HttpResponse::Ok().finish())
 }
 
-fn do_announce<A>(
+// TODO: move to community.rs
+pub fn do_announce<A>(
   activity: A,
-  community_uri: &XsdAnyUri,
-  sender: &XsdAnyUri,
+  community_uri: &str,
+  sender: &str,
   conn: &PgConnection,
 ) -> Result<HttpResponse, Error>
 where
   A: Activity + Base + Serialize,
 {
-  // Note: signature check is done by receive_create_post() etc
-
-  let community = Community::read_from_actor_id(conn, &community_uri.to_string())?;
+  dbg!(&community_uri);
+  // TODO: this fails for some reason
+  let community = Community::read_from_actor_id(conn, &community_uri)?;
 
   insert_activity(&conn, -1, &activity, false)?;
 
-  // TODO: move the sending to community.rs
   let mut announce = Announce::default();
   populate_object_props(
     &mut announce.object_props,
@@ -1526,14 +1524,17 @@ where
     .set_actor_xsd_any_uri(community.actor_id.to_owned())?
     .set_object_base_box(BaseBox::from_concrete(activity)?)?;
 
-  insert_activity(&conn, -1, &announce, true)?;
+  insert_activity(&conn, community.id, &announce, true)?;
 
   // dont send to the instance where the activity originally came from, because that would result
   // in a database error (same data inserted twice)
   let mut to = community.get_follower_inboxes(&conn)?;
-  let sending_user = get_or_fetch_and_upsert_remote_user(&sender.to_string(), conn)?;
+  let sending_user = get_or_fetch_and_upsert_remote_user(&sender, conn)?;
   // this seems to be the "easiest" stable alternative for remove_item()
   to.retain(|x| *x != sending_user.get_shared_inbox_url());
+
+  dbg!(&announce);
+  dbg!(&to);
 
   send_activity(
     &announce,

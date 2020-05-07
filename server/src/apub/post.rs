@@ -25,17 +25,14 @@ use crate::{
   routes::DbPoolParam,
   Settings,
 };
-use activitystreams::{
-  activity::{Create, Delete, Dislike, Like, Remove, Undo, Update},
-  context,
-  object::{kind::PageType, properties::ObjectProperties, AnyImage, Image, Page, Tombstone},
-  BaseBox,
-};
+use activitystreams::{activity::{Create, Delete, Dislike, Like, Remove, Undo, Update}, context, object::{kind::PageType, properties::ObjectProperties, AnyImage, Image, Page, Tombstone}, BaseBox, Activity, Base};
 use activitystreams_ext::Ext1;
 use actix_web::{body::Body, web::Path, HttpResponse, Result};
 use diesel::PgConnection;
 use failure::Error;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use crate::apub::shared_inbox::do_announce;
+use failure::_core::fmt::Debug;
 
 #[derive(Deserialize)]
 pub struct PostQuery {
@@ -241,7 +238,7 @@ impl ApubObjectType for Post {
 
     insert_activity(&conn, creator.id, &create, true)?;
 
-    send_activity(&create, creator, vec!(community.get_shared_inbox_url()))?;
+    Post::send_post(creator, conn, &community, create)?;
     Ok(())
   }
 
@@ -264,7 +261,7 @@ impl ApubObjectType for Post {
 
     insert_activity(&conn, creator.id, &update, true)?;
 
-    send_activity(&update, creator, vec!(community.get_shared_inbox_url()))?;
+    Post::send_post(creator, conn, &community, update)?;
     Ok(())
   }
 
@@ -288,7 +285,8 @@ impl ApubObjectType for Post {
     insert_activity(&conn, self.creator_id, &delete, true)?;
 
     let community = Community::read(conn, self.community_id)?;
-    send_activity(&delete, creator, vec!(community.get_shared_inbox_url()))?;
+
+    Post::send_post(creator, conn, &community, delete)?;
     Ok(())
   }
 
@@ -328,7 +326,7 @@ impl ApubObjectType for Post {
     insert_activity(&conn, self.creator_id, &undo, true)?;
 
     let community = Community::read(conn, self.community_id)?;
-    send_activity(&undo, creator, vec!(community.get_shared_inbox_url()))?;
+    Post::send_post(creator, conn, &community, undo)?;
     Ok(())
   }
 
@@ -352,7 +350,8 @@ impl ApubObjectType for Post {
     insert_activity(&conn, mod_.id, &remove, true)?;
 
     let community = Community::read(conn, self.community_id)?;
-    send_activity(&remove, mod_, vec!(community.get_shared_inbox_url()))?;
+
+    Post::send_post(mod_, conn, &community, remove)?;
     Ok(())
   }
   fn send_undo_remove(&self, mod_: &User_, conn: &PgConnection) -> Result<(), Error> {
@@ -390,10 +389,11 @@ impl ApubObjectType for Post {
     insert_activity(&conn, mod_.id, &undo, true)?;
 
     let community = Community::read(conn, self.community_id)?;
-    send_activity(&undo, mod_, vec!(community.get_shared_inbox_url()))?;
+    Post::send_post(mod_, conn, &community, undo)?;
     Ok(())
   }
 }
+
 
 impl ApubLikeableType for Post {
   fn send_like(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
@@ -475,6 +475,26 @@ impl ApubLikeableType for Post {
     insert_activity(&conn, creator.id, &undo, true)?;
 
     send_activity(&undo, creator, vec!(community.get_inbox_url()))?;
+    Ok(())
+  }
+}
+
+impl Post {
+  fn send_post<A>(creator: &User_, conn: &PgConnection, community: &Community, activity: A) -> Result<(), Error>
+    where
+        A: Activity + Base + Serialize + Debug {
+    insert_activity(&conn, creator.id, &activity, true)?;
+
+    // if this is a local community, we need to do an announce from the community instead
+    if community.local {
+      do_announce(activity, &community.actor_id, &creator.actor_id, conn)?;
+    } else {
+      send_activity(
+        &activity,
+        creator,
+        vec![community.get_shared_inbox_url()],
+      )?;
+    }
     Ok(())
   }
 }
