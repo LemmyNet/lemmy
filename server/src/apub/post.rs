@@ -241,7 +241,7 @@ impl ApubObjectType for Post {
 
     insert_activity(&conn, creator.id, &create, true)?;
 
-    send_activity(&create, creator, vec!(community.get_inbox_url()))?;
+    send_activity(&create, creator, vec!(community.get_shared_inbox_url()))?;
     Ok(())
   }
 
@@ -264,7 +264,7 @@ impl ApubObjectType for Post {
 
     insert_activity(&conn, creator.id, &update, true)?;
 
-    send_activity(&update, creator, vec!(community.get_inbox_url()))?;
+    send_activity(&update, creator, vec!(community.get_shared_inbox_url()))?;
     Ok(())
   }
 
@@ -288,7 +288,7 @@ impl ApubObjectType for Post {
     insert_activity(&conn, self.creator_id, &delete, true)?;
 
     let community = Community::read(conn, self.community_id)?;
-    send_activity(&delete, creator, vec!(community.get_inbox_url()))?;
+    send_activity(&delete, creator, vec!(community.get_shared_inbox_url()))?;
     Ok(())
   }
 
@@ -328,7 +328,7 @@ impl ApubObjectType for Post {
     insert_activity(&conn, self.creator_id, &undo, true)?;
 
     let community = Community::read(conn, self.community_id)?;
-    send_activity(&undo, creator, vec!(community.get_inbox_url()))?;
+    send_activity(&undo, creator, vec!(community.get_shared_inbox_url()))?;
     Ok(())
   }
 
@@ -352,7 +352,7 @@ impl ApubObjectType for Post {
     insert_activity(&conn, mod_.id, &remove, true)?;
 
     let community = Community::read(conn, self.community_id)?;
-    send_activity(&remove, mod_, vec!(community.get_inbox_url()))?;
+    send_activity(&remove, mod_, vec!(community.get_shared_inbox_url()))?;
     Ok(())
   }
   fn send_undo_remove(&self, mod_: &User_, conn: &PgConnection) -> Result<(), Error> {
@@ -390,7 +390,7 @@ impl ApubObjectType for Post {
     insert_activity(&conn, mod_.id, &undo, true)?;
 
     let community = Community::read(conn, self.community_id)?;
-    send_activity(&undo, mod_, vec!(community.get_inbox_url()))?;
+    send_activity(&undo, mod_, vec!(community.get_shared_inbox_url()))?;
     Ok(())
   }
 }

@@ -51,7 +51,6 @@ impl CommunityAcceptedObjects {
   }
 }
 
-// TODO Consolidate community and user inboxes into a single shared one
 /// Handler for all incoming activities to community inboxes.
 pub async fn community_inbox(
   request: HttpRequest,

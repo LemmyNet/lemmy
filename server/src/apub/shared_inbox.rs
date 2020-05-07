@@ -30,16 +30,17 @@ use crate::{
     UserOperation,
   },
 };
-use activitystreams::{
-  activity::{Create, Delete, Dislike, Like, Remove, Undo, Update},
-  object::Note,
-  BaseBox,
-};
+use activitystreams::{activity::{Create, Delete, Dislike, Like, Remove, Undo, Update}, object::Note, BaseBox, Base, Activity};
 use actix_web::{web, HttpRequest, HttpResponse, Result};
 use diesel::PgConnection;
 use failure::{Error, _core::fmt::Debug};
 use log::debug;
 use serde::{Deserialize, Serialize};
+use crate::apub::fetcher::get_or_fetch_and_upsert_remote_community;
+use activitystreams_new::primitives::XsdAnyUri;
+use crate::apub::activities::{populate_object_props, send_activity};
+use crate::apub::ActorType;
+use activitystreams::activity::Announce;
 
 #[serde(untagged)]
 #[derive(Serialize, Deserialize, Debug)]
@@ -51,6 +52,7 @@ pub enum SharedAcceptedObjects {
   Delete(Box<Delete>),
   Undo(Box<Undo>),
   Remove(Box<Remove>),
+  Announce(Box<Announce>),
 }
 
 impl SharedAcceptedObjects {
@@ -63,7 +65,35 @@ impl SharedAcceptedObjects {
       SharedAcceptedObjects::Delete(d) => d.delete_props.get_object_base_box(),
       SharedAcceptedObjects::Undo(d) => d.undo_props.get_object_base_box(),
       SharedAcceptedObjects::Remove(r) => r.remove_props.get_object_base_box(),
+      SharedAcceptedObjects::Announce(a) => a.announce_props.get_object_base_box(),
     }
+  }
+  fn sender(&self) -> XsdAnyUri {
+    let uri = match self {
+      SharedAcceptedObjects::Create(c) => c.create_props.get_actor_xsd_any_uri(),
+      SharedAcceptedObjects::Update(u) => u.update_props.get_actor_xsd_any_uri(),
+      SharedAcceptedObjects::Like(l) => l.like_props.get_actor_xsd_any_uri(),
+      SharedAcceptedObjects::Dislike(d) => d.dislike_props.get_actor_xsd_any_uri(),
+      SharedAcceptedObjects::Delete(d) => d.delete_props.get_actor_xsd_any_uri(),
+      SharedAcceptedObjects::Undo(d) => d.undo_props.get_actor_xsd_any_uri(),
+      SharedAcceptedObjects::Remove(r) => r.remove_props.get_actor_xsd_any_uri(),
+      SharedAcceptedObjects::Announce(a) => a.announce_props.get_actor_xsd_any_uri(),
+    };
+    uri.unwrap().clone()
+  }
+  fn cc(&self) -> XsdAnyUri {
+    // TODO: there is probably an easier way to do this
+    let oprops = match self {
+      SharedAcceptedObjects::Create(c) => &c.object_props,
+      SharedAcceptedObjects::Update(u) => &u.object_props,
+      SharedAcceptedObjects::Like(l) => &l.object_props,
+      SharedAcceptedObjects::Dislike(d) => &d.object_props,
+      SharedAcceptedObjects::Delete(d) => &d.object_props,
+      SharedAcceptedObjects::Undo(d) => &d.object_props,
+      SharedAcceptedObjects::Remove(r) => &r.object_props,
+      SharedAcceptedObjects::Announce(a) => &a.object_props,
+    };
+    oprops.get_cc_xsd_any_uri().unwrap().to_owned()
   }
 }
 
@@ -74,7 +104,6 @@ pub async fn shared_inbox(
   db: DbPoolParam,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
-  // TODO: would be nice if we could do the signature check here, but we cant access the actor property
   let activity = input.into_inner();
   let conn = &db.get().unwrap();
 
@@ -82,58 +111,92 @@ pub async fn shared_inbox(
   debug!("Shared inbox received activity: {}", json);
 
   let object = activity.object().cloned().unwrap();
+  let sender = activity.sender();
+  let cc = activity.cc();
+
+  // TODO: should make an enum Actor that contains user and community, and has methods like get_public_key()
+  match get_or_fetch_and_upsert_remote_user(&sender.to_string(), &conn) {
+    Ok(u) => verify(&request, &u),
+    Err(_) => {
+      let c = get_or_fetch_and_upsert_remote_community(&sender.to_string(), &conn)?;
+      verify(&request, &c)
+    },
+  }?;
 
   match (activity, object.kind()) {
     (SharedAcceptedObjects::Create(c), Some("Page")) => {
-      receive_create_post(&c, &request, &conn, chat_server)
+      // TODO: first check that it is addressed to a local community
+      receive_create_post(&c, &conn, chat_server)?;
+      do_announce(*c, &cc, &sender, conn)
     }
     (SharedAcceptedObjects::Update(u), Some("Page")) => {
-      receive_update_post(&u, &request, &conn, chat_server)
+      receive_update_post(&u, &conn, chat_server)?;
+      do_announce(*u, &cc, &sender, conn)
     }
     (SharedAcceptedObjects::Like(l), Some("Page")) => {
-      receive_like_post(&l, &request, &conn, chat_server)
+      receive_like_post(&l, &conn, chat_server)?;
+      do_announce(*l, &cc, &sender, conn)
     }
     (SharedAcceptedObjects::Dislike(d), Some("Page")) => {
-      receive_dislike_post(&d, &request, &conn, chat_server)
+      receive_dislike_post(&d, &conn, chat_server)?;
+      do_announce(*d, &cc, &sender, conn)
     }
     (SharedAcceptedObjects::Delete(d), Some("Page")) => {
-      receive_delete_post(&d, &request, &conn, chat_server)
+      receive_delete_post(&d, &conn, chat_server)?;
+      do_announce(*d, &cc, &sender, conn)
     }
     (SharedAcceptedObjects::Remove(r), Some("Page")) => {
-      receive_remove_post(&r, &request, &conn, chat_server)
+      receive_remove_post(&r, &conn, chat_server)?;
+      do_announce(*r, &cc, &sender, conn)
     }
     (SharedAcceptedObjects::Create(c), Some("Note")) => {
-      receive_create_comment(&c, &request, &conn, chat_server)
+      receive_create_comment(&c, &conn, chat_server)
     }
     (SharedAcceptedObjects::Update(u), Some("Note")) => {
-      receive_update_comment(&u, &request, &conn, chat_server)
+      receive_update_comment(&u, &conn, chat_server)
     }
-    (SharedAcceptedObjects::Like(l), Some("Note")) => {
-      receive_like_comment(&l, &request, &conn, chat_server)
-    }
+    (SharedAcceptedObjects::Like(l), Some("Note")) => receive_like_comment(&l, &conn, chat_server),
     (SharedAcceptedObjects::Dislike(d), Some("Note")) => {
-      receive_dislike_comment(&d, &request, &conn, chat_server)
+      receive_dislike_comment(&d, &conn, chat_server)
     }
     (SharedAcceptedObjects::Delete(d), Some("Note")) => {
-      receive_delete_comment(&d, &request, &conn, chat_server)
+      receive_delete_comment(&d, &conn, chat_server)
     }
     (SharedAcceptedObjects::Remove(r), Some("Note")) => {
-      receive_remove_comment(&r, &request, &conn, chat_server)
+      receive_remove_comment(&r, &conn, chat_server)
     }
     (SharedAcceptedObjects::Delete(d), Some("Group")) => {
-      receive_delete_community(&d, &request, &conn, chat_server)
+      receive_delete_community(&d, &conn, chat_server)
     }
     (SharedAcceptedObjects::Remove(r), Some("Group")) => {
-      receive_remove_community(&r, &request, &conn, chat_server)
+      receive_remove_community(&r, &conn, chat_server)
     }
-    (SharedAcceptedObjects::Undo(u), Some("Delete")) => {
-      receive_undo_delete(&u, &request, &conn, chat_server)
+    (SharedAcceptedObjects::Undo(u), Some("Delete")) => receive_undo_delete(&u, &conn, chat_server),
+    (SharedAcceptedObjects::Undo(u), Some("Remove")) => receive_undo_remove(&u, &conn, chat_server),
+    (SharedAcceptedObjects::Undo(u), Some("Like")) => receive_undo_like(&u, &conn, chat_server),
+    (SharedAcceptedObjects::Announce(_a), Some("Create")) => {
+      let create = object.into_concrete::<Create>()?;
+      receive_create_post(&create, &conn, chat_server)
     }
-    (SharedAcceptedObjects::Undo(u), Some("Remove")) => {
-      receive_undo_remove(&u, &request, &conn, chat_server)
+    (SharedAcceptedObjects::Announce(_a), Some("Update")) => {
+      let update = object.into_concrete::<Update>()?;
+      receive_update_post(&update, &conn, chat_server)
     }
-    (SharedAcceptedObjects::Undo(u), Some("Like")) => {
-      receive_undo_like(&u, &request, &conn, chat_server)
+    (SharedAcceptedObjects::Announce(_a), Some("Like")) => {
+      let like = object.into_concrete::<Like>()?;
+      receive_like_post(&like, &conn, chat_server)
+    }
+    (SharedAcceptedObjects::Announce(_a), Some("Dislike")) => {
+      let dislike = object.into_concrete::<Dislike>()?;
+      receive_dislike_post(&dislike, &conn, chat_server)
+    }
+    (SharedAcceptedObjects::Announce(_a), Some("Delete")) => {
+      let delete = object.into_concrete::<Delete>()?;
+      receive_delete_post(&delete, &conn, chat_server)
+    }
+    (SharedAcceptedObjects::Announce(_a), Some("Remove")) => {
+      let remove = object.into_concrete::<Remove>()?;
+      receive_remove_post(&remove, &conn, chat_server)
     }
     _ => Err(format_err!("Unknown incoming activity type.")),
   }
@@ -141,7 +204,6 @@ pub async fn shared_inbox(
 
 fn receive_create_post(
   create: &Create,
-  request: &HttpRequest,
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -160,7 +222,6 @@ fn receive_create_post(
     .to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &create, false)?;
 
@@ -183,7 +244,6 @@ fn receive_create_post(
 
 fn receive_create_comment(
   create: &Create,
-  request: &HttpRequest,
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -202,7 +262,6 @@ fn receive_create_comment(
     .to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &create, false)?;
 
@@ -236,7 +295,6 @@ fn receive_create_comment(
 
 fn receive_update_post(
   update: &Update,
-  request: &HttpRequest,
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -255,7 +313,6 @@ fn receive_update_post(
     .to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &update, false)?;
 
@@ -279,7 +336,7 @@ fn receive_update_post(
 
 fn receive_like_post(
   like: &Like,
-  request: &HttpRequest,
+
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -294,7 +351,6 @@ fn receive_like_post(
   let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &like, false)?;
 
@@ -325,7 +381,7 @@ fn receive_like_post(
 
 fn receive_dislike_post(
   dislike: &Dislike,
-  request: &HttpRequest,
+
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -344,7 +400,6 @@ fn receive_dislike_post(
     .to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &dislike, false)?;
 
@@ -375,7 +430,7 @@ fn receive_dislike_post(
 
 fn receive_update_comment(
   update: &Update,
-  request: &HttpRequest,
+
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -394,7 +449,6 @@ fn receive_update_comment(
     .to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &update, false)?;
 
@@ -425,7 +479,7 @@ fn receive_update_comment(
 
 fn receive_like_comment(
   like: &Like,
-  request: &HttpRequest,
+
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -440,7 +494,6 @@ fn receive_like_comment(
   let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &like, false)?;
 
@@ -476,7 +529,7 @@ fn receive_like_comment(
 
 fn receive_dislike_comment(
   dislike: &Dislike,
-  request: &HttpRequest,
+
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -495,7 +548,6 @@ fn receive_dislike_comment(
     .to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &dislike, false)?;
 
@@ -531,7 +583,7 @@ fn receive_dislike_comment(
 
 fn receive_delete_community(
   delete: &Delete,
-  request: &HttpRequest,
+
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -550,7 +602,6 @@ fn receive_delete_community(
     .into_concrete::<GroupExt>()?;
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &delete, false)?;
 
@@ -593,7 +644,7 @@ fn receive_delete_community(
 
 fn receive_remove_community(
   remove: &Remove,
-  request: &HttpRequest,
+
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -612,7 +663,6 @@ fn receive_remove_community(
     .into_concrete::<GroupExt>()?;
 
   let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
-  verify(request, &mod_)?;
 
   insert_activity(&conn, mod_.id, &remove, false)?;
 
@@ -655,7 +705,7 @@ fn receive_remove_community(
 
 fn receive_delete_post(
   delete: &Delete,
-  request: &HttpRequest,
+
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -674,7 +724,6 @@ fn receive_delete_post(
     .into_concrete::<PageExt>()?;
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &delete, false)?;
 
@@ -719,7 +768,7 @@ fn receive_delete_post(
 
 fn receive_remove_post(
   remove: &Remove,
-  request: &HttpRequest,
+
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -738,7 +787,6 @@ fn receive_remove_post(
     .into_concrete::<PageExt>()?;
 
   let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
-  verify(request, &mod_)?;
 
   insert_activity(&conn, mod_.id, &remove, false)?;
 
@@ -783,7 +831,7 @@ fn receive_remove_post(
 
 fn receive_delete_comment(
   delete: &Delete,
-  request: &HttpRequest,
+
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -802,7 +850,6 @@ fn receive_delete_comment(
     .into_concrete::<Note>()?;
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &delete, false)?;
 
@@ -844,7 +891,7 @@ fn receive_delete_comment(
 
 fn receive_remove_comment(
   remove: &Remove,
-  request: &HttpRequest,
+
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -863,7 +910,6 @@ fn receive_remove_comment(
     .into_concrete::<Note>()?;
 
   let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
-  verify(request, &mod_)?;
 
   insert_activity(&conn, mod_.id, &remove, false)?;
 
@@ -905,7 +951,7 @@ fn receive_remove_comment(
 
 fn receive_undo_delete(
   undo: &Undo,
-  request: &HttpRequest,
+
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -926,16 +972,16 @@ fn receive_undo_delete(
     .unwrap();
 
   match type_ {
-    "Note" => receive_undo_delete_comment(&delete, &request, &conn, chat_server),
-    "Page" => receive_undo_delete_post(&delete, &request, &conn, chat_server),
-    "Group" => receive_undo_delete_community(&delete, &request, &conn, chat_server),
+    "Note" => receive_undo_delete_comment(&delete, &conn, chat_server),
+    "Page" => receive_undo_delete_post(&delete, &conn, chat_server),
+    "Group" => receive_undo_delete_community(&delete, &conn, chat_server),
     d => Err(format_err!("Undo Delete type {} not supported", d)),
   }
 }
 
 fn receive_undo_remove(
   undo: &Undo,
-  request: &HttpRequest,
+
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -956,16 +1002,16 @@ fn receive_undo_remove(
     .unwrap();
 
   match type_ {
-    "Note" => receive_undo_remove_comment(&remove, &request, &conn, chat_server),
-    "Page" => receive_undo_remove_post(&remove, &request, &conn, chat_server),
-    "Group" => receive_undo_remove_community(&remove, &request, &conn, chat_server),
+    "Note" => receive_undo_remove_comment(&remove, &conn, chat_server),
+    "Page" => receive_undo_remove_post(&remove, &conn, chat_server),
+    "Group" => receive_undo_remove_community(&remove, &conn, chat_server),
     d => Err(format_err!("Undo Delete type {} not supported", d)),
   }
 }
 
 fn receive_undo_delete_comment(
   delete: &Delete,
-  request: &HttpRequest,
+
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -984,7 +1030,6 @@ fn receive_undo_delete_comment(
     .into_concrete::<Note>()?;
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &delete, false)?;
 
@@ -1026,7 +1071,7 @@ fn receive_undo_delete_comment(
 
 fn receive_undo_remove_comment(
   remove: &Remove,
-  request: &HttpRequest,
+
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -1045,7 +1090,6 @@ fn receive_undo_remove_comment(
     .into_concrete::<Note>()?;
 
   let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
-  verify(request, &mod_)?;
 
   insert_activity(&conn, mod_.id, &remove, false)?;
 
@@ -1087,7 +1131,7 @@ fn receive_undo_remove_comment(
 
 fn receive_undo_delete_post(
   delete: &Delete,
-  request: &HttpRequest,
+
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -1106,7 +1150,6 @@ fn receive_undo_delete_post(
     .into_concrete::<PageExt>()?;
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &delete, false)?;
 
@@ -1151,7 +1194,7 @@ fn receive_undo_delete_post(
 
 fn receive_undo_remove_post(
   remove: &Remove,
-  request: &HttpRequest,
+
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -1170,7 +1213,6 @@ fn receive_undo_remove_post(
     .into_concrete::<PageExt>()?;
 
   let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
-  verify(request, &mod_)?;
 
   insert_activity(&conn, mod_.id, &remove, false)?;
 
@@ -1215,7 +1257,7 @@ fn receive_undo_remove_post(
 
 fn receive_undo_delete_community(
   delete: &Delete,
-  request: &HttpRequest,
+
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -1234,7 +1276,6 @@ fn receive_undo_delete_community(
     .into_concrete::<GroupExt>()?;
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &delete, false)?;
 
@@ -1277,7 +1318,7 @@ fn receive_undo_delete_community(
 
 fn receive_undo_remove_community(
   remove: &Remove,
-  request: &HttpRequest,
+
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -1296,7 +1337,6 @@ fn receive_undo_remove_community(
     .into_concrete::<GroupExt>()?;
 
   let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
-  verify(request, &mod_)?;
 
   insert_activity(&conn, mod_.id, &remove, false)?;
 
@@ -1339,7 +1379,7 @@ fn receive_undo_remove_community(
 
 fn receive_undo_like(
   undo: &Undo,
-  request: &HttpRequest,
+
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -1360,15 +1400,15 @@ fn receive_undo_like(
     .unwrap();
 
   match type_ {
-    "Note" => receive_undo_like_comment(&like, &request, &conn, chat_server),
-    "Page" => receive_undo_like_post(&like, &request, &conn, chat_server),
+    "Note" => receive_undo_like_comment(&like, &conn, chat_server),
+    "Page" => receive_undo_like_post(&like, &conn, chat_server),
     d => Err(format_err!("Undo Delete type {} not supported", d)),
   }
 }
 
 fn receive_undo_like_comment(
   like: &Like,
-  request: &HttpRequest,
+
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -1383,7 +1423,6 @@ fn receive_undo_like_comment(
   let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &like, false)?;
 
@@ -1418,7 +1457,7 @@ fn receive_undo_like_comment(
 
 fn receive_undo_like_post(
   like: &Like,
-  request: &HttpRequest,
+
   conn: &PgConnection,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
@@ -1433,7 +1472,6 @@ fn receive_undo_like_post(
   let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &like, false)?;
 
@@ -1457,6 +1495,51 @@ fn receive_undo_like_post(
     post: res,
     my_id: None,
   });
+
+  Ok(HttpResponse::Ok().finish())
+}
+
+fn do_announce<A>(
+  activity: A,
+  community_uri: &XsdAnyUri,
+  sender: &XsdAnyUri,
+  conn: &PgConnection,
+) -> Result<HttpResponse, Error>
+where
+  A: Activity + Base + Serialize,
+{
+  // Note: signature check is done by receive_create_post() etc
+
+  let community = Community::read_from_actor_id(conn, &community_uri.to_string())?;
+
+  insert_activity(&conn, -1, &activity, false)?;
+
+  // TODO: move the sending to community.rs
+  let mut announce = Announce::default();
+  populate_object_props(
+    &mut announce.object_props,
+    vec!(community.get_followers_url()),
+    &format!("{}/announce/{}", community.actor_id, uuid::Uuid::new_v4()),
+  )?;
+  announce
+    .announce_props
+    .set_actor_xsd_any_uri(community.actor_id.to_owned())?
+    .set_object_base_box(BaseBox::from_concrete(activity)?)?;
+
+  insert_activity(&conn, -1, &announce, true)?;
+
+  // dont send to the instance where the activity originally came from, because that would result
+  // in a database error (same data inserted twice)
+  let mut to = community.get_follower_inboxes(&conn)?;
+  let sending_user = get_or_fetch_and_upsert_remote_user(&sender.to_string(), conn)?;
+  // this seems to be the "easiest" stable alternative for remove_item()
+  to.retain(|x| *x != sending_user.get_shared_inbox_url());
+
+  send_activity(
+    &announce,
+    &community,
+    to,
+  )?;
 
   Ok(HttpResponse::Ok().finish())
 }
