@@ -210,7 +210,7 @@ export function isMod(modIds: Array<number>, creator_id: number): boolean {
 }
 
 const imageRegex = new RegExp(
-  /(http)?s?:?(\/\/[^"']*\.(?:jpg|jpeg|gif|png|svg))/
+  /(http)?s?:?(\/\/[^"']*\.(?:jpg|jpeg|gif|png|svg|webp))/
 );
 const videoRegex = new RegExp(`(http)?s?:?(\/\/[^"']*\.(?:mp4))`);
 
