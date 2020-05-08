@@ -222,11 +222,7 @@ fn fetch_iframely_and_pictshare_data(
     None => match url {
       Some(url) => match fetch_pictshare(&url) {
         // Try to generate a small thumbnail if iframely is not supported
-        Ok(res) => {
-          let mut split_url: Vec<&str> = res.url.split('/').collect();
-          split_url.insert(split_url.len() - 1, "192");
-          Some(split_url.join("/"))
-        }
+        Ok(res) => Some(res.url),
         Err(e) => {
           error!("pictshare err: {}", e);
           None
