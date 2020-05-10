@@ -235,5 +235,14 @@
     "couldnt_update_private_message": "Konnte Privatnachricht nicht aktualisieren.",
     "time": "Zeit",
     "action": "Aktion",
-    "more": "mehr"
+    "more": "mehr",
+    "admin_settings": "Admin-Einstellungen",
+    "sorting_help": "Sortierhilfe",
+    "banned_users": "Verbotene Benutzer",
+    "show_context": "Kontext anzeigen",
+    "block_leaving": "Sind Sie sicher, dass Sie gehen wollen?",
+    "site_config": "Website-Konfiguration",
+    "support_on_open_collective": "Unterstützung bei OpenCollective",
+    "site_saved": "Site Gespeichert.",
+    "emoji_picker": "Emoji-Wähler"
 }
