@@ -197,47 +197,46 @@ fn fetch_iframely_and_pictshare_data(
   Option<String>,
   Option<String>,
 ) {
-  // Fetch iframely data
-  let (iframely_title, iframely_description, iframely_thumbnail_url, iframely_html) = match &url {
-    Some(url) => match fetch_iframely(url) {
-      Ok(res) => (res.title, res.description, res.thumbnail_url, res.html),
-      Err(e) => {
-        error!("iframely err: {}", e);
-        (None, None, None, None)
-      }
-    },
-    None => (None, None, None, None),
-  };
+  match &url {
+    Some(url) => {
+      // Fetch iframely data
+      let (iframely_title, iframely_description, iframely_thumbnail_url, iframely_html) =
+        match fetch_iframely(url) {
+          Ok(res) => (res.title, res.description, res.thumbnail_url, res.html),
+          Err(e) => {
+            error!("iframely err: {}", e);
+            (None, None, None, None)
+          }
+        };
 
-  // Fetch pictshare thumbnail
-  let pictshare_thumbnail = match iframely_thumbnail_url {
-    Some(iframely_thumbnail_url) => match fetch_pictshare(&iframely_thumbnail_url) {
-      Ok(res) => Some(res.url),
-      Err(e) => {
-        error!("pictshare err: {}", e);
-        None
-      }
-    },
-
-    None => match url {
-      Some(url) => match fetch_pictshare(&url) {
+      // Fetch pictshare thumbnail
+      let pictshare_thumbnail = match iframely_thumbnail_url {
+        Some(iframely_thumbnail_url) => match fetch_pictshare(&iframely_thumbnail_url) {
+          Ok(res) => Some(res.url),
+          Err(e) => {
+            error!("pictshare err: {}", e);
+            None
+          }
+        },
         // Try to generate a small thumbnail if iframely is not supported
-        Ok(res) => Some(res.url),
-        Err(e) => {
-          error!("pictshare err: {}", e);
-          None
-        }
-      },
-      None => None,
-    },
-  };
+        None => match fetch_pictshare(&url) {
+          Ok(res) => Some(res.url),
+          Err(e) => {
+            error!("pictshare err: {}", e);
+            None
+          }
+        },
+      };
 
-  (
-    iframely_title,
-    iframely_description,
-    iframely_html,
-    pictshare_thumbnail,
-  )
+      (
+        iframely_title,
+        iframely_description,
+        iframely_html,
+        pictshare_thumbnail,
+      )
+    }
+    None => (None, None, None, None),
+  }
 }
 
 pub fn markdown_to_html(text: &str) -> String {
