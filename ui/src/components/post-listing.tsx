@@ -150,9 +150,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     let post = this.props.post;
     return (
       <img
-        className={`img-fluid thumbnail rounded ${(post.nsfw ||
-          post.community_nsfw) &&
-          'img-blur'}`}
+        className={`img-fluid thumbnail rounded ${
+          (post.nsfw || post.community_nsfw) && 'img-blur'
+        }`}
         src={src}
       />
     );
@@ -163,6 +163,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     if (isImage(post.url)) {
       if (post.url.includes('pictshare')) {
         return pictshareImage(post.url, thumbnail);
+      } else if (post.thumbnail_url) {
+        return pictshareImage(post.thumbnail_url, thumbnail);
       } else {
         return post.url;
       }
@@ -542,8 +544,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                             }
                           >
                             <svg
-                              class={`icon icon-inline ${post.saved &&
-                                'text-warning'}`}
+                              class={`icon icon-inline ${
+                                post.saved && 'text-warning'
+                              }`}
                             >
                               <use xlinkHref="#icon-star"></use>
                             </svg>
@@ -586,8 +589,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                             }
                           >
                             <svg
-                              class={`icon icon-inline ${post.deleted &&
-                                'text-danger'}`}
+                              class={`icon icon-inline ${
+                                post.deleted && 'text-danger'
+                              }`}
                             >
                               <use xlinkHref="#icon-trash"></use>
                             </svg>
@@ -618,8 +622,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                               data-tippy-content={i18n.t('view_source')}
                             >
                               <svg
-                                class={`icon icon-inline ${this.state
-                                  .viewSource && 'text-success'}`}
+                                class={`icon icon-inline ${
+                                  this.state.viewSource && 'text-success'
+                                }`}
                               >
                                 <use xlinkHref="#icon-file-text"></use>
                               </svg>
@@ -639,8 +644,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                                 }
                               >
                                 <svg
-                                  class={`icon icon-inline ${post.locked &&
-                                    'text-danger'}`}
+                                  class={`icon icon-inline ${
+                                    post.locked && 'text-danger'
+                                  }`}
                                 >
                                   <use xlinkHref="#icon-lock"></use>
                                 </svg>
@@ -657,8 +663,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                                 }
                               >
                                 <svg
-                                  class={`icon icon-inline ${post.stickied &&
-                                    'text-success'}`}
+                                  class={`icon icon-inline ${
+                                    post.stickied && 'text-success'
+                                  }`}
                                 >
                                   <use xlinkHref="#icon-pin"></use>
                                 </svg>

@@ -198,8 +198,8 @@ fn fetch_iframely_and_pictshare_data(
   Option<String>,
 ) {
   // Fetch iframely data
-  let (iframely_title, iframely_description, iframely_thumbnail_url, iframely_html) = match url {
-    Some(url) => match fetch_iframely(&url) {
+  let (iframely_title, iframely_description, iframely_thumbnail_url, iframely_html) = match &url {
+    Some(url) => match fetch_iframely(url) {
       Ok(res) => (res.title, res.description, res.thumbnail_url, res.html),
       Err(e) => {
         error!("iframely err: {}", e);
@@ -218,7 +218,18 @@ fn fetch_iframely_and_pictshare_data(
         None
       }
     },
-    None => None,
+
+    None => match url {
+      Some(url) => match fetch_pictshare(&url) {
+        // Try to generate a small thumbnail if iframely is not supported
+        Ok(res) => Some(res.url),
+        Err(e) => {
+          error!("pictshare err: {}", e);
+          None
+        }
+      },
+      None => None,
+    },
   };
 
   (
