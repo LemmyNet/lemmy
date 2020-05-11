@@ -73,6 +73,16 @@ pub fn is_email_regex(test: &str) -> bool {
   EMAIL_REGEX.is_match(test)
 }
 
+pub fn is_image_content_type(test: &str) -> bool {
+  match isahc::get(test) {
+    Ok(res) => match res.headers().get("Content-Type") {
+      Some(header) => header.to_str().unwrap_or("not_an_img").contains("image"),
+      None => false,
+    },
+    Err(_) => false,
+  }
+}
+
 pub fn remove_slurs(test: &str) -> String {
   SLUR_REGEX.replace_all(test, "*removed*").to_string()
 }
@@ -180,6 +190,10 @@ pub struct PictshareResponse {
 }
 
 pub fn fetch_pictshare(image_url: &str) -> Result<PictshareResponse, failure::Error> {
+  if !is_image_content_type(image_url) {
+    return Err(format_err!("Not an image type."));
+  }
+
   let fetch_url = format!(
     "http://pictshare/api/geturl.php?url={}",
     utf8_percent_encode(image_url, NON_ALPHANUMERIC)
@@ -255,7 +269,18 @@ pub fn get_ip(conn_info: &ConnectionInfo) -> String {
 
 #[cfg(test)]
 mod tests {
-  use crate::{extract_usernames, is_email_regex, remove_slurs, slur_check, slurs_vec_to_str};
+  use crate::{
+    extract_usernames, is_email_regex, is_image_content_type, remove_slurs, slur_check,
+    slurs_vec_to_str,
+  };
+
+  #[test]
+  fn test_image() {
+    assert!(is_image_content_type("https://1734811051.rsc.cdn77.org/data/images/full/365645/as-virus-kills-navajos-in-their-homes-tribal-women-provide-lifeline.jpg?w=600?w=650"));
+    assert!(!is_image_content_type(
+      "https://twitter.com/BenjaminNorton/status/1259922424272957440?s=20"
+    ));
+  }
 
   #[test]
   fn test_email() {
