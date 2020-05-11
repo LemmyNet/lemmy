@@ -163,10 +163,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     if (isImage(post.url)) {
       if (post.url.includes('pictshare')) {
         return pictshareImage(post.url, thumbnail);
-      } else if (
-        post.thumbnail_url &&
-        post.thumbnail_url.includes('pictshare')
-      ) {
+      } else if (post.thumbnail_url) {
         return pictshareImage(post.thumbnail_url, thumbnail);
       } else {
         return post.url;
