@@ -187,6 +187,7 @@ export class Login extends Component<any, State> {
               type="password"
               id="register-password"
               value={this.state.registerForm.password}
+              autoComplete="new-password"
               onInput={linkEvent(this, this.handleRegisterPasswordChange)}
               class="form-control"
               required
@@ -206,6 +207,7 @@ export class Login extends Component<any, State> {
               type="password"
               id="register-verify-password"
               value={this.state.registerForm.password_verify}
+              autoComplete="new-password"
               onInput={linkEvent(this, this.handleRegisterPasswordVerifyChange)}
               class="form-control"
               required
