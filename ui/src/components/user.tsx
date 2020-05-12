@@ -81,7 +81,6 @@ export class User extends Component<any, UserState> {
     user: {
       id: null,
       name: null,
-      fedi_name: null,
       published: null,
       number_of_posts: null,
       post_score: null,
@@ -455,8 +454,9 @@ export class User extends Component<any, UserState> {
             ) : (
               <>
                 <a
-                  className={`btn btn-block btn-secondary mt-3 ${!this.state
-                    .user.matrix_user_id && 'disabled'}`}
+                  className={`btn btn-block btn-secondary mt-3 ${
+                    !this.state.user.matrix_user_id && 'disabled'
+                  }`}
                   target="_blank"
                   href={`https://matrix.to/#/${this.state.user.matrix_user_id}`}
                 >
@@ -609,6 +609,7 @@ export class User extends Component<any, UserState> {
                     id="user-password"
                     class="form-control"
                     value={this.state.userSettingsForm.new_password}
+                    autoComplete="new-password"
                     onInput={linkEvent(
                       this,
                       this.handleUserSettingsNewPasswordChange
@@ -629,6 +630,7 @@ export class User extends Component<any, UserState> {
                     id="user-verify-password"
                     class="form-control"
                     value={this.state.userSettingsForm.new_password_verify}
+                    autoComplete="new-password"
                     onInput={linkEvent(
                       this,
                       this.handleUserSettingsNewPasswordVerifyChange
@@ -649,6 +651,7 @@ export class User extends Component<any, UserState> {
                     id="user-old-password"
                     class="form-control"
                     value={this.state.userSettingsForm.old_password}
+                    autoComplete="new-password"
                     onInput={linkEvent(
                       this,
                       this.handleUserSettingsOldPasswordChange
@@ -745,6 +748,7 @@ export class User extends Component<any, UserState> {
                     <input
                       type="password"
                       value={this.state.deleteAccountForm.password}
+                      autoComplete="new-password"
                       onInput={linkEvent(
                         this,
                         this.handleDeleteAccountPasswordChange
