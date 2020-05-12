@@ -79,7 +79,7 @@ pub fn is_image_content_type(test: &str) -> Result<(), failure::Error> {
     .get("Content-Type")
     .ok_or_else(|| format_err!("No Content-Type header"))?
     .to_str()?
-    .starts_with("image")
+    .starts_with("image/")
   {
     Ok(())
   } else {
