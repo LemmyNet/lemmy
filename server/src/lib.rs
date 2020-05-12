@@ -73,13 +73,17 @@ pub fn is_email_regex(test: &str) -> bool {
   EMAIL_REGEX.is_match(test)
 }
 
-pub fn is_image_content_type(test: &str) -> bool {
-  match isahc::get(test) {
-    Ok(res) => match res.headers().get("Content-Type") {
-      Some(header) => header.to_str().unwrap_or("not_an_img").contains("image"),
-      None => false,
-    },
-    Err(_) => false,
+pub fn is_image_content_type(test: &str) -> Result<(), failure::Error> {
+  if isahc::get(test)?
+    .headers()
+    .get("Content-Type")
+    .ok_or_else(|| format_err!("No Content-Type header"))?
+    .to_str()?
+    .starts_with("image/")
+  {
+    Ok(())
+  } else {
+    Err(format_err!("Not an image type."))
   }
 }
 
@@ -190,9 +194,7 @@ pub struct PictshareResponse {
 }
 
 pub fn fetch_pictshare(image_url: &str) -> Result<PictshareResponse, failure::Error> {
-  if !is_image_content_type(image_url) {
-    return Err(format_err!("Not an image type."));
-  }
+  is_image_content_type(image_url)?;
 
   let fetch_url = format!(
     "http://pictshare/api/geturl.php?url={}",
@@ -276,10 +278,11 @@ mod tests {
 
   #[test]
   fn test_image() {
-    assert!(is_image_content_type("https://1734811051.rsc.cdn77.org/data/images/full/365645/as-virus-kills-navajos-in-their-homes-tribal-women-provide-lifeline.jpg?w=600?w=650"));
-    assert!(!is_image_content_type(
+    assert!(is_image_content_type("https://1734811051.rsc.cdn77.org/data/images/full/365645/as-virus-kills-navajos-in-their-homes-tribal-women-provide-lifeline.jpg?w=600?w=650").is_ok());
+    assert!(is_image_content_type(
       "https://twitter.com/BenjaminNorton/status/1259922424272957440?s=20"
-    ));
+    )
+    .is_err());
   }
 
   #[test]
