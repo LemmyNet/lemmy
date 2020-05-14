@@ -18,19 +18,12 @@ pub fn populate_object_props(
 }
 
 /// Send an activity to a list of recipients, using the correct headers etc.
-pub fn send_activity<A>(
-  activity: &A,
-  private_key: &str,
-  sender_id: &str,
-  to: Vec<String>,
-) -> Result<(), Error>
+pub fn send_activity<A>(activity: &A, actor: &dyn ActorType, to: Vec<String>) -> Result<(), Error>
 where
   A: Serialize + Debug,
 {
   let json = serde_json::to_string(&activity)?;
   debug!("Sending activitypub activity {} to {:?}", json, to);
-  // TODO it needs to expand, the to field needs to expand and dedup the followers urls
-  // The inbox is determined by first retrieving the target actor's JSON-LD representation and then looking up the inbox property. If a recipient is a Collection or OrderedCollection, then the server MUST dereference the collection (with the user's credentials) and discover inboxes for each item in the collection. Servers MUST limit the number of layers of indirections through collections which will be performed, which MAY be one.
   for t in to {
     let to_url = Url::parse(&t)?;
     if !is_apub_id_valid(&to_url) {
@@ -38,7 +31,7 @@ where
       continue;
     }
     let request = Request::post(t).header("Host", to_url.domain().unwrap());
-    let signature = sign(&request, private_key, sender_id)?;
+    let signature = sign(&request, actor)?;
     let res = request
       .header("Signature", signature)
       .header("Content-Type", "application/json")

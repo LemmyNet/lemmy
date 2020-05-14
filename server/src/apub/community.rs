@@ -79,6 +79,9 @@ impl ActorType for Community {
   fn public_key(&self) -> String {
     self.public_key.to_owned().unwrap()
   }
+  fn private_key(&self) -> String {
+    self.private_key.to_owned().unwrap()
+  }
 
   /// As a local community, accept the follow request from a remote user.
   fn send_accept_follow(&self, follow: &Follow, conn: &PgConnection) -> Result<(), Error> {
@@ -100,21 +103,9 @@ impl ActorType for Community {
       .set_object_base_box(BaseBox::from_concrete(follow.clone())?)?;
     let to = format!("{}/inbox", actor_uri);
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: self.creator_id,
-      data: serde_json::to_value(&accept)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, self.creator_id, &accept, true)?;
 
-    send_activity(
-      &accept,
-      &self.private_key.to_owned().unwrap(),
-      &self.actor_id,
-      vec![to],
-    )?;
+    send_activity(&accept, self, vec![to])?;
     Ok(())
   }
 
@@ -134,24 +125,12 @@ impl ActorType for Community {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(group)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: self.creator_id,
-      data: serde_json::to_value(&delete)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, self.creator_id, &delete, true)?;
 
     // Note: For an accept, since it was automatic, no one pushed a button,
     // the community was the actor.
     // But for delete, the creator is the actor, and does the signing
-    send_activity(
-      &delete,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      self.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&delete, creator, self.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -187,24 +166,12 @@ impl ActorType for Community {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(delete)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: self.creator_id,
-      data: serde_json::to_value(&undo)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, self.creator_id, &undo, true)?;
 
     // Note: For an accept, since it was automatic, no one pushed a button,
     // the community was the actor.
     // But for delete, the creator is the actor, and does the signing
-    send_activity(
-      &undo,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      self.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&undo, creator, self.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -224,24 +191,12 @@ impl ActorType for Community {
       .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
       .set_object_base_box(group)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: mod_.id,
-      data: serde_json::to_value(&remove)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, mod_.id, &remove, true)?;
 
     // Note: For an accept, since it was automatic, no one pushed a button,
     // the community was the actor.
     // But for delete, the creator is the actor, and does the signing
-    send_activity(
-      &remove,
-      &mod_.private_key.as_ref().unwrap(),
-      &mod_.actor_id,
-      self.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&remove, mod_, self.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -276,24 +231,12 @@ impl ActorType for Community {
       .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
       .set_object_base_box(remove)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: mod_.id,
-      data: serde_json::to_value(&undo)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, mod_.id, &undo, true)?;
 
     // Note: For an accept, since it was automatic, no one pushed a button,
     // the community was the actor.
     // But for remove , the creator is the actor, and does the signing
-    send_activity(
-      &undo,
-      &mod_.private_key.as_ref().unwrap(),
-      &mod_.actor_id,
-      self.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&undo, mod_, self.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -340,11 +283,6 @@ impl FromApub for CommunityForm {
     let aprops = &group.base.extension;
     let public_key: &PublicKey = &group.extension.public_key;
 
-    let _followers_uri = Url::parse(&aprops.get_followers().unwrap().to_string())?;
-    let _outbox_uri = Url::parse(&aprops.get_outbox().to_string())?;
-    // TODO don't do extra fetching here
-    // let _outbox = fetch_remote_object::<OrderedCollection>(&outbox_uri)?;
-    // let _followers = fetch_remote_object::<UnorderedCollection>(&followers_uri)?;
     let mut creator_and_moderator_uris = oprops.get_many_attributed_to_xsd_any_uris().unwrap();
     let creator = creator_and_moderator_uris
       .next()
@@ -392,8 +330,7 @@ pub async fn get_apub_community_http(
   }
 }
 
-/// Returns an empty followers collection, only populating the siz (for privacy).
-// TODO this needs to return the actual followers, and the to: field needs this
+/// Returns an empty followers collection, only populating the size (for privacy).
 pub async fn get_apub_community_followers(
   info: Path<CommunityQuery>,
   db: DbPoolParam,
@@ -415,34 +352,3 @@ pub async fn get_apub_community_followers(
     .set_total_items(community_followers.len() as u64)?;
   Ok(create_apub_response(&collection))
 }
-
-// TODO should not be doing this
-// Returns an UnorderedCollection with the latest posts from the community.
-//pub async fn get_apub_community_outbox(
-//  info: Path<CommunityQuery>,
-//  db: DbPoolParam,
-//  chat_server: ChatServerParam,
-//) -> Result<HttpResponse<Body>, Error> {
-//  let community = Community::read_from_name(&&db.get()?, &info.community_name)?;
-
-//  let conn = establish_unpooled_connection();
-//  //As we are an object, we validated that the community id was valid
-//  let community_posts: Vec<Post> = Post::list_for_community(&conn, community.id)?;
-
-//  let mut collection = OrderedCollection::default();
-//  let oprops: &mut ObjectProperties = collection.as_mut();
-//  oprops
-//    .set_context_xsd_any_uri(context())?
-//    .set_id(community.actor_id)?;
-//  collection
-//    .collection_props
-//    .set_many_items_base_boxes(
-//      community_posts
-//        .iter()
-//        .map(|c| c.as_page(&conn).unwrap())
-//        .collect(),
-//    )?
-//    .set_total_items(community_posts.len() as u64)?;
-
-//  Ok(create_apub_response(&collection))
-//}

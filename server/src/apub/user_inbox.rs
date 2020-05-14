@@ -55,18 +55,11 @@ fn receive_accept(
     .to_string();
 
   let community = get_or_fetch_and_upsert_remote_community(&community_uri, conn)?;
-  verify(request, &community.public_key.unwrap())?;
+  verify(request, &community)?;
 
   let user = User_::read_from_name(&conn, username)?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: community.creator_id,
-    data: serde_json::to_value(&accept)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, community.creator_id, &accept, false)?;
 
   // Now you need to add this to the community follower
   let community_follower_form = CommunityFollowerForm {
@@ -78,7 +71,6 @@ fn receive_accept(
   CommunityFollower::follow(&conn, &community_follower_form)?;
 
   // TODO: make sure that we actually requested a follow
-  // TODO: at this point, indicate to the user that they are following the community
   Ok(HttpResponse::Ok().finish())
 }
 
@@ -103,16 +95,9 @@ fn receive_create_private_message(
     .to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: user.id,
-    data: serde_json::to_value(&create)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, user.id, &create, false)?;
 
   let private_message = PrivateMessageForm::from_apub(&note, &conn)?;
   let inserted_private_message = PrivateMessage::create(&conn, &private_message)?;
@@ -154,16 +139,9 @@ fn receive_update_private_message(
     .to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: user.id,
-    data: serde_json::to_value(&update)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, user.id, &update, false)?;
 
   let private_message = PrivateMessageForm::from_apub(&note, &conn)?;
   let private_message_id = PrivateMessage::read_from_apub_id(&conn, &private_message.ap_id)?.id;
@@ -206,16 +184,9 @@ fn receive_delete_private_message(
     .to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: user.id,
-    data: serde_json::to_value(&delete)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, user.id, &delete, false)?;
 
   let private_message = PrivateMessageForm::from_apub(&note, &conn)?;
   let private_message_id = PrivateMessage::read_from_apub_id(&conn, &private_message.ap_id)?.id;
@@ -277,16 +248,9 @@ fn receive_undo_delete_private_message(
     .to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: user.id,
-    data: serde_json::to_value(&delete)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, user.id, &delete, false)?;
 
   let private_message = PrivateMessageForm::from_apub(&note, &conn)?;
   let private_message_id = PrivateMessage::read_from_apub_id(&conn, &private_message.ap_id)?.id;

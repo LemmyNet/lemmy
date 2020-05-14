@@ -1,5 +1,24 @@
 use super::*;
 
+#[derive(Deserialize)]
+pub struct CommentQuery {
+  comment_id: String,
+}
+
+/// Return the post json over HTTP.
+pub async fn get_apub_comment(
+  info: Path<CommentQuery>,
+  db: DbPoolParam,
+) -> Result<HttpResponse<Body>, Error> {
+  let id = info.comment_id.parse::<i32>()?;
+  let comment = Comment::read(&&db.get()?, id)?;
+  if !comment.deleted {
+    Ok(create_apub_response(&comment.to_apub(&db.get().unwrap())?))
+  } else {
+    Ok(create_apub_tombstone_response(&comment.to_tombstone()?))
+  }
+}
+
 impl ToApub for Comment {
   type Response = Note;
 
@@ -118,21 +137,9 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: creator.id,
-      data: serde_json::to_value(&create)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, creator.id, &create, true)?;
 
-    send_activity(
-      &create,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      maa.inboxes,
-    )?;
+    send_activity(&create, creator, maa.inboxes)?;
     Ok(())
   }
 
@@ -157,21 +164,9 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: creator.id,
-      data: serde_json::to_value(&update)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, creator.id, &update, true)?;
 
-    send_activity(
-      &update,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      maa.inboxes,
-    )?;
+    send_activity(&update, creator, maa.inboxes)?;
     Ok(())
   }
 
@@ -193,21 +188,9 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: creator.id,
-      data: serde_json::to_value(&delete)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, creator.id, &delete, true)?;
 
-    send_activity(
-      &delete,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&delete, creator, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -247,21 +230,9 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(delete)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: creator.id,
-      data: serde_json::to_value(&undo)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, creator.id, &undo, true)?;
 
-    send_activity(
-      &undo,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&undo, creator, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -283,21 +254,9 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: mod_.id,
-      data: serde_json::to_value(&remove)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, mod_.id, &remove, true)?;
 
-    send_activity(
-      &remove,
-      &mod_.private_key.as_ref().unwrap(),
-      &mod_.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&remove, mod_, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -336,21 +295,9 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
       .set_object_base_box(remove)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: mod_.id,
-      data: serde_json::to_value(&undo)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, mod_.id, &undo, true)?;
 
-    send_activity(
-      &undo,
-      &mod_.private_key.as_ref().unwrap(),
-      &mod_.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&undo, mod_, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 }
@@ -373,21 +320,9 @@ impl ApubLikeableType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: creator.id,
-      data: serde_json::to_value(&like)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, creator.id, &like, true)?;
 
-    send_activity(
-      &like,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&like, creator, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -408,21 +343,9 @@ impl ApubLikeableType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: creator.id,
-      data: serde_json::to_value(&dislike)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, creator.id, &dislike, true)?;
 
-    send_activity(
-      &dislike,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&dislike, creator, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -459,21 +382,9 @@ impl ApubLikeableType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(like)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: creator.id,
-      data: serde_json::to_value(&undo)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, creator.id, &undo, true)?;
 
-    send_activity(
-      &undo,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&undo, creator, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 }

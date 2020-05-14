@@ -57,6 +57,10 @@ impl ActorType for User_ {
     self.public_key.to_owned().unwrap()
   }
 
+  fn private_key(&self) -> String {
+    self.private_key.to_owned().unwrap()
+  }
+
   /// As a given local user, send out a follow request to a remote community.
   fn send_follow(&self, follow_actor_id: &str, conn: &PgConnection) -> Result<(), Error> {
     let mut follow = Follow::new();
@@ -73,21 +77,9 @@ impl ActorType for User_ {
       .set_object_xsd_any_uri(follow_actor_id)?;
     let to = format!("{}/inbox", follow_actor_id);
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: self.id,
-      data: serde_json::to_value(&follow)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, self.id, &follow, true)?;
 
-    send_activity(
-      &follow,
-      &self.private_key.as_ref().unwrap(),
-      &follow_actor_id,
-      vec![to],
-    )?;
+    send_activity(&follow, self, vec![to])?;
     Ok(())
   }
 
@@ -121,21 +113,9 @@ impl ActorType for User_ {
       .set_actor_xsd_any_uri(self.actor_id.to_owned())?
       .set_object_base_box(follow)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: self.id,
-      data: serde_json::to_value(&undo)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, self.id, &undo, true)?;
 
-    send_activity(
-      &undo,
-      &self.private_key.as_ref().unwrap(),
-      &follow_actor_id,
-      vec![to],
-    )?;
+    send_activity(&undo, self, vec![to])?;
     Ok(())
   }
 
