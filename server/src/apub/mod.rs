@@ -226,6 +226,7 @@ pub trait ActorType {
   fn actor_id(&self) -> String;
 
   fn public_key(&self) -> String;
+  fn private_key(&self) -> String;
 
   // These two have default impls, since currently a community can't follow anything,
   // and a user can't be followed (yet)

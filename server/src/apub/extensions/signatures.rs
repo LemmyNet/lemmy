@@ -1,5 +1,5 @@
+use crate::apub::ActorType;
 use activitystreams::ext::Extension;
-use activitystreams::Actor;
 use actix_web::HttpRequest;
 use failure::Error;
 use http::request::Builder;
@@ -33,9 +33,8 @@ pub fn generate_actor_keypair() -> Result<Keypair, Error> {
 }
 
 /// Signs request headers with the given keypair.
-/// TODO: would be nice to pass the sending actor in, instead of raw privatekey/id strings
-pub fn sign(request: &Builder, private_key: &str, sender_id: &str) -> Result<String, Error> {
-  let signing_key_id = format!("{}#main-key", sender_id);
+pub fn sign(request: &Builder, actor: &dyn ActorType) -> Result<String, Error> {
+  let signing_key_id = format!("{}#main-key", actor.actor_id());
 
   let headers = request
     .headers_ref()
@@ -58,7 +57,7 @@ pub fn sign(request: &Builder, private_key: &str, sender_id: &str) -> Result<Str
       headers,
     )
     .sign(signing_key_id, |signing_string| {
-      let private_key = PKey::private_key_from_pem(private_key.as_bytes())?;
+      let private_key = PKey::private_key_from_pem(actor.private_key().as_bytes())?;
       let mut signer = Signer::new(MessageDigest::sha256(), &private_key).unwrap();
       signer.update(signing_string.as_bytes()).unwrap();
       Ok(base64::encode(signer.sign_to_vec()?)) as Result<_, Error>
@@ -68,7 +67,7 @@ pub fn sign(request: &Builder, private_key: &str, sender_id: &str) -> Result<Str
   Ok(signature_header_value)
 }
 
-pub fn verify(request: &HttpRequest, public_key: &str) -> Result<(), Error> {
+pub fn verify(request: &HttpRequest, actor: &dyn ActorType) -> Result<(), Error> {
   let headers = request
     .headers()
     .iter()
@@ -86,9 +85,10 @@ pub fn verify(request: &HttpRequest, public_key: &str) -> Result<(), Error> {
     .verify(|signature, signing_string| -> Result<bool, Error> {
       debug!(
         "Verifying with key {}, message {}",
-        &public_key, &signing_string
+        &actor.public_key(),
+        &signing_string
       );
-      let public_key = PKey::public_key_from_pem(public_key.as_bytes())?;
+      let public_key = PKey::public_key_from_pem(actor.public_key().as_bytes())?;
       let mut verifier = Verifier::new(MessageDigest::sha256(), &public_key).unwrap();
       verifier.update(&signing_string.as_bytes()).unwrap();
       Ok(verifier.verify(&base64::decode(signature)?)?)
@@ -130,4 +130,4 @@ impl PublicKey {
   }
 }
 
-impl<T> Extension<T> for PublicKeyExtension where T: Actor {}
+impl<T> Extension<T> for PublicKeyExtension where T: activitystreams::Actor {}

@@ -119,7 +119,7 @@ fn receive_create_post(
     .to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &create, false)?;
 
@@ -161,7 +161,7 @@ fn receive_create_comment(
     .to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &create, false)?;
 
@@ -208,7 +208,7 @@ fn receive_update_post(
     .to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &update, false)?;
 
@@ -247,7 +247,7 @@ fn receive_like_post(
   let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &like, false)?;
 
@@ -297,7 +297,7 @@ fn receive_dislike_post(
     .to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &dislike, false)?;
 
@@ -347,7 +347,7 @@ fn receive_update_comment(
     .to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &update, false)?;
 
@@ -391,7 +391,7 @@ fn receive_like_comment(
   let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &like, false)?;
 
@@ -446,7 +446,7 @@ fn receive_dislike_comment(
     .to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &dislike, false)?;
 
@@ -501,7 +501,7 @@ fn receive_delete_community(
     .into_concrete::<GroupExt>()?;
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &delete, false)?;
 
@@ -563,7 +563,7 @@ fn receive_remove_community(
     .into_concrete::<GroupExt>()?;
 
   let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
-  verify(request, &mod_.public_key.unwrap())?;
+  verify(request, &mod_)?;
 
   insert_activity(&conn, mod_.id, &remove, false)?;
 
@@ -625,7 +625,7 @@ fn receive_delete_post(
     .into_concrete::<PageExt>()?;
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &delete, false)?;
 
@@ -689,7 +689,7 @@ fn receive_remove_post(
     .into_concrete::<PageExt>()?;
 
   let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
-  verify(request, &mod_.public_key.unwrap())?;
+  verify(request, &mod_)?;
 
   insert_activity(&conn, mod_.id, &remove, false)?;
 
@@ -753,7 +753,7 @@ fn receive_delete_comment(
     .into_concrete::<Note>()?;
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &delete, false)?;
 
@@ -814,7 +814,7 @@ fn receive_remove_comment(
     .into_concrete::<Note>()?;
 
   let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
-  verify(request, &mod_.public_key.unwrap())?;
+  verify(request, &mod_)?;
 
   insert_activity(&conn, mod_.id, &remove, false)?;
 
@@ -935,7 +935,7 @@ fn receive_undo_delete_comment(
     .into_concrete::<Note>()?;
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &delete, false)?;
 
@@ -996,7 +996,7 @@ fn receive_undo_remove_comment(
     .into_concrete::<Note>()?;
 
   let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
-  verify(request, &mod_.public_key.unwrap())?;
+  verify(request, &mod_)?;
 
   insert_activity(&conn, mod_.id, &remove, false)?;
 
@@ -1057,7 +1057,7 @@ fn receive_undo_delete_post(
     .into_concrete::<PageExt>()?;
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &delete, false)?;
 
@@ -1121,7 +1121,7 @@ fn receive_undo_remove_post(
     .into_concrete::<PageExt>()?;
 
   let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
-  verify(request, &mod_.public_key.unwrap())?;
+  verify(request, &mod_)?;
 
   insert_activity(&conn, mod_.id, &remove, false)?;
 
@@ -1185,7 +1185,7 @@ fn receive_undo_delete_community(
     .into_concrete::<GroupExt>()?;
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &delete, false)?;
 
@@ -1247,7 +1247,7 @@ fn receive_undo_remove_community(
     .into_concrete::<GroupExt>()?;
 
   let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
-  verify(request, &mod_.public_key.unwrap())?;
+  verify(request, &mod_)?;
 
   insert_activity(&conn, mod_.id, &remove, false)?;
 
@@ -1334,7 +1334,7 @@ fn receive_undo_like_comment(
   let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &like, false)?;
 
@@ -1384,7 +1384,7 @@ fn receive_undo_like_post(
   let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &like, false)?;
 

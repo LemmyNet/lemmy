@@ -87,12 +87,7 @@ impl ApubObjectType for PrivateMessage {
 
     insert_activity(&conn, creator.id, &create, true)?;
 
-    send_activity(
-      &create,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      vec![to],
-    )?;
+    send_activity(&create, creator, vec![to])?;
     Ok(())
   }
 
@@ -116,12 +111,7 @@ impl ApubObjectType for PrivateMessage {
 
     insert_activity(&conn, creator.id, &update, true)?;
 
-    send_activity(
-      &update,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      vec![to],
-    )?;
+    send_activity(&update, creator, vec![to])?;
     Ok(())
   }
 
@@ -144,12 +134,7 @@ impl ApubObjectType for PrivateMessage {
 
     insert_activity(&conn, creator.id, &delete, true)?;
 
-    send_activity(
-      &delete,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      vec![to],
-    )?;
+    send_activity(&delete, creator, vec![to])?;
     Ok(())
   }
 
@@ -187,12 +172,7 @@ impl ApubObjectType for PrivateMessage {
 
     insert_activity(&conn, creator.id, &undo, true)?;
 
-    send_activity(
-      &undo,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      vec![to],
-    )?;
+    send_activity(&undo, creator, vec![to])?;
     Ok(())
   }
 

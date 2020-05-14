@@ -55,7 +55,7 @@ fn receive_accept(
     .to_string();
 
   let community = get_or_fetch_and_upsert_remote_community(&community_uri, conn)?;
-  verify(request, &community.public_key.unwrap())?;
+  verify(request, &community)?;
 
   let user = User_::read_from_name(&conn, username)?;
 
@@ -95,7 +95,7 @@ fn receive_create_private_message(
     .to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &create, false)?;
 
@@ -139,7 +139,7 @@ fn receive_update_private_message(
     .to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &update, false)?;
 
@@ -184,7 +184,7 @@ fn receive_delete_private_message(
     .to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &delete, false)?;
 
@@ -248,7 +248,7 @@ fn receive_undo_delete_private_message(
     .to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(request, &user.public_key.unwrap())?;
+  verify(request, &user)?;
 
   insert_activity(&conn, user.id, &delete, false)?;
 
