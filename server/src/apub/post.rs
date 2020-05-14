@@ -132,14 +132,7 @@ impl ApubObjectType for Post {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(page)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: creator.id,
-      data: serde_json::to_value(&create)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, creator.id, &create, true)?;
 
     send_activity(
       &create,
@@ -167,14 +160,7 @@ impl ApubObjectType for Post {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(page)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: creator.id,
-      data: serde_json::to_value(&update)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, creator.id, &update, true)?;
 
     send_activity(
       &update,
@@ -202,14 +188,7 @@ impl ApubObjectType for Post {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(page)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: self.creator_id,
-      data: serde_json::to_value(&delete)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, self.creator_id, &delete, true)?;
 
     let community = Community::read(conn, self.community_id)?;
     send_activity(
@@ -254,14 +233,7 @@ impl ApubObjectType for Post {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(delete)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: self.creator_id,
-      data: serde_json::to_value(&undo)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, self.creator_id, &undo, true)?;
 
     let community = Community::read(conn, self.community_id)?;
     send_activity(
@@ -290,14 +262,7 @@ impl ApubObjectType for Post {
       .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
       .set_object_base_box(page)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: mod_.id,
-      data: serde_json::to_value(&remove)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, mod_.id, &remove, true)?;
 
     let community = Community::read(conn, self.community_id)?;
     send_activity(
@@ -340,14 +305,7 @@ impl ApubObjectType for Post {
       .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
       .set_object_base_box(remove)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: mod_.id,
-      data: serde_json::to_value(&undo)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, mod_.id, &undo, true)?;
 
     let community = Community::read(conn, self.community_id)?;
     send_activity(
@@ -373,14 +331,7 @@ impl ApubLikeableType for Post {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(page)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: creator.id,
-      data: serde_json::to_value(&like)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, creator.id, &like, true)?;
 
     send_activity(
       &like,
@@ -407,14 +358,7 @@ impl ApubLikeableType for Post {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(page)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: creator.id,
-      data: serde_json::to_value(&dislike)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, creator.id, &dislike, true)?;
 
     send_activity(
       &dislike,
@@ -453,14 +397,7 @@ impl ApubLikeableType for Post {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(like)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: creator.id,
-      data: serde_json::to_value(&undo)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, creator.id, &undo, true)?;
 
     send_activity(
       &undo,

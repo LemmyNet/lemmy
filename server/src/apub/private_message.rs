@@ -85,14 +85,7 @@ impl ApubObjectType for PrivateMessage {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: creator.id,
-      data: serde_json::to_value(&create)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, creator.id, &create, true)?;
 
     send_activity(
       &create,
@@ -121,14 +114,7 @@ impl ApubObjectType for PrivateMessage {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: creator.id,
-      data: serde_json::to_value(&update)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, creator.id, &update, true)?;
 
     send_activity(
       &update,
@@ -156,14 +142,7 @@ impl ApubObjectType for PrivateMessage {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: creator.id,
-      data: serde_json::to_value(&delete)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, creator.id, &delete, true)?;
 
     send_activity(
       &delete,
@@ -206,14 +185,7 @@ impl ApubObjectType for PrivateMessage {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(delete)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: creator.id,
-      data: serde_json::to_value(&undo)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, creator.id, &undo, true)?;
 
     send_activity(
       &undo,

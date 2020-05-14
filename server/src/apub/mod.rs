@@ -11,6 +11,7 @@ pub mod user;
 pub mod user_inbox;
 
 use crate::api::community::CommunityResponse;
+use crate::db::activity::insert_activity;
 use crate::websocket::server::SendCommunityRoomMessage;
 use activitystreams::object::kind::{NoteType, PageType};
 use activitystreams::{
@@ -54,7 +55,7 @@ use crate::db::private_message::{PrivateMessage, PrivateMessageForm};
 use crate::db::private_message_view::PrivateMessageView;
 use crate::db::user::{UserForm, User_};
 use crate::db::user_view::UserView;
-use crate::db::{activity, Crud, Followable, Joinable, Likeable, SearchType};
+use crate::db::{Crud, Followable, Joinable, Likeable, SearchType};
 use crate::routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
 use crate::routes::{ChatServerParam, DbPoolParam};
 use crate::websocket::{

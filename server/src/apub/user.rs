@@ -73,14 +73,7 @@ impl ActorType for User_ {
       .set_object_xsd_any_uri(follow_actor_id)?;
     let to = format!("{}/inbox", follow_actor_id);
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: self.id,
-      data: serde_json::to_value(&follow)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, self.id, &follow, true)?;
 
     send_activity(
       &follow,
@@ -121,14 +114,7 @@ impl ActorType for User_ {
       .set_actor_xsd_any_uri(self.actor_id.to_owned())?
       .set_object_base_box(follow)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: self.id,
-      data: serde_json::to_value(&undo)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, self.id, &undo, true)?;
 
     send_activity(
       &undo,

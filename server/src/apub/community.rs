@@ -100,14 +100,7 @@ impl ActorType for Community {
       .set_object_base_box(BaseBox::from_concrete(follow.clone())?)?;
     let to = format!("{}/inbox", actor_uri);
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: self.creator_id,
-      data: serde_json::to_value(&accept)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, self.creator_id, &accept, true)?;
 
     send_activity(
       &accept,
@@ -130,14 +123,7 @@ impl ActorType for Community {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(group)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: self.creator_id,
-      data: serde_json::to_value(&delete)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, self.creator_id, &delete, true)?;
 
     // Note: For an accept, since it was automatic, no one pushed a button,
     // the community was the actor.
@@ -175,14 +161,7 @@ impl ActorType for Community {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(delete)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: self.creator_id,
-      data: serde_json::to_value(&undo)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, self.creator_id, &undo, true)?;
 
     // Note: For an accept, since it was automatic, no one pushed a button,
     // the community was the actor.
@@ -208,14 +187,7 @@ impl ActorType for Community {
       .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
       .set_object_base_box(group)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: mod_.id,
-      data: serde_json::to_value(&remove)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, mod_.id, &remove, true)?;
 
     // Note: For an accept, since it was automatic, no one pushed a button,
     // the community was the actor.
@@ -252,14 +224,7 @@ impl ActorType for Community {
       .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
       .set_object_base_box(remove)?;
 
-    // Insert the sent activity into the activity table
-    let activity_form = activity::ActivityForm {
-      user_id: mod_.id,
-      data: serde_json::to_value(&undo)?,
-      local: true,
-      updated: None,
-    };
-    activity::Activity::create(&conn, &activity_form)?;
+    insert_activity(&conn, mod_.id, &undo, true)?;
 
     // Note: For an accept, since it was automatic, no one pushed a button,
     // the community was the actor.
