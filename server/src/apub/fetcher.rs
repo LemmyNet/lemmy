@@ -40,6 +40,7 @@ pub enum SearchAcceptedObjects {
   Person(Box<PersonExt>),
   Group(Box<GroupExt>),
   Page(Box<PageExt>),
+  Comment(Box<Note>),
 }
 
 /// Attempt to parse the query as URL, and fetch an ActivityPub object from it.
@@ -47,7 +48,8 @@ pub enum SearchAcceptedObjects {
 /// Some working examples for use with the docker/federation/ setup:
 /// http://lemmy_alpha:8540/c/main, or !main@lemmy_alpha:8540
 /// http://lemmy_alpha:8540/u/lemmy_alpha, or @lemmy_alpha@lemmy_alpha:8540
-/// http://lemmy_alpha:8540/p/3
+/// http://lemmy_alpha:8540/post/3
+/// http://lemmy_alpha:8540/comment/2
 pub fn search_by_apub_id(query: &str, conn: &PgConnection) -> Result<SearchResponse, Error> {
   // Parse the shorthand query url
   let query_url = if query.contains('@') {
@@ -98,6 +100,20 @@ pub fn search_by_apub_id(query: &str, conn: &PgConnection) -> Result<SearchRespo
     SearchAcceptedObjects::Page(p) => {
       let p = upsert_post(&PostForm::from_apub(&p, conn)?, conn)?;
       response.posts = vec![PostView::read(conn, p.id, None)?];
+    }
+    SearchAcceptedObjects::Comment(c) => {
+      let post_url = c
+        .object_props
+        .get_many_in_reply_to_xsd_any_uris()
+        .unwrap()
+        .next()
+        .unwrap()
+        .to_string();
+      // TODO: also fetch parent comments if any
+      let post = fetch_remote_object(&Url::parse(&post_url)?)?;
+      upsert_post(&PostForm::from_apub(&post, conn)?, conn)?;
+      let c = upsert_comment(&CommentForm::from_apub(&c, conn)?, conn)?;
+      response.comments = vec![CommentView::read(conn, c.id, None)?];
     }
   }
   Ok(response)
@@ -197,3 +213,35 @@ fn upsert_post(post_form: &PostForm, conn: &PgConnection) -> Result<Post, Error>
     Err(e) => Err(Error::from(e)),
   }
 }
+
+fn upsert_comment(comment_form: &CommentForm, conn: &PgConnection) -> Result<Comment, Error> {
+  let existing = Comment::read_from_apub_id(conn, &comment_form.ap_id);
+  match existing {
+    Err(NotFound {}) => Ok(Comment::create(conn, &comment_form)?),
+    Ok(p) => Ok(Comment::update(conn, p.id, &comment_form)?),
+    Err(e) => Err(Error::from(e)),
+  }
+}
+
+// TODO It should not be fetching data from a community outbox.
+// All posts, comments, comment likes, etc should be posts to our community_inbox
+// The only data we should be periodically fetching (if it hasn't been fetched in the last day
+// maybe), is community and user actors
+// and user actors
+// Fetch all posts in the outbox of the given user, and insert them into the database.
+// fn fetch_community_outbox(community: &Community, conn: &PgConnection) -> Result<Vec<Post>, Error> {
+//   let outbox_url = Url::parse(&community.get_outbox_url())?;
+//   let outbox = fetch_remote_object::<OrderedCollection>(&outbox_url)?;
+//   let items = outbox.collection_props.get_many_items_base_boxes();
+
+//   Ok(
+//     items
+//       .unwrap()
+//       .map(|obox: &BaseBox| -> Result<PostForm, Error> {
+//         let page = obox.clone().to_concrete::<Page>()?;
+//         PostForm::from_page(&page, conn)
+//       })
+//       .map(|pf| upsert_post(&pf?, conn))
+//       .collect::<Result<Vec<Post>, Error>>()?,
+//   )
+// }
