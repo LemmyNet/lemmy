@@ -143,7 +143,7 @@ impl WSSession {
       // check client heartbeats
       if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
         // heartbeat timed out
-        error!("Websocket Client heartbeat failed, disconnecting!");
+        debug!("Websocket Client heartbeat failed, disconnecting!");
 
         // notify chat server
         act.cs_addr.do_send(Disconnect {

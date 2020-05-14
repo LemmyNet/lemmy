@@ -502,8 +502,8 @@ export function setupTribute(): Tribute {
         trigger: '@',
         selectTemplate: (item: any) => {
           let link = item.original.local
-            ? `[@${item.original.key}](/u/${item.original.key})`
-            : `[@${item.original.key}](/user/${item.original.id})`;
+            ? `[${item.original.key}](/u/${item.original.name})`
+            : `[${item.original.key}](/user/${item.original.id})`;
           return link;
         },
         values: (text: string, cb: any) => {
@@ -520,8 +520,8 @@ export function setupTribute(): Tribute {
         trigger: '!',
         selectTemplate: (item: any) => {
           let link = item.original.local
-            ? `[!${item.original.key}](/c/${item.original.key})`
-            : `[!${item.original.key}](/community/${item.original.id})`;
+            ? `[${item.original.key}](/c/${item.original.name})`
+            : `[${item.original.key}](/community/${item.original.id})`;
           return link;
         },
         values: (text: string, cb: any) => {
@@ -565,9 +565,9 @@ function userSearch(text: string, cb: any) {
         if (res.op == UserOperation.Search) {
           let data = res.data as SearchResponse;
           let users = data.users.map(u => {
-            let name_ = u.local ? u.name : `${u.name}@${hostname(u.actor_id)}`;
             return {
-              key: name_,
+              key: `@${u.name}@${hostname(u.actor_id)}`,
+              name: u.name,
               local: u.local,
               id: u.id,
             };
@@ -602,9 +602,9 @@ function communitySearch(text: string, cb: any) {
         if (res.op == UserOperation.Search) {
           let data = res.data as SearchResponse;
           let communities = data.communities.map(c => {
-            let name_ = c.local ? c.name : `${c.name}@${hostname(c.actor_id)}`;
             return {
-              key: name_,
+              key: `!${c.name}@${hostname(c.actor_id)}`,
+              name: c.name,
               local: c.local,
               id: c.id,
             };
@@ -859,5 +859,8 @@ export function previewLines(text: string, lines: number = 3): string {
 }
 
 export function hostname(url: string): string {
-  return new URL(url).hostname;
+  let cUrl = new URL(url);
+  return window.location.port
+    ? `${cUrl.hostname}:${cUrl.port}`
+    : `${cUrl.hostname}`;
 }

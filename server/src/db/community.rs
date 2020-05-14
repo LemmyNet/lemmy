@@ -92,10 +92,6 @@ impl Community {
     use crate::schema::community::dsl::*;
     community.filter(local.eq(true)).load::<Community>(conn)
   }
-
-  pub fn get_url(&self) -> String {
-    format!("https://{}/c/{}", Settings::get().hostname, self.name)
-  }
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]

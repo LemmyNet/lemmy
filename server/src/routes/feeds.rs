@@ -142,7 +142,6 @@ fn get_feed_community(
 ) -> Result<ChannelBuilder, failure::Error> {
   let site_view = SiteView::read(&conn)?;
   let community = Community::read_from_name(&conn, &community_name)?;
-  let community_url = community.get_url();
 
   let posts = PostQueryBuilder::create(&conn)
     .listing_type(ListingType::All)
@@ -155,7 +154,7 @@ fn get_feed_community(
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
     .title(&format!("{} - {}", site_view.name, community.name))
-    .link(community_url)
+    .link(community.actor_id)
     .items(items);
 
   if let Some(community_desc) = community.description {

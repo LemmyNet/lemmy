@@ -56,7 +56,7 @@ pub fn sign(request: &Builder, private_key: &str, sender_id: &str) -> Result<Str
         .unwrap()
         .as_str(),
       headers,
-    )
+    )?
     .sign(signing_key_id, |signing_string| {
       let private_key = PKey::private_key_from_pem(private_key.as_bytes())?;
       let mut signer = Signer::new(MessageDigest::sha256(), &private_key).unwrap();

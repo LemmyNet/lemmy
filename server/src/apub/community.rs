@@ -123,7 +123,11 @@ impl ActorType for Community {
     let id = format!("{}/delete/{}", self.actor_id, uuid::Uuid::new_v4());
 
     let mut delete = Delete::default();
-    populate_object_props(&mut delete.object_props, &self.get_followers_url(), &id)?;
+    populate_object_props(
+      &mut delete.object_props,
+      vec![self.get_followers_url()],
+      &id,
+    )?;
 
     delete
       .delete_props
@@ -156,7 +160,11 @@ impl ActorType for Community {
     let id = format!("{}/delete/{}", self.actor_id, uuid::Uuid::new_v4());
 
     let mut delete = Delete::default();
-    populate_object_props(&mut delete.object_props, &self.get_followers_url(), &id)?;
+    populate_object_props(
+      &mut delete.object_props,
+      vec![self.get_followers_url()],
+      &id,
+    )?;
 
     delete
       .delete_props
@@ -168,7 +176,11 @@ impl ActorType for Community {
     let undo_id = format!("{}/undo/delete/{}", self.actor_id, uuid::Uuid::new_v4());
     let mut undo = Undo::default();
 
-    populate_object_props(&mut undo.object_props, &self.get_followers_url(), &undo_id)?;
+    populate_object_props(
+      &mut undo.object_props,
+      vec![self.get_followers_url()],
+      &undo_id,
+    )?;
 
     undo
       .undo_props
@@ -201,7 +213,11 @@ impl ActorType for Community {
     let id = format!("{}/remove/{}", self.actor_id, uuid::Uuid::new_v4());
 
     let mut remove = Remove::default();
-    populate_object_props(&mut remove.object_props, &self.get_followers_url(), &id)?;
+    populate_object_props(
+      &mut remove.object_props,
+      vec![self.get_followers_url()],
+      &id,
+    )?;
 
     remove
       .remove_props
@@ -234,7 +250,11 @@ impl ActorType for Community {
     let id = format!("{}/remove/{}", self.actor_id, uuid::Uuid::new_v4());
 
     let mut remove = Remove::default();
-    populate_object_props(&mut remove.object_props, &self.get_followers_url(), &id)?;
+    populate_object_props(
+      &mut remove.object_props,
+      vec![self.get_followers_url()],
+      &id,
+    )?;
 
     remove
       .remove_props
@@ -245,7 +265,11 @@ impl ActorType for Community {
     let undo_id = format!("{}/undo/remove/{}", self.actor_id, uuid::Uuid::new_v4());
     let mut undo = Undo::default();
 
-    populate_object_props(&mut undo.object_props, &self.get_followers_url(), &undo_id)?;
+    populate_object_props(
+      &mut undo.object_props,
+      vec![self.get_followers_url()],
+      &undo_id,
+    )?;
 
     undo
       .undo_props

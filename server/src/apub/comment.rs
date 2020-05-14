@@ -69,6 +69,8 @@ impl FromApub for CommentForm {
       None => None,
     };
 
+    // TODO this failed because a mention on a post that wasn't on this server yet. Has to do with
+    // fetching replytos
     let post = Post::read_from_apub_id(&conn, &post_ap_id)?;
 
     Ok(CommentForm {
@@ -102,12 +104,15 @@ impl ApubObjectType for Comment {
     let community = Community::read(conn, post.community_id)?;
     let id = format!("{}/create/{}", self.ap_id, uuid::Uuid::new_v4());
 
+    let maa: MentionsAndAddresses =
+      collect_non_local_mentions_and_addresses(&conn, &self.content, &community)?;
+
     let mut create = Create::new();
-    populate_object_props(
-      &mut create.object_props,
-      &community.get_followers_url(),
-      &id,
-    )?;
+    populate_object_props(&mut create.object_props, maa.addressed_ccs, &id)?;
+
+    // Set the mention tags
+    create.object_props.set_many_tag_base_boxes(maa.tags)?;
+
     create
       .create_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
@@ -126,7 +131,7 @@ impl ApubObjectType for Comment {
       &create,
       &creator.private_key.as_ref().unwrap(),
       &creator.actor_id,
-      community.get_follower_inboxes(&conn)?,
+      maa.inboxes,
     )?;
     Ok(())
   }
@@ -138,12 +143,15 @@ impl ApubObjectType for Comment {
     let community = Community::read(&conn, post.community_id)?;
     let id = format!("{}/update/{}", self.ap_id, uuid::Uuid::new_v4());
 
+    let maa: MentionsAndAddresses =
+      collect_non_local_mentions_and_addresses(&conn, &self.content, &community)?;
+
     let mut update = Update::new();
-    populate_object_props(
-      &mut update.object_props,
-      &community.get_followers_url(),
-      &id,
-    )?;
+    populate_object_props(&mut update.object_props, maa.addressed_ccs, &id)?;
+
+    // Set the mention tags
+    update.object_props.set_many_tag_base_boxes(maa.tags)?;
+
     update
       .update_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
@@ -162,7 +170,7 @@ impl ApubObjectType for Comment {
       &update,
       &creator.private_key.as_ref().unwrap(),
       &creator.actor_id,
-      community.get_follower_inboxes(&conn)?,
+      maa.inboxes,
     )?;
     Ok(())
   }
@@ -176,7 +184,7 @@ impl ApubObjectType for Comment {
 
     populate_object_props(
       &mut delete.object_props,
-      &community.get_followers_url(),
+      vec![community.get_followers_url()],
       &id,
     )?;
 
@@ -214,7 +222,7 @@ impl ApubObjectType for Comment {
 
     populate_object_props(
       &mut delete.object_props,
-      &community.get_followers_url(),
+      vec![community.get_followers_url()],
       &id,
     )?;
 
@@ -230,7 +238,7 @@ impl ApubObjectType for Comment {
 
     populate_object_props(
       &mut undo.object_props,
-      &community.get_followers_url(),
+      vec![community.get_followers_url()],
       &undo_id,
     )?;
 
@@ -266,7 +274,7 @@ impl ApubObjectType for Comment {
 
     populate_object_props(
       &mut remove.object_props,
-      &community.get_followers_url(),
+      vec![community.get_followers_url()],
       &id,
     )?;
 
@@ -304,7 +312,7 @@ impl ApubObjectType for Comment {
 
     populate_object_props(
       &mut remove.object_props,
-      &community.get_followers_url(),
+      vec![community.get_followers_url()],
       &id,
     )?;
 
@@ -319,7 +327,7 @@ impl ApubObjectType for Comment {
 
     populate_object_props(
       &mut undo.object_props,
-      &community.get_followers_url(),
+      vec![community.get_followers_url()],
       &undo_id,
     )?;
 
@@ -355,7 +363,11 @@ impl ApubLikeableType for Comment {
     let id = format!("{}/like/{}", self.ap_id, uuid::Uuid::new_v4());
 
     let mut like = Like::new();
-    populate_object_props(&mut like.object_props, &community.get_followers_url(), &id)?;
+    populate_object_props(
+      &mut like.object_props,
+      vec![community.get_followers_url()],
+      &id,
+    )?;
     like
       .like_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
@@ -388,7 +400,7 @@ impl ApubLikeableType for Comment {
     let mut dislike = Dislike::new();
     populate_object_props(
       &mut dislike.object_props,
-      &community.get_followers_url(),
+      vec![community.get_followers_url()],
       &id,
     )?;
     dislike
@@ -421,7 +433,11 @@ impl ApubLikeableType for Comment {
     let id = format!("{}/dislike/{}", self.ap_id, uuid::Uuid::new_v4());
 
     let mut like = Like::new();
-    populate_object_props(&mut like.object_props, &community.get_followers_url(), &id)?;
+    populate_object_props(
+      &mut like.object_props,
+      vec![community.get_followers_url()],
+      &id,
+    )?;
     like
       .like_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
@@ -434,7 +450,7 @@ impl ApubLikeableType for Comment {
 
     populate_object_props(
       &mut undo.object_props,
-      &community.get_followers_url(),
+      vec![community.get_followers_url()],
       &undo_id,
     )?;
 
@@ -460,4 +476,55 @@ impl ApubLikeableType for Comment {
     )?;
     Ok(())
   }
+}
+
+struct MentionsAndAddresses {
+  addressed_ccs: Vec<String>,
+  inboxes: Vec<String>,
+  tags: Vec<Mention>,
+}
+
+fn collect_non_local_mentions_and_addresses(
+  conn: &PgConnection,
+  content: &str,
+  community: &Community,
+) -> Result<MentionsAndAddresses, Error> {
+  let mut addressed_ccs = vec![community.get_followers_url()];
+
+  // Add the mention tag
+  let mut tags = Vec::new();
+
+  // Get the inboxes for any mentions
+  let mentions = scrape_text_for_mentions(&content)
+    .into_iter()
+    // Filter only the non-local ones
+    .filter(|m| !m.is_local())
+    .collect::<Vec<MentionData>>();
+  let mut mention_inboxes = Vec::new();
+  for mention in &mentions {
+    // TODO should it be fetching it every time?
+    if let Ok(actor_id) = fetch_webfinger_url(mention) {
+      debug!("mention actor_id: {}", actor_id);
+      addressed_ccs.push(actor_id.to_owned());
+      let mention_user = get_or_fetch_and_upsert_remote_user(&actor_id, &conn)?;
+      let shared_inbox = mention_user.get_shared_inbox_url();
+      mention_inboxes.push(shared_inbox);
+      let mut mention_tag = Mention::new();
+      mention_tag
+        .link_props
+        .set_href(actor_id)?
+        .set_name_xsd_string(mention.full_name())?;
+      tags.push(mention_tag);
+    }
+  }
+
+  let mut inboxes = community.get_follower_inboxes(&conn)?;
+  inboxes.extend(mention_inboxes);
+  inboxes = inboxes.into_iter().unique().collect();
+
+  Ok(MentionsAndAddresses {
+    addressed_ccs,
+    inboxes,
+    tags,
+  })
 }
