@@ -1,6 +1,6 @@
 <div align="center">
 
-![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/LemmyNet/lemmy.svg)
+[![Financial Contributors on Open Collective](https://opencollective.com/lemmy/all/badge.svg?label=financial+contributors)](https://opencollective.com/lemmy) ![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/LemmyNet/lemmy.svg)
 [![Build Status](https://travis-ci.org/LemmyNet/lemmy.svg?branch=master)](https://travis-ci.org/LemmyNet/lemmy)
 [![GitHub issues](https://img.shields.io/github/issues-raw/LemmyNet/lemmy.svg)](https://github.com/LemmyNet/lemmy/issues)
 [![Docker Pulls](https://img.shields.io/docker/pulls/dessalines/lemmy.svg)](https://cloud.docker.com/repository/docker/dessalines/lemmy/)
@@ -143,3 +143,33 @@ If you want to help with translating, take a look at [Weblate](https://weblate.y
 ## Credits
 
 Logo made by Andy Cuccaro (@andycuccaro) under the CC-BY-SA 4.0 license.
+
+## Contributors
+
+### Code Contributors
+
+This project exists thanks to all the people who contribute. [[Contribute](CONTRIBUTING.md)].
+<a href="https://github.com/LemmyNet/lemmy/graphs/contributors"><img src="https://opencollective.com/lemmy/contributors.svg?width=890&button=false" /></a>
+
+### Financial Contributors
+
+Become a financial contributor and help us sustain our community. [[Contribute](https://opencollective.com/lemmy/contribute)]
+
+#### Individuals
+
+<a href="https://opencollective.com/lemmy"><img src="https://opencollective.com/lemmy/individuals.svg?width=890"></a>
+
+#### Organizations
+
+Support this project with your organization. Your logo will show up here with a link to your website. [[Contribute](https://opencollective.com/lemmy/contribute)]
+
+<a href="https://opencollective.com/lemmy/organization/0/website"><img src="https://opencollective.com/lemmy/organization/0/avatar.svg"></a>
+<a href="https://opencollective.com/lemmy/organization/1/website"><img src="https://opencollective.com/lemmy/organization/1/avatar.svg"></a>
+<a href="https://opencollective.com/lemmy/organization/2/website"><img src="https://opencollective.com/lemmy/organization/2/avatar.svg"></a>
+<a href="https://opencollective.com/lemmy/organization/3/website"><img src="https://opencollective.com/lemmy/organization/3/avatar.svg"></a>
+<a href="https://opencollective.com/lemmy/organization/4/website"><img src="https://opencollective.com/lemmy/organization/4/avatar.svg"></a>
+<a href="https://opencollective.com/lemmy/organization/5/website"><img src="https://opencollective.com/lemmy/organization/5/avatar.svg"></a>
+<a href="https://opencollective.com/lemmy/organization/6/website"><img src="https://opencollective.com/lemmy/organization/6/avatar.svg"></a>
+<a href="https://opencollective.com/lemmy/organization/7/website"><img src="https://opencollective.com/lemmy/organization/7/avatar.svg"></a>
+<a href="https://opencollective.com/lemmy/organization/8/website"><img src="https://opencollective.com/lemmy/organization/8/avatar.svg"></a>
+<a href="https://opencollective.com/lemmy/organization/9/website"><img src="https://opencollective.com/lemmy/organization/9/avatar.svg"></a>
