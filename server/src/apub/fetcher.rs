@@ -197,26 +197,3 @@ fn upsert_post(post_form: &PostForm, conn: &PgConnection) -> Result<Post, Error>
     Err(e) => Err(Error::from(e)),
   }
 }
-
-// TODO It should not be fetching data from a community outbox.
-// All posts, comments, comment likes, etc should be posts to our community_inbox
-// The only data we should be periodically fetching (if it hasn't been fetched in the last day
-// maybe), is community and user actors
-// and user actors
-// Fetch all posts in the outbox of the given user, and insert them into the database.
-// fn fetch_community_outbox(community: &Community, conn: &PgConnection) -> Result<Vec<Post>, Error> {
-//   let outbox_url = Url::parse(&community.get_outbox_url())?;
-//   let outbox = fetch_remote_object::<OrderedCollection>(&outbox_url)?;
-//   let items = outbox.collection_props.get_many_items_base_boxes();
-
-//   Ok(
-//     items
-//       .unwrap()
-//       .map(|obox: &BaseBox| -> Result<PostForm, Error> {
-//         let page = obox.clone().to_concrete::<Page>()?;
-//         PostForm::from_page(&page, conn)
-//       })
-//       .map(|pf| upsert_post(&pf?, conn))
-//       .collect::<Result<Vec<Post>, Error>>()?,
-//   )
-// }

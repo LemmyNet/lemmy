@@ -78,7 +78,6 @@ fn receive_accept(
   CommunityFollower::follow(&conn, &community_follower_form)?;
 
   // TODO: make sure that we actually requested a follow
-  // TODO: at this point, indicate to the user that they are following the community
   Ok(HttpResponse::Ok().finish())
 }
 

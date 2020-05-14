@@ -105,18 +105,12 @@ where
     .json(data)
 }
 
-/// Generates the ActivityPub ID for a given object type and name.
-///
-/// TODO: we will probably need to change apub endpoint urls so that html and activity+json content
-///       types are handled at the same endpoint, so that you can copy the url into mastodon search
-///       and have it fetch the object.
+/// Generates the ActivityPub ID for a given object type and ID.
 pub fn make_apub_endpoint(endpoint_type: EndpointType, name: &str) -> Url {
   let point = match endpoint_type {
     EndpointType::Community => "c",
     EndpointType::User => "u",
     EndpointType::Post => "post",
-    // TODO I have to change this else my update advanced_migrations crashes the
-    // server if a comment exists.
     EndpointType::Comment => "comment",
     EndpointType::PrivateMessage => "private_message",
   };
@@ -157,7 +151,6 @@ fn is_apub_id_valid(apub_id: &Url) -> bool {
   }
 }
 
-// TODO Not sure good names for these
 pub trait ToApub {
   type Response;
   fn to_apub(&self, conn: &PgConnection) -> Result<Self::Response, Error>;

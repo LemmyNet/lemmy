@@ -316,11 +316,6 @@ impl FromApub for CommunityForm {
     let aprops = &group.base.extension;
     let public_key: &PublicKey = &group.extension.public_key;
 
-    let _followers_uri = Url::parse(&aprops.get_followers().unwrap().to_string())?;
-    let _outbox_uri = Url::parse(&aprops.get_outbox().to_string())?;
-    // TODO don't do extra fetching here
-    // let _outbox = fetch_remote_object::<OrderedCollection>(&outbox_uri)?;
-    // let _followers = fetch_remote_object::<UnorderedCollection>(&followers_uri)?;
     let mut creator_and_moderator_uris = oprops.get_many_attributed_to_xsd_any_uris().unwrap();
     let creator = creator_and_moderator_uris
       .next()
@@ -368,8 +363,7 @@ pub async fn get_apub_community_http(
   }
 }
 
-/// Returns an empty followers collection, only populating the siz (for privacy).
-// TODO this needs to return the actual followers, and the to: field needs this
+/// Returns an empty followers collection, only populating the size (for privacy).
 pub async fn get_apub_community_followers(
   info: Path<CommunityQuery>,
   db: DbPoolParam,
@@ -391,34 +385,3 @@ pub async fn get_apub_community_followers(
     .set_total_items(community_followers.len() as u64)?;
   Ok(create_apub_response(&collection))
 }
-
-// TODO should not be doing this
-// Returns an UnorderedCollection with the latest posts from the community.
-//pub async fn get_apub_community_outbox(
-//  info: Path<CommunityQuery>,
-//  db: DbPoolParam,
-//  chat_server: ChatServerParam,
-//) -> Result<HttpResponse<Body>, Error> {
-//  let community = Community::read_from_name(&&db.get()?, &info.community_name)?;
-
-//  let conn = establish_unpooled_connection();
-//  //As we are an object, we validated that the community id was valid
-//  let community_posts: Vec<Post> = Post::list_for_community(&conn, community.id)?;
-
-//  let mut collection = OrderedCollection::default();
-//  let oprops: &mut ObjectProperties = collection.as_mut();
-//  oprops
-//    .set_context_xsd_any_uri(context())?
-//    .set_id(community.actor_id)?;
-//  collection
-//    .collection_props
-//    .set_many_items_base_boxes(
-//      community_posts
-//        .iter()
-//        .map(|c| c.as_page(&conn).unwrap())
-//        .collect(),
-//    )?
-//    .set_total_items(community_posts.len() as u64)?;
-
-//  Ok(create_apub_response(&collection))
-//}
