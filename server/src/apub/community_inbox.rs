@@ -7,6 +7,22 @@ pub enum CommunityAcceptedObjects {
   Undo(Undo),
 }
 
+impl CommunityAcceptedObjects {
+  fn follow(&self) -> Result<Follow, Error> {
+    match self {
+      CommunityAcceptedObjects::Follow(f) => Ok(f.to_owned()),
+      CommunityAcceptedObjects::Undo(u) => Ok(
+        u.undo_props
+          .get_object_base_box()
+          .to_owned()
+          .unwrap()
+          .to_owned()
+          .into_concrete::<Follow>()?,
+      ),
+    }
+  }
+}
+
 // TODO Consolidate community and user inboxes into a single shared one
 /// Handler for all incoming activities to community inboxes.
 pub async fn community_inbox(
@@ -14,7 +30,7 @@ pub async fn community_inbox(
   input: web::Json<CommunityAcceptedObjects>,
   path: web::Path<String>,
   db: DbPoolParam,
-  chat_server: ChatServerParam,
+  _chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
   let input = input.into_inner();
   let community_name = path.into_inner();
@@ -22,31 +38,13 @@ pub async fn community_inbox(
     "Community {} received activity {:?}",
     &community_name, &input
   );
-  match input {
-    CommunityAcceptedObjects::Follow(f) => {
-      handle_follow(&f, &request, &community_name, db, chat_server)
-    }
-    CommunityAcceptedObjects::Undo(u) => {
-      handle_undo_follow(&u, &request, &community_name, db, chat_server)
-    }
-  }
-}
-
-/// Handle a follow request from a remote user, adding it to the local database and returning an
-/// Accept activity.
-fn handle_follow(
-  follow: &Follow,
-  request: &HttpRequest,
-  community_name: &str,
-  db: DbPoolParam,
-  _chat_server: ChatServerParam,
-) -> Result<HttpResponse, Error> {
+  let follow = input.follow()?;
   let user_uri = follow
     .follow_props
     .get_actor_xsd_any_uri()
     .unwrap()
     .to_string();
-  let _community_uri = follow
+  let community_uri = follow
     .follow_props
     .get_object_xsd_any_uri()
     .unwrap()
@@ -55,10 +53,24 @@ fn handle_follow(
   let conn = db.get()?;
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  let community = Community::read_from_name(&conn, &community_name)?;
+  let community = get_or_fetch_and_upsert_remote_community(&community_uri, &conn)?;
 
   verify(&request, &user)?;
 
+  match input {
+    CommunityAcceptedObjects::Follow(f) => handle_follow(&f, &user, &community, &conn),
+    CommunityAcceptedObjects::Undo(u) => handle_undo_follow(&u, &user, &community, &conn),
+  }
+}
+
+/// Handle a follow request from a remote user, adding it to the local database and returning an
+/// Accept activity.
+fn handle_follow(
+  follow: &Follow,
+  user: &User_,
+  community: &Community,
+  conn: &PgConnection,
+) -> Result<HttpResponse, Error> {
   insert_activity(&conn, user.id, &follow, false)?;
 
   let community_follower_form = CommunityFollowerForm {
@@ -76,39 +88,11 @@ fn handle_follow(
 
 fn handle_undo_follow(
   undo: &Undo,
-  request: &HttpRequest,
-  community_name: &str,
-  db: DbPoolParam,
-  _chat_server: ChatServerParam,
+  user: &User_,
+  community: &Community,
+  conn: &PgConnection,
 ) -> Result<HttpResponse, Error> {
-  let follow = undo
-    .undo_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<Follow>()?;
-
-  let user_uri = follow
-    .follow_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let _community_uri = follow
-    .follow_props
-    .get_object_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let conn = db.get()?;
-
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  let community = Community::read_from_name(&conn, &community_name)?;
-
-  verify(&request, &user)?;
-
-  insert_activity(&conn, user.id, &follow, false)?;
+  insert_activity(&conn, user.id, &undo, false)?;
 
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,
