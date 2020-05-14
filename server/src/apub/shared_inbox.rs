@@ -121,14 +121,7 @@ fn receive_create_post(
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: user.id,
-    data: serde_json::to_value(&create)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, user.id, &create, false)?;
 
   let post = PostForm::from_apub(&page, &conn)?;
   let inserted_post = Post::create(conn, &post)?;
@@ -170,14 +163,7 @@ fn receive_create_comment(
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: user.id,
-    data: serde_json::to_value(&create)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, user.id, &create, false)?;
 
   let comment = CommentForm::from_apub(&note, &conn)?;
   let inserted_comment = Comment::create(conn, &comment)?;
@@ -224,14 +210,7 @@ fn receive_update_post(
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: user.id,
-    data: serde_json::to_value(&update)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, user.id, &update, false)?;
 
   let post = PostForm::from_apub(&page, conn)?;
   let post_id = Post::read_from_apub_id(conn, &post.ap_id)?.id;
@@ -270,14 +249,7 @@ fn receive_like_post(
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: user.id,
-    data: serde_json::to_value(&like)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, user.id, &like, false)?;
 
   let post = PostForm::from_apub(&page, conn)?;
   let post_id = Post::read_from_apub_id(conn, &post.ap_id)?.id;
@@ -327,14 +299,7 @@ fn receive_dislike_post(
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: user.id,
-    data: serde_json::to_value(&dislike)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, user.id, &dislike, false)?;
 
   let post = PostForm::from_apub(&page, conn)?;
   let post_id = Post::read_from_apub_id(conn, &post.ap_id)?.id;
@@ -384,14 +349,7 @@ fn receive_update_comment(
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: user.id,
-    data: serde_json::to_value(&update)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, user.id, &update, false)?;
 
   let comment = CommentForm::from_apub(&note, &conn)?;
   let comment_id = Comment::read_from_apub_id(conn, &comment.ap_id)?.id;
@@ -435,14 +393,7 @@ fn receive_like_comment(
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: user.id,
-    data: serde_json::to_value(&like)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, user.id, &like, false)?;
 
   let comment = CommentForm::from_apub(&note, &conn)?;
   let comment_id = Comment::read_from_apub_id(conn, &comment.ap_id)?.id;
@@ -497,14 +448,7 @@ fn receive_dislike_comment(
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: user.id,
-    data: serde_json::to_value(&dislike)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, user.id, &dislike, false)?;
 
   let comment = CommentForm::from_apub(&note, &conn)?;
   let comment_id = Comment::read_from_apub_id(conn, &comment.ap_id)?.id;
@@ -559,14 +503,7 @@ fn receive_delete_community(
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: user.id,
-    data: serde_json::to_value(&delete)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, user.id, &delete, false)?;
 
   let community_actor_id = CommunityForm::from_apub(&group, &conn)?.actor_id;
   let community = Community::read_from_actor_id(conn, &community_actor_id)?;
@@ -628,14 +565,7 @@ fn receive_remove_community(
   let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
   verify(request, &mod_.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: mod_.id,
-    data: serde_json::to_value(&remove)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, mod_.id, &remove, false)?;
 
   let community_actor_id = CommunityForm::from_apub(&group, &conn)?.actor_id;
   let community = Community::read_from_actor_id(conn, &community_actor_id)?;
@@ -697,14 +627,7 @@ fn receive_delete_post(
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: user.id,
-    data: serde_json::to_value(&delete)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, user.id, &delete, false)?;
 
   let post_ap_id = PostForm::from_apub(&page, conn)?.ap_id;
   let post = Post::read_from_apub_id(conn, &post_ap_id)?;
@@ -768,14 +691,7 @@ fn receive_remove_post(
   let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
   verify(request, &mod_.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: mod_.id,
-    data: serde_json::to_value(&remove)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, mod_.id, &remove, false)?;
 
   let post_ap_id = PostForm::from_apub(&page, conn)?.ap_id;
   let post = Post::read_from_apub_id(conn, &post_ap_id)?;
@@ -839,14 +755,7 @@ fn receive_delete_comment(
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: user.id,
-    data: serde_json::to_value(&delete)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, user.id, &delete, false)?;
 
   let comment_ap_id = CommentForm::from_apub(&note, &conn)?.ap_id;
   let comment = Comment::read_from_apub_id(conn, &comment_ap_id)?;
@@ -907,14 +816,7 @@ fn receive_remove_comment(
   let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
   verify(request, &mod_.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: mod_.id,
-    data: serde_json::to_value(&remove)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, mod_.id, &remove, false)?;
 
   let comment_ap_id = CommentForm::from_apub(&note, &conn)?.ap_id;
   let comment = Comment::read_from_apub_id(conn, &comment_ap_id)?;
@@ -1035,14 +937,7 @@ fn receive_undo_delete_comment(
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: user.id,
-    data: serde_json::to_value(&delete)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, user.id, &delete, false)?;
 
   let comment_ap_id = CommentForm::from_apub(&note, &conn)?.ap_id;
   let comment = Comment::read_from_apub_id(conn, &comment_ap_id)?;
@@ -1103,14 +998,7 @@ fn receive_undo_remove_comment(
   let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
   verify(request, &mod_.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: mod_.id,
-    data: serde_json::to_value(&remove)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, mod_.id, &remove, false)?;
 
   let comment_ap_id = CommentForm::from_apub(&note, &conn)?.ap_id;
   let comment = Comment::read_from_apub_id(conn, &comment_ap_id)?;
@@ -1171,14 +1059,7 @@ fn receive_undo_delete_post(
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: user.id,
-    data: serde_json::to_value(&delete)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, user.id, &delete, false)?;
 
   let post_ap_id = PostForm::from_apub(&page, conn)?.ap_id;
   let post = Post::read_from_apub_id(conn, &post_ap_id)?;
@@ -1242,14 +1123,7 @@ fn receive_undo_remove_post(
   let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
   verify(request, &mod_.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: mod_.id,
-    data: serde_json::to_value(&remove)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, mod_.id, &remove, false)?;
 
   let post_ap_id = PostForm::from_apub(&page, conn)?.ap_id;
   let post = Post::read_from_apub_id(conn, &post_ap_id)?;
@@ -1313,14 +1187,7 @@ fn receive_undo_delete_community(
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: user.id,
-    data: serde_json::to_value(&delete)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, user.id, &delete, false)?;
 
   let community_actor_id = CommunityForm::from_apub(&group, &conn)?.actor_id;
   let community = Community::read_from_actor_id(conn, &community_actor_id)?;
@@ -1382,14 +1249,7 @@ fn receive_undo_remove_community(
   let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, &conn)?;
   verify(request, &mod_.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: mod_.id,
-    data: serde_json::to_value(&remove)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, mod_.id, &remove, false)?;
 
   let community_actor_id = CommunityForm::from_apub(&group, &conn)?.actor_id;
   let community = Community::read_from_actor_id(conn, &community_actor_id)?;
@@ -1476,14 +1336,7 @@ fn receive_undo_like_comment(
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: user.id,
-    data: serde_json::to_value(&like)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, user.id, &like, false)?;
 
   let comment = CommentForm::from_apub(&note, &conn)?;
   let comment_id = Comment::read_from_apub_id(conn, &comment.ap_id)?.id;
@@ -1533,14 +1386,7 @@ fn receive_undo_like_post(
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   verify(request, &user.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: user.id,
-    data: serde_json::to_value(&like)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, user.id, &like, false)?;
 
   let post = PostForm::from_apub(&page, conn)?;
   let post_id = Post::read_from_apub_id(conn, &post.ap_id)?.id;

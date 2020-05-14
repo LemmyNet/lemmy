@@ -1,6 +1,5 @@
 use super::*;
 use crate::schema::activity;
-use crate::schema::activity::dsl::*;
 use serde_json::Value;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
@@ -25,14 +24,17 @@ pub struct ActivityForm {
 
 impl Crud<ActivityForm> for Activity {
   fn read(conn: &PgConnection, activity_id: i32) -> Result<Self, Error> {
+    use crate::schema::activity::dsl::*;
     activity.find(activity_id).first::<Self>(conn)
   }
 
   fn delete(conn: &PgConnection, activity_id: i32) -> Result<usize, Error> {
+    use crate::schema::activity::dsl::*;
     diesel::delete(activity.find(activity_id)).execute(conn)
   }
 
   fn create(conn: &PgConnection, new_activity: &ActivityForm) -> Result<Self, Error> {
+    use crate::schema::activity::dsl::*;
     insert_into(activity)
       .values(new_activity)
       .get_result::<Self>(conn)
@@ -43,10 +45,29 @@ impl Crud<ActivityForm> for Activity {
     activity_id: i32,
     new_activity: &ActivityForm,
   ) -> Result<Self, Error> {
+    use crate::schema::activity::dsl::*;
     diesel::update(activity.find(activity_id))
       .set(new_activity)
       .get_result::<Self>(conn)
   }
+}
+
+pub fn insert_activity<T>(
+  conn: &PgConnection,
+  user_id: i32,
+  data: &T,
+  local: bool,
+) -> Result<Activity, failure::Error>
+where
+  T: Serialize,
+{
+  let activity_form = ActivityForm {
+    user_id,
+    data: serde_json::to_value(&data)?,
+    local,
+    updated: None,
+  };
+  Ok(Activity::create(&conn, &activity_form)?)
 }
 
 #[cfg(test)]

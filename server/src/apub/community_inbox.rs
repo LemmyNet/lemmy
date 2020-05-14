@@ -59,14 +59,7 @@ fn handle_follow(
 
   verify(&request, &user.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: user.id,
-    data: serde_json::to_value(&follow)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, user.id, &follow, false)?;
 
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,
@@ -115,14 +108,7 @@ fn handle_undo_follow(
 
   verify(&request, &user.public_key.unwrap())?;
 
-  // Insert the received activity into the activity table
-  let activity_form = activity::ActivityForm {
-    user_id: user.id,
-    data: serde_json::to_value(&follow)?,
-    local: false,
-    updated: None,
-  };
-  activity::Activity::create(&conn, &activity_form)?;
+  insert_activity(&conn, user.id, &follow, false)?;
 
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,
