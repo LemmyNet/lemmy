@@ -68,7 +68,7 @@ describe('main', () => {
     lemmyBetaAuth = resB.jwt;
   });
 
-  describe('beta_fetch', () => {
+  describe('post_search', () => {
     test('Create test post on alpha and fetch it on beta', async () => {
       let name = 'A jest test post';
       let postForm: PostForm = {
@@ -1105,6 +1105,36 @@ describe('main', () => {
       ).then(d => d.json());
 
       expect(getPrivateMessagesUnDeletedRes.messages[0].deleted).toBe(false);
+    });
+  });
+
+  describe('comment_search', () => {
+    test('Create comment on alpha and search it', async () => {
+      let content = 'A jest test federated comment for search';
+      let commentForm: CommentForm = {
+        content,
+        post_id: 1,
+        auth: lemmyAlphaAuth,
+      };
+
+      let createResponse: CommentResponse = await fetch(
+        `${lemmyAlphaApiUrl}/comment`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(commentForm),
+        }
+      ).then(d => d.json());
+
+      let searchUrl = `${lemmyBetaApiUrl}/search?q=${createResponse.comment.ap_id}&type_=All&sort=TopAll`;
+      let searchResponse: SearchResponse = await fetch(searchUrl, {
+        method: 'GET',
+      }).then(d => d.json());
+
+      // TODO: check more fields
+      expect(searchResponse.comments[0].content).toBe(content);
     });
   });
 });

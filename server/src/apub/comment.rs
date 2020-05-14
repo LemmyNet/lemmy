@@ -1,5 +1,24 @@
 use super::*;
 
+#[derive(Deserialize)]
+pub struct CommentQuery {
+  comment_id: String,
+}
+
+/// Return the post json over HTTP.
+pub async fn get_apub_comment(
+  info: Path<CommentQuery>,
+  db: DbPoolParam,
+) -> Result<HttpResponse<Body>, Error> {
+  let id = info.comment_id.parse::<i32>()?;
+  let comment = Comment::read(&&db.get()?, id)?;
+  if !comment.deleted {
+    Ok(create_apub_response(&comment.to_apub(&db.get().unwrap())?))
+  } else {
+    Ok(create_apub_tombstone_response(&comment.to_tombstone()?))
+  }
+}
+
 impl ToApub for Comment {
   type Response = Note;
 
