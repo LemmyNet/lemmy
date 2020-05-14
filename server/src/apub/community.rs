@@ -79,6 +79,9 @@ impl ActorType for Community {
   fn public_key(&self) -> String {
     self.public_key.to_owned().unwrap()
   }
+  fn private_key(&self) -> String {
+    self.private_key.to_owned().unwrap()
+  }
 
   /// As a local community, accept the follow request from a remote user.
   fn send_accept_follow(&self, follow: &Follow, conn: &PgConnection) -> Result<(), Error> {
@@ -102,12 +105,7 @@ impl ActorType for Community {
 
     insert_activity(&conn, self.creator_id, &accept, true)?;
 
-    send_activity(
-      &accept,
-      &self.private_key.to_owned().unwrap(),
-      &self.actor_id,
-      vec![to],
-    )?;
+    send_activity(&accept, self, vec![to])?;
     Ok(())
   }
 
@@ -128,12 +126,7 @@ impl ActorType for Community {
     // Note: For an accept, since it was automatic, no one pushed a button,
     // the community was the actor.
     // But for delete, the creator is the actor, and does the signing
-    send_activity(
-      &delete,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      self.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&delete, creator, self.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -166,12 +159,7 @@ impl ActorType for Community {
     // Note: For an accept, since it was automatic, no one pushed a button,
     // the community was the actor.
     // But for delete, the creator is the actor, and does the signing
-    send_activity(
-      &undo,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      self.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&undo, creator, self.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -192,12 +180,7 @@ impl ActorType for Community {
     // Note: For an accept, since it was automatic, no one pushed a button,
     // the community was the actor.
     // But for delete, the creator is the actor, and does the signing
-    send_activity(
-      &remove,
-      &mod_.private_key.as_ref().unwrap(),
-      &mod_.actor_id,
-      self.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&remove, mod_, self.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -229,12 +212,7 @@ impl ActorType for Community {
     // Note: For an accept, since it was automatic, no one pushed a button,
     // the community was the actor.
     // But for remove , the creator is the actor, and does the signing
-    send_activity(
-      &undo,
-      &mod_.private_key.as_ref().unwrap(),
-      &mod_.actor_id,
-      self.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&undo, mod_, self.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 

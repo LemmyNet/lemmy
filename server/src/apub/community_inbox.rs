@@ -57,7 +57,7 @@ fn handle_follow(
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   let community = Community::read_from_name(&conn, &community_name)?;
 
-  verify(&request, &user.public_key.unwrap())?;
+  verify(&request, &user)?;
 
   insert_activity(&conn, user.id, &follow, false)?;
 
@@ -106,7 +106,7 @@ fn handle_undo_follow(
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
   let community = Community::read_from_name(&conn, &community_name)?;
 
-  verify(&request, &user.public_key.unwrap())?;
+  verify(&request, &user)?;
 
   insert_activity(&conn, user.id, &follow, false)?;
 

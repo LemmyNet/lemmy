@@ -17,12 +17,7 @@ pub fn populate_object_props(
 }
 
 /// Send an activity to a list of recipients, using the correct headers etc.
-pub fn send_activity<A>(
-  activity: &A,
-  private_key: &str,
-  sender_id: &str,
-  to: Vec<String>,
-) -> Result<(), Error>
+pub fn send_activity<A>(activity: &A, actor: &dyn ActorType, to: Vec<String>) -> Result<(), Error>
 where
   A: Serialize + Debug,
 {
@@ -35,7 +30,7 @@ where
       continue;
     }
     let request = Request::post(t).header("Host", to_url.domain().unwrap());
-    let signature = sign(&request, private_key, sender_id)?;
+    let signature = sign(&request, actor)?;
     let res = request
       .header("Signature", signature)
       .header("Content-Type", "application/json")

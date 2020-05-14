@@ -134,12 +134,7 @@ impl ApubObjectType for Post {
 
     insert_activity(&conn, creator.id, &create, true)?;
 
-    send_activity(
-      &create,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&create, creator, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -162,12 +157,7 @@ impl ApubObjectType for Post {
 
     insert_activity(&conn, creator.id, &update, true)?;
 
-    send_activity(
-      &update,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&update, creator, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -191,12 +181,7 @@ impl ApubObjectType for Post {
     insert_activity(&conn, self.creator_id, &delete, true)?;
 
     let community = Community::read(conn, self.community_id)?;
-    send_activity(
-      &delete,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&delete, creator, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -236,12 +221,7 @@ impl ApubObjectType for Post {
     insert_activity(&conn, self.creator_id, &undo, true)?;
 
     let community = Community::read(conn, self.community_id)?;
-    send_activity(
-      &undo,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&undo, creator, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -265,12 +245,7 @@ impl ApubObjectType for Post {
     insert_activity(&conn, mod_.id, &remove, true)?;
 
     let community = Community::read(conn, self.community_id)?;
-    send_activity(
-      &remove,
-      &mod_.private_key.as_ref().unwrap(),
-      &mod_.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&remove, mod_, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
   fn send_undo_remove(&self, mod_: &User_, conn: &PgConnection) -> Result<(), Error> {
@@ -308,12 +283,7 @@ impl ApubObjectType for Post {
     insert_activity(&conn, mod_.id, &undo, true)?;
 
     let community = Community::read(conn, self.community_id)?;
-    send_activity(
-      &undo,
-      &mod_.private_key.as_ref().unwrap(),
-      &mod_.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&undo, mod_, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 }
@@ -333,12 +303,7 @@ impl ApubLikeableType for Post {
 
     insert_activity(&conn, creator.id, &like, true)?;
 
-    send_activity(
-      &like,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&like, creator, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -360,12 +325,7 @@ impl ApubLikeableType for Post {
 
     insert_activity(&conn, creator.id, &dislike, true)?;
 
-    send_activity(
-      &dislike,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&dislike, creator, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -399,12 +359,7 @@ impl ApubLikeableType for Post {
 
     insert_activity(&conn, creator.id, &undo, true)?;
 
-    send_activity(
-      &undo,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&undo, creator, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 }

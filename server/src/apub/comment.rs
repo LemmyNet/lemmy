@@ -115,12 +115,7 @@ impl ApubObjectType for Comment {
 
     insert_activity(&conn, creator.id, &create, true)?;
 
-    send_activity(
-      &create,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&create, creator, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -144,12 +139,7 @@ impl ApubObjectType for Comment {
 
     insert_activity(&conn, creator.id, &update, true)?;
 
-    send_activity(
-      &update,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&update, creator, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -173,12 +163,7 @@ impl ApubObjectType for Comment {
 
     insert_activity(&conn, creator.id, &delete, true)?;
 
-    send_activity(
-      &delete,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&delete, creator, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -220,12 +205,7 @@ impl ApubObjectType for Comment {
 
     insert_activity(&conn, creator.id, &undo, true)?;
 
-    send_activity(
-      &undo,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&undo, creator, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -249,12 +229,7 @@ impl ApubObjectType for Comment {
 
     insert_activity(&conn, mod_.id, &remove, true)?;
 
-    send_activity(
-      &remove,
-      &mod_.private_key.as_ref().unwrap(),
-      &mod_.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&remove, mod_, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -295,12 +270,7 @@ impl ApubObjectType for Comment {
 
     insert_activity(&conn, mod_.id, &undo, true)?;
 
-    send_activity(
-      &undo,
-      &mod_.private_key.as_ref().unwrap(),
-      &mod_.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&undo, mod_, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 }
@@ -321,12 +291,7 @@ impl ApubLikeableType for Comment {
 
     insert_activity(&conn, creator.id, &like, true)?;
 
-    send_activity(
-      &like,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&like, creator, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -349,12 +314,7 @@ impl ApubLikeableType for Comment {
 
     insert_activity(&conn, creator.id, &dislike, true)?;
 
-    send_activity(
-      &dislike,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&dislike, creator, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 
@@ -389,12 +349,7 @@ impl ApubLikeableType for Comment {
 
     insert_activity(&conn, creator.id, &undo, true)?;
 
-    send_activity(
-      &undo,
-      &creator.private_key.as_ref().unwrap(),
-      &creator.actor_id,
-      community.get_follower_inboxes(&conn)?,
-    )?;
+    send_activity(&undo, creator, community.get_follower_inboxes(&conn)?)?;
     Ok(())
   }
 }
