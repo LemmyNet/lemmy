@@ -395,6 +395,9 @@ struct MentionsAndAddresses {
   tags: Vec<Mention>,
 }
 
+/// This takes a comment, and builds a list of to_addresses, inboxes,
+/// and mention tags, so they know where to be sent to.
+/// Addresses are the users / addresses that go in the cc field.
 fn collect_non_local_mentions_and_addresses(
   conn: &PgConnection,
   content: &str,

@@ -15,7 +15,8 @@ pub struct WebFingerResponse {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct WebFingerLink {
   pub rel: Option<String>,
-  pub r#type: Option<String>,
+  #[serde(rename(serialize = "type", deserialize = "type"))]
+  pub type_: Option<String>,
   pub href: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub template: Option<String>,
@@ -90,13 +91,13 @@ async fn get_webfinger_response(
       links: vec![
         WebFingerLink {
           rel: Some("http://webfinger.net/rel/profile-page".to_string()),
-          r#type: Some("text/html".to_string()),
+          type_: Some("text/html".to_string()),
           href: Some(url.to_owned()),
           template: None,
         },
         WebFingerLink {
           rel: Some("self".to_string()),
-          r#type: Some("application/activity+json".to_string()),
+          type_: Some("application/activity+json".to_string()),
           href: Some(url),
           template: None,
         }, // TODO: this also needs to return the subscribe link once that's implemented

@@ -296,7 +296,7 @@ pub fn fetch_webfinger_url(mention: &MentionData) -> Result<String, Error> {
   let link = res
     .links
     .iter()
-    .find(|l| l.r#type.eq(&Some("application/activity+json".to_string())))
+    .find(|l| l.type_.eq(&Some("application/activity+json".to_string())))
     .ok_or_else(|| format_err!("No application/activity+json link found."))?;
   link
     .href

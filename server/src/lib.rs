@@ -271,7 +271,6 @@ mod tests {
 
   #[test]
   fn test_mentions_regex() {
-    // TODO
     let text = "Just read a great blog post by [@tedu@honk.teduangst.com](/u/test). And another by !test_community@fish.teduangst.com . Another [@lemmy@lemmy_alpha:8540](/u/fish)";
     let mentions = scrape_text_for_mentions(text);
 

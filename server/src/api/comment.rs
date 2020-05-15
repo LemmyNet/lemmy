@@ -521,6 +521,7 @@ pub fn send_local_notifs(
     .collect::<Vec<&MentionData>>()
   {
     if let Ok(mention_user) = User_::read_from_name(&conn, &mention.name) {
+      // TODO
       // At some point, make it so you can't tag the parent creator either
       // This can cause two notifications, one for reply and the other for mention
       recipient_ids.push(mention_user.id);
