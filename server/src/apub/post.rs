@@ -124,7 +124,7 @@ impl ApubObjectType for Post {
     let mut create = Create::new();
     populate_object_props(
       &mut create.object_props,
-      &community.get_followers_url(),
+      vec![community.get_followers_url()],
       &id,
     )?;
     create
@@ -147,7 +147,7 @@ impl ApubObjectType for Post {
     let mut update = Update::new();
     populate_object_props(
       &mut update.object_props,
-      &community.get_followers_url(),
+      vec![community.get_followers_url()],
       &id,
     )?;
     update
@@ -169,7 +169,7 @@ impl ApubObjectType for Post {
 
     populate_object_props(
       &mut delete.object_props,
-      &community.get_followers_url(),
+      vec![community.get_followers_url()],
       &id,
     )?;
 
@@ -193,7 +193,7 @@ impl ApubObjectType for Post {
 
     populate_object_props(
       &mut delete.object_props,
-      &community.get_followers_url(),
+      vec![community.get_followers_url()],
       &id,
     )?;
 
@@ -209,7 +209,7 @@ impl ApubObjectType for Post {
 
     populate_object_props(
       &mut undo.object_props,
-      &community.get_followers_url(),
+      vec![community.get_followers_url()],
       &undo_id,
     )?;
 
@@ -233,7 +233,7 @@ impl ApubObjectType for Post {
 
     populate_object_props(
       &mut remove.object_props,
-      &community.get_followers_url(),
+      vec![community.get_followers_url()],
       &id,
     )?;
 
@@ -256,7 +256,7 @@ impl ApubObjectType for Post {
 
     populate_object_props(
       &mut remove.object_props,
-      &community.get_followers_url(),
+      vec![community.get_followers_url()],
       &id,
     )?;
 
@@ -271,7 +271,7 @@ impl ApubObjectType for Post {
 
     populate_object_props(
       &mut undo.object_props,
-      &community.get_followers_url(),
+      vec![community.get_followers_url()],
       &undo_id,
     )?;
 
@@ -295,7 +295,11 @@ impl ApubLikeableType for Post {
     let id = format!("{}/like/{}", self.ap_id, uuid::Uuid::new_v4());
 
     let mut like = Like::new();
-    populate_object_props(&mut like.object_props, &community.get_followers_url(), &id)?;
+    populate_object_props(
+      &mut like.object_props,
+      vec![community.get_followers_url()],
+      &id,
+    )?;
     like
       .like_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
@@ -315,7 +319,7 @@ impl ApubLikeableType for Post {
     let mut dislike = Dislike::new();
     populate_object_props(
       &mut dislike.object_props,
-      &community.get_followers_url(),
+      vec![community.get_followers_url()],
       &id,
     )?;
     dislike
@@ -335,7 +339,11 @@ impl ApubLikeableType for Post {
     let id = format!("{}/like/{}", self.ap_id, uuid::Uuid::new_v4());
 
     let mut like = Like::new();
-    populate_object_props(&mut like.object_props, &community.get_followers_url(), &id)?;
+    populate_object_props(
+      &mut like.object_props,
+      vec![community.get_followers_url()],
+      &id,
+    )?;
     like
       .like_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
@@ -348,7 +356,7 @@ impl ApubLikeableType for Post {
 
     populate_object_props(
       &mut undo.object_props,
-      &community.get_followers_url(),
+      vec![community.get_followers_url()],
       &undo_id,
     )?;
 

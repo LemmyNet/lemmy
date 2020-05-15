@@ -167,12 +167,18 @@ fn receive_create_comment(
 
   let comment = CommentForm::from_apub(&note, &conn)?;
   let inserted_comment = Comment::create(conn, &comment)?;
+  let post = Post::read(&conn, inserted_comment.post_id)?;
+
+  // Note:
+  // Although mentions could be gotten from the post tags (they are included there), or the ccs,
+  // Its much easier to scrape them from the comment body, since the API has to do that
+  // anyway.
+  let mentions = scrape_text_for_mentions(&inserted_comment.content);
+  let recipient_ids = send_local_notifs(&conn, &mentions, &inserted_comment, &user, &post);
 
   // Refetch the view
   let comment_view = CommentView::read(&conn, inserted_comment.id, None)?;
 
-  // TODO get those recipient actor ids from somewhere
-  let recipient_ids = vec![];
   let res = CommentResponse {
     comment: comment_view,
     recipient_ids,
@@ -353,13 +359,15 @@ fn receive_update_comment(
 
   let comment = CommentForm::from_apub(&note, &conn)?;
   let comment_id = Comment::read_from_apub_id(conn, &comment.ap_id)?.id;
-  Comment::update(conn, comment_id, &comment)?;
+  let updated_comment = Comment::update(conn, comment_id, &comment)?;
+  let post = Post::read(&conn, updated_comment.post_id)?;
+
+  let mentions = scrape_text_for_mentions(&updated_comment.content);
+  let recipient_ids = send_local_notifs(&conn, &mentions, &updated_comment, &user, &post);
 
   // Refetch the view
   let comment_view = CommentView::read(&conn, comment_id, None)?;
 
-  // TODO get those recipient actor ids from somewhere
-  let recipient_ids = vec![];
   let res = CommentResponse {
     comment: comment_view,
     recipient_ids,

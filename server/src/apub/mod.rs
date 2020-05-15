@@ -9,7 +9,6 @@ pub mod private_message;
 pub mod shared_inbox;
 pub mod user;
 pub mod user_inbox;
-
 use crate::api::community::CommunityResponse;
 use crate::db::activity::insert_activity;
 use crate::websocket::server::SendCommunityRoomMessage;
@@ -21,6 +20,7 @@ use activitystreams::{
   context,
   endpoint::EndpointProperties,
   ext::{Ext, Extensible},
+  link::Mention,
   object::{properties::ObjectProperties, Note, Page, Tombstone},
   public, BaseBox,
 };
@@ -38,7 +38,7 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use url::Url;
 
-use crate::api::comment::CommentResponse;
+use crate::api::comment::{send_local_notifs, CommentResponse};
 use crate::api::post::PostResponse;
 use crate::api::site::SearchResponse;
 use crate::api::user::PrivateMessageResponse;
@@ -57,12 +57,13 @@ use crate::db::user::{UserForm, User_};
 use crate::db::user_view::UserView;
 use crate::db::{Crud, Followable, Joinable, Likeable, SearchType};
 use crate::routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
+use crate::routes::webfinger::WebFingerResponse;
 use crate::routes::{ChatServerParam, DbPoolParam};
 use crate::websocket::{
   server::{SendComment, SendPost, SendUserRoomMessage},
   UserOperation,
 };
-use crate::{convert_datetime, naive_now, Settings};
+use crate::{convert_datetime, naive_now, scrape_text_for_mentions, MentionData, Settings};
 
 use crate::apub::extensions::group_extensions::GroupExtension;
 use crate::apub::extensions::page_extension::PageExtension;
@@ -279,4 +280,26 @@ pub trait ActorType {
     }
     .to_ext()
   }
+}
+
+pub fn fetch_webfinger_url(mention: &MentionData) -> Result<String, Error> {
+  let fetch_url = format!(
+    "{}://{}/.well-known/webfinger?resource=acct:{}@{}",
+    get_apub_protocol_string(),
+    mention.domain,
+    mention.name,
+    mention.domain
+  );
+  debug!("Fetching webfinger url: {}", &fetch_url);
+  let text = isahc::get(&fetch_url)?.text()?;
+  let res: WebFingerResponse = serde_json::from_str(&text)?;
+  let link = res
+    .links
+    .iter()
+    .find(|l| l.type_.eq(&Some("application/activity+json".to_string())))
+    .ok_or_else(|| format_err!("No application/activity+json link found."))?;
+  link
+    .href
+    .to_owned()
+    .ok_or_else(|| format_err!("No href found."))
 }

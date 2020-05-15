@@ -76,8 +76,6 @@ impl Perform for Oper<CreateComment> {
 
     let user_id = claims.id;
 
-    let hostname = &format!("https://{}", Settings::get().hostname);
-
     let conn = pool.get()?;
 
     // Check for a community ban
@@ -120,107 +118,9 @@ impl Perform for Oper<CreateComment> {
 
     updated_comment.send_create(&user, &conn)?;
 
-    let mut recipient_ids = Vec::new();
-
     // Scan the comment for user mentions, add those rows
-    let extracted_usernames = extract_usernames(&comment_form.content);
-
-    for username_mention in &extracted_usernames {
-      if let Ok(mention_user) = User_::read_from_name(&conn, username_mention) {
-        // You can't mention yourself
-        // At some point, make it so you can't tag the parent creator either
-        // This can cause two notifications, one for reply and the other for mention
-        if mention_user.id != user_id {
-          recipient_ids.push(mention_user.id);
-
-          let user_mention_form = UserMentionForm {
-            recipient_id: mention_user.id,
-            comment_id: inserted_comment.id,
-            read: None,
-          };
-
-          // Allow this to fail softly, since comment edits might re-update or replace it
-          // Let the uniqueness handle this fail
-          match UserMention::create(&conn, &user_mention_form) {
-            Ok(_mention) => (),
-            Err(_e) => error!("{}", &_e),
-          };
-
-          // Send an email to those users that have notifications on
-          if mention_user.send_notifications_to_email {
-            if let Some(mention_email) = mention_user.email {
-              let subject = &format!(
-                "{} - Mentioned by {}",
-                Settings::get().hostname,
-                claims.username
-              );
-              let html = &format!(
-                "<h1>User Mention</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
-                claims.username, comment_form.content, hostname
-              );
-              match send_email(subject, &mention_email, &mention_user.name, html) {
-                Ok(_o) => _o,
-                Err(e) => error!("{}", e),
-              };
-            }
-          }
-        }
-      }
-    }
-
-    // Send notifs to the parent commenter / poster
-    match data.parent_id {
-      Some(parent_id) => {
-        let parent_comment = Comment::read(&conn, parent_id)?;
-        if parent_comment.creator_id != user_id {
-          let parent_user = User_::read(&conn, parent_comment.creator_id)?;
-          recipient_ids.push(parent_user.id);
-
-          if parent_user.send_notifications_to_email {
-            if let Some(comment_reply_email) = parent_user.email {
-              let subject = &format!(
-                "{} - Reply from {}",
-                Settings::get().hostname,
-                claims.username
-              );
-              let html = &format!(
-                "<h1>Comment Reply</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
-                claims.username, comment_form.content, hostname
-              );
-              match send_email(subject, &comment_reply_email, &parent_user.name, html) {
-                Ok(_o) => _o,
-                Err(e) => error!("{}", e),
-              };
-            }
-          }
-        }
-      }
-      // Its a post
-      None => {
-        if post.creator_id != user_id {
-          let parent_user = User_::read(&conn, post.creator_id)?;
-          recipient_ids.push(parent_user.id);
-
-          if parent_user.send_notifications_to_email {
-            if let Some(post_reply_email) = parent_user.email {
-              let subject = &format!(
-                "{} - Reply from {}",
-                Settings::get().hostname,
-                claims.username
-              );
-              let html = &format!(
-                "<h1>Post Reply</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
-                claims.username, comment_form.content, hostname
-              );
-              match send_email(subject, &post_reply_email, &parent_user.name, html) {
-                Ok(_o) => _o,
-                Err(e) => error!("{}", e),
-              };
-            }
-          }
-        }
-      }
-    };
+    let mentions = scrape_text_for_mentions(&comment_form.content);
+    let recipient_ids = send_local_notifs(&conn, &mentions, &updated_comment, &user, &post);
 
     // You like your own comment by default
     let like_form = CommentLikeForm {
@@ -353,53 +253,10 @@ impl Perform for Oper<EditComment> {
       updated_comment.send_update(&user, &conn)?;
     }
 
-    let mut recipient_ids = Vec::new();
+    let post = Post::read(&conn, data.post_id)?;
 
-    // Scan the comment for user mentions, add those rows
-    let extracted_usernames = extract_usernames(&comment_form.content);
-
-    for username_mention in &extracted_usernames {
-      let mention_user = User_::read_from_name(&conn, username_mention);
-
-      if mention_user.is_ok() {
-        let mention_user_id = mention_user?.id;
-
-        // You can't mention yourself
-        // At some point, make it so you can't tag the parent creator either
-        // This can cause two notifications, one for reply and the other for mention
-        if mention_user_id != user_id {
-          recipient_ids.push(mention_user_id);
-
-          let user_mention_form = UserMentionForm {
-            recipient_id: mention_user_id,
-            comment_id: data.edit_id,
-            read: None,
-          };
-
-          // Allow this to fail softly, since comment edits might re-update or replace it
-          // Let the uniqueness handle this fail
-          match UserMention::create(&conn, &user_mention_form) {
-            Ok(_mention) => (),
-            Err(_e) => error!("{}", &_e),
-          }
-        }
-      }
-    }
-
-    // Add to recipient ids
-    match data.parent_id {
-      Some(parent_id) => {
-        let parent_comment = Comment::read(&conn, parent_id)?;
-        if parent_comment.creator_id != user_id {
-          let parent_user = User_::read(&conn, parent_comment.creator_id)?;
-          recipient_ids.push(parent_user.id);
-        }
-      }
-      None => {
-        let post = Post::read(&conn, data.post_id)?;
-        recipient_ids.push(post.creator_id);
-      }
-    }
+    let mentions = scrape_text_for_mentions(&comment_form.content);
+    let recipient_ids = send_local_notifs(&conn, &mentions, &updated_comment, &user, &post);
 
     // Mod tables
     if let Some(removed) = data.removed.to_owned() {
@@ -645,4 +502,107 @@ impl Perform for Oper<GetComments> {
 
     Ok(GetCommentsResponse { comments })
   }
+}
+
+pub fn send_local_notifs(
+  conn: &PgConnection,
+  mentions: &[MentionData],
+  comment: &Comment,
+  user: &User_,
+  post: &Post,
+) -> Vec<i32> {
+  let mut recipient_ids = Vec::new();
+  let hostname = &format!("https://{}", Settings::get().hostname);
+
+  // Send the local mentions
+  for mention in mentions
+    .iter()
+    .filter(|m| m.is_local() && m.name.ne(&user.name))
+    .collect::<Vec<&MentionData>>()
+  {
+    if let Ok(mention_user) = User_::read_from_name(&conn, &mention.name) {
+      // TODO
+      // At some point, make it so you can't tag the parent creator either
+      // This can cause two notifications, one for reply and the other for mention
+      recipient_ids.push(mention_user.id);
+
+      let user_mention_form = UserMentionForm {
+        recipient_id: mention_user.id,
+        comment_id: comment.id,
+        read: None,
+      };
+
+      // Allow this to fail softly, since comment edits might re-update or replace it
+      // Let the uniqueness handle this fail
+      match UserMention::create(&conn, &user_mention_form) {
+        Ok(_mention) => (),
+        Err(_e) => error!("{}", &_e),
+      };
+
+      // Send an email to those users that have notifications on
+      if mention_user.send_notifications_to_email {
+        if let Some(mention_email) = mention_user.email {
+          let subject = &format!("{} - Mentioned by {}", Settings::get().hostname, user.name,);
+          let html = &format!(
+            "<h1>User Mention</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
+            user.name, comment.content, hostname
+          );
+          match send_email(subject, &mention_email, &mention_user.name, html) {
+            Ok(_o) => _o,
+            Err(e) => error!("{}", e),
+          };
+        }
+      }
+    }
+  }
+
+  // Send notifs to the parent commenter / poster
+  match comment.parent_id {
+    Some(parent_id) => {
+      if let Ok(parent_comment) = Comment::read(&conn, parent_id) {
+        if parent_comment.creator_id != user.id {
+          if let Ok(parent_user) = User_::read(&conn, parent_comment.creator_id) {
+            recipient_ids.push(parent_user.id);
+
+            if parent_user.send_notifications_to_email {
+              if let Some(comment_reply_email) = parent_user.email {
+                let subject = &format!("{} - Reply from {}", Settings::get().hostname, user.name,);
+                let html = &format!(
+                  "<h1>Comment Reply</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
+                  user.name, comment.content, hostname
+                );
+                match send_email(subject, &comment_reply_email, &parent_user.name, html) {
+                  Ok(_o) => _o,
+                  Err(e) => error!("{}", e),
+                };
+              }
+            }
+          }
+        }
+      }
+    }
+    // Its a post
+    None => {
+      if post.creator_id != user.id {
+        if let Ok(parent_user) = User_::read(&conn, post.creator_id) {
+          recipient_ids.push(parent_user.id);
+
+          if parent_user.send_notifications_to_email {
+            if let Some(post_reply_email) = parent_user.email {
+              let subject = &format!("{} - Reply from {}", Settings::get().hostname, user.name,);
+              let html = &format!(
+                "<h1>Post Reply</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
+                user.name, comment.content, hostname
+              );
+              match send_email(subject, &post_reply_email, &parent_user.name, html) {
+                Ok(_o) => _o,
+                Err(e) => error!("{}", e),
+              };
+            }
+          }
+        }
+      }
+    }
+  };
+  recipient_ids
 }

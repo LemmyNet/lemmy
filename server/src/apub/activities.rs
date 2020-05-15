@@ -2,7 +2,7 @@ use super::*;
 
 pub fn populate_object_props(
   props: &mut ObjectProperties,
-  addressed_to: &str,
+  addressed_ccs: Vec<String>,
   object_id: &str,
 ) -> Result<(), Error> {
   props
@@ -12,7 +12,7 @@ pub fn populate_object_props(
     // TODO: should to/cc go on the Create, or on the Post? or on both?
     // TODO: handle privacy on the receiving side (at least ignore anything thats not public)
     .set_to_xsd_any_uri(public())?
-    .set_cc_xsd_any_uri(addressed_to)?;
+    .set_many_cc_xsd_any_uris(addressed_ccs)?;
   Ok(())
 }
 

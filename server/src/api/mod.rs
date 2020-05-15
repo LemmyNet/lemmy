@@ -18,8 +18,8 @@ use crate::db::user_mention_view::*;
 use crate::db::user_view::*;
 use crate::db::*;
 use crate::{
-  extract_usernames, fetch_iframely_and_pictshare_data, generate_random_string, naive_from_unix,
-  naive_now, remove_slurs, send_email, slur_check, slurs_vec_to_str,
+  fetch_iframely_and_pictshare_data, generate_random_string, naive_from_unix, naive_now,
+  remove_slurs, scrape_text_for_mentions, send_email, slur_check, slurs_vec_to_str, MentionData,
 };
 
 use crate::apub::{

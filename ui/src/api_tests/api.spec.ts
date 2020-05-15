@@ -22,6 +22,7 @@ import {
   EditPrivateMessageForm,
   PrivateMessageResponse,
   PrivateMessagesResponse,
+  GetUserMentionsResponse,
 } from '../interfaces';
 
 let lemmyAlphaUrl = 'http://localhost:8540';
@@ -379,6 +380,44 @@ describe('main', () => {
       expect(getPostResAlpha.comments[0].community_local).toBe(false);
       expect(getPostResAlpha.comments[0].creator_local).toBe(false);
       expect(getPostResAlpha.comments[0].score).toBe(1);
+
+      // Lemmy alpha responds to their own comment, but mentions lemmy beta.
+      // Make sure lemmy beta gets that in their inbox.
+      let mentionContent = 'A test mention of @lemmy_beta@lemmy_beta:8550';
+      let mentionCommentForm: CommentForm = {
+        content: mentionContent,
+        post_id: 2,
+        parent_id: createResponse.comment.id,
+        auth: lemmyAlphaAuth,
+      };
+
+      let createMentionRes: CommentResponse = await fetch(
+        `${lemmyAlphaApiUrl}/comment`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(mentionCommentForm),
+        }
+      ).then(d => d.json());
+
+      expect(createMentionRes.comment.content).toBe(mentionContent);
+      expect(createMentionRes.comment.community_local).toBe(false);
+      expect(createMentionRes.comment.creator_local).toBe(true);
+      expect(createMentionRes.comment.score).toBe(1);
+
+      // Make sure lemmy beta sees that new mention
+      let getMentionUrl = `${lemmyBetaApiUrl}/user/mention?sort=New&unread_only=false&auth=${lemmyBetaAuth}`;
+      let getMentionsRes: GetUserMentionsResponse = await fetch(getMentionUrl, {
+        method: 'GET',
+      }).then(d => d.json());
+
+      // The newest show up first
+      expect(getMentionsRes.mentions[0].content).toBe(mentionContent);
+      expect(getMentionsRes.mentions[0].community_local).toBe(true);
+      expect(getMentionsRes.mentions[0].creator_local).toBe(false);
+      expect(getMentionsRes.mentions[0].score).toBe(1);
     });
   });
 
@@ -413,9 +452,9 @@ describe('main', () => {
         method: 'GET',
       }).then(d => d.json());
 
-      expect(getPostRes.comments[1].content).toBe(content);
-      expect(getPostRes.comments[1].community_local).toBe(true);
-      expect(getPostRes.comments[1].creator_local).toBe(false);
+      expect(getPostRes.comments[2].content).toBe(content);
+      expect(getPostRes.comments[2].community_local).toBe(true);
+      expect(getPostRes.comments[2].creator_local).toBe(false);
     });
   });
 
