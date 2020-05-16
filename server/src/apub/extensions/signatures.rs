@@ -5,9 +5,12 @@ use failure::Error;
 use http::request::Builder;
 use http_signature_normalization::Config;
 use log::debug;
-use openssl::hash::MessageDigest;
-use openssl::sign::{Signer, Verifier};
-use openssl::{pkey::PKey, rsa::Rsa};
+use openssl::{
+  hash::MessageDigest,
+  pkey::PKey,
+  rsa::Rsa,
+  sign::{Signer, Verifier},
+};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 

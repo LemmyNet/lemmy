@@ -1,22 +1,17 @@
-pub mod rate_limiter;
-
 use super::{IPAddr, Settings};
-use crate::api::APIError;
-use crate::get_ip;
-use crate::settings::RateLimitConfig;
+use crate::{api::APIError, get_ip, settings::RateLimitConfig};
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
-use failure::Error;
 use futures::future::{ok, Ready};
-use log::debug;
 use rate_limiter::{RateLimitType, RateLimiter};
-use std::collections::HashMap;
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::Arc;
-use std::task::{Context, Poll};
-use std::time::SystemTime;
-use strum::IntoEnumIterator;
+use std::{
+  future::Future,
+  pin::Pin,
+  sync::Arc,
+  task::{Context, Poll},
+};
 use tokio::sync::Mutex;
+
+pub mod rate_limiter;
 
 #[derive(Debug, Clone)]
 pub struct RateLimit {
@@ -92,7 +87,7 @@ impl RateLimited {
         }
         RateLimitType::Post => {
           limiter.check_rate_limit_full(
-            self.type_.clone(),
+            self.type_,
             &ip_addr,
             rate_limit.post,
             rate_limit.post_per_second,

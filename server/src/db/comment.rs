@@ -1,8 +1,9 @@
-use super::post::Post;
-use super::*;
-use crate::apub::{make_apub_endpoint, EndpointType};
-use crate::naive_now;
-use crate::schema::{comment, comment_like, comment_saved};
+use super::{post::Post, *};
+use crate::{
+  apub::{make_apub_endpoint, EndpointType},
+  naive_now,
+  schema::{comment, comment_like, comment_saved},
+};
 
 // WITH RECURSIVE MyTree AS (
 //     SELECT * FROM comment WHERE parent_id IS NULL
@@ -203,10 +204,10 @@ impl Saveable<CommentSavedForm> for CommentSaved {
 
 #[cfg(test)]
 mod tests {
-  use super::super::community::*;
-  use super::super::post::*;
-  use super::super::user::*;
-  use super::*;
+  use super::{
+    super::{community::*, post::*, user::*},
+    *,
+  };
   #[test]
   fn test_crud() {
     let conn = establish_unpooled_connection();

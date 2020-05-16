@@ -1,4 +1,33 @@
-use super::*;
+use crate::{
+  apub::{
+    activities::send_activity,
+    create_apub_response,
+    extensions::signatures::PublicKey,
+    ActorType,
+    FromApub,
+    PersonExt,
+    ToApub,
+  },
+  convert_datetime,
+  db::{
+    activity::insert_activity,
+    user::{UserForm, User_},
+  },
+  naive_now,
+  routes::DbPoolParam,
+};
+use activitystreams::{
+  activity::{Follow, Undo},
+  actor::{properties::ApActorProperties, Person},
+  context,
+  endpoint::EndpointProperties,
+  ext::Extensible,
+  object::{properties::ObjectProperties, Tombstone},
+};
+use actix_web::{body::Body, web::Path, HttpResponse, Result};
+use diesel::PgConnection;
+use failure::Error;
+use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct UserQuery {

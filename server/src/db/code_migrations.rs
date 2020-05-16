@@ -1,13 +1,17 @@
 // This is for db migrations that require code
-use super::comment::Comment;
-use super::community::{Community, CommunityForm};
-use super::post::Post;
-use super::private_message::PrivateMessage;
-use super::user::{UserForm, User_};
-use super::*;
-use crate::apub::extensions::signatures::generate_actor_keypair;
-use crate::apub::{make_apub_endpoint, EndpointType};
-use crate::naive_now;
+use super::{
+  comment::Comment,
+  community::{Community, CommunityForm},
+  post::Post,
+  private_message::PrivateMessage,
+  user::{UserForm, User_},
+};
+use crate::{
+  apub::{extensions::signatures::generate_actor_keypair, make_apub_endpoint, EndpointType},
+  db::Crud,
+  naive_now,
+};
+use diesel::*;
 use failure::Error;
 use log::info;
 

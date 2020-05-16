@@ -1,5 +1,6 @@
-use super::*;
-use crate::schema::activity;
+use crate::{db::Crud, schema::activity};
+use diesel::{dsl::*, result::Error, *};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
@@ -72,8 +73,8 @@ where
 
 #[cfg(test)]
 mod tests {
-  use super::super::user::*;
-  use super::*;
+  use super::{super::user::*, *};
+  use crate::db::{establish_unpooled_connection, Crud, ListingType, SortType};
 
   #[test]
   fn test_crud() {

@@ -2,9 +2,9 @@
 # It is not intended for manual editing.
 [[package]]
 name = "activitystreams"
-version = "0.6.0"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd5b29a0f2c64cc56f2b79ec29cab68a9dab3b714d811a55668d072f18a8638e"
+checksum = "464cb473bfb402b857cc15b1153974c203a43f1485da4dda15cd17a738548958"
 dependencies = [
  "activitystreams-derive",
  "chrono",
@@ -24,6 +24,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "activitystreams-new"
+version = "0.1.0"
+source = "git+https://git.asonix.dog/asonix/activitystreams-sketch#3f75e56190bd2e942621e8265435c74132639a47"
+dependencies = [
+ "activitystreams",
+ "serde 1.0.106",
+ "serde_json 1.0.51",
+ "typed-builder",
 ]
 
 [[package]]
@@ -1544,6 +1555,7 @@ name = "lemmy_server"
 version = "0.0.1"
 dependencies = [
  "activitystreams",
+ "activitystreams-new",
  "actix",
  "actix-files",
  "actix-rt",
@@ -2991,6 +3003,16 @@ name = "typed-arena"
 version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a9b2228007eba4120145f785df0f6c92ea538f5a3635a612ecf4e334c8c1446d"
+
+[[package]]
+name = "typed-builder"
+version = "0.5.1"
+source = "git+https://git.asonix.dog/asonix/typed-builder#3dadcaaa6184ef720093c8f0632a7d423d2537b0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "typenum"

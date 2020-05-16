@@ -1,4 +1,41 @@
-use super::*;
+use crate::{
+  api::{APIError, Oper, Perform},
+  apub::{ApubLikeableType, ApubObjectType},
+  db::{
+    comment::*,
+    comment_view::*,
+    community_view::*,
+    moderator::*,
+    post::*,
+    site_view::*,
+    user::*,
+    user_mention::*,
+    user_view::*,
+    Crud,
+    Likeable,
+    ListingType,
+    Saveable,
+    SortType,
+  },
+  extract_usernames,
+  naive_now,
+  remove_slurs,
+  send_email,
+  settings::Settings,
+  websocket::{
+    server::{JoinCommunityRoom, SendComment},
+    UserOperation,
+    WebsocketInfo,
+  },
+};
+use diesel::{
+  r2d2::{ConnectionManager, Pool},
+  PgConnection,
+};
+use failure::Error;
+use log::error;
+use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 #[derive(Serialize, Deserialize)]
 pub struct CreateComment {

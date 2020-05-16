@@ -1,2 +1,5 @@
 tab_spaces = 2
 edition="2018"
+imports_layout="HorizontalVertical"
+merge_imports=true
+reorder_imports=true

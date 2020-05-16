@@ -4,8 +4,10 @@ extern crate diesel_migrations;
 
 use actix::prelude::*;
 use actix_web::*;
-use diesel::r2d2::{ConnectionManager, Pool};
-use diesel::PgConnection;
+use diesel::{
+  r2d2::{ConnectionManager, Pool},
+  PgConnection,
+};
 use failure::Error;
 use lemmy_server::{
   db::code_migrations::run_advanced_migrations,

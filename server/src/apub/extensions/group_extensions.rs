@@ -1,7 +1,5 @@
-use crate::db::category::Category;
-use crate::db::Crud;
-use activitystreams::ext::Extension;
-use activitystreams::Actor;
+use crate::db::{category::Category, Crud};
+use activitystreams::{ext::Extension, Actor};
 use diesel::PgConnection;
 use failure::Error;
 use serde::{Deserialize, Serialize};

@@ -10,67 +10,28 @@ pub mod shared_inbox;
 pub mod user;
 pub mod user_inbox;
 
-use crate::api::community::CommunityResponse;
-use crate::db::activity::insert_activity;
-use crate::websocket::server::SendCommunityRoomMessage;
-use activitystreams::object::kind::{NoteType, PageType};
-use activitystreams::{
-  activity::{Accept, Create, Delete, Dislike, Follow, Like, Remove, Undo, Update},
-  actor::{kind::GroupType, properties::ApActorProperties, Group, Person},
-  collection::UnorderedCollection,
-  context,
-  endpoint::EndpointProperties,
-  ext::{Ext, Extensible},
-  object::{properties::ObjectProperties, Note, Page, Tombstone},
-  public, BaseBox,
+use crate::{
+  apub::extensions::{
+    group_extensions::GroupExtension,
+    page_extension::PageExtension,
+    signatures::{PublicKey, PublicKeyExtension},
+  },
+  convert_datetime,
+  db::user::User_,
+  Settings,
 };
-use actix_web::body::Body;
-use actix_web::web::Path;
-use actix_web::{web, HttpRequest, HttpResponse, Result};
-use diesel::result::Error::NotFound;
+use activitystreams::{
+  activity::Follow,
+  actor::{properties::ApActorProperties, Group, Person},
+  ext::Ext,
+  object::{Page, Tombstone},
+};
+use actix_web::{body::Body, HttpResponse, Result};
+use chrono::NaiveDateTime;
 use diesel::PgConnection;
 use failure::Error;
-use failure::_core::fmt::Debug;
-use isahc::prelude::*;
-use itertools::Itertools;
-use log::debug;
-use serde::{Deserialize, Serialize};
-use std::time::Duration;
+use serde::Serialize;
 use url::Url;
-
-use crate::api::comment::CommentResponse;
-use crate::api::post::PostResponse;
-use crate::api::site::SearchResponse;
-use crate::api::user::PrivateMessageResponse;
-use crate::db::comment::{Comment, CommentForm, CommentLike, CommentLikeForm};
-use crate::db::comment_view::CommentView;
-use crate::db::community::{
-  Community, CommunityFollower, CommunityFollowerForm, CommunityForm, CommunityModerator,
-  CommunityModeratorForm,
-};
-use crate::db::community_view::{CommunityFollowerView, CommunityModeratorView, CommunityView};
-use crate::db::post::{Post, PostForm, PostLike, PostLikeForm};
-use crate::db::post_view::PostView;
-use crate::db::private_message::{PrivateMessage, PrivateMessageForm};
-use crate::db::private_message_view::PrivateMessageView;
-use crate::db::user::{UserForm, User_};
-use crate::db::user_view::UserView;
-use crate::db::{Crud, Followable, Joinable, Likeable, SearchType};
-use crate::routes::nodeinfo::{NodeInfo, NodeInfoWellKnown};
-use crate::routes::{ChatServerParam, DbPoolParam};
-use crate::websocket::{
-  server::{SendComment, SendPost, SendUserRoomMessage},
-  UserOperation,
-};
-use crate::{convert_datetime, naive_now, Settings};
-
-use crate::apub::extensions::group_extensions::GroupExtension;
-use crate::apub::extensions::page_extension::PageExtension;
-use activities::{populate_object_props, send_activity};
-use chrono::NaiveDateTime;
-use extensions::signatures::verify;
-use extensions::signatures::{sign, PublicKey, PublicKeyExtension};
-use fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user};
 
 type GroupExt = Ext<Ext<Ext<Group, GroupExtension>, ApActorProperties>, PublicKeyExtension>;
 type PersonExt = Ext<Ext<Person, ApActorProperties>, PublicKeyExtension>;

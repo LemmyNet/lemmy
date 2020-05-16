@@ -1,6 +1,7 @@
 use super::comment::Comment;
-use super::*;
-use crate::schema::user_mention;
+use crate::{db::Crud, schema::user_mention};
+use diesel::{dsl::*, result::Error, *};
+use serde::{Deserialize, Serialize};
 
 #[derive(Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[belongs_to(Comment)]
@@ -53,11 +54,12 @@ impl Crud<UserMentionForm> for UserMention {
 
 #[cfg(test)]
 mod tests {
-  use super::super::comment::*;
-  use super::super::community::*;
-  use super::super::post::*;
-  use super::super::user::*;
-  use super::*;
+  use super::{
+    super::{comment::*, community::*, post::*, user::*},
+    *,
+  };
+  use crate::db::{establish_unpooled_connection, ListingType, SortType};
+
   #[test]
   fn test_crud() {
     let conn = establish_unpooled_connection();

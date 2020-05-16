@@ -1,6 +1,9 @@
-use super::*;
-use crate::schema::category;
-use crate::schema::category::dsl::*;
+use crate::{
+  db::Crud,
+  schema::{category, category::dsl::*},
+};
+use diesel::{dsl::*, result::Error, *};
+use serde::{Deserialize, Serialize};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "category"]
@@ -50,6 +53,8 @@ impl Category {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::db::establish_unpooled_connection;
+
   #[test]
   fn test_crud() {
     let conn = establish_unpooled_connection();

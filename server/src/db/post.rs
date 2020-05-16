@@ -1,7 +1,11 @@
-use super::*;
-use crate::apub::{make_apub_endpoint, EndpointType};
-use crate::naive_now;
-use crate::schema::{post, post_like, post_read, post_saved};
+use crate::{
+  apub::{make_apub_endpoint, EndpointType},
+  db::{Crud, Likeable, Readable, Saveable},
+  naive_now,
+  schema::{post, post_like, post_read, post_saved},
+};
+use diesel::{dsl::*, result::Error, *};
+use serde::{Deserialize, Serialize};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "post"]
@@ -237,9 +241,12 @@ impl Readable<PostReadForm> for PostRead {
 
 #[cfg(test)]
 mod tests {
-  use super::super::community::*;
-  use super::super::user::*;
-  use super::*;
+  use super::{
+    super::{community::*, user::*},
+    *,
+  };
+  use crate::db::{establish_unpooled_connection, ListingType, SortType};
+
   #[test]
   fn test_crud() {
     let conn = establish_unpooled_connection();

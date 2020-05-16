@@ -1,6 +1,10 @@
-use super::*;
-use crate::apub::{make_apub_endpoint, EndpointType};
-use crate::schema::private_message;
+use crate::{
+  apub::{make_apub_endpoint, EndpointType},
+  db::Crud,
+  schema::private_message,
+};
+use diesel::{dsl::*, result::Error, *};
+use serde::{Deserialize, Serialize};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "private_message"]
@@ -85,8 +89,9 @@ impl PrivateMessage {
 
 #[cfg(test)]
 mod tests {
-  use super::super::user::*;
-  use super::*;
+  use super::{super::user::*, *};
+  use crate::db::{establish_unpooled_connection, ListingType, SortType};
+
   #[test]
   fn test_crud() {
     let conn = establish_unpooled_connection();

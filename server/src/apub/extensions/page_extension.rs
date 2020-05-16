@@ -1,5 +1,4 @@
-use activitystreams::ext::Extension;
-use activitystreams::Base;
+use activitystreams::{ext::Extension, Base};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]

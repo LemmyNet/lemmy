@@ -1,4 +1,6 @@
-use super::*;
+use crate::settings::Settings;
+use actix_files::NamedFile;
+use actix_web::*;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
   cfg
