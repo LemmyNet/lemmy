@@ -130,6 +130,9 @@ pub fn get_or_fetch_and_upsert_remote_user(
       if !u.local
         && u
           .last_refreshed_at
+          // TODO it won't pick up new avatars, summaries etc until a day after.
+          // Both user and community need an "update" action pushed to other servers
+          // to fix this
           .lt(&(naive_now() - chrono::Duration::days(1)))
       {
         debug!("Fetching and updating from remote user: {}", apub_id);

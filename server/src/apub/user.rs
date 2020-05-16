@@ -27,6 +27,15 @@ impl ToApub for User_ {
       oprops.set_name_xsd_string(i.to_owned())?;
     }
 
+    if let Some(avatar_url) = &self.avatar {
+      let mut image = Image::new();
+      image
+        .object_props
+        .set_url_xsd_any_uri(avatar_url.to_owned())?;
+      let any_image = AnyImage::from_concrete(image)?;
+      oprops.set_icon_any_image(any_image)?;
+    }
+
     let mut endpoint_props = EndpointProperties::default();
 
     endpoint_props.set_shared_inbox(self.get_shared_inbox_url())?;
@@ -152,6 +161,16 @@ impl FromApub for UserForm {
     let aprops = &person.base.extension;
     let public_key: &PublicKey = &person.extension.public_key;
 
+    let avatar = match oprops.get_icon_any_image() {
+      Some(any_image) => any_image
+        .to_owned()
+        .into_concrete::<Image>()?
+        .object_props
+        .get_url_xsd_any_uri()
+        .map(|u| u.to_string()),
+      None => None,
+    };
+
     Ok(UserForm {
       name: oprops.get_name_xsd_string().unwrap().to_string(),
       preferred_username: aprops.get_preferred_username().map(|u| u.to_string()),
@@ -159,7 +178,7 @@ impl FromApub for UserForm {
       admin: false,
       banned: false,
       email: None,
-      avatar: None, // -> icon, image
+      avatar,
       updated: oprops
         .get_updated()
         .map(|u| u.as_ref().to_owned().naive_local()),

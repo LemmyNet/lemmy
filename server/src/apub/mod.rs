@@ -21,7 +21,7 @@ use activitystreams::{
   endpoint::EndpointProperties,
   ext::{Ext, Extensible},
   link::Mention,
-  object::{properties::ObjectProperties, Note, Page, Tombstone},
+  object::{properties::ObjectProperties, AnyImage, Image, Note, Page, Tombstone},
   public, BaseBox,
 };
 use actix_web::body::Body;

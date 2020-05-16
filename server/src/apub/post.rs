@@ -53,6 +53,20 @@ impl ToApub for Post {
       oprops.set_url_xsd_any_uri(u.to_owned())?;
     }
 
+    if let Some(thumbnail_url) = &self.thumbnail_url {
+      let full_url = format!(
+        "{}://{}/pictshare/{}",
+        get_apub_protocol_string(),
+        Settings::get().hostname,
+        thumbnail_url
+      );
+
+      let mut image = Image::new();
+      image.object_props.set_url_xsd_any_uri(full_url)?;
+      let any_image = AnyImage::from_concrete(image)?;
+      oprops.set_image_any_image(any_image)?;
+    }
+
     if let Some(u) = self.updated {
       oprops.set_updated(convert_datetime(u))?;
     }
@@ -87,6 +101,16 @@ impl FromApub for PostForm {
     let community_actor_id = &oprops.get_to_xsd_any_uri().unwrap().to_string();
     let community = get_or_fetch_and_upsert_remote_community(&community_actor_id, &conn)?;
 
+    let thumbnail_url = match oprops.get_image_any_image() {
+      Some(any_image) => any_image
+        .to_owned()
+        .into_concrete::<Image>()?
+        .object_props
+        .get_url_xsd_any_uri()
+        .map(|u| u.to_string()),
+      None => None,
+    };
+
     Ok(PostForm {
       name: oprops.get_summary_xsd_string().unwrap().to_string(),
       url: oprops.get_url_xsd_any_uri().map(|u| u.to_string()),
@@ -107,7 +131,7 @@ impl FromApub for PostForm {
       embed_title: None, // -> attachment? or fetch the embed locally
       embed_description: None,
       embed_html: None,
-      thumbnail_url: None,
+      thumbnail_url,
       ap_id: oprops.get_id().unwrap().to_string(),
       local: false,
     })
