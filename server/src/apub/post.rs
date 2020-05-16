@@ -51,6 +51,32 @@ impl ToApub for Post {
     let url = self.url.as_ref().filter(|u| !u.is_empty());
     if let Some(u) = url {
       oprops.set_url_xsd_any_uri(u.to_owned())?;
+
+      // Embeds
+      let mut page_preview = Page::new();
+      page_preview
+        .object_props
+        .set_url_xsd_any_uri(u.to_owned())?;
+
+      if let Some(embed_title) = &self.embed_title {
+        page_preview
+          .object_props
+          .set_name_xsd_string(embed_title.to_owned())?;
+      }
+
+      if let Some(embed_description) = &self.embed_description {
+        page_preview
+          .object_props
+          .set_summary_xsd_string(embed_description.to_owned())?;
+      }
+
+      if let Some(embed_html) = &self.embed_html {
+        page_preview
+          .object_props
+          .set_content_xsd_string(embed_html.to_owned())?;
+      }
+
+      oprops.set_preview_base_box(page_preview)?;
     }
 
     if let Some(thumbnail_url) = &self.thumbnail_url {
@@ -111,9 +137,30 @@ impl FromApub for PostForm {
       None => None,
     };
 
+    let url = oprops.get_url_xsd_any_uri().map(|u| u.to_string());
+    let (embed_title, embed_description, embed_html) = match oprops.get_preview_base_box() {
+      Some(preview) => {
+        let preview_page = preview.to_owned().into_concrete::<Page>()?;
+        let name = preview_page
+          .object_props
+          .get_name_xsd_string()
+          .map(|n| n.to_string());
+        let summary = preview_page
+          .object_props
+          .get_summary_xsd_string()
+          .map(|s| s.to_string());
+        let content = preview_page
+          .object_props
+          .get_content_xsd_string()
+          .map(|c| c.to_string());
+        (name, summary, content)
+      }
+      None => (None, None, None),
+    };
+
     Ok(PostForm {
       name: oprops.get_summary_xsd_string().unwrap().to_string(),
-      url: oprops.get_url_xsd_any_uri().map(|u| u.to_string()),
+      url,
       body: oprops.get_content_xsd_string().map(|c| c.to_string()),
       creator_id: creator.id,
       community_id: community.id,
@@ -127,10 +174,10 @@ impl FromApub for PostForm {
         .map(|u| u.as_ref().to_owned().naive_local()),
       deleted: None,
       nsfw: ext.sensitive,
-      stickied: None,    // -> put it in "featured" collection of the community
-      embed_title: None, // -> attachment? or fetch the embed locally
-      embed_description: None,
-      embed_html: None,
+      stickied: None, // -> put it in "featured" collection of the community
+      embed_title,
+      embed_description,
+      embed_html,
       thumbnail_url,
       ap_id: oprops.get_id().unwrap().to_string(),
       local: false,
