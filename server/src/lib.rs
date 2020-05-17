@@ -41,15 +41,20 @@ use actix_web::dev::ConnectionInfo;
 use chrono::{DateTime, FixedOffset, Local, NaiveDateTime, Utc};
 use isahc::prelude::*;
 use itertools::Itertools;
-use lettre::smtp::authentication::{Credentials, Mechanism};
-use lettre::smtp::extension::ClientId;
-use lettre::smtp::ConnectionReuseParameters;
-use lettre::{ClientSecurity, SmtpClient, Transport};
+use lettre::{
+  smtp::{
+    authentication::{Credentials, Mechanism},
+    extension::ClientId,
+    ConnectionReuseParameters,
+  },
+  ClientSecurity,
+  SmtpClient,
+  Transport,
+};
 use lettre_email::Email;
 use log::error;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
+use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use regex::{Regex, RegexBuilder};
 use serde::Deserialize;
 
@@ -266,7 +271,11 @@ pub fn scrape_text_for_mentions(text: &str) -> Vec<MentionData> {
 #[cfg(test)]
 mod tests {
   use crate::{
-    is_email_regex, remove_slurs, scrape_text_for_mentions, slur_check, slurs_vec_to_str,
+    is_email_regex,
+    remove_slurs,
+    scrape_text_for_mentions,
+    slur_check,
+    slurs_vec_to_str,
   };
 
   #[test]

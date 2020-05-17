@@ -1,4 +1,5 @@
-use super::*;
+use diesel::{result::Error, *};
+use serde::{Deserialize, Serialize};
 
 table! {
   site_view (id) {

@@ -1,6 +1,8 @@
-use super::*;
-use crate::schema::password_reset_request;
-use crate::schema::password_reset_request::dsl::*;
+use crate::{
+  db::Crud,
+  schema::{password_reset_request, password_reset_request::dsl::*},
+};
+use diesel::{dsl::*, result::Error, *};
 use sha2::{Digest, Sha256};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug)]
@@ -79,8 +81,8 @@ impl PasswordResetRequest {
 
 #[cfg(test)]
 mod tests {
-  use super::super::user::*;
-  use super::*;
+  use super::{super::user::*, *};
+  use crate::db::{establish_unpooled_connection, ListingType, SortType};
 
   #[test]
   fn test_crud() {

@@ -1,4 +1,42 @@
-use super::*;
+use crate::{
+  apub::{
+    activities::{populate_object_props, send_activity},
+    create_apub_response,
+    create_apub_tombstone_response,
+    create_tombstone,
+    fetch_webfinger_url,
+    fetcher::get_or_fetch_and_upsert_remote_user,
+    ActorType,
+    ApubLikeableType,
+    ApubObjectType,
+    FromApub,
+    ToApub,
+  },
+  convert_datetime,
+  db::{
+    activity::insert_activity,
+    comment::{Comment, CommentForm},
+    community::Community,
+    post::Post,
+    user::User_,
+    Crud,
+  },
+  routes::DbPoolParam,
+  scrape_text_for_mentions,
+  MentionData,
+};
+use activitystreams::{
+  activity::{Create, Delete, Dislike, Like, Remove, Undo, Update},
+  context,
+  link::Mention,
+  object::{kind::NoteType, properties::ObjectProperties, Note, Tombstone},
+};
+use actix_web::{body::Body, web::Path, HttpResponse, Result};
+use diesel::PgConnection;
+use failure::Error;
+use itertools::Itertools;
+use log::debug;
+use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct CommentQuery {

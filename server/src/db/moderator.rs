@@ -1,8 +1,19 @@
-use super::*;
-use crate::schema::{
-  mod_add, mod_add_community, mod_ban, mod_ban_from_community, mod_lock_post, mod_remove_comment,
-  mod_remove_community, mod_remove_post, mod_sticky_post,
+use crate::{
+  db::Crud,
+  schema::{
+    mod_add,
+    mod_add_community,
+    mod_ban,
+    mod_ban_from_community,
+    mod_lock_post,
+    mod_remove_comment,
+    mod_remove_community,
+    mod_remove_post,
+    mod_sticky_post,
+  },
 };
+use diesel::{dsl::*, result::Error, *};
+use serde::{Deserialize, Serialize};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "mod_remove_post"]
@@ -426,11 +437,12 @@ impl Crud<ModAddForm> for ModAdd {
 
 #[cfg(test)]
 mod tests {
-  use super::super::comment::*;
-  use super::super::community::*;
-  use super::super::post::*;
-  use super::super::user::*;
-  use super::*;
+  use super::{
+    super::{comment::*, community::*, post::*, user::*},
+    *,
+  };
+  use crate::db::{establish_unpooled_connection, ListingType, SortType};
+
   // use Crud;
   #[test]
   fn test_crud() {

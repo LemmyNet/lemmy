@@ -1,6 +1,7 @@
 use super::community_view::community_mview::BoxedQuery;
-use super::*;
-use diesel::pg::Pg;
+use crate::db::{fuzzy_search, limit_and_offset, MaybeOptional, SortType};
+use diesel::{pg::Pg, result::Error, *};
+use serde::{Deserialize, Serialize};
 
 table! {
   community_view (id) {

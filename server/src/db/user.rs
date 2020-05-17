@@ -1,9 +1,14 @@
-use super::*;
-use crate::schema::user_;
-use crate::schema::user_::dsl::*;
-use crate::{is_email_regex, naive_now, Settings};
+use crate::{
+  db::Crud,
+  is_email_regex,
+  naive_now,
+  schema::{user_, user_::dsl::*},
+  settings::Settings,
+};
 use bcrypt::{hash, DEFAULT_COST};
+use diesel::{dsl::*, result::Error, *};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
+use serde::{Deserialize, Serialize};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "user_"]
@@ -208,8 +213,8 @@ impl User_ {
 
 #[cfg(test)]
 mod tests {
-  use super::User_;
-  use super::*;
+  use super::{User_, *};
+  use crate::db::{establish_unpooled_connection, ListingType, SortType};
 
   #[test]
   fn test_crud() {

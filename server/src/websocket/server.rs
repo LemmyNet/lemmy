@@ -3,15 +3,16 @@
 //! room through `ChatServer`.
 
 use super::*;
-use crate::api::comment::*;
-use crate::api::community::*;
-use crate::api::post::*;
-use crate::api::site::*;
-use crate::api::user::*;
-use crate::api::*;
-use crate::rate_limit::RateLimit;
-use crate::websocket::UserOperation;
-use crate::{CommunityId, ConnectionId, IPAddr, PostId, UserId};
+use crate::{
+  api::{comment::*, community::*, post::*, site::*, user::*, *},
+  rate_limit::RateLimit,
+  websocket::UserOperation,
+  CommunityId,
+  ConnectionId,
+  IPAddr,
+  PostId,
+  UserId,
+};
 
 /// Chat server sends this messages to session
 #[derive(Message)]
@@ -940,7 +941,7 @@ impl Handler<Connect> for ChatServer {
       id,
       SessionInfo {
         addr: msg.addr,
-        ip: msg.ip.to_owned(),
+        ip: msg.ip,
       },
     );
 

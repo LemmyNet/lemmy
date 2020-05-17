@@ -1,6 +1,7 @@
 use super::user_view::user_mview::BoxedQuery;
-use super::*;
-use diesel::pg::Pg;
+use crate::db::{fuzzy_search, limit_and_offset, MaybeOptional, SortType};
+use diesel::{dsl::*, pg::Pg, result::Error, *};
+use serde::{Deserialize, Serialize};
 
 table! {
   user_view (id) {

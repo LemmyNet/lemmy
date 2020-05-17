@@ -1,5 +1,6 @@
-use super::*;
-use diesel::pg::Pg;
+use crate::db::{fuzzy_search, limit_and_offset, ListingType, MaybeOptional, SortType};
+use diesel::{dsl::*, pg::Pg, result::Error, *};
+use serde::{Deserialize, Serialize};
 
 // The faked schema since diesel doesn't do views
 table! {
@@ -453,11 +454,12 @@ impl<'a> ReplyQueryBuilder<'a> {
 
 #[cfg(test)]
 mod tests {
-  use super::super::comment::*;
-  use super::super::community::*;
-  use super::super::post::*;
-  use super::super::user::*;
-  use super::*;
+  use super::{
+    super::{comment::*, community::*, post::*, user::*},
+    *,
+  };
+  use crate::db::{establish_unpooled_connection, Crud, Likeable};
+
   #[test]
   fn test_crud() {
     let conn = establish_unpooled_connection();

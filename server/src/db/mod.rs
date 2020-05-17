@@ -1,7 +1,5 @@
 use crate::settings::Settings;
-use diesel::dsl::*;
-use diesel::result::Error;
-use diesel::*;
+use diesel::{dsl::*, result::Error, *};
 use serde::{Deserialize, Serialize};
 
 pub mod activity;

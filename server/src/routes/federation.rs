@@ -1,12 +1,17 @@
-use super::*;
-use crate::apub::comment::get_apub_comment;
-use crate::apub::community::*;
-use crate::apub::community_inbox::community_inbox;
-use crate::apub::post::get_apub_post;
-use crate::apub::shared_inbox::shared_inbox;
-use crate::apub::user::*;
-use crate::apub::user_inbox::user_inbox;
-use crate::apub::APUB_JSON_CONTENT_TYPE;
+use crate::{
+  apub::{
+    comment::get_apub_comment,
+    community::*,
+    community_inbox::community_inbox,
+    post::get_apub_post,
+    shared_inbox::shared_inbox,
+    user::*,
+    user_inbox::user_inbox,
+    APUB_JSON_CONTENT_TYPE,
+  },
+  settings::Settings,
+};
+use actix_web::*;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
   if Settings::get().federation.enabled {
