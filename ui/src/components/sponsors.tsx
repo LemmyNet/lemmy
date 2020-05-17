@@ -4,6 +4,11 @@ import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 import { repoUrl } from '../utils';
 
+interface SilverUser {
+  name: string;
+  link: string;
+}
+
 let general = [
   'Forrest Weghorst',
   'Serge Tarkovski',
@@ -13,7 +18,12 @@ let general = [
   'NotTooHighToHack',
 ];
 let highlighted = ['Oskenso Kashi', 'Alex Benishek'];
-// let silver = [];
+let silver: Array<SilverUser> = [
+  {
+    name: 'Redjoker',
+    link: 'https://redcard.iww.org/user/register',
+  },
+];
 // let gold = [];
 // let latinum = [];
 
@@ -72,6 +82,18 @@ export class Sponsors extends Component<any, any> {
     return (
       <div class="container">
         <h5>{i18n.t('sponsors')}</h5>
+        <p>{i18n.t('silver_sponsors')}</p>
+        <div class="row card-columns">
+          {silver.map(s => (
+            <div class="card col-12 col-md-2">
+              <div>
+                <a href={s.link} target="_blank">
+                  💎 {s.name}
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
         <p>{i18n.t('general_sponsors')}</p>
         <div class="row card-columns">
           {highlighted.map(s => (
