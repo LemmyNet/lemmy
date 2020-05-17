@@ -1,4 +1,6 @@
 import 'moment/locale/es';
+import 'moment/locale/el';
+import 'moment/locale/eu';
 import 'moment/locale/eo';
 import 'moment/locale/de';
 import 'moment/locale/zh-cn';
@@ -59,6 +61,8 @@ export const mentionDropdownFetchLimit = 10;
 export const languages = [
   { code: 'ca', name: 'Català' },
   { code: 'en', name: 'English' },
+  { code: 'el', name: 'Ελληνικά' },
+  { code: 'eu', name: 'Euskara' },
   { code: 'eo', name: 'Esperanto' },
   { code: 'es', name: 'Español' },
   { code: 'de', name: 'Deutsch' },
@@ -370,6 +374,10 @@ export function getMomentLanguage(): string {
     lang = 'ka';
   } else if (lang.startsWith('hi')) {
     lang = 'hi';
+  } else if (lang.startsWith('el')) {
+    lang = 'el';
+  } else if (lang.startsWith('eu')) {
+    lang = 'eu';
   } else {
     lang = 'en';
   }

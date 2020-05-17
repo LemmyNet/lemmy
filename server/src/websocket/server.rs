@@ -940,7 +940,7 @@ impl Handler<Connect> for ChatServer {
       id,
       SessionInfo {
         addr: msg.addr,
-        ip: msg.ip.to_owned(),
+        ip: msg.ip,
       },
     );
 

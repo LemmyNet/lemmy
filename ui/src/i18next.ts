@@ -1,6 +1,8 @@
 import i18next from 'i18next';
 import { getLanguage } from './utils';
 import { en } from './translations/en';
+import { el } from './translations/el';
+import { eu } from './translations/eu';
 import { eo } from './translations/eo';
 import { es } from './translations/es';
 import { de } from './translations/de';
@@ -21,6 +23,8 @@ import { ka } from './translations/ka';
 // https://github.com/nimbusec-oss/inferno-i18next/blob/master/tests/T.test.js#L66
 const resources = {
   en,
+  el,
+  eu,
   eo,
   es,
   ka,

@@ -92,7 +92,7 @@ impl RateLimited {
         }
         RateLimitType::Post => {
           limiter.check_rate_limit_full(
-            self.type_.clone(),
+            self.type_,
             &ip_addr,
             rate_limit.post,
             rate_limit.post_per_second,
