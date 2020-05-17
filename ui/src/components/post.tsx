@@ -40,7 +40,6 @@ import {
   setupTippy,
 } from '../utils';
 import { PostListing } from './post-listing';
-import { PostListings } from './post-listings';
 import { Sidebar } from './sidebar';
 import { CommentForm } from './comment-form';
 import { CommentNodes } from './comment-nodes';
@@ -183,14 +182,6 @@ export class Post extends Component<any, PostState> {
                 moderators={this.state.moderators}
                 admins={this.state.admins}
               />
-              {this.state.crossPosts.length > 0 && (
-                <>
-                  <div class="my-1 text-muted small font-weight-bold">
-                    {i18n.t('cross_posts')}
-                  </div>
-                  <PostListings showCommunity posts={this.state.crossPosts} />
-                </>
-              )}
               <div className="mb-2" />
               <CommentForm
                 postId={this.state.post.id}
@@ -213,8 +204,9 @@ export class Post extends Component<any, PostState> {
     return (
       <div class="btn-group btn-group-toggle mb-2">
         <label
-          className={`btn btn-sm btn-secondary pointer ${this.state
-            .commentSort === CommentSortType.Hot && 'active'}`}
+          className={`btn btn-sm btn-secondary pointer ${
+            this.state.commentSort === CommentSortType.Hot && 'active'
+          }`}
         >
           {i18n.t('hot')}
           <input
@@ -225,8 +217,9 @@ export class Post extends Component<any, PostState> {
           />
         </label>
         <label
-          className={`btn btn-sm btn-secondary pointer ${this.state
-            .commentSort === CommentSortType.Top && 'active'}`}
+          className={`btn btn-sm btn-secondary pointer ${
+            this.state.commentSort === CommentSortType.Top && 'active'
+          }`}
         >
           {i18n.t('top')}
           <input
@@ -237,8 +230,9 @@ export class Post extends Component<any, PostState> {
           />
         </label>
         <label
-          className={`btn btn-sm btn-secondary pointer ${this.state
-            .commentSort === CommentSortType.New && 'active'}`}
+          className={`btn btn-sm btn-secondary pointer ${
+            this.state.commentSort === CommentSortType.New && 'active'
+          }`}
         >
           {i18n.t('new')}
           <input
@@ -249,8 +243,9 @@ export class Post extends Component<any, PostState> {
           />
         </label>
         <label
-          className={`btn btn-sm btn-secondary pointer ${this.state
-            .commentSort === CommentSortType.Old && 'active'}`}
+          className={`btn btn-sm btn-secondary pointer ${
+            this.state.commentSort === CommentSortType.Old && 'active'
+          }`}
         >
           {i18n.t('old')}
           <input
@@ -462,6 +457,7 @@ export class Post extends Component<any, PostState> {
       this.state.crossPosts = data.posts.filter(
         p => p.id != Number(this.props.match.params.id)
       );
+      this.state.post.duplicates = this.state.crossPosts;
       this.setState(this.state);
     } else if (res.op == UserOperation.TransferSite) {
       let data = res.data as GetSiteResponse;
