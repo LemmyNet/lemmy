@@ -457,7 +457,9 @@ export class Post extends Component<any, PostState> {
       this.state.crossPosts = data.posts.filter(
         p => p.id != Number(this.props.match.params.id)
       );
-      this.state.post.duplicates = this.state.crossPosts;
+      if (this.state.crossPosts.length) {
+        this.state.post.duplicates = this.state.crossPosts;
+      }
       this.setState(this.state);
     } else if (res.op == UserOperation.TransferSite) {
       let data = res.data as GetSiteResponse;
