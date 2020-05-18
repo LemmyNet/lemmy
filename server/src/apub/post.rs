@@ -26,9 +26,10 @@ use crate::{
 use activitystreams::{
   activity::{Create, Delete, Dislike, Like, Remove, Undo, Update},
   context,
-  ext::Extensible,
   object::{kind::PageType, properties::ObjectProperties, Page, Tombstone},
+  BaseBox,
 };
+use activitystreams_ext::Ext1;
 use actix_web::{body::Body, web::Path, HttpResponse, Result};
 use diesel::PgConnection;
 use failure::Error;
@@ -95,7 +96,7 @@ impl ToApub for Post {
       comments_enabled: !self.locked,
       sensitive: self.nsfw,
     };
-    Ok(page.extend(ext))
+    Ok(Ext1::new(page, ext))
   }
 
   fn to_tombstone(&self) -> Result<Tombstone, Error> {
@@ -113,9 +114,8 @@ impl FromApub for PostForm {
 
   /// Parse an ActivityPub page received from another instance into a Lemmy post.
   fn from_apub(page: &PageExt, conn: &PgConnection) -> Result<PostForm, Error> {
-    let ext = &page.extension;
-    let page = &page.base;
-    let oprops = &page.object_props;
+    let ext = &page.ext_one;
+    let oprops = &page.inner.object_props;
     let creator_actor_id = &oprops.get_attributed_to_xsd_any_uri().unwrap().to_string();
     let creator = get_or_fetch_and_upsert_remote_user(&creator_actor_id, &conn)?;
     let community_actor_id = &oprops.get_to_xsd_any_uri().unwrap().to_string();
@@ -164,7 +164,7 @@ impl ApubObjectType for Post {
     create
       .create_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(page)?;
+      .set_object_base_box(BaseBox::from_concrete(page)?)?;
 
     insert_activity(&conn, creator.id, &create, true)?;
 
@@ -187,7 +187,7 @@ impl ApubObjectType for Post {
     update
       .update_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(page)?;
+      .set_object_base_box(BaseBox::from_concrete(page)?)?;
 
     insert_activity(&conn, creator.id, &update, true)?;
 
@@ -210,7 +210,7 @@ impl ApubObjectType for Post {
     delete
       .delete_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(page)?;
+      .set_object_base_box(BaseBox::from_concrete(page)?)?;
 
     insert_activity(&conn, self.creator_id, &delete, true)?;
 
@@ -234,7 +234,7 @@ impl ApubObjectType for Post {
     delete
       .delete_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(page)?;
+      .set_object_base_box(BaseBox::from_concrete(page)?)?;
 
     // TODO
     // Undo that fake activity
@@ -274,7 +274,7 @@ impl ApubObjectType for Post {
     remove
       .remove_props
       .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
-      .set_object_base_box(page)?;
+      .set_object_base_box(BaseBox::from_concrete(page)?)?;
 
     insert_activity(&conn, mod_.id, &remove, true)?;
 
@@ -297,7 +297,7 @@ impl ApubObjectType for Post {
     remove
       .remove_props
       .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
-      .set_object_base_box(page)?;
+      .set_object_base_box(BaseBox::from_concrete(page)?)?;
 
     // Undo that fake activity
     let undo_id = format!("{}/undo/remove/{}", self.ap_id, uuid::Uuid::new_v4());
@@ -337,7 +337,7 @@ impl ApubLikeableType for Post {
     like
       .like_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(page)?;
+      .set_object_base_box(BaseBox::from_concrete(page)?)?;
 
     insert_activity(&conn, creator.id, &like, true)?;
 
@@ -359,7 +359,7 @@ impl ApubLikeableType for Post {
     dislike
       .dislike_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(page)?;
+      .set_object_base_box(BaseBox::from_concrete(page)?)?;
 
     insert_activity(&conn, creator.id, &dislike, true)?;
 
@@ -381,7 +381,7 @@ impl ApubLikeableType for Post {
     like
       .like_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(page)?;
+      .set_object_base_box(BaseBox::from_concrete(page)?)?;
 
     // TODO
     // Undo that fake activity

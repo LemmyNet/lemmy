@@ -28,10 +28,10 @@ use activitystreams::{
   collection::UnorderedCollection,
   context,
   endpoint::EndpointProperties,
-  ext::Extensible,
   object::{properties::ObjectProperties, Tombstone},
   BaseBox,
 };
+use activitystreams_ext::Ext3;
 use actix_web::{body::Body, web::Path, HttpResponse, Result};
 use diesel::PgConnection;
 use failure::Error;
@@ -91,12 +91,12 @@ impl ToApub for Community {
 
     let group_extension = GroupExtension::new(conn, self.category_id, self.nsfw)?;
 
-    Ok(
-      group
-        .extend(group_extension)
-        .extend(actor_props)
-        .extend(self.get_public_key_ext()),
-    )
+    Ok(Ext3::new(
+      group,
+      group_extension,
+      actor_props,
+      self.get_public_key_ext(),
+    ))
   }
 
   fn to_tombstone(&self) -> Result<Tombstone, Error> {
@@ -161,7 +161,7 @@ impl ActorType for Community {
     delete
       .delete_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(group)?;
+      .set_object_base_box(BaseBox::from_concrete(group)?)?;
 
     insert_activity(&conn, self.creator_id, &delete, true)?;
 
@@ -186,7 +186,7 @@ impl ActorType for Community {
     delete
       .delete_props
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(group)?;
+      .set_object_base_box(BaseBox::from_concrete(group)?)?;
 
     // TODO
     // Undo that fake activity
@@ -227,7 +227,7 @@ impl ActorType for Community {
     remove
       .remove_props
       .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
-      .set_object_base_box(group)?;
+      .set_object_base_box(BaseBox::from_concrete(group)?)?;
 
     insert_activity(&conn, mod_.id, &remove, true)?;
 
@@ -252,7 +252,7 @@ impl ActorType for Community {
     remove
       .remove_props
       .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
-      .set_object_base_box(group)?;
+      .set_object_base_box(BaseBox::from_concrete(group)?)?;
 
     // Undo that fake activity
     let undo_id = format!("{}/undo/remove/{}", self.actor_id, uuid::Uuid::new_v4());
@@ -316,10 +316,10 @@ impl FromApub for CommunityForm {
 
   /// Parse an ActivityPub group received from another instance into a Lemmy community.
   fn from_apub(group: &GroupExt, conn: &PgConnection) -> Result<Self, Error> {
-    let group_extensions: &GroupExtension = &group.base.base.extension;
-    let oprops = &group.base.base.base.object_props;
-    let aprops = &group.base.extension;
-    let public_key: &PublicKey = &group.extension.public_key;
+    let group_extensions: &GroupExtension = &group.ext_one;
+    let oprops = &group.inner.object_props;
+    let aprops = &group.ext_two;
+    let public_key: &PublicKey = &group.ext_three.public_key;
 
     let mut creator_and_moderator_uris = oprops.get_many_attributed_to_xsd_any_uris().unwrap();
     let creator = creator_and_moderator_uris

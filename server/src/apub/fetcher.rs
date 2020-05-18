@@ -125,12 +125,12 @@ pub fn search_by_apub_id(query: &str, conn: &PgConnection) -> Result<SearchRespo
   };
   match fetch_remote_object::<SearchAcceptedObjects>(&query_url)? {
     SearchAcceptedObjects::Person(p) => {
-      let user_uri = p.base.base.object_props.get_id().unwrap().to_string();
+      let user_uri = p.inner.object_props.get_id().unwrap().to_string();
       let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
       response.users = vec![UserView::read(conn, user.id)?];
     }
     SearchAcceptedObjects::Group(g) => {
-      let community_uri = g.base.base.base.object_props.get_id().unwrap().to_string();
+      let community_uri = g.inner.object_props.get_id().unwrap().to_string();
       let community = get_or_fetch_and_upsert_remote_community(&community_uri, &conn)?;
       // TODO Maybe at some point in the future, fetch all the history of a community
       // fetch_community_outbox(&c, conn)?;
@@ -220,9 +220,7 @@ pub fn get_or_fetch_and_upsert_remote_community(
 
       // Also add the community moderators too
       let creator_and_moderator_uris = group
-        .base
-        .base
-        .base
+        .inner
         .object_props
         .get_many_attributed_to_xsd_any_uris()
         .unwrap();

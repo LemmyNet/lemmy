@@ -21,9 +21,9 @@ use activitystreams::{
   actor::{properties::ApActorProperties, Person},
   context,
   endpoint::EndpointProperties,
-  ext::Extensible,
   object::{properties::ObjectProperties, Tombstone},
 };
+use activitystreams_ext::Ext2;
 use actix_web::{body::Body, web::Path, HttpResponse, Result};
 use diesel::PgConnection;
 use failure::Error;
@@ -70,7 +70,7 @@ impl ToApub for User_ {
       .set_following(self.get_following_url())?
       .set_liked(self.get_liked_url())?;
 
-    Ok(person.extend(actor_props).extend(self.get_public_key_ext()))
+    Ok(Ext2::new(person, actor_props, self.get_public_key_ext()))
   }
   fn to_tombstone(&self) -> Result<Tombstone, Error> {
     unimplemented!()
@@ -177,9 +177,9 @@ impl FromApub for UserForm {
   type ApubType = PersonExt;
   /// Parse an ActivityPub person received from another instance into a Lemmy user.
   fn from_apub(person: &PersonExt, _conn: &PgConnection) -> Result<Self, Error> {
-    let oprops = &person.base.base.object_props;
-    let aprops = &person.base.extension;
-    let public_key: &PublicKey = &person.extension.public_key;
+    let oprops = &person.inner.object_props;
+    let aprops = &person.ext_one;
+    let public_key: &PublicKey = &person.ext_two.public_key;
 
     Ok(UserForm {
       name: oprops.get_name_xsd_string().unwrap().to_string(),

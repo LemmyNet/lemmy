@@ -4,15 +4,13 @@ version = "0.0.1"
 authors = ["Dessalines <happydooby@gmail.com>"]
 edition = "2018"
 
-[patch.crates-io]
-typed-builder = { git = "https://git.asonix.dog/asonix/typed-builder" }
-
 [dependencies]
 diesel = { version = "1.4.4", features = ["postgres","chrono","r2d2","64-column-tables","serde_json"] }
 diesel_migrations = "1.4.0"
 dotenv = "0.15.0"
 activitystreams = "0.6.2"
-activitystreams-new = { version = "0.1.0", git = "https://git.asonix.dog/asonix/activitystreams-sketch" }
+activitystreams-new = { git = "https://git.asonix.dog/asonix/activitystreams-sketch" }
+activitystreams-ext = { git = "https://git.asonix.dog/asonix/activitystreams-ext" }
 bcrypt = "0.8.0"
 chrono = { version = "0.4.7", features = ["serde"] }
 failure = "0.1.8"

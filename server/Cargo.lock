@@ -27,9 +27,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "activitystreams-ext"
+version = "0.1.0"
+source = "git+https://git.asonix.dog/asonix/activitystreams-ext#862426e504832256a6b26e1ec2198c0bda22139b"
+dependencies = [
+ "activitystreams-new",
+ "serde 1.0.110",
+ "serde_json 1.0.53",
+]
+
+[[package]]
 name = "activitystreams-new"
 version = "0.1.0"
-source = "git+https://git.asonix.dog/asonix/activitystreams-sketch#2fb52d32bbce9716c76e08579cf5c716366945fe"
+source = "git+https://git.asonix.dog/asonix/activitystreams-sketch#2cd88752996d702b355f0cd2c8dc991af00b3cae"
 dependencies = [
  "activitystreams",
  "serde 1.0.110",
@@ -1565,6 +1575,7 @@ name = "lemmy_server"
 version = "0.0.1"
 dependencies = [
  "activitystreams",
+ "activitystreams-ext",
  "activitystreams-new",
  "actix",
  "actix-files",
@@ -2093,18 +2104,18 @@ dependencies = [
 
 [[package]]
 name = "pin-project"
-version = "0.4.16"
+version = "0.4.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81d480cb4e89522ccda96d0eed9af94180b7a5f93fb28f66e1fd7d68431663d1"
+checksum = "edc93aeee735e60ecb40cf740eb319ff23eab1c5748abfdb5c180e4ce49f7791"
 dependencies = [
  "pin-project-internal",
 ]
 
 [[package]]
 name = "pin-project-internal"
-version = "0.4.16"
+version = "0.4.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a82996f11efccb19b685b14b5df818de31c1edcee3daa256ab5775dd98e72feb"
+checksum = "e58db2081ba5b4c93bd6be09c40fd36cb9193a8336c384f3b40012e531aa7e40"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2131,9 +2142,9 @@ checksum = "05da548ad6865900e60eaba7f589cc0783590a92e940c26953ff81ddbab2d677"
 
 [[package]]
 name = "ppv-lite86"
-version = "0.2.7"
+version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1e4df3c96bec4c7ce0e32fe5960c98ffc869443ec9592a0411ca1ee96e5e2f0"
+checksum = "237a5ed80e274dbc66f86bd59c1e25edc039660be53194b5fe0a482e0f2612ea"
 
 [[package]]
 name = "pq-sys"
@@ -2183,9 +2194,9 @@ dependencies = [
 
 [[package]]
 name = "quote"
-version = "1.0.5"
+version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42934bc9c8ab0d3b273a16d8551c8f0fcff46be73276ca083ec2414c15c4ba5e"
+checksum = "54a21852a652ad6f610c9510194f398ff6f8692e334fd1145fed931f7fbe44ea"
 dependencies = [
  "proc-macro2",
 ]
@@ -3028,8 +3039,9 @@ checksum = "a9b2228007eba4120145f785df0f6c92ea538f5a3635a612ecf4e334c8c1446d"
 
 [[package]]
 name = "typed-builder"
-version = "0.5.1"
-source = "git+https://git.asonix.dog/asonix/typed-builder#3dadcaaa6184ef720093c8f0632a7d423d2537b0"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85fc4459191c621a53ef6c6ca5642e6e0e5ccc61f3e5b8ad6b6ab5317f0200fb"
 dependencies = [
  "proc-macro2",
  "quote",

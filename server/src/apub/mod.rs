@@ -25,9 +25,9 @@ use crate::{
 use activitystreams::{
   activity::Follow,
   actor::{properties::ApActorProperties, Group, Person},
-  ext::Ext,
   object::{Page, Tombstone},
 };
+use activitystreams_ext::{Ext1, Ext2, Ext3};
 use actix_web::{body::Body, HttpResponse, Result};
 use chrono::NaiveDateTime;
 use diesel::PgConnection;
@@ -37,9 +37,9 @@ use log::debug;
 use serde::Serialize;
 use url::Url;
 
-type GroupExt = Ext<Ext<Ext<Group, GroupExtension>, ApActorProperties>, PublicKeyExtension>;
-type PersonExt = Ext<Ext<Person, ApActorProperties>, PublicKeyExtension>;
-type PageExt = Ext<Page, PageExtension>;
+type GroupExt = Ext3<Group, GroupExtension, ApActorProperties, PublicKeyExtension>;
+type PersonExt = Ext2<Person, ApActorProperties, PublicKeyExtension>;
+type PageExt = Ext1<Page, PageExtension>;
 
 pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 
