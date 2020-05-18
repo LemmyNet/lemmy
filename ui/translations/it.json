@@ -230,7 +230,7 @@
     "reset_password_mail_sent": "Un'email è stata inviata per il rest della tua password.",
     "no_email_setup": "Questo server non ha impostato un'email correttamente.",
     "send_notifications_to_email": "Invia notifiche via email",
-    "upvote": "",
+    "upvote": "Voto Positivo",
     "sorting_help": "aiuto ordinamento",
     "old": "Vecchi",
     "browser_default": "Default del browser",
@@ -238,5 +238,18 @@
     "couldnt_update_private_message": "Impossibile aggiornare messaggio privato.",
     "block_leaving": "Sei sicuro di voler uscire?",
     "couldnt_create_private_message": "Impossibile creare messaggio privato.",
-    "show_context": "Mostra contesto"
+    "show_context": "Mostra contesto",
+    "site_saved": "Sito Salvato.",
+    "downvote": "Voto Negativo",
+    "number_of_upvotes": "{{count}} Voto Positivo",
+    "number_of_upvotes_plural": "{{count}} Voti Positivi",
+    "number_of_downvotes": "{{count}} Voto Negativo",
+    "number_of_downvotes_plural": "{{count}} Voti Negativi",
+    "open_registration": "Registrazione Aperta",
+    "logged_in": "Connesso.",
+    "registration_closed": "Registrazione Chiusa",
+    "no_private_message_edit_allowed": "Non hai i permessi per modificare un messaggio privato.",
+    "time": "Tempo",
+    "action": "Azione",
+    "silver_sponsors": "Gli sponsor d'argento sono quelli che si impegnano a donare 40$ a Lemmy."
 }
