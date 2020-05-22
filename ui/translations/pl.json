@@ -253,5 +253,12 @@
     "time": "Czas",
     "action": "Akcja",
     "block_leaving": "Czy na pewno chcesz wyjść?",
-    "show_context": "Pokaż kontekst"
+    "show_context": "Pokaż kontekst",
+    "site_config": "Ustawienia Witryny",
+    "banned_users": "Zbanowani Użytkownicy",
+    "support_on_open_collective": "Wspieraj na OpenCollective",
+    "site_saved": "Witryna Zapisana.",
+    "admin_settings": "Ustawienia Administratora",
+    "emoji_picker": "Wybór Emoji",
+    "silver_sponsors": "Srebrni Sponsorzy to ci, którzy wpłacili co najmniej $40 na Lemmiego."
 }
