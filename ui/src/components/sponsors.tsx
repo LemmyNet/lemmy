@@ -21,7 +21,7 @@ let highlighted = ['Oskenso Kashi', 'Alex Benishek'];
 let silver: Array<SilverUser> = [
   {
     name: 'Redjoker',
-    link: 'https://redcard.iww.org/user/register',
+    link: 'https://iww.org',
   },
 ];
 // let gold = [];
