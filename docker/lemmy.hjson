@@ -60,6 +60,7 @@
 #    smtp_password: ""
 #    # address to send emails from, eg "info@your-instance.com"
 #    smtp_from_address: ""
+#    use_tls: true
 #  }
 }
 
