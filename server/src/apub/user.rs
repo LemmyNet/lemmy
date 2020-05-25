@@ -21,7 +21,7 @@ use activitystreams::{
   actor::{properties::ApActorProperties, Person},
   context,
   endpoint::EndpointProperties,
-  object::{properties::ObjectProperties, Tombstone},
+  object::{properties::ObjectProperties, AnyImage, Image, Tombstone},
 };
 use activitystreams_ext::Ext2;
 use actix_web::{body::Body, web::Path, HttpResponse, Result};
@@ -54,6 +54,15 @@ impl ToApub for User_ {
 
     if let Some(i) = &self.preferred_username {
       oprops.set_name_xsd_string(i.to_owned())?;
+    }
+
+    if let Some(avatar_url) = &self.avatar {
+      let mut image = Image::new();
+      image
+        .object_props
+        .set_url_xsd_any_uri(avatar_url.to_owned())?;
+      let any_image = AnyImage::from_concrete(image)?;
+      oprops.set_icon_any_image(any_image)?;
     }
 
     let mut endpoint_props = EndpointProperties::default();
@@ -181,6 +190,16 @@ impl FromApub for UserForm {
     let aprops = &person.ext_one;
     let public_key: &PublicKey = &person.ext_two.public_key;
 
+    let avatar = match oprops.get_icon_any_image() {
+      Some(any_image) => any_image
+        .to_owned()
+        .into_concrete::<Image>()?
+        .object_props
+        .get_url_xsd_any_uri()
+        .map(|u| u.to_string()),
+      None => None,
+    };
+
     Ok(UserForm {
       name: oprops.get_name_xsd_string().unwrap().to_string(),
       preferred_username: aprops.get_preferred_username().map(|u| u.to_string()),
@@ -188,7 +207,7 @@ impl FromApub for UserForm {
       admin: false,
       banned: false,
       email: None,
-      avatar: None, // -> icon, image
+      avatar,
       updated: oprops
         .get_updated()
         .map(|u| u.as_ref().to_owned().naive_local()),
