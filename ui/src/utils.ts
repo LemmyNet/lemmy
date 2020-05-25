@@ -52,7 +52,7 @@ export const repoUrl = 'https://github.com/LemmyNet/lemmy';
 export const helpGuideUrl = '/docs/about_guide.html';
 export const markdownHelpUrl = `${helpGuideUrl}#markdown-guide`;
 export const sortingHelpUrl = `${helpGuideUrl}#sorting`;
-export const archiveUrl = 'https://archive.is';
+export const archiveUrl = 'https://web.archive.org';
 
 export const postRefetchSeconds: number = 60 * 1000;
 export const fetchLimit: number = 20;

@@ -214,7 +214,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               </form>
               {validURL(this.state.postForm.url) && (
                 <a
-                  href={`${archiveUrl}/?run=1&url=${encodeURIComponent(
+                  href={`${archiveUrl}/save/${encodeURIComponent(
                     this.state.postForm.url
                   )}`}
                   target="_blank"
