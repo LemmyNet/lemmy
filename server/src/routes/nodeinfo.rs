@@ -25,11 +25,7 @@ async fn node_info(
       Ok(site_view) => site_view,
       Err(_) => return Err(format_err!("not_found")),
     };
-    let protocols = if Settings::get().federation_enabled {
-      vec!["activitypub".to_string()]
-    } else {
-      vec![]
-    };
+    let protocols = vec![];
     Ok(NodeInfo {
       version: "2.0".to_string(),
       software: NodeInfoSoftware {

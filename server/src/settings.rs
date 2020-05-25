@@ -20,7 +20,6 @@ pub struct Settings {
   pub front_end_dir: String,
   pub rate_limit: RateLimitConfig,
   pub email: Option<EmailConfig>,
-  pub federation_enabled: bool,
 }
 
 #[derive(Debug, Deserialize, Clone)]

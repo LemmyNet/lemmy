@@ -7,12 +7,10 @@ pub struct Params {
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-  if Settings::get().federation_enabled {
-    cfg.route(
-      ".well-known/webfinger",
-      web::get().to(get_webfinger_response),
-    );
-  }
+  cfg.route(
+    ".well-known/webfinger",
+    web::get().to(get_webfinger_response),
+  );
 }
 
 lazy_static! {
