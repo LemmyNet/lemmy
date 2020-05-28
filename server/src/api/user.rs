@@ -1,5 +1,5 @@
 use super::*;
-use crate::is_valid_register_username;
+use crate::is_valid_username;
 use bcrypt::verify;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -262,7 +262,7 @@ impl Perform for Oper<Register> {
       return Err(APIError::err("admin_already_created").into());
     }
 
-    if !is_valid_register_username(&data.username) {
+    if !is_valid_username(&data.username) {
       return Err(APIError::err("invalid_username").into());
     }
 

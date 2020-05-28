@@ -269,15 +269,15 @@ pub fn get_ip(conn_info: &ConnectionInfo) -> String {
     .to_string()
 }
 
-pub fn is_valid_register_username(name: &str) -> bool {
+pub fn is_valid_username(name: &str) -> bool {
   VALID_USERNAME_REGEX.is_match(name)
 }
 
 #[cfg(test)]
 mod tests {
   use crate::{
-    extract_usernames, is_email_regex, is_image_content_type, is_valid_register_username,
-    remove_slurs, slur_check, slurs_vec_to_str,
+    extract_usernames, is_email_regex, is_image_content_type, is_valid_username, remove_slurs,
+    slur_check, slurs_vec_to_str,
   };
 
   #[test]
@@ -297,11 +297,11 @@ mod tests {
 
   #[test]
   fn test_valid_register_username() {
-    assert!(is_valid_register_username("Hello_98"));
-    assert!(is_valid_register_username("ten"));
-    assert!(!is_valid_register_username("Hello-98"));
-    assert!(!is_valid_register_username("a"));
-    assert!(!is_valid_register_username(""));
+    assert!(is_valid_username("Hello_98"));
+    assert!(is_valid_username("ten"));
+    assert!(!is_valid_username("Hello-98"));
+    assert!(!is_valid_username("a"));
+    assert!(!is_valid_username(""));
   }
 
   #[test]
