@@ -75,7 +75,7 @@ impl Post {
     post.filter(ap_id.eq(object_id)).first::<Self>(conn)
   }
 
-  pub fn update_ap_id(conn: &PgConnection, post_id: i32) -> Result<Self, Error> {
+  pub fn update_ap_id(conn: &PgConnection, post_id: i32, ap_id: &str) -> Result<Self, Error> {
     use crate::schema::post::dsl::*;
 
     let apid = make_apub_endpoint(EndpointType::Post, &post_id.to_string()).to_string();
