@@ -2,6 +2,7 @@ use crate::{
   apub::{
     comment::get_apub_comment,
     community::*,
+    community_inbox::community_inbox,
     post::get_apub_post,
     shared_inbox::shared_inbox,
     user::*,
@@ -11,7 +12,6 @@ use crate::{
   settings::Settings,
 };
 use actix_web::*;
-use crate::apub::community_inbox::community_inbox;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
   if Settings::get().federation.enabled {

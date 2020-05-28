@@ -6,6 +6,7 @@ use crate::{
     create_tombstone,
     fetch_webfinger_url,
     fetcher::get_or_fetch_and_upsert_remote_user,
+    shared_inbox::do_announce,
     ActorType,
     ApubLikeableType,
     ApubObjectType,
@@ -30,13 +31,15 @@ use activitystreams::{
   context,
   link::Mention,
   object::{kind::NoteType, properties::ObjectProperties, Note, Tombstone},
+  Activity,
+  Base,
 };
 use actix_web::{body::Body, web::Path, HttpResponse, Result};
 use diesel::PgConnection;
-use failure::Error;
+use failure::{Error, _core::fmt::Debug};
 use itertools::Itertools;
 use log::debug;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
 pub struct CommentQuery {
@@ -128,6 +131,7 @@ impl FromApub for CommentForm {
 
     // TODO this failed because a mention on a post that wasn't on this server yet. Has to do with
     // fetching replytos
+    dbg!(&post_ap_id);
     let post = Post::read_from_apub_id(&conn, &post_ap_id)?;
 
     Ok(CommentForm {
@@ -175,9 +179,7 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    insert_activity(&conn, creator.id, &create, true)?;
-
-    send_activity(&create, creator, maa.inboxes)?;
+    Comment::send_comment_activity(&creator, &conn, &community, create)?;
     Ok(())
   }
 
@@ -202,9 +204,7 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    insert_activity(&conn, creator.id, &update, true)?;
-
-    send_activity(&update, creator, maa.inboxes)?;
+    Comment::send_comment_activity(&creator, &conn, &community, update)?;
     Ok(())
   }
 
@@ -226,9 +226,7 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    insert_activity(&conn, creator.id, &delete, true)?;
-
-    send_activity(&delete, creator, community.get_follower_inboxes(&conn)?)?;
+    Comment::send_comment_activity(&creator, &conn, &community, delete)?;
     Ok(())
   }
 
@@ -268,9 +266,7 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(delete)?;
 
-    insert_activity(&conn, creator.id, &undo, true)?;
-
-    send_activity(&undo, creator, community.get_follower_inboxes(&conn)?)?;
+    Comment::send_comment_activity(&creator, &conn, &community, undo)?;
     Ok(())
   }
 
@@ -292,9 +288,7 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    insert_activity(&conn, mod_.id, &remove, true)?;
-
-    send_activity(&remove, mod_, community.get_follower_inboxes(&conn)?)?;
+    Comment::send_comment_activity(&mod_, &conn, &community, remove)?;
     Ok(())
   }
 
@@ -333,9 +327,7 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
       .set_object_base_box(remove)?;
 
-    insert_activity(&conn, mod_.id, &undo, true)?;
-
-    send_activity(&undo, mod_, community.get_follower_inboxes(&conn)?)?;
+    Comment::send_comment_activity(&mod_, &conn, &community, undo)?;
     Ok(())
   }
 }
@@ -358,9 +350,7 @@ impl ApubLikeableType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    insert_activity(&conn, creator.id, &like, true)?;
-
-    send_activity(&like, creator, community.get_follower_inboxes(&conn)?)?;
+    Comment::send_comment_activity(&creator, &conn, &community, like)?;
     Ok(())
   }
 
@@ -381,9 +371,7 @@ impl ApubLikeableType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    insert_activity(&conn, creator.id, &dislike, true)?;
-
-    send_activity(&dislike, creator, community.get_follower_inboxes(&conn)?)?;
+    Comment::send_comment_activity(&creator, &conn, &community, dislike)?;
     Ok(())
   }
 
@@ -420,9 +408,7 @@ impl ApubLikeableType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(like)?;
 
-    insert_activity(&conn, creator.id, &undo, true)?;
-
-    send_activity(&undo, creator, community.get_follower_inboxes(&conn)?)?;
+    Comment::send_comment_activity(&creator, &conn, &community, undo)?;
     Ok(())
   }
 }
@@ -479,4 +465,26 @@ fn collect_non_local_mentions_and_addresses(
     inboxes,
     tags,
   })
+}
+
+impl Comment {
+  fn send_comment_activity<A>(
+    creator: &User_,
+    conn: &PgConnection,
+    community: &Community,
+    activity: A,
+  ) -> Result<(), Error>
+  where
+    A: Activity + Base + Serialize + Debug,
+  {
+    insert_activity(&conn, creator.id, &activity, true)?;
+
+    // if this is a local community, we need to do an announce from the community instead
+    if community.local {
+      do_announce(activity, &community.actor_id, &creator.actor_id, conn)?;
+    } else {
+      send_activity(&activity, creator, vec![community.get_shared_inbox_url()])?;
+    }
+    Ok(())
+  }
 }

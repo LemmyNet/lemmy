@@ -5,8 +5,10 @@ use crate::{
     post::PostResponse,
   },
   apub::{
+    activities::{populate_object_props, send_activity},
     extensions::signatures::verify,
-    fetcher::get_or_fetch_and_upsert_remote_user,
+    fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user},
+    ActorType,
     FromApub,
     GroupExt,
     PageExt,
@@ -30,16 +32,18 @@ use crate::{
     UserOperation,
   },
 };
-use activitystreams::{activity::{Create, Delete, Dislike, Like, Remove, Undo, Update}, object::Note, BaseBox, Base, Activity};
+use activitystreams::{
+  activity::{Announce, Create, Delete, Dislike, Like, Remove, Undo, Update},
+  object::Note,
+  Activity,
+  Base,
+  BaseBox,
+};
 use actix_web::{web, HttpRequest, HttpResponse, Result};
 use diesel::PgConnection;
 use failure::{Error, _core::fmt::Debug};
 use log::debug;
 use serde::{Deserialize, Serialize};
-use crate::apub::fetcher::get_or_fetch_and_upsert_remote_community;
-use crate::apub::activities::{populate_object_props, send_activity};
-use crate::apub::ActorType;
-use activitystreams::activity::Announce;
 
 #[serde(untagged)]
 #[derive(Serialize, Deserialize, Debug)]
@@ -92,7 +96,12 @@ impl SharedAcceptedObjects {
       SharedAcceptedObjects::Remove(r) => &r.object_props,
       SharedAcceptedObjects::Announce(a) => &a.object_props,
     };
-    oprops.get_cc_xsd_any_uri().unwrap().to_owned().to_string()
+    oprops
+      .get_many_cc_xsd_any_uris()
+      .unwrap()
+      .next()
+      .unwrap()
+      .to_string()
   }
 }
 
@@ -112,40 +121,42 @@ pub async fn shared_inbox(
   let object = activity.object().cloned().unwrap();
   let sender = &activity.sender();
   let cc = &activity.cc();
+  // TODO: this is hacky, we should probably send the community id directly somehow
+  let to = cc.replace("/followers", "");
 
   match get_or_fetch_and_upsert_remote_user(&sender.to_string(), &conn) {
     Ok(u) => verify(&request, &u),
     Err(_) => {
       let c = get_or_fetch_and_upsert_remote_community(&sender.to_string(), &conn)?;
       verify(&request, &c)
-    },
+    }
   }?;
 
   match (activity, object.kind()) {
     (SharedAcceptedObjects::Create(c), Some("Page")) => {
       // TODO: first check that it is addressed to a local community
       receive_create_post(&c, &conn, chat_server)?;
-      do_announce(*c, cc, sender, conn)
+      do_announce(*c, &to, sender, conn)
     }
     (SharedAcceptedObjects::Update(u), Some("Page")) => {
       receive_update_post(&u, &conn, chat_server)?;
-      do_announce(*u, &cc, &sender, conn)
+      do_announce(*u, &to, &sender, conn)
     }
     (SharedAcceptedObjects::Like(l), Some("Page")) => {
       receive_like_post(&l, &conn, chat_server)?;
-      do_announce(*l, &cc, &sender, conn)
+      do_announce(*l, &to, &sender, conn)
     }
     (SharedAcceptedObjects::Dislike(d), Some("Page")) => {
       receive_dislike_post(&d, &conn, chat_server)?;
-      do_announce(*d, &cc, &sender, conn)
+      do_announce(*d, &to, &sender, conn)
     }
     (SharedAcceptedObjects::Delete(d), Some("Page")) => {
       receive_delete_post(&d, &conn, chat_server)?;
-      do_announce(*d, &cc, &sender, conn)
+      do_announce(*d, &to, &sender, conn)
     }
     (SharedAcceptedObjects::Remove(r), Some("Page")) => {
       receive_remove_post(&r, &conn, chat_server)?;
-      do_announce(*r, &cc, &sender, conn)
+      do_announce(*r, &to, &sender, conn)
     }
     (SharedAcceptedObjects::Create(c), Some("Note")) => {
       receive_create_comment(&c, &conn, chat_server)
@@ -1505,18 +1516,19 @@ pub fn do_announce<A>(
   conn: &PgConnection,
 ) -> Result<HttpResponse, Error>
 where
-  A: Activity + Base + Serialize,
+  A: Activity + Base + Serialize + Debug,
 {
   dbg!(&community_uri);
   // TODO: this fails for some reason
   let community = Community::read_from_actor_id(conn, &community_uri)?;
 
-  insert_activity(&conn, -1, &activity, false)?;
+  // TODO: need to add boolean param is_local_activity
+  //insert_activity(&conn, -1, &activity, false)?;
 
   let mut announce = Announce::default();
   populate_object_props(
     &mut announce.object_props,
-    vec!(community.get_followers_url()),
+    vec![community.get_followers_url()],
     &format!("{}/announce/{}", community.actor_id, uuid::Uuid::new_v4()),
   )?;
   announce
@@ -1536,11 +1548,7 @@ where
   dbg!(&announce);
   dbg!(&to);
 
-  send_activity(
-    &announce,
-    &community,
-    to,
-  )?;
+  send_activity(&announce, &community, to)?;
 
   Ok(HttpResponse::Ok().finish())
 }

@@ -1,5 +1,6 @@
 use crate::{
   apub::{
+    activities::{populate_object_props, send_activity},
     extensions::signatures::verify,
     fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user},
     ActorType,
@@ -12,16 +13,16 @@ use crate::{
   },
   routes::{ChatServerParam, DbPoolParam},
 };
-use activitystreams::activity::{Follow, Undo, Update, Create, Delete, Remove};
+use activitystreams::{
+  activity::{Activity, Announce, Create, Delete, Follow, Remove, Undo, Update},
+  Base,
+  BaseBox,
+};
 use actix_web::{web, HttpRequest, HttpResponse, Result};
 use diesel::PgConnection;
 use failure::{Error, _core::fmt::Debug};
 use log::debug;
 use serde::{Deserialize, Serialize};
-use activitystreams::activity::{Activity, Announce};
-use activitystreams::Base;
-use crate::apub::activities::{populate_object_props, send_activity};
-use activitystreams::BaseBox;
 
 #[serde(untagged)]
 #[derive(Deserialize, Debug)]
@@ -46,7 +47,7 @@ impl CommunityAcceptedObjects {
           .to_owned()
           .into_concrete::<Follow>()?,
       ),
-      _ => todo!()
+      _ => todo!(),
     }
   }
 }
@@ -92,27 +93,17 @@ pub async fn community_inbox(
   verify(&request, &user)?;
 
   match input {
-    CommunityAcceptedObjects::Follow(f) => {
-      handle_follow(&f, &user,  &community, &conn)
-    }
+    CommunityAcceptedObjects::Follow(f) => handle_follow(&f, &user, &community, &conn),
     CommunityAcceptedObjects::Undo(u) => {
       // TODO: if this is an undo<remove> or undo<delete>, we need to announce it instead
-      handle_undo_follow(&u, &user,  &community, &conn)
+      handle_undo_follow(&u, &user, &community, &conn)
     }
     // TODO: we should be able to handle all this with a single wildcard match, but i dont see how
     //       to get the value from that
-    CommunityAcceptedObjects::Create(c) => {
-      do_announce(c, &request, &community, &conn, chat_server)
-    }
-    CommunityAcceptedObjects::Update(u) => {
-      do_announce(u, &request, &community, &conn, chat_server)
-    }
-    CommunityAcceptedObjects::Delete(d) => {
-      do_announce(d, &request, &community, &conn, chat_server)
-    }
-    CommunityAcceptedObjects::Remove(r) => {
-      do_announce(r, &request, &community, &conn, chat_server)
-    }
+    CommunityAcceptedObjects::Create(c) => do_announce(c, &request, &community, &conn, chat_server),
+    CommunityAcceptedObjects::Update(u) => do_announce(u, &request, &community, &conn, chat_server),
+    CommunityAcceptedObjects::Delete(d) => do_announce(d, &request, &community, &conn, chat_server),
+    CommunityAcceptedObjects::Remove(r) => do_announce(r, &request, &community, &conn, chat_server),
   }
 }
 
@@ -185,7 +176,7 @@ where
   let mut announce = Announce::default();
   populate_object_props(
     &mut announce.object_props,
-    vec!(community.get_followers_url()),
+    vec![community.get_followers_url()],
     &format!("{}/announce/{}", community.actor_id, uuid::Uuid::new_v4()),
   )?;
   announce
@@ -195,11 +186,7 @@ where
 
   insert_activity(&conn, -1, &announce, true)?;
 
-  send_activity(
-    &announce,
-    community,
-    community.get_follower_inboxes(&conn)?,
-  )?;
+  send_activity(&announce, community, community.get_follower_inboxes(&conn)?)?;
 
   Ok(HttpResponse::Ok().finish())
 }
