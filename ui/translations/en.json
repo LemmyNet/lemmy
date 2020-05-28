@@ -18,6 +18,7 @@
     "communities": "Communities",
     "users": "Users",
     "create_a_community": "Create a community",
+    "select_a_community": "Select a community",
     "create_community": "Create Community",
     "remove_community": "Remove Community",
     "subscribed_to_communities": "Subscribed to <1>communities</1>",
