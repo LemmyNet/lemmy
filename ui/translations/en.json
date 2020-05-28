@@ -249,6 +249,7 @@
       "Couldn't find that username or email.",
     "password_incorrect": "Password incorrect.",
     "passwords_dont_match": "Passwords do not match.",
+    "invalid_username": "Invalid username.",
     "admin_already_created": "Sorry, there's already an admin.",
     "user_already_exists": "User already exists.",
     "email_already_exists": "Email already exists.",

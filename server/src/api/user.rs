@@ -1,4 +1,5 @@
 use super::*;
+use crate::is_valid_username;
 use bcrypt::verify;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -259,6 +260,10 @@ impl Perform for Oper<Register> {
     // Make sure there are no admins
     if data.admin && !UserView::admins(&conn)?.is_empty() {
       return Err(APIError::err("admin_already_created").into());
+    }
+
+    if !is_valid_username(&data.username) {
+      return Err(APIError::err("invalid_username").into());
     }
 
     // Register the new user
