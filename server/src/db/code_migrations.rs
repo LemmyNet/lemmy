@@ -124,7 +124,7 @@ fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), Error> {
     .load::<Post>(conn)?;
 
   for cpost in &incorrect_posts {
-    Post::update_ap_id(&conn, cpost.id, todo!())?;
+    Post::update_ap_id(&conn, cpost.id)?;
   }
 
   info!("{} post rows updated.", incorrect_posts.len());

@@ -34,9 +34,6 @@ use diesel::{
 use failure::Error;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-use crate::apub::get_apub_protocol_string;
-use crate::db::community::Community;
-use url::Url;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CreatePost {
@@ -193,17 +190,7 @@ impl Perform for Oper<CreatePost> {
       }
     };
 
-    // TODO: we should be able to remove Post::update_ap_id with this
-    let community = Url::parse(&Community::read(&conn, data.community_id)?.actor_id)?;
-    let apub_id =
-        format!(
-          "{}://{}/{}/{}",
-          get_apub_protocol_string(),
-          community.domain().ok_or(format_err!("community has invalid domain"))?,
-          "post",
-          inserted_post.id
-        );
-    let updated_post = match Post::update_ap_id(&conn, inserted_post.id, &apub_id) {
+    let updated_post = match Post::update_ap_id(&conn, inserted_post.id) {
       Ok(post) => post,
       Err(_e) => return Err(APIError::err("couldnt_create_post").into()),
     };

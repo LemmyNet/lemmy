@@ -183,31 +183,89 @@ pub async fn shared_inbox(
     (SharedAcceptedObjects::Undo(u), Some("Delete")) => receive_undo_delete(&u, &conn, chat_server),
     (SharedAcceptedObjects::Undo(u), Some("Remove")) => receive_undo_remove(&u, &conn, chat_server),
     (SharedAcceptedObjects::Undo(u), Some("Like")) => receive_undo_like(&u, &conn, chat_server),
-    (SharedAcceptedObjects::Announce(_a), Some("Create")) => {
-      let create = object.into_concrete::<Create>()?;
-      receive_create_post(&create, &conn, chat_server)
-    }
-    (SharedAcceptedObjects::Announce(_a), Some("Update")) => {
-      let update = object.into_concrete::<Update>()?;
-      receive_update_post(&update, &conn, chat_server)
-    }
-    (SharedAcceptedObjects::Announce(_a), Some("Like")) => {
-      let like = object.into_concrete::<Like>()?;
-      receive_like_post(&like, &conn, chat_server)
-    }
-    (SharedAcceptedObjects::Announce(_a), Some("Dislike")) => {
-      let dislike = object.into_concrete::<Dislike>()?;
-      receive_dislike_post(&dislike, &conn, chat_server)
-    }
-    (SharedAcceptedObjects::Announce(_a), Some("Delete")) => {
-      let delete = object.into_concrete::<Delete>()?;
-      receive_delete_post(&delete, &conn, chat_server)
-    }
-    (SharedAcceptedObjects::Announce(_a), Some("Remove")) => {
-      let remove = object.into_concrete::<Remove>()?;
-      receive_remove_post(&remove, &conn, chat_server)
-    }
+    (SharedAcceptedObjects::Announce(a), _) => receive_announce(a, &conn, chat_server),
     _ => Err(format_err!("Unknown incoming activity type.")),
+  }
+}
+
+fn receive_announce(
+  announce: Box<Announce>,
+  conn: &PgConnection,
+  chat_server: ChatServerParam,
+) -> Result<HttpResponse, Error> {
+  let object = announce
+    .announce_props
+    .get_object_base_box()
+    .unwrap()
+    .to_owned();
+  // TODO: too much copy paste
+  // TODO: we should log all unhandled events
+  match object.kind() {
+    Some("Create") => {
+      let create = object.into_concrete::<Create>()?;
+      let inner_object = create.create_props.get_object_base_box().unwrap();
+      match inner_object.kind() {
+        Some("Page") => receive_create_post(&create, &conn, chat_server),
+        Some("Note") => receive_create_comment(&create, &conn, chat_server),
+        _ => Ok(HttpResponse::NotImplemented().finish()),
+      }
+    }
+    Some("Update") => {
+      let update = object.into_concrete::<Update>()?;
+      let inner_object = update.update_props.get_object_base_box().unwrap();
+      match inner_object.kind() {
+        Some("Page") => receive_update_post(&update, &conn, chat_server),
+        Some("Note") => receive_update_comment(&update, &conn, chat_server),
+        _ => Ok(HttpResponse::NotImplemented().finish()),
+      }
+    }
+    Some("Like") => {
+      let like = object.into_concrete::<Like>()?;
+      let inner_object = like.like_props.get_object_base_box().unwrap();
+      match inner_object.kind() {
+        Some("Page") => receive_like_post(&like, &conn, chat_server),
+        Some("Note") => receive_like_comment(&like, &conn, chat_server),
+        _ => Ok(HttpResponse::NotImplemented().finish()),
+      }
+    }
+    Some("Dislike") => {
+      let dislike = object.into_concrete::<Dislike>()?;
+      let inner_object = dislike.dislike_props.get_object_base_box().unwrap();
+      match inner_object.kind() {
+        Some("Page") => receive_dislike_post(&dislike, &conn, chat_server),
+        Some("Note") => receive_dislike_comment(&dislike, &conn, chat_server),
+        _ => Ok(HttpResponse::NotImplemented().finish()),
+      }
+    }
+    Some("Delete") => {
+      let delete = object.into_concrete::<Delete>()?;
+      let inner_object = delete.delete_props.get_object_base_box().unwrap();
+      match inner_object.kind() {
+        Some("Page") => receive_delete_post(&delete, &conn, chat_server),
+        Some("Note") => receive_delete_comment(&delete, &conn, chat_server),
+        _ => Ok(HttpResponse::NotImplemented().finish()),
+      }
+    }
+    Some("Remove") => {
+      let remove = object.into_concrete::<Remove>()?;
+      let inner_object = remove.remove_props.get_object_base_box().unwrap();
+      match inner_object.kind() {
+        Some("Page") => receive_remove_post(&remove, &conn, chat_server),
+        Some("Note") => receive_remove_comment(&remove, &conn, chat_server),
+        _ => Ok(HttpResponse::NotImplemented().finish()),
+      }
+    }
+    Some("Undo") => {
+      let undo = object.into_concrete::<Undo>()?;
+      let inner_object = undo.undo_props.get_object_base_box().unwrap();
+      match inner_object.kind() {
+        Some("Delete") => receive_undo_delete(&undo, &conn, chat_server),
+        Some("Remove") => receive_undo_remove(&undo, &conn, chat_server),
+        Some("Like") => receive_undo_like(&undo, &conn, chat_server),
+        _ => Ok(HttpResponse::NotImplemented().finish()),
+      }
+    }
+    _ => Ok(HttpResponse::NotImplemented().finish()),
   }
 }
 
@@ -1518,8 +1576,6 @@ pub fn do_announce<A>(
 where
   A: Activity + Base + Serialize + Debug,
 {
-  dbg!(&community_uri);
-  // TODO: this fails for some reason
   let community = Community::read_from_actor_id(conn, &community_uri)?;
 
   // TODO: need to add boolean param is_local_activity
@@ -1544,9 +1600,6 @@ where
   let sending_user = get_or_fetch_and_upsert_remote_user(&sender, conn)?;
   // this seems to be the "easiest" stable alternative for remove_item()
   to.retain(|x| *x != sending_user.get_shared_inbox_url());
-
-  dbg!(&announce);
-  dbg!(&to);
 
   send_activity(&announce, &community, to)?;
 
