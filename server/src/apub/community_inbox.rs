@@ -1,6 +1,5 @@
 use crate::{
   apub::{
-    activities::{populate_object_props, send_activity},
     extensions::signatures::verify,
     fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user},
     ActorType,
@@ -13,26 +12,18 @@ use crate::{
   },
   routes::{ChatServerParam, DbPoolParam},
 };
-use activitystreams::{
-  activity::{Activity, Announce, Create, Delete, Follow, Remove, Undo, Update},
-  Base,
-  BaseBox,
-};
+use activitystreams::activity::{Follow, Undo};
 use actix_web::{web, HttpRequest, HttpResponse, Result};
 use diesel::PgConnection;
 use failure::{Error, _core::fmt::Debug};
 use log::debug;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 #[serde(untagged)]
 #[derive(Deserialize, Debug)]
 pub enum CommunityAcceptedObjects {
   Follow(Follow),
   Undo(Undo),
-  Create(Create),
-  Update(Update),
-  Delete(Delete),
-  Remove(Remove),
 }
 
 impl CommunityAcceptedObjects {
@@ -47,7 +38,6 @@ impl CommunityAcceptedObjects {
           .to_owned()
           .into_concrete::<Follow>()?,
       ),
-      _ => todo!(),
     }
   }
 }
@@ -58,7 +48,7 @@ pub async fn community_inbox(
   input: web::Json<CommunityAcceptedObjects>,
   path: web::Path<String>,
   db: DbPoolParam,
-  chat_server: ChatServerParam,
+  _chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error> {
   let input = input.into_inner();
   let conn = db.get()?;
@@ -94,16 +84,7 @@ pub async fn community_inbox(
 
   match input {
     CommunityAcceptedObjects::Follow(f) => handle_follow(&f, &user, &community, &conn),
-    CommunityAcceptedObjects::Undo(u) => {
-      // TODO: if this is an undo<remove> or undo<delete>, we need to announce it instead
-      handle_undo_follow(&u, &user, &community, &conn)
-    }
-    // TODO: we should be able to handle all this with a single wildcard match, but i dont see how
-    //       to get the value from that
-    CommunityAcceptedObjects::Create(c) => do_announce(c, &request, &community, &conn, chat_server),
-    CommunityAcceptedObjects::Update(u) => do_announce(u, &request, &community, &conn, chat_server),
-    CommunityAcceptedObjects::Delete(d) => do_announce(d, &request, &community, &conn, chat_server),
-    CommunityAcceptedObjects::Remove(r) => do_announce(r, &request, &community, &conn, chat_server),
+    CommunityAcceptedObjects::Undo(u) => handle_undo_follow(&u, &user, &community, &conn),
   }
 }
 
@@ -144,49 +125,6 @@ fn handle_undo_follow(
   };
 
   CommunityFollower::unfollow(&conn, &community_follower_form).ok();
-
-  Ok(HttpResponse::Ok().finish())
-}
-
-fn do_announce<A>(
-  activity: A,
-  _request: &HttpRequest,
-  community: &Community,
-  conn: &PgConnection,
-  _chat_server: ChatServerParam,
-) -> Result<HttpResponse, Error>
-where
-  A: Activity + Base + Serialize,
-{
-  // TODO: checking the signature needs a lot of boilerplate, unless this gets implemented
-  // https://git.asonix.dog/Aardwolf/activitystreams/issues/4
-  /*
-  let user_uri = activity
-      .follow_props
-      .get_actor_xsd_any_uri()
-      .unwrap()
-      .to_string();
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, &conn)?;
-  verify(&request, &user.public_key.unwrap())?;
-  */
-
-  insert_activity(&conn, -1, &activity, false)?;
-
-  // TODO: handle the sending in community.rs
-  let mut announce = Announce::default();
-  populate_object_props(
-    &mut announce.object_props,
-    vec![community.get_followers_url()],
-    &format!("{}/announce/{}", community.actor_id, uuid::Uuid::new_v4()),
-  )?;
-  announce
-    .announce_props
-    .set_actor_xsd_any_uri(community.actor_id.to_owned())?
-    .set_object_base_box(BaseBox::from_concrete(activity)?)?;
-
-  insert_activity(&conn, -1, &announce, true)?;
-
-  send_activity(&announce, community, community.get_follower_inboxes(&conn)?)?;
 
   Ok(HttpResponse::Ok().finish())
 }

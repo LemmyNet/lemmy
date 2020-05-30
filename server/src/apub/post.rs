@@ -7,7 +7,6 @@ use crate::{
     extensions::page_extension::PageExtension,
     fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user},
     get_apub_protocol_string,
-    shared_inbox::do_announce,
     ActorType,
     ApubLikeableType,
     ApubObjectType,
@@ -480,7 +479,7 @@ impl Post {
 
     // if this is a local community, we need to do an announce from the community instead
     if community.local {
-      do_announce(activity, &community.actor_id, &creator.actor_id, conn)?;
+      Community::do_announce(activity, &community.actor_id, &creator.actor_id, conn, true)?;
     } else {
       send_activity(&activity, creator, vec![community.get_shared_inbox_url()])?;
     }

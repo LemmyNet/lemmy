@@ -6,7 +6,6 @@ use crate::{
     create_tombstone,
     fetch_webfinger_url,
     fetcher::get_or_fetch_and_upsert_remote_user,
-    shared_inbox::do_announce,
     ActorType,
     ApubLikeableType,
     ApubObjectType,
@@ -481,7 +480,7 @@ impl Comment {
 
     // if this is a local community, we need to do an announce from the community instead
     if community.local {
-      do_announce(activity, &community.actor_id, &creator.actor_id, conn)?;
+      Community::do_announce(activity, &community.actor_id, &creator.actor_id, conn, true)?;
     } else {
       send_activity(&activity, creator, vec![community.get_shared_inbox_url()])?;
     }

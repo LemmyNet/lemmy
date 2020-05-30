@@ -5,10 +5,8 @@ use crate::{
     post::PostResponse,
   },
   apub::{
-    activities::{populate_object_props, send_activity},
     extensions::signatures::verify,
     fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user},
-    ActorType,
     FromApub,
     GroupExt,
     PageExt,
@@ -134,58 +132,95 @@ pub async fn shared_inbox(
 
   match (activity, object.kind()) {
     (SharedAcceptedObjects::Create(c), Some("Page")) => {
-      // TODO: first check that it is addressed to a local community
       receive_create_post(&c, &conn, chat_server)?;
-      do_announce(*c, &to, sender, conn)
-    }
+      announce_activity_if_valid::<Create>(*c, &to, sender, conn)
+    },
     (SharedAcceptedObjects::Update(u), Some("Page")) => {
       receive_update_post(&u, &conn, chat_server)?;
-      do_announce(*u, &to, &sender, conn)
-    }
+      announce_activity_if_valid::<Update>(*u, &to, sender, conn)
+    },
     (SharedAcceptedObjects::Like(l), Some("Page")) => {
       receive_like_post(&l, &conn, chat_server)?;
-      do_announce(*l, &to, &sender, conn)
-    }
+      announce_activity_if_valid::<Like>(*l, &to, sender, conn)
+    },
     (SharedAcceptedObjects::Dislike(d), Some("Page")) => {
       receive_dislike_post(&d, &conn, chat_server)?;
-      do_announce(*d, &to, &sender, conn)
+      announce_activity_if_valid::<Dislike>(*d, &to, sender, conn)
     }
     (SharedAcceptedObjects::Delete(d), Some("Page")) => {
       receive_delete_post(&d, &conn, chat_server)?;
-      do_announce(*d, &to, &sender, conn)
-    }
+      announce_activity_if_valid::<Delete>(*d, &to, sender, conn)
+    },
     (SharedAcceptedObjects::Remove(r), Some("Page")) => {
       receive_remove_post(&r, &conn, chat_server)?;
-      do_announce(*r, &to, &sender, conn)
-    }
+      announce_activity_if_valid::<Remove>(*r, &to, sender, conn)
+    },
     (SharedAcceptedObjects::Create(c), Some("Note")) => {
-      receive_create_comment(&c, &conn, chat_server)
+      receive_create_comment(&c, &conn, chat_server)?;
+      announce_activity_if_valid::<Create>(*c, &to, sender, conn)
     }
     (SharedAcceptedObjects::Update(u), Some("Note")) => {
-      receive_update_comment(&u, &conn, chat_server)
+      receive_update_comment(&u, &conn, chat_server)?;
+      announce_activity_if_valid::<Update>(*u, &to, sender, conn)
     }
-    (SharedAcceptedObjects::Like(l), Some("Note")) => receive_like_comment(&l, &conn, chat_server),
+    (SharedAcceptedObjects::Like(l), Some("Note")) => {
+      receive_like_comment(&l, &conn, chat_server)?;
+      announce_activity_if_valid::<Like>(*l, &to, sender, conn)
+    },
     (SharedAcceptedObjects::Dislike(d), Some("Note")) => {
-      receive_dislike_comment(&d, &conn, chat_server)
+      receive_dislike_comment(&d, &conn, chat_server)?;
+      announce_activity_if_valid::<Dislike>(*d, &to, sender, conn)
     }
     (SharedAcceptedObjects::Delete(d), Some("Note")) => {
-      receive_delete_comment(&d, &conn, chat_server)
+      receive_delete_comment(&d, &conn, chat_server)?;
+      announce_activity_if_valid::<Delete>(*d, &to, sender, conn)
     }
     (SharedAcceptedObjects::Remove(r), Some("Note")) => {
-      receive_remove_comment(&r, &conn, chat_server)
+      receive_remove_comment(&r, &conn, chat_server)?;
+      announce_activity_if_valid::<Remove>(*r, &to, sender, conn)
     }
     (SharedAcceptedObjects::Delete(d), Some("Group")) => {
-      receive_delete_community(&d, &conn, chat_server)
+      receive_delete_community(&d, &conn, chat_server)?;
+      announce_activity_if_valid::<Delete>(*d, &to, sender, conn)
     }
     (SharedAcceptedObjects::Remove(r), Some("Group")) => {
-      receive_remove_community(&r, &conn, chat_server)
+      receive_remove_community(&r, &conn, chat_server)?;
+      announce_activity_if_valid::<Remove>(*r, &to, sender, conn)
     }
-    (SharedAcceptedObjects::Undo(u), Some("Delete")) => receive_undo_delete(&u, &conn, chat_server),
-    (SharedAcceptedObjects::Undo(u), Some("Remove")) => receive_undo_remove(&u, &conn, chat_server),
-    (SharedAcceptedObjects::Undo(u), Some("Like")) => receive_undo_like(&u, &conn, chat_server),
-    (SharedAcceptedObjects::Announce(a), _) => receive_announce(a, &conn, chat_server),
-    _ => Err(format_err!("Unknown incoming activity type.")),
+    (SharedAcceptedObjects::Undo(u), Some("Delete")) => {
+      receive_undo_delete(&u, &conn, chat_server)?;
+      announce_activity_if_valid::<Undo>(*u, &to, sender, conn)
+    },
+    (SharedAcceptedObjects::Undo(u), Some("Remove")) => {
+      receive_undo_remove(&u, &conn, chat_server)?;
+      announce_activity_if_valid::<Undo>(*u, &to, sender, conn)
+    },
+    (SharedAcceptedObjects::Undo(u), Some("Like")) => {
+      receive_undo_like(&u, &conn, chat_server)?;
+      announce_activity_if_valid::<Undo>(*u, &to, sender, conn)
+    },
+    (SharedAcceptedObjects::Announce(a), _) => {
+      receive_announce(a, &conn, chat_server)
+    },
+    (a, _) => receive_unhandled_activity(a),
   }
+}
+
+fn announce_activity_if_valid<A>(
+  activity: A,
+  community_uri: &str,
+  sender: &str,
+  conn: &PgConnection,
+) -> Result<HttpResponse, Error>
+where
+  A: Activity + Base + Serialize + Debug,
+{
+  // TODO: first check that it is addressed to a local community
+  let community = Community::read_from_actor_id(conn, &community_uri)?;
+  if !community.local {
+    // ignore this object
+  }
+  Community::do_announce(activity, &community_uri, sender, conn, false)
 }
 
 fn receive_announce(
@@ -199,7 +234,6 @@ fn receive_announce(
     .unwrap()
     .to_owned();
   // TODO: too much copy paste
-  // TODO: we should log all unhandled events
   match object.kind() {
     Some("Create") => {
       let create = object.into_concrete::<Create>()?;
@@ -207,7 +241,7 @@ fn receive_announce(
       match inner_object.kind() {
         Some("Page") => receive_create_post(&create, &conn, chat_server),
         Some("Note") => receive_create_comment(&create, &conn, chat_server),
-        _ => Ok(HttpResponse::NotImplemented().finish()),
+        _ => receive_unhandled_activity(announce),
       }
     }
     Some("Update") => {
@@ -216,7 +250,7 @@ fn receive_announce(
       match inner_object.kind() {
         Some("Page") => receive_update_post(&update, &conn, chat_server),
         Some("Note") => receive_update_comment(&update, &conn, chat_server),
-        _ => Ok(HttpResponse::NotImplemented().finish()),
+        _ => receive_unhandled_activity(announce),
       }
     }
     Some("Like") => {
@@ -225,7 +259,7 @@ fn receive_announce(
       match inner_object.kind() {
         Some("Page") => receive_like_post(&like, &conn, chat_server),
         Some("Note") => receive_like_comment(&like, &conn, chat_server),
-        _ => Ok(HttpResponse::NotImplemented().finish()),
+        _ => receive_unhandled_activity(announce),
       }
     }
     Some("Dislike") => {
@@ -234,7 +268,7 @@ fn receive_announce(
       match inner_object.kind() {
         Some("Page") => receive_dislike_post(&dislike, &conn, chat_server),
         Some("Note") => receive_dislike_comment(&dislike, &conn, chat_server),
-        _ => Ok(HttpResponse::NotImplemented().finish()),
+        _ => receive_unhandled_activity(announce),
       }
     }
     Some("Delete") => {
@@ -243,7 +277,7 @@ fn receive_announce(
       match inner_object.kind() {
         Some("Page") => receive_delete_post(&delete, &conn, chat_server),
         Some("Note") => receive_delete_comment(&delete, &conn, chat_server),
-        _ => Ok(HttpResponse::NotImplemented().finish()),
+        _ => receive_unhandled_activity(announce),
       }
     }
     Some("Remove") => {
@@ -252,7 +286,7 @@ fn receive_announce(
       match inner_object.kind() {
         Some("Page") => receive_remove_post(&remove, &conn, chat_server),
         Some("Note") => receive_remove_comment(&remove, &conn, chat_server),
-        _ => Ok(HttpResponse::NotImplemented().finish()),
+        _ => receive_unhandled_activity(announce),
       }
     }
     Some("Undo") => {
@@ -262,11 +296,19 @@ fn receive_announce(
         Some("Delete") => receive_undo_delete(&undo, &conn, chat_server),
         Some("Remove") => receive_undo_remove(&undo, &conn, chat_server),
         Some("Like") => receive_undo_like(&undo, &conn, chat_server),
-        _ => Ok(HttpResponse::NotImplemented().finish()),
+        _ => receive_unhandled_activity(announce),
       }
     }
-    _ => Ok(HttpResponse::NotImplemented().finish()),
+    _ => receive_unhandled_activity(announce),
   }
+}
+
+fn receive_unhandled_activity<A>(activity: A) -> Result<HttpResponse, Error>
+where
+  A: Debug,
+{
+  debug!("received unhandled activity type: {:?}", activity);
+  Ok(HttpResponse::NotImplemented().finish())
 }
 
 fn receive_create_post(
@@ -1562,46 +1604,6 @@ fn receive_undo_like_post(
     post: res,
     my_id: None,
   });
-
-  Ok(HttpResponse::Ok().finish())
-}
-
-// TODO: move to community.rs
-pub fn do_announce<A>(
-  activity: A,
-  community_uri: &str,
-  sender: &str,
-  conn: &PgConnection,
-) -> Result<HttpResponse, Error>
-where
-  A: Activity + Base + Serialize + Debug,
-{
-  let community = Community::read_from_actor_id(conn, &community_uri)?;
-
-  // TODO: need to add boolean param is_local_activity
-  //insert_activity(&conn, -1, &activity, false)?;
-
-  let mut announce = Announce::default();
-  populate_object_props(
-    &mut announce.object_props,
-    vec![community.get_followers_url()],
-    &format!("{}/announce/{}", community.actor_id, uuid::Uuid::new_v4()),
-  )?;
-  announce
-    .announce_props
-    .set_actor_xsd_any_uri(community.actor_id.to_owned())?
-    .set_object_base_box(BaseBox::from_concrete(activity)?)?;
-
-  insert_activity(&conn, community.id, &announce, true)?;
-
-  // dont send to the instance where the activity originally came from, because that would result
-  // in a database error (same data inserted twice)
-  let mut to = community.get_follower_inboxes(&conn)?;
-  let sending_user = get_or_fetch_and_upsert_remote_user(&sender, conn)?;
-  // this seems to be the "easiest" stable alternative for remove_item()
-  to.retain(|x| *x != sending_user.get_shared_inbox_url());
-
-  send_activity(&announce, &community, to)?;
 
   Ok(HttpResponse::Ok().finish())
 }

@@ -1,5 +1,7 @@
 use crate::{db::Crud, schema::activity};
 use diesel::{dsl::*, result::Error, *};
+use failure::_core::fmt::Debug;
+use log::debug;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -58,9 +60,9 @@ pub fn insert_activity<T>(
   user_id: i32,
   data: &T,
   local: bool,
-) -> Result<Activity, failure::Error>
+) -> Result<(), failure::Error>
 where
-  T: Serialize,
+  T: Serialize + Debug,
 {
   let activity_form = ActivityForm {
     user_id,
@@ -68,7 +70,10 @@ where
     local,
     updated: None,
   };
-  Ok(Activity::create(&conn, &activity_form)?)
+  debug!("inserting activity for user {}, data {:?}", user_id, data);
+  // TODO: this is broken
+  //Activity::create(&conn, &activity_form)?;
+  Ok(())
 }
 
 #[cfg(test)]

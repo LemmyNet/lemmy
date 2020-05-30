@@ -23,20 +23,22 @@ use crate::{
   routes::DbPoolParam,
 };
 use activitystreams::{
-  activity::{Accept, Delete, Follow, Remove, Undo},
+  activity::{Accept, Announce, Delete, Follow, Remove, Undo},
   actor::{kind::GroupType, properties::ApActorProperties, Group},
   collection::UnorderedCollection,
   context,
   endpoint::EndpointProperties,
   object::{properties::ObjectProperties, Tombstone},
+  Activity,
+  Base,
   BaseBox,
 };
 use activitystreams_ext::Ext3;
 use actix_web::{body::Body, web::Path, HttpResponse, Result};
 use diesel::PgConnection;
-use failure::Error;
+use failure::{Error, _core::fmt::Debug};
 use itertools::Itertools;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
 pub struct CommunityQuery {
@@ -377,4 +379,46 @@ pub async fn get_apub_community_followers(
     .collection_props
     .set_total_items(community_followers.len() as u64)?;
   Ok(create_apub_response(&collection))
+}
+
+impl Community {
+  pub fn do_announce<A>(
+    activity: A,
+    // TODO: maybe pass in the community object
+    community_uri: &str,
+    sender: &str,
+    conn: &PgConnection,
+    is_local_activity: bool,
+  ) -> Result<HttpResponse, Error>
+  where
+    A: Activity + Base + Serialize + Debug,
+  {
+    let community = Community::read_from_actor_id(conn, &community_uri)?;
+
+    insert_activity(&conn, -1, &activity, is_local_activity)?;
+
+    let mut announce = Announce::default();
+    populate_object_props(
+      &mut announce.object_props,
+      vec![community.get_followers_url()],
+      &format!("{}/announce/{}", community.actor_id, uuid::Uuid::new_v4()),
+    )?;
+    announce
+      .announce_props
+      .set_actor_xsd_any_uri(community.actor_id.to_owned())?
+      .set_object_base_box(BaseBox::from_concrete(activity)?)?;
+
+    insert_activity(&conn, -1, &announce, true)?;
+
+    // dont send to the instance where the activity originally came from, because that would result
+    // in a database error (same data inserted twice)
+    let mut to = community.get_follower_inboxes(&conn)?;
+    let sending_user = get_or_fetch_and_upsert_remote_user(&sender, conn)?;
+    // this seems to be the "easiest" stable alternative for remove_item()
+    to.retain(|x| *x != sending_user.get_shared_inbox_url());
+
+    send_activity(&announce, &community, to)?;
+
+    Ok(HttpResponse::Ok().finish())
+  }
 }
