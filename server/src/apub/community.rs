@@ -384,8 +384,7 @@ pub async fn get_apub_community_followers(
 impl Community {
   pub fn do_announce<A>(
     activity: A,
-    // TODO: maybe pass in the community object
-    community_uri: &str,
+    community: &Community,
     sender: &str,
     conn: &PgConnection,
     is_local_activity: bool,
@@ -393,8 +392,6 @@ impl Community {
   where
     A: Activity + Base + Serialize + Debug,
   {
-    let community = Community::read_from_actor_id(conn, &community_uri)?;
-
     insert_activity(&conn, -1, &activity, is_local_activity)?;
 
     let mut announce = Announce::default();
@@ -417,7 +414,7 @@ impl Community {
     // this seems to be the "easiest" stable alternative for remove_item()
     to.retain(|x| *x != sending_user.get_shared_inbox_url());
 
-    send_activity(&announce, &community, to)?;
+    send_activity(&announce, community, to)?;
 
     Ok(HttpResponse::Ok().finish())
   }

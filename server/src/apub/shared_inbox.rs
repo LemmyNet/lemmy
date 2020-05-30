@@ -220,7 +220,7 @@ where
   if !community.local {
     // ignore this object
   }
-  Community::do_announce(activity, &community_uri, sender, conn, false)
+  Community::do_announce(activity, &community, sender, conn, false)
 }
 
 fn receive_announce(

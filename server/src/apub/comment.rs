@@ -178,7 +178,7 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    Comment::send_comment_activity(&creator, &conn, &community, create)?;
+    Comment::send_comment_activity(&creator, &conn, &community, maa.inboxes,create)?;
     Ok(())
   }
 
@@ -203,7 +203,7 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    Comment::send_comment_activity(&creator, &conn, &community, update)?;
+    Comment::send_comment_activity(&creator, &conn, &community, maa.inboxes, update)?;
     Ok(())
   }
 
@@ -225,7 +225,7 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    Comment::send_comment_activity(&creator, &conn, &community, delete)?;
+    Comment::send_comment_activity(&creator, &conn, &community,vec!(community.get_shared_inbox_url()), delete)?;
     Ok(())
   }
 
@@ -265,7 +265,7 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(delete)?;
 
-    Comment::send_comment_activity(&creator, &conn, &community, undo)?;
+    Comment::send_comment_activity(&creator, &conn, &community, vec!(community.get_shared_inbox_url()),undo)?;
     Ok(())
   }
 
@@ -287,7 +287,7 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    Comment::send_comment_activity(&mod_, &conn, &community, remove)?;
+    Comment::send_comment_activity(&mod_, &conn, &community, vec!(community.get_shared_inbox_url()),remove)?;
     Ok(())
   }
 
@@ -326,7 +326,7 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
       .set_object_base_box(remove)?;
 
-    Comment::send_comment_activity(&mod_, &conn, &community, undo)?;
+    Comment::send_comment_activity(&mod_, &conn, &community, vec!(community.get_shared_inbox_url()),undo)?;
     Ok(())
   }
 }
@@ -349,7 +349,7 @@ impl ApubLikeableType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    Comment::send_comment_activity(&creator, &conn, &community, like)?;
+    Comment::send_comment_activity(&creator, &conn, &community, vec!(community.get_shared_inbox_url()),like)?;
     Ok(())
   }
 
@@ -370,7 +370,7 @@ impl ApubLikeableType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    Comment::send_comment_activity(&creator, &conn, &community, dislike)?;
+    Comment::send_comment_activity(&creator, &conn, &community, vec!(community.get_shared_inbox_url()),dislike)?;
     Ok(())
   }
 
@@ -407,7 +407,7 @@ impl ApubLikeableType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(like)?;
 
-    Comment::send_comment_activity(&creator, &conn, &community, undo)?;
+    Comment::send_comment_activity(&creator, &conn, &community, vec!(community.get_shared_inbox_url()), undo)?;
     Ok(())
   }
 }
@@ -455,7 +455,7 @@ fn collect_non_local_mentions_and_addresses(
     }
   }
 
-  let mut inboxes = community.get_follower_inboxes(&conn)?;
+  let mut inboxes = vec!(community.get_shared_inbox_url());
   inboxes.extend(mention_inboxes);
   inboxes = inboxes.into_iter().unique().collect();
 
@@ -471,6 +471,7 @@ impl Comment {
     creator: &User_,
     conn: &PgConnection,
     community: &Community,
+    to: Vec<String>,
     activity: A,
   ) -> Result<(), Error>
   where
@@ -480,9 +481,9 @@ impl Comment {
 
     // if this is a local community, we need to do an announce from the community instead
     if community.local {
-      Community::do_announce(activity, &community.actor_id, &creator.actor_id, conn, true)?;
+      Community::do_announce(activity, &community, &creator.actor_id, conn, true)?;
     } else {
-      send_activity(&activity, creator, vec![community.get_shared_inbox_url()])?;
+      send_activity(&activity, creator, to)?;
     }
     Ok(())
   }

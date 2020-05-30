@@ -479,7 +479,7 @@ impl Post {
 
     // if this is a local community, we need to do an announce from the community instead
     if community.local {
-      Community::do_announce(activity, &community.actor_id, &creator.actor_id, conn, true)?;
+      Community::do_announce(activity, &community, &creator.actor_id, conn, true)?;
     } else {
       send_activity(&activity, creator, vec![community.get_shared_inbox_url()])?;
     }
