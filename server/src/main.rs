@@ -1,8 +1,15 @@
 extern crate lemmy_server;
 #[macro_use]
 extern crate diesel_migrations;
+#[macro_use]
+pub extern crate lazy_static;
 
+use crate::lemmy_server::actix_web::dev::Service;
 use actix::prelude::*;
+use actix_web::body::Body;
+use actix_web::dev::{ServiceRequest, ServiceResponse};
+use actix_web::http::header::CONTENT_TYPE;
+use actix_web::http::{header::CACHE_CONTROL, HeaderValue};
 use actix_web::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
@@ -12,8 +19,15 @@ use lemmy_server::{
   settings::Settings,
   websocket::server::*,
 };
+use regex::Regex;
 use std::{io, sync::Arc};
 use tokio::sync::Mutex;
+
+lazy_static! {
+  static ref CACHE_CONTROL_REGEX: Regex =
+    Regex::new("^((text|image)/.+|application/javascript)$").unwrap();
+  static ref CACHE_CONTROL_VALUE: String = format!("public, max-age={}", 365 * 24 * 60 * 60);
+}
 
 embed_migrations!();
 
@@ -51,6 +65,7 @@ async fn main() -> io::Result<()> {
     let settings = Settings::get();
     let rate_limiter = rate_limiter.clone();
     App::new()
+      .wrap_fn(add_cache_headers)
       .wrap(middleware::Logger::default())
       .data(pool.clone())
       .data(server.clone())
@@ -74,4 +89,24 @@ async fn main() -> io::Result<()> {
   .bind((settings.bind, settings.port))?
   .run()
   .await
+}
+
+fn add_cache_headers<S>(
+  req: ServiceRequest,
+  srv: &mut S,
+) -> impl Future<Output = Result<ServiceResponse, Error>>
+where
+  S: Service<Request = ServiceRequest, Response = ServiceResponse<Body>, Error = Error>,
+{
+  let fut = srv.call(req);
+  async move {
+    let mut res = fut.await?;
+    if let Some(content_type) = res.headers().get(CONTENT_TYPE) {
+      if CACHE_CONTROL_REGEX.is_match(content_type.to_str().unwrap()) {
+        let header_val = HeaderValue::from_static(&CACHE_CONTROL_VALUE);
+        res.headers_mut().insert(CACHE_CONTROL, header_val);
+      }
+    }
+    Ok(res)
+  }
 }
