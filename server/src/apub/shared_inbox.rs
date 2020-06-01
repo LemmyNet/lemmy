@@ -122,6 +122,7 @@ pub async fn shared_inbox(
   // TODO: this is hacky, we should probably send the community id directly somehow
   let to = cc.replace("/followers", "");
 
+  // TODO: this is ugly
   match get_or_fetch_and_upsert_remote_user(&sender.to_string(), &conn) {
     Ok(u) => verify(&request, &u),
     Err(_) => {
@@ -134,15 +135,15 @@ pub async fn shared_inbox(
     (SharedAcceptedObjects::Create(c), Some("Page")) => {
       receive_create_post(&c, &conn, chat_server)?;
       announce_activity_if_valid::<Create>(*c, &to, sender, conn)
-    },
+    }
     (SharedAcceptedObjects::Update(u), Some("Page")) => {
       receive_update_post(&u, &conn, chat_server)?;
       announce_activity_if_valid::<Update>(*u, &to, sender, conn)
-    },
+    }
     (SharedAcceptedObjects::Like(l), Some("Page")) => {
       receive_like_post(&l, &conn, chat_server)?;
       announce_activity_if_valid::<Like>(*l, &to, sender, conn)
-    },
+    }
     (SharedAcceptedObjects::Dislike(d), Some("Page")) => {
       receive_dislike_post(&d, &conn, chat_server)?;
       announce_activity_if_valid::<Dislike>(*d, &to, sender, conn)
@@ -150,11 +151,11 @@ pub async fn shared_inbox(
     (SharedAcceptedObjects::Delete(d), Some("Page")) => {
       receive_delete_post(&d, &conn, chat_server)?;
       announce_activity_if_valid::<Delete>(*d, &to, sender, conn)
-    },
+    }
     (SharedAcceptedObjects::Remove(r), Some("Page")) => {
       receive_remove_post(&r, &conn, chat_server)?;
       announce_activity_if_valid::<Remove>(*r, &to, sender, conn)
-    },
+    }
     (SharedAcceptedObjects::Create(c), Some("Note")) => {
       receive_create_comment(&c, &conn, chat_server)?;
       announce_activity_if_valid::<Create>(*c, &to, sender, conn)
@@ -166,7 +167,7 @@ pub async fn shared_inbox(
     (SharedAcceptedObjects::Like(l), Some("Note")) => {
       receive_like_comment(&l, &conn, chat_server)?;
       announce_activity_if_valid::<Like>(*l, &to, sender, conn)
-    },
+    }
     (SharedAcceptedObjects::Dislike(d), Some("Note")) => {
       receive_dislike_comment(&d, &conn, chat_server)?;
       announce_activity_if_valid::<Dislike>(*d, &to, sender, conn)
@@ -190,22 +191,21 @@ pub async fn shared_inbox(
     (SharedAcceptedObjects::Undo(u), Some("Delete")) => {
       receive_undo_delete(&u, &conn, chat_server)?;
       announce_activity_if_valid::<Undo>(*u, &to, sender, conn)
-    },
+    }
     (SharedAcceptedObjects::Undo(u), Some("Remove")) => {
       receive_undo_remove(&u, &conn, chat_server)?;
       announce_activity_if_valid::<Undo>(*u, &to, sender, conn)
-    },
+    }
     (SharedAcceptedObjects::Undo(u), Some("Like")) => {
       receive_undo_like(&u, &conn, chat_server)?;
       announce_activity_if_valid::<Undo>(*u, &to, sender, conn)
-    },
-    (SharedAcceptedObjects::Announce(a), _) => {
-      receive_announce(a, &conn, chat_server)
-    },
+    }
+    (SharedAcceptedObjects::Announce(a), _) => receive_announce(a, &conn, chat_server),
     (a, _) => receive_unhandled_activity(a),
   }
 }
 
+// TODO: should pass in sender as ActorType, but thats a bit tricky in shared_inbox()
 fn announce_activity_if_valid<A>(
   activity: A,
   community_uri: &str,
@@ -215,12 +215,14 @@ fn announce_activity_if_valid<A>(
 where
   A: Activity + Base + Serialize + Debug,
 {
-  // TODO: first check that it is addressed to a local community
   let community = Community::read_from_actor_id(conn, &community_uri)?;
-  if !community.local {
-    // ignore this object
+  if community.local {
+    let sending_user = get_or_fetch_and_upsert_remote_user(&sender.to_string(), &conn)?;
+    insert_activity(&conn, sending_user.id, &activity, false)?;
+    Community::do_announce(activity, &community, &sending_user, conn)
+  } else {
+    Ok(HttpResponse::NotFound().finish())
   }
-  Community::do_announce(activity, &community, sender, conn, false)
 }
 
 fn receive_announce(

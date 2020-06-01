@@ -1,6 +1,6 @@
 use crate::{
   apub::{
-    activities::{populate_object_props, send_activity},
+    activities::{populate_object_props, send_activity_to_community},
     create_apub_response,
     create_apub_tombstone_response,
     create_tombstone,
@@ -14,7 +14,6 @@ use crate::{
   },
   convert_datetime,
   db::{
-    activity::insert_activity,
     comment::{Comment, CommentForm},
     community::Community,
     post::Post,
@@ -30,15 +29,13 @@ use activitystreams::{
   context,
   link::Mention,
   object::{kind::NoteType, properties::ObjectProperties, Note, Tombstone},
-  Activity,
-  Base,
 };
 use actix_web::{body::Body, web::Path, HttpResponse, Result};
 use diesel::PgConnection;
-use failure::{Error, _core::fmt::Debug};
+use failure::Error;
 use itertools::Itertools;
 use log::debug;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct CommentQuery {
@@ -178,7 +175,7 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    Comment::send_comment_activity(&creator, &conn, &community, maa.inboxes,create)?;
+    send_activity_to_community(&creator, &conn, &community, maa.inboxes, create)?;
     Ok(())
   }
 
@@ -203,7 +200,7 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    Comment::send_comment_activity(&creator, &conn, &community, maa.inboxes, update)?;
+    send_activity_to_community(&creator, &conn, &community, maa.inboxes, update)?;
     Ok(())
   }
 
@@ -225,7 +222,13 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    Comment::send_comment_activity(&creator, &conn, &community,vec!(community.get_shared_inbox_url()), delete)?;
+    send_activity_to_community(
+      &creator,
+      &conn,
+      &community,
+      vec![community.get_shared_inbox_url()],
+      delete,
+    )?;
     Ok(())
   }
 
@@ -265,7 +268,13 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(delete)?;
 
-    Comment::send_comment_activity(&creator, &conn, &community, vec!(community.get_shared_inbox_url()),undo)?;
+    send_activity_to_community(
+      &creator,
+      &conn,
+      &community,
+      vec![community.get_shared_inbox_url()],
+      undo,
+    )?;
     Ok(())
   }
 
@@ -287,7 +296,13 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    Comment::send_comment_activity(&mod_, &conn, &community, vec!(community.get_shared_inbox_url()),remove)?;
+    send_activity_to_community(
+      &mod_,
+      &conn,
+      &community,
+      vec![community.get_shared_inbox_url()],
+      remove,
+    )?;
     Ok(())
   }
 
@@ -326,7 +341,13 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
       .set_object_base_box(remove)?;
 
-    Comment::send_comment_activity(&mod_, &conn, &community, vec!(community.get_shared_inbox_url()),undo)?;
+    send_activity_to_community(
+      &mod_,
+      &conn,
+      &community,
+      vec![community.get_shared_inbox_url()],
+      undo,
+    )?;
     Ok(())
   }
 }
@@ -349,7 +370,13 @@ impl ApubLikeableType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    Comment::send_comment_activity(&creator, &conn, &community, vec!(community.get_shared_inbox_url()),like)?;
+    send_activity_to_community(
+      &creator,
+      &conn,
+      &community,
+      vec![community.get_shared_inbox_url()],
+      like,
+    )?;
     Ok(())
   }
 
@@ -370,7 +397,13 @@ impl ApubLikeableType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    Comment::send_comment_activity(&creator, &conn, &community, vec!(community.get_shared_inbox_url()),dislike)?;
+    send_activity_to_community(
+      &creator,
+      &conn,
+      &community,
+      vec![community.get_shared_inbox_url()],
+      dislike,
+    )?;
     Ok(())
   }
 
@@ -407,7 +440,13 @@ impl ApubLikeableType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(like)?;
 
-    Comment::send_comment_activity(&creator, &conn, &community, vec!(community.get_shared_inbox_url()), undo)?;
+    send_activity_to_community(
+      &creator,
+      &conn,
+      &community,
+      vec![community.get_shared_inbox_url()],
+      undo,
+    )?;
     Ok(())
   }
 }
@@ -455,7 +494,7 @@ fn collect_non_local_mentions_and_addresses(
     }
   }
 
-  let mut inboxes = vec!(community.get_shared_inbox_url());
+  let mut inboxes = vec![community.get_shared_inbox_url()];
   inboxes.extend(mention_inboxes);
   inboxes = inboxes.into_iter().unique().collect();
 
@@ -464,27 +503,4 @@ fn collect_non_local_mentions_and_addresses(
     inboxes,
     tags,
   })
-}
-
-impl Comment {
-  fn send_comment_activity<A>(
-    creator: &User_,
-    conn: &PgConnection,
-    community: &Community,
-    to: Vec<String>,
-    activity: A,
-  ) -> Result<(), Error>
-  where
-    A: Activity + Base + Serialize + Debug,
-  {
-    insert_activity(&conn, creator.id, &activity, true)?;
-
-    // if this is a local community, we need to do an announce from the community instead
-    if community.local {
-      Community::do_announce(activity, &community, &creator.actor_id, conn, true)?;
-    } else {
-      send_activity(&activity, creator, to)?;
-    }
-    Ok(())
-  }
 }

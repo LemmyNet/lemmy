@@ -1,5 +1,9 @@
-use crate::apub::{extensions::signatures::sign, is_apub_id_valid, ActorType};
-use activitystreams::{context, object::properties::ObjectProperties, public};
+use crate::{
+  apub::{extensions::signatures::sign, is_apub_id_valid, ActorType},
+  db::{activity::insert_activity, community::Community, user::User_},
+};
+use activitystreams::{context, object::properties::ObjectProperties, public, Activity, Base};
+use diesel::PgConnection;
 use failure::{Error, _core::fmt::Debug};
 use isahc::prelude::*;
 use log::debug;
@@ -19,6 +23,27 @@ pub fn populate_object_props(
     // TODO: handle privacy on the receiving side (at least ignore anything thats not public)
     .set_to_xsd_any_uri(public())?
     .set_many_cc_xsd_any_uris(addressed_ccs)?;
+  Ok(())
+}
+
+pub fn send_activity_to_community<A>(
+  creator: &User_,
+  conn: &PgConnection,
+  community: &Community,
+  to: Vec<String>,
+  activity: A,
+) -> Result<(), Error>
+where
+  A: Activity + Base + Serialize + Debug,
+{
+  insert_activity(&conn, creator.id, &activity, true)?;
+
+  // if this is a local community, we need to do an announce from the community instead
+  if community.local {
+    Community::do_announce(activity, &community, creator, conn)?;
+  } else {
+    send_activity(&activity, creator, to)?;
+  }
   Ok(())
 }
 

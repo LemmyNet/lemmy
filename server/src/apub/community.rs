@@ -385,15 +385,12 @@ impl Community {
   pub fn do_announce<A>(
     activity: A,
     community: &Community,
-    sender: &str,
+    sender: &dyn ActorType,
     conn: &PgConnection,
-    is_local_activity: bool,
   ) -> Result<HttpResponse, Error>
   where
     A: Activity + Base + Serialize + Debug,
   {
-    insert_activity(&conn, -1, &activity, is_local_activity)?;
-
     let mut announce = Announce::default();
     populate_object_props(
       &mut announce.object_props,
@@ -405,14 +402,13 @@ impl Community {
       .set_actor_xsd_any_uri(community.actor_id.to_owned())?
       .set_object_base_box(BaseBox::from_concrete(activity)?)?;
 
-    insert_activity(&conn, -1, &announce, true)?;
+    insert_activity(&conn, community.creator_id, &announce, true)?;
 
     // dont send to the instance where the activity originally came from, because that would result
     // in a database error (same data inserted twice)
     let mut to = community.get_follower_inboxes(&conn)?;
-    let sending_user = get_or_fetch_and_upsert_remote_user(&sender, conn)?;
     // this seems to be the "easiest" stable alternative for remove_item()
-    to.retain(|x| *x != sending_user.get_shared_inbox_url());
+    to.retain(|x| *x != sender.get_shared_inbox_url());
 
     send_activity(&announce, community, to)?;
 

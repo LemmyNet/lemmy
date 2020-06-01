@@ -1,6 +1,6 @@
 use crate::{
   apub::{
-    activities::{populate_object_props, send_activity},
+    activities::{populate_object_props, send_activity_to_community},
     create_apub_response,
     create_apub_tombstone_response,
     create_tombstone,
@@ -16,7 +16,6 @@ use crate::{
   },
   convert_datetime,
   db::{
-    activity::insert_activity,
     community::Community,
     post::{Post, PostForm},
     user::User_,
@@ -29,15 +28,13 @@ use activitystreams::{
   activity::{Create, Delete, Dislike, Like, Remove, Undo, Update},
   context,
   object::{kind::PageType, properties::ObjectProperties, AnyImage, Image, Page, Tombstone},
-  Activity,
-  Base,
   BaseBox,
 };
 use activitystreams_ext::Ext1;
 use actix_web::{body::Body, web::Path, HttpResponse, Result};
 use diesel::PgConnection;
-use failure::{Error, _core::fmt::Debug};
-use serde::{Deserialize, Serialize};
+use failure::Error;
+use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct PostQuery {
@@ -241,7 +238,13 @@ impl ApubObjectType for Post {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(BaseBox::from_concrete(page)?)?;
 
-    Post::send_post_activity(creator, conn, &community, create)?;
+    send_activity_to_community(
+      creator,
+      conn,
+      &community,
+      vec![community.get_shared_inbox_url()],
+      create,
+    )?;
     Ok(())
   }
 
@@ -262,7 +265,13 @@ impl ApubObjectType for Post {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(BaseBox::from_concrete(page)?)?;
 
-    Post::send_post_activity(creator, conn, &community, update)?;
+    send_activity_to_community(
+      creator,
+      conn,
+      &community,
+      vec![community.get_shared_inbox_url()],
+      update,
+    )?;
     Ok(())
   }
 
@@ -285,7 +294,13 @@ impl ApubObjectType for Post {
 
     let community = Community::read(conn, self.community_id)?;
 
-    Post::send_post_activity(creator, conn, &community, delete)?;
+    send_activity_to_community(
+      creator,
+      conn,
+      &community,
+      vec![community.get_shared_inbox_url()],
+      delete,
+    )?;
     Ok(())
   }
 
@@ -323,7 +338,13 @@ impl ApubObjectType for Post {
       .set_object_base_box(delete)?;
 
     let community = Community::read(conn, self.community_id)?;
-    Post::send_post_activity(creator, conn, &community, undo)?;
+    send_activity_to_community(
+      creator,
+      conn,
+      &community,
+      vec![community.get_shared_inbox_url()],
+      undo,
+    )?;
     Ok(())
   }
 
@@ -346,7 +367,13 @@ impl ApubObjectType for Post {
 
     let community = Community::read(conn, self.community_id)?;
 
-    Post::send_post_activity(mod_, conn, &community, remove)?;
+    send_activity_to_community(
+      mod_,
+      conn,
+      &community,
+      vec![community.get_shared_inbox_url()],
+      remove,
+    )?;
     Ok(())
   }
   fn send_undo_remove(&self, mod_: &User_, conn: &PgConnection) -> Result<(), Error> {
@@ -382,7 +409,13 @@ impl ApubObjectType for Post {
       .set_object_base_box(remove)?;
 
     let community = Community::read(conn, self.community_id)?;
-    Post::send_post_activity(mod_, conn, &community, undo)?;
+    send_activity_to_community(
+      mod_,
+      conn,
+      &community,
+      vec![community.get_shared_inbox_url()],
+      undo,
+    )?;
     Ok(())
   }
 }
@@ -404,7 +437,13 @@ impl ApubLikeableType for Post {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(BaseBox::from_concrete(page)?)?;
 
-    Post::send_post_activity(&creator, &conn, &community, like)?;
+    send_activity_to_community(
+      &creator,
+      &conn,
+      &community,
+      vec![community.get_shared_inbox_url()],
+      like,
+    )?;
     Ok(())
   }
 
@@ -424,7 +463,13 @@ impl ApubLikeableType for Post {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(BaseBox::from_concrete(page)?)?;
 
-    Post::send_post_activity(&creator, &conn, &community, dislike)?;
+    send_activity_to_community(
+      &creator,
+      &conn,
+      &community,
+      vec![community.get_shared_inbox_url()],
+      dislike,
+    )?;
     Ok(())
   }
 
@@ -460,29 +505,13 @@ impl ApubLikeableType for Post {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(like)?;
 
-    Post::send_post_activity(&creator, &conn, &community, undo)?;
-    Ok(())
-  }
-}
-
-impl Post {
-  fn send_post_activity<A>(
-    creator: &User_,
-    conn: &PgConnection,
-    community: &Community,
-    activity: A,
-  ) -> Result<(), Error>
-  where
-    A: Activity + Base + Serialize + Debug,
-  {
-    insert_activity(&conn, creator.id, &activity, true)?;
-
-    // if this is a local community, we need to do an announce from the community instead
-    if community.local {
-      Community::do_announce(activity, &community, &creator.actor_id, conn, true)?;
-    } else {
-      send_activity(&activity, creator, vec![community.get_shared_inbox_url()])?;
-    }
+    send_activity_to_community(
+      &creator,
+      &conn,
+      &community,
+      vec![community.get_shared_inbox_url()],
+      undo,
+    )?;
     Ok(())
   }
 }

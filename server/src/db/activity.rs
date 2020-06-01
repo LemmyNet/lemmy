@@ -71,8 +71,7 @@ where
     updated: None,
   };
   debug!("inserting activity for user {}, data {:?}", user_id, data);
-  // TODO: this is broken
-  //Activity::create(&conn, &activity_form)?;
+  Activity::create(&conn, &activity_form)?;
   Ok(())
 }
 
