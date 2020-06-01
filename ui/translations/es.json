@@ -175,7 +175,7 @@
     "donate_to_lemmy": "Donar a Lemmy",
     "donate": "Donar",
     "general_sponsors": "Los Patrocinadores Generales son aquellos que señaron entre $10 y $39 a Lemmy.",
-    "crypto": "Crypto",
+    "crypto": "Cripto",
     "bitcoin": "Bitcoin",
     "ethereum": "Ethereum",
     "monero": "Monero",
@@ -233,7 +233,7 @@
     "time": "Tiempo",
     "action": "Acción",
     "more": "más",
-    "cross_posted_to": "publicado también en:",
+    "cross_posted_to": "publicado también en: ",
     "sorting_help": "ayuda del orden",
     "upvote": "Voto Positivo",
     "number_of_upvotes": "{{count}} Voto Positivo",
@@ -244,5 +244,12 @@
     "couldnt_get_comments": "No se pudo obtener los comentarios.",
     "post_title_too_long": "El título de la publicación es muy largo.",
     "block_leaving": "¿Está seguro de que desea salir?",
-    "show_context": "Mostrar contexto"
+    "show_context": "Mostrar contexto",
+    "silver_sponsors": "Sponsors Plata son los que han dado $40 a Lemmy.",
+    "site_config": "Configuración del Sitio",
+    "banned_users": "Usuarios Baneados",
+    "support_on_open_collective": "Dona en OpenCollective",
+    "site_saved": "Sitio Guardado.",
+    "emoji_picker": "Emoji Picker",
+    "admin_settings": "Panel de Administración"
 }
