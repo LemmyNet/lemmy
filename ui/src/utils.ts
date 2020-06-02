@@ -394,17 +394,22 @@ export function setTheme(theme: string = 'darkly') {
   }
 
   // Load the theme dynamically
-  if (!document.getElementById(theme)) {
+  let cssLoc = `/static/assets/css/themes/${theme}.min.css`;
+  loadCss(theme, cssLoc);
+  document.getElementById(theme).removeAttribute('disabled');
+}
+
+export function loadCss(id: string, loc: string) {
+  if (!document.getElementById(id)) {
     var head = document.getElementsByTagName('head')[0];
     var link = document.createElement('link');
-    link.id = theme;
+    link.id = id;
     link.rel = 'stylesheet';
     link.type = 'text/css';
-    link.href = `/static/assets/css/themes/${theme}.min.css`;
+    link.href = loc;
     link.media = 'all';
     head.appendChild(link);
   }
-  document.getElementById(theme).removeAttribute('disabled');
 }
 
 export function objectFlip(obj: any) {
@@ -474,6 +479,7 @@ export function messageToastify(
     text: `${body}<br />${creator}`,
     avatar: avatar,
     backgroundColor: backgroundColor,
+    className: 'text-body',
     close: true,
     gravity: 'top',
     position: 'right',
