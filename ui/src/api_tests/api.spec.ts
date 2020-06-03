@@ -26,11 +26,16 @@ import {
 } from '../interfaces';
 
 let lemmyAlphaUrl = 'http://localhost:8540';
-let lemmyBetaUrl = 'http://localhost:8550';
 let lemmyAlphaApiUrl = `${lemmyAlphaUrl}/api/v1`;
-let lemmyBetaApiUrl = `${lemmyBetaUrl}/api/v1`;
 let lemmyAlphaAuth: string;
+
+let lemmyBetaUrl = 'http://localhost:8550';
+let lemmyBetaApiUrl = `${lemmyBetaUrl}/api/v1`;
 let lemmyBetaAuth: string;
+
+let lemmyGammaUrl = 'http://localhost:8560';
+let lemmyGammaApiUrl = `${lemmyGammaUrl}/api/v1`;
+let lemmyGammaAuth: string;
 
 // Workaround for tests being run before beforeAll() is finished
 // https://github.com/facebook/jest/issues/9527#issuecomment-592406108
@@ -67,6 +72,22 @@ describe('main', () => {
     }).then(d => d.json());
 
     lemmyBetaAuth = resB.jwt;
+
+    console.log('Logging in as lemmy_gamma');
+    let formC = {
+      username_or_email: 'lemmy_gamma',
+      password: 'lemmy',
+    };
+
+    let resG: LoginResponse = await fetch(`${lemmyGammaApiUrl}/user/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: wrapper(formC),
+    }).then(d => d.json());
+
+    lemmyGammaAuth = resG.jwt;
   });
 
   describe('post_search', () => {
@@ -190,6 +211,51 @@ describe('main', () => {
       // Make sure the follow response went through
       expect(followResAgain.community.local).toBe(false);
       expect(followResAgain.community.name).toBe('main');
+
+      // Also make G follow B
+
+      // Use short-hand search url
+      let searchUrlG = `${lemmyGammaApiUrl}/search?q=!main@lemmy_beta:8550&type_=All&sort=TopAll`;
+
+      let searchResponseG: SearchResponse = await fetch(searchUrlG, {
+        method: 'GET',
+      }).then(d => d.json());
+
+      expect(searchResponseG.communities[0].name).toBe('main');
+
+      let followFormG: FollowCommunityForm = {
+        community_id: searchResponseG.communities[0].id,
+        follow: true,
+        auth: lemmyGammaAuth,
+      };
+
+      let followResG: CommunityResponse = await fetch(
+        `${lemmyGammaApiUrl}/community/follow`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(followFormG),
+        }
+      ).then(d => d.json());
+
+      // Make sure the follow response went through
+      expect(followResG.community.local).toBe(false);
+      expect(followResG.community.name).toBe('main');
+
+      // Check that you are subscribed to it locally
+      let followedCommunitiesUrlG = `${lemmyGammaApiUrl}/user/followed_communities?&auth=${lemmyGammaAuth}`;
+      let followedCommunitiesResG: GetFollowedCommunitiesResponse = await fetch(
+        followedCommunitiesUrlG,
+        {
+          method: 'GET',
+        }
+      ).then(d => d.json());
+
+      expect(followedCommunitiesResG.communities[1].community_local).toBe(
+        false
+      );
     });
   });
 
@@ -1174,6 +1240,78 @@ describe('main', () => {
 
       // TODO: check more fields
       expect(searchResponse.comments[0].content).toBe(content);
+    });
+  });
+
+  describe('announce', () => {
+    test('A and G subscribe to B (center) A does action, it gets announced to G', async () => {
+      // A and G are already subscribed to B earlier.
+      //
+      let postName = 'A jest test post for announce';
+      let createPostForm: PostForm = {
+        name: postName,
+        auth: lemmyAlphaAuth,
+        community_id: 2,
+        creator_id: 2,
+        nsfw: false,
+      };
+
+      let createPostRes: PostResponse = await fetch(
+        `${lemmyAlphaApiUrl}/post`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(createPostForm),
+        }
+      ).then(d => d.json());
+      expect(createPostRes.post.name).toBe(postName);
+
+      // Make sure that post got announced to Gamma
+      let searchUrl = `${lemmyGammaApiUrl}/search?q=${createPostRes.post.ap_id}&type_=All&sort=TopAll`;
+      let searchResponse: SearchResponse = await fetch(searchUrl, {
+        method: 'GET',
+      }).then(d => d.json());
+      let postId = searchResponse.posts[0].id;
+      expect(searchResponse.posts[0].name).toBe(postName);
+
+      // Create a test comment on Gamma, make sure it gets announced to alpha
+      let commentContent =
+        'A jest test federated comment announce, lets mention @lemmy_beta@lemmy_beta:8550';
+
+      let commentForm: CommentForm = {
+        content: commentContent,
+        post_id: postId,
+        auth: lemmyGammaAuth,
+      };
+
+      let createCommentRes: CommentResponse = await fetch(
+        `${lemmyGammaApiUrl}/comment`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(commentForm),
+        }
+      ).then(d => d.json());
+
+      expect(createCommentRes.comment.content).toBe(commentContent);
+      expect(createCommentRes.comment.community_local).toBe(false);
+      expect(createCommentRes.comment.creator_local).toBe(true);
+      expect(createCommentRes.comment.score).toBe(1);
+
+      // Get the post from alpha, make sure it has gamma's comment
+      let getPostUrl = `${lemmyAlphaApiUrl}/post?id=5`;
+      let getPostRes: GetPostResponse = await fetch(getPostUrl, {
+        method: 'GET',
+      }).then(d => d.json());
+
+      expect(getPostRes.comments[0].content).toBe(commentContent);
+      expect(getPostRes.comments[0].community_local).toBe(true);
+      expect(getPostRes.comments[0].creator_local).toBe(false);
+      expect(getPostRes.comments[0].score).toBe(1);
     });
   });
 });

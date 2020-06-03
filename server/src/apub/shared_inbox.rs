@@ -218,7 +218,6 @@ where
   let community = Community::read_from_actor_id(conn, &community_uri)?;
   if community.local {
     let sending_user = get_or_fetch_and_upsert_remote_user(&sender.to_string(), &conn)?;
-    insert_activity(&conn, sending_user.id, &activity, false)?;
     Community::do_announce(activity, &community, &sending_user, conn)
   } else {
     Ok(HttpResponse::NotFound().finish())

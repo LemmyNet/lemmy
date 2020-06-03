@@ -6,6 +6,7 @@ services:
     ports:
       - "8540:8540"
       - "8550:8550"
+      - "8560:8560"
     volumes:
       # Hack to make this work from both docker/federation/ and docker/federation-test/
       - ../federation/nginx.conf:/etc/nginx/nginx.conf
@@ -14,6 +15,8 @@ services:
       - pictshare_alpha
       - lemmy_beta
       - pictshare_beta
+      - lemmy_gamma
+      - pictshare_gamma
       - iframely
     restart: "always"
 
@@ -26,7 +29,7 @@ services:
       - LEMMY_FRONT_END_DIR=/app/dist
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
-      - LEMMY_FEDERATION__INSTANCE_WHITELIST=lemmy_beta
+      - LEMMY_FEDERATION__INSTANCE_WHITELIST=lemmy_beta,lemmy_gamma
       - LEMMY_PORT=8540
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_alpha
       - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
@@ -60,7 +63,7 @@ services:
       - LEMMY_FRONT_END_DIR=/app/dist
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
-      - LEMMY_FEDERATION__INSTANCE_WHITELIST=lemmy_alpha
+      - LEMMY_FEDERATION__INSTANCE_WHITELIST=lemmy_alpha,lemmy_gamma
       - LEMMY_PORT=8550
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_beta
       - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
@@ -83,6 +86,40 @@ services:
     image: shtripok/pictshare:latest
     volumes:
       - ./volumes/pictshare_beta:/usr/share/nginx/html/data
+    restart: always
+
+  lemmy_gamma:
+    image: lemmy-federation:latest
+    environment:
+      - LEMMY_HOSTNAME=lemmy_gamma:8560
+      - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_gamma:5432/lemmy
+      - LEMMY_JWT_SECRET=changeme
+      - LEMMY_FRONT_END_DIR=/app/dist
+      - LEMMY_FEDERATION__ENABLED=true
+      - LEMMY_FEDERATION__TLS_ENABLED=false
+      - LEMMY_FEDERATION__INSTANCE_WHITELIST=lemmy_alpha,lemmy_beta
+      - LEMMY_PORT=8560
+      - LEMMY_SETUP__ADMIN_USERNAME=lemmy_gamma
+      - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
+      - LEMMY_SETUP__SITE_NAME=lemmy_gamma
+      - RUST_BACKTRACE=1
+      - RUST_LOG=debug
+    restart: always
+    depends_on:
+      - postgres_gamma
+  postgres_gamma:
+    image: postgres:12-alpine
+    environment:
+      - POSTGRES_USER=lemmy
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=lemmy
+    volumes:
+      - ./volumes/postgres_gamma:/var/lib/postgresql/data
+    restart: always
+  pictshare_gamma:
+    image: shtripok/pictshare:latest
+    volumes:
+      - ./volumes/pictshare_gamma:/usr/share/nginx/html/data
     restart: always
 
   iframely:
