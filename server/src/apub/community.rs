@@ -23,7 +23,7 @@ use crate::{
   routes::DbPoolParam,
 };
 use activitystreams::{
-  activity::{Accept, Announce, Delete, Follow, Remove, Undo},
+  activity::{Accept, Announce, Delete, Remove, Undo},
   actor::{kind::GroupType, properties::ApActorProperties, Group},
   collection::UnorderedCollection,
   context,
@@ -34,7 +34,7 @@ use activitystreams::{
   BaseBox,
 };
 use activitystreams_ext::Ext3;
-use activitystreams_new::object::Tombstone;
+use activitystreams_new::{activity::Follow, object::Tombstone};
 use actix_web::{body::Body, web::Path, HttpResponse, Result};
 use diesel::PgConnection;
 use failure::{Error, _core::fmt::Debug};
@@ -126,11 +126,7 @@ impl ActorType for Community {
 
   /// As a local community, accept the follow request from a remote user.
   fn send_accept_follow(&self, follow: &Follow, conn: &PgConnection) -> Result<(), Error> {
-    let actor_uri = follow
-      .follow_props
-      .get_actor_xsd_any_uri()
-      .unwrap()
-      .to_string();
+    let actor_uri = follow.actor.as_single_xsd_any_uri().unwrap().to_string();
     let id = format!("{}/accept/{}", self.actor_id, uuid::Uuid::new_v4());
 
     let mut accept = Accept::new();
