@@ -26,7 +26,9 @@ use tokio::sync::Mutex;
 lazy_static! {
   static ref CACHE_CONTROL_REGEX: Regex =
     Regex::new("^((text|image)/.+|application/javascript)$").unwrap();
-  static ref CACHE_CONTROL_VALUE: String = format!("public, max-age={}", 365 * 24 * 60 * 60);
+  // static ref CACHE_CONTROL_VALUE: String = format!("public, max-age={}", 365 * 24 * 60 * 60);
+  // Test out 1 hour here, this is breaking some things
+  static ref CACHE_CONTROL_VALUE: String = format!("public, max-age={}", 60 * 60);
 }
 
 embed_migrations!();
