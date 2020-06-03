@@ -423,7 +423,7 @@ export function objectFlip(obj: any) {
 export function pictshareAvatarThumbnail(src: string): string {
   // sample url: http://localhost:8535/pictshare/gs7xuu.jpg
   let split = src.split('pictshare');
-  let out = `${split[0]}pictshare/96${split[1]}`;
+  let out = `${split[0]}pictshare/webp/96${split[1]}`;
   return out;
 }
 
@@ -448,7 +448,7 @@ export function pictshareImage(
     hash = split[1];
   }
 
-  let out = `${root}/${thumbnail ? '192/' : ''}${hash}`;
+  let out = `${root}/webp/${thumbnail ? '192/' : ''}${hash}`;
   return out;
 }
 
