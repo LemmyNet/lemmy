@@ -21,9 +21,10 @@ use activitystreams::{
   actor::{properties::ApActorProperties, Person},
   context,
   endpoint::EndpointProperties,
-  object::{properties::ObjectProperties, AnyImage, Image, Tombstone},
+  object::{properties::ObjectProperties, AnyImage, Image},
 };
 use activitystreams_ext::Ext2;
+use activitystreams_new::object::Tombstone;
 use actix_web::{body::Body, web::Path, HttpResponse, Result};
 use diesel::PgConnection;
 use failure::Error;

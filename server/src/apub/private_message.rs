@@ -18,8 +18,9 @@ use crate::{
 use activitystreams::{
   activity::{Create, Delete, Undo, Update},
   context,
-  object::{kind::NoteType, properties::ObjectProperties, Note, Tombstone},
+  object::{kind::NoteType, properties::ObjectProperties, Note},
 };
+use activitystreams_new::object::Tombstone;
 use actix_web::Result;
 use diesel::PgConnection;
 use failure::Error;

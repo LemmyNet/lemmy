@@ -27,10 +27,11 @@ use crate::{
 use activitystreams::{
   activity::{Create, Delete, Dislike, Like, Remove, Undo, Update},
   context,
-  object::{kind::PageType, properties::ObjectProperties, AnyImage, Image, Page, Tombstone},
+  object::{kind::PageType, properties::ObjectProperties, AnyImage, Image, Page},
   BaseBox,
 };
 use activitystreams_ext::Ext1;
+use activitystreams_new::object::Tombstone;
 use actix_web::{body::Body, web::Path, HttpResponse, Result};
 use diesel::PgConnection;
 use failure::Error;

@@ -28,12 +28,13 @@ use activitystreams::{
   collection::UnorderedCollection,
   context,
   endpoint::EndpointProperties,
-  object::{properties::ObjectProperties, Tombstone},
+  object::properties::ObjectProperties,
   Activity,
   Base,
   BaseBox,
 };
 use activitystreams_ext::Ext3;
+use activitystreams_new::object::Tombstone;
 use actix_web::{body::Body, web::Path, HttpResponse, Result};
 use diesel::PgConnection;
 use failure::{Error, _core::fmt::Debug};

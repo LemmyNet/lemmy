@@ -28,8 +28,9 @@ use activitystreams::{
   activity::{Create, Delete, Dislike, Like, Remove, Undo, Update},
   context,
   link::Mention,
-  object::{kind::NoteType, properties::ObjectProperties, Note, Tombstone},
+  object::{kind::NoteType, properties::ObjectProperties, Note},
 };
+use activitystreams_new::object::Tombstone;
 use actix_web::{body::Body, web::Path, HttpResponse, Result};
 use diesel::PgConnection;
 use failure::Error;
