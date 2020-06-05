@@ -1,6 +1,6 @@
 # Lemmy API
 
-*Note: this may lag behind the actual API endpoints [here](../server/src/api).*
+*Note: this may lag behind the actual API endpoints [here](../server/src/api). The API should be considered unstable and may change any time.*
 
 <!-- toc -->
 
