@@ -863,16 +863,19 @@ export function previewLines(text: string, lines: number = 3): string {
 }
 
 function canUseWebP() {
-  var elem = document.createElement('canvas');
-
-  if (!!(elem.getContext && elem.getContext('2d'))) {
-    var testString = !(window.mozInnerScreenX == null) ? 'png' : 'webp';
-    // was able or not to get WebP representation
-    return (
-      elem.toDataURL('image/webp').startsWith('data:image/' + testString)
-    );
-  }
-
-  // very old browser like IE 8, canvas not supported
+  // TODO pictshare might have a webp conversion bug, try disabling this
   return false;
+
+  // var elem = document.createElement('canvas');
+
+  // if (!!(elem.getContext && elem.getContext('2d'))) {
+  //   var testString = !(window.mozInnerScreenX == null) ? 'png' : 'webp';
+  //   // was able or not to get WebP representation
+  //   return (
+  //     elem.toDataURL('image/webp').startsWith('data:image/' + testString)
+  //   );
+  // }
+
+  // // very old browser like IE 8, canvas not supported
+  // return false;
 }
