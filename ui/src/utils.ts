@@ -423,7 +423,7 @@ export function objectFlip(obj: any) {
 export function pictshareAvatarThumbnail(src: string): string {
   // sample url: http://localhost:8535/pictshare/gs7xuu.jpg
   let split = src.split('pictshare');
-  let out = `${split[0]}pictshare/webp/96${split[1]}`;
+  let out = `${split[0]}pictshare/${canUseWebP() ? 'webp/' : ''}96${split[1]}`;
   return out;
 }
 
@@ -448,7 +448,9 @@ export function pictshareImage(
     hash = split[1];
   }
 
-  let out = `${root}/webp/${thumbnail ? '192/' : ''}${hash}`;
+  let out = `${root}/${canUseWebP() ? 'webp/' : ''}${
+    thumbnail ? '192/' : ''
+  }${hash}`;
   return out;
 }
 
@@ -858,4 +860,19 @@ export function previewLines(text: string, lines: number = 3): string {
     .split('\n')
     .slice(0, lines * 2)
     .join('\n');
+}
+
+function canUseWebP() {
+  var elem = document.createElement('canvas');
+
+  if (!!(elem.getContext && elem.getContext('2d'))) {
+    var testString = !(window.mozInnerScreenX == null) ? 'png' : 'webp';
+    // was able or not to get WebP representation
+    return (
+      elem.toDataURL('image/webp').startsWith('data:image/' + testString)
+    );
+  }
+
+  // very old browser like IE 8, canvas not supported
+  return false;
 }
