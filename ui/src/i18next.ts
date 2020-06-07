@@ -16,6 +16,7 @@ import { fi } from './translations/fi';
 import { ca } from './translations/ca';
 import { fa } from './translations/fa';
 import { hi } from './translations/hi';
+import { pl } from './translations/pl';
 import { pt_BR } from './translations/pt_BR';
 import { ja } from './translations/ja';
 import { ka } from './translations/ka';
@@ -39,6 +40,7 @@ const resources = {
   fi,
   ca,
   fa,
+  pl,
   pt_BR,
   ja,
 };
