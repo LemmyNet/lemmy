@@ -12,6 +12,7 @@ import 'moment/locale/it';
 import 'moment/locale/fi';
 import 'moment/locale/ca';
 import 'moment/locale/fa';
+import 'moment/locale/pl';
 import 'moment/locale/pt-br';
 import 'moment/locale/ja';
 import 'moment/locale/ka';
@@ -70,6 +71,7 @@ export const languages = [
   { code: 'hi', name: 'मानक हिन्दी' },
   { code: 'fa', name: 'فارسی' },
   { code: 'ja', name: '日本語' },
+  { code: 'pl', name: 'Polski' },
   { code: 'pt_BR', name: 'Português Brasileiro' },
   { code: 'zh', name: '中文' },
   { code: 'fi', name: 'Suomi' },
@@ -366,6 +368,8 @@ export function getMomentLanguage(): string {
     lang = 'ca';
   } else if (lang.startsWith('fa')) {
     lang = 'fa';
+  } else if (lang.startsWith('pl')) {
+    lang = 'pl';
   } else if (lang.startsWith('pt')) {
     lang = 'pt-br';
   } else if (lang.startsWith('ja')) {
