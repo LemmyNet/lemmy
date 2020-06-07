@@ -12,7 +12,8 @@ use crate::{
   },
   routes::{ChatServerParam, DbPoolParam},
 };
-use activitystreams::activity::{Follow, Undo};
+use activitystreams::activity::Undo;
+use activitystreams_new::activity::Follow;
 use actix_web::{web, HttpRequest, HttpResponse, Result};
 use diesel::PgConnection;
 use failure::{Error, _core::fmt::Debug};
@@ -64,16 +65,8 @@ pub async fn community_inbox(
     &community.name, &input
   );
   let follow = input.follow()?;
-  let user_uri = follow
-    .follow_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-  let community_uri = follow
-    .follow_props
-    .get_object_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let user_uri = follow.actor.as_single_xsd_any_uri().unwrap().to_string();
+  let community_uri = follow.object.as_single_xsd_any_uri().unwrap().to_string();
 
   let conn = db.get()?;
 

@@ -23,11 +23,11 @@ use crate::{
   Settings,
 };
 use activitystreams::{
-  activity::Follow,
   actor::{properties::ApActorProperties, Group, Person},
-  object::{Page, Tombstone},
+  object::Page,
 };
 use activitystreams_ext::{Ext1, Ext2, Ext3};
+use activitystreams_new::{activity::Follow, object::Tombstone, prelude::*};
 use actix_web::{body::Body, HttpResponse, Result};
 use chrono::NaiveDateTime;
 use diesel::PgConnection;
@@ -132,12 +132,10 @@ fn create_tombstone(
 ) -> Result<Tombstone, Error> {
   if deleted {
     if let Some(updated) = updated {
-      let mut tombstone = Tombstone::default();
-      tombstone.object_props.set_id(object_id)?;
-      tombstone
-        .tombstone_props
-        .set_former_type_xsd_string(former_type)?
-        .set_deleted(convert_datetime(updated))?;
+      let mut tombstone = Tombstone::new();
+      tombstone.set_id(object_id.parse()?);
+      tombstone.set_former_type(former_type);
+      tombstone.set_deleted(convert_datetime(updated).into());
       Ok(tombstone)
     } else {
       Err(format_err!(

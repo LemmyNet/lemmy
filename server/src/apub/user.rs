@@ -17,13 +17,18 @@ use crate::{
   routes::DbPoolParam,
 };
 use activitystreams::{
-  activity::{Follow, Undo},
   actor::{properties::ApActorProperties, Person},
   context,
   endpoint::EndpointProperties,
-  object::{properties::ObjectProperties, AnyImage, Image, Tombstone},
+  object::{properties::ObjectProperties, AnyImage, Image},
+  primitives::XsdAnyUri,
 };
 use activitystreams_ext::Ext2;
+use activitystreams_new::{
+  activity::{Follow, Undo},
+  object::Tombstone,
+  prelude::*,
+};
 use actix_web::{body::Body, web::Path, HttpResponse, Result};
 use diesel::PgConnection;
 use failure::Error;
@@ -101,18 +106,9 @@ impl ActorType for User_ {
 
   /// As a given local user, send out a follow request to a remote community.
   fn send_follow(&self, follow_actor_id: &str, conn: &PgConnection) -> Result<(), Error> {
-    let mut follow = Follow::new();
-
     let id = format!("{}/follow/{}", self.actor_id, uuid::Uuid::new_v4());
-
-    follow
-      .object_props
-      .set_context_xsd_any_uri(context())?
-      .set_id(id)?;
-    follow
-      .follow_props
-      .set_actor_xsd_any_uri(self.actor_id.to_owned())?
-      .set_object_xsd_any_uri(follow_actor_id)?;
+    let mut follow = Follow::new(self.actor_id.to_owned(), follow_actor_id);
+    follow.set_context(context()).set_id(id.parse()?);
     let to = format!("{}/inbox", follow_actor_id);
 
     insert_activity(&conn, self.id, &follow, true)?;
@@ -122,34 +118,17 @@ impl ActorType for User_ {
   }
 
   fn send_unfollow(&self, follow_actor_id: &str, conn: &PgConnection) -> Result<(), Error> {
-    let mut follow = Follow::new();
-
     let id = format!("{}/follow/{}", self.actor_id, uuid::Uuid::new_v4());
+    let mut follow = Follow::new(self.actor_id.to_owned(), follow_actor_id);
+    follow.set_context(context()).set_id(id.parse()?);
 
-    follow
-      .object_props
-      .set_context_xsd_any_uri(context())?
-      .set_id(id)?;
-    follow
-      .follow_props
-      .set_actor_xsd_any_uri(self.actor_id.to_owned())?
-      .set_object_xsd_any_uri(follow_actor_id)?;
     let to = format!("{}/inbox", follow_actor_id);
 
     // TODO
     // Undo that fake activity
     let undo_id = format!("{}/undo/follow/{}", self.actor_id, uuid::Uuid::new_v4());
-    let mut undo = Undo::default();
-
-    undo
-      .object_props
-      .set_context_xsd_any_uri(context())?
-      .set_id(undo_id)?;
-
-    undo
-      .undo_props
-      .set_actor_xsd_any_uri(self.actor_id.to_owned())?
-      .set_object_base_box(follow)?;
+    let mut undo = Undo::new(self.actor_id.parse::<XsdAnyUri>()?, follow.into_any_base()?);
+    undo.set_context(context()).set_id(undo_id.parse()?);
 
     insert_activity(&conn, self.id, &undo, true)?;
 
