@@ -20,6 +20,10 @@ import { pl } from './translations/pl';
 import { pt_BR } from './translations/pt_BR';
 import { ja } from './translations/ja';
 import { ka } from './translations/ka';
+import { gl } from './translations/gl';
+import { tr } from './translations/tr';
+import { hu } from './translations/hu';
+import { uk } from './translations/uk';
 
 // https://github.com/nimbusec-oss/inferno-i18next/blob/master/tests/T.test.js#L66
 const resources = {
@@ -43,6 +47,10 @@ const resources = {
   pl,
   pt_BR,
   ja,
+  gl,
+  tr,
+  hu,
+  uk,
 };
 
 function format(value: any, format: any, lng: any): any {
