@@ -10,10 +10,9 @@ interface SilverUser {
 }
 
 let general = [
+  'Ernest Wiśniewski',
+  'HN',
   'Forrest Weghorst',
-  'Serge Tarkovski',
-  'alexx henry',
-  'Nathan J. Goode',
   'Andre Vallestero',
   'NotTooHighToHack',
 ];
