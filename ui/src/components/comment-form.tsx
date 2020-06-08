@@ -304,7 +304,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
       file = event;
     }
 
-    const imageUploadUrl = `/pictshare/api/upload.php`;
+    const imageUploadUrl = `/pictrs/image`;
     const formData = new FormData();
     formData.append('file', file);
 
@@ -317,7 +317,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     })
       .then(res => res.json())
       .then(res => {
-        let url = `${window.location.origin}/pictshare/${res.url}`;
+        let url = `${window.location.origin}/pictrs/${res.url}`;
         let imageMarkdown =
           res.filetype == 'mp4' ? `[vid](${url}/raw)` : `![](${url})`;
         let content = i.state.commentForm.content;

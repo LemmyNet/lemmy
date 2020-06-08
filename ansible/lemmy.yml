@@ -24,10 +24,11 @@
       creates: '/etc/letsencrypt/live/{{domain}}/privkey.pem'
 
   - name: create lemmy folder
-    file: path={{item.path}} state=directory
+    file: path={{item.path}} {{item.owner}} state=directory
     with_items:
-      - { path: '/lemmy/' }
-      - { path: '/lemmy/volumes/' }
+      - { path: '/lemmy/', owner: 'root' }
+      - { path: '/lemmy/volumes/', owner: 'root' }
+      - { path: '/lemmy/volumes/pictrs/', owner: '991' }
 
   - block:
     - name:  add template files
@@ -38,9 +39,6 @@
         - { src: '../docker/iframely.config.local.js', dest: '/lemmy/iframely.config.local.js', mode: '0600' }
       vars: 
         lemmy_docker_image: "dessalines/lemmy:{{ lookup('file', 'VERSION') }}"
-        lemmy_port: "8536"
-        pictshare_port: "8537"
-        iframely_port: "8538"
 
     - name:  add config file (only during initial setup)
       template: src='templates/config.hjson' dest='/lemmy/lemmy.hjson' mode='0600' force='no' owner='1000' group='1000'

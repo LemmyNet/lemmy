@@ -518,9 +518,9 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       file = event;
     }
 
-    const imageUploadUrl = `/pictshare/api/upload.php`;
+    const imageUploadUrl = `/pictrs/image`;
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('images', file);
 
     i.state.imageLoading = true;
     i.setState(i.state);
@@ -531,7 +531,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     })
       .then(res => res.json())
       .then(res => {
-        let url = `${window.location.origin}/pictshare/${encodeURI(res.url)}`;
+        let url = `${window.location.origin}/pictrs/${encodeURI(res.url)}`;
         if (res.filetype == 'mp4') {
           url += '/raw';
         }

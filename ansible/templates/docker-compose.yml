@@ -12,7 +12,7 @@ services:
       - ./lemmy.hjson:/config/config.hjson:ro
     depends_on:
       - postgres
-      - pictshare
+      - pictrs
       - iframely
 
   postgres:
@@ -25,18 +25,19 @@ services:
       - ./volumes/postgres:/var/lib/postgresql/data
     restart: always
 
-  pictshare:
-    image: hascheksolutions/pictshare:latest
+  pictrs:
+    image: asonix/pictrs:amd64-v0.1.0-r9
+    user: 991:991
     ports:
-      - "127.0.0.1:8537:80"
+      - "127.0.0.1:8537:8080"
     volumes:
-      - ./volumes/pictshare:/usr/share/nginx/html/data
+      - ./volumes/pictrs:/mnt
     restart: always
 
   iframely:
     image: dogbin/iframely:latest
     ports:
-      - "127.0.0.1:8061:80"
+      - "127.0.0.1:8538:80"
     volumes:
       - ./iframely.config.local.js:/iframely/config.local.js:ro
     restart: always

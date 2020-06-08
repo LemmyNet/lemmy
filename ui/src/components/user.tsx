@@ -988,7 +988,7 @@ export class User extends Component<any, UserState> {
   handleImageUpload(i: User, event: any) {
     event.preventDefault();
     let file = event.target.files[0];
-    const imageUploadUrl = `/pictshare/api/upload.php`;
+    const imageUploadUrl = `/pictrs/image`;
     const formData = new FormData();
     formData.append('file', file);
 
@@ -1001,7 +1001,7 @@ export class User extends Component<any, UserState> {
     })
       .then(res => res.json())
       .then(res => {
-        let url = `${window.location.origin}/pictshare/${res.url}`;
+        let url = `${window.location.origin}/pictrs/${res.url}`;
         if (res.filetype == 'mp4') {
           url += '/raw';
         }
