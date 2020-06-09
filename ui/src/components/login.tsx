@@ -110,13 +110,16 @@ export class Login extends Component<any, State> {
                 class="form-control"
                 required
               />
-              <button
-                disabled={!validEmail(this.state.loginForm.username_or_email)}
+              <a
+                href="#"
                 onClick={linkEvent(this, this.handlePasswordReset)}
-                className="btn p-0 btn-link d-inline-block float-right text-muted small font-weight-bold"
+                className={`btn p-0 btn-link d-inline-block float-right text-muted small font-weight-bold ${
+                  !validEmail(this.state.loginForm.username_or_email) &&
+                  'no-click'
+                }`}
               >
                 {i18n.t('forgot_password')}
-              </button>
+              </a>
             </div>
           </div>
           <div class="form-group row">
