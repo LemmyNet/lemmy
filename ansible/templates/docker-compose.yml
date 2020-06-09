@@ -37,7 +37,7 @@ services:
   iframely:
     image: dogbin/iframely:latest
     ports:
-      - "127.0.0.1:8538:80"
+      - "127.0.0.1:8061:80"
     volumes:
       - ./iframely.config.local.js:/iframely/config.local.js:ro
     restart: always

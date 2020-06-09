@@ -1,22 +1,13 @@
 version: '3.3'
 
 services:
-  nginx:
-    image: nginx:1.19-alpine
-    ports:
-      - "8536:8536"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-    depends_on:
-      - lemmy
-      - pictrs
-      - iframely
-    restart: "always"
 
   lemmy:
     build: 
       context: ../../
       dockerfile: docker/dev/Dockerfile
+    ports:
+      - "127.0.0.1:8536:8536"
     restart: always
     environment:
       - RUST_LOG=debug
@@ -37,7 +28,9 @@ services:
     restart: always
 
   pictrs:
-    image: asonix/pictrs:amd64-v0.1.0-r9
+    image: asonix/pictrs:v0.1.0-r13
+    ports: 
+      - "127.0.0.1:8537:8080"
     user: 991:991
     volumes:
       - ./volumes/pictrs:/mnt
@@ -45,6 +38,8 @@ services:
 
   iframely:
     image: dogbin/iframely:latest
+    ports:
+      - "127.0.0.1:8061:80"
     volumes:
       - ../iframely.config.local.js:/iframely/config.local.js:ro
     restart: always

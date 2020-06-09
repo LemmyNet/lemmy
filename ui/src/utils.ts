@@ -440,10 +440,12 @@ export function objectFlip(obj: any) {
   return ret;
 }
 
-export function pictshareAvatarThumbnail(src: string): string {
-  // sample url: http://localhost:8535/pictshare/gs7xuu.jpg
-  let split = src.split('pictshare');
-  let out = `${split[0]}pictshare/${canUseWebP() ? 'webp/' : ''}96${split[1]}`;
+export function pictrsAvatarThumbnail(src: string): string {
+  // sample url: http://localhost:8535/pictrs/image/thumbnail256/gs7xuu.jpg
+  let split = src.split('/pictrs/image');
+  let out = `${split[0]}/pictrs/image/${
+    canUseWebP() ? 'webp/' : ''
+  }thumbnail96${split[1]}`;
   return out;
 }
 
@@ -455,21 +457,18 @@ export function showAvatars(): boolean {
 }
 
 // Converts to image thumbnail
-export function pictshareImage(
-  hash: string,
-  thumbnail: boolean = false
-): string {
-  let root = `/pictshare`;
+export function pictrsImage(hash: string, thumbnail: boolean = false): string {
+  let root = `/pictrs/image`;
 
   // Necessary for other servers / domains
-  if (hash.includes('pictshare')) {
-    let split = hash.split('/pictshare/');
-    root = `${split[0]}/pictshare`;
+  if (hash.includes('pictrs')) {
+    let split = hash.split('/pictrs/image/');
+    root = `${split[0]}/pictrs/image`;
     hash = split[1];
   }
 
   let out = `${root}/${canUseWebP() ? 'webp/' : ''}${
-    thumbnail ? '192/' : ''
+    thumbnail ? 'thumbnail192/' : ''
   }${hash}`;
   return out;
 }
