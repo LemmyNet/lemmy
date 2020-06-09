@@ -709,19 +709,15 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   get linkBtn() {
     let node = this.props.node;
     return (
-      <button className="btn btn-link btn-animate">
-        <Link
-          class="text-muted"
-          to={`/post/${node.comment.post_id}/comment/${node.comment.id}`}
-          title={
-            this.props.showContext ? i18n.t('show_context') : i18n.t('link')
-          }
-        >
-          <svg class="icon icon-inline">
-            <use xlinkHref="#icon-link"></use>
-          </svg>
-        </Link>
-      </button>
+      <Link
+        class="btn btn-link btn-animate text-muted"
+        to={`/post/${node.comment.post_id}/comment/${node.comment.id}`}
+        title={this.props.showContext ? i18n.t('show_context') : i18n.t('link')}
+      >
+        <svg class="icon icon-inline">
+          <use xlinkHref="#icon-link"></use>
+        </svg>
+      </Link>
     );
   }
 

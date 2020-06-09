@@ -85,6 +85,20 @@ pub fn is_email_regex(test: &str) -> bool {
   EMAIL_REGEX.is_match(test)
 }
 
+pub fn is_image_content_type(test: &str) -> Result<(), failure::Error> {
+  if isahc::get(test)?
+    .headers()
+    .get("Content-Type")
+    .ok_or_else(|| format_err!("No Content-Type header"))?
+    .to_str()?
+    .starts_with("image/")
+  {
+    Ok(())
+  } else {
+    Err(format_err!("Not an image type."))
+  }
+}
+
 pub fn remove_slurs(test: &str) -> String {
   SLUR_REGEX.replace_all(test, "*removed*").to_string()
 }
@@ -178,6 +192,8 @@ pub struct PictshareResponse {
 }
 
 pub fn fetch_pictshare(image_url: &str) -> Result<PictshareResponse, failure::Error> {
+  is_image_content_type(image_url)?;
+
   let fetch_url = format!(
     "http://pictshare/api/geturl.php?url={}",
     utf8_percent_encode(image_url, NON_ALPHANUMERIC)
@@ -195,36 +211,46 @@ fn fetch_iframely_and_pictshare_data(
   Option<String>,
   Option<String>,
 ) {
-  // Fetch iframely data
-  let (iframely_title, iframely_description, iframely_thumbnail_url, iframely_html) = match url {
-    Some(url) => match fetch_iframely(&url) {
-      Ok(res) => (res.title, res.description, res.thumbnail_url, res.html),
-      Err(e) => {
-        error!("iframely err: {}", e);
-        (None, None, None, None)
-      }
-    },
+  match &url {
+    Some(url) => {
+      // Fetch iframely data
+      let (iframely_title, iframely_description, iframely_thumbnail_url, iframely_html) =
+        match fetch_iframely(url) {
+          Ok(res) => (res.title, res.description, res.thumbnail_url, res.html),
+          Err(e) => {
+            error!("iframely err: {}", e);
+            (None, None, None, None)
+          }
+        };
+
+      // Fetch pictshare thumbnail
+      let pictshare_thumbnail = match iframely_thumbnail_url {
+        Some(iframely_thumbnail_url) => match fetch_pictshare(&iframely_thumbnail_url) {
+          Ok(res) => Some(res.url),
+          Err(e) => {
+            error!("pictshare err: {}", e);
+            None
+          }
+        },
+        // Try to generate a small thumbnail if iframely is not supported
+        None => match fetch_pictshare(&url) {
+          Ok(res) => Some(res.url),
+          Err(e) => {
+            error!("pictshare err: {}", e);
+            None
+          }
+        },
+      };
+
+      (
+        iframely_title,
+        iframely_description,
+        iframely_html,
+        pictshare_thumbnail,
+      )
+    }
     None => (None, None, None, None),
-  };
-
-  // Fetch pictshare thumbnail
-  let pictshare_thumbnail = match iframely_thumbnail_url {
-    Some(iframely_thumbnail_url) => match fetch_pictshare(&iframely_thumbnail_url) {
-      Ok(res) => Some(res.url),
-      Err(e) => {
-        error!("pictshare err: {}", e);
-        None
-      }
-    },
-    None => None,
-  };
-
-  (
-    iframely_title,
-    iframely_description,
-    iframely_html,
-    pictshare_thumbnail,
-  )
+  }
 }
 
 pub fn markdown_to_html(text: &str) -> String {
@@ -268,10 +294,16 @@ pub fn scrape_text_for_mentions(text: &str) -> Vec<MentionData> {
   out.into_iter().unique().collect()
 }
 
+pub fn is_valid_username(name: &str) -> bool {
+  VALID_USERNAME_REGEX.is_match(name)
+}
+
 #[cfg(test)]
 mod tests {
   use crate::{
     is_email_regex,
+    is_image_content_type,
+    is_valid_username,
     remove_slurs,
     scrape_text_for_mentions,
     slur_check,
@@ -289,9 +321,27 @@ mod tests {
   }
 
   #[test]
+  fn test_image() {
+    assert!(is_image_content_type("https://1734811051.rsc.cdn77.org/data/images/full/365645/as-virus-kills-navajos-in-their-homes-tribal-women-provide-lifeline.jpg?w=600?w=650").is_ok());
+    assert!(is_image_content_type(
+      "https://twitter.com/BenjaminNorton/status/1259922424272957440?s=20"
+    )
+    .is_err());
+  }
+
+  #[test]
   fn test_email() {
     assert!(is_email_regex("gush@gmail.com"));
     assert!(!is_email_regex("nada_neutho"));
+  }
+
+  #[test]
+  fn test_valid_register_username() {
+    assert!(is_valid_username("Hello_98"));
+    assert!(is_valid_username("ten"));
+    assert!(!is_valid_username("Hello-98"));
+    assert!(!is_valid_username("a"));
+    assert!(!is_valid_username(""));
   }
 
   #[test]
@@ -351,4 +401,5 @@ lazy_static! {
   // TODO keep this old one, it didn't work with port well tho
   // static ref WEBFINGER_USER_REGEX: Regex = Regex::new(r"@(?P<name>[\w.]+)@(?P<domain>[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)").unwrap();
   static ref WEBFINGER_USER_REGEX: Regex = Regex::new(r"@(?P<name>[\w.]+)@(?P<domain>[a-zA-Z0-9._:-]+)").unwrap();
+  static ref VALID_USERNAME_REGEX: Regex = Regex::new(r"^[a-zA-Z0-9_]{3,20}$").unwrap();
 }

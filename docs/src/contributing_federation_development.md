@@ -5,12 +5,12 @@
 If you don't have a local clone of the Lemmy repo yet, just run the following command:
 
 ```bash
-git clone https://yerbamate.dev/LemmyNet/lemmy.git -b federation
+git clone https://github.com/LemmyNet/lemmy -b federation
 ```
 
 If you already have the Lemmy repo cloned, you need to add a new remote:
 ```bash
-git remote add federation https://yerbamate.dev/LemmyNet/lemmy.git
+git remote add federation https://github.com/LemmyNet/lemmy
 git checkout federation
 git pull federation federation
 ```

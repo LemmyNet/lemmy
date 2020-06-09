@@ -614,6 +614,7 @@ export class User extends Component<any, UserState> {
                     id="user-password"
                     class="form-control"
                     value={this.state.userSettingsForm.new_password}
+                    autoComplete="new-password"
                     onInput={linkEvent(
                       this,
                       this.handleUserSettingsNewPasswordChange
@@ -634,6 +635,7 @@ export class User extends Component<any, UserState> {
                     id="user-verify-password"
                     class="form-control"
                     value={this.state.userSettingsForm.new_password_verify}
+                    autoComplete="new-password"
                     onInput={linkEvent(
                       this,
                       this.handleUserSettingsNewPasswordVerifyChange
@@ -654,6 +656,7 @@ export class User extends Component<any, UserState> {
                     id="user-old-password"
                     class="form-control"
                     value={this.state.userSettingsForm.old_password}
+                    autoComplete="new-password"
                     onInput={linkEvent(
                       this,
                       this.handleUserSettingsOldPasswordChange
@@ -750,6 +753,7 @@ export class User extends Component<any, UserState> {
                     <input
                       type="password"
                       value={this.state.deleteAccountForm.password}
+                      autoComplete="new-password"
                       onInput={linkEvent(
                         this,
                         this.handleDeleteAccountPasswordChange

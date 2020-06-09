@@ -34,7 +34,7 @@
 
 Front Page|Post
 ---|---
-![main screen](https://i.imgur.com/kZSRcRu.png)|![chat screen](https://i.imgur.com/4XghNh6.png)
+![main screen](https://raw.githubusercontent.com/LemmyNet/lemmy/master/docs/img/main_screen.png)|![chat screen](https://raw.githubusercontent.com/LemmyNet/lemmy/master/docs/img/chat_screen.png)
 
 [Lemmy](https://github.com/LemmyNet/lemmy) is similar to sites like [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), [Raddle](https://raddle.me), or [Hacker News](https://news.ycombinator.com/): you subscribe to forums you're interested in, post links and discussions, then vote, and comment on them. Behind the scenes, it is very different; anyone can easily run a server, and all these servers are federated (think email), and connected to the same universe, called the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
 
@@ -44,7 +44,7 @@ The overall goal is to create an easily self-hostable, decentralized alternative
 
 Each lemmy server can set its own moderation policy; appointing site-wide admins, and community moderators to keep out the trolls, and foster a healthy, non-toxic environment where all can feel comfortable contributing.
 
-*Note: Federation is still in active development*
+*Note: Federation is still in active development and the WebSocket, as well as, HTTP API are currently unstable*
 
 ### Why's it called Lemmy?
 
@@ -125,16 +125,19 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 - [Docker Development](https://dev.lemmy.ml/docs/contributing_docker_development.html)
 - [Local Development](https://dev.lemmy.ml/docs/contributing_local_development.html)
 
-### Translations 
+### Translations
 
 If you want to help with translating, take a look at [Weblate](https://weblate.yerbamate.dev/projects/lemmy/).
 
 ## Contact
 
-- [Mastodon](https://mastodon.social/@LemmyDev) - [![Mastodon Follow](https://img.shields.io/mastodon/follow/810572?domain=https%3A%2F%2Fmastodon.social&style=social)](https://mastodon.social/@LemmyDev)
-- [Matrix](https://riot.im/app/#/room/#rust-reddit-fediverse:matrix.org) - [![Matrix](https://img.shields.io/matrix/rust-reddit-fediverse:matrix.org.svg?label=matrix-chat)](https://riot.im/app/#/room/#rust-reddit-fediverse:matrix.org)
+- [Mastodon](https://mastodon.social/@LemmyDev)
+- [Matrix](https://riot.im/app/#/room/#rust-reddit-fediverse:matrix.org)
+
+## Code Mirrors
+
 - [GitHub](https://github.com/LemmyNet/lemmy)
-- [Gitea](https://yerbamate.dev/dessalines/lemmy)
+- [Gitea](https://yerbamate.dev/LemmyNet/lemmy)
 - [GitLab](https://gitlab.com/dessalines/lemmy)
 
 ## Credits

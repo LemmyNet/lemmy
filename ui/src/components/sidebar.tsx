@@ -173,9 +173,11 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
               </form>
             )}
             <ul class="my-1 list-inline">
+              {/*
               <li className="list-inline-item badge badge-secondary">
                 {i18n.t('number_online', { count: this.props.online })}
               </li>
+              */}
               <li className="list-inline-item badge badge-secondary">
                 {i18n.t('number_of_subscribers', {
                   count: community.number_of_subscribers,

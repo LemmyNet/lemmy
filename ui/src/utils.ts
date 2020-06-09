@@ -1,4 +1,6 @@
 import 'moment/locale/es';
+import 'moment/locale/el';
+import 'moment/locale/eu';
 import 'moment/locale/eo';
 import 'moment/locale/de';
 import 'moment/locale/zh-cn';
@@ -10,9 +12,15 @@ import 'moment/locale/it';
 import 'moment/locale/fi';
 import 'moment/locale/ca';
 import 'moment/locale/fa';
+import 'moment/locale/pl';
 import 'moment/locale/pt-br';
 import 'moment/locale/ja';
 import 'moment/locale/ka';
+import 'moment/locale/hi';
+import 'moment/locale/gl';
+import 'moment/locale/tr';
+import 'moment/locale/hu';
+import 'moment/locale/uk';
 
 import {
   UserOperation,
@@ -58,17 +66,25 @@ export const mentionDropdownFetchLimit = 10;
 export const languages = [
   { code: 'ca', name: 'Català' },
   { code: 'en', name: 'English' },
+  { code: 'el', name: 'Ελληνικά' },
+  { code: 'eu', name: 'Euskara' },
   { code: 'eo', name: 'Esperanto' },
   { code: 'es', name: 'Español' },
   { code: 'de', name: 'Deutsch' },
+  { code: 'gl', name: 'Galego' },
+  { code: 'hu', name: 'Magyar Nyelv' },
   { code: 'ka', name: 'ქართული ენა' },
+  { code: 'hi', name: 'मानक हिन्दी' },
   { code: 'fa', name: 'فارسی' },
   { code: 'ja', name: '日本語' },
+  { code: 'pl', name: 'Polski' },
   { code: 'pt_BR', name: 'Português Brasileiro' },
   { code: 'zh', name: '中文' },
   { code: 'fi', name: 'Suomi' },
   { code: 'fr', name: 'Français' },
   { code: 'sv', name: 'Svenska' },
+  { code: 'tr', name: 'Türkçe' },
+  { code: 'uk', name: 'українська мова' },
   { code: 'ru', name: 'Русский' },
   { code: 'nl', name: 'Nederlands' },
   { code: 'it', name: 'Italiano' },
@@ -208,7 +224,7 @@ export function isMod(modIds: Array<number>, creator_id: number): boolean {
 }
 
 const imageRegex = new RegExp(
-  /(http)?s?:?(\/\/[^"']*\.(?:jpg|jpeg|gif|png|svg))/
+  /(http)?s?:?(\/\/[^"']*\.(?:jpg|jpeg|gif|png|svg|webp))/
 );
 const videoRegex = new RegExp(`(http)?s?:?(\/\/[^"']*\.(?:mp4))`);
 
@@ -360,12 +376,28 @@ export function getMomentLanguage(): string {
     lang = 'ca';
   } else if (lang.startsWith('fa')) {
     lang = 'fa';
+  } else if (lang.startsWith('pl')) {
+    lang = 'pl';
   } else if (lang.startsWith('pt')) {
     lang = 'pt-br';
   } else if (lang.startsWith('ja')) {
     lang = 'ja';
   } else if (lang.startsWith('ka')) {
     lang = 'ka';
+  } else if (lang.startsWith('hi')) {
+    lang = 'hi';
+  } else if (lang.startsWith('el')) {
+    lang = 'el';
+  } else if (lang.startsWith('eu')) {
+    lang = 'eu';
+  } else if (lang.startsWith('gl')) {
+    lang = 'gl';
+  } else if (lang.startsWith('tr')) {
+    lang = 'tr';
+  } else if (lang.startsWith('hu')) {
+    lang = 'hu';
+  } else if (lang.startsWith('uk')) {
+    lang = 'uk';
   } else {
     lang = 'en';
   }
@@ -382,17 +414,22 @@ export function setTheme(theme: string = 'darkly') {
   }
 
   // Load the theme dynamically
-  if (!document.getElementById(theme)) {
+  let cssLoc = `/static/assets/css/themes/${theme}.min.css`;
+  loadCss(theme, cssLoc);
+  document.getElementById(theme).removeAttribute('disabled');
+}
+
+export function loadCss(id: string, loc: string) {
+  if (!document.getElementById(id)) {
     var head = document.getElementsByTagName('head')[0];
     var link = document.createElement('link');
-    link.id = theme;
+    link.id = id;
     link.rel = 'stylesheet';
     link.type = 'text/css';
-    link.href = `/static/assets/css/themes/${theme}.min.css`;
+    link.href = loc;
     link.media = 'all';
     head.appendChild(link);
   }
-  document.getElementById(theme).removeAttribute('disabled');
 }
 
 export function objectFlip(obj: any) {
@@ -406,7 +443,7 @@ export function objectFlip(obj: any) {
 export function pictshareAvatarThumbnail(src: string): string {
   // sample url: http://localhost:8535/pictshare/gs7xuu.jpg
   let split = src.split('pictshare');
-  let out = `${split[0]}pictshare/96${split[1]}`;
+  let out = `${split[0]}pictshare/${canUseWebP() ? 'webp/' : ''}96${split[1]}`;
   return out;
 }
 
@@ -431,7 +468,9 @@ export function pictshareImage(
     hash = split[1];
   }
 
-  let out = `${root}/${thumbnail ? '192/' : ''}${hash}`;
+  let out = `${root}/${canUseWebP() ? 'webp/' : ''}${
+    thumbnail ? '192/' : ''
+  }${hash}`;
   return out;
 }
 
@@ -462,6 +501,7 @@ export function messageToastify(
     text: `${body}<br />${creator}`,
     avatar: avatar,
     backgroundColor: backgroundColor,
+    className: 'text-body',
     close: true,
     gravity: 'top',
     position: 'right',
@@ -863,4 +903,22 @@ export function hostname(url: string): string {
   return window.location.port
     ? `${cUrl.hostname}:${cUrl.port}`
     : `${cUrl.hostname}`;
+}
+
+function canUseWebP() {
+  // TODO pictshare might have a webp conversion bug, try disabling this
+  return false;
+
+  // var elem = document.createElement('canvas');
+
+  // if (!!(elem.getContext && elem.getContext('2d'))) {
+  //   var testString = !(window.mozInnerScreenX == null) ? 'png' : 'webp';
+  //   // was able or not to get WebP representation
+  //   return (
+  //     elem.toDataURL('image/webp').startsWith('data:image/' + testString)
+  //   );
+  // }
+
+  // // very old browser like IE 8, canvas not supported
+  // return false;
 }

@@ -163,38 +163,12 @@ export class PrivateMessageForm extends Component<
                   )}
                 />
               )}
-
-              <ul class="float-right list-inline mb-1 text-muted font-weight-bold">
-                <li class="list-inline-item">
-                  <span
-                    onClick={linkEvent(this, this.handleShowDisclaimer)}
-                    class="pointer"
-                    data-tippy-content={i18n.t('disclaimer')}
-                  >
-                    <svg class={`icon icon-inline`}>
-                      <use xlinkHref="#icon-alert-triangle"></use>
-                    </svg>
-                  </span>
-                </li>
-                <li class="list-inline-item">
-                  <a
-                    href={markdownHelpUrl}
-                    target="_blank"
-                    class="text-muted"
-                    title={i18n.t('formatting_help')}
-                  >
-                    <svg class="icon icon-inline">
-                      <use xlinkHref="#icon-help-circle"></use>
-                    </svg>
-                  </a>
-                </li>
-              </ul>
             </div>
           </div>
 
           {this.state.showDisclaimer && (
             <div class="form-group row">
-              <div class="col-sm-10">
+              <div class="offset-sm-2 col-sm-10">
                 <div class="alert alert-danger" role="alert">
                   <T i18nKey="private_message_disclaimer">
                     #
@@ -211,7 +185,7 @@ export class PrivateMessageForm extends Component<
             </div>
           )}
           <div class="form-group row">
-            <div class="col-sm-10">
+            <div class="offset-sm-2 col-sm-10">
               <button type="submit" class="btn btn-secondary mr-2">
                 {this.state.loading ? (
                   <svg class="icon icon-spinner spin">
@@ -242,6 +216,31 @@ export class PrivateMessageForm extends Component<
                   {i18n.t('cancel')}
                 </button>
               )}
+              <ul class="d-inline-block float-right list-inline mb-1 text-muted font-weight-bold">
+                <li class="list-inline-item">
+                  <span
+                    onClick={linkEvent(this, this.handleShowDisclaimer)}
+                    class="pointer"
+                    data-tippy-content={i18n.t('disclaimer')}
+                  >
+                    <svg class={`icon icon-inline`}>
+                      <use xlinkHref="#icon-alert-triangle"></use>
+                    </svg>
+                  </span>
+                </li>
+                <li class="list-inline-item">
+                  <a
+                    href={markdownHelpUrl}
+                    target="_blank"
+                    class="text-muted"
+                    title={i18n.t('formatting_help')}
+                  >
+                    <svg class="icon icon-inline">
+                      <use xlinkHref="#icon-help-circle"></use>
+                    </svg>
+                  </a>
+                </li>
+              </ul>
             </div>
           </div>
         </form>

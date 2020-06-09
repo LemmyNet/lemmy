@@ -1,4 +1,4 @@
-version: '3.3'
+version: '2.2'
 
 services:
   postgres:
@@ -12,7 +12,7 @@ services:
     restart: always
 
   lemmy:
-    image: dessalines/lemmy:v0.6.51
+    image: dessalines/lemmy:v0.6.71
     ports:
       - "127.0.0.1:8536:8536"
     restart: always
@@ -26,12 +26,13 @@ services:
       - iframely
 
   pictshare:
-    image: shtripok/pictshare:latest
+    image: hascheksolutions/pictshare:latest
     ports:
       - "127.0.0.1:8537:80"
     volumes:
       - ./volumes/pictshare:/usr/share/nginx/html/data
     restart: always
+    mem_limit: 100m
 
   iframely:
     image: dogbin/iframely:latest
@@ -40,3 +41,4 @@ services:
     volumes:
       - ./iframely.config.local.js:/iframely/config.local.js:ro
     restart: always
+    mem_limit: 100m

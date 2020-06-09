@@ -28,7 +28,7 @@ services:
       - iframely
 
   pictshare:
-    image: shtripok/pictshare:latest
+    image: hascheksolutions/pictshare:latest
     ports:
       - "127.0.0.1:8537:80"
     volumes:

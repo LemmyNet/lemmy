@@ -10,12 +10,13 @@ cd /lemmy
 wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/docker-compose.yml
 wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/lemmy.hjson
 wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/iframely.config.local.js
-docker-compose up -d
 ```
 
-After this, have a look at the [config file](administration_configuration.md) named `lemmy.hjson`, and adjust it, in particular the hostname.
+After this, have a look at the [config file](administration_configuration.md) named `lemmy.hjson`, and adjust it, in particular the hostname, and possibly the db password. Then run:
 
-To make Lemmy available outside the server, you need to setup a reverse proxy, like Nginx. [A sample nginx config](/ansible/templates/nginx.conf), could be setup with:
+`docker-compose up -d`
+
+To make Lemmy available outside the server, you need to setup a reverse proxy, like Nginx. [A sample nginx config](https://raw.githubusercontent.com/dessalines/lemmy/master/ansible/templates/nginx.conf), could be setup with:
 
 ```bash
 wget https://raw.githubusercontent.com/dessalines/lemmy/master/ansible/templates/nginx.conf

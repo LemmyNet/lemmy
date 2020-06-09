@@ -331,6 +331,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
                   value={this.state.postForm.community_id}
                   onInput={linkEvent(this, this.handlePostCommunityChange)}
                 >
+                  <option>{i18n.t('select_a_community')}</option>
                   {this.state.communities.map(community => (
                     <option value={community.id}>
                       {community.local
@@ -362,7 +363,11 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
           )}
           <div class="form-group row">
             <div class="col-sm-10">
-              <button type="submit" class="btn btn-secondary mr-2">
+              <button
+                disabled={!this.state.postForm.community_id}
+                type="submit"
+                class="btn btn-secondary mr-2"
+              >
                 {this.state.loading ? (
                   <svg class="icon icon-spinner spin">
                     <use xlinkHref="#icon-spinner"></use>
@@ -568,7 +573,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
         ).id;
         this.state.postForm.community_id = foundCommunityId;
       } else {
-        this.state.postForm.community_id = data.communities[0].id;
+        // By default, the null valued 'Select a Community'
       }
       this.setState(this.state);
 
@@ -578,6 +583,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
         let selector = new Selectr(selectId, { nativeDropdown: false });
         selector.on('selectr.select', option => {
           this.state.postForm.community_id = Number(option.value);
+          this.setState(this.state);
         });
       }
     } else if (res.op == UserOperation.CreatePost) {

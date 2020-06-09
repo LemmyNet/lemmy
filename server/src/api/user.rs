@@ -30,6 +30,7 @@ use crate::{
     SortType,
   },
   generate_random_string,
+  is_valid_username,
   naive_from_unix,
   naive_now,
   remove_slurs,
@@ -314,6 +315,9 @@ impl Perform for Oper<Register> {
     }
 
     let user_keypair = generate_actor_keypair()?;
+    if !is_valid_username(&data.username) {
+      return Err(APIError::err("invalid_username").into());
+    }
 
     // Register the new user
     let user_form = UserForm {
