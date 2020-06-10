@@ -481,7 +481,7 @@ export function messageToastify(
     text: `${body}<br />${creator}`,
     avatar: avatar,
     backgroundColor: backgroundColor,
-    className: 'text-body',
+    className: 'text-dark',
     close: true,
     gravity: 'top',
     position: 'right',
@@ -868,9 +868,7 @@ function canUseWebP() {
   if (!!(elem.getContext && elem.getContext('2d'))) {
     var testString = !(window.mozInnerScreenX == null) ? 'png' : 'webp';
     // was able or not to get WebP representation
-    return (
-      elem.toDataURL('image/webp').startsWith('data:image/' + testString)
-    );
+    return elem.toDataURL('image/webp').startsWith('data:image/' + testString);
   }
 
   // very old browser like IE 8, canvas not supported
