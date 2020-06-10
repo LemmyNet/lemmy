@@ -404,7 +404,7 @@ export function getMomentLanguage(): string {
   return lang;
 }
 
-export function setTheme(theme: string = 'darkly') {
+export function setTheme(theme: string = 'darkly', loggedIn: boolean = false) {
   // unload all the other themes
   for (var i = 0; i < themes.length; i++) {
     let styleSheet = document.getElementById(themes[i]);
@@ -413,10 +413,19 @@ export function setTheme(theme: string = 'darkly') {
     }
   }
 
-  // Load the theme dynamically
-  let cssLoc = `/static/assets/css/themes/${theme}.min.css`;
-  loadCss(theme, cssLoc);
-  document.getElementById(theme).removeAttribute('disabled');
+  // if the user is not logged in, we load the default themes and let the browser decide
+  if(!loggedIn) {
+    document.getElementById("default-light").removeAttribute('disabled')
+    document.getElementById("default-dark").removeAttribute('disabled')
+  } else {
+    document.getElementById("default-light").setAttribute('disabled', 'disabled');
+    document.getElementById("default-dark").setAttribute('disabled', 'disabled');
+
+    // Load the theme dynamically
+    let cssLoc = `/static/assets/css/themes/${theme}.min.css`;
+    loadCss(theme, cssLoc);
+    document.getElementById(theme).removeAttribute('disabled');
+  }
 }
 
 export function loadCss(id: string, loc: string) {
