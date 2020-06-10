@@ -44,7 +44,7 @@ The overall goal is to create an easily self-hostable, decentralized alternative
 
 Each lemmy server can set its own moderation policy; appointing site-wide admins, and community moderators to keep out the trolls, and foster a healthy, non-toxic environment where all can feel comfortable contributing.
 
-*Note: Federation is still in active development*
+*Note: Federation is still in active development and the WebSocket, as well as, HTTP API are currently unstable*
 
 ### Why's it called Lemmy?
 
