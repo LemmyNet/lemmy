@@ -12,10 +12,15 @@ import 'moment/locale/it';
 import 'moment/locale/fi';
 import 'moment/locale/ca';
 import 'moment/locale/fa';
+import 'moment/locale/pl';
 import 'moment/locale/pt-br';
 import 'moment/locale/ja';
 import 'moment/locale/ka';
 import 'moment/locale/hi';
+import 'moment/locale/gl';
+import 'moment/locale/tr';
+import 'moment/locale/hu';
+import 'moment/locale/uk';
 
 import {
   UserOperation,
@@ -66,15 +71,20 @@ export const languages = [
   { code: 'eo', name: 'Esperanto' },
   { code: 'es', name: 'Español' },
   { code: 'de', name: 'Deutsch' },
+  { code: 'gl', name: 'Galego' },
+  { code: 'hu', name: 'Magyar Nyelv' },
   { code: 'ka', name: 'ქართული ენა' },
   { code: 'hi', name: 'मानक हिन्दी' },
   { code: 'fa', name: 'فارسی' },
   { code: 'ja', name: '日本語' },
+  { code: 'pl', name: 'Polski' },
   { code: 'pt_BR', name: 'Português Brasileiro' },
   { code: 'zh', name: '中文' },
   { code: 'fi', name: 'Suomi' },
   { code: 'fr', name: 'Français' },
   { code: 'sv', name: 'Svenska' },
+  { code: 'tr', name: 'Türkçe' },
+  { code: 'uk', name: 'українська мова' },
   { code: 'ru', name: 'Русский' },
   { code: 'nl', name: 'Nederlands' },
   { code: 'it', name: 'Italiano' },
@@ -366,6 +376,8 @@ export function getMomentLanguage(): string {
     lang = 'ca';
   } else if (lang.startsWith('fa')) {
     lang = 'fa';
+  } else if (lang.startsWith('pl')) {
+    lang = 'pl';
   } else if (lang.startsWith('pt')) {
     lang = 'pt-br';
   } else if (lang.startsWith('ja')) {
@@ -378,6 +390,14 @@ export function getMomentLanguage(): string {
     lang = 'el';
   } else if (lang.startsWith('eu')) {
     lang = 'eu';
+  } else if (lang.startsWith('gl')) {
+    lang = 'gl';
+  } else if (lang.startsWith('tr')) {
+    lang = 'tr';
+  } else if (lang.startsWith('hu')) {
+    lang = 'hu';
+  } else if (lang.startsWith('uk')) {
+    lang = 'uk';
   } else {
     lang = 'en';
   }
@@ -481,7 +501,7 @@ export function messageToastify(
     text: `${body}<br />${creator}`,
     avatar: avatar,
     backgroundColor: backgroundColor,
-    className: 'text-body',
+    className: 'text-dark',
     close: true,
     gravity: 'top',
     position: 'right',
@@ -867,7 +887,6 @@ function canUseWebP() {
   return false;
 
   // var elem = document.createElement('canvas');
-
   // if (!!(elem.getContext && elem.getContext('2d'))) {
   //   var testString = !(window.mozInnerScreenX == null) ? 'png' : 'webp';
   //   // was able or not to get WebP representation
