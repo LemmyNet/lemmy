@@ -118,7 +118,7 @@ impl Perform for Oper<CreatePost> {
 
     // Fetch Iframely and Pictshare cached image
     let (iframely_title, iframely_description, iframely_html, pictshare_thumbnail) =
-      fetch_iframely_and_pictshare_data(data.url.to_owned());
+      fetch_iframely_and_pictrs_data(data.url.to_owned());
 
     let post_form = PostForm {
       name: data.name.to_owned(),
@@ -452,7 +452,7 @@ impl Perform for Oper<EditPost> {
 
     // Fetch Iframely and Pictshare cached image
     let (iframely_title, iframely_description, iframely_html, pictshare_thumbnail) =
-      fetch_iframely_and_pictshare_data(data.url.to_owned());
+      fetch_iframely_and_pictrs_data(data.url.to_owned());
 
     let post_form = PostForm {
       name: data.name.to_owned(),

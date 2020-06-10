@@ -187,25 +187,35 @@ pub fn fetch_iframely(url: &str) -> Result<IframelyResponse, failure::Error> {
   Ok(res)
 }
 
-#[derive(Deserialize, Debug)]
-pub struct PictshareResponse {
-  status: String,
-  url: String,
+#[derive(Deserialize, Debug, Clone)]
+pub struct PictrsResponse {
+  files: Vec<PictrsFile>,
+  msg: String,
 }
 
-pub fn fetch_pictshare(image_url: &str) -> Result<PictshareResponse, failure::Error> {
+#[derive(Deserialize, Debug, Clone)]
+pub struct PictrsFile {
+  file: String,
+  delete_token: String,
+}
+
+pub fn fetch_pictrs(image_url: &str) -> Result<PictrsResponse, failure::Error> {
   is_image_content_type(image_url)?;
 
   let fetch_url = format!(
-    "http://pictshare/api/geturl.php?url={}",
-    utf8_percent_encode(image_url, NON_ALPHANUMERIC)
+    "http://pictrs:8080/image/download?url={}",
+    utf8_percent_encode(image_url, NON_ALPHANUMERIC) // TODO this might not be needed
   );
   let text = isahc::get(&fetch_url)?.text()?;
-  let res: PictshareResponse = serde_json::from_str(&text)?;
-  Ok(res)
+  let res: PictrsResponse = serde_json::from_str(&text)?;
+  if res.msg == "ok" {
+    Ok(res)
+  } else {
+    Err(format_err!("{}", &res.msg))
+  }
 }
 
-fn fetch_iframely_and_pictshare_data(
+fn fetch_iframely_and_pictrs_data(
   url: Option<String>,
 ) -> (
   Option<String>,
@@ -225,20 +235,20 @@ fn fetch_iframely_and_pictshare_data(
           }
         };
 
-      // Fetch pictshare thumbnail
-      let pictshare_thumbnail = match iframely_thumbnail_url {
-        Some(iframely_thumbnail_url) => match fetch_pictshare(&iframely_thumbnail_url) {
-          Ok(res) => Some(res.url),
+      // Fetch pictrs thumbnail
+      let pictrs_thumbnail = match iframely_thumbnail_url {
+        Some(iframely_thumbnail_url) => match fetch_pictrs(&iframely_thumbnail_url) {
+          Ok(res) => Some(res.files[0].file.to_owned()),
           Err(e) => {
-            error!("pictshare err: {}", e);
+            error!("pictrs err: {}", e);
             None
           }
         },
         // Try to generate a small thumbnail if iframely is not supported
-        None => match fetch_pictshare(&url) {
-          Ok(res) => Some(res.url),
+        None => match fetch_pictrs(&url) {
+          Ok(res) => Some(res.files[0].file.to_owned()),
           Err(e) => {
-            error!("pictshare err: {}", e);
+            error!("pictrs err: {}", e);
             None
           }
         },
@@ -248,7 +258,7 @@ fn fetch_iframely_and_pictshare_data(
         iframely_title,
         iframely_description,
         iframely_html,
-        pictshare_thumbnail,
+        pictrs_thumbnail,
       )
     }
     None => (None, None, None, None),
