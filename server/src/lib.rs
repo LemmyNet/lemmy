@@ -36,7 +36,6 @@ pub mod websocket;
 
 use actix_web::dev::ConnectionInfo;
 use chrono::{DateTime, NaiveDateTime, Utc};
-use isahc::prelude::*;
 use lettre::smtp::authentication::{Credentials, Mechanism};
 use lettre::smtp::extension::ClientId;
 use lettre::smtp::ConnectionReuseParameters;
@@ -74,7 +73,8 @@ pub fn is_email_regex(test: &str) -> bool {
 }
 
 pub fn is_image_content_type(test: &str) -> Result<(), failure::Error> {
-  if isahc::get(test)?
+  if attohttpc::get(test)
+    .send()?
     .headers()
     .get("Content-Type")
     .ok_or_else(|| format_err!("No Content-Type header"))?
@@ -182,7 +182,7 @@ pub struct IframelyResponse {
 
 pub fn fetch_iframely(url: &str) -> Result<IframelyResponse, failure::Error> {
   let fetch_url = format!("http://iframely/oembed?url={}", url);
-  let text = isahc::get(&fetch_url)?.text()?;
+  let text: String = attohttpc::get(&fetch_url).send()?.text()?;
   let res: IframelyResponse = serde_json::from_str(&text)?;
   Ok(res)
 }
@@ -200,7 +200,7 @@ pub fn fetch_pictshare(image_url: &str) -> Result<PictshareResponse, failure::Er
     "http://pictshare/api/geturl.php?url={}",
     utf8_percent_encode(image_url, NON_ALPHANUMERIC)
   );
-  let text = isahc::get(&fetch_url)?.text()?;
+  let text = attohttpc::get(&fetch_url).send()?.text()?;
   let res: PictshareResponse = serde_json::from_str(&text)?;
   Ok(res)
 }

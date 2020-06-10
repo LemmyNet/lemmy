@@ -35,7 +35,7 @@ htmlescape = "0.3.1"
 config = "0.10.1"
 hjson = "0.8.2"
 percent-encoding = "2.1.0"
-isahc = "0.9"
+attohttpc = { version = "0.14.0", default-features = false, features = ["tls-rustls", "compress"] }
 comrak = "0.7"
 tokio = "0.2.20"
 futures = "0.3.4"
