@@ -41,9 +41,7 @@ export class UserService {
 
   private setUser(jwt: string) {
     this.user = jwt_decode(jwt);
-    if (this.user.theme != 'darkly') {
-      setTheme(this.user.theme);
-    }
+    setTheme(this.user.theme, true);
     this.sub.next({ user: this.user });
     console.log(this.user);
   }

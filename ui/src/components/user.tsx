@@ -922,7 +922,7 @@ export class User extends Component<any, UserState> {
 
   handleUserSettingsThemeChange(i: User, event: any) {
     i.state.userSettingsForm.theme = event.target.value;
-    setTheme(event.target.value);
+    setTheme(event.target.value, true);
     i.setState(i.state);
   }
 
