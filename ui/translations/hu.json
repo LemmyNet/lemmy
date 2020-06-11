@@ -1,1 +1,18 @@
-{}
+{
+    "post": "Elküld",
+    "remove_post": "Bejegyzés eltávolítása",
+    "no_posts": "Nincs bejegyzés.",
+    "create_post": "Új bejegyzés létrehozása",
+    "create_a_post": "Új bejegyzés létrehozása",
+    "number_of_posts": "{{count}} bejegyzés",
+    "number_of_posts_plural": "{{count}} bejegyzés",
+    "posts": "Bejegyzések",
+    "related_posts": "Ezek a bejegyzések kapcsolódhatnak",
+    "cross_posts": "Ez a hivatkozás itt is be lett küldve:",
+    "cross_post": "keresztbejegyzés",
+    "comments": "Hozzászólások",
+    "remove_comment": "Hozzászólások eltávolítása",
+    "cross_posted_to": "beküldve ide is: ",
+    "number_of_comments": "{{count}} hozzászólás",
+    "number_of_comments_plural": "{{count}} hozzászólás"
+}
