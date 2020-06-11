@@ -32,8 +32,7 @@ lettre_email = "0.9.4"
 sha2 = "0.8.1"
 rss = "1.9.0"
 htmlescape = "0.3.1"
-config = "0.10.1"
-hjson = "0.8.2"
+config = {version = "0.10.1", default-features = false, features = ["hjson"] }
 percent-encoding = "2.1.0"
 attohttpc = { version = "0.14.0", default-features = false, features = ["tls-rustls", "compress"] }
 comrak = "0.7"
