@@ -5,7 +5,11 @@ use crate::{
     create_apub_tombstone_response,
     create_tombstone,
     fetch_webfinger_url,
-    fetcher::get_or_fetch_and_upsert_remote_user,
+    fetcher::{
+      get_or_fetch_and_insert_remote_comment,
+      get_or_fetch_and_insert_remote_post,
+      get_or_fetch_and_upsert_remote_user,
+    },
     ActorType,
     ApubLikeableType,
     ApubObjectType,
@@ -115,21 +119,20 @@ impl FromApub for CommentForm {
     let mut in_reply_tos = oprops.get_many_in_reply_to_xsd_any_uris().unwrap();
     let post_ap_id = in_reply_tos.next().unwrap().to_string();
 
+    // This post, or the parent comment might not yet exist on this server yet, fetch them.
+    let post = get_or_fetch_and_insert_remote_post(&post_ap_id, &conn)?;
+
     // The 2nd item, if it exists, is the parent comment apub_id
+    // For deeply nested comments, FromApub automatically gets called recursively
     let parent_id: Option<i32> = match in_reply_tos.next() {
       Some(parent_comment_uri) => {
-        let parent_comment_uri_str = &parent_comment_uri.to_string();
-        let parent_comment = Comment::read_from_apub_id(&conn, &parent_comment_uri_str)?;
+        let parent_comment_ap_id = &parent_comment_uri.to_string();
+        let parent_comment = get_or_fetch_and_insert_remote_comment(&parent_comment_ap_id, &conn)?;
 
         Some(parent_comment.id)
       }
       None => None,
     };
-
-    // TODO this failed because a mention on a post that wasn't on this server yet. Has to do with
-    // fetching replytos
-    dbg!(&post_ap_id);
-    let post = Post::read_from_apub_id(&conn, &post_ap_id)?;
 
     Ok(CommentForm {
       creator_id: creator.id,

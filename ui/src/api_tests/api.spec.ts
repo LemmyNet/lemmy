@@ -101,7 +101,7 @@ describe('main', () => {
         nsfw: false,
       };
 
-      let createResponse: PostResponse = await fetch(
+      let createPostRes: PostResponse = await fetch(
         `${lemmyAlphaApiUrl}/post`,
         {
           method: 'POST',
@@ -111,9 +111,9 @@ describe('main', () => {
           body: wrapper(postForm),
         }
       ).then(d => d.json());
-      expect(createResponse.post.name).toBe(name);
+      expect(createPostRes.post.name).toBe(name);
 
-      let searchUrl = `${lemmyBetaApiUrl}/search?q=${createResponse.post.ap_id}&type_=All&sort=TopAll`;
+      let searchUrl = `${lemmyBetaApiUrl}/search?q=${createPostRes.post.ap_id}&type_=All&sort=TopAll`;
       let searchResponse: SearchResponse = await fetch(searchUrl, {
         method: 'GET',
       }).then(d => d.json());
@@ -1312,6 +1312,172 @@ describe('main', () => {
       expect(getPostRes.comments[0].community_local).toBe(true);
       expect(getPostRes.comments[0].creator_local).toBe(false);
       expect(getPostRes.comments[0].score).toBe(1);
+    });
+  });
+
+  describe('fetch inreplytos', () => {
+    test('A is unsubbed from B, B makes a post, and some embedded comments, A subs to B, B updates the lowest level comment, A fetches both the post and all the inreplyto comments for that post.', async () => {
+      // Check that A is subscribed to B
+      let followedCommunitiesUrl = `${lemmyAlphaApiUrl}/user/followed_communities?&auth=${lemmyAlphaAuth}`;
+      let followedCommunitiesRes: GetFollowedCommunitiesResponse = await fetch(
+        followedCommunitiesUrl,
+        {
+          method: 'GET',
+        }
+      ).then(d => d.json());
+      expect(followedCommunitiesRes.communities[1].community_local).toBe(false);
+
+      // A unsubs from B (communities ids 3-5)
+      for (let i = 3; i <= 5; i++) {
+        let unfollowForm: FollowCommunityForm = {
+          community_id: i,
+          follow: false,
+          auth: lemmyAlphaAuth,
+        };
+
+        let unfollowRes: CommunityResponse = await fetch(
+          `${lemmyAlphaApiUrl}/community/follow`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: wrapper(unfollowForm),
+          }
+        ).then(d => d.json());
+        expect(unfollowRes.community.local).toBe(false);
+      }
+
+      // Check that you are unsubscribed from all of them locally
+      let followedCommunitiesResAgain: GetFollowedCommunitiesResponse = await fetch(
+        followedCommunitiesUrl,
+        {
+          method: 'GET',
+        }
+      ).then(d => d.json());
+      expect(followedCommunitiesResAgain.communities.length).toBe(1);
+
+      // B creates a post, and two comments, should be invisible to A
+      let betaPostName = 'Test post on B, invisible to A at first';
+      let postForm: PostForm = {
+        name: betaPostName,
+        auth: lemmyBetaAuth,
+        community_id: 2,
+        creator_id: 2,
+        nsfw: false,
+      };
+
+      let createPostRes: PostResponse = await fetch(`${lemmyBetaApiUrl}/post`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: wrapper(postForm),
+      }).then(d => d.json());
+      expect(createPostRes.post.name).toBe(betaPostName);
+
+      // B creates a comment, then a child one of that.
+      let parentCommentContent = 'An invisible top level comment from beta';
+      let createParentCommentForm: CommentForm = {
+        content: parentCommentContent,
+        post_id: createPostRes.post.id,
+        auth: lemmyBetaAuth,
+      };
+
+      let createParentCommentRes: CommentResponse = await fetch(
+        `${lemmyBetaApiUrl}/comment`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(createParentCommentForm),
+        }
+      ).then(d => d.json());
+      expect(createParentCommentRes.comment.content).toBe(parentCommentContent);
+
+      let childCommentContent = 'An invisible child comment from beta';
+      let createChildCommentForm: CommentForm = {
+        content: childCommentContent,
+        parent_id: createParentCommentRes.comment.id,
+        post_id: createPostRes.post.id,
+        auth: lemmyBetaAuth,
+      };
+
+      let createChildCommentRes: CommentResponse = await fetch(
+        `${lemmyBetaApiUrl}/comment`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(createChildCommentForm),
+        }
+      ).then(d => d.json());
+      expect(createChildCommentRes.comment.content).toBe(childCommentContent);
+
+      // Follow again, for other tests
+      let searchUrl = `${lemmyAlphaApiUrl}/search?q=!main@lemmy_beta:8550&type_=All&sort=TopAll`;
+
+      let searchResponse: SearchResponse = await fetch(searchUrl, {
+        method: 'GET',
+      }).then(d => d.json());
+
+      expect(searchResponse.communities[0].name).toBe('main');
+
+      let followForm: FollowCommunityForm = {
+        community_id: searchResponse.communities[0].id,
+        follow: true,
+        auth: lemmyAlphaAuth,
+      };
+
+      let followResAgain: CommunityResponse = await fetch(
+        `${lemmyAlphaApiUrl}/community/follow`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(followForm),
+        }
+      ).then(d => d.json());
+
+      // Make sure the follow response went through
+      expect(followResAgain.community.local).toBe(false);
+      expect(followResAgain.community.name).toBe('main');
+
+      let updatedCommentContent = 'An update child comment from beta';
+      let updatedCommentForm: CommentForm = {
+        content: updatedCommentContent,
+        post_id: createPostRes.post.id,
+        edit_id: createChildCommentRes.comment.id,
+        auth: lemmyBetaAuth,
+        creator_id: 2,
+      };
+
+      let updateResponse: CommentResponse = await fetch(
+        `${lemmyBetaApiUrl}/comment`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(updatedCommentForm),
+        }
+      ).then(d => d.json());
+      expect(updateResponse.comment.content).toBe(updatedCommentContent);
+
+      // Make sure that A picked up the post, parent comment, and child comment
+      let getPostUrl = `${lemmyAlphaApiUrl}/post?id=6`;
+      let getPostRes: GetPostResponse = await fetch(getPostUrl, {
+        method: 'GET',
+      }).then(d => d.json());
+
+      expect(getPostRes.post.name).toBe(betaPostName);
+      expect(getPostRes.comments[1].content).toBe(parentCommentContent);
+      expect(getPostRes.comments[0].content).toBe(updatedCommentContent);
+      expect(getPostRes.post.community_local).toBe(false);
+      expect(getPostRes.post.creator_local).toBe(false);
     });
   });
 });

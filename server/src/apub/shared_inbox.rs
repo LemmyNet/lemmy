@@ -6,7 +6,12 @@ use crate::{
   },
   apub::{
     extensions::signatures::verify,
-    fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user},
+    fetcher::{
+      get_or_fetch_and_insert_remote_comment,
+      get_or_fetch_and_insert_remote_post,
+      get_or_fetch_and_upsert_remote_community,
+      get_or_fetch_and_upsert_remote_user,
+    },
     FromApub,
     GroupExt,
     PageExt,
@@ -427,7 +432,7 @@ fn receive_update_post(
   insert_activity(&conn, user.id, &update, false)?;
 
   let post = PostForm::from_apub(&page, conn)?;
-  let post_id = Post::read_from_apub_id(conn, &post.ap_id)?.id;
+  let post_id = get_or_fetch_and_insert_remote_post(&post.ap_id, &conn)?.id;
   Post::update(conn, post_id, &post)?;
 
   // Refetch the view
@@ -465,7 +470,7 @@ fn receive_like_post(
   insert_activity(&conn, user.id, &like, false)?;
 
   let post = PostForm::from_apub(&page, conn)?;
-  let post_id = Post::read_from_apub_id(conn, &post.ap_id)?.id;
+  let post_id = get_or_fetch_and_insert_remote_post(&post.ap_id, &conn)?.id;
 
   let like_form = PostLikeForm {
     post_id,
@@ -514,7 +519,7 @@ fn receive_dislike_post(
   insert_activity(&conn, user.id, &dislike, false)?;
 
   let post = PostForm::from_apub(&page, conn)?;
-  let post_id = Post::read_from_apub_id(conn, &post.ap_id)?.id;
+  let post_id = get_or_fetch_and_insert_remote_post(&post.ap_id, &conn)?.id;
 
   let like_form = PostLikeForm {
     post_id,
@@ -563,7 +568,7 @@ fn receive_update_comment(
   insert_activity(&conn, user.id, &update, false)?;
 
   let comment = CommentForm::from_apub(&note, &conn)?;
-  let comment_id = Comment::read_from_apub_id(conn, &comment.ap_id)?.id;
+  let comment_id = get_or_fetch_and_insert_remote_comment(&comment.ap_id, &conn)?.id;
   let updated_comment = Comment::update(conn, comment_id, &comment)?;
   let post = Post::read(&conn, updated_comment.post_id)?;
 
@@ -608,7 +613,7 @@ fn receive_like_comment(
   insert_activity(&conn, user.id, &like, false)?;
 
   let comment = CommentForm::from_apub(&note, &conn)?;
-  let comment_id = Comment::read_from_apub_id(conn, &comment.ap_id)?.id;
+  let comment_id = get_or_fetch_and_insert_remote_comment(&comment.ap_id, &conn)?.id;
   let like_form = CommentLikeForm {
     comment_id,
     post_id: comment.post_id,
@@ -662,7 +667,7 @@ fn receive_dislike_comment(
   insert_activity(&conn, user.id, &dislike, false)?;
 
   let comment = CommentForm::from_apub(&note, &conn)?;
-  let comment_id = Comment::read_from_apub_id(conn, &comment.ap_id)?.id;
+  let comment_id = get_or_fetch_and_insert_remote_comment(&comment.ap_id, &conn)?.id;
   let like_form = CommentLikeForm {
     comment_id,
     post_id: comment.post_id,
@@ -838,7 +843,7 @@ fn receive_delete_post(
   insert_activity(&conn, user.id, &delete, false)?;
 
   let post_ap_id = PostForm::from_apub(&page, conn)?.ap_id;
-  let post = Post::read_from_apub_id(conn, &post_ap_id)?;
+  let post = get_or_fetch_and_insert_remote_post(&post_ap_id, &conn)?;
 
   let post_form = PostForm {
     name: post.name.to_owned(),
@@ -901,7 +906,7 @@ fn receive_remove_post(
   insert_activity(&conn, mod_.id, &remove, false)?;
 
   let post_ap_id = PostForm::from_apub(&page, conn)?.ap_id;
-  let post = Post::read_from_apub_id(conn, &post_ap_id)?;
+  let post = get_or_fetch_and_insert_remote_post(&post_ap_id, &conn)?;
 
   let post_form = PostForm {
     name: post.name.to_owned(),
@@ -964,7 +969,7 @@ fn receive_delete_comment(
   insert_activity(&conn, user.id, &delete, false)?;
 
   let comment_ap_id = CommentForm::from_apub(&note, &conn)?.ap_id;
-  let comment = Comment::read_from_apub_id(conn, &comment_ap_id)?;
+  let comment = get_or_fetch_and_insert_remote_comment(&comment_ap_id, &conn)?;
   let comment_form = CommentForm {
     content: comment.content.to_owned(),
     parent_id: comment.parent_id,
@@ -1024,7 +1029,7 @@ fn receive_remove_comment(
   insert_activity(&conn, mod_.id, &remove, false)?;
 
   let comment_ap_id = CommentForm::from_apub(&note, &conn)?.ap_id;
-  let comment = Comment::read_from_apub_id(conn, &comment_ap_id)?;
+  let comment = get_or_fetch_and_insert_remote_comment(&comment_ap_id, &conn)?;
   let comment_form = CommentForm {
     content: comment.content.to_owned(),
     parent_id: comment.parent_id,
@@ -1144,7 +1149,7 @@ fn receive_undo_delete_comment(
   insert_activity(&conn, user.id, &delete, false)?;
 
   let comment_ap_id = CommentForm::from_apub(&note, &conn)?.ap_id;
-  let comment = Comment::read_from_apub_id(conn, &comment_ap_id)?;
+  let comment = get_or_fetch_and_insert_remote_comment(&comment_ap_id, &conn)?;
   let comment_form = CommentForm {
     content: comment.content.to_owned(),
     parent_id: comment.parent_id,
@@ -1204,7 +1209,7 @@ fn receive_undo_remove_comment(
   insert_activity(&conn, mod_.id, &remove, false)?;
 
   let comment_ap_id = CommentForm::from_apub(&note, &conn)?.ap_id;
-  let comment = Comment::read_from_apub_id(conn, &comment_ap_id)?;
+  let comment = get_or_fetch_and_insert_remote_comment(&comment_ap_id, &conn)?;
   let comment_form = CommentForm {
     content: comment.content.to_owned(),
     parent_id: comment.parent_id,
@@ -1264,7 +1269,7 @@ fn receive_undo_delete_post(
   insert_activity(&conn, user.id, &delete, false)?;
 
   let post_ap_id = PostForm::from_apub(&page, conn)?.ap_id;
-  let post = Post::read_from_apub_id(conn, &post_ap_id)?;
+  let post = get_or_fetch_and_insert_remote_post(&post_ap_id, &conn)?;
 
   let post_form = PostForm {
     name: post.name.to_owned(),
@@ -1327,7 +1332,7 @@ fn receive_undo_remove_post(
   insert_activity(&conn, mod_.id, &remove, false)?;
 
   let post_ap_id = PostForm::from_apub(&page, conn)?.ap_id;
-  let post = Post::read_from_apub_id(conn, &post_ap_id)?;
+  let post = get_or_fetch_and_insert_remote_post(&post_ap_id, &conn)?;
 
   let post_form = PostForm {
     name: post.name.to_owned(),
@@ -1537,7 +1542,7 @@ fn receive_undo_like_comment(
   insert_activity(&conn, user.id, &like, false)?;
 
   let comment = CommentForm::from_apub(&note, &conn)?;
-  let comment_id = Comment::read_from_apub_id(conn, &comment.ap_id)?.id;
+  let comment_id = get_or_fetch_and_insert_remote_comment(&comment.ap_id, &conn)?.id;
   let like_form = CommentLikeForm {
     comment_id,
     post_id: comment.post_id,
@@ -1586,7 +1591,7 @@ fn receive_undo_like_post(
   insert_activity(&conn, user.id, &like, false)?;
 
   let post = PostForm::from_apub(&page, conn)?;
-  let post_id = Post::read_from_apub_id(conn, &post.ap_id)?.id;
+  let post_id = get_or_fetch_and_insert_remote_post(&post.ap_id, &conn)?.id;
 
   let like_form = PostLikeForm {
     post_id,

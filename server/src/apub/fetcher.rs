@@ -254,11 +254,46 @@ fn upsert_post(post_form: &PostForm, conn: &PgConnection) -> Result<Post, Error>
   }
 }
 
+pub fn get_or_fetch_and_insert_remote_post(
+  post_ap_id: &str,
+  conn: &PgConnection,
+) -> Result<Post, Error> {
+  match Post::read_from_apub_id(conn, post_ap_id) {
+    Ok(p) => Ok(p),
+    Err(NotFound {}) => {
+      debug!("Fetching and creating remote post: {}", post_ap_id);
+      let post = fetch_remote_object::<PageExt>(&Url::parse(post_ap_id)?)?;
+      let post_form = PostForm::from_apub(&post, conn)?;
+      Ok(Post::create(conn, &post_form)?)
+    }
+    Err(e) => Err(Error::from(e)),
+  }
+}
+
 fn upsert_comment(comment_form: &CommentForm, conn: &PgConnection) -> Result<Comment, Error> {
   let existing = Comment::read_from_apub_id(conn, &comment_form.ap_id);
   match existing {
     Err(NotFound {}) => Ok(Comment::create(conn, &comment_form)?),
     Ok(p) => Ok(Comment::update(conn, p.id, &comment_form)?),
+    Err(e) => Err(Error::from(e)),
+  }
+}
+
+pub fn get_or_fetch_and_insert_remote_comment(
+  comment_ap_id: &str,
+  conn: &PgConnection,
+) -> Result<Comment, Error> {
+  match Comment::read_from_apub_id(conn, comment_ap_id) {
+    Ok(p) => Ok(p),
+    Err(NotFound {}) => {
+      debug!(
+        "Fetching and creating remote comment and its parents: {}",
+        comment_ap_id
+      );
+      let comment = fetch_remote_object::<Note>(&Url::parse(comment_ap_id)?)?;
+      let comment_form = CommentForm::from_apub(&comment, conn)?;
+      Ok(Comment::create(conn, &comment_form)?)
+    }
     Err(e) => Err(Error::from(e)),
   }
 }
