@@ -75,6 +75,8 @@
     "delete_account": "Delete Account",
     "delete_account_confirm":
       "Warning: this will permanently delete all your data. Enter your password to confirm.",
+    "click_to_delete_picture": "Click to delete picture.",
+    "picture_deleted": "Picture deleted.",
     "restore": "restore",
     "ban": "ban",
     "ban_from_site": "ban from site",

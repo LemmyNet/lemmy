@@ -116,8 +116,8 @@ impl Perform for Oper<CreatePost> {
       return Err(APIError::err("site_ban").into());
     }
 
-    // Fetch Iframely and Pictshare cached image
-    let (iframely_title, iframely_description, iframely_html, pictshare_thumbnail) =
+    // Fetch Iframely and pictrs cached image
+    let (iframely_title, iframely_description, iframely_html, pictrs_thumbnail) =
       fetch_iframely_and_pictrs_data(data.url.to_owned());
 
     let post_form = PostForm {
@@ -135,7 +135,7 @@ impl Perform for Oper<CreatePost> {
       embed_title: iframely_title,
       embed_description: iframely_description,
       embed_html: iframely_html,
-      thumbnail_url: pictshare_thumbnail,
+      thumbnail_url: pictrs_thumbnail,
     };
 
     let inserted_post = match Post::create(&conn, &post_form) {
@@ -450,8 +450,8 @@ impl Perform for Oper<EditPost> {
       return Err(APIError::err("site_ban").into());
     }
 
-    // Fetch Iframely and Pictshare cached image
-    let (iframely_title, iframely_description, iframely_html, pictshare_thumbnail) =
+    // Fetch Iframely and Pictrs cached image
+    let (iframely_title, iframely_description, iframely_html, pictrs_thumbnail) =
       fetch_iframely_and_pictrs_data(data.url.to_owned());
 
     let post_form = PostForm {
@@ -469,7 +469,7 @@ impl Perform for Oper<EditPost> {
       embed_title: iframely_title,
       embed_description: iframely_description,
       embed_html: iframely_html,
-      thumbnail_url: pictshare_thumbnail,
+      thumbnail_url: pictrs_thumbnail,
     };
 
     let _updated_post = match Post::update(&conn, data.edit_id, &post_form) {

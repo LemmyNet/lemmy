@@ -18,6 +18,7 @@ import {
   setupTribute,
   wsJsonToRes,
   emojiPicker,
+  pictrsDeleteToast,
 } from '../utils';
 import { WebSocketService, UserService } from '../services';
 import autosize from 'autosize';
@@ -162,8 +163,9 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
               </button>
               {this.state.commentForm.content && (
                 <button
-                  className={`btn btn-sm mr-2 btn-secondary ${this.state
-                    .previewMode && 'active'}`}
+                  className={`btn btn-sm mr-2 btn-secondary ${
+                    this.state.previewMode && 'active'
+                  }`}
                   onClick={linkEvent(this, this.handlePreviewToggle)}
                 >
                   {i18n.t('preview')}
@@ -306,7 +308,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
 
     const imageUploadUrl = `/pictrs/image`;
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('images[]', file);
 
     i.state.imageLoading = true;
     i.setState(i.state);
@@ -317,16 +319,31 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     })
       .then(res => res.json())
       .then(res => {
-        let url = `${window.location.origin}/pictrs/${res.url}`;
-        let imageMarkdown =
-          res.filetype == 'mp4' ? `[vid](${url}/raw)` : `![](${url})`;
-        let content = i.state.commentForm.content;
-        content = content ? `${content}\n${imageMarkdown}` : imageMarkdown;
-        i.state.commentForm.content = content;
-        i.state.imageLoading = false;
-        i.setState(i.state);
-        let textarea: any = document.getElementById(i.id);
-        autosize.update(textarea);
+        console.log('pictrs upload:');
+        console.log(res);
+        if (res.msg == 'ok') {
+          let hash = res.files[0].file;
+          let url = `${window.location.origin}/pictrs/image/${hash}`;
+          let deleteToken = res.files[0].delete_token;
+          let deleteUrl = `${window.location.origin}/pictrs/image/delete/${deleteToken}/${hash}`;
+          let imageMarkdown = `![](${url})`;
+          let content = i.state.commentForm.content;
+          content = content ? `${content}\n${imageMarkdown}` : imageMarkdown;
+          i.state.commentForm.content = content;
+          i.state.imageLoading = false;
+          i.setState(i.state);
+          let textarea: any = document.getElementById(i.id);
+          autosize.update(textarea);
+          pictrsDeleteToast(
+            i18n.t('click_to_delete_picture'),
+            i18n.t('picture_deleted'),
+            deleteUrl
+          );
+        } else {
+          i.state.imageLoading = false;
+          i.setState(i.state);
+          toast(JSON.stringify(res), 'danger');
+        }
       })
       .catch(error => {
         i.state.imageLoading = false;

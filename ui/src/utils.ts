@@ -487,6 +487,29 @@ export function toast(text: string, background: string = 'success') {
   }).showToast();
 }
 
+export function pictrsDeleteToast(
+  clickToDeleteText: string,
+  deletePictureText: string,
+  deleteUrl: string
+) {
+  let backgroundColor = `var(--light)`;
+  let toast = Toastify({
+    text: clickToDeleteText,
+    backgroundColor: backgroundColor,
+    gravity: 'top',
+    position: 'right',
+    duration: 0,
+    onClick: () => {
+      if (toast) {
+        window.location.replace(deleteUrl);
+        alert(deletePictureText);
+        toast.hideToast();
+      }
+    },
+    close: true,
+  }).showToast();
+}
+
 export function messageToastify(
   creator: string,
   avatar: string,
