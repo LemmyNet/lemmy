@@ -183,7 +183,7 @@ export class Navbar extends Component<any, NavbarState> {
           </ul>
           <ul class="navbar-nav ml-auto">
             {this.canAdmin && (
-              <li className="nav-item mt-1">
+              <li className="nav-item">
                 <Link
                   class="nav-link"
                   to={`/admin`}
@@ -197,7 +197,7 @@ export class Navbar extends Component<any, NavbarState> {
             )}
             {this.state.isLoggedIn ? (
               <>
-                <li className="nav-item mt-1">
+                <li className="nav-item">
                   <Link class="nav-link" to="/inbox" title={i18n.t('inbox')}>
                     <svg class="icon">
                       <use xlinkHref="#icon-bell"></use>
