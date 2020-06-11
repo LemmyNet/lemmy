@@ -107,7 +107,7 @@ export class Navbar extends Component<any, NavbarState> {
         </Link>
         {this.state.isLoggedIn && (
           <Link
-            class="ml-auto p-0 navbar-toggler nav-link"
+            class="ml-auto mr-1 navbar-toggler nav-link"
             to="/inbox"
             title={i18n.t('inbox')}
           >
