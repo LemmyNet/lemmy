@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 git checkout master
 
 # Import translations
@@ -31,6 +32,9 @@ git add ../../ansible/templates/docker-compose.yml
 # The commit
 git commit -m"Version $new_tag"
 git tag $new_tag
+
+export COMPOSE_DOCKER_CLI_BUILD=1
+export DOCKER_BUILDKIT=1
 
 # Rebuilding docker
 docker-compose build
