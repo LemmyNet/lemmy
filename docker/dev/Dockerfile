@@ -12,6 +12,10 @@ RUN yarn build
 
 FROM ekidd/rust-musl-builder:1.42.0-openssl11 as rust
 
+# Install lld
+RUN sudo apt-get update -y 
+RUN sudo apt-get install -y lld 
+
 # Cache deps
 WORKDIR /app
 RUN sudo chown -R rust:rust .
@@ -21,13 +25,13 @@ COPY server/Cargo.toml server/Cargo.lock ./
 RUN sudo chown -R rust:rust .
 RUN mkdir -p ./src/bin \
   && echo 'fn main() { println!("Dummy") }' > ./src/bin/main.rs 
-RUN cargo build
+RUN RUSTFLAGS="-Clink-arg=-fuse-ld=lld" cargo build
 RUN rm -f ./target/x86_64-unknown-linux-musl/release/deps/lemmy_server*
 COPY server/src ./src/
 COPY server/migrations ./migrations/
 
 # Build for debug
-RUN cargo build
+RUN RUSTFLAGS="-Clink-arg=-fuse-ld=lld" cargo build
 
 FROM ekidd/rust-musl-builder:1.42.0-openssl11 as docs
 WORKDIR /app
