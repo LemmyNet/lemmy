@@ -20,7 +20,7 @@ git add "server/src/version.rs"
 echo $new_tag > "ansible/VERSION"
 git add "ansible/VERSION"
 
-cd docker/dev || exit
+cd docker/prod || exit
 
 # Changing the docker-compose prod
 sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../prod/docker-compose.yml
