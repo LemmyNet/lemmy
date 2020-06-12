@@ -56,6 +56,12 @@ Then open [localhost:4444](http://localhost:4444) in your browser. It will auto-
 any frontend files. For backend coding, you will have to rerun `cargo run`. You can use
 `cargo check` as a faster way to find compilation errors.
 
+To speed up incremental builds, you can add the following to `~/.cargo/config`:
+```
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-Clink-arg=-fuse-ld=lld"]
+```
+
 Note that this setup doesn't include image uploads or link previews (provided by pict-rs and
 iframely respectively). If you want to test those, you should use the
 [Docker development](contributing_docker_development.md).
