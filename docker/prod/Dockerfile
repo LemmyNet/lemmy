@@ -25,13 +25,16 @@ COPY server/Cargo.toml server/Cargo.lock ./
 RUN sudo chown -R rust:rust .
 RUN mkdir -p ./src/bin \
   && echo 'fn main() { println!("Dummy") }' > ./src/bin/main.rs 
-RUN RUSTFLAGS="-Clink-arg=-fuse-ld=lld" cargo build
+RUN RUSTFLAGS="-Clink-arg=-fuse-ld=lld" cargo build --release
 RUN rm -f ./target/x86_64-unknown-linux-musl/release/deps/lemmy_server*
 COPY server/src ./src/
 COPY server/migrations ./migrations/
 
-# Build for debug
-RUN RUSTFLAGS="-Clink-arg=-fuse-ld=lld" cargo build
+# Build for release
+RUN RUSTFLAGS="-Clink-arg=-fuse-ld=lld" cargo build --frozen --release
+
+# reduce binary size
+RUN strip /app/server/target/x86_64-unknown-linux-musl/release/lemmy_server
 
 FROM ekidd/rust-musl-builder:1.42.0-openssl11 as docs
 WORKDIR /app
@@ -47,7 +50,7 @@ RUN apk add libpq
 
 # Copy resources
 COPY server/config/defaults.hjson /config/defaults.hjson
-COPY --from=rust /app/server/target/x86_64-unknown-linux-musl/debug/lemmy_server /app/lemmy
+COPY --from=rust /app/server/target/x86_64-unknown-linux-musl/release/lemmy_server /app/lemmy
 COPY --from=docs /app/docs/book/ /app/dist/documentation/
 COPY --from=node /app/ui/dist /app/dist
 

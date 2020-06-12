@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 git checkout master
 
 # Import translations
@@ -20,7 +21,7 @@ git add "server/src/version.rs"
 echo $new_tag > "ansible/VERSION"
 git add "ansible/VERSION"
 
-cd docker/dev || exit
+cd docker/prod || exit
 
 # Changing the docker-compose prod
 sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../prod/docker-compose.yml
@@ -31,6 +32,9 @@ git add ../../ansible/templates/docker-compose.yml
 # The commit
 git commit -m"Version $new_tag"
 git tag $new_tag
+
+export COMPOSE_DOCKER_CLI_BUILD=1
+export DOCKER_BUILDKIT=1
 
 # Rebuilding docker
 docker-compose build

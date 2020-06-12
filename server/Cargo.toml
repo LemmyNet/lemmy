@@ -4,16 +4,19 @@ version = "0.0.1"
 authors = ["Dessalines <tyhou13@gmx.com>"]
 edition = "2018"
 
+[profile.release]
+lto = true
+
 [dependencies]
 diesel = { version = "1.4.2", features = ["postgres","chrono", "r2d2", "64-column-tables"] }
 diesel_migrations = "1.4.0"
 dotenv = "0.15.0"
 bcrypt = "0.7.0"
 activitypub = "0.2.0"
-chrono = { version = "0.4.7", features = ["serde"] }
+chrono = "0.4.7"
 failure = "0.1.8"
-serde_json = { version = "1.0.52", features = ["preserve_order"]}
-serde = { version = "1.0.105", features = ["derive"] }
+serde_json = "1.0.52"
+serde = "1.0.105"
 actix = "0.9.0"
 actix-web = "2.0.0"
 actix-files = "0.2.1"
@@ -32,10 +35,9 @@ lettre_email = "0.9.4"
 sha2 = "0.8.1"
 rss = "1.9.0"
 htmlescape = "0.3.1"
-config = "0.10.1"
-hjson = "0.8.2"
+config = {version = "0.10.1", default-features = false, features = ["hjson"] }
 percent-encoding = "2.1.0"
-isahc = "0.9"
+attohttpc = { version = "0.14.0", default-features = false, features = ["tls-rustls"] }
 comrak = "0.7"
 tokio = "0.2.20"
 futures = "0.3.4"
