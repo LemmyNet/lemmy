@@ -60,6 +60,7 @@
       project_src: /lemmy/
       state: present
       pull: yes
+      remove_orphans: yes
 
   - name: reload nginx with new config
     shell: nginx -s reload

@@ -89,6 +89,7 @@
       project_src: /lemmy/
       state: present
       recreate: always
+      remove_orphans: yes
     ignore_errors: yes
 
   - name: reload nginx with new config
