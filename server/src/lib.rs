@@ -88,11 +88,11 @@ pub fn is_image_content_type(test: &str) -> Result<(), failure::Error> {
 }
 
 pub fn remove_slurs(test: &str) -> String {
-  SLUR_REGEX.replace_all(test, "*removed*").to_string()
+  POST_FILTER_REGEX.replace_all(test, "*removed*").to_string()
 }
 
 pub fn slur_check(test: &str) -> Result<(), Vec<&str>> {
-  let mut matches: Vec<&str> = SLUR_REGEX.find_iter(test).map(|mat| mat.as_str()).collect();
+  let mut matches: Vec<&str> = POST_FILTER_REGEX.find_iter(test).map(|mat| mat.as_str()).collect();
 
   // Unique
   matches.sort_unstable();
@@ -307,23 +307,22 @@ mod tests {
   #[test]
   fn test_slur_filter() {
     let test =
-      "coons test dindu ladyboy tranny retardeds. Capitalized Niggerz. This is a bunch of other safe text.";
+      "I was minding my own business walking past the HOA board when a bunch of hiPpIes jumped out from behind a bush and accosted me for being a banker. I corrected them and told them I do not work for a bank, but in fact I am a meat popsicle. After this we went on our merry way.";
     let slur_free = "No slurs here";
     assert_eq!(
       remove_slurs(&test),
-      "*removed* test *removed* *removed* *removed* *removed*. Capitalized *removed*. This is a bunch of other safe text."
+      "I was minding my own business walking past the *removed* when a bunch of *removed* jumped out from behind a bush and accosted me for being a *removed*. I corrected them and told them I do not work for a *removed*, but in fact I am a *removed*. After this we went on our merry way."
         .to_string()
     );
 
     let has_slurs_vec = vec![
-      "Niggerz",
-      "coons",
-      "dindu",
-      "ladyboy",
-      "retardeds",
-      "tranny",
+      "HOA board",
+      "bank",
+      "banker",
+      "hiPpIes",
+      "meat popsicle",
     ];
-    let has_slurs_err_str = "No slurs - Niggerz, coons, dindu, ladyboy, retardeds, tranny";
+    let has_slurs_err_str = "No slurs - HOA board, bank, banker, hiPpIes, meat popsicle";
 
     assert_eq!(slur_check(test), Err(has_slurs_vec));
     assert_eq!(slur_check(slur_free), Ok(()));
@@ -363,7 +362,7 @@ mod tests {
 
 lazy_static! {
   static ref EMAIL_REGEX: Regex = Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$").unwrap();
-  static ref SLUR_REGEX: Regex = RegexBuilder::new(r"(fag(g|got|tard)?|maricos?|cock\s?sucker(s|ing)?|nig(\b|g?(a|er)?(s|z)?)\b|dindu(s?)|mudslime?s?|kikes?|mongoloids?|towel\s*heads?|\bspi(c|k)s?\b|\bchinks?|niglets?|beaners?|\bnips?\b|\bcoons?\b|jungle\s*bunn(y|ies?)|jigg?aboo?s?|\bpakis?\b|rag\s*heads?|gooks?|cunts?|bitch(es|ing|y)?|puss(y|ies?)|twats?|feminazis?|whor(es?|ing)|\bslut(s|t?y)?|\btrann?(y|ies?)|ladyboy(s?)|\b(b|re|r)tard(ed)?s?)").case_insensitive(true).build().unwrap();
+  static ref POST_FILTER_REGEX: Regex = RegexBuilder::new(&std::env::var("LEMMY_POST_FILTER_REGEX").unwrap_or(if cfg!(test) { "(hippies?|bank(ers?)?|hoa board|meat popsic(al|le)s?)" } else { ".^" }.into())).case_insensitive(true).build().unwrap();
   static ref USERNAME_MATCHES_REGEX: Regex = Regex::new(r"/u/[a-zA-Z][0-9a-zA-Z_]*").unwrap();
   static ref VALID_USERNAME_REGEX: Regex = Regex::new(r"^[a-zA-Z0-9_]{3,20}$").unwrap();
 }
