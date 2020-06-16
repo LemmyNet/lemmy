@@ -38,6 +38,9 @@ use crate::{
   },
   db::user_view::UserView,
 };
+use chrono::NaiveDateTime;
+
+static ACTOR_REFETCH_INTERVAL_SECONDS: i64 = 24 * 60 * 60;
 
 // Fetch nodeinfo metadata from a remote instance.
 fn _fetch_node_info(domain: &str) -> Result<NodeInfo, Error> {
@@ -166,14 +169,7 @@ pub fn get_or_fetch_and_upsert_remote_user(
   match User_::read_from_actor_id(&conn, &apub_id) {
     Ok(u) => {
       // If its older than a day, re-fetch it
-      if !u.local
-        && u
-          .last_refreshed_at
-          // TODO it won't pick up new avatars, summaries etc until a day after.
-          // Both user and community need an "update" action pushed to other servers
-          // to fix this
-          .lt(&(naive_now() - chrono::Duration::days(1)))
-      {
+      if !u.local && should_refetch_actor(u.last_refreshed_at) {
         debug!("Fetching and updating from remote user: {}", apub_id);
         let person = fetch_remote_object::<PersonExt>(&Url::parse(apub_id)?)?;
         let mut uf = UserForm::from_apub(&person, &conn)?;
@@ -193,6 +189,20 @@ pub fn get_or_fetch_and_upsert_remote_user(
   }
 }
 
+/// Determines when a remote actor should be refetched from its instance. In release builds, this is
+/// ACTOR_REFETCH_INTERVAL_SECONDS after the last refetch, in debug builds always.
+///
+/// TODO it won't pick up new avatars, summaries etc until a day after.
+/// Actors need an "update" activity pushed to other servers to fix this.
+fn should_refetch_actor(last_refreshed: NaiveDateTime) -> bool {
+  if cfg!(debug_assertions) {
+    true
+  } else {
+    let update_interval = chrono::Duration::seconds(ACTOR_REFETCH_INTERVAL_SECONDS);
+    last_refreshed.lt(&(naive_now() - update_interval))
+  }
+}
+
 /// Check if a remote community exists, create if not found, if its too old update it.Fetch a community, insert/update it in the database and return the community.
 pub fn get_or_fetch_and_upsert_remote_community(
   apub_id: &str,
@@ -200,12 +210,7 @@ pub fn get_or_fetch_and_upsert_remote_community(
 ) -> Result<Community, Error> {
   match Community::read_from_actor_id(&conn, &apub_id) {
     Ok(c) => {
-      // If its older than a day, re-fetch it
-      if !c.local
-        && c
-          .last_refreshed_at
-          .lt(&(naive_now() - chrono::Duration::days(1)))
-      {
+      if !c.local && should_refetch_actor(c.last_refreshed_at) {
         debug!("Fetching and updating from remote community: {}", apub_id);
         let group = fetch_remote_object::<GroupExt>(&Url::parse(apub_id)?)?;
         let mut cf = CommunityForm::from_apub(&group, conn)?;

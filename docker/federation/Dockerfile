@@ -1,4 +1,4 @@
-FROM ekidd/rust-musl-builder:1.38.0-openssl11
+FROM ekidd/rust-musl-builder:1.42.0-openssl11
 
 USER root
 RUN mkdir /app/dist/documentation/ -p \

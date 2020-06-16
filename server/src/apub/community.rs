@@ -76,7 +76,7 @@ impl ToApub for Community {
     if let Some(d) = self.description.to_owned() {
       // TODO: this should be html, also add source field with raw markdown
       //       -> same for post.content and others
-      oprops.set_summary_xsd_string(d)?;
+      oprops.set_content_xsd_string(d)?;
     }
 
     let mut endpoint_props = EndpointProperties::default();
