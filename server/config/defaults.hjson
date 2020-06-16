@@ -57,7 +57,7 @@
     # whether tls is required for activitypub. only disable this for debugging, never for producion.
     tls_enabled: true
     # comma seperated list of instances with which federation is allowed
-    instance_whitelist: ""
+    allowed_instances: ""
   }
 #  # email sending configuration
 #  email: {

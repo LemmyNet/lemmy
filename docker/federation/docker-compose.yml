@@ -29,7 +29,7 @@ services:
       - LEMMY_FRONT_END_DIR=/app/dist
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
-      - LEMMY_FEDERATION__INSTANCE_WHITELIST=lemmy_beta,lemmy_gamma
+      - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy_beta,lemmy_gamma
       - LEMMY_PORT=8540
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_alpha
       - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
@@ -63,7 +63,7 @@ services:
       - LEMMY_FRONT_END_DIR=/app/dist
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
-      - LEMMY_FEDERATION__INSTANCE_WHITELIST=lemmy_alpha,lemmy_gamma
+      - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy_alpha,lemmy_gamma
       - LEMMY_PORT=8550
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_beta
       - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
@@ -97,7 +97,7 @@ services:
       - LEMMY_FRONT_END_DIR=/app/dist
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
-      - LEMMY_FEDERATION__INSTANCE_WHITELIST=lemmy_alpha,lemmy_beta
+      - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy_alpha,lemmy_beta
       - LEMMY_PORT=8560
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_gamma
       - LEMMY_SETUP__ADMIN_PASSWORD=lemmy

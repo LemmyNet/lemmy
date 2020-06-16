@@ -47,7 +47,7 @@ Follow the normal installation instructions, either with [Ansible](administratio
 ```
     federation: {
         enabled: true
-        instance_whitelist: example.com
+        allowed_instances: example.com
     }
 ```
 

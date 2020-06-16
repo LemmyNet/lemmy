@@ -99,20 +99,20 @@ pub fn get_apub_protocol_string() -> &'static str {
   }
 }
 
-// Checks if the ID has a valid format, correct scheme, and is in the whitelist.
+// Checks if the ID has a valid format, correct scheme, and is in the allowed instance list.
 fn is_apub_id_valid(apub_id: &Url) -> bool {
   if apub_id.scheme() != get_apub_protocol_string() {
     return false;
   }
 
-  let whitelist: Vec<String> = Settings::get()
+  let allowed_instances: Vec<String> = Settings::get()
     .federation
-    .instance_whitelist
+    .allowed_instances
     .split(',')
     .map(|d| d.to_string())
     .collect();
   match apub_id.domain() {
-    Some(d) => whitelist.contains(&d.to_owned()),
+    Some(d) => allowed_instances.contains(&d.to_owned()),
     None => false,
   }
 }
