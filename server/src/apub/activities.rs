@@ -57,7 +57,7 @@ where
   for t in to {
     let to_url = Url::parse(&t)?;
     if !is_apub_id_valid(&to_url) {
-      debug!("Not sending activity to {} (invalid or blacklisted)", t);
+      debug!("Not sending activity to {} (invalid or blocklisted)", t);
       continue;
     }
     let request = Request::post(t).header("Host", to_url.domain().unwrap());
