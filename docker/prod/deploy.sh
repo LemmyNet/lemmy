@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
-# git checkout master
+git checkout master
 
 # Import translations
 git fetch weblate
@@ -38,19 +38,17 @@ export DOCKER_BUILDKIT=1
 
 # Rebuilding docker
 if [ $third_semver -eq 0 ]; then
-  docker buildx build --platform linux/amd64 ../../ \
-    --file Dockerfile \
-    --tag dessalines/lemmy:$new_tag \
-    --file docker/dev/Dockerfile.m \
-    --push .
-else
   # TODO get linux/arm/v7 build working
   # Build for Raspberry Pi / other archs too
   docker buildx build --platform linux/amd64,linux/arm64 ../../ \
     --file Dockerfile \
     --tag dessalines/lemmy:$new_tag \
-    --file docker/dev/Dockerfile.m \
-    --push .
+    --push
+else
+  docker buildx build --platform linux/amd64 ../../ \
+    --file Dockerfile \
+    --tag dessalines/lemmy:$new_tag \
+    --push
 fi
 
 # Push
