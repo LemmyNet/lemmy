@@ -1,4 +1,5 @@
 use super::*;
+use crate::is_valid_community_name;
 
 #[derive(Serialize, Deserialize)]
 pub struct GetCommunity {
@@ -218,6 +219,10 @@ impl Perform for Oper<CreateCommunity> {
       if let Err(slurs) = slur_check(description) {
         return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
       }
+    }
+
+    if !is_valid_community_name(&data.name) {
+      return Err(APIError::err("invalid_community_name").into());
     }
 
     let user_id = claims.id;
