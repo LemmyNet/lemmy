@@ -13,6 +13,8 @@ wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/migra
 sudo bash migrate-pictshare-to-pictrs.bash
 ```
 
+You'll also have to update your nginx config, use the [one here](https://github.com/LemmyNet/lemmy/blob/master/ansible/templates/nginx.conf).
+
 *You'll have to log in again to pick up your avatar*
 
 Apart from that, we've closed [~90 issues!](https://github.com/LemmyNet/lemmy/milestone/16?closed=1), including:
