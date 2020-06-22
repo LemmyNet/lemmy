@@ -154,7 +154,7 @@ export class PrivateMessageForm extends Component<
               />
               {this.state.previewMode && (
                 <div
-                  className="md-div"
+                  className="card card-body md-div"
                   dangerouslySetInnerHTML={mdToHtml(
                     this.state.privateMessageForm.content
                   )}

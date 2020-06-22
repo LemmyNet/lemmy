@@ -284,7 +284,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               />
               {this.state.previewMode && (
                 <div
-                  className="md-div"
+                  className="card card-body md-div"
                   dangerouslySetInnerHTML={mdToHtml(this.state.postForm.body)}
                 />
               )}
