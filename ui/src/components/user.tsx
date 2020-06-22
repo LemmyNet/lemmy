@@ -988,9 +988,9 @@ export class User extends Component<any, UserState> {
   handleImageUpload(i: User, event: any) {
     event.preventDefault();
     let file = event.target.files[0];
-    const imageUploadUrl = `/pictshare/api/upload.php`;
+    const imageUploadUrl = `/pictrs/image`;
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('images[]', file);
 
     i.state.avatarLoading = true;
     i.setState(i.state);
@@ -1001,14 +1001,19 @@ export class User extends Component<any, UserState> {
     })
       .then(res => res.json())
       .then(res => {
-        let url = `${window.location.origin}/pictshare/${res.url}`;
-        if (res.filetype == 'mp4') {
-          url += '/raw';
+        console.log('pictrs upload:');
+        console.log(res);
+        if (res.msg == 'ok') {
+          let hash = res.files[0].file;
+          let url = `${window.location.origin}/pictrs/image/${hash}`;
+          i.state.userSettingsForm.avatar = url;
+          i.state.avatarLoading = false;
+          i.setState(i.state);
+        } else {
+          i.state.avatarLoading = false;
+          i.setState(i.state);
+          toast(JSON.stringify(res), 'danger');
         }
-        i.state.userSettingsForm.avatar = url;
-        console.log(url);
-        i.state.avatarLoading = false;
-        i.setState(i.state);
       })
       .catch(error => {
         i.state.avatarLoading = false;

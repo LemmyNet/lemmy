@@ -187,25 +187,35 @@ pub fn fetch_iframely(url: &str) -> Result<IframelyResponse, failure::Error> {
   Ok(res)
 }
 
-#[derive(Deserialize, Debug)]
-pub struct PictshareResponse {
-  status: String,
-  url: String,
+#[derive(Deserialize, Debug, Clone)]
+pub struct PictrsResponse {
+  files: Vec<PictrsFile>,
+  msg: String,
 }
 
-pub fn fetch_pictshare(image_url: &str) -> Result<PictshareResponse, failure::Error> {
+#[derive(Deserialize, Debug, Clone)]
+pub struct PictrsFile {
+  file: String,
+  delete_token: String,
+}
+
+pub fn fetch_pictrs(image_url: &str) -> Result<PictrsResponse, failure::Error> {
   is_image_content_type(image_url)?;
 
   let fetch_url = format!(
-    "http://pictshare/api/geturl.php?url={}",
-    utf8_percent_encode(image_url, NON_ALPHANUMERIC)
+    "http://pictrs:8080/image/download?url={}",
+    utf8_percent_encode(image_url, NON_ALPHANUMERIC) // TODO this might not be needed
   );
   let text = attohttpc::get(&fetch_url).send()?.text()?;
-  let res: PictshareResponse = serde_json::from_str(&text)?;
-  Ok(res)
+  let res: PictrsResponse = serde_json::from_str(&text)?;
+  if res.msg == "ok" {
+    Ok(res)
+  } else {
+    Err(format_err!("{}", &res.msg))
+  }
 }
 
-fn fetch_iframely_and_pictshare_data(
+fn fetch_iframely_and_pictrs_data(
   url: Option<String>,
 ) -> (
   Option<String>,
@@ -225,20 +235,20 @@ fn fetch_iframely_and_pictshare_data(
           }
         };
 
-      // Fetch pictshare thumbnail
-      let pictshare_thumbnail = match iframely_thumbnail_url {
-        Some(iframely_thumbnail_url) => match fetch_pictshare(&iframely_thumbnail_url) {
-          Ok(res) => Some(res.url),
+      // Fetch pictrs thumbnail
+      let pictrs_thumbnail = match iframely_thumbnail_url {
+        Some(iframely_thumbnail_url) => match fetch_pictrs(&iframely_thumbnail_url) {
+          Ok(res) => Some(res.files[0].file.to_owned()),
           Err(e) => {
-            error!("pictshare err: {}", e);
+            error!("pictrs err: {}", e);
             None
           }
         },
         // Try to generate a small thumbnail if iframely is not supported
-        None => match fetch_pictshare(&url) {
-          Ok(res) => Some(res.url),
+        None => match fetch_pictrs(&url) {
+          Ok(res) => Some(res.files[0].file.to_owned()),
           Err(e) => {
-            error!("pictshare err: {}", e);
+            error!("pictrs err: {}", e);
             None
           }
         },
@@ -248,7 +258,7 @@ fn fetch_iframely_and_pictshare_data(
         iframely_title,
         iframely_description,
         iframely_html,
-        pictshare_thumbnail,
+        pictrs_thumbnail,
       )
     }
     None => (None, None, None, None),
@@ -273,11 +283,15 @@ pub fn is_valid_username(name: &str) -> bool {
   VALID_USERNAME_REGEX.is_match(name)
 }
 
+pub fn is_valid_community_name(name: &str) -> bool {
+  VALID_COMMUNITY_NAME_REGEX.is_match(name)
+}
+
 #[cfg(test)]
 mod tests {
   use crate::{
-    extract_usernames, is_email_regex, is_image_content_type, is_valid_username, remove_slurs,
-    slur_check, slurs_vec_to_str,
+    extract_usernames, is_email_regex, is_image_content_type, is_valid_community_name,
+    is_valid_username, remove_slurs, slur_check, slurs_vec_to_str,
   };
 
   #[test]
@@ -302,6 +316,15 @@ mod tests {
     assert!(!is_valid_username("Hello-98"));
     assert!(!is_valid_username("a"));
     assert!(!is_valid_username(""));
+  }
+
+  #[test]
+  fn test_valid_community_name() {
+    assert!(is_valid_community_name("example"));
+    assert!(is_valid_community_name("example_community"));
+    assert!(!is_valid_community_name("Example"));
+    assert!(!is_valid_community_name("Ex"));
+    assert!(!is_valid_community_name(""));
   }
 
   #[test]
@@ -366,4 +389,5 @@ lazy_static! {
   static ref SLUR_REGEX: Regex = RegexBuilder::new(r"(fag(g|got|tard)?|maricos?|cock\s?sucker(s|ing)?|nig(\b|g?(a|er)?(s|z)?)\b|dindu(s?)|mudslime?s?|kikes?|mongoloids?|towel\s*heads?|\bspi(c|k)s?\b|\bchinks?|niglets?|beaners?|\bnips?\b|\bcoons?\b|jungle\s*bunn(y|ies?)|jigg?aboo?s?|\bpakis?\b|rag\s*heads?|gooks?|cunts?|bitch(es|ing|y)?|puss(y|ies?)|twats?|feminazis?|whor(es?|ing)|\bslut(s|t?y)?|\btrann?(y|ies?)|ladyboy(s?)|\b(b|re|r)tard(ed)?s?)").case_insensitive(true).build().unwrap();
   static ref USERNAME_MATCHES_REGEX: Regex = Regex::new(r"/u/[a-zA-Z][0-9a-zA-Z_]*").unwrap();
   static ref VALID_USERNAME_REGEX: Regex = Regex::new(r"^[a-zA-Z0-9_]{3,20}$").unwrap();
+  static ref VALID_COMMUNITY_NAME_REGEX: Regex = Regex::new(r"^[a-z0-9_]{3,20}$").unwrap();
 }

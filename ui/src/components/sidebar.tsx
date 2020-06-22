@@ -11,7 +11,7 @@ import { WebSocketService, UserService } from '../services';
 import {
   mdToHtml,
   getUnixTime,
-  pictshareAvatarThumbnail,
+  pictrsAvatarThumbnail,
   showAvatars,
 } from '../utils';
 import { CommunityForm } from './community-form';

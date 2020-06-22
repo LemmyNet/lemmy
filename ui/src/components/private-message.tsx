@@ -5,12 +5,7 @@ import {
   EditPrivateMessageForm,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import {
-  mdToHtml,
-  pictshareAvatarThumbnail,
-  showAvatars,
-  toast,
-} from '../utils';
+import { mdToHtml, pictrsAvatarThumbnail, showAvatars, toast } from '../utils';
 import { MomentTime } from './moment-time';
 import { PrivateMessageForm } from './private-message-form';
 import { i18n } from '../i18next';
@@ -78,7 +73,7 @@ export class PrivateMessage extends Component<
                     <img
                       height="32"
                       width="32"
-                      src={pictshareAvatarThumbnail(
+                      src={pictrsAvatarThumbnail(
                         this.mine
                           ? message.recipient_avatar
                           : message.creator_avatar
@@ -144,8 +139,9 @@ export class PrivateMessage extends Component<
                         }
                       >
                         <svg
-                          class={`icon icon-inline ${message.read &&
-                            'text-success'}`}
+                          class={`icon icon-inline ${
+                            message.read && 'text-success'
+                          }`}
                         >
                           <use xlinkHref="#icon-check"></use>
                         </svg>
@@ -188,8 +184,9 @@ export class PrivateMessage extends Component<
                         }
                       >
                         <svg
-                          class={`icon icon-inline ${message.deleted &&
-                            'text-danger'}`}
+                          class={`icon icon-inline ${
+                            message.deleted && 'text-danger'
+                          }`}
                         >
                           <use xlinkHref="#icon-trash"></use>
                         </svg>
@@ -204,8 +201,9 @@ export class PrivateMessage extends Component<
                     data-tippy-content={i18n.t('view_source')}
                   >
                     <svg
-                      class={`icon icon-inline ${this.state.viewSource &&
-                        'text-success'}`}
+                      class={`icon icon-inline ${
+                        this.state.viewSource && 'text-success'
+                      }`}
                     >
                       <use xlinkHref="#icon-file-text"></use>
                     </svg>

@@ -1,15 +1,6 @@
 version: '3.3'
 
 services:
-  postgres:
-    image: postgres:12-alpine
-    environment:
-      - POSTGRES_USER=lemmy
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=lemmy
-    volumes:
-      - ./volumes/postgres:/var/lib/postgresql/data
-    restart: always
 
   lemmy:
     build: 
@@ -23,16 +14,27 @@ services:
     volumes:
       - ../lemmy.hjson:/config/config.hjson
     depends_on: 
+      - pictrs
       - postgres
-      - pictshare
       - iframely
 
-  pictshare:
-    image: hascheksolutions/pictshare:latest
-    ports:
-      - "127.0.0.1:8537:80"
+  postgres:
+    image: postgres:12-alpine
+    environment:
+      - POSTGRES_USER=lemmy
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=lemmy
     volumes:
-      - ./volumes/pictshare:/usr/share/nginx/html/data
+      - ./volumes/postgres:/var/lib/postgresql/data
+    restart: always
+
+  pictrs:
+    image: asonix/pictrs:v0.1.13-r0
+    ports: 
+      - "127.0.0.1:8537:8080"
+    user: 991:991
+    volumes:
+      - ./volumes/pictrs:/mnt
     restart: always
 
   iframely:

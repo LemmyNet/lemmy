@@ -35,6 +35,7 @@ import {
   setupTribute,
   setupTippy,
   emojiPicker,
+  pictrsDeleteToast,
 } from '../utils';
 import autosize from 'autosize';
 import Tribute from 'tributejs/src/Tribute.js';
@@ -518,9 +519,9 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       file = event;
     }
 
-    const imageUploadUrl = `/pictshare/api/upload.php`;
+    const imageUploadUrl = `/pictrs/image`;
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('images[]', file);
 
     i.state.imageLoading = true;
     i.setState(i.state);
@@ -531,13 +532,26 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     })
       .then(res => res.json())
       .then(res => {
-        let url = `${window.location.origin}/pictshare/${encodeURI(res.url)}`;
-        if (res.filetype == 'mp4') {
-          url += '/raw';
+        console.log('pictrs upload:');
+        console.log(res);
+        if (res.msg == 'ok') {
+          let hash = res.files[0].file;
+          let url = `${window.location.origin}/pictrs/image/${hash}`;
+          let deleteToken = res.files[0].delete_token;
+          let deleteUrl = `${window.location.origin}/pictrs/image/delete/${deleteToken}/${hash}`;
+          i.state.postForm.url = url;
+          i.state.imageLoading = false;
+          i.setState(i.state);
+          pictrsDeleteToast(
+            i18n.t('click_to_delete_picture'),
+            i18n.t('picture_deleted'),
+            deleteUrl
+          );
+        } else {
+          i.state.imageLoading = false;
+          i.setState(i.state);
+          toast(JSON.stringify(res), 'danger');
         }
-        i.state.postForm.url = url;
-        i.state.imageLoading = false;
-        i.setState(i.state);
       })
       .catch(error => {
         i.state.imageLoading = false;

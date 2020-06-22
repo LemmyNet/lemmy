@@ -22,7 +22,7 @@ import {
   fetchLimit,
   routeSearchTypeToEnum,
   routeSortTypeToEnum,
-  pictshareAvatarThumbnail,
+  pictrsAvatarThumbnail,
   showAvatars,
   toast,
   createCommentLikeRes,
