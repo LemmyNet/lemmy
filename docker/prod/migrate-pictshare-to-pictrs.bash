@@ -23,41 +23,23 @@ if [[ -z $(docker-compose ps | grep pictrs) ]]; then
     exit
 fi
 
-if [[ -z $(type -P convert) ]]; then
-  echo "Installing imagemagick to convert .webp images to .jpg"
-  apt install imagemagick -y
-else 
-  echo "Imagemagick already installed."
-fi
-
 # echo "Stopping Lemmy so that users dont upload new images during the migration"
 # docker-compose stop lemmy
 
-echo "Importing pictshare images to pict-rs"
 pushd volumes/pictshare/
+echo "Importing pictshare images to pict-rs..."
 IMAGE_NAMES=*
 for image in $IMAGE_NAMES; do
     IMAGE_PATH="$(pwd)/$image/$image"
     if [[ ! -f $IMAGE_PATH ]]; then
         continue
     fi
-    if [ ${IMAGE_PATH: -5} == ".webp" ]; then
-        NEW_IMAGE_PATH=$(echo "$IMAGE_PATH" | sed "s/\.webp$/\.jpg/g")
-        convert "$IMAGE_PATH" "$NEW_IMAGE_PATH"
-        IMAGE_PATH="$NEW_IMAGE_PATH"
-        continue
-    fi
     echo -e "\nImporting $IMAGE_PATH"
     ret=0
-    curl --fail -F "images[]=@$IMAGE_PATH" http://127.0.0.1:8537/import || ret=$?
-    # if [[ $ret != 0 ]]; then
-        # read -p "Failed to import $IMAGE_PATH, continue? " yn
-        # case $yn in
-        #     [Yy]* ) ;;
-        #     [Nn]* ) exit;;
-        #     * ) exit;;
-        # esac
-    # fi
+    curl --silent --fail -F "images[]=@$IMAGE_PATH" http://127.0.0.1:8537/import || ret=$?
+    if [[ $ret != 0 ]]; then
+      echo "Error for $IMAGE_PATH : $ret"
+    fi
 done
 
 echo "Fixing permissions on pictshare folder"
@@ -74,5 +56,5 @@ echo "Moving pictshare data folder to pictshare_backup"
 mv volumes/pictshare volumes/pictshare_backup
 
 echo "Migration done, starting Lemmy again"
-echo "If everything went well, you can delete ./volumes/pictshare_backup/ and uninstall imagemagick"
+echo "If everything went well, you can delete ./volumes/pictshare_backup/"
 docker-compose start lemmy

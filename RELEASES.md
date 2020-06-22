@@ -1,3 +1,33 @@
+# Lemmy v0.7.0 Release (2020-06-2X)
+
+## Breaking Change to our image server: Pictshare to Pict-rs migration guide
+
+This release replaces [pictshare](https://github.com/HaschekSolutions/pictshare) with [pict-rs](https://git.asonix.dog/asonix/pict-rs), and a script must be run on your server to upgrade.
+
+To update, run:
+
+```
+cd /lemmy
+wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/docker-compose.yml
+wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/migrate-pictshare-to-pictrs.bash
+sudo bash migrate-pictshare-to-pictrs.bash
+```
+
+Apart from that, we've closed [~90 issues!](https://github.com/LemmyNet/lemmy/milestone/16?closed=1), including:
+
+- Site-wide list of recent comments.
+- Reconnecting websockets.
+- Lots more themes, including a default light one.
+- Expandable embeds for post links (and thumbnails), from iframely.
+- Better icons.
+- Emoji autocomplete to post and message bodies, and an Emoji Picker.
+- Post body now searchable.
+- Community title and description is now searchable.
+- Simplified cross-posts.
+- Better documentation.
+- LOTS more languages.
+- Lots of bugs squashed.
+
 # Lemmy v0.6.0 Release (2020-01-16)
 
 `v0.6.0` is here, and we've closed [41 issues!](https://github.com/LemmyNet/lemmy/milestone/15?closed=1) 
