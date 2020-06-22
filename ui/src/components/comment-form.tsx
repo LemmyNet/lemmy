@@ -61,7 +61,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     buttonTitle: !this.props.node
       ? capitalizeFirstLetter(i18n.t('post'))
       : this.props.edit
-      ? capitalizeFirstLetter(i18n.t('edit'))
+      ? capitalizeFirstLetter(i18n.t('save'))
       : capitalizeFirstLetter(i18n.t('reply')),
     previewMode: false,
     loading: false,
