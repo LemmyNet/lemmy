@@ -18,18 +18,10 @@ RUN cargo build --release
 RUN rm -f ./target/$CARGO_BUILD_TARGET/$RUSTRELEASEDIR/deps/lemmy_server*
 COPY --chown=rust:rust server/src ./src/
 COPY --chown=rust:rust server/migrations ./migrations/
-#USER root
-#RUN sudo chown -R rust:rust /app/server
-#USER rust
 
 # build for release
 # workaround for https://github.com/rust-lang/rust/issues/62896
-#RUN RUSTFLAGS='-Ccodegen-units=1' cargo build --release
 RUN cargo build --frozen --release
-#RUN cargo build --release
-
-# Get diesel-cli on there just in case
-# RUN cargo install diesel_cli --no-default-features --features postgres
 
 # reduce binary size
 RUN strip ./target/$CARGO_BUILD_TARGET/$RUSTRELEASEDIR/lemmy_server
@@ -39,9 +31,7 @@ RUN cp ./target/$CARGO_BUILD_TARGET/$RUSTRELEASEDIR/lemmy_server /app/server/
 FROM $RUST_BUILDER_IMAGE as docs
 WORKDIR /app
 COPY --chown=rust:rust docs ./docs
-#RUN sudo chown -R rust:rust .
 RUN mdbook build docs/
-
 
 FROM node:12-buster as node
 
