@@ -132,7 +132,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       >
         <div
           id={`comment-${node.comment.id}`}
-          className={`details comment-node border-top border-light ${
+          className={`details comment-node border-top border-light py-2 ${
             this.isCommentNew ? 'mark' : ''
           }`}
           style={
@@ -148,7 +148,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               'ml-2'
             }`}
           >
-            <div class="d-flex flex-wrap align-items-center mb-1 mt-1 text-muted small">
+            <div class="d-flex flex-wrap align-items-center text-muted small">
               <span class="mr-2">
                 <UserListing
                   user={{
