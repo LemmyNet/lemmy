@@ -175,7 +175,11 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
           </div>
           <div class="form-group row">
             <div class="col-12">
-              <button type="submit" class="btn btn-secondary mr-2">
+              <button
+                type="submit"
+                class="btn btn-secondary mr-2"
+                disabled={this.state.loading}
+              >
                 {this.state.loading ? (
                   <svg class="icon icon-spinner spin">
                     <use xlinkHref="#icon-spinner"></use>

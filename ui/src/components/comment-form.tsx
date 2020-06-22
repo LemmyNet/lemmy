@@ -151,7 +151,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
               <button
                 type="submit"
                 class="btn btn-sm btn-secondary mr-2"
-                disabled={this.props.disabled}
+                disabled={this.props.disabled || this.state.loading}
               >
                 {this.state.loading ? (
                   <svg class="icon icon-spinner spin">
