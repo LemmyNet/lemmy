@@ -37,7 +37,7 @@ export COMPOSE_DOCKER_CLI_BUILD=1
 export DOCKER_BUILDKIT=1
 
 # Rebuilding docker
-docker-compose build
+docker build ../../ -f Dockerfile
 docker tag dev_lemmy:latest dessalines/lemmy:x64-$new_tag
 docker push dessalines/lemmy:x64-$new_tag
 
