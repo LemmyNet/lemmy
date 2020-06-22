@@ -11,6 +11,10 @@ if [[ ! -f docker-compose.yml ]]; then
     exit
 fi
 
+# Fixing pictrs permissions
+mkdir -p volumes/pictrs
+sudo chown -R 991:991 volumes/pictrs
+
 echo "Restarting docker-compose, making sure that pictrs is started and pictshare is removed"
 docker-compose up -d --remove-orphans
 
@@ -26,8 +30,8 @@ else
   echo "Imagemagick already installed."
 fi
 
-echo "Stopping Lemmy so that users dont upload new images during the migration"
-docker-compose stop lemmy
+# echo "Stopping Lemmy so that users dont upload new images during the migration"
+# docker-compose stop lemmy
 
 echo "Importing pictshare images to pict-rs"
 pushd volumes/pictshare/
@@ -46,14 +50,14 @@ for image in $IMAGE_NAMES; do
     echo -e "\nImporting $IMAGE_PATH"
     ret=0
     curl --fail -F "images[]=@$IMAGE_PATH" http://127.0.0.1:8537/import || ret=$?
-    if [[ $ret != 0 ]]; then
-        read -p "Failed to import $IMAGE_PATH, continue? " yn
-        case $yn in
-            [Yy]* ) ;;
-            [Nn]* ) exit;;
-            * ) exit;;
-        esac
-    fi
+    # if [[ $ret != 0 ]]; then
+        # read -p "Failed to import $IMAGE_PATH, continue? " yn
+        # case $yn in
+        #     [Yy]* ) ;;
+        #     [Nn]* ) exit;;
+        #     * ) exit;;
+        # esac
+    # fi
 done
 
 echo "Fixing permissions on pictshare folder"
