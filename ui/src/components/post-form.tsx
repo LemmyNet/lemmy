@@ -408,6 +408,12 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
 
   handlePostSubmit(i: PostForm, event: any) {
     event.preventDefault();
+
+    // Coerce empty url string to undefined
+    if (i.state.postForm.url && i.state.postForm.url === '') {
+      i.state.postForm.url = undefined;
+    }
+
     if (i.props.post) {
       WebSocketService.Instance.editPost(i.state.postForm);
     } else {
