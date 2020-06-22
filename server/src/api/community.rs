@@ -311,6 +311,10 @@ impl Perform for Oper<EditCommunity> {
       Err(_e) => return Err(APIError::err("not_logged_in").into()),
     };
 
+    if !is_valid_community_name(&data.name) {
+      return Err(APIError::err("invalid_community_name").into());
+    }
+
     let user_id = claims.id;
 
     let conn = pool.get()?;
