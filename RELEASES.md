@@ -13,6 +13,8 @@ wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/migra
 sudo bash migrate-pictshare-to-pictrs.bash
 ```
 
+*You'll have to log in again to pick up your avatar*
+
 Apart from that, we've closed [~90 issues!](https://github.com/LemmyNet/lemmy/milestone/16?closed=1), including:
 
 - Site-wide list of recent comments.

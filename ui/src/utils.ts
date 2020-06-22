@@ -481,7 +481,7 @@ export function pictrsImage(hash: string, thumbnail: boolean = false): string {
   }
 
   let out = `${root}/${canUseWebP() ? 'webp/' : ''}${
-    thumbnail ? 'thumbnail192/' : ''
+    thumbnail ? 'thumbnail256/' : ''
   }${hash}`;
   return out;
 }
