@@ -27,6 +27,7 @@
     "number_of_communities": "{{count}} Community",
     "number_of_communities_plural": "{{count}} Communities",
     "community_reqs": "lowercase, underscores, and no spaces.",
+    "invalid_community_name": "Invalid name.",
     "create_private_message": "Create Private Message",
     "send_secure_message": "Send Secure Message",
     "send_message": "Send Message",

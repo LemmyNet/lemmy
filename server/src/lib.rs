@@ -283,11 +283,15 @@ pub fn is_valid_username(name: &str) -> bool {
   VALID_USERNAME_REGEX.is_match(name)
 }
 
+pub fn is_valid_community_name(name: &str) -> bool {
+  VALID_COMMUNITY_NAME_REGEX.is_match(name)
+}
+
 #[cfg(test)]
 mod tests {
   use crate::{
-    extract_usernames, is_email_regex, is_image_content_type, is_valid_username, remove_slurs,
-    slur_check, slurs_vec_to_str,
+    extract_usernames, is_email_regex, is_image_content_type, is_valid_community_name,
+    is_valid_username, remove_slurs, slur_check, slurs_vec_to_str,
   };
 
   #[test]
@@ -312,6 +316,15 @@ mod tests {
     assert!(!is_valid_username("Hello-98"));
     assert!(!is_valid_username("a"));
     assert!(!is_valid_username(""));
+  }
+
+  #[test]
+  fn test_valid_community_name() {
+    assert!(is_valid_community_name("example"));
+    assert!(is_valid_community_name("example_community"));
+    assert!(!is_valid_community_name("Example"));
+    assert!(!is_valid_community_name("Ex"));
+    assert!(!is_valid_community_name(""));
   }
 
   #[test]
@@ -376,4 +389,5 @@ lazy_static! {
   static ref SLUR_REGEX: Regex = RegexBuilder::new(r"(fag(g|got|tard)?|maricos?|cock\s?sucker(s|ing)?|nig(\b|g?(a|er)?(s|z)?)\b|dindu(s?)|mudslime?s?|kikes?|mongoloids?|towel\s*heads?|\bspi(c|k)s?\b|\bchinks?|niglets?|beaners?|\bnips?\b|\bcoons?\b|jungle\s*bunn(y|ies?)|jigg?aboo?s?|\bpakis?\b|rag\s*heads?|gooks?|cunts?|bitch(es|ing|y)?|puss(y|ies?)|twats?|feminazis?|whor(es?|ing)|\bslut(s|t?y)?|\btrann?(y|ies?)|ladyboy(s?)|\b(b|re|r)tard(ed)?s?)").case_insensitive(true).build().unwrap();
   static ref USERNAME_MATCHES_REGEX: Regex = Regex::new(r"/u/[a-zA-Z][0-9a-zA-Z_]*").unwrap();
   static ref VALID_USERNAME_REGEX: Regex = Regex::new(r"^[a-zA-Z0-9_]{3,20}$").unwrap();
+  static ref VALID_COMMUNITY_NAME_REGEX: Regex = Regex::new(r"^[a-z0-9_]{3,20}$").unwrap();
 }
