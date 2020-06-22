@@ -19,8 +19,12 @@ if [[ -z $(docker-compose ps | grep pictrs) ]]; then
     exit
 fi
 
-echo "Installing imagemagick to convert .webp images to .jpg"
-apt install imagemagick -y
+if [[ -z $(type -P convert) ]]; then
+  echo "Installing imagemagick to convert .webp images to .jpg"
+  apt install imagemagick -y
+else 
+  echo "Imagemagick already installed."
+fi
 
 echo "Stopping Lemmy so that users dont upload new images during the migration"
 docker-compose stop lemmy
