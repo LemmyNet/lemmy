@@ -22,7 +22,7 @@ services:
       - ./lemmy.hjson:/config/config.hjson
     depends_on:
       - postgres
-      - pictshare
+      - pictrs
       - iframely
 
   pictrs:
