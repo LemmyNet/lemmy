@@ -39,7 +39,7 @@ ansible-playbook lemmy.yml
 # connect via ssh to run the migration script
 ssh your-server
 cd /lemmy/
-wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/migrate-pictshare-to-pictrs.bash
+wget https://raw.githubusercontent.com/LemmyNet/lemmy/master/docker/prod/migrate-pictshare-to-pictrs.bash
 chmod +x migrate-pictshare-to-pictrs.bash
 sudo ./migrate-pictshare-to-pictrs.bash
 ```
@@ -48,12 +48,12 @@ sudo ./migrate-pictshare-to-pictrs.bash
 ```
 # run these commands on your server
 cd /lemmy
-wget https://raw.githubusercontent.com/dessalines/lemmy/master/ansible/templates/nginx.conf
+wget https://raw.githubusercontent.com/LemmyNet/lemmy/master/ansible/templates/nginx.conf
 # Replace the {{ vars }}
 sudo mv nginx.conf /etc/nginx/sites-enabled/lemmy.conf
 sudo nginx -s reload
-wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/docker-compose.yml
-wget https://raw.githubusercontent.com/dessalines/lemmy/master/docker/prod/migrate-pictshare-to-pictrs.bash
+wget https://raw.githubusercontent.com/LemmyNet/lemmy/master/docker/prod/docker-compose.yml
+wget https://raw.githubusercontent.com/LemmyNet/lemmy/master/docker/prod/migrate-pictshare-to-pictrs.bash
 chmod +x migrate-pictshare-to-pictrs.bash
 sudo bash migrate-pictshare-to-pictrs.bash
 ```

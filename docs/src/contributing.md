@@ -5,7 +5,7 @@ Information about contributing to Lemmy, whether it is translating, testing, des
 ## Issue tracking / Repositories
 
 - [GitHub (for issues)](https://github.com/LemmyNet/lemmy)
-- [Gitea](https://yerbamate.dev/dessalines/lemmy)
+- [Gitea](https://yerbamate.dev/LemmyNet/lemmy)
 - [GitLab](https://gitlab.com/dessalines/lemmy)
 
 ## Translating
