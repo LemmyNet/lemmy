@@ -1,4 +1,4 @@
-# Lemmy v0.7.0 Release (2020-06-22)
+# Lemmy v0.7.0 Release (2020-06-23)
 
 ## Breaking Change to our image server: Pictshare to Pict-rs migration guide
 
