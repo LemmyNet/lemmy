@@ -103,6 +103,7 @@ export const themes = [
   'vaporwave',
   'vaporwave-dark',
   'i386',
+  'litely',
 ];
 
 export const emojiPicker = new EmojiButton({
