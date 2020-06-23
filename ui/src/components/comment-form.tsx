@@ -245,18 +245,32 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     });
   }
 
-  handleFinished() {
-    this.state.previewMode = false;
-    this.state.loading = false;
-    this.state.commentForm.content = '';
-    this.setState(this.state);
-    let form: any = document.getElementById(this.formId);
-    form.reset();
-    if (this.props.node) {
-      this.props.onReplyCancel();
+  handleFinished(data: CommentResponse) {
+    let isReply =
+      this.props.node !== undefined && data.comment.parent_id !== null;
+    let xor =
+      +!(data.comment.parent_id !== null) ^ +(this.props.node !== undefined);
+
+    if (
+      (data.comment.creator_id == UserService.Instance.user.id &&
+        // If its a reply, make sure parent child match
+        isReply &&
+        data.comment.parent_id == this.props.node.comment.id) ||
+      // Otherwise, check the XOR of the two
+      (!isReply && xor)
+    ) {
+      this.state.previewMode = false;
+      this.state.loading = false;
+      this.state.commentForm.content = '';
+      this.setState(this.state);
+      let form: any = document.getElementById(this.formId);
+      form.reset();
+      if (this.props.node) {
+        this.props.onReplyCancel();
+      }
+      autosize.update(form);
+      this.setState(this.state);
     }
-    autosize.update(document.querySelector('textarea'));
-    this.setState(this.state);
   }
 
   handleCommentSubmit(i: CommentForm, event: any) {
@@ -359,14 +373,10 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     if (UserService.Instance.user) {
       if (res.op == UserOperation.CreateComment) {
         let data = res.data as CommentResponse;
-        if (data.comment.creator_id == UserService.Instance.user.id) {
-          this.handleFinished();
-        }
+        this.handleFinished(data);
       } else if (res.op == UserOperation.EditComment) {
         let data = res.data as CommentResponse;
-        if (data.comment.creator_id == UserService.Instance.user.id) {
-          this.handleFinished();
-        }
+        this.handleFinished(data);
       }
     }
   }
