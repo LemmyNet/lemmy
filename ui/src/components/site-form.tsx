@@ -78,7 +78,7 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
         <form onSubmit={linkEvent(this, this.handleCreateSiteSubmit)}>
           <h5>{`${
             this.props.site
-              ? capitalizeFirstLetter(i18n.t('edit'))
+              ? capitalizeFirstLetter(i18n.t('save'))
               : capitalizeFirstLetter(i18n.t('name'))
           } ${i18n.t('your_site')}`}</h5>
           <div class="form-group row">
@@ -175,7 +175,11 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
           </div>
           <div class="form-group row">
             <div class="col-12">
-              <button type="submit" class="btn btn-secondary mr-2">
+              <button
+                type="submit"
+                class="btn btn-secondary mr-2"
+                disabled={this.state.loading}
+              >
                 {this.state.loading ? (
                   <svg class="icon icon-spinner spin">
                     <use xlinkHref="#icon-spinner"></use>

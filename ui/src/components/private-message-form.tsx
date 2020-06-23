@@ -154,7 +154,7 @@ export class PrivateMessageForm extends Component<
               />
               {this.state.previewMode && (
                 <div
-                  className="md-div"
+                  className="card card-body md-div"
                   dangerouslySetInnerHTML={mdToHtml(
                     this.state.privateMessageForm.content
                   )}
@@ -183,7 +183,11 @@ export class PrivateMessageForm extends Component<
           )}
           <div class="form-group row">
             <div class="offset-sm-2 col-sm-10">
-              <button type="submit" class="btn btn-secondary mr-2">
+              <button
+                type="submit"
+                class="btn btn-secondary mr-2"
+                disabled={this.state.loading}
+              >
                 {this.state.loading ? (
                   <svg class="icon icon-spinner spin">
                     <use xlinkHref="#icon-spinner"></use>

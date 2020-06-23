@@ -284,7 +284,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               />
               {this.state.previewMode && (
                 <div
-                  className="md-div"
+                  className="card card-body md-div"
                   dangerouslySetInnerHTML={mdToHtml(this.state.postForm.body)}
                 />
               )}
@@ -360,7 +360,9 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
           <div class="form-group row">
             <div class="col-sm-10">
               <button
-                disabled={!this.state.postForm.community_id}
+                disabled={
+                  !this.state.postForm.community_id || this.state.loading
+                }
                 type="submit"
                 class="btn btn-secondary mr-2"
               >
@@ -406,6 +408,12 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
 
   handlePostSubmit(i: PostForm, event: any) {
     event.preventDefault();
+
+    // Coerce empty url string to undefined
+    if (i.state.postForm.url && i.state.postForm.url === '') {
+      i.state.postForm.url = undefined;
+    }
+
     if (i.props.post) {
       WebSocketService.Instance.editPost(i.state.postForm);
     } else {

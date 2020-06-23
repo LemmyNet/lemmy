@@ -1,4 +1,4 @@
-# Lemmy v0.7.0 Release (2020-06-2X)
+# Lemmy v0.7.0 Release (2020-06-22)
 
 ## Breaking Change to our image server: Pictshare to Pict-rs migration guide
 
@@ -17,10 +17,11 @@ You'll also have to update your nginx config, use the [one here](https://github.
 
 *You'll have to log in again to pick up your avatar*
 
-Apart from that, we've closed [~90 issues!](https://github.com/LemmyNet/lemmy/milestone/16?closed=1), including:
+Apart from that, we've closed [~100 issues!](https://github.com/LemmyNet/lemmy/milestone/16?closed=1), including:
 
 - Site-wide list of recent comments.
 - Reconnecting websockets.
+- Swapped out pictshare for [pict-rs](https://git.asonix.dog/asonix/pict-rs).
 - Lots more themes, including a default light one.
 - Expandable embeds for post links (and thumbnails), from iframely.
 - Better icons.

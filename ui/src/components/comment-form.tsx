@@ -61,7 +61,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     buttonTitle: !this.props.node
       ? capitalizeFirstLetter(i18n.t('post'))
       : this.props.edit
-      ? capitalizeFirstLetter(i18n.t('edit'))
+      ? capitalizeFirstLetter(i18n.t('save'))
       : capitalizeFirstLetter(i18n.t('reply')),
     previewMode: false,
     loading: false,
@@ -138,7 +138,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
               />
               {this.state.previewMode && (
                 <div
-                  className="md-div"
+                  className="card card-body md-div"
                   dangerouslySetInnerHTML={mdToHtml(
                     this.state.commentForm.content
                   )}
@@ -151,7 +151,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
               <button
                 type="submit"
                 class="btn btn-sm btn-secondary mr-2"
-                disabled={this.props.disabled}
+                disabled={this.props.disabled || this.state.loading}
               >
                 {this.state.loading ? (
                   <svg class="icon icon-spinner spin">

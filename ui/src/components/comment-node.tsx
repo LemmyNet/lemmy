@@ -132,7 +132,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       >
         <div
           id={`comment-${node.comment.id}`}
-          className={`details comment-node border-top border-light ${
+          className={`details comment-node border-top border-light py-2 ${
             this.isCommentNew ? 'mark' : ''
           }`}
           style={
@@ -148,7 +148,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               'ml-2'
             }`}
           >
-            <div class="d-flex flex-wrap align-items-center mb-1 mt-1 text-muted small">
+            <div class="d-flex flex-wrap align-items-center text-muted small">
               <span class="mr-2">
                 <UserListing
                   user={{
@@ -296,25 +296,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                       )}
                       <button
                         class="btn btn-link btn-animate text-muted"
-                        onClick={linkEvent(this, this.handleSaveCommentClick)}
-                        data-tippy-content={
-                          node.comment.saved ? i18n.t('unsave') : i18n.t('save')
-                        }
-                      >
-                        {this.state.saveLoading ? (
-                          this.loadingIcon
-                        ) : (
-                          <svg
-                            class={`icon icon-inline ${
-                              node.comment.saved && 'text-warning'
-                            }`}
-                          >
-                            <use xlinkHref="#icon-star"></use>
-                          </svg>
-                        )}
-                      </button>
-                      <button
-                        class="btn btn-link btn-animate text-muted"
                         onClick={linkEvent(this, this.handleReplyClick)}
                         data-tippy-content={i18n.t('reply')}
                       >
@@ -348,6 +329,30 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                             </button>
                           )}
                           {!this.props.showContext && this.linkBtn}
+                          <button
+                            class="btn btn-link btn-animate text-muted"
+                            onClick={linkEvent(
+                              this,
+                              this.handleSaveCommentClick
+                            )}
+                            data-tippy-content={
+                              node.comment.saved
+                                ? i18n.t('unsave')
+                                : i18n.t('save')
+                            }
+                          >
+                            {this.state.saveLoading ? (
+                              this.loadingIcon
+                            ) : (
+                              <svg
+                                class={`icon icon-inline ${
+                                  node.comment.saved && 'text-warning'
+                                }`}
+                              >
+                                <use xlinkHref="#icon-star"></use>
+                              </svg>
+                            )}
+                          </button>
                           <button
                             className="btn btn-link btn-animate text-muted"
                             onClick={linkEvent(this, this.handleViewSource)}
