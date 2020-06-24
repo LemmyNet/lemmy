@@ -49,5 +49,7 @@
 ## Member List / Contact Info
 General Contact [@LemmyDev Mastodon](https://mastodon.social/@LemmyDev)
 
-- Dessalines [Matrix](https://matrix.to/#/@happydooby:matrix.org)
-- Nutomic [Matrix](https://matrix.to/#/@nutomic:matrix.org), [Mastodon](https://radical.town/@felix)
+- [Dessalines](https://dev.lemmy.ml/u/dessalines)
+- [Nutomic](https://dev.lemmy.ml/u/nutomic)
+- [AgreeableLandscape](https://dev.lemmy.ml/u/AgreeableLandscape)
+- [fruechtchen](https://dev.lemmy.ml/u/fruechtchen)
