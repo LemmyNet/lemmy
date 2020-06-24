@@ -527,7 +527,7 @@ export function pictrsDeleteToast(
     backgroundColor: backgroundColor,
     gravity: 'top',
     position: 'right',
-    duration: 0,
+    duration: 10000,
     onClick: () => {
       if (toast) {
         window.location.replace(deleteUrl);
@@ -556,7 +556,7 @@ export function messageToastify(
     close: true,
     gravity: 'top',
     position: 'right',
-    duration: 0,
+    duration: 5000,
     onClick: () => {
       if (toast) {
         toast.hideToast();
