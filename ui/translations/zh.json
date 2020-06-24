@@ -35,13 +35,13 @@
     "remove_as_admin": "移除管理权限",
     "appoint_as_admin": "添加管理权限",
     "remove": "移除",
-    "removed": "已移除",
+    "removed": "已被管理员移除",
     "locked": "已加锁",
     "reason": "原因",
     "mark_as_read": "标记未读",
     "mark_as_unread": "标记已读",
     "delete": "删除",
-    "deleted": "已删除",
+    "deleted": "作者已删除",
     "restore": "恢复",
     "ban": "禁止",
     "ban_from_site": "禁止此站点",
@@ -235,5 +235,11 @@
     "time": "时间",
     "action": "行动",
     "block_leaving": "确定要离开吗？",
-    "show_context": "显示上下文"
+    "show_context": "显示上下文",
+    "admin_settings": "管理员设置",
+    "site_config": "网站配置",
+    "banned_users": "被禁止用户",
+    "site_saved": "网站已保存",
+    "emoji_picker": "选择表情",
+    "invalid_username": "用户名无效"
 }

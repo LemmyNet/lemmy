@@ -12,7 +12,7 @@ services:
     restart: always
 
   lemmy:
-    image: dessalines/lemmy:v0.6.71
+    image: dessalines/lemmy:v0.7.0
     ports:
       - "127.0.0.1:8536:8536"
     restart: always
@@ -22,17 +22,17 @@ services:
       - ./lemmy.hjson:/config/config.hjson
     depends_on:
       - postgres
-      - pictshare
+      - pictrs
       - iframely
 
-  pictshare:
-    image: hascheksolutions/pictshare:latest
-    ports:
-      - "127.0.0.1:8537:80"
+  pictrs:
+    image: asonix/pictrs:v0.1.13-r0
+    ports: 
+      - "127.0.0.1:8537:8080"
+    user: 991:991
     volumes:
-      - ./volumes/pictshare:/usr/share/nginx/html/data
+      - ./volumes/pictrs:/mnt
     restart: always
-    mem_limit: 100m
 
   iframely:
     image: dogbin/iframely:latest

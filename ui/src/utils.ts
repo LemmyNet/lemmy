@@ -103,6 +103,7 @@ export const themes = [
   'vaporwave',
   'vaporwave-dark',
   'i386',
+  'litely',
 ];
 
 export const emojiPicker = new EmojiButton({
@@ -113,11 +114,26 @@ export const emojiPicker = new EmojiButton({
   // TODO i18n
 });
 
-export function randomStr() {
-  return Math.random()
-    .toString(36)
-    .replace(/[^a-z]+/g, '')
-    .substr(2, 10);
+const DEFAULT_ALPHABET =
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+function getRandomCharFromAlphabet(alphabet: string): string {
+  return alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+}
+
+export function randomStr(
+  idDesiredLength: number = 20,
+  alphabet = DEFAULT_ALPHABET
+): string {
+  /**
+   * Create n-long array and map it to random chars from given alphabet.
+   * Then join individual chars as string
+   */
+  return Array.from({ length: idDesiredLength })
+    .map(() => {
+      return getRandomCharFromAlphabet(alphabet);
+    })
+    .join('');
 }
 
 export function wsJsonToRes(msg: WebSocketJsonResponse): WebSocketResponse {
@@ -404,7 +420,7 @@ export function getMomentLanguage(): string {
   return lang;
 }
 
-export function setTheme(theme: string = 'darkly') {
+export function setTheme(theme: string = 'darkly', loggedIn: boolean = false) {
   // unload all the other themes
   for (var i = 0; i < themes.length; i++) {
     let styleSheet = document.getElementById(themes[i]);
@@ -413,10 +429,23 @@ export function setTheme(theme: string = 'darkly') {
     }
   }
 
-  // Load the theme dynamically
-  let cssLoc = `/static/assets/css/themes/${theme}.min.css`;
-  loadCss(theme, cssLoc);
-  document.getElementById(theme).removeAttribute('disabled');
+  // if the user is not logged in, we load the default themes and let the browser decide
+  if (!loggedIn) {
+    document.getElementById('default-light').removeAttribute('disabled');
+    document.getElementById('default-dark').removeAttribute('disabled');
+  } else {
+    document
+      .getElementById('default-light')
+      .setAttribute('disabled', 'disabled');
+    document
+      .getElementById('default-dark')
+      .setAttribute('disabled', 'disabled');
+
+    // Load the theme dynamically
+    let cssLoc = `/static/assets/css/themes/${theme}.min.css`;
+    loadCss(theme, cssLoc);
+    document.getElementById(theme).removeAttribute('disabled');
+  }
 }
 
 export function loadCss(id: string, loc: string) {
@@ -440,10 +469,12 @@ export function objectFlip(obj: any) {
   return ret;
 }
 
-export function pictshareAvatarThumbnail(src: string): string {
-  // sample url: http://localhost:8535/pictshare/gs7xuu.jpg
-  let split = src.split('pictshare');
-  let out = `${split[0]}pictshare/${canUseWebP() ? 'webp/' : ''}96${split[1]}`;
+export function pictrsAvatarThumbnail(src: string): string {
+  // sample url: http://localhost:8535/pictrs/image/thumbnail256/gs7xuu.jpg
+  let split = src.split('/pictrs/image');
+  let out = `${split[0]}/pictrs/image/${
+    canUseWebP() ? 'webp/' : ''
+  }thumbnail96${split[1]}`;
   return out;
 }
 
@@ -455,21 +486,18 @@ export function showAvatars(): boolean {
 }
 
 // Converts to image thumbnail
-export function pictshareImage(
-  hash: string,
-  thumbnail: boolean = false
-): string {
-  let root = `/pictshare`;
+export function pictrsImage(hash: string, thumbnail: boolean = false): string {
+  let root = `/pictrs/image`;
 
   // Necessary for other servers / domains
-  if (hash.includes('pictshare')) {
-    let split = hash.split('/pictshare/');
-    root = `${split[0]}/pictshare`;
+  if (hash.includes('pictrs')) {
+    let split = hash.split('/pictrs/image/');
+    root = `${split[0]}/pictrs/image`;
     hash = split[1];
   }
 
   let out = `${root}/${canUseWebP() ? 'webp/' : ''}${
-    thumbnail ? '192/' : ''
+    thumbnail ? 'thumbnail256/' : ''
   }${hash}`;
   return out;
 }
@@ -488,6 +516,29 @@ export function toast(text: string, background: string = 'success') {
   }).showToast();
 }
 
+export function pictrsDeleteToast(
+  clickToDeleteText: string,
+  deletePictureText: string,
+  deleteUrl: string
+) {
+  let backgroundColor = `var(--light)`;
+  let toast = Toastify({
+    text: clickToDeleteText,
+    backgroundColor: backgroundColor,
+    gravity: 'top',
+    position: 'right',
+    duration: 0,
+    onClick: () => {
+      if (toast) {
+        window.location.replace(deleteUrl);
+        alert(deletePictureText);
+        toast.hideToast();
+      }
+    },
+    close: true,
+  }).showToast();
+}
+
 export function messageToastify(
   creator: string,
   avatar: string,
@@ -501,7 +552,7 @@ export function messageToastify(
     text: `${body}<br />${creator}`,
     avatar: avatar,
     backgroundColor: backgroundColor,
-    className: 'text-body',
+    className: 'text-dark',
     close: true,
     gravity: 'top',
     position: 'right',
@@ -910,7 +961,6 @@ function canUseWebP() {
   return false;
 
   // var elem = document.createElement('canvas');
-
   // if (!!(elem.getContext && elem.getContext('2d'))) {
   //   var testString = !(window.mozInnerScreenX == null) ? 'png' : 'webp';
   //   // was able or not to get WebP representation

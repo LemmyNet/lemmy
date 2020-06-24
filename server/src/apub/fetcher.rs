@@ -2,7 +2,6 @@ use activitystreams::object::Note;
 use actix_web::Result;
 use diesel::{result::Error::NotFound, PgConnection};
 use failure::{Error, _core::fmt::Debug};
-use isahc::prelude::*;
 use log::debug;
 use serde::Deserialize;
 use std::time::Duration;
@@ -64,11 +63,11 @@ where
   }
   // TODO: this function should return a future
   let timeout = Duration::from_secs(60);
-  let text = Request::get(url.as_str())
+  let text: String = attohttpc::get(url.as_str())
     .header("Accept", APUB_JSON_CONTENT_TYPE)
     .connect_timeout(timeout)
     .timeout(timeout)
-    .body(())?
+    // .body(())
     .send()?
     .text()?;
   let res: Response = serde_json::from_str(&text)?;

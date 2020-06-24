@@ -18,6 +18,7 @@ import {
   setupTribute,
   wsJsonToRes,
   emojiPicker,
+  pictrsDeleteToast,
 } from '../utils';
 import { WebSocketService, UserService } from '../services';
 import autosize from 'autosize';
@@ -60,7 +61,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     buttonTitle: !this.props.node
       ? capitalizeFirstLetter(i18n.t('post'))
       : this.props.edit
-      ? capitalizeFirstLetter(i18n.t('edit'))
+      ? capitalizeFirstLetter(i18n.t('save'))
       : capitalizeFirstLetter(i18n.t('reply')),
     previewMode: false,
     loading: false,
@@ -137,7 +138,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
               />
               {this.state.previewMode && (
                 <div
-                  className="md-div"
+                  className="card card-body md-div"
                   dangerouslySetInnerHTML={mdToHtml(
                     this.state.commentForm.content
                   )}
@@ -150,7 +151,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
               <button
                 type="submit"
                 class="btn btn-sm btn-secondary mr-2"
-                disabled={this.props.disabled}
+                disabled={this.props.disabled || this.state.loading}
               >
                 {this.state.loading ? (
                   <svg class="icon icon-spinner spin">
@@ -244,18 +245,32 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     });
   }
 
-  handleFinished() {
-    this.state.previewMode = false;
-    this.state.loading = false;
-    this.state.commentForm.content = '';
-    this.setState(this.state);
-    let form: any = document.getElementById(this.formId);
-    form.reset();
-    if (this.props.node) {
-      this.props.onReplyCancel();
+  handleFinished(data: CommentResponse) {
+    let isReply =
+      this.props.node !== undefined && data.comment.parent_id !== null;
+    let xor =
+      +!(data.comment.parent_id !== null) ^ +(this.props.node !== undefined);
+
+    if (
+      (data.comment.creator_id == UserService.Instance.user.id &&
+        // If its a reply, make sure parent child match
+        isReply &&
+        data.comment.parent_id == this.props.node.comment.id) ||
+      // Otherwise, check the XOR of the two
+      (!isReply && xor)
+    ) {
+      this.state.previewMode = false;
+      this.state.loading = false;
+      this.state.commentForm.content = '';
+      this.setState(this.state);
+      let form: any = document.getElementById(this.formId);
+      form.reset();
+      if (this.props.node) {
+        this.props.onReplyCancel();
+      }
+      autosize.update(form);
+      this.setState(this.state);
     }
-    autosize.update(document.querySelector('textarea'));
-    this.setState(this.state);
   }
 
   handleCommentSubmit(i: CommentForm, event: any) {
@@ -305,9 +320,9 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
       file = event;
     }
 
-    const imageUploadUrl = `/pictshare/api/upload.php`;
+    const imageUploadUrl = `/pictrs/image`;
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('images[]', file);
 
     i.state.imageLoading = true;
     i.setState(i.state);
@@ -318,16 +333,31 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     })
       .then(res => res.json())
       .then(res => {
-        let url = `${window.location.origin}/pictshare/${res.url}`;
-        let imageMarkdown =
-          res.filetype == 'mp4' ? `[vid](${url}/raw)` : `![](${url})`;
-        let content = i.state.commentForm.content;
-        content = content ? `${content}\n${imageMarkdown}` : imageMarkdown;
-        i.state.commentForm.content = content;
-        i.state.imageLoading = false;
-        i.setState(i.state);
-        let textarea: any = document.getElementById(i.id);
-        autosize.update(textarea);
+        console.log('pictrs upload:');
+        console.log(res);
+        if (res.msg == 'ok') {
+          let hash = res.files[0].file;
+          let url = `${window.location.origin}/pictrs/image/${hash}`;
+          let deleteToken = res.files[0].delete_token;
+          let deleteUrl = `${window.location.origin}/pictrs/image/delete/${deleteToken}/${hash}`;
+          let imageMarkdown = `![](${url})`;
+          let content = i.state.commentForm.content;
+          content = content ? `${content}\n${imageMarkdown}` : imageMarkdown;
+          i.state.commentForm.content = content;
+          i.state.imageLoading = false;
+          i.setState(i.state);
+          let textarea: any = document.getElementById(i.id);
+          autosize.update(textarea);
+          pictrsDeleteToast(
+            i18n.t('click_to_delete_picture'),
+            i18n.t('picture_deleted'),
+            deleteUrl
+          );
+        } else {
+          i.state.imageLoading = false;
+          i.setState(i.state);
+          toast(JSON.stringify(res), 'danger');
+        }
       })
       .catch(error => {
         i.state.imageLoading = false;
@@ -343,14 +373,10 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     if (UserService.Instance.user) {
       if (res.op == UserOperation.CreateComment) {
         let data = res.data as CommentResponse;
-        if (data.comment.creator_id == UserService.Instance.user.id) {
-          this.handleFinished();
-        }
+        this.handleFinished(data);
       } else if (res.op == UserOperation.EditComment) {
         let data = res.data as CommentResponse;
-        if (data.comment.creator_id == UserService.Instance.user.id) {
-          this.handleFinished();
-        }
+        this.handleFinished(data);
       }
     }
   }

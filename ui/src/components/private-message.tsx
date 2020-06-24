@@ -5,12 +5,7 @@ import {
   EditPrivateMessageForm,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import {
-  mdToHtml,
-  pictshareAvatarThumbnail,
-  showAvatars,
-  toast,
-} from '../utils';
+import { mdToHtml, pictrsAvatarThumbnail, showAvatars, toast } from '../utils';
 import { MomentTime } from './moment-time';
 import { PrivateMessageForm } from './private-message-form';
 import { i18n } from '../i18next';
@@ -78,7 +73,7 @@ export class PrivateMessage extends Component<
                     <img
                       height="32"
                       width="32"
-                      src={pictshareAvatarThumbnail(
+                      src={pictrsAvatarThumbnail(
                         this.mine
                           ? message.recipient_avatar
                           : message.creator_avatar

@@ -1,7 +1,7 @@
 import { Component } from 'inferno';
 import { Link } from 'inferno-router';
 import { UserView } from '../interfaces';
-import { pictshareAvatarThumbnail, showAvatars, hostname } from '../utils';
+import { pictrsAvatarThumbnail, showAvatars, hostname } from '../utils';
 
 interface UserOther {
   name: string;
@@ -40,7 +40,7 @@ export class UserListing extends Component<UserListingProps, any> {
           <img
             height="32"
             width="32"
-            src={pictshareAvatarThumbnail(user.avatar)}
+            src={pictrsAvatarThumbnail(user.avatar)}
             class="rounded-circle mr-2"
           />
         )}

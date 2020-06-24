@@ -32,7 +32,6 @@ use actix_web::{body::Body, HttpResponse, Result};
 use chrono::NaiveDateTime;
 use diesel::PgConnection;
 use failure::Error;
-use isahc::prelude::*;
 use log::debug;
 use serde::Serialize;
 use url::Url;
@@ -253,7 +252,7 @@ pub fn fetch_webfinger_url(mention: &MentionData) -> Result<String, Error> {
     mention.domain
   );
   debug!("Fetching webfinger url: {}", &fetch_url);
-  let text = isahc::get(&fetch_url)?.text()?;
+  let text: String = attohttpc::get(&fetch_url).send()?.text()?;
   let res: WebFingerResponse = serde_json::from_str(&text)?;
   let link = res
     .links

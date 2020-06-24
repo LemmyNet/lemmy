@@ -1,4 +1,7 @@
-use crate::websocket::WebsocketInfo;
+use crate::{
+  db::{community::*, community_view::*, moderator::*, site::*, user::*, user_view::*},
+  websocket::WebsocketInfo,
+};
 use diesel::{
   r2d2::{ConnectionManager, Pool},
   PgConnection,

@@ -123,7 +123,10 @@ export class Inbox extends Component<any, InboxState> {
               this.state.unreadOrAll == UnreadOrAll.Unread && (
                 <ul class="list-inline mb-1 text-muted small font-weight-bold">
                   <li className="list-inline-item">
-                    <span class="pointer" onClick={this.markAllAsRead}>
+                    <span
+                      class="pointer"
+                      onClick={linkEvent(this, this.markAllAsRead)}
+                    >
                       {i18n.t('mark_all_as_read')}
                     </span>
                   </li>
@@ -392,8 +395,14 @@ export class Inbox extends Component<any, InboxState> {
     this.refetch();
   }
 
-  markAllAsRead() {
+  markAllAsRead(i: Inbox) {
     WebSocketService.Instance.markAllAsRead();
+    i.state.replies = [];
+    i.state.mentions = [];
+    i.state.messages = [];
+    i.sendUnreadCount();
+    window.scrollTo(0, 0);
+    i.setState(i.state);
   }
 
   parseMessage(msg: WebSocketJsonResponse) {
@@ -447,12 +456,7 @@ export class Inbox extends Component<any, InboxState> {
       this.setState(this.state);
       setupTippy();
     } else if (res.op == UserOperation.MarkAllAsRead) {
-      this.state.replies = [];
-      this.state.mentions = [];
-      this.state.messages = [];
-      this.sendUnreadCount();
-      window.scrollTo(0, 0);
-      this.setState(this.state);
+      // Moved to be instant
     } else if (res.op == UserOperation.EditComment) {
       let data = res.data as CommentResponse;
       editCommentRes(data, this.state.replies);

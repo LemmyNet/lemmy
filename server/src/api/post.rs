@@ -17,7 +17,7 @@ use crate::{
     Saveable,
     SortType,
   },
-  fetch_iframely_and_pictshare_data,
+  fetch_iframely_and_pictrs_data,
   naive_now,
   slur_check,
   slurs_vec_to_str,
@@ -152,9 +152,9 @@ impl Perform for Oper<CreatePost> {
       return Err(APIError::err("site_ban").into());
     }
 
-    // Fetch Iframely and Pictshare cached image
-    let (iframely_title, iframely_description, iframely_html, pictshare_thumbnail) =
-      fetch_iframely_and_pictshare_data(data.url.to_owned());
+    // Fetch Iframely and pictrs cached image
+    let (iframely_title, iframely_description, iframely_html, pictrs_thumbnail) =
+      fetch_iframely_and_pictrs_data(data.url.to_owned());
 
     let post_form = PostForm {
       name: data.name.to_owned(),
@@ -171,7 +171,7 @@ impl Perform for Oper<CreatePost> {
       embed_title: iframely_title,
       embed_description: iframely_description,
       embed_html: iframely_html,
-      thumbnail_url: pictshare_thumbnail,
+      thumbnail_url: pictrs_thumbnail,
       ap_id: "changeme".into(),
       local: true,
       published: None,
@@ -507,9 +507,9 @@ impl Perform for Oper<EditPost> {
       return Err(APIError::err("site_ban").into());
     }
 
-    // Fetch Iframely and Pictshare cached image
-    let (iframely_title, iframely_description, iframely_html, pictshare_thumbnail) =
-      fetch_iframely_and_pictshare_data(data.url.to_owned());
+    // Fetch Iframely and Pictrs cached image
+    let (iframely_title, iframely_description, iframely_html, pictrs_thumbnail) =
+      fetch_iframely_and_pictrs_data(data.url.to_owned());
 
     let read_post = Post::read(&conn, data.edit_id)?;
 
@@ -528,7 +528,7 @@ impl Perform for Oper<EditPost> {
       embed_title: iframely_title,
       embed_description: iframely_description,
       embed_html: iframely_html,
-      thumbnail_url: pictshare_thumbnail,
+      thumbnail_url: pictrs_thumbnail,
       ap_id: read_post.ap_id,
       local: read_post.local,
       published: None,

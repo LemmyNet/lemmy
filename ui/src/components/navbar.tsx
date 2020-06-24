@@ -22,7 +22,7 @@ import {
 } from '../interfaces';
 import {
   wsJsonToRes,
-  pictshareAvatarThumbnail,
+  pictrsAvatarThumbnail,
   showAvatars,
   fetchLimit,
   isCommentType,
@@ -218,7 +218,7 @@ export class Navbar extends Component<any, NavbarState> {
                     <span>
                       {UserService.Instance.user.avatar && showAvatars() && (
                         <img
-                          src={pictshareAvatarThumbnail(
+                          src={pictrsAvatarThumbnail(
                             UserService.Instance.user.avatar
                           )}
                           height="32"

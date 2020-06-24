@@ -29,7 +29,7 @@ import {
   isImage,
   isVideo,
   getUnixTime,
-  pictshareImage,
+  pictrsImage,
   setupTippy,
   hostname,
   previewLines,
@@ -163,15 +163,15 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   getImage(thumbnail: boolean = false) {
     let post = this.props.post;
     if (isImage(post.url)) {
-      if (post.url.includes('pictshare')) {
-        return pictshareImage(post.url, thumbnail);
+      if (post.url.includes('pictrs')) {
+        return pictrsImage(post.url, thumbnail);
       } else if (post.thumbnail_url) {
-        return pictshareImage(post.thumbnail_url, thumbnail);
+        return pictrsImage(post.thumbnail_url, thumbnail);
       } else {
         return post.url;
       }
     } else if (post.thumbnail_url) {
-      return pictshareImage(post.thumbnail_url, thumbnail);
+      return pictrsImage(post.thumbnail_url, thumbnail);
     }
   }
 

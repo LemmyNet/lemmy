@@ -26,10 +26,11 @@
       creates: '/etc/letsencrypt/live/{{domain}}/privkey.pem'
 
   - name: create lemmy folder
-    file: path={{item.path}} state=directory
+    file: path={{item.path}} owner={{item.owner}} state=directory
     with_items:
-      - { path: '/lemmy/' }
-      - { path: '/lemmy/volumes/' }
+      - { path: '/lemmy/', owner: 'root' }
+      - { path: '/lemmy/volumes/', owner: 'root' }
+      - { path: '/lemmy/volumes/pictrs/', owner: '991' }
 
   - block:
     - name:  add template files
@@ -88,6 +89,7 @@
       project_src: /lemmy/
       state: present
       recreate: always
+      remove_orphans: yes
     ignore_errors: yes
 
   - name: reload nginx with new config

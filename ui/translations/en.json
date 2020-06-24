@@ -27,6 +27,7 @@
     "number_of_communities": "{{count}} Community",
     "number_of_communities_plural": "{{count}} Communities",
     "community_reqs": "lowercase, underscores, and no spaces.",
+    "invalid_community_name": "Invalid name.",
     "create_private_message": "Create Private Message",
     "send_secure_message": "Send Secure Message",
     "send_message": "Send Message",
@@ -75,6 +76,8 @@
     "delete_account": "Delete Account",
     "delete_account_confirm":
       "Warning: this will permanently delete all your data. Enter your password to confirm.",
+    "click_to_delete_picture": "Click to delete picture.",
+    "picture_deleted": "Picture deleted.",
     "restore": "restore",
     "ban": "ban",
     "ban_from_site": "ban from site",

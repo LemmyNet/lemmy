@@ -111,6 +111,7 @@ export class Login extends Component<any, State> {
                 required
               />
               <button
+                type="button"
                 disabled={!validEmail(this.state.loginForm.username_or_email)}
                 onClick={linkEvent(this, this.handlePasswordReset)}
                 className="btn p-0 btn-link d-inline-block float-right text-muted small font-weight-bold"

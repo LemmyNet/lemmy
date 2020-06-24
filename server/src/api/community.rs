@@ -1,3 +1,4 @@
+use super::*;
 use crate::{
   api::{APIError, Oper, Perform},
   apub::{
@@ -6,19 +7,8 @@ use crate::{
     ActorType,
     EndpointType,
   },
-  db::{
-    community::*,
-    community_view::*,
-    moderator::*,
-    site::*,
-    user::*,
-    user_view::*,
-    Bannable,
-    Crud,
-    Followable,
-    Joinable,
-    SortType,
-  },
+  db::{Bannable, Crud, Followable, Joinable, SortType},
+  is_valid_community_name,
   naive_from_unix,
   naive_now,
   slur_check,
@@ -259,6 +249,10 @@ impl Perform for Oper<CreateCommunity> {
       }
     }
 
+    if !is_valid_community_name(&data.name) {
+      return Err(APIError::err("invalid_community_name").into());
+    }
+
     let user_id = claims.id;
 
     let conn = pool.get()?;
@@ -352,6 +346,10 @@ impl Perform for Oper<EditCommunity> {
       Ok(claims) => claims.claims,
       Err(_e) => return Err(APIError::err("not_logged_in").into()),
     };
+
+    if !is_valid_community_name(&data.name) {
+      return Err(APIError::err("invalid_community_name").into());
+    }
 
     let user_id = claims.id;
 

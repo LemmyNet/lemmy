@@ -12,11 +12,11 @@ services:
       - ../federation/nginx.conf:/etc/nginx/nginx.conf
     depends_on:
       - lemmy_alpha
-      - pictshare_alpha
+      - pictrs_alpha
       - lemmy_beta
-      - pictshare_beta
+      - pictrs_beta
       - lemmy_gamma
-      - pictshare_gamma
+      - pictrs_gamma
       - iframely
     restart: "always"
 
@@ -48,10 +48,11 @@ services:
     volumes:
       - ./volumes/postgres_alpha:/var/lib/postgresql/data
     restart: always
-  pictshare_alpha:
-    image: shtripok/pictshare:latest
+  pictrs_alpha:
+    image: asonix/pictrs:v0.1.13-r0
+    user: 991:991
     volumes:
-      - ./volumes/pictshare_alpha:/usr/share/nginx/html/data
+      - ./volumes/pictrs_alpha:/mnt
     restart: always
 
   lemmy_beta:
@@ -82,10 +83,11 @@ services:
     volumes:
       - ./volumes/postgres_beta:/var/lib/postgresql/data
     restart: always
-  pictshare_beta:
-    image: shtripok/pictshare:latest
+  pictrs_beta:
+    image: asonix/pictrs:v0.1.13-r0
+    user: 991:991
     volumes:
-      - ./volumes/pictshare_beta:/usr/share/nginx/html/data
+      - ./volumes/pictrs_beta:/mnt
     restart: always
 
   lemmy_gamma:
@@ -116,10 +118,11 @@ services:
     volumes:
       - ./volumes/postgres_gamma:/var/lib/postgresql/data
     restart: always
-  pictshare_gamma:
-    image: shtripok/pictshare:latest
+  pictrs_gamma:
+    image: asonix/pictrs:v0.1.13-r0
+    user: 991:991
     volumes:
-      - ./volumes/pictshare_gamma:/usr/share/nginx/html/data
+      - ./volumes/pictrs_gamma:/mnt
     restart: always
 
   iframely:

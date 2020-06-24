@@ -4,6 +4,9 @@ version = "0.0.1"
 authors = ["Dessalines <tyhou13@gmx.com>"]
 edition = "2018"
 
+[profile.release]
+lto = true
+
 [dependencies]
 diesel = { version = "1.4.4", features = ["postgres","chrono","r2d2","64-column-tables","serde_json"] }
 diesel_migrations = "1.4.0"
@@ -13,7 +16,7 @@ activitystreams-new = { git = "https://git.asonix.dog/asonix/activitystreams-ske
 activitystreams-ext = { git = "https://git.asonix.dog/asonix/activitystreams-ext" }
 bcrypt = "0.8.0"
 chrono = { version = "0.4.7", features = ["serde"] }
-serde_json = { version = "1.0.48", features = ["preserve_order"]}
+serde_json = { version = "1.0.52", features = ["preserve_order"]}
 failure = "0.1.8"
 serde = { version = "1.0.105", features = ["derive"] }
 actix = "0.9.0"
@@ -34,11 +37,10 @@ lettre_email = "0.9.4"
 sha2 = "0.8.1"
 rss = "1.9.0"
 htmlescape = "0.3.1"
-config = "0.10.1"
-hjson = "0.8.2"
 url = { version = "2.1.1", features = ["serde"] }
+config = {version = "0.10.1", default-features = false, features = ["hjson"] }
 percent-encoding = "2.1.0"
-isahc = "0.9.2"
+attohttpc = { version = "0.14.0", default-features = false, features = ["tls-rustls"] }
 comrak = "0.7"
 openssl = "0.10"
 http = "0.2.1"
