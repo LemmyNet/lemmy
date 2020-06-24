@@ -10,7 +10,8 @@
     "cross_posts": "Tiuj ligilo ankaŭ estas poŝtinta al:",
     "cross_post": "laŭapoŝto",
     "comments": "Komentoj",
-    "number_of_comments": "{{count}} Komentoj",
+    "number_of_comments": "{{count}} Komento",
+    "number_of_comments_plural": "{{count}} Komentoj",
     "remove_comment": "Fortiri Komentojn",
     "communities": "Komunumoj",
     "users": "Uzantoj",
@@ -94,8 +95,7 @@
     "login_sign_up": "Ensaluti / Registriĝi",
     "login": "Ensaluti",
     "sign_up": "Registriĝi",
-    "notifications_error":
-      "Labortablaj avizoj estas nehavebla en via retumilo. Provu Firefox-on aŭ Chrome-on.",
+    "notifications_error": "Labortablaj avizoj estas nehavebla en via retumilo. Provu Firefox-on aŭ Chrome-on.",
     "unread_messages": "Nelegitaj Mesaĝoj",
     "password": "Pasvorto",
     "verify_password": "Konfirmu Vian Pasvorton",
@@ -120,11 +120,9 @@
     "show_nsfw": "Vidigi NSFW-an enhavon",
     "sponsors": "Subtenantoj",
     "sponsors_of_lemmy": "Subtenantoj de Lemmy",
-    "sponsor_message":
-      "Lemmy estas senpaga, <1>liberkoda</1> programaro. Tio signifas ne reklami, pagigi, aŭ riska kapitalo, ĉiam. Viaj donacoj rekte subtenas plentempan evoluon de la projekto. Dankon al tiuj homoj:",
+    "sponsor_message": "Lemmy estas senpaga, <1>liberkoda</1> programaro. Tio signifas ne reklami, pagigi, aŭ riska kapitalo, ĉiam. Viaj donacoj rekte subtenas plentempan evoluon de la projekto. Dankon al tiuj homoj:",
     "support_on_patreon": "Subteni per Patreon",
-    "general_sponsors":
-      "Ĝeneralaj Subtenantoj estas tiuj ke donacis inter $10 kaj $39 al Lemmy.",
+    "general_sponsors": "Ĝeneralaj Subtenantoj estas tiuj ke donacis inter $10 kaj $39 al Lemmy.",
     "crypto": "Crypto",
     "bitcoin": "Bitcoin",
     "ethereum": "Ethereum",
@@ -136,8 +134,7 @@
     "transfer_community": "transdoni la komunumon",
     "transfer_site": "transdoni la retejon",
     "powered_by": "Konstruis per",
-    "landing_0":
-      "Lemmy estas <1>ligila agregatilo</1> / Reddit anstataŭo ke intenciĝas funkci en la <2>federacio-universo</2>.<3></3>ĝi estas mem-gastigebla, havas nuna-ĝisdatigajn komentarojn, kaj estas malgrandega (<4>~80kB</4>). Federacio en la ActivityPub-an reton estas planizita. <5></5>Estas <6>fruega beta versio</6>, kaj multaj trajtoj estas nune difektaj aŭ mankaj. <7></7>Sugestias novajn trajtojn aŭ raportas cimojn <8>ĉi tie.</8><9></9>Faris per <10>Rust</10>, <11>Actix</11>, <12>Inferno</12>, <13>Typescript</13>.",
+    "landing_0": "Lemmy estas <1>ligila agregatilo</1> / Reddit anstataŭo ke intenciĝas funkci en la <2>federacio-universo</2>.<3></3>ĝi estas mem-gastigebla, havas nuna-ĝisdatigajn komentarojn, kaj estas malgrandega (<4>~80kB</4>). Federacio en la ActivityPub-an reton estas planizita. <5></5>Estas <6>fruega beta versio</6>, kaj multaj trajtoj estas nune difektaj aŭ mankaj. <7></7>Sugestias novajn trajtojn aŭ raportas cimojn <8>ĉi tie.</8><9></9>Faris per <10>Rust</10>, <11>Actix</11>, <12>Inferno</12>, <13>Typescript</13>.",
     "not_logged_in": "Ne estas ensalutinta.",
     "community_ban": "Vi estas forbarita de la komunumo.",
     "site_ban": "Vi estas forbarita de la retejo",
@@ -164,12 +161,17 @@
     "not_an_admin": "Ne estas administranto.",
     "site_already_exists": "Retejo jam ekzistas.",
     "couldnt_update_site": "Ne povis ĝisdatigi la retejon.",
-    "couldnt_find_that_username_or_email":
-      "Ne povis trovi tiun uzantnomon aŭ retadreson.",
+    "couldnt_find_that_username_or_email": "Ne povis trovi tiun uzantnomon aŭ retadreson.",
     "password_incorrect": "Pasvorto malĝustas.",
     "passwords_dont_match": "Pasvortoj ne samas.",
     "admin_already_created": "Pardonu, jam estas administranto.",
     "user_already_exists": "Uzanto jam ekzistas.",
     "couldnt_update_user": "Ne povis ĝisdatigi la uzanton.",
-    "system_err_login": "Sistema eraro. Provu elsaluti kaj ensaluti."
+    "system_err_login": "Sistema eraro. Provu elsaluti kaj ensaluti.",
+    "send_message": "Sendi mesaĝon",
+    "message": "Mesaĝo",
+    "number_of_communities": "{{count}} Komunumo",
+    "number_of_communities_plural": "{{count}} Komunumoj",
+    "more": "pli",
+    "select_a_community": "Elekti komunumon"
 }
