@@ -150,5 +150,19 @@
     "password_change": "Jelszó megváltoztatása",
     "new_password": "Új jelszó",
     "email": "Email",
-    "matrix_user_id": "Matrix felhasználó"
+    "matrix_user_id": "Matrix felhasználó",
+    "upvote": "Pozitív szavazat",
+    "private_message_disclaimer": "Figyelmeztetés: A privát üzenetek a Lemmyben nem biztonságosak. Kérlek, hozz létre egy fiókot a <1>Riot.im</1>-en a biztonságos üzenetváltásért!",
+    "send_notifications_to_email": "Értesítések küldése emailen keresztül",
+    "optional": "Opcionális",
+    "expires": "Lejár",
+    "language": "Nyelv",
+    "browser_default": "Böngészőben alapértelmezett",
+    "downvotes_disabled": "Negatív szavazatok letiltva",
+    "enable_downvotes": "Negatív szavazatok engedélyezése",
+    "number_of_upvotes": "{{count}} pozitív szavazat",
+    "number_of_upvotes_plural": "{{count}} pozitív szavazat",
+    "downvote": "Negatív szavazat",
+    "number_of_downvotes": "{{count}} negatív szavazat",
+    "number_of_downvotes_plural": "{{count}} negatív szavazat"
 }
