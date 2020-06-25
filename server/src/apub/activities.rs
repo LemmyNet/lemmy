@@ -5,6 +5,7 @@ use crate::{
 use activitystreams::{context, object::properties::ObjectProperties, public, Activity, Base};
 use diesel::PgConnection;
 use failure::{Error, _core::fmt::Debug};
+use isahc::prelude::*;
 use log::debug;
 use serde::Serialize;
 use url::Url;
@@ -56,18 +57,16 @@ where
   for t in to {
     let to_url = Url::parse(&t)?;
     if !is_apub_id_valid(&to_url) {
-      debug!("Not sending activity to {} (invalid or blacklisted)", t);
+      debug!("Not sending activity to {} (invalid or blocklisted)", t);
       continue;
     }
-    let mut request = attohttpc::post(t).header("Host", to_url.domain().unwrap());
-    let signature = sign(&mut request, actor)?;
+    let request = Request::post(t).header("Host", to_url.domain().unwrap());
+    let signature = sign(&request, actor)?;
     let res = request
       .header("Signature", signature)
       .header("Content-Type", "application/json")
-      .text(json.to_owned())
-      .send()?
-      .text()?;
-
+      .body(json.to_owned())?
+      .send()?;
     debug!("Result for activity send: {:?}", res);
   }
   Ok(())

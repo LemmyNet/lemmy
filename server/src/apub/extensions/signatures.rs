@@ -1,8 +1,8 @@
 use crate::apub::ActorType;
 use activitystreams::ext::Extension;
 use actix_web::HttpRequest;
-use attohttpc::RequestBuilder;
 use failure::Error;
+use http::request::Builder;
 use http_signature_normalization::Config;
 use log::debug;
 use openssl::{
@@ -35,29 +35,28 @@ pub fn generate_actor_keypair() -> Result<Keypair, Error> {
   })
 }
 
-// TODO is it possible to create this signature, with just the url and actor?
 /// Signs request headers with the given keypair.
-pub fn sign(request: &mut RequestBuilder, actor: &dyn ActorType) -> Result<String, Error> {
+pub fn sign(request: &Builder, actor: &dyn ActorType) -> Result<String, Error> {
   let signing_key_id = format!("{}#main-key", actor.actor_id());
 
   let headers = request
-    .inspect()
-    .headers()
+    .headers_ref()
+    .unwrap()
     .iter()
     .map(|h| -> Result<(String, String), Error> {
       Ok((h.0.as_str().to_owned(), h.1.to_str()?.to_owned()))
     })
     .collect::<Result<BTreeMap<String, String>, Error>>()?;
 
-  let mut path_and_query = request.inspect().url().path().to_owned();
-  if let Some(query) = request.inspect().url().query() {
-    path_and_query.push_str(query);
-  }
-
   let signature_header_value = HTTP_SIG_CONFIG
     .begin_sign(
-      request.inspect().method().as_str(),
-      &path_and_query,
+      request.method_ref().unwrap().as_str(),
+      request
+        .uri_ref()
+        .unwrap()
+        .path_and_query()
+        .unwrap()
+        .as_str(),
       headers,
     )?
     .sign(signing_key_id, |signing_string| {

@@ -39,6 +39,7 @@ pub mod websocket;
 use crate::settings::Settings;
 use actix_web::dev::ConnectionInfo;
 use chrono::{DateTime, FixedOffset, Local, NaiveDateTime, Utc};
+use isahc::prelude::*;
 use itertools::Itertools;
 use lettre::{
   smtp::{
@@ -85,8 +86,7 @@ pub fn is_email_regex(test: &str) -> bool {
 }
 
 pub fn is_image_content_type(test: &str) -> Result<(), failure::Error> {
-  if attohttpc::get(test)
-    .send()?
+  if isahc::get(test)?
     .headers()
     .get("Content-Type")
     .ok_or_else(|| format_err!("No Content-Type header"))?
@@ -180,7 +180,7 @@ pub struct IframelyResponse {
 
 pub fn fetch_iframely(url: &str) -> Result<IframelyResponse, failure::Error> {
   let fetch_url = format!("http://iframely/oembed?url={}", url);
-  let text: String = attohttpc::get(&fetch_url).send()?.text()?;
+  let text = isahc::get(&fetch_url)?.text()?;
   let res: IframelyResponse = serde_json::from_str(&text)?;
   Ok(res)
 }
@@ -204,7 +204,7 @@ pub fn fetch_pictrs(image_url: &str) -> Result<PictrsResponse, failure::Error> {
     "http://pictrs:8080/image/download?url={}",
     utf8_percent_encode(image_url, NON_ALPHANUMERIC) // TODO this might not be needed
   );
-  let text = attohttpc::get(&fetch_url).send()?.text()?;
+  let text = isahc::get(&fetch_url)?.text()?;
   let res: PictrsResponse = serde_json::from_str(&text)?;
   if res.msg == "ok" {
     Ok(res)
