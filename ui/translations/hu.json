@@ -194,5 +194,11 @@
     "support_on_open_collective": "Támogatás az OpenCollective-en",
     "donate_to_lemmy": "Adomány a Lemmynek",
     "donate": "Adomány",
-    "silver_sponsors": "Az ezüst támogatók azok, akik 40 dollárral járultak hozzá a Lemmyhez."
+    "silver_sponsors": "Az ezüst támogatók azok, akik 40 dollárral járultak hozzá a Lemmyhez.",
+    "code": "Kód",
+    "crypto": "Kripto",
+    "bitcoin": "Bitcoin",
+    "ethereum": "Ethereum",
+    "monero": "Monero",
+    "joined": "Csatlakozott"
 }
