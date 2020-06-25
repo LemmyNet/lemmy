@@ -200,5 +200,16 @@
     "bitcoin": "Bitcoin",
     "ethereum": "Ethereum",
     "monero": "Monero",
-    "joined": "Csatlakozott"
+    "joined": "Csatlakozott",
+    "transfer_community": "közösség átvitele",
+    "no": "nem",
+    "community_ban": "Ki lettél tiltva ebből a közösségből.",
+    "transfer_site": "oldal átvitele",
+    "are_you_sure": "Biztos vagy benne?",
+    "yes": "igen",
+    "powered_by": "A motorháztető alatt",
+    "not_logged_in": "Nem vagy bejelentkezve.",
+    "logged_in": "Bejelentkeztél.",
+    "site_saved": "Oldal mentve.",
+    "site_ban": "Ki lettél tiltva az oldalról"
 }
