@@ -253,5 +253,8 @@
     "emoji_picker": "Lista de emojis",
     "admin_settings": "Panel de Administración",
     "select_a_community": "Selecciona una comunidad",
-    "invalid_username": "Nombre de usuario inválido."
+    "invalid_username": "Nombre de usuario inválido.",
+    "invalid_community_name": "Nombre inválido.",
+    "click_to_delete_picture": "Haz click para eliminar la imagen.",
+    "picture_deleted": "Imagen borrada."
 }
