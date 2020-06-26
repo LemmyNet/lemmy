@@ -20,9 +20,9 @@
     password: "password"
     # host where postgres is running
     host: "postgres"
-    # port where postgres can be accessed
-    port: 5432
   }
+  # The location of the frontend
+  front_end_dir: "/app/dist"
 #  # optional: email sending configuration
 #  email: {
 #    # hostname of the smtp server
