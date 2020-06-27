@@ -3,7 +3,10 @@ use actix_web::client::Client;
 use diesel::{result::Error::NotFound, PgConnection};
 use log::debug;
 use serde::Deserialize;
-use std::{fmt::Debug, time::Duration};
+use std::{
+  fmt::Debug,
+  time::{Duration, Instant},
+};
 use url::Url;
 
 use crate::{
@@ -48,6 +51,34 @@ async fn _fetch_node_info(client: &Client, domain: &str) -> Result<NodeInfo, Lem
   Ok(nodeinfo)
 }
 
+async fn do_fetch<Response>(
+  client: &Client,
+  url: &Url,
+  timeout: Duration,
+) -> Result<Response, LemmyError>
+where
+  Response: for<'de> Deserialize<'de>,
+{
+  let json = client
+    .get(url.as_str())
+    .header("Accept", APUB_JSON_CONTENT_TYPE)
+    .timeout(timeout)
+    .send()
+    .await
+    .map_err(|e| {
+      debug!("Send error, {}", e);
+      SendError(e.to_string())
+    })?
+    .json()
+    .await
+    .map_err(|e| {
+      debug!("Receive error, {}", e);
+      RecvError(e.to_string())
+    })?;
+
+  Ok(json)
+}
+
 /// Fetch any type of ActivityPub object, handling things like HTTP headers, deserialisation,
 /// timeouts etc.
 pub async fn fetch_remote_object<Response>(
@@ -61,22 +92,28 @@ where
     return Err(format_err!("Activitypub uri invalid or blocked: {}", url).into());
   }
 
-  dbg!(url.as_str());
-  // TODO: this function should return a future
+  let mut err = format_err!("This should never happen").into();
+
   let timeout = Duration::from_secs(60);
+  let start = Instant::now();
 
-  let json = client
-    .get(url.as_str())
-    .header("Accept", APUB_JSON_CONTENT_TYPE)
-    .timeout(timeout)
-    .send()
-    .await
-    .map_err(|e| SendError(e.to_string()))?
-    .json()
-    .await
-    .map_err(|e| RecvError(e.to_string()))?;
+  // retry up to 2 additional times as long as we haven't hit the timeout
+  for i in 0..3 {
+    match do_fetch(client, url, timeout).await {
+      Ok(json) => return Ok(json),
+      Err(e) => err = e,
+    }
 
-  Ok(json)
+    debug!("Failed request {}", i);
+
+    let elapsed = Instant::now();
+    if elapsed - start > timeout {
+      debug!("timout");
+      break;
+    }
+  }
+
+  Err(err)
 }
 
 /// The types of ActivityPub objects that can be fetched directly by searching for their ID.

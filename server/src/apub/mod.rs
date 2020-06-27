@@ -97,7 +97,9 @@ pub fn get_apub_protocol_string() -> &'static str {
 
 // Checks if the ID has a valid format, correct scheme, and is in the allowed instance list.
 fn is_apub_id_valid(apub_id: &Url) -> bool {
+  debug!("Checking {}", apub_id);
   if apub_id.scheme() != get_apub_protocol_string() {
+    debug!("invalid scheme: {:?}", apub_id.scheme());
     return false;
   }
 
@@ -108,8 +110,19 @@ fn is_apub_id_valid(apub_id: &Url) -> bool {
     .map(|d| d.to_string())
     .collect();
   match apub_id.domain() {
-    Some(d) => allowed_instances.contains(&d.to_owned()),
-    None => false,
+    Some(d) => {
+      let contains = allowed_instances.contains(&d.to_owned());
+
+      if !contains {
+        debug!("{} not in {:?}", d, allowed_instances);
+      }
+
+      contains
+    }
+    None => {
+      debug!("missing domain");
+      false
+    }
   }
 }
 
