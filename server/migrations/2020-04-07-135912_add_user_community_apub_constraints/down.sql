@@ -2,7 +2,7 @@
 drop view user_view cascade;
 
 alter table user_ 
-add column fedi_name varchar(40) not null default 'changeme';
+add column fedi_name varchar(40) not null default 'http://fake.com';
 
 alter table user_
 add constraint user__name_fedi_name_key unique (name, fedi_name);

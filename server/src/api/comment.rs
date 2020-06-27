@@ -140,7 +140,7 @@ impl Perform for Oper<CreateComment> {
       read: None,
       published: None,
       updated: None,
-      ap_id: "changeme".into(),
+      ap_id: "http://fake.com".into(),
       local: true,
     };
 

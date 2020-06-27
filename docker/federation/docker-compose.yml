@@ -18,7 +18,6 @@ services:
       - lemmy_gamma
       - pictrs_gamma
       - iframely
-    restart: "always"
 
   lemmy_alpha:
     image: lemmy-federation:latest
@@ -36,7 +35,6 @@ services:
       - LEMMY_SETUP__SITE_NAME=lemmy_alpha
       - RUST_BACKTRACE=1
       - RUST_LOG=debug
-    restart: always
     depends_on:
       - postgres_alpha
   postgres_alpha:
@@ -47,13 +45,11 @@ services:
       - POSTGRES_DB=lemmy
     volumes:
       - ./volumes/postgres_alpha:/var/lib/postgresql/data
-    restart: always
   pictrs_alpha:
     image: asonix/pictrs:v0.1.13-r0
     user: 991:991
     volumes:
       - ./volumes/pictrs_alpha:/mnt
-    restart: always
 
   lemmy_beta:
     image: lemmy-federation:latest
@@ -71,7 +67,6 @@ services:
       - LEMMY_SETUP__SITE_NAME=lemmy_beta
       - RUST_BACKTRACE=1
       - RUST_LOG=debug
-    restart: always
     depends_on:
       - postgres_beta
   postgres_beta:
@@ -82,13 +77,11 @@ services:
       - POSTGRES_DB=lemmy
     volumes:
       - ./volumes/postgres_beta:/var/lib/postgresql/data
-    restart: always
   pictrs_beta:
     image: asonix/pictrs:v0.1.13-r0
     user: 991:991
     volumes:
       - ./volumes/pictrs_beta:/mnt
-    restart: always
 
   lemmy_gamma:
     image: lemmy-federation:latest
@@ -106,7 +99,6 @@ services:
       - LEMMY_SETUP__SITE_NAME=lemmy_gamma
       - RUST_BACKTRACE=1
       - RUST_LOG=debug
-    restart: always
     depends_on:
       - postgres_gamma
   postgres_gamma:
@@ -117,16 +109,13 @@ services:
       - POSTGRES_DB=lemmy
     volumes:
       - ./volumes/postgres_gamma:/var/lib/postgresql/data
-    restart: always
   pictrs_gamma:
     image: asonix/pictrs:v0.1.13-r0
     user: 991:991
     volumes:
       - ./volumes/pictrs_gamma:/mnt
-    restart: always
 
   iframely:
     image: dogbin/iframely:latest
     volumes:
       - ../iframely.config.local.js:/iframely/config.local.js:ro
-    restart: always

@@ -1107,7 +1107,7 @@ impl Perform for Oper<CreatePrivateMessage> {
       deleted: None,
       read: None,
       updated: None,
-      ap_id: "changeme".into(),
+      ap_id: "http://fake.com".into(),
       local: true,
       published: None,
     };

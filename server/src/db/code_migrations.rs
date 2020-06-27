@@ -16,12 +16,11 @@ use failure::Error;
 use log::info;
 
 pub fn run_advanced_migrations(conn: &PgConnection) -> Result<(), Error> {
-  user_updates_2020_04_02(conn)?;
-  community_updates_2020_04_02(conn)?;
-  post_updates_2020_04_03(conn)?;
-  comment_updates_2020_04_03(conn)?;
-  private_message_updates_2020_05_05(conn)?;
-
+  user_updates_2020_04_02(&conn)?;
+  community_updates_2020_04_02(&conn)?;
+  post_updates_2020_04_03(&conn)?;
+  comment_updates_2020_04_03(&conn)?;
+  private_message_updates_2020_05_05(&conn)?;
   Ok(())
 }
 
@@ -32,9 +31,11 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), Error> {
 
   // Update the actor_id, private_key, and public_key, last_refreshed_at
   let incorrect_users = user_
-    .filter(actor_id.eq("changeme"))
+    .filter(actor_id.eq("http://fake.com"))
     .filter(local.eq(true))
     .load::<User_>(conn)?;
+
+  sql_query("alter table user_ disable trigger refresh_user").execute(conn)?;
 
   for cuser in &incorrect_users {
     let keypair = generate_actor_keypair()?;
@@ -67,6 +68,8 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), Error> {
     User_::update(&conn, cuser.id, &form)?;
   }
 
+  sql_query("alter table user_ enable trigger refresh_user").execute(conn)?;
+
   info!("{} user rows updated.", incorrect_users.len());
 
   Ok(())
@@ -79,9 +82,11 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), Error> {
 
   // Update the actor_id, private_key, and public_key, last_refreshed_at
   let incorrect_communities = community
-    .filter(actor_id.eq("changeme"))
+    .filter(actor_id.eq("http://fake.com"))
     .filter(local.eq(true))
     .load::<Community>(conn)?;
+
+  sql_query("alter table community disable trigger refresh_community").execute(conn)?;
 
   for ccommunity in &incorrect_communities {
     let keypair = generate_actor_keypair()?;
@@ -107,6 +112,8 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), Error> {
     Community::update(&conn, ccommunity.id, &form)?;
   }
 
+  sql_query("alter table community enable trigger refresh_community").execute(conn)?;
+
   info!("{} community rows updated.", incorrect_communities.len());
 
   Ok(())
@@ -119,15 +126,19 @@ fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), Error> {
 
   // Update the ap_id
   let incorrect_posts = post
-    .filter(ap_id.eq("changeme"))
+    .filter(ap_id.eq("http://fake.com"))
     .filter(local.eq(true))
     .load::<Post>(conn)?;
+
+  sql_query("alter table post disable trigger refresh_post").execute(conn)?;
 
   for cpost in &incorrect_posts {
     Post::update_ap_id(&conn, cpost.id)?;
   }
 
   info!("{} post rows updated.", incorrect_posts.len());
+
+  sql_query("alter table post enable trigger refresh_post").execute(conn)?;
 
   Ok(())
 }
@@ -139,13 +150,17 @@ fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), Error> {
 
   // Update the ap_id
   let incorrect_comments = comment
-    .filter(ap_id.eq("changeme"))
+    .filter(ap_id.eq("http://fake.com"))
     .filter(local.eq(true))
     .load::<Comment>(conn)?;
+
+  sql_query("alter table comment disable trigger refresh_comment").execute(conn)?;
 
   for ccomment in &incorrect_comments {
     Comment::update_ap_id(&conn, ccomment.id)?;
   }
+
+  sql_query("alter table comment enable trigger refresh_comment").execute(conn)?;
 
   info!("{} comment rows updated.", incorrect_comments.len());
 
@@ -159,13 +174,17 @@ fn private_message_updates_2020_05_05(conn: &PgConnection) -> Result<(), Error> 
 
   // Update the ap_id
   let incorrect_pms = private_message
-    .filter(ap_id.eq("changeme"))
+    .filter(ap_id.eq("http://fake.com"))
     .filter(local.eq(true))
     .load::<PrivateMessage>(conn)?;
+
+  sql_query("alter table private_message disable trigger refresh_private_message").execute(conn)?;
 
   for cpm in &incorrect_pms {
     PrivateMessage::update_ap_id(&conn, cpm.id)?;
   }
+
+  sql_query("alter table private_message enable trigger refresh_private_message").execute(conn)?;
 
   info!("{} private message rows updated.", incorrect_pms.len());
 

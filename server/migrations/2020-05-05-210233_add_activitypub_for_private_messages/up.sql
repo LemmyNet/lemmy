@@ -1,5 +1,5 @@
 alter table private_message
-add column ap_id character varying(255) not null default 'changeme', -- This needs to be checked and updated in code, building from the site url if local
+add column ap_id character varying(255) not null default 'http://fake.com', -- This needs to be checked and updated in code, building from the site url if local
 add column local boolean not null default true
 ;
 

@@ -172,7 +172,7 @@ impl Perform for Oper<CreatePost> {
       embed_description: iframely_description,
       embed_html: iframely_html,
       thumbnail_url: pictrs_thumbnail,
-      ap_id: "changeme".into(),
+      ap_id: "http://fake.com".into(),
       local: true,
       published: None,
     };
