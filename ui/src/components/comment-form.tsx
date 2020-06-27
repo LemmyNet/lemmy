@@ -245,7 +245,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     });
   }
 
-  handleFinished(data: CommentResponse) {
+  handleFinished(op: UserOperation, data: CommentResponse) {
     let isReply =
       this.props.node !== undefined && data.comment.parent_id !== null;
     let xor =
@@ -253,11 +253,16 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
 
     if (
       (data.comment.creator_id == UserService.Instance.user.id &&
-        // If its a reply, make sure parent child match
-        isReply &&
-        data.comment.parent_id == this.props.node.comment.id) ||
-      // Otherwise, check the XOR of the two
-      (!isReply && xor)
+        ((op == UserOperation.CreateComment &&
+          // If its a reply, make sure parent child match
+          isReply &&
+          data.comment.parent_id == this.props.node.comment.id) ||
+          // Otherwise, check the XOR of the two
+          (!isReply && xor))) ||
+      // If its a comment edit, only check that its from your user, and that its a
+      // text edit only
+
+      (op == UserOperation.EditComment && data.comment.content)
     ) {
       this.state.previewMode = false;
       this.state.loading = false;
@@ -373,10 +378,10 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     if (UserService.Instance.user) {
       if (res.op == UserOperation.CreateComment) {
         let data = res.data as CommentResponse;
-        this.handleFinished(data);
+        this.handleFinished(res.op, data);
       } else if (res.op == UserOperation.EditComment) {
         let data = res.data as CommentResponse;
-        this.handleFinished(data);
+        this.handleFinished(res.op, data);
       }
     }
   }

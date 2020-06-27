@@ -1,18 +1,7 @@
 {
-  database: {
-    # username to connect to postgres
-    user: "lemmy"
-    # password to connect to postgres
-    password: "password"
-    # host where postgres is running
-    host: "postgres"
-    # port where postgres can be accessed
-    port: 5432
-    # name of the postgres database for lemmy
-    database: "lemmy"
-    # maximum number of active sql connections
-    pool_size: 5
-  }
+  # for more info about the config, check out the documentation
+  # https://dev.lemmy.ml/docs/administration_configuration.html
+
   # the domain name of your instance (eg "dev.lemmy.ml")
   hostname: "my_domain"
   # address where lemmy should listen for incoming requests
@@ -21,32 +10,19 @@
   port: 8536
   # json web token for authorization between server and client
   jwt_secret: "changeme"
-  # The dir for the front end
-  front_end_dir: "/app/dist"
-  # rate limits for various user actions, by user ip
-  rate_limit: {
-    # maximum number of messages created in interval
-    message: 180
-    # interval length for message limit
-    message_per_second: 60
-    # maximum number of posts created in interval
-    post: 6
-    # interval length for post limit
-    post_per_second: 600
-    # maximum number of registrations in interval
-    register: 3
-    # interval length for registration limit
-    register_per_second: 3600
+  # settings related to the postgresql database
+  database: {
+    # name of the postgres database for lemmy
+    database: "lemmy"
+    # username to connect to postgres
+    user: "lemmy"
+    # password to connect to postgres
+    password: "password"
+    # host where postgres is running
+    host: "postgres"
   }
-#  # optional: parameters for automatic configuration of new instance (only used at first start)
-#  setup: {
-#    # username for the admin user
-#    admin_username: "lemmy"
-#    # password for the admin user
-#    admin_password: "lemmy"
-#    # name of the site (can be changed later)
-#    site_name: "Lemmy Test"
-#  }
+  # The location of the frontend
+  front_end_dir: "/app/dist"
 #  # optional: email sending configuration
 #  email: {
 #    # hostname of the smtp server
@@ -55,9 +31,8 @@
 #    smtp_login: ""
 #    # password to login to the smtp server
 #    smtp_password: ""
-#    # address to send emails from, eg "info@your-instance.com"
+#    # address to send emails from, eg "noreply@your-instance.com"
 #    smtp_from_address: ""
-#    use_tls: true
 #  }
 }
 

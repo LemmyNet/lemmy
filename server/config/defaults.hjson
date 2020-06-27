@@ -33,7 +33,7 @@
   port: 8536
   # json web token for authorization between server and client
   jwt_secret: "changeme"
-  # The dir for the front end
+  # The location of the frontend
   front_end_dir: "../ui/dist"
   # rate limits for various user actions, by user ip
   rate_limit: {
@@ -61,13 +61,15 @@
   }
 #  # email sending configuration
 #  email: {
-#    # hostname of the smtp server
+#    # hostname and port of the smtp server
 #    smtp_server: ""
 #    # login name for smtp server
 #    smtp_login: ""
 #    # password to login to the smtp server
 #    smtp_password: ""
-#    # address to send emails from, eg "info@your-instance.com"
+#    # address to send emails from, eg "noreply@your-instance.com"
 #    smtp_from_address: ""
+#    # whether or not smtp connections should use tls
+#    use_tls: true
 #  }
 }

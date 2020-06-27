@@ -1,13 +1,25 @@
 {
+  # for more info about the config, check out the documentation
+  # https://dev.lemmy.ml/docs/administration_configuration.html
+
+  # settings related to the postgresql database
   database: {
+    # password to connect to postgres
     password: "{{ postgres_password }}"
+    # host where postgres is running
     host: "postgres"
   }
+  # the domain name of your instance (eg "dev.lemmy.ml")
   hostname: "{{ domain }}"
+  # json web token for authorization between server and client
   jwt_secret: "{{ jwt_password }}"
+  # The location of the frontend
   front_end_dir: "/app/dist"
+  # email sending configuration
   email: {
+    # hostname of the smtp server
     smtp_server: "postfix:25"
+    # address to send emails from, eg "noreply@your-instance.com"
     smtp_from_address: "noreply@{{ domain }}"
     use_tls: false
   }
