@@ -56,7 +56,7 @@
     "mark_as_read": "segna come letto",
     "mark_as_unread": "segna come non letto",
     "delete": "cancella",
-    "deleted": "eliminato dal creatore",
+    "deleted": "eliminato dall'autore del commento",
     "delete_account": "Cancella Account",
     "delete_account_confirm": "Attenzione: stai per cancellare permanentemente tutti i tuoi dati. Inserisci la tua password per confermare questa azione.",
     "restore": "ripristina",
@@ -142,7 +142,7 @@
     "theme": "Tema",
     "sponsors": "Sponsor",
     "sponsors_of_lemmy": "Sponsor di Lemmy",
-    "sponsor_message": "Lemmy è software libero e <1>open-source</1>, senza nessuna pubblicità, monetizzazione o investitori esterni, per sempre. Le tue donazioni sostengono direttamente lo sviluppo full-time del progetto. Si ringraziano le seguenti persone:",
+    "sponsor_message": "Lemmy è software libero e <1>open-source</1>, senza nessuna pubblicità, monetizzazione o investitori esterni, per sempre. Le tue donazioni sostengono direttamente lo sviluppo a tempo pieno del progetto. Si ringraziano le seguenti persone:",
     "support_on_patreon": "Sostieni su Patreon",
     "support_on_liberapay": "Sostieni su Liberapay",
     "general_sponsors": "Gli sponsor generali sono quelli che hanno investito dai 10$ ai 39$ su Lemmy.",
@@ -256,5 +256,5 @@
     "click_to_delete_picture": "Clicca per eliminare la foto.",
     "picture_deleted": "Foto eliminata.",
     "select_a_community": "Seleziona una comunità",
-    "invalid_username": "Username non valido."
+    "invalid_username": "Nome utente non valido."
 }
