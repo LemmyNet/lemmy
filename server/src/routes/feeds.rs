@@ -11,6 +11,7 @@ use crate::{
   markdown_to_html,
   routes::DbPoolParam,
   settings::Settings,
+  LemmyError,
 };
 use actix_web::{error::ErrorBadRequest, *};
 use chrono::{DateTime, NaiveDateTime, Utc};
@@ -56,7 +57,7 @@ async fn get_all_feed(info: web::Query<Params>, db: DbPoolParam) -> Result<HttpR
   Ok(res)
 }
 
-fn get_feed_all_data(conn: &PgConnection, sort_type: &SortType) -> Result<String, failure::Error> {
+fn get_feed_all_data(conn: &PgConnection, sort_type: &SortType) -> Result<String, LemmyError> {
   let site_view = SiteView::read(&conn)?;
 
   let posts = PostQueryBuilder::create(&conn)
@@ -94,7 +95,7 @@ async fn get_feed(
       "c" => RequestType::Community,
       "front" => RequestType::Front,
       "inbox" => RequestType::Inbox,
-      _ => return Err(format_err!("wrong_type")),
+      _ => return Err(format_err!("wrong_type").into()),
     };
 
     let param = path.1.to_owned();
@@ -129,7 +130,7 @@ fn get_feed_user(
   conn: &PgConnection,
   sort_type: &SortType,
   user_name: String,
-) -> Result<ChannelBuilder, failure::Error> {
+) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
   let user = User_::find_by_username(&conn, &user_name)?;
   let user_url = user.get_profile_url();
@@ -155,7 +156,7 @@ fn get_feed_community(
   conn: &PgConnection,
   sort_type: &SortType,
   community_name: String,
-) -> Result<ChannelBuilder, failure::Error> {
+) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
   let community = Community::read_from_name(&conn, &community_name)?;
 
@@ -184,7 +185,7 @@ fn get_feed_front(
   conn: &PgConnection,
   sort_type: &SortType,
   jwt: String,
-) -> Result<ChannelBuilder, failure::Error> {
+) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
   let user_id = Claims::decode(&jwt)?.claims.id;
 
@@ -209,7 +210,7 @@ fn get_feed_front(
   Ok(channel_builder)
 }
 
-fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, failure::Error> {
+fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
   let user_id = Claims::decode(&jwt)?.claims.id;
 
