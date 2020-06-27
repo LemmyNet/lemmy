@@ -560,23 +560,19 @@ impl Perform for Oper<FollowCommunity> {
 
     if community.local {
       if data.follow {
-        let res: Result<_, _> = unblock!(
+        if unblock!(
           pool,
           conn,
-          CommunityFollower::follow(&conn, &community_follower_form)
-        );
-        if res.is_err() {
+          CommunityFollower::follow(&conn, &community_follower_form).is_err()
+        ) {
           return Err(APIError::err("community_follower_already_exists").into());
         }
-      } else {
-        let res: Result<_, _> = unblock!(
-          pool,
-          conn,
-          CommunityFollower::unfollow(&conn, &community_follower_form)
-        );
-        if res.is_err() {
-          return Err(APIError::err("community_follower_already_exists").into());
-        }
+      } else if unblock!(
+        pool,
+        conn,
+        CommunityFollower::unfollow(&conn, &community_follower_form).is_err()
+      ) {
+        return Err(APIError::err("community_follower_already_exists").into());
       }
     } else {
       let user: User_ = unblock!(pool, conn, User_::read(&conn, user_id)?);
@@ -591,14 +587,13 @@ impl Perform for Oper<FollowCommunity> {
         user
           .send_unfollow(&community.actor_id, &self.client, pool.clone())
           .await?;
-        let res: Result<_, _> = unblock!(
+        if unblock!(
           pool,
           conn,
-          CommunityFollower::unfollow(&conn, &community_follower_form)
-        );
-        if res.is_err() {
+          CommunityFollower::unfollow(&conn, &community_follower_form).is_err()
+        ) {
           return Err(APIError::err("community_follower_already_exists").into());
-        };
+        }
       }
       // TODO: this needs to return a "pending" state, until Accept is received from the remote server
     }
@@ -634,12 +629,11 @@ impl Perform for Oper<GetFollowedCommunities> {
 
     let user_id = claims.id;
 
-    let res: Result<_, _> = unblock!(pool, conn, CommunityFollowerView::for_user(&conn, user_id));
-
-    let communities: Vec<CommunityFollowerView> = match res {
-      Ok(communities) => communities,
-      _ => return Err(APIError::err("system_err_login").into()),
-    };
+    let communities: Vec<CommunityFollowerView> =
+      match unblock!(pool, conn, CommunityFollowerView::for_user(&conn, user_id)) {
+        Ok(communities) => communities,
+        _ => return Err(APIError::err("system_err_login").into()),
+      };
 
     // Return the jwt
     Ok(GetFollowedCommunitiesResponse { communities })
@@ -670,25 +664,19 @@ impl Perform for Oper<BanFromCommunity> {
     };
 
     if data.ban {
-      let res: Result<_, _> = unblock!(
+      if unblock!(
         pool,
         conn,
-        CommunityUserBan::ban(&conn, &community_user_ban_form)
-      );
-
-      if res.is_err() {
+        CommunityUserBan::ban(&conn, &community_user_ban_form).is_err()
+      ) {
         return Err(APIError::err("community_user_already_banned").into());
       }
-    } else {
-      let res: Result<_, _> = unblock!(
-        pool,
-        conn,
-        CommunityUserBan::unban(&conn, &community_user_ban_form)
-      );
-
-      if res.is_err() {
-        return Err(APIError::err("community_user_already_banned").into());
-      }
+    } else if unblock!(
+      pool,
+      conn,
+      CommunityUserBan::unban(&conn, &community_user_ban_form).is_err()
+    ) {
+      return Err(APIError::err("community_user_already_banned").into());
     }
 
     // Mod tables
@@ -752,23 +740,19 @@ impl Perform for Oper<AddModToCommunity> {
     };
 
     if data.added {
-      let res: Result<_, _> = unblock!(
+      if unblock!(
         pool,
         conn,
-        CommunityModerator::join(&conn, &community_moderator_form)
-      );
-      if res.is_err() {
+        CommunityModerator::join(&conn, &community_moderator_form).is_err()
+      ) {
         return Err(APIError::err("community_moderator_already_exists").into());
       }
-    } else {
-      let res: Result<_, _> = unblock!(
-        pool,
-        conn,
-        CommunityModerator::leave(&conn, &community_moderator_form)
-      );
-      if res.is_err() {
-        return Err(APIError::err("community_moderator_already_exists").into());
-      };
+    } else if unblock!(
+      pool,
+      conn,
+      CommunityModerator::leave(&conn, &community_moderator_form).is_err()
+    ) {
+      return Err(APIError::err("community_moderator_already_exists").into());
     }
 
     // Mod tables
@@ -823,8 +807,7 @@ impl Perform for Oper<TransferCommunity> {
     let community_id = data.community_id;
     let read_community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
 
-    let site: Site = unblock!(pool, conn, Site::read(&conn, 1)?);
-    let site_creator_id = site.creator_id;
+    let site_creator_id: i32 = unblock!(pool, conn, Site::read(&conn, 1)?.creator_id);
 
     let mut admins: Vec<UserView> = unblock!(pool, conn, UserView::admins(&conn)?);
 
@@ -886,20 +869,20 @@ impl Perform for Oper<TransferCommunity> {
       CommunityModerator::delete_for_community(&conn, community_id)?
     );
 
+    // TODO: this should probably be a bulk operation
     for cmod in &community_mods {
       let community_moderator_form = CommunityModeratorForm {
         community_id: cmod.community_id,
         user_id: cmod.user_id,
       };
 
-      let _: CommunityModerator = match unblock!(
+      if unblock!(
         pool,
         conn,
-        CommunityModerator::join(&conn, &community_moderator_form)
+        CommunityModerator::join(&conn, &community_moderator_form).is_err()
       ) {
-        Ok(user) => user,
-        Err(_e) => return Err(APIError::err("community_moderator_already_exists").into()),
-      };
+        return Err(APIError::err("community_moderator_already_exists").into());
+      }
     }
 
     // Mod tables

@@ -335,10 +335,11 @@ async fn receive_undo_delete_private_message(
 
   let private_message = PrivateMessageForm::from_apub(&note, client, pool.clone()).await?;
 
-  let private_message: PrivateMessage = unblock!(
+  let private_message_ap_id = private_message.ap_id.clone();
+  let private_message_id: i32 = unblock!(
     pool,
     conn,
-    PrivateMessage::read_from_apub_id(&conn, &private_message.ap_id)?
+    PrivateMessage::read_from_apub_id(&conn, &private_message_ap_id)?.id
   );
 
   let private_message_form = PrivateMessageForm {
@@ -353,14 +354,12 @@ async fn receive_undo_delete_private_message(
     updated: Some(naive_now()),
   };
 
-  let private_message_id = private_message.id;
   let _: PrivateMessage = unblock!(
     pool,
     conn,
     PrivateMessage::update(&conn, private_message_id, &private_message_form)?
   );
 
-  let private_message_id = private_message.id;
   let message: PrivateMessageView = unblock!(
     pool,
     conn,

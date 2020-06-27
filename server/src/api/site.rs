@@ -162,10 +162,6 @@ impl Perform for Oper<GetModlog> {
       ModRemovePostView::list(&conn, community_id, mod_user_id, page, limit,)?
     );
 
-    let community_id = data.community_id;
-    let mod_user_id = data.mod_user_id;
-    let page = data.page;
-    let limit = data.limit;
     let locked_posts: Vec<ModLockPostView> = unblock!(
       pool,
       conn,
@@ -270,8 +266,7 @@ impl Perform for Oper<CreateSite> {
       updated: None,
     };
 
-    let res: Result<_, _> = unblock!(pool, conn, Site::create(&conn, &site_form));
-    if res.is_err() {
+    if unblock!(pool, conn, Site::create(&conn, &site_form).is_err()) {
       return Err(APIError::err("site_already_exists").into());
     }
 
@@ -326,8 +321,7 @@ impl Perform for Oper<EditSite> {
       enable_nsfw: data.enable_nsfw,
     };
 
-    let res: Result<_, _> = unblock!(pool, conn, Site::update(&conn, 1, &site_form));
-    if res.is_err() {
+    if unblock!(pool, conn, Site::update(&conn, 1, &site_form).is_err()) {
       return Err(APIError::err("couldnt_update_site").into());
     }
 
@@ -644,8 +638,7 @@ impl Perform for Oper<TransferSite> {
       enable_nsfw: read_site.enable_nsfw,
     };
 
-    let res: Result<_, _> = unblock!(pool, conn, Site::update(&conn, 1, &site_form));
-    if res.is_err() {
+    if unblock!(pool, conn, Site::update(&conn, 1, &site_form).is_err()) {
       return Err(APIError::err("couldnt_update_site").into());
     };
 

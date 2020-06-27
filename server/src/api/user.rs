@@ -372,13 +372,12 @@ impl Perform for Oper<Register> {
       user_id: inserted_user.id,
     };
 
-    let _inserted_community_follower: CommunityFollower = match unblock!(
+    if unblock!(
       pool,
       conn,
-      CommunityFollower::follow(&conn, &community_follower_form)
+      CommunityFollower::follow(&conn, &community_follower_form).is_err()
     ) {
-      Ok(user) => user,
-      Err(_e) => return Err(APIError::err("community_follower_already_exists").into()),
+      return Err(APIError::err("community_follower_already_exists").into());
     };
 
     // If its an admin, add them as a mod and follower to main
@@ -606,8 +605,7 @@ impl Perform for Oper<GetUserDetails> {
       CommunityModeratorView::for_user(&conn, user_details_id)?
     );
 
-    let site: Site = unblock!(pool, conn, Site::read(&conn, 1)?);
-    let site_creator_id = site.creator_id;
+    let site_creator_id: i32 = unblock!(pool, conn, Site::read(&conn, 1)?.creator_id);
 
     let mut admins: Vec<UserView> = unblock!(pool, conn, UserView::admins(&conn)?);
     let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
@@ -862,13 +860,12 @@ impl Perform for Oper<EditUserMention> {
     };
 
     let user_mention_id = user_mention.id;
-    let _updated_user_mention: UserMention = match unblock!(
+    if unblock!(
       pool,
       conn,
-      UserMention::update(&conn, user_mention_id, &user_mention_form)
+      UserMention::update(&conn, user_mention_id, &user_mention_form).is_err()
     ) {
-      Ok(comment) => comment,
-      Err(_e) => return Err(APIError::err("couldnt_update_comment").into()),
+      return Err(APIError::err("couldnt_update_comment").into());
     };
 
     let user_mention_id = user_mention.id;

@@ -122,12 +122,11 @@ impl Perform for Oper<CreatePost> {
 
     // Check for a community ban
     let community_id = data.community_id;
-    let res: Result<_, _> = unblock!(
+    if unblock!(
       pool,
       conn,
-      CommunityUserBanView::get(&conn, user_id, community_id)
-    );
-    if res.is_ok() {
+      CommunityUserBanView::get(&conn, user_id, community_id).is_ok()
+    ) {
       return Err(APIError::err("community_ban").into());
     }
 
@@ -282,8 +281,7 @@ impl Perform for Oper<GetPost> {
       CommunityModeratorView::for_community(&conn, community_id)?
     );
 
-    let site: Site = unblock!(pool, conn, Site::read(&conn, 1)?);
-    let site_creator_id = site.creator_id;
+    let site_creator_id: i32 = unblock!(pool, conn, Site::read(&conn, 1)?.creator_id);
 
     let mut admins: Vec<UserView> = unblock!(pool, conn, UserView::admins(&conn)?);
     let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
@@ -421,12 +419,11 @@ impl Perform for Oper<CreatePostLike> {
     let post: Post = unblock!(pool, conn, Post::read(&conn, post_id)?);
 
     let community_id = post.community_id;
-    let res: Result<_, _> = unblock!(
+    if unblock!(
       pool,
       conn,
-      CommunityUserBanView::get(&conn, user_id, community_id)
-    );
-    if res.is_ok() {
+      CommunityUserBanView::get(&conn, user_id, community_id).is_ok()
+    ) {
       return Err(APIError::err("community_ban").into());
     }
 
@@ -537,12 +534,11 @@ impl Perform for Oper<EditPost> {
 
     // Check for a community ban
     let community_id = data.community_id;
-    let res: Result<_, _> = unblock!(
+    if unblock!(
       pool,
       conn,
-      CommunityUserBanView::get(&conn, user_id, community_id)
-    );
-    if res.is_ok() {
+      CommunityUserBanView::get(&conn, user_id, community_id).is_ok()
+    ) {
       return Err(APIError::err("community_ban").into());
     }
 
@@ -692,17 +688,19 @@ impl Perform for Oper<SavePost> {
     };
 
     if data.save {
-      let res: Result<_, _> = unblock!(pool, conn, PostSaved::save(&conn, &post_saved_form));
-
-      if res.is_err() {
+      if unblock!(
+        pool,
+        conn,
+        PostSaved::save(&conn, &post_saved_form).is_err()
+      ) {
         return Err(APIError::err("couldnt_save_post").into());
       }
-    } else {
-      let res: Result<_, _> = unblock!(pool, conn, PostSaved::unsave(&conn, &post_saved_form));
-
-      if res.is_err() {
-        return Err(APIError::err("couldnt_save_post").into());
-      }
+    } else if unblock!(
+      pool,
+      conn,
+      PostSaved::unsave(&conn, &post_saved_form).is_err()
+    ) {
+      return Err(APIError::err("couldnt_save_post").into());
     }
 
     let post_id = data.post_id;

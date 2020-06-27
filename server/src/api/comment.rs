@@ -116,12 +116,11 @@ impl Perform for Oper<CreateComment> {
     let post: Post = unblock!(pool, conn, Post::read(&conn, post_id)?);
 
     let community_id = post.community_id;
-    let res: Result<_, _> = unblock!(
+    if unblock!(
       pool,
       conn,
-      CommunityUserBanView::get(&conn, user_id, community_id)
-    );
-    if res.is_ok() {
+      CommunityUserBanView::get(&conn, user_id, community_id).is_ok()
+    ) {
       return Err(APIError::err("community_ban").into());
     }
 
@@ -171,8 +170,7 @@ impl Perform for Oper<CreateComment> {
       score: 1,
     };
 
-    let res: Result<_, _> = unblock!(pool, conn, CommentLike::like(&conn, &like_form));
-    if res.is_err() {
+    if unblock!(pool, conn, CommentLike::like(&conn, &like_form).is_err()) {
       return Err(APIError::err("couldnt_like_comment").into());
     }
 
@@ -255,12 +253,11 @@ impl Perform for Oper<EditComment> {
 
       // Check for a community ban
       let community_id = orig_comment.community_id;
-      let res: Result<_, _> = unblock!(
+      if unblock!(
         pool,
         conn,
-        CommunityUserBanView::get(&conn, user_id, community_id)
-      );
-      if res.is_ok() {
+        CommunityUserBanView::get(&conn, user_id, community_id).is_ok()
+      ) {
         return Err(APIError::err("community_ban").into());
       }
 
@@ -397,17 +394,19 @@ impl Perform for Oper<SaveComment> {
     };
 
     if data.save {
-      let res: Result<_, _> = unblock!(pool, conn, CommentSaved::save(&conn, &comment_saved_form));
-
-      if res.is_err() {
+      if unblock!(
+        pool,
+        conn,
+        CommentSaved::save(&conn, &comment_saved_form).is_err()
+      ) {
         return Err(APIError::err("couldnt_save_comment").into());
       }
-    } else {
-      let res: Result<_, _> =
-        unblock!(pool, conn, CommentSaved::unsave(&conn, &comment_saved_form));
-      if res.is_err() {
-        return Err(APIError::err("couldnt_save_comment").into());
-      }
+    } else if unblock!(
+      pool,
+      conn,
+      CommentSaved::unsave(&conn, &comment_saved_form).is_err()
+    ) {
+      return Err(APIError::err("couldnt_save_comment").into());
     }
 
     let comment_id = data.comment_id;
@@ -456,12 +455,11 @@ impl Perform for Oper<CreateCommentLike> {
     let post_id = data.post_id;
     let post: Post = unblock!(pool, conn, Post::read(&conn, post_id)?);
     let community_id = post.community_id;
-    let res: Result<_, _> = unblock!(
+    if unblock!(
       pool,
       conn,
-      CommunityUserBanView::get(&conn, user_id, community_id)
-    );
-    if res.is_ok() {
+      CommunityUserBanView::get(&conn, user_id, community_id).is_ok()
+    ) {
       return Err(APIError::err("community_ban").into());
     }
 
@@ -504,8 +502,7 @@ impl Perform for Oper<CreateCommentLike> {
     let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
     if do_add {
       let like_form2 = like_form.clone();
-      let res: Result<_, _> = unblock!(pool, conn, CommentLike::like(&conn, &like_form2));
-      if res.is_err() {
+      if unblock!(pool, conn, CommentLike::like(&conn, &like_form2).is_err()) {
         return Err(APIError::err("couldnt_like_comment").into());
       }
 
