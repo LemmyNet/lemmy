@@ -1,9 +1,6 @@
 use crate::{
-  apub::get_apub_protocol_string,
-  db::site_view::SiteView,
-  routes::DbPoolParam,
-  version,
-  Settings,
+  apub::get_apub_protocol_string, db::site_view::SiteView, routes::DbPoolParam, version,
+  LemmyError, Settings,
 };
 use actix_web::{body::Body, error::ErrorBadRequest, *};
 use serde::{Deserialize, Serialize};
@@ -15,7 +12,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route("/.well-known/nodeinfo", web::get().to(node_info_well_known));
 }
 
-async fn node_info_well_known() -> Result<HttpResponse<Body>, failure::Error> {
+async fn node_info_well_known() -> Result<HttpResponse<Body>, LemmyError> {
   let node_info = NodeInfoWellKnown {
     links: NodeInfoWellKnownLinks {
       rel: Url::parse("http://nodeinfo.diaspora.software/ns/schema/2.0")?,

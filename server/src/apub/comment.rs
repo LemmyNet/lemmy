@@ -1,20 +1,12 @@
 use crate::{
   apub::{
     activities::{populate_object_props, send_activity_to_community},
-    create_apub_response,
-    create_apub_tombstone_response,
-    create_tombstone,
-    fetch_webfinger_url,
+    create_apub_response, create_apub_tombstone_response, create_tombstone, fetch_webfinger_url,
     fetcher::{
-      get_or_fetch_and_insert_remote_comment,
-      get_or_fetch_and_insert_remote_post,
+      get_or_fetch_and_insert_remote_comment, get_or_fetch_and_insert_remote_post,
       get_or_fetch_and_upsert_remote_user,
     },
-    ActorType,
-    ApubLikeableType,
-    ApubObjectType,
-    FromApub,
-    ToApub,
+    ActorType, ApubLikeableType, ApubObjectType, FromApub, ToApub,
   },
   convert_datetime,
   db::{
@@ -25,8 +17,7 @@ use crate::{
     Crud,
   },
   routes::DbPoolParam,
-  scrape_text_for_mentions,
-  MentionData,
+  scrape_text_for_mentions, DbPool, LemmyError, MentionData,
 };
 use activitystreams::{
   activity::{Create, Delete, Dislike, Like, Remove, Undo, Update},
@@ -35,9 +26,7 @@ use activitystreams::{
   object::{kind::NoteType, properties::ObjectProperties, Note},
 };
 use activitystreams_new::object::Tombstone;
-use actix_web::{body::Body, web::Path, HttpResponse, Result};
-use diesel::PgConnection;
-use failure::Error;
+use actix_web::{body::Body, client::Client, web::Path, HttpResponse};
 use itertools::Itertools;
 use log::debug;
 use serde::Deserialize;
@@ -51,32 +40,43 @@ pub struct CommentQuery {
 pub async fn get_apub_comment(
   info: Path<CommentQuery>,
   db: DbPoolParam,
-) -> Result<HttpResponse<Body>, Error> {
+) -> Result<HttpResponse<Body>, LemmyError> {
   let id = info.comment_id.parse::<i32>()?;
-  let comment = Comment::read(&&db.get()?, id)?;
+  let comment: Comment = unblock!(db, conn, Comment::read(&conn, id)?);
+
   if !comment.deleted {
-    Ok(create_apub_response(&comment.to_apub(&db.get().unwrap())?))
+    Ok(create_apub_response(
+      &comment.to_apub((**db).clone()).await?,
+    ))
   } else {
     Ok(create_apub_tombstone_response(&comment.to_tombstone()?))
   }
 }
 
+#[async_trait::async_trait(?Send)]
 impl ToApub for Comment {
   type Response = Note;
 
-  fn to_apub(&self, conn: &PgConnection) -> Result<Note, Error> {
+  async fn to_apub(&self, pool: DbPool) -> Result<Note, LemmyError> {
     let mut comment = Note::default();
     let oprops: &mut ObjectProperties = comment.as_mut();
-    let creator = User_::read(&conn, self.creator_id)?;
-    let post = Post::read(&conn, self.post_id)?;
-    let community = Community::read(&conn, post.community_id)?;
+
+    let creator_id = self.creator_id;
+    let creator: User_ = unblock!(pool, conn, User_::read(&conn, creator_id)?);
+
+    let post_id = self.post_id;
+    let post: Post = unblock!(pool, conn, Post::read(&conn, post_id)?);
+
+    let community_id = post.community_id;
+    let community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
 
     // Add a vector containing some important info to the "in_reply_to" field
     // [post_ap_id, Option(parent_comment_ap_id)]
     let mut in_reply_to_vec = vec![post.ap_id];
 
     if let Some(parent_id) = self.parent_id {
-      let parent_comment = Comment::read(&conn, parent_id)?;
+      let parent_comment: Comment = unblock!(pool, conn, Comment::read(&conn, parent_id)?);
+
       in_reply_to_vec.push(parent_comment.ap_id);
     }
 
@@ -97,7 +97,7 @@ impl ToApub for Comment {
     Ok(comment)
   }
 
-  fn to_tombstone(&self) -> Result<Tombstone, Error> {
+  fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
     create_tombstone(
       self.deleted,
       &self.ap_id,
@@ -107,27 +107,36 @@ impl ToApub for Comment {
   }
 }
 
+#[async_trait::async_trait(?Send)]
 impl FromApub for CommentForm {
   type ApubType = Note;
 
   /// Parse an ActivityPub note received from another instance into a Lemmy comment
-  fn from_apub(note: &Note, conn: &PgConnection) -> Result<CommentForm, Error> {
+  async fn from_apub(
+    note: &Note,
+    client: &Client,
+    pool: DbPool,
+  ) -> Result<CommentForm, LemmyError> {
     let oprops = &note.object_props;
     let creator_actor_id = &oprops.get_attributed_to_xsd_any_uri().unwrap().to_string();
-    let creator = get_or_fetch_and_upsert_remote_user(&creator_actor_id, &conn)?;
+
+    let creator =
+      get_or_fetch_and_upsert_remote_user(&creator_actor_id, client, pool.clone()).await?;
 
     let mut in_reply_tos = oprops.get_many_in_reply_to_xsd_any_uris().unwrap();
     let post_ap_id = in_reply_tos.next().unwrap().to_string();
 
     // This post, or the parent comment might not yet exist on this server yet, fetch them.
-    let post = get_or_fetch_and_insert_remote_post(&post_ap_id, &conn)?;
+    let post = get_or_fetch_and_insert_remote_post(&post_ap_id, client, pool.clone()).await?;
 
     // The 2nd item, if it exists, is the parent comment apub_id
     // For deeply nested comments, FromApub automatically gets called recursively
     let parent_id: Option<i32> = match in_reply_tos.next() {
       Some(parent_comment_uri) => {
         let parent_comment_ap_id = &parent_comment_uri.to_string();
-        let parent_comment = get_or_fetch_and_insert_remote_comment(&parent_comment_ap_id, &conn)?;
+        let parent_comment =
+          get_or_fetch_and_insert_remote_comment(&parent_comment_ap_id, client, pool.clone())
+            .await?;
 
         Some(parent_comment.id)
       }
@@ -157,17 +166,28 @@ impl FromApub for CommentForm {
   }
 }
 
+#[async_trait::async_trait(?Send)]
 impl ApubObjectType for Comment {
   /// Send out information about a newly created comment, to the followers of the community.
-  fn send_create(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
-    let note = self.to_apub(conn)?;
-    let post = Post::read(&conn, self.post_id)?;
-    let community = Community::read(conn, post.community_id)?;
+  async fn send_create(
+    &self,
+    creator: &User_,
+    client: &Client,
+    pool: DbPool,
+  ) -> Result<(), LemmyError> {
+    let note = self.to_apub(pool.clone()).await?;
+
+    let post_id = self.post_id;
+    let post: Post = unblock!(pool, conn, Post::read(&conn, post_id)?);
+
+    let community_id = post.community_id;
+    let community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
+
+    let maa =
+      collect_non_local_mentions_and_addresses(&self.content, &community, client, pool.clone())
+        .await?;
+
     let id = format!("{}/create/{}", self.ap_id, uuid::Uuid::new_v4());
-
-    let maa: MentionsAndAddresses =
-      collect_non_local_mentions_and_addresses(&conn, &self.content, &community)?;
-
     let mut create = Create::new();
     populate_object_props(&mut create.object_props, maa.addressed_ccs, &id)?;
 
@@ -179,20 +199,30 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    send_activity_to_community(&creator, &conn, &community, maa.inboxes, create)?;
+    send_activity_to_community(&creator, &community, maa.inboxes, create, client, pool).await?;
     Ok(())
   }
 
   /// Send out information about an edited post, to the followers of the community.
-  fn send_update(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
-    let note = self.to_apub(&conn)?;
-    let post = Post::read(&conn, self.post_id)?;
-    let community = Community::read(&conn, post.community_id)?;
+  async fn send_update(
+    &self,
+    creator: &User_,
+    client: &Client,
+    pool: DbPool,
+  ) -> Result<(), LemmyError> {
+    let note = self.to_apub(pool.clone()).await?;
+
+    let post_id = self.post_id;
+    let post: Post = unblock!(pool, conn, Post::read(&conn, post_id)?);
+
+    let community_id = post.community_id;
+    let community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
+
+    let maa =
+      collect_non_local_mentions_and_addresses(&self.content, &community, client, pool.clone())
+        .await?;
+
     let id = format!("{}/update/{}", self.ap_id, uuid::Uuid::new_v4());
-
-    let maa: MentionsAndAddresses =
-      collect_non_local_mentions_and_addresses(&conn, &self.content, &community)?;
-
     let mut update = Update::new();
     populate_object_props(&mut update.object_props, maa.addressed_ccs, &id)?;
 
@@ -204,14 +234,24 @@ impl ApubObjectType for Comment {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    send_activity_to_community(&creator, &conn, &community, maa.inboxes, update)?;
+    send_activity_to_community(&creator, &community, maa.inboxes, update, client, pool).await?;
     Ok(())
   }
 
-  fn send_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
-    let note = self.to_apub(&conn)?;
-    let post = Post::read(&conn, self.post_id)?;
-    let community = Community::read(&conn, post.community_id)?;
+  async fn send_delete(
+    &self,
+    creator: &User_,
+    client: &Client,
+    pool: DbPool,
+  ) -> Result<(), LemmyError> {
+    let note = self.to_apub(pool.clone()).await?;
+
+    let post_id = self.post_id;
+    let post: Post = unblock!(pool, conn, Post::read(&conn, post_id)?);
+
+    let community_id = post.community_id;
+    let community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
+
     let id = format!("{}/delete/{}", self.ap_id, uuid::Uuid::new_v4());
     let mut delete = Delete::default();
 
@@ -228,18 +268,29 @@ impl ApubObjectType for Comment {
 
     send_activity_to_community(
       &creator,
-      &conn,
       &community,
       vec![community.get_shared_inbox_url()],
       delete,
-    )?;
+      client,
+      pool,
+    )
+    .await?;
     Ok(())
   }
 
-  fn send_undo_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
-    let note = self.to_apub(&conn)?;
-    let post = Post::read(&conn, self.post_id)?;
-    let community = Community::read(&conn, post.community_id)?;
+  async fn send_undo_delete(
+    &self,
+    creator: &User_,
+    client: &Client,
+    pool: DbPool,
+  ) -> Result<(), LemmyError> {
+    let note = self.to_apub(pool.clone()).await?;
+
+    let post_id = self.post_id;
+    let post: Post = unblock!(pool, conn, Post::read(&conn, post_id)?);
+
+    let community_id = post.community_id;
+    let community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
 
     // Generate a fake delete activity, with the correct object
     let id = format!("{}/delete/{}", self.ap_id, uuid::Uuid::new_v4());
@@ -274,18 +325,30 @@ impl ApubObjectType for Comment {
 
     send_activity_to_community(
       &creator,
-      &conn,
       &community,
       vec![community.get_shared_inbox_url()],
       undo,
-    )?;
+      client,
+      pool,
+    )
+    .await?;
     Ok(())
   }
 
-  fn send_remove(&self, mod_: &User_, conn: &PgConnection) -> Result<(), Error> {
-    let note = self.to_apub(&conn)?;
-    let post = Post::read(&conn, self.post_id)?;
-    let community = Community::read(&conn, post.community_id)?;
+  async fn send_remove(
+    &self,
+    mod_: &User_,
+    client: &Client,
+    pool: DbPool,
+  ) -> Result<(), LemmyError> {
+    let note = self.to_apub(pool.clone()).await?;
+
+    let post_id = self.post_id;
+    let post: Post = unblock!(pool, conn, Post::read(&conn, post_id)?);
+
+    let community_id = post.community_id;
+    let community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
+
     let id = format!("{}/remove/{}", self.ap_id, uuid::Uuid::new_v4());
     let mut remove = Remove::default();
 
@@ -302,18 +365,29 @@ impl ApubObjectType for Comment {
 
     send_activity_to_community(
       &mod_,
-      &conn,
       &community,
       vec![community.get_shared_inbox_url()],
       remove,
-    )?;
+      client,
+      pool,
+    )
+    .await?;
     Ok(())
   }
 
-  fn send_undo_remove(&self, mod_: &User_, conn: &PgConnection) -> Result<(), Error> {
-    let note = self.to_apub(&conn)?;
-    let post = Post::read(&conn, self.post_id)?;
-    let community = Community::read(&conn, post.community_id)?;
+  async fn send_undo_remove(
+    &self,
+    mod_: &User_,
+    client: &Client,
+    pool: DbPool,
+  ) -> Result<(), LemmyError> {
+    let note = self.to_apub(pool.clone()).await?;
+
+    let post_id = self.post_id;
+    let post: Post = unblock!(pool, conn, Post::read(&conn, post_id)?);
+
+    let community_id = post.community_id;
+    let community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
 
     // Generate a fake delete activity, with the correct object
     let id = format!("{}/remove/{}", self.ap_id, uuid::Uuid::new_v4());
@@ -347,20 +421,33 @@ impl ApubObjectType for Comment {
 
     send_activity_to_community(
       &mod_,
-      &conn,
       &community,
       vec![community.get_shared_inbox_url()],
       undo,
-    )?;
+      client,
+      pool,
+    )
+    .await?;
     Ok(())
   }
 }
 
+#[async_trait::async_trait(?Send)]
 impl ApubLikeableType for Comment {
-  fn send_like(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
-    let note = self.to_apub(&conn)?;
-    let post = Post::read(&conn, self.post_id)?;
-    let community = Community::read(&conn, post.community_id)?;
+  async fn send_like(
+    &self,
+    creator: &User_,
+    client: &Client,
+    pool: DbPool,
+  ) -> Result<(), LemmyError> {
+    let note = self.to_apub(pool.clone()).await?;
+
+    let post_id = self.post_id;
+    let post: Post = unblock!(pool, conn, Post::read(&conn, post_id)?);
+
+    let community_id = post.community_id;
+    let community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
+
     let id = format!("{}/like/{}", self.ap_id, uuid::Uuid::new_v4());
 
     let mut like = Like::new();
@@ -376,18 +463,30 @@ impl ApubLikeableType for Comment {
 
     send_activity_to_community(
       &creator,
-      &conn,
       &community,
       vec![community.get_shared_inbox_url()],
       like,
-    )?;
+      client,
+      pool,
+    )
+    .await?;
     Ok(())
   }
 
-  fn send_dislike(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
-    let note = self.to_apub(&conn)?;
-    let post = Post::read(&conn, self.post_id)?;
-    let community = Community::read(&conn, post.community_id)?;
+  async fn send_dislike(
+    &self,
+    creator: &User_,
+    client: &Client,
+    pool: DbPool,
+  ) -> Result<(), LemmyError> {
+    let note = self.to_apub(pool.clone()).await?;
+
+    let post_id = self.post_id;
+    let post: Post = unblock!(pool, conn, Post::read(&conn, post_id)?);
+
+    let community_id = post.community_id;
+    let community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
+
     let id = format!("{}/dislike/{}", self.ap_id, uuid::Uuid::new_v4());
 
     let mut dislike = Dislike::new();
@@ -403,18 +502,30 @@ impl ApubLikeableType for Comment {
 
     send_activity_to_community(
       &creator,
-      &conn,
       &community,
       vec![community.get_shared_inbox_url()],
       dislike,
-    )?;
+      client,
+      pool,
+    )
+    .await?;
     Ok(())
   }
 
-  fn send_undo_like(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
-    let note = self.to_apub(&conn)?;
-    let post = Post::read(&conn, self.post_id)?;
-    let community = Community::read(&conn, post.community_id)?;
+  async fn send_undo_like(
+    &self,
+    creator: &User_,
+    client: &Client,
+    pool: DbPool,
+  ) -> Result<(), LemmyError> {
+    let note = self.to_apub(pool.clone()).await?;
+
+    let post_id = self.post_id;
+    let post: Post = unblock!(pool, conn, Post::read(&conn, post_id)?);
+
+    let community_id = post.community_id;
+    let community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
+
     let id = format!("{}/dislike/{}", self.ap_id, uuid::Uuid::new_v4());
 
     let mut like = Like::new();
@@ -446,11 +557,13 @@ impl ApubLikeableType for Comment {
 
     send_activity_to_community(
       &creator,
-      &conn,
       &community,
       vec![community.get_shared_inbox_url()],
       undo,
-    )?;
+      client,
+      pool,
+    )
+    .await?;
     Ok(())
   }
 }
@@ -464,11 +577,12 @@ struct MentionsAndAddresses {
 /// This takes a comment, and builds a list of to_addresses, inboxes,
 /// and mention tags, so they know where to be sent to.
 /// Addresses are the users / addresses that go in the cc field.
-fn collect_non_local_mentions_and_addresses(
-  conn: &PgConnection,
+async fn collect_non_local_mentions_and_addresses(
   content: &str,
   community: &Community,
-) -> Result<MentionsAndAddresses, Error> {
+  client: &Client,
+  pool: DbPool,
+) -> Result<MentionsAndAddresses, LemmyError> {
   let mut addressed_ccs = vec![community.get_followers_url()];
 
   // Add the mention tag
@@ -480,14 +594,18 @@ fn collect_non_local_mentions_and_addresses(
     // Filter only the non-local ones
     .filter(|m| !m.is_local())
     .collect::<Vec<MentionData>>();
+
   let mut mention_inboxes = Vec::new();
   for mention in &mentions {
     // TODO should it be fetching it every time?
-    if let Ok(actor_id) = fetch_webfinger_url(mention) {
+    if let Ok(actor_id) = fetch_webfinger_url(mention, client).await {
       debug!("mention actor_id: {}", actor_id);
       addressed_ccs.push(actor_id.to_owned());
-      let mention_user = get_or_fetch_and_upsert_remote_user(&actor_id, &conn)?;
+
+      let mention_user =
+        get_or_fetch_and_upsert_remote_user(&actor_id, client, pool.clone()).await?;
       let shared_inbox = mention_user.get_shared_inbox_url();
+
       mention_inboxes.push(shared_inbox);
       let mut mention_tag = Mention::new();
       mention_tag

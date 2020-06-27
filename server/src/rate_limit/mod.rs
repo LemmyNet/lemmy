@@ -1,5 +1,5 @@
 use super::{IPAddr, Settings};
-use crate::{api::APIError, get_ip, settings::RateLimitConfig};
+use crate::{api::APIError, get_ip, settings::RateLimitConfig, LemmyError};
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use futures::future::{ok, Ready};
 use rate_limiter::{RateLimitType, RateLimiter};
@@ -57,11 +57,11 @@ impl RateLimited {
     fut: impl Future<Output = Result<T, E>>,
   ) -> Result<T, E>
   where
-    E: From<failure::Error>,
+    E: From<LemmyError>,
   {
     let rate_limit: RateLimitConfig = actix_web::web::block(move || {
       // needs to be in a web::block because the RwLock in settings is from stdlib
-      Ok(Settings::get().rate_limit) as Result<_, failure::Error>
+      Ok(Settings::get().rate_limit) as Result<_, LemmyError>
     })
     .await
     .map_err(|e| match e {

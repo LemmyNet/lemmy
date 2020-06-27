@@ -2,28 +2,16 @@ use super::*;
 use crate::{
   api::{APIError, Oper, Perform},
   apub::{
-    extensions::signatures::generate_actor_keypair,
-    make_apub_endpoint,
-    ActorType,
-    EndpointType,
+    extensions::signatures::generate_actor_keypair, make_apub_endpoint, ActorType, EndpointType,
   },
   db::{Bannable, Crud, Followable, Joinable, SortType},
-  is_valid_community_name,
-  naive_from_unix,
-  naive_now,
-  slur_check,
-  slurs_vec_to_str,
+  is_valid_community_name, naive_from_unix, naive_now, slur_check, slurs_vec_to_str,
   websocket::{
     server::{JoinCommunityRoom, SendCommunityRoomMessage},
-    UserOperation,
-    WebsocketInfo,
+    UserOperation, WebsocketInfo,
   },
+  DbPool, LemmyError,
 };
-use diesel::{
-  r2d2::{ConnectionManager, Pool},
-  PgConnection,
-};
-use failure::Error;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
@@ -138,14 +126,15 @@ pub struct TransferCommunity {
   auth: String,
 }
 
+#[async_trait::async_trait(?Send)]
 impl Perform for Oper<GetCommunity> {
   type Response = GetCommunityResponse;
 
-  fn perform(
+  async fn perform(
     &self,
-    pool: Pool<ConnectionManager<PgConnection>>,
+    pool: DbPool,
     websocket_info: Option<WebsocketInfo>,
-  ) -> Result<GetCommunityResponse, Error> {
+  ) -> Result<GetCommunityResponse, LemmyError> {
     let data: &GetCommunity = &self.data;
 
     let user_id: Option<i32> = match &data.auth {
@@ -159,33 +148,38 @@ impl Perform for Oper<GetCommunity> {
       None => None,
     };
 
-    let conn = pool.get()?;
-
-    let community = match data.id {
-      Some(id) => Community::read(&conn, id)?,
-      None => {
-        match Community::read_from_name(
-          &conn,
-          &data.name.to_owned().unwrap_or_else(|| "main".to_string()),
-        ) {
-          Ok(community) => community,
-          Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
-        }
-      }
+    let name = data.name.to_owned().unwrap_or_else(|| "main".to_string());
+    let community: Community = match data.id {
+      Some(id) => unblock!(pool, conn, Community::read(&conn, id)?),
+      None => match unblock!(pool, conn, Community::read_from_name(&conn, &name)) {
+        Ok(community) => community,
+        Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
+      },
     };
 
-    let community_view = match CommunityView::read(&conn, community.id, user_id) {
+    let community_id = community.id;
+    let community_view: CommunityView = match unblock!(
+      pool,
+      conn,
+      CommunityView::read(&conn, community_id, user_id)
+    ) {
       Ok(community) => community,
       Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
     };
 
-    let moderators = match CommunityModeratorView::for_community(&conn, community.id) {
+    let community_id = community.id;
+    let moderators: Vec<CommunityModeratorView> = match unblock!(
+      pool,
+      conn,
+      CommunityModeratorView::for_community(&conn, community_id)
+    ) {
       Ok(moderators) => moderators,
       Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
     };
 
-    let site_creator_id = Site::read(&conn, 1)?.creator_id;
-    let mut admins = UserView::admins(&conn)?;
+    let site: Site = unblock!(pool, conn, Site::read(&conn, 1)?);
+    let site_creator_id = site.creator_id;
+    let mut admins: Vec<UserView> = unblock!(pool, conn, UserView::admins(&conn)?);
     let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
@@ -220,14 +214,15 @@ impl Perform for Oper<GetCommunity> {
   }
 }
 
+#[async_trait::async_trait(?Send)]
 impl Perform for Oper<CreateCommunity> {
   type Response = CommunityResponse;
 
-  fn perform(
+  async fn perform(
     &self,
-    pool: Pool<ConnectionManager<PgConnection>>,
+    pool: DbPool,
     _websocket_info: Option<WebsocketInfo>,
-  ) -> Result<CommunityResponse, Error> {
+  ) -> Result<CommunityResponse, LemmyError> {
     let data: &CreateCommunity = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -255,10 +250,9 @@ impl Perform for Oper<CreateCommunity> {
 
     let user_id = claims.id;
 
-    let conn = pool.get()?;
-
     // Check for a site ban
-    if UserView::read(&conn, user_id)?.banned {
+    let user_view: UserView = unblock!(pool, conn, UserView::read(&conn, user_id)?);
+    if user_view.banned {
       return Err(APIError::err("site_ban").into());
     }
 
@@ -283,34 +277,45 @@ impl Perform for Oper<CreateCommunity> {
       published: None,
     };
 
-    let inserted_community = match Community::create(&conn, &community_form) {
-      Ok(community) => community,
-      Err(_e) => return Err(APIError::err("community_already_exists").into()),
-    };
+    let inserted_community: Community =
+      match unblock!(pool, conn, Community::create(&conn, &community_form)) {
+        Ok(community) => community,
+        Err(_e) => return Err(APIError::err("community_already_exists").into()),
+      };
 
     let community_moderator_form = CommunityModeratorForm {
       community_id: inserted_community.id,
       user_id,
     };
 
-    let _inserted_community_moderator =
-      match CommunityModerator::join(&conn, &community_moderator_form) {
-        Ok(user) => user,
-        Err(_e) => return Err(APIError::err("community_moderator_already_exists").into()),
-      };
+    let _inserted_community_moderator: CommunityModerator = match unblock!(
+      pool,
+      conn,
+      CommunityModerator::join(&conn, &community_moderator_form)
+    ) {
+      Ok(user) => user,
+      Err(_e) => return Err(APIError::err("community_moderator_already_exists").into()),
+    };
 
     let community_follower_form = CommunityFollowerForm {
       community_id: inserted_community.id,
       user_id,
     };
 
-    let _inserted_community_follower =
-      match CommunityFollower::follow(&conn, &community_follower_form) {
-        Ok(user) => user,
-        Err(_e) => return Err(APIError::err("community_follower_already_exists").into()),
-      };
+    let _inserted_community_follower: CommunityFollower = match unblock!(
+      pool,
+      conn,
+      CommunityFollower::follow(&conn, &community_follower_form)
+    ) {
+      Ok(user) => user,
+      Err(_e) => return Err(APIError::err("community_follower_already_exists").into()),
+    };
 
-    let community_view = CommunityView::read(&conn, inserted_community.id, Some(user_id))?;
+    let community_view: CommunityView = unblock!(
+      pool,
+      conn,
+      CommunityView::read(&conn, inserted_community.id, Some(user_id))?
+    );
 
     Ok(CommunityResponse {
       community: community_view,
@@ -318,14 +323,15 @@ impl Perform for Oper<CreateCommunity> {
   }
 }
 
+#[async_trait::async_trait(?Send)]
 impl Perform for Oper<EditCommunity> {
   type Response = CommunityResponse;
 
-  fn perform(
+  async fn perform(
     &self,
-    pool: Pool<ConnectionManager<PgConnection>>,
+    pool: DbPool,
     websocket_info: Option<WebsocketInfo>,
-  ) -> Result<CommunityResponse, Error> {
+  ) -> Result<CommunityResponse, LemmyError> {
     let data: &EditCommunity = &self.data;
 
     if let Err(slurs) = slur_check(&data.name) {
@@ -353,28 +359,34 @@ impl Perform for Oper<EditCommunity> {
 
     let user_id = claims.id;
 
-    let conn = pool.get()?;
-
     // Check for a site ban
-    let user = User_::read(&conn, user_id)?;
+    let user: User_ = unblock!(pool, conn, User_::read(&conn, user_id)?);
     if user.banned {
       return Err(APIError::err("site_ban").into());
     }
 
     // Verify its a mod
+    let edit_id = data.edit_id;
     let mut editors: Vec<i32> = Vec::new();
-    editors.append(
-      &mut CommunityModeratorView::for_community(&conn, data.edit_id)?
+    editors.append(&mut unblock!(
+      pool,
+      conn,
+      CommunityModeratorView::for_community(&conn, edit_id)?
         .into_iter()
         .map(|m| m.user_id)
-        .collect(),
-    );
-    editors.append(&mut UserView::admins(&conn)?.into_iter().map(|a| a.id).collect());
+        .collect()
+    ));
+    editors.append(&mut unblock!(
+      pool,
+      conn,
+      UserView::admins(&conn)?.into_iter().map(|a| a.id).collect()
+    ));
     if !editors.contains(&user_id) {
       return Err(APIError::err("no_community_edit_allowed").into());
     }
 
-    let read_community = Community::read(&conn, data.edit_id)?;
+    let edit_id = data.edit_id;
+    let read_community: Community = unblock!(pool, conn, Community::read(&conn, edit_id)?);
 
     let community_form = CommunityForm {
       name: data.name.to_owned(),
@@ -394,7 +406,12 @@ impl Perform for Oper<EditCommunity> {
       published: None,
     };
 
-    let updated_community = match Community::update(&conn, data.edit_id, &community_form) {
+    let edit_id = data.edit_id;
+    let updated_community: Community = match unblock!(
+      pool,
+      conn,
+      Community::update(&conn, edit_id, &community_form)
+    ) {
       Ok(community) => community,
       Err(_e) => return Err(APIError::err("couldnt_update_community").into()),
     };
@@ -412,24 +429,37 @@ impl Perform for Oper<EditCommunity> {
         reason: data.reason.to_owned(),
         expires,
       };
-      ModRemoveCommunity::create(&conn, &form)?;
+      let _: ModRemoveCommunity = unblock!(pool, conn, ModRemoveCommunity::create(&conn, &form)?);
     }
 
     if let Some(deleted) = data.deleted.to_owned() {
       if deleted {
-        updated_community.send_delete(&user, &conn)?;
+        updated_community
+          .send_delete(&user, &self.client, pool.clone())
+          .await?;
       } else {
-        updated_community.send_undo_delete(&user, &conn)?;
+        updated_community
+          .send_undo_delete(&user, &self.client, pool.clone())
+          .await?;
       }
     } else if let Some(removed) = data.removed.to_owned() {
       if removed {
-        updated_community.send_remove(&user, &conn)?;
+        updated_community
+          .send_remove(&user, &self.client, pool.clone())
+          .await?;
       } else {
-        updated_community.send_undo_remove(&user, &conn)?;
+        updated_community
+          .send_undo_remove(&user, &self.client, pool.clone())
+          .await?;
       }
     }
 
-    let community_view = CommunityView::read(&conn, data.edit_id, Some(user_id))?;
+    let edit_id = data.edit_id;
+    let community_view: CommunityView = unblock!(
+      pool,
+      conn,
+      CommunityView::read(&conn, edit_id, Some(user_id))?
+    );
 
     let res = CommunityResponse {
       community: community_view,
@@ -453,14 +483,15 @@ impl Perform for Oper<EditCommunity> {
   }
 }
 
+#[async_trait::async_trait(?Send)]
 impl Perform for Oper<ListCommunities> {
   type Response = ListCommunitiesResponse;
 
-  fn perform(
+  async fn perform(
     &self,
-    pool: Pool<ConnectionManager<PgConnection>>,
+    pool: DbPool,
     _websocket_info: Option<WebsocketInfo>,
-  ) -> Result<ListCommunitiesResponse, Error> {
+  ) -> Result<ListCommunitiesResponse, LemmyError> {
     let data: &ListCommunities = &self.data;
 
     let user_claims: Option<Claims> = match &data.auth {
@@ -483,29 +514,34 @@ impl Perform for Oper<ListCommunities> {
 
     let sort = SortType::from_str(&data.sort)?;
 
-    let conn = pool.get()?;
-
-    let communities = CommunityQueryBuilder::create(&conn)
-      .sort(&sort)
-      .for_user(user_id)
-      .show_nsfw(show_nsfw)
-      .page(data.page)
-      .limit(data.limit)
-      .list()?;
+    let page = data.page;
+    let limit = data.limit;
+    let communities: Vec<CommunityView> = unblock!(
+      pool,
+      conn,
+      CommunityQueryBuilder::create(&conn)
+        .sort(&sort)
+        .for_user(user_id)
+        .show_nsfw(show_nsfw)
+        .page(page)
+        .limit(limit)
+        .list()?
+    );
 
     // Return the jwt
     Ok(ListCommunitiesResponse { communities })
   }
 }
 
+#[async_trait::async_trait(?Send)]
 impl Perform for Oper<FollowCommunity> {
   type Response = CommunityResponse;
 
-  fn perform(
+  async fn perform(
     &self,
-    pool: Pool<ConnectionManager<PgConnection>>,
+    pool: DbPool,
     _websocket_info: Option<WebsocketInfo>,
-  ) -> Result<CommunityResponse, Error> {
+  ) -> Result<CommunityResponse, LemmyError> {
     let data: &FollowCommunity = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -515,9 +551,8 @@ impl Perform for Oper<FollowCommunity> {
 
     let user_id = claims.id;
 
-    let conn = pool.get()?;
-
-    let community = Community::read(&conn, data.community_id)?;
+    let community_id = data.community_id;
+    let community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
     let community_follower_form = CommunityFollowerForm {
       community_id: data.community_id,
       user_id,
@@ -525,34 +560,55 @@ impl Perform for Oper<FollowCommunity> {
 
     if community.local {
       if data.follow {
-        match CommunityFollower::follow(&conn, &community_follower_form) {
-          Ok(user) => user,
-          Err(_e) => return Err(APIError::err("community_follower_already_exists").into()),
-        };
+        let res: Result<_, _> = unblock!(
+          pool,
+          conn,
+          CommunityFollower::follow(&conn, &community_follower_form)
+        );
+        if res.is_err() {
+          return Err(APIError::err("community_follower_already_exists").into());
+        }
       } else {
-        match CommunityFollower::unfollow(&conn, &community_follower_form) {
-          Ok(user) => user,
-          Err(_e) => return Err(APIError::err("community_follower_already_exists").into()),
-        };
+        let res: Result<_, _> = unblock!(
+          pool,
+          conn,
+          CommunityFollower::unfollow(&conn, &community_follower_form)
+        );
+        if res.is_err() {
+          return Err(APIError::err("community_follower_already_exists").into());
+        }
       }
     } else {
-      let user = User_::read(&conn, user_id)?;
+      let user: User_ = unblock!(pool, conn, User_::read(&conn, user_id)?);
 
       if data.follow {
         // Dont actually add to the community followers here, because you need
         // to wait for the accept
-        user.send_follow(&community.actor_id, &conn)?;
+        user
+          .send_follow(&community.actor_id, &self.client, pool.clone())
+          .await?;
       } else {
-        user.send_unfollow(&community.actor_id, &conn)?;
-        match CommunityFollower::unfollow(&conn, &community_follower_form) {
-          Ok(user) => user,
-          Err(_e) => return Err(APIError::err("community_follower_already_exists").into()),
+        user
+          .send_unfollow(&community.actor_id, &self.client, pool.clone())
+          .await?;
+        let res: Result<_, _> = unblock!(
+          pool,
+          conn,
+          CommunityFollower::unfollow(&conn, &community_follower_form)
+        );
+        if res.is_err() {
+          return Err(APIError::err("community_follower_already_exists").into());
         };
       }
       // TODO: this needs to return a "pending" state, until Accept is received from the remote server
     }
 
-    let community_view = CommunityView::read(&conn, data.community_id, Some(user_id))?;
+    let community_id = data.community_id;
+    let community_view: CommunityView = unblock!(
+      pool,
+      conn,
+      CommunityView::read(&conn, community_id, Some(user_id))?
+    );
 
     Ok(CommunityResponse {
       community: community_view,
@@ -560,14 +616,15 @@ impl Perform for Oper<FollowCommunity> {
   }
 }
 
+#[async_trait::async_trait(?Send)]
 impl Perform for Oper<GetFollowedCommunities> {
   type Response = GetFollowedCommunitiesResponse;
 
-  fn perform(
+  async fn perform(
     &self,
-    pool: Pool<ConnectionManager<PgConnection>>,
+    pool: DbPool,
     _websocket_info: Option<WebsocketInfo>,
-  ) -> Result<GetFollowedCommunitiesResponse, Error> {
+  ) -> Result<GetFollowedCommunitiesResponse, LemmyError> {
     let data: &GetFollowedCommunities = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -577,27 +634,27 @@ impl Perform for Oper<GetFollowedCommunities> {
 
     let user_id = claims.id;
 
-    let conn = pool.get()?;
+    let res: Result<_, _> = unblock!(pool, conn, CommunityFollowerView::for_user(&conn, user_id));
 
-    let communities: Vec<CommunityFollowerView> =
-      match CommunityFollowerView::for_user(&conn, user_id) {
-        Ok(communities) => communities,
-        Err(_e) => return Err(APIError::err("system_err_login").into()),
-      };
+    let communities: Vec<CommunityFollowerView> = match res {
+      Ok(communities) => communities,
+      _ => return Err(APIError::err("system_err_login").into()),
+    };
 
     // Return the jwt
     Ok(GetFollowedCommunitiesResponse { communities })
   }
 }
 
+#[async_trait::async_trait(?Send)]
 impl Perform for Oper<BanFromCommunity> {
   type Response = BanFromCommunityResponse;
 
-  fn perform(
+  async fn perform(
     &self,
-    pool: Pool<ConnectionManager<PgConnection>>,
+    pool: DbPool,
     websocket_info: Option<WebsocketInfo>,
-  ) -> Result<BanFromCommunityResponse, Error> {
+  ) -> Result<BanFromCommunityResponse, LemmyError> {
     let data: &BanFromCommunity = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -612,18 +669,26 @@ impl Perform for Oper<BanFromCommunity> {
       user_id: data.user_id,
     };
 
-    let conn = pool.get()?;
-
     if data.ban {
-      match CommunityUserBan::ban(&conn, &community_user_ban_form) {
-        Ok(user) => user,
-        Err(_e) => return Err(APIError::err("community_user_already_banned").into()),
-      };
+      let res: Result<_, _> = unblock!(
+        pool,
+        conn,
+        CommunityUserBan::ban(&conn, &community_user_ban_form)
+      );
+
+      if res.is_err() {
+        return Err(APIError::err("community_user_already_banned").into());
+      }
     } else {
-      match CommunityUserBan::unban(&conn, &community_user_ban_form) {
-        Ok(user) => user,
-        Err(_e) => return Err(APIError::err("community_user_already_banned").into()),
-      };
+      let res: Result<_, _> = unblock!(
+        pool,
+        conn,
+        CommunityUserBan::unban(&conn, &community_user_ban_form)
+      );
+
+      if res.is_err() {
+        return Err(APIError::err("community_user_already_banned").into());
+      }
     }
 
     // Mod tables
@@ -640,9 +705,10 @@ impl Perform for Oper<BanFromCommunity> {
       banned: Some(data.ban),
       expires,
     };
-    ModBanFromCommunity::create(&conn, &form)?;
+    let _: ModBanFromCommunity = unblock!(pool, conn, ModBanFromCommunity::create(&conn, &form)?);
 
-    let user_view = UserView::read(&conn, data.user_id)?;
+    let user_id = data.user_id;
+    let user_view: UserView = unblock!(pool, conn, UserView::read(&conn, user_id)?);
 
     let res = BanFromCommunityResponse {
       user: user_view,
@@ -662,14 +728,15 @@ impl Perform for Oper<BanFromCommunity> {
   }
 }
 
+#[async_trait::async_trait(?Send)]
 impl Perform for Oper<AddModToCommunity> {
   type Response = AddModToCommunityResponse;
 
-  fn perform(
+  async fn perform(
     &self,
-    pool: Pool<ConnectionManager<PgConnection>>,
+    pool: DbPool,
     websocket_info: Option<WebsocketInfo>,
-  ) -> Result<AddModToCommunityResponse, Error> {
+  ) -> Result<AddModToCommunityResponse, LemmyError> {
     let data: &AddModToCommunity = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -684,17 +751,23 @@ impl Perform for Oper<AddModToCommunity> {
       user_id: data.user_id,
     };
 
-    let conn = pool.get()?;
-
     if data.added {
-      match CommunityModerator::join(&conn, &community_moderator_form) {
-        Ok(user) => user,
-        Err(_e) => return Err(APIError::err("community_moderator_already_exists").into()),
-      };
+      let res: Result<_, _> = unblock!(
+        pool,
+        conn,
+        CommunityModerator::join(&conn, &community_moderator_form)
+      );
+      if res.is_err() {
+        return Err(APIError::err("community_moderator_already_exists").into());
+      }
     } else {
-      match CommunityModerator::leave(&conn, &community_moderator_form) {
-        Ok(user) => user,
-        Err(_e) => return Err(APIError::err("community_moderator_already_exists").into()),
+      let res: Result<_, _> = unblock!(
+        pool,
+        conn,
+        CommunityModerator::leave(&conn, &community_moderator_form)
+      );
+      if res.is_err() {
+        return Err(APIError::err("community_moderator_already_exists").into());
       };
     }
 
@@ -705,9 +778,14 @@ impl Perform for Oper<AddModToCommunity> {
       community_id: data.community_id,
       removed: Some(!data.added),
     };
-    ModAddCommunity::create(&conn, &form)?;
+    let _: ModAddCommunity = unblock!(pool, conn, ModAddCommunity::create(&conn, &form)?);
 
-    let moderators = CommunityModeratorView::for_community(&conn, data.community_id)?;
+    let community_id = data.community_id;
+    let moderators: Vec<CommunityModeratorView> = unblock!(
+      pool,
+      conn,
+      CommunityModeratorView::for_community(&conn, community_id)?
+    );
 
     let res = AddModToCommunityResponse { moderators };
 
@@ -724,14 +802,15 @@ impl Perform for Oper<AddModToCommunity> {
   }
 }
 
+#[async_trait::async_trait(?Send)]
 impl Perform for Oper<TransferCommunity> {
   type Response = GetCommunityResponse;
 
-  fn perform(
+  async fn perform(
     &self,
-    pool: Pool<ConnectionManager<PgConnection>>,
+    pool: DbPool,
     _websocket_info: Option<WebsocketInfo>,
-  ) -> Result<GetCommunityResponse, Error> {
+  ) -> Result<GetCommunityResponse, LemmyError> {
     let data: &TransferCommunity = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
@@ -741,12 +820,14 @@ impl Perform for Oper<TransferCommunity> {
 
     let user_id = claims.id;
 
-    let conn = pool.get()?;
+    let community_id = data.community_id;
+    let read_community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
 
-    let read_community = Community::read(&conn, data.community_id)?;
+    let site: Site = unblock!(pool, conn, Site::read(&conn, 1)?);
+    let site_creator_id = site.creator_id;
 
-    let site_creator_id = Site::read(&conn, 1)?.creator_id;
-    let mut admins = UserView::admins(&conn)?;
+    let mut admins: Vec<UserView> = unblock!(pool, conn, UserView::admins(&conn)?);
+
     let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
@@ -774,13 +855,23 @@ impl Perform for Oper<TransferCommunity> {
       published: None,
     };
 
-    let _updated_community = match Community::update(&conn, data.community_id, &community_form) {
+    let community_id = data.community_id;
+    let _: Community = match unblock!(
+      pool,
+      conn,
+      Community::update(&conn, community_id, &community_form)
+    ) {
       Ok(community) => community,
       Err(_e) => return Err(APIError::err("couldnt_update_community").into()),
     };
 
     // You also have to re-do the community_moderator table, reordering it.
-    let mut community_mods = CommunityModeratorView::for_community(&conn, data.community_id)?;
+    let community_id = data.community_id;
+    let mut community_mods: Vec<CommunityModeratorView> = unblock!(
+      pool,
+      conn,
+      CommunityModeratorView::for_community(&conn, community_id)?
+    );
     let creator_index = community_mods
       .iter()
       .position(|r| r.user_id == data.user_id)
@@ -788,7 +879,12 @@ impl Perform for Oper<TransferCommunity> {
     let creator_user = community_mods.remove(creator_index);
     community_mods.insert(0, creator_user);
 
-    CommunityModerator::delete_for_community(&conn, data.community_id)?;
+    let community_id = data.community_id;
+    let _: usize = unblock!(
+      pool,
+      conn,
+      CommunityModerator::delete_for_community(&conn, community_id)?
+    );
 
     for cmod in &community_mods {
       let community_moderator_form = CommunityModeratorForm {
@@ -796,11 +892,14 @@ impl Perform for Oper<TransferCommunity> {
         user_id: cmod.user_id,
       };
 
-      let _inserted_community_moderator =
-        match CommunityModerator::join(&conn, &community_moderator_form) {
-          Ok(user) => user,
-          Err(_e) => return Err(APIError::err("community_moderator_already_exists").into()),
-        };
+      let _: CommunityModerator = match unblock!(
+        pool,
+        conn,
+        CommunityModerator::join(&conn, &community_moderator_form)
+      ) {
+        Ok(user) => user,
+        Err(_e) => return Err(APIError::err("community_moderator_already_exists").into()),
+      };
     }
 
     // Mod tables
@@ -810,14 +909,24 @@ impl Perform for Oper<TransferCommunity> {
       community_id: data.community_id,
       removed: Some(false),
     };
-    ModAddCommunity::create(&conn, &form)?;
+    let _: ModAddCommunity = unblock!(pool, conn, ModAddCommunity::create(&conn, &form)?);
 
-    let community_view = match CommunityView::read(&conn, data.community_id, Some(user_id)) {
+    let community_id = data.community_id;
+    let community_view: CommunityView = match unblock!(
+      pool,
+      conn,
+      CommunityView::read(&conn, community_id, Some(user_id))
+    ) {
       Ok(community) => community,
       Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
     };
 
-    let moderators = match CommunityModeratorView::for_community(&conn, data.community_id) {
+    let community_id = data.community_id;
+    let moderators: Vec<CommunityModeratorView> = match unblock!(
+      pool,
+      conn,
+      CommunityModeratorView::for_community(&conn, community_id)
+    ) {
       Ok(moderators) => moderators,
       Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
     };

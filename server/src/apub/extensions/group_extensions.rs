@@ -1,7 +1,9 @@
-use crate::db::{category::Category, Crud};
+use crate::{
+  db::{category::Category, Crud},
+  LemmyError,
+};
 use activitystreams::{ext::Extension, Actor};
 use diesel::PgConnection;
-use failure::Error;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -24,7 +26,7 @@ impl GroupExtension {
     conn: &PgConnection,
     category_id: i32,
     sensitive: bool,
-  ) -> Result<GroupExtension, Error> {
+  ) -> Result<GroupExtension, LemmyError> {
     let category = Category::read(conn, category_id)?;
     let group_category = GroupCategory {
       identifier: category_id.to_string(),

@@ -4,10 +4,13 @@ extern crate diesel_migrations;
 #[macro_use]
 pub extern crate lazy_static;
 
+pub type DbPool = Pool<ConnectionManager<PgConnection>>;
+
 use crate::lemmy_server::actix_web::dev::Service;
 use actix::prelude::*;
 use actix_web::{
   body::Body,
+  client::Client,
   dev::{ServiceRequest, ServiceResponse},
   http::{
     header::{CACHE_CONTROL, CONTENT_TYPE},
@@ -63,7 +66,7 @@ async fn main() -> io::Result<()> {
   };
 
   // Set up websocket server
-  let server = ChatServer::startup(pool.clone(), rate_limiter.clone()).start();
+  let server = ChatServer::startup(pool.clone(), rate_limiter.clone(), Client::default()).start();
 
   println!(
     "Starting http server at {}:{}",
@@ -79,6 +82,7 @@ async fn main() -> io::Result<()> {
       .wrap(middleware::Logger::default())
       .data(pool.clone())
       .data(server.clone())
+      .data(Client::default())
       // The routes
       .configure(move |cfg| api::config(cfg, &rate_limiter))
       .configure(federation::config)
