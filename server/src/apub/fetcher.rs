@@ -51,11 +51,37 @@ async fn _fetch_node_info(client: &Client, domain: &str) -> Result<NodeInfo, Lem
   Ok(nodeinfo)
 }
 
+enum RequestError {
+  Send(actix_web::client::SendRequestError),
+  Recv(awc::error::JsonPayloadError),
+}
+
+impl RequestError {
+  fn is_connect_timeout(&self) -> bool {
+    if let RequestError::Send(e) = self {
+      if let actix_web::client::SendRequestError::Connect(e) = e {
+        if let actix_web::client::ConnectError::Timeout = e {
+          return true;
+        }
+      }
+    }
+
+    false
+  }
+
+  fn into_lemmy_error(self) -> LemmyError {
+    match self {
+      RequestError::Send(e) => SendError(e.to_string()).into(),
+      RequestError::Recv(e) => RecvError(e.to_string()).into(),
+    }
+  }
+}
+
 async fn do_fetch<Response>(
   client: &Client,
   url: &Url,
   timeout: Duration,
-) -> Result<Response, LemmyError>
+) -> Result<Response, RequestError>
 where
   Response: for<'de> Deserialize<'de>,
 {
@@ -67,13 +93,13 @@ where
     .await
     .map_err(|e| {
       debug!("Send error, {}", e);
-      SendError(e.to_string())
+      RequestError::Send(e)
     })?
     .json()
     .await
     .map_err(|e| {
       debug!("Receive error, {}", e);
-      RecvError(e.to_string())
+      RequestError::Recv(e)
     })?;
 
   Ok(json)
@@ -101,7 +127,10 @@ where
   for i in 0..3 {
     match do_fetch(client, url, timeout).await {
       Ok(json) => return Ok(json),
-      Err(e) => err = e,
+      Err(e) if e.is_connect_timeout() => {
+        err = e.into_lemmy_error();
+      }
+      Err(e) => return Err(e.into_lemmy_error()),
     }
 
     debug!("Failed request {}", i);

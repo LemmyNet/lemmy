@@ -1564,6 +1564,7 @@ dependencies = [
  "actix-web",
  "actix-web-actors",
  "async-trait",
+ "awc",
  "base64 0.12.3",
  "bcrypt",
  "chrono",

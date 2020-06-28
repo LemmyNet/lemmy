@@ -24,6 +24,7 @@ actix-web = { version = "3.0.0-alpha.3", features = ["rustls"] }
 actix-files = "0.3.0-alpha.1"
 actix-web-actors = "3.0.0-alpha.1"
 actix-rt = "1.1.1"
+awc = "2.0.0-alpha.2"
 log = "0.4.0"
 env_logger = "0.7.1"
 rand = "0.7.3"
