@@ -15,7 +15,7 @@
 
  <h3 align="center"><a href="https://dev.lemmy.ml">Lemmy</a></h3>
   <p align="center">
-    A link aggregator / reddit clone for the fediverse.
+    A link aggregator / Reddit clone for the fediverse.
     <br />
     <br />
     <a href="https://dev.lemmy.ml">View Site</a>
@@ -40,9 +40,9 @@ Front Page|Post
 
 For a link aggregator, this means a user registered on one server can subscribe to forums on any other server, and can have discussions with users registered elsewhere.
 
-The overall goal is to create an easily self-hostable, decentralized alternative to reddit and other link aggregators, outside of their corporate control and meddling.
+The overall goal is to create an easily self-hostable, decentralized alternative to Reddit and other link aggregators, outside of their corporate control and meddling.
 
-Each lemmy server can set its own moderation policy; appointing site-wide admins, and community moderators to keep out the trolls, and foster a healthy, non-toxic environment where all can feel comfortable contributing.
+Each Lemmy server can set its own moderation policy; appointing site-wide admins, and community moderators to keep out the trolls, and foster a healthy, non-toxic environment where all can feel comfortable contributing.
 
 *Note: Federation is still in active development and the WebSocket, as well as, HTTP API are currently unstable*
 
@@ -70,7 +70,7 @@ Each lemmy server can set its own moderation policy; appointing site-wide admins
   - Only a minimum of a username and password is required to sign up!
   - User avatar support.
   - Live-updating Comment threads.
-  - Full vote scores `(+/-)` like old reddit.
+  - Full vote scores `(+/-)` like old Reddit.
   - Themes, including light, dark, and solarized.
   - Emojis with autocomplete support. Start typing `:`
   - User tagging using `@`, Community tagging using `!`.
