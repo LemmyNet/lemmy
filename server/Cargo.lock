@@ -550,9 +550,9 @@ checksum = "3441f0f7b02788e948e47f457ca01f1d7e6d92c693bc132c22b087d3141c03ff"
 
 [[package]]
 name = "bcrypt"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41b70db86f3c560199b0dada79a22b9a924622384abb2a756a9707ffcce077f2"
+checksum = "6378bd17c4830c1b7ed644dde88f247b1560d46c68ff3da1b788984b09c0df31"
 dependencies = [
  "base64 0.12.3",
  "blowfish",
@@ -588,12 +588,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "block-cipher-trait"
-version = "0.6.2"
+name = "block-cipher"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c924d49bd09e7c06003acda26cd9742e796e34282ec6c1189404dee0c1f4774"
+checksum = "fa136449e765dc7faa244561ccae839c394048667929af599b5d931ebe7b7f10"
 dependencies = [
- "generic-array 0.12.3",
+ "generic-array 0.14.2",
 ]
 
 [[package]]
@@ -607,11 +607,11 @@ dependencies = [
 
 [[package]]
 name = "blowfish"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6aeb80d00f2688459b8542068abd974cfb101e7a82182414a99b5026c0d85cc3"
+checksum = "91d01392750dd899a2528948d6b856afe2df508d627fc7c339868c0bd0141b4b"
 dependencies = [
- "block-cipher-trait",
+ "block-cipher",
  "byteorder",
  "opaque-debug 0.2.3",
 ]
@@ -875,9 +875,9 @@ dependencies = [
 
 [[package]]
 name = "derive_more"
-version = "0.99.8"
+version = "0.99.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc655351f820d774679da6cdc23355a93de496867d8203496675162e17b1d671"
+checksum = "298998b1cf6b5b2c8a7b023dfd45821825ce3ba8a8af55c921a0e734e4653f76"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1413,9 +1413,9 @@ dependencies = [
 
 [[package]]
 name = "http-signature-normalization-actix"
-version = "0.3.0-alpha.12"
+version = "0.4.0-alpha.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60a0614ef2d44d570f78932a25cfa6975fa41d1f06f12c4b338e3f1ee1e3b6ab"
+checksum = "09afff6987c7edbed101d1cddd2185786fb0af0dd9c06b654aca73a0a763680f"
 dependencies = [
  "actix-http",
  "actix-web",
