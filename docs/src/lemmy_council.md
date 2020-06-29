@@ -1,6 +1,7 @@
 # Lemmy Council
 
-- A group of lemmy developers and users that use a well-defined democratic process to steer the project in a positive direction, keep it aligned to community goals, and resolve conflicts.
+- A group of lemmy developers and users that use a well-defined democratic process to steer the project in a positive direction, keep it aligned to community goals, and resolve conflicts. 
+- Council members are also added as administrators to any official Lemmy instances.
 
 ## Voting / Decision-Making
 
