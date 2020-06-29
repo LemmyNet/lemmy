@@ -4,6 +4,7 @@ use crate::{
     fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user},
     ActorType,
   },
+  blocking,
   db::{
     activity::insert_activity,
     community::{Community, CommunityFollower, CommunityFollowerForm},
@@ -55,7 +56,7 @@ pub async fn community_inbox(
   let input = input.into_inner();
 
   let path = path.into_inner();
-  let community: Community = unblock!(db, conn, Community::read_from_name(&conn, &path)?);
+  let community = blocking(&db, move |conn| Community::read_from_name(&conn, &path)).await??;
 
   if !community.local {
     return Err(
@@ -74,9 +75,8 @@ pub async fn community_inbox(
   let user_uri = follow.actor.as_single_xsd_any_uri().unwrap().to_string();
   let community_uri = follow.object.as_single_xsd_any_uri().unwrap().to_string();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, &client, (**db).clone()).await?;
-  let community =
-    get_or_fetch_and_upsert_remote_community(&community_uri, &client, (**db).clone()).await?;
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, &client, &db).await?;
+  let community = get_or_fetch_and_upsert_remote_community(&community_uri, &client, &db).await?;
 
   verify(&request, &user)?;
 
@@ -95,7 +95,7 @@ async fn handle_follow(
   client: &Client,
   db: DbPoolParam,
 ) -> Result<HttpResponse, LemmyError> {
-  insert_activity(user.id, follow.clone(), false, (**db).clone()).await?;
+  insert_activity(user.id, follow.clone(), false, &db).await?;
 
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,
@@ -103,15 +103,12 @@ async fn handle_follow(
   };
 
   // This will fail if they're already a follower, but ignore the error.
-  let _: Result<_, _> = unblock!(
-    db,
-    conn,
-    CommunityFollower::follow(&conn, &community_follower_form)
-  );
+  blocking(&db, move |conn| {
+    CommunityFollower::follow(&conn, &community_follower_form).ok()
+  })
+  .await?;
 
-  community
-    .send_accept_follow(&follow, &client, (**db).clone())
-    .await?;
+  community.send_accept_follow(&follow, &client, &db).await?;
 
   Ok(HttpResponse::Ok().finish())
 }
@@ -122,7 +119,7 @@ async fn handle_undo_follow(
   community: Community,
   db: DbPoolParam,
 ) -> Result<HttpResponse, LemmyError> {
-  insert_activity(user.id, undo, false, (**db).clone()).await?;
+  insert_activity(user.id, undo, false, &db).await?;
 
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,
@@ -130,11 +127,10 @@ async fn handle_undo_follow(
   };
 
   // This will fail if they aren't a follower, but ignore the error.
-  let _: Result<_, _> = unblock!(
-    db,
-    conn,
-    CommunityFollower::unfollow(&conn, &community_follower_form)
-  );
+  blocking(&db, move |conn| {
+    CommunityFollower::unfollow(&conn, &community_follower_form).ok()
+  })
+  .await?;
 
   Ok(HttpResponse::Ok().finish())
 }

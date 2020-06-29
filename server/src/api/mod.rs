@@ -42,7 +42,7 @@ pub trait Perform {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<Self::Response, LemmyError>;
 }

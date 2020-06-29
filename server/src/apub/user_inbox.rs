@@ -5,6 +5,7 @@ use crate::{
     fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user},
     FromApub,
   },
+  blocking,
   db::{
     activity::insert_activity,
     community::{CommunityFollower, CommunityFollowerForm},
@@ -52,20 +53,18 @@ pub async fn user_inbox(
   debug!("User {} received activity: {:?}", &username, &input);
 
   match input {
-    UserAcceptedObjects::Accept(a) => {
-      receive_accept(*a, &request, &username, &client, (**db).clone()).await
-    }
+    UserAcceptedObjects::Accept(a) => receive_accept(*a, &request, &username, &client, &db).await,
     UserAcceptedObjects::Create(c) => {
-      receive_create_private_message(*c, &request, &client, (**db).clone(), chat_server).await
+      receive_create_private_message(*c, &request, &client, &db, chat_server).await
     }
     UserAcceptedObjects::Update(u) => {
-      receive_update_private_message(*u, &request, &client, (**db).clone(), chat_server).await
+      receive_update_private_message(*u, &request, &client, &db, chat_server).await
     }
     UserAcceptedObjects::Delete(d) => {
-      receive_delete_private_message(*d, &request, &client, (**db).clone(), chat_server).await
+      receive_delete_private_message(*d, &request, &client, &db, chat_server).await
     }
     UserAcceptedObjects::Undo(u) => {
-      receive_undo_delete_private_message(*u, &request, &client, (**db).clone(), chat_server).await
+      receive_undo_delete_private_message(*u, &request, &client, &db, chat_server).await
     }
   }
 }
@@ -76,7 +75,7 @@ async fn receive_accept(
   request: &HttpRequest,
   username: &str,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
 ) -> Result<HttpResponse, LemmyError> {
   let community_uri = accept
     .accept_props
@@ -84,14 +83,13 @@ async fn receive_accept(
     .unwrap()
     .to_string();
 
-  let community =
-    get_or_fetch_and_upsert_remote_community(&community_uri, client, pool.clone()).await?;
+  let community = get_or_fetch_and_upsert_remote_community(&community_uri, client, pool).await?;
   verify(request, &community)?;
 
   let username = username.to_owned();
-  let user: User_ = unblock!(pool, conn, User_::read_from_name(&conn, &username)?);
+  let user = blocking(pool, move |conn| User_::read_from_name(conn, &username)).await??;
 
-  insert_activity(community.creator_id, accept, false, pool.clone()).await?;
+  insert_activity(community.creator_id, accept, false, pool).await?;
 
   // Now you need to add this to the community follower
   let community_follower_form = CommunityFollowerForm {
@@ -100,11 +98,10 @@ async fn receive_accept(
   };
 
   // This will fail if they're already a follower
-  let _: CommunityFollower = unblock!(
-    pool,
-    conn,
-    CommunityFollower::follow(&conn, &community_follower_form)?
-  );
+  blocking(pool, move |conn| {
+    CommunityFollower::follow(conn, &community_follower_form)
+  })
+  .await??;
 
   // TODO: make sure that we actually requested a follow
   Ok(HttpResponse::Ok().finish())
@@ -114,7 +111,7 @@ async fn receive_create_private_message(
   create: Create,
   request: &HttpRequest,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let note = create
@@ -131,21 +128,22 @@ async fn receive_create_private_message(
     .unwrap()
     .to_string();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool.clone()).await?;
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
   verify(request, &user)?;
 
-  insert_activity(user.id, create, false, pool.clone()).await?;
+  insert_activity(user.id, create, false, pool).await?;
 
-  let private_message = PrivateMessageForm::from_apub(&note, client, pool.clone()).await?;
+  let private_message = PrivateMessageForm::from_apub(&note, client, pool).await?;
 
-  let inserted_private_message: PrivateMessage =
-    unblock!(pool, conn, PrivateMessage::create(&conn, &private_message)?);
+  let inserted_private_message = blocking(pool, move |conn| {
+    PrivateMessage::create(conn, &private_message)
+  })
+  .await??;
 
-  let message: PrivateMessageView = unblock!(
-    pool,
-    conn,
-    PrivateMessageView::read(&conn, inserted_private_message.id)?
-  );
+  let message = blocking(pool, move |conn| {
+    PrivateMessageView::read(conn, inserted_private_message.id)
+  })
+  .await??;
 
   let res = PrivateMessageResponse { message };
 
@@ -165,7 +163,7 @@ async fn receive_update_private_message(
   update: Update,
   request: &HttpRequest,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let note = update
@@ -182,33 +180,30 @@ async fn receive_update_private_message(
     .unwrap()
     .to_string();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool.clone()).await?;
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
   verify(request, &user)?;
 
-  insert_activity(user.id, update, false, pool.clone()).await?;
+  insert_activity(user.id, update, false, pool).await?;
 
-  let private_message_form = PrivateMessageForm::from_apub(&note, client, pool.clone()).await?;
+  let private_message_form = PrivateMessageForm::from_apub(&note, client, pool).await?;
 
   let private_message_ap_id = private_message_form.ap_id.clone();
-  let private_message: PrivateMessage = unblock!(
-    pool,
-    conn,
-    PrivateMessage::read_from_apub_id(&conn, &private_message_ap_id)?
-  );
+  let private_message = blocking(pool, move |conn| {
+    PrivateMessage::read_from_apub_id(conn, &private_message_ap_id)
+  })
+  .await??;
 
   let private_message_id = private_message.id;
-  let _: PrivateMessage = unblock!(
-    pool,
-    conn,
-    PrivateMessage::update(&conn, private_message_id, &private_message_form)?
-  );
+  blocking(pool, move |conn| {
+    PrivateMessage::update(conn, private_message_id, &private_message_form)
+  })
+  .await??;
 
   let private_message_id = private_message.id;
-  let message: PrivateMessageView = unblock!(
-    pool,
-    conn,
-    PrivateMessageView::read(&conn, private_message_id)?
-  );
+  let message = blocking(pool, move |conn| {
+    PrivateMessageView::read(conn, private_message_id)
+  })
+  .await??;
 
   let res = PrivateMessageResponse { message };
 
@@ -228,7 +223,7 @@ async fn receive_delete_private_message(
   delete: Delete,
   request: &HttpRequest,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let note = delete
@@ -245,19 +240,18 @@ async fn receive_delete_private_message(
     .unwrap()
     .to_string();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool.clone()).await?;
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
   verify(request, &user)?;
 
-  insert_activity(user.id, delete, false, pool.clone()).await?;
+  insert_activity(user.id, delete, false, pool).await?;
 
-  let private_message_form = PrivateMessageForm::from_apub(&note, client, pool.clone()).await?;
+  let private_message_form = PrivateMessageForm::from_apub(&note, client, pool).await?;
 
   let private_message_ap_id = private_message_form.ap_id;
-  let private_message: PrivateMessage = unblock!(
-    pool,
-    conn,
-    PrivateMessage::read_from_apub_id(&conn, &private_message_ap_id)?
-  );
+  let private_message = blocking(pool, move |conn| {
+    PrivateMessage::read_from_apub_id(conn, &private_message_ap_id)
+  })
+  .await??;
 
   let private_message_form = PrivateMessageForm {
     content: private_message_form.content,
@@ -272,18 +266,16 @@ async fn receive_delete_private_message(
   };
 
   let private_message_id = private_message.id;
-  let _: PrivateMessage = unblock!(
-    pool,
-    conn,
-    PrivateMessage::update(&conn, private_message_id, &private_message_form)?
-  );
+  blocking(pool, move |conn| {
+    PrivateMessage::update(conn, private_message_id, &private_message_form)
+  })
+  .await??;
 
   let private_message_id = private_message.id;
-  let message: PrivateMessageView = unblock!(
-    pool,
-    conn,
-    PrivateMessageView::read(&conn, private_message_id)?
-  );
+  let message = blocking(pool, move |conn| {
+    PrivateMessageView::read(&conn, private_message_id)
+  })
+  .await??;
 
   let res = PrivateMessageResponse { message };
 
@@ -303,7 +295,7 @@ async fn receive_undo_delete_private_message(
   undo: Undo,
   request: &HttpRequest,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let delete = undo
@@ -328,19 +320,18 @@ async fn receive_undo_delete_private_message(
     .unwrap()
     .to_string();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool.clone()).await?;
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
   verify(request, &user)?;
 
-  insert_activity(user.id, delete, false, pool.clone()).await?;
+  insert_activity(user.id, delete, false, pool).await?;
 
-  let private_message = PrivateMessageForm::from_apub(&note, client, pool.clone()).await?;
+  let private_message = PrivateMessageForm::from_apub(&note, client, pool).await?;
 
   let private_message_ap_id = private_message.ap_id.clone();
-  let private_message_id: i32 = unblock!(
-    pool,
-    conn,
-    PrivateMessage::read_from_apub_id(&conn, &private_message_ap_id)?.id
-  );
+  let private_message_id = blocking(pool, move |conn| {
+    PrivateMessage::read_from_apub_id(conn, &private_message_ap_id).map(|pm| pm.id)
+  })
+  .await??;
 
   let private_message_form = PrivateMessageForm {
     content: private_message.content,
@@ -354,17 +345,15 @@ async fn receive_undo_delete_private_message(
     updated: Some(naive_now()),
   };
 
-  let _: PrivateMessage = unblock!(
-    pool,
-    conn,
-    PrivateMessage::update(&conn, private_message_id, &private_message_form)?
-  );
+  blocking(pool, move |conn| {
+    PrivateMessage::update(conn, private_message_id, &private_message_form)
+  })
+  .await??;
 
-  let message: PrivateMessageView = unblock!(
-    pool,
-    conn,
-    PrivateMessageView::read(&conn, private_message_id)?
-  );
+  let message = blocking(pool, move |conn| {
+    PrivateMessageView::read(&conn, private_message_id)
+  })
+  .await??;
 
   let res = PrivateMessageResponse { message };
 

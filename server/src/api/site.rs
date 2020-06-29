@@ -2,6 +2,7 @@ use super::user::Register;
 use crate::{
   api::{APIError, Oper, Perform},
   apub::fetcher::search_by_apub_id,
+  blocking,
   db::{
     category::*, comment_view::*, community_view::*, moderator::*, moderator_views::*,
     post_view::*, site::*, site_view::*, user::*, user_view::*, Crud, SearchType, SortType,
@@ -129,12 +130,12 @@ impl Perform for Oper<ListCategories> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<ListCategoriesResponse, LemmyError> {
     let _data: &ListCategories = &self.data;
 
-    let categories: Vec<Category> = unblock!(pool, conn, Category::list_all(&conn)?);
+    let categories = blocking(pool, move |conn| Category::list_all(conn)).await??;
 
     // Return the jwt
     Ok(ListCategoriesResponse { categories })
@@ -147,7 +148,7 @@ impl Perform for Oper<GetModlog> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<GetModlogResponse, LemmyError> {
     let data: &GetModlog = &self.data;
@@ -156,53 +157,46 @@ impl Perform for Oper<GetModlog> {
     let mod_user_id = data.mod_user_id;
     let page = data.page;
     let limit = data.limit;
-    let removed_posts: Vec<ModRemovePostView> = unblock!(
-      pool,
-      conn,
-      ModRemovePostView::list(&conn, community_id, mod_user_id, page, limit,)?
-    );
+    let removed_posts = blocking(pool, move |conn| {
+      ModRemovePostView::list(conn, community_id, mod_user_id, page, limit)
+    })
+    .await??;
 
-    let locked_posts: Vec<ModLockPostView> = unblock!(
-      pool,
-      conn,
-      ModLockPostView::list(&conn, community_id, mod_user_id, page, limit,)?
-    );
+    let locked_posts = blocking(pool, move |conn| {
+      ModLockPostView::list(conn, community_id, mod_user_id, page, limit)
+    })
+    .await??;
 
-    let stickied_posts: Vec<ModStickyPostView> = unblock!(
-      pool,
-      conn,
-      ModStickyPostView::list(&conn, community_id, mod_user_id, page, limit,)?
-    );
+    let stickied_posts = blocking(pool, move |conn| {
+      ModStickyPostView::list(conn, community_id, mod_user_id, page, limit)
+    })
+    .await??;
 
-    let removed_comments: Vec<ModRemoveCommentView> = unblock!(
-      pool,
-      conn,
-      ModRemoveCommentView::list(&conn, community_id, mod_user_id, page, limit,)?
-    );
+    let removed_comments = blocking(pool, move |conn| {
+      ModRemoveCommentView::list(conn, community_id, mod_user_id, page, limit)
+    })
+    .await??;
 
-    let banned_from_community: Vec<ModBanFromCommunityView> = unblock!(
-      pool,
-      conn,
-      ModBanFromCommunityView::list(&conn, community_id, mod_user_id, page, limit,)?
-    );
+    let banned_from_community = blocking(pool, move |conn| {
+      ModBanFromCommunityView::list(conn, community_id, mod_user_id, page, limit)
+    })
+    .await??;
 
-    let added_to_community: Vec<ModAddCommunityView> = unblock!(
-      pool,
-      conn,
-      ModAddCommunityView::list(&conn, community_id, mod_user_id, page, limit,)?
-    );
+    let added_to_community = blocking(pool, move |conn| {
+      ModAddCommunityView::list(conn, community_id, mod_user_id, page, limit)
+    })
+    .await??;
 
     // These arrays are only for the full modlog, when a community isn't given
     let (removed_communities, banned, added) = if data.community_id.is_none() {
-      unblock!(
-        pool,
-        conn,
-        (
-          ModRemoveCommunityView::list(&conn, mod_user_id, page, limit)?,
-          ModBanView::list(&conn, mod_user_id, page, limit)?,
-          ModAddView::list(&conn, mod_user_id, page, limit)?,
-        )
-      )
+      blocking(pool, move |conn| {
+        Ok((
+          ModRemoveCommunityView::list(conn, mod_user_id, page, limit)?,
+          ModBanView::list(conn, mod_user_id, page, limit)?,
+          ModAddView::list(conn, mod_user_id, page, limit)?,
+        )) as Result<_, LemmyError>
+      })
+      .await??
     } else {
       (Vec::new(), Vec::new(), Vec::new())
     };
@@ -228,7 +222,7 @@ impl Perform for Oper<CreateSite> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<SiteResponse, LemmyError> {
     let data: &CreateSite = &self.data;
@@ -251,7 +245,7 @@ impl Perform for Oper<CreateSite> {
     let user_id = claims.id;
 
     // Make sure user is an admin
-    let user: UserView = unblock!(pool, conn, UserView::read(&conn, user_id)?);
+    let user = blocking(pool, move |conn| UserView::read(conn, user_id)).await??;
     if !user.admin {
       return Err(APIError::err("not_an_admin").into());
     }
@@ -266,11 +260,12 @@ impl Perform for Oper<CreateSite> {
       updated: None,
     };
 
-    if unblock!(pool, conn, Site::create(&conn, &site_form).is_err()) {
+    let create_site = move |conn: &'_ _| Site::create(conn, &site_form);
+    if blocking(pool, create_site).await?.is_err() {
       return Err(APIError::err("site_already_exists").into());
     }
 
-    let site_view: SiteView = unblock!(pool, conn, SiteView::read(&conn)?);
+    let site_view = blocking(pool, move |conn| SiteView::read(conn)).await??;
 
     Ok(SiteResponse { site: site_view })
   }
@@ -281,7 +276,7 @@ impl Perform for Oper<EditSite> {
   type Response = SiteResponse;
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<SiteResponse, LemmyError> {
     let data: &EditSite = &self.data;
@@ -304,12 +299,12 @@ impl Perform for Oper<EditSite> {
     let user_id = claims.id;
 
     // Make sure user is an admin
-    let user: UserView = unblock!(pool, conn, UserView::read(&conn, user_id)?);
+    let user = blocking(pool, move |conn| UserView::read(conn, user_id)).await??;
     if !user.admin {
       return Err(APIError::err("not_an_admin").into());
     }
 
-    let found_site: Site = unblock!(pool, conn, Site::read(&conn, 1)?);
+    let found_site = blocking(pool, move |conn| Site::read(conn, 1)).await??;
 
     let site_form = SiteForm {
       name: data.name.to_owned(),
@@ -321,11 +316,12 @@ impl Perform for Oper<EditSite> {
       enable_nsfw: data.enable_nsfw,
     };
 
-    if unblock!(pool, conn, Site::update(&conn, 1, &site_form).is_err()) {
+    let update_site = move |conn: &'_ _| Site::update(conn, 1, &site_form);
+    if blocking(pool, update_site).await?.is_err() {
       return Err(APIError::err("couldnt_update_site").into());
     }
 
-    let site_view: SiteView = unblock!(pool, conn, SiteView::read(&conn)?);
+    let site_view = blocking(pool, move |conn| SiteView::read(conn)).await??;
 
     let res = SiteResponse { site: site_view };
 
@@ -347,15 +343,15 @@ impl Perform for Oper<GetSite> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<GetSiteResponse, LemmyError> {
     let _data: &GetSite = &self.data;
 
     // TODO refactor this a little
-    let res: Result<_, _> = unblock!(pool, conn, Site::read(&conn, 1));
-    let site_view: Option<SiteView> = if res.is_ok() {
-      Some(unblock!(pool, conn, SiteView::read(&conn)?))
+    let res = blocking(pool, move |conn| Site::read(conn, 1)).await?;
+    let site_view = if res.is_ok() {
+      Some(blocking(pool, move |conn| SiteView::read(conn)).await??)
     } else if let Some(setup) = Settings::get().setup.as_ref() {
       let register = Register {
         username: setup.admin_username.to_owned(),
@@ -366,7 +362,7 @@ impl Perform for Oper<GetSite> {
         show_nsfw: true,
       };
       let login_response = Oper::new(register, self.client.clone())
-        .perform(pool.clone(), websocket_info.clone())
+        .perform(pool, websocket_info.clone())
         .await?;
       info!("Admin {} created", setup.admin_username);
 
@@ -379,15 +375,15 @@ impl Perform for Oper<GetSite> {
         auth: login_response.jwt,
       };
       Oper::new(create_site, self.client.clone())
-        .perform(pool.clone(), websocket_info.clone())
+        .perform(pool, websocket_info.clone())
         .await?;
       info!("Site {} created", setup.site_name);
-      Some(unblock!(pool, conn, SiteView::read(&conn)?))
+      Some(blocking(pool, move |conn| SiteView::read(conn)).await??)
     } else {
       None
     };
 
-    let mut admins: Vec<UserView> = unblock!(pool, conn, UserView::admins(&conn)?);
+    let mut admins = blocking(pool, move |conn| UserView::admins(conn)).await??;
 
     // Make sure the site creator is the top admin
     if let Some(site_view) = site_view.to_owned() {
@@ -400,7 +396,7 @@ impl Perform for Oper<GetSite> {
       }
     }
 
-    let banned: Vec<UserView> = unblock!(pool, conn, UserView::banned(&conn)?);
+    let banned = blocking(pool, move |conn| UserView::banned(conn)).await??;
 
     let online = if let Some(_ws) = websocket_info {
       // TODO
@@ -428,14 +424,14 @@ impl Perform for Oper<Search> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<SearchResponse, LemmyError> {
     let data: &Search = &self.data;
 
     dbg!(&data);
 
-    match search_by_apub_id(&data.q, &self.client, pool.clone()).await {
+    match search_by_apub_id(&data.q, &self.client, pool).await {
       Ok(r) => return Ok(r),
       Err(e) => debug!("Failed to resolve search query as activitypub ID: {}", e),
     }
@@ -467,10 +463,8 @@ impl Perform for Oper<Search> {
     let community_id = data.community_id;
     match type_ {
       SearchType::Posts => {
-        posts = unblock!(
-          pool,
-          conn,
-          PostQueryBuilder::create(&conn)
+        posts = blocking(pool, move |conn| {
+          PostQueryBuilder::create(conn)
             .sort(&sort)
             .show_nsfw(true)
             .for_community_id(community_id)
@@ -478,51 +472,47 @@ impl Perform for Oper<Search> {
             .my_user_id(user_id)
             .page(page)
             .limit(limit)
-            .list()?
-        );
+            .list()
+        })
+        .await??;
       }
       SearchType::Comments => {
-        comments = unblock!(
-          pool,
-          conn,
+        comments = blocking(pool, move |conn| {
           CommentQueryBuilder::create(&conn)
             .sort(&sort)
             .search_term(q)
             .my_user_id(user_id)
             .page(page)
             .limit(limit)
-            .list()?
-        );
+            .list()
+        })
+        .await??;
       }
       SearchType::Communities => {
-        communities = unblock!(
-          pool,
-          conn,
-          CommunityQueryBuilder::create(&conn)
+        communities = blocking(pool, move |conn| {
+          CommunityQueryBuilder::create(conn)
             .sort(&sort)
             .search_term(q)
             .page(page)
             .limit(limit)
-            .list()?
-        );
+            .list()
+        })
+        .await??;
       }
       SearchType::Users => {
-        users = unblock!(
-          pool,
-          conn,
-          UserQueryBuilder::create(&conn)
+        users = blocking(pool, move |conn| {
+          UserQueryBuilder::create(conn)
             .sort(&sort)
             .search_term(q)
             .page(page)
             .limit(limit)
-            .list()?
-        );
+            .list()
+        })
+        .await??;
       }
       SearchType::All => {
-        posts = unblock!(
-          pool,
-          conn,
-          PostQueryBuilder::create(&conn)
+        posts = blocking(pool, move |conn| {
+          PostQueryBuilder::create(conn)
             .sort(&sort)
             .show_nsfw(true)
             .for_community_id(community_id)
@@ -530,65 +520,62 @@ impl Perform for Oper<Search> {
             .my_user_id(user_id)
             .page(page)
             .limit(limit)
-            .list()?
-        );
+            .list()
+        })
+        .await??;
 
         let q = data.q.to_owned();
         let sort = SortType::from_str(&data.sort)?;
 
-        comments = unblock!(
-          pool,
-          conn,
-          CommentQueryBuilder::create(&conn)
+        comments = blocking(pool, move |conn| {
+          CommentQueryBuilder::create(conn)
             .sort(&sort)
             .search_term(q)
             .my_user_id(user_id)
             .page(page)
             .limit(limit)
-            .list()?
-        );
+            .list()
+        })
+        .await??;
 
         let q = data.q.to_owned();
         let sort = SortType::from_str(&data.sort)?;
 
-        communities = unblock!(
-          pool,
-          conn,
-          CommunityQueryBuilder::create(&conn)
+        communities = blocking(pool, move |conn| {
+          CommunityQueryBuilder::create(conn)
             .sort(&sort)
             .search_term(q)
             .page(page)
             .limit(limit)
-            .list()?
-        );
+            .list()
+        })
+        .await??;
 
         let q = data.q.to_owned();
         let sort = SortType::from_str(&data.sort)?;
 
-        users = unblock!(
-          pool,
-          conn,
-          UserQueryBuilder::create(&conn)
+        users = blocking(pool, move |conn| {
+          UserQueryBuilder::create(conn)
             .sort(&sort)
             .search_term(q)
             .page(page)
             .limit(limit)
-            .list()?
-        );
+            .list()
+        })
+        .await??;
       }
       SearchType::Url => {
-        posts = unblock!(
-          pool,
-          conn,
-          PostQueryBuilder::create(&conn)
+        posts = blocking(pool, move |conn| {
+          PostQueryBuilder::create(conn)
             .sort(&sort)
             .show_nsfw(true)
             .for_community_id(community_id)
             .url_search(q)
             .page(page)
             .limit(limit)
-            .list()?
-        );
+            .list()
+        })
+        .await??;
       }
     };
 
@@ -609,7 +596,7 @@ impl Perform for Oper<TransferSite> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<GetSiteResponse, LemmyError> {
     let data: &TransferSite = &self.data;
@@ -621,7 +608,7 @@ impl Perform for Oper<TransferSite> {
 
     let user_id = claims.id;
 
-    let read_site: Site = unblock!(pool, conn, Site::read(&conn, 1)?);
+    let read_site = blocking(pool, move |conn| Site::read(conn, 1)).await??;
 
     // Make sure user is the creator
     if read_site.creator_id != user_id {
@@ -638,7 +625,8 @@ impl Perform for Oper<TransferSite> {
       enable_nsfw: read_site.enable_nsfw,
     };
 
-    if unblock!(pool, conn, Site::update(&conn, 1, &site_form).is_err()) {
+    let update_site = move |conn: &'_ _| Site::update(conn, 1, &site_form);
+    if blocking(pool, update_site).await?.is_err() {
       return Err(APIError::err("couldnt_update_site").into());
     };
 
@@ -649,11 +637,11 @@ impl Perform for Oper<TransferSite> {
       removed: Some(false),
     };
 
-    let _: ModAdd = unblock!(pool, conn, ModAdd::create(&conn, &form)?);
+    blocking(pool, move |conn| ModAdd::create(conn, &form)).await??;
 
-    let site_view: SiteView = unblock!(pool, conn, SiteView::read(&conn)?);
+    let site_view = blocking(pool, move |conn| SiteView::read(conn)).await??;
 
-    let mut admins: Vec<UserView> = unblock!(pool, conn, UserView::admins(&conn)?);
+    let mut admins = blocking(pool, move |conn| UserView::admins(conn)).await??;
     let creator_index = admins
       .iter()
       .position(|r| r.id == site_view.creator_id)
@@ -661,7 +649,7 @@ impl Perform for Oper<TransferSite> {
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
 
-    let banned: Vec<UserView> = unblock!(pool, conn, UserView::banned(&conn)?);
+    let banned = blocking(pool, move |conn| UserView::banned(conn)).await??;
 
     Ok(GetSiteResponse {
       site: Some(site_view),
@@ -678,7 +666,7 @@ impl Perform for Oper<GetSiteConfig> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<GetSiteConfigResponse, LemmyError> {
     let data: &GetSiteConfig = &self.data;
@@ -691,7 +679,7 @@ impl Perform for Oper<GetSiteConfig> {
     let user_id = claims.id;
 
     // Only let admins read this
-    let admins: Vec<UserView> = unblock!(pool, conn, UserView::admins(&conn)?);
+    let admins = blocking(pool, move |conn| UserView::admins(conn)).await??;
     let admin_ids: Vec<i32> = admins.into_iter().map(|m| m.id).collect();
 
     if !admin_ids.contains(&user_id) {
@@ -710,7 +698,7 @@ impl Perform for Oper<SaveSiteConfig> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<GetSiteConfigResponse, LemmyError> {
     let data: &SaveSiteConfig = &self.data;
@@ -723,7 +711,7 @@ impl Perform for Oper<SaveSiteConfig> {
     let user_id = claims.id;
 
     // Only let admins read this
-    let admins: Vec<UserView> = unblock!(pool, conn, UserView::admins(&conn)?);
+    let admins = blocking(pool, move |conn| UserView::admins(conn)).await??;
     let admin_ids: Vec<i32> = admins.into_iter().map(|m| m.id).collect();
 
     if !admin_ids.contains(&user_id) {

@@ -1,7 +1,8 @@
 use crate::{
   apub::{extensions::signatures::sign, is_apub_id_valid, ActorType},
   db::{activity::insert_activity, community::Community, user::User_},
-  DbPool, LemmyError, SendError,
+  request::retry_custom,
+  DbPool, LemmyError,
 };
 use activitystreams::{context, object::properties::ObjectProperties, public, Activity, Base};
 use actix_web::client::Client;
@@ -32,12 +33,12 @@ pub async fn send_activity_to_community<A>(
   to: Vec<String>,
   activity: A,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
 ) -> Result<(), LemmyError>
 where
   A: Activity + Base + Serialize + Debug + Clone + Send + 'static,
 {
-  insert_activity(creator.id, activity.clone(), true, pool.clone()).await?;
+  insert_activity(creator.id, activity.clone(), true, pool).await?;
 
   // if this is a local community, we need to do an announce from the community instead
   if community.local {
@@ -69,13 +70,15 @@ where
       continue;
     }
 
-    let request = client.post(t).header("Content-Type", "application/json");
+    let res = retry_custom(|| async {
+      let request = client.post(&t).header("Content-Type", "application/json");
 
-    let res = sign(request, actor, activity.clone())
-      .await?
-      .send()
-      .await
-      .map_err(|e| SendError(e.to_string()))?;
+      match sign(request, actor, activity.clone()).await {
+        Ok(signed) => Ok(signed.send().await),
+        Err(e) => Err(e),
+      }
+    })
+    .await?;
 
     debug!("Result for activity send: {:?}", res);
   }

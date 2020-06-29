@@ -1,6 +1,7 @@
 use crate::{
   api::{APIError, Oper, Perform},
   apub::{ApubLikeableType, ApubObjectType},
+  blocking,
   db::{
     comment::*, comment_view::*, community_view::*, moderator::*, post::*, site_view::*, user::*,
     user_mention::*, user_view::*, Crud, Likeable, ListingType, Saveable, SortType,
@@ -13,7 +14,6 @@ use crate::{
   },
   DbPool, LemmyError, MentionData,
 };
-use actix_web::web;
 use log::error;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -83,7 +83,7 @@ impl Perform for Oper<CreateComment> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &CreateComment = &self.data;
@@ -113,54 +113,46 @@ impl Perform for Oper<CreateComment> {
 
     // Check for a community ban
     let post_id = data.post_id;
-    let post: Post = unblock!(pool, conn, Post::read(&conn, post_id)?);
+    let post = blocking(pool, move |conn| Post::read(conn, post_id)).await??;
 
     let community_id = post.community_id;
-    if unblock!(
-      pool,
-      conn,
-      CommunityUserBanView::get(&conn, user_id, community_id).is_ok()
-    ) {
+    let is_banned =
+      move |conn: &'_ _| CommunityUserBanView::get(conn, user_id, community_id).is_ok();
+    if blocking(pool, is_banned).await? {
       return Err(APIError::err("community_ban").into());
     }
 
     // Check for a site ban
-    let user: User_ = unblock!(pool, conn, User_::read(&conn, user_id)?);
+    let user = blocking(pool, move |conn| User_::read(&conn, user_id)).await??;
     if user.banned {
       return Err(APIError::err("site_ban").into());
     }
 
     let comment_form2 = comment_form.clone();
-    let inserted_comment: Comment =
-      match unblock!(pool, conn, Comment::create(&conn, &comment_form2)) {
+    let inserted_comment =
+      match blocking(pool, move |conn| Comment::create(&conn, &comment_form2)).await? {
         Ok(comment) => comment,
         Err(_e) => return Err(APIError::err("couldnt_create_comment").into()),
       };
 
     let inserted_comment_id = inserted_comment.id;
-    let updated_comment: Comment = match unblock!(
-      pool,
-      conn,
+    let updated_comment: Comment = match blocking(pool, move |conn| {
       Comment::update_ap_id(&conn, inserted_comment_id)
-    ) {
+    })
+    .await?
+    {
       Ok(comment) => comment,
       Err(_e) => return Err(APIError::err("couldnt_create_comment").into()),
     };
 
     updated_comment
-      .send_create(&user, &self.client, pool.clone())
+      .send_create(&user, &self.client, pool)
       .await?;
 
     // Scan the comment for user mentions, add those rows
     let mentions = scrape_text_for_mentions(&comment_form.content);
-    let recipient_ids = send_local_notifs(
-      mentions,
-      updated_comment.clone(),
-      user.clone(),
-      post,
-      pool.clone(),
-    )
-    .await?;
+    let recipient_ids =
+      send_local_notifs(mentions, updated_comment.clone(), user.clone(), post, pool).await?;
 
     // You like your own comment by default
     let like_form = CommentLikeForm {
@@ -170,19 +162,17 @@ impl Perform for Oper<CreateComment> {
       score: 1,
     };
 
-    if unblock!(pool, conn, CommentLike::like(&conn, &like_form).is_err()) {
+    let like = move |conn: &'_ _| CommentLike::like(&conn, &like_form);
+    if blocking(pool, like).await?.is_err() {
       return Err(APIError::err("couldnt_like_comment").into());
     }
 
-    updated_comment
-      .send_like(&user, &self.client, pool.clone())
-      .await?;
+    updated_comment.send_like(&user, &self.client, pool).await?;
 
-    let comment_view: CommentView = unblock!(
-      pool,
-      conn,
-      CommentView::read(&conn, inserted_comment.id, Some(user_id))?
-    );
+    let comment_view = blocking(pool, move |conn| {
+      CommentView::read(&conn, inserted_comment.id, Some(user_id))
+    })
+    .await??;
 
     let mut res = CommentResponse {
       comment: comment_view,
@@ -211,7 +201,7 @@ impl Perform for Oper<EditComment> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &EditComment = &self.data;
@@ -223,29 +213,34 @@ impl Perform for Oper<EditComment> {
 
     let user_id = claims.id;
 
-    let user: User_ = unblock!(pool, conn, User_::read(&conn, user_id)?);
+    let user = blocking(pool, move |conn| User_::read(&conn, user_id)).await??;
 
     let edit_id = data.edit_id;
-    let orig_comment: CommentView = unblock!(pool, conn, CommentView::read(&conn, edit_id, None)?);
+    let orig_comment =
+      blocking(pool, move |conn| CommentView::read(&conn, edit_id, None)).await??;
 
     // You are allowed to mark the comment as read even if you're banned.
     if data.read.is_none() {
       // Verify its the creator or a mod, or an admin
       let mut editors: Vec<i32> = vec![data.creator_id];
       let community_id = orig_comment.community_id;
-      editors.append(&mut unblock!(
-        pool,
-        conn,
-        CommunityModeratorView::for_community(&conn, community_id)?
-          .into_iter()
-          .map(|m| m.user_id)
-          .collect()
-      ));
-      editors.append(&mut unblock!(
-        pool,
-        conn,
-        UserView::admins(&conn)?.into_iter().map(|a| a.id).collect()
-      ));
+      editors.append(
+        &mut blocking(pool, move |conn| {
+          Ok(
+            CommunityModeratorView::for_community(&conn, community_id)?
+              .into_iter()
+              .map(|m| m.user_id)
+              .collect(),
+          ) as Result<_, LemmyError>
+        })
+        .await??,
+      );
+      editors.append(
+        &mut blocking(pool, move |conn| {
+          Ok(UserView::admins(conn)?.into_iter().map(|a| a.id).collect()) as Result<_, LemmyError>
+        })
+        .await??,
+      );
 
       if !editors.contains(&user_id) {
         return Err(APIError::err("no_comment_edit_allowed").into());
@@ -253,11 +248,9 @@ impl Perform for Oper<EditComment> {
 
       // Check for a community ban
       let community_id = orig_comment.community_id;
-      if unblock!(
-        pool,
-        conn,
-        CommunityUserBanView::get(&conn, user_id, community_id).is_ok()
-      ) {
+      let is_banned =
+        move |conn: &'_ _| CommunityUserBanView::get(conn, user_id, community_id).is_ok();
+      if blocking(pool, is_banned).await? {
         return Err(APIError::err("community_ban").into());
       }
 
@@ -270,7 +263,7 @@ impl Perform for Oper<EditComment> {
     let content_slurs_removed = remove_slurs(&data.content.to_owned());
 
     let edit_id = data.edit_id;
-    let read_comment: Comment = unblock!(pool, conn, Comment::read(&conn, edit_id)?);
+    let read_comment = blocking(pool, move |conn| Comment::read(conn, edit_id)).await??;
 
     let comment_form = CommentForm {
       content: content_slurs_removed,
@@ -292,44 +285,46 @@ impl Perform for Oper<EditComment> {
 
     let edit_id = data.edit_id;
     let comment_form2 = comment_form.clone();
-    let updated_comment: Comment =
-      match unblock!(pool, conn, Comment::update(&conn, edit_id, &comment_form2)) {
-        Ok(comment) => comment,
-        Err(_e) => return Err(APIError::err("couldnt_update_comment").into()),
-      };
+    let updated_comment = match blocking(pool, move |conn| {
+      Comment::update(conn, edit_id, &comment_form2)
+    })
+    .await?
+    {
+      Ok(comment) => comment,
+      Err(_e) => return Err(APIError::err("couldnt_update_comment").into()),
+    };
 
     if let Some(deleted) = data.deleted.to_owned() {
       if deleted {
         updated_comment
-          .send_delete(&user, &self.client, pool.clone())
+          .send_delete(&user, &self.client, pool)
           .await?;
       } else {
         updated_comment
-          .send_undo_delete(&user, &self.client, pool.clone())
+          .send_undo_delete(&user, &self.client, pool)
           .await?;
       }
     } else if let Some(removed) = data.removed.to_owned() {
       if removed {
         updated_comment
-          .send_remove(&user, &self.client, pool.clone())
+          .send_remove(&user, &self.client, pool)
           .await?;
       } else {
         updated_comment
-          .send_undo_remove(&user, &self.client, pool.clone())
+          .send_undo_remove(&user, &self.client, pool)
           .await?;
       }
     } else {
       updated_comment
-        .send_update(&user, &self.client, pool.clone())
+        .send_update(&user, &self.client, pool)
         .await?;
     }
 
     let post_id = data.post_id;
-    let post: Post = unblock!(pool, conn, Post::read(&conn, post_id)?);
+    let post = blocking(pool, move |conn| Post::read(conn, post_id)).await??;
 
     let mentions = scrape_text_for_mentions(&comment_form.content);
-    let recipient_ids =
-      send_local_notifs(mentions, updated_comment, user, post, pool.clone()).await?;
+    let recipient_ids = send_local_notifs(mentions, updated_comment, user, post, pool).await?;
 
     // Mod tables
     if let Some(removed) = data.removed.to_owned() {
@@ -339,15 +334,14 @@ impl Perform for Oper<EditComment> {
         removed: Some(removed),
         reason: data.reason.to_owned(),
       };
-      let _: ModRemoveComment = unblock!(pool, conn, ModRemoveComment::create(&conn, &form)?);
+      blocking(pool, move |conn| ModRemoveComment::create(conn, &form)).await??;
     }
 
     let edit_id = data.edit_id;
-    let comment_view: CommentView = unblock!(
-      pool,
-      conn,
-      CommentView::read(&conn, edit_id, Some(user_id))?
-    );
+    let comment_view = blocking(pool, move |conn| {
+      CommentView::read(conn, edit_id, Some(user_id))
+    })
+    .await??;
 
     let mut res = CommentResponse {
       comment: comment_view,
@@ -376,7 +370,7 @@ impl Perform for Oper<SaveComment> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &SaveComment = &self.data;
@@ -394,27 +388,22 @@ impl Perform for Oper<SaveComment> {
     };
 
     if data.save {
-      if unblock!(
-        pool,
-        conn,
-        CommentSaved::save(&conn, &comment_saved_form).is_err()
-      ) {
+      let save_comment = move |conn: &'_ _| CommentSaved::save(conn, &comment_saved_form);
+      if blocking(pool, save_comment).await?.is_err() {
         return Err(APIError::err("couldnt_save_comment").into());
       }
-    } else if unblock!(
-      pool,
-      conn,
-      CommentSaved::unsave(&conn, &comment_saved_form).is_err()
-    ) {
-      return Err(APIError::err("couldnt_save_comment").into());
+    } else {
+      let unsave_comment = move |conn: &'_ _| CommentSaved::unsave(conn, &comment_saved_form);
+      if blocking(pool, unsave_comment).await?.is_err() {
+        return Err(APIError::err("couldnt_save_comment").into());
+      }
     }
 
     let comment_id = data.comment_id;
-    let comment_view: CommentView = unblock!(
-      pool,
-      conn,
-      CommentView::read(&conn, comment_id, Some(user_id))?
-    );
+    let comment_view = blocking(pool, move |conn| {
+      CommentView::read(conn, comment_id, Some(user_id))
+    })
+    .await??;
 
     Ok(CommentResponse {
       comment: comment_view,
@@ -429,7 +418,7 @@ impl Perform for Oper<CreateCommentLike> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<CommentResponse, LemmyError> {
     let data: &CreateCommentLike = &self.data;
@@ -445,7 +434,7 @@ impl Perform for Oper<CreateCommentLike> {
 
     // Don't do a downvote if site has downvotes disabled
     if data.score == -1 {
-      let site: SiteView = unblock!(pool, conn, SiteView::read(&conn)?);
+      let site = blocking(pool, move |conn| SiteView::read(conn)).await??;
       if !site.enable_downvotes {
         return Err(APIError::err("downvotes_disabled").into());
       }
@@ -453,32 +442,32 @@ impl Perform for Oper<CreateCommentLike> {
 
     // Check for a community ban
     let post_id = data.post_id;
-    let post: Post = unblock!(pool, conn, Post::read(&conn, post_id)?);
+    let post = blocking(pool, move |conn| Post::read(conn, post_id)).await??;
     let community_id = post.community_id;
-    if unblock!(
-      pool,
-      conn,
-      CommunityUserBanView::get(&conn, user_id, community_id).is_ok()
-    ) {
+    let is_banned =
+      move |conn: &'_ _| CommunityUserBanView::get(conn, user_id, community_id).is_ok();
+    if blocking(pool, is_banned).await? {
       return Err(APIError::err("community_ban").into());
     }
 
     // Check for a site ban
-    let user: User_ = unblock!(pool, conn, User_::read(&conn, user_id)?);
+    let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
     if user.banned {
       return Err(APIError::err("site_ban").into());
     }
 
     let comment_id = data.comment_id;
-    let comment: Comment = unblock!(pool, conn, Comment::read(&conn, comment_id)?);
+    let comment = blocking(pool, move |conn| Comment::read(conn, comment_id)).await??;
 
     // Add to recipient ids
     match comment.parent_id {
       Some(parent_id) => {
-        let parent_comment: Comment = unblock!(pool, conn, Comment::read(&conn, parent_id)?);
+        let parent_comment = blocking(pool, move |conn| Comment::read(conn, parent_id)).await??;
         if parent_comment.creator_id != user_id {
-          let parent_user: User_ =
-            unblock!(pool, conn, User_::read(&conn, parent_comment.creator_id)?);
+          let parent_user = blocking(pool, move |conn| {
+            User_::read(conn, parent_comment.creator_id)
+          })
+          .await??;
           recipient_ids.push(parent_user.id);
         }
       }
@@ -496,36 +485,32 @@ impl Perform for Oper<CreateCommentLike> {
 
     // Remove any likes first
     let like_form2 = like_form.clone();
-    let _: usize = unblock!(pool, conn, CommentLike::remove(&conn, &like_form2)?);
+    blocking(pool, move |conn| CommentLike::remove(conn, &like_form2)).await??;
 
     // Only add the like if the score isnt 0
     let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
     if do_add {
       let like_form2 = like_form.clone();
-      if unblock!(pool, conn, CommentLike::like(&conn, &like_form2).is_err()) {
+      let like = move |conn: &'_ _| CommentLike::like(conn, &like_form2);
+      if blocking(pool, like).await?.is_err() {
         return Err(APIError::err("couldnt_like_comment").into());
       }
 
       if like_form.score == 1 {
-        comment.send_like(&user, &self.client, pool.clone()).await?;
+        comment.send_like(&user, &self.client, pool).await?;
       } else if like_form.score == -1 {
-        comment
-          .send_dislike(&user, &self.client, pool.clone())
-          .await?;
+        comment.send_dislike(&user, &self.client, pool).await?;
       }
     } else {
-      comment
-        .send_undo_like(&user, &self.client, pool.clone())
-        .await?;
+      comment.send_undo_like(&user, &self.client, pool).await?;
     }
 
     // Have to refetch the comment to get the current state
     let comment_id = data.comment_id;
-    let liked_comment: CommentView = unblock!(
-      pool,
-      conn,
-      CommentView::read(&conn, comment_id, Some(user_id))?
-    );
+    let liked_comment = blocking(pool, move |conn| {
+      CommentView::read(conn, comment_id, Some(user_id))
+    })
+    .await??;
 
     let mut res = CommentResponse {
       comment: liked_comment,
@@ -554,7 +539,7 @@ impl Perform for Oper<GetComments> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<GetCommentsResponse, LemmyError> {
     let data: &GetComments = &self.data;
@@ -578,10 +563,8 @@ impl Perform for Oper<GetComments> {
     let community_id = data.community_id;
     let page = data.page;
     let limit = data.limit;
-    let comments: Result<Vec<CommentView>, _> = unblock!(
-      pool,
-      conn,
-      CommentQueryBuilder::create(&conn)
+    let comments = blocking(pool, move |conn| {
+      CommentQueryBuilder::create(conn)
         .listing_type(type_)
         .sort(&sort)
         .for_community_id(community_id)
@@ -589,7 +572,8 @@ impl Perform for Oper<GetComments> {
         .page(page)
         .limit(limit)
         .list()
-    );
+    })
+    .await?;
     let comments = match comments {
       Ok(comments) => comments,
       Err(_) => return Err(APIError::err("couldnt_get_comments").into()),
@@ -618,12 +602,10 @@ pub async fn send_local_notifs(
   comment: Comment,
   user: User_,
   post: Post,
-  pool: DbPool,
+  pool: &DbPool,
 ) -> Result<Vec<i32>, LemmyError> {
-  let ids = web::block(move || {
-    let conn = pool.get()?;
-    let ids = do_send_local_notifs(&conn, &mentions, &comment, &user, &post);
-    Ok(ids) as Result<Vec<i32>, LemmyError>
+  let ids = blocking(pool, move |conn| {
+    do_send_local_notifs(conn, &mentions, &comment, &user, &post)
   })
   .await?;
 

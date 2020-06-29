@@ -4,6 +4,7 @@ use crate::{
     extensions::signatures::generate_actor_keypair, make_apub_endpoint, ApubObjectType,
     EndpointType,
   },
+  blocking,
   db::{
     comment::*, comment_view::*, community::*, community_view::*, moderator::*,
     password_reset_request::*, post::*, post_view::*, private_message::*, private_message_view::*,
@@ -228,18 +229,18 @@ impl Perform for Oper<Login> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<LoginResponse, LemmyError> {
     let data: &Login = &self.data;
 
     // Fetch that username / email
     let username_or_email = data.username_or_email.clone();
-    let user: User_ = match unblock!(
-      pool,
-      conn,
-      User_::find_by_email_or_username(&conn, &username_or_email)
-    ) {
+    let user = match blocking(pool, move |conn| {
+      User_::find_by_email_or_username(conn, &username_or_email)
+    })
+    .await?
+    {
       Ok(user) => user,
       Err(_e) => return Err(APIError::err("couldnt_find_that_username_or_email").into()),
     };
@@ -261,13 +262,13 @@ impl Perform for Oper<Register> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<LoginResponse, LemmyError> {
     let data: &Register = &self.data;
 
     // Make sure site has open registration
-    if let Ok(site) = unblock!(pool, conn, SiteView::read(&conn)) {
+    if let Ok(site) = blocking(pool, move |conn| SiteView::read(conn)).await? {
       let site: SiteView = site;
       if !site.open_registration {
         return Err(APIError::err("registration_closed").into());
@@ -284,7 +285,10 @@ impl Perform for Oper<Register> {
     }
 
     // Make sure there are no admins
-    let any_admins: bool = unblock!(pool, conn, UserView::admins(&conn)?.is_empty());
+    let any_admins = blocking(pool, move |conn| {
+      UserView::admins(conn).map(|a| a.is_empty())
+    })
+    .await??;
     if data.admin && !any_admins {
       return Err(APIError::err("admin_already_created").into());
     }
@@ -321,9 +325,7 @@ impl Perform for Oper<Register> {
     };
 
     // Create the user
-    let res: Result<_, diesel::result::Error> =
-      unblock!(pool, conn, User_::register(&conn, &user_form));
-    let inserted_user: User_ = match res {
+    let inserted_user = match blocking(pool, move |conn| User_::register(conn, &user_form)).await? {
       Ok(user) => user,
       Err(e) => {
         let err_type = if e.to_string()
@@ -341,7 +343,7 @@ impl Perform for Oper<Register> {
     let main_community_keypair = generate_actor_keypair()?;
 
     // Create the main community if it doesn't exist
-    let main_community: Community = match unblock!(pool, conn, Community::read(&conn, 2)) {
+    let main_community = match blocking(pool, move |conn| Community::read(conn, 2)).await? {
       Ok(c) => c,
       Err(_e) => {
         let default_community_name = "main";
@@ -362,7 +364,7 @@ impl Perform for Oper<Register> {
           last_refreshed_at: None,
           published: None,
         };
-        unblock!(pool, conn, Community::create(&conn, &community_form)?)
+        blocking(pool, move |conn| Community::create(conn, &community_form)).await??
       }
     };
 
@@ -372,11 +374,8 @@ impl Perform for Oper<Register> {
       user_id: inserted_user.id,
     };
 
-    if unblock!(
-      pool,
-      conn,
-      CommunityFollower::follow(&conn, &community_follower_form).is_err()
-    ) {
+    let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
+    if blocking(pool, follow).await?.is_err() {
       return Err(APIError::err("community_follower_already_exists").into());
     };
 
@@ -387,14 +386,10 @@ impl Perform for Oper<Register> {
         user_id: inserted_user.id,
       };
 
-      let _inserted_community_moderator: CommunityModerator = match unblock!(
-        pool,
-        conn,
-        CommunityModerator::join(&conn, &community_moderator_form)
-      ) {
-        Ok(user) => user,
-        Err(_e) => return Err(APIError::err("community_moderator_already_exists").into()),
-      };
+      let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
+      if blocking(pool, join).await?.is_err() {
+        return Err(APIError::err("community_moderator_already_exists").into());
+      }
     }
 
     // Return the jwt
@@ -410,7 +405,7 @@ impl Perform for Oper<SaveUserSettings> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<LoginResponse, LemmyError> {
     let data: &SaveUserSettings = &self.data;
@@ -422,7 +417,7 @@ impl Perform for Oper<SaveUserSettings> {
 
     let user_id = claims.id;
 
-    let read_user: User_ = unblock!(pool, conn, User_::read(&conn, user_id)?);
+    let read_user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
 
     let email = match &data.email {
       Some(email) => Some(email.to_owned()),
@@ -447,11 +442,10 @@ impl Perform for Oper<SaveUserSettings> {
                   return Err(APIError::err("password_incorrect").into());
                 }
                 let new_password = new_password.to_owned();
-                let user: User_ = unblock!(
-                  pool,
-                  conn,
-                  User_::update_password(&conn, user_id, &new_password)?
-                );
+                let user = blocking(pool, move |conn| {
+                  User_::update_password(conn, user_id, &new_password)
+                })
+                .await??;
                 user.password_encrypted
               }
               None => return Err(APIError::err("password_incorrect").into()),
@@ -488,8 +482,7 @@ impl Perform for Oper<SaveUserSettings> {
       last_refreshed_at: None,
     };
 
-    let res: Result<_, diesel::result::Error> =
-      unblock!(pool, conn, User_::update(&conn, user_id, &user_form));
+    let res = blocking(pool, move |conn| User_::update(conn, user_id, &user_form)).await?;
     let updated_user: User_ = match res {
       Ok(user) => user,
       Err(e) => {
@@ -518,7 +511,7 @@ impl Perform for Oper<GetUserDetails> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<GetUserDetailsResponse, LemmyError> {
     let data: &GetUserDetails = &self.data;
@@ -550,7 +543,7 @@ impl Perform for Oper<GetUserDetails> {
     let user_details_id = match data.user_id {
       Some(id) => id,
       None => {
-        let user: Result<User_, _> = unblock!(pool, conn, User_::read_from_name(&conn, &username,));
+        let user = blocking(pool, move |conn| User_::read_from_name(conn, &username)).await?;
         match user {
           Ok(user) => user.id,
           Err(_e) => return Err(APIError::err("couldnt_find_that_username_or_email").into()),
@@ -558,14 +551,14 @@ impl Perform for Oper<GetUserDetails> {
       }
     };
 
-    let mut user_view: UserView = unblock!(pool, conn, UserView::read(&conn, user_details_id)?);
+    let mut user_view = blocking(pool, move |conn| UserView::read(conn, user_details_id)).await??;
 
     let page = data.page;
     let limit = data.limit;
     let saved_only = data.saved_only;
     let community_id = data.community_id;
-    let (posts, comments): (Vec<PostView>, Vec<CommentView>) = unblock!(pool, conn, {
-      let mut posts_query = PostQueryBuilder::create(&conn)
+    let (posts, comments) = blocking(pool, move |conn| {
+      let mut posts_query = PostQueryBuilder::create(conn)
         .sort(&sort)
         .show_nsfw(show_nsfw)
         .saved_only(saved_only)
@@ -574,7 +567,7 @@ impl Perform for Oper<GetUserDetails> {
         .page(page)
         .limit(limit);
 
-      let mut comments_query = CommentQueryBuilder::create(&conn)
+      let mut comments_query = CommentQueryBuilder::create(conn)
         .sort(&sort)
         .saved_only(saved_only)
         .my_user_id(user_id)
@@ -591,23 +584,23 @@ impl Perform for Oper<GetUserDetails> {
       let posts = posts_query.list()?;
       let comments = comments_query.list()?;
 
-      (posts, comments)
-    });
+      Ok((posts, comments)) as Result<_, LemmyError>
+    })
+    .await??;
 
-    let follows: Vec<CommunityFollowerView> = unblock!(
-      pool,
-      conn,
-      CommunityFollowerView::for_user(&conn, user_details_id)?
-    );
-    let moderates: Vec<CommunityModeratorView> = unblock!(
-      pool,
-      conn,
-      CommunityModeratorView::for_user(&conn, user_details_id)?
-    );
+    let follows = blocking(pool, move |conn| {
+      CommunityFollowerView::for_user(conn, user_details_id)
+    })
+    .await??;
+    let moderates = blocking(pool, move |conn| {
+      CommunityModeratorView::for_user(conn, user_details_id)
+    })
+    .await??;
 
-    let site_creator_id: i32 = unblock!(pool, conn, Site::read(&conn, 1)?.creator_id);
+    let site_creator_id =
+      blocking(pool, move |conn| Site::read(conn, 1).map(|s| s.creator_id)).await??;
 
-    let mut admins: Vec<UserView> = unblock!(pool, conn, UserView::admins(&conn)?);
+    let mut admins = blocking(pool, move |conn| UserView::admins(conn)).await??;
     let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
@@ -639,7 +632,7 @@ impl Perform for Oper<AddAdmin> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<AddAdminResponse, LemmyError> {
     let data: &AddAdmin = &self.data;
@@ -652,12 +645,14 @@ impl Perform for Oper<AddAdmin> {
     let user_id = claims.id;
 
     // Make sure user is an admin
-    if unblock!(pool, conn, !UserView::read(&conn, user_id)?.admin) {
+    let is_admin = move |conn: &'_ _| UserView::read(conn, user_id).map(|u| u.admin);
+    if !blocking(pool, is_admin).await?? {
       return Err(APIError::err("not_an_admin").into());
     }
 
     let added = data.added;
-    if unblock!(pool, conn, User_::add_admin(&conn, user_id, added).is_err()) {
+    let add_admin = move |conn: &'_ _| User_::add_admin(conn, user_id, added);
+    if blocking(pool, add_admin).await?.is_err() {
       return Err(APIError::err("couldnt_update_user").into());
     }
 
@@ -668,11 +663,12 @@ impl Perform for Oper<AddAdmin> {
       removed: Some(!data.added),
     };
 
-    let _: ModAdd = unblock!(pool, conn, ModAdd::create(&conn, &form)?);
+    blocking(pool, move |conn| ModAdd::create(conn, &form)).await??;
 
-    let site_creator_id: i32 = unblock!(pool, conn, Site::read(&conn, 1)?.creator_id);
+    let site_creator_id =
+      blocking(pool, move |conn| Site::read(conn, 1).map(|s| s.creator_id)).await??;
 
-    let mut admins: Vec<UserView> = unblock!(pool, conn, UserView::admins(&conn)?);
+    let mut admins = blocking(pool, move |conn| UserView::admins(conn)).await??;
     let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
@@ -697,7 +693,7 @@ impl Perform for Oper<BanUser> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<BanUserResponse, LemmyError> {
     let data: &BanUser = &self.data;
@@ -710,12 +706,14 @@ impl Perform for Oper<BanUser> {
     let user_id = claims.id;
 
     // Make sure user is an admin
-    if unblock!(pool, conn, !UserView::read(&conn, user_id)?.admin) {
+    let is_admin = move |conn: &'_ _| UserView::read(conn, user_id).map(|u| u.admin);
+    if !blocking(pool, is_admin).await?? {
       return Err(APIError::err("not_an_admin").into());
     }
 
     let ban = data.ban;
-    if unblock!(pool, conn, User_::ban_user(&conn, user_id, ban).is_err()) {
+    let ban_user = move |conn: &'_ _| User_::ban_user(conn, user_id, ban);
+    if blocking(pool, ban_user).await?.is_err() {
       return Err(APIError::err("couldnt_update_user").into());
     }
 
@@ -733,10 +731,10 @@ impl Perform for Oper<BanUser> {
       expires,
     };
 
-    let _: ModBan = unblock!(pool, conn, ModBan::create(&conn, &form)?);
+    blocking(pool, move |conn| ModBan::create(conn, &form)).await??;
 
     let user_id = data.user_id;
-    let user_view: UserView = unblock!(pool, conn, UserView::read(&conn, user_id)?);
+    let user_view = blocking(pool, move |conn| UserView::read(conn, user_id)).await??;
 
     let res = BanUserResponse {
       user: user_view,
@@ -761,7 +759,7 @@ impl Perform for Oper<GetReplies> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<GetRepliesResponse, LemmyError> {
     let data: &GetReplies = &self.data;
@@ -778,16 +776,15 @@ impl Perform for Oper<GetReplies> {
     let page = data.page;
     let limit = data.limit;
     let unread_only = data.unread_only;
-    let replies: Vec<_> = unblock!(
-      pool,
-      conn,
-      ReplyQueryBuilder::create(&conn, user_id)
+    let replies = blocking(pool, move |conn| {
+      ReplyQueryBuilder::create(conn, user_id)
         .sort(&sort)
         .unread_only(unread_only)
         .page(page)
         .limit(limit)
-        .list()?
-    );
+        .list()
+    })
+    .await??;
 
     Ok(GetRepliesResponse { replies })
   }
@@ -799,7 +796,7 @@ impl Perform for Oper<GetUserMentions> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<GetUserMentionsResponse, LemmyError> {
     let data: &GetUserMentions = &self.data;
@@ -816,16 +813,15 @@ impl Perform for Oper<GetUserMentions> {
     let page = data.page;
     let limit = data.limit;
     let unread_only = data.unread_only;
-    let mentions: Vec<_> = unblock!(
-      pool,
-      conn,
-      UserMentionQueryBuilder::create(&conn, user_id)
+    let mentions = blocking(pool, move |conn| {
+      UserMentionQueryBuilder::create(conn, user_id)
         .sort(&sort)
         .unread_only(unread_only)
         .page(page)
         .limit(limit)
-        .list()?
-    );
+        .list()
+    })
+    .await??;
 
     Ok(GetUserMentionsResponse { mentions })
   }
@@ -837,7 +833,7 @@ impl Perform for Oper<EditUserMention> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<UserMentionResponse, LemmyError> {
     let data: &EditUserMention = &self.data;
@@ -850,8 +846,8 @@ impl Perform for Oper<EditUserMention> {
     let user_id = claims.id;
 
     let user_mention_id = data.user_mention_id;
-    let user_mention: UserMention =
-      unblock!(pool, conn, UserMention::read(&conn, user_mention_id)?);
+    let user_mention =
+      blocking(pool, move |conn| UserMention::read(conn, user_mention_id)).await??;
 
     let user_mention_form = UserMentionForm {
       recipient_id: user_id,
@@ -860,20 +856,17 @@ impl Perform for Oper<EditUserMention> {
     };
 
     let user_mention_id = user_mention.id;
-    if unblock!(
-      pool,
-      conn,
-      UserMention::update(&conn, user_mention_id, &user_mention_form).is_err()
-    ) {
+    let update_mention =
+      move |conn: &'_ _| UserMention::update(conn, user_mention_id, &user_mention_form);
+    if blocking(pool, update_mention).await?.is_err() {
       return Err(APIError::err("couldnt_update_comment").into());
     };
 
     let user_mention_id = user_mention.id;
-    let user_mention_view: UserMentionView = unblock!(
-      pool,
-      conn,
-      UserMentionView::read(&conn, user_mention_id, user_id)?
-    );
+    let user_mention_view = blocking(pool, move |conn| {
+      UserMentionView::read(conn, user_mention_id, user_id)
+    })
+    .await??;
 
     Ok(UserMentionResponse {
       mention: user_mention_view,
@@ -887,7 +880,7 @@ impl Perform for Oper<MarkAllAsRead> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<GetRepliesResponse, LemmyError> {
     let data: &MarkAllAsRead = &self.data;
@@ -899,34 +892,33 @@ impl Perform for Oper<MarkAllAsRead> {
 
     let user_id = claims.id;
 
-    let replies: Vec<ReplyView> = unblock!(
-      pool,
-      conn,
-      ReplyQueryBuilder::create(&conn, user_id)
+    let replies = blocking(pool, move |conn| {
+      ReplyQueryBuilder::create(conn, user_id)
         .unread_only(true)
         .page(1)
         .limit(999)
-        .list()?
-    );
+        .list()
+    })
+    .await??;
 
     // TODO: this should probably be a bulk operation
     for reply in &replies {
       let reply_id = reply.id;
-      if unblock!(pool, conn, Comment::mark_as_read(&conn, reply_id).is_err()) {
+      let mark_as_read = move |conn: &'_ _| Comment::mark_as_read(conn, reply_id);
+      if blocking(pool, mark_as_read).await?.is_err() {
         return Err(APIError::err("couldnt_update_comment").into());
       }
     }
 
     // Mentions
-    let mentions: Vec<UserMentionView> = unblock!(
-      pool,
-      conn,
-      UserMentionQueryBuilder::create(&conn, user_id)
+    let mentions = blocking(pool, move |conn| {
+      UserMentionQueryBuilder::create(conn, user_id)
         .unread_only(true)
         .page(1)
         .limit(999)
-        .list()?
-    );
+        .list()
+    })
+    .await??;
 
     // TODO: this should probably be a bulk operation
     for mention in &mentions {
@@ -937,25 +929,22 @@ impl Perform for Oper<MarkAllAsRead> {
       };
 
       let user_mention_id = mention.user_mention_id;
-      if unblock!(
-        pool,
-        conn,
-        UserMention::update(&conn, user_mention_id, &mention_form).is_err()
-      ) {
+      let update_mention =
+        move |conn: &'_ _| UserMention::update(conn, user_mention_id, &mention_form);
+      if blocking(pool, update_mention).await?.is_err() {
         return Err(APIError::err("couldnt_update_comment").into());
       }
     }
 
     // messages
-    let messages: Vec<PrivateMessageView> = unblock!(
-      pool,
-      conn,
-      PrivateMessageQueryBuilder::create(&conn, user_id)
+    let messages = blocking(pool, move |conn| {
+      PrivateMessageQueryBuilder::create(conn, user_id)
         .page(1)
         .limit(999)
         .unread_only(true)
-        .list()?
-    );
+        .list()
+    })
+    .await??;
 
     // TODO: this should probably be a bulk operation
     for message in &messages {
@@ -972,11 +961,9 @@ impl Perform for Oper<MarkAllAsRead> {
       };
 
       let message_id = message.id;
-      if unblock!(
-        pool,
-        conn,
-        PrivateMessage::update(&conn, message_id, &private_message_form).is_err()
-      ) {
+      let update_pm =
+        move |conn: &'_ _| PrivateMessage::update(conn, message_id, &private_message_form);
+      if blocking(pool, update_pm).await?.is_err() {
         return Err(APIError::err("couldnt_update_private_message").into());
       }
     }
@@ -991,7 +978,7 @@ impl Perform for Oper<DeleteAccount> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<LoginResponse, LemmyError> {
     let data: &DeleteAccount = &self.data;
@@ -1003,7 +990,7 @@ impl Perform for Oper<DeleteAccount> {
 
     let user_id = claims.id;
 
-    let user: User_ = unblock!(pool, conn, User_::read(&conn, user_id)?);
+    let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
 
     // Verify the password
     let valid: bool = verify(&data.password, &user.password_encrypted).unwrap_or(false);
@@ -1012,38 +999,38 @@ impl Perform for Oper<DeleteAccount> {
     }
 
     // Comments
-    let comments: Vec<CommentView> = unblock!(
-      pool,
-      conn,
-      CommentQueryBuilder::create(&conn)
+    let comments = blocking(pool, move |conn| {
+      CommentQueryBuilder::create(conn)
         .for_creator_id(user_id)
         .limit(std::i64::MAX)
-        .list()?
-    );
+        .list()
+    })
+    .await??;
 
     // TODO: this should probably be a bulk operation
     for comment in &comments {
       let comment_id = comment.id;
-      if unblock!(pool, conn, Comment::permadelete(&conn, comment_id).is_err()) {
+      let permadelete = move |conn: &'_ _| Comment::permadelete(conn, comment_id);
+      if blocking(pool, permadelete).await?.is_err() {
         return Err(APIError::err("couldnt_update_comment").into());
       }
     }
 
     // Posts
-    let posts: Vec<PostView> = unblock!(
-      pool,
-      conn,
-      PostQueryBuilder::create(&conn)
+    let posts = blocking(pool, move |conn| {
+      PostQueryBuilder::create(conn)
         .sort(&SortType::New)
         .for_creator_id(user_id)
         .limit(std::i64::MAX)
-        .list()?
-    );
+        .list()
+    })
+    .await??;
 
     // TODO: this should probably be a bulk operation
     for post in &posts {
       let post_id = post.id;
-      if unblock!(pool, conn, Post::permadelete(&conn, post_id).is_err()) {
+      let permadelete = move |conn: &'_ _| Post::permadelete(conn, post_id);
+      if blocking(pool, permadelete).await?.is_err() {
         return Err(APIError::err("couldnt_update_post").into());
       }
     }
@@ -1060,14 +1047,14 @@ impl Perform for Oper<PasswordReset> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<PasswordResetResponse, LemmyError> {
     let data: &PasswordReset = &self.data;
 
     // Fetch that email
     let email = data.email.clone();
-    let user: User_ = match unblock!(pool, conn, User_::find_by_email(&conn, &email)) {
+    let user = match blocking(pool, move |conn| User_::find_by_email(conn, &email)).await? {
       Ok(user) => user,
       Err(_e) => return Err(APIError::err("couldnt_find_that_username_or_email").into()),
     };
@@ -1078,11 +1065,10 @@ impl Perform for Oper<PasswordReset> {
     // Insert the row
     let token2 = token.clone();
     let user_id = user.id;
-    let _: PasswordResetRequest = unblock!(
-      pool,
-      conn,
-      PasswordResetRequest::create_token(&conn, user_id, &token2)?
-    );
+    blocking(pool, move |conn| {
+      PasswordResetRequest::create_token(conn, user_id, &token2)
+    })
+    .await??;
 
     // Email the pure token to the user.
     // TODO no i18n support here.
@@ -1105,18 +1091,17 @@ impl Perform for Oper<PasswordChange> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<LoginResponse, LemmyError> {
     let data: &PasswordChange = &self.data;
 
     // Fetch the user_id from the token
     let token = data.token.clone();
-    let user_id: i32 = unblock!(
-      pool,
-      conn,
-      PasswordResetRequest::read_from_token(&conn, &token)?.user_id
-    );
+    let user_id = blocking(pool, move |conn| {
+      PasswordResetRequest::read_from_token(conn, &token).map(|p| p.user_id)
+    })
+    .await??;
 
     // Make sure passwords match
     if data.password != data.password_verify {
@@ -1125,11 +1110,11 @@ impl Perform for Oper<PasswordChange> {
 
     // Update the user with the new password
     let password = data.password.clone();
-    let updated_user: User_ = match unblock!(
-      pool,
-      conn,
-      User_::update_password(&conn, user_id, &password)
-    ) {
+    let updated_user = match blocking(pool, move |conn| {
+      User_::update_password(conn, user_id, &password)
+    })
+    .await?
+    {
       Ok(user) => user,
       Err(_e) => return Err(APIError::err("couldnt_update_user").into()),
     };
@@ -1147,7 +1132,7 @@ impl Perform for Oper<CreatePrivateMessage> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<PrivateMessageResponse, LemmyError> {
     let data: &CreatePrivateMessage = &self.data;
@@ -1162,7 +1147,7 @@ impl Perform for Oper<CreatePrivateMessage> {
     let hostname = &format!("https://{}", Settings::get().hostname);
 
     // Check for a site ban
-    let user: User_ = unblock!(pool, conn, User_::read(&conn, user_id)?);
+    let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
     if user.banned {
       return Err(APIError::err("site_ban").into());
     }
@@ -1181,11 +1166,11 @@ impl Perform for Oper<CreatePrivateMessage> {
       published: None,
     };
 
-    let inserted_private_message: PrivateMessage = match unblock!(
-      pool,
-      conn,
-      PrivateMessage::create(&conn, &private_message_form)
-    ) {
+    let inserted_private_message = match blocking(pool, move |conn| {
+      PrivateMessage::create(conn, &private_message_form)
+    })
+    .await?
+    {
       Ok(private_message) => private_message,
       Err(_e) => {
         return Err(APIError::err("couldnt_create_private_message").into());
@@ -1193,22 +1178,22 @@ impl Perform for Oper<CreatePrivateMessage> {
     };
 
     let inserted_private_message_id = inserted_private_message.id;
-    let updated_private_message: PrivateMessage = match unblock!(
-      pool,
-      conn,
+    let updated_private_message = match blocking(pool, move |conn| {
       PrivateMessage::update_ap_id(&conn, inserted_private_message_id)
-    ) {
+    })
+    .await?
+    {
       Ok(private_message) => private_message,
       Err(_e) => return Err(APIError::err("couldnt_create_private_message").into()),
     };
 
     updated_private_message
-      .send_create(&user, &self.client, pool.clone())
+      .send_create(&user, &self.client, pool)
       .await?;
 
     // Send notifications to the recipient
     let recipient_id = data.recipient_id;
-    let recipient_user: User_ = unblock!(pool, conn, User_::read(&conn, recipient_id)?);
+    let recipient_user = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
     if recipient_user.send_notifications_to_email {
       if let Some(email) = recipient_user.email {
         let subject = &format!(
@@ -1227,11 +1212,10 @@ impl Perform for Oper<CreatePrivateMessage> {
       }
     }
 
-    let message: PrivateMessageView = unblock!(
-      pool,
-      conn,
-      PrivateMessageView::read(&conn, inserted_private_message.id)?
-    );
+    let message = blocking(pool, move |conn| {
+      PrivateMessageView::read(conn, inserted_private_message.id)
+    })
+    .await??;
 
     let res = PrivateMessageResponse { message };
 
@@ -1254,7 +1238,7 @@ impl Perform for Oper<EditPrivateMessage> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<PrivateMessageResponse, LemmyError> {
     let data: &EditPrivateMessage = &self.data;
@@ -1267,11 +1251,11 @@ impl Perform for Oper<EditPrivateMessage> {
     let user_id = claims.id;
 
     let edit_id = data.edit_id;
-    let orig_private_message: PrivateMessage =
-      unblock!(pool, conn, PrivateMessage::read(&conn, edit_id)?);
+    let orig_private_message =
+      blocking(pool, move |conn| PrivateMessage::read(conn, edit_id)).await??;
 
     // Check for a site ban
-    let user: User_ = unblock!(pool, conn, User_::read(&conn, user_id)?);
+    let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
     if user.banned {
       return Err(APIError::err("site_ban").into());
     }
@@ -1305,11 +1289,11 @@ impl Perform for Oper<EditPrivateMessage> {
     };
 
     let edit_id = data.edit_id;
-    let updated_private_message: PrivateMessage = match unblock!(
-      pool,
-      conn,
-      PrivateMessage::update(&conn, edit_id, &private_message_form)
-    ) {
+    let updated_private_message = match blocking(pool, move |conn| {
+      PrivateMessage::update(conn, edit_id, &private_message_form)
+    })
+    .await?
+    {
       Ok(private_message) => private_message,
       Err(_e) => return Err(APIError::err("couldnt_update_private_message").into()),
     };
@@ -1317,22 +1301,21 @@ impl Perform for Oper<EditPrivateMessage> {
     if let Some(deleted) = data.deleted.to_owned() {
       if deleted {
         updated_private_message
-          .send_delete(&user, &self.client, pool.clone())
+          .send_delete(&user, &self.client, pool)
           .await?;
       } else {
         updated_private_message
-          .send_undo_delete(&user, &self.client, pool.clone())
+          .send_undo_delete(&user, &self.client, pool)
           .await?;
       }
     } else {
       updated_private_message
-        .send_update(&user, &self.client, pool.clone())
+        .send_update(&user, &self.client, pool)
         .await?;
     }
 
     let edit_id = data.edit_id;
-    let message: PrivateMessageView =
-      unblock!(pool, conn, PrivateMessageView::read(&conn, edit_id)?);
+    let message = blocking(pool, move |conn| PrivateMessageView::read(conn, edit_id)).await??;
 
     let res = PrivateMessageResponse { message };
 
@@ -1355,7 +1338,7 @@ impl Perform for Oper<GetPrivateMessages> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<PrivateMessagesResponse, LemmyError> {
     let data: &GetPrivateMessages = &self.data;
@@ -1370,15 +1353,14 @@ impl Perform for Oper<GetPrivateMessages> {
     let page = data.page;
     let limit = data.limit;
     let unread_only = data.unread_only;
-    let messages: Vec<_> = unblock!(
-      pool,
-      conn,
+    let messages = blocking(pool, move |conn| {
       PrivateMessageQueryBuilder::create(&conn, user_id)
         .page(page)
         .limit(limit)
         .unread_only(unread_only)
-        .list()?
-    );
+        .list()
+    })
+    .await??;
 
     Ok(PrivateMessagesResponse { messages })
   }
@@ -1390,7 +1372,7 @@ impl Perform for Oper<UserJoin> {
 
   async fn perform(
     &self,
-    _pool: DbPool,
+    _pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<UserJoinResponse, LemmyError> {
     let data: &UserJoin = &self.data;

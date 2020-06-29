@@ -1,5 +1,4 @@
-use crate::{db::Crud, schema::activity, DbPool, LemmyError};
-use actix_web::web;
+use crate::{blocking, db::Crud, schema::activity, DbPool, LemmyError};
 use diesel::{dsl::*, result::Error, *};
 use log::debug;
 use serde::{Deserialize, Serialize};
@@ -60,17 +59,15 @@ pub async fn insert_activity<T>(
   user_id: i32,
   data: T,
   local: bool,
-  pool: DbPool,
+  pool: &DbPool,
 ) -> Result<(), LemmyError>
 where
   T: Serialize + Debug + Send + 'static,
 {
-  web::block(move || {
-    let conn = pool.get()?;
-    do_insert_activity(&conn, user_id, &data, local)?;
-    Ok(()) as Result<(), LemmyError>
+  blocking(pool, move |conn| {
+    do_insert_activity(conn, user_id, &data, local)
   })
-  .await?;
+  .await??;
   Ok(())
 }
 

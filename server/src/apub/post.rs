@@ -7,7 +7,7 @@ use crate::{
     get_apub_protocol_string, ActorType, ApubLikeableType, ApubObjectType, FromApub, PageExt,
     ToApub,
   },
-  convert_datetime,
+  blocking, convert_datetime,
   db::{
     community::Community,
     post::{Post, PostForm},
@@ -39,10 +39,10 @@ pub async fn get_apub_post(
   db: DbPoolParam,
 ) -> Result<HttpResponse<Body>, LemmyError> {
   let id = info.post_id.parse::<i32>()?;
-  let post: Post = unblock!(db, conn, Post::read(&conn, id)?);
+  let post = blocking(&db, move |conn| Post::read(conn, id)).await??;
 
   if !post.deleted {
-    Ok(create_apub_response(&post.to_apub((**db).clone()).await?))
+    Ok(create_apub_response(&post.to_apub(&db).await?))
   } else {
     Ok(create_apub_tombstone_response(&post.to_tombstone()?))
   }
@@ -53,15 +53,15 @@ impl ToApub for Post {
   type Response = PageExt;
 
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
-  async fn to_apub(&self, pool: DbPool) -> Result<PageExt, LemmyError> {
+  async fn to_apub(&self, pool: &DbPool) -> Result<PageExt, LemmyError> {
     let mut page = Page::default();
     let oprops: &mut ObjectProperties = page.as_mut();
 
     let creator_id = self.creator_id;
-    let creator: User_ = unblock!(pool, conn, User_::read(&conn, creator_id)?);
+    let creator = blocking(pool, move |conn| User_::read(conn, creator_id)).await??;
 
     let community_id = self.community_id;
-    let community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
+    let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
 
     oprops
       // Not needed when the Post is embedded in a collection (like for community outbox)
@@ -156,19 +156,18 @@ impl FromApub for PostForm {
   async fn from_apub(
     page: &PageExt,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<PostForm, LemmyError> {
     let ext = &page.ext_one;
     let oprops = &page.inner.object_props;
     let creator_actor_id = &oprops.get_attributed_to_xsd_any_uri().unwrap().to_string();
 
-    let creator =
-      get_or_fetch_and_upsert_remote_user(&creator_actor_id, client, pool.clone()).await?;
+    let creator = get_or_fetch_and_upsert_remote_user(&creator_actor_id, client, pool).await?;
 
     let community_actor_id = &oprops.get_to_xsd_any_uri().unwrap().to_string();
 
     let community =
-      get_or_fetch_and_upsert_remote_community(&community_actor_id, client, pool.clone()).await?;
+      get_or_fetch_and_upsert_remote_community(&community_actor_id, client, pool).await?;
 
     let thumbnail_url = match oprops.get_image_any_image() {
       Some(any_image) => any_image
@@ -235,12 +234,12 @@ impl ApubObjectType for Post {
     &self,
     creator: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError> {
-    let page = self.to_apub(pool.clone()).await?;
+    let page = self.to_apub(pool).await?;
 
     let community_id = self.community_id;
-    let community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
+    let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
 
     let id = format!("{}/create/{}", self.ap_id, uuid::Uuid::new_v4());
 
@@ -272,12 +271,12 @@ impl ApubObjectType for Post {
     &self,
     creator: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError> {
-    let page = self.to_apub(pool.clone()).await?;
+    let page = self.to_apub(pool).await?;
 
     let community_id = self.community_id;
-    let community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
+    let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
 
     let id = format!("{}/update/{}", self.ap_id, uuid::Uuid::new_v4());
 
@@ -308,12 +307,12 @@ impl ApubObjectType for Post {
     &self,
     creator: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError> {
-    let page = self.to_apub(pool.clone()).await?;
+    let page = self.to_apub(pool).await?;
 
     let community_id = self.community_id;
-    let community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
+    let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
 
     let id = format!("{}/delete/{}", self.ap_id, uuid::Uuid::new_v4());
     let mut delete = Delete::default();
@@ -345,12 +344,12 @@ impl ApubObjectType for Post {
     &self,
     creator: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError> {
-    let page = self.to_apub(pool.clone()).await?;
+    let page = self.to_apub(pool).await?;
 
     let community_id = self.community_id;
-    let community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
+    let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
 
     let id = format!("{}/delete/{}", self.ap_id, uuid::Uuid::new_v4());
     let mut delete = Delete::default();
@@ -398,12 +397,12 @@ impl ApubObjectType for Post {
     &self,
     mod_: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError> {
-    let page = self.to_apub(pool.clone()).await?;
+    let page = self.to_apub(pool).await?;
 
     let community_id = self.community_id;
-    let community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
+    let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
 
     let id = format!("{}/remove/{}", self.ap_id, uuid::Uuid::new_v4());
     let mut remove = Remove::default();
@@ -435,12 +434,12 @@ impl ApubObjectType for Post {
     &self,
     mod_: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError> {
-    let page = self.to_apub(pool.clone()).await?;
+    let page = self.to_apub(pool).await?;
 
     let community_id = self.community_id;
-    let community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
+    let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
 
     let id = format!("{}/remove/{}", self.ap_id, uuid::Uuid::new_v4());
     let mut remove = Remove::default();
@@ -490,12 +489,12 @@ impl ApubLikeableType for Post {
     &self,
     creator: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError> {
-    let page = self.to_apub(pool.clone()).await?;
+    let page = self.to_apub(pool).await?;
 
     let community_id = self.community_id;
-    let community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
+    let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
 
     let id = format!("{}/like/{}", self.ap_id, uuid::Uuid::new_v4());
 
@@ -526,12 +525,12 @@ impl ApubLikeableType for Post {
     &self,
     creator: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError> {
-    let page = self.to_apub(pool.clone()).await?;
+    let page = self.to_apub(pool).await?;
 
     let community_id = self.community_id;
-    let community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
+    let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
 
     let id = format!("{}/dislike/{}", self.ap_id, uuid::Uuid::new_v4());
 
@@ -562,12 +561,12 @@ impl ApubLikeableType for Post {
     &self,
     creator: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError> {
-    let page = self.to_apub(pool.clone()).await?;
+    let page = self.to_apub(pool).await?;
 
     let community_id = self.community_id;
-    let community: Community = unblock!(pool, conn, Community::read(&conn, community_id)?);
+    let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
 
     let id = format!("{}/like/{}", self.ap_id, uuid::Uuid::new_v4());
 

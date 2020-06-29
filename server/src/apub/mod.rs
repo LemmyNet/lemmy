@@ -18,8 +18,9 @@ use crate::{
   },
   convert_datetime,
   db::user::User_,
+  request::{retry, RecvError},
   routes::webfinger::WebFingerResponse,
-  DbPool, LemmyError, MentionData, RecvError, SendError, Settings,
+  DbPool, LemmyError, MentionData, Settings,
 };
 use activitystreams::{
   actor::{properties::ApActorProperties, Group, Person},
@@ -129,7 +130,7 @@ fn is_apub_id_valid(apub_id: &Url) -> bool {
 #[async_trait::async_trait(?Send)]
 pub trait ToApub {
   type Response;
-  async fn to_apub(&self, pool: DbPool) -> Result<Self::Response, LemmyError>;
+  async fn to_apub(&self, pool: &DbPool) -> Result<Self::Response, LemmyError>;
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError>;
 }
 
@@ -161,7 +162,7 @@ pub trait FromApub {
   async fn from_apub(
     apub: &Self::ApubType,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<Self, LemmyError>
   where
     Self: Sized;
@@ -173,37 +174,37 @@ pub trait ApubObjectType {
     &self,
     creator: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError>;
   async fn send_update(
     &self,
     creator: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError>;
   async fn send_delete(
     &self,
     creator: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError>;
   async fn send_undo_delete(
     &self,
     creator: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError>;
   async fn send_remove(
     &self,
     mod_: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError>;
   async fn send_undo_remove(
     &self,
     mod_: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError>;
 }
 
@@ -213,19 +214,19 @@ pub trait ApubLikeableType {
     &self,
     creator: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError>;
   async fn send_dislike(
     &self,
     creator: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError>;
   async fn send_undo_like(
     &self,
     creator: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError>;
 }
 
@@ -257,13 +258,13 @@ pub trait ActorType {
     &self,
     follow_actor_id: &str,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError>;
   async fn send_unfollow(
     &self,
     follow_actor_id: &str,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError>;
 
   #[allow(unused_variables)]
@@ -271,37 +272,37 @@ pub trait ActorType {
     &self,
     follow: &Follow,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError>;
 
   async fn send_delete(
     &self,
     creator: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError>;
   async fn send_undo_delete(
     &self,
     creator: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError>;
 
   async fn send_remove(
     &self,
     mod_: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError>;
   async fn send_undo_remove(
     &self,
     mod_: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError>;
 
   /// For a given community, returns the inboxes of all followers.
-  async fn get_follower_inboxes(&self, pool: DbPool) -> Result<Vec<String>, LemmyError>;
+  async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<String>, LemmyError>;
 
   // TODO move these to the db rows
   fn get_inbox_url(&self) -> String {
@@ -350,11 +351,10 @@ pub async fn fetch_webfinger_url(
     mention.domain
   );
   debug!("Fetching webfinger url: {}", &fetch_url);
-  let res: WebFingerResponse = client
-    .get(&fetch_url)
-    .send()
-    .await
-    .map_err(|e| SendError(e.to_string()))?
+
+  let mut response = retry(|| client.get(&fetch_url).send()).await?;
+
+  let res: WebFingerResponse = response
     .json()
     .await
     .map_err(|e| RecvError(e.to_string()))?;

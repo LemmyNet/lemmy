@@ -1,6 +1,7 @@
 use crate::{
   api::{APIError, Oper, Perform},
   apub::{ApubLikeableType, ApubObjectType},
+  blocking,
   db::{
     comment_view::*, community_view::*, moderator::*, post::*, post_view::*, site::*, site_view::*,
     user::*, user_view::*, Crud, Likeable, ListingType, Saveable, SortType,
@@ -98,7 +99,7 @@ impl Perform for Oper<CreatePost> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &CreatePost = &self.data;
@@ -122,16 +123,14 @@ impl Perform for Oper<CreatePost> {
 
     // Check for a community ban
     let community_id = data.community_id;
-    if unblock!(
-      pool,
-      conn,
-      CommunityUserBanView::get(&conn, user_id, community_id).is_ok()
-    ) {
+    let is_banned =
+      move |conn: &'_ _| CommunityUserBanView::get(conn, user_id, community_id).is_ok();
+    if blocking(pool, is_banned).await? {
       return Err(APIError::err("community_ban").into());
     }
 
     // Check for a site ban
-    let user: User_ = unblock!(pool, conn, User_::read(&conn, user_id)?);
+    let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
     if user.banned {
       return Err(APIError::err("site_ban").into());
     }
@@ -161,9 +160,7 @@ impl Perform for Oper<CreatePost> {
       published: None,
     };
 
-    let res: Result<_, diesel::result::Error> =
-      unblock!(pool, conn, Post::create(&conn, &post_form));
-    let inserted_post: Post = match res {
+    let inserted_post = match blocking(pool, move |conn| Post::create(conn, &post_form)).await? {
       Ok(post) => post,
       Err(e) => {
         let err_type = if e.to_string() == "value too long for type character varying(200)" {
@@ -177,15 +174,13 @@ impl Perform for Oper<CreatePost> {
     };
 
     let inserted_post_id = inserted_post.id;
-    let updated_post: Post = match unblock!(pool, conn, Post::update_ap_id(&conn, inserted_post_id))
-    {
-      Ok(post) => post,
-      Err(_e) => return Err(APIError::err("couldnt_create_post").into()),
-    };
+    let updated_post =
+      match blocking(pool, move |conn| Post::update_ap_id(conn, inserted_post_id)).await? {
+        Ok(post) => post,
+        Err(_e) => return Err(APIError::err("couldnt_create_post").into()),
+      };
 
-    updated_post
-      .send_create(&user, &self.client, pool.clone())
-      .await?;
+    updated_post.send_create(&user, &self.client, pool).await?;
 
     // They like their own post by default
     let like_form = PostLikeForm {
@@ -194,22 +189,20 @@ impl Perform for Oper<CreatePost> {
       score: 1,
     };
 
-    let _inserted_like: PostLike = match unblock!(pool, conn, PostLike::like(&conn, &like_form)) {
-      Ok(like) => like,
-      Err(_e) => return Err(APIError::err("couldnt_like_post").into()),
-    };
+    let like = move |conn: &'_ _| PostLike::like(conn, &like_form);
+    if blocking(pool, like).await?.is_err() {
+      return Err(APIError::err("couldnt_like_post").into());
+    }
 
-    updated_post
-      .send_like(&user, &self.client, pool.clone())
-      .await?;
+    updated_post.send_like(&user, &self.client, pool).await?;
 
     // Refetch the view
     let inserted_post_id = inserted_post.id;
-    let post_view: PostView = match unblock!(
-      pool,
-      conn,
-      PostView::read(&conn, inserted_post_id, Some(user_id))
-    ) {
+    let post_view = match blocking(pool, move |conn| {
+      PostView::read(conn, inserted_post_id, Some(user_id))
+    })
+    .await?
+    {
       Ok(post) => post,
       Err(_e) => return Err(APIError::err("couldnt_find_post").into()),
     };
@@ -234,7 +227,7 @@ impl Perform for Oper<GetPost> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<GetPostResponse, LemmyError> {
     let data: &GetPost = &self.data;
@@ -251,39 +244,37 @@ impl Perform for Oper<GetPost> {
     };
 
     let id = data.id;
-    let post_view: PostView = match unblock!(pool, conn, PostView::read(&conn, id, user_id)) {
+    let post_view = match blocking(pool, move |conn| PostView::read(conn, id, user_id)).await? {
       Ok(post) => post,
       Err(_e) => return Err(APIError::err("couldnt_find_post").into()),
     };
 
     let id = data.id;
-    let comments: Vec<CommentView> = unblock!(
-      pool,
-      conn,
-      CommentQueryBuilder::create(&conn)
+    let comments = blocking(pool, move |conn| {
+      CommentQueryBuilder::create(conn)
         .for_post_id(id)
         .my_user_id(user_id)
         .limit(9999)
-        .list()?
-    );
+        .list()
+    })
+    .await??;
 
     let community_id = post_view.community_id;
-    let community: CommunityView = unblock!(
-      pool,
-      conn,
-      CommunityView::read(&conn, community_id, user_id)?
-    );
+    let community = blocking(pool, move |conn| {
+      CommunityView::read(conn, community_id, user_id)
+    })
+    .await??;
 
     let community_id = post_view.community_id;
-    let moderators: Vec<CommunityModeratorView> = unblock!(
-      pool,
-      conn,
-      CommunityModeratorView::for_community(&conn, community_id)?
-    );
+    let moderators = blocking(pool, move |conn| {
+      CommunityModeratorView::for_community(conn, community_id)
+    })
+    .await??;
 
-    let site_creator_id: i32 = unblock!(pool, conn, Site::read(&conn, 1)?.creator_id);
+    let site_creator_id =
+      blocking(pool, move |conn| Site::read(conn, 1).map(|s| s.creator_id)).await??;
 
-    let mut admins: Vec<UserView> = unblock!(pool, conn, UserView::admins(&conn)?);
+    let mut admins = blocking(pool, move |conn| UserView::admins(conn)).await??;
     let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
@@ -324,7 +315,7 @@ impl Perform for Oper<GetPosts> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<GetPostsResponse, LemmyError> {
     let data: &GetPosts = &self.data;
@@ -353,10 +344,8 @@ impl Perform for Oper<GetPosts> {
     let page = data.page;
     let limit = data.limit;
     let community_id = data.community_id;
-    let posts: Vec<PostView> = match unblock!(
-      pool,
-      conn,
-      PostQueryBuilder::create(&conn)
+    let posts = match blocking(pool, move |conn| {
+      PostQueryBuilder::create(conn)
         .listing_type(type_)
         .sort(&sort)
         .show_nsfw(show_nsfw)
@@ -365,7 +354,9 @@ impl Perform for Oper<GetPosts> {
         .page(page)
         .limit(limit)
         .list()
-    ) {
+    })
+    .await?
+    {
       Ok(posts) => posts,
       Err(_e) => return Err(APIError::err("couldnt_get_posts").into()),
     };
@@ -394,7 +385,7 @@ impl Perform for Oper<CreatePostLike> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &CreatePostLike = &self.data;
@@ -408,7 +399,7 @@ impl Perform for Oper<CreatePostLike> {
 
     // Don't do a downvote if site has downvotes disabled
     if data.score == -1 {
-      let site: SiteView = unblock!(pool, conn, SiteView::read(&conn)?);
+      let site = blocking(pool, move |conn| SiteView::read(conn)).await??;
       if !site.enable_downvotes {
         return Err(APIError::err("downvotes_disabled").into());
       }
@@ -416,19 +407,17 @@ impl Perform for Oper<CreatePostLike> {
 
     // Check for a community ban
     let post_id = data.post_id;
-    let post: Post = unblock!(pool, conn, Post::read(&conn, post_id)?);
+    let post = blocking(pool, move |conn| Post::read(conn, post_id)).await??;
 
     let community_id = post.community_id;
-    if unblock!(
-      pool,
-      conn,
-      CommunityUserBanView::get(&conn, user_id, community_id).is_ok()
-    ) {
+    let is_banned =
+      move |conn: &'_ _| CommunityUserBanView::get(conn, user_id, community_id).is_ok();
+    if blocking(pool, is_banned).await? {
       return Err(APIError::err("community_ban").into());
     }
 
     // Check for a site ban
-    let user: User_ = unblock!(pool, conn, User_::read(&conn, user_id)?);
+    let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
     if user.banned {
       return Err(APIError::err("site_ban").into());
     }
@@ -441,34 +430,35 @@ impl Perform for Oper<CreatePostLike> {
 
     // Remove any likes first
     let like_form2 = like_form.clone();
-    let _: usize = unblock!(pool, conn, PostLike::remove(&conn, &like_form2)?);
+    blocking(pool, move |conn| PostLike::remove(conn, &like_form2)).await??;
 
     // Only add the like if the score isnt 0
     let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
     if do_add {
       let like_form2 = like_form.clone();
-      let _: PostLike = match unblock!(pool, conn, PostLike::like(&conn, &like_form2)) {
-        Ok(like) => like,
-        Err(_e) => return Err(APIError::err("couldnt_like_post").into()),
-      };
+      let like = move |conn: &'_ _| PostLike::like(conn, &like_form2);
+      if blocking(pool, like).await?.is_err() {
+        return Err(APIError::err("couldnt_like_post").into());
+      }
 
       if like_form.score == 1 {
-        post.send_like(&user, &self.client, pool.clone()).await?;
+        post.send_like(&user, &self.client, pool).await?;
       } else if like_form.score == -1 {
-        post.send_dislike(&user, &self.client, pool.clone()).await?;
+        post.send_dislike(&user, &self.client, pool).await?;
       }
     } else {
-      post
-        .send_undo_like(&user, &self.client, pool.clone())
-        .await?;
+      post.send_undo_like(&user, &self.client, pool).await?;
     }
 
     let post_id = data.post_id;
-    let post_view: PostView =
-      match unblock!(pool, conn, PostView::read(&conn, post_id, Some(user_id))) {
-        Ok(post) => post,
-        Err(_e) => return Err(APIError::err("couldnt_find_post").into()),
-      };
+    let post_view = match blocking(pool, move |conn| {
+      PostView::read(conn, post_id, Some(user_id))
+    })
+    .await?
+    {
+      Ok(post) => post,
+      Err(_e) => return Err(APIError::err("couldnt_find_post").into()),
+    };
 
     let res = PostResponse { post: post_view };
 
@@ -490,7 +480,7 @@ impl Perform for Oper<EditPost> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &EditPost = &self.data;
@@ -515,35 +505,33 @@ impl Perform for Oper<EditPost> {
     // Verify its the creator or a mod or admin
     let community_id = data.community_id;
     let mut editors: Vec<i32> = vec![data.creator_id];
-    editors.append(&mut unblock!(
-      pool,
-      conn,
-      CommunityModeratorView::for_community(&conn, community_id)?
-        .into_iter()
-        .map(|m| m.user_id)
-        .collect()
-    ));
-    editors.append(&mut unblock!(
-      pool,
-      conn,
-      UserView::admins(&conn)?.into_iter().map(|a| a.id).collect()
-    ));
+    editors.append(
+      &mut blocking(pool, move |conn| {
+        CommunityModeratorView::for_community(conn, community_id)
+          .map(|v| v.into_iter().map(|m| m.user_id).collect())
+      })
+      .await??,
+    );
+    editors.append(
+      &mut blocking(pool, move |conn| {
+        UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())
+      })
+      .await??,
+    );
     if !editors.contains(&user_id) {
       return Err(APIError::err("no_post_edit_allowed").into());
     }
 
     // Check for a community ban
     let community_id = data.community_id;
-    if unblock!(
-      pool,
-      conn,
-      CommunityUserBanView::get(&conn, user_id, community_id).is_ok()
-    ) {
+    let is_banned =
+      move |conn: &'_ _| CommunityUserBanView::get(conn, user_id, community_id).is_ok();
+    if blocking(pool, is_banned).await? {
       return Err(APIError::err("community_ban").into());
     }
 
     // Check for a site ban
-    let user: User_ = unblock!(pool, conn, User_::read(&conn, user_id)?);
+    let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
     if user.banned {
       return Err(APIError::err("site_ban").into());
     }
@@ -553,7 +541,7 @@ impl Perform for Oper<EditPost> {
       fetch_iframely_and_pictrs_data(&self.client, data.url.to_owned()).await;
 
     let edit_id = data.edit_id;
-    let read_post: Post = unblock!(pool, conn, Post::read(&conn, edit_id)?);
+    let read_post = blocking(pool, move |conn| Post::read(conn, edit_id)).await??;
 
     let post_form = PostForm {
       name: data.name.to_owned(),
@@ -577,8 +565,7 @@ impl Perform for Oper<EditPost> {
     };
 
     let edit_id = data.edit_id;
-    let res: Result<_, diesel::result::Error> =
-      unblock!(pool, conn, Post::update(&conn, edit_id, &post_form));
+    let res = blocking(pool, move |conn| Post::update(conn, edit_id, &post_form)).await?;
     let updated_post: Post = match res {
       Ok(post) => post,
       Err(e) => {
@@ -600,7 +587,7 @@ impl Perform for Oper<EditPost> {
         removed: Some(removed),
         reason: data.reason.to_owned(),
       };
-      let _: ModRemovePost = unblock!(pool, conn, ModRemovePost::create(&conn, &form)?);
+      blocking(pool, move |conn| ModRemovePost::create(conn, &form)).await??;
     }
 
     if let Some(locked) = data.locked.to_owned() {
@@ -609,7 +596,7 @@ impl Perform for Oper<EditPost> {
         post_id: data.edit_id,
         locked: Some(locked),
       };
-      let _: ModLockPost = unblock!(pool, conn, ModLockPost::create(&conn, &form)?);
+      blocking(pool, move |conn| ModLockPost::create(conn, &form)).await??;
     }
 
     if let Some(stickied) = data.stickied.to_owned() {
@@ -618,37 +605,34 @@ impl Perform for Oper<EditPost> {
         post_id: data.edit_id,
         stickied: Some(stickied),
       };
-      let _: ModStickyPost = unblock!(pool, conn, ModStickyPost::create(&conn, &form)?);
+      blocking(pool, move |conn| ModStickyPost::create(conn, &form)).await??;
     }
 
     if let Some(deleted) = data.deleted.to_owned() {
       if deleted {
-        updated_post
-          .send_delete(&user, &self.client, pool.clone())
-          .await?;
+        updated_post.send_delete(&user, &self.client, pool).await?;
       } else {
         updated_post
-          .send_undo_delete(&user, &self.client, pool.clone())
+          .send_undo_delete(&user, &self.client, pool)
           .await?;
       }
     } else if let Some(removed) = data.removed.to_owned() {
       if removed {
-        updated_post
-          .send_remove(&user, &self.client, pool.clone())
-          .await?;
+        updated_post.send_remove(&user, &self.client, pool).await?;
       } else {
         updated_post
-          .send_undo_remove(&user, &self.client, pool.clone())
+          .send_undo_remove(&user, &self.client, pool)
           .await?;
       }
     } else {
-      updated_post
-        .send_update(&user, &self.client, pool.clone())
-        .await?;
+      updated_post.send_update(&user, &self.client, pool).await?;
     }
 
     let edit_id = data.edit_id;
-    let post_view: PostView = unblock!(pool, conn, PostView::read(&conn, edit_id, Some(user_id))?);
+    let post_view = blocking(pool, move |conn| {
+      PostView::read(conn, edit_id, Some(user_id))
+    })
+    .await??;
 
     let res = PostResponse { post: post_view };
 
@@ -670,7 +654,7 @@ impl Perform for Oper<SavePost> {
 
   async fn perform(
     &self,
-    pool: DbPool,
+    pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &SavePost = &self.data;
@@ -688,23 +672,22 @@ impl Perform for Oper<SavePost> {
     };
 
     if data.save {
-      if unblock!(
-        pool,
-        conn,
-        PostSaved::save(&conn, &post_saved_form).is_err()
-      ) {
+      let save = move |conn: &'_ _| PostSaved::save(conn, &post_saved_form);
+      if blocking(pool, save).await?.is_err() {
         return Err(APIError::err("couldnt_save_post").into());
       }
-    } else if unblock!(
-      pool,
-      conn,
-      PostSaved::unsave(&conn, &post_saved_form).is_err()
-    ) {
-      return Err(APIError::err("couldnt_save_post").into());
+    } else {
+      let unsave = move |conn: &'_ _| PostSaved::unsave(conn, &post_saved_form);
+      if blocking(pool, unsave).await?.is_err() {
+        return Err(APIError::err("couldnt_save_post").into());
+      }
     }
 
     let post_id = data.post_id;
-    let post_view: PostView = unblock!(pool, conn, PostView::read(&conn, post_id, Some(user_id))?);
+    let post_view = blocking(pool, move |conn| {
+      PostView::read(conn, post_id, Some(user_id))
+    })
+    .await??;
 
     Ok(PostResponse { post: post_view })
   }

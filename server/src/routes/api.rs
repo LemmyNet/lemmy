@@ -166,7 +166,7 @@ where
   let oper: Oper<Request> = Oper::new(data, client.clone());
 
   let res = oper
-    .perform(db.get_ref().to_owned(), Some(ws_info))
+    .perform(&db, Some(ws_info))
     .await
     .map(|json| HttpResponse::Ok().json(json))
     .map_err(ErrorBadRequest)?;

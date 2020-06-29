@@ -12,6 +12,7 @@ use crate::{
     },
     FromApub, GroupExt, PageExt,
   },
+  blocking,
   db::{
     activity::insert_activity,
     comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
@@ -110,7 +111,7 @@ pub async fn shared_inbox(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let activity = input.into_inner();
-  let pool = (**pool).clone();
+  let pool = &pool;
   let client = &client;
 
   let json = serde_json::to_string(&activity)?;
@@ -123,82 +124,81 @@ pub async fn shared_inbox(
   let to = cc.replace("/followers", "");
 
   // TODO: this is ugly
-  match get_or_fetch_and_upsert_remote_user(&sender.to_string(), &client, pool.clone()).await {
+  match get_or_fetch_and_upsert_remote_user(&sender.to_string(), &client, pool).await {
     Ok(u) => verify(&request, &u)?,
     Err(_) => {
-      let c = get_or_fetch_and_upsert_remote_community(&sender.to_string(), &client, pool.clone())
-        .await?;
+      let c = get_or_fetch_and_upsert_remote_community(&sender.to_string(), &client, pool).await?;
       verify(&request, &c)?;
     }
   }
 
   match (activity, object.kind()) {
     (SharedAcceptedObjects::Create(c), Some("Page")) => {
-      receive_create_post((*c).clone(), client, pool.clone(), chat_server).await?;
+      receive_create_post((*c).clone(), client, pool, chat_server).await?;
       announce_activity_if_valid::<Create>(*c, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Update(u), Some("Page")) => {
-      receive_update_post((*u).clone(), client, pool.clone(), chat_server).await?;
+      receive_update_post((*u).clone(), client, pool, chat_server).await?;
       announce_activity_if_valid::<Update>(*u, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Like(l), Some("Page")) => {
-      receive_like_post((*l).clone(), client, pool.clone(), chat_server).await?;
+      receive_like_post((*l).clone(), client, pool, chat_server).await?;
       announce_activity_if_valid::<Like>(*l, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Dislike(d), Some("Page")) => {
-      receive_dislike_post((*d).clone(), client, pool.clone(), chat_server).await?;
+      receive_dislike_post((*d).clone(), client, pool, chat_server).await?;
       announce_activity_if_valid::<Dislike>(*d, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Delete(d), Some("Page")) => {
-      receive_delete_post((*d).clone(), client, pool.clone(), chat_server).await?;
+      receive_delete_post((*d).clone(), client, pool, chat_server).await?;
       announce_activity_if_valid::<Delete>(*d, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Remove(r), Some("Page")) => {
-      receive_remove_post((*r).clone(), client, pool.clone(), chat_server).await?;
+      receive_remove_post((*r).clone(), client, pool, chat_server).await?;
       announce_activity_if_valid::<Remove>(*r, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Create(c), Some("Note")) => {
-      receive_create_comment((*c).clone(), client, pool.clone(), chat_server).await?;
+      receive_create_comment((*c).clone(), client, pool, chat_server).await?;
       announce_activity_if_valid::<Create>(*c, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Update(u), Some("Note")) => {
-      receive_update_comment((*u).clone(), client, pool.clone(), chat_server).await?;
+      receive_update_comment((*u).clone(), client, pool, chat_server).await?;
       announce_activity_if_valid::<Update>(*u, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Like(l), Some("Note")) => {
-      receive_like_comment((*l).clone(), client, pool.clone(), chat_server).await?;
+      receive_like_comment((*l).clone(), client, pool, chat_server).await?;
       announce_activity_if_valid::<Like>(*l, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Dislike(d), Some("Note")) => {
-      receive_dislike_comment((*d).clone(), client, pool.clone(), chat_server).await?;
+      receive_dislike_comment((*d).clone(), client, pool, chat_server).await?;
       announce_activity_if_valid::<Dislike>(*d, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Delete(d), Some("Note")) => {
-      receive_delete_comment((*d).clone(), client, pool.clone(), chat_server).await?;
+      receive_delete_comment((*d).clone(), client, pool, chat_server).await?;
       announce_activity_if_valid::<Delete>(*d, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Remove(r), Some("Note")) => {
-      receive_remove_comment((*r).clone(), client, pool.clone(), chat_server).await?;
+      receive_remove_comment((*r).clone(), client, pool, chat_server).await?;
       announce_activity_if_valid::<Remove>(*r, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Delete(d), Some("Group")) => {
-      receive_delete_community((*d).clone(), client, pool.clone(), chat_server).await?;
+      receive_delete_community((*d).clone(), client, pool, chat_server).await?;
       announce_activity_if_valid::<Delete>(*d, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Remove(r), Some("Group")) => {
-      receive_remove_community((*r).clone(), client, pool.clone(), chat_server).await?;
+      receive_remove_community((*r).clone(), client, pool, chat_server).await?;
       announce_activity_if_valid::<Remove>(*r, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Undo(u), Some("Delete")) => {
-      receive_undo_delete((*u).clone(), client, pool.clone(), chat_server).await?;
+      receive_undo_delete((*u).clone(), client, pool, chat_server).await?;
       announce_activity_if_valid::<Undo>(*u, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Undo(u), Some("Remove")) => {
-      receive_undo_remove((*u).clone(), client, pool.clone(), chat_server).await?;
+      receive_undo_remove((*u).clone(), client, pool, chat_server).await?;
       announce_activity_if_valid::<Undo>(*u, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Undo(u), Some("Like")) => {
-      receive_undo_like((*u).clone(), client, pool.clone(), chat_server).await?;
+      receive_undo_like((*u).clone(), client, pool, chat_server).await?;
       announce_activity_if_valid::<Undo>(*u, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Announce(a), _) => receive_announce(a, client, pool, chat_server).await,
@@ -212,20 +212,19 @@ async fn announce_activity_if_valid<A>(
   community_uri: &str,
   sender: &str,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
 ) -> Result<HttpResponse, LemmyError>
 where
   A: Activity + Base + Serialize + Debug,
 {
   let community_uri = community_uri.to_owned();
-  let community: Community = unblock!(
-    pool,
-    conn,
-    Community::read_from_actor_id(&conn, &community_uri)?
-  );
+  let community = blocking(pool, move |conn| {
+    Community::read_from_actor_id(conn, &community_uri)
+  })
+  .await??;
 
   if community.local {
-    let sending_user = get_or_fetch_and_upsert_remote_user(sender, client, pool.clone()).await?;
+    let sending_user = get_or_fetch_and_upsert_remote_user(sender, client, pool).await?;
 
     Community::do_announce(activity, &community, &sending_user, client, pool).await
   } else {
@@ -236,7 +235,7 @@ where
 async fn receive_announce(
   announce: Box<Announce>,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let object = announce
@@ -325,7 +324,7 @@ where
 async fn receive_create_post(
   create: Create,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let page = create
@@ -342,17 +341,20 @@ async fn receive_create_post(
     .unwrap()
     .to_string();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool.clone()).await?;
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
-  insert_activity(user.id, create, false, pool.clone()).await?;
+  insert_activity(user.id, create, false, pool).await?;
 
-  let post = PostForm::from_apub(&page, client, pool.clone()).await?;
+  let post = PostForm::from_apub(&page, client, pool).await?;
 
-  let inserted_post: Post = unblock!(pool, conn, Post::create(&conn, &post)?);
+  let inserted_post = blocking(pool, move |conn| Post::create(conn, &post)).await??;
 
   // Refetch the view
   let inserted_post_id = inserted_post.id;
-  let post_view: PostView = unblock!(pool, conn, PostView::read(&conn, inserted_post_id, None)?);
+  let post_view = blocking(pool, move |conn| {
+    PostView::read(conn, inserted_post_id, None)
+  })
+  .await??;
 
   let res = PostResponse { post: post_view };
 
@@ -368,7 +370,7 @@ async fn receive_create_post(
 async fn receive_create_comment(
   create: Create,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let note = create
@@ -385,16 +387,16 @@ async fn receive_create_comment(
     .unwrap()
     .to_string();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool.clone()).await?;
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
-  insert_activity(user.id, create, false, pool.clone()).await?;
+  insert_activity(user.id, create, false, pool).await?;
 
-  let comment = CommentForm::from_apub(&note, client, pool.clone()).await?;
+  let comment = CommentForm::from_apub(&note, client, pool).await?;
 
-  let inserted_comment: Comment = unblock!(pool, conn, Comment::create(&conn, &comment)?);
+  let inserted_comment = blocking(pool, move |conn| Comment::create(conn, &comment)).await??;
 
   let post_id = inserted_comment.post_id;
-  let post = unblock!(pool, conn, Post::read(&conn, post_id)?);
+  let post = blocking(pool, move |conn| Post::read(conn, post_id)).await??;
 
   // Note:
   // Although mentions could be gotten from the post tags (they are included there), or the ccs,
@@ -402,14 +404,13 @@ async fn receive_create_comment(
   // anyway.
   let mentions = scrape_text_for_mentions(&inserted_comment.content);
   let recipient_ids =
-    send_local_notifs(mentions, inserted_comment.clone(), user, post, pool.clone()).await?;
+    send_local_notifs(mentions, inserted_comment.clone(), user, post, pool).await?;
 
   // Refetch the view
-  let comment_view = unblock!(
-    pool,
-    conn,
-    CommentView::read(&conn, inserted_comment.id, None)?
-  );
+  let comment_view = blocking(pool, move |conn| {
+    CommentView::read(conn, inserted_comment.id, None)
+  })
+  .await??;
 
   let res = CommentResponse {
     comment: comment_view,
@@ -428,7 +429,7 @@ async fn receive_create_comment(
 async fn receive_update_post(
   update: Update,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let page = update
@@ -445,20 +446,20 @@ async fn receive_update_post(
     .unwrap()
     .to_string();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool.clone()).await?;
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
-  insert_activity(user.id, update, false, pool.clone()).await?;
+  insert_activity(user.id, update, false, pool).await?;
 
-  let post = PostForm::from_apub(&page, client, pool.clone()).await?;
+  let post = PostForm::from_apub(&page, client, pool).await?;
 
-  let post_id = get_or_fetch_and_insert_remote_post(&post.ap_id, client, pool.clone())
+  let post_id = get_or_fetch_and_insert_remote_post(&post.ap_id, client, pool)
     .await?
     .id;
 
-  let _: Post = unblock!(pool, conn, Post::update(&conn, post_id, &post)?);
+  blocking(pool, move |conn| Post::update(conn, post_id, &post)).await??;
 
   // Refetch the view
-  let post_view: PostView = unblock!(pool, conn, PostView::read(&conn, post_id, None)?);
+  let post_view = blocking(pool, move |conn| PostView::read(conn, post_id, None)).await??;
 
   let res = PostResponse { post: post_view };
 
@@ -474,7 +475,7 @@ async fn receive_update_post(
 async fn receive_like_post(
   like: Like,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let page = like
@@ -487,13 +488,13 @@ async fn receive_like_post(
 
   let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool.clone()).await?;
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
-  insert_activity(user.id, like, false, pool.clone()).await?;
+  insert_activity(user.id, like, false, pool).await?;
 
-  let post = PostForm::from_apub(&page, client, pool.clone()).await?;
+  let post = PostForm::from_apub(&page, client, pool).await?;
 
-  let post_id = get_or_fetch_and_insert_remote_post(&post.ap_id, client, pool.clone())
+  let post_id = get_or_fetch_and_insert_remote_post(&post.ap_id, client, pool)
     .await?
     .id;
 
@@ -502,13 +503,14 @@ async fn receive_like_post(
     user_id: user.id,
     score: 1,
   };
-  let _: PostLike = unblock!(pool, conn, {
-    PostLike::remove(&conn, &like_form)?;
-    PostLike::like(&conn, &like_form)?
-  });
+  blocking(pool, move |conn| {
+    PostLike::remove(conn, &like_form)?;
+    PostLike::like(conn, &like_form)
+  })
+  .await??;
 
   // Refetch the view
-  let post_view: PostView = unblock!(pool, conn, PostView::read(&conn, post_id, None)?);
+  let post_view = blocking(pool, move |conn| PostView::read(conn, post_id, None)).await??;
 
   let res = PostResponse { post: post_view };
 
@@ -524,7 +526,7 @@ async fn receive_like_post(
 async fn receive_dislike_post(
   dislike: Dislike,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let page = dislike
@@ -541,13 +543,13 @@ async fn receive_dislike_post(
     .unwrap()
     .to_string();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool.clone()).await?;
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
-  insert_activity(user.id, dislike, false, pool.clone()).await?;
+  insert_activity(user.id, dislike, false, pool).await?;
 
-  let post = PostForm::from_apub(&page, client, pool.clone()).await?;
+  let post = PostForm::from_apub(&page, client, pool).await?;
 
-  let post_id = get_or_fetch_and_insert_remote_post(&post.ap_id, client, pool.clone())
+  let post_id = get_or_fetch_and_insert_remote_post(&post.ap_id, client, pool)
     .await?
     .id;
 
@@ -556,13 +558,14 @@ async fn receive_dislike_post(
     user_id: user.id,
     score: -1,
   };
-  let _: PostLike = unblock!(pool, conn, {
-    PostLike::remove(&conn, &like_form)?;
-    PostLike::like(&conn, &like_form)?
-  });
+  blocking(pool, move |conn| {
+    PostLike::remove(conn, &like_form)?;
+    PostLike::like(conn, &like_form)
+  })
+  .await??;
 
   // Refetch the view
-  let post_view: PostView = unblock!(pool, conn, PostView::read(&conn, post_id, None)?);
+  let post_view = blocking(pool, move |conn| PostView::read(conn, post_id, None)).await??;
 
   let res = PostResponse { post: post_view };
 
@@ -578,7 +581,7 @@ async fn receive_dislike_post(
 async fn receive_update_comment(
   update: Update,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let note = update
@@ -595,28 +598,30 @@ async fn receive_update_comment(
     .unwrap()
     .to_string();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool.clone()).await?;
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
-  insert_activity(user.id, update, false, pool.clone()).await?;
+  insert_activity(user.id, update, false, pool).await?;
 
-  let comment = CommentForm::from_apub(&note, client, pool.clone()).await?;
+  let comment = CommentForm::from_apub(&note, client, pool).await?;
 
-  let comment_id = get_or_fetch_and_insert_remote_comment(&comment.ap_id, client, pool.clone())
+  let comment_id = get_or_fetch_and_insert_remote_comment(&comment.ap_id, client, pool)
     .await?
     .id;
 
-  let updated_comment: Comment =
-    unblock!(pool, conn, Comment::update(&conn, comment_id, &comment)?);
+  let updated_comment = blocking(pool, move |conn| {
+    Comment::update(conn, comment_id, &comment)
+  })
+  .await??;
 
   let post_id = updated_comment.post_id;
-  let post: Post = unblock!(pool, conn, Post::read(&conn, post_id)?);
+  let post = blocking(pool, move |conn| Post::read(conn, post_id)).await??;
 
   let mentions = scrape_text_for_mentions(&updated_comment.content);
-  let recipient_ids =
-    send_local_notifs(mentions, updated_comment, user, post, pool.clone()).await?;
+  let recipient_ids = send_local_notifs(mentions, updated_comment, user, post, pool).await?;
 
   // Refetch the view
-  let comment_view: CommentView = unblock!(pool, conn, CommentView::read(&conn, comment_id, None)?);
+  let comment_view =
+    blocking(pool, move |conn| CommentView::read(conn, comment_id, None)).await??;
 
   let res = CommentResponse {
     comment: comment_view,
@@ -635,7 +640,7 @@ async fn receive_update_comment(
 async fn receive_like_comment(
   like: Like,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let note = like
@@ -648,13 +653,13 @@ async fn receive_like_comment(
 
   let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool.clone()).await?;
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
-  insert_activity(user.id, like, false, pool.clone()).await?;
+  insert_activity(user.id, like, false, pool).await?;
 
-  let comment = CommentForm::from_apub(&note, client, pool.clone()).await?;
+  let comment = CommentForm::from_apub(&note, client, pool).await?;
 
-  let comment_id = get_or_fetch_and_insert_remote_comment(&comment.ap_id, client, pool.clone())
+  let comment_id = get_or_fetch_and_insert_remote_comment(&comment.ap_id, client, pool)
     .await?
     .id;
 
@@ -664,13 +669,15 @@ async fn receive_like_comment(
     user_id: user.id,
     score: 1,
   };
-  let _: CommentLike = unblock!(pool, conn, {
-    CommentLike::remove(&conn, &like_form)?;
-    CommentLike::like(&conn, &like_form)?
-  });
+  blocking(pool, move |conn| {
+    CommentLike::remove(conn, &like_form)?;
+    CommentLike::like(conn, &like_form)
+  })
+  .await??;
 
   // Refetch the view
-  let comment_view: CommentView = unblock!(pool, conn, CommentView::read(&conn, comment_id, None)?);
+  let comment_view =
+    blocking(pool, move |conn| CommentView::read(conn, comment_id, None)).await??;
 
   // TODO get those recipient actor ids from somewhere
   let recipient_ids = vec![];
@@ -691,7 +698,7 @@ async fn receive_like_comment(
 async fn receive_dislike_comment(
   dislike: Dislike,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let note = dislike
@@ -708,13 +715,13 @@ async fn receive_dislike_comment(
     .unwrap()
     .to_string();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool.clone()).await?;
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
-  insert_activity(user.id, dislike, false, pool.clone()).await?;
+  insert_activity(user.id, dislike, false, pool).await?;
 
-  let comment = CommentForm::from_apub(&note, client, pool.clone()).await?;
+  let comment = CommentForm::from_apub(&note, client, pool).await?;
 
-  let comment_id = get_or_fetch_and_insert_remote_comment(&comment.ap_id, client, pool.clone())
+  let comment_id = get_or_fetch_and_insert_remote_comment(&comment.ap_id, client, pool)
     .await?
     .id;
 
@@ -724,13 +731,15 @@ async fn receive_dislike_comment(
     user_id: user.id,
     score: -1,
   };
-  let _: CommentLike = unblock!(pool, conn, {
-    CommentLike::remove(&conn, &like_form)?;
-    CommentLike::like(&conn, &like_form)?
-  });
+  blocking(pool, move |conn| {
+    CommentLike::remove(conn, &like_form)?;
+    CommentLike::like(conn, &like_form)
+  })
+  .await??;
 
   // Refetch the view
-  let comment_view: CommentView = unblock!(pool, conn, CommentView::read(&conn, comment_id, None)?);
+  let comment_view =
+    blocking(pool, move |conn| CommentView::read(conn, comment_id, None)).await??;
 
   // TODO get those recipient actor ids from somewhere
   let recipient_ids = vec![];
@@ -751,7 +760,7 @@ async fn receive_dislike_comment(
 async fn receive_delete_community(
   delete: Delete,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let user_uri = delete
@@ -768,19 +777,18 @@ async fn receive_delete_community(
     .to_owned()
     .into_concrete::<GroupExt>()?;
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool.clone()).await?;
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
-  insert_activity(user.id, delete, false, pool.clone()).await?;
+  insert_activity(user.id, delete, false, pool).await?;
 
-  let community_actor_id = CommunityForm::from_apub(&group, client, pool.clone())
+  let community_actor_id = CommunityForm::from_apub(&group, client, pool)
     .await?
     .actor_id;
 
-  let community: Community = unblock!(
-    pool,
-    conn,
-    Community::read_from_actor_id(&conn, &community_actor_id)?
-  );
+  let community = blocking(pool, move |conn| {
+    Community::read_from_actor_id(conn, &community_actor_id)
+  })
+  .await??;
 
   let community_form = CommunityForm {
     name: community.name.to_owned(),
@@ -801,15 +809,17 @@ async fn receive_delete_community(
   };
 
   let community_id = community.id;
-  let _: Community = unblock!(
-    pool,
-    conn,
-    Community::update(&conn, community_id, &community_form)?
-  );
+  blocking(pool, move |conn| {
+    Community::update(conn, community_id, &community_form)
+  })
+  .await??;
 
   let community_id = community.id;
   let res = CommunityResponse {
-    community: unblock!(pool, conn, CommunityView::read(&conn, community_id, None)?),
+    community: blocking(pool, move |conn| {
+      CommunityView::read(conn, community_id, None)
+    })
+    .await??,
   };
 
   let community_id = res.community.id;
@@ -827,7 +837,7 @@ async fn receive_delete_community(
 async fn receive_remove_community(
   remove: Remove,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let mod_uri = remove
@@ -844,19 +854,18 @@ async fn receive_remove_community(
     .to_owned()
     .into_concrete::<GroupExt>()?;
 
-  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, client, pool.clone()).await?;
+  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, client, pool).await?;
 
-  insert_activity(mod_.id, remove, false, pool.clone()).await?;
+  insert_activity(mod_.id, remove, false, pool).await?;
 
-  let community_actor_id = CommunityForm::from_apub(&group, client, pool.clone())
+  let community_actor_id = CommunityForm::from_apub(&group, client, pool)
     .await?
     .actor_id;
 
-  let community: Community = unblock!(
-    pool,
-    conn,
-    Community::read_from_actor_id(&conn, &community_actor_id)?
-  );
+  let community = blocking(pool, move |conn| {
+    Community::read_from_actor_id(conn, &community_actor_id)
+  })
+  .await??;
 
   let community_form = CommunityForm {
     name: community.name.to_owned(),
@@ -877,15 +886,17 @@ async fn receive_remove_community(
   };
 
   let community_id = community.id;
-  let _: Community = unblock!(
-    pool,
-    conn,
-    Community::update(&conn, community_id, &community_form)?
-  );
+  blocking(pool, move |conn| {
+    Community::update(conn, community_id, &community_form)
+  })
+  .await??;
 
   let community_id = community.id;
   let res = CommunityResponse {
-    community: unblock!(pool, conn, CommunityView::read(&conn, community_id, None)?),
+    community: blocking(pool, move |conn| {
+      CommunityView::read(conn, community_id, None)
+    })
+    .await??,
   };
 
   let community_id = res.community.id;
@@ -903,7 +914,7 @@ async fn receive_remove_community(
 async fn receive_delete_post(
   delete: Delete,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let user_uri = delete
@@ -920,15 +931,13 @@ async fn receive_delete_post(
     .to_owned()
     .into_concrete::<PageExt>()?;
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool.clone()).await?;
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
-  insert_activity(user.id, delete, false, pool.clone()).await?;
+  insert_activity(user.id, delete, false, pool).await?;
 
-  let post_ap_id = PostForm::from_apub(&page, client, pool.clone())
-    .await?
-    .ap_id;
+  let post_ap_id = PostForm::from_apub(&page, client, pool).await?.ap_id;
 
-  let post = get_or_fetch_and_insert_remote_post(&post_ap_id, client, pool.clone()).await?;
+  let post = get_or_fetch_and_insert_remote_post(&post_ap_id, client, pool).await?;
 
   let post_form = PostForm {
     name: post.name.to_owned(),
@@ -951,11 +960,11 @@ async fn receive_delete_post(
     published: None,
   };
   let post_id = post.id;
-  let _: Post = unblock!(pool, conn, Post::update(&conn, post_id, &post_form)?);
+  blocking(pool, move |conn| Post::update(conn, post_id, &post_form)).await??;
 
   // Refetch the view
   let post_id = post.id;
-  let post_view: PostView = unblock!(pool, conn, PostView::read(&conn, post_id, None)?);
+  let post_view = blocking(pool, move |conn| PostView::read(conn, post_id, None)).await??;
 
   let res = PostResponse { post: post_view };
 
@@ -971,7 +980,7 @@ async fn receive_delete_post(
 async fn receive_remove_post(
   remove: Remove,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let mod_uri = remove
@@ -988,15 +997,13 @@ async fn receive_remove_post(
     .to_owned()
     .into_concrete::<PageExt>()?;
 
-  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, client, pool.clone()).await?;
+  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, client, pool).await?;
 
-  insert_activity(mod_.id, remove, false, pool.clone()).await?;
+  insert_activity(mod_.id, remove, false, pool).await?;
 
-  let post_ap_id = PostForm::from_apub(&page, client, pool.clone())
-    .await?
-    .ap_id;
+  let post_ap_id = PostForm::from_apub(&page, client, pool).await?.ap_id;
 
-  let post = get_or_fetch_and_insert_remote_post(&post_ap_id, client, pool.clone()).await?;
+  let post = get_or_fetch_and_insert_remote_post(&post_ap_id, client, pool).await?;
 
   let post_form = PostForm {
     name: post.name.to_owned(),
@@ -1019,11 +1026,11 @@ async fn receive_remove_post(
     published: None,
   };
   let post_id = post.id;
-  let _: Post = unblock!(pool, conn, Post::update(&conn, post_id, &post_form)?);
+  blocking(pool, move |conn| Post::update(conn, post_id, &post_form)).await??;
 
   // Refetch the view
   let post_id = post.id;
-  let post_view: PostView = unblock!(pool, conn, PostView::read(&conn, post_id, None)?);
+  let post_view = blocking(pool, move |conn| PostView::read(conn, post_id, None)).await??;
 
   let res = PostResponse { post: post_view };
 
@@ -1039,7 +1046,7 @@ async fn receive_remove_post(
 async fn receive_delete_comment(
   delete: Delete,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let user_uri = delete
@@ -1056,16 +1063,13 @@ async fn receive_delete_comment(
     .to_owned()
     .into_concrete::<Note>()?;
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool.clone()).await?;
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
-  insert_activity(user.id, delete, false, pool.clone()).await?;
+  insert_activity(user.id, delete, false, pool).await?;
 
-  let comment_ap_id = CommentForm::from_apub(&note, client, pool.clone())
-    .await?
-    .ap_id;
+  let comment_ap_id = CommentForm::from_apub(&note, client, pool).await?.ap_id;
 
-  let comment =
-    get_or_fetch_and_insert_remote_comment(&comment_ap_id, client, pool.clone()).await?;
+  let comment = get_or_fetch_and_insert_remote_comment(&comment_ap_id, client, pool).await?;
 
   let comment_form = CommentForm {
     content: comment.content.to_owned(),
@@ -1081,15 +1085,15 @@ async fn receive_delete_comment(
     local: comment.local,
   };
   let comment_id = comment.id;
-  let _: Comment = unblock!(
-    pool,
-    conn,
-    Comment::update(&conn, comment_id, &comment_form)?
-  );
+  blocking(pool, move |conn| {
+    Comment::update(conn, comment_id, &comment_form)
+  })
+  .await??;
 
   // Refetch the view
   let comment_id = comment.id;
-  let comment_view: CommentView = unblock!(pool, conn, CommentView::read(&conn, comment_id, None)?);
+  let comment_view =
+    blocking(pool, move |conn| CommentView::read(conn, comment_id, None)).await??;
 
   // TODO get those recipient actor ids from somewhere
   let recipient_ids = vec![];
@@ -1110,7 +1114,7 @@ async fn receive_delete_comment(
 async fn receive_remove_comment(
   remove: Remove,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let mod_uri = remove
@@ -1127,16 +1131,13 @@ async fn receive_remove_comment(
     .to_owned()
     .into_concrete::<Note>()?;
 
-  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, client, pool.clone()).await?;
+  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, client, pool).await?;
 
-  insert_activity(mod_.id, remove, false, pool.clone()).await?;
+  insert_activity(mod_.id, remove, false, pool).await?;
 
-  let comment_ap_id = CommentForm::from_apub(&note, client, pool.clone())
-    .await?
-    .ap_id;
+  let comment_ap_id = CommentForm::from_apub(&note, client, pool).await?.ap_id;
 
-  let comment =
-    get_or_fetch_and_insert_remote_comment(&comment_ap_id, client, pool.clone()).await?;
+  let comment = get_or_fetch_and_insert_remote_comment(&comment_ap_id, client, pool).await?;
 
   let comment_form = CommentForm {
     content: comment.content.to_owned(),
@@ -1152,15 +1153,15 @@ async fn receive_remove_comment(
     local: comment.local,
   };
   let comment_id = comment.id;
-  let _: Comment = unblock!(
-    pool,
-    conn,
-    Comment::update(&conn, comment_id, &comment_form)?
-  );
+  blocking(pool, move |conn| {
+    Comment::update(conn, comment_id, &comment_form)
+  })
+  .await??;
 
   // Refetch the view
   let comment_id = comment.id;
-  let comment_view = unblock!(pool, conn, CommentView::read(&conn, comment_id, None)?);
+  let comment_view =
+    blocking(pool, move |conn| CommentView::read(conn, comment_id, None)).await??;
 
   // TODO get those recipient actor ids from somewhere
   let recipient_ids = vec![];
@@ -1181,7 +1182,7 @@ async fn receive_remove_comment(
 async fn receive_undo_delete(
   undo: Undo,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let delete = undo
@@ -1211,7 +1212,7 @@ async fn receive_undo_delete(
 async fn receive_undo_remove(
   undo: Undo,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let remove = undo
@@ -1241,7 +1242,7 @@ async fn receive_undo_remove(
 async fn receive_undo_delete_comment(
   delete: Delete,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let user_uri = delete
@@ -1258,16 +1259,13 @@ async fn receive_undo_delete_comment(
     .to_owned()
     .into_concrete::<Note>()?;
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool.clone()).await?;
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
-  insert_activity(user.id, delete, false, pool.clone()).await?;
+  insert_activity(user.id, delete, false, pool).await?;
 
-  let comment_ap_id = CommentForm::from_apub(&note, client, pool.clone())
-    .await?
-    .ap_id;
+  let comment_ap_id = CommentForm::from_apub(&note, client, pool).await?.ap_id;
 
-  let comment =
-    get_or_fetch_and_insert_remote_comment(&comment_ap_id, client, pool.clone()).await?;
+  let comment = get_or_fetch_and_insert_remote_comment(&comment_ap_id, client, pool).await?;
 
   let comment_form = CommentForm {
     content: comment.content.to_owned(),
@@ -1283,15 +1281,15 @@ async fn receive_undo_delete_comment(
     local: comment.local,
   };
   let comment_id = comment.id;
-  let _: Comment = unblock!(
-    pool,
-    conn,
-    Comment::update(&conn, comment_id, &comment_form)?
-  );
+  blocking(pool, move |conn| {
+    Comment::update(conn, comment_id, &comment_form)
+  })
+  .await??;
 
   // Refetch the view
   let comment_id = comment.id;
-  let comment_view: CommentView = unblock!(pool, conn, CommentView::read(&conn, comment_id, None)?);
+  let comment_view =
+    blocking(pool, move |conn| CommentView::read(conn, comment_id, None)).await??;
 
   // TODO get those recipient actor ids from somewhere
   let recipient_ids = vec![];
@@ -1312,7 +1310,7 @@ async fn receive_undo_delete_comment(
 async fn receive_undo_remove_comment(
   remove: Remove,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let mod_uri = remove
@@ -1329,16 +1327,13 @@ async fn receive_undo_remove_comment(
     .to_owned()
     .into_concrete::<Note>()?;
 
-  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, client, pool.clone()).await?;
+  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, client, pool).await?;
 
-  insert_activity(mod_.id, remove, false, pool.clone()).await?;
+  insert_activity(mod_.id, remove, false, pool).await?;
 
-  let comment_ap_id = CommentForm::from_apub(&note, client, pool.clone())
-    .await?
-    .ap_id;
+  let comment_ap_id = CommentForm::from_apub(&note, client, pool).await?.ap_id;
 
-  let comment =
-    get_or_fetch_and_insert_remote_comment(&comment_ap_id, client, pool.clone()).await?;
+  let comment = get_or_fetch_and_insert_remote_comment(&comment_ap_id, client, pool).await?;
 
   let comment_form = CommentForm {
     content: comment.content.to_owned(),
@@ -1354,15 +1349,15 @@ async fn receive_undo_remove_comment(
     local: comment.local,
   };
   let comment_id = comment.id;
-  let _: Comment = unblock!(
-    pool,
-    conn,
-    Comment::update(&conn, comment_id, &comment_form)?
-  );
+  blocking(pool, move |conn| {
+    Comment::update(conn, comment_id, &comment_form)
+  })
+  .await??;
 
   // Refetch the view
   let comment_id = comment.id;
-  let comment_view: CommentView = unblock!(pool, conn, CommentView::read(&conn, comment_id, None)?);
+  let comment_view =
+    blocking(pool, move |conn| CommentView::read(conn, comment_id, None)).await??;
 
   // TODO get those recipient actor ids from somewhere
   let recipient_ids = vec![];
@@ -1383,7 +1378,7 @@ async fn receive_undo_remove_comment(
 async fn receive_undo_delete_post(
   delete: Delete,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let user_uri = delete
@@ -1400,15 +1395,13 @@ async fn receive_undo_delete_post(
     .to_owned()
     .into_concrete::<PageExt>()?;
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool.clone()).await?;
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
-  insert_activity(user.id, delete, false, pool.clone()).await?;
+  insert_activity(user.id, delete, false, pool).await?;
 
-  let post_ap_id = PostForm::from_apub(&page, client, pool.clone())
-    .await?
-    .ap_id;
+  let post_ap_id = PostForm::from_apub(&page, client, pool).await?.ap_id;
 
-  let post = get_or_fetch_and_insert_remote_post(&post_ap_id, client, pool.clone()).await?;
+  let post = get_or_fetch_and_insert_remote_post(&post_ap_id, client, pool).await?;
 
   let post_form = PostForm {
     name: post.name.to_owned(),
@@ -1431,11 +1424,11 @@ async fn receive_undo_delete_post(
     published: None,
   };
   let post_id = post.id;
-  let _: Post = unblock!(pool, conn, Post::update(&conn, post_id, &post_form)?);
+  blocking(pool, move |conn| Post::update(conn, post_id, &post_form)).await??;
 
   // Refetch the view
   let post_id = post.id;
-  let post_view: PostView = unblock!(pool, conn, PostView::read(&conn, post_id, None)?);
+  let post_view = blocking(pool, move |conn| PostView::read(conn, post_id, None)).await??;
 
   let res = PostResponse { post: post_view };
 
@@ -1451,7 +1444,7 @@ async fn receive_undo_delete_post(
 async fn receive_undo_remove_post(
   remove: Remove,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let mod_uri = remove
@@ -1468,15 +1461,13 @@ async fn receive_undo_remove_post(
     .to_owned()
     .into_concrete::<PageExt>()?;
 
-  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, client, pool.clone()).await?;
+  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, client, pool).await?;
 
-  insert_activity(mod_.id, remove, false, pool.clone()).await?;
+  insert_activity(mod_.id, remove, false, pool).await?;
 
-  let post_ap_id = PostForm::from_apub(&page, client, pool.clone())
-    .await?
-    .ap_id;
+  let post_ap_id = PostForm::from_apub(&page, client, pool).await?.ap_id;
 
-  let post = get_or_fetch_and_insert_remote_post(&post_ap_id, client, pool.clone()).await?;
+  let post = get_or_fetch_and_insert_remote_post(&post_ap_id, client, pool).await?;
 
   let post_form = PostForm {
     name: post.name.to_owned(),
@@ -1499,11 +1490,11 @@ async fn receive_undo_remove_post(
     published: None,
   };
   let post_id = post.id;
-  let _: Post = unblock!(pool, conn, Post::update(&conn, post_id, &post_form)?);
+  blocking(pool, move |conn| Post::update(conn, post_id, &post_form)).await??;
 
   // Refetch the view
   let post_id = post.id;
-  let post_view: PostView = unblock!(pool, conn, PostView::read(&conn, post_id, None)?);
+  let post_view = blocking(pool, move |conn| PostView::read(conn, post_id, None)).await??;
 
   let res = PostResponse { post: post_view };
 
@@ -1519,7 +1510,7 @@ async fn receive_undo_remove_post(
 async fn receive_undo_delete_community(
   delete: Delete,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let user_uri = delete
@@ -1536,19 +1527,18 @@ async fn receive_undo_delete_community(
     .to_owned()
     .into_concrete::<GroupExt>()?;
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool.clone()).await?;
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
-  insert_activity(user.id, delete, false, pool.clone()).await?;
+  insert_activity(user.id, delete, false, pool).await?;
 
-  let community_actor_id = CommunityForm::from_apub(&group, client, pool.clone())
+  let community_actor_id = CommunityForm::from_apub(&group, client, pool)
     .await?
     .actor_id;
 
-  let community: Community = unblock!(
-    pool,
-    conn,
-    Community::read_from_actor_id(&conn, &community_actor_id)?
-  );
+  let community = blocking(pool, move |conn| {
+    Community::read_from_actor_id(conn, &community_actor_id)
+  })
+  .await??;
 
   let community_form = CommunityForm {
     name: community.name.to_owned(),
@@ -1569,15 +1559,17 @@ async fn receive_undo_delete_community(
   };
 
   let community_id = community.id;
-  let _: Community = unblock!(
-    pool,
-    conn,
-    Community::update(&conn, community_id, &community_form)?
-  );
+  blocking(pool, move |conn| {
+    Community::update(conn, community_id, &community_form)
+  })
+  .await??;
 
   let community_id = community.id;
   let res = CommunityResponse {
-    community: unblock!(pool, conn, CommunityView::read(&conn, community_id, None)?),
+    community: blocking(pool, move |conn| {
+      CommunityView::read(conn, community_id, None)
+    })
+    .await??,
   };
 
   let community_id = res.community.id;
@@ -1595,7 +1587,7 @@ async fn receive_undo_delete_community(
 async fn receive_undo_remove_community(
   remove: Remove,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let mod_uri = remove
@@ -1612,19 +1604,18 @@ async fn receive_undo_remove_community(
     .to_owned()
     .into_concrete::<GroupExt>()?;
 
-  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, client, pool.clone()).await?;
+  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, client, pool).await?;
 
-  insert_activity(mod_.id, remove, false, pool.clone()).await?;
+  insert_activity(mod_.id, remove, false, pool).await?;
 
-  let community_actor_id = CommunityForm::from_apub(&group, client, pool.clone())
+  let community_actor_id = CommunityForm::from_apub(&group, client, pool)
     .await?
     .actor_id;
 
-  let community: Community = unblock!(
-    pool,
-    conn,
-    Community::read_from_actor_id(&conn, &community_actor_id)?
-  );
+  let community = blocking(pool, move |conn| {
+    Community::read_from_actor_id(conn, &community_actor_id)
+  })
+  .await??;
 
   let community_form = CommunityForm {
     name: community.name.to_owned(),
@@ -1645,15 +1636,17 @@ async fn receive_undo_remove_community(
   };
 
   let community_id = community.id;
-  let _: Community = unblock!(
-    pool,
-    conn,
-    Community::update(&conn, community_id, &community_form)?
-  );
+  blocking(pool, move |conn| {
+    Community::update(conn, community_id, &community_form)
+  })
+  .await??;
 
   let community_id = community.id;
   let res = CommunityResponse {
-    community: unblock!(pool, conn, CommunityView::read(&conn, community_id, None)?),
+    community: blocking(pool, move |conn| {
+      CommunityView::read(conn, community_id, None)
+    })
+    .await??,
   };
 
   let community_id = res.community.id;
@@ -1671,7 +1664,7 @@ async fn receive_undo_remove_community(
 async fn receive_undo_like(
   undo: Undo,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let like = undo
@@ -1700,7 +1693,7 @@ async fn receive_undo_like(
 async fn receive_undo_like_comment(
   like: Like,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let note = like
@@ -1713,13 +1706,13 @@ async fn receive_undo_like_comment(
 
   let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool.clone()).await?;
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
-  insert_activity(user.id, like, false, pool.clone()).await?;
+  insert_activity(user.id, like, false, pool).await?;
 
-  let comment = CommentForm::from_apub(&note, client, pool.clone()).await?;
+  let comment = CommentForm::from_apub(&note, client, pool).await?;
 
-  let comment_id = get_or_fetch_and_insert_remote_comment(&comment.ap_id, client, pool.clone())
+  let comment_id = get_or_fetch_and_insert_remote_comment(&comment.ap_id, client, pool)
     .await?
     .id;
 
@@ -1729,10 +1722,11 @@ async fn receive_undo_like_comment(
     user_id: user.id,
     score: 0,
   };
-  let _: usize = unblock!(pool, conn, CommentLike::remove(&conn, &like_form)?);
+  blocking(pool, move |conn| CommentLike::remove(conn, &like_form)).await??;
 
   // Refetch the view
-  let comment_view: CommentView = unblock!(pool, conn, CommentView::read(&conn, comment_id, None)?);
+  let comment_view =
+    blocking(pool, move |conn| CommentView::read(conn, comment_id, None)).await??;
 
   // TODO get those recipient actor ids from somewhere
   let recipient_ids = vec![];
@@ -1753,7 +1747,7 @@ async fn receive_undo_like_comment(
 async fn receive_undo_like_post(
   like: Like,
   client: &Client,
-  pool: DbPool,
+  pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let page = like
@@ -1766,13 +1760,13 @@ async fn receive_undo_like_post(
 
   let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool.clone()).await?;
+  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
-  insert_activity(user.id, like, false, pool.clone()).await?;
+  insert_activity(user.id, like, false, pool).await?;
 
-  let post = PostForm::from_apub(&page, client, pool.clone()).await?;
+  let post = PostForm::from_apub(&page, client, pool).await?;
 
-  let post_id = get_or_fetch_and_insert_remote_post(&post.ap_id, client, pool.clone())
+  let post_id = get_or_fetch_and_insert_remote_post(&post.ap_id, client, pool)
     .await?
     .id;
 
@@ -1781,10 +1775,10 @@ async fn receive_undo_like_post(
     user_id: user.id,
     score: 1,
   };
-  let _: usize = unblock!(pool, conn, PostLike::remove(&conn, &like_form)?);
+  blocking(pool, move |conn| PostLike::remove(conn, &like_form)).await??;
 
   // Refetch the view
-  let post_view: PostView = unblock!(pool, conn, PostView::read(&conn, post_id, None)?);
+  let post_view = blocking(pool, move |conn| PostView::read(conn, post_id, None)).await??;
 
   let res = PostResponse { post: post_view };
 

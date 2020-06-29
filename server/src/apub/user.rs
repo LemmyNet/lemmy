@@ -3,7 +3,7 @@ use crate::{
     activities::send_activity, create_apub_response, extensions::signatures::PublicKey, ActorType,
     FromApub, PersonExt, ToApub,
   },
-  convert_datetime,
+  blocking, convert_datetime,
   db::{
     activity::insert_activity,
     user::{UserForm, User_},
@@ -38,7 +38,7 @@ impl ToApub for User_ {
   type Response = PersonExt;
 
   // Turn a Lemmy Community into an ActivityPub group that can be sent out over the network.
-  async fn to_apub(&self, _pool: DbPool) -> Result<PersonExt, LemmyError> {
+  async fn to_apub(&self, _pool: &DbPool) -> Result<PersonExt, LemmyError> {
     // TODO go through all these to_string and to_owned()
     let mut person = Person::default();
     let oprops: &mut ObjectProperties = person.as_mut();
@@ -105,14 +105,14 @@ impl ActorType for User_ {
     &self,
     follow_actor_id: &str,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError> {
     let id = format!("{}/follow/{}", self.actor_id, uuid::Uuid::new_v4());
     let mut follow = Follow::new(self.actor_id.to_owned(), follow_actor_id);
     follow.set_context(context()).set_id(id.parse()?);
     let to = format!("{}/inbox", follow_actor_id);
 
-    insert_activity(self.id, follow.clone(), true, pool.clone()).await?;
+    insert_activity(self.id, follow.clone(), true, pool).await?;
 
     send_activity(client, &follow, self, vec![to]).await?;
     Ok(())
@@ -122,7 +122,7 @@ impl ActorType for User_ {
     &self,
     follow_actor_id: &str,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError> {
     let id = format!("{}/follow/{}", self.actor_id, uuid::Uuid::new_v4());
     let mut follow = Follow::new(self.actor_id.to_owned(), follow_actor_id);
@@ -136,7 +136,7 @@ impl ActorType for User_ {
     let mut undo = Undo::new(self.actor_id.parse::<XsdAnyUri>()?, follow.into_any_base()?);
     undo.set_context(context()).set_id(undo_id.parse()?);
 
-    insert_activity(self.id, undo.clone(), true, pool.clone()).await?;
+    insert_activity(self.id, undo.clone(), true, pool).await?;
 
     send_activity(client, &undo, self, vec![to]).await?;
     Ok(())
@@ -146,7 +146,7 @@ impl ActorType for User_ {
     &self,
     _creator: &User_,
     _client: &Client,
-    _pool: DbPool,
+    _pool: &DbPool,
   ) -> Result<(), LemmyError> {
     unimplemented!()
   }
@@ -155,7 +155,7 @@ impl ActorType for User_ {
     &self,
     _creator: &User_,
     _client: &Client,
-    _pool: DbPool,
+    _pool: &DbPool,
   ) -> Result<(), LemmyError> {
     unimplemented!()
   }
@@ -164,7 +164,7 @@ impl ActorType for User_ {
     &self,
     _creator: &User_,
     _client: &Client,
-    _pool: DbPool,
+    _pool: &DbPool,
   ) -> Result<(), LemmyError> {
     unimplemented!()
   }
@@ -173,7 +173,7 @@ impl ActorType for User_ {
     &self,
     _creator: &User_,
     _client: &Client,
-    _pool: DbPool,
+    _pool: &DbPool,
   ) -> Result<(), LemmyError> {
     unimplemented!()
   }
@@ -182,12 +182,12 @@ impl ActorType for User_ {
     &self,
     _follow: &Follow,
     _client: &Client,
-    _pool: DbPool,
+    _pool: &DbPool,
   ) -> Result<(), LemmyError> {
     unimplemented!()
   }
 
-  async fn get_follower_inboxes(&self, _pool: DbPool) -> Result<Vec<String>, LemmyError> {
+  async fn get_follower_inboxes(&self, _pool: &DbPool) -> Result<Vec<String>, LemmyError> {
     unimplemented!()
   }
 }
@@ -196,7 +196,7 @@ impl ActorType for User_ {
 impl FromApub for UserForm {
   type ApubType = PersonExt;
   /// Parse an ActivityPub person received from another instance into a Lemmy user.
-  async fn from_apub(person: &PersonExt, _: &Client, _: DbPool) -> Result<Self, LemmyError> {
+  async fn from_apub(person: &PersonExt, _: &Client, _: &DbPool) -> Result<Self, LemmyError> {
     let oprops = &person.inner.object_props;
     let aprops = &person.ext_one;
     let public_key: &PublicKey = &person.ext_two.public_key;
@@ -246,11 +246,10 @@ pub async fn get_apub_user_http(
   db: DbPoolParam,
 ) -> Result<HttpResponse<Body>, LemmyError> {
   let user_name = info.into_inner().user_name;
-  let user: User_ = unblock!(
-    db,
-    conn,
-    User_::find_by_email_or_username(&conn, &user_name)?
-  );
-  let u = user.to_apub((**db).clone()).await?;
+  let user = blocking(&db, move |conn| {
+    User_::find_by_email_or_username(conn, &user_name)
+  })
+  .await??;
+  let u = user.to_apub(&db).await?;
   Ok(create_apub_response(&u))
 }

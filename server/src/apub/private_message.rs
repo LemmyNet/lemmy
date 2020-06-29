@@ -3,7 +3,7 @@ use crate::{
     activities::send_activity, create_tombstone, fetcher::get_or_fetch_and_upsert_remote_user,
     ApubObjectType, FromApub, ToApub,
   },
-  convert_datetime,
+  blocking, convert_datetime,
   db::{
     activity::insert_activity,
     private_message::{PrivateMessage, PrivateMessageForm},
@@ -24,15 +24,15 @@ use actix_web::client::Client;
 impl ToApub for PrivateMessage {
   type Response = Note;
 
-  async fn to_apub(&self, pool: DbPool) -> Result<Note, LemmyError> {
+  async fn to_apub(&self, pool: &DbPool) -> Result<Note, LemmyError> {
     let mut private_message = Note::default();
     let oprops: &mut ObjectProperties = private_message.as_mut();
 
     let creator_id = self.creator_id;
-    let creator: User_ = unblock!(pool, conn, User_::read(&conn, creator_id)?);
+    let creator = blocking(pool, move |conn| User_::read(conn, creator_id)).await??;
 
     let recipient_id = self.recipient_id;
-    let recipient: User_ = unblock!(pool, conn, User_::read(&conn, recipient_id)?);
+    let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
 
     oprops
       .set_context_xsd_any_uri(context())?
@@ -67,13 +67,12 @@ impl FromApub for PrivateMessageForm {
   async fn from_apub(
     note: &Note,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<PrivateMessageForm, LemmyError> {
     let oprops = &note.object_props;
     let creator_actor_id = &oprops.get_attributed_to_xsd_any_uri().unwrap().to_string();
 
-    let creator =
-      get_or_fetch_and_upsert_remote_user(&creator_actor_id, client, pool.clone()).await?;
+    let creator = get_or_fetch_and_upsert_remote_user(&creator_actor_id, client, pool).await?;
 
     let recipient_actor_id = &oprops.get_to_xsd_any_uri().unwrap().to_string();
 
@@ -107,13 +106,13 @@ impl ApubObjectType for PrivateMessage {
     &self,
     creator: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError> {
-    let note = self.to_apub(pool.clone()).await?;
+    let note = self.to_apub(pool).await?;
     let id = format!("{}/create/{}", self.ap_id, uuid::Uuid::new_v4());
 
     let recipient_id = self.recipient_id;
-    let recipient: User_ = unblock!(pool, conn, User_::read(&conn, recipient_id)?);
+    let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
 
     let mut create = Create::new();
     create
@@ -138,13 +137,13 @@ impl ApubObjectType for PrivateMessage {
     &self,
     creator: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError> {
-    let note = self.to_apub(pool.clone()).await?;
+    let note = self.to_apub(pool).await?;
     let id = format!("{}/update/{}", self.ap_id, uuid::Uuid::new_v4());
 
     let recipient_id = self.recipient_id;
-    let recipient: User_ = unblock!(pool, conn, User_::read(&conn, recipient_id)?);
+    let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
 
     let mut update = Update::new();
     update
@@ -168,13 +167,13 @@ impl ApubObjectType for PrivateMessage {
     &self,
     creator: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError> {
-    let note = self.to_apub(pool.clone()).await?;
+    let note = self.to_apub(pool).await?;
     let id = format!("{}/delete/{}", self.ap_id, uuid::Uuid::new_v4());
 
     let recipient_id = self.recipient_id;
-    let recipient: User_ = unblock!(pool, conn, User_::read(&conn, recipient_id)?);
+    let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
 
     let mut delete = Delete::new();
     delete
@@ -198,13 +197,13 @@ impl ApubObjectType for PrivateMessage {
     &self,
     creator: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError> {
-    let note = self.to_apub(pool.clone()).await?;
+    let note = self.to_apub(pool).await?;
     let id = format!("{}/delete/{}", self.ap_id, uuid::Uuid::new_v4());
 
     let recipient_id = self.recipient_id;
-    let recipient: User_ = unblock!(pool, conn, User_::read(&conn, recipient_id)?);
+    let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
 
     let mut delete = Delete::new();
     delete
@@ -243,7 +242,7 @@ impl ApubObjectType for PrivateMessage {
     &self,
     _mod_: &User_,
     _client: &Client,
-    _pool: DbPool,
+    _pool: &DbPool,
   ) -> Result<(), LemmyError> {
     unimplemented!()
   }
@@ -252,7 +251,7 @@ impl ApubObjectType for PrivateMessage {
     &self,
     _mod_: &User_,
     _client: &Client,
-    _pool: DbPool,
+    _pool: &DbPool,
   ) -> Result<(), LemmyError> {
     unimplemented!()
   }

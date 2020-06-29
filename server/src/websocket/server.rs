@@ -530,9 +530,10 @@ where
 
   let client = client.clone();
   let fut = async move {
+    let pool = pool.clone();
     let parsed_data: Data = serde_json::from_str(&data)?;
     let res = Oper::new(parsed_data, client)
-      .perform(pool, Some(ws_info))
+      .perform(&pool, Some(ws_info))
       .await?;
     to_json_string(&op, &res)
   };

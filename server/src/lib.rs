@@ -26,29 +26,37 @@ pub extern crate serde_json;
 pub extern crate sha2;
 pub extern crate strum;
 
-#[macro_export]
-macro_rules! unblock {
-  ($pool:ident, $conn:ident, $oper:expr) => {{
-    let pool = $pool.clone();
-    actix_web::web::block(move || {
-      let $conn = pool.get()?;
-      Ok($oper) as Result<_, LemmyError>
-    })
-    .await?
-  }};
+pub async fn blocking<F, T>(pool: &DbPool, f: F) -> Result<T, LemmyError>
+where
+  F: FnOnce(&diesel::PgConnection) -> T + Send + 'static,
+  T: Send + 'static,
+{
+  let pool = pool.clone();
+  let res = actix_web::web::block(move || {
+    let conn = pool.get()?;
+    let res = (f)(&conn);
+    Ok(res) as Result<_, LemmyError>
+  })
+  .await?;
+
+  Ok(res)
 }
 
 pub mod api;
 pub mod apub;
 pub mod db;
 pub mod rate_limit;
+pub mod request;
 pub mod routes;
 pub mod schema;
 pub mod settings;
 pub mod version;
 pub mod websocket;
 
-use crate::settings::Settings;
+use crate::{
+  request::{retry, RecvError},
+  settings::Settings,
+};
 use actix_web::{client::Client, dev::ConnectionInfo};
 use chrono::{DateTime, FixedOffset, Local, NaiveDateTime, Utc};
 use itertools::Itertools;
@@ -73,14 +81,6 @@ pub type PostId = i32;
 pub type CommunityId = i32;
 pub type UserId = i32;
 pub type IPAddr = String;
-
-#[derive(Clone, Debug, Fail)]
-#[fail(display = "Error sending request, {}", _0)]
-pub struct SendError(pub String);
-
-#[derive(Clone, Debug, Fail)]
-#[fail(display = "Error receiving response, {}", _0)]
-pub struct RecvError(pub String);
 
 #[derive(Debug)]
 pub struct LemmyError {
@@ -126,11 +126,9 @@ pub fn is_email_regex(test: &str) -> bool {
 }
 
 pub async fn is_image_content_type(client: &Client, test: &str) -> Result<(), LemmyError> {
-  if client
-    .get(test)
-    .send()
-    .await
-    .map_err(|e| SendError(e.to_string()))?
+  let response = retry(|| client.get(test).send()).await?;
+
+  if response
     .headers()
     .get("Content-Type")
     .ok_or_else(|| format_err!("No Content-Type header"))?
@@ -224,11 +222,10 @@ pub struct IframelyResponse {
 
 pub async fn fetch_iframely(client: &Client, url: &str) -> Result<IframelyResponse, LemmyError> {
   let fetch_url = format!("http://iframely/oembed?url={}", url);
-  let res: IframelyResponse = client
-    .get(&fetch_url)
-    .send()
-    .await
-    .map_err(|e| SendError(e.to_string()))?
+
+  let mut response = retry(|| client.get(&fetch_url).send()).await?;
+
+  let res: IframelyResponse = response
     .json()
     .await
     .map_err(|e| RecvError(e.to_string()))?;
@@ -254,18 +251,18 @@ pub async fn fetch_pictrs(client: &Client, image_url: &str) -> Result<PictrsResp
     "http://pictrs:8080/image/download?url={}",
     utf8_percent_encode(image_url, NON_ALPHANUMERIC) // TODO this might not be needed
   );
-  let res: PictrsResponse = client
-    .get(&fetch_url)
-    .send()
-    .await
-    .map_err(|e| SendError(e.to_string()))?
+
+  let mut response = retry(|| client.get(&fetch_url).send()).await?;
+
+  let response: PictrsResponse = response
     .json()
     .await
     .map_err(|e| RecvError(e.to_string()))?;
-  if res.msg == "ok" {
-    Ok(res)
+
+  if response.msg == "ok" {
+    Ok(response)
   } else {
-    Err(format_err!("{}", &res.msg).into())
+    Err(format_err!("{}", &response.msg).into())
   }
 }
 

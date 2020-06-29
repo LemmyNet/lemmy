@@ -6,7 +6,7 @@ use crate::{
     fetcher::get_or_fetch_and_upsert_remote_user,
     get_shared_inbox, ActorType, FromApub, GroupExt, ToApub,
   },
-  convert_datetime,
+  blocking, convert_datetime,
   db::{
     activity::insert_activity,
     community::{Community, CommunityForm},
@@ -43,7 +43,7 @@ impl ToApub for Community {
   type Response = GroupExt;
 
   // Turn a Lemmy Community into an ActivityPub group that can be sent out over the network.
-  async fn to_apub(&self, pool: DbPool) -> Result<GroupExt, LemmyError> {
+  async fn to_apub(&self, pool: &DbPool) -> Result<GroupExt, LemmyError> {
     let mut group = Group::default();
     let oprops: &mut ObjectProperties = group.as_mut();
 
@@ -52,11 +52,10 @@ impl ToApub for Community {
     // TODO Technically the instance admins can mod the community, but lets
     // ignore that for now
     let id = self.id;
-    let moderators: Vec<CommunityModeratorView> = unblock!(
-      pool,
-      conn,
-      CommunityModeratorView::for_community(&conn, id)?
-    );
+    let moderators = blocking(pool, move |conn| {
+      CommunityModeratorView::for_community(&conn, id)
+    })
+    .await??;
     let moderators = moderators.into_iter().map(|m| m.user_actor_id).collect();
 
     oprops
@@ -90,7 +89,10 @@ impl ToApub for Community {
 
     let nsfw = self.nsfw;
     let category_id = self.category_id;
-    let group_extension = unblock!(pool, conn, GroupExtension::new(&conn, category_id, nsfw)?);
+    let group_extension = blocking(pool, move |conn| {
+      GroupExtension::new(conn, category_id, nsfw)
+    })
+    .await??;
 
     Ok(Ext3::new(
       group,
@@ -128,7 +130,7 @@ impl ActorType for Community {
     &self,
     follow: &Follow,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError> {
     let actor_uri = follow.actor.as_single_xsd_any_uri().unwrap().to_string();
     let id = format!("{}/accept/{}", self.actor_id, uuid::Uuid::new_v4());
@@ -144,7 +146,7 @@ impl ActorType for Community {
       .set_object_base_box(BaseBox::from_concrete(follow.clone())?)?;
     let to = format!("{}/inbox", actor_uri);
 
-    insert_activity(self.creator_id, accept.clone(), true, pool.clone()).await?;
+    insert_activity(self.creator_id, accept.clone(), true, pool).await?;
 
     send_activity(client, &accept, self, vec![to]).await?;
     Ok(())
@@ -154,9 +156,9 @@ impl ActorType for Community {
     &self,
     creator: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError> {
-    let group = self.to_apub(pool.clone()).await?;
+    let group = self.to_apub(pool).await?;
 
     let id = format!("{}/delete/{}", self.actor_id, uuid::Uuid::new_v4());
 
@@ -172,7 +174,7 @@ impl ActorType for Community {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(BaseBox::from_concrete(group)?)?;
 
-    insert_activity(self.creator_id, delete.clone(), true, pool.clone()).await?;
+    insert_activity(self.creator_id, delete.clone(), true, pool).await?;
 
     let inboxes = self.get_follower_inboxes(pool).await?;
 
@@ -187,9 +189,9 @@ impl ActorType for Community {
     &self,
     creator: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError> {
-    let group = self.to_apub(pool.clone()).await?;
+    let group = self.to_apub(pool).await?;
 
     let id = format!("{}/delete/{}", self.actor_id, uuid::Uuid::new_v4());
 
@@ -221,7 +223,7 @@ impl ActorType for Community {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(delete)?;
 
-    insert_activity(self.creator_id, undo.clone(), true, pool.clone()).await?;
+    insert_activity(self.creator_id, undo.clone(), true, pool).await?;
 
     let inboxes = self.get_follower_inboxes(pool).await?;
 
@@ -236,9 +238,9 @@ impl ActorType for Community {
     &self,
     mod_: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError> {
-    let group = self.to_apub(pool.clone()).await?;
+    let group = self.to_apub(pool).await?;
 
     let id = format!("{}/remove/{}", self.actor_id, uuid::Uuid::new_v4());
 
@@ -254,7 +256,7 @@ impl ActorType for Community {
       .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
       .set_object_base_box(BaseBox::from_concrete(group)?)?;
 
-    insert_activity(mod_.id, remove.clone(), true, pool.clone()).await?;
+    insert_activity(mod_.id, remove.clone(), true, pool).await?;
 
     let inboxes = self.get_follower_inboxes(pool).await?;
 
@@ -269,9 +271,9 @@ impl ActorType for Community {
     &self,
     mod_: &User_,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<(), LemmyError> {
-    let group = self.to_apub(pool.clone()).await?;
+    let group = self.to_apub(pool).await?;
 
     let id = format!("{}/remove/{}", self.actor_id, uuid::Uuid::new_v4());
 
@@ -302,7 +304,7 @@ impl ActorType for Community {
       .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
       .set_object_base_box(remove)?;
 
-    insert_activity(mod_.id, undo.clone(), true, pool.clone()).await?;
+    insert_activity(mod_.id, undo.clone(), true, pool).await?;
 
     let inboxes = self.get_follower_inboxes(pool).await?;
 
@@ -314,11 +316,13 @@ impl ActorType for Community {
   }
 
   /// For a given community, returns the inboxes of all followers.
-  async fn get_follower_inboxes(&self, pool: DbPool) -> Result<Vec<String>, LemmyError> {
+  async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<String>, LemmyError> {
     let id = self.id;
 
-    let inboxes: Vec<CommunityFollowerView> =
-      unblock!(pool, conn, CommunityFollowerView::for_community(&conn, id)?);
+    let inboxes = blocking(pool, move |conn| {
+      CommunityFollowerView::for_community(conn, id)
+    })
+    .await??;
     let inboxes = inboxes
       .into_iter()
       .map(|c| get_shared_inbox(&c.user_actor_id))
@@ -333,7 +337,7 @@ impl ActorType for Community {
     &self,
     _follow_actor_id: &str,
     _client: &Client,
-    _pool: DbPool,
+    _pool: &DbPool,
   ) -> Result<(), LemmyError> {
     unimplemented!()
   }
@@ -342,7 +346,7 @@ impl ActorType for Community {
     &self,
     _follow_actor_id: &str,
     _client: &Client,
-    _pool: DbPool,
+    _pool: &DbPool,
   ) -> Result<(), LemmyError> {
     unimplemented!()
   }
@@ -353,7 +357,7 @@ impl FromApub for CommunityForm {
   type ApubType = GroupExt;
 
   /// Parse an ActivityPub group received from another instance into a Lemmy community.
-  async fn from_apub(group: &GroupExt, client: &Client, pool: DbPool) -> Result<Self, LemmyError> {
+  async fn from_apub(group: &GroupExt, client: &Client, pool: &DbPool) -> Result<Self, LemmyError> {
     let group_extensions: &GroupExtension = &group.ext_one;
     let oprops = &group.inner.object_props;
     let aprops = &group.ext_two;
@@ -362,8 +366,7 @@ impl FromApub for CommunityForm {
     let mut creator_and_moderator_uris = oprops.get_many_attributed_to_xsd_any_uris().unwrap();
     let creator_uri = creator_and_moderator_uris.next().unwrap();
 
-    let creator =
-      get_or_fetch_and_upsert_remote_user(creator_uri.as_str(), client, pool.clone()).await?;
+    let creator = get_or_fetch_and_upsert_remote_user(creator_uri.as_str(), client, pool).await?;
 
     Ok(CommunityForm {
       name: oprops.get_name_xsd_string().unwrap().to_string(),
@@ -396,14 +399,13 @@ pub async fn get_apub_community_http(
   info: web::Path<CommunityQuery>,
   db: DbPoolParam,
 ) -> Result<HttpResponse<Body>, LemmyError> {
-  let community: Community = unblock!(
-    db,
-    conn,
-    Community::read_from_name(&conn, &info.community_name)?
-  );
+  let community = blocking(&db, move |conn| {
+    Community::read_from_name(conn, &info.community_name)
+  })
+  .await??;
 
   if !community.deleted {
-    let apub = community.to_apub((**db).clone()).await?;
+    let apub = community.to_apub(&db).await?;
 
     Ok(create_apub_response(&apub))
   } else {
@@ -416,18 +418,16 @@ pub async fn get_apub_community_followers(
   info: web::Path<CommunityQuery>,
   db: DbPoolParam,
 ) -> Result<HttpResponse<Body>, LemmyError> {
-  let community: Community = unblock!(
-    db,
-    conn,
-    Community::read_from_name(&conn, &info.community_name)?
-  );
+  let community = blocking(&db, move |conn| {
+    Community::read_from_name(&conn, &info.community_name)
+  })
+  .await??;
 
   let community_id = community.id;
-  let community_followers: Vec<CommunityFollowerView> = unblock!(
-    db,
-    conn,
-    CommunityFollowerView::for_community(&conn, community_id)?
-  );
+  let community_followers = blocking(&db, move |conn| {
+    CommunityFollowerView::for_community(&conn, community_id)
+  })
+  .await??;
 
   let mut collection = UnorderedCollection::default();
   let oprops: &mut ObjectProperties = collection.as_mut();
@@ -446,7 +446,7 @@ impl Community {
     community: &Community,
     sender: &dyn ActorType,
     client: &Client,
-    pool: DbPool,
+    pool: &DbPool,
   ) -> Result<HttpResponse, LemmyError>
   where
     A: Activity + Base + Serialize + Debug,
@@ -462,7 +462,7 @@ impl Community {
       .set_actor_xsd_any_uri(community.actor_id.to_owned())?
       .set_object_base_box(BaseBox::from_concrete(activity)?)?;
 
-    insert_activity(community.creator_id, announce.clone(), true, pool.clone()).await?;
+    insert_activity(community.creator_id, announce.clone(), true, pool).await?;
 
     // dont send to the instance where the activity originally came from, because that would result
     // in a database error (same data inserted twice)
