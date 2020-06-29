@@ -28,20 +28,20 @@
   - name: create lemmy folder
     file: path={{item.path}} owner={{item.owner}} state=directory
     with_items:
-      - { path: '/lemmy/', owner: 'root' }
-      - { path: '/lemmy/volumes/', owner: 'root' }
-      - { path: '/lemmy/volumes/pictrs/', owner: '991' }
+      - { path: '/srv/lemmy/', owner: 'root' }
+      - { path: '/srv/lemmy/volumes/', owner: 'root' }
+      - { path: '/srv/lemmy/volumes/pictrs/', owner: '991' }
 
   - block:
     - name:  add template files
       template: src={{item.src}} dest={{item.dest}} mode={{item.mode}}
       with_items:
-        - { src: 'templates/docker-compose.yml', dest: '/lemmy/docker-compose.yml', mode: '0600' }
+        - { src: 'templates/docker-compose.yml', dest: '/srv/lemmy/docker-compose.yml', mode: '0600' }
         - { src: 'templates/nginx.conf', dest: '/etc/nginx/sites-enabled/lemmy.conf', mode: '0644' }
-        - { src: '../docker/iframely.config.local.js', dest: '/lemmy/iframely.config.local.js', mode: '0600' }
+        - { src: '../docker/iframely.config.local.js', dest: '/srv/lemmy/iframely.config.local.js', mode: '0600' }
 
     - name:  add config file (only during initial setup)
-      template: src='templates/config.hjson' dest='/lemmy/lemmy.hjson' mode='0600' force='no' owner='1000' group='1000'
+      template: src='templates/config.hjson' dest='/srv/lemmy/lemmy.hjson' mode='0600' force='no' owner='1000' group='1000'
     vars:
       postgres_password: "{{ lookup('password', 'passwords/{{ inventory_hostname }}/postgres chars=ascii_letters,digits') }}"
       jwt_password: "{{ lookup('password', 'passwords/{{ inventory_hostname }}/jwt chars=ascii_letters,digits') }}"
@@ -59,19 +59,19 @@
     local_action: shell sudo docker save lemmy:dev > lemmy-dev.tar
 
   - name: copy dev docker image to server
-    copy: src=lemmy-dev.tar dest=/lemmy/lemmy-dev.tar
+    copy: src=lemmy-dev.tar dest=/srv/lemmy/lemmy-dev.tar
 
   - name: import docker image
     docker_image:
       name: lemmy
       tag: dev
-      load_path: /lemmy/lemmy-dev.tar
+      load_path: /srv/lemmy/lemmy-dev.tar
       source: load
       force_source: yes
     register: image_import
 
   - name: delete remote image file
-    file: path=/lemmy/lemmy-dev.tar state=absent
+    file: path=/srv/lemmy/lemmy-dev.tar state=absent
 
   - name: delete local image file
     local_action: file path=lemmy-dev.tar state=absent
@@ -86,7 +86,7 @@
   # be a problem for testing
   - name: start docker-compose
     docker_compose:
-      project_src: /lemmy/
+      project_src: /srv/lemmy/
       state: present
       recreate: always
       remove_orphans: yes

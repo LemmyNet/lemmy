@@ -22,13 +22,13 @@
 
   - name: stop docker-compose
     docker_compose:
-      project_src: /lemmy/
+      project_src: /srv/lemmy/
       state: absent
 
   - name: delete data
     file: path={{item.path}} state=absent
     with_items:
-      - { path: '/lemmy/' }
+      - { path: '/srv/lemmy/' }
       - { path: '/etc/nginx/sites-enabled/lemmy.conf' }
 
   - name: Remove a volume
