@@ -175,6 +175,7 @@ export class PrivateMessageForm extends Component<
                     <a
                       class="alert-link"
                       target="_blank"
+                      rel="noopener"
                       href="https://about.riot.im/"
                     >
                       #
@@ -236,6 +237,7 @@ export class PrivateMessageForm extends Component<
                   <a
                     href={markdownHelpUrl}
                     target="_blank"
+                    rel="noopener"
                     class="text-muted"
                     title={i18n.t('formatting_help')}
                   >

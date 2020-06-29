@@ -222,6 +222,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
                   )}`}
                   target="_blank"
                   class="mr-2 d-inline-block float-right text-muted small font-weight-bold"
+                  rel="noopener"
                 >
                   {i18n.t('archive_link')}
                 </a>
@@ -302,6 +303,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               <a
                 href={markdownHelpUrl}
                 target="_blank"
+                rel="noopener"
                 class="d-inline-block float-right text-muted font-weight-bold"
                 title={i18n.t('formatting_help')}
               >

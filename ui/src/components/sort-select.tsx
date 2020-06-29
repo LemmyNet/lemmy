@@ -47,6 +47,7 @@ export class SortSelect extends Component<SortSelectProps, SortSelectState> {
           className="text-muted"
           href={sortingHelpUrl}
           target="_blank"
+          rel="noopener"
           title={i18n.t('sorting_help')}
         >
           <svg class={`icon icon-inline`}>
