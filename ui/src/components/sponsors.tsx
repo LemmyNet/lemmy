@@ -10,6 +10,9 @@ interface SilverUser {
 }
 
 let general = [
+  'Andrew Plaza',
+  'Jonathan Cremin',
+  'Arthur Nieuwland',
   'Ernest Wiśniewski',
   'HN',
   'Forrest Weghorst',
