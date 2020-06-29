@@ -198,6 +198,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           href={post.url}
           target="_blank"
           title={post.url}
+          rel="noopener"
         >
           {this.imgThumb(this.getImage(true))}
           <svg class="icon mini-overlay">
@@ -227,6 +228,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             href={post.url}
             target="_blank"
             title={post.url}
+            rel="noopener"
           >
             <svg class="icon thumbnail">
               <use xlinkHref="#icon-external-link"></use>
@@ -303,6 +305,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                       href={post.url}
                       target="_blank"
                       title={post.url}
+                      rel="noopener"
                     >
                       {post.name}
                     </a>
@@ -323,6 +326,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                       href={post.url}
                       target="_blank"
                       title={post.url}
+                      rel="noopener"
                     >
                       {hostname(post.url)}
                       <svg class="ml-1 icon icon-inline">
