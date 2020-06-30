@@ -199,7 +199,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           target="_blank"
           rel="noopener"
           title={post.url}
-          rel="noopener"
         >
           {this.imgThumb(this.getImage(true))}
           <svg class="icon mini-overlay">
@@ -228,7 +227,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             className="text-body"
             href={post.url}
             target="_blank"
-            rel="noopener"
             title={post.url}
             rel="noopener"
           >
@@ -306,7 +304,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                       className="text-body"
                       href={post.url}
                       target="_blank"
-                      rel="noopener"
                       title={post.url}
                       rel="noopener"
                     >
@@ -328,7 +325,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                       className="ml-2 text-muted font-italic"
                       href={post.url}
                       target="_blank"
-                      rel="noopener"
                       title={post.url}
                       rel="noopener"
                     >
