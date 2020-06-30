@@ -15,10 +15,8 @@ sudo chown -R 991:991 volumes/pictrs_{alpha,beta,gamma}
 
 sudo docker build ../../ --file ../federation/Dockerfile --tag lemmy-federation:latest
 
-for Item in alpha beta gamma ; do
-  sudo mkdir -p volumes/pictrs_$Item
-  sudo chown -R 991:991 volumes/pictrs_$Item
-done
+sudo mkdir -p volumes/pictrs_alpha
+sudo chown -R 991:991 volumes/pictrs_alpha
 
 sudo docker-compose --file ../federation/docker-compose.yml --project-directory . up -d
 
