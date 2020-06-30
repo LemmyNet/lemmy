@@ -5,12 +5,18 @@
   # https://www.josharcher.uk/code/ansible-python-connection-failure-ubuntu-server-1604/
   gather_facts: False
   pre_tasks:
+    - name: check lemmy_base_dir
+      fail:
+        msg: "lemmy_base_dir is unset, old default value was '/lemmy'"
+      when: lemmy_base_dir is not defined
+
     - name: install python for Ansible
       raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal python-setuptools)
       args:
         executable: /bin/bash
       register: output
       changed_when: output.stdout != ''
+
     - setup: # gather facts
 
   tasks:
