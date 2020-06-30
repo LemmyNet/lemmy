@@ -1,9 +1,0 @@
-alter table comment disable trigger refresh_comment;
-alter table user_ disable trigger refresh_user;
-alter table post disable trigger refresh_post;
-alter table community disable trigger refresh_community;
-alter table private_message disable trigger refresh_private_message;
-alter table post_like disable trigger refresh_post_like;
-alter table community_follower disable trigger refresh_community_follower;
-alter table community_user_ban disable trigger refresh_community_user_ban;
-alter table comment_like disable trigger refresh_comment_like;

@@ -38,6 +38,41 @@ table! {
   }
 }
 
+table! {
+  comment_mview (id) {
+    id -> Int4,
+    creator_id -> Int4,
+    post_id -> Int4,
+    parent_id -> Nullable<Int4>,
+    content -> Text,
+    removed -> Bool,
+    read -> Bool,
+    published -> Timestamp,
+    updated -> Nullable<Timestamp>,
+    deleted -> Bool,
+    ap_id -> Text,
+    local -> Bool,
+    community_id -> Int4,
+    community_actor_id -> Text,
+    community_local -> Bool,
+    community_name -> Varchar,
+    banned -> Bool,
+    banned_from_community -> Bool,
+    creator_actor_id -> Text,
+    creator_local -> Bool,
+    creator_name -> Varchar,
+    creator_avatar -> Nullable<Text>,
+    score -> BigInt,
+    upvotes -> BigInt,
+    downvotes -> BigInt,
+    hot_rank -> Int4,
+    user_id -> Nullable<Int4>,
+    my_vote -> Nullable<Int4>,
+    subscribed -> Nullable<Bool>,
+    saved -> Nullable<Bool>,
+  }
+}
+
 #[derive(
   Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
 )]
@@ -77,7 +112,7 @@ pub struct CommentView {
 
 pub struct CommentQueryBuilder<'a> {
   conn: &'a PgConnection,
-  query: super::comment_view::comment_view::BoxedQuery<'a, Pg>,
+  query: super::comment_view::comment_mview::BoxedQuery<'a, Pg>,
   listing_type: ListingType,
   sort: &'a SortType,
   for_community_id: Option<i32>,
@@ -92,9 +127,9 @@ pub struct CommentQueryBuilder<'a> {
 
 impl<'a> CommentQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection) -> Self {
-    use super::comment_view::comment_view::dsl::*;
+    use super::comment_view::comment_mview::dsl::*;
 
-    let query = comment_view.into_boxed();
+    let query = comment_mview.into_boxed();
 
     CommentQueryBuilder {
       conn,
@@ -163,7 +198,7 @@ impl<'a> CommentQueryBuilder<'a> {
   }
 
   pub fn list(self) -> Result<Vec<CommentView>, Error> {
-    use super::comment_view::comment_view::dsl::*;
+    use super::comment_view::comment_mview::dsl::*;
 
     let mut query = self.query;
 
@@ -235,8 +270,8 @@ impl CommentView {
     from_comment_id: i32,
     my_user_id: Option<i32>,
   ) -> Result<Self, Error> {
-    use super::comment_view::comment_view::dsl::*;
-    let mut query = comment_view.into_boxed();
+    use super::comment_view::comment_mview::dsl::*;
+    let mut query = comment_mview.into_boxed();
 
     // The view lets you pass a null user_id, if you're not logged in
     if let Some(my_user_id) = my_user_id {

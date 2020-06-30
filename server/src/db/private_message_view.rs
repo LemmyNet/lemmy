@@ -26,6 +26,29 @@ table! {
   }
 }
 
+table! {
+  private_message_mview (id) {
+    id -> Int4,
+    creator_id -> Int4,
+    recipient_id -> Int4,
+    content -> Text,
+    deleted -> Bool,
+    read -> Bool,
+    published -> Timestamp,
+    updated -> Nullable<Timestamp>,
+    ap_id -> Text,
+    local -> Bool,
+    creator_name -> Varchar,
+    creator_avatar -> Nullable<Text>,
+    creator_actor_id -> Text,
+    creator_local -> Bool,
+    recipient_name -> Varchar,
+    recipient_avatar -> Nullable<Text>,
+    recipient_actor_id -> Text,
+    recipient_local -> Bool,
+  }
+}
+
 #[derive(
   Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
 )]
@@ -53,7 +76,7 @@ pub struct PrivateMessageView {
 
 pub struct PrivateMessageQueryBuilder<'a> {
   conn: &'a PgConnection,
-  query: super::private_message_view::private_message_view::BoxedQuery<'a, Pg>,
+  query: super::private_message_view::private_message_mview::BoxedQuery<'a, Pg>,
   for_recipient_id: i32,
   unread_only: bool,
   page: Option<i64>,
@@ -62,9 +85,9 @@ pub struct PrivateMessageQueryBuilder<'a> {
 
 impl<'a> PrivateMessageQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection, for_recipient_id: i32) -> Self {
-    use super::private_message_view::private_message_view::dsl::*;
+    use super::private_message_view::private_message_mview::dsl::*;
 
-    let query = private_message_view.into_boxed();
+    let query = private_message_mview.into_boxed();
 
     PrivateMessageQueryBuilder {
       conn,
@@ -92,7 +115,7 @@ impl<'a> PrivateMessageQueryBuilder<'a> {
   }
 
   pub fn list(self) -> Result<Vec<PrivateMessageView>, Error> {
-    use super::private_message_view::private_message_view::dsl::*;
+    use super::private_message_view::private_message_mview::dsl::*;
 
     let mut query = self.query.filter(deleted.eq(false));
 

@@ -1,10 +1,40 @@
-use super::community_view::community_view::BoxedQuery;
+use super::community_view::community_mview::BoxedQuery;
 use crate::db::{fuzzy_search, limit_and_offset, MaybeOptional, SortType};
 use diesel::{pg::Pg, result::Error, *};
 use serde::{Deserialize, Serialize};
 
 table! {
   community_view (id) {
+    id -> Int4,
+    name -> Varchar,
+    title -> Varchar,
+    description -> Nullable<Text>,
+    category_id -> Int4,
+    creator_id -> Int4,
+    removed -> Bool,
+    published -> Timestamp,
+    updated -> Nullable<Timestamp>,
+    deleted -> Bool,
+    nsfw -> Bool,
+    actor_id -> Text,
+    local -> Bool,
+    last_refreshed_at -> Timestamp,
+    creator_actor_id -> Text,
+    creator_local -> Bool,
+    creator_name -> Varchar,
+    creator_avatar -> Nullable<Text>,
+    category_name -> Varchar,
+    number_of_subscribers -> BigInt,
+    number_of_posts -> BigInt,
+    number_of_comments -> BigInt,
+    hot_rank -> Int4,
+    user_id -> Nullable<Int4>,
+    subscribed -> Nullable<Bool>,
+  }
+}
+
+table! {
+  community_mview (id) {
     id -> Int4,
     name -> Varchar,
     title -> Varchar,
@@ -126,9 +156,9 @@ pub struct CommunityQueryBuilder<'a> {
 
 impl<'a> CommunityQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection) -> Self {
-    use super::community_view::community_view::dsl::*;
+    use super::community_view::community_mview::dsl::*;
 
-    let query = community_view.into_boxed();
+    let query = community_mview.into_boxed();
 
     CommunityQueryBuilder {
       conn,
@@ -173,7 +203,7 @@ impl<'a> CommunityQueryBuilder<'a> {
   }
 
   pub fn list(self) -> Result<Vec<CommunityView>, Error> {
-    use super::community_view::community_view::dsl::*;
+    use super::community_view::community_mview::dsl::*;
 
     let mut query = self.query;
 
@@ -229,9 +259,9 @@ impl CommunityView {
     from_community_id: i32,
     from_user_id: Option<i32>,
   ) -> Result<Self, Error> {
-    use super::community_view::community_view::dsl::*;
+    use super::community_view::community_mview::dsl::*;
 
-    let mut query = community_view.into_boxed();
+    let mut query = community_mview.into_boxed();
 
     query = query.filter(id.eq(from_community_id));
 
