@@ -217,6 +217,7 @@ export class Community extends Component<any, State> {
           }`}
           target="_blank"
           title="RSS"
+          rel="noopener"
         >
           <svg class="icon text-muted small">
             <use xlinkHref="#icon-rss">#</use>

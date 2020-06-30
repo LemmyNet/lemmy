@@ -185,6 +185,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
                 target="_blank"
                 class="d-inline-block float-right text-muted font-weight-bold"
                 title={i18n.t('formatting_help')}
+                rel="noopener"
               >
                 <svg class="icon icon-inline">
                   <use xlinkHref="#icon-help-circle"></use>

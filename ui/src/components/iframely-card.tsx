@@ -44,7 +44,12 @@ export class IFramelyCard extends Component<
                       </span>
                     ) : (
                       <span>
-                        <a class="text-body" target="_blank" href={post.url}>
+                        <a
+                          class="text-body"
+                          target="_blank"
+                          href={post.url}
+                          rel="noopener"
+                        >
                           {post.embed_title}
                         </a>
                       </span>
@@ -55,6 +60,7 @@ export class IFramelyCard extends Component<
                       class="text-muted font-italic"
                       target="_blank"
                       href={post.url}
+                      rel="noopener"
                     >
                       {new URL(post.url).hostname}
                       <svg class="ml-1 icon">
