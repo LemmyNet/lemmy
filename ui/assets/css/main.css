@@ -249,3 +249,11 @@ pre {
   white-space: pre-wrap;
   word-break: keep-all;
 }
+
+.search-bar {
+  flex-basis: 10%;
+  flex-shrink: 3;
+  flex-grow: 0.3;
+  max-width: 33%;
+  min-width: 11em;
+}
