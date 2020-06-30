@@ -1,0 +1,9 @@
+alter table comment enable trigger refresh_comment;
+alter table user_ enable trigger refresh_user;
+alter table post enable trigger refresh_post;
+alter table community enable trigger refresh_community;
+alter table private_message enable trigger refresh_private_message;
+alter table post_like enable trigger refresh_post_like;
+alter table community_follower enable trigger refresh_community_follower;
+alter table community_user_ban enable trigger refresh_community_user_ban;
+alter table comment_like enable trigger refresh_comment_like;

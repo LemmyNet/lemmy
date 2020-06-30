@@ -39,42 +39,6 @@ table! {
   }
 }
 
-table! {
-  user_mention_mview (id) {
-    id -> Int4,
-    user_mention_id -> Int4,
-    creator_id -> Int4,
-    creator_actor_id -> Text,
-    creator_local -> Bool,
-    post_id -> Int4,
-    parent_id -> Nullable<Int4>,
-    content -> Text,
-    removed -> Bool,
-    read -> Bool,
-    published -> Timestamp,
-    updated -> Nullable<Timestamp>,
-    deleted -> Bool,
-    community_id -> Int4,
-    community_actor_id -> Text,
-    community_local -> Bool,
-    community_name -> Varchar,
-    banned -> Bool,
-    banned_from_community -> Bool,
-    creator_name -> Varchar,
-    creator_avatar -> Nullable<Text>,
-    score -> BigInt,
-    upvotes -> BigInt,
-    downvotes -> BigInt,
-    hot_rank -> Int4,
-    user_id -> Nullable<Int4>,
-    my_vote -> Nullable<Int4>,
-    saved -> Nullable<Bool>,
-    recipient_id -> Int4,
-    recipient_actor_id -> Text,
-    recipient_local -> Bool,
-  }
-}
-
 #[derive(
   Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
 )]
@@ -115,7 +79,7 @@ pub struct UserMentionView {
 
 pub struct UserMentionQueryBuilder<'a> {
   conn: &'a PgConnection,
-  query: super::user_mention_view::user_mention_mview::BoxedQuery<'a, Pg>,
+  query: super::user_mention_view::user_mention_view::BoxedQuery<'a, Pg>,
   for_user_id: i32,
   sort: &'a SortType,
   unread_only: bool,
@@ -125,9 +89,9 @@ pub struct UserMentionQueryBuilder<'a> {
 
 impl<'a> UserMentionQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection, for_user_id: i32) -> Self {
-    use super::user_mention_view::user_mention_mview::dsl::*;
+    use super::user_mention_view::user_mention_view::dsl::*;
 
-    let query = user_mention_mview.into_boxed();
+    let query = user_mention_view.into_boxed();
 
     UserMentionQueryBuilder {
       conn,
@@ -161,7 +125,7 @@ impl<'a> UserMentionQueryBuilder<'a> {
   }
 
   pub fn list(self) -> Result<Vec<UserMentionView>, Error> {
-    use super::user_mention_view::user_mention_mview::dsl::*;
+    use super::user_mention_view::user_mention_view::dsl::*;
 
     let mut query = self.query;
 

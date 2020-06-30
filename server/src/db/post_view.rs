@@ -1,4 +1,4 @@
-use super::post_view::post_mview::BoxedQuery;
+use super::post_view::post_view::BoxedQuery;
 use crate::db::{fuzzy_search, limit_and_offset, ListingType, MaybeOptional, SortType};
 use diesel::{dsl::*, pg::Pg, result::Error, *};
 use serde::{Deserialize, Serialize};
@@ -6,53 +6,6 @@ use serde::{Deserialize, Serialize};
 // The faked schema since diesel doesn't do views
 table! {
   post_view (id) {
-    id -> Int4,
-    name -> Varchar,
-    url -> Nullable<Text>,
-    body -> Nullable<Text>,
-    creator_id -> Int4,
-    community_id -> Int4,
-    removed -> Bool,
-    locked -> Bool,
-    published -> Timestamp,
-    updated -> Nullable<Timestamp>,
-    deleted -> Bool,
-    nsfw -> Bool,
-    stickied -> Bool,
-    embed_title -> Nullable<Text>,
-    embed_description -> Nullable<Text>,
-    embed_html -> Nullable<Text>,
-    thumbnail_url -> Nullable<Text>,
-    ap_id -> Text,
-    local -> Bool,
-    banned -> Bool,
-    banned_from_community -> Bool,
-    creator_actor_id -> Text,
-    creator_local -> Bool,
-    creator_name -> Varchar,
-    creator_avatar -> Nullable<Text>,
-    community_actor_id -> Text,
-    community_local -> Bool,
-    community_name -> Varchar,
-    community_removed -> Bool,
-    community_deleted -> Bool,
-    community_nsfw -> Bool,
-    number_of_comments -> BigInt,
-    score -> BigInt,
-    upvotes -> BigInt,
-    downvotes -> BigInt,
-    hot_rank -> Int4,
-    newest_activity_time -> Timestamp,
-    user_id -> Nullable<Int4>,
-    my_vote -> Nullable<Int4>,
-    subscribed -> Nullable<Bool>,
-    read -> Nullable<Bool>,
-    saved -> Nullable<Bool>,
-  }
-}
-
-table! {
-  post_mview (id) {
     id -> Int4,
     name -> Varchar,
     url -> Nullable<Text>,
@@ -166,9 +119,9 @@ pub struct PostQueryBuilder<'a> {
 
 impl<'a> PostQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection) -> Self {
-    use super::post_view::post_mview::dsl::*;
+    use super::post_view::post_view::dsl::*;
 
-    let query = post_mview.into_boxed();
+    let query = post_view.into_boxed();
 
     PostQueryBuilder {
       conn,
@@ -249,7 +202,7 @@ impl<'a> PostQueryBuilder<'a> {
   }
 
   pub fn list(self) -> Result<Vec<PostView>, Error> {
-    use super::post_view::post_mview::dsl::*;
+    use super::post_view::post_view::dsl::*;
 
     let mut query = self.query;
 
@@ -345,10 +298,10 @@ impl PostView {
     from_post_id: i32,
     my_user_id: Option<i32>,
   ) -> Result<Self, Error> {
-    use super::post_view::post_mview::dsl::*;
+    use super::post_view::post_view::dsl::*;
     use diesel::prelude::*;
 
-    let mut query = post_mview.into_boxed();
+    let mut query = post_view.into_boxed();
 
     query = query.filter(id.eq(from_post_id));
 
