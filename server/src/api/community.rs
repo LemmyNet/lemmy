@@ -2,16 +2,25 @@ use super::*;
 use crate::{
   api::{APIError, Oper, Perform},
   apub::{
-    extensions::signatures::generate_actor_keypair, make_apub_endpoint, ActorType, EndpointType,
+    extensions::signatures::generate_actor_keypair,
+    make_apub_endpoint,
+    ActorType,
+    EndpointType,
   },
   blocking,
   db::{Bannable, Crud, Followable, Joinable, SortType},
-  is_valid_community_name, naive_from_unix, naive_now, slur_check, slurs_vec_to_str,
+  is_valid_community_name,
+  naive_from_unix,
+  naive_now,
+  slur_check,
+  slurs_vec_to_str,
   websocket::{
     server::{JoinCommunityRoom, SendCommunityRoomMessage},
-    UserOperation, WebsocketInfo,
+    UserOperation,
+    WebsocketInfo,
   },
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;

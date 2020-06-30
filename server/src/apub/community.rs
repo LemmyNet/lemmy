@@ -1,12 +1,19 @@
 use crate::{
   apub::{
     activities::{populate_object_props, send_activity},
-    create_apub_response, create_apub_tombstone_response, create_tombstone,
+    create_apub_response,
+    create_apub_tombstone_response,
+    create_tombstone,
     extensions::{group_extensions::GroupExtension, signatures::PublicKey},
     fetcher::get_or_fetch_and_upsert_remote_user,
-    get_shared_inbox, ActorType, FromApub, GroupExt, ToApub,
+    get_shared_inbox,
+    ActorType,
+    FromApub,
+    GroupExt,
+    ToApub,
   },
-  blocking, convert_datetime,
+  blocking,
+  convert_datetime,
   db::{
     activity::insert_activity,
     community::{Community, CommunityForm},
@@ -15,7 +22,8 @@ use crate::{
   },
   naive_now,
   routes::DbPoolParam,
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams::{
   activity::{Accept, Announce, Delete, Remove, Undo},
@@ -24,7 +32,9 @@ use activitystreams::{
   context,
   endpoint::EndpointProperties,
   object::properties::ObjectProperties,
-  Activity, Base, BaseBox,
+  Activity,
+  Base,
+  BaseBox,
 };
 use activitystreams_ext::Ext3;
 use activitystreams_new::{activity::Follow, object::Tombstone};

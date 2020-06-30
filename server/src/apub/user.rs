@@ -1,16 +1,23 @@
 use crate::{
   apub::{
-    activities::send_activity, create_apub_response, extensions::signatures::PublicKey, ActorType,
-    FromApub, PersonExt, ToApub,
+    activities::send_activity,
+    create_apub_response,
+    extensions::signatures::PublicKey,
+    ActorType,
+    FromApub,
+    PersonExt,
+    ToApub,
   },
-  blocking, convert_datetime,
+  blocking,
+  convert_datetime,
   db::{
     activity::insert_activity,
     user::{UserForm, User_},
   },
   naive_now,
   routes::DbPoolParam,
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams::{
   actor::{properties::ApActorProperties, Person},

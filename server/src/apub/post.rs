@@ -1,13 +1,21 @@
 use crate::{
   apub::{
     activities::{populate_object_props, send_activity_to_community},
-    create_apub_response, create_apub_tombstone_response, create_tombstone,
+    create_apub_response,
+    create_apub_tombstone_response,
+    create_tombstone,
     extensions::page_extension::PageExtension,
     fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user},
-    get_apub_protocol_string, ActorType, ApubLikeableType, ApubObjectType, FromApub, PageExt,
+    get_apub_protocol_string,
+    ActorType,
+    ApubLikeableType,
+    ApubObjectType,
+    FromApub,
+    PageExt,
     ToApub,
   },
-  blocking, convert_datetime,
+  blocking,
+  convert_datetime,
   db::{
     community::Community,
     post::{Post, PostForm},
@@ -15,7 +23,9 @@ use crate::{
     Crud,
   },
   routes::DbPoolParam,
-  DbPool, LemmyError, Settings,
+  DbPool,
+  LemmyError,
+  Settings,
 };
 use activitystreams::{
   activity::{Create, Delete, Dislike, Like, Remove, Undo, Update},

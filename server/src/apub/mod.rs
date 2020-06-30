@@ -20,7 +20,10 @@ use crate::{
   db::user::User_,
   request::{retry, RecvError},
   routes::webfinger::WebFingerResponse,
-  DbPool, LemmyError, MentionData, Settings,
+  DbPool,
+  LemmyError,
+  MentionData,
+  Settings,
 };
 use activitystreams::{
   actor::{properties::ApActorProperties, Group, Person},

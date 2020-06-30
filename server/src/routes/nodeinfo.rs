@@ -1,6 +1,11 @@
 use crate::{
-  apub::get_apub_protocol_string, blocking, db::site_view::SiteView, routes::DbPoolParam, version,
-  LemmyError, Settings,
+  apub::get_apub_protocol_string,
+  blocking,
+  db::site_view::SiteView,
+  routes::DbPoolParam,
+  version,
+  LemmyError,
+  Settings,
 };
 use actix_web::{body::Body, error::ErrorBadRequest, *};
 use serde::{Deserialize, Serialize};

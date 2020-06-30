@@ -1,8 +1,15 @@
 use crate::{
   db::Crud,
   schema::{
-    mod_add, mod_add_community, mod_ban, mod_ban_from_community, mod_lock_post, mod_remove_comment,
-    mod_remove_community, mod_remove_post, mod_sticky_post,
+    mod_add,
+    mod_add_community,
+    mod_ban,
+    mod_ban_from_community,
+    mod_lock_post,
+    mod_remove_comment,
+    mod_remove_community,
+    mod_remove_post,
+    mod_sticky_post,
   },
 };
 use diesel::{dsl::*, result::Error, *};

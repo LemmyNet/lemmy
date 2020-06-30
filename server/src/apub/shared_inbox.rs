@@ -7,10 +7,14 @@ use crate::{
   apub::{
     extensions::signatures::verify,
     fetcher::{
-      get_or_fetch_and_insert_remote_comment, get_or_fetch_and_insert_remote_post,
-      get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user,
+      get_or_fetch_and_insert_remote_comment,
+      get_or_fetch_and_insert_remote_post,
+      get_or_fetch_and_upsert_remote_community,
+      get_or_fetch_and_upsert_remote_user,
     },
-    FromApub, GroupExt, PageExt,
+    FromApub,
+    GroupExt,
+    PageExt,
   },
   blocking,
   db::{
@@ -21,7 +25,8 @@ use crate::{
     community_view::CommunityView,
     post::{Post, PostForm, PostLike, PostLikeForm},
     post_view::PostView,
-    Crud, Likeable,
+    Crud,
+    Likeable,
   },
   naive_now,
   routes::{ChatServerParam, DbPoolParam},
@@ -30,12 +35,15 @@ use crate::{
     server::{SendComment, SendCommunityRoomMessage, SendPost},
     UserOperation,
   },
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams::{
   activity::{Announce, Create, Delete, Dislike, Like, Remove, Undo, Update},
   object::Note,
-  Activity, Base, BaseBox,
+  Activity,
+  Base,
+  BaseBox,
 };
 use actix_web::{client::Client, web, HttpRequest, HttpResponse};
 use log::debug;

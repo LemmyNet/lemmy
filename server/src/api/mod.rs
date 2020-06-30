@@ -1,7 +1,8 @@
 use crate::{
   db::{community::*, community_view::*, moderator::*, site::*, user::*, user_view::*},
   websocket::WebsocketInfo,
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use actix_web::client::Client;
 

@@ -2,7 +2,8 @@ use crate::{
   apub::{extensions::signatures::sign, is_apub_id_valid, ActorType},
   db::{activity::insert_activity, community::Community, user::User_},
   request::retry_custom,
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams::{context, object::properties::ObjectProperties, public, Activity, Base};
 use actix_web::client::Client;

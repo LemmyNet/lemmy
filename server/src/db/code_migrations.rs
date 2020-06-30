@@ -9,7 +9,8 @@ use super::{
 use crate::{
   apub::{extensions::signatures::generate_actor_keypair, make_apub_endpoint, EndpointType},
   db::Crud,
-  naive_now, LemmyError,
+  naive_now,
+  LemmyError,
 };
 use diesel::*;
 use log::info;

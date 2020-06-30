@@ -1,16 +1,22 @@
 use crate::{
   apub::{
-    activities::send_activity, create_tombstone, fetcher::get_or_fetch_and_upsert_remote_user,
-    ApubObjectType, FromApub, ToApub,
+    activities::send_activity,
+    create_tombstone,
+    fetcher::get_or_fetch_and_upsert_remote_user,
+    ApubObjectType,
+    FromApub,
+    ToApub,
   },
-  blocking, convert_datetime,
+  blocking,
+  convert_datetime,
   db::{
     activity::insert_activity,
     private_message::{PrivateMessage, PrivateMessageForm},
     user::User_,
     Crud,
   },
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams::{
   activity::{Create, Delete, Undo, Update},

@@ -2,7 +2,8 @@ use crate::{
   blocking,
   db::{community::Community, user::User_},
   routes::DbPoolParam,
-  LemmyError, Settings,
+  LemmyError,
+  Settings,
 };
 use actix_web::{error::ErrorBadRequest, web::Query, *};
 use regex::Regex;

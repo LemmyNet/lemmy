@@ -17,17 +17,25 @@ use crate::{
     post::{Post, PostForm},
     post_view::PostView,
     user::{UserForm, User_},
-    Crud, Joinable, SearchType,
+    Crud,
+    Joinable,
+    SearchType,
   },
   naive_now,
   request::{retry, RecvError},
   routes::nodeinfo::{NodeInfo, NodeInfoWellKnown},
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 
 use crate::{
   apub::{
-    get_apub_protocol_string, is_apub_id_valid, FromApub, GroupExt, PageExt, PersonExt,
+    get_apub_protocol_string,
+    is_apub_id_valid,
+    FromApub,
+    GroupExt,
+    PageExt,
+    PersonExt,
     APUB_JSON_CONTENT_TYPE,
   },
   db::user_view::UserView,

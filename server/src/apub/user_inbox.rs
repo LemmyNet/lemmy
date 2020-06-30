@@ -12,12 +12,14 @@ use crate::{
     private_message::{PrivateMessage, PrivateMessageForm},
     private_message_view::PrivateMessageView,
     user::User_,
-    Crud, Followable,
+    Crud,
+    Followable,
   },
   naive_now,
   routes::{ChatServerParam, DbPoolParam},
   websocket::{server::SendUserRoomMessage, UserOperation},
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams::{
   activity::{Accept, Create, Delete, Undo, Update},
