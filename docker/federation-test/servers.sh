@@ -9,7 +9,6 @@ popd
 
 pushd ../../ui
 yarn
-yarn build
 popd
 
 mkdir -p volumes/pictrs_{alpha,beta,gamma}
