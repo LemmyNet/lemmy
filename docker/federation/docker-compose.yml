@@ -117,6 +117,6 @@ services:
       - ./volumes/pictrs_gamma:/mnt
 
   iframely:
-    image: dogbin/iframely:latest
+    image: jolt/iframely:v1.4.3
     volumes:
       - ../iframely.config.local.js:/iframely/config.local.js:ro
