@@ -8,11 +8,6 @@ If you don't have a local clone of the Lemmy repo yet, just run the following co
 git clone https://github.com/LemmyNet/lemmy
 ```
 
-If you already have the Lemmy repo cloned, you need to add a new remote:
-```bash
-git remote add upstream https://github.com/LemmyNet/lemmy
-```
-
 ## Running locally
 
 You need to have the following packages installed, the Docker service needs to be running.
