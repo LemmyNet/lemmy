@@ -10,7 +10,7 @@ pub struct RateLimitBucket {
   allowance: f64,
 }
 
-#[derive(Eq, PartialEq, Hash, Debug, EnumIter, Copy, Clone)]
+#[derive(Eq, PartialEq, Hash, Debug, EnumIter, Copy, Clone, AsRefStr)]
 pub enum RateLimitType {
   Message,
   Register,
@@ -80,12 +80,21 @@ impl RateLimiter {
 
         if rate_limit.allowance < 1.0 {
           debug!(
-            "Rate limited IP: {}, time_passed: {}, allowance: {}",
-            ip, time_passed, rate_limit.allowance
+            "Rate limited type: {}, IP: {}, time_passed: {}, allowance: {}",
+            type_.as_ref(),
+            ip,
+            time_passed,
+            rate_limit.allowance
           );
           Err(
             APIError {
-              message: format!("Too many requests. {} per {} seconds", rate, per),
+              message: format!(
+                "Too many requests. type: {}, IP: {}, {} per {} seconds",
+                type_.as_ref(),
+                ip,
+                rate,
+                per
+              ),
             }
             .into(),
           )
