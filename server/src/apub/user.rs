@@ -8,6 +8,7 @@ use crate::{
     PersonExt,
     ToApub,
   },
+  blocking,
   convert_datetime,
   db::{
     activity::insert_activity,
@@ -15,6 +16,8 @@ use crate::{
   },
   naive_now,
   routes::DbPoolParam,
+  DbPool,
+  LemmyError,
 };
 use activitystreams::{
   actor::{properties::ApActorProperties, Person},
@@ -29,9 +32,7 @@ use activitystreams_new::{
   object::Tombstone,
   prelude::*,
 };
-use actix_web::{body::Body, web::Path, HttpResponse, Result};
-use diesel::PgConnection;
-use failure::Error;
+use actix_web::{body::Body, client::Client, web, HttpResponse};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -39,11 +40,12 @@ pub struct UserQuery {
   user_name: String,
 }
 
+#[async_trait::async_trait(?Send)]
 impl ToApub for User_ {
   type Response = PersonExt;
 
   // Turn a Lemmy Community into an ActivityPub group that can be sent out over the network.
-  fn to_apub(&self, _conn: &PgConnection) -> Result<PersonExt, Error> {
+  async fn to_apub(&self, _pool: &DbPool) -> Result<PersonExt, LemmyError> {
     // TODO go through all these to_string and to_owned()
     let mut person = Person::default();
     let oprops: &mut ObjectProperties = person.as_mut();
@@ -86,11 +88,12 @@ impl ToApub for User_ {
 
     Ok(Ext2::new(person, actor_props, self.get_public_key_ext()))
   }
-  fn to_tombstone(&self) -> Result<Tombstone, Error> {
+  fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
     unimplemented!()
   }
 }
 
+#[async_trait::async_trait(?Send)]
 impl ActorType for User_ {
   fn actor_id(&self) -> String {
     self.actor_id.to_owned()
@@ -105,19 +108,29 @@ impl ActorType for User_ {
   }
 
   /// As a given local user, send out a follow request to a remote community.
-  fn send_follow(&self, follow_actor_id: &str, conn: &PgConnection) -> Result<(), Error> {
+  async fn send_follow(
+    &self,
+    follow_actor_id: &str,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<(), LemmyError> {
     let id = format!("{}/follow/{}", self.actor_id, uuid::Uuid::new_v4());
     let mut follow = Follow::new(self.actor_id.to_owned(), follow_actor_id);
     follow.set_context(context()).set_id(id.parse()?);
     let to = format!("{}/inbox", follow_actor_id);
 
-    insert_activity(&conn, self.id, &follow, true)?;
+    insert_activity(self.id, follow.clone(), true, pool).await?;
 
-    send_activity(&follow, self, vec![to])?;
+    send_activity(client, &follow, self, vec![to]).await?;
     Ok(())
   }
 
-  fn send_unfollow(&self, follow_actor_id: &str, conn: &PgConnection) -> Result<(), Error> {
+  async fn send_unfollow(
+    &self,
+    follow_actor_id: &str,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<(), LemmyError> {
     let id = format!("{}/follow/{}", self.actor_id, uuid::Uuid::new_v4());
     let mut follow = Follow::new(self.actor_id.to_owned(), follow_actor_id);
     follow.set_context(context()).set_id(id.parse()?);
@@ -130,41 +143,67 @@ impl ActorType for User_ {
     let mut undo = Undo::new(self.actor_id.parse::<XsdAnyUri>()?, follow.into_any_base()?);
     undo.set_context(context()).set_id(undo_id.parse()?);
 
-    insert_activity(&conn, self.id, &undo, true)?;
+    insert_activity(self.id, undo.clone(), true, pool).await?;
 
-    send_activity(&undo, self, vec![to])?;
+    send_activity(client, &undo, self, vec![to]).await?;
     Ok(())
   }
 
-  fn send_delete(&self, _creator: &User_, _conn: &PgConnection) -> Result<(), Error> {
+  async fn send_delete(
+    &self,
+    _creator: &User_,
+    _client: &Client,
+    _pool: &DbPool,
+  ) -> Result<(), LemmyError> {
     unimplemented!()
   }
 
-  fn send_undo_delete(&self, _creator: &User_, _conn: &PgConnection) -> Result<(), Error> {
+  async fn send_undo_delete(
+    &self,
+    _creator: &User_,
+    _client: &Client,
+    _pool: &DbPool,
+  ) -> Result<(), LemmyError> {
     unimplemented!()
   }
 
-  fn send_remove(&self, _creator: &User_, _conn: &PgConnection) -> Result<(), Error> {
+  async fn send_remove(
+    &self,
+    _creator: &User_,
+    _client: &Client,
+    _pool: &DbPool,
+  ) -> Result<(), LemmyError> {
     unimplemented!()
   }
 
-  fn send_undo_remove(&self, _creator: &User_, _conn: &PgConnection) -> Result<(), Error> {
+  async fn send_undo_remove(
+    &self,
+    _creator: &User_,
+    _client: &Client,
+    _pool: &DbPool,
+  ) -> Result<(), LemmyError> {
     unimplemented!()
   }
 
-  fn send_accept_follow(&self, _follow: &Follow, _conn: &PgConnection) -> Result<(), Error> {
+  async fn send_accept_follow(
+    &self,
+    _follow: &Follow,
+    _client: &Client,
+    _pool: &DbPool,
+  ) -> Result<(), LemmyError> {
     unimplemented!()
   }
 
-  fn get_follower_inboxes(&self, _conn: &PgConnection) -> Result<Vec<String>, Error> {
+  async fn get_follower_inboxes(&self, _pool: &DbPool) -> Result<Vec<String>, LemmyError> {
     unimplemented!()
   }
 }
 
+#[async_trait::async_trait(?Send)]
 impl FromApub for UserForm {
   type ApubType = PersonExt;
   /// Parse an ActivityPub person received from another instance into a Lemmy user.
-  fn from_apub(person: &PersonExt, _conn: &PgConnection) -> Result<Self, Error> {
+  async fn from_apub(person: &PersonExt, _: &Client, _: &DbPool) -> Result<Self, LemmyError> {
     let oprops = &person.inner.object_props;
     let aprops = &person.ext_one;
     let public_key: &PublicKey = &person.ext_two.public_key;
@@ -210,10 +249,14 @@ impl FromApub for UserForm {
 
 /// Return the user json over HTTP.
 pub async fn get_apub_user_http(
-  info: Path<UserQuery>,
+  info: web::Path<UserQuery>,
   db: DbPoolParam,
-) -> Result<HttpResponse<Body>, Error> {
-  let user = User_::find_by_email_or_username(&&db.get()?, &info.user_name)?;
-  let u = user.to_apub(&db.get().unwrap())?;
+) -> Result<HttpResponse<Body>, LemmyError> {
+  let user_name = info.into_inner().user_name;
+  let user = blocking(&db, move |conn| {
+    User_::find_by_email_or_username(conn, &user_name)
+  })
+  .await??;
+  let u = user.to_apub(&db).await?;
   Ok(create_apub_response(&u))
 }

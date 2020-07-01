@@ -20,6 +20,8 @@ services:
 
   postgres:
     image: postgres:12-alpine
+    ports:
+      - "127.0.0.1:5432:5432"
     environment:
       - POSTGRES_USER=lemmy
       - POSTGRES_PASSWORD=password

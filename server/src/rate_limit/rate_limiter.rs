@@ -1,6 +1,5 @@
 use super::IPAddr;
-use crate::api::APIError;
-use failure::Error;
+use crate::{api::APIError, LemmyError};
 use log::debug;
 use std::{collections::HashMap, time::SystemTime};
 use strum::IntoEnumIterator;
@@ -61,7 +60,7 @@ impl RateLimiter {
     rate: i32,
     per: i32,
     check_only: bool,
-  ) -> Result<(), Error> {
+  ) -> Result<(), LemmyError> {
     self.insert_ip(ip);
     if let Some(bucket) = self.buckets.get_mut(&type_) {
       if let Some(rate_limit) = bucket.get_mut(ip) {

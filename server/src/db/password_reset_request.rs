@@ -50,8 +50,8 @@ impl Crud<PasswordResetRequestForm> for PasswordResetRequest {
 impl PasswordResetRequest {
   pub fn create_token(conn: &PgConnection, from_user_id: i32, token: &str) -> Result<Self, Error> {
     let mut hasher = Sha256::new();
-    hasher.input(token);
-    let token_hash: String = PasswordResetRequest::bytes_to_hex(hasher.result().to_vec());
+    hasher.update(token);
+    let token_hash: String = PasswordResetRequest::bytes_to_hex(hasher.finalize().to_vec());
 
     let form = PasswordResetRequestForm {
       user_id: from_user_id,
@@ -62,8 +62,8 @@ impl PasswordResetRequest {
   }
   pub fn read_from_token(conn: &PgConnection, token: &str) -> Result<Self, Error> {
     let mut hasher = Sha256::new();
-    hasher.input(token);
-    let token_hash: String = PasswordResetRequest::bytes_to_hex(hasher.result().to_vec());
+    hasher.update(token);
+    let token_hash: String = PasswordResetRequest::bytes_to_hex(hasher.finalize().to_vec());
     password_reset_request
       .filter(token_encrypted.eq(token_hash))
       .filter(published.gt(now - 1.days()))

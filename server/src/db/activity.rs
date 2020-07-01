@@ -1,9 +1,9 @@
-use crate::{db::Crud, schema::activity};
+use crate::{blocking, db::Crud, schema::activity, DbPool, LemmyError};
 use diesel::{dsl::*, result::Error, *};
-use failure::_core::fmt::Debug;
 use log::debug;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::fmt::Debug;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "activity"]
@@ -55,12 +55,28 @@ impl Crud<ActivityForm> for Activity {
   }
 }
 
-pub fn insert_activity<T>(
+pub async fn insert_activity<T>(
+  user_id: i32,
+  data: T,
+  local: bool,
+  pool: &DbPool,
+) -> Result<(), LemmyError>
+where
+  T: Serialize + Debug + Send + 'static,
+{
+  blocking(pool, move |conn| {
+    do_insert_activity(conn, user_id, &data, local)
+  })
+  .await??;
+  Ok(())
+}
+
+fn do_insert_activity<T>(
   conn: &PgConnection,
   user_id: i32,
   data: &T,
   local: bool,
-) -> Result<(), failure::Error>
+) -> Result<(), LemmyError>
 where
   T: Serialize + Debug,
 {

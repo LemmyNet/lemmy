@@ -124,10 +124,10 @@ describe('main', () => {
   });
 
   describe('follow_accept', () => {
-    test('/u/lemmy_alpha follows and accepts lemmy_beta/c/main', async () => {
-      // Make sure lemmy_beta/c/main is cached on lemmy_alpha
+    test('/u/lemmy_alpha follows and accepts lemmy-beta/c/main', async () => {
+      // Make sure lemmy-beta/c/main is cached on lemmy_alpha
       // Use short-hand search url
-      let searchUrl = `${lemmyAlphaApiUrl}/search?q=!main@lemmy_beta:8550&type_=All&sort=TopAll`;
+      let searchUrl = `${lemmyAlphaApiUrl}/search?q=!main@lemmy-beta:8550&type_=All&sort=TopAll`;
 
       let searchResponse: SearchResponse = await fetch(searchUrl, {
         method: 'GET',
@@ -215,7 +215,7 @@ describe('main', () => {
       // Also make G follow B
 
       // Use short-hand search url
-      let searchUrlG = `${lemmyGammaApiUrl}/search?q=!main@lemmy_beta:8550&type_=All&sort=TopAll`;
+      let searchUrlG = `${lemmyGammaApiUrl}/search?q=!main@lemmy-beta:8550&type_=All&sort=TopAll`;
 
       let searchResponseG: SearchResponse = await fetch(searchUrlG, {
         method: 'GET',
@@ -449,7 +449,7 @@ describe('main', () => {
 
       // Lemmy alpha responds to their own comment, but mentions lemmy beta.
       // Make sure lemmy beta gets that in their inbox.
-      let mentionContent = 'A test mention of @lemmy_beta@lemmy_beta:8550';
+      let mentionContent = 'A test mention of @lemmy_beta@lemmy-beta:8550';
       let mentionCommentForm: CommentForm = {
         content: mentionContent,
         post_id: 2,
@@ -550,7 +550,7 @@ describe('main', () => {
       expect(createCommunityRes.community.name).toBe(communityName);
 
       // Cache it on lemmy_alpha
-      let searchUrl = `${lemmyAlphaApiUrl}/search?q=http://lemmy_beta:8550/c/${communityName}&type_=All&sort=TopAll`;
+      let searchUrl = `${lemmyAlphaApiUrl}/search?q=http://lemmy-beta:8550/c/${communityName}&type_=All&sort=TopAll`;
       let searchResponse: SearchResponse = await fetch(searchUrl, {
         method: 'GET',
       }).then(d => d.json());
@@ -826,7 +826,7 @@ describe('main', () => {
       expect(createCommunityRes.community.name).toBe(communityName);
 
       // Cache it on lemmy_alpha
-      let searchUrl = `${lemmyAlphaApiUrl}/search?q=http://lemmy_beta:8550/c/${communityName}&type_=All&sort=TopAll`;
+      let searchUrl = `${lemmyAlphaApiUrl}/search?q=http://lemmy-beta:8550/c/${communityName}&type_=All&sort=TopAll`;
       let searchResponse: SearchResponse = await fetch(searchUrl, {
         method: 'GET',
       }).then(d => d.json());
@@ -1278,7 +1278,7 @@ describe('main', () => {
 
       // Create a test comment on Gamma, make sure it gets announced to alpha
       let commentContent =
-        'A jest test federated comment announce, lets mention @lemmy_beta@lemmy_beta:8550';
+        'A jest test federated comment announce, lets mention @lemmy_beta@lemmy-beta:8550';
 
       let commentForm: CommentForm = {
         content: commentContent,
@@ -1417,7 +1417,7 @@ describe('main', () => {
       expect(createChildCommentRes.comment.content).toBe(childCommentContent);
 
       // Follow again, for other tests
-      let searchUrl = `${lemmyAlphaApiUrl}/search?q=!main@lemmy_beta:8550&type_=All&sort=TopAll`;
+      let searchUrl = `${lemmyAlphaApiUrl}/search?q=!main@lemmy-beta:8550&type_=All&sort=TopAll`;
 
       let searchResponse: SearchResponse = await fetch(searchUrl, {
         method: 'GET',

@@ -1,6 +1,8 @@
 use crate::{
+  blocking,
   db::{community::Community, user::User_},
   routes::DbPoolParam,
+  LemmyError,
   Settings,
 };
 use actix_web::{error::ErrorBadRequest, web::Query, *};
@@ -61,64 +63,58 @@ async fn get_webfinger_response(
   info: Query<Params>,
   db: DbPoolParam,
 ) -> Result<HttpResponse, Error> {
-  let res = web::block(move || {
-    let conn = db.get()?;
+  let community_regex_parsed = WEBFINGER_COMMUNITY_REGEX
+    .captures(&info.resource)
+    .map(|c| c.get(1))
+    .flatten();
 
-    let community_regex_parsed = WEBFINGER_COMMUNITY_REGEX
-      .captures(&info.resource)
-      .map(|c| c.get(1))
-      .flatten();
+  let user_regex_parsed = WEBFINGER_USER_REGEX
+    .captures(&info.resource)
+    .map(|c| c.get(1))
+    .flatten();
 
-    let user_regex_parsed = WEBFINGER_USER_REGEX
-      .captures(&info.resource)
-      .map(|c| c.get(1))
-      .flatten();
+  let url = if let Some(community_name) = community_regex_parsed {
+    let community_name = community_name.as_str().to_owned();
+    // Make sure the requested community exists.
+    blocking(&db, move |conn| {
+      Community::read_from_name(conn, &community_name)
+    })
+    .await?
+    .map_err(|_| ErrorBadRequest(LemmyError::from(format_err!("not_found"))))?
+    .actor_id
+  } else if let Some(user_name) = user_regex_parsed {
+    let user_name = user_name.as_str().to_owned();
+    // Make sure the requested user exists.
+    blocking(&db, move |conn| User_::read_from_name(conn, &user_name))
+      .await?
+      .map_err(|_| ErrorBadRequest(LemmyError::from(format_err!("not_found"))))?
+      .actor_id
+  } else {
+    return Err(ErrorBadRequest(LemmyError::from(format_err!("not_found"))));
+  };
 
-    let url = if let Some(community_name) = community_regex_parsed {
-      // Make sure the requested community exists.
-      let community = match Community::read_from_name(&conn, &community_name.as_str()) {
-        Ok(o) => o,
-        Err(_) => return Err(format_err!("not_found")),
-      };
-      community.actor_id
-    } else if let Some(user_name) = user_regex_parsed {
-      // Make sure the requested user exists.
-      let user = match User_::read_from_name(&conn, &user_name.as_str()) {
-        Ok(o) => o,
-        Err(_) => return Err(format_err!("not_found")),
-      };
-      user.actor_id
-    } else {
-      return Err(format_err!("not_found"));
-    };
+  let json = WebFingerResponse {
+    subject: info.resource.to_owned(),
+    aliases: vec![url.to_owned()],
+    links: vec![
+      WebFingerLink {
+        rel: Some("http://webfinger.net/rel/profile-page".to_string()),
+        type_: Some("text/html".to_string()),
+        href: Some(url.to_owned()),
+        template: None,
+      },
+      WebFingerLink {
+        rel: Some("self".to_string()),
+        type_: Some("application/activity+json".to_string()),
+        href: Some(url),
+        template: None,
+      }, // TODO: this also needs to return the subscribe link once that's implemented
+         //{
+         //  "rel": "http://ostatus.org/schema/1.0/subscribe",
+         //  "template": "https://my_instance.com/authorize_interaction?uri={uri}"
+         //}
+    ],
+  };
 
-    let wf_res = WebFingerResponse {
-      subject: info.resource.to_owned(),
-      aliases: vec![url.to_owned()],
-      links: vec![
-        WebFingerLink {
-          rel: Some("http://webfinger.net/rel/profile-page".to_string()),
-          type_: Some("text/html".to_string()),
-          href: Some(url.to_owned()),
-          template: None,
-        },
-        WebFingerLink {
-          rel: Some("self".to_string()),
-          type_: Some("application/activity+json".to_string()),
-          href: Some(url),
-          template: None,
-        }, // TODO: this also needs to return the subscribe link once that's implemented
-           //{
-           //  "rel": "http://ostatus.org/schema/1.0/subscribe",
-           //  "template": "https://my_instance.com/authorize_interaction?uri={uri}"
-           //}
-      ],
-    };
-
-    Ok(wf_res)
-  })
-  .await
-  .map(|json| HttpResponse::Ok().json(json))
-  .map_err(ErrorBadRequest)?;
-  Ok(res)
+  Ok(HttpResponse::Ok().json(json))
 }
