@@ -710,7 +710,7 @@ impl Perform for Oper<BanUser> {
       return Err(APIError::err("not_an_admin").into());
     }
 
-    match User_::ban_user(&conn, user_id, data.ban) {
+    match User_::ban_user(&conn, data.user_id, data.ban) {
       Ok(user) => user,
       Err(_e) => return Err(APIError::err("couldnt_update_user").into()),
     };
