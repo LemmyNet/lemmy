@@ -1,5 +1,5 @@
+use crate::LemmyError;
 use config::{Config, ConfigError, Environment, File};
-use failure::Error;
 use serde::Deserialize;
 use std::{env, fs, net::IpAddr, sync::RwLock};
 
@@ -118,11 +118,11 @@ impl Settings {
     format!("{}/api/v1", self.hostname)
   }
 
-  pub fn read_config_file() -> Result<String, Error> {
+  pub fn read_config_file() -> Result<String, LemmyError> {
     Ok(fs::read_to_string(CONFIG_FILE)?)
   }
 
-  pub fn save_config_file(data: &str) -> Result<String, Error> {
+  pub fn save_config_file(data: &str) -> Result<String, LemmyError> {
     fs::write(CONFIG_FILE, data)?;
 
     // Reload the new settings

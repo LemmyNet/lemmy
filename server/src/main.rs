@@ -4,10 +4,13 @@ extern crate diesel_migrations;
 #[macro_use]
 pub extern crate lazy_static;
 
+pub type DbPool = Pool<ConnectionManager<PgConnection>>;
+
 use crate::lemmy_server::actix_web::dev::Service;
 use actix::prelude::*;
 use actix_web::{
   body::Body,
+  client::Client,
   dev::{ServiceRequest, ServiceResponse},
   http::{
     header::{CACHE_CONTROL, CONTENT_TYPE},
@@ -20,14 +23,16 @@ use diesel::{
   PgConnection,
 };
 use lemmy_server::{
+  blocking,
   db::code_migrations::run_advanced_migrations,
   rate_limit::{rate_limiter::RateLimiter, RateLimit},
   routes::{api, federation, feeds, index, nodeinfo, webfinger},
   settings::Settings,
   websocket::server::*,
+  LemmyError,
 };
 use regex::Regex;
-use std::{io, sync::Arc};
+use std::sync::Arc;
 use tokio::sync::Mutex;
 
 lazy_static! {
@@ -41,7 +46,7 @@ lazy_static! {
 embed_migrations!();
 
 #[actix_rt::main]
-async fn main() -> io::Result<()> {
+async fn main() -> Result<(), LemmyError> {
   env_logger::init();
   let settings = Settings::get();
 
@@ -53,9 +58,12 @@ async fn main() -> io::Result<()> {
     .unwrap_or_else(|_| panic!("Error connecting to {}", settings.get_database_url()));
 
   // Run the migrations from code
-  let conn = pool.get().unwrap();
-  embedded_migrations::run(&conn).unwrap();
-  run_advanced_migrations(&conn).unwrap();
+  blocking(&pool, move |conn| {
+    embedded_migrations::run(conn)?;
+    run_advanced_migrations(conn)?;
+    Ok(()) as Result<(), LemmyError>
+  })
+  .await??;
 
   // Set up the rate limiter
   let rate_limiter = RateLimit {
@@ -63,7 +71,7 @@ async fn main() -> io::Result<()> {
   };
 
   // Set up websocket server
-  let server = ChatServer::startup(pool.clone(), rate_limiter.clone()).start();
+  let server = ChatServer::startup(pool.clone(), rate_limiter.clone(), Client::default()).start();
 
   println!(
     "Starting http server at {}:{}",
@@ -79,6 +87,7 @@ async fn main() -> io::Result<()> {
       .wrap(middleware::Logger::default())
       .data(pool.clone())
       .data(server.clone())
+      .data(Client::default())
       // The routes
       .configure(move |cfg| api::config(cfg, &rate_limiter))
       .configure(federation::config)
@@ -98,7 +107,9 @@ async fn main() -> io::Result<()> {
   })
   .bind((settings.bind, settings.port))?
   .run()
-  .await
+  .await?;
+
+  Ok(())
 }
 
 fn add_cache_headers<S>(

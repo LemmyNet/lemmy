@@ -9,10 +9,13 @@ use crate::{
   websocket::UserOperation,
   CommunityId,
   ConnectionId,
+  DbPool,
   IPAddr,
+  LemmyError,
   PostId,
   UserId,
 };
+use actix_web::client::Client;
 
 /// Chat server sends this messages to session
 #[derive(Message)]
@@ -154,12 +157,16 @@ pub struct ChatServer {
 
   /// Rate limiting based on rate type and IP addr
   rate_limiter: RateLimit,
+
+  /// An HTTP Client
+  client: Client,
 }
 
 impl ChatServer {
   pub fn startup(
     pool: Pool<ConnectionManager<PgConnection>>,
     rate_limiter: RateLimit,
+    client: Client,
   ) -> ChatServer {
     ChatServer {
       sessions: HashMap::new(),
@@ -169,6 +176,7 @@ impl ChatServer {
       rng: rand::thread_rng(),
       pool,
       rate_limiter,
+      client,
     }
   }
 
@@ -236,7 +244,7 @@ impl ChatServer {
     response: &Response,
     post_id: PostId,
     my_id: Option<ConnectionId>,
-  ) -> Result<(), Error>
+  ) -> Result<(), LemmyError>
   where
     Response: Serialize,
   {
@@ -260,7 +268,7 @@ impl ChatServer {
     response: &Response,
     community_id: CommunityId,
     my_id: Option<ConnectionId>,
-  ) -> Result<(), Error>
+  ) -> Result<(), LemmyError>
   where
     Response: Serialize,
   {
@@ -283,7 +291,7 @@ impl ChatServer {
     op: &UserOperation,
     response: &Response,
     my_id: Option<ConnectionId>,
-  ) -> Result<(), Error>
+  ) -> Result<(), LemmyError>
   where
     Response: Serialize,
   {
@@ -305,7 +313,7 @@ impl ChatServer {
     response: &Response,
     recipient_id: UserId,
     my_id: Option<ConnectionId>,
-  ) -> Result<(), Error>
+  ) -> Result<(), LemmyError>
   where
     Response: Serialize,
   {
@@ -328,7 +336,7 @@ impl ChatServer {
     user_operation: &UserOperation,
     comment: &CommentResponse,
     my_id: Option<ConnectionId>,
-  ) -> Result<(), Error> {
+  ) -> Result<(), LemmyError> {
     let mut comment_reply_sent = comment.clone();
     comment_reply_sent.comment.my_vote = None;
     comment_reply_sent.comment.user_id = None;
@@ -366,7 +374,7 @@ impl ChatServer {
     user_operation: &UserOperation,
     post: &PostResponse,
     my_id: Option<ConnectionId>,
-  ) -> Result<(), Error> {
+  ) -> Result<(), LemmyError> {
     let community_id = post.post.community_id;
 
     // Don't send my data with it
@@ -394,7 +402,7 @@ impl ChatServer {
     &mut self,
     msg: StandardMessage,
     ctx: &mut Context<Self>,
-  ) -> impl Future<Output = Result<String, Error>> {
+  ) -> impl Future<Output = Result<String, LemmyError>> {
     let addr = ctx.address();
     let pool = self.pool.clone();
     let rate_limiter = self.rate_limiter.clone();
@@ -404,6 +412,7 @@ impl ChatServer {
       None => "blank_ip".to_string(),
     };
 
+    let client = self.client.clone();
     async move {
       let msg = msg;
       let json: Value = serde_json::from_str(&msg.msg)?;
@@ -414,482 +423,109 @@ impl ChatServer {
 
       let user_operation: UserOperation = UserOperation::from_str(&op)?;
 
+      let args = Args {
+        client,
+        pool,
+        rate_limiter,
+        chatserver: addr,
+        id: msg.id,
+        ip,
+        op: user_operation.clone(),
+        data,
+      };
+
       match user_operation {
         // User ops
-        UserOperation::Login => {
-          do_user_operation::<Login>(pool, rate_limiter, addr, msg.id, ip, user_operation, data)
-            .await
-        }
-        UserOperation::Register => {
-          do_user_operation::<Register>(pool, rate_limiter, addr, msg.id, ip, user_operation, data)
-            .await
-        }
-        UserOperation::GetUserDetails => {
-          do_user_operation::<GetUserDetails>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::GetReplies => {
-          do_user_operation::<GetReplies>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::AddAdmin => {
-          do_user_operation::<AddAdmin>(pool, rate_limiter, addr, msg.id, ip, user_operation, data)
-            .await
-        }
-        UserOperation::BanUser => {
-          do_user_operation::<BanUser>(pool, rate_limiter, addr, msg.id, ip, user_operation, data)
-            .await
-        }
-        UserOperation::GetUserMentions => {
-          do_user_operation::<GetUserMentions>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::EditUserMention => {
-          do_user_operation::<EditUserMention>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::MarkAllAsRead => {
-          do_user_operation::<MarkAllAsRead>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::DeleteAccount => {
-          do_user_operation::<DeleteAccount>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::PasswordReset => {
-          do_user_operation::<PasswordReset>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::PasswordChange => {
-          do_user_operation::<PasswordChange>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
+        UserOperation::Login => do_user_operation::<Login>(args).await,
+        UserOperation::Register => do_user_operation::<Register>(args).await,
+        UserOperation::GetUserDetails => do_user_operation::<GetUserDetails>(args).await,
+        UserOperation::GetReplies => do_user_operation::<GetReplies>(args).await,
+        UserOperation::AddAdmin => do_user_operation::<AddAdmin>(args).await,
+        UserOperation::BanUser => do_user_operation::<BanUser>(args).await,
+        UserOperation::GetUserMentions => do_user_operation::<GetUserMentions>(args).await,
+        UserOperation::EditUserMention => do_user_operation::<EditUserMention>(args).await,
+        UserOperation::MarkAllAsRead => do_user_operation::<MarkAllAsRead>(args).await,
+        UserOperation::DeleteAccount => do_user_operation::<DeleteAccount>(args).await,
+        UserOperation::PasswordReset => do_user_operation::<PasswordReset>(args).await,
+        UserOperation::PasswordChange => do_user_operation::<PasswordChange>(args).await,
         UserOperation::CreatePrivateMessage => {
-          do_user_operation::<CreatePrivateMessage>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
+          do_user_operation::<CreatePrivateMessage>(args).await
         }
-        UserOperation::EditPrivateMessage => {
-          do_user_operation::<EditPrivateMessage>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::GetPrivateMessages => {
-          do_user_operation::<GetPrivateMessages>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::UserJoin => {
-          do_user_operation::<UserJoin>(pool, rate_limiter, addr, msg.id, ip, user_operation, data)
-            .await
-        }
-        UserOperation::SaveUserSettings => {
-          do_user_operation::<SaveUserSettings>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
+        UserOperation::EditPrivateMessage => do_user_operation::<EditPrivateMessage>(args).await,
+        UserOperation::GetPrivateMessages => do_user_operation::<GetPrivateMessages>(args).await,
+        UserOperation::UserJoin => do_user_operation::<UserJoin>(args).await,
+        UserOperation::SaveUserSettings => do_user_operation::<SaveUserSettings>(args).await,
 
         // Site ops
-        UserOperation::GetModlog => {
-          do_user_operation::<GetModlog>(pool, rate_limiter, addr, msg.id, ip, user_operation, data)
-            .await
-        }
-        UserOperation::CreateSite => {
-          do_user_operation::<CreateSite>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::EditSite => {
-          do_user_operation::<EditSite>(pool, rate_limiter, addr, msg.id, ip, user_operation, data)
-            .await
-        }
-        UserOperation::GetSite => {
-          do_user_operation::<GetSite>(pool, rate_limiter, addr, msg.id, ip, user_operation, data)
-            .await
-        }
-        UserOperation::GetSiteConfig => {
-          do_user_operation::<GetSiteConfig>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::SaveSiteConfig => {
-          do_user_operation::<SaveSiteConfig>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::Search => {
-          do_user_operation::<Search>(pool, rate_limiter, addr, msg.id, ip, user_operation, data)
-            .await
-        }
-        UserOperation::TransferCommunity => {
-          do_user_operation::<TransferCommunity>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::TransferSite => {
-          do_user_operation::<TransferSite>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::ListCategories => {
-          do_user_operation::<ListCategories>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
+        UserOperation::GetModlog => do_user_operation::<GetModlog>(args).await,
+        UserOperation::CreateSite => do_user_operation::<CreateSite>(args).await,
+        UserOperation::EditSite => do_user_operation::<EditSite>(args).await,
+        UserOperation::GetSite => do_user_operation::<GetSite>(args).await,
+        UserOperation::GetSiteConfig => do_user_operation::<GetSiteConfig>(args).await,
+        UserOperation::SaveSiteConfig => do_user_operation::<SaveSiteConfig>(args).await,
+        UserOperation::Search => do_user_operation::<Search>(args).await,
+        UserOperation::TransferCommunity => do_user_operation::<TransferCommunity>(args).await,
+        UserOperation::TransferSite => do_user_operation::<TransferSite>(args).await,
+        UserOperation::ListCategories => do_user_operation::<ListCategories>(args).await,
 
         // Community ops
-        UserOperation::GetCommunity => {
-          do_user_operation::<GetCommunity>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::ListCommunities => {
-          do_user_operation::<ListCommunities>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::CreateCommunity => {
-          do_user_operation::<CreateCommunity>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::EditCommunity => {
-          do_user_operation::<EditCommunity>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::FollowCommunity => {
-          do_user_operation::<FollowCommunity>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
+        UserOperation::GetCommunity => do_user_operation::<GetCommunity>(args).await,
+        UserOperation::ListCommunities => do_user_operation::<ListCommunities>(args).await,
+        UserOperation::CreateCommunity => do_user_operation::<CreateCommunity>(args).await,
+        UserOperation::EditCommunity => do_user_operation::<EditCommunity>(args).await,
+        UserOperation::FollowCommunity => do_user_operation::<FollowCommunity>(args).await,
         UserOperation::GetFollowedCommunities => {
-          do_user_operation::<GetFollowedCommunities>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
+          do_user_operation::<GetFollowedCommunities>(args).await
         }
-        UserOperation::BanFromCommunity => {
-          do_user_operation::<BanFromCommunity>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::AddModToCommunity => {
-          do_user_operation::<AddModToCommunity>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
+        UserOperation::BanFromCommunity => do_user_operation::<BanFromCommunity>(args).await,
+        UserOperation::AddModToCommunity => do_user_operation::<AddModToCommunity>(args).await,
 
         // Post ops
-        UserOperation::CreatePost => {
-          do_user_operation::<CreatePost>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::GetPost => {
-          do_user_operation::<GetPost>(pool, rate_limiter, addr, msg.id, ip, user_operation, data)
-            .await
-        }
-        UserOperation::GetPosts => {
-          do_user_operation::<GetPosts>(pool, rate_limiter, addr, msg.id, ip, user_operation, data)
-            .await
-        }
-        UserOperation::EditPost => {
-          do_user_operation::<EditPost>(pool, rate_limiter, addr, msg.id, ip, user_operation, data)
-            .await
-        }
-        UserOperation::CreatePostLike => {
-          do_user_operation::<CreatePostLike>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::SavePost => {
-          do_user_operation::<SavePost>(pool, rate_limiter, addr, msg.id, ip, user_operation, data)
-            .await
-        }
+        UserOperation::CreatePost => do_user_operation::<CreatePost>(args).await,
+        UserOperation::GetPost => do_user_operation::<GetPost>(args).await,
+        UserOperation::GetPosts => do_user_operation::<GetPosts>(args).await,
+        UserOperation::EditPost => do_user_operation::<EditPost>(args).await,
+        UserOperation::CreatePostLike => do_user_operation::<CreatePostLike>(args).await,
+        UserOperation::SavePost => do_user_operation::<SavePost>(args).await,
 
         // Comment ops
-        UserOperation::CreateComment => {
-          do_user_operation::<CreateComment>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::EditComment => {
-          do_user_operation::<EditComment>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::SaveComment => {
-          do_user_operation::<SaveComment>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::GetComments => {
-          do_user_operation::<GetComments>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
-        UserOperation::CreateCommentLike => {
-          do_user_operation::<CreateCommentLike>(
-            pool,
-            rate_limiter,
-            addr,
-            msg.id,
-            ip,
-            user_operation,
-            data,
-          )
-          .await
-        }
+        UserOperation::CreateComment => do_user_operation::<CreateComment>(args).await,
+        UserOperation::EditComment => do_user_operation::<EditComment>(args).await,
+        UserOperation::SaveComment => do_user_operation::<SaveComment>(args).await,
+        UserOperation::GetComments => do_user_operation::<GetComments>(args).await,
+        UserOperation::CreateCommentLike => do_user_operation::<CreateCommentLike>(args).await,
       }
     }
   }
 }
 
-async fn do_user_operation<'a, Data>(
-  pool: Pool<ConnectionManager<PgConnection>>,
+struct Args<'a> {
+  client: Client,
+  pool: DbPool,
   rate_limiter: RateLimit,
   chatserver: Addr<ChatServer>,
   id: ConnectionId,
   ip: IPAddr,
   op: UserOperation,
-  data: &str,
-) -> Result<String, Error>
+  data: &'a str,
+}
+
+async fn do_user_operation<'a, 'b, Data>(args: Args<'b>) -> Result<String, LemmyError>
 where
   for<'de> Data: Deserialize<'de> + 'a,
   Oper<Data>: Perform,
 {
+  let Args {
+    client,
+    pool,
+    rate_limiter,
+    chatserver,
+    id,
+    ip,
+    op,
+    data,
+  } = args;
+
   let ws_info = WebsocketInfo {
     chatserver,
     id: Some(id),
@@ -898,17 +534,14 @@ where
   let data = data.to_string();
   let op2 = op.clone();
 
+  let client = client.clone();
   let fut = async move {
-    actix_web::web::block(move || {
-      let parsed_data: Data = serde_json::from_str(&data)?;
-      let res = Oper::new(parsed_data).perform(pool, Some(ws_info))?;
-      to_json_string(&op, &res)
-    })
-    .await
-    .map_err(|e| match e {
-      actix_web::error::BlockingError::Error(e) => e,
-      _ => APIError::err("Operation canceled").into(),
-    })
+    let pool = pool.clone();
+    let parsed_data: Data = serde_json::from_str(&data)?;
+    let res = Oper::new(parsed_data, client)
+      .perform(&pool, Some(ws_info))
+      .await?;
+    to_json_string(&op, &res)
   };
 
   match op2 {
@@ -1109,7 +742,7 @@ struct WebsocketResponse<T> {
   data: T,
 }
 
-fn to_json_string<Response>(op: &UserOperation, data: &Response) -> Result<String, Error>
+fn to_json_string<Response>(op: &UserOperation, data: &Response) -> Result<String, LemmyError>
 where
   Response: Serialize,
 {

@@ -1,12 +1,10 @@
 use crate::{
   db::{community::*, community_view::*, moderator::*, site::*, user::*, user_view::*},
   websocket::WebsocketInfo,
+  DbPool,
+  LemmyError,
 };
-use diesel::{
-  r2d2::{ConnectionManager, Pool},
-  PgConnection,
-};
-use failure::Error;
+use actix_web::client::Client;
 
 pub mod comment;
 pub mod community;
@@ -30,20 +28,22 @@ impl APIError {
 
 pub struct Oper<T> {
   data: T,
+  client: Client,
 }
 
 impl<Data> Oper<Data> {
-  pub fn new(data: Data) -> Oper<Data> {
-    Oper { data }
+  pub fn new(data: Data, client: Client) -> Oper<Data> {
+    Oper { data, client }
   }
 }
 
+#[async_trait::async_trait(?Send)]
 pub trait Perform {
   type Response: serde::ser::Serialize + Send;
 
-  fn perform(
+  async fn perform(
     &self,
-    pool: Pool<ConnectionManager<PgConnection>>,
+    pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
-  ) -> Result<Self::Response, Error>;
+  ) -> Result<Self::Response, LemmyError>;
 }

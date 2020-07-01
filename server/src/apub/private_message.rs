@@ -7,6 +7,7 @@ use crate::{
     FromApub,
     ToApub,
   },
+  blocking,
   convert_datetime,
   db::{
     activity::insert_activity,
@@ -14,6 +15,8 @@ use crate::{
     user::User_,
     Crud,
   },
+  DbPool,
+  LemmyError,
 };
 use activitystreams::{
   activity::{Create, Delete, Undo, Update},
@@ -21,18 +24,21 @@ use activitystreams::{
   object::{kind::NoteType, properties::ObjectProperties, Note},
 };
 use activitystreams_new::object::Tombstone;
-use actix_web::Result;
-use diesel::PgConnection;
-use failure::Error;
+use actix_web::client::Client;
 
+#[async_trait::async_trait(?Send)]
 impl ToApub for PrivateMessage {
   type Response = Note;
 
-  fn to_apub(&self, conn: &PgConnection) -> Result<Note, Error> {
+  async fn to_apub(&self, pool: &DbPool) -> Result<Note, LemmyError> {
     let mut private_message = Note::default();
     let oprops: &mut ObjectProperties = private_message.as_mut();
-    let creator = User_::read(&conn, self.creator_id)?;
-    let recipient = User_::read(&conn, self.recipient_id)?;
+
+    let creator_id = self.creator_id;
+    let creator = blocking(pool, move |conn| User_::read(conn, creator_id)).await??;
+
+    let recipient_id = self.recipient_id;
+    let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
 
     oprops
       .set_context_xsd_any_uri(context())?
@@ -49,7 +55,7 @@ impl ToApub for PrivateMessage {
     Ok(private_message)
   }
 
-  fn to_tombstone(&self) -> Result<Tombstone, Error> {
+  fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
     create_tombstone(
       self.deleted,
       &self.ap_id,
@@ -59,16 +65,24 @@ impl ToApub for PrivateMessage {
   }
 }
 
+#[async_trait::async_trait(?Send)]
 impl FromApub for PrivateMessageForm {
   type ApubType = Note;
 
   /// Parse an ActivityPub note received from another instance into a Lemmy Private message
-  fn from_apub(note: &Note, conn: &PgConnection) -> Result<PrivateMessageForm, Error> {
+  async fn from_apub(
+    note: &Note,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<PrivateMessageForm, LemmyError> {
     let oprops = &note.object_props;
     let creator_actor_id = &oprops.get_attributed_to_xsd_any_uri().unwrap().to_string();
-    let creator = get_or_fetch_and_upsert_remote_user(&creator_actor_id, &conn)?;
+
+    let creator = get_or_fetch_and_upsert_remote_user(&creator_actor_id, client, pool).await?;
+
     let recipient_actor_id = &oprops.get_to_xsd_any_uri().unwrap().to_string();
-    let recipient = get_or_fetch_and_upsert_remote_user(&recipient_actor_id, &conn)?;
+
+    let recipient = get_or_fetch_and_upsert_remote_user(&recipient_actor_id, client, pool).await?;
 
     Ok(PrivateMessageForm {
       creator_id: creator.id,
@@ -91,12 +105,20 @@ impl FromApub for PrivateMessageForm {
   }
 }
 
+#[async_trait::async_trait(?Send)]
 impl ApubObjectType for PrivateMessage {
   /// Send out information about a newly created private message
-  fn send_create(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
-    let note = self.to_apub(conn)?;
+  async fn send_create(
+    &self,
+    creator: &User_,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<(), LemmyError> {
+    let note = self.to_apub(pool).await?;
     let id = format!("{}/create/{}", self.ap_id, uuid::Uuid::new_v4());
-    let recipient = User_::read(&conn, self.recipient_id)?;
+
+    let recipient_id = self.recipient_id;
+    let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
 
     let mut create = Create::new();
     create
@@ -110,17 +132,24 @@ impl ApubObjectType for PrivateMessage {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    insert_activity(&conn, creator.id, &create, true)?;
+    insert_activity(creator.id, create.clone(), true, pool).await?;
 
-    send_activity(&create, creator, vec![to])?;
+    send_activity(client, &create, creator, vec![to]).await?;
     Ok(())
   }
 
   /// Send out information about an edited post, to the followers of the community.
-  fn send_update(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
-    let note = self.to_apub(conn)?;
+  async fn send_update(
+    &self,
+    creator: &User_,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<(), LemmyError> {
+    let note = self.to_apub(pool).await?;
     let id = format!("{}/update/{}", self.ap_id, uuid::Uuid::new_v4());
-    let recipient = User_::read(&conn, self.recipient_id)?;
+
+    let recipient_id = self.recipient_id;
+    let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
 
     let mut update = Update::new();
     update
@@ -134,16 +163,23 @@ impl ApubObjectType for PrivateMessage {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    insert_activity(&conn, creator.id, &update, true)?;
+    insert_activity(creator.id, update.clone(), true, pool).await?;
 
-    send_activity(&update, creator, vec![to])?;
+    send_activity(client, &update, creator, vec![to]).await?;
     Ok(())
   }
 
-  fn send_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
-    let note = self.to_apub(conn)?;
+  async fn send_delete(
+    &self,
+    creator: &User_,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<(), LemmyError> {
+    let note = self.to_apub(pool).await?;
     let id = format!("{}/delete/{}", self.ap_id, uuid::Uuid::new_v4());
-    let recipient = User_::read(&conn, self.recipient_id)?;
+
+    let recipient_id = self.recipient_id;
+    let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
 
     let mut delete = Delete::new();
     delete
@@ -157,16 +193,23 @@ impl ApubObjectType for PrivateMessage {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(note)?;
 
-    insert_activity(&conn, creator.id, &delete, true)?;
+    insert_activity(creator.id, delete.clone(), true, pool).await?;
 
-    send_activity(&delete, creator, vec![to])?;
+    send_activity(client, &delete, creator, vec![to]).await?;
     Ok(())
   }
 
-  fn send_undo_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error> {
-    let note = self.to_apub(conn)?;
+  async fn send_undo_delete(
+    &self,
+    creator: &User_,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<(), LemmyError> {
+    let note = self.to_apub(pool).await?;
     let id = format!("{}/delete/{}", self.ap_id, uuid::Uuid::new_v4());
-    let recipient = User_::read(&conn, self.recipient_id)?;
+
+    let recipient_id = self.recipient_id;
+    let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
 
     let mut delete = Delete::new();
     delete
@@ -195,17 +238,27 @@ impl ApubObjectType for PrivateMessage {
       .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
       .set_object_base_box(delete)?;
 
-    insert_activity(&conn, creator.id, &undo, true)?;
+    insert_activity(creator.id, undo.clone(), true, pool).await?;
 
-    send_activity(&undo, creator, vec![to])?;
+    send_activity(client, &undo, creator, vec![to]).await?;
     Ok(())
   }
 
-  fn send_remove(&self, _mod_: &User_, _conn: &PgConnection) -> Result<(), Error> {
+  async fn send_remove(
+    &self,
+    _mod_: &User_,
+    _client: &Client,
+    _pool: &DbPool,
+  ) -> Result<(), LemmyError> {
     unimplemented!()
   }
 
-  fn send_undo_remove(&self, _mod_: &User_, _conn: &PgConnection) -> Result<(), Error> {
+  async fn send_undo_remove(
+    &self,
+    _mod_: &User_,
+    _client: &Client,
+    _pool: &DbPool,
+  ) -> Result<(), LemmyError> {
     unimplemented!()
   }
 }
