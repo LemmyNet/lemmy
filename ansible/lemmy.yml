@@ -7,7 +7,7 @@
   pre_tasks:
     - name: check lemmy_base_dir
       fail:
-        msg: "lemmy_base_dir is unset, old default value was '/lemmy'"
+        msg: "`lemmy_base_dir` is unset. if you are upgrading from an older version, add `lemmy_base_dir=/lemmy` to your inventory file."
       when: lemmy_base_dir is not defined
 
     - name: install python for Ansible
