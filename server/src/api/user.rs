@@ -739,7 +739,8 @@ impl Perform for Oper<BanUser> {
     }
 
     let ban = data.ban;
-    let ban_user = move |conn: &'_ _| User_::ban_user(conn, user_id, ban);
+    let banned_user_id = data.user_id;
+    let ban_user = move |conn: &'_ _| User_::ban_user(conn, banned_user_id, ban);
     if blocking(pool, ban_user).await?.is_err() {
       return Err(APIError::err("couldnt_update_user").into());
     }

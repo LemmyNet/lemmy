@@ -11,6 +11,9 @@ git clone https://github.com/LemmyNet/lemmy.git
 cd lemmy/ansible/
 cp inventory.example inventory
 nano inventory # enter your server, domain, contact email
+# If the command below fails, you may need to comment out this line
+# In the ansible.cfg file:
+# interpreter_python=/usr/bin/python3
 ansible-playbook lemmy.yml --become
 ```
 

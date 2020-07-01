@@ -10,6 +10,9 @@ interface SilverUser {
 }
 
 let general = [
+  'Andrew Plaza',
+  'Jonathan Cremin',
+  'Arthur Nieuwland',
   'Ernest Wiśniewski',
   'HN',
   'Forrest Weghorst',
@@ -86,7 +89,7 @@ export class Sponsors extends Component<any, any> {
           {silver.map(s => (
             <div class="card col-12 col-md-2">
               <div>
-                <a href={s.link} target="_blank">
+                <a href={s.link} target="_blank" rel="noopener">
                   💎 {s.name}
                 </a>
               </div>

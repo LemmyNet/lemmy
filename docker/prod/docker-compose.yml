@@ -12,7 +12,7 @@ services:
     restart: always
 
   lemmy:
-    image: dessalines/lemmy:v0.7.2
+    image: dessalines/lemmy:v0.7.6
     ports:
       - "127.0.0.1:8536:8536"
     restart: always
@@ -35,7 +35,7 @@ services:
     restart: always
 
   iframely:
-    image: dogbin/iframely:latest
+    image: jolt/iframely:v1.4.3
     ports:
       - "127.0.0.1:8061:80"
     volumes:

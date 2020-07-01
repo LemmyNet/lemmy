@@ -35,7 +35,7 @@ services:
     restart: always
 
   iframely:
-    image: dogbin/iframely:latest
+    image: jolt/iframely:v1.4.3
     ports:
       - "127.0.0.1:8061:80"
     volumes:
