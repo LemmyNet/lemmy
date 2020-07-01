@@ -58,7 +58,14 @@ COPY --chown=lemmy:lemmy --from=rust /app/server/lemmy_server /app/lemmy
 COPY --chown=lemmy:lemmy --from=docs /app/docs/book/ /app/dist/documentation/
 COPY --chown=lemmy:lemmy --from=node /app/ui/dist /app/dist
 
-RUN chown lemmy:lemmy /app/lemmy
+# Set up entrypoint
+COPY docker/docker-entrypoint.sh /usr/local/bin/
+
+RUN chown -R lemmy:lemmy /app/lemmy \
+    && chown -R lemmy:lemmy /config \
+    && chown -R lemmy:lemmy /app/dist
+
 USER lemmy
 EXPOSE 8536
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["/app/lemmy"]

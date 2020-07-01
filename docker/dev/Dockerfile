@@ -48,7 +48,15 @@ COPY --from=node /app/ui/dist /app/dist
 
 RUN addgroup -g 1000 lemmy
 RUN adduser -D -s /bin/sh -u 1000 -G lemmy lemmy
-RUN chown lemmy:lemmy /app/lemmy
+
+# Set up entrypoint
+COPY docker/docker-entrypoint.sh /usr/local/bin/
+
+RUN chown -R lemmy:lemmy /app/lemmy \
+    && chown -R lemmy:lemmy /config \
+    && chown -R lemmy:lemmy /app/dist
+
 USER lemmy
 EXPOSE 8536
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["/app/lemmy"]
