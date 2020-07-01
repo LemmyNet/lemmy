@@ -1,7 +1,7 @@
 ---
 - hosts: all
   vars:
-    lemmy_docker_image: "lemmy:dev"
+    lemmy_docker_image: 'lemmy:dev'
 
   # Install python if required
   # https://www.josharcher.uk/code/ansible-python-connection-failure-ubuntu-server-1604/
@@ -12,13 +12,18 @@
       args:
         executable: /bin/bash
       register: output
-      changed_when: output.stdout != ""
+      changed_when: output.stdout != ''
     - setup: # gather facts
 
   tasks:
   - name: install dependencies
     apt:
-      pkg: ['nginx', 'docker-compose', 'docker.io', 'certbot', 'python-certbot-nginx']
+      pkg:
+        - 'nginx'
+        - 'docker-compose'
+        - 'docker.io'
+        - 'certbot'
+        - 'python-certbot-nginx'
 
   - name: request initial letsencrypt certificate
     command: certbot certonly --nginx --agree-tos -d '{{ domain }}' -m '{{ letsencrypt_contact_email }}'
@@ -26,25 +31,46 @@
       creates: '/etc/letsencrypt/live/{{domain}}/privkey.pem'
 
   - name: create lemmy folder
-    file: path={{item.path}} owner={{item.owner}} state=directory
+    file:
+      path: '{{item.path}}'
+      owner: '{{item.owner}}'
+      state: directory
     with_items:
-      - { path: '/lemmy/', owner: 'root' }
-      - { path: '/lemmy/volumes/', owner: 'root' }
-      - { path: '/lemmy/volumes/pictrs/', owner: '991' }
+      - path: '{{lemmy_base_dir}}/lemmy/'
+        owner: 'root'
+      - path: '{{lemmy_base_dir}}/volumes/'
+        owner: 'root'
+      - path: '{{lemmy_base_dir}}/volumes/pictrs/'
+        owner: '991'
 
   - block:
     - name:  add template files
-      template: src={{item.src}} dest={{item.dest}} mode={{item.mode}}
+      template:
+        src: '{{item.src}}'
+        dest: '{{item.dest}}'
+        mode: '{{item.mode}}'
       with_items:
-        - { src: 'templates/docker-compose.yml', dest: '/lemmy/docker-compose.yml', mode: '0600' }
-        - { src: 'templates/nginx.conf', dest: '/etc/nginx/sites-enabled/lemmy.conf', mode: '0644' }
-        - { src: '../docker/iframely.config.local.js', dest: '/lemmy/iframely.config.local.js', mode: '0600' }
+        - src: 'templates/docker-compose.yml'
+          dest: '{{lemmy_base_dir}}/docker-compose.yml'
+          mode: '0600'
+        - src: 'templates/nginx.conf'
+          dest: '/etc/nginx/sites-enabled/lemmy.conf'
+          mode: '0644'
+        - src: '../docker/iframely.config.local.js'
+          dest: '{{lemmy_base_dir}}/iframely.config.local.js'
+          mode: '0600'
 
     - name:  add config file (only during initial setup)
-      template: src='templates/config.hjson' dest='/lemmy/lemmy.hjson' mode='0600' force='no' owner='1000' group='1000'
-    vars:
-      postgres_password: "{{ lookup('password', 'passwords/{{ inventory_hostname }}/postgres chars=ascii_letters,digits') }}"
-      jwt_password: "{{ lookup('password', 'passwords/{{ inventory_hostname }}/jwt chars=ascii_letters,digits') }}"
+      template:
+        src: 'templates/config.hjson'
+        dest: '{{lemmy_base_dir}}/lemmy.hjson'
+        mode: '0600'
+        force: false
+        owner: '1000'
+        group: '1000'
+      vars:
+        postgres_password: "{{ lookup('password', 'passwords/{{ inventory_hostname }}/postgres chars=ascii_letters,digits') }}"
+        jwt_password: "{{ lookup('password', 'passwords/{{ inventory_hostname }}/jwt chars=ascii_letters,digits') }}"
 
   - name: build the dev docker image
     local_action: shell cd .. && sudo docker build . -f docker/dev/Dockerfile -t lemmy:dev
@@ -59,22 +85,29 @@
     local_action: shell sudo docker save lemmy:dev > lemmy-dev.tar
 
   - name: copy dev docker image to server
-    copy: src=lemmy-dev.tar dest=/lemmy/lemmy-dev.tar
+    copy:
+      src: lemmy-dev.tar
+      dest: '{{lemmy_base_dir}}/lemmy-dev.tar'
 
   - name: import docker image
     docker_image:
       name: lemmy
       tag: dev
-      load_path: /lemmy/lemmy-dev.tar
+      load_path: '{{lemmy_base_dir}}/lemmy-dev.tar'
       source: load
       force_source: yes
     register: image_import
 
   - name: delete remote image file
-    file: path=/lemmy/lemmy-dev.tar state=absent
+    file:
+      path: '{{lemmy_base_dir}}/lemmy-dev.tar'
+      state: absent
 
   - name: delete local image file
-    local_action: file path=lemmy-dev.tar state=absent
+    local_action:
+      module: file
+      path: lemmy-dev.tar
+      state: absent
 
   - name: enable and start docker service
     systemd:
@@ -86,7 +119,7 @@
   # be a problem for testing
   - name: start docker-compose
     docker_compose:
-      project_src: /lemmy/
+      project_src: '{{lemmy_base_dir}}'
       state: present
       recreate: always
       remove_orphans: yes
@@ -97,7 +130,7 @@
 
   - name: certbot renewal cronjob
     cron:
-      special_time=daily
-      name=certbot-renew-lemmy
-      user=root
-      job="certbot certonly --nginx -d '{{ domain }}' --deploy-hook 'nginx -s reload'"
+      special_time: daily
+      name: certbot-renew-lemmy
+      user: root
+      job: "certbot certonly --nginx -d '{{ domain }}' --deploy-hook 'nginx -s reload'"

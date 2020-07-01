@@ -1,6 +1,7 @@
 [lemmy]
 # define the username and hostname that you use for ssh connection, and specify the domain
-myuser@example.com  domain=example.com  letsencrypt_contact_email=your@email.com
+# old default for lemmy_base_dir was /lemmy
+myuser@example.com  domain=example.com  letsencrypt_contact_email=your@email.com lemmy_base_dir=/srv/lemmy
 
 [all:vars]
 ansible_connection=ssh
