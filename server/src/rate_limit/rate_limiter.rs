@@ -85,7 +85,10 @@ impl RateLimiter {
           );
           Err(
             APIError {
-              message: format!("Too many requests. {} per {} seconds", rate, per),
+              message: format!(
+                "Too many requests. IP: {}, {} per {} seconds",
+                ip, rate, per
+              ),
             }
             .into(),
           )
