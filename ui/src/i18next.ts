@@ -24,6 +24,7 @@ import { gl } from './translations/gl';
 import { tr } from './translations/tr';
 import { hu } from './translations/hu';
 import { uk } from './translations/uk';
+import { sq } from './translations/sq';
 
 // https://github.com/nimbusec-oss/inferno-i18next/blob/master/tests/T.test.js#L66
 const resources = {
@@ -51,6 +52,7 @@ const resources = {
   tr,
   hu,
   uk,
+  sq,
 };
 
 function format(value: any, format: any, lng: any): any {
