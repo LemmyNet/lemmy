@@ -1,5 +1,5 @@
 import { Component, linkEvent } from 'inferno';
-import { Link } from 'inferno-router';
+import { Link, withRouter } from 'inferno-router';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { WebSocketService, UserService } from '../services';
@@ -12,6 +12,7 @@ import {
   GetPrivateMessagesForm,
   PrivateMessagesResponse,
   SortType,
+  SearchType,
   GetSiteResponse,
   Comment,
   CommentResponse,
@@ -19,6 +20,7 @@ import {
   UserView,
   PrivateMessageResponse,
   WebSocketJsonResponse,
+  SearchForm,
 } from '../interfaces';
 import {
   wsJsonToRes,
@@ -42,9 +44,10 @@ interface NavbarState {
   unreadCount: number;
   siteName: string;
   admins: Array<UserView>;
+  searchParam: string;
 }
 
-export class Navbar extends Component<any, NavbarState> {
+class Navbar extends Component<any, NavbarState> {
   private wsSub: Subscription;
   private userSub: Subscription;
   emptyState: NavbarState = {
@@ -56,6 +59,7 @@ export class Navbar extends Component<any, NavbarState> {
     expanded: false,
     siteName: undefined,
     admins: [],
+    searchParam: '',
   };
 
   constructor(props: any, context: any) {
@@ -87,6 +91,25 @@ export class Navbar extends Component<any, NavbarState> {
     }
 
     WebSocketService.Instance.getSite();
+
+    this.handleSearchParam = this.handleSearchParam.bind(this);
+  }
+
+  handleSearchParam(i: Navbar, event: any) {
+    i.state.searchParam = event.target.value;
+    i.setState(i.state);
+  }
+
+  updateUrl() {
+    this.props.history.push(
+      `/search/q/${this.state.searchParam}/type/all/sort/topall/page/1`
+    );
+    this.setState({ searchParam: '' });
+  }
+
+  handleSearchSubmit(i: Navbar, event: any) {
+    event.preventDefault();
+    i.updateUrl();
   }
 
   render() {
@@ -144,11 +167,6 @@ export class Navbar extends Component<any, NavbarState> {
               </Link>
             </li>
             <li class="nav-item">
-              <Link class="nav-link" to="/search" title={i18n.t('search')}>
-                {i18n.t('search')}
-              </Link>
-            </li>
-            <li class="nav-item">
               <Link
                 class="nav-link"
                 to={{
@@ -181,7 +199,20 @@ export class Navbar extends Component<any, NavbarState> {
               </Link>
             </li>
           </ul>
-          <ul class="navbar-nav ml-auto">
+          {!this.props.history.location.pathname.match(/^\/search/) && (
+            <div class="nav-item search-bar">
+              <form onSubmit={linkEvent(this, this.handleSearchSubmit)}>
+                <input
+                  class="form-control mr-sm-2"
+                  onInput={linkEvent(this, this.handleSearchParam)}
+                  value={this.state.searchParam}
+                  type="search"
+                  placeholder={i18n.t('search')}
+                ></input>
+              </form>
+            </div>
+          )}
+          <ul class="navbar-nav ml-2">
             {this.canAdmin && (
               <li className="nav-item mt-1">
                 <Link
@@ -426,3 +457,5 @@ export class Navbar extends Component<any, NavbarState> {
     }
   }
 }
+
+export default withRouter(Navbar);
