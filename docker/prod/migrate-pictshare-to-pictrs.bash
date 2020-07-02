@@ -11,7 +11,7 @@ if [[ ! -f docker-compose.yml ]]; then
     exit
 fi
 
-if !which jq > /dev/null; then
+if ! which jq > /dev/null; then
     echo "jq must be installed to run this migration. On ubuntu systems, try 'sudo apt-get install jq'"
     exit
 fi
