@@ -20,11 +20,8 @@ let general = [
   'Andre Vallestero',
   'NotTooHighToHack',
 ];
-let highlighted = ['Oskenso Kashi', 'Alex Benishek'];
+let highlighted = ['DiscountFuneral', 'Oskenso Kashi', 'Alex Benishek'];
 let silver: Array<SilverUser> = [
-  {
-    name: 'DiscountFuneral',
-  },
   {
     name: 'Redjoker',
     link: 'https://iww.org',
