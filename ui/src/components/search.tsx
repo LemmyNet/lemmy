@@ -263,9 +263,6 @@ export class Search extends Component<any, SearchState> {
                       }}
                     />
                   </span>
-                  <span>{` - ${
-                    (i.data as UserView).comment_score
-                  } comment karma`}</span>
                 </div>
               )}
             </div>
@@ -339,7 +336,6 @@ export class Search extends Component<any, SearchState> {
                   to={`/u/${user.name}`}
                 >{`/u/${user.name}`}</Link>
               </span>
-              <span>{` - ${user.comment_score} comment karma`}</span>
             </div>
           </div>
         ))}
