@@ -263,7 +263,9 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
       // If its a comment edit, only check that its from your user, and that its a
       // text edit only
 
-      (op == UserOperation.EditComment && data.comment.content)
+      (data.comment.creator_id == UserService.Instance.user.id &&
+        op == UserOperation.EditComment &&
+        data.comment.content)
     ) {
       this.state.previewMode = false;
       this.state.loading = false;
