@@ -28,7 +28,7 @@
     "cancel": "Nuligi",
     "unlock": "malŝlosi",
     "lock": "ŝlosi",
-    "link": "ligi",
+    "link": "ligilo",
     "mod": "moderanto",
     "mods": "moderantoj",
     "moderates": "Moderigas",
@@ -225,8 +225,8 @@
     "send_notifications_to_email": "Sendi sciigojn al retpoŝtadreso",
     "language": "Lingvo",
     "browser_default": "Laŭ foliumilo",
-    "downvotes_disabled": "Neaj voĉdonoj malŝaltiĝis",
-    "enable_downvotes": "Ŝalti neajn voĉdonojn",
+    "downvotes_disabled": "Kontraŭvoĉoj malŝaltiĝis",
+    "enable_downvotes": "Ŝalti kontraŭvoĉojn",
     "open_registration": "Ebligi registradon",
     "registration_closed": "Registrado malebliĝis",
     "enable_nsfw": "Ŝalti konsternajn",
@@ -250,5 +250,11 @@
     "emoji_picker": "Elektilo de bildsignoj",
     "block_leaving": "Ĉu vi certe volas foriri?",
     "from": "de",
-    "invalid_username": "Nevalida uzantonomo."
+    "invalid_username": "Nevalida uzantonomo.",
+    "upvote": "Porvoĉi",
+    "number_of_upvotes": "{{count}} porvoĉo",
+    "number_of_upvotes_plural": "{{count}} porvoĉoj",
+    "downvote": "Kontraŭvoĉi",
+    "number_of_downvotes": "{{count}} kontraŭvoĉo",
+    "number_of_downvotes_plural": "{{count}} kontraŭvoĉoj"
 }
