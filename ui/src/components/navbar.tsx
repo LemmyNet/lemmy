@@ -1,5 +1,5 @@
-import { Component, linkEvent } from 'inferno';
-import { Link, withRouter } from 'inferno-router';
+import { Component, linkEvent, createRef, RefObject } from 'inferno';
+import { Link } from 'inferno-router';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { WebSocketService, UserService } from '../services';
@@ -45,11 +45,13 @@ interface NavbarState {
   siteName: string;
   admins: Array<UserView>;
   searchParam: string;
+  toggleSearch: boolean;
 }
 
-class Navbar extends Component<any, NavbarState> {
+export class Navbar extends Component<any, NavbarState> {
   private wsSub: Subscription;
   private userSub: Subscription;
+  private searchTextField: RefObject<HTMLInputElement>;
   emptyState: NavbarState = {
     isLoggedIn: UserService.Instance.user !== undefined,
     unreadCount: 0,
@@ -60,6 +62,7 @@ class Navbar extends Component<any, NavbarState> {
     siteName: undefined,
     admins: [],
     searchParam: '',
+    toggleSearch: false,
   };
 
   constructor(props: any, context: any) {
@@ -92,7 +95,7 @@ class Navbar extends Component<any, NavbarState> {
 
     WebSocketService.Instance.getSite();
 
-    this.handleSearchParam = this.handleSearchParam.bind(this);
+    this.searchTextField = createRef();
   }
 
   handleSearchParam(i: Navbar, event: any) {
@@ -101,15 +104,39 @@ class Navbar extends Component<any, NavbarState> {
   }
 
   updateUrl() {
-    this.props.history.push(
-      `/search/q/${this.state.searchParam}/type/all/sort/topall/page/1`
-    );
+    const searchParam = this.state.searchParam;
     this.setState({ searchParam: '' });
+    this.setState({ toggleSearch: false });
+    if (searchParam === '') {
+      this.context.router.history.push(`/search/`);
+    } else {
+      this.context.router.history.push(
+        `/search/q/${searchParam}/type/all/sort/topall/page/1`
+      );
+    }
   }
 
   handleSearchSubmit(i: Navbar, event: any) {
     event.preventDefault();
     i.updateUrl();
+  }
+
+  handleSearchBtn(i: Navbar, event: any) {
+    event.preventDefault();
+    i.setState({ toggleSearch: true });
+
+    i.searchTextField.current.focus();
+    const offsetWidth = i.searchTextField.current.offsetWidth;
+    if (i.state.searchParam && offsetWidth > 100) {
+      i.updateUrl();
+    }
+  }
+
+  handleSearchBlur(i: Navbar, event: any) {
+    if (!(event.relatedTarget && event.relatedTarget.name !== 'search-btn')) {
+      i.state.toggleSearch = false;
+      i.setState(i.state);
+    }
   }
 
   render() {
@@ -199,16 +226,34 @@ class Navbar extends Component<any, NavbarState> {
               </Link>
             </li>
           </ul>
-          {!this.props.history.location.pathname.match(/^\/search/) && (
-            <div class="nav-item search-bar">
-              <form onSubmit={linkEvent(this, this.handleSearchSubmit)}>
+          {!this.context.router.history.location.pathname.match(
+            /^\/search/
+          ) && (
+            <div class="nav-item my-2">
+              <form
+                class="form-inline"
+                onSubmit={linkEvent(this, this.handleSearchSubmit)}
+              >
                 <input
-                  class="form-control mr-sm-2"
+                  class={`form-control mr-0 search-input ${
+                    this.state.toggleSearch ? 'show-input' : 'hide-input'
+                  }`}
                   onInput={linkEvent(this, this.handleSearchParam)}
                   value={this.state.searchParam}
-                  type="search"
+                  ref={this.searchTextField}
+                  type="text"
                   placeholder={i18n.t('search')}
+                  onBlur={linkEvent(this, this.handleSearchBlur)}
                 ></input>
+                <div class="mx-sm-2">
+                  <button
+                    name="search-btn"
+                    onClick={linkEvent(this, this.handleSearchBtn)}
+                    class="btn btn-secondary"
+                  >
+                    {i18n.t('search')}
+                  </button>
+                </div>
               </form>
             </div>
           )}
@@ -457,5 +502,3 @@ class Navbar extends Component<any, NavbarState> {
     }
   }
 }
-
-export default withRouter(Navbar);
