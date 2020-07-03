@@ -10,6 +10,7 @@ interface SilverUser {
 }
 
 let general = [
+  'dude in phx',
   'twilight loki',
   'Andrew Plaza',
   'Jonathan Cremin',
