@@ -107,6 +107,6 @@ services:
       - ./volumes/postgres_gamma:/var/lib/postgresql/data
 
   iframely:
-    image: jolt/iframely:v1.4.3
+    image: dogbin/iframely:latest
     volumes:
       - ../iframely.config.local.js:/iframely/config.local.js:ro
