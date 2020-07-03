@@ -71,7 +71,7 @@ impl FromApub for PrivateMessageForm {
 
   /// Parse an ActivityPub note received from another instance into a Lemmy Private message
   async fn from_apub(
-    note: &Note,
+    note: &mut Note,
     client: &Client,
     pool: &DbPool,
   ) -> Result<PrivateMessageForm, LemmyError> {

@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# make sure there are no old containers or old data around
+sudo docker-compose --file ../federation/docker-compose.yml --project-directory . down
+sudo rm -rf volumes
+
 pushd ../../server/
 cargo build
 popd
