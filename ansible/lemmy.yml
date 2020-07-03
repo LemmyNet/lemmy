@@ -33,7 +33,7 @@
     apt:
       pkg:
         - 'python-certbot-nginx'
-    when: not (ansible_distribution == 'Ubuntu' and ansible_distribution_version|version_compare('20.04', '>=')
+    when: ansible_distribution == 'Ubuntu' and ansible_distribution_version|version_compare('20.04', '<')
 
   - name: install certbot-nginx on ubuntu > 20
     apt:
