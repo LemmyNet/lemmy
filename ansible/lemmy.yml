@@ -11,6 +11,7 @@
       when: lemmy_base_dir is not defined
 
     - name: install python for Ansible
+      # python2-minimal instead of python-minimal for ubuntu 20.04 and up
       raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal python-setuptools)
       args:
         executable: /bin/bash
@@ -27,7 +28,18 @@
         - 'docker-compose'
         - 'docker.io'
         - 'certbot'
+
+  - name: install certbot-nginx on ubuntu < 20
+    apt:
+      pkg:
         - 'python-certbot-nginx'
+    when: ansible_distribution == 'Ubuntu' and ansible_distribution_version|version_compare('20.04', '<')
+
+  - name: install certbot-nginx on ubuntu > 20
+    apt:
+      pkg:
+        - 'python3-certbot-nginx'
+    when: ansible_distribution == 'Ubuntu' and ansible_distribution_version|version_compare('20.04', '>=')
 
   - name: request initial letsencrypt certificate
     command: certbot certonly --nginx --agree-tos -d '{{ domain }}' -m '{{ letsencrypt_contact_email }}'
