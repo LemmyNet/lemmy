@@ -2,7 +2,7 @@ import { render, Component } from 'inferno';
 import { BrowserRouter, Route, Switch } from 'inferno-router';
 import { Provider } from 'inferno-i18next';
 import { Main } from './components/main';
-import Navbar from './components/navbar';
+import { Navbar } from './components/navbar';
 import { Footer } from './components/footer';
 import { Login } from './components/login';
 import { CreatePost } from './components/create-post';

@@ -250,10 +250,17 @@ pre {
   word-break: keep-all;
 }
 
-.search-bar {
-  flex-basis: 10%;
-  flex-shrink: 3;
-  flex-grow: 0.3;
-  max-width: 33%;
-  min-width: 11em;
+.form-control.search-input {
+  float: right !important;
+  transition: width 0.5s ease-out 0s !important;
 }
+
+.show-input {
+  width: 13em !important;
+
+}
+.hide-input {
+  background: transparent !important;
+  width: 0px !important;
+  padding: 0 !important;
+ }
