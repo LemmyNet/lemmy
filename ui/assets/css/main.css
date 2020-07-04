@@ -252,7 +252,7 @@ pre {
 
 .form-control.search-input {
   float: right !important;
-  transition: width 0.5s ease-out 0s !important;
+  transition: width 0.2s ease-out 0s !important;
 }
 
 .show-input {
