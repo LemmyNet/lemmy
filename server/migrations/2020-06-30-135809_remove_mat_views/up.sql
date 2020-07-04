@@ -1,3 +1,5 @@
+
+
 -- Drop the mviews
 drop view post_mview;
 drop materialized view user_mview;
@@ -41,20 +43,15 @@ begin
     insert into user_fast select * from user_view where id = NEW.id;
     
     -- Refresh post_fast, cause of user info changes
-    -- TODO test this. Also is it locking?
-    delete from post_fast where creator_id = NEW.id;
-    insert into post_fast select * from post_view where creator_id = NEW.id;
+    -- TODO test this (for example a banned user). Also is it locking?
+    delete from post_aggregates_fast where creator_id = NEW.id;
+    insert into post_aggregates_fast select * from post_aggregates_view where creator_id = NEW.id;
 
-    -- TODO
-    -- refresh materialized view concurrently comment_aggregates_mview; -- cause of bans
-    -- refresh materialized view concurrently post_aggregates_mview; -- cause of user info changes
+    delete from comment_aggregates_fast where creator_id = NEW.id;
+    insert into comment_aggregates_fast select * from comment_aggregates_view where creator_id = NEW.id;
 
   ELSIF (TG_OP = 'INSERT') THEN
     insert into user_fast select * from user_view where id = NEW.id;
-    -- Update all the fast views
-    insert into community_fast select * from community_view where user_id = NEW.id;
-    insert into post_fast select * from post_view where user_id = NEW.id;
-    insert into comment_fast select * from comment_view where user_id = NEW.id;
   END IF;
 
   return null;
@@ -62,17 +59,43 @@ end $$;
 
 -- Post
 
-create table post_fast as select * from post_view;
-alter table post_fast add column fast_id serial primary key;
+create table post_aggregates_fast as select * from post_aggregates_view;
+alter table post_aggregates_fast add column fast_id serial primary key;
 
-create index idx_post_fast_user_id on post_fast (user_id);
-create index idx_post_fast_id on post_fast (id);
+create index idx_post_aggregates_fast_id on post_aggregates_fast (id);
 
 -- For the hot rank resorting
-create index idx_post_fast_hot_rank on post_fast (hot_rank);
+create index idx_post_aggregates_fast_hot_rank on post_aggregates_fast (hot_rank desc);
+create index idx_post_aggregates_fast_activity on post_aggregates_fast (newest_activity_time desc);
 
--- This ones for the common case of null fetches
-create index idx_post_fast_hot_rank_published_desc_user_null on post_fast (hot_rank desc, published desc) where user_id is null;
+create view post_fast_view as 
+with all_post as (
+  select
+  pa.*
+  from post_aggregates_fast pa
+)
+select
+ap.*,
+u.id as user_id,
+coalesce(pl.score, 0) as my_vote,
+(select cf.id::bool from community_follower cf where u.id = cf.user_id and cf.community_id = ap.community_id) as subscribed,
+(select pr.id::bool from post_read pr where u.id = pr.user_id and pr.post_id = ap.id) as read,
+(select ps.id::bool from post_saved ps where u.id = ps.user_id and ps.post_id = ap.id) as saved
+from user_ u
+cross join all_post ap
+left join post_like pl on u.id = pl.user_id and ap.id = pl.post_id
+
+union all
+
+select 
+ap.*,
+null as user_id,
+null as my_vote,
+null as subscribed,
+null as read,
+null as saved
+from all_post ap
+;
 
 drop trigger refresh_post on post;
 
@@ -82,6 +105,8 @@ on post
 for each row
 execute procedure refresh_post();
 
+-- Sample select
+-- select id, name from post_fast_view where name like 'test_post' and user_id is null;
 -- Sample insert 
 -- insert into post(name, creator_id, community_id) values ('test_post', 2, 2);
 -- Sample delete
@@ -93,31 +118,56 @@ returns trigger language plpgsql
 as $$
 begin
   IF (TG_OP = 'DELETE') THEN
-    delete from post_fast where id = OLD.id;
+    delete from post_aggregates_fast where id = OLD.id;
   ELSIF (TG_OP = 'UPDATE') THEN
-    delete from post_fast where id = OLD.id;
-    insert into post_fast select * from post_view where id = NEW.id;
+    delete from post_aggregates_fast where id = OLD.id;
+    insert into post_aggregates_fast select * from post_aggregates_view where id = NEW.id;
   ELSIF (TG_OP = 'INSERT') THEN
-    insert into post_fast select * from post_view where id = NEW.id;
+    insert into post_aggregates_fast select * from post_aggregates_view where id = NEW.id;
 
-    -- TODO Update the user fast table
     -- Update that users number of posts, post score
-    -- delete from user_fast where id = NEW.creator_id;
-    -- insert into user_fast select * from user_view where id = NEW.creator_id;
+    delete from user_fast where id = NEW.creator_id;
+    insert into user_fast select * from user_view where id = NEW.creator_id;
 
     -- Update the hot rank on the post table TODO hopefully this doesn't lock it.
-    update post_fast set hot_rank = hot_rank(coalesce(score , 0), published) where hot_rank > 0 ;
+    -- TODO this might not correctly update it, using a 1 week interval
+    update post_aggregates_fast as paf
+    set hot_rank = pav.hot_rank 
+    from post_aggregates_view as pav
+    where paf.id = pav.id  and (pav.published > ('now'::timestamp - '1 week'::interval));
   END IF;
 
   return null;
 end $$;
 
 -- Community
-create table community_fast as select * from community_view;
-alter table community_fast add column fast_id serial primary key;
+create table community_aggregates_fast as select * from community_aggregates_view;
+alter table community_aggregates_fast add column fast_id serial primary key;
 
-create index idx_community_fast_id on community_fast (id);
-create index idx_community_fast_user_id on community_fast (user_id);
+create index idx_community_aggregates_fast_id on community_aggregates_fast (id);
+
+create view community_fast_view as
+with all_community as
+(
+  select
+  ca.*
+  from community_aggregates_fast ca
+)
+
+select
+ac.*,
+u.id as user_id,
+(select cf.id::boolean from community_follower cf where u.id = cf.user_id and ac.id = cf.community_id) as subscribed
+from user_ u
+cross join all_community ac
+
+union all
+
+select 
+ac.*,
+null as user_id,
+null as subscribed
+from all_community ac;
 
 drop trigger refresh_community on community;
 
@@ -127,6 +177,8 @@ on community
 for each row
 execute procedure refresh_community();
 
+-- Sample select
+-- select * from community_fast_view where name like 'test_community_name' and user_id is null;
 -- Sample insert 
 -- insert into community(name, title, category_id, creator_id) values ('test_community_name', 'test_community_title', 1, 2);
 -- Sample delete
@@ -138,22 +190,22 @@ returns trigger language plpgsql
 as $$
 begin
   IF (TG_OP = 'DELETE') THEN
-    delete from community_fast where id = OLD.id;
+    delete from community_aggregates_fast where id = OLD.id;
   ELSIF (TG_OP = 'UPDATE') THEN
-    delete from community_fast where id = OLD.id;
-    insert into community_fast select * from community_view where id = NEW.id;
+    delete from community_aggregates_fast where id = OLD.id;
+    insert into community_aggregates_fast select * from community_aggregates_view where id = NEW.id;
 
     -- Update user view due to owner changes
     delete from user_fast where id = NEW.creator_id;
     insert into user_fast select * from user_view where id = NEW.creator_id;
     
     -- Update post view due to community changes
-    delete from post_fast where community_id = NEW.id;
-    insert into post_fast select * from post_view where community_id = NEW.id;
+    delete from post_aggregates_fast where community_id = NEW.id;
+    insert into post_aggregates_fast select * from post_aggregates_view where community_id = NEW.id;
 
   -- TODO make sure this shows up in the users page ?
   ELSIF (TG_OP = 'INSERT') THEN
-    insert into community_fast select * from community_view where id = NEW.id;
+    insert into community_aggregates_fast select * from community_aggregates_view where id = NEW.id;
   END IF;
 
   return null;
@@ -198,14 +250,64 @@ end $$;
 
 -- Comment
 
-create table comment_fast as select * from comment_view;
-alter table comment_fast add column fast_id serial primary key;
+create table comment_aggregates_fast as select * from comment_aggregates_view;
+alter table comment_aggregates_fast add column fast_id serial primary key;
 
-create index idx_comment_fast_user_id on comment_fast (user_id);
-create index idx_comment_fast_id on comment_fast (id);
+create index idx_comment_aggregates_fast_id on comment_aggregates_fast (id);
 
--- This ones for the common case of null fetches
-create index idx_comment_fast_hot_rank_published_desc_user_null on comment_fast (hot_rank desc, published desc) where user_id is null;
+create view comment_fast_view as
+with all_comment as
+(
+  select
+  ca.*
+  from comment_aggregates_fast ca
+)
+
+select
+ac.*,
+u.id as user_id,
+coalesce(cl.score, 0) as my_vote,
+(select cf.id::boolean from community_follower cf where u.id = cf.user_id and ac.community_id = cf.community_id) as subscribed,
+(select cs.id::bool from comment_saved cs where u.id = cs.user_id and cs.comment_id = ac.id) as saved
+from user_ u
+cross join all_comment ac
+left join comment_like cl on u.id = cl.user_id and ac.id = cl.comment_id
+
+union all
+
+select 
+    ac.*,
+    null as user_id, 
+    null as my_vote,
+    null as subscribed,
+    null as saved
+from all_comment ac
+;
+
+-- Do the reply_view referencing the comment_fast_view
+create view reply_fast_view as 
+with closereply as (
+    select 
+    c2.id, 
+    c2.creator_id as sender_id, 
+    c.creator_id as recipient_id
+    from comment c
+    inner join comment c2 on c.id = c2.parent_id
+    where c2.creator_id != c.creator_id
+    -- Do union where post is null
+    union
+    select
+    c.id,
+    c.creator_id as sender_id,
+    p.creator_id as recipient_id
+    from comment c, post p
+    where c.post_id = p.id and c.parent_id is null and c.creator_id != p.creator_id
+)
+select cv.*,
+closereply.recipient_id
+from comment_fast_view cv, closereply
+where closereply.id = cv.id
+;
 
 drop trigger refresh_comment on comment;
 
@@ -215,6 +317,8 @@ on comment
 for each row
 execute procedure refresh_comment();
 
+-- Sample select
+-- select * from comment_fast_view where content = 'test_comment' and user_id is null;
 -- Sample insert 
 -- insert into comment(creator_id, post_id, content) values (2, 2, 'test_comment');
 -- Sample delete
@@ -226,24 +330,29 @@ returns trigger language plpgsql
 as $$
 begin
   IF (TG_OP = 'DELETE') THEN
-    -- delete from comment_fast where id = OLD.id;
+    delete from comment_aggregates_fast where id = OLD.id;
   ELSIF (TG_OP = 'UPDATE') THEN
-    -- delete from comment_fast where id = OLD.id;
-    -- insert into comment_fast select * from comment_view where id = NEW.id;
+    delete from comment_aggregates_fast where id = OLD.id;
+    insert into comment_aggregates_fast select * from comment_aggregates_view where id = NEW.id;
   ELSIF (TG_OP = 'INSERT') THEN
-    insert into comment_fast select * from comment_view where id = NEW.id;
+    insert into comment_aggregates_fast select * from comment_aggregates_view where id = NEW.id;
 
     -- Update user view due to comment count
-    -- delete from user_fast where id = NEW.creator_id;
-    -- insert into user_fast select * from user_view where id = NEW.creator_id;
+    delete from user_fast where id = NEW.creator_id;
+    insert into user_fast select * from user_view where id = NEW.creator_id;
     
-    -- Update post view due to comment count
-    -- delete from post_fast where id = NEW.post_id;
-    -- insert into post_fast select * from post_view where id = NEW.post_id;
+    -- Update post view due to comment count, new comment activity time, but only on new posts
+    delete from post_aggregates_fast where id = NEW.post_id;
+    insert into post_aggregates_fast select * from post_aggregates_view where id = NEW.post_id;
+
+    -- Force the hot rank as zero on week-older posts
+    update post_aggregates_fast as paf
+    set hot_rank = 0
+    where paf.id = NEW.post_id and (paf.published < ('now'::timestamp - '1 week'::interval));
 
     -- Update community view due to comment count
-    -- delete from community_fast as cf using post as p where cf.id = p.community_id and p.id = NEW.post_id;
-    -- insert into community_fast select cv.* from community_view cv, post p where cv.id = p.community_id and p.id = NEW.post_id;
+    delete from community_aggregates_fast as cf using post as p where cf.id = p.community_id and p.id = NEW.post_id;
+    insert into community_aggregates_fast select cv.* from community_aggregates_view cv, post p where cv.id = p.community_id and p.id = NEW.post_id;
 
   END IF;
 
@@ -287,33 +396,8 @@ on user_mention
 for each row
 execute procedure refresh_user_mention();
 
--- The reply view, referencing the fast table
-create view reply_fast_view as 
-with closereply as (
-    select 
-    c2.id, 
-    c2.creator_id as sender_id, 
-    c.creator_id as recipient_id
-    from comment c
-    inner join comment c2 on c.id = c2.parent_id
-    where c2.creator_id != c.creator_id
-    -- Do union where post is null
-    union
-    select
-    c.id,
-    c.creator_id as sender_id,
-    p.creator_id as recipient_id
-    from comment c, post p
-    where c.post_id = p.id and c.parent_id is null and c.creator_id != p.creator_id
-)
-select cv.*,
-closereply.recipient_id
-from comment_fast cv, closereply
-where closereply.id = cv.id
-;
-
 -- post_like
--- select id, score, my_vote from post_fast where id = 29 and user_id = 4;
+-- select id, score, my_vote from post_fast_view where id = 29 and user_id = 4;
 -- Sample insert 
 -- insert into post_like(user_id, post_id, score) values (4, 29, 1);
 -- Sample delete
@@ -326,16 +410,15 @@ create or replace function refresh_post_like()
 returns trigger language plpgsql
 as $$
 begin
-  -- TODO possibly select from post_fast to get previous scores, instead of re-fetching the views?
   IF (TG_OP = 'DELETE') THEN
-    delete from post_fast where id = OLD.post_id;
-    insert into post_fast select * from post_view where id = OLD.post_id;
+    delete from post_aggregates_fast where id = OLD.post_id;
+    insert into post_aggregates_fast select * from post_aggregates_view where id = OLD.post_id;
   ELSIF (TG_OP = 'UPDATE') THEN
-    delete from post_fast where id = NEW.post_id;
-    insert into post_fast select * from post_view where id = NEW.post_id;
+    delete from post_aggregates_fast where id = NEW.post_id;
+    insert into post_aggregates_fast select * from post_aggregates_view where id = NEW.post_id;
   ELSIF (TG_OP = 'INSERT') THEN
-    delete from post_fast where id = NEW.post_id;
-    insert into post_fast select * from post_view where id = NEW.post_id;
+    delete from post_aggregates_fast where id = NEW.post_id;
+    insert into post_aggregates_fast select * from post_aggregates_view where id = NEW.post_id;
   END IF;
 
   return null;
@@ -348,21 +431,29 @@ on post_like
 for each row
 execute procedure refresh_post_like();
 
+-- comment_like
+-- select id, score, my_vote from comment_fast_view where id = 29 and user_id = 4;
+-- Sample insert 
+-- insert into comment_like(user_id, comment_id, post_id, score) values (4, 29, 51, 1);
+-- Sample delete
+-- delete from comment_like where user_id = 4 and comment_id = 29;
+-- Sample update
+-- update comment_like set score = -1 where user_id = 4 and comment_id = 29;
 create or replace function refresh_comment_like()
 returns trigger language plpgsql
 as $$
 begin
   -- TODO possibly select from comment_fast to get previous scores, instead of re-fetching the views?
-  -- IF (TG_OP = 'DELETE') THEN
-  --   delete from comment_fast where id = OLD.comment_id;
-  --   insert into comment_fast select * from comment_view where id = OLD.comment_id;
-  -- ELSIF (TG_OP = 'UPDATE') THEN
-  --   delete from comment_fast where id = NEW.comment_id;
-  --   insert into comment_fast select * from comment_view where id = NEW.comment_id;
-  -- ELSIF (TG_OP = 'INSERT') THEN
-  --   delete from comment_fast where id = NEW.comment_id;
-  --   insert into comment_fast select * from comment_view where id = NEW.comment_id;
-  -- END IF;
+  IF (TG_OP = 'DELETE') THEN
+    delete from comment_aggregates_fast where id = OLD.comment_id;
+    insert into comment_aggregates_fast select * from comment_aggregates_view where id = OLD.comment_id;
+  ELSIF (TG_OP = 'UPDATE') THEN
+    delete from comment_aggregates_fast where id = NEW.comment_id;
+    insert into comment_aggregates_fast select * from comment_aggregates_view where id = NEW.comment_id;
+  ELSIF (TG_OP = 'INSERT') THEN
+    delete from comment_aggregates_fast where id = NEW.comment_id;
+    insert into comment_aggregates_fast select * from comment_aggregates_view where id = NEW.comment_id;
+  END IF;
 
   return null;
 end $$;

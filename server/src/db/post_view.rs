@@ -1,4 +1,4 @@
-use super::post_view::post_fast::BoxedQuery;
+use super::post_view::post_fast_view::BoxedQuery;
 use crate::db::{fuzzy_search, limit_and_offset, ListingType, MaybeOptional, SortType};
 use diesel::{dsl::*, pg::Pg, result::Error, *};
 use serde::{Deserialize, Serialize};
@@ -52,7 +52,7 @@ table! {
 }
 
 table! {
-  post_fast (id) {
+  post_fast_view (id) {
     id -> Int4,
     name -> Varchar,
     url -> Nullable<Text>,
@@ -90,19 +90,19 @@ table! {
     downvotes -> BigInt,
     hot_rank -> Int4,
     newest_activity_time -> Timestamp,
+    fast_id -> Int4,
     user_id -> Nullable<Int4>,
     my_vote -> Nullable<Int4>,
     subscribed -> Nullable<Bool>,
     read -> Nullable<Bool>,
     saved -> Nullable<Bool>,
-    fast_id -> Int4,
   }
 }
 
 #[derive(
   Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
 )]
-#[table_name = "post_fast"]
+#[table_name = "post_fast_view"]
 pub struct PostView {
   pub id: i32,
   pub name: String,
@@ -141,12 +141,12 @@ pub struct PostView {
   pub downvotes: i64,
   pub hot_rank: i32,
   pub newest_activity_time: chrono::NaiveDateTime,
+  pub fast_id: i32,
   pub user_id: Option<i32>,
   pub my_vote: Option<i32>,
   pub subscribed: Option<bool>,
   pub read: Option<bool>,
   pub saved: Option<bool>,
-  pub fast_id: i32,
 }
 
 pub struct PostQueryBuilder<'a> {
@@ -168,9 +168,9 @@ pub struct PostQueryBuilder<'a> {
 
 impl<'a> PostQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection) -> Self {
-    use super::post_view::post_fast::dsl::*;
+    use super::post_view::post_fast_view::dsl::*;
 
-    let query = post_fast.into_boxed();
+    let query = post_fast_view.into_boxed();
 
     PostQueryBuilder {
       conn,
@@ -251,7 +251,7 @@ impl<'a> PostQueryBuilder<'a> {
   }
 
   pub fn list(self) -> Result<Vec<PostView>, Error> {
-    use super::post_view::post_fast::dsl::*;
+    use super::post_view::post_fast_view::dsl::*;
 
     let mut query = self.query;
 
@@ -347,10 +347,10 @@ impl PostView {
     from_post_id: i32,
     my_user_id: Option<i32>,
   ) -> Result<Self, Error> {
-    use super::post_view::post_fast::dsl::*;
+    use super::post_view::post_fast_view::dsl::*;
     use diesel::prelude::*;
 
-    let mut query = post_fast.into_boxed();
+    let mut query = post_fast_view.into_boxed();
 
     query = query.filter(id.eq(from_post_id));
 
@@ -520,6 +520,7 @@ mod tests {
       hot_rank: read_post_listing_no_user.hot_rank,
       published: inserted_post.published,
       newest_activity_time: inserted_post.published,
+      fast_id: read_post_listing_no_user.fast_id,
       updated: None,
       subscribed: None,
       read: None,
@@ -535,7 +536,6 @@ mod tests {
       creator_local: true,
       community_actor_id: inserted_community.actor_id.to_owned(),
       community_local: true,
-      fast_id: read_post_listing_no_user.fast_id,
     };
 
     let expected_post_listing_with_user = PostView {
@@ -566,6 +566,7 @@ mod tests {
       hot_rank: read_post_listing_with_user.hot_rank,
       published: inserted_post.published,
       newest_activity_time: inserted_post.published,
+      fast_id: read_post_listing_with_user.fast_id,
       updated: None,
       subscribed: None,
       read: None,
@@ -581,7 +582,6 @@ mod tests {
       creator_local: true,
       community_actor_id: inserted_community.actor_id.to_owned(),
       community_local: true,
-      fast_id: read_post_listing_with_user.fast_id,
     };
 
     let like_removed = PostLike::remove(&conn, &post_like_form).unwrap();

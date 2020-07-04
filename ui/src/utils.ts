@@ -919,7 +919,7 @@ export function postSort(
         +a.removed - +b.removed ||
         +a.deleted - +b.deleted ||
         (communityType && +b.stickied - +a.stickied) ||
-        hotRankPost(b) - hotRankPost(a)
+        b.hot_rank - a.hot_rank
     );
   }
 }

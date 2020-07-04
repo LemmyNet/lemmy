@@ -2,11 +2,14 @@
 drop table user_fast;
 drop table user_mention_fast;
 drop trigger refresh_user_mention on user_mention;
-drop table post_fast;
-drop table community_fast;
+drop view post_fast_view;
+drop table post_aggregates_fast;
+drop view community_fast_view;
+drop table community_aggregates_fast;
 drop table private_message_fast;
 drop view reply_fast_view;
-drop table comment_fast;
+drop view comment_fast_view;
+drop table comment_aggregates_fast;
 
 -- Re-adding all the triggers, functions, and mviews
 
