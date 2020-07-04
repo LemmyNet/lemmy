@@ -1,6 +1,5 @@
 use super::IPAddr;
-use crate::api::APIError;
-use failure::Error;
+use crate::{api::APIError, LemmyError};
 use log::debug;
 use std::{collections::HashMap, time::SystemTime};
 use strum::IntoEnumIterator;
@@ -11,7 +10,7 @@ pub struct RateLimitBucket {
   allowance: f64,
 }
 
-#[derive(Eq, PartialEq, Hash, Debug, EnumIter, Copy, Clone)]
+#[derive(Eq, PartialEq, Hash, Debug, EnumIter, Copy, Clone, AsRefStr)]
 pub enum RateLimitType {
   Message,
   Register,
@@ -61,7 +60,7 @@ impl RateLimiter {
     rate: i32,
     per: i32,
     check_only: bool,
-  ) -> Result<(), Error> {
+  ) -> Result<(), LemmyError> {
     self.insert_ip(ip);
     if let Some(bucket) = self.buckets.get_mut(&type_) {
       if let Some(rate_limit) = bucket.get_mut(ip) {
@@ -81,12 +80,21 @@ impl RateLimiter {
 
         if rate_limit.allowance < 1.0 {
           debug!(
-            "Rate limited IP: {}, time_passed: {}, allowance: {}",
-            ip, time_passed, rate_limit.allowance
+            "Rate limited type: {}, IP: {}, time_passed: {}, allowance: {}",
+            type_.as_ref(),
+            ip,
+            time_passed,
+            rate_limit.allowance
           );
           Err(
             APIError {
-              message: format!("Too many requests. {} per {} seconds", rate, per),
+              message: format!(
+                "Too many requests. type: {}, IP: {}, {} per {} seconds",
+                type_.as_ref(),
+                ip,
+                rate,
+                per
+              ),
             }
             .into(),
           )

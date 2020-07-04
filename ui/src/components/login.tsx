@@ -20,6 +20,11 @@ interface State {
   loginLoading: boolean;
   registerLoading: boolean;
   enable_nsfw: boolean;
+  mathQuestion: {
+    a: number;
+    b: number;
+    answer: number;
+  };
 }
 
 export class Login extends Component<any, State> {
@@ -40,6 +45,11 @@ export class Login extends Component<any, State> {
     loginLoading: false,
     registerLoading: false,
     enable_nsfw: undefined,
+    mathQuestion: {
+      a: Math.floor(Math.random() * 10) + 1,
+      b: Math.floor(Math.random() * 10) + 1,
+      answer: undefined,
+    },
   };
 
   constructor(props: any, context: any) {
@@ -215,6 +225,23 @@ export class Login extends Component<any, State> {
             />
           </div>
         </div>
+        <div class="form-group row">
+          <label class="col-sm-10 col-form-label" htmlFor="register-math">
+            {i18n.t('what_is')}{' '}
+            {`${this.state.mathQuestion.a} + ${this.state.mathQuestion.b}?`}
+          </label>
+
+          <div class="col-sm-2">
+            <input
+              type="number"
+              id="register-math"
+              class="form-control"
+              value={this.state.mathQuestion.answer}
+              onInput={linkEvent(this, this.handleMathAnswerChange)}
+              required
+            />
+          </div>
+        </div>
         {this.state.enable_nsfw && (
           <div class="form-group row">
             <div class="col-sm-10">
@@ -235,7 +262,11 @@ export class Login extends Component<any, State> {
         )}
         <div class="form-group row">
           <div class="col-sm-10">
-            <button type="submit" class="btn btn-secondary">
+            <button
+              type="submit"
+              class="btn btn-secondary"
+              disabled={this.mathCheck}
+            >
               {this.state.registerLoading ? (
                 <svg class="icon icon-spinner spin">
                   <use xlinkHref="#icon-spinner"></use>
@@ -272,7 +303,9 @@ export class Login extends Component<any, State> {
     i.state.registerLoading = true;
     i.setState(i.state);
 
-    WebSocketService.Instance.register(i.state.registerForm);
+    if (!i.mathCheck) {
+      WebSocketService.Instance.register(i.state.registerForm);
+    }
   }
 
   handleRegisterUsernameChange(i: Login, event: any) {
@@ -303,12 +336,24 @@ export class Login extends Component<any, State> {
     i.setState(i.state);
   }
 
+  handleMathAnswerChange(i: Login, event: any) {
+    i.state.mathQuestion.answer = event.target.value;
+    i.setState(i.state);
+  }
+
   handlePasswordReset(i: Login) {
     event.preventDefault();
     let resetForm: PasswordResetForm = {
       email: i.state.loginForm.username_or_email,
     };
     WebSocketService.Instance.passwordReset(resetForm);
+  }
+
+  get mathCheck(): boolean {
+    return (
+      this.state.mathQuestion.answer !=
+      this.state.mathQuestion.a + this.state.mathQuestion.b
+    );
   }
 
   parseMessage(msg: WebSocketJsonResponse) {

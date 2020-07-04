@@ -1,9 +1,10 @@
-use crate::apub::ActorType;
+use crate::{apub::ActorType, LemmyError};
 use activitystreams::ext::Extension;
-use actix_web::HttpRequest;
-use failure::Error;
-use http::request::Builder;
-use http_signature_normalization::Config;
+use actix_web::{client::ClientRequest, HttpRequest};
+use http_signature_normalization_actix::{
+  digest::{DigestClient, SignExt},
+  Config,
+};
 use log::debug;
 use openssl::{
   hash::MessageDigest,
@@ -12,7 +13,7 @@ use openssl::{
   sign::{Signer, Verifier},
 };
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use sha2::{Digest, Sha256};
 
 lazy_static! {
   static ref HTTP_SIG_CONFIG: Config = Config::new();
@@ -24,7 +25,7 @@ pub struct Keypair {
 }
 
 /// Generate the asymmetric keypair for ActivityPub HTTP signatures.
-pub fn generate_actor_keypair() -> Result<Keypair, Error> {
+pub fn generate_actor_keypair() -> Result<Keypair, LemmyError> {
   let rsa = Rsa::generate(2048)?;
   let pkey = PKey::from_rsa(rsa)?;
   let public_key = pkey.public_key_to_pem()?;
@@ -36,56 +37,41 @@ pub fn generate_actor_keypair() -> Result<Keypair, Error> {
 }
 
 /// Signs request headers with the given keypair.
-pub fn sign(request: &Builder, actor: &dyn ActorType) -> Result<String, Error> {
+pub async fn sign(
+  request: ClientRequest,
+  actor: &dyn ActorType,
+  activity: String,
+) -> Result<DigestClient<String>, LemmyError> {
   let signing_key_id = format!("{}#main-key", actor.actor_id());
+  let private_key = actor.private_key();
 
-  let headers = request
-    .headers_ref()
-    .unwrap()
-    .iter()
-    .map(|h| -> Result<(String, String), Error> {
-      Ok((h.0.as_str().to_owned(), h.1.to_str()?.to_owned()))
-    })
-    .collect::<Result<BTreeMap<String, String>, Error>>()?;
+  let digest_client = request
+    .signature_with_digest(
+      HTTP_SIG_CONFIG.clone(),
+      signing_key_id,
+      Sha256::new(),
+      activity,
+      move |signing_string| {
+        let private_key = PKey::private_key_from_pem(private_key.as_bytes())?;
+        let mut signer = Signer::new(MessageDigest::sha256(), &private_key).unwrap();
+        signer.update(signing_string.as_bytes()).unwrap();
 
-  let signature_header_value = HTTP_SIG_CONFIG
-    .begin_sign(
-      request.method_ref().unwrap().as_str(),
-      request
-        .uri_ref()
-        .unwrap()
-        .path_and_query()
-        .unwrap()
-        .as_str(),
-      headers,
-    )?
-    .sign(signing_key_id, |signing_string| {
-      let private_key = PKey::private_key_from_pem(actor.private_key().as_bytes())?;
-      let mut signer = Signer::new(MessageDigest::sha256(), &private_key).unwrap();
-      signer.update(signing_string.as_bytes()).unwrap();
-      Ok(base64::encode(signer.sign_to_vec()?)) as Result<_, Error>
-    })?
-    .signature_header();
+        Ok(base64::encode(signer.sign_to_vec()?)) as Result<_, LemmyError>
+      },
+    )
+    .await?;
 
-  Ok(signature_header_value)
+  Ok(digest_client)
 }
 
-pub fn verify(request: &HttpRequest, actor: &dyn ActorType) -> Result<(), Error> {
-  let headers = request
-    .headers()
-    .iter()
-    .map(|h| -> Result<(String, String), Error> {
-      Ok((h.0.as_str().to_owned(), h.1.to_str()?.to_owned()))
-    })
-    .collect::<Result<BTreeMap<String, String>, Error>>()?;
-
+pub fn verify(request: &HttpRequest, actor: &dyn ActorType) -> Result<(), LemmyError> {
   let verified = HTTP_SIG_CONFIG
     .begin_verify(
-      request.method().as_str(),
-      request.uri().path_and_query().unwrap().as_str(),
-      headers,
+      request.method(),
+      request.uri().path_and_query(),
+      request.headers().clone(),
     )?
-    .verify(|signature, signing_string| -> Result<bool, Error> {
+    .verify(|signature, signing_string| -> Result<bool, LemmyError> {
       debug!(
         "Verifying with key {}, message {}",
         &actor.public_key(),
@@ -101,10 +87,7 @@ pub fn verify(request: &HttpRequest, actor: &dyn ActorType) -> Result<(), Error>
     debug!("verified signature for {}", &request.uri());
     Ok(())
   } else {
-    Err(format_err!(
-      "Invalid signature on request: {}",
-      &request.uri()
-    ))
+    Err(format_err!("Invalid signature on request: {}", &request.uri()).into())
   }
 }
 

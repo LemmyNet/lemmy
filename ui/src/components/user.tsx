@@ -317,6 +317,7 @@ export class User extends Component<any, UserState> {
             SortType[this.state.sort]
           }`}
           target="_blank"
+          rel="noopener"
           title="RSS"
         >
           <svg class="icon mx-2 text-muted small">
@@ -463,6 +464,7 @@ export class User extends Component<any, UserState> {
                     !this.state.user.matrix_user_id && 'disabled'
                   }`}
                   target="_blank"
+                  rel="noopener"
                   href={`https://matrix.to/#/${this.state.user.matrix_user_id}`}
                 >
                   {i18n.t('send_secure_message')}
@@ -586,7 +588,11 @@ export class User extends Component<any, UserState> {
               </div>
               <div class="form-group row">
                 <label class="col-lg-5 col-form-label">
-                  <a href="https://about.riot.im/" target="_blank">
+                  <a
+                    href="https://about.riot.im/"
+                    target="_blank"
+                    rel="noopener"
+                  >
                     {i18n.t('matrix_user_id')}
                   </a>
                 </label>

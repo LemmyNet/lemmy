@@ -4,7 +4,7 @@ use crate::{
   routes::{ChatServerParam, DbPoolParam},
   websocket::WebsocketInfo,
 };
-use actix_web::{error::ErrorBadRequest, *};
+use actix_web::{client::Client, error::ErrorBadRequest, *};
 use serde::Serialize;
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
@@ -150,6 +150,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
 
 async fn perform<Request>(
   data: Request,
+  client: &Client,
   db: DbPoolParam,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error>
@@ -162,9 +163,10 @@ where
     id: None,
   };
 
-  let oper: Oper<Request> = Oper::new(data);
+  let oper: Oper<Request> = Oper::new(data, client.clone());
 
-  let res = web::block(move || oper.perform(db.get_ref().to_owned(), Some(ws_info)))
+  let res = oper
+    .perform(&db, Some(ws_info))
     .await
     .map(|json| HttpResponse::Ok().json(json))
     .map_err(ErrorBadRequest)?;
@@ -173,6 +175,7 @@ where
 
 async fn route_get<Data>(
   data: web::Query<Data>,
+  client: web::Data<Client>,
   db: DbPoolParam,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error>
@@ -180,11 +183,12 @@ where
   Data: Serialize + Send + 'static,
   Oper<Data>: Perform,
 {
-  perform::<Data>(data.0, db, chat_server).await
+  perform::<Data>(data.0, &client, db, chat_server).await
 }
 
 async fn route_post<Data>(
   data: web::Json<Data>,
+  client: web::Data<Client>,
   db: DbPoolParam,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error>
@@ -192,5 +196,5 @@ where
   Data: Serialize + Send + 'static,
   Oper<Data>: Perform,
 {
-  perform::<Data>(data.0, db, chat_server).await
+  perform::<Data>(data.0, &client, db, chat_server).await
 }

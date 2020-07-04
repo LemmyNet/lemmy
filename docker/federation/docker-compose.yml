@@ -12,28 +12,33 @@ services:
       - ../federation/nginx.conf:/etc/nginx/nginx.conf
     restart: on-failure
     depends_on:
-      - lemmy_alpha
-      - pictrs_alpha
-      - lemmy_beta
-      - pictrs_beta
-      - lemmy_gamma
-      - pictrs_gamma
+      - lemmy-alpha
+      - pictrs
+      - lemmy-beta
+      - lemmy-gamma
       - iframely
 
-  lemmy_alpha:
+  pictrs:
+    restart: always
+    image: asonix/pictrs:v0.1.13-r0
+    user: 991:991
+    volumes:
+      - ./volumes/pictrs_alpha:/mnt
+
+  lemmy-alpha:
     image: lemmy-federation:latest
     environment:
-      - LEMMY_HOSTNAME=lemmy_alpha:8540
+      - LEMMY_HOSTNAME=lemmy-alpha:8540
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_alpha:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
       - LEMMY_FRONT_END_DIR=/app/dist
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
-      - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy_beta,lemmy_gamma
+      - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-beta,lemmy-gamma
       - LEMMY_PORT=8540
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_alpha
       - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
-      - LEMMY_SETUP__SITE_NAME=lemmy_alpha
+      - LEMMY_SETUP__SITE_NAME=lemmy-alpha
       - RUST_BACKTRACE=1
       - RUST_LOG=debug
     depends_on:
@@ -46,26 +51,21 @@ services:
       - POSTGRES_DB=lemmy
     volumes:
       - ./volumes/postgres_alpha:/var/lib/postgresql/data
-  pictrs_alpha:
-    image: asonix/pictrs:v0.1.13-r0
-    user: 991:991
-    volumes:
-      - ./volumes/pictrs_alpha:/mnt
 
-  lemmy_beta:
+  lemmy-beta:
     image: lemmy-federation:latest
     environment:
-      - LEMMY_HOSTNAME=lemmy_beta:8550
+      - LEMMY_HOSTNAME=lemmy-beta:8550
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_beta:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
       - LEMMY_FRONT_END_DIR=/app/dist
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
-      - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy_alpha,lemmy_gamma
+      - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-alpha,lemmy-gamma
       - LEMMY_PORT=8550
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_beta
       - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
-      - LEMMY_SETUP__SITE_NAME=lemmy_beta
+      - LEMMY_SETUP__SITE_NAME=lemmy-beta
       - RUST_BACKTRACE=1
       - RUST_LOG=debug
     depends_on:
@@ -78,26 +78,21 @@ services:
       - POSTGRES_DB=lemmy
     volumes:
       - ./volumes/postgres_beta:/var/lib/postgresql/data
-  pictrs_beta:
-    image: asonix/pictrs:v0.1.13-r0
-    user: 991:991
-    volumes:
-      - ./volumes/pictrs_beta:/mnt
 
-  lemmy_gamma:
+  lemmy-gamma:
     image: lemmy-federation:latest
     environment:
-      - LEMMY_HOSTNAME=lemmy_gamma:8560
+      - LEMMY_HOSTNAME=lemmy-gamma:8560
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_gamma:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
       - LEMMY_FRONT_END_DIR=/app/dist
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
-      - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy_alpha,lemmy_beta
+      - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-alpha,lemmy-beta
       - LEMMY_PORT=8560
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_gamma
       - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
-      - LEMMY_SETUP__SITE_NAME=lemmy_gamma
+      - LEMMY_SETUP__SITE_NAME=lemmy-gamma
       - RUST_BACKTRACE=1
       - RUST_LOG=debug
     depends_on:
@@ -110,11 +105,6 @@ services:
       - POSTGRES_DB=lemmy
     volumes:
       - ./volumes/postgres_gamma:/var/lib/postgresql/data
-  pictrs_gamma:
-    image: asonix/pictrs:v0.1.13-r0
-    user: 991:991
-    volumes:
-      - ./volumes/pictrs_gamma:/mnt
 
   iframely:
     image: dogbin/iframely:latest

@@ -21,6 +21,7 @@ import 'moment/locale/gl';
 import 'moment/locale/tr';
 import 'moment/locale/hu';
 import 'moment/locale/uk';
+import 'moment/locale/sq';
 
 import {
   UserOperation,
@@ -83,6 +84,7 @@ export const languages = [
   { code: 'fi', name: 'Suomi' },
   { code: 'fr', name: 'Français' },
   { code: 'sv', name: 'Svenska' },
+  { code: 'sq', name: 'Shqip' },
   { code: 'tr', name: 'Türkçe' },
   { code: 'uk', name: 'українська мова' },
   { code: 'ru', name: 'Русский' },
@@ -414,6 +416,8 @@ export function getMomentLanguage(): string {
     lang = 'hu';
   } else if (lang.startsWith('uk')) {
     lang = 'uk';
+  } else if (lang.startsWith('sq')) {
+    lang = 'sq';
   } else {
     lang = 'en';
   }

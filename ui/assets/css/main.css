@@ -249,3 +249,18 @@ pre {
   white-space: pre-wrap;
   word-break: keep-all;
 }
+
+.form-control.search-input {
+  float: right !important;
+  transition: width 0.2s ease-out 0s !important;
+}
+
+.show-input {
+  width: 13em !important;
+
+}
+.hide-input {
+  background: transparent !important;
+  width: 0px !important;
+  padding: 0 !important;
+ }

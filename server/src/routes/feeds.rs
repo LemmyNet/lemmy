@@ -1,4 +1,5 @@
 use crate::{
+  blocking,
   db::{
     comment_view::{ReplyQueryBuilder, ReplyView},
     community::Community,
@@ -12,6 +13,7 @@ use crate::{
   markdown_to_html,
   routes::DbPoolParam,
   settings::Settings,
+  LemmyError,
 };
 use actix_web::{error::ErrorBadRequest, *};
 use chrono::{DateTime, NaiveDateTime, Utc};
@@ -43,21 +45,20 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 }
 
 async fn get_all_feed(info: web::Query<Params>, db: DbPoolParam) -> Result<HttpResponse, Error> {
-  let res = web::block(move || {
-    let conn = db.get()?;
-    get_feed_all_data(&conn, &get_sort_type(info)?)
-  })
-  .await
-  .map(|rss| {
+  let sort_type = get_sort_type(info).map_err(ErrorBadRequest)?;
+
+  let rss = blocking(&db, move |conn| get_feed_all_data(conn, &sort_type))
+    .await?
+    .map_err(ErrorBadRequest)?;
+
+  Ok(
     HttpResponse::Ok()
       .content_type("application/rss+xml")
-      .body(rss)
-  })
-  .map_err(ErrorBadRequest)?;
-  Ok(res)
+      .body(rss),
+  )
 }
 
-fn get_feed_all_data(conn: &PgConnection, sort_type: &SortType) -> Result<String, failure::Error> {
+fn get_feed_all_data(conn: &PgConnection, sort_type: &SortType) -> Result<String, LemmyError> {
   let site_view = SiteView::read(&conn)?;
 
   let posts = PostQueryBuilder::create(&conn)
@@ -85,37 +86,34 @@ async fn get_feed(
   info: web::Query<Params>,
   db: web::Data<Pool<ConnectionManager<PgConnection>>>,
 ) -> Result<HttpResponse, Error> {
-  let res = web::block(move || {
-    let conn = db.get()?;
+  let sort_type = get_sort_type(info).map_err(ErrorBadRequest)?;
 
-    let sort_type = get_sort_type(info)?;
+  let request_type = match path.0.as_ref() {
+    "u" => RequestType::User,
+    "c" => RequestType::Community,
+    "front" => RequestType::Front,
+    "inbox" => RequestType::Inbox,
+    _ => return Err(ErrorBadRequest(LemmyError::from(format_err!("wrong_type")))),
+  };
 
-    let request_type = match path.0.as_ref() {
-      "u" => RequestType::User,
-      "c" => RequestType::Community,
-      "front" => RequestType::Front,
-      "inbox" => RequestType::Inbox,
-      _ => return Err(format_err!("wrong_type")),
-    };
+  let param = path.1.to_owned();
 
-    let param = path.1.to_owned();
-
-    match request_type {
-      RequestType::User => get_feed_user(&conn, &sort_type, param),
-      RequestType::Community => get_feed_community(&conn, &sort_type, param),
-      RequestType::Front => get_feed_front(&conn, &sort_type, param),
-      RequestType::Inbox => get_feed_inbox(&conn, param),
-    }
+  let builder = blocking(&db, move |conn| match request_type {
+    RequestType::User => get_feed_user(conn, &sort_type, param),
+    RequestType::Community => get_feed_community(conn, &sort_type, param),
+    RequestType::Front => get_feed_front(conn, &sort_type, param),
+    RequestType::Inbox => get_feed_inbox(conn, param),
   })
-  .await
-  .map(|builder| builder.build().unwrap().to_string())
-  .map(|rss| {
+  .await?
+  .map_err(ErrorBadRequest)?;
+
+  let rss = builder.build().map_err(ErrorBadRequest)?.to_string();
+
+  Ok(
     HttpResponse::Ok()
       .content_type("application/rss+xml")
-      .body(rss)
-  })
-  .map_err(ErrorBadRequest)?;
-  Ok(res)
+      .body(rss),
+  )
 }
 
 fn get_sort_type(info: web::Query<Params>) -> Result<SortType, ParseError> {
@@ -130,7 +128,7 @@ fn get_feed_user(
   conn: &PgConnection,
   sort_type: &SortType,
   user_name: String,
-) -> Result<ChannelBuilder, failure::Error> {
+) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
   let user = User_::find_by_username(&conn, &user_name)?;
   let user_url = user.get_profile_url();
@@ -156,7 +154,7 @@ fn get_feed_community(
   conn: &PgConnection,
   sort_type: &SortType,
   community_name: String,
-) -> Result<ChannelBuilder, failure::Error> {
+) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
   let community = Community::read_from_name(&conn, &community_name)?;
 
@@ -185,7 +183,7 @@ fn get_feed_front(
   conn: &PgConnection,
   sort_type: &SortType,
   jwt: String,
-) -> Result<ChannelBuilder, failure::Error> {
+) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
   let user_id = Claims::decode(&jwt)?.claims.id;
 
@@ -210,7 +208,7 @@ fn get_feed_front(
   Ok(channel_builder)
 }
 
-fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, failure::Error> {
+fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
   let user_id = Claims::decode(&jwt)?.claims.id;
 
