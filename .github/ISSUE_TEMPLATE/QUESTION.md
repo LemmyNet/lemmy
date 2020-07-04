@@ -2,10 +2,9 @@
 name: "? Question"
 about: General questions about Lemmy
 title: ''
-labels: 'type:question'
+labels: question
 assignees: ''
 
 ---
 
 What's the question you have about lemmy?
-

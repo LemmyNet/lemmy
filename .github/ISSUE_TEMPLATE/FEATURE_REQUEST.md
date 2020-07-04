@@ -1,8 +1,8 @@
 ---
-name: "🚀 Feature request"
+name: "\U0001F680 Feature request"
 about: Suggest an idea for improving Lemmy
 title: ''
-labels: 'type:enhancement'
+labels: enhancement
 assignees: ''
 
 ---
