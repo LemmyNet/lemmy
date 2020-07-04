@@ -12,7 +12,6 @@ import {
   GetPrivateMessagesForm,
   PrivateMessagesResponse,
   SortType,
-  SearchType,
   GetSiteResponse,
   Comment,
   CommentResponse,
@@ -20,7 +19,6 @@ import {
   UserView,
   PrivateMessageResponse,
   WebSocketJsonResponse,
-  SearchForm,
 } from '../interfaces';
 import {
   wsJsonToRes,
@@ -183,7 +181,7 @@ export class Navbar extends Component<any, NavbarState> {
         <div
           className={`${!this.state.expanded && 'collapse'} navbar-collapse`}
         >
-          <ul class="navbar-nav mr-auto">
+          <ul class="navbar-nav my-2 mr-auto">
             <li class="nav-item">
               <Link
                 class="nav-link"
@@ -229,34 +227,32 @@ export class Navbar extends Component<any, NavbarState> {
           {!this.context.router.history.location.pathname.match(
             /^\/search/
           ) && (
-            <div class="nav-item my-2">
-              <form
-                class="form-inline"
-                onSubmit={linkEvent(this, this.handleSearchSubmit)}
+            <form
+              class="form-inline"
+              onSubmit={linkEvent(this, this.handleSearchSubmit)}
+            >
+              <input
+                class={`form-control mr-0 search-input ${
+                  this.state.toggleSearch ? 'show-input' : 'hide-input'
+                }`}
+                onInput={linkEvent(this, this.handleSearchParam)}
+                value={this.state.searchParam}
+                ref={this.searchTextField}
+                type="text"
+                placeholder={i18n.t('search')}
+                onBlur={linkEvent(this, this.handleSearchBlur)}
+              ></input>
+              <button
+                name="search-btn"
+                onClick={linkEvent(this, this.handleSearchBtn)}
+                class="btn btn-link"
+                style="color: var(--gray)"
               >
-                <input
-                  class={`form-control mr-0 search-input ${
-                    this.state.toggleSearch ? 'show-input' : 'hide-input'
-                  }`}
-                  onInput={linkEvent(this, this.handleSearchParam)}
-                  value={this.state.searchParam}
-                  ref={this.searchTextField}
-                  type="text"
-                  placeholder={i18n.t('search')}
-                  onBlur={linkEvent(this, this.handleSearchBlur)}
-                ></input>
-                <button
-                  name="search-btn"
-                  onClick={linkEvent(this, this.handleSearchBtn)}
-                  class="btn btn-link"
-                  style="color: var(--gray)"
-                >
-                  <svg class="icon">
-                    <use xlinkHref="#icon-search"></use>
-                  </svg>
-                </button>
-              </form>
-            </div>
+                <svg class="icon">
+                  <use xlinkHref="#icon-search"></use>
+                </svg>
+              </button>
+            </form>
           )}
           <ul class="navbar-nav my-2">
             {this.canAdmin && (
@@ -272,8 +268,10 @@ export class Navbar extends Component<any, NavbarState> {
                 </Link>
               </li>
             )}
-            {this.state.isLoggedIn ? (
-              <>
+          </ul>
+          {this.state.isLoggedIn ? (
+            <>
+              <ul class="navbar-nav my-2">
                 <li className="nav-item">
                   <Link class="nav-link" to="/inbox" title={i18n.t('inbox')}>
                     <svg class="icon">
@@ -286,6 +284,8 @@ export class Navbar extends Component<any, NavbarState> {
                     )}
                   </Link>
                 </li>
+              </ul>
+              <ul class="navbar-nav">
                 <li className="nav-item">
                   <Link
                     class="nav-link"
@@ -307,17 +307,21 @@ export class Navbar extends Component<any, NavbarState> {
                     </span>
                   </Link>
                 </li>
-              </>
-            ) : (
-              <Link
-                class="nav-link"
-                to="/login"
-                title={i18n.t('login_sign_up')}
-              >
-                {i18n.t('login_sign_up')}
-              </Link>
-            )}
-          </ul>
+              </ul>
+            </>
+          ) : (
+            <ul class="navbar-nav my-2">
+              <li className="nav-item">
+                <Link
+                  class="nav-link"
+                  to="/login"
+                  title={i18n.t('login_sign_up')}
+                >
+                  {i18n.t('login_sign_up')}
+                </Link>
+              </li>
+            </ul>
+          )}
         </div>
       </nav>
     );
