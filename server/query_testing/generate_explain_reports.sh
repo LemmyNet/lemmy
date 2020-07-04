@@ -1,13 +1,15 @@
 #!/bin/bash
 set -e
 
+# You can import these to http://tatiyants.com/pev/#/plans/new
+
 # Do the views first
 
 echo "explain (analyze, format json) select * from user_mview" > explain.sql
 psql -qAt -U lemmy -f explain.sql > user_view.json
 
-echo "explain (analyze, format json) select * from post_mview where user_id is null order by hot_rank desc, published desc" > explain.sql
-psql -qAt -U lemmy -f explain.sql > post_view.json
+echo "explain (analyze, format json) select * from post_fast where user_id is null order by hot_rank desc, published desc" > explain.sql
+psql -qAt -U lemmy -f explain.sql > post_fast.json
 
 echo "explain (analyze, format json) select * from comment_mview where user_id is null" > explain.sql
 psql -qAt -U lemmy -f explain.sql > comment_view.json

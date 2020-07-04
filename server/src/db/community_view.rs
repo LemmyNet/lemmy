@@ -1,4 +1,4 @@
-use super::community_view::community_mview::BoxedQuery;
+use super::community_view::community_fast::BoxedQuery;
 use crate::db::{fuzzy_search, limit_and_offset, MaybeOptional, SortType};
 use diesel::{pg::Pg, result::Error, *};
 use serde::{Deserialize, Serialize};
@@ -34,7 +34,7 @@ table! {
 }
 
 table! {
-  community_mview (id) {
+  community_fast (id) {
     id -> Int4,
     name -> Varchar,
     title -> Varchar,
@@ -60,6 +60,7 @@ table! {
     hot_rank -> Int4,
     user_id -> Nullable<Int4>,
     subscribed -> Nullable<Bool>,
+    fast_id -> Int4,
   }
 }
 
@@ -114,7 +115,7 @@ table! {
 #[derive(
   Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
 )]
-#[table_name = "community_view"]
+#[table_name = "community_fast"]
 pub struct CommunityView {
   pub id: i32,
   pub name: String,
@@ -141,6 +142,7 @@ pub struct CommunityView {
   pub hot_rank: i32,
   pub user_id: Option<i32>,
   pub subscribed: Option<bool>,
+  pub fast_id: i32,
 }
 
 pub struct CommunityQueryBuilder<'a> {
@@ -156,9 +158,9 @@ pub struct CommunityQueryBuilder<'a> {
 
 impl<'a> CommunityQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection) -> Self {
-    use super::community_view::community_mview::dsl::*;
+    use super::community_view::community_fast::dsl::*;
 
-    let query = community_mview.into_boxed();
+    let query = community_fast.into_boxed();
 
     CommunityQueryBuilder {
       conn,
@@ -203,7 +205,7 @@ impl<'a> CommunityQueryBuilder<'a> {
   }
 
   pub fn list(self) -> Result<Vec<CommunityView>, Error> {
-    use super::community_view::community_mview::dsl::*;
+    use super::community_view::community_fast::dsl::*;
 
     let mut query = self.query;
 
@@ -259,9 +261,9 @@ impl CommunityView {
     from_community_id: i32,
     from_user_id: Option<i32>,
   ) -> Result<Self, Error> {
-    use super::community_view::community_mview::dsl::*;
+    use super::community_view::community_fast::dsl::*;
 
-    let mut query = community_mview.into_boxed();
+    let mut query = community_fast.into_boxed();
 
     query = query.filter(id.eq(from_community_id));
 

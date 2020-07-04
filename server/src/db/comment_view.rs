@@ -39,7 +39,7 @@ table! {
 }
 
 table! {
-  comment_mview (id) {
+  comment_fast (id) {
     id -> Int4,
     creator_id -> Int4,
     post_id -> Int4,
@@ -70,13 +70,14 @@ table! {
     my_vote -> Nullable<Int4>,
     subscribed -> Nullable<Bool>,
     saved -> Nullable<Bool>,
+    fast_id -> Int4,
   }
 }
 
 #[derive(
   Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
 )]
-#[table_name = "comment_view"]
+#[table_name = "comment_fast"]
 pub struct CommentView {
   pub id: i32,
   pub creator_id: i32,
@@ -108,11 +109,12 @@ pub struct CommentView {
   pub my_vote: Option<i32>,
   pub subscribed: Option<bool>,
   pub saved: Option<bool>,
+  pub fast_id: i32,
 }
 
 pub struct CommentQueryBuilder<'a> {
   conn: &'a PgConnection,
-  query: super::comment_view::comment_mview::BoxedQuery<'a, Pg>,
+  query: super::comment_view::comment_fast::BoxedQuery<'a, Pg>,
   listing_type: ListingType,
   sort: &'a SortType,
   for_community_id: Option<i32>,
@@ -127,9 +129,9 @@ pub struct CommentQueryBuilder<'a> {
 
 impl<'a> CommentQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection) -> Self {
-    use super::comment_view::comment_mview::dsl::*;
+    use super::comment_view::comment_fast::dsl::*;
 
-    let query = comment_mview.into_boxed();
+    let query = comment_fast.into_boxed();
 
     CommentQueryBuilder {
       conn,
@@ -198,7 +200,7 @@ impl<'a> CommentQueryBuilder<'a> {
   }
 
   pub fn list(self) -> Result<Vec<CommentView>, Error> {
-    use super::comment_view::comment_mview::dsl::*;
+    use super::comment_view::comment_fast::dsl::*;
 
     let mut query = self.query;
 
@@ -270,8 +272,8 @@ impl CommentView {
     from_comment_id: i32,
     my_user_id: Option<i32>,
   ) -> Result<Self, Error> {
-    use super::comment_view::comment_mview::dsl::*;
-    let mut query = comment_mview.into_boxed();
+    use super::comment_view::comment_fast::dsl::*;
+    let mut query = comment_fast.into_boxed();
 
     // The view lets you pass a null user_id, if you're not logged in
     if let Some(my_user_id) = my_user_id {
@@ -290,7 +292,7 @@ impl CommentView {
 
 // The faked schema since diesel doesn't do views
 table! {
-  reply_view (id) {
+  reply_fast_view (id) {
     id -> Int4,
     creator_id -> Int4,
     post_id -> Int4,
@@ -321,6 +323,7 @@ table! {
     my_vote -> Nullable<Int4>,
     subscribed -> Nullable<Bool>,
     saved -> Nullable<Bool>,
+    fast_id -> Int4,
     recipient_id -> Int4,
   }
 }
@@ -328,7 +331,7 @@ table! {
 #[derive(
   Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
 )]
-#[table_name = "reply_view"]
+#[table_name = "reply_fast_view"]
 pub struct ReplyView {
   pub id: i32,
   pub creator_id: i32,
@@ -360,12 +363,13 @@ pub struct ReplyView {
   pub my_vote: Option<i32>,
   pub subscribed: Option<bool>,
   pub saved: Option<bool>,
+  pub fast_id: i32,
   pub recipient_id: i32,
 }
 
 pub struct ReplyQueryBuilder<'a> {
   conn: &'a PgConnection,
-  query: super::comment_view::reply_view::BoxedQuery<'a, Pg>,
+  query: super::comment_view::reply_fast_view::BoxedQuery<'a, Pg>,
   for_user_id: i32,
   sort: &'a SortType,
   unread_only: bool,
@@ -375,9 +379,9 @@ pub struct ReplyQueryBuilder<'a> {
 
 impl<'a> ReplyQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection, for_user_id: i32) -> Self {
-    use super::comment_view::reply_view::dsl::*;
+    use super::comment_view::reply_fast_view::dsl::*;
 
-    let query = reply_view.into_boxed();
+    let query = reply_fast_view.into_boxed();
 
     ReplyQueryBuilder {
       conn,
@@ -411,7 +415,7 @@ impl<'a> ReplyQueryBuilder<'a> {
   }
 
   pub fn list(self) -> Result<Vec<ReplyView>, Error> {
-    use super::comment_view::reply_view::dsl::*;
+    use super::comment_view::reply_fast_view::dsl::*;
 
     let mut query = self.query;
 
@@ -590,6 +594,7 @@ mod tests {
       community_local: true,
       creator_actor_id: inserted_user.actor_id.to_owned(),
       creator_local: true,
+      fast_id: 0,
     };
 
     let expected_comment_view_with_user = CommentView {
@@ -623,6 +628,7 @@ mod tests {
       community_local: true,
       creator_actor_id: inserted_user.actor_id.to_owned(),
       creator_local: true,
+      fast_id: 0,
     };
 
     let mut read_comment_views_no_user = CommentQueryBuilder::create(&conn)
@@ -630,6 +636,7 @@ mod tests {
       .list()
       .unwrap();
     read_comment_views_no_user[0].hot_rank = 0;
+    read_comment_views_no_user[0].fast_id = 0;
 
     let mut read_comment_views_with_user = CommentQueryBuilder::create(&conn)
       .for_post_id(inserted_post.id)
@@ -637,6 +644,7 @@ mod tests {
       .list()
       .unwrap();
     read_comment_views_with_user[0].hot_rank = 0;
+    read_comment_views_with_user[0].fast_id = 0;
 
     let like_removed = CommentLike::remove(&conn, &comment_like_form).unwrap();
     let num_deleted = Comment::delete(&conn, inserted_comment.id).unwrap();

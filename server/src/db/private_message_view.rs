@@ -27,7 +27,7 @@ table! {
 }
 
 table! {
-  private_message_mview (id) {
+  private_message_fast (id) {
     id -> Int4,
     creator_id -> Int4,
     recipient_id -> Int4,
@@ -46,13 +46,14 @@ table! {
     recipient_avatar -> Nullable<Text>,
     recipient_actor_id -> Text,
     recipient_local -> Bool,
+    fast_id -> Int4,
   }
 }
 
 #[derive(
   Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
 )]
-#[table_name = "private_message_view"]
+#[table_name = "private_message_fast"]
 pub struct PrivateMessageView {
   pub id: i32,
   pub creator_id: i32,
@@ -72,11 +73,12 @@ pub struct PrivateMessageView {
   pub recipient_avatar: Option<String>,
   pub recipient_actor_id: String,
   pub recipient_local: bool,
+  pub fast_id: i32,
 }
 
 pub struct PrivateMessageQueryBuilder<'a> {
   conn: &'a PgConnection,
-  query: super::private_message_view::private_message_mview::BoxedQuery<'a, Pg>,
+  query: super::private_message_view::private_message_fast::BoxedQuery<'a, Pg>,
   for_recipient_id: i32,
   unread_only: bool,
   page: Option<i64>,
@@ -85,9 +87,9 @@ pub struct PrivateMessageQueryBuilder<'a> {
 
 impl<'a> PrivateMessageQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection, for_recipient_id: i32) -> Self {
-    use super::private_message_view::private_message_mview::dsl::*;
+    use super::private_message_view::private_message_fast::dsl::*;
 
-    let query = private_message_mview.into_boxed();
+    let query = private_message_fast.into_boxed();
 
     PrivateMessageQueryBuilder {
       conn,
@@ -115,7 +117,7 @@ impl<'a> PrivateMessageQueryBuilder<'a> {
   }
 
   pub fn list(self) -> Result<Vec<PrivateMessageView>, Error> {
-    use super::private_message_view::private_message_mview::dsl::*;
+    use super::private_message_view::private_message_fast::dsl::*;
 
     let mut query = self.query.filter(deleted.eq(false));
 
@@ -146,9 +148,9 @@ impl<'a> PrivateMessageQueryBuilder<'a> {
 
 impl PrivateMessageView {
   pub fn read(conn: &PgConnection, from_private_message_id: i32) -> Result<Self, Error> {
-    use super::private_message_view::private_message_view::dsl::*;
+    use super::private_message_view::private_message_fast::dsl::*;
 
-    let mut query = private_message_view.into_boxed();
+    let mut query = private_message_fast.into_boxed();
 
     query = query
       .filter(id.eq(from_private_message_id))

@@ -1,4 +1,4 @@
-use super::post_view::post_mview::BoxedQuery;
+use super::post_view::post_fast::BoxedQuery;
 use crate::db::{fuzzy_search, limit_and_offset, ListingType, MaybeOptional, SortType};
 use diesel::{dsl::*, pg::Pg, result::Error, *};
 use serde::{Deserialize, Serialize};
@@ -52,7 +52,7 @@ table! {
 }
 
 table! {
-  post_mview (id) {
+  post_fast (id) {
     id -> Int4,
     name -> Varchar,
     url -> Nullable<Text>,
@@ -95,13 +95,14 @@ table! {
     subscribed -> Nullable<Bool>,
     read -> Nullable<Bool>,
     saved -> Nullable<Bool>,
+    fast_id -> Int4,
   }
 }
 
 #[derive(
   Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
 )]
-#[table_name = "post_view"]
+#[table_name = "post_fast"]
 pub struct PostView {
   pub id: i32,
   pub name: String,
@@ -145,6 +146,7 @@ pub struct PostView {
   pub subscribed: Option<bool>,
   pub read: Option<bool>,
   pub saved: Option<bool>,
+  pub fast_id: i32,
 }
 
 pub struct PostQueryBuilder<'a> {
@@ -166,9 +168,9 @@ pub struct PostQueryBuilder<'a> {
 
 impl<'a> PostQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection) -> Self {
-    use super::post_view::post_mview::dsl::*;
+    use super::post_view::post_fast::dsl::*;
 
-    let query = post_mview.into_boxed();
+    let query = post_fast.into_boxed();
 
     PostQueryBuilder {
       conn,
@@ -249,7 +251,7 @@ impl<'a> PostQueryBuilder<'a> {
   }
 
   pub fn list(self) -> Result<Vec<PostView>, Error> {
-    use super::post_view::post_mview::dsl::*;
+    use super::post_view::post_fast::dsl::*;
 
     let mut query = self.query;
 
@@ -345,10 +347,10 @@ impl PostView {
     from_post_id: i32,
     my_user_id: Option<i32>,
   ) -> Result<Self, Error> {
-    use super::post_view::post_mview::dsl::*;
+    use super::post_view::post_fast::dsl::*;
     use diesel::prelude::*;
 
-    let mut query = post_mview.into_boxed();
+    let mut query = post_fast.into_boxed();
 
     query = query.filter(id.eq(from_post_id));
 
@@ -470,6 +472,25 @@ mod tests {
       score: 1,
     };
 
+    let read_post_listings_with_user = PostQueryBuilder::create(&conn)
+      .listing_type(ListingType::Community)
+      .sort(&SortType::New)
+      .for_community_id(inserted_community.id)
+      .my_user_id(inserted_user.id)
+      .list()
+      .unwrap();
+
+    let read_post_listings_no_user = PostQueryBuilder::create(&conn)
+      .listing_type(ListingType::Community)
+      .sort(&SortType::New)
+      .for_community_id(inserted_community.id)
+      .list()
+      .unwrap();
+
+    let read_post_listing_no_user = PostView::read(&conn, inserted_post.id, None).unwrap();
+    let read_post_listing_with_user =
+      PostView::read(&conn, inserted_post.id, Some(inserted_user.id)).unwrap();
+
     // the non user version
     let expected_post_listing_no_user = PostView {
       user_id: None,
@@ -496,7 +517,7 @@ mod tests {
       score: 1,
       upvotes: 1,
       downvotes: 0,
-      hot_rank: 1728,
+      hot_rank: read_post_listing_no_user.hot_rank,
       published: inserted_post.published,
       newest_activity_time: inserted_post.published,
       updated: None,
@@ -514,6 +535,7 @@ mod tests {
       creator_local: true,
       community_actor_id: inserted_community.actor_id.to_owned(),
       community_local: true,
+      fast_id: read_post_listing_no_user.fast_id,
     };
 
     let expected_post_listing_with_user = PostView {
@@ -541,7 +563,7 @@ mod tests {
       score: 1,
       upvotes: 1,
       downvotes: 0,
-      hot_rank: 1728,
+      hot_rank: read_post_listing_with_user.hot_rank,
       published: inserted_post.published,
       newest_activity_time: inserted_post.published,
       updated: None,
@@ -559,26 +581,8 @@ mod tests {
       creator_local: true,
       community_actor_id: inserted_community.actor_id.to_owned(),
       community_local: true,
+      fast_id: read_post_listing_with_user.fast_id,
     };
-
-    let read_post_listings_with_user = PostQueryBuilder::create(&conn)
-      .listing_type(ListingType::Community)
-      .sort(&SortType::New)
-      .for_community_id(inserted_community.id)
-      .my_user_id(inserted_user.id)
-      .list()
-      .unwrap();
-
-    let read_post_listings_no_user = PostQueryBuilder::create(&conn)
-      .listing_type(ListingType::Community)
-      .sort(&SortType::New)
-      .for_community_id(inserted_community.id)
-      .list()
-      .unwrap();
-
-    let read_post_listing_no_user = PostView::read(&conn, inserted_post.id, None).unwrap();
-    let read_post_listing_with_user =
-      PostView::read(&conn, inserted_post.id, Some(inserted_user.id)).unwrap();
 
     let like_removed = PostLike::remove(&conn, &post_like_form).unwrap();
     let num_deleted = Post::delete(&conn, inserted_post.id).unwrap();
