@@ -44,12 +44,12 @@
     "remove_as_admin": "إزالة كمدير",
     "appoint_as_admin": "تعيين كمدير",
     "remove": "إزالة",
-    "removed": "تمت إزالته",
+    "removed": "أزاله المشرف",
     "reason": "السبب",
     "mark_as_read": "تعيين كمقروء",
     "mark_as_unread": "تعيين كغير مقروء بعد",
     "delete": "حذف",
-    "deleted": "تم حذفه",
+    "deleted": "حذفه صاحبه",
     "restore": "استعادة",
     "ban": "طرد",
     "ban_from_site": "طرده مِن الموقع",
@@ -219,5 +219,6 @@
     "banned_users": "المستخدمون المحظورون",
     "reset_password_mail_sent": "لقد أرسِلت إليك رسالة إلكترونية لتصفير كلمتك السرية.",
     "upvote": "صوّت إيجابيا",
-    "downvote": "صوّت سلبيا"
+    "downvote": "صوّت سلبيا",
+    "select_a_community": "اختر مجتمعًا"
 }
