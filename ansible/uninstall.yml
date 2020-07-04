@@ -22,27 +22,33 @@
 
   - name: stop docker-compose
     docker_compose:
-      project_src: /lemmy/
+      project_src: '{{lemmy_base_dir}}'
       state: absent
 
   - name: delete data
-    file: path={{item.path}} state=absent
+    file:
+      path: '{{item.path}}'
+      state: absent
     with_items:
-      - { path: '/lemmy/' }
-      - { path: '/etc/nginx/sites-enabled/lemmy.conf' }
+      - path: '{{lemmy_base_dir}}'
+      - path: '/etc/nginx/sites-enabled/lemmy.conf'
 
   - name: Remove a volume
-    docker_volume: name={{item.name}} state=absent
+    docker_volume:
+      name: '{{item.name}}'
+      state: absent
     with_items:
-      - { name: 'lemmy_lemmy_db' }
-      - { name: 'lemmy_lemmy_pictshare' }
+      - name: 'lemmy_lemmy_db'
+      - name: 'lemmy_lemmy_pictshare'
 
   - name: delete entire ecloud folder
-    file: path='/mnt/repo-base/' state=absent
+    file:
+      path: '/mnt/repo-base/'
+      state: absent
     when: delete_certs|bool
 
   - name: remove certbot cronjob
     cron:
-      name=certbot-renew-lemmy
-      state=absent
+      name: certbot-renew-lemmy
+      state: absent
 

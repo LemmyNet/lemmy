@@ -3,7 +3,7 @@ FROM ekidd/rust-musl-builder:1.42.0-openssl11
 USER root
 RUN mkdir /app/dist/documentation/ -p \
  && addgroup --gid 1001 lemmy \
- && adduser --disabled-password --shell /bin/sh -u 1001 --ingroup lemmy lemmy
+ && adduser --gecos "" --disabled-password --shell /bin/sh -u 1001 --ingroup lemmy lemmy
 
 # Copy resources
 COPY server/config/defaults.hjson /app/config/defaults.hjson

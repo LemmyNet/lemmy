@@ -18,7 +18,10 @@ use crate::{
   },
   convert_datetime,
   db::user::User_,
+  request::{retry, RecvError},
   routes::webfinger::WebFingerResponse,
+  DbPool,
+  LemmyError,
   MentionData,
   Settings,
 };
@@ -28,11 +31,8 @@ use activitystreams::{
 };
 use activitystreams_ext::{Ext1, Ext2, Ext3};
 use activitystreams_new::{activity::Follow, object::Tombstone, prelude::*};
-use actix_web::{body::Body, HttpResponse, Result};
+use actix_web::{body::Body, client::Client, HttpResponse};
 use chrono::NaiveDateTime;
-use diesel::PgConnection;
-use failure::Error;
-use isahc::prelude::*;
 use log::debug;
 use serde::Serialize;
 use url::Url;
@@ -101,7 +101,9 @@ pub fn get_apub_protocol_string() -> &'static str {
 
 // Checks if the ID has a valid format, correct scheme, and is in the allowed instance list.
 fn is_apub_id_valid(apub_id: &Url) -> bool {
+  debug!("Checking {}", apub_id);
   if apub_id.scheme() != get_apub_protocol_string() {
+    debug!("invalid scheme: {:?}", apub_id.scheme());
     return false;
   }
 
@@ -112,15 +114,27 @@ fn is_apub_id_valid(apub_id: &Url) -> bool {
     .map(|d| d.to_string())
     .collect();
   match apub_id.domain() {
-    Some(d) => allowed_instances.contains(&d.to_owned()),
-    None => false,
+    Some(d) => {
+      let contains = allowed_instances.contains(&d.to_owned());
+
+      if !contains {
+        debug!("{} not in {:?}", d, allowed_instances);
+      }
+
+      contains
+    }
+    None => {
+      debug!("missing domain");
+      false
+    }
   }
 }
 
+#[async_trait::async_trait(?Send)]
 pub trait ToApub {
   type Response;
-  fn to_apub(&self, conn: &PgConnection) -> Result<Self::Response, Error>;
-  fn to_tombstone(&self) -> Result<Tombstone, Error>;
+  async fn to_apub(&self, pool: &DbPool) -> Result<Self::Response, LemmyError>;
+  fn to_tombstone(&self) -> Result<Tombstone, LemmyError>;
 }
 
 /// Updated is actually the deletion time
@@ -129,7 +143,7 @@ fn create_tombstone(
   object_id: &str,
   updated: Option<NaiveDateTime>,
   former_type: String,
-) -> Result<Tombstone, Error> {
+) -> Result<Tombstone, LemmyError> {
   if deleted {
     if let Some(updated) = updated {
       let mut tombstone = Tombstone::new();
@@ -138,37 +152,85 @@ fn create_tombstone(
       tombstone.set_deleted(convert_datetime(updated).into());
       Ok(tombstone)
     } else {
-      Err(format_err!(
-        "Cant convert to tombstone because updated time was None."
-      ))
+      Err(format_err!("Cant convert to tombstone because updated time was None.").into())
     }
   } else {
-    Err(format_err!(
-      "Cant convert object to tombstone if it wasnt deleted"
-    ))
+    Err(format_err!("Cant convert object to tombstone if it wasnt deleted").into())
   }
 }
 
+#[async_trait::async_trait(?Send)]
 pub trait FromApub {
   type ApubType;
-  fn from_apub(apub: &Self::ApubType, conn: &PgConnection) -> Result<Self, Error>
+  async fn from_apub(
+    apub: &Self::ApubType,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<Self, LemmyError>
   where
     Self: Sized;
 }
 
+#[async_trait::async_trait(?Send)]
 pub trait ApubObjectType {
-  fn send_create(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
-  fn send_update(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
-  fn send_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
-  fn send_undo_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
-  fn send_remove(&self, mod_: &User_, conn: &PgConnection) -> Result<(), Error>;
-  fn send_undo_remove(&self, mod_: &User_, conn: &PgConnection) -> Result<(), Error>;
+  async fn send_create(
+    &self,
+    creator: &User_,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<(), LemmyError>;
+  async fn send_update(
+    &self,
+    creator: &User_,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<(), LemmyError>;
+  async fn send_delete(
+    &self,
+    creator: &User_,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<(), LemmyError>;
+  async fn send_undo_delete(
+    &self,
+    creator: &User_,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<(), LemmyError>;
+  async fn send_remove(
+    &self,
+    mod_: &User_,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<(), LemmyError>;
+  async fn send_undo_remove(
+    &self,
+    mod_: &User_,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<(), LemmyError>;
 }
 
+#[async_trait::async_trait(?Send)]
 pub trait ApubLikeableType {
-  fn send_like(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
-  fn send_dislike(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
-  fn send_undo_like(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
+  async fn send_like(
+    &self,
+    creator: &User_,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<(), LemmyError>;
+  async fn send_dislike(
+    &self,
+    creator: &User_,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<(), LemmyError>;
+  async fn send_undo_like(
+    &self,
+    creator: &User_,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<(), LemmyError>;
 }
 
 pub fn get_shared_inbox(actor_id: &str) -> String {
@@ -185,6 +247,7 @@ pub fn get_shared_inbox(actor_id: &str) -> String {
   )
 }
 
+#[async_trait::async_trait(?Send)]
 pub trait ActorType {
   fn actor_id(&self) -> String;
 
@@ -194,20 +257,55 @@ pub trait ActorType {
   // These two have default impls, since currently a community can't follow anything,
   // and a user can't be followed (yet)
   #[allow(unused_variables)]
-  fn send_follow(&self, follow_actor_id: &str, conn: &PgConnection) -> Result<(), Error>;
-  fn send_unfollow(&self, follow_actor_id: &str, conn: &PgConnection) -> Result<(), Error>;
+  async fn send_follow(
+    &self,
+    follow_actor_id: &str,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<(), LemmyError>;
+  async fn send_unfollow(
+    &self,
+    follow_actor_id: &str,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<(), LemmyError>;
 
   #[allow(unused_variables)]
-  fn send_accept_follow(&self, follow: &Follow, conn: &PgConnection) -> Result<(), Error>;
+  async fn send_accept_follow(
+    &self,
+    follow: &Follow,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<(), LemmyError>;
 
-  fn send_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
-  fn send_undo_delete(&self, creator: &User_, conn: &PgConnection) -> Result<(), Error>;
+  async fn send_delete(
+    &self,
+    creator: &User_,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<(), LemmyError>;
+  async fn send_undo_delete(
+    &self,
+    creator: &User_,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<(), LemmyError>;
 
-  fn send_remove(&self, mod_: &User_, conn: &PgConnection) -> Result<(), Error>;
-  fn send_undo_remove(&self, mod_: &User_, conn: &PgConnection) -> Result<(), Error>;
+  async fn send_remove(
+    &self,
+    mod_: &User_,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<(), LemmyError>;
+  async fn send_undo_remove(
+    &self,
+    mod_: &User_,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<(), LemmyError>;
 
   /// For a given community, returns the inboxes of all followers.
-  fn get_follower_inboxes(&self, conn: &PgConnection) -> Result<Vec<String>, Error>;
+  async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<String>, LemmyError>;
 
   // TODO move these to the db rows
   fn get_inbox_url(&self) -> String {
@@ -244,7 +342,10 @@ pub trait ActorType {
   }
 }
 
-pub fn fetch_webfinger_url(mention: &MentionData) -> Result<String, Error> {
+pub async fn fetch_webfinger_url(
+  mention: &MentionData,
+  client: &Client,
+) -> Result<String, LemmyError> {
   let fetch_url = format!(
     "{}://{}/.well-known/webfinger?resource=acct:{}@{}",
     get_apub_protocol_string(),
@@ -253,8 +354,14 @@ pub fn fetch_webfinger_url(mention: &MentionData) -> Result<String, Error> {
     mention.domain
   );
   debug!("Fetching webfinger url: {}", &fetch_url);
-  let text = isahc::get(&fetch_url)?.text()?;
-  let res: WebFingerResponse = serde_json::from_str(&text)?;
+
+  let mut response = retry(|| client.get(&fetch_url).send()).await?;
+
+  let res: WebFingerResponse = response
+    .json()
+    .await
+    .map_err(|e| RecvError(e.to_string()))?;
+
   let link = res
     .links
     .iter()
@@ -263,5 +370,5 @@ pub fn fetch_webfinger_url(mention: &MentionData) -> Result<String, Error> {
   link
     .href
     .to_owned()
-    .ok_or_else(|| format_err!("No href found."))
+    .ok_or_else(|| format_err!("No href found.").into())
 }

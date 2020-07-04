@@ -10,21 +10,22 @@ use crate::{
   apub::{extensions::signatures::generate_actor_keypair, make_apub_endpoint, EndpointType},
   db::Crud,
   naive_now,
+  LemmyError,
 };
 use diesel::*;
-use failure::Error;
 use log::info;
 
-pub fn run_advanced_migrations(conn: &PgConnection) -> Result<(), Error> {
+pub fn run_advanced_migrations(conn: &PgConnection) -> Result<(), LemmyError> {
   user_updates_2020_04_02(&conn)?;
   community_updates_2020_04_02(&conn)?;
   post_updates_2020_04_03(&conn)?;
   comment_updates_2020_04_03(&conn)?;
   private_message_updates_2020_05_05(&conn)?;
+
   Ok(())
 }
 
-fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), Error> {
+fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
   use crate::schema::user_::dsl::*;
 
   info!("Running user_updates_2020_04_02");
@@ -75,7 +76,7 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), Error> {
   Ok(())
 }
 
-fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), Error> {
+fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
   use crate::schema::community::dsl::*;
 
   info!("Running community_updates_2020_04_02");
@@ -119,7 +120,7 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), Error> {
   Ok(())
 }
 
-fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), Error> {
+fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
   use crate::schema::post::dsl::*;
 
   info!("Running post_updates_2020_04_03");
@@ -143,7 +144,7 @@ fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), Error> {
   Ok(())
 }
 
-fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), Error> {
+fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
   use crate::schema::comment::dsl::*;
 
   info!("Running comment_updates_2020_04_03");
@@ -167,7 +168,7 @@ fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), Error> {
   Ok(())
 }
 
-fn private_message_updates_2020_05_05(conn: &PgConnection) -> Result<(), Error> {
+fn private_message_updates_2020_05_05(conn: &PgConnection) -> Result<(), LemmyError> {
   use crate::schema::private_message::dsl::*;
 
   info!("Running private_message_updates_2020_05_05");

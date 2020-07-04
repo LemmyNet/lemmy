@@ -10,7 +10,7 @@ use diesel::{dsl::*, result::Error, *};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use serde::{Deserialize, Serialize};
 
-#[derive(Queryable, Identifiable, PartialEq, Debug)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "user_"]
 pub struct User_ {
   pub id: i32,

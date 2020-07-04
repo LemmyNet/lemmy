@@ -6,10 +6,12 @@ import { repoUrl } from '../utils';
 
 interface SilverUser {
   name: string;
-  link: string;
+  link?: string;
 }
 
 let general = [
+  'dude in phx',
+  'twilight loki',
   'Andrew Plaza',
   'Jonathan Cremin',
   'Arthur Nieuwland',
@@ -19,7 +21,7 @@ let general = [
   'Andre Vallestero',
   'NotTooHighToHack',
 ];
-let highlighted = ['Oskenso Kashi', 'Alex Benishek'];
+let highlighted = ['DiscountFuneral', 'Oskenso Kashi', 'Alex Benishek'];
 let silver: Array<SilverUser> = [
   {
     name: 'Redjoker',
@@ -89,9 +91,13 @@ export class Sponsors extends Component<any, any> {
           {silver.map(s => (
             <div class="card col-12 col-md-2">
               <div>
-                <a href={s.link} target="_blank" rel="noopener">
-                  💎 {s.name}
-                </a>
+                {s.link ? (
+                  <a href={s.link} target="_blank" rel="noopener">
+                    💎 {s.name}
+                  </a>
+                ) : (
+                  <div>💎 {s.name}</div>
+                )}
               </div>
             </div>
           ))}

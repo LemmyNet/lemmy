@@ -12,7 +12,7 @@ use crate::{
 // )
 // SELECT * FROM MyTree;
 
-#[derive(Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[belongs_to(Post)]
 #[table_name = "comment"]
 pub struct Comment {

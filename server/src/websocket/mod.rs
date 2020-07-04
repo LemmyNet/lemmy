@@ -6,7 +6,6 @@ use diesel::{
   r2d2::{ConnectionManager, Pool},
   PgConnection,
 };
-use failure::Error;
 use log::{error, info};
 use rand::{rngs::ThreadRng, Rng};
 use serde::{Deserialize, Serialize};
