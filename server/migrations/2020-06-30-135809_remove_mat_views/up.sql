@@ -64,8 +64,6 @@ alter table post_aggregates_fast add column fast_id serial primary key;
 create index idx_post_aggregates_fast_id on post_aggregates_fast (id);
 
 -- For the hot rank resorting
-create index idx_post_aggregates_fast_hot_rank on post_aggregates_fast (hot_rank desc);
-create index idx_post_aggregates_fast_activity on post_aggregates_fast (newest_activity_time desc);
 create index idx_post_aggregates_fast_hot_rank_published on post_aggregates_fast (hot_rank desc, published desc);
 
 create view post_fast_view as 
