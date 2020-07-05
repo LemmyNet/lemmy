@@ -338,7 +338,11 @@ begin
     delete from comment_aggregates_fast where id = OLD.id;
 
     -- Update community number of comments
-    update community_aggregates_fast set number_of_comments = number_of_comments - 1 from post where id = post.community_id and post.id = NEW.post_id;
+    update community_aggregates_fast as caf
+    set number_of_comments = number_of_comments - 1
+    from post as p
+    where caf.id = p.community_id and p.id = OLD.post_id;
+
   ELSIF (TG_OP = 'UPDATE') THEN
     delete from comment_aggregates_fast where id = OLD.id;
     insert into comment_aggregates_fast select * from comment_aggregates_view where id = NEW.id;
