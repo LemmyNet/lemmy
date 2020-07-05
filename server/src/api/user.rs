@@ -678,7 +678,8 @@ impl Perform for Oper<AddAdmin> {
     }
 
     let added = data.added;
-    let add_admin = move |conn: &'_ _| User_::add_admin(conn, user_id, added);
+    let added_user_id = data.user_id;
+    let add_admin = move |conn: &'_ _| User_::add_admin(conn, added_user_id, added);
     if blocking(pool, add_admin).await?.is_err() {
       return Err(APIError::err("couldnt_update_user").into());
     }

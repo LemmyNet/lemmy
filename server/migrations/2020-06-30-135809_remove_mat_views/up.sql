@@ -552,9 +552,6 @@ begin
   IF (TG_OP = 'DELETE') THEN
     update comment_aggregates_fast set banned_from_community = false where creator_id = OLD.user_id and community_id = OLD.community_id;
     update post_aggregates_fast set banned_from_community = false where creator_id = OLD.user_id and community_id = OLD.community_id;
-  ELSIF (TG_OP = 'UPDATE') THEN
-    -- delete from comment_aggregates_fast where id = NEW.comment_id;
-    -- insert into comment_aggregates_fast select * from comment_aggregates_view where id = NEW.comment_id;
   ELSIF (TG_OP = 'INSERT') THEN
     update comment_aggregates_fast set banned_from_community = true where creator_id = NEW.user_id and community_id = NEW.community_id;
     update post_aggregates_fast set banned_from_community = true where creator_id = NEW.user_id and community_id = NEW.community_id;
