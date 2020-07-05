@@ -86,7 +86,7 @@ export const languages = [
   { code: 'sv', name: 'Svenska' },
   { code: 'sq', name: 'Shqip' },
   { code: 'tr', name: 'Türkçe' },
-  { code: 'uk', name: 'українська мова' },
+  { code: 'uk', name: 'Українська Mова' },
   { code: 'ru', name: 'Русский' },
   { code: 'nl', name: 'Nederlands' },
   { code: 'it', name: 'Italiano' },
