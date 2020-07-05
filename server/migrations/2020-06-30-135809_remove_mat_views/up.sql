@@ -66,13 +66,9 @@ create index idx_post_aggregates_fast_id on post_aggregates_fast (id);
 -- For the hot rank resorting
 create index idx_post_aggregates_fast_hot_rank on post_aggregates_fast (hot_rank desc);
 create index idx_post_aggregates_fast_activity on post_aggregates_fast (newest_activity_time desc);
+create index idx_post_aggregates_fast_hot_rank_published on post_aggregates_fast (hot_rank desc, published desc);
 
 create view post_fast_view as 
-with all_post as (
-  select
-  pa.*
-  from post_aggregates_fast pa
-)
 select
 ap.*,
 u.id as user_id,
@@ -81,19 +77,23 @@ coalesce(pl.score, 0) as my_vote,
 (select pr.id::bool from post_read pr where u.id = pr.user_id and pr.post_id = ap.id) as read,
 (select ps.id::bool from post_saved ps where u.id = ps.user_id and ps.post_id = ap.id) as saved
 from user_ u
-cross join all_post ap
+cross join (
+  select
+  pa.*
+  from post_aggregates_fast pa
+) ap
 left join post_like pl on u.id = pl.user_id and ap.id = pl.post_id
 
 union all
 
 select 
-ap.*,
+paf.*,
 null as user_id,
 null as my_vote,
 null as subscribed,
 null as read,
 null as saved
-from all_post ap
+from post_aggregates_fast paf
 ;
 
 drop trigger refresh_post on post;
@@ -152,27 +152,24 @@ alter table community_aggregates_fast add column fast_id serial primary key;
 create index idx_community_aggregates_fast_id on community_aggregates_fast (id);
 
 create view community_fast_view as
-with all_community as
-(
-  select
-  ca.*
-  from community_aggregates_fast ca
-)
-
 select
 ac.*,
 u.id as user_id,
 (select cf.id::boolean from community_follower cf where u.id = cf.user_id and ac.id = cf.community_id) as subscribed
 from user_ u
-cross join all_community ac
+cross join (
+  select
+  ca.*
+  from community_aggregates_fast ca
+) ac
 
 union all
 
 select 
-ac.*,
+caf.*,
 null as user_id,
 null as subscribed
-from all_community ac;
+from community_aggregates_fast caf;
 
 drop trigger refresh_community on community;
 
@@ -261,13 +258,6 @@ alter table comment_aggregates_fast add column fast_id serial primary key;
 create index idx_comment_aggregates_fast_id on comment_aggregates_fast (id);
 
 create view comment_fast_view as
-with all_comment as
-(
-  select
-  ca.*
-  from comment_aggregates_fast ca
-)
-
 select
 ac.*,
 u.id as user_id,
@@ -275,18 +265,22 @@ coalesce(cl.score, 0) as my_vote,
 (select cf.id::boolean from community_follower cf where u.id = cf.user_id and ac.community_id = cf.community_id) as subscribed,
 (select cs.id::bool from comment_saved cs where u.id = cs.user_id and cs.comment_id = ac.id) as saved
 from user_ u
-cross join all_comment ac
+cross join (
+  select
+  ca.*
+  from comment_aggregates_fast ca
+) ac
 left join comment_like cl on u.id = cl.user_id and ac.id = cl.comment_id
 
 union all
 
 select 
-    ac.*,
+    caf.*,
     null as user_id, 
     null as my_vote,
     null as subscribed,
     null as saved
-from all_comment ac
+from comment_aggregates_fast caf
 ;
 
 -- Do the reply_view referencing the comment_fast_view
@@ -378,13 +372,6 @@ end $$;
 -- User mention
 
 create view user_mention_fast_view as 
-with all_comment as
-(
-  select
-  ca.*
-  from comment_aggregates_fast ca
-)
-
 select
     ac.id,
     um.id as user_mention_id,
@@ -418,7 +405,11 @@ select
     (select actor_id from user_ u where u.id = um.recipient_id) as recipient_actor_id,
     (select local from user_ u where u.id = um.recipient_id) as recipient_local
 from user_ u
-cross join all_comment ac
+cross join (
+  select
+  ca.*
+  from comment_aggregates_fast ca
+) ac
 left join comment_like cl on u.id = cl.user_id and ac.id = cl.comment_id
 left join user_mention um on um.comment_id = ac.id
 
@@ -456,7 +447,7 @@ select
     um.recipient_id,
     (select actor_id from user_ u where u.id = um.recipient_id) as recipient_actor_id,
     (select local from user_ u where u.id = um.recipient_id) as recipient_local
-from all_comment ac
+from comment_aggregates_fast ac
 left join user_mention um on um.comment_id = ac.id
 ;
 
