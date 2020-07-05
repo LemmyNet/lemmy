@@ -34,7 +34,7 @@ table! {
 }
 
 table! {
-    comment_fast (fast_id) {
+    comment_aggregates_fast (fast_id) {
         id -> Nullable<Int4>,
         creator_id -> Nullable<Int4>,
         post_id -> Nullable<Int4>,
@@ -61,10 +61,6 @@ table! {
         upvotes -> Nullable<Int8>,
         downvotes -> Nullable<Int8>,
         hot_rank -> Nullable<Int4>,
-        user_id -> Nullable<Int4>,
-        my_vote -> Nullable<Int4>,
-        subscribed -> Nullable<Bool>,
-        saved -> Nullable<Bool>,
         fast_id -> Int4,
     }
 }
@@ -111,7 +107,7 @@ table! {
 }
 
 table! {
-    community_fast (fast_id) {
+    community_aggregates_fast (fast_id) {
         id -> Nullable<Int4>,
         name -> Nullable<Varchar>,
         title -> Nullable<Varchar>,
@@ -135,8 +131,6 @@ table! {
         number_of_posts -> Nullable<Int8>,
         number_of_comments -> Nullable<Int8>,
         hot_rank -> Nullable<Int4>,
-        user_id -> Nullable<Int4>,
-        subscribed -> Nullable<Bool>,
         fast_id -> Int4,
     }
 }
@@ -302,7 +296,7 @@ table! {
 }
 
 table! {
-    post_fast (fast_id) {
+    post_aggregates_fast (fast_id) {
         id -> Nullable<Int4>,
         name -> Nullable<Varchar>,
         url -> Nullable<Text>,
@@ -340,11 +334,6 @@ table! {
         downvotes -> Nullable<Int8>,
         hot_rank -> Nullable<Int4>,
         newest_activity_time -> Nullable<Timestamp>,
-        user_id -> Nullable<Int4>,
-        my_vote -> Nullable<Int4>,
-        subscribed -> Nullable<Bool>,
-        read -> Nullable<Bool>,
-        saved -> Nullable<Bool>,
         fast_id -> Int4,
     }
 }
@@ -500,43 +489,6 @@ table! {
     }
 }
 
-table! {
-    user_mention_fast (fast_id) {
-        id -> Nullable<Int4>,
-        user_mention_id -> Nullable<Int4>,
-        creator_id -> Nullable<Int4>,
-        creator_actor_id -> Nullable<Varchar>,
-        creator_local -> Nullable<Bool>,
-        post_id -> Nullable<Int4>,
-        parent_id -> Nullable<Int4>,
-        content -> Nullable<Text>,
-        removed -> Nullable<Bool>,
-        read -> Nullable<Bool>,
-        published -> Nullable<Timestamp>,
-        updated -> Nullable<Timestamp>,
-        deleted -> Nullable<Bool>,
-        community_id -> Nullable<Int4>,
-        community_actor_id -> Nullable<Varchar>,
-        community_local -> Nullable<Bool>,
-        community_name -> Nullable<Varchar>,
-        banned -> Nullable<Bool>,
-        banned_from_community -> Nullable<Bool>,
-        creator_name -> Nullable<Varchar>,
-        creator_avatar -> Nullable<Text>,
-        score -> Nullable<Int8>,
-        upvotes -> Nullable<Int8>,
-        downvotes -> Nullable<Int8>,
-        hot_rank -> Nullable<Int4>,
-        user_id -> Nullable<Int4>,
-        my_vote -> Nullable<Int4>,
-        saved -> Nullable<Bool>,
-        recipient_id -> Nullable<Int4>,
-        recipient_actor_id -> Nullable<Varchar>,
-        recipient_local -> Nullable<Bool>,
-        fast_id -> Int4,
-    }
-}
-
 joinable!(activity -> user_ (user_id));
 joinable!(comment -> post (post_id));
 joinable!(comment -> user_ (creator_id));
@@ -583,11 +535,11 @@ allow_tables_to_appear_in_same_query!(
   activity,
   category,
   comment,
-  comment_fast,
+  comment_aggregates_fast,
   comment_like,
   comment_saved,
   community,
-  community_fast,
+  community_aggregates_fast,
   community_follower,
   community_moderator,
   community_user_ban,
@@ -602,7 +554,7 @@ allow_tables_to_appear_in_same_query!(
   mod_sticky_post,
   password_reset_request,
   post,
-  post_fast,
+  post_aggregates_fast,
   post_like,
   post_read,
   post_saved,
@@ -613,5 +565,4 @@ allow_tables_to_appear_in_same_query!(
   user_ban,
   user_fast,
   user_mention,
-  user_mention_fast,
 );

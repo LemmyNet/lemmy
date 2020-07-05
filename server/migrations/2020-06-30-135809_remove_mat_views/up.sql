@@ -43,7 +43,6 @@ begin
     insert into user_fast select * from user_view where id = NEW.id;
     
     -- Refresh post_fast, cause of user info changes
-    -- TODO test this (for example a banned user). Also is it locking?
     delete from post_aggregates_fast where creator_id = NEW.id;
     insert into post_aggregates_fast select * from post_aggregates_view where creator_id = NEW.id;
 
@@ -119,6 +118,9 @@ as $$
 begin
   IF (TG_OP = 'DELETE') THEN
     delete from post_aggregates_fast where id = OLD.id;
+
+    -- Update community number of posts
+    update community_aggregates_fast set number_of_posts = number_of_posts - 1 where id = OLD.community_id;
   ELSIF (TG_OP = 'UPDATE') THEN
     delete from post_aggregates_fast where id = OLD.id;
     insert into post_aggregates_fast select * from post_aggregates_view where id = NEW.id;
@@ -128,8 +130,11 @@ begin
     -- Update that users number of posts, post score
     delete from user_fast where id = NEW.creator_id;
     insert into user_fast select * from user_view where id = NEW.creator_id;
+  
+    -- Update community number of posts
+    update community_aggregates_fast set number_of_posts = number_of_posts + 1 where id = NEW.community_id;
 
-    -- Update the hot rank on the post table TODO hopefully this doesn't lock it.
+    -- Update the hot rank on the post table
     -- TODO this might not correctly update it, using a 1 week interval
     update post_aggregates_fast as paf
     set hot_rank = pav.hot_rank 
@@ -331,6 +336,9 @@ as $$
 begin
   IF (TG_OP = 'DELETE') THEN
     delete from comment_aggregates_fast where id = OLD.id;
+
+    -- Update community number of comments
+    update community_aggregates_fast set number_of_comments = number_of_comments - 1 from post where id = post.community_id and post.id = NEW.post_id;
   ELSIF (TG_OP = 'UPDATE') THEN
     delete from comment_aggregates_fast where id = OLD.id;
     insert into comment_aggregates_fast select * from comment_aggregates_view where id = NEW.id;
@@ -338,10 +346,12 @@ begin
     insert into comment_aggregates_fast select * from comment_aggregates_view where id = NEW.id;
 
     -- Update user view due to comment count
-    delete from user_fast where id = NEW.creator_id;
-    insert into user_fast select * from user_view where id = NEW.creator_id;
+    update user_fast 
+    set number_of_comments = number_of_comments + 1
+    where id = NEW.creator_id;
     
     -- Update post view due to comment count, new comment activity time, but only on new posts
+    -- TODO this could be done more efficiently
     delete from post_aggregates_fast where id = NEW.post_id;
     insert into post_aggregates_fast select * from post_aggregates_view where id = NEW.post_id;
 
@@ -350,9 +360,11 @@ begin
     set hot_rank = 0
     where paf.id = NEW.post_id and (paf.published < ('now'::timestamp - '1 week'::interval));
 
-    -- Update community view due to comment count
-    delete from community_aggregates_fast as cf using post as p where cf.id = p.community_id and p.id = NEW.post_id;
-    insert into community_aggregates_fast select cv.* from community_aggregates_view cv, post p where cv.id = p.community_id and p.id = NEW.post_id;
+    -- Update community number of comments
+    update community_aggregates_fast as caf
+    set number_of_comments = number_of_comments + 1 
+    from post as p
+    where caf.id = p.community_id and p.id = NEW.post_id;
 
   END IF;
 
@@ -361,40 +373,89 @@ end $$;
 
 -- User mention
 
-create table user_mention_fast as select * from user_mention_view;
-alter table user_mention_fast add column fast_id serial primary key;
+create view user_mention_fast_view as 
+with all_comment as
+(
+  select
+  ca.*
+  from comment_aggregates_fast ca
+)
 
-create index idx_user_mention_fast_user_id on user_mention_fast (user_id);
-create index idx_user_mention_fast_id on user_mention_fast (id);
+select
+    ac.id,
+    um.id as user_mention_id,
+    ac.creator_id,
+    ac.creator_actor_id,
+    ac.creator_local,
+    ac.post_id,
+    ac.parent_id,
+    ac.content,
+    ac.removed,
+    um.read,
+    ac.published,
+    ac.updated,
+    ac.deleted,
+    ac.community_id,
+    ac.community_actor_id,
+    ac.community_local,
+    ac.community_name,
+    ac.banned,
+    ac.banned_from_community,
+    ac.creator_name,
+    ac.creator_avatar,
+    ac.score,
+    ac.upvotes,
+    ac.downvotes,
+    ac.hot_rank,
+    u.id as user_id,
+    coalesce(cl.score, 0) as my_vote,
+    (select cs.id::bool from comment_saved cs where u.id = cs.user_id and cs.comment_id = ac.id) as saved,
+    um.recipient_id,
+    (select actor_id from user_ u where u.id = um.recipient_id) as recipient_actor_id,
+    (select local from user_ u where u.id = um.recipient_id) as recipient_local
+from user_ u
+cross join all_comment ac
+left join comment_like cl on u.id = cl.user_id and ac.id = cl.comment_id
+left join user_mention um on um.comment_id = ac.id
 
--- Sample insert 
--- insert into user_mention(recipient_id, comment_id) values (2, 4);
--- Sample delete
--- delete from user_mention where recipient_id = 2 and comment_id = 4;
--- Sample update
--- update user_mention set read = true where recipient_id = 2 and comment_id = 4;
-create or replace function refresh_user_mention()
-returns trigger language plpgsql
-as $$
-begin
-  IF (TG_OP = 'DELETE') THEN
-    delete from user_mention_fast where id = OLD.comment_id;
-  ELSIF (TG_OP = 'UPDATE') THEN
-    delete from user_mention_fast where id = OLD.comment_id;
-    insert into user_mention_fast select * from user_mention_view where id = NEW.comment_id;
-  ELSIF (TG_OP = 'INSERT') THEN
-    insert into user_mention_fast select * from user_mention_view where id = NEW.comment_id;
+union all
 
-  END IF;
+select 
+    ac.id,
+    um.id as user_mention_id,
+    ac.creator_id,
+    ac.creator_actor_id,
+    ac.creator_local,
+    ac.post_id,
+    ac.parent_id,
+    ac.content,
+    ac.removed,
+    um.read,
+    ac.published,
+    ac.updated,
+    ac.deleted,
+    ac.community_id,
+    ac.community_actor_id,
+    ac.community_local,
+    ac.community_name,
+    ac.banned,
+    ac.banned_from_community,
+    ac.creator_name,
+    ac.creator_avatar,
+    ac.score,
+    ac.upvotes,
+    ac.downvotes,
+    ac.hot_rank,
+    null as user_id, 
+    null as my_vote,
+    null as saved,
+    um.recipient_id,
+    (select actor_id from user_ u where u.id = um.recipient_id) as recipient_actor_id,
+    (select local from user_ u where u.id = um.recipient_id) as recipient_local
+from all_comment ac
+left join user_mention um on um.comment_id = ac.id
+;
 
-  return null;
-end $$;
-
-create trigger refresh_user_mention
-after insert or update or delete
-on user_mention
-for each row
-execute procedure refresh_user_mention();
 
 -- post_like
 -- select id, score, my_vote from post_fast_view where id = 29 and user_id = 4;
@@ -464,3 +525,62 @@ after insert or update or delete
 on comment_like
 for each row
 execute procedure refresh_comment_like();
+
+-- Community user ban
+
+drop trigger refresh_community_user_ban on community_user_ban;
+create trigger refresh_community_user_ban
+after insert or update or delete
+on community_user_ban
+for each row
+execute procedure refresh_community_user_ban();
+
+-- select creator_name, banned_from_community from comment_fast_view where user_id = 4 and content = 'test_before_ban';
+-- select creator_name, banned_from_community, community_id from comment_aggregates_fast where content = 'test_before_ban';
+-- Sample insert 
+-- insert into comment(creator_id, post_id, content) values (1198, 341, 'test_before_ban');
+-- insert into community_user_ban(community_id, user_id) values (2, 1198);
+-- Sample delete
+-- delete from community_user_ban where user_id = 1198 and community_id = 2;
+-- delete from comment where content = 'test_before_ban';
+-- update comment_aggregates_fast set banned_from_community = false where creator_id = 1198 and community_id = 2;
+create or replace function refresh_community_user_ban()
+returns trigger language plpgsql
+as $$
+begin
+  -- TODO possibly select from comment_fast to get previous scores, instead of re-fetching the views?
+  IF (TG_OP = 'DELETE') THEN
+    update comment_aggregates_fast set banned_from_community = false where creator_id = OLD.user_id and community_id = OLD.community_id;
+    update post_aggregates_fast set banned_from_community = false where creator_id = OLD.user_id and community_id = OLD.community_id;
+  ELSIF (TG_OP = 'UPDATE') THEN
+    -- delete from comment_aggregates_fast where id = NEW.comment_id;
+    -- insert into comment_aggregates_fast select * from comment_aggregates_view where id = NEW.comment_id;
+  ELSIF (TG_OP = 'INSERT') THEN
+    update comment_aggregates_fast set banned_from_community = true where creator_id = NEW.user_id and community_id = NEW.community_id;
+    update post_aggregates_fast set banned_from_community = true where creator_id = NEW.user_id and community_id = NEW.community_id;
+  END IF;
+
+  return null;
+end $$;
+
+-- Community follower
+
+drop trigger refresh_community_follower on community_follower;
+create trigger refresh_community_follower
+after insert or update or delete
+on community_follower
+for each row
+execute procedure refresh_community_follower();
+
+create or replace function refresh_community_follower()
+returns trigger language plpgsql
+as $$
+begin
+  IF (TG_OP = 'DELETE') THEN
+    update community_aggregates_fast set number_of_subscribers = number_of_subscribers - 1 where id = OLD.community_id;
+  ELSIF (TG_OP = 'INSERT') THEN
+    update community_aggregates_fast set number_of_subscribers = number_of_subscribers + 1 where id = NEW.community_id;
+  END IF;
+
+  return null;
+end $$;
