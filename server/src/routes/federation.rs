@@ -12,8 +12,6 @@ use crate::{
   settings::Settings,
 };
 use actix_web::*;
-use http_signature_normalization_actix::digest::middleware::VerifyDigest;
-use sha2::{Digest, Sha256};
 
 pub fn config(cfg: &mut web::ServiceConfig) {
   if Settings::get().federation.enabled {
@@ -40,12 +38,8 @@ pub fn config(cfg: &mut web::ServiceConfig) {
           .route("/comment/{comment_id}", web::get().to(get_apub_comment)),
       )
       // Inboxes dont work with the header guard for some reason.
-      .service(
-        web::scope("/")
-          .wrap(VerifyDigest::new(Sha256::new()))
-          .route("/c/{community_name}/inbox", web::post().to(community_inbox))
-          .route("/u/{user_name}/inbox", web::post().to(user_inbox))
-          .route("/inbox", web::post().to(shared_inbox)),
-      );
+      .route("/c/{community_name}/inbox", web::post().to(community_inbox))
+      .route("/u/{user_name}/inbox", web::post().to(user_inbox))
+      .route("/inbox", web::post().to(shared_inbox));
   }
 }

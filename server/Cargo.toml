@@ -43,7 +43,7 @@ percent-encoding = "2.1.0"
 comrak = "0.7"
 openssl = "0.10"
 http = "0.2.1"
-http-signature-normalization-actix = { version = "0.4.0-alpha.1", default-features = false, features = ["sha-2"] }
+http-signature-normalization-actix = { version = "0.4.0-alpha.0", default-features = false, features = ["sha-2"] }
 base64 = "0.12.1"
 tokio = "0.2.21"
 futures = "0.3.5"
