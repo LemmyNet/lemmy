@@ -58,7 +58,6 @@ table! {
     number_of_posts -> BigInt,
     number_of_comments -> BigInt,
     hot_rank -> Int4,
-    fast_id -> Int4,
     user_id -> Nullable<Int4>,
     subscribed -> Nullable<Bool>,
   }
@@ -140,7 +139,6 @@ pub struct CommunityView {
   pub number_of_posts: i64,
   pub number_of_comments: i64,
   pub hot_rank: i32,
-  pub fast_id: i32,
   pub user_id: Option<i32>,
   pub subscribed: Option<bool>,
 }

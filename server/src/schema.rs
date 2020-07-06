@@ -34,8 +34,8 @@ table! {
 }
 
 table! {
-    comment_aggregates_fast (fast_id) {
-        id -> Nullable<Int4>,
+    comment_aggregates_fast (id) {
+        id -> Int4,
         creator_id -> Nullable<Int4>,
         post_id -> Nullable<Int4>,
         parent_id -> Nullable<Int4>,
@@ -61,7 +61,6 @@ table! {
         upvotes -> Nullable<Int8>,
         downvotes -> Nullable<Int8>,
         hot_rank -> Nullable<Int4>,
-        fast_id -> Int4,
     }
 }
 
@@ -107,8 +106,8 @@ table! {
 }
 
 table! {
-    community_aggregates_fast (fast_id) {
-        id -> Nullable<Int4>,
+    community_aggregates_fast (id) {
+        id -> Int4,
         name -> Nullable<Varchar>,
         title -> Nullable<Varchar>,
         description -> Nullable<Text>,
@@ -131,7 +130,6 @@ table! {
         number_of_posts -> Nullable<Int8>,
         number_of_comments -> Nullable<Int8>,
         hot_rank -> Nullable<Int4>,
-        fast_id -> Int4,
     }
 }
 
@@ -296,8 +294,8 @@ table! {
 }
 
 table! {
-    post_aggregates_fast (fast_id) {
-        id -> Nullable<Int4>,
+    post_aggregates_fast (id) {
+        id -> Int4,
         name -> Nullable<Varchar>,
         url -> Nullable<Text>,
         body -> Nullable<Text>,
@@ -334,7 +332,6 @@ table! {
         downvotes -> Nullable<Int8>,
         hot_rank -> Nullable<Int4>,
         newest_activity_time -> Nullable<Timestamp>,
-        fast_id -> Int4,
     }
 }
 
@@ -378,30 +375,6 @@ table! {
         updated -> Nullable<Timestamp>,
         ap_id -> Varchar,
         local -> Bool,
-    }
-}
-
-table! {
-    private_message_fast (fast_id) {
-        id -> Nullable<Int4>,
-        creator_id -> Nullable<Int4>,
-        recipient_id -> Nullable<Int4>,
-        content -> Nullable<Text>,
-        deleted -> Nullable<Bool>,
-        read -> Nullable<Bool>,
-        published -> Nullable<Timestamp>,
-        updated -> Nullable<Timestamp>,
-        ap_id -> Nullable<Varchar>,
-        local -> Nullable<Bool>,
-        creator_name -> Nullable<Varchar>,
-        creator_avatar -> Nullable<Text>,
-        creator_actor_id -> Nullable<Varchar>,
-        creator_local -> Nullable<Bool>,
-        recipient_name -> Nullable<Varchar>,
-        recipient_avatar -> Nullable<Text>,
-        recipient_actor_id -> Nullable<Varchar>,
-        recipient_local -> Nullable<Bool>,
-        fast_id -> Int4,
     }
 }
 
@@ -457,8 +430,8 @@ table! {
 }
 
 table! {
-    user_fast (fast_id) {
-        id -> Nullable<Int4>,
+    user_fast (id) {
+        id -> Int4,
         actor_id -> Nullable<Varchar>,
         name -> Nullable<Varchar>,
         avatar -> Nullable<Text>,
@@ -475,7 +448,6 @@ table! {
         post_score -> Nullable<Int8>,
         number_of_comments -> Nullable<Int8>,
         comment_score -> Nullable<Int8>,
-        fast_id -> Int4,
     }
 }
 
@@ -559,7 +531,6 @@ allow_tables_to_appear_in_same_query!(
   post_read,
   post_saved,
   private_message,
-  private_message_fast,
   site,
   user_,
   user_ban,

@@ -44,7 +44,6 @@ table! {
     post_score -> BigInt,
     number_of_comments -> BigInt,
     comment_score -> BigInt,
-    fast_id -> Int4,
   }
 }
 
@@ -70,7 +69,6 @@ pub struct UserView {
   pub post_score: i64,
   pub number_of_comments: i64,
   pub comment_score: i64,
-  pub fast_id: i32,
 }
 
 pub struct UserQueryBuilder<'a> {

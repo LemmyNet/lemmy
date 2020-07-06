@@ -4,7 +4,6 @@ drop view post_fast_view;
 drop table post_aggregates_fast;
 drop view community_fast_view;
 drop table community_aggregates_fast;
-drop table private_message_fast;
 drop view reply_fast_view;
 drop view user_mention_fast_view;
 drop view comment_fast_view;
@@ -26,8 +25,6 @@ begin
   refresh materialized view concurrently private_message_mview;
   return null;
 end $$;
-
-drop trigger refresh_private_message on private_message;
 
 create trigger refresh_private_message
 after insert or update or delete or truncate

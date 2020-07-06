@@ -1,3 +1,4 @@
+// TODO, remove the cross join here, just join to user directly
 use crate::db::{fuzzy_search, limit_and_offset, ListingType, MaybeOptional, SortType};
 use diesel::{dsl::*, pg::Pg, result::Error, *};
 use serde::{Deserialize, Serialize};
@@ -66,7 +67,6 @@ table! {
     upvotes -> BigInt,
     downvotes -> BigInt,
     hot_rank -> Int4,
-    fast_id -> Int4,
     user_id -> Nullable<Int4>,
     my_vote -> Nullable<Int4>,
     subscribed -> Nullable<Bool>,
@@ -105,7 +105,6 @@ pub struct CommentView {
   pub upvotes: i64,
   pub downvotes: i64,
   pub hot_rank: i32,
-  pub fast_id: i32,
   pub user_id: Option<i32>,
   pub my_vote: Option<i32>,
   pub subscribed: Option<bool>,
@@ -319,7 +318,6 @@ table! {
     upvotes -> BigInt,
     downvotes -> BigInt,
     hot_rank -> Int4,
-    fast_id -> Int4,
     user_id -> Nullable<Int4>,
     my_vote -> Nullable<Int4>,
     subscribed -> Nullable<Bool>,
@@ -359,7 +357,6 @@ pub struct ReplyView {
   pub upvotes: i64,
   pub downvotes: i64,
   pub hot_rank: i32,
-  pub fast_id: i32,
   pub user_id: Option<i32>,
   pub my_vote: Option<i32>,
   pub subscribed: Option<bool>,
@@ -583,7 +580,6 @@ mod tests {
       score: 1,
       downvotes: 0,
       hot_rank: 0,
-      fast_id: 0,
       upvotes: 1,
       user_id: None,
       my_vote: None,
@@ -617,7 +613,6 @@ mod tests {
       score: 1,
       downvotes: 0,
       hot_rank: 0,
-      fast_id: 0,
       upvotes: 1,
       user_id: Some(inserted_user.id),
       my_vote: Some(1),
@@ -636,7 +631,6 @@ mod tests {
       .list()
       .unwrap();
     read_comment_views_no_user[0].hot_rank = 0;
-    read_comment_views_no_user[0].fast_id = 0;
 
     let mut read_comment_views_with_user = CommentQueryBuilder::create(&conn)
       .for_post_id(inserted_post.id)
@@ -644,7 +638,6 @@ mod tests {
       .list()
       .unwrap();
     read_comment_views_with_user[0].hot_rank = 0;
-    read_comment_views_with_user[0].fast_id = 0;
 
     let like_removed = CommentLike::remove(&conn, &comment_like_form).unwrap();
     let num_deleted = Comment::delete(&conn, inserted_comment.id).unwrap();

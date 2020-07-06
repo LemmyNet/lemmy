@@ -1,5 +1,3 @@
-
-
 -- Drop the mviews
 drop view post_mview;
 drop materialized view user_mview;
@@ -11,12 +9,11 @@ drop view comment_mview;
 drop materialized view post_aggregates_mview;
 drop materialized view community_aggregates_mview;
 drop materialized view comment_aggregates_mview;
+drop trigger refresh_private_message on private_message;
 
 -- User
 create table user_fast as select * from user_view;
-alter table user_fast add column fast_id serial primary key;
-
-create index idx_user_fast_id on user_fast (id);
+alter table user_fast add primary key (id);
 
 drop trigger refresh_user on user_;
 
@@ -59,9 +56,7 @@ end $$;
 -- Post
 
 create table post_aggregates_fast as select * from post_aggregates_view;
-alter table post_aggregates_fast add column fast_id serial primary key;
-
-create index idx_post_aggregates_fast_id on post_aggregates_fast (id);
+alter table post_aggregates_fast add primary key (id);
 
 -- For the hot rank resorting
 create index idx_post_aggregates_fast_hot_rank_published on post_aggregates_fast (hot_rank desc, published desc);
@@ -145,9 +140,7 @@ end $$;
 
 -- Community
 create table community_aggregates_fast as select * from community_aggregates_view;
-alter table community_aggregates_fast add column fast_id serial primary key;
-
-create index idx_community_aggregates_fast_id on community_aggregates_fast (id);
+alter table community_aggregates_fast add primary key (id);
 
 create view community_fast_view as
 select
@@ -211,49 +204,10 @@ begin
   return null;
 end $$;
 
--- Private message
-
-create table private_message_fast as select * from private_message_view;
-alter table private_message_fast add column fast_id serial primary key;
-
-create index idx_private_message_fast_id on private_message_fast (id);
-
-drop trigger refresh_private_message on private_message;
-
-create trigger refresh_private_message
-after insert or update or delete
-on private_message
-for each row
-execute procedure refresh_private_message();
-
--- Sample insert 
--- insert into private_message(creator_id, recipient_id, content) values (2, 3, 'test_private_message');
--- Sample delete
--- delete from private_message where content like 'test_private_message';
--- Sample update
--- update private_message set ap_id = 'test' where content like 'test_private_message';
-create or replace function refresh_private_message()
-returns trigger language plpgsql
-as $$
-begin
-  IF (TG_OP = 'DELETE') THEN
-    delete from private_message_fast where id = OLD.id;
-  ELSIF (TG_OP = 'UPDATE') THEN
-    delete from private_message_fast where id = OLD.id;
-    insert into private_message_fast select * from private_message_view where id = NEW.id;
-  ELSIF (TG_OP = 'INSERT') THEN
-    insert into private_message_fast select * from private_message_view where id = NEW.id;
-  END IF;
-
-  return null;
-end $$;
-
 -- Comment
 
 create table comment_aggregates_fast as select * from comment_aggregates_view;
-alter table comment_aggregates_fast add column fast_id serial primary key;
-
-create index idx_comment_aggregates_fast_id on comment_aggregates_fast (id);
+alter table comment_aggregates_fast add primary key (id);
 
 create view comment_fast_view as
 select
@@ -465,14 +419,30 @@ returns trigger language plpgsql
 as $$
 begin
   IF (TG_OP = 'DELETE') THEN
-    delete from post_aggregates_fast where id = OLD.post_id;
-    insert into post_aggregates_fast select * from post_aggregates_view where id = OLD.post_id;
-  ELSIF (TG_OP = 'UPDATE') THEN
-    delete from post_aggregates_fast where id = NEW.post_id;
-    insert into post_aggregates_fast select * from post_aggregates_view where id = NEW.post_id;
+    update post_aggregates_fast 
+    set score = case 
+      when (OLD.score = 1) then score - 1 
+      else score + 1 end,
+    upvotes = case 
+      when (OLD.score = 1) then upvotes - 1 
+      else upvotes end,
+    downvotes = case 
+      when (OLD.score = -1) then downvotes - 1 
+      else downvotes end
+    where id = OLD.post_id;
+
   ELSIF (TG_OP = 'INSERT') THEN
-    delete from post_aggregates_fast where id = NEW.post_id;
-    insert into post_aggregates_fast select * from post_aggregates_view where id = NEW.post_id;
+    update post_aggregates_fast 
+    set score = case 
+      when (NEW.score = 1) then score + 1 
+      else score - 1 end,
+    upvotes = case 
+      when (NEW.score = 1) then upvotes + 1 
+      else upvotes end,
+    downvotes = case 
+      when (NEW.score = -1) then downvotes + 1 
+      else downvotes end
+    where id = NEW.post_id;
   END IF;
 
   return null;
@@ -480,7 +450,7 @@ end $$;
 
 drop trigger refresh_post_like on post_like;
 create trigger refresh_post_like
-after insert or update or delete
+after insert or delete
 on post_like
 for each row
 execute procedure refresh_post_like();
@@ -499,14 +469,30 @@ as $$
 begin
   -- TODO possibly select from comment_fast to get previous scores, instead of re-fetching the views?
   IF (TG_OP = 'DELETE') THEN
-    delete from comment_aggregates_fast where id = OLD.comment_id;
-    insert into comment_aggregates_fast select * from comment_aggregates_view where id = OLD.comment_id;
-  ELSIF (TG_OP = 'UPDATE') THEN
-    delete from comment_aggregates_fast where id = NEW.comment_id;
-    insert into comment_aggregates_fast select * from comment_aggregates_view where id = NEW.comment_id;
+    update comment_aggregates_fast 
+    set score = case 
+      when (OLD.score = 1) then score - 1 
+      else score + 1 end,
+    upvotes = case 
+      when (OLD.score = 1) then upvotes - 1 
+      else upvotes end,
+    downvotes = case 
+      when (OLD.score = -1) then downvotes - 1 
+      else downvotes end
+    where id = OLD.comment_id;
+
   ELSIF (TG_OP = 'INSERT') THEN
-    delete from comment_aggregates_fast where id = NEW.comment_id;
-    insert into comment_aggregates_fast select * from comment_aggregates_view where id = NEW.comment_id;
+    update comment_aggregates_fast 
+    set score = case 
+      when (NEW.score = 1) then score + 1 
+      else score - 1 end,
+    upvotes = case 
+      when (NEW.score = 1) then upvotes + 1 
+      else upvotes end,
+    downvotes = case 
+      when (NEW.score = -1) then downvotes + 1 
+      else downvotes end
+    where id = NEW.comment_id;
   END IF;
 
   return null;
@@ -514,7 +500,7 @@ end $$;
 
 drop trigger refresh_comment_like on comment_like;
 create trigger refresh_comment_like
-after insert or update or delete
+after insert or delete
 on comment_like
 for each row
 execute procedure refresh_comment_like();
@@ -523,7 +509,7 @@ execute procedure refresh_comment_like();
 
 drop trigger refresh_community_user_ban on community_user_ban;
 create trigger refresh_community_user_ban
-after insert or update or delete
+after insert or delete -- Note this is missing after update
 on community_user_ban
 for each row
 execute procedure refresh_community_user_ban();
@@ -557,7 +543,7 @@ end $$;
 
 drop trigger refresh_community_follower on community_follower;
 create trigger refresh_community_follower
-after insert or update or delete
+after insert or delete -- Note this is missing after update
 on community_follower
 for each row
 execute procedure refresh_community_follower();
