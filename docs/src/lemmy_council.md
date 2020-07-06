@@ -9,7 +9,7 @@
 - Anything is open for discussion
 - Voting done through matrix chat reacts (thumbs up/thumbs down)
 - Require a simple majority for votes. (Maybe 2/3rds for more debated decisions).
-- Once a decision is reached democratically, the dicision is binding and all group members have to follow it
+- Once a decision is reached democratically, the decision is binding and all group members have to follow it
 - All members of the Lemmy council have equal voting power.
 - Voting must stay open for at least 2 days.
 
