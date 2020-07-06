@@ -9,11 +9,15 @@ use crate::apub::{
   APUB_JSON_CONTENT_TYPE,
 };
 use actix_web::*;
+use http_signature_normalization_actix::digest::middleware::VerifyDigest;
 use lemmy_utils::settings::Settings;
+use sha2::{Digest, Sha256};
 
 pub fn config(cfg: &mut web::ServiceConfig) {
   if Settings::get().federation.enabled {
     println!("federation enabled, host is {}", Settings::get().hostname);
+    let digest_verifier = VerifyDigest::new(Sha256::new());
+
     cfg
       .service(
         web::scope("/")
@@ -36,8 +40,20 @@ pub fn config(cfg: &mut web::ServiceConfig) {
           .route("/comment/{comment_id}", web::get().to(get_apub_comment)),
       )
       // Inboxes dont work with the header guard for some reason.
-      .route("/c/{community_name}/inbox", web::post().to(community_inbox))
-      .route("/u/{user_name}/inbox", web::post().to(user_inbox))
-      .route("/inbox", web::post().to(shared_inbox));
+      .service(
+        web::resource("/c/{community_name}/inbox")
+          .wrap(digest_verifier.clone())
+          .route(web::post().to(community_inbox)),
+      )
+      .service(
+        web::resource("/u/{user_name}/inbox")
+          .wrap(digest_verifier.clone())
+          .route(web::post().to(user_inbox)),
+      )
+      .service(
+        web::resource("/inbox")
+          .wrap(digest_verifier)
+          .route(web::post().to(shared_inbox)),
+      );
   }
 }
