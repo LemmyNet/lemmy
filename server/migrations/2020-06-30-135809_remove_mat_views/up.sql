@@ -54,7 +54,107 @@ begin
 end $$;
 
 -- Post
+-- Redoing the views : Credit eiknat
+drop view post_view;
+drop view post_aggregates_view;
 
+create view post_aggregates_view as
+select
+	p.*,
+	-- creator details
+	u.actor_id as creator_actor_id,
+	u."local" as creator_local,
+	u."name" as creator_name,
+	u.avatar as creator_avatar,
+  u.banned as banned,
+  cb.id::bool as banned_from_community,
+	-- community details
+	c.actor_id as community_actor_id,
+	c."local" as community_local,
+	c."name" as community_name,
+	c.removed as community_removed,
+	c.deleted as community_deleted,
+	c.nsfw as community_nsfw,
+	-- post score data/comment count
+	coalesce(ct.comments, 0) as number_of_comments,
+	coalesce(pl.score, 0) as score,
+	coalesce(pl.upvotes, 0) as upvotes,
+	coalesce(pl.downvotes, 0) as downvotes,
+	hot_rank(
+		coalesce(pl.score , 0), (
+			case
+				when (p.published < ('now'::timestamp - '1 month'::interval))
+				then p.published
+				else greatest(ct.recent_comment_time, p.published)
+			end
+		)
+	) as hot_rank,
+	(
+		case
+			when (p.published < ('now'::timestamp - '1 month'::interval))
+			then p.published
+			else greatest(ct.recent_comment_time, p.published)
+		end
+	) as newest_activity_time
+from post p
+left join user_ u on p.creator_id = u.id
+left join community_user_ban cb on p.creator_id = cb.user_id and p.community_id = cb.community_id
+left join community c on p.community_id = c.id
+left join (
+	select
+		post_id,
+		count(*) as comments,
+		max(published) as recent_comment_time
+	from comment
+	group by post_id
+) ct on ct.post_id = p.id
+left join (
+	select
+		post_id,
+		sum(score) as score,
+		sum(score) filter (where score = 1) as upvotes,
+		-sum(score) filter (where score = -1) as downvotes
+	from post_like
+	group by post_id
+) pl on pl.post_id = p.id
+order by p.id;
+
+create view post_view as
+select
+	pav.*,
+	us.id as user_id,
+	us.user_vote as my_vote,
+	us.is_subbed::bool as subscribed,
+	us.is_read::bool as read,
+	us.is_saved::bool as saved
+from post_aggregates_view pav
+cross join lateral (
+	select
+		u.id,
+		coalesce(cf.community_id, 0) as is_subbed,
+		coalesce(pr.post_id, 0) as is_read,
+		coalesce(ps.post_id, 0) as is_saved,
+		coalesce(pl.score, 0) as user_vote
+	from user_ u
+	left join community_user_ban cb on u.id = cb.user_id and cb.community_id = pav.community_id
+	left join community_follower cf on u.id = cf.user_id and cf.community_id = pav.community_id
+	left join post_read pr on u.id = pr.user_id and pr.post_id = pav.id
+	left join post_saved ps on u.id = ps.user_id and ps.post_id = pav.id
+	left join post_like pl on u.id = pl.user_id and pav.id = pl.post_id
+) as us
+
+union all
+
+select 
+pav.*,
+null as user_id,
+null as my_vote,
+null as subscribed,
+null as read,
+null as saved
+from post_aggregates_view pav;
+
+-- The post fast table
 create table post_aggregates_fast as select * from post_aggregates_view;
 alter table post_aggregates_fast add primary key (id);
 
@@ -139,6 +239,124 @@ begin
 end $$;
 
 -- Community
+-- Redoing the views : Credit eiknat
+drop view community_moderator_view;
+drop view community_follower_view;
+drop view community_user_ban_view;
+drop view community_view;
+drop view community_aggregates_view;
+
+create view community_aggregates_view as
+select 
+    c.id,
+    c.name,
+    c.title,
+    c.description,
+    c.category_id,
+    c.creator_id,
+    c.removed,
+    c.published,
+    c.updated,
+    c.deleted,
+    c.nsfw,
+    c.actor_id,
+    c.local,
+    c.last_refreshed_at,
+    u.actor_id as creator_actor_id,
+    u.local as creator_local,
+    u.name as creator_name,
+    u.avatar as creator_avatar,
+    cat.name as category_name,
+    coalesce(cf.subs, 0) as number_of_subscribers,
+    coalesce(cd.posts, 0) as number_of_posts,
+    coalesce(cd.comments, 0) as number_of_comments,
+    hot_rank(cf.subs, c.published) as hot_rank
+from community c
+left join user_ u on c.creator_id = u.id
+left join category cat on c.category_id = cat.id
+left join (
+    select
+        p.community_id,
+        count(distinct p.id) as posts,
+        count(distinct ct.id) as comments
+    from post p
+    join comment ct on p.id = ct.post_id
+    group by p.community_id
+) cd on cd.community_id = c.id
+left join (
+    select
+        community_id,
+        count(*) as subs 
+    from community_follower
+    group by community_id 
+) cf on cf.community_id = c.id;
+
+create view community_view as
+select
+    cv.*,
+    us.user as user_id,
+    us.is_subbed::bool as subscribed
+from community_aggregates_view cv
+cross join lateral (
+	select
+		u.id as user,
+		coalesce(cf.community_id, 0) as is_subbed
+	from user_ u
+	left join community_follower cf on u.id = cf.user_id and cf.community_id = cv.id
+) as us
+
+union all
+
+select 
+    cv.*,
+    null as user_id,
+    null as subscribed
+from community_aggregates_view cv;
+
+create view community_moderator_view as
+select
+    cm.*,
+    u.actor_id as user_actor_id,
+    u.local as user_local,
+    u.name as user_name,
+    u.avatar as avatar,
+    c.actor_id as community_actor_id,
+    c.local as community_local,
+    c.name as community_name
+from community_moderator cm
+left join user_ u on cm.user_id = u.id
+left join community c on cm.community_id = c.id;
+
+create view community_follower_view as
+select
+    cf.*,
+    u.actor_id as user_actor_id,
+    u.local as user_local,
+    u.name as user_name,
+    u.avatar as avatar,
+    c.actor_id as community_actor_id,
+    c.local as community_local,
+    c.name as community_name
+from community_follower cf
+left join user_ u on cf.user_id = u.id
+left join community c on cf.community_id = c.id;
+
+create view community_user_ban_view as
+select
+    cb.*,
+    u.actor_id as user_actor_id,
+    u.local as user_local,
+    u.name as user_name,
+    u.avatar as avatar,
+    c.actor_id as community_actor_id,
+    c.local as community_local,
+    c.name as community_name
+from community_user_ban cb
+left join user_ u on cb.user_id = u.id
+left join community c on cb.community_id = c.id;
+
+-- The community fast table
+
 create table community_aggregates_fast as select * from community_aggregates_view;
 alter table community_aggregates_fast add primary key (id);
 
