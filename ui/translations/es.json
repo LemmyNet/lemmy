@@ -109,7 +109,7 @@
     "all": "Todo",
     "top": "Mejor",
     "api": "API",
-    "docs": "Docs",
+    "docs": "Documentación",
     "inbox": "Buzón de entrada",
     "inbox_for": "Buzón de entrada para <1>{{user}}</1>",
     "mark_all_as_read": "marcar todo como leído",
@@ -256,5 +256,5 @@
     "invalid_username": "Nombre de usuario inválido.",
     "invalid_community_name": "Nombre inválido.",
     "click_to_delete_picture": "Haz click para eliminar la imagen.",
-    "picture_deleted": "Foto eliminada."
+    "picture_deleted": "Imagen eliminada."
 }
