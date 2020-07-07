@@ -179,13 +179,9 @@ fn private_message_updates_2020_05_05(conn: &PgConnection) -> Result<(), LemmyEr
     .filter(local.eq(true))
     .load::<PrivateMessage>(conn)?;
 
-  sql_query("alter table private_message disable trigger refresh_private_message").execute(conn)?;
-
   for cpm in &incorrect_pms {
     PrivateMessage::update_ap_id(&conn, cpm.id)?;
   }
-
-  sql_query("alter table private_message enable trigger refresh_private_message").execute(conn)?;
 
   info!("{} private message rows updated.", incorrect_pms.len());
 

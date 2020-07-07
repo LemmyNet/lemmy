@@ -1,4 +1,4 @@
-use super::user_view::user_mview::BoxedQuery;
+use super::user_view::user_fast::BoxedQuery;
 use crate::db::{fuzzy_search, limit_and_offset, MaybeOptional, SortType};
 use diesel::{dsl::*, pg::Pg, result::Error, *};
 use serde::{Deserialize, Serialize};
@@ -26,7 +26,7 @@ table! {
 }
 
 table! {
-  user_mview (id) {
+  user_fast (id) {
     id -> Int4,
     actor_id -> Text,
     name -> Varchar,
@@ -50,7 +50,7 @@ table! {
 #[derive(
   Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
 )]
-#[table_name = "user_view"]
+#[table_name = "user_fast"]
 pub struct UserView {
   pub id: i32,
   pub actor_id: String,
@@ -81,9 +81,9 @@ pub struct UserQueryBuilder<'a> {
 
 impl<'a> UserQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection) -> Self {
-    use super::user_view::user_mview::dsl::*;
+    use super::user_view::user_fast::dsl::*;
 
-    let query = user_mview.into_boxed();
+    let query = user_fast.into_boxed();
 
     UserQueryBuilder {
       conn,
@@ -100,7 +100,7 @@ impl<'a> UserQueryBuilder<'a> {
   }
 
   pub fn search_term<T: MaybeOptional<String>>(mut self, search_term: T) -> Self {
-    use super::user_view::user_mview::dsl::*;
+    use super::user_view::user_fast::dsl::*;
     if let Some(search_term) = search_term.get_optional() {
       self.query = self.query.filter(name.ilike(fuzzy_search(&search_term)));
     }
@@ -118,7 +118,7 @@ impl<'a> UserQueryBuilder<'a> {
   }
 
   pub fn list(self) -> Result<Vec<UserView>, Error> {
-    use super::user_view::user_mview::dsl::*;
+    use super::user_view::user_fast::dsl::*;
 
     let mut query = self.query;
 
@@ -151,17 +151,17 @@ impl<'a> UserQueryBuilder<'a> {
 
 impl UserView {
   pub fn read(conn: &PgConnection, from_user_id: i32) -> Result<Self, Error> {
-    use super::user_view::user_mview::dsl::*;
-    user_mview.find(from_user_id).first::<Self>(conn)
+    use super::user_view::user_fast::dsl::*;
+    user_fast.find(from_user_id).first::<Self>(conn)
   }
 
   pub fn admins(conn: &PgConnection) -> Result<Vec<Self>, Error> {
-    use super::user_view::user_mview::dsl::*;
-    user_mview.filter(admin.eq(true)).load::<Self>(conn)
+    use super::user_view::user_fast::dsl::*;
+    user_fast.filter(admin.eq(true)).load::<Self>(conn)
   }
 
   pub fn banned(conn: &PgConnection) -> Result<Vec<Self>, Error> {
-    use super::user_view::user_mview::dsl::*;
-    user_mview.filter(banned.eq(true)).load::<Self>(conn)
+    use super::user_view::user_fast::dsl::*;
+    user_fast.filter(banned.eq(true)).load::<Self>(conn)
   }
 }
