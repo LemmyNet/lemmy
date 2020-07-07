@@ -12,6 +12,47 @@ drop materialized view comment_aggregates_mview;
 drop trigger refresh_private_message on private_message;
 
 -- User
+drop view user_view;
+create view user_view as
+select 
+	u.id,
+  u.actor_id,
+	u.name,
+	u.avatar,
+	u.email,
+	u.matrix_user_id,
+  u.bio,
+  u.local,
+	u.admin,
+	u.banned,
+	u.show_avatars,
+	u.send_notifications_to_email,
+	u.published,
+	coalesce(pd.posts, 0) as number_of_posts,
+	coalesce(pd.score, 0) as post_score,
+	coalesce(cd.comments, 0) as number_of_comments,
+	coalesce(cd.score, 0) as comment_score
+from user_ u
+left join (
+    select
+        p.creator_id as creator_id,
+        count(distinct p.id) as posts,
+        sum(pl.score) as score
+    from post p
+    join post_like pl on p.id = pl.post_id
+    group by p.creator_id
+) pd on u.id = pd.creator_id
+left join (
+    select
+        c.creator_id,
+        count(distinct c.id) as comments,
+        sum(cl.score) as score
+    from comment c
+    join comment_like cl on c.id = cl.comment_id
+    group by c.creator_id
+) cd on u.id = cd.creator_id;
+
+
 create table user_fast as select * from user_view;
 alter table user_fast add primary key (id);
 
@@ -424,6 +465,75 @@ end $$;
 
 -- Comment
 
+drop view user_mention_view;
+drop view comment_view;
+drop view comment_aggregates_view;
+
+create view comment_aggregates_view as 
+select
+	ct.*,
+	-- community details
+	p.community_id,
+	c.actor_id as community_actor_id,
+	c."local" as community_local,
+	c."name" as community_name,
+	-- creator details
+	u.banned as banned,
+  coalesce(cb.id, 0)::bool as banned_from_community,
+	u.actor_id as creator_actor_id,
+	u.local as creator_local,
+	u.name as creator_name,
+	u.avatar as creator_avatar,
+	-- score details
+	cl.total as score,
+	cl.up as upvotes,
+	cl.down as downvotes,
+	hot_rank(coalesce(cl.total, 0), ct.published) as hot_rank
+from comment ct
+left join post p on ct.post_id = p.id
+left join community c on p.community_id = c.id
+left join user_ u on ct.creator_id = u.id 
+left join community_user_ban cb on ct.creator_id = cb.user_id and p.id = ct.post_id and p.community_id = cb.community_id
+left join (
+	select
+		l.comment_id as id,
+		coalesce(sum(l.score), 0) as total,
+		coalesce(count(case when l.score = 1 then 1 else null end), 0) as up,
+		coalesce(count(case when l.score = -1 then 1 else null end), 0) as down
+	from comment_like l
+	group by comment_id
+) as cl on cl.id = ct.id;
+
+
+create or replace view comment_view as (
+select
+	cav.*,
+  us.*
+from comment_aggregates_view cav
+cross join lateral (
+	select
+		u.id as user_id,
+		coalesce(cl.score, 0) as my_vote,
+		cf.id::bool as subscribed,
+		cs.id::bool as saved
+	from user_ u
+	left join comment_like cl on u.id = cl.user_id and cav.id = cl.comment_id
+	left join comment_saved cs on u.id = cs.user_id and cs.comment_id = cav.id
+	left join community_follower cf on u.id = cf.user_id and cav.community_id = cf.community_id
+) as us
+
+union all 
+
+select 
+    cav.*,
+    null as user_id, 
+    null as my_vote,
+    null as subscribed,
+    null as saved
+from comment_aggregates_view cav
+);
+
+-- The fast view
 create table comment_aggregates_fast as select * from comment_aggregates_view;
 alter table comment_aggregates_fast add primary key (id);
 
@@ -478,68 +588,42 @@ from comment_fast_view cv, closereply
 where closereply.id = cv.id
 ;
 
-drop trigger refresh_comment on comment;
-
-create trigger refresh_comment
-after insert or update or delete
-on comment
-for each row
-execute procedure refresh_comment();
-
--- Sample select
--- select * from comment_fast_view where content = 'test_comment' and user_id is null;
--- Sample insert 
--- insert into comment(creator_id, post_id, content) values (2, 2, 'test_comment');
--- Sample delete
--- delete from comment where content like 'test_comment';
--- Sample update
--- update comment set removed = true where content like 'test_comment';
-create or replace function refresh_comment()
-returns trigger language plpgsql
-as $$
-begin
-  IF (TG_OP = 'DELETE') THEN
-    delete from comment_aggregates_fast where id = OLD.id;
-
-    -- Update community number of comments
-    update community_aggregates_fast as caf
-    set number_of_comments = number_of_comments - 1
-    from post as p
-    where caf.id = p.community_id and p.id = OLD.post_id;
-
-  ELSIF (TG_OP = 'UPDATE') THEN
-    delete from comment_aggregates_fast where id = OLD.id;
-    insert into comment_aggregates_fast select * from comment_aggregates_view where id = NEW.id;
-  ELSIF (TG_OP = 'INSERT') THEN
-    insert into comment_aggregates_fast select * from comment_aggregates_view where id = NEW.id;
-
-    -- Update user view due to comment count
-    update user_fast 
-    set number_of_comments = number_of_comments + 1
-    where id = NEW.creator_id;
-    
-    -- Update post view due to comment count, new comment activity time, but only on new posts
-    -- TODO this could be done more efficiently
-    delete from post_aggregates_fast where id = NEW.post_id;
-    insert into post_aggregates_fast select * from post_aggregates_view where id = NEW.post_id;
-
-    -- Force the hot rank as zero on week-older posts
-    update post_aggregates_fast as paf
-    set hot_rank = 0
-    where paf.id = NEW.post_id and (paf.published < ('now'::timestamp - '1 week'::interval));
-
-    -- Update community number of comments
-    update community_aggregates_fast as caf
-    set number_of_comments = number_of_comments + 1 
-    from post as p
-    where caf.id = p.community_id and p.id = NEW.post_id;
-
-  END IF;
-
-  return null;
-end $$;
-
--- User mention
+-- user mention
+create view user_mention_view as
+select 
+    c.id,
+    um.id as user_mention_id,
+    c.creator_id,
+    c.creator_actor_id,
+    c.creator_local,
+    c.post_id,
+    c.parent_id,
+    c.content,
+    c.removed,
+    um.read,
+    c.published,
+    c.updated,
+    c.deleted,
+    c.community_id,
+    c.community_actor_id,
+    c.community_local,
+    c.community_name,
+    c.banned,
+    c.banned_from_community,
+    c.creator_name,
+    c.creator_avatar,
+    c.score,
+    c.upvotes,
+    c.downvotes,
+    c.hot_rank,
+    c.user_id,
+    c.my_vote,
+    c.saved,
+    um.recipient_id,
+    (select actor_id from user_ u where u.id = um.recipient_id) as recipient_actor_id,
+    (select local from user_ u where u.id = um.recipient_id) as recipient_local
+from user_mention um, comment_view c
+where um.comment_id = c.id;
 
 create view user_mention_fast_view as 
 select
@@ -620,6 +704,68 @@ select
 from comment_aggregates_fast ac
 left join user_mention um on um.comment_id = ac.id
 ;
+
+
+drop trigger refresh_comment on comment;
+
+create trigger refresh_comment
+after insert or update or delete
+on comment
+for each row
+execute procedure refresh_comment();
+
+-- Sample select
+-- select * from comment_fast_view where content = 'test_comment' and user_id is null;
+-- Sample insert 
+-- insert into comment(creator_id, post_id, content) values (2, 2, 'test_comment');
+-- Sample delete
+-- delete from comment where content like 'test_comment';
+-- Sample update
+-- update comment set removed = true where content like 'test_comment';
+create or replace function refresh_comment()
+returns trigger language plpgsql
+as $$
+begin
+  IF (TG_OP = 'DELETE') THEN
+    delete from comment_aggregates_fast where id = OLD.id;
+
+    -- Update community number of comments
+    update community_aggregates_fast as caf
+    set number_of_comments = number_of_comments - 1
+    from post as p
+    where caf.id = p.community_id and p.id = OLD.post_id;
+
+  ELSIF (TG_OP = 'UPDATE') THEN
+    delete from comment_aggregates_fast where id = OLD.id;
+    insert into comment_aggregates_fast select * from comment_aggregates_view where id = NEW.id;
+  ELSIF (TG_OP = 'INSERT') THEN
+    insert into comment_aggregates_fast select * from comment_aggregates_view where id = NEW.id;
+
+    -- Update user view due to comment count
+    update user_fast 
+    set number_of_comments = number_of_comments + 1
+    where id = NEW.creator_id;
+    
+    -- Update post view due to comment count, new comment activity time, but only on new posts
+    -- TODO this could be done more efficiently
+    delete from post_aggregates_fast where id = NEW.post_id;
+    insert into post_aggregates_fast select * from post_aggregates_view where id = NEW.post_id;
+
+    -- Force the hot rank as zero on week-older posts
+    update post_aggregates_fast as paf
+    set hot_rank = 0
+    where paf.id = NEW.post_id and (paf.published < ('now'::timestamp - '1 week'::interval));
+
+    -- Update community number of comments
+    update community_aggregates_fast as caf
+    set number_of_comments = number_of_comments + 1 
+    from post as p
+    where caf.id = p.community_id and p.id = NEW.post_id;
+
+  END IF;
+
+  return null;
+end $$;
 
 
 -- post_like
