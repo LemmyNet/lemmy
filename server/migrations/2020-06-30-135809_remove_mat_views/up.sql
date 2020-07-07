@@ -204,31 +204,38 @@ create index idx_post_aggregates_fast_hot_rank_published on post_aggregates_fast
 
 create view post_fast_view as 
 select
-ap.*,
-u.id as user_id,
-coalesce(pl.score, 0) as my_vote,
-(select cf.id::bool from community_follower cf where u.id = cf.user_id and cf.community_id = ap.community_id) as subscribed,
-(select pr.id::bool from post_read pr where u.id = pr.user_id and pr.post_id = ap.id) as read,
-(select ps.id::bool from post_saved ps where u.id = ps.user_id and ps.post_id = ap.id) as saved
-from user_ u
-cross join (
-  select
-  pa.*
-  from post_aggregates_fast pa
-) ap
-left join post_like pl on u.id = pl.user_id and ap.id = pl.post_id
+	pav.*,
+	us.id as user_id,
+	us.user_vote as my_vote,
+	us.is_subbed::bool as subscribed,
+	us.is_read::bool as read,
+	us.is_saved::bool as saved
+from post_aggregates_fast pav
+cross join lateral (
+	select
+		u.id,
+		coalesce(cf.community_id, 0) as is_subbed,
+		coalesce(pr.post_id, 0) as is_read,
+		coalesce(ps.post_id, 0) as is_saved,
+		coalesce(pl.score, 0) as user_vote
+	from user_ u
+	left join community_user_ban cb on u.id = cb.user_id and cb.community_id = pav.community_id
+	left join community_follower cf on u.id = cf.user_id and cf.community_id = pav.community_id
+	left join post_read pr on u.id = pr.user_id and pr.post_id = pav.id
+	left join post_saved ps on u.id = ps.user_id and ps.post_id = pav.id
+	left join post_like pl on u.id = pl.user_id and pav.id = pl.post_id
+) as us
 
 union all
 
 select 
-paf.*,
+pav.*,
 null as user_id,
 null as my_vote,
 null as subscribed,
 null as read,
 null as saved
-from post_aggregates_fast paf
-;
+from post_aggregates_fast pav;
 
 drop trigger refresh_post on post;
 
@@ -485,9 +492,9 @@ select
 	u.name as creator_name,
 	u.avatar as creator_avatar,
 	-- score details
-	cl.total as score,
-	cl.up as upvotes,
-	cl.down as downvotes,
+	coalesce(cl.total, 0) as score,
+	coalesce(cl.up, 0) as upvotes,
+	coalesce(cl.down, 0) as downvotes,
 	hot_rank(coalesce(cl.total, 0), ct.published) as hot_rank
 from comment ct
 left join post p on ct.post_id = p.id
@@ -497,25 +504,27 @@ left join community_user_ban cb on ct.creator_id = cb.user_id and p.id = ct.post
 left join (
 	select
 		l.comment_id as id,
-		coalesce(sum(l.score), 0) as total,
-		coalesce(count(case when l.score = 1 then 1 else null end), 0) as up,
-		coalesce(count(case when l.score = -1 then 1 else null end), 0) as down
+		sum(l.score) as total,
+		count(case when l.score = 1 then 1 else null end) as up,
+		count(case when l.score = -1 then 1 else null end) as down
 	from comment_like l
 	group by comment_id
 ) as cl on cl.id = ct.id;
 
-
 create or replace view comment_view as (
 select
 	cav.*,
-  us.*
+  us.user_id as user_id,
+  us.my_vote as my_vote,
+  us.is_subbed::bool as subscribed,
+  us.is_saved::bool as saved
 from comment_aggregates_view cav
 cross join lateral (
 	select
 		u.id as user_id,
 		coalesce(cl.score, 0) as my_vote,
-		cf.id::bool as subscribed,
-		cs.id::bool as saved
+    coalesce(cf.id, 0) as is_subbed,
+    coalesce(cs.id, 0) as is_saved
 	from user_ u
 	left join comment_like cl on u.id = cl.user_id and cav.id = cl.comment_id
 	left join comment_saved cs on u.id = cs.user_id and cs.comment_id = cav.id
@@ -539,29 +548,33 @@ alter table comment_aggregates_fast add primary key (id);
 
 create view comment_fast_view as
 select
-ac.*,
-u.id as user_id,
-coalesce(cl.score, 0) as my_vote,
-(select cf.id::boolean from community_follower cf where u.id = cf.user_id and ac.community_id = cf.community_id) as subscribed,
-(select cs.id::bool from comment_saved cs where u.id = cs.user_id and cs.comment_id = ac.id) as saved
-from user_ u
-cross join (
-  select
-  ca.*
-  from comment_aggregates_fast ca
-) ac
-left join comment_like cl on u.id = cl.user_id and ac.id = cl.comment_id
+	cav.*,
+  us.user_id as user_id,
+  us.my_vote as my_vote,
+  us.is_subbed::bool as subscribed,
+  us.is_saved::bool as saved
+from comment_aggregates_fast cav
+cross join lateral (
+	select
+		u.id as user_id,
+		coalesce(cl.score, 0) as my_vote,
+    coalesce(cf.id, 0) as is_subbed,
+    coalesce(cs.id, 0) as is_saved
+	from user_ u
+	left join comment_like cl on u.id = cl.user_id and cav.id = cl.comment_id
+	left join comment_saved cs on u.id = cs.user_id and cs.comment_id = cav.id
+	left join community_follower cf on u.id = cf.user_id and cav.community_id = cf.community_id
+) as us
 
-union all
+union all 
 
 select 
-    caf.*,
+    cav.*,
     null as user_id, 
     null as my_vote,
     null as subscribed,
     null as saved
-from comment_aggregates_fast caf
-;
+from comment_aggregates_fast cav;
 
 -- Do the reply_view referencing the comment_fast_view
 create view reply_fast_view as 
