@@ -62,6 +62,8 @@ interface PostListingProps {
   showBody?: boolean;
   moderators?: Array<CommunityUser>;
   admins?: Array<UserView>;
+  enableDownvotes: boolean;
+  enableNsfw: boolean;
 }
 
 export class PostListing extends Component<PostListingProps, PostListingState> {
@@ -116,6 +118,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               post={this.props.post}
               onEdit={this.handleEditPost}
               onCancel={this.handleEditCancel}
+              enableNsfw={this.props.enableNsfw}
+              enableDownvotes={this.props.enableDownvotes}
             />
           </div>
         )}
@@ -276,7 +280,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           >
             {this.state.score}
           </div>
-          {WebSocketService.Instance.site.enable_downvotes && (
+          {this.props.enableDownvotes && (
             <button
               className={`btn-animate btn btn-link p-0 ${
                 this.state.my_vote == -1 ? 'text-danger' : 'text-muted'

@@ -23,6 +23,8 @@ import {
   GetCommentsResponse,
   CommentResponse,
   WebSocketJsonResponse,
+  GetSiteResponse,
+  Site,
 } from '../interfaces';
 import { WebSocketService } from '../services';
 import { PostListings } from './post-listings';
@@ -60,6 +62,7 @@ interface State {
   dataType: DataType;
   sort: SortType;
   page: number;
+  site: Site;
 }
 
 export class Community extends Component<any, State> {
@@ -97,6 +100,20 @@ export class Community extends Component<any, State> {
     dataType: getDataTypeFromProps(this.props),
     sort: getSortTypeFromProps(this.props),
     page: getPageFromProps(this.props),
+    site: {
+      id: undefined,
+      name: undefined,
+      creator_id: undefined,
+      published: undefined,
+      creator_name: undefined,
+      number_of_users: undefined,
+      number_of_posts: undefined,
+      number_of_comments: undefined,
+      number_of_communities: undefined,
+      enable_downvotes: undefined,
+      open_registration: undefined,
+      enable_nsfw: undefined,
+    },
   };
 
   constructor(props: any, context: any) {
@@ -119,6 +136,7 @@ export class Community extends Component<any, State> {
       name: this.state.communityName ? this.state.communityName : null,
     };
     WebSocketService.Instance.getCommunity(form);
+    WebSocketService.Instance.getSite();
   }
 
   componentWillUnmount() {
@@ -174,6 +192,7 @@ export class Community extends Component<any, State> {
                 moderators={this.state.moderators}
                 admins={this.state.admins}
                 online={this.state.online}
+                enableNsfw={this.state.site.enable_nsfw}
               />
             </div>
           </div>
@@ -188,6 +207,8 @@ export class Community extends Component<any, State> {
         posts={this.state.posts}
         removeDuplicates
         sort={this.state.sort}
+        enableDownvotes={this.state.site.enable_downvotes}
+        enableNsfw={this.state.site.enable_nsfw}
       />
     ) : (
       <CommentNodes
@@ -195,6 +216,7 @@ export class Community extends Component<any, State> {
         noIndent
         sortType={this.state.sort}
         showContext
+        enableDownvotes={this.state.site.enable_downvotes}
       />
     );
   }
@@ -331,7 +353,7 @@ export class Community extends Component<any, State> {
       this.state.moderators = data.moderators;
       this.state.admins = data.admins;
       this.state.online = data.online;
-      document.title = `/c/${this.state.community.name} - ${WebSocketService.Instance.site.name}`;
+      document.title = `/c/${this.state.community.name} - ${this.state.site.name}`;
       this.setState(this.state);
       this.fetchData();
     } else if (res.op == UserOperation.EditCommunity) {
@@ -398,6 +420,10 @@ export class Community extends Component<any, State> {
     } else if (res.op == UserOperation.CreateCommentLike) {
       let data = res.data as CommentResponse;
       createCommentLikeRes(data, this.state.comments);
+      this.setState(this.state);
+    } else if (res.op == UserOperation.GetSite) {
+      let data = res.data as GetSiteResponse;
+      this.state.site = data.site;
       this.setState(this.state);
     }
   }
