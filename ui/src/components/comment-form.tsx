@@ -108,8 +108,17 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     });
   }
 
+  componentDidUpdate() {
+    if (this.state.commentForm.content) {
+      window.onbeforeunload = () => true;
+    } else {
+      window.onbeforeunload = undefined;
+    }
+  }
+
   componentWillUnmount() {
     this.subscription.unsubscribe();
+    window.onbeforeunload = null;
   }
 
   render() {
