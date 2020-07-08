@@ -164,7 +164,7 @@ impl FromApub for PostForm {
 
   /// Parse an ActivityPub page received from another instance into a Lemmy post.
   async fn from_apub(
-    page: &PageExt,
+    page: &mut PageExt,
     client: &Client,
     pool: &DbPool,
   ) -> Result<PostForm, LemmyError> {

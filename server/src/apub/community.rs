@@ -4,7 +4,7 @@ use crate::{
     create_apub_response,
     create_apub_tombstone_response,
     create_tombstone,
-    extensions::{group_extensions::GroupExtension, signatures::PublicKey},
+    extensions::group_extensions::GroupExtension,
     fetcher::get_or_fetch_and_upsert_remote_user,
     get_shared_inbox,
     ActorType,
@@ -27,21 +27,25 @@ use crate::{
 };
 use activitystreams::{
   activity::{Accept, Announce, Delete, Remove, Undo},
-  actor::{kind::GroupType, properties::ApActorProperties, Group},
-  collection::UnorderedCollection,
-  context,
-  endpoint::EndpointProperties,
-  object::properties::ObjectProperties,
   Activity,
   Base,
   BaseBox,
 };
-use activitystreams_ext::Ext3;
-use activitystreams_new::{activity::Follow, object::Tombstone};
+use activitystreams_ext::Ext2;
+use activitystreams_new::{
+  activity::Follow,
+  actor::{kind::GroupType, ApActor, Endpoints, Group},
+  base::BaseExt,
+  collection::UnorderedCollection,
+  context,
+  object::Tombstone,
+  prelude::*,
+  primitives::{XsdAnyUri, XsdDateTime},
+};
 use actix_web::{body::Body, client::Client, web, HttpResponse};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
+use std::{fmt::Debug, str::FromStr};
 
 #[derive(Deserialize)]
 pub struct CommunityQuery {
@@ -54,9 +58,6 @@ impl ToApub for Community {
 
   // Turn a Lemmy Community into an ActivityPub group that can be sent out over the network.
   async fn to_apub(&self, pool: &DbPool) -> Result<GroupExt, LemmyError> {
-    let mut group = Group::default();
-    let oprops: &mut ObjectProperties = group.as_mut();
-
     // The attributed to, is an ordered vector with the creator actor_ids first,
     // then the rest of the moderators
     // TODO Technically the instance admins can mod the community, but lets
@@ -66,36 +67,36 @@ impl ToApub for Community {
       CommunityModeratorView::for_community(&conn, id)
     })
     .await??;
-    let moderators = moderators.into_iter().map(|m| m.user_actor_id).collect();
+    let moderators: Vec<String> = moderators.into_iter().map(|m| m.user_actor_id).collect();
 
-    oprops
-      .set_context_xsd_any_uri(context())?
-      .set_id(self.actor_id.to_owned())?
-      .set_name_xsd_string(self.name.to_owned())?
-      .set_published(convert_datetime(self.published))?
-      .set_many_attributed_to_xsd_any_uris(moderators)?;
+    let mut group = Group::new();
+    group
+      .set_context(context())
+      .set_id(XsdAnyUri::from_str(&self.actor_id)?)
+      .set_name(self.name.to_owned())
+      .set_published(XsdDateTime::from(convert_datetime(self.published)))
+      .set_many_attributed_tos(moderators);
 
     if let Some(u) = self.updated.to_owned() {
-      oprops.set_updated(convert_datetime(u))?;
+      group.set_updated(XsdDateTime::from(convert_datetime(u)));
     }
     if let Some(d) = self.description.to_owned() {
       // TODO: this should be html, also add source field with raw markdown
       //       -> same for post.content and others
-      oprops.set_content_xsd_string(d)?;
+      group.set_content(d);
     }
 
-    let mut endpoint_props = EndpointProperties::default();
-
-    endpoint_props.set_shared_inbox(self.get_shared_inbox_url())?;
-
-    let mut actor_props = ApActorProperties::default();
-
-    actor_props
-      .set_preferred_username(self.title.to_owned())?
-      .set_inbox(self.get_inbox_url())?
-      .set_outbox(self.get_outbox_url())?
-      .set_endpoints(endpoint_props)?
-      .set_followers(self.get_followers_url())?;
+    let mut ap_actor = ApActor::new(self.get_inbox_url().parse()?, group);
+    ap_actor
+      .set_preferred_username(self.title.to_owned())
+      .set_outbox(self.get_outbox_url().parse()?)
+      .set_followers(self.get_followers_url().parse()?)
+      .set_following(self.get_following_url().parse()?)
+      .set_liked(self.get_liked_url().parse()?)
+      .set_endpoints(Endpoints {
+        shared_inbox: Some(self.get_shared_inbox_url().parse()?),
+        ..Default::default()
+      });
 
     let nsfw = self.nsfw;
     let category_id = self.category_id;
@@ -104,10 +105,9 @@ impl ToApub for Community {
     })
     .await??;
 
-    Ok(Ext3::new(
-      group,
+    Ok(Ext2::new(
+      ap_actor,
       group_extension,
-      actor_props,
       self.get_public_key_ext(),
     ))
   }
@@ -367,38 +367,52 @@ impl FromApub for CommunityForm {
   type ApubType = GroupExt;
 
   /// Parse an ActivityPub group received from another instance into a Lemmy community.
-  async fn from_apub(group: &GroupExt, client: &Client, pool: &DbPool) -> Result<Self, LemmyError> {
-    let group_extensions: &GroupExtension = &group.ext_one;
-    let oprops = &group.inner.object_props;
-    let aprops = &group.ext_two;
-    let public_key: &PublicKey = &group.ext_three.public_key;
-
-    let mut creator_and_moderator_uris = oprops.get_many_attributed_to_xsd_any_uris().unwrap();
-    let creator_uri = creator_and_moderator_uris.next().unwrap();
+  async fn from_apub(
+    group: &mut GroupExt,
+    client: &Client,
+    pool: &DbPool,
+  ) -> Result<Self, LemmyError> {
+    // TODO: this is probably gonna cause problems cause fetcher:292 also calls take_attributed_to()
+    let creator_and_moderator_uris = group.clone().take_attributed_to().unwrap();
+    let creator_uri = creator_and_moderator_uris
+      .as_many()
+      .unwrap()
+      .iter()
+      .next()
+      .unwrap()
+      .as_xsd_any_uri()
+      .unwrap();
 
     let creator = get_or_fetch_and_upsert_remote_user(creator_uri.as_str(), client, pool).await?;
 
     Ok(CommunityForm {
-      name: oprops.get_name_xsd_string().unwrap().to_string(),
-      title: aprops.get_preferred_username().unwrap().to_string(),
+      name: group
+        .take_name()
+        .unwrap()
+        .as_single_xsd_string()
+        .unwrap()
+        .into(),
+      title: group.inner.take_preferred_username().unwrap(),
       // TODO: should be parsed as html and tags like <script> removed (or use markdown source)
       //       -> same for post.content etc
-      description: oprops.get_content_xsd_string().map(|s| s.to_string()),
-      category_id: group_extensions.category.identifier.parse::<i32>()?,
+      description: group
+        .take_content()
+        .map(|s| s.as_single_xsd_string().unwrap().into()),
+      category_id: group.ext_one.category.identifier.parse::<i32>()?,
       creator_id: creator.id,
       removed: None,
-      published: oprops
-        .get_published()
+      published: group
+        .take_published()
         .map(|u| u.as_ref().to_owned().naive_local()),
-      updated: oprops
-        .get_updated()
+      updated: group
+        .take_updated()
         .map(|u| u.as_ref().to_owned().naive_local()),
       deleted: None,
-      nsfw: group_extensions.sensitive,
-      actor_id: oprops.get_id().unwrap().to_string(),
+      nsfw: group.ext_one.sensitive,
+      actor_id: group.id().unwrap().to_string(),
       local: false,
       private_key: None,
-      public_key: Some(public_key.to_owned().public_key_pem),
+      public_key: Some(group.ext_two.to_owned().public_key.public_key_pem),
       last_refreshed_at: Some(naive_now()),
     })
   }
@@ -439,14 +453,12 @@ pub async fn get_apub_community_followers(
   })
   .await??;
 
-  let mut collection = UnorderedCollection::default();
-  let oprops: &mut ObjectProperties = collection.as_mut();
-  oprops
-    .set_context_xsd_any_uri(context())?
-    .set_id(community.actor_id)?;
+  let mut collection = UnorderedCollection::new(vec![]);
   collection
-    .collection_props
-    .set_total_items(community_followers.len() as u64)?;
+    .set_context(context())
+    // TODO: this needs its own ID
+    .set_id(community.actor_id.parse()?)
+    .set_total_items(community_followers.len() as u64);
   Ok(create_apub_response(&collection))
 }
 

@@ -110,3 +110,4 @@ services:
     image: dogbin/iframely:latest
     volumes:
       - ../iframely.config.local.js:/iframely/config.local.js:ro
+    restart: always

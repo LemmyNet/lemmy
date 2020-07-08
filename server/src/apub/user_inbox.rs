@@ -116,7 +116,7 @@ async fn receive_create_private_message(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let note = create
+  let mut note = create
     .create_props
     .get_object_base_box()
     .to_owned()
@@ -135,7 +135,7 @@ async fn receive_create_private_message(
 
   insert_activity(user.id, create, false, pool).await?;
 
-  let private_message = PrivateMessageForm::from_apub(&note, client, pool).await?;
+  let private_message = PrivateMessageForm::from_apub(&mut note, client, pool).await?;
 
   let inserted_private_message = blocking(pool, move |conn| {
     PrivateMessage::create(conn, &private_message)
@@ -168,7 +168,7 @@ async fn receive_update_private_message(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let note = update
+  let mut note = update
     .update_props
     .get_object_base_box()
     .to_owned()
@@ -187,7 +187,7 @@ async fn receive_update_private_message(
 
   insert_activity(user.id, update, false, pool).await?;
 
-  let private_message_form = PrivateMessageForm::from_apub(&note, client, pool).await?;
+  let private_message_form = PrivateMessageForm::from_apub(&mut note, client, pool).await?;
 
   let private_message_ap_id = private_message_form.ap_id.clone();
   let private_message = blocking(pool, move |conn| {
@@ -228,7 +228,7 @@ async fn receive_delete_private_message(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let note = delete
+  let mut note = delete
     .delete_props
     .get_object_base_box()
     .to_owned()
@@ -247,7 +247,7 @@ async fn receive_delete_private_message(
 
   insert_activity(user.id, delete, false, pool).await?;
 
-  let private_message_form = PrivateMessageForm::from_apub(&note, client, pool).await?;
+  let private_message_form = PrivateMessageForm::from_apub(&mut note, client, pool).await?;
 
   let private_message_ap_id = private_message_form.ap_id;
   let private_message = blocking(pool, move |conn| {
@@ -308,7 +308,7 @@ async fn receive_undo_delete_private_message(
     .to_owned()
     .into_concrete::<Delete>()?;
 
-  let note = delete
+  let mut note = delete
     .delete_props
     .get_object_base_box()
     .to_owned()
@@ -327,7 +327,7 @@ async fn receive_undo_delete_private_message(
 
   insert_activity(user.id, delete, false, pool).await?;
 
-  let private_message = PrivateMessageForm::from_apub(&note, client, pool).await?;
+  let private_message = PrivateMessageForm::from_apub(&mut note, client, pool).await?;
 
   let private_message_ap_id = private_message.ap_id.clone();
   let private_message_id = blocking(pool, move |conn| {

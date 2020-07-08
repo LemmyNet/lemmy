@@ -1,13 +1,5 @@
 use crate::{
-  apub::{
-    activities::send_activity,
-    create_apub_response,
-    extensions::signatures::PublicKey,
-    ActorType,
-    FromApub,
-    PersonExt,
-    ToApub,
-  },
+  apub::{activities::send_activity, create_apub_response, ActorType, FromApub, PersonExt, ToApub},
   blocking,
   convert_datetime,
   db::{
@@ -19,20 +11,17 @@ use crate::{
   DbPool,
   LemmyError,
 };
-use activitystreams::{
-  actor::{properties::ApActorProperties, Person},
-  context,
-  endpoint::EndpointProperties,
-  object::{properties::ObjectProperties, AnyImage, Image},
-  primitives::XsdAnyUri,
-};
-use activitystreams_ext::Ext2;
+use activitystreams_ext::Ext1;
 use activitystreams_new::{
   activity::{Follow, Undo},
-  object::Tombstone,
+  actor::{ApActor, Endpoints, Person},
+  context,
+  object::{Image, Tombstone},
   prelude::*,
+  primitives::{XsdAnyUri, XsdDateTime},
 };
 use actix_web::{body::Body, client::Client, web, HttpResponse};
+use failure::_core::str::FromStr;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -47,46 +36,39 @@ impl ToApub for User_ {
   // Turn a Lemmy Community into an ActivityPub group that can be sent out over the network.
   async fn to_apub(&self, _pool: &DbPool) -> Result<PersonExt, LemmyError> {
     // TODO go through all these to_string and to_owned()
-    let mut person = Person::default();
-    let oprops: &mut ObjectProperties = person.as_mut();
-    oprops
-      .set_context_xsd_any_uri(context())?
-      .set_id(self.actor_id.to_string())?
-      .set_name_xsd_string(self.name.to_owned())?
-      .set_published(convert_datetime(self.published))?;
+    let mut person = Person::new();
+    person
+      .set_context(context())
+      .set_id(XsdAnyUri::from_str(&self.actor_id)?)
+      .set_name(self.name.to_owned())
+      .set_published(XsdDateTime::from(convert_datetime(self.published)));
 
     if let Some(u) = self.updated {
-      oprops.set_updated(convert_datetime(u))?;
-    }
-
-    if let Some(i) = &self.preferred_username {
-      oprops.set_name_xsd_string(i.to_owned())?;
+      person.set_updated(XsdDateTime::from(convert_datetime(u)));
     }
 
     if let Some(avatar_url) = &self.avatar {
       let mut image = Image::new();
-      image
-        .object_props
-        .set_url_xsd_any_uri(avatar_url.to_owned())?;
-      let any_image = AnyImage::from_concrete(image)?;
-      oprops.set_icon_any_image(any_image)?;
+      image.set_url(avatar_url.to_owned());
+      person.set_icon(image.into_any_base()?);
     }
 
-    let mut endpoint_props = EndpointProperties::default();
+    let mut ap_actor = ApActor::new(self.get_inbox_url().parse()?, person);
+    ap_actor
+      .set_outbox(self.get_outbox_url().parse()?)
+      .set_followers(self.get_followers_url().parse()?)
+      .set_following(self.get_following_url().parse()?)
+      .set_liked(self.get_liked_url().parse()?)
+      .set_endpoints(Endpoints {
+        shared_inbox: Some(self.get_shared_inbox_url().parse()?),
+        ..Default::default()
+      });
 
-    endpoint_props.set_shared_inbox(self.get_shared_inbox_url())?;
+    if let Some(i) = &self.preferred_username {
+      ap_actor.set_preferred_username(i.to_owned());
+    }
 
-    let mut actor_props = ApActorProperties::default();
-
-    actor_props
-      .set_inbox(self.get_inbox_url())?
-      .set_outbox(self.get_outbox_url())?
-      .set_endpoints(endpoint_props)?
-      .set_followers(self.get_followers_url())?
-      .set_following(self.get_following_url())?
-      .set_liked(self.get_liked_url())?;
-
-    Ok(Ext2::new(person, actor_props, self.get_public_key_ext()))
+    Ok(Ext1::new(ap_actor, self.get_public_key_ext()))
   }
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
     unimplemented!()
@@ -203,31 +185,33 @@ impl ActorType for User_ {
 impl FromApub for UserForm {
   type ApubType = PersonExt;
   /// Parse an ActivityPub person received from another instance into a Lemmy user.
-  async fn from_apub(person: &PersonExt, _: &Client, _: &DbPool) -> Result<Self, LemmyError> {
-    let oprops = &person.inner.object_props;
-    let aprops = &person.ext_one;
-    let public_key: &PublicKey = &person.ext_two.public_key;
-
-    let avatar = match oprops.get_icon_any_image() {
-      Some(any_image) => any_image
-        .to_owned()
-        .into_concrete::<Image>()?
-        .object_props
-        .get_url_xsd_any_uri()
+  async fn from_apub(person: &mut PersonExt, _: &Client, _: &DbPool) -> Result<Self, LemmyError> {
+    let avatar = match person.take_icon() {
+      Some(any_image) => Image::from_any_base(any_image.as_one().unwrap().clone())
+        .unwrap()
+        .unwrap()
+        .url
+        .unwrap()
+        .as_single_xsd_any_uri()
         .map(|u| u.to_string()),
       None => None,
     };
 
     Ok(UserForm {
-      name: oprops.get_name_xsd_string().unwrap().to_string(),
-      preferred_username: aprops.get_preferred_username().map(|u| u.to_string()),
+      name: person
+        .take_name()
+        .unwrap()
+        .as_single_xsd_string()
+        .unwrap()
+        .into(),
+      preferred_username: person.inner.take_preferred_username(),
       password_encrypted: "".to_string(),
       admin: false,
       banned: false,
       email: None,
       avatar,
-      updated: oprops
-        .get_updated()
+      updated: person
+        .take_updated()
         .map(|u| u.as_ref().to_owned().naive_local()),
       show_nsfw: false,
       theme: "".to_string(),
@@ -237,11 +221,13 @@ impl FromApub for UserForm {
       show_avatars: false,
       send_notifications_to_email: false,
       matrix_user_id: None,
-      actor_id: oprops.get_id().unwrap().to_string(),
-      bio: oprops.get_summary_xsd_string().map(|s| s.to_string()),
+      actor_id: person.id().unwrap().to_string(),
+      bio: person
+        .take_summary()
+        .map(|s| s.as_single_xsd_string().unwrap().into()),
       local: false,
       private_key: None,
-      public_key: Some(public_key.to_owned().public_key_pem),
+      public_key: Some(person.ext_one.public_key.to_owned().public_key_pem),
       last_refreshed_at: Some(naive_now()),
     })
   }

@@ -123,7 +123,7 @@ impl FromApub for CommentForm {
 
   /// Parse an ActivityPub note received from another instance into a Lemmy comment
   async fn from_apub(
-    note: &Note,
+    note: &mut Note,
     client: &Client,
     pool: &DbPool,
   ) -> Result<CommentForm, LemmyError> {

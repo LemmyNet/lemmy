@@ -25,20 +25,22 @@ use crate::{
   MentionData,
   Settings,
 };
-use activitystreams::{
-  actor::{properties::ApActorProperties, Group, Person},
-  object::Page,
+use activitystreams::object::Page;
+use activitystreams_ext::{Ext1, Ext2};
+use activitystreams_new::{
+  activity::Follow,
+  actor::{ApActor, Group, Person},
+  object::Tombstone,
+  prelude::*,
 };
-use activitystreams_ext::{Ext1, Ext2, Ext3};
-use activitystreams_new::{activity::Follow, object::Tombstone, prelude::*};
 use actix_web::{body::Body, client::Client, HttpResponse};
 use chrono::NaiveDateTime;
 use log::debug;
 use serde::Serialize;
 use url::Url;
 
-type GroupExt = Ext3<Group, GroupExtension, ApActorProperties, PublicKeyExtension>;
-type PersonExt = Ext2<Person, ApActorProperties, PublicKeyExtension>;
+type GroupExt = Ext2<ApActor<Group>, GroupExtension, PublicKeyExtension>;
+type PersonExt = Ext1<ApActor<Person>, PublicKeyExtension>;
 type PageExt = Ext1<Page, PageExtension>;
 
 pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
@@ -163,7 +165,7 @@ fn create_tombstone(
 pub trait FromApub {
   type ApubType;
   async fn from_apub(
-    apub: &Self::ApubType,
+    apub: &mut Self::ApubType,
     client: &Client,
     pool: &DbPool,
   ) -> Result<Self, LemmyError>
