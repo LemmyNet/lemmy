@@ -110,8 +110,17 @@ export class PrivateMessageForm extends Component<
     setupTippy();
   }
 
+  componentDidUpdate() {
+    if (!this.state.loading && this.state.privateMessageForm.content) {
+      window.onbeforeunload = () => true;
+    } else {
+      window.onbeforeunload = undefined;
+    }
+  }
+
   componentWillUnmount() {
     this.subscription.unsubscribe();
+    window.onbeforeunload = null;
   }
 
   render() {

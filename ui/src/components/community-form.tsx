@@ -97,8 +97,22 @@ export class CommunityForm extends Component<
     });
   }
 
+  componentDidUpdate() {
+    if (
+      !this.state.loading &&
+      (this.state.communityForm.name ||
+        this.state.communityForm.title ||
+        this.state.communityForm.description)
+    ) {
+      window.onbeforeunload = () => true;
+    } else {
+      window.onbeforeunload = undefined;
+    }
+  }
+
   componentWillUnmount() {
     this.subscription.unsubscribe();
+    window.onbeforeunload = null;
   }
 
   render() {

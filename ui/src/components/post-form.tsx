@@ -151,8 +151,22 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     setupTippy();
   }
 
+  componentDidUpdate() {
+    if (
+      !this.state.loading &&
+      (this.state.postForm.name ||
+        this.state.postForm.url ||
+        this.state.postForm.body)
+    ) {
+      window.onbeforeunload = () => true;
+    } else {
+      window.onbeforeunload = undefined;
+    }
+  }
+
   componentWillUnmount() {
     this.subscription.unsubscribe();
+    window.onbeforeunload = null;
   }
 
   render() {
