@@ -1,4 +1,4 @@
-use super::community_view::community_mview::BoxedQuery;
+use super::community_view::community_fast_view::BoxedQuery;
 use crate::db::{fuzzy_search, limit_and_offset, MaybeOptional, SortType};
 use diesel::{pg::Pg, result::Error, *};
 use serde::{Deserialize, Serialize};
@@ -34,7 +34,7 @@ table! {
 }
 
 table! {
-  community_mview (id) {
+  community_fast_view (id) {
     id -> Int4,
     name -> Varchar,
     title -> Varchar,
@@ -114,7 +114,7 @@ table! {
 #[derive(
   Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
 )]
-#[table_name = "community_view"]
+#[table_name = "community_fast_view"]
 pub struct CommunityView {
   pub id: i32,
   pub name: String,
@@ -156,9 +156,9 @@ pub struct CommunityQueryBuilder<'a> {
 
 impl<'a> CommunityQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection) -> Self {
-    use super::community_view::community_mview::dsl::*;
+    use super::community_view::community_fast_view::dsl::*;
 
-    let query = community_mview.into_boxed();
+    let query = community_fast_view.into_boxed();
 
     CommunityQueryBuilder {
       conn,
@@ -203,7 +203,7 @@ impl<'a> CommunityQueryBuilder<'a> {
   }
 
   pub fn list(self) -> Result<Vec<CommunityView>, Error> {
-    use super::community_view::community_mview::dsl::*;
+    use super::community_view::community_fast_view::dsl::*;
 
     let mut query = self.query;
 
@@ -259,9 +259,9 @@ impl CommunityView {
     from_community_id: i32,
     from_user_id: Option<i32>,
   ) -> Result<Self, Error> {
-    use super::community_view::community_mview::dsl::*;
+    use super::community_view::community_fast_view::dsl::*;
 
-    let mut query = community_mview.into_boxed();
+    let mut query = community_fast_view.into_boxed();
 
     query = query.filter(id.eq(from_community_id));
 

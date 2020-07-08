@@ -40,7 +40,7 @@ table! {
 }
 
 table! {
-  user_mention_mview (id) {
+  user_mention_fast_view (id) {
     id -> Int4,
     user_mention_id -> Int4,
     creator_id -> Int4,
@@ -78,7 +78,7 @@ table! {
 #[derive(
   Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
 )]
-#[table_name = "user_mention_view"]
+#[table_name = "user_mention_fast_view"]
 pub struct UserMentionView {
   pub id: i32,
   pub user_mention_id: i32,
@@ -115,7 +115,7 @@ pub struct UserMentionView {
 
 pub struct UserMentionQueryBuilder<'a> {
   conn: &'a PgConnection,
-  query: super::user_mention_view::user_mention_mview::BoxedQuery<'a, Pg>,
+  query: super::user_mention_view::user_mention_fast_view::BoxedQuery<'a, Pg>,
   for_user_id: i32,
   sort: &'a SortType,
   unread_only: bool,
@@ -125,9 +125,9 @@ pub struct UserMentionQueryBuilder<'a> {
 
 impl<'a> UserMentionQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection, for_user_id: i32) -> Self {
-    use super::user_mention_view::user_mention_mview::dsl::*;
+    use super::user_mention_view::user_mention_fast_view::dsl::*;
 
-    let query = user_mention_mview.into_boxed();
+    let query = user_mention_fast_view.into_boxed();
 
     UserMentionQueryBuilder {
       conn,
@@ -161,7 +161,7 @@ impl<'a> UserMentionQueryBuilder<'a> {
   }
 
   pub fn list(self) -> Result<Vec<UserMentionView>, Error> {
-    use super::user_mention_view::user_mention_mview::dsl::*;
+    use super::user_mention_view::user_mention_fast_view::dsl::*;
 
     let mut query = self.query;
 
@@ -208,9 +208,9 @@ impl UserMentionView {
     from_user_mention_id: i32,
     from_recipient_id: i32,
   ) -> Result<Self, Error> {
-    use super::user_mention_view::user_mention_view::dsl::*;
+    use super::user_mention_view::user_mention_fast_view::dsl::*;
 
-    user_mention_view
+    user_mention_fast_view
       .filter(user_mention_id.eq(from_user_mention_id))
       .filter(user_id.eq(from_recipient_id))
       .first::<Self>(conn)

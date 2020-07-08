@@ -1,4 +1,4 @@
-use super::post_view::post_mview::BoxedQuery;
+use super::post_view::post_fast_view::BoxedQuery;
 use crate::db::{fuzzy_search, limit_and_offset, ListingType, MaybeOptional, SortType};
 use diesel::{dsl::*, pg::Pg, result::Error, *};
 use serde::{Deserialize, Serialize};
@@ -25,12 +25,12 @@ table! {
     thumbnail_url -> Nullable<Text>,
     ap_id -> Text,
     local -> Bool,
-    banned -> Bool,
-    banned_from_community -> Bool,
     creator_actor_id -> Text,
     creator_local -> Bool,
     creator_name -> Varchar,
     creator_avatar -> Nullable<Text>,
+    banned -> Bool,
+    banned_from_community -> Bool,
     community_actor_id -> Text,
     community_local -> Bool,
     community_name -> Varchar,
@@ -52,7 +52,7 @@ table! {
 }
 
 table! {
-  post_mview (id) {
+  post_fast_view (id) {
     id -> Int4,
     name -> Varchar,
     url -> Nullable<Text>,
@@ -72,12 +72,12 @@ table! {
     thumbnail_url -> Nullable<Text>,
     ap_id -> Text,
     local -> Bool,
-    banned -> Bool,
-    banned_from_community -> Bool,
     creator_actor_id -> Text,
     creator_local -> Bool,
     creator_name -> Varchar,
     creator_avatar -> Nullable<Text>,
+    banned -> Bool,
+    banned_from_community -> Bool,
     community_actor_id -> Text,
     community_local -> Bool,
     community_name -> Varchar,
@@ -101,7 +101,7 @@ table! {
 #[derive(
   Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
 )]
-#[table_name = "post_view"]
+#[table_name = "post_fast_view"]
 pub struct PostView {
   pub id: i32,
   pub name: String,
@@ -122,12 +122,12 @@ pub struct PostView {
   pub thumbnail_url: Option<String>,
   pub ap_id: String,
   pub local: bool,
-  pub banned: bool,
-  pub banned_from_community: bool,
   pub creator_actor_id: String,
   pub creator_local: bool,
   pub creator_name: String,
   pub creator_avatar: Option<String>,
+  pub banned: bool,
+  pub banned_from_community: bool,
   pub community_actor_id: String,
   pub community_local: bool,
   pub community_name: String,
@@ -166,9 +166,9 @@ pub struct PostQueryBuilder<'a> {
 
 impl<'a> PostQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection) -> Self {
-    use super::post_view::post_mview::dsl::*;
+    use super::post_view::post_fast_view::dsl::*;
 
-    let query = post_mview.into_boxed();
+    let query = post_fast_view.into_boxed();
 
     PostQueryBuilder {
       conn,
@@ -249,7 +249,7 @@ impl<'a> PostQueryBuilder<'a> {
   }
 
   pub fn list(self) -> Result<Vec<PostView>, Error> {
-    use super::post_view::post_mview::dsl::*;
+    use super::post_view::post_fast_view::dsl::*;
 
     let mut query = self.query;
 
@@ -345,10 +345,10 @@ impl PostView {
     from_post_id: i32,
     my_user_id: Option<i32>,
   ) -> Result<Self, Error> {
-    use super::post_view::post_mview::dsl::*;
+    use super::post_view::post_fast_view::dsl::*;
     use diesel::prelude::*;
 
-    let mut query = post_mview.into_boxed();
+    let mut query = post_fast_view.into_boxed();
 
     query = query.filter(id.eq(from_post_id));
 
@@ -470,6 +470,25 @@ mod tests {
       score: 1,
     };
 
+    let read_post_listings_with_user = PostQueryBuilder::create(&conn)
+      .listing_type(ListingType::Community)
+      .sort(&SortType::New)
+      .for_community_id(inserted_community.id)
+      .my_user_id(inserted_user.id)
+      .list()
+      .unwrap();
+
+    let read_post_listings_no_user = PostQueryBuilder::create(&conn)
+      .listing_type(ListingType::Community)
+      .sort(&SortType::New)
+      .for_community_id(inserted_community.id)
+      .list()
+      .unwrap();
+
+    let read_post_listing_no_user = PostView::read(&conn, inserted_post.id, None).unwrap();
+    let read_post_listing_with_user =
+      PostView::read(&conn, inserted_post.id, Some(inserted_user.id)).unwrap();
+
     // the non user version
     let expected_post_listing_no_user = PostView {
       user_id: None,
@@ -496,7 +515,7 @@ mod tests {
       score: 1,
       upvotes: 1,
       downvotes: 0,
-      hot_rank: 1728,
+      hot_rank: read_post_listing_no_user.hot_rank,
       published: inserted_post.published,
       newest_activity_time: inserted_post.published,
       updated: None,
@@ -541,13 +560,13 @@ mod tests {
       score: 1,
       upvotes: 1,
       downvotes: 0,
-      hot_rank: 1728,
+      hot_rank: read_post_listing_with_user.hot_rank,
       published: inserted_post.published,
       newest_activity_time: inserted_post.published,
       updated: None,
-      subscribed: None,
-      read: None,
-      saved: None,
+      subscribed: Some(false),
+      read: Some(false),
+      saved: Some(false),
       nsfw: false,
       embed_title: None,
       embed_description: None,
@@ -560,25 +579,6 @@ mod tests {
       community_actor_id: inserted_community.actor_id.to_owned(),
       community_local: true,
     };
-
-    let read_post_listings_with_user = PostQueryBuilder::create(&conn)
-      .listing_type(ListingType::Community)
-      .sort(&SortType::New)
-      .for_community_id(inserted_community.id)
-      .my_user_id(inserted_user.id)
-      .list()
-      .unwrap();
-
-    let read_post_listings_no_user = PostQueryBuilder::create(&conn)
-      .listing_type(ListingType::Community)
-      .sort(&SortType::New)
-      .for_community_id(inserted_community.id)
-      .list()
-      .unwrap();
-
-    let read_post_listing_no_user = PostView::read(&conn, inserted_post.id, None).unwrap();
-    let read_post_listing_with_user =
-      PostView::read(&conn, inserted_post.id, Some(inserted_user.id)).unwrap();
 
     let like_removed = PostLike::remove(&conn, &post_like_form).unwrap();
     let num_deleted = Post::delete(&conn, inserted_post.id).unwrap();

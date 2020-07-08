@@ -396,9 +396,6 @@ export class Navbar extends Component<any, NavbarState> {
       if (data.site && !this.state.siteName) {
         this.state.siteName = data.site.name;
         this.state.admins = data.admins;
-        WebSocketService.Instance.site = data.site;
-        WebSocketService.Instance.admins = data.admins;
-
         this.setState(this.state);
       }
     }

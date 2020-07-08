@@ -1,11 +1,11 @@
 {
     "remove_post": "Hiqe Postimin",
     "no_posts": "Nuk ka Postime.",
-    "create_a_post": "Krijo Postim",
+    "create_a_post": "Krijo një Postim",
     "create_post": "Krijo Postim",
     "posts": "Postime",
     "related_posts": "Këto postime mund të jenë të lidhura",
-    "cross_posts": "Ky link është postuar edhe te:",
+    "cross_posts": "Ky link është postuar gjithashtu në:",
     "cross_post": "shumë-postim",
     "cross_posted_to": "shumë-postuar në: ",
     "comments": "Komentet",

@@ -19,6 +19,7 @@ interface SidebarProps {
   moderators: Array<CommunityUser>;
   admins: Array<UserView>;
   online: number;
+  enableNsfw: boolean;
 }
 
 interface SidebarState {
@@ -53,6 +54,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
             community={this.props.community}
             onEdit={this.handleEditCommunity}
             onCancel={this.handleEditCancel}
+            enableNsfw={this.props.enableNsfw}
           />
         )}
       </div>
