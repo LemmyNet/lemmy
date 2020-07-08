@@ -265,5 +265,7 @@
     "action": "Action",
     "emoji_picker": "Emoji Picker",
     "block_leaving": "Are you sure you want to leave?",
-    "what_is": "What is"
+    "what_is": "What is",
+    "cake_day_title": "Cake day:",
+    "cake_day_info": "It's {{ creator_name }}'s cake day today!"
 }

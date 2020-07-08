@@ -33,6 +33,7 @@ import { CommentForm } from './comment-form';
 import { CommentNodes } from './comment-nodes';
 import { UserListing } from './user-listing';
 import { i18n } from '../i18next';
+import { CakeDay } from './cake-day';
 
 interface CommentNodeState {
   showReply: boolean;
@@ -124,6 +125,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
 
   render() {
     let node = this.props.node;
+    const { creator_name, creator_published } = node.comment;
     return (
       <div
         className={`comment ${
@@ -160,6 +162,12 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                   }}
                 />
               </span>
+
+              <CakeDay
+                creator_name={creator_name}
+                creator_published={creator_published}
+              />
+
               {this.isMod && (
                 <div className="badge badge-light d-none d-sm-inline mr-2">
                   {i18n.t('mod')}

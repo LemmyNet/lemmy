@@ -46,6 +46,7 @@ import { ListingTypeSelect } from './listing-type-select';
 import { CommentNodes } from './comment-nodes';
 import { MomentTime } from './moment-time';
 import { i18n } from '../i18next';
+import moment from 'moment';
 
 enum View {
   Overview,
@@ -412,6 +413,15 @@ export class User extends Component<any, UserState> {
                 )}
               </ul>
             </h5>
+            <div className="d-flex align-items-center mb-2">
+              <svg class="icon">
+                <use xlinkHref="#icon-cake"></use>
+              </svg>
+              <span className="ml-2">
+                {i18n.t('cake_day_title')}{' '}
+                {moment.utc(user.published).local().format('MMM DD, YYYY')}
+              </span>
+            </div>
             <div>
               {i18n.t('joined')} <MomentTime data={user} showAgo />
             </div>

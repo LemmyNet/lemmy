@@ -35,6 +35,7 @@ import {
   previewLines,
 } from '../utils';
 import { i18n } from '../i18next';
+import { CakeDay } from './cake-day';
 
 interface PostListingState {
   showEdit: boolean;
@@ -253,6 +254,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
   listing() {
     let post = this.props.post;
+    const { creator_name, creator_published } = post;
+
     return (
       <div class="row">
         <div className={`vote-bar col-1 pr-0 small text-center`}>
@@ -432,6 +435,12 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                       actor_id: post.creator_actor_id,
                     }}
                   />
+
+                  <CakeDay
+                    creator_name={creator_name}
+                    creator_published={creator_published}
+                  />
+
                   {this.isMod && (
                     <span className="mx-1 badge badge-light">
                       {i18n.t('mod')}
