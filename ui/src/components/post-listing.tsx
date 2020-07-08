@@ -33,6 +33,7 @@ import {
   setupTippy,
   hostname,
   previewLines,
+  isCakeDay,
 } from '../utils';
 import { i18n } from '../i18next';
 import { CakeDay } from './cake-day';
@@ -258,8 +259,6 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
   listing() {
     let post = this.props.post;
-    const { creator_name, creator_published } = post;
-
     return (
       <div class="row">
         <div className={`vote-bar col-1 pr-0 small text-center`}>
@@ -440,10 +439,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                     }}
                   />
 
-                  <CakeDay
-                    creator_name={creator_name}
-                    creator_published={creator_published}
-                  />
+                  {isCakeDay(post.creator_published) && (
+                    <CakeDay creator_name={post.creator_name} is_post_creator />
+                  )}
 
                   {this.isMod && (
                     <span className="mx-1 badge badge-light">

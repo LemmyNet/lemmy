@@ -26,6 +26,7 @@ import {
   isMod,
   setupTippy,
   colorList,
+  isCakeDay,
 } from '../utils';
 import moment from 'moment';
 import { MomentTime } from './moment-time';
@@ -126,7 +127,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
 
   render() {
     let node = this.props.node;
-    const { creator_name, creator_published } = node.comment;
     return (
       <div
         className={`comment ${
@@ -164,10 +164,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 />
               </span>
 
-              <CakeDay
-                creator_name={creator_name}
-                creator_published={creator_published}
-              />
+              {isCakeDay(node.comment.creator_published) && (
+                <CakeDay creator_name={node.comment.creator_name} />
+              )}
 
               {this.isMod && (
                 <div className="badge badge-light d-none d-sm-inline mr-2">
