@@ -1,5 +1,4 @@
 import { Component, linkEvent } from 'inferno';
-import { Link } from 'inferno-router';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import {
@@ -11,6 +10,7 @@ import {
   ListCommunitiesForm,
   SortType,
   WebSocketJsonResponse,
+  GetSiteResponse,
 } from '../interfaces';
 import { WebSocketService } from '../services';
 import { wsJsonToRes, toast } from '../utils';
@@ -47,6 +47,7 @@ export class Communities extends Component<any, CommunitiesState> {
       );
 
     this.refetch();
+    WebSocketService.Instance.getSite();
   }
 
   getPageFromProps(props: any): number {
@@ -55,12 +56,6 @@ export class Communities extends Component<any, CommunitiesState> {
 
   componentWillUnmount() {
     this.subscription.unsubscribe();
-  }
-
-  componentDidMount() {
-    document.title = `${i18n.t('communities')} - ${
-      WebSocketService.Instance.site.name
-    }`;
   }
 
   // Necessary for back button for some reason
@@ -244,6 +239,9 @@ export class Communities extends Component<any, CommunitiesState> {
       found.subscribed = data.community.subscribed;
       found.number_of_subscribers = data.community.number_of_subscribers;
       this.setState(this.state);
+    } else if (res.op == UserOperation.GetSite) {
+      let data = res.data as GetSiteResponse;
+      document.title = `${i18n.t('communities')} - ${data.site.name}`;
     }
   }
 }

@@ -418,6 +418,8 @@ export class Main extends Component<any, MainState> {
         showCommunity
         removeDuplicates
         sort={this.state.sort}
+        enableDownvotes={this.state.siteRes.site.enable_downvotes}
+        enableNsfw={this.state.siteRes.site.enable_nsfw}
       />
     ) : (
       <CommentNodes
@@ -426,6 +428,7 @@ export class Main extends Component<any, MainState> {
         showCommunity
         sortType={this.state.sort}
         showContext
+        enableDownvotes={this.state.siteRes.site.enable_downvotes}
       />
     );
   }
@@ -617,7 +620,7 @@ export class Main extends Component<any, MainState> {
       this.state.siteRes.banned = data.banned;
       this.state.siteRes.online = data.online;
       this.setState(this.state);
-      document.title = `${WebSocketService.Instance.site.name}`;
+      document.title = `${this.state.siteRes.site.name}`;
     } else if (res.op == UserOperation.EditSite) {
       let data = res.data as SiteResponse;
       this.state.siteRes.site = data.site;

@@ -385,9 +385,7 @@ export class Login extends Component<any, State> {
         let data = res.data as GetSiteResponse;
         this.state.enable_nsfw = data.site.enable_nsfw;
         this.setState(this.state);
-        document.title = `${i18n.t('login')} - ${
-          WebSocketService.Instance.site.name
-        }`;
+        document.title = `${i18n.t('login')} - ${data.site.name}`;
       }
     }
   }
