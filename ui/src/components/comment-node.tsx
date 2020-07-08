@@ -73,6 +73,7 @@ interface CommentNodeProps {
   showCommunity?: boolean;
   sort?: CommentSortType;
   sortType?: SortType;
+  enableDownvotes: boolean;
 }
 
 export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
@@ -279,7 +280,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                           <span class="ml-1">{this.state.upvotes}</span>
                         )}
                       </button>
-                      {WebSocketService.Instance.site.enable_downvotes && (
+                      {this.props.enableDownvotes && (
                         <button
                           className={`btn btn-link btn-animate ${
                             this.state.my_vote == -1
@@ -703,6 +704,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             postCreatorId={this.props.postCreatorId}
             sort={this.props.sort}
             sortType={this.props.sortType}
+            enableDownvotes={this.props.enableDownvotes}
           />
         )}
         {/* A collapsed clearfix */}

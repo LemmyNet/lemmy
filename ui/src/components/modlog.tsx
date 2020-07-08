@@ -16,6 +16,7 @@ import {
   ModAddCommunity,
   ModAdd,
   WebSocketJsonResponse,
+  GetSiteResponse,
 } from '../interfaces';
 import { WebSocketService } from '../services';
 import { wsJsonToRes, addTypeInfo, fetchLimit, toast } from '../utils';
@@ -64,14 +65,11 @@ export class Modlog extends Component<any, ModlogState> {
       );
 
     this.refetch();
+    WebSocketService.Instance.getSite();
   }
 
   componentWillUnmount() {
     this.subscription.unsubscribe();
-  }
-
-  componentDidMount() {
-    document.title = `Modlog - ${WebSocketService.Instance.site.name}`;
   }
 
   setCombined(res: GetModlogResponse) {
@@ -434,6 +432,9 @@ export class Modlog extends Component<any, ModlogState> {
       this.state.loading = false;
       window.scrollTo(0, 0);
       this.setCombined(data);
+    } else if (res.op == UserOperation.GetSite) {
+      let data = res.data as GetSiteResponse;
+      document.title = `Modlog - ${data.site.name}`;
     }
   }
 }

@@ -24,6 +24,7 @@ interface CommentNodesProps {
   showCommunity?: boolean;
   sort?: CommentSortType;
   sortType?: SortType;
+  enableDownvotes: boolean;
 }
 
 export class CommentNodes extends Component<
@@ -52,6 +53,7 @@ export class CommentNodes extends Component<
             showCommunity={this.props.showCommunity}
             sort={this.props.sort}
             sortType={this.props.sortType}
+            enableDownvotes={this.props.enableDownvotes}
           />
         ))}
       </div>

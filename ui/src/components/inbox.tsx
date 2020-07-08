@@ -16,6 +16,7 @@ import {
   GetPrivateMessagesForm,
   PrivateMessagesResponse,
   PrivateMessageResponse,
+  GetSiteResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import {
@@ -56,6 +57,7 @@ interface InboxState {
   messages: Array<PrivateMessageI>;
   sort: SortType;
   page: number;
+  enableDownvotes: boolean;
 }
 
 export class Inbox extends Component<any, InboxState> {
@@ -68,6 +70,7 @@ export class Inbox extends Component<any, InboxState> {
     messages: [],
     sort: SortType.New,
     page: 1,
+    enableDownvotes: undefined,
   };
 
   constructor(props: any, context: any) {
@@ -85,16 +88,11 @@ export class Inbox extends Component<any, InboxState> {
       );
 
     this.refetch();
+    WebSocketService.Instance.getSite();
   }
 
   componentWillUnmount() {
     this.subscription.unsubscribe();
-  }
-
-  componentDidMount() {
-    document.title = `/u/${UserService.Instance.user.username} ${i18n.t(
-      'inbox'
-    )} - ${WebSocketService.Instance.site.name}`;
   }
 
   render() {
@@ -270,6 +268,7 @@ export class Inbox extends Component<any, InboxState> {
               noIndent
               markable
               showContext
+              enableDownvotes={this.state.enableDownvotes}
             />
           ) : (
             <PrivateMessage privateMessage={i} />
@@ -287,6 +286,7 @@ export class Inbox extends Component<any, InboxState> {
           noIndent
           markable
           showContext
+          enableDownvotes={this.state.enableDownvotes}
         />
       </div>
     );
@@ -301,6 +301,7 @@ export class Inbox extends Component<any, InboxState> {
             noIndent
             markable
             showContext
+            enableDownvotes={this.state.enableDownvotes}
           />
         ))}
       </div>
@@ -522,6 +523,13 @@ export class Inbox extends Component<any, InboxState> {
       let data = res.data as CommentResponse;
       createCommentLikeRes(data, this.state.replies);
       this.setState(this.state);
+    } else if (res.op == UserOperation.GetSite) {
+      let data = res.data as GetSiteResponse;
+      this.state.enableDownvotes = data.site.enable_downvotes;
+      this.setState(this.state);
+      document.title = `/u/${UserService.Instance.user.username} ${i18n.t(
+        'inbox'
+      )} - ${data.site.name}`;
     }
   }
 

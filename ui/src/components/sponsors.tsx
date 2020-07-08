@@ -1,8 +1,15 @@
 import { Component } from 'inferno';
+import { Subscription } from 'rxjs';
+import { retryWhen, delay, take } from 'rxjs/operators';
 import { WebSocketService } from '../services';
+import {
+  GetSiteResponse,
+  WebSocketJsonResponse,
+  UserOperation,
+} from '../interfaces';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
-import { repoUrl } from '../utils';
+import { repoUrl, wsJsonToRes, toast } from '../utils';
 
 interface SilverUser {
   name: string;
@@ -33,15 +40,26 @@ let silver: Array<SilverUser> = [
 // let latinum = [];
 
 export class Sponsors extends Component<any, any> {
+  private subscription: Subscription;
   constructor(props: any, context: any) {
     super(props, context);
+    this.subscription = WebSocketService.Instance.subject
+      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
+      .subscribe(
+        msg => this.parseMessage(msg),
+        err => console.error(err),
+        () => console.log('complete')
+      );
+
+    WebSocketService.Instance.getSite();
   }
 
   componentDidMount() {
-    document.title = `${i18n.t('sponsors')} - ${
-      WebSocketService.Instance.site.name
-    }`;
     window.scrollTo(0, 0);
+  }
+
+  componentWillUnmount() {
+    this.subscription.unsubscribe();
   }
 
   render() {
@@ -152,5 +170,17 @@ export class Sponsors extends Component<any, any> {
         </div>
       </div>
     );
+  }
+
+  parseMessage(msg: WebSocketJsonResponse) {
+    console.log(msg);
+    let res = wsJsonToRes(msg);
+    if (msg.error) {
+      toast(i18n.t(msg.error), 'danger');
+      return;
+    } else if (res.op == UserOperation.GetSite) {
+      let data = res.data as GetSiteResponse;
+      document.title = `${i18n.t('sponsors')} - ${data.site.name}`;
+    }
   }
 }
