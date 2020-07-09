@@ -503,7 +503,9 @@ export function showAvatars(): boolean {
 }
 
 export function isCakeDay(creator_published: string): boolean {
-  const userCreationDate = moment.utc(creator_published).local();
+  // moment(undefined) or moment.utc(undefined) returns the current date/time
+  // moment(null) or moment.utc(null) returns null
+  const userCreationDate = moment.utc(creator_published || null).local();
   const currentDate = moment(new Date());
 
   return (

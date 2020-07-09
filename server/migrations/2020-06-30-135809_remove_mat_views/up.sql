@@ -106,7 +106,6 @@ select
 	u.actor_id as creator_actor_id,
 	u."local" as creator_local,
 	u."name" as creator_name,
-  u.published as creator_published,
 	u.avatar as creator_avatar,
   u.banned as banned,
   cb.id::bool as banned_from_community,
@@ -491,7 +490,6 @@ select
 	u.actor_id as creator_actor_id,
 	u.local as creator_local,
 	u.name as creator_name,
-  u.published as creator_published,
 	u.avatar as creator_avatar,
 	-- score details
 	coalesce(cl.total, 0) as score,
