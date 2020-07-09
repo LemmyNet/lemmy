@@ -264,3 +264,10 @@ pre {
   width: 0px !important;
   padding: 0 !important;
  }
+
+br.big {
+  display: block;
+  content: "";
+  margin-top: 1rem;
+}
+

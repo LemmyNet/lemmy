@@ -22,6 +22,9 @@ import 'moment/locale/tr';
 import 'moment/locale/hu';
 import 'moment/locale/uk';
 import 'moment/locale/sq';
+import 'moment/locale/km';
+import 'moment/locale/ga';
+import 'moment/locale/sr';
 
 import {
   UserOperation,
@@ -73,9 +76,11 @@ export const languages = [
   { code: 'eo', name: 'Esperanto' },
   { code: 'es', name: 'Español' },
   { code: 'de', name: 'Deutsch' },
+  { code: 'ga', name: 'Gaeilge' },
   { code: 'gl', name: 'Galego' },
   { code: 'hu', name: 'Magyar Nyelv' },
   { code: 'ka', name: 'ქართული ენა' },
+  { code: 'km', name: 'ភាសាខ្មែរ' },
   { code: 'hi', name: 'मानक हिन्दी' },
   { code: 'fa', name: 'فارسی' },
   { code: 'ja', name: '日本語' },
@@ -86,6 +91,7 @@ export const languages = [
   { code: 'fr', name: 'Français' },
   { code: 'sv', name: 'Svenska' },
   { code: 'sq', name: 'Shqip' },
+  { code: 'sr_Latn', name: 'srpski' },
   { code: 'tr', name: 'Türkçe' },
   { code: 'uk', name: 'Українська Mова' },
   { code: 'ru', name: 'Русский' },
@@ -419,6 +425,12 @@ export function getMomentLanguage(): string {
     lang = 'uk';
   } else if (lang.startsWith('sq')) {
     lang = 'sq';
+  } else if (lang.startsWith('km')) {
+    lang = 'km';
+  } else if (lang.startsWith('ga')) {
+    lang = 'ga';
+  } else if (lang.startsWith('sr')) {
+    lang = 'sr';
   } else {
     lang = 'en';
   }

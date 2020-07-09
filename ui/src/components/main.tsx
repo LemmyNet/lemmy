@@ -373,17 +373,21 @@ export class Main extends Component<any, MainState> {
                 #
               </a>
               <a href="https://en.wikipedia.org/wiki/Fediverse">#</a>
-              <br></br>
+              <br class="big"></br>
               <code>#</code>
               <br></br>
               <b>#</b>
-              <br></br>
+              <br class="big"></br>
               <a href={repoUrl}>#</a>
-              <br></br>
+              <br class="big"></br>
               <a href="https://www.rust-lang.org">#</a>
               <a href="https://actix.rs/">#</a>
               <a href="https://infernojs.org">#</a>
               <a href="https://www.typescriptlang.org/">#</a>
+              <br class="big"></br>
+              <a href="https://github.com/LemmyNet/lemmy/graphs/contributors?type=a">
+                #
+              </a>
             </T>
           </p>
         </div>
