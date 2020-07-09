@@ -3,7 +3,7 @@ import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { PostForm } from './post-form';
 import { toast, wsJsonToRes } from '../utils';
-import { WebSocketService } from '../services';
+import { WebSocketService, UserService } from '../services';
 import {
   UserOperation,
   PostFormParams,
@@ -40,6 +40,11 @@ export class CreatePost extends Component<any, CreatePostState> {
     super(props, context);
     this.handlePostCreate = this.handlePostCreate.bind(this);
     this.state = this.emptyState;
+
+    if (!UserService.Instance.user) {
+      toast(i18n.t('not_logged_in'), 'danger');
+      this.context.router.history.push(`/login`);
+    }
 
     this.subscription = WebSocketService.Instance.subject
       .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))

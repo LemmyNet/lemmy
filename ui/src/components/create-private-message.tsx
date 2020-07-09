@@ -2,7 +2,7 @@ import { Component } from 'inferno';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { PrivateMessageForm } from './private-message-form';
-import { WebSocketService } from '../services';
+import { WebSocketService, UserService } from '../services';
 import {
   UserOperation,
   WebSocketJsonResponse,
@@ -19,6 +19,11 @@ export class CreatePrivateMessage extends Component<any, any> {
     this.handlePrivateMessageCreate = this.handlePrivateMessageCreate.bind(
       this
     );
+
+    if (!UserService.Instance.user) {
+      toast(i18n.t('not_logged_in'), 'danger');
+      this.context.router.history.push(`/login`);
+    }
 
     this.subscription = WebSocketService.Instance.subject
       .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))

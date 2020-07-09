@@ -9,7 +9,7 @@ import {
   GetSiteResponse,
 } from '../interfaces';
 import { toast, wsJsonToRes } from '../utils';
-import { WebSocketService } from '../services';
+import { WebSocketService, UserService } from '../services';
 import { i18n } from '../i18next';
 
 interface CreateCommunityState {
@@ -25,6 +25,11 @@ export class CreateCommunity extends Component<any, CreateCommunityState> {
     super(props, context);
     this.handleCommunityCreate = this.handleCommunityCreate.bind(this);
     this.state = this.emptyState;
+
+    if (!UserService.Instance.user) {
+      toast(i18n.t('not_logged_in'), 'danger');
+      this.context.router.history.push(`/login`);
+    }
 
     this.subscription = WebSocketService.Instance.subject
       .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
