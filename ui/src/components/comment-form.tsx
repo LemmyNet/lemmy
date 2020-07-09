@@ -17,7 +17,6 @@ import {
   toast,
   setupTribute,
   wsJsonToRes,
-  emojiPicker,
   pictrsDeleteToast,
 } from '../utils';
 import { WebSocketService, UserService } from '../services';
@@ -72,7 +71,6 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     super(props, context);
 
     this.tribute = setupTribute();
-    this.setupEmojiPicker();
 
     this.state = this.emptyState;
 
@@ -241,34 +239,11 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
                   <use xlinkHref="#icon-spinner"></use>
                 </svg>
               )}
-              <span
-                onClick={linkEvent(this, this.handleEmojiPickerClick)}
-                class="pointer unselectable d-inline-block mr-3 float-right text-muted font-weight-bold"
-                data-tippy-content={i18n.t('emoji_picker')}
-              >
-                <svg class="icon icon-inline">
-                  <use xlinkHref="#icon-smile"></use>
-                </svg>
-              </span>
             </div>
           </div>
         </form>
       </div>
     );
-  }
-
-  setupEmojiPicker() {
-    emojiPicker.on('emoji', twemojiHtmlStr => {
-      if (this.state.commentForm.content == null) {
-        this.state.commentForm.content = '';
-      }
-      var el = document.createElement('div');
-      el.innerHTML = twemojiHtmlStr;
-      let nativeUnicode = (el.childNodes[0] as HTMLElement).getAttribute('alt');
-      let shortName = `:${emojiShortName[nativeUnicode]}:`;
-      this.state.commentForm.content += shortName;
-      this.setState(this.state);
-    });
   }
 
   handleFinished(op: UserOperation, data: CommentResponse) {
@@ -316,10 +291,6 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
 
     i.state.loading = true;
     i.setState(i.state);
-  }
-
-  handleEmojiPickerClick(_i: CommentForm, event: any) {
-    emojiPicker.togglePicker(event.target);
   }
 
   handleCommentContentChange(i: CommentForm, event: any) {

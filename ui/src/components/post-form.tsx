@@ -33,7 +33,6 @@ import {
   randomStr,
   setupTribute,
   setupTippy,
-  emojiPicker,
   hostname,
   pictrsDeleteToast,
 } from '../utils';
@@ -95,7 +94,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     this.fetchPageTitle = debounce(this.fetchPageTitle).bind(this);
 
     this.tribute = setupTribute();
-    this.setupEmojiPicker();
 
     this.state = this.emptyState;
 
@@ -332,15 +330,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
                   <use xlinkHref="#icon-help-circle"></use>
                 </svg>
               </a>
-              <span
-                onClick={linkEvent(this, this.handleEmojiPickerClick)}
-                class="pointer unselectable d-inline-block mr-3 float-right text-muted font-weight-bold"
-                data-tippy-content={i18n.t('emoji_picker')}
-              >
-                <svg class="icon icon-inline">
-                  <use xlinkHref="#icon-smile"></use>
-                </svg>
-              </span>
             </div>
           </div>
           {!this.props.post && (
@@ -418,20 +407,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
         </form>
       </div>
     );
-  }
-
-  setupEmojiPicker() {
-    emojiPicker.on('emoji', twemojiHtmlStr => {
-      if (this.state.postForm.body == null) {
-        this.state.postForm.body = '';
-      }
-      var el = document.createElement('div');
-      el.innerHTML = twemojiHtmlStr;
-      let nativeUnicode = (el.childNodes[0] as HTMLElement).getAttribute('alt');
-      let shortName = `:${emojiShortName[nativeUnicode]}:`;
-      this.state.postForm.body += shortName;
-      this.setState(this.state);
-    });
   }
 
   handlePostSubmit(i: PostForm, event: any) {
@@ -594,10 +569,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
         i.setState(i.state);
         toast(error, 'danger');
       });
-  }
-
-  handleEmojiPickerClick(_i: PostForm, event: any) {
-    emojiPicker.togglePicker(event.target);
   }
 
   parseMessage(msg: WebSocketJsonResponse) {
