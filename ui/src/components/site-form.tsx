@@ -64,6 +64,22 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
     this.setState(this.state);
   }
 
+  componentDidUpdate() {
+    if (
+      !this.state.loading &&
+      !this.props.site &&
+      (this.state.siteForm.name || this.state.siteForm.description)
+    ) {
+      window.onbeforeunload = () => true;
+    } else {
+      window.onbeforeunload = undefined;
+    }
+  }
+
+  componentWillUnmount() {
+    window.onbeforeunload = null;
+  }
+
   render() {
     return (
       <>

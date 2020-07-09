@@ -325,7 +325,7 @@ pub fn markdown_to_html(text: &str) -> String {
 
 pub fn get_ip(conn_info: &ConnectionInfo) -> String {
   conn_info
-    .remote_addr()
+    .realip_remote_addr()
     .unwrap_or("127.0.0.1:12345")
     .split(':')
     .next()

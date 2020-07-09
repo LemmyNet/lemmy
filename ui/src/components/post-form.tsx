@@ -16,7 +16,6 @@ import {
   SearchForm,
   SearchType,
   SearchResponse,
-  GetSiteResponse,
   WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
@@ -52,6 +51,8 @@ interface PostFormProps {
   onCancel?(): any;
   onCreate?(id: number): any;
   onEdit?(post: Post): any;
+  enableNsfw: boolean;
+  enableDownvotes: boolean;
 }
 
 interface PostFormState {
@@ -63,7 +64,6 @@ interface PostFormState {
   suggestedTitle: string;
   suggestedPosts: Array<Post>;
   crossPosts: Array<Post>;
-  enable_nsfw: boolean;
 }
 
 export class PostForm extends Component<PostFormProps, PostFormState> {
@@ -87,7 +87,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     suggestedTitle: undefined,
     suggestedPosts: [],
     crossPosts: [],
-    enable_nsfw: undefined,
   };
 
   constructor(props: any, context: any) {
@@ -138,7 +137,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     };
 
     WebSocketService.Instance.listCommunities(listCommunitiesForm);
-    WebSocketService.Instance.getSite();
   }
 
   componentDidMount() {
@@ -153,8 +151,22 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     setupTippy();
   }
 
+  componentDidUpdate() {
+    if (
+      !this.state.loading &&
+      (this.state.postForm.name ||
+        this.state.postForm.url ||
+        this.state.postForm.body)
+    ) {
+      window.onbeforeunload = () => true;
+    } else {
+      window.onbeforeunload = undefined;
+    }
+  }
+
   componentWillUnmount() {
     this.subscription.unsubscribe();
+    window.onbeforeunload = null;
   }
 
   render() {
@@ -240,7 +252,12 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
                   <div class="my-1 text-muted small font-weight-bold">
                     {i18n.t('cross_posts')}
                   </div>
-                  <PostListings showCommunity posts={this.state.crossPosts} />
+                  <PostListings
+                    showCommunity
+                    posts={this.state.crossPosts}
+                    enableDownvotes={this.props.enableDownvotes}
+                    enableNsfw={this.props.enableNsfw}
+                  />
                 </>
               )}
             </div>
@@ -265,7 +282,11 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
                   <div class="my-1 text-muted small font-weight-bold">
                     {i18n.t('related_posts')}
                   </div>
-                  <PostListings posts={this.state.suggestedPosts} />
+                  <PostListings
+                    posts={this.state.suggestedPosts}
+                    enableDownvotes={this.props.enableDownvotes}
+                    enableNsfw={this.props.enableNsfw}
+                  />
                 </>
               )}
             </div>
@@ -346,7 +367,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               </div>
             </div>
           )}
-          {this.state.enable_nsfw && (
+          {this.props.enableNsfw && (
             <div class="form-group row">
               <div class="col-sm-10">
                 <div class="form-check">
@@ -630,10 +651,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       } else if (data.type_ == SearchType[SearchType.Url]) {
         this.state.crossPosts = data.posts;
       }
-      this.setState(this.state);
-    } else if (res.op == UserOperation.GetSite) {
-      let data = res.data as GetSiteResponse;
-      this.state.enable_nsfw = data.site.enable_nsfw;
       this.setState(this.state);
     }
   }

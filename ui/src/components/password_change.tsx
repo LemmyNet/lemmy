@@ -6,6 +6,7 @@ import {
   LoginResponse,
   PasswordChangeForm,
   WebSocketJsonResponse,
+  GetSiteResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { wsJsonToRes, capitalizeFirstLetter, toast } from '../utils';
@@ -40,16 +41,11 @@ export class PasswordChange extends Component<any, State> {
         err => console.error(err),
         () => console.log('complete')
       );
+    WebSocketService.Instance.getSite();
   }
 
   componentWillUnmount() {
     this.subscription.unsubscribe();
-  }
-
-  componentDidMount() {
-    document.title = `${i18n.t('password_change')} - ${
-      WebSocketService.Instance.site.name
-    }`;
   }
 
   render() {
@@ -138,14 +134,15 @@ export class PasswordChange extends Component<any, State> {
       this.state.loading = false;
       this.setState(this.state);
       return;
-    } else {
-      if (res.op == UserOperation.PasswordChange) {
-        let data = res.data as LoginResponse;
-        this.state = this.emptyState;
-        this.setState(this.state);
-        UserService.Instance.login(data);
-        this.props.history.push('/');
-      }
+    } else if (res.op == UserOperation.PasswordChange) {
+      let data = res.data as LoginResponse;
+      this.state = this.emptyState;
+      this.setState(this.state);
+      UserService.Instance.login(data);
+      this.props.history.push('/');
+    } else if (res.op == UserOperation.GetSite) {
+      let data = res.data as GetSiteResponse;
+      document.title = `${i18n.t('password_change')} - ${data.site.name}`;
     }
   }
 }

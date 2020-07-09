@@ -8,7 +8,6 @@ import {
   Category,
   ListCategoriesResponse,
   CommunityResponse,
-  GetSiteResponse,
   WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService } from '../services';
@@ -30,13 +29,13 @@ interface CommunityFormProps {
   onCancel?(): any;
   onCreate?(community: Community): any;
   onEdit?(community: Community): any;
+  enableNsfw: boolean;
 }
 
 interface CommunityFormState {
   communityForm: CommunityFormI;
   categories: Array<Category>;
   loading: boolean;
-  enable_nsfw: boolean;
 }
 
 export class CommunityForm extends Component<
@@ -56,7 +55,6 @@ export class CommunityForm extends Component<
     },
     categories: [],
     loading: false,
-    enable_nsfw: null,
   };
 
   constructor(props: any, context: any) {
@@ -86,7 +84,6 @@ export class CommunityForm extends Component<
       );
 
     WebSocketService.Instance.listCategories();
-    WebSocketService.Instance.getSite();
   }
 
   componentDidMount() {
@@ -100,8 +97,22 @@ export class CommunityForm extends Component<
     });
   }
 
+  componentDidUpdate() {
+    if (
+      !this.state.loading &&
+      (this.state.communityForm.name ||
+        this.state.communityForm.title ||
+        this.state.communityForm.description)
+    ) {
+      window.onbeforeunload = () => true;
+    } else {
+      window.onbeforeunload = undefined;
+    }
+  }
+
   componentWillUnmount() {
     this.subscription.unsubscribe();
+    window.onbeforeunload = null;
   }
 
   render() {
@@ -187,7 +198,7 @@ export class CommunityForm extends Component<
             </div>
           </div>
 
-          {this.state.enable_nsfw && (
+          {this.props.enableNsfw && (
             <div class="form-group row">
               <div class="col-12">
                 <div class="form-check">
@@ -303,10 +314,6 @@ export class CommunityForm extends Component<
       let data = res.data as CommunityResponse;
       this.state.loading = false;
       this.props.onEdit(data.community);
-    } else if (res.op == UserOperation.GetSite) {
-      let data = res.data as GetSiteResponse;
-      this.state.enable_nsfw = data.site.enable_nsfw;
-      this.setState(this.state);
     }
   }
 }

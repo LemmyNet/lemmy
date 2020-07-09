@@ -20,6 +20,8 @@ import {
   DeleteAccountForm,
   PostResponse,
   WebSocketJsonResponse,
+  GetSiteResponse,
+  Site,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import {
@@ -74,6 +76,7 @@ interface UserState {
   deleteAccountLoading: boolean;
   deleteAccountShowConfirm: boolean;
   deleteAccountForm: DeleteAccountForm;
+  site: Site;
 }
 
 export class User extends Component<any, UserState> {
@@ -122,6 +125,20 @@ export class User extends Component<any, UserState> {
     deleteAccountForm: {
       password: null,
     },
+    site: {
+      id: undefined,
+      name: undefined,
+      creator_id: undefined,
+      published: undefined,
+      creator_name: undefined,
+      number_of_users: undefined,
+      number_of_posts: undefined,
+      number_of_comments: undefined,
+      number_of_communities: undefined,
+      enable_downvotes: undefined,
+      open_registration: undefined,
+      enable_nsfw: undefined,
+    },
   };
 
   constructor(props: any, context: any) {
@@ -148,6 +165,7 @@ export class User extends Component<any, UserState> {
       );
 
     this.refetch();
+    WebSocketService.Instance.getSite();
   }
 
   get isCurrentUser() {
@@ -356,6 +374,8 @@ export class User extends Component<any, UserState> {
                 post={i.data as Post}
                 admins={this.state.admins}
                 showCommunity
+                enableDownvotes={this.state.site.enable_downvotes}
+                enableNsfw={this.state.site.enable_nsfw}
               />
             ) : (
               <CommentNodes
@@ -363,6 +383,7 @@ export class User extends Component<any, UserState> {
                 admins={this.state.admins}
                 noIndent
                 showContext
+                enableDownvotes={this.state.site.enable_downvotes}
               />
             )}
           </div>
@@ -379,6 +400,7 @@ export class User extends Component<any, UserState> {
           admins={this.state.admins}
           noIndent
           showContext
+          enableDownvotes={this.state.site.enable_downvotes}
         />
       </div>
     );
@@ -388,7 +410,13 @@ export class User extends Component<any, UserState> {
     return (
       <div>
         {this.state.posts.map(post => (
-          <PostListing post={post} admins={this.state.admins} showCommunity />
+          <PostListing
+            post={post}
+            admins={this.state.admins}
+            showCommunity
+            enableDownvotes={this.state.site.enable_downvotes}
+            enableNsfw={this.state.site.enable_nsfw}
+          />
         ))}
       </div>
     );
@@ -670,7 +698,7 @@ export class User extends Component<any, UserState> {
                   />
                 </div>
               </div>
-              {WebSocketService.Instance.site.enable_nsfw && (
+              {this.state.site.enable_nsfw && (
                 <div class="form-group">
                   <div class="form-check">
                     <input
@@ -1107,7 +1135,7 @@ export class User extends Component<any, UserState> {
           UserService.Instance.user.show_avatars;
         this.state.userSettingsForm.matrix_user_id = this.state.user.matrix_user_id;
       }
-      document.title = `/u/${this.state.user.name} - ${WebSocketService.Instance.site.name}`;
+      document.title = `/u/${this.state.user.name} - ${this.state.site.name}`;
       window.scrollTo(0, 0);
       this.setState(this.state);
       setupTippy();
@@ -1159,6 +1187,10 @@ export class User extends Component<any, UserState> {
       this.state.deleteAccountShowConfirm = false;
       this.setState(this.state);
       this.context.router.history.push('/');
+    } else if (res.op == UserOperation.GetSite) {
+      let data = res.data as GetSiteResponse;
+      this.state.site = data.site;
+      this.setState(this.state);
     }
   }
 }
