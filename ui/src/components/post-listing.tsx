@@ -33,10 +33,8 @@ import {
   setupTippy,
   hostname,
   previewLines,
-  isCakeDay,
 } from '../utils';
 import { i18n } from '../i18next';
-import { CakeDay } from './cake-day';
 
 interface PostListingState {
   showEdit: boolean;
@@ -436,12 +434,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                       id: post.creator_id,
                       local: post.creator_local,
                       actor_id: post.creator_actor_id,
+                      published: post.creator_published,
                     }}
                   />
-
-                  {isCakeDay(post.creator_published) && (
-                    <CakeDay creator_name={post.creator_name} is_post_creator />
-                  )}
 
                   {this.isMod && (
                     <span className="mx-1 badge badge-light">

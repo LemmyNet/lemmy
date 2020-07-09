@@ -26,7 +26,6 @@ import {
   isMod,
   setupTippy,
   colorList,
-  isCakeDay,
 } from '../utils';
 import moment from 'moment';
 import { MomentTime } from './moment-time';
@@ -34,7 +33,6 @@ import { CommentForm } from './comment-form';
 import { CommentNodes } from './comment-nodes';
 import { UserListing } from './user-listing';
 import { i18n } from '../i18next';
-import { CakeDay } from './cake-day';
 
 interface CommentNodeState {
   showReply: boolean;
@@ -160,13 +158,10 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                     id: node.comment.creator_id,
                     local: node.comment.creator_local,
                     actor_id: node.comment.creator_actor_id,
+                    published: node.comment.creator_published,
                   }}
                 />
               </span>
-
-              {isCakeDay(node.comment.creator_published) && (
-                <CakeDay creator_name={node.comment.creator_name} />
-              )}
 
               {this.isMod && (
                 <div className="badge badge-light d-none d-sm-inline mr-2">
