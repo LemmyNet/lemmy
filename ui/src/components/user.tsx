@@ -525,7 +525,7 @@ export class User extends Component<any, UserState> {
                     htmlFor="file-upload"
                     class="pointer ml-4 text-muted small font-weight-bold"
                   >
-                    {!this.state.userSettingsForm.avatar ? (
+                    {!this.checkSettingsAvatar ? (
                       <span class="btn btn-sm btn-secondary">
                         {i18n.t('upload_avatar')}
                       </span>
@@ -549,6 +549,18 @@ export class User extends Component<any, UserState> {
                   />
                 </form>
               </div>
+              {this.checkSettingsAvatar && (
+                <div class="form-group">
+                  <button
+                    class="btn btn-secondary btn-block"
+                    onClick={linkEvent(this, this.removeAvatar)}
+                  >
+                    {`${capitalizeFirstLetter(i18n.t('remove'))} ${i18n.t(
+                      'avatar'
+                    )}`}
+                  </button>
+                </div>
+              )}
               <div class="form-group">
                 <label>{i18n.t('language')}</label>
                 <select
@@ -1061,6 +1073,22 @@ export class User extends Component<any, UserState> {
       });
   }
 
+  removeAvatar(i: User, event: any) {
+    event.preventDefault();
+    i.state.userSettingsLoading = true;
+    i.state.userSettingsForm.avatar = '';
+    i.setState(i.state);
+
+    WebSocketService.Instance.saveUserSettings(i.state.userSettingsForm);
+  }
+
+  get checkSettingsAvatar(): boolean {
+    return (
+      this.state.userSettingsForm.avatar &&
+      this.state.userSettingsForm.avatar != ''
+    );
+  }
+
   handleUserSettingsSubmit(i: User, event: any) {
     event.preventDefault();
     i.state.userSettingsLoading = true;
@@ -1178,7 +1206,6 @@ export class User extends Component<any, UserState> {
       this.setState(this.state);
     } else if (res.op == UserOperation.SaveUserSettings) {
       let data = res.data as LoginResponse;
-      this.state = this.emptyState;
       this.state.userSettingsLoading = false;
       this.setState(this.state);
       UserService.Instance.login(data);
