@@ -98,7 +98,7 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
   }
 
   componentDidMount() {
-    var textarea: any = document.getElementById(this.id);
+    let textarea: any = document.getElementById(this.id);
     autosize(textarea);
     this.tribute.attach(textarea);
     textarea.addEventListener('tribute-replaced', () => {
@@ -106,6 +106,22 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
       this.setState(this.state);
       autosize.update(textarea);
     });
+
+    // Quoting of selected text
+    let selectedText = window.getSelection().toString();
+    if (selectedText) {
+      let quotedText =
+        selectedText
+          .split('\n')
+          .map(t => `> ${t}`)
+          .join('\n') + '\n\n';
+      this.state.commentForm.content = quotedText;
+      this.setState(this.state);
+      // Not sure why this needs a delay
+      setTimeout(() => autosize.update(textarea), 10);
+    }
+
+    textarea.focus();
   }
 
   componentDidUpdate() {
