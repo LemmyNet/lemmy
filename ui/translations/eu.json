@@ -256,5 +256,6 @@
     "no_private_message_edit_allowed": "Ezin da mezu pribaturik editatu.",
     "couldnt_update_private_message": "Ezinezkoa izan da mezu pribatua berritzea.",
     "emoji_picker": "Emoji Hautagailua",
-    "invalid_username": "Erabiltzaile-izen baliogabea."
+    "invalid_username": "Erabiltzaile-izen baliogabea.",
+    "what_is": "Zer da"
 }
