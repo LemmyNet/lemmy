@@ -39,7 +39,7 @@ import {
 import autosize from 'autosize';
 import Tribute from 'tributejs/src/Tribute.js';
 import emojiShortName from 'emoji-short-name';
-import Selectr from 'mobius1-selectr';
+import Choices from 'choices.js';
 import { i18n } from '../i18next';
 
 const MAX_POST_TITLE_LENGTH = 200;
@@ -69,6 +69,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
   private id = `post-form-${randomStr()}`;
   private tribute: Tribute;
   private subscription: Subscription;
+  private choices: Choices;
   private emptyState: PostFormState = {
     postForm: {
       name: null,
@@ -164,6 +165,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
 
   componentWillUnmount() {
     this.subscription.unsubscribe();
+    this.choices.destroy();
     window.onbeforeunload = null;
   }
 
@@ -596,11 +598,45 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       // Set up select searching
       let selectId: any = document.getElementById('post-community');
       if (selectId) {
-        let selector = new Selectr(selectId, { nativeDropdown: false });
-        selector.on('selectr.select', option => {
-          this.state.postForm.community_id = Number(option.value);
-          this.setState(this.state);
+        this.choices = new Choices(selectId, {
+          shouldSort: false,
+          classNames: {
+            containerOuter: 'choices',
+            containerInner: 'choices__inner bg-secondary border-0',
+            input: 'form-control',
+            inputCloned: 'choices__input--cloned',
+            list: 'choices__list',
+            listItems: 'choices__list--multiple',
+            listSingle: 'choices__list--single',
+            listDropdown: 'choices__list--dropdown',
+            item: 'choices__item bg-secondary',
+            itemSelectable: 'choices__item--selectable',
+            itemDisabled: 'choices__item--disabled',
+            itemChoice: 'choices__item--choice',
+            placeholder: 'choices__placeholder',
+            group: 'choices__group',
+            groupHeading: 'choices__heading',
+            button: 'choices__button',
+            activeState: 'is-active',
+            focusState: 'is-focused',
+            openState: 'is-open',
+            disabledState: 'is-disabled',
+            highlightedState: 'text-info',
+            selectedState: 'text-info',
+            flippedState: 'is-flipped',
+            loadingState: 'is-loading',
+            noResults: 'has-no-results',
+            noChoices: 'has-no-choices',
+          },
         });
+        this.choices.passedElement.element.addEventListener(
+          'choice',
+          (e: any) => {
+            this.state.postForm.community_id = Number(e.detail.choice.value);
+            this.setState(this.state);
+          },
+          false
+        );
       }
     } else if (res.op == UserOperation.CreatePost) {
       let data = res.data as PostResponse;
