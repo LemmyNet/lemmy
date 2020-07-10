@@ -1,4 +1,5 @@
 import { Component, linkEvent } from 'inferno';
+import { Link } from 'inferno-router';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { Prompt } from 'inferno-router';
@@ -24,6 +25,7 @@ import autosize from 'autosize';
 import Tribute from 'tributejs/src/Tribute.js';
 import emojiShortName from 'emoji-short-name';
 import { i18n } from '../i18next';
+import { T } from 'inferno-i18next';
 
 interface CommentFormProps {
   postId?: number;
@@ -97,29 +99,31 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
 
   componentDidMount() {
     let textarea: any = document.getElementById(this.id);
-    autosize(textarea);
-    this.tribute.attach(textarea);
-    textarea.addEventListener('tribute-replaced', () => {
-      this.state.commentForm.content = textarea.value;
-      this.setState(this.state);
-      autosize.update(textarea);
-    });
+    if (textarea) {
+      autosize(textarea);
+      this.tribute.attach(textarea);
+      textarea.addEventListener('tribute-replaced', () => {
+        this.state.commentForm.content = textarea.value;
+        this.setState(this.state);
+        autosize.update(textarea);
+      });
 
-    // Quoting of selected text
-    let selectedText = window.getSelection().toString();
-    if (selectedText) {
-      let quotedText =
-        selectedText
-          .split('\n')
-          .map(t => `> ${t}`)
-          .join('\n') + '\n\n';
-      this.state.commentForm.content = quotedText;
-      this.setState(this.state);
-      // Not sure why this needs a delay
-      setTimeout(() => autosize.update(textarea), 10);
+      // Quoting of selected text
+      let selectedText = window.getSelection().toString();
+      if (selectedText) {
+        let quotedText =
+          selectedText
+            .split('\n')
+            .map(t => `> ${t}`)
+            .join('\n') + '\n\n';
+        this.state.commentForm.content = quotedText;
+        this.setState(this.state);
+        // Not sure why this needs a delay
+        setTimeout(() => autosize.update(textarea), 10);
+      }
+
+      textarea.focus();
     }
-
-    textarea.focus();
   }
 
   componentDidUpdate() {
@@ -142,106 +146,119 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
           when={this.state.commentForm.content}
           message={i18n.t('block_leaving')}
         />
-        <form
-          id={this.formId}
-          onSubmit={linkEvent(this, this.handleCommentSubmit)}
-        >
-          <div class="form-group row">
-            <div className={`col-sm-12`}>
-              <textarea
-                id={this.id}
-                className={`form-control ${this.state.previewMode && 'd-none'}`}
-                value={this.state.commentForm.content}
-                onInput={linkEvent(this, this.handleCommentContentChange)}
-                onPaste={linkEvent(this, this.handleImageUploadPaste)}
-                required
-                disabled={this.props.disabled}
-                rows={2}
-                maxLength={10000}
-              />
-              {this.state.previewMode && (
-                <div
-                  className="card card-body md-div"
-                  dangerouslySetInnerHTML={mdToHtml(
-                    this.state.commentForm.content
-                  )}
+        {UserService.Instance.user ? (
+          <form
+            id={this.formId}
+            onSubmit={linkEvent(this, this.handleCommentSubmit)}
+          >
+            <div class="form-group row">
+              <div className={`col-sm-12`}>
+                <textarea
+                  id={this.id}
+                  className={`form-control ${
+                    this.state.previewMode && 'd-none'
+                  }`}
+                  value={this.state.commentForm.content}
+                  onInput={linkEvent(this, this.handleCommentContentChange)}
+                  onPaste={linkEvent(this, this.handleImageUploadPaste)}
+                  required
+                  disabled={this.props.disabled}
+                  rows={2}
+                  maxLength={10000}
                 />
-              )}
+                {this.state.previewMode && (
+                  <div
+                    className="card card-body md-div"
+                    dangerouslySetInnerHTML={mdToHtml(
+                      this.state.commentForm.content
+                    )}
+                  />
+                )}
+              </div>
             </div>
-          </div>
-          <div class="row">
-            <div class="col-sm-12">
-              <button
-                type="submit"
-                class="btn btn-sm btn-secondary mr-2"
-                disabled={this.props.disabled || this.state.loading}
-              >
-                {this.state.loading ? (
+            <div class="row">
+              <div class="col-sm-12">
+                <button
+                  type="submit"
+                  class="btn btn-sm btn-secondary mr-2"
+                  disabled={this.props.disabled || this.state.loading}
+                >
+                  {this.state.loading ? (
+                    <svg class="icon icon-spinner spin">
+                      <use xlinkHref="#icon-spinner"></use>
+                    </svg>
+                  ) : (
+                    <span>{this.state.buttonTitle}</span>
+                  )}
+                </button>
+                {this.state.commentForm.content && (
+                  <button
+                    className={`btn btn-sm mr-2 btn-secondary ${
+                      this.state.previewMode && 'active'
+                    }`}
+                    onClick={linkEvent(this, this.handlePreviewToggle)}
+                  >
+                    {i18n.t('preview')}
+                  </button>
+                )}
+                {this.props.node && (
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-secondary mr-2"
+                    onClick={linkEvent(this, this.handleReplyCancel)}
+                  >
+                    {i18n.t('cancel')}
+                  </button>
+                )}
+                <a
+                  href={markdownHelpUrl}
+                  target="_blank"
+                  class="d-inline-block float-right text-muted font-weight-bold"
+                  title={i18n.t('formatting_help')}
+                  rel="noopener"
+                >
+                  <svg class="icon icon-inline">
+                    <use xlinkHref="#icon-help-circle"></use>
+                  </svg>
+                </a>
+                <form class="d-inline-block mr-3 float-right text-muted font-weight-bold">
+                  <label
+                    htmlFor={`file-upload-${this.id}`}
+                    className={`${UserService.Instance.user && 'pointer'}`}
+                    data-tippy-content={i18n.t('upload_image')}
+                  >
+                    <svg class="icon icon-inline">
+                      <use xlinkHref="#icon-image"></use>
+                    </svg>
+                  </label>
+                  <input
+                    id={`file-upload-${this.id}`}
+                    type="file"
+                    accept="image/*,video/*"
+                    name="file"
+                    class="d-none"
+                    disabled={!UserService.Instance.user}
+                    onChange={linkEvent(this, this.handleImageUpload)}
+                  />
+                </form>
+                {this.state.imageLoading && (
                   <svg class="icon icon-spinner spin">
                     <use xlinkHref="#icon-spinner"></use>
                   </svg>
-                ) : (
-                  <span>{this.state.buttonTitle}</span>
                 )}
-              </button>
-              {this.state.commentForm.content && (
-                <button
-                  className={`btn btn-sm mr-2 btn-secondary ${
-                    this.state.previewMode && 'active'
-                  }`}
-                  onClick={linkEvent(this, this.handlePreviewToggle)}
-                >
-                  {i18n.t('preview')}
-                </button>
-              )}
-              {this.props.node && (
-                <button
-                  type="button"
-                  class="btn btn-sm btn-secondary mr-2"
-                  onClick={linkEvent(this, this.handleReplyCancel)}
-                >
-                  {i18n.t('cancel')}
-                </button>
-              )}
-              <a
-                href={markdownHelpUrl}
-                target="_blank"
-                class="d-inline-block float-right text-muted font-weight-bold"
-                title={i18n.t('formatting_help')}
-                rel="noopener"
-              >
-                <svg class="icon icon-inline">
-                  <use xlinkHref="#icon-help-circle"></use>
-                </svg>
-              </a>
-              <form class="d-inline-block mr-3 float-right text-muted font-weight-bold">
-                <label
-                  htmlFor={`file-upload-${this.id}`}
-                  className={`${UserService.Instance.user && 'pointer'}`}
-                  data-tippy-content={i18n.t('upload_image')}
-                >
-                  <svg class="icon icon-inline">
-                    <use xlinkHref="#icon-image"></use>
-                  </svg>
-                </label>
-                <input
-                  id={`file-upload-${this.id}`}
-                  type="file"
-                  accept="image/*,video/*"
-                  name="file"
-                  class="d-none"
-                  disabled={!UserService.Instance.user}
-                  onChange={linkEvent(this, this.handleImageUpload)}
-                />
-              </form>
-              {this.state.imageLoading && (
-                <svg class="icon icon-spinner spin">
-                  <use xlinkHref="#icon-spinner"></use>
-                </svg>
-              )}
+              </div>
             </div>
+          </form>
+        ) : (
+          <div class="alert alert-warning" role="alert">
+            <svg class="icon icon-inline mr-2">
+              <use xlinkHref="#icon-alert-triangle"></use>
+            </svg>
+            <T i18nKey="must_login" class="d-inline">
+              #<Link to="/login">#</Link>
+            </T>
           </div>
-        </form>
+        )}
       </div>
     );
   }

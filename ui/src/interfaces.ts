@@ -183,6 +183,7 @@ export interface Post {
   creator_actor_id: string;
   creator_local: boolean;
   creator_name: string;
+  creator_published: string;
   creator_avatar?: string;
   community_actor_id: string;
   community_local: boolean;
@@ -227,6 +228,7 @@ export interface Comment {
   creator_local: boolean;
   creator_name: string;
   creator_avatar?: string;
+  creator_published: string;
   score: number;
   upvotes: number;
   downvotes: number;

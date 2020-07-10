@@ -160,7 +160,7 @@ export class Communities extends Component<any, CommunitiesState> {
           </button>
         )}
 
-        {this.state.communities.length == communityLimit && (
+        {this.state.communities.length > 0 && (
           <button
             class="btn btn-sm btn-secondary"
             onClick={linkEvent(this, this.nextPage)}

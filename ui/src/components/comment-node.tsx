@@ -158,9 +158,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                     id: node.comment.creator_id,
                     local: node.comment.creator_local,
                     actor_id: node.comment.creator_actor_id,
+                    published: node.comment.creator_published,
                   }}
                 />
               </span>
+
               {this.isMod && (
                 <div className="badge badge-light d-none d-sm-inline mr-2">
                   {i18n.t('mod')}

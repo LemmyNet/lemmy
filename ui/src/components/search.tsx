@@ -148,7 +148,7 @@ export class Search extends Component<any, SearchState> {
         {this.state.type_ == SearchType.Posts && this.posts()}
         {this.state.type_ == SearchType.Communities && this.communities()}
         {this.state.type_ == SearchType.Users && this.users()}
-        {this.noResults()}
+        {this.resultsCount() == 0 && <span>{i18n.t('no_results')}</span>}
         {this.paginator()}
       </div>
     );
@@ -383,26 +383,26 @@ export class Search extends Component<any, SearchState> {
             {i18n.t('prev')}
           </button>
         )}
-        <button
-          class="btn btn-sm btn-secondary"
-          onClick={linkEvent(this, this.nextPage)}
-        >
-          {i18n.t('next')}
-        </button>
+
+        {this.resultsCount() > 0 && (
+          <button
+            class="btn btn-sm btn-secondary"
+            onClick={linkEvent(this, this.nextPage)}
+          >
+            {i18n.t('next')}
+          </button>
+        )}
       </div>
     );
   }
 
-  noResults() {
+  resultsCount(): number {
     let res = this.state.searchResponse;
     return (
-      <div>
-        {res &&
-          res.posts.length == 0 &&
-          res.comments.length == 0 &&
-          res.communities.length == 0 &&
-          res.users.length == 0 && <span>{i18n.t('no_results')}</span>}
-      </div>
+      res.posts.length +
+      res.comments.length +
+      res.communities.length +
+      res.users.length
     );
   }
 

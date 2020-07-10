@@ -54,6 +54,7 @@ import markdown_it_container from 'markdown-it-container';
 import emojiShortName from 'emoji-short-name';
 import Toastify from 'toastify-js';
 import tippy from 'tippy.js';
+import moment from 'moment';
 
 export const repoUrl = 'https://github.com/LemmyNet/lemmy';
 export const helpGuideUrl = '/docs/about_guide.html';
@@ -484,6 +485,18 @@ export function showAvatars(): boolean {
   return (
     (UserService.Instance.user && UserService.Instance.user.show_avatars) ||
     !UserService.Instance.user
+  );
+}
+
+export function isCakeDay(published: string): boolean {
+  // moment(undefined) or moment.utc(undefined) returns the current date/time
+  // moment(null) or moment.utc(null) returns null
+  const userCreationDate = moment.utc(published || null).local();
+  const currentDate = moment(new Date());
+
+  return (
+    userCreationDate.date() === currentDate.date() &&
+    userCreationDate.month() === currentDate.month()
   );
 }
 
