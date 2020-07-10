@@ -24,7 +24,7 @@ script:
   - cargo clippy -- -D clippy::style -D clippy::correctness -D clippy::complexity -D clippy::perf
   - cargo install diesel_cli --no-default-features --features postgres --force
   - diesel migration run
-  - cargo test
+  - cargo test --workspace
 env:
   global:
     - DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
