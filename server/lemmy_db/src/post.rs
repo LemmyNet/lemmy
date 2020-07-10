@@ -1,8 +1,10 @@
 use crate::{
-  apub::{make_apub_endpoint, EndpointType},
-  db::{Crud, Likeable, Readable, Saveable},
   naive_now,
   schema::{post, post_like, post_read, post_saved},
+  Crud,
+  Likeable,
+  Readable,
+  Saveable,
 };
 use diesel::{dsl::*, result::Error, *};
 use serde::{Deserialize, Serialize};
@@ -75,12 +77,11 @@ impl Post {
     post.filter(ap_id.eq(object_id)).first::<Self>(conn)
   }
 
-  pub fn update_ap_id(conn: &PgConnection, post_id: i32) -> Result<Self, Error> {
+  pub fn update_ap_id(conn: &PgConnection, post_id: i32, apub_id: String) -> Result<Self, Error> {
     use crate::schema::post::dsl::*;
 
-    let apid = make_apub_endpoint(EndpointType::Post, &post_id.to_string()).to_string();
     diesel::update(post.find(post_id))
-      .set(ap_id.eq(apid))
+      .set(ap_id.eq(apub_id))
       .get_result::<Self>(conn)
   }
 
@@ -241,11 +242,14 @@ impl Readable<PostReadForm> for PostRead {
 
 #[cfg(test)]
 mod tests {
-  use super::{
-    super::{community::*, user::*},
-    *,
+  use crate::{
+    community::*,
+    post::*,
+    tests::establish_unpooled_connection,
+    user::*,
+    ListingType,
+    SortType,
   };
-  use crate::db::{establish_unpooled_connection, ListingType, SortType};
 
   #[test]
   fn test_crud() {

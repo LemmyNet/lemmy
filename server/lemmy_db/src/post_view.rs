@@ -1,5 +1,5 @@
 use super::post_view::post_fast_view::BoxedQuery;
-use crate::db::{fuzzy_search, limit_and_offset, ListingType, MaybeOptional, SortType};
+use crate::{fuzzy_search, limit_and_offset, ListingType, MaybeOptional, SortType};
 use diesel::{dsl::*, pg::Pg, result::Error, *};
 use serde::{Deserialize, Serialize};
 
@@ -367,11 +367,16 @@ impl PostView {
 
 #[cfg(test)]
 mod tests {
-  use super::{
-    super::{community::*, post::*, user::*},
+  use crate::{
+    community::*,
+    post::*,
+    post_view::*,
+    tests::establish_unpooled_connection,
+    user::*,
+    Crud,
+    Likeable,
     *,
   };
-  use crate::db::{establish_unpooled_connection, Crud, Likeable};
 
   #[test]
   fn test_crud() {

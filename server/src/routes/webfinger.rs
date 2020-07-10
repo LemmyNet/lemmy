@@ -1,12 +1,7 @@
-use crate::{
-  blocking,
-  db::{community::Community, user::User_},
-  routes::DbPoolParam,
-  LemmyError,
-  Settings,
-};
+use crate::{blocking, routes::DbPoolParam, LemmyError};
 use actix_web::{error::ErrorBadRequest, web::Query, *};
-use regex::Regex;
+use lemmy_db::{community::Community, user::User_};
+use lemmy_utils::{settings::Settings, WEBFINGER_COMMUNITY_REGEX, WEBFINGER_USER_REGEX};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
@@ -38,19 +33,6 @@ pub fn config(cfg: &mut web::ServiceConfig) {
       web::get().to(get_webfinger_response),
     );
   }
-}
-
-lazy_static! {
-  static ref WEBFINGER_COMMUNITY_REGEX: Regex = Regex::new(&format!(
-    "^group:([a-z0-9_]{{3, 20}})@{}$",
-    Settings::get().hostname
-  ))
-  .unwrap();
-  static ref WEBFINGER_USER_REGEX: Regex = Regex::new(&format!(
-    "^acct:([a-z0-9_]{{3, 20}})@{}$",
-    Settings::get().hostname
-  ))
-  .unwrap();
 }
 
 /// Responds to webfinger requests of the following format. There isn't any real documentation for

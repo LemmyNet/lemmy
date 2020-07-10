@@ -1,7 +1,6 @@
-use crate::LemmyError;
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
-use std::{env, fs, net::IpAddr, sync::RwLock};
+use std::{fs, io::Error, net::IpAddr, sync::RwLock};
 
 static CONFIG_FILE_DEFAULTS: &str = "config/defaults.hjson";
 static CONFIG_FILE: &str = "config/config.hjson";
@@ -76,6 +75,9 @@ impl Settings {
   /// First, defaults are loaded from CONFIG_FILE_DEFAULTS, then these values can be overwritten
   /// from CONFIG_FILE (optional). Finally, values from the environment (with prefix LEMMY) are
   /// added to the config.
+  ///
+  /// Note: The env var `LEMMY_DATABASE_URL` is parsed in
+  /// `server/lemmy_db/src/lib.rs::get_database_url_from_env()`
   fn init() -> Result<Self, ConfigError> {
     let mut s = Config::new();
 
@@ -98,31 +100,26 @@ impl Settings {
     SETTINGS.read().unwrap().to_owned()
   }
 
-  /// Returns the postgres connection url. If LEMMY_DATABASE_URL is set, that is used,
-  /// otherwise the connection url is generated from the config.
   pub fn get_database_url(&self) -> String {
-    match env::var("LEMMY_DATABASE_URL") {
-      Ok(url) => url,
-      Err(_) => format!(
-        "postgres://{}:{}@{}:{}/{}",
-        self.database.user,
-        self.database.password,
-        self.database.host,
-        self.database.port,
-        self.database.database
-      ),
-    }
+    format!(
+      "postgres://{}:{}@{}:{}/{}",
+      self.database.user,
+      self.database.password,
+      self.database.host,
+      self.database.port,
+      self.database.database
+    )
   }
 
   pub fn api_endpoint(&self) -> String {
     format!("{}/api/v1", self.hostname)
   }
 
-  pub fn read_config_file() -> Result<String, LemmyError> {
-    Ok(fs::read_to_string(CONFIG_FILE)?)
+  pub fn read_config_file() -> Result<String, Error> {
+    fs::read_to_string(CONFIG_FILE)
   }
 
-  pub fn save_config_file(data: &str) -> Result<String, LemmyError> {
+  pub fn save_config_file(data: &str) -> Result<String, Error> {
     fs::write(CONFIG_FILE, data)?;
 
     // Reload the new settings

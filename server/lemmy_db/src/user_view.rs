@@ -1,5 +1,5 @@
 use super::user_view::user_fast::BoxedQuery;
-use crate::db::{fuzzy_search, limit_and_offset, MaybeOptional, SortType};
+use crate::{fuzzy_search, limit_and_offset, MaybeOptional, SortType};
 use diesel::{dsl::*, pg::Pg, result::Error, *};
 use serde::{Deserialize, Serialize};
 

@@ -1,18 +1,16 @@
 // This is for db migrations that require code
-use super::{
+use crate::LemmyError;
+use diesel::*;
+use lemmy_db::{
   comment::Comment,
   community::{Community, CommunityForm},
+  naive_now,
   post::Post,
   private_message::PrivateMessage,
   user::{UserForm, User_},
+  Crud,
 };
-use crate::{
-  apub::{extensions::signatures::generate_actor_keypair, make_apub_endpoint, EndpointType},
-  db::Crud,
-  naive_now,
-  LemmyError,
-};
-use diesel::*;
+use lemmy_utils::{generate_actor_keypair, make_apub_endpoint, EndpointType};
 use log::info;
 
 pub fn run_advanced_migrations(conn: &PgConnection) -> Result<(), LemmyError> {
@@ -26,7 +24,7 @@ pub fn run_advanced_migrations(conn: &PgConnection) -> Result<(), LemmyError> {
 }
 
 fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
-  use crate::schema::user_::dsl::*;
+  use lemmy_db::schema::user_::dsl::*;
 
   info!("Running user_updates_2020_04_02");
 
@@ -77,7 +75,7 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
 }
 
 fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
-  use crate::schema::community::dsl::*;
+  use lemmy_db::schema::community::dsl::*;
 
   info!("Running community_updates_2020_04_02");
 
@@ -121,7 +119,7 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
 }
 
 fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
-  use crate::schema::post::dsl::*;
+  use lemmy_db::schema::post::dsl::*;
 
   info!("Running post_updates_2020_04_03");
 
@@ -134,7 +132,8 @@ fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
   sql_query("alter table post disable trigger refresh_post").execute(conn)?;
 
   for cpost in &incorrect_posts {
-    Post::update_ap_id(&conn, cpost.id)?;
+    let apub_id = make_apub_endpoint(EndpointType::Post, &cpost.id.to_string()).to_string();
+    Post::update_ap_id(&conn, cpost.id, apub_id)?;
   }
 
   info!("{} post rows updated.", incorrect_posts.len());
@@ -145,7 +144,7 @@ fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
 }
 
 fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
-  use crate::schema::comment::dsl::*;
+  use lemmy_db::schema::comment::dsl::*;
 
   info!("Running comment_updates_2020_04_03");
 
@@ -158,7 +157,8 @@ fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
   sql_query("alter table comment disable trigger refresh_comment").execute(conn)?;
 
   for ccomment in &incorrect_comments {
-    Comment::update_ap_id(&conn, ccomment.id)?;
+    let apub_id = make_apub_endpoint(EndpointType::Comment, &ccomment.id.to_string()).to_string();
+    Comment::update_ap_id(&conn, ccomment.id, apub_id)?;
   }
 
   sql_query("alter table comment enable trigger refresh_comment").execute(conn)?;
@@ -169,7 +169,7 @@ fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
 }
 
 fn private_message_updates_2020_05_05(conn: &PgConnection) -> Result<(), LemmyError> {
-  use crate::schema::private_message::dsl::*;
+  use lemmy_db::schema::private_message::dsl::*;
 
   info!("Running private_message_updates_2020_05_05");
 
@@ -180,7 +180,8 @@ fn private_message_updates_2020_05_05(conn: &PgConnection) -> Result<(), LemmyEr
     .load::<PrivateMessage>(conn)?;
 
   for cpm in &incorrect_pms {
-    PrivateMessage::update_ap_id(&conn, cpm.id)?;
+    let apub_id = make_apub_endpoint(EndpointType::PrivateMessage, &cpm.id.to_string()).to_string();
+    PrivateMessage::update_ap_id(&conn, cpm.id, apub_id)?;
   }
 
   info!("{} private message rows updated.", incorrect_pms.len());

@@ -1,5 +1,5 @@
 // TODO, remove the cross join here, just join to user directly
-use crate::db::{fuzzy_search, limit_and_offset, ListingType, MaybeOptional, SortType};
+use crate::{fuzzy_search, limit_and_offset, ListingType, MaybeOptional, SortType};
 use diesel::{dsl::*, pg::Pg, result::Error, *};
 use serde::{Deserialize, Serialize};
 
@@ -460,11 +460,17 @@ impl<'a> ReplyQueryBuilder<'a> {
 
 #[cfg(test)]
 mod tests {
-  use super::{
-    super::{comment::*, community::*, post::*, user::*},
+  use crate::{
+    comment::*,
+    comment_view::*,
+    community::*,
+    post::*,
+    tests::establish_unpooled_connection,
+    user::*,
+    Crud,
+    Likeable,
     *,
   };
-  use crate::db::{establish_unpooled_connection, Crud, Likeable};
 
   #[test]
   fn test_crud() {

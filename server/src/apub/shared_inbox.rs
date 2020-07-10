@@ -5,6 +5,7 @@ use crate::{
     post::PostResponse,
   },
   apub::{
+    community::do_announce,
     extensions::signatures::verify,
     fetcher::{
       get_or_fetch_and_insert_remote_comment,
@@ -12,25 +13,13 @@ use crate::{
       get_or_fetch_and_upsert_remote_community,
       get_or_fetch_and_upsert_remote_user,
     },
+    insert_activity,
     FromApub,
     GroupExt,
     PageExt,
   },
   blocking,
-  db::{
-    activity::insert_activity,
-    comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
-    comment_view::CommentView,
-    community::{Community, CommunityForm},
-    community_view::CommunityView,
-    post::{Post, PostForm, PostLike, PostLikeForm},
-    post_view::PostView,
-    Crud,
-    Likeable,
-  },
-  naive_now,
   routes::{ChatServerParam, DbPoolParam},
-  scrape_text_for_mentions,
   websocket::{
     server::{SendComment, SendCommunityRoomMessage, SendPost},
     UserOperation,
@@ -46,6 +35,18 @@ use activitystreams::{
   BaseBox,
 };
 use actix_web::{client::Client, web, HttpRequest, HttpResponse};
+use lemmy_db::{
+  comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
+  comment_view::CommentView,
+  community::{Community, CommunityForm},
+  community_view::CommunityView,
+  naive_now,
+  post::{Post, PostForm, PostLike, PostLikeForm},
+  post_view::PostView,
+  Crud,
+  Likeable,
+};
+use lemmy_utils::scrape_text_for_mentions;
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
@@ -234,7 +235,7 @@ where
   if community.local {
     let sending_user = get_or_fetch_and_upsert_remote_user(sender, client, pool).await?;
 
-    Community::do_announce(activity, &community, &sending_user, client, pool).await
+    do_announce(activity, &community, &sending_user, client, pool).await
   } else {
     Ok(HttpResponse::NotFound().finish())
   }

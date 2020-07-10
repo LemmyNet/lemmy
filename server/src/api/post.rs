@@ -1,27 +1,8 @@
 use crate::{
-  api::{APIError, Oper, Perform},
+  api::{claims::Claims, APIError, Oper, Perform},
   apub::{ApubLikeableType, ApubObjectType},
   blocking,
-  db::{
-    comment_view::*,
-    community_view::*,
-    moderator::*,
-    post::*,
-    post_view::*,
-    site::*,
-    site_view::*,
-    user::*,
-    user_view::*,
-    Crud,
-    Likeable,
-    ListingType,
-    Saveable,
-    SortType,
-  },
   fetch_iframely_and_pictrs_data,
-  naive_now,
-  slur_check,
-  slurs_vec_to_str,
   websocket::{
     server::{JoinCommunityRoom, JoinPostRoom, SendPost},
     UserOperation,
@@ -30,6 +11,24 @@ use crate::{
   DbPool,
   LemmyError,
 };
+use lemmy_db::{
+  comment_view::*,
+  community_view::*,
+  moderator::*,
+  naive_now,
+  post::*,
+  post_view::*,
+  site::*,
+  site_view::*,
+  user::*,
+  user_view::*,
+  Crud,
+  Likeable,
+  ListingType,
+  Saveable,
+  SortType,
+};
+use lemmy_utils::{make_apub_endpoint, slur_check, slurs_vec_to_str, EndpointType};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
@@ -191,11 +190,16 @@ impl Perform for Oper<CreatePost> {
     };
 
     let inserted_post_id = inserted_post.id;
-    let updated_post =
-      match blocking(pool, move |conn| Post::update_ap_id(conn, inserted_post_id)).await? {
-        Ok(post) => post,
-        Err(_e) => return Err(APIError::err("couldnt_create_post").into()),
-      };
+    let updated_post = match blocking(pool, move |conn| {
+      let apub_id =
+        make_apub_endpoint(EndpointType::Post, &inserted_post_id.to_string()).to_string();
+      Post::update_ap_id(conn, inserted_post_id, apub_id)
+    })
+    .await?
+    {
+      Ok(post) => post,
+      Err(_e) => return Err(APIError::err("couldnt_create_post").into()),
+    };
 
     updated_post.send_create(&user, &self.client, pool).await?;
 

@@ -1,4 +1,4 @@
-use crate::db::{limit_and_offset, MaybeOptional, SortType};
+use crate::{limit_and_offset, MaybeOptional, SortType};
 use diesel::{dsl::*, pg::Pg, result::Error, *};
 use serde::{Deserialize, Serialize};
 

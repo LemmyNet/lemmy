@@ -1,4 +1,4 @@
-use crate::{db::Crud, schema::site};
+use crate::{schema::site, Crud};
 use diesel::{dsl::*, result::Error, *};
 use serde::{Deserialize, Serialize};
 

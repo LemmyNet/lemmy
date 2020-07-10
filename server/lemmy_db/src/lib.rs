@@ -1,10 +1,22 @@
-use crate::settings::Settings;
+#[macro_use]
+pub extern crate diesel;
+#[macro_use]
+pub extern crate strum_macros;
+pub extern crate bcrypt;
+pub extern crate chrono;
+pub extern crate log;
+pub extern crate serde;
+pub extern crate serde_json;
+pub extern crate sha2;
+pub extern crate strum;
+
+use chrono::NaiveDateTime;
 use diesel::{dsl::*, result::Error, *};
 use serde::{Deserialize, Serialize};
+use std::{env, env::VarError};
 
 pub mod activity;
 pub mod category;
-pub mod code_migrations;
 pub mod comment;
 pub mod comment_view;
 pub mod community;
@@ -16,6 +28,7 @@ pub mod post;
 pub mod post_view;
 pub mod private_message;
 pub mod private_message_view;
+pub mod schema;
 pub mod site;
 pub mod site_view;
 pub mod user;
@@ -111,9 +124,8 @@ impl<T> MaybeOptional<T> for Option<T> {
   }
 }
 
-pub fn establish_unpooled_connection() -> PgConnection {
-  let db_url = Settings::get().get_database_url();
-  PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url))
+pub fn get_database_url_from_env() -> Result<String, VarError> {
+  env::var("LEMMY_DATABASE_URL")
 }
 
 #[derive(EnumString, ToString, Debug, Serialize, Deserialize)]
@@ -155,9 +167,25 @@ pub fn limit_and_offset(page: Option<i64>, limit: Option<i64>) -> (i64, i64) {
   let offset = limit * (page - 1);
   (limit, offset)
 }
+
+pub fn naive_now() -> NaiveDateTime {
+  chrono::prelude::Utc::now().naive_utc()
+}
+
 #[cfg(test)]
 mod tests {
   use super::fuzzy_search;
+  use crate::get_database_url_from_env;
+  use diesel::{Connection, PgConnection};
+
+  pub fn establish_unpooled_connection() -> PgConnection {
+    let db_url = match get_database_url_from_env() {
+      Ok(url) => url,
+      Err(_) => panic!("Failed to read database URL from env var LEMMY_DATABASE_URL"),
+    };
+    PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url))
+  }
+
   #[test]
   fn test_fuzzy_search() {
     let test = "This is a fuzzy search";

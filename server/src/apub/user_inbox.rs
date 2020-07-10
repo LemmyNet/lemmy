@@ -3,19 +3,10 @@ use crate::{
   apub::{
     extensions::signatures::verify,
     fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user},
+    insert_activity,
     FromApub,
   },
   blocking,
-  db::{
-    activity::insert_activity,
-    community::{CommunityFollower, CommunityFollowerForm},
-    private_message::{PrivateMessage, PrivateMessageForm},
-    private_message_view::PrivateMessageView,
-    user::User_,
-    Crud,
-    Followable,
-  },
-  naive_now,
   routes::{ChatServerParam, DbPoolParam},
   websocket::{server::SendUserRoomMessage, UserOperation},
   DbPool,
@@ -26,6 +17,15 @@ use activitystreams::{
   object::Note,
 };
 use actix_web::{client::Client, web, HttpRequest, HttpResponse};
+use lemmy_db::{
+  community::{CommunityFollower, CommunityFollowerForm},
+  naive_now,
+  private_message::{PrivateMessage, PrivateMessageForm},
+  private_message_view::PrivateMessageView,
+  user::User_,
+  Crud,
+  Followable,
+};
 use log::debug;
 use serde::Deserialize;
 use std::fmt::Debug;

@@ -1,9 +1,12 @@
-use crate::{blocking, db::Crud, schema::activity, DbPool, LemmyError};
+use crate::{schema::activity, Crud};
 use diesel::{dsl::*, result::Error, *};
 use log::debug;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::fmt::Debug;
+use std::{
+  fmt::Debug,
+  io::{Error as IoError, ErrorKind},
+};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "activity"]
@@ -55,46 +58,43 @@ impl Crud<ActivityForm> for Activity {
   }
 }
 
-pub async fn insert_activity<T>(
-  user_id: i32,
-  data: T,
-  local: bool,
-  pool: &DbPool,
-) -> Result<(), LemmyError>
-where
-  T: Serialize + Debug + Send + 'static,
-{
-  blocking(pool, move |conn| {
-    do_insert_activity(conn, user_id, &data, local)
-  })
-  .await??;
-  Ok(())
-}
-
-fn do_insert_activity<T>(
+pub fn do_insert_activity<T>(
   conn: &PgConnection,
   user_id: i32,
   data: &T,
   local: bool,
-) -> Result<(), LemmyError>
+) -> Result<Activity, IoError>
 where
   T: Serialize + Debug,
 {
+  debug!("inserting activity for user {}, data {:?}", user_id, &data);
   let activity_form = ActivityForm {
     user_id,
     data: serde_json::to_value(&data)?,
     local,
     updated: None,
   };
-  debug!("inserting activity for user {}, data {:?}", user_id, data);
-  Activity::create(&conn, &activity_form)?;
-  Ok(())
+  let result = Activity::create(&conn, &activity_form);
+  match result {
+    Ok(s) => Ok(s),
+    Err(e) => Err(IoError::new(
+      ErrorKind::Other,
+      format!("Failed to insert activity into database: {}", e),
+    )),
+  }
 }
 
 #[cfg(test)]
 mod tests {
-  use super::{super::user::*, *};
-  use crate::db::{establish_unpooled_connection, Crud, ListingType, SortType};
+  use crate::{
+    activity::{Activity, ActivityForm},
+    tests::establish_unpooled_connection,
+    user::{UserForm, User_},
+    Crud,
+    ListingType,
+    SortType,
+  };
+  use serde_json::Value;
 
   #[test]
   fn test_crud() {

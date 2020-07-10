@@ -1,4 +1,4 @@
-use crate::db::limit_and_offset;
+use crate::limit_and_offset;
 use diesel::{result::Error, *};
 use serde::{Deserialize, Serialize};
 

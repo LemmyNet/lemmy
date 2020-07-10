@@ -1,6 +1,6 @@
-use crate::settings::Settings;
 use actix_files::NamedFile;
 use actix_web::*;
+use lemmy_utils::settings::Settings;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
   cfg

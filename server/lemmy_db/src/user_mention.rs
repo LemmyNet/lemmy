@@ -1,5 +1,5 @@
 use super::comment::Comment;
-use crate::{db::Crud, schema::user_mention};
+use crate::{schema::user_mention, Crud};
 use diesel::{dsl::*, result::Error, *};
 use serde::{Deserialize, Serialize};
 
@@ -54,11 +54,16 @@ impl Crud<UserMentionForm> for UserMention {
 
 #[cfg(test)]
 mod tests {
-  use super::{
-    super::{comment::*, community::*, post::*, user::*},
-    *,
+  use crate::{
+    comment::*,
+    community::*,
+    post::*,
+    tests::establish_unpooled_connection,
+    user::*,
+    user_mention::*,
+    ListingType,
+    SortType,
   };
-  use crate::db::{establish_unpooled_connection, ListingType, SortType};
 
   #[test]
   fn test_crud() {

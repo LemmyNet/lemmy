@@ -9,7 +9,6 @@ use log::debug;
 use openssl::{
   hash::MessageDigest,
   pkey::PKey,
-  rsa::Rsa,
   sign::{Signer, Verifier},
 };
 use serde::{Deserialize, Serialize};
@@ -17,23 +16,6 @@ use sha2::{Digest, Sha256};
 
 lazy_static! {
   static ref HTTP_SIG_CONFIG: Config = Config::new();
-}
-
-pub struct Keypair {
-  pub private_key: String,
-  pub public_key: String,
-}
-
-/// Generate the asymmetric keypair for ActivityPub HTTP signatures.
-pub fn generate_actor_keypair() -> Result<Keypair, LemmyError> {
-  let rsa = Rsa::generate(2048)?;
-  let pkey = PKey::from_rsa(rsa)?;
-  let public_key = pkey.public_key_to_pem()?;
-  let private_key = pkey.private_key_to_pem_pkcs8()?;
-  Ok(Keypair {
-    private_key: String::from_utf8(private_key)?,
-    public_key: String::from_utf8(public_key)?,
-  })
 }
 
 /// Signs request headers with the given keypair.

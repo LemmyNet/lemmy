@@ -1,5 +1,4 @@
 use crate::{
-  db::Crud,
   schema::{
     mod_add,
     mod_add_community,
@@ -11,6 +10,7 @@ use crate::{
     mod_remove_post,
     mod_sticky_post,
   },
+  Crud,
 };
 use diesel::{dsl::*, result::Error, *};
 use serde::{Deserialize, Serialize};
@@ -437,11 +437,16 @@ impl Crud<ModAddForm> for ModAdd {
 
 #[cfg(test)]
 mod tests {
-  use super::{
-    super::{comment::*, community::*, post::*, user::*},
-    *,
+  use crate::{
+    comment::*,
+    community::*,
+    moderator::*,
+    post::*,
+    tests::establish_unpooled_connection,
+    user::*,
+    ListingType,
+    SortType,
   };
-  use crate::db::{establish_unpooled_connection, ListingType, SortType};
 
   // use Crud;
   #[test]

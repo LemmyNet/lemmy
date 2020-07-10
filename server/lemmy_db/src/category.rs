@@ -1,6 +1,6 @@
 use crate::{
-  db::Crud,
   schema::{category, category::dsl::*},
+  Crud,
 };
 use diesel::{dsl::*, result::Error, *};
 use serde::{Deserialize, Serialize};
@@ -52,8 +52,7 @@ impl Category {
 
 #[cfg(test)]
 mod tests {
-  use super::*;
-  use crate::db::establish_unpooled_connection;
+  use crate::{category::Category, tests::establish_unpooled_connection};
 
   #[test]
   fn test_crud() {

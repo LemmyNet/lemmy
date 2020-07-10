@@ -1,0 +1,22 @@
+[package]
+name = "lemmy_utils"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+regex = "1.3.5"
+config = { version = "0.10.1", default-features = false, features = ["hjson"] }
+chrono = { version = "0.4.7", features = ["serde"] }
+lettre = "0.9.3"
+lettre_email = "0.9.4"
+log = "0.4.0"
+itertools = "0.9.0"
+rand = "0.7.3"
+serde = { version = "1.0.105", features = ["derive"] }
+serde_json = { version = "1.0.52", features = ["preserve_order"]}
+comrak = "0.7"
+lazy_static = "1.3.0"
+openssl = "0.10"
+url = { version = "2.1.1", features = ["serde"] }

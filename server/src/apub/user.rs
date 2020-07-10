@@ -1,12 +1,15 @@
 use crate::{
-  apub::{activities::send_activity, create_apub_response, ActorType, FromApub, PersonExt, ToApub},
-  blocking,
-  convert_datetime,
-  db::{
-    activity::insert_activity,
-    user::{UserForm, User_},
+  api::claims::Claims,
+  apub::{
+    activities::send_activity,
+    create_apub_response,
+    insert_activity,
+    ActorType,
+    FromApub,
+    PersonExt,
+    ToApub,
   },
-  naive_now,
+  blocking,
   routes::DbPoolParam,
   DbPool,
   LemmyError,
@@ -22,6 +25,11 @@ use activitystreams_new::{
 };
 use actix_web::{body::Body, client::Client, web, HttpResponse};
 use failure::_core::str::FromStr;
+use lemmy_db::{
+  naive_now,
+  user::{UserForm, User_},
+};
+use lemmy_utils::convert_datetime;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -240,7 +248,7 @@ pub async fn get_apub_user_http(
 ) -> Result<HttpResponse<Body>, LemmyError> {
   let user_name = info.into_inner().user_name;
   let user = blocking(&db, move |conn| {
-    User_::find_by_email_or_username(conn, &user_name)
+    Claims::find_by_email_or_username(conn, &user_name)
   })
   .await??;
   let u = user.to_apub(&db).await?;
