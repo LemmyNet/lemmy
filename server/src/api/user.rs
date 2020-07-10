@@ -451,6 +451,11 @@ impl Perform for Oper<SaveUserSettings> {
       None => read_user.email,
     };
 
+    let avatar = match &data.avatar {
+      Some(avatar) => Some(avatar.to_owned()),
+      None => read_user.avatar,
+    };
+
     let password_encrypted = match &data.new_password {
       Some(new_password) => {
         match &data.new_password_verify {
@@ -488,7 +493,7 @@ impl Perform for Oper<SaveUserSettings> {
       name: read_user.name,
       email,
       matrix_user_id: data.matrix_user_id.to_owned(),
-      avatar: data.avatar.to_owned(),
+      avatar,
       password_encrypted,
       preferred_username: read_user.preferred_username,
       updated: Some(naive_now()),
