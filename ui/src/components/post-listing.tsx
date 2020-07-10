@@ -33,6 +33,7 @@ import {
   setupTippy,
   hostname,
   previewLines,
+  toast,
 } from '../utils';
 import { i18n } from '../i18next';
 
@@ -1032,6 +1033,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   handlePostLike(i: PostListing) {
+    if (!UserService.Instance.user) {
+      this.context.router.history.push(`/login`);
+    }
+
     let new_vote = i.state.my_vote == 1 ? 0 : 1;
 
     if (i.state.my_vote == 1) {
@@ -1059,6 +1064,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   handlePostDisLike(i: PostListing) {
+    if (!UserService.Instance.user) {
+      this.context.router.history.push(`/login`);
+    }
+
     let new_vote = i.state.my_vote == -1 ? 0 : -1;
 
     if (i.state.my_vote == 1) {
