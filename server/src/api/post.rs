@@ -28,7 +28,7 @@ use lemmy_db::{
   Saveable,
   SortType,
 };
-use lemmy_utils::{make_apub_endpoint, slur_check, slurs_vec_to_str, EndpointType};
+use lemmy_utils::{is_valid_post_title, make_apub_endpoint, slur_check, slurs_vec_to_str, EndpointType};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
@@ -135,6 +135,10 @@ impl Perform for Oper<CreatePost> {
       }
     }
 
+    if !is_valid_post_title(&data.name) {
+      return Err(APIError::err("invalid_post_title").into());
+    }
+
     let user_id = claims.id;
 
     // Check for a community ban
@@ -156,7 +160,7 @@ impl Perform for Oper<CreatePost> {
       fetch_iframely_and_pictrs_data(&self.client, data.url.to_owned()).await;
 
     let post_form = PostForm {
-      name: data.name.to_owned(),
+      name: data.name.trim().to_owned(),
       url: data.url.to_owned(),
       body: data.body.to_owned(),
       community_id: data.community_id,
@@ -516,6 +520,10 @@ impl Perform for Oper<EditPost> {
       }
     }
 
+    if !is_valid_post_title(&data.name) {
+      return Err(APIError::err("invalid_post_title").into());
+    }
+
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => return Err(APIError::err("not_logged_in").into()),
@@ -565,7 +573,7 @@ impl Perform for Oper<EditPost> {
     let read_post = blocking(pool, move |conn| Post::read(conn, edit_id)).await??;
 
     let post_form = PostForm {
-      name: data.name.to_owned(),
+      name: data.name.trim().to_owned(),
       url: data.url.to_owned(),
       body: data.body.to_owned(),
       creator_id: data.creator_id.to_owned(),

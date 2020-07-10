@@ -268,5 +268,6 @@
     "block_leaving": "Are you sure you want to leave?",
     "what_is": "What is",
     "cake_day_title": "Cake day:",
-    "cake_day_info": "It's {{ creator_name }}'s cake day today!"
+    "cake_day_info": "It's {{ creator_name }}'s cake day today!",
+    "invalid_post_title": "Invalid post title"
 }
