@@ -893,12 +893,14 @@ export class User extends Component<any, UserState> {
             {i18n.t('prev')}
           </button>
         )}
-        <button
-          class="btn btn-sm btn-secondary"
-          onClick={linkEvent(this, this.nextPage)}
-        >
-          {i18n.t('next')}
-        </button>
+        {this.state.comments.length + this.state.posts.length > 0 && (
+          <button
+            class="btn btn-sm btn-secondary"
+            onClick={linkEvent(this, this.nextPage)}
+          >
+            {i18n.t('next')}
+          </button>
+        )}
       </div>
     );
   }

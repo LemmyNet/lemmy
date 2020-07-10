@@ -260,7 +260,7 @@ export class Community extends Component<any, State> {
             {i18n.t('prev')}
           </button>
         )}
-        {this.state.posts.length == fetchLimit && (
+        {this.state.posts.length > 0 && (
           <button
             class="btn btn-sm btn-secondary"
             onClick={linkEvent(this, this.nextPage)}
