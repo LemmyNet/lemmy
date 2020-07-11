@@ -356,10 +356,12 @@ export class Search extends Component<any, SearchState> {
           <div class="row">
             <div class="col-12">
               <span>
-                <Link
-                  className="text-info"
-                  to={`/u/${user.name}`}
-                >{`/u/${user.name}`}</Link>
+                <UserListing
+                  user={{
+                    name: user.name,
+                    avatar: user.avatar,
+                  }}
+                />
               </span>
             </div>
           </div>
