@@ -275,6 +275,7 @@ export class Search extends Component<any, SearchState> {
               {i.type_ == 'users' && (
                 <div>
                   <span>
+                    @
                     <UserListing
                       user={{
                         name: (i.data as UserView).name,
@@ -282,6 +283,9 @@ export class Search extends Component<any, SearchState> {
                       }}
                     />
                   </span>
+                  <span>{` - ${i18n.t('number_of_comments', {
+                    count: (i.data as UserView).number_of_comments,
+                  })}`}</span>
                 </div>
               )}
             </div>
@@ -356,6 +360,7 @@ export class Search extends Component<any, SearchState> {
           <div class="row">
             <div class="col-12">
               <span>
+                @
                 <UserListing
                   user={{
                     name: user.name,
@@ -363,6 +368,9 @@ export class Search extends Component<any, SearchState> {
                   }}
                 />
               </span>
+              <span>{` - ${i18n.t('number_of_comments', {
+                count: user.number_of_comments,
+              })}`}</span>
             </div>
           </div>
         ))}

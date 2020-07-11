@@ -52,7 +52,7 @@ export class UserListing extends Component<UserListingProps, any> {
               class="rounded-circle mr-2"
             />
           )}
-          <span>{`/u/${name_}`}</span>
+          <span>{name_}</span>
         </Link>
 
         {isCakeDay(user.published) && <CakeDay creatorName={name_} />}
