@@ -167,8 +167,8 @@ mod tests {
   use crate::{
     is_email_regex,
     is_valid_community_name,
-    is_valid_username,
     is_valid_post_title,
+    is_valid_username,
     remove_slurs,
     scrape_text_for_mentions,
     slur_check,
@@ -215,8 +215,6 @@ mod tests {
     assert!(is_valid_post_title("   POST TITLE 😃😃😃😃😃"));
     assert!(!is_valid_post_title("\n \n \n \n    		")); // tabs/spaces/newlines
   }
-
-
 
   #[test]
   fn test_slur_filter() {
