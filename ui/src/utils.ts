@@ -986,3 +986,12 @@ function canUseWebP() {
   // // very old browser like IE 8, canvas not supported
   // return false;
 }
+
+export function validTitle(title?: string): boolean {
+  // Initial title is null, minimum length is taken care of by textarea's minLength={3}
+  if (title === null || title.length < 3) return true;
+
+  const regex = new RegExp(/.*\S.*/, 'g');
+
+  return regex.test(title);
+}

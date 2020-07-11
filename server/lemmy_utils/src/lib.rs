@@ -158,12 +158,17 @@ pub fn is_valid_community_name(name: &str) -> bool {
   VALID_COMMUNITY_NAME_REGEX.is_match(name)
 }
 
+pub fn is_valid_post_title(title: &str) -> bool {
+  VALID_POST_TITLE_REGEX.is_match(title)
+}
+
 #[cfg(test)]
 mod tests {
   use crate::{
     is_email_regex,
     is_valid_community_name,
     is_valid_username,
+    is_valid_post_title,
     remove_slurs,
     scrape_text_for_mentions,
     slur_check,
@@ -203,6 +208,15 @@ mod tests {
     assert!(!is_valid_community_name("Ex"));
     assert!(!is_valid_community_name(""));
   }
+
+  #[test]
+  fn test_valid_post_title() {
+    assert!(is_valid_post_title("Post Title"));
+    assert!(is_valid_post_title("   POST TITLE 😃😃😃😃😃"));
+    assert!(!is_valid_post_title("\n \n \n \n    		")); // tabs/spaces/newlines
+  }
+
+
 
   #[test]
   fn test_slur_filter() {
@@ -249,6 +263,7 @@ lazy_static! {
   static ref MENTIONS_REGEX: Regex = Regex::new(r"@(?P<name>[\w.]+)@(?P<domain>[a-zA-Z0-9._:-]+)").unwrap();
   static ref VALID_USERNAME_REGEX: Regex = Regex::new(r"^[a-zA-Z0-9_]{3,20}$").unwrap();
   static ref VALID_COMMUNITY_NAME_REGEX: Regex = Regex::new(r"^[a-z0-9_]{3,20}$").unwrap();
+  static ref VALID_POST_TITLE_REGEX: Regex = Regex::new(r".*\S.*").unwrap();
   pub static ref WEBFINGER_COMMUNITY_REGEX: Regex = Regex::new(&format!(
     "^group:([a-z0-9_]{{3, 20}})@{}$",
     Settings::get().hostname

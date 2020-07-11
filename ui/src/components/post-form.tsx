@@ -35,6 +35,7 @@ import {
   setupTippy,
   hostname,
   pictrsDeleteToast,
+  validTitle,
 } from '../utils';
 import autosize from 'autosize';
 import Tribute from 'tributejs/src/Tribute.js';
@@ -271,12 +272,19 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
                 value={this.state.postForm.name}
                 id="post-title"
                 onInput={linkEvent(this, this.handlePostNameChange)}
-                class="form-control"
+                class={`form-control ${
+                  !validTitle(this.state.postForm.name) && 'is-invalid'
+                }`}
                 required
                 rows={2}
                 minLength={3}
                 maxLength={MAX_POST_TITLE_LENGTH}
               />
+              {!validTitle(this.state.postForm.name) && (
+                <div class="invalid-feedback">
+                  {i18n.t('invalid_post_title')}
+                </div>
+              )}
               {this.state.suggestedPosts.length > 0 && (
                 <>
                   <div class="my-1 text-muted small font-weight-bold">
