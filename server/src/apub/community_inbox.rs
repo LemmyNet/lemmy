@@ -2,21 +2,21 @@ use crate::{
   apub::{
     extensions::signatures::verify,
     fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user},
+    insert_activity,
     ActorType,
   },
   blocking,
-  db::{
-    activity::insert_activity,
-    community::{Community, CommunityFollower, CommunityFollowerForm},
-    user::User_,
-    Followable,
-  },
   routes::{ChatServerParam, DbPoolParam},
   LemmyError,
 };
 use activitystreams::activity::Undo;
 use activitystreams_new::activity::Follow;
 use actix_web::{client::Client, web, HttpRequest, HttpResponse};
+use lemmy_db::{
+  community::{Community, CommunityFollower, CommunityFollowerForm},
+  user::User_,
+  Followable,
+};
 use log::debug;
 use serde::Deserialize;
 use std::fmt::Debug;

@@ -15,6 +15,8 @@ import {
   PostResponse,
   CommentResponse,
   WebSocketJsonResponse,
+  GetSiteResponse,
+  Site,
 } from '../interfaces';
 import { WebSocketService } from '../services';
 import {
@@ -41,6 +43,7 @@ interface SearchState {
   page: number;
   searchResponse: SearchResponse;
   loading: boolean;
+  site: Site;
 }
 
 export class Search extends Component<any, SearchState> {
@@ -58,6 +61,20 @@ export class Search extends Component<any, SearchState> {
       users: [],
     },
     loading: false,
+    site: {
+      id: undefined,
+      name: undefined,
+      creator_id: undefined,
+      published: undefined,
+      creator_name: undefined,
+      number_of_users: undefined,
+      number_of_posts: undefined,
+      number_of_comments: undefined,
+      number_of_communities: undefined,
+      enable_downvotes: undefined,
+      open_registration: undefined,
+      enable_nsfw: undefined,
+    },
   };
 
   getSearchQueryFromProps(props: any): string {
@@ -94,6 +111,8 @@ export class Search extends Component<any, SearchState> {
         () => console.log('complete')
       );
 
+    WebSocketService.Instance.getSite();
+
     if (this.state.q) {
       this.search();
     }
@@ -118,12 +137,6 @@ export class Search extends Component<any, SearchState> {
     }
   }
 
-  componentDidMount() {
-    document.title = `${i18n.t('search')} - ${
-      WebSocketService.Instance.site.name
-    }`;
-  }
-
   render() {
     return (
       <div class="container">
@@ -135,7 +148,7 @@ export class Search extends Component<any, SearchState> {
         {this.state.type_ == SearchType.Posts && this.posts()}
         {this.state.type_ == SearchType.Communities && this.communities()}
         {this.state.type_ == SearchType.Users && this.users()}
-        {this.noResults()}
+        {this.resultsCount() == 0 && <span>{i18n.t('no_results')}</span>}
         {this.paginator()}
       </div>
     );
@@ -241,13 +254,19 @@ export class Search extends Component<any, SearchState> {
           <div class="row">
             <div class="col-12">
               {i.type_ == 'posts' && (
-                <PostListing post={i.data as Post} showCommunity />
+                <PostListing
+                  post={i.data as Post}
+                  showCommunity
+                  enableDownvotes={this.state.site.enable_downvotes}
+                  enableNsfw={this.state.site.enable_nsfw}
+                />
               )}
               {i.type_ == 'comments' && (
                 <CommentNodes
                   nodes={[{ comment: i.data as Comment }]}
                   locked
                   noIndent
+                  enableDownvotes={this.state.site.enable_downvotes}
                 />
               )}
               {i.type_ == 'communities' && (
@@ -278,6 +297,7 @@ export class Search extends Component<any, SearchState> {
         nodes={commentsToFlatNodes(this.state.searchResponse.comments)}
         locked
         noIndent
+        enableDownvotes={this.state.site.enable_downvotes}
       />
     );
   }
@@ -288,7 +308,12 @@ export class Search extends Component<any, SearchState> {
         {this.state.searchResponse.posts.map(post => (
           <div class="row">
             <div class="col-12">
-              <PostListing post={post} showCommunity />
+              <PostListing
+                post={post}
+                showCommunity
+                enableDownvotes={this.state.site.enable_downvotes}
+                enableNsfw={this.state.site.enable_nsfw}
+              />
             </div>
           </div>
         ))}
@@ -354,26 +379,26 @@ export class Search extends Component<any, SearchState> {
             {i18n.t('prev')}
           </button>
         )}
-        <button
-          class="btn btn-sm btn-secondary"
-          onClick={linkEvent(this, this.nextPage)}
-        >
-          {i18n.t('next')}
-        </button>
+
+        {this.resultsCount() > 0 && (
+          <button
+            class="btn btn-sm btn-secondary"
+            onClick={linkEvent(this, this.nextPage)}
+          >
+            {i18n.t('next')}
+          </button>
+        )}
       </div>
     );
   }
 
-  noResults() {
+  resultsCount(): number {
     let res = this.state.searchResponse;
     return (
-      <div>
-        {res &&
-          res.posts.length == 0 &&
-          res.comments.length == 0 &&
-          res.communities.length == 0 &&
-          res.users.length == 0 && <span>{i18n.t('no_results')}</span>}
-      </div>
+      res.posts.length +
+      res.comments.length +
+      res.communities.length +
+      res.users.length
     );
   }
 
@@ -451,7 +476,7 @@ export class Search extends Component<any, SearchState> {
       this.state.searchResponse = data;
       this.state.loading = false;
       document.title = `${i18n.t('search')} - ${this.state.q} - ${
-        WebSocketService.Instance.site.name
+        this.state.site.name
       }`;
       window.scrollTo(0, 0);
       this.setState(this.state);
@@ -463,6 +488,11 @@ export class Search extends Component<any, SearchState> {
       let data = res.data as PostResponse;
       createPostLikeFindRes(data, this.state.searchResponse.posts);
       this.setState(this.state);
+    } else if (res.op == UserOperation.GetSite) {
+      let data = res.data as GetSiteResponse;
+      this.state.site = data.site;
+      this.setState(this.state);
+      document.title = `${i18n.t('search')} - ${data.site.name}`;
     }
   }
 }

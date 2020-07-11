@@ -25,6 +25,9 @@ import { tr } from './translations/tr';
 import { hu } from './translations/hu';
 import { uk } from './translations/uk';
 import { sq } from './translations/sq';
+import { km } from './translations/km';
+import { ga } from './translations/ga';
+import { sr_Latn } from './translations/sr_Latn';
 
 // https://github.com/nimbusec-oss/inferno-i18next/blob/master/tests/T.test.js#L66
 const resources = {
@@ -53,6 +56,9 @@ const resources = {
   hu,
   uk,
   sq,
+  km,
+  ga,
+  sr_Latn,
 };
 
 function format(value: any, format: any, lng: any): any {

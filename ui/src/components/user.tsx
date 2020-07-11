@@ -20,6 +20,8 @@ import {
   DeleteAccountForm,
   PostResponse,
   WebSocketJsonResponse,
+  GetSiteResponse,
+  Site,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import {
@@ -46,6 +48,7 @@ import { ListingTypeSelect } from './listing-type-select';
 import { CommentNodes } from './comment-nodes';
 import { MomentTime } from './moment-time';
 import { i18n } from '../i18next';
+import moment from 'moment';
 
 enum View {
   Overview,
@@ -74,6 +77,7 @@ interface UserState {
   deleteAccountLoading: boolean;
   deleteAccountShowConfirm: boolean;
   deleteAccountForm: DeleteAccountForm;
+  site: Site;
 }
 
 export class User extends Component<any, UserState> {
@@ -122,6 +126,20 @@ export class User extends Component<any, UserState> {
     deleteAccountForm: {
       password: null,
     },
+    site: {
+      id: undefined,
+      name: undefined,
+      creator_id: undefined,
+      published: undefined,
+      creator_name: undefined,
+      number_of_users: undefined,
+      number_of_posts: undefined,
+      number_of_comments: undefined,
+      number_of_communities: undefined,
+      enable_downvotes: undefined,
+      open_registration: undefined,
+      enable_nsfw: undefined,
+    },
   };
 
   constructor(props: any, context: any) {
@@ -148,6 +166,7 @@ export class User extends Component<any, UserState> {
       );
 
     this.refetch();
+    WebSocketService.Instance.getSite();
   }
 
   get isCurrentUser() {
@@ -356,6 +375,8 @@ export class User extends Component<any, UserState> {
                 post={i.data as Post}
                 admins={this.state.admins}
                 showCommunity
+                enableDownvotes={this.state.site.enable_downvotes}
+                enableNsfw={this.state.site.enable_nsfw}
               />
             ) : (
               <CommentNodes
@@ -363,6 +384,7 @@ export class User extends Component<any, UserState> {
                 admins={this.state.admins}
                 noIndent
                 showContext
+                enableDownvotes={this.state.site.enable_downvotes}
               />
             )}
           </div>
@@ -379,6 +401,7 @@ export class User extends Component<any, UserState> {
           admins={this.state.admins}
           noIndent
           showContext
+          enableDownvotes={this.state.site.enable_downvotes}
         />
       </div>
     );
@@ -388,7 +411,13 @@ export class User extends Component<any, UserState> {
     return (
       <div>
         {this.state.posts.map(post => (
-          <PostListing post={post} admins={this.state.admins} showCommunity />
+          <PostListing
+            post={post}
+            admins={this.state.admins}
+            showCommunity
+            enableDownvotes={this.state.site.enable_downvotes}
+            enableNsfw={this.state.site.enable_nsfw}
+          />
         ))}
       </div>
     );
@@ -412,6 +441,15 @@ export class User extends Component<any, UserState> {
                 )}
               </ul>
             </h5>
+            <div className="d-flex align-items-center mb-2">
+              <svg class="icon">
+                <use xlinkHref="#icon-cake"></use>
+              </svg>
+              <span className="ml-2">
+                {i18n.t('cake_day_title')}{' '}
+                {moment.utc(user.published).local().format('MMM DD, YYYY')}
+              </span>
+            </div>
             <div>
               {i18n.t('joined')} <MomentTime data={user} showAgo />
             </div>
@@ -497,7 +535,7 @@ export class User extends Component<any, UserState> {
                     htmlFor="file-upload"
                     class="pointer ml-4 text-muted small font-weight-bold"
                   >
-                    {!this.state.userSettingsForm.avatar ? (
+                    {!this.checkSettingsAvatar ? (
                       <span class="btn btn-sm btn-secondary">
                         {i18n.t('upload_avatar')}
                       </span>
@@ -521,6 +559,18 @@ export class User extends Component<any, UserState> {
                   />
                 </form>
               </div>
+              {this.checkSettingsAvatar && (
+                <div class="form-group">
+                  <button
+                    class="btn btn-secondary btn-block"
+                    onClick={linkEvent(this, this.removeAvatar)}
+                  >
+                    {`${capitalizeFirstLetter(i18n.t('remove'))} ${i18n.t(
+                      'avatar'
+                    )}`}
+                  </button>
+                </div>
+              )}
               <div class="form-group">
                 <label>{i18n.t('language')}</label>
                 <select
@@ -670,7 +720,7 @@ export class User extends Component<any, UserState> {
                   />
                 </div>
               </div>
-              {WebSocketService.Instance.site.enable_nsfw && (
+              {this.state.site.enable_nsfw && (
                 <div class="form-group">
                   <div class="form-check">
                     <input
@@ -855,12 +905,14 @@ export class User extends Component<any, UserState> {
             {i18n.t('prev')}
           </button>
         )}
-        <button
-          class="btn btn-sm btn-secondary"
-          onClick={linkEvent(this, this.nextPage)}
-        >
-          {i18n.t('next')}
-        </button>
+        {this.state.comments.length + this.state.posts.length > 0 && (
+          <button
+            class="btn btn-sm btn-secondary"
+            onClick={linkEvent(this, this.nextPage)}
+          >
+            {i18n.t('next')}
+          </button>
+        )}
       </div>
     );
   }
@@ -1033,6 +1085,22 @@ export class User extends Component<any, UserState> {
       });
   }
 
+  removeAvatar(i: User, event: any) {
+    event.preventDefault();
+    i.state.userSettingsLoading = true;
+    i.state.userSettingsForm.avatar = '';
+    i.setState(i.state);
+
+    WebSocketService.Instance.saveUserSettings(i.state.userSettingsForm);
+  }
+
+  get checkSettingsAvatar(): boolean {
+    return (
+      this.state.userSettingsForm.avatar &&
+      this.state.userSettingsForm.avatar != ''
+    );
+  }
+
   handleUserSettingsSubmit(i: User, event: any) {
     event.preventDefault();
     i.state.userSettingsLoading = true;
@@ -1107,7 +1175,7 @@ export class User extends Component<any, UserState> {
           UserService.Instance.user.show_avatars;
         this.state.userSettingsForm.matrix_user_id = this.state.user.matrix_user_id;
       }
-      document.title = `/u/${this.state.user.name} - ${WebSocketService.Instance.site.name}`;
+      document.title = `/u/${this.state.user.name} - ${this.state.site.name}`;
       window.scrollTo(0, 0);
       this.setState(this.state);
       setupTippy();
@@ -1150,7 +1218,6 @@ export class User extends Component<any, UserState> {
       this.setState(this.state);
     } else if (res.op == UserOperation.SaveUserSettings) {
       let data = res.data as LoginResponse;
-      this.state = this.emptyState;
       this.state.userSettingsLoading = false;
       this.setState(this.state);
       UserService.Instance.login(data);
@@ -1159,6 +1226,10 @@ export class User extends Component<any, UserState> {
       this.state.deleteAccountShowConfirm = false;
       this.setState(this.state);
       this.context.router.history.push('/');
+    } else if (res.op == UserOperation.GetSite) {
+      let data = res.data as GetSiteResponse;
+      this.state.site = data.site;
+      this.setState(this.state);
     }
   }
 }

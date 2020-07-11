@@ -1,6 +1,5 @@
 import { Component, linkEvent } from 'inferno';
 import { Prompt } from 'inferno-router';
-import { Link } from 'inferno-router';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import {
@@ -111,8 +110,17 @@ export class PrivateMessageForm extends Component<
     setupTippy();
   }
 
+  componentDidUpdate() {
+    if (!this.state.loading && this.state.privateMessageForm.content) {
+      window.onbeforeunload = () => true;
+    } else {
+      window.onbeforeunload = undefined;
+    }
+  }
+
   componentWillUnmount() {
     this.subscription.unsubscribe();
+    window.onbeforeunload = null;
   }
 
   render() {

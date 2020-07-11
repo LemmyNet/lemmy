@@ -33,6 +33,7 @@ import {
   setupTippy,
   hostname,
   previewLines,
+  toast,
 } from '../utils';
 import { i18n } from '../i18next';
 
@@ -61,6 +62,8 @@ interface PostListingProps {
   showBody?: boolean;
   moderators?: Array<CommunityUser>;
   admins?: Array<UserView>;
+  enableDownvotes: boolean;
+  enableNsfw: boolean;
 }
 
 export class PostListing extends Component<PostListingProps, PostListingState> {
@@ -115,6 +118,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
               post={this.props.post}
               onEdit={this.handleEditPost}
               onCancel={this.handleEditCancel}
+              enableNsfw={this.props.enableNsfw}
+              enableDownvotes={this.props.enableDownvotes}
             />
           </div>
         )}
@@ -273,7 +278,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           >
             {this.state.score}
           </div>
-          {WebSocketService.Instance.site.enable_downvotes && (
+          {this.props.enableDownvotes && (
             <button
               className={`btn-animate btn btn-link p-0 ${
                 this.state.my_vote == -1 ? 'text-danger' : 'text-muted'
@@ -430,8 +435,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                       id: post.creator_id,
                       local: post.creator_local,
                       actor_id: post.creator_actor_id,
+                      published: post.creator_published,
                     }}
                   />
+
                   {this.isMod && (
                     <span className="mx-1 badge badge-light">
                       {i18n.t('mod')}
@@ -1026,6 +1033,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   handlePostLike(i: PostListing) {
+    if (!UserService.Instance.user) {
+      this.context.router.history.push(`/login`);
+    }
+
     let new_vote = i.state.my_vote == 1 ? 0 : 1;
 
     if (i.state.my_vote == 1) {
@@ -1053,6 +1064,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   handlePostDisLike(i: PostListing) {
+    if (!UserService.Instance.user) {
+      this.context.router.history.push(`/login`);
+    }
+
     let new_vote = i.state.my_vote == -1 ? 0 : -1;
 
     if (i.state.my_vote == 1) {

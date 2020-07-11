@@ -1,0 +1,15 @@
+[package]
+name = "lemmy_db"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+diesel = { version = "1.4.4", features = ["postgres","chrono","r2d2","64-column-tables","serde_json"] }
+chrono = { version = "0.4.7", features = ["serde"] }
+serde = { version = "1.0.105", features = ["derive"] }
+serde_json = { version = "1.0.52", features = ["preserve_order"]}
+strum = "0.18.0"
+strum_macros = "0.18.0"
+log = "0.4.0"
+sha2 = "0.9"
+bcrypt = "0.8.0"

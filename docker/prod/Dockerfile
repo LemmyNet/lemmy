@@ -10,13 +10,19 @@ WORKDIR /app
 RUN sudo chown -R rust:rust .
 RUN USER=root cargo new server
 WORKDIR /app/server
+RUN mkdir -p lemmy_db/src/ lemmy_utils/src/
 COPY --chown=rust:rust server/Cargo.toml server/Cargo.lock ./
-#RUN sudo chown -R rust:rust .
+COPY --chown=rust:rust server/lemmy_db/Cargo.toml ./lemmy_db/
+COPY --chown=rust:rust server/lemmy_utils/Cargo.toml ./lemmy_utils/
 RUN mkdir -p ./src/bin \
-   && echo 'fn main() { println!("Dummy") }' > ./src/bin/main.rs
+   && echo 'fn main() { println!("Dummy") }' > ./src/bin/main.rs \
+   && cp ./src/bin/main.rs ./lemmy_db/src/main.rs \
+   && cp ./src/bin/main.rs ./lemmy_utils/src/main.rs
 RUN cargo build --release
 RUN rm -f ./target/$CARGO_BUILD_TARGET/$RUSTRELEASEDIR/deps/lemmy_server*
 COPY --chown=rust:rust server/src ./src/
+COPY --chown=rust:rust server/lemmy_db ./lemmy_db/
+COPY --chown=rust:rust server/lemmy_utils ./lemmy_utils/
 COPY --chown=rust:rust server/migrations ./migrations/
 
 # build for release

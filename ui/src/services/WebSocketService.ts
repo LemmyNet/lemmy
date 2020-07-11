@@ -25,7 +25,6 @@ import {
   TransferSiteForm,
   BanUserForm,
   SiteForm,
-  Site,
   UserView,
   GetRepliesForm,
   GetUserMentionsForm,
@@ -57,7 +56,6 @@ export class WebSocketService {
   public ws: ReconnectingWebSocket;
   public subject: Observable<any>;
 
-  public site: Site;
   public admins: Array<UserView>;
   public banned: Array<UserView>;
 

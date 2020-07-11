@@ -17,19 +17,9 @@ use crate::{
     ToApub,
   },
   blocking,
-  convert_datetime,
-  db::{
-    comment::{Comment, CommentForm},
-    community::Community,
-    post::Post,
-    user::User_,
-    Crud,
-  },
   routes::DbPoolParam,
-  scrape_text_for_mentions,
   DbPool,
   LemmyError,
-  MentionData,
 };
 use activitystreams::{
   activity::{Create, Delete, Dislike, Like, Remove, Undo, Update},
@@ -40,6 +30,14 @@ use activitystreams::{
 use activitystreams_new::object::Tombstone;
 use actix_web::{body::Body, client::Client, web::Path, HttpResponse};
 use itertools::Itertools;
+use lemmy_db::{
+  comment::{Comment, CommentForm},
+  community::Community,
+  post::Post,
+  user::User_,
+  Crud,
+};
+use lemmy_utils::{convert_datetime, scrape_text_for_mentions, MentionData};
 use log::debug;
 use serde::Deserialize;
 
@@ -123,7 +121,7 @@ impl FromApub for CommentForm {
 
   /// Parse an ActivityPub note received from another instance into a Lemmy comment
   async fn from_apub(
-    note: &Note,
+    note: &mut Note,
     client: &Client,
     pool: &DbPool,
   ) -> Result<CommentForm, LemmyError> {

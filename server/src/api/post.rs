@@ -1,27 +1,8 @@
 use crate::{
-  api::{APIError, Oper, Perform},
+  api::{claims::Claims, APIError, Oper, Perform},
   apub::{ApubLikeableType, ApubObjectType},
   blocking,
-  db::{
-    comment_view::*,
-    community_view::*,
-    moderator::*,
-    post::*,
-    post_view::*,
-    site::*,
-    site_view::*,
-    user::*,
-    user_view::*,
-    Crud,
-    Likeable,
-    ListingType,
-    Saveable,
-    SortType,
-  },
   fetch_iframely_and_pictrs_data,
-  naive_now,
-  slur_check,
-  slurs_vec_to_str,
   websocket::{
     server::{JoinCommunityRoom, JoinPostRoom, SendPost},
     UserOperation,
@@ -30,6 +11,24 @@ use crate::{
   DbPool,
   LemmyError,
 };
+use lemmy_db::{
+  comment_view::*,
+  community_view::*,
+  moderator::*,
+  naive_now,
+  post::*,
+  post_view::*,
+  site::*,
+  site_view::*,
+  user::*,
+  user_view::*,
+  Crud,
+  Likeable,
+  ListingType,
+  Saveable,
+  SortType,
+};
+use lemmy_utils::{is_valid_post_title, make_apub_endpoint, slur_check, slurs_vec_to_str, EndpointType};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
@@ -136,6 +135,10 @@ impl Perform for Oper<CreatePost> {
       }
     }
 
+    if !is_valid_post_title(&data.name) {
+      return Err(APIError::err("invalid_post_title").into());
+    }
+
     let user_id = claims.id;
 
     // Check for a community ban
@@ -157,7 +160,7 @@ impl Perform for Oper<CreatePost> {
       fetch_iframely_and_pictrs_data(&self.client, data.url.to_owned()).await;
 
     let post_form = PostForm {
-      name: data.name.to_owned(),
+      name: data.name.trim().to_owned(),
       url: data.url.to_owned(),
       body: data.body.to_owned(),
       community_id: data.community_id,
@@ -191,11 +194,16 @@ impl Perform for Oper<CreatePost> {
     };
 
     let inserted_post_id = inserted_post.id;
-    let updated_post =
-      match blocking(pool, move |conn| Post::update_ap_id(conn, inserted_post_id)).await? {
-        Ok(post) => post,
-        Err(_e) => return Err(APIError::err("couldnt_create_post").into()),
-      };
+    let updated_post = match blocking(pool, move |conn| {
+      let apub_id =
+        make_apub_endpoint(EndpointType::Post, &inserted_post_id.to_string()).to_string();
+      Post::update_ap_id(conn, inserted_post_id, apub_id)
+    })
+    .await?
+    {
+      Ok(post) => post,
+      Err(_e) => return Err(APIError::err("couldnt_create_post").into()),
+    };
 
     updated_post.send_create(&user, &self.client, pool).await?;
 
@@ -512,6 +520,10 @@ impl Perform for Oper<EditPost> {
       }
     }
 
+    if !is_valid_post_title(&data.name) {
+      return Err(APIError::err("invalid_post_title").into());
+    }
+
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
       Err(_e) => return Err(APIError::err("not_logged_in").into()),
@@ -561,7 +573,7 @@ impl Perform for Oper<EditPost> {
     let read_post = blocking(pool, move |conn| Post::read(conn, edit_id)).await??;
 
     let post_form = PostForm {
-      name: data.name.to_owned(),
+      name: data.name.trim().to_owned(),
       url: data.url.to_owned(),
       body: data.body.to_owned(),
       creator_id: data.creator_id.to_owned(),

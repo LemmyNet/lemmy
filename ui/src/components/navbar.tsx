@@ -1,4 +1,4 @@
-import { Component, linkEvent } from 'inferno';
+import { Component, linkEvent, createRef, RefObject } from 'inferno';
 import { Link } from 'inferno-router';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
@@ -42,11 +42,14 @@ interface NavbarState {
   unreadCount: number;
   siteName: string;
   admins: Array<UserView>;
+  searchParam: string;
+  toggleSearch: boolean;
 }
 
 export class Navbar extends Component<any, NavbarState> {
   private wsSub: Subscription;
   private userSub: Subscription;
+  private searchTextField: RefObject<HTMLInputElement>;
   emptyState: NavbarState = {
     isLoggedIn: UserService.Instance.user !== undefined,
     unreadCount: 0,
@@ -56,6 +59,8 @@ export class Navbar extends Component<any, NavbarState> {
     expanded: false,
     siteName: undefined,
     admins: [],
+    searchParam: '',
+    toggleSearch: false,
   };
 
   constructor(props: any, context: any) {
@@ -87,6 +92,49 @@ export class Navbar extends Component<any, NavbarState> {
     }
 
     WebSocketService.Instance.getSite();
+
+    this.searchTextField = createRef();
+  }
+
+  handleSearchParam(i: Navbar, event: any) {
+    i.state.searchParam = event.target.value;
+    i.setState(i.state);
+  }
+
+  updateUrl() {
+    const searchParam = this.state.searchParam;
+    this.setState({ searchParam: '' });
+    this.setState({ toggleSearch: false });
+    if (searchParam === '') {
+      this.context.router.history.push(`/search/`);
+    } else {
+      this.context.router.history.push(
+        `/search/q/${searchParam}/type/all/sort/topall/page/1`
+      );
+    }
+  }
+
+  handleSearchSubmit(i: Navbar, event: any) {
+    event.preventDefault();
+    i.updateUrl();
+  }
+
+  handleSearchBtn(i: Navbar, event: any) {
+    event.preventDefault();
+    i.setState({ toggleSearch: true });
+
+    i.searchTextField.current.focus();
+    const offsetWidth = i.searchTextField.current.offsetWidth;
+    if (i.state.searchParam && offsetWidth > 100) {
+      i.updateUrl();
+    }
+  }
+
+  handleSearchBlur(i: Navbar, event: any) {
+    if (!(event.relatedTarget && event.relatedTarget.name !== 'search-btn')) {
+      i.state.toggleSearch = false;
+      i.setState(i.state);
+    }
   }
 
   render() {
@@ -133,7 +181,7 @@ export class Navbar extends Component<any, NavbarState> {
         <div
           className={`${!this.state.expanded && 'collapse'} navbar-collapse`}
         >
-          <ul class="navbar-nav mr-auto">
+          <ul class="navbar-nav my-2 mr-auto">
             <li class="nav-item">
               <Link
                 class="nav-link"
@@ -141,11 +189,6 @@ export class Navbar extends Component<any, NavbarState> {
                 title={i18n.t('communities')}
               >
                 {i18n.t('communities')}
-              </Link>
-            </li>
-            <li class="nav-item">
-              <Link class="nav-link" to="/search" title={i18n.t('search')}>
-                {i18n.t('search')}
               </Link>
             </li>
             <li class="nav-item">
@@ -181,9 +224,39 @@ export class Navbar extends Component<any, NavbarState> {
               </Link>
             </li>
           </ul>
-          <ul class="navbar-nav ml-auto">
+          {!this.context.router.history.location.pathname.match(
+            /^\/search/
+          ) && (
+            <form
+              class="form-inline"
+              onSubmit={linkEvent(this, this.handleSearchSubmit)}
+            >
+              <input
+                class={`form-control mr-0 search-input ${
+                  this.state.toggleSearch ? 'show-input' : 'hide-input'
+                }`}
+                onInput={linkEvent(this, this.handleSearchParam)}
+                value={this.state.searchParam}
+                ref={this.searchTextField}
+                type="text"
+                placeholder={i18n.t('search')}
+                onBlur={linkEvent(this, this.handleSearchBlur)}
+              ></input>
+              <button
+                name="search-btn"
+                onClick={linkEvent(this, this.handleSearchBtn)}
+                class="btn btn-link"
+                style="color: var(--gray)"
+              >
+                <svg class="icon">
+                  <use xlinkHref="#icon-search"></use>
+                </svg>
+              </button>
+            </form>
+          )}
+          <ul class="navbar-nav my-2">
             {this.canAdmin && (
-              <li className="nav-item mt-1">
+              <li className="nav-item">
                 <Link
                   class="nav-link"
                   to={`/admin`}
@@ -195,9 +268,11 @@ export class Navbar extends Component<any, NavbarState> {
                 </Link>
               </li>
             )}
-            {this.state.isLoggedIn ? (
-              <>
-                <li className="nav-item mt-1">
+          </ul>
+          {this.state.isLoggedIn ? (
+            <>
+              <ul class="navbar-nav my-2">
+                <li className="nav-item">
                   <Link class="nav-link" to="/inbox" title={i18n.t('inbox')}>
                     <svg class="icon">
                       <use xlinkHref="#icon-bell"></use>
@@ -209,6 +284,8 @@ export class Navbar extends Component<any, NavbarState> {
                     )}
                   </Link>
                 </li>
+              </ul>
+              <ul class="navbar-nav">
                 <li className="nav-item">
                   <Link
                     class="nav-link"
@@ -230,17 +307,21 @@ export class Navbar extends Component<any, NavbarState> {
                     </span>
                   </Link>
                 </li>
-              </>
-            ) : (
-              <Link
-                class="nav-link"
-                to="/login"
-                title={i18n.t('login_sign_up')}
-              >
-                {i18n.t('login_sign_up')}
-              </Link>
-            )}
-          </ul>
+              </ul>
+            </>
+          ) : (
+            <ul class="navbar-nav my-2">
+              <li className="nav-item">
+                <Link
+                  class="nav-link"
+                  to="/login"
+                  title={i18n.t('login_sign_up')}
+                >
+                  {i18n.t('login_sign_up')}
+                </Link>
+              </li>
+            </ul>
+          )}
         </div>
       </nav>
     );
@@ -315,9 +396,6 @@ export class Navbar extends Component<any, NavbarState> {
       if (data.site && !this.state.siteName) {
         this.state.siteName = data.site.name;
         this.state.admins = data.admins;
-        WebSocketService.Instance.site = data.site;
-        WebSocketService.Instance.admins = data.admins;
-
         this.setState(this.state);
       }
     }

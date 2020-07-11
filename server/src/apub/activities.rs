@@ -1,12 +1,18 @@
 use crate::{
-  apub::{extensions::signatures::sign, is_apub_id_valid, ActorType},
-  db::{activity::insert_activity, community::Community, user::User_},
+  apub::{
+    community::do_announce,
+    extensions::signatures::sign,
+    insert_activity,
+    is_apub_id_valid,
+    ActorType,
+  },
   request::retry_custom,
   DbPool,
   LemmyError,
 };
 use activitystreams::{context, object::properties::ObjectProperties, public, Activity, Base};
 use actix_web::client::Client;
+use lemmy_db::{community::Community, user::User_};
 use log::debug;
 use serde::Serialize;
 use std::fmt::Debug;
@@ -43,7 +49,7 @@ where
 
   // if this is a local community, we need to do an announce from the community instead
   if community.local {
-    Community::do_announce(activity, &community, creator, client, pool).await?;
+    do_announce(activity, &community, creator, client, pool).await?;
   } else {
     send_activity(client, &activity, creator, to).await?;
   }

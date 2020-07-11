@@ -373,17 +373,21 @@ export class Main extends Component<any, MainState> {
                 #
               </a>
               <a href="https://en.wikipedia.org/wiki/Fediverse">#</a>
-              <br></br>
+              <br class="big"></br>
               <code>#</code>
               <br></br>
               <b>#</b>
-              <br></br>
+              <br class="big"></br>
               <a href={repoUrl}>#</a>
-              <br></br>
+              <br class="big"></br>
               <a href="https://www.rust-lang.org">#</a>
               <a href="https://actix.rs/">#</a>
               <a href="https://infernojs.org">#</a>
               <a href="https://www.typescriptlang.org/">#</a>
+              <br class="big"></br>
+              <a href="https://github.com/LemmyNet/lemmy/graphs/contributors?type=a">
+                #
+              </a>
             </T>
           </p>
         </div>
@@ -418,6 +422,8 @@ export class Main extends Component<any, MainState> {
         showCommunity
         removeDuplicates
         sort={this.state.sort}
+        enableDownvotes={this.state.siteRes.site.enable_downvotes}
+        enableNsfw={this.state.siteRes.site.enable_nsfw}
       />
     ) : (
       <CommentNodes
@@ -426,6 +432,7 @@ export class Main extends Component<any, MainState> {
         showCommunity
         sortType={this.state.sort}
         showContext
+        enableDownvotes={this.state.siteRes.site.enable_downvotes}
       />
     );
   }
@@ -490,7 +497,7 @@ export class Main extends Component<any, MainState> {
             {i18n.t('prev')}
           </button>
         )}
-        {this.state.posts.length == fetchLimit && (
+        {this.state.posts.length > 0 && (
           <button
             class="btn btn-sm btn-secondary"
             onClick={linkEvent(this, this.nextPage)}
@@ -617,7 +624,7 @@ export class Main extends Component<any, MainState> {
       this.state.siteRes.banned = data.banned;
       this.state.siteRes.online = data.online;
       this.setState(this.state);
-      document.title = `${WebSocketService.Instance.site.name}`;
+      document.title = `${this.state.siteRes.site.name}`;
     } else if (res.op == UserOperation.EditSite) {
       let data = res.data as SiteResponse;
       this.state.siteRes.site = data.site;

@@ -5,6 +5,7 @@ use crate::{
     post::PostResponse,
   },
   apub::{
+    community::do_announce,
     extensions::signatures::verify,
     fetcher::{
       get_or_fetch_and_insert_remote_comment,
@@ -12,25 +13,13 @@ use crate::{
       get_or_fetch_and_upsert_remote_community,
       get_or_fetch_and_upsert_remote_user,
     },
+    insert_activity,
     FromApub,
     GroupExt,
     PageExt,
   },
   blocking,
-  db::{
-    activity::insert_activity,
-    comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
-    comment_view::CommentView,
-    community::{Community, CommunityForm},
-    community_view::CommunityView,
-    post::{Post, PostForm, PostLike, PostLikeForm},
-    post_view::PostView,
-    Crud,
-    Likeable,
-  },
-  naive_now,
   routes::{ChatServerParam, DbPoolParam},
-  scrape_text_for_mentions,
   websocket::{
     server::{SendComment, SendCommunityRoomMessage, SendPost},
     UserOperation,
@@ -46,6 +35,18 @@ use activitystreams::{
   BaseBox,
 };
 use actix_web::{client::Client, web, HttpRequest, HttpResponse};
+use lemmy_db::{
+  comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
+  comment_view::CommentView,
+  community::{Community, CommunityForm},
+  community_view::CommunityView,
+  naive_now,
+  post::{Post, PostForm, PostLike, PostLikeForm},
+  post_view::PostView,
+  Crud,
+  Likeable,
+};
+use lemmy_utils::scrape_text_for_mentions;
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
@@ -234,7 +235,7 @@ where
   if community.local {
     let sending_user = get_or_fetch_and_upsert_remote_user(sender, client, pool).await?;
 
-    Community::do_announce(activity, &community, &sending_user, client, pool).await
+    do_announce(activity, &community, &sending_user, client, pool).await
   } else {
     Ok(HttpResponse::NotFound().finish())
   }
@@ -335,7 +336,7 @@ async fn receive_create_post(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let page = create
+  let mut page = create
     .create_props
     .get_object_base_box()
     .to_owned()
@@ -353,7 +354,7 @@ async fn receive_create_post(
 
   insert_activity(user.id, create, false, pool).await?;
 
-  let post = PostForm::from_apub(&page, client, pool).await?;
+  let post = PostForm::from_apub(&mut page, client, pool).await?;
 
   let inserted_post = blocking(pool, move |conn| Post::create(conn, &post)).await??;
 
@@ -381,7 +382,7 @@ async fn receive_create_comment(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let note = create
+  let mut note = create
     .create_props
     .get_object_base_box()
     .to_owned()
@@ -399,7 +400,7 @@ async fn receive_create_comment(
 
   insert_activity(user.id, create, false, pool).await?;
 
-  let comment = CommentForm::from_apub(&note, client, pool).await?;
+  let comment = CommentForm::from_apub(&mut note, client, pool).await?;
 
   let inserted_comment = blocking(pool, move |conn| Comment::create(conn, &comment)).await??;
 
@@ -440,7 +441,7 @@ async fn receive_update_post(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let page = update
+  let mut page = update
     .update_props
     .get_object_base_box()
     .to_owned()
@@ -458,7 +459,7 @@ async fn receive_update_post(
 
   insert_activity(user.id, update, false, pool).await?;
 
-  let post = PostForm::from_apub(&page, client, pool).await?;
+  let post = PostForm::from_apub(&mut page, client, pool).await?;
 
   let post_id = get_or_fetch_and_insert_remote_post(&post.ap_id, client, pool)
     .await?
@@ -486,7 +487,7 @@ async fn receive_like_post(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let page = like
+  let mut page = like
     .like_props
     .get_object_base_box()
     .to_owned()
@@ -500,7 +501,7 @@ async fn receive_like_post(
 
   insert_activity(user.id, like, false, pool).await?;
 
-  let post = PostForm::from_apub(&page, client, pool).await?;
+  let post = PostForm::from_apub(&mut page, client, pool).await?;
 
   let post_id = get_or_fetch_and_insert_remote_post(&post.ap_id, client, pool)
     .await?
@@ -537,7 +538,7 @@ async fn receive_dislike_post(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let page = dislike
+  let mut page = dislike
     .dislike_props
     .get_object_base_box()
     .to_owned()
@@ -555,7 +556,7 @@ async fn receive_dislike_post(
 
   insert_activity(user.id, dislike, false, pool).await?;
 
-  let post = PostForm::from_apub(&page, client, pool).await?;
+  let post = PostForm::from_apub(&mut page, client, pool).await?;
 
   let post_id = get_or_fetch_and_insert_remote_post(&post.ap_id, client, pool)
     .await?
@@ -592,7 +593,7 @@ async fn receive_update_comment(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let note = update
+  let mut note = update
     .update_props
     .get_object_base_box()
     .to_owned()
@@ -610,7 +611,7 @@ async fn receive_update_comment(
 
   insert_activity(user.id, update, false, pool).await?;
 
-  let comment = CommentForm::from_apub(&note, client, pool).await?;
+  let comment = CommentForm::from_apub(&mut note, client, pool).await?;
 
   let comment_id = get_or_fetch_and_insert_remote_comment(&comment.ap_id, client, pool)
     .await?
@@ -651,7 +652,7 @@ async fn receive_like_comment(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let note = like
+  let mut note = like
     .like_props
     .get_object_base_box()
     .to_owned()
@@ -665,7 +666,7 @@ async fn receive_like_comment(
 
   insert_activity(user.id, like, false, pool).await?;
 
-  let comment = CommentForm::from_apub(&note, client, pool).await?;
+  let comment = CommentForm::from_apub(&mut note, client, pool).await?;
 
   let comment_id = get_or_fetch_and_insert_remote_comment(&comment.ap_id, client, pool)
     .await?
@@ -709,7 +710,7 @@ async fn receive_dislike_comment(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let note = dislike
+  let mut note = dislike
     .dislike_props
     .get_object_base_box()
     .to_owned()
@@ -727,7 +728,7 @@ async fn receive_dislike_comment(
 
   insert_activity(user.id, dislike, false, pool).await?;
 
-  let comment = CommentForm::from_apub(&note, client, pool).await?;
+  let comment = CommentForm::from_apub(&mut note, client, pool).await?;
 
   let comment_id = get_or_fetch_and_insert_remote_comment(&comment.ap_id, client, pool)
     .await?
@@ -777,7 +778,7 @@ async fn receive_delete_community(
     .unwrap()
     .to_string();
 
-  let group = delete
+  let mut group = delete
     .delete_props
     .get_object_base_box()
     .to_owned()
@@ -789,7 +790,7 @@ async fn receive_delete_community(
 
   insert_activity(user.id, delete, false, pool).await?;
 
-  let community_actor_id = CommunityForm::from_apub(&group, client, pool)
+  let community_actor_id = CommunityForm::from_apub(&mut group, client, pool)
     .await?
     .actor_id;
 
@@ -854,7 +855,7 @@ async fn receive_remove_community(
     .unwrap()
     .to_string();
 
-  let group = remove
+  let mut group = remove
     .remove_props
     .get_object_base_box()
     .to_owned()
@@ -866,7 +867,7 @@ async fn receive_remove_community(
 
   insert_activity(mod_.id, remove, false, pool).await?;
 
-  let community_actor_id = CommunityForm::from_apub(&group, client, pool)
+  let community_actor_id = CommunityForm::from_apub(&mut group, client, pool)
     .await?
     .actor_id;
 
@@ -931,7 +932,7 @@ async fn receive_delete_post(
     .unwrap()
     .to_string();
 
-  let page = delete
+  let mut page = delete
     .delete_props
     .get_object_base_box()
     .to_owned()
@@ -943,7 +944,7 @@ async fn receive_delete_post(
 
   insert_activity(user.id, delete, false, pool).await?;
 
-  let post_ap_id = PostForm::from_apub(&page, client, pool).await?.ap_id;
+  let post_ap_id = PostForm::from_apub(&mut page, client, pool).await?.ap_id;
 
   let post = get_or_fetch_and_insert_remote_post(&post_ap_id, client, pool).await?;
 
@@ -997,7 +998,7 @@ async fn receive_remove_post(
     .unwrap()
     .to_string();
 
-  let page = remove
+  let mut page = remove
     .remove_props
     .get_object_base_box()
     .to_owned()
@@ -1009,7 +1010,7 @@ async fn receive_remove_post(
 
   insert_activity(mod_.id, remove, false, pool).await?;
 
-  let post_ap_id = PostForm::from_apub(&page, client, pool).await?.ap_id;
+  let post_ap_id = PostForm::from_apub(&mut page, client, pool).await?.ap_id;
 
   let post = get_or_fetch_and_insert_remote_post(&post_ap_id, client, pool).await?;
 
@@ -1063,7 +1064,7 @@ async fn receive_delete_comment(
     .unwrap()
     .to_string();
 
-  let note = delete
+  let mut note = delete
     .delete_props
     .get_object_base_box()
     .to_owned()
@@ -1075,7 +1076,7 @@ async fn receive_delete_comment(
 
   insert_activity(user.id, delete, false, pool).await?;
 
-  let comment_ap_id = CommentForm::from_apub(&note, client, pool).await?.ap_id;
+  let comment_ap_id = CommentForm::from_apub(&mut note, client, pool).await?.ap_id;
 
   let comment = get_or_fetch_and_insert_remote_comment(&comment_ap_id, client, pool).await?;
 
@@ -1131,7 +1132,7 @@ async fn receive_remove_comment(
     .unwrap()
     .to_string();
 
-  let note = remove
+  let mut note = remove
     .remove_props
     .get_object_base_box()
     .to_owned()
@@ -1143,7 +1144,7 @@ async fn receive_remove_comment(
 
   insert_activity(mod_.id, remove, false, pool).await?;
 
-  let comment_ap_id = CommentForm::from_apub(&note, client, pool).await?.ap_id;
+  let comment_ap_id = CommentForm::from_apub(&mut note, client, pool).await?.ap_id;
 
   let comment = get_or_fetch_and_insert_remote_comment(&comment_ap_id, client, pool).await?;
 
@@ -1259,7 +1260,7 @@ async fn receive_undo_delete_comment(
     .unwrap()
     .to_string();
 
-  let note = delete
+  let mut note = delete
     .delete_props
     .get_object_base_box()
     .to_owned()
@@ -1271,7 +1272,7 @@ async fn receive_undo_delete_comment(
 
   insert_activity(user.id, delete, false, pool).await?;
 
-  let comment_ap_id = CommentForm::from_apub(&note, client, pool).await?.ap_id;
+  let comment_ap_id = CommentForm::from_apub(&mut note, client, pool).await?.ap_id;
 
   let comment = get_or_fetch_and_insert_remote_comment(&comment_ap_id, client, pool).await?;
 
@@ -1327,7 +1328,7 @@ async fn receive_undo_remove_comment(
     .unwrap()
     .to_string();
 
-  let note = remove
+  let mut note = remove
     .remove_props
     .get_object_base_box()
     .to_owned()
@@ -1339,7 +1340,7 @@ async fn receive_undo_remove_comment(
 
   insert_activity(mod_.id, remove, false, pool).await?;
 
-  let comment_ap_id = CommentForm::from_apub(&note, client, pool).await?.ap_id;
+  let comment_ap_id = CommentForm::from_apub(&mut note, client, pool).await?.ap_id;
 
   let comment = get_or_fetch_and_insert_remote_comment(&comment_ap_id, client, pool).await?;
 
@@ -1395,7 +1396,7 @@ async fn receive_undo_delete_post(
     .unwrap()
     .to_string();
 
-  let page = delete
+  let mut page = delete
     .delete_props
     .get_object_base_box()
     .to_owned()
@@ -1407,7 +1408,7 @@ async fn receive_undo_delete_post(
 
   insert_activity(user.id, delete, false, pool).await?;
 
-  let post_ap_id = PostForm::from_apub(&page, client, pool).await?.ap_id;
+  let post_ap_id = PostForm::from_apub(&mut page, client, pool).await?.ap_id;
 
   let post = get_or_fetch_and_insert_remote_post(&post_ap_id, client, pool).await?;
 
@@ -1461,7 +1462,7 @@ async fn receive_undo_remove_post(
     .unwrap()
     .to_string();
 
-  let page = remove
+  let mut page = remove
     .remove_props
     .get_object_base_box()
     .to_owned()
@@ -1473,7 +1474,7 @@ async fn receive_undo_remove_post(
 
   insert_activity(mod_.id, remove, false, pool).await?;
 
-  let post_ap_id = PostForm::from_apub(&page, client, pool).await?.ap_id;
+  let post_ap_id = PostForm::from_apub(&mut page, client, pool).await?.ap_id;
 
   let post = get_or_fetch_and_insert_remote_post(&post_ap_id, client, pool).await?;
 
@@ -1527,7 +1528,7 @@ async fn receive_undo_delete_community(
     .unwrap()
     .to_string();
 
-  let group = delete
+  let mut group = delete
     .delete_props
     .get_object_base_box()
     .to_owned()
@@ -1539,7 +1540,7 @@ async fn receive_undo_delete_community(
 
   insert_activity(user.id, delete, false, pool).await?;
 
-  let community_actor_id = CommunityForm::from_apub(&group, client, pool)
+  let community_actor_id = CommunityForm::from_apub(&mut group, client, pool)
     .await?
     .actor_id;
 
@@ -1604,7 +1605,7 @@ async fn receive_undo_remove_community(
     .unwrap()
     .to_string();
 
-  let group = remove
+  let mut group = remove
     .remove_props
     .get_object_base_box()
     .to_owned()
@@ -1616,7 +1617,7 @@ async fn receive_undo_remove_community(
 
   insert_activity(mod_.id, remove, false, pool).await?;
 
-  let community_actor_id = CommunityForm::from_apub(&group, client, pool)
+  let community_actor_id = CommunityForm::from_apub(&mut group, client, pool)
     .await?
     .actor_id;
 
@@ -1704,7 +1705,7 @@ async fn receive_undo_like_comment(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let note = like
+  let mut note = like
     .like_props
     .get_object_base_box()
     .to_owned()
@@ -1718,7 +1719,7 @@ async fn receive_undo_like_comment(
 
   insert_activity(user.id, like, false, pool).await?;
 
-  let comment = CommentForm::from_apub(&note, client, pool).await?;
+  let comment = CommentForm::from_apub(&mut note, client, pool).await?;
 
   let comment_id = get_or_fetch_and_insert_remote_comment(&comment.ap_id, client, pool)
     .await?
@@ -1758,7 +1759,7 @@ async fn receive_undo_like_post(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let page = like
+  let mut page = like
     .like_props
     .get_object_base_box()
     .to_owned()
@@ -1772,7 +1773,7 @@ async fn receive_undo_like_post(
 
   insert_activity(user.id, like, false, pool).await?;
 
-  let post = PostForm::from_apub(&page, client, pool).await?;
+  let post = PostForm::from_apub(&mut page, client, pool).await?;
 
   let post_id = get_or_fetch_and_insert_remote_post(&post.ap_id, client, pool)
     .await?

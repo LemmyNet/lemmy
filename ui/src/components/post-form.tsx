@@ -16,7 +16,6 @@ import {
   SearchForm,
   SearchType,
   SearchResponse,
-  GetSiteResponse,
   WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
@@ -34,14 +33,14 @@ import {
   randomStr,
   setupTribute,
   setupTippy,
-  emojiPicker,
   hostname,
   pictrsDeleteToast,
+  validTitle,
 } from '../utils';
 import autosize from 'autosize';
 import Tribute from 'tributejs/src/Tribute.js';
 import emojiShortName from 'emoji-short-name';
-import Selectr from 'mobius1-selectr';
+import Choices from 'choices.js';
 import { i18n } from '../i18next';
 
 const MAX_POST_TITLE_LENGTH = 200;
@@ -52,6 +51,8 @@ interface PostFormProps {
   onCancel?(): any;
   onCreate?(id: number): any;
   onEdit?(post: Post): any;
+  enableNsfw: boolean;
+  enableDownvotes: boolean;
 }
 
 interface PostFormState {
@@ -63,13 +64,13 @@ interface PostFormState {
   suggestedTitle: string;
   suggestedPosts: Array<Post>;
   crossPosts: Array<Post>;
-  enable_nsfw: boolean;
 }
 
 export class PostForm extends Component<PostFormProps, PostFormState> {
   private id = `post-form-${randomStr()}`;
   private tribute: Tribute;
   private subscription: Subscription;
+  private choices: Choices;
   private emptyState: PostFormState = {
     postForm: {
       name: null,
@@ -87,7 +88,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     suggestedTitle: undefined,
     suggestedPosts: [],
     crossPosts: [],
-    enable_nsfw: undefined,
   };
 
   constructor(props: any, context: any) {
@@ -96,7 +96,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     this.fetchPageTitle = debounce(this.fetchPageTitle).bind(this);
 
     this.tribute = setupTribute();
-    this.setupEmojiPicker();
 
     this.state = this.emptyState;
 
@@ -138,7 +137,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     };
 
     WebSocketService.Instance.listCommunities(listCommunitiesForm);
-    WebSocketService.Instance.getSite();
   }
 
   componentDidMount() {
@@ -153,8 +151,23 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     setupTippy();
   }
 
+  componentDidUpdate() {
+    if (
+      !this.state.loading &&
+      (this.state.postForm.name ||
+        this.state.postForm.url ||
+        this.state.postForm.body)
+    ) {
+      window.onbeforeunload = () => true;
+    } else {
+      window.onbeforeunload = undefined;
+    }
+  }
+
   componentWillUnmount() {
     this.subscription.unsubscribe();
+    this.choices && this.choices.destroy();
+    window.onbeforeunload = null;
   }
 
   render() {
@@ -240,7 +253,12 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
                   <div class="my-1 text-muted small font-weight-bold">
                     {i18n.t('cross_posts')}
                   </div>
-                  <PostListings showCommunity posts={this.state.crossPosts} />
+                  <PostListings
+                    showCommunity
+                    posts={this.state.crossPosts}
+                    enableDownvotes={this.props.enableDownvotes}
+                    enableNsfw={this.props.enableNsfw}
+                  />
                 </>
               )}
             </div>
@@ -254,18 +272,29 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
                 value={this.state.postForm.name}
                 id="post-title"
                 onInput={linkEvent(this, this.handlePostNameChange)}
-                class="form-control"
+                class={`form-control ${
+                  !validTitle(this.state.postForm.name) && 'is-invalid'
+                }`}
                 required
                 rows={2}
                 minLength={3}
                 maxLength={MAX_POST_TITLE_LENGTH}
               />
+              {!validTitle(this.state.postForm.name) && (
+                <div class="invalid-feedback">
+                  {i18n.t('invalid_post_title')}
+                </div>
+              )}
               {this.state.suggestedPosts.length > 0 && (
                 <>
                   <div class="my-1 text-muted small font-weight-bold">
                     {i18n.t('related_posts')}
                   </div>
-                  <PostListings posts={this.state.suggestedPosts} />
+                  <PostListings
+                    posts={this.state.suggestedPosts}
+                    enableDownvotes={this.props.enableDownvotes}
+                    enableNsfw={this.props.enableNsfw}
+                  />
                 </>
               )}
             </div>
@@ -311,15 +340,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
                   <use xlinkHref="#icon-help-circle"></use>
                 </svg>
               </a>
-              <span
-                onClick={linkEvent(this, this.handleEmojiPickerClick)}
-                class="pointer unselectable d-inline-block mr-3 float-right text-muted font-weight-bold"
-                data-tippy-content={i18n.t('emoji_picker')}
-              >
-                <svg class="icon icon-inline">
-                  <use xlinkHref="#icon-smile"></use>
-                </svg>
-              </span>
             </div>
           </div>
           {!this.props.post && (
@@ -346,7 +366,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               </div>
             </div>
           )}
-          {this.state.enable_nsfw && (
+          {this.props.enableNsfw && (
             <div class="form-group row">
               <div class="col-sm-10">
                 <div class="form-check">
@@ -397,20 +417,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
         </form>
       </div>
     );
-  }
-
-  setupEmojiPicker() {
-    emojiPicker.on('emoji', twemojiHtmlStr => {
-      if (this.state.postForm.body == null) {
-        this.state.postForm.body = '';
-      }
-      var el = document.createElement('div');
-      el.innerHTML = twemojiHtmlStr;
-      let nativeUnicode = (el.childNodes[0] as HTMLElement).getAttribute('alt');
-      let shortName = `:${emojiShortName[nativeUnicode]}:`;
-      this.state.postForm.body += shortName;
-      this.setState(this.state);
-    });
   }
 
   handlePostSubmit(i: PostForm, event: any) {
@@ -575,10 +581,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       });
   }
 
-  handleEmojiPickerClick(_i: PostForm, event: any) {
-    emojiPicker.togglePicker(event.target);
-  }
-
   parseMessage(msg: WebSocketJsonResponse) {
     let res = wsJsonToRes(msg);
     if (msg.error) {
@@ -604,11 +606,45 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       // Set up select searching
       let selectId: any = document.getElementById('post-community');
       if (selectId) {
-        let selector = new Selectr(selectId, { nativeDropdown: false });
-        selector.on('selectr.select', option => {
-          this.state.postForm.community_id = Number(option.value);
-          this.setState(this.state);
+        this.choices = new Choices(selectId, {
+          shouldSort: false,
+          classNames: {
+            containerOuter: 'choices',
+            containerInner: 'choices__inner bg-secondary border-0',
+            input: 'form-control',
+            inputCloned: 'choices__input--cloned',
+            list: 'choices__list',
+            listItems: 'choices__list--multiple',
+            listSingle: 'choices__list--single',
+            listDropdown: 'choices__list--dropdown',
+            item: 'choices__item bg-secondary',
+            itemSelectable: 'choices__item--selectable',
+            itemDisabled: 'choices__item--disabled',
+            itemChoice: 'choices__item--choice',
+            placeholder: 'choices__placeholder',
+            group: 'choices__group',
+            groupHeading: 'choices__heading',
+            button: 'choices__button',
+            activeState: 'is-active',
+            focusState: 'is-focused',
+            openState: 'is-open',
+            disabledState: 'is-disabled',
+            highlightedState: 'text-info',
+            selectedState: 'text-info',
+            flippedState: 'is-flipped',
+            loadingState: 'is-loading',
+            noResults: 'has-no-results',
+            noChoices: 'has-no-choices',
+          },
         });
+        this.choices.passedElement.element.addEventListener(
+          'choice',
+          (e: any) => {
+            this.state.postForm.community_id = Number(e.detail.choice.value);
+            this.setState(this.state);
+          },
+          false
+        );
       }
     } else if (res.op == UserOperation.CreatePost) {
       let data = res.data as PostResponse;
@@ -630,10 +666,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       } else if (data.type_ == SearchType[SearchType.Url]) {
         this.state.crossPosts = data.posts;
       }
-      this.setState(this.state);
-    } else if (res.op == UserOperation.GetSite) {
-      let data = res.data as GetSiteResponse;
-      this.state.enable_nsfw = data.site.enable_nsfw;
       this.setState(this.state);
     }
   }

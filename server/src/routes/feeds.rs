@@ -1,26 +1,21 @@
-use crate::{
-  blocking,
-  db::{
-    comment_view::{ReplyQueryBuilder, ReplyView},
-    community::Community,
-    post_view::{PostQueryBuilder, PostView},
-    site_view::SiteView,
-    user::{Claims, User_},
-    user_mention_view::{UserMentionQueryBuilder, UserMentionView},
-    ListingType,
-    SortType,
-  },
-  markdown_to_html,
-  routes::DbPoolParam,
-  settings::Settings,
-  LemmyError,
-};
+use crate::{api::claims::Claims, blocking, routes::DbPoolParam, LemmyError};
 use actix_web::{error::ErrorBadRequest, *};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::{
   r2d2::{ConnectionManager, Pool},
   PgConnection,
 };
+use lemmy_db::{
+  comment_view::{ReplyQueryBuilder, ReplyView},
+  community::Community,
+  post_view::{PostQueryBuilder, PostView},
+  site_view::SiteView,
+  user::User_,
+  user_mention_view::{UserMentionQueryBuilder, UserMentionView},
+  ListingType,
+  SortType,
+};
+use lemmy_utils::{markdown_to_html, settings::Settings};
 use rss::{CategoryBuilder, ChannelBuilder, GuidBuilder, Item, ItemBuilder};
 use serde::Deserialize;
 use std::str::FromStr;
@@ -131,7 +126,7 @@ fn get_feed_user(
 ) -> Result<ChannelBuilder, LemmyError> {
   let site_view = SiteView::read(&conn)?;
   let user = User_::find_by_username(&conn, &user_name)?;
-  let user_url = user.get_profile_url();
+  let user_url = user.get_profile_url(&Settings::get().hostname);
 
   let posts = PostQueryBuilder::create(&conn)
     .listing_type(ListingType::All)

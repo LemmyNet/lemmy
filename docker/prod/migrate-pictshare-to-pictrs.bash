@@ -1,13 +1,18 @@
 #!/bin/bash
 set -e
 
-if [[ $(id -u) != 0 ]]; then 
+if [[ $(id -u) != 0 ]]; then
     echo "This migration needs to be run as root"
     exit
 fi
 
-if [[ ! -f docker-compose.yml ]]; then 
+if [[ ! -f docker-compose.yml ]]; then
     echo "No docker-compose.yml found in current directory. Is this the right folder?"
+    exit
+fi
+
+if ! which jq > /dev/null; then
+    echo "jq must be installed to run this migration. On ubuntu systems, try 'sudo apt-get install jq'"
     exit
 fi
 
@@ -26,6 +31,8 @@ fi
 # echo "Stopping Lemmy so that users dont upload new images during the migration"
 # docker-compose stop lemmy
 
+CRASHED_ON=()
+
 pushd volumes/pictshare/
 echo "Importing pictshare images to pict-rs..."
 IMAGE_NAMES=*
@@ -34,11 +41,36 @@ for image in $IMAGE_NAMES; do
     if [[ ! -f $IMAGE_PATH ]]; then
         continue
     fi
-    echo -e "\nImporting $IMAGE_PATH"
-    ret=0
-    curl --silent --fail -F "images[]=@$IMAGE_PATH" http://127.0.0.1:8537/import || ret=$?
-    if [[ $ret != 0 ]]; then
-      echo "Error for $IMAGE_PATH : $ret"
+    res=$(curl -s -F "images[]=@$IMAGE_PATH" http://127.0.0.1:8537/import | jq .msg)
+    if [ "${res}" == "" ]; then
+        echo -n "C" >&2
+        echo ""
+        CRASHED_ON+=("${IMAGE_PATH}")
+        echo "Failed to import $IMAGE_PATH with no error message"
+        echo "  assuming crash, sleeping"
+        sleep 10
+        continue
+    fi
+    if [ "${res}" != "\"ok\"" ]; then
+        echo -n "F" >&2
+        echo ""
+        echo "Failed to import $IMAGE_PATH"
+        echo "  Reason: ${res}"
+    else
+        echo -n "." >&2
+    fi
+done
+
+for image in ${CRASHED_ON[@]}; do
+    echo "Retrying ${image}"
+    res=$(curl -s -F "images[]=@$IMAGE_PATH" http://127.0.0.1:8537/import | jq .msg)
+    if [ "${res}" != "\"ok\"" ]; then
+        echo -n "F" >&2
+        echo ""
+        echo "Failed to upload ${image} on 2nd attempt"
+        echo "  Reason: ${res}"
+    else
+        echo -n "." >&2
     fi
 done
 

@@ -1,17 +1,15 @@
-use crate::{
-  apub::{
-    comment::get_apub_comment,
-    community::*,
-    community_inbox::community_inbox,
-    post::get_apub_post,
-    shared_inbox::shared_inbox,
-    user::*,
-    user_inbox::user_inbox,
-    APUB_JSON_CONTENT_TYPE,
-  },
-  settings::Settings,
+use crate::apub::{
+  comment::get_apub_comment,
+  community::*,
+  community_inbox::community_inbox,
+  post::get_apub_post,
+  shared_inbox::shared_inbox,
+  user::*,
+  user_inbox::user_inbox,
+  APUB_JSON_CONTENT_TYPE,
 };
 use actix_web::*;
+use lemmy_utils::settings::Settings;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
   if Settings::get().federation.enabled {
