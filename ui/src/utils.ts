@@ -496,7 +496,8 @@ export function isCakeDay(published: string): boolean {
 
   return (
     userCreationDate.date() === currentDate.date() &&
-    userCreationDate.month() === currentDate.month()
+    userCreationDate.month() === currentDate.month() &&
+    userCreationDate.year() !== currentDate.year()
   );
 }
 
