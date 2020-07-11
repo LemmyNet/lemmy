@@ -229,6 +229,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 edit
                 onReplyCancel={this.handleReplyCancel}
                 disabled={this.props.locked}
+                focus
               />
             )}
             {!this.state.showEdit && !this.state.collapsed && (
@@ -697,6 +698,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
             node={node}
             onReplyCancel={this.handleReplyCancel}
             disabled={this.props.locked}
+            focus
           />
         )}
         {node.children && !this.state.collapsed && (
