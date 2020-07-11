@@ -166,7 +166,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
 
   componentWillUnmount() {
     this.subscription.unsubscribe();
-    this.choices.destroy();
+    this.choices && this.choices.destroy();
     window.onbeforeunload = null;
   }
 
