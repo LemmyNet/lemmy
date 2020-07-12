@@ -17,20 +17,14 @@ WORKDIR /app
 RUN sudo chown -R rust:rust .
 RUN USER=root cargo new server
 WORKDIR /app/server
-RUN mkdir -p lemmy_db/src/ lemmy_utils/src/
 COPY server/Cargo.toml server/Cargo.lock ./
-COPY server/lemmy_db/Cargo.toml ./lemmy_db/
-COPY server/lemmy_utils/Cargo.toml ./lemmy_utils/
-RUN sudo chown -R rust:rust .
+COPY server/lemmy_db ./lemmy_db
+COPY server/lemmy_utils ./lemmy_utils
 RUN mkdir -p ./src/bin \
-   && echo 'fn main() { println!("Dummy") }' > ./src/bin/main.rs \
-   && cp ./src/bin/main.rs ./lemmy_db/src/main.rs \
-   && cp ./src/bin/main.rs ./lemmy_utils/src/main.rs
+   && echo 'fn main() { println!("Dummy") }' > ./src/bin/main.rs
 RUN cargo build
-RUN rm -f ./target/x86_64-unknown-linux-musl/release/deps/lemmy_server*
+RUN find target/debug -type f -name "$(echo "lemmy_server" | tr '-' '_')*" -exec touch -t 200001010000 {} +
 COPY server/src ./src/
-COPY server/lemmy_db ./lemmy_db/
-COPY server/lemmy_utils ./lemmy_utils/
 COPY server/migrations ./migrations/
 
 # Build for debug
