@@ -226,7 +226,7 @@ export class Post extends Component<any, PostState> {
   sortRadios() {
     return (
       <>
-        <div class="btn-group btn-group-toggle mb-2">
+        <div class="btn-group btn-group-toggle mr-3 mb-2">
           <label
             className={`btn btn-sm btn-secondary pointer ${
               this.state.commentSort === CommentSortType.Hot && 'active'
@@ -280,7 +280,7 @@ export class Post extends Component<any, PostState> {
             />
           </label>
         </div>
-        <div class="btn-group btn-group-toggle ml-3 mb-2">
+        <div class="btn-group btn-group-toggle mb-2">
           <label
             className={`btn btn-sm btn-secondary pointer ${
               this.state.commentViewType === CommentViewType.Tree && 'active'
