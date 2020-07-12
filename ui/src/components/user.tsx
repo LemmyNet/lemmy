@@ -383,6 +383,7 @@ export class User extends Component<any, UserState> {
                 nodes={[{ comment: i.data as Comment }]}
                 admins={this.state.admins}
                 noIndent
+                showCommunity
                 showContext
                 enableDownvotes={this.state.site.enable_downvotes}
               />
@@ -400,6 +401,7 @@ export class User extends Component<any, UserState> {
           nodes={commentsToFlatNodes(this.state.comments)}
           admins={this.state.admins}
           noIndent
+          showCommunity
           showContext
           enableDownvotes={this.state.site.enable_downvotes}
         />
