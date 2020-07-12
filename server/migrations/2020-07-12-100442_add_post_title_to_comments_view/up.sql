@@ -10,9 +10,10 @@ drop view comment_aggregates_view;
 create view comment_aggregates_view as
 select
 	ct.*,
-	-- community details
-	p.community_id,
+	-- post details
 	p."name" as post_name,
+	p.community_id,
+	-- community details
 	c.actor_id as community_actor_id,
 	c."local" as community_local,
 	c."name" as community_name,
@@ -116,6 +117,7 @@ select
     c.creator_actor_id,
     c.creator_local,
     c.post_id,
+    c.post_name,
     c.parent_id,
     c.content,
     c.removed,
@@ -152,6 +154,7 @@ select
     ac.creator_actor_id,
     ac.creator_local,
     ac.post_id,
+    ac.post_name,
     ac.parent_id,
     ac.content,
     ac.removed,
@@ -195,6 +198,7 @@ select
     ac.creator_actor_id,
     ac.creator_local,
     ac.post_id,
+    ac.post_name,
     ac.parent_id,
     ac.content,
     ac.removed,
@@ -248,144 +252,3 @@ closereply.recipient_id
 from comment_fast_view cv, closereply
 where closereply.id = cv.id
 ;
-
--- add creator_published to the post view
-drop view post_fast_view;
-drop table post_aggregates_fast;
-drop view post_view;
-drop view post_aggregates_view;
-
-create view post_aggregates_view as
-select
-	p.*,
-	-- creator details
-	u.actor_id as creator_actor_id,
-	u."local" as creator_local,
-	u."name" as creator_name,
-  u.published as creator_published,
-	u.avatar as creator_avatar,
-  u.banned as banned,
-  cb.id::bool as banned_from_community,
-	-- community details
-	c.actor_id as community_actor_id,
-	c."local" as community_local,
-	c."name" as community_name,
-	c.removed as community_removed,
-	c.deleted as community_deleted,
-	c.nsfw as community_nsfw,
-	-- post score data/comment count
-	coalesce(ct.comments, 0) as number_of_comments,
-	coalesce(pl.score, 0) as score,
-	coalesce(pl.upvotes, 0) as upvotes,
-	coalesce(pl.downvotes, 0) as downvotes,
-	hot_rank(
-		coalesce(pl.score , 0), (
-			case
-				when (p.published < ('now'::timestamp - '1 month'::interval))
-				then p.published
-				else greatest(ct.recent_comment_time, p.published)
-			end
-		)
-	) as hot_rank,
-	(
-		case
-			when (p.published < ('now'::timestamp - '1 month'::interval))
-			then p.published
-			else greatest(ct.recent_comment_time, p.published)
-		end
-	) as newest_activity_time
-from post p
-left join user_ u on p.creator_id = u.id
-left join community_user_ban cb on p.creator_id = cb.user_id and p.community_id = cb.community_id
-left join community c on p.community_id = c.id
-left join (
-	select
-		post_id,
-		count(*) as comments,
-		max(published) as recent_comment_time
-	from comment
-	group by post_id
-) ct on ct.post_id = p.id
-left join (
-	select
-		post_id,
-		sum(score) as score,
-		sum(score) filter (where score = 1) as upvotes,
-		-sum(score) filter (where score = -1) as downvotes
-	from post_like
-	group by post_id
-) pl on pl.post_id = p.id
-order by p.id;
-
-create view post_view as
-select
-	pav.*,
-	us.id as user_id,
-	us.user_vote as my_vote,
-	us.is_subbed::bool as subscribed,
-	us.is_read::bool as read,
-	us.is_saved::bool as saved
-from post_aggregates_view pav
-cross join lateral (
-	select
-		u.id,
-		coalesce(cf.community_id, 0) as is_subbed,
-		coalesce(pr.post_id, 0) as is_read,
-		coalesce(ps.post_id, 0) as is_saved,
-		coalesce(pl.score, 0) as user_vote
-	from user_ u
-	left join community_user_ban cb on u.id = cb.user_id and cb.community_id = pav.community_id
-	left join community_follower cf on u.id = cf.user_id and cf.community_id = pav.community_id
-	left join post_read pr on u.id = pr.user_id and pr.post_id = pav.id
-	left join post_saved ps on u.id = ps.user_id and ps.post_id = pav.id
-	left join post_like pl on u.id = pl.user_id and pav.id = pl.post_id
-) as us
-
-union all
-
-select
-pav.*,
-null as user_id,
-null as my_vote,
-null as subscribed,
-null as read,
-null as saved
-from post_aggregates_view pav;
-
-create table post_aggregates_fast as select * from post_aggregates_view;
-alter table post_aggregates_fast add primary key (id);
-
-create view post_fast_view as
-select
-	pav.*,
-	us.id as user_id,
-	us.user_vote as my_vote,
-	us.is_subbed::bool as subscribed,
-	us.is_read::bool as read,
-	us.is_saved::bool as saved
-from post_aggregates_fast pav
-cross join lateral (
-	select
-		u.id,
-		coalesce(cf.community_id, 0) as is_subbed,
-		coalesce(pr.post_id, 0) as is_read,
-		coalesce(ps.post_id, 0) as is_saved,
-		coalesce(pl.score, 0) as user_vote
-	from user_ u
-	left join community_user_ban cb on u.id = cb.user_id and cb.community_id = pav.community_id
-	left join community_follower cf on u.id = cf.user_id and cf.community_id = pav.community_id
-	left join post_read pr on u.id = pr.user_id and pr.post_id = pav.id
-	left join post_saved ps on u.id = ps.user_id and ps.post_id = pav.id
-	left join post_like pl on u.id = pl.user_id and pav.id = pl.post_id
-) as us
-
-union all
-
-select
-pav.*,
-null as user_id,
-null as my_vote,
-null as subscribed,
-null as read,
-null as saved
-from post_aggregates_fast pav;
