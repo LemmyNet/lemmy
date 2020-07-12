@@ -33,6 +33,7 @@ interface CommentFormProps {
   onReplyCancel?(): any;
   edit?: boolean;
   disabled?: boolean;
+  focus?: boolean;
 }
 
 interface CommentFormState {
@@ -122,7 +123,9 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
         setTimeout(() => autosize.update(textarea), 10);
       }
 
-      textarea.focus();
+      if (this.props.focus) {
+        textarea.focus();
+      }
     }
   }
 
