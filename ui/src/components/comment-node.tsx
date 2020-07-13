@@ -32,6 +32,7 @@ import { MomentTime } from './moment-time';
 import { CommentForm } from './comment-form';
 import { CommentNodes } from './comment-nodes';
 import { UserListing } from './user-listing';
+import { CommunityLink } from './community-link';
 import { i18n } from '../i18next';
 
 interface CommentNodeState {
@@ -186,8 +187,17 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               {this.props.showCommunity && (
                 <>
                   <span class="mx-1">{i18n.t('to')}</span>
-                  <Link class="mr-2" to={`/c/${node.comment.community_name}`}>
-                    {node.comment.community_name}
+                  <CommunityLink
+                    community={{
+                      name: node.comment.community_name,
+                      id: node.comment.community_id,
+                      local: node.comment.community_local,
+                      actor_id: node.comment.community_actor_id,
+                    }}
+                  />
+                  <span class="mx-2">•</span>
+                  <Link class="mr-2" to={`/post/${node.comment.post_id}`}>
+                    {node.comment.post_name}
                   </Link>
                 </>
               )}
@@ -222,15 +232,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 <MomentTime data={node.comment} />
               </span>
             </div>
-            {this.props.showCommunity && !this.state.collapsed && (
-              <>
-                <div class="md-div text-muted small">
-                  <Link class="mr-2" to={`/post/${node.comment.post_id}`}>
-                    {node.comment.post_name}
-                  </Link>
-                </div>
-              </>
-            )}
             {/* end of user row */}
             {this.state.showEdit && (
               <CommentForm
