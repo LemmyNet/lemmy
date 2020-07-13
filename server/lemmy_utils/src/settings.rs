@@ -4,6 +4,7 @@ use std::{fs, io::Error, net::IpAddr, sync::RwLock};
 use std::env;
 
 static CONFIG_FILE_DEFAULTS: &str = "config/defaults.hjson";
+static CONFIG_FILE: &str = "config/config.hjson";
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Settings {
@@ -116,7 +117,7 @@ impl Settings {
   }
 
   pub fn get_config_location() -> String {
-    env::var("LEMMY_CONFIG_LOCATION").unwrap_or("config/config.hjson".to_string())
+    env::var("LEMMY_CONFIG_LOCATION").unwrap_or(CONFIG_FILE.to_string())
   }
 
   pub fn read_config_file() -> Result<String, Error> {
