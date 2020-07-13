@@ -1,6 +1,7 @@
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
 use std::{fs, io::Error, net::IpAddr, sync::RwLock};
+use std::env;
 
 static CONFIG_FILE_DEFAULTS: &str = "config/defaults.hjson";
 static CONFIG_FILE: &str = "config/config.hjson";
@@ -83,7 +84,7 @@ impl Settings {
 
     s.merge(File::with_name(CONFIG_FILE_DEFAULTS))?;
 
-    s.merge(File::with_name(CONFIG_FILE).required(false))?;
+    s.merge(File::with_name(&Self::get_config_location()).required(false))?;
 
     // Add in settings from the environment (with a prefix of LEMMY)
     // Eg.. `LEMMY_DEBUG=1 ./target/app` would set the `debug` key
@@ -115,12 +116,16 @@ impl Settings {
     format!("{}/api/v1", self.hostname)
   }
 
+  pub fn get_config_location() -> String {
+    env::var("LEMMY_CONFIG_LOCATION").unwrap_or_else(|_| CONFIG_FILE.to_string())
+  }
+
   pub fn read_config_file() -> Result<String, Error> {
-    fs::read_to_string(CONFIG_FILE)
+    fs::read_to_string(Self::get_config_location())
   }
 
   pub fn save_config_file(data: &str) -> Result<String, Error> {
-    fs::write(CONFIG_FILE, data)?;
+    fs::write(Self::get_config_location(), data)?;
 
     // Reload the new settings
     // From https://stackoverflow.com/questions/29654927/how-do-i-assign-a-string-to-a-mutable-static-variable/47181804#47181804
