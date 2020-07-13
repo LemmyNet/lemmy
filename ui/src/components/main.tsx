@@ -271,14 +271,12 @@ export class Main extends Component<any, MainState> {
   }) {
     const listingTypeStr =
       paramUpdates.listing_type ||
-      ListingType[getListingTypeFromProps(this.props)].toLowerCase();
+      ListingType[this.state.listingType].toLowerCase();
     const dataTypeStr =
-      paramUpdates.data_type ||
-      DataType[getDataTypeFromProps(this.props)].toLowerCase();
+      paramUpdates.data_type || DataType[this.state.dataType].toLowerCase();
     const sortStr =
-      paramUpdates.sort ||
-      SortType[getSortTypeFromProps(this.props)].toLowerCase();
-    const page = paramUpdates.page || getPageFromProps(this.props);
+      paramUpdates.sort || SortType[this.state.sort].toLowerCase();
+    const page = paramUpdates.page || this.state.page;
     this.props.history.push(
       `/home/data_type/${dataTypeStr}/listing_type/${listingTypeStr}/sort/${sortStr}/page/${page}`
     );
