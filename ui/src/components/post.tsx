@@ -11,6 +11,7 @@ import {
   CommentForm as CommentFormI,
   CommentResponse,
   CommentSortType,
+  CommentViewType,
   CommunityUser,
   CommunityResponse,
   CommentNode as CommentNodeI,
@@ -49,6 +50,7 @@ interface PostState {
   post: PostI;
   comments: Array<Comment>;
   commentSort: CommentSortType;
+  commentViewType: CommentViewType;
   community: Community;
   moderators: Array<CommunityUser>;
   online: number;
@@ -65,6 +67,7 @@ export class Post extends Component<any, PostState> {
     post: null,
     comments: [],
     commentSort: CommentSortType.Hot,
+    commentViewType: CommentViewType.Tree,
     community: null,
     moderators: [],
     online: null,
@@ -208,12 +211,12 @@ export class Post extends Component<any, PostState> {
                 disabled={this.state.post.locked}
               />
               {this.state.comments.length > 0 && this.sortRadios()}
-              {this.commentsTree()}
+              {this.state.commentViewType == CommentViewType.Tree &&
+                this.commentsTree()}
+              {this.state.commentViewType == CommentViewType.Chat &&
+                this.commentsFlat()}
             </div>
-            <div class="col-12 col-sm-12 col-md-4">
-              {this.state.comments.length > 0 && this.newComments()}
-              {this.sidebar()}
-            </div>
+            <div class="col-12 col-sm-12 col-md-4">{this.sidebar()}</div>
           </div>
         )}
       </div>
@@ -222,79 +225,107 @@ export class Post extends Component<any, PostState> {
 
   sortRadios() {
     return (
-      <div class="btn-group btn-group-toggle mb-2">
-        <label
-          className={`btn btn-sm btn-secondary pointer ${
-            this.state.commentSort === CommentSortType.Hot && 'active'
-          }`}
-        >
-          {i18n.t('hot')}
-          <input
-            type="radio"
-            value={CommentSortType.Hot}
-            checked={this.state.commentSort === CommentSortType.Hot}
-            onChange={linkEvent(this, this.handleCommentSortChange)}
-          />
-        </label>
-        <label
-          className={`btn btn-sm btn-secondary pointer ${
-            this.state.commentSort === CommentSortType.Top && 'active'
-          }`}
-        >
-          {i18n.t('top')}
-          <input
-            type="radio"
-            value={CommentSortType.Top}
-            checked={this.state.commentSort === CommentSortType.Top}
-            onChange={linkEvent(this, this.handleCommentSortChange)}
-          />
-        </label>
-        <label
-          className={`btn btn-sm btn-secondary pointer ${
-            this.state.commentSort === CommentSortType.New && 'active'
-          }`}
-        >
-          {i18n.t('new')}
-          <input
-            type="radio"
-            value={CommentSortType.New}
-            checked={this.state.commentSort === CommentSortType.New}
-            onChange={linkEvent(this, this.handleCommentSortChange)}
-          />
-        </label>
-        <label
-          className={`btn btn-sm btn-secondary pointer ${
-            this.state.commentSort === CommentSortType.Old && 'active'
-          }`}
-        >
-          {i18n.t('old')}
-          <input
-            type="radio"
-            value={CommentSortType.Old}
-            checked={this.state.commentSort === CommentSortType.Old}
-            onChange={linkEvent(this, this.handleCommentSortChange)}
-          />
-        </label>
-      </div>
+      <>
+        <div class="btn-group btn-group-toggle mr-3 mb-2">
+          <label
+            className={`btn btn-sm btn-secondary pointer ${
+              this.state.commentSort === CommentSortType.Hot && 'active'
+            }`}
+          >
+            {i18n.t('hot')}
+            <input
+              type="radio"
+              value={CommentSortType.Hot}
+              checked={this.state.commentSort === CommentSortType.Hot}
+              onChange={linkEvent(this, this.handleCommentSortChange)}
+            />
+          </label>
+          <label
+            className={`btn btn-sm btn-secondary pointer ${
+              this.state.commentSort === CommentSortType.Top && 'active'
+            }`}
+          >
+            {i18n.t('top')}
+            <input
+              type="radio"
+              value={CommentSortType.Top}
+              checked={this.state.commentSort === CommentSortType.Top}
+              onChange={linkEvent(this, this.handleCommentSortChange)}
+            />
+          </label>
+          <label
+            className={`btn btn-sm btn-secondary pointer ${
+              this.state.commentSort === CommentSortType.New && 'active'
+            }`}
+          >
+            {i18n.t('new')}
+            <input
+              type="radio"
+              value={CommentSortType.New}
+              checked={this.state.commentSort === CommentSortType.New}
+              onChange={linkEvent(this, this.handleCommentSortChange)}
+            />
+          </label>
+          <label
+            className={`btn btn-sm btn-secondary pointer ${
+              this.state.commentSort === CommentSortType.Old && 'active'
+            }`}
+          >
+            {i18n.t('old')}
+            <input
+              type="radio"
+              value={CommentSortType.Old}
+              checked={this.state.commentSort === CommentSortType.Old}
+              onChange={linkEvent(this, this.handleCommentSortChange)}
+            />
+          </label>
+        </div>
+        <div class="btn-group btn-group-toggle mb-2">
+          <label
+            className={`btn btn-sm btn-secondary pointer ${
+              this.state.commentViewType === CommentViewType.Tree && 'active'
+            }`}
+          >
+            {i18n.t('tree')}
+            <input
+              type="radio"
+              value={CommentViewType.Tree}
+              checked={this.state.commentViewType === CommentViewType.Tree}
+              onChange={linkEvent(this, this.handleCommentViewTypeChange)}
+            />
+          </label>
+          <label
+            className={`btn btn-sm btn-secondary pointer ${
+              this.state.commentViewType === CommentViewType.Chat && 'active'
+            }`}
+          >
+            {i18n.t('chat')}
+            <input
+              type="radio"
+              value={CommentViewType.Chat}
+              checked={this.state.commentViewType === CommentViewType.Chat}
+              onChange={linkEvent(this, this.handleCommentViewTypeChange)}
+            />
+          </label>
+        </div>
+      </>
     );
   }
 
-  newComments() {
+  commentsFlat() {
     return (
-      <div class="d-none d-md-block new-comments mb-3 card border-secondary">
-        <div class="card-body small">
-          <h6>{i18n.t('recent_comments')}</h6>
-          <CommentNodes
-            nodes={commentsToFlatNodes(this.state.comments)}
-            noIndent
-            locked={this.state.post.locked}
-            moderators={this.state.moderators}
-            admins={this.state.siteRes.admins}
-            postCreatorId={this.state.post.creator_id}
-            showContext
-            enableDownvotes={this.state.siteRes.site.enable_downvotes}
-          />
-        </div>
+      <div>
+        <CommentNodes
+          nodes={commentsToFlatNodes(this.state.comments)}
+          noIndent
+          locked={this.state.post.locked}
+          moderators={this.state.moderators}
+          admins={this.state.siteRes.admins}
+          postCreatorId={this.state.post.creator_id}
+          showContext
+          enableDownvotes={this.state.siteRes.site.enable_downvotes}
+          sort={this.state.commentSort}
+        />
       </div>
     );
   }
@@ -315,6 +346,11 @@ export class Post extends Component<any, PostState> {
 
   handleCommentSortChange(i: Post, event: any) {
     i.state.commentSort = Number(event.target.value);
+    i.setState(i.state);
+  }
+
+  handleCommentViewTypeChange(i: Post, event: any) {
+    i.state.commentViewType = Number(event.target.value);
     i.setState(i.state);
   }
 

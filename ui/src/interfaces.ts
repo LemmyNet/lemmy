@@ -54,6 +54,11 @@ export enum CommentSortType {
   Old,
 }
 
+export enum CommentViewType {
+  Tree,
+  Chat,
+}
+
 export enum ListingType {
   All,
   Subscribed,
