@@ -158,6 +158,7 @@ pub struct PostQueryBuilder<'a> {
   my_user_id: Option<i32>,
   for_creator_id: Option<i32>,
   for_community_id: Option<i32>,
+  for_community_name: Option<String>,
   search_term: Option<String>,
   url_search: Option<String>,
   show_nsfw: bool,
@@ -181,6 +182,7 @@ impl<'a> PostQueryBuilder<'a> {
       my_user_id: None,
       for_creator_id: None,
       for_community_id: None,
+      for_community_name: None,
       search_term: None,
       url_search: None,
       show_nsfw: true,
@@ -203,6 +205,11 @@ impl<'a> PostQueryBuilder<'a> {
 
   pub fn for_community_id<T: MaybeOptional<i32>>(mut self, for_community_id: T) -> Self {
     self.for_community_id = for_community_id.get_optional();
+    self
+  }
+
+  pub fn for_community_name<T: MaybeOptional<String>>(mut self, for_community_name: T) -> Self {
+    self.for_community_name = for_community_name.get_optional();
     self
   }
 
@@ -262,6 +269,11 @@ impl<'a> PostQueryBuilder<'a> {
 
     if let Some(for_community_id) = self.for_community_id {
       query = query.filter(community_id.eq(for_community_id));
+      query = query.then_order_by(stickied.desc());
+    }
+
+    if let Some(for_community_name) = self.for_community_name {
+      query = query.filter(community_name.eq(for_community_name));
       query = query.then_order_by(stickied.desc());
     }
 

@@ -28,7 +28,13 @@ use lemmy_db::{
   Saveable,
   SortType,
 };
-use lemmy_utils::{is_valid_post_title, make_apub_endpoint, slur_check, slurs_vec_to_str, EndpointType};
+use lemmy_utils::{
+  is_valid_post_title,
+  make_apub_endpoint,
+  slur_check,
+  slurs_vec_to_str,
+  EndpointType,
+};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
@@ -70,6 +76,7 @@ pub struct GetPosts {
   page: Option<i64>,
   limit: Option<i64>,
   pub community_id: Option<i32>,
+  pub community_name: Option<String>,
   auth: Option<String>,
 }
 
@@ -369,12 +376,14 @@ impl Perform for Oper<GetPosts> {
     let page = data.page;
     let limit = data.limit;
     let community_id = data.community_id;
+    let community_name = data.community_name.to_owned();
     let posts = match blocking(pool, move |conn| {
       PostQueryBuilder::create(conn)
         .listing_type(type_)
         .sort(&sort)
         .show_nsfw(show_nsfw)
         .for_community_id(community_id)
+        .for_community_name(community_name)
         .my_user_id(user_id)
         .page(page)
         .limit(limit)
