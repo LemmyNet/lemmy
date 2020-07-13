@@ -1,28 +1,18 @@
 use crate::{
   apub::{
     activities::{populate_object_props, send_activity},
-    create_apub_response,
-    create_apub_tombstone_response,
-    create_tombstone,
+    create_apub_response, create_apub_tombstone_response, create_tombstone,
     extensions::group_extensions::GroupExtension,
     fetcher::get_or_fetch_and_upsert_remote_user,
-    get_shared_inbox,
-    insert_activity,
-    ActorType,
-    FromApub,
-    GroupExt,
-    ToApub,
+    get_shared_inbox, insert_activity, ActorType, FromApub, GroupExt, ToApub,
   },
   blocking,
   routes::DbPoolParam,
-  DbPool,
-  LemmyError,
+  DbPool, LemmyError,
 };
 use activitystreams::{
   activity::{Accept, Announce, Delete, Remove, Undo},
-  Activity,
-  Base,
-  BaseBox,
+  Activity, Base, BaseBox,
 };
 use activitystreams_ext::Ext2;
 use activitystreams_new::{
@@ -367,13 +357,8 @@ impl FromApub for CommunityForm {
   type ApubType = GroupExt;
 
   /// Parse an ActivityPub group received from another instance into a Lemmy community.
-  async fn from_apub(
-    group: &mut GroupExt,
-    client: &Client,
-    pool: &DbPool,
-  ) -> Result<Self, LemmyError> {
-    // TODO: this is probably gonna cause problems cause fetcher:292 also calls take_attributed_to()
-    let creator_and_moderator_uris = group.clone().take_attributed_to().unwrap();
+  async fn from_apub(group: &GroupExt, client: &Client, pool: &DbPool) -> Result<Self, LemmyError> {
+    let creator_and_moderator_uris = group.attributed_to().unwrap();
     let creator_uri = creator_and_moderator_uris
       .as_many()
       .unwrap()
@@ -386,27 +371,20 @@ impl FromApub for CommunityForm {
     let creator = get_or_fetch_and_upsert_remote_user(creator_uri.as_str(), client, pool).await?;
 
     Ok(CommunityForm {
-      name: group
-        .take_name()
-        .unwrap()
-        .as_single_xsd_string()
-        .unwrap()
-        .into(),
-      title: group.inner.take_preferred_username().unwrap(),
+      name: group.name().unwrap().as_single_xsd_string().unwrap().into(),
+      title: group.inner.preferred_username().unwrap().to_string(),
       // TODO: should be parsed as html and tags like <script> removed (or use markdown source)
       //       -> same for post.content etc
       description: group
-        .take_content()
+        .content()
         .map(|s| s.as_single_xsd_string().unwrap().into()),
       category_id: group.ext_one.category.identifier.parse::<i32>()?,
       creator_id: creator.id,
       removed: None,
       published: group
-        .take_published()
+        .published()
         .map(|u| u.as_ref().to_owned().naive_local()),
-      updated: group
-        .take_updated()
-        .map(|u| u.as_ref().to_owned().naive_local()),
+      updated: group.updated().map(|u| u.as_ref().to_owned().naive_local()),
       deleted: None,
       nsfw: group.ext_one.sensitive,
       actor_id: group.id().unwrap().to_string(),
