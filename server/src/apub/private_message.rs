@@ -1,16 +1,9 @@
 use crate::{
   apub::{
-    activities::send_activity,
-    create_tombstone,
-    fetcher::get_or_fetch_and_upsert_remote_user,
-    insert_activity,
-    ApubObjectType,
-    FromApub,
-    ToApub,
+    activities::send_activity, create_tombstone, fetcher::get_or_fetch_and_upsert_remote_user,
+    insert_activity, ApubObjectType, FromApub, ToApub,
   },
-  blocking,
-  DbPool,
-  LemmyError,
+  blocking, DbPool, LemmyError,
 };
 use activitystreams::{
   activity::{Create, Delete, Undo, Update},
@@ -71,7 +64,7 @@ impl FromApub for PrivateMessageForm {
 
   /// Parse an ActivityPub note received from another instance into a Lemmy Private message
   async fn from_apub(
-    note: &mut Note,
+    note: &Note,
     client: &Client,
     pool: &DbPool,
   ) -> Result<PrivateMessageForm, LemmyError> {

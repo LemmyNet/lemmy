@@ -1,22 +1,14 @@
 use crate::{
   apub::{
     activities::{populate_object_props, send_activity_to_community},
-    create_apub_response,
-    create_apub_tombstone_response,
-    create_tombstone,
+    create_apub_response, create_apub_tombstone_response, create_tombstone,
     extensions::page_extension::PageExtension,
     fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user},
-    ActorType,
-    ApubLikeableType,
-    ApubObjectType,
-    FromApub,
-    PageExt,
-    ToApub,
+    ActorType, ApubLikeableType, ApubObjectType, FromApub, PageExt, ToApub,
   },
   blocking,
   routes::DbPoolParam,
-  DbPool,
-  LemmyError,
+  DbPool, LemmyError,
 };
 use activitystreams::{
   activity::{Create, Delete, Dislike, Like, Remove, Undo, Update},
@@ -162,7 +154,7 @@ impl FromApub for PostForm {
 
   /// Parse an ActivityPub page received from another instance into a Lemmy post.
   async fn from_apub(
-    page: &mut PageExt,
+    page: &PageExt,
     client: &Client,
     pool: &DbPool,
   ) -> Result<PostForm, LemmyError> {

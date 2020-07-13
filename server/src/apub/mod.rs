@@ -19,8 +19,7 @@ use crate::{
   blocking,
   request::{retry, RecvError},
   routes::webfinger::WebFingerResponse,
-  DbPool,
-  LemmyError,
+  DbPool, LemmyError,
 };
 use activitystreams::object::Page;
 use activitystreams_ext::{Ext1, Ext2};
@@ -129,7 +128,7 @@ fn create_tombstone(
 pub trait FromApub {
   type ApubType;
   async fn from_apub(
-    apub: &mut Self::ApubType,
+    apub: &Self::ApubType,
     client: &Client,
     pool: &DbPool,
   ) -> Result<Self, LemmyError>
