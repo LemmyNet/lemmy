@@ -267,6 +267,7 @@ export class Inbox extends Component<any, InboxState> {
               nodes={[{ comment: i }]}
               noIndent
               markable
+              showCommunity
               showContext
               enableDownvotes={this.state.enableDownvotes}
             />
@@ -285,6 +286,7 @@ export class Inbox extends Component<any, InboxState> {
           nodes={commentsToFlatNodes(this.state.replies)}
           noIndent
           markable
+          showCommunity
           showContext
           enableDownvotes={this.state.enableDownvotes}
         />
@@ -300,6 +302,7 @@ export class Inbox extends Component<any, InboxState> {
             nodes={[{ comment: mention }]}
             noIndent
             markable
+            showCommunity
             showContext
             enableDownvotes={this.state.enableDownvotes}
           />
