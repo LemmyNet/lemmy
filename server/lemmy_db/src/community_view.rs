@@ -299,6 +299,7 @@ impl CommunityModeratorView {
     use super::community_view::community_moderator_view::dsl::*;
     community_moderator_view
       .filter(community_id.eq(from_community_id))
+      .order_by(published)
       .load::<Self>(conn)
   }
 
@@ -306,6 +307,7 @@ impl CommunityModeratorView {
     use super::community_view::community_moderator_view::dsl::*;
     community_moderator_view
       .filter(user_id.eq(from_user_id))
+      .order_by(published)
       .load::<Self>(conn)
   }
 }
