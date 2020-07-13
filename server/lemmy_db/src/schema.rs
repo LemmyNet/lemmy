@@ -38,6 +38,7 @@ table! {
         id -> Int4,
         creator_id -> Nullable<Int4>,
         post_id -> Nullable<Int4>,
+        post_name -> Nullable<Varchar>,
         parent_id -> Nullable<Int4>,
         content -> Nullable<Text>,
         removed -> Nullable<Bool>,

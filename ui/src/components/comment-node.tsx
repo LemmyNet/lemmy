@@ -222,6 +222,15 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 <MomentTime data={node.comment} />
               </span>
             </div>
+            {this.props.showCommunity && !this.state.collapsed && (
+              <>
+                <div class="md-div text-muted small">
+                  <Link class="mr-2" to={`/post/${node.comment.post_id}`}>
+                    {node.comment.post_name}
+                  </Link>
+                </div>
+              </>
+            )}
             {/* end of user row */}
             {this.state.showEdit && (
               <CommentForm

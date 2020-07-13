@@ -216,6 +216,7 @@ export interface Comment {
   local: boolean;
   creator_id: number;
   post_id: number;
+  post_name: string;
   parent_id?: number;
   content: string;
   removed: boolean;
