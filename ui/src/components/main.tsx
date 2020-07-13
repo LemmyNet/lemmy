@@ -141,17 +141,23 @@ export class Main extends Component<any, MainState> {
     this.subscription.unsubscribe();
   }
 
-  // Necessary for back button for some reason
-  componentWillReceiveProps(nextProps: any) {
+  static getDerivedStateFromProps(props) {
+    return {
+      listingType: getListingTypeFromProps(props),
+      dataType: getDataTypeFromProps(props),
+      sort: getSortTypeFromProps(props),
+      page: getPageFromProps(props),
+    };
+  }
+
+  componentDidUpdate(_, lastState) {
     if (
-      nextProps.history.action == 'POP' ||
-      nextProps.history.action == 'PUSH'
+      lastState.listingType !== this.state.listingType ||
+      lastState.dataType !== this.state.dataType ||
+      lastState.sort !== this.state.sort ||
+      lastState.page !== this.state.page
     ) {
-      this.state.listingType = getListingTypeFromProps(nextProps);
-      this.state.dataType = getDataTypeFromProps(nextProps);
-      this.state.sort = getSortTypeFromProps(nextProps);
-      this.state.page = getPageFromProps(nextProps);
-      this.setState(this.state);
+      this.setState({ loading: true });
       this.fetchData();
     }
   }
@@ -257,12 +263,24 @@ export class Main extends Component<any, MainState> {
     );
   }
 
-  updateUrl() {
-    let listingTypeStr = ListingType[this.state.listingType].toLowerCase();
-    let dataTypeStr = DataType[this.state.dataType].toLowerCase();
-    let sortStr = SortType[this.state.sort].toLowerCase();
+  updateUrl(paramUpdates: {
+    listing_type?: string;
+    data_type?: string;
+    sort?: string;
+    page?: number;
+  }) {
+    const listingTypeStr =
+      paramUpdates.listing_type ||
+      ListingType[getListingTypeFromProps(this.props)].toLowerCase();
+    const dataTypeStr =
+      paramUpdates.data_type ||
+      DataType[getDataTypeFromProps(this.props)].toLowerCase();
+    const sortStr =
+      paramUpdates.sort ||
+      SortType[getSortTypeFromProps(this.props)].toLowerCase();
+    const page = paramUpdates.page || getPageFromProps(this.props);
     this.props.history.push(
-      `/home/data_type/${dataTypeStr}/listing_type/${listingTypeStr}/sort/${sortStr}/page/${this.state.page}`
+      `/home/data_type/${dataTypeStr}/listing_type/${listingTypeStr}/sort/${sortStr}/page/${page}`
     );
   }
 
@@ -529,50 +547,27 @@ export class Main extends Component<any, MainState> {
   }
 
   nextPage(i: Main) {
-    i.state.page++;
-    i.state.loading = true;
-    i.setState(i.state);
-    i.updateUrl();
-    i.fetchData();
+    i.updateUrl({ page: this.state.page + 1 });
     window.scrollTo(0, 0);
   }
 
   prevPage(i: Main) {
-    i.state.page--;
-    i.state.loading = true;
-    i.setState(i.state);
-    i.updateUrl();
-    i.fetchData();
+    i.updateUrl({ page: this.state.page - 1 });
     window.scrollTo(0, 0);
   }
 
   handleSortChange(val: SortType) {
-    this.state.sort = val;
-    this.state.page = 1;
-    this.state.loading = true;
-    this.setState(this.state);
-    this.updateUrl();
-    this.fetchData();
+    this.updateUrl({ sort: SortType[val].toLowerCase(), page: 1 });
     window.scrollTo(0, 0);
   }
 
   handleListingTypeChange(val: ListingType) {
-    this.state.listingType = val;
-    this.state.page = 1;
-    this.state.loading = true;
-    this.setState(this.state);
-    this.updateUrl();
-    this.fetchData();
+    this.updateUrl({ listing_type: ListingType[val].toLowerCase(), page: 1 });
     window.scrollTo(0, 0);
   }
 
   handleDataTypeChange(val: DataType) {
-    this.state.dataType = val;
-    this.state.page = 1;
-    this.state.loading = true;
-    this.setState(this.state);
-    this.updateUrl();
-    this.fetchData();
+    this.updateUrl({ data_type: DataType[val].toLowerCase(), page: 1 });
     window.scrollTo(0, 0);
   }
 
