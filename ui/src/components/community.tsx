@@ -143,16 +143,21 @@ export class Community extends Component<any, State> {
     this.subscription.unsubscribe();
   }
 
-  // Necessary for back button for some reason
-  componentWillReceiveProps(nextProps: any) {
+  static getDerivedStateFromProps(props) {
+    return {
+      dataType: getDataTypeFromProps(props),
+      sort: getSortTypeFromProps(props),
+      page: getPageFromProps(props),
+    };
+  }
+
+  componentDidUpdate(_, lastState) {
     if (
-      nextProps.history.action == 'POP' ||
-      nextProps.history.action == 'PUSH'
+      lastState.dataType !== this.state.dataType ||
+      lastState.sort !== this.state.sort ||
+      lastState.page !== this.state.page
     ) {
-      this.state.dataType = getDataTypeFromProps(nextProps);
-      this.state.sort = getSortTypeFromProps(nextProps);
-      this.state.page = getPageFromProps(nextProps);
-      this.setState(this.state);
+      this.setState({ loading: true });
       this.fetchData();
     }
   }
@@ -273,46 +278,37 @@ export class Community extends Component<any, State> {
   }
 
   nextPage(i: Community) {
-    i.state.page++;
-    i.setState(i.state);
-    i.updateUrl();
-    i.fetchData();
+    i.updateUrl({ page: i.state.page + 1 });
     window.scrollTo(0, 0);
   }
 
   prevPage(i: Community) {
-    i.state.page--;
-    i.setState(i.state);
-    i.updateUrl();
-    i.fetchData();
+    i.updateUrl({ page: i.state.page - 1 });
     window.scrollTo(0, 0);
   }
 
   handleSortChange(val: SortType) {
-    this.state.sort = val;
-    this.state.page = 1;
-    this.state.loading = true;
-    this.setState(this.state);
-    this.updateUrl();
-    this.fetchData();
+    this.updateUrl({ sort: SortType[val].toLowerCase(), page: 1 });
     window.scrollTo(0, 0);
   }
 
   handleDataTypeChange(val: DataType) {
-    this.state.dataType = val;
-    this.state.page = 1;
-    this.state.loading = true;
-    this.setState(this.state);
-    this.updateUrl();
-    this.fetchData();
+    this.updateUrl({ data_type: DataType[val].toLowerCase(), page: 1 });
     window.scrollTo(0, 0);
   }
 
-  updateUrl() {
-    let dataTypeStr = DataType[this.state.dataType].toLowerCase();
-    let sortStr = SortType[this.state.sort].toLowerCase();
+  updateUrl(paramUpdates: {
+    data_type?: string;
+    sort?: string;
+    page?: number;
+  }) {
+    const dataTypeStr =
+      paramUpdates.data_type || DataType[this.state.dataType].toLowerCase();
+    const sortStr =
+      paramUpdates.sort || SortType[this.state.sort].toLowerCase();
+    const page = paramUpdates.page || this.state.page;
     this.props.history.push(
-      `/c/${this.state.community.name}/data_type/${dataTypeStr}/sort/${sortStr}/page/${this.state.page}`
+      `/c/${this.state.community.name}/data_type/${dataTypeStr}/sort/${sortStr}/page/${page}`
     );
   }
 
