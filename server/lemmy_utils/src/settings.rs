@@ -117,7 +117,7 @@ impl Settings {
   }
 
   pub fn get_config_location() -> String {
-    env::var("LEMMY_CONFIG_LOCATION").unwrap_or(CONFIG_FILE.to_string())
+    env::var("LEMMY_CONFIG_LOCATION").unwrap_or_else(|_| CONFIG_FILE.to_string())
   }
 
   pub fn read_config_file() -> Result<String, Error> {
