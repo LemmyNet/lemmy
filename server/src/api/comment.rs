@@ -249,18 +249,14 @@ impl Perform for Oper<EditComment> {
     let community_id = orig_comment.community_id;
     moderators.append(
       &mut blocking(pool, move |conn| {
-        Ok(
-          CommunityModeratorView::for_community(&conn, community_id)?
-            .into_iter()
-            .map(|m| m.user_id)
-            .collect(),
-        ) as Result<_, LemmyError>
+        CommunityModeratorView::for_community(&conn, community_id)
+          .map(|v| v.into_iter().map(|m| m.user_id).collect())
       })
       .await??,
     );
     moderators.append(
       &mut blocking(pool, move |conn| {
-        Ok(UserView::admins(conn)?.into_iter().map(|a| a.id).collect()) as Result<_, LemmyError>
+        UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())
       })
       .await??,
     );
