@@ -120,11 +120,11 @@ impl Settings {
   }
 
   pub fn read_config_file() -> Result<String, Error> {
-    fs::read_to_string(Self::get_config_defaults_location())
+    fs::read_to_string(CONFIG_FILE)
   }
 
   pub fn save_config_file(data: &str) -> Result<String, Error> {
-    fs::write(Self::get_config_defaults_location(), data)?;
+    fs::write(CONFIG_FILE, data)?;
 
     // Reload the new settings
     // From https://stackoverflow.com/questions/29654927/how-do-i-assign-a-string-to-a-mutable-static-variable/47181804#47181804
