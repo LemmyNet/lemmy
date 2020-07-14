@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
-git checkout master
+git checkout main
 
 # Import translations
 git fetch weblate

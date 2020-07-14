@@ -19,7 +19,7 @@ ansible-playbook lemmy.yml --become
 
 To update to a new version, just run the following in your local Lemmy repo:
 ```bash
-git pull origin master
+git pull origin main
 cd ansible
 ansible-playbook lemmy.yml --become
 ```
