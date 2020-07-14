@@ -4,11 +4,9 @@ use crate::{
   blocking,
   request::{retry, RecvError},
   routes::nodeinfo::{NodeInfo, NodeInfoWellKnown},
-  DbPool,
-  LemmyError,
+  DbPool, LemmyError,
 };
-use activitystreams::object::Note;
-use activitystreams_new::{base::BaseExt, prelude::*, primitives::XsdAnyUri};
+use activitystreams_new::{base::BaseExt, object::Note, prelude::*, primitives::XsdAnyUri};
 use actix_web::client::Client;
 use chrono::NaiveDateTime;
 use diesel::{result::Error::NotFound, PgConnection};
@@ -22,9 +20,7 @@ use lemmy_db::{
   post_view::PostView,
   user::{UserForm, User_},
   user_view::UserView,
-  Crud,
-  Joinable,
-  SearchType,
+  Crud, Joinable, SearchType,
 };
 use lemmy_utils::get_apub_protocol_string;
 use log::debug;
@@ -139,7 +135,7 @@ pub async fn search_by_apub_id(
 
   let response = match fetch_remote_object::<SearchAcceptedObjects>(client, &query_url).await? {
     SearchAcceptedObjects::Person(p) => {
-      let user_uri = p.inner.id().unwrap().to_string();
+      let user_uri = p.inner.id().unwrap();
 
       let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
@@ -173,16 +169,11 @@ pub async fn search_by_apub_id(
       response
     }
     SearchAcceptedObjects::Comment(c) => {
-      let post_url = c
-        .object_props
-        .get_many_in_reply_to_xsd_any_uris()
-        .unwrap()
-        .next()
-        .unwrap()
-        .to_string();
+      let post_url = c.in_reply_to.as_ref().unwrap().as_many().unwrap();
 
       // TODO: also fetch parent comments if any
-      let post = fetch_remote_object(client, &Url::parse(&post_url)?).await?;
+      let x = post_url.first().unwrap().as_xsd_any_uri().unwrap();
+      let post = fetch_remote_object(client, x.as_url()).await?;
       let post_form = PostForm::from_apub(&post, client, pool).await?;
       let comment_form = CommentForm::from_apub(&c, client, pool).await?;
 
@@ -200,13 +191,13 @@ pub async fn search_by_apub_id(
 
 /// Check if a remote user exists, create if not found, if its too old update it.Fetch a user, insert/update it in the database and return the user.
 pub async fn get_or_fetch_and_upsert_remote_user(
-  apub_id: &str,
+  apub_id: &XsdAnyUri,
   client: &Client,
   pool: &DbPool,
 ) -> Result<User_, LemmyError> {
   let apub_id_owned = apub_id.to_owned();
   let user = blocking(pool, move |conn| {
-    User_::read_from_actor_id(conn, &apub_id_owned)
+    User_::read_from_actor_id(conn, apub_id_owned.as_str())
   })
   .await?;
 
@@ -214,7 +205,7 @@ pub async fn get_or_fetch_and_upsert_remote_user(
     // If its older than a day, re-fetch it
     Ok(u) if !u.local && should_refetch_actor(u.last_refreshed_at) => {
       debug!("Fetching and updating from remote user: {}", apub_id);
-      let person = fetch_remote_object::<PersonExt>(client, &Url::parse(apub_id)?).await?;
+      let person = fetch_remote_object::<PersonExt>(client, apub_id.as_url()).await?;
 
       let mut uf = UserForm::from_apub(&person, client, pool).await?;
       uf.last_refreshed_at = Some(naive_now());
@@ -225,7 +216,7 @@ pub async fn get_or_fetch_and_upsert_remote_user(
     Ok(u) => Ok(u),
     Err(NotFound {}) => {
       debug!("Fetching and creating remote user: {}", apub_id);
-      let person = fetch_remote_object::<PersonExt>(client, &Url::parse(apub_id)?).await?;
+      let person = fetch_remote_object::<PersonExt>(client, apub_id.as_url()).await?;
 
       let uf = UserForm::from_apub(&person, client, pool).await?;
       let user = blocking(pool, move |conn| User_::create(conn, &uf)).await??;
@@ -293,7 +284,7 @@ pub async fn get_or_fetch_and_upsert_remote_community(
       let mut creator_and_moderators = Vec::new();
 
       for uri in creator_and_moderator_uris {
-        let c_or_m = get_or_fetch_and_upsert_remote_user(uri.as_str(), client, pool).await?;
+        let c_or_m = get_or_fetch_and_upsert_remote_user(uri, client, pool).await?;
 
         creator_and_moderators.push(c_or_m);
       }
