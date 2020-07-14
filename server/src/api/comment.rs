@@ -294,7 +294,8 @@ impl Perform for Oper<EditComment> {
           }
         }
         None => {
-          let parent_post = blocking(pool, move |conn| Post::read(conn, edit_id)).await??;
+          let parent_post_id = orig_comment.post_id;
+          let parent_post = blocking(pool, move |conn| Post::read(conn, parent_post_id)).await??;
           if user_id != parent_post.creator_id {
             return Err(APIError::err("no_comment_edit_allowed").into());
           }
@@ -311,14 +312,20 @@ impl Perform for Oper<EditComment> {
       if data.read.is_none() {
         // the ban etc checks should been made and have passed
         // the comment can be properly edited
+        let post_removed = if moderators.contains(&user_id) {
+          data.removed
+        } else {
+          Some(read_comment.removed)
+        };
+
         CommentForm {
           content: content_slurs_removed,
           parent_id: read_comment.parent_id,
           post_id: read_comment.post_id,
           creator_id: read_comment.creator_id,
-          removed: Some(read_comment.removed).to_owned(),
-          deleted: data.deleted.to_owned(),
-          read: Some(read_comment.read).to_owned(),
+          removed: post_removed.to_owned(),
+          deleted: Some(read_comment.deleted),
+          read: Some(read_comment.read),
           published: None,
           updated: Some(naive_now()),
           ap_id: read_comment.ap_id,
@@ -394,10 +401,6 @@ impl Perform for Oper<EditComment> {
           blocking(pool, move |conn| ModRemoveComment::create(conn, &form)).await??;
         }
       }
-    } else {
-      updated_comment
-        .send_update(&user, &self.client, pool)
-        .await?;
     }
 
     let post_id = data.post_id;

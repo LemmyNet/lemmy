@@ -586,30 +586,51 @@ impl Perform for Oper<EditPost> {
     let (iframely_title, iframely_description, iframely_html, pictrs_thumbnail) =
       fetch_iframely_and_pictrs_data(&self.client, data.url.to_owned()).await;
 
-    // only modify some properties if they are a moderator
-    let post_stickied = Some(read_post.stickied);
-    let post_locked = Some(read_post.locked);
-    let post_removed = Some(read_post.removed);
-
-    let post_form = PostForm {
-      name: data.name.trim().to_owned(),
-      url: data.url.to_owned(),
-      body: data.body.to_owned(),
-      creator_id: read_post.creator_id.to_owned(),
-      community_id: read_post.community_id,
-      removed: post_removed.to_owned(),
-      deleted: data.deleted.to_owned(),
-      nsfw: data.nsfw,
-      locked: post_locked.to_owned(),
-      stickied: post_stickied.to_owned(),
-      updated: Some(naive_now()),
-      embed_title: iframely_title,
-      embed_description: iframely_description,
-      embed_html: iframely_html,
-      thumbnail_url: pictrs_thumbnail,
-      ap_id: read_post.ap_id,
-      local: read_post.local,
-      published: None,
+    let post_form = {
+      // only modify some properties if they are a moderator
+      if moderators.contains(&user_id) {
+        PostForm {
+          name: data.name.trim().to_owned(),
+          url: data.url.to_owned(),
+          body: data.body.to_owned(),
+          creator_id: read_post.creator_id.to_owned(),
+          community_id: read_post.community_id,
+          removed: data.removed.to_owned(),
+          deleted: Some(read_post.deleted),
+          nsfw: data.nsfw,
+          locked: data.locked.to_owned(),
+          stickied: data.stickied.to_owned(),
+          updated: Some(naive_now()),
+          embed_title: iframely_title,
+          embed_description: iframely_description,
+          embed_html: iframely_html,
+          thumbnail_url: pictrs_thumbnail,
+          ap_id: read_post.ap_id,
+          local: read_post.local,
+          published: None,
+        }
+      } else {
+        PostForm {
+          name: read_post.name.trim().to_owned(),
+          url: data.url.to_owned(),
+          body: data.body.to_owned(),
+          creator_id: read_post.creator_id.to_owned(),
+          community_id: read_post.community_id,
+          removed: Some(read_post.removed),
+          deleted: data.deleted.to_owned(),
+          nsfw: data.nsfw,
+          locked: Some(read_post.locked),
+          stickied: Some(read_post.stickied),
+          updated: Some(naive_now()),
+          embed_title: iframely_title,
+          embed_description: iframely_description,
+          embed_html: iframely_html,
+          thumbnail_url: pictrs_thumbnail,
+          ap_id: read_post.ap_id,
+          local: read_post.local,
+          published: None,
+        }
+      }
     };
 
     let edit_id = data.edit_id;

@@ -652,13 +652,25 @@ impl Perform for Oper<BanFromCommunity> {
 
     let user_id = claims.id;
 
-    let community_id = data.community_id;
-    let community_moderators = blocking(pool, move |conn| {
-      CommunityModeratorView::for_community(conn, community_id)
-    })
-    .await??;
+    let mut community_moderators: Vec<i32> = vec![];
 
-    if !community_moderators.iter().any(|m| m.user_id == user_id) {
+    let community_id = data.community_id;
+
+    community_moderators.append(
+      &mut blocking(pool, move |conn| {
+        CommunityModeratorView::for_community(&conn, community_id)
+          .map(|v| v.into_iter().map(|m| m.user_id).collect())
+      })
+      .await??,
+    );
+    community_moderators.append(
+      &mut blocking(pool, move |conn| {
+        UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())
+      })
+      .await??,
+    );
+
+    if !community_moderators.contains(&user_id) {
       return Err(APIError::err("couldnt_update_community").into());
     }
 
@@ -739,13 +751,25 @@ impl Perform for Oper<AddModToCommunity> {
       user_id: data.user_id,
     };
 
-    let community_id = data.community_id;
-    let community_moderators = blocking(pool, move |conn| {
-      CommunityModeratorView::for_community(conn, community_id)
-    })
-    .await??;
+    let mut community_moderators: Vec<i32> = vec![];
 
-    if !community_moderators.iter().any(|m| m.user_id == user_id) {
+    let community_id = data.community_id;
+
+    community_moderators.append(
+      &mut blocking(pool, move |conn| {
+        CommunityModeratorView::for_community(&conn, community_id)
+          .map(|v| v.into_iter().map(|m| m.user_id).collect())
+      })
+      .await??,
+    );
+    community_moderators.append(
+      &mut blocking(pool, move |conn| {
+        UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())
+      })
+      .await??,
+    );
+
+    if !community_moderators.contains(&user_id) {
       return Err(APIError::err("couldnt_update_community").into());
     }
 

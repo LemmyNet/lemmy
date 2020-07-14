@@ -19,7 +19,8 @@ use crate::{
   blocking,
   request::{retry, RecvError},
   routes::webfinger::WebFingerResponse,
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams::object::Page;
 use activitystreams_ext::{Ext1, Ext2};

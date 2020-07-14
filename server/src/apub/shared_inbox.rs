@@ -8,10 +8,15 @@ use crate::{
     community::do_announce,
     extensions::signatures::verify,
     fetcher::{
-      get_or_fetch_and_insert_remote_comment, get_or_fetch_and_insert_remote_post,
-      get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user,
+      get_or_fetch_and_insert_remote_comment,
+      get_or_fetch_and_insert_remote_post,
+      get_or_fetch_and_upsert_remote_community,
+      get_or_fetch_and_upsert_remote_user,
     },
-    insert_activity, FromApub, GroupExt, PageExt,
+    insert_activity,
+    FromApub,
+    GroupExt,
+    PageExt,
   },
   blocking,
   routes::{ChatServerParam, DbPoolParam},
@@ -19,12 +24,15 @@ use crate::{
     server::{SendComment, SendCommunityRoomMessage, SendPost},
     UserOperation,
   },
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams::{
   activity::{Announce, Create, Delete, Dislike, Like, Remove, Undo, Update},
   object::Note,
-  Activity, Base, BaseBox,
+  Activity,
+  Base,
+  BaseBox,
 };
 use actix_web::{client::Client, web, HttpRequest, HttpResponse};
 use lemmy_db::{
@@ -35,7 +43,8 @@ use lemmy_db::{
   naive_now,
   post::{Post, PostForm, PostLike, PostLikeForm},
   post_view::PostView,
-  Crud, Likeable,
+  Crud,
+  Likeable,
 };
 use lemmy_utils::scrape_text_for_mentions;
 use log::debug;

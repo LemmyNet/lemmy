@@ -1,7 +1,6 @@
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
-use std::{fs, io::Error, net::IpAddr, sync::RwLock};
-use std::env;
+use std::{env, fs, io::Error, net::IpAddr, sync::RwLock};
 
 static CONFIG_FILE_DEFAULTS: &str = "config/defaults.hjson";
 static CONFIG_FILE: &str = "config/config.hjson";
