@@ -256,5 +256,6 @@
     "click_to_delete_picture": "Clicca per eliminare la foto.",
     "picture_deleted": "Foto eliminata.",
     "select_a_community": "Seleziona una comunità",
-    "invalid_username": "Nome utente non valido."
+    "invalid_username": "Nome utente non valido.",
+    "what_is": "Cos'è"
 }
