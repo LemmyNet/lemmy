@@ -596,7 +596,7 @@ impl Perform for Oper<EditPost> {
           creator_id: read_post.creator_id.to_owned(),
           community_id: read_post.community_id,
           removed: data.removed.to_owned(),
-          deleted: Some(read_post.deleted),
+          deleted: data.deleted.to_owned(),
           nsfw: data.nsfw,
           locked: data.locked.to_owned(),
           stickied: data.stickied.to_owned(),
