@@ -70,7 +70,7 @@ export class CreateCommunity extends Component<any, CreateCommunityState> {
     console.log(msg);
     let res = wsJsonToRes(msg);
     if (msg.error) {
-      toast(i18n.t(msg.error), 'danger');
+      // Toast errors are already handled by community-form
       return;
     } else if (res.op == UserOperation.GetSite) {
       let data = res.data as GetSiteResponse;
