@@ -289,13 +289,13 @@ impl Perform for Oper<EditComment> {
         Some(pid) => {
           let parent_comment =
             blocking(pool, move |conn| CommentView::read(&conn, pid, None)).await??;
-          if !(user_id == parent_comment.creator_id) {
+          if user_id != parent_comment.creator_id {
             return Err(APIError::err("no_comment_edit_allowed").into());
           }
         }
         None => {
           let parent_post = blocking(pool, move |conn| Post::read(conn, edit_id)).await??;
-          if !(user_id == parent_post.creator_id) {
+          if user_id != parent_post.creator_id {
             return Err(APIError::err("no_comment_edit_allowed").into());
           }
         }
