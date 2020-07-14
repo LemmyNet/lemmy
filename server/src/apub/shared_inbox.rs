@@ -8,15 +8,10 @@ use crate::{
     community::do_announce,
     extensions::signatures::verify,
     fetcher::{
-      get_or_fetch_and_insert_remote_comment,
-      get_or_fetch_and_insert_remote_post,
-      get_or_fetch_and_upsert_remote_community,
-      get_or_fetch_and_upsert_remote_user,
+      get_or_fetch_and_insert_remote_comment, get_or_fetch_and_insert_remote_post,
+      get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user,
     },
-    insert_activity,
-    FromApub,
-    GroupExt,
-    PageExt,
+    insert_activity, FromApub, GroupExt, PageExt,
   },
   blocking,
   routes::{ChatServerParam, DbPoolParam},
@@ -24,16 +19,13 @@ use crate::{
     server::{SendComment, SendCommunityRoomMessage, SendPost},
     UserOperation,
   },
-  DbPool,
-  LemmyError,
+  DbPool, LemmyError,
 };
 use activitystreams::{
   activity::{Announce, Create, Delete, Dislike, Like, Remove, Undo, Update},
-  object::Note,
-  Activity,
-  Base,
-  BaseBox,
+  Activity, Base, BaseBox,
 };
+use activitystreams_new::{object::Note, primitives::XsdAnyUri};
 use actix_web::{client::Client, web, HttpRequest, HttpResponse};
 use lemmy_db::{
   comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
@@ -43,8 +35,7 @@ use lemmy_db::{
   naive_now,
   post::{Post, PostForm, PostLike, PostLikeForm},
   post_view::PostView,
-  Crud,
-  Likeable,
+  Crud, Likeable,
 };
 use lemmy_utils::scrape_text_for_mentions;
 use log::debug;
@@ -77,7 +68,7 @@ impl SharedAcceptedObjects {
       SharedAcceptedObjects::Announce(a) => a.announce_props.get_object_base_box(),
     }
   }
-  fn sender(&self) -> String {
+  fn sender(&self) -> XsdAnyUri {
     let uri = match self {
       SharedAcceptedObjects::Create(c) => c.create_props.get_actor_xsd_any_uri(),
       SharedAcceptedObjects::Update(u) => u.update_props.get_actor_xsd_any_uri(),
@@ -88,7 +79,7 @@ impl SharedAcceptedObjects {
       SharedAcceptedObjects::Remove(r) => r.remove_props.get_actor_xsd_any_uri(),
       SharedAcceptedObjects::Announce(a) => a.announce_props.get_actor_xsd_any_uri(),
     };
-    uri.unwrap().clone().to_string()
+    uri.unwrap().clone()
   }
   fn cc(&self) -> String {
     // TODO: there is probably an easier way to do this
@@ -133,7 +124,7 @@ pub async fn shared_inbox(
   let to = cc.replace("/followers", "");
 
   // TODO: this is ugly
-  match get_or_fetch_and_upsert_remote_user(&sender.to_string(), &client, pool).await {
+  match get_or_fetch_and_upsert_remote_user(sender, &client, pool).await {
     Ok(u) => verify(&request, &u)?,
     Err(_) => {
       let c = get_or_fetch_and_upsert_remote_community(&sender.to_string(), &client, pool).await?;
@@ -219,7 +210,7 @@ pub async fn shared_inbox(
 async fn announce_activity_if_valid<A>(
   activity: A,
   community_uri: &str,
-  sender: &str,
+  sender: &XsdAnyUri,
   client: &Client,
   pool: &DbPool,
 ) -> Result<HttpResponse, LemmyError>
@@ -344,11 +335,7 @@ async fn receive_create_post(
     .to_owned()
     .into_concrete::<PageExt>()?;
 
-  let user_uri = create
-    .create_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let user_uri = create.create_props.get_actor_xsd_any_uri().unwrap();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
@@ -390,11 +377,7 @@ async fn receive_create_comment(
     .to_owned()
     .into_concrete::<Note>()?;
 
-  let user_uri = create
-    .create_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let user_uri = create.create_props.get_actor_xsd_any_uri().unwrap();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
@@ -449,11 +432,7 @@ async fn receive_update_post(
     .to_owned()
     .into_concrete::<PageExt>()?;
 
-  let user_uri = update
-    .update_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let user_uri = update.update_props.get_actor_xsd_any_uri().unwrap();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
@@ -495,7 +474,7 @@ async fn receive_like_post(
     .to_owned()
     .into_concrete::<PageExt>()?;
 
-  let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
+  let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
@@ -546,11 +525,7 @@ async fn receive_dislike_post(
     .to_owned()
     .into_concrete::<PageExt>()?;
 
-  let user_uri = dislike
-    .dislike_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let user_uri = dislike.dislike_props.get_actor_xsd_any_uri().unwrap();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
@@ -601,11 +576,7 @@ async fn receive_update_comment(
     .to_owned()
     .into_concrete::<Note>()?;
 
-  let user_uri = update
-    .update_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let user_uri = update.update_props.get_actor_xsd_any_uri().unwrap();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
@@ -660,7 +631,7 @@ async fn receive_like_comment(
     .to_owned()
     .into_concrete::<Note>()?;
 
-  let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
+  let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
@@ -718,11 +689,7 @@ async fn receive_dislike_comment(
     .to_owned()
     .into_concrete::<Note>()?;
 
-  let user_uri = dislike
-    .dislike_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let user_uri = dislike.dislike_props.get_actor_xsd_any_uri().unwrap();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
@@ -772,11 +739,7 @@ async fn receive_delete_community(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let user_uri = delete
-    .delete_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let user_uri = delete.delete_props.get_actor_xsd_any_uri().unwrap();
 
   let group = delete
     .delete_props
@@ -849,11 +812,7 @@ async fn receive_remove_community(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let mod_uri = remove
-    .remove_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let mod_uri = remove.remove_props.get_actor_xsd_any_uri().unwrap();
 
   let group = remove
     .remove_props
@@ -926,11 +885,7 @@ async fn receive_delete_post(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let user_uri = delete
-    .delete_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let user_uri = delete.delete_props.get_actor_xsd_any_uri().unwrap();
 
   let page = delete
     .delete_props
@@ -992,11 +947,7 @@ async fn receive_remove_post(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let mod_uri = remove
-    .remove_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let mod_uri = remove.remove_props.get_actor_xsd_any_uri().unwrap();
 
   let page = remove
     .remove_props
@@ -1058,11 +1009,7 @@ async fn receive_delete_comment(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let user_uri = delete
-    .delete_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let user_uri = delete.delete_props.get_actor_xsd_any_uri().unwrap();
 
   let note = delete
     .delete_props
@@ -1126,11 +1073,7 @@ async fn receive_remove_comment(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let mod_uri = remove
-    .remove_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let mod_uri = remove.remove_props.get_actor_xsd_any_uri().unwrap();
 
   let note = remove
     .remove_props
@@ -1254,11 +1197,7 @@ async fn receive_undo_delete_comment(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let user_uri = delete
-    .delete_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let user_uri = delete.delete_props.get_actor_xsd_any_uri().unwrap();
 
   let note = delete
     .delete_props
@@ -1322,11 +1261,7 @@ async fn receive_undo_remove_comment(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let mod_uri = remove
-    .remove_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let mod_uri = remove.remove_props.get_actor_xsd_any_uri().unwrap();
 
   let note = remove
     .remove_props
@@ -1390,11 +1325,7 @@ async fn receive_undo_delete_post(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let user_uri = delete
-    .delete_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let user_uri = delete.delete_props.get_actor_xsd_any_uri().unwrap();
 
   let page = delete
     .delete_props
@@ -1456,11 +1387,7 @@ async fn receive_undo_remove_post(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let mod_uri = remove
-    .remove_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let mod_uri = remove.remove_props.get_actor_xsd_any_uri().unwrap();
 
   let page = remove
     .remove_props
@@ -1522,11 +1449,7 @@ async fn receive_undo_delete_community(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let user_uri = delete
-    .delete_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let user_uri = delete.delete_props.get_actor_xsd_any_uri().unwrap();
 
   let group = delete
     .delete_props
@@ -1599,11 +1522,7 @@ async fn receive_undo_remove_community(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let mod_uri = remove
-    .remove_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let mod_uri = remove.remove_props.get_actor_xsd_any_uri().unwrap();
 
   let group = remove
     .remove_props
@@ -1713,7 +1632,7 @@ async fn receive_undo_like_comment(
     .to_owned()
     .into_concrete::<Note>()?;
 
-  let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
+  let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 
@@ -1767,7 +1686,7 @@ async fn receive_undo_like_post(
     .to_owned()
     .into_concrete::<PageExt>()?;
 
-  let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
+  let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
 

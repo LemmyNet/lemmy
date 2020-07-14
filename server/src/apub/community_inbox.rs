@@ -71,7 +71,7 @@ pub async fn community_inbox(
     &community.name, &input
   );
   let follow = input.follow()?;
-  let user_uri = follow.actor.as_single_xsd_any_uri().unwrap().to_string();
+  let user_uri = follow.actor.as_single_xsd_any_uri().unwrap();
   let community_uri = follow.object.as_single_xsd_any_uri().unwrap().to_string();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, &client, &db).await?;

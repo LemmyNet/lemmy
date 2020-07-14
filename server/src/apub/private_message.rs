@@ -1,16 +1,9 @@
 use crate::{
   apub::{
-    activities::send_activity,
-    create_tombstone,
-    fetcher::get_or_fetch_and_upsert_remote_user,
-    insert_activity,
-    ApubObjectType,
-    FromApub,
-    ToApub,
+    activities::send_activity, create_tombstone, fetcher::get_or_fetch_and_upsert_remote_user,
+    insert_activity, ApubObjectType, FromApub, ToApub,
   },
-  blocking,
-  DbPool,
-  LemmyError,
+  blocking, DbPool, LemmyError,
 };
 use activitystreams::{
   activity::{Create, Delete, Undo, Update},
@@ -76,11 +69,11 @@ impl FromApub for PrivateMessageForm {
     pool: &DbPool,
   ) -> Result<PrivateMessageForm, LemmyError> {
     let oprops = &note.object_props;
-    let creator_actor_id = &oprops.get_attributed_to_xsd_any_uri().unwrap().to_string();
+    let creator_actor_id = &oprops.get_attributed_to_xsd_any_uri().unwrap();
 
     let creator = get_or_fetch_and_upsert_remote_user(&creator_actor_id, client, pool).await?;
 
-    let recipient_actor_id = &oprops.get_to_xsd_any_uri().unwrap().to_string();
+    let recipient_actor_id = &oprops.get_to_xsd_any_uri().unwrap();
 
     let recipient = get_or_fetch_and_upsert_remote_user(&recipient_actor_id, client, pool).await?;
 

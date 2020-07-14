@@ -3,14 +3,12 @@ use crate::{
   apub::{
     extensions::signatures::verify,
     fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user},
-    insert_activity,
-    FromApub,
+    insert_activity, FromApub,
   },
   blocking,
   routes::{ChatServerParam, DbPoolParam},
   websocket::{server::SendUserRoomMessage, UserOperation},
-  DbPool,
-  LemmyError,
+  DbPool, LemmyError,
 };
 use activitystreams::{
   activity::{Accept, Create, Delete, Undo, Update},
@@ -23,8 +21,7 @@ use lemmy_db::{
   private_message::{PrivateMessage, PrivateMessageForm},
   private_message_view::PrivateMessageView,
   user::User_,
-  Crud,
-  Followable,
+  Crud, Followable,
 };
 use log::debug;
 use serde::Deserialize;
@@ -124,11 +121,7 @@ async fn receive_create_private_message(
     .to_owned()
     .into_concrete::<Note>()?;
 
-  let user_uri = create
-    .create_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let user_uri = create.create_props.get_actor_xsd_any_uri().unwrap();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
   verify(request, &user)?;
@@ -176,11 +169,7 @@ async fn receive_update_private_message(
     .to_owned()
     .into_concrete::<Note>()?;
 
-  let user_uri = update
-    .update_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let user_uri = update.update_props.get_actor_xsd_any_uri().unwrap();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
   verify(request, &user)?;
@@ -236,11 +225,7 @@ async fn receive_delete_private_message(
     .to_owned()
     .into_concrete::<Note>()?;
 
-  let user_uri = delete
-    .delete_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let user_uri = delete.delete_props.get_actor_xsd_any_uri().unwrap();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
   verify(request, &user)?;
@@ -316,11 +301,7 @@ async fn receive_undo_delete_private_message(
     .to_owned()
     .into_concrete::<Note>()?;
 
-  let user_uri = delete
-    .delete_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let user_uri = delete.delete_props.get_actor_xsd_any_uri().unwrap();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
   verify(request, &user)?;

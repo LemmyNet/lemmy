@@ -19,8 +19,7 @@ use crate::{
   blocking,
   request::{retry, RecvError},
   routes::webfinger::WebFingerResponse,
-  DbPool,
-  LemmyError,
+  DbPool, LemmyError,
 };
 use activitystreams_ext::{Ext1, Ext2};
 use activitystreams_new::{
@@ -28,6 +27,7 @@ use activitystreams_new::{
   actor::{ApActor, Group, Person},
   object::{Page, Tombstone},
   prelude::*,
+  primitives::XsdAnyUri,
 };
 use actix_web::{body::Body, client::Client, HttpResponse};
 use chrono::NaiveDateTime;
@@ -36,6 +36,7 @@ use lemmy_db::{activity::do_insert_activity, user::User_};
 use lemmy_utils::{convert_datetime, get_apub_protocol_string, settings::Settings, MentionData};
 use log::debug;
 use serde::Serialize;
+use std::str::FromStr;
 use url::Url;
 
 type GroupExt = Ext2<ApActor<Group>, GroupExtension, PublicKeyExtension>;
@@ -310,7 +311,7 @@ pub trait ActorType {
 pub async fn fetch_webfinger_url(
   mention: &MentionData,
   client: &Client,
-) -> Result<String, LemmyError> {
+) -> Result<XsdAnyUri, LemmyError> {
   let fetch_url = format!(
     "{}://{}/.well-known/webfinger?resource=acct:{}@{}",
     get_apub_protocol_string(),
@@ -335,6 +336,8 @@ pub async fn fetch_webfinger_url(
   link
     .href
     .to_owned()
+    .map(|u| XsdAnyUri::from_str(&u))
+    .transpose()?
     .ok_or_else(|| format_err!("No href found.").into())
 }
 
