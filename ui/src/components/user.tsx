@@ -4,24 +4,18 @@ import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import {
   UserOperation,
-  Post,
-  Comment,
   CommunityUser,
-  GetUserDetailsForm,
   SortType,
   ListingType,
-  UserDetailsResponse,
   UserView,
-  CommentResponse,
   UserSettingsForm,
   LoginResponse,
-  BanUserResponse,
-  AddAdminResponse,
   DeleteAccountForm,
-  PostResponse,
   WebSocketJsonResponse,
   GetSiteResponse,
   Site,
+  UserDetailsView,
+  UserDetailsResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import {
@@ -34,28 +28,15 @@ import {
   languages,
   showAvatars,
   toast,
-  editCommentRes,
-  saveCommentRes,
-  createCommentLikeRes,
-  createPostLikeFindRes,
-  commentsToFlatNodes,
   setupTippy,
 } from '../utils';
-import { PostListing } from './post-listing';
 import { UserListing } from './user-listing';
 import { SortSelect } from './sort-select';
 import { ListingTypeSelect } from './listing-type-select';
-import { CommentNodes } from './comment-nodes';
 import { MomentTime } from './moment-time';
 import { i18n } from '../i18next';
 import moment from 'moment';
-
-enum View {
-  Overview,
-  Comments,
-  Posts,
-  Saved,
-}
+import { UserDetails } from './user-details';
 
 interface UserState {
   user: UserView;
@@ -63,11 +44,7 @@ interface UserState {
   username: string;
   follows: Array<CommunityUser>;
   moderates: Array<CommunityUser>;
-  comments: Array<Comment>;
-  posts: Array<Post>;
-  saved?: Array<Post>;
-  admins: Array<UserView>;
-  view: View;
+  view: UserDetailsView;
   sort: SortType;
   page: number;
   loading: boolean;
@@ -78,6 +55,20 @@ interface UserState {
   deleteAccountShowConfirm: boolean;
   deleteAccountForm: DeleteAccountForm;
   site: Site;
+}
+
+interface UserProps {
+  view: UserDetailsView;
+  sort: SortType;
+  page: number;
+  user_id: number | null;
+  username: string;
+}
+
+interface UrlParams {
+  view?: string;
+  sort?: string;
+  page?: number;
 }
 
 export class User extends Component<any, UserState> {
@@ -102,14 +93,11 @@ export class User extends Component<any, UserState> {
     username: null,
     follows: [],
     moderates: [],
-    comments: [],
-    posts: [],
-    admins: [],
-    loading: true,
+    loading: false,
     avatarLoading: false,
-    view: this.getViewFromProps(this.props),
-    sort: this.getSortTypeFromProps(this.props),
-    page: this.getPageFromProps(this.props),
+    view: User.getViewFromProps(this.props.match.view),
+    sort: User.getSortTypeFromProps(this.props.match.sort),
+    page: User.getPageFromProps(this.props.match.page),
     userSettingsForm: {
       show_nsfw: null,
       theme: null,
@@ -153,8 +141,9 @@ export class User extends Component<any, UserState> {
     this.handleUserSettingsListingTypeChange = this.handleUserSettingsListingTypeChange.bind(
       this
     );
+    this.handlePageChange = this.handlePageChange.bind(this);
 
-    this.state.user_id = Number(this.props.match.params.id);
+    this.state.user_id = Number(this.props.match.params.id) || null;
     this.state.username = this.props.match.params.username;
 
     this.subscription = WebSocketService.Instance.subject
@@ -165,7 +154,6 @@ export class User extends Component<any, UserState> {
         () => console.log('complete')
       );
 
-    this.refetch();
     WebSocketService.Instance.getSite();
   }
 
@@ -176,38 +164,32 @@ export class User extends Component<any, UserState> {
     );
   }
 
-  getViewFromProps(props: any): View {
-    return props.match.params.view
-      ? View[capitalizeFirstLetter(props.match.params.view)]
-      : View.Overview;
+  static getViewFromProps(view: any): UserDetailsView {
+    return view
+      ? UserDetailsView[capitalizeFirstLetter(view)]
+      : UserDetailsView.Overview;
   }
 
-  getSortTypeFromProps(props: any): SortType {
-    return props.match.params.sort
-      ? routeSortTypeToEnum(props.match.params.sort)
-      : SortType.New;
+  static getSortTypeFromProps(sort: any): SortType {
+    return sort ? routeSortTypeToEnum(sort) : SortType.New;
   }
 
-  getPageFromProps(props: any): number {
-    return props.match.params.page ? Number(props.match.params.page) : 1;
+  static getPageFromProps(page: any): number {
+    return page ? Number(page) : 1;
   }
 
   componentWillUnmount() {
     this.subscription.unsubscribe();
   }
 
-  // Necessary for back button for some reason
-  componentWillReceiveProps(nextProps: any) {
-    if (
-      nextProps.history.action == 'POP' ||
-      nextProps.history.action == 'PUSH'
-    ) {
-      this.state.view = this.getViewFromProps(nextProps);
-      this.state.sort = this.getSortTypeFromProps(nextProps);
-      this.state.page = this.getPageFromProps(nextProps);
-      this.setState(this.state);
-      this.refetch();
-    }
+  static getDerivedStateFromProps(props: any): UserProps {
+    return {
+      view: this.getViewFromProps(props.match.params.view),
+      sort: this.getSortTypeFromProps(props.match.params.sort),
+      page: this.getPageFromProps(props.match.params.page),
+      user_id: Number(props.match.params.id) || null,
+      username: props.match.params.username,
+    };
   }
 
   componentDidUpdate(lastProps: any, _lastState: UserState, _snapshot: any) {
@@ -219,6 +201,8 @@ export class User extends Component<any, UserState> {
       // Couldnt get a refresh working. This does for now.
       location.reload();
     }
+    document.title = `/u/${this.state.username} - ${this.state.site.name}`;
+    setupTippy();
   }
 
   render() {
@@ -242,14 +226,20 @@ export class User extends Component<any, UserState> {
                     class="rounded-circle mr-2"
                   />
                 )}
-                <span>/u/{this.state.user.name}</span>
+                <span>/u/{this.state.username}</span>
               </h5>
               {this.selects()}
-              {this.state.view == View.Overview && this.overview()}
-              {this.state.view == View.Comments && this.comments()}
-              {this.state.view == View.Posts && this.posts()}
-              {this.state.view == View.Saved && this.overview()}
-              {this.paginator()}
+              <UserDetails
+                user_id={this.state.user_id}
+                username={this.state.username}
+                sort={SortType[this.state.sort]}
+                page={this.state.page}
+                limit={fetchLimit}
+                enableDownvotes={this.state.site.enable_downvotes}
+                enableNsfw={this.state.site.enable_nsfw}
+                view={this.state.view}
+                onPageChange={this.handlePageChange}
+              />
             </div>
             <div class="col-12 col-md-4">
               {this.userInfo()}
@@ -268,52 +258,52 @@ export class User extends Component<any, UserState> {
       <div class="btn-group btn-group-toggle">
         <label
           className={`btn btn-sm btn-secondary pointer btn-outline-light
-            ${this.state.view == View.Overview && 'active'}
+            ${this.state.view == UserDetailsView.Overview && 'active'}
           `}
         >
           <input
             type="radio"
-            value={View.Overview}
-            checked={this.state.view == View.Overview}
+            value={UserDetailsView.Overview}
+            checked={this.state.view === UserDetailsView.Overview}
             onChange={linkEvent(this, this.handleViewChange)}
           />
           {i18n.t('overview')}
         </label>
         <label
           className={`btn btn-sm btn-secondary pointer btn-outline-light
-            ${this.state.view == View.Comments && 'active'}
+            ${this.state.view == UserDetailsView.Comments && 'active'}
           `}
         >
           <input
             type="radio"
-            value={View.Comments}
-            checked={this.state.view == View.Comments}
+            value={UserDetailsView.Comments}
+            checked={this.state.view == UserDetailsView.Comments}
             onChange={linkEvent(this, this.handleViewChange)}
           />
           {i18n.t('comments')}
         </label>
         <label
           className={`btn btn-sm btn-secondary pointer btn-outline-light
-            ${this.state.view == View.Posts && 'active'}
+            ${this.state.view == UserDetailsView.Posts && 'active'}
           `}
         >
           <input
             type="radio"
-            value={View.Posts}
-            checked={this.state.view == View.Posts}
+            value={UserDetailsView.Posts}
+            checked={this.state.view == UserDetailsView.Posts}
             onChange={linkEvent(this, this.handleViewChange)}
           />
           {i18n.t('posts')}
         </label>
         <label
           className={`btn btn-sm btn-secondary pointer btn-outline-light
-            ${this.state.view == View.Saved && 'active'}
+            ${this.state.view == UserDetailsView.Saved && 'active'}
           `}
         >
           <input
             type="radio"
-            value={View.Saved}
-            checked={this.state.view == View.Saved}
+            value={UserDetailsView.Saved}
+            checked={this.state.view == UserDetailsView.Saved}
             onChange={linkEvent(this, this.handleViewChange)}
           />
           {i18n.t('saved')}
@@ -343,84 +333,6 @@ export class User extends Component<any, UserState> {
             <use xlinkHref="#icon-rss">#</use>
           </svg>
         </a>
-      </div>
-    );
-  }
-
-  overview() {
-    let combined: Array<{ type_: string; data: Comment | Post }> = [];
-    let comments = this.state.comments.map(e => {
-      return { type_: 'comments', data: e };
-    });
-    let posts = this.state.posts.map(e => {
-      return { type_: 'posts', data: e };
-    });
-
-    combined.push(...comments);
-    combined.push(...posts);
-
-    // Sort it
-    if (this.state.sort == SortType.New) {
-      combined.sort((a, b) => b.data.published.localeCompare(a.data.published));
-    } else {
-      combined.sort((a, b) => b.data.score - a.data.score);
-    }
-
-    return (
-      <div>
-        {combined.map(i => (
-          <div>
-            {i.type_ == 'posts' ? (
-              <PostListing
-                post={i.data as Post}
-                admins={this.state.admins}
-                showCommunity
-                enableDownvotes={this.state.site.enable_downvotes}
-                enableNsfw={this.state.site.enable_nsfw}
-              />
-            ) : (
-              <CommentNodes
-                nodes={[{ comment: i.data as Comment }]}
-                admins={this.state.admins}
-                noIndent
-                showCommunity
-                showContext
-                enableDownvotes={this.state.site.enable_downvotes}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  comments() {
-    return (
-      <div>
-        <CommentNodes
-          nodes={commentsToFlatNodes(this.state.comments)}
-          admins={this.state.admins}
-          noIndent
-          showCommunity
-          showContext
-          enableDownvotes={this.state.site.enable_downvotes}
-        />
-      </div>
-    );
-  }
-
-  posts() {
-    return (
-      <div>
-        {this.state.posts.map(post => (
-          <PostListing
-            post={post}
-            admins={this.state.admins}
-            showCommunity
-            enableDownvotes={this.state.site.enable_downvotes}
-            enableNsfw={this.state.site.enable_nsfw}
-          />
-        ))}
       </div>
     );
   }
@@ -896,77 +808,30 @@ export class User extends Component<any, UserState> {
     );
   }
 
-  paginator() {
-    return (
-      <div class="my-2">
-        {this.state.page > 1 && (
-          <button
-            class="btn btn-sm btn-secondary mr-1"
-            onClick={linkEvent(this, this.prevPage)}
-          >
-            {i18n.t('prev')}
-          </button>
-        )}
-        {this.state.comments.length + this.state.posts.length > 0 && (
-          <button
-            class="btn btn-sm btn-secondary"
-            onClick={linkEvent(this, this.nextPage)}
-          >
-            {i18n.t('next')}
-          </button>
-        )}
-      </div>
-    );
-  }
-
-  updateUrl() {
-    let viewStr = View[this.state.view].toLowerCase();
-    let sortStr = SortType[this.state.sort].toLowerCase();
+  updateUrl(paramUpdates: UrlParams) {
+    const page = paramUpdates.page || this.state.page;
+    const viewStr =
+      paramUpdates.view || UserDetailsView[this.state.view].toLowerCase();
+    const sortStr =
+      paramUpdates.sort || SortType[this.state.sort].toLowerCase();
     this.props.history.push(
-      `/u/${this.state.user.name}/view/${viewStr}/sort/${sortStr}/page/${this.state.page}`
+      `/u/${this.state.username}/view/${viewStr}/sort/${sortStr}/page/${page}`
     );
   }
 
-  nextPage(i: User) {
-    i.state.page++;
-    i.setState(i.state);
-    i.updateUrl();
-    i.refetch();
-  }
-
-  prevPage(i: User) {
-    i.state.page--;
-    i.setState(i.state);
-    i.updateUrl();
-    i.refetch();
-  }
-
-  refetch() {
-    let form: GetUserDetailsForm = {
-      user_id: this.state.user_id,
-      username: this.state.username,
-      sort: SortType[this.state.sort],
-      saved_only: this.state.view == View.Saved,
-      page: this.state.page,
-      limit: fetchLimit,
-    };
-    WebSocketService.Instance.getUserDetails(form);
+  handlePageChange(page: number) {
+    this.updateUrl({ page });
   }
 
   handleSortChange(val: SortType) {
-    this.state.sort = val;
-    this.state.page = 1;
-    this.setState(this.state);
-    this.updateUrl();
-    this.refetch();
+    this.updateUrl({ sort: SortType[val].toLowerCase(), page: 1 });
   }
 
   handleViewChange(i: User, event: any) {
-    i.state.view = Number(event.target.value);
-    i.state.page = 1;
-    i.setState(i.state);
-    i.updateUrl();
-    i.refetch();
+    i.updateUrl({
+      view: UserDetailsView[Number(event.target.value)].toLowerCase(),
+      page: 1,
+    });
   }
 
   handleUserSettingsShowNsfwChange(i: User, event: any) {
@@ -1136,102 +1001,66 @@ export class User extends Component<any, UserState> {
   }
 
   parseMessage(msg: WebSocketJsonResponse) {
-    console.log(msg);
-    let res = wsJsonToRes(msg);
+    const res = wsJsonToRes(msg);
     if (msg.error) {
       toast(i18n.t(msg.error), 'danger');
-      this.state.deleteAccountLoading = false;
-      this.state.avatarLoading = false;
-      this.state.userSettingsLoading = false;
       if (msg.error == 'couldnt_find_that_username_or_email') {
         this.context.router.history.push('/');
       }
-      this.setState(this.state);
+      this.setState({
+        deleteAccountLoading: false,
+        avatarLoading: false,
+        userSettingsLoading: false,
+      });
       return;
-    } else if (msg.reconnect) {
-      this.refetch();
     } else if (res.op == UserOperation.GetUserDetails) {
-      let data = res.data as UserDetailsResponse;
-      this.state.user = data.user;
-      this.state.comments = data.comments;
-      this.state.follows = data.follows;
-      this.state.moderates = data.moderates;
-      this.state.posts = data.posts;
-      this.state.admins = data.admins;
-      this.state.loading = false;
-      if (this.isCurrentUser) {
-        this.state.userSettingsForm.show_nsfw =
-          UserService.Instance.user.show_nsfw;
-        this.state.userSettingsForm.theme = UserService.Instance.user.theme
-          ? UserService.Instance.user.theme
-          : 'darkly';
-        this.state.userSettingsForm.default_sort_type =
-          UserService.Instance.user.default_sort_type;
-        this.state.userSettingsForm.default_listing_type =
-          UserService.Instance.user.default_listing_type;
-        this.state.userSettingsForm.lang = UserService.Instance.user.lang;
-        this.state.userSettingsForm.avatar = UserService.Instance.user.avatar;
-        this.state.userSettingsForm.email = this.state.user.email;
-        this.state.userSettingsForm.send_notifications_to_email = this.state.user.send_notifications_to_email;
-        this.state.userSettingsForm.show_avatars =
-          UserService.Instance.user.show_avatars;
-        this.state.userSettingsForm.matrix_user_id = this.state.user.matrix_user_id;
+      // Since the UserDetails contains posts/comments as well as some general user info we listen here as well
+      // and set the parent state if it is not set or differs
+      const data = res.data as UserDetailsResponse;
+
+      if (this.state.user.id !== data.user.id) {
+        this.state.user = data.user;
+        this.state.follows = data.follows;
+        this.state.moderates = data.moderates;
+
+        if (this.isCurrentUser) {
+          this.state.userSettingsForm.show_nsfw =
+            UserService.Instance.user.show_nsfw;
+          this.state.userSettingsForm.theme = UserService.Instance.user.theme
+            ? UserService.Instance.user.theme
+            : 'darkly';
+          this.state.userSettingsForm.default_sort_type =
+            UserService.Instance.user.default_sort_type;
+          this.state.userSettingsForm.default_listing_type =
+            UserService.Instance.user.default_listing_type;
+          this.state.userSettingsForm.lang = UserService.Instance.user.lang;
+          this.state.userSettingsForm.avatar = UserService.Instance.user.avatar;
+          this.state.userSettingsForm.email = this.state.user.email;
+          this.state.userSettingsForm.send_notifications_to_email = this.state.user.send_notifications_to_email;
+          this.state.userSettingsForm.show_avatars =
+            UserService.Instance.user.show_avatars;
+          this.state.userSettingsForm.matrix_user_id = this.state.user.matrix_user_id;
+        }
+        this.setState(this.state);
       }
-      document.title = `/u/${this.state.user.name} - ${this.state.site.name}`;
-      window.scrollTo(0, 0);
-      this.setState(this.state);
-      setupTippy();
-    } else if (res.op == UserOperation.EditComment) {
-      let data = res.data as CommentResponse;
-      editCommentRes(data, this.state.comments);
-      this.setState(this.state);
-    } else if (res.op == UserOperation.CreateComment) {
-      let data = res.data as CommentResponse;
-      if (
-        UserService.Instance.user &&
-        data.comment.creator_id == UserService.Instance.user.id
-      ) {
-        toast(i18n.t('reply_sent'));
-      }
-    } else if (res.op == UserOperation.SaveComment) {
-      let data = res.data as CommentResponse;
-      saveCommentRes(data, this.state.comments);
-      this.setState(this.state);
-    } else if (res.op == UserOperation.CreateCommentLike) {
-      let data = res.data as CommentResponse;
-      createCommentLikeRes(data, this.state.comments);
-      this.setState(this.state);
-    } else if (res.op == UserOperation.CreatePostLike) {
-      let data = res.data as PostResponse;
-      createPostLikeFindRes(data, this.state.posts);
-      this.setState(this.state);
-    } else if (res.op == UserOperation.BanUser) {
-      let data = res.data as BanUserResponse;
-      this.state.comments
-        .filter(c => c.creator_id == data.user.id)
-        .forEach(c => (c.banned = data.banned));
-      this.state.posts
-        .filter(c => c.creator_id == data.user.id)
-        .forEach(c => (c.banned = data.banned));
-      this.setState(this.state);
-    } else if (res.op == UserOperation.AddAdmin) {
-      let data = res.data as AddAdminResponse;
-      this.state.admins = data.admins;
-      this.setState(this.state);
     } else if (res.op == UserOperation.SaveUserSettings) {
-      let data = res.data as LoginResponse;
-      this.state.userSettingsLoading = false;
-      this.setState(this.state);
+      const data = res.data as LoginResponse;
       UserService.Instance.login(data);
+      this.setState({
+        userSettingsLoading: false,
+      });
+      window.scrollTo(0, 0);
     } else if (res.op == UserOperation.DeleteAccount) {
-      this.state.deleteAccountLoading = false;
-      this.state.deleteAccountShowConfirm = false;
-      this.setState(this.state);
+      this.setState({
+        deleteAccountLoading: false,
+        deleteAccountShowConfirm: false,
+      });
       this.context.router.history.push('/');
     } else if (res.op == UserOperation.GetSite) {
-      let data = res.data as GetSiteResponse;
-      this.state.site = data.site;
-      this.setState(this.state);
+      const data = res.data as GetSiteResponse;
+      this.setState({
+        site: data.site,
+      });
     }
   }
 }

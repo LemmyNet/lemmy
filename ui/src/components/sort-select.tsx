@@ -23,6 +23,12 @@ export class SortSelect extends Component<SortSelectProps, SortSelectState> {
     this.state = this.emptyState;
   }
 
+  static getDerivedStateFromProps(props: any): SortSelectState {
+    return {
+      sort: props.sort,
+    };
+  }
+
   render() {
     return (
       <>
@@ -59,8 +65,6 @@ export class SortSelect extends Component<SortSelectProps, SortSelectState> {
   }
 
   handleSortChange(i: SortSelect, event: any) {
-    i.state.sort = Number(event.target.value);
-    i.setState(i.state);
-    i.props.onChange(i.state.sort);
+    i.props.onChange(event.target.value);
   }
 }

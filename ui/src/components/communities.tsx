@@ -13,7 +13,7 @@ import {
   GetSiteResponse,
 } from '../interfaces';
 import { WebSocketService } from '../services';
-import { wsJsonToRes, toast } from '../utils';
+import { wsJsonToRes, toast, getPageFromProps } from '../utils';
 import { CommunityLink } from './community-link';
 import { i18n } from '../i18next';
 
@@ -27,12 +27,16 @@ interface CommunitiesState {
   loading: boolean;
 }
 
+interface CommunitiesProps {
+  page: number;
+}
+
 export class Communities extends Component<any, CommunitiesState> {
   private subscription: Subscription;
   private emptyState: CommunitiesState = {
     communities: [],
     loading: true,
-    page: this.getPageFromProps(this.props),
+    page: getPageFromProps(this.props),
   };
 
   constructor(props: any, context: any) {
@@ -50,19 +54,19 @@ export class Communities extends Component<any, CommunitiesState> {
     WebSocketService.Instance.getSite();
   }
 
-  getPageFromProps(props: any): number {
-    return props.match.params.page ? Number(props.match.params.page) : 1;
-  }
-
   componentWillUnmount() {
     this.subscription.unsubscribe();
   }
 
-  // Necessary for back button for some reason
-  componentWillReceiveProps(nextProps: any) {
-    if (nextProps.history.action == 'POP') {
-      this.state = this.emptyState;
-      this.state.page = this.getPageFromProps(nextProps);
+  static getDerivedStateFromProps(props: any): CommunitiesProps {
+    return {
+      page: getPageFromProps(props),
+    };
+  }
+
+  componentDidUpdate(_: any, lastState: CommunitiesState) {
+    if (lastState.page !== this.state.page) {
+      this.setState({ loading: true });
       this.refetch();
     }
   }
@@ -172,22 +176,17 @@ export class Communities extends Component<any, CommunitiesState> {
     );
   }
 
-  updateUrl() {
-    this.props.history.push(`/communities/page/${this.state.page}`);
+  updateUrl(paramUpdates: CommunitiesProps) {
+    const page = paramUpdates.page || this.state.page;
+    this.props.history.push(`/communities/page/${page}`);
   }
 
   nextPage(i: Communities) {
-    i.state.page++;
-    i.setState(i.state);
-    i.updateUrl();
-    i.refetch();
+    i.updateUrl({ page: i.state.page + 1 });
   }
 
   prevPage(i: Communities) {
-    i.state.page--;
-    i.setState(i.state);
-    i.updateUrl();
-    i.refetch();
+    i.updateUrl({ page: i.state.page - 1 });
   }
 
   handleUnsubscribe(communityId: number) {

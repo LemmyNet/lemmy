@@ -28,6 +28,7 @@ import {
   createCommentLikeRes,
   createPostLikeFindRes,
   commentsToFlatNodes,
+  getPageFromProps,
 } from '../utils';
 import { PostListing } from './post-listing';
 import { UserListing } from './user-listing';
@@ -44,15 +45,31 @@ interface SearchState {
   searchResponse: SearchResponse;
   loading: boolean;
   site: Site;
+  searchText: string;
+}
+
+interface SearchProps {
+  q: string;
+  type_: SearchType;
+  sort: SortType;
+  page: number;
+}
+
+interface UrlParams {
+  q?: string;
+  type_?: string;
+  sort?: string;
+  page?: number;
 }
 
 export class Search extends Component<any, SearchState> {
   private subscription: Subscription;
   private emptyState: SearchState = {
-    q: this.getSearchQueryFromProps(this.props),
-    type_: this.getSearchTypeFromProps(this.props),
-    sort: this.getSortTypeFromProps(this.props),
-    page: this.getPageFromProps(this.props),
+    q: Search.getSearchQueryFromProps(this.props),
+    type_: Search.getSearchTypeFromProps(this.props),
+    sort: Search.getSortTypeFromProps(this.props),
+    page: getPageFromProps(this.props),
+    searchText: Search.getSearchQueryFromProps(this.props),
     searchResponse: {
       type_: null,
       posts: [],
@@ -77,24 +94,20 @@ export class Search extends Component<any, SearchState> {
     },
   };
 
-  getSearchQueryFromProps(props: any): string {
+  static getSearchQueryFromProps(props: any): string {
     return props.match.params.q ? props.match.params.q : '';
   }
 
-  getSearchTypeFromProps(props: any): SearchType {
+  static getSearchTypeFromProps(props: any): SearchType {
     return props.match.params.type
       ? routeSearchTypeToEnum(props.match.params.type)
       : SearchType.All;
   }
 
-  getSortTypeFromProps(props: any): SortType {
+  static getSortTypeFromProps(props: any): SortType {
     return props.match.params.sort
       ? routeSortTypeToEnum(props.match.params.sort)
       : SortType.TopAll;
-  }
-
-  getPageFromProps(props: any): number {
-    return props.match.params.page ? Number(props.match.params.page) : 1;
   }
 
   constructor(props: any, context: any) {
@@ -122,17 +135,23 @@ export class Search extends Component<any, SearchState> {
     this.subscription.unsubscribe();
   }
 
-  // Necessary for back button for some reason
-  componentWillReceiveProps(nextProps: any) {
+  static getDerivedStateFromProps(props: any): SearchProps {
+    return {
+      q: Search.getSearchQueryFromProps(props),
+      type_: Search.getSearchTypeFromProps(props),
+      sort: Search.getSortTypeFromProps(props),
+      page: getPageFromProps(props),
+    };
+  }
+
+  componentDidUpdate(_: any, lastState: SearchState) {
     if (
-      nextProps.history.action == 'POP' ||
-      nextProps.history.action == 'PUSH'
+      lastState.q !== this.state.q ||
+      lastState.type_ !== this.state.type_ ||
+      lastState.sort !== this.state.sort ||
+      lastState.page !== this.state.page
     ) {
-      this.state.q = this.getSearchQueryFromProps(nextProps);
-      this.state.type_ = this.getSearchTypeFromProps(nextProps);
-      this.state.sort = this.getSortTypeFromProps(nextProps);
-      this.state.page = this.getPageFromProps(nextProps);
-      this.setState(this.state);
+      this.setState({ loading: true, searchText: this.state.q });
       this.search();
     }
   }
@@ -163,7 +182,7 @@ export class Search extends Component<any, SearchState> {
         <input
           type="text"
           class="form-control mr-2"
-          value={this.state.q}
+          value={this.state.searchText}
           placeholder={`${i18n.t('search')}...`}
           onInput={linkEvent(this, this.handleQChange)}
           required
@@ -413,17 +432,11 @@ export class Search extends Component<any, SearchState> {
   }
 
   nextPage(i: Search) {
-    i.state.page++;
-    i.setState(i.state);
-    i.updateUrl();
-    i.search();
+    i.updateUrl({ page: i.state.page + 1 });
   }
 
   prevPage(i: Search) {
-    i.state.page--;
-    i.setState(i.state);
-    i.updateUrl();
-    i.search();
+    i.updateUrl({ page: i.state.page - 1 });
   }
 
   search() {
@@ -441,37 +454,39 @@ export class Search extends Component<any, SearchState> {
   }
 
   handleSortChange(val: SortType) {
-    this.state.sort = val;
-    this.state.page = 1;
-    this.setState(this.state);
-    this.updateUrl();
+    this.updateUrl({ sort: SortType[val].toLowerCase(), page: 1 });
   }
 
   handleTypeChange(i: Search, event: any) {
-    i.state.type_ = Number(event.target.value);
-    i.state.page = 1;
-    i.setState(i.state);
-    i.updateUrl();
+    i.updateUrl({
+      type_: SearchType[Number(event.target.value)].toLowerCase(),
+      page: 1,
+    });
   }
 
   handleSearchSubmit(i: Search, event: any) {
     event.preventDefault();
-    i.state.loading = true;
-    i.search();
-    i.setState(i.state);
-    i.updateUrl();
+    i.updateUrl({
+      q: i.state.searchText,
+      type_: SearchType[i.state.type_].toLowerCase(),
+      sort: SortType[i.state.sort].toLowerCase(),
+      page: i.state.page,
+    });
   }
 
   handleQChange(i: Search, event: any) {
-    i.state.q = event.target.value;
-    i.setState(i.state);
+    i.setState({ searchText: event.target.value });
   }
 
-  updateUrl() {
-    let typeStr = SearchType[this.state.type_].toLowerCase();
-    let sortStr = SortType[this.state.sort].toLowerCase();
+  updateUrl(paramUpdates: UrlParams) {
+    const qStr = paramUpdates.q || this.state.q;
+    const typeStr =
+      paramUpdates.type_ || SearchType[this.state.type_].toLowerCase();
+    const sortStr =
+      paramUpdates.sort || SortType[this.state.sort].toLowerCase();
+    const page = paramUpdates.page || this.state.page;
     this.props.history.push(
-      `/search/q/${this.state.q}/type/${typeStr}/sort/${sortStr}/page/${this.state.page}`
+      `/search/q/${qStr}/type/${typeStr}/sort/${sortStr}/page/${page}`
     );
   }
 

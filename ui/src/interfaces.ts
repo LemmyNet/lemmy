@@ -937,3 +937,10 @@ export interface WebSocketJsonResponse {
   error?: string;
   reconnect?: boolean;
 }
+
+export enum UserDetailsView {
+  Overview,
+  Comments,
+  Posts,
+  Saved,
+}
