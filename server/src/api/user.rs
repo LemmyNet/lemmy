@@ -4,48 +4,20 @@ use crate::{
   blocking,
   websocket::{
     server::{JoinUserRoom, SendAllMessage, SendUserRoomMessage},
-    UserOperation,
-    WebsocketInfo,
+    UserOperation, WebsocketInfo,
   },
-  DbPool,
-  LemmyError,
+  DbPool, LemmyError,
 };
 use bcrypt::verify;
 use lemmy_db::{
-  comment::*,
-  comment_view::*,
-  community::*,
-  community_view::*,
-  moderator::*,
-  naive_now,
-  password_reset_request::*,
-  post::*,
-  post_view::*,
-  private_message::*,
-  private_message_view::*,
-  site::*,
-  site_view::*,
-  user::*,
-  user_mention::*,
-  user_mention_view::*,
-  user_view::*,
-  Crud,
-  Followable,
-  Joinable,
-  ListingType,
-  SortType,
+  comment::*, comment_view::*, community::*, community_view::*, moderator::*, naive_now,
+  password_reset_request::*, post::*, post_view::*, private_message::*, private_message_view::*,
+  site::*, site_view::*, user::*, user_mention::*, user_mention_view::*, user_view::*, Crud,
+  Followable, Joinable, ListingType, SortType,
 };
 use lemmy_utils::{
-  generate_actor_keypair,
-  generate_random_string,
-  is_valid_username,
-  make_apub_endpoint,
-  naive_from_unix,
-  remove_slurs,
-  send_email,
-  settings::Settings,
-  slur_check,
-  slurs_vec_to_str,
+  generate_actor_keypair, generate_random_string, is_valid_username, make_apub_endpoint,
+  naive_from_unix, remove_slurs, send_email, settings::Settings, slur_check, slurs_vec_to_str,
   EndpointType,
 };
 use log::error;
@@ -880,6 +852,9 @@ impl Perform for Oper<EditUserMention> {
     };
 
     let user_id = claims.id;
+    if user_id != data.user_mention_id {
+      return Err(APIError::err("couldnt_update_comment").into());
+    }
 
     let user_mention_id = data.user_mention_id;
     let user_mention =
