@@ -181,7 +181,10 @@ mod tests {
   pub fn establish_unpooled_connection() -> PgConnection {
     let db_url = match get_database_url_from_env() {
       Ok(url) => url,
-      Err(e) => panic!("Failed to read database URL from env var LEMMY_DATABASE_URL: {}", e),
+      Err(e) => panic!(
+        "Failed to read database URL from env var LEMMY_DATABASE_URL: {}",
+        e
+      ),
     };
     PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url))
   }

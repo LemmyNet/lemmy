@@ -880,6 +880,9 @@ impl Perform for Oper<EditUserMention> {
     };
 
     let user_id = claims.id;
+    if user_id != data.user_mention_id {
+      return Err(APIError::err("couldnt_update_comment").into());
+    }
 
     let user_mention_id = data.user_mention_id;
     let user_mention =
@@ -1310,23 +1313,35 @@ impl Perform for Oper<EditPrivateMessage> {
 
     let content_slurs_removed = match &data.content {
       Some(content) => remove_slurs(content),
-      None => orig_private_message.content,
+      None => orig_private_message.content.clone(),
     };
 
-    let private_message_form = PrivateMessageForm {
-      content: content_slurs_removed,
-      creator_id: orig_private_message.creator_id,
-      recipient_id: orig_private_message.recipient_id,
-      deleted: data.deleted.to_owned(),
-      read: data.read.to_owned(),
-      updated: if data.read.is_some() {
-        orig_private_message.updated
+    let private_message_form = {
+      if data.read.is_some() {
+        PrivateMessageForm {
+          content: orig_private_message.content.to_owned(),
+          creator_id: orig_private_message.creator_id,
+          recipient_id: orig_private_message.recipient_id,
+          read: data.read.to_owned(),
+          updated: orig_private_message.updated,
+          deleted: Some(orig_private_message.deleted),
+          ap_id: orig_private_message.ap_id,
+          local: orig_private_message.local,
+          published: None,
+        }
       } else {
-        Some(naive_now())
-      },
-      ap_id: orig_private_message.ap_id,
-      local: orig_private_message.local,
-      published: None,
+        PrivateMessageForm {
+          content: content_slurs_removed,
+          creator_id: orig_private_message.creator_id,
+          recipient_id: orig_private_message.recipient_id,
+          deleted: data.deleted.to_owned(),
+          read: Some(orig_private_message.read),
+          updated: Some(naive_now()),
+          ap_id: orig_private_message.ap_id,
+          local: orig_private_message.local,
+          published: None,
+        }
+      }
     };
 
     let edit_id = data.edit_id;
@@ -1339,14 +1354,20 @@ impl Perform for Oper<EditPrivateMessage> {
       Err(_e) => return Err(APIError::err("couldnt_update_private_message").into()),
     };
 
-    if let Some(deleted) = data.deleted.to_owned() {
-      if deleted {
-        updated_private_message
-          .send_delete(&user, &self.client, pool)
-          .await?;
+    if data.read.is_none() {
+      if let Some(deleted) = data.deleted.to_owned() {
+        if deleted {
+          updated_private_message
+            .send_delete(&user, &self.client, pool)
+            .await?;
+        } else {
+          updated_private_message
+            .send_undo_delete(&user, &self.client, pool)
+            .await?;
+        }
       } else {
         updated_private_message
-          .send_undo_delete(&user, &self.client, pool)
+          .send_update(&user, &self.client, pool)
           .await?;
       }
     } else {

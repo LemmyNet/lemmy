@@ -540,28 +540,36 @@ impl Perform for Oper<EditPost> {
 
     let user_id = claims.id;
 
+    let edit_id = data.edit_id;
+    let read_post = blocking(pool, move |conn| Post::read(conn, edit_id)).await??;
+
     // Verify its the creator or a mod or admin
-    let community_id = data.community_id;
-    let mut editors: Vec<i32> = vec![data.creator_id];
-    editors.append(
+    let community_id = read_post.community_id;
+    let mut editors: Vec<i32> = vec![read_post.creator_id];
+    let mut moderators: Vec<i32> = vec![];
+
+    moderators.append(
       &mut blocking(pool, move |conn| {
         CommunityModeratorView::for_community(conn, community_id)
           .map(|v| v.into_iter().map(|m| m.user_id).collect())
       })
       .await??,
     );
-    editors.append(
+    moderators.append(
       &mut blocking(pool, move |conn| {
         UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())
       })
       .await??,
     );
+
+    editors.extend(&moderators);
+
     if !editors.contains(&user_id) {
       return Err(APIError::err("no_post_edit_allowed").into());
     }
 
     // Check for a community ban
-    let community_id = data.community_id;
+    let community_id = read_post.community_id;
     let is_banned =
       move |conn: &'_ _| CommunityUserBanView::get(conn, user_id, community_id).is_ok();
     if blocking(pool, is_banned).await? {
@@ -578,28 +586,51 @@ impl Perform for Oper<EditPost> {
     let (iframely_title, iframely_description, iframely_html, pictrs_thumbnail) =
       fetch_iframely_and_pictrs_data(&self.client, data.url.to_owned()).await;
 
-    let edit_id = data.edit_id;
-    let read_post = blocking(pool, move |conn| Post::read(conn, edit_id)).await??;
-
-    let post_form = PostForm {
-      name: data.name.trim().to_owned(),
-      url: data.url.to_owned(),
-      body: data.body.to_owned(),
-      creator_id: data.creator_id.to_owned(),
-      community_id: data.community_id,
-      removed: data.removed.to_owned(),
-      deleted: data.deleted.to_owned(),
-      nsfw: data.nsfw,
-      locked: data.locked.to_owned(),
-      stickied: data.stickied.to_owned(),
-      updated: Some(naive_now()),
-      embed_title: iframely_title,
-      embed_description: iframely_description,
-      embed_html: iframely_html,
-      thumbnail_url: pictrs_thumbnail,
-      ap_id: read_post.ap_id,
-      local: read_post.local,
-      published: None,
+    let post_form = {
+      // only modify some properties if they are a moderator
+      if moderators.contains(&user_id) {
+        PostForm {
+          name: data.name.trim().to_owned(),
+          url: data.url.to_owned(),
+          body: data.body.to_owned(),
+          creator_id: read_post.creator_id.to_owned(),
+          community_id: read_post.community_id,
+          removed: data.removed.to_owned(),
+          deleted: data.deleted.to_owned(),
+          nsfw: data.nsfw,
+          locked: data.locked.to_owned(),
+          stickied: data.stickied.to_owned(),
+          updated: Some(naive_now()),
+          embed_title: iframely_title,
+          embed_description: iframely_description,
+          embed_html: iframely_html,
+          thumbnail_url: pictrs_thumbnail,
+          ap_id: read_post.ap_id,
+          local: read_post.local,
+          published: None,
+        }
+      } else {
+        PostForm {
+          name: read_post.name.trim().to_owned(),
+          url: data.url.to_owned(),
+          body: data.body.to_owned(),
+          creator_id: read_post.creator_id.to_owned(),
+          community_id: read_post.community_id,
+          removed: Some(read_post.removed),
+          deleted: data.deleted.to_owned(),
+          nsfw: data.nsfw,
+          locked: Some(read_post.locked),
+          stickied: Some(read_post.stickied),
+          updated: Some(naive_now()),
+          embed_title: iframely_title,
+          embed_description: iframely_description,
+          embed_html: iframely_html,
+          thumbnail_url: pictrs_thumbnail,
+          ap_id: read_post.ap_id,
+          local: read_post.local,
+          published: None,
+        }
+      }
     };
 
     let edit_id = data.edit_id;
@@ -617,33 +648,35 @@ impl Perform for Oper<EditPost> {
       }
     };
 
-    // Mod tables
-    if let Some(removed) = data.removed.to_owned() {
-      let form = ModRemovePostForm {
-        mod_user_id: user_id,
-        post_id: data.edit_id,
-        removed: Some(removed),
-        reason: data.reason.to_owned(),
-      };
-      blocking(pool, move |conn| ModRemovePost::create(conn, &form)).await??;
-    }
+    if moderators.contains(&user_id) {
+      // Mod tables
+      if let Some(removed) = data.removed.to_owned() {
+        let form = ModRemovePostForm {
+          mod_user_id: user_id,
+          post_id: data.edit_id,
+          removed: Some(removed),
+          reason: data.reason.to_owned(),
+        };
+        blocking(pool, move |conn| ModRemovePost::create(conn, &form)).await??;
+      }
 
-    if let Some(locked) = data.locked.to_owned() {
-      let form = ModLockPostForm {
-        mod_user_id: user_id,
-        post_id: data.edit_id,
-        locked: Some(locked),
-      };
-      blocking(pool, move |conn| ModLockPost::create(conn, &form)).await??;
-    }
+      if let Some(locked) = data.locked.to_owned() {
+        let form = ModLockPostForm {
+          mod_user_id: user_id,
+          post_id: data.edit_id,
+          locked: Some(locked),
+        };
+        blocking(pool, move |conn| ModLockPost::create(conn, &form)).await??;
+      }
 
-    if let Some(stickied) = data.stickied.to_owned() {
-      let form = ModStickyPostForm {
-        mod_user_id: user_id,
-        post_id: data.edit_id,
-        stickied: Some(stickied),
-      };
-      blocking(pool, move |conn| ModStickyPost::create(conn, &form)).await??;
+      if let Some(stickied) = data.stickied.to_owned() {
+        let form = ModStickyPostForm {
+          mod_user_id: user_id,
+          post_id: data.edit_id,
+          stickied: Some(stickied),
+        };
+        blocking(pool, move |conn| ModStickyPost::create(conn, &form)).await??;
+      }
     }
 
     if let Some(deleted) = data.deleted.to_owned() {
@@ -655,12 +688,14 @@ impl Perform for Oper<EditPost> {
           .await?;
       }
     } else if let Some(removed) = data.removed.to_owned() {
-      if removed {
-        updated_post.send_remove(&user, &self.client, pool).await?;
-      } else {
-        updated_post
-          .send_undo_remove(&user, &self.client, pool)
-          .await?;
+      if moderators.contains(&user_id) {
+        if removed {
+          updated_post.send_remove(&user, &self.client, pool).await?;
+        } else {
+          updated_post
+            .send_undo_remove(&user, &self.client, pool)
+            .await?;
+        }
       }
     } else {
       updated_post.send_update(&user, &self.client, pool).await?;

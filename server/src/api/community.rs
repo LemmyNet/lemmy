@@ -392,7 +392,7 @@ impl Perform for Oper<EditCommunity> {
       title: data.title.to_owned(),
       description: data.description.to_owned(),
       category_id: data.category_id.to_owned(),
-      creator_id: user_id,
+      creator_id: read_community.creator_id,
       removed: data.removed.to_owned(),
       deleted: data.deleted.to_owned(),
       nsfw: data.nsfw,
@@ -652,6 +652,28 @@ impl Perform for Oper<BanFromCommunity> {
 
     let user_id = claims.id;
 
+    let mut community_moderators: Vec<i32> = vec![];
+
+    let community_id = data.community_id;
+
+    community_moderators.append(
+      &mut blocking(pool, move |conn| {
+        CommunityModeratorView::for_community(&conn, community_id)
+          .map(|v| v.into_iter().map(|m| m.user_id).collect())
+      })
+      .await??,
+    );
+    community_moderators.append(
+      &mut blocking(pool, move |conn| {
+        UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())
+      })
+      .await??,
+    );
+
+    if !community_moderators.contains(&user_id) {
+      return Err(APIError::err("couldnt_update_community").into());
+    }
+
     let community_user_ban_form = CommunityUserBanForm {
       community_id: data.community_id,
       user_id: data.user_id,
@@ -728,6 +750,28 @@ impl Perform for Oper<AddModToCommunity> {
       community_id: data.community_id,
       user_id: data.user_id,
     };
+
+    let mut community_moderators: Vec<i32> = vec![];
+
+    let community_id = data.community_id;
+
+    community_moderators.append(
+      &mut blocking(pool, move |conn| {
+        CommunityModeratorView::for_community(&conn, community_id)
+          .map(|v| v.into_iter().map(|m| m.user_id).collect())
+      })
+      .await??,
+    );
+    community_moderators.append(
+      &mut blocking(pool, move |conn| {
+        UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())
+      })
+      .await??,
+    );
+
+    if !community_moderators.contains(&user_id) {
+      return Err(APIError::err("couldnt_update_community").into());
+    }
 
     if data.added {
       let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
