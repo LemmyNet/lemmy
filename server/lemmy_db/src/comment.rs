@@ -1,9 +1,5 @@
 use super::{post::Post, *};
-use crate::{
-  apub::{make_apub_endpoint, EndpointType},
-  naive_now,
-  schema::{comment, comment_like, comment_saved},
-};
+use crate::schema::{comment, comment_like, comment_saved};
 
 // WITH RECURSIVE MyTree AS (
 //     SELECT * FROM comment WHERE parent_id IS NULL
@@ -77,12 +73,15 @@ impl Crud<CommentForm> for Comment {
 }
 
 impl Comment {
-  pub fn update_ap_id(conn: &PgConnection, comment_id: i32) -> Result<Self, Error> {
+  pub fn update_ap_id(
+    conn: &PgConnection,
+    comment_id: i32,
+    apub_id: String,
+  ) -> Result<Self, Error> {
     use crate::schema::comment::dsl::*;
 
-    let apid = make_apub_endpoint(EndpointType::Comment, &comment_id.to_string()).to_string();
     diesel::update(comment.find(comment_id))
-      .set(ap_id.eq(apid))
+      .set(ap_id.eq(apub_id))
       .get_result::<Self>(conn)
   }
 
@@ -204,10 +203,8 @@ impl Saveable<CommentSavedForm> for CommentSaved {
 
 #[cfg(test)]
 mod tests {
-  use super::{
-    super::{community::*, post::*, user::*},
-    *,
-  };
+  use crate::{comment::*, community::*, post::*, tests::establish_unpooled_connection, user::*};
+
   #[test]
   fn test_crud() {
     let conn = establish_unpooled_connection();

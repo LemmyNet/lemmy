@@ -148,7 +148,7 @@ export class Search extends Component<any, SearchState> {
         {this.state.type_ == SearchType.Posts && this.posts()}
         {this.state.type_ == SearchType.Communities && this.communities()}
         {this.state.type_ == SearchType.Users && this.users()}
-        {this.noResults()}
+        {this.resultsCount() == 0 && <span>{i18n.t('no_results')}</span>}
         {this.paginator()}
       </div>
     );
@@ -275,6 +275,7 @@ export class Search extends Component<any, SearchState> {
               {i.type_ == 'users' && (
                 <div>
                   <span>
+                    @
                     <UserListing
                       user={{
                         name: (i.data as UserView).name,
@@ -282,9 +283,9 @@ export class Search extends Component<any, SearchState> {
                       }}
                     />
                   </span>
-                  <span>{` - ${
-                    (i.data as UserView).comment_score
-                  } comment karma`}</span>
+                  <span>{` - ${i18n.t('number_of_comments', {
+                    count: (i.data as UserView).number_of_comments,
+                  })}`}</span>
                 </div>
               )}
             </div>
@@ -359,12 +360,17 @@ export class Search extends Component<any, SearchState> {
           <div class="row">
             <div class="col-12">
               <span>
-                <Link
-                  className="text-info"
-                  to={`/u/${user.name}`}
-                >{`/u/${user.name}`}</Link>
+                @
+                <UserListing
+                  user={{
+                    name: user.name,
+                    avatar: user.avatar,
+                  }}
+                />
               </span>
-              <span>{` - ${user.comment_score} comment karma`}</span>
+              <span>{` - ${i18n.t('number_of_comments', {
+                count: user.number_of_comments,
+              })}`}</span>
             </div>
           </div>
         ))}
@@ -383,26 +389,26 @@ export class Search extends Component<any, SearchState> {
             {i18n.t('prev')}
           </button>
         )}
-        <button
-          class="btn btn-sm btn-secondary"
-          onClick={linkEvent(this, this.nextPage)}
-        >
-          {i18n.t('next')}
-        </button>
+
+        {this.resultsCount() > 0 && (
+          <button
+            class="btn btn-sm btn-secondary"
+            onClick={linkEvent(this, this.nextPage)}
+          >
+            {i18n.t('next')}
+          </button>
+        )}
       </div>
     );
   }
 
-  noResults() {
+  resultsCount(): number {
     let res = this.state.searchResponse;
     return (
-      <div>
-        {res &&
-          res.posts.length == 0 &&
-          res.comments.length == 0 &&
-          res.communities.length == 0 &&
-          res.users.length == 0 && <span>{i18n.t('no_results')}</span>}
-      </div>
+      res.posts.length +
+      res.comments.length +
+      res.communities.length +
+      res.users.length
     );
   }
 

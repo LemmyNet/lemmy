@@ -1,5 +1,5 @@
 use super::user_view::user_fast::BoxedQuery;
-use crate::db::{fuzzy_search, limit_and_offset, MaybeOptional, SortType};
+use crate::{fuzzy_search, limit_and_offset, MaybeOptional, SortType};
 use diesel::{dsl::*, pg::Pg, result::Error, *};
 use serde::{Deserialize, Serialize};
 
@@ -157,7 +157,10 @@ impl UserView {
 
   pub fn admins(conn: &PgConnection) -> Result<Vec<Self>, Error> {
     use super::user_view::user_fast::dsl::*;
-    user_fast.filter(admin.eq(true)).load::<Self>(conn)
+    user_fast
+      .filter(admin.eq(true))
+      .order_by(published)
+      .load::<Self>(conn)
   }
 
   pub fn banned(conn: &PgConnection) -> Result<Vec<Self>, Error> {

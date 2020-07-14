@@ -1,5 +1,5 @@
 use super::post_view::post_fast_view::BoxedQuery;
-use crate::db::{fuzzy_search, limit_and_offset, ListingType, MaybeOptional, SortType};
+use crate::{fuzzy_search, limit_and_offset, ListingType, MaybeOptional, SortType};
 use diesel::{dsl::*, pg::Pg, result::Error, *};
 use serde::{Deserialize, Serialize};
 
@@ -28,6 +28,7 @@ table! {
     creator_actor_id -> Text,
     creator_local -> Bool,
     creator_name -> Varchar,
+    creator_published -> Timestamp,
     creator_avatar -> Nullable<Text>,
     banned -> Bool,
     banned_from_community -> Bool,
@@ -75,6 +76,7 @@ table! {
     creator_actor_id -> Text,
     creator_local -> Bool,
     creator_name -> Varchar,
+    creator_published -> Timestamp,
     creator_avatar -> Nullable<Text>,
     banned -> Bool,
     banned_from_community -> Bool,
@@ -125,6 +127,7 @@ pub struct PostView {
   pub creator_actor_id: String,
   pub creator_local: bool,
   pub creator_name: String,
+  pub creator_published: chrono::NaiveDateTime,
   pub creator_avatar: Option<String>,
   pub banned: bool,
   pub banned_from_community: bool,
@@ -155,6 +158,7 @@ pub struct PostQueryBuilder<'a> {
   my_user_id: Option<i32>,
   for_creator_id: Option<i32>,
   for_community_id: Option<i32>,
+  for_community_name: Option<String>,
   search_term: Option<String>,
   url_search: Option<String>,
   show_nsfw: bool,
@@ -178,6 +182,7 @@ impl<'a> PostQueryBuilder<'a> {
       my_user_id: None,
       for_creator_id: None,
       for_community_id: None,
+      for_community_name: None,
       search_term: None,
       url_search: None,
       show_nsfw: true,
@@ -200,6 +205,11 @@ impl<'a> PostQueryBuilder<'a> {
 
   pub fn for_community_id<T: MaybeOptional<i32>>(mut self, for_community_id: T) -> Self {
     self.for_community_id = for_community_id.get_optional();
+    self
+  }
+
+  pub fn for_community_name<T: MaybeOptional<String>>(mut self, for_community_name: T) -> Self {
+    self.for_community_name = for_community_name.get_optional();
     self
   }
 
@@ -259,6 +269,11 @@ impl<'a> PostQueryBuilder<'a> {
 
     if let Some(for_community_id) = self.for_community_id {
       query = query.filter(community_id.eq(for_community_id));
+      query = query.then_order_by(stickied.desc());
+    }
+
+    if let Some(for_community_name) = self.for_community_name {
+      query = query.filter(community_name.eq(for_community_name));
       query = query.then_order_by(stickied.desc());
     }
 
@@ -364,11 +379,16 @@ impl PostView {
 
 #[cfg(test)]
 mod tests {
-  use super::{
-    super::{community::*, post::*, user::*},
+  use crate::{
+    community::*,
+    post::*,
+    post_view::*,
+    tests::establish_unpooled_connection,
+    user::*,
+    Crud,
+    Likeable,
     *,
   };
-  use crate::db::{establish_unpooled_connection, Crud, Likeable};
 
   #[test]
   fn test_crud() {
@@ -499,6 +519,7 @@ mod tests {
       body: None,
       creator_id: inserted_user.id,
       creator_name: user_name.to_owned(),
+      creator_published: inserted_user.published,
       creator_avatar: None,
       banned: false,
       banned_from_community: false,
@@ -548,6 +569,7 @@ mod tests {
       stickied: false,
       creator_id: inserted_user.id,
       creator_name: user_name,
+      creator_published: inserted_user.published,
       creator_avatar: None,
       banned: false,
       banned_from_community: false,

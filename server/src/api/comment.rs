@@ -1,28 +1,7 @@
 use crate::{
-  api::{APIError, Oper, Perform},
+  api::{claims::Claims, APIError, Oper, Perform},
   apub::{ApubLikeableType, ApubObjectType},
   blocking,
-  db::{
-    comment::*,
-    comment_view::*,
-    community_view::*,
-    moderator::*,
-    post::*,
-    site_view::*,
-    user::*,
-    user_mention::*,
-    user_view::*,
-    Crud,
-    Likeable,
-    ListingType,
-    Saveable,
-    SortType,
-  },
-  naive_now,
-  remove_slurs,
-  scrape_text_for_mentions,
-  send_email,
-  settings::Settings,
   websocket::{
     server::{JoinCommunityRoom, SendComment},
     UserOperation,
@@ -30,6 +9,31 @@ use crate::{
   },
   DbPool,
   LemmyError,
+};
+use lemmy_db::{
+  comment::*,
+  comment_view::*,
+  community_view::*,
+  moderator::*,
+  naive_now,
+  post::*,
+  site_view::*,
+  user::*,
+  user_mention::*,
+  user_view::*,
+  Crud,
+  Likeable,
+  ListingType,
+  Saveable,
+  SortType,
+};
+use lemmy_utils::{
+  make_apub_endpoint,
+  remove_slurs,
+  scrape_text_for_mentions,
+  send_email,
+  settings::Settings,
+  EndpointType,
   MentionData,
 };
 use log::error;
@@ -155,7 +159,9 @@ impl Perform for Oper<CreateComment> {
 
     let inserted_comment_id = inserted_comment.id;
     let updated_comment: Comment = match blocking(pool, move |conn| {
-      Comment::update_ap_id(&conn, inserted_comment_id)
+      let apub_id =
+        make_apub_endpoint(EndpointType::Comment, &inserted_comment_id.to_string()).to_string();
+      Comment::update_ap_id(&conn, inserted_comment_id, apub_id)
     })
     .await?
     {

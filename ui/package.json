@@ -15,7 +15,6 @@
   },
   "keywords": [],
   "dependencies": {
-    "@joeattardi/emoji-button": "^2.12.1",
     "@types/autosize": "^3.0.6",
     "@types/js-cookie": "^2.2.6",
     "@types/jwt-decode": "^2.2.1",
@@ -24,6 +23,7 @@
     "@types/node": "^13.11.1",
     "autosize": "^4.0.2",
     "bootswatch": "^4.3.1",
+    "choices.js": "^9.0.1",
     "classcat": "^4.0.2",
     "dotenv": "^8.2.0",
     "emoji-short-name": "^1.0.0",
@@ -37,7 +37,6 @@
     "markdown-it": "^10.0.0",
     "markdown-it-container": "^2.0.0",
     "markdown-it-emoji": "^1.4.0",
-    "mobius1-selectr": "^2.4.13",
     "moment": "^2.24.0",
     "node-fetch": "^2.6.0",
     "prettier": "^2.0.4",
@@ -47,7 +46,6 @@
     "tippy.js": "^6.1.1",
     "toastify-js": "^1.7.0",
     "tributejs": "^5.1.3",
-    "twemoji": "^12.1.2",
     "ws": "^7.2.3"
   },
   "devDependencies": {
@@ -72,7 +70,7 @@
   "engineStrict": true,
   "husky": {
     "hooks": {
-      "pre-commit": "cargo clippy --manifest-path ../server/Cargo.toml --all-targets --all-features -- -D warnings && lint-staged"
+      "pre-commit": "cargo clippy --manifest-path ../server/Cargo.toml --all-targets --workspace -- -D warnings && lint-staged"
     }
   },
   "lint-staged": {

@@ -1,15 +1,12 @@
 use crate::{
-  apub::{activities::send_activity, create_apub_response, ActorType, FromApub, PersonExt, ToApub},
-  blocking,
-  convert_datetime,
-  db::{
-    activity::insert_activity,
-    user::{UserForm, User_},
+  api::claims::Claims,
+  apub::{
+    activities::send_activity, create_apub_response, insert_activity, ActorType, FromApub,
+    PersonExt, ToApub,
   },
-  naive_now,
+  blocking,
   routes::DbPoolParam,
-  DbPool,
-  LemmyError,
+  DbPool, LemmyError,
 };
 use activitystreams_ext::Ext1;
 use activitystreams_new::{
@@ -22,6 +19,11 @@ use activitystreams_new::{
 };
 use actix_web::{body::Body, client::Client, web, HttpResponse};
 use failure::_core::str::FromStr;
+use lemmy_db::{
+  naive_now,
+  user::{UserForm, User_},
+};
+use lemmy_utils::convert_datetime;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -185,8 +187,8 @@ impl ActorType for User_ {
 impl FromApub for UserForm {
   type ApubType = PersonExt;
   /// Parse an ActivityPub person received from another instance into a Lemmy user.
-  async fn from_apub(person: &mut PersonExt, _: &Client, _: &DbPool) -> Result<Self, LemmyError> {
-    let avatar = match person.take_icon() {
+  async fn from_apub(person: &PersonExt, _: &Client, _: &DbPool) -> Result<Self, LemmyError> {
+    let avatar = match person.icon() {
       Some(any_image) => Image::from_any_base(any_image.as_one().unwrap().clone())
         .unwrap()
         .unwrap()
@@ -199,19 +201,19 @@ impl FromApub for UserForm {
 
     Ok(UserForm {
       name: person
-        .take_name()
+        .name()
         .unwrap()
         .as_single_xsd_string()
         .unwrap()
         .into(),
-      preferred_username: person.inner.take_preferred_username(),
+      preferred_username: person.inner.preferred_username().map(|u| u.to_string()),
       password_encrypted: "".to_string(),
       admin: false,
       banned: false,
       email: None,
       avatar,
       updated: person
-        .take_updated()
+        .updated()
         .map(|u| u.as_ref().to_owned().naive_local()),
       show_nsfw: false,
       theme: "".to_string(),
@@ -223,7 +225,7 @@ impl FromApub for UserForm {
       matrix_user_id: None,
       actor_id: person.id().unwrap().to_string(),
       bio: person
-        .take_summary()
+        .summary()
         .map(|s| s.as_single_xsd_string().unwrap().into()),
       local: false,
       private_key: None,
@@ -240,7 +242,7 @@ pub async fn get_apub_user_http(
 ) -> Result<HttpResponse<Body>, LemmyError> {
   let user_name = info.into_inner().user_name;
   let user = blocking(&db, move |conn| {
-    User_::find_by_email_or_username(conn, &user_name)
+    Claims::find_by_email_or_username(conn, &user_name)
   })
   .await??;
   let u = user.to_apub(&db).await?;

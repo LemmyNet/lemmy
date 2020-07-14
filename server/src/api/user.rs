@@ -1,44 +1,7 @@
 use crate::{
-  api::{APIError, Oper, Perform},
-  apub::{
-    extensions::signatures::generate_actor_keypair,
-    make_apub_endpoint,
-    ApubObjectType,
-    EndpointType,
-  },
+  api::{claims::Claims, APIError, Oper, Perform},
+  apub::ApubObjectType,
   blocking,
-  db::{
-    comment::*,
-    comment_view::*,
-    community::*,
-    community_view::*,
-    moderator::*,
-    password_reset_request::*,
-    post::*,
-    post_view::*,
-    private_message::*,
-    private_message_view::*,
-    site::*,
-    site_view::*,
-    user::*,
-    user_mention::*,
-    user_mention_view::*,
-    user_view::*,
-    Crud,
-    Followable,
-    Joinable,
-    ListingType,
-    SortType,
-  },
-  generate_random_string,
-  is_valid_username,
-  naive_from_unix,
-  naive_now,
-  remove_slurs,
-  send_email,
-  settings::Settings,
-  slur_check,
-  slurs_vec_to_str,
   websocket::{
     server::{JoinUserRoom, SendAllMessage, SendUserRoomMessage},
     UserOperation,
@@ -48,6 +11,43 @@ use crate::{
   LemmyError,
 };
 use bcrypt::verify;
+use lemmy_db::{
+  comment::*,
+  comment_view::*,
+  community::*,
+  community_view::*,
+  moderator::*,
+  naive_now,
+  password_reset_request::*,
+  post::*,
+  post_view::*,
+  private_message::*,
+  private_message_view::*,
+  site::*,
+  site_view::*,
+  user::*,
+  user_mention::*,
+  user_mention_view::*,
+  user_view::*,
+  Crud,
+  Followable,
+  Joinable,
+  ListingType,
+  SortType,
+};
+use lemmy_utils::{
+  generate_actor_keypair,
+  generate_random_string,
+  is_valid_username,
+  make_apub_endpoint,
+  naive_from_unix,
+  remove_slurs,
+  send_email,
+  settings::Settings,
+  slur_check,
+  slurs_vec_to_str,
+  EndpointType,
+};
 use log::error;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -264,7 +264,7 @@ impl Perform for Oper<Login> {
     // Fetch that username / email
     let username_or_email = data.username_or_email.clone();
     let user = match blocking(pool, move |conn| {
-      User_::find_by_email_or_username(conn, &username_or_email)
+      Claims::find_by_email_or_username(conn, &username_or_email)
     })
     .await?
     {
@@ -279,7 +279,9 @@ impl Perform for Oper<Login> {
     }
 
     // Return the jwt
-    Ok(LoginResponse { jwt: user.jwt() })
+    Ok(LoginResponse {
+      jwt: Claims::jwt(user, Settings::get().hostname),
+    })
   }
 }
 
@@ -421,7 +423,7 @@ impl Perform for Oper<Register> {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: inserted_user.jwt(),
+      jwt: Claims::jwt(inserted_user, Settings::get().hostname),
     })
   }
 }
@@ -449,6 +451,11 @@ impl Perform for Oper<SaveUserSettings> {
     let email = match &data.email {
       Some(email) => Some(email.to_owned()),
       None => read_user.email,
+    };
+
+    let avatar = match &data.avatar {
+      Some(avatar) => Some(avatar.to_owned()),
+      None => read_user.avatar,
     };
 
     let password_encrypted = match &data.new_password {
@@ -488,7 +495,7 @@ impl Perform for Oper<SaveUserSettings> {
       name: read_user.name,
       email,
       matrix_user_id: data.matrix_user_id.to_owned(),
-      avatar: data.avatar.to_owned(),
+      avatar,
       password_encrypted,
       preferred_username: read_user.preferred_username,
       updated: Some(naive_now()),
@@ -527,7 +534,7 @@ impl Perform for Oper<SaveUserSettings> {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: updated_user.jwt(),
+      jwt: Claims::jwt(updated_user, Settings::get().hostname),
     })
   }
 }
@@ -1150,7 +1157,7 @@ impl Perform for Oper<PasswordChange> {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: updated_user.jwt(),
+      jwt: Claims::jwt(updated_user, Settings::get().hostname),
     })
   }
 }
@@ -1208,7 +1215,12 @@ impl Perform for Oper<CreatePrivateMessage> {
 
     let inserted_private_message_id = inserted_private_message.id;
     let updated_private_message = match blocking(pool, move |conn| {
-      PrivateMessage::update_ap_id(&conn, inserted_private_message_id)
+      let apub_id = make_apub_endpoint(
+        EndpointType::PrivateMessage,
+        &inserted_private_message_id.to_string(),
+      )
+      .to_string();
+      PrivateMessage::update_ap_id(&conn, inserted_private_message_id, apub_id)
     })
     .await?
     {

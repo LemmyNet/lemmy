@@ -1,31 +1,28 @@
 use super::user::Register;
 use crate::{
-  api::{APIError, Oper, Perform},
+  api::{claims::Claims, APIError, Oper, Perform},
   apub::fetcher::search_by_apub_id,
   blocking,
-  db::{
-    category::*,
-    comment_view::*,
-    community_view::*,
-    moderator::*,
-    moderator_views::*,
-    post_view::*,
-    site::*,
-    site_view::*,
-    user::*,
-    user_view::*,
-    Crud,
-    SearchType,
-    SortType,
-  },
-  naive_now,
-  settings::Settings,
-  slur_check,
-  slurs_vec_to_str,
   websocket::{server::SendAllMessage, UserOperation, WebsocketInfo},
   DbPool,
   LemmyError,
 };
+use lemmy_db::{
+  category::*,
+  comment_view::*,
+  community_view::*,
+  moderator::*,
+  moderator_views::*,
+  naive_now,
+  post_view::*,
+  site::*,
+  site_view::*,
+  user_view::*,
+  Crud,
+  SearchType,
+  SortType,
+};
+use lemmy_utils::{settings::Settings, slur_check, slurs_vec_to_str};
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;

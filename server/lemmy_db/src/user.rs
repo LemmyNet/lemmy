@@ -1,14 +1,10 @@
 use crate::{
-  db::Crud,
-  is_email_regex,
   naive_now,
   schema::{user_, user_::dsl::*},
-  settings::Settings,
+  Crud,
 };
 use bcrypt::{hash, DEFAULT_COST};
 use diesel::{dsl::*, result::Error, *};
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
-use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "user_"]
@@ -131,90 +127,23 @@ impl User_ {
   }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Claims {
-  pub id: i32,
-  pub username: String,
-  pub iss: String,
-  pub show_nsfw: bool,
-  pub theme: String,
-  pub default_sort_type: i16,
-  pub default_listing_type: i16,
-  pub lang: String,
-  pub avatar: Option<String>,
-  pub show_avatars: bool,
-}
-
-impl Claims {
-  pub fn decode(jwt: &str) -> Result<TokenData<Claims>, jsonwebtoken::errors::Error> {
-    let v = Validation {
-      validate_exp: false,
-      ..Validation::default()
-    };
-    decode::<Claims>(
-      &jwt,
-      &DecodingKey::from_secret(Settings::get().jwt_secret.as_ref()),
-      &v,
-    )
-  }
-}
-
-type Jwt = String;
 impl User_ {
-  pub fn jwt(&self) -> Jwt {
-    let my_claims = Claims {
-      id: self.id,
-      username: self.name.to_owned(),
-      iss: Settings::get().hostname,
-      show_nsfw: self.show_nsfw,
-      theme: self.theme.to_owned(),
-      default_sort_type: self.default_sort_type,
-      default_listing_type: self.default_listing_type,
-      lang: self.lang.to_owned(),
-      avatar: self.avatar.to_owned(),
-      show_avatars: self.show_avatars.to_owned(),
-    };
-    encode(
-      &Header::default(),
-      &my_claims,
-      &EncodingKey::from_secret(Settings::get().jwt_secret.as_ref()),
-    )
-    .unwrap()
-  }
-
-  pub fn find_by_username(conn: &PgConnection, username: &str) -> Result<Self, Error> {
+  pub fn find_by_username(conn: &PgConnection, username: &str) -> Result<User_, Error> {
     user_.filter(name.eq(username)).first::<User_>(conn)
   }
 
-  pub fn find_by_email(conn: &PgConnection, from_email: &str) -> Result<Self, Error> {
+  pub fn find_by_email(conn: &PgConnection, from_email: &str) -> Result<User_, Error> {
     user_.filter(email.eq(from_email)).first::<User_>(conn)
   }
 
-  pub fn find_by_email_or_username(
-    conn: &PgConnection,
-    username_or_email: &str,
-  ) -> Result<Self, Error> {
-    if is_email_regex(username_or_email) {
-      User_::find_by_email(conn, username_or_email)
-    } else {
-      User_::find_by_username(conn, username_or_email)
-    }
-  }
-
-  pub fn get_profile_url(&self) -> String {
-    format!("https://{}/u/{}", Settings::get().hostname, self.name)
-  }
-
-  pub fn find_by_jwt(conn: &PgConnection, jwt: &str) -> Result<Self, Error> {
-    let claims: Claims = Claims::decode(&jwt).expect("Invalid token").claims;
-    Self::read(&conn, claims.id)
+  pub fn get_profile_url(&self, hostname: &str) -> String {
+    format!("https://{}/u/{}", hostname, self.name)
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use super::{User_, *};
-  use crate::db::{establish_unpooled_connection, ListingType, SortType};
+  use crate::{tests::establish_unpooled_connection, user::*, ListingType, SortType};
 
   #[test]
   fn test_crud() {

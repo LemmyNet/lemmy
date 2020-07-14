@@ -1,35 +1,18 @@
 use crate::{
   apub::{
     activities::{populate_object_props, send_activity},
-    create_apub_response,
-    create_apub_tombstone_response,
-    create_tombstone,
+    create_apub_response, create_apub_tombstone_response, create_tombstone,
     extensions::group_extensions::GroupExtension,
     fetcher::get_or_fetch_and_upsert_remote_user,
-    get_shared_inbox,
-    ActorType,
-    FromApub,
-    GroupExt,
-    ToApub,
+    get_shared_inbox, insert_activity, ActorType, FromApub, GroupExt, ToApub,
   },
   blocking,
-  convert_datetime,
-  db::{
-    activity::insert_activity,
-    community::{Community, CommunityForm},
-    community_view::{CommunityFollowerView, CommunityModeratorView},
-    user::User_,
-  },
-  naive_now,
   routes::DbPoolParam,
-  DbPool,
-  LemmyError,
+  DbPool, LemmyError,
 };
 use activitystreams::{
   activity::{Accept, Announce, Delete, Remove, Undo},
-  Activity,
-  Base,
-  BaseBox,
+  Activity, Base, BaseBox,
 };
 use activitystreams_ext::Ext2;
 use activitystreams_new::{
@@ -44,6 +27,13 @@ use activitystreams_new::{
 };
 use actix_web::{body::Body, client::Client, web, HttpResponse};
 use itertools::Itertools;
+use lemmy_db::{
+  community::{Community, CommunityForm},
+  community_view::{CommunityFollowerView, CommunityModeratorView},
+  naive_now,
+  user::User_,
+};
+use lemmy_utils::convert_datetime;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, str::FromStr};
 
@@ -367,13 +357,8 @@ impl FromApub for CommunityForm {
   type ApubType = GroupExt;
 
   /// Parse an ActivityPub group received from another instance into a Lemmy community.
-  async fn from_apub(
-    group: &mut GroupExt,
-    client: &Client,
-    pool: &DbPool,
-  ) -> Result<Self, LemmyError> {
-    // TODO: this is probably gonna cause problems cause fetcher:292 also calls take_attributed_to()
-    let creator_and_moderator_uris = group.clone().take_attributed_to().unwrap();
+  async fn from_apub(group: &GroupExt, client: &Client, pool: &DbPool) -> Result<Self, LemmyError> {
+    let creator_and_moderator_uris = group.attributed_to().unwrap();
     let creator_uri = creator_and_moderator_uris
       .as_many()
       .unwrap()
@@ -386,27 +371,20 @@ impl FromApub for CommunityForm {
     let creator = get_or_fetch_and_upsert_remote_user(creator_uri.as_str(), client, pool).await?;
 
     Ok(CommunityForm {
-      name: group
-        .take_name()
-        .unwrap()
-        .as_single_xsd_string()
-        .unwrap()
-        .into(),
-      title: group.inner.take_preferred_username().unwrap(),
+      name: group.name().unwrap().as_single_xsd_string().unwrap().into(),
+      title: group.inner.preferred_username().unwrap().to_string(),
       // TODO: should be parsed as html and tags like <script> removed (or use markdown source)
       //       -> same for post.content etc
       description: group
-        .take_content()
+        .content()
         .map(|s| s.as_single_xsd_string().unwrap().into()),
       category_id: group.ext_one.category.identifier.parse::<i32>()?,
       creator_id: creator.id,
       removed: None,
       published: group
-        .take_published()
+        .published()
         .map(|u| u.as_ref().to_owned().naive_local()),
-      updated: group
-        .take_updated()
-        .map(|u| u.as_ref().to_owned().naive_local()),
+      updated: group.updated().map(|u| u.as_ref().to_owned().naive_local()),
       deleted: None,
       nsfw: group.ext_one.sensitive,
       actor_id: group.id().unwrap().to_string(),
@@ -462,39 +440,37 @@ pub async fn get_apub_community_followers(
   Ok(create_apub_response(&collection))
 }
 
-impl Community {
-  pub async fn do_announce<A>(
-    activity: A,
-    community: &Community,
-    sender: &dyn ActorType,
-    client: &Client,
-    pool: &DbPool,
-  ) -> Result<HttpResponse, LemmyError>
-  where
-    A: Activity + Base + Serialize + Debug,
-  {
-    let mut announce = Announce::default();
-    populate_object_props(
-      &mut announce.object_props,
-      vec![community.get_followers_url()],
-      &format!("{}/announce/{}", community.actor_id, uuid::Uuid::new_v4()),
-    )?;
-    announce
-      .announce_props
-      .set_actor_xsd_any_uri(community.actor_id.to_owned())?
-      .set_object_base_box(BaseBox::from_concrete(activity)?)?;
+pub async fn do_announce<A>(
+  activity: A,
+  community: &Community,
+  sender: &dyn ActorType,
+  client: &Client,
+  pool: &DbPool,
+) -> Result<HttpResponse, LemmyError>
+where
+  A: Activity + Base + Serialize + Debug,
+{
+  let mut announce = Announce::default();
+  populate_object_props(
+    &mut announce.object_props,
+    vec![community.get_followers_url()],
+    &format!("{}/announce/{}", community.actor_id, uuid::Uuid::new_v4()),
+  )?;
+  announce
+    .announce_props
+    .set_actor_xsd_any_uri(community.actor_id.to_owned())?
+    .set_object_base_box(BaseBox::from_concrete(activity)?)?;
 
-    insert_activity(community.creator_id, announce.clone(), true, pool).await?;
+  insert_activity(community.creator_id, announce.clone(), true, pool).await?;
 
-    // dont send to the instance where the activity originally came from, because that would result
-    // in a database error (same data inserted twice)
-    let mut to = community.get_follower_inboxes(pool).await?;
+  // dont send to the instance where the activity originally came from, because that would result
+  // in a database error (same data inserted twice)
+  let mut to = community.get_follower_inboxes(pool).await?;
 
-    // this seems to be the "easiest" stable alternative for remove_item()
-    to.retain(|x| *x != sender.get_shared_inbox_url());
+  // this seems to be the "easiest" stable alternative for remove_item()
+  to.retain(|x| *x != sender.get_shared_inbox_url());
 
-    send_activity(client, &announce, community, to).await?;
+  send_activity(client, &announce, community, to).await?;
 
-    Ok(HttpResponse::Ok().finish())
-  }
+  Ok(HttpResponse::Ok().finish())
 }

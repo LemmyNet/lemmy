@@ -1,7 +1,13 @@
 import { Component } from 'inferno';
 import { Link } from 'inferno-router';
 import { UserView } from '../interfaces';
-import { pictrsAvatarThumbnail, showAvatars, hostname } from '../utils';
+import {
+  pictrsAvatarThumbnail,
+  showAvatars,
+  hostname,
+  isCakeDay,
+} from '../utils';
+import { CakeDay } from './cake-day';
 
 interface UserOther {
   name: string;
@@ -9,6 +15,7 @@ interface UserOther {
   avatar?: string;
   local?: boolean;
   actor_id?: string;
+  published?: string;
 }
 
 interface UserListingProps {
@@ -35,17 +42,21 @@ export class UserListing extends Component<UserListingProps, any> {
     }
 
     return (
-      <Link className="text-body font-weight-bold" to={link}>
-        {user.avatar && showAvatars() && (
-          <img
-            height="32"
-            width="32"
-            src={pictrsAvatarThumbnail(user.avatar)}
-            class="rounded-circle mr-2"
-          />
-        )}
-        <span>{name_}</span>
-      </Link>
+      <>
+        <Link className="text-body font-weight-bold" to={link}>
+          {user.avatar && showAvatars() && (
+            <img
+              height="32"
+              width="32"
+              src={pictrsAvatarThumbnail(user.avatar)}
+              class="rounded-circle mr-2"
+            />
+          )}
+          <span>{name_}</span>
+        </Link>
+
+        {isCakeDay(user.published) && <CakeDay creatorName={name_} />}
+      </>
     );
   }
 }

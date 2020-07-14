@@ -33,6 +33,7 @@ import {
   setupTippy,
   hostname,
   previewLines,
+  toast,
 } from '../utils';
 import { i18n } from '../i18next';
 
@@ -434,8 +435,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                       id: post.creator_id,
                       local: post.creator_local,
                       actor_id: post.creator_actor_id,
+                      published: post.creator_published,
                     }}
                   />
+
                   {this.isMod && (
                     <span className="mx-1 badge badge-light">
                       {i18n.t('mod')}
@@ -1030,6 +1033,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   handlePostLike(i: PostListing) {
+    if (!UserService.Instance.user) {
+      this.context.router.history.push(`/login`);
+    }
+
     let new_vote = i.state.my_vote == 1 ? 0 : 1;
 
     if (i.state.my_vote == 1) {
@@ -1057,6 +1064,10 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   handlePostDisLike(i: PostListing) {
+    if (!UserService.Instance.user) {
+      this.context.router.history.push(`/login`);
+    }
+
     let new_vote = i.state.my_vote == -1 ? 0 : -1;
 
     if (i.state.my_vote == 1) {

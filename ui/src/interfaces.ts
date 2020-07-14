@@ -54,6 +54,11 @@ export enum CommentSortType {
   Old,
 }
 
+export enum CommentViewType {
+  Tree,
+  Chat,
+}
+
 export enum ListingType {
   All,
   Subscribed,
@@ -183,6 +188,7 @@ export interface Post {
   creator_actor_id: string;
   creator_local: boolean;
   creator_name: string;
+  creator_published: string;
   creator_avatar?: string;
   community_actor_id: string;
   community_local: boolean;
@@ -210,6 +216,7 @@ export interface Comment {
   local: boolean;
   creator_id: number;
   post_id: number;
+  post_name: string;
   parent_id?: number;
   content: string;
   removed: boolean;
@@ -227,6 +234,7 @@ export interface Comment {
   creator_local: boolean;
   creator_name: string;
   creator_avatar?: string;
+  creator_published: string;
   score: number;
   upvotes: number;
   downvotes: number;

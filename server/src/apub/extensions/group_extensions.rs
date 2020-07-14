@@ -1,9 +1,7 @@
-use crate::{
-  db::{category::Category, Crud},
-  LemmyError,
-};
+use crate::LemmyError;
 use activitystreams::{ext::Extension, Actor};
 use diesel::PgConnection;
+use lemmy_db::{category::Category, Crud};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]

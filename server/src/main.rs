@@ -22,22 +22,20 @@ use diesel::{
   r2d2::{ConnectionManager, Pool},
   PgConnection,
 };
+use lemmy_db::get_database_url_from_env;
 use lemmy_server::{
   blocking,
-  db::code_migrations::run_advanced_migrations,
+  code_migrations::run_advanced_migrations,
   rate_limit::{rate_limiter::RateLimiter, RateLimit},
   routes::{api, federation, feeds, index, nodeinfo, webfinger},
-  settings::Settings,
   websocket::server::*,
   LemmyError,
 };
-use regex::Regex;
+use lemmy_utils::{settings::Settings, CACHE_CONTROL_REGEX};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
 lazy_static! {
-  static ref CACHE_CONTROL_REGEX: Regex =
-    Regex::new("^((text|image)/.+|application/javascript)$").unwrap();
   // static ref CACHE_CONTROL_VALUE: String = format!("public, max-age={}", 365 * 24 * 60 * 60);
   // Test out 1 hour here, this is breaking some things
   static ref CACHE_CONTROL_VALUE: String = format!("public, max-age={}", 60 * 60);
@@ -51,11 +49,15 @@ async fn main() -> Result<(), LemmyError> {
   let settings = Settings::get();
 
   // Set up the r2d2 connection pool
-  let manager = ConnectionManager::<PgConnection>::new(&settings.get_database_url());
+  let db_url = match get_database_url_from_env() {
+    Ok(url) => url,
+    Err(_) => settings.get_database_url(),
+  };
+  let manager = ConnectionManager::<PgConnection>::new(&db_url);
   let pool = Pool::builder()
     .max_size(settings.database.pool_size)
     .build(manager)
-    .unwrap_or_else(|_| panic!("Error connecting to {}", settings.get_database_url()));
+    .unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
 
   // Run the migrations from code
   blocking(&pool, move |conn| {

@@ -267,6 +267,7 @@ export class Inbox extends Component<any, InboxState> {
               nodes={[{ comment: i }]}
               noIndent
               markable
+              showCommunity
               showContext
               enableDownvotes={this.state.enableDownvotes}
             />
@@ -285,6 +286,7 @@ export class Inbox extends Component<any, InboxState> {
           nodes={commentsToFlatNodes(this.state.replies)}
           noIndent
           markable
+          showCommunity
           showContext
           enableDownvotes={this.state.enableDownvotes}
         />
@@ -300,6 +302,7 @@ export class Inbox extends Component<any, InboxState> {
             nodes={[{ comment: mention }]}
             noIndent
             markable
+            showCommunity
             showContext
             enableDownvotes={this.state.enableDownvotes}
           />
@@ -329,12 +332,14 @@ export class Inbox extends Component<any, InboxState> {
             {i18n.t('prev')}
           </button>
         )}
-        <button
-          class="btn btn-sm btn-secondary"
-          onClick={linkEvent(this, this.nextPage)}
-        >
-          {i18n.t('next')}
-        </button>
+        {this.unreadCount() > 0 && (
+          <button
+            class="btn btn-sm btn-secondary"
+            onClick={linkEvent(this, this.nextPage)}
+          >
+            {i18n.t('next')}
+          </button>
+        )}
       </div>
     );
   }
@@ -534,15 +539,19 @@ export class Inbox extends Component<any, InboxState> {
   }
 
   sendUnreadCount() {
-    let count =
+    UserService.Instance.user.unreadCount = this.unreadCount();
+    UserService.Instance.sub.next({
+      user: UserService.Instance.user,
+    });
+  }
+
+  unreadCount(): number {
+    return (
       this.state.replies.filter(r => !r.read).length +
       this.state.mentions.filter(r => !r.read).length +
       this.state.messages.filter(
         r => !r.read && r.creator_id !== UserService.Instance.user.id
-      ).length;
-    UserService.Instance.user.unreadCount = count;
-    UserService.Instance.sub.next({
-      user: UserService.Instance.user,
-    });
+      ).length
+    );
   }
 }

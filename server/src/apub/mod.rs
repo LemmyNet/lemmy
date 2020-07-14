@@ -16,14 +16,10 @@ use crate::{
     page_extension::PageExtension,
     signatures::{PublicKey, PublicKeyExtension},
   },
-  convert_datetime,
-  db::user::User_,
+  blocking,
   request::{retry, RecvError},
   routes::webfinger::WebFingerResponse,
-  DbPool,
-  LemmyError,
-  MentionData,
-  Settings,
+  DbPool, LemmyError,
 };
 use activitystreams::object::Page;
 use activitystreams_ext::{Ext1, Ext2};
@@ -35,6 +31,9 @@ use activitystreams_new::{
 };
 use actix_web::{body::Body, client::Client, HttpResponse};
 use chrono::NaiveDateTime;
+use failure::_core::fmt::Debug;
+use lemmy_db::{activity::do_insert_activity, user::User_};
+use lemmy_utils::{convert_datetime, get_apub_protocol_string, settings::Settings, MentionData};
 use log::debug;
 use serde::Serialize;
 use url::Url;
@@ -44,14 +43,6 @@ type PersonExt = Ext1<ApActor<Person>, PublicKeyExtension>;
 type PageExt = Ext1<Page, PageExtension>;
 
 pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
-
-pub enum EndpointType {
-  Community,
-  User,
-  Post,
-  Comment,
-  PrivateMessage,
-}
 
 /// Convert the data to json and turn it into an HTTP Response with the correct ActivityPub
 /// headers.
@@ -71,34 +62,6 @@ where
   HttpResponse::Gone()
     .content_type(APUB_JSON_CONTENT_TYPE)
     .json(data)
-}
-
-/// Generates the ActivityPub ID for a given object type and ID.
-pub fn make_apub_endpoint(endpoint_type: EndpointType, name: &str) -> Url {
-  let point = match endpoint_type {
-    EndpointType::Community => "c",
-    EndpointType::User => "u",
-    EndpointType::Post => "post",
-    EndpointType::Comment => "comment",
-    EndpointType::PrivateMessage => "private_message",
-  };
-
-  Url::parse(&format!(
-    "{}://{}/{}/{}",
-    get_apub_protocol_string(),
-    Settings::get().hostname,
-    point,
-    name
-  ))
-  .unwrap()
-}
-
-pub fn get_apub_protocol_string() -> &'static str {
-  if Settings::get().federation.tls_enabled {
-    "https"
-  } else {
-    "http"
-  }
 }
 
 // Checks if the ID has a valid format, correct scheme, and is in the allowed instance list.
@@ -165,7 +128,7 @@ fn create_tombstone(
 pub trait FromApub {
   type ApubType;
   async fn from_apub(
-    apub: &mut Self::ApubType,
+    apub: &Self::ApubType,
     client: &Client,
     pool: &DbPool,
   ) -> Result<Self, LemmyError>
@@ -373,4 +336,20 @@ pub async fn fetch_webfinger_url(
     .href
     .to_owned()
     .ok_or_else(|| format_err!("No href found.").into())
+}
+
+pub async fn insert_activity<T>(
+  user_id: i32,
+  data: T,
+  local: bool,
+  pool: &DbPool,
+) -> Result<(), LemmyError>
+where
+  T: Serialize + Debug + Send + 'static,
+{
+  blocking(pool, move |conn| {
+    do_insert_activity(conn, user_id, &data, local)
+  })
+  .await??;
+  Ok(())
 }

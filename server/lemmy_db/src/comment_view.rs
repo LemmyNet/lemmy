@@ -1,5 +1,5 @@
 // TODO, remove the cross join here, just join to user directly
-use crate::db::{fuzzy_search, limit_and_offset, ListingType, MaybeOptional, SortType};
+use crate::{fuzzy_search, limit_and_offset, ListingType, MaybeOptional, SortType};
 use diesel::{dsl::*, pg::Pg, result::Error, *};
 use serde::{Deserialize, Serialize};
 
@@ -9,6 +9,7 @@ table! {
     id -> Int4,
     creator_id -> Int4,
     post_id -> Int4,
+    post_name -> Varchar,
     parent_id -> Nullable<Int4>,
     content -> Text,
     removed -> Bool,
@@ -27,6 +28,7 @@ table! {
     creator_actor_id -> Text,
     creator_local -> Bool,
     creator_name -> Varchar,
+    creator_published -> Timestamp,
     creator_avatar -> Nullable<Text>,
     score -> BigInt,
     upvotes -> BigInt,
@@ -44,6 +46,7 @@ table! {
     id -> Int4,
     creator_id -> Int4,
     post_id -> Int4,
+    post_name -> Varchar,
     parent_id -> Nullable<Int4>,
     content -> Text,
     removed -> Bool,
@@ -62,6 +65,7 @@ table! {
     creator_actor_id -> Text,
     creator_local -> Bool,
     creator_name -> Varchar,
+    creator_published -> Timestamp,
     creator_avatar -> Nullable<Text>,
     score -> BigInt,
     upvotes -> BigInt,
@@ -82,6 +86,7 @@ pub struct CommentView {
   pub id: i32,
   pub creator_id: i32,
   pub post_id: i32,
+  pub post_name: String,
   pub parent_id: Option<i32>,
   pub content: String,
   pub removed: bool,
@@ -100,6 +105,7 @@ pub struct CommentView {
   pub creator_actor_id: String,
   pub creator_local: bool,
   pub creator_name: String,
+  pub creator_published: chrono::NaiveDateTime,
   pub creator_avatar: Option<String>,
   pub score: i64,
   pub upvotes: i64,
@@ -295,6 +301,7 @@ table! {
     id -> Int4,
     creator_id -> Int4,
     post_id -> Int4,
+    post_name -> Varchar,
     parent_id -> Nullable<Int4>,
     content -> Text,
     removed -> Bool,
@@ -314,6 +321,7 @@ table! {
     creator_local -> Bool,
     creator_name -> Varchar,
     creator_avatar -> Nullable<Text>,
+    creator_published -> Timestamp,
     score -> BigInt,
     upvotes -> BigInt,
     downvotes -> BigInt,
@@ -334,6 +342,7 @@ pub struct ReplyView {
   pub id: i32,
   pub creator_id: i32,
   pub post_id: i32,
+  pub post_name: String,
   pub parent_id: Option<i32>,
   pub content: String,
   pub removed: bool,
@@ -353,6 +362,7 @@ pub struct ReplyView {
   pub creator_local: bool,
   pub creator_name: String,
   pub creator_avatar: Option<String>,
+  pub creator_published: chrono::NaiveDateTime,
   pub score: i64,
   pub upvotes: i64,
   pub downvotes: i64,
@@ -455,11 +465,17 @@ impl<'a> ReplyQueryBuilder<'a> {
 
 #[cfg(test)]
 mod tests {
-  use super::{
-    super::{comment::*, community::*, post::*, user::*},
+  use crate::{
+    comment::*,
+    comment_view::*,
+    community::*,
+    post::*,
+    tests::establish_unpooled_connection,
+    user::*,
+    Crud,
+    Likeable,
     *,
   };
-  use crate::db::{establish_unpooled_connection, Crud, Likeable};
 
   #[test]
   fn test_crud() {
@@ -565,6 +581,7 @@ mod tests {
       content: "A test comment 32".into(),
       creator_id: inserted_user.id,
       post_id: inserted_post.id,
+      post_name: inserted_post.name.to_owned(),
       community_id: inserted_community.id,
       community_name: inserted_community.name.to_owned(),
       parent_id: None,
@@ -576,6 +593,7 @@ mod tests {
       published: inserted_comment.published,
       updated: None,
       creator_name: inserted_user.name.to_owned(),
+      creator_published: inserted_user.published,
       creator_avatar: None,
       score: 1,
       downvotes: 0,
@@ -598,6 +616,7 @@ mod tests {
       content: "A test comment 32".into(),
       creator_id: inserted_user.id,
       post_id: inserted_post.id,
+      post_name: inserted_post.name.to_owned(),
       community_id: inserted_community.id,
       community_name: inserted_community.name.to_owned(),
       parent_id: None,
@@ -609,6 +628,7 @@ mod tests {
       published: inserted_comment.published,
       updated: None,
       creator_name: inserted_user.name.to_owned(),
+      creator_published: inserted_user.published,
       creator_avatar: None,
       score: 1,
       downvotes: 0,

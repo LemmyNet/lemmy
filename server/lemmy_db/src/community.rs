@@ -1,6 +1,9 @@
 use crate::{
-  db::{Bannable, Crud, Followable, Joinable},
   schema::{community, community_follower, community_moderator, community_user_ban},
+  Bannable,
+  Crud,
+  Followable,
+  Joinable,
 };
 use diesel::{dsl::*, result::Error, *};
 use serde::{Deserialize, Serialize};
@@ -232,8 +235,7 @@ impl Followable<CommunityFollowerForm> for CommunityFollower {
 
 #[cfg(test)]
 mod tests {
-  use super::{super::user::*, *};
-  use crate::db::{establish_unpooled_connection, ListingType, SortType};
+  use crate::{community::*, tests::establish_unpooled_connection, user::*, ListingType, SortType};
 
   #[test]
   fn test_crud() {

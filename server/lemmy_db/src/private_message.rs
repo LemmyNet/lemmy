@@ -1,8 +1,4 @@
-use crate::{
-  apub::{make_apub_endpoint, EndpointType},
-  db::Crud,
-  schema::private_message,
-};
+use crate::{schema::private_message, Crud};
 use diesel::{dsl::*, result::Error, *};
 use serde::{Deserialize, Serialize};
 
@@ -66,16 +62,15 @@ impl Crud<PrivateMessageForm> for PrivateMessage {
 }
 
 impl PrivateMessage {
-  pub fn update_ap_id(conn: &PgConnection, private_message_id: i32) -> Result<Self, Error> {
+  pub fn update_ap_id(
+    conn: &PgConnection,
+    private_message_id: i32,
+    apub_id: String,
+  ) -> Result<Self, Error> {
     use crate::schema::private_message::dsl::*;
 
-    let apid = make_apub_endpoint(
-      EndpointType::PrivateMessage,
-      &private_message_id.to_string(),
-    )
-    .to_string();
     diesel::update(private_message.find(private_message_id))
-      .set(ap_id.eq(apid))
+      .set(ap_id.eq(apub_id))
       .get_result::<Self>(conn)
   }
 
@@ -89,8 +84,13 @@ impl PrivateMessage {
 
 #[cfg(test)]
 mod tests {
-  use super::{super::user::*, *};
-  use crate::db::{establish_unpooled_connection, ListingType, SortType};
+  use crate::{
+    private_message::*,
+    tests::establish_unpooled_connection,
+    user::*,
+    ListingType,
+    SortType,
+  };
 
   #[test]
   fn test_crud() {

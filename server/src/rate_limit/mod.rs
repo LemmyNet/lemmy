@@ -1,7 +1,8 @@
-use super::{IPAddr, Settings};
-use crate::{get_ip, settings::RateLimitConfig, LemmyError};
+use super::IPAddr;
+use crate::{get_ip, LemmyError};
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use futures::future::{ok, Ready};
+use lemmy_utils::settings::{RateLimitConfig, Settings};
 use rate_limiter::{RateLimitType, RateLimiter};
 use std::{
   future::Future,

@@ -1,14 +1,21 @@
 [package]
 name = "lemmy_server"
 version = "0.0.1"
-authors = ["Dessalines <tyhou13@gmx.com>"]
 edition = "2018"
 
 [profile.release]
 lto = true
 
+[workspace]
+members = [
+    "lemmy_utils",
+    "lemmy_db"
+]
+
 [dependencies]
-diesel = { version = "1.4.4", features = ["postgres","chrono","r2d2","64-column-tables","serde_json"] }
+lemmy_utils = { path = "./lemmy_utils" }
+lemmy_db = { path = "./lemmy_db" }
+diesel = "1.4.4"
 diesel_migrations = "1.4.0"
 dotenv = "0.15.0"
 activitystreams = "0.6.2"
@@ -31,19 +38,13 @@ rand = "0.7.3"
 strum = "0.18.0"
 strum_macros = "0.18.0"
 jsonwebtoken = "7.0.1"
-regex = "1.3.5"
 lazy_static = "1.3.0"
-lettre = "0.9.3"
-lettre_email = "0.9.4"
 rss = "1.9.0"
-htmlescape = "0.3.1"
 url = { version = "2.1.1", features = ["serde"] }
-config = {version = "0.10.1", default-features = false, features = ["hjson"] }
 percent-encoding = "2.1.0"
-comrak = "0.7"
 openssl = "0.10"
 http = "0.2.1"
-http-signature-normalization-actix = { version = "0.4.0-alpha.0", default-features = false, features = ["sha-2"] }
+http-signature-normalization-actix = { version = "0.4.0-alpha.2", default-features = false, features = ["sha-2"] }
 base64 = "0.12.1"
 tokio = "0.2.21"
 futures = "0.3.5"
