@@ -22,12 +22,11 @@ use crate::{
   DbPool,
   LemmyError,
 };
-use activitystreams::object::Page;
 use activitystreams_ext::{Ext1, Ext2};
 use activitystreams_new::{
   activity::Follow,
   actor::{ApActor, Group, Person},
-  object::Tombstone,
+  object::{Page, Tombstone},
   prelude::*,
 };
 use actix_web::{body::Body, client::Client, HttpResponse};
