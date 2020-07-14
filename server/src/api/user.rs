@@ -880,28 +880,29 @@ impl Perform for Oper<EditUserMention> {
     };
 
     let user_id = claims.id;
-    if user_id != data.user_mention_id {
+
+    let user_mention_id = data.user_mention_id;
+    let read_user_mention =
+      blocking(pool, move |conn| UserMention::read(conn, user_mention_id)).await??;
+
+    if user_id != read_user_mention.recipient_id {
       return Err(APIError::err("couldnt_update_comment").into());
     }
 
-    let user_mention_id = data.user_mention_id;
-    let user_mention =
-      blocking(pool, move |conn| UserMention::read(conn, user_mention_id)).await??;
-
     let user_mention_form = UserMentionForm {
-      recipient_id: user_id,
-      comment_id: user_mention.comment_id,
+      recipient_id: read_user_mention.recipient_id,
+      comment_id: read_user_mention.comment_id,
       read: data.read.to_owned(),
     };
 
-    let user_mention_id = user_mention.id;
+    let user_mention_id = read_user_mention.id;
     let update_mention =
       move |conn: &'_ _| UserMention::update(conn, user_mention_id, &user_mention_form);
     if blocking(pool, update_mention).await?.is_err() {
       return Err(APIError::err("couldnt_update_comment").into());
     };
 
-    let user_mention_id = user_mention.id;
+    let user_mention_id = read_user_mention.id;
     let user_mention_view = blocking(pool, move |conn| {
       UserMentionView::read(conn, user_mention_id, user_id)
     })
