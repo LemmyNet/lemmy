@@ -282,6 +282,24 @@ impl Perform for Oper<EditComment> {
       if user.banned {
         return Err(APIError::err("site_ban").into());
       }
+    } else {
+      // check that user can mark as read
+      let parent_id = orig_comment.parent_id;
+      match parent_id {
+        Some(pid) => {
+          let parent_comment =
+            blocking(pool, move |conn| CommentView::read(&conn, pid, None)).await??;
+          if !(user_id == parent_comment.creator_id) {
+            return Err(APIError::err("no_comment_edit_allowed").into());
+          }
+        }
+        None => {
+          let parent_post = blocking(pool, move |conn| Post::read(conn, edit_id)).await??;
+          if !(user_id == parent_post.creator_id) {
+            return Err(APIError::err("no_comment_edit_allowed").into());
+          }
+        }
+      }
     }
 
     let content_slurs_removed = remove_slurs(&data.content.to_owned());
