@@ -120,14 +120,15 @@ export class Login extends Component<any, State> {
                 class="form-control"
                 required
               />
-              <button
-                type="button"
-                disabled={!validEmail(this.state.loginForm.username_or_email)}
-                onClick={linkEvent(this, this.handlePasswordReset)}
-                className="btn p-0 btn-link d-inline-block float-right text-muted small font-weight-bold"
-              >
-                {i18n.t('forgot_password')}
-              </button>
+              {validEmail(this.state.loginForm.username_or_email) && (
+                <button
+                  type="button"
+                  onClick={linkEvent(this, this.handlePasswordReset)}
+                  className="btn p-0 btn-link d-inline-block float-right text-muted small font-weight-bold"
+                >
+                  {i18n.t('forgot_password')}
+                </button>
+              )}
             </div>
           </div>
           <div class="form-group row">
@@ -186,6 +187,14 @@ export class Login extends Component<any, State> {
               onInput={linkEvent(this, this.handleRegisterEmailChange)}
               minLength={3}
             />
+            {!validEmail(this.state.registerForm.email) && (
+              <div class="mt-2 mb-0 alert alert-light" role="alert">
+                <svg class="icon icon-inline mr-2">
+                  <use xlinkHref="#icon-alert-triangle"></use>
+                </svg>
+                {i18n.t('no_password_reset')}
+              </div>
+            )}
           </div>
         </div>
 
