@@ -304,7 +304,7 @@ impl Perform for Oper<EditComment> {
           creator_id: read_comment.creator_id,
           removed: Some(read_comment.removed).to_owned(),
           deleted: data.deleted.to_owned(),
-          read: data.read.to_owned(),
+          read: Some(read_comment.read).to_owned(),
           published: None,
           updated: Some(naive_now()),
           ap_id: read_comment.ap_id,
