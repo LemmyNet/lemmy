@@ -128,26 +128,27 @@ export class CommunityForm extends Component<
           message={i18n.t('block_leaving')}
         />
         <form onSubmit={linkEvent(this, this.handleCreateCommunitySubmit)}>
-          <div class="form-group row">
-            <label class="col-12 col-form-label" htmlFor="community-name">
-              {i18n.t('name')}
-            </label>
-            <div class="col-12">
-              <input
-                type="text"
-                id="community-name"
-                class="form-control"
-                value={this.state.communityForm.name}
-                onInput={linkEvent(this, this.handleCommunityNameChange)}
-                required
-                minLength={3}
-                maxLength={20}
-                pattern="[a-z0-9_]+"
-                title={i18n.t('community_reqs')}
-              />
+          {!this.props.community && (
+            <div class="form-group row">
+              <label class="col-12 col-form-label" htmlFor="community-name">
+                {i18n.t('name')}
+              </label>
+              <div class="col-12">
+                <input
+                  type="text"
+                  id="community-name"
+                  class="form-control"
+                  value={this.state.communityForm.name}
+                  onInput={linkEvent(this, this.handleCommunityNameChange)}
+                  required
+                  minLength={3}
+                  maxLength={20}
+                  pattern="[a-z0-9_]+"
+                  title={i18n.t('community_reqs')}
+                />
+              </div>
             </div>
-          </div>
-
+          )}
           <div class="form-group row">
             <label class="col-12 col-form-label" htmlFor="community-title">
               {i18n.t('title')}
