@@ -20,12 +20,15 @@ use crate::{
 };
 use activitystreams::{
   activity::{Create, Delete, Dislike, Like, Remove, Undo, Update},
-  context,
-  object::{kind::PageType, properties::ObjectProperties, AnyImage, Image, Page},
   BaseBox,
 };
 use activitystreams_ext::Ext1;
-use activitystreams_new::object::Tombstone;
+use activitystreams_new::{
+  context,
+  object::{kind::PageType, Image, Page, Tombstone},
+  prelude::*,
+  primitives::{XsdAnyUri, XsdDateTime},
+};
 use actix_web::{body::Body, client::Client, web, HttpResponse};
 use lemmy_db::{
   community::Community,
@@ -62,8 +65,7 @@ impl ToApub for Post {
 
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
   async fn to_apub(&self, pool: &DbPool) -> Result<PageExt, LemmyError> {
-    let mut page = Page::default();
-    let oprops: &mut ObjectProperties = page.as_mut();
+    let mut page = Page::new();
 
     let creator_id = self.creator_id;
     let creator = blocking(pool, move |conn| User_::read(conn, creator_id)).await??;
@@ -71,54 +73,46 @@ impl ToApub for Post {
     let community_id = self.community_id;
     let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
 
-    oprops
+    page
       // Not needed when the Post is embedded in a collection (like for community outbox)
       // TODO: need to set proper context defining sensitive/commentsEnabled fields
       // https://git.asonix.dog/Aardwolf/activitystreams/issues/5
-      .set_context_xsd_any_uri(context())?
-      .set_id(self.ap_id.to_owned())?
+      .set_context(context())
+      .set_id(self.ap_id.parse::<XsdAnyUri>()?)
       // Use summary field to be consistent with mastodon content warning.
       // https://mastodon.xyz/@Louisa/103987265222901387.json
-      .set_summary_xsd_string(self.name.to_owned())?
-      .set_published(convert_datetime(self.published))?
-      .set_to_xsd_any_uri(community.actor_id)?
-      .set_attributed_to_xsd_any_uri(creator.actor_id)?;
+      .set_summary(self.name.to_owned())
+      .set_published(convert_datetime(self.published).into())
+      .set_to(community.actor_id)
+      .set_attributed_to(creator.actor_id);
 
     if let Some(body) = &self.body {
-      oprops.set_content_xsd_string(body.to_owned())?;
+      page.set_content(body.to_owned());
     }
 
     // TODO: hacky code because we get self.url == Some("")
     // https://github.com/LemmyNet/lemmy/issues/602
     let url = self.url.as_ref().filter(|u| !u.is_empty());
     if let Some(u) = url {
-      oprops.set_url_xsd_any_uri(u.to_owned())?;
+      page.set_url(u.to_owned());
 
       // Embeds
       let mut page_preview = Page::new();
-      page_preview
-        .object_props
-        .set_url_xsd_any_uri(u.to_owned())?;
+      page_preview.set_url(u.to_owned());
 
       if let Some(embed_title) = &self.embed_title {
-        page_preview
-          .object_props
-          .set_name_xsd_string(embed_title.to_owned())?;
+        page_preview.set_name(embed_title.to_owned());
       }
 
       if let Some(embed_description) = &self.embed_description {
-        page_preview
-          .object_props
-          .set_summary_xsd_string(embed_description.to_owned())?;
+        page_preview.set_summary(embed_description.to_owned());
       }
 
       if let Some(embed_html) = &self.embed_html {
-        page_preview
-          .object_props
-          .set_content_xsd_string(embed_html.to_owned())?;
+        page_preview.set_content(embed_html.to_owned());
       }
 
-      oprops.set_preview_base_box(page_preview)?;
+      page.set_preview(page_preview.into_any_base()?);
     }
 
     if let Some(thumbnail_url) = &self.thumbnail_url {
@@ -130,13 +124,12 @@ impl ToApub for Post {
       );
 
       let mut image = Image::new();
-      image.object_props.set_url_xsd_any_uri(full_url)?;
-      let any_image = AnyImage::from_concrete(image)?;
-      oprops.set_image_any_image(any_image)?;
+      image.set_url(full_url);
+      page.set_image(image.into_any_base()?);
     }
 
     if let Some(u) = self.updated {
-      oprops.set_updated(convert_datetime(u))?;
+      page.set_updated(XsdDateTime::from(convert_datetime(u)));
     }
 
     let ext = PageExtension {
@@ -167,60 +160,90 @@ impl FromApub for PostForm {
     pool: &DbPool,
   ) -> Result<PostForm, LemmyError> {
     let ext = &page.ext_one;
-    let oprops = &page.inner.object_props;
-    let creator_actor_id = &oprops.get_attributed_to_xsd_any_uri().unwrap().to_string();
+    let creator_actor_id = page
+      .inner
+      .attributed_to
+      .as_ref()
+      .unwrap()
+      .as_single_xsd_any_uri()
+      .unwrap()
+      .as_str();
 
-    let creator = get_or_fetch_and_upsert_remote_user(&creator_actor_id, client, pool).await?;
+    let creator = get_or_fetch_and_upsert_remote_user(creator_actor_id, client, pool).await?;
 
-    let community_actor_id = &oprops.get_to_xsd_any_uri().unwrap().to_string();
+    let community_actor_id = page
+      .inner
+      .to
+      .as_ref()
+      .unwrap()
+      .as_single_xsd_any_uri()
+      .unwrap()
+      .as_str();
 
     let community =
-      get_or_fetch_and_upsert_remote_community(&community_actor_id, client, pool).await?;
+      get_or_fetch_and_upsert_remote_community(community_actor_id, client, pool).await?;
 
-    let thumbnail_url = match oprops.get_image_any_image() {
-      Some(any_image) => any_image
-        .to_owned()
-        .into_concrete::<Image>()?
-        .object_props
-        .get_url_xsd_any_uri()
+    let thumbnail_url = match &page.inner.image {
+      Some(any_image) => Image::from_any_base(any_image.to_owned().as_one().unwrap().to_owned())?
+        .unwrap()
+        .url
+        .unwrap()
+        .as_single_xsd_any_uri()
         .map(|u| u.to_string()),
       None => None,
     };
 
-    let url = oprops.get_url_xsd_any_uri().map(|u| u.to_string());
-    let (embed_title, embed_description, embed_html) = match oprops.get_preview_base_box() {
+    let (embed_title, embed_description, embed_html) = match page.inner.preview() {
       Some(preview) => {
-        let preview_page = preview.to_owned().into_concrete::<Page>()?;
+        let preview_page = Page::from_any_base(preview.as_one().unwrap().to_owned())?.unwrap();
         let name = preview_page
-          .object_props
-          .get_name_xsd_string()
-          .map(|n| n.to_string());
+          .name()
+          .map(|n| n.as_single_xsd_string().unwrap().to_string());
         let summary = preview_page
-          .object_props
-          .get_summary_xsd_string()
-          .map(|s| s.to_string());
+          .summary()
+          .map(|s| s.as_single_xsd_string().unwrap().to_string());
         let content = preview_page
-          .object_props
-          .get_content_xsd_string()
-          .map(|c| c.to_string());
+          .content()
+          .map(|c| c.as_single_xsd_string().unwrap().to_string());
         (name, summary, content)
       }
       None => (None, None, None),
     };
 
+    let url = page
+      .inner
+      .url
+      .as_ref()
+      .map(|u| u.as_single_xsd_string().unwrap().to_string());
+    let body = page
+      .inner
+      .content
+      .as_ref()
+      .map(|c| c.as_single_xsd_string().unwrap().to_string());
     Ok(PostForm {
-      name: oprops.get_summary_xsd_string().unwrap().to_string(),
+      name: page
+        .inner
+        .summary
+        .as_ref()
+        .unwrap()
+        .as_single_xsd_string()
+        .unwrap()
+        .to_string(),
       url,
-      body: oprops.get_content_xsd_string().map(|c| c.to_string()),
+      body,
       creator_id: creator.id,
       community_id: community.id,
       removed: None,
       locked: Some(!ext.comments_enabled),
-      published: oprops
-        .get_published()
+      published: page
+        .inner
+        .published
+        .as_ref()
         .map(|u| u.as_ref().to_owned().naive_local()),
-      updated: oprops
-        .get_updated()
+      updated: page
+        .inner
+        .updated
+        .as_ref()
         .map(|u| u.as_ref().to_owned().naive_local()),
       deleted: None,
       nsfw: ext.sensitive,
@@ -229,7 +252,7 @@ impl FromApub for PostForm {
       embed_description,
       embed_html,
       thumbnail_url,
-      ap_id: oprops.get_id().unwrap().to_string(),
+      ap_id: page.inner.id().unwrap().to_string(),
       local: false,
     })
   }

@@ -1,14 +1,10 @@
 use crate::{
   apub::{
-    community::do_announce,
-    extensions::signatures::sign,
-    insert_activity,
-    is_apub_id_valid,
+    community::do_announce, extensions::signatures::sign, insert_activity, is_apub_id_valid,
     ActorType,
   },
   request::retry_custom,
-  DbPool,
-  LemmyError,
+  DbPool, LemmyError,
 };
 use activitystreams::{context, object::properties::ObjectProperties, public, Activity, Base};
 use actix_web::client::Client;
