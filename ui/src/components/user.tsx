@@ -57,6 +57,20 @@ interface UserState {
   site: Site;
 }
 
+interface UserProps {
+  view: UserDetailsView;
+  sort: SortType;
+  page: number;
+  user_id: number | null;
+  username: string;
+}
+
+interface UrlParams {
+  view?: string;
+  sort?: string;
+  page?: number;
+}
+
 export class User extends Component<any, UserState> {
   private subscription: Subscription;
   private emptyState: UserState = {
@@ -119,7 +133,7 @@ export class User extends Component<any, UserState> {
   constructor(props: any, context: any) {
     super(props, context);
 
-    this.state = Object.assign({}, this.emptyState);
+    this.state = this.emptyState;
     this.handleSortChange = this.handleSortChange.bind(this);
     this.handleUserSettingsSortTypeChange = this.handleUserSettingsSortTypeChange.bind(
       this
@@ -127,6 +141,7 @@ export class User extends Component<any, UserState> {
     this.handleUserSettingsListingTypeChange = this.handleUserSettingsListingTypeChange.bind(
       this
     );
+    this.handlePageChange = this.handlePageChange.bind(this);
 
     this.state.user_id = Number(this.props.match.params.id) || null;
     this.state.username = this.props.match.params.username;
@@ -167,7 +182,7 @@ export class User extends Component<any, UserState> {
     this.subscription.unsubscribe();
   }
 
-  static getDerivedStateFromProps(props) {
+  static getDerivedStateFromProps(props: any): UserProps {
     return {
       view: this.getViewFromProps(props.match.params.view),
       sort: this.getSortTypeFromProps(props.match.params.sort),
@@ -223,9 +238,8 @@ export class User extends Component<any, UserState> {
                 enableDownvotes={this.state.site.enable_downvotes}
                 enableNsfw={this.state.site.enable_nsfw}
                 view={this.state.view}
-                key={this.state.user_id || this.state.username}
+                onPageChange={this.handlePageChange}
               />
-              {this.paginator()}
             </div>
             <div class="col-12 col-md-4">
               {this.userInfo()}
@@ -794,67 +808,35 @@ export class User extends Component<any, UserState> {
     );
   }
 
-  paginator() {
-    return (
-      <div class="my-2">
-        {this.state.page > 1 && (
-          <button
-            class="btn btn-sm btn-secondary mr-1"
-            onClick={linkEvent(this, this.prevPage)}
-          >
-            {i18n.t('prev')}
-          </button>
-        )}
-        {this.state.comments.length + this.state.posts.length > 0 && (
-          <button
-            class="btn btn-sm btn-secondary"
-            onClick={linkEvent(this, this.nextPage)}
-          >
-            {i18n.t('next')}
-          </button>
-        )}
-      </div>
-    );
-  }
-
-  updateUrl() {
-    let viewStr = UserDetailsView[this.state.view].toLowerCase();
-    let sortStr = SortType[this.state.sort].toLowerCase();
+  updateUrl(paramUpdates: UrlParams) {
+    const page = paramUpdates.page || this.state.page;
+    const viewStr =
+      paramUpdates.view || UserDetailsView[this.state.view].toLowerCase();
+    const sortStr =
+      paramUpdates.sort || SortType[this.state.sort].toLowerCase();
     this.props.history.push(
-      `/u/${this.state.username}/view/${viewStr}/sort/${sortStr}/page/${this.state.page}`
+      `/u/${this.state.username}/view/${viewStr}/sort/${sortStr}/page/${page}`
     );
-    this.setState(this.state);
   }
 
-  nextPage(i: User) {
-    i.state.page++;
-    i.updateUrl();
-  }
-
-  prevPage(i: User) {
-    i.state.page--;
-    i.updateUrl();
+  handlePageChange(page: number) {
+    this.updateUrl({ page });
   }
 
   handleSortChange(val: SortType) {
-    this.state.sort = val;
-    this.state.page = 1;
-    this.updateUrl();
+    this.updateUrl({ sort: SortType[val].toLowerCase(), page: 1 });
   }
 
   handleViewChange(i: User, event: any) {
-    i.state.view = Number(event.target.value);
-    i.state.page = 1;
-    i.updateUrl();
+    i.updateUrl({
+      view: UserDetailsView[Number(event.target.value)].toLowerCase(),
+      page: 1,
+    });
   }
 
   handleUserSettingsShowNsfwChange(i: User, event: any) {
-    i.setState({
-      userSettingsForm: {
-        ...i.state.userSettingsForm,
-        show_nsfw: event.target.checked,
-      },
-    });
+    i.state.userSettingsForm.show_nsfw = event.target.checked;
+    i.setState(i.state);
   }
 
   handleUserSettingsShowAvatarsChange(i: User, event: any) {

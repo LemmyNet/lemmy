@@ -70,6 +70,20 @@ interface MainState {
   page: number;
 }
 
+interface MainProps {
+  listingType: ListingType;
+  dataType: DataType;
+  sort: SortType;
+  page: number;
+}
+
+interface UrlParams {
+  listingType?: string;
+  dataType?: string;
+  sort?: string;
+  page?: number;
+}
+
 export class Main extends Component<any, MainState> {
   private subscription: Subscription;
   private emptyState: MainState = {
@@ -141,7 +155,7 @@ export class Main extends Component<any, MainState> {
     this.subscription.unsubscribe();
   }
 
-  static getDerivedStateFromProps(props) {
+  static getDerivedStateFromProps(props: any): MainProps {
     return {
       listingType: getListingTypeFromProps(props),
       dataType: getDataTypeFromProps(props),
@@ -150,7 +164,7 @@ export class Main extends Component<any, MainState> {
     };
   }
 
-  componentDidUpdate(_, lastState) {
+  componentDidUpdate(_: any, lastState: MainState) {
     if (
       lastState.listingType !== this.state.listingType ||
       lastState.dataType !== this.state.dataType ||
@@ -263,17 +277,12 @@ export class Main extends Component<any, MainState> {
     );
   }
 
-  updateUrl(paramUpdates: {
-    listing_type?: string;
-    data_type?: string;
-    sort?: string;
-    page?: number;
-  }) {
+  updateUrl(paramUpdates: UrlParams) {
     const listingTypeStr =
-      paramUpdates.listing_type ||
+      paramUpdates.listingType ||
       ListingType[this.state.listingType].toLowerCase();
     const dataTypeStr =
-      paramUpdates.data_type || DataType[this.state.dataType].toLowerCase();
+      paramUpdates.dataType || DataType[this.state.dataType].toLowerCase();
     const sortStr =
       paramUpdates.sort || SortType[this.state.sort].toLowerCase();
     const page = paramUpdates.page || this.state.page;
@@ -560,12 +569,12 @@ export class Main extends Component<any, MainState> {
   }
 
   handleListingTypeChange(val: ListingType) {
-    this.updateUrl({ listing_type: ListingType[val].toLowerCase(), page: 1 });
+    this.updateUrl({ listingType: ListingType[val].toLowerCase(), page: 1 });
     window.scrollTo(0, 0);
   }
 
   handleDataTypeChange(val: DataType) {
-    this.updateUrl({ data_type: DataType[val].toLowerCase(), page: 1 });
+    this.updateUrl({ dataType: DataType[val].toLowerCase(), page: 1 });
     window.scrollTo(0, 0);
   }
 

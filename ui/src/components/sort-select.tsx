@@ -23,10 +23,9 @@ export class SortSelect extends Component<SortSelectProps, SortSelectState> {
     this.state = this.emptyState;
   }
 
-  static getDerivedStateFromProps(props) {
-    console.log('sort-select', props);
+  static getDerivedStateFromProps(props: any): SortSelectState {
     return {
-      sort: Number(props.sort),
+      sort: props.sort,
     };
   }
 

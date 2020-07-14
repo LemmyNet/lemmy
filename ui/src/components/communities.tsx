@@ -27,6 +27,10 @@ interface CommunitiesState {
   loading: boolean;
 }
 
+interface CommunitiesProps {
+  page: number;
+}
+
 export class Communities extends Component<any, CommunitiesState> {
   private subscription: Subscription;
   private emptyState: CommunitiesState = {
@@ -54,13 +58,13 @@ export class Communities extends Component<any, CommunitiesState> {
     this.subscription.unsubscribe();
   }
 
-  static getDerivedStateFromProps(props) {
+  static getDerivedStateFromProps(props: any): CommunitiesProps {
     return {
       page: getPageFromProps(props),
     };
   }
 
-  componentDidUpdate(_, lastState) {
+  componentDidUpdate(_: any, lastState: CommunitiesState) {
     if (lastState.page !== this.state.page) {
       this.setState({ loading: true });
       this.refetch();
@@ -172,7 +176,7 @@ export class Communities extends Component<any, CommunitiesState> {
     );
   }
 
-  updateUrl(paramUpdates: { page: number }) {
+  updateUrl(paramUpdates: CommunitiesProps) {
     const page = paramUpdates.page || this.state.page;
     this.props.history.push(`/communities/page/${page}`);
   }

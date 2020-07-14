@@ -65,6 +65,18 @@ interface State {
   site: Site;
 }
 
+interface CommunityProps {
+  dataType: DataType;
+  sort: SortType;
+  page: number;
+}
+
+interface UrlParams {
+  dataType?: string;
+  sort?: string;
+  page?: number;
+}
+
 export class Community extends Component<any, State> {
   private subscription: Subscription;
   private emptyState: State = {
@@ -143,7 +155,7 @@ export class Community extends Component<any, State> {
     this.subscription.unsubscribe();
   }
 
-  static getDerivedStateFromProps(props) {
+  static getDerivedStateFromProps(props: any): CommunityProps {
     return {
       dataType: getDataTypeFromProps(props),
       sort: getSortTypeFromProps(props),
@@ -151,7 +163,7 @@ export class Community extends Component<any, State> {
     };
   }
 
-  componentDidUpdate(_, lastState) {
+  componentDidUpdate(_: any, lastState: State) {
     if (
       lastState.dataType !== this.state.dataType ||
       lastState.sort !== this.state.sort ||
@@ -293,17 +305,13 @@ export class Community extends Component<any, State> {
   }
 
   handleDataTypeChange(val: DataType) {
-    this.updateUrl({ data_type: DataType[val].toLowerCase(), page: 1 });
+    this.updateUrl({ dataType: DataType[val].toLowerCase(), page: 1 });
     window.scrollTo(0, 0);
   }
 
-  updateUrl(paramUpdates: {
-    data_type?: string;
-    sort?: string;
-    page?: number;
-  }) {
+  updateUrl(paramUpdates: UrlParams) {
     const dataTypeStr =
-      paramUpdates.data_type || DataType[this.state.dataType].toLowerCase();
+      paramUpdates.dataType || DataType[this.state.dataType].toLowerCase();
     const sortStr =
       paramUpdates.sort || SortType[this.state.sort].toLowerCase();
     const page = paramUpdates.page || this.state.page;

@@ -28,6 +28,7 @@ import {
   createCommentLikeRes,
   createPostLikeFindRes,
   commentsToFlatNodes,
+  getPageFromProps,
 } from '../utils';
 import { PostListing } from './post-listing';
 import { UserListing } from './user-listing';
@@ -47,13 +48,27 @@ interface SearchState {
   searchText: string;
 }
 
+interface SearchProps {
+  q: string;
+  type_: SearchType;
+  sort: SortType;
+  page: number;
+}
+
+interface UrlParams {
+  q?: string;
+  type_?: string;
+  sort?: string;
+  page?: number;
+}
+
 export class Search extends Component<any, SearchState> {
   private subscription: Subscription;
   private emptyState: SearchState = {
     q: Search.getSearchQueryFromProps(this.props),
     type_: Search.getSearchTypeFromProps(this.props),
     sort: Search.getSortTypeFromProps(this.props),
-    page: Search.getPageFromProps(this.props),
+    page: getPageFromProps(this.props),
     searchText: Search.getSearchQueryFromProps(this.props),
     searchResponse: {
       type_: null,
@@ -95,10 +110,6 @@ export class Search extends Component<any, SearchState> {
       : SortType.TopAll;
   }
 
-  static getPageFromProps(props: any): number {
-    return props.match.params.page ? Number(props.match.params.page) : 1;
-  }
-
   constructor(props: any, context: any) {
     super(props, context);
 
@@ -124,16 +135,16 @@ export class Search extends Component<any, SearchState> {
     this.subscription.unsubscribe();
   }
 
-  static getDerivedStateFromProps(props) {
+  static getDerivedStateFromProps(props: any): SearchProps {
     return {
       q: Search.getSearchQueryFromProps(props),
       type_: Search.getSearchTypeFromProps(props),
       sort: Search.getSortTypeFromProps(props),
-      page: Search.getPageFromProps(props),
+      page: getPageFromProps(props),
     };
   }
 
-  componentDidUpdate(_, lastState) {
+  componentDidUpdate(_: any, lastState: SearchState) {
     if (
       lastState.q !== this.state.q ||
       lastState.type_ !== this.state.type_ ||
@@ -443,19 +454,22 @@ export class Search extends Component<any, SearchState> {
   }
 
   handleSortChange(val: SortType) {
-    this.updateUrl({ sort: val, page: 1 });
+    this.updateUrl({ sort: SortType[val].toLowerCase(), page: 1 });
   }
 
   handleTypeChange(i: Search, event: any) {
-    i.updateUrl({ type_: Number(event.target.value), page: 1 });
+    i.updateUrl({
+      type_: SearchType[Number(event.target.value)].toLowerCase(),
+      page: 1,
+    });
   }
 
   handleSearchSubmit(i: Search, event: any) {
     event.preventDefault();
     i.updateUrl({
       q: i.state.searchText,
-      type_: i.state.type_,
-      sort: i.state.sort,
+      type_: SearchType[i.state.type_].toLowerCase(),
+      sort: SortType[i.state.sort].toLowerCase(),
       page: i.state.page,
     });
   }
@@ -464,22 +478,15 @@ export class Search extends Component<any, SearchState> {
     i.setState({ searchText: event.target.value });
   }
 
-  updateUrl(paramUpdates: {
-    q?: string;
-    type_?: number;
-    sort?: SortType;
-    page?: number;
-  }) {
-    const qStr = paramUpdates.q || Search.getSearchQueryFromProps(this.props);
+  updateUrl(paramUpdates: UrlParams) {
+    const qStr = paramUpdates.q || this.state.q;
     const typeStr =
-      SearchType[paramUpdates.type_] ||
-      SearchType[Search.getSearchTypeFromProps(this.props)];
+      paramUpdates.type_ || SearchType[this.state.type_].toLowerCase();
     const sortStr =
-      SortType[paramUpdates.sort] ||
-      SortType[Search.getSortTypeFromProps(this.props)];
-    const page = paramUpdates.page || Search.getPageFromProps(this.props);
+      paramUpdates.sort || SortType[this.state.sort].toLowerCase();
+    const page = paramUpdates.page || this.state.page;
     this.props.history.push(
-      `/search/q/${qStr}/type/${typeStr.toLowerCase()}/sort/${sortStr.toLowerCase()}/page/${page}`
+      `/search/q/${qStr}/type/${typeStr}/sort/${sortStr}/page/${page}`
     );
   }
 

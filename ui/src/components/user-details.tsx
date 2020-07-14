@@ -1,4 +1,4 @@
-import { Component } from 'inferno';
+import { Component, linkEvent } from 'inferno';
 import { WebSocketService, UserService } from '../services';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take, last } from 'rxjs/operators';
@@ -40,6 +40,7 @@ interface UserDetailsProps {
   enableDownvotes: boolean;
   enableNsfw: boolean;
   view: UserDetailsView;
+  onPageChange(page: number): number | any;
 }
 
 interface UserDetailsState {
@@ -104,7 +105,12 @@ export class UserDetails extends Component<UserDetailsProps, UserDetailsState> {
   }
 
   render() {
-    return this.viewSelector(this.props.view);
+    return (
+      <div>
+        {this.viewSelector(this.props.view)}
+        {this.paginator()}
+      </div>
+    );
   }
 
   viewSelector(view: UserDetailsView) {
@@ -194,6 +200,37 @@ export class UserDetails extends Component<UserDetailsProps, UserDetailsState> {
         ))}
       </div>
     );
+  }
+
+  paginator() {
+    return (
+      <div class="my-2">
+        {this.props.page > 1 && (
+          <button
+            class="btn btn-sm btn-secondary mr-1"
+            onClick={linkEvent(this, this.prevPage)}
+          >
+            {i18n.t('prev')}
+          </button>
+        )}
+        {this.state.comments.length + this.state.posts.length > 0 && (
+          <button
+            class="btn btn-sm btn-secondary"
+            onClick={linkEvent(this, this.nextPage)}
+          >
+            {i18n.t('next')}
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  nextPage(i: UserDetails) {
+    i.props.onPageChange(i.props.page + 1);
+  }
+
+  prevPage(i: UserDetails) {
+    i.props.onPageChange(i.props.page - 1);
   }
 
   parseMessage(msg: WebSocketJsonResponse) {
