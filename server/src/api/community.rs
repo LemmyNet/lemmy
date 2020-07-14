@@ -733,6 +733,16 @@ impl Perform for Oper<AddModToCommunity> {
       user_id: data.user_id,
     };
 
+    let community_id = data.community_id;
+    let community_moderators = blocking(pool, move |conn| {
+      CommunityModeratorView::for_community(conn, community_id)
+    })
+    .await??;
+
+    if !community_moderators.iter().any(|m| m.user_id == user_id) {
+      return Err(APIError::err("couldnt_update_community").into());
+    }
+
     if data.added {
       let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
       if blocking(pool, join).await?.is_err() {
