@@ -554,12 +554,12 @@ export class Main extends Component<any, MainState> {
   }
 
   nextPage(i: Main) {
-    i.updateUrl({ page: this.state.page + 1 });
+    i.updateUrl({ page: i.state.page + 1 });
     window.scrollTo(0, 0);
   }
 
   prevPage(i: Main) {
-    i.updateUrl({ page: this.state.page - 1 });
+    i.updateUrl({ page: i.state.page - 1 });
     window.scrollTo(0, 0);
   }
 

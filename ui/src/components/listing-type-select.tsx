@@ -26,7 +26,7 @@ export class ListingTypeSelect extends Component<
     this.state = this.emptyState;
   }
 
-  static getDerivedStateFromProps(props) {
+  static getDerivedStateFromProps(props: any): ListingTypeSelectProps {
     return {
       type_: props.type_,
     };

@@ -25,7 +25,7 @@ export class DataTypeSelect extends Component<
     this.state = this.emptyState;
   }
 
-  static getDerivedStateFromProps(props) {
+  static getDerivedStateFromProps(props: any): DataTypeSelectProps {
     return {
       type_: props.type_,
     };
