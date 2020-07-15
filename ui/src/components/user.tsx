@@ -1001,6 +1001,7 @@ export class User extends Component<any, UserState> {
   }
 
   parseMessage(msg: WebSocketJsonResponse) {
+    console.log(msg);
     const res = wsJsonToRes(msg);
     if (msg.error) {
       toast(i18n.t(msg.error), 'danger');
