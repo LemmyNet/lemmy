@@ -263,6 +263,17 @@ impl Perform for Oper<CreateCommunity> {
       return Err(APIError::err("site_ban").into());
     }
 
+    // Double check for duplicate community actor_ids
+    let actor_id = make_apub_endpoint(EndpointType::Community, &data.name).to_string();
+    let actor_id_cloned = actor_id.to_owned();
+    let community_dupe = blocking(pool, move |conn| {
+      Community::read_from_actor_id(conn, &actor_id_cloned)
+    })
+    .await?;
+    if community_dupe.is_ok() {
+      return Err(APIError::err("community_already_exists").into());
+    }
+
     // When you create a community, make sure the user becomes a moderator and a follower
     let keypair = generate_actor_keypair()?;
 
@@ -276,7 +287,7 @@ impl Perform for Oper<CreateCommunity> {
       deleted: None,
       nsfw: data.nsfw,
       updated: None,
-      actor_id: make_apub_endpoint(EndpointType::Community, &data.name).to_string(),
+      actor_id,
       local: true,
       private_key: Some(keypair.private_key),
       public_key: Some(keypair.public_key),
