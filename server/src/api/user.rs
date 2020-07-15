@@ -639,12 +639,10 @@ impl Perform for Oper<GetUserDetails> {
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
 
-    // If its not the same user, remove the email
-    if let Some(user_id) = user_id {
-      if user_details_id != user_id {
-        user_view.email = None;
-      }
-    } else {
+    // If its not the same user, remove the email, and settings
+    // TODO an if let chain would be better here, but can't figure it out
+    // TODO separate out settings into its own thing
+    if user_id.is_none() || user_details_id != user_id.unwrap_or(0) {
       user_view.email = None;
     }
 

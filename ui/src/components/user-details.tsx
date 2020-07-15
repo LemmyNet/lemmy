@@ -234,6 +234,7 @@ export class UserDetails extends Component<UserDetailsProps, UserDetailsState> {
   }
 
   parseMessage(msg: WebSocketJsonResponse) {
+    console.log(msg);
     const res = wsJsonToRes(msg);
 
     if (msg.error) {
