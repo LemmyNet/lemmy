@@ -98,7 +98,6 @@ pub struct AddModToCommunityResponse {
 #[derive(Serialize, Deserialize)]
 pub struct EditCommunity {
   pub edit_id: i32,
-  name: String,
   title: String,
   description: Option<String>,
   category_id: i32,
@@ -333,10 +332,6 @@ impl Perform for Oper<EditCommunity> {
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &EditCommunity = &self.data;
 
-    if let Err(slurs) = slur_check(&data.name) {
-      return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
-    }
-
     if let Err(slurs) = slur_check(&data.title) {
       return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
     }
@@ -351,10 +346,6 @@ impl Perform for Oper<EditCommunity> {
       Ok(claims) => claims.claims,
       Err(_e) => return Err(APIError::err("not_logged_in").into()),
     };
-
-    if !is_valid_community_name(&data.name) {
-      return Err(APIError::err("invalid_community_name").into());
-    }
 
     let user_id = claims.id;
 
@@ -388,7 +379,7 @@ impl Perform for Oper<EditCommunity> {
     let read_community = blocking(pool, move |conn| Community::read(conn, edit_id)).await??;
 
     let community_form = CommunityForm {
-      name: data.name.to_owned(),
+      name: read_community.name,
       title: data.title.to_owned(),
       description: data.description.to_owned(),
       category_id: data.category_id.to_owned(),

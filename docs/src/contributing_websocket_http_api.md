@@ -979,7 +979,6 @@ Mods and admins can remove and lock a community, creators can delete it.
   op: "EditCommunity",
   data: {
     edit_id: i32,
-    name: String,
     title: String,
     description: Option<String>,
     category_id: i32,
