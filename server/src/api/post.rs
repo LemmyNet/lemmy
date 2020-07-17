@@ -163,8 +163,8 @@ impl Perform for Oper<CreatePost> {
       return Err(APIError::err("site_ban").into());
     }
 
-    if data.url.is_some() {
-      match Url::parse(data.url.as_ref().unwrap()) {
+    if let Some(url) = data.url.as_ref() {
+      match Url::parse(url) {
         Ok(_t) => (),
         Err(_e) => return Err(APIError::err("invalid_url").into()),
       }
