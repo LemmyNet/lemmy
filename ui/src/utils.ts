@@ -825,6 +825,11 @@ export function editPostRes(data: PostResponse, post: Post) {
     post.url = data.post.url;
     post.name = data.post.name;
     post.nsfw = data.post.nsfw;
+    post.deleted = data.post.deleted;
+    post.removed = data.post.removed;
+    post.stickied = data.post.stickied;
+    post.body = data.post.body;
+    post.locked = data.post.locked;
   }
 }
 
