@@ -101,6 +101,9 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     this.state.upvotes = nextProps.post.upvotes;
     this.state.downvotes = nextProps.post.downvotes;
     this.state.score = nextProps.post.score;
+    if (this.props.post.id !== nextProps.post.id) {
+      this.state.imageExpanded = false;
+    }
     this.setState(this.state);
   }
 
