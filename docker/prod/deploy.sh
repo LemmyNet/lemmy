@@ -4,7 +4,7 @@ git checkout main
 
 # Import translations
 git fetch weblate
-git merge weblate/master
+git merge weblate/main
 
 # Creating the new tag
 new_tag="$1"
