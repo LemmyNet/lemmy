@@ -1,10 +1,9 @@
 import { Component, linkEvent } from 'inferno';
 import { Prompt } from 'inferno-router';
+import { MarkdownTextArea } from './markdown-textarea';
 import { Site, SiteForm as SiteFormI } from '../interfaces';
 import { WebSocketService } from '../services';
-import { capitalizeFirstLetter, randomStr, setupTribute } from '../utils';
-import autosize from 'autosize';
-import Tribute from 'tributejs/src/Tribute.js';
+import { capitalizeFirstLetter, randomStr } from '../utils';
 import { i18n } from '../i18next';
 
 interface SiteFormProps {
@@ -19,7 +18,6 @@ interface SiteFormState {
 
 export class SiteForm extends Component<SiteFormProps, SiteFormState> {
   private id = `site-form-${randomStr()}`;
-  private tribute: Tribute;
   private emptyState: SiteFormState = {
     siteForm: {
       enable_downvotes: true,
@@ -33,8 +31,10 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
   constructor(props: any, context: any) {
     super(props, context);
 
-    this.tribute = setupTribute();
     this.state = this.emptyState;
+    this.handleSiteDescriptionChange = this.handleSiteDescriptionChange.bind(
+      this
+    );
 
     if (this.props.site) {
       this.state.siteForm = {
@@ -45,17 +45,6 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
         enable_nsfw: this.props.site.enable_nsfw,
       };
     }
-  }
-
-  componentDidMount() {
-    var textarea: any = document.getElementById(this.id);
-    autosize(textarea);
-    this.tribute.attach(textarea);
-    textarea.addEventListener('tribute-replaced', () => {
-      this.state.siteForm.description = textarea.value;
-      this.setState(this.state);
-      autosize.update(textarea);
-    });
   }
 
   // Necessary to stop the loading
@@ -119,13 +108,9 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
               {i18n.t('sidebar')}
             </label>
             <div class="col-12">
-              <textarea
-                id={this.id}
-                value={this.state.siteForm.description}
-                onInput={linkEvent(this, this.handleSiteDescriptionChange)}
-                class="form-control"
-                rows={3}
-                maxLength={10000}
+              <MarkdownTextArea
+                initialContent={this.state.siteForm.description}
+                onContentChange={this.handleSiteDescriptionChange}
               />
             </div>
           </div>
@@ -238,9 +223,9 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
     i.setState(i.state);
   }
 
-  handleSiteDescriptionChange(i: SiteForm, event: any) {
-    i.state.siteForm.description = event.target.value;
-    i.setState(i.state);
+  handleSiteDescriptionChange(val: string) {
+    this.state.siteForm.description = val;
+    this.setState(this.state);
   }
 
   handleSiteEnableNsfwChange(i: SiteForm, event: any) {
