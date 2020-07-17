@@ -11,18 +11,11 @@ import {
   WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService } from '../services';
-import {
-  wsJsonToRes,
-  capitalizeFirstLetter,
-  toast,
-  randomStr,
-  setupTribute,
-} from '../utils';
-import Tribute from 'tributejs/src/Tribute.js';
-import autosize from 'autosize';
+import { wsJsonToRes, capitalizeFirstLetter, toast, randomStr } from '../utils';
 import { i18n } from '../i18next';
 
 import { Community } from '../interfaces';
+import { MarkdownTextArea } from './markdown-textarea';
 
 interface CommunityFormProps {
   community?: Community; // If a community is given, that means this is an edit
@@ -43,7 +36,6 @@ export class CommunityForm extends Component<
   CommunityFormState
 > {
   private id = `community-form-${randomStr()}`;
-  private tribute: Tribute;
   private subscription: Subscription;
 
   private emptyState: CommunityFormState = {
@@ -60,8 +52,11 @@ export class CommunityForm extends Component<
   constructor(props: any, context: any) {
     super(props, context);
 
-    this.tribute = setupTribute();
     this.state = this.emptyState;
+
+    this.handleCommunityDescriptionChange = this.handleCommunityDescriptionChange.bind(
+      this
+    );
 
     if (this.props.community) {
       this.state.communityForm = {
@@ -84,17 +79,6 @@ export class CommunityForm extends Component<
       );
 
     WebSocketService.Instance.listCategories();
-  }
-
-  componentDidMount() {
-    var textarea: any = document.getElementById(this.id);
-    autosize(textarea);
-    this.tribute.attach(textarea);
-    textarea.addEventListener('tribute-replaced', () => {
-      this.state.communityForm.description = textarea.value;
-      this.setState(this.state);
-      autosize.update(textarea);
-    });
   }
 
   componentDidUpdate() {
@@ -171,13 +155,9 @@ export class CommunityForm extends Component<
               {i18n.t('sidebar')}
             </label>
             <div class="col-12">
-              <textarea
-                id={this.id}
-                value={this.state.communityForm.description}
-                onInput={linkEvent(this, this.handleCommunityDescriptionChange)}
-                class="form-control"
-                rows={3}
-                maxLength={10000}
+              <MarkdownTextArea
+                initialContent={this.state.communityForm.description}
+                onContentChange={this.handleCommunityDescriptionChange}
               />
             </div>
           </div>
@@ -271,9 +251,9 @@ export class CommunityForm extends Component<
     i.setState(i.state);
   }
 
-  handleCommunityDescriptionChange(i: CommunityForm, event: any) {
-    i.state.communityForm.description = event.target.value;
-    i.setState(i.state);
+  handleCommunityDescriptionChange(val: string) {
+    this.state.communityForm.description = val;
+    this.setState(this.state);
   }
 
   handleCommunityCategoryChange(i: CommunityForm, event: any) {
