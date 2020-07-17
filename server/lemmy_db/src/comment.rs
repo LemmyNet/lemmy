@@ -1,5 +1,6 @@
 use super::{post::Post, *};
 use crate::schema::{comment, comment_like, comment_saved};
+use url::{ParseError, Url};
 
 // WITH RECURSIVE MyTree AS (
 //     SELECT * FROM comment WHERE parent_id IS NULL
@@ -40,6 +41,12 @@ pub struct CommentForm {
   pub deleted: Option<bool>,
   pub ap_id: String,
   pub local: bool,
+}
+
+impl CommentForm {
+  pub fn get_ap_id(&self) -> Result<Url, ParseError> {
+    Url::parse(&self.ap_id)
+  }
 }
 
 impl Crud<CommentForm> for Comment {

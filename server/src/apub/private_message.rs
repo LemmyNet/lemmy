@@ -5,12 +5,12 @@ use crate::{
   },
   blocking, DbPool, LemmyError,
 };
-use activitystreams::{
+use activitystreams_new::{
   activity::{Create, Delete, Undo, Update},
   context,
-  object::{kind::NoteType, properties::ObjectProperties, Note},
+  object::{kind::NoteType, Note, Tombstone},
+  prelude::*,
 };
-use activitystreams_new::object::Tombstone;
 use actix_web::client::Client;
 use lemmy_db::{
   private_message::{PrivateMessage, PrivateMessageForm},
@@ -18,14 +18,14 @@ use lemmy_db::{
   Crud,
 };
 use lemmy_utils::convert_datetime;
+use url::Url;
 
 #[async_trait::async_trait(?Send)]
 impl ToApub for PrivateMessage {
   type Response = Note;
 
   async fn to_apub(&self, pool: &DbPool) -> Result<Note, LemmyError> {
-    let mut private_message = Note::default();
-    let oprops: &mut ObjectProperties = private_message.as_mut();
+    let mut private_message = Note::new();
 
     let creator_id = self.creator_id;
     let creator = blocking(pool, move |conn| User_::read(conn, creator_id)).await??;
@@ -33,16 +33,16 @@ impl ToApub for PrivateMessage {
     let recipient_id = self.recipient_id;
     let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
 
-    oprops
-      .set_context_xsd_any_uri(context())?
-      .set_id(self.ap_id.to_owned())?
-      .set_published(convert_datetime(self.published))?
-      .set_content_xsd_string(self.content.to_owned())?
-      .set_to_xsd_any_uri(recipient.actor_id)?
-      .set_attributed_to_xsd_any_uri(creator.actor_id)?;
+    private_message
+      .set_context(context())
+      .set_id(Url::parse(&self.ap_id.to_owned())?)
+      .set_published(convert_datetime(self.published))
+      .set_content(self.content.to_owned())
+      .set_to(recipient.actor_id)
+      .set_attributed_to(creator.actor_id);
 
     if let Some(u) = self.updated {
-      oprops.set_updated(convert_datetime(u))?;
+      private_message.set_updated(convert_datetime(u));
     }
 
     Ok(private_message)
@@ -53,7 +53,7 @@ impl ToApub for PrivateMessage {
       self.deleted,
       &self.ap_id,
       self.updated,
-      NoteType.to_string(),
+      NoteType::Note.to_string(),
     )
   }
 }
@@ -67,32 +67,35 @@ impl FromApub for PrivateMessageForm {
     note: &Note,
     client: &Client,
     pool: &DbPool,
+    actor_id: &Url,
   ) -> Result<PrivateMessageForm, LemmyError> {
-    let oprops = &note.object_props;
-    let creator_actor_id = &oprops.get_attributed_to_xsd_any_uri().unwrap();
+    let creator_actor_id = note
+      .attributed_to()
+      .unwrap()
+      .clone()
+      .single_xsd_any_uri()
+      .unwrap();
 
     let creator = get_or_fetch_and_upsert_remote_user(&creator_actor_id, client, pool).await?;
 
-    let recipient_actor_id = &oprops.get_to_xsd_any_uri().unwrap();
+    let recipient_actor_id = note.to().unwrap().clone().single_xsd_any_uri().unwrap();
 
     let recipient = get_or_fetch_and_upsert_remote_user(&recipient_actor_id, client, pool).await?;
 
     Ok(PrivateMessageForm {
       creator_id: creator.id,
       recipient_id: recipient.id,
-      content: oprops
-        .get_content_xsd_string()
-        .map(|c| c.to_string())
-        .unwrap(),
-      published: oprops
-        .get_published()
-        .map(|u| u.as_ref().to_owned().naive_local()),
-      updated: oprops
-        .get_updated()
-        .map(|u| u.as_ref().to_owned().naive_local()),
+      content: note
+        .content()
+        .unwrap()
+        .as_single_xsd_string()
+        .unwrap()
+        .to_string(),
+      published: note.published().map(|u| u.to_owned().naive_local()),
+      updated: note.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
       read: None,
-      ap_id: oprops.get_id().unwrap().to_string(),
+      ap_id: note.id(actor_id.domain().unwrap())?.unwrap().to_string(),
       local: false,
     })
   }
@@ -113,21 +116,16 @@ impl ApubObjectType for PrivateMessage {
     let recipient_id = self.recipient_id;
     let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
 
-    let mut create = Create::new();
-    create
-      .object_props
-      .set_context_xsd_any_uri(context())?
-      .set_id(id)?;
+    let mut create = Create::new(creator.actor_id.to_owned(), note.into_any_base()?);
     let to = format!("{}/inbox", recipient.actor_id);
-
     create
-      .create_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(note)?;
+      .set_context(context())
+      .set_id(Url::parse(&id)?)
+      .set_to(to.clone());
 
     insert_activity(creator.id, create.clone(), true, pool).await?;
 
-    send_activity(client, &create, creator, vec![to]).await?;
+    send_activity(client, &create.into_any_base()?, creator, vec![to]).await?;
     Ok(())
   }
 
@@ -144,21 +142,16 @@ impl ApubObjectType for PrivateMessage {
     let recipient_id = self.recipient_id;
     let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
 
-    let mut update = Update::new();
-    update
-      .object_props
-      .set_context_xsd_any_uri(context())?
-      .set_id(id)?;
+    let mut update = Update::new(creator.actor_id.to_owned(), note.into_any_base()?);
     let to = format!("{}/inbox", recipient.actor_id);
-
     update
-      .update_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(note)?;
+      .set_context(context())
+      .set_id(Url::parse(&id)?)
+      .set_to(to.clone());
 
     insert_activity(creator.id, update.clone(), true, pool).await?;
 
-    send_activity(client, &update, creator, vec![to]).await?;
+    send_activity(client, &update.into_any_base()?, creator, vec![to]).await?;
     Ok(())
   }
 
@@ -174,21 +167,16 @@ impl ApubObjectType for PrivateMessage {
     let recipient_id = self.recipient_id;
     let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
 
-    let mut delete = Delete::new();
-    delete
-      .object_props
-      .set_context_xsd_any_uri(context())?
-      .set_id(id)?;
+    let mut delete = Delete::new(creator.actor_id.to_owned(), note.into_any_base()?);
     let to = format!("{}/inbox", recipient.actor_id);
-
     delete
-      .delete_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(note)?;
+      .set_context(context())
+      .set_id(Url::parse(&id)?)
+      .set_to(to.clone());
 
     insert_activity(creator.id, delete.clone(), true, pool).await?;
 
-    send_activity(client, &delete, creator, vec![to]).await?;
+    send_activity(client, &delete.into_any_base()?, creator, vec![to]).await?;
     Ok(())
   }
 
@@ -204,36 +192,25 @@ impl ApubObjectType for PrivateMessage {
     let recipient_id = self.recipient_id;
     let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
 
-    let mut delete = Delete::new();
-    delete
-      .object_props
-      .set_context_xsd_any_uri(context())?
-      .set_id(id)?;
+    let mut delete = Delete::new(creator.actor_id.to_owned(), note.into_any_base()?);
     let to = format!("{}/inbox", recipient.actor_id);
-
     delete
-      .delete_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(note)?;
+      .set_context(context())
+      .set_id(Url::parse(&id)?)
+      .set_to(to.clone());
 
     // TODO
     // Undo that fake activity
     let undo_id = format!("{}/undo/delete/{}", self.ap_id, uuid::Uuid::new_v4());
-    let mut undo = Undo::default();
-
+    let mut undo = Undo::new(creator.actor_id.to_owned(), delete.into_any_base()?);
     undo
-      .object_props
-      .set_context_xsd_any_uri(context())?
-      .set_id(undo_id)?;
-
-    undo
-      .undo_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(delete)?;
+      .set_context(context())
+      .set_id(Url::parse(&undo_id)?)
+      .set_to(to.clone());
 
     insert_activity(creator.id, undo.clone(), true, pool).await?;
 
-    send_activity(client, &undo, creator, vec![to]).await?;
+    send_activity(client, &undo.into_any_base()?, creator, vec![to]).await?;
     Ok(())
   }
 

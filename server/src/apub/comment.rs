@@ -19,7 +19,6 @@ use activitystreams_new::{
   link::Mention,
   object::{kind::NoteType, Note, Tombstone},
   prelude::*,
-  primitives::XsdAnyUri,
   public,
 };
 use actix_web::{body::Body, client::Client, web::Path, HttpResponse};
@@ -35,7 +34,7 @@ use lemmy_utils::{convert_datetime, scrape_text_for_mentions, MentionData};
 use log::debug;
 use serde::Deserialize;
 use serde_json::Error;
-use std::str::FromStr;
+use url::Url;
 
 #[derive(Deserialize)]
 pub struct CommentQuery {
@@ -86,15 +85,15 @@ impl ToApub for Comment {
     comment
       // Not needed when the Post is embedded in a collection (like for community outbox)
       .set_context(context())
-      .set_id(self.ap_id.parse::<XsdAnyUri>()?)
-      .set_published(convert_datetime(self.published).into())
+      .set_id(Url::parse(&self.ap_id)?)
+      .set_published(convert_datetime(self.published))
       .set_to(community.actor_id)
       .set_many_in_reply_tos(in_reply_to_vec)
       .set_content(self.content.to_owned())
       .set_attributed_to(creator.actor_id);
 
     if let Some(u) = self.updated {
-      comment.set_updated(convert_datetime(u).into());
+      comment.set_updated(convert_datetime(u));
     }
 
     Ok(comment)
@@ -105,7 +104,7 @@ impl ToApub for Comment {
       self.deleted,
       &self.ap_id,
       self.updated,
-      NoteType.to_string(),
+      NoteType::Note.to_string(),
     )
   }
 }
@@ -119,6 +118,7 @@ impl FromApub for CommentForm {
     note: &Note,
     client: &Client,
     pool: &DbPool,
+    actor_id: &Url,
   ) -> Result<CommentForm, LemmyError> {
     let creator_actor_id = &note
       .attributed_to()
@@ -129,14 +129,14 @@ impl FromApub for CommentForm {
     let creator = get_or_fetch_and_upsert_remote_user(creator_actor_id, client, pool).await?;
 
     let mut in_reply_tos = note
-      .in_reply_to
+      .in_reply_to()
       .as_ref()
       .unwrap()
       .as_many()
       .unwrap()
       .iter()
       .map(|i| i.as_xsd_any_uri().unwrap());
-    let post_ap_id = in_reply_tos.next().unwrap().to_string();
+    let post_ap_id = in_reply_tos.next().unwrap();
 
     // This post, or the parent comment might not yet exist on this server yet, fetch them.
     let post = get_or_fetch_and_insert_remote_post(&post_ap_id, client, pool).await?;
@@ -145,7 +145,7 @@ impl FromApub for CommentForm {
     // For deeply nested comments, FromApub automatically gets called recursively
     let parent_id: Option<i32> = match in_reply_tos.next() {
       Some(parent_comment_uri) => {
-        let parent_comment_ap_id = &parent_comment_uri.to_string();
+        let parent_comment_ap_id = &parent_comment_uri;
         let parent_comment =
           get_or_fetch_and_insert_remote_comment(&parent_comment_ap_id, client, pool).await?;
 
@@ -166,12 +166,10 @@ impl FromApub for CommentForm {
         .to_string(),
       removed: None,
       read: None,
-      published: note
-        .published()
-        .map(|u| u.as_ref().to_owned().naive_local()),
-      updated: note.updated().map(|u| u.as_ref().to_owned().naive_local()),
+      published: note.published().map(|u| u.to_owned().naive_local()),
+      updated: note.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
-      ap_id: note.id().unwrap().to_string(),
+      ap_id: note.id(actor_id.domain().unwrap())?.unwrap().to_string(),
       local: false,
     })
   }
@@ -201,13 +199,21 @@ impl ApubObjectType for Comment {
     let mut create = Create::new(creator.actor_id.to_owned(), note.into_any_base()?);
     create
       .set_context(context())
-      .set_id(XsdAnyUri::from_str(&id)?)
+      .set_id(Url::parse(&id)?)
       .set_to(public())
       .set_many_ccs(maa.addressed_ccs.to_owned())
       // Set the mention tags
       .set_many_tags(maa.get_tags()?);
 
-    send_activity_to_community(&creator, &community, maa.inboxes, create, client, pool).await?;
+    send_activity_to_community(
+      &creator,
+      &community,
+      maa.inboxes,
+      create.into_any_base()?,
+      client,
+      pool,
+    )
+    .await?;
     Ok(())
   }
 
@@ -233,13 +239,21 @@ impl ApubObjectType for Comment {
     let mut update = Update::new(creator.actor_id.to_owned(), note.into_any_base()?);
     update
       .set_context(context())
-      .set_id(XsdAnyUri::from_str(&id)?)
+      .set_id(Url::parse(&id)?)
       .set_to(public())
       .set_many_ccs(maa.addressed_ccs.to_owned())
       // Set the mention tags
       .set_many_tags(maa.get_tags()?);
 
-    send_activity_to_community(&creator, &community, maa.inboxes, update, client, pool).await?;
+    send_activity_to_community(
+      &creator,
+      &community,
+      maa.inboxes,
+      update.into_any_base()?,
+      client,
+      pool,
+    )
+    .await?;
     Ok(())
   }
 
@@ -261,7 +275,7 @@ impl ApubObjectType for Comment {
     let mut delete = Delete::new(creator.actor_id.to_owned(), note.into_any_base()?);
     delete
       .set_context(context())
-      .set_id(XsdAnyUri::from_str(&id)?)
+      .set_id(Url::parse(&id)?)
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()]);
 
@@ -269,7 +283,7 @@ impl ApubObjectType for Comment {
       &creator,
       &community,
       vec![community.get_shared_inbox_url()],
-      delete,
+      delete.into_any_base()?,
       client,
       pool,
     )
@@ -296,7 +310,7 @@ impl ApubObjectType for Comment {
     let mut delete = Delete::new(creator.actor_id.to_owned(), note.into_any_base()?);
     delete
       .set_context(context())
-      .set_id(XsdAnyUri::from_str(&id)?)
+      .set_id(Url::parse(&id)?)
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()]);
 
@@ -306,7 +320,7 @@ impl ApubObjectType for Comment {
     let mut undo = Undo::new(creator.actor_id.to_owned(), delete.into_any_base()?);
     undo
       .set_context(context())
-      .set_id(XsdAnyUri::from_str(&undo_id)?)
+      .set_id(Url::parse(&undo_id)?)
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()]);
 
@@ -314,7 +328,7 @@ impl ApubObjectType for Comment {
       &creator,
       &community,
       vec![community.get_shared_inbox_url()],
-      undo,
+      undo.into_any_base()?,
       client,
       pool,
     )
@@ -340,7 +354,7 @@ impl ApubObjectType for Comment {
     let mut remove = Remove::new(mod_.actor_id.to_owned(), note.into_any_base()?);
     remove
       .set_context(context())
-      .set_id(XsdAnyUri::from_str(&id)?)
+      .set_id(Url::parse(&id)?)
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()]);
 
@@ -348,7 +362,7 @@ impl ApubObjectType for Comment {
       &mod_,
       &community,
       vec![community.get_shared_inbox_url()],
-      remove,
+      remove.into_any_base()?,
       client,
       pool,
     )
@@ -375,7 +389,7 @@ impl ApubObjectType for Comment {
     let mut remove = Remove::new(mod_.actor_id.to_owned(), note.into_any_base()?);
     remove
       .set_context(context())
-      .set_id(XsdAnyUri::from_str(&id)?)
+      .set_id(Url::parse(&id)?)
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()]);
 
@@ -384,7 +398,7 @@ impl ApubObjectType for Comment {
     let mut undo = Undo::new(mod_.actor_id.to_owned(), remove.into_any_base()?);
     undo
       .set_context(context())
-      .set_id(XsdAnyUri::from_str(&undo_id)?)
+      .set_id(Url::parse(&undo_id)?)
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()]);
 
@@ -392,7 +406,7 @@ impl ApubObjectType for Comment {
       &mod_,
       &community,
       vec![community.get_shared_inbox_url()],
-      undo,
+      undo.into_any_base()?,
       client,
       pool,
     )
@@ -422,7 +436,7 @@ impl ApubLikeableType for Comment {
     let mut like = Like::new(creator.actor_id.to_owned(), note.into_any_base()?);
     like
       .set_context(context())
-      .set_id(XsdAnyUri::from_str(&id)?)
+      .set_id(Url::parse(&id)?)
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()]);
 
@@ -430,7 +444,7 @@ impl ApubLikeableType for Comment {
       &creator,
       &community,
       vec![community.get_shared_inbox_url()],
-      like,
+      like.into_any_base()?,
       client,
       pool,
     )
@@ -457,7 +471,7 @@ impl ApubLikeableType for Comment {
     let mut dislike = Dislike::new(creator.actor_id.to_owned(), note.into_any_base()?);
     dislike
       .set_context(context())
-      .set_id(XsdAnyUri::from_str(&id)?)
+      .set_id(Url::parse(&id)?)
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()]);
 
@@ -465,7 +479,7 @@ impl ApubLikeableType for Comment {
       &creator,
       &community,
       vec![community.get_shared_inbox_url()],
-      dislike,
+      dislike.into_any_base()?,
       client,
       pool,
     )
@@ -492,7 +506,7 @@ impl ApubLikeableType for Comment {
     let mut like = Like::new(creator.actor_id.to_owned(), note.into_any_base()?);
     like
       .set_context(context())
-      .set_id(XsdAnyUri::from_str(&id)?)
+      .set_id(Url::parse(&id)?)
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()]);
 
@@ -502,7 +516,7 @@ impl ApubLikeableType for Comment {
     let mut undo = Undo::new(creator.actor_id.to_owned(), like.into_any_base()?);
     undo
       .set_context(context())
-      .set_id(XsdAnyUri::from_str(&undo_id)?)
+      .set_id(Url::parse(&undo_id)?)
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()]);
 
@@ -510,7 +524,7 @@ impl ApubLikeableType for Comment {
       &creator,
       &community,
       vec![community.get_shared_inbox_url()],
-      undo,
+      undo.into_any_base()?,
       client,
       pool,
     )
