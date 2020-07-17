@@ -1,6 +1,6 @@
 use crate::{
   apub::{
-    activities::{populate_object_props, send_activity_to_community},
+    activities::send_activity_to_community,
     create_apub_response, create_apub_tombstone_response, create_tombstone,
     extensions::page_extension::PageExtension,
     fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user},
@@ -10,16 +10,13 @@ use crate::{
   routes::DbPoolParam,
   DbPool, LemmyError,
 };
-use activitystreams::{
-  activity::{Create, Delete, Dislike, Like, Remove, Undo, Update},
-  BaseBox,
-};
 use activitystreams_ext::Ext1;
 use activitystreams_new::{
+  activity::{Create, Delete, Dislike, Like, Remove, Undo, Update},
   context,
   object::{kind::PageType, Image, Page, Tombstone},
   prelude::*,
-  primitives::{XsdAnyUri, XsdDateTime},
+  public,
 };
 use actix_web::{body::Body, client::Client, web, HttpResponse};
 use lemmy_db::{
@@ -30,6 +27,7 @@ use lemmy_db::{
 };
 use lemmy_utils::{convert_datetime, get_apub_protocol_string, settings::Settings};
 use serde::Deserialize;
+use url::Url;
 
 #[derive(Deserialize)]
 pub struct PostQuery {
@@ -70,11 +68,11 @@ impl ToApub for Post {
       // TODO: need to set proper context defining sensitive/commentsEnabled fields
       // https://git.asonix.dog/Aardwolf/activitystreams/issues/5
       .set_context(context())
-      .set_id(self.ap_id.parse::<XsdAnyUri>()?)
+      .set_id(self.ap_id.parse::<Url>()?)
       // Use summary field to be consistent with mastodon content warning.
       // https://mastodon.xyz/@Louisa/103987265222901387.json
       .set_summary(self.name.to_owned())
-      .set_published(convert_datetime(self.published).into())
+      .set_published(convert_datetime(self.published))
       .set_to(community.actor_id)
       .set_attributed_to(creator.actor_id);
 
@@ -121,7 +119,7 @@ impl ToApub for Post {
     }
 
     if let Some(u) = self.updated {
-      page.set_updated(XsdDateTime::from(convert_datetime(u)));
+      page.set_updated(convert_datetime(u));
     }
 
     let ext = PageExtension {
@@ -136,7 +134,7 @@ impl ToApub for Post {
       self.deleted,
       &self.ap_id,
       self.updated,
-      PageType.to_string(),
+      PageType::Page.to_string(),
     )
   }
 }
@@ -150,11 +148,12 @@ impl FromApub for PostForm {
     page: &PageExt,
     client: &Client,
     pool: &DbPool,
+    actor_id: &Url,
   ) -> Result<PostForm, LemmyError> {
     let ext = &page.ext_one;
     let creator_actor_id = page
       .inner
-      .attributed_to
+      .attributed_to()
       .as_ref()
       .unwrap()
       .as_single_xsd_any_uri()
@@ -164,20 +163,19 @@ impl FromApub for PostForm {
 
     let community_actor_id = page
       .inner
-      .to
+      .to()
       .as_ref()
       .unwrap()
       .as_single_xsd_any_uri()
-      .unwrap()
-      .as_str();
+      .unwrap();
 
     let community =
       get_or_fetch_and_upsert_remote_community(community_actor_id, client, pool).await?;
 
-    let thumbnail_url = match &page.inner.image {
+    let thumbnail_url = match &page.inner.image() {
       Some(any_image) => Image::from_any_base(any_image.to_owned().as_one().unwrap().to_owned())?
         .unwrap()
-        .url
+        .url()
         .unwrap()
         .as_single_xsd_any_uri()
         .map(|u| u.to_string()),
@@ -186,10 +184,10 @@ impl FromApub for PostForm {
 
     let (embed_title, embed_description, embed_html) = match page.inner.preview() {
       Some(preview) => {
-        let preview_page = Page::from_any_base(preview.as_one().unwrap().to_owned())?.unwrap();
+        let preview_page = Page::from_any_base(preview.one().unwrap().to_owned())?.unwrap();
         let name = preview_page
           .name()
-          .map(|n| n.as_single_xsd_string().unwrap().to_string());
+          .map(|n| n.as_one().unwrap().as_xsd_string().unwrap().to_string());
         let summary = preview_page
           .summary()
           .map(|s| s.as_single_xsd_string().unwrap().to_string());
@@ -203,18 +201,18 @@ impl FromApub for PostForm {
 
     let url = page
       .inner
-      .url
+      .url()
       .as_ref()
       .map(|u| u.as_single_xsd_string().unwrap().to_string());
     let body = page
       .inner
-      .content
+      .content()
       .as_ref()
       .map(|c| c.as_single_xsd_string().unwrap().to_string());
     Ok(PostForm {
       name: page
         .inner
-        .summary
+        .summary()
         .as_ref()
         .unwrap()
         .as_single_xsd_string()
@@ -228,14 +226,14 @@ impl FromApub for PostForm {
       locked: Some(!ext.comments_enabled),
       published: page
         .inner
-        .published
+        .published()
         .as_ref()
-        .map(|u| u.as_ref().to_owned().naive_local()),
+        .map(|u| u.to_owned().naive_local()),
       updated: page
         .inner
-        .updated
+        .updated()
         .as_ref()
-        .map(|u| u.as_ref().to_owned().naive_local()),
+        .map(|u| u.to_owned().naive_local()),
       deleted: None,
       nsfw: ext.sensitive,
       stickied: None, // -> put it in "featured" collection of the community
@@ -243,7 +241,11 @@ impl FromApub for PostForm {
       embed_description,
       embed_html,
       thumbnail_url,
-      ap_id: page.inner.id().unwrap().to_string(),
+      ap_id: page
+        .inner
+        .id(actor_id.domain().unwrap())?
+        .unwrap()
+        .to_string(),
       local: false,
     })
   }
@@ -265,22 +267,18 @@ impl ApubObjectType for Post {
 
     let id = format!("{}/create/{}", self.ap_id, uuid::Uuid::new_v4());
 
-    let mut create = Create::new();
-    populate_object_props(
-      &mut create.object_props,
-      vec![community.get_followers_url()],
-      &id,
-    )?;
+    let mut create = Create::new(creator.actor_id.to_owned(), page.into_any_base()?);
     create
-      .create_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(BaseBox::from_concrete(page)?)?;
+      .set_context(context())
+      .set_id(Url::parse(&id)?)
+      .set_to(public())
+      .set_many_ccs(vec![community.get_followers_url()]);
 
     send_activity_to_community(
       creator,
       &community,
       vec![community.get_shared_inbox_url()],
-      create,
+      create.into_any_base()?,
       client,
       pool,
     )
@@ -302,22 +300,18 @@ impl ApubObjectType for Post {
 
     let id = format!("{}/update/{}", self.ap_id, uuid::Uuid::new_v4());
 
-    let mut update = Update::new();
-    populate_object_props(
-      &mut update.object_props,
-      vec![community.get_followers_url()],
-      &id,
-    )?;
+    let mut update = Update::new(creator.actor_id.to_owned(), page.into_any_base()?);
     update
-      .update_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(BaseBox::from_concrete(page)?)?;
+      .set_context(context())
+      .set_id(Url::parse(&id)?)
+      .set_to(public())
+      .set_many_ccs(vec![community.get_followers_url()]);
 
     send_activity_to_community(
       creator,
       &community,
       vec![community.get_shared_inbox_url()],
-      update,
+      update.into_any_base()?,
       client,
       pool,
     )
@@ -337,24 +331,18 @@ impl ApubObjectType for Post {
     let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
 
     let id = format!("{}/delete/{}", self.ap_id, uuid::Uuid::new_v4());
-    let mut delete = Delete::default();
-
-    populate_object_props(
-      &mut delete.object_props,
-      vec![community.get_followers_url()],
-      &id,
-    )?;
-
+    let mut delete = Delete::new(creator.actor_id.to_owned(), page.into_any_base()?);
     delete
-      .delete_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(BaseBox::from_concrete(page)?)?;
+      .set_context(context())
+      .set_id(Url::parse(&id)?)
+      .set_to(public())
+      .set_many_ccs(vec![community.get_followers_url()]);
 
     send_activity_to_community(
       creator,
       &community,
       vec![community.get_shared_inbox_url()],
-      delete,
+      delete.into_any_base()?,
       client,
       pool,
     )
@@ -374,40 +362,28 @@ impl ApubObjectType for Post {
     let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
 
     let id = format!("{}/delete/{}", self.ap_id, uuid::Uuid::new_v4());
-    let mut delete = Delete::default();
-
-    populate_object_props(
-      &mut delete.object_props,
-      vec![community.get_followers_url()],
-      &id,
-    )?;
-
+    let mut delete = Delete::new(creator.actor_id.to_owned(), page.into_any_base()?);
     delete
-      .delete_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(BaseBox::from_concrete(page)?)?;
+      .set_context(context())
+      .set_id(Url::parse(&id)?)
+      .set_to(public())
+      .set_many_ccs(vec![community.get_followers_url()]);
 
     // TODO
     // Undo that fake activity
     let undo_id = format!("{}/undo/delete/{}", self.ap_id, uuid::Uuid::new_v4());
-    let mut undo = Undo::default();
-
-    populate_object_props(
-      &mut undo.object_props,
-      vec![community.get_followers_url()],
-      &undo_id,
-    )?;
-
+    let mut undo = Undo::new(creator.actor_id.to_owned(), delete.into_any_base()?);
     undo
-      .undo_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(delete)?;
+      .set_context(context())
+      .set_id(Url::parse(&undo_id)?)
+      .set_to(public())
+      .set_many_ccs(vec![community.get_followers_url()]);
 
     send_activity_to_community(
       creator,
       &community,
       vec![community.get_shared_inbox_url()],
-      undo,
+      undo.into_any_base()?,
       client,
       pool,
     )
@@ -427,24 +403,18 @@ impl ApubObjectType for Post {
     let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
 
     let id = format!("{}/remove/{}", self.ap_id, uuid::Uuid::new_v4());
-    let mut remove = Remove::default();
-
-    populate_object_props(
-      &mut remove.object_props,
-      vec![community.get_followers_url()],
-      &id,
-    )?;
-
+    let mut remove = Remove::new(mod_.actor_id.to_owned(), page.into_any_base()?);
     remove
-      .remove_props
-      .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
-      .set_object_base_box(BaseBox::from_concrete(page)?)?;
+      .set_context(context())
+      .set_id(Url::parse(&id)?)
+      .set_to(public())
+      .set_many_ccs(vec![community.get_followers_url()]);
 
     send_activity_to_community(
       mod_,
       &community,
       vec![community.get_shared_inbox_url()],
-      remove,
+      remove.into_any_base()?,
       client,
       pool,
     )
@@ -464,39 +434,27 @@ impl ApubObjectType for Post {
     let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
 
     let id = format!("{}/remove/{}", self.ap_id, uuid::Uuid::new_v4());
-    let mut remove = Remove::default();
-
-    populate_object_props(
-      &mut remove.object_props,
-      vec![community.get_followers_url()],
-      &id,
-    )?;
-
+    let mut remove = Remove::new(mod_.actor_id.to_owned(), page.into_any_base()?);
     remove
-      .remove_props
-      .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
-      .set_object_base_box(BaseBox::from_concrete(page)?)?;
+      .set_context(context())
+      .set_id(Url::parse(&id)?)
+      .set_to(public())
+      .set_many_ccs(vec![community.get_followers_url()]);
 
     // Undo that fake activity
     let undo_id = format!("{}/undo/remove/{}", self.ap_id, uuid::Uuid::new_v4());
-    let mut undo = Undo::default();
-
-    populate_object_props(
-      &mut undo.object_props,
-      vec![community.get_followers_url()],
-      &undo_id,
-    )?;
-
+    let mut undo = Undo::new(mod_.actor_id.to_owned(), remove.into_any_base()?);
     undo
-      .undo_props
-      .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
-      .set_object_base_box(remove)?;
+      .set_context(context())
+      .set_id(Url::parse(&undo_id)?)
+      .set_to(public())
+      .set_many_ccs(vec![community.get_followers_url()]);
 
     send_activity_to_community(
       mod_,
       &community,
       vec![community.get_shared_inbox_url()],
-      undo,
+      undo.into_any_base()?,
       client,
       pool,
     )
@@ -520,22 +478,18 @@ impl ApubLikeableType for Post {
 
     let id = format!("{}/like/{}", self.ap_id, uuid::Uuid::new_v4());
 
-    let mut like = Like::new();
-    populate_object_props(
-      &mut like.object_props,
-      vec![community.get_followers_url()],
-      &id,
-    )?;
+    let mut like = Like::new(creator.actor_id.to_owned(), page.into_any_base()?);
     like
-      .like_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(BaseBox::from_concrete(page)?)?;
+      .set_context(context())
+      .set_id(Url::parse(&id)?)
+      .set_to(public())
+      .set_many_ccs(vec![community.get_followers_url()]);
 
     send_activity_to_community(
       &creator,
       &community,
       vec![community.get_shared_inbox_url()],
-      like,
+      like.into_any_base()?,
       client,
       pool,
     )
@@ -556,22 +510,18 @@ impl ApubLikeableType for Post {
 
     let id = format!("{}/dislike/{}", self.ap_id, uuid::Uuid::new_v4());
 
-    let mut dislike = Dislike::new();
-    populate_object_props(
-      &mut dislike.object_props,
-      vec![community.get_followers_url()],
-      &id,
-    )?;
+    let mut dislike = Dislike::new(creator.actor_id.to_owned(), page.into_any_base()?);
     dislike
-      .dislike_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(BaseBox::from_concrete(page)?)?;
+      .set_context(context())
+      .set_id(Url::parse(&id)?)
+      .set_to(public())
+      .set_many_ccs(vec![community.get_followers_url()]);
 
     send_activity_to_community(
       &creator,
       &community,
       vec![community.get_shared_inbox_url()],
-      dislike,
+      dislike.into_any_base()?,
       client,
       pool,
     )
@@ -592,38 +542,28 @@ impl ApubLikeableType for Post {
 
     let id = format!("{}/like/{}", self.ap_id, uuid::Uuid::new_v4());
 
-    let mut like = Like::new();
-    populate_object_props(
-      &mut like.object_props,
-      vec![community.get_followers_url()],
-      &id,
-    )?;
+    let mut like = Like::new(creator.actor_id.to_owned(), page.into_any_base()?);
     like
-      .like_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(BaseBox::from_concrete(page)?)?;
+      .set_context(context())
+      .set_id(Url::parse(&id)?)
+      .set_to(public())
+      .set_many_ccs(vec![community.get_followers_url()]);
 
     // TODO
     // Undo that fake activity
     let undo_id = format!("{}/undo/like/{}", self.ap_id, uuid::Uuid::new_v4());
-    let mut undo = Undo::default();
-
-    populate_object_props(
-      &mut undo.object_props,
-      vec![community.get_followers_url()],
-      &undo_id,
-    )?;
-
+    let mut undo = Undo::new(creator.actor_id.to_owned(), like.into_any_base()?);
     undo
-      .undo_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(like)?;
+      .set_context(context())
+      .set_id(Url::parse(&undo_id)?)
+      .set_to(public())
+      .set_many_ccs(vec![community.get_followers_url()]);
 
     send_activity_to_community(
       &creator,
       &community,
       vec![community.get_shared_inbox_url()],
-      undo,
+      undo.into_any_base()?,
       client,
       pool,
     )

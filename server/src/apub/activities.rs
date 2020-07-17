@@ -6,41 +6,20 @@ use crate::{
   request::retry_custom,
   DbPool, LemmyError,
 };
-use activitystreams::{context, object::properties::ObjectProperties, public, Activity, Base};
+use activitystreams_new::base::AnyBase;
 use actix_web::client::Client;
 use lemmy_db::{community::Community, user::User_};
 use log::debug;
-use serde::Serialize;
-use std::fmt::Debug;
 use url::Url;
 
-pub fn populate_object_props(
-  props: &mut ObjectProperties,
-  addressed_ccs: Vec<String>,
-  object_id: &str,
-) -> Result<(), LemmyError> {
-  props
-    .set_context_xsd_any_uri(context())?
-    // TODO: the activity needs a seperate id from the object
-    .set_id(object_id)?
-    // TODO: should to/cc go on the Create, or on the Post? or on both?
-    // TODO: handle privacy on the receiving side (at least ignore anything thats not public)
-    .set_to_xsd_any_uri(public())?
-    .set_many_cc_xsd_any_uris(addressed_ccs)?;
-  Ok(())
-}
-
-pub async fn send_activity_to_community<A>(
+pub async fn send_activity_to_community(
   creator: &User_,
   community: &Community,
   to: Vec<String>,
-  activity: A,
+  activity: AnyBase,
   client: &Client,
   pool: &DbPool,
-) -> Result<(), LemmyError>
-where
-  A: Activity + Base + Serialize + Debug + Clone + Send + 'static,
-{
+) -> Result<(), LemmyError> {
   insert_activity(creator.id, activity.clone(), true, pool).await?;
 
   // if this is a local community, we need to do an announce from the community instead
@@ -54,15 +33,12 @@ where
 }
 
 /// Send an activity to a list of recipients, using the correct headers etc.
-pub async fn send_activity<A>(
+pub async fn send_activity(
   client: &Client,
-  activity: &A,
+  activity: &AnyBase,
   actor: &dyn ActorType,
   to: Vec<String>,
-) -> Result<(), LemmyError>
-where
-  A: Serialize,
-{
+) -> Result<(), LemmyError> {
   let activity = serde_json::to_string(&activity)?;
   debug!("Sending activitypub activity {} to {:?}", activity, to);
 

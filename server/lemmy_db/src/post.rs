@@ -8,6 +8,7 @@ use crate::{
 };
 use diesel::{dsl::*, result::Error, *};
 use serde::{Deserialize, Serialize};
+use url::{ParseError, Url};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
 #[table_name = "post"]
@@ -54,6 +55,12 @@ pub struct PostForm {
   pub thumbnail_url: Option<String>,
   pub ap_id: String,
   pub local: bool,
+}
+
+impl PostForm {
+  pub fn get_ap_id(&self) -> Result<Url, ParseError> {
+    Url::parse(&self.ap_id)
+  }
 }
 
 impl Post {

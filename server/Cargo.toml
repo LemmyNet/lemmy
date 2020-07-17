@@ -18,9 +18,8 @@ lemmy_db = { path = "./lemmy_db" }
 diesel = "1.4.4"
 diesel_migrations = "1.4.0"
 dotenv = "0.15.0"
-activitystreams = "0.6.2"
-activitystreams-new = { git = "https://git.asonix.dog/asonix/activitystreams-sketch" }
-activitystreams-ext = { git = "https://git.asonix.dog/asonix/activitystreams-ext" }
+activitystreams-new = { git = "https://git.asonix.dog/asonix/activitystreams-sketch", branch = "main" }
+activitystreams-ext = { git = "https://git.asonix.dog/asonix/activitystreams-ext", branch = "main" }
 bcrypt = "0.8.0"
 chrono = { version = "0.4.7", features = ["serde"] }
 serde_json = { version = "1.0.52", features = ["preserve_order"]}
