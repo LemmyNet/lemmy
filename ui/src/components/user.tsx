@@ -93,7 +93,7 @@ export class User extends Component<any, UserState> {
     username: null,
     follows: [],
     moderates: [],
-    loading: false,
+    loading: true,
     avatarLoading: false,
     view: User.getViewFromProps(this.props.match.view),
     sort: User.getSortTypeFromProps(this.props.match.sort),
@@ -208,47 +208,50 @@ export class User extends Component<any, UserState> {
   render() {
     return (
       <div class="container">
-        {this.state.loading ? (
-          <h5>
-            <svg class="icon icon-spinner spin">
-              <use xlinkHref="#icon-spinner"></use>
-            </svg>
-          </h5>
-        ) : (
-          <div class="row">
-            <div class="col-12 col-md-8">
+        <div class="row">
+          <div class="col-12 col-md-8">
+            <h5>
+              {this.state.user.avatar && showAvatars() && (
+                <img
+                  height="80"
+                  width="80"
+                  src={this.state.user.avatar}
+                  class="rounded-circle mr-2"
+                />
+              )}
+              <span>/u/{this.state.username}</span>
+            </h5>
+            {this.state.loading ? (
               <h5>
-                {this.state.user.avatar && showAvatars() && (
-                  <img
-                    height="80"
-                    width="80"
-                    src={this.state.user.avatar}
-                    class="rounded-circle mr-2"
-                  />
-                )}
-                <span>/u/{this.state.username}</span>
+                <svg class="icon icon-spinner spin">
+                  <use xlinkHref="#icon-spinner"></use>
+                </svg>
               </h5>
-              {this.selects()}
-              <UserDetails
-                user_id={this.state.user_id}
-                username={this.state.username}
-                sort={SortType[this.state.sort]}
-                page={this.state.page}
-                limit={fetchLimit}
-                enableDownvotes={this.state.site.enable_downvotes}
-                enableNsfw={this.state.site.enable_nsfw}
-                view={this.state.view}
-                onPageChange={this.handlePageChange}
-              />
-            </div>
+            ) : (
+              this.selects()
+            )}
+            <UserDetails
+              user_id={this.state.user_id}
+              username={this.state.username}
+              sort={SortType[this.state.sort]}
+              page={this.state.page}
+              limit={fetchLimit}
+              enableDownvotes={this.state.site.enable_downvotes}
+              enableNsfw={this.state.site.enable_nsfw}
+              view={this.state.view}
+              onPageChange={this.handlePageChange}
+            />
+          </div>
+
+          {!this.state.loading && (
             <div class="col-12 col-md-4">
               {this.userInfo()}
               {this.isCurrentUser && this.userSettings()}
               {this.moderates()}
               {this.follows()}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     );
   }
@@ -1042,6 +1045,7 @@ export class User extends Component<any, UserState> {
             UserService.Instance.user.show_avatars;
           this.state.userSettingsForm.matrix_user_id = this.state.user.matrix_user_id;
         }
+        this.state.loading = false;
         this.setState(this.state);
       }
     } else if (res.op == UserOperation.SaveUserSettings) {
