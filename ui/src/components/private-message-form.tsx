@@ -18,17 +18,12 @@ import {
 import { WebSocketService } from '../services';
 import {
   capitalizeFirstLetter,
-  markdownHelpUrl,
-  mdToHtml,
   wsJsonToRes,
   toast,
-  randomStr,
-  setupTribute,
   setupTippy,
 } from '../utils';
 import { UserListing } from './user-listing';
-import Tribute from 'tributejs/src/Tribute.js';
-import autosize from 'autosize';
+import { MarkdownTextArea } from './markdown-textarea';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 
@@ -52,8 +47,6 @@ export class PrivateMessageForm extends Component<
   PrivateMessageFormProps,
   PrivateMessageFormState
 > {
-  private id = `message-form-${randomStr()}`;
-  private tribute: Tribute;
   private subscription: Subscription;
   private emptyState: PrivateMessageFormState = {
     privateMessageForm: {
@@ -69,8 +62,9 @@ export class PrivateMessageForm extends Component<
   constructor(props: any, context: any) {
     super(props, context);
 
-    this.tribute = setupTribute();
     this.state = this.emptyState;
+
+    this.handleContentChange = this.handleContentChange.bind(this);
 
     if (this.props.privateMessage) {
       this.state.privateMessageForm = {
@@ -99,14 +93,6 @@ export class PrivateMessageForm extends Component<
   }
 
   componentDidMount() {
-    var textarea: any = document.getElementById(this.id);
-    autosize(textarea);
-    this.tribute.attach(textarea);
-    textarea.addEventListener('tribute-replaced', () => {
-      this.state.privateMessageForm.content = textarea.value;
-      this.setState(this.state);
-      autosize.update(textarea);
-    });
     setupTippy();
   }
 
@@ -153,24 +139,23 @@ export class PrivateMessageForm extends Component<
             </div>
           )}
           <div class="form-group row">
-            <label class="col-sm-2 col-form-label">{i18n.t('message')}</label>
+            <label class="col-sm-2 col-form-label">
+              {i18n.t('message')}
+              <span
+                onClick={linkEvent(this, this.handleShowDisclaimer)}
+                class="ml-2 pointer text-danger"
+                data-tippy-content={i18n.t('disclaimer')}
+              >
+                <svg class={`icon icon-inline`}>
+                  <use xlinkHref="#icon-alert-triangle"></use>
+                </svg>
+              </span>
+            </label>
             <div class="col-sm-10">
-              <textarea
-                id={this.id}
-                value={this.state.privateMessageForm.content}
-                onInput={linkEvent(this, this.handleContentChange)}
-                className={`form-control ${this.state.previewMode && 'd-none'}`}
-                rows={4}
-                maxLength={10000}
+              <MarkdownTextArea
+                initialContent={this.state.privateMessageForm.content}
+                onContentChange={this.handleContentChange}
               />
-              {this.state.previewMode && (
-                <div
-                  className="card card-body md-div"
-                  dangerouslySetInnerHTML={mdToHtml(
-                    this.state.privateMessageForm.content
-                  )}
-                />
-              )}
             </div>
           </div>
 
@@ -184,7 +169,7 @@ export class PrivateMessageForm extends Component<
                       class="alert-link"
                       target="_blank"
                       rel="noopener"
-                      href="https://about.riot.im/"
+                      href="https://element.io/get-started"
                     >
                       #
                     </a>
@@ -210,16 +195,6 @@ export class PrivateMessageForm extends Component<
                   capitalizeFirstLetter(i18n.t('send_message'))
                 )}
               </button>
-              {this.state.privateMessageForm.content && (
-                <button
-                  className={`btn btn-secondary mr-2 ${
-                    this.state.previewMode && 'active'
-                  }`}
-                  onClick={linkEvent(this, this.handlePreviewToggle)}
-                >
-                  {i18n.t('preview')}
-                </button>
-              )}
               {this.props.privateMessage && (
                 <button
                   type="button"
@@ -230,30 +205,7 @@ export class PrivateMessageForm extends Component<
                 </button>
               )}
               <ul class="d-inline-block float-right list-inline mb-1 text-muted font-weight-bold">
-                <li class="list-inline-item">
-                  <span
-                    onClick={linkEvent(this, this.handleShowDisclaimer)}
-                    class="pointer"
-                    data-tippy-content={i18n.t('disclaimer')}
-                  >
-                    <svg class={`icon icon-inline`}>
-                      <use xlinkHref="#icon-alert-triangle"></use>
-                    </svg>
-                  </span>
-                </li>
-                <li class="list-inline-item">
-                  <a
-                    href={markdownHelpUrl}
-                    target="_blank"
-                    rel="noopener"
-                    class="text-muted"
-                    title={i18n.t('formatting_help')}
-                  >
-                    <svg class="icon icon-inline">
-                      <use xlinkHref="#icon-help-circle"></use>
-                    </svg>
-                  </a>
-                </li>
+                <li class="list-inline-item"></li>
               </ul>
             </div>
           </div>
@@ -284,9 +236,9 @@ export class PrivateMessageForm extends Component<
     i.setState(i.state);
   }
 
-  handleContentChange(i: PrivateMessageForm, event: any) {
-    i.state.privateMessageForm.content = event.target.value;
-    i.setState(i.state);
+  handleContentChange(val: string) {
+    this.state.privateMessageForm.content = val;
+    this.setState(this.state);
   }
 
   handleCancel(i: PrivateMessageForm) {
