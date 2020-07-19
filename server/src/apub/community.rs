@@ -1,13 +1,22 @@
 use crate::{
   apub::{
-    activities::send_activity, create_apub_response, create_apub_tombstone_response,
-    create_tombstone, extensions::group_extensions::GroupExtension,
-    fetcher::get_or_fetch_and_upsert_remote_user, get_shared_inbox, insert_activity, ActorType,
-    FromApub, GroupExt, ToApub,
+    activities::send_activity,
+    create_apub_response,
+    create_apub_tombstone_response,
+    create_tombstone,
+    extensions::group_extensions::GroupExtension,
+    fetcher::get_or_fetch_and_upsert_remote_user,
+    get_shared_inbox,
+    insert_activity,
+    ActorType,
+    FromApub,
+    GroupExt,
+    ToApub,
   },
   blocking,
   routes::DbPoolParam,
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams_ext::Ext2;
 use activitystreams_new::{

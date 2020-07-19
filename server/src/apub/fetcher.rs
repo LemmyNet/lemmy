@@ -4,7 +4,8 @@ use crate::{
   blocking,
   request::{retry, RecvError},
   routes::nodeinfo::{NodeInfo, NodeInfoWellKnown},
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams_new::{base::BaseExt, object::Note, prelude::*};
 use actix_web::client::Client;
@@ -20,7 +21,9 @@ use lemmy_db::{
   post_view::PostView,
   user::{UserForm, User_},
   user_view::UserView,
-  Crud, Joinable, SearchType,
+  Crud,
+  Joinable,
+  SearchType,
 };
 use lemmy_utils::get_apub_protocol_string;
 use log::debug;
