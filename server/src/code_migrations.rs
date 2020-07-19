@@ -30,7 +30,7 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
 
   // Update the actor_id, private_key, and public_key, last_refreshed_at
   let incorrect_users = user_
-    .filter(actor_id.eq("http://fake.com"))
+    .filter(actor_id.like("changeme_%"))
     .filter(local.eq(true))
     .load::<User_>(conn)?;
 
@@ -81,7 +81,7 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
 
   // Update the actor_id, private_key, and public_key, last_refreshed_at
   let incorrect_communities = community
-    .filter(actor_id.eq("http://fake.com"))
+    .filter(actor_id.like("changeme_%"))
     .filter(local.eq(true))
     .load::<Community>(conn)?;
 
