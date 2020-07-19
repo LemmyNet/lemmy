@@ -2,7 +2,8 @@ use crate::{
   apub::{
     extensions::signatures::verify,
     fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user},
-    insert_activity, ActorType,
+    insert_activity,
+    ActorType,
   },
   blocking,
   routes::{ChatServerParam, DbPoolParam},
