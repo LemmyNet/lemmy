@@ -36,6 +36,8 @@ import {
   PasswordChangeForm,
   PrivateMessageForm,
   EditPrivateMessageForm,
+  DeletePrivateMessageForm,
+  MarkPrivateMessageAsReadForm,
   GetPrivateMessagesForm,
   GetCommentsForm,
   UserJoinForm,
@@ -313,6 +315,18 @@ export class WebSocketService {
   public editPrivateMessage(form: EditPrivateMessageForm) {
     this.setAuth(form);
     this.ws.send(this.wsSendWrapper(UserOperation.EditPrivateMessage, form));
+  }
+
+  public deletePrivateMessage(form: DeletePrivateMessageForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.DeletePrivateMessage, form));
+  }
+
+  public markPrivateMessageAsRead(form: MarkPrivateMessageAsReadForm) {
+    this.setAuth(form);
+    this.ws.send(
+      this.wsSendWrapper(UserOperation.MarkPrivateMessageAsRead, form)
+    );
   }
 
   public getPrivateMessages(form: GetPrivateMessagesForm) {

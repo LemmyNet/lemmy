@@ -90,7 +90,15 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .wrap(rate_limit.message())
           .route("/list", web::get().to(route_get::<GetPrivateMessages>))
           .route("", web::post().to(route_post::<CreatePrivateMessage>))
-          .route("", web::put().to(route_post::<EditPrivateMessage>)),
+          .route("", web::put().to(route_post::<EditPrivateMessage>))
+          .route(
+            "/delete",
+            web::post().to(route_post::<DeletePrivateMessage>),
+          )
+          .route(
+            "/mark_as_read",
+            web::post().to(route_post::<MarkPrivateMessageAsRead>),
+          ),
       )
       // User
       .service(

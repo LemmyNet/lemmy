@@ -2,7 +2,8 @@ import { Component, linkEvent } from 'inferno';
 import { Link } from 'inferno-router';
 import {
   PrivateMessage as PrivateMessageI,
-  EditPrivateMessageForm,
+  DeletePrivateMessageForm,
+  MarkPrivateMessageAsReadForm,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { mdToHtml, pictrsAvatarThumbnail, showAvatars, toast } from '../utils';
@@ -243,11 +244,11 @@ export class PrivateMessage extends Component<
   }
 
   handleDeleteClick(i: PrivateMessage) {
-    let form: EditPrivateMessageForm = {
+    let form: DeletePrivateMessageForm = {
       edit_id: i.props.privateMessage.id,
       deleted: !i.props.privateMessage.deleted,
     };
-    WebSocketService.Instance.editPrivateMessage(form);
+    WebSocketService.Instance.deletePrivateMessage(form);
   }
 
   handleReplyCancel() {
@@ -257,11 +258,11 @@ export class PrivateMessage extends Component<
   }
 
   handleMarkRead(i: PrivateMessage) {
-    let form: EditPrivateMessageForm = {
+    let form: MarkPrivateMessageAsReadForm = {
       edit_id: i.props.privateMessage.id,
       read: !i.props.privateMessage.read,
     };
-    WebSocketService.Instance.editPrivateMessage(form);
+    WebSocketService.Instance.markPrivateMessageAsRead(form);
   }
 
   handleMessageCollapse(i: PrivateMessage) {

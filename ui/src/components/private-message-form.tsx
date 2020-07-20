@@ -263,7 +263,11 @@ export class PrivateMessageForm extends Component<
       this.state.loading = false;
       this.setState(this.state);
       return;
-    } else if (res.op == UserOperation.EditPrivateMessage) {
+    } else if (
+      res.op == UserOperation.EditPrivateMessage ||
+      res.op == UserOperation.DeletePrivateMessage ||
+      res.op == UserOperation.MarkPrivateMessageAsRead
+    ) {
       let data = res.data as PrivateMessageResponse;
       this.state.loading = false;
       this.props.onEdit(data.message);

@@ -40,6 +40,8 @@ export enum UserOperation {
   PasswordChange,
   CreatePrivateMessage,
   EditPrivateMessage,
+  DeletePrivateMessage,
+  MarkPrivateMessageAsRead,
   GetPrivateMessages,
   UserJoin,
   GetComments,
@@ -834,9 +836,19 @@ export interface PrivateMessageFormParams {
 
 export interface EditPrivateMessageForm {
   edit_id: number;
-  content?: string;
-  deleted?: boolean;
-  read?: boolean;
+  content: string;
+  auth?: string;
+}
+
+export interface DeletePrivateMessageForm {
+  edit_id: number;
+  deleted: boolean;
+  auth?: string;
+}
+
+export interface MarkPrivateMessageAsReadForm {
+  edit_id: number;
+  read: boolean;
   auth?: string;
 }
 
@@ -864,7 +876,6 @@ export interface UserJoinResponse {
 }
 
 export type MessageType =
-  | EditPrivateMessageForm
   | LoginForm
   | RegisterForm
   | CommunityForm
@@ -900,6 +911,8 @@ export type MessageType =
   | PasswordChangeForm
   | PrivateMessageForm
   | EditPrivateMessageForm
+  | DeletePrivateMessageForm
+  | MarkPrivateMessageAsReadForm
   | GetPrivateMessagesForm
   | SiteConfigForm;
 

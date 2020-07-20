@@ -9,17 +9,16 @@ import {
   FollowCommunityForm,
   CommunityResponse,
   GetFollowedCommunitiesResponse,
-  GetPostForm,
   GetPostResponse,
   CommentForm,
   CommentResponse,
   CommunityForm,
-  GetCommunityForm,
   GetCommunityResponse,
   CommentLikeForm,
   CreatePostLikeForm,
   PrivateMessageForm,
   EditPrivateMessageForm,
+  DeletePrivateMessageForm,
   PrivateMessageResponse,
   PrivateMessagesResponse,
   GetUserMentionsResponse,
@@ -1149,16 +1148,16 @@ describe('main', () => {
       );
 
       // lemmy alpha deletes the private message
-      let deletePrivateMessageForm: EditPrivateMessageForm = {
+      let deletePrivateMessageForm: DeletePrivateMessageForm = {
         deleted: true,
         edit_id: createRes.message.id,
         auth: lemmyAlphaAuth,
       };
 
       let deleteRes: PrivateMessageResponse = await fetch(
-        `${lemmyAlphaApiUrl}/private_message`,
+        `${lemmyAlphaApiUrl}/private_message/delete`,
         {
-          method: 'PUT',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -1182,16 +1181,16 @@ describe('main', () => {
       expect(getPrivateMessagesDeletedRes.messages.length).toBe(0);
 
       // lemmy alpha undeletes the private message
-      let undeletePrivateMessageForm: EditPrivateMessageForm = {
+      let undeletePrivateMessageForm: DeletePrivateMessageForm = {
         deleted: false,
         edit_id: createRes.message.id,
         auth: lemmyAlphaAuth,
       };
 
       let undeleteRes: PrivateMessageResponse = await fetch(
-        `${lemmyAlphaApiUrl}/private_message`,
+        `${lemmyAlphaApiUrl}/private_message/delete`,
         {
-          method: 'PUT',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },

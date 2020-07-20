@@ -59,6 +59,8 @@ pub enum UserOperation {
   PasswordChange,
   CreatePrivateMessage,
   EditPrivateMessage,
+  DeletePrivateMessage,
+  MarkPrivateMessageAsRead,
   GetPrivateMessages,
   UserJoin,
   GetComments,
