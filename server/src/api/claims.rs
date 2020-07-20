@@ -1,7 +1,7 @@
 use diesel::{result::Error, PgConnection};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, TokenData, Validation};
 use lemmy_db::{user::User_, Crud};
-use lemmy_utils::{is_email_regex, settings::Settings};
+use lemmy_utils::settings::Settings;
 use serde::{Deserialize, Serialize};
 
 type Jwt = String;
@@ -52,18 +52,6 @@ impl Claims {
       &EncodingKey::from_secret(Settings::get().jwt_secret.as_ref()),
     )
     .unwrap()
-  }
-
-  // TODO: move these into user?
-  pub fn find_by_email_or_username(
-    conn: &PgConnection,
-    username_or_email: &str,
-  ) -> Result<User_, Error> {
-    if is_email_regex(username_or_email) {
-      User_::find_by_email(conn, username_or_email)
-    } else {
-      User_::find_by_username(conn, username_or_email)
-    }
   }
 
   pub fn find_by_jwt(conn: &PgConnection, jwt: &str) -> Result<User_, Error> {

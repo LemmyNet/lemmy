@@ -110,7 +110,6 @@ pub struct GetUserDetailsResponse {
   moderates: Vec<CommunityModeratorView>,
   comments: Vec<CommentView>,
   posts: Vec<PostView>,
-  admins: Vec<UserView>, // TODO why is this necessary, just use GetSite
 }
 
 #[derive(Serialize, Deserialize)]
@@ -276,7 +275,7 @@ impl Perform for Oper<Login> {
     // Fetch that username / email
     let username_or_email = data.username_or_email.clone();
     let user = match blocking(pool, move |conn| {
-      Claims::find_by_email_or_username(conn, &username_or_email)
+      User_::find_by_email_or_username(conn, &username_or_email)
     })
     .await?
     {
@@ -643,14 +642,6 @@ impl Perform for Oper<GetUserDetails> {
     })
     .await??;
 
-    let site_creator_id =
-      blocking(pool, move |conn| Site::read(conn, 1).map(|s| s.creator_id)).await??;
-
-    let mut admins = blocking(pool, move |conn| UserView::admins(conn)).await??;
-    let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
-    let creator_user = admins.remove(creator_index);
-    admins.insert(0, creator_user);
-
     // If its not the same user, remove the email, and settings
     // TODO an if let chain would be better here, but can't figure it out
     // TODO separate out settings into its own thing
@@ -665,7 +656,6 @@ impl Perform for Oper<GetUserDetails> {
       moderates,
       comments,
       posts,
-      admins,
     })
   }
 }
