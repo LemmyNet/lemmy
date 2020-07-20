@@ -36,7 +36,7 @@ Horizontal Rule <br>\--- | Horizontal Rule<br>\*\*\* | Horizontal Rule  <br><hr>
 \`\`\`<br>\# code block <br>print '3 backticks or'<br>print 'indent 4 spaces' <br>\`\`\` | ····\# code block<br>····print '3 backticks or'<br>····print 'indent 4 spaces' | \# code block <br>print '3 backticks or'<br>print 'indent 4 spaces'
 ::: spoiler hidden or nsfw stuff<br>*a bunch of spoilers here*<br>::: | | <details><summary> hidden or nsfw stuff </summary><p><em>a bunch of spoilers here</em></p></details>
 Some ~subscript~ text | | Some <sub>subscript</sub> text
-Some ^superscript^ text | | ome <sup>superscript</sup> text
+Some ^superscript^ text | | Some <sup>superscript</sup> text
 
 [CommonMark Tutorial](https://commonmark.org/help/tutorial/)
 
