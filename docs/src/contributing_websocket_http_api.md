@@ -489,6 +489,137 @@ Only the first user will be able to be the admin.
 
 `PUT /user/mention`
 
+#### Get Private Messages
+##### Request
+```rust
+{
+  op: "GetPrivateMessages",
+  data: {
+    unread_only: bool,
+    page: Option<i64>,
+    limit: Option<i64>,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "GetPrivateMessages",
+  data: {
+    messages: Vec<PrivateMessageView>,
+  }
+}
+```
+
+##### HTTP
+
+`GET /private_message/list`
+
+#### Create Private Message
+##### Request
+```rust
+{
+  op: "CreatePrivateMessage",
+  data: {
+    content: String,
+    recipient_id: i32,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "CreatePrivateMessage",
+  data: {
+    message: PrivateMessageView,
+  }
+}
+```
+
+##### HTTP
+
+`POST /private_message`
+
+#### Edit Private Message
+##### Request
+```rust
+{
+  op: "EditPrivateMessage",
+  data: {
+    edit_id: i32,
+    content: String,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "EditPrivateMessage",
+  data: {
+    message: PrivateMessageView,
+  }
+}
+```
+
+##### HTTP
+
+`PUT /private_message`
+
+#### Delete Private Message
+##### Request
+```rust
+{
+  op: "DeletePrivateMessage",
+  data: {
+    edit_id: i32,
+    deleted: bool,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "DeletePrivateMessage",
+  data: {
+    message: PrivateMessageView,
+  }
+}
+```
+
+##### HTTP
+
+`POST /private_message/delete`
+
+#### Mark Private Message as Read
+##### Request
+```rust
+{
+  op: "MarkPrivateMessageAsRead",
+  data: {
+    edit_id: i32,
+    read: bool,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "MarkPrivateMessageAsRead",
+  data: {
+    message: PrivateMessageView,
+  }
+}
+```
+
+##### HTTP
+
+`POST /private_message/mark_as_read`
+
 #### Mark All As Read
 
 Marks all user replies and mentions as read.

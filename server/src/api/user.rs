@@ -110,7 +110,7 @@ pub struct GetUserDetailsResponse {
   moderates: Vec<CommunityModeratorView>,
   comments: Vec<CommentView>,
   posts: Vec<PostView>,
-  admins: Vec<UserView>,
+  admins: Vec<UserView>, // TODO why is this necessary, just use GetSite
 }
 
 #[derive(Serialize, Deserialize)]
@@ -216,9 +216,21 @@ pub struct CreatePrivateMessage {
 #[derive(Serialize, Deserialize)]
 pub struct EditPrivateMessage {
   edit_id: i32,
-  content: Option<String>,
-  deleted: Option<bool>,
-  read: Option<bool>,
+  content: String,
+  auth: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct DeletePrivateMessage {
+  edit_id: i32,
+  deleted: bool,
+  auth: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct MarkPrivateMessageAsRead {
+  edit_id: i32,
+  read: bool,
   auth: String,
 }
 
@@ -974,36 +986,10 @@ impl Perform for Oper<MarkAllAsRead> {
       }
     }
 
-    // messages
-    let messages = blocking(pool, move |conn| {
-      PrivateMessageQueryBuilder::create(conn, user_id)
-        .page(1)
-        .limit(999)
-        .unread_only(true)
-        .list()
-    })
-    .await??;
-
-    // TODO: this should probably be a bulk operation
-    for message in &messages {
-      let private_message_form = PrivateMessageForm {
-        content: message.to_owned().content,
-        creator_id: message.to_owned().creator_id,
-        recipient_id: message.to_owned().recipient_id,
-        deleted: None,
-        read: Some(true),
-        updated: None,
-        ap_id: message.to_owned().ap_id,
-        local: message.local,
-        published: None,
-      };
-
-      let message_id = message.id;
-      let update_pm =
-        move |conn: &'_ _| PrivateMessage::update(conn, message_id, &private_message_form);
-      if blocking(pool, update_pm).await?.is_err() {
-        return Err(APIError::err("couldnt_update_private_message").into());
-      }
+    // Mark all private_messages as read
+    let update_pm = move |conn: &'_ _| PrivateMessage::mark_all_as_read(conn, user_id);
+    if blocking(pool, update_pm).await?.is_err() {
+      return Err(APIError::err("couldnt_update_private_message").into());
     }
 
     Ok(GetRepliesResponse { replies: vec![] })
@@ -1293,59 +1279,25 @@ impl Perform for Oper<EditPrivateMessage> {
 
     let user_id = claims.id;
 
-    let edit_id = data.edit_id;
-    let orig_private_message =
-      blocking(pool, move |conn| PrivateMessage::read(conn, edit_id)).await??;
-
     // Check for a site ban
     let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
     if user.banned {
       return Err(APIError::err("site_ban").into());
     }
 
-    // Check to make sure they are the creator (or the recipient marking as read
-    if !(data.read.is_some() && orig_private_message.recipient_id.eq(&user_id)
-      || orig_private_message.creator_id.eq(&user_id))
-    {
+    // Checking permissions
+    let edit_id = data.edit_id;
+    let orig_private_message =
+      blocking(pool, move |conn| PrivateMessage::read(conn, edit_id)).await??;
+    if user_id != orig_private_message.creator_id {
       return Err(APIError::err("no_private_message_edit_allowed").into());
     }
 
-    let content_slurs_removed = match &data.content {
-      Some(content) => remove_slurs(content),
-      None => orig_private_message.content.clone(),
-    };
-
-    let private_message_form = {
-      if data.read.is_some() {
-        PrivateMessageForm {
-          content: orig_private_message.content.to_owned(),
-          creator_id: orig_private_message.creator_id,
-          recipient_id: orig_private_message.recipient_id,
-          read: data.read.to_owned(),
-          updated: orig_private_message.updated,
-          deleted: Some(orig_private_message.deleted),
-          ap_id: orig_private_message.ap_id,
-          local: orig_private_message.local,
-          published: None,
-        }
-      } else {
-        PrivateMessageForm {
-          content: content_slurs_removed,
-          creator_id: orig_private_message.creator_id,
-          recipient_id: orig_private_message.recipient_id,
-          deleted: data.deleted.to_owned(),
-          read: Some(orig_private_message.read),
-          updated: Some(naive_now()),
-          ap_id: orig_private_message.ap_id,
-          local: orig_private_message.local,
-          published: None,
-        }
-      }
-    };
-
+    // Doing the update
+    let content_slurs_removed = remove_slurs(&data.content);
     let edit_id = data.edit_id;
     let updated_private_message = match blocking(pool, move |conn| {
-      PrivateMessage::update(conn, edit_id, &private_message_form)
+      PrivateMessage::update_content(conn, edit_id, &content_slurs_removed)
     })
     .await?
     {
@@ -1353,30 +1305,14 @@ impl Perform for Oper<EditPrivateMessage> {
       Err(_e) => return Err(APIError::err("couldnt_update_private_message").into()),
     };
 
-    if data.read.is_none() {
-      if let Some(deleted) = data.deleted.to_owned() {
-        if deleted {
-          updated_private_message
-            .send_delete(&user, &self.client, pool)
-            .await?;
-        } else {
-          updated_private_message
-            .send_undo_delete(&user, &self.client, pool)
-            .await?;
-        }
-      } else {
-        updated_private_message
-          .send_update(&user, &self.client, pool)
-          .await?;
-      }
-    } else {
-      updated_private_message
-        .send_update(&user, &self.client, pool)
-        .await?;
-    }
+    // Send the apub update
+    updated_private_message
+      .send_update(&user, &self.client, pool)
+      .await?;
 
     let edit_id = data.edit_id;
     let message = blocking(pool, move |conn| PrivateMessageView::read(conn, edit_id)).await??;
+    let recipient_id = message.recipient_id;
 
     let res = PrivateMessageResponse { message };
 
@@ -1384,7 +1320,146 @@ impl Perform for Oper<EditPrivateMessage> {
       ws.chatserver.do_send(SendUserRoomMessage {
         op: UserOperation::EditPrivateMessage,
         response: res.clone(),
-        recipient_id: orig_private_message.recipient_id,
+        recipient_id,
+        my_id: ws.id,
+      });
+    }
+
+    Ok(res)
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for Oper<DeletePrivateMessage> {
+  type Response = PrivateMessageResponse;
+
+  async fn perform(
+    &self,
+    pool: &DbPool,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<PrivateMessageResponse, LemmyError> {
+    let data: &DeletePrivateMessage = &self.data;
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
+    };
+
+    let user_id = claims.id;
+
+    // Check for a site ban
+    let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
+    if user.banned {
+      return Err(APIError::err("site_ban").into());
+    }
+
+    // Checking permissions
+    let edit_id = data.edit_id;
+    let orig_private_message =
+      blocking(pool, move |conn| PrivateMessage::read(conn, edit_id)).await??;
+    if user_id != orig_private_message.creator_id {
+      return Err(APIError::err("no_private_message_edit_allowed").into());
+    }
+
+    // Doing the update
+    let edit_id = data.edit_id;
+    let deleted = data.deleted;
+    let updated_private_message = match blocking(pool, move |conn| {
+      PrivateMessage::update_deleted(conn, edit_id, deleted)
+    })
+    .await?
+    {
+      Ok(private_message) => private_message,
+      Err(_e) => return Err(APIError::err("couldnt_update_private_message").into()),
+    };
+
+    // Send the apub update
+    if data.deleted {
+      updated_private_message
+        .send_delete(&user, &self.client, pool)
+        .await?;
+    } else {
+      updated_private_message
+        .send_undo_delete(&user, &self.client, pool)
+        .await?;
+    }
+
+    let edit_id = data.edit_id;
+    let message = blocking(pool, move |conn| PrivateMessageView::read(conn, edit_id)).await??;
+    let recipient_id = message.recipient_id;
+
+    let res = PrivateMessageResponse { message };
+
+    if let Some(ws) = websocket_info {
+      ws.chatserver.do_send(SendUserRoomMessage {
+        op: UserOperation::DeletePrivateMessage,
+        response: res.clone(),
+        recipient_id,
+        my_id: ws.id,
+      });
+    }
+
+    Ok(res)
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for Oper<MarkPrivateMessageAsRead> {
+  type Response = PrivateMessageResponse;
+
+  async fn perform(
+    &self,
+    pool: &DbPool,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<PrivateMessageResponse, LemmyError> {
+    let data: &MarkPrivateMessageAsRead = &self.data;
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
+    };
+
+    let user_id = claims.id;
+
+    // Check for a site ban
+    let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
+    if user.banned {
+      return Err(APIError::err("site_ban").into());
+    }
+
+    // Checking permissions
+    let edit_id = data.edit_id;
+    let orig_private_message =
+      blocking(pool, move |conn| PrivateMessage::read(conn, edit_id)).await??;
+    if user_id != orig_private_message.recipient_id {
+      return Err(APIError::err("couldnt_update_private_message").into());
+    }
+
+    // Doing the update
+    let edit_id = data.edit_id;
+    let read = data.read;
+    match blocking(pool, move |conn| {
+      PrivateMessage::update_read(conn, edit_id, read)
+    })
+    .await?
+    {
+      Ok(private_message) => private_message,
+      Err(_e) => return Err(APIError::err("couldnt_update_private_message").into()),
+    };
+
+    // No need to send an apub update
+
+    let edit_id = data.edit_id;
+    let message = blocking(pool, move |conn| PrivateMessageView::read(conn, edit_id)).await??;
+    let recipient_id = message.recipient_id;
+
+    let res = PrivateMessageResponse { message };
+
+    if let Some(ws) = websocket_info {
+      ws.chatserver.do_send(SendUserRoomMessage {
+        op: UserOperation::MarkPrivateMessageAsRead,
+        response: res.clone(),
+        recipient_id,
         my_id: ws.id,
       });
     }

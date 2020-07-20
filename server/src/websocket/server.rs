@@ -448,13 +448,21 @@ impl ChatServer {
         UserOperation::DeleteAccount => do_user_operation::<DeleteAccount>(args).await,
         UserOperation::PasswordReset => do_user_operation::<PasswordReset>(args).await,
         UserOperation::PasswordChange => do_user_operation::<PasswordChange>(args).await,
+        UserOperation::UserJoin => do_user_operation::<UserJoin>(args).await,
+        UserOperation::SaveUserSettings => do_user_operation::<SaveUserSettings>(args).await,
+
+        // Private Message ops
         UserOperation::CreatePrivateMessage => {
           do_user_operation::<CreatePrivateMessage>(args).await
         }
         UserOperation::EditPrivateMessage => do_user_operation::<EditPrivateMessage>(args).await,
+        UserOperation::DeletePrivateMessage => {
+          do_user_operation::<DeletePrivateMessage>(args).await
+        }
+        UserOperation::MarkPrivateMessageAsRead => {
+          do_user_operation::<MarkPrivateMessageAsRead>(args).await
+        }
         UserOperation::GetPrivateMessages => do_user_operation::<GetPrivateMessages>(args).await,
-        UserOperation::UserJoin => do_user_operation::<UserJoin>(args).await,
-        UserOperation::SaveUserSettings => do_user_operation::<SaveUserSettings>(args).await,
 
         // Site ops
         UserOperation::GetModlog => do_user_operation::<GetModlog>(args).await,
