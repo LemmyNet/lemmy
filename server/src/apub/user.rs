@@ -1,12 +1,18 @@
 use crate::{
   api::claims::Claims,
   apub::{
-    activities::send_activity, create_apub_response, insert_activity, ActorType, FromApub,
-    PersonExt, ToApub,
+    activities::send_activity,
+    create_apub_response,
+    insert_activity,
+    ActorType,
+    FromApub,
+    PersonExt,
+    ToApub,
   },
   blocking,
   routes::DbPoolParam,
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams_ext::Ext1;
 use activitystreams_new::{

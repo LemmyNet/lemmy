@@ -1,16 +1,25 @@
 use crate::{
   apub::{
     activities::send_activity_to_community,
-    create_apub_response, create_apub_tombstone_response, create_tombstone, fetch_webfinger_url,
+    create_apub_response,
+    create_apub_tombstone_response,
+    create_tombstone,
+    fetch_webfinger_url,
     fetcher::{
-      get_or_fetch_and_insert_remote_comment, get_or_fetch_and_insert_remote_post,
+      get_or_fetch_and_insert_remote_comment,
+      get_or_fetch_and_insert_remote_post,
       get_or_fetch_and_upsert_remote_user,
     },
-    ActorType, ApubLikeableType, ApubObjectType, FromApub, ToApub,
+    ActorType,
+    ApubLikeableType,
+    ApubObjectType,
+    FromApub,
+    ToApub,
   },
   blocking,
   routes::DbPoolParam,
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams_new::{
   activity::{Create, Delete, Dislike, Like, Remove, Undo, Update},
