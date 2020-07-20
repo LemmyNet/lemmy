@@ -212,6 +212,9 @@ impl ChatServer {
 
     // Also leave all communities
     // This avoids double messages
+    // TODO found a bug, whereby community messages like
+    // delete and remove aren't sent, because
+    // you left the community room
     for sessions in self.community_rooms.values_mut() {
       sessions.remove(&id);
     }
@@ -483,6 +486,8 @@ impl ChatServer {
         UserOperation::ListCommunities => do_user_operation::<ListCommunities>(args).await,
         UserOperation::CreateCommunity => do_user_operation::<CreateCommunity>(args).await,
         UserOperation::EditCommunity => do_user_operation::<EditCommunity>(args).await,
+        UserOperation::DeleteCommunity => do_user_operation::<DeleteCommunity>(args).await,
+        UserOperation::RemoveCommunity => do_user_operation::<RemoveCommunity>(args).await,
         UserOperation::FollowCommunity => do_user_operation::<FollowCommunity>(args).await,
         UserOperation::GetFollowedCommunities => {
           do_user_operation::<GetFollowedCommunities>(args).await

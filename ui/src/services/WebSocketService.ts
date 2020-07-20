@@ -4,6 +4,8 @@ import {
   RegisterForm,
   UserOperation,
   CommunityForm,
+  DeleteCommunityForm,
+  RemoveCommunityForm,
   PostForm,
   SavePostForm,
   CommentForm,
@@ -105,18 +107,24 @@ export class WebSocketService {
     this.ws.send(this.wsSendWrapper(UserOperation.Register, registerForm));
   }
 
-  public createCommunity(communityForm: CommunityForm) {
-    this.setAuth(communityForm);
-    this.ws.send(
-      this.wsSendWrapper(UserOperation.CreateCommunity, communityForm)
-    );
+  public createCommunity(form: CommunityForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.CreateCommunity, form));
   }
 
-  public editCommunity(communityForm: CommunityForm) {
-    this.setAuth(communityForm);
-    this.ws.send(
-      this.wsSendWrapper(UserOperation.EditCommunity, communityForm)
-    );
+  public editCommunity(form: CommunityForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.EditCommunity, form));
+  }
+
+  public deleteCommunity(form: DeleteCommunityForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.DeleteCommunity, form));
+  }
+
+  public removeCommunity(form: RemoveCommunityForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.RemoveCommunity, form));
   }
 
   public followCommunity(followCommunityForm: FollowCommunityForm) {

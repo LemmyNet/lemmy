@@ -10,6 +10,7 @@ use crate::{
   },
   DbPool,
 };
+use diesel::PgConnection;
 use lemmy_db::{naive_now, Bannable, Crud, Followable, Joinable, SortType};
 use lemmy_utils::{
   generate_actor_keypair,
@@ -34,7 +35,7 @@ pub struct GetCommunity {
 pub struct GetCommunityResponse {
   pub community: CommunityView,
   pub moderators: Vec<CommunityModeratorView>,
-  pub admins: Vec<UserView>,
+  pub admins: Vec<UserView>, // TODO this should be from GetSite, shouldn't need this
   pub online: usize,
 }
 
@@ -101,9 +102,21 @@ pub struct EditCommunity {
   title: String,
   description: Option<String>,
   category_id: i32,
-  removed: Option<bool>,
-  deleted: Option<bool>,
   nsfw: bool,
+  auth: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct DeleteCommunity {
+  pub edit_id: i32,
+  deleted: bool,
+  auth: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct RemoveCommunity {
+  pub edit_id: i32,
+  removed: bool,
   reason: Option<String>,
   expires: Option<i64>,
   auth: String,
@@ -366,24 +379,15 @@ impl Perform for Oper<EditCommunity> {
       return Err(APIError::err("site_ban").into());
     }
 
-    // Verify its a mod
+    // Verify its a mod (only mods can edit it)
     let edit_id = data.edit_id;
-    let mut editors: Vec<i32> = Vec::new();
-    editors.append(
-      &mut blocking(pool, move |conn| {
-        CommunityModeratorView::for_community(conn, edit_id)
-          .map(|v| v.into_iter().map(|m| m.user_id).collect())
-      })
-      .await??,
-    );
-    editors.append(
-      &mut blocking(pool, move |conn| {
-        UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())
-      })
-      .await??,
-    );
-    if !editors.contains(&user_id) {
-      return Err(APIError::err("no_community_edit_allowed").into());
+    let mods: Vec<i32> = blocking(pool, move |conn| {
+      CommunityModeratorView::for_community(conn, edit_id)
+        .map(|v| v.into_iter().map(|m| m.user_id).collect())
+    })
+    .await??;
+    if !mods.contains(&user_id) {
+      return Err(APIError::err("not_a_moderator").into());
     }
 
     let edit_id = data.edit_id;
@@ -395,8 +399,8 @@ impl Perform for Oper<EditCommunity> {
       description: data.description.to_owned(),
       category_id: data.category_id.to_owned(),
       creator_id: read_community.creator_id,
-      removed: data.removed.to_owned(),
-      deleted: data.deleted.to_owned(),
+      removed: Some(read_community.removed),
+      deleted: Some(read_community.deleted),
       nsfw: data.nsfw,
       updated: Some(naive_now()),
       actor_id: read_community.actor_id,
@@ -408,7 +412,7 @@ impl Perform for Oper<EditCommunity> {
     };
 
     let edit_id = data.edit_id;
-    let updated_community = match blocking(pool, move |conn| {
+    match blocking(pool, move |conn| {
       Community::update(conn, edit_id, &community_form)
     })
     .await?
@@ -417,43 +421,8 @@ impl Perform for Oper<EditCommunity> {
       Err(_e) => return Err(APIError::err("couldnt_update_community").into()),
     };
 
-    // Mod tables
-    if let Some(removed) = data.removed.to_owned() {
-      let expires = match data.expires {
-        Some(time) => Some(naive_from_unix(time)),
-        None => None,
-      };
-      let form = ModRemoveCommunityForm {
-        mod_user_id: user_id,
-        community_id: data.edit_id,
-        removed: Some(removed),
-        reason: data.reason.to_owned(),
-        expires,
-      };
-      blocking(pool, move |conn| ModRemoveCommunity::create(conn, &form)).await??;
-    }
-
-    if let Some(deleted) = data.deleted.to_owned() {
-      if deleted {
-        updated_community
-          .send_delete(&user, &self.client, pool)
-          .await?;
-      } else {
-        updated_community
-          .send_undo_delete(&user, &self.client, pool)
-          .await?;
-      }
-    } else if let Some(removed) = data.removed.to_owned() {
-      if removed {
-        updated_community
-          .send_remove(&user, &self.client, pool)
-          .await?;
-      } else {
-        updated_community
-          .send_undo_remove(&user, &self.client, pool)
-          .await?;
-      }
-    }
+    // TODO there needs to be some kind of an apub update
+    // process for communities and users
 
     let edit_id = data.edit_id;
     let community_view = blocking(pool, move |conn| {
@@ -473,6 +442,186 @@ impl Perform for Oper<EditCommunity> {
 
       ws.chatserver.do_send(SendCommunityRoomMessage {
         op: UserOperation::EditCommunity,
+        response: res_sent,
+        community_id: data.edit_id,
+        my_id: ws.id,
+      });
+    }
+
+    Ok(res)
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for Oper<DeleteCommunity> {
+  type Response = CommunityResponse;
+
+  async fn perform(
+    &self,
+    pool: &DbPool,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<CommunityResponse, LemmyError> {
+    let data: &DeleteCommunity = &self.data;
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
+    };
+
+    let user_id = claims.id;
+
+    // Check for a site ban
+    let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
+    if user.banned {
+      return Err(APIError::err("site_ban").into());
+    }
+
+    // Verify its the creator (only a creator can delete the community)
+    let edit_id = data.edit_id;
+    let read_community = blocking(pool, move |conn| Community::read(conn, edit_id)).await??;
+    if read_community.creator_id != user_id {
+      return Err(APIError::err("no_community_edit_allowed").into());
+    }
+
+    // Do the delete
+    let edit_id = data.edit_id;
+    let deleted = data.deleted;
+    let updated_community = match blocking(pool, move |conn| {
+      Community::update_deleted(conn, edit_id, deleted)
+    })
+    .await?
+    {
+      Ok(community) => community,
+      Err(_e) => return Err(APIError::err("couldnt_update_community").into()),
+    };
+
+    // Send apub messages
+    if deleted {
+      updated_community
+        .send_delete(&user, &self.client, pool)
+        .await?;
+    } else {
+      updated_community
+        .send_undo_delete(&user, &self.client, pool)
+        .await?;
+    }
+
+    let edit_id = data.edit_id;
+    let community_view = blocking(pool, move |conn| {
+      CommunityView::read(conn, edit_id, Some(user_id))
+    })
+    .await??;
+
+    let res = CommunityResponse {
+      community: community_view,
+    };
+
+    if let Some(ws) = websocket_info {
+      // Strip out the user id and subscribed when sending to others
+      let mut res_sent = res.clone();
+      res_sent.community.user_id = None;
+      res_sent.community.subscribed = None;
+
+      ws.chatserver.do_send(SendCommunityRoomMessage {
+        op: UserOperation::DeleteCommunity,
+        response: res_sent,
+        community_id: data.edit_id,
+        my_id: ws.id,
+      });
+    }
+
+    Ok(res)
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for Oper<RemoveCommunity> {
+  type Response = CommunityResponse;
+
+  async fn perform(
+    &self,
+    pool: &DbPool,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<CommunityResponse, LemmyError> {
+    let data: &RemoveCommunity = &self.data;
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
+    };
+
+    let user_id = claims.id;
+
+    // Check for a site ban
+    let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
+    if user.banned {
+      return Err(APIError::err("site_ban").into());
+    }
+
+    // Verify its an admin (only an admin can remove a community)
+    let admins: Vec<i32> = blocking(pool, move |conn| {
+      UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())
+    })
+    .await??;
+    if !admins.contains(&user_id) {
+      return Err(APIError::err("not_an_admin").into());
+    }
+
+    // Do the remove
+    let edit_id = data.edit_id;
+    let removed = data.removed;
+    let updated_community = match blocking(pool, move |conn| {
+      Community::update_removed(conn, edit_id, removed)
+    })
+    .await?
+    {
+      Ok(community) => community,
+      Err(_e) => return Err(APIError::err("couldnt_update_community").into()),
+    };
+
+    // Mod tables
+    let expires = match data.expires {
+      Some(time) => Some(naive_from_unix(time)),
+      None => None,
+    };
+    let form = ModRemoveCommunityForm {
+      mod_user_id: user_id,
+      community_id: data.edit_id,
+      removed: Some(removed),
+      reason: data.reason.to_owned(),
+      expires,
+    };
+    blocking(pool, move |conn| ModRemoveCommunity::create(conn, &form)).await??;
+
+    // Apub messages
+    if removed {
+      updated_community
+        .send_remove(&user, &self.client, pool)
+        .await?;
+    } else {
+      updated_community
+        .send_undo_remove(&user, &self.client, pool)
+        .await?;
+    }
+
+    let edit_id = data.edit_id;
+    let community_view = blocking(pool, move |conn| {
+      CommunityView::read(conn, edit_id, Some(user_id))
+    })
+    .await??;
+
+    let res = CommunityResponse {
+      community: community_view,
+    };
+
+    if let Some(ws) = websocket_info {
+      // Strip out the user id and subscribed when sending to others
+      let mut res_sent = res.clone();
+      res_sent.community.user_id = None;
+      res_sent.community.subscribed = None;
+
+      ws.chatserver.do_send(SendCommunityRoomMessage {
+        op: UserOperation::RemoveCommunity,
         response: res_sent,
         community_id: data.edit_id,
         my_id: ws.id,
@@ -852,26 +1001,9 @@ impl Perform for Oper<TransferCommunity> {
       return Err(APIError::err("not_an_admin").into());
     }
 
-    let community_form = CommunityForm {
-      name: read_community.name,
-      title: read_community.title,
-      description: read_community.description,
-      category_id: read_community.category_id,
-      creator_id: data.user_id, // This makes the new user the community creator
-      removed: None,
-      deleted: None,
-      nsfw: read_community.nsfw,
-      updated: Some(naive_now()),
-      actor_id: read_community.actor_id,
-      local: read_community.local,
-      private_key: read_community.private_key,
-      public_key: read_community.public_key,
-      last_refreshed_at: None,
-      published: None,
-    };
-
     let community_id = data.community_id;
-    let update = move |conn: &'_ _| Community::update(conn, community_id, &community_form);
+    let new_creator = data.user_id;
+    let update = move |conn: &'_ _| Community::update_creator(conn, community_id, new_creator);
     if blocking(pool, update).await?.is_err() {
       return Err(APIError::err("couldnt_update_community").into());
     };
@@ -945,4 +1077,17 @@ impl Perform for Oper<TransferCommunity> {
       online: 0,
     })
   }
+}
+
+pub fn community_mods_and_admins(
+  conn: &PgConnection,
+  community_id: i32,
+) -> Result<Vec<i32>, LemmyError> {
+  let mut editors: Vec<i32> = Vec::new();
+  editors.append(
+    &mut CommunityModeratorView::for_community(conn, community_id)
+      .map(|v| v.into_iter().map(|m| m.user_id).collect())?,
+  );
+  editors.append(&mut UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())?);
+  Ok(editors)
 }
