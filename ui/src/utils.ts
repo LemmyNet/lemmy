@@ -49,6 +49,8 @@ import { UserService, WebSocketService } from './services';
 
 import Tribute from 'tributejs/src/Tribute.js';
 import markdown_it from 'markdown-it';
+import markdown_it_sub from 'markdown-it-sub';
+import markdown_it_sup from 'markdown-it-sup';
 import markdownitEmoji from 'markdown-it-emoji/light';
 import markdown_it_container from 'markdown-it-container';
 import emojiShortName from 'emoji-short-name';
@@ -148,6 +150,8 @@ export const md = new markdown_it({
   linkify: true,
   typographer: true,
 })
+  .use(markdown_it_sub)
+  .use(markdown_it_sup)
   .use(markdown_it_container, 'spoiler', {
     validate: function (params: any) {
       return params.trim().match(/^spoiler\s+(.*)$/);
