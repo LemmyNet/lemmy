@@ -115,7 +115,10 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .wrap(rate_limit.message())
           .route("", web::get().to(route_get::<GetUserDetails>))
           .route("/mention", web::get().to(route_get::<GetUserMentions>))
-          .route("/mention", web::put().to(route_post::<EditUserMention>))
+          .route(
+            "/mention/mark_as_read",
+            web::post().to(route_post::<MarkUserMentionAsRead>),
+          )
           .route("/replies", web::get().to(route_get::<GetReplies>))
           .route(
             "/followed_communities",

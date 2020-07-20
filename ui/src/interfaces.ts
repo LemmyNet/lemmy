@@ -21,7 +21,7 @@ export enum UserOperation {
   GetUserDetails,
   GetReplies,
   GetUserMentions,
-  EditUserMention,
+  MarkUserMentionAsRead,
   GetModlog,
   BanFromCommunity,
   AddModToCommunity,
@@ -357,9 +357,9 @@ export interface GetUserMentionsResponse {
   mentions: Array<Comment>;
 }
 
-export interface EditUserMentionForm {
+export interface MarkUserMentionAsReadForm {
   user_mention_id: number;
-  read?: boolean;
+  read: boolean;
   auth?: string;
 }
 
@@ -901,7 +901,7 @@ export type MessageType =
   | GetUserDetailsForm
   | GetRepliesForm
   | GetUserMentionsForm
-  | EditUserMentionForm
+  | MarkUserMentionAsReadForm
   | GetModlogForm
   | SiteForm
   | SearchForm

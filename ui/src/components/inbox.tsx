@@ -500,7 +500,7 @@ export class Inbox extends Component<any, InboxState> {
       this.sendUnreadCount();
       this.setState(this.state);
       setupTippy();
-    } else if (res.op == UserOperation.EditUserMention) {
+    } else if (res.op == UserOperation.MarkUserMentionAsRead) {
       let data = res.data as UserMentionResponse;
 
       let found = this.state.mentions.find(c => c.id == data.mention.id);
