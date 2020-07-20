@@ -53,6 +53,8 @@
     "archive_link": "archive link",
     "bold": "bold",
     "italic": "italic",
+    "subscript": "subscript",
+    "superscript": "superscript",
     "header": "header",
     "strikethrough": "strikethrough",
     "quote": "quote",
