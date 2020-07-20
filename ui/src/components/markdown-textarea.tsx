@@ -472,12 +472,12 @@ export class MarkdownTextArea extends Component<
 
   handleInsertSubscript(i: MarkdownTextArea, event: any) {
     event.preventDefault();
-    i.simpleInsert('~');
+    i.simpleSurround('~');
   }
 
   handleInsertSuperscript(i: MarkdownTextArea, event: any) {
     event.preventDefault();
-    i.simpleInsert('^');
+    i.simpleSurround('^');
   }
 
   simpleInsert(chars: string) {
