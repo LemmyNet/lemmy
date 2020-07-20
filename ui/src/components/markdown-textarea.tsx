@@ -470,6 +470,16 @@ export class MarkdownTextArea extends Component<
     i.simpleInsert('#');
   }
 
+  handleInsertSubscript(i: MarkdownTextArea, event: any) {
+    event.preventDefault();
+    i.simpleInsert('~');
+  }
+
+  handleInsertSuperscript(i: MarkdownTextArea, event: any) {
+    event.preventDefault();
+    i.simpleInsert('^');
+  }
+
   simpleInsert(chars: string) {
     if (!this.state.content) {
       this.state.content = `${chars} `;
