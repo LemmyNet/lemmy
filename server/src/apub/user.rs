@@ -1,5 +1,4 @@
 use crate::{
-  api::claims::Claims,
   apub::{
     activities::send_activity,
     create_apub_response,
@@ -253,7 +252,7 @@ pub async fn get_apub_user_http(
 ) -> Result<HttpResponse<Body>, LemmyError> {
   let user_name = info.into_inner().user_name;
   let user = blocking(&db, move |conn| {
-    Claims::find_by_email_or_username(conn, &user_name)
+    User_::find_by_email_or_username(conn, &user_name)
   })
   .await??;
   let u = user.to_apub(&db).await?;

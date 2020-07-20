@@ -1,4 +1,5 @@
 use crate::{
+  is_email_regex,
   naive_now,
   schema::{user_, user_::dsl::*},
   Crud,
@@ -125,9 +126,18 @@ impl User_ {
     use crate::schema::user_::dsl::*;
     user_.filter(actor_id.eq(object_id)).first::<Self>(conn)
   }
-}
 
-impl User_ {
+  pub fn find_by_email_or_username(
+    conn: &PgConnection,
+    username_or_email: &str,
+  ) -> Result<Self, Error> {
+    if is_email_regex(username_or_email) {
+      Self::find_by_email(conn, username_or_email)
+    } else {
+      Self::find_by_username(conn, username_or_email)
+    }
+  }
+
   pub fn find_by_username(conn: &PgConnection, username: &str) -> Result<User_, Error> {
     user_.filter(name.eq(username)).first::<User_>(conn)
   }
