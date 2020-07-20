@@ -35,6 +35,8 @@ pub enum UserOperation {
   EditPost,
   SavePost,
   EditCommunity,
+  DeleteCommunity,
+  RemoveCommunity,
   FollowCommunity,
   GetFollowedCommunities,
   GetUserDetails,

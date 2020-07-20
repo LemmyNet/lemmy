@@ -13,6 +13,8 @@ import {
   CommentForm,
   CommentResponse,
   CommunityForm,
+  DeleteCommunityForm,
+  RemoveCommunityForm,
   GetCommunityResponse,
   CommentLikeForm,
   CreatePostLikeForm,
@@ -731,20 +733,16 @@ describe('main', () => {
       expect(getPostResAgainTwo.post.deleted).toBe(false);
 
       // lemmy_beta deletes the community
-      let deleteCommunityForm: CommunityForm = {
-        name: communityName,
-        title: communityName,
-        category_id: 1,
+      let deleteCommunityForm: DeleteCommunityForm = {
         edit_id: createCommunityRes.community.id,
-        nsfw: false,
         deleted: true,
         auth: lemmyBetaAuth,
       };
 
       let deleteResponse: CommunityResponse = await fetch(
-        `${lemmyBetaApiUrl}/community`,
+        `${lemmyBetaApiUrl}/community/delete`,
         {
-          method: 'PUT',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -764,20 +762,16 @@ describe('main', () => {
       expect(getCommunityRes.community.deleted).toBe(true);
 
       // lemmy_beta undeletes the community
-      let undeleteCommunityForm: CommunityForm = {
-        name: communityName,
-        title: communityName,
-        category_id: 1,
+      let undeleteCommunityForm: DeleteCommunityForm = {
         edit_id: createCommunityRes.community.id,
-        nsfw: false,
         deleted: false,
         auth: lemmyBetaAuth,
       };
 
       let undeleteCommunityRes: CommunityResponse = await fetch(
-        `${lemmyBetaApiUrl}/community`,
+        `${lemmyBetaApiUrl}/community/delete`,
         {
-          method: 'PUT',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -1006,21 +1000,17 @@ describe('main', () => {
       }).then(d => d.json());
       expect(getPostResAgainTwo.post.removed).toBe(false);
 
-      // lemmy_beta deletes the community
-      let removeCommunityForm: CommunityForm = {
-        name: communityName,
-        title: communityName,
-        category_id: 1,
+      // lemmy_beta removes the community
+      let removeCommunityForm: RemoveCommunityForm = {
         edit_id: createCommunityRes.community.id,
-        nsfw: false,
         removed: true,
         auth: lemmyBetaAuth,
       };
 
       let removeCommunityRes: CommunityResponse = await fetch(
-        `${lemmyBetaApiUrl}/community`,
+        `${lemmyBetaApiUrl}/community/remove`,
         {
-          method: 'PUT',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -1028,7 +1018,7 @@ describe('main', () => {
         }
       ).then(d => d.json());
 
-      // Make sure the delete went through
+      // Make sure the remove went through
       expect(removeCommunityRes.community.removed).toBe(true);
 
       // Re-get it from alpha, make sure its removed there too
@@ -1040,20 +1030,16 @@ describe('main', () => {
       expect(getCommunityRes.community.removed).toBe(true);
 
       // lemmy_beta unremoves the community
-      let unremoveCommunityForm: CommunityForm = {
-        name: communityName,
-        title: communityName,
-        category_id: 1,
+      let unremoveCommunityForm: RemoveCommunityForm = {
         edit_id: createCommunityRes.community.id,
-        nsfw: false,
         removed: false,
         auth: lemmyBetaAuth,
       };
 
       let unremoveCommunityRes: CommunityResponse = await fetch(
-        `${lemmyBetaApiUrl}/community`,
+        `${lemmyBetaApiUrl}/community/remove`,
         {
-          method: 'PUT',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },

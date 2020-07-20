@@ -16,6 +16,8 @@ export enum UserOperation {
   EditPost,
   SavePost,
   EditCommunity,
+  DeleteCommunity,
+  RemoveCommunity,
   FollowCommunity,
   GetFollowedCommunities,
   GetUserDetails,
@@ -573,13 +575,23 @@ export interface UserSettingsForm {
 
 export interface CommunityForm {
   name: string;
+  edit_id?: number;
   title: string;
   description?: string;
   category_id: number;
-  edit_id?: number;
-  removed?: boolean;
-  deleted?: boolean;
   nsfw: boolean;
+  auth?: string;
+}
+
+export interface DeleteCommunityForm {
+  edit_id: number;
+  deleted: boolean;
+  auth?: string;
+}
+
+export interface RemoveCommunityForm {
+  edit_id: number;
+  removed: boolean;
   reason?: string;
   expires?: number;
   auth?: string;
@@ -879,6 +891,8 @@ export type MessageType =
   | LoginForm
   | RegisterForm
   | CommunityForm
+  | DeleteCommunityForm
+  | RemoveCommunityForm
   | FollowCommunityForm
   | ListCommunitiesForm
   | GetFollowedCommunitiesForm

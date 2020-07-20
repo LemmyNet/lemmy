@@ -1102,7 +1102,7 @@ Search types are `All, Comments, Posts, Communities, Users, Url`
 `POST /community/mod`
 
 #### Edit Community
-Mods and admins can remove and lock a community, creators can delete it.
+Only mods can edit a community.
 
 ##### Request
 ```rust
@@ -1113,10 +1113,6 @@ Mods and admins can remove and lock a community, creators can delete it.
     title: String,
     description: Option<String>,
     category_id: i32,
-    removed: Option<bool>,
-    deleted: Option<bool>,
-    reason: Option<String>,
-    expires: Option<i64>,
     auth: String
   }
 }
@@ -1133,6 +1129,62 @@ Mods and admins can remove and lock a community, creators can delete it.
 ##### HTTP
 
 `PUT /community`
+
+#### Delete Community
+Only a creator can delete a community
+
+##### Request
+```rust
+{
+  op: "DeleteCommunity",
+  data: {
+    edit_id: i32,
+    deleted: bool,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "DeleteCommunity",
+  data: {
+    community: CommunityView
+  }
+}
+```
+##### HTTP
+
+`POST /community/delete`
+
+#### Remove Community
+Only admins can remove a community.
+
+##### Request
+```rust
+{
+  op: "RemoveCommunity",
+  data: {
+    edit_id: i32,
+    removed: bool,
+    reason: Option<String>,
+    expires: Option<i64>,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "RemoveCommunity",
+  data: {
+    community: CommunityView
+  }
+}
+```
+##### HTTP
+
+`POST /community/remove`
 
 #### Follow Community
 ##### Request

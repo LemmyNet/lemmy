@@ -360,7 +360,11 @@ export class Community extends Component<any, State> {
       document.title = `/c/${this.state.community.name} - ${this.state.site.name}`;
       this.setState(this.state);
       this.fetchData();
-    } else if (res.op == UserOperation.EditCommunity) {
+    } else if (
+      res.op == UserOperation.EditCommunity ||
+      res.op == UserOperation.DeleteCommunity ||
+      res.op == UserOperation.RemoveCommunity
+    ) {
       let data = res.data as CommunityResponse;
       this.state.community = data.community;
       this.setState(this.state);

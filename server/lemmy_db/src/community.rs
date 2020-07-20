@@ -99,6 +99,39 @@ impl Community {
     use crate::schema::community::dsl::*;
     community.filter(local.eq(true)).load::<Community>(conn)
   }
+
+  pub fn update_deleted(
+    conn: &PgConnection,
+    community_id: i32,
+    new_deleted: bool,
+  ) -> Result<Self, Error> {
+    use crate::schema::community::dsl::*;
+    diesel::update(community.find(community_id))
+      .set(deleted.eq(new_deleted))
+      .get_result::<Self>(conn)
+  }
+
+  pub fn update_removed(
+    conn: &PgConnection,
+    community_id: i32,
+    new_removed: bool,
+  ) -> Result<Self, Error> {
+    use crate::schema::community::dsl::*;
+    diesel::update(community.find(community_id))
+      .set(removed.eq(new_removed))
+      .get_result::<Self>(conn)
+  }
+
+  pub fn update_creator(
+    conn: &PgConnection,
+    community_id: i32,
+    new_creator_id: i32,
+  ) -> Result<Self, Error> {
+    use crate::schema::community::dsl::*;
+    diesel::update(community.find(community_id))
+      .set(creator_id.eq(new_creator_id))
+      .get_result::<Self>(conn)
+  }
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
