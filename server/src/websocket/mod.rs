@@ -40,7 +40,7 @@ pub enum UserOperation {
   GetUserDetails,
   GetReplies,
   GetUserMentions,
-  EditUserMention,
+  MarkUserMentionAsRead,
   GetModlog,
   BanFromCommunity,
   AddModToCommunity,

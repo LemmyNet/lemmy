@@ -174,9 +174,9 @@ pub struct GetUserMentions {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct EditUserMention {
+pub struct MarkUserMentionAsRead {
   user_mention_id: i32,
-  read: Option<bool>,
+  read: bool,
   auth: String,
 }
 
@@ -874,7 +874,7 @@ impl Perform for Oper<GetUserMentions> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<EditUserMention> {
+impl Perform for Oper<MarkUserMentionAsRead> {
   type Response = UserMentionResponse;
 
   async fn perform(
@@ -882,7 +882,7 @@ impl Perform for Oper<EditUserMention> {
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<UserMentionResponse, LemmyError> {
-    let data: &EditUserMention = &self.data;
+    let data: &MarkUserMentionAsRead = &self.data;
 
     let claims = match Claims::decode(&data.auth) {
       Ok(claims) => claims.claims,
@@ -899,15 +899,9 @@ impl Perform for Oper<EditUserMention> {
       return Err(APIError::err("couldnt_update_comment").into());
     }
 
-    let user_mention_form = UserMentionForm {
-      recipient_id: read_user_mention.recipient_id,
-      comment_id: read_user_mention.comment_id,
-      read: data.read.to_owned(),
-    };
-
     let user_mention_id = read_user_mention.id;
-    let update_mention =
-      move |conn: &'_ _| UserMention::update(conn, user_mention_id, &user_mention_form);
+    let read = data.read;
+    let update_mention = move |conn: &'_ _| UserMention::update_read(conn, user_mention_id, read);
     if blocking(pool, update_mention).await?.is_err() {
       return Err(APIError::err("couldnt_update_comment").into());
     };
@@ -960,30 +954,10 @@ impl Perform for Oper<MarkAllAsRead> {
       }
     }
 
-    // Mentions
-    let mentions = blocking(pool, move |conn| {
-      UserMentionQueryBuilder::create(conn, user_id)
-        .unread_only(true)
-        .page(1)
-        .limit(999)
-        .list()
-    })
-    .await??;
-
-    // TODO: this should probably be a bulk operation
-    for mention in &mentions {
-      let mention_form = UserMentionForm {
-        recipient_id: mention.to_owned().recipient_id,
-        comment_id: mention.to_owned().id,
-        read: Some(true),
-      };
-
-      let user_mention_id = mention.user_mention_id;
-      let update_mention =
-        move |conn: &'_ _| UserMention::update(conn, user_mention_id, &mention_form);
-      if blocking(pool, update_mention).await?.is_err() {
-        return Err(APIError::err("couldnt_update_comment").into());
-      }
+    // Mark all user mentions as read
+    let update_user_mentions = move |conn: &'_ _| UserMention::mark_all_as_read(conn, user_id);
+    if blocking(pool, update_user_mentions).await?.is_err() {
+      return Err(APIError::err("couldnt_update_comment").into());
     }
 
     // Mark all private_messages as read

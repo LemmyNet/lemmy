@@ -4,7 +4,7 @@ import {
   CommentNode as CommentNodeI,
   CommentLikeForm,
   CommentForm as CommentFormI,
-  EditUserMentionForm,
+  MarkUserMentionAsReadForm,
   SaveCommentForm,
   BanFromCommunityForm,
   BanUserForm,
@@ -969,11 +969,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   handleMarkRead(i: CommentNode) {
     // if it has a user_mention_id field, then its a mention
     if (i.props.node.comment.user_mention_id) {
-      let form: EditUserMentionForm = {
+      let form: MarkUserMentionAsReadForm = {
         user_mention_id: i.props.node.comment.user_mention_id,
         read: !i.props.node.comment.read,
       };
-      WebSocketService.Instance.editUserMention(form);
+      WebSocketService.Instance.markUserMentionAsRead(form);
     } else {
       let form: CommentFormI = {
         content: i.props.node.comment.content,

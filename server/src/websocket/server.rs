@@ -443,7 +443,9 @@ impl ChatServer {
         UserOperation::AddAdmin => do_user_operation::<AddAdmin>(args).await,
         UserOperation::BanUser => do_user_operation::<BanUser>(args).await,
         UserOperation::GetUserMentions => do_user_operation::<GetUserMentions>(args).await,
-        UserOperation::EditUserMention => do_user_operation::<EditUserMention>(args).await,
+        UserOperation::MarkUserMentionAsRead => {
+          do_user_operation::<MarkUserMentionAsRead>(args).await
+        }
         UserOperation::MarkAllAsRead => do_user_operation::<MarkAllAsRead>(args).await,
         UserOperation::DeleteAccount => do_user_operation::<DeleteAccount>(args).await,
         UserOperation::PasswordReset => do_user_operation::<PasswordReset>(args).await,

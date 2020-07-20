@@ -28,7 +28,7 @@ import {
   UserView,
   GetRepliesForm,
   GetUserMentionsForm,
-  EditUserMentionForm,
+  MarkUserMentionAsReadForm,
   SearchForm,
   UserSettingsForm,
   DeleteAccountForm,
@@ -247,9 +247,9 @@ export class WebSocketService {
     this.ws.send(this.wsSendWrapper(UserOperation.GetUserMentions, form));
   }
 
-  public editUserMention(form: EditUserMentionForm) {
+  public markUserMentionAsRead(form: MarkUserMentionAsReadForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.EditUserMention, form));
+    this.ws.send(this.wsSendWrapper(UserOperation.MarkUserMentionAsRead, form));
   }
 
   public getModlog(form: GetModlogForm) {

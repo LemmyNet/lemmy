@@ -464,14 +464,14 @@ Only the first user will be able to be the admin.
 
 `GET /user/mentions`
 
-#### Edit User Mention
+#### Mark User Mention as read
 ##### Request
 ```rust
 {
-  op: "EditUserMention",
+  op: "MarkUserMentionAsRead",
   data: {
     user_mention_id: i32,
-    read: Option<bool>,
+    read: bool,
     auth: String,
   }
 }
@@ -479,7 +479,7 @@ Only the first user will be able to be the admin.
 ##### Response
 ```rust
 {
-  op: "EditUserMention",
+  op: "MarkUserMentionAsRead",
   data: {
     mention: UserMentionView,
   }
@@ -487,7 +487,7 @@ Only the first user will be able to be the admin.
 ```
 ##### HTTP
 
-`PUT /user/mention`
+`POST /user/mention/mark_as_read`
 
 #### Get Private Messages
 ##### Request
