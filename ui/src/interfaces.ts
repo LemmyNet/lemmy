@@ -813,6 +813,7 @@ export interface GetSiteResponse {
   admins: Array<UserView>;
   banned: Array<UserView>;
   online: number;
+  version: string;
 }
 
 export interface SiteResponse {
