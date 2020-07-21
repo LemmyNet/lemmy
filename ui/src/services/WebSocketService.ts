@@ -7,6 +7,10 @@ import {
   DeleteCommunityForm,
   RemoveCommunityForm,
   PostForm,
+  DeletePostForm,
+  RemovePostForm,
+  LockPostForm,
+  StickyPostForm,
   SavePostForm,
   CommentForm,
   DeleteCommentForm,
@@ -153,9 +157,9 @@ export class WebSocketService {
     this.ws.send(this.wsSendWrapper(UserOperation.ListCategories, {}));
   }
 
-  public createPost(postForm: PostForm) {
-    this.setAuth(postForm);
-    this.ws.send(this.wsSendWrapper(UserOperation.CreatePost, postForm));
+  public createPost(form: PostForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.CreatePost, form));
   }
 
   public getPost(form: GetPostForm) {
@@ -218,9 +222,29 @@ export class WebSocketService {
     this.ws.send(this.wsSendWrapper(UserOperation.CreatePostLike, form));
   }
 
-  public editPost(postForm: PostForm) {
-    this.setAuth(postForm);
-    this.ws.send(this.wsSendWrapper(UserOperation.EditPost, postForm));
+  public editPost(form: PostForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.EditPost, form));
+  }
+
+  public deletePost(form: DeletePostForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.DeletePost, form));
+  }
+
+  public removePost(form: RemovePostForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.RemovePost, form));
+  }
+
+  public lockPost(form: LockPostForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.LockPost, form));
+  }
+
+  public stickyPost(form: StickyPostForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.StickyPost, form));
   }
 
   public savePost(form: SavePostForm) {

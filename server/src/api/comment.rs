@@ -162,6 +162,11 @@ impl Perform for Oper<CreateComment> {
       return Err(APIError::err("site_ban").into());
     }
 
+    // Check if post is locked, no new comments
+    if post.locked {
+      return Err(APIError::err("locked").into());
+    }
+
     // Create the comment
     let comment_form2 = comment_form.clone();
     let inserted_comment =

@@ -17,6 +17,10 @@ export enum UserOperation {
   GetPosts,
   CreatePostLike,
   EditPost,
+  DeletePost,
+  RemovePost,
+  LockPost,
+  StickyPost,
   SavePost,
   EditCommunity,
   DeleteCommunity,
@@ -636,16 +640,34 @@ export interface PostForm {
   name: string;
   url?: string;
   body?: string;
-  community_id: number;
-  updated?: number;
+  community_id?: number;
   edit_id?: number;
-  creator_id: number;
-  removed?: boolean;
-  deleted?: boolean;
   nsfw: boolean;
-  locked?: boolean;
-  stickied?: boolean;
+  auth: string;
+}
+
+export interface DeletePostForm {
+  edit_id: number;
+  deleted: boolean;
+  auth: string;
+}
+
+export interface RemovePostForm {
+  edit_id: number;
+  removed: boolean;
   reason?: string;
+  auth: string;
+}
+
+export interface LockPostForm {
+  edit_id: number;
+  locked: boolean;
+  auth: string;
+}
+
+export interface StickyPostForm {
+  edit_id: number;
+  stickied: boolean;
   auth: string;
 }
 
@@ -914,6 +936,10 @@ export type MessageType =
   | ListCommunitiesForm
   | GetFollowedCommunitiesForm
   | PostForm
+  | DeletePostForm
+  | RemovePostForm
+  | LockPostForm
+  | StickyPostForm
   | GetPostForm
   | GetPostsForm
   | GetCommunityForm

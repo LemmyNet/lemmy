@@ -4,6 +4,9 @@ import {
   LoginForm,
   LoginResponse,
   PostForm,
+  DeletePostForm,
+  RemovePostForm,
+  // TODO need to test LockPost and StickyPost federated
   PostResponse,
   SearchResponse,
   FollowCommunityForm,
@@ -100,7 +103,6 @@ describe('main', () => {
         name,
         auth: lemmyAlphaAuth,
         community_id: 2,
-        creator_id: 2,
         nsfw: false,
       };
 
@@ -269,7 +271,6 @@ describe('main', () => {
         name,
         auth: lemmyAlphaAuth,
         community_id: 3,
-        creator_id: 2,
         nsfw: false,
       };
 
@@ -326,7 +327,6 @@ describe('main', () => {
         edit_id: 2,
         auth: lemmyAlphaAuth,
         community_id: 3,
-        creator_id: 2,
         nsfw: false,
       };
 
@@ -587,7 +587,6 @@ describe('main', () => {
         name: postName,
         auth: lemmyBetaAuth,
         community_id: createCommunityRes.community.id,
-        creator_id: 2,
         nsfw: false,
       };
 
@@ -673,23 +672,22 @@ describe('main', () => {
       expect(getPostUndeleteRes.comments[0].deleted).toBe(false);
 
       // lemmy_beta deletes the post
-      let deletePostForm: PostForm = {
-        name: postName,
+      let deletePostForm: DeletePostForm = {
         edit_id: createPostRes.post.id,
-        auth: lemmyBetaAuth,
-        community_id: createPostRes.post.community_id,
-        creator_id: createPostRes.post.creator_id,
-        nsfw: false,
         deleted: true,
+        auth: lemmyBetaAuth,
       };
 
-      let deletePostRes: PostResponse = await fetch(`${lemmyBetaApiUrl}/post`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: wrapper(deletePostForm),
-      }).then(d => d.json());
+      let deletePostRes: PostResponse = await fetch(
+        `${lemmyBetaApiUrl}/post/delete`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(deletePostForm),
+        }
+      ).then(d => d.json());
       expect(deletePostRes.post.deleted).toBe(true);
 
       // Make sure lemmy_alpha sees the post is deleted
@@ -699,20 +697,16 @@ describe('main', () => {
       expect(getPostResAgain.post.deleted).toBe(true);
 
       // lemmy_beta undeletes the post
-      let undeletePostForm: PostForm = {
-        name: postName,
+      let undeletePostForm: DeletePostForm = {
         edit_id: createPostRes.post.id,
-        auth: lemmyBetaAuth,
-        community_id: createPostRes.post.community_id,
-        creator_id: createPostRes.post.creator_id,
-        nsfw: false,
         deleted: false,
+        auth: lemmyBetaAuth,
       };
 
       let undeletePostRes: PostResponse = await fetch(
-        `${lemmyBetaApiUrl}/post`,
+        `${lemmyBetaApiUrl}/post/delete`,
         {
-          method: 'PUT',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -849,7 +843,6 @@ describe('main', () => {
         name: postName,
         auth: lemmyBetaAuth,
         community_id: createCommunityRes.community.id,
-        creator_id: 2,
         nsfw: false,
       };
 
@@ -935,23 +928,22 @@ describe('main', () => {
       expect(getPostUnremoveRes.comments[0].removed).toBe(false);
 
       // lemmy_beta deletes the post
-      let removePostForm: PostForm = {
-        name: postName,
+      let removePostForm: RemovePostForm = {
         edit_id: createPostRes.post.id,
-        auth: lemmyBetaAuth,
-        community_id: createPostRes.post.community_id,
-        creator_id: createPostRes.post.creator_id,
-        nsfw: false,
         removed: true,
+        auth: lemmyBetaAuth,
       };
 
-      let removePostRes: PostResponse = await fetch(`${lemmyBetaApiUrl}/post`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: wrapper(removePostForm),
-      }).then(d => d.json());
+      let removePostRes: PostResponse = await fetch(
+        `${lemmyBetaApiUrl}/post/remove`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(removePostForm),
+        }
+      ).then(d => d.json());
       expect(removePostRes.post.removed).toBe(true);
 
       // Make sure lemmy_alpha sees the post is deleted
@@ -961,20 +953,16 @@ describe('main', () => {
       expect(getPostResAgain.post.removed).toBe(true);
 
       // lemmy_beta unremoves the post
-      let unremovePostForm: PostForm = {
-        name: postName,
+      let unremovePostForm: RemovePostForm = {
         edit_id: createPostRes.post.id,
-        auth: lemmyBetaAuth,
-        community_id: createPostRes.post.community_id,
-        creator_id: createPostRes.post.creator_id,
-        nsfw: false,
         removed: false,
+        auth: lemmyBetaAuth,
       };
 
       let unremovePostRes: PostResponse = await fetch(
-        `${lemmyBetaApiUrl}/post`,
+        `${lemmyBetaApiUrl}/post/remove`,
         {
-          method: 'PUT',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -1226,7 +1214,6 @@ describe('main', () => {
         name: postName,
         auth: lemmyAlphaAuth,
         community_id: 2,
-        creator_id: 2,
         nsfw: false,
       };
 
@@ -1337,7 +1324,6 @@ describe('main', () => {
         name: betaPostName,
         auth: lemmyBetaAuth,
         community_id: 2,
-        creator_id: 2,
         nsfw: false,
       };
 

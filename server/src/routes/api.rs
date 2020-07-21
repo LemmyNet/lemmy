@@ -73,6 +73,10 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .wrap(rate_limit.message())
           .route("", web::get().to(route_get::<GetPost>))
           .route("", web::put().to(route_post::<EditPost>))
+          .route("/delete", web::post().to(route_post::<DeletePost>))
+          .route("/remove", web::post().to(route_post::<RemovePost>))
+          .route("/lock", web::post().to(route_post::<LockPost>))
+          .route("/sticky", web::post().to(route_post::<StickyPost>))
           .route("/list", web::get().to(route_get::<GetPosts>))
           .route("/like", web::post().to(route_post::<CreatePostLike>))
           .route("/save", web::put().to(route_post::<SavePost>)),

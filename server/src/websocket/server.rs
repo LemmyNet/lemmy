@@ -500,6 +500,10 @@ impl ChatServer {
         UserOperation::GetPost => do_user_operation::<GetPost>(args).await,
         UserOperation::GetPosts => do_user_operation::<GetPosts>(args).await,
         UserOperation::EditPost => do_user_operation::<EditPost>(args).await,
+        UserOperation::DeletePost => do_user_operation::<DeletePost>(args).await,
+        UserOperation::RemovePost => do_user_operation::<RemovePost>(args).await,
+        UserOperation::LockPost => do_user_operation::<LockPost>(args).await,
+        UserOperation::StickyPost => do_user_operation::<StickyPost>(args).await,
         UserOperation::CreatePostLike => do_user_operation::<CreatePostLike>(args).await,
         UserOperation::SavePost => do_user_operation::<SavePost>(args).await,
 
