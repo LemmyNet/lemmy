@@ -148,6 +148,10 @@ impl Post {
       .set(stickied.eq(new_stickied))
       .get_result::<Self>(conn)
   }
+
+  pub fn is_post_creator(user_id: i32, post_creator_id: i32) -> bool {
+    user_id == post_creator_id
+  }
 }
 
 impl Crud<PostForm> for Post {

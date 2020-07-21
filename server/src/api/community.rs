@@ -433,19 +433,7 @@ impl Perform for Oper<EditCommunity> {
       community: community_view,
     };
 
-    if let Some(ws) = websocket_info {
-      // Strip out the user id and subscribed when sending to others
-      let mut res_sent = res.clone();
-      res_sent.community.user_id = None;
-      res_sent.community.subscribed = None;
-
-      ws.chatserver.do_send(SendCommunityRoomMessage {
-        op: UserOperation::EditCommunity,
-        response: res_sent,
-        community_id: data.edit_id,
-        my_id: ws.id,
-      });
-    }
+    send_community_websocket(&res, websocket_info, UserOperation::EditCommunity);
 
     Ok(res)
   }
@@ -515,19 +503,7 @@ impl Perform for Oper<DeleteCommunity> {
       community: community_view,
     };
 
-    if let Some(ws) = websocket_info {
-      // Strip out the user id and subscribed when sending to others
-      let mut res_sent = res.clone();
-      res_sent.community.user_id = None;
-      res_sent.community.subscribed = None;
-
-      ws.chatserver.do_send(SendCommunityRoomMessage {
-        op: UserOperation::DeleteCommunity,
-        response: res_sent,
-        community_id: data.edit_id,
-        my_id: ws.id,
-      });
-    }
+    send_community_websocket(&res, websocket_info, UserOperation::DeleteCommunity);
 
     Ok(res)
   }
@@ -613,19 +589,7 @@ impl Perform for Oper<RemoveCommunity> {
       community: community_view,
     };
 
-    if let Some(ws) = websocket_info {
-      // Strip out the user id and subscribed when sending to others
-      let mut res_sent = res.clone();
-      res_sent.community.user_id = None;
-      res_sent.community.subscribed = None;
-
-      ws.chatserver.do_send(SendCommunityRoomMessage {
-        op: UserOperation::RemoveCommunity,
-        response: res_sent,
-        community_id: data.edit_id,
-        my_id: ws.id,
-      });
-    }
+    send_community_websocket(&res, websocket_info, UserOperation::RemoveCommunity);
 
     Ok(res)
   }
@@ -831,6 +795,7 @@ impl Perform for Oper<BanFromCommunity> {
     }
 
     // Mod tables
+    // TODO eventually do correct expires
     let expires = match data.expires {
       Some(time) => Some(naive_from_unix(time)),
       None => None,
@@ -1053,5 +1018,25 @@ impl Perform for Oper<TransferCommunity> {
       admins,
       online: 0,
     })
+  }
+}
+
+pub fn send_community_websocket(
+  res: &CommunityResponse,
+  websocket_info: Option<WebsocketInfo>,
+  op: UserOperation,
+) {
+  if let Some(ws) = websocket_info {
+    // Strip out the user id and subscribed when sending to others
+    let mut res_sent = res.clone();
+    res_sent.community.user_id = None;
+    res_sent.community.subscribed = None;
+
+    ws.chatserver.do_send(SendCommunityRoomMessage {
+      op,
+      response: res_sent,
+      community_id: res.community.id,
+      my_id: ws.id,
+    });
   }
 }
