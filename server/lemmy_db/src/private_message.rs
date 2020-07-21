@@ -1,4 +1,4 @@
-use crate::{schema::private_message, Crud};
+use crate::{naive_now, schema::private_message, Crud};
 use diesel::{dsl::*, result::Error, *};
 use serde::{Deserialize, Serialize};
 
@@ -88,7 +88,7 @@ impl PrivateMessage {
   ) -> Result<Self, Error> {
     use crate::schema::private_message::dsl::*;
     diesel::update(private_message.find(private_message_id))
-      .set(content.eq(new_content))
+      .set((content.eq(new_content), updated.eq(naive_now())))
       .get_result::<Self>(conn)
   }
 

@@ -484,9 +484,16 @@ export class Inbox extends Component<any, InboxState> {
       this.setState(this.state);
     } else if (res.op == UserOperation.MarkAllAsRead) {
       // Moved to be instant
-    } else if (res.op == UserOperation.EditComment) {
+    } else if (
+      res.op == UserOperation.EditComment ||
+      res.op == UserOperation.DeleteComment ||
+      res.op == UserOperation.RemoveComment
+    ) {
       let data = res.data as CommentResponse;
       editCommentRes(data, this.state.replies);
+      this.setState(this.state);
+    } else if (res.op == UserOperation.MarkCommentAsRead) {
+      let data = res.data as CommentResponse;
 
       // If youre in the unread view, just remove it from the list
       if (this.state.unreadOrAll == UnreadOrAll.Unread && data.comment.read) {

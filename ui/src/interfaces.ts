@@ -9,6 +9,9 @@ export enum UserOperation {
   GetCommunity,
   CreateComment,
   EditComment,
+  DeleteComment,
+  RemoveComment,
+  MarkCommentAsRead,
   SaveComment,
   CreateCommentLike,
   GetPosts,
@@ -679,14 +682,29 @@ export interface PostResponse {
 
 export interface CommentForm {
   content: string;
-  post_id: number;
+  post_id?: number;
   parent_id?: number;
   edit_id?: number;
   creator_id?: number;
-  removed?: boolean;
-  deleted?: boolean;
+  auth: string;
+}
+
+export interface DeleteCommentForm {
+  edit_id: number;
+  deleted: boolean;
+  auth: string;
+}
+
+export interface RemoveCommentForm {
+  edit_id: number;
+  removed: boolean;
   reason?: string;
-  read?: boolean;
+  auth: string;
+}
+
+export interface MarkCommentAsReadForm {
+  edit_id: number;
+  read: boolean;
   auth: string;
 }
 
@@ -703,7 +721,6 @@ export interface CommentResponse {
 
 export interface CommentLikeForm {
   comment_id: number;
-  post_id: number;
   score: number;
   auth?: string;
 }
@@ -901,6 +918,9 @@ export type MessageType =
   | GetPostsForm
   | GetCommunityForm
   | CommentForm
+  | DeleteCommentForm
+  | RemoveCommentForm
+  | MarkCommentAsReadForm
   | CommentLikeForm
   | SaveCommentForm
   | CreatePostLikeForm

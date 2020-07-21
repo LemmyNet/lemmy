@@ -257,7 +257,11 @@ export class UserDetails extends Component<UserDetailsProps, UserDetailsState> {
       this.setState({
         comments: this.state.comments,
       });
-    } else if (res.op == UserOperation.EditComment) {
+    } else if (
+      res.op == UserOperation.EditComment ||
+      res.op == UserOperation.DeleteComment ||
+      res.op == UserOperation.RemoveComment
+    ) {
       const data = res.data as CommentResponse;
       editCommentRes(data, this.state.comments);
       this.setState({

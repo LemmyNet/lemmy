@@ -10,7 +10,6 @@ use crate::{
   },
   DbPool,
 };
-use diesel::PgConnection;
 use lemmy_db::{naive_now, Bannable, Crud, Followable, Joinable, SortType};
 use lemmy_utils::{
   generate_actor_keypair,
@@ -1077,17 +1076,4 @@ impl Perform for Oper<TransferCommunity> {
       online: 0,
     })
   }
-}
-
-pub fn community_mods_and_admins(
-  conn: &PgConnection,
-  community_id: i32,
-) -> Result<Vec<i32>, LemmyError> {
-  let mut editors: Vec<i32> = Vec::new();
-  editors.append(
-    &mut CommunityModeratorView::for_community(conn, community_id)
-      .map(|v| v.into_iter().map(|m| m.user_id).collect())?,
-  );
-  editors.append(&mut UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())?);
-  Ok(editors)
 }

@@ -8,7 +8,7 @@ import {
   GetPostResponse,
   PostResponse,
   Comment,
-  CommentForm as CommentFormI,
+  MarkCommentAsReadForm,
   CommentResponse,
   CommentSortType,
   CommentViewType,
@@ -167,16 +167,12 @@ export class Post extends Component<any, PostState> {
       UserService.Instance.user &&
       UserService.Instance.user.id == parent_user_id
     ) {
-      let form: CommentFormI = {
-        content: found.content,
+      let form: MarkCommentAsReadForm = {
         edit_id: found.id,
-        creator_id: found.creator_id,
-        post_id: found.post_id,
-        parent_id: found.parent_id,
         read: true,
         auth: null,
       };
-      WebSocketService.Instance.editComment(form);
+      WebSocketService.Instance.markCommentAsRead(form);
       UserService.Instance.user.unreadCount--;
       UserService.Instance.sub.next({
         user: UserService.Instance.user,
@@ -435,7 +431,11 @@ export class Post extends Component<any, PostState> {
         this.state.comments.unshift(data.comment);
         this.setState(this.state);
       }
-    } else if (res.op == UserOperation.EditComment) {
+    } else if (
+      res.op == UserOperation.EditComment ||
+      res.op == UserOperation.DeleteComment ||
+      res.op == UserOperation.RemoveComment
+    ) {
       let data = res.data as CommentResponse;
       editCommentRes(data, this.state.comments);
       this.setState(this.state);

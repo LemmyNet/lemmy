@@ -409,7 +409,11 @@ export class Community extends Component<any, State> {
       this.state.comments = data.comments;
       this.state.loading = false;
       this.setState(this.state);
-    } else if (res.op == UserOperation.EditComment) {
+    } else if (
+      res.op == UserOperation.EditComment ||
+      res.op == UserOperation.DeleteComment ||
+      res.op == UserOperation.RemoveComment
+    ) {
       let data = res.data as CommentResponse;
       editCommentRes(data, this.state.comments);
       this.setState(this.state);

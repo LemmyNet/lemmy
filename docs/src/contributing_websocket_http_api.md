@@ -1448,7 +1448,6 @@ Mods and admins can remove and lock a post, creators can delete it.
   data: {
     content: String,
     parent_id: Option<i32>,
-    edit_id: Option<i32>,
     post_id: i32,
     auth: String
   }
@@ -1470,7 +1469,7 @@ Mods and admins can remove and lock a post, creators can delete it.
 
 #### Edit Comment
 
-Mods and admins can remove a comment, creators can delete it.
+Only the creator can edit the comment.
 
 ##### Request
 ```rust
@@ -1478,15 +1477,8 @@ Mods and admins can remove a comment, creators can delete it.
   op: "EditComment",
   data: {
     content: String,
-    parent_id: Option<i32>,
     edit_id: i32,
-    creator_id: i32,
-    post_id: i32,
-    removed: Option<bool>,
-    deleted: Option<bool>,
-    reason: Option<String>,
-    read: Option<bool>,
-    auth: String
+    auth: String,
   }
 }
 ```
@@ -1502,6 +1494,89 @@ Mods and admins can remove a comment, creators can delete it.
 ##### HTTP
 
 `PUT /comment`
+
+#### Delete Comment
+
+Only the creator can delete the comment.
+
+##### Request
+```rust
+{
+  op: "DeleteComment",
+  data: {
+    edit_id: i32,
+    deleted: bool,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "DeleteComment",
+  data: {
+    comment: CommentView
+  }
+}
+```
+##### HTTP
+
+`POST /comment/delete`
+
+
+#### Remove Comment
+
+Only a mod or admin can remove the comment.
+
+##### Request
+```rust
+{
+  op: "RemoveComment",
+  data: {
+    edit_id: i32,
+    removed: bool,
+    reason: Option<String>,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "RemoveComment",
+  data: {
+    comment: CommentView
+  }
+}
+```
+##### HTTP
+
+`POST /comment/remove`
+
+#### Mark Comment as Read
+##### Request
+```rust
+{
+  op: "MarkCommentAsRead",
+  data: {
+    edit_id: i32,
+    read: bool,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "MarkCommentAsRead",
+  data: {
+    comment: CommentView
+  }
+}
+```
+##### HTTP
+
+`POST /comment/mark_as_read`
 
 #### Save Comment
 ##### Request
@@ -1538,7 +1613,6 @@ Mods and admins can remove a comment, creators can delete it.
   op: "CreateCommentLike",
   data: {
     comment_id: i32,
-    post_id: i32,
     score: i16,
     auth: String
   }

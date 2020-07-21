@@ -393,7 +393,7 @@ async fn receive_create_comment(
   // anyway.
   let mentions = scrape_text_for_mentions(&inserted_comment.content);
   let recipient_ids =
-    send_local_notifs(mentions, inserted_comment.clone(), user, post, pool).await?;
+    send_local_notifs(mentions, inserted_comment.clone(), user, post, pool, true).await?;
 
   // Refetch the view
   let comment_view = blocking(pool, move |conn| {
@@ -558,7 +558,7 @@ async fn receive_update_comment(
   let post = blocking(pool, move |conn| Post::read(conn, post_id)).await??;
 
   let mentions = scrape_text_for_mentions(&updated_comment.content);
-  let recipient_ids = send_local_notifs(mentions, updated_comment, user, post, pool).await?;
+  let recipient_ids = send_local_notifs(mentions, updated_comment, user, post, pool, false).await?;
 
   // Refetch the view
   let comment_view =
