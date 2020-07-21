@@ -37,6 +37,8 @@
     "markdown-it": "^10.0.0",
     "markdown-it-container": "^2.0.0",
     "markdown-it-emoji": "^1.4.0",
+    "markdown-it-sub": "^1.0.0",
+    "markdown-it-sup": "^1.0.0",
     "moment": "^2.24.0",
     "node-fetch": "^2.6.0",
     "prettier": "^2.0.4",

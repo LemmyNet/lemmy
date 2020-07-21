@@ -189,6 +189,24 @@ export class MarkdownTextArea extends Component<
             </button>
             <button
               class="btn btn-sm text-muted"
+              data-tippy-content={i18n.t('subscript')}
+              onClick={linkEvent(this, this.handleInsertSubscript)}
+            >
+              <svg class="icon icon-inline">
+                <use xlinkHref="#icon-subscript"></use>
+              </svg>
+            </button>
+            <button
+              class="btn btn-sm text-muted"
+              data-tippy-content={i18n.t('superscript')}
+              onClick={linkEvent(this, this.handleInsertSuperscript)}
+            >
+              <svg class="icon icon-inline">
+                <use xlinkHref="#icon-superscript"></use>
+              </svg>
+            </button>
+            <button
+              class="btn btn-sm text-muted"
               data-tippy-content={i18n.t('link')}
               onClick={linkEvent(this, this.handleInsertLink)}
             >
@@ -467,6 +485,16 @@ export class MarkdownTextArea extends Component<
   handleInsertHeader(i: MarkdownTextArea, event: any) {
     event.preventDefault();
     i.simpleInsert('#');
+  }
+
+  handleInsertSubscript(i: MarkdownTextArea, event: any) {
+    event.preventDefault();
+    i.simpleSurround('~');
+  }
+
+  handleInsertSuperscript(i: MarkdownTextArea, event: any) {
+    event.preventDefault();
+    i.simpleSurround('^');
   }
 
   simpleInsert(chars: string) {
