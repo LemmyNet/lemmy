@@ -3,6 +3,7 @@ use crate::{
   api::{claims::Claims, APIError, Oper, Perform},
   apub::fetcher::search_by_apub_id,
   blocking,
+  version,
   websocket::{server::SendAllMessage, UserOperation, WebsocketInfo},
   DbPool,
   LemmyError,
@@ -110,6 +111,7 @@ pub struct GetSiteResponse {
   admins: Vec<UserView>,
   banned: Vec<UserView>,
   pub online: usize,
+  version: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -424,6 +426,7 @@ impl Perform for Oper<GetSite> {
       admins,
       banned,
       online,
+      version: version::VERSION.to_string(),
     })
   }
 }
@@ -666,6 +669,7 @@ impl Perform for Oper<TransferSite> {
       admins,
       banned,
       online: 0,
+      version: version::VERSION.to_string(),
     })
   }
 }
