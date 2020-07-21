@@ -589,7 +589,7 @@ impl Perform for Oper<EditPost> {
     }
 
     // Verify that only the creator can edit
-    if user_id != orig_post.creator_id {
+    if !Post::is_post_creator(user_id, orig_post.creator_id) {
       return Err(APIError::err("no_post_edit_allowed").into());
     }
 
@@ -692,7 +692,7 @@ impl Perform for Oper<DeletePost> {
     }
 
     // Verify that only the creator can delete
-    if user_id != orig_post.creator_id {
+    if !Post::is_post_creator(user_id, orig_post.creator_id) {
       return Err(APIError::err("no_post_edit_allowed").into());
     }
 
