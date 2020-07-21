@@ -1623,6 +1623,7 @@ Only admins and mods can sticky a post.
     content: String,
     parent_id: Option<i32>,
     post_id: i32,
+    form_id: Option<String>, // An optional form id, so you know which message came back
     auth: String
   }
 }
@@ -1652,6 +1653,7 @@ Only the creator can edit the comment.
   data: {
     content: String,
     edit_id: i32,
+    form_id: Option<String>,
     auth: String,
   }
 }

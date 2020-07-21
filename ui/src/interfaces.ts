@@ -708,6 +708,7 @@ export interface CommentForm {
   parent_id?: number;
   edit_id?: number;
   creator_id?: number;
+  form_id?: string;
   auth: string;
 }
 
@@ -739,6 +740,7 @@ export interface SaveCommentForm {
 export interface CommentResponse {
   comment: Comment;
   recipient_ids: Array<number>;
+  form_id?: string;
 }
 
 export interface CommentLikeForm {

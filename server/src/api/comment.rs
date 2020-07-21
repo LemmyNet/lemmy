@@ -44,6 +44,7 @@ pub struct CreateComment {
   content: String,
   parent_id: Option<i32>,
   pub post_id: i32,
+  form_id: Option<String>,
   auth: String,
 }
 
@@ -51,6 +52,7 @@ pub struct CreateComment {
 pub struct EditComment {
   content: String,
   edit_id: i32,
+  form_id: Option<String>,
   auth: String,
 }
 
@@ -87,6 +89,7 @@ pub struct SaveComment {
 pub struct CommentResponse {
   pub comment: CommentView,
   pub recipient_ids: Vec<i32>,
+  pub form_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -227,6 +230,7 @@ impl Perform for Oper<CreateComment> {
     let mut res = CommentResponse {
       comment: comment_view,
       recipient_ids,
+      form_id: data.form_id.to_owned(),
     };
 
     if let Some(ws) = websocket_info {
@@ -321,6 +325,7 @@ impl Perform for Oper<EditComment> {
     let mut res = CommentResponse {
       comment: comment_view,
       recipient_ids,
+      form_id: data.form_id.to_owned(),
     };
 
     if let Some(ws) = websocket_info {
@@ -419,6 +424,7 @@ impl Perform for Oper<DeleteComment> {
     let mut res = CommentResponse {
       comment: comment_view,
       recipient_ids,
+      form_id: None,
     };
 
     if let Some(ws) = websocket_info {
@@ -530,6 +536,7 @@ impl Perform for Oper<RemoveComment> {
     let mut res = CommentResponse {
       comment: comment_view,
       recipient_ids,
+      form_id: None,
     };
 
     if let Some(ws) = websocket_info {
@@ -621,6 +628,7 @@ impl Perform for Oper<MarkCommentAsRead> {
     let res = CommentResponse {
       comment: comment_view,
       recipient_ids: Vec::new(),
+      form_id: None,
     };
 
     Ok(res)
@@ -671,6 +679,7 @@ impl Perform for Oper<SaveComment> {
     Ok(CommentResponse {
       comment: comment_view,
       recipient_ids: Vec::new(),
+      form_id: None,
     })
   }
 }
@@ -782,6 +791,7 @@ impl Perform for Oper<CreateCommentLike> {
     let mut res = CommentResponse {
       comment: liked_comment,
       recipient_ids,
+      form_id: None,
     };
 
     if let Some(ws) = websocket_info {
