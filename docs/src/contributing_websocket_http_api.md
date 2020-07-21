@@ -754,6 +754,8 @@ Search types are `All, Comments, Posts, Communities, Users, Url`
     site: Option<SiteView>,
     admins: Vec<UserView>,
     banned: Vec<UserView>,
+    online: usize, // This is currently broken
+    version: String,
   }
 }
 ```

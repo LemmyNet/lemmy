@@ -107,6 +107,7 @@ export class Main extends Component<any, MainState> {
       admins: [],
       banned: [],
       online: null,
+      version: null,
     },
     showEditSite: false,
     loading: true,

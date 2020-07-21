@@ -30,7 +30,6 @@ import {
   messageToastify,
   md,
 } from '../utils';
-import { version } from '../version';
 import { i18n } from '../i18next';
 
 interface NavbarState {
@@ -41,6 +40,7 @@ interface NavbarState {
   messages: Array<PrivateMessage>;
   unreadCount: number;
   siteName: string;
+  version: string;
   admins: Array<UserView>;
   searchParam: string;
   toggleSearch: boolean;
@@ -58,6 +58,7 @@ export class Navbar extends Component<any, NavbarState> {
     messages: [],
     expanded: false,
     siteName: undefined,
+    version: undefined,
     admins: [],
     searchParam: '',
     toggleSearch: false,
@@ -150,7 +151,7 @@ export class Navbar extends Component<any, NavbarState> {
   navbar() {
     return (
       <nav class="container-fluid navbar navbar-expand-md navbar-light shadow p-0 px-3">
-        <Link title={version} class="navbar-brand" to="/">
+        <Link title={this.state.version} class="navbar-brand" to="/">
           {this.state.siteName}
         </Link>
         {this.state.isLoggedIn && (
@@ -395,6 +396,7 @@ export class Navbar extends Component<any, NavbarState> {
 
       if (data.site && !this.state.siteName) {
         this.state.siteName = data.site.name;
+        this.state.version = data.version;
         this.state.admins = data.admins;
         this.setState(this.state);
       }

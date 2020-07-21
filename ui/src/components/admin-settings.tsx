@@ -46,6 +46,7 @@ export class AdminSettings extends Component<any, AdminSettingsState> {
       admins: [],
       banned: [],
       online: null,
+      version: null,
     },
     siteConfigForm: {
       config_hjson: null,
