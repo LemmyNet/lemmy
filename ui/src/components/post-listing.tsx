@@ -4,7 +4,10 @@ import { WebSocketService, UserService } from '../services';
 import {
   Post,
   CreatePostLikeForm,
-  PostForm as PostFormI,
+  DeletePostForm,
+  RemovePostForm,
+  LockPostForm,
+  StickyPostForm,
   SavePostForm,
   CommunityUser,
   UserView,
@@ -33,7 +36,6 @@ import {
   setupTippy,
   hostname,
   previewLines,
-  toast,
 } from '../utils';
 import { i18n } from '../i18next';
 
@@ -1114,18 +1116,12 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   handleDeleteClick(i: PostListing) {
-    let deleteForm: PostFormI = {
-      body: i.props.post.body,
-      community_id: i.props.post.community_id,
-      name: i.props.post.name,
-      url: i.props.post.url,
+    let deleteForm: DeletePostForm = {
       edit_id: i.props.post.id,
-      creator_id: i.props.post.creator_id,
       deleted: !i.props.post.deleted,
-      nsfw: i.props.post.nsfw,
       auth: null,
     };
-    WebSocketService.Instance.editPost(deleteForm);
+    WebSocketService.Instance.deletePost(deleteForm);
   }
 
   handleSavePostClick(i: PostListing) {
@@ -1163,46 +1159,34 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
   handleModRemoveSubmit(i: PostListing) {
     event.preventDefault();
-    let form: PostFormI = {
-      name: i.props.post.name,
-      community_id: i.props.post.community_id,
+    let form: RemovePostForm = {
       edit_id: i.props.post.id,
-      creator_id: i.props.post.creator_id,
       removed: !i.props.post.removed,
       reason: i.state.removeReason,
-      nsfw: i.props.post.nsfw,
       auth: null,
     };
-    WebSocketService.Instance.editPost(form);
+    WebSocketService.Instance.removePost(form);
 
     i.state.showRemoveDialog = false;
     i.setState(i.state);
   }
 
   handleModLock(i: PostListing) {
-    let form: PostFormI = {
-      name: i.props.post.name,
-      community_id: i.props.post.community_id,
+    let form: LockPostForm = {
       edit_id: i.props.post.id,
-      creator_id: i.props.post.creator_id,
-      nsfw: i.props.post.nsfw,
       locked: !i.props.post.locked,
       auth: null,
     };
-    WebSocketService.Instance.editPost(form);
+    WebSocketService.Instance.lockPost(form);
   }
 
   handleModSticky(i: PostListing) {
-    let form: PostFormI = {
-      name: i.props.post.name,
-      community_id: i.props.post.community_id,
+    let form: StickyPostForm = {
       edit_id: i.props.post.id,
-      creator_id: i.props.post.creator_id,
-      nsfw: i.props.post.nsfw,
       stickied: !i.props.post.stickied,
       auth: null,
     };
-    WebSocketService.Instance.editPost(form);
+    WebSocketService.Instance.stickyPost(form);
   }
 
   handleModBanFromCommunityShow(i: PostListing) {

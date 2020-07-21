@@ -380,7 +380,13 @@ export class Community extends Component<any, State> {
       this.state.loading = false;
       this.setState(this.state);
       setupTippy();
-    } else if (res.op == UserOperation.EditPost) {
+    } else if (
+      res.op == UserOperation.EditPost ||
+      res.op == UserOperation.DeletePost ||
+      res.op == UserOperation.RemovePost ||
+      res.op == UserOperation.LockPost ||
+      res.op == UserOperation.StickyPost
+    ) {
       let data = res.data as PostResponse;
       editPostFindRes(data, this.state.posts);
       this.setState(this.state);

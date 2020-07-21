@@ -1271,8 +1271,9 @@ Only admins can remove a community.
     name: String,
     url: Option<String>,
     body: Option<String>,
+    nsfw: bool,
     community_id: i32,
-    auth: String
+    auth: String,
   }
 }
 ```
@@ -1378,25 +1379,17 @@ Post listing types are `All, Subscribed, Community`
 `POST /post/like`
 
 #### Edit Post
-
-Mods and admins can remove and lock a post, creators can delete it.
-
 ##### Request
 ```rust
 {
   op: "EditPost",
   data: {
     edit_id: i32,
-    creator_id: i32,
-    community_id: i32,
     name: String,
     url: Option<String>,
     body: Option<String>,
-    removed: Option<bool>,
-    deleted: Option<bool>,
-    locked: Option<bool>,
-    reason: Option<String>,
-    auth: String
+    nsfw: bool,
+    auth: String,
   }
 }
 ```
@@ -1413,6 +1406,120 @@ Mods and admins can remove and lock a post, creators can delete it.
 ##### HTTP
 
 `PUT /post`
+
+#### Delete Post
+##### Request
+```rust
+{
+  op: "DeletePost",
+  data: {
+    edit_id: i32,
+    deleted: bool,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "DeletePost",
+  data: {
+    post: PostView
+  }
+}
+```
+
+##### HTTP
+
+`POST /post/delete`
+
+#### Remove Post
+
+Only admins and mods can remove a post.
+
+##### Request
+```rust
+{
+  op: "RemovePost",
+  data: {
+    edit_id: i32,
+    removed: bool,
+    reason: Option<String>,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "RemovePost",
+  data: {
+    post: PostView
+  }
+}
+```
+
+##### HTTP
+
+`POST /post/remove`
+
+#### Lock Post
+
+Only admins and mods can lock a post.
+
+##### Request
+```rust
+{
+  op: "LockPost",
+  data: {
+    edit_id: i32,
+    locked: bool,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "LockPost",
+  data: {
+    post: PostView
+  }
+}
+```
+
+##### HTTP
+
+`POST /post/lock`
+
+#### Sticky Post
+
+Only admins and mods can sticky a post.
+
+##### Request
+```rust
+{
+  op: "StickyPost",
+  data: {
+    edit_id: i32,
+    stickied: bool,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "StickyPost",
+  data: {
+    post: PostView
+  }
+}
+```
+
+##### HTTP
+
+`POST /post/sticky`
 
 #### Save Post
 ##### Request

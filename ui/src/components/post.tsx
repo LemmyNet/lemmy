@@ -452,7 +452,13 @@ export class Post extends Component<any, PostState> {
       let data = res.data as PostResponse;
       createPostLikeRes(data, this.state.post);
       this.setState(this.state);
-    } else if (res.op == UserOperation.EditPost) {
+    } else if (
+      res.op == UserOperation.EditPost ||
+      res.op == UserOperation.DeletePost ||
+      res.op == UserOperation.RemovePost ||
+      res.op == UserOperation.LockPost ||
+      res.op == UserOperation.StickyPost
+    ) {
       let data = res.data as PostResponse;
       this.state.post = data.post;
       this.setState(this.state);
