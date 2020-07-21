@@ -9,6 +9,9 @@ import {
   PostForm,
   SavePostForm,
   CommentForm,
+  DeleteCommentForm,
+  RemoveCommentForm,
+  MarkCommentAsReadForm,
   SaveCommentForm,
   CommentLikeForm,
   GetPostForm,
@@ -165,14 +168,29 @@ export class WebSocketService {
     this.ws.send(this.wsSendWrapper(UserOperation.GetCommunity, form));
   }
 
-  public createComment(commentForm: CommentForm) {
-    this.setAuth(commentForm);
-    this.ws.send(this.wsSendWrapper(UserOperation.CreateComment, commentForm));
+  public createComment(form: CommentForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.CreateComment, form));
   }
 
-  public editComment(commentForm: CommentForm) {
-    this.setAuth(commentForm);
-    this.ws.send(this.wsSendWrapper(UserOperation.EditComment, commentForm));
+  public editComment(form: CommentForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.EditComment, form));
+  }
+
+  public deleteComment(form: DeleteCommentForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.DeleteComment, form));
+  }
+
+  public removeComment(form: RemoveCommentForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.RemoveComment, form));
+  }
+
+  public markCommentAsRead(form: MarkCommentAsReadForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.MarkCommentAsRead, form));
   }
 
   public likeComment(form: CommentLikeForm) {

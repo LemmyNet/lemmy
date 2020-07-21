@@ -83,6 +83,12 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .wrap(rate_limit.message())
           .route("", web::post().to(route_post::<CreateComment>))
           .route("", web::put().to(route_post::<EditComment>))
+          .route("/delete", web::post().to(route_post::<DeleteComment>))
+          .route("/remove", web::post().to(route_post::<RemoveComment>))
+          .route(
+            "/mark_as_read",
+            web::post().to(route_post::<MarkCommentAsRead>),
+          )
           .route("/like", web::post().to(route_post::<CreateCommentLike>))
           .route("/save", web::put().to(route_post::<SaveComment>)),
       )

@@ -506,6 +506,9 @@ impl ChatServer {
         // Comment ops
         UserOperation::CreateComment => do_user_operation::<CreateComment>(args).await,
         UserOperation::EditComment => do_user_operation::<EditComment>(args).await,
+        UserOperation::DeleteComment => do_user_operation::<DeleteComment>(args).await,
+        UserOperation::RemoveComment => do_user_operation::<RemoveComment>(args).await,
+        UserOperation::MarkCommentAsRead => do_user_operation::<MarkCommentAsRead>(args).await,
         UserOperation::SaveComment => do_user_operation::<SaveComment>(args).await,
         UserOperation::GetComments => do_user_operation::<GetComments>(args).await,
         UserOperation::CreateCommentLike => do_user_operation::<CreateCommentLike>(args).await,

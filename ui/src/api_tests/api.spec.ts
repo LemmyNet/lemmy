@@ -11,6 +11,8 @@ import {
   GetFollowedCommunitiesResponse,
   GetPostResponse,
   CommentForm,
+  DeleteCommentForm,
+  RemoveCommentForm,
   CommentResponse,
   CommunityForm,
   DeleteCommunityForm,
@@ -383,7 +385,6 @@ describe('main', () => {
       let unlikeCommentForm: CommentLikeForm = {
         comment_id: createResponse.comment.id,
         score: 0,
-        post_id: 2,
         auth: lemmyAlphaAuth,
       };
 
@@ -621,19 +622,16 @@ describe('main', () => {
       expect(createCommentRes.comment.content).toBe(commentContent);
 
       // lemmy_beta deletes the comment
-      let deleteCommentForm: CommentForm = {
-        content: commentContent,
+      let deleteCommentForm: DeleteCommentForm = {
         edit_id: createCommentRes.comment.id,
-        post_id: createPostRes.post.id,
         deleted: true,
         auth: lemmyBetaAuth,
-        creator_id: createCommentRes.comment.creator_id,
       };
 
       let deleteCommentRes: CommentResponse = await fetch(
-        `${lemmyBetaApiUrl}/comment`,
+        `${lemmyBetaApiUrl}/comment/delete`,
         {
-          method: 'PUT',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -650,19 +648,16 @@ describe('main', () => {
       expect(getPostRes.comments[0].deleted).toBe(true);
 
       // lemmy_beta undeletes the comment
-      let undeleteCommentForm: CommentForm = {
-        content: commentContent,
+      let undeleteCommentForm: DeleteCommentForm = {
         edit_id: createCommentRes.comment.id,
-        post_id: createPostRes.post.id,
         deleted: false,
         auth: lemmyBetaAuth,
-        creator_id: createCommentRes.comment.creator_id,
       };
 
       let undeleteCommentRes: CommentResponse = await fetch(
-        `${lemmyBetaApiUrl}/comment`,
+        `${lemmyBetaApiUrl}/comment/delete`,
         {
-          method: 'PUT',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -889,19 +884,16 @@ describe('main', () => {
       expect(createCommentRes.comment.content).toBe(commentContent);
 
       // lemmy_beta removes the comment
-      let removeCommentForm: CommentForm = {
-        content: commentContent,
+      let removeCommentForm: RemoveCommentForm = {
         edit_id: createCommentRes.comment.id,
-        post_id: createPostRes.post.id,
         removed: true,
         auth: lemmyBetaAuth,
-        creator_id: createCommentRes.comment.creator_id,
       };
 
       let removeCommentRes: CommentResponse = await fetch(
-        `${lemmyBetaApiUrl}/comment`,
+        `${lemmyBetaApiUrl}/comment/remove`,
         {
-          method: 'PUT',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -918,19 +910,16 @@ describe('main', () => {
       expect(getPostRes.comments[0].removed).toBe(true);
 
       // lemmy_beta undeletes the comment
-      let unremoveCommentForm: CommentForm = {
-        content: commentContent,
+      let unremoveCommentForm: RemoveCommentForm = {
         edit_id: createCommentRes.comment.id,
-        post_id: createPostRes.post.id,
         removed: false,
         auth: lemmyBetaAuth,
-        creator_id: createCommentRes.comment.creator_id,
       };
 
       let unremoveCommentRes: CommentResponse = await fetch(
-        `${lemmyBetaApiUrl}/comment`,
+        `${lemmyBetaApiUrl}/comment/remove`,
         {
-          method: 'PUT',
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },

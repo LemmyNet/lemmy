@@ -936,9 +936,11 @@ impl Perform for Oper<MarkAllAsRead> {
     .await??;
 
     // TODO: this should probably be a bulk operation
+    // Not easy to do as a bulk operation,
+    // because recipient_id isn't in the comment table
     for reply in &replies {
       let reply_id = reply.id;
-      let mark_as_read = move |conn: &'_ _| Comment::mark_as_read(conn, reply_id);
+      let mark_as_read = move |conn: &'_ _| Comment::update_read(conn, reply_id, true);
       if blocking(pool, mark_as_read).await?.is_err() {
         return Err(APIError::err("couldnt_update_comment").into());
       }
