@@ -1,12 +1,41 @@
 import { Component } from 'inferno';
 import { Link } from 'inferno-router';
-import { repoUrl } from '../utils';
-import { version } from '../version';
 import { i18n } from '../i18next';
+import { Subscription } from 'rxjs';
+import { retryWhen, delay, take } from 'rxjs/operators';
+import { WebSocketService } from '../services';
+import { repoUrl, wsJsonToRes } from '../utils';
+import {
+  UserOperation,
+  WebSocketJsonResponse,
+  GetSiteResponse,
+} from '../interfaces';
 
-export class Footer extends Component<any, any> {
+interface FooterState {
+  version: string;
+}
+
+export class Footer extends Component<any, FooterState> {
+  private wsSub: Subscription;
+  emptyState: FooterState = {
+    version: null,
+  };
   constructor(props: any, context: any) {
     super(props, context);
+
+    this.state = this.emptyState;
+
+    this.wsSub = WebSocketService.Instance.subject
+      .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
+      .subscribe(
+        msg => this.parseMessage(msg),
+        err => console.error(err),
+        () => console.log('complete')
+      );
+  }
+
+  componentWillUnmount() {
+    this.wsSub.unsubscribe();
   }
 
   render() {
@@ -15,7 +44,7 @@ export class Footer extends Component<any, any> {
         <div className="navbar-collapse">
           <ul class="navbar-nav ml-auto">
             <li class="nav-item">
-              <span class="navbar-text">{version}</span>
+              <span class="navbar-text">{this.state.version}</span>
             </li>
             <li class="nav-item">
               <Link class="nav-link" to="/modlog">
@@ -41,5 +70,13 @@ export class Footer extends Component<any, any> {
         </div>
       </nav>
     );
+  }
+  parseMessage(msg: WebSocketJsonResponse) {
+    let res = wsJsonToRes(msg);
+
+    if (res.op == UserOperation.GetSite) {
+      let data = res.data as GetSiteResponse;
+      this.setState({ version: data.version });
+    }
   }
 }
