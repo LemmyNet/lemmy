@@ -192,7 +192,7 @@
     "yes": "sim",
     "no": "não",
     "powered_by": "Fornecido por",
-    "landing_0": "Lemmy é um <1>agregador de links</1> / alternativa ao reddit, com a intenção de funcionar junto ao <2>fediverso</2>.<3></3>Pode ser hospedado em servidor próprio, tem atualização de comentários em tempo real e é minúsculo (<4>~80kB</4>). A federação com a rede ActivityPub está no roteiro do projeto. <5></5>Esta é uma <6>versão beta bastante antecipada</6>, e muitas funcionalidades ainda estão quebradas ou ausentes. <7></7>Sugira novas funcionalidades ou reporte erros <8>aqui.</8><9></9>Feito com <10>Rust</10>, <11>Actix</11>, <12>Inferno</12>, <13>Typescript</13>.",
+    "landing": "Lemmy é um <1>agregador de links</1> / alternativa ao reddit, com a intenção de funcionar junto ao <2>fediverso</2>.<3></3>Pode ser hospedado em servidor próprio, tem atualização de comentários em tempo real e é minúsculo (<4>~80kB</4>). A federação com a rede ActivityPub está no roteiro do projeto. <5></5>Esta é uma <6>versão beta bastante antecipada</6>, e muitas funcionalidades ainda estão quebradas ou ausentes. <7></7>Sugira novas funcionalidades ou reporte erros <8>aqui.</8><9></9>Feito com <10>Rust</10>, <11>Actix</11>, <12>Inferno</12>, <13>Typescript</13>. <14></14> <15>Agradecemos aos nossos contribuidores: </15> dessalines, Nutomic, asonix, zacanger, e iav.",
     "not_logged_in": "Não autenticado.",
     "logged_in": "Autenticado.",
     "community_ban": "Você foi banido desta comunidade.",
@@ -256,5 +256,10 @@
     "site_saved": "Site Salvo.",
     "emoji_picker": "Selecionador de Emoji",
     "select_a_community": "Selecione uma comunidade",
-    "invalid_username": "Nome de usuário inválido."
+    "invalid_username": "Nome de usuário inválido.",
+    "must_login": "Você precisa <1>entrar ou registrar-se</1> para comentar.",
+    "no_password_reset": "Você não conseguirá redefinir sua senha sem um e-mail.",
+    "invalid_post_title": "Título de publicação inválido",
+    "cake_day_info": "Hoje é o dia do bolo de {{ creator_name }}!",
+    "cake_day_title": "Dia do bolo:"
 }
