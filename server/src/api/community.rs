@@ -802,26 +802,15 @@ impl Perform for Oper<BanFromCommunity> {
 
     let user_id = claims.id;
 
-    let mut community_moderators: Vec<i32> = vec![];
-
     let community_id = data.community_id;
 
-    community_moderators.append(
-      &mut blocking(pool, move |conn| {
-        CommunityModeratorView::for_community(&conn, community_id)
-          .map(|v| v.into_iter().map(|m| m.user_id).collect())
-      })
-      .await??,
-    );
-    community_moderators.append(
-      &mut blocking(pool, move |conn| {
-        UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())
-      })
-      .await??,
-    );
-
-    if !community_moderators.contains(&user_id) {
-      return Err(APIError::err("couldnt_update_community").into());
+    // Verify that only mods or admins can ban
+    let is_mod_or_admin = blocking(pool, move |conn| {
+      Community::is_mod_or_admin(conn, user_id, community_id)
+    })
+    .await?;
+    if !is_mod_or_admin {
+      return Err(APIError::err("not_an_admin").into());
     }
 
     let community_user_ban_form = CommunityUserBanForm {
@@ -901,26 +890,15 @@ impl Perform for Oper<AddModToCommunity> {
       user_id: data.user_id,
     };
 
-    let mut community_moderators: Vec<i32> = vec![];
-
     let community_id = data.community_id;
 
-    community_moderators.append(
-      &mut blocking(pool, move |conn| {
-        CommunityModeratorView::for_community(&conn, community_id)
-          .map(|v| v.into_iter().map(|m| m.user_id).collect())
-      })
-      .await??,
-    );
-    community_moderators.append(
-      &mut blocking(pool, move |conn| {
-        UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())
-      })
-      .await??,
-    );
-
-    if !community_moderators.contains(&user_id) {
-      return Err(APIError::err("couldnt_update_community").into());
+    // Verify that only mods or admins can add mod
+    let is_mod_or_admin = blocking(pool, move |conn| {
+      Community::is_mod_or_admin(conn, user_id, community_id)
+    })
+    .await?;
+    if !is_mod_or_admin {
+      return Err(APIError::err("not_an_admin").into());
     }
 
     if data.added {

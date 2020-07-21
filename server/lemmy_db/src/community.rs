@@ -133,7 +133,7 @@ impl Community {
       .get_result::<Self>(conn)
   }
 
-  pub fn community_mods_and_admins(
+  fn community_mods_and_admins(
     conn: &PgConnection,
     community_id: i32,
   ) -> Result<Vec<i32>, Error> {
@@ -146,6 +146,12 @@ impl Community {
     mods_and_admins
       .append(&mut UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())?);
     Ok(mods_and_admins)
+  }
+
+  pub fn is_mod_or_admin(conn: &PgConnection, user_id: i32, community_id: i32) -> bool {
+    Self::community_mods_and_admins(conn, community_id)
+      .unwrap_or_default()
+      .contains(&user_id)
   }
 }
 

@@ -770,11 +770,11 @@ impl Perform for Oper<RemovePost> {
     }
 
     // Verify that only the mods can remove
-    let mods_and_admins = blocking(pool, move |conn| {
-      Community::community_mods_and_admins(conn, community_id)
+    let is_mod_or_admin = blocking(pool, move |conn| {
+      Community::is_mod_or_admin(conn, user_id, community_id)
     })
-    .await??;
-    if !mods_and_admins.contains(&user_id) {
+    .await?;
+    if !is_mod_or_admin {
       return Err(APIError::err("not_an_admin").into());
     }
 
@@ -861,11 +861,11 @@ impl Perform for Oper<LockPost> {
     }
 
     // Verify that only the mods can lock
-    let mods_and_admins = blocking(pool, move |conn| {
-      Community::community_mods_and_admins(conn, community_id)
+    let is_mod_or_admin = blocking(pool, move |conn| {
+      Community::is_mod_or_admin(conn, user_id, community_id)
     })
-    .await??;
-    if !mods_and_admins.contains(&user_id) {
+    .await?;
+    if !is_mod_or_admin {
       return Err(APIError::err("not_an_admin").into());
     }
 
@@ -943,11 +943,11 @@ impl Perform for Oper<StickyPost> {
     }
 
     // Verify that only the mods can sticky
-    let mods_and_admins = blocking(pool, move |conn| {
-      Community::community_mods_and_admins(conn, community_id)
+    let is_mod_or_admin = blocking(pool, move |conn| {
+      Community::is_mod_or_admin(conn, user_id, community_id)
     })
-    .await??;
-    if !mods_and_admins.contains(&user_id) {
+    .await?;
+    if !is_mod_or_admin {
       return Err(APIError::err("not_an_admin").into());
     }
 
