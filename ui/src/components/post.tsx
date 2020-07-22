@@ -92,6 +92,7 @@ export class Post extends Component<any, PostState> {
         enable_nsfw: undefined,
       },
       online: null,
+      version: null,
     },
   };
 

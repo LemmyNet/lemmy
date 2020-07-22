@@ -160,7 +160,7 @@
     "yes": "sì",
     "no": "no",
     "powered_by": "Offerto da",
-    "landing": "Lemmy è un <1>aggregatore di link</1> / alternativa a reddit, creato per integrarsi con il <2>fediverso</2>. <3></3>È self-hosted, i commenti sono aggiornati in tempo reale ed è molto piccolo (<4>~80kB</4>). La federazione con la rete ActivityPub sarà implementata nel futuro. <5></5>Questa versione è una <6>beta molto giovane</6> e molte funzionalità sono incomplete o mancanti. <7></7>Suggerisci nuove funzionalità o segnala errori a <8>questa pagina.</8><9></9>Sviluppato con <10>Rust</10>, <11>Actix</11>, <12>Inferno</12>, <13>Typescript</13>.",
+    "landing": "Lemmy è un <1>aggregatore di link</1> / alternativa a reddit, creato per integrarsi con il <2>fediverso</2>. <3></3>È self-hosted, i commenti sono aggiornati in tempo reale ed è molto piccolo (<4>~80kB</4>). La federazione con la rete ActivityPub sarà implementata nel futuro. <5></5>Questa versione è una <6>beta molto giovane</6> e molte funzionalità sono incomplete o mancanti. <7></7>Suggerisci nuove funzionalità o segnala errori a <8>questa pagina.</8><9></9>Sviluppato con <10>Rust</10>, <11>Actix</11>, <12>Inferno</12>, <13>Typescript</13>.<14></14> <15>Un grazie ai nostri sostenitori: </15> dessalines, Nutomic, asonix, zacanger, and iav.",
     "not_logged_in": "Non hai effettuato l'accesso.",
     "community_ban": "Sei stato escluso da questa comunità.",
     "site_ban": "Sei stato escluso dal sito",
@@ -257,5 +257,10 @@
     "picture_deleted": "Foto eliminata.",
     "select_a_community": "Seleziona una comunità",
     "invalid_username": "Nome utente non valido.",
-    "what_is": "Cos'è"
+    "what_is": "Cos'è",
+    "must_login": "Devi <1>effettuare l'accesso o registrarti</1> per commentare.",
+    "no_password_reset": "Non sarai in grado di resettare la tua password senza una email.",
+    "cake_day_title": "Cake day:",
+    "cake_day_info": "Oggi è il cake day di {{ creator_name }}!",
+    "invalid_post_title": "Titolo della pubblicazione non valido"
 }
