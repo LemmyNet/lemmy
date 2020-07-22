@@ -260,5 +260,6 @@
     "invalid_post_title": "Titre du post invalide",
     "must_login": "Vous devez vous être <1>connecté ou enregistré</1> pour commenter.",
     "no_password_reset": "Vous ne pourrez pas réinitialiser votre mot de passe sans un e-mail.",
-    "what_is": "Combien font"
+    "what_is": "Combien font",
+    "cake_day_title": "Lemmyversaire :"
 }
