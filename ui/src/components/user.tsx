@@ -13,9 +13,9 @@ import {
   DeleteAccountForm,
   WebSocketJsonResponse,
   GetSiteResponse,
-  Site,
   UserDetailsView,
   UserDetailsResponse,
+  AddAdminResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import {
@@ -54,7 +54,7 @@ interface UserState {
   deleteAccountLoading: boolean;
   deleteAccountShowConfirm: boolean;
   deleteAccountForm: DeleteAccountForm;
-  site: Site;
+  siteRes: GetSiteResponse;
 }
 
 interface UserProps {
@@ -114,19 +114,24 @@ export class User extends Component<any, UserState> {
     deleteAccountForm: {
       password: null,
     },
-    site: {
-      id: undefined,
-      name: undefined,
-      creator_id: undefined,
-      published: undefined,
-      creator_name: undefined,
-      number_of_users: undefined,
-      number_of_posts: undefined,
-      number_of_comments: undefined,
-      number_of_communities: undefined,
-      enable_downvotes: undefined,
-      open_registration: undefined,
-      enable_nsfw: undefined,
+    siteRes: {
+      admins: [],
+      banned: [],
+      online: undefined,
+      site: {
+        id: undefined,
+        name: undefined,
+        creator_id: undefined,
+        published: undefined,
+        creator_name: undefined,
+        number_of_users: undefined,
+        number_of_posts: undefined,
+        number_of_comments: undefined,
+        number_of_communities: undefined,
+        enable_downvotes: undefined,
+        open_registration: undefined,
+        enable_nsfw: undefined,
+      },
     },
   };
 
@@ -201,7 +206,7 @@ export class User extends Component<any, UserState> {
       // Couldnt get a refresh working. This does for now.
       location.reload();
     }
-    document.title = `/u/${this.state.username} - ${this.state.site.name}`;
+    document.title = `/u/${this.state.username} - ${this.state.siteRes.site.name}`;
     setupTippy();
   }
 
@@ -236,8 +241,9 @@ export class User extends Component<any, UserState> {
               sort={SortType[this.state.sort]}
               page={this.state.page}
               limit={fetchLimit}
-              enableDownvotes={this.state.site.enable_downvotes}
-              enableNsfw={this.state.site.enable_nsfw}
+              enableDownvotes={this.state.siteRes.site.enable_downvotes}
+              enableNsfw={this.state.siteRes.site.enable_nsfw}
+              admins={this.state.siteRes.admins}
               view={this.state.view}
               onPageChange={this.handlePageChange}
             />
@@ -637,7 +643,7 @@ export class User extends Component<any, UserState> {
                   />
                 </div>
               </div>
-              {this.state.site.enable_nsfw && (
+              {this.state.siteRes.site.enable_nsfw && (
                 <div class="form-group">
                   <div class="form-check">
                     <input
@@ -1063,9 +1069,12 @@ export class User extends Component<any, UserState> {
       this.context.router.history.push('/');
     } else if (res.op == UserOperation.GetSite) {
       const data = res.data as GetSiteResponse;
-      this.setState({
-        site: data.site,
-      });
+      this.state.siteRes = data;
+      this.setState(this.state);
+    } else if (res.op == UserOperation.AddAdmin) {
+      const data = res.data as AddAdminResponse;
+      this.state.siteRes.admins = data.admins;
+      this.setState(this.state);
     }
   }
 }

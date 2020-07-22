@@ -71,9 +71,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       nsfw: false,
       auth: null,
       community_id: null,
-      creator_id: UserService.Instance.user
-        ? UserService.Instance.user.id
-        : null,
     },
     communities: [],
     loading: false,
@@ -99,7 +96,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
         name: this.props.post.name,
         community_id: this.props.post.community_id,
         edit_id: this.props.post.id,
-        creator_id: this.props.post.creator_id,
         url: this.props.post.url,
         nsfw: this.props.post.nsfw,
         auth: null,

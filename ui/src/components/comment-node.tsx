@@ -3,8 +3,10 @@ import { Link } from 'inferno-router';
 import {
   CommentNode as CommentNodeI,
   CommentLikeForm,
-  CommentForm as CommentFormI,
-  EditUserMentionForm,
+  DeleteCommentForm,
+  RemoveCommentForm,
+  MarkCommentAsReadForm,
+  MarkUserMentionAsReadForm,
   SaveCommentForm,
   BanFromCommunityForm,
   BanUserForm,
@@ -848,16 +850,12 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   }
 
   handleDeleteClick(i: CommentNode) {
-    let deleteForm: CommentFormI = {
-      content: i.props.node.comment.content,
+    let deleteForm: DeleteCommentForm = {
       edit_id: i.props.node.comment.id,
-      creator_id: i.props.node.comment.creator_id,
-      post_id: i.props.node.comment.post_id,
-      parent_id: i.props.node.comment.parent_id,
       deleted: !i.props.node.comment.deleted,
       auth: null,
     };
-    WebSocketService.Instance.editComment(deleteForm);
+    WebSocketService.Instance.deleteComment(deleteForm);
   }
 
   handleSaveCommentClick(i: CommentNode) {
@@ -901,7 +899,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
 
     let form: CommentLikeForm = {
       comment_id: i.comment.id,
-      post_id: i.comment.post_id,
       score: this.state.my_vote,
     };
 
@@ -929,7 +926,6 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
 
     let form: CommentLikeForm = {
       comment_id: i.comment.id,
-      post_id: i.comment.post_id,
       score: this.state.my_vote,
     };
 
@@ -950,17 +946,13 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
 
   handleModRemoveSubmit(i: CommentNode) {
     event.preventDefault();
-    let form: CommentFormI = {
-      content: i.props.node.comment.content,
+    let form: RemoveCommentForm = {
       edit_id: i.props.node.comment.id,
-      creator_id: i.props.node.comment.creator_id,
-      post_id: i.props.node.comment.post_id,
-      parent_id: i.props.node.comment.parent_id,
       removed: !i.props.node.comment.removed,
       reason: i.state.removeReason,
       auth: null,
     };
-    WebSocketService.Instance.editComment(form);
+    WebSocketService.Instance.removeComment(form);
 
     i.state.showRemoveDialog = false;
     i.setState(i.state);
@@ -969,22 +961,18 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
   handleMarkRead(i: CommentNode) {
     // if it has a user_mention_id field, then its a mention
     if (i.props.node.comment.user_mention_id) {
-      let form: EditUserMentionForm = {
+      let form: MarkUserMentionAsReadForm = {
         user_mention_id: i.props.node.comment.user_mention_id,
         read: !i.props.node.comment.read,
       };
-      WebSocketService.Instance.editUserMention(form);
+      WebSocketService.Instance.markUserMentionAsRead(form);
     } else {
-      let form: CommentFormI = {
-        content: i.props.node.comment.content,
+      let form: MarkCommentAsReadForm = {
         edit_id: i.props.node.comment.id,
-        creator_id: i.props.node.comment.creator_id,
-        post_id: i.props.node.comment.post_id,
-        parent_id: i.props.node.comment.parent_id,
         read: !i.props.node.comment.read,
         auth: null,
       };
-      WebSocketService.Instance.editComment(form);
+      WebSocketService.Instance.markCommentAsRead(form);
     }
 
     i.state.readLoading = true;

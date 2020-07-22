@@ -355,12 +355,15 @@ export class Community extends Component<any, State> {
       let data = res.data as GetCommunityResponse;
       this.state.community = data.community;
       this.state.moderators = data.moderators;
-      this.state.admins = data.admins;
       this.state.online = data.online;
       document.title = `/c/${this.state.community.name} - ${this.state.site.name}`;
       this.setState(this.state);
       this.fetchData();
-    } else if (res.op == UserOperation.EditCommunity) {
+    } else if (
+      res.op == UserOperation.EditCommunity ||
+      res.op == UserOperation.DeleteCommunity ||
+      res.op == UserOperation.RemoveCommunity
+    ) {
       let data = res.data as CommunityResponse;
       this.state.community = data.community;
       this.setState(this.state);
@@ -376,7 +379,13 @@ export class Community extends Component<any, State> {
       this.state.loading = false;
       this.setState(this.state);
       setupTippy();
-    } else if (res.op == UserOperation.EditPost) {
+    } else if (
+      res.op == UserOperation.EditPost ||
+      res.op == UserOperation.DeletePost ||
+      res.op == UserOperation.RemovePost ||
+      res.op == UserOperation.LockPost ||
+      res.op == UserOperation.StickyPost
+    ) {
       let data = res.data as PostResponse;
       editPostFindRes(data, this.state.posts);
       this.setState(this.state);
@@ -405,7 +414,11 @@ export class Community extends Component<any, State> {
       this.state.comments = data.comments;
       this.state.loading = false;
       this.setState(this.state);
-    } else if (res.op == UserOperation.EditComment) {
+    } else if (
+      res.op == UserOperation.EditComment ||
+      res.op == UserOperation.DeleteComment ||
+      res.op == UserOperation.RemoveComment
+    ) {
       let data = res.data as CommentResponse;
       editCommentRes(data, this.state.comments);
       this.setState(this.state);
@@ -428,6 +441,7 @@ export class Community extends Component<any, State> {
     } else if (res.op == UserOperation.GetSite) {
       let data = res.data as GetSiteResponse;
       this.state.site = data.site;
+      this.state.admins = data.admins;
       this.setState(this.state);
     }
   }

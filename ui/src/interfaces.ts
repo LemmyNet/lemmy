@@ -9,19 +9,28 @@ export enum UserOperation {
   GetCommunity,
   CreateComment,
   EditComment,
+  DeleteComment,
+  RemoveComment,
+  MarkCommentAsRead,
   SaveComment,
   CreateCommentLike,
   GetPosts,
   CreatePostLike,
   EditPost,
+  DeletePost,
+  RemovePost,
+  LockPost,
+  StickyPost,
   SavePost,
   EditCommunity,
+  DeleteCommunity,
+  RemoveCommunity,
   FollowCommunity,
   GetFollowedCommunities,
   GetUserDetails,
   GetReplies,
   GetUserMentions,
-  EditUserMention,
+  MarkUserMentionAsRead,
   GetModlog,
   BanFromCommunity,
   AddModToCommunity,
@@ -40,6 +49,8 @@ export enum UserOperation {
   PasswordChange,
   CreatePrivateMessage,
   EditPrivateMessage,
+  DeletePrivateMessage,
+  MarkPrivateMessageAsRead,
   GetPrivateMessages,
   UserJoin,
   GetComments,
@@ -355,9 +366,9 @@ export interface GetUserMentionsResponse {
   mentions: Array<Comment>;
 }
 
-export interface EditUserMentionForm {
+export interface MarkUserMentionAsReadForm {
   user_mention_id: number;
-  read?: boolean;
+  read: boolean;
   auth?: string;
 }
 
@@ -571,13 +582,23 @@ export interface UserSettingsForm {
 
 export interface CommunityForm {
   name: string;
+  edit_id?: number;
   title: string;
   description?: string;
   category_id: number;
-  edit_id?: number;
-  removed?: boolean;
-  deleted?: boolean;
   nsfw: boolean;
+  auth?: string;
+}
+
+export interface DeleteCommunityForm {
+  edit_id: number;
+  deleted: boolean;
+  auth?: string;
+}
+
+export interface RemoveCommunityForm {
+  edit_id: number;
+  removed: boolean;
   reason?: string;
   expires?: number;
   auth?: string;
@@ -592,7 +613,6 @@ export interface GetCommunityForm {
 export interface GetCommunityResponse {
   community: Community;
   moderators: Array<CommunityUser>;
-  admins: Array<UserView>;
   online: number;
 }
 
@@ -619,16 +639,34 @@ export interface PostForm {
   name: string;
   url?: string;
   body?: string;
-  community_id: number;
-  updated?: number;
+  community_id?: number;
   edit_id?: number;
-  creator_id: number;
-  removed?: boolean;
-  deleted?: boolean;
   nsfw: boolean;
-  locked?: boolean;
-  stickied?: boolean;
+  auth: string;
+}
+
+export interface DeletePostForm {
+  edit_id: number;
+  deleted: boolean;
+  auth: string;
+}
+
+export interface RemovePostForm {
+  edit_id: number;
+  removed: boolean;
   reason?: string;
+  auth: string;
+}
+
+export interface LockPostForm {
+  edit_id: number;
+  locked: boolean;
+  auth: string;
+}
+
+export interface StickyPostForm {
+  edit_id: number;
+  stickied: boolean;
   auth: string;
 }
 
@@ -649,7 +687,6 @@ export interface GetPostResponse {
   comments: Array<Comment>;
   community: Community;
   moderators: Array<CommunityUser>;
-  admins: Array<UserView>;
   online: number;
 }
 
@@ -665,14 +702,30 @@ export interface PostResponse {
 
 export interface CommentForm {
   content: string;
-  post_id: number;
+  post_id?: number;
   parent_id?: number;
   edit_id?: number;
   creator_id?: number;
-  removed?: boolean;
-  deleted?: boolean;
+  form_id?: string;
+  auth: string;
+}
+
+export interface DeleteCommentForm {
+  edit_id: number;
+  deleted: boolean;
+  auth: string;
+}
+
+export interface RemoveCommentForm {
+  edit_id: number;
+  removed: boolean;
   reason?: string;
-  read?: boolean;
+  auth: string;
+}
+
+export interface MarkCommentAsReadForm {
+  edit_id: number;
+  read: boolean;
   auth: string;
 }
 
@@ -685,11 +738,11 @@ export interface SaveCommentForm {
 export interface CommentResponse {
   comment: Comment;
   recipient_ids: Array<number>;
+  form_id?: string;
 }
 
 export interface CommentLikeForm {
   comment_id: number;
-  post_id: number;
   score: number;
   auth?: string;
 }
@@ -835,9 +888,19 @@ export interface PrivateMessageFormParams {
 
 export interface EditPrivateMessageForm {
   edit_id: number;
-  content?: string;
-  deleted?: boolean;
-  read?: boolean;
+  content: string;
+  auth?: string;
+}
+
+export interface DeletePrivateMessageForm {
+  edit_id: number;
+  deleted: boolean;
+  auth?: string;
+}
+
+export interface MarkPrivateMessageAsReadForm {
+  edit_id: number;
+  read: boolean;
   auth?: string;
 }
 
@@ -865,18 +928,26 @@ export interface UserJoinResponse {
 }
 
 export type MessageType =
-  | EditPrivateMessageForm
   | LoginForm
   | RegisterForm
   | CommunityForm
+  | DeleteCommunityForm
+  | RemoveCommunityForm
   | FollowCommunityForm
   | ListCommunitiesForm
   | GetFollowedCommunitiesForm
   | PostForm
+  | DeletePostForm
+  | RemovePostForm
+  | LockPostForm
+  | StickyPostForm
   | GetPostForm
   | GetPostsForm
   | GetCommunityForm
   | CommentForm
+  | DeleteCommentForm
+  | RemoveCommentForm
+  | MarkCommentAsReadForm
   | CommentLikeForm
   | SaveCommentForm
   | CreatePostLikeForm
@@ -891,7 +962,7 @@ export type MessageType =
   | GetUserDetailsForm
   | GetRepliesForm
   | GetUserMentionsForm
-  | EditUserMentionForm
+  | MarkUserMentionAsReadForm
   | GetModlogForm
   | SiteForm
   | SearchForm
@@ -901,6 +972,8 @@ export type MessageType =
   | PasswordChangeForm
   | PrivateMessageForm
   | EditPrivateMessageForm
+  | DeletePrivateMessageForm
+  | MarkPrivateMessageAsReadForm
   | GetPrivateMessagesForm
   | SiteConfigForm;
 

@@ -295,18 +295,18 @@ pub struct CommunityModeratorView {
 }
 
 impl CommunityModeratorView {
-  pub fn for_community(conn: &PgConnection, from_community_id: i32) -> Result<Vec<Self>, Error> {
+  pub fn for_community(conn: &PgConnection, for_community_id: i32) -> Result<Vec<Self>, Error> {
     use super::community_view::community_moderator_view::dsl::*;
     community_moderator_view
-      .filter(community_id.eq(from_community_id))
+      .filter(community_id.eq(for_community_id))
       .order_by(published)
       .load::<Self>(conn)
   }
 
-  pub fn for_user(conn: &PgConnection, from_user_id: i32) -> Result<Vec<Self>, Error> {
+  pub fn for_user(conn: &PgConnection, for_user_id: i32) -> Result<Vec<Self>, Error> {
     use super::community_view::community_moderator_view::dsl::*;
     community_moderator_view
-      .filter(user_id.eq(from_user_id))
+      .filter(user_id.eq(for_user_id))
       .order_by(published)
       .load::<Self>(conn)
   }
