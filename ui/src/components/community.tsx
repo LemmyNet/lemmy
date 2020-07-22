@@ -355,7 +355,6 @@ export class Community extends Component<any, State> {
       let data = res.data as GetCommunityResponse;
       this.state.community = data.community;
       this.state.moderators = data.moderators;
-      this.state.admins = data.admins;
       this.state.online = data.online;
       document.title = `/c/${this.state.community.name} - ${this.state.site.name}`;
       this.setState(this.state);
@@ -442,6 +441,7 @@ export class Community extends Component<any, State> {
     } else if (res.op == UserOperation.GetSite) {
       let data = res.data as GetSiteResponse;
       this.state.site = data.site;
+      this.state.admins = data.admins;
       this.setState(this.state);
     }
   }

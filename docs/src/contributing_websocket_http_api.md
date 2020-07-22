@@ -1054,7 +1054,6 @@ Search types are `All, Comments, Posts, Communities, Users, Url`
   data: {
     community: CommunityView,
     moderators: Vec<CommunityModeratorView>,
-    admins: Vec<UserView>,
   }
 }
 ```
@@ -1379,7 +1378,6 @@ Only admins can remove a community.
     comments: Vec<CommentView>,
     community: CommunityView,
     moderators: Vec<CommunityModeratorView>,
-    admins: Vec<UserView>,
   }
 }
 ```

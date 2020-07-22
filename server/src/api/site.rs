@@ -1,6 +1,6 @@
 use super::user::Register;
 use crate::{
-  api::{claims::Claims, APIError, Oper, Perform},
+  api::{claims::Claims, is_admin, APIError, Oper, Perform},
   apub::fetcher::search_by_apub_id,
   blocking,
   version,
@@ -257,10 +257,7 @@ impl Perform for Oper<CreateSite> {
     let user_id = claims.id;
 
     // Make sure user is an admin
-    let user = blocking(pool, move |conn| UserView::read(conn, user_id)).await??;
-    if !user.admin {
-      return Err(APIError::err("not_an_admin").into());
-    }
+    is_admin(pool, user_id).await?;
 
     let site_form = SiteForm {
       name: data.name.to_owned(),
@@ -311,10 +308,7 @@ impl Perform for Oper<EditSite> {
     let user_id = claims.id;
 
     // Make sure user is an admin
-    let user = blocking(pool, move |conn| UserView::read(conn, user_id)).await??;
-    if !user.admin {
-      return Err(APIError::err("not_an_admin").into());
-    }
+    is_admin(pool, user_id).await?;
 
     let found_site = blocking(pool, move |conn| Site::read(conn, 1)).await??;
 
@@ -693,12 +687,7 @@ impl Perform for Oper<GetSiteConfig> {
     let user_id = claims.id;
 
     // Only let admins read this
-    let admins = blocking(pool, move |conn| UserView::admins(conn)).await??;
-    let admin_ids: Vec<i32> = admins.into_iter().map(|m| m.id).collect();
-
-    if !admin_ids.contains(&user_id) {
-      return Err(APIError::err("not_an_admin").into());
-    }
+    is_admin(pool, user_id).await?;
 
     let config_hjson = Settings::read_config_file()?;
 

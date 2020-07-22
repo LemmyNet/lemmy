@@ -405,7 +405,6 @@ export class Post extends Component<any, PostState> {
       this.state.comments = data.comments;
       this.state.community = data.community;
       this.state.moderators = data.moderators;
-      this.state.siteRes.admins = data.admins;
       this.state.online = data.online;
       this.state.loading = false;
       document.title = `${this.state.post.name} - ${this.state.siteRes.site.name}`;
@@ -531,7 +530,6 @@ export class Post extends Component<any, PostState> {
       let data = res.data as GetCommunityResponse;
       this.state.community = data.community;
       this.state.moderators = data.moderators;
-      this.state.siteRes.admins = data.admins;
       this.setState(this.state);
     }
   }

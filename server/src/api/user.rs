@@ -1,5 +1,5 @@
 use crate::{
-  api::{claims::Claims, APIError, Oper, Perform},
+  api::{claims::Claims, is_admin, APIError, Oper, Perform},
   apub::ApubObjectType,
   blocking,
   websocket::{
@@ -679,10 +679,7 @@ impl Perform for Oper<AddAdmin> {
     let user_id = claims.id;
 
     // Make sure user is an admin
-    let is_admin = move |conn: &'_ _| UserView::read(conn, user_id).map(|u| u.admin);
-    if !blocking(pool, is_admin).await?? {
-      return Err(APIError::err("not_an_admin").into());
-    }
+    is_admin(pool, user_id).await?;
 
     let added = data.added;
     let added_user_id = data.user_id;
@@ -741,10 +738,7 @@ impl Perform for Oper<BanUser> {
     let user_id = claims.id;
 
     // Make sure user is an admin
-    let is_admin = move |conn: &'_ _| UserView::read(conn, user_id).map(|u| u.admin);
-    if !blocking(pool, is_admin).await?? {
-      return Err(APIError::err("not_an_admin").into());
-    }
+    is_admin(pool, user_id).await?;
 
     let ban = data.ban;
     let banned_user_id = data.user_id;

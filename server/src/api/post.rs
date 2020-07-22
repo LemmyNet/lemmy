@@ -1,5 +1,5 @@
 use crate::{
-  api::{claims::Claims, APIError, Oper, Perform},
+  api::{claims::Claims, is_mod_or_admin, APIError, Oper, Perform},
   apub::{ApubLikeableType, ApubObjectType},
   blocking,
   fetch_iframely_and_pictrs_data,
@@ -13,16 +13,13 @@ use crate::{
 };
 use lemmy_db::{
   comment_view::*,
-  community::*,
   community_view::*,
   moderator::*,
   naive_now,
   post::*,
   post_view::*,
-  site::*,
   site_view::*,
   user::*,
-  user_view::*,
   Crud,
   Likeable,
   ListingType,
@@ -67,7 +64,6 @@ pub struct GetPostResponse {
   comments: Vec<CommentView>,
   community: CommunityView,
   moderators: Vec<CommunityModeratorView>,
-  admins: Vec<UserView>,
   pub online: usize,
 }
 
@@ -334,14 +330,6 @@ impl Perform for Oper<GetPost> {
     })
     .await??;
 
-    let site_creator_id =
-      blocking(pool, move |conn| Site::read(conn, 1).map(|s| s.creator_id)).await??;
-
-    let mut admins = blocking(pool, move |conn| UserView::admins(conn)).await??;
-    let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
-    let creator_user = admins.remove(creator_index);
-    admins.insert(0, creator_user);
-
     let online = if let Some(ws) = websocket_info {
       if let Some(id) = ws.id {
         ws.chatserver.do_send(JoinPostRoom {
@@ -366,7 +354,6 @@ impl Perform for Oper<GetPost> {
       comments,
       community,
       moderators,
-      admins,
       online,
     })
   }
@@ -770,13 +757,7 @@ impl Perform for Oper<RemovePost> {
     }
 
     // Verify that only the mods can remove
-    let is_mod_or_admin = blocking(pool, move |conn| {
-      Community::is_mod_or_admin(conn, user_id, community_id)
-    })
-    .await?;
-    if !is_mod_or_admin {
-      return Err(APIError::err("not_an_admin").into());
-    }
+    is_mod_or_admin(pool, user_id, community_id).await?;
 
     // Update the post
     let edit_id = data.edit_id;
@@ -861,13 +842,7 @@ impl Perform for Oper<LockPost> {
     }
 
     // Verify that only the mods can lock
-    let is_mod_or_admin = blocking(pool, move |conn| {
-      Community::is_mod_or_admin(conn, user_id, community_id)
-    })
-    .await?;
-    if !is_mod_or_admin {
-      return Err(APIError::err("not_an_admin").into());
-    }
+    is_mod_or_admin(pool, user_id, community_id).await?;
 
     // Update the post
     let edit_id = data.edit_id;
@@ -943,13 +918,7 @@ impl Perform for Oper<StickyPost> {
     }
 
     // Verify that only the mods can sticky
-    let is_mod_or_admin = blocking(pool, move |conn| {
-      Community::is_mod_or_admin(conn, user_id, community_id)
-    })
-    .await?;
-    if !is_mod_or_admin {
-      return Err(APIError::err("not_an_admin").into());
-    }
+    is_mod_or_admin(pool, user_id, community_id).await?;
 
     // Update the post
     let edit_id = data.edit_id;
