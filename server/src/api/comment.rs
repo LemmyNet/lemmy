@@ -1,5 +1,5 @@
 use crate::{
-  api::{claims::Claims, APIError, Oper, Perform},
+  api::{claims::Claims, is_mod_or_admin, APIError, Oper, Perform},
   apub::{ApubLikeableType, ApubObjectType},
   blocking,
   websocket::{
@@ -13,7 +13,6 @@ use crate::{
 use lemmy_db::{
   comment::*,
   comment_view::*,
-  community::Community,
   community_view::*,
   moderator::*,
   post::*,
@@ -480,13 +479,7 @@ impl Perform for Oper<RemoveComment> {
     }
 
     // Verify that only a mod or admin can remove
-    let is_mod_or_admin = blocking(pool, move |conn| {
-      Community::is_mod_or_admin(conn, user_id, community_id)
-    })
-    .await?;
-    if !is_mod_or_admin {
-      return Err(APIError::err("not_an_admin").into());
-    }
+    is_mod_or_admin(pool, user_id, community_id).await?;
 
     // Do the remove
     let removed = data.removed;

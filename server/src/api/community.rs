@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-  api::{claims::Claims, APIError, Oper, Perform},
+  api::{claims::Claims, is_admin, is_mod_or_admin, APIError, Oper, Perform},
   apub::ActorType,
   blocking,
   websocket::{
@@ -34,7 +34,6 @@ pub struct GetCommunity {
 pub struct GetCommunityResponse {
   pub community: CommunityView,
   pub moderators: Vec<CommunityModeratorView>,
-  pub admins: Vec<UserView>, // TODO this should be from GetSite, shouldn't need this
   pub online: usize,
 }
 
@@ -196,13 +195,6 @@ impl Perform for Oper<GetCommunity> {
       Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
     };
 
-    let site = blocking(pool, move |conn| Site::read(conn, 1)).await??;
-    let site_creator_id = site.creator_id;
-    let mut admins = blocking(pool, move |conn| UserView::admins(conn)).await??;
-    let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
-    let creator_user = admins.remove(creator_index);
-    admins.insert(0, creator_user);
-
     let online = if let Some(ws) = websocket_info {
       if let Some(id) = ws.id {
         ws.chatserver.do_send(JoinCommunityRoom {
@@ -224,7 +216,6 @@ impl Perform for Oper<GetCommunity> {
     let res = GetCommunityResponse {
       community: community_view,
       moderators,
-      admins,
       online,
     };
 
@@ -534,13 +525,7 @@ impl Perform for Oper<RemoveCommunity> {
     }
 
     // Verify its an admin (only an admin can remove a community)
-    let admins: Vec<i32> = blocking(pool, move |conn| {
-      UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())
-    })
-    .await??;
-    if !admins.contains(&user_id) {
-      return Err(APIError::err("not_an_admin").into());
-    }
+    is_admin(pool, user_id).await?;
 
     // Do the remove
     let edit_id = data.edit_id;
@@ -769,13 +754,7 @@ impl Perform for Oper<BanFromCommunity> {
     let community_id = data.community_id;
 
     // Verify that only mods or admins can ban
-    let is_mod_or_admin = blocking(pool, move |conn| {
-      Community::is_mod_or_admin(conn, user_id, community_id)
-    })
-    .await?;
-    if !is_mod_or_admin {
-      return Err(APIError::err("not_an_admin").into());
-    }
+    is_mod_or_admin(pool, user_id, community_id).await?;
 
     let community_user_ban_form = CommunityUserBanForm {
       community_id: data.community_id,
@@ -858,13 +837,7 @@ impl Perform for Oper<AddModToCommunity> {
     let community_id = data.community_id;
 
     // Verify that only mods or admins can add mod
-    let is_mod_or_admin = blocking(pool, move |conn| {
-      Community::is_mod_or_admin(conn, user_id, community_id)
-    })
-    .await?;
-    if !is_mod_or_admin {
-      return Err(APIError::err("not_an_admin").into());
-    }
+    is_mod_or_admin(pool, user_id, community_id).await?;
 
     if data.added {
       let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
@@ -1015,7 +988,6 @@ impl Perform for Oper<TransferCommunity> {
     Ok(GetCommunityResponse {
       community: community_view,
       moderators,
-      admins,
       online: 0,
     })
   }

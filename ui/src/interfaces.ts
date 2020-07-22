@@ -613,7 +613,6 @@ export interface GetCommunityForm {
 export interface GetCommunityResponse {
   community: Community;
   moderators: Array<CommunityUser>;
-  admins: Array<UserView>;
   online: number;
 }
 
@@ -688,7 +687,6 @@ export interface GetPostResponse {
   comments: Array<Comment>;
   community: Community;
   moderators: Array<CommunityUser>;
-  admins: Array<UserView>;
   online: number;
 }
 
