@@ -26,6 +26,12 @@ export class ListingTypeSelect extends Component<
     this.state = this.emptyState;
   }
 
+  static getDerivedStateFromProps(props: any): ListingTypeSelectProps {
+    return {
+      type_: props.type_,
+    };
+  }
+
   render() {
     return (
       <div class="btn-group btn-group-toggle">
@@ -45,8 +51,9 @@ export class ListingTypeSelect extends Component<
           {i18n.t('subscribed')}
         </label>
         <label
-          className={`pointer btn btn-sm btn-secondary ${this.state.type_ ==
-            ListingType.All && 'active'}`}
+          className={`pointer btn btn-sm btn-secondary ${
+            this.state.type_ == ListingType.All && 'active'
+          }`}
         >
           <input
             type="radio"
@@ -61,8 +68,6 @@ export class ListingTypeSelect extends Component<
   }
 
   handleTypeChange(i: ListingTypeSelect, event: any) {
-    i.state.type_ = Number(event.target.value);
-    i.setState(i.state);
-    i.props.onChange(i.state.type_);
+    i.props.onChange(Number(event.target.value));
   }
 }

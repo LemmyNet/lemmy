@@ -1,6 +1,6 @@
 use crate::{
   apub::{
-    activities::{populate_object_props, send_activity_to_community},
+    activities::send_activity_to_community,
     create_apub_response,
     create_apub_tombstone_response,
     create_tombstone,
@@ -21,13 +21,15 @@ use crate::{
   DbPool,
   LemmyError,
 };
-use activitystreams::{
+use activitystreams_new::{
   activity::{Create, Delete, Dislike, Like, Remove, Undo, Update},
+  base::AnyBase,
   context,
   link::Mention,
-  object::{kind::NoteType, properties::ObjectProperties, Note},
+  object::{kind::NoteType, Note, Tombstone},
+  prelude::*,
+  public,
 };
-use activitystreams_new::object::Tombstone;
 use actix_web::{body::Body, client::Client, web::Path, HttpResponse};
 use itertools::Itertools;
 use lemmy_db::{
@@ -40,6 +42,8 @@ use lemmy_db::{
 use lemmy_utils::{convert_datetime, scrape_text_for_mentions, MentionData};
 use log::debug;
 use serde::Deserialize;
+use serde_json::Error;
+use url::Url;
 
 #[derive(Deserialize)]
 pub struct CommentQuery {
@@ -66,8 +70,7 @@ impl ToApub for Comment {
   type Response = Note;
 
   async fn to_apub(&self, pool: &DbPool) -> Result<Note, LemmyError> {
-    let mut comment = Note::default();
-    let oprops: &mut ObjectProperties = comment.as_mut();
+    let mut comment = Note::new();
 
     let creator_id = self.creator_id;
     let creator = blocking(pool, move |conn| User_::read(conn, creator_id)).await??;
@@ -88,18 +91,18 @@ impl ToApub for Comment {
       in_reply_to_vec.push(parent_comment.ap_id);
     }
 
-    oprops
+    comment
       // Not needed when the Post is embedded in a collection (like for community outbox)
-      .set_context_xsd_any_uri(context())?
-      .set_id(self.ap_id.to_owned())?
-      .set_published(convert_datetime(self.published))?
-      .set_to_xsd_any_uri(community.actor_id)?
-      .set_many_in_reply_to_xsd_any_uris(in_reply_to_vec)?
-      .set_content_xsd_string(self.content.to_owned())?
-      .set_attributed_to_xsd_any_uri(creator.actor_id)?;
+      .set_context(context())
+      .set_id(Url::parse(&self.ap_id)?)
+      .set_published(convert_datetime(self.published))
+      .set_to(community.actor_id)
+      .set_many_in_reply_tos(in_reply_to_vec)
+      .set_content(self.content.to_owned())
+      .set_attributed_to(creator.actor_id);
 
     if let Some(u) = self.updated {
-      oprops.set_updated(convert_datetime(u))?;
+      comment.set_updated(convert_datetime(u));
     }
 
     Ok(comment)
@@ -110,7 +113,7 @@ impl ToApub for Comment {
       self.deleted,
       &self.ap_id,
       self.updated,
-      NoteType.to_string(),
+      NoteType::Note.to_string(),
     )
   }
 }
@@ -124,14 +127,25 @@ impl FromApub for CommentForm {
     note: &Note,
     client: &Client,
     pool: &DbPool,
+    actor_id: &Url,
   ) -> Result<CommentForm, LemmyError> {
-    let oprops = &note.object_props;
-    let creator_actor_id = &oprops.get_attributed_to_xsd_any_uri().unwrap().to_string();
+    let creator_actor_id = &note
+      .attributed_to()
+      .unwrap()
+      .as_single_xsd_any_uri()
+      .unwrap();
 
-    let creator = get_or_fetch_and_upsert_remote_user(&creator_actor_id, client, pool).await?;
+    let creator = get_or_fetch_and_upsert_remote_user(creator_actor_id, client, pool).await?;
 
-    let mut in_reply_tos = oprops.get_many_in_reply_to_xsd_any_uris().unwrap();
-    let post_ap_id = in_reply_tos.next().unwrap().to_string();
+    let mut in_reply_tos = note
+      .in_reply_to()
+      .as_ref()
+      .unwrap()
+      .as_many()
+      .unwrap()
+      .iter()
+      .map(|i| i.as_xsd_any_uri().unwrap());
+    let post_ap_id = in_reply_tos.next().unwrap();
 
     // This post, or the parent comment might not yet exist on this server yet, fetch them.
     let post = get_or_fetch_and_insert_remote_post(&post_ap_id, client, pool).await?;
@@ -140,7 +154,7 @@ impl FromApub for CommentForm {
     // For deeply nested comments, FromApub automatically gets called recursively
     let parent_id: Option<i32> = match in_reply_tos.next() {
       Some(parent_comment_uri) => {
-        let parent_comment_ap_id = &parent_comment_uri.to_string();
+        let parent_comment_ap_id = &parent_comment_uri;
         let parent_comment =
           get_or_fetch_and_insert_remote_comment(&parent_comment_ap_id, client, pool).await?;
 
@@ -153,20 +167,18 @@ impl FromApub for CommentForm {
       creator_id: creator.id,
       post_id: post.id,
       parent_id,
-      content: oprops
-        .get_content_xsd_string()
-        .map(|c| c.to_string())
-        .unwrap(),
+      content: note
+        .content()
+        .unwrap()
+        .as_single_xsd_string()
+        .unwrap()
+        .to_string(),
       removed: None,
       read: None,
-      published: oprops
-        .get_published()
-        .map(|u| u.as_ref().to_owned().naive_local()),
-      updated: oprops
-        .get_updated()
-        .map(|u| u.as_ref().to_owned().naive_local()),
+      published: note.published().map(|u| u.to_owned().naive_local()),
+      updated: note.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
-      ap_id: oprops.get_id().unwrap().to_string(),
+      ap_id: note.id(actor_id.domain().unwrap())?.unwrap().to_string(),
       local: false,
     })
   }
@@ -193,18 +205,24 @@ impl ApubObjectType for Comment {
       collect_non_local_mentions_and_addresses(&self.content, &community, client, pool).await?;
 
     let id = format!("{}/create/{}", self.ap_id, uuid::Uuid::new_v4());
-    let mut create = Create::new();
-    populate_object_props(&mut create.object_props, maa.addressed_ccs, &id)?;
-
-    // Set the mention tags
-    create.object_props.set_many_tag_base_boxes(maa.tags)?;
-
+    let mut create = Create::new(creator.actor_id.to_owned(), note.into_any_base()?);
     create
-      .create_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(note)?;
+      .set_context(context())
+      .set_id(Url::parse(&id)?)
+      .set_to(public())
+      .set_many_ccs(maa.addressed_ccs.to_owned())
+      // Set the mention tags
+      .set_many_tags(maa.get_tags()?);
 
-    send_activity_to_community(&creator, &community, maa.inboxes, create, client, pool).await?;
+    send_activity_to_community(
+      &creator,
+      &community,
+      maa.inboxes,
+      create.into_any_base()?,
+      client,
+      pool,
+    )
+    .await?;
     Ok(())
   }
 
@@ -227,18 +245,24 @@ impl ApubObjectType for Comment {
       collect_non_local_mentions_and_addresses(&self.content, &community, client, pool).await?;
 
     let id = format!("{}/update/{}", self.ap_id, uuid::Uuid::new_v4());
-    let mut update = Update::new();
-    populate_object_props(&mut update.object_props, maa.addressed_ccs, &id)?;
-
-    // Set the mention tags
-    update.object_props.set_many_tag_base_boxes(maa.tags)?;
-
+    let mut update = Update::new(creator.actor_id.to_owned(), note.into_any_base()?);
     update
-      .update_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(note)?;
+      .set_context(context())
+      .set_id(Url::parse(&id)?)
+      .set_to(public())
+      .set_many_ccs(maa.addressed_ccs.to_owned())
+      // Set the mention tags
+      .set_many_tags(maa.get_tags()?);
 
-    send_activity_to_community(&creator, &community, maa.inboxes, update, client, pool).await?;
+    send_activity_to_community(
+      &creator,
+      &community,
+      maa.inboxes,
+      update.into_any_base()?,
+      client,
+      pool,
+    )
+    .await?;
     Ok(())
   }
 
@@ -257,24 +281,18 @@ impl ApubObjectType for Comment {
     let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
 
     let id = format!("{}/delete/{}", self.ap_id, uuid::Uuid::new_v4());
-    let mut delete = Delete::default();
-
-    populate_object_props(
-      &mut delete.object_props,
-      vec![community.get_followers_url()],
-      &id,
-    )?;
-
+    let mut delete = Delete::new(creator.actor_id.to_owned(), note.into_any_base()?);
     delete
-      .delete_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(note)?;
+      .set_context(context())
+      .set_id(Url::parse(&id)?)
+      .set_to(public())
+      .set_many_ccs(vec![community.get_followers_url()]);
 
     send_activity_to_community(
       &creator,
       &community,
       vec![community.get_shared_inbox_url()],
-      delete,
+      delete.into_any_base()?,
       client,
       pool,
     )
@@ -298,40 +316,28 @@ impl ApubObjectType for Comment {
 
     // Generate a fake delete activity, with the correct object
     let id = format!("{}/delete/{}", self.ap_id, uuid::Uuid::new_v4());
-    let mut delete = Delete::default();
-
-    populate_object_props(
-      &mut delete.object_props,
-      vec![community.get_followers_url()],
-      &id,
-    )?;
-
+    let mut delete = Delete::new(creator.actor_id.to_owned(), note.into_any_base()?);
     delete
-      .delete_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(note)?;
+      .set_context(context())
+      .set_id(Url::parse(&id)?)
+      .set_to(public())
+      .set_many_ccs(vec![community.get_followers_url()]);
 
     // TODO
     // Undo that fake activity
     let undo_id = format!("{}/undo/delete/{}", self.ap_id, uuid::Uuid::new_v4());
-    let mut undo = Undo::default();
-
-    populate_object_props(
-      &mut undo.object_props,
-      vec![community.get_followers_url()],
-      &undo_id,
-    )?;
-
+    let mut undo = Undo::new(creator.actor_id.to_owned(), delete.into_any_base()?);
     undo
-      .undo_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(delete)?;
+      .set_context(context())
+      .set_id(Url::parse(&undo_id)?)
+      .set_to(public())
+      .set_many_ccs(vec![community.get_followers_url()]);
 
     send_activity_to_community(
       &creator,
       &community,
       vec![community.get_shared_inbox_url()],
-      undo,
+      undo.into_any_base()?,
       client,
       pool,
     )
@@ -354,24 +360,18 @@ impl ApubObjectType for Comment {
     let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
 
     let id = format!("{}/remove/{}", self.ap_id, uuid::Uuid::new_v4());
-    let mut remove = Remove::default();
-
-    populate_object_props(
-      &mut remove.object_props,
-      vec![community.get_followers_url()],
-      &id,
-    )?;
-
+    let mut remove = Remove::new(mod_.actor_id.to_owned(), note.into_any_base()?);
     remove
-      .remove_props
-      .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
-      .set_object_base_box(note)?;
+      .set_context(context())
+      .set_id(Url::parse(&id)?)
+      .set_to(public())
+      .set_many_ccs(vec![community.get_followers_url()]);
 
     send_activity_to_community(
       &mod_,
       &community,
       vec![community.get_shared_inbox_url()],
-      remove,
+      remove.into_any_base()?,
       client,
       pool,
     )
@@ -395,39 +395,27 @@ impl ApubObjectType for Comment {
 
     // Generate a fake delete activity, with the correct object
     let id = format!("{}/remove/{}", self.ap_id, uuid::Uuid::new_v4());
-    let mut remove = Remove::default();
-
-    populate_object_props(
-      &mut remove.object_props,
-      vec![community.get_followers_url()],
-      &id,
-    )?;
-
+    let mut remove = Remove::new(mod_.actor_id.to_owned(), note.into_any_base()?);
     remove
-      .remove_props
-      .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
-      .set_object_base_box(note)?;
+      .set_context(context())
+      .set_id(Url::parse(&id)?)
+      .set_to(public())
+      .set_many_ccs(vec![community.get_followers_url()]);
 
     // Undo that fake activity
     let undo_id = format!("{}/undo/remove/{}", self.ap_id, uuid::Uuid::new_v4());
-    let mut undo = Undo::default();
-
-    populate_object_props(
-      &mut undo.object_props,
-      vec![community.get_followers_url()],
-      &undo_id,
-    )?;
-
+    let mut undo = Undo::new(mod_.actor_id.to_owned(), remove.into_any_base()?);
     undo
-      .undo_props
-      .set_actor_xsd_any_uri(mod_.actor_id.to_owned())?
-      .set_object_base_box(remove)?;
+      .set_context(context())
+      .set_id(Url::parse(&undo_id)?)
+      .set_to(public())
+      .set_many_ccs(vec![community.get_followers_url()]);
 
     send_activity_to_community(
       &mod_,
       &community,
       vec![community.get_shared_inbox_url()],
-      undo,
+      undo.into_any_base()?,
       client,
       pool,
     )
@@ -454,22 +442,18 @@ impl ApubLikeableType for Comment {
 
     let id = format!("{}/like/{}", self.ap_id, uuid::Uuid::new_v4());
 
-    let mut like = Like::new();
-    populate_object_props(
-      &mut like.object_props,
-      vec![community.get_followers_url()],
-      &id,
-    )?;
+    let mut like = Like::new(creator.actor_id.to_owned(), note.into_any_base()?);
     like
-      .like_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(note)?;
+      .set_context(context())
+      .set_id(Url::parse(&id)?)
+      .set_to(public())
+      .set_many_ccs(vec![community.get_followers_url()]);
 
     send_activity_to_community(
       &creator,
       &community,
       vec![community.get_shared_inbox_url()],
-      like,
+      like.into_any_base()?,
       client,
       pool,
     )
@@ -493,22 +477,18 @@ impl ApubLikeableType for Comment {
 
     let id = format!("{}/dislike/{}", self.ap_id, uuid::Uuid::new_v4());
 
-    let mut dislike = Dislike::new();
-    populate_object_props(
-      &mut dislike.object_props,
-      vec![community.get_followers_url()],
-      &id,
-    )?;
+    let mut dislike = Dislike::new(creator.actor_id.to_owned(), note.into_any_base()?);
     dislike
-      .dislike_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(note)?;
+      .set_context(context())
+      .set_id(Url::parse(&id)?)
+      .set_to(public())
+      .set_many_ccs(vec![community.get_followers_url()]);
 
     send_activity_to_community(
       &creator,
       &community,
       vec![community.get_shared_inbox_url()],
-      dislike,
+      dislike.into_any_base()?,
       client,
       pool,
     )
@@ -532,38 +512,28 @@ impl ApubLikeableType for Comment {
 
     let id = format!("{}/dislike/{}", self.ap_id, uuid::Uuid::new_v4());
 
-    let mut like = Like::new();
-    populate_object_props(
-      &mut like.object_props,
-      vec![community.get_followers_url()],
-      &id,
-    )?;
+    let mut like = Like::new(creator.actor_id.to_owned(), note.into_any_base()?);
     like
-      .like_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(note)?;
+      .set_context(context())
+      .set_id(Url::parse(&id)?)
+      .set_to(public())
+      .set_many_ccs(vec![community.get_followers_url()]);
 
     // TODO
     // Undo that fake activity
     let undo_id = format!("{}/undo/like/{}", self.ap_id, uuid::Uuid::new_v4());
-    let mut undo = Undo::default();
-
-    populate_object_props(
-      &mut undo.object_props,
-      vec![community.get_followers_url()],
-      &undo_id,
-    )?;
-
+    let mut undo = Undo::new(creator.actor_id.to_owned(), like.into_any_base()?);
     undo
-      .undo_props
-      .set_actor_xsd_any_uri(creator.actor_id.to_owned())?
-      .set_object_base_box(like)?;
+      .set_context(context())
+      .set_id(Url::parse(&undo_id)?)
+      .set_to(public())
+      .set_many_ccs(vec![community.get_followers_url()]);
 
     send_activity_to_community(
       &creator,
       &community,
       vec![community.get_shared_inbox_url()],
-      undo,
+      undo.into_any_base()?,
       client,
       pool,
     )
@@ -576,6 +546,16 @@ struct MentionsAndAddresses {
   addressed_ccs: Vec<String>,
   inboxes: Vec<String>,
   tags: Vec<Mention>,
+}
+
+impl MentionsAndAddresses {
+  fn get_tags(&self) -> Result<Vec<AnyBase>, Error> {
+    self
+      .tags
+      .iter()
+      .map(|t| t.to_owned().into_any_base())
+      .collect::<Result<Vec<AnyBase>, Error>>()
+  }
 }
 
 /// This takes a comment, and builds a list of to_addresses, inboxes,
@@ -604,17 +584,14 @@ async fn collect_non_local_mentions_and_addresses(
     // TODO should it be fetching it every time?
     if let Ok(actor_id) = fetch_webfinger_url(mention, client).await {
       debug!("mention actor_id: {}", actor_id);
-      addressed_ccs.push(actor_id.to_owned());
+      addressed_ccs.push(actor_id.to_owned().to_string());
 
       let mention_user = get_or_fetch_and_upsert_remote_user(&actor_id, client, pool).await?;
       let shared_inbox = mention_user.get_shared_inbox_url();
 
       mention_inboxes.push(shared_inbox);
       let mut mention_tag = Mention::new();
-      mention_tag
-        .link_props
-        .set_href(actor_id)?
-        .set_name_xsd_string(mention.full_name())?;
+      mention_tag.set_href(actor_id).set_name(mention.full_name());
       tags.push(mention_tag);
     }
   }

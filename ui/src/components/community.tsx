@@ -65,6 +65,18 @@ interface State {
   site: Site;
 }
 
+interface CommunityProps {
+  dataType: DataType;
+  sort: SortType;
+  page: number;
+}
+
+interface UrlParams {
+  dataType?: string;
+  sort?: string;
+  page?: number;
+}
+
 export class Community extends Component<any, State> {
   private subscription: Subscription;
   private emptyState: State = {
@@ -143,16 +155,21 @@ export class Community extends Component<any, State> {
     this.subscription.unsubscribe();
   }
 
-  // Necessary for back button for some reason
-  componentWillReceiveProps(nextProps: any) {
+  static getDerivedStateFromProps(props: any): CommunityProps {
+    return {
+      dataType: getDataTypeFromProps(props),
+      sort: getSortTypeFromProps(props),
+      page: getPageFromProps(props),
+    };
+  }
+
+  componentDidUpdate(_: any, lastState: State) {
     if (
-      nextProps.history.action == 'POP' ||
-      nextProps.history.action == 'PUSH'
+      lastState.dataType !== this.state.dataType ||
+      lastState.sort !== this.state.sort ||
+      lastState.page !== this.state.page
     ) {
-      this.state.dataType = getDataTypeFromProps(nextProps);
-      this.state.sort = getSortTypeFromProps(nextProps);
-      this.state.page = getPageFromProps(nextProps);
-      this.setState(this.state);
+      this.setState({ loading: true });
       this.fetchData();
     }
   }
@@ -273,46 +290,33 @@ export class Community extends Component<any, State> {
   }
 
   nextPage(i: Community) {
-    i.state.page++;
-    i.setState(i.state);
-    i.updateUrl();
-    i.fetchData();
+    i.updateUrl({ page: i.state.page + 1 });
     window.scrollTo(0, 0);
   }
 
   prevPage(i: Community) {
-    i.state.page--;
-    i.setState(i.state);
-    i.updateUrl();
-    i.fetchData();
+    i.updateUrl({ page: i.state.page - 1 });
     window.scrollTo(0, 0);
   }
 
   handleSortChange(val: SortType) {
-    this.state.sort = val;
-    this.state.page = 1;
-    this.state.loading = true;
-    this.setState(this.state);
-    this.updateUrl();
-    this.fetchData();
+    this.updateUrl({ sort: SortType[val].toLowerCase(), page: 1 });
     window.scrollTo(0, 0);
   }
 
   handleDataTypeChange(val: DataType) {
-    this.state.dataType = val;
-    this.state.page = 1;
-    this.state.loading = true;
-    this.setState(this.state);
-    this.updateUrl();
-    this.fetchData();
+    this.updateUrl({ dataType: DataType[val].toLowerCase(), page: 1 });
     window.scrollTo(0, 0);
   }
 
-  updateUrl() {
-    let dataTypeStr = DataType[this.state.dataType].toLowerCase();
-    let sortStr = SortType[this.state.sort].toLowerCase();
+  updateUrl(paramUpdates: UrlParams) {
+    const dataTypeStr =
+      paramUpdates.dataType || DataType[this.state.dataType].toLowerCase();
+    const sortStr =
+      paramUpdates.sort || SortType[this.state.sort].toLowerCase();
+    const page = paramUpdates.page || this.state.page;
     this.props.history.push(
-      `/c/${this.state.community.name}/data_type/${dataTypeStr}/sort/${sortStr}/page/${this.state.page}`
+      `/c/${this.state.community.name}/data_type/${dataTypeStr}/sort/${sortStr}/page/${page}`
     );
   }
 
@@ -351,12 +355,15 @@ export class Community extends Component<any, State> {
       let data = res.data as GetCommunityResponse;
       this.state.community = data.community;
       this.state.moderators = data.moderators;
-      this.state.admins = data.admins;
       this.state.online = data.online;
       document.title = `/c/${this.state.community.name} - ${this.state.site.name}`;
       this.setState(this.state);
       this.fetchData();
-    } else if (res.op == UserOperation.EditCommunity) {
+    } else if (
+      res.op == UserOperation.EditCommunity ||
+      res.op == UserOperation.DeleteCommunity ||
+      res.op == UserOperation.RemoveCommunity
+    ) {
       let data = res.data as CommunityResponse;
       this.state.community = data.community;
       this.setState(this.state);
@@ -372,7 +379,13 @@ export class Community extends Component<any, State> {
       this.state.loading = false;
       this.setState(this.state);
       setupTippy();
-    } else if (res.op == UserOperation.EditPost) {
+    } else if (
+      res.op == UserOperation.EditPost ||
+      res.op == UserOperation.DeletePost ||
+      res.op == UserOperation.RemovePost ||
+      res.op == UserOperation.LockPost ||
+      res.op == UserOperation.StickyPost
+    ) {
       let data = res.data as PostResponse;
       editPostFindRes(data, this.state.posts);
       this.setState(this.state);
@@ -401,7 +414,11 @@ export class Community extends Component<any, State> {
       this.state.comments = data.comments;
       this.state.loading = false;
       this.setState(this.state);
-    } else if (res.op == UserOperation.EditComment) {
+    } else if (
+      res.op == UserOperation.EditComment ||
+      res.op == UserOperation.DeleteComment ||
+      res.op == UserOperation.RemoveComment
+    ) {
       let data = res.data as CommentResponse;
       editCommentRes(data, this.state.comments);
       this.setState(this.state);
@@ -424,6 +441,7 @@ export class Community extends Component<any, State> {
     } else if (res.op == UserOperation.GetSite) {
       let data = res.data as GetSiteResponse;
       this.state.site = data.site;
+      this.state.admins = data.admins;
       this.setState(this.state);
     }
   }

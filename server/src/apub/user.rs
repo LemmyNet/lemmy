@@ -1,5 +1,4 @@
 use crate::{
-  api::claims::Claims,
   apub::{
     activities::send_activity,
     create_apub_response,
@@ -21,16 +20,15 @@ use activitystreams_new::{
   context,
   object::{Image, Tombstone},
   prelude::*,
-  primitives::{XsdAnyUri, XsdDateTime},
 };
 use actix_web::{body::Body, client::Client, web, HttpResponse};
-use failure::_core::str::FromStr;
 use lemmy_db::{
   naive_now,
   user::{UserForm, User_},
 };
 use lemmy_utils::convert_datetime;
 use serde::Deserialize;
+use url::Url;
 
 #[derive(Deserialize)]
 pub struct UserQuery {
@@ -47,12 +45,12 @@ impl ToApub for User_ {
     let mut person = Person::new();
     person
       .set_context(context())
-      .set_id(XsdAnyUri::from_str(&self.actor_id)?)
+      .set_id(Url::parse(&self.actor_id)?)
       .set_name(self.name.to_owned())
-      .set_published(XsdDateTime::from(convert_datetime(self.published)));
+      .set_published(convert_datetime(self.published));
 
     if let Some(u) = self.updated {
-      person.set_updated(XsdDateTime::from(convert_datetime(u)));
+      person.set_updated(convert_datetime(u));
     }
 
     if let Some(avatar_url) = &self.avatar {
@@ -85,7 +83,7 @@ impl ToApub for User_ {
 
 #[async_trait::async_trait(?Send)]
 impl ActorType for User_ {
-  fn actor_id(&self) -> String {
+  fn actor_id_str(&self) -> String {
     self.actor_id.to_owned()
   }
 
@@ -111,7 +109,7 @@ impl ActorType for User_ {
 
     insert_activity(self.id, follow.clone(), true, pool).await?;
 
-    send_activity(client, &follow, self, vec![to]).await?;
+    send_activity(client, &follow.into_any_base()?, self, vec![to]).await?;
     Ok(())
   }
 
@@ -130,12 +128,12 @@ impl ActorType for User_ {
     // TODO
     // Undo that fake activity
     let undo_id = format!("{}/undo/follow/{}", self.actor_id, uuid::Uuid::new_v4());
-    let mut undo = Undo::new(self.actor_id.parse::<XsdAnyUri>()?, follow.into_any_base()?);
+    let mut undo = Undo::new(Url::parse(&self.actor_id)?, follow.into_any_base()?);
     undo.set_context(context()).set_id(undo_id.parse()?);
 
     insert_activity(self.id, undo.clone(), true, pool).await?;
 
-    send_activity(client, &undo, self, vec![to]).await?;
+    send_activity(client, &undo.into_any_base()?, self, vec![to]).await?;
     Ok(())
   }
 
@@ -177,7 +175,7 @@ impl ActorType for User_ {
 
   async fn send_accept_follow(
     &self,
-    _follow: &Follow,
+    _follow: Follow,
     _client: &Client,
     _pool: &DbPool,
   ) -> Result<(), LemmyError> {
@@ -193,12 +191,17 @@ impl ActorType for User_ {
 impl FromApub for UserForm {
   type ApubType = PersonExt;
   /// Parse an ActivityPub person received from another instance into a Lemmy user.
-  async fn from_apub(person: &PersonExt, _: &Client, _: &DbPool) -> Result<Self, LemmyError> {
+  async fn from_apub(
+    person: &PersonExt,
+    _: &Client,
+    _: &DbPool,
+    actor_id: &Url,
+  ) -> Result<Self, LemmyError> {
     let avatar = match person.icon() {
       Some(any_image) => Image::from_any_base(any_image.as_one().unwrap().clone())
         .unwrap()
         .unwrap()
-        .url
+        .url()
         .unwrap()
         .as_single_xsd_any_uri()
         .map(|u| u.to_string()),
@@ -209,18 +212,18 @@ impl FromApub for UserForm {
       name: person
         .name()
         .unwrap()
-        .as_single_xsd_string()
+        .one()
         .unwrap()
-        .into(),
+        .as_xsd_string()
+        .unwrap()
+        .to_string(),
       preferred_username: person.inner.preferred_username().map(|u| u.to_string()),
       password_encrypted: "".to_string(),
       admin: false,
       banned: false,
       email: None,
       avatar,
-      updated: person
-        .updated()
-        .map(|u| u.as_ref().to_owned().naive_local()),
+      updated: person.updated().map(|u| u.to_owned().naive_local()),
       show_nsfw: false,
       theme: "".to_string(),
       default_sort_type: 0,
@@ -229,8 +232,9 @@ impl FromApub for UserForm {
       show_avatars: false,
       send_notifications_to_email: false,
       matrix_user_id: None,
-      actor_id: person.id().unwrap().to_string(),
+      actor_id: person.id(actor_id.domain().unwrap())?.unwrap().to_string(),
       bio: person
+        .inner
         .summary()
         .map(|s| s.as_single_xsd_string().unwrap().into()),
       local: false,
@@ -248,7 +252,7 @@ pub async fn get_apub_user_http(
 ) -> Result<HttpResponse<Body>, LemmyError> {
   let user_name = info.into_inner().user_name;
   let user = blocking(&db, move |conn| {
-    Claims::find_by_email_or_username(conn, &user_name)
+    User_::find_by_email_or_username(conn, &user_name)
   })
   .await??;
   let u = user.to_apub(&db).await?;

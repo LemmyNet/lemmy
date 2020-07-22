@@ -157,7 +157,28 @@ impl UserView {
 
   pub fn admins(conn: &PgConnection) -> Result<Vec<Self>, Error> {
     use super::user_view::user_fast::dsl::*;
+    use diesel::sql_types::{Nullable, Text};
     user_fast
+      // The select is necessary here to not get back emails
+      .select((
+        id,
+        actor_id,
+        name,
+        avatar,
+        "".into_sql::<Nullable<Text>>(),
+        matrix_user_id,
+        bio,
+        local,
+        admin,
+        banned,
+        show_avatars,
+        send_notifications_to_email,
+        published,
+        number_of_posts,
+        post_score,
+        number_of_comments,
+        comment_score,
+      ))
       .filter(admin.eq(true))
       .order_by(published)
       .load::<Self>(conn)
@@ -165,6 +186,28 @@ impl UserView {
 
   pub fn banned(conn: &PgConnection) -> Result<Vec<Self>, Error> {
     use super::user_view::user_fast::dsl::*;
-    user_fast.filter(banned.eq(true)).load::<Self>(conn)
+    use diesel::sql_types::{Nullable, Text};
+    user_fast
+      .select((
+        id,
+        actor_id,
+        name,
+        avatar,
+        "".into_sql::<Nullable<Text>>(),
+        matrix_user_id,
+        bio,
+        local,
+        admin,
+        banned,
+        show_avatars,
+        send_notifications_to_email,
+        published,
+        number_of_posts,
+        post_score,
+        number_of_comments,
+        comment_score,
+      ))
+      .filter(banned.eq(true))
+      .load::<Self>(conn)
   }
 }

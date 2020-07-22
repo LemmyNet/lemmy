@@ -1,5 +1,6 @@
 use super::{post::Post, *};
 use crate::schema::{comment, comment_like, comment_saved};
+use url::{ParseError, Url};
 
 // WITH RECURSIVE MyTree AS (
 //     SELECT * FROM comment WHERE parent_id IS NULL
@@ -40,6 +41,12 @@ pub struct CommentForm {
   pub deleted: Option<bool>,
   pub ap_id: String,
   pub local: bool,
+}
+
+impl CommentForm {
+  pub fn get_ap_id(&self) -> Result<Url, ParseError> {
+    Url::parse(&self.ap_id)
+  }
 }
 
 impl Crud<CommentForm> for Comment {
@@ -90,14 +97,6 @@ impl Comment {
     comment.filter(ap_id.eq(object_id)).first::<Self>(conn)
   }
 
-  pub fn mark_as_read(conn: &PgConnection, comment_id: i32) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
-
-    diesel::update(comment.find(comment_id))
-      .set(read.eq(true))
-      .get_result::<Self>(conn)
-  }
-
   pub fn permadelete(conn: &PgConnection, comment_id: i32) -> Result<Self, Error> {
     use crate::schema::comment::dsl::*;
 
@@ -107,6 +106,46 @@ impl Comment {
         deleted.eq(true),
         updated.eq(naive_now()),
       ))
+      .get_result::<Self>(conn)
+  }
+
+  pub fn update_deleted(
+    conn: &PgConnection,
+    comment_id: i32,
+    new_deleted: bool,
+  ) -> Result<Self, Error> {
+    use crate::schema::comment::dsl::*;
+    diesel::update(comment.find(comment_id))
+      .set(deleted.eq(new_deleted))
+      .get_result::<Self>(conn)
+  }
+
+  pub fn update_removed(
+    conn: &PgConnection,
+    comment_id: i32,
+    new_removed: bool,
+  ) -> Result<Self, Error> {
+    use crate::schema::comment::dsl::*;
+    diesel::update(comment.find(comment_id))
+      .set(removed.eq(new_removed))
+      .get_result::<Self>(conn)
+  }
+
+  pub fn update_read(conn: &PgConnection, comment_id: i32, new_read: bool) -> Result<Self, Error> {
+    use crate::schema::comment::dsl::*;
+    diesel::update(comment.find(comment_id))
+      .set(read.eq(new_read))
+      .get_result::<Self>(conn)
+  }
+
+  pub fn update_content(
+    conn: &PgConnection,
+    comment_id: i32,
+    new_content: &str,
+  ) -> Result<Self, Error> {
+    use crate::schema::comment::dsl::*;
+    diesel::update(comment.find(comment_id))
+      .set((content.eq(new_content), updated.eq(naive_now())))
       .get_result::<Self>(conn)
   }
 }
@@ -226,7 +265,7 @@ mod tests {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
-      actor_id: "http://fake.com".into(),
+      actor_id: "changeme_283687".into(),
       bio: None,
       local: true,
       private_key: None,
@@ -246,7 +285,7 @@ mod tests {
       deleted: None,
       updated: None,
       nsfw: false,
-      actor_id: "http://fake.com".into(),
+      actor_id: "changeme_928738972".into(),
       local: true,
       private_key: None,
       public_key: None,

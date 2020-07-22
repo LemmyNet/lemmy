@@ -4,7 +4,8 @@ import {
   Community,
   CommunityUser,
   FollowCommunityForm,
-  CommunityForm as CommunityFormI,
+  DeleteCommunityForm,
+  RemoveCommunityForm,
   UserView,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
@@ -284,16 +285,11 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
 
   handleDeleteClick(i: Sidebar) {
     event.preventDefault();
-    let deleteForm: CommunityFormI = {
-      name: i.props.community.name,
-      title: i.props.community.title,
-      category_id: i.props.community.category_id,
+    let deleteForm: DeleteCommunityForm = {
       edit_id: i.props.community.id,
       deleted: !i.props.community.deleted,
-      nsfw: i.props.community.nsfw,
-      auth: null,
     };
-    WebSocketService.Instance.editCommunity(deleteForm);
+    WebSocketService.Instance.deleteCommunity(deleteForm);
   }
 
   handleUnsubscribe(communityId: number) {
@@ -350,18 +346,13 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
 
   handleModRemoveSubmit(i: Sidebar) {
     event.preventDefault();
-    let deleteForm: CommunityFormI = {
-      name: i.props.community.name,
-      title: i.props.community.title,
-      category_id: i.props.community.category_id,
+    let removeForm: RemoveCommunityForm = {
       edit_id: i.props.community.id,
       removed: !i.props.community.removed,
       reason: i.state.removeReason,
       expires: getUnixTime(i.state.removeExpires),
-      nsfw: i.props.community.nsfw,
-      auth: null,
     };
-    WebSocketService.Instance.editCommunity(deleteForm);
+    WebSocketService.Instance.removeCommunity(removeForm);
 
     i.state.showRemoveDialog = false;
     i.setState(i.state);

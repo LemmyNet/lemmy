@@ -49,6 +49,8 @@ import { UserService, WebSocketService } from './services';
 
 import Tribute from 'tributejs/src/Tribute.js';
 import markdown_it from 'markdown-it';
+import markdown_it_sub from 'markdown-it-sub';
+import markdown_it_sup from 'markdown-it-sup';
 import markdownitEmoji from 'markdown-it-emoji/light';
 import markdown_it_container from 'markdown-it-container';
 import emojiShortName from 'emoji-short-name';
@@ -148,6 +150,8 @@ export const md = new markdown_it({
   linkify: true,
   typographer: true,
 })
+  .use(markdown_it_sub)
+  .use(markdown_it_sup)
   .use(markdown_it_container, 'spoiler', {
     validate: function (params: any) {
       return params.trim().match(/^spoiler\s+(.*)$/);
@@ -825,6 +829,11 @@ export function editPostRes(data: PostResponse, post: Post) {
     post.url = data.post.url;
     post.name = data.post.name;
     post.nsfw = data.post.nsfw;
+    post.deleted = data.post.deleted;
+    post.removed = data.post.removed;
+    post.stickied = data.post.stickied;
+    post.body = data.post.body;
+    post.locked = data.post.locked;
   }
 }
 

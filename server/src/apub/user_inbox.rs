@@ -12,9 +12,10 @@ use crate::{
   DbPool,
   LemmyError,
 };
-use activitystreams::{
+use activitystreams_new::{
   activity::{Accept, Create, Delete, Undo, Update},
   object::Note,
+  prelude::*,
 };
 use actix_web::{client::Client, web, HttpRequest, HttpResponse};
 use lemmy_db::{
@@ -79,11 +80,7 @@ async fn receive_accept(
   client: &Client,
   pool: &DbPool,
 ) -> Result<HttpResponse, LemmyError> {
-  let community_uri = accept
-    .accept_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let community_uri = accept.actor()?.to_owned().single_xsd_any_uri().unwrap();
 
   let community = get_or_fetch_and_upsert_remote_community(&community_uri, client, pool).await?;
   verify(request, &community)?;
@@ -116,26 +113,15 @@ async fn receive_create_private_message(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let note = create
-    .create_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<Note>()?;
+  let user_uri = &create.actor()?.to_owned().single_xsd_any_uri().unwrap();
+  let note = Note::from_any_base(create.object().as_one().unwrap().to_owned())?.unwrap();
 
-  let user_uri = create
-    .create_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let user = get_or_fetch_and_upsert_remote_user(user_uri, client, pool).await?;
   verify(request, &user)?;
 
   insert_activity(user.id, create, false, pool).await?;
 
-  let private_message = PrivateMessageForm::from_apub(&note, client, pool).await?;
+  let private_message = PrivateMessageForm::from_apub(&note, client, pool, user_uri).await?;
 
   let inserted_private_message = blocking(pool, move |conn| {
     PrivateMessage::create(conn, &private_message)
@@ -168,26 +154,15 @@ async fn receive_update_private_message(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let note = update
-    .update_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<Note>()?;
-
-  let user_uri = update
-    .update_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let user_uri = &update.actor()?.to_owned().single_xsd_any_uri().unwrap();
+  let note = Note::from_any_base(update.object().as_one().unwrap().to_owned())?.unwrap();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
   verify(request, &user)?;
 
   insert_activity(user.id, update, false, pool).await?;
 
-  let private_message_form = PrivateMessageForm::from_apub(&note, client, pool).await?;
+  let private_message_form = PrivateMessageForm::from_apub(&note, client, pool, user_uri).await?;
 
   let private_message_ap_id = private_message_form.ap_id.clone();
   let private_message = blocking(pool, move |conn| {
@@ -228,26 +203,15 @@ async fn receive_delete_private_message(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let note = delete
-    .delete_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<Note>()?;
-
-  let user_uri = delete
-    .delete_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let user_uri = &delete.actor()?.to_owned().single_xsd_any_uri().unwrap();
+  let note = Note::from_any_base(delete.object().as_one().unwrap().to_owned())?.unwrap();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
   verify(request, &user)?;
 
   insert_activity(user.id, delete, false, pool).await?;
 
-  let private_message_form = PrivateMessageForm::from_apub(&note, client, pool).await?;
+  let private_message_form = PrivateMessageForm::from_apub(&note, client, pool, user_uri).await?;
 
   let private_message_ap_id = private_message_form.ap_id;
   let private_message = blocking(pool, move |conn| {
@@ -300,34 +264,16 @@ async fn receive_undo_delete_private_message(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let delete = undo
-    .undo_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<Delete>()?;
-
-  let note = delete
-    .delete_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<Note>()?;
-
-  let user_uri = delete
-    .delete_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
+  let delete = Delete::from_any_base(undo.object().as_one().unwrap().to_owned())?.unwrap();
+  let note = Note::from_any_base(delete.object().as_one().unwrap().to_owned())?.unwrap();
+  let user_uri = &delete.actor()?.to_owned().single_xsd_any_uri().unwrap();
 
   let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
   verify(request, &user)?;
 
   insert_activity(user.id, delete, false, pool).await?;
 
-  let private_message = PrivateMessageForm::from_apub(&note, client, pool).await?;
+  let private_message = PrivateMessageForm::from_apub(&note, client, pool, user_uri).await?;
 
   let private_message_ap_id = private_message.ap_id.clone();
   let private_message_id = blocking(pool, move |conn| {

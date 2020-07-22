@@ -14,6 +14,7 @@ use crate::{
       get_or_fetch_and_upsert_remote_user,
     },
     insert_activity,
+    ActorType,
     FromApub,
     GroupExt,
     PageExt,
@@ -27,12 +28,12 @@ use crate::{
   DbPool,
   LemmyError,
 };
-use activitystreams::{
-  activity::{Announce, Create, Delete, Dislike, Like, Remove, Undo, Update},
+use activitystreams_new::{
+  activity::{ActorAndObjectRef, Announce, Create, Delete, Dislike, Like, Remove, Undo, Update},
+  base::{AnyBase, AsBase},
+  error::DomainError,
   object::Note,
-  Activity,
-  Base,
-  BaseBox,
+  prelude::{ExtendsExt, *},
 };
 use actix_web::{client::Client, web, HttpRequest, HttpResponse};
 use lemmy_db::{
@@ -43,6 +44,7 @@ use lemmy_db::{
   naive_now,
   post::{Post, PostForm, PostLike, PostLikeForm},
   post_view::PostView,
+  user::User_,
   Crud,
   Likeable,
 };
@@ -50,9 +52,10 @@ use lemmy_utils::scrape_text_for_mentions;
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
+use url::Url;
 
 #[serde(untagged)]
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum SharedAcceptedObjects {
   Create(Box<Create>),
   Update(Box<Update>),
@@ -65,47 +68,51 @@ pub enum SharedAcceptedObjects {
 }
 
 impl SharedAcceptedObjects {
-  fn object(&self) -> Option<&BaseBox> {
+  // TODO: these shouldnt be necessary anymore
+  // https://git.asonix.dog/asonix/ap-relay/src/branch/main/src/apub.rs
+  fn object(&self) -> Option<AnyBase> {
     match self {
-      SharedAcceptedObjects::Create(c) => c.create_props.get_object_base_box(),
-      SharedAcceptedObjects::Update(u) => u.update_props.get_object_base_box(),
-      SharedAcceptedObjects::Like(l) => l.like_props.get_object_base_box(),
-      SharedAcceptedObjects::Dislike(d) => d.dislike_props.get_object_base_box(),
-      SharedAcceptedObjects::Delete(d) => d.delete_props.get_object_base_box(),
-      SharedAcceptedObjects::Undo(d) => d.undo_props.get_object_base_box(),
-      SharedAcceptedObjects::Remove(r) => r.remove_props.get_object_base_box(),
-      SharedAcceptedObjects::Announce(a) => a.announce_props.get_object_base_box(),
+      SharedAcceptedObjects::Create(c) => c.object().to_owned().one(),
+      SharedAcceptedObjects::Update(u) => u.object().to_owned().one(),
+      SharedAcceptedObjects::Like(l) => l.object().to_owned().one(),
+      SharedAcceptedObjects::Dislike(d) => d.object().to_owned().one(),
+      SharedAcceptedObjects::Delete(d) => d.object().to_owned().one(),
+      SharedAcceptedObjects::Undo(d) => d.object().to_owned().one(),
+      SharedAcceptedObjects::Remove(r) => r.object().to_owned().one(),
+      SharedAcceptedObjects::Announce(a) => a.object().to_owned().one(),
     }
   }
-  fn sender(&self) -> String {
+  fn sender(&self) -> Result<&Url, DomainError> {
     let uri = match self {
-      SharedAcceptedObjects::Create(c) => c.create_props.get_actor_xsd_any_uri(),
-      SharedAcceptedObjects::Update(u) => u.update_props.get_actor_xsd_any_uri(),
-      SharedAcceptedObjects::Like(l) => l.like_props.get_actor_xsd_any_uri(),
-      SharedAcceptedObjects::Dislike(d) => d.dislike_props.get_actor_xsd_any_uri(),
-      SharedAcceptedObjects::Delete(d) => d.delete_props.get_actor_xsd_any_uri(),
-      SharedAcceptedObjects::Undo(d) => d.undo_props.get_actor_xsd_any_uri(),
-      SharedAcceptedObjects::Remove(r) => r.remove_props.get_actor_xsd_any_uri(),
-      SharedAcceptedObjects::Announce(a) => a.announce_props.get_actor_xsd_any_uri(),
+      SharedAcceptedObjects::Create(c) => c.actor()?.as_single_xsd_any_uri(),
+      SharedAcceptedObjects::Update(u) => u.actor()?.as_single_xsd_any_uri(),
+      SharedAcceptedObjects::Like(l) => l.actor()?.as_single_xsd_any_uri(),
+      SharedAcceptedObjects::Dislike(d) => d.actor()?.as_single_xsd_any_uri(),
+      SharedAcceptedObjects::Delete(d) => d.actor()?.as_single_xsd_any_uri(),
+      SharedAcceptedObjects::Undo(d) => d.actor()?.as_single_xsd_any_uri(),
+      SharedAcceptedObjects::Remove(r) => r.actor()?.as_single_xsd_any_uri(),
+      SharedAcceptedObjects::Announce(a) => a.actor()?.as_single_xsd_any_uri(),
     };
-    uri.unwrap().clone().to_string()
+    Ok(uri.unwrap())
   }
   fn cc(&self) -> String {
-    // TODO: there is probably an easier way to do this
-    let oprops = match self {
-      SharedAcceptedObjects::Create(c) => &c.object_props,
-      SharedAcceptedObjects::Update(u) => &u.object_props,
-      SharedAcceptedObjects::Like(l) => &l.object_props,
-      SharedAcceptedObjects::Dislike(d) => &d.object_props,
-      SharedAcceptedObjects::Delete(d) => &d.object_props,
-      SharedAcceptedObjects::Undo(d) => &d.object_props,
-      SharedAcceptedObjects::Remove(r) => &r.object_props,
-      SharedAcceptedObjects::Announce(a) => &a.object_props,
+    let cc = match self {
+      SharedAcceptedObjects::Create(c) => c.cc().to_owned(),
+      SharedAcceptedObjects::Update(u) => u.cc().to_owned(),
+      SharedAcceptedObjects::Like(l) => l.cc().to_owned(),
+      SharedAcceptedObjects::Dislike(d) => d.cc().to_owned(),
+      SharedAcceptedObjects::Delete(d) => d.cc().to_owned(),
+      SharedAcceptedObjects::Undo(d) => d.cc().to_owned(),
+      SharedAcceptedObjects::Remove(r) => r.cc().to_owned(),
+      SharedAcceptedObjects::Announce(a) => a.cc().to_owned(),
     };
-    oprops
-      .get_many_cc_xsd_any_uris()
+    cc.unwrap()
+      .clone()
+      .many()
       .unwrap()
-      .next()
+      .first()
+      .unwrap()
+      .as_xsd_any_uri()
       .unwrap()
       .to_string()
   }
@@ -126,89 +133,89 @@ pub async fn shared_inbox(
   let json = serde_json::to_string(&activity)?;
   debug!("Shared inbox received activity: {}", json);
 
-  let object = activity.object().cloned().unwrap();
-  let sender = &activity.sender();
-  let cc = &activity.cc();
+  let sender = &activity.sender()?.clone();
+  let cc = activity.to_owned().cc();
   // TODO: this is hacky, we should probably send the community id directly somehow
   let to = cc.replace("/followers", "");
 
   // TODO: this is ugly
-  match get_or_fetch_and_upsert_remote_user(&sender.to_string(), &client, pool).await {
+  match get_or_fetch_and_upsert_remote_user(sender, &client, pool).await {
     Ok(u) => verify(&request, &u)?,
     Err(_) => {
-      let c = get_or_fetch_and_upsert_remote_community(&sender.to_string(), &client, pool).await?;
+      let c = get_or_fetch_and_upsert_remote_community(sender, &client, pool).await?;
       verify(&request, &c)?;
     }
   }
 
-  match (activity, object.kind()) {
+  let object = activity.object().unwrap();
+  match (activity, object.kind_str()) {
     (SharedAcceptedObjects::Create(c), Some("Page")) => {
       receive_create_post((*c).clone(), client, pool, chat_server).await?;
-      announce_activity_if_valid::<Create>(*c, &to, sender, client, pool).await
+      announce_activity_if_valid(c.into_any_base()?, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Update(u), Some("Page")) => {
       receive_update_post((*u).clone(), client, pool, chat_server).await?;
-      announce_activity_if_valid::<Update>(*u, &to, sender, client, pool).await
+      announce_activity_if_valid(u.into_any_base()?, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Like(l), Some("Page")) => {
       receive_like_post((*l).clone(), client, pool, chat_server).await?;
-      announce_activity_if_valid::<Like>(*l, &to, sender, client, pool).await
+      announce_activity_if_valid(l.into_any_base()?, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Dislike(d), Some("Page")) => {
       receive_dislike_post((*d).clone(), client, pool, chat_server).await?;
-      announce_activity_if_valid::<Dislike>(*d, &to, sender, client, pool).await
+      announce_activity_if_valid(d.into_any_base()?, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Delete(d), Some("Page")) => {
       receive_delete_post((*d).clone(), client, pool, chat_server).await?;
-      announce_activity_if_valid::<Delete>(*d, &to, sender, client, pool).await
+      announce_activity_if_valid(d.into_any_base()?, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Remove(r), Some("Page")) => {
       receive_remove_post((*r).clone(), client, pool, chat_server).await?;
-      announce_activity_if_valid::<Remove>(*r, &to, sender, client, pool).await
+      announce_activity_if_valid(r.into_any_base()?, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Create(c), Some("Note")) => {
       receive_create_comment((*c).clone(), client, pool, chat_server).await?;
-      announce_activity_if_valid::<Create>(*c, &to, sender, client, pool).await
+      announce_activity_if_valid(c.into_any_base()?, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Update(u), Some("Note")) => {
       receive_update_comment((*u).clone(), client, pool, chat_server).await?;
-      announce_activity_if_valid::<Update>(*u, &to, sender, client, pool).await
+      announce_activity_if_valid(u.into_any_base()?, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Like(l), Some("Note")) => {
       receive_like_comment((*l).clone(), client, pool, chat_server).await?;
-      announce_activity_if_valid::<Like>(*l, &to, sender, client, pool).await
+      announce_activity_if_valid(l.into_any_base()?, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Dislike(d), Some("Note")) => {
       receive_dislike_comment((*d).clone(), client, pool, chat_server).await?;
-      announce_activity_if_valid::<Dislike>(*d, &to, sender, client, pool).await
+      announce_activity_if_valid(d.into_any_base()?, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Delete(d), Some("Note")) => {
       receive_delete_comment((*d).clone(), client, pool, chat_server).await?;
-      announce_activity_if_valid::<Delete>(*d, &to, sender, client, pool).await
+      announce_activity_if_valid(d.into_any_base()?, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Remove(r), Some("Note")) => {
       receive_remove_comment((*r).clone(), client, pool, chat_server).await?;
-      announce_activity_if_valid::<Remove>(*r, &to, sender, client, pool).await
+      announce_activity_if_valid(r.into_any_base()?, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Delete(d), Some("Group")) => {
       receive_delete_community((*d).clone(), client, pool, chat_server).await?;
-      announce_activity_if_valid::<Delete>(*d, &to, sender, client, pool).await
+      announce_activity_if_valid(d.into_any_base()?, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Remove(r), Some("Group")) => {
       receive_remove_community((*r).clone(), client, pool, chat_server).await?;
-      announce_activity_if_valid::<Remove>(*r, &to, sender, client, pool).await
+      announce_activity_if_valid(r.into_any_base()?, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Undo(u), Some("Delete")) => {
       receive_undo_delete((*u).clone(), client, pool, chat_server).await?;
-      announce_activity_if_valid::<Undo>(*u, &to, sender, client, pool).await
+      announce_activity_if_valid(u.into_any_base()?, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Undo(u), Some("Remove")) => {
       receive_undo_remove((*u).clone(), client, pool, chat_server).await?;
-      announce_activity_if_valid::<Undo>(*u, &to, sender, client, pool).await
+      announce_activity_if_valid(u.into_any_base()?, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Undo(u), Some("Like")) => {
       receive_undo_like((*u).clone(), client, pool, chat_server).await?;
-      announce_activity_if_valid::<Undo>(*u, &to, sender, client, pool).await
+      announce_activity_if_valid(u.into_any_base()?, &to, sender, client, pool).await
     }
     (SharedAcceptedObjects::Announce(a), _) => receive_announce(a, client, pool, chat_server).await,
     (a, _) => receive_unhandled_activity(a),
@@ -216,16 +223,13 @@ pub async fn shared_inbox(
 }
 
 // TODO: should pass in sender as ActorType, but thats a bit tricky in shared_inbox()
-async fn announce_activity_if_valid<A>(
-  activity: A,
+async fn announce_activity_if_valid(
+  activity: AnyBase,
   community_uri: &str,
-  sender: &str,
+  sender: &Url,
   client: &Client,
   pool: &DbPool,
-) -> Result<HttpResponse, LemmyError>
-where
-  A: Activity + Base + Serialize + Debug,
-{
+) -> Result<HttpResponse, LemmyError> {
   let community_uri = community_uri.to_owned();
   let community = blocking(pool, move |conn| {
     Community::read_from_actor_id(conn, &community_uri)
@@ -247,71 +251,60 @@ async fn receive_announce(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let object = announce
-    .announce_props
-    .get_object_base_box()
-    .unwrap()
-    .to_owned();
+  let object = announce.to_owned().object().clone().one().unwrap();
   // TODO: too much copy paste
-  match object.kind() {
+  match object.kind_str() {
     Some("Create") => {
-      let create = object.into_concrete::<Create>()?;
-      let inner_object = create.create_props.get_object_base_box().unwrap();
-      match inner_object.kind() {
+      let create = Create::from_any_base(object)?.unwrap();
+      match create.object().as_single_kind_str() {
         Some("Page") => receive_create_post(create, client, pool, chat_server).await,
         Some("Note") => receive_create_comment(create, client, pool, chat_server).await,
         _ => receive_unhandled_activity(announce),
       }
     }
     Some("Update") => {
-      let update = object.into_concrete::<Update>()?;
-      let inner_object = update.update_props.get_object_base_box().unwrap();
-      match inner_object.kind() {
+      let update = Update::from_any_base(object)?.unwrap();
+      match update.object().as_single_kind_str() {
         Some("Page") => receive_update_post(update, client, pool, chat_server).await,
         Some("Note") => receive_update_comment(update, client, pool, chat_server).await,
         _ => receive_unhandled_activity(announce),
       }
     }
     Some("Like") => {
-      let like = object.into_concrete::<Like>()?;
-      let inner_object = like.like_props.get_object_base_box().unwrap();
-      match inner_object.kind() {
+      let like = Like::from_any_base(object)?.unwrap();
+      match like.object().as_single_kind_str() {
         Some("Page") => receive_like_post(like, client, pool, chat_server).await,
         Some("Note") => receive_like_comment(like, client, pool, chat_server).await,
         _ => receive_unhandled_activity(announce),
       }
     }
     Some("Dislike") => {
-      let dislike = object.into_concrete::<Dislike>()?;
-      let inner_object = dislike.dislike_props.get_object_base_box().unwrap();
-      match inner_object.kind() {
+      let dislike = Dislike::from_any_base(object)?.unwrap();
+      match dislike.object().as_single_kind_str() {
         Some("Page") => receive_dislike_post(dislike, client, pool, chat_server).await,
         Some("Note") => receive_dislike_comment(dislike, client, pool, chat_server).await,
         _ => receive_unhandled_activity(announce),
       }
     }
     Some("Delete") => {
-      let delete = object.into_concrete::<Delete>()?;
-      let inner_object = delete.delete_props.get_object_base_box().unwrap();
-      match inner_object.kind() {
+      let delete = Delete::from_any_base(object)?.unwrap();
+      match delete.object().as_single_kind_str() {
         Some("Page") => receive_delete_post(delete, client, pool, chat_server).await,
         Some("Note") => receive_delete_comment(delete, client, pool, chat_server).await,
         _ => receive_unhandled_activity(announce),
       }
     }
     Some("Remove") => {
-      let remove = object.into_concrete::<Remove>()?;
-      let inner_object = remove.remove_props.get_object_base_box().unwrap();
-      match inner_object.kind() {
+      let remove = Remove::from_any_base(object)?.unwrap();
+      match remove.object().as_single_kind_str() {
         Some("Page") => receive_remove_post(remove, client, pool, chat_server).await,
         Some("Note") => receive_remove_comment(remove, client, pool, chat_server).await,
         _ => receive_unhandled_activity(announce),
       }
     }
     Some("Undo") => {
-      let undo = object.into_concrete::<Undo>()?;
-      let inner_object = undo.undo_props.get_object_base_box().unwrap();
-      match inner_object.kind() {
+      let undo = Undo::from_any_base(object)?.unwrap();
+      match undo.object().as_single_kind_str() {
         Some("Delete") => receive_undo_delete(undo, client, pool, chat_server).await,
         Some("Remove") => receive_undo_remove(undo, client, pool, chat_server).await,
         Some("Like") => receive_undo_like(undo, client, pool, chat_server).await,
@@ -330,31 +323,31 @@ where
   Ok(HttpResponse::NotImplemented().finish())
 }
 
+async fn get_user_from_activity<T, A>(
+  activity: &T,
+  client: &Client,
+  pool: &DbPool,
+) -> Result<User_, LemmyError>
+where
+  T: AsBase<A> + ActorAndObjectRef,
+{
+  let actor = activity.actor()?;
+  let user_uri = actor.as_single_xsd_any_uri().unwrap();
+  get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await
+}
+
 async fn receive_create_post(
   create: Create,
   client: &Client,
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let page = create
-    .create_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<PageExt>()?;
-
-  let user_uri = create
-    .create_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let user = get_user_from_activity(&create, client, pool).await?;
+  let page = PageExt::from_any_base(create.object().to_owned().one().unwrap())?.unwrap();
 
   insert_activity(user.id, create, false, pool).await?;
 
-  let post = PostForm::from_apub(&page, client, pool).await?;
+  let post = PostForm::from_apub(&page, client, pool, &user.actor_id()?).await?;
 
   let inserted_post = blocking(pool, move |conn| Post::create(conn, &post)).await??;
 
@@ -382,25 +375,12 @@ async fn receive_create_comment(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let note = create
-    .create_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<Note>()?;
-
-  let user_uri = create
-    .create_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let user = get_user_from_activity(&create, client, pool).await?;
+  let note = Note::from_any_base(create.object().to_owned().one().unwrap())?.unwrap();
 
   insert_activity(user.id, create, false, pool).await?;
 
-  let comment = CommentForm::from_apub(&note, client, pool).await?;
+  let comment = CommentForm::from_apub(&note, client, pool, &user.actor_id()?).await?;
 
   let inserted_comment = blocking(pool, move |conn| Comment::create(conn, &comment)).await??;
 
@@ -413,7 +393,7 @@ async fn receive_create_comment(
   // anyway.
   let mentions = scrape_text_for_mentions(&inserted_comment.content);
   let recipient_ids =
-    send_local_notifs(mentions, inserted_comment.clone(), user, post, pool).await?;
+    send_local_notifs(mentions, inserted_comment.clone(), user, post, pool, true).await?;
 
   // Refetch the view
   let comment_view = blocking(pool, move |conn| {
@@ -424,6 +404,7 @@ async fn receive_create_comment(
   let res = CommentResponse {
     comment: comment_view,
     recipient_ids,
+    form_id: None,
   };
 
   chat_server.do_send(SendComment {
@@ -441,27 +422,14 @@ async fn receive_update_post(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let page = update
-    .update_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<PageExt>()?;
-
-  let user_uri = update
-    .update_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let user = get_user_from_activity(&update, client, pool).await?;
+  let page = PageExt::from_any_base(update.object().to_owned().one().unwrap())?.unwrap();
 
   insert_activity(user.id, update, false, pool).await?;
 
-  let post = PostForm::from_apub(&page, client, pool).await?;
+  let post = PostForm::from_apub(&page, client, pool, &user.actor_id()?).await?;
 
-  let post_id = get_or_fetch_and_insert_remote_post(&post.ap_id, client, pool)
+  let post_id = get_or_fetch_and_insert_remote_post(&post.get_ap_id()?, client, pool)
     .await?
     .id;
 
@@ -487,23 +455,14 @@ async fn receive_like_post(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let page = like
-    .like_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<PageExt>()?;
-
-  let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
-
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let user = get_user_from_activity(&like, client, pool).await?;
+  let page = PageExt::from_any_base(like.object().to_owned().one().unwrap())?.unwrap();
 
   insert_activity(user.id, like, false, pool).await?;
 
-  let post = PostForm::from_apub(&page, client, pool).await?;
+  let post = PostForm::from_apub(&page, client, pool, &user.actor_id()?).await?;
 
-  let post_id = get_or_fetch_and_insert_remote_post(&post.ap_id, client, pool)
+  let post_id = get_or_fetch_and_insert_remote_post(&post.get_ap_id()?, client, pool)
     .await?
     .id;
 
@@ -538,27 +497,14 @@ async fn receive_dislike_post(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let page = dislike
-    .dislike_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<PageExt>()?;
-
-  let user_uri = dislike
-    .dislike_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let user = get_user_from_activity(&dislike, client, pool).await?;
+  let page = PageExt::from_any_base(dislike.object().to_owned().one().unwrap())?.unwrap();
 
   insert_activity(user.id, dislike, false, pool).await?;
 
-  let post = PostForm::from_apub(&page, client, pool).await?;
+  let post = PostForm::from_apub(&page, client, pool, &user.actor_id()?).await?;
 
-  let post_id = get_or_fetch_and_insert_remote_post(&post.ap_id, client, pool)
+  let post_id = get_or_fetch_and_insert_remote_post(&post.get_ap_id()?, client, pool)
     .await?
     .id;
 
@@ -593,27 +539,14 @@ async fn receive_update_comment(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let note = update
-    .update_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<Note>()?;
-
-  let user_uri = update
-    .update_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let note = Note::from_any_base(update.object().to_owned().one().unwrap())?.unwrap();
+  let user = get_user_from_activity(&update, client, pool).await?;
 
   insert_activity(user.id, update, false, pool).await?;
 
-  let comment = CommentForm::from_apub(&note, client, pool).await?;
+  let comment = CommentForm::from_apub(&note, client, pool, &user.actor_id()?).await?;
 
-  let comment_id = get_or_fetch_and_insert_remote_comment(&comment.ap_id, client, pool)
+  let comment_id = get_or_fetch_and_insert_remote_comment(&comment.get_ap_id()?, client, pool)
     .await?
     .id;
 
@@ -626,7 +559,7 @@ async fn receive_update_comment(
   let post = blocking(pool, move |conn| Post::read(conn, post_id)).await??;
 
   let mentions = scrape_text_for_mentions(&updated_comment.content);
-  let recipient_ids = send_local_notifs(mentions, updated_comment, user, post, pool).await?;
+  let recipient_ids = send_local_notifs(mentions, updated_comment, user, post, pool, false).await?;
 
   // Refetch the view
   let comment_view =
@@ -635,6 +568,7 @@ async fn receive_update_comment(
   let res = CommentResponse {
     comment: comment_view,
     recipient_ids,
+    form_id: None,
   };
 
   chat_server.do_send(SendComment {
@@ -652,23 +586,14 @@ async fn receive_like_comment(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let note = like
-    .like_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<Note>()?;
-
-  let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
-
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let note = Note::from_any_base(like.object().to_owned().one().unwrap())?.unwrap();
+  let user = get_user_from_activity(&like, client, pool).await?;
 
   insert_activity(user.id, like, false, pool).await?;
 
-  let comment = CommentForm::from_apub(&note, client, pool).await?;
+  let comment = CommentForm::from_apub(&note, client, pool, &user.actor_id()?).await?;
 
-  let comment_id = get_or_fetch_and_insert_remote_comment(&comment.ap_id, client, pool)
+  let comment_id = get_or_fetch_and_insert_remote_comment(&comment.get_ap_id()?, client, pool)
     .await?
     .id;
 
@@ -693,6 +618,7 @@ async fn receive_like_comment(
   let res = CommentResponse {
     comment: comment_view,
     recipient_ids,
+    form_id: None,
   };
 
   chat_server.do_send(SendComment {
@@ -710,27 +636,14 @@ async fn receive_dislike_comment(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let note = dislike
-    .dislike_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<Note>()?;
-
-  let user_uri = dislike
-    .dislike_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let note = Note::from_any_base(dislike.object().to_owned().one().unwrap())?.unwrap();
+  let user = get_user_from_activity(&dislike, client, pool).await?;
 
   insert_activity(user.id, dislike, false, pool).await?;
 
-  let comment = CommentForm::from_apub(&note, client, pool).await?;
+  let comment = CommentForm::from_apub(&note, client, pool, &user.actor_id()?).await?;
 
-  let comment_id = get_or_fetch_and_insert_remote_comment(&comment.ap_id, client, pool)
+  let comment_id = get_or_fetch_and_insert_remote_comment(&comment.get_ap_id()?, client, pool)
     .await?
     .id;
 
@@ -755,6 +668,7 @@ async fn receive_dislike_comment(
   let res = CommentResponse {
     comment: comment_view,
     recipient_ids,
+    form_id: None,
   };
 
   chat_server.do_send(SendComment {
@@ -772,25 +686,12 @@ async fn receive_delete_community(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let user_uri = delete
-    .delete_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let group = delete
-    .delete_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<GroupExt>()?;
-
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let group = GroupExt::from_any_base(delete.object().to_owned().one().unwrap())?.unwrap();
+  let user = get_user_from_activity(&delete, client, pool).await?;
 
   insert_activity(user.id, delete, false, pool).await?;
 
-  let community_actor_id = CommunityForm::from_apub(&group, client, pool)
+  let community_actor_id = CommunityForm::from_apub(&group, client, pool, &user.actor_id()?)
     .await?
     .actor_id;
 
@@ -849,25 +750,12 @@ async fn receive_remove_community(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let mod_uri = remove
-    .remove_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let group = remove
-    .remove_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<GroupExt>()?;
-
-  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, client, pool).await?;
+  let mod_ = get_user_from_activity(&remove, client, pool).await?;
+  let group = GroupExt::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
 
   insert_activity(mod_.id, remove, false, pool).await?;
 
-  let community_actor_id = CommunityForm::from_apub(&group, client, pool)
+  let community_actor_id = CommunityForm::from_apub(&group, client, pool, &mod_.actor_id()?)
     .await?
     .actor_id;
 
@@ -926,25 +814,14 @@ async fn receive_delete_post(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let user_uri = delete
-    .delete_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let page = delete
-    .delete_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<PageExt>()?;
-
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let user = get_user_from_activity(&delete, client, pool).await?;
+  let page = PageExt::from_any_base(delete.object().to_owned().one().unwrap())?.unwrap();
 
   insert_activity(user.id, delete, false, pool).await?;
 
-  let post_ap_id = PostForm::from_apub(&page, client, pool).await?.ap_id;
+  let post_ap_id = PostForm::from_apub(&page, client, pool, &user.actor_id()?)
+    .await?
+    .get_ap_id()?;
 
   let post = get_or_fetch_and_insert_remote_post(&post_ap_id, client, pool).await?;
 
@@ -992,25 +869,14 @@ async fn receive_remove_post(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let mod_uri = remove
-    .remove_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let page = remove
-    .remove_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<PageExt>()?;
-
-  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, client, pool).await?;
+  let mod_ = get_user_from_activity(&remove, client, pool).await?;
+  let page = PageExt::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
 
   insert_activity(mod_.id, remove, false, pool).await?;
 
-  let post_ap_id = PostForm::from_apub(&page, client, pool).await?.ap_id;
+  let post_ap_id = PostForm::from_apub(&page, client, pool, &mod_.actor_id()?)
+    .await?
+    .get_ap_id()?;
 
   let post = get_or_fetch_and_insert_remote_post(&post_ap_id, client, pool).await?;
 
@@ -1058,25 +924,14 @@ async fn receive_delete_comment(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let user_uri = delete
-    .delete_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let note = delete
-    .delete_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<Note>()?;
-
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let user = get_user_from_activity(&delete, client, pool).await?;
+  let note = Note::from_any_base(delete.object().to_owned().one().unwrap())?.unwrap();
 
   insert_activity(user.id, delete, false, pool).await?;
 
-  let comment_ap_id = CommentForm::from_apub(&note, client, pool).await?.ap_id;
+  let comment_ap_id = CommentForm::from_apub(&note, client, pool, &user.actor_id()?)
+    .await?
+    .get_ap_id()?;
 
   let comment = get_or_fetch_and_insert_remote_comment(&comment_ap_id, client, pool).await?;
 
@@ -1109,6 +964,7 @@ async fn receive_delete_comment(
   let res = CommentResponse {
     comment: comment_view,
     recipient_ids,
+    form_id: None,
   };
 
   chat_server.do_send(SendComment {
@@ -1126,25 +982,14 @@ async fn receive_remove_comment(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let mod_uri = remove
-    .remove_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let note = remove
-    .remove_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<Note>()?;
-
-  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, client, pool).await?;
+  let mod_ = get_user_from_activity(&remove, client, pool).await?;
+  let note = Note::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
 
   insert_activity(mod_.id, remove, false, pool).await?;
 
-  let comment_ap_id = CommentForm::from_apub(&note, client, pool).await?.ap_id;
+  let comment_ap_id = CommentForm::from_apub(&note, client, pool, &mod_.actor_id()?)
+    .await?
+    .get_ap_id()?;
 
   let comment = get_or_fetch_and_insert_remote_comment(&comment_ap_id, client, pool).await?;
 
@@ -1177,6 +1022,7 @@ async fn receive_remove_comment(
   let res = CommentResponse {
     comment: comment_view,
     recipient_ids,
+    form_id: None,
   };
 
   chat_server.do_send(SendComment {
@@ -1194,22 +1040,9 @@ async fn receive_undo_delete(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let delete = undo
-    .undo_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<Delete>()?;
+  let delete = Delete::from_any_base(undo.object().to_owned().one().unwrap())?.unwrap();
 
-  let type_ = delete
-    .delete_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .kind()
-    .unwrap();
-
+  let type_ = delete.object().as_single_kind_str().unwrap();
   match type_ {
     "Note" => receive_undo_delete_comment(delete, client, pool, chat_server).await,
     "Page" => receive_undo_delete_post(delete, client, pool, chat_server).await,
@@ -1224,22 +1057,9 @@ async fn receive_undo_remove(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let remove = undo
-    .undo_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<Remove>()?;
+  let remove = Remove::from_any_base(undo.object().to_owned().one().unwrap())?.unwrap();
 
-  let type_ = remove
-    .remove_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .kind()
-    .unwrap();
-
+  let type_ = remove.object().as_single_kind_str().unwrap();
   match type_ {
     "Note" => receive_undo_remove_comment(remove, client, pool, chat_server).await,
     "Page" => receive_undo_remove_post(remove, client, pool, chat_server).await,
@@ -1254,25 +1074,14 @@ async fn receive_undo_delete_comment(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let user_uri = delete
-    .delete_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let note = delete
-    .delete_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<Note>()?;
-
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let user = get_user_from_activity(&delete, client, pool).await?;
+  let note = Note::from_any_base(delete.object().to_owned().one().unwrap())?.unwrap();
 
   insert_activity(user.id, delete, false, pool).await?;
 
-  let comment_ap_id = CommentForm::from_apub(&note, client, pool).await?.ap_id;
+  let comment_ap_id = CommentForm::from_apub(&note, client, pool, &user.actor_id()?)
+    .await?
+    .get_ap_id()?;
 
   let comment = get_or_fetch_and_insert_remote_comment(&comment_ap_id, client, pool).await?;
 
@@ -1305,6 +1114,7 @@ async fn receive_undo_delete_comment(
   let res = CommentResponse {
     comment: comment_view,
     recipient_ids,
+    form_id: None,
   };
 
   chat_server.do_send(SendComment {
@@ -1322,25 +1132,14 @@ async fn receive_undo_remove_comment(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let mod_uri = remove
-    .remove_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let note = remove
-    .remove_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<Note>()?;
-
-  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, client, pool).await?;
+  let mod_ = get_user_from_activity(&remove, client, pool).await?;
+  let note = Note::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
 
   insert_activity(mod_.id, remove, false, pool).await?;
 
-  let comment_ap_id = CommentForm::from_apub(&note, client, pool).await?.ap_id;
+  let comment_ap_id = CommentForm::from_apub(&note, client, pool, &mod_.actor_id()?)
+    .await?
+    .get_ap_id()?;
 
   let comment = get_or_fetch_and_insert_remote_comment(&comment_ap_id, client, pool).await?;
 
@@ -1373,6 +1172,7 @@ async fn receive_undo_remove_comment(
   let res = CommentResponse {
     comment: comment_view,
     recipient_ids,
+    form_id: None,
   };
 
   chat_server.do_send(SendComment {
@@ -1390,25 +1190,14 @@ async fn receive_undo_delete_post(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let user_uri = delete
-    .delete_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let page = delete
-    .delete_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<PageExt>()?;
-
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let user = get_user_from_activity(&delete, client, pool).await?;
+  let page = PageExt::from_any_base(delete.object().to_owned().one().unwrap())?.unwrap();
 
   insert_activity(user.id, delete, false, pool).await?;
 
-  let post_ap_id = PostForm::from_apub(&page, client, pool).await?.ap_id;
+  let post_ap_id = PostForm::from_apub(&page, client, pool, &user.actor_id()?)
+    .await?
+    .get_ap_id()?;
 
   let post = get_or_fetch_and_insert_remote_post(&post_ap_id, client, pool).await?;
 
@@ -1456,25 +1245,14 @@ async fn receive_undo_remove_post(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let mod_uri = remove
-    .remove_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let page = remove
-    .remove_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<PageExt>()?;
-
-  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, client, pool).await?;
+  let mod_ = get_user_from_activity(&remove, client, pool).await?;
+  let page = PageExt::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
 
   insert_activity(mod_.id, remove, false, pool).await?;
 
-  let post_ap_id = PostForm::from_apub(&page, client, pool).await?.ap_id;
+  let post_ap_id = PostForm::from_apub(&page, client, pool, &mod_.actor_id()?)
+    .await?
+    .get_ap_id()?;
 
   let post = get_or_fetch_and_insert_remote_post(&post_ap_id, client, pool).await?;
 
@@ -1522,25 +1300,12 @@ async fn receive_undo_delete_community(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let user_uri = delete
-    .delete_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let group = delete
-    .delete_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<GroupExt>()?;
-
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let user = get_user_from_activity(&delete, client, pool).await?;
+  let group = GroupExt::from_any_base(delete.object().to_owned().one().unwrap())?.unwrap();
 
   insert_activity(user.id, delete, false, pool).await?;
 
-  let community_actor_id = CommunityForm::from_apub(&group, client, pool)
+  let community_actor_id = CommunityForm::from_apub(&group, client, pool, &user.actor_id()?)
     .await?
     .actor_id;
 
@@ -1599,25 +1364,12 @@ async fn receive_undo_remove_community(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let mod_uri = remove
-    .remove_props
-    .get_actor_xsd_any_uri()
-    .unwrap()
-    .to_string();
-
-  let group = remove
-    .remove_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<GroupExt>()?;
-
-  let mod_ = get_or_fetch_and_upsert_remote_user(&mod_uri, client, pool).await?;
+  let mod_ = get_user_from_activity(&remove, client, pool).await?;
+  let group = GroupExt::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
 
   insert_activity(mod_.id, remove, false, pool).await?;
 
-  let community_actor_id = CommunityForm::from_apub(&group, client, pool)
+  let community_actor_id = CommunityForm::from_apub(&group, client, pool, &mod_.actor_id()?)
     .await?
     .actor_id;
 
@@ -1676,22 +1428,9 @@ async fn receive_undo_like(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let like = undo
-    .undo_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<Like>()?;
+  let like = Like::from_any_base(undo.object().to_owned().one().unwrap())?.unwrap();
 
-  let type_ = like
-    .like_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .kind()
-    .unwrap();
-
+  let type_ = like.object().as_single_kind_str().unwrap();
   match type_ {
     "Note" => receive_undo_like_comment(like, client, pool, chat_server).await,
     "Page" => receive_undo_like_post(like, client, pool, chat_server).await,
@@ -1705,23 +1444,14 @@ async fn receive_undo_like_comment(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let note = like
-    .like_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<Note>()?;
-
-  let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
-
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let user = get_user_from_activity(&like, client, pool).await?;
+  let note = Note::from_any_base(like.object().to_owned().one().unwrap())?.unwrap();
 
   insert_activity(user.id, like, false, pool).await?;
 
-  let comment = CommentForm::from_apub(&note, client, pool).await?;
+  let comment = CommentForm::from_apub(&note, client, pool, &user.actor_id()?).await?;
 
-  let comment_id = get_or_fetch_and_insert_remote_comment(&comment.ap_id, client, pool)
+  let comment_id = get_or_fetch_and_insert_remote_comment(&comment.get_ap_id()?, client, pool)
     .await?
     .id;
 
@@ -1742,6 +1472,7 @@ async fn receive_undo_like_comment(
   let res = CommentResponse {
     comment: comment_view,
     recipient_ids,
+    form_id: None,
   };
 
   chat_server.do_send(SendComment {
@@ -1759,23 +1490,14 @@ async fn receive_undo_like_post(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let page = like
-    .like_props
-    .get_object_base_box()
-    .to_owned()
-    .unwrap()
-    .to_owned()
-    .into_concrete::<PageExt>()?;
-
-  let user_uri = like.like_props.get_actor_xsd_any_uri().unwrap().to_string();
-
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let user = get_user_from_activity(&like, client, pool).await?;
+  let page = PageExt::from_any_base(like.object().to_owned().one().unwrap())?.unwrap();
 
   insert_activity(user.id, like, false, pool).await?;
 
-  let post = PostForm::from_apub(&page, client, pool).await?;
+  let post = PostForm::from_apub(&page, client, pool, &user.actor_id()?).await?;
 
-  let post_id = get_or_fetch_and_insert_remote_post(&post.ap_id, client, pool)
+  let post_id = get_or_fetch_and_insert_remote_post(&post.get_ap_id()?, client, pool)
     .await?
     .id;
 

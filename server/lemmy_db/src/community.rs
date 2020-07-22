@@ -1,4 +1,5 @@
 use crate::{
+  naive_now,
   schema::{community, community_follower, community_moderator, community_user_ban},
   Bannable,
   Crud,
@@ -29,7 +30,6 @@ pub struct Community {
   pub last_refreshed_at: chrono::NaiveDateTime,
 }
 
-// TODO add better delete, remove, lock actions here.
 #[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize, Debug)]
 #[table_name = "community"]
 pub struct CommunityForm {
@@ -88,16 +88,70 @@ impl Community {
       .first::<Self>(conn)
   }
 
-  pub fn read_from_actor_id(conn: &PgConnection, community_id: &str) -> Result<Self, Error> {
+  pub fn read_from_actor_id(conn: &PgConnection, for_actor_id: &str) -> Result<Self, Error> {
     use crate::schema::community::dsl::*;
     community
-      .filter(actor_id.eq(community_id))
+      .filter(actor_id.eq(for_actor_id))
       .first::<Self>(conn)
   }
 
   pub fn list_local(conn: &PgConnection) -> Result<Vec<Self>, Error> {
     use crate::schema::community::dsl::*;
     community.filter(local.eq(true)).load::<Community>(conn)
+  }
+
+  pub fn update_deleted(
+    conn: &PgConnection,
+    community_id: i32,
+    new_deleted: bool,
+  ) -> Result<Self, Error> {
+    use crate::schema::community::dsl::*;
+    diesel::update(community.find(community_id))
+      .set(deleted.eq(new_deleted))
+      .get_result::<Self>(conn)
+  }
+
+  pub fn update_removed(
+    conn: &PgConnection,
+    community_id: i32,
+    new_removed: bool,
+  ) -> Result<Self, Error> {
+    use crate::schema::community::dsl::*;
+    diesel::update(community.find(community_id))
+      .set(removed.eq(new_removed))
+      .get_result::<Self>(conn)
+  }
+
+  pub fn update_creator(
+    conn: &PgConnection,
+    community_id: i32,
+    new_creator_id: i32,
+  ) -> Result<Self, Error> {
+    use crate::schema::community::dsl::*;
+    diesel::update(community.find(community_id))
+      .set((creator_id.eq(new_creator_id), updated.eq(naive_now())))
+      .get_result::<Self>(conn)
+  }
+
+  fn community_mods_and_admins(
+    conn: &PgConnection,
+    community_id: i32,
+  ) -> Result<Vec<i32>, Error> {
+    use crate::{community_view::CommunityModeratorView, user_view::UserView};
+    let mut mods_and_admins: Vec<i32> = Vec::new();
+    mods_and_admins.append(
+      &mut CommunityModeratorView::for_community(conn, community_id)
+        .map(|v| v.into_iter().map(|m| m.user_id).collect())?,
+    );
+    mods_and_admins
+      .append(&mut UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())?);
+    Ok(mods_and_admins)
+  }
+
+  pub fn is_mod_or_admin(conn: &PgConnection, user_id: i32, community_id: i32) -> bool {
+    Self::community_mods_and_admins(conn, community_id)
+      .unwrap_or_default()
+      .contains(&user_id)
   }
 }
 
@@ -258,7 +312,7 @@ mod tests {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
-      actor_id: "http://fake.com".into(),
+      actor_id: "changeme_8266238".into(),
       bio: None,
       local: true,
       private_key: None,
@@ -278,7 +332,7 @@ mod tests {
       removed: None,
       deleted: None,
       updated: None,
-      actor_id: "http://fake.com".into(),
+      actor_id: "changeme_7625376".into(),
       local: true,
       private_key: None,
       public_key: None,
@@ -300,7 +354,7 @@ mod tests {
       deleted: false,
       published: inserted_community.published,
       updated: None,
-      actor_id: "http://fake.com".into(),
+      actor_id: inserted_community.actor_id.to_owned(),
       local: true,
       private_key: None,
       public_key: None,

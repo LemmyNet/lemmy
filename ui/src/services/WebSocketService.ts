@@ -4,9 +4,18 @@ import {
   RegisterForm,
   UserOperation,
   CommunityForm,
+  DeleteCommunityForm,
+  RemoveCommunityForm,
   PostForm,
+  DeletePostForm,
+  RemovePostForm,
+  LockPostForm,
+  StickyPostForm,
   SavePostForm,
   CommentForm,
+  DeleteCommentForm,
+  RemoveCommentForm,
+  MarkCommentAsReadForm,
   SaveCommentForm,
   CommentLikeForm,
   GetPostForm,
@@ -28,7 +37,7 @@ import {
   UserView,
   GetRepliesForm,
   GetUserMentionsForm,
-  EditUserMentionForm,
+  MarkUserMentionAsReadForm,
   SearchForm,
   UserSettingsForm,
   DeleteAccountForm,
@@ -36,6 +45,8 @@ import {
   PasswordChangeForm,
   PrivateMessageForm,
   EditPrivateMessageForm,
+  DeletePrivateMessageForm,
+  MarkPrivateMessageAsReadForm,
   GetPrivateMessagesForm,
   GetCommentsForm,
   UserJoinForm,
@@ -103,18 +114,24 @@ export class WebSocketService {
     this.ws.send(this.wsSendWrapper(UserOperation.Register, registerForm));
   }
 
-  public createCommunity(communityForm: CommunityForm) {
-    this.setAuth(communityForm);
-    this.ws.send(
-      this.wsSendWrapper(UserOperation.CreateCommunity, communityForm)
-    );
+  public createCommunity(form: CommunityForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.CreateCommunity, form));
   }
 
-  public editCommunity(communityForm: CommunityForm) {
-    this.setAuth(communityForm);
-    this.ws.send(
-      this.wsSendWrapper(UserOperation.EditCommunity, communityForm)
-    );
+  public editCommunity(form: CommunityForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.EditCommunity, form));
+  }
+
+  public deleteCommunity(form: DeleteCommunityForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.DeleteCommunity, form));
+  }
+
+  public removeCommunity(form: RemoveCommunityForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.RemoveCommunity, form));
   }
 
   public followCommunity(followCommunityForm: FollowCommunityForm) {
@@ -140,9 +157,9 @@ export class WebSocketService {
     this.ws.send(this.wsSendWrapper(UserOperation.ListCategories, {}));
   }
 
-  public createPost(postForm: PostForm) {
-    this.setAuth(postForm);
-    this.ws.send(this.wsSendWrapper(UserOperation.CreatePost, postForm));
+  public createPost(form: PostForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.CreatePost, form));
   }
 
   public getPost(form: GetPostForm) {
@@ -155,14 +172,29 @@ export class WebSocketService {
     this.ws.send(this.wsSendWrapper(UserOperation.GetCommunity, form));
   }
 
-  public createComment(commentForm: CommentForm) {
-    this.setAuth(commentForm);
-    this.ws.send(this.wsSendWrapper(UserOperation.CreateComment, commentForm));
+  public createComment(form: CommentForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.CreateComment, form));
   }
 
-  public editComment(commentForm: CommentForm) {
-    this.setAuth(commentForm);
-    this.ws.send(this.wsSendWrapper(UserOperation.EditComment, commentForm));
+  public editComment(form: CommentForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.EditComment, form));
+  }
+
+  public deleteComment(form: DeleteCommentForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.DeleteComment, form));
+  }
+
+  public removeComment(form: RemoveCommentForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.RemoveComment, form));
+  }
+
+  public markCommentAsRead(form: MarkCommentAsReadForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.MarkCommentAsRead, form));
   }
 
   public likeComment(form: CommentLikeForm) {
@@ -190,9 +222,29 @@ export class WebSocketService {
     this.ws.send(this.wsSendWrapper(UserOperation.CreatePostLike, form));
   }
 
-  public editPost(postForm: PostForm) {
-    this.setAuth(postForm);
-    this.ws.send(this.wsSendWrapper(UserOperation.EditPost, postForm));
+  public editPost(form: PostForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.EditPost, form));
+  }
+
+  public deletePost(form: DeletePostForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.DeletePost, form));
+  }
+
+  public removePost(form: RemovePostForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.RemovePost, form));
+  }
+
+  public lockPost(form: LockPostForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.LockPost, form));
+  }
+
+  public stickyPost(form: StickyPostForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.StickyPost, form));
   }
 
   public savePost(form: SavePostForm) {
@@ -245,9 +297,9 @@ export class WebSocketService {
     this.ws.send(this.wsSendWrapper(UserOperation.GetUserMentions, form));
   }
 
-  public editUserMention(form: EditUserMentionForm) {
+  public markUserMentionAsRead(form: MarkUserMentionAsReadForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.EditUserMention, form));
+    this.ws.send(this.wsSendWrapper(UserOperation.MarkUserMentionAsRead, form));
   }
 
   public getModlog(form: GetModlogForm) {
@@ -313,6 +365,18 @@ export class WebSocketService {
   public editPrivateMessage(form: EditPrivateMessageForm) {
     this.setAuth(form);
     this.ws.send(this.wsSendWrapper(UserOperation.EditPrivateMessage, form));
+  }
+
+  public deletePrivateMessage(form: DeletePrivateMessageForm) {
+    this.setAuth(form);
+    this.ws.send(this.wsSendWrapper(UserOperation.DeletePrivateMessage, form));
+  }
+
+  public markPrivateMessageAsRead(form: MarkPrivateMessageAsReadForm) {
+    this.setAuth(form);
+    this.ws.send(
+      this.wsSendWrapper(UserOperation.MarkPrivateMessageAsRead, form)
+    );
   }
 
   public getPrivateMessages(form: GetPrivateMessagesForm) {

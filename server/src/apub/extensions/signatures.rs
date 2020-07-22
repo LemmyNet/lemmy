@@ -1,5 +1,6 @@
 use crate::{apub::ActorType, LemmyError};
-use activitystreams::ext::Extension;
+use activitystreams_ext::UnparsedExtension;
+use activitystreams_new::unparsed::UnparsedMutExt;
 use actix_web::{client::ClientRequest, HttpRequest};
 use http_signature_normalization_actix::{
   digest::{DigestClient, SignExt},
@@ -24,7 +25,7 @@ pub async fn sign(
   actor: &dyn ActorType,
   activity: String,
 ) -> Result<DigestClient<String>, LemmyError> {
-  let signing_key_id = format!("{}#main-key", actor.actor_id());
+  let signing_key_id = format!("{}#main-key", actor.actor_id()?);
   let private_key = actor.private_key();
 
   let digest_client = request
@@ -98,4 +99,20 @@ impl PublicKey {
   }
 }
 
-impl<T> Extension<T> for PublicKeyExtension where T: activitystreams::Actor {}
+impl<U> UnparsedExtension<U> for PublicKeyExtension
+where
+  U: UnparsedMutExt,
+{
+  type Error = serde_json::Error;
+
+  fn try_from_unparsed(unparsed_mut: &mut U) -> Result<Self, Self::Error> {
+    Ok(PublicKeyExtension {
+      public_key: unparsed_mut.remove("publicKey")?,
+    })
+  }
+
+  fn try_into_unparsed(self, unparsed_mut: &mut U) -> Result<(), Self::Error> {
+    unparsed_mut.insert("publicKey", self.public_key)?;
+    Ok(())
+  }
+}

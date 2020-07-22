@@ -1,10 +1,10 @@
 #!/bin/sh
 set -e
-git checkout master
+git checkout main
 
 # Import translations
 git fetch weblate
-git merge weblate/master
+git merge weblate/main
 
 # Creating the new tag
 new_tag="$1"
@@ -12,8 +12,6 @@ third_semver=$(echo $new_tag | cut -d "." -f 3)
 
 # Setting the version on the front end
 cd ../../
-echo "export const version: string = '$new_tag';" > "ui/src/version.ts"
-git add "ui/src/version.ts"
 # Setting the version on the backend
 echo "pub const VERSION: &str = \"$new_tag\";" > "server/src/version.rs"
 git add "server/src/version.rs"
