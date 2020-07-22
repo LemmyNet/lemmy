@@ -289,6 +289,37 @@ impl Perform for Oper<GetPost> {
       Err(_e) => return Err(APIError::err("couldnt_find_post").into()),
     };
 
+    if post_view.removed || post_view.deleted {
+      // Verify its the creator or a mod or admin
+      let community_id = post_view.community_id;
+      let mut editors: Vec<i32> = vec![post_view.creator_id];
+      let mut moderators: Vec<i32> = vec![];
+
+      moderators.append(
+        &mut blocking(pool, move |conn| {
+          CommunityModeratorView::for_community(conn, community_id)
+            .map(|v| v.into_iter().map(|m| m.user_id).collect())
+        })
+        .await??,
+      );
+      moderators.append(
+        &mut blocking(pool, move |conn| {
+          UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())
+        })
+        .await??,
+      );
+
+      editors.extend(&moderators);
+
+      if let Some(u_id) = user_id {
+        if !editors.contains(&u_id) {
+          return Err(APIError::err("couldnt_find_post").into());
+        }
+      } else {
+        return Err(APIError::err("couldnt_find_post").into());
+      }
+    }
+
     let id = data.id;
     let comments = blocking(pool, move |conn| {
       CommentQueryBuilder::create(conn)
