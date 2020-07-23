@@ -204,7 +204,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 </>
               )}
               <button
-                class="btn btn-sm text-muted"
+                class="btn text-muted"
                 onClick={linkEvent(this, this.handleCommentCollapse)}
               >
                 {this.state.collapsed ? (
@@ -220,7 +220,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
               {/* This is an expanding spacer for mobile */}
               <div className="mr-lg-4 flex-grow-1 flex-lg-grow-0 unselectable pointer mx-2"></div>
               <button
-                className={`btn btn-sm p-0 unselectable pointer ${this.scoreColor}`}
+                className={`btn p-0 unselectable pointer ${this.scoreColor}`}
                 onClick={linkEvent(node, this.handleCommentUpvote)}
                 data-tippy-content={this.pointsTippy}
               >

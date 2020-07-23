@@ -2,6 +2,11 @@
   border: 0px;
 }
 
+.navbar-expand-lg .navbar-nav .nav-link {
+  padding-right: .75rem !important;
+  padding-left: .75rem !important;
+}
+
 .pointer {
   cursor: pointer;
 }
@@ -134,12 +139,14 @@ blockquote {
 
 .thumbnail {
   object-fit: cover;
+  min-height: 60px;
   max-height: 80px;
   width: 100%;
 }
 
-svg.thumbnail {
-  height: 40px;
+.thumbnail svg {
+  height: 1.25rem;
+  width: 1.25rem;
 }
 
 .no-s-hows {

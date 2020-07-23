@@ -132,6 +132,7 @@ export class User extends Component<any, UserState> {
         open_registration: undefined,
         enable_nsfw: undefined,
       },
+      version: undefined,
     },
   };
 
@@ -266,7 +267,7 @@ export class User extends Component<any, UserState> {
     return (
       <div class="btn-group btn-group-toggle">
         <label
-          className={`btn btn-sm btn-secondary pointer btn-outline-light
+          className={`btn btn-outline-secondary pointer 
             ${this.state.view == UserDetailsView.Overview && 'active'}
           `}
         >
@@ -279,7 +280,7 @@ export class User extends Component<any, UserState> {
           {i18n.t('overview')}
         </label>
         <label
-          className={`btn btn-sm btn-secondary pointer btn-outline-light
+          className={`btn btn-outline-secondary pointer 
             ${this.state.view == UserDetailsView.Comments && 'active'}
           `}
         >
@@ -292,7 +293,7 @@ export class User extends Component<any, UserState> {
           {i18n.t('comments')}
         </label>
         <label
-          className={`btn btn-sm btn-secondary pointer btn-outline-light
+          className={`btn btn-outline-secondary pointer 
             ${this.state.view == UserDetailsView.Posts && 'active'}
           `}
         >
@@ -305,7 +306,7 @@ export class User extends Component<any, UserState> {
           {i18n.t('posts')}
         </label>
         <label
-          className={`btn btn-sm btn-secondary pointer btn-outline-light
+          className={`btn btn-outline-secondary pointer 
             ${this.state.view == UserDetailsView.Saved && 'active'}
           `}
         >
@@ -350,7 +351,7 @@ export class User extends Component<any, UserState> {
     let user = this.state.user;
     return (
       <div>
-        <div class="card border-secondary mb-3">
+        <div class="card bg-transparent border-secondary mb-3">
           <div class="card-body">
             <h5>
               <ul class="list-inline mb-0">
@@ -447,7 +448,7 @@ export class User extends Component<any, UserState> {
   userSettings() {
     return (
       <div>
-        <div class="card border-secondary mb-3">
+        <div class="card bg-transparent border-secondary mb-3">
           <div class="card-body">
             <h5>{i18n.t('settings')}</h5>
             <form onSubmit={linkEvent(this, this.handleUserSettingsSubmit)}>
@@ -459,7 +460,7 @@ export class User extends Component<any, UserState> {
                     class="pointer ml-4 text-muted small font-weight-bold"
                   >
                     {!this.checkSettingsAvatar ? (
-                      <span class="btn btn-sm btn-secondary">
+                      <span class="btn btn-secondary">
                         {i18n.t('upload_avatar')}
                       </span>
                     ) : (
@@ -499,7 +500,7 @@ export class User extends Component<any, UserState> {
                 <select
                   value={this.state.userSettingsForm.lang}
                   onChange={linkEvent(this, this.handleUserSettingsLangChange)}
-                  class="ml-2 custom-select custom-select-sm w-auto"
+                  class="ml-2 custom-select w-auto"
                 >
                   <option disabled>{i18n.t('language')}</option>
                   <option value="browser">{i18n.t('browser_default')}</option>
@@ -514,7 +515,7 @@ export class User extends Component<any, UserState> {
                 <select
                   value={this.state.userSettingsForm.theme}
                   onChange={linkEvent(this, this.handleUserSettingsThemeChange)}
-                  class="ml-2 custom-select custom-select-sm w-auto"
+                  class="ml-2 custom-select w-auto"
                 >
                   <option disabled>{i18n.t('theme')}</option>
                   {themes.map(theme => (
@@ -775,7 +776,7 @@ export class User extends Component<any, UserState> {
     return (
       <div>
         {this.state.moderates.length > 0 && (
-          <div class="card border-secondary mb-3">
+          <div class="card bg-transparent border-secondary mb-3">
             <div class="card-body">
               <h5>{i18n.t('moderates')}</h5>
               <ul class="list-unstyled mb-0">
@@ -798,7 +799,7 @@ export class User extends Component<any, UserState> {
     return (
       <div>
         {this.state.follows.length > 0 && (
-          <div class="card border-secondary mb-3">
+          <div class="card bg-transparent border-secondary mb-3">
             <div class="card-body">
               <h5>{i18n.t('subscribed')}</h5>
               <ul class="list-unstyled mb-0">

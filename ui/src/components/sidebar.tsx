@@ -75,7 +75,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     }
     return (
       <div>
-        <div class="card border-secondary mb-3">
+        <div class="card bg-transparent border-secondary mb-3">
           <div class="card-body">
             <h5 className="mb-0">
               <span>{community.title}</span>
@@ -177,33 +177,33 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
             )}
             <ul class="my-1 list-inline">
               {/*
-              <li className="list-inline-item badge badge-secondary">
+              <li className="list-inline-item badge badge-light">
                 {i18n.t('number_online', { count: this.props.online })}
               </li>
               */}
-              <li className="list-inline-item badge badge-secondary">
+              <li className="list-inline-item badge badge-light">
                 {i18n.t('number_of_subscribers', {
                   count: community.number_of_subscribers,
                 })}
               </li>
-              <li className="list-inline-item badge badge-secondary">
+              <li className="list-inline-item badge badge-light">
                 {i18n.t('number_of_posts', {
                   count: community.number_of_posts,
                 })}
               </li>
-              <li className="list-inline-item badge badge-secondary">
+              <li className="list-inline-item badge badge-light">
                 {i18n.t('number_of_comments', {
                   count: community.number_of_comments,
                 })}
               </li>
               <li className="list-inline-item">
-                <Link className="badge badge-secondary" to="/communities">
+                <Link className="badge badge-light" to="/communities">
                   {community.category_name}
                 </Link>
               </li>
               <li className="list-inline-item">
                 <Link
-                  className="badge badge-secondary"
+                  className="badge badge-light"
                   to={`/modlog/community/${this.props.community.id}`}
                 >
                   {i18n.t('modlog')}
@@ -228,7 +228,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
             </ul>
             {/* TODO the to= needs to be able to handle community_ids as well, since they're federated */}
             <Link
-              class={`btn btn-sm btn-secondary btn-block mb-3 ${
+              class={`btn btn-secondary btn-block mb-3 ${
                 (community.deleted || community.removed) && 'no-click'
               }`}
               to={`/create_post?community=${community.name}`}
@@ -238,14 +238,14 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
             <div>
               {community.subscribed ? (
                 <button
-                  class="btn btn-sm btn-secondary btn-block"
+                  class="btn btn-secondary btn-block"
                   onClick={linkEvent(community.id, this.handleUnsubscribe)}
                 >
                   {i18n.t('unsubscribe')}
                 </button>
               ) : (
                 <button
-                  class="btn btn-sm btn-secondary btn-block"
+                  class="btn btn-secondary btn-block"
                   onClick={linkEvent(community.id, this.handleSubscribe)}
                 >
                   {i18n.t('subscribe')}
@@ -255,7 +255,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
           </div>
         </div>
         {community.description && (
-          <div class="card border-secondary">
+          <div class="card bg-transparent border-secondary">
             <div class="card-body">
               <div
                 className="md-div"
