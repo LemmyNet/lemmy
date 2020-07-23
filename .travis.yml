@@ -1,35 +1,24 @@
-language: rust
-rust:
-  - stable
-matrix:
-  allow_failures:
-    - rust: nightly
-  fast_finish: true
-cache: cargo
-before_cache:
-  - rm -rfv target/debug/incremental/lemmy_server-*
-  - rm -rfv target/debug/.fingerprint/lemmy_server-*
-  - rm -rfv target/debug/build/lemmy_server-*
-  - rm -rfv target/debug/deps/lemmy_server-*
-  - rm -rfv target/debug/lemmy_server.d
-before_script:
-  - psql -c "create user lemmy with password 'password' superuser;" -U postgres
-  - psql -c 'create database lemmy with owner lemmy;' -U postgres
-  - rustup component add clippy --toolchain stable-x86_64-unknown-linux-gnu
-before_install:
-  - cd server
-script:
-  # Default checks, but fail if anything is detected
-  - cargo build
-  - cargo clippy -- -D clippy::style -D clippy::correctness -D clippy::complexity -D clippy::perf
-  - cargo install diesel_cli --no-default-features --features postgres --force
-  - diesel migration run
-  - cargo test --workspace
-env:
-  global:
-    - DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
-    - LEMMY_DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
-    - RUST_TEST_THREADS=1
+sudo: required
 
-addons:
-  postgresql: "9.4"
+services:
+  - docker
+
+branches:
+  only:
+    - main
+    - test
+    - travis_docker_testing
+
+env:
+  - DOCKER_COMPOSE_VERSION=1.4.2
+
+before_install:
+  - sudo rm /usr/local/bin/docker-compose
+  - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+  - chmod +x docker-compose
+  - sudo mv docker-compose /usr/local/bin
+  - cd docker/federation-test
+# install:
+#   - docker build -t hnakamur/example .
+script:
+  - ./run-tests.sh
