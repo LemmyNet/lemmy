@@ -1,14 +1,12 @@
 pub mod activities;
 pub mod comment;
 pub mod community;
-pub mod community_inbox;
 pub mod extensions;
 pub mod fetcher;
+pub mod inbox;
 pub mod post;
 pub mod private_message;
-pub mod shared_inbox;
 pub mod user;
-pub mod user_inbox;
 
 use crate::{
   apub::extensions::{
@@ -218,6 +216,9 @@ pub trait ActorType {
 
   fn public_key(&self) -> String;
   fn private_key(&self) -> String;
+
+  /// numeric id in the database, used for insert_activity
+  fn user_id(&self) -> i32;
 
   // These two have default impls, since currently a community can't follow anything,
   // and a user can't be followed (yet)

@@ -186,6 +186,10 @@ impl ActorType for User_ {
   async fn get_follower_inboxes(&self, _pool: &DbPool) -> Result<Vec<String>, LemmyError> {
     unimplemented!()
   }
+
+  fn user_id(&self) -> i32 {
+    self.id
+  }
 }
 
 #[async_trait::async_trait(?Send)]

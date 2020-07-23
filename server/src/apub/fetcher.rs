@@ -1,6 +1,14 @@
 use crate::{
   api::site::SearchResponse,
-  apub::{is_apub_id_valid, FromApub, GroupExt, PageExt, PersonExt, APUB_JSON_CONTENT_TYPE},
+  apub::{
+    is_apub_id_valid,
+    ActorType,
+    FromApub,
+    GroupExt,
+    PageExt,
+    PersonExt,
+    APUB_JSON_CONTENT_TYPE,
+  },
   blocking,
   request::{retry, RecvError},
   routes::nodeinfo::{NodeInfo, NodeInfoWellKnown},
@@ -190,6 +198,19 @@ pub async fn search_by_apub_id(
   };
 
   Ok(response)
+}
+
+pub async fn get_or_fetch_and_upsert_remote_actor(
+  apub_id: &Url,
+  client: &Client,
+  pool: &DbPool,
+) -> Result<Box<dyn ActorType>, LemmyError> {
+  let user = get_or_fetch_and_upsert_remote_user(apub_id, client, pool).await;
+  let actor: Box<dyn ActorType> = match user {
+    Ok(u) => Box::new(u),
+    Err(_) => Box::new(get_or_fetch_and_upsert_remote_community(apub_id, client, pool).await?),
+  };
+  Ok(actor)
 }
 
 /// Check if a remote user exists, create if not found, if its too old update it.Fetch a user, insert/update it in the database and return the user.

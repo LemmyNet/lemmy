@@ -318,6 +318,10 @@ impl ActorType for Community {
   ) -> Result<(), LemmyError> {
     unimplemented!()
   }
+
+  fn user_id(&self) -> i32 {
+    self.creator_id
+  }
 }
 
 #[async_trait::async_trait(?Send)]
@@ -427,10 +431,10 @@ pub async fn get_apub_community_followers(
 pub async fn do_announce(
   activity: AnyBase,
   community: &Community,
-  sender: &dyn ActorType,
+  sender: &User_,
   client: &Client,
   pool: &DbPool,
-) -> Result<HttpResponse, LemmyError> {
+) -> Result<(), LemmyError> {
   let id = format!("{}/announce/{}", community.actor_id, uuid::Uuid::new_v4());
   let mut announce = Announce::new(community.actor_id.to_owned(), activity);
   announce
@@ -450,5 +454,5 @@ pub async fn do_announce(
 
   send_activity(client, &announce.into_any_base()?, community, to).await?;
 
-  Ok(HttpResponse::Ok().finish())
+  Ok(())
 }

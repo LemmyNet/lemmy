@@ -176,7 +176,7 @@ impl Perform for Oper<CreateComment> {
     // Scan the comment for user mentions, add those rows
     let mentions = scrape_text_for_mentions(&comment_form.content);
     let recipient_ids =
-      send_local_notifs(mentions, updated_comment.clone(), user.clone(), post, pool).await?;
+      send_local_notifs(mentions, updated_comment.clone(), &user, post, pool).await?;
 
     // You like your own comment by default
     let like_form = CommentLikeForm {
@@ -407,7 +407,7 @@ impl Perform for Oper<EditComment> {
     let post = blocking(pool, move |conn| Post::read(conn, post_id)).await??;
 
     let mentions = scrape_text_for_mentions(&comment_form.content);
-    let recipient_ids = send_local_notifs(mentions, updated_comment, user, post, pool).await?;
+    let recipient_ids = send_local_notifs(mentions, updated_comment, &user, post, pool).await?;
 
     let edit_id = data.edit_id;
     let comment_view = blocking(pool, move |conn| {
@@ -672,12 +672,13 @@ impl Perform for Oper<GetComments> {
 pub async fn send_local_notifs(
   mentions: Vec<MentionData>,
   comment: Comment,
-  user: User_,
+  user: &User_,
   post: Post,
   pool: &DbPool,
 ) -> Result<Vec<i32>, LemmyError> {
+  let user2 = user.clone();
   let ids = blocking(pool, move |conn| {
-    do_send_local_notifs(conn, &mentions, &comment, &user, &post)
+    do_send_local_notifs(conn, &mentions, &comment, &user2, &post)
   })
   .await?;
 
