@@ -225,7 +225,7 @@ export class Post extends Component<any, PostState> {
       <>
         <div class="btn-group btn-group-toggle mr-3 mb-2">
           <label
-            className={`btn btn-sm btn-secondary pointer ${
+            className={`btn btn-outline-secondary pointer ${
               this.state.commentSort === CommentSortType.Hot && 'active'
             }`}
           >
@@ -238,7 +238,7 @@ export class Post extends Component<any, PostState> {
             />
           </label>
           <label
-            className={`btn btn-sm btn-secondary pointer ${
+            className={`btn btn-outline-secondary pointer ${
               this.state.commentSort === CommentSortType.Top && 'active'
             }`}
           >
@@ -251,7 +251,7 @@ export class Post extends Component<any, PostState> {
             />
           </label>
           <label
-            className={`btn btn-sm btn-secondary pointer ${
+            className={`btn btn-outline-secondary pointer ${
               this.state.commentSort === CommentSortType.New && 'active'
             }`}
           >
@@ -264,7 +264,7 @@ export class Post extends Component<any, PostState> {
             />
           </label>
           <label
-            className={`btn btn-sm btn-secondary pointer ${
+            className={`btn btn-outline-secondary pointer ${
               this.state.commentSort === CommentSortType.Old && 'active'
             }`}
           >
@@ -279,7 +279,7 @@ export class Post extends Component<any, PostState> {
         </div>
         <div class="btn-group btn-group-toggle mb-2">
           <label
-            className={`btn btn-sm btn-secondary pointer ${
+            className={`btn btn-outline-secondary pointer ${
               this.state.commentViewType === CommentViewType.Chat && 'active'
             }`}
           >

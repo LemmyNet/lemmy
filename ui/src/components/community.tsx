@@ -271,7 +271,7 @@ export class Community extends Component<any, State> {
       <div class="my-2">
         {this.state.page > 1 && (
           <button
-            class="btn btn-sm btn-secondary mr-1"
+            class="btn btn-secondary mr-1"
             onClick={linkEvent(this, this.prevPage)}
           >
             {i18n.t('prev')}
@@ -279,7 +279,7 @@ export class Community extends Component<any, State> {
         )}
         {this.state.posts.length > 0 && (
           <button
-            class="btn btn-sm btn-secondary"
+            class="btn btn-secondary"
             onClick={linkEvent(this, this.nextPage)}
           >
             {i18n.t('next')}

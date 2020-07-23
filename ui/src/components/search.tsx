@@ -207,7 +207,7 @@ export class Search extends Component<any, SearchState> {
         <select
           value={this.state.type_}
           onChange={linkEvent(this, this.handleTypeChange)}
-          class="custom-select custom-select-sm w-auto"
+          class="custom-select w-auto"
         >
           <option disabled>{i18n.t('type')}</option>
           <option value={SearchType.All}>{i18n.t('all')}</option>
@@ -402,7 +402,7 @@ export class Search extends Component<any, SearchState> {
       <div class="mt-2">
         {this.state.page > 1 && (
           <button
-            class="btn btn-sm btn-secondary mr-1"
+            class="btn btn-secondary mr-1"
             onClick={linkEvent(this, this.prevPage)}
           >
             {i18n.t('prev')}
@@ -411,7 +411,7 @@ export class Search extends Component<any, SearchState> {
 
         {this.resultsCount() > 0 && (
           <button
-            class="btn btn-sm btn-secondary"
+            class="btn btn-secondary"
             onClick={linkEvent(this, this.nextPage)}
           >
             {i18n.t('next')}
