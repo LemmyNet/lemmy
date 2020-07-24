@@ -104,10 +104,15 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 - [Ansible](https://dev.lemmy.ml/docs/administration_install_ansible.html)
 - [Kubernetes](https://dev.lemmy.ml/docs/administration_install_kubernetes.html)
 
-## Apps / Clients
+## Lemmy Projects
 
-- [Lemmy-mobile (Android / IOS) - React native](https://github.com/koredefashokun/lemmy-mobile)
-- [Kotlin API](https://github.com/eiknat/lemmy-client)
+### Apps
+
+- [Lemmy-mobile (Android / IOS) - React native ( under development )](https://github.com/koredefashokun/lemmy-mobile)
+
+### Libraries
+
+- [Kotlin API ( under development )](https://github.com/eiknat/lemmy-client)
 
 ## Support / Donate
 
