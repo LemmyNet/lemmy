@@ -115,34 +115,9 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
     );
   }
 
-  handleFinished(op: UserOperation, data: CommentResponse) {
-    let isReply =
-      this.props.node !== undefined && data.comment.parent_id !== null;
-    let xor =
-      +!(data.comment.parent_id !== null) ^ +(this.props.node !== undefined);
-
-    if (
-      (data.comment.creator_id == UserService.Instance.user.id &&
-        ((op == UserOperation.CreateComment &&
-          // If its a reply, make sure parent child match
-          isReply &&
-          data.comment.parent_id == this.props.node.comment.id) ||
-          // Otherwise, check the XOR of the two
-          (!isReply && xor))) ||
-      // If its a comment edit, only check that its from your user, and that its a
-      // text edit only
-
-      (data.comment.creator_id == UserService.Instance.user.id &&
-        op == UserOperation.EditComment &&
-        data.comment.content)
-    ) {
-      this.state.finished = true;
-      this.setState(this.state);
-    }
-  }
-
-  handleCommentSubmit(val: string) {
-    this.state.commentForm.content = val;
+  handleCommentSubmit(msg: { val: string; formId: string }) {
+    this.state.commentForm.content = msg.val;
+    this.state.commentForm.form_id = msg.formId;
     if (this.props.edit) {
       WebSocketService.Instance.editComment(this.state.commentForm);
     } else {
@@ -160,12 +135,16 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
 
     // Only do the showing and hiding if logged in
     if (UserService.Instance.user) {
-      if (res.op == UserOperation.CreateComment) {
+      if (
+        res.op == UserOperation.CreateComment ||
+        res.op == UserOperation.EditComment
+      ) {
         let data = res.data as CommentResponse;
-        this.handleFinished(res.op, data);
-      } else if (res.op == UserOperation.EditComment) {
-        let data = res.data as CommentResponse;
-        this.handleFinished(res.op, data);
+
+        // This only finishes this form, if the randomly generated form_id matches the one received
+        if (this.state.commentForm.form_id == data.form_id) {
+          this.setState({ finished: true });
+        }
       }
     }
   }

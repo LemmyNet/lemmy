@@ -4,7 +4,10 @@ import { WebSocketService, UserService } from '../services';
 import {
   Post,
   CreatePostLikeForm,
-  PostForm as PostFormI,
+  DeletePostForm,
+  RemovePostForm,
+  LockPostForm,
+  StickyPostForm,
   SavePostForm,
   CommunityUser,
   UserView,
@@ -33,7 +36,6 @@ import {
   setupTippy,
   hostname,
   previewLines,
-  toast,
 } from '../utils';
 import { i18n } from '../i18next';
 
@@ -238,9 +240,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
             title={post.url}
             rel="noopener"
           >
-            <svg class="icon thumbnail">
-              <use xlinkHref="#icon-external-link"></use>
-            </svg>
+            <div class="thumbnail rounded bg-light d-flex justify-content-center">
+              <svg class="icon d-flex align-items-center">
+                <use xlinkHref="#icon-external-link"></use>
+              </svg>
+            </div>
           </a>
         );
       }
@@ -251,9 +255,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           to={`/post/${post.id}`}
           title={i18n.t('comments')}
         >
-          <svg class="icon thumbnail">
-            <use xlinkHref="#icon-message-square"></use>
-          </svg>
+          <div class="thumbnail rounded bg-light d-flex justify-content-center">
+            <svg class="icon d-flex align-items-center">
+              <use xlinkHref="#icon-message-square"></use>
+            </svg>
+          </div>
         </Link>
       );
     }
@@ -296,7 +302,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           )}
         </div>
         {!this.state.imageExpanded && (
-          <div class="col-3 col-sm-2 pr-0 mt-1">
+          <div class="col-3 col-sm-2 pr-0">
             <div class="position-relative">{this.thumbnail()}</div>
           </div>
         )}
@@ -560,7 +566,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                       <>
                         <li className="list-inline-item">
                           <button
-                            class="btn btn-sm btn-link btn-animate text-muted"
+                            class="btn btn-link btn-animate text-muted"
                             onClick={linkEvent(this, this.handleSavePostClick)}
                             data-tippy-content={
                               post.saved ? i18n.t('unsave') : i18n.t('save')
@@ -577,7 +583,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                         </li>
                         <li className="list-inline-item">
                           <Link
-                            class="btn btn-sm btn-link btn-animate text-muted"
+                            class="btn btn-link btn-animate text-muted"
                             to={`/create_post${this.crossPostParams}`}
                             title={i18n.t('cross_post')}
                           >
@@ -592,7 +598,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                       <>
                         <li className="list-inline-item">
                           <button
-                            class="btn btn-sm btn-link btn-animate text-muted"
+                            class="btn btn-link btn-animate text-muted"
                             onClick={linkEvent(this, this.handleEditClick)}
                             data-tippy-content={i18n.t('edit')}
                           >
@@ -603,7 +609,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                         </li>
                         <li className="list-inline-item">
                           <button
-                            class="btn btn-sm btn-link btn-animate text-muted"
+                            class="btn btn-link btn-animate text-muted"
                             onClick={linkEvent(this, this.handleDeleteClick)}
                             data-tippy-content={
                               !post.deleted
@@ -626,7 +632,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                     {!this.state.showAdvanced && this.props.showBody ? (
                       <li className="list-inline-item">
                         <button
-                          class="btn btn-sm btn-link btn-animate text-muted"
+                          class="btn btn-link btn-animate text-muted"
                           onClick={linkEvent(this, this.handleShowAdvanced)}
                           data-tippy-content={i18n.t('more')}
                         >
@@ -640,7 +646,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                         {this.props.showBody && post.body && (
                           <li className="list-inline-item">
                             <button
-                              class="btn btn-sm btn-link btn-animate text-muted"
+                              class="btn btn-link btn-animate text-muted"
                               onClick={linkEvent(this, this.handleViewSource)}
                               data-tippy-content={i18n.t('view_source')}
                             >
@@ -658,7 +664,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                           <>
                             <li className="list-inline-item">
                               <button
-                                class="btn btn-sm btn-link btn-animate text-muted"
+                                class="btn btn-link btn-animate text-muted"
                                 onClick={linkEvent(this, this.handleModLock)}
                                 data-tippy-content={
                                   post.locked
@@ -677,7 +683,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                             </li>
                             <li className="list-inline-item">
                               <button
-                                class="btn btn-sm btn-link btn-animate text-muted"
+                                class="btn btn-link btn-animate text-muted"
                                 onClick={linkEvent(this, this.handleModSticky)}
                                 data-tippy-content={
                                   post.stickied
@@ -1114,18 +1120,12 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
   }
 
   handleDeleteClick(i: PostListing) {
-    let deleteForm: PostFormI = {
-      body: i.props.post.body,
-      community_id: i.props.post.community_id,
-      name: i.props.post.name,
-      url: i.props.post.url,
+    let deleteForm: DeletePostForm = {
       edit_id: i.props.post.id,
-      creator_id: i.props.post.creator_id,
       deleted: !i.props.post.deleted,
-      nsfw: i.props.post.nsfw,
       auth: null,
     };
-    WebSocketService.Instance.editPost(deleteForm);
+    WebSocketService.Instance.deletePost(deleteForm);
   }
 
   handleSavePostClick(i: PostListing) {
@@ -1163,46 +1163,34 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
 
   handleModRemoveSubmit(i: PostListing) {
     event.preventDefault();
-    let form: PostFormI = {
-      name: i.props.post.name,
-      community_id: i.props.post.community_id,
+    let form: RemovePostForm = {
       edit_id: i.props.post.id,
-      creator_id: i.props.post.creator_id,
       removed: !i.props.post.removed,
       reason: i.state.removeReason,
-      nsfw: i.props.post.nsfw,
       auth: null,
     };
-    WebSocketService.Instance.editPost(form);
+    WebSocketService.Instance.removePost(form);
 
     i.state.showRemoveDialog = false;
     i.setState(i.state);
   }
 
   handleModLock(i: PostListing) {
-    let form: PostFormI = {
-      name: i.props.post.name,
-      community_id: i.props.post.community_id,
+    let form: LockPostForm = {
       edit_id: i.props.post.id,
-      creator_id: i.props.post.creator_id,
-      nsfw: i.props.post.nsfw,
       locked: !i.props.post.locked,
       auth: null,
     };
-    WebSocketService.Instance.editPost(form);
+    WebSocketService.Instance.lockPost(form);
   }
 
   handleModSticky(i: PostListing) {
-    let form: PostFormI = {
-      name: i.props.post.name,
-      community_id: i.props.post.community_id,
+    let form: StickyPostForm = {
       edit_id: i.props.post.id,
-      creator_id: i.props.post.creator_id,
-      nsfw: i.props.post.nsfw,
       stickied: !i.props.post.stickied,
       auth: null,
     };
-    WebSocketService.Instance.editPost(form);
+    WebSocketService.Instance.stickyPost(form);
   }
 
   handleModBanFromCommunityShow(i: PostListing) {

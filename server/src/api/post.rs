@@ -1,5 +1,5 @@
 use crate::{
-  api::{claims::Claims, APIError, Oper, Perform},
+  api::{claims::Claims, is_mod_or_admin, APIError, Oper, Perform},
   apub::{ApubLikeableType, ApubObjectType},
   blocking,
   fetch_iframely_and_pictrs_data,
@@ -18,10 +18,8 @@ use lemmy_db::{
   naive_now,
   post::*,
   post_view::*,
-  site::*,
   site_view::*,
   user::*,
-  user_view::*,
   Crud,
   Likeable,
   ListingType,
@@ -66,7 +64,6 @@ pub struct GetPostResponse {
   comments: Vec<CommentView>,
   community: CommunityView,
   moderators: Vec<CommunityModeratorView>,
-  admins: Vec<UserView>,
   pub online: usize,
 }
 
@@ -96,17 +93,39 @@ pub struct CreatePostLike {
 #[derive(Serialize, Deserialize)]
 pub struct EditPost {
   pub edit_id: i32,
-  creator_id: i32,
-  community_id: i32,
   name: String,
   url: Option<String>,
   body: Option<String>,
-  removed: Option<bool>,
-  deleted: Option<bool>,
   nsfw: bool,
-  locked: Option<bool>,
-  stickied: Option<bool>,
+  auth: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct DeletePost {
+  pub edit_id: i32,
+  deleted: bool,
+  auth: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct RemovePost {
+  pub edit_id: i32,
+  removed: bool,
   reason: Option<String>,
+  auth: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct LockPost {
+  pub edit_id: i32,
+  locked: bool,
+  auth: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct StickyPost {
+  pub edit_id: i32,
+  stickied: bool,
   auth: String,
 }
 
@@ -311,14 +330,6 @@ impl Perform for Oper<GetPost> {
     })
     .await??;
 
-    let site_creator_id =
-      blocking(pool, move |conn| Site::read(conn, 1).map(|s| s.creator_id)).await??;
-
-    let mut admins = blocking(pool, move |conn| UserView::admins(conn)).await??;
-    let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
-    let creator_user = admins.remove(creator_index);
-    admins.insert(0, creator_user);
-
     let online = if let Some(ws) = websocket_info {
       if let Some(id) = ws.id {
         ws.chatserver.do_send(JoinPostRoom {
@@ -343,7 +354,6 @@ impl Perform for Oper<GetPost> {
       comments,
       community,
       moderators,
-      admins,
       online,
     })
   }
@@ -549,35 +559,10 @@ impl Perform for Oper<EditPost> {
     let user_id = claims.id;
 
     let edit_id = data.edit_id;
-    let read_post = blocking(pool, move |conn| Post::read(conn, edit_id)).await??;
-
-    // Verify its the creator or a mod or admin
-    let community_id = read_post.community_id;
-    let mut editors: Vec<i32> = vec![read_post.creator_id];
-    let mut moderators: Vec<i32> = vec![];
-
-    moderators.append(
-      &mut blocking(pool, move |conn| {
-        CommunityModeratorView::for_community(conn, community_id)
-          .map(|v| v.into_iter().map(|m| m.user_id).collect())
-      })
-      .await??,
-    );
-    moderators.append(
-      &mut blocking(pool, move |conn| {
-        UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())
-      })
-      .await??,
-    );
-
-    editors.extend(&moderators);
-
-    if !editors.contains(&user_id) {
-      return Err(APIError::err("no_post_edit_allowed").into());
-    }
+    let orig_post = blocking(pool, move |conn| Post::read(conn, edit_id)).await??;
 
     // Check for a community ban
-    let community_id = read_post.community_id;
+    let community_id = orig_post.community_id;
     let is_banned =
       move |conn: &'_ _| CommunityUserBanView::get(conn, user_id, community_id).is_ok();
     if blocking(pool, is_banned).await? {
@@ -590,55 +575,34 @@ impl Perform for Oper<EditPost> {
       return Err(APIError::err("site_ban").into());
     }
 
+    // Verify that only the creator can edit
+    if !Post::is_post_creator(user_id, orig_post.creator_id) {
+      return Err(APIError::err("no_post_edit_allowed").into());
+    }
+
     // Fetch Iframely and Pictrs cached image
     let (iframely_title, iframely_description, iframely_html, pictrs_thumbnail) =
       fetch_iframely_and_pictrs_data(&self.client, data.url.to_owned()).await;
 
-    let post_form = {
-      // only modify some properties if they are a moderator
-      if moderators.contains(&user_id) {
-        PostForm {
-          name: data.name.trim().to_owned(),
-          url: data.url.to_owned(),
-          body: data.body.to_owned(),
-          creator_id: read_post.creator_id.to_owned(),
-          community_id: read_post.community_id,
-          removed: data.removed.to_owned(),
-          deleted: data.deleted.to_owned(),
-          nsfw: data.nsfw,
-          locked: data.locked.to_owned(),
-          stickied: data.stickied.to_owned(),
-          updated: Some(naive_now()),
-          embed_title: iframely_title,
-          embed_description: iframely_description,
-          embed_html: iframely_html,
-          thumbnail_url: pictrs_thumbnail,
-          ap_id: read_post.ap_id,
-          local: read_post.local,
-          published: None,
-        }
-      } else {
-        PostForm {
-          name: read_post.name.trim().to_owned(),
-          url: data.url.to_owned(),
-          body: data.body.to_owned(),
-          creator_id: read_post.creator_id.to_owned(),
-          community_id: read_post.community_id,
-          removed: Some(read_post.removed),
-          deleted: data.deleted.to_owned(),
-          nsfw: data.nsfw,
-          locked: Some(read_post.locked),
-          stickied: Some(read_post.stickied),
-          updated: Some(naive_now()),
-          embed_title: iframely_title,
-          embed_description: iframely_description,
-          embed_html: iframely_html,
-          thumbnail_url: pictrs_thumbnail,
-          ap_id: read_post.ap_id,
-          local: read_post.local,
-          published: None,
-        }
-      }
+    let post_form = PostForm {
+      name: data.name.trim().to_owned(),
+      url: data.url.to_owned(),
+      body: data.body.to_owned(),
+      nsfw: data.nsfw,
+      creator_id: orig_post.creator_id.to_owned(),
+      community_id: orig_post.community_id,
+      removed: Some(orig_post.removed),
+      deleted: Some(orig_post.deleted),
+      locked: Some(orig_post.locked),
+      stickied: Some(orig_post.stickied),
+      updated: Some(naive_now()),
+      embed_title: iframely_title,
+      embed_description: iframely_description,
+      embed_html: iframely_html,
+      thumbnail_url: pictrs_thumbnail,
+      ap_id: orig_post.ap_id,
+      local: orig_post.local,
+      published: None,
     };
 
     let edit_id = data.edit_id;
@@ -656,58 +620,8 @@ impl Perform for Oper<EditPost> {
       }
     };
 
-    if moderators.contains(&user_id) {
-      // Mod tables
-      if let Some(removed) = data.removed.to_owned() {
-        let form = ModRemovePostForm {
-          mod_user_id: user_id,
-          post_id: data.edit_id,
-          removed: Some(removed),
-          reason: data.reason.to_owned(),
-        };
-        blocking(pool, move |conn| ModRemovePost::create(conn, &form)).await??;
-      }
-
-      if let Some(locked) = data.locked.to_owned() {
-        let form = ModLockPostForm {
-          mod_user_id: user_id,
-          post_id: data.edit_id,
-          locked: Some(locked),
-        };
-        blocking(pool, move |conn| ModLockPost::create(conn, &form)).await??;
-      }
-
-      if let Some(stickied) = data.stickied.to_owned() {
-        let form = ModStickyPostForm {
-          mod_user_id: user_id,
-          post_id: data.edit_id,
-          stickied: Some(stickied),
-        };
-        blocking(pool, move |conn| ModStickyPost::create(conn, &form)).await??;
-      }
-    }
-
-    if let Some(deleted) = data.deleted.to_owned() {
-      if deleted {
-        updated_post.send_delete(&user, &self.client, pool).await?;
-      } else {
-        updated_post
-          .send_undo_delete(&user, &self.client, pool)
-          .await?;
-      }
-    } else if let Some(removed) = data.removed.to_owned() {
-      if moderators.contains(&user_id) {
-        if removed {
-          updated_post.send_remove(&user, &self.client, pool).await?;
-        } else {
-          updated_post
-            .send_undo_remove(&user, &self.client, pool)
-            .await?;
-        }
-      }
-    } else {
-      updated_post.send_update(&user, &self.client, pool).await?;
-    }
+    // Send apub update
+    updated_post.send_update(&user, &self.client, pool).await?;
 
     let edit_id = data.edit_id;
     let post_view = blocking(pool, move |conn| {
@@ -720,6 +634,324 @@ impl Perform for Oper<EditPost> {
     if let Some(ws) = websocket_info {
       ws.chatserver.do_send(SendPost {
         op: UserOperation::EditPost,
+        post: res.clone(),
+        my_id: ws.id,
+      });
+    }
+
+    Ok(res)
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for Oper<DeletePost> {
+  type Response = PostResponse;
+
+  async fn perform(
+    &self,
+    pool: &DbPool,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<PostResponse, LemmyError> {
+    let data: &DeletePost = &self.data;
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
+    };
+
+    let user_id = claims.id;
+
+    let edit_id = data.edit_id;
+    let orig_post = blocking(pool, move |conn| Post::read(conn, edit_id)).await??;
+
+    // Check for a site ban
+    let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
+    if user.banned {
+      return Err(APIError::err("site_ban").into());
+    }
+
+    // Check for a community ban
+    let community_id = orig_post.community_id;
+    let is_banned =
+      move |conn: &'_ _| CommunityUserBanView::get(conn, user_id, community_id).is_ok();
+    if blocking(pool, is_banned).await? {
+      return Err(APIError::err("community_ban").into());
+    }
+
+    // Verify that only the creator can delete
+    if !Post::is_post_creator(user_id, orig_post.creator_id) {
+      return Err(APIError::err("no_post_edit_allowed").into());
+    }
+
+    // Update the post
+    let edit_id = data.edit_id;
+    let deleted = data.deleted;
+    let updated_post = blocking(pool, move |conn| {
+      Post::update_deleted(conn, edit_id, deleted)
+    })
+    .await??;
+
+    // apub updates
+    if deleted {
+      updated_post.send_delete(&user, &self.client, pool).await?;
+    } else {
+      updated_post
+        .send_undo_delete(&user, &self.client, pool)
+        .await?;
+    }
+
+    // Refetch the post
+    let edit_id = data.edit_id;
+    let post_view = blocking(pool, move |conn| {
+      PostView::read(conn, edit_id, Some(user_id))
+    })
+    .await??;
+
+    let res = PostResponse { post: post_view };
+
+    if let Some(ws) = websocket_info {
+      ws.chatserver.do_send(SendPost {
+        op: UserOperation::DeletePost,
+        post: res.clone(),
+        my_id: ws.id,
+      });
+    }
+
+    Ok(res)
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for Oper<RemovePost> {
+  type Response = PostResponse;
+
+  async fn perform(
+    &self,
+    pool: &DbPool,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<PostResponse, LemmyError> {
+    let data: &RemovePost = &self.data;
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
+    };
+
+    let user_id = claims.id;
+
+    let edit_id = data.edit_id;
+    let orig_post = blocking(pool, move |conn| Post::read(conn, edit_id)).await??;
+
+    // Check for a site ban
+    let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
+    if user.banned {
+      return Err(APIError::err("site_ban").into());
+    }
+
+    // Check for a community ban
+    let community_id = orig_post.community_id;
+    let is_banned =
+      move |conn: &'_ _| CommunityUserBanView::get(conn, user_id, community_id).is_ok();
+    if blocking(pool, is_banned).await? {
+      return Err(APIError::err("community_ban").into());
+    }
+
+    // Verify that only the mods can remove
+    is_mod_or_admin(pool, user_id, community_id).await?;
+
+    // Update the post
+    let edit_id = data.edit_id;
+    let removed = data.removed;
+    let updated_post = blocking(pool, move |conn| {
+      Post::update_removed(conn, edit_id, removed)
+    })
+    .await??;
+
+    // Mod tables
+    let form = ModRemovePostForm {
+      mod_user_id: user_id,
+      post_id: data.edit_id,
+      removed: Some(removed),
+      reason: data.reason.to_owned(),
+    };
+    blocking(pool, move |conn| ModRemovePost::create(conn, &form)).await??;
+
+    // apub updates
+    if removed {
+      updated_post.send_remove(&user, &self.client, pool).await?;
+    } else {
+      updated_post
+        .send_undo_remove(&user, &self.client, pool)
+        .await?;
+    }
+
+    // Refetch the post
+    let edit_id = data.edit_id;
+    let post_view = blocking(pool, move |conn| {
+      PostView::read(conn, edit_id, Some(user_id))
+    })
+    .await??;
+
+    let res = PostResponse { post: post_view };
+
+    if let Some(ws) = websocket_info {
+      ws.chatserver.do_send(SendPost {
+        op: UserOperation::RemovePost,
+        post: res.clone(),
+        my_id: ws.id,
+      });
+    }
+
+    Ok(res)
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for Oper<LockPost> {
+  type Response = PostResponse;
+
+  async fn perform(
+    &self,
+    pool: &DbPool,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<PostResponse, LemmyError> {
+    let data: &LockPost = &self.data;
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
+    };
+
+    let user_id = claims.id;
+
+    let edit_id = data.edit_id;
+    let orig_post = blocking(pool, move |conn| Post::read(conn, edit_id)).await??;
+
+    // Check for a site ban
+    let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
+    if user.banned {
+      return Err(APIError::err("site_ban").into());
+    }
+
+    // Check for a community ban
+    let community_id = orig_post.community_id;
+    let is_banned =
+      move |conn: &'_ _| CommunityUserBanView::get(conn, user_id, community_id).is_ok();
+    if blocking(pool, is_banned).await? {
+      return Err(APIError::err("community_ban").into());
+    }
+
+    // Verify that only the mods can lock
+    is_mod_or_admin(pool, user_id, community_id).await?;
+
+    // Update the post
+    let edit_id = data.edit_id;
+    let locked = data.locked;
+    let updated_post =
+      blocking(pool, move |conn| Post::update_locked(conn, edit_id, locked)).await??;
+
+    // Mod tables
+    let form = ModLockPostForm {
+      mod_user_id: user_id,
+      post_id: data.edit_id,
+      locked: Some(locked),
+    };
+    blocking(pool, move |conn| ModLockPost::create(conn, &form)).await??;
+
+    // apub updates
+    updated_post.send_update(&user, &self.client, pool).await?;
+
+    // Refetch the post
+    let edit_id = data.edit_id;
+    let post_view = blocking(pool, move |conn| {
+      PostView::read(conn, edit_id, Some(user_id))
+    })
+    .await??;
+
+    let res = PostResponse { post: post_view };
+
+    if let Some(ws) = websocket_info {
+      ws.chatserver.do_send(SendPost {
+        op: UserOperation::LockPost,
+        post: res.clone(),
+        my_id: ws.id,
+      });
+    }
+
+    Ok(res)
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for Oper<StickyPost> {
+  type Response = PostResponse;
+
+  async fn perform(
+    &self,
+    pool: &DbPool,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<PostResponse, LemmyError> {
+    let data: &StickyPost = &self.data;
+
+    let claims = match Claims::decode(&data.auth) {
+      Ok(claims) => claims.claims,
+      Err(_e) => return Err(APIError::err("not_logged_in").into()),
+    };
+
+    let user_id = claims.id;
+
+    let edit_id = data.edit_id;
+    let orig_post = blocking(pool, move |conn| Post::read(conn, edit_id)).await??;
+
+    // Check for a site ban
+    let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
+    if user.banned {
+      return Err(APIError::err("site_ban").into());
+    }
+
+    // Check for a community ban
+    let community_id = orig_post.community_id;
+    let is_banned =
+      move |conn: &'_ _| CommunityUserBanView::get(conn, user_id, community_id).is_ok();
+    if blocking(pool, is_banned).await? {
+      return Err(APIError::err("community_ban").into());
+    }
+
+    // Verify that only the mods can sticky
+    is_mod_or_admin(pool, user_id, community_id).await?;
+
+    // Update the post
+    let edit_id = data.edit_id;
+    let stickied = data.stickied;
+    let updated_post = blocking(pool, move |conn| {
+      Post::update_stickied(conn, edit_id, stickied)
+    })
+    .await??;
+
+    // Mod tables
+    let form = ModStickyPostForm {
+      mod_user_id: user_id,
+      post_id: data.edit_id,
+      stickied: Some(stickied),
+    };
+    blocking(pool, move |conn| ModStickyPost::create(conn, &form)).await??;
+
+    // Apub updates
+    // TODO stickied should pry work like locked for ease of use
+    updated_post.send_update(&user, &self.client, pool).await?;
+
+    // Refetch the post
+    let edit_id = data.edit_id;
+    let post_view = blocking(pool, move |conn| {
+      PostView::read(conn, edit_id, Some(user_id))
+    })
+    .await??;
+
+    let res = PostResponse { post: post_view };
+
+    if let Some(ws) = websocket_info {
+      ws.chatserver.do_send(SendPost {
+        op: UserOperation::StickyPost,
         post: res.clone(),
         my_id: ws.id,
       });

@@ -1,6 +1,14 @@
-use crate::{websocket::WebsocketInfo, DbPool, LemmyError};
+use crate::{blocking, websocket::WebsocketInfo, DbPool, LemmyError};
 use actix_web::client::Client;
-use lemmy_db::{community::*, community_view::*, moderator::*, site::*, user::*, user_view::*};
+use lemmy_db::{
+  community::*,
+  community_view::*,
+  moderator::*,
+  site::*,
+  user::*,
+  user_view::*,
+  Crud,
+};
 
 pub mod claims;
 pub mod comment;
@@ -43,4 +51,26 @@ pub trait Perform {
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<Self::Response, LemmyError>;
+}
+
+pub async fn is_mod_or_admin(
+  pool: &DbPool,
+  user_id: i32,
+  community_id: i32,
+) -> Result<(), LemmyError> {
+  let is_mod_or_admin = blocking(pool, move |conn| {
+    Community::is_mod_or_admin(conn, user_id, community_id)
+  })
+  .await?;
+  if !is_mod_or_admin {
+    return Err(APIError::err("not_an_admin").into());
+  }
+  Ok(())
+}
+pub async fn is_admin(pool: &DbPool, user_id: i32) -> Result<(), LemmyError> {
+  let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
+  if !user.admin {
+    return Err(APIError::err("not_an_admin").into());
+  }
+  Ok(())
 }

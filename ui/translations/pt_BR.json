@@ -111,7 +111,7 @@
     "all": "Tudo",
     "top": "Top",
     "api": "API",
-    "docs": "Docs",
+    "docs": "Documentação",
     "inbox": "Caixa de entrada",
     "inbox_for": "Caixa de entrada de <1>{{user}}</1>",
     "mark_all_as_read": "marcar tudo como lido",
@@ -261,5 +261,6 @@
     "no_password_reset": "Você não conseguirá redefinir sua senha sem um e-mail.",
     "invalid_post_title": "Título de publicação inválido",
     "cake_day_info": "Hoje é o dia do bolo de {{ creator_name }}!",
-    "cake_day_title": "Dia do bolo:"
+    "cake_day_title": "Dia do bolo:",
+    "what_is": "Quanto é"
 }

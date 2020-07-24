@@ -212,6 +212,9 @@ impl ChatServer {
 
     // Also leave all communities
     // This avoids double messages
+    // TODO found a bug, whereby community messages like
+    // delete and remove aren't sent, because
+    // you left the community room
     for sessions in self.community_rooms.values_mut() {
       sessions.remove(&id);
     }
@@ -443,18 +446,28 @@ impl ChatServer {
         UserOperation::AddAdmin => do_user_operation::<AddAdmin>(args).await,
         UserOperation::BanUser => do_user_operation::<BanUser>(args).await,
         UserOperation::GetUserMentions => do_user_operation::<GetUserMentions>(args).await,
-        UserOperation::EditUserMention => do_user_operation::<EditUserMention>(args).await,
+        UserOperation::MarkUserMentionAsRead => {
+          do_user_operation::<MarkUserMentionAsRead>(args).await
+        }
         UserOperation::MarkAllAsRead => do_user_operation::<MarkAllAsRead>(args).await,
         UserOperation::DeleteAccount => do_user_operation::<DeleteAccount>(args).await,
         UserOperation::PasswordReset => do_user_operation::<PasswordReset>(args).await,
         UserOperation::PasswordChange => do_user_operation::<PasswordChange>(args).await,
+        UserOperation::UserJoin => do_user_operation::<UserJoin>(args).await,
+        UserOperation::SaveUserSettings => do_user_operation::<SaveUserSettings>(args).await,
+
+        // Private Message ops
         UserOperation::CreatePrivateMessage => {
           do_user_operation::<CreatePrivateMessage>(args).await
         }
         UserOperation::EditPrivateMessage => do_user_operation::<EditPrivateMessage>(args).await,
+        UserOperation::DeletePrivateMessage => {
+          do_user_operation::<DeletePrivateMessage>(args).await
+        }
+        UserOperation::MarkPrivateMessageAsRead => {
+          do_user_operation::<MarkPrivateMessageAsRead>(args).await
+        }
         UserOperation::GetPrivateMessages => do_user_operation::<GetPrivateMessages>(args).await,
-        UserOperation::UserJoin => do_user_operation::<UserJoin>(args).await,
-        UserOperation::SaveUserSettings => do_user_operation::<SaveUserSettings>(args).await,
 
         // Site ops
         UserOperation::GetModlog => do_user_operation::<GetModlog>(args).await,
@@ -473,6 +486,8 @@ impl ChatServer {
         UserOperation::ListCommunities => do_user_operation::<ListCommunities>(args).await,
         UserOperation::CreateCommunity => do_user_operation::<CreateCommunity>(args).await,
         UserOperation::EditCommunity => do_user_operation::<EditCommunity>(args).await,
+        UserOperation::DeleteCommunity => do_user_operation::<DeleteCommunity>(args).await,
+        UserOperation::RemoveCommunity => do_user_operation::<RemoveCommunity>(args).await,
         UserOperation::FollowCommunity => do_user_operation::<FollowCommunity>(args).await,
         UserOperation::GetFollowedCommunities => {
           do_user_operation::<GetFollowedCommunities>(args).await
@@ -485,12 +500,19 @@ impl ChatServer {
         UserOperation::GetPost => do_user_operation::<GetPost>(args).await,
         UserOperation::GetPosts => do_user_operation::<GetPosts>(args).await,
         UserOperation::EditPost => do_user_operation::<EditPost>(args).await,
+        UserOperation::DeletePost => do_user_operation::<DeletePost>(args).await,
+        UserOperation::RemovePost => do_user_operation::<RemovePost>(args).await,
+        UserOperation::LockPost => do_user_operation::<LockPost>(args).await,
+        UserOperation::StickyPost => do_user_operation::<StickyPost>(args).await,
         UserOperation::CreatePostLike => do_user_operation::<CreatePostLike>(args).await,
         UserOperation::SavePost => do_user_operation::<SavePost>(args).await,
 
         // Comment ops
         UserOperation::CreateComment => do_user_operation::<CreateComment>(args).await,
         UserOperation::EditComment => do_user_operation::<EditComment>(args).await,
+        UserOperation::DeleteComment => do_user_operation::<DeleteComment>(args).await,
+        UserOperation::RemoveComment => do_user_operation::<RemoveComment>(args).await,
+        UserOperation::MarkCommentAsRead => do_user_operation::<MarkCommentAsRead>(args).await,
         UserOperation::SaveComment => do_user_operation::<SaveComment>(args).await,
         UserOperation::GetComments => do_user_operation::<GetComments>(args).await,
         UserOperation::CreateCommentLike => do_user_operation::<CreateCommentLike>(args).await,

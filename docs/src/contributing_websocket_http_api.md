@@ -17,6 +17,7 @@
 - [Errors](#errors)
 - [API documentation](#api-documentation)
   * [Sort Types](#sort-types)
+  * [Undoing actions](#undoing-actions)
   * [Websocket vs HTTP](#websocket-vs-http)
   * [User / Authentication / Admin actions](#user--authentication--admin-actions)
     + [Login](#login)
@@ -43,142 +44,198 @@
       - [Request](#request-5)
       - [Response](#response-5)
       - [HTTP](#http-6)
-    + [Edit User Mention](#edit-user-mention)
+    + [Mark User Mention as read](#mark-user-mention-as-read)
       - [Request](#request-6)
       - [Response](#response-6)
       - [HTTP](#http-7)
-    + [Mark All As Read](#mark-all-as-read)
+    + [Get Private Messages](#get-private-messages)
       - [Request](#request-7)
       - [Response](#response-7)
       - [HTTP](#http-8)
-    + [Delete Account](#delete-account)
+    + [Create Private Message](#create-private-message)
       - [Request](#request-8)
       - [Response](#response-8)
       - [HTTP](#http-9)
-    + [Add admin](#add-admin)
+    + [Edit Private Message](#edit-private-message)
       - [Request](#request-9)
       - [Response](#response-9)
       - [HTTP](#http-10)
-    + [Ban user](#ban-user)
+    + [Delete Private Message](#delete-private-message)
       - [Request](#request-10)
       - [Response](#response-10)
       - [HTTP](#http-11)
-  * [Site](#site)
-    + [List Categories](#list-categories)
+    + [Mark Private Message as Read](#mark-private-message-as-read)
       - [Request](#request-11)
       - [Response](#response-11)
       - [HTTP](#http-12)
-    + [Search](#search)
+    + [Mark All As Read](#mark-all-as-read)
       - [Request](#request-12)
       - [Response](#response-12)
       - [HTTP](#http-13)
-    + [Get Modlog](#get-modlog)
+    + [Delete Account](#delete-account)
       - [Request](#request-13)
       - [Response](#response-13)
       - [HTTP](#http-14)
-    + [Create Site](#create-site)
+    + [Add admin](#add-admin)
       - [Request](#request-14)
       - [Response](#response-14)
       - [HTTP](#http-15)
-    + [Edit Site](#edit-site)
+    + [Ban user](#ban-user)
       - [Request](#request-15)
       - [Response](#response-15)
       - [HTTP](#http-16)
-    + [Get Site](#get-site)
+  * [Site](#site)
+    + [List Categories](#list-categories)
       - [Request](#request-16)
       - [Response](#response-16)
       - [HTTP](#http-17)
-    + [Transfer Site](#transfer-site)
+    + [Search](#search)
       - [Request](#request-17)
       - [Response](#response-17)
       - [HTTP](#http-18)
-    + [Get Site Config](#get-site-config)
+    + [Get Modlog](#get-modlog)
       - [Request](#request-18)
       - [Response](#response-18)
       - [HTTP](#http-19)
-    + [Save Site Config](#save-site-config)
+    + [Create Site](#create-site)
       - [Request](#request-19)
       - [Response](#response-19)
       - [HTTP](#http-20)
-  * [Community](#community)
-    + [Get Community](#get-community)
+    + [Edit Site](#edit-site)
       - [Request](#request-20)
       - [Response](#response-20)
       - [HTTP](#http-21)
-    + [Create Community](#create-community)
+    + [Get Site](#get-site)
       - [Request](#request-21)
       - [Response](#response-21)
       - [HTTP](#http-22)
-    + [List Communities](#list-communities)
+    + [Transfer Site](#transfer-site)
       - [Request](#request-22)
       - [Response](#response-22)
       - [HTTP](#http-23)
-    + [Ban from Community](#ban-from-community)
+    + [Get Site Config](#get-site-config)
       - [Request](#request-23)
       - [Response](#response-23)
       - [HTTP](#http-24)
-    + [Add Mod to Community](#add-mod-to-community)
+    + [Save Site Config](#save-site-config)
       - [Request](#request-24)
       - [Response](#response-24)
       - [HTTP](#http-25)
-    + [Edit Community](#edit-community)
+  * [Community](#community)
+    + [Get Community](#get-community)
       - [Request](#request-25)
       - [Response](#response-25)
       - [HTTP](#http-26)
-    + [Follow Community](#follow-community)
+    + [Create Community](#create-community)
       - [Request](#request-26)
       - [Response](#response-26)
       - [HTTP](#http-27)
-    + [Get Followed Communities](#get-followed-communities)
+    + [List Communities](#list-communities)
       - [Request](#request-27)
       - [Response](#response-27)
       - [HTTP](#http-28)
-    + [Transfer Community](#transfer-community)
+    + [Ban from Community](#ban-from-community)
       - [Request](#request-28)
       - [Response](#response-28)
       - [HTTP](#http-29)
-  * [Post](#post)
-    + [Create Post](#create-post)
+    + [Add Mod to Community](#add-mod-to-community)
       - [Request](#request-29)
       - [Response](#response-29)
       - [HTTP](#http-30)
-    + [Get Post](#get-post)
+    + [Edit Community](#edit-community)
       - [Request](#request-30)
       - [Response](#response-30)
       - [HTTP](#http-31)
-    + [Get Posts](#get-posts)
+    + [Delete Community](#delete-community)
       - [Request](#request-31)
       - [Response](#response-31)
       - [HTTP](#http-32)
-    + [Create Post Like](#create-post-like)
+    + [Remove Community](#remove-community)
       - [Request](#request-32)
       - [Response](#response-32)
       - [HTTP](#http-33)
-    + [Edit Post](#edit-post)
+    + [Follow Community](#follow-community)
       - [Request](#request-33)
       - [Response](#response-33)
       - [HTTP](#http-34)
-    + [Save Post](#save-post)
+    + [Get Followed Communities](#get-followed-communities)
       - [Request](#request-34)
       - [Response](#response-34)
       - [HTTP](#http-35)
-  * [Comment](#comment)
-    + [Create Comment](#create-comment)
+    + [Transfer Community](#transfer-community)
       - [Request](#request-35)
       - [Response](#response-35)
       - [HTTP](#http-36)
-    + [Edit Comment](#edit-comment)
+  * [Post](#post)
+    + [Create Post](#create-post)
       - [Request](#request-36)
       - [Response](#response-36)
       - [HTTP](#http-37)
-    + [Save Comment](#save-comment)
+    + [Get Post](#get-post)
       - [Request](#request-37)
       - [Response](#response-37)
       - [HTTP](#http-38)
-    + [Create Comment Like](#create-comment-like)
+    + [Get Posts](#get-posts)
       - [Request](#request-38)
       - [Response](#response-38)
       - [HTTP](#http-39)
+    + [Create Post Like](#create-post-like)
+      - [Request](#request-39)
+      - [Response](#response-39)
+      - [HTTP](#http-40)
+    + [Edit Post](#edit-post)
+      - [Request](#request-40)
+      - [Response](#response-40)
+      - [HTTP](#http-41)
+    + [Delete Post](#delete-post)
+      - [Request](#request-41)
+      - [Response](#response-41)
+      - [HTTP](#http-42)
+    + [Remove Post](#remove-post)
+      - [Request](#request-42)
+      - [Response](#response-42)
+      - [HTTP](#http-43)
+    + [Lock Post](#lock-post)
+      - [Request](#request-43)
+      - [Response](#response-43)
+      - [HTTP](#http-44)
+    + [Sticky Post](#sticky-post)
+      - [Request](#request-44)
+      - [Response](#response-44)
+      - [HTTP](#http-45)
+    + [Save Post](#save-post)
+      - [Request](#request-45)
+      - [Response](#response-45)
+      - [HTTP](#http-46)
+  * [Comment](#comment)
+    + [Create Comment](#create-comment)
+      - [Request](#request-46)
+      - [Response](#response-46)
+      - [HTTP](#http-47)
+    + [Edit Comment](#edit-comment)
+      - [Request](#request-47)
+      - [Response](#response-47)
+      - [HTTP](#http-48)
+    + [Delete Comment](#delete-comment)
+      - [Request](#request-48)
+      - [Response](#response-48)
+      - [HTTP](#http-49)
+    + [Remove Comment](#remove-comment)
+      - [Request](#request-49)
+      - [Response](#response-49)
+      - [HTTP](#http-50)
+    + [Mark Comment as Read](#mark-comment-as-read)
+      - [Request](#request-50)
+      - [Response](#response-50)
+      - [HTTP](#http-51)
+    + [Save Comment](#save-comment)
+      - [Request](#request-51)
+      - [Response](#response-51)
+      - [HTTP](#http-52)
+    + [Create Comment Like](#create-comment-like)
+      - [Request](#request-52)
+      - [Response](#response-52)
+      - [HTTP](#http-53)
   * [RSS / Atom feeds](#rss--atom-feeds)
     + [All](#all)
     + [Community](#community-1)
@@ -280,6 +337,10 @@ These go wherever there is a `sort` field. The available sort types are:
 - `TopMonth` - the most upvoted posts/communities of the current month.
 - `TopYear` - the most upvoted posts/communities of the current year.
 - `TopAll` - the most upvoted posts/communities on the current instance.
+
+### Undoing actions
+
+Whenever you see a `deleted: bool`, `removed: bool`, `read: bool`, `locked: bool`, etc, you can undo this action by sending `false`.
 
 ### Websocket vs HTTP
 
@@ -464,14 +525,17 @@ Only the first user will be able to be the admin.
 
 `GET /user/mentions`
 
-#### Edit User Mention
+#### Mark User Mention as read
+
+Only the recipient can do this.
+
 ##### Request
 ```rust
 {
-  op: "EditUserMention",
+  op: "MarkUserMentionAsRead",
   data: {
     user_mention_id: i32,
-    read: Option<bool>,
+    read: bool,
     auth: String,
   }
 }
@@ -479,7 +543,7 @@ Only the first user will be able to be the admin.
 ##### Response
 ```rust
 {
-  op: "EditUserMention",
+  op: "MarkUserMentionAsRead",
   data: {
     mention: UserMentionView,
   }
@@ -487,7 +551,141 @@ Only the first user will be able to be the admin.
 ```
 ##### HTTP
 
-`PUT /user/mention`
+`POST /user/mention/mark_as_read`
+
+#### Get Private Messages
+##### Request
+```rust
+{
+  op: "GetPrivateMessages",
+  data: {
+    unread_only: bool,
+    page: Option<i64>,
+    limit: Option<i64>,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "GetPrivateMessages",
+  data: {
+    messages: Vec<PrivateMessageView>,
+  }
+}
+```
+
+##### HTTP
+
+`GET /private_message/list`
+
+#### Create Private Message
+##### Request
+```rust
+{
+  op: "CreatePrivateMessage",
+  data: {
+    content: String,
+    recipient_id: i32,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "CreatePrivateMessage",
+  data: {
+    message: PrivateMessageView,
+  }
+}
+```
+
+##### HTTP
+
+`POST /private_message`
+
+#### Edit Private Message
+##### Request
+```rust
+{
+  op: "EditPrivateMessage",
+  data: {
+    edit_id: i32,
+    content: String,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "EditPrivateMessage",
+  data: {
+    message: PrivateMessageView,
+  }
+}
+```
+
+##### HTTP
+
+`PUT /private_message`
+
+#### Delete Private Message
+##### Request
+```rust
+{
+  op: "DeletePrivateMessage",
+  data: {
+    edit_id: i32,
+    deleted: bool,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "DeletePrivateMessage",
+  data: {
+    message: PrivateMessageView,
+  }
+}
+```
+
+##### HTTP
+
+`POST /private_message/delete`
+
+#### Mark Private Message as Read
+
+Only the recipient can do this.
+
+##### Request
+```rust
+{
+  op: "MarkPrivateMessageAsRead",
+  data: {
+    edit_id: i32,
+    read: bool,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "MarkPrivateMessageAsRead",
+  data: {
+    message: PrivateMessageView,
+  }
+}
+```
+
+##### HTTP
+
+`POST /private_message/mark_as_read`
 
 #### Mark All As Read
 
@@ -856,7 +1054,6 @@ Search types are `All, Comments, Posts, Communities, Users, Url`
   data: {
     community: CommunityView,
     moderators: Vec<CommunityModeratorView>,
-    admins: Vec<UserView>,
   }
 }
 ```
@@ -973,7 +1170,7 @@ Search types are `All, Comments, Posts, Communities, Users, Url`
 `POST /community/mod`
 
 #### Edit Community
-Mods and admins can remove and lock a community, creators can delete it.
+Only mods can edit a community.
 
 ##### Request
 ```rust
@@ -984,10 +1181,6 @@ Mods and admins can remove and lock a community, creators can delete it.
     title: String,
     description: Option<String>,
     category_id: i32,
-    removed: Option<bool>,
-    deleted: Option<bool>,
-    reason: Option<String>,
-    expires: Option<i64>,
     auth: String
   }
 }
@@ -1004,6 +1197,62 @@ Mods and admins can remove and lock a community, creators can delete it.
 ##### HTTP
 
 `PUT /community`
+
+#### Delete Community
+Only a creator can delete a community
+
+##### Request
+```rust
+{
+  op: "DeleteCommunity",
+  data: {
+    edit_id: i32,
+    deleted: bool,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "DeleteCommunity",
+  data: {
+    community: CommunityView
+  }
+}
+```
+##### HTTP
+
+`POST /community/delete`
+
+#### Remove Community
+Only admins can remove a community.
+
+##### Request
+```rust
+{
+  op: "RemoveCommunity",
+  data: {
+    edit_id: i32,
+    removed: bool,
+    reason: Option<String>,
+    expires: Option<i64>,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "RemoveCommunity",
+  data: {
+    community: CommunityView
+  }
+}
+```
+##### HTTP
+
+`POST /community/remove`
 
 #### Follow Community
 ##### Request
@@ -1090,8 +1339,9 @@ Mods and admins can remove and lock a community, creators can delete it.
     name: String,
     url: Option<String>,
     body: Option<String>,
+    nsfw: bool,
     community_id: i32,
-    auth: String
+    auth: String,
   }
 }
 ```
@@ -1128,7 +1378,6 @@ Mods and admins can remove and lock a community, creators can delete it.
     comments: Vec<CommentView>,
     community: CommunityView,
     moderators: Vec<CommunityModeratorView>,
-    admins: Vec<UserView>,
   }
 }
 ```
@@ -1197,25 +1446,17 @@ Post listing types are `All, Subscribed, Community`
 `POST /post/like`
 
 #### Edit Post
-
-Mods and admins can remove and lock a post, creators can delete it.
-
 ##### Request
 ```rust
 {
   op: "EditPost",
   data: {
     edit_id: i32,
-    creator_id: i32,
-    community_id: i32,
     name: String,
     url: Option<String>,
     body: Option<String>,
-    removed: Option<bool>,
-    deleted: Option<bool>,
-    locked: Option<bool>,
-    reason: Option<String>,
-    auth: String
+    nsfw: bool,
+    auth: String,
   }
 }
 ```
@@ -1232,6 +1473,120 @@ Mods and admins can remove and lock a post, creators can delete it.
 ##### HTTP
 
 `PUT /post`
+
+#### Delete Post
+##### Request
+```rust
+{
+  op: "DeletePost",
+  data: {
+    edit_id: i32,
+    deleted: bool,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "DeletePost",
+  data: {
+    post: PostView
+  }
+}
+```
+
+##### HTTP
+
+`POST /post/delete`
+
+#### Remove Post
+
+Only admins and mods can remove a post.
+
+##### Request
+```rust
+{
+  op: "RemovePost",
+  data: {
+    edit_id: i32,
+    removed: bool,
+    reason: Option<String>,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "RemovePost",
+  data: {
+    post: PostView
+  }
+}
+```
+
+##### HTTP
+
+`POST /post/remove`
+
+#### Lock Post
+
+Only admins and mods can lock a post.
+
+##### Request
+```rust
+{
+  op: "LockPost",
+  data: {
+    edit_id: i32,
+    locked: bool,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "LockPost",
+  data: {
+    post: PostView
+  }
+}
+```
+
+##### HTTP
+
+`POST /post/lock`
+
+#### Sticky Post
+
+Only admins and mods can sticky a post.
+
+##### Request
+```rust
+{
+  op: "StickyPost",
+  data: {
+    edit_id: i32,
+    stickied: bool,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "StickyPost",
+  data: {
+    post: PostView
+  }
+}
+```
+
+##### HTTP
+
+`POST /post/sticky`
 
 #### Save Post
 ##### Request
@@ -1267,8 +1622,8 @@ Mods and admins can remove and lock a post, creators can delete it.
   data: {
     content: String,
     parent_id: Option<i32>,
-    edit_id: Option<i32>,
     post_id: i32,
+    form_id: Option<String>, // An optional form id, so you know which message came back
     auth: String
   }
 }
@@ -1289,7 +1644,7 @@ Mods and admins can remove and lock a post, creators can delete it.
 
 #### Edit Comment
 
-Mods and admins can remove a comment, creators can delete it.
+Only the creator can edit the comment.
 
 ##### Request
 ```rust
@@ -1297,15 +1652,9 @@ Mods and admins can remove a comment, creators can delete it.
   op: "EditComment",
   data: {
     content: String,
-    parent_id: Option<i32>,
     edit_id: i32,
-    creator_id: i32,
-    post_id: i32,
-    removed: Option<bool>,
-    deleted: Option<bool>,
-    reason: Option<String>,
-    read: Option<bool>,
-    auth: String
+    form_id: Option<String>,
+    auth: String,
   }
 }
 ```
@@ -1321,6 +1670,92 @@ Mods and admins can remove a comment, creators can delete it.
 ##### HTTP
 
 `PUT /comment`
+
+#### Delete Comment
+
+Only the creator can delete the comment.
+
+##### Request
+```rust
+{
+  op: "DeleteComment",
+  data: {
+    edit_id: i32,
+    deleted: bool,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "DeleteComment",
+  data: {
+    comment: CommentView
+  }
+}
+```
+##### HTTP
+
+`POST /comment/delete`
+
+
+#### Remove Comment
+
+Only a mod or admin can remove the comment.
+
+##### Request
+```rust
+{
+  op: "RemoveComment",
+  data: {
+    edit_id: i32,
+    removed: bool,
+    reason: Option<String>,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "RemoveComment",
+  data: {
+    comment: CommentView
+  }
+}
+```
+##### HTTP
+
+`POST /comment/remove`
+
+#### Mark Comment as Read
+
+Only the recipient can do this.
+
+##### Request
+```rust
+{
+  op: "MarkCommentAsRead",
+  data: {
+    edit_id: i32,
+    read: bool,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "MarkCommentAsRead",
+  data: {
+    comment: CommentView
+  }
+}
+```
+##### HTTP
+
+`POST /comment/mark_as_read`
 
 #### Save Comment
 ##### Request
@@ -1357,7 +1792,6 @@ Mods and admins can remove a comment, creators can delete it.
   op: "CreateCommentLike",
   data: {
     comment_id: i32,
-    post_id: i32,
     score: i16,
     auth: String
   }

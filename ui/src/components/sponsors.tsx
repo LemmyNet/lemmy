@@ -17,6 +17,7 @@ interface SilverUser {
 }
 
 let general = [
+  'William Moore',
   'Rachel Schmitz',
   'comradeda',
   'ybaumy',
@@ -108,7 +109,7 @@ export class Sponsors extends Component<any, any> {
       <div class="container">
         <h5>{i18n.t('sponsors')}</h5>
         <p>{i18n.t('silver_sponsors')}</p>
-        <div class="row card-columns">
+        <div class="row justify-content-md-center card-columns">
           {silver.map(s => (
             <div class="card col-12 col-md-2">
               <div>
@@ -124,7 +125,7 @@ export class Sponsors extends Component<any, any> {
           ))}
         </div>
         <p>{i18n.t('general_sponsors')}</p>
-        <div class="row card-columns">
+        <div class="row justify-content-md-center card-columns">
           {highlighted.map(s => (
             <div class="card bg-primary col-12 col-md-2 font-weight-bold">
               <div>{s}</div>

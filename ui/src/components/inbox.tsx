@@ -147,7 +147,7 @@ export class Inbox extends Component<any, InboxState> {
     return (
       <div class="btn-group btn-group-toggle">
         <label
-          className={`btn btn-sm btn-secondary pointer
+          className={`btn btn-outline-secondary pointer
             ${this.state.unreadOrAll == UnreadOrAll.Unread && 'active'}
           `}
         >
@@ -160,7 +160,7 @@ export class Inbox extends Component<any, InboxState> {
           {i18n.t('unread')}
         </label>
         <label
-          className={`btn btn-sm btn-secondary pointer
+          className={`btn btn-outline-secondary pointer
             ${this.state.unreadOrAll == UnreadOrAll.All && 'active'}
           `}
         >
@@ -180,7 +180,7 @@ export class Inbox extends Component<any, InboxState> {
     return (
       <div class="btn-group btn-group-toggle">
         <label
-          className={`btn btn-sm btn-secondary pointer btn-outline-light
+          className={`btn btn-outline-secondary pointer 
             ${this.state.messageType == MessageType.All && 'active'}
           `}
         >
@@ -193,7 +193,7 @@ export class Inbox extends Component<any, InboxState> {
           {i18n.t('all')}
         </label>
         <label
-          className={`btn btn-sm btn-secondary pointer btn-outline-light
+          className={`btn btn-outline-secondary pointer 
             ${this.state.messageType == MessageType.Replies && 'active'}
           `}
         >
@@ -206,7 +206,7 @@ export class Inbox extends Component<any, InboxState> {
           {i18n.t('replies')}
         </label>
         <label
-          className={`btn btn-sm btn-secondary pointer btn-outline-light
+          className={`btn btn-outline-secondary pointer 
             ${this.state.messageType == MessageType.Mentions && 'active'}
           `}
         >
@@ -219,7 +219,7 @@ export class Inbox extends Component<any, InboxState> {
           {i18n.t('mentions')}
         </label>
         <label
-          className={`btn btn-sm btn-secondary pointer btn-outline-light
+          className={`btn btn-outline-secondary pointer 
             ${this.state.messageType == MessageType.Messages && 'active'}
           `}
         >
@@ -326,7 +326,7 @@ export class Inbox extends Component<any, InboxState> {
       <div class="mt-2">
         {this.state.page > 1 && (
           <button
-            class="btn btn-sm btn-secondary mr-1"
+            class="btn btn-secondary mr-1"
             onClick={linkEvent(this, this.prevPage)}
           >
             {i18n.t('prev')}
@@ -334,7 +334,7 @@ export class Inbox extends Component<any, InboxState> {
         )}
         {this.unreadCount() > 0 && (
           <button
-            class="btn btn-sm btn-secondary"
+            class="btn btn-secondary"
             onClick={linkEvent(this, this.nextPage)}
           >
             {i18n.t('next')}
@@ -446,27 +446,54 @@ export class Inbox extends Component<any, InboxState> {
       let found: PrivateMessageI = this.state.messages.find(
         m => m.id === data.message.id
       );
-      found.content = data.message.content;
-      found.updated = data.message.updated;
-      found.deleted = data.message.deleted;
-      // If youre in the unread view, just remove it from the list
-      if (this.state.unreadOrAll == UnreadOrAll.Unread && data.message.read) {
-        this.state.messages = this.state.messages.filter(
-          r => r.id !== data.message.id
-        );
-      } else {
-        let found = this.state.messages.find(c => c.id == data.message.id);
-        found.read = data.message.read;
+      if (found) {
+        found.content = data.message.content;
+        found.updated = data.message.updated;
+      }
+      this.setState(this.state);
+    } else if (res.op == UserOperation.DeletePrivateMessage) {
+      let data = res.data as PrivateMessageResponse;
+      let found: PrivateMessageI = this.state.messages.find(
+        m => m.id === data.message.id
+      );
+      if (found) {
+        found.deleted = data.message.deleted;
+        found.updated = data.message.updated;
+      }
+      this.setState(this.state);
+    } else if (res.op == UserOperation.MarkPrivateMessageAsRead) {
+      let data = res.data as PrivateMessageResponse;
+      let found: PrivateMessageI = this.state.messages.find(
+        m => m.id === data.message.id
+      );
+
+      if (found) {
+        found.updated = data.message.updated;
+
+        // If youre in the unread view, just remove it from the list
+        if (this.state.unreadOrAll == UnreadOrAll.Unread && data.message.read) {
+          this.state.messages = this.state.messages.filter(
+            r => r.id !== data.message.id
+          );
+        } else {
+          let found = this.state.messages.find(c => c.id == data.message.id);
+          found.read = data.message.read;
+        }
       }
       this.sendUnreadCount();
-      window.scrollTo(0, 0);
       this.setState(this.state);
-      setupTippy();
     } else if (res.op == UserOperation.MarkAllAsRead) {
       // Moved to be instant
-    } else if (res.op == UserOperation.EditComment) {
+    } else if (
+      res.op == UserOperation.EditComment ||
+      res.op == UserOperation.DeleteComment ||
+      res.op == UserOperation.RemoveComment
+    ) {
       let data = res.data as CommentResponse;
       editCommentRes(data, this.state.replies);
+      this.setState(this.state);
+    } else if (res.op == UserOperation.MarkCommentAsRead) {
+      let data = res.data as CommentResponse;
 
       // If youre in the unread view, just remove it from the list
       if (this.state.unreadOrAll == UnreadOrAll.Unread && data.comment.read) {
@@ -480,7 +507,7 @@ export class Inbox extends Component<any, InboxState> {
       this.sendUnreadCount();
       this.setState(this.state);
       setupTippy();
-    } else if (res.op == UserOperation.EditUserMention) {
+    } else if (res.op == UserOperation.MarkUserMentionAsRead) {
       let data = res.data as UserMentionResponse;
 
       let found = this.state.mentions.find(c => c.id == data.mention.id);
