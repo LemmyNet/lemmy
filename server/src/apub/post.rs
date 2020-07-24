@@ -15,8 +15,7 @@ use crate::{
   },
   blocking,
   routes::DbPoolParam,
-  DbPool,
-  LemmyError,
+  DbPool, LemmyError,
 };
 use activitystreams_ext::Ext1;
 use activitystreams_new::{
