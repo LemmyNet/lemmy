@@ -1397,9 +1397,9 @@ dependencies = [
 
 [[package]]
 name = "http-signature-normalization"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "648233553603e7bb55bc1ea08a514661e212c09c10f6434507894273d8b5e773"
+checksum = "ee917294413cec0db93a8af6ecfa63730c1d2bb604bd1da69ba75b342fb23f21"
 dependencies = [
  "chrono",
  "thiserror",
