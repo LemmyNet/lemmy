@@ -315,7 +315,7 @@ describe('main', () => {
       expect(getPostRes.post.name).toBe(name);
       expect(getPostRes.post.community_local).toBe(true);
       expect(getPostRes.post.creator_local).toBe(false);
-      expect(getPostRes.post.score).toBe(76);
+      expect(getPostRes.post.score).toBe(0);
     });
   });
 

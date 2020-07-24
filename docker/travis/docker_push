@@ -1,0 +1,2 @@
+echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+docker push dessalines/lemmy:$(git describe --tags --abbrev=0)
