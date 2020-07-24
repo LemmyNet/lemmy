@@ -8,7 +8,7 @@ sudo rm -rf volumes
 mkdir -p volumes/pictrs_{alpha,beta,gamma}
 sudo chown -R 991:991 volumes/pictrs_{alpha,beta,gamma}
 
-sudo docker build ../../ --file ../dev/Dockerfile --tag dev_lemmy:latest
+sudo docker build ../../ --file ../dev/Dockerfile --tag dessalines/lemmy:travis
 
 sudo docker-compose up -d
 
