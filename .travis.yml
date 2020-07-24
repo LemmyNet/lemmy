@@ -30,4 +30,4 @@ deploy:
   provider: script
   script: bash docker_push
   on:
-    branch: main
+    branch: travis_docker_testing
