@@ -104,6 +104,16 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 - [Ansible](https://dev.lemmy.ml/docs/administration_install_ansible.html)
 - [Kubernetes](https://dev.lemmy.ml/docs/administration_install_kubernetes.html)
 
+## Lemmy Projects
+
+### Apps
+
+- [Lemmy-mobile (Android / IOS) - React native ( under development )](https://github.com/koredefashokun/lemmy-mobile)
+
+### Libraries
+
+- [Kotlin API ( under development )](https://github.com/eiknat/lemmy-client)
+
 ## Support / Donate
 
 Lemmy is free, open-source software, meaning no advertising, monetizing, or venture capital, ever. Your donations directly support full-time development of the project.
