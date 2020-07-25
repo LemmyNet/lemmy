@@ -24,35 +24,39 @@ cd docker/prod || exit
 # Changing the docker-compose prod
 sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../prod/docker-compose.yml
 sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../../ansible/templates/docker-compose.yml
+sed -i "s/dessalines\/lemmy:v.*/dessalines\/lemmy:$new_tag/" ../travis/docker_push.sh
 git add ../prod/docker-compose.yml
 git add ../../ansible/templates/docker-compose.yml
+git add ../travis/docker_push.sh
 
 # The commit
 git commit -m"Version $new_tag"
 git tag $new_tag
 
-export COMPOSE_DOCKER_CLI_BUILD=1
-export DOCKER_BUILDKIT=1
+# Now doing the building on travis, but leave this in for when you need to do an arm build
 
-# Rebuilding docker
-if [ $third_semver -eq 0 ]; then
-  # TODO get linux/arm/v7 build working
-  # Build for Raspberry Pi / other archs too
-  docker buildx build --platform linux/amd64,linux/arm64 ../../ \
-    --file Dockerfile \
-    --tag dessalines/lemmy:$new_tag \
-    --push
-else
-  docker buildx build --platform linux/amd64 ../../ \
-    --file Dockerfile \
-    --tag dessalines/lemmy:$new_tag \
-    --push
-fi
+# export COMPOSE_DOCKER_CLI_BUILD=1
+# export DOCKER_BUILDKIT=1
+
+# # Rebuilding docker
+# if [ $third_semver -eq 0 ]; then
+#   # TODO get linux/arm/v7 build working
+#   # Build for Raspberry Pi / other archs too
+#   docker buildx build --platform linux/amd64,linux/arm64 ../../ \
+#     --file Dockerfile \
+#     --tag dessalines/lemmy:$new_tag \
+#     --push
+# else
+#   docker buildx build --platform linux/amd64 ../../ \
+#     --file Dockerfile \
+#     --tag dessalines/lemmy:$new_tag \
+#     --push
+# fi
 
 # Push
 git push origin $new_tag
 git push
 
 # Pushing to any ansible deploys
-cd ../../../lemmy-ansible || exit
-ansible-playbook -i prod playbooks/site.yml --vault-password-file vault_pass
+# cd ../../../lemmy-ansible || exit
+# ansible-playbook -i prod playbooks/site.yml --vault-password-file vault_pass
