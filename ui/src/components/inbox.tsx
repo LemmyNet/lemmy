@@ -559,17 +559,14 @@ export class Inbox extends Component<any, InboxState> {
       let data = res.data as GetSiteResponse;
       this.state.enableDownvotes = data.site.enable_downvotes;
       this.setState(this.state);
-      document.title = `/u/${UserService.Instance.user.username} ${i18n.t(
+      document.title = `/u/${UserService.Instance.user.name} ${i18n.t(
         'inbox'
       )} - ${data.site.name}`;
     }
   }
 
   sendUnreadCount() {
-    UserService.Instance.user.unreadCount = this.unreadCount();
-    UserService.Instance.sub.next({
-      user: UserService.Instance.user,
-    });
+    UserService.Instance.unreadCountSub.next(this.unreadCount());
   }
 
   unreadCount(): number {

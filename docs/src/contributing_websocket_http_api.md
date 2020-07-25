@@ -942,6 +942,10 @@ Search types are `All, Comments, Posts, Communities, Users, Url`
 ```rust
 {
   op: "GetSite"
+  data: {
+    auth: Option<String>,
+  }
+
 }
 ```
 ##### Response
@@ -954,6 +958,7 @@ Search types are `All, Comments, Posts, Communities, Users, Url`
     banned: Vec<UserView>,
     online: usize, // This is currently broken
     version: String,
+    my_user: Option<User_>, // Gives back your user and settings if logged in
   }
 }
 ```

@@ -100,18 +100,34 @@ export enum SearchType {
   Url,
 }
 
-export interface User {
+export interface Claims {
   id: number;
   iss: string;
-  username: string;
+}
+
+// TODO test out nsfw
+export interface User {
+  id: number;
+  name: string;
+  preferred_username?: string;
+  email?: string;
+  avatar?: string;
+  admin: boolean;
+  banned: boolean;
+  published: string;
+  updated?: string;
   show_nsfw: boolean;
   theme: string;
   default_sort_type: SortType;
   default_listing_type: ListingType;
   lang: string;
-  avatar?: string;
   show_avatars: boolean;
-  unreadCount?: number;
+  send_notifications_to_email: boolean;
+  matrix_user_id?: string;
+  actor_id: string;
+  bio?: string;
+  local: boolean;
+  last_refreshed_at: string;
 }
 
 export interface UserView {
@@ -797,6 +813,10 @@ export interface GetSiteConfig {
   auth?: string;
 }
 
+export interface GetSiteForm {
+  auth?: string;
+}
+
 export interface GetSiteConfigResponse {
   config_hjson: string;
 }
@@ -812,6 +832,7 @@ export interface GetSiteResponse {
   banned: Array<UserView>;
   online: number;
   version: string;
+  my_user?: User;
 }
 
 export interface SiteResponse {
@@ -998,7 +1019,8 @@ type ResponseType =
   | AddAdminResponse
   | PrivateMessageResponse
   | PrivateMessagesResponse
-  | GetSiteConfigResponse;
+  | GetSiteConfigResponse
+  | GetSiteResponse;
 
 export interface WebSocketResponse {
   op: UserOperation;
