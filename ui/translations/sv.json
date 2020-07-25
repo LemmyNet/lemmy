@@ -224,7 +224,7 @@
     "no_email_setup": "Denna server har inte satt upp e-post korrekt.",
     "matrix_user_id": "Matrix-användare",
     "show_context": "Visa sammanhang",
-    "private_message_disclaimer": "Varning: Privata meddelanden på Lemmy är inte säkra. Vänligen skapa ett konto på <1>Riot.im</1> för att skicka säkra meddelanden.",
+    "private_message_disclaimer": "Varning: Privata meddelanden på Lemmy är inte säkra. Vänligen skapa ett konto på <1>Element.io</1> för att skicka säkra meddelanden.",
     "send_notifications_to_email": "Skicka aviseringar till e-postadress",
     "language": "Språk",
     "browser_default": "Webbläsarens språk",
@@ -262,5 +262,16 @@
     "no_password_reset": "Du kommer inte kunna återställa ditt lösenord utan en e-postadress.",
     "what_is": "Vad är",
     "cake_day_title": "Tårtdag:",
-    "invalid_post_title": "Ogiltig inläggstitel"
+    "invalid_post_title": "Ogiltig inläggstitel",
+    "bold": "fetstil",
+    "italic": "kursiv stil",
+    "header": "rubrik",
+    "quote": "citat",
+    "subscript": "nedsänkt (indexläge)",
+    "superscript": "upphöjt (exponentläge)",
+    "strikethrough": "genomstruket",
+    "spoiler": "innehållsvarning",
+    "list": "lista",
+    "not_a_moderator": "Inte en moderator.",
+    "invalid_url": "Ogiltig URL."
 }
