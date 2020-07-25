@@ -105,7 +105,6 @@ export interface Claims {
   iss: string;
 }
 
-// TODO test out nsfw
 export interface User {
   id: number;
   name: string;
