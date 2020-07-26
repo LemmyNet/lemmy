@@ -49,6 +49,7 @@ export class Login extends Component<any, State> {
     captcha: {
       png: undefined,
       uuid: undefined,
+      wav: undefined,
     },
   };
 
@@ -136,11 +137,7 @@ export class Login extends Component<any, State> {
             <label class="col-sm-2" htmlFor="login-captcha">
               {i18n.t('enter_code')}
             </label>
-            <div class="col-sm-4">
-              {this.state.captcha.uuid && (
-                <img class="rounded img-fluid" src={this.captchaSrc()} />
-              )}
-            </div>
+            {this.showCaptcha()}
             <div class="col-sm-6">
               <input
                 type="text"
@@ -169,6 +166,7 @@ export class Login extends Component<any, State> {
       </div>
     );
   }
+
   registerForm() {
     return (
       <form onSubmit={linkEvent(this, this.handleRegisterSubmit)}>
@@ -259,11 +257,7 @@ export class Login extends Component<any, State> {
           <label class="col-sm-2" htmlFor="register-captcha">
             {i18n.t('enter_code')}
           </label>
-          <div class="col-sm-4">
-            {this.state.captcha.uuid && (
-              <img class="rounded img-fluid" src={this.captchaSrc()} />
-            )}
-          </div>
+          {this.showCaptcha()}
           <div class="col-sm-6">
             <input
               type="text"
@@ -307,6 +301,34 @@ export class Login extends Component<any, State> {
           </div>
         </div>
       </form>
+    );
+  }
+
+  showCaptcha() {
+    return (
+      <div class="col-sm-4">
+        {this.state.captcha.uuid && (
+          <>
+            <img
+              class="rounded-top img-fluid"
+              src={this.captchaPngSrc()}
+              style="border-bottom-right-radius: 0; border-bottom-left-radius: 0;"
+            />
+            {this.state.captcha.wav && (
+              <button
+                class="rounded-bottom btn btn-sm btn-secondary btn-block"
+                style="border-top-right-radius: 0; border-top-left-radius: 0;"
+                title={i18n.t('play_captcha_audio')}
+                onClick={linkEvent(this, this.handleCaptchaPlay)}
+              >
+                <svg class="icon icon-play">
+                  <use xlinkHref="#icon-play"></use>
+                </svg>
+              </button>
+            )}
+          </>
+        )}
+      </div>
     );
   }
 
@@ -380,7 +402,13 @@ export class Login extends Component<any, State> {
     WebSocketService.Instance.passwordReset(resetForm);
   }
 
-  captchaSrc() {
+  handleCaptchaPlay(i: Login) {
+    event.preventDefault();
+    let snd = new Audio('data:audio/wav;base64,' + i.state.captcha.wav);
+    snd.play();
+  }
+
+  captchaPngSrc() {
     return `data:image/png;base64,${this.state.captcha.png}`;
   }
 
@@ -412,7 +440,7 @@ export class Login extends Component<any, State> {
         this.state.captcha = data;
         this.state.loginForm.captcha_uuid = data.uuid;
         this.state.registerForm.captcha_uuid = data.uuid;
-        this.setState({ captcha: data });
+        this.setState(this.state);
       } else if (res.op == UserOperation.PasswordReset) {
         toast(i18n.t('reset_password_mail_sent'));
       } else if (res.op == UserOperation.GetSite) {

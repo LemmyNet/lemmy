@@ -283,5 +283,6 @@
     "cake_day_title": "Cake day:",
     "cake_day_info": "It's {{ creator_name }}'s cake day today!",
     "invalid_post_title": "Invalid post title",
-    "invalid_url": "Invalid URL."
+    "invalid_url": "Invalid URL.",
+    "play_captcha_audio": "Play Captcha Audio"
 }

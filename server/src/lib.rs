@@ -36,6 +36,7 @@ use actix_web::{client::Client, dev::ConnectionInfo};
 use log::error;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use serde::Deserialize;
+use std::process::Command;
 
 pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 pub type ConnectionId = usize;
@@ -213,9 +214,56 @@ where
   Ok(res)
 }
 
+pub fn captcha_espeak_wav_base64(captcha: &str) -> Result<String, LemmyError> {
+  let mut built_text = String::new();
+
+  // Building proper speech text for espeak
+  for mut c in captcha.chars() {
+    let new_str = if c.is_alphabetic() {
+      if c.is_lowercase() {
+        c.make_ascii_uppercase();
+        format!("lower case {} ... ", c)
+      } else {
+        c.make_ascii_uppercase();
+        format!("capital {} ... ", c)
+      }
+    } else {
+      format!("{} ...", c)
+    };
+
+    built_text.push_str(&new_str);
+  }
+
+  espeak_wav_base64(&built_text)
+}
+
+pub fn espeak_wav_base64(text: &str) -> Result<String, LemmyError> {
+  // Make a temp file path
+  let uuid = uuid::Uuid::new_v4().to_string();
+  let file_path = format!("/tmp/lemmy_espeak_{}.wav", &uuid);
+
+  // Write the wav file
+  Command::new("espeak")
+    .arg("-w")
+    .arg(&file_path)
+    .arg(text)
+    .status()?;
+
+  // Read the wav file bytes
+  let bytes = std::fs::read(&file_path)?;
+
+  // Delete the file
+  std::fs::remove_file(file_path)?;
+
+  // Convert to base64
+  let base64 = base64::encode(bytes);
+
+  Ok(base64)
+}
+
 #[cfg(test)]
 mod tests {
-  use crate::is_image_content_type;
+  use crate::{captcha_espeak_wav_base64, is_image_content_type};
 
   #[test]
   fn test_image() {
@@ -228,6 +276,11 @@ mod tests {
         .await.is_err()
       );
     });
+  }
+
+  #[test]
+  fn test_espeak() {
+    assert!(captcha_espeak_wav_base64("WxRt2l").is_ok())
   }
 
   // These helped with testing

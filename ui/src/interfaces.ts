@@ -566,6 +566,7 @@ export interface RegisterForm {
 
 export interface GetCaptchaResponse {
   png: string;
+  wav?: string;
   uuid: string;
 }
 

@@ -428,6 +428,7 @@ These expire after 10 minutes.
   op: "GetCaptcha",
   data: {
     png: String, // A Base64 encoded png
+    wav: Option<String>, // A Base64 encoded wav audio file
     uuid: String,
   }
 }

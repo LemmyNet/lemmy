@@ -2,6 +2,7 @@ use crate::{
   api::{claims::Claims, is_admin, APIError, Oper, Perform},
   apub::ApubObjectType,
   blocking,
+  captcha_espeak_wav_base64,
   websocket::{
     server::{CaptchaItem, CheckCaptcha, JoinUserRoom, SendAllMessage, SendUserRoomMessage},
     UserOperation,
@@ -79,7 +80,8 @@ pub struct GetCaptcha {}
 
 #[derive(Serialize, Deserialize)]
 pub struct GetCaptchaResponse {
-  png: String, // A Base64 encoded png
+  png: String,         // A Base64 encoded png
+  wav: Option<String>, // A Base64 encoded wav audio
   uuid: String,
 }
 
@@ -513,6 +515,8 @@ impl Perform for Oper<GetCaptcha> {
 
     let uuid = uuid::Uuid::new_v4().to_string();
 
+    let wav = captcha_espeak_wav_base64(&answer).ok();
+
     let captcha_item = CaptchaItem {
       answer,
       uuid: uuid.to_owned(),
@@ -523,7 +527,7 @@ impl Perform for Oper<GetCaptcha> {
       ws.chatserver.do_send(captcha_item);
     }
 
-    Ok(GetCaptchaResponse { png, uuid })
+    Ok(GetCaptchaResponse { png, uuid, wav })
   }
 }
 
