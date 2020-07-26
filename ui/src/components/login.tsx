@@ -8,6 +8,7 @@ import {
   UserOperation,
   PasswordResetForm,
   GetSiteResponse,
+  GetCaptchaResponse,
   WebSocketJsonResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
@@ -20,11 +21,7 @@ interface State {
   loginLoading: boolean;
   registerLoading: boolean;
   enable_nsfw: boolean;
-  mathQuestion: {
-    a: number;
-    b: number;
-    answer: number;
-  };
+  captcha: GetCaptchaResponse;
 }
 
 export class Login extends Component<any, State> {
@@ -34,6 +31,8 @@ export class Login extends Component<any, State> {
     loginForm: {
       username_or_email: undefined,
       password: undefined,
+      captcha_uuid: undefined,
+      captcha_answer: undefined,
     },
     registerForm: {
       username: undefined,
@@ -41,14 +40,15 @@ export class Login extends Component<any, State> {
       password_verify: undefined,
       admin: false,
       show_nsfw: false,
+      captcha_uuid: undefined,
+      captcha_answer: undefined,
     },
     loginLoading: false,
     registerLoading: false,
     enable_nsfw: undefined,
-    mathQuestion: {
-      a: Math.floor(Math.random() * 10) + 1,
-      b: Math.floor(Math.random() * 10) + 1,
-      answer: undefined,
+    captcha: {
+      png: undefined,
+      uuid: undefined,
     },
   };
 
@@ -66,6 +66,7 @@ export class Login extends Component<any, State> {
       );
 
     WebSocketService.Instance.getSite();
+    WebSocketService.Instance.getCaptcha();
   }
 
   componentWillUnmount() {
@@ -129,6 +130,26 @@ export class Login extends Component<any, State> {
                   {i18n.t('forgot_password')}
                 </button>
               )}
+            </div>
+          </div>
+          <div class="form-group row">
+            <label class="col-sm-2" htmlFor="login-captcha">
+              {i18n.t('enter_code')}
+            </label>
+            <div class="col-sm-4">
+              {this.state.captcha.uuid && (
+                <img class="rounded img-fluid" src={this.captchaSrc()} />
+              )}
+            </div>
+            <div class="col-sm-6">
+              <input
+                type="text"
+                class="form-control"
+                id="login-captcha"
+                value={this.state.loginForm.captcha_answer}
+                onInput={linkEvent(this, this.handleLoginCaptchaAnswerChange)}
+                required
+              />
             </div>
           </div>
           <div class="form-group row">
@@ -235,18 +256,21 @@ export class Login extends Component<any, State> {
           </div>
         </div>
         <div class="form-group row">
-          <label class="col-sm-10 col-form-label" htmlFor="register-math">
-            {i18n.t('what_is')}{' '}
-            {`${this.state.mathQuestion.a} + ${this.state.mathQuestion.b}?`}
+          <label class="col-sm-2" htmlFor="register-captcha">
+            {i18n.t('enter_code')}
           </label>
-
-          <div class="col-sm-2">
+          <div class="col-sm-4">
+            {this.state.captcha.uuid && (
+              <img class="rounded img-fluid" src={this.captchaSrc()} />
+            )}
+          </div>
+          <div class="col-sm-6">
             <input
-              type="number"
-              id="register-math"
+              type="text"
               class="form-control"
-              value={this.state.mathQuestion.answer}
-              onInput={linkEvent(this, this.handleMathAnswerChange)}
+              id="register-captcha"
+              value={this.state.registerForm.captcha_answer}
+              onInput={linkEvent(this, this.handleRegisterCaptchaAnswerChange)}
               required
             />
           </div>
@@ -271,11 +295,7 @@ export class Login extends Component<any, State> {
         )}
         <div class="form-group row">
           <div class="col-sm-10">
-            <button
-              type="submit"
-              class="btn btn-secondary"
-              disabled={this.mathCheck}
-            >
+            <button type="submit" class="btn btn-secondary">
               {this.state.registerLoading ? (
                 <svg class="icon icon-spinner spin">
                   <use xlinkHref="#icon-spinner"></use>
@@ -311,10 +331,7 @@ export class Login extends Component<any, State> {
     event.preventDefault();
     i.state.registerLoading = true;
     i.setState(i.state);
-
-    if (!i.mathCheck) {
-      WebSocketService.Instance.register(i.state.registerForm);
-    }
+    WebSocketService.Instance.register(i.state.registerForm);
   }
 
   handleRegisterUsernameChange(i: Login, event: any) {
@@ -345,8 +362,13 @@ export class Login extends Component<any, State> {
     i.setState(i.state);
   }
 
-  handleMathAnswerChange(i: Login, event: any) {
-    i.state.mathQuestion.answer = event.target.value;
+  handleLoginCaptchaAnswerChange(i: Login, event: any) {
+    i.state.loginForm.captcha_answer = event.target.value;
+    i.setState(i.state);
+  }
+
+  handleRegisterCaptchaAnswerChange(i: Login, event: any) {
+    i.state.registerForm.captcha_answer = event.target.value;
     i.setState(i.state);
   }
 
@@ -358,11 +380,8 @@ export class Login extends Component<any, State> {
     WebSocketService.Instance.passwordReset(resetForm);
   }
 
-  get mathCheck(): boolean {
-    return (
-      this.state.mathQuestion.answer !=
-      this.state.mathQuestion.a + this.state.mathQuestion.b
-    );
+  captchaSrc() {
+    return `data:image/png;base64,${this.state.captcha.png}`;
   }
 
   parseMessage(msg: WebSocketJsonResponse) {
@@ -388,6 +407,12 @@ export class Login extends Component<any, State> {
         UserService.Instance.login(data);
         WebSocketService.Instance.userJoin();
         this.props.history.push('/communities');
+      } else if (res.op == UserOperation.GetCaptcha) {
+        let data = res.data as GetCaptchaResponse;
+        this.state.captcha = data;
+        this.state.loginForm.captcha_uuid = data.uuid;
+        this.state.registerForm.captcha_uuid = data.uuid;
+        this.setState({ captcha: data });
       } else if (res.op == UserOperation.PasswordReset) {
         toast(i18n.t('reset_password_mail_sent'));
       } else if (res.op == UserOperation.GetSite) {

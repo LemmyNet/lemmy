@@ -51,6 +51,8 @@ describe('main', () => {
     let form: LoginForm = {
       username_or_email: 'lemmy_alpha',
       password: 'lemmy',
+      captcha_uuid: '', // Admins don't need this
+      captcha_answer: '',
     };
 
     let res: LoginResponse = await fetch(`${lemmyAlphaApiUrl}/user/login`, {
@@ -67,6 +69,8 @@ describe('main', () => {
     let formB = {
       username_or_email: 'lemmy_beta',
       password: 'lemmy',
+      captcha_uuid: '', // Admins don't need this
+      captcha_answer: '',
     };
 
     let resB: LoginResponse = await fetch(`${lemmyBetaApiUrl}/user/login`, {
@@ -83,6 +87,8 @@ describe('main', () => {
     let formC = {
       username_or_email: 'lemmy_gamma',
       password: 'lemmy',
+      captcha_uuid: '', // Admins don't need this
+      captcha_answer: '',
     };
 
     let resG: LoginResponse = await fetch(`${lemmyGammaApiUrl}/user/login`, {

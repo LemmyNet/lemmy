@@ -1,6 +1,7 @@
 export enum UserOperation {
   Login,
   Register,
+  GetCaptcha,
   CreateCommunity,
   CreatePost,
   ListCommunities,
@@ -548,6 +549,8 @@ export interface ModAdd {
 export interface LoginForm {
   username_or_email: string;
   password: string;
+  captcha_uuid: string;
+  captcha_answer: string;
 }
 
 export interface RegisterForm {
@@ -557,6 +560,13 @@ export interface RegisterForm {
   password_verify: string;
   admin: boolean;
   show_nsfw: boolean;
+  captcha_uuid: string;
+  captcha_answer: string;
+}
+
+export interface GetCaptchaResponse {
+  png: string;
+  uuid: string;
 }
 
 export interface LoginResponse {
@@ -990,6 +1000,7 @@ type ResponseType =
   | CommentResponse
   | UserMentionResponse
   | LoginResponse
+  | GetCaptchaResponse
   | GetModlogResponse
   | SearchResponse
   | BanFromCommunityResponse

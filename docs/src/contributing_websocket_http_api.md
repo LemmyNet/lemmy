@@ -360,6 +360,8 @@ The `jwt` string should be stored and used anywhere `auth` is called for.
   data: {
     username_or_email: String,
     password: String
+    captcha_uuid: String,
+    captcha_answer: String,
   }
 }
 ```
@@ -390,7 +392,9 @@ Only the first user will be able to be the admin.
     email: Option<String>,
     password: String,
     password_verify: String,
-    admin: bool
+    admin: bool,
+    captcha_uuid: String,
+    captcha_answer: String,
   }
 }
 ```
@@ -407,6 +411,31 @@ Only the first user will be able to be the admin.
 ##### HTTP
 
 `POST /user/register`
+
+#### Get Captcha
+
+These expire after 10 minutes.
+
+##### Request
+```rust
+{
+  op: "GetCaptcha",
+}
+```
+##### Response
+```rust
+{
+  op: "GetCaptcha",
+  data: {
+    png: String, // A Base64 encoded png
+    uuid: String,
+  }
+}
+```
+
+##### HTTP
+
+`GET /user/get_captcha`
 
 #### Get User Details
 ##### Request

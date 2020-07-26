@@ -3,7 +3,7 @@ use crate::{
   apub::ApubObjectType,
   blocking,
   websocket::{
-    server::{JoinUserRoom, SendAllMessage, SendUserRoomMessage},
+    server::{CaptchaItem, CheckCaptcha, JoinUserRoom, SendAllMessage, SendUserRoomMessage},
     UserOperation,
     WebsocketInfo,
   },
@@ -11,6 +11,8 @@ use crate::{
   LemmyError,
 };
 use bcrypt::verify;
+use captcha::{gen, Difficulty};
+use chrono::Duration;
 use lemmy_db::{
   comment::*,
   comment_view::*,
@@ -56,6 +58,8 @@ use std::str::FromStr;
 pub struct Login {
   username_or_email: String,
   password: String,
+  captcha_uuid: String,
+  captcha_answer: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -66,6 +70,17 @@ pub struct Register {
   pub password_verify: String,
   pub admin: bool,
   pub show_nsfw: bool,
+  pub captcha_uuid: String,
+  pub captcha_answer: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetCaptcha {}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetCaptchaResponse {
+  png: String, // A Base64 encoded png
+  uuid: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -268,7 +283,7 @@ impl Perform for Oper<Login> {
   async fn perform(
     &self,
     pool: &DbPool,
-    _websocket_info: Option<WebsocketInfo>,
+    websocket_info: Option<WebsocketInfo>,
   ) -> Result<LoginResponse, LemmyError> {
     let data: &Login = &self.data;
 
@@ -289,6 +304,27 @@ impl Perform for Oper<Login> {
       return Err(APIError::err("password_incorrect").into());
     }
 
+    // Verify the captcha
+    // Do an admin check, so that for your federation tests,
+    // you don't need to solve the captchas
+    if !user.admin {
+      match websocket_info {
+        Some(ws) => {
+          let check = ws
+            .chatserver
+            .send(CheckCaptcha {
+              uuid: data.captcha_uuid.to_owned(),
+              answer: data.captcha_answer.to_owned(),
+            })
+            .await?;
+          if !check {
+            return Err(APIError::err("captcha_incorrect").into());
+          }
+        }
+        None => return Err(APIError::err("captcha_incorrect").into()),
+      };
+    }
+
     // Return the jwt
     Ok(LoginResponse {
       jwt: Claims::jwt(user, Settings::get().hostname),
@@ -303,7 +339,7 @@ impl Perform for Oper<Register> {
   async fn perform(
     &self,
     pool: &DbPool,
-    _websocket_info: Option<WebsocketInfo>,
+    websocket_info: Option<WebsocketInfo>,
   ) -> Result<LoginResponse, LemmyError> {
     let data: &Register = &self.data;
 
@@ -318,6 +354,25 @@ impl Perform for Oper<Register> {
     // Make sure passwords match
     if data.password != data.password_verify {
       return Err(APIError::err("passwords_dont_match").into());
+    }
+
+    // If its not the admin, check the captcha
+    if !data.admin {
+      match websocket_info {
+        Some(ws) => {
+          let check = ws
+            .chatserver
+            .send(CheckCaptcha {
+              uuid: data.captcha_uuid.to_owned(),
+              answer: data.captcha_answer.to_owned(),
+            })
+            .await?;
+          if !check {
+            return Err(APIError::err("captcha_incorrect").into());
+          }
+        }
+        None => return Err(APIError::err("captcha_incorrect").into()),
+      };
     }
 
     if let Err(slurs) = slur_check(&data.username) {
@@ -436,6 +491,39 @@ impl Perform for Oper<Register> {
     Ok(LoginResponse {
       jwt: Claims::jwt(inserted_user, Settings::get().hostname),
     })
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for Oper<GetCaptcha> {
+  type Response = GetCaptchaResponse;
+
+  async fn perform(
+    &self,
+    _pool: &DbPool,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<Self::Response, LemmyError> {
+    let captcha = gen(Difficulty::Medium);
+
+    let answer = captcha.chars_as_string();
+
+    let png_byte_array = captcha.as_png().expect("failed to generate captcha");
+
+    let png = base64::encode(png_byte_array);
+
+    let uuid = uuid::Uuid::new_v4().to_string();
+
+    let captcha_item = CaptchaItem {
+      answer,
+      uuid: uuid.to_owned(),
+      expires: naive_now() + Duration::minutes(10), // expires in 10 minutes
+    };
+
+    if let Some(ws) = websocket_info {
+      ws.chatserver.do_send(captcha_item);
+    }
+
+    Ok(GetCaptchaResponse { png, uuid })
   }
 }
 
