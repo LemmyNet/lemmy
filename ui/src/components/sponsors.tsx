@@ -32,7 +32,7 @@ let general = [
   'Andre Vallestero',
   'NotTooHighToHack',
 ];
-let highlighted = ['DiscountFuneral', 'Oskenso Kashi', 'Alex Benishek'];
+let highlighted = ['DQW', 'DiscountFuneral', 'Oskenso Kashi', 'Alex Benishek'];
 let silver: Array<SilverUser> = [
   {
     name: 'Redjoker',
