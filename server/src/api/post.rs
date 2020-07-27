@@ -370,21 +370,26 @@ impl Perform for Oper<GetPosts> {
   ) -> Result<GetPostsResponse, LemmyError> {
     let data: &GetPosts = &self.data;
 
-    let user_claims: Option<Claims> = match &data.auth {
+    // For logged in users, you need to get back subscribed, and settings
+    let user: Option<User_> = match &data.auth {
       Some(auth) => match Claims::decode(&auth) {
-        Ok(claims) => Some(claims.claims),
+        Ok(claims) => {
+          let user_id = claims.claims.id;
+          let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
+          Some(user)
+        }
         Err(_e) => None,
       },
       None => None,
     };
 
-    let user_id = match &user_claims {
-      Some(claims) => Some(claims.id),
+    let user_id = match &user {
+      Some(user) => Some(user.id),
       None => None,
     };
 
-    let show_nsfw = match &user_claims {
-      Some(claims) => claims.show_nsfw,
+    let show_nsfw = match &user {
+      Some(user) => user.show_nsfw,
       None => false,
     };
 

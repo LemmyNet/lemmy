@@ -51,6 +51,7 @@ import {
   GetCommentsForm,
   UserJoinForm,
   GetSiteConfig,
+  GetSiteForm,
   SiteConfigForm,
   MessageType,
   WebSocketJsonResponse,
@@ -316,8 +317,9 @@ export class WebSocketService {
     this.ws.send(this.wsSendWrapper(UserOperation.EditSite, siteForm));
   }
 
-  public getSite() {
-    this.ws.send(this.wsSendWrapper(UserOperation.GetSite, {}));
+  public getSite(form: GetSiteForm = {}) {
+    this.setAuth(form, false);
+    this.ws.send(this.wsSendWrapper(UserOperation.GetSite, form));
   }
 
   public getSiteConfig() {
