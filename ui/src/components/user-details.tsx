@@ -146,25 +146,29 @@ export class UserDetails extends Component<UserDetailsProps, UserDetailsState> {
     return (
       <div>
         {combined.map(i => (
-          <div>
-            {i.type === 'posts' ? (
-              <PostListing
-                post={i.data as Post}
-                admins={this.props.admins}
-                showCommunity
-                enableDownvotes={this.props.enableDownvotes}
-                enableNsfw={this.props.enableNsfw}
-              />
-            ) : (
-              <CommentNodes
-                nodes={[{ comment: i.data as Comment }]}
-                admins={this.props.admins}
-                noIndent
-                showContext
-                enableDownvotes={this.props.enableDownvotes}
-              />
-            )}
-          </div>
+          <>
+            <div>
+              {i.type === 'posts' ? (
+                <PostListing
+                  post={i.data as Post}
+                  admins={this.props.admins}
+                  showCommunity
+                  enableDownvotes={this.props.enableDownvotes}
+                  enableNsfw={this.props.enableNsfw}
+                />
+              ) : (
+                <CommentNodes
+                  nodes={[{ comment: i.data as Comment }]}
+                  admins={this.props.admins}
+                  noIndent
+                  showCommunity
+                  showContext
+                  enableDownvotes={this.props.enableDownvotes}
+                />
+              )}
+            </div>
+            <hr class="my-3" />
+          </>
         ))}
       </div>
     );
