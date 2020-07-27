@@ -1,22 +1,14 @@
 use crate::{
   apub::{
     activities::send_activity_to_community,
-    create_apub_response,
-    create_apub_tombstone_response,
-    create_tombstone,
+    create_apub_response, create_apub_tombstone_response, create_tombstone,
     extensions::page_extension::PageExtension,
     fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user},
-    ActorType,
-    ApubLikeableType,
-    ApubObjectType,
-    FromApub,
-    PageExt,
-    ToApub,
+    ActorType, ApubLikeableType, ApubObjectType, FromApub, PageExt, ToApub,
   },
   blocking,
   routes::DbPoolParam,
-  DbPool,
-  LemmyError,
+  DbPool, LemmyError,
 };
 use activitystreams_ext::Ext1;
 use activitystreams_new::{
@@ -133,6 +125,7 @@ impl ToApub for Post {
     let ext = PageExtension {
       comments_enabled: !self.locked,
       sensitive: self.nsfw,
+      stickied: self.stickied,
     };
     Ok(Ext1::new(page, ext))
   }
@@ -244,7 +237,7 @@ impl FromApub for PostForm {
         .map(|u| u.to_owned().naive_local()),
       deleted: None,
       nsfw: ext.sensitive,
-      stickied: None, // -> put it in "featured" collection of the community
+      stickied: Some(ext.stickied),
       embed_title,
       embed_description,
       embed_html,
