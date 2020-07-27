@@ -102,7 +102,9 @@ export class AdminSettings extends Component<any, AdminSettingsState> {
         ) : (
           <div class="row">
             <div class="col-12 col-md-6">
-              <SiteForm site={this.state.siteRes.site} />
+              {this.state.siteRes.site.id && (
+                <SiteForm site={this.state.siteRes.site} />
+              )}
               {this.admins()}
               {this.bannedUsers()}
             </div>
