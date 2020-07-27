@@ -636,6 +636,7 @@ impl Perform for Oper<TransferSite> {
 
     let user_id = claims.id;
     let mut user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
+    // TODO add a User_::read_safe() for this.
     user.password_encrypted = "".to_string();
     user.private_key = None;
     user.public_key = None;
