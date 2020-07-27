@@ -64,6 +64,7 @@ interface CommentNodeState {
 
 interface CommentNodeProps {
   node: CommentNodeI;
+  noBorder?: boolean;
   noIndent?: boolean;
   viewOnly?: boolean;
   locked?: boolean;
@@ -136,9 +137,9 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
       >
         <div
           id={`comment-${node.comment.id}`}
-          className={`details comment-node border-top border-light py-2 ${
-            this.isCommentNew ? 'mark' : ''
-          }`}
+          className={`details comment-node py-2 ${
+            !this.props.noBorder ? 'border-top border-light' : ''
+          } ${this.isCommentNew ? 'mark' : ''}`}
           style={
             !this.props.noIndent &&
             this.props.node.comment.parent_id &&
