@@ -6,7 +6,8 @@ import {
   PostForm,
   DeletePostForm,
   RemovePostForm,
-  // TODO need to test LockPost and StickyPost federated
+  StickyPostForm,
+  LockPostForm,
   PostResponse,
   SearchResponse,
   FollowCommunityForm,
@@ -345,6 +346,27 @@ describe('main', () => {
       expect(updateResponse.post.community_local).toBe(false);
       expect(updateResponse.post.creator_local).toBe(true);
 
+      let stickyPostForm: StickyPostForm = {
+        edit_id: 2,
+        stickied: true,
+        auth: lemmyAlphaAuth,
+      };
+
+      let stickyRes: PostResponse = await fetch(
+        `${lemmyAlphaApiUrl}/post/sticky`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(stickyPostForm),
+        }
+      ).then(d => d.json());
+
+      expect(stickyRes.post.name).toBe(name);
+      expect(stickyRes.post.stickied).toBe(true);
+
+      // Fetch from B
       let getPostUrl = `${lemmyBetaApiUrl}/post?id=2`;
       let getPostRes: GetPostResponse = await fetch(getPostUrl, {
         method: 'GET',
@@ -353,6 +375,76 @@ describe('main', () => {
       expect(getPostRes.post.name).toBe(name);
       expect(getPostRes.post.community_local).toBe(true);
       expect(getPostRes.post.creator_local).toBe(false);
+      expect(getPostRes.post.stickied).toBe(true);
+
+      let lockPostForm: LockPostForm = {
+        edit_id: 2,
+        locked: true,
+        auth: lemmyAlphaAuth,
+      };
+
+      let lockedRes: PostResponse = await fetch(
+        `${lemmyAlphaApiUrl}/post/lock`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(lockPostForm),
+        }
+      ).then(d => d.json());
+
+      expect(lockedRes.post.name).toBe(name);
+      expect(lockedRes.post.locked).toBe(true);
+
+      // Fetch from B to make sure its locked
+      getPostRes = await fetch(getPostUrl, {
+        method: 'GET',
+      }).then(d => d.json());
+      expect(getPostRes.post.locked).toBe(true);
+
+      // Create a test comment on a locked post, it should be undefined
+      // since it shouldn't get created.
+      let content = 'A rejected comment on a locked post';
+      let commentForm: CommentForm = {
+        content,
+        post_id: 2,
+        auth: lemmyAlphaAuth,
+      };
+
+      let createResponse: CommentResponse = await fetch(
+        `${lemmyAlphaApiUrl}/comment`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(commentForm),
+        }
+      ).then(d => d.json());
+
+      expect(createResponse['error']).toBe('locked');
+
+      // Unlock the post for later actions
+      let unlockPostForm: LockPostForm = {
+        edit_id: 2,
+        locked: false,
+        auth: lemmyAlphaAuth,
+      };
+
+      let unlockedRes: PostResponse = await fetch(
+        `${lemmyAlphaApiUrl}/post/lock`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(unlockPostForm),
+        }
+      ).then(d => d.json());
+
+      expect(unlockedRes.post.name).toBe(name);
+      expect(unlockedRes.post.locked).toBe(false);
     });
   });
 
