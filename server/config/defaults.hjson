@@ -59,6 +59,10 @@
     # comma seperated list of instances with which federation is allowed
     allowed_instances: ""
   }
+  captcha: {
+    enabled: true
+    difficulty: medium # Can be easy, medium, or hard
+  }
 #  # email sending configuration
 #  email: {
 #    # hostname and port of the smtp server

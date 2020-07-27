@@ -22,6 +22,7 @@ interface State {
   registerLoading: boolean;
   enable_nsfw: boolean;
   captcha: GetCaptchaResponse;
+  captchaPlaying: boolean;
 }
 
 export class Login extends Component<any, State> {
@@ -31,8 +32,6 @@ export class Login extends Component<any, State> {
     loginForm: {
       username_or_email: undefined,
       password: undefined,
-      captcha_uuid: undefined,
-      captcha_answer: undefined,
     },
     registerForm: {
       username: undefined,
@@ -46,11 +45,8 @@ export class Login extends Component<any, State> {
     loginLoading: false,
     registerLoading: false,
     enable_nsfw: undefined,
-    captcha: {
-      png: undefined,
-      uuid: undefined,
-      wav: undefined,
-    },
+    captcha: undefined,
+    captchaPlaying: false,
   };
 
   constructor(props: any, context: any) {
@@ -131,22 +127,6 @@ export class Login extends Component<any, State> {
                   {i18n.t('forgot_password')}
                 </button>
               )}
-            </div>
-          </div>
-          <div class="form-group row">
-            <label class="col-sm-2" htmlFor="login-captcha">
-              {i18n.t('enter_code')}
-            </label>
-            {this.showCaptcha()}
-            <div class="col-sm-6">
-              <input
-                type="text"
-                class="form-control"
-                id="login-captcha"
-                value={this.state.loginForm.captcha_answer}
-                onInput={linkEvent(this, this.handleLoginCaptchaAnswerChange)}
-                required
-              />
             </div>
           </div>
           <div class="form-group row">
@@ -253,22 +233,36 @@ export class Login extends Component<any, State> {
             />
           </div>
         </div>
-        <div class="form-group row">
-          <label class="col-sm-2" htmlFor="register-captcha">
-            {i18n.t('enter_code')}
-          </label>
-          {this.showCaptcha()}
-          <div class="col-sm-6">
-            <input
-              type="text"
-              class="form-control"
-              id="register-captcha"
-              value={this.state.registerForm.captcha_answer}
-              onInput={linkEvent(this, this.handleRegisterCaptchaAnswerChange)}
-              required
-            />
+
+        {this.state.captcha && (
+          <div class="form-group row">
+            <label class="col-sm-2" htmlFor="register-captcha">
+              <span class="mr-2">{i18n.t('enter_code')}</span>
+              <button
+                class="btn btn-secondary"
+                onClick={linkEvent(this, this.handleRegenCaptcha)}
+              >
+                <svg class="icon icon-refresh-cw">
+                  <use xlinkHref="#icon-refresh-cw"></use>
+                </svg>
+              </button>
+            </label>
+            {this.showCaptcha()}
+            <div class="col-sm-6">
+              <input
+                type="text"
+                class="form-control"
+                id="register-captcha"
+                value={this.state.registerForm.captcha_answer}
+                onInput={linkEvent(
+                  this,
+                  this.handleRegisterCaptchaAnswerChange
+                )}
+                required
+              />
+            </div>
           </div>
-        </div>
+        )}
         {this.state.enable_nsfw && (
           <div class="form-group row">
             <div class="col-sm-10">
@@ -320,10 +314,17 @@ export class Login extends Component<any, State> {
                 style="border-top-right-radius: 0; border-top-left-radius: 0;"
                 title={i18n.t('play_captcha_audio')}
                 onClick={linkEvent(this, this.handleCaptchaPlay)}
+                disabled={this.state.captchaPlaying}
               >
-                <svg class="icon icon-play">
-                  <use xlinkHref="#icon-play"></use>
-                </svg>
+                {!this.state.captchaPlaying ? (
+                  <svg class="icon icon-play">
+                    <use xlinkHref="#icon-play"></use>
+                  </svg>
+                ) : (
+                  <svg class="icon icon-pause">
+                    <use xlinkHref="#icon-pause"></use>
+                  </svg>
+                )}
               </button>
             )}
           </>
@@ -384,14 +385,14 @@ export class Login extends Component<any, State> {
     i.setState(i.state);
   }
 
-  handleLoginCaptchaAnswerChange(i: Login, event: any) {
-    i.state.loginForm.captcha_answer = event.target.value;
-    i.setState(i.state);
-  }
-
   handleRegisterCaptchaAnswerChange(i: Login, event: any) {
     i.state.registerForm.captcha_answer = event.target.value;
     i.setState(i.state);
+  }
+
+  handleRegenCaptcha(_i: Login, _event: any) {
+    event.preventDefault();
+    WebSocketService.Instance.getCaptcha();
   }
 
   handlePasswordReset(i: Login) {
@@ -406,6 +407,13 @@ export class Login extends Component<any, State> {
     event.preventDefault();
     let snd = new Audio('data:audio/wav;base64,' + i.state.captcha.wav);
     snd.play();
+    i.state.captchaPlaying = true;
+    i.setState(i.state);
+    snd.addEventListener('ended', () => {
+      snd.currentTime = 0;
+      i.state.captchaPlaying = false;
+      i.setState(this.state);
+    });
   }
 
   captchaPngSrc() {
@@ -417,6 +425,8 @@ export class Login extends Component<any, State> {
     if (msg.error) {
       toast(i18n.t(msg.error), 'danger');
       this.state = this.emptyState;
+      // Refetch another captcha
+      WebSocketService.Instance.getCaptcha();
       this.setState(this.state);
       return;
     } else {
@@ -437,10 +447,11 @@ export class Login extends Component<any, State> {
         this.props.history.push('/communities');
       } else if (res.op == UserOperation.GetCaptcha) {
         let data = res.data as GetCaptchaResponse;
-        this.state.captcha = data;
-        this.state.loginForm.captcha_uuid = data.uuid;
-        this.state.registerForm.captcha_uuid = data.uuid;
-        this.setState(this.state);
+        if (data.uuid != 'disabled') {
+          this.state.captcha = data;
+          this.state.registerForm.captcha_uuid = data.uuid;
+          this.setState(this.state);
+        }
       } else if (res.op == UserOperation.PasswordReset) {
         toast(i18n.t('reset_password_mail_sent'));
       } else if (res.op == UserOperation.GetSite) {

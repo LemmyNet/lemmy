@@ -811,9 +811,14 @@ impl Handler<CheckCaptcha> for ChatServer {
     // Remove all the ones that are past the expire time
     self.captchas.retain(|x| x.expires.gt(&naive_now()));
 
-    self
+    let check = self
       .captchas
       .iter()
-      .any(|r| r.uuid == msg.uuid && r.answer == msg.answer)
+      .any(|r| r.uuid == msg.uuid && r.answer == msg.answer);
+
+    // Remove this uuid so it can't be re-checked (Checks only work once)
+    self.captchas.retain(|x| x.uuid != msg.uuid);
+
+    check
   }
 }

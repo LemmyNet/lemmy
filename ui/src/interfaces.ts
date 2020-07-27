@@ -549,8 +549,6 @@ export interface ModAdd {
 export interface LoginForm {
   username_or_email: string;
   password: string;
-  captcha_uuid: string;
-  captcha_answer: string;
 }
 
 export interface RegisterForm {
@@ -560,8 +558,8 @@ export interface RegisterForm {
   password_verify: string;
   admin: boolean;
   show_nsfw: boolean;
-  captcha_uuid: string;
-  captcha_answer: string;
+  captcha_uuid?: string;
+  captcha_answer?: string;
 }
 
 export interface GetCaptchaResponse {

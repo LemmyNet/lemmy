@@ -360,8 +360,6 @@ The `jwt` string should be stored and used anywhere `auth` is called for.
   data: {
     username_or_email: String,
     password: String
-    captcha_uuid: String,
-    captcha_answer: String,
   }
 }
 ```
@@ -393,8 +391,8 @@ Only the first user will be able to be the admin.
     password: String,
     password_verify: String,
     admin: bool,
-    captcha_uuid: String,
-    captcha_answer: String,
+    captcha_uuid: Option<String>, // Only checked if these are enabled in the server
+    captcha_answer: Option<String>,
   }
 }
 ```
@@ -429,7 +427,7 @@ These expire after 10 minutes.
   data: {
     png: String, // A Base64 encoded png
     wav: Option<String>, // A Base64 encoded wav audio file
-    uuid: String,
+    uuid: String, // will return 'disabled' if server has these disabled
   }
 }
 ```

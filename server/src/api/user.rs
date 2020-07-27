@@ -59,8 +59,6 @@ use std::str::FromStr;
 pub struct Login {
   username_or_email: String,
   password: String,
-  captcha_uuid: String,
-  captcha_answer: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -71,8 +69,8 @@ pub struct Register {
   pub password_verify: String,
   pub admin: bool,
   pub show_nsfw: bool,
-  pub captcha_uuid: String,
-  pub captcha_answer: String,
+  pub captcha_uuid: Option<String>,
+  pub captcha_answer: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -82,7 +80,7 @@ pub struct GetCaptcha {}
 pub struct GetCaptchaResponse {
   png: String,         // A Base64 encoded png
   wav: Option<String>, // A Base64 encoded wav audio
-  uuid: String,
+  uuid: String,        // will be 'disabled' if captchas are disabled
 }
 
 #[derive(Serialize, Deserialize)]
@@ -285,7 +283,7 @@ impl Perform for Oper<Login> {
   async fn perform(
     &self,
     pool: &DbPool,
-    websocket_info: Option<WebsocketInfo>,
+    _websocket_info: Option<WebsocketInfo>,
   ) -> Result<LoginResponse, LemmyError> {
     let data: &Login = &self.data;
 
@@ -304,27 +302,6 @@ impl Perform for Oper<Login> {
     let valid: bool = verify(&data.password, &user.password_encrypted).unwrap_or(false);
     if !valid {
       return Err(APIError::err("password_incorrect").into());
-    }
-
-    // Verify the captcha
-    // Do an admin check, so that for your federation tests,
-    // you don't need to solve the captchas
-    if !user.admin {
-      match websocket_info {
-        Some(ws) => {
-          let check = ws
-            .chatserver
-            .send(CheckCaptcha {
-              uuid: data.captcha_uuid.to_owned(),
-              answer: data.captcha_answer.to_owned(),
-            })
-            .await?;
-          if !check {
-            return Err(APIError::err("captcha_incorrect").into());
-          }
-        }
-        None => return Err(APIError::err("captcha_incorrect").into()),
-      };
     }
 
     // Return the jwt
@@ -359,14 +336,20 @@ impl Perform for Oper<Register> {
     }
 
     // If its not the admin, check the captcha
-    if !data.admin {
+    if !data.admin && Settings::get().captcha.enabled {
       match websocket_info {
         Some(ws) => {
           let check = ws
             .chatserver
             .send(CheckCaptcha {
-              uuid: data.captcha_uuid.to_owned(),
-              answer: data.captcha_answer.to_owned(),
+              uuid: data
+                .captcha_uuid
+                .to_owned()
+                .unwrap_or_else(|| "".to_string()),
+              answer: data
+                .captcha_answer
+                .to_owned()
+                .unwrap_or_else(|| "".to_string()),
             })
             .await?;
           if !check {
@@ -505,7 +488,22 @@ impl Perform for Oper<GetCaptcha> {
     _pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<Self::Response, LemmyError> {
-    let captcha = gen(Difficulty::Medium);
+    let captcha_settings = Settings::get().captcha;
+
+    if !captcha_settings.enabled {
+      return Ok(GetCaptchaResponse {
+        png: "disabled".to_string(),
+        uuid: "disabled".to_string(),
+        wav: None,
+      });
+    }
+
+    let captcha = match captcha_settings.difficulty.as_str() {
+      "easy" => gen(Difficulty::Easy),
+      "medium" => gen(Difficulty::Medium),
+      "hard" => gen(Difficulty::Hard),
+      _ => gen(Difficulty::Medium),
+    };
 
     let answer = captcha.chars_as_string();
 
