@@ -1,4 +1,5 @@
 import { Component, linkEvent } from 'inferno';
+import { Helmet } from 'inferno-helmet';
 import { Link } from 'inferno-router';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
@@ -177,9 +178,18 @@ export class Main extends Component<any, MainState> {
     }
   }
 
+  get documentTitle(): string {
+    if (this.state.siteRes.site.name) {
+      return `${this.state.siteRes.site.name}`;
+    } else {
+      return 'Lemmy';
+    }
+  }
+
   render() {
     return (
       <div class="container">
+        <Helmet title={this.documentTitle} />
         <div class="row">
           <main role="main" class="col-12 col-md-8">
             {this.posts()}
@@ -627,7 +637,6 @@ export class Main extends Component<any, MainState> {
       this.state.siteRes.banned = data.banned;
       this.state.siteRes.online = data.online;
       this.setState(this.state);
-      document.title = `${this.state.siteRes.site.name}`;
     } else if (res.op == UserOperation.EditSite) {
       let data = res.data as SiteResponse;
       this.state.siteRes.site = data.site;

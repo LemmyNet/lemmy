@@ -1,4 +1,5 @@
 import { Component } from 'inferno';
+import { Helmet } from 'inferno-helmet';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { CommunityForm } from './community-form';
@@ -7,19 +8,33 @@ import {
   UserOperation,
   WebSocketJsonResponse,
   GetSiteResponse,
+  Site,
 } from '../interfaces';
 import { toast, wsJsonToRes } from '../utils';
 import { WebSocketService, UserService } from '../services';
 import { i18n } from '../i18next';
 
 interface CreateCommunityState {
-  enableNsfw: boolean;
+  site: Site;
 }
 
 export class CreateCommunity extends Component<any, CreateCommunityState> {
   private subscription: Subscription;
   private emptyState: CreateCommunityState = {
-    enableNsfw: null,
+    site: {
+      id: undefined,
+      name: undefined,
+      creator_id: undefined,
+      published: undefined,
+      creator_name: undefined,
+      number_of_users: undefined,
+      number_of_posts: undefined,
+      number_of_comments: undefined,
+      number_of_communities: undefined,
+      enable_downvotes: undefined,
+      open_registration: undefined,
+      enable_nsfw: undefined,
+    },
   };
   constructor(props: any, context: any) {
     super(props, context);
@@ -46,15 +61,24 @@ export class CreateCommunity extends Component<any, CreateCommunityState> {
     this.subscription.unsubscribe();
   }
 
+  get documentTitle(): string {
+    if (this.state.site.name) {
+      return `${i18n.t('create_community')} - ${this.state.site.name}`;
+    } else {
+      return 'Lemmy';
+    }
+  }
+
   render() {
     return (
       <div class="container">
+        <Helmet title={this.documentTitle} />
         <div class="row">
           <div class="col-12 col-lg-6 offset-lg-3 mb-4">
             <h5>{i18n.t('create_community')}</h5>
             <CommunityForm
               onCreate={this.handleCommunityCreate}
-              enableNsfw={this.state.enableNsfw}
+              enableNsfw={this.state.site.enable_nsfw}
             />
           </div>
         </div>
@@ -74,9 +98,8 @@ export class CreateCommunity extends Component<any, CreateCommunityState> {
       return;
     } else if (res.op == UserOperation.GetSite) {
       let data = res.data as GetSiteResponse;
-      this.state.enableNsfw = data.site.enable_nsfw;
+      this.state.site = data.site;
       this.setState(this.state);
-      document.title = `${i18n.t('create_community')} - ${data.site.name}`;
     }
   }
 }

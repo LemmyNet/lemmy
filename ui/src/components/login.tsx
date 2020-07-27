@@ -1,4 +1,5 @@
 import { Component, linkEvent } from 'inferno';
+import { Helmet } from 'inferno-helmet';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import {
@@ -9,6 +10,7 @@ import {
   PasswordResetForm,
   GetSiteResponse,
   WebSocketJsonResponse,
+  Site,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { wsJsonToRes, validEmail, toast } from '../utils';
@@ -19,12 +21,12 @@ interface State {
   registerForm: RegisterForm;
   loginLoading: boolean;
   registerLoading: boolean;
-  enable_nsfw: boolean;
   mathQuestion: {
     a: number;
     b: number;
     answer: number;
   };
+  site: Site;
 }
 
 export class Login extends Component<any, State> {
@@ -44,11 +46,24 @@ export class Login extends Component<any, State> {
     },
     loginLoading: false,
     registerLoading: false,
-    enable_nsfw: undefined,
     mathQuestion: {
       a: Math.floor(Math.random() * 10) + 1,
       b: Math.floor(Math.random() * 10) + 1,
       answer: undefined,
+    },
+    site: {
+      id: undefined,
+      name: undefined,
+      creator_id: undefined,
+      published: undefined,
+      creator_name: undefined,
+      number_of_users: undefined,
+      number_of_posts: undefined,
+      number_of_comments: undefined,
+      number_of_communities: undefined,
+      enable_downvotes: undefined,
+      open_registration: undefined,
+      enable_nsfw: undefined,
     },
   };
 
@@ -72,9 +87,18 @@ export class Login extends Component<any, State> {
     this.subscription.unsubscribe();
   }
 
+  get documentTitle(): string {
+    if (this.state.site.name) {
+      return `${i18n.t('login')} - ${this.state.site.name}`;
+    } else {
+      return 'Lemmy';
+    }
+  }
+
   render() {
     return (
       <div class="container">
+        <Helmet title={this.documentTitle} />
         <div class="row">
           <div class="col-12 col-lg-6 mb-4">{this.loginForm()}</div>
           <div class="col-12 col-lg-6">{this.registerForm()}</div>
@@ -251,7 +275,7 @@ export class Login extends Component<any, State> {
             />
           </div>
         </div>
-        {this.state.enable_nsfw && (
+        {this.state.site.enable_nsfw && (
           <div class="form-group row">
             <div class="col-sm-10">
               <div class="form-check">
@@ -392,9 +416,8 @@ export class Login extends Component<any, State> {
         toast(i18n.t('reset_password_mail_sent'));
       } else if (res.op == UserOperation.GetSite) {
         let data = res.data as GetSiteResponse;
-        this.state.enable_nsfw = data.site.enable_nsfw;
+        this.state.site = data.site;
         this.setState(this.state);
-        document.title = `${i18n.t('login')} - ${data.site.name}`;
       }
     }
   }

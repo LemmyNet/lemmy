@@ -1,5 +1,5 @@
 import { Component, linkEvent } from 'inferno';
-import { Link } from 'inferno-router';
+import { Helmet } from 'inferno-helmet';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import {
@@ -156,9 +156,24 @@ export class Search extends Component<any, SearchState> {
     }
   }
 
+  get documentTitle(): string {
+    if (this.state.site.name) {
+      if (this.state.q) {
+        return `${i18n.t('search')} - ${this.state.q} - ${
+          this.state.site.name
+        }`;
+      } else {
+        return `${i18n.t('search')} - ${this.state.site.name}`;
+      }
+    } else {
+      return 'Lemmy';
+    }
+  }
+
   render() {
     return (
       <div class="container">
+        <Helmet title={this.documentTitle} />
         <h5>{i18n.t('search')}</h5>
         {this.selects()}
         {this.searchForm()}
@@ -500,9 +515,6 @@ export class Search extends Component<any, SearchState> {
       let data = res.data as SearchResponse;
       this.state.searchResponse = data;
       this.state.loading = false;
-      document.title = `${i18n.t('search')} - ${this.state.q} - ${
-        this.state.site.name
-      }`;
       window.scrollTo(0, 0);
       this.setState(this.state);
     } else if (res.op == UserOperation.CreateCommentLike) {
@@ -517,7 +529,6 @@ export class Search extends Component<any, SearchState> {
       let data = res.data as GetSiteResponse;
       this.state.site = data.site;
       this.setState(this.state);
-      document.title = `${i18n.t('search')} - ${data.site.name}`;
     }
   }
 }
