@@ -1,4 +1,5 @@
 import { Component, linkEvent } from 'inferno';
+import { Helmet } from 'inferno-helmet';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import {
@@ -80,9 +81,18 @@ export class AdminSettings extends Component<any, AdminSettingsState> {
     this.subscription.unsubscribe();
   }
 
+  get documentTitle(): string {
+    if (this.state.siteRes.site.name) {
+      return `${i18n.t('admin_settings')} - ${this.state.siteRes.site.name}`;
+    } else {
+      return 'Lemmy';
+    }
+  }
+
   render() {
     return (
       <div class="container">
+        <Helmet title={this.documentTitle} />
         {this.state.loading ? (
           <h5>
             <svg class="icon icon-spinner spin">
@@ -92,7 +102,9 @@ export class AdminSettings extends Component<any, AdminSettingsState> {
         ) : (
           <div class="row">
             <div class="col-12 col-md-6">
-              <SiteForm site={this.state.siteRes.site} />
+              {this.state.siteRes.site.id && (
+                <SiteForm site={this.state.siteRes.site} />
+              )}
               {this.admins()}
               {this.bannedUsers()}
             </div>
@@ -220,9 +232,6 @@ export class AdminSettings extends Component<any, AdminSettingsState> {
       }
       this.state.siteRes = data;
       this.setState(this.state);
-      document.title = `${i18n.t('admin_settings')} - ${
-        this.state.siteRes.site.name
-      }`;
     } else if (res.op == UserOperation.EditSite) {
       let data = res.data as SiteResponse;
       this.state.siteRes.site = data.site;

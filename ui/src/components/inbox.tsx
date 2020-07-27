@@ -1,4 +1,5 @@
 import { Component, linkEvent } from 'inferno';
+import { Helmet } from 'inferno-helmet';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import {
@@ -17,6 +18,7 @@ import {
   PrivateMessagesResponse,
   PrivateMessageResponse,
   GetSiteResponse,
+  Site,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import {
@@ -57,7 +59,7 @@ interface InboxState {
   messages: Array<PrivateMessageI>;
   sort: SortType;
   page: number;
-  enableDownvotes: boolean;
+  site: Site;
 }
 
 export class Inbox extends Component<any, InboxState> {
@@ -70,7 +72,20 @@ export class Inbox extends Component<any, InboxState> {
     messages: [],
     sort: SortType.New,
     page: 1,
-    enableDownvotes: undefined,
+    site: {
+      id: undefined,
+      name: undefined,
+      creator_id: undefined,
+      published: undefined,
+      creator_name: undefined,
+      number_of_users: undefined,
+      number_of_posts: undefined,
+      number_of_comments: undefined,
+      number_of_communities: undefined,
+      enable_downvotes: undefined,
+      open_registration: undefined,
+      enable_nsfw: undefined,
+    },
   };
 
   constructor(props: any, context: any) {
@@ -95,9 +110,20 @@ export class Inbox extends Component<any, InboxState> {
     this.subscription.unsubscribe();
   }
 
+  get documentTitle(): string {
+    if (this.state.site.name) {
+      return `/u/${UserService.Instance.user.name} ${i18n.t('inbox')} - ${
+        this.state.site.name
+      }`;
+    } else {
+      return 'Lemmy';
+    }
+  }
+
   render() {
     return (
       <div class="container">
+        <Helmet title={this.documentTitle} />
         <div class="row">
           <div class="col-12">
             <h5 class="mb-1">
@@ -269,7 +295,7 @@ export class Inbox extends Component<any, InboxState> {
               markable
               showCommunity
               showContext
-              enableDownvotes={this.state.enableDownvotes}
+              enableDownvotes={this.state.site.enable_downvotes}
             />
           ) : (
             <PrivateMessage privateMessage={i} />
@@ -288,7 +314,7 @@ export class Inbox extends Component<any, InboxState> {
           markable
           showCommunity
           showContext
-          enableDownvotes={this.state.enableDownvotes}
+          enableDownvotes={this.state.site.enable_downvotes}
         />
       </div>
     );
@@ -304,7 +330,7 @@ export class Inbox extends Component<any, InboxState> {
             markable
             showCommunity
             showContext
-            enableDownvotes={this.state.enableDownvotes}
+            enableDownvotes={this.state.site.enable_downvotes}
           />
         ))}
       </div>
@@ -557,19 +583,13 @@ export class Inbox extends Component<any, InboxState> {
       this.setState(this.state);
     } else if (res.op == UserOperation.GetSite) {
       let data = res.data as GetSiteResponse;
-      this.state.enableDownvotes = data.site.enable_downvotes;
+      this.state.site = data.site;
       this.setState(this.state);
-      document.title = `/u/${UserService.Instance.user.username} ${i18n.t(
-        'inbox'
-      )} - ${data.site.name}`;
     }
   }
 
   sendUnreadCount() {
-    UserService.Instance.user.unreadCount = this.unreadCount();
-    UserService.Instance.sub.next({
-      user: UserService.Instance.user,
-    });
+    UserService.Instance.unreadCountSub.next(this.unreadCount());
   }
 
   unreadCount(): number {

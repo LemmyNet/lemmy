@@ -1,4 +1,5 @@
 import { Component, linkEvent } from 'inferno';
+import { Helmet } from 'inferno-helmet';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import {
@@ -174,9 +175,18 @@ export class Community extends Component<any, State> {
     }
   }
 
+  get documentTitle(): string {
+    if (this.state.community.name) {
+      return `/c/${this.state.community.name} - ${this.state.site.name}`;
+    } else {
+      return 'Lemmy';
+    }
+  }
+
   render() {
     return (
       <div class="container">
+        <Helmet title={this.documentTitle} />
         {this.selects()}
         {this.state.loading ? (
           <h5>
@@ -356,7 +366,6 @@ export class Community extends Component<any, State> {
       this.state.community = data.community;
       this.state.moderators = data.moderators;
       this.state.online = data.online;
-      document.title = `/c/${this.state.community.name} - ${this.state.site.name}`;
       this.setState(this.state);
       this.fetchData();
     } else if (
