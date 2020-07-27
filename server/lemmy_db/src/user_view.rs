@@ -56,14 +56,14 @@ pub struct UserView {
   pub actor_id: String,
   pub name: String,
   pub avatar: Option<String>,
-  pub email: Option<String>,
+  pub email: Option<String>, // TODO this shouldn't be in this view
   pub matrix_user_id: Option<String>,
   pub bio: Option<String>,
   pub local: bool,
   pub admin: bool,
   pub banned: bool,
-  pub show_avatars: bool,
-  pub send_notifications_to_email: bool,
+  pub show_avatars: bool, // TODO this is a setting, probably doesn't need to be here
+  pub send_notifications_to_email: bool, // TODO also never used
   pub published: chrono::NaiveDateTime,
   pub number_of_posts: i64,
   pub post_score: i64,

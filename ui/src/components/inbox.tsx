@@ -112,7 +112,7 @@ export class Inbox extends Component<any, InboxState> {
 
   get documentTitle(): string {
     if (this.state.site.name) {
-      return `/u/${UserService.Instance.user.username} ${i18n.t('inbox')} - ${
+      return `/u/${UserService.Instance.user.name} ${i18n.t('inbox')} - ${
         this.state.site.name
       }`;
     } else {
@@ -589,10 +589,7 @@ export class Inbox extends Component<any, InboxState> {
   }
 
   sendUnreadCount() {
-    UserService.Instance.user.unreadCount = this.unreadCount();
-    UserService.Instance.sub.next({
-      user: UserService.Instance.user,
-    });
+    UserService.Instance.unreadCountSub.next(this.unreadCount());
   }
 
   unreadCount(): number {
