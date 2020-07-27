@@ -1,4 +1,5 @@
 import { Component, linkEvent } from 'inferno';
+import { Helmet } from 'inferno-helmet';
 import { Link } from 'inferno-router';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
@@ -17,6 +18,7 @@ import {
   ModAdd,
   WebSocketJsonResponse,
   GetSiteResponse,
+  Site,
 } from '../interfaces';
 import { WebSocketService } from '../services';
 import { wsJsonToRes, addTypeInfo, fetchLimit, toast } from '../utils';
@@ -38,6 +40,7 @@ interface ModlogState {
   communityId?: number;
   communityName?: string;
   page: number;
+  site: Site;
   loading: boolean;
 }
 
@@ -47,6 +50,7 @@ export class Modlog extends Component<any, ModlogState> {
     combined: [],
     page: 1,
     loading: true,
+    site: undefined,
   };
 
   constructor(props: any, context: any) {
@@ -338,9 +342,18 @@ export class Modlog extends Component<any, ModlogState> {
     );
   }
 
+  get documentTitle(): string {
+    if (this.state.site) {
+      return `Modlog - ${this.state.site.name}`;
+    } else {
+      return 'Lemmy';
+    }
+  }
+
   render() {
     return (
       <div class="container">
+        <Helmet title={this.documentTitle} />
         {this.state.loading ? (
           <h5 class="">
             <svg class="icon icon-spinner spin">
@@ -434,7 +447,8 @@ export class Modlog extends Component<any, ModlogState> {
       this.setCombined(data);
     } else if (res.op == UserOperation.GetSite) {
       let data = res.data as GetSiteResponse;
-      document.title = `Modlog - ${data.site.name}`;
+      this.state.site = data.site;
+      this.setState(this.state);
     }
   }
 }

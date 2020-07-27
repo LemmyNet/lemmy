@@ -1,4 +1,5 @@
 import { Component, linkEvent } from 'inferno';
+import { Helmet } from 'inferno-helmet';
 import { Link } from 'inferno-router';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
@@ -207,13 +208,21 @@ export class User extends Component<any, UserState> {
       // Couldnt get a refresh working. This does for now.
       location.reload();
     }
-    document.title = `/u/${this.state.username} - ${this.state.siteRes.site.name}`;
     setupTippy();
+  }
+
+  get documentTitle(): string {
+    if (this.state.siteRes.site.name) {
+      return `/u/${this.state.username} - ${this.state.siteRes.site.name}`;
+    } else {
+      return 'Lemmy';
+    }
   }
 
   render() {
     return (
       <div class="container">
+        <Helmet title={this.documentTitle} />
         <div class="row">
           <div class="col-12 col-md-8">
             <h5>

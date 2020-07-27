@@ -34,7 +34,7 @@ export class UserService {
     this.user = undefined;
     Cookies.remove('jwt');
     setTheme();
-    this.jwtSub.next(undefined);
+    this.jwtSub.next();
     console.log('Logged out.');
   }
 

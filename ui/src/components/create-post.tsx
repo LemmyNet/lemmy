@@ -1,4 +1,5 @@
 import { Component } from 'inferno';
+import { Helmet } from 'inferno-helmet';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { PostForm } from './post-form';
@@ -61,9 +62,18 @@ export class CreatePost extends Component<any, CreatePostState> {
     this.subscription.unsubscribe();
   }
 
+  get documentTitle(): string {
+    if (this.state.site.name) {
+      return `${i18n.t('create_post')} - ${this.state.site.name}`;
+    } else {
+      return 'Lemmy';
+    }
+  }
+
   render() {
     return (
       <div class="container">
+        <Helmet title={this.documentTitle} />
         <div class="row">
           <div class="col-12 col-lg-6 offset-lg-3 mb-4">
             <h5>{i18n.t('create_post')}</h5>
@@ -117,7 +127,6 @@ export class CreatePost extends Component<any, CreatePostState> {
       let data = res.data as GetSiteResponse;
       this.state.site = data.site;
       this.setState(this.state);
-      document.title = `${i18n.t('create_post')} - ${data.site.name}`;
     }
   }
 }

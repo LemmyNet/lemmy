@@ -1,4 +1,5 @@
 import { Component, linkEvent } from 'inferno';
+import { Helmet } from 'inferno-helmet';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import {
@@ -180,9 +181,18 @@ export class Post extends Component<any, PostState> {
     }
   }
 
+  get documentTitle(): string {
+    if (this.state.post) {
+      return `${this.state.post.name} - ${this.state.siteRes.site.name}`;
+    } else {
+      return 'Lemmy';
+    }
+  }
+
   render() {
     return (
       <div class="container">
+        <Helmet title={this.documentTitle} />
         {this.state.loading ? (
           <h5>
             <svg class="icon icon-spinner spin">
@@ -406,7 +416,6 @@ export class Post extends Component<any, PostState> {
       this.state.moderators = data.moderators;
       this.state.online = data.online;
       this.state.loading = false;
-      document.title = `${this.state.post.name} - ${this.state.siteRes.site.name}`;
 
       // Get cross-posts
       if (this.state.post.url) {
