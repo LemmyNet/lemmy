@@ -1,4 +1,5 @@
 import { Component, linkEvent } from 'inferno';
+import { Helmet } from 'inferno-helmet';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import {
@@ -7,6 +8,7 @@ import {
   PasswordChangeForm,
   WebSocketJsonResponse,
   GetSiteResponse,
+  Site,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { wsJsonToRes, capitalizeFirstLetter, toast } from '../utils';
@@ -15,6 +17,7 @@ import { i18n } from '../i18next';
 interface State {
   passwordChangeForm: PasswordChangeForm;
   loading: boolean;
+  site: Site;
 }
 
 export class PasswordChange extends Component<any, State> {
@@ -27,6 +30,7 @@ export class PasswordChange extends Component<any, State> {
       password_verify: undefined,
     },
     loading: false,
+    site: undefined,
   };
 
   constructor(props: any, context: any) {
@@ -48,9 +52,18 @@ export class PasswordChange extends Component<any, State> {
     this.subscription.unsubscribe();
   }
 
+  get documentTitle(): string {
+    if (this.state.site) {
+      return `${i18n.t('password_change')} - ${this.state.site.name}`;
+    } else {
+      return 'Lemmy';
+    }
+  }
+
   render() {
     return (
       <div class="container">
+        <Helmet title={this.documentTitle} />
         <div class="row">
           <div class="col-12 col-lg-6 offset-lg-3 mb-4">
             <h5>{i18n.t('password_change')}</h5>
@@ -142,7 +155,8 @@ export class PasswordChange extends Component<any, State> {
       this.props.history.push('/');
     } else if (res.op == UserOperation.GetSite) {
       let data = res.data as GetSiteResponse;
-      document.title = `${i18n.t('password_change')} - ${data.site.name}`;
+      this.state.site = data.site;
+      this.setState(this.state);
     }
   }
 }

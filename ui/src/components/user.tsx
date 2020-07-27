@@ -1,4 +1,5 @@
 import { Component, linkEvent } from 'inferno';
+import { Helmet } from 'inferno-helmet';
 import { Link } from 'inferno-router';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
@@ -211,9 +212,18 @@ export class User extends Component<any, UserState> {
     setupTippy();
   }
 
+  get documentTitle(): string {
+    if (this.state.siteRes.site.name) {
+      return `/u/${this.state.username} - ${this.state.siteRes.site.name}`;
+    } else {
+      return 'Lemmy';
+    }
+  }
+
   render() {
     return (
       <div class="container">
+        <Helmet title={this.documentTitle} />
         <div class="row">
           <div class="col-12 col-md-8">
             <h5>
@@ -273,7 +283,7 @@ export class User extends Component<any, UserState> {
     return (
       <div class="btn-group btn-group-toggle">
         <label
-          className={`btn btn-outline-secondary pointer 
+          className={`btn btn-outline-secondary pointer
             ${this.state.view == UserDetailsView.Overview && 'active'}
           `}
         >
@@ -286,7 +296,7 @@ export class User extends Component<any, UserState> {
           {i18n.t('overview')}
         </label>
         <label
-          className={`btn btn-outline-secondary pointer 
+          className={`btn btn-outline-secondary pointer
             ${this.state.view == UserDetailsView.Comments && 'active'}
           `}
         >
@@ -299,7 +309,7 @@ export class User extends Component<any, UserState> {
           {i18n.t('comments')}
         </label>
         <label
-          className={`btn btn-outline-secondary pointer 
+          className={`btn btn-outline-secondary pointer
             ${this.state.view == UserDetailsView.Posts && 'active'}
           `}
         >
@@ -312,7 +322,7 @@ export class User extends Component<any, UserState> {
           {i18n.t('posts')}
         </label>
         <label
-          className={`btn btn-outline-secondary pointer 
+          className={`btn btn-outline-secondary pointer
             ${this.state.view == UserDetailsView.Saved && 'active'}
           `}
         >

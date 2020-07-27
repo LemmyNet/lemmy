@@ -32,6 +32,7 @@
     "husky": "^4.2.5",
     "i18next": "^19.4.1",
     "inferno": "^7.4.2",
+    "inferno-helmet": "^5.2.1",
     "inferno-i18next": "nimbusec-oss/inferno-i18next",
     "inferno-router": "^7.4.2",
     "js-cookie": "^2.2.0",

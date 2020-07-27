@@ -1,4 +1,5 @@
 import { Component } from 'inferno';
+import { Helmet } from 'inferno-helmet';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { PrivateMessageForm } from './private-message-form';
@@ -7,15 +8,27 @@ import {
   UserOperation,
   WebSocketJsonResponse,
   GetSiteResponse,
+  Site,
   PrivateMessageFormParams,
 } from '../interfaces';
 import { toast, wsJsonToRes } from '../utils';
 import { i18n } from '../i18next';
 
-export class CreatePrivateMessage extends Component<any, any> {
+interface CreatePrivateMessageState {
+  site: Site;
+}
+
+export class CreatePrivateMessage extends Component<
+  any,
+  CreatePrivateMessageState
+> {
   private subscription: Subscription;
+  private emptyState: CreatePrivateMessageState = {
+    site: undefined,
+  };
   constructor(props: any, context: any) {
     super(props, context);
+    this.state = this.emptyState;
     this.handlePrivateMessageCreate = this.handlePrivateMessageCreate.bind(
       this
     );
@@ -40,9 +53,18 @@ export class CreatePrivateMessage extends Component<any, any> {
     this.subscription.unsubscribe();
   }
 
+  get documentTitle(): string {
+    if (this.state.site) {
+      return `${i18n.t('create_private_message')} - ${this.state.site.name}`;
+    } else {
+      return 'Lemmy';
+    }
+  }
+
   render() {
     return (
       <div class="container">
+        <Helmet title={this.documentTitle} />
         <div class="row">
           <div class="col-12 col-lg-6 offset-lg-3 mb-4">
             <h5>{i18n.t('create_private_message')}</h5>
@@ -80,9 +102,8 @@ export class CreatePrivateMessage extends Component<any, any> {
       return;
     } else if (res.op == UserOperation.GetSite) {
       let data = res.data as GetSiteResponse;
-      document.title = `${i18n.t('create_private_message')} - ${
-        data.site.name
-      }`;
+      this.state.site = data.site;
+      this.setState(this.state);
     }
   }
 }
