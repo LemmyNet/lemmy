@@ -423,7 +423,7 @@ describe('main', () => {
         }
       ).then(d => d.json());
 
-      expect(createResponse.comment).toBeUndefined();
+      expect(createResponse['error']).toBe('locked');
 
       // Unlock the post for later actions
       let unlockPostForm: LockPostForm = {
