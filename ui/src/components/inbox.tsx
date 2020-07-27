@@ -180,7 +180,7 @@ export class Inbox extends Component<any, InboxState> {
     return (
       <div class="btn-group btn-group-toggle">
         <label
-          className={`btn btn-outline-secondary pointer 
+          className={`btn btn-outline-secondary pointer
             ${this.state.messageType == MessageType.All && 'active'}
           `}
         >
@@ -193,7 +193,7 @@ export class Inbox extends Component<any, InboxState> {
           {i18n.t('all')}
         </label>
         <label
-          className={`btn btn-outline-secondary pointer 
+          className={`btn btn-outline-secondary pointer
             ${this.state.messageType == MessageType.Replies && 'active'}
           `}
         >
@@ -206,7 +206,7 @@ export class Inbox extends Component<any, InboxState> {
           {i18n.t('replies')}
         </label>
         <label
-          className={`btn btn-outline-secondary pointer 
+          className={`btn btn-outline-secondary pointer
             ${this.state.messageType == MessageType.Mentions && 'active'}
           `}
         >
@@ -219,7 +219,7 @@ export class Inbox extends Component<any, InboxState> {
           {i18n.t('mentions')}
         </label>
         <label
-          className={`btn btn-outline-secondary pointer 
+          className={`btn btn-outline-secondary pointer
             ${this.state.messageType == MessageType.Messages && 'active'}
           `}
         >
@@ -559,17 +559,14 @@ export class Inbox extends Component<any, InboxState> {
       let data = res.data as GetSiteResponse;
       this.state.enableDownvotes = data.site.enable_downvotes;
       this.setState(this.state);
-      document.title = `@${UserService.Instance.user.username} ${i18n.t(
+      document.title = `@${UserService.Instance.user.name} ${i18n.t(
         'inbox'
       )} - ${data.site.name}`;
     }
   }
 
   sendUnreadCount() {
-    UserService.Instance.user.unreadCount = this.unreadCount();
-    UserService.Instance.sub.next({
-      user: UserService.Instance.user,
-    });
+    UserService.Instance.unreadCountSub.next(this.unreadCount());
   }
 
   unreadCount(): number {
