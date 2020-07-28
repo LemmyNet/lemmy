@@ -618,6 +618,37 @@ describe('main', () => {
     });
   });
 
+  describe('federated comment like', () => {
+    test('/u/lemmy_beta likes a comment from /u/lemmy_alpha, the like is on both instances', async () => {
+      // Do a like, to test it (its also been unliked, so its at 0)
+      let likeCommentForm: CommentLikeForm = {
+        comment_id: 1,
+        score: 1,
+        auth: lemmyBetaAuth,
+      };
+
+      let likeCommentRes: CommentResponse = await fetch(
+        `${lemmyBetaApiUrl}/comment/like`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: wrapper(likeCommentForm),
+        }
+      ).then(d => d.json());
+
+      expect(likeCommentRes.comment.score).toBe(1);
+
+      let getPostUrl = `${lemmyAlphaApiUrl}/post?id=2`;
+      let getPostRes: GetPostResponse = await fetch(getPostUrl, {
+        method: 'GET',
+      }).then(d => d.json());
+
+      expect(getPostRes.comments[2].score).toBe(1);
+    });
+  });
+
   describe('delete things', () => {
     test('/u/lemmy_beta deletes and undeletes a federated comment, post, and community, lemmy_alpha sees its deleted.', async () => {
       // Create a test community
