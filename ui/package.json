@@ -82,7 +82,7 @@
       "eslint --fix"
     ],
     "../server/src/**/*.rs": [
-      "rustfmt --config-path ../server/.rustfmt.toml"
+      "rustfmt +nightly --config-path ../server/.rustfmt.toml"
     ],
     "package.json": [
       "sortpack"
