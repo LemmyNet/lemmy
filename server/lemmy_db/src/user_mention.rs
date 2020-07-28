@@ -52,6 +52,30 @@ impl Crud<UserMentionForm> for UserMention {
   }
 }
 
+impl UserMention {
+  pub fn update_read(
+    conn: &PgConnection,
+    user_mention_id: i32,
+    new_read: bool,
+  ) -> Result<Self, Error> {
+    use crate::schema::user_mention::dsl::*;
+    diesel::update(user_mention.find(user_mention_id))
+      .set(read.eq(new_read))
+      .get_result::<Self>(conn)
+  }
+
+  pub fn mark_all_as_read(conn: &PgConnection, for_recipient_id: i32) -> Result<Vec<Self>, Error> {
+    use crate::schema::user_mention::dsl::*;
+    diesel::update(
+      user_mention
+        .filter(recipient_id.eq(for_recipient_id))
+        .filter(read.eq(false)),
+    )
+    .set(read.eq(true))
+    .get_results::<Self>(conn)
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use crate::{

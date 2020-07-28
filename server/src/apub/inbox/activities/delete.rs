@@ -1,9 +1,12 @@
 use crate::{
   api::{comment::CommentResponse, community::CommunityResponse, post::PostResponse},
-  apub::inbox::
-  shared_inbox::{get_user_from_activity, receive_unhandled_activity},
   apub::{
     fetcher::{get_or_fetch_and_insert_remote_comment, get_or_fetch_and_insert_remote_post},
+    inbox::shared_inbox::{
+      announce_if_community_is_local,
+      get_user_from_activity,
+      receive_unhandled_activity,
+    },
     ActorType,
     FromApub,
     GroupExt,
@@ -18,7 +21,7 @@ use crate::{
   DbPool,
   LemmyError,
 };
-use activitystreams_new::{activity::Delete, object::Note, prelude::*};
+use activitystreams_new::{activity::Delete, base::AnyBase, object::Note, prelude::*};
 use actix_web::{client::Client, HttpResponse};
 use lemmy_db::{
   comment::{Comment, CommentForm},
@@ -30,8 +33,6 @@ use lemmy_db::{
   post_view::PostView,
   Crud,
 };
-use activitystreams_new::base::AnyBase;
-use crate::apub::inbox::shared_inbox::announce_if_community_is_local;
 
 pub async fn receive_delete(
   activity: AnyBase,
@@ -146,6 +147,7 @@ async fn receive_delete_comment(
   let res = CommentResponse {
     comment: comment_view,
     recipient_ids,
+    form_id: None,
   };
 
   chat_server.do_send(SendComment {

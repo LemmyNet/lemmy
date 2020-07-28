@@ -21,7 +21,7 @@ interface MarkdownTextAreaProps {
   replyType?: boolean;
   focus?: boolean;
   disabled?: boolean;
-  onSubmit?(val: string): any;
+  onSubmit?(msg: { val: string; formId: string }): any;
   onContentChange?(val: string): any;
   onReplyCancel?(): any;
 }
@@ -125,7 +125,7 @@ export class MarkdownTextArea extends Component<
             />
             {this.state.previewMode && (
               <div
-                className="card card-body md-div"
+                className="card bg-transparent border-secondary card-body md-div"
                 dangerouslySetInnerHTML={mdToHtml(this.state.content)}
               />
             )}
@@ -391,7 +391,8 @@ export class MarkdownTextArea extends Component<
     event.preventDefault();
     i.state.loading = true;
     i.setState(i.state);
-    i.props.onSubmit(i.state.content);
+    let msg = { val: i.state.content, formId: i.formId };
+    i.props.onSubmit(msg);
   }
 
   handleReplyCancel(i: MarkdownTextArea) {

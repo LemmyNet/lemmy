@@ -29,7 +29,7 @@ export class IFramelyCard extends Component<
     return (
       <>
         {post.embed_title && !this.state.expanded && (
-          <div class="card mt-3 mb-2">
+          <div class="card bg-transparent border-secondary mt-3 mb-2">
             <div class="row">
               <div class="col-12">
                 <div class="card-body">

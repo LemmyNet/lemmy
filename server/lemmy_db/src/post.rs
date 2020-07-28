@@ -108,6 +108,50 @@ impl Post {
       ))
       .get_result::<Self>(conn)
   }
+
+  pub fn update_deleted(
+    conn: &PgConnection,
+    post_id: i32,
+    new_deleted: bool,
+  ) -> Result<Self, Error> {
+    use crate::schema::post::dsl::*;
+    diesel::update(post.find(post_id))
+      .set(deleted.eq(new_deleted))
+      .get_result::<Self>(conn)
+  }
+
+  pub fn update_removed(
+    conn: &PgConnection,
+    post_id: i32,
+    new_removed: bool,
+  ) -> Result<Self, Error> {
+    use crate::schema::post::dsl::*;
+    diesel::update(post.find(post_id))
+      .set(removed.eq(new_removed))
+      .get_result::<Self>(conn)
+  }
+
+  pub fn update_locked(conn: &PgConnection, post_id: i32, new_locked: bool) -> Result<Self, Error> {
+    use crate::schema::post::dsl::*;
+    diesel::update(post.find(post_id))
+      .set(locked.eq(new_locked))
+      .get_result::<Self>(conn)
+  }
+
+  pub fn update_stickied(
+    conn: &PgConnection,
+    post_id: i32,
+    new_stickied: bool,
+  ) -> Result<Self, Error> {
+    use crate::schema::post::dsl::*;
+    diesel::update(post.find(post_id))
+      .set(stickied.eq(new_stickied))
+      .get_result::<Self>(conn)
+  }
+
+  pub fn is_post_creator(user_id: i32, post_creator_id: i32) -> bool {
+    user_id == post_creator_id
+  }
 }
 
 impl Crud<PostForm> for Post {

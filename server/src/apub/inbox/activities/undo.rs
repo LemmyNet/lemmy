@@ -1,8 +1,12 @@
 use crate::{
   api::{comment::CommentResponse, community::CommunityResponse, post::PostResponse},
-  apub::inbox::shared_inbox::{get_user_from_activity, receive_unhandled_activity},
   apub::{
     fetcher::{get_or_fetch_and_insert_remote_comment, get_or_fetch_and_insert_remote_post},
+    inbox::shared_inbox::{
+      announce_if_community_is_local,
+      get_user_from_activity,
+      receive_unhandled_activity,
+    },
     ActorType,
     FromApub,
     GroupExt,
@@ -17,7 +21,7 @@ use crate::{
   DbPool,
   LemmyError,
 };
-use activitystreams_new::{activity::*, object::Note, prelude::*};
+use activitystreams_new::{activity::*, base::AnyBase, object::Note, prelude::*};
 use actix_web::{client::Client, HttpResponse};
 use lemmy_db::{
   comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
@@ -30,8 +34,6 @@ use lemmy_db::{
   Crud,
   Likeable,
 };
-use activitystreams_new::base::AnyBase;
-use crate::apub::inbox::shared_inbox::announce_if_community_is_local;
 
 pub async fn receive_undo(
   activity: AnyBase,
@@ -101,17 +103,14 @@ async fn receive_undo_like(
 
 async fn receive_undo_dislike(
   undo: Undo,
-  client: &Client,
-  pool: &DbPool,
-  chat_server: ChatServerParam,
+  _client: &Client,
+  _pool: &DbPool,
+  _chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let dislike = Dislike::from_any_base(undo.object().to_owned().one().unwrap())?.unwrap();
 
   let type_ = dislike.object().as_single_kind_str().unwrap();
-  match type_ {
-    // TODO: handle dislike
-    d => Err(format_err!("Undo Delete type {} not supported", d).into()),
-  }
+  Err(format_err!("Undo Delete type {} not supported", type_).into())
 }
 
 async fn receive_undo_delete_comment(
@@ -159,6 +158,7 @@ async fn receive_undo_delete_comment(
   let res = CommentResponse {
     comment: comment_view,
     recipient_ids,
+    form_id: None,
   };
 
   chat_server.do_send(SendComment {
@@ -216,6 +216,7 @@ async fn receive_undo_remove_comment(
   let res = CommentResponse {
     comment: comment_view,
     recipient_ids,
+    form_id: None,
   };
 
   chat_server.do_send(SendComment {
@@ -499,6 +500,7 @@ async fn receive_undo_like_comment(
   let res = CommentResponse {
     comment: comment_view,
     recipient_ids,
+    form_id: None,
   };
 
   chat_server.do_send(SendComment {

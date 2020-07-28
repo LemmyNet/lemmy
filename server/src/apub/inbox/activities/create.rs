@@ -3,8 +3,12 @@ use crate::{
     comment::{send_local_notifs, CommentResponse},
     post::PostResponse,
   },
-  apub::inbox::shared_inbox::{get_user_from_activity, receive_unhandled_activity},
   apub::{
+    inbox::shared_inbox::{
+      announce_if_community_is_local,
+      get_user_from_activity,
+      receive_unhandled_activity,
+    },
     ActorType,
     FromApub,
     PageExt,
@@ -18,7 +22,7 @@ use crate::{
   DbPool,
   LemmyError,
 };
-use activitystreams_new::{activity::Create, object::Note, prelude::*};
+use activitystreams_new::{activity::Create, base::AnyBase, object::Note, prelude::*};
 use actix_web::{client::Client, HttpResponse};
 use lemmy_db::{
   comment::{Comment, CommentForm},
@@ -28,8 +32,6 @@ use lemmy_db::{
   Crud,
 };
 use lemmy_utils::scrape_text_for_mentions;
-use activitystreams_new::base::AnyBase;
-use crate::apub::inbox::shared_inbox::{announce_if_community_is_local};
 
 pub async fn receive_create(
   activity: AnyBase,
@@ -100,7 +102,7 @@ async fn receive_create_comment(
   // anyway.
   let mentions = scrape_text_for_mentions(&inserted_comment.content);
   let recipient_ids =
-    send_local_notifs(mentions, inserted_comment.clone(), &user, post, pool).await?;
+    send_local_notifs(mentions, inserted_comment.clone(), &user, post, pool, true).await?;
 
   // Refetch the view
   let comment_view = blocking(pool, move |conn| {
@@ -111,6 +113,7 @@ async fn receive_create_comment(
   let res = CommentResponse {
     comment: comment_view,
     recipient_ids,
+    form_id: None,
   };
 
   chat_server.do_send(SendComment {

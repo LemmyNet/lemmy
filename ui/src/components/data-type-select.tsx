@@ -35,7 +35,7 @@ export class DataTypeSelect extends Component<
     return (
       <div class="btn-group btn-group-toggle">
         <label
-          className={`pointer btn btn-sm btn-secondary 
+          className={`pointer btn btn-outline-secondary 
             ${this.state.type_ == DataType.Post && 'active'}
           `}
         >
@@ -48,7 +48,7 @@ export class DataTypeSelect extends Component<
           {i18n.t('posts')}
         </label>
         <label
-          className={`pointer btn btn-sm btn-secondary ${
+          className={`pointer btn btn-outline-secondary ${
             this.state.type_ == DataType.Comment && 'active'
           }`}
         >

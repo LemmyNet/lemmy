@@ -1,6 +1,6 @@
 use crate::{
-  apub::{
-    inbox::activities::{
+  apub::inbox::{
+    activities::{
       create::receive_create,
       delete::receive_delete,
       dislike::receive_dislike,
@@ -9,15 +9,14 @@ use crate::{
       undo::receive_undo,
       update::receive_update,
     },
-    inbox::shared_inbox::receive_unhandled_activity,
+    shared_inbox::receive_unhandled_activity,
   },
   routes::ChatServerParam,
   DbPool,
   LemmyError,
 };
-use activitystreams_new::{activity::*, prelude::ExtendsExt};
+use activitystreams_new::{activity::*, base::AnyBase, prelude::ExtendsExt};
 use actix_web::{client::Client, HttpResponse};
-use activitystreams_new::base::AnyBase;
 
 pub async fn receive_announce(
   activity: AnyBase,
@@ -30,27 +29,13 @@ pub async fn receive_announce(
   let object = announce.object();
   let object2 = object.clone().one().unwrap();
   match kind {
-    Some("Create") => {
-      receive_create(object2, client, pool, chat_server).await
-    }
-    Some("Update") => {
-      receive_update(object2, client, pool, chat_server).await
-    }
-    Some("Like") => {
-      receive_like(object2, client, pool, chat_server).await
-    }
-    Some("Dislike") => {
-      receive_dislike(object2, client, pool, chat_server).await
-    }
-    Some("Delete") => {
-      receive_delete(object2, client, pool, chat_server).await
-    }
-    Some("Remove") => {
-      receive_remove(object2, client, pool, chat_server).await
-    }
-    Some("Undo") => {
-      receive_undo(object2, client, pool, chat_server).await
-    }
+    Some("Create") => receive_create(object2, client, pool, chat_server).await,
+    Some("Update") => receive_update(object2, client, pool, chat_server).await,
+    Some("Like") => receive_like(object2, client, pool, chat_server).await,
+    Some("Dislike") => receive_dislike(object2, client, pool, chat_server).await,
+    Some("Delete") => receive_delete(object2, client, pool, chat_server).await,
+    Some("Remove") => receive_remove(object2, client, pool, chat_server).await,
+    Some("Undo") => receive_undo(object2, client, pool, chat_server).await,
     _ => receive_unhandled_activity(announce),
   }
 }

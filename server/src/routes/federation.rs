@@ -1,11 +1,9 @@
 use crate::apub::{
   comment::get_apub_comment,
   community::*,
-  inbox::community_inbox::community_inbox,
+  inbox::{community_inbox::community_inbox, shared_inbox::shared_inbox, user_inbox::user_inbox},
   post::get_apub_post,
-  inbox::shared_inbox::shared_inbox,
   user::*,
-  inbox::user_inbox::user_inbox,
   APUB_JSON_CONTENT_TYPE,
 };
 use actix_web::*;

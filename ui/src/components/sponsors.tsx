@@ -1,9 +1,11 @@
 import { Component } from 'inferno';
+import { Helmet } from 'inferno-helmet';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import { WebSocketService } from '../services';
 import {
   GetSiteResponse,
+  Site,
   WebSocketJsonResponse,
   UserOperation,
 } from '../interfaces';
@@ -17,6 +19,7 @@ interface SilverUser {
 }
 
 let general = [
+  'William Moore',
   'Rachel Schmitz',
   'comradeda',
   'ybaumy',
@@ -31,7 +34,7 @@ let general = [
   'Andre Vallestero',
   'NotTooHighToHack',
 ];
-let highlighted = ['DiscountFuneral', 'Oskenso Kashi', 'Alex Benishek'];
+let highlighted = ['DQW', 'DiscountFuneral', 'Oskenso Kashi', 'Alex Benishek'];
 let silver: Array<SilverUser> = [
   {
     name: 'Redjoker',
@@ -41,10 +44,18 @@ let silver: Array<SilverUser> = [
 // let gold = [];
 // let latinum = [];
 
-export class Sponsors extends Component<any, any> {
+interface SponsorsState {
+  site: Site;
+}
+
+export class Sponsors extends Component<any, SponsorsState> {
   private subscription: Subscription;
+  private emptyState: SponsorsState = {
+    site: undefined,
+  };
   constructor(props: any, context: any) {
     super(props, context);
+    this.state = this.emptyState;
     this.subscription = WebSocketService.Instance.subject
       .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
       .subscribe(
@@ -64,9 +75,18 @@ export class Sponsors extends Component<any, any> {
     this.subscription.unsubscribe();
   }
 
+  get documentTitle(): string {
+    if (this.state.site) {
+      return `${i18n.t('sponsors')} - ${this.state.site.name}`;
+    } else {
+      return 'Lemmy';
+    }
+  }
+
   render() {
     return (
       <div class="container text-center">
+        <Helmet title={this.documentTitle} />
         {this.topMessage()}
         <hr />
         {this.sponsors()}
@@ -108,7 +128,7 @@ export class Sponsors extends Component<any, any> {
       <div class="container">
         <h5>{i18n.t('sponsors')}</h5>
         <p>{i18n.t('silver_sponsors')}</p>
-        <div class="row card-columns">
+        <div class="row justify-content-md-center card-columns">
           {silver.map(s => (
             <div class="card col-12 col-md-2">
               <div>
@@ -124,7 +144,7 @@ export class Sponsors extends Component<any, any> {
           ))}
         </div>
         <p>{i18n.t('general_sponsors')}</p>
-        <div class="row card-columns">
+        <div class="row justify-content-md-center card-columns">
           {highlighted.map(s => (
             <div class="card bg-primary col-12 col-md-2 font-weight-bold">
               <div>{s}</div>
@@ -182,7 +202,8 @@ export class Sponsors extends Component<any, any> {
       return;
     } else if (res.op == UserOperation.GetSite) {
       let data = res.data as GetSiteResponse;
-      document.title = `${i18n.t('sponsors')} - ${data.site.name}`;
+      this.state.site = data.site;
+      this.setState(this.state);
     }
   }
 }

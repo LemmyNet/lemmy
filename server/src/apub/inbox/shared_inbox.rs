@@ -1,8 +1,10 @@
 use crate::{
   apub::{
+    community::do_announce,
     extensions::signatures::verify,
     fetcher::{
       get_or_fetch_and_upsert_remote_actor,
+      get_or_fetch_and_upsert_remote_community,
       get_or_fetch_and_upsert_remote_user,
     },
     inbox::activities::{
@@ -23,18 +25,15 @@ use crate::{
 };
 use activitystreams_new::{
   activity::{ActorAndObject, ActorAndObjectRef},
-  base::{AsBase},
+  base::{AsBase, Extends},
+  object::AsObject,
   prelude::*,
 };
 use actix_web::{client::Client, web, HttpRequest, HttpResponse};
-use lemmy_db::{user::User_};
+use lemmy_db::user::User_;
 use log::debug;
-use std::fmt::Debug;
-use crate::apub::fetcher::get_or_fetch_and_upsert_remote_community;
-use activitystreams_new::object::AsObject;
-use crate::apub::community::do_announce;
-use activitystreams_new::base::Extends;
 use serde::Serialize;
+use std::fmt::Debug;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "PascalCase")]
@@ -78,9 +77,7 @@ pub async fn shared_inbox(
   let kind = activity.kind().unwrap();
   dbg!(kind);
   match kind {
-    ValidTypes::Announce => {
-      receive_announce(any_base, &client, &pool, chat_server).await
-    }
+    ValidTypes::Announce => receive_announce(any_base, &client, &pool, chat_server).await,
     ValidTypes::Create => receive_create(any_base, &client, &pool, chat_server).await,
     ValidTypes::Update => receive_update(any_base, &client, &pool, chat_server).await,
     ValidTypes::Like => receive_like(any_base, &client, &pool, chat_server).await,
@@ -91,7 +88,9 @@ pub async fn shared_inbox(
   }
 }
 
-pub(in crate::apub::inbox) fn receive_unhandled_activity<A>(activity: A) -> Result<HttpResponse, LemmyError>
+pub(in crate::apub::inbox) fn receive_unhandled_activity<A>(
+  activity: A,
+) -> Result<HttpResponse, LemmyError>
 where
   A: Debug,
 {
@@ -104,8 +103,8 @@ pub(in crate::apub::inbox) async fn get_user_from_activity<T, A>(
   client: &Client,
   pool: &DbPool,
 ) -> Result<User_, LemmyError>
-  where
-    T: AsBase<A> + ActorAndObjectRef,
+where
+  T: AsBase<A> + ActorAndObjectRef,
 {
   let actor = activity.actor()?;
   let user_uri = actor.as_single_xsd_any_uri().unwrap();
@@ -118,11 +117,11 @@ pub(in crate::apub::inbox) async fn announce_if_community_is_local<T, Kind>(
   client: &Client,
   pool: &DbPool,
 ) -> Result<(), LemmyError>
-  where
-    T: AsObject<Kind>,
-    T: Extends<Kind>,
-    Kind: Serialize,
-    <T as Extends<Kind>>::Error: From<serde_json::Error> + Send + Sync + 'static,
+where
+  T: AsObject<Kind>,
+  T: Extends<Kind>,
+  Kind: Serialize,
+  <T as Extends<Kind>>::Error: From<serde_json::Error> + Send + Sync + 'static,
 {
   let cc = activity.cc().unwrap();
   let cc = cc.as_many().unwrap();

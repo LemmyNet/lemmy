@@ -1,4 +1,5 @@
 import { Component, linkEvent } from 'inferno';
+import { Helmet } from 'inferno-helmet';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import {
@@ -11,6 +12,7 @@ import {
   SortType,
   WebSocketJsonResponse,
   GetSiteResponse,
+  Site,
 } from '../interfaces';
 import { WebSocketService } from '../services';
 import { wsJsonToRes, toast, getPageFromProps } from '../utils';
@@ -25,6 +27,7 @@ interface CommunitiesState {
   communities: Array<Community>;
   page: number;
   loading: boolean;
+  site: Site;
 }
 
 interface CommunitiesProps {
@@ -37,6 +40,7 @@ export class Communities extends Component<any, CommunitiesState> {
     communities: [],
     loading: true,
     page: getPageFromProps(this.props),
+    site: undefined,
   };
 
   constructor(props: any, context: any) {
@@ -71,9 +75,18 @@ export class Communities extends Component<any, CommunitiesState> {
     }
   }
 
+  get documentTitle(): string {
+    if (this.state.site) {
+      return `${i18n.t('communities')} - ${this.state.site.name}`;
+    } else {
+      return 'Lemmy';
+    }
+  }
+
   render() {
     return (
       <div class="container">
+        <Helmet title={this.documentTitle} />
         {this.state.loading ? (
           <h5 class="">
             <svg class="icon icon-spinner spin">
@@ -157,7 +170,7 @@ export class Communities extends Component<any, CommunitiesState> {
       <div class="mt-2">
         {this.state.page > 1 && (
           <button
-            class="btn btn-sm btn-secondary mr-1"
+            class="btn btn-secondary mr-1"
             onClick={linkEvent(this, this.prevPage)}
           >
             {i18n.t('prev')}
@@ -166,7 +179,7 @@ export class Communities extends Component<any, CommunitiesState> {
 
         {this.state.communities.length > 0 && (
           <button
-            class="btn btn-sm btn-secondary"
+            class="btn btn-secondary"
             onClick={linkEvent(this, this.nextPage)}
           >
             {i18n.t('next')}
@@ -240,7 +253,8 @@ export class Communities extends Component<any, CommunitiesState> {
       this.setState(this.state);
     } else if (res.op == UserOperation.GetSite) {
       let data = res.data as GetSiteResponse;
-      document.title = `${i18n.t('communities')} - ${data.site.name}`;
+      this.state.site = data.site;
+      this.setState(this.state);
     }
   }
 }

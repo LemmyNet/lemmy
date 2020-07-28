@@ -43,11 +43,10 @@ export class UserListing extends Component<UserListingProps, any> {
 
     return (
       <>
-        <Link className="text-body font-weight-bold" to={link}>
+        <Link className="text-info" to={link}>
           {user.avatar && showAvatars() && (
             <img
-              height="32"
-              width="32"
+              style="width: 2rem; height: 2rem;"
               src={pictrsAvatarThumbnail(user.avatar)}
               class="rounded-circle mr-2"
             />

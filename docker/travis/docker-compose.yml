@@ -1,0 +1,113 @@
+version: '3.3'
+
+services:
+  nginx:
+    image: nginx:1.17-alpine
+    ports:
+      - "8540:8540"
+      - "8550:8550"
+      - "8560:8560"
+    volumes:
+      # Hack to make this work from both docker/federation/ and docker/federation-test/
+      - ../federation/nginx.conf:/etc/nginx/nginx.conf
+    restart: on-failure
+    depends_on:
+      - lemmy-alpha
+      - pictrs
+      - lemmy-beta
+      - lemmy-gamma
+      - iframely
+
+  pictrs:
+    restart: always
+    image: asonix/pictrs:v0.1.13-r0
+    user: 991:991
+    volumes:
+      - ./volumes/pictrs_alpha:/mnt
+
+  lemmy-alpha:
+    image: dessalines/lemmy:travis
+    environment:
+      - LEMMY_HOSTNAME=lemmy-alpha:8540
+      - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_alpha:5432/lemmy
+      - LEMMY_JWT_SECRET=changeme
+      - LEMMY_FRONT_END_DIR=/app/dist
+      - LEMMY_FEDERATION__ENABLED=true
+      - LEMMY_FEDERATION__TLS_ENABLED=false
+      - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-beta,lemmy-gamma
+      - LEMMY_PORT=8540
+      - LEMMY_SETUP__ADMIN_USERNAME=lemmy_alpha
+      - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
+      - LEMMY_SETUP__SITE_NAME=lemmy-alpha
+      - RUST_BACKTRACE=1
+      - RUST_LOG=debug
+    depends_on:
+      - postgres_alpha
+  postgres_alpha:
+    image: postgres:12-alpine
+    environment:
+      - POSTGRES_USER=lemmy
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=lemmy
+    volumes:
+      - ./volumes/postgres_alpha:/var/lib/postgresql/data
+
+  lemmy-beta:
+    image: dessalines/lemmy:travis
+    environment:
+      - LEMMY_HOSTNAME=lemmy-beta:8550
+      - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_beta:5432/lemmy
+      - LEMMY_JWT_SECRET=changeme
+      - LEMMY_FRONT_END_DIR=/app/dist
+      - LEMMY_FEDERATION__ENABLED=true
+      - LEMMY_FEDERATION__TLS_ENABLED=false
+      - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-alpha,lemmy-gamma
+      - LEMMY_PORT=8550
+      - LEMMY_SETUP__ADMIN_USERNAME=lemmy_beta
+      - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
+      - LEMMY_SETUP__SITE_NAME=lemmy-beta
+      - RUST_BACKTRACE=1
+      - RUST_LOG=debug
+    depends_on:
+      - postgres_beta
+  postgres_beta:
+    image: postgres:12-alpine
+    environment:
+      - POSTGRES_USER=lemmy
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=lemmy
+    volumes:
+      - ./volumes/postgres_beta:/var/lib/postgresql/data
+
+  lemmy-gamma:
+    image: dessalines/lemmy:travis
+    environment:
+      - LEMMY_HOSTNAME=lemmy-gamma:8560
+      - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_gamma:5432/lemmy
+      - LEMMY_JWT_SECRET=changeme
+      - LEMMY_FRONT_END_DIR=/app/dist
+      - LEMMY_FEDERATION__ENABLED=true
+      - LEMMY_FEDERATION__TLS_ENABLED=false
+      - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-alpha,lemmy-beta
+      - LEMMY_PORT=8560
+      - LEMMY_SETUP__ADMIN_USERNAME=lemmy_gamma
+      - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
+      - LEMMY_SETUP__SITE_NAME=lemmy-gamma
+      - RUST_BACKTRACE=1
+      - RUST_LOG=debug
+    depends_on:
+      - postgres_gamma
+  postgres_gamma:
+    image: postgres:12-alpine
+    environment:
+      - POSTGRES_USER=lemmy
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=lemmy
+    volumes:
+      - ./volumes/postgres_gamma:/var/lib/postgresql/data
+
+  iframely:
+    image: dogbin/iframely:latest
+    volumes:
+      - ../iframely.config.local.js:/iframely/config.local.js:ro
+    restart: always
