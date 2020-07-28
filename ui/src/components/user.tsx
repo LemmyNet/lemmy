@@ -214,7 +214,7 @@ export class User extends Component<any, UserState> {
 
   get documentTitle(): string {
     if (this.state.siteRes.site.name) {
-      return `/u/${this.state.username} - ${this.state.siteRes.site.name}`;
+      return `@${this.state.username} - ${this.state.siteRes.site.name}`;
     } else {
       return 'Lemmy';
     }
@@ -226,17 +226,6 @@ export class User extends Component<any, UserState> {
         <Helmet title={this.documentTitle} />
         <div class="row">
           <div class="col-12 col-md-8">
-            <h5>
-              {this.state.user.avatar && showAvatars() && (
-                <img
-                  height="80"
-                  width="80"
-                  src={this.state.user.avatar}
-                  class="rounded-circle mr-2"
-                />
-              )}
-              <span>/u/{this.state.username}</span>
-            </h5>
             {this.state.loading ? (
               <h5>
                 {this.state.user.avatar && showAvatars() && (
