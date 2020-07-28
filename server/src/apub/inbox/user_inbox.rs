@@ -3,14 +3,12 @@ use crate::{
   apub::{
     extensions::signatures::verify,
     fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user},
-    insert_activity,
-    FromApub,
+    insert_activity, FromApub,
   },
   blocking,
   routes::{ChatServerParam, DbPoolParam},
   websocket::{server::SendUserRoomMessage, UserOperation},
-  DbPool,
-  LemmyError,
+  DbPool, LemmyError,
 };
 use activitystreams_new::{
   activity::{Accept, Create, Delete, Undo, Update},
@@ -24,8 +22,7 @@ use lemmy_db::{
   private_message::{PrivateMessage, PrivateMessageForm},
   private_message_view::PrivateMessageView,
   user::User_,
-  Crud,
-  Followable,
+  Crud, Followable,
 };
 use log::debug;
 use serde::Deserialize;

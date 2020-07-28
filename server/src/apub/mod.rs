@@ -17,8 +17,7 @@ use crate::{
   blocking,
   request::{retry, RecvError},
   routes::webfinger::WebFingerResponse,
-  DbPool,
-  LemmyError,
+  DbPool, LemmyError,
 };
 use activitystreams_ext::{Ext1, Ext2};
 use activitystreams_new::{
@@ -101,17 +100,20 @@ pub trait ToApub {
 }
 
 /// Updated is actually the deletion time
-fn create_tombstone(
+fn create_tombstone<T>(
   deleted: bool,
   object_id: &str,
   updated: Option<NaiveDateTime>,
-  former_type: String,
-) -> Result<Tombstone, LemmyError> {
+  former_type: T,
+) -> Result<Tombstone, LemmyError>
+where
+  T: ToString,
+{
   if deleted {
     if let Some(updated) = updated {
       let mut tombstone = Tombstone::new();
       tombstone.set_id(object_id.parse()?);
-      tombstone.set_former_type(former_type);
+      tombstone.set_former_type(former_type.to_string());
       tombstone.set_deleted(convert_datetime(updated));
       Ok(tombstone)
     } else {

@@ -3,14 +3,9 @@ use crate::{
   apub::{
     fetcher::{get_or_fetch_and_insert_remote_comment, get_or_fetch_and_insert_remote_post},
     inbox::shared_inbox::{
-      announce_if_community_is_local,
-      get_user_from_activity,
-      receive_unhandled_activity,
+      announce_if_community_is_local, get_user_from_activity, receive_unhandled_activity,
     },
-    ActorType,
-    FromApub,
-    GroupExt,
-    PageExt,
+    ActorType, FromApub, GroupExt, PageExt,
   },
   blocking,
   routes::ChatServerParam,
@@ -18,8 +13,7 @@ use crate::{
     server::{SendComment, SendCommunityRoomMessage, SendPost},
     UserOperation,
   },
-  DbPool,
-  LemmyError,
+  DbPool, LemmyError,
 };
 use activitystreams_new::{activity::*, base::AnyBase, object::Note, prelude::*};
 use actix_web::{client::Client, HttpResponse};
@@ -31,8 +25,7 @@ use lemmy_db::{
   naive_now,
   post::{Post, PostForm, PostLike, PostLikeForm},
   post_view::PostView,
-  Crud,
-  Likeable,
+  Crud, Likeable,
 };
 
 pub async fn receive_undo(

@@ -1,21 +1,18 @@
 use crate::{
   apub::{
-    activities::send_activity,
-    create_apub_response,
-    insert_activity,
-    ActorType,
-    FromApub,
-    PersonExt,
-    ToApub,
+    activities::{generate_activity_id, send_activity},
+    create_apub_response, insert_activity, ActorType, FromApub, PersonExt, ToApub,
   },
   blocking,
   routes::DbPoolParam,
-  DbPool,
-  LemmyError,
+  DbPool, LemmyError,
 };
 use activitystreams_ext::Ext1;
 use activitystreams_new::{
-  activity::{Follow, Undo},
+  activity::{
+    kind::{FollowType, UndoType},
+    Follow, Undo,
+  },
   actor::{ApActor, Endpoints, Person},
   context,
   object::{Image, Tombstone},
@@ -102,9 +99,10 @@ impl ActorType for User_ {
     client: &Client,
     pool: &DbPool,
   ) -> Result<(), LemmyError> {
-    let id = format!("{}/follow/{}", self.actor_id, uuid::Uuid::new_v4());
     let mut follow = Follow::new(self.actor_id.to_owned(), follow_actor_id);
-    follow.set_context(context()).set_id(id.parse()?);
+    follow
+      .set_context(context())
+      .set_id(generate_activity_id(FollowType::Follow)?);
     let to = format!("{}/inbox", follow_actor_id);
 
     insert_activity(self.id, follow.clone(), true, pool).await?;
@@ -119,17 +117,18 @@ impl ActorType for User_ {
     client: &Client,
     pool: &DbPool,
   ) -> Result<(), LemmyError> {
-    let id = format!("{}/follow/{}", self.actor_id, uuid::Uuid::new_v4());
     let mut follow = Follow::new(self.actor_id.to_owned(), follow_actor_id);
-    follow.set_context(context()).set_id(id.parse()?);
+    follow
+      .set_context(context())
+      .set_id(generate_activity_id(FollowType::Follow)?);
 
     let to = format!("{}/inbox", follow_actor_id);
 
-    // TODO
     // Undo that fake activity
-    let undo_id = format!("{}/undo/follow/{}", self.actor_id, uuid::Uuid::new_v4());
     let mut undo = Undo::new(Url::parse(&self.actor_id)?, follow.into_any_base()?);
-    undo.set_context(context()).set_id(undo_id.parse()?);
+    undo
+      .set_context(context())
+      .set_id(generate_activity_id(UndoType::Undo)?);
 
     insert_activity(self.id, undo.clone(), true, pool).await?;
 

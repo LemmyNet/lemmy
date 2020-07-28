@@ -1,26 +1,21 @@
 use crate::{
   apub::{
-    activities::send_activity,
-    create_apub_response,
-    create_apub_tombstone_response,
-    create_tombstone,
+    activities::{generate_activity_id, send_activity},
+    create_apub_response, create_apub_tombstone_response, create_tombstone,
     extensions::group_extensions::GroupExtension,
     fetcher::get_or_fetch_and_upsert_remote_user,
-    get_shared_inbox,
-    insert_activity,
-    ActorType,
-    FromApub,
-    GroupExt,
-    ToApub,
+    get_shared_inbox, insert_activity, ActorType, FromApub, GroupExt, ToApub,
   },
   blocking,
   routes::DbPoolParam,
-  DbPool,
-  LemmyError,
+  DbPool, LemmyError,
 };
 use activitystreams_ext::Ext2;
 use activitystreams_new::{
-  activity::{Accept, Announce, Delete, Follow, Remove, Undo},
+  activity::{
+    kind::{AcceptType, AnnounceType, DeleteType, LikeType, RemoveType, UndoType},
+    Accept, Announce, Delete, Follow, Remove, Undo,
+  },
   actor::{kind::GroupType, ApActor, Endpoints, Group},
   base::{AnyBase, BaseExt},
   collection::UnorderedCollection,
@@ -107,12 +102,7 @@ impl ToApub for Community {
   }
 
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    create_tombstone(
-      self.deleted,
-      &self.actor_id,
-      self.updated,
-      GroupType::Group.to_string(),
-    )
+    create_tombstone(self.deleted, &self.actor_id, self.updated, GroupType::Group)
   }
 }
 
@@ -137,13 +127,12 @@ impl ActorType for Community {
     pool: &DbPool,
   ) -> Result<(), LemmyError> {
     let actor_uri = follow.actor()?.as_single_xsd_any_uri().unwrap().to_string();
-    let id = format!("{}/accept/{}", self.actor_id, uuid::Uuid::new_v4());
 
     let mut accept = Accept::new(self.actor_id.to_owned(), follow.into_any_base()?);
     let to = format!("{}/inbox", actor_uri);
     accept
       .set_context(context())
-      .set_id(Url::parse(&id)?)
+      .set_id(generate_activity_id(AcceptType::Accept)?)
       .set_to(to.clone());
 
     insert_activity(self.creator_id, accept.clone(), true, pool).await?;
@@ -160,12 +149,10 @@ impl ActorType for Community {
   ) -> Result<(), LemmyError> {
     let group = self.to_apub(pool).await?;
 
-    let id = format!("{}/delete/{}", self.actor_id, uuid::Uuid::new_v4());
-
     let mut delete = Delete::new(creator.actor_id.to_owned(), group.into_any_base()?);
     delete
       .set_context(context())
-      .set_id(Url::parse(&id)?)
+      .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()]);
 
@@ -188,22 +175,19 @@ impl ActorType for Community {
   ) -> Result<(), LemmyError> {
     let group = self.to_apub(pool).await?;
 
-    let id = format!("{}/delete/{}", self.actor_id, uuid::Uuid::new_v4());
-
     let mut delete = Delete::new(creator.actor_id.to_owned(), group.into_any_base()?);
     delete
       .set_context(context())
-      .set_id(Url::parse(&id)?)
+      .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()]);
 
     // TODO
     // Undo that fake activity
-    let undo_id = format!("{}/undo/delete/{}", self.actor_id, uuid::Uuid::new_v4());
     let mut undo = Undo::new(creator.actor_id.to_owned(), delete.into_any_base()?);
     undo
       .set_context(context())
-      .set_id(Url::parse(&undo_id)?)
+      .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()]);
 
@@ -226,12 +210,10 @@ impl ActorType for Community {
   ) -> Result<(), LemmyError> {
     let group = self.to_apub(pool).await?;
 
-    let id = format!("{}/remove/{}", self.actor_id, uuid::Uuid::new_v4());
-
     let mut remove = Remove::new(mod_.actor_id.to_owned(), group.into_any_base()?);
     remove
       .set_context(context())
-      .set_id(Url::parse(&id)?)
+      .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()]);
 
@@ -254,21 +236,18 @@ impl ActorType for Community {
   ) -> Result<(), LemmyError> {
     let group = self.to_apub(pool).await?;
 
-    let id = format!("{}/remove/{}", self.actor_id, uuid::Uuid::new_v4());
-
     let mut remove = Remove::new(mod_.actor_id.to_owned(), group.into_any_base()?);
     remove
       .set_context(context())
-      .set_id(Url::parse(&id)?)
+      .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()]);
 
     // Undo that fake activity
-    let undo_id = format!("{}/undo/remove/{}", self.actor_id, uuid::Uuid::new_v4());
     let mut undo = Undo::new(mod_.actor_id.to_owned(), remove.into_any_base()?);
     undo
       .set_context(context())
-      .set_id(Url::parse(&undo_id)?)
+      .set_id(generate_activity_id(LikeType::Like)?)
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()]);
 
@@ -435,11 +414,10 @@ pub async fn do_announce(
   client: &Client,
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
-  let id = format!("{}/announce/{}", community.actor_id, uuid::Uuid::new_v4());
   let mut announce = Announce::new(community.actor_id.to_owned(), activity);
   announce
     .set_context(context())
-    .set_id(Url::parse(&id)?)
+    .set_id(generate_activity_id(AnnounceType::Announce)?)
     .set_to(public())
     .set_many_ccs(vec![community.get_followers_url()]);
 
