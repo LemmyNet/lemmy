@@ -656,7 +656,7 @@ impl Handler<StandardMessage> for ChatServer {
     Box::pin(async move {
       match fut.await {
         Ok(m) => {
-          info!("Message Sent: {}", m);
+          // info!("Message Sent: {}", m);
           Ok(m)
         }
         Err(e) => {

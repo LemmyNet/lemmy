@@ -425,9 +425,11 @@ These expire after 10 minutes.
 {
   op: "GetCaptcha",
   data: {
-    png: String, // A Base64 encoded png
-    wav: Option<String>, // A Base64 encoded wav audio file
-    uuid: String, // will return 'disabled' if server has these disabled
+    ok?: { // Will be undefined if captchas are disabled
+      png: String, // A Base64 encoded png
+      wav: Option<String>, // A Base64 encoded wav audio file
+      uuid: String,
+    }
   }
 }
 ```

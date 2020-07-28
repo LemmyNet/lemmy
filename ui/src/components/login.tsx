@@ -263,6 +263,7 @@ export class Login extends Component<any, State> {
             <label class="col-sm-2" htmlFor="register-captcha">
               <span class="mr-2">{i18n.t('enter_code')}</span>
               <button
+                type="button"
                 class="btn btn-secondary"
                 onClick={linkEvent(this, this.handleRegenCaptcha)}
               >
@@ -325,30 +326,25 @@ export class Login extends Component<any, State> {
   showCaptcha() {
     return (
       <div class="col-sm-4">
-        {this.state.captcha.uuid && (
+        {this.state.captcha.ok && (
           <>
             <img
               class="rounded-top img-fluid"
               src={this.captchaPngSrc()}
               style="border-bottom-right-radius: 0; border-bottom-left-radius: 0;"
             />
-            {this.state.captcha.wav && (
+            {this.state.captcha.ok.wav && (
               <button
                 class="rounded-bottom btn btn-sm btn-secondary btn-block"
                 style="border-top-right-radius: 0; border-top-left-radius: 0;"
                 title={i18n.t('play_captcha_audio')}
                 onClick={linkEvent(this, this.handleCaptchaPlay)}
+                type="button"
                 disabled={this.state.captchaPlaying}
               >
-                {!this.state.captchaPlaying ? (
-                  <svg class="icon icon-play">
-                    <use xlinkHref="#icon-play"></use>
-                  </svg>
-                ) : (
-                  <svg class="icon icon-pause">
-                    <use xlinkHref="#icon-pause"></use>
-                  </svg>
-                )}
+                <svg class="icon icon-play">
+                  <use xlinkHref="#icon-play"></use>
+                </svg>
               </button>
             )}
           </>
@@ -429,7 +425,7 @@ export class Login extends Component<any, State> {
 
   handleCaptchaPlay(i: Login) {
     event.preventDefault();
-    let snd = new Audio('data:audio/wav;base64,' + i.state.captcha.wav);
+    let snd = new Audio('data:audio/wav;base64,' + i.state.captcha.ok.wav);
     snd.play();
     i.state.captchaPlaying = true;
     i.setState(i.state);
@@ -441,7 +437,7 @@ export class Login extends Component<any, State> {
   }
 
   captchaPngSrc() {
-    return `data:image/png;base64,${this.state.captcha.png}`;
+    return `data:image/png;base64,${this.state.captcha.ok.png}`;
   }
 
   parseMessage(msg: WebSocketJsonResponse) {
@@ -449,6 +445,7 @@ export class Login extends Component<any, State> {
     if (msg.error) {
       toast(i18n.t(msg.error), 'danger');
       this.state = this.emptyState;
+      this.state.registerForm.captcha_answer = undefined;
       // Refetch another captcha
       WebSocketService.Instance.getCaptcha();
       this.setState(this.state);
@@ -471,9 +468,9 @@ export class Login extends Component<any, State> {
         this.props.history.push('/communities');
       } else if (res.op == UserOperation.GetCaptcha) {
         let data = res.data as GetCaptchaResponse;
-        if (data.uuid != 'disabled') {
+        if (data.ok) {
           this.state.captcha = data;
-          this.state.registerForm.captcha_uuid = data.uuid;
+          this.state.registerForm.captcha_uuid = data.ok.uuid;
           this.setState(this.state);
         }
       } else if (res.op == UserOperation.PasswordReset) {

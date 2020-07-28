@@ -78,9 +78,14 @@ pub struct GetCaptcha {}
 
 #[derive(Serialize, Deserialize)]
 pub struct GetCaptchaResponse {
+  ok: Option<CaptchaResponse>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CaptchaResponse {
   png: String,         // A Base64 encoded png
   wav: Option<String>, // A Base64 encoded wav audio
-  uuid: String,        // will be 'disabled' if captchas are disabled
+  uuid: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -491,11 +496,7 @@ impl Perform for Oper<GetCaptcha> {
     let captcha_settings = Settings::get().captcha;
 
     if !captcha_settings.enabled {
-      return Ok(GetCaptchaResponse {
-        png: "disabled".to_string(),
-        uuid: "disabled".to_string(),
-        wav: None,
-      });
+      return Ok(GetCaptchaResponse { ok: None });
     }
 
     let captcha = match captcha_settings.difficulty.as_str() {
@@ -525,7 +526,9 @@ impl Perform for Oper<GetCaptcha> {
       ws.chatserver.do_send(captcha_item);
     }
 
-    Ok(GetCaptchaResponse { png, uuid, wav })
+    Ok(GetCaptchaResponse {
+      ok: Some(CaptchaResponse { png, uuid, wav }),
+    })
   }
 }
 
