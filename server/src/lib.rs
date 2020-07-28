@@ -31,6 +31,7 @@ pub mod websocket;
 
 use crate::request::{retry, RecvError};
 use actix_web::{client::Client, dev::ConnectionInfo};
+use lemmy_utils::{get_apub_protocol_string, settings::Settings};
 use log::error;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use serde::Deserialize;
@@ -140,7 +141,7 @@ async fn fetch_iframely_and_pictrs_data(
         };
 
       // Fetch pictrs thumbnail
-      let pictrs_thumbnail = match iframely_thumbnail_url {
+      let pictrs_hash = match iframely_thumbnail_url {
         Some(iframely_thumbnail_url) => match fetch_pictrs(client, &iframely_thumbnail_url).await {
           Ok(res) => Some(res.files[0].file.to_owned()),
           Err(e) => {
@@ -156,6 +157,18 @@ async fn fetch_iframely_and_pictrs_data(
             None
           }
         },
+      };
+
+      // The full urls are necessary for federation
+      let pictrs_thumbnail = if let Some(pictrs_hash) = pictrs_hash {
+        Some(format!(
+          "{}://{}/pictrs/image/{}",
+          get_apub_protocol_string(),
+          Settings::get().hostname,
+          pictrs_hash
+        ))
+      } else {
+        None
       };
 
       (
