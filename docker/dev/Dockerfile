@@ -41,6 +41,9 @@ FROM alpine:3.12
 # Install libpq for postgres
 RUN apk add libpq
 
+# Install Espeak for captchas
+RUN apk add espeak
+
 # Copy resources
 COPY server/config/defaults.hjson /config/defaults.hjson
 COPY --from=rust /app/server/target/x86_64-unknown-linux-musl/debug/lemmy_server /app/lemmy

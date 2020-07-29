@@ -110,7 +110,7 @@ export class CreatePost extends Component<any, CreatePostState> {
         return lastLocation.split('/c/')[1];
       }
     }
-    return undefined;
+    return;
   }
 
   handlePostCreate(id: number) {

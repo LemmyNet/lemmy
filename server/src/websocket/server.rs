@@ -16,6 +16,7 @@ use crate::{
   UserId,
 };
 use actix_web::client::Client;
+use lemmy_db::naive_now;
 
 /// Chat server sends this messages to session
 #[derive(Message)]
@@ -134,6 +135,21 @@ pub struct SessionInfo {
   pub ip: IPAddr,
 }
 
+#[derive(Message, Debug)]
+#[rtype(result = "()")]
+pub struct CaptchaItem {
+  pub uuid: String,
+  pub answer: String,
+  pub expires: chrono::NaiveDateTime,
+}
+
+#[derive(Message)]
+#[rtype(bool)]
+pub struct CheckCaptcha {
+  pub uuid: String,
+  pub answer: String,
+}
+
 /// `ChatServer` manages chat rooms and responsible for coordinating chat
 /// session.
 pub struct ChatServer {
@@ -158,6 +174,9 @@ pub struct ChatServer {
   /// Rate limiting based on rate type and IP addr
   rate_limiter: RateLimit,
 
+  /// A list of the current captchas
+  captchas: Vec<CaptchaItem>,
+
   /// An HTTP Client
   client: Client,
 }
@@ -176,6 +195,7 @@ impl ChatServer {
       rng: rand::thread_rng(),
       pool,
       rate_limiter,
+      captchas: Vec::new(),
       client,
     }
   }
@@ -441,6 +461,7 @@ impl ChatServer {
         // User ops
         UserOperation::Login => do_user_operation::<Login>(args).await,
         UserOperation::Register => do_user_operation::<Register>(args).await,
+        UserOperation::GetCaptcha => do_user_operation::<GetCaptcha>(args).await,
         UserOperation::GetUserDetails => do_user_operation::<GetUserDetails>(args).await,
         UserOperation::GetReplies => do_user_operation::<GetReplies>(args).await,
         UserOperation::AddAdmin => do_user_operation::<AddAdmin>(args).await,
@@ -635,7 +656,7 @@ impl Handler<StandardMessage> for ChatServer {
     Box::pin(async move {
       match fut.await {
         Ok(m) => {
-          info!("Message Sent: {}", m);
+          // info!("Message Sent: {}", m);
           Ok(m)
         }
         Err(e) => {
@@ -773,4 +794,31 @@ where
     data,
   };
   Ok(serde_json::to_string(&response)?)
+}
+
+impl Handler<CaptchaItem> for ChatServer {
+  type Result = ();
+
+  fn handle(&mut self, msg: CaptchaItem, _: &mut Context<Self>) {
+    self.captchas.push(msg);
+  }
+}
+
+impl Handler<CheckCaptcha> for ChatServer {
+  type Result = bool;
+
+  fn handle(&mut self, msg: CheckCaptcha, _: &mut Context<Self>) -> Self::Result {
+    // Remove all the ones that are past the expire time
+    self.captchas.retain(|x| x.expires.gt(&naive_now()));
+
+    let check = self
+      .captchas
+      .iter()
+      .any(|r| r.uuid == msg.uuid && r.answer == msg.answer);
+
+    // Remove this uuid so it can't be re-checked (Checks only work once)
+    self.captchas.retain(|x| x.uuid != msg.uuid);
+
+    check
+  }
 }

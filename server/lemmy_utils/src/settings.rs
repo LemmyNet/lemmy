@@ -17,6 +17,7 @@ pub struct Settings {
   pub rate_limit: RateLimitConfig,
   pub email: Option<EmailConfig>,
   pub federation: Federation,
+  pub captcha: CaptchaConfig,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -44,6 +45,12 @@ pub struct EmailConfig {
   pub smtp_password: Option<String>,
   pub smtp_from_address: String,
   pub use_tls: bool,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct CaptchaConfig {
+  pub enabled: bool,
+  pub difficulty: String, // easy, medium, or hard
 }
 
 #[derive(Debug, Deserialize, Clone)]

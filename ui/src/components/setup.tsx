@@ -29,6 +29,9 @@ export class Setup extends Component<any, State> {
       password_verify: undefined,
       admin: true,
       show_nsfw: true,
+      // The first admin signup doesn't need a captcha
+      captcha_uuid: '',
+      captcha_answer: '',
     },
     doneRegisteringUser: false,
     userLoading: false,

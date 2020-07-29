@@ -264,6 +264,8 @@
     "password_incorrect": "Password incorrect.",
     "passwords_dont_match": "Passwords do not match.",
     "no_password_reset": "You will not be able to reset your password without an email.",
+    "captcha_incorrect": "Captcha incorrect.",
+    "enter_code": "Enter Code",
     "invalid_username": "Invalid username.",
     "admin_already_created": "Sorry, there's already an admin.",
     "user_already_exists": "User already exists.",
@@ -281,5 +283,6 @@
     "cake_day_title": "Cake day:",
     "cake_day_info": "It's {{ creator_name }}'s cake day today!",
     "invalid_post_title": "Invalid post title",
-    "invalid_url": "Invalid URL."
+    "invalid_url": "Invalid URL.",
+    "play_captcha_audio": "Play Captcha Audio"
 }
