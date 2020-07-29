@@ -7,7 +7,6 @@ use crate::{
       get_user_from_activity,
       receive_unhandled_activity,
     },
-    ActorType,
     FromApub,
     GroupExt,
     PageExt,
@@ -58,7 +57,7 @@ async fn receive_remove_post(
   let mod_ = get_user_from_activity(&remove, client, pool).await?;
   let page = PageExt::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
 
-  let post_ap_id = PostForm::from_apub(&page, client, pool, &mod_.actor_id()?)
+  let post_ap_id = PostForm::from_apub(&page, client, pool)
     .await?
     .get_ap_id()?;
 
@@ -112,7 +111,7 @@ async fn receive_remove_comment(
   let mod_ = get_user_from_activity(&remove, client, pool).await?;
   let note = Note::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
 
-  let comment_ap_id = CommentForm::from_apub(&note, client, pool, &mod_.actor_id()?)
+  let comment_ap_id = CommentForm::from_apub(&note, client, pool)
     .await?
     .get_ap_id()?;
 
@@ -169,7 +168,7 @@ async fn receive_remove_community(
   let mod_ = get_user_from_activity(&remove, client, pool).await?;
   let group = GroupExt::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
 
-  let community_actor_id = CommunityForm::from_apub(&group, client, pool, &mod_.actor_id()?)
+  let community_actor_id = CommunityForm::from_apub(&group, client, pool)
     .await?
     .actor_id;
 

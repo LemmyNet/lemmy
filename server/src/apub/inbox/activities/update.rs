@@ -10,7 +10,6 @@ use crate::{
       get_user_from_activity,
       receive_unhandled_activity,
     },
-    ActorType,
     FromApub,
     PageExt,
   },
@@ -57,7 +56,7 @@ async fn receive_update_post(
   let user = get_user_from_activity(&update, client, pool).await?;
   let page = PageExt::from_any_base(update.object().to_owned().one().unwrap())?.unwrap();
 
-  let post = PostForm::from_apub(&page, client, pool, &user.actor_id()?).await?;
+  let post = PostForm::from_apub(&page, client, pool).await?;
 
   let post_id = get_or_fetch_and_insert_post(&post.get_ap_id()?, client, pool)
     .await?
@@ -89,7 +88,7 @@ async fn receive_update_comment(
   let note = Note::from_any_base(update.object().to_owned().one().unwrap())?.unwrap();
   let user = get_user_from_activity(&update, client, pool).await?;
 
-  let comment = CommentForm::from_apub(&note, client, pool, &user.actor_id()?).await?;
+  let comment = CommentForm::from_apub(&note, client, pool).await?;
 
   let comment_id = get_or_fetch_and_insert_comment(&comment.get_ap_id()?, client, pool)
     .await?

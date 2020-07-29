@@ -154,7 +154,6 @@ impl FromApub for PostForm {
     page: &PageExt,
     client: &Client,
     pool: &DbPool,
-    actor_id: &Url,
   ) -> Result<PostForm, LemmyError> {
     let ext = &page.ext_one;
     let creator_actor_id = page
@@ -246,11 +245,7 @@ impl FromApub for PostForm {
       embed_description,
       embed_html,
       thumbnail_url,
-      ap_id: page
-        .inner
-        .id(actor_id.domain().unwrap())?
-        .unwrap()
-        .to_string(),
+      ap_id: page.inner.id_unchecked().unwrap().to_string(),
       local: false,
     })
   }

@@ -131,7 +131,6 @@ impl FromApub for CommentForm {
     note: &Note,
     client: &Client,
     pool: &DbPool,
-    actor_id: &Url,
   ) -> Result<CommentForm, LemmyError> {
     let creator_actor_id = &note
       .attributed_to()
@@ -182,7 +181,7 @@ impl FromApub for CommentForm {
       published: note.published().map(|u| u.to_owned().naive_local()),
       updated: note.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
-      ap_id: note.id(actor_id.domain().unwrap())?.unwrap().to_string(),
+      ap_id: note.id_unchecked().unwrap().to_string(),
       local: false,
     })
   }

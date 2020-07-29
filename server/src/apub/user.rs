@@ -201,12 +201,7 @@ impl ActorType for User_ {
 impl FromApub for UserForm {
   type ApubType = PersonExt;
   /// Parse an ActivityPub person received from another instance into a Lemmy user.
-  async fn from_apub(
-    person: &PersonExt,
-    _: &Client,
-    _: &DbPool,
-    actor_id: &Url,
-  ) -> Result<Self, LemmyError> {
+  async fn from_apub(person: &PersonExt, _: &Client, _: &DbPool) -> Result<Self, LemmyError> {
     let avatar = match person.icon() {
       Some(any_image) => Image::from_any_base(any_image.as_one().unwrap().clone())
         .unwrap()
@@ -242,7 +237,7 @@ impl FromApub for UserForm {
       show_avatars: false,
       send_notifications_to_email: false,
       matrix_user_id: None,
-      actor_id: person.id(actor_id.domain().unwrap())?.unwrap().to_string(),
+      actor_id: person.id_unchecked().unwrap().to_string(),
       bio: person
         .inner
         .summary()

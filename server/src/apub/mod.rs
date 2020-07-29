@@ -132,7 +132,6 @@ pub trait FromApub {
     apub: &Self::ApubType,
     client: &Client,
     pool: &DbPool,
-    actor_id: &Url,
   ) -> Result<Self, LemmyError>
   where
     Self: Sized;

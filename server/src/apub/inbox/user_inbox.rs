@@ -121,7 +121,7 @@ async fn receive_create_private_message(
 
   insert_activity(user.id, create, false, pool).await?;
 
-  let private_message = PrivateMessageForm::from_apub(&note, client, pool, user_uri).await?;
+  let private_message = PrivateMessageForm::from_apub(&note, client, pool).await?;
 
   let inserted_private_message = blocking(pool, move |conn| {
     PrivateMessage::create(conn, &private_message)
@@ -162,7 +162,7 @@ async fn receive_update_private_message(
 
   insert_activity(user.id, update, false, pool).await?;
 
-  let private_message_form = PrivateMessageForm::from_apub(&note, client, pool, user_uri).await?;
+  let private_message_form = PrivateMessageForm::from_apub(&note, client, pool).await?;
 
   let private_message_ap_id = private_message_form.ap_id.clone();
   let private_message = blocking(pool, move |conn| {
@@ -211,7 +211,7 @@ async fn receive_delete_private_message(
 
   insert_activity(user.id, delete, false, pool).await?;
 
-  let private_message_form = PrivateMessageForm::from_apub(&note, client, pool, user_uri).await?;
+  let private_message_form = PrivateMessageForm::from_apub(&note, client, pool).await?;
 
   let private_message_ap_id = private_message_form.ap_id;
   let private_message = blocking(pool, move |conn| {
@@ -273,7 +273,7 @@ async fn receive_undo_delete_private_message(
 
   insert_activity(user.id, delete, false, pool).await?;
 
-  let private_message = PrivateMessageForm::from_apub(&note, client, pool, user_uri).await?;
+  let private_message = PrivateMessageForm::from_apub(&note, client, pool).await?;
 
   let private_message_ap_id = private_message.ap_id.clone();
   let private_message_id = blocking(pool, move |conn| {

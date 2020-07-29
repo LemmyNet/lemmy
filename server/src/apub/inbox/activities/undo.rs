@@ -7,7 +7,6 @@ use crate::{
       get_user_from_activity,
       receive_unhandled_activity,
     },
-    ActorType,
     FromApub,
     GroupExt,
     PageExt,
@@ -123,7 +122,7 @@ async fn receive_undo_delete_comment(
   let user = get_user_from_activity(delete, client, pool).await?;
   let note = Note::from_any_base(delete.object().to_owned().one().unwrap())?.unwrap();
 
-  let comment_ap_id = CommentForm::from_apub(&note, client, pool, &user.actor_id()?)
+  let comment_ap_id = CommentForm::from_apub(&note, client, pool)
     .await?
     .get_ap_id()?;
 
@@ -181,7 +180,7 @@ async fn receive_undo_remove_comment(
   let mod_ = get_user_from_activity(remove, client, pool).await?;
   let note = Note::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
 
-  let comment_ap_id = CommentForm::from_apub(&note, client, pool, &mod_.actor_id()?)
+  let comment_ap_id = CommentForm::from_apub(&note, client, pool)
     .await?
     .get_ap_id()?;
 
@@ -239,7 +238,7 @@ async fn receive_undo_delete_post(
   let user = get_user_from_activity(delete, client, pool).await?;
   let page = PageExt::from_any_base(delete.object().to_owned().one().unwrap())?.unwrap();
 
-  let post_ap_id = PostForm::from_apub(&page, client, pool, &user.actor_id()?)
+  let post_ap_id = PostForm::from_apub(&page, client, pool)
     .await?
     .get_ap_id()?;
 
@@ -294,7 +293,7 @@ async fn receive_undo_remove_post(
   let mod_ = get_user_from_activity(remove, client, pool).await?;
   let page = PageExt::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
 
-  let post_ap_id = PostForm::from_apub(&page, client, pool, &mod_.actor_id()?)
+  let post_ap_id = PostForm::from_apub(&page, client, pool)
     .await?
     .get_ap_id()?;
 
@@ -349,7 +348,7 @@ async fn receive_undo_delete_community(
   let user = get_user_from_activity(delete, client, pool).await?;
   let group = GroupExt::from_any_base(delete.object().to_owned().one().unwrap())?.unwrap();
 
-  let community_actor_id = CommunityForm::from_apub(&group, client, pool, &user.actor_id()?)
+  let community_actor_id = CommunityForm::from_apub(&group, client, pool)
     .await?
     .actor_id;
 
@@ -413,7 +412,7 @@ async fn receive_undo_remove_community(
   let mod_ = get_user_from_activity(remove, client, pool).await?;
   let group = GroupExt::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
 
-  let community_actor_id = CommunityForm::from_apub(&group, client, pool, &mod_.actor_id()?)
+  let community_actor_id = CommunityForm::from_apub(&group, client, pool)
     .await?
     .actor_id;
 
@@ -477,7 +476,7 @@ async fn receive_undo_like_comment(
   let user = get_user_from_activity(like, client, pool).await?;
   let note = Note::from_any_base(like.object().to_owned().one().unwrap())?.unwrap();
 
-  let comment = CommentForm::from_apub(&note, client, pool, &user.actor_id()?).await?;
+  let comment = CommentForm::from_apub(&note, client, pool).await?;
 
   let comment_id = get_or_fetch_and_insert_comment(&comment.get_ap_id()?, client, pool)
     .await?
@@ -523,7 +522,7 @@ async fn receive_undo_like_post(
   let user = get_user_from_activity(like, client, pool).await?;
   let page = PageExt::from_any_base(like.object().to_owned().one().unwrap())?.unwrap();
 
-  let post = PostForm::from_apub(&page, client, pool, &user.actor_id()?).await?;
+  let post = PostForm::from_apub(&page, client, pool).await?;
 
   let post_id = get_or_fetch_and_insert_post(&post.get_ap_id()?, client, pool)
     .await?

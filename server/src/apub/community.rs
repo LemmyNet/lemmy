@@ -321,12 +321,7 @@ impl FromApub for CommunityForm {
   type ApubType = GroupExt;
 
   /// Parse an ActivityPub group received from another instance into a Lemmy community.
-  async fn from_apub(
-    group: &GroupExt,
-    client: &Client,
-    pool: &DbPool,
-    actor_id: &Url,
-  ) -> Result<Self, LemmyError> {
+  async fn from_apub(group: &GroupExt, client: &Client, pool: &DbPool) -> Result<Self, LemmyError> {
     let creator_and_moderator_uris = group.inner.attributed_to().unwrap();
     let creator_uri = creator_and_moderator_uris
       .as_many()
@@ -363,11 +358,7 @@ impl FromApub for CommunityForm {
       updated: group.inner.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
       nsfw: group.ext_one.sensitive,
-      actor_id: group
-        .inner
-        .id(actor_id.domain().unwrap())?
-        .unwrap()
-        .to_string(),
+      actor_id: group.inner.id_unchecked().unwrap().to_string(),
       local: false,
       private_key: None,
       public_key: Some(group.ext_two.to_owned().public_key.public_key_pem),
