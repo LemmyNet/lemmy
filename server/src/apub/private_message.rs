@@ -2,15 +2,23 @@ use crate::{
   apub::{
     activities::{generate_activity_id, send_activity},
     create_tombstone,
-    fetcher::get_or_fetch_and_upsert_remote_user,
-    insert_activity, ApubObjectType, FromApub, ToApub,
+    fetcher::get_or_fetch_and_upsert_user,
+    insert_activity,
+    ApubObjectType,
+    FromApub,
+    ToApub,
   },
-  blocking, DbPool, LemmyError,
+  blocking,
+  DbPool,
+  LemmyError,
 };
 use activitystreams_new::{
   activity::{
     kind::{CreateType, DeleteType, UndoType, UpdateType},
-    Create, Delete, Undo, Update,
+    Create,
+    Delete,
+    Undo,
+    Update,
   },
   context,
   object::{kind::NoteType, Note, Tombstone},
@@ -76,11 +84,11 @@ impl FromApub for PrivateMessageForm {
       .single_xsd_any_uri()
       .unwrap();
 
-    let creator = get_or_fetch_and_upsert_remote_user(&creator_actor_id, client, pool).await?;
+    let creator = get_or_fetch_and_upsert_user(&creator_actor_id, client, pool).await?;
 
     let recipient_actor_id = note.to().unwrap().clone().single_xsd_any_uri().unwrap();
 
-    let recipient = get_or_fetch_and_upsert_remote_user(&recipient_actor_id, client, pool).await?;
+    let recipient = get_or_fetch_and_upsert_user(&recipient_actor_id, client, pool).await?;
 
     Ok(PrivateMessageForm {
       creator_id: creator.id,

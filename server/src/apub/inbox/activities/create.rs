@@ -5,9 +5,13 @@ use crate::{
   },
   apub::{
     inbox::shared_inbox::{
-      announce_if_community_is_local, get_user_from_activity, receive_unhandled_activity,
+      announce_if_community_is_local,
+      get_user_from_activity,
+      receive_unhandled_activity,
     },
-    ActorType, FromApub, PageExt,
+    ActorType,
+    FromApub,
+    PageExt,
   },
   blocking,
   routes::ChatServerParam,
@@ -15,7 +19,8 @@ use crate::{
     server::{SendComment, SendPost},
     UserOperation,
   },
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams_new::{activity::Create, base::AnyBase, object::Note, prelude::*};
 use actix_web::{client::Client, HttpResponse};

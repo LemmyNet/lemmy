@@ -1,12 +1,19 @@
 use crate::{
   api::site::SearchResponse,
   apub::{
-    is_apub_id_valid, ActorType, FromApub, GroupExt, PageExt, PersonExt, APUB_JSON_CONTENT_TYPE,
+    is_apub_id_valid,
+    ActorType,
+    FromApub,
+    GroupExt,
+    PageExt,
+    PersonExt,
+    APUB_JSON_CONTENT_TYPE,
   },
   blocking,
   request::{retry, RecvError},
   routes::nodeinfo::{NodeInfo, NodeInfoWellKnown},
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams_new::{base::BaseExt, object::Note, prelude::*};
 use actix_web::client::Client;
@@ -22,7 +29,9 @@ use lemmy_db::{
   post_view::PostView,
   user::{UserForm, User_},
   user_view::UserView,
-  Crud, Joinable, SearchType,
+  Crud,
+  Joinable,
+  SearchType,
 };
 use lemmy_utils::get_apub_protocol_string;
 use log::debug;
@@ -140,7 +149,7 @@ pub async fn search_by_apub_id(
     SearchAcceptedObjects::Person(p) => {
       let user_uri = p.inner.id(domain)?.unwrap();
 
-      let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+      let user = get_or_fetch_and_upsert_user(&user_uri, client, pool).await?;
 
       response.users = vec![blocking(pool, move |conn| UserView::read(conn, user.id)).await??];
 
@@ -149,7 +158,7 @@ pub async fn search_by_apub_id(
     SearchAcceptedObjects::Group(g) => {
       let community_uri = g.inner.id(domain)?.unwrap();
 
-      let community = get_or_fetch_and_upsert_remote_community(community_uri, client, pool).await?;
+      let community = get_or_fetch_and_upsert_community(community_uri, client, pool).await?;
 
       // TODO Maybe at some point in the future, fetch all the history of a community
       // fetch_community_outbox(&c, conn)?;
@@ -191,21 +200,21 @@ pub async fn search_by_apub_id(
   Ok(response)
 }
 
-pub async fn get_or_fetch_and_upsert_remote_actor(
+pub async fn get_or_fetch_and_upsert_actor(
   apub_id: &Url,
   client: &Client,
   pool: &DbPool,
 ) -> Result<Box<dyn ActorType>, LemmyError> {
-  let user = get_or_fetch_and_upsert_remote_user(apub_id, client, pool).await;
+  let user = get_or_fetch_and_upsert_user(apub_id, client, pool).await;
   let actor: Box<dyn ActorType> = match user {
     Ok(u) => Box::new(u),
-    Err(_) => Box::new(get_or_fetch_and_upsert_remote_community(apub_id, client, pool).await?),
+    Err(_) => Box::new(get_or_fetch_and_upsert_community(apub_id, client, pool).await?),
   };
   Ok(actor)
 }
 
 /// Check if a remote user exists, create if not found, if its too old update it.Fetch a user, insert/update it in the database and return the user.
-pub async fn get_or_fetch_and_upsert_remote_user(
+pub async fn get_or_fetch_and_upsert_user(
   apub_id: &Url,
   client: &Client,
   pool: &DbPool,
@@ -257,7 +266,7 @@ fn should_refetch_actor(last_refreshed: NaiveDateTime) -> bool {
 }
 
 /// Check if a remote community exists, create if not found, if its too old update it.Fetch a community, insert/update it in the database and return the community.
-pub async fn get_or_fetch_and_upsert_remote_community(
+pub async fn get_or_fetch_and_upsert_community(
   apub_id: &Url,
   client: &Client,
   pool: &DbPool,
@@ -299,7 +308,7 @@ pub async fn get_or_fetch_and_upsert_remote_community(
       let mut creator_and_moderators = Vec::new();
 
       for uri in creator_and_moderator_uris {
-        let c_or_m = get_or_fetch_and_upsert_remote_user(uri, client, pool).await?;
+        let c_or_m = get_or_fetch_and_upsert_user(uri, client, pool).await?;
 
         creator_and_moderators.push(c_or_m);
       }
@@ -333,7 +342,7 @@ fn upsert_post(post_form: &PostForm, conn: &PgConnection) -> Result<Post, LemmyE
   }
 }
 
-pub async fn get_or_fetch_and_insert_remote_post(
+pub async fn get_or_fetch_and_insert_post(
   post_ap_id: &Url,
   client: &Client,
   pool: &DbPool,
@@ -368,7 +377,7 @@ fn upsert_comment(comment_form: &CommentForm, conn: &PgConnection) -> Result<Com
   }
 }
 
-pub async fn get_or_fetch_and_insert_remote_comment(
+pub async fn get_or_fetch_and_insert_comment(
   comment_ap_id: &Url,
   client: &Client,
   pool: &DbPool,

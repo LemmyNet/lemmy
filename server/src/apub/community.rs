@@ -1,20 +1,33 @@
 use crate::{
   apub::{
     activities::{generate_activity_id, send_activity},
-    create_apub_response, create_apub_tombstone_response, create_tombstone,
+    create_apub_response,
+    create_apub_tombstone_response,
+    create_tombstone,
     extensions::group_extensions::GroupExtension,
-    fetcher::get_or_fetch_and_upsert_remote_user,
-    get_shared_inbox, insert_activity, ActorType, FromApub, GroupExt, ToApub,
+    fetcher::get_or_fetch_and_upsert_user,
+    get_shared_inbox,
+    insert_activity,
+    ActorType,
+    FromApub,
+    GroupExt,
+    ToApub,
   },
   blocking,
   routes::DbPoolParam,
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams_ext::Ext2;
 use activitystreams_new::{
   activity::{
     kind::{AcceptType, AnnounceType, DeleteType, LikeType, RemoveType, UndoType},
-    Accept, Announce, Delete, Follow, Remove, Undo,
+    Accept,
+    Announce,
+    Delete,
+    Follow,
+    Remove,
+    Undo,
   },
   actor::{kind::GroupType, ApActor, Endpoints, Group},
   base::{AnyBase, BaseExt},
@@ -324,7 +337,7 @@ impl FromApub for CommunityForm {
       .as_xsd_any_uri()
       .unwrap();
 
-    let creator = get_or_fetch_and_upsert_remote_user(creator_uri, client, pool).await?;
+    let creator = get_or_fetch_and_upsert_user(creator_uri, client, pool).await?;
 
     Ok(CommunityForm {
       name: group

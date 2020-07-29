@@ -1,13 +1,19 @@
 use crate::{
   apub::inbox::{
     activities::{
-      create::receive_create, delete::receive_delete, dislike::receive_dislike, like::receive_like,
-      remove::receive_remove, undo::receive_undo, update::receive_update,
+      create::receive_create,
+      delete::receive_delete,
+      dislike::receive_dislike,
+      like::receive_like,
+      remove::receive_remove,
+      undo::receive_undo,
+      update::receive_update,
     },
     shared_inbox::receive_unhandled_activity,
   },
   routes::ChatServerParam,
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams_new::{activity::*, base::AnyBase, prelude::ExtendsExt};
 use actix_web::{client::Client, HttpResponse};

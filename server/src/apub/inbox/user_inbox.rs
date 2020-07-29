@@ -2,13 +2,15 @@ use crate::{
   api::user::PrivateMessageResponse,
   apub::{
     extensions::signatures::verify,
-    fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user},
-    insert_activity, FromApub,
+    fetcher::{get_or_fetch_and_upsert_community, get_or_fetch_and_upsert_user},
+    insert_activity,
+    FromApub,
   },
   blocking,
   routes::{ChatServerParam, DbPoolParam},
   websocket::{server::SendUserRoomMessage, UserOperation},
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams_new::{
   activity::{Accept, Create, Delete, Undo, Update},
@@ -22,7 +24,8 @@ use lemmy_db::{
   private_message::{PrivateMessage, PrivateMessageForm},
   private_message_view::PrivateMessageView,
   user::User_,
-  Crud, Followable,
+  Crud,
+  Followable,
 };
 use log::debug;
 use serde::Deserialize;
@@ -79,7 +82,7 @@ async fn receive_accept(
 ) -> Result<HttpResponse, LemmyError> {
   let community_uri = accept.actor()?.to_owned().single_xsd_any_uri().unwrap();
 
-  let community = get_or_fetch_and_upsert_remote_community(&community_uri, client, pool).await?;
+  let community = get_or_fetch_and_upsert_community(&community_uri, client, pool).await?;
   verify(request, &community)?;
 
   let username = username.to_owned();
@@ -113,7 +116,7 @@ async fn receive_create_private_message(
   let user_uri = &create.actor()?.to_owned().single_xsd_any_uri().unwrap();
   let note = Note::from_any_base(create.object().as_one().unwrap().to_owned())?.unwrap();
 
-  let user = get_or_fetch_and_upsert_remote_user(user_uri, client, pool).await?;
+  let user = get_or_fetch_and_upsert_user(user_uri, client, pool).await?;
   verify(request, &user)?;
 
   insert_activity(user.id, create, false, pool).await?;
@@ -154,7 +157,7 @@ async fn receive_update_private_message(
   let user_uri = &update.actor()?.to_owned().single_xsd_any_uri().unwrap();
   let note = Note::from_any_base(update.object().as_one().unwrap().to_owned())?.unwrap();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let user = get_or_fetch_and_upsert_user(&user_uri, client, pool).await?;
   verify(request, &user)?;
 
   insert_activity(user.id, update, false, pool).await?;
@@ -203,7 +206,7 @@ async fn receive_delete_private_message(
   let user_uri = &delete.actor()?.to_owned().single_xsd_any_uri().unwrap();
   let note = Note::from_any_base(delete.object().as_one().unwrap().to_owned())?.unwrap();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let user = get_or_fetch_and_upsert_user(&user_uri, client, pool).await?;
   verify(request, &user)?;
 
   insert_activity(user.id, delete, false, pool).await?;
@@ -265,7 +268,7 @@ async fn receive_undo_delete_private_message(
   let note = Note::from_any_base(delete.object().as_one().unwrap().to_owned())?.unwrap();
   let user_uri = &delete.actor()?.to_owned().single_xsd_any_uri().unwrap();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let user = get_or_fetch_and_upsert_user(&user_uri, client, pool).await?;
   verify(request, &user)?;
 
   insert_activity(user.id, delete, false, pool).await?;

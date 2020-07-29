@@ -1,20 +1,34 @@
 use crate::{
   apub::{
     activities::{generate_activity_id, send_activity_to_community},
-    create_apub_response, create_apub_tombstone_response, create_tombstone,
+    create_apub_response,
+    create_apub_tombstone_response,
+    create_tombstone,
     extensions::page_extension::PageExtension,
-    fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user},
-    ActorType, ApubLikeableType, ApubObjectType, FromApub, PageExt, ToApub,
+    fetcher::{get_or_fetch_and_upsert_community, get_or_fetch_and_upsert_user},
+    ActorType,
+    ApubLikeableType,
+    ApubObjectType,
+    FromApub,
+    PageExt,
+    ToApub,
   },
   blocking,
   routes::DbPoolParam,
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams_ext::Ext1;
 use activitystreams_new::{
   activity::{
     kind::{CreateType, DeleteType, DislikeType, LikeType, RemoveType, UndoType, UpdateType},
-    Create, Delete, Dislike, Like, Remove, Undo, Update,
+    Create,
+    Delete,
+    Dislike,
+    Like,
+    Remove,
+    Undo,
+    Update,
   },
   context,
   object::{kind::PageType, Image, Page, Tombstone},
@@ -151,7 +165,7 @@ impl FromApub for PostForm {
       .as_single_xsd_any_uri()
       .unwrap();
 
-    let creator = get_or_fetch_and_upsert_remote_user(creator_actor_id, client, pool).await?;
+    let creator = get_or_fetch_and_upsert_user(creator_actor_id, client, pool).await?;
 
     let community_actor_id = page
       .inner
@@ -161,8 +175,7 @@ impl FromApub for PostForm {
       .as_single_xsd_any_uri()
       .unwrap();
 
-    let community =
-      get_or_fetch_and_upsert_remote_community(community_actor_id, client, pool).await?;
+    let community = get_or_fetch_and_upsert_community(community_actor_id, client, pool).await?;
 
     let thumbnail_url = match &page.inner.image() {
       Some(any_image) => Image::from_any_base(any_image.to_owned().as_one().unwrap().to_owned())?

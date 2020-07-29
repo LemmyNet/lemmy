@@ -1,17 +1,24 @@
 use crate::{
   apub::{
     activities::{generate_activity_id, send_activity},
-    create_apub_response, insert_activity, ActorType, FromApub, PersonExt, ToApub,
+    create_apub_response,
+    insert_activity,
+    ActorType,
+    FromApub,
+    PersonExt,
+    ToApub,
   },
   blocking,
   routes::DbPoolParam,
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams_ext::Ext1;
 use activitystreams_new::{
   activity::{
     kind::{FollowType, UndoType},
-    Follow, Undo,
+    Follow,
+    Undo,
   },
   actor::{ApActor, Endpoints, Person},
   context,

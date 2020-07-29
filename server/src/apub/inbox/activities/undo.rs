@@ -1,11 +1,16 @@
 use crate::{
   api::{comment::CommentResponse, community::CommunityResponse, post::PostResponse},
   apub::{
-    fetcher::{get_or_fetch_and_insert_remote_comment, get_or_fetch_and_insert_remote_post},
+    fetcher::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
     inbox::shared_inbox::{
-      announce_if_community_is_local, get_user_from_activity, receive_unhandled_activity,
+      announce_if_community_is_local,
+      get_user_from_activity,
+      receive_unhandled_activity,
     },
-    ActorType, FromApub, GroupExt, PageExt,
+    ActorType,
+    FromApub,
+    GroupExt,
+    PageExt,
   },
   blocking,
   routes::ChatServerParam,
@@ -13,7 +18,8 @@ use crate::{
     server::{SendComment, SendCommunityRoomMessage, SendPost},
     UserOperation,
   },
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams_new::{activity::*, base::AnyBase, object::Note, prelude::*};
 use actix_web::{client::Client, HttpResponse};
@@ -25,7 +31,8 @@ use lemmy_db::{
   naive_now,
   post::{Post, PostForm, PostLike, PostLikeForm},
   post_view::PostView,
-  Crud, Likeable,
+  Crud,
+  Likeable,
 };
 
 pub async fn receive_undo(
@@ -120,7 +127,7 @@ async fn receive_undo_delete_comment(
     .await?
     .get_ap_id()?;
 
-  let comment = get_or_fetch_and_insert_remote_comment(&comment_ap_id, client, pool).await?;
+  let comment = get_or_fetch_and_insert_comment(&comment_ap_id, client, pool).await?;
 
   let comment_form = CommentForm {
     content: comment.content.to_owned(),
@@ -178,7 +185,7 @@ async fn receive_undo_remove_comment(
     .await?
     .get_ap_id()?;
 
-  let comment = get_or_fetch_and_insert_remote_comment(&comment_ap_id, client, pool).await?;
+  let comment = get_or_fetch_and_insert_comment(&comment_ap_id, client, pool).await?;
 
   let comment_form = CommentForm {
     content: comment.content.to_owned(),
@@ -236,7 +243,7 @@ async fn receive_undo_delete_post(
     .await?
     .get_ap_id()?;
 
-  let post = get_or_fetch_and_insert_remote_post(&post_ap_id, client, pool).await?;
+  let post = get_or_fetch_and_insert_post(&post_ap_id, client, pool).await?;
 
   let post_form = PostForm {
     name: post.name.to_owned(),
@@ -291,7 +298,7 @@ async fn receive_undo_remove_post(
     .await?
     .get_ap_id()?;
 
-  let post = get_or_fetch_and_insert_remote_post(&post_ap_id, client, pool).await?;
+  let post = get_or_fetch_and_insert_post(&post_ap_id, client, pool).await?;
 
   let post_form = PostForm {
     name: post.name.to_owned(),
@@ -472,7 +479,7 @@ async fn receive_undo_like_comment(
 
   let comment = CommentForm::from_apub(&note, client, pool, &user.actor_id()?).await?;
 
-  let comment_id = get_or_fetch_and_insert_remote_comment(&comment.get_ap_id()?, client, pool)
+  let comment_id = get_or_fetch_and_insert_comment(&comment.get_ap_id()?, client, pool)
     .await?
     .id;
 
@@ -518,7 +525,7 @@ async fn receive_undo_like_post(
 
   let post = PostForm::from_apub(&page, client, pool, &user.actor_id()?).await?;
 
-  let post_id = get_or_fetch_and_insert_remote_post(&post.get_ap_id()?, client, pool)
+  let post_id = get_or_fetch_and_insert_post(&post.get_ap_id()?, client, pool)
     .await?
     .id;
 

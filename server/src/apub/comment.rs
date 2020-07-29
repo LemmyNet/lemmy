@@ -1,21 +1,36 @@
 use crate::{
   apub::{
     activities::{generate_activity_id, send_activity_to_community},
-    create_apub_response, create_apub_tombstone_response, create_tombstone, fetch_webfinger_url,
+    create_apub_response,
+    create_apub_tombstone_response,
+    create_tombstone,
+    fetch_webfinger_url,
     fetcher::{
-      get_or_fetch_and_insert_remote_comment, get_or_fetch_and_insert_remote_post,
-      get_or_fetch_and_upsert_remote_user,
+      get_or_fetch_and_insert_comment,
+      get_or_fetch_and_insert_post,
+      get_or_fetch_and_upsert_user,
     },
-    ActorType, ApubLikeableType, ApubObjectType, FromApub, ToApub,
+    ActorType,
+    ApubLikeableType,
+    ApubObjectType,
+    FromApub,
+    ToApub,
   },
   blocking,
   routes::DbPoolParam,
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams_new::{
   activity::{
     kind::{CreateType, DeleteType, DislikeType, LikeType, RemoveType, UndoType, UpdateType},
-    Create, Delete, Dislike, Like, Remove, Undo, Update,
+    Create,
+    Delete,
+    Dislike,
+    Like,
+    Remove,
+    Undo,
+    Update,
   },
   base::AnyBase,
   context,
@@ -124,7 +139,7 @@ impl FromApub for CommentForm {
       .as_single_xsd_any_uri()
       .unwrap();
 
-    let creator = get_or_fetch_and_upsert_remote_user(creator_actor_id, client, pool).await?;
+    let creator = get_or_fetch_and_upsert_user(creator_actor_id, client, pool).await?;
 
     let mut in_reply_tos = note
       .in_reply_to()
@@ -137,7 +152,7 @@ impl FromApub for CommentForm {
     let post_ap_id = in_reply_tos.next().unwrap();
 
     // This post, or the parent comment might not yet exist on this server yet, fetch them.
-    let post = get_or_fetch_and_insert_remote_post(&post_ap_id, client, pool).await?;
+    let post = get_or_fetch_and_insert_post(&post_ap_id, client, pool).await?;
 
     // The 2nd item, if it exists, is the parent comment apub_id
     // For deeply nested comments, FromApub automatically gets called recursively
@@ -145,7 +160,7 @@ impl FromApub for CommentForm {
       Some(parent_comment_uri) => {
         let parent_comment_ap_id = &parent_comment_uri;
         let parent_comment =
-          get_or_fetch_and_insert_remote_comment(&parent_comment_ap_id, client, pool).await?;
+          get_or_fetch_and_insert_comment(&parent_comment_ap_id, client, pool).await?;
 
         Some(parent_comment.id)
       }
@@ -558,7 +573,7 @@ async fn collect_non_local_mentions_and_addresses(
       debug!("mention actor_id: {}", actor_id);
       addressed_ccs.push(actor_id.to_owned().to_string());
 
-      let mention_user = get_or_fetch_and_upsert_remote_user(&actor_id, client, pool).await?;
+      let mention_user = get_or_fetch_and_upsert_user(&actor_id, client, pool).await?;
       let shared_inbox = mention_user.get_shared_inbox_url();
 
       mention_inboxes.push(shared_inbox);

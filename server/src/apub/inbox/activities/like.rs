@@ -1,11 +1,15 @@
 use crate::{
   api::{comment::CommentResponse, post::PostResponse},
   apub::{
-    fetcher::{get_or_fetch_and_insert_remote_comment, get_or_fetch_and_insert_remote_post},
+    fetcher::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
     inbox::shared_inbox::{
-      announce_if_community_is_local, get_user_from_activity, receive_unhandled_activity,
+      announce_if_community_is_local,
+      get_user_from_activity,
+      receive_unhandled_activity,
     },
-    ActorType, FromApub, PageExt,
+    ActorType,
+    FromApub,
+    PageExt,
   },
   blocking,
   routes::ChatServerParam,
@@ -13,7 +17,8 @@ use crate::{
     server::{SendComment, SendPost},
     UserOperation,
   },
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams_new::{activity::Like, base::AnyBase, object::Note, prelude::*};
 use actix_web::{client::Client, HttpResponse};
@@ -50,7 +55,7 @@ async fn receive_like_post(
 
   let post = PostForm::from_apub(&page, client, pool, &user.actor_id()?).await?;
 
-  let post_id = get_or_fetch_and_insert_remote_post(&post.get_ap_id()?, client, pool)
+  let post_id = get_or_fetch_and_insert_post(&post.get_ap_id()?, client, pool)
     .await?
     .id;
 
@@ -91,7 +96,7 @@ async fn receive_like_comment(
 
   let comment = CommentForm::from_apub(&note, client, pool, &user.actor_id()?).await?;
 
-  let comment_id = get_or_fetch_and_insert_remote_comment(&comment.get_ap_id()?, client, pool)
+  let comment_id = get_or_fetch_and_insert_comment(&comment.get_ap_id()?, client, pool)
     .await?
     .id;
 

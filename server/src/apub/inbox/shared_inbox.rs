@@ -3,18 +3,25 @@ use crate::{
     community::do_announce,
     extensions::signatures::verify,
     fetcher::{
-      get_or_fetch_and_upsert_remote_actor, get_or_fetch_and_upsert_remote_community,
-      get_or_fetch_and_upsert_remote_user,
+      get_or_fetch_and_upsert_actor,
+      get_or_fetch_and_upsert_community,
+      get_or_fetch_and_upsert_user,
     },
     inbox::activities::{
-      announce::receive_announce, create::receive_create, delete::receive_delete,
-      dislike::receive_dislike, like::receive_like, remove::receive_remove, undo::receive_undo,
+      announce::receive_announce,
+      create::receive_create,
+      delete::receive_delete,
+      dislike::receive_dislike,
+      like::receive_like,
+      remove::receive_remove,
+      undo::receive_undo,
       update::receive_update,
     },
     insert_activity,
   },
   routes::{ChatServerParam, DbPoolParam},
-  DbPool, LemmyError,
+  DbPool,
+  LemmyError,
 };
 use activitystreams_new::{
   activity::{ActorAndObject, ActorAndObjectRef},
@@ -27,6 +34,7 @@ use lemmy_db::user::User_;
 use log::debug;
 use serde::Serialize;
 use std::fmt::Debug;
+use url::Url;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "PascalCase")]
@@ -61,7 +69,7 @@ pub async fn shared_inbox(
   let sender = &activity.actor()?.to_owned().single_xsd_any_uri().unwrap();
 
   // TODO: pass this actor in instead of using get_user_from_activity()
-  let actor = get_or_fetch_and_upsert_remote_actor(sender, &client, &pool).await?;
+  let actor = get_or_fetch_and_upsert_actor(sender, &client, &pool).await?;
   verify(&request, actor.as_ref())?;
 
   insert_activity(actor.user_id(), activity.clone(), false, &pool).await?;
@@ -101,7 +109,7 @@ where
 {
   let actor = activity.actor()?;
   let user_uri = actor.as_single_xsd_any_uri().unwrap();
-  get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await
+  get_or_fetch_and_upsert_user(&user_uri, client, pool).await
 }
 
 pub(in crate::apub::inbox) async fn announce_if_community_is_local<T, Kind>(
@@ -118,8 +126,13 @@ where
 {
   let cc = activity.cc().unwrap();
   let cc = cc.as_many().unwrap();
-  let community_uri = cc.first().unwrap().as_xsd_any_uri().unwrap();
-  let community = get_or_fetch_and_upsert_remote_community(&community_uri, client, pool).await?;
+  let community_followers_uri = cc.first().unwrap().as_xsd_any_uri().unwrap();
+  // TODO: this is hacky but seems to be the only way to get the community ID
+  let community_uri = community_followers_uri
+    .to_string()
+    .replace("/followers", "");
+  let community =
+    get_or_fetch_and_upsert_community(&Url::parse(&community_uri)?, client, pool).await?;
 
   if community.local {
     do_announce(activity.into_any_base()?, &community, &user, client, pool).await?;
