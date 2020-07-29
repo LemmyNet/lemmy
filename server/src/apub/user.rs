@@ -24,13 +24,13 @@ use activitystreams_new::{
   primitives::{XsdAnyUri, XsdDateTime},
 };
 use actix_web::{body::Body, client::Client, web, HttpResponse};
-use failure::_core::str::FromStr;
 use lemmy_db::{
   naive_now,
   user::{UserForm, User_},
 };
 use lemmy_utils::convert_datetime;
 use serde::Deserialize;
+use std::str::FromStr;
 
 #[derive(Deserialize)]
 pub struct UserQuery {

@@ -1,6 +1,7 @@
 use crate::{websocket::WebsocketInfo, DbPool, LemmyError};
 use actix_web::client::Client;
 use lemmy_db::{community::*, community_view::*, moderator::*, site::*, user::*, user_view::*};
+use thiserror::Error;
 
 pub mod claims;
 pub mod comment;
@@ -9,8 +10,8 @@ pub mod post;
 pub mod site;
 pub mod user;
 
-#[derive(Fail, Debug)]
-#[fail(display = "{{\"error\":\"{}\"}}", message)]
+#[derive(Debug, Error)]
+#[error("{{\"error\":\"{message}\"}}")]
 pub struct APIError {
   pub message: String,
 }

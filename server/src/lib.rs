@@ -3,8 +3,6 @@
 pub extern crate strum_macros;
 #[macro_use]
 pub extern crate lazy_static;
-#[macro_use]
-pub extern crate failure;
 pub extern crate actix;
 pub extern crate actix_web;
 pub extern crate bcrypt;
@@ -31,6 +29,7 @@ pub mod websocket;
 
 use crate::request::{retry, RecvError};
 use actix_web::{client::Client, dev::ConnectionInfo};
+use anyhow::{self, anyhow as format_err};
 use log::error;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use serde::Deserialize;
@@ -44,12 +43,12 @@ pub type IPAddr = String;
 
 #[derive(Debug)]
 pub struct LemmyError {
-  inner: failure::Error,
+  inner: anyhow::Error,
 }
 
 impl<T> From<T> for LemmyError
 where
-  T: Into<failure::Error>,
+  T: Into<anyhow::Error>,
 {
   fn from(t: T) -> Self {
     LemmyError { inner: t.into() }

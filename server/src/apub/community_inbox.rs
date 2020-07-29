@@ -12,6 +12,7 @@ use crate::{
 use activitystreams::activity::Undo;
 use activitystreams_new::activity::Follow;
 use actix_web::{client::Client, web, HttpRequest, HttpResponse};
+use anyhow::{anyhow as format_err};
 use lemmy_db::{
   community::{Community, CommunityFollower, CommunityFollowerForm},
   user::User_,

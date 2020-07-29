@@ -35,6 +35,7 @@ use activitystreams::{
   BaseBox,
 };
 use actix_web::{client::Client, web, HttpRequest, HttpResponse};
+use anyhow::{anyhow as format_err};
 use lemmy_db::{
   comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
   comment_view::CommentView,

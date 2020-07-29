@@ -1,12 +1,14 @@
 use crate::LemmyError;
+use anyhow::{anyhow as format_err};
 use std::future::Future;
+use thiserror::Error;
 
-#[derive(Clone, Debug, Fail)]
-#[fail(display = "Error sending request, {}", _0)]
+#[derive(Clone, Debug, Error)]
+#[error("Error sending request, {0}")]
 struct SendError(pub String);
 
-#[derive(Clone, Debug, Fail)]
-#[fail(display = "Error receiving response, {}", _0)]
+#[derive(Clone, Debug, Error)]
+#[error("Error receiving response, {0}")]
 pub struct RecvError(pub String);
 
 pub async fn retry<F, Fut, T>(f: F) -> Result<T, LemmyError>

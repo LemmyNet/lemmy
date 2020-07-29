@@ -31,8 +31,8 @@ use activitystreams_new::{
   prelude::*,
 };
 use actix_web::{body::Body, client::Client, HttpResponse};
+use anyhow::{anyhow as format_err};
 use chrono::NaiveDateTime;
-use failure::_core::fmt::Debug;
 use lemmy_db::{activity::do_insert_activity, user::User_};
 use lemmy_utils::{convert_datetime, get_apub_protocol_string, settings::Settings, MentionData};
 use log::debug;
@@ -346,7 +346,7 @@ pub async fn insert_activity<T>(
   pool: &DbPool,
 ) -> Result<(), LemmyError>
 where
-  T: Serialize + Debug + Send + 'static,
+  T: Serialize + std::fmt::Debug + Send + 'static,
 {
   blocking(pool, move |conn| {
     do_insert_activity(conn, user_id, &data, local)

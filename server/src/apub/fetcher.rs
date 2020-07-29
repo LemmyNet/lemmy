@@ -10,6 +10,7 @@ use crate::{
 use activitystreams::object::Note;
 use activitystreams_new::{base::BaseExt, prelude::*, primitives::XsdAnyUri};
 use actix_web::client::Client;
+use anyhow::{anyhow as format_err};
 use chrono::NaiveDateTime;
 use diesel::{result::Error::NotFound, PgConnection};
 use lemmy_db::{
