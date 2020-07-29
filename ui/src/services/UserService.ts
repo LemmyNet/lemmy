@@ -1,20 +1,22 @@
 import Cookies from 'js-cookie';
-import { User, LoginResponse } from '../interfaces';
+import { User, Claims, LoginResponse } from '../interfaces';
 import { setTheme } from '../utils';
 import jwt_decode from 'jwt-decode';
-import { Subject } from 'rxjs';
+import { Subject, BehaviorSubject } from 'rxjs';
 
 export class UserService {
   private static _instance: UserService;
   public user: User;
-  public sub: Subject<{ user: User }> = new Subject<{
-    user: User;
-  }>();
+  public claims: Claims;
+  public jwtSub: Subject<string> = new Subject<string>();
+  public unreadCountSub: BehaviorSubject<number> = new BehaviorSubject<number>(
+    0
+  );
 
   private constructor() {
     let jwt = Cookies.get('jwt');
     if (jwt) {
-      this.setUser(jwt);
+      this.setClaims(jwt);
     } else {
       setTheme();
       console.log('No JWT cookie found.');
@@ -22,16 +24,17 @@ export class UserService {
   }
 
   public login(res: LoginResponse) {
-    this.setUser(res.jwt);
+    this.setClaims(res.jwt);
     Cookies.set('jwt', res.jwt, { expires: 365 });
     console.log('jwt cookie set');
   }
 
   public logout() {
+    this.claims = undefined;
     this.user = undefined;
     Cookies.remove('jwt');
     setTheme();
-    this.sub.next({ user: undefined });
+    this.jwtSub.next();
     console.log('Logged out.');
   }
 
@@ -39,11 +42,9 @@ export class UserService {
     return Cookies.get('jwt');
   }
 
-  private setUser(jwt: string) {
-    this.user = jwt_decode(jwt);
-    setTheme(this.user.theme, true);
-    this.sub.next({ user: this.user });
-    console.log(this.user);
+  private setClaims(jwt: string) {
+    this.claims = jwt_decode(jwt);
+    this.jwtSub.next(jwt);
   }
 
   public static get Instance() {

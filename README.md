@@ -1,7 +1,7 @@
 <div align="center">
 
 ![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/LemmyNet/lemmy.svg)
-[![Build Status](https://travis-ci.org/LemmyNet/lemmy.svg?branch=master)](https://travis-ci.org/LemmyNet/lemmy)
+[![Build Status](https://travis-ci.org/LemmyNet/lemmy.svg?branch=main)](https://travis-ci.org/LemmyNet/lemmy)
 [![GitHub issues](https://img.shields.io/github/issues-raw/LemmyNet/lemmy.svg)](https://github.com/LemmyNet/lemmy/issues)
 [![Docker Pulls](https://img.shields.io/docker/pulls/dessalines/lemmy.svg)](https://cloud.docker.com/repository/docker/dessalines/lemmy/)
 [![Translation status](http://weblate.yerbamate.dev/widgets/lemmy/-/lemmy/svg-badge.svg)](http://weblate.yerbamate.dev/engage/lemmy/)
@@ -26,7 +26,7 @@
     ·
     <a href="https://github.com/LemmyNet/lemmy/issues">Request Feature</a>
     ·
-    <a href="https://github.com/LemmyNet/lemmy/blob/master/RELEASES.md">Releases</a>
+    <a href="https://github.com/LemmyNet/lemmy/blob/main/RELEASES.md">Releases</a>
   </p>
 </p>
 
@@ -34,7 +34,7 @@
 
 Front Page|Post
 ---|---
-![main screen](https://raw.githubusercontent.com/LemmyNet/lemmy/master/docs/img/main_screen.png)|![chat screen](https://raw.githubusercontent.com/LemmyNet/lemmy/master/docs/img/chat_screen.png)
+![main screen](https://raw.githubusercontent.com/LemmyNet/lemmy/main/docs/img/main_screen.png)|![chat screen](https://raw.githubusercontent.com/LemmyNet/lemmy/main/docs/img/chat_screen.png)
 
 [Lemmy](https://github.com/LemmyNet/lemmy) is similar to sites like [Reddit](https://reddit.com), [Lobste.rs](https://lobste.rs), [Raddle](https://raddle.me), or [Hacker News](https://news.ycombinator.com/): you subscribe to forums you're interested in, post links and discussions, then vote, and comment on them. Behind the scenes, it is very different; anyone can easily run a server, and all these servers are federated (think email), and connected to the same universe, called the [Fediverse](https://en.wikipedia.org/wiki/Fediverse).
 
@@ -103,6 +103,16 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 - [Docker](https://dev.lemmy.ml/docs/administration_install_docker.html)
 - [Ansible](https://dev.lemmy.ml/docs/administration_install_ansible.html)
 - [Kubernetes](https://dev.lemmy.ml/docs/administration_install_kubernetes.html)
+
+## Lemmy Projects
+
+### Apps
+
+- [Lemmy-mobile (Android / IOS) - React native ( under development )](https://github.com/koredefashokun/lemmy-mobile)
+
+### Libraries
+
+- [Kotlin API ( under development )](https://github.com/eiknat/lemmy-client)
 
 ## Support / Donate
 

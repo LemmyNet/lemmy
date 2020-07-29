@@ -1,7 +1,7 @@
 use crate::{
   apub::{
     extensions::signatures::verify,
-    fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user},
+    fetcher::{get_or_fetch_and_upsert_community, get_or_fetch_and_upsert_user},
     insert_activity,
     ActorType,
   },
@@ -9,8 +9,10 @@ use crate::{
   routes::{ChatServerParam, DbPoolParam},
   LemmyError,
 };
-use activitystreams::activity::Undo;
-use activitystreams_new::activity::Follow;
+use activitystreams_new::{
+  activity::{Follow, Undo},
+  prelude::*,
+};
 use actix_web::{client::Client, web, HttpRequest, HttpResponse};
 use anyhow::{anyhow as format_err};
 use lemmy_db::{
@@ -33,14 +35,9 @@ impl CommunityAcceptedObjects {
   fn follow(&self) -> Result<Follow, LemmyError> {
     match self {
       CommunityAcceptedObjects::Follow(f) => Ok(f.to_owned()),
-      CommunityAcceptedObjects::Undo(u) => Ok(
-        u.undo_props
-          .get_object_base_box()
-          .to_owned()
-          .unwrap()
-          .to_owned()
-          .into_concrete::<Follow>()?,
-      ),
+      CommunityAcceptedObjects::Undo(u) => {
+        Ok(Follow::from_any_base(u.object().as_one().unwrap().to_owned())?.unwrap())
+      }
     }
   }
 }
@@ -73,11 +70,11 @@ pub async fn community_inbox(
     &community.name, &input
   );
   let follow = input.follow()?;
-  let user_uri = follow.actor.as_single_xsd_any_uri().unwrap().to_string();
-  let community_uri = follow.object.as_single_xsd_any_uri().unwrap().to_string();
+  let user_uri = follow.actor()?.as_single_xsd_any_uri().unwrap();
+  let community_uri = follow.object().as_single_xsd_any_uri().unwrap();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, &client, &db).await?;
-  let community = get_or_fetch_and_upsert_remote_community(&community_uri, &client, &db).await?;
+  let user = get_or_fetch_and_upsert_user(&user_uri, &client, &db).await?;
+  let community = get_or_fetch_and_upsert_community(community_uri, &client, &db).await?;
 
   verify(&request, &user)?;
 
@@ -109,7 +106,7 @@ async fn handle_follow(
   })
   .await?;
 
-  community.send_accept_follow(&follow, &client, &db).await?;
+  community.send_accept_follow(follow, &client, &db).await?;
 
   Ok(HttpResponse::Ok().finish())
 }

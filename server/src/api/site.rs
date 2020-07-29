@@ -1,8 +1,9 @@
 use super::user::Register;
 use crate::{
-  api::{claims::Claims, APIError, Oper, Perform},
+  api::{claims::Claims, is_admin, APIError, Oper, Perform},
   apub::fetcher::search_by_apub_id,
   blocking,
+  version,
   websocket::{server::SendAllMessage, UserOperation, WebsocketInfo},
   DbPool,
   LemmyError,
@@ -17,6 +18,7 @@ use lemmy_db::{
   post_view::*,
   site::*,
   site_view::*,
+  user::*,
   user_view::*,
   Crud,
   SearchType,
@@ -97,7 +99,9 @@ pub struct EditSite {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct GetSite {}
+pub struct GetSite {
+  auth: Option<String>,
+}
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SiteResponse {
@@ -110,6 +114,8 @@ pub struct GetSiteResponse {
   admins: Vec<UserView>,
   banned: Vec<UserView>,
   pub online: usize,
+  version: String,
+  my_user: Option<User_>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -255,10 +261,7 @@ impl Perform for Oper<CreateSite> {
     let user_id = claims.id;
 
     // Make sure user is an admin
-    let user = blocking(pool, move |conn| UserView::read(conn, user_id)).await??;
-    if !user.admin {
-      return Err(APIError::err("not_an_admin").into());
-    }
+    is_admin(pool, user_id).await?;
 
     let site_form = SiteForm {
       name: data.name.to_owned(),
@@ -309,10 +312,7 @@ impl Perform for Oper<EditSite> {
     let user_id = claims.id;
 
     // Make sure user is an admin
-    let user = blocking(pool, move |conn| UserView::read(conn, user_id)).await??;
-    if !user.admin {
-      return Err(APIError::err("not_an_admin").into());
-    }
+    is_admin(pool, user_id).await?;
 
     let found_site = blocking(pool, move |conn| Site::read(conn, 1)).await??;
 
@@ -356,7 +356,7 @@ impl Perform for Oper<GetSite> {
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<GetSiteResponse, LemmyError> {
-    let _data: &GetSite = &self.data;
+    let data: &GetSite = &self.data;
 
     // TODO refactor this a little
     let res = blocking(pool, move |conn| Site::read(conn, 1)).await?;
@@ -370,6 +370,8 @@ impl Perform for Oper<GetSite> {
         password_verify: setup.admin_password.to_owned(),
         admin: true,
         show_nsfw: true,
+        captcha_uuid: None,
+        captcha_answer: None,
       };
       let login_response = Oper::new(register, self.client.clone())
         .perform(pool, websocket_info.clone())
@@ -419,11 +421,29 @@ impl Perform for Oper<GetSite> {
       0
     };
 
+    // Giving back your user, if you're logged in
+    let my_user: Option<User_> = match &data.auth {
+      Some(auth) => match Claims::decode(&auth) {
+        Ok(claims) => {
+          let user_id = claims.claims.id;
+          let mut user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
+          user.password_encrypted = "".to_string();
+          user.private_key = None;
+          user.public_key = None;
+          Some(user)
+        }
+        Err(_e) => None,
+      },
+      None => None,
+    };
+
     Ok(GetSiteResponse {
       site: site_view,
       admins,
       banned,
       online,
+      version: version::VERSION.to_string(),
+      my_user,
     })
   }
 }
@@ -617,6 +637,11 @@ impl Perform for Oper<TransferSite> {
     };
 
     let user_id = claims.id;
+    let mut user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
+    // TODO add a User_::read_safe() for this.
+    user.password_encrypted = "".to_string();
+    user.private_key = None;
+    user.public_key = None;
 
     let read_site = blocking(pool, move |conn| Site::read(conn, 1)).await??;
 
@@ -666,6 +691,8 @@ impl Perform for Oper<TransferSite> {
       admins,
       banned,
       online: 0,
+      version: version::VERSION.to_string(),
+      my_user: Some(user),
     })
   }
 }
@@ -689,12 +716,7 @@ impl Perform for Oper<GetSiteConfig> {
     let user_id = claims.id;
 
     // Only let admins read this
-    let admins = blocking(pool, move |conn| UserView::admins(conn)).await??;
-    let admin_ids: Vec<i32> = admins.into_iter().map(|m| m.id).collect();
-
-    if !admin_ids.contains(&user_id) {
-      return Err(APIError::err("not_an_admin").into());
-    }
+    is_admin(pool, user_id).await?;
 
     let config_hjson = Settings::read_config_file()?;
 

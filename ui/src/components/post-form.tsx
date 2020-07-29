@@ -1,6 +1,7 @@
 import { Component, linkEvent } from 'inferno';
 import { Prompt } from 'inferno-router';
 import { PostListings } from './post-listings';
+import { MarkdownTextArea } from './markdown-textarea';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import {
@@ -24,22 +25,16 @@ import {
   getPageTitle,
   validURL,
   capitalizeFirstLetter,
-  markdownHelpUrl,
   archiveUrl,
-  mdToHtml,
   debounce,
   isImage,
   toast,
   randomStr,
-  setupTribute,
   setupTippy,
   hostname,
   pictrsDeleteToast,
   validTitle,
 } from '../utils';
-import autosize from 'autosize';
-import Tribute from 'tributejs/src/Tribute.js';
-import emojiShortName from 'emoji-short-name';
 import Choices from 'choices.js';
 import { i18n } from '../i18next';
 
@@ -68,7 +63,6 @@ interface PostFormState {
 
 export class PostForm extends Component<PostFormProps, PostFormState> {
   private id = `post-form-${randomStr()}`;
-  private tribute: Tribute;
   private subscription: Subscription;
   private choices: Choices;
   private emptyState: PostFormState = {
@@ -77,9 +71,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       nsfw: false,
       auth: null,
       community_id: null,
-      creator_id: UserService.Instance.user
-        ? UserService.Instance.user.id
-        : null,
     },
     communities: [],
     loading: false,
@@ -94,8 +85,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     super(props, context);
     this.fetchSimilarPosts = debounce(this.fetchSimilarPosts).bind(this);
     this.fetchPageTitle = debounce(this.fetchPageTitle).bind(this);
-
-    this.tribute = setupTribute();
+    this.handlePostBodyChange = this.handlePostBodyChange.bind(this);
 
     this.state = this.emptyState;
 
@@ -106,7 +96,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
         name: this.props.post.name,
         community_id: this.props.post.community_id,
         edit_id: this.props.post.id,
-        creator_id: this.props.post.creator_id,
         url: this.props.post.url,
         nsfw: this.props.post.nsfw,
         auth: null,
@@ -140,14 +129,6 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
   }
 
   componentDidMount() {
-    var textarea: any = document.getElementById(this.id);
-    autosize(textarea);
-    this.tribute.attach(textarea);
-    textarea.addEventListener('tribute-replaced', () => {
-      this.state.postForm.body = textarea.value;
-      this.setState(this.state);
-      autosize.update(textarea);
-    });
     setupTippy();
   }
 
@@ -166,7 +147,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
 
   componentWillUnmount() {
     this.subscription.unsubscribe();
-    this.choices && this.choices.destroy();
+    /* this.choices && this.choices.destroy(); */
     window.onbeforeunload = null;
   }
 
@@ -305,41 +286,10 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
               {i18n.t('body')}
             </label>
             <div class="col-sm-10">
-              <textarea
-                id={this.id}
-                value={this.state.postForm.body}
-                onInput={linkEvent(this, this.handlePostBodyChange)}
-                className={`form-control ${this.state.previewMode && 'd-none'}`}
-                rows={4}
-                maxLength={10000}
+              <MarkdownTextArea
+                initialContent={this.state.postForm.body}
+                onContentChange={this.handlePostBodyChange}
               />
-              {this.state.previewMode && (
-                <div
-                  className="card card-body md-div"
-                  dangerouslySetInnerHTML={mdToHtml(this.state.postForm.body)}
-                />
-              )}
-              {this.state.postForm.body && (
-                <button
-                  className={`mt-1 mr-2 btn btn-sm btn-secondary ${
-                    this.state.previewMode && 'active'
-                  }`}
-                  onClick={linkEvent(this, this.handlePreviewToggle)}
-                >
-                  {i18n.t('preview')}
-                </button>
-              )}
-              <a
-                href={markdownHelpUrl}
-                target="_blank"
-                rel="noopener"
-                class="d-inline-block float-right text-muted font-weight-bold"
-                title={i18n.t('formatting_help')}
-              >
-                <svg class="icon icon-inline">
-                  <use xlinkHref="#icon-help-circle"></use>
-                </svg>
-              </a>
             </div>
           </div>
           {!this.props.post && (
@@ -499,9 +449,9 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     this.setState(this.state);
   }
 
-  handlePostBodyChange(i: PostForm, event: any) {
-    i.state.postForm.body = event.target.value;
-    i.setState(i.state);
+  handlePostBodyChange(val: string) {
+    this.state.postForm.body = val;
+    this.setState(this.state);
   }
 
   handlePostCommunityChange(i: PostForm, event: any) {

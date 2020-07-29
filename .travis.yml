@@ -1,35 +1,28 @@
-language: rust
-rust:
-  - stable
-matrix:
-  allow_failures:
-    - rust: nightly
-  fast_finish: true
-cache: cargo
-before_cache:
-  - rm -rfv target/debug/incremental/lemmy_server-*
-  - rm -rfv target/debug/.fingerprint/lemmy_server-*
-  - rm -rfv target/debug/build/lemmy_server-*
-  - rm -rfv target/debug/deps/lemmy_server-*
-  - rm -rfv target/debug/lemmy_server.d
-before_script:
-  - psql -c "create user lemmy with password 'password' superuser;" -U postgres
-  - psql -c 'create database lemmy with owner lemmy;' -U postgres
-  - rustup component add clippy --toolchain stable-x86_64-unknown-linux-gnu
-before_install:
-  - cd server
-script:
-  # Default checks, but fail if anything is detected
-  - cargo build
-  - cargo clippy -- -D clippy::style -D clippy::correctness -D clippy::complexity -D clippy::perf
-  - cargo install diesel_cli --no-default-features --features postgres --force
-  - diesel migration run
-  - cargo test --workspace
+sudo: required
+language: node_js
+node_js:
+- 14
+services:
+- docker
 env:
+  matrix:
+  - DOCKER_COMPOSE_VERSION=1.25.5
   global:
-    - DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
-    - LEMMY_DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
-    - RUST_TEST_THREADS=1
-
-addons:
-  postgresql: "9.4"
+  - secure: nzmFoTxPn7OT+qcTULezSCT6B44j/q8RxERBQSr1FVXaCcDrBr6q9ewhGy7BHWP74r4qbif4m9r3sNELZCoFYFP3JwLnrZfX/xUwU8p61eFD2PMOJAdOywDxb94SvooOSnjBmxNvRsuqf6Zmnw378mbsSVCi9Xbx9jpoV4Jq8zKgO0M8WIl/lj2dijD95WIMrHcorbzKS3+2zW3LkPiC2bnfDAUmUDfaCj1gh9FCvzZMtrSxu7kxAeFCkR16TJUciIcGgag8rLHfxwG0h2uEJJ+3/62qCWUdgnj171oTE4ZRi0hdvt2HOY5wjHfS2y1ZxWYgo31uws3pyoTNeQZi0o7Q9Xe/4JXYZXvDfuscSZ9RiuhAstCVswtXPJJVVJQ9cdl5eX1TI0bz8eVRvRy4p40OIBjKiobkmRjl8sXjFbpYAIvFr+TgSa/K/bxm3POfI0B8bIHI85zFxUMrWt5i2IJ0dWvDNHrz+CWWKn1vVFYbBNPgDDHtE0P3LWLEioWFf+ULycjW8DefWc+b63Lf9SSaEE7FnX2mc+BaHCgubCDkJy9Au4xP8zQlJjgZwOdTedw5jvmwz3fqMZBpHypVUXzZs7cRhMWtQ7TAoGb8TOqXNgPEVW+BARNXl0wAamTgjt9v20x0wkp+/SLJwMNY+zvwmzxzd5R9TPgDOqyIRTU=
+  - secure: ALZqC4OYV315P7EZyk+c/PLJdneeU7jMC30TTzMcX3hospIu7naWekZ+HUnziFDQKZxIHWKZsq1R52DWhsERLrPF3SVa+QiXu8vTTPrETBWnu9VgyFzgdEbUKRas1X3qerEAHcNBms1EAl2FOiQM1k5EDygrClv4KWgyzntEtKJbN2UCFKxtoBSdMZA6fcGtCwffcj8uIAIP2NhZixbU+smVgVbpMpe6QEuuEoVlVrfH8iXxb8Gi+qkd0YIYAHkjtTqQ/nHuAUhcuEE0mORTNGPv7CmTwpuQiGCCdtySZc7Qq8z1x2y7RLy0+RVxM0PR8UV6iy4ipyTgZ6wTF30ksLDxOI3GlRaKF3F6kLErOiEiEUOqa+zLgUM0OLGTn+KLATQDx74in5NcKjKUAnkuxdZyuDbifvQb5tqfrGdXd22pzVZbielRJRW59ig0Nr5cxEpRtoRkoFKNk7o3XlD6JmIBjKn1UHkZ4H/oLUKIXT2qOP2fIEzgLjfpSuGwhvJRz1KRP49HYVl7Gkd45/RdZ519W0gnMkIrEaod90iXSFNTgmJTGeH0Mv0jHameN47PIT3c49MOy5Hj0XCHUPfc6qqrdGnliS5hTnrFThCfn5ZuSZxVdgGLJUQvV+D+5KDqjFdGyNGVGoEg0YdrDtGXmpojbyQDJAT7ToL3yIBF7co=
+before_install:
+# Install docker-compose
+- sudo rm /usr/local/bin/docker-compose
+- curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname
+  -s`-`uname -m` > docker-compose
+- chmod +x docker-compose
+- sudo mv docker-compose /usr/local/bin
+# Change dir
+- cd docker/travis
+script:
+- "./run-tests.sh"
+deploy:
+  provider: script
+  script: bash docker_push.sh
+  on:
+    tags: true

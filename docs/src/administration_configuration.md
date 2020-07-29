@@ -1,11 +1,11 @@
 # Configuration
 
 The configuration is based on the file
-[defaults.hjson](https://yerbamate.dev/LemmyNet/lemmy/src/branch/master/server/config/defaults.hjson).
+[defaults.hjson](https://yerbamate.dev/LemmyNet/lemmy/src/branch/main/server/config/defaults.hjson).
 This file also contains documentation for all the available options. To override the defaults, you
 can copy the options you want to change into your local `config.hjson` file.
 
-To use a different `config.hjson` location than the current directory, set the environment variable `LEMMY_CONFIG_LOCATION`.
+To use a different `config.hjson` location than the current directory, set the environment variable `LEMMY_CONFIG_LOCATION`. Make sure you copy the `defaults.hjson` if you do this, otherwise you will be missing settings.
 
 Additionally, you can override any config files with environment variables. These have the same
 name as the config options, and are prefixed with `LEMMY_`. For example, you can override the

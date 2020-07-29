@@ -29,8 +29,8 @@ import {
   toast,
   messageToastify,
   md,
+  setTheme,
 } from '../utils';
-import { version } from '../version';
 import { i18n } from '../i18next';
 
 interface NavbarState {
@@ -41,41 +41,36 @@ interface NavbarState {
   messages: Array<PrivateMessage>;
   unreadCount: number;
   siteName: string;
+  version: string;
   admins: Array<UserView>;
   searchParam: string;
   toggleSearch: boolean;
+  siteLoading: boolean;
 }
 
 export class Navbar extends Component<any, NavbarState> {
   private wsSub: Subscription;
   private userSub: Subscription;
+  private unreadCountSub: Subscription;
   private searchTextField: RefObject<HTMLInputElement>;
   emptyState: NavbarState = {
-    isLoggedIn: UserService.Instance.user !== undefined,
+    isLoggedIn: false,
     unreadCount: 0,
     replies: [],
     mentions: [],
     messages: [],
     expanded: false,
     siteName: undefined,
+    version: undefined,
     admins: [],
     searchParam: '',
     toggleSearch: false,
+    siteLoading: true,
   };
 
   constructor(props: any, context: any) {
     super(props, context);
     this.state = this.emptyState;
-
-    // Subscribe to user changes
-    this.userSub = UserService.Instance.sub.subscribe(user => {
-      this.state.isLoggedIn = user.user !== undefined;
-      if (this.state.isLoggedIn) {
-        this.state.unreadCount = user.user.unreadCount;
-        this.requestNotificationPermission();
-      }
-      this.setState(this.state);
-    });
 
     this.wsSub = WebSocketService.Instance.subject
       .pipe(retryWhen(errors => errors.pipe(delay(3000), take(10))))
@@ -85,15 +80,28 @@ export class Navbar extends Component<any, NavbarState> {
         () => console.log('complete')
       );
 
-    if (this.state.isLoggedIn) {
-      this.requestNotificationPermission();
-      // TODO couldn't get re-logging in to re-fetch unreads
-      this.fetchUnreads();
-    }
-
     WebSocketService.Instance.getSite();
 
     this.searchTextField = createRef();
+  }
+
+  componentDidMount() {
+    // Subscribe to jwt changes
+    this.userSub = UserService.Instance.jwtSub.subscribe(res => {
+      // A login
+      if (res !== undefined) {
+        this.requestNotificationPermission();
+      } else {
+        this.state.isLoggedIn = false;
+      }
+      WebSocketService.Instance.getSite();
+      this.setState(this.state);
+    });
+
+    // Subscribe to unread count changes
+    this.unreadCountSub = UserService.Instance.unreadCountSub.subscribe(res => {
+      this.setState({ unreadCount: res });
+    });
   }
 
   handleSearchParam(i: Navbar, event: any) {
@@ -144,183 +152,203 @@ export class Navbar extends Component<any, NavbarState> {
   componentWillUnmount() {
     this.wsSub.unsubscribe();
     this.userSub.unsubscribe();
+    this.unreadCountSub.unsubscribe();
   }
 
   // TODO class active corresponding to current page
   navbar() {
     return (
-      <nav class="container-fluid navbar navbar-expand-md navbar-light shadow p-0 px-3">
-        <Link title={version} class="navbar-brand" to="/">
-          {this.state.siteName}
-        </Link>
-        {this.state.isLoggedIn && (
-          <Link
-            class="ml-auto p-0 navbar-toggler nav-link"
-            to="/inbox"
-            title={i18n.t('inbox')}
-          >
-            <svg class="icon">
-              <use xlinkHref="#icon-bell"></use>
-            </svg>
-            {this.state.unreadCount > 0 && (
-              <span class="ml-1 badge badge-light">
-                {this.state.unreadCount}
-              </span>
-            )}
-          </Link>
-        )}
-        <button
-          class="navbar-toggler"
-          type="button"
-          aria-label="menu"
-          onClick={linkEvent(this, this.expandNavbar)}
-          data-tippy-content={i18n.t('expand_here')}
-        >
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div
-          className={`${!this.state.expanded && 'collapse'} navbar-collapse`}
-        >
-          <ul class="navbar-nav my-2 mr-auto">
-            <li class="nav-item">
-              <Link
-                class="nav-link"
-                to="/communities"
-                title={i18n.t('communities')}
-              >
-                {i18n.t('communities')}
-              </Link>
-            </li>
-            <li class="nav-item">
-              <Link
-                class="nav-link"
-                to={{
-                  pathname: '/create_post',
-                  state: { prevPath: this.currentLocation },
-                }}
-                title={i18n.t('create_post')}
-              >
-                {i18n.t('create_post')}
-              </Link>
-            </li>
-            <li class="nav-item">
-              <Link
-                class="nav-link"
-                to="/create_community"
-                title={i18n.t('create_community')}
-              >
-                {i18n.t('create_community')}
-              </Link>
-            </li>
-            <li className="nav-item">
-              <Link
-                class="nav-link"
-                to="/sponsors"
-                title={i18n.t('donate_to_lemmy')}
-              >
-                <svg class="icon">
-                  <use xlinkHref="#icon-coffee"></use>
-                </svg>
-              </Link>
-            </li>
-          </ul>
-          {!this.context.router.history.location.pathname.match(
-            /^\/search/
-          ) && (
-            <form
-              class="form-inline"
-              onSubmit={linkEvent(this, this.handleSearchSubmit)}
-            >
-              <input
-                class={`form-control mr-0 search-input ${
-                  this.state.toggleSearch ? 'show-input' : 'hide-input'
-                }`}
-                onInput={linkEvent(this, this.handleSearchParam)}
-                value={this.state.searchParam}
-                ref={this.searchTextField}
-                type="text"
-                placeholder={i18n.t('search')}
-                onBlur={linkEvent(this, this.handleSearchBlur)}
-              ></input>
-              <button
-                name="search-btn"
-                onClick={linkEvent(this, this.handleSearchBtn)}
-                class="btn btn-link"
-                style="color: var(--gray)"
-              >
-                <svg class="icon">
-                  <use xlinkHref="#icon-search"></use>
-                </svg>
-              </button>
-            </form>
+      <nav class="navbar navbar-expand-lg navbar-light shadow-sm p-0 px-3">
+        <div class="container">
+          {!this.state.siteLoading ? (
+            <Link title={this.state.version} class="navbar-brand" to="/">
+              {this.state.siteName}
+            </Link>
+          ) : (
+            <div class="navbar-item">
+              <svg class="icon icon-spinner spin">
+                <use xlinkHref="#icon-spinner"></use>
+              </svg>
+            </div>
           )}
-          <ul class="navbar-nav my-2">
-            {this.canAdmin && (
-              <li className="nav-item">
-                <Link
-                  class="nav-link"
-                  to={`/admin`}
-                  title={i18n.t('admin_settings')}
-                >
-                  <svg class="icon">
-                    <use xlinkHref="#icon-settings"></use>
-                  </svg>
-                </Link>
-              </li>
-            )}
-          </ul>
-          {this.state.isLoggedIn ? (
-            <>
-              <ul class="navbar-nav my-2">
-                <li className="nav-item">
-                  <Link class="nav-link" to="/inbox" title={i18n.t('inbox')}>
-                    <svg class="icon">
-                      <use xlinkHref="#icon-bell"></use>
-                    </svg>
-                    {this.state.unreadCount > 0 && (
-                      <span class="ml-1 badge badge-light">
-                        {this.state.unreadCount}
-                      </span>
-                    )}
+          {this.state.isLoggedIn && (
+            <Link
+              class="ml-auto p-0 navbar-toggler nav-link border-0"
+              to="/inbox"
+              title={i18n.t('inbox')}
+            >
+              <svg class="icon">
+                <use xlinkHref="#icon-bell"></use>
+              </svg>
+              {this.state.unreadCount > 0 && (
+                <span class="ml-1 badge badge-light">
+                  {this.state.unreadCount}
+                </span>
+              )}
+            </Link>
+          )}
+          <button
+            class="navbar-toggler border-0"
+            type="button"
+            aria-label="menu"
+            onClick={linkEvent(this, this.expandNavbar)}
+            data-tippy-content={i18n.t('expand_here')}
+          >
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          {!this.state.siteLoading && (
+            <div
+              className={`${
+                !this.state.expanded && 'collapse'
+              } navbar-collapse`}
+            >
+              <ul class="navbar-nav my-2 mr-auto">
+                <li class="nav-item">
+                  <Link
+                    class="nav-link"
+                    to="/communities"
+                    title={i18n.t('communities')}
+                  >
+                    {i18n.t('communities')}
                   </Link>
                 </li>
-              </ul>
-              <ul class="navbar-nav">
+                <li class="nav-item">
+                  <Link
+                    class="nav-link"
+                    to={{
+                      pathname: '/create_post',
+                      state: { prevPath: this.currentLocation },
+                    }}
+                    title={i18n.t('create_post')}
+                  >
+                    {i18n.t('create_post')}
+                  </Link>
+                </li>
+                <li class="nav-item">
+                  <Link
+                    class="nav-link"
+                    to="/create_community"
+                    title={i18n.t('create_community')}
+                  >
+                    {i18n.t('create_community')}
+                  </Link>
+                </li>
                 <li className="nav-item">
                   <Link
                     class="nav-link"
-                    to={`/u/${UserService.Instance.user.username}`}
-                    title={i18n.t('settings')}
+                    to="/sponsors"
+                    title={i18n.t('donate_to_lemmy')}
                   >
-                    <span>
-                      {UserService.Instance.user.avatar && showAvatars() && (
-                        <img
-                          src={pictrsAvatarThumbnail(
-                            UserService.Instance.user.avatar
-                          )}
-                          height="32"
-                          width="32"
-                          class="rounded-circle mr-2"
-                        />
-                      )}
-                      {UserService.Instance.user.username}
-                    </span>
+                    <svg class="icon">
+                      <use xlinkHref="#icon-coffee"></use>
+                    </svg>
                   </Link>
                 </li>
               </ul>
-            </>
-          ) : (
-            <ul class="navbar-nav my-2">
-              <li className="nav-item">
-                <Link
-                  class="nav-link"
-                  to="/login"
-                  title={i18n.t('login_sign_up')}
+              {!this.context.router.history.location.pathname.match(
+                /^\/search/
+              ) && (
+                <form
+                  class="form-inline"
+                  onSubmit={linkEvent(this, this.handleSearchSubmit)}
                 >
-                  {i18n.t('login_sign_up')}
-                </Link>
-              </li>
-            </ul>
+                  <input
+                    class={`form-control mr-0 search-input ${
+                      this.state.toggleSearch ? 'show-input' : 'hide-input'
+                    }`}
+                    onInput={linkEvent(this, this.handleSearchParam)}
+                    value={this.state.searchParam}
+                    ref={this.searchTextField}
+                    type="text"
+                    placeholder={i18n.t('search')}
+                    onBlur={linkEvent(this, this.handleSearchBlur)}
+                  ></input>
+                  <button
+                    name="search-btn"
+                    onClick={linkEvent(this, this.handleSearchBtn)}
+                    class="btn btn-link"
+                    style="color: var(--gray)"
+                  >
+                    <svg class="icon">
+                      <use xlinkHref="#icon-search"></use>
+                    </svg>
+                  </button>
+                </form>
+              )}
+              <ul class="navbar-nav my-2">
+                {this.canAdmin && (
+                  <li className="nav-item">
+                    <Link
+                      class="nav-link"
+                      to={`/admin`}
+                      title={i18n.t('admin_settings')}
+                    >
+                      <svg class="icon">
+                        <use xlinkHref="#icon-settings"></use>
+                      </svg>
+                    </Link>
+                  </li>
+                )}
+              </ul>
+              {this.state.isLoggedIn ? (
+                <>
+                  <ul class="navbar-nav my-2">
+                    <li className="nav-item">
+                      <Link
+                        class="nav-link"
+                        to="/inbox"
+                        title={i18n.t('inbox')}
+                      >
+                        <svg class="icon">
+                          <use xlinkHref="#icon-bell"></use>
+                        </svg>
+                        {this.state.unreadCount > 0 && (
+                          <span class="ml-1 badge badge-light">
+                            {this.state.unreadCount}
+                          </span>
+                        )}
+                      </Link>
+                    </li>
+                  </ul>
+                  <ul class="navbar-nav">
+                    <li className="nav-item">
+                      <Link
+                        class="nav-link"
+                        to={`/u/${UserService.Instance.user.name}`}
+                        title={i18n.t('settings')}
+                      >
+                        <span>
+                          {UserService.Instance.user.avatar &&
+                            showAvatars() && (
+                              <img
+                                src={pictrsAvatarThumbnail(
+                                  UserService.Instance.user.avatar
+                                )}
+                                height="32"
+                                width="32"
+                                class="rounded-circle mr-2"
+                              />
+                            )}
+                          {UserService.Instance.user.name}
+                        </span>
+                      </Link>
+                    </li>
+                  </ul>
+                </>
+              ) : (
+                <ul class="navbar-nav my-2">
+                  <li className="nav-item">
+                    <Link
+                      class="btn btn-success"
+                      to="/login"
+                      title={i18n.t('login_sign_up')}
+                    >
+                      {i18n.t('login_sign_up')}
+                    </Link>
+                  </li>
+                </ul>
+              )}
+            </div>
           )}
         </div>
       </nav>
@@ -395,39 +423,54 @@ export class Navbar extends Component<any, NavbarState> {
 
       if (data.site && !this.state.siteName) {
         this.state.siteName = data.site.name;
+        this.state.version = data.version;
         this.state.admins = data.admins;
-        this.setState(this.state);
       }
+
+      // The login
+      if (data.my_user) {
+        UserService.Instance.user = data.my_user;
+        // On the first load, check the unreads
+        if (this.state.isLoggedIn == false) {
+          this.requestNotificationPermission();
+          this.fetchUnreads();
+          setTheme(data.my_user.theme, true);
+          i18n.changeLanguage(data.my_user.lang);
+        }
+        this.state.isLoggedIn = true;
+      }
+
+      this.state.siteLoading = false;
+      this.setState(this.state);
     }
   }
 
   fetchUnreads() {
-    if (this.state.isLoggedIn) {
-      let repliesForm: GetRepliesForm = {
-        sort: SortType[SortType.New],
-        unread_only: true,
-        page: 1,
-        limit: fetchLimit,
-      };
+    console.log('Fetching unreads...');
+    let repliesForm: GetRepliesForm = {
+      sort: SortType[SortType.New],
+      unread_only: true,
+      page: 1,
+      limit: fetchLimit,
+    };
 
-      let userMentionsForm: GetUserMentionsForm = {
-        sort: SortType[SortType.New],
-        unread_only: true,
-        page: 1,
-        limit: fetchLimit,
-      };
+    let userMentionsForm: GetUserMentionsForm = {
+      sort: SortType[SortType.New],
+      unread_only: true,
+      page: 1,
+      limit: fetchLimit,
+    };
 
-      let privateMessagesForm: GetPrivateMessagesForm = {
-        unread_only: true,
-        page: 1,
-        limit: fetchLimit,
-      };
+    let privateMessagesForm: GetPrivateMessagesForm = {
+      unread_only: true,
+      page: 1,
+      limit: fetchLimit,
+    };
 
-      if (this.currentLocation !== '/inbox') {
-        WebSocketService.Instance.getReplies(repliesForm);
-        WebSocketService.Instance.getUserMentions(userMentionsForm);
-        WebSocketService.Instance.getPrivateMessages(privateMessagesForm);
-      }
+    if (this.currentLocation !== '/inbox') {
+      WebSocketService.Instance.getReplies(repliesForm);
+      WebSocketService.Instance.getUserMentions(userMentionsForm);
+      WebSocketService.Instance.getPrivateMessages(privateMessagesForm);
     }
   }
 
@@ -436,10 +479,7 @@ export class Navbar extends Component<any, NavbarState> {
   }
 
   sendUnreadCount() {
-    UserService.Instance.user.unreadCount = this.state.unreadCount;
-    UserService.Instance.sub.next({
-      user: UserService.Instance.user,
-    });
+    UserService.Instance.unreadCountSub.next(this.state.unreadCount);
   }
 
   calculateUnreadCount(): number {

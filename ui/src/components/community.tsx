@@ -1,4 +1,5 @@
 import { Component, linkEvent } from 'inferno';
+import { Helmet } from 'inferno-helmet';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import {
@@ -174,10 +175,18 @@ export class Community extends Component<any, State> {
     }
   }
 
+  get documentTitle(): string {
+    if (this.state.community.title) {
+      return `${this.state.community.title} - ${this.state.site.name}`;
+    } else {
+      return 'Lemmy';
+    }
+  }
+
   render() {
     return (
       <div class="container">
-        {this.selects()}
+        <Helmet title={this.documentTitle} />
         {this.state.loading ? (
           <h5>
             <svg class="icon icon-spinner spin">
@@ -187,19 +196,7 @@ export class Community extends Component<any, State> {
         ) : (
           <div class="row">
             <div class="col-12 col-md-8">
-              <h5>
-                {this.state.community.title}
-                {this.state.community.removed && (
-                  <small className="ml-2 text-muted font-italic">
-                    {i18n.t('removed')}
-                  </small>
-                )}
-                {this.state.community.nsfw && (
-                  <small className="ml-2 text-muted font-italic">
-                    {i18n.t('nsfw')}
-                  </small>
-                )}
-              </h5>
+              {this.selects()}
               {this.listings()}
               {this.paginator()}
             </div>
@@ -271,7 +268,7 @@ export class Community extends Component<any, State> {
       <div class="my-2">
         {this.state.page > 1 && (
           <button
-            class="btn btn-sm btn-secondary mr-1"
+            class="btn btn-secondary mr-1"
             onClick={linkEvent(this, this.prevPage)}
           >
             {i18n.t('prev')}
@@ -279,7 +276,7 @@ export class Community extends Component<any, State> {
         )}
         {this.state.posts.length > 0 && (
           <button
-            class="btn btn-sm btn-secondary"
+            class="btn btn-secondary"
             onClick={linkEvent(this, this.nextPage)}
           >
             {i18n.t('next')}
@@ -355,12 +352,14 @@ export class Community extends Component<any, State> {
       let data = res.data as GetCommunityResponse;
       this.state.community = data.community;
       this.state.moderators = data.moderators;
-      this.state.admins = data.admins;
       this.state.online = data.online;
-      document.title = `/c/${this.state.community.name} - ${this.state.site.name}`;
       this.setState(this.state);
       this.fetchData();
-    } else if (res.op == UserOperation.EditCommunity) {
+    } else if (
+      res.op == UserOperation.EditCommunity ||
+      res.op == UserOperation.DeleteCommunity ||
+      res.op == UserOperation.RemoveCommunity
+    ) {
       let data = res.data as CommunityResponse;
       this.state.community = data.community;
       this.setState(this.state);
@@ -376,7 +375,13 @@ export class Community extends Component<any, State> {
       this.state.loading = false;
       this.setState(this.state);
       setupTippy();
-    } else if (res.op == UserOperation.EditPost) {
+    } else if (
+      res.op == UserOperation.EditPost ||
+      res.op == UserOperation.DeletePost ||
+      res.op == UserOperation.RemovePost ||
+      res.op == UserOperation.LockPost ||
+      res.op == UserOperation.StickyPost
+    ) {
       let data = res.data as PostResponse;
       editPostFindRes(data, this.state.posts);
       this.setState(this.state);
@@ -405,7 +410,11 @@ export class Community extends Component<any, State> {
       this.state.comments = data.comments;
       this.state.loading = false;
       this.setState(this.state);
-    } else if (res.op == UserOperation.EditComment) {
+    } else if (
+      res.op == UserOperation.EditComment ||
+      res.op == UserOperation.DeleteComment ||
+      res.op == UserOperation.RemoveComment
+    ) {
       let data = res.data as CommentResponse;
       editCommentRes(data, this.state.comments);
       this.setState(this.state);
@@ -428,6 +437,7 @@ export class Community extends Component<any, State> {
     } else if (res.op == UserOperation.GetSite) {
       let data = res.data as GetSiteResponse;
       this.state.site = data.site;
+      this.state.admins = data.admins;
       this.setState(this.state);
     }
   }

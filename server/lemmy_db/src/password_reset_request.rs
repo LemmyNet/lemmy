@@ -105,7 +105,7 @@ mod tests {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
-      actor_id: "http://fake.com".into(),
+      actor_id: "changeme_8292378".into(),
       bio: None,
       local: true,
       private_key: None,

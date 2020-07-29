@@ -1,4 +1,5 @@
 import { Component, linkEvent } from 'inferno';
+import { Helmet } from 'inferno-helmet';
 import { Link } from 'inferno-router';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
@@ -13,9 +14,9 @@ import {
   DeleteAccountForm,
   WebSocketJsonResponse,
   GetSiteResponse,
-  Site,
   UserDetailsView,
   UserDetailsResponse,
+  AddAdminResponse,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import {
@@ -54,7 +55,7 @@ interface UserState {
   deleteAccountLoading: boolean;
   deleteAccountShowConfirm: boolean;
   deleteAccountForm: DeleteAccountForm;
-  site: Site;
+  siteRes: GetSiteResponse;
 }
 
 interface UserProps {
@@ -93,7 +94,7 @@ export class User extends Component<any, UserState> {
     username: null,
     follows: [],
     moderates: [],
-    loading: false,
+    loading: true,
     avatarLoading: false,
     view: User.getViewFromProps(this.props.match.view),
     sort: User.getSortTypeFromProps(this.props.match.sort),
@@ -114,19 +115,25 @@ export class User extends Component<any, UserState> {
     deleteAccountForm: {
       password: null,
     },
-    site: {
-      id: undefined,
-      name: undefined,
-      creator_id: undefined,
-      published: undefined,
-      creator_name: undefined,
-      number_of_users: undefined,
-      number_of_posts: undefined,
-      number_of_comments: undefined,
-      number_of_communities: undefined,
-      enable_downvotes: undefined,
-      open_registration: undefined,
-      enable_nsfw: undefined,
+    siteRes: {
+      admins: [],
+      banned: [],
+      online: undefined,
+      site: {
+        id: undefined,
+        name: undefined,
+        creator_id: undefined,
+        published: undefined,
+        creator_name: undefined,
+        number_of_users: undefined,
+        number_of_posts: undefined,
+        number_of_comments: undefined,
+        number_of_communities: undefined,
+        enable_downvotes: undefined,
+        open_registration: undefined,
+        enable_nsfw: undefined,
+      },
+      version: undefined,
     },
   };
 
@@ -201,63 +208,75 @@ export class User extends Component<any, UserState> {
       // Couldnt get a refresh working. This does for now.
       location.reload();
     }
-    document.title = `/u/${this.state.username} - ${this.state.site.name}`;
     setupTippy();
+  }
+
+  get documentTitle(): string {
+    if (this.state.siteRes.site.name) {
+      return `@${this.state.username} - ${this.state.siteRes.site.name}`;
+    } else {
+      return 'Lemmy';
+    }
   }
 
   render() {
     return (
       <div class="container">
-        {this.state.loading ? (
-          <h5>
-            <svg class="icon icon-spinner spin">
-              <use xlinkHref="#icon-spinner"></use>
-            </svg>
-          </h5>
-        ) : (
-          <div class="row">
-            <div class="col-12 col-md-8">
+        <Helmet title={this.documentTitle} />
+        <div class="row">
+          <div class="col-12 col-md-8">
+            <h5>
+              {this.state.user.avatar && showAvatars() && (
+                <img
+                  height="80"
+                  width="80"
+                  src={this.state.user.avatar}
+                  class="rounded-circle mr-2"
+                />
+              )}
+              <span>@{this.state.username}</span>
+            </h5>
+            {this.state.loading ? (
               <h5>
-                {this.state.user.avatar && showAvatars() && (
-                  <img
-                    height="80"
-                    width="80"
-                    src={this.state.user.avatar}
-                    class="rounded-circle mr-2"
-                  />
-                )}
-                <span>/u/{this.state.username}</span>
+                <svg class="icon icon-spinner spin">
+                  <use xlinkHref="#icon-spinner"></use>
+                </svg>
               </h5>
-              {this.selects()}
-              <UserDetails
-                user_id={this.state.user_id}
-                username={this.state.username}
-                sort={SortType[this.state.sort]}
-                page={this.state.page}
-                limit={fetchLimit}
-                enableDownvotes={this.state.site.enable_downvotes}
-                enableNsfw={this.state.site.enable_nsfw}
-                view={this.state.view}
-                onPageChange={this.handlePageChange}
-              />
-            </div>
+            ) : (
+              this.selects()
+            )}
+            <UserDetails
+              user_id={this.state.user_id}
+              username={this.state.username}
+              sort={SortType[this.state.sort]}
+              page={this.state.page}
+              limit={fetchLimit}
+              enableDownvotes={this.state.siteRes.site.enable_downvotes}
+              enableNsfw={this.state.siteRes.site.enable_nsfw}
+              admins={this.state.siteRes.admins}
+              view={this.state.view}
+              onPageChange={this.handlePageChange}
+            />
+          </div>
+
+          {!this.state.loading && (
             <div class="col-12 col-md-4">
               {this.userInfo()}
               {this.isCurrentUser && this.userSettings()}
               {this.moderates()}
               {this.follows()}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     );
   }
 
   viewRadios() {
     return (
-      <div class="btn-group btn-group-toggle">
+      <div class="btn-group btn-group-toggle flex-wrap mb-2">
         <label
-          className={`btn btn-sm btn-secondary pointer btn-outline-light
+          className={`btn btn-outline-secondary pointer
             ${this.state.view == UserDetailsView.Overview && 'active'}
           `}
         >
@@ -270,7 +289,7 @@ export class User extends Component<any, UserState> {
           {i18n.t('overview')}
         </label>
         <label
-          className={`btn btn-sm btn-secondary pointer btn-outline-light
+          className={`btn btn-outline-secondary pointer
             ${this.state.view == UserDetailsView.Comments && 'active'}
           `}
         >
@@ -283,7 +302,7 @@ export class User extends Component<any, UserState> {
           {i18n.t('comments')}
         </label>
         <label
-          className={`btn btn-sm btn-secondary pointer btn-outline-light
+          className={`btn btn-outline-secondary pointer
             ${this.state.view == UserDetailsView.Posts && 'active'}
           `}
         >
@@ -296,7 +315,7 @@ export class User extends Component<any, UserState> {
           {i18n.t('posts')}
         </label>
         <label
-          className={`btn btn-sm btn-secondary pointer btn-outline-light
+          className={`btn btn-outline-secondary pointer
             ${this.state.view == UserDetailsView.Saved && 'active'}
           `}
         >
@@ -341,7 +360,7 @@ export class User extends Component<any, UserState> {
     let user = this.state.user;
     return (
       <div>
-        <div class="card border-secondary mb-3">
+        <div class="card bg-transparent border-secondary mb-3">
           <div class="card-body">
             <h5>
               <ul class="list-inline mb-0">
@@ -379,7 +398,7 @@ export class User extends Component<any, UserState> {
                 </tr>
                 */}
                 <tr>
-                  {/* 
+                  {/*
                   <td>
                     {i18n.t('number_of_points', { count: user.post_score })}
                   </td>
@@ -387,7 +406,7 @@ export class User extends Component<any, UserState> {
                   <td>
                     {i18n.t('number_of_posts', { count: user.number_of_posts })}
                   </td>
-                  {/* 
+                  {/*
                 </tr>
                 <tr>
                   <td>
@@ -438,7 +457,7 @@ export class User extends Component<any, UserState> {
   userSettings() {
     return (
       <div>
-        <div class="card border-secondary mb-3">
+        <div class="card bg-transparent border-secondary mb-3">
           <div class="card-body">
             <h5>{i18n.t('settings')}</h5>
             <form onSubmit={linkEvent(this, this.handleUserSettingsSubmit)}>
@@ -450,7 +469,7 @@ export class User extends Component<any, UserState> {
                     class="pointer ml-4 text-muted small font-weight-bold"
                   >
                     {!this.checkSettingsAvatar ? (
-                      <span class="btn btn-sm btn-secondary">
+                      <span class="btn btn-secondary">
                         {i18n.t('upload_avatar')}
                       </span>
                     ) : (
@@ -490,7 +509,7 @@ export class User extends Component<any, UserState> {
                 <select
                   value={this.state.userSettingsForm.lang}
                   onChange={linkEvent(this, this.handleUserSettingsLangChange)}
-                  class="ml-2 custom-select custom-select-sm w-auto"
+                  class="ml-2 custom-select w-auto"
                 >
                   <option disabled>{i18n.t('language')}</option>
                   <option value="browser">{i18n.t('browser_default')}</option>
@@ -505,7 +524,7 @@ export class User extends Component<any, UserState> {
                 <select
                   value={this.state.userSettingsForm.theme}
                   onChange={linkEvent(this, this.handleUserSettingsThemeChange)}
-                  class="ml-2 custom-select custom-select-sm w-auto"
+                  class="ml-2 custom-select w-auto"
                 >
                   <option disabled>{i18n.t('theme')}</option>
                   {themes.map(theme => (
@@ -634,7 +653,7 @@ export class User extends Component<any, UserState> {
                   />
                 </div>
               </div>
-              {this.state.site.enable_nsfw && (
+              {this.state.siteRes.site.enable_nsfw && (
                 <div class="form-group">
                   <div class="form-check">
                     <input
@@ -766,7 +785,7 @@ export class User extends Component<any, UserState> {
     return (
       <div>
         {this.state.moderates.length > 0 && (
-          <div class="card border-secondary mb-3">
+          <div class="card bg-transparent border-secondary mb-3">
             <div class="card-body">
               <h5>{i18n.t('moderates')}</h5>
               <ul class="list-unstyled mb-0">
@@ -789,7 +808,7 @@ export class User extends Component<any, UserState> {
     return (
       <div>
         {this.state.follows.length > 0 && (
-          <div class="card border-secondary mb-3">
+          <div class="card bg-transparent border-secondary mb-3">
             <div class="card-body">
               <h5>{i18n.t('subscribed')}</h5>
               <ul class="list-unstyled mb-0">
@@ -1001,6 +1020,7 @@ export class User extends Component<any, UserState> {
   }
 
   parseMessage(msg: WebSocketJsonResponse) {
+    console.log(msg);
     const res = wsJsonToRes(msg);
     if (msg.error) {
       toast(i18n.t(msg.error), 'danger');
@@ -1041,6 +1061,7 @@ export class User extends Component<any, UserState> {
             UserService.Instance.user.show_avatars;
           this.state.userSettingsForm.matrix_user_id = this.state.user.matrix_user_id;
         }
+        this.state.loading = false;
         this.setState(this.state);
       }
     } else if (res.op == UserOperation.SaveUserSettings) {
@@ -1058,9 +1079,12 @@ export class User extends Component<any, UserState> {
       this.context.router.history.push('/');
     } else if (res.op == UserOperation.GetSite) {
       const data = res.data as GetSiteResponse;
-      this.setState({
-        site: data.site,
-      });
+      this.state.siteRes = data;
+      this.setState(this.state);
+    } else if (res.op == UserOperation.AddAdmin) {
+      const data = res.data as AddAdminResponse;
+      this.state.siteRes.admins = data.admins;
+      this.setState(this.state);
     }
   }
 }

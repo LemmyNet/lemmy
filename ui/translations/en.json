@@ -51,6 +51,15 @@
     "unsticky": "unsticky",
     "link": "link",
     "archive_link": "archive link",
+    "bold": "bold",
+    "italic": "italic",
+    "subscript": "subscript",
+    "superscript": "superscript",
+    "header": "header",
+    "strikethrough": "strikethrough",
+    "quote": "quote",
+    "spoiler": "spoiler",
+    "list": "list",
     "mod": "mod",
     "mods": "mods",
     "moderates": "Moderates",
@@ -154,7 +163,7 @@
     "email": "Email",
     "matrix_user_id": "Matrix User",
     "private_message_disclaimer":
-      "Warning: Private messages in Lemmy are not secure. Please create an account on <1>Riot.im</1> for secure messaging.",
+      "Warning: Private messages in Lemmy are not secure. Please create an account on <1>Element.io</1> for secure messaging.",
     "send_notifications_to_email": "Send notifications to Email",
     "optional": "Optional",
     "expires": "Expires",
@@ -247,6 +256,7 @@
     "couldnt_save_post": "Couldn't save post.",
     "no_slurs": "No slurs.",
     "not_an_admin": "Not an admin.",
+    "not_a_moderator": "Not a moderator.",
     "site_already_exists": "Site already exists.",
     "couldnt_update_site": "Couldn't update site.",
     "couldnt_find_that_username_or_email":
@@ -254,6 +264,8 @@
     "password_incorrect": "Password incorrect.",
     "passwords_dont_match": "Passwords do not match.",
     "no_password_reset": "You will not be able to reset your password without an email.",
+    "captcha_incorrect": "Captcha incorrect.",
+    "enter_code": "Enter Code",
     "invalid_username": "Invalid username.",
     "admin_already_created": "Sorry, there's already an admin.",
     "user_already_exists": "User already exists.",
@@ -270,5 +282,7 @@
     "what_is": "What is",
     "cake_day_title": "Cake day:",
     "cake_day_info": "It's {{ creator_name }}'s cake day today!",
-    "invalid_post_title": "Invalid post title"
+    "invalid_post_title": "Invalid post title",
+    "invalid_url": "Invalid URL.",
+    "play_captcha_audio": "Play Captcha Audio"
 }

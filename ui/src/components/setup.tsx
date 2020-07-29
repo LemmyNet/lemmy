@@ -1,4 +1,5 @@
 import { Component, linkEvent } from 'inferno';
+import { Helmet } from 'inferno-helmet';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
 import {
@@ -28,6 +29,9 @@ export class Setup extends Component<any, State> {
       password_verify: undefined,
       admin: true,
       show_nsfw: true,
+      // The first admin signup doesn't need a captcha
+      captcha_uuid: '',
+      captcha_answer: '',
     },
     doneRegisteringUser: false,
     userLoading: false,
@@ -51,13 +55,14 @@ export class Setup extends Component<any, State> {
     this.subscription.unsubscribe();
   }
 
-  componentDidMount() {
-    document.title = `${i18n.t('setup')} - Lemmy`;
+  get documentTitle(): string {
+    return `${i18n.t('setup')} - Lemmy`;
   }
 
   render() {
     return (
       <div class="container">
+        <Helmet title={this.documentTitle} />
         <div class="row">
           <div class="col-12 offset-lg-3 col-lg-6">
             <h3>{i18n.t('lemmy_instance_setup')}</h3>

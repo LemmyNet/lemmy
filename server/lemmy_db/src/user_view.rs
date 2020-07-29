@@ -56,14 +56,14 @@ pub struct UserView {
   pub actor_id: String,
   pub name: String,
   pub avatar: Option<String>,
-  pub email: Option<String>,
+  pub email: Option<String>, // TODO this shouldn't be in this view
   pub matrix_user_id: Option<String>,
   pub bio: Option<String>,
   pub local: bool,
   pub admin: bool,
   pub banned: bool,
-  pub show_avatars: bool,
-  pub send_notifications_to_email: bool,
+  pub show_avatars: bool, // TODO this is a setting, probably doesn't need to be here
+  pub send_notifications_to_email: bool, // TODO also never used
   pub published: chrono::NaiveDateTime,
   pub number_of_posts: i64,
   pub post_score: i64,
@@ -157,7 +157,28 @@ impl UserView {
 
   pub fn admins(conn: &PgConnection) -> Result<Vec<Self>, Error> {
     use super::user_view::user_fast::dsl::*;
+    use diesel::sql_types::{Nullable, Text};
     user_fast
+      // The select is necessary here to not get back emails
+      .select((
+        id,
+        actor_id,
+        name,
+        avatar,
+        "".into_sql::<Nullable<Text>>(),
+        matrix_user_id,
+        bio,
+        local,
+        admin,
+        banned,
+        show_avatars,
+        send_notifications_to_email,
+        published,
+        number_of_posts,
+        post_score,
+        number_of_comments,
+        comment_score,
+      ))
       .filter(admin.eq(true))
       .order_by(published)
       .load::<Self>(conn)
@@ -165,6 +186,28 @@ impl UserView {
 
   pub fn banned(conn: &PgConnection) -> Result<Vec<Self>, Error> {
     use super::user_view::user_fast::dsl::*;
-    user_fast.filter(banned.eq(true)).load::<Self>(conn)
+    use diesel::sql_types::{Nullable, Text};
+    user_fast
+      .select((
+        id,
+        actor_id,
+        name,
+        avatar,
+        "".into_sql::<Nullable<Text>>(),
+        matrix_user_id,
+        bio,
+        local,
+        admin,
+        banned,
+        show_avatars,
+        send_notifications_to_email,
+        published,
+        number_of_posts,
+        post_score,
+        number_of_comments,
+        comment_score,
+      ))
+      .filter(banned.eq(true))
+      .load::<Self>(conn)
   }
 }

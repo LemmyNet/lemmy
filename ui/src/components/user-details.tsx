@@ -1,7 +1,7 @@
 import { Component, linkEvent } from 'inferno';
 import { WebSocketService, UserService } from '../services';
 import { Subscription } from 'rxjs';
-import { retryWhen, delay, take, last } from 'rxjs/operators';
+import { retryWhen, delay, take } from 'rxjs/operators';
 import { i18n } from '../i18next';
 import {
   UserOperation,
@@ -16,7 +16,6 @@ import {
   CommentResponse,
   BanUserResponse,
   PostResponse,
-  AddAdminResponse,
 } from '../interfaces';
 import {
   wsJsonToRes,
@@ -41,6 +40,7 @@ interface UserDetailsProps {
   enableNsfw: boolean;
   view: UserDetailsView;
   onPageChange(page: number): number | any;
+  admins: Array<UserView>;
 }
 
 interface UserDetailsState {
@@ -49,7 +49,6 @@ interface UserDetailsState {
   comments: Array<Comment>;
   posts: Array<Post>;
   saved?: Array<Post>;
-  admins: Array<UserView>;
 }
 
 export class UserDetails extends Component<UserDetailsProps, UserDetailsState> {
@@ -63,7 +62,6 @@ export class UserDetails extends Component<UserDetailsProps, UserDetailsState> {
       comments: [],
       posts: [],
       saved: [],
-      admins: [],
     };
 
     this.subscription = WebSocketService.Instance.subject
@@ -148,25 +146,30 @@ export class UserDetails extends Component<UserDetailsProps, UserDetailsState> {
     return (
       <div>
         {combined.map(i => (
-          <div>
-            {i.type === 'posts' ? (
-              <PostListing
-                post={i.data as Post}
-                admins={this.state.admins}
-                showCommunity
-                enableDownvotes={this.props.enableDownvotes}
-                enableNsfw={this.props.enableNsfw}
-              />
-            ) : (
-              <CommentNodes
-                nodes={[{ comment: i.data as Comment }]}
-                admins={this.state.admins}
-                noIndent
-                showContext
-                enableDownvotes={this.props.enableDownvotes}
-              />
-            )}
-          </div>
+          <>
+            <div>
+              {i.type === 'posts' ? (
+                <PostListing
+                  post={i.data as Post}
+                  admins={this.props.admins}
+                  showCommunity
+                  enableDownvotes={this.props.enableDownvotes}
+                  enableNsfw={this.props.enableNsfw}
+                />
+              ) : (
+                <CommentNodes
+                  nodes={[{ comment: i.data as Comment }]}
+                  admins={this.props.admins}
+                  noBorder
+                  noIndent
+                  showCommunity
+                  showContext
+                  enableDownvotes={this.props.enableDownvotes}
+                />
+              )}
+            </div>
+            <hr class="my-3" />
+          </>
         ))}
       </div>
     );
@@ -177,8 +180,9 @@ export class UserDetails extends Component<UserDetailsProps, UserDetailsState> {
       <div>
         <CommentNodes
           nodes={commentsToFlatNodes(this.state.comments)}
-          admins={this.state.admins}
+          admins={this.props.admins}
           noIndent
+          showCommunity
           showContext
           enableDownvotes={this.props.enableDownvotes}
         />
@@ -190,13 +194,16 @@ export class UserDetails extends Component<UserDetailsProps, UserDetailsState> {
     return (
       <div>
         {this.state.posts.map(post => (
-          <PostListing
-            post={post}
-            admins={this.state.admins}
-            showCommunity
-            enableDownvotes={this.props.enableDownvotes}
-            enableNsfw={this.props.enableNsfw}
-          />
+          <>
+            <PostListing
+              post={post}
+              admins={this.props.admins}
+              showCommunity
+              enableDownvotes={this.props.enableDownvotes}
+              enableNsfw={this.props.enableNsfw}
+            />
+            <hr class="my-3" />
+          </>
         ))}
       </div>
     );
@@ -207,7 +214,7 @@ export class UserDetails extends Component<UserDetailsProps, UserDetailsState> {
       <div class="my-2">
         {this.props.page > 1 && (
           <button
-            class="btn btn-sm btn-secondary mr-1"
+            class="btn btn-secondary mr-1"
             onClick={linkEvent(this, this.prevPage)}
           >
             {i18n.t('prev')}
@@ -215,7 +222,7 @@ export class UserDetails extends Component<UserDetailsProps, UserDetailsState> {
         )}
         {this.state.comments.length + this.state.posts.length > 0 && (
           <button
-            class="btn btn-sm btn-secondary"
+            class="btn btn-secondary"
             onClick={linkEvent(this, this.nextPage)}
           >
             {i18n.t('next')}
@@ -234,6 +241,7 @@ export class UserDetails extends Component<UserDetailsProps, UserDetailsState> {
   }
 
   parseMessage(msg: WebSocketJsonResponse) {
+    console.log(msg);
     const res = wsJsonToRes(msg);
 
     if (msg.error) {
@@ -251,7 +259,6 @@ export class UserDetails extends Component<UserDetailsProps, UserDetailsState> {
         follows: data.follows,
         moderates: data.moderates,
         posts: data.posts,
-        admins: data.admins,
       });
     } else if (res.op == UserOperation.CreateCommentLike) {
       const data = res.data as CommentResponse;
@@ -259,7 +266,11 @@ export class UserDetails extends Component<UserDetailsProps, UserDetailsState> {
       this.setState({
         comments: this.state.comments,
       });
-    } else if (res.op == UserOperation.EditComment) {
+    } else if (
+      res.op == UserOperation.EditComment ||
+      res.op == UserOperation.DeleteComment ||
+      res.op == UserOperation.RemoveComment
+    ) {
       const data = res.data as CommentResponse;
       editCommentRes(data, this.state.comments);
       this.setState({
@@ -296,11 +307,6 @@ export class UserDetails extends Component<UserDetailsProps, UserDetailsState> {
       this.setState({
         posts: this.state.posts,
         comments: this.state.comments,
-      });
-    } else if (res.op == UserOperation.AddAdmin) {
-      const data = res.data as AddAdminResponse;
-      this.setState({
-        admins: data.admins,
       });
     }
   }

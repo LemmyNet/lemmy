@@ -16,6 +16,7 @@ use crate::{
   UserId,
 };
 use actix_web::client::Client;
+use lemmy_db::naive_now;
 
 /// Chat server sends this messages to session
 #[derive(Message)]
@@ -134,6 +135,21 @@ pub struct SessionInfo {
   pub ip: IPAddr,
 }
 
+#[derive(Message, Debug)]
+#[rtype(result = "()")]
+pub struct CaptchaItem {
+  pub uuid: String,
+  pub answer: String,
+  pub expires: chrono::NaiveDateTime,
+}
+
+#[derive(Message)]
+#[rtype(bool)]
+pub struct CheckCaptcha {
+  pub uuid: String,
+  pub answer: String,
+}
+
 /// `ChatServer` manages chat rooms and responsible for coordinating chat
 /// session.
 pub struct ChatServer {
@@ -158,6 +174,9 @@ pub struct ChatServer {
   /// Rate limiting based on rate type and IP addr
   rate_limiter: RateLimit,
 
+  /// A list of the current captchas
+  captchas: Vec<CaptchaItem>,
+
   /// An HTTP Client
   client: Client,
 }
@@ -176,6 +195,7 @@ impl ChatServer {
       rng: rand::thread_rng(),
       pool,
       rate_limiter,
+      captchas: Vec::new(),
       client,
     }
   }
@@ -212,6 +232,9 @@ impl ChatServer {
 
     // Also leave all communities
     // This avoids double messages
+    // TODO found a bug, whereby community messages like
+    // delete and remove aren't sent, because
+    // you left the community room
     for sessions in self.community_rooms.values_mut() {
       sessions.remove(&id);
     }
@@ -438,23 +461,34 @@ impl ChatServer {
         // User ops
         UserOperation::Login => do_user_operation::<Login>(args).await,
         UserOperation::Register => do_user_operation::<Register>(args).await,
+        UserOperation::GetCaptcha => do_user_operation::<GetCaptcha>(args).await,
         UserOperation::GetUserDetails => do_user_operation::<GetUserDetails>(args).await,
         UserOperation::GetReplies => do_user_operation::<GetReplies>(args).await,
         UserOperation::AddAdmin => do_user_operation::<AddAdmin>(args).await,
         UserOperation::BanUser => do_user_operation::<BanUser>(args).await,
         UserOperation::GetUserMentions => do_user_operation::<GetUserMentions>(args).await,
-        UserOperation::EditUserMention => do_user_operation::<EditUserMention>(args).await,
+        UserOperation::MarkUserMentionAsRead => {
+          do_user_operation::<MarkUserMentionAsRead>(args).await
+        }
         UserOperation::MarkAllAsRead => do_user_operation::<MarkAllAsRead>(args).await,
         UserOperation::DeleteAccount => do_user_operation::<DeleteAccount>(args).await,
         UserOperation::PasswordReset => do_user_operation::<PasswordReset>(args).await,
         UserOperation::PasswordChange => do_user_operation::<PasswordChange>(args).await,
+        UserOperation::UserJoin => do_user_operation::<UserJoin>(args).await,
+        UserOperation::SaveUserSettings => do_user_operation::<SaveUserSettings>(args).await,
+
+        // Private Message ops
         UserOperation::CreatePrivateMessage => {
           do_user_operation::<CreatePrivateMessage>(args).await
         }
         UserOperation::EditPrivateMessage => do_user_operation::<EditPrivateMessage>(args).await,
+        UserOperation::DeletePrivateMessage => {
+          do_user_operation::<DeletePrivateMessage>(args).await
+        }
+        UserOperation::MarkPrivateMessageAsRead => {
+          do_user_operation::<MarkPrivateMessageAsRead>(args).await
+        }
         UserOperation::GetPrivateMessages => do_user_operation::<GetPrivateMessages>(args).await,
-        UserOperation::UserJoin => do_user_operation::<UserJoin>(args).await,
-        UserOperation::SaveUserSettings => do_user_operation::<SaveUserSettings>(args).await,
 
         // Site ops
         UserOperation::GetModlog => do_user_operation::<GetModlog>(args).await,
@@ -473,6 +507,8 @@ impl ChatServer {
         UserOperation::ListCommunities => do_user_operation::<ListCommunities>(args).await,
         UserOperation::CreateCommunity => do_user_operation::<CreateCommunity>(args).await,
         UserOperation::EditCommunity => do_user_operation::<EditCommunity>(args).await,
+        UserOperation::DeleteCommunity => do_user_operation::<DeleteCommunity>(args).await,
+        UserOperation::RemoveCommunity => do_user_operation::<RemoveCommunity>(args).await,
         UserOperation::FollowCommunity => do_user_operation::<FollowCommunity>(args).await,
         UserOperation::GetFollowedCommunities => {
           do_user_operation::<GetFollowedCommunities>(args).await
@@ -485,12 +521,19 @@ impl ChatServer {
         UserOperation::GetPost => do_user_operation::<GetPost>(args).await,
         UserOperation::GetPosts => do_user_operation::<GetPosts>(args).await,
         UserOperation::EditPost => do_user_operation::<EditPost>(args).await,
+        UserOperation::DeletePost => do_user_operation::<DeletePost>(args).await,
+        UserOperation::RemovePost => do_user_operation::<RemovePost>(args).await,
+        UserOperation::LockPost => do_user_operation::<LockPost>(args).await,
+        UserOperation::StickyPost => do_user_operation::<StickyPost>(args).await,
         UserOperation::CreatePostLike => do_user_operation::<CreatePostLike>(args).await,
         UserOperation::SavePost => do_user_operation::<SavePost>(args).await,
 
         // Comment ops
         UserOperation::CreateComment => do_user_operation::<CreateComment>(args).await,
         UserOperation::EditComment => do_user_operation::<EditComment>(args).await,
+        UserOperation::DeleteComment => do_user_operation::<DeleteComment>(args).await,
+        UserOperation::RemoveComment => do_user_operation::<RemoveComment>(args).await,
+        UserOperation::MarkCommentAsRead => do_user_operation::<MarkCommentAsRead>(args).await,
         UserOperation::SaveComment => do_user_operation::<SaveComment>(args).await,
         UserOperation::GetComments => do_user_operation::<GetComments>(args).await,
         UserOperation::CreateCommentLike => do_user_operation::<CreateCommentLike>(args).await,
@@ -613,7 +656,7 @@ impl Handler<StandardMessage> for ChatServer {
     Box::pin(async move {
       match fut.await {
         Ok(m) => {
-          info!("Message Sent: {}", m);
+          // info!("Message Sent: {}", m);
           Ok(m)
         }
         Err(e) => {
@@ -751,4 +794,31 @@ where
     data,
   };
   Ok(serde_json::to_string(&response)?)
+}
+
+impl Handler<CaptchaItem> for ChatServer {
+  type Result = ();
+
+  fn handle(&mut self, msg: CaptchaItem, _: &mut Context<Self>) {
+    self.captchas.push(msg);
+  }
+}
+
+impl Handler<CheckCaptcha> for ChatServer {
+  type Result = bool;
+
+  fn handle(&mut self, msg: CheckCaptcha, _: &mut Context<Self>) -> Self::Result {
+    // Remove all the ones that are past the expire time
+    self.captchas.retain(|x| x.expires.gt(&naive_now()));
+
+    let check = self
+      .captchas
+      .iter()
+      .any(|r| r.uuid == msg.uuid && r.answer == msg.answer);
+
+    // Remove this uuid so it can't be re-checked (Checks only work once)
+    self.captchas.retain(|x| x.uuid != msg.uuid);
+
+    check
+  }
 }

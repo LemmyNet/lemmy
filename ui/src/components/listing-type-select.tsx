@@ -34,9 +34,9 @@ export class ListingTypeSelect extends Component<
 
   render() {
     return (
-      <div class="btn-group btn-group-toggle">
+      <div class="btn-group btn-group-toggle flex-wrap mb-2">
         <label
-          className={`btn btn-sm btn-secondary 
+          className={`btn btn-outline-secondary 
             ${this.state.type_ == ListingType.Subscribed && 'active'}
             ${UserService.Instance.user == undefined ? 'disabled' : 'pointer'}
           `}
@@ -51,7 +51,7 @@ export class ListingTypeSelect extends Component<
           {i18n.t('subscribed')}
         </label>
         <label
-          className={`pointer btn btn-sm btn-secondary ${
+          className={`pointer btn btn-outline-secondary ${
             this.state.type_ == ListingType.All && 'active'
           }`}
         >
