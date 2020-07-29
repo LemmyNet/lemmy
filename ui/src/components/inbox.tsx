@@ -532,7 +532,7 @@ export class Inbox extends Component<any, InboxState> {
       let data = res.data as GetSiteResponse;
       this.state.enableDownvotes = data.site.enable_downvotes;
       this.setState(this.state);
-      document.title = `/u/${UserService.Instance.user.username} ${i18n.t(
+      document.title = `@${UserService.Instance.user.username} ${i18n.t(
         'inbox'
       )} - ${data.site.name}`;
     }

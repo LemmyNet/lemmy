@@ -201,7 +201,7 @@ export class User extends Component<any, UserState> {
       // Couldnt get a refresh working. This does for now.
       location.reload();
     }
-    document.title = `${this.state.username} - ${this.state.site.name}`;
+    document.title = `@${this.state.username} - ${this.state.site.name}`;
     setupTippy();
   }
 
@@ -226,7 +226,7 @@ export class User extends Component<any, UserState> {
                     class="rounded-circle mr-2"
                   />
                 )}
-                <span>{this.state.username}</span>
+                <span>@{this.state.username}</span>
               </h5>
               {this.selects()}
               <UserDetails

@@ -357,7 +357,7 @@ export class Community extends Component<any, State> {
       this.state.moderators = data.moderators;
       this.state.admins = data.admins;
       this.state.online = data.online;
-      document.title = `${this.state.community.name} - ${this.state.site.name}`;
+      document.title = `!${this.state.community.name} - ${this.state.site.name}`;
       this.setState(this.state);
       this.fetchData();
     } else if (res.op == UserOperation.EditCommunity) {
