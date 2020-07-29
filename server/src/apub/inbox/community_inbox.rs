@@ -1,7 +1,7 @@
 use crate::{
   apub::{
     extensions::signatures::verify,
-    fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user},
+    fetcher::{get_or_fetch_and_upsert_community, get_or_fetch_and_upsert_user},
     insert_activity,
     ActorType,
   },
@@ -72,8 +72,8 @@ pub async fn community_inbox(
   let user_uri = follow.actor()?.as_single_xsd_any_uri().unwrap();
   let community_uri = follow.object().as_single_xsd_any_uri().unwrap();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, &client, &db).await?;
-  let community = get_or_fetch_and_upsert_remote_community(community_uri, &client, &db).await?;
+  let user = get_or_fetch_and_upsert_user(&user_uri, &client, &db).await?;
+  let community = get_or_fetch_and_upsert_community(community_uri, &client, &db).await?;
 
   verify(&request, &user)?;
 

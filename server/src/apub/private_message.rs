@@ -1,8 +1,8 @@
 use crate::{
   apub::{
-    activities::send_activity,
+    activities::{generate_activity_id, send_activity},
     create_tombstone,
-    fetcher::get_or_fetch_and_upsert_remote_user,
+    fetcher::get_or_fetch_and_upsert_user,
     insert_activity,
     ApubObjectType,
     FromApub,
@@ -13,7 +13,13 @@ use crate::{
   LemmyError,
 };
 use activitystreams_new::{
-  activity::{Create, Delete, Undo, Update},
+  activity::{
+    kind::{CreateType, DeleteType, UndoType, UpdateType},
+    Create,
+    Delete,
+    Undo,
+    Update,
+  },
   context,
   object::{kind::NoteType, Note, Tombstone},
   prelude::*,
@@ -56,12 +62,7 @@ impl ToApub for PrivateMessage {
   }
 
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    create_tombstone(
-      self.deleted,
-      &self.ap_id,
-      self.updated,
-      NoteType::Note.to_string(),
-    )
+    create_tombstone(self.deleted, &self.ap_id, self.updated, NoteType::Note)
   }
 }
 
@@ -74,7 +75,6 @@ impl FromApub for PrivateMessageForm {
     note: &Note,
     client: &Client,
     pool: &DbPool,
-    actor_id: &Url,
   ) -> Result<PrivateMessageForm, LemmyError> {
     let creator_actor_id = note
       .attributed_to()
@@ -83,11 +83,11 @@ impl FromApub for PrivateMessageForm {
       .single_xsd_any_uri()
       .unwrap();
 
-    let creator = get_or_fetch_and_upsert_remote_user(&creator_actor_id, client, pool).await?;
+    let creator = get_or_fetch_and_upsert_user(&creator_actor_id, client, pool).await?;
 
     let recipient_actor_id = note.to().unwrap().clone().single_xsd_any_uri().unwrap();
 
-    let recipient = get_or_fetch_and_upsert_remote_user(&recipient_actor_id, client, pool).await?;
+    let recipient = get_or_fetch_and_upsert_user(&recipient_actor_id, client, pool).await?;
 
     Ok(PrivateMessageForm {
       creator_id: creator.id,
@@ -102,7 +102,7 @@ impl FromApub for PrivateMessageForm {
       updated: note.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
       read: None,
-      ap_id: note.id(actor_id.domain().unwrap())?.unwrap().to_string(),
+      ap_id: note.id_unchecked().unwrap().to_string(),
       local: false,
     })
   }
@@ -118,7 +118,6 @@ impl ApubObjectType for PrivateMessage {
     pool: &DbPool,
   ) -> Result<(), LemmyError> {
     let note = self.to_apub(pool).await?;
-    let id = format!("{}/create/{}", self.ap_id, uuid::Uuid::new_v4());
 
     let recipient_id = self.recipient_id;
     let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
@@ -127,7 +126,7 @@ impl ApubObjectType for PrivateMessage {
     let to = format!("{}/inbox", recipient.actor_id);
     create
       .set_context(context())
-      .set_id(Url::parse(&id)?)
+      .set_id(generate_activity_id(CreateType::Create)?)
       .set_to(to.clone());
 
     insert_activity(creator.id, create.clone(), true, pool).await?;
@@ -144,7 +143,6 @@ impl ApubObjectType for PrivateMessage {
     pool: &DbPool,
   ) -> Result<(), LemmyError> {
     let note = self.to_apub(pool).await?;
-    let id = format!("{}/update/{}", self.ap_id, uuid::Uuid::new_v4());
 
     let recipient_id = self.recipient_id;
     let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
@@ -153,7 +151,7 @@ impl ApubObjectType for PrivateMessage {
     let to = format!("{}/inbox", recipient.actor_id);
     update
       .set_context(context())
-      .set_id(Url::parse(&id)?)
+      .set_id(generate_activity_id(UpdateType::Update)?)
       .set_to(to.clone());
 
     insert_activity(creator.id, update.clone(), true, pool).await?;
@@ -169,7 +167,6 @@ impl ApubObjectType for PrivateMessage {
     pool: &DbPool,
   ) -> Result<(), LemmyError> {
     let note = self.to_apub(pool).await?;
-    let id = format!("{}/delete/{}", self.ap_id, uuid::Uuid::new_v4());
 
     let recipient_id = self.recipient_id;
     let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
@@ -178,7 +175,7 @@ impl ApubObjectType for PrivateMessage {
     let to = format!("{}/inbox", recipient.actor_id);
     delete
       .set_context(context())
-      .set_id(Url::parse(&id)?)
+      .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(to.clone());
 
     insert_activity(creator.id, delete.clone(), true, pool).await?;
@@ -194,7 +191,6 @@ impl ApubObjectType for PrivateMessage {
     pool: &DbPool,
   ) -> Result<(), LemmyError> {
     let note = self.to_apub(pool).await?;
-    let id = format!("{}/delete/{}", self.ap_id, uuid::Uuid::new_v4());
 
     let recipient_id = self.recipient_id;
     let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
@@ -203,16 +199,14 @@ impl ApubObjectType for PrivateMessage {
     let to = format!("{}/inbox", recipient.actor_id);
     delete
       .set_context(context())
-      .set_id(Url::parse(&id)?)
+      .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(to.clone());
 
-    // TODO
     // Undo that fake activity
-    let undo_id = format!("{}/undo/delete/{}", self.ap_id, uuid::Uuid::new_v4());
     let mut undo = Undo::new(creator.actor_id.to_owned(), delete.into_any_base()?);
     undo
       .set_context(context())
-      .set_id(Url::parse(&undo_id)?)
+      .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(to.clone());
 
     insert_activity(creator.id, undo.clone(), true, pool).await?;
