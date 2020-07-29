@@ -176,8 +176,8 @@ export class Community extends Component<any, State> {
   }
 
   get documentTitle(): string {
-    if (this.state.community.name) {
-      return `!${this.state.community.name} - ${this.state.site.name}`;
+    if (this.state.community.title) {
+      return `${this.state.community.title} - ${this.state.site.name}`;
     } else {
       return 'Lemmy';
     }
