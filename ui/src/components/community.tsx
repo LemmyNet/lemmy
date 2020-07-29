@@ -176,8 +176,8 @@ export class Community extends Component<any, State> {
   }
 
   get documentTitle(): string {
-    if (this.state.community.name) {
-      return `/c/${this.state.community.name} - ${this.state.site.name}`;
+    if (this.state.community.title) {
+      return `${this.state.community.title} - ${this.state.site.name}`;
     } else {
       return 'Lemmy';
     }
@@ -187,7 +187,6 @@ export class Community extends Component<any, State> {
     return (
       <div class="container">
         <Helmet title={this.documentTitle} />
-        {this.selects()}
         {this.state.loading ? (
           <h5>
             <svg class="icon icon-spinner spin">
@@ -197,19 +196,7 @@ export class Community extends Component<any, State> {
         ) : (
           <div class="row">
             <div class="col-12 col-md-8">
-              <h5>
-                {this.state.community.title}
-                {this.state.community.removed && (
-                  <small className="ml-2 text-muted font-italic">
-                    {i18n.t('removed')}
-                  </small>
-                )}
-                {this.state.community.nsfw && (
-                  <small className="ml-2 text-muted font-italic">
-                    {i18n.t('nsfw')}
-                  </small>
-                )}
-              </h5>
+              {this.selects()}
               {this.listings()}
               {this.paginator()}
             </div>

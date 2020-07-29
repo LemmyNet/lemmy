@@ -194,60 +194,49 @@ export class Main extends Component<any, MainState> {
           <main role="main" class="col-12 col-md-8">
             {this.posts()}
           </main>
-          <aside class="col-12 col-md-4">{this.my_sidebar()}</aside>
+          <aside class="col-12 col-md-4">{this.mySidebar()}</aside>
         </div>
       </div>
     );
   }
 
-  my_sidebar() {
+  mySidebar() {
     return (
       <div>
         {!this.state.loading && (
           <div>
             <div class="card bg-transparent border-secondary mb-3">
+              <div class="card-header bg-transparent border-secondary">
+                {this.siteName()}
+                {this.adminButtons()}
+              </div>
               <div class="card-body">
                 {this.trendingCommunities()}
-                {UserService.Instance.user &&
-                  this.state.subscribedCommunities.length > 0 && (
-                    <div>
-                      <h5>
-                        <T i18nKey="subscribed_to_communities">
-                          #
-                          <Link class="text-body" to="/communities">
-                            #
-                          </Link>
-                        </T>
-                      </h5>
-                      <ul class="list-inline">
-                        {this.state.subscribedCommunities.map(community => (
-                          <li class="list-inline-item">
-                            <CommunityLink
-                              community={{
-                                name: community.community_name,
-                                id: community.community_id,
-                                local: community.community_local,
-                                actor_id: community.community_actor_id,
-                              }}
-                            />
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                <Link
-                  class="btn btn-secondary btn-block"
-                  to="/create_community"
-                >
-                  {i18n.t('create_a_community')}
-                </Link>
+                {this.createCommunityButton()}
+                {/*
+                {this.subscribedCommunities()}
+                */}
               </div>
             </div>
-            {this.sidebar()}
-            {this.landing()}
+
+            <div class="card bg-transparent border-secondary mb-3">
+              <div class="card-body">{this.sidebar()}</div>
+            </div>
+
+            <div class="card bg-transparent border-secondary">
+              <div class="card-body">{this.landing()}</div>
+            </div>
           </div>
         )}
       </div>
+    );
+  }
+
+  createCommunityButton() {
+    return (
+      <Link class="btn btn-secondary btn-block" to="/create_community">
+        {i18n.t('create_a_community')}
+      </Link>
     );
   }
 
@@ -270,6 +259,38 @@ export class Main extends Component<any, MainState> {
           ))}
         </ul>
       </div>
+    );
+  }
+
+  subscribedCommunities() {
+    return (
+      UserService.Instance.user &&
+      this.state.subscribedCommunities.length > 0 && (
+        <div>
+          <h5>
+            <T i18nKey="subscribed_to_communities">
+              #
+              <Link class="text-body" to="/communities">
+                #
+              </Link>
+            </T>
+          </h5>
+          <ul class="list-inline">
+            {this.state.subscribedCommunities.map(community => (
+              <li class="list-inline-item">
+                <CommunityLink
+                  community={{
+                    name: community.community_name,
+                    id: community.community_id,
+                    local: community.community_local,
+                    actor_id: community.community_actor_id,
+                  }}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
     );
   }
 
@@ -305,136 +326,147 @@ export class Main extends Component<any, MainState> {
   siteInfo() {
     return (
       <div>
-        <div class="card bg-transparent border-secondary mb-3">
-          <div class="card-body">
-            <h5 class="mb-0">{`${this.state.siteRes.site.name}`}</h5>
-            {this.canAdmin && (
-              <ul class="list-inline mb-1 text-muted font-weight-bold">
-                <li className="list-inline-item-action">
-                  <span
-                    class="pointer"
-                    onClick={linkEvent(this, this.handleEditClick)}
-                    data-tippy-content={i18n.t('edit')}
-                  >
-                    <svg class="icon icon-inline">
-                      <use xlinkHref="#icon-edit"></use>
-                    </svg>
-                  </span>
-                </li>
-              </ul>
-            )}
-            <ul class="my-2 list-inline">
-              {/*
+        {this.state.siteRes.site.description && this.siteDescription()}
+        {this.badges()}
+        {this.admins()}
+      </div>
+    );
+  }
+
+  siteName() {
+    return <h5 class="mb-0">{`${this.state.siteRes.site.name}`}</h5>;
+  }
+
+  admins() {
+    return (
+      <ul class="mt-1 list-inline small mb-0">
+        <li class="list-inline-item">{i18n.t('admins')}:</li>
+        {this.state.siteRes.admins.map(admin => (
+          <li class="list-inline-item">
+            <UserListing
+              user={{
+                name: admin.name,
+                avatar: admin.avatar,
+                local: admin.local,
+                actor_id: admin.actor_id,
+                id: admin.id,
+              }}
+            />
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  badges() {
+    return (
+      <ul class="my-2 list-inline">
+        {/*
               <li className="list-inline-item badge badge-light">
                 {i18n.t('number_online', { count: this.state.siteRes.online })}
               </li>
               */}
-              <li className="list-inline-item badge badge-light">
-                {i18n.t('number_of_users', {
-                  count: this.state.siteRes.site.number_of_users,
-                })}
-              </li>
-              <li className="list-inline-item badge badge-light">
-                {i18n.t('number_of_communities', {
-                  count: this.state.siteRes.site.number_of_communities,
-                })}
-              </li>
-              <li className="list-inline-item badge badge-light">
-                {i18n.t('number_of_posts', {
-                  count: this.state.siteRes.site.number_of_posts,
-                })}
-              </li>
-              <li className="list-inline-item badge badge-light">
-                {i18n.t('number_of_comments', {
-                  count: this.state.siteRes.site.number_of_comments,
-                })}
-              </li>
-              <li className="list-inline-item">
-                <Link className="badge badge-light" to="/modlog">
-                  {i18n.t('modlog')}
-                </Link>
-              </li>
-            </ul>
-            <ul class="mt-1 list-inline small mb-0">
-              <li class="list-inline-item">{i18n.t('admins')}:</li>
-              {this.state.siteRes.admins.map(admin => (
-                <li class="list-inline-item">
-                  <UserListing
-                    user={{
-                      name: admin.name,
-                      avatar: admin.avatar,
-                      local: admin.local,
-                      actor_id: admin.actor_id,
-                      id: admin.id,
-                    }}
-                  />
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-        {this.state.siteRes.site.description && (
-          <div class="card bg-transparent border-secondary mb-3">
-            <div class="card-body">
-              <div
-                className="md-div"
-                dangerouslySetInnerHTML={mdToHtml(
-                  this.state.siteRes.site.description
-                )}
-              />
-            </div>
-          </div>
-        )}
-      </div>
+        <li className="list-inline-item badge badge-light">
+          {i18n.t('number_of_users', {
+            count: this.state.siteRes.site.number_of_users,
+          })}
+        </li>
+        <li className="list-inline-item badge badge-light">
+          {i18n.t('number_of_communities', {
+            count: this.state.siteRes.site.number_of_communities,
+          })}
+        </li>
+        <li className="list-inline-item badge badge-light">
+          {i18n.t('number_of_posts', {
+            count: this.state.siteRes.site.number_of_posts,
+          })}
+        </li>
+        <li className="list-inline-item badge badge-light">
+          {i18n.t('number_of_comments', {
+            count: this.state.siteRes.site.number_of_comments,
+          })}
+        </li>
+        <li className="list-inline-item">
+          <Link className="badge badge-light" to="/modlog">
+            {i18n.t('modlog')}
+          </Link>
+        </li>
+      </ul>
+    );
+  }
+
+  adminButtons() {
+    return (
+      this.canAdmin && (
+        <ul class="list-inline mb-1 text-muted font-weight-bold">
+          <li className="list-inline-item-action">
+            <span
+              class="pointer"
+              onClick={linkEvent(this, this.handleEditClick)}
+              data-tippy-content={i18n.t('edit')}
+            >
+              <svg class="icon icon-inline">
+                <use xlinkHref="#icon-edit"></use>
+              </svg>
+            </span>
+          </li>
+        </ul>
+      )
+    );
+  }
+
+  siteDescription() {
+    return (
+      <div
+        className="md-div"
+        dangerouslySetInnerHTML={mdToHtml(this.state.siteRes.site.description)}
+      />
     );
   }
 
   landing() {
     return (
-      <div class="card bg-transparent border-secondary">
-        <div class="card-body">
-          <h5>
-            {i18n.t('powered_by')}
-            <svg class="icon mx-2">
-              <use xlinkHref="#icon-mouse">#</use>
-            </svg>
-            <a href={repoUrl}>
-              Lemmy<sup>beta</sup>
-            </a>
-          </h5>
-          <p class="mb-0">
-            <T i18nKey="landing_0">
+      <>
+        <h5>
+          {i18n.t('powered_by')}
+          <svg class="icon mx-2">
+            <use xlinkHref="#icon-mouse">#</use>
+          </svg>
+          <a href={repoUrl}>
+            Lemmy<sup>beta</sup>
+          </a>
+        </h5>
+        <p class="mb-0">
+          <T i18nKey="landing_0">
+            #
+            <a href="https://en.wikipedia.org/wiki/Social_network_aggregation">
               #
-              <a href="https://en.wikipedia.org/wiki/Social_network_aggregation">
-                #
-              </a>
-              <a href="https://en.wikipedia.org/wiki/Fediverse">#</a>
-              <br class="big"></br>
-              <code>#</code>
-              <br></br>
-              <b>#</b>
-              <br class="big"></br>
-              <a href={repoUrl}>#</a>
-              <br class="big"></br>
-              <a href="https://www.rust-lang.org">#</a>
-              <a href="https://actix.rs/">#</a>
-              <a href="https://infernojs.org">#</a>
-              <a href="https://www.typescriptlang.org/">#</a>
-              <br class="big"></br>
-              <a href="https://github.com/LemmyNet/lemmy/graphs/contributors?type=a">
-                #
-              </a>
-            </T>
-          </p>
-        </div>
-      </div>
+            </a>
+            <a href="https://en.wikipedia.org/wiki/Fediverse">#</a>
+            <br class="big"></br>
+            <code>#</code>
+            <br></br>
+            <b>#</b>
+            <br class="big"></br>
+            <a href={repoUrl}>#</a>
+            <br class="big"></br>
+            <a href="https://www.rust-lang.org">#</a>
+            <a href="https://actix.rs/">#</a>
+            <a href="https://infernojs.org">#</a>
+            <a href="https://www.typescriptlang.org/">#</a>
+            <br class="big"></br>
+            <a href="https://github.com/LemmyNet/lemmy/graphs/contributors?type=a">
+              #
+            </a>
+          </T>
+        </p>
+      </>
     );
   }
 
   posts() {
     return (
       <div class="main-content-wrapper">
-        {this.selects()}
         {this.state.loading ? (
           <h5>
             <svg class="icon icon-spinner spin">
@@ -443,6 +475,7 @@ export class Main extends Component<any, MainState> {
           </h5>
         ) : (
           <div>
+            {this.selects()}
             {this.listings()}
             {this.paginator()}
           </div>

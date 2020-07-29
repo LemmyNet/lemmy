@@ -9,7 +9,7 @@ import {
   UserView,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { mdToHtml, getUnixTime, hostname } from '../utils';
+import { mdToHtml, getUnixTime } from '../utils';
 import { CommunityForm } from './community-form';
 import { UserListing } from './user-listing';
 import { CommunityLink } from './community-link';
@@ -63,208 +63,247 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   }
 
   sidebar() {
-    let community = this.props.community;
-    let name_: string, link: string;
-
-    if (community.local) {
-      name_ = community.name;
-      link = `/c/${community.name}`;
-    } else {
-      name_ = `${community.name}@${hostname(community.actor_id)}`;
-      link = community.actor_id;
-    }
     return (
       <div>
         <div class="card bg-transparent border-secondary mb-3">
+          <div class="card-header bg-transparent border-secondary">
+            {this.communityTitle()}
+            {this.adminButtons()}
+          </div>
+          <div class="card-body">{this.subscribes()}</div>
+        </div>
+        <div class="card bg-transparent border-secondary mb-3">
           <div class="card-body">
-            <h5 className="mb-0">
-              <span>{community.title}</span>
-              {community.removed && (
-                <small className="ml-2 text-muted font-italic">
-                  {i18n.t('removed')}
-                </small>
-              )}
-              {community.deleted && (
-                <small className="ml-2 text-muted font-italic">
-                  {i18n.t('deleted')}
-                </small>
-              )}
-            </h5>
-            <CommunityLink community={community} realLink />
-            <ul class="list-inline mb-1 text-muted font-weight-bold">
-              {this.canMod && (
-                <>
-                  <li className="list-inline-item-action">
-                    <span
-                      class="pointer"
-                      onClick={linkEvent(this, this.handleEditClick)}
-                      data-tippy-content={i18n.t('edit')}
-                    >
-                      <svg class="icon icon-inline">
-                        <use xlinkHref="#icon-edit"></use>
-                      </svg>
-                    </span>
-                  </li>
-                  {this.amCreator && (
-                    <li className="list-inline-item-action">
-                      <span
-                        class="pointer"
-                        onClick={linkEvent(this, this.handleDeleteClick)}
-                        data-tippy-content={
-                          !community.deleted
-                            ? i18n.t('delete')
-                            : i18n.t('restore')
-                        }
-                      >
-                        <svg
-                          class={`icon icon-inline ${
-                            community.deleted && 'text-danger'
-                          }`}
-                        >
-                          <use xlinkHref="#icon-trash"></use>
-                        </svg>
-                      </span>
-                    </li>
-                  )}
-                </>
-              )}
-              {this.canAdmin && (
-                <li className="list-inline-item">
-                  {!this.props.community.removed ? (
-                    <span
-                      class="pointer"
-                      onClick={linkEvent(this, this.handleModRemoveShow)}
-                    >
-                      {i18n.t('remove')}
-                    </span>
-                  ) : (
-                    <span
-                      class="pointer"
-                      onClick={linkEvent(this, this.handleModRemoveSubmit)}
-                    >
-                      {i18n.t('restore')}
-                    </span>
-                  )}
-                </li>
-              )}
-            </ul>
-            {this.state.showRemoveDialog && (
-              <form onSubmit={linkEvent(this, this.handleModRemoveSubmit)}>
-                <div class="form-group row">
-                  <label class="col-form-label" htmlFor="remove-reason">
-                    {i18n.t('reason')}
-                  </label>
-                  <input
-                    type="text"
-                    id="remove-reason"
-                    class="form-control mr-2"
-                    placeholder={i18n.t('optional')}
-                    value={this.state.removeReason}
-                    onInput={linkEvent(this, this.handleModRemoveReasonChange)}
-                  />
-                </div>
-                {/* TODO hold off on expires for now */}
-                {/* <div class="form-group row"> */}
-                {/*   <label class="col-form-label">Expires</label> */}
-                {/*   <input type="date" class="form-control mr-2" placeholder={i18n.t('expires')} value={this.state.removeExpires} onInput={linkEvent(this, this.handleModRemoveExpiresChange)} /> */}
-                {/* </div> */}
-                <div class="form-group row">
-                  <button type="submit" class="btn btn-secondary">
-                    {i18n.t('remove_community')}
-                  </button>
-                </div>
-              </form>
-            )}
-            <ul class="my-1 list-inline">
-              {/*
+            {this.description()}
+            {this.badges()}
+            {this.mods()}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  communityTitle() {
+    let community = this.props.community;
+    return (
+      <h5 className="mb-2">
+        <span>{community.title}</span>
+        {community.removed && (
+          <small className="ml-2 text-muted font-italic">
+            {i18n.t('removed')}
+          </small>
+        )}
+        {community.deleted && (
+          <small className="ml-2 text-muted font-italic">
+            {i18n.t('deleted')}
+          </small>
+        )}
+        {community.nsfw && (
+          <small className="ml-2 text-muted font-italic">
+            {i18n.t('nsfw')}
+          </small>
+        )}
+      </h5>
+    );
+  }
+
+  badges() {
+    let community = this.props.community;
+    return (
+      <ul class="my-1 list-inline">
+        {/*
               <li className="list-inline-item badge badge-light">
                 {i18n.t('number_online', { count: this.props.online })}
               </li>
               */}
-              <li className="list-inline-item badge badge-light">
-                {i18n.t('number_of_subscribers', {
-                  count: community.number_of_subscribers,
-                })}
-              </li>
-              <li className="list-inline-item badge badge-light">
-                {i18n.t('number_of_posts', {
-                  count: community.number_of_posts,
-                })}
-              </li>
-              <li className="list-inline-item badge badge-light">
-                {i18n.t('number_of_comments', {
-                  count: community.number_of_comments,
-                })}
-              </li>
-              <li className="list-inline-item">
-                <Link className="badge badge-light" to="/communities">
-                  {community.category_name}
-                </Link>
-              </li>
-              <li className="list-inline-item">
-                <Link
-                  className="badge badge-light"
-                  to={`/modlog/community/${this.props.community.id}`}
-                >
-                  {i18n.t('modlog')}
-                </Link>
-              </li>
-            </ul>
-            <ul class="list-inline small">
-              <li class="list-inline-item">{i18n.t('mods')}: </li>
-              {this.props.moderators.map(mod => (
-                <li class="list-inline-item">
-                  <UserListing
-                    user={{
-                      name: mod.user_name,
-                      avatar: mod.avatar,
-                      id: mod.user_id,
-                      local: mod.user_local,
-                      actor_id: mod.user_actor_id,
-                    }}
-                  />
-                </li>
-              ))}
-            </ul>
-            {/* TODO the to= needs to be able to handle community_ids as well, since they're federated */}
-            <Link
-              class={`btn btn-secondary btn-block mb-3 ${
-                (community.deleted || community.removed) && 'no-click'
-              }`}
-              to={`/create_post?community=${community.name}`}
-            >
-              {i18n.t('create_a_post')}
-            </Link>
-            <div>
-              {community.subscribed ? (
-                <button
-                  class="btn btn-secondary btn-block"
-                  onClick={linkEvent(community.id, this.handleUnsubscribe)}
-                >
-                  {i18n.t('unsubscribe')}
-                </button>
-              ) : (
-                <button
-                  class="btn btn-secondary btn-block"
-                  onClick={linkEvent(community.id, this.handleSubscribe)}
-                >
-                  {i18n.t('subscribe')}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-        {community.description && (
-          <div class="card bg-transparent border-secondary">
-            <div class="card-body">
-              <div
-                className="md-div"
-                dangerouslySetInnerHTML={mdToHtml(community.description)}
-              />
-            </div>
-          </div>
+        <li className="list-inline-item badge badge-light">
+          {i18n.t('number_of_subscribers', {
+            count: community.number_of_subscribers,
+          })}
+        </li>
+        <li className="list-inline-item badge badge-light">
+          {i18n.t('number_of_posts', {
+            count: community.number_of_posts,
+          })}
+        </li>
+        <li className="list-inline-item badge badge-light">
+          {i18n.t('number_of_comments', {
+            count: community.number_of_comments,
+          })}
+        </li>
+        <li className="list-inline-item">
+          <Link className="badge badge-light" to="/communities">
+            {community.category_name}
+          </Link>
+        </li>
+        <li className="list-inline-item">
+          <Link
+            className="badge badge-light"
+            to={`/modlog/community/${this.props.community.id}`}
+          >
+            {i18n.t('modlog')}
+          </Link>
+        </li>
+        <li className="list-inline-item badge badge-light">
+          <CommunityLink community={community} realLink />
+        </li>
+      </ul>
+    );
+  }
+
+  mods() {
+    return (
+      <ul class="list-inline small">
+        <li class="list-inline-item">{i18n.t('mods')}: </li>
+        {this.props.moderators.map(mod => (
+          <li class="list-inline-item">
+            <UserListing
+              user={{
+                name: mod.user_name,
+                avatar: mod.avatar,
+                id: mod.user_id,
+                local: mod.user_local,
+                actor_id: mod.user_actor_id,
+              }}
+            />
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  subscribes() {
+    let community = this.props.community;
+    return (
+      <div class="d-flex flex-wrap">
+        <Link
+          class={`btn btn-secondary flex-fill mr-2 mb-2 ${
+            community.deleted || community.removed ? 'no-click' : ''
+          }`}
+          to={`/create_post?community=${community.name}`}
+        >
+          {i18n.t('create_a_post')}
+        </Link>
+        {community.subscribed ? (
+          <a
+            class="btn btn-secondary flex-fill mb-2"
+            href="#"
+            onClick={linkEvent(community.id, this.handleUnsubscribe)}
+          >
+            {i18n.t('unsubscribe')}
+          </a>
+        ) : (
+          <a
+            class="btn btn-secondary flex-fill mb-2"
+            href="#"
+            onClick={linkEvent(community.id, this.handleSubscribe)}
+          >
+            {i18n.t('subscribe')}
+          </a>
         )}
       </div>
+    );
+  }
+
+  description() {
+    let community = this.props.community;
+    return (
+      community.description && (
+        <div
+          className="md-div"
+          dangerouslySetInnerHTML={mdToHtml(community.description)}
+        />
+      )
+    );
+  }
+
+  adminButtons() {
+    let community = this.props.community;
+    return (
+      <>
+        <ul class="list-inline mb-1 text-muted font-weight-bold">
+          {this.canMod && (
+            <>
+              <li className="list-inline-item-action">
+                <span
+                  class="pointer"
+                  onClick={linkEvent(this, this.handleEditClick)}
+                  data-tippy-content={i18n.t('edit')}
+                >
+                  <svg class="icon icon-inline">
+                    <use xlinkHref="#icon-edit"></use>
+                  </svg>
+                </span>
+              </li>
+              {this.amCreator && (
+                <li className="list-inline-item-action">
+                  <span
+                    class="pointer"
+                    onClick={linkEvent(this, this.handleDeleteClick)}
+                    data-tippy-content={
+                      !community.deleted ? i18n.t('delete') : i18n.t('restore')
+                    }
+                  >
+                    <svg
+                      class={`icon icon-inline ${
+                        community.deleted && 'text-danger'
+                      }`}
+                    >
+                      <use xlinkHref="#icon-trash"></use>
+                    </svg>
+                  </span>
+                </li>
+              )}
+            </>
+          )}
+          {this.canAdmin && (
+            <li className="list-inline-item">
+              {!this.props.community.removed ? (
+                <span
+                  class="pointer"
+                  onClick={linkEvent(this, this.handleModRemoveShow)}
+                >
+                  {i18n.t('remove')}
+                </span>
+              ) : (
+                <span
+                  class="pointer"
+                  onClick={linkEvent(this, this.handleModRemoveSubmit)}
+                >
+                  {i18n.t('restore')}
+                </span>
+              )}
+            </li>
+          )}
+        </ul>
+        {this.state.showRemoveDialog && (
+          <form onSubmit={linkEvent(this, this.handleModRemoveSubmit)}>
+            <div class="form-group row">
+              <label class="col-form-label" htmlFor="remove-reason">
+                {i18n.t('reason')}
+              </label>
+              <input
+                type="text"
+                id="remove-reason"
+                class="form-control mr-2"
+                placeholder={i18n.t('optional')}
+                value={this.state.removeReason}
+                onInput={linkEvent(this, this.handleModRemoveReasonChange)}
+              />
+            </div>
+            {/* TODO hold off on expires for now */}
+            {/* <div class="form-group row"> */}
+            {/*   <label class="col-form-label">Expires</label> */}
+            {/*   <input type="date" class="form-control mr-2" placeholder={i18n.t('expires')} value={this.state.removeExpires} onInput={linkEvent(this, this.handleModRemoveExpiresChange)} /> */}
+            {/* </div> */}
+            <div class="form-group row">
+              <button type="submit" class="btn btn-secondary">
+                {i18n.t('remove_community')}
+              </button>
+            </div>
+          </form>
+        )}
+      </>
     );
   }
 
@@ -293,6 +332,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   }
 
   handleUnsubscribe(communityId: number) {
+    event.preventDefault();
     let form: FollowCommunityForm = {
       community_id: communityId,
       follow: false,
@@ -301,6 +341,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   }
 
   handleSubscribe(communityId: number) {
+    event.preventDefault();
     let form: FollowCommunityForm = {
       community_id: communityId,
       follow: true,

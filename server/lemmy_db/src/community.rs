@@ -133,10 +133,7 @@ impl Community {
       .get_result::<Self>(conn)
   }
 
-  fn community_mods_and_admins(
-    conn: &PgConnection,
-    community_id: i32,
-  ) -> Result<Vec<i32>, Error> {
+  fn community_mods_and_admins(conn: &PgConnection, community_id: i32) -> Result<Vec<i32>, Error> {
     use crate::{community_view::CommunityModeratorView, user_view::UserView};
     let mut mods_and_admins: Vec<i32> = Vec::new();
     mods_and_admins.append(

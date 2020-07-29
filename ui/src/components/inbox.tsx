@@ -112,7 +112,7 @@ export class Inbox extends Component<any, InboxState> {
 
   get documentTitle(): string {
     if (this.state.site.name) {
-      return `/u/${UserService.Instance.user.name} ${i18n.t('inbox')} - ${
+      return `@${UserService.Instance.user.name} ${i18n.t('inbox')} - ${
         this.state.site.name
       }`;
     } else {
@@ -171,7 +171,7 @@ export class Inbox extends Component<any, InboxState> {
 
   unreadOrAllRadios() {
     return (
-      <div class="btn-group btn-group-toggle">
+      <div class="btn-group btn-group-toggle flex-wrap mb-2">
         <label
           className={`btn btn-outline-secondary pointer
             ${this.state.unreadOrAll == UnreadOrAll.Unread && 'active'}
@@ -204,9 +204,9 @@ export class Inbox extends Component<any, InboxState> {
 
   messageTypeRadios() {
     return (
-      <div class="btn-group btn-group-toggle">
+      <div class="btn-group btn-group-toggle flex-wrap mb-2">
         <label
-          className={`btn btn-outline-secondary pointer 
+          className={`btn btn-outline-secondary pointer
             ${this.state.messageType == MessageType.All && 'active'}
           `}
         >
@@ -219,7 +219,7 @@ export class Inbox extends Component<any, InboxState> {
           {i18n.t('all')}
         </label>
         <label
-          className={`btn btn-outline-secondary pointer 
+          className={`btn btn-outline-secondary pointer
             ${this.state.messageType == MessageType.Replies && 'active'}
           `}
         >
@@ -232,7 +232,7 @@ export class Inbox extends Component<any, InboxState> {
           {i18n.t('replies')}
         </label>
         <label
-          className={`btn btn-outline-secondary pointer 
+          className={`btn btn-outline-secondary pointer
             ${this.state.messageType == MessageType.Mentions && 'active'}
           `}
         >
@@ -245,7 +245,7 @@ export class Inbox extends Component<any, InboxState> {
           {i18n.t('mentions')}
         </label>
         <label
-          className={`btn btn-outline-secondary pointer 
+          className={`btn btn-outline-secondary pointer
             ${this.state.messageType == MessageType.Messages && 'active'}
           `}
         >

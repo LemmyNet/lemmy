@@ -1,6 +1,9 @@
 // This is for db migrations that require code
 use crate::LemmyError;
-use diesel::*;
+use diesel::{
+  sql_types::{Nullable, Text},
+  *,
+};
 use lemmy_db::{
   comment::Comment,
   community::{Community, CommunityForm},
@@ -10,7 +13,13 @@ use lemmy_db::{
   user::{UserForm, User_},
   Crud,
 };
-use lemmy_utils::{generate_actor_keypair, make_apub_endpoint, EndpointType};
+use lemmy_utils::{
+  generate_actor_keypair,
+  get_apub_protocol_string,
+  make_apub_endpoint,
+  settings::Settings,
+  EndpointType,
+};
 use log::info;
 
 pub fn run_advanced_migrations(conn: &PgConnection) -> Result<(), LemmyError> {
@@ -19,6 +28,7 @@ pub fn run_advanced_migrations(conn: &PgConnection) -> Result<(), LemmyError> {
   post_updates_2020_04_03(&conn)?;
   comment_updates_2020_04_03(&conn)?;
   private_message_updates_2020_05_05(&conn)?;
+  post_thumbnail_url_updates_2020_07_27(&conn)?;
 
   Ok(())
 }
@@ -185,6 +195,35 @@ fn private_message_updates_2020_05_05(conn: &PgConnection) -> Result<(), LemmyEr
   }
 
   info!("{} private message rows updated.", incorrect_pms.len());
+
+  Ok(())
+}
+
+fn post_thumbnail_url_updates_2020_07_27(conn: &PgConnection) -> Result<(), LemmyError> {
+  use lemmy_db::schema::post::dsl::*;
+
+  info!("Running post_thumbnail_url_updates_2020_07_27");
+
+  let domain_prefix = format!(
+    "{}://{}/pictrs/image/",
+    get_apub_protocol_string(),
+    Settings::get().hostname
+  );
+
+  let incorrect_thumbnails = post.filter(thumbnail_url.not_like("http%"));
+
+  // Prepend the rows with the update
+  let res = diesel::update(incorrect_thumbnails)
+    .set(
+      thumbnail_url.eq(
+        domain_prefix
+          .into_sql::<Nullable<Text>>()
+          .concat(thumbnail_url),
+      ),
+    )
+    .get_results::<Post>(conn)?;
+
+  info!("{} Post thumbnail_url rows updated.", res.len());
 
   Ok(())
 }
