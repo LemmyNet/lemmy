@@ -390,7 +390,9 @@ Only the first user will be able to be the admin.
     email: Option<String>,
     password: String,
     password_verify: String,
-    admin: bool
+    admin: bool,
+    captcha_uuid: Option<String>, // Only checked if these are enabled in the server
+    captcha_answer: Option<String>,
   }
 }
 ```
@@ -407,6 +409,34 @@ Only the first user will be able to be the admin.
 ##### HTTP
 
 `POST /user/register`
+
+#### Get Captcha
+
+These expire after 10 minutes.
+
+##### Request
+```rust
+{
+  op: "GetCaptcha",
+}
+```
+##### Response
+```rust
+{
+  op: "GetCaptcha",
+  data: {
+    ok?: { // Will be undefined if captchas are disabled
+      png: String, // A Base64 encoded png
+      wav: Option<String>, // A Base64 encoded wav audio file
+      uuid: String,
+    }
+  }
+}
+```
+
+##### HTTP
+
+`GET /user/get_captcha`
 
 #### Get User Details
 ##### Request

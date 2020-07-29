@@ -196,14 +196,14 @@ export class Search extends Component<any, SearchState> {
       >
         <input
           type="text"
-          class="form-control mr-2"
+          class="form-control mr-2 mb-2"
           value={this.state.searchText}
           placeholder={`${i18n.t('search')}...`}
           onInput={linkEvent(this, this.handleQChange)}
           required
           minLength={3}
         />
-        <button type="submit" class="btn btn-secondary mr-2">
+        <button type="submit" class="btn btn-secondary mr-2 mb-2">
           {this.state.loading ? (
             <svg class="icon icon-spinner spin">
               <use xlinkHref="#icon-spinner"></use>
@@ -222,7 +222,7 @@ export class Search extends Component<any, SearchState> {
         <select
           value={this.state.type_}
           onChange={linkEvent(this, this.handleTypeChange)}
-          class="custom-select w-auto"
+          class="custom-select w-auto mb-2"
         >
           <option disabled>{i18n.t('type')}</option>
           <option value={SearchType.All}>{i18n.t('all')}</option>

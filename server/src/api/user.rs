@@ -2,8 +2,9 @@ use crate::{
   api::{claims::Claims, is_admin, APIError, Oper, Perform},
   apub::ApubObjectType,
   blocking,
+  captcha_espeak_wav_base64,
   websocket::{
-    server::{JoinUserRoom, SendAllMessage, SendUserRoomMessage},
+    server::{CaptchaItem, CheckCaptcha, JoinUserRoom, SendAllMessage, SendUserRoomMessage},
     UserOperation,
     WebsocketInfo,
   },
@@ -11,6 +12,8 @@ use crate::{
   LemmyError,
 };
 use bcrypt::verify;
+use captcha::{gen, Difficulty};
+use chrono::Duration;
 use lemmy_db::{
   comment::*,
   comment_view::*,
@@ -66,6 +69,23 @@ pub struct Register {
   pub password_verify: String,
   pub admin: bool,
   pub show_nsfw: bool,
+  pub captcha_uuid: Option<String>,
+  pub captcha_answer: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetCaptcha {}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetCaptchaResponse {
+  ok: Option<CaptchaResponse>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CaptchaResponse {
+  png: String,         // A Base64 encoded png
+  wav: Option<String>, // A Base64 encoded wav audio
+  uuid: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -303,7 +323,7 @@ impl Perform for Oper<Register> {
   async fn perform(
     &self,
     pool: &DbPool,
-    _websocket_info: Option<WebsocketInfo>,
+    websocket_info: Option<WebsocketInfo>,
   ) -> Result<LoginResponse, LemmyError> {
     let data: &Register = &self.data;
 
@@ -318,6 +338,31 @@ impl Perform for Oper<Register> {
     // Make sure passwords match
     if data.password != data.password_verify {
       return Err(APIError::err("passwords_dont_match").into());
+    }
+
+    // If its not the admin, check the captcha
+    if !data.admin && Settings::get().captcha.enabled {
+      match websocket_info {
+        Some(ws) => {
+          let check = ws
+            .chatserver
+            .send(CheckCaptcha {
+              uuid: data
+                .captcha_uuid
+                .to_owned()
+                .unwrap_or_else(|| "".to_string()),
+              answer: data
+                .captcha_answer
+                .to_owned()
+                .unwrap_or_else(|| "".to_string()),
+            })
+            .await?;
+          if !check {
+            return Err(APIError::err("captcha_incorrect").into());
+          }
+        }
+        None => return Err(APIError::err("captcha_incorrect").into()),
+      };
     }
 
     if let Err(slurs) = slur_check(&data.username) {
@@ -435,6 +480,54 @@ impl Perform for Oper<Register> {
     // Return the jwt
     Ok(LoginResponse {
       jwt: Claims::jwt(inserted_user, Settings::get().hostname),
+    })
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for Oper<GetCaptcha> {
+  type Response = GetCaptchaResponse;
+
+  async fn perform(
+    &self,
+    _pool: &DbPool,
+    websocket_info: Option<WebsocketInfo>,
+  ) -> Result<Self::Response, LemmyError> {
+    let captcha_settings = Settings::get().captcha;
+
+    if !captcha_settings.enabled {
+      return Ok(GetCaptchaResponse { ok: None });
+    }
+
+    let captcha = match captcha_settings.difficulty.as_str() {
+      "easy" => gen(Difficulty::Easy),
+      "medium" => gen(Difficulty::Medium),
+      "hard" => gen(Difficulty::Hard),
+      _ => gen(Difficulty::Medium),
+    };
+
+    let answer = captcha.chars_as_string();
+
+    let png_byte_array = captcha.as_png().expect("failed to generate captcha");
+
+    let png = base64::encode(png_byte_array);
+
+    let uuid = uuid::Uuid::new_v4().to_string();
+
+    let wav = captcha_espeak_wav_base64(&answer).ok();
+
+    let captcha_item = CaptchaItem {
+      answer,
+      uuid: uuid.to_owned(),
+      expires: naive_now() + Duration::minutes(10), // expires in 10 minutes
+    };
+
+    if let Some(ws) = websocket_info {
+      ws.chatserver.do_send(captcha_item);
+    }
+
+    Ok(GetCaptchaResponse {
+      ok: Some(CaptchaResponse { png, uuid, wav }),
     })
   }
 }

@@ -65,16 +65,15 @@ function format(value: any, format: any, lng: any): any {
   return format === 'uppercase' ? value.toUpperCase() : value;
 }
 
-export function i18nextSetup() {
-  i18next.init({
-    debug: false,
-    // load: 'languageOnly',
+i18next.init({
+  debug: false,
+  // load: 'languageOnly',
 
-    // initImmediate: false,
-    lng: getLanguage(),
-    fallbackLng: 'en',
-    resources,
-    interpolation: { format },
-  });
-}
+  // initImmediate: false,
+  lng: getLanguage(),
+  fallbackLng: 'en',
+  resources,
+  interpolation: { format },
+});
+
 export { i18next as i18n, resources };
