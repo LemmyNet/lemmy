@@ -312,7 +312,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           <div class="row">
             <div className="col-12">
               <div className="post-title">
-                <h5 className="mb-0 d-inline">
+                <h5 className="mb-1 d-inline-block">
                   {this.props.showBody && post.url ? (
                     <a
                       className="text-body"
@@ -434,7 +434,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
           </div>
           <div class="row">
             <div className="details col-12">
-              <ul class="list-inline mb-0 text-muted small">
+              <ul class="list-inline mb-1 text-muted small">
                 <li className="list-inline-item">
                   <span>{i18n.t('by')} </span>
                   <UserListing
@@ -501,9 +501,27 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                     </li>
                   </>
                 )}
-                <li className="list-inline-item">•</li>
+              </ul>
+              <ul class="list-inline mb-1 text-muted small">
+                <li className="list-inline-item">
+                  <Link
+                    className="text-muted"
+                    title={i18n.t('number_of_comments', {
+                      count: post.number_of_comments,
+                    })}
+                    to={`/post/${post.id}`}
+                  >
+                    <svg class="mr-1 icon icon-inline">
+                      <use xlinkHref="#icon-message-square"></use>
+                    </svg>
+                    {i18n.t('number_of_comments', {
+                      count: post.number_of_comments,
+                    })}
+                  </Link>
+                </li>
                 {this.state.upvotes !== this.state.score && (
                   <>
+                    <li className="list-inline-item">•</li>
                     <span
                       class="unselectable pointer mr-2"
                       data-tippy-content={this.pointsTippy}
@@ -525,23 +543,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                         </span>
                       </li>
                     </span>
-                    <li className="list-inline-item">•</li>
                   </>
                 )}
-                <li className="list-inline-item">
-                  <Link
-                    className="text-muted"
-                    title={i18n.t('number_of_comments', {
-                      count: post.number_of_comments,
-                    })}
-                    to={`/post/${post.id}`}
-                  >
-                    <svg class="mr-1 icon icon-inline">
-                      <use xlinkHref="#icon-message-square"></use>
-                    </svg>
-                    {post.number_of_comments}
-                  </Link>
-                </li>
               </ul>
               {this.props.post.duplicates && (
                 <ul class="list-inline mb-1 small text-muted">

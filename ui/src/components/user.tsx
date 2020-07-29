@@ -274,7 +274,7 @@ export class User extends Component<any, UserState> {
 
   viewRadios() {
     return (
-      <div class="btn-group btn-group-toggle">
+      <div class="btn-group btn-group-toggle flex-wrap mb-2">
         <label
           className={`btn btn-outline-secondary pointer 
             ${this.state.view == UserDetailsView.Overview && 'active'}

@@ -171,7 +171,7 @@ export class Inbox extends Component<any, InboxState> {
 
   unreadOrAllRadios() {
     return (
-      <div class="btn-group btn-group-toggle">
+      <div class="btn-group btn-group-toggle flex-wrap mb-2">
         <label
           className={`btn btn-outline-secondary pointer
             ${this.state.unreadOrAll == UnreadOrAll.Unread && 'active'}
@@ -204,7 +204,7 @@ export class Inbox extends Component<any, InboxState> {
 
   messageTypeRadios() {
     return (
-      <div class="btn-group btn-group-toggle">
+      <div class="btn-group btn-group-toggle flex-wrap mb-2">
         <label
           className={`btn btn-outline-secondary pointer 
             ${this.state.messageType == MessageType.All && 'active'}

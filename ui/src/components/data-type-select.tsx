@@ -33,7 +33,7 @@ export class DataTypeSelect extends Component<
 
   render() {
     return (
-      <div class="btn-group btn-group-toggle">
+      <div class="btn-group btn-group-toggle flex-wrap mb-2">
         <label
           className={`pointer btn btn-outline-secondary 
             ${this.state.type_ == DataType.Post && 'active'}
