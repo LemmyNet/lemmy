@@ -13,8 +13,10 @@ use crate::{
 use activitystreams_new::base::AnyBase;
 use actix_web::client::Client;
 use lemmy_db::{community::Community, user::User_};
+use lemmy_utils::{get_apub_protocol_string, settings::Settings};
 use log::debug;
-use url::Url;
+use url::{ParseError, Url};
+use uuid::Uuid;
 
 pub async fn send_activity_to_community(
   creator: &User_,
@@ -67,4 +69,18 @@ pub async fn send_activity(
   }
 
   Ok(())
+}
+
+pub(in crate::apub) fn generate_activity_id<T>(kind: T) -> Result<Url, ParseError>
+where
+  T: ToString,
+{
+  let id = format!(
+    "{}://{}/activities/{}/{}",
+    get_apub_protocol_string(),
+    Settings::get().hostname,
+    kind.to_string().to_lowercase(),
+    Uuid::new_v4()
+  );
+  Url::parse(&id)
 }

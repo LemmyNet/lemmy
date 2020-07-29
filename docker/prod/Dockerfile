@@ -50,6 +50,10 @@ FROM alpine:3.12 as lemmy
 
 # Install libpq for postgres
 RUN apk add libpq
+
+# Install Espeak for captchas
+RUN apk add espeak
+
 RUN addgroup -g 1000 lemmy
 RUN adduser -D -s /bin/sh -u 1000 -G lemmy lemmy
 

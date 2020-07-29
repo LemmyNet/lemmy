@@ -2,7 +2,7 @@ use crate::{
   api::user::PrivateMessageResponse,
   apub::{
     extensions::signatures::verify,
-    fetcher::{get_or_fetch_and_upsert_remote_community, get_or_fetch_and_upsert_remote_user},
+    fetcher::{get_or_fetch_and_upsert_community, get_or_fetch_and_upsert_user},
     insert_activity,
     FromApub,
   },
@@ -82,7 +82,7 @@ async fn receive_accept(
 ) -> Result<HttpResponse, LemmyError> {
   let community_uri = accept.actor()?.to_owned().single_xsd_any_uri().unwrap();
 
-  let community = get_or_fetch_and_upsert_remote_community(&community_uri, client, pool).await?;
+  let community = get_or_fetch_and_upsert_community(&community_uri, client, pool).await?;
   verify(request, &community)?;
 
   let username = username.to_owned();
@@ -116,12 +116,12 @@ async fn receive_create_private_message(
   let user_uri = &create.actor()?.to_owned().single_xsd_any_uri().unwrap();
   let note = Note::from_any_base(create.object().as_one().unwrap().to_owned())?.unwrap();
 
-  let user = get_or_fetch_and_upsert_remote_user(user_uri, client, pool).await?;
+  let user = get_or_fetch_and_upsert_user(user_uri, client, pool).await?;
   verify(request, &user)?;
 
   insert_activity(user.id, create, false, pool).await?;
 
-  let private_message = PrivateMessageForm::from_apub(&note, client, pool, user_uri).await?;
+  let private_message = PrivateMessageForm::from_apub(&note, client, pool).await?;
 
   let inserted_private_message = blocking(pool, move |conn| {
     PrivateMessage::create(conn, &private_message)
@@ -157,12 +157,12 @@ async fn receive_update_private_message(
   let user_uri = &update.actor()?.to_owned().single_xsd_any_uri().unwrap();
   let note = Note::from_any_base(update.object().as_one().unwrap().to_owned())?.unwrap();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let user = get_or_fetch_and_upsert_user(&user_uri, client, pool).await?;
   verify(request, &user)?;
 
   insert_activity(user.id, update, false, pool).await?;
 
-  let private_message_form = PrivateMessageForm::from_apub(&note, client, pool, user_uri).await?;
+  let private_message_form = PrivateMessageForm::from_apub(&note, client, pool).await?;
 
   let private_message_ap_id = private_message_form.ap_id.clone();
   let private_message = blocking(pool, move |conn| {
@@ -206,12 +206,12 @@ async fn receive_delete_private_message(
   let user_uri = &delete.actor()?.to_owned().single_xsd_any_uri().unwrap();
   let note = Note::from_any_base(delete.object().as_one().unwrap().to_owned())?.unwrap();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let user = get_or_fetch_and_upsert_user(&user_uri, client, pool).await?;
   verify(request, &user)?;
 
   insert_activity(user.id, delete, false, pool).await?;
 
-  let private_message_form = PrivateMessageForm::from_apub(&note, client, pool, user_uri).await?;
+  let private_message_form = PrivateMessageForm::from_apub(&note, client, pool).await?;
 
   let private_message_ap_id = private_message_form.ap_id;
   let private_message = blocking(pool, move |conn| {
@@ -268,12 +268,12 @@ async fn receive_undo_delete_private_message(
   let note = Note::from_any_base(delete.object().as_one().unwrap().to_owned())?.unwrap();
   let user_uri = &delete.actor()?.to_owned().single_xsd_any_uri().unwrap();
 
-  let user = get_or_fetch_and_upsert_remote_user(&user_uri, client, pool).await?;
+  let user = get_or_fetch_and_upsert_user(&user_uri, client, pool).await?;
   verify(request, &user)?;
 
   insert_activity(user.id, delete, false, pool).await?;
 
-  let private_message = PrivateMessageForm::from_apub(&note, client, pool, user_uri).await?;
+  let private_message = PrivateMessageForm::from_apub(&note, client, pool).await?;
 
   let private_message_ap_id = private_message.ap_id.clone();
   let private_message_id = blocking(pool, move |conn| {

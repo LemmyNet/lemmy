@@ -20,6 +20,7 @@ use std::{
 pub enum UserOperation {
   Login,
   Register,
+  GetCaptcha,
   CreateCommunity,
   CreatePost,
   ListCommunities,
