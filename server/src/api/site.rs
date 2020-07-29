@@ -370,6 +370,8 @@ impl Perform for Oper<GetSite> {
         password_verify: setup.admin_password.to_owned(),
         admin: true,
         show_nsfw: true,
+        captcha_uuid: None,
+        captcha_answer: None,
       };
       let login_response = Oper::new(register, self.client.clone())
         .perform(pool, websocket_info.clone())

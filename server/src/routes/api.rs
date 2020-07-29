@@ -140,6 +140,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("/ban", web::post().to(route_post::<BanUser>))
           // Account actions. I don't like that they're in /user maybe /accounts
           .route("/login", web::post().to(route_post::<Login>))
+          .route("/get_captcha", web::get().to(route_post::<GetCaptcha>))
           .route(
             "/delete_account",
             web::post().to(route_post::<DeleteAccount>),

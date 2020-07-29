@@ -115,6 +115,10 @@ export class WebSocketService {
     this.ws.send(this.wsSendWrapper(UserOperation.Register, registerForm));
   }
 
+  public getCaptcha() {
+    this.ws.send(this.wsSendWrapper(UserOperation.GetCaptcha, {}));
+  }
+
   public createCommunity(form: CommunityForm) {
     this.setAuth(form);
     this.ws.send(this.wsSendWrapper(UserOperation.CreateCommunity, form));
