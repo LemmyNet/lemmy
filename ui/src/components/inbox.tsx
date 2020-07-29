@@ -112,7 +112,7 @@ export class Inbox extends Component<any, InboxState> {
 
   get documentTitle(): string {
     if (this.state.site.name) {
-      return `/u/${UserService.Instance.user.name} ${i18n.t('inbox')} - ${
+      return `@${UserService.Instance.user.name} ${i18n.t('inbox')} - ${
         this.state.site.name
       }`;
     } else {
