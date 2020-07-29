@@ -213,7 +213,7 @@ export class User extends Component<any, UserState> {
 
   get documentTitle(): string {
     if (this.state.siteRes.site.name) {
-      return `/u/${this.state.username} - ${this.state.siteRes.site.name}`;
+      return `@${this.state.username} - ${this.state.siteRes.site.name}`;
     } else {
       return 'Lemmy';
     }
@@ -234,7 +234,7 @@ export class User extends Component<any, UserState> {
                   class="rounded-circle mr-2"
                 />
               )}
-              <span>/u/{this.state.username}</span>
+              <span>@{this.state.username}</span>
             </h5>
             {this.state.loading ? (
               <h5>
@@ -276,7 +276,7 @@ export class User extends Component<any, UserState> {
     return (
       <div class="btn-group btn-group-toggle">
         <label
-          className={`btn btn-outline-secondary pointer 
+          className={`btn btn-outline-secondary pointer
             ${this.state.view == UserDetailsView.Overview && 'active'}
           `}
         >
@@ -289,7 +289,7 @@ export class User extends Component<any, UserState> {
           {i18n.t('overview')}
         </label>
         <label
-          className={`btn btn-outline-secondary pointer 
+          className={`btn btn-outline-secondary pointer
             ${this.state.view == UserDetailsView.Comments && 'active'}
           `}
         >
@@ -302,7 +302,7 @@ export class User extends Component<any, UserState> {
           {i18n.t('comments')}
         </label>
         <label
-          className={`btn btn-outline-secondary pointer 
+          className={`btn btn-outline-secondary pointer
             ${this.state.view == UserDetailsView.Posts && 'active'}
           `}
         >
@@ -315,7 +315,7 @@ export class User extends Component<any, UserState> {
           {i18n.t('posts')}
         </label>
         <label
-          className={`btn btn-outline-secondary pointer 
+          className={`btn btn-outline-secondary pointer
             ${this.state.view == UserDetailsView.Saved && 'active'}
           `}
         >
@@ -398,7 +398,7 @@ export class User extends Component<any, UserState> {
                 </tr>
                 */}
                 <tr>
-                  {/* 
+                  {/*
                   <td>
                     {i18n.t('number_of_points', { count: user.post_score })}
                   </td>
@@ -406,7 +406,7 @@ export class User extends Component<any, UserState> {
                   <td>
                     {i18n.t('number_of_posts', { count: user.number_of_posts })}
                   </td>
-                  {/* 
+                  {/*
                 </tr>
                 <tr>
                   <td>
