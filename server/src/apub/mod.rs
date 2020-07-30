@@ -28,7 +28,7 @@ use activitystreams_new::{
   prelude::*,
 };
 use actix_web::{body::Body, client::Client, HttpResponse};
-use anyhow::{anyhow as format_err};
+use anyhow::anyhow;
 use chrono::NaiveDateTime;
 use lemmy_db::{activity::do_insert_activity, user::User_};
 use lemmy_utils::{convert_datetime, get_apub_protocol_string, settings::Settings, MentionData};
@@ -118,10 +118,10 @@ where
       tombstone.set_deleted(convert_datetime(updated));
       Ok(tombstone)
     } else {
-      Err(format_err!("Cant convert to tombstone because updated time was None.").into())
+      Err(anyhow!("Cant convert to tombstone because updated time was None.").into())
     }
   } else {
-    Err(format_err!("Cant convert object to tombstone if it wasnt deleted").into())
+    Err(anyhow!("Cant convert object to tombstone if it wasnt deleted").into())
   }
 }
 
@@ -339,13 +339,13 @@ pub async fn fetch_webfinger_url(
     .links
     .iter()
     .find(|l| l.type_.eq(&Some("application/activity+json".to_string())))
-    .ok_or_else(|| format_err!("No application/activity+json link found."))?;
+    .ok_or_else(|| anyhow!("No application/activity+json link found."))?;
   link
     .href
     .to_owned()
     .map(|u| Url::parse(&u))
     .transpose()?
-    .ok_or_else(|| format_err!("No href found.").into())
+    .ok_or_else(|| anyhow!("No href found.").into())
 }
 
 pub async fn insert_activity<T>(

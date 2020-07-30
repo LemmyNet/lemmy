@@ -1,5 +1,5 @@
 use crate::LemmyError;
-use anyhow::{anyhow as format_err};
+use anyhow::anyhow;
 use std::future::Future;
 use thiserror::Error;
 
@@ -24,7 +24,7 @@ where
   F: Fn() -> Fut,
   Fut: Future<Output = Result<Result<T, actix_web::client::SendRequestError>, LemmyError>>,
 {
-  let mut response = Err(format_err!("connect timeout").into());
+  let mut response = Err(anyhow!("connect timeout").into());
 
   for _ in 0u8..3 {
     match (f)().await? {

@@ -31,7 +31,7 @@ pub mod websocket;
 
 use crate::request::{retry, RecvError};
 use actix_web::{client::Client, dev::ConnectionInfo};
-use anyhow::{self, anyhow as format_err};
+use anyhow::anyhow;
 use lemmy_utils::{get_apub_protocol_string, settings::Settings};
 use log::error;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
@@ -117,7 +117,7 @@ pub async fn fetch_pictrs(client: &Client, image_url: &str) -> Result<PictrsResp
   if response.msg == "ok" {
     Ok(response)
   } else {
-    Err(format_err!("{}", &response.msg).into())
+    Err(anyhow!("{}", &response.msg).into())
   }
 }
 
@@ -190,13 +190,13 @@ pub async fn is_image_content_type(client: &Client, test: &str) -> Result<(), Le
   if response
     .headers()
     .get("Content-Type")
-    .ok_or_else(|| format_err!("No Content-Type header"))?
+    .ok_or_else(|| anyhow!("No Content-Type header"))?
     .to_str()?
     .starts_with("image/")
   {
     Ok(())
   } else {
-    Err(format_err!("Not an image type.").into())
+    Err(anyhow!("Not an image type.").into())
   }
 }
 
