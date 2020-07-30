@@ -298,5 +298,7 @@
     "user_already_exists": "Úsáideoir ann cheana.",
     "email_already_exists": "Tá ríomhphost ann cheana féin.",
     "couldnt_update_user": "Níorbh fhéidir an t-úsáideoir a nuashonrú.",
-    "time": "Am"
+    "time": "Am",
+    "subscript": "fo-script",
+    "superscript": "sár-script"
 }
