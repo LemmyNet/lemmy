@@ -144,6 +144,9 @@ export class CommentForm extends Component<CommentFormProps, CommentFormState> {
         // This only finishes this form, if the randomly generated form_id matches the one received
         if (this.state.commentForm.form_id == data.form_id) {
           this.setState({ finished: true });
+
+          // Necessary because it broke tribute for some reaso
+          this.setState({ finished: false });
         }
       }
     }
