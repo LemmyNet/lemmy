@@ -30,6 +30,7 @@ import {
   showAvatars,
   toast,
   setupTippy,
+  getLanguage,
 } from '../utils';
 import { UserListing } from './user-listing';
 import { SortSelect } from './sort-select';
@@ -877,7 +878,7 @@ export class User extends Component<any, UserState> {
 
   handleUserSettingsLangChange(i: User, event: any) {
     i.state.userSettingsForm.lang = event.target.value;
-    i18n.changeLanguage(i.state.userSettingsForm.lang);
+    i18n.changeLanguage(getLanguage(i.state.userSettingsForm.lang));
     i.setState(i.state);
   }
 

@@ -31,7 +31,7 @@ use activitystreams_new::{
   },
   actor::{kind::GroupType, ApActor, Endpoints, Group},
   base::{AnyBase, BaseExt},
-  collection::UnorderedCollection,
+  collection::{OrderedCollection, UnorderedCollection},
   context,
   object::Tombstone,
   prelude::*,
@@ -43,6 +43,7 @@ use lemmy_db::{
   community::{Community, CommunityForm},
   community_view::{CommunityFollowerView, CommunityModeratorView},
   naive_now,
+  post::Post,
   user::User_,
 };
 use lemmy_utils::convert_datetime;
@@ -88,10 +89,10 @@ impl ToApub for Community {
       group.set_content(d);
     }
 
-    let mut ap_actor = ApActor::new(self.get_inbox_url().parse()?, group);
+    let mut ap_actor = ApActor::new(self.get_inbox_url()?, group);
     ap_actor
       .set_preferred_username(self.title.to_owned())
-      .set_outbox(self.get_outbox_url().parse()?)
+      .set_outbox(self.get_outbox_url()?)
       .set_followers(self.get_followers_url().parse()?)
       .set_following(self.get_following_url().parse()?)
       .set_liked(self.get_liked_url().parse()?)
@@ -408,6 +409,35 @@ pub async fn get_apub_community_followers(
     // TODO: this needs its own ID
     .set_id(community.actor_id.parse()?)
     .set_total_items(community_followers.len() as u64);
+  Ok(create_apub_response(&collection))
+}
+
+pub async fn get_apub_community_outbox(
+  info: web::Path<CommunityQuery>,
+  db: DbPoolParam,
+) -> Result<HttpResponse<Body>, LemmyError> {
+  let community = blocking(&db, move |conn| {
+    Community::read_from_name(&conn, &info.community_name)
+  })
+  .await??;
+
+  let community_id = community.id;
+  let posts = blocking(&db, move |conn| {
+    Post::list_for_community(conn, community_id)
+  })
+  .await??;
+
+  let mut pages: Vec<AnyBase> = vec![];
+  for p in posts {
+    pages.push(p.to_apub(&db).await?.into_any_base()?);
+  }
+
+  let len = pages.len();
+  let mut collection = OrderedCollection::new(pages);
+  collection
+    .set_context(context())
+    .set_id(community.get_outbox_url()?)
+    .set_total_items(len as u64);
   Ok(create_apub_response(&collection))
 }
 
