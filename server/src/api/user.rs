@@ -559,7 +559,13 @@ impl Perform for Oper<SaveUserSettings> {
     };
 
     let bio = match &data.bio {
-      Some(bio) => Some(bio.to_owned()),
+      Some(bio) => {
+        if bio.chars().count() <= 300 {
+          Some(bio.to_owned())
+        } else {
+          return Err(APIError::err("bio_length_overflow").into());
+        }
+      }
       None => read_user.bio,
     };
 

@@ -31,6 +31,7 @@ import {
   toast,
   setupTippy,
   getLanguage,
+  mdToHtml,
 } from '../utils';
 import { UserListing } from './user-listing';
 import { SortSelect } from './sort-select';
@@ -39,6 +40,7 @@ import { MomentTime } from './moment-time';
 import { i18n } from '../i18next';
 import moment from 'moment';
 import { UserDetails } from './user-details';
+import { MarkdownTextArea } from './markdown-textarea';
 
 interface UserState {
   user: UserView;
@@ -150,7 +152,13 @@ export class User extends Component<any, UserState> {
     this.handleUserSettingsListingTypeChange = this.handleUserSettingsListingTypeChange.bind(
       this
     );
+    this.handleUserSettingsListingTypeChange = this.handleUserSettingsListingTypeChange.bind(
+      this
+    );
     this.handlePageChange = this.handlePageChange.bind(this);
+    this.handleUserSettingsBioChange = this.handleUserSettingsBioChange.bind(
+      this
+    );
 
     this.state.user_id = Number(this.props.match.params.id) || null;
     this.state.username = this.props.match.params.username;
@@ -376,7 +384,12 @@ export class User extends Component<any, UserState> {
                 )}
               </ul>
             </h5>
-            <div>{user.bio}</div>
+            <div className="d-flex align-items-center mb-2">
+              <div
+                className="md-div"
+                dangerouslySetInnerHTML={mdToHtml(user.bio)}
+              />
+            </div>
             <div className="d-flex align-items-center mb-2">
               <svg class="icon">
                 <use xlinkHref="#icon-cake"></use>
@@ -577,13 +590,10 @@ export class User extends Component<any, UserState> {
                   {i18n.t('bio')}
                 </label>
                 <div class="col-lg-9">
-                  <input
-                    id="user-bio"
-                    class="form-control"
-                    placeholder={i18n.t('optional')}
-                    value={this.state.userSettingsForm.bio}
-                    onInput={linkEvent(this, this.handleUserSettingsBioChange)}
-                    minLength={3}
+                  <MarkdownTextArea
+                    initialContent={this.state.userSettingsForm.bio}
+                    onContentChange={this.handleUserSettingsBioChange}
+                    maxLength={300}
                   />
                 </div>
               </div>
@@ -917,12 +927,9 @@ export class User extends Component<any, UserState> {
     i.setState(i.state);
   }
 
-  handleUserSettingsBioChange(i: User, event: any) {
-    i.state.userSettingsForm.bio = event.target.value;
-    if (i.state.userSettingsForm.bio == '' && !i.state.user.bio) {
-      i.state.userSettingsForm.bio = undefined;
-    }
-    i.setState(i.state);
+  handleUserSettingsBioChange(val: string) {
+    this.state.userSettingsForm.bio = val;
+    this.setState(this.state);
   }
 
   handleUserSettingsMatrixUserIdChange(i: User, event: any) {
