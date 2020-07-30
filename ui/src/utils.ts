@@ -350,7 +350,7 @@ export function debounce(
   };
 }
 
-export function getLanguage(override: string): string {
+export function getLanguage(override?: string): string {
   let user = UserService.Instance.user;
   let lang = override || (user && user.lang ? user.lang : 'browser');
 
