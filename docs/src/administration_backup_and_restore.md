@@ -9,14 +9,14 @@ When using docker or ansible, there should be a `volumes` folder, which contains
 To incrementally backup the DB to an `.sql` file, you can run: 
 
 ```bash
-docker exec -t FOLDERNAME_postgres_1 pg_dumpall -c -U lemmy >  lemmy_dump_`date +%Y-%m-%d"_"%H_%M_%S`.sql
+docker-compose exec postgres pg_dumpall -c -U lemmy >  lemmy_dump_`date +%Y-%m-%d"_"%H_%M_%S`.sql
 ```
 ### A Sample backup script
 
 ```bash
 #!/bin/sh
 # DB Backup
-ssh MY_USER@MY_IP "docker exec -t FOLDERNAME_postgres_1 pg_dumpall -c -U lemmy" >  ~/BACKUP_LOCATION/INSTANCE_NAME_dump_`date +%Y-%m-%d"_"%H_%M_%S`.sql
+ssh MY_USER@MY_IP "docker-compose exec postgres pg_dumpall -c -U lemmy" >  ~/BACKUP_LOCATION/INSTANCE_NAME_dump_`date +%Y-%m-%d"_"%H_%M_%S`.sql
 
 # Volumes folder Backup
 rsync -avP -zz --rsync-path="sudo rsync" MY_USER@MY_IP:/LEMMY_LOCATION/volumes ~/BACKUP_LOCATION/FOLDERNAME
@@ -40,6 +40,10 @@ docker exec -i FOLDERNAME_postgres_1 psql -U lemmy -c "alter user lemmy with pas
 ### Changing your domain name
 
 If you haven't federated yet, you can change your domain name in the DB. **Warning: do not do this after you've federated, or it will break federation.**
+
+Get into `psql` for your docker: 
+
+`docker-compose exec postgres psql -U lemmy`
 
 ```
 -- Post
