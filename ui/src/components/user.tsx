@@ -109,6 +109,7 @@ export class User extends Component<any, UserState> {
       show_avatars: null,
       send_notifications_to_email: null,
       auth: null,
+      bio: null,
     },
     userSettingsLoading: null,
     deleteAccountLoading: null,
@@ -375,6 +376,7 @@ export class User extends Component<any, UserState> {
                 )}
               </ul>
             </h5>
+            <div>{user.bio}</div>
             <div className="d-flex align-items-center mb-2">
               <svg class="icon">
                 <use xlinkHref="#icon-cake"></use>
@@ -566,6 +568,21 @@ export class User extends Component<any, UserState> {
                       this,
                       this.handleUserSettingsEmailChange
                     )}
+                    minLength={3}
+                  />
+                </div>
+              </div>
+              <div class="form-group row">
+                <label class="col-lg-3 col-form-label" htmlFor="user-bio">
+                  {i18n.t('bio')}
+                </label>
+                <div class="col-lg-9">
+                  <input
+                    id="user-bio"
+                    class="form-control"
+                    placeholder={i18n.t('optional')}
+                    value={this.state.userSettingsForm.bio}
+                    onInput={linkEvent(this, this.handleUserSettingsBioChange)}
                     minLength={3}
                   />
                 </div>
@@ -900,6 +917,14 @@ export class User extends Component<any, UserState> {
     i.setState(i.state);
   }
 
+  handleUserSettingsBioChange(i: User, event: any) {
+    i.state.userSettingsForm.bio = event.target.value;
+    if (i.state.userSettingsForm.bio == '' && !i.state.user.bio) {
+      i.state.userSettingsForm.bio = undefined;
+    }
+    i.setState(i.state);
+  }
+
   handleUserSettingsMatrixUserIdChange(i: User, event: any) {
     i.state.userSettingsForm.matrix_user_id = event.target.value;
     if (
@@ -1057,6 +1082,7 @@ export class User extends Component<any, UserState> {
           this.state.userSettingsForm.lang = UserService.Instance.user.lang;
           this.state.userSettingsForm.avatar = UserService.Instance.user.avatar;
           this.state.userSettingsForm.email = this.state.user.email;
+          this.state.userSettingsForm.bio = this.state.user.bio;
           this.state.userSettingsForm.send_notifications_to_email = this.state.user.send_notifications_to_email;
           this.state.userSettingsForm.show_avatars =
             UserService.Instance.user.show_avatars;
