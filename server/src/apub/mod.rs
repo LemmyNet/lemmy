@@ -280,8 +280,8 @@ pub trait ActorType {
   }
 
   // TODO move these to the db rows
-  fn get_inbox_url(&self) -> String {
-    format!("{}/inbox", &self.actor_id_str())
+  fn get_inbox_url(&self) -> Result<Url, ParseError> {
+    Url::parse(&format!("{}/inbox", &self.actor_id_str()))
   }
 
   // TODO: make this return `Result<Url, ParseError>
@@ -289,8 +289,8 @@ pub trait ActorType {
     get_shared_inbox(&self.actor_id().unwrap())
   }
 
-  fn get_outbox_url(&self) -> String {
-    format!("{}/outbox", &self.actor_id_str())
+  fn get_outbox_url(&self) -> Result<Url, ParseError> {
+    Url::parse(&format!("{}/outbox", &self.actor_id_str()))
   }
 
   fn get_followers_url(&self) -> String {
