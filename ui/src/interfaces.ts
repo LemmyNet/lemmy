@@ -597,6 +597,7 @@ export interface UserSettingsForm {
   lang: string;
   avatar?: string;
   email?: string;
+  bio?: string;
   matrix_user_id?: string;
   new_password?: string;
   new_password_verify?: string;

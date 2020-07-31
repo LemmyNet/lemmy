@@ -31,6 +31,7 @@ import {
   toast,
   setupTippy,
   getLanguage,
+  mdToHtml,
 } from '../utils';
 import { UserListing } from './user-listing';
 import { SortSelect } from './sort-select';
@@ -39,6 +40,7 @@ import { MomentTime } from './moment-time';
 import { i18n } from '../i18next';
 import moment from 'moment';
 import { UserDetails } from './user-details';
+import { MarkdownTextArea } from './markdown-textarea';
 
 interface UserState {
   user: UserView;
@@ -109,6 +111,7 @@ export class User extends Component<any, UserState> {
       show_avatars: null,
       send_notifications_to_email: null,
       auth: null,
+      bio: null,
     },
     userSettingsLoading: null,
     deleteAccountLoading: null,
@@ -149,7 +152,13 @@ export class User extends Component<any, UserState> {
     this.handleUserSettingsListingTypeChange = this.handleUserSettingsListingTypeChange.bind(
       this
     );
+    this.handleUserSettingsListingTypeChange = this.handleUserSettingsListingTypeChange.bind(
+      this
+    );
     this.handlePageChange = this.handlePageChange.bind(this);
+    this.handleUserSettingsBioChange = this.handleUserSettingsBioChange.bind(
+      this
+    );
 
     this.state.user_id = Number(this.props.match.params.id) || null;
     this.state.username = this.props.match.params.username;
@@ -376,6 +385,12 @@ export class User extends Component<any, UserState> {
               </ul>
             </h5>
             <div className="d-flex align-items-center mb-2">
+              <div
+                className="md-div"
+                dangerouslySetInnerHTML={mdToHtml(user.bio)}
+              />
+            </div>
+            <div className="d-flex align-items-center mb-2">
               <svg class="icon">
                 <use xlinkHref="#icon-cake"></use>
               </svg>
@@ -567,6 +582,18 @@ export class User extends Component<any, UserState> {
                       this.handleUserSettingsEmailChange
                     )}
                     minLength={3}
+                  />
+                </div>
+              </div>
+              <div class="form-group row">
+                <label class="col-lg-3 col-form-label" htmlFor="user-bio">
+                  {i18n.t('bio')}
+                </label>
+                <div class="col-lg-9">
+                  <MarkdownTextArea
+                    initialContent={this.state.userSettingsForm.bio}
+                    onContentChange={this.handleUserSettingsBioChange}
+                    maxLength={300}
                   />
                 </div>
               </div>
@@ -900,6 +927,11 @@ export class User extends Component<any, UserState> {
     i.setState(i.state);
   }
 
+  handleUserSettingsBioChange(val: string) {
+    this.state.userSettingsForm.bio = val;
+    this.setState(this.state);
+  }
+
   handleUserSettingsMatrixUserIdChange(i: User, event: any) {
     i.state.userSettingsForm.matrix_user_id = event.target.value;
     if (
@@ -1057,6 +1089,7 @@ export class User extends Component<any, UserState> {
           this.state.userSettingsForm.lang = UserService.Instance.user.lang;
           this.state.userSettingsForm.avatar = UserService.Instance.user.avatar;
           this.state.userSettingsForm.email = this.state.user.email;
+          this.state.userSettingsForm.bio = this.state.user.bio;
           this.state.userSettingsForm.send_notifications_to_email = this.state.user.send_notifications_to_email;
           this.state.userSettingsForm.show_avatars =
             UserService.Instance.user.show_avatars;
@@ -1068,9 +1101,10 @@ export class User extends Component<any, UserState> {
     } else if (res.op == UserOperation.SaveUserSettings) {
       const data = res.data as LoginResponse;
       UserService.Instance.login(data);
-      this.setState({
-        userSettingsLoading: false,
-      });
+      this.state.user.bio = this.state.userSettingsForm.bio;
+      this.state.userSettingsLoading = false;
+      this.setState(this.state);
+
       window.scrollTo(0, 0);
     } else if (res.op == UserOperation.DeleteAccount) {
       this.setState({

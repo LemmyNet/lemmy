@@ -21,6 +21,7 @@ interface MarkdownTextAreaProps {
   replyType?: boolean;
   focus?: boolean;
   disabled?: boolean;
+  maxLength?: number;
   onSubmit?(msg: { val: string; formId: string }): any;
   onContentChange?(val: string): any;
   onReplyCancel?(): any;
@@ -121,7 +122,7 @@ export class MarkdownTextArea extends Component<
               required
               disabled={this.props.disabled}
               rows={2}
-              maxLength={10000}
+              maxLength={this.props.maxLength || 10000}
             />
             {this.state.previewMode && (
               <div
