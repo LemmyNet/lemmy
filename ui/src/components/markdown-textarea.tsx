@@ -122,7 +122,7 @@ export class MarkdownTextArea extends Component<
               required
               disabled={this.props.disabled}
               rows={2}
-              maxLength={this.props.maxLength || 1000}
+              maxLength={this.props.maxLength || 10000}
             />
             {this.state.previewMode && (
               <div

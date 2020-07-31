@@ -1101,9 +1101,10 @@ export class User extends Component<any, UserState> {
     } else if (res.op == UserOperation.SaveUserSettings) {
       const data = res.data as LoginResponse;
       UserService.Instance.login(data);
-      this.setState({
-        userSettingsLoading: false,
-      });
+      this.state.user.bio = this.state.userSettingsForm.bio;
+      this.state.userSettingsLoading = false;
+      this.setState(this.state);
+
       window.scrollTo(0, 0);
     } else if (res.op == UserOperation.DeleteAccount) {
       this.setState({
