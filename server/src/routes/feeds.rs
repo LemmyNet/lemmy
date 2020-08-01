@@ -1,5 +1,6 @@
 use crate::{api::claims::Claims, blocking, routes::DbPoolParam, LemmyError};
 use actix_web::{error::ErrorBadRequest, *};
+use anyhow::anyhow;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::{
   r2d2::{ConnectionManager, Pool},
@@ -88,7 +89,7 @@ async fn get_feed(
     "c" => RequestType::Community,
     "front" => RequestType::Front,
     "inbox" => RequestType::Inbox,
-    _ => return Err(ErrorBadRequest(LemmyError::from(format_err!("wrong_type")))),
+    _ => return Err(ErrorBadRequest(LemmyError::from(anyhow!("wrong_type")))),
   };
 
   let param = path.1.to_owned();
