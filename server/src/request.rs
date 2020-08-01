@@ -1,12 +1,14 @@
 use crate::LemmyError;
+use anyhow::anyhow;
 use std::future::Future;
+use thiserror::Error;
 
-#[derive(Clone, Debug, Fail)]
-#[fail(display = "Error sending request, {}", _0)]
+#[derive(Clone, Debug, Error)]
+#[error("Error sending request, {0}")]
 struct SendError(pub String);
 
-#[derive(Clone, Debug, Fail)]
-#[fail(display = "Error receiving response, {}", _0)]
+#[derive(Clone, Debug, Error)]
+#[error("Error receiving response, {0}")]
 pub struct RecvError(pub String);
 
 pub async fn retry<F, Fut, T>(f: F) -> Result<T, LemmyError>
@@ -22,7 +24,7 @@ where
   F: Fn() -> Fut,
   Fut: Future<Output = Result<Result<T, actix_web::client::SendRequestError>, LemmyError>>,
 {
-  let mut response = Err(format_err!("connect timeout").into());
+  let mut response = Err(anyhow!("connect timeout").into());
 
   for _ in 0u8..3 {
     match (f)().await? {

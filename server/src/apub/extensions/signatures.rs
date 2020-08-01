@@ -1,7 +1,8 @@
 use crate::{apub::ActorType, LemmyError};
+use activitystreams::unparsed::UnparsedMutExt;
 use activitystreams_ext::UnparsedExtension;
-use activitystreams_new::unparsed::UnparsedMutExt;
 use actix_web::{client::ClientRequest, HttpRequest};
+use anyhow::anyhow;
 use http_signature_normalization_actix::{
   digest::{DigestClient, SignExt},
   Config,
@@ -70,7 +71,7 @@ pub fn verify(request: &HttpRequest, actor: &dyn ActorType) -> Result<(), LemmyE
     debug!("verified signature for {}", &request.uri());
     Ok(())
   } else {
-    Err(format_err!("Invalid signature on request: {}", &request.uri()).into())
+    Err(anyhow!("Invalid signature on request: {}", &request.uri()).into())
   }
 }
 

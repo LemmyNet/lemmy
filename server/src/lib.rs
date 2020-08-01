@@ -3,8 +3,6 @@
 pub extern crate strum_macros;
 #[macro_use]
 pub extern crate lazy_static;
-#[macro_use]
-pub extern crate failure;
 pub extern crate actix;
 pub extern crate actix_web;
 pub extern crate base64;
@@ -33,6 +31,7 @@ pub mod websocket;
 
 use crate::request::{retry, RecvError};
 use actix_web::{client::Client, dev::ConnectionInfo};
+use anyhow::anyhow;
 use lemmy_utils::{get_apub_protocol_string, settings::Settings};
 use log::error;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
@@ -48,12 +47,12 @@ pub type IPAddr = String;
 
 #[derive(Debug)]
 pub struct LemmyError {
-  inner: failure::Error,
+  inner: anyhow::Error,
 }
 
 impl<T> From<T> for LemmyError
 where
-  T: Into<failure::Error>,
+  T: Into<anyhow::Error>,
 {
   fn from(t: T) -> Self {
     LemmyError { inner: t.into() }
@@ -118,7 +117,7 @@ pub async fn fetch_pictrs(client: &Client, image_url: &str) -> Result<PictrsResp
   if response.msg == "ok" {
     Ok(response)
   } else {
-    Err(format_err!("{}", &response.msg).into())
+    Err(anyhow!("{}", &response.msg).into())
   }
 }
 
@@ -191,13 +190,13 @@ pub async fn is_image_content_type(client: &Client, test: &str) -> Result<(), Le
   if response
     .headers()
     .get("Content-Type")
-    .ok_or_else(|| format_err!("No Content-Type header"))?
+    .ok_or_else(|| anyhow!("No Content-Type header"))?
     .to_str()?
     .starts_with("image/")
   {
     Ok(())
   } else {
-    Err(format_err!("Not an image type.").into())
+    Err(anyhow!("Not an image type.").into())
   }
 }
 

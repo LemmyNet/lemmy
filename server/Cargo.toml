@@ -18,12 +18,11 @@ lemmy_db = { path = "./lemmy_db" }
 diesel = "1.4.4"
 diesel_migrations = "1.4.0"
 dotenv = "0.15.0"
-activitystreams-new = { git = "https://yerbamate.dev/asonix/activitystreams-new", branch = "main" }
-activitystreams-ext = { git = "https://yerbamate.dev/asonix/activitystreams-ext", branch = "main" }
+activitystreams = "0.7.0-alpha.3"
+activitystreams-ext = "0.1.0-alpha.2"
 bcrypt = "0.8.0"
 chrono = { version = "0.4.7", features = ["serde"] }
 serde_json = { version = "1.0.52", features = ["preserve_order"]}
-failure = "0.1.8"
 serde = { version = "1.0.105", features = ["derive"] }
 actix = "0.10.0-alpha.2"
 actix-web = { version = "3.0.0-alpha.3", features = ["rustls"] }
@@ -52,3 +51,5 @@ uuid = { version = "0.8", features = ["serde", "v4"] }
 sha2 = "0.9"
 async-trait = "0.1.36"
 captcha = "0.0.7"
+anyhow = "1.0.32"
+thiserror = "1.0.20"

@@ -23,7 +23,7 @@ use crate::{
   DbPool,
   LemmyError,
 };
-use activitystreams_new::{
+use activitystreams::{
   activity::{ActorAndObject, ActorAndObjectRef},
   base::{AsBase, Extends},
   object::AsObject,
