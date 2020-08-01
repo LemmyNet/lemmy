@@ -20,13 +20,13 @@ use crate::{
   DbPool,
   LemmyError,
 };
-use activitystreams_ext::{Ext1, Ext2};
-use activitystreams_new::{
+use activitystreams::{
   activity::Follow,
   actor::{ApActor, Group, Person},
   object::{Page, Tombstone},
   prelude::*,
 };
+use activitystreams_ext::{Ext1, Ext2};
 use actix_web::{body::Body, client::Client, HttpResponse};
 use chrono::NaiveDateTime;
 use failure::_core::fmt::Debug;

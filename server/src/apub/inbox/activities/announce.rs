@@ -15,7 +15,7 @@ use crate::{
   DbPool,
   LemmyError,
 };
-use activitystreams_new::{activity::*, base::AnyBase, prelude::ExtendsExt};
+use activitystreams::{activity::*, base::AnyBase, prelude::ExtendsExt};
 use actix_web::{client::Client, HttpResponse};
 
 pub async fn receive_announce(

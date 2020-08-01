@@ -1,6 +1,6 @@
 use crate::{apub::ActorType, LemmyError};
+use activitystreams::unparsed::UnparsedMutExt;
 use activitystreams_ext::UnparsedExtension;
-use activitystreams_new::unparsed::UnparsedMutExt;
 use actix_web::{client::ClientRequest, HttpRequest};
 use http_signature_normalization_actix::{
   digest::{DigestClient, SignExt},

@@ -18,8 +18,7 @@ use crate::{
   DbPool,
   LemmyError,
 };
-use activitystreams_ext::Ext2;
-use activitystreams_new::{
+use activitystreams::{
   activity::{
     kind::{AcceptType, AnnounceType, DeleteType, LikeType, RemoveType, UndoType},
     Accept,
@@ -37,6 +36,7 @@ use activitystreams_new::{
   prelude::*,
   public,
 };
+use activitystreams_ext::Ext2;
 use actix_web::{body::Body, client::Client, web, HttpResponse};
 use itertools::Itertools;
 use lemmy_db::{
@@ -403,7 +403,7 @@ pub async fn get_apub_community_followers(
   })
   .await??;
 
-  let mut collection = UnorderedCollection::new(vec![]);
+  let mut collection = UnorderedCollection::new();
   collection
     .set_context(context())
     // TODO: this needs its own ID
@@ -433,8 +433,9 @@ pub async fn get_apub_community_outbox(
   }
 
   let len = pages.len();
-  let mut collection = OrderedCollection::new(pages);
+  let mut collection = OrderedCollection::new();
   collection
+    .set_many_items(pages)
     .set_context(context())
     .set_id(community.get_outbox_url()?)
     .set_total_items(len as u64);

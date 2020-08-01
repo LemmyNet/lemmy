@@ -18,8 +18,7 @@ use crate::{
   DbPool,
   LemmyError,
 };
-use activitystreams_ext::Ext1;
-use activitystreams_new::{
+use activitystreams::{
   activity::{
     kind::{CreateType, DeleteType, DislikeType, LikeType, RemoveType, UndoType, UpdateType},
     Create,
@@ -35,6 +34,7 @@ use activitystreams_new::{
   prelude::*,
   public,
 };
+use activitystreams_ext::Ext1;
 use actix_web::{body::Body, client::Client, web, HttpResponse};
 use lemmy_db::{
   community::Community,

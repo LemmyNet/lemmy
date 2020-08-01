@@ -9,7 +9,7 @@ use crate::{
   routes::{ChatServerParam, DbPoolParam},
   LemmyError,
 };
-use activitystreams_new::{
+use activitystreams::{
   activity::{Follow, Undo},
   prelude::*,
 };
