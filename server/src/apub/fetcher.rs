@@ -15,7 +15,7 @@ use crate::{
   DbPool,
   LemmyError,
 };
-use activitystreams_new::{base::BaseExt, collection::OrderedCollection, object::Note, prelude::*};
+use activitystreams::{base::BaseExt, collection::OrderedCollection, object::Note, prelude::*};
 use actix_web::client::Client;
 use chrono::NaiveDateTime;
 use diesel::{result::Error::NotFound, PgConnection};
@@ -348,7 +348,7 @@ async fn fetch_remote_community(
   // fetch outbox (maybe make this conditional)
   let outbox =
     fetch_remote_object::<OrderedCollection>(client, &community.get_outbox_url()?).await?;
-  let outbox_items = outbox.items().clone();
+  let outbox_items = outbox.items().unwrap().clone();
   for o in outbox_items.many().unwrap() {
     let page = PageExt::from_any_base(o)?.unwrap();
     let post = PostForm::from_apub(&page, client, pool).await?;

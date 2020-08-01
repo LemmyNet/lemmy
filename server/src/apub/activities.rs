@@ -10,7 +10,7 @@ use crate::{
   DbPool,
   LemmyError,
 };
-use activitystreams_new::base::AnyBase;
+use activitystreams::base::AnyBase;
 use actix_web::client::Client;
 use lemmy_db::{community::Community, user::User_};
 use lemmy_utils::{get_apub_protocol_string, settings::Settings};

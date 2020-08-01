@@ -12,7 +12,7 @@ use crate::{
   DbPool,
   LemmyError,
 };
-use activitystreams_new::{
+use activitystreams::{
   activity::{
     kind::{CreateType, DeleteType, UndoType, UpdateType},
     Create,
