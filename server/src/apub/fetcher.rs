@@ -17,6 +17,7 @@ use crate::{
 };
 use activitystreams_new::{base::BaseExt, collection::OrderedCollection, object::Note, prelude::*};
 use actix_web::client::Client;
+use anyhow::anyhow;
 use chrono::NaiveDateTime;
 use diesel::{result::Error::NotFound, PgConnection};
 use lemmy_db::{
@@ -66,7 +67,7 @@ where
   Response: for<'de> Deserialize<'de>,
 {
   if !is_apub_id_valid(&url) {
-    return Err(format_err!("Activitypub uri invalid or blocked: {}", url).into());
+    return Err(anyhow!("Activitypub uri invalid or blocked: {}", url).into());
   }
 
   let timeout = Duration::from_secs(60);
@@ -125,10 +126,10 @@ pub async fn search_by_apub_id(
         let split2 = split[0].split('!').collect::<Vec<&str>>();
         (format!("/c/{}", split2[1]), split[1])
       } else {
-        return Err(format_err!("Invalid search query: {}", query).into());
+        return Err(anyhow!("Invalid search query: {}", query).into());
       }
     } else {
-      return Err(format_err!("Invalid search query: {}", query).into());
+      return Err(anyhow!("Invalid search query: {}", query).into());
     };
 
     let url = format!("{}://{}{}", get_apub_protocol_string(), instance, name);
