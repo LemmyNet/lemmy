@@ -16,6 +16,7 @@ import {
   CommunityResponse,
   GetFollowedCommunitiesResponse,
   GetPostResponse,
+  RegisterForm,
   CommentForm,
   DeleteCommentForm,
   RemoveCommentForm,
@@ -31,6 +32,10 @@ import {
   PrivateMessageResponse,
   PrivateMessagesResponse,
   GetUserMentionsResponse,
+  UserSettingsForm,
+  SortType,
+  ListingType,
+  GetSiteResponse,
 } from '../interfaces';
 
 export interface API {
@@ -271,6 +276,22 @@ export async function searchForBetaCommunity(
   let searchUrl = `${apiUrl(
     api
   )}/search?q=!main@lemmy-beta:8550&type_=All&sort=TopAll`;
+
+  let searchResponse: SearchResponse = await fetch(searchUrl, {
+    method: 'GET',
+  }).then(d => d.json());
+  return searchResponse;
+}
+
+export async function searchForUser(
+  api: API,
+  apShortname: string
+): Promise<SearchResponse> {
+  // Make sure lemmy-beta/c/main is cached on lemmy_alpha
+  // Use short-hand search url
+  let searchUrl = `${apiUrl(
+    api
+  )}/search?q=${apShortname}&type_=All&sort=TopAll`;
 
   let searchResponse: SearchResponse = await fetch(searchUrl, {
     method: 'GET',
@@ -614,6 +635,73 @@ export async function deletePrivateMessage(
   return deleteRes;
 }
 
+export async function registerUser(
+  api: API,
+  username: string = randomString(5)
+): Promise<LoginResponse> {
+  let registerForm: RegisterForm = {
+    username,
+    password: 'test',
+    password_verify: 'test',
+    admin: false,
+    show_nsfw: true,
+  };
+
+  let registerRes: Promise<LoginResponse> = fetch(
+    `${apiUrl(api)}/user/register`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: wrapper(registerForm),
+    }
+  ).then(d => d.json());
+
+  return registerRes;
+}
+
+export async function saveUserSettingsBio(
+  api: API,
+  auth: string
+): Promise<LoginResponse> {
+  let form: UserSettingsForm = {
+    show_nsfw: true,
+    theme: 'darkly',
+    default_sort_type: SortType.Hot,
+    default_listing_type: ListingType.All,
+    lang: 'en',
+    show_avatars: true,
+    send_notifications_to_email: false,
+    bio: 'a changed bio',
+    auth,
+  };
+
+  let res: Promise<LoginResponse> = fetch(
+    `${apiUrl(api)}/user/save_user_settings`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: wrapper(form),
+    }
+  ).then(d => d.json());
+  return res;
+}
+
+export async function getSite(
+  api: API,
+  auth: string
+): Promise<GetSiteResponse> {
+  let siteUrl = `${apiUrl(api)}/site?auth=${auth}`;
+
+  let res: GetSiteResponse = await fetch(siteUrl, {
+    method: 'GET',
+  }).then(d => d.json());
+  return res;
+}
+
 export async function listPrivateMessages(
   api: API
 ): Promise<PrivateMessagesResponse> {
@@ -650,14 +738,11 @@ export async function followBeta(api: API): Promise<CommunityResponse> {
 
   // Cache it
   let search = await searchForBetaCommunity(api);
-
-  // Unfollow first
-  let follow = await followCommunity(
-    api,
-    true,
-    search.communities.filter(c => c.local == false)[0].id
-  );
-  return follow;
+  let com = search.communities.filter(c => c.local == false);
+  if (com[0]) {
+    let follow = await followCommunity(api, true, com[0].id);
+    return follow;
+  }
 }
 
 export function wrapper(form: any): string {

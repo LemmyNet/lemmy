@@ -41,6 +41,7 @@ services:
       - LEMMY_SETUP__SITE_NAME=lemmy-alpha
       - LEMMY_RATE_LIMIT__POST=99999
       - LEMMY_RATE_LIMIT__REGISTER=99999
+      - LEMMY_CAPTCHA__ENABLED=false
       - RUST_BACKTRACE=1
       - RUST_LOG=debug
     depends_on:
@@ -70,6 +71,7 @@ services:
       - LEMMY_SETUP__SITE_NAME=lemmy-beta
       - LEMMY_RATE_LIMIT__POST=99999
       - LEMMY_RATE_LIMIT__REGISTER=99999
+      - LEMMY_CAPTCHA__ENABLED=false
       - RUST_BACKTRACE=1
       - RUST_LOG=debug
     depends_on:
@@ -99,6 +101,7 @@ services:
       - LEMMY_SETUP__SITE_NAME=lemmy-gamma
       - LEMMY_RATE_LIMIT__POST=99999
       - LEMMY_RATE_LIMIT__REGISTER=99999
+      - LEMMY_CAPTCHA__ENABLED=false
       - RUST_BACKTRACE=1
       - RUST_LOG=debug
     depends_on:
