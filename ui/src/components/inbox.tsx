@@ -275,21 +275,21 @@ export class Inbox extends Component<any, InboxState> {
     );
   }
 
+  combined(): Array<ReplyType> {
+    return [
+      ...this.state.replies,
+      ...this.state.mentions,
+      ...this.state.messages,
+    ].sort((a, b) => b.published.localeCompare(a.published));
+  }
+
   all() {
-    let combined: Array<ReplyType> = [];
-
-    combined.push(...this.state.replies);
-    combined.push(...this.state.mentions);
-    combined.push(...this.state.messages);
-
-    // Sort it
-    combined.sort((a, b) => b.published.localeCompare(a.published));
-
     return (
       <div>
-        {combined.map(i =>
+        {this.combined().map(i =>
           isCommentType(i) ? (
             <CommentNodes
+              key={i.id}
               nodes={[{ comment: i }]}
               noIndent
               markable
@@ -298,7 +298,7 @@ export class Inbox extends Component<any, InboxState> {
               enableDownvotes={this.state.site.enable_downvotes}
             />
           ) : (
-            <PrivateMessage privateMessage={i} />
+            <PrivateMessage key={i.id} privateMessage={i} />
           )
         )}
       </div>
@@ -325,6 +325,7 @@ export class Inbox extends Component<any, InboxState> {
       <div>
         {this.state.mentions.map(mention => (
           <CommentNodes
+            key={mention.id}
             nodes={[{ comment: mention }]}
             noIndent
             markable
@@ -341,7 +342,7 @@ export class Inbox extends Component<any, InboxState> {
     return (
       <div>
         {this.state.messages.map(message => (
-          <PrivateMessage privateMessage={message} />
+          <PrivateMessage key={message.id} privateMessage={message} />
         ))}
       </div>
     );
@@ -565,7 +566,6 @@ export class Inbox extends Component<any, InboxState> {
       } else if (data.comment.creator_id == UserService.Instance.user.id) {
         toast(i18n.t('reply_sent'));
       }
-      this.setState(this.state);
     } else if (res.op == UserOperation.CreatePrivateMessage) {
       let data = res.data as PrivateMessageResponse;
       if (data.message.recipient_id == UserService.Instance.user.id) {
@@ -597,7 +597,10 @@ export class Inbox extends Component<any, InboxState> {
       this.state.replies.filter(r => !r.read).length +
       this.state.mentions.filter(r => !r.read).length +
       this.state.messages.filter(
-        r => !r.read && r.creator_id !== UserService.Instance.user.id
+        r =>
+          UserService.Instance.user &&
+          !r.read &&
+          r.creator_id !== UserService.Instance.user.id
       ).length
     );
   }
