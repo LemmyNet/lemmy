@@ -152,9 +152,6 @@ export class User extends Component<any, UserState> {
     this.handleUserSettingsListingTypeChange = this.handleUserSettingsListingTypeChange.bind(
       this
     );
-    this.handleUserSettingsListingTypeChange = this.handleUserSettingsListingTypeChange.bind(
-      this
-    );
     this.handlePageChange = this.handlePageChange.bind(this);
     this.handleUserSettingsBioChange = this.handleUserSettingsBioChange.bind(
       this
