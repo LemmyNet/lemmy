@@ -97,6 +97,7 @@ pub struct SaveUserSettings {
   lang: String,
   avatar: Option<String>,
   email: Option<String>,
+  bio: Option<String>,
   matrix_user_id: Option<String>,
   new_password: Option<String>,
   new_password_verify: Option<String>,
@@ -557,6 +558,17 @@ impl Perform for Oper<SaveUserSettings> {
       None => read_user.email,
     };
 
+    let bio = match &data.bio {
+      Some(bio) => {
+        if bio.chars().count() <= 300 {
+          Some(bio.to_owned())
+        } else {
+          return Err(APIError::err("bio_length_overflow").into());
+        }
+      }
+      None => read_user.bio,
+    };
+
     let avatar = match &data.avatar {
       Some(avatar) => Some(avatar.to_owned()),
       None => read_user.avatar,
@@ -613,7 +625,7 @@ impl Perform for Oper<SaveUserSettings> {
       show_avatars: data.show_avatars,
       send_notifications_to_email: data.send_notifications_to_email,
       actor_id: read_user.actor_id,
-      bio: read_user.bio,
+      bio,
       local: read_user.local,
       private_key: read_user.private_key,
       public_key: read_user.public_key,

@@ -289,6 +289,7 @@ export class Search extends Component<any, SearchState> {
             <div class="col-12">
               {i.type_ == 'posts' && (
                 <PostListing
+                  key={(i.data as Post).id}
                   post={i.data as Post}
                   showCommunity
                   enableDownvotes={this.state.site.enable_downvotes}
@@ -297,6 +298,7 @@ export class Search extends Component<any, SearchState> {
               )}
               {i.type_ == 'comments' && (
                 <CommentNodes
+                  key={(i.data as Comment).id}
                   nodes={[{ comment: i.data as Comment }]}
                   locked
                   noIndent

@@ -76,6 +76,9 @@ impl Post {
     use crate::schema::post::dsl::*;
     post
       .filter(community_id.eq(the_community_id))
+      .then_order_by(published.desc())
+      .then_order_by(stickied.desc())
+      .limit(20)
       .load::<Self>(conn)
   }
 

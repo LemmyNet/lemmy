@@ -22,7 +22,7 @@ use crate::{
   DbPool,
   LemmyError,
 };
-use activitystreams_new::{activity::Update, base::AnyBase, object::Note, prelude::*};
+use activitystreams::{activity::Update, base::AnyBase, object::Note, prelude::*};
 use actix_web::{client::Client, HttpResponse};
 use lemmy_db::{
   comment::{Comment, CommentForm},

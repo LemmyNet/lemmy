@@ -21,9 +21,11 @@ interface MarkdownTextAreaProps {
   replyType?: boolean;
   focus?: boolean;
   disabled?: boolean;
+  maxLength?: number;
   onSubmit?(msg: { val: string; formId: string }): any;
   onContentChange?(val: string): any;
   onReplyCancel?(): any;
+  hideNavigationWarnings?: boolean;
 }
 
 interface MarkdownTextAreaState {
@@ -77,7 +79,7 @@ export class MarkdownTextArea extends Component<
   }
 
   componentDidUpdate() {
-    if (this.state.content) {
+    if (!this.props.hideNavigationWarnings && this.state.content) {
       window.onbeforeunload = () => true;
     } else {
       window.onbeforeunload = undefined;
@@ -109,7 +111,10 @@ export class MarkdownTextArea extends Component<
   render() {
     return (
       <form id={this.formId} onSubmit={linkEvent(this, this.handleSubmit)}>
-        <Prompt when={this.state.content} message={i18n.t('block_leaving')} />
+        <Prompt
+          when={!this.props.hideNavigationWarnings && this.state.content}
+          message={i18n.t('block_leaving')}
+        />
         <div class="form-group row">
           <div className={`col-sm-12`}>
             <textarea
@@ -121,7 +126,7 @@ export class MarkdownTextArea extends Component<
               required
               disabled={this.props.disabled}
               rows={2}
-              maxLength={10000}
+              maxLength={this.props.maxLength || 10000}
             />
             {this.state.previewMode && (
               <div

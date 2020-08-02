@@ -82,10 +82,6 @@ export class WebSocketService {
       this.ws.onopen = () => {
         console.log(`Connected to ${wsUri}`);
 
-        if (UserService.Instance.user) {
-          this.userJoin();
-        }
-
         if (!firstConnect) {
           let res: WebSocketJsonResponse = {
             reconnect: true,

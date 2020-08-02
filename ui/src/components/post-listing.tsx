@@ -315,7 +315,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                 <h5 className="mb-1 d-inline-block">
                   {this.props.showBody && post.url ? (
                     <a
-                      className="text-body"
+                      className={!post.stickied ? 'text-body' : 'text-primary'}
                       href={post.url}
                       target="_blank"
                       title={post.url}
@@ -325,7 +325,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                     </a>
                   ) : (
                     <Link
-                      className="text-body"
+                      className={!post.stickied ? 'text-body' : 'text-primary'}
                       to={`/post/${post.id}`}
                       title={i18n.t('comments')}
                     >
@@ -419,7 +419,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                     className="unselectable pointer ml-2 text-muted font-italic"
                     data-tippy-content={i18n.t('stickied')}
                   >
-                    <svg class={`icon icon-inline text-success`}>
+                    <svg class={`icon icon-inline text-primary`}>
                       <use xlinkHref="#icon-pin"></use>
                     </svg>
                   </small>

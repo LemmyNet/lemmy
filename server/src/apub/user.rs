@@ -13,8 +13,7 @@ use crate::{
   DbPool,
   LemmyError,
 };
-use activitystreams_ext::Ext1;
-use activitystreams_new::{
+use activitystreams::{
   activity::{
     kind::{FollowType, UndoType},
     Follow,
@@ -25,6 +24,7 @@ use activitystreams_new::{
   object::{Image, Tombstone},
   prelude::*,
 };
+use activitystreams_ext::Ext1;
 use actix_web::{body::Body, client::Client, web, HttpResponse};
 use lemmy_db::{
   naive_now,
@@ -63,9 +63,9 @@ impl ToApub for User_ {
       person.set_icon(image.into_any_base()?);
     }
 
-    let mut ap_actor = ApActor::new(self.get_inbox_url().parse()?, person);
+    let mut ap_actor = ApActor::new(self.get_inbox_url()?, person);
     ap_actor
-      .set_outbox(self.get_outbox_url().parse()?)
+      .set_outbox(self.get_outbox_url()?)
       .set_followers(self.get_followers_url().parse()?)
       .set_following(self.get_following_url().parse()?)
       .set_liked(self.get_liked_url().parse()?)
