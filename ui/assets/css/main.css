@@ -87,6 +87,10 @@
   line-height: 1.0;
 }
 
+.post-title a:visited {
+  color: var(--gray) !important;
+}
+
 .icon {
   display: inline-flex;
   width: 1em;

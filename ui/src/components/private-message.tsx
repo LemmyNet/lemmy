@@ -45,7 +45,10 @@ export class PrivateMessage extends Component<
   }
 
   get mine(): boolean {
-    return UserService.Instance.user.id == this.props.privateMessage.creator_id;
+    return (
+      UserService.Instance.user &&
+      UserService.Instance.user.id == this.props.privateMessage.creator_id
+    );
   }
 
   render() {
@@ -113,6 +116,7 @@ export class PrivateMessage extends Component<
             <PrivateMessageForm
               privateMessage={message}
               onEdit={this.handlePrivateMessageEdit}
+              onCreate={this.handlePrivateMessageCreate}
               onCancel={this.handleReplyCancel}
             />
           )}
@@ -280,9 +284,14 @@ export class PrivateMessage extends Component<
     this.setState(this.state);
   }
 
-  handlePrivateMessageCreate() {
-    this.state.showReply = false;
-    this.setState(this.state);
-    toast(i18n.t('message_sent'));
+  handlePrivateMessageCreate(message: PrivateMessageI) {
+    if (
+      UserService.Instance.user &&
+      message.creator_id == UserService.Instance.user.id
+    ) {
+      this.state.showReply = false;
+      this.setState(this.state);
+      toast(i18n.t('message_sent'));
+    }
   }
 }

@@ -3813,14 +3813,14 @@ infer-owner@^1.0.4:
   resolved "https://registry.yarnpkg.com/infer-owner/-/infer-owner-1.0.4.tgz#c4cefcaa8e51051c2a40ba2ce8a3d27295af9467"
   integrity sha512-IClj+Xz94+d7irH5qRyfJonOdfTzuDaifE6ZPWfx0N0+/ATZCbuTPq2prFl526urkQd90WyUKIh1DfBQ2hMz9A==
 
-inferno-clone-vnode@^7.1.12:
+inferno-clone-vnode@^7.4.2:
   version "7.4.2"
   resolved "https://registry.yarnpkg.com/inferno-clone-vnode/-/inferno-clone-vnode-7.4.2.tgz#071577098fd8ffdffd41cf81819207effa520bc1"
   integrity sha512-pX5agEWfU+w6vYaVyKtzgFT4jlMK+eOEKL/LkyWu2dtOy0DXx174AFm6GSgOt66W6xmxn58sbWI7ngsWmp4f2w==
   dependencies:
     inferno "7.4.2"
 
-inferno-create-element@^7.1.12:
+inferno-create-element@^7.4.2:
   version "7.4.2"
   resolved "https://registry.yarnpkg.com/inferno-create-element/-/inferno-create-element-7.4.2.tgz#d3ac6c64c792f8d3c4784279825418ebd73cfe1c"
   integrity sha512-FHNca1NR/9SRtaifr4DdAuA6dKBeWkCrYVVkTazMadJyjMtpPN3d+sKlkmdvorAjhUvdMMNcRQStrgRTpLcZyg==
@@ -3836,16 +3836,16 @@ inferno-helmet@^5.2.1:
     inferno-side-effect "^1.1.5"
     object-assign "^4.1.1"
 
-inferno-i18next@nimbusec-oss/inferno-i18next:
-  version "7.1.12"
-  resolved "https://codeload.github.com/nimbusec-oss/inferno-i18next/tar.gz/f8c1403e60be70141c558e36f12f22c106cb7463"
+"inferno-i18next@github:nimbusec-oss/inferno-i18next#semver:^7.4.2":
+  version "7.4.2"
+  resolved "https://codeload.github.com/nimbusec-oss/inferno-i18next/tar.gz/54b9be591ccd62c53799ad23e35f17144a62f909"
   dependencies:
     html-parse-stringify2 "^2.0.1"
-    inferno "^7.1.12"
-    inferno-clone-vnode "^7.1.12"
-    inferno-create-element "^7.1.12"
-    inferno-shared "^7.1.12"
-    inferno-vnode-flags "^7.1.12"
+    inferno "^7.4.2"
+    inferno-clone-vnode "^7.4.2"
+    inferno-create-element "^7.4.2"
+    inferno-shared "^7.4.2"
+    inferno-vnode-flags "^7.4.2"
 
 inferno-router@^7.4.2:
   version "7.4.2"
@@ -3857,7 +3857,7 @@ inferno-router@^7.4.2:
     inferno "7.4.2"
     path-to-regexp-es6 "1.7.0"
 
-inferno-shared@7.4.2, inferno-shared@^7.1.12:
+inferno-shared@7.4.2, inferno-shared@^7.4.2:
   version "7.4.2"
   resolved "https://registry.yarnpkg.com/inferno-shared/-/inferno-shared-7.4.2.tgz#400cf6d19a077af9e5e852e1f189726391efa273"
   integrity sha512-SULfgzj/PuyMd3rHThEXkeEdZorjcr/q+kaqbwr7C2XhIPCk4e5jcRKZujI6YCSahGA9WFwP2Mft1v5PsaaNeg==
@@ -3871,12 +3871,12 @@ inferno-side-effect@^1.1.5:
     npm "^5.8.0"
     shallowequal "^1.0.1"
 
-inferno-vnode-flags@7.4.2, inferno-vnode-flags@^7.1.12:
+inferno-vnode-flags@7.4.2, inferno-vnode-flags@^7.4.2:
   version "7.4.2"
   resolved "https://registry.yarnpkg.com/inferno-vnode-flags/-/inferno-vnode-flags-7.4.2.tgz#54982dabe34f308853ba17de7de4241e23769135"
   integrity sha512-sV4KqqvZH4MW9/dNbC9blHInnpQSqMWouU5VlanbJ+NhJ8ufPwsDy0/+jiA2aODpg2HFHwVMJFF1fsewPqNtLQ==
 
-inferno@7.4.2, inferno@^7.1.12, inferno@^7.4.2:
+inferno@7.4.2, inferno@^7.4.2:
   version "7.4.2"
   resolved "https://registry.yarnpkg.com/inferno/-/inferno-7.4.2.tgz#833cc423ee7b939fad705c59ea41924f31c92453"
   integrity sha512-RsmuN8F7lAWTTuy2juf3Tqn/BihkRNdy0WZN+vuyryuEySKHBA1fruyq6K0covF3Ja8mAdha5NNISZz9ltgcug==

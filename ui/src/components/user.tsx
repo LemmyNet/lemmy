@@ -384,12 +384,14 @@ export class User extends Component<any, UserState> {
                 )}
               </ul>
             </h5>
-            <div className="d-flex align-items-center mb-2">
-              <div
-                className="md-div"
-                dangerouslySetInnerHTML={mdToHtml(user.bio)}
-              />
-            </div>
+            {user.bio && (
+              <div className="d-flex align-items-center mb-2">
+                <div
+                  className="md-div"
+                  dangerouslySetInnerHTML={mdToHtml(user.bio)}
+                />
+              </div>
+            )}
             <div className="d-flex align-items-center mb-2">
               <svg class="icon">
                 <use xlinkHref="#icon-cake"></use>

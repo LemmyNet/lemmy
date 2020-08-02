@@ -20,16 +20,16 @@ use crate::{
   DbPool,
   LemmyError,
 };
-use activitystreams_ext::{Ext1, Ext2};
-use activitystreams_new::{
+use activitystreams::{
   activity::Follow,
   actor::{ApActor, Group, Person},
   object::{Page, Tombstone},
   prelude::*,
 };
+use activitystreams_ext::{Ext1, Ext2};
 use actix_web::{body::Body, client::Client, HttpResponse};
+use anyhow::anyhow;
 use chrono::NaiveDateTime;
-use failure::_core::fmt::Debug;
 use lemmy_db::{activity::do_insert_activity, user::User_};
 use lemmy_utils::{convert_datetime, get_apub_protocol_string, settings::Settings, MentionData};
 use log::debug;
@@ -118,10 +118,10 @@ where
       tombstone.set_deleted(convert_datetime(updated));
       Ok(tombstone)
     } else {
-      Err(format_err!("Cant convert to tombstone because updated time was None.").into())
+      Err(anyhow!("Cant convert to tombstone because updated time was None.").into())
     }
   } else {
-    Err(format_err!("Cant convert object to tombstone if it wasnt deleted").into())
+    Err(anyhow!("Cant convert object to tombstone if it wasnt deleted").into())
   }
 }
 
@@ -339,13 +339,13 @@ pub async fn fetch_webfinger_url(
     .links
     .iter()
     .find(|l| l.type_.eq(&Some("application/activity+json".to_string())))
-    .ok_or_else(|| format_err!("No application/activity+json link found."))?;
+    .ok_or_else(|| anyhow!("No application/activity+json link found."))?;
   link
     .href
     .to_owned()
     .map(|u| Url::parse(&u))
     .transpose()?
-    .ok_or_else(|| format_err!("No href found.").into())
+    .ok_or_else(|| anyhow!("No href found.").into())
 }
 
 pub async fn insert_activity<T>(
@@ -355,7 +355,7 @@ pub async fn insert_activity<T>(
   pool: &DbPool,
 ) -> Result<(), LemmyError>
 where
-  T: Serialize + Debug + Send + 'static,
+  T: Serialize + std::fmt::Debug + Send + 'static,
 {
   blocking(pool, move |conn| {
     do_insert_activity(conn, user_id, &data, local)

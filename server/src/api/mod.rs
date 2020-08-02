@@ -9,6 +9,7 @@ use lemmy_db::{
   user_view::*,
   Crud,
 };
+use thiserror::Error;
 
 pub mod claims;
 pub mod comment;
@@ -17,8 +18,8 @@ pub mod post;
 pub mod site;
 pub mod user;
 
-#[derive(Fail, Debug)]
-#[fail(display = "{{\"error\":\"{}\"}}", message)]
+#[derive(Debug, Error)]
+#[error("{{\"error\":\"{message}\"}}")]
 pub struct APIError {
   pub message: String,
 }

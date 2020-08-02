@@ -13,8 +13,7 @@ use crate::{
   DbPool,
   LemmyError,
 };
-use activitystreams_ext::Ext1;
-use activitystreams_new::{
+use activitystreams::{
   activity::{
     kind::{FollowType, UndoType},
     Follow,
@@ -25,6 +24,7 @@ use activitystreams_new::{
   object::{Image, Tombstone},
   prelude::*,
 };
+use activitystreams_ext::Ext1;
 use actix_web::{body::Body, client::Client, web, HttpResponse};
 use lemmy_db::{
   naive_now,

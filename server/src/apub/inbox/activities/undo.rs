@@ -20,8 +20,9 @@ use crate::{
   DbPool,
   LemmyError,
 };
-use activitystreams_new::{activity::*, base::AnyBase, object::Note, prelude::*};
+use activitystreams::{activity::*, base::AnyBase, object::Note, prelude::*};
 use actix_web::{client::Client, HttpResponse};
+use anyhow::anyhow;
 use lemmy_db::{
   comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
   comment_view::CommentView,
@@ -63,7 +64,7 @@ async fn receive_undo_delete(
     "Note" => receive_undo_delete_comment(undo, &delete, client, pool, chat_server).await,
     "Page" => receive_undo_delete_post(undo, &delete, client, pool, chat_server).await,
     "Group" => receive_undo_delete_community(undo, &delete, client, pool, chat_server).await,
-    d => Err(format_err!("Undo Delete type {} not supported", d).into()),
+    d => Err(anyhow!("Undo Delete type {} not supported", d).into()),
   }
 }
 
@@ -80,7 +81,7 @@ async fn receive_undo_remove(
     "Note" => receive_undo_remove_comment(undo, &remove, client, pool, chat_server).await,
     "Page" => receive_undo_remove_post(undo, &remove, client, pool, chat_server).await,
     "Group" => receive_undo_remove_community(undo, &remove, client, pool, chat_server).await,
-    d => Err(format_err!("Undo Delete type {} not supported", d).into()),
+    d => Err(anyhow!("Undo Delete type {} not supported", d).into()),
   }
 }
 
@@ -96,7 +97,7 @@ async fn receive_undo_like(
   match type_ {
     "Note" => receive_undo_like_comment(undo, &like, client, pool, chat_server).await,
     "Page" => receive_undo_like_post(undo, &like, client, pool, chat_server).await,
-    d => Err(format_err!("Undo Delete type {} not supported", d).into()),
+    d => Err(anyhow!("Undo Delete type {} not supported", d).into()),
   }
 }
 
@@ -109,7 +110,7 @@ async fn receive_undo_dislike(
   let dislike = Dislike::from_any_base(undo.object().to_owned().one().unwrap())?.unwrap();
 
   let type_ = dislike.object().as_single_kind_str().unwrap();
-  Err(format_err!("Undo Delete type {} not supported", type_).into())
+  Err(anyhow!("Undo Delete type {} not supported", type_).into())
 }
 
 async fn receive_undo_delete_comment(

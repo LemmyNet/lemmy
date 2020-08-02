@@ -1,6 +1,6 @@
 use crate::LemmyError;
+use activitystreams::unparsed::UnparsedMutExt;
 use activitystreams_ext::UnparsedExtension;
-use activitystreams_new::unparsed::UnparsedMutExt;
 use diesel::PgConnection;
 use lemmy_db::{category::Category, Crud};
 use serde::{Deserialize, Serialize};

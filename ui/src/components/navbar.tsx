@@ -431,6 +431,7 @@ export class Navbar extends Component<any, NavbarState> {
       // The login
       if (data.my_user) {
         UserService.Instance.user = data.my_user;
+        WebSocketService.Instance.userJoin();
         // On the first load, check the unreads
         if (this.state.isLoggedIn == false) {
           this.requestNotificationPermission();

@@ -150,6 +150,7 @@ export class UserDetails extends Component<UserDetailsProps, UserDetailsState> {
             <div>
               {i.type === 'posts' ? (
                 <PostListing
+                  key={(i.data as Post).id}
                   post={i.data as Post}
                   admins={this.props.admins}
                   showCommunity
@@ -158,6 +159,7 @@ export class UserDetails extends Component<UserDetailsProps, UserDetailsState> {
                 />
               ) : (
                 <CommentNodes
+                  key={(i.data as Comment).id}
                   nodes={[{ comment: i.data as Comment }]}
                   admins={this.props.admins}
                   noBorder

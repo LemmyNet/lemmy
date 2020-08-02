@@ -1,5 +1,6 @@
 use crate::{blocking, routes::DbPoolParam, LemmyError};
 use actix_web::{error::ErrorBadRequest, web::Query, *};
+use anyhow::anyhow;
 use lemmy_db::{community::Community, user::User_};
 use lemmy_utils::{settings::Settings, WEBFINGER_COMMUNITY_REGEX, WEBFINGER_USER_REGEX};
 use serde::{Deserialize, Serialize};
@@ -62,17 +63,17 @@ async fn get_webfinger_response(
       Community::read_from_name(conn, &community_name)
     })
     .await?
-    .map_err(|_| ErrorBadRequest(LemmyError::from(format_err!("not_found"))))?
+    .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?
     .actor_id
   } else if let Some(user_name) = user_regex_parsed {
     let user_name = user_name.as_str().to_owned();
     // Make sure the requested user exists.
     blocking(&db, move |conn| User_::read_from_name(conn, &user_name))
       .await?
-      .map_err(|_| ErrorBadRequest(LemmyError::from(format_err!("not_found"))))?
+      .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?
       .actor_id
   } else {
-    return Err(ErrorBadRequest(LemmyError::from(format_err!("not_found"))));
+    return Err(ErrorBadRequest(LemmyError::from(anyhow!("not_found"))));
   };
 
   let json = WebFingerResponse {
