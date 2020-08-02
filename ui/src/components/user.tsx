@@ -593,6 +593,7 @@ export class User extends Component<any, UserState> {
                     initialContent={this.state.userSettingsForm.bio}
                     onContentChange={this.handleUserSettingsBioChange}
                     maxLength={300}
+                    hideNavigationWarnings
                   />
                 </div>
               </div>

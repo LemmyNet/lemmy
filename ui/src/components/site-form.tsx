@@ -111,6 +111,7 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
               <MarkdownTextArea
                 initialContent={this.state.siteForm.description}
                 onContentChange={this.handleSiteDescriptionChange}
+                hideNavigationWarnings
               />
             </div>
           </div>
