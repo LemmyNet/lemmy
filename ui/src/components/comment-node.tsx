@@ -46,6 +46,7 @@ interface CommentNodeState {
   banReason: string;
   banExpires: string;
   banType: BanType;
+  showDeletionOrRestorationConfirmation: boolean;
   showConfirmTransferSite: boolean;
   showConfirmTransferCommunity: boolean;
   showConfirmAppointAsMod: boolean;
@@ -401,26 +402,57 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                                   <use xlinkHref="#icon-edit"></use>
                                 </svg>
                               </button>
-                              <button
-                                class="btn btn-link btn-animate text-muted"
-                                onClick={linkEvent(
-                                  this,
-                                  this.handleDeleteClick
-                                )}
-                                data-tippy-content={
-                                  !node.comment.deleted
-                                    ? i18n.t('delete')
-                                    : i18n.t('restore')
-                                }
-                              >
-                                <svg
-                                  class={`icon icon-inline ${
-                                    node.comment.deleted && 'text-danger'
-                                  }`}
+                              {!this.state
+                                .showDeletionOrRestorationConfirmation ? (
+                                <button
+                                  class="btn btn-link btn-animate text-muted"
+                                  onClick={linkEvent(
+                                    this,
+                                    this.displayDeletionOrRestorationConfirmation(
+                                      true
+                                    )
+                                  )}
+                                  data-tippy-content={
+                                    !node.comment.deleted
+                                      ? i18n.t('delete')
+                                      : i18n.t('restore')
+                                  }
                                 >
-                                  <use xlinkHref="#icon-trash"></use>
-                                </svg>
-                              </button>
+                                  <svg
+                                    class={`icon icon-inline ${
+                                      node.comment.deleted && 'text-danger'
+                                    }`}
+                                  >
+                                    <use xlinkHref="#icon-trash"></use>
+                                  </svg>
+                                </button>
+                              ) : (
+                                <>
+                                  <button class="btn btn-link btn-animate text-muted">
+                                    {i18n.t('are_you_sure')}
+                                  </button>
+                                  <button
+                                    class="btn btn-link btn-animate text-muted"
+                                    onClick={linkEvent(
+                                      this,
+                                      this.handleDeletionOrRestoration
+                                    )}
+                                  >
+                                    {i18n.t('yes')}
+                                  </button>
+                                  <button
+                                    class="btn btn-link btn-animate text-muted"
+                                    onClick={linkEvent(
+                                      this,
+                                      this.displayDeletionOrRestorationConfirmation(
+                                        false
+                                      )
+                                    )}
+                                  >
+                                    {i18n.t('no')}
+                                  </button>
+                                </>
+                              )}
                             </>
                           )}
                           {/* Admins and mods can remove comments */}
@@ -852,12 +884,20 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     i.setState(i.state);
   }
 
-  handleDeleteClick(i: CommentNode) {
+  displayDeletionOrRestorationConfirmation(showConfirmation: boolean) {
+    return function (i: CommentNode) {
+      i.state.showDeletionOrRestorationConfirmation = showConfirmation;
+      i.setState(i.state);
+    };
+  }
+
+  handleDeletionOrRestoration(i: CommentNode) {
     let deleteForm: DeleteCommentForm = {
       edit_id: i.props.node.comment.id,
       deleted: !i.props.node.comment.deleted,
       auth: null,
     };
+    i.state.showDeletionOrRestorationConfirmation = false;
     WebSocketService.Instance.deleteComment(deleteForm);
   }
 
