@@ -65,6 +65,6 @@ export class SortSelect extends Component<SortSelectProps, SortSelectState> {
   }
 
   handleSortChange(i: SortSelect, event: any) {
-    i.props.onChange(event.target.value);
+    i.props.onChange(Number(event.target.value));
   }
 }
