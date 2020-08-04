@@ -63,33 +63,34 @@ where
 }
 
 // Checks if the ID has a valid format, correct scheme, and is in the allowed instance list.
-fn is_apub_id_valid(apub_id: &Url) -> bool {
-  debug!("Checking {}", apub_id);
+fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
   if apub_id.scheme() != get_apub_protocol_string() {
-    debug!("invalid scheme: {:?}", apub_id.scheme());
-    return false;
+    return Err(anyhow!("invalid apub id scheme: {:?}", apub_id.scheme()).into());
   }
 
-  let allowed_instances: Vec<String> = Settings::get()
+  let mut allowed_instances: Vec<String> = Settings::get()
     .federation
     .allowed_instances
     .split(',')
     .map(|d| d.to_string())
     .collect();
+  // need to allow this explicitly because apub activities might contain objects from our local
+  // instance. replace is needed to remove the port in our federation test setup.
+  let settings = Settings::get();
+  let local_instance = settings.hostname.split(':').collect::<Vec<&str>>();
+  allowed_instances.push(local_instance.first().unwrap().to_string());
+
   match apub_id.domain() {
     Some(d) => {
       let contains = allowed_instances.contains(&d.to_owned());
 
       if !contains {
-        debug!("{} not in {:?}", d, allowed_instances);
+        return Err(anyhow!("{} not in federation allowlist", d).into());
       }
 
-      contains
+      Ok(())
     }
-    None => {
-      debug!("missing domain");
-      false
-    }
+    None => Err(anyhow!("federation allowlist is empty").into()),
   }
 }
 
