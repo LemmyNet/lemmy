@@ -116,14 +116,14 @@ export class CommunityForm extends Component<
             <div class="form-group row">
               <label class="col-12 col-form-label" htmlFor="community-name">
                 {i18n.t('name')}
-                <a
-                  class="btn btn-sm text-muted"
+                <span
+                  class="pointer unselectable ml-2 text-muted"
                   data-tippy-content={i18n.t('name_explain')}
                 >
                   <svg class="icon icon-inline">
                     <use xlinkHref="#icon-help-circle"></use>
                   </svg>
-                </a>
+                </span>
               </label>
               <div class="col-12">
                 <input
@@ -144,14 +144,14 @@ export class CommunityForm extends Component<
           <div class="form-group row">
             <label class="col-12 col-form-label" htmlFor="community-title">
               {i18n.t('display_name')}
-              <a
-                class="btn btn-sm text-muted"
+              <span
+                class="pointer unselectable ml-2 text-muted"
                 data-tippy-content={i18n.t('display_name_explain')}
               >
                 <svg class="icon icon-inline">
                   <use xlinkHref="#icon-help-circle"></use>
                 </svg>
-              </a>
+              </span>
             </label>
             <div class="col-12">
               <input
