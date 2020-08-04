@@ -184,7 +184,7 @@ export class Navbar extends Component<any, NavbarState> {
           {!this.state.siteLoading ? (
             <Link
               title={this.state.siteRes.version}
-              class="navbar-brand"
+              class="d-flex align-items-center navbar-brand mr-1"
               to="/"
             >
               {this.state.siteRes.site.icon && showAvatars() && (
@@ -214,14 +214,14 @@ export class Navbar extends Component<any, NavbarState> {
                 <use xlinkHref="#icon-bell"></use>
               </svg>
               {this.state.unreadCount > 0 && (
-                <span class="ml-1 badge badge-light">
+                <span class="mx-1 badge badge-light">
                   {this.state.unreadCount}
                 </span>
               )}
             </Link>
           )}
           <button
-            class="navbar-toggler border-0"
+            class="navbar-toggler border-0 p-1"
             type="button"
             aria-label="menu"
             onClick={linkEvent(this, this.expandNavbar)}
@@ -235,7 +235,7 @@ export class Navbar extends Component<any, NavbarState> {
                 !this.state.expanded && 'collapse'
               } navbar-collapse`}
             >
-              <ul class="navbar-nav my-2 mr-auto">
+              <ul class="ml-3 navbar-nav my-2 mr-auto">
                 <li class="nav-item">
                   <Link
                     class="nav-link"
@@ -278,6 +278,21 @@ export class Navbar extends Component<any, NavbarState> {
                   </Link>
                 </li>
               </ul>
+              <ul class="navbar-nav my-2">
+                {this.canAdmin && (
+                  <li className="nav-item">
+                    <Link
+                      class="nav-link"
+                      to={`/admin`}
+                      title={i18n.t('admin_settings')}
+                    >
+                      <svg class="icon">
+                        <use xlinkHref="#icon-settings"></use>
+                      </svg>
+                    </Link>
+                  </li>
+                )}
+              </ul>
               {!this.context.router.history.location.pathname.match(
                 /^\/search/
               ) && (
@@ -299,7 +314,7 @@ export class Navbar extends Component<any, NavbarState> {
                   <button
                     name="search-btn"
                     onClick={linkEvent(this, this.handleSearchBtn)}
-                    class="btn btn-link"
+                    class="px-1 btn btn-link"
                     style="color: var(--gray)"
                   >
                     <svg class="icon">
@@ -308,21 +323,6 @@ export class Navbar extends Component<any, NavbarState> {
                   </button>
                 </form>
               )}
-              <ul class="navbar-nav my-2">
-                {this.canAdmin && (
-                  <li className="nav-item">
-                    <Link
-                      class="nav-link"
-                      to={`/admin`}
-                      title={i18n.t('admin_settings')}
-                    >
-                      <svg class="icon">
-                        <use xlinkHref="#icon-settings"></use>
-                      </svg>
-                    </Link>
-                  </li>
-                )}
-              </ul>
               {this.state.isLoggedIn ? (
                 <>
                   <ul class="navbar-nav my-2">

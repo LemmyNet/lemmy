@@ -455,13 +455,10 @@ export class User extends Component<any, UserState> {
             )}
             <div>
               <ul class="list-inline mb-2">
-                <li className="list-inline-item">
+                <li className="list-inline-item badge badge-light">
                   {i18n.t('number_of_posts', { count: user.number_of_posts })}
                 </li>
-                <li className="list-inline-item">
-                  <span>•</span>
-                </li>
-                <li className="list-inline-item">
+                <li className="list-inline-item badge badge-light">
                   {i18n.t('number_of_comments', {
                     count: user.number_of_comments,
                   })}
