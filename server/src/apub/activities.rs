@@ -1,9 +1,9 @@
 use crate::{
   apub::{
+    check_is_apub_id_valid,
     community::do_announce,
     extensions::signatures::sign,
     insert_activity,
-    is_apub_id_valid,
     ActorType,
   },
   request::retry_custom,
@@ -50,10 +50,7 @@ pub async fn send_activity(
 
   for t in to {
     let to_url = Url::parse(&t)?;
-    if !is_apub_id_valid(&to_url) {
-      debug!("Not sending activity to {} (invalid or blocklisted)", t);
-      continue;
-    }
+    check_is_apub_id_valid(&to_url)?;
 
     let res = retry_custom(|| async {
       let request = client.post(&t).header("Content-Type", "application/json");
