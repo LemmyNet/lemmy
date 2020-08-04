@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 
+sudo docker-compose --file ../federation/docker-compose.yml --project-directory . down
 sudo rm -rf volumes
 
 pushd ../../server/

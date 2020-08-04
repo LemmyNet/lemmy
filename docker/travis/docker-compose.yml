@@ -39,6 +39,9 @@ services:
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_alpha
       - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
       - LEMMY_SETUP__SITE_NAME=lemmy-alpha
+      - LEMMY_RATE_LIMIT__POST=99999
+      - LEMMY_RATE_LIMIT__REGISTER=99999
+      - LEMMY_CAPTCHA__ENABLED=false
       - RUST_BACKTRACE=1
       - RUST_LOG=debug
     depends_on:
@@ -66,6 +69,9 @@ services:
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_beta
       - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
       - LEMMY_SETUP__SITE_NAME=lemmy-beta
+      - LEMMY_RATE_LIMIT__POST=99999
+      - LEMMY_RATE_LIMIT__REGISTER=99999
+      - LEMMY_CAPTCHA__ENABLED=false
       - RUST_BACKTRACE=1
       - RUST_LOG=debug
     depends_on:
@@ -93,6 +99,9 @@ services:
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_gamma
       - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
       - LEMMY_SETUP__SITE_NAME=lemmy-gamma
+      - LEMMY_RATE_LIMIT__POST=99999
+      - LEMMY_RATE_LIMIT__REGISTER=99999
+      - LEMMY_CAPTCHA__ENABLED=false
       - RUST_BACKTRACE=1
       - RUST_LOG=debug
     depends_on:

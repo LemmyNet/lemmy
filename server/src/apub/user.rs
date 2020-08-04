@@ -63,6 +63,10 @@ impl ToApub for User_ {
       person.set_icon(image.into_any_base()?);
     }
 
+    if let Some(bio) = &self.bio {
+      person.set_summary(bio.to_owned());
+    }
+
     let mut ap_actor = ApActor::new(self.get_inbox_url()?, person);
     ap_actor
       .set_outbox(self.get_outbox_url()?)
