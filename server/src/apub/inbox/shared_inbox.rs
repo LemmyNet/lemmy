@@ -1,5 +1,6 @@
 use crate::{
   apub::{
+    check_is_apub_id_valid,
     community::do_announce,
     extensions::signatures::verify,
     fetcher::{
@@ -32,11 +33,11 @@ use activitystreams::{
 use actix_web::{client::Client, web, HttpRequest, HttpResponse};
 use lemmy_db::user::User_;
 use log::debug;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use url::Url;
 
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 pub enum ValidTypes {
   Create,
@@ -67,16 +68,19 @@ pub async fn shared_inbox(
   debug!("Shared inbox received activity: {}", json);
 
   let sender = &activity.actor()?.to_owned().single_xsd_any_uri().unwrap();
-
   // TODO: pass this actor in instead of using get_user_from_activity()
   let actor = get_or_fetch_and_upsert_actor(sender, &client, &pool).await?;
+
+  let community = get_community_id_from_activity(&activity).await;
+
+  check_is_apub_id_valid(sender)?;
+  check_is_apub_id_valid(&community)?;
   verify(&request, actor.as_ref())?;
 
   insert_activity(actor.user_id(), activity.clone(), false, &pool).await?;
 
   let any_base = activity.clone().into_any_base()?;
   let kind = activity.kind().unwrap();
-  dbg!(kind);
   match kind {
     ValidTypes::Announce => receive_announce(any_base, &client, &pool, chat_server).await,
     ValidTypes::Create => receive_create(any_base, &client, &pool, chat_server).await,
@@ -110,6 +114,15 @@ where
   let actor = activity.actor()?;
   let user_uri = actor.as_single_xsd_any_uri().unwrap();
   get_or_fetch_and_upsert_user(&user_uri, client, pool).await
+}
+
+pub(in crate::apub::inbox) async fn get_community_id_from_activity<T, A>(activity: &T) -> Url
+where
+  T: AsBase<A> + ActorAndObjectRef + AsObject<A>,
+{
+  let cc = activity.cc().unwrap();
+  let cc = cc.as_many().unwrap();
+  cc.first().unwrap().as_xsd_any_uri().unwrap().to_owned()
 }
 
 pub(in crate::apub::inbox) async fn announce_if_community_is_local<T, Kind>(

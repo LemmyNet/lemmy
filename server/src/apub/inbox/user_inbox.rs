@@ -1,8 +1,9 @@
 use crate::{
   api::user::PrivateMessageResponse,
   apub::{
+    check_is_apub_id_valid,
     extensions::signatures::verify,
-    fetcher::{get_or_fetch_and_upsert_community, get_or_fetch_and_upsert_user},
+    fetcher::{get_or_fetch_and_upsert_actor, get_or_fetch_and_upsert_community},
     insert_activity,
     FromApub,
   },
@@ -13,7 +14,8 @@ use crate::{
   LemmyError,
 };
 use activitystreams::{
-  activity::{Accept, Create, Delete, Undo, Update},
+  activity::{Accept, ActorAndObject, Create, Delete, Undo, Update},
+  base::AnyBase,
   object::Note,
   prelude::*,
 };
@@ -28,67 +30,75 @@ use lemmy_db::{
   Followable,
 };
 use log::debug;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
-#[serde(untagged)]
-#[derive(Deserialize, Debug)]
-pub enum UserAcceptedObjects {
-  Accept(Box<Accept>),
-  Create(Box<Create>),
-  Update(Box<Update>),
-  Delete(Box<Delete>),
-  Undo(Box<Undo>),
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub enum ValidTypes {
+  Accept,
+  Create,
+  Update,
+  Delete,
+  Undo,
 }
+
+pub type AcceptedActivities = ActorAndObject<ValidTypes>;
 
 /// Handler for all incoming activities to user inboxes.
 pub async fn user_inbox(
   request: HttpRequest,
-  input: web::Json<UserAcceptedObjects>,
+  input: web::Json<AcceptedActivities>,
   path: web::Path<String>,
   client: web::Data<Client>,
-  db: DbPoolParam,
+  pool: DbPoolParam,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  // TODO: would be nice if we could do the signature check here, but we cant access the actor property
-  let input = input.into_inner();
+  let activity = input.into_inner();
   let username = path.into_inner();
-  debug!("User {} received activity: {:?}", &username, &input);
+  debug!("User {} received activity: {:?}", &username, &activity);
 
-  match input {
-    UserAcceptedObjects::Accept(a) => receive_accept(*a, &request, &username, &client, &db).await,
-    UserAcceptedObjects::Create(c) => {
-      receive_create_private_message(*c, &request, &client, &db, chat_server).await
+  let actor_uri = activity.actor()?.as_single_xsd_any_uri().unwrap();
+
+  check_is_apub_id_valid(actor_uri)?;
+
+  let actor = get_or_fetch_and_upsert_actor(actor_uri, &client, &pool).await?;
+  verify(&request, actor.as_ref())?;
+
+  insert_activity(actor.user_id(), activity.clone(), false, &pool).await?;
+
+  let any_base = activity.clone().into_any_base()?;
+  let kind = activity.kind().unwrap();
+  match kind {
+    ValidTypes::Accept => receive_accept(any_base, username, &client, &pool).await,
+    ValidTypes::Create => {
+      receive_create_private_message(any_base, &client, &pool, chat_server).await
     }
-    UserAcceptedObjects::Update(u) => {
-      receive_update_private_message(*u, &request, &client, &db, chat_server).await
+    ValidTypes::Update => {
+      receive_update_private_message(any_base, &client, &pool, chat_server).await
     }
-    UserAcceptedObjects::Delete(d) => {
-      receive_delete_private_message(*d, &request, &client, &db, chat_server).await
+    ValidTypes::Delete => {
+      receive_delete_private_message(any_base, &client, &pool, chat_server).await
     }
-    UserAcceptedObjects::Undo(u) => {
-      receive_undo_delete_private_message(*u, &request, &client, &db, chat_server).await
+    ValidTypes::Undo => {
+      receive_undo_delete_private_message(any_base, &client, &pool, chat_server).await
     }
   }
 }
 
 /// Handle accepted follows.
 async fn receive_accept(
-  accept: Accept,
-  request: &HttpRequest,
-  username: &str,
+  activity: AnyBase,
+  username: String,
   client: &Client,
   pool: &DbPool,
 ) -> Result<HttpResponse, LemmyError> {
+  let accept = Accept::from_any_base(activity)?.unwrap();
   let community_uri = accept.actor()?.to_owned().single_xsd_any_uri().unwrap();
 
   let community = get_or_fetch_and_upsert_community(&community_uri, client, pool).await?;
-  verify(request, &community)?;
 
-  let username = username.to_owned();
   let user = blocking(pool, move |conn| User_::read_from_name(conn, &username)).await??;
-
-  insert_activity(community.creator_id, accept, false, pool).await?;
 
   // Now you need to add this to the community follower
   let community_follower_form = CommunityFollowerForm {
@@ -98,28 +108,22 @@ async fn receive_accept(
 
   // This will fail if they're already a follower
   blocking(pool, move |conn| {
-    CommunityFollower::follow(conn, &community_follower_form)
+    CommunityFollower::follow(conn, &community_follower_form).ok()
   })
-  .await??;
+  .await?;
 
   // TODO: make sure that we actually requested a follow
   Ok(HttpResponse::Ok().finish())
 }
 
 async fn receive_create_private_message(
-  create: Create,
-  request: &HttpRequest,
+  activity: AnyBase,
   client: &Client,
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let user_uri = &create.actor()?.to_owned().single_xsd_any_uri().unwrap();
+  let create = Create::from_any_base(activity)?.unwrap();
   let note = Note::from_any_base(create.object().as_one().unwrap().to_owned())?.unwrap();
-
-  let user = get_or_fetch_and_upsert_user(user_uri, client, pool).await?;
-  verify(request, &user)?;
-
-  insert_activity(user.id, create, false, pool).await?;
 
   let private_message = PrivateMessageForm::from_apub(&note, client, pool).await?;
 
@@ -148,19 +152,13 @@ async fn receive_create_private_message(
 }
 
 async fn receive_update_private_message(
-  update: Update,
-  request: &HttpRequest,
+  activity: AnyBase,
   client: &Client,
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let user_uri = &update.actor()?.to_owned().single_xsd_any_uri().unwrap();
+  let update = Update::from_any_base(activity)?.unwrap();
   let note = Note::from_any_base(update.object().as_one().unwrap().to_owned())?.unwrap();
-
-  let user = get_or_fetch_and_upsert_user(&user_uri, client, pool).await?;
-  verify(request, &user)?;
-
-  insert_activity(user.id, update, false, pool).await?;
 
   let private_message_form = PrivateMessageForm::from_apub(&note, client, pool).await?;
 
@@ -197,19 +195,13 @@ async fn receive_update_private_message(
 }
 
 async fn receive_delete_private_message(
-  delete: Delete,
-  request: &HttpRequest,
+  activity: AnyBase,
   client: &Client,
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let user_uri = &delete.actor()?.to_owned().single_xsd_any_uri().unwrap();
+  let delete = Delete::from_any_base(activity)?.unwrap();
   let note = Note::from_any_base(delete.object().as_one().unwrap().to_owned())?.unwrap();
-
-  let user = get_or_fetch_and_upsert_user(&user_uri, client, pool).await?;
-  verify(request, &user)?;
-
-  insert_activity(user.id, delete, false, pool).await?;
 
   let private_message_form = PrivateMessageForm::from_apub(&note, client, pool).await?;
 
@@ -258,20 +250,14 @@ async fn receive_delete_private_message(
 }
 
 async fn receive_undo_delete_private_message(
-  undo: Undo,
-  request: &HttpRequest,
+  activity: AnyBase,
   client: &Client,
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
+  let undo = Undo::from_any_base(activity)?.unwrap();
   let delete = Delete::from_any_base(undo.object().as_one().unwrap().to_owned())?.unwrap();
   let note = Note::from_any_base(delete.object().as_one().unwrap().to_owned())?.unwrap();
-  let user_uri = &delete.actor()?.to_owned().single_xsd_any_uri().unwrap();
-
-  let user = get_or_fetch_and_upsert_user(&user_uri, client, pool).await?;
-  verify(request, &user)?;
-
-  insert_activity(user.id, delete, false, pool).await?;
 
   let private_message = PrivateMessageForm::from_apub(&note, client, pool).await?;
 

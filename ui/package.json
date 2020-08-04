@@ -6,7 +6,7 @@
   "license": "AGPL-3.0-or-later",
   "main": "index.js",
   "scripts": {
-    "api-test": "jest src/api_tests/api.spec.ts",
+    "api-test": "jest src/api_tests/ -i --verbose",
     "build": "node fuse prod",
     "lint": "tsc --noEmit && eslint --report-unused-disable-directives --ext .js,.ts,.tsx src",
     "prebuild": "node generate_translations.js",
