@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-  api::{claims::Claims, is_admin, is_mod_or_admin, APIError, Oper, Perform},
+  api::{is_admin, is_mod_or_admin, APIError, Oper, Perform},
   apub::ActorType,
   blocking,
   websocket::{
@@ -16,8 +16,6 @@ use lemmy_utils::{
   is_valid_community_name,
   make_apub_endpoint,
   naive_from_unix,
-  slur_check,
-  slurs_vec_to_str,
   EndpointType,
 };
 use serde::{Deserialize, Serialize};
@@ -154,17 +152,8 @@ impl Perform for Oper<GetCommunity> {
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<GetCommunityResponse, LemmyError> {
     let data: &GetCommunity = &self.data;
-
-    let user_id: Option<i32> = match &data.auth {
-      Some(auth) => match Claims::decode(&auth) {
-        Ok(claims) => {
-          let user_id = claims.claims.id;
-          Some(user_id)
-        }
-        Err(_e) => None,
-      },
-      None => None,
-    };
+    let user = get_user_from_jwt_opt(&data.auth, pool).await?;
+    let user_id = user.map(|u| u.id);
 
     let name = data.name.to_owned().unwrap_or_else(|| "main".to_string());
     let community = match data.id {
@@ -234,36 +223,14 @@ impl Perform for Oper<CreateCommunity> {
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &CreateCommunity = &self.data;
+    let user = get_user_from_jwt(&data.auth, pool).await?;
 
-    let claims = match Claims::decode(&data.auth) {
-      Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err("not_logged_in").into()),
-    };
-
-    if let Err(slurs) = slur_check(&data.name) {
-      return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
-    }
-
-    if let Err(slurs) = slur_check(&data.title) {
-      return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
-    }
-
-    if let Some(description) = &data.description {
-      if let Err(slurs) = slur_check(description) {
-        return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
-      }
-    }
+    check_slurs(&data.name)?;
+    check_slurs(&data.title)?;
+    check_slurs_opt(&data.description)?;
 
     if !is_valid_community_name(&data.name) {
       return Err(APIError::err("invalid_community_name").into());
-    }
-
-    let user_id = claims.id;
-
-    // Check for a site ban
-    let user_view = blocking(pool, move |conn| UserView::read(conn, user_id)).await??;
-    if user_view.banned {
-      return Err(APIError::err("site_ban").into());
     }
 
     // Double check for duplicate community actor_ids
@@ -285,7 +252,7 @@ impl Perform for Oper<CreateCommunity> {
       title: data.title.to_owned(),
       description: data.description.to_owned(),
       category_id: data.category_id,
-      creator_id: user_id,
+      creator_id: user.id,
       removed: None,
       deleted: None,
       nsfw: data.nsfw,
@@ -306,7 +273,7 @@ impl Perform for Oper<CreateCommunity> {
 
     let community_moderator_form = CommunityModeratorForm {
       community_id: inserted_community.id,
-      user_id,
+      user_id: user.id,
     };
 
     let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
@@ -316,7 +283,7 @@ impl Perform for Oper<CreateCommunity> {
 
     let community_follower_form = CommunityFollowerForm {
       community_id: inserted_community.id,
-      user_id,
+      user_id: user.id,
     };
 
     let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
@@ -324,6 +291,7 @@ impl Perform for Oper<CreateCommunity> {
       return Err(APIError::err("community_follower_already_exists").into());
     }
 
+    let user_id = user.id;
     let community_view = blocking(pool, move |conn| {
       CommunityView::read(conn, inserted_community.id, Some(user_id))
     })
@@ -345,29 +313,10 @@ impl Perform for Oper<EditCommunity> {
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &EditCommunity = &self.data;
+    let user = get_user_from_jwt(&data.auth, pool).await?;
 
-    if let Err(slurs) = slur_check(&data.title) {
-      return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
-    }
-
-    if let Some(description) = &data.description {
-      if let Err(slurs) = slur_check(description) {
-        return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
-      }
-    }
-
-    let claims = match Claims::decode(&data.auth) {
-      Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err("not_logged_in").into()),
-    };
-
-    let user_id = claims.id;
-
-    // Check for a site ban
-    let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
-    if user.banned {
-      return Err(APIError::err("site_ban").into());
-    }
+    check_slurs(&data.title)?;
+    check_slurs_opt(&data.description)?;
 
     // Verify its a mod (only mods can edit it)
     let edit_id = data.edit_id;
@@ -376,7 +325,7 @@ impl Perform for Oper<EditCommunity> {
         .map(|v| v.into_iter().map(|m| m.user_id).collect())
     })
     .await??;
-    if !mods.contains(&user_id) {
+    if !mods.contains(&user.id) {
       return Err(APIError::err("not_a_moderator").into());
     }
 
@@ -415,6 +364,7 @@ impl Perform for Oper<EditCommunity> {
     // process for communities and users
 
     let edit_id = data.edit_id;
+    let user_id = user.id;
     let community_view = blocking(pool, move |conn| {
       CommunityView::read(conn, edit_id, Some(user_id))
     })
@@ -440,24 +390,12 @@ impl Perform for Oper<DeleteCommunity> {
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &DeleteCommunity = &self.data;
-
-    let claims = match Claims::decode(&data.auth) {
-      Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err("not_logged_in").into()),
-    };
-
-    let user_id = claims.id;
-
-    // Check for a site ban
-    let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
-    if user.banned {
-      return Err(APIError::err("site_ban").into());
-    }
+    let user = get_user_from_jwt(&data.auth, pool).await?;
 
     // Verify its the creator (only a creator can delete the community)
     let edit_id = data.edit_id;
     let read_community = blocking(pool, move |conn| Community::read(conn, edit_id)).await??;
-    if read_community.creator_id != user_id {
+    if read_community.creator_id != user.id {
       return Err(APIError::err("no_community_edit_allowed").into());
     }
 
@@ -485,6 +423,7 @@ impl Perform for Oper<DeleteCommunity> {
     }
 
     let edit_id = data.edit_id;
+    let user_id = user.id;
     let community_view = blocking(pool, move |conn| {
       CommunityView::read(conn, edit_id, Some(user_id))
     })
@@ -510,22 +449,10 @@ impl Perform for Oper<RemoveCommunity> {
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &RemoveCommunity = &self.data;
-
-    let claims = match Claims::decode(&data.auth) {
-      Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err("not_logged_in").into()),
-    };
-
-    let user_id = claims.id;
-
-    // Check for a site ban
-    let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
-    if user.banned {
-      return Err(APIError::err("site_ban").into());
-    }
+    let user = get_user_from_jwt(&data.auth, pool).await?;
 
     // Verify its an admin (only an admin can remove a community)
-    is_admin(pool, user_id).await?;
+    is_admin(pool, user.id).await?;
 
     // Do the remove
     let edit_id = data.edit_id;
@@ -545,7 +472,7 @@ impl Perform for Oper<RemoveCommunity> {
       None => None,
     };
     let form = ModRemoveCommunityForm {
-      mod_user_id: user_id,
+      mod_user_id: user.id,
       community_id: data.edit_id,
       removed: Some(removed),
       reason: data.reason.to_owned(),
@@ -565,6 +492,7 @@ impl Perform for Oper<RemoveCommunity> {
     }
 
     let edit_id = data.edit_id;
+    let user_id = user.id;
     let community_view = blocking(pool, move |conn| {
       CommunityView::read(conn, edit_id, Some(user_id))
     })
@@ -590,19 +518,7 @@ impl Perform for Oper<ListCommunities> {
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<ListCommunitiesResponse, LemmyError> {
     let data: &ListCommunities = &self.data;
-
-    // For logged in users, you need to get back subscribed, and settings
-    let user: Option<User_> = match &data.auth {
-      Some(auth) => match Claims::decode(&auth) {
-        Ok(claims) => {
-          let user_id = claims.claims.id;
-          let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
-          Some(user)
-        }
-        Err(_e) => None,
-      },
-      None => None,
-    };
+    let user = get_user_from_jwt_opt(&data.auth, pool).await?;
 
     let user_id = match &user {
       Some(user) => Some(user.id),
@@ -644,19 +560,13 @@ impl Perform for Oper<FollowCommunity> {
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &FollowCommunity = &self.data;
-
-    let claims = match Claims::decode(&data.auth) {
-      Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err("not_logged_in").into()),
-    };
-
-    let user_id = claims.id;
+    let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let community_id = data.community_id;
     let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
     let community_follower_form = CommunityFollowerForm {
       community_id: data.community_id,
-      user_id,
+      user_id: user.id,
     };
 
     if community.local {
@@ -672,29 +582,25 @@ impl Perform for Oper<FollowCommunity> {
           return Err(APIError::err("community_follower_already_exists").into());
         }
       }
+    } else if data.follow {
+      // Dont actually add to the community followers here, because you need
+      // to wait for the accept
+      user
+        .send_follow(&community.actor_id, &self.client, pool)
+        .await?;
     } else {
-      let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
-
-      if data.follow {
-        // Dont actually add to the community followers here, because you need
-        // to wait for the accept
-        user
-          .send_follow(&community.actor_id, &self.client, pool)
-          .await?;
-      } else {
-        user
-          .send_unfollow(&community.actor_id, &self.client, pool)
-          .await?;
-        let unfollow =
-          move |conn: &'_ _| CommunityFollower::unfollow(conn, &community_follower_form);
-        if blocking(pool, unfollow).await?.is_err() {
-          return Err(APIError::err("community_follower_already_exists").into());
-        }
+      user
+        .send_unfollow(&community.actor_id, &self.client, pool)
+        .await?;
+      let unfollow = move |conn: &'_ _| CommunityFollower::unfollow(conn, &community_follower_form);
+      if blocking(pool, unfollow).await?.is_err() {
+        return Err(APIError::err("community_follower_already_exists").into());
       }
-      // TODO: this needs to return a "pending" state, until Accept is received from the remote server
     }
+    // TODO: this needs to return a "pending" state, until Accept is received from the remote server
 
     let community_id = data.community_id;
+    let user_id = user.id;
     let community_view = blocking(pool, move |conn| {
       CommunityView::read(conn, community_id, Some(user_id))
     })
@@ -716,14 +622,9 @@ impl Perform for Oper<GetFollowedCommunities> {
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<GetFollowedCommunitiesResponse, LemmyError> {
     let data: &GetFollowedCommunities = &self.data;
+    let user = get_user_from_jwt(&data.auth, pool).await?;
 
-    let claims = match Claims::decode(&data.auth) {
-      Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err("not_logged_in").into()),
-    };
-
-    let user_id = claims.id;
-
+    let user_id = user.id;
     let communities = match blocking(pool, move |conn| {
       CommunityFollowerView::for_user(conn, user_id)
     })
@@ -748,18 +649,12 @@ impl Perform for Oper<BanFromCommunity> {
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<BanFromCommunityResponse, LemmyError> {
     let data: &BanFromCommunity = &self.data;
-
-    let claims = match Claims::decode(&data.auth) {
-      Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err("not_logged_in").into()),
-    };
-
-    let user_id = claims.id;
+    let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let community_id = data.community_id;
 
     // Verify that only mods or admins can ban
-    is_mod_or_admin(pool, user_id, community_id).await?;
+    is_mod_or_admin(pool, user.id, community_id).await?;
 
     let community_user_ban_form = CommunityUserBanForm {
       community_id: data.community_id,
@@ -786,7 +681,7 @@ impl Perform for Oper<BanFromCommunity> {
     };
 
     let form = ModBanFromCommunityForm {
-      mod_user_id: user_id,
+      mod_user_id: user.id,
       other_user_id: data.user_id,
       community_id: data.community_id,
       reason: data.reason.to_owned(),
@@ -826,13 +721,7 @@ impl Perform for Oper<AddModToCommunity> {
     websocket_info: Option<WebsocketInfo>,
   ) -> Result<AddModToCommunityResponse, LemmyError> {
     let data: &AddModToCommunity = &self.data;
-
-    let claims = match Claims::decode(&data.auth) {
-      Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err("not_logged_in").into()),
-    };
-
-    let user_id = claims.id;
+    let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let community_moderator_form = CommunityModeratorForm {
       community_id: data.community_id,
@@ -842,7 +731,7 @@ impl Perform for Oper<AddModToCommunity> {
     let community_id = data.community_id;
 
     // Verify that only mods or admins can add mod
-    is_mod_or_admin(pool, user_id, community_id).await?;
+    is_mod_or_admin(pool, user.id, community_id).await?;
 
     if data.added {
       let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
@@ -858,7 +747,7 @@ impl Perform for Oper<AddModToCommunity> {
 
     // Mod tables
     let form = ModAddCommunityForm {
-      mod_user_id: user_id,
+      mod_user_id: user.id,
       other_user_id: data.user_id,
       community_id: data.community_id,
       removed: Some(!data.added),
@@ -896,13 +785,7 @@ impl Perform for Oper<TransferCommunity> {
     _websocket_info: Option<WebsocketInfo>,
   ) -> Result<GetCommunityResponse, LemmyError> {
     let data: &TransferCommunity = &self.data;
-
-    let claims = match Claims::decode(&data.auth) {
-      Ok(claims) => claims.claims,
-      Err(_e) => return Err(APIError::err("not_logged_in").into()),
-    };
-
-    let user_id = claims.id;
+    let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let community_id = data.community_id;
     let read_community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
@@ -917,7 +800,7 @@ impl Perform for Oper<TransferCommunity> {
     admins.insert(0, creator_user);
 
     // Make sure user is the creator, or an admin
-    if user_id != read_community.creator_id && !admins.iter().map(|a| a.id).any(|x| x == user_id) {
+    if user.id != read_community.creator_id && !admins.iter().map(|a| a.id).any(|x| x == user.id) {
       return Err(APIError::err("not_an_admin").into());
     }
 
@@ -962,7 +845,7 @@ impl Perform for Oper<TransferCommunity> {
 
     // Mod tables
     let form = ModAddCommunityForm {
-      mod_user_id: user_id,
+      mod_user_id: user.id,
       other_user_id: data.user_id,
       community_id: data.community_id,
       removed: Some(false),
@@ -970,6 +853,7 @@ impl Perform for Oper<TransferCommunity> {
     blocking(pool, move |conn| ModAddCommunity::create(conn, &form)).await??;
 
     let community_id = data.community_id;
+    let user_id = user.id;
     let community_view = match blocking(pool, move |conn| {
       CommunityView::read(conn, community_id, Some(user_id))
     })

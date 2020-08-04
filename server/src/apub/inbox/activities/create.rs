@@ -39,7 +39,6 @@ pub async fn receive_create(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let create = Create::from_any_base(activity)?.unwrap();
-  dbg!(create.object().as_single_kind_str());
   match create.object().as_single_kind_str() {
     Some("Page") => receive_create_post(create, client, pool, chat_server).await,
     Some("Note") => receive_create_comment(create, client, pool, chat_server).await,
