@@ -108,9 +108,9 @@ async fn receive_accept(
 
   // This will fail if they're already a follower
   blocking(pool, move |conn| {
-    CommunityFollower::follow(conn, &community_follower_form)
+    CommunityFollower::follow(conn, &community_follower_form).ok()
   })
-  .await??;
+  .await?;
 
   // TODO: make sure that we actually requested a follow
   Ok(HttpResponse::Ok().finish())
