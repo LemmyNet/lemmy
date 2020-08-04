@@ -1,7 +1,7 @@
 use crate::{
   api::site::SearchResponse,
   apub::{
-    is_apub_id_valid,
+    check_is_apub_id_valid,
     ActorType,
     FromApub,
     GroupExt,
@@ -66,9 +66,7 @@ pub async fn fetch_remote_object<Response>(
 where
   Response: for<'de> Deserialize<'de>,
 {
-  if !is_apub_id_valid(&url) {
-    return Err(anyhow!("Activitypub uri invalid or blocked: {}", url).into());
-  }
+  check_is_apub_id_valid(&url)?;
 
   let timeout = Duration::from_secs(60);
 

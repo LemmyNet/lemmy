@@ -1,7 +1,8 @@
 use crate::{
   apub::{
+    check_is_apub_id_valid,
     extensions::signatures::verify,
-    fetcher::{get_or_fetch_and_upsert_community, get_or_fetch_and_upsert_user},
+    fetcher::get_or_fetch_and_upsert_user,
     insert_activity,
     ActorType,
   },
@@ -10,7 +11,8 @@ use crate::{
   LemmyError,
 };
 use activitystreams::{
-  activity::{Follow, Undo},
+  activity::{ActorAndObject, Follow, Undo},
+  base::AnyBase,
   prelude::*,
 };
 use actix_web::{client::Client, web, HttpRequest, HttpResponse};
@@ -21,37 +23,28 @@ use lemmy_db::{
   Followable,
 };
 use log::debug;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
-#[serde(untagged)]
-#[derive(Deserialize, Debug)]
-pub enum CommunityAcceptedObjects {
-  Follow(Follow),
-  Undo(Undo),
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub enum ValidTypes {
+  Follow,
+  Undo,
 }
 
-impl CommunityAcceptedObjects {
-  fn follow(&self) -> Result<Follow, LemmyError> {
-    match self {
-      CommunityAcceptedObjects::Follow(f) => Ok(f.to_owned()),
-      CommunityAcceptedObjects::Undo(u) => {
-        Ok(Follow::from_any_base(u.object().as_one().unwrap().to_owned())?.unwrap())
-      }
-    }
-  }
-}
+pub type AcceptedActivities = ActorAndObject<ValidTypes>;
 
 /// Handler for all incoming activities to community inboxes.
 pub async fn community_inbox(
   request: HttpRequest,
-  input: web::Json<CommunityAcceptedObjects>,
+  input: web::Json<AcceptedActivities>,
   path: web::Path<String>,
   db: DbPoolParam,
   client: web::Data<Client>,
   _chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let input = input.into_inner();
+  let activity = input.into_inner();
 
   let path = path.into_inner();
   let community = blocking(&db, move |conn| Community::read_from_name(&conn, &path)).await??;
@@ -67,34 +60,35 @@ pub async fn community_inbox(
   }
   debug!(
     "Community {} received activity {:?}",
-    &community.name, &input
+    &community.name, &activity
   );
-  let follow = input.follow()?;
-  let user_uri = follow.actor()?.as_single_xsd_any_uri().unwrap();
-  let community_uri = follow.object().as_single_xsd_any_uri().unwrap();
+  let user_uri = activity.actor()?.as_single_xsd_any_uri().unwrap();
+  check_is_apub_id_valid(user_uri)?;
 
   let user = get_or_fetch_and_upsert_user(&user_uri, &client, &db).await?;
-  let community = get_or_fetch_and_upsert_community(community_uri, &client, &db).await?;
 
   verify(&request, &user)?;
 
-  match input {
-    CommunityAcceptedObjects::Follow(f) => handle_follow(f, user, community, &client, db).await,
-    CommunityAcceptedObjects::Undo(u) => handle_undo_follow(u, user, community, db).await,
+  insert_activity(user.id, activity.clone(), false, &db).await?;
+
+  let any_base = activity.clone().into_any_base()?;
+  let kind = activity.kind().unwrap();
+  match kind {
+    ValidTypes::Follow => handle_follow(any_base, user, community, &client, db).await,
+    ValidTypes::Undo => handle_undo_follow(any_base, user, community, db).await,
   }
 }
 
 /// Handle a follow request from a remote user, adding it to the local database and returning an
 /// Accept activity.
 async fn handle_follow(
-  follow: Follow,
+  activity: AnyBase,
   user: User_,
   community: Community,
   client: &Client,
   db: DbPoolParam,
 ) -> Result<HttpResponse, LemmyError> {
-  insert_activity(user.id, follow.clone(), false, &db).await?;
-
+  let follow = Follow::from_any_base(activity)?.unwrap();
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,
     user_id: user.id,
@@ -112,12 +106,12 @@ async fn handle_follow(
 }
 
 async fn handle_undo_follow(
-  undo: Undo,
+  activity: AnyBase,
   user: User_,
   community: Community,
   db: DbPoolParam,
 ) -> Result<HttpResponse, LemmyError> {
-  insert_activity(user.id, undo, false, &db).await?;
+  let _undo = Undo::from_any_base(activity)?.unwrap();
 
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,
