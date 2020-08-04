@@ -10,7 +10,15 @@ use crate::{
   },
   DbPool,
 };
-use lemmy_db::{naive_now, Bannable, Crud, Followable, Joinable, SortType};
+use lemmy_db::{
+  diesel_option_overwrite,
+  naive_now,
+  Bannable,
+  Crud,
+  Followable,
+  Joinable,
+  SortType,
+};
 use lemmy_utils::{
   generate_actor_keypair,
   is_valid_community_name,
@@ -338,29 +346,8 @@ impl Perform for Oper<EditCommunity> {
     let edit_id = data.edit_id;
     let read_community = blocking(pool, move |conn| Community::read(conn, edit_id)).await??;
 
-    let icon = match &data.icon {
-      // An empty string is an erase
-      Some(icon) => {
-        if !icon.eq("") {
-          Some(Some(icon.to_owned()))
-        } else {
-          Some(None)
-        }
-      }
-      None => Some(read_community.icon),
-    };
-
-    let banner = match &data.banner {
-      // An empty string is an erase
-      Some(banner) => {
-        if !banner.eq("") {
-          Some(Some(banner.to_owned()))
-        } else {
-          Some(None)
-        }
-      }
-      None => Some(read_community.banner),
-    };
+    let icon = diesel_option_overwrite(&data.icon);
+    let banner = diesel_option_overwrite(&data.banner);
 
     let community_form = CommunityForm {
       name: read_community.name,

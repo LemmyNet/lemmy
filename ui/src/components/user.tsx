@@ -1082,6 +1082,8 @@ export class User extends Component<any, UserState> {
       UserService.Instance.login(data);
       this.state.user.bio = this.state.userSettingsForm.bio;
       this.state.user.preferred_username = this.state.userSettingsForm.preferred_username;
+      this.state.user.banner = this.state.userSettingsForm.banner;
+      this.state.user.avatar = this.state.userSettingsForm.avatar;
       this.state.userSettingsLoading = false;
       this.setState(this.state);
 

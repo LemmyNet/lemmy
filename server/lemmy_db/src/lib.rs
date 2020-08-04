@@ -181,6 +181,20 @@ pub fn is_email_regex(test: &str) -> bool {
   EMAIL_REGEX.is_match(test)
 }
 
+pub fn diesel_option_overwrite(opt: &Option<String>) -> Option<Option<String>> {
+  match opt {
+    // An empty string is an erase
+    Some(unwrapped) => {
+      if !unwrapped.eq("") {
+        Some(Some(unwrapped.to_owned()))
+      } else {
+        Some(None)
+      }
+    }
+    None => None,
+  }
+}
+
 lazy_static! {
   static ref EMAIL_REGEX: Regex =
     Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$").unwrap();

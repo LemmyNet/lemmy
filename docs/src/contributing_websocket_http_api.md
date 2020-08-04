@@ -330,7 +330,8 @@ curl -i -H \
 
 These go wherever there is a `sort` field. The available sort types are:
 
-- `Hot` - the hottest posts/communities, depending on votes, views, comments and publish date
+- `Active` - the hottest posts/communities, depending on votes, and newest comment publish date.
+- `Hot` - the hottest posts/communities, depending on votes and publish date.
 - `New` - the newest posts/communities
 - `TopDay` - the most upvoted posts/communities of the current day.
 - `TopWeek` - the most upvoted posts/communities of the current week.

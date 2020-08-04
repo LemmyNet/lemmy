@@ -21,6 +21,7 @@ use lemmy_db::{
   category::*,
   comment_view::*,
   community_view::*,
+  diesel_option_overwrite,
   moderator::*,
   moderator_views::*,
   naive_now,
@@ -306,29 +307,8 @@ impl Perform for Oper<EditSite> {
 
     let found_site = blocking(pool, move |conn| Site::read(conn, 1)).await??;
 
-    let icon = match &data.icon {
-      // An empty string is an erase
-      Some(icon) => {
-        if !icon.eq("") {
-          Some(Some(icon.to_owned()))
-        } else {
-          Some(None)
-        }
-      }
-      None => Some(found_site.icon),
-    };
-
-    let banner = match &data.banner {
-      // An empty string is an erase
-      Some(banner) => {
-        if !banner.eq("") {
-          Some(Some(banner.to_owned()))
-        } else {
-          Some(None)
-        }
-      }
-      None => Some(found_site.banner),
-    };
+    let icon = diesel_option_overwrite(&data.icon);
+    let banner = diesel_option_overwrite(&data.banner);
 
     let site_form = SiteForm {
       name: data.name.to_owned(),

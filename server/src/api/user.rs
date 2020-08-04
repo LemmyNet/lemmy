@@ -28,6 +28,7 @@ use lemmy_db::{
   comment_view::*,
   community::*,
   community_view::*,
+  diesel_option_overwrite,
   moderator::*,
   naive_now,
   password_reset_request::*,
@@ -574,28 +575,8 @@ impl Perform for Oper<SaveUserSettings> {
       None => read_user.bio,
     };
 
-    let avatar = match &data.avatar {
-      // An empty string is an erase
-      Some(avatar) => {
-        if !avatar.eq("") {
-          Some(Some(avatar.to_owned()))
-        } else {
-          Some(None)
-        }
-      }
-      None => Some(read_user.avatar),
-    };
-
-    let banner = match &data.banner {
-      Some(banner) => {
-        if !banner.eq("") {
-          Some(Some(banner.to_owned()))
-        } else {
-          Some(None)
-        }
-      }
-      None => Some(read_user.banner),
-    };
+    let avatar = diesel_option_overwrite(&data.avatar);
+    let banner = diesel_option_overwrite(&data.banner);
 
     // The DB constraint should stop too many characters
     let preferred_username = match &data.preferred_username {

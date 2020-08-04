@@ -28,6 +28,7 @@ pub struct SiteForm {
   pub enable_downvotes: bool,
   pub open_registration: bool,
   pub enable_nsfw: bool,
+  // when you want to null out a column, you have to send Some(None)), since sending None means you just don't want to update that column.
   pub icon: Option<Option<String>>,
   pub banner: Option<Option<String>>,
 }
