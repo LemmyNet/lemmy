@@ -116,7 +116,18 @@ export class CommunityForm extends Component<
             <div class="form-group row">
               <label class="col-12 col-form-label" htmlFor="community-name">
                 {i18n.t('name')}
+                <a
+                  class="btn btn-sm text-muted"
+                  data-tippy-content={i18n.t('name_explain')}
+                  onclick={linkEvent(this, this.showNameExplain)}
+                >
+                  <svg class="icon icon-inline">
+                    <use xlinkHref="#icon-help-circle"></use>
+                  </svg>
+                </a>
               </label>
+              <div id="name_explain_div">
+              </div>
               <div class="col-12">
                 <input
                   type="text"
@@ -135,8 +146,19 @@ export class CommunityForm extends Component<
           )}
           <div class="form-group row">
             <label class="col-12 col-form-label" htmlFor="community-title">
-              {i18n.t('title')}
+              {i18n.t('display_name')}
+              <a
+                class="btn btn-sm text-muted"
+                data-tippy-content={i18n.t('display_name_explain')}
+                onclick={linkEvent(this, this.showDisplayNameExplain)}
+              >
+                <svg class="icon icon-inline">
+                  <use xlinkHref="#icon-help-circle"></use>
+                </svg>
+              </a>
             </label>
+            <div id="displayname_explain_div">
+            </div>
             <div class="col-12">
               <input
                 type="text"
@@ -268,6 +290,26 @@ export class CommunityForm extends Component<
 
   handleCancel(i: CommunityForm) {
     i.props.onCancel();
+  }
+
+  showNameExplain() {
+    let element = document.getElementById("name_explain_div");
+    if (element.innerHTML == "") {
+      element.innerHTML = '<p class="ml-4 mb-2">' + i18n.t('name_explain') + '</p>';
+    }
+    else {
+      element.innerHTML = "";
+    }
+  }
+
+  showDisplayNameExplain() {
+    let element = document.getElementById("displayname_explain_div");
+    if (element.innerHTML == "") {
+      element.innerHTML = '<p class="ml-4 mb-2">' + i18n.t('display_name_explain') + '</p>';
+    }
+    else {
+      element.innerHTML = "";
+    }
   }
 
   parseMessage(msg: WebSocketJsonResponse) {
