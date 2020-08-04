@@ -1,6 +1,7 @@
 import { Component, linkEvent } from 'inferno';
 import { Prompt } from 'inferno-router';
 import { MarkdownTextArea } from './markdown-textarea';
+import { ImageUploadForm } from './image-upload-form';
 import { Site, SiteForm as SiteFormI } from '../interfaces';
 import { WebSocketService } from '../services';
 import { capitalizeFirstLetter, randomStr } from '../utils';
@@ -24,6 +25,8 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
       open_registration: true,
       enable_nsfw: true,
       name: null,
+      icon: null,
+      banner: null,
     },
     loading: false,
   };
@@ -36,6 +39,12 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
       this
     );
 
+    this.handleIconUpload = this.handleIconUpload.bind(this);
+    this.handleIconRemove = this.handleIconRemove.bind(this);
+
+    this.handleBannerUpload = this.handleBannerUpload.bind(this);
+    this.handleBannerRemove = this.handleBannerRemove.bind(this);
+
     if (this.props.site) {
       this.state.siteForm = {
         name: this.props.site.name,
@@ -43,6 +52,8 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
         enable_downvotes: this.props.site.enable_downvotes,
         open_registration: this.props.site.open_registration,
         enable_nsfw: this.props.site.enable_nsfw,
+        icon: this.props.site.icon,
+        banner: this.props.site.banner,
       };
     }
   }
@@ -102,6 +113,25 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
                 maxLength={20}
               />
             </div>
+          </div>
+          <div class="form-group">
+            <label>{i18n.t('icon')}</label>
+            <ImageUploadForm
+              uploadTitle={i18n.t('upload_icon')}
+              imageSrc={this.state.siteForm.icon}
+              onUpload={this.handleIconUpload}
+              onRemove={this.handleIconRemove}
+              rounded
+            />
+          </div>
+          <div class="form-group">
+            <label>{i18n.t('banner')}</label>
+            <ImageUploadForm
+              uploadTitle={i18n.t('upload_banner')}
+              imageSrc={this.state.siteForm.banner}
+              onUpload={this.handleBannerUpload}
+              onRemove={this.handleBannerRemove}
+            />
           </div>
           <div class="form-group row">
             <label class="col-12 col-form-label" htmlFor={this.id}>
@@ -246,5 +276,25 @@ export class SiteForm extends Component<SiteFormProps, SiteFormState> {
 
   handleCancel(i: SiteForm) {
     i.props.onCancel();
+  }
+
+  handleIconUpload(url: string) {
+    this.state.siteForm.icon = url;
+    this.setState(this.state);
+  }
+
+  handleIconRemove() {
+    this.state.siteForm.icon = '';
+    this.setState(this.state);
+  }
+
+  handleBannerUpload(url: string) {
+    this.state.siteForm.banner = url;
+    this.setState(this.state);
+  }
+
+  handleBannerRemove() {
+    this.state.siteForm.banner = '';
+    this.setState(this.state);
   }
 }

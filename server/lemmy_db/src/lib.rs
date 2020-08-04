@@ -134,6 +134,7 @@ pub fn get_database_url_from_env() -> Result<String, VarError> {
 
 #[derive(EnumString, ToString, Debug, Serialize, Deserialize)]
 pub enum SortType {
+  Active,
   Hot,
   New,
   TopDay,

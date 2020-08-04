@@ -83,6 +83,7 @@ export enum DataType {
 }
 
 export enum SortType {
+  Active,
   Hot,
   New,
   TopDay,
@@ -112,6 +113,7 @@ export interface User {
   preferred_username?: string;
   email?: string;
   avatar?: string;
+  banner?: string;
   admin: boolean;
   banned: boolean;
   published: string;
@@ -134,7 +136,9 @@ export interface UserView {
   id: number;
   actor_id: string;
   name: string;
+  preferred_username?: string;
   avatar?: string;
+  banner?: string;
   email?: string;
   matrix_user_id?: string;
   bio?: string;
@@ -155,11 +159,13 @@ export interface CommunityUser {
   user_actor_id: string;
   user_local: boolean;
   user_name: string;
+  user_preferred_username?: string;
   avatar?: string;
   community_id: number;
   community_actor_id: string;
   community_local: boolean;
   community_name: string;
+  community_icon?: string;
   published: string;
 }
 
@@ -169,6 +175,8 @@ export interface Community {
   local: boolean;
   name: string;
   title: string;
+  icon?: string;
+  banner?: string;
   description?: string;
   category_id: number;
   creator_id: number;
@@ -181,6 +189,7 @@ export interface Community {
   creator_local: boolean;
   last_refreshed_at: string;
   creator_name: string;
+  creator_preferred_username?: string;
   creator_avatar?: string;
   category_name: string;
   number_of_subscribers: number;
@@ -215,11 +224,13 @@ export interface Post {
   creator_actor_id: string;
   creator_local: boolean;
   creator_name: string;
+  creator_preferred_username?: string;
   creator_published: string;
   creator_avatar?: string;
   community_actor_id: string;
   community_local: boolean;
   community_name: string;
+  community_icon?: string;
   community_removed: boolean;
   community_deleted: boolean;
   community_nsfw: boolean;
@@ -228,6 +239,7 @@ export interface Post {
   upvotes: number;
   downvotes: number;
   hot_rank: number;
+  hot_rank_active: number;
   newest_activity_time: string;
   user_id?: number;
   my_vote?: number;
@@ -255,17 +267,20 @@ export interface Comment {
   community_actor_id: string;
   community_local: boolean;
   community_name: string;
+  community_icon?: string;
   banned: boolean;
   banned_from_community: boolean;
   creator_actor_id: string;
   creator_local: boolean;
   creator_name: string;
+  creator_preferred_username?: string;
   creator_avatar?: string;
   creator_published: string;
   score: number;
   upvotes: number;
   downvotes: number;
   hot_rank: number;
+  hot_rank_active: number;
   user_id?: number;
   my_vote?: number;
   subscribed?: number;
@@ -290,6 +305,7 @@ export interface Site {
   published: string;
   updated?: string;
   creator_name: string;
+  creator_preferred_username?: string;
   number_of_users: number;
   number_of_posts: number;
   number_of_comments: number;
@@ -297,6 +313,8 @@ export interface Site {
   enable_downvotes: boolean;
   open_registration: boolean;
   enable_nsfw: boolean;
+  icon?: string;
+  banner?: string;
 }
 
 export interface PrivateMessage {
@@ -311,10 +329,12 @@ export interface PrivateMessage {
   ap_id: string;
   local: boolean;
   creator_name: string;
+  creator_preferred_username?: string;
   creator_avatar?: string;
   creator_actor_id: string;
   creator_local: boolean;
   recipient_name: string;
+  recipient_preferred_username?: string;
   recipient_avatar?: string;
   recipient_actor_id: string;
   recipient_local: boolean;
@@ -596,6 +616,8 @@ export interface UserSettingsForm {
   default_listing_type: ListingType;
   lang: string;
   avatar?: string;
+  banner?: string;
+  preferred_username?: string;
   email?: string;
   bio?: string;
   matrix_user_id?: string;
@@ -612,6 +634,8 @@ export interface CommunityForm {
   edit_id?: number;
   title: string;
   description?: string;
+  icon?: string;
+  banner?: string;
   category_id: number;
   nsfw: boolean;
   auth?: string;
@@ -814,6 +838,8 @@ export interface CreatePostLikeForm {
 export interface SiteForm {
   name: string;
   description?: string;
+  icon?: string;
+  banner?: string;
   enable_downvotes: boolean;
   open_registration: boolean;
   enable_nsfw: boolean;

@@ -42,6 +42,8 @@ pub struct CreateCommunity {
   name: String,
   title: String,
   description: Option<String>,
+  icon: Option<String>,
+  banner: Option<String>,
   category_id: i32,
   nsfw: bool,
   auth: String,
@@ -99,6 +101,8 @@ pub struct EditCommunity {
   pub edit_id: i32,
   title: String,
   description: Option<String>,
+  icon: Option<String>,
+  banner: Option<String>,
   category_id: i32,
   nsfw: bool,
   auth: String,
@@ -284,6 +288,8 @@ impl Perform for Oper<CreateCommunity> {
       name: data.name.to_owned(),
       title: data.title.to_owned(),
       description: data.description.to_owned(),
+      icon: Some(data.icon.to_owned()),
+      banner: Some(data.banner.to_owned()),
       category_id: data.category_id,
       creator_id: user_id,
       removed: None,
@@ -383,10 +389,36 @@ impl Perform for Oper<EditCommunity> {
     let edit_id = data.edit_id;
     let read_community = blocking(pool, move |conn| Community::read(conn, edit_id)).await??;
 
+    let icon = match &data.icon {
+      // An empty string is an erase
+      Some(icon) => {
+        if !icon.eq("") {
+          Some(Some(icon.to_owned()))
+        } else {
+          Some(None)
+        }
+      }
+      None => Some(read_community.icon),
+    };
+
+    let banner = match &data.banner {
+      // An empty string is an erase
+      Some(banner) => {
+        if !banner.eq("") {
+          Some(Some(banner.to_owned()))
+        } else {
+          Some(None)
+        }
+      }
+      None => Some(read_community.banner),
+    };
+
     let community_form = CommunityForm {
       name: read_community.name,
       title: data.title.to_owned(),
       description: data.description.to_owned(),
+      icon,
+      banner,
       category_id: data.category_id.to_owned(),
       creator_id: read_community.creator_id,
       removed: Some(read_community.removed),

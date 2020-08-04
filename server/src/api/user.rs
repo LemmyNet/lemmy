@@ -96,6 +96,8 @@ pub struct SaveUserSettings {
   default_listing_type: i16,
   lang: String,
   avatar: Option<String>,
+  banner: Option<String>,
+  preferred_username: Option<String>,
   email: Option<String>,
   bio: Option<String>,
   matrix_user_id: Option<String>,
@@ -390,6 +392,7 @@ impl Perform for Oper<Register> {
       email: data.email.to_owned(),
       matrix_user_id: None,
       avatar: None,
+      banner: None,
       password_encrypted: data.password.to_owned(),
       preferred_username: None,
       updated: None,
@@ -397,7 +400,7 @@ impl Perform for Oper<Register> {
       banned: false,
       show_nsfw: data.show_nsfw,
       theme: "darkly".into(),
-      default_sort_type: SortType::Hot as i16,
+      default_sort_type: SortType::Active as i16,
       default_listing_type: ListingType::Subscribed as i16,
       lang: "browser".into(),
       show_avatars: true,
@@ -449,6 +452,8 @@ impl Perform for Oper<Register> {
           public_key: Some(main_community_keypair.public_key),
           last_refreshed_at: None,
           published: None,
+          icon: None,
+          banner: None,
         };
         blocking(pool, move |conn| Community::create(conn, &community_form)).await??
       }
@@ -570,8 +575,32 @@ impl Perform for Oper<SaveUserSettings> {
     };
 
     let avatar = match &data.avatar {
-      Some(avatar) => Some(avatar.to_owned()),
-      None => read_user.avatar,
+      // An empty string is an erase
+      Some(avatar) => {
+        if !avatar.eq("") {
+          Some(Some(avatar.to_owned()))
+        } else {
+          Some(None)
+        }
+      }
+      None => Some(read_user.avatar),
+    };
+
+    let banner = match &data.banner {
+      Some(banner) => {
+        if !banner.eq("") {
+          Some(Some(banner.to_owned()))
+        } else {
+          Some(None)
+        }
+      }
+      None => Some(read_user.banner),
+    };
+
+    // The DB constraint should stop too many characters
+    let preferred_username = match &data.preferred_username {
+      Some(preferred_username) => Some(preferred_username.to_owned()),
+      None => read_user.preferred_username,
     };
 
     let password_encrypted = match &data.new_password {
@@ -612,8 +641,9 @@ impl Perform for Oper<SaveUserSettings> {
       email,
       matrix_user_id: data.matrix_user_id.to_owned(),
       avatar,
+      banner,
       password_encrypted,
-      preferred_username: read_user.preferred_username,
+      preferred_username,
       updated: Some(naive_now()),
       admin: read_user.admin,
       banned: read_user.banned,

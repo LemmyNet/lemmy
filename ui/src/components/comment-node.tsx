@@ -158,6 +158,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 <UserListing
                   user={{
                     name: node.comment.creator_name,
+                    preferred_username: node.comment.creator_preferred_username,
                     avatar: node.comment.creator_avatar,
                     id: node.comment.creator_id,
                     local: node.comment.creator_local,
@@ -196,6 +197,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                       id: node.comment.community_id,
                       local: node.comment.community_local,
                       actor_id: node.comment.community_actor_id,
+                      icon: node.comment.community_icon,
                     }}
                   />
                   <span class="mx-2">•</span>

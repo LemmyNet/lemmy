@@ -82,6 +82,8 @@ pub struct GetModlogResponse {
 pub struct CreateSite {
   pub name: String,
   pub description: Option<String>,
+  pub icon: Option<String>,
+  pub banner: Option<String>,
   pub enable_downvotes: bool,
   pub open_registration: bool,
   pub enable_nsfw: bool,
@@ -92,6 +94,8 @@ pub struct CreateSite {
 pub struct EditSite {
   name: String,
   description: Option<String>,
+  icon: Option<String>,
+  banner: Option<String>,
   enable_downvotes: bool,
   open_registration: bool,
   enable_nsfw: bool,
@@ -266,6 +270,8 @@ impl Perform for Oper<CreateSite> {
     let site_form = SiteForm {
       name: data.name.to_owned(),
       description: data.description.to_owned(),
+      icon: Some(data.icon.to_owned()),
+      banner: Some(data.banner.to_owned()),
       creator_id: user_id,
       enable_downvotes: data.enable_downvotes,
       open_registration: data.open_registration,
@@ -316,9 +322,35 @@ impl Perform for Oper<EditSite> {
 
     let found_site = blocking(pool, move |conn| Site::read(conn, 1)).await??;
 
+    let icon = match &data.icon {
+      // An empty string is an erase
+      Some(icon) => {
+        if !icon.eq("") {
+          Some(Some(icon.to_owned()))
+        } else {
+          Some(None)
+        }
+      }
+      None => Some(found_site.icon),
+    };
+
+    let banner = match &data.banner {
+      // An empty string is an erase
+      Some(banner) => {
+        if !banner.eq("") {
+          Some(Some(banner.to_owned()))
+        } else {
+          Some(None)
+        }
+      }
+      None => Some(found_site.banner),
+    };
+
     let site_form = SiteForm {
       name: data.name.to_owned(),
       description: data.description.to_owned(),
+      icon,
+      banner,
       creator_id: found_site.creator_id,
       updated: Some(naive_now()),
       enable_downvotes: data.enable_downvotes,
@@ -381,6 +413,8 @@ impl Perform for Oper<GetSite> {
       let create_site = CreateSite {
         name: setup.site_name.to_owned(),
         description: None,
+        icon: None,
+        banner: None,
         enable_downvotes: true,
         open_registration: true,
         enable_nsfw: true,
@@ -650,18 +684,9 @@ impl Perform for Oper<TransferSite> {
       return Err(APIError::err("not_an_admin").into());
     }
 
-    let site_form = SiteForm {
-      name: read_site.name,
-      description: read_site.description,
-      creator_id: data.user_id,
-      updated: Some(naive_now()),
-      enable_downvotes: read_site.enable_downvotes,
-      open_registration: read_site.open_registration,
-      enable_nsfw: read_site.enable_nsfw,
-    };
-
-    let update_site = move |conn: &'_ _| Site::update(conn, 1, &site_form);
-    if blocking(pool, update_site).await?.is_err() {
+    let new_creator_id = data.user_id;
+    let transfer_site = move |conn: &'_ _| Site::transfer(conn, new_creator_id);
+    if blocking(pool, transfer_site).await?.is_err() {
       return Err(APIError::err("couldnt_update_site").into());
     };
 

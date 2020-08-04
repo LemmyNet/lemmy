@@ -8,6 +8,8 @@ table! {
     id -> Int4,
     name -> Varchar,
     title -> Varchar,
+    icon -> Nullable<Text>,
+    banner -> Nullable<Text>,
     description -> Nullable<Text>,
     category_id -> Int4,
     creator_id -> Int4,
@@ -22,6 +24,7 @@ table! {
     creator_actor_id -> Text,
     creator_local -> Bool,
     creator_name -> Varchar,
+    creator_preferred_username -> Nullable<Varchar>,
     creator_avatar -> Nullable<Text>,
     category_name -> Varchar,
     number_of_subscribers -> BigInt,
@@ -38,6 +41,8 @@ table! {
     id -> Int4,
     name -> Varchar,
     title -> Varchar,
+    icon -> Nullable<Text>,
+    banner -> Nullable<Text>,
     description -> Nullable<Text>,
     category_id -> Int4,
     creator_id -> Int4,
@@ -52,6 +57,7 @@ table! {
     creator_actor_id -> Text,
     creator_local -> Bool,
     creator_name -> Varchar,
+    creator_preferred_username -> Nullable<Varchar>,
     creator_avatar -> Nullable<Text>,
     category_name -> Varchar,
     number_of_subscribers -> BigInt,
@@ -72,10 +78,12 @@ table! {
     user_actor_id -> Text,
     user_local -> Bool,
     user_name -> Varchar,
+    user_preferred_username -> Nullable<Varchar>,
     avatar -> Nullable<Text>,
     community_actor_id -> Text,
     community_local -> Bool,
     community_name -> Varchar,
+    community_icon -> Nullable<Text>,
   }
 }
 
@@ -88,10 +96,12 @@ table! {
     user_actor_id -> Text,
     user_local -> Bool,
     user_name -> Varchar,
+    user_preferred_username -> Nullable<Varchar>,
     avatar -> Nullable<Text>,
     community_actor_id -> Text,
     community_local -> Bool,
     community_name -> Varchar,
+    community_icon -> Nullable<Text>,
   }
 }
 
@@ -104,10 +114,12 @@ table! {
     user_actor_id -> Text,
     user_local -> Bool,
     user_name -> Varchar,
+    user_preferred_username -> Nullable<Varchar>,
     avatar -> Nullable<Text>,
     community_actor_id -> Text,
     community_local -> Bool,
     community_name -> Varchar,
+    community_icon -> Nullable<Text>,
   }
 }
 
@@ -119,6 +131,8 @@ pub struct CommunityView {
   pub id: i32,
   pub name: String,
   pub title: String,
+  pub icon: Option<String>,
+  pub banner: Option<String>,
   pub description: Option<String>,
   pub category_id: i32,
   pub creator_id: i32,
@@ -133,6 +147,7 @@ pub struct CommunityView {
   pub creator_actor_id: String,
   pub creator_local: bool,
   pub creator_name: String,
+  pub creator_preferred_username: Option<String>,
   pub creator_avatar: Option<String>,
   pub category_name: String,
   pub number_of_subscribers: i64,
@@ -288,10 +303,12 @@ pub struct CommunityModeratorView {
   pub user_actor_id: String,
   pub user_local: bool,
   pub user_name: String,
+  pub user_preferred_username: Option<String>,
   pub avatar: Option<String>,
   pub community_actor_id: String,
   pub community_local: bool,
   pub community_name: String,
+  pub community_icon: Option<String>,
 }
 
 impl CommunityModeratorView {
@@ -324,10 +341,12 @@ pub struct CommunityFollowerView {
   pub user_actor_id: String,
   pub user_local: bool,
   pub user_name: String,
+  pub user_preferred_username: Option<String>,
   pub avatar: Option<String>,
   pub community_actor_id: String,
   pub community_local: bool,
   pub community_name: String,
+  pub community_icon: Option<String>,
 }
 
 impl CommunityFollowerView {
@@ -358,10 +377,12 @@ pub struct CommunityUserBanView {
   pub user_actor_id: String,
   pub user_local: bool,
   pub user_name: String,
+  pub user_preferred_username: Option<String>,
   pub avatar: Option<String>,
   pub community_actor_id: String,
   pub community_local: bool,
   pub community_name: String,
+  pub community_icon: Option<String>,
 }
 
 impl CommunityUserBanView {

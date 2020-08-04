@@ -16,7 +16,6 @@ import {
   Comment,
   CommentResponse,
   PrivateMessage,
-  UserView,
   PrivateMessageResponse,
   WebSocketJsonResponse,
 } from '../interfaces';
@@ -41,12 +40,11 @@ interface NavbarState {
   mentions: Array<Comment>;
   messages: Array<PrivateMessage>;
   unreadCount: number;
-  siteName: string;
-  version: string;
-  admins: Array<UserView>;
   searchParam: string;
   toggleSearch: boolean;
   siteLoading: boolean;
+  siteRes: GetSiteResponse;
+  onSiteBanner?(url: string): any;
 }
 
 export class Navbar extends Component<any, NavbarState> {
@@ -61,9 +59,30 @@ export class Navbar extends Component<any, NavbarState> {
     mentions: [],
     messages: [],
     expanded: false,
-    siteName: undefined,
-    version: undefined,
-    admins: [],
+    siteRes: {
+      site: {
+        id: null,
+        name: null,
+        creator_id: null,
+        creator_name: null,
+        published: null,
+        number_of_users: null,
+        number_of_posts: null,
+        number_of_comments: null,
+        number_of_communities: null,
+        enable_downvotes: null,
+        open_registration: null,
+        enable_nsfw: null,
+        icon: null,
+        banner: null,
+        creator_preferred_username: null,
+      },
+      my_user: null,
+      admins: [],
+      banned: [],
+      online: null,
+      version: null,
+    },
     searchParam: '',
     toggleSearch: false,
     siteLoading: true,
@@ -158,12 +177,25 @@ export class Navbar extends Component<any, NavbarState> {
 
   // TODO class active corresponding to current page
   navbar() {
+    let user = UserService.Instance.user;
     return (
       <nav class="navbar navbar-expand-lg navbar-light shadow-sm p-0 px-3">
         <div class="container">
           {!this.state.siteLoading ? (
-            <Link title={this.state.version} class="navbar-brand" to="/">
-              {this.state.siteName}
+            <Link
+              title={this.state.siteRes.version}
+              class="navbar-brand"
+              to="/"
+            >
+              {this.state.siteRes.site.icon && showAvatars() && (
+                <img
+                  src={pictrsAvatarThumbnail(this.state.siteRes.site.icon)}
+                  height="32"
+                  width="32"
+                  class="rounded-circle mr-2"
+                />
+              )}
+              {this.state.siteRes.site.name}
             </Link>
           ) : (
             <div class="navbar-item">
@@ -315,22 +347,21 @@ export class Navbar extends Component<any, NavbarState> {
                     <li className="nav-item">
                       <Link
                         class="nav-link"
-                        to={`/u/${UserService.Instance.user.name}`}
+                        to={`/u/${user.name}`}
                         title={i18n.t('settings')}
                       >
                         <span>
-                          {UserService.Instance.user.avatar &&
-                            showAvatars() && (
-                              <img
-                                src={pictrsAvatarThumbnail(
-                                  UserService.Instance.user.avatar
-                                )}
-                                height="32"
-                                width="32"
-                                class="rounded-circle mr-2"
-                              />
-                            )}
-                          {UserService.Instance.user.name}
+                          {user.avatar && showAvatars() && (
+                            <img
+                              src={pictrsAvatarThumbnail(user.avatar)}
+                              height="32"
+                              width="32"
+                              class="rounded-circle mr-2"
+                            />
+                          )}
+                          {user.preferred_username
+                            ? user.preferred_username
+                            : user.name}
                         </span>
                       </Link>
                     </li>
@@ -422,11 +453,7 @@ export class Navbar extends Component<any, NavbarState> {
     } else if (res.op == UserOperation.GetSite) {
       let data = res.data as GetSiteResponse;
 
-      if (data.site && !this.state.siteName) {
-        this.state.siteName = data.site.name;
-        this.state.version = data.version;
-        this.state.admins = data.admins;
-      }
+      this.state.siteRes = data;
 
       // The login
       if (data.my_user) {
@@ -495,7 +522,9 @@ export class Navbar extends Component<any, NavbarState> {
   get canAdmin(): boolean {
     return (
       UserService.Instance.user &&
-      this.state.admins.map(a => a.id).includes(UserService.Instance.user.id)
+      this.state.siteRes.admins
+        .map(a => a.id)
+        .includes(UserService.Instance.user.id)
     );
   }
 
