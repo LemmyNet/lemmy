@@ -1,6 +1,7 @@
 use crate::{
   apub::{
     activities::{generate_activity_id, send_activity},
+    check_is_apub_id_valid,
     create_apub_response,
     create_apub_tombstone_response,
     create_tombstone,
@@ -334,6 +335,8 @@ impl FromApub for CommunityForm {
       .unwrap();
 
     let creator = get_or_fetch_and_upsert_user(creator_uri, client, pool).await?;
+    let actor_id = group.inner.id_unchecked().unwrap().to_string();
+    check_is_apub_id_valid(&Url::parse(&actor_id)?)?;
 
     Ok(CommunityForm {
       name: group
@@ -359,7 +362,7 @@ impl FromApub for CommunityForm {
       updated: group.inner.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
       nsfw: group.ext_one.sensitive,
-      actor_id: group.inner.id_unchecked().unwrap().to_string(),
+      actor_id,
       local: false,
       private_key: None,
       public_key: Some(group.ext_two.to_owned().public_key.public_key_pem),

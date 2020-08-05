@@ -1,6 +1,7 @@
 use crate::{
   apub::{
     activities::{generate_activity_id, send_activity_to_community},
+    check_is_apub_id_valid,
     create_apub_response,
     create_apub_tombstone_response,
     create_tombstone,
@@ -166,6 +167,9 @@ impl FromApub for CommentForm {
       None => None,
     };
 
+    let ap_id = note.id_unchecked().unwrap().to_string();
+    check_is_apub_id_valid(&Url::parse(&ap_id)?)?;
+
     Ok(CommentForm {
       creator_id: creator.id,
       post_id: post.id,
@@ -181,7 +185,7 @@ impl FromApub for CommentForm {
       published: note.published().map(|u| u.to_owned().naive_local()),
       updated: note.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
-      ap_id: note.id_unchecked().unwrap().to_string(),
+      ap_id,
       local: false,
     })
   }

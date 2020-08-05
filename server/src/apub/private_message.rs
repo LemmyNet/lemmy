@@ -1,6 +1,7 @@
 use crate::{
   apub::{
     activities::{generate_activity_id, send_activity},
+    check_is_apub_id_valid,
     create_tombstone,
     fetcher::get_or_fetch_and_upsert_user,
     insert_activity,
@@ -84,10 +85,10 @@ impl FromApub for PrivateMessageForm {
       .unwrap();
 
     let creator = get_or_fetch_and_upsert_user(&creator_actor_id, client, pool).await?;
-
     let recipient_actor_id = note.to().unwrap().clone().single_xsd_any_uri().unwrap();
-
     let recipient = get_or_fetch_and_upsert_user(&recipient_actor_id, client, pool).await?;
+    let ap_id = note.id_unchecked().unwrap().to_string();
+    check_is_apub_id_valid(&Url::parse(&ap_id)?)?;
 
     Ok(PrivateMessageForm {
       creator_id: creator.id,
@@ -102,7 +103,7 @@ impl FromApub for PrivateMessageForm {
       updated: note.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
       read: None,
-      ap_id: note.id_unchecked().unwrap().to_string(),
+      ap_id,
       local: false,
     })
   }

@@ -1,6 +1,7 @@
 use crate::{
   apub::{
     activities::{generate_activity_id, send_activity},
+    check_is_apub_id_valid,
     create_apub_response,
     insert_activity,
     ActorType,
@@ -217,6 +218,11 @@ impl FromApub for UserForm {
       None => None,
     };
 
+    // TODO: here and in community we could actually check against the exact domain where we fetched
+    //       the actor from, if we can pass it in somehow
+    let actor_id = person.id_unchecked().unwrap().to_string();
+    check_is_apub_id_valid(&Url::parse(&actor_id)?)?;
+
     Ok(UserForm {
       name: person
         .name()
@@ -241,7 +247,7 @@ impl FromApub for UserForm {
       show_avatars: false,
       send_notifications_to_email: false,
       matrix_user_id: None,
-      actor_id: person.id_unchecked().unwrap().to_string(),
+      actor_id,
       bio: person
         .inner
         .summary()

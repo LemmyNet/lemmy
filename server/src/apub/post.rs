@@ -1,6 +1,7 @@
 use crate::{
   apub::{
     activities::{generate_activity_id, send_activity_to_community},
+    check_is_apub_id_valid,
     create_apub_response,
     create_apub_tombstone_response,
     create_tombstone,
@@ -203,6 +204,9 @@ impl FromApub for PostForm {
       None => (None, None, None),
     };
 
+    let ap_id = page.inner.id_unchecked().unwrap().to_string();
+    check_is_apub_id_valid(&Url::parse(&ap_id)?)?;
+
     let url = page
       .inner
       .url()
@@ -245,7 +249,7 @@ impl FromApub for PostForm {
       embed_description,
       embed_html,
       thumbnail_url,
-      ap_id: page.inner.id_unchecked().unwrap().to_string(),
+      ap_id,
       local: false,
     })
   }
