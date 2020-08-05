@@ -5,8 +5,6 @@ use awc::Client;
 use lemmy_utils::settings::Settings;
 use serde::{Deserialize, Serialize};
 
-const THUMBNAIL_SIZES: &[u64] = &[256];
-
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
   let client = Client::build()
     .header("User-Agent", "pict-rs-frontend, v0.1.0")
@@ -79,18 +77,14 @@ async fn thumbnail(
 ) -> Result<HttpResponse, Error> {
   let (size, file) = parts.into_inner();
 
-  if THUMBNAIL_SIZES.contains(&size) {
-    let url = format!(
-      "{}/image/thumbnail{}/{}",
-      Settings::get().pictrs_url,
-      size,
-      &file
-    );
+  let url = format!(
+    "{}/image/thumbnail{}/{}",
+    Settings::get().pictrs_url,
+    size,
+    &file
+  );
 
-    return image(url, req, client).await;
-  }
-
-  Ok(HttpResponse::NotFound().finish())
+  image(url, req, client).await
 }
 
 async fn image(
