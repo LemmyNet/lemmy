@@ -394,11 +394,9 @@ export class User extends Component<any, UserState> {
           <div class="">
             <div class="mb-0 d-flex flex-wrap">
               <div>
-                <h5 class="mb-0">
-                  {user.preferred_username
-                    ? user.preferred_username
-                    : user.name}
-                </h5>
+                {user.preferred_username && (
+                  <h5 class="mb-0">{user.preferred_username}</h5>
+                )}
                 <ul class="list-inline mb-2">
                   <li className="list-inline-item">
                     <UserListing

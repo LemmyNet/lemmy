@@ -35,22 +35,21 @@ export class UserListing extends Component<UserListingProps, any> {
   render() {
     let user = this.props.user;
     let local = user.local == null ? true : user.local;
-    let name_: string, link: string;
+    let apubName: string, link: string;
 
     if (local) {
-      name_ = user.name;
+      apubName = `@${user.name}`;
       link = `/u/${user.name}`;
     } else {
-      name_ = `${user.name}@${hostname(user.actor_id)}`;
+      apubName = `@${user.name}@${hostname(user.actor_id)}`;
       link = !this.props.realLink ? `/user/${user.id}` : user.actor_id;
     }
 
-    let apubName = `@${name_}`;
     let displayName = this.props.useApubName
       ? apubName
       : user.preferred_username
       ? user.preferred_username
-      : name_;
+      : apubName;
 
     return (
       <>
@@ -69,7 +68,7 @@ export class UserListing extends Component<UserListingProps, any> {
           <span>{displayName}</span>
         </Link>
 
-        {isCakeDay(user.published) && <CakeDay creatorName={name_} />}
+        {isCakeDay(user.published) && <CakeDay creatorName={apubName} />}
       </>
     );
   }
