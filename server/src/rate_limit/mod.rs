@@ -45,6 +45,10 @@ impl RateLimit {
     self.kind(RateLimitType::Register)
   }
 
+  pub fn image(&self) -> RateLimited {
+    self.kind(RateLimitType::Image)
+  }
+
   fn kind(&self, type_: RateLimitType) -> RateLimited {
     RateLimited {
       rate_limiter: self.rate_limiter.clone(),
@@ -99,6 +103,15 @@ impl RateLimited {
             rate_limit.register,
             rate_limit.register_per_second,
             true,
+          )?;
+        }
+        RateLimitType::Image => {
+          limiter.check_rate_limit_full(
+            self.type_,
+            &ip_addr,
+            rate_limit.image,
+            rate_limit.image_per_second,
+            false,
           )?;
         }
       };
