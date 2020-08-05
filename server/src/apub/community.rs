@@ -461,12 +461,13 @@ pub async fn do_announce(
 
   insert_activity(community.creator_id, announce.clone(), true, pool).await?;
 
-  // dont send to the instance where the activity originally came from, because that would result
-  // in a database error (same data inserted twice)
   let mut to = community.get_follower_inboxes(pool).await?;
 
+  // dont send to the local instance, nor to the instance where the activity originally came from,
+  // because that would result in a database error (same data inserted twice)
   // this seems to be the "easiest" stable alternative for remove_item()
   to.retain(|x| *x != sender.get_shared_inbox_url());
+  to.retain(|x| *x != community.get_shared_inbox_url());
 
   send_activity(client, &announce.into_any_base()?, community, to).await?;
 
