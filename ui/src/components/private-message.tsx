@@ -9,6 +9,7 @@ import { WebSocketService, UserService } from '../services';
 import { mdToHtml, pictrsAvatarThumbnail, showAvatars, toast } from '../utils';
 import { MomentTime } from './moment-time';
 import { PrivateMessageForm } from './private-message-form';
+import { UserListing, UserOther } from './user-listing';
 import { i18n } from '../i18next';
 
 interface PrivateMessageState {
@@ -53,6 +54,26 @@ export class PrivateMessage extends Component<
 
   render() {
     let message = this.props.privateMessage;
+    let userOther: UserOther = this.mine
+      ? {
+          name: message.recipient_name,
+          preferred_username: message.recipient_preferred_username,
+          id: message.id,
+          avatar: message.recipient_avatar,
+          local: message.recipient_local,
+          actor_id: message.recipient_actor_id,
+          published: message.published,
+        }
+      : {
+          name: message.creator_name,
+          preferred_username: message.creator_preferred_username,
+          id: message.id,
+          avatar: message.creator_avatar,
+          local: message.creator_local,
+          actor_id: message.creator_actor_id,
+          published: message.published,
+        };
+
     return (
       <div class="border-top border-light">
         <div>
@@ -62,33 +83,7 @@ export class PrivateMessage extends Component<
               {this.mine ? i18n.t('to') : i18n.t('from')}
             </li>
             <li className="list-inline-item">
-              <Link
-                className="text-body font-weight-bold"
-                to={
-                  this.mine
-                    ? `/u/${message.recipient_name}`
-                    : `/u/${message.creator_name}`
-                }
-              >
-                {(this.mine
-                  ? message.recipient_avatar
-                  : message.creator_avatar) &&
-                  showAvatars() && (
-                    <img
-                      height="32"
-                      width="32"
-                      src={pictrsAvatarThumbnail(
-                        this.mine
-                          ? message.recipient_avatar
-                          : message.creator_avatar
-                      )}
-                      class="rounded-circle mr-1"
-                    />
-                  )}
-                <span>
-                  {this.mine ? message.recipient_name : message.creator_name}
-                </span>
-              </Link>
+              <UserListing user={userOther} />
             </li>
             <li className="list-inline-item">
               <span>

@@ -39,6 +39,7 @@ import {
   createPostLikeRes,
   commentsToFlatNodes,
   setupTippy,
+  favIconUrl,
 } from '../utils';
 import { PostListing } from './post-listing';
 import { Sidebar } from './sidebar';
@@ -189,10 +190,21 @@ export class Post extends Component<any, PostState> {
     }
   }
 
+  get favIcon(): string {
+    return this.state.post ? this.state.post.community_icon : favIconUrl;
+  }
+
   render() {
     return (
       <div class="container">
-        <Helmet title={this.documentTitle} />
+        <Helmet title={this.documentTitle}>
+          <link
+            id="favicon"
+            rel="icon"
+            type="image/x-icon"
+            href={this.favIcon}
+          />
+        </Helmet>
         {this.state.loading ? (
           <h5>
             <svg class="icon icon-spinner spin">
@@ -332,6 +344,7 @@ export class Post extends Component<any, PostState> {
           admins={this.state.siteRes.admins}
           online={this.state.online}
           enableNsfw={this.state.siteRes.site.enable_nsfw}
+          showIcon
         />
       </div>
     );

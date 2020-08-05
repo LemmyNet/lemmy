@@ -35,6 +35,7 @@ pub struct User_ {
   pub private_key: Option<String>,
   pub public_key: Option<String>,
   pub last_refreshed_at: chrono::NaiveDateTime,
+  pub banner: Option<String>,
 }
 
 #[derive(Insertable, AsChangeset, Clone, Debug)]
@@ -46,7 +47,7 @@ pub struct UserForm {
   pub admin: bool,
   pub banned: bool,
   pub email: Option<String>,
-  pub avatar: Option<String>,
+  pub avatar: Option<Option<String>>,
   pub updated: Option<chrono::NaiveDateTime>,
   pub show_nsfw: bool,
   pub theme: String,
@@ -62,6 +63,7 @@ pub struct UserForm {
   pub private_key: Option<String>,
   pub public_key: Option<String>,
   pub last_refreshed_at: Option<chrono::NaiveDateTime>,
+  pub banner: Option<Option<String>>,
 }
 
 impl Crud<UserForm> for User_ {
@@ -167,6 +169,7 @@ mod tests {
       email: None,
       matrix_user_id: None,
       avatar: None,
+      banner: None,
       admin: false,
       banned: false,
       updated: None,
@@ -195,6 +198,7 @@ mod tests {
       email: None,
       matrix_user_id: None,
       avatar: None,
+      banner: None,
       admin: false,
       banned: false,
       published: inserted_user.published,

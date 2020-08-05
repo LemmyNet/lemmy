@@ -27,11 +27,12 @@ import {
   themes,
   setTheme,
   languages,
-  showAvatars,
   toast,
   setupTippy,
   getLanguage,
   mdToHtml,
+  elementUrl,
+  favIconUrl,
 } from '../utils';
 import { UserListing } from './user-listing';
 import { SortSelect } from './sort-select';
@@ -41,6 +42,8 @@ import { i18n } from '../i18next';
 import moment from 'moment';
 import { UserDetails } from './user-details';
 import { MarkdownTextArea } from './markdown-textarea';
+import { ImageUploadForm } from './image-upload-form';
+import { BannerIconHeader } from './banner-icon-header';
 
 interface UserState {
   user: UserView;
@@ -52,7 +55,6 @@ interface UserState {
   sort: SortType;
   page: number;
   loading: boolean;
-  avatarLoading: boolean;
   userSettingsForm: UserSettingsForm;
   userSettingsLoading: boolean;
   deleteAccountLoading: boolean;
@@ -98,7 +100,6 @@ export class User extends Component<any, UserState> {
     follows: [],
     moderates: [],
     loading: true,
-    avatarLoading: false,
     view: User.getViewFromProps(this.props.match.view),
     sort: User.getSortTypeFromProps(this.props.match.sort),
     page: User.getPageFromProps(this.props.match.page),
@@ -112,6 +113,7 @@ export class User extends Component<any, UserState> {
       send_notifications_to_email: null,
       auth: null,
       bio: null,
+      preferred_username: null,
     },
     userSettingsLoading: null,
     deleteAccountLoading: null,
@@ -136,6 +138,9 @@ export class User extends Component<any, UserState> {
         enable_downvotes: undefined,
         open_registration: undefined,
         enable_nsfw: undefined,
+        icon: undefined,
+        banner: undefined,
+        creator_preferred_username: undefined,
       },
       version: undefined,
     },
@@ -156,6 +161,12 @@ export class User extends Component<any, UserState> {
     this.handleUserSettingsBioChange = this.handleUserSettingsBioChange.bind(
       this
     );
+
+    this.handleAvatarUpload = this.handleAvatarUpload.bind(this);
+    this.handleAvatarRemove = this.handleAvatarRemove.bind(this);
+
+    this.handleBannerUpload = this.handleBannerUpload.bind(this);
+    this.handleBannerRemove = this.handleBannerRemove.bind(this);
 
     this.state.user_id = Number(this.props.match.params.id) || null;
     this.state.username = this.props.match.params.username;
@@ -226,23 +237,27 @@ export class User extends Component<any, UserState> {
     }
   }
 
+  get favIcon(): string {
+    return this.state.user.avatar
+      ? this.state.user.avatar
+      : this.state.siteRes.site.icon
+      ? this.state.siteRes.site.icon
+      : favIconUrl;
+  }
+
   render() {
     return (
       <div class="container">
-        <Helmet title={this.documentTitle} />
+        <Helmet title={this.documentTitle}>
+          <link
+            id="favicon"
+            rel="icon"
+            type="image/x-icon"
+            href={this.favIcon}
+          />
+        </Helmet>
         <div class="row">
           <div class="col-12 col-md-8">
-            <h5>
-              {this.state.user.avatar && showAvatars() && (
-                <img
-                  height="80"
-                  width="80"
-                  src={this.state.user.avatar}
-                  class="rounded-circle mr-2"
-                />
-              )}
-              <span>@{this.state.username}</span>
-            </h5>
             {this.state.loading ? (
               <h5>
                 <svg class="icon icon-spinner spin">
@@ -250,8 +265,12 @@ export class User extends Component<any, UserState> {
                 </svg>
               </h5>
             ) : (
-              this.selects()
+              <>
+                {this.userInfo()}
+                <hr />
+              </>
             )}
+            {!this.state.loading && this.selects()}
             <UserDetails
               user_id={this.state.user_id}
               username={this.state.username}
@@ -268,7 +287,6 @@ export class User extends Component<any, UserState> {
 
           {!this.state.loading && (
             <div class="col-12 col-md-4">
-              {this.userInfo()}
               {this.isCurrentUser && this.userSettings()}
               {this.moderates()}
               {this.follows()}
@@ -365,22 +383,66 @@ export class User extends Component<any, UserState> {
 
   userInfo() {
     let user = this.state.user;
+
     return (
       <div>
-        <div class="card bg-transparent border-secondary mb-3">
-          <div class="card-body">
-            <h5>
-              <ul class="list-inline mb-0">
-                <li className="list-inline-item">
-                  <UserListing user={user} realLink />
-                </li>
-                {user.banned && (
-                  <li className="list-inline-item badge badge-danger">
-                    {i18n.t('banned')}
-                  </li>
+        <BannerIconHeader
+          banner={this.state.user.banner}
+          icon={this.state.user.avatar}
+        />
+        <div class="mb-3">
+          <div class="">
+            <div class="mb-0 d-flex flex-wrap">
+              <div>
+                {user.preferred_username && (
+                  <h5 class="mb-0">{user.preferred_username}</h5>
                 )}
-              </ul>
-            </h5>
+                <ul class="list-inline mb-2">
+                  <li className="list-inline-item">
+                    <UserListing
+                      user={user}
+                      realLink
+                      useApubName
+                      muted
+                      hideAvatar
+                    />
+                  </li>
+                  {user.banned && (
+                    <li className="list-inline-item badge badge-danger">
+                      {i18n.t('banned')}
+                    </li>
+                  )}
+                </ul>
+              </div>
+              <div className="flex-grow-1 unselectable pointer mx-2"></div>
+              {this.isCurrentUser ? (
+                <button
+                  class="d-flex align-self-start btn btn-secondary ml-2"
+                  onClick={linkEvent(this, this.handleLogoutClick)}
+                >
+                  {i18n.t('logout')}
+                </button>
+              ) : (
+                <>
+                  <a
+                    className={`d-flex align-self-start btn btn-secondary ml-2 ${
+                      !this.state.user.matrix_user_id && 'invisible'
+                    }`}
+                    target="_blank"
+                    rel="noopener"
+                    href={`https://matrix.to/#/${this.state.user.matrix_user_id}`}
+                  >
+                    {i18n.t('send_secure_message')}
+                  </a>
+                  <Link
+                    class="d-flex align-self-start btn btn-secondary ml-2"
+                    to={`/create_private_message?recipient_id=${this.state.user.id}`}
+                  >
+                    {i18n.t('send_message')}
+                  </Link>
+                </>
+              )}
+            </div>
             {user.bio && (
               <div className="d-flex align-items-center mb-2">
                 <div
@@ -389,7 +451,22 @@ export class User extends Component<any, UserState> {
                 />
               </div>
             )}
-            <div className="d-flex align-items-center mb-2">
+            <div>
+              <ul class="list-inline mb-2">
+                <li className="list-inline-item badge badge-light">
+                  {i18n.t('number_of_posts', { count: user.number_of_posts })}
+                </li>
+                <li className="list-inline-item badge badge-light">
+                  {i18n.t('number_of_comments', {
+                    count: user.number_of_comments,
+                  })}
+                </li>
+              </ul>
+            </div>
+            <div class="text-muted">
+              {i18n.t('joined')} <MomentTime data={user} showAgo />
+            </div>
+            <div className="d-flex align-items-center text-muted mb-2">
               <svg class="icon">
                 <use xlinkHref="#icon-cake"></use>
               </svg>
@@ -398,71 +475,6 @@ export class User extends Component<any, UserState> {
                 {moment.utc(user.published).local().format('MMM DD, YYYY')}
               </span>
             </div>
-            <div>
-              {i18n.t('joined')} <MomentTime data={user} showAgo />
-            </div>
-            <div class="table-responsive mt-1">
-              <table class="table table-bordered table-sm mt-2 mb-0">
-                {/*
-                <tr>
-                  <td class="text-center" colSpan={2}>
-                    {i18n.t('number_of_points', {
-                      count: user.post_score + user.comment_score,
-                    })}
-                  </td>
-                </tr>
-                */}
-                <tr>
-                  {/*
-                  <td>
-                    {i18n.t('number_of_points', { count: user.post_score })}
-                  </td>
-                  */}
-                  <td>
-                    {i18n.t('number_of_posts', { count: user.number_of_posts })}
-                  </td>
-                  {/*
-                </tr>
-                <tr>
-                  <td>
-                    {i18n.t('number_of_points', { count: user.comment_score })}
-                  </td>
-                  */}
-                  <td>
-                    {i18n.t('number_of_comments', {
-                      count: user.number_of_comments,
-                    })}
-                  </td>
-                </tr>
-              </table>
-            </div>
-            {this.isCurrentUser ? (
-              <button
-                class="btn btn-block btn-secondary mt-3"
-                onClick={linkEvent(this, this.handleLogoutClick)}
-              >
-                {i18n.t('logout')}
-              </button>
-            ) : (
-              <>
-                <a
-                  className={`btn btn-block btn-secondary mt-3 ${
-                    !this.state.user.matrix_user_id && 'disabled'
-                  }`}
-                  target="_blank"
-                  rel="noopener"
-                  href={`https://matrix.to/#/${this.state.user.matrix_user_id}`}
-                >
-                  {i18n.t('send_secure_message')}
-                </a>
-                <Link
-                  class="btn btn-block btn-secondary mt-3"
-                  to={`/create_private_message?recipient_id=${this.state.user.id}`}
-                >
-                  {i18n.t('send_message')}
-                </Link>
-              </>
-            )}
           </div>
         </div>
       </div>
@@ -478,47 +490,23 @@ export class User extends Component<any, UserState> {
             <form onSubmit={linkEvent(this, this.handleUserSettingsSubmit)}>
               <div class="form-group">
                 <label>{i18n.t('avatar')}</label>
-                <form class="d-inline">
-                  <label
-                    htmlFor="file-upload"
-                    class="pointer ml-4 text-muted small font-weight-bold"
-                  >
-                    {!this.checkSettingsAvatar ? (
-                      <span class="btn btn-secondary">
-                        {i18n.t('upload_avatar')}
-                      </span>
-                    ) : (
-                      <img
-                        height="80"
-                        width="80"
-                        src={this.state.userSettingsForm.avatar}
-                        class="rounded-circle"
-                      />
-                    )}
-                  </label>
-                  <input
-                    id="file-upload"
-                    type="file"
-                    accept="image/*,video/*"
-                    name="file"
-                    class="d-none"
-                    disabled={!UserService.Instance.user}
-                    onChange={linkEvent(this, this.handleImageUpload)}
-                  />
-                </form>
+                <ImageUploadForm
+                  uploadTitle={i18n.t('upload_avatar')}
+                  imageSrc={this.state.userSettingsForm.avatar}
+                  onUpload={this.handleAvatarUpload}
+                  onRemove={this.handleAvatarRemove}
+                  rounded
+                />
               </div>
-              {this.checkSettingsAvatar && (
-                <div class="form-group">
-                  <button
-                    class="btn btn-secondary btn-block"
-                    onClick={linkEvent(this, this.removeAvatar)}
-                  >
-                    {`${capitalizeFirstLetter(i18n.t('remove'))} ${i18n.t(
-                      'avatar'
-                    )}`}
-                  </button>
-                </div>
-              )}
+              <div class="form-group">
+                <label>{i18n.t('banner')}</label>
+                <ImageUploadForm
+                  uploadTitle={i18n.t('upload_banner')}
+                  imageSrc={this.state.userSettingsForm.banner}
+                  onUpload={this.handleBannerUpload}
+                  onRemove={this.handleBannerRemove}
+                />
+              </div>
               <div class="form-group">
                 <label>{i18n.t('language')}</label>
                 <select
@@ -566,6 +554,38 @@ export class User extends Component<any, UserState> {
                 />
               </form>
               <div class="form-group row">
+                <label class="col-lg-5 col-form-label">
+                  {i18n.t('display_name')}
+                </label>
+                <div class="col-lg-7">
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder={i18n.t('optional')}
+                    value={this.state.userSettingsForm.preferred_username}
+                    onInput={linkEvent(
+                      this,
+                      this.handleUserSettingsPreferredUsernameChange
+                    )}
+                    minLength={3}
+                    maxLength={20}
+                  />
+                </div>
+              </div>
+              <div class="form-group row">
+                <label class="col-lg-3 col-form-label" htmlFor="user-bio">
+                  {i18n.t('bio')}
+                </label>
+                <div class="col-lg-9">
+                  <MarkdownTextArea
+                    initialContent={this.state.userSettingsForm.bio}
+                    onContentChange={this.handleUserSettingsBioChange}
+                    maxLength={300}
+                    hideNavigationWarnings
+                  />
+                </div>
+              </div>
+              <div class="form-group row">
                 <label class="col-lg-3 col-form-label" htmlFor="user-email">
                   {i18n.t('email')}
                 </label>
@@ -585,25 +605,8 @@ export class User extends Component<any, UserState> {
                 </div>
               </div>
               <div class="form-group row">
-                <label class="col-lg-3 col-form-label" htmlFor="user-bio">
-                  {i18n.t('bio')}
-                </label>
-                <div class="col-lg-9">
-                  <MarkdownTextArea
-                    initialContent={this.state.userSettingsForm.bio}
-                    onContentChange={this.handleUserSettingsBioChange}
-                    maxLength={300}
-                    hideNavigationWarnings
-                  />
-                </div>
-              </div>
-              <div class="form-group row">
                 <label class="col-lg-5 col-form-label">
-                  <a
-                    href="https://about.riot.im/"
-                    target="_blank"
-                    rel="noopener"
-                  >
+                  <a href={elementUrl} target="_blank" rel="noopener">
                     {i18n.t('matrix_user_id')}
                   </a>
                 </label>
@@ -932,6 +935,31 @@ export class User extends Component<any, UserState> {
     this.setState(this.state);
   }
 
+  handleAvatarUpload(url: string) {
+    this.state.userSettingsForm.avatar = url;
+    this.setState(this.state);
+  }
+
+  handleAvatarRemove() {
+    this.state.userSettingsForm.avatar = '';
+    this.setState(this.state);
+  }
+
+  handleBannerUpload(url: string) {
+    this.state.userSettingsForm.banner = url;
+    this.setState(this.state);
+  }
+
+  handleBannerRemove() {
+    this.state.userSettingsForm.banner = '';
+    this.setState(this.state);
+  }
+
+  handleUserSettingsPreferredUsernameChange(i: User, event: any) {
+    i.state.userSettingsForm.preferred_username = event.target.value;
+    i.setState(i.state);
+  }
+
   handleUserSettingsMatrixUserIdChange(i: User, event: any) {
     i.state.userSettingsForm.matrix_user_id = event.target.value;
     if (
@@ -965,59 +993,6 @@ export class User extends Component<any, UserState> {
       i.state.userSettingsForm.old_password = undefined;
     }
     i.setState(i.state);
-  }
-
-  handleImageUpload(i: User, event: any) {
-    event.preventDefault();
-    let file = event.target.files[0];
-    const imageUploadUrl = `/pictrs/image`;
-    const formData = new FormData();
-    formData.append('images[]', file);
-
-    i.state.avatarLoading = true;
-    i.setState(i.state);
-
-    fetch(imageUploadUrl, {
-      method: 'POST',
-      body: formData,
-    })
-      .then(res => res.json())
-      .then(res => {
-        console.log('pictrs upload:');
-        console.log(res);
-        if (res.msg == 'ok') {
-          let hash = res.files[0].file;
-          let url = `${window.location.origin}/pictrs/image/${hash}`;
-          i.state.userSettingsForm.avatar = url;
-          i.state.avatarLoading = false;
-          i.setState(i.state);
-        } else {
-          i.state.avatarLoading = false;
-          i.setState(i.state);
-          toast(JSON.stringify(res), 'danger');
-        }
-      })
-      .catch(error => {
-        i.state.avatarLoading = false;
-        i.setState(i.state);
-        toast(error, 'danger');
-      });
-  }
-
-  removeAvatar(i: User, event: any) {
-    event.preventDefault();
-    i.state.userSettingsLoading = true;
-    i.state.userSettingsForm.avatar = '';
-    i.setState(i.state);
-
-    WebSocketService.Instance.saveUserSettings(i.state.userSettingsForm);
-  }
-
-  get checkSettingsAvatar(): boolean {
-    return (
-      this.state.userSettingsForm.avatar &&
-      this.state.userSettingsForm.avatar != ''
-    );
   }
 
   handleUserSettingsSubmit(i: User, event: any) {
@@ -1062,7 +1037,6 @@ export class User extends Component<any, UserState> {
       }
       this.setState({
         deleteAccountLoading: false,
-        avatarLoading: false,
         userSettingsLoading: false,
       });
       return;
@@ -1088,6 +1062,9 @@ export class User extends Component<any, UserState> {
             UserService.Instance.user.default_listing_type;
           this.state.userSettingsForm.lang = UserService.Instance.user.lang;
           this.state.userSettingsForm.avatar = UserService.Instance.user.avatar;
+          this.state.userSettingsForm.banner = UserService.Instance.user.banner;
+          this.state.userSettingsForm.preferred_username =
+            UserService.Instance.user.preferred_username;
           this.state.userSettingsForm.email = this.state.user.email;
           this.state.userSettingsForm.bio = this.state.user.bio;
           this.state.userSettingsForm.send_notifications_to_email = this.state.user.send_notifications_to_email;
@@ -1102,6 +1079,9 @@ export class User extends Component<any, UserState> {
       const data = res.data as LoginResponse;
       UserService.Instance.login(data);
       this.state.user.bio = this.state.userSettingsForm.bio;
+      this.state.user.preferred_username = this.state.userSettingsForm.preferred_username;
+      this.state.user.banner = this.state.userSettingsForm.banner;
+      this.state.user.avatar = this.state.userSettingsForm.avatar;
       this.state.userSettingsLoading = false;
       this.setState(this.state);
 

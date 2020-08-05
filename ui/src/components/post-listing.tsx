@@ -440,6 +440,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   <UserListing
                     user={{
                       name: post.creator_name,
+                      preferred_username: post.creator_preferred_username,
                       avatar: post.creator_avatar,
                       id: post.creator_id,
                       local: post.creator_local,
@@ -472,6 +473,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                           id: post.community_id,
                           local: post.community_local,
                           actor_id: post.community_actor_id,
+                          icon: post.community_icon,
                         }}
                       />
                     </span>

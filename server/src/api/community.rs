@@ -10,7 +10,15 @@ use crate::{
   },
   DbPool,
 };
-use lemmy_db::{naive_now, Bannable, Crud, Followable, Joinable, SortType};
+use lemmy_db::{
+  diesel_option_overwrite,
+  naive_now,
+  Bannable,
+  Crud,
+  Followable,
+  Joinable,
+  SortType,
+};
 use lemmy_utils::{
   generate_actor_keypair,
   is_valid_community_name,
@@ -40,6 +48,8 @@ pub struct CreateCommunity {
   name: String,
   title: String,
   description: Option<String>,
+  icon: Option<String>,
+  banner: Option<String>,
   category_id: i32,
   nsfw: bool,
   auth: String,
@@ -97,6 +107,8 @@ pub struct EditCommunity {
   pub edit_id: i32,
   title: String,
   description: Option<String>,
+  icon: Option<String>,
+  banner: Option<String>,
   category_id: i32,
   nsfw: bool,
   auth: String,
@@ -251,6 +263,8 @@ impl Perform for Oper<CreateCommunity> {
       name: data.name.to_owned(),
       title: data.title.to_owned(),
       description: data.description.to_owned(),
+      icon: Some(data.icon.to_owned()),
+      banner: Some(data.banner.to_owned()),
       category_id: data.category_id,
       creator_id: user.id,
       removed: None,
@@ -332,10 +346,15 @@ impl Perform for Oper<EditCommunity> {
     let edit_id = data.edit_id;
     let read_community = blocking(pool, move |conn| Community::read(conn, edit_id)).await??;
 
+    let icon = diesel_option_overwrite(&data.icon);
+    let banner = diesel_option_overwrite(&data.banner);
+
     let community_form = CommunityForm {
       name: read_community.name,
       title: data.title.to_owned(),
       description: data.description.to_owned(),
+      icon,
+      banner,
       category_id: data.category_id.to_owned(),
       creator_id: read_community.creator_id,
       removed: Some(read_community.removed),

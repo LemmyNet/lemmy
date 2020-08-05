@@ -125,6 +125,7 @@ export class AdminSettings extends Component<any, AdminSettingsState> {
               <UserListing
                 user={{
                   name: admin.name,
+                  preferred_username: admin.preferred_username,
                   avatar: admin.avatar,
                   id: admin.id,
                   local: admin.local,
@@ -148,6 +149,7 @@ export class AdminSettings extends Component<any, AdminSettingsState> {
               <UserListing
                 user={{
                   name: banned.name,
+                  preferred_username: banned.preferred_username,
                   avatar: banned.avatar,
                   id: banned.id,
                   local: banned.local,

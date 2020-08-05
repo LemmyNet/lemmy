@@ -315,6 +315,8 @@ export class Search extends Component<any, SearchState> {
                     <UserListing
                       user={{
                         name: (i.data as UserView).name,
+                        preferred_username: (i.data as UserView)
+                          .preferred_username,
                         avatar: (i.data as UserView).avatar,
                       }}
                     />
