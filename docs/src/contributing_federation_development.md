@@ -68,3 +68,16 @@ cd /lemmy/
 sudo docker-compose pull
 sudo docker-compose up -d
 ```
+
+## Security Model
+
+- HTTP signature verify: This ensures that activity really comes from the activity that it claims
+- check_is_apub_valid : Makes sure its in our allowed instances list
+- Lower level checks: To make sure that the user that creates/updates/removes a post is actually on the same instance as that post
+
+For the last point, note that we are *not* checking whether the actor that sends the create activity for a post is
+actually identical to the post's creator, or that the user that removes a post is a mod/admin. These things are checked
+by the API code, and its the responsibility of each instance to check user permissions. This does not leave any attack
+vector, as a normal instance user cant do actions that violate the API rules. The only one who could do that is the
+admin (and the software deployed by the admin). But the admin can do anything on the instance, including send activities
+from other user accounts. So we wouldnt actually gain any security by checking mod permissions or similar.

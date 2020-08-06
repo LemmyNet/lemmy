@@ -1,10 +1,5 @@
 use crate::{
-  api::{
-    comment::CommentResponse,
-    community::CommunityResponse,
-    is_mod_or_admin,
-    post::PostResponse,
-  },
+  api::{comment::CommentResponse, community::CommunityResponse, post::PostResponse},
   apub::{
     fetcher::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
     inbox::shared_inbox::{
@@ -29,6 +24,7 @@ use crate::{
 };
 use activitystreams::{activity::Remove, base::AnyBase, object::Note, prelude::*};
 use actix_web::{client::Client, HttpResponse};
+use anyhow::anyhow;
 use lemmy_db::{
   comment::{Comment, CommentForm},
   comment_view::CommentView,
@@ -49,8 +45,9 @@ pub async fn receive_remove(
   let remove = Remove::from_any_base(activity)?.unwrap();
   let actor = get_user_from_activity(&remove, client, pool).await?;
   let community = get_community_from_activity(&remove, client, pool).await?;
-  // TODO: we dont federate remote admins at all, and remote mods arent federated properly
-  is_mod_or_admin(pool, actor.id, community.id).await?;
+  if actor.actor_id()?.domain() != community.actor_id()?.domain() {
+    return Err(anyhow!("Remove activities are only allowed on local objects").into());
+  }
 
   match remove.object().as_single_kind_str() {
     Some("Page") => receive_remove_post(remove, client, pool, chat_server).await,

@@ -1,5 +1,4 @@
 use crate::{
-  api::check_slurs,
   apub::{
     activities::{generate_activity_id, send_activity_to_community},
     check_actor_domain,
@@ -50,7 +49,7 @@ use lemmy_db::{
   user::User_,
   Crud,
 };
-use lemmy_utils::{convert_datetime, scrape_text_for_mentions, MentionData};
+use lemmy_utils::{convert_datetime, remove_slurs, scrape_text_for_mentions, MentionData};
 use log::debug;
 use serde::Deserialize;
 use serde_json::Error;
@@ -174,13 +173,13 @@ impl FromApub for CommentForm {
       .as_single_xsd_string()
       .unwrap()
       .to_string();
-    check_slurs(&content)?;
+    let content_slurs_removed = remove_slurs(&content);
 
     Ok(CommentForm {
       creator_id: creator.id,
       post_id: post.id,
       parent_id,
-      content,
+      content: content_slurs_removed,
       removed: None,
       read: None,
       published: note.published().map(|u| u.to_owned().naive_local()),

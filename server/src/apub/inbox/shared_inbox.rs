@@ -77,12 +77,9 @@ pub async fn shared_inbox(
   check_is_apub_id_valid(sender)?;
   verify(&request, actor.as_ref())?;
 
-  // TODO: probably better to do this after, so we dont store activities that fail a check somewhere
-  insert_activity(actor.user_id(), activity.clone(), false, &pool).await?;
-
   let any_base = activity.clone().into_any_base()?;
   let kind = activity.kind().unwrap();
-  match kind {
+  let res = match kind {
     ValidTypes::Announce => receive_announce(any_base, &client, &pool, chat_server).await,
     ValidTypes::Create => receive_create(any_base, &client, &pool, chat_server).await,
     ValidTypes::Update => receive_update(any_base, &client, &pool, chat_server).await,
@@ -91,7 +88,10 @@ pub async fn shared_inbox(
     ValidTypes::Remove => receive_remove(any_base, &client, &pool, chat_server).await,
     ValidTypes::Delete => receive_delete(any_base, &client, &pool, chat_server).await,
     ValidTypes::Undo => receive_undo(any_base, &client, &pool, chat_server).await,
-  }
+  };
+
+  insert_activity(actor.user_id(), activity.clone(), false, &pool).await?;
+  res
 }
 
 pub(in crate::apub::inbox) fn receive_unhandled_activity<A>(

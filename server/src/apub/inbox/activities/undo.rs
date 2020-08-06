@@ -67,8 +67,8 @@ where
   let inner_actor = inner_activity.actor()?;
   let inner_actor_uri = inner_actor.as_single_xsd_any_uri().unwrap();
 
-  if outer_actor_uri != inner_actor_uri {
-    Err(anyhow!("An actor can only undo its own activities").into())
+  if outer_actor_uri.domain() != inner_actor_uri.domain() {
+    Err(anyhow!("Cant undo activities from a different instance").into())
   } else {
     Ok(())
   }
