@@ -184,7 +184,7 @@ export class Navbar extends Component<any, NavbarState> {
           {!this.state.siteLoading ? (
             <Link
               title={this.state.siteRes.version}
-              class="d-flex align-items-center navbar-brand mr-1"
+              class="d-flex align-items-center navbar-brand mr-md-3"
               to="/"
             >
               {this.state.siteRes.site.icon && showAvatars() && (
@@ -235,7 +235,7 @@ export class Navbar extends Component<any, NavbarState> {
                 !this.state.expanded && 'collapse'
               } navbar-collapse`}
             >
-              <ul class="ml-3 navbar-nav my-2 mr-auto">
+              <ul class="navbar-nav my-2 mr-auto">
                 <li class="nav-item">
                   <Link
                     class="nav-link"
