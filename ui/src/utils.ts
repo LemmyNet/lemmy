@@ -982,10 +982,12 @@ function randomHsl() {
 
 export function previewLines(text: string, lines: number = 3): string {
   // Use lines * 2 because markdown requires 2 lines
-  return text
-    .split('\n')
-    .slice(0, lines * 2)
-    .join('\n');
+  return (
+    text
+      .split('\n')
+      .slice(0, lines * 2)
+      .join('\n') + '...'
+  );
 }
 
 export function hostname(url: string): string {
