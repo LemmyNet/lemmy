@@ -116,10 +116,7 @@ impl Comment {
   ) -> Result<Self, Error> {
     use crate::schema::comment::dsl::*;
     diesel::update(comment.find(comment_id))
-      .set((
-        deleted.eq(new_deleted),
-        updated.eq(naive_now())
-      ))
+      .set((deleted.eq(new_deleted), updated.eq(naive_now())))
       .get_result::<Self>(conn)
   }
 
@@ -130,10 +127,7 @@ impl Comment {
   ) -> Result<Self, Error> {
     use crate::schema::comment::dsl::*;
     diesel::update(comment.find(comment_id))
-      .set((
-        removed.eq(new_removed),
-        updated.eq(naive_now())
-      ))
+      .set((removed.eq(new_removed), updated.eq(naive_now())))
       .get_result::<Self>(conn)
   }
 

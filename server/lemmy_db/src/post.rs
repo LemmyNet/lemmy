@@ -119,10 +119,7 @@ impl Post {
   ) -> Result<Self, Error> {
     use crate::schema::post::dsl::*;
     diesel::update(post.find(post_id))
-      .set((
-        deleted.eq(new_deleted),
-        updated.eq(naive_now())
-      ))
+      .set((deleted.eq(new_deleted), updated.eq(naive_now())))
       .get_result::<Self>(conn)
   }
 
@@ -133,10 +130,7 @@ impl Post {
   ) -> Result<Self, Error> {
     use crate::schema::post::dsl::*;
     diesel::update(post.find(post_id))
-      .set((
-        removed.eq(new_removed),
-        updated.eq(naive_now())
-      ))
+      .set((removed.eq(new_removed), updated.eq(naive_now())))
       .get_result::<Self>(conn)
   }
 

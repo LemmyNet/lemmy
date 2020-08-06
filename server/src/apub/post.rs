@@ -1,7 +1,8 @@
 use crate::{
+  api::{check_slurs, check_slurs_opt},
   apub::{
     activities::{generate_activity_id, send_activity_to_community},
-    check_is_apub_id_valid,
+    check_actor_domain,
     create_apub_response,
     create_apub_tombstone_response,
     create_tombstone,
@@ -155,6 +156,7 @@ impl FromApub for PostForm {
     page: &PageExt,
     client: &Client,
     pool: &DbPool,
+    expected_domain: Option<Url>,
   ) -> Result<PostForm, LemmyError> {
     let ext = &page.ext_one;
     let creator_actor_id = page
@@ -204,9 +206,14 @@ impl FromApub for PostForm {
       None => (None, None, None),
     };
 
-    let ap_id = page.inner.id_unchecked().unwrap().to_string();
-    check_is_apub_id_valid(&Url::parse(&ap_id)?)?;
-
+    let name = page
+      .inner
+      .summary()
+      .as_ref()
+      .unwrap()
+      .as_single_xsd_string()
+      .unwrap()
+      .to_string();
     let url = page
       .inner
       .url()
@@ -217,15 +224,10 @@ impl FromApub for PostForm {
       .content()
       .as_ref()
       .map(|c| c.as_single_xsd_string().unwrap().to_string());
+    check_slurs(&name)?;
+    check_slurs_opt(&body)?;
     Ok(PostForm {
-      name: page
-        .inner
-        .summary()
-        .as_ref()
-        .unwrap()
-        .as_single_xsd_string()
-        .unwrap()
-        .to_string(),
+      name,
       url,
       body,
       creator_id: creator.id,
@@ -249,7 +251,7 @@ impl FromApub for PostForm {
       embed_description,
       embed_html,
       thumbnail_url,
-      ap_id,
+      ap_id: check_actor_domain(page, expected_domain)?,
       local: false,
     })
   }

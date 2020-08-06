@@ -1,21 +1,28 @@
 use crate::{
-  apub::inbox::{
-    activities::{
-      create::receive_create,
-      delete::receive_delete,
-      dislike::receive_dislike,
-      like::receive_like,
-      remove::receive_remove,
-      undo::receive_undo,
-      update::receive_update,
+  apub::{
+    inbox::{
+      activities::{
+        create::receive_create,
+        delete::receive_delete,
+        dislike::receive_dislike,
+        like::receive_like,
+        remove::receive_remove,
+        undo::receive_undo,
+        update::receive_update,
+      },
+      shared_inbox::{get_community_from_activity, receive_unhandled_activity},
     },
-    shared_inbox::receive_unhandled_activity,
+    ActorType,
   },
   routes::ChatServerParam,
   DbPool,
   LemmyError,
 };
-use activitystreams::{activity::*, base::AnyBase, prelude::ExtendsExt};
+use activitystreams::{
+  activity::*,
+  base::{AnyBase, BaseExt},
+  prelude::ExtendsExt,
+};
 use actix_web::{client::Client, HttpResponse};
 
 pub async fn receive_announce(
@@ -25,6 +32,11 @@ pub async fn receive_announce(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let announce = Announce::from_any_base(activity)?.unwrap();
+
+  // ensure that announce and community come from the same instance
+  let community = get_community_from_activity(&announce, client, pool).await?;
+  announce.id(community.actor_id()?.domain().unwrap())?;
+
   let kind = announce.object().as_single_kind_str();
   let object = announce.object();
   let object2 = object.clone().one().unwrap();

@@ -1,7 +1,8 @@
 use crate::{
+  api::check_slurs,
   apub::{
     activities::{generate_activity_id, send_activity_to_community},
-    check_is_apub_id_valid,
+    check_actor_domain,
     create_apub_response,
     create_apub_tombstone_response,
     create_tombstone,
@@ -132,6 +133,7 @@ impl FromApub for CommentForm {
     note: &Note,
     client: &Client,
     pool: &DbPool,
+    expected_domain: Option<Url>,
   ) -> Result<CommentForm, LemmyError> {
     let creator_actor_id = &note
       .attributed_to()
@@ -166,26 +168,25 @@ impl FromApub for CommentForm {
       }
       None => None,
     };
-
-    let ap_id = note.id_unchecked().unwrap().to_string();
-    check_is_apub_id_valid(&Url::parse(&ap_id)?)?;
+    let content = note
+      .content()
+      .unwrap()
+      .as_single_xsd_string()
+      .unwrap()
+      .to_string();
+    check_slurs(&content)?;
 
     Ok(CommentForm {
       creator_id: creator.id,
       post_id: post.id,
       parent_id,
-      content: note
-        .content()
-        .unwrap()
-        .as_single_xsd_string()
-        .unwrap()
-        .to_string(),
+      content,
       removed: None,
       read: None,
       published: note.published().map(|u| u.to_owned().naive_local()),
       updated: note.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
-      ap_id,
+      ap_id: check_actor_domain(note, expected_domain)?,
       local: false,
     })
   }

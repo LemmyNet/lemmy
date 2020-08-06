@@ -65,6 +65,7 @@ pub async fn is_mod_or_admin(
   })
   .await?;
   if !is_mod_or_admin {
+    // TODO: more accurately, not_a_mod_or_admin?
     return Err(APIError::err("not_an_admin").into());
   }
   Ok(())
@@ -104,14 +105,14 @@ pub(in crate::api) async fn get_user_from_jwt_opt(
   }
 }
 
-pub(in crate::api) fn check_slurs(text: &str) -> Result<(), APIError> {
+pub(in crate) fn check_slurs(text: &str) -> Result<(), APIError> {
   if let Err(slurs) = slur_check(text) {
     Err(APIError::err(&slurs_vec_to_str(slurs)))
   } else {
     Ok(())
   }
 }
-pub(in crate::api) fn check_slurs_opt(text: &Option<String>) -> Result<(), APIError> {
+pub(in crate) fn check_slurs_opt(text: &Option<String>) -> Result<(), APIError> {
   match text {
     Some(t) => check_slurs(t),
     None => Ok(()),

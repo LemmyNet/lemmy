@@ -1,7 +1,8 @@
 use crate::{
+  api::{check_slurs, check_slurs_opt},
   apub::{
     activities::{generate_activity_id, send_activity},
-    check_is_apub_id_valid,
+    check_actor_domain,
     create_apub_response,
     create_apub_tombstone_response,
     create_tombstone,
@@ -323,7 +324,12 @@ impl FromApub for CommunityForm {
   type ApubType = GroupExt;
 
   /// Parse an ActivityPub group received from another instance into a Lemmy community.
-  async fn from_apub(group: &GroupExt, client: &Client, pool: &DbPool) -> Result<Self, LemmyError> {
+  async fn from_apub(
+    group: &GroupExt,
+    client: &Client,
+    pool: &DbPool,
+    expected_domain: Option<Url>,
+  ) -> Result<Self, LemmyError> {
     let creator_and_moderator_uris = group.inner.attributed_to().unwrap();
     let creator_uri = creator_and_moderator_uris
       .as_many()
@@ -335,26 +341,30 @@ impl FromApub for CommunityForm {
       .unwrap();
 
     let creator = get_or_fetch_and_upsert_user(creator_uri, client, pool).await?;
-    let actor_id = group.inner.id_unchecked().unwrap().to_string();
-    check_is_apub_id_valid(&Url::parse(&actor_id)?)?;
+    let name = group
+      .inner
+      .name()
+      .unwrap()
+      .as_one()
+      .unwrap()
+      .as_xsd_string()
+      .unwrap()
+      .to_string();
+    let title = group.inner.preferred_username().unwrap().to_string();
+    // TODO: should be parsed as html and tags like <script> removed (or use markdown source)
+    //       -> same for post.content etc
+    let description = group
+      .inner
+      .content()
+      .map(|s| s.as_single_xsd_string().unwrap().into());
+    check_slurs(&name)?;
+    check_slurs(&title)?;
+    check_slurs_opt(&description)?;
 
     Ok(CommunityForm {
-      name: group
-        .inner
-        .name()
-        .unwrap()
-        .as_one()
-        .unwrap()
-        .as_xsd_string()
-        .unwrap()
-        .into(),
-      title: group.inner.preferred_username().unwrap().to_string(),
-      // TODO: should be parsed as html and tags like <script> removed (or use markdown source)
-      //       -> same for post.content etc
-      description: group
-        .inner
-        .content()
-        .map(|s| s.as_single_xsd_string().unwrap().into()),
+      name,
+      title,
+      description,
       category_id: group.ext_one.category.identifier.parse::<i32>()?,
       creator_id: creator.id,
       removed: None,
@@ -362,7 +372,7 @@ impl FromApub for CommunityForm {
       updated: group.inner.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
       nsfw: group.ext_one.sensitive,
-      actor_id,
+      actor_id: check_actor_domain(group, expected_domain)?,
       local: false,
       private_key: None,
       public_key: Some(group.ext_two.to_owned().public_key.public_key_pem),
