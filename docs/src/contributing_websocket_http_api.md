@@ -330,7 +330,8 @@ curl -i -H \
 
 These go wherever there is a `sort` field. The available sort types are:
 
-- `Hot` - the hottest posts/communities, depending on votes, views, comments and publish date
+- `Active` - the hottest posts/communities, depending on votes, and newest comment publish date.
+- `Hot` - the hottest posts/communities, depending on votes and publish date.
 - `New` - the newest posts/communities
 - `TopDay` - the most upvoted posts/communities of the current day.
 - `TopWeek` - the most upvoted posts/communities of the current week.
@@ -482,7 +483,19 @@ These expire after 10 minutes.
     theme: String, // Default 'darkly'
     default_sort_type: i16, // The Sort types from above, zero indexed as a number
     default_listing_type: i16, // Post listing types are `All, Subscribed, Community`
-    auth: String
+    lang: String,
+    avatar: Option<String>,
+    banner: Option<String>,
+    preferred_username: Option<String>,
+    email: Option<String>,
+    bio: Option<String>,
+    matrix_user_id: Option<String>,
+    new_password: Option<String>,
+    new_password_verify: Option<String>,
+    old_password: Option<String>,
+    show_avatars: bool,
+    send_notifications_to_email: bool,
+    auth: String,
   }
 }
 ```
@@ -924,6 +937,8 @@ Search types are `All, Comments, Posts, Communities, Users, Url`
   data: {
     name: String,
     description: Option<String>,
+    icon: Option<String>,
+    banner: Option<String>,
     auth: String
   }
 }
@@ -950,6 +965,8 @@ Search types are `All, Comments, Posts, Communities, Users, Url`
   data: {
     name: String,
     description: Option<String>,
+    icon: Option<String>,
+    banner: Option<String>,
     auth: String
   }
 }
@@ -1105,6 +1122,8 @@ Search types are `All, Comments, Posts, Communities, Users, Url`
     name: String,
     title: String,
     description: Option<String>,
+    icon: Option<String>,
+    banner: Option<String>,
     category_id: i32 ,
     auth: String
   }
@@ -1215,6 +1234,8 @@ Only mods can edit a community.
     edit_id: i32,
     title: String,
     description: Option<String>,
+    icon: Option<String>,
+    banner: Option<String>,
     category_id: i32,
     auth: String
   }

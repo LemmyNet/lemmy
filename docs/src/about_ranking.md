@@ -18,7 +18,9 @@ Score = Upvotes - Downvotes
 Time = time since submission (in hours)
 Gravity = Decay gravity, 1.8 is default
 ```
-- For posts, in order to bring up active posts, it uses the latest comment time (limited to a max creation age of a month ago)
+- Lemmy uses the same `Rank` algorithm above, in two sorts: `Active`, and `Hot`.
+  - `Active` uses the post votes, and latest comment time (limited to two days).
+  - `Hot` uses the post votes, and the post published time.
 - Use Max(1, score) to make sure all comments are affected by time decay.
 - Add 3 to the score, so that everything that has less than 3 downvotes will seem new. Otherwise all new comments would stay at zero, near the bottom.
 - The sign and abs of the score are necessary for dealing with the log of negative scores.

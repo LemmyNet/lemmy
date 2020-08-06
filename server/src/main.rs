@@ -27,7 +27,7 @@ use lemmy_server::{
   blocking,
   code_migrations::run_advanced_migrations,
   rate_limit::{rate_limiter::RateLimiter, RateLimit},
-  routes::{api, federation, feeds, index, nodeinfo, webfinger},
+  routes::*,
   websocket::server::*,
   LemmyError,
 };
@@ -91,9 +91,10 @@ async fn main() -> Result<(), LemmyError> {
       .data(server.clone())
       .data(Client::default())
       // The routes
-      .configure(move |cfg| api::config(cfg, &rate_limiter))
+      .configure(|cfg| api::config(cfg, &rate_limiter))
       .configure(federation::config)
       .configure(feeds::config)
+      .configure(|cfg| images::config(cfg, &rate_limiter))
       .configure(index::config)
       .configure(nodeinfo::config)
       .configure(webfinger::config)

@@ -63,6 +63,12 @@ impl ToApub for User_ {
       person.set_icon(image.into_any_base()?);
     }
 
+    if let Some(banner_url) = &self.banner {
+      let mut image = Image::new();
+      image.set_url(banner_url.to_owned());
+      person.set_image(image.into_any_base()?);
+    }
+
     if let Some(bio) = &self.bio {
       person.set_summary(bio.to_owned());
     }
@@ -207,13 +213,28 @@ impl FromApub for UserForm {
   /// Parse an ActivityPub person received from another instance into a Lemmy user.
   async fn from_apub(person: &PersonExt, _: &Client, _: &DbPool) -> Result<Self, LemmyError> {
     let avatar = match person.icon() {
-      Some(any_image) => Image::from_any_base(any_image.as_one().unwrap().clone())
-        .unwrap()
-        .unwrap()
-        .url()
-        .unwrap()
-        .as_single_xsd_any_uri()
-        .map(|u| u.to_string()),
+      Some(any_image) => Some(
+        Image::from_any_base(any_image.as_one().unwrap().clone())
+          .unwrap()
+          .unwrap()
+          .url()
+          .unwrap()
+          .as_single_xsd_any_uri()
+          .map(|u| u.to_string()),
+      ),
+      None => None,
+    };
+
+    let banner = match person.image() {
+      Some(any_image) => Some(
+        Image::from_any_base(any_image.as_one().unwrap().clone())
+          .unwrap()
+          .unwrap()
+          .url()
+          .unwrap()
+          .as_single_xsd_any_uri()
+          .map(|u| u.to_string()),
+      ),
       None => None,
     };
 
@@ -232,6 +253,7 @@ impl FromApub for UserForm {
       banned: false,
       email: None,
       avatar,
+      banner,
       updated: person.updated().map(|u| u.to_owned().naive_local()),
       show_nsfw: false,
       theme: "".to_string(),

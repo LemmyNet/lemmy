@@ -107,6 +107,7 @@ mod tests {
       email: None,
       matrix_user_id: None,
       avatar: None,
+      banner: None,
       admin: false,
       banned: false,
       updated: None,

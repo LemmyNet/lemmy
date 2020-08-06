@@ -53,7 +53,8 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
       name: cuser.name.to_owned(),
       email: cuser.email.to_owned(),
       matrix_user_id: cuser.matrix_user_id.to_owned(),
-      avatar: cuser.avatar.to_owned(),
+      avatar: Some(cuser.avatar.to_owned()),
+      banner: Some(cuser.banner.to_owned()),
       password_encrypted: cuser.password_encrypted.to_owned(),
       preferred_username: cuser.preferred_username.to_owned(),
       updated: None,
@@ -116,6 +117,8 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
       public_key: Some(keypair.public_key),
       last_refreshed_at: Some(naive_now()),
       published: None,
+      icon: Some(ccommunity.icon.to_owned()),
+      banner: Some(ccommunity.banner.to_owned()),
     };
 
     Community::update(&conn, ccommunity.id, &form)?;
