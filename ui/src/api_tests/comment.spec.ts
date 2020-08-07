@@ -105,7 +105,7 @@ test('Delete a comment', async () => {
   expect(betaComment2.deleted).toBe(false);
 });
 
-test('Remove a comment', async () => {
+test('Remove a comment from admin and community on the same instance', async () => {
   let commentRes = await createComment(alpha, postRes.post.id);
 
   // Get the id for beta
@@ -128,7 +128,7 @@ test('Remove a comment', async () => {
   expect(refetchedPost2.comments[0].removed).toBe(false);
 });
 
-test('Remove a comment from an admin on a different instance, make sure its not removed on the original', async () => {
+test('Remove a comment from admin and community on different instance', async () => {
   let alphaUser = await registerUser(alpha);
   let newAlphaApi: API = {
     url: alpha.url,
