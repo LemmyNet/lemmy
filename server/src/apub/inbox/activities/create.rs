@@ -24,7 +24,6 @@ use crate::{
 };
 use activitystreams::{activity::Create, base::AnyBase, object::Note, prelude::*};
 use actix_web::{client::Client, HttpResponse};
-use anyhow::anyhow;
 use lemmy_db::{
   comment::{Comment, CommentForm},
   comment_view::CommentView,
@@ -63,10 +62,6 @@ async fn receive_create_post(
   let page = PageExt::from_any_base(create.object().to_owned().one().unwrap())?.unwrap();
 
   let post = PostForm::from_apub(&page, client, pool, Some(user.actor_id()?)).await?;
-  // TODO: not sure if it makes sense to check for the exact user, seeing as we already check the domain
-  if post.creator_id != user.id {
-    return Err(anyhow!("Actor for create activity and post creator need to be identical").into());
-  }
 
   let inserted_post = blocking(pool, move |conn| Post::create(conn, &post)).await??;
 
@@ -99,11 +94,6 @@ async fn receive_create_comment(
   let note = Note::from_any_base(create.object().to_owned().one().unwrap())?.unwrap();
 
   let comment = CommentForm::from_apub(&note, client, pool, Some(user.actor_id()?)).await?;
-  if comment.creator_id != user.id {
-    return Err(
-      anyhow!("Actor for create activity and comment creator need to be identical").into(),
-    );
-  }
 
   let inserted_comment = blocking(pool, move |conn| Comment::create(conn, &comment)).await??;
 

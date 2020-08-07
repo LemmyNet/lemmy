@@ -34,7 +34,7 @@ use activitystreams::{
   base::{AnyBase, BaseExt},
   collection::{OrderedCollection, UnorderedCollection},
   context,
-  object::Tombstone,
+  object::{Image, Tombstone},
   prelude::*,
   public,
 };
@@ -361,6 +361,32 @@ impl FromApub for CommunityForm {
     check_slurs(&title)?;
     check_slurs_opt(&description)?;
 
+    let icon = match group.icon() {
+      Some(any_image) => Some(
+        Image::from_any_base(any_image.as_one().unwrap().clone())
+          .unwrap()
+          .unwrap()
+          .url()
+          .unwrap()
+          .as_single_xsd_any_uri()
+          .map(|u| u.to_string()),
+      ),
+      None => None,
+    };
+
+    let banner = match group.image() {
+      Some(any_image) => Some(
+        Image::from_any_base(any_image.as_one().unwrap().clone())
+          .unwrap()
+          .unwrap()
+          .url()
+          .unwrap()
+          .as_single_xsd_any_uri()
+          .map(|u| u.to_string()),
+      ),
+      None => None,
+    };
+
     Ok(CommunityForm {
       name,
       title,
@@ -377,6 +403,8 @@ impl FromApub for CommunityForm {
       private_key: None,
       public_key: Some(group.ext_two.to_owned().public_key.public_key_pem),
       last_refreshed_at: Some(naive_now()),
+      icon,
+      banner,
     })
   }
 }

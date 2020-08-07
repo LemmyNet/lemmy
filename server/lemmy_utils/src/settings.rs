@@ -14,6 +14,7 @@ pub struct Settings {
   pub port: u16,
   pub jwt_secret: String,
   pub front_end_dir: String,
+  pub pictrs_url: String,
   pub rate_limit: RateLimitConfig,
   pub email: Option<EmailConfig>,
   pub federation: Federation,
@@ -36,6 +37,8 @@ pub struct RateLimitConfig {
   pub post_per_second: i32,
   pub register: i32,
   pub register_per_second: i32,
+  pub image: i32,
+  pub image_per_second: i32,
 }
 
 #[derive(Debug, Deserialize, Clone)]

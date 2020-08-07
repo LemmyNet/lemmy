@@ -1,5 +1,5 @@
 use crate::{
-  api::{check_slurs, check_slurs_opt},
+  api::check_slurs,
   apub::{
     activities::{generate_activity_id, send_activity_to_community},
     check_actor_domain,
@@ -44,7 +44,7 @@ use lemmy_db::{
   user::User_,
   Crud,
 };
-use lemmy_utils::convert_datetime;
+use lemmy_utils::{convert_datetime, remove_slurs};
 use serde::Deserialize;
 use url::Url;
 
@@ -225,11 +225,11 @@ impl FromApub for PostForm {
       .as_ref()
       .map(|c| c.as_single_xsd_string().unwrap().to_string());
     check_slurs(&name)?;
-    check_slurs_opt(&body)?;
+    let body_slurs_removed = body.map(|b| remove_slurs(&b));
     Ok(PostForm {
       name,
       url,
-      body,
+      body: body_slurs_removed,
       creator_id: creator.id,
       community_id: community.id,
       removed: None,

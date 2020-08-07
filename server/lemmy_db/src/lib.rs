@@ -134,6 +134,7 @@ pub fn get_database_url_from_env() -> Result<String, VarError> {
 
 #[derive(EnumString, ToString, Debug, Serialize, Deserialize)]
 pub enum SortType {
+  Active,
   Hot,
   New,
   TopDay,
@@ -178,6 +179,20 @@ pub fn naive_now() -> NaiveDateTime {
 
 pub fn is_email_regex(test: &str) -> bool {
   EMAIL_REGEX.is_match(test)
+}
+
+pub fn diesel_option_overwrite(opt: &Option<String>) -> Option<Option<String>> {
+  match opt {
+    // An empty string is an erase
+    Some(unwrapped) => {
+      if !unwrapped.eq("") {
+        Some(Some(unwrapped.to_owned()))
+      } else {
+        Some(None)
+      }
+    }
+    None => None,
+  }
 }
 
 lazy_static! {

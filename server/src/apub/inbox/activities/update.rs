@@ -25,7 +25,6 @@ use crate::{
 };
 use activitystreams::{activity::Update, base::AnyBase, object::Note, prelude::*};
 use actix_web::{client::Client, HttpResponse};
-use anyhow::anyhow;
 use lemmy_db::{
   comment::{Comment, CommentForm},
   comment_view::CommentView,
@@ -64,16 +63,11 @@ async fn receive_update_post(
   let page = PageExt::from_any_base(update.object().to_owned().one().unwrap())?.unwrap();
 
   let post = PostForm::from_apub(&page, client, pool, Some(user.actor_id()?)).await?;
-  if post.creator_id != user.id {
-    return Err(anyhow!("Actor for update activity and post creator need to be identical").into());
-  }
 
-  let original_post = get_or_fetch_and_insert_post(&post.get_ap_id()?, client, pool).await?;
-  if post.ap_id != original_post.ap_id {
-    return Err(anyhow!("Updated post ID needs to be identical to the original ID").into());
-  }
+  let original_post_id = get_or_fetch_and_insert_post(&post.get_ap_id()?, client, pool)
+    .await?
+    .id;
 
-  let original_post_id = original_post.id;
   blocking(pool, move |conn| {
     Post::update(conn, original_post_id, &post)
   })
@@ -107,17 +101,11 @@ async fn receive_update_comment(
   let user = get_user_from_activity(&update, client, pool).await?;
 
   let comment = CommentForm::from_apub(&note, client, pool, Some(user.actor_id()?)).await?;
-  if comment.creator_id != user.id {
-    return Err(anyhow!("Actor for update activity and post creator need to be identical").into());
-  }
 
-  let original_comment =
-    get_or_fetch_and_insert_comment(&comment.get_ap_id()?, client, pool).await?;
-  if comment.ap_id != original_comment.ap_id {
-    return Err(anyhow!("Updated post ID needs to be identical to the original ID").into());
-  }
+  let original_comment_id = get_or_fetch_and_insert_comment(&comment.get_ap_id()?, client, pool)
+    .await?
+    .id;
 
-  let original_comment_id = original_comment.id;
   let updated_comment = blocking(pool, move |conn| {
     Comment::update(conn, original_comment_id, &comment)
   })

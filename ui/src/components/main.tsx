@@ -36,6 +36,7 @@ import { DataTypeSelect } from './data-type-select';
 import { SiteForm } from './site-form';
 import { UserListing } from './user-listing';
 import { CommunityLink } from './community-link';
+import { BannerIconHeader } from './banner-icon-header';
 import {
   wsJsonToRes,
   repoUrl,
@@ -53,6 +54,7 @@ import {
   editPostFindRes,
   commentsToFlatNodes,
   setupTippy,
+  favIconUrl,
 } from '../utils';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -104,6 +106,9 @@ export class Main extends Component<any, MainState> {
         enable_downvotes: null,
         open_registration: null,
         enable_nsfw: null,
+        icon: null,
+        banner: null,
+        creator_preferred_username: null,
       },
       admins: [],
       banned: [],
@@ -186,10 +191,23 @@ export class Main extends Component<any, MainState> {
     }
   }
 
+  get favIcon(): string {
+    return this.state.siteRes.site.icon
+      ? this.state.siteRes.site.icon
+      : favIconUrl;
+  }
+
   render() {
     return (
       <div class="container">
-        <Helmet title={this.documentTitle} />
+        <Helmet title={this.documentTitle}>
+          <link
+            id="favicon"
+            rel="icon"
+            type="image/x-icon"
+            href={this.favIcon}
+          />
+        </Helmet>
         <div class="row">
           <main role="main" class="col-12 col-md-8">
             {this.posts()}
@@ -207,8 +225,11 @@ export class Main extends Component<any, MainState> {
           <div>
             <div class="card bg-transparent border-secondary mb-3">
               <div class="card-header bg-transparent border-secondary">
-                {this.siteName()}
-                {this.adminButtons()}
+                <div class="mb-2">
+                  {this.siteName()}
+                  {this.adminButtons()}
+                </div>
+                <BannerIconHeader banner={this.state.siteRes.site.banner} />
               </div>
               <div class="card-body">
                 {this.trendingCommunities()}
@@ -284,6 +305,7 @@ export class Main extends Component<any, MainState> {
                     id: community.community_id,
                     local: community.community_local,
                     actor_id: community.community_actor_id,
+                    icon: community.community_icon,
                   }}
                 />
               </li>
@@ -346,6 +368,7 @@ export class Main extends Component<any, MainState> {
             <UserListing
               user={{
                 name: admin.name,
+                preferred_username: admin.preferred_username,
                 avatar: admin.avatar,
                 local: admin.local,
                 actor_id: admin.actor_id,

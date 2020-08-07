@@ -282,3 +282,19 @@ br.big {
   margin-top: 1rem;
 }
 
+.banner {
+  object-fit: cover;
+  width: 100%;
+  max-height: 240px;
+}
+
+.avatar-overlay {
+  width: 20%; 
+  height: 20%;
+  max-width: 120px;
+  max-height: 120px;
+}
+
+.avatar-pushup {
+  margin-top: -60px;
+}

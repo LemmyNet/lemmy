@@ -16,6 +16,7 @@ import { i18n } from '../i18next';
 
 import { Community } from '../interfaces';
 import { MarkdownTextArea } from './markdown-textarea';
+import { ImageUploadForm } from './image-upload-form';
 
 interface CommunityFormProps {
   community?: Community; // If a community is given, that means this is an edit
@@ -44,6 +45,8 @@ export class CommunityForm extends Component<
       title: null,
       category_id: null,
       nsfw: false,
+      icon: null,
+      banner: null,
     },
     categories: [],
     loading: false,
@@ -58,6 +61,12 @@ export class CommunityForm extends Component<
       this
     );
 
+    this.handleIconUpload = this.handleIconUpload.bind(this);
+    this.handleIconRemove = this.handleIconRemove.bind(this);
+
+    this.handleBannerUpload = this.handleBannerUpload.bind(this);
+    this.handleBannerRemove = this.handleBannerRemove.bind(this);
+
     if (this.props.community) {
       this.state.communityForm = {
         name: this.props.community.name,
@@ -66,6 +75,8 @@ export class CommunityForm extends Component<
         description: this.props.community.description,
         edit_id: this.props.community.id,
         nsfw: this.props.community.nsfw,
+        icon: this.props.community.icon,
+        banner: this.props.community.banner,
         auth: null,
       };
     }
@@ -165,6 +176,25 @@ export class CommunityForm extends Component<
                 maxLength={100}
               />
             </div>
+          </div>
+          <div class="form-group">
+            <label>{i18n.t('icon')}</label>
+            <ImageUploadForm
+              uploadTitle={i18n.t('upload_icon')}
+              imageSrc={this.state.communityForm.icon}
+              onUpload={this.handleIconUpload}
+              onRemove={this.handleIconRemove}
+              rounded
+            />
+          </div>
+          <div class="form-group">
+            <label>{i18n.t('banner')}</label>
+            <ImageUploadForm
+              uploadTitle={i18n.t('upload_banner')}
+              imageSrc={this.state.communityForm.banner}
+              onUpload={this.handleBannerUpload}
+              onRemove={this.handleBannerRemove}
+            />
           </div>
           <div class="form-group row">
             <label class="col-12 col-form-label" htmlFor={this.id}>
@@ -286,6 +316,26 @@ export class CommunityForm extends Component<
     i.props.onCancel();
   }
 
+  handleIconUpload(url: string) {
+    this.state.communityForm.icon = url;
+    this.setState(this.state);
+  }
+
+  handleIconRemove() {
+    this.state.communityForm.icon = '';
+    this.setState(this.state);
+  }
+
+  handleBannerUpload(url: string) {
+    this.state.communityForm.banner = url;
+    this.setState(this.state);
+  }
+
+  handleBannerRemove() {
+    this.state.communityForm.banner = '';
+    this.setState(this.state);
+  }
+
   parseMessage(msg: WebSocketJsonResponse) {
     let res = wsJsonToRes(msg);
     console.log(msg);
@@ -305,9 +355,7 @@ export class CommunityForm extends Component<
       let data = res.data as CommunityResponse;
       this.state.loading = false;
       this.props.onCreate(data.community);
-    }
-    // TODO is this necessary
-    else if (res.op == UserOperation.EditCommunity) {
+    } else if (res.op == UserOperation.EditCommunity) {
       let data = res.data as CommunityResponse;
       this.state.loading = false;
       this.props.onEdit(data.community);

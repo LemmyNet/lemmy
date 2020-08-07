@@ -52,17 +52,20 @@ table! {
         community_actor_id -> Nullable<Varchar>,
         community_local -> Nullable<Bool>,
         community_name -> Nullable<Varchar>,
+        community_icon -> Nullable<Text>,
         banned -> Nullable<Bool>,
         banned_from_community -> Nullable<Bool>,
         creator_actor_id -> Nullable<Varchar>,
         creator_local -> Nullable<Bool>,
         creator_name -> Nullable<Varchar>,
+        creator_preferred_username -> Nullable<Varchar>,
         creator_published -> Nullable<Timestamp>,
         creator_avatar -> Nullable<Text>,
         score -> Nullable<Int8>,
         upvotes -> Nullable<Int8>,
         downvotes -> Nullable<Int8>,
         hot_rank -> Nullable<Int4>,
+        hot_rank_active -> Nullable<Int4>,
     }
 }
 
@@ -104,6 +107,8 @@ table! {
         private_key -> Nullable<Text>,
         public_key -> Nullable<Text>,
         last_refreshed_at -> Timestamp,
+        icon -> Nullable<Text>,
+        banner -> Nullable<Text>,
     }
 }
 
@@ -112,6 +117,8 @@ table! {
         id -> Int4,
         name -> Nullable<Varchar>,
         title -> Nullable<Varchar>,
+        icon -> Nullable<Text>,
+        banner -> Nullable<Text>,
         description -> Nullable<Text>,
         category_id -> Nullable<Int4>,
         creator_id -> Nullable<Int4>,
@@ -126,6 +133,7 @@ table! {
         creator_actor_id -> Nullable<Varchar>,
         creator_local -> Nullable<Bool>,
         creator_name -> Nullable<Varchar>,
+        creator_preferred_username -> Nullable<Varchar>,
         creator_avatar -> Nullable<Text>,
         category_name -> Nullable<Varchar>,
         number_of_subscribers -> Nullable<Int8>,
@@ -319,6 +327,7 @@ table! {
         creator_actor_id -> Nullable<Varchar>,
         creator_local -> Nullable<Bool>,
         creator_name -> Nullable<Varchar>,
+        creator_preferred_username -> Nullable<Varchar>,
         creator_published -> Nullable<Timestamp>,
         creator_avatar -> Nullable<Text>,
         banned -> Nullable<Bool>,
@@ -326,6 +335,7 @@ table! {
         community_actor_id -> Nullable<Varchar>,
         community_local -> Nullable<Bool>,
         community_name -> Nullable<Varchar>,
+        community_icon -> Nullable<Text>,
         community_removed -> Nullable<Bool>,
         community_deleted -> Nullable<Bool>,
         community_nsfw -> Nullable<Bool>,
@@ -334,6 +344,7 @@ table! {
         upvotes -> Nullable<Int8>,
         downvotes -> Nullable<Int8>,
         hot_rank -> Nullable<Int4>,
+        hot_rank_active -> Nullable<Int4>,
         newest_activity_time -> Nullable<Timestamp>,
     }
 }
@@ -392,6 +403,8 @@ table! {
         enable_downvotes -> Bool,
         open_registration -> Bool,
         enable_nsfw -> Bool,
+        icon -> Nullable<Text>,
+        banner -> Nullable<Text>,
     }
 }
 
@@ -421,6 +434,7 @@ table! {
         private_key -> Nullable<Text>,
         public_key -> Nullable<Text>,
         last_refreshed_at -> Timestamp,
+        banner -> Nullable<Text>,
     }
 }
 
@@ -437,7 +451,9 @@ table! {
         id -> Int4,
         actor_id -> Nullable<Varchar>,
         name -> Nullable<Varchar>,
+        preferred_username -> Nullable<Varchar>,
         avatar -> Nullable<Text>,
+        banner -> Nullable<Text>,
         email -> Nullable<Text>,
         matrix_user_id -> Nullable<Text>,
         bio -> Nullable<Text>,

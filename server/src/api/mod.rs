@@ -55,7 +55,7 @@ pub trait Perform {
   ) -> Result<Self::Response, LemmyError>;
 }
 
-pub async fn is_mod_or_admin(
+pub(in crate::api) async fn is_mod_or_admin(
   pool: &DbPool,
   user_id: i32,
   community_id: i32,
@@ -65,8 +65,7 @@ pub async fn is_mod_or_admin(
   })
   .await?;
   if !is_mod_or_admin {
-    // TODO: more accurately, not_a_mod_or_admin?
-    return Err(APIError::err("not_an_admin").into());
+    return Err(APIError::err("not_a_mod_or_admin").into());
   }
   Ok(())
 }

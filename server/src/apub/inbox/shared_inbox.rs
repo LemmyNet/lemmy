@@ -31,7 +31,7 @@ use activitystreams::{
   prelude::*,
 };
 use actix_web::{client::Client, web, HttpRequest, HttpResponse};
-use lemmy_db::{community::Community, user::User_};
+use lemmy_db::user::User_;
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
@@ -68,21 +68,17 @@ pub async fn shared_inbox(
   debug!("Shared inbox received activity: {}", json);
 
   let sender = &activity.actor()?.to_owned().single_xsd_any_uri().unwrap();
-  // TODO: pass this actor in instead of using get_user_from_activity()
-  let actor = get_or_fetch_and_upsert_actor(sender, &client, &pool).await?;
-
-  // TODO: i dont think this works for Announce/Undo activities
-  //let community = get_community_id_from_activity(&activity).await;
+  let community = get_community_id_from_activity(&activity)?;
 
   check_is_apub_id_valid(sender)?;
-  verify(&request, actor.as_ref())?;
+  check_is_apub_id_valid(&community)?;
 
-  // TODO: probably better to do this after, so we dont store activities that fail a check somewhere
-  insert_activity(actor.user_id(), activity.clone(), false, &pool).await?;
+  let actor = get_or_fetch_and_upsert_actor(sender, &client, &pool).await?;
+  verify(&request, actor.as_ref())?;
 
   let any_base = activity.clone().into_any_base()?;
   let kind = activity.kind().unwrap();
-  match kind {
+  let res = match kind {
     ValidTypes::Announce => receive_announce(any_base, &client, &pool, chat_server).await,
     ValidTypes::Create => receive_create(any_base, &client, &pool, chat_server).await,
     ValidTypes::Update => receive_update(any_base, &client, &pool, chat_server).await,
@@ -91,7 +87,10 @@ pub async fn shared_inbox(
     ValidTypes::Remove => receive_remove(any_base, &client, &pool, chat_server).await,
     ValidTypes::Delete => receive_delete(any_base, &client, &pool, chat_server).await,
     ValidTypes::Undo => receive_undo(any_base, &client, &pool, chat_server).await,
-  }
+  };
+
+  insert_activity(actor.user_id(), activity.clone(), false, &pool).await?;
+  res
 }
 
 pub(in crate::apub::inbox) fn receive_unhandled_activity<A>(
@@ -117,18 +116,15 @@ where
   get_or_fetch_and_upsert_user(&user_uri, client, pool).await
 }
 
-pub(in crate::apub::inbox) async fn get_community_from_activity<T, A>(
+pub(in crate::apub::inbox) fn get_community_id_from_activity<T, A>(
   activity: &T,
-  client: &Client,
-  pool: &DbPool,
-) -> Result<Community, LemmyError>
+) -> Result<Url, LemmyError>
 where
   T: AsBase<A> + ActorAndObjectRef + AsObject<A>,
 {
   let cc = activity.cc().unwrap();
   let cc = cc.as_many().unwrap();
-  let community_uri = cc.first().unwrap().as_xsd_any_uri().unwrap().to_owned();
-  get_or_fetch_and_upsert_community(&community_uri, client, pool).await
+  Ok(cc.first().unwrap().as_xsd_any_uri().unwrap().to_owned())
 }
 
 pub(in crate::apub::inbox) async fn announce_if_community_is_local<T, Kind>(
