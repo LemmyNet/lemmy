@@ -190,11 +190,7 @@ export class Community extends Component<any, State> {
   }
 
   get favIcon(): string {
-    return this.state.community.icon
-      ? this.state.community.icon
-      : this.state.site.icon
-      ? this.state.site.icon
-      : favIconUrl;
+    return this.state.site.icon ? this.state.site.icon : favIconUrl;
   }
 
   render() {

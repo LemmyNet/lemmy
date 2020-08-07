@@ -238,9 +238,7 @@ export class User extends Component<any, UserState> {
   }
 
   get favIcon(): string {
-    return this.state.user.avatar
-      ? this.state.user.avatar
-      : this.state.siteRes.site.icon
+    return this.state.siteRes.site.icon
       ? this.state.siteRes.site.icon
       : favIconUrl;
   }

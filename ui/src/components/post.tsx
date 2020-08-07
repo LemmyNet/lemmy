@@ -92,6 +92,8 @@ export class Post extends Component<any, PostState> {
         enable_downvotes: undefined,
         open_registration: undefined,
         enable_nsfw: undefined,
+        icon: undefined,
+        banner: undefined,
       },
       online: null,
       version: null,
@@ -191,7 +193,9 @@ export class Post extends Component<any, PostState> {
   }
 
   get favIcon(): string {
-    return this.state.post ? this.state.post.community_icon : favIconUrl;
+    return this.state.siteRes.site.icon
+      ? this.state.siteRes.site.icon
+      : favIconUrl;
   }
 
   render() {
