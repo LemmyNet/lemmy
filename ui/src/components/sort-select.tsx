@@ -39,7 +39,10 @@ export class SortSelect extends Component<SortSelectProps, SortSelectState> {
         >
           <option disabled>{i18n.t('sort_type')}</option>
           {!this.props.hideHot && (
-            <option value={SortType.Hot}>{i18n.t('hot')}</option>
+            <>
+              <option value={SortType.Active}>{i18n.t('active')}</option>
+              <option value={SortType.Hot}>{i18n.t('hot')}</option>
+            </>
           )}
           <option value={SortType.New}>{i18n.t('new')}</option>
           <option disabled>─────</option>

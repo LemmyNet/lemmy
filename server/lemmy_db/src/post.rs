@@ -316,6 +316,7 @@ mod tests {
       email: None,
       matrix_user_id: None,
       avatar: None,
+      banner: None,
       admin: false,
       banned: false,
       updated: None,
@@ -352,6 +353,8 @@ mod tests {
       public_key: None,
       last_refreshed_at: None,
       published: None,
+      icon: None,
+      banner: None,
     };
 
     let inserted_community = Community::create(&conn, &new_community).unwrap();

@@ -58,11 +58,13 @@ import Toastify from 'toastify-js';
 import tippy from 'tippy.js';
 import moment from 'moment';
 
+export const favIconUrl = '/static/assets/favicon.svg';
 export const repoUrl = 'https://github.com/LemmyNet/lemmy';
 export const helpGuideUrl = '/docs/about_guide.html';
 export const markdownHelpUrl = `${helpGuideUrl}#markdown-guide`;
 export const sortingHelpUrl = `${helpGuideUrl}#sorting`;
 export const archiveUrl = 'https://archive.is';
+export const elementUrl = 'https://element.io/';
 
 export const postRefetchSeconds: number = 60 * 1000;
 export const fetchLimit: number = 20;
@@ -273,6 +275,8 @@ export function routeSortTypeToEnum(sort: string): SortType {
     return SortType.New;
   } else if (sort == 'hot') {
     return SortType.Hot;
+  } else if (sort == 'active') {
+    return SortType.Active;
   } else if (sort == 'topday') {
     return SortType.TopDay;
   } else if (sort == 'topweek') {
@@ -754,7 +758,7 @@ export function getSortTypeFromProps(props: any): SortType {
     ? routeSortTypeToEnum(props.match.params.sort)
     : UserService.Instance.user
     ? UserService.Instance.user.default_sort_type
-    : SortType.Hot;
+    : SortType.Active;
 }
 
 export function getPageFromProps(props: any): number {
@@ -905,7 +909,7 @@ function convertCommentSortType(sort: SortType): CommentSortType {
     return CommentSortType.Top;
   } else if (sort == SortType.New) {
     return CommentSortType.New;
-  } else if (sort == SortType.Hot) {
+  } else if (sort == SortType.Hot || sort == SortType.Active) {
     return CommentSortType.Hot;
   } else {
     return CommentSortType.Hot;
@@ -948,6 +952,14 @@ export function postSort(
         (communityType && +b.stickied - +a.stickied) ||
         b.hot_rank - a.hot_rank
     );
+  } else if (sort == SortType.Active) {
+    posts.sort(
+      (a, b) =>
+        +a.removed - +b.removed ||
+        +a.deleted - +b.deleted ||
+        (communityType && +b.stickied - +a.stickied) ||
+        b.hot_rank_active - a.hot_rank_active
+    );
   }
 }
 
@@ -970,10 +982,12 @@ function randomHsl() {
 
 export function previewLines(text: string, lines: number = 3): string {
   // Use lines * 2 because markdown requires 2 lines
-  return text
-    .split('\n')
-    .slice(0, lines * 2)
-    .join('\n');
+  return (
+    text
+      .split('\n')
+      .slice(0, lines * 2)
+      .join('\n') + '...'
+  );
 }
 
 export function hostname(url: string): string {
@@ -1007,4 +1021,17 @@ export function validTitle(title?: string): boolean {
   const regex = new RegExp(/.*\S.*/, 'g');
 
   return regex.test(title);
+}
+
+export function siteBannerCss(banner: string): string {
+  return ` \
+    background-image: linear-gradient( rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8) ) ,url("${banner}"); \
+    background-attachment: fixed; \
+    background-position: top; \
+    background-repeat: no-repeat; \
+    background-size: 100% cover; \
+
+    width: 100%; \
+    max-height: 100vh; \
+    `;
 }

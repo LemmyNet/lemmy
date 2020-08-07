@@ -9,10 +9,11 @@ import {
   UserView,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { mdToHtml, getUnixTime } from '../utils';
+import { mdToHtml, getUnixTime, pictrsAvatarThumbnail } from '../utils';
 import { CommunityForm } from './community-form';
 import { UserListing } from './user-listing';
 import { CommunityLink } from './community-link';
+import { BannerIconHeader } from './banner-icon-header';
 import { i18n } from '../i18next';
 
 interface SidebarProps {
@@ -21,6 +22,7 @@ interface SidebarProps {
   admins: Array<UserView>;
   online: number;
   enableNsfw: boolean;
+  showIcon?: boolean;
 }
 
 interface SidebarState {
@@ -86,24 +88,36 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
   communityTitle() {
     let community = this.props.community;
     return (
-      <h5 className="mb-2">
-        <span>{community.title}</span>
-        {community.removed && (
-          <small className="ml-2 text-muted font-italic">
-            {i18n.t('removed')}
-          </small>
-        )}
-        {community.deleted && (
-          <small className="ml-2 text-muted font-italic">
-            {i18n.t('deleted')}
-          </small>
-        )}
-        {community.nsfw && (
-          <small className="ml-2 text-muted font-italic">
-            {i18n.t('nsfw')}
-          </small>
-        )}
-      </h5>
+      <div>
+        <h5 className="mb-0">
+          {this.props.showIcon && (
+            <BannerIconHeader icon={community.icon} banner={community.banner} />
+          )}
+          <span>{community.title}</span>
+          {community.removed && (
+            <small className="ml-2 text-muted font-italic">
+              {i18n.t('removed')}
+            </small>
+          )}
+          {community.deleted && (
+            <small className="ml-2 text-muted font-italic">
+              {i18n.t('deleted')}
+            </small>
+          )}
+          {community.nsfw && (
+            <small className="ml-2 text-muted font-italic">
+              {i18n.t('nsfw')}
+            </small>
+          )}
+        </h5>
+        <CommunityLink
+          community={community}
+          realLink
+          useApubName
+          muted
+          hideAvatar
+        />
+      </div>
     );
   }
 
@@ -160,6 +174,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
             <UserListing
               user={{
                 name: mod.user_name,
+                preferred_username: mod.user_preferred_username,
                 avatar: mod.avatar,
                 id: mod.user_id,
                 local: mod.user_local,

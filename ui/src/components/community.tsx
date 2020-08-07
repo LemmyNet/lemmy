@@ -33,6 +33,8 @@ import { CommentNodes } from './comment-nodes';
 import { SortSelect } from './sort-select';
 import { DataTypeSelect } from './data-type-select';
 import { Sidebar } from './sidebar';
+import { CommunityLink } from './community-link';
+import { BannerIconHeader } from './banner-icon-header';
 import {
   wsJsonToRes,
   fetchLimit,
@@ -47,6 +49,7 @@ import {
   editPostFindRes,
   commentsToFlatNodes,
   setupTippy,
+  favIconUrl,
 } from '../utils';
 import { i18n } from '../i18next';
 
@@ -126,6 +129,9 @@ export class Community extends Component<any, State> {
       enable_downvotes: undefined,
       open_registration: undefined,
       enable_nsfw: undefined,
+      icon: undefined,
+      banner: undefined,
+      creator_preferred_username: undefined,
     },
   };
 
@@ -183,10 +189,25 @@ export class Community extends Component<any, State> {
     }
   }
 
+  get favIcon(): string {
+    return this.state.community.icon
+      ? this.state.community.icon
+      : this.state.site.icon
+      ? this.state.site.icon
+      : favIconUrl;
+  }
+
   render() {
     return (
       <div class="container">
-        <Helmet title={this.documentTitle} />
+        <Helmet title={this.documentTitle}>
+          <link
+            id="favicon"
+            rel="icon"
+            type="image/x-icon"
+            href={this.favIcon}
+          />
+        </Helmet>
         {this.state.loading ? (
           <h5>
             <svg class="icon icon-spinner spin">
@@ -196,6 +217,7 @@ export class Community extends Component<any, State> {
         ) : (
           <div class="row">
             <div class="col-12 col-md-8">
+              {this.communityInfo()}
               {this.selects()}
               {this.listings()}
               {this.paginator()}
@@ -232,6 +254,26 @@ export class Community extends Component<any, State> {
         showContext
         enableDownvotes={this.state.site.enable_downvotes}
       />
+    );
+  }
+
+  communityInfo() {
+    return (
+      <div>
+        <BannerIconHeader
+          banner={this.state.community.banner}
+          icon={this.state.community.icon}
+        />
+        <h5 class="mb-0">{this.state.community.title}</h5>
+        <CommunityLink
+          community={this.state.community}
+          realLink
+          useApubName
+          muted
+          hideAvatar
+        />
+        <hr />
+      </div>
     );
   }
 

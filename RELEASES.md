@@ -1,3 +1,43 @@
+# Lemmy v0.7.40 Pre-Release (2020-08-05)
+
+We've [added a lot](https://github.com/LemmyNet/lemmy/compare/v0.7.40...v0.7.0) in this pre-release:
+
+- New post sorts `Active` (previously called hot), and `Hot`. Active shows posts with recent comments, hot shows highly ranked posts.
+- Customizeable site icon and banner, user icon and banner, and community icon and banner.
+- Added user preferred names / display names, bios, and cakedays.
+- User settings are now shared across browsers (a page refresh will pick up changes).
+- Visual / Audio captchas through the lemmy API.
+- Lots of UI prettiness.
+- Lots of bug fixes.
+- Lots of additional translations.
+- Lots of federation prepping / additions / refactors.
+
+This release removes the need for you to have a pictrs nginx route (the requests are now routed through lemmy directly). Follow the upgrade instructions below to replace your nginx with the new one.
+
+## Upgrading
+
+**With Ansible:**
+
+```
+# run these commands locally
+git pull
+cd ansible
+ansible-playbook lemmy.yml
+```
+
+**With manual Docker installation:**
+```
+# run these commands on your server
+cd /lemmy
+wget https://raw.githubusercontent.com/LemmyNet/lemmy/master/ansible/templates/nginx.conf
+# Replace the {{ vars }}
+sudo mv nginx.conf /etc/nginx/sites-enabled/lemmy.conf
+sudo nginx -s reload
+wget https://raw.githubusercontent.com/LemmyNet/lemmy/master/docker/prod/docker-compose.yml
+sudo docker-compose up -d
+```
+
+
 # Lemmy v0.7.0 Release (2020-06-23)
 
 This release replaces [pictshare](https://github.com/HaschekSolutions/pictshare)

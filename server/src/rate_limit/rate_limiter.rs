@@ -15,6 +15,7 @@ pub enum RateLimitType {
   Message,
   Register,
   Post,
+  Image,
 }
 
 /// Rate limiting based on rate type and IP addr

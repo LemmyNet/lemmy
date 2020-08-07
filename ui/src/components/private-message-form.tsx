@@ -128,6 +128,8 @@ export class PrivateMessageForm extends Component<
                   <UserListing
                     user={{
                       name: this.state.recipient.name,
+                      preferred_username: this.state.recipient
+                        .preferred_username,
                       avatar: this.state.recipient.avatar,
                       id: this.state.recipient.id,
                       local: this.state.recipient.local,

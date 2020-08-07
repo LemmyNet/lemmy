@@ -402,6 +402,8 @@ async fn receive_undo_delete_community(
     private_key: community.private_key,
     public_key: community.public_key,
     last_refreshed_at: None,
+    icon: Some(community.icon.to_owned()),
+    banner: Some(community.banner.to_owned()),
   };
 
   let community_id = community.id;
@@ -466,6 +468,8 @@ async fn receive_undo_remove_community(
     private_key: community.private_key,
     public_key: community.public_key,
     last_refreshed_at: None,
+    icon: Some(community.icon.to_owned()),
+    banner: Some(community.banner.to_owned()),
   };
 
   let community_id = community.id;

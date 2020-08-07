@@ -35,6 +35,8 @@
   jwt_secret: "changeme"
   # The location of the frontend
   front_end_dir: "../ui/dist"
+  # address where pictrs is available
+  pictrs_url: "http://pictrs:8080"
   # rate limits for various user actions, by user ip
   rate_limit: {
     # maximum number of messages created in interval
@@ -49,6 +51,10 @@
     register: 3
     # interval length for registration limit
     register_per_second: 3600
+    # maximum number of image uploads in interval
+    image: 6
+    # interval length for image uploads
+    image_per_second: 3600
   }
   # settings related to activitypub federation
   federation: {
