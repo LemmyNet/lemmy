@@ -475,6 +475,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                                   </button>
                                 ))}
                               {!node.comment.banned_from_community &&
+                                node.comment.creator_local &&
                                 (!this.state.showConfirmAppointAsMod ? (
                                   <button
                                     class="btn btn-link btn-animate text-muted"
@@ -517,6 +518,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                           {/* Community creators and admins can transfer community to another mod */}
                           {(this.amCommunityCreator || this.canAdmin) &&
                             this.isMod &&
+                            node.comment.creator_local &&
                             (!this.state.showConfirmTransferCommunity ? (
                               <button
                                 class="btn btn-link btn-animate text-muted"
@@ -579,6 +581,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                                   </button>
                                 ))}
                               {!node.comment.banned &&
+                                node.comment.creator_local &&
                                 (!this.state.showConfirmAppointAsAdmin ? (
                                   <button
                                     class="btn btn-link btn-animate text-muted"
@@ -621,6 +624,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                           {/* Site Creator can transfer to another admin */}
                           {this.amSiteCreator &&
                             this.isAdmin &&
+                            node.comment.creator_local &&
                             (!this.state.showConfirmTransferSite ? (
                               <button
                                 class="btn btn-link btn-animate text-muted"
