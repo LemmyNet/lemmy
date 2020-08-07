@@ -23,6 +23,8 @@ use crate::{
 use activitystreams::{
   activity::Follow,
   actor::{ApActor, Group, Person},
+  base::AsBase,
+  markers::Base,
   object::{Page, Tombstone},
   prelude::*,
 };
@@ -129,10 +131,19 @@ where
 #[async_trait::async_trait(?Send)]
 pub trait FromApub {
   type ApubType;
+  /// Converts an object from ActivityPub type to Lemmy internal type.
+  ///
+  /// * `apub` The object to read from
+  /// * `client` Web client to fetch remote actors with
+  /// * `pool` Database connection
+  /// * `expected_domain` If present, ensure that the apub object comes from the same domain as
+  ///                     this URL
+  ///
   async fn from_apub(
     apub: &Self::ApubType,
     client: &Client,
     pool: &DbPool,
+    expected_domain: Option<Url>,
   ) -> Result<Self, LemmyError>
   where
     Self: Sized;
@@ -176,6 +187,24 @@ pub trait ApubObjectType {
     client: &Client,
     pool: &DbPool,
   ) -> Result<(), LemmyError>;
+}
+
+pub(in crate::apub) fn check_actor_domain<T, Kind>(
+  apub: &T,
+  expected_domain: Option<Url>,
+) -> Result<String, LemmyError>
+where
+  T: Base + AsBase<Kind>,
+{
+  let actor_id = if let Some(url) = expected_domain {
+    let domain = url.domain().unwrap();
+    apub.id(domain)?.unwrap()
+  } else {
+    let actor_id = apub.id_unchecked().unwrap();
+    check_is_apub_id_valid(&actor_id)?;
+    actor_id
+  };
+  Ok(actor_id.to_string())
 }
 
 #[async_trait::async_trait(?Send)]

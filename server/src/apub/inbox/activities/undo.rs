@@ -7,6 +7,7 @@ use crate::{
       get_user_from_activity,
       receive_unhandled_activity,
     },
+    ActorType,
     FromApub,
     GroupExt,
     PageExt,
@@ -20,7 +21,12 @@ use crate::{
   DbPool,
   LemmyError,
 };
-use activitystreams::{activity::*, base::AnyBase, object::Note, prelude::*};
+use activitystreams::{
+  activity::*,
+  base::{AnyBase, AsBase},
+  object::Note,
+  prelude::*,
+};
 use actix_web::{client::Client, HttpResponse};
 use anyhow::anyhow;
 use lemmy_db::{
@@ -47,8 +53,24 @@ pub async fn receive_undo(
     Some("Remove") => receive_undo_remove(undo, client, pool, chat_server).await,
     Some("Like") => receive_undo_like(undo, client, pool, chat_server).await,
     Some("Dislike") => receive_undo_dislike(undo, client, pool, chat_server).await,
-    // TODO: handle undo_dislike?
     _ => receive_unhandled_activity(undo),
+  }
+}
+
+fn check_is_undo_valid<T, A>(outer_activity: &Undo, inner_activity: &T) -> Result<(), LemmyError>
+where
+  T: AsBase<A> + ActorAndObjectRef,
+{
+  let outer_actor = outer_activity.actor()?;
+  let outer_actor_uri = outer_actor.as_single_xsd_any_uri().unwrap();
+
+  let inner_actor = inner_activity.actor()?;
+  let inner_actor_uri = inner_actor.as_single_xsd_any_uri().unwrap();
+
+  if outer_actor_uri.domain() != inner_actor_uri.domain() {
+    Err(anyhow!("Cant undo activities from a different instance").into())
+  } else {
+    Ok(())
   }
 }
 
@@ -59,6 +81,7 @@ async fn receive_undo_delete(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let delete = Delete::from_any_base(undo.object().to_owned().one().unwrap())?.unwrap();
+  check_is_undo_valid(&undo, &delete)?;
   let type_ = delete.object().as_single_kind_str().unwrap();
   match type_ {
     "Note" => receive_undo_delete_comment(undo, &delete, client, pool, chat_server).await,
@@ -75,6 +98,7 @@ async fn receive_undo_remove(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let remove = Remove::from_any_base(undo.object().to_owned().one().unwrap())?.unwrap();
+  check_is_undo_valid(&undo, &remove)?;
 
   let type_ = remove.object().as_single_kind_str().unwrap();
   match type_ {
@@ -92,6 +116,7 @@ async fn receive_undo_like(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let like = Like::from_any_base(undo.object().to_owned().one().unwrap())?.unwrap();
+  check_is_undo_valid(&undo, &like)?;
 
   let type_ = like.object().as_single_kind_str().unwrap();
   match type_ {
@@ -108,6 +133,9 @@ async fn receive_undo_dislike(
   _chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let dislike = Dislike::from_any_base(undo.object().to_owned().one().unwrap())?.unwrap();
+  check_is_undo_valid(&undo, &dislike)?;
+
+  // TODO: need to implement Undo<Dislike>
 
   let type_ = dislike.object().as_single_kind_str().unwrap();
   Err(anyhow!("Undo Delete type {} not supported", type_).into())
@@ -123,7 +151,7 @@ async fn receive_undo_delete_comment(
   let user = get_user_from_activity(delete, client, pool).await?;
   let note = Note::from_any_base(delete.object().to_owned().one().unwrap())?.unwrap();
 
-  let comment_ap_id = CommentForm::from_apub(&note, client, pool)
+  let comment_ap_id = CommentForm::from_apub(&note, client, pool, Some(user.actor_id()?))
     .await?
     .get_ap_id()?;
 
@@ -181,7 +209,7 @@ async fn receive_undo_remove_comment(
   let mod_ = get_user_from_activity(remove, client, pool).await?;
   let note = Note::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
 
-  let comment_ap_id = CommentForm::from_apub(&note, client, pool)
+  let comment_ap_id = CommentForm::from_apub(&note, client, pool, None)
     .await?
     .get_ap_id()?;
 
@@ -239,7 +267,7 @@ async fn receive_undo_delete_post(
   let user = get_user_from_activity(delete, client, pool).await?;
   let page = PageExt::from_any_base(delete.object().to_owned().one().unwrap())?.unwrap();
 
-  let post_ap_id = PostForm::from_apub(&page, client, pool)
+  let post_ap_id = PostForm::from_apub(&page, client, pool, Some(user.actor_id()?))
     .await?
     .get_ap_id()?;
 
@@ -294,7 +322,7 @@ async fn receive_undo_remove_post(
   let mod_ = get_user_from_activity(remove, client, pool).await?;
   let page = PageExt::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
 
-  let post_ap_id = PostForm::from_apub(&page, client, pool)
+  let post_ap_id = PostForm::from_apub(&page, client, pool, None)
     .await?
     .get_ap_id()?;
 
@@ -349,7 +377,7 @@ async fn receive_undo_delete_community(
   let user = get_user_from_activity(delete, client, pool).await?;
   let group = GroupExt::from_any_base(delete.object().to_owned().one().unwrap())?.unwrap();
 
-  let community_actor_id = CommunityForm::from_apub(&group, client, pool)
+  let community_actor_id = CommunityForm::from_apub(&group, client, pool, Some(user.actor_id()?))
     .await?
     .actor_id;
 
@@ -415,7 +443,7 @@ async fn receive_undo_remove_community(
   let mod_ = get_user_from_activity(remove, client, pool).await?;
   let group = GroupExt::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
 
-  let community_actor_id = CommunityForm::from_apub(&group, client, pool)
+  let community_actor_id = CommunityForm::from_apub(&group, client, pool, Some(mod_.actor_id()?))
     .await?
     .actor_id;
 
@@ -481,7 +509,7 @@ async fn receive_undo_like_comment(
   let user = get_user_from_activity(like, client, pool).await?;
   let note = Note::from_any_base(like.object().to_owned().one().unwrap())?.unwrap();
 
-  let comment = CommentForm::from_apub(&note, client, pool).await?;
+  let comment = CommentForm::from_apub(&note, client, pool, None).await?;
 
   let comment_id = get_or_fetch_and_insert_comment(&comment.get_ap_id()?, client, pool)
     .await?
@@ -527,7 +555,7 @@ async fn receive_undo_like_post(
   let user = get_user_from_activity(like, client, pool).await?;
   let page = PageExt::from_any_base(like.object().to_owned().one().unwrap())?.unwrap();
 
-  let post = PostForm::from_apub(&page, client, pool).await?;
+  let post = PostForm::from_apub(&page, client, pool, None).await?;
 
   let post_id = get_or_fetch_and_insert_post(&post.get_ap_id()?, client, pool)
     .await?

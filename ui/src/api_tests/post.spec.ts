@@ -154,17 +154,17 @@ test('Delete a post', async () => {
   expect(betaPost2.post.deleted).toBe(false);
 });
 
-test('Remove a post', async () => {
+test('Remove a post from admin and community on different instance', async () => {
   let search = await searchForBetaCommunity(alpha);
   let postRes = await createPost(alpha, search.communities[0].id);
 
   let removedPost = await removePost(alpha, true, postRes.post);
   expect(removedPost.post.removed).toBe(true);
 
-  // Make sure lemmy beta sees post is removed
+  // Make sure lemmy beta sees post is NOT removed
   let createFakeBetaPostToGetId = (await createPost(beta, 2)).post.id - 1;
   let betaPost = await getPost(beta, createFakeBetaPostToGetId);
-  expect(betaPost.post.removed).toBe(true);
+  expect(betaPost.post.removed).toBe(false);
 
   // Undelete
   let undeletedPost = await removePost(alpha, false, postRes.post);
@@ -173,6 +173,31 @@ test('Remove a post', async () => {
   // Make sure lemmy beta sees post is undeleted
   let betaPost2 = await getPost(beta, createFakeBetaPostToGetId);
   expect(betaPost2.post.removed).toBe(false);
+});
+
+test('Remove a post from admin and community on same instance', async () => {
+  let search = await searchForBetaCommunity(alpha);
+  let postRes = await createPost(alpha, search.communities[0].id);
+
+  // Get the id for beta
+  let createFakeBetaPostToGetId = (await createPost(beta, 2)).post.id - 1;
+  let betaPost = await getPost(beta, createFakeBetaPostToGetId);
+
+  // The beta admin removes it (the community lives on beta)
+  let removePostRes = await removePost(beta, true, betaPost.post);
+  expect(removePostRes.post.removed).toBe(true);
+
+  // Make sure lemmy alpha sees post is removed
+  let alphaPost = await getPost(alpha, postRes.post.id);
+  expect(alphaPost.post.removed).toBe(true);
+
+  // Undelete
+  let undeletedPost = await removePost(beta, false, betaPost.post);
+  expect(undeletedPost.post.removed).toBe(false);
+
+  // Make sure lemmy alpha sees post is undeleted
+  let alphaPost2 = await getPost(alpha, postRes.post.id);
+  expect(alphaPost2.post.removed).toBe(false);
 });
 
 test('Search for a post', async () => {

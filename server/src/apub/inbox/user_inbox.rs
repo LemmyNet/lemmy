@@ -65,11 +65,9 @@ pub async fn user_inbox(
   let actor = get_or_fetch_and_upsert_actor(actor_uri, &client, &pool).await?;
   verify(&request, actor.as_ref())?;
 
-  insert_activity(actor.user_id(), activity.clone(), false, &pool).await?;
-
   let any_base = activity.clone().into_any_base()?;
   let kind = activity.kind().unwrap();
-  match kind {
+  let res = match kind {
     ValidTypes::Accept => receive_accept(any_base, username, &client, &pool).await,
     ValidTypes::Create => {
       receive_create_private_message(any_base, &client, &pool, chat_server).await
@@ -83,7 +81,10 @@ pub async fn user_inbox(
     ValidTypes::Undo => {
       receive_undo_delete_private_message(any_base, &client, &pool, chat_server).await
     }
-  }
+  };
+
+  insert_activity(actor.user_id(), activity.clone(), false, &pool).await?;
+  res
 }
 
 /// Handle accepted follows.
@@ -125,7 +126,8 @@ async fn receive_create_private_message(
   let create = Create::from_any_base(activity)?.unwrap();
   let note = Note::from_any_base(create.object().as_one().unwrap().to_owned())?.unwrap();
 
-  let private_message = PrivateMessageForm::from_apub(&note, client, pool).await?;
+  let domain = Some(create.id_unchecked().unwrap().to_owned());
+  let private_message = PrivateMessageForm::from_apub(&note, client, pool, domain).await?;
 
   let inserted_private_message = blocking(pool, move |conn| {
     PrivateMessage::create(conn, &private_message)
@@ -160,7 +162,8 @@ async fn receive_update_private_message(
   let update = Update::from_any_base(activity)?.unwrap();
   let note = Note::from_any_base(update.object().as_one().unwrap().to_owned())?.unwrap();
 
-  let private_message_form = PrivateMessageForm::from_apub(&note, client, pool).await?;
+  let domain = Some(update.id_unchecked().unwrap().to_owned());
+  let private_message_form = PrivateMessageForm::from_apub(&note, client, pool, domain).await?;
 
   let private_message_ap_id = private_message_form.ap_id.clone();
   let private_message = blocking(pool, move |conn| {
@@ -203,7 +206,8 @@ async fn receive_delete_private_message(
   let delete = Delete::from_any_base(activity)?.unwrap();
   let note = Note::from_any_base(delete.object().as_one().unwrap().to_owned())?.unwrap();
 
-  let private_message_form = PrivateMessageForm::from_apub(&note, client, pool).await?;
+  let domain = Some(delete.id_unchecked().unwrap().to_owned());
+  let private_message_form = PrivateMessageForm::from_apub(&note, client, pool, domain).await?;
 
   let private_message_ap_id = private_message_form.ap_id;
   let private_message = blocking(pool, move |conn| {
@@ -259,7 +263,8 @@ async fn receive_undo_delete_private_message(
   let delete = Delete::from_any_base(undo.object().as_one().unwrap().to_owned())?.unwrap();
   let note = Note::from_any_base(delete.object().as_one().unwrap().to_owned())?.unwrap();
 
-  let private_message = PrivateMessageForm::from_apub(&note, client, pool).await?;
+  let domain = Some(undo.id_unchecked().unwrap().to_owned());
+  let private_message = PrivateMessageForm::from_apub(&note, client, pool, domain).await?;
 
   let private_message_ap_id = private_message.ap_id.clone();
   let private_message_id = blocking(pool, move |conn| {

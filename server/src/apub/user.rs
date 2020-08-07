@@ -1,6 +1,8 @@
 use crate::{
+  api::{check_slurs, check_slurs_opt},
   apub::{
     activities::{generate_activity_id, send_activity},
+    check_actor_domain,
     create_apub_response,
     insert_activity,
     ActorType,
@@ -211,7 +213,12 @@ impl ActorType for User_ {
 impl FromApub for UserForm {
   type ApubType = PersonExt;
   /// Parse an ActivityPub person received from another instance into a Lemmy user.
-  async fn from_apub(person: &PersonExt, _: &Client, _: &DbPool) -> Result<Self, LemmyError> {
+  async fn from_apub(
+    person: &PersonExt,
+    _: &Client,
+    _: &DbPool,
+    expected_domain: Option<Url>,
+  ) -> Result<Self, LemmyError> {
     let avatar = match person.icon() {
       Some(any_image) => Some(
         Image::from_any_base(any_image.as_one().unwrap().clone())
@@ -238,16 +245,26 @@ impl FromApub for UserForm {
       None => None,
     };
 
+    let name = person
+      .name()
+      .unwrap()
+      .one()
+      .unwrap()
+      .as_xsd_string()
+      .unwrap()
+      .to_string();
+    let preferred_username = person.inner.preferred_username().map(|u| u.to_string());
+    let bio = person
+      .inner
+      .summary()
+      .map(|s| s.as_single_xsd_string().unwrap().into());
+    check_slurs(&name)?;
+    check_slurs_opt(&preferred_username)?;
+    check_slurs_opt(&bio)?;
+
     Ok(UserForm {
-      name: person
-        .name()
-        .unwrap()
-        .one()
-        .unwrap()
-        .as_xsd_string()
-        .unwrap()
-        .to_string(),
-      preferred_username: person.inner.preferred_username().map(|u| u.to_string()),
+      name,
+      preferred_username,
       password_encrypted: "".to_string(),
       admin: false,
       banned: false,
@@ -263,11 +280,8 @@ impl FromApub for UserForm {
       show_avatars: false,
       send_notifications_to_email: false,
       matrix_user_id: None,
-      actor_id: person.id_unchecked().unwrap().to_string(),
-      bio: person
-        .inner
-        .summary()
-        .map(|s| s.as_single_xsd_string().unwrap().into()),
+      actor_id: check_actor_domain(person, expected_domain)?,
+      bio,
       local: false,
       private_key: None,
       public_key: Some(person.ext_one.public_key.to_owned().public_key_pem),

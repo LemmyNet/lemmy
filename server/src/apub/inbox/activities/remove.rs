@@ -4,9 +4,11 @@ use crate::{
     fetcher::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
     inbox::shared_inbox::{
       announce_if_community_is_local,
+      get_community_id_from_activity,
       get_user_from_activity,
       receive_unhandled_activity,
     },
+    ActorType,
     FromApub,
     GroupExt,
     PageExt,
@@ -22,6 +24,7 @@ use crate::{
 };
 use activitystreams::{activity::Remove, base::AnyBase, object::Note, prelude::*};
 use actix_web::{client::Client, HttpResponse};
+use anyhow::anyhow;
 use lemmy_db::{
   comment::{Comment, CommentForm},
   comment_view::CommentView,
@@ -40,6 +43,12 @@ pub async fn receive_remove(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let remove = Remove::from_any_base(activity)?.unwrap();
+  let actor = get_user_from_activity(&remove, client, pool).await?;
+  let community = get_community_id_from_activity(&remove)?;
+  if actor.actor_id()?.domain() != community.domain() {
+    return Err(anyhow!("Remove activities are only allowed on local objects").into());
+  }
+
   match remove.object().as_single_kind_str() {
     Some("Page") => receive_remove_post(remove, client, pool, chat_server).await,
     Some("Note") => receive_remove_comment(remove, client, pool, chat_server).await,
@@ -57,7 +66,7 @@ async fn receive_remove_post(
   let mod_ = get_user_from_activity(&remove, client, pool).await?;
   let page = PageExt::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
 
-  let post_ap_id = PostForm::from_apub(&page, client, pool)
+  let post_ap_id = PostForm::from_apub(&page, client, pool, None)
     .await?
     .get_ap_id()?;
 
@@ -111,7 +120,7 @@ async fn receive_remove_comment(
   let mod_ = get_user_from_activity(&remove, client, pool).await?;
   let note = Note::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
 
-  let comment_ap_id = CommentForm::from_apub(&note, client, pool)
+  let comment_ap_id = CommentForm::from_apub(&note, client, pool, None)
     .await?
     .get_ap_id()?;
 
@@ -168,7 +177,7 @@ async fn receive_remove_community(
   let mod_ = get_user_from_activity(&remove, client, pool).await?;
   let group = GroupExt::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
 
-  let community_actor_id = CommunityForm::from_apub(&group, client, pool)
+  let community_actor_id = CommunityForm::from_apub(&group, client, pool, Some(mod_.actor_id()?))
     .await?
     .actor_id;
 

@@ -16,6 +16,9 @@ import {
   getMentions,
   searchPost,
   unfollowRemotes,
+  createCommunity,
+  registerUser,
+  API,
 } from './shared';
 
 import { PostResponse } from '../interfaces';
@@ -102,31 +105,51 @@ test('Delete a comment', async () => {
   expect(betaComment2.deleted).toBe(false);
 });
 
-test('Remove a comment', async () => {
+test('Remove a comment from admin and community on the same instance', async () => {
   let commentRes = await createComment(alpha, postRes.post.id);
-  let removeCommentRes = await removeComment(
-    alpha,
-    true,
-    commentRes.comment.id
-  );
+
+  // Get the id for beta
+  let betaCommentId = (await searchComment(beta, commentRes.comment))
+    .comments[0].id;
+
+  // The beta admin removes it (the community lives on beta)
+  let removeCommentRes = await removeComment(beta, true, betaCommentId);
   expect(removeCommentRes.comment.removed).toBe(true);
 
-  // Make sure that comment is removed on beta
-  let searchBeta = await searchComment(beta, commentRes.comment);
-  let betaComment = searchBeta.comments[0];
-  expect(betaComment.removed).toBe(true);
+  // Make sure that comment is removed on alpha (it gets pushed since an admin from beta removed it)
+  let refetchedPost = await getPost(alpha, postRes.post.id);
+  expect(refetchedPost.comments[0].removed).toBe(true);
 
-  let unremoveCommentRes = await removeComment(
-    alpha,
-    false,
-    commentRes.comment.id
-  );
+  let unremoveCommentRes = await removeComment(beta, false, betaCommentId);
   expect(unremoveCommentRes.comment.removed).toBe(false);
 
   // Make sure that comment is unremoved on beta
-  let searchBeta2 = await searchComment(beta, commentRes.comment);
-  let betaComment2 = searchBeta2.comments[0];
-  expect(betaComment2.removed).toBe(false);
+  let refetchedPost2 = await getPost(alpha, postRes.post.id);
+  expect(refetchedPost2.comments[0].removed).toBe(false);
+});
+
+test('Remove a comment from admin and community on different instance', async () => {
+  let alphaUser = await registerUser(alpha);
+  let newAlphaApi: API = {
+    url: alpha.url,
+    auth: alphaUser.jwt,
+  };
+
+  // New alpha user creates a community, post, and comment.
+  let newCommunity = await createCommunity(newAlphaApi);
+  let newPost = await createPost(newAlphaApi, newCommunity.community.id);
+  let commentRes = await createComment(newAlphaApi, newPost.post.id);
+  expect(commentRes.comment.content).toBeDefined();
+
+  // Beta searches that to cache it, then removes it
+  let searchBeta = await searchComment(beta, commentRes.comment);
+  let betaComment = searchBeta.comments[0];
+  let removeCommentRes = await removeComment(beta, true, betaComment.id);
+  expect(removeCommentRes.comment.removed).toBe(true);
+
+  // Make sure its not removed on alpha
+  let refetchedPost = await getPost(newAlphaApi, newPost.post.id);
+  expect(refetchedPost.comments[0].removed).toBe(false);
 });
 
 test('Unlike a comment', async () => {

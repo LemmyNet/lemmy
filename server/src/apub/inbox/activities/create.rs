@@ -9,6 +9,7 @@ use crate::{
       get_user_from_activity,
       receive_unhandled_activity,
     },
+    ActorType,
     FromApub,
     PageExt,
   },
@@ -39,6 +40,11 @@ pub async fn receive_create(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let create = Create::from_any_base(activity)?.unwrap();
+
+  // ensure that create and actor come from the same instance
+  let user = get_user_from_activity(&create, client, pool).await?;
+  create.id(user.actor_id()?.domain().unwrap())?;
+
   match create.object().as_single_kind_str() {
     Some("Page") => receive_create_post(create, client, pool, chat_server).await,
     Some("Note") => receive_create_comment(create, client, pool, chat_server).await,
@@ -55,7 +61,7 @@ async fn receive_create_post(
   let user = get_user_from_activity(&create, client, pool).await?;
   let page = PageExt::from_any_base(create.object().to_owned().one().unwrap())?.unwrap();
 
-  let post = PostForm::from_apub(&page, client, pool).await?;
+  let post = PostForm::from_apub(&page, client, pool, Some(user.actor_id()?)).await?;
 
   let inserted_post = blocking(pool, move |conn| Post::create(conn, &post)).await??;
 
@@ -87,7 +93,7 @@ async fn receive_create_comment(
   let user = get_user_from_activity(&create, client, pool).await?;
   let note = Note::from_any_base(create.object().to_owned().one().unwrap())?.unwrap();
 
-  let comment = CommentForm::from_apub(&note, client, pool).await?;
+  let comment = CommentForm::from_apub(&note, client, pool, Some(user.actor_id()?)).await?;
 
   let inserted_comment = blocking(pool, move |conn| Comment::create(conn, &comment)).await??;
 
