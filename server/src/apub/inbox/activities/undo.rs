@@ -209,7 +209,7 @@ async fn receive_undo_remove_comment(
   let mod_ = get_user_from_activity(remove, client, pool).await?;
   let note = Note::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
 
-  let comment_ap_id = CommentForm::from_apub(&note, client, pool, Some(mod_.actor_id()?))
+  let comment_ap_id = CommentForm::from_apub(&note, client, pool, None)
     .await?
     .get_ap_id()?;
 
@@ -322,7 +322,7 @@ async fn receive_undo_remove_post(
   let mod_ = get_user_from_activity(remove, client, pool).await?;
   let page = PageExt::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
 
-  let post_ap_id = PostForm::from_apub(&page, client, pool, Some(mod_.actor_id()?))
+  let post_ap_id = PostForm::from_apub(&page, client, pool, None)
     .await?
     .get_ap_id()?;
 

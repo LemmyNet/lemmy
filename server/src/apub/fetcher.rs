@@ -350,7 +350,7 @@ async fn fetch_remote_community(
   let outbox_items = outbox.items().unwrap().clone();
   for o in outbox_items.many().unwrap() {
     let page = PageExt::from_any_base(o)?.unwrap();
-    let post = PostForm::from_apub(&page, client, pool, Some(apub_id.to_owned())).await?;
+    let post = PostForm::from_apub(&page, client, pool, None).await?;
     let post_ap_id = post.ap_id.clone();
     // Check whether the post already exists in the local db
     let existing = blocking(pool, move |conn| Post::read_from_apub_id(conn, &post_ap_id)).await?;
@@ -358,6 +358,7 @@ async fn fetch_remote_community(
       Ok(e) => blocking(pool, move |conn| Post::update(conn, e.id, &post)).await??,
       Err(_) => blocking(pool, move |conn| Post::create(conn, &post)).await??,
     };
+    // TODO: we need to send a websocket update here
   }
 
   Ok(community)

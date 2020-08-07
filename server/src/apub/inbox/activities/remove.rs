@@ -4,7 +4,7 @@ use crate::{
     fetcher::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
     inbox::shared_inbox::{
       announce_if_community_is_local,
-      get_community_from_activity,
+      get_community_id_from_activity,
       get_user_from_activity,
       receive_unhandled_activity,
     },
@@ -44,8 +44,8 @@ pub async fn receive_remove(
 ) -> Result<HttpResponse, LemmyError> {
   let remove = Remove::from_any_base(activity)?.unwrap();
   let actor = get_user_from_activity(&remove, client, pool).await?;
-  let community = get_community_from_activity(&remove, client, pool).await?;
-  if actor.actor_id()?.domain() != community.actor_id()?.domain() {
+  let community = get_community_id_from_activity(&remove)?;
+  if actor.actor_id()?.domain() != community.domain() {
     return Err(anyhow!("Remove activities are only allowed on local objects").into());
   }
 

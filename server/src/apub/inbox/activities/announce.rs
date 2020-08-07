@@ -1,18 +1,15 @@
 use crate::{
-  apub::{
-    inbox::{
-      activities::{
-        create::receive_create,
-        delete::receive_delete,
-        dislike::receive_dislike,
-        like::receive_like,
-        remove::receive_remove,
-        undo::receive_undo,
-        update::receive_update,
-      },
-      shared_inbox::{get_community_from_activity, receive_unhandled_activity},
+  apub::inbox::{
+    activities::{
+      create::receive_create,
+      delete::receive_delete,
+      dislike::receive_dislike,
+      like::receive_like,
+      remove::receive_remove,
+      undo::receive_undo,
+      update::receive_update,
     },
-    ActorType,
+    shared_inbox::{get_community_id_from_activity, receive_unhandled_activity},
   },
   routes::ChatServerParam,
   DbPool,
@@ -34,8 +31,8 @@ pub async fn receive_announce(
   let announce = Announce::from_any_base(activity)?.unwrap();
 
   // ensure that announce and community come from the same instance
-  let community = get_community_from_activity(&announce, client, pool).await?;
-  announce.id(community.actor_id()?.domain().unwrap())?;
+  let community = get_community_id_from_activity(&announce)?;
+  announce.id(community.domain().unwrap())?;
 
   let kind = announce.object().as_single_kind_str();
   let object = announce.object();
