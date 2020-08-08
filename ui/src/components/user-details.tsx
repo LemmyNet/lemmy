@@ -167,6 +167,7 @@ export class UserDetails extends Component<UserDetailsProps, UserDetailsState> {
                   showCommunity
                   showContext
                   enableDownvotes={this.props.enableDownvotes}
+                  hideDeletedComments={true}
                 />
               )}
             </div>

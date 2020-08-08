@@ -26,6 +26,7 @@ interface CommentNodesProps {
   sort?: CommentSortType;
   sortType?: SortType;
   enableDownvotes: boolean;
+  hideDeletedComments?: boolean;
 }
 
 export class CommentNodes extends Component<
@@ -56,6 +57,7 @@ export class CommentNodes extends Component<
             sort={this.props.sort}
             sortType={this.props.sortType}
             enableDownvotes={this.props.enableDownvotes}
+            hideDeletedComment={this.props.hideDeletedComments}
           />
         ))}
       </div>

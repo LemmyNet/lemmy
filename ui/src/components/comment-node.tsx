@@ -78,6 +78,7 @@ interface CommentNodeProps {
   sort?: CommentSortType;
   sortType?: SortType;
   enableDownvotes: boolean;
+  hideDeletedComment?: boolean;
 }
 
 export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
@@ -129,6 +130,13 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
 
   render() {
     let node = this.props.node;
+    const hideDeletedComment = this.props.hideDeletedComment;
+    const {
+      comment: { deleted: commentIsDeleted },
+    } = node;
+
+    if (commentIsDeleted && hideDeletedComment) return null;
+
     return (
       <div
         className={`comment ${
