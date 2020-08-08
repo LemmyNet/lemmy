@@ -857,7 +857,7 @@ impl Perform for Oper<BanUser> {
     blocking(pool, move |conn| ModBan::create(conn, &form)).await??;
 
     let user_id = data.user_id;
-    let user_view = blocking(pool, move |conn| UserView::read(conn, user_id)).await??;
+    let user_view = blocking(pool, move |conn| UserView::get_user_secure(conn, user_id)).await??;
 
     let res = BanUserResponse {
       user: user_view,
