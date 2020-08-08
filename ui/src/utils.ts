@@ -980,12 +980,17 @@ function randomHsl() {
   return `hsla(${Math.random() * 360}, 100%, 50%, 1)`;
 }
 
-export function previewLines(text: string, lines: number = 3): string {
-  // Use lines * 2 because markdown requires 2 lines
+export function previewLines(
+  text: string,
+  maxChars: number = 300,
+  maxLines: number = 1
+): string {
   return (
     text
+      .slice(0, maxChars)
       .split('\n')
-      .slice(0, lines * 2)
+      // Use lines * 2 because markdown requires 2 lines
+      .slice(0, maxLines * 2)
       .join('\n') + '...'
   );
 }
