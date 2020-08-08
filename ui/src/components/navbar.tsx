@@ -369,7 +369,7 @@ export class Navbar extends Component<any, NavbarState> {
                 </>
               ) : (
                 <ul class="navbar-nav my-2">
-                  <li className="nav-item">
+                  <li className="ml-2 nav-item">
                     <Link
                       class="btn btn-success"
                       to="/login"

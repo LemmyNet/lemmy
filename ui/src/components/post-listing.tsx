@@ -515,9 +515,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
         </li>
         {(showVotes || this.state.upvotes !== this.state.score) && (
           <>
-            <li className="list-inline-item">•</li>
             <span
-              class="unselectable pointer mr-2"
+              class="unselectable pointer ml-3"
               data-tippy-content={this.pointsTippy}
             >
               <li className="list-inline-item">
@@ -527,8 +526,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   }`}
                   onClick={linkEvent(this, this.handlePostLike)}
                 >
-                  <svg class="small icon icon-inline mr-1">
-                    <use xlinkHref="#icon-arrow-up"></use>
+                  <svg class="small icon icon-inline mx-1">
+                    <use xlinkHref="#icon-arrow-up1"></use>
                   </svg>
                   {this.state.upvotes}
                 </a>
@@ -540,8 +539,8 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   }`}
                   onClick={linkEvent(this, this.handlePostDisLike)}
                 >
-                  <svg class="small icon icon-inline mr-1">
-                    <use xlinkHref="#icon-arrow-down"></use>
+                  <svg class="small icon icon-inline mx-1">
+                    <use xlinkHref="#icon-arrow-down1"></use>
                   </svg>
                   {this.state.downvotes}
                 </a>

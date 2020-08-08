@@ -32,6 +32,10 @@
   margin-top: -10px;
 }
 
+.custom-select {
+  -moz-appearance: none;
+}
+
 .md-div p {
   overflow: hidden;
   text-overflow: ellipsis;
