@@ -756,7 +756,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                         )}
                       </li>
                     )}
-                    {!post.banned_from_community && (
+                    {!post.banned_from_community && post.creator_local && (
                       <li className="list-inline-item">
                         <span
                           class="pointer"
@@ -774,45 +774,47 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                   </>
                 )}
                 {/* Community creators and admins can transfer community to another mod */}
-                {(this.amCommunityCreator || this.canAdmin) && this.isMod && (
-                  <li className="list-inline-item">
-                    {!this.state.showConfirmTransferCommunity ? (
-                      <span
-                        class="pointer"
-                        onClick={linkEvent(
-                          this,
-                          this.handleShowConfirmTransferCommunity
-                        )}
-                      >
-                        {i18n.t('transfer_community')}
-                      </span>
-                    ) : (
-                      <>
-                        <span class="d-inline-block mr-1">
-                          {i18n.t('are_you_sure')}
-                        </span>
+                {(this.amCommunityCreator || this.canAdmin) &&
+                  this.isMod &&
+                  post.creator_local && (
+                    <li className="list-inline-item">
+                      {!this.state.showConfirmTransferCommunity ? (
                         <span
-                          class="pointer d-inline-block mr-1"
+                          class="pointer"
                           onClick={linkEvent(
                             this,
-                            this.handleTransferCommunity
+                            this.handleShowConfirmTransferCommunity
                           )}
                         >
-                          {i18n.t('yes')}
+                          {i18n.t('transfer_community')}
                         </span>
-                        <span
-                          class="pointer d-inline-block"
-                          onClick={linkEvent(
-                            this,
-                            this.handleCancelShowConfirmTransferCommunity
-                          )}
-                        >
-                          {i18n.t('no')}
-                        </span>
-                      </>
-                    )}
-                  </li>
-                )}
+                      ) : (
+                        <>
+                          <span class="d-inline-block mr-1">
+                            {i18n.t('are_you_sure')}
+                          </span>
+                          <span
+                            class="pointer d-inline-block mr-1"
+                            onClick={linkEvent(
+                              this,
+                              this.handleTransferCommunity
+                            )}
+                          >
+                            {i18n.t('yes')}
+                          </span>
+                          <span
+                            class="pointer d-inline-block"
+                            onClick={linkEvent(
+                              this,
+                              this.handleCancelShowConfirmTransferCommunity
+                            )}
+                          >
+                            {i18n.t('no')}
+                          </span>
+                        </>
+                      )}
+                    </li>
+                  )}
                 {/* Admins can ban from all, and appoint other admins */}
                 {this.canAdmin && (
                   <>
@@ -835,7 +837,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                         )}
                       </li>
                     )}
-                    {!post.banned && (
+                    {!post.banned && post.creator_local && (
                       <li className="list-inline-item">
                         <span
                           class="pointer"
