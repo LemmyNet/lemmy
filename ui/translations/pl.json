@@ -211,6 +211,7 @@
     "powered_by": "Powered by",
     "landing_0": "Lemmy jest <1>agregatorem linków</1> / alternatywą dla reddita. Jest przeznaczony do działania w ramach cyfrowej przestrzeni nazywanej <2>fediverse</2>. <3></3>Opiera się na samodzielnym hostingu, posiada aktualizowane na żywo wątki z komentarzami, i zajmuje bardzo mało miejsce (<4>~80kB</4>). Federacja w ramach sieci ActivityPub jest w planach. <5></5>Ta wersja jest <6>bardzo wczesną wersją beta</6>, co oznacza, że wiele funkcji nadal nie działa tak jak powinny. <7></7><8>Pod tym adresem</8> można sugerować nową funkcjonalność i zgłaszać błędy.<9></9>Stworzono z wykorzystaniem <10>Rust</10>, <11>Actix</11>, <12>Inferno</12>, <13>Typescript</13>.",
     "not_logged_in": "Nie jesteś zalogowana/y.",
+    "bio_length_overflow": "To pole nie może przekraczać 300 znaków!",
     "logged_in": "Zalogowano.",
     "community_ban": "Zostałaś/eś zbanowana/y z tej społeczności.",
     "site_ban": "Zostałaś/eś zbanowana/y z tej witryny",
@@ -263,5 +264,7 @@
     "silver_sponsors": "Srebrni Sponsorzy to ci, którzy wpłacili co najmniej $40 na Lemmiego.",
     "select_a_community": "Wybierz społeczność",
     "invalid_username": "Nieprawidłowa nazwa użytkownika.",
-    "invalid_community_name": "Niepoprawna nazwa."
+    "invalid_community_name": "Niepoprawna nazwa.",
+    "play_captcha_audio": "Odsłuchaj Captcha Audio",
+    "bio": "Bio"
 }
