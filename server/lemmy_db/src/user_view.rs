@@ -223,4 +223,33 @@ impl UserView {
       .filter(banned.eq(true))
       .load::<Self>(conn)
   }
+
+  pub fn get_user_secure(conn: &PgConnection, user_id: i32) -> Result<Self, Error> {
+    use super::user_view::user_fast::dsl::*;
+    use diesel::sql_types::{Nullable, Text};
+    user_fast
+      .select((
+        id,
+        actor_id,
+        name,
+        preferred_username,
+        avatar,
+        banner,
+        "".into_sql::<Nullable<Text>>(),
+        matrix_user_id,
+        bio,
+        local,
+        admin,
+        banned,
+        show_avatars,
+        send_notifications_to_email,
+        published,
+        number_of_posts,
+        post_score,
+        number_of_comments,
+        comment_score,
+      ))
+      .find(user_id)
+      .first::<Self>(conn)
+  }
 }
