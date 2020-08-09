@@ -139,7 +139,6 @@ export interface UserView {
   preferred_username?: string;
   avatar?: string;
   banner?: string;
-  email?: string;
   matrix_user_id?: string;
   bio?: string;
   local: boolean;
@@ -149,8 +148,6 @@ export interface UserView {
   number_of_comments: number;
   comment_score: number;
   banned: boolean;
-  show_avatars: boolean;
-  send_notifications_to_email: boolean;
 }
 
 export interface CommunityUser {

@@ -90,8 +90,6 @@ export class User extends Component<any, UserState> {
       comment_score: null,
       banned: null,
       avatar: null,
-      show_avatars: null,
-      send_notifications_to_email: null,
       actor_id: null,
       local: null,
     },
@@ -143,6 +141,7 @@ export class User extends Component<any, UserState> {
         creator_preferred_username: undefined,
       },
       version: undefined,
+      my_user: undefined,
     },
   };
 
@@ -724,7 +723,7 @@ export class User extends Component<any, UserState> {
                     class="form-check-input"
                     id="user-send-notifications-to-email"
                     type="checkbox"
-                    disabled={!this.state.user.email}
+                    disabled={!this.state.userSettingsForm.email}
                     checked={
                       this.state.userSettingsForm.send_notifications_to_email
                     }
@@ -922,9 +921,6 @@ export class User extends Component<any, UserState> {
 
   handleUserSettingsEmailChange(i: User, event: any) {
     i.state.userSettingsForm.email = event.target.value;
-    if (i.state.userSettingsForm.email == '' && !i.state.user.email) {
-      i.state.userSettingsForm.email = undefined;
-    }
     i.setState(i.state);
   }
 
@@ -1063,12 +1059,14 @@ export class User extends Component<any, UserState> {
           this.state.userSettingsForm.banner = UserService.Instance.user.banner;
           this.state.userSettingsForm.preferred_username =
             UserService.Instance.user.preferred_username;
-          this.state.userSettingsForm.email = this.state.user.email;
-          this.state.userSettingsForm.bio = this.state.user.bio;
-          this.state.userSettingsForm.send_notifications_to_email = this.state.user.send_notifications_to_email;
           this.state.userSettingsForm.show_avatars =
             UserService.Instance.user.show_avatars;
-          this.state.userSettingsForm.matrix_user_id = this.state.user.matrix_user_id;
+          this.state.userSettingsForm.email = UserService.Instance.user.email;
+          this.state.userSettingsForm.bio = UserService.Instance.user.bio;
+          this.state.userSettingsForm.send_notifications_to_email =
+            UserService.Instance.user.send_notifications_to_email;
+          this.state.userSettingsForm.matrix_user_id =
+            UserService.Instance.user.matrix_user_id;
         }
         this.state.loading = false;
         this.setState(this.state);

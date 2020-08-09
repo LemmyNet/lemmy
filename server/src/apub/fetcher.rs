@@ -151,7 +151,8 @@ pub async fn search_by_apub_id(
 
       let user = get_or_fetch_and_upsert_user(&user_uri, client, pool).await?;
 
-      response.users = vec![blocking(pool, move |conn| UserView::read(conn, user.id)).await??];
+      response.users =
+        vec![blocking(pool, move |conn| UserView::get_user_secure(conn, user.id)).await??];
 
       response
     }

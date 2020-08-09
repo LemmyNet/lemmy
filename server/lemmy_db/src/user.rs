@@ -46,7 +46,7 @@ pub struct UserForm {
   pub password_encrypted: String,
   pub admin: bool,
   pub banned: bool,
-  pub email: Option<String>,
+  pub email: Option<Option<String>>,
   pub avatar: Option<Option<String>>,
   pub updated: Option<chrono::NaiveDateTime>,
   pub show_nsfw: bool,

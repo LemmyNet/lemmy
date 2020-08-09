@@ -51,7 +51,7 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
 
     let form = UserForm {
       name: cuser.name.to_owned(),
-      email: cuser.email.to_owned(),
+      email: Some(cuser.email.to_owned()),
       matrix_user_id: cuser.matrix_user_id.to_owned(),
       avatar: Some(cuser.avatar.to_owned()),
       banner: Some(cuser.banner.to_owned()),
