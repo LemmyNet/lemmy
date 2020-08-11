@@ -13,7 +13,11 @@ use crate::{
   apub::fetcher::search_by_apub_id,
   blocking,
   version,
-  websocket::{server::SendAllMessage, UserOperation, WebsocketInfo},
+  websocket::{
+    server::{GetUsersOnline, SendAllMessage},
+    UserOperation,
+    WebsocketInfo,
+  },
   DbPool,
   LemmyError,
 };
@@ -409,13 +413,8 @@ impl Perform for Oper<GetSite> {
 
     let banned = blocking(pool, move |conn| UserView::banned(conn)).await??;
 
-    let online = if let Some(_ws) = websocket_info {
-      // TODO
-      1
-    // let fut = async {
-    //   ws.chatserver.send(GetUsersOnline).await.unwrap()
-    // };
-    // Runtime::new().unwrap().block_on(fut)
+    let online = if let Some(ws) = websocket_info {
+      ws.chatserver.send(GetUsersOnline).await.unwrap_or(1)
     } else {
       0
     };

@@ -385,11 +385,9 @@ export class Main extends Component<any, MainState> {
   badges() {
     return (
       <ul class="my-2 list-inline">
-        {/*
-              <li className="list-inline-item badge badge-light">
-                {i18n.t('number_online', { count: this.state.siteRes.online })}
-              </li>
-              */}
+        <li className="list-inline-item badge badge-light">
+          {i18n.t('number_online', { count: this.state.siteRes.online })}
+        </li>
         <li className="list-inline-item badge badge-light">
           {i18n.t('number_of_users', {
             count: this.state.siteRes.site.number_of_users,
