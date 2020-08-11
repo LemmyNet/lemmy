@@ -294,5 +294,8 @@
     "invalid_post_title": "Invalid post title",
     "invalid_url": "Invalid URL.",
     "play_captcha_audio": "Play Captcha Audio",
-    "bio": "Bio"
+    "bio": "Bio",
+    "instances": "Instances",
+    "linked_instances": "Linked Instances",
+    "none_found": "None found."
 }

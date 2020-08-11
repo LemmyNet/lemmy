@@ -142,6 +142,7 @@ export class User extends Component<any, UserState> {
       },
       version: undefined,
       my_user: undefined,
+      federated_instances: undefined,
     },
   };
 

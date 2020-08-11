@@ -133,6 +133,20 @@ impl Settings {
     fs::read_to_string(CONFIG_FILE)
   }
 
+  pub fn get_allowed_instances(&self) -> Vec<String> {
+    let mut allowed_instances: Vec<String> = self
+      .federation
+      .allowed_instances
+      .split(',')
+      .map(|d| d.to_string())
+      .collect();
+
+    // The defaults.hjson config always returns a [""]
+    allowed_instances.retain(|d| !d.eq(""));
+
+    allowed_instances
+  }
+
   pub fn save_config_file(data: &str) -> Result<String, Error> {
     fs::write(CONFIG_FILE, data)?;
 

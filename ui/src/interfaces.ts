@@ -867,6 +867,7 @@ export interface GetSiteResponse {
   online: number;
   version: string;
   my_user?: User;
+  federated_instances: Array<string>;
 }
 
 export interface SiteResponse {

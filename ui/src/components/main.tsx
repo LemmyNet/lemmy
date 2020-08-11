@@ -114,6 +114,7 @@ export class Main extends Component<any, MainState> {
       banned: [],
       online: null,
       version: null,
+      federated_instances: null,
     },
     showEditSite: false,
     loading: true,

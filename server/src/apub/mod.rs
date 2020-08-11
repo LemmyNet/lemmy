@@ -76,12 +76,8 @@ fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
     return Err(anyhow!("invalid apub id scheme: {:?}", apub_id.scheme()).into());
   }
 
-  let mut allowed_instances: Vec<String> = Settings::get()
-    .federation
-    .allowed_instances
-    .split(',')
-    .map(|d| d.to_string())
-    .collect();
+  let mut allowed_instances: Vec<String> = Settings::get().get_allowed_instances();
+
   // need to allow this explicitly because apub activities might contain objects from our local
   // instance. replace is needed to remove the port in our federation test setup.
   let settings = Settings::get();
