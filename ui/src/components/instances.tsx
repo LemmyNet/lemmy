@@ -63,9 +63,9 @@ export class Instances extends Component<any, InstancesState> {
           <div>
             <h5>{i18n.t('linked_instances')}</h5>
             {this.state.siteRes &&
-            this.state.siteRes.allowed_instances.length ? (
+            this.state.siteRes.federated_instances.length ? (
               <ul>
-                {this.state.siteRes.allowed_instances.map(i => (
+                {this.state.siteRes.federated_instances.map(i => (
                   <li>
                     <a href={`https://${i}`} target="_blank" rel="noopener">
                       {i}

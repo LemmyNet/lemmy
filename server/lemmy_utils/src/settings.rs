@@ -141,6 +141,7 @@ impl Settings {
       .map(|d| d.to_string())
       .collect();
 
+    // The defaults.hjson config always returns a [""]
     allowed_instances.retain(|d| !d.eq(""));
 
     allowed_instances
