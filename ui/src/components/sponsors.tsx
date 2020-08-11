@@ -19,6 +19,7 @@ interface SilverUser {
 }
 
 let general = [
+  'Brendan',
   'mexicanhalloween',
   'William Moore',
   'Rachel Schmitz',
