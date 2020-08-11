@@ -6,7 +6,7 @@ pushd ../../server/ || exit
 cargo build &
 popd || exit
 
-if [ "$1" = "-yarn" ]; then
+if [ "$1" != "--no-yarn-build" ]; then
   pushd ../../ui/ || exit
   yarn
   yarn build
