@@ -2,11 +2,12 @@ use crate::{apub::ActorType, LemmyError};
 use activitystreams::unparsed::UnparsedMutExt;
 use activitystreams_ext::UnparsedExtension;
 use actix_web::{client::ClientRequest, HttpRequest};
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use http_signature_normalization_actix::{
   digest::{DigestClient, SignExt},
   Config,
 };
+use lemmy_utils::location_info;
 use log::debug;
 use openssl::{
   hash::MessageDigest,
@@ -27,7 +28,7 @@ pub async fn sign(
   activity: String,
 ) -> Result<DigestClient<String>, LemmyError> {
   let signing_key_id = format!("{}#main-key", actor.actor_id()?);
-  let private_key = actor.private_key();
+  let private_key = actor.private_key().context(location_info!())?;
 
   let digest_client = request
     .signature_with_digest(
@@ -37,8 +38,8 @@ pub async fn sign(
       activity,
       move |signing_string| {
         let private_key = PKey::private_key_from_pem(private_key.as_bytes())?;
-        let mut signer = Signer::new(MessageDigest::sha256(), &private_key).unwrap();
-        signer.update(signing_string.as_bytes()).unwrap();
+        let mut signer = Signer::new(MessageDigest::sha256(), &private_key)?;
+        signer.update(signing_string.as_bytes())?;
 
         Ok(base64::encode(signer.sign_to_vec()?)) as Result<_, LemmyError>
       },
@@ -49,6 +50,7 @@ pub async fn sign(
 }
 
 pub fn verify(request: &HttpRequest, actor: &dyn ActorType) -> Result<(), LemmyError> {
+  let public_key = actor.public_key().context(location_info!())?;
   let verified = HTTP_SIG_CONFIG
     .begin_verify(
       request.method(),
@@ -58,12 +60,11 @@ pub fn verify(request: &HttpRequest, actor: &dyn ActorType) -> Result<(), LemmyE
     .verify(|signature, signing_string| -> Result<bool, LemmyError> {
       debug!(
         "Verifying with key {}, message {}",
-        &actor.public_key(),
-        &signing_string
+        &public_key, &signing_string
       );
-      let public_key = PKey::public_key_from_pem(actor.public_key().as_bytes())?;
-      let mut verifier = Verifier::new(MessageDigest::sha256(), &public_key).unwrap();
-      verifier.update(&signing_string.as_bytes()).unwrap();
+      let public_key = PKey::public_key_from_pem(public_key.as_bytes())?;
+      let mut verifier = Verifier::new(MessageDigest::sha256(), &public_key)?;
+      verifier.update(&signing_string.as_bytes())?;
       Ok(verifier.verify(&base64::decode(signature)?)?)
     })?;
 

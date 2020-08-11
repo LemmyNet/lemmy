@@ -20,6 +20,7 @@ use activitystreams::{
   prelude::*,
 };
 use actix_web::{client::Client, web, HttpRequest, HttpResponse};
+use anyhow::Context;
 use lemmy_db::{
   community::{CommunityFollower, CommunityFollowerForm},
   naive_now,
@@ -29,6 +30,7 @@ use lemmy_db::{
   Crud,
   Followable,
 };
+use lemmy_utils::location_info;
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
@@ -58,7 +60,10 @@ pub async fn user_inbox(
   let username = path.into_inner();
   debug!("User {} received activity: {:?}", &username, &activity);
 
-  let actor_uri = activity.actor()?.as_single_xsd_any_uri().unwrap();
+  let actor_uri = activity
+    .actor()?
+    .as_single_xsd_any_uri()
+    .context(location_info!())?;
 
   check_is_apub_id_valid(actor_uri)?;
 
@@ -66,7 +71,7 @@ pub async fn user_inbox(
   verify(&request, actor.as_ref())?;
 
   let any_base = activity.clone().into_any_base()?;
-  let kind = activity.kind().unwrap();
+  let kind = activity.kind().context(location_info!())?;
   let res = match kind {
     ValidTypes::Accept => receive_accept(any_base, username, &client, &pool).await,
     ValidTypes::Create => {
@@ -94,8 +99,12 @@ async fn receive_accept(
   client: &Client,
   pool: &DbPool,
 ) -> Result<HttpResponse, LemmyError> {
-  let accept = Accept::from_any_base(activity)?.unwrap();
-  let community_uri = accept.actor()?.to_owned().single_xsd_any_uri().unwrap();
+  let accept = Accept::from_any_base(activity)?.context(location_info!())?;
+  let community_uri = accept
+    .actor()?
+    .to_owned()
+    .single_xsd_any_uri()
+    .context(location_info!())?;
 
   let community = get_or_fetch_and_upsert_community(&community_uri, client, pool).await?;
 
@@ -123,10 +132,17 @@ async fn receive_create_private_message(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let create = Create::from_any_base(activity)?.unwrap();
-  let note = Note::from_any_base(create.object().as_one().unwrap().to_owned())?.unwrap();
+  let create = Create::from_any_base(activity)?.context(location_info!())?;
+  let note = Note::from_any_base(
+    create
+      .object()
+      .as_one()
+      .context(location_info!())?
+      .to_owned(),
+  )?
+  .context(location_info!())?;
 
-  let domain = Some(create.id_unchecked().unwrap().to_owned());
+  let domain = Some(create.id_unchecked().context(location_info!())?.to_owned());
   let private_message = PrivateMessageForm::from_apub(&note, client, pool, domain).await?;
 
   let inserted_private_message = blocking(pool, move |conn| {
@@ -159,10 +175,17 @@ async fn receive_update_private_message(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let update = Update::from_any_base(activity)?.unwrap();
-  let note = Note::from_any_base(update.object().as_one().unwrap().to_owned())?.unwrap();
+  let update = Update::from_any_base(activity)?.context(location_info!())?;
+  let note = Note::from_any_base(
+    update
+      .object()
+      .as_one()
+      .context(location_info!())?
+      .to_owned(),
+  )?
+  .context(location_info!())?;
 
-  let domain = Some(update.id_unchecked().unwrap().to_owned());
+  let domain = Some(update.id_unchecked().context(location_info!())?.to_owned());
   let private_message_form = PrivateMessageForm::from_apub(&note, client, pool, domain).await?;
 
   let private_message_ap_id = private_message_form.ap_id.clone();
@@ -203,10 +226,17 @@ async fn receive_delete_private_message(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let delete = Delete::from_any_base(activity)?.unwrap();
-  let note = Note::from_any_base(delete.object().as_one().unwrap().to_owned())?.unwrap();
+  let delete = Delete::from_any_base(activity)?.context(location_info!())?;
+  let note = Note::from_any_base(
+    delete
+      .object()
+      .as_one()
+      .context(location_info!())?
+      .to_owned(),
+  )?
+  .context(location_info!())?;
 
-  let domain = Some(delete.id_unchecked().unwrap().to_owned());
+  let domain = Some(delete.id_unchecked().context(location_info!())?.to_owned());
   let private_message_form = PrivateMessageForm::from_apub(&note, client, pool, domain).await?;
 
   let private_message_ap_id = private_message_form.ap_id;
@@ -259,11 +289,19 @@ async fn receive_undo_delete_private_message(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let undo = Undo::from_any_base(activity)?.unwrap();
-  let delete = Delete::from_any_base(undo.object().as_one().unwrap().to_owned())?.unwrap();
-  let note = Note::from_any_base(delete.object().as_one().unwrap().to_owned())?.unwrap();
+  let undo = Undo::from_any_base(activity)?.context(location_info!())?;
+  let delete = Delete::from_any_base(undo.object().as_one().context(location_info!())?.to_owned())?
+    .context(location_info!())?;
+  let note = Note::from_any_base(
+    delete
+      .object()
+      .as_one()
+      .context(location_info!())?
+      .to_owned(),
+  )?
+  .context(location_info!())?;
 
-  let domain = Some(undo.id_unchecked().unwrap().to_owned());
+  let domain = Some(undo.id_unchecked().context(location_info!())?.to_owned());
   let private_message = PrivateMessageForm::from_apub(&note, client, pool, domain).await?;
 
   let private_message_ap_id = private_message.ap_id.clone();

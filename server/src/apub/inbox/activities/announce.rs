@@ -21,6 +21,8 @@ use activitystreams::{
   prelude::ExtendsExt,
 };
 use actix_web::{client::Client, HttpResponse};
+use anyhow::Context;
+use lemmy_utils::location_info;
 
 pub async fn receive_announce(
   activity: AnyBase,
@@ -28,15 +30,15 @@ pub async fn receive_announce(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let announce = Announce::from_any_base(activity)?.unwrap();
+  let announce = Announce::from_any_base(activity)?.context(location_info!())?;
 
   // ensure that announce and community come from the same instance
   let community = get_community_id_from_activity(&announce)?;
-  announce.id(community.domain().unwrap())?;
+  announce.id(community.domain().context(location_info!())?)?;
 
   let kind = announce.object().as_single_kind_str();
   let object = announce.object();
-  let object2 = object.clone().one().unwrap();
+  let object2 = object.clone().one().context(location_info!())?;
   match kind {
     Some("Create") => receive_create(object2, client, pool, chat_server).await,
     Some("Update") => receive_update(object2, client, pool, chat_server).await,

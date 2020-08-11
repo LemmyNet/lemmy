@@ -28,7 +28,7 @@ use activitystreams::{
   prelude::*,
 };
 use actix_web::{client::Client, HttpResponse};
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use lemmy_db::{
   comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
   comment_view::CommentView,
@@ -40,6 +40,7 @@ use lemmy_db::{
   Crud,
   Likeable,
 };
+use lemmy_utils::location_info;
 
 pub async fn receive_undo(
   activity: AnyBase,
@@ -47,7 +48,7 @@ pub async fn receive_undo(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let undo = Undo::from_any_base(activity)?.unwrap();
+  let undo = Undo::from_any_base(activity)?.context(location_info!())?;
   match undo.object().as_single_kind_str() {
     Some("Delete") => receive_undo_delete(undo, client, pool, chat_server).await,
     Some("Remove") => receive_undo_remove(undo, client, pool, chat_server).await,
@@ -62,10 +63,14 @@ where
   T: AsBase<A> + ActorAndObjectRef,
 {
   let outer_actor = outer_activity.actor()?;
-  let outer_actor_uri = outer_actor.as_single_xsd_any_uri().unwrap();
+  let outer_actor_uri = outer_actor
+    .as_single_xsd_any_uri()
+    .context(location_info!())?;
 
   let inner_actor = inner_activity.actor()?;
-  let inner_actor_uri = inner_actor.as_single_xsd_any_uri().unwrap();
+  let inner_actor_uri = inner_actor
+    .as_single_xsd_any_uri()
+    .context(location_info!())?;
 
   if outer_actor_uri.domain() != inner_actor_uri.domain() {
     Err(anyhow!("Cant undo activities from a different instance").into())
@@ -80,9 +85,13 @@ async fn receive_undo_delete(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let delete = Delete::from_any_base(undo.object().to_owned().one().unwrap())?.unwrap();
+  let delete = Delete::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
+    .context(location_info!())?;
   check_is_undo_valid(&undo, &delete)?;
-  let type_ = delete.object().as_single_kind_str().unwrap();
+  let type_ = delete
+    .object()
+    .as_single_kind_str()
+    .context(location_info!())?;
   match type_ {
     "Note" => receive_undo_delete_comment(undo, &delete, client, pool, chat_server).await,
     "Page" => receive_undo_delete_post(undo, &delete, client, pool, chat_server).await,
@@ -97,10 +106,14 @@ async fn receive_undo_remove(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let remove = Remove::from_any_base(undo.object().to_owned().one().unwrap())?.unwrap();
+  let remove = Remove::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
+    .context(location_info!())?;
   check_is_undo_valid(&undo, &remove)?;
 
-  let type_ = remove.object().as_single_kind_str().unwrap();
+  let type_ = remove
+    .object()
+    .as_single_kind_str()
+    .context(location_info!())?;
   match type_ {
     "Note" => receive_undo_remove_comment(undo, &remove, client, pool, chat_server).await,
     "Page" => receive_undo_remove_post(undo, &remove, client, pool, chat_server).await,
@@ -115,10 +128,14 @@ async fn receive_undo_like(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let like = Like::from_any_base(undo.object().to_owned().one().unwrap())?.unwrap();
+  let like = Like::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
+    .context(location_info!())?;
   check_is_undo_valid(&undo, &like)?;
 
-  let type_ = like.object().as_single_kind_str().unwrap();
+  let type_ = like
+    .object()
+    .as_single_kind_str()
+    .context(location_info!())?;
   match type_ {
     "Note" => receive_undo_like_comment(undo, &like, client, pool, chat_server).await,
     "Page" => receive_undo_like_post(undo, &like, client, pool, chat_server).await,
@@ -132,12 +149,16 @@ async fn receive_undo_dislike(
   _pool: &DbPool,
   _chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let dislike = Dislike::from_any_base(undo.object().to_owned().one().unwrap())?.unwrap();
+  let dislike = Dislike::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
+    .context(location_info!())?;
   check_is_undo_valid(&undo, &dislike)?;
 
   // TODO: need to implement Undo<Dislike>
 
-  let type_ = dislike.object().as_single_kind_str().unwrap();
+  let type_ = dislike
+    .object()
+    .as_single_kind_str()
+    .context(location_info!())?;
   Err(anyhow!("Undo Delete type {} not supported", type_).into())
 }
 
@@ -149,7 +170,8 @@ async fn receive_undo_delete_comment(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let user = get_user_from_activity(delete, client, pool).await?;
-  let note = Note::from_any_base(delete.object().to_owned().one().unwrap())?.unwrap();
+  let note = Note::from_any_base(delete.object().to_owned().one().context(location_info!())?)?
+    .context(location_info!())?;
 
   let comment_ap_id = CommentForm::from_apub(&note, client, pool, Some(user.actor_id()?))
     .await?
@@ -207,7 +229,8 @@ async fn receive_undo_remove_comment(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let mod_ = get_user_from_activity(remove, client, pool).await?;
-  let note = Note::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
+  let note = Note::from_any_base(remove.object().to_owned().one().context(location_info!())?)?
+    .context(location_info!())?;
 
   let comment_ap_id = CommentForm::from_apub(&note, client, pool, None)
     .await?
@@ -265,7 +288,8 @@ async fn receive_undo_delete_post(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let user = get_user_from_activity(delete, client, pool).await?;
-  let page = PageExt::from_any_base(delete.object().to_owned().one().unwrap())?.unwrap();
+  let page = PageExt::from_any_base(delete.object().to_owned().one().context(location_info!())?)?
+    .context(location_info!())?;
 
   let post_ap_id = PostForm::from_apub(&page, client, pool, Some(user.actor_id()?))
     .await?
@@ -320,7 +344,8 @@ async fn receive_undo_remove_post(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let mod_ = get_user_from_activity(remove, client, pool).await?;
-  let page = PageExt::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
+  let page = PageExt::from_any_base(remove.object().to_owned().one().context(location_info!())?)?
+    .context(location_info!())?;
 
   let post_ap_id = PostForm::from_apub(&page, client, pool, None)
     .await?
@@ -375,7 +400,8 @@ async fn receive_undo_delete_community(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let user = get_user_from_activity(delete, client, pool).await?;
-  let group = GroupExt::from_any_base(delete.object().to_owned().one().unwrap())?.unwrap();
+  let group = GroupExt::from_any_base(delete.object().to_owned().one().context(location_info!())?)?
+    .context(location_info!())?;
 
   let community_actor_id = CommunityForm::from_apub(&group, client, pool, Some(user.actor_id()?))
     .await?
@@ -441,7 +467,8 @@ async fn receive_undo_remove_community(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let mod_ = get_user_from_activity(remove, client, pool).await?;
-  let group = GroupExt::from_any_base(remove.object().to_owned().one().unwrap())?.unwrap();
+  let group = GroupExt::from_any_base(remove.object().to_owned().one().context(location_info!())?)?
+    .context(location_info!())?;
 
   let community_actor_id = CommunityForm::from_apub(&group, client, pool, Some(mod_.actor_id()?))
     .await?
@@ -507,7 +534,8 @@ async fn receive_undo_like_comment(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let user = get_user_from_activity(like, client, pool).await?;
-  let note = Note::from_any_base(like.object().to_owned().one().unwrap())?.unwrap();
+  let note = Note::from_any_base(like.object().to_owned().one().context(location_info!())?)?
+    .context(location_info!())?;
 
   let comment = CommentForm::from_apub(&note, client, pool, None).await?;
 
@@ -553,7 +581,8 @@ async fn receive_undo_like_post(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let user = get_user_from_activity(like, client, pool).await?;
-  let page = PageExt::from_any_base(like.object().to_owned().one().unwrap())?.unwrap();
+  let page = PageExt::from_any_base(like.object().to_owned().one().context(location_info!())?)?
+    .context(location_info!())?;
 
   let post = PostForm::from_apub(&page, client, pool, None).await?;
 

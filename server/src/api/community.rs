@@ -605,11 +605,11 @@ impl Perform for Oper<FollowCommunity> {
       // Dont actually add to the community followers here, because you need
       // to wait for the accept
       user
-        .send_follow(&community.actor_id, &self.client, pool)
+        .send_follow(&community.actor_id()?, &self.client, pool)
         .await?;
     } else {
       user
-        .send_unfollow(&community.actor_id, &self.client, pool)
+        .send_unfollow(&community.actor_id()?, &self.client, pool)
         .await?;
       let unfollow = move |conn: &'_ _| CommunityFollower::unfollow(conn, &community_follower_form);
       if blocking(pool, unfollow).await?.is_err() {

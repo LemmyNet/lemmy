@@ -21,7 +21,7 @@ use uuid::Uuid;
 pub async fn send_activity_to_community(
   creator: &User_,
   community: &Community,
-  to: Vec<String>,
+  to: Vec<Url>,
   activity: AnyBase,
   client: &Client,
   pool: &DbPool,
@@ -43,17 +43,18 @@ pub async fn send_activity(
   client: &Client,
   activity: &AnyBase,
   actor: &dyn ActorType,
-  to: Vec<String>,
+  to: Vec<Url>,
 ) -> Result<(), LemmyError> {
   let activity = serde_json::to_string(&activity)?;
   debug!("Sending activitypub activity {} to {:?}", activity, to);
 
-  for t in to {
-    let to_url = Url::parse(&t)?;
+  for to_url in to {
     check_is_apub_id_valid(&to_url)?;
 
     let res = retry_custom(|| async {
-      let request = client.post(&t).header("Content-Type", "application/json");
+      let request = client
+        .post(to_url.as_str())
+        .header("Content-Type", "application/json");
 
       match sign(request, actor, activity.clone()).await {
         Ok(signed) => Ok(signed.send().await),

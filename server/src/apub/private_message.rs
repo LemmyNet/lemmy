@@ -6,6 +6,7 @@ use crate::{
     create_tombstone,
     fetcher::get_or_fetch_and_upsert_user,
     insert_activity,
+    ActorType,
     ApubObjectType,
     FromApub,
     ToApub,
@@ -27,12 +28,13 @@ use activitystreams::{
   prelude::*,
 };
 use actix_web::client::Client;
+use anyhow::Context;
 use lemmy_db::{
   private_message::{PrivateMessage, PrivateMessageForm},
   user::User_,
   Crud,
 };
-use lemmy_utils::convert_datetime;
+use lemmy_utils::{convert_datetime, location_info};
 use url::Url;
 
 #[async_trait::async_trait(?Send)]
@@ -81,15 +83,20 @@ impl FromApub for PrivateMessageForm {
   ) -> Result<PrivateMessageForm, LemmyError> {
     let creator_actor_id = note
       .attributed_to()
-      .unwrap()
+      .context(location_info!())?
       .clone()
       .single_xsd_any_uri()
-      .unwrap();
+      .context(location_info!())?;
 
     let creator = get_or_fetch_and_upsert_user(&creator_actor_id, client, pool).await?;
-    let recipient_actor_id = note.to().unwrap().clone().single_xsd_any_uri().unwrap();
+    let recipient_actor_id = note
+      .to()
+      .context(location_info!())?
+      .clone()
+      .single_xsd_any_uri()
+      .context(location_info!())?;
     let recipient = get_or_fetch_and_upsert_user(&recipient_actor_id, client, pool).await?;
-    let ap_id = note.id_unchecked().unwrap().to_string();
+    let ap_id = note.id_unchecked().context(location_info!())?.to_string();
     check_is_apub_id_valid(&Url::parse(&ap_id)?)?;
 
     Ok(PrivateMessageForm {
@@ -97,9 +104,9 @@ impl FromApub for PrivateMessageForm {
       recipient_id: recipient.id,
       content: note
         .content()
-        .unwrap()
+        .context(location_info!())?
         .as_single_xsd_string()
-        .unwrap()
+        .context(location_info!())?
         .to_string(),
       published: note.published().map(|u| u.to_owned().naive_local()),
       updated: note.updated().map(|u| u.to_owned().naive_local()),
@@ -126,7 +133,7 @@ impl ApubObjectType for PrivateMessage {
     let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
 
     let mut create = Create::new(creator.actor_id.to_owned(), note.into_any_base()?);
-    let to = format!("{}/inbox", recipient.actor_id);
+    let to = recipient.get_inbox_url()?;
     create
       .set_context(context())
       .set_id(generate_activity_id(CreateType::Create)?)
@@ -151,7 +158,7 @@ impl ApubObjectType for PrivateMessage {
     let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
 
     let mut update = Update::new(creator.actor_id.to_owned(), note.into_any_base()?);
-    let to = format!("{}/inbox", recipient.actor_id);
+    let to = recipient.get_inbox_url()?;
     update
       .set_context(context())
       .set_id(generate_activity_id(UpdateType::Update)?)
@@ -175,7 +182,7 @@ impl ApubObjectType for PrivateMessage {
     let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
 
     let mut delete = Delete::new(creator.actor_id.to_owned(), note.into_any_base()?);
-    let to = format!("{}/inbox", recipient.actor_id);
+    let to = recipient.get_inbox_url()?;
     delete
       .set_context(context())
       .set_id(generate_activity_id(DeleteType::Delete)?)
@@ -199,7 +206,7 @@ impl ApubObjectType for PrivateMessage {
     let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
 
     let mut delete = Delete::new(creator.actor_id.to_owned(), note.into_any_base()?);
-    let to = format!("{}/inbox", recipient.actor_id);
+    let to = recipient.get_inbox_url()?;
     delete
       .set_context(context())
       .set_id(generate_activity_id(DeleteType::Delete)?)

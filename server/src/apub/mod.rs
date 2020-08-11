@@ -30,10 +30,16 @@ use activitystreams::{
 };
 use activitystreams_ext::{Ext1, Ext2};
 use actix_web::{body::Body, client::Client, HttpResponse};
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
 use lemmy_db::{activity::do_insert_activity, user::User_};
-use lemmy_utils::{convert_datetime, get_apub_protocol_string, settings::Settings, MentionData};
+use lemmy_utils::{
+  convert_datetime,
+  get_apub_protocol_string,
+  location_info,
+  settings::Settings,
+  MentionData,
+};
 use log::debug;
 use serde::Serialize;
 use url::{ParseError, Url};
@@ -80,7 +86,12 @@ fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
   // instance. replace is needed to remove the port in our federation test setup.
   let settings = Settings::get();
   let local_instance = settings.hostname.split(':').collect::<Vec<&str>>();
-  allowed_instances.push(local_instance.first().unwrap().to_string());
+  allowed_instances.push(
+    local_instance
+      .first()
+      .context(location_info!())?
+      .to_string(),
+  );
 
   match apub_id.domain() {
     Some(d) => {
@@ -197,10 +208,10 @@ where
   T: Base + AsBase<Kind>,
 {
   let actor_id = if let Some(url) = expected_domain {
-    let domain = url.domain().unwrap();
-    apub.id(domain)?.unwrap()
+    let domain = url.domain().context(location_info!())?;
+    apub.id(domain)?.context(location_info!())?
   } else {
-    let actor_id = apub.id_unchecked().unwrap();
+    let actor_id = apub.id_unchecked().context(location_info!())?;
     check_is_apub_id_valid(&actor_id)?;
     actor_id
   };
@@ -229,25 +240,13 @@ pub trait ApubLikeableType {
   ) -> Result<(), LemmyError>;
 }
 
-pub fn get_shared_inbox(actor_id: &Url) -> String {
-  format!(
-    "{}://{}{}/inbox",
-    &actor_id.scheme(),
-    &actor_id.host_str().unwrap(),
-    if let Some(port) = actor_id.port() {
-      format!(":{}", port)
-    } else {
-      "".to_string()
-    },
-  )
-}
-
 #[async_trait::async_trait(?Send)]
 pub trait ActorType {
   fn actor_id_str(&self) -> String;
 
-  fn public_key(&self) -> String;
-  fn private_key(&self) -> String;
+  // TODO: every actor should have a public key, so this shouldnt be an option (needs to be fixed in db)
+  fn public_key(&self) -> Option<String>;
+  fn private_key(&self) -> Option<String>;
 
   /// numeric id in the database, used for insert_activity
   fn user_id(&self) -> i32;
@@ -257,13 +256,13 @@ pub trait ActorType {
   #[allow(unused_variables)]
   async fn send_follow(
     &self,
-    follow_actor_id: &str,
+    follow_actor_id: &Url,
     client: &Client,
     pool: &DbPool,
   ) -> Result<(), LemmyError>;
   async fn send_unfollow(
     &self,
-    follow_actor_id: &str,
+    follow_actor_id: &Url,
     client: &Client,
     pool: &DbPool,
   ) -> Result<(), LemmyError>;
@@ -303,7 +302,7 @@ pub trait ActorType {
   ) -> Result<(), LemmyError>;
 
   /// For a given community, returns the inboxes of all followers.
-  async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<String>, LemmyError>;
+  async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<Url>, LemmyError>;
 
   fn actor_id(&self) -> Result<Url, ParseError> {
     Url::parse(&self.actor_id_str())
@@ -314,9 +313,19 @@ pub trait ActorType {
     Url::parse(&format!("{}/inbox", &self.actor_id_str()))
   }
 
-  // TODO: make this return `Result<Url, ParseError>
-  fn get_shared_inbox_url(&self) -> String {
-    get_shared_inbox(&self.actor_id().unwrap())
+  fn get_shared_inbox_url(&self) -> Result<Url, LemmyError> {
+    let actor_id = self.actor_id()?;
+    let url = format!(
+      "{}://{}{}/inbox",
+      &actor_id.scheme(),
+      &actor_id.host_str().context(location_info!())?,
+      if let Some(port) = actor_id.port() {
+        format!(":{}", port)
+      } else {
+        "".to_string()
+      },
+    );
+    Ok(Url::parse(&url)?)
   }
 
   fn get_outbox_url(&self) -> Result<Url, ParseError> {
@@ -335,13 +344,15 @@ pub trait ActorType {
     format!("{}/liked", &self.actor_id_str())
   }
 
-  fn get_public_key_ext(&self) -> PublicKeyExtension {
-    PublicKey {
-      id: format!("{}#main-key", self.actor_id_str()),
-      owner: self.actor_id_str(),
-      public_key_pem: self.public_key(),
-    }
-    .to_ext()
+  fn get_public_key_ext(&self) -> Result<PublicKeyExtension, LemmyError> {
+    Ok(
+      PublicKey {
+        id: format!("{}#main-key", self.actor_id_str()),
+        owner: self.actor_id_str(),
+        public_key_pem: self.public_key().context(location_info!())?,
+      }
+      .to_ext(),
+    )
   }
 }
 

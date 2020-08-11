@@ -17,7 +17,7 @@ use crate::{
 };
 use activitystreams::{base::BaseExt, collection::OrderedCollection, object::Note, prelude::*};
 use actix_web::client::Client;
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
 use diesel::{result::Error::NotFound, PgConnection};
 use lemmy_db::{
@@ -34,7 +34,7 @@ use lemmy_db::{
   Joinable,
   SearchType,
 };
-use lemmy_utils::get_apub_protocol_string;
+use lemmy_utils::{get_apub_protocol_string, location_info};
 use log::debug;
 use serde::Deserialize;
 use std::{fmt::Debug, time::Duration};
@@ -144,10 +144,10 @@ pub async fn search_by_apub_id(
     users: vec![],
   };
 
-  let domain = query_url.domain().unwrap();
+  let domain = query_url.domain().context("url has no domain")?;
   let response = match fetch_remote_object::<SearchAcceptedObjects>(client, &query_url).await? {
     SearchAcceptedObjects::Person(p) => {
-      let user_uri = p.inner.id(domain)?.unwrap();
+      let user_uri = p.inner.id(domain)?.context("person has no id")?;
 
       let user = get_or_fetch_and_upsert_user(&user_uri, client, pool).await?;
 
@@ -157,7 +157,7 @@ pub async fn search_by_apub_id(
       response
     }
     SearchAcceptedObjects::Group(g) => {
-      let community_uri = g.inner.id(domain)?.unwrap();
+      let community_uri = g.inner.id(domain)?.context("group has no id")?;
 
       let community = get_or_fetch_and_upsert_community(community_uri, client, pool).await?;
 
@@ -181,10 +181,19 @@ pub async fn search_by_apub_id(
       response
     }
     SearchAcceptedObjects::Comment(c) => {
-      let post_url = c.in_reply_to().as_ref().unwrap().as_many().unwrap();
+      let post_url = c
+        .in_reply_to()
+        .as_ref()
+        .context(location_info!())?
+        .as_many()
+        .context(location_info!())?;
 
       // TODO: also fetch parent comments if any
-      let x = post_url.first().unwrap().as_xsd_any_uri().unwrap();
+      let x = post_url
+        .first()
+        .context(location_info!())?
+        .as_xsd_any_uri()
+        .context(location_info!())?;
       let post = fetch_remote_object(client, x).await?;
       let post_form = PostForm::from_apub(&post, client, pool, Some(query_url.clone())).await?;
       let comment_form = CommentForm::from_apub(&c, client, pool, Some(query_url)).await?;
@@ -312,13 +321,13 @@ async fn fetch_remote_community(
   .await??;
 
   // Also add the community moderators too
-  let attributed_to = group.inner.attributed_to().unwrap();
+  let attributed_to = group.inner.attributed_to().context(location_info!())?;
   let creator_and_moderator_uris: Vec<&Url> = attributed_to
     .as_many()
-    .unwrap()
+    .context(location_info!())?
     .iter()
-    .map(|a| a.as_xsd_any_uri().unwrap())
-    .collect();
+    .map(|a| a.as_xsd_any_uri().context(""))
+    .collect::<Result<Vec<&Url>, anyhow::Error>>()?;
 
   let mut creator_and_moderators = Vec::new();
 
@@ -348,9 +357,9 @@ async fn fetch_remote_community(
   // fetch outbox (maybe make this conditional)
   let outbox =
     fetch_remote_object::<OrderedCollection>(client, &community.get_outbox_url()?).await?;
-  let outbox_items = outbox.items().unwrap().clone();
-  for o in outbox_items.many().unwrap() {
-    let page = PageExt::from_any_base(o)?.unwrap();
+  let outbox_items = outbox.items().context(location_info!())?.clone();
+  for o in outbox_items.many().context(location_info!())? {
+    let page = PageExt::from_any_base(o)?.context(location_info!())?;
     let post = PostForm::from_apub(&page, client, pool, None).await?;
     let post_ap_id = post.ap_id.clone();
     // Check whether the post already exists in the local db
@@ -452,7 +461,7 @@ pub async fn get_or_fetch_and_insert_comment(
 
 //   Ok(
 //     items
-//       .unwrap()
+//       .context(location_info!())?
 //       .map(|obox: &BaseBox| -> Result<PostForm, LemmyError> {
 //         let page = obox.clone().to_concrete::<Page>()?;
 //         PostForm::from_page(&page, conn)

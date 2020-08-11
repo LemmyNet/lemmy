@@ -7,8 +7,7 @@ use crate::{
     create_apub_tombstone_response,
     create_tombstone,
     extensions::group_extensions::GroupExtension,
-    fetcher::get_or_fetch_and_upsert_user,
-    get_shared_inbox,
+    fetcher::{get_or_fetch_and_upsert_actor, get_or_fetch_and_upsert_user},
     insert_activity,
     ActorType,
     FromApub,
@@ -40,6 +39,7 @@ use activitystreams::{
 };
 use activitystreams_ext::Ext2;
 use actix_web::{body::Body, client::Client, web, HttpResponse};
+use anyhow::Context;
 use itertools::Itertools;
 use lemmy_db::{
   community::{Community, CommunityForm},
@@ -48,7 +48,7 @@ use lemmy_db::{
   post::Post,
   user::User_,
 };
-use lemmy_utils::convert_datetime;
+use lemmy_utils::{convert_datetime, get_apub_protocol_string, location_info};
 use serde::Deserialize;
 use url::Url;
 
@@ -99,7 +99,7 @@ impl ToApub for Community {
       .set_following(self.get_following_url().parse()?)
       .set_liked(self.get_liked_url().parse()?)
       .set_endpoints(Endpoints {
-        shared_inbox: Some(self.get_shared_inbox_url().parse()?),
+        shared_inbox: Some(self.get_shared_inbox_url()?),
         ..Default::default()
       });
 
@@ -113,7 +113,7 @@ impl ToApub for Community {
     Ok(Ext2::new(
       ap_actor,
       group_extension,
-      self.get_public_key_ext(),
+      self.get_public_key_ext()?,
     ))
   }
 
@@ -128,11 +128,11 @@ impl ActorType for Community {
     self.actor_id.to_owned()
   }
 
-  fn public_key(&self) -> String {
-    self.public_key.to_owned().unwrap()
+  fn public_key(&self) -> Option<String> {
+    self.public_key.to_owned()
   }
-  fn private_key(&self) -> String {
-    self.private_key.to_owned().unwrap()
+  fn private_key(&self) -> Option<String> {
+    self.private_key.to_owned()
   }
 
   /// As a local community, accept the follow request from a remote user.
@@ -142,10 +142,14 @@ impl ActorType for Community {
     client: &Client,
     pool: &DbPool,
   ) -> Result<(), LemmyError> {
-    let actor_uri = follow.actor()?.as_single_xsd_any_uri().unwrap().to_string();
+    let actor_uri = follow
+      .actor()?
+      .as_single_xsd_any_uri()
+      .context(location_info!())?;
+    let actor = get_or_fetch_and_upsert_actor(actor_uri, client, pool).await?;
 
     let mut accept = Accept::new(self.actor_id.to_owned(), follow.into_any_base()?);
-    let to = format!("{}/inbox", actor_uri);
+    let to = actor.get_inbox_url()?;
     accept
       .set_context(context())
       .set_id(generate_activity_id(AcceptType::Accept)?)
@@ -279,7 +283,10 @@ impl ActorType for Community {
   }
 
   /// For a given community, returns the inboxes of all followers.
-  async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<String>, LemmyError> {
+  ///
+  /// TODO: this function is very badly implemented, we should just store shared_inbox_url in
+  ///       CommunityFollowerView
+  async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<Url>, LemmyError> {
     let id = self.id;
 
     let inboxes = blocking(pool, move |conn| {
@@ -288,8 +295,22 @@ impl ActorType for Community {
     .await??;
     let inboxes = inboxes
       .into_iter()
-      .map(|c| get_shared_inbox(&Url::parse(&c.user_actor_id).unwrap()))
-      .filter(|s| !s.is_empty())
+      .map(|u| -> Result<Url, LemmyError> {
+        let url = Url::parse(&u.user_actor_id)?;
+        let domain = url.domain().context(location_info!())?;
+        let port = if let Some(port) = url.port() {
+          format!(":{}", port)
+        } else {
+          "".to_string()
+        };
+        Ok(Url::parse(&format!(
+          "{}://{}{}/inbox",
+          get_apub_protocol_string(),
+          domain,
+          port,
+        ))?)
+      })
+      .filter_map(Result::ok)
       .unique()
       .collect();
 
@@ -298,7 +319,7 @@ impl ActorType for Community {
 
   async fn send_follow(
     &self,
-    _follow_actor_id: &str,
+    _follow_actor_id: &Url,
     _client: &Client,
     _pool: &DbPool,
   ) -> Result<(), LemmyError> {
@@ -307,7 +328,7 @@ impl ActorType for Community {
 
   async fn send_unfollow(
     &self,
-    _follow_actor_id: &str,
+    _follow_actor_id: &Url,
     _client: &Client,
     _pool: &DbPool,
   ) -> Result<(), LemmyError> {
@@ -330,44 +351,50 @@ impl FromApub for CommunityForm {
     pool: &DbPool,
     expected_domain: Option<Url>,
   ) -> Result<Self, LemmyError> {
-    let creator_and_moderator_uris = group.inner.attributed_to().unwrap();
+    let creator_and_moderator_uris = group.inner.attributed_to().context(location_info!())?;
     let creator_uri = creator_and_moderator_uris
       .as_many()
-      .unwrap()
+      .context(location_info!())?
       .iter()
       .next()
-      .unwrap()
+      .context(location_info!())?
       .as_xsd_any_uri()
-      .unwrap();
+      .context(location_info!())?;
 
     let creator = get_or_fetch_and_upsert_user(creator_uri, client, pool).await?;
     let name = group
       .inner
       .name()
-      .unwrap()
+      .context(location_info!())?
       .as_one()
-      .unwrap()
+      .context(location_info!())?
       .as_xsd_string()
-      .unwrap()
+      .context(location_info!())?
       .to_string();
-    let title = group.inner.preferred_username().unwrap().to_string();
+    let title = group
+      .inner
+      .preferred_username()
+      .context(location_info!())?
+      .to_string();
     // TODO: should be parsed as html and tags like <script> removed (or use markdown source)
     //       -> same for post.content etc
     let description = group
       .inner
       .content()
-      .map(|s| s.as_single_xsd_string().unwrap().into());
+      .map(|s| s.as_single_xsd_string())
+      .flatten()
+      .map(|s| s.to_string());
     check_slurs(&name)?;
     check_slurs(&title)?;
     check_slurs_opt(&description)?;
 
     let icon = match group.icon() {
       Some(any_image) => Some(
-        Image::from_any_base(any_image.as_one().unwrap().clone())
-          .unwrap()
-          .unwrap()
+        Image::from_any_base(any_image.as_one().context(location_info!())?.clone())
+          .context(location_info!())?
+          .context(location_info!())?
           .url()
-          .unwrap()
+          .context(location_info!())?
           .as_single_xsd_any_uri()
           .map(|u| u.to_string()),
       ),
@@ -376,11 +403,11 @@ impl FromApub for CommunityForm {
 
     let banner = match group.image() {
       Some(any_image) => Some(
-        Image::from_any_base(any_image.as_one().unwrap().clone())
-          .unwrap()
-          .unwrap()
+        Image::from_any_base(any_image.as_one().context(location_info!())?.clone())
+          .context(location_info!())?
+          .context(location_info!())?
           .url()
-          .unwrap()
+          .context(location_info!())?
           .as_single_xsd_any_uri()
           .map(|u| u.to_string()),
       ),
@@ -499,13 +526,15 @@ pub async fn do_announce(
 
   insert_activity(community.creator_id, announce.clone(), true, pool).await?;
 
-  let mut to = community.get_follower_inboxes(pool).await?;
+  let mut to: Vec<Url> = community.get_follower_inboxes(pool).await?;
 
   // dont send to the local instance, nor to the instance where the activity originally came from,
   // because that would result in a database error (same data inserted twice)
   // this seems to be the "easiest" stable alternative for remove_item()
-  to.retain(|x| *x != sender.get_shared_inbox_url());
-  to.retain(|x| *x != community.get_shared_inbox_url());
+  let sender_shared_inbox = sender.get_shared_inbox_url()?;
+  to.retain(|x| x != &sender_shared_inbox);
+  let community_shared_inbox = community.get_shared_inbox_url()?;
+  to.retain(|x| x != &community_shared_inbox);
 
   send_activity(client, &announce.into_any_base()?, community, to).await?;
 

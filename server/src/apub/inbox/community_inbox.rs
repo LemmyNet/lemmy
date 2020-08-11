@@ -16,12 +16,13 @@ use activitystreams::{
   prelude::*,
 };
 use actix_web::{client::Client, web, HttpRequest, HttpResponse};
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use lemmy_db::{
   community::{Community, CommunityFollower, CommunityFollowerForm},
   user::User_,
   Followable,
 };
+use lemmy_utils::location_info;
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
@@ -62,7 +63,10 @@ pub async fn community_inbox(
     "Community {} received activity {:?}",
     &community.name, &activity
   );
-  let user_uri = activity.actor()?.as_single_xsd_any_uri().unwrap();
+  let user_uri = activity
+    .actor()?
+    .as_single_xsd_any_uri()
+    .context(location_info!())?;
   check_is_apub_id_valid(user_uri)?;
 
   let user = get_or_fetch_and_upsert_user(&user_uri, &client, &db).await?;
@@ -70,7 +74,7 @@ pub async fn community_inbox(
   verify(&request, &user)?;
 
   let any_base = activity.clone().into_any_base()?;
-  let kind = activity.kind().unwrap();
+  let kind = activity.kind().context(location_info!())?;
   let user_id = user.id;
   let res = match kind {
     ValidTypes::Follow => handle_follow(any_base, user, community, &client, &db).await,
@@ -90,7 +94,7 @@ async fn handle_follow(
   client: &Client,
   db: &DbPoolParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let follow = Follow::from_any_base(activity)?.unwrap();
+  let follow = Follow::from_any_base(activity)?.context(location_info!())?;
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,
     user_id: user.id,
@@ -113,7 +117,7 @@ async fn handle_undo_follow(
   community: Community,
   db: &DbPoolParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let _undo = Undo::from_any_base(activity)?.unwrap();
+  let _undo = Undo::from_any_base(activity)?.context(location_info!())?;
 
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,

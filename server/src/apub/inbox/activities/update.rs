@@ -25,6 +25,7 @@ use crate::{
 };
 use activitystreams::{activity::Update, base::AnyBase, object::Note, prelude::*};
 use actix_web::{client::Client, HttpResponse};
+use anyhow::Context;
 use lemmy_db::{
   comment::{Comment, CommentForm},
   comment_view::CommentView,
@@ -32,7 +33,7 @@ use lemmy_db::{
   post_view::PostView,
   Crud,
 };
-use lemmy_utils::scrape_text_for_mentions;
+use lemmy_utils::{location_info, scrape_text_for_mentions};
 
 pub async fn receive_update(
   activity: AnyBase,
@@ -40,11 +41,11 @@ pub async fn receive_update(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let update = Update::from_any_base(activity)?.unwrap();
+  let update = Update::from_any_base(activity)?.context(location_info!())?;
 
   // ensure that update and actor come from the same instance
   let user = get_user_from_activity(&update, client, pool).await?;
-  update.id(user.actor_id()?.domain().unwrap())?;
+  update.id(user.actor_id()?.domain().context(location_info!())?)?;
 
   match update.object().as_single_kind_str() {
     Some("Page") => receive_update_post(update, client, pool, chat_server).await,
@@ -60,7 +61,8 @@ async fn receive_update_post(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let user = get_user_from_activity(&update, client, pool).await?;
-  let page = PageExt::from_any_base(update.object().to_owned().one().unwrap())?.unwrap();
+  let page = PageExt::from_any_base(update.object().to_owned().one().context(location_info!())?)?
+    .context(location_info!())?;
 
   let post = PostForm::from_apub(&page, client, pool, Some(user.actor_id()?)).await?;
 
@@ -97,7 +99,8 @@ async fn receive_update_comment(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let note = Note::from_any_base(update.object().to_owned().one().unwrap())?.unwrap();
+  let note = Note::from_any_base(update.object().to_owned().one().context(location_info!())?)?
+    .context(location_info!())?;
   let user = get_user_from_activity(&update, client, pool).await?;
 
   let comment = CommentForm::from_apub(&note, client, pool, Some(user.actor_id()?)).await?;

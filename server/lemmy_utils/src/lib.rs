@@ -31,6 +31,18 @@ use regex::{Regex, RegexBuilder};
 use std::io::{Error, ErrorKind};
 use url::Url;
 
+#[macro_export]
+macro_rules! location_info {
+  () => {
+    format!(
+      "None value at {}:{}, column {}",
+      file!(),
+      line!(),
+      column!()
+    )
+  };
+}
+
 pub fn to_datetime_utc(ndt: NaiveDateTime) -> DateTime<Utc> {
   DateTime::<Utc>::from_utc(ndt, Utc)
 }

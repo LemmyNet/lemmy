@@ -23,6 +23,7 @@ use crate::{
 };
 use activitystreams::{activity::Delete, base::AnyBase, object::Note, prelude::*};
 use actix_web::{client::Client, HttpResponse};
+use anyhow::Context;
 use lemmy_db::{
   comment::{Comment, CommentForm},
   comment_view::CommentView,
@@ -33,6 +34,7 @@ use lemmy_db::{
   post_view::PostView,
   Crud,
 };
+use lemmy_utils::location_info;
 
 pub async fn receive_delete(
   activity: AnyBase,
@@ -40,7 +42,7 @@ pub async fn receive_delete(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let delete = Delete::from_any_base(activity)?.unwrap();
+  let delete = Delete::from_any_base(activity)?.context(location_info!())?;
   match delete.object().as_single_kind_str() {
     Some("Page") => receive_delete_post(delete, client, pool, chat_server).await,
     Some("Note") => receive_delete_comment(delete, client, pool, chat_server).await,
@@ -56,7 +58,8 @@ async fn receive_delete_post(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let user = get_user_from_activity(&delete, client, pool).await?;
-  let page = PageExt::from_any_base(delete.object().to_owned().one().unwrap())?.unwrap();
+  let page = PageExt::from_any_base(delete.object().to_owned().one().context(location_info!())?)?
+    .context(location_info!())?;
 
   let post_ap_id = PostForm::from_apub(&page, client, pool, Some(user.actor_id()?))
     .await?
@@ -110,7 +113,8 @@ async fn receive_delete_comment(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
   let user = get_user_from_activity(&delete, client, pool).await?;
-  let note = Note::from_any_base(delete.object().to_owned().one().unwrap())?.unwrap();
+  let note = Note::from_any_base(delete.object().to_owned().one().context(location_info!())?)?
+    .context(location_info!())?;
 
   let comment_ap_id = CommentForm::from_apub(&note, client, pool, Some(user.actor_id()?))
     .await?
@@ -166,7 +170,8 @@ async fn receive_delete_community(
   pool: &DbPool,
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, LemmyError> {
-  let group = GroupExt::from_any_base(delete.object().to_owned().one().unwrap())?.unwrap();
+  let group = GroupExt::from_any_base(delete.object().to_owned().one().context(location_info!())?)?
+    .context(location_info!())?;
   let user = get_user_from_activity(&delete, client, pool).await?;
 
   let community_actor_id = CommunityForm::from_apub(&group, client, pool, Some(user.actor_id()?))

@@ -31,7 +31,9 @@ use activitystreams::{
   prelude::*,
 };
 use actix_web::{client::Client, web, HttpRequest, HttpResponse};
+use anyhow::Context;
 use lemmy_db::user::User_;
+use lemmy_utils::location_info;
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
@@ -67,7 +69,11 @@ pub async fn shared_inbox(
   let json = serde_json::to_string(&activity)?;
   debug!("Shared inbox received activity: {}", json);
 
-  let sender = &activity.actor()?.to_owned().single_xsd_any_uri().unwrap();
+  let sender = &activity
+    .actor()?
+    .to_owned()
+    .single_xsd_any_uri()
+    .context(location_info!())?;
   let community = get_community_id_from_activity(&activity)?;
 
   check_is_apub_id_valid(sender)?;
@@ -77,7 +83,7 @@ pub async fn shared_inbox(
   verify(&request, actor.as_ref())?;
 
   let any_base = activity.clone().into_any_base()?;
-  let kind = activity.kind().unwrap();
+  let kind = activity.kind().context(location_info!())?;
   let res = match kind {
     ValidTypes::Announce => receive_announce(any_base, &client, &pool, chat_server).await,
     ValidTypes::Create => receive_create(any_base, &client, &pool, chat_server).await,
@@ -112,7 +118,7 @@ where
   T: AsBase<A> + ActorAndObjectRef,
 {
   let actor = activity.actor()?;
-  let user_uri = actor.as_single_xsd_any_uri().unwrap();
+  let user_uri = actor.as_single_xsd_any_uri().context(location_info!())?;
   get_or_fetch_and_upsert_user(&user_uri, client, pool).await
 }
 
@@ -122,9 +128,15 @@ pub(in crate::apub::inbox) fn get_community_id_from_activity<T, A>(
 where
   T: AsBase<A> + ActorAndObjectRef + AsObject<A>,
 {
-  let cc = activity.cc().unwrap();
-  let cc = cc.as_many().unwrap();
-  Ok(cc.first().unwrap().as_xsd_any_uri().unwrap().to_owned())
+  let cc = activity.cc().context(location_info!())?;
+  let cc = cc.as_many().context(location_info!())?;
+  Ok(
+    cc.first()
+      .context(location_info!())?
+      .as_xsd_any_uri()
+      .context(location_info!())?
+      .to_owned(),
+  )
 }
 
 pub(in crate::apub::inbox) async fn announce_if_community_is_local<T, Kind>(
@@ -139,9 +151,13 @@ where
   Kind: Serialize,
   <T as Extends<Kind>>::Error: From<serde_json::Error> + Send + Sync + 'static,
 {
-  let cc = activity.cc().unwrap();
-  let cc = cc.as_many().unwrap();
-  let community_followers_uri = cc.first().unwrap().as_xsd_any_uri().unwrap();
+  let cc = activity.cc().context(location_info!())?;
+  let cc = cc.as_many().context(location_info!())?;
+  let community_followers_uri = cc
+    .first()
+    .context(location_info!())?
+    .as_xsd_any_uri()
+    .context(location_info!())?;
   // TODO: this is hacky but seems to be the only way to get the community ID
   let community_uri = community_followers_uri
     .to_string()
