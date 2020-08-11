@@ -97,6 +97,7 @@ export class Post extends Component<any, PostState> {
       },
       online: null,
       version: null,
+      allowed_instances: undefined,
     },
   };
 

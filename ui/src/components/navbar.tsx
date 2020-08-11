@@ -82,6 +82,7 @@ export class Navbar extends Component<any, NavbarState> {
       banned: [],
       online: null,
       version: null,
+      allowed_instances: null,
     },
     searchParam: '',
     toggleSearch: false,
