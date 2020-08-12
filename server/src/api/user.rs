@@ -6,7 +6,6 @@ use crate::{
     get_user_from_jwt_opt,
     is_admin,
     APIError,
-    Oper,
     Perform,
   },
   apub::ApubObjectType,
@@ -20,6 +19,7 @@ use crate::{
   DbPool,
   LemmyError,
 };
+use actix_web::client::Client;
 use bcrypt::verify;
 use captcha::{gen, Difficulty};
 use chrono::Duration;
@@ -51,6 +51,7 @@ use lemmy_db::{
 use lemmy_utils::{
   generate_actor_keypair,
   generate_random_string,
+  is_valid_preferred_username,
   is_valid_username,
   make_apub_endpoint,
   naive_from_unix,
@@ -293,15 +294,16 @@ pub struct UserJoinResponse {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<Login> {
+impl Perform for Login {
   type Response = LoginResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<LoginResponse, LemmyError> {
-    let data: &Login = &self.data;
+    let data: &Login = &self;
 
     // Fetch that username / email
     let username_or_email = data.username_or_email.clone();
@@ -328,15 +330,16 @@ impl Perform for Oper<Login> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<Register> {
+impl Perform for Register {
   type Response = LoginResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<LoginResponse, LemmyError> {
-    let data: &Register = &self.data;
+    let data: &Register = &self;
 
     // Make sure site has open registration
     if let Ok(site) = blocking(pool, move |conn| SiteView::read(conn)).await? {
@@ -497,13 +500,14 @@ impl Perform for Oper<Register> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<GetCaptcha> {
+impl Perform for GetCaptcha {
   type Response = GetCaptchaResponse;
 
   async fn perform(
     &self,
     _pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<Self::Response, LemmyError> {
     let captcha_settings = Settings::get().captcha;
 
@@ -545,15 +549,16 @@ impl Perform for Oper<GetCaptcha> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<SaveUserSettings> {
+impl Perform for SaveUserSettings {
   type Response = LoginResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<LoginResponse, LemmyError> {
-    let data: &SaveUserSettings = &self.data;
+    let data: &SaveUserSettings = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let user_id = user.id;
@@ -576,7 +581,12 @@ impl Perform for Oper<SaveUserSettings> {
 
     // The DB constraint should stop too many characters
     let preferred_username = match &data.preferred_username {
-      Some(preferred_username) => Some(preferred_username.to_owned()),
+      Some(preferred_username) => {
+        if !is_valid_preferred_username(preferred_username.trim()) {
+          return Err(APIError::err("invalid_username").into());
+        }
+        Some(preferred_username.trim().to_string())
+      }
       None => read_user.preferred_username,
     };
 
@@ -663,15 +673,16 @@ impl Perform for Oper<SaveUserSettings> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<GetUserDetails> {
+impl Perform for GetUserDetails {
   type Response = GetUserDetailsResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<GetUserDetailsResponse, LemmyError> {
-    let data: &GetUserDetails = &self.data;
+    let data: &GetUserDetails = &self;
     let user = get_user_from_jwt_opt(&data.auth, pool).await?;
 
     let show_nsfw = match &user {
@@ -758,15 +769,16 @@ impl Perform for Oper<GetUserDetails> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<AddAdmin> {
+impl Perform for AddAdmin {
   type Response = AddAdminResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<AddAdminResponse, LemmyError> {
-    let data: &AddAdmin = &self.data;
+    let data: &AddAdmin = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     // Make sure user is an admin
@@ -811,15 +823,16 @@ impl Perform for Oper<AddAdmin> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<BanUser> {
+impl Perform for BanUser {
   type Response = BanUserResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<BanUserResponse, LemmyError> {
-    let data: &BanUser = &self.data;
+    let data: &BanUser = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     // Make sure user is an admin
@@ -869,15 +882,16 @@ impl Perform for Oper<BanUser> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<GetReplies> {
+impl Perform for GetReplies {
   type Response = GetRepliesResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<GetRepliesResponse, LemmyError> {
-    let data: &GetReplies = &self.data;
+    let data: &GetReplies = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let sort = SortType::from_str(&data.sort)?;
@@ -901,15 +915,16 @@ impl Perform for Oper<GetReplies> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<GetUserMentions> {
+impl Perform for GetUserMentions {
   type Response = GetUserMentionsResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<GetUserMentionsResponse, LemmyError> {
-    let data: &GetUserMentions = &self.data;
+    let data: &GetUserMentions = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let sort = SortType::from_str(&data.sort)?;
@@ -933,15 +948,16 @@ impl Perform for Oper<GetUserMentions> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<MarkUserMentionAsRead> {
+impl Perform for MarkUserMentionAsRead {
   type Response = UserMentionResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<UserMentionResponse, LemmyError> {
-    let data: &MarkUserMentionAsRead = &self.data;
+    let data: &MarkUserMentionAsRead = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let user_mention_id = data.user_mention_id;
@@ -973,15 +989,16 @@ impl Perform for Oper<MarkUserMentionAsRead> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<MarkAllAsRead> {
+impl Perform for MarkAllAsRead {
   type Response = GetRepliesResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<GetRepliesResponse, LemmyError> {
-    let data: &MarkAllAsRead = &self.data;
+    let data: &MarkAllAsRead = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let user_id = user.id;
@@ -1022,15 +1039,16 @@ impl Perform for Oper<MarkAllAsRead> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<DeleteAccount> {
+impl Perform for DeleteAccount {
   type Response = LoginResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<LoginResponse, LemmyError> {
-    let data: &DeleteAccount = &self.data;
+    let data: &DeleteAccount = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     // Verify the password
@@ -1084,15 +1102,16 @@ impl Perform for Oper<DeleteAccount> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<PasswordReset> {
+impl Perform for PasswordReset {
   type Response = PasswordResetResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<PasswordResetResponse, LemmyError> {
-    let data: &PasswordReset = &self.data;
+    let data: &PasswordReset = &self;
 
     // Fetch that email
     let email = data.email.clone();
@@ -1128,15 +1147,16 @@ impl Perform for Oper<PasswordReset> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<PasswordChange> {
+impl Perform for PasswordChange {
   type Response = LoginResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<LoginResponse, LemmyError> {
-    let data: &PasswordChange = &self.data;
+    let data: &PasswordChange = &self;
 
     // Fetch the user_id from the token
     let token = data.token.clone();
@@ -1169,15 +1189,16 @@ impl Perform for Oper<PasswordChange> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<CreatePrivateMessage> {
+impl Perform for CreatePrivateMessage {
   type Response = PrivateMessageResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    client: Client,
   ) -> Result<PrivateMessageResponse, LemmyError> {
-    let data: &CreatePrivateMessage = &self.data;
+    let data: &CreatePrivateMessage = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let hostname = &format!("https://{}", Settings::get().hostname);
@@ -1223,7 +1244,7 @@ impl Perform for Oper<CreatePrivateMessage> {
     };
 
     updated_private_message
-      .send_create(&user, &self.client, pool)
+      .send_create(&user, &client, pool)
       .await?;
 
     // Send notifications to the recipient
@@ -1268,15 +1289,16 @@ impl Perform for Oper<CreatePrivateMessage> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<EditPrivateMessage> {
+impl Perform for EditPrivateMessage {
   type Response = PrivateMessageResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    client: Client,
   ) -> Result<PrivateMessageResponse, LemmyError> {
-    let data: &EditPrivateMessage = &self.data;
+    let data: &EditPrivateMessage = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     // Checking permissions
@@ -1301,7 +1323,7 @@ impl Perform for Oper<EditPrivateMessage> {
 
     // Send the apub update
     updated_private_message
-      .send_update(&user, &self.client, pool)
+      .send_update(&user, &client, pool)
       .await?;
 
     let edit_id = data.edit_id;
@@ -1324,15 +1346,16 @@ impl Perform for Oper<EditPrivateMessage> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<DeletePrivateMessage> {
+impl Perform for DeletePrivateMessage {
   type Response = PrivateMessageResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    client: Client,
   ) -> Result<PrivateMessageResponse, LemmyError> {
-    let data: &DeletePrivateMessage = &self.data;
+    let data: &DeletePrivateMessage = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     // Checking permissions
@@ -1358,11 +1381,11 @@ impl Perform for Oper<DeletePrivateMessage> {
     // Send the apub update
     if data.deleted {
       updated_private_message
-        .send_delete(&user, &self.client, pool)
+        .send_delete(&user, &client, pool)
         .await?;
     } else {
       updated_private_message
-        .send_undo_delete(&user, &self.client, pool)
+        .send_undo_delete(&user, &client, pool)
         .await?;
     }
 
@@ -1386,15 +1409,16 @@ impl Perform for Oper<DeletePrivateMessage> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<MarkPrivateMessageAsRead> {
+impl Perform for MarkPrivateMessageAsRead {
   type Response = PrivateMessageResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<PrivateMessageResponse, LemmyError> {
-    let data: &MarkPrivateMessageAsRead = &self.data;
+    let data: &MarkPrivateMessageAsRead = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     // Checking permissions
@@ -1439,15 +1463,16 @@ impl Perform for Oper<MarkPrivateMessageAsRead> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<GetPrivateMessages> {
+impl Perform for GetPrivateMessages {
   type Response = PrivateMessagesResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<PrivateMessagesResponse, LemmyError> {
-    let data: &GetPrivateMessages = &self.data;
+    let data: &GetPrivateMessages = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
     let user_id = user.id;
 
@@ -1468,15 +1493,16 @@ impl Perform for Oper<GetPrivateMessages> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<UserJoin> {
+impl Perform for UserJoin {
   type Response = UserJoinResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<UserJoinResponse, LemmyError> {
-    let data: &UserJoin = &self.data;
+    let data: &UserJoin = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     if let Some(ws) = websocket_info {

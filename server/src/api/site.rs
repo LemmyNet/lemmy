@@ -7,7 +7,6 @@ use crate::{
     get_user_from_jwt_opt,
     is_admin,
     APIError,
-    Oper,
     Perform,
   },
   apub::fetcher::search_by_apub_id,
@@ -17,6 +16,7 @@ use crate::{
   DbPool,
   LemmyError,
 };
+use actix_web::client::Client;
 use lemmy_db::{
   category::*,
   comment_view::*,
@@ -156,15 +156,16 @@ pub struct SaveSiteConfig {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<ListCategories> {
+impl Perform for ListCategories {
   type Response = ListCategoriesResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<ListCategoriesResponse, LemmyError> {
-    let _data: &ListCategories = &self.data;
+    let _data: &ListCategories = &self;
 
     let categories = blocking(pool, move |conn| Category::list_all(conn)).await??;
 
@@ -174,15 +175,16 @@ impl Perform for Oper<ListCategories> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<GetModlog> {
+impl Perform for GetModlog {
   type Response = GetModlogResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<GetModlogResponse, LemmyError> {
-    let data: &GetModlog = &self.data;
+    let data: &GetModlog = &self;
 
     let community_id = data.community_id;
     let mod_user_id = data.mod_user_id;
@@ -248,15 +250,16 @@ impl Perform for Oper<GetModlog> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<CreateSite> {
+impl Perform for CreateSite {
   type Response = SiteResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<SiteResponse, LemmyError> {
-    let data: &CreateSite = &self.data;
+    let data: &CreateSite = &self;
 
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
@@ -290,14 +293,15 @@ impl Perform for Oper<CreateSite> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<EditSite> {
+impl Perform for EditSite {
   type Response = SiteResponse;
   async fn perform(
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<SiteResponse, LemmyError> {
-    let data: &EditSite = &self.data;
+    let data: &EditSite = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     check_slurs(&data.name)?;
@@ -345,15 +349,16 @@ impl Perform for Oper<EditSite> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<GetSite> {
+impl Perform for GetSite {
   type Response = GetSiteResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    client: Client,
   ) -> Result<GetSiteResponse, LemmyError> {
-    let data: &GetSite = &self.data;
+    let data: &GetSite = &self;
 
     // TODO refactor this a little
     let res = blocking(pool, move |conn| Site::read(conn, 1)).await?;
@@ -370,8 +375,8 @@ impl Perform for Oper<GetSite> {
         captcha_uuid: None,
         captcha_answer: None,
       };
-      let login_response = Oper::new(register, self.client.clone())
-        .perform(pool, websocket_info.clone())
+      let login_response = register
+        .perform(pool, websocket_info.clone(), client.clone())
         .await?;
       info!("Admin {} created", setup.admin_username);
 
@@ -385,8 +390,8 @@ impl Perform for Oper<GetSite> {
         enable_nsfw: true,
         auth: login_response.jwt,
       };
-      Oper::new(create_site, self.client.clone())
-        .perform(pool, websocket_info.clone())
+      create_site
+        .perform(pool, websocket_info.clone(), client.clone())
         .await?;
       info!("Site {} created", setup.site_name);
       Some(blocking(pool, move |conn| SiteView::read(conn)).await??)
@@ -440,19 +445,20 @@ impl Perform for Oper<GetSite> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<Search> {
+impl Perform for Search {
   type Response = SearchResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    client: Client,
   ) -> Result<SearchResponse, LemmyError> {
-    let data: &Search = &self.data;
+    let data: &Search = &self;
 
     dbg!(&data);
 
-    match search_by_apub_id(&data.q, &self.client, pool).await {
+    match search_by_apub_id(&data.q, &client, pool).await {
       Ok(r) => return Ok(r),
       Err(e) => debug!("Failed to resolve search query as activitypub ID: {}", e),
     }
@@ -604,15 +610,16 @@ impl Perform for Oper<Search> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<TransferSite> {
+impl Perform for TransferSite {
   type Response = GetSiteResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<GetSiteResponse, LemmyError> {
-    let data: &TransferSite = &self.data;
+    let data: &TransferSite = &self;
     let mut user = get_user_from_jwt(&data.auth, pool).await?;
 
     // TODO add a User_::read_safe() for this.
@@ -667,15 +674,16 @@ impl Perform for Oper<TransferSite> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<GetSiteConfig> {
+impl Perform for GetSiteConfig {
   type Response = GetSiteConfigResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<GetSiteConfigResponse, LemmyError> {
-    let data: &GetSiteConfig = &self.data;
+    let data: &GetSiteConfig = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     // Only let admins read this
@@ -688,15 +696,16 @@ impl Perform for Oper<GetSiteConfig> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<SaveSiteConfig> {
+impl Perform for SaveSiteConfig {
   type Response = GetSiteConfigResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<GetSiteConfigResponse, LemmyError> {
-    let data: &SaveSiteConfig = &self.data;
+    let data: &SaveSiteConfig = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     // Only let admins read this

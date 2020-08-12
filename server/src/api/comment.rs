@@ -5,7 +5,6 @@ use crate::{
     get_user_from_jwt_opt,
     is_mod_or_admin,
     APIError,
-    Oper,
     Perform,
   },
   apub::{ApubLikeableType, ApubObjectType},
@@ -18,6 +17,7 @@ use crate::{
   DbPool,
   LemmyError,
 };
+use actix_web::client::Client;
 use lemmy_db::{
   comment::*,
   comment_view::*,
@@ -121,15 +121,16 @@ pub struct GetCommentsResponse {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<CreateComment> {
+impl Perform for CreateComment {
   type Response = CommentResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    client: Client,
   ) -> Result<CommentResponse, LemmyError> {
-    let data: &CreateComment = &self.data;
+    let data: &CreateComment = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let content_slurs_removed = remove_slurs(&data.content.to_owned());
@@ -180,9 +181,7 @@ impl Perform for Oper<CreateComment> {
       Err(_e) => return Err(APIError::err("couldnt_create_comment").into()),
     };
 
-    updated_comment
-      .send_create(&user, &self.client, pool)
-      .await?;
+    updated_comment.send_create(&user, &client, pool).await?;
 
     // Scan the comment for user mentions, add those rows
     let mentions = scrape_text_for_mentions(&comment_form.content);
@@ -202,7 +201,7 @@ impl Perform for Oper<CreateComment> {
       return Err(APIError::err("couldnt_like_comment").into());
     }
 
-    updated_comment.send_like(&user, &self.client, pool).await?;
+    updated_comment.send_like(&user, &client, pool).await?;
 
     let user_id = user.id;
     let comment_view = blocking(pool, move |conn| {
@@ -233,15 +232,16 @@ impl Perform for Oper<CreateComment> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<EditComment> {
+impl Perform for EditComment {
   type Response = CommentResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    client: Client,
   ) -> Result<CommentResponse, LemmyError> {
-    let data: &EditComment = &self.data;
+    let data: &EditComment = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let edit_id = data.edit_id;
@@ -268,9 +268,7 @@ impl Perform for Oper<EditComment> {
     };
 
     // Send the apub update
-    updated_comment
-      .send_update(&user, &self.client, pool)
-      .await?;
+    updated_comment.send_update(&user, &client, pool).await?;
 
     // Do the mentions / recipients
     let post_id = orig_comment.post_id;
@@ -311,15 +309,16 @@ impl Perform for Oper<EditComment> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<DeleteComment> {
+impl Perform for DeleteComment {
   type Response = CommentResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    client: Client,
   ) -> Result<CommentResponse, LemmyError> {
-    let data: &DeleteComment = &self.data;
+    let data: &DeleteComment = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let edit_id = data.edit_id;
@@ -346,12 +345,10 @@ impl Perform for Oper<DeleteComment> {
 
     // Send the apub message
     if deleted {
-      updated_comment
-        .send_delete(&user, &self.client, pool)
-        .await?;
+      updated_comment.send_delete(&user, &client, pool).await?;
     } else {
       updated_comment
-        .send_undo_delete(&user, &self.client, pool)
+        .send_undo_delete(&user, &client, pool)
         .await?;
     }
 
@@ -393,15 +390,16 @@ impl Perform for Oper<DeleteComment> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<RemoveComment> {
+impl Perform for RemoveComment {
   type Response = CommentResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    client: Client,
   ) -> Result<CommentResponse, LemmyError> {
-    let data: &RemoveComment = &self.data;
+    let data: &RemoveComment = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let edit_id = data.edit_id;
@@ -435,12 +433,10 @@ impl Perform for Oper<RemoveComment> {
 
     // Send the apub message
     if removed {
-      updated_comment
-        .send_remove(&user, &self.client, pool)
-        .await?;
+      updated_comment.send_remove(&user, &client, pool).await?;
     } else {
       updated_comment
-        .send_undo_remove(&user, &self.client, pool)
+        .send_undo_remove(&user, &client, pool)
         .await?;
     }
 
@@ -482,15 +478,16 @@ impl Perform for Oper<RemoveComment> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<MarkCommentAsRead> {
+impl Perform for MarkCommentAsRead {
   type Response = CommentResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<CommentResponse, LemmyError> {
-    let data: &MarkCommentAsRead = &self.data;
+    let data: &MarkCommentAsRead = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let edit_id = data.edit_id;
@@ -545,15 +542,16 @@ impl Perform for Oper<MarkCommentAsRead> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<SaveComment> {
+impl Perform for SaveComment {
   type Response = CommentResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<CommentResponse, LemmyError> {
-    let data: &SaveComment = &self.data;
+    let data: &SaveComment = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let comment_saved_form = CommentSavedForm {
@@ -589,15 +587,16 @@ impl Perform for Oper<SaveComment> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<CreateCommentLike> {
+impl Perform for CreateCommentLike {
   type Response = CommentResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    client: Client,
   ) -> Result<CommentResponse, LemmyError> {
-    let data: &CreateCommentLike = &self.data;
+    let data: &CreateCommentLike = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let mut recipient_ids = Vec::new();
@@ -659,12 +658,12 @@ impl Perform for Oper<CreateCommentLike> {
       }
 
       if like_form.score == 1 {
-        comment.send_like(&user, &self.client, pool).await?;
+        comment.send_like(&user, &client, pool).await?;
       } else if like_form.score == -1 {
-        comment.send_dislike(&user, &self.client, pool).await?;
+        comment.send_dislike(&user, &client, pool).await?;
       }
     } else {
-      comment.send_undo_like(&user, &self.client, pool).await?;
+      comment.send_undo_like(&user, &client, pool).await?;
     }
 
     // Have to refetch the comment to get the current state
@@ -698,15 +697,16 @@ impl Perform for Oper<CreateCommentLike> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<GetComments> {
+impl Perform for GetComments {
   type Response = GetCommentsResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<GetCommentsResponse, LemmyError> {
-    let data: &GetComments = &self.data;
+    let data: &GetComments = &self;
     let user = get_user_from_jwt_opt(&data.auth, pool).await?;
     let user_id = user.map(|u| u.id);
 
