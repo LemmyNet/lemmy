@@ -33,17 +33,6 @@ impl APIError {
   }
 }
 
-pub struct Oper<T> {
-  data: T,
-  client: Client,
-}
-
-impl<Data> Oper<Data> {
-  pub fn new(data: Data, client: Client) -> Oper<Data> {
-    Oper { data, client }
-  }
-}
-
 #[async_trait::async_trait(?Send)]
 pub trait Perform {
   type Response: serde::ser::Serialize + Send;
@@ -52,6 +41,7 @@ pub trait Perform {
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    client: Client,
   ) -> Result<Self::Response, LemmyError>;
 }
 

@@ -556,7 +556,7 @@ struct Args<'a> {
 async fn do_user_operation<'a, 'b, Data>(args: Args<'b>) -> Result<String, LemmyError>
 where
   for<'de> Data: Deserialize<'de> + 'a,
-  Oper<Data>: Perform,
+  Data: Perform,
 {
   let Args {
     client,
@@ -581,9 +581,7 @@ where
   let fut = async move {
     let pool = pool.clone();
     let parsed_data: Data = serde_json::from_str(&data)?;
-    let res = Oper::new(parsed_data, client)
-      .perform(&pool, Some(ws_info))
-      .await?;
+    let res = parsed_data.perform(&pool, Some(ws_info), client).await?;
     to_json_string(&op, &res)
   };
 

@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-  api::{is_admin, is_mod_or_admin, APIError, Oper, Perform},
+  api::{is_admin, is_mod_or_admin, APIError, Perform},
   apub::ActorType,
   blocking,
   websocket::{
@@ -10,6 +10,7 @@ use crate::{
   },
   DbPool,
 };
+use actix_web::client::Client;
 use lemmy_db::{
   diesel_option_overwrite,
   naive_now,
@@ -155,15 +156,16 @@ pub struct TransferCommunity {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<GetCommunity> {
+impl Perform for GetCommunity {
   type Response = GetCommunityResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<GetCommunityResponse, LemmyError> {
-    let data: &GetCommunity = &self.data;
+    let data: &GetCommunity = &self;
     let user = get_user_from_jwt_opt(&data.auth, pool).await?;
     let user_id = user.map(|u| u.id);
 
@@ -226,15 +228,16 @@ impl Perform for Oper<GetCommunity> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<CreateCommunity> {
+impl Perform for CreateCommunity {
   type Response = CommunityResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<CommunityResponse, LemmyError> {
-    let data: &CreateCommunity = &self.data;
+    let data: &CreateCommunity = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     check_slurs(&data.name)?;
@@ -318,15 +321,16 @@ impl Perform for Oper<CreateCommunity> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<EditCommunity> {
+impl Perform for EditCommunity {
   type Response = CommunityResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<CommunityResponse, LemmyError> {
-    let data: &EditCommunity = &self.data;
+    let data: &EditCommunity = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     check_slurs(&data.title)?;
@@ -400,15 +404,16 @@ impl Perform for Oper<EditCommunity> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<DeleteCommunity> {
+impl Perform for DeleteCommunity {
   type Response = CommunityResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    client: Client,
   ) -> Result<CommunityResponse, LemmyError> {
-    let data: &DeleteCommunity = &self.data;
+    let data: &DeleteCommunity = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     // Verify its the creator (only a creator can delete the community)
@@ -432,12 +437,10 @@ impl Perform for Oper<DeleteCommunity> {
 
     // Send apub messages
     if deleted {
-      updated_community
-        .send_delete(&user, &self.client, pool)
-        .await?;
+      updated_community.send_delete(&user, &client, pool).await?;
     } else {
       updated_community
-        .send_undo_delete(&user, &self.client, pool)
+        .send_undo_delete(&user, &client, pool)
         .await?;
     }
 
@@ -459,15 +462,16 @@ impl Perform for Oper<DeleteCommunity> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<RemoveCommunity> {
+impl Perform for RemoveCommunity {
   type Response = CommunityResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    client: Client,
   ) -> Result<CommunityResponse, LemmyError> {
-    let data: &RemoveCommunity = &self.data;
+    let data: &RemoveCommunity = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     // Verify its an admin (only an admin can remove a community)
@@ -501,12 +505,10 @@ impl Perform for Oper<RemoveCommunity> {
 
     // Apub messages
     if removed {
-      updated_community
-        .send_remove(&user, &self.client, pool)
-        .await?;
+      updated_community.send_remove(&user, &client, pool).await?;
     } else {
       updated_community
-        .send_undo_remove(&user, &self.client, pool)
+        .send_undo_remove(&user, &client, pool)
         .await?;
     }
 
@@ -528,15 +530,16 @@ impl Perform for Oper<RemoveCommunity> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<ListCommunities> {
+impl Perform for ListCommunities {
   type Response = ListCommunitiesResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<ListCommunitiesResponse, LemmyError> {
-    let data: &ListCommunities = &self.data;
+    let data: &ListCommunities = &self;
     let user = get_user_from_jwt_opt(&data.auth, pool).await?;
 
     let user_id = match &user {
@@ -570,15 +573,16 @@ impl Perform for Oper<ListCommunities> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<FollowCommunity> {
+impl Perform for FollowCommunity {
   type Response = CommunityResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    client: Client,
   ) -> Result<CommunityResponse, LemmyError> {
-    let data: &FollowCommunity = &self.data;
+    let data: &FollowCommunity = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let community_id = data.community_id;
@@ -605,11 +609,11 @@ impl Perform for Oper<FollowCommunity> {
       // Dont actually add to the community followers here, because you need
       // to wait for the accept
       user
-        .send_follow(&community.actor_id()?, &self.client, pool)
+        .send_follow(&community.actor_id()?, &client, pool)
         .await?;
     } else {
       user
-        .send_unfollow(&community.actor_id()?, &self.client, pool)
+        .send_unfollow(&community.actor_id()?, &client, pool)
         .await?;
       let unfollow = move |conn: &'_ _| CommunityFollower::unfollow(conn, &community_follower_form);
       if blocking(pool, unfollow).await?.is_err() {
@@ -632,15 +636,16 @@ impl Perform for Oper<FollowCommunity> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<GetFollowedCommunities> {
+impl Perform for GetFollowedCommunities {
   type Response = GetFollowedCommunitiesResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<GetFollowedCommunitiesResponse, LemmyError> {
-    let data: &GetFollowedCommunities = &self.data;
+    let data: &GetFollowedCommunities = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let user_id = user.id;
@@ -659,15 +664,16 @@ impl Perform for Oper<GetFollowedCommunities> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<BanFromCommunity> {
+impl Perform for BanFromCommunity {
   type Response = BanFromCommunityResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<BanFromCommunityResponse, LemmyError> {
-    let data: &BanFromCommunity = &self.data;
+    let data: &BanFromCommunity = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let community_id = data.community_id;
@@ -731,15 +737,16 @@ impl Perform for Oper<BanFromCommunity> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<AddModToCommunity> {
+impl Perform for AddModToCommunity {
   type Response = AddModToCommunityResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<AddModToCommunityResponse, LemmyError> {
-    let data: &AddModToCommunity = &self.data;
+    let data: &AddModToCommunity = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let community_moderator_form = CommunityModeratorForm {
@@ -795,15 +802,16 @@ impl Perform for Oper<AddModToCommunity> {
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for Oper<TransferCommunity> {
+impl Perform for TransferCommunity {
   type Response = GetCommunityResponse;
 
   async fn perform(
     &self,
     pool: &DbPool,
     _websocket_info: Option<WebsocketInfo>,
+    _client: Client,
   ) -> Result<GetCommunityResponse, LemmyError> {
-    let data: &TransferCommunity = &self.data;
+    let data: &TransferCommunity = &self;
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let community_id = data.community_id;
