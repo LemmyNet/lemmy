@@ -1,4 +1,11 @@
-use crate::{naive_now, schema::{post, post_like, post_read, post_saved}, Crud, Likeable, Saveable, Readable};
+use crate::{
+  naive_now,
+  schema::{post, post_like, post_read, post_saved},
+  Crud,
+  Likeable,
+  Readable,
+  Saveable,
+};
 use diesel::{dsl::*, result::Error, *};
 use serde::{Deserialize, Serialize};
 use url::{ParseError, Url};
@@ -430,17 +437,17 @@ mod tests {
 
     // Post Read
     let post_read_form = PostReadForm {
-    post_id: inserted_post.id,
-    user_id: inserted_user.id,
-  };
+      post_id: inserted_post.id,
+      user_id: inserted_user.id,
+    };
 
     let inserted_post_read = PostRead::mark_as_read(&conn, &post_read_form).unwrap();
 
     let expected_post_read = PostRead {
-    id: inserted_post_read.id,
-    post_id: inserted_post.id,
-    user_id: inserted_user.id,
-    published: inserted_post_read.published,
+      id: inserted_post_read.id,
+      post_id: inserted_post.id,
+      user_id: inserted_user.id,
+      published: inserted_post_read.published,
     };
 
     let read_post = Post::read(&conn, inserted_post.id).unwrap();
