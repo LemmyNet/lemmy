@@ -146,8 +146,6 @@ pub async fn search_by_apub_id(
 
       let community = get_or_fetch_and_upsert_community(community_uri, client, pool).await?;
 
-      // TODO Maybe at some point in the future, fetch all the history of a community
-      // fetch_community_outbox(&c, conn)?;
       response.communities = vec![
         blocking(pool, move |conn| {
           CommunityView::read(conn, community.id, None)
@@ -166,24 +164,8 @@ pub async fn search_by_apub_id(
       response
     }
     SearchAcceptedObjects::Comment(c) => {
-      let post_url = c
-        .in_reply_to()
-        .as_ref()
-        .context(location_info!())?
-        .as_many()
-        .context(location_info!())?;
-
-      // TODO: also fetch parent comments if any
-      let x = post_url
-        .first()
-        .context(location_info!())?
-        .as_xsd_any_uri()
-        .context(location_info!())?;
-      let post = fetch_remote_object(client, x).await?;
-      let post_form = PostForm::from_apub(&post, client, pool, Some(query_url.clone())).await?;
       let comment_form = CommentForm::from_apub(&c, client, pool, Some(query_url)).await?;
 
-      blocking(pool, move |conn| upsert_post(&post_form, conn)).await??;
       let c = blocking(pool, move |conn| upsert_comment(&comment_form, conn)).await??;
       response.comments =
         vec![blocking(pool, move |conn| CommentView::read(conn, c.id, None)).await??];

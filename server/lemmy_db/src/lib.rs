@@ -80,7 +80,7 @@ pub trait Likeable<T> {
   fn like(conn: &PgConnection, form: &T) -> Result<Self, Error>
   where
     Self: Sized;
-  fn remove(conn: &PgConnection, form: &T) -> Result<usize, Error>
+  fn remove(conn: &PgConnection, user_id: i32, item_id: i32) -> Result<usize, Error>
   where
     Self: Sized;
 }

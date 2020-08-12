@@ -328,8 +328,8 @@ pub trait ActorType {
     Url::parse(&format!("{}/outbox", &self.actor_id_str()))
   }
 
-  fn get_followers_url(&self) -> String {
-    format!("{}/followers", &self.actor_id_str())
+  fn get_followers_url(&self) -> Result<Url, ParseError> {
+    Url::parse(&format!("{}/followers", &self.actor_id_str()))
   }
 
   fn get_following_url(&self) -> String {

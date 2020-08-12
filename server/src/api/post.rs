@@ -430,8 +430,8 @@ impl Perform for CreatePostLike {
     };
 
     // Remove any likes first
-    let like_form2 = like_form.clone();
-    blocking(pool, move |conn| PostLike::remove(conn, &like_form2)).await??;
+    let user_id = user.id;
+    blocking(pool, move |conn| PostLike::remove(conn, user_id, post_id)).await??;
 
     // Only add the like if the score isnt 0
     let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);

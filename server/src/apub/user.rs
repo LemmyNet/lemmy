@@ -80,7 +80,7 @@ impl ToApub for User_ {
     let mut ap_actor = ApActor::new(self.get_inbox_url()?, person);
     ap_actor
       .set_outbox(self.get_outbox_url()?)
-      .set_followers(self.get_followers_url().parse()?)
+      .set_followers(self.get_followers_url()?)
       .set_following(self.get_following_url().parse()?)
       .set_liked(self.get_liked_url().parse()?)
       .set_endpoints(Endpoints {
