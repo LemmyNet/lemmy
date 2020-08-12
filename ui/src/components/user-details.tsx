@@ -79,6 +79,7 @@ export class UserDetails extends Component<UserDetailsProps, UserDetailsState> {
 
   componentDidMount() {
     this.fetchUserData();
+    setupTippy();
   }
 
   componentDidUpdate(lastProps: UserDetailsProps) {
@@ -88,7 +89,6 @@ export class UserDetails extends Component<UserDetailsProps, UserDetailsState> {
         break;
       }
     }
-    setupTippy();
   }
 
   fetchUserData() {
