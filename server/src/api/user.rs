@@ -578,10 +578,10 @@ impl Perform for Oper<SaveUserSettings> {
     // The DB constraint should stop too many characters
     let preferred_username = match &data.preferred_username {
       Some(preferred_username) => {
-        if !is_valid_preferred_username(preferred_username) {
+        if !is_valid_preferred_username(preferred_username.trim()) {
           return Err(APIError::err("invalid_username").into());
         }
-        Some(preferred_username.to_owned())
+        Some(preferred_username.trim().to_string())
       }
       None => read_user.preferred_username,
     };
