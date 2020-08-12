@@ -41,11 +41,6 @@ impl Crud<ModRemovePostForm> for ModRemovePost {
     mod_remove_post.find(from_id).first::<Self>(conn)
   }
 
-  fn delete(conn: &PgConnection, from_id: i32) -> Result<usize, Error> {
-    use crate::schema::mod_remove_post::dsl::*;
-    diesel::delete(mod_remove_post.find(from_id)).execute(conn)
-  }
-
   fn create(conn: &PgConnection, form: &ModRemovePostForm) -> Result<Self, Error> {
     use crate::schema::mod_remove_post::dsl::*;
     insert_into(mod_remove_post)
@@ -85,11 +80,6 @@ impl Crud<ModLockPostForm> for ModLockPost {
     mod_lock_post.find(from_id).first::<Self>(conn)
   }
 
-  fn delete(conn: &PgConnection, from_id: i32) -> Result<usize, Error> {
-    use crate::schema::mod_lock_post::dsl::*;
-    diesel::delete(mod_lock_post.find(from_id)).execute(conn)
-  }
-
   fn create(conn: &PgConnection, form: &ModLockPostForm) -> Result<Self, Error> {
     use crate::schema::mod_lock_post::dsl::*;
     insert_into(mod_lock_post)
@@ -127,11 +117,6 @@ impl Crud<ModStickyPostForm> for ModStickyPost {
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_sticky_post::dsl::*;
     mod_sticky_post.find(from_id).first::<Self>(conn)
-  }
-
-  fn delete(conn: &PgConnection, from_id: i32) -> Result<usize, Error> {
-    use crate::schema::mod_sticky_post::dsl::*;
-    diesel::delete(mod_sticky_post.find(from_id)).execute(conn)
   }
 
   fn create(conn: &PgConnection, form: &ModStickyPostForm) -> Result<Self, Error> {
@@ -175,11 +160,6 @@ impl Crud<ModRemoveCommentForm> for ModRemoveComment {
     mod_remove_comment.find(from_id).first::<Self>(conn)
   }
 
-  fn delete(conn: &PgConnection, from_id: i32) -> Result<usize, Error> {
-    use crate::schema::mod_remove_comment::dsl::*;
-    diesel::delete(mod_remove_comment.find(from_id)).execute(conn)
-  }
-
   fn create(conn: &PgConnection, form: &ModRemoveCommentForm) -> Result<Self, Error> {
     use crate::schema::mod_remove_comment::dsl::*;
     insert_into(mod_remove_comment)
@@ -221,11 +201,6 @@ impl Crud<ModRemoveCommunityForm> for ModRemoveCommunity {
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_remove_community::dsl::*;
     mod_remove_community.find(from_id).first::<Self>(conn)
-  }
-
-  fn delete(conn: &PgConnection, from_id: i32) -> Result<usize, Error> {
-    use crate::schema::mod_remove_community::dsl::*;
-    diesel::delete(mod_remove_community.find(from_id)).execute(conn)
   }
 
   fn create(conn: &PgConnection, form: &ModRemoveCommunityForm) -> Result<Self, Error> {
@@ -277,11 +252,6 @@ impl Crud<ModBanFromCommunityForm> for ModBanFromCommunity {
     mod_ban_from_community.find(from_id).first::<Self>(conn)
   }
 
-  fn delete(conn: &PgConnection, from_id: i32) -> Result<usize, Error> {
-    use crate::schema::mod_ban_from_community::dsl::*;
-    diesel::delete(mod_ban_from_community.find(from_id)).execute(conn)
-  }
-
   fn create(conn: &PgConnection, form: &ModBanFromCommunityForm) -> Result<Self, Error> {
     use crate::schema::mod_ban_from_community::dsl::*;
     insert_into(mod_ban_from_community)
@@ -329,11 +299,6 @@ impl Crud<ModBanForm> for ModBan {
     mod_ban.find(from_id).first::<Self>(conn)
   }
 
-  fn delete(conn: &PgConnection, from_id: i32) -> Result<usize, Error> {
-    use crate::schema::mod_ban::dsl::*;
-    diesel::delete(mod_ban.find(from_id)).execute(conn)
-  }
-
   fn create(conn: &PgConnection, form: &ModBanForm) -> Result<Self, Error> {
     use crate::schema::mod_ban::dsl::*;
     insert_into(mod_ban).values(form).get_result::<Self>(conn)
@@ -373,11 +338,6 @@ impl Crud<ModAddCommunityForm> for ModAddCommunity {
     mod_add_community.find(from_id).first::<Self>(conn)
   }
 
-  fn delete(conn: &PgConnection, from_id: i32) -> Result<usize, Error> {
-    use crate::schema::mod_add_community::dsl::*;
-    diesel::delete(mod_add_community.find(from_id)).execute(conn)
-  }
-
   fn create(conn: &PgConnection, form: &ModAddCommunityForm) -> Result<Self, Error> {
     use crate::schema::mod_add_community::dsl::*;
     insert_into(mod_add_community)
@@ -415,11 +375,6 @@ impl Crud<ModAddForm> for ModAdd {
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
     use crate::schema::mod_add::dsl::*;
     mod_add.find(from_id).first::<Self>(conn)
-  }
-
-  fn delete(conn: &PgConnection, from_id: i32) -> Result<usize, Error> {
-    use crate::schema::mod_add::dsl::*;
-    diesel::delete(mod_add.find(from_id)).execute(conn)
   }
 
   fn create(conn: &PgConnection, form: &ModAddForm) -> Result<Self, Error> {

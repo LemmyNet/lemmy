@@ -34,11 +34,6 @@ impl Crud<ActivityForm> for Activity {
     activity.find(activity_id).first::<Self>(conn)
   }
 
-  fn delete(conn: &PgConnection, activity_id: i32) -> Result<usize, Error> {
-    use crate::schema::activity::dsl::*;
-    diesel::delete(activity.find(activity_id)).execute(conn)
-  }
-
   fn create(conn: &PgConnection, new_activity: &ActivityForm) -> Result<Self, Error> {
     use crate::schema::activity::dsl::*;
     insert_into(activity)

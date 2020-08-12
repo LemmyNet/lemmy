@@ -39,11 +39,6 @@ impl Crud<SiteForm> for Site {
     site.first::<Self>(conn)
   }
 
-  fn delete(conn: &PgConnection, site_id: i32) -> Result<usize, Error> {
-    use crate::schema::site::dsl::*;
-    diesel::delete(site.find(site_id)).execute(conn)
-  }
-
   fn create(conn: &PgConnection, new_site: &SiteForm) -> Result<Self, Error> {
     use crate::schema::site::dsl::*;
     insert_into(site).values(new_site).get_result::<Self>(conn)

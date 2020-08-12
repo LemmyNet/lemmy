@@ -11,7 +11,6 @@ use crate::{
   },
   blocking,
   request::{retry, RecvError},
-  routes::nodeinfo::{NodeInfo, NodeInfoWellKnown},
   DbPool,
   LemmyError,
 };
@@ -42,20 +41,6 @@ use url::Url;
 
 static ACTOR_REFETCH_INTERVAL_SECONDS: i64 = 24 * 60 * 60;
 static ACTOR_REFETCH_INTERVAL_SECONDS_DEBUG: i64 = 10;
-
-// Fetch nodeinfo metadata from a remote instance.
-async fn _fetch_node_info(client: &Client, domain: &str) -> Result<NodeInfo, LemmyError> {
-  let well_known_uri = Url::parse(&format!(
-    "{}://{}/.well-known/nodeinfo",
-    get_apub_protocol_string(),
-    domain
-  ))?;
-
-  let well_known = fetch_remote_object::<NodeInfoWellKnown>(client, &well_known_uri).await?;
-  let nodeinfo = fetch_remote_object::<NodeInfo>(client, &well_known.links.href).await?;
-
-  Ok(nodeinfo)
-}
 
 /// Fetch any type of ActivityPub object, handling things like HTTP headers, deserialisation,
 /// timeouts etc.
@@ -447,26 +432,3 @@ pub async fn get_or_fetch_and_insert_comment(
     Err(e) => Err(e.into()),
   }
 }
-
-// TODO It should not be fetching data from a community outbox.
-// All posts, comments, comment likes, etc should be posts to our community_inbox
-// The only data we should be periodically fetching (if it hasn't been fetched in the last day
-// maybe), is community and user actors
-// and user actors
-// Fetch all posts in the outbox of the given user, and insert them into the database.
-// fn fetch_community_outbox(community: &Community, conn: &PgConnection) -> Result<Vec<Post>, LemmyError> {
-//   let outbox_url = Url::parse(&community.get_outbox_url())?;
-//   let outbox = fetch_remote_object::<OrderedCollection>(&outbox_url)?;
-//   let items = outbox.collection_props.get_many_items_base_boxes();
-
-//   Ok(
-//     items
-//       .context(location_info!())?
-//       .map(|obox: &BaseBox| -> Result<PostForm, LemmyError> {
-//         let page = obox.clone().to_concrete::<Page>()?;
-//         PostForm::from_page(&page, conn)
-//       })
-//       .map(|pf| upsert_post(&pf?, conn))
-//       .collect::<Result<Vec<Post>, LemmyError>>()?,
-//   )
-// }

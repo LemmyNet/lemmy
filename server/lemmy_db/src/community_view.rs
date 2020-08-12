@@ -386,20 +386,6 @@ pub struct CommunityUserBanView {
 }
 
 impl CommunityUserBanView {
-  pub fn for_community(conn: &PgConnection, from_community_id: i32) -> Result<Vec<Self>, Error> {
-    use super::community_view::community_user_ban_view::dsl::*;
-    community_user_ban_view
-      .filter(community_id.eq(from_community_id))
-      .load::<Self>(conn)
-  }
-
-  pub fn for_user(conn: &PgConnection, from_user_id: i32) -> Result<Vec<Self>, Error> {
-    use super::community_view::community_user_ban_view::dsl::*;
-    community_user_ban_view
-      .filter(user_id.eq(from_user_id))
-      .load::<Self>(conn)
-  }
-
   pub fn get(
     conn: &PgConnection,
     from_user_id: i32,

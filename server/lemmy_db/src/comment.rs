@@ -172,13 +172,6 @@ pub struct CommentLikeForm {
 }
 
 impl Likeable<CommentLikeForm> for CommentLike {
-  fn read(conn: &PgConnection, comment_id_from: i32) -> Result<Vec<Self>, Error> {
-    use crate::schema::comment_like::dsl::*;
-    comment_like
-      .filter(comment_id.eq(comment_id_from))
-      .load::<Self>(conn)
-  }
-
   fn like(conn: &PgConnection, comment_like_form: &CommentLikeForm) -> Result<Self, Error> {
     use crate::schema::comment_like::dsl::*;
     insert_into(comment_like)
@@ -193,15 +186,6 @@ impl Likeable<CommentLikeForm> for CommentLike {
         .filter(user_id.eq(comment_like_form.user_id)),
     )
     .execute(conn)
-  }
-}
-
-impl CommentLike {
-  pub fn from_post(conn: &PgConnection, post_id_from: i32) -> Result<Vec<Self>, Error> {
-    use crate::schema::comment_like::dsl::*;
-    comment_like
-      .filter(post_id.eq(post_id_from))
-      .load::<Self>(conn)
   }
 }
 

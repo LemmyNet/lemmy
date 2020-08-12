@@ -1,17 +1,13 @@
-extern crate lemmy_server;
 #[macro_use]
 extern crate diesel_migrations;
 #[macro_use]
 pub extern crate lazy_static;
 
-pub type DbPool = Pool<ConnectionManager<PgConnection>>;
-
-use crate::lemmy_server::actix_web::dev::Service;
 use actix::prelude::*;
 use actix_web::{
   body::Body,
   client::Client,
-  dev::{ServiceRequest, ServiceResponse},
+  dev::{Service, ServiceRequest, ServiceResponse},
   http::{
     header::{CACHE_CONTROL, CONTENT_TYPE},
     HeaderValue,

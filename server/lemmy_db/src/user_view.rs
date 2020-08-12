@@ -159,11 +159,6 @@ impl<'a> UserQueryBuilder<'a> {
 }
 
 impl UserView {
-  pub fn read(conn: &PgConnection, from_user_id: i32) -> Result<Self, Error> {
-    use super::user_view::user_fast::dsl::*;
-    user_fast.find(from_user_id).first::<Self>(conn)
-  }
-
   pub fn admins(conn: &PgConnection) -> Result<Vec<Self>, Error> {
     use super::user_view::user_fast::dsl::*;
     use diesel::sql_types::{Nullable, Text};

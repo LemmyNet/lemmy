@@ -99,11 +99,6 @@ impl Community {
       .first::<Self>(conn)
   }
 
-  pub fn list_local(conn: &PgConnection) -> Result<Vec<Self>, Error> {
-    use crate::schema::community::dsl::*;
-    community.filter(local.eq(true)).load::<Community>(conn)
-  }
-
   pub fn update_deleted(
     conn: &PgConnection,
     community_id: i32,

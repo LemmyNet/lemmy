@@ -1,11 +1,4 @@
-use crate::{
-  naive_now,
-  schema::{post, post_like, post_read, post_saved},
-  Crud,
-  Likeable,
-  Readable,
-  Saveable,
-};
+use crate::{naive_now, schema::{post, post_like, post_read, post_saved}, Crud, Likeable, Saveable, Readable};
 use diesel::{dsl::*, result::Error, *};
 use serde::{Deserialize, Serialize};
 use url::{ParseError, Url};
@@ -201,12 +194,6 @@ pub struct PostLikeForm {
 }
 
 impl Likeable<PostLikeForm> for PostLike {
-  fn read(conn: &PgConnection, post_id_from: i32) -> Result<Vec<Self>, Error> {
-    use crate::schema::post_like::dsl::*;
-    post_like
-      .filter(post_id.eq(post_id_from))
-      .load::<Self>(conn)
-  }
   fn like(conn: &PgConnection, post_like_form: &PostLikeForm) -> Result<Self, Error> {
     use crate::schema::post_like::dsl::*;
     insert_into(post_like)
@@ -264,8 +251,11 @@ impl Saveable<PostSavedForm> for PostSaved {
 #[table_name = "post_read"]
 pub struct PostRead {
   pub id: i32,
+
   pub post_id: i32,
+
   pub user_id: i32,
+
   pub published: chrono::NaiveDateTime,
 }
 
@@ -273,6 +263,7 @@ pub struct PostRead {
 #[table_name = "post_read"]
 pub struct PostReadForm {
   pub post_id: i32,
+
   pub user_id: i32,
 }
 
@@ -283,6 +274,7 @@ impl Readable<PostReadForm> for PostRead {
       .values(post_read_form)
       .get_result::<Self>(conn)
   }
+
   fn mark_as_unread(conn: &PgConnection, post_read_form: &PostReadForm) -> Result<usize, Error> {
     use crate::schema::post_read::dsl::*;
     diesel::delete(
@@ -438,17 +430,17 @@ mod tests {
 
     // Post Read
     let post_read_form = PostReadForm {
-      post_id: inserted_post.id,
-      user_id: inserted_user.id,
-    };
+    post_id: inserted_post.id,
+    user_id: inserted_user.id,
+  };
 
     let inserted_post_read = PostRead::mark_as_read(&conn, &post_read_form).unwrap();
 
     let expected_post_read = PostRead {
-      id: inserted_post_read.id,
-      post_id: inserted_post.id,
-      user_id: inserted_user.id,
-      published: inserted_post_read.published,
+    id: inserted_post_read.id,
+    post_id: inserted_post.id,
+    user_id: inserted_user.id,
+    published: inserted_post_read.published,
     };
 
     let read_post = Post::read(&conn, inserted_post.id).unwrap();

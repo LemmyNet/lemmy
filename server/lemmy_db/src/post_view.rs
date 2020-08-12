@@ -252,11 +252,6 @@ impl<'a> PostQueryBuilder<'a> {
     self
   }
 
-  pub fn unread_only(mut self, unread_only: bool) -> Self {
-    self.unread_only = unread_only;
-    self
-  }
-
   pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
     self.page = page.get_optional();
     self

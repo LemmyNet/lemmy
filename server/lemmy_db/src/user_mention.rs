@@ -28,11 +28,6 @@ impl Crud<UserMentionForm> for UserMention {
     user_mention.find(user_mention_id).first::<Self>(conn)
   }
 
-  fn delete(conn: &PgConnection, user_mention_id: i32) -> Result<usize, Error> {
-    use crate::schema::user_mention::dsl::*;
-    diesel::delete(user_mention.find(user_mention_id)).execute(conn)
-  }
-
   fn create(conn: &PgConnection, user_mention_form: &UserMentionForm) -> Result<Self, Error> {
     use crate::schema::user_mention::dsl::*;
     insert_into(user_mention)

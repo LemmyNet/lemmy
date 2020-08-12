@@ -50,9 +50,12 @@ pub trait Crud<T> {
   fn update(conn: &PgConnection, id: i32, form: &T) -> Result<Self, Error>
   where
     Self: Sized;
-  fn delete(conn: &PgConnection, id: i32) -> Result<usize, Error>
+  fn delete(_conn: &PgConnection, _id: i32) -> Result<usize, Error>
   where
-    Self: Sized;
+    Self: Sized,
+  {
+    unimplemented!()
+  }
 }
 
 pub trait Followable<T> {
@@ -74,9 +77,6 @@ pub trait Joinable<T> {
 }
 
 pub trait Likeable<T> {
-  fn read(conn: &PgConnection, id: i32) -> Result<Vec<Self>, Error>
-  where
-    Self: Sized;
   fn like(conn: &PgConnection, form: &T) -> Result<Self, Error>
   where
     Self: Sized;

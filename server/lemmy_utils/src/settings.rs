@@ -121,10 +121,6 @@ impl Settings {
     )
   }
 
-  pub fn api_endpoint(&self) -> String {
-    format!("{}/api/v1", self.hostname)
-  }
-
   pub fn get_config_defaults_location() -> String {
     env::var("LEMMY_CONFIG_LOCATION").unwrap_or_else(|_| CONFIG_FILE_DEFAULTS.to_string())
   }

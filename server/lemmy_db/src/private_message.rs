@@ -37,11 +37,6 @@ impl Crud<PrivateMessageForm> for PrivateMessage {
     private_message.find(private_message_id).first::<Self>(conn)
   }
 
-  fn delete(conn: &PgConnection, private_message_id: i32) -> Result<usize, Error> {
-    use crate::schema::private_message::dsl::*;
-    diesel::delete(private_message.find(private_message_id)).execute(conn)
-  }
-
   fn create(conn: &PgConnection, private_message_form: &PrivateMessageForm) -> Result<Self, Error> {
     use crate::schema::private_message::dsl::*;
     insert_into(private_message)

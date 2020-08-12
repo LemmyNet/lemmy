@@ -28,9 +28,6 @@ impl Crud<PasswordResetRequestForm> for PasswordResetRequest {
       .find(password_reset_request_id)
       .first::<Self>(conn)
   }
-  fn delete(conn: &PgConnection, password_reset_request_id: i32) -> Result<usize, Error> {
-    diesel::delete(password_reset_request.find(password_reset_request_id)).execute(conn)
-  }
   fn create(conn: &PgConnection, form: &PasswordResetRequestForm) -> Result<Self, Error> {
     insert_into(password_reset_request)
       .values(form)

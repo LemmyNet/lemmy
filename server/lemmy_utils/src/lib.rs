@@ -12,7 +12,7 @@ pub extern crate url;
 pub mod settings;
 
 use crate::settings::Settings;
-use chrono::{DateTime, FixedOffset, Local, NaiveDateTime, Utc};
+use chrono::{DateTime, FixedOffset, Local, NaiveDateTime};
 use itertools::Itertools;
 use lettre::{
   smtp::{
@@ -41,10 +41,6 @@ macro_rules! location_info {
       column!()
     )
   };
-}
-
-pub fn to_datetime_utc(ndt: NaiveDateTime) -> DateTime<Utc> {
-  DateTime::<Utc>::from_utc(ndt, Utc)
 }
 
 pub fn naive_from_unix(time: i64) -> NaiveDateTime {

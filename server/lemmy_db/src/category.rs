@@ -23,10 +23,6 @@ impl Crud<CategoryForm> for Category {
     category.find(category_id).first::<Self>(conn)
   }
 
-  fn delete(conn: &PgConnection, category_id: i32) -> Result<usize, Error> {
-    diesel::delete(category.find(category_id)).execute(conn)
-  }
-
   fn create(conn: &PgConnection, new_category: &CategoryForm) -> Result<Self, Error> {
     insert_into(category)
       .values(new_category)
