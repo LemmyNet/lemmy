@@ -50,6 +50,7 @@ import {
   commentsToFlatNodes,
   setupTippy,
   favIconUrl,
+  notify,
 } from '../utils';
 import { i18n } from '../i18next';
 
@@ -426,6 +427,7 @@ export class Community extends Component<any, State> {
     } else if (res.op == UserOperation.CreatePost) {
       let data = res.data as PostResponse;
       this.state.posts.unshift(data.post);
+      notify(data.post, this.context.router);
       this.setState(this.state);
     } else if (res.op == UserOperation.CreatePostLike) {
       let data = res.data as PostResponse;
