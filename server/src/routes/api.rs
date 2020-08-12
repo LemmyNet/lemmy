@@ -1,5 +1,5 @@
 use crate::{
-  api::{comment::*, community::*, post::*, site::*, user::*, Oper, Perform},
+  api::{comment::*, community::*, post::*, site::*, user::*, Perform},
   rate_limit::RateLimit,
   routes::{ChatServerParam, DbPoolParam},
   websocket::WebsocketInfo,
@@ -179,7 +179,7 @@ async fn perform<Request>(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error>
 where
-  Oper<Request>: Perform,
+  Request: Perform,
   Request: Send + 'static,
 {
   let ws_info = WebsocketInfo {
@@ -187,10 +187,8 @@ where
     id: None,
   };
 
-  let oper: Oper<Request> = Oper::new(data, client.clone());
-
-  let res = oper
-    .perform(&db, Some(ws_info))
+  let res = data
+    .perform(&db, Some(ws_info), client.clone())
     .await
     .map(|json| HttpResponse::Ok().json(json))
     .map_err(ErrorBadRequest)?;
@@ -204,8 +202,7 @@ async fn route_get<Data>(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error>
 where
-  Data: Serialize + Send + 'static,
-  Oper<Data>: Perform,
+  Data: Serialize + Send + 'static + Perform,
 {
   perform::<Data>(data.0, &client, db, chat_server).await
 }
@@ -217,8 +214,7 @@ async fn route_post<Data>(
   chat_server: ChatServerParam,
 ) -> Result<HttpResponse, Error>
 where
-  Data: Serialize + Send + 'static,
-  Oper<Data>: Perform,
+  Data: Serialize + Send + 'static + Perform,
 {
   perform::<Data>(data.0, &client, db, chat_server).await
 }
