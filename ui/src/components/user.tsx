@@ -180,6 +180,7 @@ export class User extends Component<any, UserState> {
       );
 
     WebSocketService.Instance.getSite();
+    setupTippy();
   }
 
   get isCurrentUser() {
@@ -226,7 +227,6 @@ export class User extends Component<any, UserState> {
       // Couldnt get a refresh working. This does for now.
       location.reload();
     }
-    setupTippy();
   }
 
   get documentTitle(): string {
@@ -565,6 +565,7 @@ export class User extends Component<any, UserState> {
                       this,
                       this.handleUserSettingsPreferredUsernameChange
                     )}
+                    pattern="^(?!@)(.+)$"
                     minLength={3}
                     maxLength={20}
                   />
