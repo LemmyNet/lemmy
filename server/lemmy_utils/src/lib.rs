@@ -160,7 +160,9 @@ pub fn is_valid_username(name: &str) -> bool {
 
 // Can't do a regex here, reverse lookarounds not supported
 pub fn is_valid_preferred_username(preferred_username: &str) -> bool {
-  !preferred_username.starts_with("@") && preferred_username.len() >=3 && preferred_username.len() <= 20
+  !preferred_username.starts_with("@")
+    && preferred_username.len() >= 3
+    && preferred_username.len() <= 20
 }
 
 pub fn is_valid_community_name(name: &str) -> bool {
@@ -176,8 +178,8 @@ mod tests {
   use crate::{
     is_valid_community_name,
     is_valid_post_title,
-    is_valid_username,
     is_valid_preferred_username,
+    is_valid_username,
     remove_slurs,
     scrape_text_for_mentions,
     slur_check,
