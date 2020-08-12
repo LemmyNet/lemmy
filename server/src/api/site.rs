@@ -17,6 +17,7 @@ use crate::{
   LemmyError,
 };
 use actix_web::client::Client;
+use anyhow::Context;
 use lemmy_db::{
   category::*,
   comment_view::*,
@@ -655,7 +656,7 @@ impl Perform for TransferSite {
     let creator_index = admins
       .iter()
       .position(|r| r.id == site_view.creator_id)
-      .unwrap();
+      .context("missing creator")?;
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
 

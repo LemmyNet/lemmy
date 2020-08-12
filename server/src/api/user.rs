@@ -20,6 +20,7 @@ use crate::{
   LemmyError,
 };
 use actix_web::client::Client;
+use anyhow::Context;
 use bcrypt::verify;
 use captcha::{gen, Difficulty};
 use chrono::Duration;
@@ -324,7 +325,7 @@ impl Perform for Login {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(user, Settings::get().hostname),
+      jwt: Claims::jwt(user, Settings::get().hostname)?,
     })
   }
 }
@@ -494,7 +495,7 @@ impl Perform for Register {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(inserted_user, Settings::get().hostname),
+      jwt: Claims::jwt(inserted_user, Settings::get().hostname)?,
     })
   }
 }
@@ -667,7 +668,7 @@ impl Perform for SaveUserSettings {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_user, Settings::get().hostname),
+      jwt: Claims::jwt(updated_user, Settings::get().hostname)?,
     })
   }
 }
@@ -804,7 +805,10 @@ impl Perform for AddAdmin {
       blocking(pool, move |conn| Site::read(conn, 1).map(|s| s.creator_id)).await??;
 
     let mut admins = blocking(pool, move |conn| UserView::admins(conn)).await??;
-    let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
+    let creator_index = admins
+      .iter()
+      .position(|r| r.id == site_creator_id)
+      .context("missing creator")?;
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
 
@@ -1183,7 +1187,7 @@ impl Perform for PasswordChange {
 
     // Return the jwt
     Ok(LoginResponse {
-      jwt: Claims::jwt(updated_user, Settings::get().hostname),
+      jwt: Claims::jwt(updated_user, Settings::get().hostname)?,
     })
   }
 }

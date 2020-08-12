@@ -24,7 +24,7 @@ impl Claims {
     )
   }
 
-  pub fn jwt(user: User_, hostname: String) -> Jwt {
+  pub fn jwt(user: User_, hostname: String) -> Result<Jwt, jsonwebtoken::errors::Error> {
     let my_claims = Claims {
       id: user.id,
       iss: hostname,
@@ -34,6 +34,5 @@ impl Claims {
       &my_claims,
       &EncodingKey::from_secret(Settings::get().jwt_secret.as_ref()),
     )
-    .unwrap()
   }
 }

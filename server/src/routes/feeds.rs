@@ -16,7 +16,7 @@ use lemmy_db::{
   ListingType,
   SortType,
 };
-use lemmy_utils::{markdown_to_html, settings::Settings};
+use lemmy_utils::{location_info, markdown_to_html, settings::Settings};
 use rss::{CategoryBuilder, ChannelBuilder, GuidBuilder, Item, ItemBuilder};
 use serde::Deserialize;
 use std::str::FromStr;
@@ -62,7 +62,7 @@ fn get_feed_all_data(conn: &PgConnection, sort_type: &SortType) -> Result<String
     .sort(sort_type)
     .list()?;
 
-  let items = create_post_items(posts);
+  let items = create_post_items(posts)?;
 
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
@@ -74,7 +74,12 @@ fn get_feed_all_data(conn: &PgConnection, sort_type: &SortType) -> Result<String
     channel_builder.description(&site_desc);
   }
 
-  Ok(channel_builder.build().unwrap().to_string())
+  Ok(
+    channel_builder
+      .build()
+      .map_err(|_| anyhow!(location_info!()))?
+      .to_string(),
+  )
 }
 
 async fn get_feed(
@@ -135,7 +140,7 @@ fn get_feed_user(
     .for_creator_id(user.id)
     .list()?;
 
-  let items = create_post_items(posts);
+  let items = create_post_items(posts)?;
 
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
@@ -160,7 +165,7 @@ fn get_feed_community(
     .for_community_id(community.id)
     .list()?;
 
-  let items = create_post_items(posts);
+  let items = create_post_items(posts)?;
 
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
@@ -189,7 +194,7 @@ fn get_feed_front(
     .my_user_id(user_id)
     .list()?;
 
-  let items = create_post_items(posts);
+  let items = create_post_items(posts)?;
 
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
@@ -218,7 +223,7 @@ fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, Le
     .sort(&sort)
     .list()?;
 
-  let items = create_reply_and_mention_items(replies, mentions);
+  let items = create_reply_and_mention_items(replies, mentions)?;
 
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
@@ -236,7 +241,7 @@ fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, Le
 fn create_reply_and_mention_items(
   replies: Vec<ReplyView>,
   mentions: Vec<UserMentionView>,
-) -> Vec<Item> {
+) -> Result<Vec<Item>, LemmyError> {
   let mut reply_items: Vec<Item> = replies
     .iter()
     .map(|r| {
@@ -247,6 +252,7 @@ fn create_reply_and_mention_items(
         r.id
       );
       build_item(&r.creator_name, &r.published, &reply_url, &r.content)
+        .unwrap_or_else(|_| panic!(location_info!()))
     })
     .collect();
 
@@ -260,14 +266,20 @@ fn create_reply_and_mention_items(
         m.id
       );
       build_item(&m.creator_name, &m.published, &mention_url, &m.content)
+        .unwrap_or_else(|_| panic!(location_info!()))
     })
     .collect();
 
   reply_items.append(&mut mention_items);
-  reply_items
+  Ok(reply_items)
 }
 
-fn build_item(creator_name: &str, published: &NaiveDateTime, url: &str, content: &str) -> Item {
+fn build_item(
+  creator_name: &str,
+  published: &NaiveDateTime,
+  url: &str,
+  content: &str,
+) -> Result<Item, LemmyError> {
   let mut i = ItemBuilder::default();
   i.title(format!("Reply from {}", creator_name));
   let author_url = format!("https://{}/u/{}", Settings::get().hostname, creator_name);
@@ -278,16 +290,20 @@ fn build_item(creator_name: &str, published: &NaiveDateTime, url: &str, content:
   let dt = DateTime::<Utc>::from_utc(*published, Utc);
   i.pub_date(dt.to_rfc2822());
   i.comments(url.to_owned());
-  let guid = GuidBuilder::default().permalink(true).value(url).build();
-  i.guid(guid.unwrap());
+  let guid = GuidBuilder::default()
+    .permalink(true)
+    .value(url)
+    .build()
+    .map_err(|_| anyhow!(location_info!()))?;
+  i.guid(guid);
   i.link(url.to_owned());
   // TODO add images
   let html = markdown_to_html(&content.to_string());
   i.description(html);
-  i.build().unwrap()
+  Ok(i.build().map_err(|_| anyhow!(location_info!()))?)
 }
 
-fn create_post_items(posts: Vec<PostView>) -> Vec<Item> {
+fn create_post_items(posts: Vec<PostView>) -> Result<Vec<Item>, LemmyError> {
   let mut items: Vec<Item> = Vec::new();
 
   for p in posts {
@@ -309,8 +325,9 @@ fn create_post_items(posts: Vec<PostView>) -> Vec<Item> {
     let guid = GuidBuilder::default()
       .permalink(true)
       .value(&post_url)
-      .build();
-    i.guid(guid.unwrap());
+      .build()
+      .map_err(|_| anyhow!(location_info!()))?;
+    i.guid(guid);
 
     let community_url = format!(
       "https://{}/c/{}",
@@ -324,8 +341,10 @@ fn create_post_items(posts: Vec<PostView>) -> Vec<Item> {
         p.community_name, community_url
       ))
       .domain(Settings::get().hostname.to_owned())
-      .build();
-    i.categories(vec![category.unwrap()]);
+      .build()
+      .map_err(|_| anyhow!(location_info!()))?;
+
+    i.categories(vec![category]);
 
     if let Some(url) = p.url {
       i.link(url);
@@ -348,8 +367,8 @@ fn create_post_items(posts: Vec<PostView>) -> Vec<Item> {
 
     i.description(description);
 
-    items.push(i.build().unwrap());
+    items.push(i.build().map_err(|_| anyhow!(location_info!()))?);
   }
 
-  items
+  Ok(items)
 }
