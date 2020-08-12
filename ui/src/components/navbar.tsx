@@ -27,7 +27,8 @@ import {
   toast,
   setTheme,
   getLanguage,
-  notify,
+  notifyComment,
+  notifyPrivateMessage,
 } from '../utils';
 import { i18n } from '../i18next';
 
@@ -434,7 +435,7 @@ export class Navbar extends Component<any, NavbarState> {
           this.state.unreadCount++;
           this.setState(this.state);
           this.sendUnreadCount();
-          notify(data.comment, this.context.router);
+          notifyComment(data.comment, this.context.router);
         }
       }
     } else if (res.op == UserOperation.CreatePrivateMessage) {
@@ -446,7 +447,7 @@ export class Navbar extends Component<any, NavbarState> {
           this.state.unreadCount++;
           this.setState(this.state);
           this.sendUnreadCount();
-          notify(data.message, this.context.router);
+          notifyPrivateMessage(data.message, this.context.router);
         }
       }
     } else if (res.op == UserOperation.GetSite) {

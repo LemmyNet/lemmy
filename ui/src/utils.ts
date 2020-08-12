@@ -60,6 +60,7 @@ import moment from 'moment';
 
 export const favIconUrl = '/static/assets/favicon.svg';
 export const favIconPngUrl = '/static/assets/apple-touch-icon.png';
+export const defaultFavIcon = `${window.location.protocol}//${window.location.host}${favIconPngUrl}`;
 export const repoUrl = 'https://github.com/LemmyNet/lemmy';
 export const helpGuideUrl = '/docs/about_guide.html';
 export const markdownHelpUrl = `${helpGuideUrl}#markdown-guide`;
@@ -604,38 +605,37 @@ export function messageToastify(info: NotifyInfo, router: any) {
   }).showToast();
 }
 
-export function notify(data: Comment | PrivateMessage | Post, router: any) {
-  let defaultFavIcon = `${window.location.protocol}//${window.location.host}${favIconPngUrl}`;
+export function notifyPost(post: Post, router: any) {
+  let info: NotifyInfo = {
+    name: post.community_name,
+    icon: post.community_icon ? post.community_icon : defaultFavIcon,
+    link: `/post/${post.id}`,
+    body: post.name,
+  };
+  notify(info, router);
+}
 
-  let info: NotifyInfo;
+export function notifyComment(comment: Comment, router: any) {
+  let info: NotifyInfo = {
+    name: comment.creator_name,
+    icon: comment.creator_avatar ? comment.creator_avatar : defaultFavIcon,
+    link: `/post/${comment.post_id}/comment/${comment.id}`,
+    body: comment.content,
+  };
+  notify(info, router);
+}
 
-  // If its a post, do community info / avatars
-  if (isPostType(data)) {
-    let post = data;
-    info = {
-      name: post.community_name,
-      icon: post.community_icon ? post.community_icon : defaultFavIcon,
-      link: `/post/${post.id}`,
-      body: post.name,
-    };
-  } else if (isCommentType(data)) {
-    let comment = data;
-    info = {
-      name: comment.creator_name,
-      icon: comment.creator_avatar ? comment.creator_avatar : defaultFavIcon,
-      link: `/post/${comment.post_id}/comment/${comment.id}`,
-      body: comment.content,
-    };
-  } else {
-    let pm = data;
-    info = {
-      name: pm.creator_name,
-      icon: pm.creator_avatar ? pm.creator_avatar : defaultFavIcon,
-      link: `/inbox`,
-      body: pm.content,
-    };
-  }
+export function notifyPrivateMessage(pm: PrivateMessage, router: any) {
+  let info: NotifyInfo = {
+    name: pm.creator_name,
+    icon: pm.creator_avatar ? pm.creator_avatar : defaultFavIcon,
+    link: `/inbox`,
+    body: pm.content,
+  };
+  notify(info, router);
+}
 
+function notify(info: NotifyInfo, router: any) {
   messageToastify(info, router);
 
   if (Notification.permission !== 'granted') Notification.requestPermission();
