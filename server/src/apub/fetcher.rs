@@ -341,7 +341,7 @@ async fn fetch_remote_community(
   Ok(community)
 }
 
-fn upsert_post(post_form: &PostForm, conn: &PgConnection) -> Result<Post, LemmyError> {
+pub fn upsert_post(post_form: &PostForm, conn: &PgConnection) -> Result<Post, LemmyError> {
   let existing = Post::read_from_apub_id(conn, &post_form.ap_id);
   match existing {
     Err(NotFound {}) => Ok(Post::create(conn, &post_form)?),
@@ -376,7 +376,10 @@ pub async fn get_or_fetch_and_insert_post(
   }
 }
 
-fn upsert_comment(comment_form: &CommentForm, conn: &PgConnection) -> Result<Comment, LemmyError> {
+pub fn upsert_comment(
+  comment_form: &CommentForm,
+  conn: &PgConnection,
+) -> Result<Comment, LemmyError> {
   let existing = Comment::read_from_apub_id(conn, &comment_form.ap_id);
   match existing {
     Err(NotFound {}) => Ok(Comment::create(conn, &comment_form)?),

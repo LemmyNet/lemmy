@@ -4,6 +4,7 @@ use crate::{
     post::PostResponse,
   },
   apub::{
+    fetcher::{upsert_comment, upsert_post},
     inbox::shared_inbox::{
       announce_if_community_is_local,
       get_user_from_activity,
@@ -26,11 +27,10 @@ use activitystreams::{activity::Create, base::AnyBase, object::Note, prelude::*}
 use actix_web::{client::Client, HttpResponse};
 use anyhow::Context;
 use lemmy_db::{
-  comment::{Comment, CommentForm},
+  comment::CommentForm,
   comment_view::CommentView,
   post::{Post, PostForm},
   post_view::PostView,
-  Crud,
 };
 use lemmy_utils::{location_info, scrape_text_for_mentions};
 
@@ -65,7 +65,7 @@ async fn receive_create_post(
 
   let post = PostForm::from_apub(&page, client, pool, Some(user.actor_id()?)).await?;
 
-  let inserted_post = blocking(pool, move |conn| Post::create(conn, &post)).await??;
+  let inserted_post = blocking(pool, move |conn| upsert_post(&post, conn)).await??;
 
   // Refetch the view
   let inserted_post_id = inserted_post.id;
@@ -98,7 +98,7 @@ async fn receive_create_comment(
 
   let comment = CommentForm::from_apub(&note, client, pool, Some(user.actor_id()?)).await?;
 
-  let inserted_comment = blocking(pool, move |conn| Comment::create(conn, &comment)).await??;
+  let inserted_comment = blocking(pool, move |conn| upsert_comment(&comment, conn)).await??;
 
   let post_id = inserted_comment.post_id;
   let post = blocking(pool, move |conn| Post::read(conn, post_id)).await??;
