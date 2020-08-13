@@ -11,6 +11,7 @@ use crate::{
   DbPool,
 };
 use actix_web::client::Client;
+use anyhow::Context;
 use lemmy_db::{
   diesel_option_overwrite,
   naive_now,
@@ -23,6 +24,7 @@ use lemmy_db::{
 use lemmy_utils::{
   generate_actor_keypair,
   is_valid_community_name,
+  location_info,
   make_apub_endpoint,
   naive_from_unix,
   EndpointType,
@@ -819,7 +821,10 @@ impl Perform for TransferCommunity {
 
     let mut admins = blocking(pool, move |conn| UserView::admins(conn)).await??;
 
-    let creator_index = admins.iter().position(|r| r.id == site_creator_id).unwrap();
+    let creator_index = admins
+      .iter()
+      .position(|r| r.id == site_creator_id)
+      .context(location_info!())?;
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
 
@@ -844,7 +849,7 @@ impl Perform for TransferCommunity {
     let creator_index = community_mods
       .iter()
       .position(|r| r.user_id == data.user_id)
-      .unwrap();
+      .context(location_info!())?;
     let creator_user = community_mods.remove(creator_index);
     community_mods.insert(0, creator_user);
 

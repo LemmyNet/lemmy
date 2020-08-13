@@ -16,7 +16,9 @@ use crate::{
   UserId,
 };
 use actix_web::client::Client;
+use anyhow::Context as acontext;
 use lemmy_db::naive_now;
+use lemmy_utils::location_info;
 
 /// Chat server sends this messages to session
 #[derive(Message)]
@@ -200,7 +202,11 @@ impl ChatServer {
     }
   }
 
-  pub fn join_community_room(&mut self, community_id: CommunityId, id: ConnectionId) {
+  pub fn join_community_room(
+    &mut self,
+    community_id: CommunityId,
+    id: ConnectionId,
+  ) -> Result<(), LemmyError> {
     // remove session from all rooms
     for sessions in self.community_rooms.values_mut() {
       sessions.remove(&id);
@@ -220,11 +226,12 @@ impl ChatServer {
     self
       .community_rooms
       .get_mut(&community_id)
-      .unwrap()
+      .context(location_info!())?
       .insert(id);
+    Ok(())
   }
 
-  pub fn join_post_room(&mut self, post_id: PostId, id: ConnectionId) {
+  pub fn join_post_room(&mut self, post_id: PostId, id: ConnectionId) -> Result<(), LemmyError> {
     // remove session from all rooms
     for sessions in self.post_rooms.values_mut() {
       sessions.remove(&id);
@@ -244,10 +251,16 @@ impl ChatServer {
       self.post_rooms.insert(post_id, HashSet::new());
     }
 
-    self.post_rooms.get_mut(&post_id).unwrap().insert(id);
+    self
+      .post_rooms
+      .get_mut(&post_id)
+      .context(location_info!())?
+      .insert(id);
+
+    Ok(())
   }
 
-  pub fn join_user_room(&mut self, user_id: UserId, id: ConnectionId) {
+  pub fn join_user_room(&mut self, user_id: UserId, id: ConnectionId) -> Result<(), LemmyError> {
     // remove session from all rooms
     for sessions in self.user_rooms.values_mut() {
       sessions.remove(&id);
@@ -258,7 +271,13 @@ impl ChatServer {
       self.user_rooms.insert(user_id, HashSet::new());
     }
 
-    self.user_rooms.get_mut(&user_id).unwrap().insert(id);
+    self
+      .user_rooms
+      .get_mut(&user_id)
+      .context(location_info!())?
+      .insert(id);
+
+    Ok(())
   }
 
   fn send_post_room_message<Response>(
@@ -675,7 +694,7 @@ where
   fn handle(&mut self, msg: SendAllMessage<Response>, _: &mut Context<Self>) {
     self
       .send_all_message(&msg.op, &msg.response, msg.my_id)
-      .unwrap();
+      .ok();
   }
 }
 
@@ -688,7 +707,7 @@ where
   fn handle(&mut self, msg: SendUserRoomMessage<Response>, _: &mut Context<Self>) {
     self
       .send_user_room_message(&msg.op, &msg.response, msg.recipient_id, msg.my_id)
-      .unwrap();
+      .ok();
   }
 }
 
@@ -701,7 +720,7 @@ where
   fn handle(&mut self, msg: SendCommunityRoomMessage<Response>, _: &mut Context<Self>) {
     self
       .send_community_room_message(&msg.op, &msg.response, msg.community_id, msg.my_id)
-      .unwrap();
+      .ok();
   }
 }
 
@@ -709,7 +728,7 @@ impl Handler<SendPost> for ChatServer {
   type Result = ();
 
   fn handle(&mut self, msg: SendPost, _: &mut Context<Self>) {
-    self.send_post(&msg.op, &msg.post, msg.my_id).unwrap();
+    self.send_post(&msg.op, &msg.post, msg.my_id).ok();
   }
 }
 
@@ -717,7 +736,7 @@ impl Handler<SendComment> for ChatServer {
   type Result = ();
 
   fn handle(&mut self, msg: SendComment, _: &mut Context<Self>) {
-    self.send_comment(&msg.op, &msg.comment, msg.my_id).unwrap();
+    self.send_comment(&msg.op, &msg.comment, msg.my_id).ok();
   }
 }
 
@@ -725,7 +744,7 @@ impl Handler<JoinUserRoom> for ChatServer {
   type Result = ();
 
   fn handle(&mut self, msg: JoinUserRoom, _: &mut Context<Self>) {
-    self.join_user_room(msg.user_id, msg.id);
+    self.join_user_room(msg.user_id, msg.id).ok();
   }
 }
 
@@ -733,7 +752,7 @@ impl Handler<JoinCommunityRoom> for ChatServer {
   type Result = ();
 
   fn handle(&mut self, msg: JoinCommunityRoom, _: &mut Context<Self>) {
-    self.join_community_room(msg.community_id, msg.id);
+    self.join_community_room(msg.community_id, msg.id).ok();
   }
 }
 
@@ -741,7 +760,7 @@ impl Handler<JoinPostRoom> for ChatServer {
   type Result = ();
 
   fn handle(&mut self, msg: JoinPostRoom, _: &mut Context<Self>) {
-    self.join_post_room(msg.post_id, msg.id);
+    self.join_post_room(msg.post_id, msg.id).ok();
   }
 }
 
