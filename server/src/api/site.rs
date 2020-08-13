@@ -35,7 +35,7 @@ use lemmy_db::{
   SearchType,
   SortType,
 };
-use lemmy_utils::settings::Settings;
+use lemmy_utils::{location_info, settings::Settings};
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -656,7 +656,7 @@ impl Perform for TransferSite {
     let creator_index = admins
       .iter()
       .position(|r| r.id == site_view.creator_id)
-      .context("missing creator")?;
+      .context(location_info!())?;
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
 

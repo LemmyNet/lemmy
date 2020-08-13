@@ -54,6 +54,7 @@ use lemmy_utils::{
   generate_random_string,
   is_valid_preferred_username,
   is_valid_username,
+  location_info,
   make_apub_endpoint,
   naive_from_unix,
   remove_slurs,
@@ -808,7 +809,7 @@ impl Perform for AddAdmin {
     let creator_index = admins
       .iter()
       .position(|r| r.id == site_creator_id)
-      .context("missing creator")?;
+      .context(location_info!())?;
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
 
