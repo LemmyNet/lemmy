@@ -325,7 +325,9 @@ async fn fetch_remote_community(
   let outbox =
     fetch_remote_object::<OrderedCollection>(client, &community.get_outbox_url()?).await?;
   let outbox_items = outbox.items().context(location_info!())?.clone();
-  for o in outbox_items.many().context(location_info!())? {
+  let outbox_items = outbox_items.many().context(location_info!())?;
+  let outbox_items = outbox_items[0..20].to_vec();
+  for o in outbox_items {
     let page = PageExt::from_any_base(o)?.context(location_info!())?;
     let post = PostForm::from_apub(&page, client, pool, None).await?;
     let post_ap_id = post.ap_id.clone();
