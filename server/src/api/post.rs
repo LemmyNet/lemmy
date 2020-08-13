@@ -13,7 +13,7 @@ use crate::{
   blocking,
   fetch_iframely_and_pictrs_data,
   websocket::{
-    server::{JoinCommunityRoom, JoinPostRoom, SendPost},
+    server::{GetPostUsersOnline, JoinCommunityRoom, JoinPostRoom, SendPost},
     UserOperation,
     WebsocketInfo,
   },
@@ -308,13 +308,10 @@ impl Perform for GetPost {
           id,
         });
       }
-
-      // TODO
-      1
-    // let fut = async {
-    //   ws.chatserver.send(GetPostUsersOnline {post_id: data.id}).await.unwrap()
-    // };
-    // Runtime::new().unwrap().block_on(fut)
+      ws.chatserver
+        .send(GetPostUsersOnline { post_id: data.id })
+        .await
+        .unwrap_or(1)
     } else {
       0
     };

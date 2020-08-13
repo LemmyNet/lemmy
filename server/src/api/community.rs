@@ -4,7 +4,7 @@ use crate::{
   apub::ActorType,
   blocking,
   websocket::{
-    server::{JoinCommunityRoom, SendCommunityRoomMessage},
+    server::{GetCommunityUsersOnline, JoinCommunityRoom, SendCommunityRoomMessage},
     UserOperation,
     WebsocketInfo,
   },
@@ -205,13 +205,10 @@ impl Perform for GetCommunity {
           id,
         });
       }
-
-      // TODO
-      1
-    // let fut = async {
-    //   ws.chatserver.send(GetCommunityUsersOnline {community_id}).await.unwrap()
-    // };
-    // Runtime::new().unwrap().block_on(fut)
+      ws.chatserver
+        .send(GetCommunityUsersOnline { community_id })
+        .await
+        .unwrap_or(1)
     } else {
       0
     };
