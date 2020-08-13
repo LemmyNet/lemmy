@@ -76,30 +76,35 @@ fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
     return Err(anyhow!("invalid apub id scheme: {:?}", apub_id.scheme()).into());
   }
 
-  let mut allowed_instances: Vec<String> = Settings::get().get_allowed_instances();
+  let mut allowed_instances = Settings::get().get_allowed_instances();
+  let blocked_instances = Settings::get().get_blocked_instances();
 
-  // need to allow this explicitly because apub activities might contain objects from our local
-  // instance. replace is needed to remove the port in our federation test setup.
-  let settings = Settings::get();
-  let local_instance = settings.hostname.split(':').collect::<Vec<&str>>();
-  allowed_instances.push(
-    local_instance
-      .first()
-      .context(location_info!())?
-      .to_string(),
-  );
+  let domain = apub_id.domain().context(location_info!())?.to_string();
+  if !allowed_instances.is_empty() {
+    // need to allow this explicitly because apub activities might contain objects from our local
+    // instance. split is needed to remove the port in our federation test setup.
+    let settings = Settings::get();
+    let local_instance = settings.hostname.split(':').collect::<Vec<&str>>();
+    allowed_instances.push(
+      local_instance
+        .first()
+        .context(location_info!())?
+        .to_string(),
+    );
 
-  match apub_id.domain() {
-    Some(d) => {
-      let contains = allowed_instances.contains(&d.to_owned());
-
-      if !contains {
-        return Err(anyhow!("{} not in federation allowlist", d).into());
-      }
-
+    if allowed_instances.contains(&domain) {
+      Ok(())
+    } else {
+      Err(anyhow!("{} not in federation allowlist", domain).into())
+    }
+  } else if !blocked_instances.is_empty() {
+    if blocked_instances.contains(&domain) {
+      Err(anyhow!("{} is in federation blocklist", domain).into())
+    } else {
       Ok(())
     }
-    None => Err(anyhow!("federation allowlist is empty").into()),
+  } else {
+    panic!("Invalid config, both allowed_instances and blocked_instances are specified");
   }
 }
 

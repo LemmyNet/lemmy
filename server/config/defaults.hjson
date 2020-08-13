@@ -62,8 +62,10 @@
     enabled: false
     # whether tls is required for activitypub. only disable this for debugging, never for producion.
     tls_enabled: true
-    # comma seperated list of instances with which federation is allowed
+    # comma separated list of instances with which federation is allowed
     allowed_instances: ""
+    # comma separated list of instances which are blocked from federating
+    blocked_instances: ""
   }
   captcha: {
     enabled: true
