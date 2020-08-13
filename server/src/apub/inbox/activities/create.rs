@@ -65,6 +65,8 @@ async fn receive_create_post(
 
   let post = PostForm::from_apub(&page, client, pool, Some(user.actor_id()?)).await?;
 
+  // Using an upsert, since likes (which fetch the post), sometimes come in before the create
+  // resulting in double posts.
   let inserted_post = blocking(pool, move |conn| upsert_post(&post, conn)).await??;
 
   // Refetch the view
