@@ -494,12 +494,6 @@ mod tests {
       score: 1,
     };
 
-    let post_like_form = PostLikeForm {
-      post_id: inserted_post.id,
-      user_id: inserted_user.id,
-      score: 1,
-    };
-
     let read_post_listings_with_user = PostQueryBuilder::create(&conn)
       .listing_type(ListingType::Community)
       .sort(&SortType::New)
@@ -618,7 +612,7 @@ mod tests {
       community_local: true,
     };
 
-    let like_removed = PostLike::remove(&conn, &post_like_form).unwrap();
+    let like_removed = PostLike::remove(&conn, inserted_user.id, inserted_post.id).unwrap();
     let num_deleted = Post::delete(&conn, inserted_post.id).unwrap();
     Community::delete(&conn, inserted_community.id).unwrap();
     User_::delete(&conn, inserted_user.id).unwrap();

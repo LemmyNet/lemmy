@@ -13,7 +13,7 @@ use crate::{
   blocking,
   fetch_iframely_and_pictrs_data,
   websocket::{
-    server::{JoinCommunityRoom, JoinPostRoom, SendPost},
+    server::{GetPostUsersOnline, JoinCommunityRoom, JoinPostRoom, SendPost},
     UserOperation,
     WebsocketInfo,
   },
@@ -308,13 +308,10 @@ impl Perform for GetPost {
           id,
         });
       }
-
-      // TODO
-      1
-    // let fut = async {
-    //   ws.chatserver.send(GetPostUsersOnline {post_id: data.id}).await.unwrap()
-    // };
-    // Runtime::new().unwrap().block_on(fut)
+      ws.chatserver
+        .send(GetPostUsersOnline { post_id: data.id })
+        .await
+        .unwrap_or(1)
     } else {
       0
     };
@@ -430,8 +427,8 @@ impl Perform for CreatePostLike {
     };
 
     // Remove any likes first
-    let like_form2 = like_form.clone();
-    blocking(pool, move |conn| PostLike::remove(conn, &like_form2)).await??;
+    let user_id = user.id;
+    blocking(pool, move |conn| PostLike::remove(conn, user_id, post_id)).await??;
 
     // Only add the like if the score isnt 0
     let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);

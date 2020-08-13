@@ -125,11 +125,9 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     let community = this.props.community;
     return (
       <ul class="my-1 list-inline">
-        {/*
-              <li className="list-inline-item badge badge-light">
-                {i18n.t('number_online', { count: this.props.online })}
-              </li>
-              */}
+        <li className="list-inline-item badge badge-light">
+          {i18n.t('number_online', { count: this.props.online })}
+        </li>
         <li className="list-inline-item badge badge-light">
           {i18n.t('number_of_subscribers', {
             count: community.number_of_subscribers,

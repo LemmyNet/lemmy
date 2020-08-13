@@ -24,12 +24,11 @@ import {
   pictrsAvatarThumbnail,
   showAvatars,
   fetchLimit,
-  isCommentType,
   toast,
-  messageToastify,
-  md,
   setTheme,
   getLanguage,
+  notifyComment,
+  notifyPrivateMessage,
 } from '../utils';
 import { i18n } from '../i18next';
 
@@ -436,7 +435,7 @@ export class Navbar extends Component<any, NavbarState> {
           this.state.unreadCount++;
           this.setState(this.state);
           this.sendUnreadCount();
-          this.notify(data.comment);
+          notifyComment(data.comment, this.context.router);
         }
       }
     } else if (res.op == UserOperation.CreatePrivateMessage) {
@@ -448,7 +447,7 @@ export class Navbar extends Component<any, NavbarState> {
           this.state.unreadCount++;
           this.setState(this.state);
           this.sendUnreadCount();
-          this.notify(data.message);
+          notifyPrivateMessage(data.message, this.context.router);
         }
       }
     } else if (res.op == UserOperation.GetSite) {
@@ -540,39 +539,6 @@ export class Navbar extends Component<any, NavbarState> {
         if (Notification.permission !== 'granted')
           Notification.requestPermission();
       });
-    }
-  }
-
-  notify(reply: Comment | PrivateMessage) {
-    let creator_name = reply.creator_name;
-    let creator_avatar = reply.creator_avatar
-      ? reply.creator_avatar
-      : `${window.location.protocol}//${window.location.host}/static/assets/apple-touch-icon.png`;
-    let link = isCommentType(reply)
-      ? `/post/${reply.post_id}/comment/${reply.id}`
-      : `/inbox`;
-    let htmlBody = md.render(reply.content);
-    let body = reply.content; // Unfortunately the notifications API can't do html
-
-    messageToastify(
-      creator_name,
-      creator_avatar,
-      htmlBody,
-      link,
-      this.context.router
-    );
-
-    if (Notification.permission !== 'granted') Notification.requestPermission();
-    else {
-      var notification = new Notification(reply.creator_name, {
-        icon: creator_avatar,
-        body: body,
-      });
-
-      notification.onclick = () => {
-        event.preventDefault();
-        this.context.router.history.push(link);
-      };
     }
   }
 }

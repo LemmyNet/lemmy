@@ -95,7 +95,7 @@ impl ToApub for Community {
     ap_actor
       .set_preferred_username(self.title.to_owned())
       .set_outbox(self.get_outbox_url()?)
-      .set_followers(self.get_followers_url().parse()?)
+      .set_followers(self.get_followers_url()?)
       .set_following(self.get_following_url().parse()?)
       .set_liked(self.get_liked_url().parse()?)
       .set_endpoints(Endpoints {
@@ -174,7 +174,7 @@ impl ActorType for Community {
       .set_context(context())
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
-      .set_many_ccs(vec![self.get_followers_url()]);
+      .set_many_ccs(vec![self.get_followers_url()?]);
 
     insert_activity(self.creator_id, delete.clone(), true, pool).await?;
 
@@ -200,16 +200,14 @@ impl ActorType for Community {
       .set_context(context())
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
-      .set_many_ccs(vec![self.get_followers_url()]);
+      .set_many_ccs(vec![self.get_followers_url()?]);
 
-    // TODO
-    // Undo that fake activity
     let mut undo = Undo::new(creator.actor_id.to_owned(), delete.into_any_base()?);
     undo
       .set_context(context())
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
-      .set_many_ccs(vec![self.get_followers_url()]);
+      .set_many_ccs(vec![self.get_followers_url()?]);
 
     insert_activity(self.creator_id, undo.clone(), true, pool).await?;
 
@@ -235,7 +233,7 @@ impl ActorType for Community {
       .set_context(context())
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
-      .set_many_ccs(vec![self.get_followers_url()]);
+      .set_many_ccs(vec![self.get_followers_url()?]);
 
     insert_activity(mod_.id, remove.clone(), true, pool).await?;
 
@@ -261,7 +259,7 @@ impl ActorType for Community {
       .set_context(context())
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
-      .set_many_ccs(vec![self.get_followers_url()]);
+      .set_many_ccs(vec![self.get_followers_url()?]);
 
     // Undo that fake activity
     let mut undo = Undo::new(mod_.actor_id.to_owned(), remove.into_any_base()?);
@@ -269,7 +267,7 @@ impl ActorType for Community {
       .set_context(context())
       .set_id(generate_activity_id(LikeType::Like)?)
       .set_to(public())
-      .set_many_ccs(vec![self.get_followers_url()]);
+      .set_many_ccs(vec![self.get_followers_url()?]);
 
     insert_activity(mod_.id, undo.clone(), true, pool).await?;
 
@@ -474,8 +472,7 @@ pub async fn get_apub_community_followers(
   let mut collection = UnorderedCollection::new();
   collection
     .set_context(context())
-    // TODO: this needs its own ID
-    .set_id(community.actor_id.parse()?)
+    .set_id(community.get_followers_url()?)
     .set_total_items(community_followers.len() as u64);
   Ok(create_apub_response(&collection))
 }
@@ -522,7 +519,7 @@ pub async fn do_announce(
     .set_context(context())
     .set_id(generate_activity_id(AnnounceType::Announce)?)
     .set_to(public())
-    .set_many_ccs(vec![community.get_followers_url()]);
+    .set_many_ccs(vec![community.get_followers_url()?]);
 
   insert_activity(community.creator_id, announce.clone(), true, pool).await?;
 

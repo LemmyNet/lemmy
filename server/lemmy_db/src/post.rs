@@ -207,12 +207,12 @@ impl Likeable<PostLikeForm> for PostLike {
       .values(post_like_form)
       .get_result::<Self>(conn)
   }
-  fn remove(conn: &PgConnection, post_like_form: &PostLikeForm) -> Result<usize, Error> {
-    use crate::schema::post_like::dsl::*;
+  fn remove(conn: &PgConnection, user_id: i32, post_id: i32) -> Result<usize, Error> {
+    use crate::schema::post_like::dsl;
     diesel::delete(
-      post_like
-        .filter(post_id.eq(post_like_form.post_id))
-        .filter(user_id.eq(post_like_form.user_id)),
+      dsl::post_like
+        .filter(dsl::post_id.eq(post_id))
+        .filter(dsl::user_id.eq(user_id)),
     )
     .execute(conn)
   }
@@ -452,7 +452,7 @@ mod tests {
 
     let read_post = Post::read(&conn, inserted_post.id).unwrap();
     let updated_post = Post::update(&conn, inserted_post.id, &new_post).unwrap();
-    let like_removed = PostLike::remove(&conn, &post_like_form).unwrap();
+    let like_removed = PostLike::remove(&conn, inserted_user.id, inserted_post.id).unwrap();
     let saved_removed = PostSaved::unsave(&conn, &post_saved_form).unwrap();
     let read_removed = PostRead::mark_as_unread(&conn, &post_read_form).unwrap();
     let num_deleted = Post::delete(&conn, inserted_post.id).unwrap();

@@ -72,8 +72,9 @@ async fn receive_dislike_post(
     user_id: user.id,
     score: -1,
   };
+  let user_id = user.id;
   blocking(pool, move |conn| {
-    PostLike::remove(conn, &like_form)?;
+    PostLike::remove(conn, user_id, post_id)?;
     PostLike::like(conn, &like_form)
   })
   .await??;
@@ -121,8 +122,9 @@ async fn receive_dislike_comment(
     user_id: user.id,
     score: -1,
   };
+  let user_id = user.id;
   blocking(pool, move |conn| {
-    CommentLike::remove(conn, &like_form)?;
+    CommentLike::remove(conn, user_id, comment_id)?;
     CommentLike::like(conn, &like_form)
   })
   .await??;

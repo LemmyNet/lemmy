@@ -688,7 +688,7 @@ mod tests {
     read_comment_views_with_user[0].hot_rank = 0;
     read_comment_views_with_user[0].hot_rank_active = 0;
 
-    let like_removed = CommentLike::remove(&conn, &comment_like_form).unwrap();
+    let like_removed = CommentLike::remove(&conn, inserted_user.id, inserted_comment.id).unwrap();
     let num_deleted = Comment::delete(&conn, inserted_comment.id).unwrap();
     Post::delete(&conn, inserted_post.id).unwrap();
     Community::delete(&conn, inserted_community.id).unwrap();
