@@ -30,7 +30,6 @@ use lemmy_db::{
   comment_view::CommentView,
   post::{Post, PostForm},
   post_view::PostView,
-  Crud,
 };
 use lemmy_utils::{location_info, scrape_text_for_mentions};
 
@@ -65,7 +64,9 @@ async fn receive_create_post(
 
   let post = PostForm::from_apub(&page, client, pool, Some(user.actor_id()?)).await?;
 
-  let inserted_post = blocking(pool, move |conn| Post::create(conn, &post)).await??;
+  // Using an upsert, since likes (which fetch the post), sometimes come in before the create
+  // resulting in double posts.
+  let inserted_post = blocking(pool, move |conn| Post::upsert(conn, &post)).await??;
 
   // Refetch the view
   let inserted_post_id = inserted_post.id;
@@ -98,7 +99,7 @@ async fn receive_create_comment(
 
   let comment = CommentForm::from_apub(&note, client, pool, Some(user.actor_id()?)).await?;
 
-  let inserted_comment = blocking(pool, move |conn| Comment::create(conn, &comment)).await??;
+  let inserted_comment = blocking(pool, move |conn| Comment::upsert(conn, &comment)).await??;
 
   let post_id = inserted_comment.post_id;
   let post = blocking(pool, move |conn| Post::read(conn, post_id)).await??;

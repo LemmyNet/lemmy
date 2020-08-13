@@ -155,6 +155,15 @@ impl Post {
   pub fn is_post_creator(user_id: i32, post_creator_id: i32) -> bool {
     user_id == post_creator_id
   }
+
+  pub fn upsert(conn: &PgConnection, post_form: &PostForm) -> Result<Post, Error> {
+    let existing = Self::read_from_apub_id(conn, &post_form.ap_id);
+    match existing {
+      Err(NotFound {}) => Ok(Self::create(conn, &post_form)?),
+      Ok(p) => Ok(Self::update(conn, p.id, &post_form)?),
+      Err(e) => Err(e),
+    }
+  }
 }
 
 impl Crud<PostForm> for Post {
