@@ -148,6 +148,18 @@ impl Comment {
       .set((content.eq(new_content), updated.eq(naive_now())))
       .get_result::<Self>(conn)
   }
+
+  pub fn upsert(
+    conn: &PgConnection,
+    comment_form: &CommentForm,
+  ) -> Result<Self, Error> {
+    let existing = Self::read_from_apub_id(conn, &comment_form.ap_id);
+    match existing {
+      Err(NotFound {}) => Ok(Self::create(conn, &comment_form)?),
+      Ok(p) => Ok(Self::update(conn, p.id, &comment_form)?),
+      Err(e) => Err(e),
+    }
+  }
 }
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Debug, Clone)]
