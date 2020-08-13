@@ -59,6 +59,8 @@ import tippy from 'tippy.js';
 import moment from 'moment';
 
 export const favIconUrl = '/static/assets/favicon.svg';
+export const favIconPngUrl = '/static/assets/apple-touch-icon.png';
+export const defaultFavIcon = `${window.location.protocol}//${window.location.host}${favIconPngUrl}`;
 export const repoUrl = 'https://github.com/LemmyNet/lemmy';
 export const helpGuideUrl = '/docs/about_guide.html';
 export const markdownHelpUrl = `${helpGuideUrl}#markdown-guide`;
@@ -526,8 +528,19 @@ export function pictrsImage(hash: string, thumbnail: boolean = false): string {
   return out;
 }
 
-export function isCommentType(item: Comment | PrivateMessage): item is Comment {
-  return (item as Comment).community_id !== undefined;
+export function isCommentType(
+  item: Comment | PrivateMessage | Post
+): item is Comment {
+  return (
+    (item as Comment).community_id !== undefined &&
+    (item as Comment).content !== undefined
+  );
+}
+
+export function isPostType(
+  item: Comment | PrivateMessage | Post
+): item is Post {
+  return (item as Post).stickied !== undefined;
 }
 
 export function toast(text: string, background: string = 'success') {
@@ -563,18 +576,20 @@ export function pictrsDeleteToast(
   }).showToast();
 }
 
-export function messageToastify(
-  creator: string,
-  avatar: string,
-  body: string,
-  link: string,
-  router: any
-) {
+interface NotifyInfo {
+  name: string;
+  icon: string;
+  link: string;
+  body: string;
+}
+
+export function messageToastify(info: NotifyInfo, router: any) {
+  let htmlBody = info.body ? md.render(info.body) : '';
   let backgroundColor = `var(--light)`;
 
   let toast = Toastify({
-    text: `${body}<br />${creator}`,
-    avatar: avatar,
+    text: `${htmlBody}<br />${info.name}`,
+    avatar: info.icon,
     backgroundColor: backgroundColor,
     className: 'text-dark',
     close: true,
@@ -584,10 +599,57 @@ export function messageToastify(
     onClick: () => {
       if (toast) {
         toast.hideToast();
-        router.history.push(link);
+        router.history.push(info.link);
       }
     },
   }).showToast();
+}
+
+export function notifyPost(post: Post, router: any) {
+  let info: NotifyInfo = {
+    name: post.community_name,
+    icon: post.community_icon ? post.community_icon : defaultFavIcon,
+    link: `/post/${post.id}`,
+    body: post.name,
+  };
+  notify(info, router);
+}
+
+export function notifyComment(comment: Comment, router: any) {
+  let info: NotifyInfo = {
+    name: comment.creator_name,
+    icon: comment.creator_avatar ? comment.creator_avatar : defaultFavIcon,
+    link: `/post/${comment.post_id}/comment/${comment.id}`,
+    body: comment.content,
+  };
+  notify(info, router);
+}
+
+export function notifyPrivateMessage(pm: PrivateMessage, router: any) {
+  let info: NotifyInfo = {
+    name: pm.creator_name,
+    icon: pm.creator_avatar ? pm.creator_avatar : defaultFavIcon,
+    link: `/inbox`,
+    body: pm.content,
+  };
+  notify(info, router);
+}
+
+function notify(info: NotifyInfo, router: any) {
+  messageToastify(info, router);
+
+  if (Notification.permission !== 'granted') Notification.requestPermission();
+  else {
+    var notification = new Notification(info.name, {
+      icon: info.icon,
+      body: info.body,
+    });
+
+    notification.onclick = () => {
+      event.preventDefault();
+      router.history.push(info.link);
+    };
+  }
 }
 
 export function setupTribute(): Tribute {

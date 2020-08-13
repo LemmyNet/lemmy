@@ -55,6 +55,7 @@ import {
   commentsToFlatNodes,
   setupTippy,
   favIconUrl,
+  notifyPost,
 } from '../utils';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
@@ -715,6 +716,7 @@ export class Main extends Component<any, MainState> {
             .includes(data.post.community_id)
         ) {
           this.state.posts.unshift(data.post);
+          notifyPost(data.post, this.context.router);
         }
       } else {
         // NSFW posts
@@ -728,6 +730,7 @@ export class Main extends Component<any, MainState> {
             UserService.Instance.user.show_nsfw)
         ) {
           this.state.posts.unshift(data.post);
+          notifyPost(data.post, this.context.router);
         }
       }
       this.setState(this.state);
