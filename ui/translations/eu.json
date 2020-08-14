@@ -272,6 +272,6 @@
     "must_login": "<1>Saioa hasi edo izena eman</1> behar duzu iruzkinak egiteko.",
     "no_password_reset": "Ezingo duzu zure pasahitza berrezarri epostarik ez baduzu.",
     "invalid_post_title": "Bidalketa izenburu baliogabea",
-    "cake_day_title": "Urtebetetze eguna:",
+    "cake_day_title": "Izen-emate eguna:",
     "cake_day_info": "{{ creator_name }}(e)ren urtebetetzea da gaur!"
 }
