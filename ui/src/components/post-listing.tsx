@@ -1223,7 +1223,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     let post = this.props.post;
 
     if (post.url) {
-      params += `&url=${post.url}`;
+      params += `&url=${encodeURIComponent(post.url)}`;
     }
     if (this.props.post.body) {
       params += `&body=${this.props.post.body}`;
