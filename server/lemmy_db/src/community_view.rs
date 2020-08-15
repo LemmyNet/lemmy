@@ -232,12 +232,6 @@ impl<'a> CommunityQueryBuilder<'a> {
 
     // The view lets you pass a null user_id, if you're not logged in
     match self.sort {
-      SortType::Hot => {
-        query = query
-          .order_by(hot_rank.desc())
-          .then_order_by(number_of_subscribers.desc())
-          .filter(user_id.is_null())
-      }
       SortType::New => query = query.order_by(published.desc()).filter(user_id.is_null()),
       SortType::TopAll => match self.from_user_id {
         Some(from_user_id) => {
@@ -251,7 +245,12 @@ impl<'a> CommunityQueryBuilder<'a> {
             .filter(user_id.is_null())
         }
       },
-      _ => (),
+      SortType::Hot | _ => {
+        query = query
+          .order_by(hot_rank.desc())
+          .then_order_by(number_of_subscribers.desc())
+          .filter(user_id.is_null())
+      },
     };
 
     if !self.show_nsfw {
