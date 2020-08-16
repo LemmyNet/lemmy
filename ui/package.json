@@ -73,7 +73,7 @@
   "engineStrict": true,
   "husky": {
     "hooks": {
-      "pre-commit": "cargo clippy --manifest-path ../server/Cargo.toml --all-targets --workspace -- -D warnings && lint-staged"
+      "pre-commit": "cargo +nightly clippy --manifest-path ../server/Cargo.toml --all-targets --workspace -- -D warnings && lint-staged"
     }
   },
   "lint-staged": {

@@ -245,7 +245,8 @@ impl<'a> CommunityQueryBuilder<'a> {
             .filter(user_id.is_null())
         }
       },
-      SortType::Hot | _ => {
+      // Covers all other sorts, including hot
+      _ => {
         query = query
           .order_by(hot_rank.desc())
           .then_order_by(number_of_subscribers.desc())
