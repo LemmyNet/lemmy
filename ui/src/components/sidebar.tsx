@@ -7,9 +7,10 @@ import {
   DeleteCommunityForm,
   RemoveCommunityForm,
   UserView,
+  AddModToCommunityForm,
 } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
-import { mdToHtml, getUnixTime, pictrsAvatarThumbnail } from '../utils';
+import { mdToHtml, getUnixTime } from '../utils';
 import { CommunityForm } from './community-form';
 import { UserListing } from './user-listing';
 import { CommunityLink } from './community-link';
@@ -30,6 +31,7 @@ interface SidebarState {
   showRemoveDialog: boolean;
   removeReason: string;
   removeExpires: string;
+  showConfirmLeaveModTeam: boolean;
 }
 
 export class Sidebar extends Component<SidebarProps, SidebarState> {
@@ -38,6 +40,7 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
     showRemoveDialog: false,
     removeReason: null,
     removeExpires: null,
+    showConfirmLeaveModTeam: false,
   };
 
   constructor(props: any, context: any) {
@@ -248,6 +251,45 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
                   </svg>
                 </span>
               </li>
+              {!this.amCreator &&
+                (!this.state.showConfirmLeaveModTeam ? (
+                  <li className="list-inline-item-action">
+                    <span
+                      class="pointer"
+                      onClick={linkEvent(
+                        this,
+                        this.handleShowConfirmLeaveModTeamClick
+                      )}
+                    >
+                      {i18n.t('leave_mod_team')}
+                    </span>
+                  </li>
+                ) : (
+                  <>
+                    <li className="list-inline-item-action">
+                      {i18n.t('are_you_sure')}
+                    </li>
+                    <li className="list-inline-item-action">
+                      <span
+                        class="pointer"
+                        onClick={linkEvent(this, this.handleLeaveModTeamClick)}
+                      >
+                        {i18n.t('yes')}
+                      </span>
+                    </li>
+                    <li className="list-inline-item-action">
+                      <span
+                        class="pointer"
+                        onClick={linkEvent(
+                          this,
+                          this.handleCancelLeaveModTeamClick
+                        )}
+                      >
+                        {i18n.t('no')}
+                      </span>
+                    </li>
+                  </>
+                ))}
               {this.amCreator && (
                 <li className="list-inline-item-action">
                   <span
@@ -342,6 +384,27 @@ export class Sidebar extends Component<SidebarProps, SidebarState> {
       deleted: !i.props.community.deleted,
     };
     WebSocketService.Instance.deleteCommunity(deleteForm);
+  }
+
+  handleShowConfirmLeaveModTeamClick(i: Sidebar) {
+    i.state.showConfirmLeaveModTeam = true;
+    i.setState(i.state);
+  }
+
+  handleLeaveModTeamClick(i: Sidebar) {
+    let form: AddModToCommunityForm = {
+      user_id: UserService.Instance.user.id,
+      community_id: i.props.community.id,
+      added: false,
+    };
+    WebSocketService.Instance.addModToCommunity(form);
+    i.state.showConfirmLeaveModTeam = false;
+    i.setState(i.state);
+  }
+
+  handleCancelLeaveModTeamClick(i: Sidebar) {
+    i.state.showConfirmLeaveModTeam = false;
+    i.setState(i.state);
   }
 
   handleUnsubscribe(communityId: number) {
