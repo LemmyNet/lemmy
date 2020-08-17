@@ -97,16 +97,15 @@ impl Comment {
     comment.filter(ap_id.eq(object_id)).first::<Self>(conn)
   }
 
-  pub fn permadelete(conn: &PgConnection, comment_id: i32) -> Result<Self, Error> {
+  pub fn permadelete_for_creator(conn: &PgConnection, for_creator_id: i32) -> Result<Vec<Self>, Error> {
     use crate::schema::comment::dsl::*;
-
-    diesel::update(comment.find(comment_id))
+    diesel::update(comment.filter(creator_id.eq(for_creator_id)))
       .set((
         content.eq("*Permananently Deleted*"),
         deleted.eq(true),
         updated.eq(naive_now()),
       ))
-      .get_result::<Self>(conn)
+      .get_results::<Self>(conn)
   }
 
   pub fn update_deleted(
@@ -129,6 +128,17 @@ impl Comment {
     diesel::update(comment.find(comment_id))
       .set((removed.eq(new_removed), updated.eq(naive_now())))
       .get_result::<Self>(conn)
+  }
+
+  pub fn update_removed_for_creator(
+    conn: &PgConnection,
+    for_creator_id: i32,
+    new_removed: bool,
+  ) -> Result<Vec<Self>, Error> {
+    use crate::schema::comment::dsl::*;
+    diesel::update(comment.filter(creator_id.eq(for_creator_id)))
+      .set((removed.eq(new_removed), updated.eq(naive_now())))
+      .get_results::<Self>(conn)
   }
 
   pub fn update_read(conn: &PgConnection, comment_id: i32, new_read: bool) -> Result<Self, Error> {

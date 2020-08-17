@@ -121,6 +121,17 @@ impl Community {
       .get_result::<Self>(conn)
   }
 
+  pub fn update_removed_for_creator(
+    conn: &PgConnection,
+    for_creator_id: i32,
+    new_removed: bool,
+  ) -> Result<Vec<Self>, Error> {
+    use crate::schema::community::dsl::*;
+    diesel::update(community.filter(creator_id.eq(for_creator_id)))
+      .set((removed.eq(new_removed), updated.eq(naive_now())))
+      .get_results::<Self>(conn)
+  }
+
   pub fn update_creator(
     conn: &PgConnection,
     community_id: i32,

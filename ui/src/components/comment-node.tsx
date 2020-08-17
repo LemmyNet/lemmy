@@ -43,6 +43,7 @@ interface CommentNodeState {
   showRemoveDialog: boolean;
   removeReason: string;
   showBanDialog: boolean;
+  removeData: boolean;
   banReason: string;
   banExpires: string;
   banType: BanType;
@@ -87,6 +88,7 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     showRemoveDialog: false,
     removeReason: null,
     showBanDialog: false,
+    removeData: null,
     banReason: null,
     banExpires: null,
     banType: BanType.Community,
@@ -699,6 +701,20 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
                 value={this.state.banReason}
                 onInput={linkEvent(this, this.handleModBanReasonChange)}
               />
+              <div class="form-group">
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    id="mod-ban-remove-data"
+                    type="checkbox"
+                    checked={this.state.removeData}
+                    onChange={linkEvent(this, this.handleModRemoveDataChange)}
+                  />
+                  <label class="form-check-label" htmlFor="mod-ban-remove-data">
+                    {i18n.t('remove_posts_comments')}
+                  </label>
+                </div>
+              </div>
             </div>
             {/* TODO hold off on expires until later */}
             {/* <div class="form-group row"> */}
@@ -951,6 +967,11 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     i.setState(i.state);
   }
 
+  handleModRemoveDataChange(i: CommentNode, event: any) {
+    i.state.removeData = event.target.checked;
+    i.setState(i.state);
+  }
+
   handleModRemoveSubmit(i: CommentNode) {
     event.preventDefault();
     let form: RemoveCommentForm = {
@@ -1024,18 +1045,30 @@ export class CommentNode extends Component<CommentNodeProps, CommentNodeState> {
     event.preventDefault();
 
     if (i.state.banType == BanType.Community) {
+      // If its an unban, restore all their data
+      let ban = !i.props.node.comment.banned_from_community;
+      if (ban == false) {
+        i.state.removeData = false;
+      }
       let form: BanFromCommunityForm = {
         user_id: i.props.node.comment.creator_id,
         community_id: i.props.node.comment.community_id,
-        ban: !i.props.node.comment.banned_from_community,
+        ban,
+        remove_data: i.state.removeData,
         reason: i.state.banReason,
         expires: getUnixTime(i.state.banExpires),
       };
       WebSocketService.Instance.banFromCommunity(form);
     } else {
+      // If its an unban, restore all their data
+      let ban = !i.props.node.comment.banned;
+      if (ban == false) {
+        i.state.removeData = false;
+      }
       let form: BanUserForm = {
         user_id: i.props.node.comment.creator_id,
-        ban: !i.props.node.comment.banned,
+        ban,
+        remove_data: i.state.removeData,
         reason: i.state.banReason,
         expires: getUnixTime(i.state.banExpires),
       };

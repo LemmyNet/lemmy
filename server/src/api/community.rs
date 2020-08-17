@@ -13,8 +13,11 @@ use crate::{
 use actix_web::client::Client;
 use anyhow::Context;
 use lemmy_db::{
+  comment::Comment,
+  comment_view::CommentQueryBuilder,
   diesel_option_overwrite,
   naive_now,
+  post::Post,
   Bannable,
   Crud,
   Followable,
@@ -81,6 +84,7 @@ pub struct BanFromCommunity {
   pub community_id: i32,
   user_id: i32,
   ban: bool,
+  remove_data: Option<bool>,
   reason: Option<String>,
   expires: Option<i64>,
   auth: String,
@@ -676,6 +680,7 @@ impl Perform for BanFromCommunity {
     let user = get_user_from_jwt(&data.auth, pool).await?;
 
     let community_id = data.community_id;
+    let banned_user_id = data.user_id;
 
     // Verify that only mods or admins can ban
     is_mod_or_admin(pool, user.id, community_id).await?;
@@ -694,6 +699,34 @@ impl Perform for BanFromCommunity {
       let unban = move |conn: &'_ _| CommunityUserBan::unban(conn, &community_user_ban_form);
       if blocking(pool, unban).await?.is_err() {
         return Err(APIError::err("community_user_already_banned").into());
+      }
+    }
+
+    // Remove/Restore their data if that's desired
+    if let Some(remove_data) = data.remove_data {
+      // Posts
+      blocking(pool, move |conn: &'_ _| {
+        Post::update_removed_for_creator(conn, banned_user_id, Some(community_id), remove_data)
+      })
+      .await??;
+
+      // Comments
+      // Diesel doesn't allow updates with joins, so this has to be a loop
+      let comments = blocking(pool, move |conn| {
+        CommentQueryBuilder::create(conn)
+          .for_creator_id(banned_user_id)
+          .for_community_id(community_id)
+          .limit(std::i64::MAX)
+          .list()
+      })
+      .await??;
+
+      for comment in &comments {
+        let comment_id = comment.id;
+        blocking(pool, move |conn: &'_ _| {
+          Comment::update_removed(conn, comment_id, remove_data)
+        })
+        .await??;
       }
     }
 
