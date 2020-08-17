@@ -177,6 +177,7 @@ pub struct AddAdminResponse {
 pub struct BanUser {
   user_id: i32,
   ban: bool,
+  remove_data: Option<bool>,
   reason: Option<String>,
   expires: Option<i64>,
   auth: String,
@@ -850,6 +851,27 @@ impl Perform for BanUser {
       return Err(APIError::err("couldnt_update_user").into());
     }
 
+    // Remove their data if that's desired
+    if let Some(remove_data) = data.remove_data {
+      // Posts
+      blocking(pool, move |conn: &'_ _| {
+        Post::update_removed_for_creator(conn, banned_user_id, None, remove_data)
+      })
+      .await??;
+
+      // Communities
+      blocking(pool, move |conn: &'_ _| {
+        Community::update_removed_for_creator(conn, banned_user_id, remove_data)
+      })
+      .await??;
+
+      // Comments
+      blocking(pool, move |conn: &'_ _| {
+        Comment::update_removed_for_creator(conn, banned_user_id, remove_data)
+      })
+      .await??;
+    }
+
     // Mod tables
     let expires = match data.expires {
       Some(time) => Some(naive_from_unix(time)),
@@ -1064,40 +1086,15 @@ impl Perform for DeleteAccount {
 
     // Comments
     let user_id = user.id;
-    let comments = blocking(pool, move |conn| {
-      CommentQueryBuilder::create(conn)
-        .for_creator_id(user_id)
-        .limit(std::i64::MAX)
-        .list()
-    })
-    .await??;
-
-    // TODO: this should probably be a bulk operation
-    for comment in &comments {
-      let comment_id = comment.id;
-      let permadelete = move |conn: &'_ _| Comment::permadelete(conn, comment_id);
-      if blocking(pool, permadelete).await?.is_err() {
-        return Err(APIError::err("couldnt_update_comment").into());
-      }
+    let permadelete = move |conn: &'_ _| Comment::permadelete_for_creator(conn, user_id);
+    if blocking(pool, permadelete).await?.is_err() {
+      return Err(APIError::err("couldnt_update_comment").into());
     }
 
     // Posts
-    let posts = blocking(pool, move |conn| {
-      PostQueryBuilder::create(conn)
-        .sort(&SortType::New)
-        .for_creator_id(user_id)
-        .limit(std::i64::MAX)
-        .list()
-    })
-    .await??;
-
-    // TODO: this should probably be a bulk operation
-    for post in &posts {
-      let post_id = post.id;
-      let permadelete = move |conn: &'_ _| Post::permadelete(conn, post_id);
-      if blocking(pool, permadelete).await?.is_err() {
-        return Err(APIError::err("couldnt_update_post").into());
-      }
+    let permadelete = move |conn: &'_ _| Post::permadelete_for_creator(conn, user_id);
+    if blocking(pool, permadelete).await?.is_err() {
+      return Err(APIError::err("couldnt_update_post").into());
     }
 
     Ok(LoginResponse {

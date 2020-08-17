@@ -413,6 +413,7 @@ export interface BanFromCommunityForm {
   community_id: number;
   user_id: number;
   ban: boolean;
+  remove_data?: boolean;
   reason?: string;
   expires?: number;
   auth?: string;
@@ -877,6 +878,7 @@ export interface SiteResponse {
 export interface BanUserForm {
   user_id: number;
   ban: boolean;
+  remove_data?: boolean;
   reason?: string;
   expires?: number;
   auth?: string;

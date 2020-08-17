@@ -95,13 +95,13 @@ impl Post {
       .get_result::<Self>(conn)
   }
 
-  pub fn permadelete(conn: &PgConnection, post_id: i32) -> Result<Self, Error> {
+  pub fn permadelete_for_creator(conn: &PgConnection, for_creator_id: i32) -> Result<Vec<Self>, Error> {
     use crate::schema::post::dsl::*;
 
     let perma_deleted = "*Permananently Deleted*";
     let perma_deleted_url = "https://deleted.com";
 
-    diesel::update(post.find(post_id))
+    diesel::update(post.filter(creator_id.eq(for_creator_id)))
       .set((
         name.eq(perma_deleted),
         url.eq(perma_deleted_url),
@@ -109,7 +109,7 @@ impl Post {
         deleted.eq(true),
         updated.eq(naive_now()),
       ))
-      .get_result::<Self>(conn)
+      .get_results::<Self>(conn)
   }
 
   pub fn update_deleted(
@@ -132,6 +132,26 @@ impl Post {
     diesel::update(post.find(post_id))
       .set((removed.eq(new_removed), updated.eq(naive_now())))
       .get_result::<Self>(conn)
+  }
+
+  pub fn update_removed_for_creator(
+    conn: &PgConnection,
+    for_creator_id: i32,
+    for_community_id: Option<i32>,
+    new_removed: bool,
+  ) -> Result<Vec<Self>, Error> {
+    use crate::schema::post::dsl::*;
+
+    let mut update = diesel::update(post).into_boxed();
+    update = update.filter(creator_id.eq(for_creator_id));
+
+    if let Some(for_community_id) = for_community_id {
+      update = update.filter(community_id.eq(for_community_id));
+    }
+
+    update
+      .set((removed.eq(new_removed), updated.eq(naive_now())))
+      .get_results::<Self>(conn)
   }
 
   pub fn update_locked(conn: &PgConnection, post_id: i32, new_locked: bool) -> Result<Self, Error> {

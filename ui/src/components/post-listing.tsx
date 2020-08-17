@@ -44,6 +44,7 @@ interface PostListingState {
   showRemoveDialog: boolean;
   removeReason: string;
   showBanDialog: boolean;
+  removeData: boolean;
   banReason: string;
   banExpires: string;
   banType: BanType;
@@ -74,6 +75,7 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     showRemoveDialog: false,
     removeReason: null,
     showBanDialog: false,
+    removeData: null,
     banReason: null,
     banExpires: null,
     banType: BanType.Community,
@@ -931,6 +933,20 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
                 value={this.state.banReason}
                 onInput={linkEvent(this, this.handleModBanReasonChange)}
               />
+              <div class="form-group">
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    id="mod-ban-remove-data"
+                    type="checkbox"
+                    checked={this.state.removeData}
+                    onChange={linkEvent(this, this.handleModRemoveDataChange)}
+                  />
+                  <label class="form-check-label" htmlFor="mod-ban-remove-data">
+                    {i18n.t('remove_posts_comments')}
+                  </label>
+                </div>
+              </div>
             </div>
             {/* TODO hold off on expires until later */}
             {/* <div class="form-group row"> */}
@@ -1241,6 +1257,11 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     i.setState(i.state);
   }
 
+  handleModRemoveDataChange(i: PostListing, event: any) {
+    i.state.removeData = event.target.checked;
+    i.setState(i.state);
+  }
+
   handleModRemoveSubmit(i: PostListing) {
     event.preventDefault();
     let form: RemovePostForm = {
@@ -1311,18 +1332,30 @@ export class PostListing extends Component<PostListingProps, PostListingState> {
     event.preventDefault();
 
     if (i.state.banType == BanType.Community) {
+      // If its an unban, restore all their data
+      let ban = !i.props.post.banned_from_community;
+      if (ban == false) {
+        i.state.removeData = false;
+      }
       let form: BanFromCommunityForm = {
         user_id: i.props.post.creator_id,
         community_id: i.props.post.community_id,
-        ban: !i.props.post.banned_from_community,
+        ban,
+        remove_data: i.state.removeData,
         reason: i.state.banReason,
         expires: getUnixTime(i.state.banExpires),
       };
       WebSocketService.Instance.banFromCommunity(form);
     } else {
+      // If its an unban, restore all their data
+      let ban = !i.props.post.banned;
+      if (ban == false) {
+        i.state.removeData = false;
+      }
       let form: BanUserForm = {
         user_id: i.props.post.creator_id,
-        ban: !i.props.post.banned,
+        ban,
+        remove_data: i.state.removeData,
         reason: i.state.banReason,
         expires: getUnixTime(i.state.banExpires),
       };

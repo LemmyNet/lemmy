@@ -818,6 +818,7 @@ Marks all user replies and mentions as read.
   data: {
     user_id: i32,
     ban: bool,
+    remove_data: Option<bool>, // Removes/Restores their comments, posts, and communities
     reason: Option<String>,
     expires: Option<i64>,
     auth: String
@@ -1177,6 +1178,7 @@ Search types are `All, Comments, Posts, Communities, Users, Url`
     community_id: i32,
     user_id: i32,
     ban: bool,
+    remove_data: Option<bool>, // Removes/Restores their comments and posts for that community
     reason: Option<String>,
     expires: Option<i64>,
     auth: String

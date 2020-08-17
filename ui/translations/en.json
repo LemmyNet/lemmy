@@ -15,6 +15,7 @@
     "number_of_comments": "{{count}} Comment",
     "number_of_comments_plural": "{{count}} Comments",
     "remove_comment": "Remove Comment",
+    "remove_posts_comments": "Remove Posts and Comments",
     "communities": "Communities",
     "users": "Users",
     "create_a_community": "Create a community",
