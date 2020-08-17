@@ -707,16 +707,6 @@ mod tests {
       when_: inserted_mod_add.when_,
     };
 
-    ModRemovePost::delete(&conn, inserted_mod_remove_post.id).unwrap();
-    ModLockPost::delete(&conn, inserted_mod_lock_post.id).unwrap();
-    ModStickyPost::delete(&conn, inserted_mod_sticky_post.id).unwrap();
-    ModRemoveComment::delete(&conn, inserted_mod_remove_comment.id).unwrap();
-    ModRemoveCommunity::delete(&conn, inserted_mod_remove_community.id).unwrap();
-    ModBanFromCommunity::delete(&conn, inserted_mod_ban_from_community.id).unwrap();
-    ModBan::delete(&conn, inserted_mod_ban.id).unwrap();
-    ModAddCommunity::delete(&conn, inserted_mod_add_community.id).unwrap();
-    ModAdd::delete(&conn, inserted_mod_add.id).unwrap();
-
     Comment::delete(&conn, inserted_comment.id).unwrap();
     Post::delete(&conn, inserted_post.id).unwrap();
     Community::delete(&conn, inserted_community.id).unwrap();

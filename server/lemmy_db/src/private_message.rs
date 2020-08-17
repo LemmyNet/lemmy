@@ -225,7 +225,6 @@ mod tests {
       PrivateMessage::update_deleted(&conn, inserted_private_message.id, true).unwrap();
     let marked_read_private_message =
       PrivateMessage::update_read(&conn, inserted_private_message.id, true).unwrap();
-    let num_deleted = PrivateMessage::delete(&conn, inserted_private_message.id).unwrap();
     User_::delete(&conn, inserted_creator.id).unwrap();
     User_::delete(&conn, inserted_recipient.id).unwrap();
 
@@ -234,6 +233,5 @@ mod tests {
     assert_eq!(expected_private_message, inserted_private_message);
     assert!(deleted_private_message.deleted);
     assert!(marked_read_private_message.read);
-    assert_eq!(1, num_deleted);
   }
 }
