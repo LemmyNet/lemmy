@@ -95,7 +95,10 @@ impl Post {
       .get_result::<Self>(conn)
   }
 
-  pub fn permadelete_for_creator(conn: &PgConnection, for_creator_id: i32) -> Result<Vec<Self>, Error> {
+  pub fn permadelete_for_creator(
+    conn: &PgConnection,
+    for_creator_id: i32,
+  ) -> Result<Vec<Self>, Error> {
     use crate::schema::post::dsl::*;
 
     let perma_deleted = "*Permananently Deleted*";
