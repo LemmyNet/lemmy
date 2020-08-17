@@ -251,7 +251,7 @@ impl<'a> CommunityQueryBuilder<'a> {
           .order_by(hot_rank.desc())
           .then_order_by(number_of_subscribers.desc())
           .filter(user_id.is_null())
-      },
+      }
     };
 
     if !self.show_nsfw {

@@ -151,11 +151,9 @@ mod tests {
     };
 
     let read_activity = Activity::read(&conn, inserted_activity.id).unwrap();
-    let num_deleted = Activity::delete(&conn, inserted_activity.id).unwrap();
     User_::delete(&conn, inserted_creator.id).unwrap();
 
     assert_eq!(expected_activity, read_activity);
     assert_eq!(expected_activity, inserted_activity);
-    assert_eq!(1, num_deleted);
   }
 }

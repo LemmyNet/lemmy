@@ -224,7 +224,6 @@ mod tests {
     let read_mention = UserMention::read(&conn, inserted_mention.id).unwrap();
     let updated_mention =
       UserMention::update(&conn, inserted_mention.id, &user_mention_form).unwrap();
-    let num_deleted = UserMention::delete(&conn, inserted_mention.id).unwrap();
     Comment::delete(&conn, inserted_comment.id).unwrap();
     Post::delete(&conn, inserted_post.id).unwrap();
     Community::delete(&conn, inserted_community.id).unwrap();
@@ -234,6 +233,5 @@ mod tests {
     assert_eq!(expected_mention, read_mention);
     assert_eq!(expected_mention, inserted_mention);
     assert_eq!(expected_mention, updated_mention);
-    assert_eq!(1, num_deleted);
   }
 }
