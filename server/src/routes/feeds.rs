@@ -1,11 +1,8 @@
-use crate::{api::claims::Claims, blocking, routes::DbPoolParam, LemmyError};
+use crate::{api::claims::Claims, blocking, LemmyContext, LemmyError};
 use actix_web::{error::ErrorBadRequest, *};
 use anyhow::anyhow;
 use chrono::{DateTime, NaiveDateTime, Utc};
-use diesel::{
-  r2d2::{ConnectionManager, Pool},
-  PgConnection,
-};
+use diesel::PgConnection;
 use lemmy_db::{
   comment_view::{ReplyQueryBuilder, ReplyView},
   community::Community,
@@ -40,12 +37,17 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     .route("/feeds/all.xml", web::get().to(get_all_feed));
 }
 
-async fn get_all_feed(info: web::Query<Params>, db: DbPoolParam) -> Result<HttpResponse, Error> {
+async fn get_all_feed(
+  info: web::Query<Params>,
+  context: web::Data<LemmyContext>,
+) -> Result<HttpResponse, Error> {
   let sort_type = get_sort_type(info).map_err(ErrorBadRequest)?;
 
-  let rss = blocking(&db, move |conn| get_feed_all_data(conn, &sort_type))
-    .await?
-    .map_err(ErrorBadRequest)?;
+  let rss = blocking(context.pool(), move |conn| {
+    get_feed_all_data(conn, &sort_type)
+  })
+  .await?
+  .map_err(ErrorBadRequest)?;
 
   Ok(
     HttpResponse::Ok()
@@ -80,7 +82,7 @@ fn get_feed_all_data(conn: &PgConnection, sort_type: &SortType) -> Result<String
 async fn get_feed(
   path: web::Path<(String, String)>,
   info: web::Query<Params>,
-  db: web::Data<Pool<ConnectionManager<PgConnection>>>,
+  context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   let sort_type = get_sort_type(info).map_err(ErrorBadRequest)?;
 
@@ -94,7 +96,7 @@ async fn get_feed(
 
   let param = path.1.to_owned();
 
-  let builder = blocking(&db, move |conn| match request_type {
+  let builder = blocking(context.pool(), move |conn| match request_type {
     RequestType::User => get_feed_user(conn, &sort_type, param),
     RequestType::Community => get_feed_community(conn, &sort_type, param),
     RequestType::Front => get_feed_front(conn, &sort_type, param),

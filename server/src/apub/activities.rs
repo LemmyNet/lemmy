@@ -7,7 +7,7 @@ use crate::{
     ActorType,
   },
   request::retry_custom,
-  DbPool,
+  LemmyContext,
   LemmyError,
 };
 use activitystreams::base::AnyBase;
@@ -23,16 +23,15 @@ pub async fn send_activity_to_community(
   community: &Community,
   to: Vec<Url>,
   activity: AnyBase,
-  client: &Client,
-  pool: &DbPool,
+  context: &LemmyContext,
 ) -> Result<(), LemmyError> {
-  insert_activity(creator.id, activity.clone(), true, pool).await?;
+  insert_activity(creator.id, activity.clone(), true, context.pool()).await?;
 
   // if this is a local community, we need to do an announce from the community instead
   if community.local {
-    do_announce(activity, &community, creator, client, pool).await?;
+    do_announce(activity, &community, creator, context).await?;
   } else {
-    send_activity(client, &activity, creator, to).await?;
+    send_activity(context.client(), &activity, creator, to).await?;
   }
 
   Ok(())

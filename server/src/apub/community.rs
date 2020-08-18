@@ -15,8 +15,8 @@ use crate::{
     ToApub,
   },
   blocking,
-  routes::DbPoolParam,
   DbPool,
+  LemmyContext,
   LemmyError,
 };
 use activitystreams::{
@@ -32,13 +32,12 @@ use activitystreams::{
   actor::{kind::GroupType, ApActor, Endpoints, Group},
   base::{AnyBase, BaseExt},
   collection::{OrderedCollection, UnorderedCollection},
-  context,
   object::{Image, Tombstone},
   prelude::*,
   public,
 };
 use activitystreams_ext::Ext2;
-use actix_web::{body::Body, client::Client, web, HttpResponse};
+use actix_web::{body::Body, web, HttpResponse};
 use anyhow::Context;
 use itertools::Itertools;
 use lemmy_db::{
@@ -76,7 +75,7 @@ impl ToApub for Community {
 
     let mut group = Group::new();
     group
-      .set_context(context())
+      .set_context(activitystreams::context())
       .set_id(Url::parse(&self.actor_id)?)
       .set_name(self.name.to_owned())
       .set_published(convert_datetime(self.published))
@@ -139,124 +138,107 @@ impl ActorType for Community {
   async fn send_accept_follow(
     &self,
     follow: Follow,
-    client: &Client,
-    pool: &DbPool,
+    context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let actor_uri = follow
       .actor()?
       .as_single_xsd_any_uri()
       .context(location_info!())?;
-    let actor = get_or_fetch_and_upsert_actor(actor_uri, client, pool).await?;
+    let actor = get_or_fetch_and_upsert_actor(actor_uri, context).await?;
 
     let mut accept = Accept::new(self.actor_id.to_owned(), follow.into_any_base()?);
     let to = actor.get_inbox_url()?;
     accept
-      .set_context(context())
+      .set_context(activitystreams::context())
       .set_id(generate_activity_id(AcceptType::Accept)?)
       .set_to(to.clone());
 
-    insert_activity(self.creator_id, accept.clone(), true, pool).await?;
+    insert_activity(self.creator_id, accept.clone(), true, context.pool()).await?;
 
-    send_activity(client, &accept.into_any_base()?, self, vec![to]).await?;
+    send_activity(context.client(), &accept.into_any_base()?, self, vec![to]).await?;
     Ok(())
   }
 
-  async fn send_delete(
-    &self,
-    creator: &User_,
-    client: &Client,
-    pool: &DbPool,
-  ) -> Result<(), LemmyError> {
-    let group = self.to_apub(pool).await?;
+  async fn send_delete(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+    let group = self.to_apub(context.pool()).await?;
 
     let mut delete = Delete::new(creator.actor_id.to_owned(), group.into_any_base()?);
     delete
-      .set_context(context())
+      .set_context(activitystreams::context())
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()?]);
 
-    insert_activity(self.creator_id, delete.clone(), true, pool).await?;
+    insert_activity(self.creator_id, delete.clone(), true, context.pool()).await?;
 
-    let inboxes = self.get_follower_inboxes(pool).await?;
+    let inboxes = self.get_follower_inboxes(context.pool()).await?;
 
     // Note: For an accept, since it was automatic, no one pushed a button,
     // the community was the actor.
     // But for delete, the creator is the actor, and does the signing
-    send_activity(client, &delete.into_any_base()?, creator, inboxes).await?;
+    send_activity(context.client(), &delete.into_any_base()?, creator, inboxes).await?;
     Ok(())
   }
 
   async fn send_undo_delete(
     &self,
     creator: &User_,
-    client: &Client,
-    pool: &DbPool,
+    context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let group = self.to_apub(pool).await?;
+    let group = self.to_apub(context.pool()).await?;
 
     let mut delete = Delete::new(creator.actor_id.to_owned(), group.into_any_base()?);
     delete
-      .set_context(context())
+      .set_context(activitystreams::context())
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()?]);
 
     let mut undo = Undo::new(creator.actor_id.to_owned(), delete.into_any_base()?);
     undo
-      .set_context(context())
+      .set_context(activitystreams::context())
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()?]);
 
-    insert_activity(self.creator_id, undo.clone(), true, pool).await?;
+    insert_activity(self.creator_id, undo.clone(), true, context.pool()).await?;
 
-    let inboxes = self.get_follower_inboxes(pool).await?;
+    let inboxes = self.get_follower_inboxes(context.pool()).await?;
 
     // Note: For an accept, since it was automatic, no one pushed a button,
     // the community was the actor.
     // But for delete, the creator is the actor, and does the signing
-    send_activity(client, &undo.into_any_base()?, creator, inboxes).await?;
+    send_activity(context.client(), &undo.into_any_base()?, creator, inboxes).await?;
     Ok(())
   }
 
-  async fn send_remove(
-    &self,
-    mod_: &User_,
-    client: &Client,
-    pool: &DbPool,
-  ) -> Result<(), LemmyError> {
-    let group = self.to_apub(pool).await?;
+  async fn send_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+    let group = self.to_apub(context.pool()).await?;
 
     let mut remove = Remove::new(mod_.actor_id.to_owned(), group.into_any_base()?);
     remove
-      .set_context(context())
+      .set_context(activitystreams::context())
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()?]);
 
-    insert_activity(mod_.id, remove.clone(), true, pool).await?;
+    insert_activity(mod_.id, remove.clone(), true, context.pool()).await?;
 
-    let inboxes = self.get_follower_inboxes(pool).await?;
+    let inboxes = self.get_follower_inboxes(context.pool()).await?;
 
     // Note: For an accept, since it was automatic, no one pushed a button,
     // the community was the actor.
     // But for delete, the creator is the actor, and does the signing
-    send_activity(client, &remove.into_any_base()?, mod_, inboxes).await?;
+    send_activity(context.client(), &remove.into_any_base()?, mod_, inboxes).await?;
     Ok(())
   }
 
-  async fn send_undo_remove(
-    &self,
-    mod_: &User_,
-    client: &Client,
-    pool: &DbPool,
-  ) -> Result<(), LemmyError> {
-    let group = self.to_apub(pool).await?;
+  async fn send_undo_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+    let group = self.to_apub(context.pool()).await?;
 
     let mut remove = Remove::new(mod_.actor_id.to_owned(), group.into_any_base()?);
     remove
-      .set_context(context())
+      .set_context(activitystreams::context())
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()?]);
@@ -264,19 +246,19 @@ impl ActorType for Community {
     // Undo that fake activity
     let mut undo = Undo::new(mod_.actor_id.to_owned(), remove.into_any_base()?);
     undo
-      .set_context(context())
+      .set_context(activitystreams::context())
       .set_id(generate_activity_id(LikeType::Like)?)
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()?]);
 
-    insert_activity(mod_.id, undo.clone(), true, pool).await?;
+    insert_activity(mod_.id, undo.clone(), true, context.pool()).await?;
 
-    let inboxes = self.get_follower_inboxes(pool).await?;
+    let inboxes = self.get_follower_inboxes(context.pool()).await?;
 
     // Note: For an accept, since it was automatic, no one pushed a button,
     // the community was the actor.
     // But for remove , the creator is the actor, and does the signing
-    send_activity(client, &undo.into_any_base()?, mod_, inboxes).await?;
+    send_activity(context.client(), &undo.into_any_base()?, mod_, inboxes).await?;
     Ok(())
   }
 
@@ -318,8 +300,7 @@ impl ActorType for Community {
   async fn send_follow(
     &self,
     _follow_actor_id: &Url,
-    _client: &Client,
-    _pool: &DbPool,
+    _context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     unimplemented!()
   }
@@ -327,8 +308,7 @@ impl ActorType for Community {
   async fn send_unfollow(
     &self,
     _follow_actor_id: &Url,
-    _client: &Client,
-    _pool: &DbPool,
+    _context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     unimplemented!()
   }
@@ -345,8 +325,7 @@ impl FromApub for CommunityForm {
   /// Parse an ActivityPub group received from another instance into a Lemmy community.
   async fn from_apub(
     group: &GroupExt,
-    client: &Client,
-    pool: &DbPool,
+    context: &LemmyContext,
     expected_domain: Option<Url>,
   ) -> Result<Self, LemmyError> {
     let creator_and_moderator_uris = group.inner.attributed_to().context(location_info!())?;
@@ -359,7 +338,7 @@ impl FromApub for CommunityForm {
       .as_xsd_any_uri()
       .context(location_info!())?;
 
-    let creator = get_or_fetch_and_upsert_user(creator_uri, client, pool).await?;
+    let creator = get_or_fetch_and_upsert_user(creator_uri, context).await?;
     let name = group
       .inner
       .name()
@@ -437,15 +416,15 @@ impl FromApub for CommunityForm {
 /// Return the community json over HTTP.
 pub async fn get_apub_community_http(
   info: web::Path<CommunityQuery>,
-  db: DbPoolParam,
+  context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
-  let community = blocking(&db, move |conn| {
+  let community = blocking(context.pool(), move |conn| {
     Community::read_from_name(conn, &info.community_name)
   })
   .await??;
 
   if !community.deleted {
-    let apub = community.to_apub(&db).await?;
+    let apub = community.to_apub(context.pool()).await?;
 
     Ok(create_apub_response(&apub))
   } else {
@@ -456,22 +435,22 @@ pub async fn get_apub_community_http(
 /// Returns an empty followers collection, only populating the size (for privacy).
 pub async fn get_apub_community_followers(
   info: web::Path<CommunityQuery>,
-  db: DbPoolParam,
+  context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
-  let community = blocking(&db, move |conn| {
+  let community = blocking(context.pool(), move |conn| {
     Community::read_from_name(&conn, &info.community_name)
   })
   .await??;
 
   let community_id = community.id;
-  let community_followers = blocking(&db, move |conn| {
+  let community_followers = blocking(context.pool(), move |conn| {
     CommunityFollowerView::for_community(&conn, community_id)
   })
   .await??;
 
   let mut collection = UnorderedCollection::new();
   collection
-    .set_context(context())
+    .set_context(activitystreams::context())
     .set_id(community.get_followers_url()?)
     .set_total_items(community_followers.len() as u64);
   Ok(create_apub_response(&collection))
@@ -479,29 +458,29 @@ pub async fn get_apub_community_followers(
 
 pub async fn get_apub_community_outbox(
   info: web::Path<CommunityQuery>,
-  db: DbPoolParam,
+  context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
-  let community = blocking(&db, move |conn| {
+  let community = blocking(context.pool(), move |conn| {
     Community::read_from_name(&conn, &info.community_name)
   })
   .await??;
 
   let community_id = community.id;
-  let posts = blocking(&db, move |conn| {
+  let posts = blocking(context.pool(), move |conn| {
     Post::list_for_community(conn, community_id)
   })
   .await??;
 
   let mut pages: Vec<AnyBase> = vec![];
   for p in posts {
-    pages.push(p.to_apub(&db).await?.into_any_base()?);
+    pages.push(p.to_apub(context.pool()).await?.into_any_base()?);
   }
 
   let len = pages.len();
   let mut collection = OrderedCollection::new();
   collection
     .set_many_items(pages)
-    .set_context(context())
+    .set_context(activitystreams::context())
     .set_id(community.get_outbox_url()?)
     .set_total_items(len as u64);
   Ok(create_apub_response(&collection))
@@ -511,19 +490,18 @@ pub async fn do_announce(
   activity: AnyBase,
   community: &Community,
   sender: &User_,
-  client: &Client,
-  pool: &DbPool,
+  context: &LemmyContext,
 ) -> Result<(), LemmyError> {
   let mut announce = Announce::new(community.actor_id.to_owned(), activity);
   announce
-    .set_context(context())
+    .set_context(activitystreams::context())
     .set_id(generate_activity_id(AnnounceType::Announce)?)
     .set_to(public())
     .set_many_ccs(vec![community.get_followers_url()?]);
 
-  insert_activity(community.creator_id, announce.clone(), true, pool).await?;
+  insert_activity(community.creator_id, announce.clone(), true, context.pool()).await?;
 
-  let mut to: Vec<Url> = community.get_follower_inboxes(pool).await?;
+  let mut to: Vec<Url> = community.get_follower_inboxes(context.pool()).await?;
 
   // dont send to the local instance, nor to the instance where the activity originally came from,
   // because that would result in a database error (same data inserted twice)
@@ -533,7 +511,7 @@ pub async fn do_announce(
   let community_shared_inbox = community.get_shared_inbox_url()?;
   to.retain(|x| x != &community_shared_inbox);
 
-  send_activity(client, &announce.into_any_base()?, community, to).await?;
+  send_activity(context.client(), &announce.into_any_base()?, community, to).await?;
 
   Ok(())
 }

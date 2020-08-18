@@ -7,7 +7,7 @@ use crate::{
     ActorType,
   },
   blocking,
-  routes::{ChatServerParam, DbPoolParam},
+  LemmyContext,
   LemmyError,
 };
 use activitystreams::{
@@ -15,7 +15,7 @@ use activitystreams::{
   base::AnyBase,
   prelude::*,
 };
-use actix_web::{client::Client, web, HttpRequest, HttpResponse};
+use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
 use lemmy_db::{
   community::{Community, CommunityFollower, CommunityFollowerForm},
@@ -41,14 +41,15 @@ pub async fn community_inbox(
   request: HttpRequest,
   input: web::Json<AcceptedActivities>,
   path: web::Path<String>,
-  db: DbPoolParam,
-  client: web::Data<Client>,
-  _chat_server: ChatServerParam,
+  context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let activity = input.into_inner();
 
   let path = path.into_inner();
-  let community = blocking(&db, move |conn| Community::read_from_name(&conn, &path)).await??;
+  let community = blocking(&context.pool(), move |conn| {
+    Community::read_from_name(&conn, &path)
+  })
+  .await??;
 
   if !community.local {
     return Err(
@@ -69,7 +70,7 @@ pub async fn community_inbox(
     .context(location_info!())?;
   check_is_apub_id_valid(user_uri)?;
 
-  let user = get_or_fetch_and_upsert_user(&user_uri, &client, &db).await?;
+  let user = get_or_fetch_and_upsert_user(&user_uri, &context).await?;
 
   verify(&request, &user)?;
 
@@ -77,11 +78,11 @@ pub async fn community_inbox(
   let kind = activity.kind().context(location_info!())?;
   let user_id = user.id;
   let res = match kind {
-    ValidTypes::Follow => handle_follow(any_base, user, community, &client, &db).await,
-    ValidTypes::Undo => handle_undo_follow(any_base, user, community, &db).await,
+    ValidTypes::Follow => handle_follow(any_base, user, community, &context).await,
+    ValidTypes::Undo => handle_undo_follow(any_base, user, community, &context).await,
   };
 
-  insert_activity(user_id, activity.clone(), false, &db).await?;
+  insert_activity(user_id, activity.clone(), false, context.pool()).await?;
   res
 }
 
@@ -91,8 +92,7 @@ async fn handle_follow(
   activity: AnyBase,
   user: User_,
   community: Community,
-  client: &Client,
-  db: &DbPoolParam,
+  context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
   let follow = Follow::from_any_base(activity)?.context(location_info!())?;
   let community_follower_form = CommunityFollowerForm {
@@ -101,12 +101,12 @@ async fn handle_follow(
   };
 
   // This will fail if they're already a follower, but ignore the error.
-  blocking(db, move |conn| {
+  blocking(&context.pool(), move |conn| {
     CommunityFollower::follow(&conn, &community_follower_form).ok()
   })
   .await?;
 
-  community.send_accept_follow(follow, &client, db).await?;
+  community.send_accept_follow(follow, context).await?;
 
   Ok(HttpResponse::Ok().finish())
 }
@@ -115,7 +115,7 @@ async fn handle_undo_follow(
   activity: AnyBase,
   user: User_,
   community: Community,
-  db: &DbPoolParam,
+  context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
   let _undo = Undo::from_any_base(activity)?.context(location_info!())?;
 
@@ -125,7 +125,7 @@ async fn handle_undo_follow(
   };
 
   // This will fail if they aren't a follower, but ignore the error.
-  blocking(db, move |conn| {
+  blocking(&context.pool(), move |conn| {
     CommunityFollower::unfollow(&conn, &community_follower_form).ok()
   })
   .await?;

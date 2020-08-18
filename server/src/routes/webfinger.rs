@@ -1,4 +1,4 @@
-use crate::{blocking, routes::DbPoolParam, LemmyError};
+use crate::{blocking, LemmyContext, LemmyError};
 use actix_web::{error::ErrorBadRequest, web::Query, *};
 use anyhow::anyhow;
 use lemmy_db::{community::Community, user::User_};
@@ -44,7 +44,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 /// https://radical.town/.well-known/webfinger?resource=acct:felix@radical.town
 async fn get_webfinger_response(
   info: Query<Params>,
-  db: DbPoolParam,
+  context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   let community_regex_parsed = WEBFINGER_COMMUNITY_REGEX
     .captures(&info.resource)
@@ -59,7 +59,7 @@ async fn get_webfinger_response(
   let url = if let Some(community_name) = community_regex_parsed {
     let community_name = community_name.as_str().to_owned();
     // Make sure the requested community exists.
-    blocking(&db, move |conn| {
+    blocking(context.pool(), move |conn| {
       Community::read_from_name(conn, &community_name)
     })
     .await?
@@ -68,10 +68,12 @@ async fn get_webfinger_response(
   } else if let Some(user_name) = user_regex_parsed {
     let user_name = user_name.as_str().to_owned();
     // Make sure the requested user exists.
-    blocking(&db, move |conn| User_::read_from_name(conn, &user_name))
-      .await?
-      .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?
-      .actor_id
+    blocking(context.pool(), move |conn| {
+      User_::read_from_name(conn, &user_name)
+    })
+    .await?
+    .map_err(|_| ErrorBadRequest(LemmyError::from(anyhow!("not_found"))))?
+    .actor_id
   } else {
     return Err(ErrorBadRequest(LemmyError::from(anyhow!("not_found"))));
   };

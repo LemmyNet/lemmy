@@ -11,7 +11,7 @@ use crate::{
   },
   blocking,
   request::{retry, RecvError},
-  DbPool,
+  LemmyContext,
   LemmyError,
 };
 use activitystreams::{base::BaseExt, collection::OrderedCollection, object::Note, prelude::*};
@@ -92,8 +92,7 @@ pub enum SearchAcceptedObjects {
 /// http://lemmy_alpha:8540/comment/2
 pub async fn search_by_apub_id(
   query: &str,
-  client: &Client,
-  pool: &DbPool,
+  context: &LemmyContext,
 ) -> Result<SearchResponse, LemmyError> {
   // Parse the shorthand query url
   let query_url = if query.contains('@') {
@@ -130,62 +129,74 @@ pub async fn search_by_apub_id(
   };
 
   let domain = query_url.domain().context("url has no domain")?;
-  let response = match fetch_remote_object::<SearchAcceptedObjects>(client, &query_url).await? {
-    SearchAcceptedObjects::Person(p) => {
-      let user_uri = p.inner.id(domain)?.context("person has no id")?;
+  let response =
+    match fetch_remote_object::<SearchAcceptedObjects>(context.client(), &query_url).await? {
+      SearchAcceptedObjects::Person(p) => {
+        let user_uri = p.inner.id(domain)?.context("person has no id")?;
 
-      let user = get_or_fetch_and_upsert_user(&user_uri, client, pool).await?;
+        let user = get_or_fetch_and_upsert_user(&user_uri, context).await?;
 
-      response.users =
-        vec![blocking(pool, move |conn| UserView::get_user_secure(conn, user.id)).await??];
+        response.users = vec![
+          blocking(context.pool(), move |conn| {
+            UserView::get_user_secure(conn, user.id)
+          })
+          .await??,
+        ];
 
-      response
-    }
-    SearchAcceptedObjects::Group(g) => {
-      let community_uri = g.inner.id(domain)?.context("group has no id")?;
+        response
+      }
+      SearchAcceptedObjects::Group(g) => {
+        let community_uri = g.inner.id(domain)?.context("group has no id")?;
 
-      let community = get_or_fetch_and_upsert_community(community_uri, client, pool).await?;
+        let community = get_or_fetch_and_upsert_community(community_uri, context).await?;
 
-      response.communities = vec![
-        blocking(pool, move |conn| {
-          CommunityView::read(conn, community.id, None)
+        response.communities = vec![
+          blocking(context.pool(), move |conn| {
+            CommunityView::read(conn, community.id, None)
+          })
+          .await??,
+        ];
+
+        response
+      }
+      SearchAcceptedObjects::Page(p) => {
+        let post_form = PostForm::from_apub(&p, context, Some(query_url)).await?;
+
+        let p = blocking(context.pool(), move |conn| Post::upsert(conn, &post_form)).await??;
+        response.posts =
+          vec![blocking(context.pool(), move |conn| PostView::read(conn, p.id, None)).await??];
+
+        response
+      }
+      SearchAcceptedObjects::Comment(c) => {
+        let comment_form = CommentForm::from_apub(&c, context, Some(query_url)).await?;
+
+        let c = blocking(context.pool(), move |conn| {
+          Comment::upsert(conn, &comment_form)
         })
-        .await??,
-      ];
+        .await??;
+        response.comments = vec![
+          blocking(context.pool(), move |conn| {
+            CommentView::read(conn, c.id, None)
+          })
+          .await??,
+        ];
 
-      response
-    }
-    SearchAcceptedObjects::Page(p) => {
-      let post_form = PostForm::from_apub(&p, client, pool, Some(query_url)).await?;
-
-      let p = blocking(pool, move |conn| Post::upsert(conn, &post_form)).await??;
-      response.posts = vec![blocking(pool, move |conn| PostView::read(conn, p.id, None)).await??];
-
-      response
-    }
-    SearchAcceptedObjects::Comment(c) => {
-      let comment_form = CommentForm::from_apub(&c, client, pool, Some(query_url)).await?;
-
-      let c = blocking(pool, move |conn| Comment::upsert(conn, &comment_form)).await??;
-      response.comments =
-        vec![blocking(pool, move |conn| CommentView::read(conn, c.id, None)).await??];
-
-      response
-    }
-  };
+        response
+      }
+    };
 
   Ok(response)
 }
 
 pub async fn get_or_fetch_and_upsert_actor(
   apub_id: &Url,
-  client: &Client,
-  pool: &DbPool,
+  context: &LemmyContext,
 ) -> Result<Box<dyn ActorType>, LemmyError> {
-  let user = get_or_fetch_and_upsert_user(apub_id, client, pool).await;
+  let user = get_or_fetch_and_upsert_user(apub_id, context).await;
   let actor: Box<dyn ActorType> = match user {
     Ok(u) => Box::new(u),
-    Err(_) => Box::new(get_or_fetch_and_upsert_community(apub_id, client, pool).await?),
+    Err(_) => Box::new(get_or_fetch_and_upsert_community(apub_id, context).await?),
   };
   Ok(actor)
 }
@@ -193,11 +204,10 @@ pub async fn get_or_fetch_and_upsert_actor(
 /// Check if a remote user exists, create if not found, if its too old update it.Fetch a user, insert/update it in the database and return the user.
 pub async fn get_or_fetch_and_upsert_user(
   apub_id: &Url,
-  client: &Client,
-  pool: &DbPool,
+  context: &LemmyContext,
 ) -> Result<User_, LemmyError> {
   let apub_id_owned = apub_id.to_owned();
-  let user = blocking(pool, move |conn| {
+  let user = blocking(context.pool(), move |conn| {
     User_::read_from_actor_id(conn, apub_id_owned.as_ref())
   })
   .await?;
@@ -206,21 +216,21 @@ pub async fn get_or_fetch_and_upsert_user(
     // If its older than a day, re-fetch it
     Ok(u) if !u.local && should_refetch_actor(u.last_refreshed_at) => {
       debug!("Fetching and updating from remote user: {}", apub_id);
-      let person = fetch_remote_object::<PersonExt>(client, apub_id).await?;
+      let person = fetch_remote_object::<PersonExt>(context.client(), apub_id).await?;
 
-      let mut uf = UserForm::from_apub(&person, client, pool, Some(apub_id.to_owned())).await?;
+      let mut uf = UserForm::from_apub(&person, context, Some(apub_id.to_owned())).await?;
       uf.last_refreshed_at = Some(naive_now());
-      let user = blocking(pool, move |conn| User_::update(conn, u.id, &uf)).await??;
+      let user = blocking(context.pool(), move |conn| User_::update(conn, u.id, &uf)).await??;
 
       Ok(user)
     }
     Ok(u) => Ok(u),
     Err(NotFound {}) => {
       debug!("Fetching and creating remote user: {}", apub_id);
-      let person = fetch_remote_object::<PersonExt>(client, apub_id).await?;
+      let person = fetch_remote_object::<PersonExt>(context.client(), apub_id).await?;
 
-      let uf = UserForm::from_apub(&person, client, pool, Some(apub_id.to_owned())).await?;
-      let user = blocking(pool, move |conn| User_::create(conn, &uf)).await??;
+      let uf = UserForm::from_apub(&person, context, Some(apub_id.to_owned())).await?;
+      let user = blocking(context.pool(), move |conn| User_::create(conn, &uf)).await??;
 
       Ok(user)
     }
@@ -246,11 +256,10 @@ fn should_refetch_actor(last_refreshed: NaiveDateTime) -> bool {
 /// Check if a remote community exists, create if not found, if its too old update it.Fetch a community, insert/update it in the database and return the community.
 pub async fn get_or_fetch_and_upsert_community(
   apub_id: &Url,
-  client: &Client,
-  pool: &DbPool,
+  context: &LemmyContext,
 ) -> Result<Community, LemmyError> {
   let apub_id_owned = apub_id.to_owned();
-  let community = blocking(pool, move |conn| {
+  let community = blocking(context.pool(), move |conn| {
     Community::read_from_actor_id(conn, apub_id_owned.as_str())
   })
   .await?;
@@ -258,12 +267,12 @@ pub async fn get_or_fetch_and_upsert_community(
   match community {
     Ok(c) if !c.local && should_refetch_actor(c.last_refreshed_at) => {
       debug!("Fetching and updating from remote community: {}", apub_id);
-      fetch_remote_community(apub_id, client, pool, Some(c.id)).await
+      fetch_remote_community(apub_id, context, Some(c.id)).await
     }
     Ok(c) => Ok(c),
     Err(NotFound {}) => {
       debug!("Fetching and creating remote community: {}", apub_id);
-      fetch_remote_community(apub_id, client, pool, None).await
+      fetch_remote_community(apub_id, context, None).await
     }
     Err(e) => Err(e.into()),
   }
@@ -271,14 +280,13 @@ pub async fn get_or_fetch_and_upsert_community(
 
 async fn fetch_remote_community(
   apub_id: &Url,
-  client: &Client,
-  pool: &DbPool,
+  context: &LemmyContext,
   community_id: Option<i32>,
 ) -> Result<Community, LemmyError> {
-  let group = fetch_remote_object::<GroupExt>(client, apub_id).await?;
+  let group = fetch_remote_object::<GroupExt>(context.client(), apub_id).await?;
 
-  let cf = CommunityForm::from_apub(&group, client, pool, Some(apub_id.to_owned())).await?;
-  let community = blocking(pool, move |conn| {
+  let cf = CommunityForm::from_apub(&group, context, Some(apub_id.to_owned())).await?;
+  let community = blocking(context.pool(), move |conn| {
     if let Some(cid) = community_id {
       Community::update(conn, cid, &cf)
     } else {
@@ -299,7 +307,7 @@ async fn fetch_remote_community(
   let mut creator_and_moderators = Vec::new();
 
   for uri in creator_and_moderator_uris {
-    let c_or_m = get_or_fetch_and_upsert_user(uri, client, pool).await?;
+    let c_or_m = get_or_fetch_and_upsert_user(uri, context).await?;
 
     creator_and_moderators.push(c_or_m);
   }
@@ -307,7 +315,7 @@ async fn fetch_remote_community(
   // TODO: need to make this work to update mods of existing communities
   if community_id.is_none() {
     let community_id = community.id;
-    blocking(pool, move |conn| {
+    blocking(context.pool(), move |conn| {
       for mod_ in creator_and_moderators {
         let community_moderator_form = CommunityModeratorForm {
           community_id,
@@ -323,7 +331,8 @@ async fn fetch_remote_community(
 
   // fetch outbox (maybe make this conditional)
   let outbox =
-    fetch_remote_object::<OrderedCollection>(client, &community.get_outbox_url()?).await?;
+    fetch_remote_object::<OrderedCollection>(context.client(), &community.get_outbox_url()?)
+      .await?;
   let outbox_items = outbox.items().context(location_info!())?.clone();
   let mut outbox_items = outbox_items.many().context(location_info!())?;
   if outbox_items.len() > 20 {
@@ -331,13 +340,16 @@ async fn fetch_remote_community(
   }
   for o in outbox_items {
     let page = PageExt::from_any_base(o)?.context(location_info!())?;
-    let post = PostForm::from_apub(&page, client, pool, None).await?;
+    let post = PostForm::from_apub(&page, context, None).await?;
     let post_ap_id = post.ap_id.clone();
     // Check whether the post already exists in the local db
-    let existing = blocking(pool, move |conn| Post::read_from_apub_id(conn, &post_ap_id)).await?;
+    let existing = blocking(context.pool(), move |conn| {
+      Post::read_from_apub_id(conn, &post_ap_id)
+    })
+    .await?;
     match existing {
-      Ok(e) => blocking(pool, move |conn| Post::update(conn, e.id, &post)).await??,
-      Err(_) => blocking(pool, move |conn| Post::create(conn, &post)).await??,
+      Ok(e) => blocking(context.pool(), move |conn| Post::update(conn, e.id, &post)).await??,
+      Err(_) => blocking(context.pool(), move |conn| Post::create(conn, &post)).await??,
     };
     // TODO: we need to send a websocket update here
   }
@@ -347,11 +359,10 @@ async fn fetch_remote_community(
 
 pub async fn get_or_fetch_and_insert_post(
   post_ap_id: &Url,
-  client: &Client,
-  pool: &DbPool,
+  context: &LemmyContext,
 ) -> Result<Post, LemmyError> {
   let post_ap_id_owned = post_ap_id.to_owned();
-  let post = blocking(pool, move |conn| {
+  let post = blocking(context.pool(), move |conn| {
     Post::read_from_apub_id(conn, post_ap_id_owned.as_str())
   })
   .await?;
@@ -360,10 +371,10 @@ pub async fn get_or_fetch_and_insert_post(
     Ok(p) => Ok(p),
     Err(NotFound {}) => {
       debug!("Fetching and creating remote post: {}", post_ap_id);
-      let post = fetch_remote_object::<PageExt>(client, post_ap_id).await?;
-      let post_form = PostForm::from_apub(&post, client, pool, Some(post_ap_id.to_owned())).await?;
+      let post = fetch_remote_object::<PageExt>(context.client(), post_ap_id).await?;
+      let post_form = PostForm::from_apub(&post, context, Some(post_ap_id.to_owned())).await?;
 
-      let post = blocking(pool, move |conn| Post::create(conn, &post_form)).await??;
+      let post = blocking(context.pool(), move |conn| Post::create(conn, &post_form)).await??;
 
       Ok(post)
     }
@@ -373,11 +384,10 @@ pub async fn get_or_fetch_and_insert_post(
 
 pub async fn get_or_fetch_and_insert_comment(
   comment_ap_id: &Url,
-  client: &Client,
-  pool: &DbPool,
+  context: &LemmyContext,
 ) -> Result<Comment, LemmyError> {
   let comment_ap_id_owned = comment_ap_id.to_owned();
-  let comment = blocking(pool, move |conn| {
+  let comment = blocking(context.pool(), move |conn| {
     Comment::read_from_apub_id(conn, comment_ap_id_owned.as_str())
   })
   .await?;
@@ -389,11 +399,14 @@ pub async fn get_or_fetch_and_insert_comment(
         "Fetching and creating remote comment and its parents: {}",
         comment_ap_id
       );
-      let comment = fetch_remote_object::<Note>(client, comment_ap_id).await?;
+      let comment = fetch_remote_object::<Note>(context.client(), comment_ap_id).await?;
       let comment_form =
-        CommentForm::from_apub(&comment, client, pool, Some(comment_ap_id.to_owned())).await?;
+        CommentForm::from_apub(&comment, context, Some(comment_ap_id.to_owned())).await?;
 
-      let comment = blocking(pool, move |conn| Comment::create(conn, &comment_form)).await??;
+      let comment = blocking(context.pool(), move |conn| {
+        Comment::create(conn, &comment_form)
+      })
+      .await??;
 
       Ok(comment)
     }

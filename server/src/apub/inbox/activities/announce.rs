@@ -11,8 +11,7 @@ use crate::{
     },
     shared_inbox::{get_community_id_from_activity, receive_unhandled_activity},
   },
-  routes::ChatServerParam,
-  DbPool,
+  LemmyContext,
   LemmyError,
 };
 use activitystreams::{
@@ -20,15 +19,13 @@ use activitystreams::{
   base::{AnyBase, BaseExt},
   prelude::ExtendsExt,
 };
-use actix_web::{client::Client, HttpResponse};
+use actix_web::HttpResponse;
 use anyhow::Context;
 use lemmy_utils::location_info;
 
 pub async fn receive_announce(
   activity: AnyBase,
-  client: &Client,
-  pool: &DbPool,
-  chat_server: ChatServerParam,
+  context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
   let announce = Announce::from_any_base(activity)?.context(location_info!())?;
 
@@ -40,13 +37,13 @@ pub async fn receive_announce(
   let object = announce.object();
   let object2 = object.clone().one().context(location_info!())?;
   match kind {
-    Some("Create") => receive_create(object2, client, pool, chat_server).await,
-    Some("Update") => receive_update(object2, client, pool, chat_server).await,
-    Some("Like") => receive_like(object2, client, pool, chat_server).await,
-    Some("Dislike") => receive_dislike(object2, client, pool, chat_server).await,
-    Some("Delete") => receive_delete(object2, client, pool, chat_server).await,
-    Some("Remove") => receive_remove(object2, client, pool, chat_server).await,
-    Some("Undo") => receive_undo(object2, client, pool, chat_server).await,
+    Some("Create") => receive_create(object2, context).await,
+    Some("Update") => receive_update(object2, context).await,
+    Some("Like") => receive_like(object2, context).await,
+    Some("Dislike") => receive_dislike(object2, context).await,
+    Some("Delete") => receive_delete(object2, context).await,
+    Some("Remove") => receive_remove(object2, context).await,
+    Some("Undo") => receive_undo(object2, context).await,
     _ => receive_unhandled_activity(announce),
   }
 }

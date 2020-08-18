@@ -25,6 +25,7 @@ use lemmy_server::{
   rate_limit::{rate_limiter::RateLimiter, RateLimit},
   routes::*,
   websocket::server::*,
+  LemmyContext,
   LemmyError,
 };
 use lemmy_utils::{settings::Settings, CACHE_CONTROL_REGEX};
@@ -68,9 +69,6 @@ async fn main() -> Result<(), LemmyError> {
     rate_limiter: Arc::new(Mutex::new(RateLimiter::default())),
   };
 
-  // Set up websocket server
-  let server = ChatServer::startup(pool.clone(), rate_limiter.clone(), Client::default()).start();
-
   println!(
     "Starting http server at {}:{}",
     settings.bind, settings.port
@@ -78,14 +76,15 @@ async fn main() -> Result<(), LemmyError> {
 
   // Create Http server with websocket support
   HttpServer::new(move || {
+    let chat_server =
+      ChatServer::startup(pool.clone(), rate_limiter.clone(), Client::default()).start();
+    let context = LemmyContext::create(pool.clone(), chat_server, Client::default());
     let settings = Settings::get();
     let rate_limiter = rate_limiter.clone();
     App::new()
       .wrap_fn(add_cache_headers)
       .wrap(middleware::Logger::default())
-      .data(pool.clone())
-      .data(server.clone())
-      .data(Client::default())
+      .data(context)
       // The routes
       .configure(|cfg| api::config(cfg, &rate_limiter))
       .configure(federation::config)

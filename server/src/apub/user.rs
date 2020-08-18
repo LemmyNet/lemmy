@@ -12,8 +12,8 @@ use crate::{
     ToApub,
   },
   blocking,
-  routes::DbPoolParam,
   DbPool,
+  LemmyContext,
   LemmyError,
 };
 use activitystreams::{
@@ -23,12 +23,11 @@ use activitystreams::{
     Undo,
   },
   actor::{ApActor, Endpoints, Person},
-  context,
   object::{Image, Tombstone},
   prelude::*,
 };
 use activitystreams_ext::Ext1;
-use actix_web::{body::Body, client::Client, web, HttpResponse};
+use actix_web::{body::Body, web, HttpResponse};
 use anyhow::Context;
 use lemmy_db::{
   naive_now,
@@ -52,7 +51,7 @@ impl ToApub for User_ {
     // TODO go through all these to_string and to_owned()
     let mut person = Person::new();
     person
-      .set_context(context())
+      .set_context(activitystreams::context())
       .set_id(Url::parse(&self.actor_id)?)
       .set_name(self.name.to_owned())
       .set_published(convert_datetime(self.published));
@@ -117,80 +116,66 @@ impl ActorType for User_ {
   async fn send_follow(
     &self,
     follow_actor_id: &Url,
-    client: &Client,
-    pool: &DbPool,
+    context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let mut follow = Follow::new(self.actor_id.to_owned(), follow_actor_id.as_str());
     follow
-      .set_context(context())
+      .set_context(activitystreams::context())
       .set_id(generate_activity_id(FollowType::Follow)?);
-    let follow_actor = get_or_fetch_and_upsert_actor(follow_actor_id, client, pool).await?;
+    let follow_actor = get_or_fetch_and_upsert_actor(follow_actor_id, context).await?;
     let to = follow_actor.get_inbox_url()?;
 
-    insert_activity(self.id, follow.clone(), true, pool).await?;
+    insert_activity(self.id, follow.clone(), true, context.pool()).await?;
 
-    send_activity(client, &follow.into_any_base()?, self, vec![to]).await?;
+    send_activity(context.client(), &follow.into_any_base()?, self, vec![to]).await?;
     Ok(())
   }
 
   async fn send_unfollow(
     &self,
     follow_actor_id: &Url,
-    client: &Client,
-    pool: &DbPool,
+    context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     let mut follow = Follow::new(self.actor_id.to_owned(), follow_actor_id.as_str());
     follow
-      .set_context(context())
+      .set_context(activitystreams::context())
       .set_id(generate_activity_id(FollowType::Follow)?);
-    let follow_actor = get_or_fetch_and_upsert_actor(follow_actor_id, client, pool).await?;
+    let follow_actor = get_or_fetch_and_upsert_actor(follow_actor_id, context).await?;
 
     let to = follow_actor.get_inbox_url()?;
 
     // Undo that fake activity
     let mut undo = Undo::new(Url::parse(&self.actor_id)?, follow.into_any_base()?);
     undo
-      .set_context(context())
+      .set_context(activitystreams::context())
       .set_id(generate_activity_id(UndoType::Undo)?);
 
-    insert_activity(self.id, undo.clone(), true, pool).await?;
+    insert_activity(self.id, undo.clone(), true, context.pool()).await?;
 
-    send_activity(client, &undo.into_any_base()?, self, vec![to]).await?;
+    send_activity(context.client(), &undo.into_any_base()?, self, vec![to]).await?;
     Ok(())
   }
 
-  async fn send_delete(
-    &self,
-    _creator: &User_,
-    _client: &Client,
-    _pool: &DbPool,
-  ) -> Result<(), LemmyError> {
+  async fn send_delete(&self, _creator: &User_, _context: &LemmyContext) -> Result<(), LemmyError> {
     unimplemented!()
   }
 
   async fn send_undo_delete(
     &self,
     _creator: &User_,
-    _client: &Client,
-    _pool: &DbPool,
+    _context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     unimplemented!()
   }
 
-  async fn send_remove(
-    &self,
-    _creator: &User_,
-    _client: &Client,
-    _pool: &DbPool,
-  ) -> Result<(), LemmyError> {
+  async fn send_remove(&self, _creator: &User_, _context: &LemmyContext) -> Result<(), LemmyError> {
     unimplemented!()
   }
 
   async fn send_undo_remove(
     &self,
     _creator: &User_,
-    _client: &Client,
-    _pool: &DbPool,
+    _context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     unimplemented!()
   }
@@ -198,8 +183,7 @@ impl ActorType for User_ {
   async fn send_accept_follow(
     &self,
     _follow: Follow,
-    _client: &Client,
-    _pool: &DbPool,
+    _context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     unimplemented!()
   }
@@ -219,8 +203,7 @@ impl FromApub for UserForm {
   /// Parse an ActivityPub person received from another instance into a Lemmy user.
   async fn from_apub(
     person: &PersonExt,
-    _: &Client,
-    _: &DbPool,
+    _context: &LemmyContext,
     expected_domain: Option<Url>,
   ) -> Result<Self, LemmyError> {
     let avatar = match person.icon() {
@@ -298,13 +281,13 @@ impl FromApub for UserForm {
 /// Return the user json over HTTP.
 pub async fn get_apub_user_http(
   info: web::Path<UserQuery>,
-  db: DbPoolParam,
+  context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
   let user_name = info.into_inner().user_name;
-  let user = blocking(&db, move |conn| {
+  let user = blocking(context.pool(), move |conn| {
     User_::find_by_email_or_username(conn, &user_name)
   })
   .await??;
-  let u = user.to_apub(&db).await?;
+  let u = user.to_apub(context.pool()).await?;
   Ok(create_apub_response(&u))
 }

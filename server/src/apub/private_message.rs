@@ -13,6 +13,7 @@ use crate::{
   },
   blocking,
   DbPool,
+  LemmyContext,
   LemmyError,
 };
 use activitystreams::{
@@ -23,11 +24,9 @@ use activitystreams::{
     Undo,
     Update,
   },
-  context,
   object::{kind::NoteType, Note, Tombstone},
   prelude::*,
 };
-use actix_web::client::Client;
 use anyhow::Context;
 use lemmy_db::{
   private_message::{PrivateMessage, PrivateMessageForm},
@@ -51,7 +50,7 @@ impl ToApub for PrivateMessage {
     let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
 
     private_message
-      .set_context(context())
+      .set_context(activitystreams::context())
       .set_id(Url::parse(&self.ap_id.to_owned())?)
       .set_published(convert_datetime(self.published))
       .set_content(self.content.to_owned())
@@ -77,8 +76,7 @@ impl FromApub for PrivateMessageForm {
   /// Parse an ActivityPub note received from another instance into a Lemmy Private message
   async fn from_apub(
     note: &Note,
-    client: &Client,
-    pool: &DbPool,
+    context: &LemmyContext,
     expected_domain: Option<Url>,
   ) -> Result<PrivateMessageForm, LemmyError> {
     let creator_actor_id = note
@@ -88,14 +86,14 @@ impl FromApub for PrivateMessageForm {
       .single_xsd_any_uri()
       .context(location_info!())?;
 
-    let creator = get_or_fetch_and_upsert_user(&creator_actor_id, client, pool).await?;
+    let creator = get_or_fetch_and_upsert_user(&creator_actor_id, context).await?;
     let recipient_actor_id = note
       .to()
       .context(location_info!())?
       .clone()
       .single_xsd_any_uri()
       .context(location_info!())?;
-    let recipient = get_or_fetch_and_upsert_user(&recipient_actor_id, client, pool).await?;
+    let recipient = get_or_fetch_and_upsert_user(&recipient_actor_id, context).await?;
     let ap_id = note.id_unchecked().context(location_info!())?.to_string();
     check_is_apub_id_valid(&Url::parse(&ap_id)?)?;
 
@@ -121,124 +119,120 @@ impl FromApub for PrivateMessageForm {
 #[async_trait::async_trait(?Send)]
 impl ApubObjectType for PrivateMessage {
   /// Send out information about a newly created private message
-  async fn send_create(
-    &self,
-    creator: &User_,
-    client: &Client,
-    pool: &DbPool,
-  ) -> Result<(), LemmyError> {
-    let note = self.to_apub(pool).await?;
+  async fn send_create(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+    let note = self.to_apub(context.pool()).await?;
 
     let recipient_id = self.recipient_id;
-    let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
+    let recipient = blocking(context.pool(), move |conn| User_::read(conn, recipient_id)).await??;
 
     let mut create = Create::new(creator.actor_id.to_owned(), note.into_any_base()?);
     let to = recipient.get_inbox_url()?;
     create
-      .set_context(context())
+      .set_context(activitystreams::context())
       .set_id(generate_activity_id(CreateType::Create)?)
       .set_to(to.clone());
 
-    insert_activity(creator.id, create.clone(), true, pool).await?;
+    insert_activity(creator.id, create.clone(), true, context.pool()).await?;
 
-    send_activity(client, &create.into_any_base()?, creator, vec![to]).await?;
+    send_activity(
+      context.client(),
+      &create.into_any_base()?,
+      creator,
+      vec![to],
+    )
+    .await?;
     Ok(())
   }
 
   /// Send out information about an edited post, to the followers of the community.
-  async fn send_update(
-    &self,
-    creator: &User_,
-    client: &Client,
-    pool: &DbPool,
-  ) -> Result<(), LemmyError> {
-    let note = self.to_apub(pool).await?;
+  async fn send_update(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+    let note = self.to_apub(context.pool()).await?;
 
     let recipient_id = self.recipient_id;
-    let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
+    let recipient = blocking(context.pool(), move |conn| User_::read(conn, recipient_id)).await??;
 
     let mut update = Update::new(creator.actor_id.to_owned(), note.into_any_base()?);
     let to = recipient.get_inbox_url()?;
     update
-      .set_context(context())
+      .set_context(activitystreams::context())
       .set_id(generate_activity_id(UpdateType::Update)?)
       .set_to(to.clone());
 
-    insert_activity(creator.id, update.clone(), true, pool).await?;
+    insert_activity(creator.id, update.clone(), true, context.pool()).await?;
 
-    send_activity(client, &update.into_any_base()?, creator, vec![to]).await?;
+    send_activity(
+      context.client(),
+      &update.into_any_base()?,
+      creator,
+      vec![to],
+    )
+    .await?;
     Ok(())
   }
 
-  async fn send_delete(
-    &self,
-    creator: &User_,
-    client: &Client,
-    pool: &DbPool,
-  ) -> Result<(), LemmyError> {
-    let note = self.to_apub(pool).await?;
+  async fn send_delete(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
+    let note = self.to_apub(context.pool()).await?;
 
     let recipient_id = self.recipient_id;
-    let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
+    let recipient = blocking(context.pool(), move |conn| User_::read(conn, recipient_id)).await??;
 
     let mut delete = Delete::new(creator.actor_id.to_owned(), note.into_any_base()?);
     let to = recipient.get_inbox_url()?;
     delete
-      .set_context(context())
+      .set_context(activitystreams::context())
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(to.clone());
 
-    insert_activity(creator.id, delete.clone(), true, pool).await?;
+    insert_activity(creator.id, delete.clone(), true, context.pool()).await?;
 
-    send_activity(client, &delete.into_any_base()?, creator, vec![to]).await?;
+    send_activity(
+      context.client(),
+      &delete.into_any_base()?,
+      creator,
+      vec![to],
+    )
+    .await?;
     Ok(())
   }
 
   async fn send_undo_delete(
     &self,
     creator: &User_,
-    client: &Client,
-    pool: &DbPool,
+    context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let note = self.to_apub(pool).await?;
+    let note = self.to_apub(context.pool()).await?;
 
     let recipient_id = self.recipient_id;
-    let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
+    let recipient = blocking(context.pool(), move |conn| User_::read(conn, recipient_id)).await??;
 
     let mut delete = Delete::new(creator.actor_id.to_owned(), note.into_any_base()?);
     let to = recipient.get_inbox_url()?;
     delete
-      .set_context(context())
+      .set_context(activitystreams::context())
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(to.clone());
 
     // Undo that fake activity
     let mut undo = Undo::new(creator.actor_id.to_owned(), delete.into_any_base()?);
     undo
-      .set_context(context())
+      .set_context(activitystreams::context())
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(to.clone());
 
-    insert_activity(creator.id, undo.clone(), true, pool).await?;
+    insert_activity(creator.id, undo.clone(), true, context.pool()).await?;
 
-    send_activity(client, &undo.into_any_base()?, creator, vec![to]).await?;
+    send_activity(context.client(), &undo.into_any_base()?, creator, vec![to]).await?;
     Ok(())
   }
 
-  async fn send_remove(
-    &self,
-    _mod_: &User_,
-    _client: &Client,
-    _pool: &DbPool,
-  ) -> Result<(), LemmyError> {
+  async fn send_remove(&self, _mod_: &User_, _context: &LemmyContext) -> Result<(), LemmyError> {
     unimplemented!()
   }
 
   async fn send_undo_remove(
     &self,
     _mod_: &User_,
-    _client: &Client,
-    _pool: &DbPool,
+    _context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     unimplemented!()
   }

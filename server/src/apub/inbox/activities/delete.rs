@@ -13,16 +13,15 @@ use crate::{
     PageExt,
   },
   blocking,
-  routes::ChatServerParam,
   websocket::{
     server::{SendComment, SendCommunityRoomMessage, SendPost},
     UserOperation,
   },
-  DbPool,
+  LemmyContext,
   LemmyError,
 };
 use activitystreams::{activity::Delete, base::AnyBase, object::Note, prelude::*};
-use actix_web::{client::Client, HttpResponse};
+use actix_web::HttpResponse;
 use anyhow::Context;
 use lemmy_db::{
   comment::{Comment, CommentForm},
@@ -38,34 +37,30 @@ use lemmy_utils::location_info;
 
 pub async fn receive_delete(
   activity: AnyBase,
-  client: &Client,
-  pool: &DbPool,
-  chat_server: ChatServerParam,
+  context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
   let delete = Delete::from_any_base(activity)?.context(location_info!())?;
   match delete.object().as_single_kind_str() {
-    Some("Page") => receive_delete_post(delete, client, pool, chat_server).await,
-    Some("Note") => receive_delete_comment(delete, client, pool, chat_server).await,
-    Some("Group") => receive_delete_community(delete, client, pool, chat_server).await,
+    Some("Page") => receive_delete_post(delete, context).await,
+    Some("Note") => receive_delete_comment(delete, context).await,
+    Some("Group") => receive_delete_community(delete, context).await,
     _ => receive_unhandled_activity(delete),
   }
 }
 
 async fn receive_delete_post(
   delete: Delete,
-  client: &Client,
-  pool: &DbPool,
-  chat_server: ChatServerParam,
+  context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  let user = get_user_from_activity(&delete, client, pool).await?;
+  let user = get_user_from_activity(&delete, context).await?;
   let page = PageExt::from_any_base(delete.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
-  let post_ap_id = PostForm::from_apub(&page, client, pool, Some(user.actor_id()?))
+  let post_ap_id = PostForm::from_apub(&page, context, Some(user.actor_id()?))
     .await?
     .get_ap_id()?;
 
-  let post = get_or_fetch_and_insert_post(&post_ap_id, client, pool).await?;
+  let post = get_or_fetch_and_insert_post(&post_ap_id, context).await?;
 
   let post_form = PostForm {
     name: post.name.to_owned(),
@@ -88,39 +83,43 @@ async fn receive_delete_post(
     published: None,
   };
   let post_id = post.id;
-  blocking(pool, move |conn| Post::update(conn, post_id, &post_form)).await??;
+  blocking(context.pool(), move |conn| {
+    Post::update(conn, post_id, &post_form)
+  })
+  .await??;
 
   // Refetch the view
   let post_id = post.id;
-  let post_view = blocking(pool, move |conn| PostView::read(conn, post_id, None)).await??;
+  let post_view = blocking(context.pool(), move |conn| {
+    PostView::read(conn, post_id, None)
+  })
+  .await??;
 
   let res = PostResponse { post: post_view };
 
-  chat_server.do_send(SendPost {
+  context.chat_server().do_send(SendPost {
     op: UserOperation::EditPost,
     post: res,
     my_id: None,
   });
 
-  announce_if_community_is_local(delete, &user, client, pool).await?;
+  announce_if_community_is_local(delete, &user, context).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
 async fn receive_delete_comment(
   delete: Delete,
-  client: &Client,
-  pool: &DbPool,
-  chat_server: ChatServerParam,
+  context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  let user = get_user_from_activity(&delete, client, pool).await?;
+  let user = get_user_from_activity(&delete, context).await?;
   let note = Note::from_any_base(delete.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
-  let comment_ap_id = CommentForm::from_apub(&note, client, pool, Some(user.actor_id()?))
+  let comment_ap_id = CommentForm::from_apub(&note, context, Some(user.actor_id()?))
     .await?
     .get_ap_id()?;
 
-  let comment = get_or_fetch_and_insert_comment(&comment_ap_id, client, pool).await?;
+  let comment = get_or_fetch_and_insert_comment(&comment_ap_id, context).await?;
 
   let comment_form = CommentForm {
     content: comment.content.to_owned(),
@@ -136,15 +135,17 @@ async fn receive_delete_comment(
     local: comment.local,
   };
   let comment_id = comment.id;
-  blocking(pool, move |conn| {
+  blocking(context.pool(), move |conn| {
     Comment::update(conn, comment_id, &comment_form)
   })
   .await??;
 
   // Refetch the view
   let comment_id = comment.id;
-  let comment_view =
-    blocking(pool, move |conn| CommentView::read(conn, comment_id, None)).await??;
+  let comment_view = blocking(context.pool(), move |conn| {
+    CommentView::read(conn, comment_id, None)
+  })
+  .await??;
 
   // TODO get those recipient actor ids from somewhere
   let recipient_ids = vec![];
@@ -154,31 +155,29 @@ async fn receive_delete_comment(
     form_id: None,
   };
 
-  chat_server.do_send(SendComment {
+  context.chat_server().do_send(SendComment {
     op: UserOperation::EditComment,
     comment: res,
     my_id: None,
   });
 
-  announce_if_community_is_local(delete, &user, client, pool).await?;
+  announce_if_community_is_local(delete, &user, context).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
 async fn receive_delete_community(
   delete: Delete,
-  client: &Client,
-  pool: &DbPool,
-  chat_server: ChatServerParam,
+  context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
   let group = GroupExt::from_any_base(delete.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
-  let user = get_user_from_activity(&delete, client, pool).await?;
+  let user = get_user_from_activity(&delete, context).await?;
 
-  let community_actor_id = CommunityForm::from_apub(&group, client, pool, Some(user.actor_id()?))
+  let community_actor_id = CommunityForm::from_apub(&group, context, Some(user.actor_id()?))
     .await?
     .actor_id;
 
-  let community = blocking(pool, move |conn| {
+  let community = blocking(context.pool(), move |conn| {
     Community::read_from_actor_id(conn, &community_actor_id)
   })
   .await??;
@@ -204,14 +203,14 @@ async fn receive_delete_community(
   };
 
   let community_id = community.id;
-  blocking(pool, move |conn| {
+  blocking(context.pool(), move |conn| {
     Community::update(conn, community_id, &community_form)
   })
   .await??;
 
   let community_id = community.id;
   let res = CommunityResponse {
-    community: blocking(pool, move |conn| {
+    community: blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, None)
     })
     .await??,
@@ -219,13 +218,13 @@ async fn receive_delete_community(
 
   let community_id = res.community.id;
 
-  chat_server.do_send(SendCommunityRoomMessage {
+  context.chat_server().do_send(SendCommunityRoomMessage {
     op: UserOperation::EditCommunity,
     response: res,
     community_id,
     my_id: None,
   });
 
-  announce_if_community_is_local(delete, &user, client, pool).await?;
+  announce_if_community_is_local(delete, &user, context).await?;
   Ok(HttpResponse::Ok().finish())
 }

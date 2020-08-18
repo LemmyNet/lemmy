@@ -17,10 +17,10 @@ use crate::{
     UserOperation,
     WebsocketInfo,
   },
-  DbPool,
+  LemmyContext,
   LemmyError,
 };
-use actix_web::client::Client;
+use actix_web::web::Data;
 use anyhow::Context;
 use lemmy_db::{
   category::*,
@@ -166,13 +166,12 @@ impl Perform for ListCategories {
 
   async fn perform(
     &self,
-    pool: &DbPool,
+    context: &Data<LemmyContext>,
     _websocket_info: Option<WebsocketInfo>,
-    _client: Client,
   ) -> Result<ListCategoriesResponse, LemmyError> {
     let _data: &ListCategories = &self;
 
-    let categories = blocking(pool, move |conn| Category::list_all(conn)).await??;
+    let categories = blocking(context.pool(), move |conn| Category::list_all(conn)).await??;
 
     // Return the jwt
     Ok(ListCategoriesResponse { categories })
@@ -185,9 +184,8 @@ impl Perform for GetModlog {
 
   async fn perform(
     &self,
-    pool: &DbPool,
+    context: &Data<LemmyContext>,
     _websocket_info: Option<WebsocketInfo>,
-    _client: Client,
   ) -> Result<GetModlogResponse, LemmyError> {
     let data: &GetModlog = &self;
 
@@ -195,39 +193,39 @@ impl Perform for GetModlog {
     let mod_user_id = data.mod_user_id;
     let page = data.page;
     let limit = data.limit;
-    let removed_posts = blocking(pool, move |conn| {
+    let removed_posts = blocking(context.pool(), move |conn| {
       ModRemovePostView::list(conn, community_id, mod_user_id, page, limit)
     })
     .await??;
 
-    let locked_posts = blocking(pool, move |conn| {
+    let locked_posts = blocking(context.pool(), move |conn| {
       ModLockPostView::list(conn, community_id, mod_user_id, page, limit)
     })
     .await??;
 
-    let stickied_posts = blocking(pool, move |conn| {
+    let stickied_posts = blocking(context.pool(), move |conn| {
       ModStickyPostView::list(conn, community_id, mod_user_id, page, limit)
     })
     .await??;
 
-    let removed_comments = blocking(pool, move |conn| {
+    let removed_comments = blocking(context.pool(), move |conn| {
       ModRemoveCommentView::list(conn, community_id, mod_user_id, page, limit)
     })
     .await??;
 
-    let banned_from_community = blocking(pool, move |conn| {
+    let banned_from_community = blocking(context.pool(), move |conn| {
       ModBanFromCommunityView::list(conn, community_id, mod_user_id, page, limit)
     })
     .await??;
 
-    let added_to_community = blocking(pool, move |conn| {
+    let added_to_community = blocking(context.pool(), move |conn| {
       ModAddCommunityView::list(conn, community_id, mod_user_id, page, limit)
     })
     .await??;
 
     // These arrays are only for the full modlog, when a community isn't given
     let (removed_communities, banned, added) = if data.community_id.is_none() {
-      blocking(pool, move |conn| {
+      blocking(context.pool(), move |conn| {
         Ok((
           ModRemoveCommunityView::list(conn, mod_user_id, page, limit)?,
           ModBanView::list(conn, mod_user_id, page, limit)?,
@@ -260,19 +258,18 @@ impl Perform for CreateSite {
 
   async fn perform(
     &self,
-    pool: &DbPool,
+    context: &Data<LemmyContext>,
     _websocket_info: Option<WebsocketInfo>,
-    _client: Client,
   ) -> Result<SiteResponse, LemmyError> {
     let data: &CreateSite = &self;
 
-    let user = get_user_from_jwt(&data.auth, pool).await?;
+    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
     check_slurs(&data.name)?;
     check_slurs_opt(&data.description)?;
 
     // Make sure user is an admin
-    is_admin(pool, user.id).await?;
+    is_admin(context.pool(), user.id).await?;
 
     let site_form = SiteForm {
       name: data.name.to_owned(),
@@ -287,11 +284,11 @@ impl Perform for CreateSite {
     };
 
     let create_site = move |conn: &'_ _| Site::create(conn, &site_form);
-    if blocking(pool, create_site).await?.is_err() {
+    if blocking(context.pool(), create_site).await?.is_err() {
       return Err(APIError::err("site_already_exists").into());
     }
 
-    let site_view = blocking(pool, move |conn| SiteView::read(conn)).await??;
+    let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
 
     Ok(SiteResponse { site: site_view })
   }
@@ -302,20 +299,19 @@ impl Perform for EditSite {
   type Response = SiteResponse;
   async fn perform(
     &self,
-    pool: &DbPool,
+    context: &Data<LemmyContext>,
     websocket_info: Option<WebsocketInfo>,
-    _client: Client,
   ) -> Result<SiteResponse, LemmyError> {
     let data: &EditSite = &self;
-    let user = get_user_from_jwt(&data.auth, pool).await?;
+    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
     check_slurs(&data.name)?;
     check_slurs_opt(&data.description)?;
 
     // Make sure user is an admin
-    is_admin(pool, user.id).await?;
+    is_admin(context.pool(), user.id).await?;
 
-    let found_site = blocking(pool, move |conn| Site::read(conn, 1)).await??;
+    let found_site = blocking(context.pool(), move |conn| Site::read(conn, 1)).await??;
 
     let icon = diesel_option_overwrite(&data.icon);
     let banner = diesel_option_overwrite(&data.banner);
@@ -333,11 +329,11 @@ impl Perform for EditSite {
     };
 
     let update_site = move |conn: &'_ _| Site::update(conn, 1, &site_form);
-    if blocking(pool, update_site).await?.is_err() {
+    if blocking(context.pool(), update_site).await?.is_err() {
       return Err(APIError::err("couldnt_update_site").into());
     }
 
-    let site_view = blocking(pool, move |conn| SiteView::read(conn)).await??;
+    let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
 
     let res = SiteResponse { site: site_view };
 
@@ -359,16 +355,15 @@ impl Perform for GetSite {
 
   async fn perform(
     &self,
-    pool: &DbPool,
+    context: &Data<LemmyContext>,
     websocket_info: Option<WebsocketInfo>,
-    client: Client,
   ) -> Result<GetSiteResponse, LemmyError> {
     let data: &GetSite = &self;
 
     // TODO refactor this a little
-    let res = blocking(pool, move |conn| Site::read(conn, 1)).await?;
+    let res = blocking(context.pool(), move |conn| Site::read(conn, 1)).await?;
     let site_view = if res.is_ok() {
-      Some(blocking(pool, move |conn| SiteView::read(conn)).await??)
+      Some(blocking(context.pool(), move |conn| SiteView::read(conn)).await??)
     } else if let Some(setup) = Settings::get().setup.as_ref() {
       let register = Register {
         username: setup.admin_username.to_owned(),
@@ -380,9 +375,7 @@ impl Perform for GetSite {
         captcha_uuid: None,
         captcha_answer: None,
       };
-      let login_response = register
-        .perform(pool, websocket_info.clone(), client.clone())
-        .await?;
+      let login_response = register.perform(context, websocket_info.clone()).await?;
       info!("Admin {} created", setup.admin_username);
 
       let create_site = CreateSite {
@@ -395,16 +388,14 @@ impl Perform for GetSite {
         enable_nsfw: true,
         auth: login_response.jwt,
       };
-      create_site
-        .perform(pool, websocket_info.clone(), client.clone())
-        .await?;
+      create_site.perform(context, websocket_info.clone()).await?;
       info!("Site {} created", setup.site_name);
-      Some(blocking(pool, move |conn| SiteView::read(conn)).await??)
+      Some(blocking(context.pool(), move |conn| SiteView::read(conn)).await??)
     } else {
       None
     };
 
-    let mut admins = blocking(pool, move |conn| UserView::admins(conn)).await??;
+    let mut admins = blocking(context.pool(), move |conn| UserView::admins(conn)).await??;
 
     // Make sure the site creator is the top admin
     if let Some(site_view) = site_view.to_owned() {
@@ -417,7 +408,7 @@ impl Perform for GetSite {
       }
     }
 
-    let banned = blocking(pool, move |conn| UserView::banned(conn)).await??;
+    let banned = blocking(context.pool(), move |conn| UserView::banned(conn)).await??;
 
     let online = if let Some(ws) = websocket_info {
       ws.chatserver.send(GetUsersOnline).await.unwrap_or(1)
@@ -425,12 +416,14 @@ impl Perform for GetSite {
       0
     };
 
-    let my_user = get_user_from_jwt_opt(&data.auth, pool).await?.map(|mut u| {
-      u.password_encrypted = "".to_string();
-      u.private_key = None;
-      u.public_key = None;
-      u
-    });
+    let my_user = get_user_from_jwt_opt(&data.auth, context.pool())
+      .await?
+      .map(|mut u| {
+        u.password_encrypted = "".to_string();
+        u.private_key = None;
+        u.public_key = None;
+        u
+      });
 
     Ok(GetSiteResponse {
       site: site_view,
@@ -450,20 +443,19 @@ impl Perform for Search {
 
   async fn perform(
     &self,
-    pool: &DbPool,
+    context: &Data<LemmyContext>,
     _websocket_info: Option<WebsocketInfo>,
-    client: Client,
   ) -> Result<SearchResponse, LemmyError> {
     let data: &Search = &self;
 
     dbg!(&data);
 
-    match search_by_apub_id(&data.q, &client, pool).await {
+    match search_by_apub_id(&data.q, context).await {
       Ok(r) => return Ok(r),
       Err(e) => debug!("Failed to resolve search query as activitypub ID: {}", e),
     }
 
-    let user = get_user_from_jwt_opt(&data.auth, pool).await?;
+    let user = get_user_from_jwt_opt(&data.auth, context.pool()).await?;
     let user_id = user.map(|u| u.id);
 
     let type_ = SearchType::from_str(&data.type_)?;
@@ -482,7 +474,7 @@ impl Perform for Search {
     let community_id = data.community_id;
     match type_ {
       SearchType::Posts => {
-        posts = blocking(pool, move |conn| {
+        posts = blocking(context.pool(), move |conn| {
           PostQueryBuilder::create(conn)
             .sort(&sort)
             .show_nsfw(true)
@@ -496,7 +488,7 @@ impl Perform for Search {
         .await??;
       }
       SearchType::Comments => {
-        comments = blocking(pool, move |conn| {
+        comments = blocking(context.pool(), move |conn| {
           CommentQueryBuilder::create(&conn)
             .sort(&sort)
             .search_term(q)
@@ -508,7 +500,7 @@ impl Perform for Search {
         .await??;
       }
       SearchType::Communities => {
-        communities = blocking(pool, move |conn| {
+        communities = blocking(context.pool(), move |conn| {
           CommunityQueryBuilder::create(conn)
             .sort(&sort)
             .search_term(q)
@@ -519,7 +511,7 @@ impl Perform for Search {
         .await??;
       }
       SearchType::Users => {
-        users = blocking(pool, move |conn| {
+        users = blocking(context.pool(), move |conn| {
           UserQueryBuilder::create(conn)
             .sort(&sort)
             .search_term(q)
@@ -530,7 +522,7 @@ impl Perform for Search {
         .await??;
       }
       SearchType::All => {
-        posts = blocking(pool, move |conn| {
+        posts = blocking(context.pool(), move |conn| {
           PostQueryBuilder::create(conn)
             .sort(&sort)
             .show_nsfw(true)
@@ -546,7 +538,7 @@ impl Perform for Search {
         let q = data.q.to_owned();
         let sort = SortType::from_str(&data.sort)?;
 
-        comments = blocking(pool, move |conn| {
+        comments = blocking(context.pool(), move |conn| {
           CommentQueryBuilder::create(conn)
             .sort(&sort)
             .search_term(q)
@@ -560,7 +552,7 @@ impl Perform for Search {
         let q = data.q.to_owned();
         let sort = SortType::from_str(&data.sort)?;
 
-        communities = blocking(pool, move |conn| {
+        communities = blocking(context.pool(), move |conn| {
           CommunityQueryBuilder::create(conn)
             .sort(&sort)
             .search_term(q)
@@ -573,7 +565,7 @@ impl Perform for Search {
         let q = data.q.to_owned();
         let sort = SortType::from_str(&data.sort)?;
 
-        users = blocking(pool, move |conn| {
+        users = blocking(context.pool(), move |conn| {
           UserQueryBuilder::create(conn)
             .sort(&sort)
             .search_term(q)
@@ -584,7 +576,7 @@ impl Perform for Search {
         .await??;
       }
       SearchType::Url => {
-        posts = blocking(pool, move |conn| {
+        posts = blocking(context.pool(), move |conn| {
           PostQueryBuilder::create(conn)
             .sort(&sort)
             .show_nsfw(true)
@@ -615,19 +607,18 @@ impl Perform for TransferSite {
 
   async fn perform(
     &self,
-    pool: &DbPool,
+    context: &Data<LemmyContext>,
     _websocket_info: Option<WebsocketInfo>,
-    _client: Client,
   ) -> Result<GetSiteResponse, LemmyError> {
     let data: &TransferSite = &self;
-    let mut user = get_user_from_jwt(&data.auth, pool).await?;
+    let mut user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
     // TODO add a User_::read_safe() for this.
     user.password_encrypted = "".to_string();
     user.private_key = None;
     user.public_key = None;
 
-    let read_site = blocking(pool, move |conn| Site::read(conn, 1)).await??;
+    let read_site = blocking(context.pool(), move |conn| Site::read(conn, 1)).await??;
 
     // Make sure user is the creator
     if read_site.creator_id != user.id {
@@ -636,7 +627,7 @@ impl Perform for TransferSite {
 
     let new_creator_id = data.user_id;
     let transfer_site = move |conn: &'_ _| Site::transfer(conn, new_creator_id);
-    if blocking(pool, transfer_site).await?.is_err() {
+    if blocking(context.pool(), transfer_site).await?.is_err() {
       return Err(APIError::err("couldnt_update_site").into());
     };
 
@@ -647,11 +638,11 @@ impl Perform for TransferSite {
       removed: Some(false),
     };
 
-    blocking(pool, move |conn| ModAdd::create(conn, &form)).await??;
+    blocking(context.pool(), move |conn| ModAdd::create(conn, &form)).await??;
 
-    let site_view = blocking(pool, move |conn| SiteView::read(conn)).await??;
+    let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
 
-    let mut admins = blocking(pool, move |conn| UserView::admins(conn)).await??;
+    let mut admins = blocking(context.pool(), move |conn| UserView::admins(conn)).await??;
     let creator_index = admins
       .iter()
       .position(|r| r.id == site_view.creator_id)
@@ -659,7 +650,7 @@ impl Perform for TransferSite {
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
 
-    let banned = blocking(pool, move |conn| UserView::banned(conn)).await??;
+    let banned = blocking(context.pool(), move |conn| UserView::banned(conn)).await??;
 
     Ok(GetSiteResponse {
       site: Some(site_view),
@@ -679,15 +670,14 @@ impl Perform for GetSiteConfig {
 
   async fn perform(
     &self,
-    pool: &DbPool,
+    context: &Data<LemmyContext>,
     _websocket_info: Option<WebsocketInfo>,
-    _client: Client,
   ) -> Result<GetSiteConfigResponse, LemmyError> {
     let data: &GetSiteConfig = &self;
-    let user = get_user_from_jwt(&data.auth, pool).await?;
+    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
     // Only let admins read this
-    is_admin(pool, user.id).await?;
+    is_admin(context.pool(), user.id).await?;
 
     let config_hjson = Settings::read_config_file()?;
 
@@ -701,15 +691,14 @@ impl Perform for SaveSiteConfig {
 
   async fn perform(
     &self,
-    pool: &DbPool,
+    context: &Data<LemmyContext>,
     _websocket_info: Option<WebsocketInfo>,
-    _client: Client,
   ) -> Result<GetSiteConfigResponse, LemmyError> {
     let data: &SaveSiteConfig = &self;
-    let user = get_user_from_jwt(&data.auth, pool).await?;
+    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
     // Only let admins read this
-    let admins = blocking(pool, move |conn| UserView::admins(conn)).await??;
+    let admins = blocking(context.pool(), move |conn| UserView::admins(conn)).await??;
     let admin_ids: Vec<i32> = admins.into_iter().map(|m| m.id).collect();
 
     if !admin_ids.contains(&user.id) {

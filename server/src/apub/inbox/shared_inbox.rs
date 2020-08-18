@@ -20,8 +20,7 @@ use crate::{
     },
     insert_activity,
   },
-  routes::{ChatServerParam, DbPoolParam},
-  DbPool,
+  LemmyContext,
   LemmyError,
 };
 use activitystreams::{
@@ -30,7 +29,7 @@ use activitystreams::{
   object::AsObject,
   prelude::*,
 };
-use actix_web::{client::Client, web, HttpRequest, HttpResponse};
+use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Context;
 use lemmy_db::user::User_;
 use lemmy_utils::location_info;
@@ -60,9 +59,7 @@ pub type AcceptedActivities = ActorAndObject<ValidTypes>;
 pub async fn shared_inbox(
   request: HttpRequest,
   input: web::Json<AcceptedActivities>,
-  client: web::Data<Client>,
-  pool: DbPoolParam,
-  chat_server: ChatServerParam,
+  context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let activity = input.into_inner();
 
@@ -79,23 +76,23 @@ pub async fn shared_inbox(
   check_is_apub_id_valid(sender)?;
   check_is_apub_id_valid(&community)?;
 
-  let actor = get_or_fetch_and_upsert_actor(sender, &client, &pool).await?;
+  let actor = get_or_fetch_and_upsert_actor(sender, &context).await?;
   verify(&request, actor.as_ref())?;
 
   let any_base = activity.clone().into_any_base()?;
   let kind = activity.kind().context(location_info!())?;
   let res = match kind {
-    ValidTypes::Announce => receive_announce(any_base, &client, &pool, chat_server).await,
-    ValidTypes::Create => receive_create(any_base, &client, &pool, chat_server).await,
-    ValidTypes::Update => receive_update(any_base, &client, &pool, chat_server).await,
-    ValidTypes::Like => receive_like(any_base, &client, &pool, chat_server).await,
-    ValidTypes::Dislike => receive_dislike(any_base, &client, &pool, chat_server).await,
-    ValidTypes::Remove => receive_remove(any_base, &client, &pool, chat_server).await,
-    ValidTypes::Delete => receive_delete(any_base, &client, &pool, chat_server).await,
-    ValidTypes::Undo => receive_undo(any_base, &client, &pool, chat_server).await,
+    ValidTypes::Announce => receive_announce(any_base, &context).await,
+    ValidTypes::Create => receive_create(any_base, &context).await,
+    ValidTypes::Update => receive_update(any_base, &context).await,
+    ValidTypes::Like => receive_like(any_base, &context).await,
+    ValidTypes::Dislike => receive_dislike(any_base, &context).await,
+    ValidTypes::Remove => receive_remove(any_base, &context).await,
+    ValidTypes::Delete => receive_delete(any_base, &context).await,
+    ValidTypes::Undo => receive_undo(any_base, &context).await,
   };
 
-  insert_activity(actor.user_id(), activity.clone(), false, &pool).await?;
+  insert_activity(actor.user_id(), activity.clone(), false, context.pool()).await?;
   res
 }
 
@@ -111,15 +108,14 @@ where
 
 pub(in crate::apub::inbox) async fn get_user_from_activity<T, A>(
   activity: &T,
-  client: &Client,
-  pool: &DbPool,
+  context: &LemmyContext,
 ) -> Result<User_, LemmyError>
 where
   T: AsBase<A> + ActorAndObjectRef,
 {
   let actor = activity.actor()?;
   let user_uri = actor.as_single_xsd_any_uri().context(location_info!())?;
-  get_or_fetch_and_upsert_user(&user_uri, client, pool).await
+  get_or_fetch_and_upsert_user(&user_uri, context).await
 }
 
 pub(in crate::apub::inbox) fn get_community_id_from_activity<T, A>(
@@ -142,8 +138,7 @@ where
 pub(in crate::apub::inbox) async fn announce_if_community_is_local<T, Kind>(
   activity: T,
   user: &User_,
-  client: &Client,
-  pool: &DbPool,
+  context: &LemmyContext,
 ) -> Result<(), LemmyError>
 where
   T: AsObject<Kind>,
@@ -162,11 +157,10 @@ where
   let community_uri = community_followers_uri
     .to_string()
     .replace("/followers", "");
-  let community =
-    get_or_fetch_and_upsert_community(&Url::parse(&community_uri)?, client, pool).await?;
+  let community = get_or_fetch_and_upsert_community(&Url::parse(&community_uri)?, context).await?;
 
   if community.local {
-    do_announce(activity.into_any_base()?, &community, &user, client, pool).await?;
+    do_announce(activity.into_any_base()?, &community, &user, context).await?;
   }
   Ok(())
 }

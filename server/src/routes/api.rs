@@ -1,10 +1,10 @@
 use crate::{
   api::{comment::*, community::*, post::*, site::*, user::*, Perform},
   rate_limit::RateLimit,
-  routes::{ChatServerParam, DbPoolParam},
   websocket::WebsocketInfo,
+  LemmyContext,
 };
-use actix_web::{client::Client, error::ErrorBadRequest, *};
+use actix_web::{error::ErrorBadRequest, *};
 use serde::Serialize;
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
@@ -174,21 +174,19 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
 
 async fn perform<Request>(
   data: Request,
-  client: &Client,
-  db: DbPoolParam,
-  chat_server: ChatServerParam,
+  context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error>
 where
   Request: Perform,
   Request: Send + 'static,
 {
   let ws_info = WebsocketInfo {
-    chatserver: chat_server.get_ref().to_owned(),
+    chatserver: context.chat_server().to_owned(),
     id: None,
   };
 
   let res = data
-    .perform(&db, Some(ws_info), client.clone())
+    .perform(&context, Some(ws_info))
     .await
     .map(|json| HttpResponse::Ok().json(json))
     .map_err(ErrorBadRequest)?;
@@ -197,24 +195,20 @@ where
 
 async fn route_get<Data>(
   data: web::Query<Data>,
-  client: web::Data<Client>,
-  db: DbPoolParam,
-  chat_server: ChatServerParam,
+  context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error>
 where
   Data: Serialize + Send + 'static + Perform,
 {
-  perform::<Data>(data.0, &client, db, chat_server).await
+  perform::<Data>(data.0, context).await
 }
 
 async fn route_post<Data>(
   data: web::Json<Data>,
-  client: web::Data<Client>,
-  db: DbPoolParam,
-  chat_server: ChatServerParam,
+  context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error>
 where
   Data: Serialize + Send + 'static + Perform,
 {
-  perform::<Data>(data.0, &client, db, chat_server).await
+  perform::<Data>(data.0, context).await
 }

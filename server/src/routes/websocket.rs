@@ -1,6 +1,7 @@
 use crate::{
   get_ip,
   websocket::server::{ChatServer, *},
+  LemmyContext,
 };
 use actix::prelude::*;
 use actix_web::*;
@@ -17,11 +18,11 @@ const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 pub async fn chat_route(
   req: HttpRequest,
   stream: web::Payload,
-  chat_server: web::Data<Addr<ChatServer>>,
+  context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   ws::start(
     WSSession {
-      cs_addr: chat_server.get_ref().to_owned(),
+      cs_addr: context.chat_server().to_owned(),
       id: 0,
       hb: Instant::now(),
       ip: get_ip(&req.connection_info()),

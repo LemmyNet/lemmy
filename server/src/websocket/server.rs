@@ -9,13 +9,13 @@ use crate::{
   websocket::UserOperation,
   CommunityId,
   ConnectionId,
-  DbPool,
   IPAddr,
+  LemmyContext,
   LemmyError,
   PostId,
   UserId,
 };
-use actix_web::client::Client;
+use actix_web::{client::Client, web};
 use anyhow::Context as acontext;
 use lemmy_db::naive_now;
 use lemmy_utils::location_info;
@@ -465,11 +465,14 @@ impl ChatServer {
 
       let user_operation: UserOperation = UserOperation::from_str(&op)?;
 
-      let args = Args {
-        client,
+      let context = LemmyContext {
         pool,
+        chat_server: addr,
+        client,
+      };
+      let args = Args {
+        context: &context,
         rate_limiter,
-        chatserver: addr,
         id: msg.id,
         ip,
         op: user_operation.clone(),
@@ -562,10 +565,8 @@ impl ChatServer {
 }
 
 struct Args<'a> {
-  client: Client,
-  pool: DbPool,
+  context: &'a LemmyContext,
   rate_limiter: RateLimit,
-  chatserver: Addr<ChatServer>,
   id: ConnectionId,
   ip: IPAddr,
   op: UserOperation,
@@ -578,10 +579,8 @@ where
   Data: Perform,
 {
   let Args {
-    client,
-    pool,
+    context,
     rate_limiter,
-    chatserver,
     id,
     ip,
     op,
@@ -589,18 +588,18 @@ where
   } = args;
 
   let ws_info = WebsocketInfo {
-    chatserver,
+    chatserver: context.chat_server().to_owned(),
     id: Some(id),
   };
 
   let data = data.to_string();
   let op2 = op.clone();
 
-  let client = client.clone();
   let fut = async move {
-    let pool = pool.clone();
     let parsed_data: Data = serde_json::from_str(&data)?;
-    let res = parsed_data.perform(&pool, Some(ws_info), client).await?;
+    let res = parsed_data
+      .perform(&web::Data::new(context.to_owned()), Some(ws_info))
+      .await?;
     to_json_string(&op, &res)
   };
 

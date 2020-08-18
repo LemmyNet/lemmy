@@ -29,7 +29,11 @@ pub mod routes;
 pub mod version;
 pub mod websocket;
 
-use crate::request::{retry, RecvError};
+use crate::{
+  request::{retry, RecvError},
+  websocket::server::ChatServer,
+};
+use actix::Addr;
 use actix_web::{client::Client, dev::ConnectionInfo};
 use anyhow::anyhow;
 use lemmy_utils::{get_apub_protocol_string, settings::Settings};
@@ -66,6 +70,41 @@ impl std::fmt::Display for LemmyError {
 }
 
 impl actix_web::error::ResponseError for LemmyError {}
+
+pub struct LemmyContext {
+  pub pool: DbPool,
+  pub chat_server: Addr<ChatServer>,
+  pub client: Client,
+}
+
+impl LemmyContext {
+  pub fn create(pool: DbPool, chat_server: Addr<ChatServer>, client: Client) -> LemmyContext {
+    LemmyContext {
+      pool,
+      chat_server,
+      client,
+    }
+  }
+  pub fn pool(&self) -> &DbPool {
+    &self.pool
+  }
+  pub fn chat_server(&self) -> &Addr<ChatServer> {
+    &self.chat_server
+  }
+  pub fn client(&self) -> &Client {
+    &self.client
+  }
+}
+
+impl Clone for LemmyContext {
+  fn clone(&self) -> Self {
+    LemmyContext {
+      pool: self.pool.clone(),
+      chat_server: self.chat_server.clone(),
+      client: self.client.clone(),
+    }
+  }
+}
 
 #[derive(Deserialize, Debug)]
 pub struct IframelyResponse {

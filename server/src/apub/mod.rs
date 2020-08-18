@@ -18,6 +18,7 @@ use crate::{
   request::{retry, RecvError},
   routes::webfinger::WebFingerResponse,
   DbPool,
+  LemmyContext,
   LemmyError,
 };
 use activitystreams::{
@@ -162,15 +163,13 @@ pub trait FromApub {
   /// Converts an object from ActivityPub type to Lemmy internal type.
   ///
   /// * `apub` The object to read from
-  /// * `client` Web client to fetch remote actors with
-  /// * `pool` Database connection
+  /// * `context` LemmyContext which holds DB pool, HTTP client etc
   /// * `expected_domain` If present, ensure that the apub object comes from the same domain as
   ///                     this URL
   ///
   async fn from_apub(
     apub: &Self::ApubType,
-    client: &Client,
-    pool: &DbPool,
+    context: &LemmyContext,
     expected_domain: Option<Url>,
   ) -> Result<Self, LemmyError>
   where
@@ -179,42 +178,16 @@ pub trait FromApub {
 
 #[async_trait::async_trait(?Send)]
 pub trait ApubObjectType {
-  async fn send_create(
-    &self,
-    creator: &User_,
-    client: &Client,
-    pool: &DbPool,
-  ) -> Result<(), LemmyError>;
-  async fn send_update(
-    &self,
-    creator: &User_,
-    client: &Client,
-    pool: &DbPool,
-  ) -> Result<(), LemmyError>;
-  async fn send_delete(
-    &self,
-    creator: &User_,
-    client: &Client,
-    pool: &DbPool,
-  ) -> Result<(), LemmyError>;
+  async fn send_create(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
+  async fn send_update(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
+  async fn send_delete(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
   async fn send_undo_delete(
     &self,
     creator: &User_,
-    client: &Client,
-    pool: &DbPool,
+    context: &LemmyContext,
   ) -> Result<(), LemmyError>;
-  async fn send_remove(
-    &self,
-    mod_: &User_,
-    client: &Client,
-    pool: &DbPool,
-  ) -> Result<(), LemmyError>;
-  async fn send_undo_remove(
-    &self,
-    mod_: &User_,
-    client: &Client,
-    pool: &DbPool,
-  ) -> Result<(), LemmyError>;
+  async fn send_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
+  async fn send_undo_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
 }
 
 pub(in crate::apub) fn check_actor_domain<T, Kind>(
@@ -237,24 +210,10 @@ where
 
 #[async_trait::async_trait(?Send)]
 pub trait ApubLikeableType {
-  async fn send_like(
-    &self,
-    creator: &User_,
-    client: &Client,
-    pool: &DbPool,
-  ) -> Result<(), LemmyError>;
-  async fn send_dislike(
-    &self,
-    creator: &User_,
-    client: &Client,
-    pool: &DbPool,
-  ) -> Result<(), LemmyError>;
-  async fn send_undo_like(
-    &self,
-    creator: &User_,
-    client: &Client,
-    pool: &DbPool,
-  ) -> Result<(), LemmyError>;
+  async fn send_like(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
+  async fn send_dislike(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
+  async fn send_undo_like(&self, creator: &User_, context: &LemmyContext)
+    -> Result<(), LemmyError>;
 }
 
 #[async_trait::async_trait(?Send)]
@@ -274,49 +233,30 @@ pub trait ActorType {
   async fn send_follow(
     &self,
     follow_actor_id: &Url,
-    client: &Client,
-    pool: &DbPool,
+    context: &LemmyContext,
   ) -> Result<(), LemmyError>;
   async fn send_unfollow(
     &self,
     follow_actor_id: &Url,
-    client: &Client,
-    pool: &DbPool,
+    context: &LemmyContext,
   ) -> Result<(), LemmyError>;
 
   #[allow(unused_variables)]
   async fn send_accept_follow(
     &self,
     follow: Follow,
-    client: &Client,
-    pool: &DbPool,
+    context: &LemmyContext,
   ) -> Result<(), LemmyError>;
 
-  async fn send_delete(
-    &self,
-    creator: &User_,
-    client: &Client,
-    pool: &DbPool,
-  ) -> Result<(), LemmyError>;
+  async fn send_delete(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
   async fn send_undo_delete(
     &self,
     creator: &User_,
-    client: &Client,
-    pool: &DbPool,
+    context: &LemmyContext,
   ) -> Result<(), LemmyError>;
 
-  async fn send_remove(
-    &self,
-    mod_: &User_,
-    client: &Client,
-    pool: &DbPool,
-  ) -> Result<(), LemmyError>;
-  async fn send_undo_remove(
-    &self,
-    mod_: &User_,
-    client: &Client,
-    pool: &DbPool,
-  ) -> Result<(), LemmyError>;
+  async fn send_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
+  async fn send_undo_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
 
   /// For a given community, returns the inboxes of all followers.
   async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<Url>, LemmyError>;
