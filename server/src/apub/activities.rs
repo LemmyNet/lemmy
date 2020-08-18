@@ -45,6 +45,10 @@ pub async fn send_activity(
   actor: &dyn ActorType,
   to: Vec<Url>,
 ) -> Result<(), LemmyError> {
+  if !Settings::get().federation.enabled {
+    return Ok(());
+  }
+
   let activity = serde_json::to_string(&activity)?;
   debug!("Sending activitypub activity {} to {:?}", activity, to);
 

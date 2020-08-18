@@ -72,6 +72,30 @@ where
 
 // Checks if the ID has a valid format, correct scheme, and is in the allowed instance list.
 fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
+  let settings = Settings::get();
+  let domain = apub_id.domain().context(location_info!())?.to_string();
+  let local_instance = settings
+    .hostname
+    .split(':')
+    .collect::<Vec<&str>>()
+    .first()
+    .context(location_info!())?
+    .to_string();
+
+  if !settings.federation.enabled {
+    return if domain == local_instance {
+      Ok(())
+    } else {
+      Err(
+        anyhow!(
+          "Trying to connect with {}, but federation is disabled",
+          domain
+        )
+        .into(),
+      )
+    };
+  }
+
   if apub_id.scheme() != get_apub_protocol_string() {
     return Err(anyhow!("invalid apub id scheme: {:?}", apub_id.scheme()).into());
   }
@@ -79,18 +103,10 @@ fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
   let mut allowed_instances = Settings::get().get_allowed_instances();
   let blocked_instances = Settings::get().get_blocked_instances();
 
-  let domain = apub_id.domain().context(location_info!())?.to_string();
   if !allowed_instances.is_empty() {
     // need to allow this explicitly because apub activities might contain objects from our local
     // instance. split is needed to remove the port in our federation test setup.
-    let settings = Settings::get();
-    let local_instance = settings.hostname.split(':').collect::<Vec<&str>>();
-    allowed_instances.push(
-      local_instance
-        .first()
-        .context(location_info!())?
-        .to_string(),
-    );
+    allowed_instances.push(local_instance);
 
     if allowed_instances.contains(&domain) {
       Ok(())
