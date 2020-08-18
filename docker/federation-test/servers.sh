@@ -12,8 +12,8 @@ pushd ../../ui
 yarn
 popd
 
-mkdir -p volumes/pictrs_{alpha,beta,gamma}
-sudo chown -R 991:991 volumes/pictrs_{alpha,beta,gamma}
+mkdir -p volumes/pictrs_{alpha,beta,gamma,delta,epsilon}
+sudo chown -R 991:991 volumes/pictrs_{alpha,beta,gamma,delta,epsilon}
 
 sudo docker build ../../ --file ../federation/Dockerfile --tag lemmy-federation:latest
 
