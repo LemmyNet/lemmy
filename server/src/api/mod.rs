@@ -11,6 +11,7 @@ use lemmy_db::{
   community::*,
   community_view::*,
   moderator::*,
+  post::Post,
   site::*,
   user::*,
   user_view::*,
@@ -71,6 +72,13 @@ pub async fn is_admin(pool: &DbPool, user_id: i32) -> Result<(), LemmyError> {
     return Err(APIError::err("not_an_admin").into());
   }
   Ok(())
+}
+
+pub(in crate::api) async fn get_post(post_id: i32, pool: &DbPool) -> Result<Post, LemmyError> {
+  match blocking(pool, move |conn| Post::read(conn, post_id)).await? {
+    Ok(post) => Ok(post),
+    Err(_e) => Err(APIError::err("couldnt_find_post").into()),
+  }
 }
 
 pub(in crate::api) async fn get_user_from_jwt(
