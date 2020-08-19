@@ -11,14 +11,14 @@ import {
   SavePostForm,
   CommunityUser,
   UserView,
-  BanType,
   BanFromCommunityForm,
   BanUserForm,
   AddModToCommunityForm,
   AddAdminForm,
   TransferSiteForm,
   TransferCommunityForm,
-} from '../interfaces';
+} from 'lemmy-js-client';
+import { BanType } from '../interfaces';
 import { MomentTime } from './moment-time';
 import { PostForm } from './post-form';
 import { IFramelyCard } from './iframely-card';

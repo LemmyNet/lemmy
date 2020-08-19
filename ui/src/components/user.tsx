@@ -14,10 +14,10 @@ import {
   DeleteAccountForm,
   WebSocketJsonResponse,
   GetSiteResponse,
-  UserDetailsView,
   UserDetailsResponse,
   AddAdminResponse,
-} from '../interfaces';
+} from 'lemmy-js-client';
+import { UserDetailsView } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import {
   wsJsonToRes,
@@ -73,7 +73,7 @@ interface UserProps {
 
 interface UrlParams {
   view?: string;
-  sort?: string;
+  sort?: SortType;
   page?: number;
 }
 
@@ -190,17 +190,15 @@ export class User extends Component<any, UserState> {
     );
   }
 
-  static getViewFromProps(view: any): UserDetailsView {
-    return view
-      ? UserDetailsView[capitalizeFirstLetter(view)]
-      : UserDetailsView.Overview;
+  static getViewFromProps(view: string): UserDetailsView {
+    return view ? UserDetailsView[view] : UserDetailsView.Overview;
   }
 
-  static getSortTypeFromProps(sort: any): SortType {
+  static getSortTypeFromProps(sort: string): SortType {
     return sort ? routeSortTypeToEnum(sort) : SortType.New;
   }
 
-  static getPageFromProps(page: any): number {
+  static getPageFromProps(page: number): number {
     return page ? Number(page) : 1;
   }
 
@@ -272,7 +270,7 @@ export class User extends Component<any, UserState> {
             <UserDetails
               user_id={this.state.user_id}
               username={this.state.username}
-              sort={SortType[this.state.sort]}
+              sort={this.state.sort}
               page={this.state.page}
               limit={fetchLimit}
               enableDownvotes={this.state.siteRes.site.enable_downvotes}
@@ -364,9 +362,7 @@ export class User extends Component<any, UserState> {
           hideHot
         />
         <a
-          href={`/feeds/u/${this.state.username}.xml?sort=${
-            SortType[this.state.sort]
-          }`}
+          href={`/feeds/u/${this.state.username}.xml?sort=${this.state.sort}`}
           target="_blank"
           rel="noopener"
           title="RSS"
@@ -538,7 +534,11 @@ export class User extends Component<any, UserState> {
                   <div class="mr-2">{i18n.t('sort_type')}</div>
                 </label>
                 <ListingTypeSelect
-                  type_={this.state.userSettingsForm.default_listing_type}
+                  type_={
+                    Object.values(ListingType)[
+                      this.state.userSettingsForm.default_listing_type
+                    ]
+                  }
                   onChange={this.handleUserSettingsListingTypeChange}
                 />
               </form>
@@ -547,7 +547,11 @@ export class User extends Component<any, UserState> {
                   <div class="mr-2">{i18n.t('type')}</div>
                 </label>
                 <SortSelect
-                  sort={this.state.userSettingsForm.default_sort_type}
+                  sort={
+                    Object.values(SortType)[
+                      this.state.userSettingsForm.default_sort_type
+                    ]
+                  }
                   onChange={this.handleUserSettingsSortTypeChange}
                 />
               </form>
@@ -859,10 +863,8 @@ export class User extends Component<any, UserState> {
 
   updateUrl(paramUpdates: UrlParams) {
     const page = paramUpdates.page || this.state.page;
-    const viewStr =
-      paramUpdates.view || UserDetailsView[this.state.view].toLowerCase();
-    const sortStr =
-      paramUpdates.sort || SortType[this.state.sort].toLowerCase();
+    const viewStr = paramUpdates.view || UserDetailsView[this.state.view];
+    const sortStr = paramUpdates.sort || this.state.sort;
     this.props.history.push(
       `/u/${this.state.username}/view/${viewStr}/sort/${sortStr}/page/${page}`
     );
@@ -873,12 +875,12 @@ export class User extends Component<any, UserState> {
   }
 
   handleSortChange(val: SortType) {
-    this.updateUrl({ sort: SortType[val].toLowerCase(), page: 1 });
+    this.updateUrl({ sort: val, page: 1 });
   }
 
   handleViewChange(i: User, event: any) {
     i.updateUrl({
-      view: UserDetailsView[Number(event.target.value)].toLowerCase(),
+      view: UserDetailsView[Number(event.target.value)],
       page: 1,
     });
   }
@@ -912,12 +914,16 @@ export class User extends Component<any, UserState> {
   }
 
   handleUserSettingsSortTypeChange(val: SortType) {
-    this.state.userSettingsForm.default_sort_type = val;
+    this.state.userSettingsForm.default_sort_type = Object.keys(
+      SortType
+    ).indexOf(val);
     this.setState(this.state);
   }
 
   handleUserSettingsListingTypeChange(val: ListingType) {
-    this.state.userSettingsForm.default_listing_type = val;
+    this.state.userSettingsForm.default_listing_type = Object.keys(
+      ListingType
+    ).indexOf(val);
     this.setState(this.state);
   }
 

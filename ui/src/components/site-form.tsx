@@ -2,7 +2,7 @@ import { Component, linkEvent } from 'inferno';
 import { Prompt } from 'inferno-router';
 import { MarkdownTextArea } from './markdown-textarea';
 import { ImageUploadForm } from './image-upload-form';
-import { Site, SiteForm as SiteFormI } from '../interfaces';
+import { Site, SiteForm as SiteFormI } from 'lemmy-js-client';
 import { WebSocketService } from '../services';
 import { capitalizeFirstLetter, randomStr } from '../utils';
 import { i18n } from '../i18next';

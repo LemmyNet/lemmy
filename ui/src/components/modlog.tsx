@@ -19,7 +19,7 @@ import {
   WebSocketJsonResponse,
   GetSiteResponse,
   Site,
-} from '../interfaces';
+} from 'lemmy-js-client';
 import { WebSocketService } from '../services';
 import { wsJsonToRes, addTypeInfo, fetchLimit, toast } from '../utils';
 import { MomentTime } from './moment-time';

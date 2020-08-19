@@ -18,7 +18,7 @@ import {
   SearchType,
   SearchResponse,
   WebSocketJsonResponse,
-} from '../interfaces';
+} from 'lemmy-js-client';
 import { WebSocketService, UserService } from '../services';
 import {
   wsJsonToRes,
@@ -121,7 +121,7 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
       );
 
     let listCommunitiesForm: ListCommunitiesForm = {
-      sort: SortType[SortType.TopAll],
+      sort: SortType.TopAll,
       limit: 9999,
     };
 
@@ -405,8 +405,8 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
     if (validURL(this.state.postForm.url)) {
       let form: SearchForm = {
         q: this.state.postForm.url,
-        type_: SearchType[SearchType.Url],
-        sort: SortType[SortType.TopAll],
+        type_: SearchType.Url,
+        sort: SortType.TopAll,
         page: 1,
         limit: 6,
       };
@@ -433,8 +433,8 @@ export class PostForm extends Component<PostFormProps, PostFormState> {
   fetchSimilarPosts() {
     let form: SearchForm = {
       q: this.state.postForm.name,
-      type_: SearchType[SearchType.Posts],
-      sort: SortType[SortType.TopAll],
+      type_: SearchType.Posts,
+      sort: SortType.TopAll,
       community_id: this.state.postForm.community_id,
       page: 1,
       limit: 6,

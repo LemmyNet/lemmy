@@ -9,7 +9,7 @@ import {
   WebSocketJsonResponse,
   GetSiteResponse,
   Site,
-} from '../interfaces';
+} from 'lemmy-js-client';
 import { toast, wsJsonToRes } from '../utils';
 import { WebSocketService, UserService } from '../services';
 import { i18n } from '../i18next';

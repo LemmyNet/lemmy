@@ -112,6 +112,7 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 
 ### Libraries
 
+- [lemmy-js-client](https://github.com/LemmyNet/lemmy-js-client)
 - [Kotlin API ( under development )](https://github.com/eiknat/lemmy-client)
 
 ## Support / Donate

@@ -8,7 +8,7 @@ import {
   RemoveCommunityForm,
   UserView,
   AddModToCommunityForm,
-} from '../interfaces';
+} from 'lemmy-js-client';
 import { WebSocketService, UserService } from '../services';
 import { mdToHtml, getUnixTime } from '../utils';
 import { CommunityForm } from './community-form';

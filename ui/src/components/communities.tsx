@@ -13,7 +13,7 @@ import {
   WebSocketJsonResponse,
   GetSiteResponse,
   Site,
-} from '../interfaces';
+} from 'lemmy-js-client';
 import { WebSocketService } from '../services';
 import { wsJsonToRes, toast, getPageFromProps } from '../utils';
 import { CommunityLink } from './community-link';
@@ -218,7 +218,7 @@ export class Communities extends Component<any, CommunitiesState> {
 
   refetch() {
     let listCommunitiesForm: ListCommunitiesForm = {
-      sort: SortType[SortType.TopAll],
+      sort: SortType.TopAll,
       limit: communityLimit,
       page: this.state.page,
     };

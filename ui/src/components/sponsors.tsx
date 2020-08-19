@@ -8,7 +8,7 @@ import {
   Site,
   WebSocketJsonResponse,
   UserOperation,
-} from '../interfaces';
+} from 'lemmy-js-client';
 import { i18n } from '../i18next';
 import { T } from 'inferno-i18next';
 import { repoUrl, wsJsonToRes, toast } from '../utils';

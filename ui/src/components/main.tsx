@@ -13,7 +13,6 @@ import {
   SortType,
   GetSiteResponse,
   ListingType,
-  DataType,
   SiteResponse,
   GetPostsResponse,
   PostResponse,
@@ -26,7 +25,8 @@ import {
   AddAdminResponse,
   BanUserResponse,
   WebSocketJsonResponse,
-} from '../interfaces';
+} from 'lemmy-js-client';
+import { DataType } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import { PostListings } from './post-listings';
 import { CommentNodes } from './comment-nodes';
@@ -82,9 +82,9 @@ interface MainProps {
 }
 
 interface UrlParams {
-  listingType?: string;
+  listingType?: ListingType;
   dataType?: string;
-  sort?: string;
+  sort?: SortType;
   page?: number;
 }
 
@@ -151,7 +151,7 @@ export class Main extends Component<any, MainState> {
     }
 
     let listCommunitiesForm: ListCommunitiesForm = {
-      sort: SortType[SortType.Hot],
+      sort: SortType.Hot,
       limit: 6,
     };
 
@@ -334,13 +334,9 @@ export class Main extends Component<any, MainState> {
   }
 
   updateUrl(paramUpdates: UrlParams) {
-    const listingTypeStr =
-      paramUpdates.listingType ||
-      ListingType[this.state.listingType].toLowerCase();
-    const dataTypeStr =
-      paramUpdates.dataType || DataType[this.state.dataType].toLowerCase();
-    const sortStr =
-      paramUpdates.sort || SortType[this.state.sort].toLowerCase();
+    const listingTypeStr = paramUpdates.listingType || this.state.listingType;
+    const dataTypeStr = paramUpdates.dataType || DataType[this.state.dataType];
+    const sortStr = paramUpdates.sort || this.state.sort;
     const page = paramUpdates.page || this.state.page;
     this.props.history.push(
       `/home/data_type/${dataTypeStr}/listing_type/${listingTypeStr}/sort/${sortStr}/page/${page}`
@@ -549,7 +545,7 @@ export class Main extends Component<any, MainState> {
         </span>
         {this.state.listingType == ListingType.All && (
           <a
-            href={`/feeds/all.xml?sort=${SortType[this.state.sort]}`}
+            href={`/feeds/all.xml?sort=${this.state.sort}`}
             target="_blank"
             rel="noopener"
             title="RSS"
@@ -562,9 +558,7 @@ export class Main extends Component<any, MainState> {
         {UserService.Instance.user &&
           this.state.listingType == ListingType.Subscribed && (
             <a
-              href={`/feeds/front/${UserService.Instance.auth}.xml?sort=${
-                SortType[this.state.sort]
-              }`}
+              href={`/feeds/front/${UserService.Instance.auth}.xml?sort=${this.state.sort}`}
               target="_blank"
               title="RSS"
               rel="noopener"
@@ -631,17 +625,17 @@ export class Main extends Component<any, MainState> {
   }
 
   handleSortChange(val: SortType) {
-    this.updateUrl({ sort: SortType[val].toLowerCase(), page: 1 });
+    this.updateUrl({ sort: val, page: 1 });
     window.scrollTo(0, 0);
   }
 
   handleListingTypeChange(val: ListingType) {
-    this.updateUrl({ listingType: ListingType[val].toLowerCase(), page: 1 });
+    this.updateUrl({ listingType: val, page: 1 });
     window.scrollTo(0, 0);
   }
 
   handleDataTypeChange(val: DataType) {
-    this.updateUrl({ dataType: DataType[val].toLowerCase(), page: 1 });
+    this.updateUrl({ dataType: DataType[val], page: 1 });
     window.scrollTo(0, 0);
   }
 
@@ -650,16 +644,16 @@ export class Main extends Component<any, MainState> {
       let getPostsForm: GetPostsForm = {
         page: this.state.page,
         limit: fetchLimit,
-        sort: SortType[this.state.sort],
-        type_: ListingType[this.state.listingType],
+        sort: this.state.sort,
+        type_: this.state.listingType,
       };
       WebSocketService.Instance.getPosts(getPostsForm);
     } else {
       let getCommentsForm: GetCommentsForm = {
         page: this.state.page,
         limit: fetchLimit,
-        sort: SortType[this.state.sort],
-        type_: ListingType[this.state.listingType],
+        sort: this.state.sort,
+        type_: this.state.listingType,
       };
       WebSocketService.Instance.getComments(getCommentsForm);
     }

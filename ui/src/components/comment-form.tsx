@@ -8,7 +8,7 @@ import {
   WebSocketJsonResponse,
   UserOperation,
   CommentResponse,
-} from '../interfaces';
+} from 'lemmy-js-client';
 import { capitalizeFirstLetter, wsJsonToRes } from '../utils';
 import { WebSocketService, UserService } from '../services';
 import { i18n } from '../i18next';

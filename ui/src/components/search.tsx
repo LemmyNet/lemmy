@@ -17,7 +17,7 @@ import {
   WebSocketJsonResponse,
   GetSiteResponse,
   Site,
-} from '../interfaces';
+} from 'lemmy-js-client';
 import { WebSocketService } from '../services';
 import {
   wsJsonToRes,
@@ -57,8 +57,8 @@ interface SearchProps {
 
 interface UrlParams {
   q?: string;
-  type_?: string;
-  sort?: string;
+  type_?: SearchType;
+  sort?: SortType;
   page?: number;
 }
 
@@ -461,8 +461,8 @@ export class Search extends Component<any, SearchState> {
   search() {
     let form: SearchForm = {
       q: this.state.q,
-      type_: SearchType[this.state.type_],
-      sort: SortType[this.state.sort],
+      type_: this.state.type_,
+      sort: this.state.sort,
       page: this.state.page,
       limit: fetchLimit,
     };
@@ -473,12 +473,12 @@ export class Search extends Component<any, SearchState> {
   }
 
   handleSortChange(val: SortType) {
-    this.updateUrl({ sort: SortType[val].toLowerCase(), page: 1 });
+    this.updateUrl({ sort: val, page: 1 });
   }
 
   handleTypeChange(i: Search, event: any) {
     i.updateUrl({
-      type_: SearchType[Number(event.target.value)].toLowerCase(),
+      type_: SearchType[event.target.value],
       page: 1,
     });
   }
@@ -487,8 +487,8 @@ export class Search extends Component<any, SearchState> {
     event.preventDefault();
     i.updateUrl({
       q: i.state.searchText,
-      type_: SearchType[i.state.type_].toLowerCase(),
-      sort: SortType[i.state.sort].toLowerCase(),
+      type_: i.state.type_,
+      sort: i.state.sort,
       page: i.state.page,
     });
   }
@@ -499,10 +499,8 @@ export class Search extends Component<any, SearchState> {
 
   updateUrl(paramUpdates: UrlParams) {
     const qStr = paramUpdates.q || this.state.q;
-    const typeStr =
-      paramUpdates.type_ || SearchType[this.state.type_].toLowerCase();
-    const sortStr =
-      paramUpdates.sort || SortType[this.state.sort].toLowerCase();
+    const typeStr = paramUpdates.type_ || this.state.type_;
+    const sortStr = paramUpdates.sort || this.state.sort;
     const page = paramUpdates.page || this.state.page;
     this.props.history.push(
       `/search/q/${qStr}/type/${typeStr}/sort/${sortStr}/page/${page}`

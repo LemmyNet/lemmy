@@ -7,7 +7,7 @@ import {
   LoginResponse,
   UserOperation,
   WebSocketJsonResponse,
-} from '../interfaces';
+} from 'lemmy-js-client';
 import { WebSocketService, UserService } from '../services';
 import { wsJsonToRes, toast } from '../utils';
 import { SiteForm } from './site-form';

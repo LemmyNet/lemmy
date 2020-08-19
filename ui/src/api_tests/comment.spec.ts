@@ -21,7 +21,7 @@ import {
   API,
 } from './shared';
 
-import { PostResponse } from '../interfaces';
+import { PostResponse } from 'lemmy-js-client';
 
 let postRes: PostResponse;
 

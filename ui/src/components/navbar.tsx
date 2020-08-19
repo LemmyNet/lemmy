@@ -18,7 +18,7 @@ import {
   PrivateMessage,
   PrivateMessageResponse,
   WebSocketJsonResponse,
-} from '../interfaces';
+} from 'lemmy-js-client';
 import {
   wsJsonToRes,
   pictrsAvatarThumbnail,
@@ -137,7 +137,7 @@ export class Navbar extends Component<any, NavbarState> {
       this.context.router.history.push(`/search/`);
     } else {
       this.context.router.history.push(
-        `/search/q/${searchParam}/type/all/sort/topall/page/1`
+        `/search/q/${searchParam}/type/All/sort/TopAll/page/1`
       );
     }
   }
@@ -477,14 +477,14 @@ export class Navbar extends Component<any, NavbarState> {
   fetchUnreads() {
     console.log('Fetching unreads...');
     let repliesForm: GetRepliesForm = {
-      sort: SortType[SortType.New],
+      sort: SortType.New,
       unread_only: true,
       page: 1,
       limit: fetchLimit,
     };
 
     let userMentionsForm: GetUserMentionsForm = {
-      sort: SortType[SortType.New],
+      sort: SortType.New,
       unread_only: true,
       page: 1,
       limit: fetchLimit,

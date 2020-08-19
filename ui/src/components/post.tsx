@@ -11,8 +11,6 @@ import {
   Comment,
   MarkCommentAsReadForm,
   CommentResponse,
-  CommentSortType,
-  CommentViewType,
   CommunityUser,
   CommunityResponse,
   CommentNode as CommentNodeI,
@@ -28,7 +26,8 @@ import {
   GetSiteResponse,
   GetCommunityResponse,
   WebSocketJsonResponse,
-} from '../interfaces';
+} from 'lemmy-js-client';
+import { CommentSortType, CommentViewType } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import {
   wsJsonToRes,
@@ -439,8 +438,8 @@ export class Post extends Component<any, PostState> {
       if (this.state.post.url) {
         let form: SearchForm = {
           q: this.state.post.url,
-          type_: SearchType[SearchType.Url],
-          sort: SortType[SortType.TopAll],
+          type_: SearchType.Url,
+          sort: SortType.TopAll,
           page: 1,
           limit: 6,
         };

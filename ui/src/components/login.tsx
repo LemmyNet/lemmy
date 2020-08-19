@@ -12,7 +12,7 @@ import {
   GetCaptchaResponse,
   WebSocketJsonResponse,
   Site,
-} from '../interfaces';
+} from 'lemmy-js-client';
 import { WebSocketService, UserService } from '../services';
 import { wsJsonToRes, validEmail, toast } from '../utils';
 import { i18n } from '../i18next';

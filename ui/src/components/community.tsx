@@ -2,6 +2,7 @@ import { Component, linkEvent } from 'inferno';
 import { Helmet } from 'inferno-helmet';
 import { Subscription } from 'rxjs';
 import { retryWhen, delay, take } from 'rxjs/operators';
+import { DataType } from '../interfaces';
 import {
   UserOperation,
   Community as CommunityI,
@@ -14,7 +15,6 @@ import {
   GetPostsForm,
   GetCommunityForm,
   ListingType,
-  DataType,
   GetPostsResponse,
   PostResponse,
   AddModToCommunityResponse,
@@ -26,7 +26,7 @@ import {
   WebSocketJsonResponse,
   GetSiteResponse,
   Site,
-} from '../interfaces';
+} from 'lemmy-js-client';
 import { WebSocketService } from '../services';
 import { PostListings } from './post-listings';
 import { CommentNodes } from './comment-nodes';
@@ -78,7 +78,7 @@ interface CommunityProps {
 
 interface UrlParams {
   dataType?: string;
-  sort?: string;
+  sort?: SortType;
   page?: number;
 }
 
@@ -287,9 +287,7 @@ export class Community extends Component<any, State> {
           <SortSelect sort={this.state.sort} onChange={this.handleSortChange} />
         </span>
         <a
-          href={`/feeds/c/${this.state.communityName}.xml?sort=${
-            SortType[this.state.sort]
-          }`}
+          href={`/feeds/c/${this.state.communityName}.xml?sort=${this.state.sort}`}
           target="_blank"
           title="RSS"
           rel="noopener"
@@ -336,20 +334,18 @@ export class Community extends Component<any, State> {
   }
 
   handleSortChange(val: SortType) {
-    this.updateUrl({ sort: SortType[val].toLowerCase(), page: 1 });
+    this.updateUrl({ sort: val, page: 1 });
     window.scrollTo(0, 0);
   }
 
   handleDataTypeChange(val: DataType) {
-    this.updateUrl({ dataType: DataType[val].toLowerCase(), page: 1 });
+    this.updateUrl({ dataType: DataType[val], page: 1 });
     window.scrollTo(0, 0);
   }
 
   updateUrl(paramUpdates: UrlParams) {
-    const dataTypeStr =
-      paramUpdates.dataType || DataType[this.state.dataType].toLowerCase();
-    const sortStr =
-      paramUpdates.sort || SortType[this.state.sort].toLowerCase();
+    const dataTypeStr = paramUpdates.dataType || DataType[this.state.dataType];
+    const sortStr = paramUpdates.sort || this.state.sort;
     const page = paramUpdates.page || this.state.page;
     this.props.history.push(
       `/c/${this.state.community.name}/data_type/${dataTypeStr}/sort/${sortStr}/page/${page}`
@@ -361,8 +357,8 @@ export class Community extends Component<any, State> {
       let getPostsForm: GetPostsForm = {
         page: this.state.page,
         limit: fetchLimit,
-        sort: SortType[this.state.sort],
-        type_: ListingType[ListingType.Community],
+        sort: this.state.sort,
+        type_: ListingType.Community,
         community_id: this.state.community.id,
       };
       WebSocketService.Instance.getPosts(getPostsForm);
@@ -370,8 +366,8 @@ export class Community extends Component<any, State> {
       let getCommentsForm: GetCommentsForm = {
         page: this.state.page,
         limit: fetchLimit,
-        sort: SortType[this.state.sort],
-        type_: ListingType[ListingType.Community],
+        sort: this.state.sort,
+        type_: ListingType.Community,
         community_id: this.state.community.id,
       };
       WebSocketService.Instance.getComments(getCommentsForm);

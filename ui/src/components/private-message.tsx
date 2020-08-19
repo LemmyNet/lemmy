@@ -4,7 +4,7 @@ import {
   PrivateMessage as PrivateMessageI,
   DeletePrivateMessageForm,
   MarkPrivateMessageAsReadForm,
-} from '../interfaces';
+} from 'lemmy-js-client';
 import { WebSocketService, UserService } from '../services';
 import { mdToHtml, pictrsAvatarThumbnail, showAvatars, toast } from '../utils';
 import { MomentTime } from './moment-time';

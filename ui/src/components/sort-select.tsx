@@ -1,6 +1,6 @@
 import { Component, linkEvent } from 'inferno';
-import { SortType } from '../interfaces';
-import { sortingHelpUrl } from '../utils';
+import { SortType } from 'lemmy-js-client';
+import { sortingHelpUrl, randomStr } from '../utils';
 import { i18n } from '../i18next';
 
 interface SortSelectProps {
@@ -14,6 +14,7 @@ interface SortSelectState {
 }
 
 export class SortSelect extends Component<SortSelectProps, SortSelectState> {
+  private id = `sort-select-${randomStr()}`;
   private emptyState: SortSelectState = {
     sort: this.props.sort,
   };
@@ -33,6 +34,8 @@ export class SortSelect extends Component<SortSelectProps, SortSelectState> {
     return (
       <>
         <select
+          id={this.id}
+          name={this.id}
           value={this.state.sort}
           onChange={linkEvent(this, this.handleSortChange)}
           class="custom-select w-auto mr-2 mb-2"
@@ -68,6 +71,6 @@ export class SortSelect extends Component<SortSelectProps, SortSelectState> {
   }
 
   handleSortChange(i: SortSelect, event: any) {
-    i.props.onChange(Number(event.target.value));
+    i.props.onChange(event.target.value);
   }
 }

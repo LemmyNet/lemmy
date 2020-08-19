@@ -1,8 +1,65 @@
 import { wsUri } from '../env';
 import {
+  wsSendSearch,
+  wsSendGetPost,
+  wsSendBanUser,
+  wsSendGetSite,
+  wsSendUserJoin,
+  wsSendRegister,
+  wsSendLogin,
+  wsSendGetPosts,
+  wsSendLikePost,
+  wsSendEditPost,
+  wsSendLockPost,
+  wsSendSavePost,
+  wsSendAddAdmin,
+  wsSendEditSite,
+  wsSendGetModlog,
+  wsSendGetCaptcha,
+  wsSendCreatePost,
+  wsSendDeletePost,
+  wsSendRemovePost,
+  wsSendStickyPost,
+  wsSendGetReplies,
+  wsSendCreateSite,
+  wsSendEditComment,
+  wsSendLikeComment,
+  wsSendSaveComment,
+  wsSendGetComments,
+  wsSendGetCommunity,
+  wsSendTransferSite,
+  wsSendEditCommunity,
+  wsSendCreateComment,
+  wsSendDeleteComment,
+  wsSendRemoveComment,
+  wsSendGetSiteConfig,
+  wsSendMarkAllAsRead,
+  wsSendDeleteAccount,
+  wsSendPasswordReset,
+  wsSendPasswordChange,
+  wsSendListCategories,
+  wsSendGetUserDetails,
+  wsSendGetUserMentions,
+  wsSendSaveSiteConfig,
+  wsSendDeleteCommunity,
+  wsSendCreateCommunity,
+  wsSendRemoveCommunity,
+  wsSendFollowCommunity,
+  wsSendListCommunities,
+  wsSendBanFromCommunity,
+  wsSendSaveUserSettings,
+  wsSendMarkCommentAsRead,
+  wsSendGetFollowedCommunities,
+  wsSendAddModToCommunity,
+  wsSendTransferCommunity,
+  wsSendMarkUserMentionAsRead,
+  wsSendDeletePrivateMessage,
+  wsSendEditPrivateMessage,
+  wsSendGetPrivateMessages,
+  wsSendCreatePrivateMessage,
+  wsSendMarkPrivateMessageAsRead,
   LoginForm,
   RegisterForm,
-  UserOperation,
   CommunityForm,
   DeleteCommunityForm,
   RemoveCommunityForm,
@@ -53,9 +110,8 @@ import {
   GetSiteConfig,
   GetSiteForm,
   SiteConfigForm,
-  MessageType,
   WebSocketJsonResponse,
-} from '../interfaces';
+} from 'lemmy-js-client';
 import { UserService } from './';
 import { i18n } from '../i18next';
 import { toast } from '../utils';
@@ -100,301 +156,287 @@ export class WebSocketService {
 
   public userJoin() {
     let form: UserJoinForm = { auth: UserService.Instance.auth };
-    this.ws.send(this.wsSendWrapper(UserOperation.UserJoin, form));
+    this.ws.send(wsSendUserJoin(form));
   }
 
-  public login(loginForm: LoginForm) {
-    this.ws.send(this.wsSendWrapper(UserOperation.Login, loginForm));
+  public login(form: LoginForm) {
+    this.ws.send(wsSendLogin(form));
   }
 
-  public register(registerForm: RegisterForm) {
-    this.ws.send(this.wsSendWrapper(UserOperation.Register, registerForm));
+  public register(form: RegisterForm) {
+    this.ws.send(wsSendRegister(form));
   }
 
   public getCaptcha() {
-    this.ws.send(this.wsSendWrapper(UserOperation.GetCaptcha, {}));
+    this.ws.send(wsSendGetCaptcha());
   }
 
   public createCommunity(form: CommunityForm) {
-    this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.CreateCommunity, form));
+    this.setAuth(form); // TODO all these setauths at some point would be good to make required
+    this.ws.send(wsSendCreateCommunity(form));
   }
 
   public editCommunity(form: CommunityForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.EditCommunity, form));
+    this.ws.send(wsSendEditCommunity(form));
   }
 
   public deleteCommunity(form: DeleteCommunityForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.DeleteCommunity, form));
+    this.ws.send(wsSendDeleteCommunity(form));
   }
 
   public removeCommunity(form: RemoveCommunityForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.RemoveCommunity, form));
+    this.ws.send(wsSendRemoveCommunity(form));
   }
 
-  public followCommunity(followCommunityForm: FollowCommunityForm) {
-    this.setAuth(followCommunityForm);
-    this.ws.send(
-      this.wsSendWrapper(UserOperation.FollowCommunity, followCommunityForm)
-    );
+  public followCommunity(form: FollowCommunityForm) {
+    this.setAuth(form);
+    this.ws.send(wsSendFollowCommunity(form));
   }
 
   public listCommunities(form: ListCommunitiesForm) {
     this.setAuth(form, false);
-    this.ws.send(this.wsSendWrapper(UserOperation.ListCommunities, form));
+    this.ws.send(wsSendListCommunities(form));
   }
 
   public getFollowedCommunities() {
     let form: GetFollowedCommunitiesForm = { auth: UserService.Instance.auth };
-    this.ws.send(
-      this.wsSendWrapper(UserOperation.GetFollowedCommunities, form)
-    );
+    this.ws.send(wsSendGetFollowedCommunities(form));
   }
 
   public listCategories() {
-    this.ws.send(this.wsSendWrapper(UserOperation.ListCategories, {}));
+    this.ws.send(wsSendListCategories());
   }
 
   public createPost(form: PostForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.CreatePost, form));
+    this.ws.send(wsSendCreatePost(form));
   }
 
   public getPost(form: GetPostForm) {
     this.setAuth(form, false);
-    this.ws.send(this.wsSendWrapper(UserOperation.GetPost, form));
+    this.ws.send(wsSendGetPost(form));
   }
 
   public getCommunity(form: GetCommunityForm) {
     this.setAuth(form, false);
-    this.ws.send(this.wsSendWrapper(UserOperation.GetCommunity, form));
+    this.ws.send(wsSendGetCommunity(form));
   }
 
   public createComment(form: CommentForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.CreateComment, form));
+    this.ws.send(wsSendCreateComment(form));
   }
 
   public editComment(form: CommentForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.EditComment, form));
+    this.ws.send(wsSendEditComment(form));
   }
 
   public deleteComment(form: DeleteCommentForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.DeleteComment, form));
+    this.ws.send(wsSendDeleteComment(form));
   }
 
   public removeComment(form: RemoveCommentForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.RemoveComment, form));
+    this.ws.send(wsSendRemoveComment(form));
   }
 
   public markCommentAsRead(form: MarkCommentAsReadForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.MarkCommentAsRead, form));
+    this.ws.send(wsSendMarkCommentAsRead(form));
   }
 
   public likeComment(form: CommentLikeForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.CreateCommentLike, form));
+    this.ws.send(wsSendLikeComment(form));
   }
 
   public saveComment(form: SaveCommentForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.SaveComment, form));
+    this.ws.send(wsSendSaveComment(form));
   }
 
   public getPosts(form: GetPostsForm) {
     this.setAuth(form, false);
-    this.ws.send(this.wsSendWrapper(UserOperation.GetPosts, form));
+    this.ws.send(wsSendGetPosts(form));
   }
 
   public getComments(form: GetCommentsForm) {
     this.setAuth(form, false);
-    this.ws.send(this.wsSendWrapper(UserOperation.GetComments, form));
+    this.ws.send(wsSendGetComments(form));
   }
 
   public likePost(form: CreatePostLikeForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.CreatePostLike, form));
+    this.ws.send(wsSendLikePost(form));
   }
 
   public editPost(form: PostForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.EditPost, form));
+    this.ws.send(wsSendEditPost(form));
   }
 
   public deletePost(form: DeletePostForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.DeletePost, form));
+    this.ws.send(wsSendDeletePost(form));
   }
 
   public removePost(form: RemovePostForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.RemovePost, form));
+    this.ws.send(wsSendRemovePost(form));
   }
 
   public lockPost(form: LockPostForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.LockPost, form));
+    this.ws.send(wsSendLockPost(form));
   }
 
   public stickyPost(form: StickyPostForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.StickyPost, form));
+    this.ws.send(wsSendStickyPost(form));
   }
 
   public savePost(form: SavePostForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.SavePost, form));
+    this.ws.send(wsSendSavePost(form));
   }
 
   public banFromCommunity(form: BanFromCommunityForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.BanFromCommunity, form));
+    this.ws.send(wsSendBanFromCommunity(form));
   }
 
   public addModToCommunity(form: AddModToCommunityForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.AddModToCommunity, form));
+    this.ws.send(wsSendAddModToCommunity(form));
   }
 
   public transferCommunity(form: TransferCommunityForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.TransferCommunity, form));
+    this.ws.send(wsSendTransferCommunity(form));
   }
 
   public transferSite(form: TransferSiteForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.TransferSite, form));
+    this.ws.send(wsSendTransferSite(form));
   }
 
   public banUser(form: BanUserForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.BanUser, form));
+    this.ws.send(wsSendBanUser(form));
   }
 
   public addAdmin(form: AddAdminForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.AddAdmin, form));
+    this.ws.send(wsSendAddAdmin(form));
   }
 
   public getUserDetails(form: GetUserDetailsForm) {
     this.setAuth(form, false);
-    this.ws.send(this.wsSendWrapper(UserOperation.GetUserDetails, form));
+    this.ws.send(wsSendGetUserDetails(form));
   }
 
   public getReplies(form: GetRepliesForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.GetReplies, form));
+    this.ws.send(wsSendGetReplies(form));
   }
 
   public getUserMentions(form: GetUserMentionsForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.GetUserMentions, form));
+    this.ws.send(wsSendGetUserMentions(form));
   }
 
   public markUserMentionAsRead(form: MarkUserMentionAsReadForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.MarkUserMentionAsRead, form));
+    this.ws.send(wsSendMarkUserMentionAsRead(form));
   }
 
   public getModlog(form: GetModlogForm) {
-    this.ws.send(this.wsSendWrapper(UserOperation.GetModlog, form));
+    this.ws.send(wsSendGetModlog(form));
   }
 
-  public createSite(siteForm: SiteForm) {
-    this.setAuth(siteForm);
-    this.ws.send(this.wsSendWrapper(UserOperation.CreateSite, siteForm));
+  public createSite(form: SiteForm) {
+    this.setAuth(form);
+    this.ws.send(wsSendCreateSite(form));
   }
 
-  public editSite(siteForm: SiteForm) {
-    this.setAuth(siteForm);
-    this.ws.send(this.wsSendWrapper(UserOperation.EditSite, siteForm));
+  public editSite(form: SiteForm) {
+    this.setAuth(form);
+    this.ws.send(wsSendEditSite(form));
   }
 
   public getSite(form: GetSiteForm = {}) {
     this.setAuth(form, false);
-    this.ws.send(this.wsSendWrapper(UserOperation.GetSite, form));
+    this.ws.send(wsSendGetSite(form));
   }
 
   public getSiteConfig() {
-    let siteConfig: GetSiteConfig = {};
-    this.setAuth(siteConfig);
-    this.ws.send(this.wsSendWrapper(UserOperation.GetSiteConfig, siteConfig));
+    let form: GetSiteConfig = {};
+    this.setAuth(form);
+    this.ws.send(wsSendGetSiteConfig(form));
   }
 
   public search(form: SearchForm) {
     this.setAuth(form, false);
-    this.ws.send(this.wsSendWrapper(UserOperation.Search, form));
+    this.ws.send(wsSendSearch(form));
   }
 
   public markAllAsRead() {
     let form = {};
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.MarkAllAsRead, form));
+    this.ws.send(wsSendMarkAllAsRead(form));
   }
 
-  public saveUserSettings(userSettingsForm: UserSettingsForm) {
-    this.setAuth(userSettingsForm);
-    this.ws.send(
-      this.wsSendWrapper(UserOperation.SaveUserSettings, userSettingsForm)
-    );
+  public saveUserSettings(form: UserSettingsForm) {
+    this.setAuth(form);
+    this.ws.send(wsSendSaveUserSettings(form));
   }
 
   public deleteAccount(form: DeleteAccountForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.DeleteAccount, form));
+    this.ws.send(wsSendDeleteAccount(form));
   }
 
   public passwordReset(form: PasswordResetForm) {
-    this.ws.send(this.wsSendWrapper(UserOperation.PasswordReset, form));
+    this.ws.send(wsSendPasswordReset(form));
   }
 
   public passwordChange(form: PasswordChangeForm) {
-    this.ws.send(this.wsSendWrapper(UserOperation.PasswordChange, form));
+    this.ws.send(wsSendPasswordChange(form));
   }
 
   public createPrivateMessage(form: PrivateMessageForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.CreatePrivateMessage, form));
+    this.ws.send(wsSendCreatePrivateMessage(form));
   }
 
   public editPrivateMessage(form: EditPrivateMessageForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.EditPrivateMessage, form));
+    this.ws.send(wsSendEditPrivateMessage(form));
   }
 
   public deletePrivateMessage(form: DeletePrivateMessageForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.DeletePrivateMessage, form));
+    this.ws.send(wsSendDeletePrivateMessage(form));
   }
 
   public markPrivateMessageAsRead(form: MarkPrivateMessageAsReadForm) {
     this.setAuth(form);
-    this.ws.send(
-      this.wsSendWrapper(UserOperation.MarkPrivateMessageAsRead, form)
-    );
+    this.ws.send(wsSendMarkPrivateMessageAsRead(form));
   }
 
   public getPrivateMessages(form: GetPrivateMessagesForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.GetPrivateMessages, form));
+    this.ws.send(wsSendGetPrivateMessages(form));
   }
 
   public saveSiteConfig(form: SiteConfigForm) {
     this.setAuth(form);
-    this.ws.send(this.wsSendWrapper(UserOperation.SaveSiteConfig, form));
-  }
-
-  private wsSendWrapper(op: UserOperation, data: MessageType) {
-    let send = { op: UserOperation[op], data: data };
-    console.log(send);
-    return JSON.stringify(send);
+    this.ws.send(wsSendSaveSiteConfig(form));
   }
 
   private setAuth(obj: any, throwErr: boolean = true) {
