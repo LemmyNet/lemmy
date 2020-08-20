@@ -57,6 +57,11 @@ test('Create a comment', async () => {
   expect(betaComment.score).toBe(1);
 });
 
+test('Create a comment in a non-existent post', async () => {
+  let commentRes = await createComment(alpha, -1);
+  expect(commentRes).toStrictEqual({ error: 'couldnt_find_post' });
+});
+
 test('Update a comment', async () => {
   let commentRes = await createComment(alpha, postRes.post.id);
   let updateCommentRes = await updateComment(alpha, commentRes.comment.id);

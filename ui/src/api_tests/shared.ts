@@ -59,50 +59,96 @@ export let gamma: API = {
   url: 'http://localhost:8560',
 };
 
+export let delta: API = {
+  url: 'http://localhost:8570',
+};
+
+export let epsilon: API = {
+  url: 'http://localhost:8580',
+};
+
 export async function setupLogins() {
-  let form: LoginForm = {
+  let formAlpha: LoginForm = {
     username_or_email: 'lemmy_alpha',
     password: 'lemmy',
   };
 
-  let resA: Promise<LoginResponse> = fetch(`${apiUrl(alpha)}/user/login`, {
+  let resAlpha: Promise<LoginResponse> = fetch(`${apiUrl(alpha)}/user/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: wrapper(form),
+    body: wrapper(formAlpha),
   }).then(d => d.json());
 
-  let formB = {
+  let formBeta = {
     username_or_email: 'lemmy_beta',
     password: 'lemmy',
   };
 
-  let resB: Promise<LoginResponse> = fetch(`${apiUrl(beta)}/user/login`, {
+  let resBeta: Promise<LoginResponse> = fetch(`${apiUrl(beta)}/user/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: wrapper(formB),
+    body: wrapper(formBeta),
   }).then(d => d.json());
 
-  let formC = {
+  let formGamma = {
     username_or_email: 'lemmy_gamma',
     password: 'lemmy',
   };
 
-  let resG: Promise<LoginResponse> = fetch(`${apiUrl(gamma)}/user/login`, {
+  let resGamma: Promise<LoginResponse> = fetch(`${apiUrl(gamma)}/user/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: wrapper(formC),
+    body: wrapper(formGamma),
   }).then(d => d.json());
 
-  let res = await Promise.all([resA, resB, resG]);
+  let formDelta = {
+    username_or_email: 'lemmy_delta',
+    password: 'lemmy',
+  };
+
+  let resDelta: Promise<LoginResponse> = fetch(`${apiUrl(delta)}/user/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: wrapper(formDelta),
+  }).then(d => d.json());
+
+  let formEpsilon = {
+    username_or_email: 'lemmy_epsilon',
+    password: 'lemmy',
+  };
+
+  let resEpsilon: Promise<LoginResponse> = fetch(
+    `${apiUrl(epsilon)}/user/login`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: wrapper(formEpsilon),
+    }
+  ).then(d => d.json());
+
+  let res = await Promise.all([
+    resAlpha,
+    resBeta,
+    resGamma,
+    resDelta,
+    resEpsilon,
+  ]);
+
   alpha.auth = res[0].jwt;
   beta.auth = res[1].jwt;
   gamma.auth = res[2].jwt;
+  delta.auth = res[3].jwt;
+  epsilon.auth = res[4].jwt;
 }
 
 export async function createPost(

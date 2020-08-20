@@ -2,6 +2,8 @@ import {
   alpha,
   beta,
   gamma,
+  delta,
+  epsilon,
   setupLogins,
   createPost,
   updatePost,
@@ -22,11 +24,15 @@ beforeAll(async () => {
   await setupLogins();
   await followBeta(alpha);
   await followBeta(gamma);
+  await followBeta(delta);
+  await followBeta(epsilon);
 });
 
 afterAll(async () => {
   await unfollowRemotes(alpha);
   await unfollowRemotes(gamma);
+  await unfollowRemotes(delta);
+  await unfollowRemotes(epsilon);
 });
 
 test('Create a post', async () => {
@@ -45,6 +51,19 @@ test('Create a post', async () => {
   expect(betaPost.community_local).toBe(true);
   expect(betaPost.creator_local).toBe(false);
   expect(betaPost.score).toBe(1);
+
+  // Delta only follows beta, so it should not see an alpha ap_id
+  let searchDelta = await searchPost(delta, postRes.post);
+  expect(searchDelta.posts[0]).toBeUndefined();
+
+  // Epsilon has alpha blocked, it should not see the alpha post
+  let searchEpsilon = await searchPost(epsilon, postRes.post);
+  expect(searchEpsilon.posts[0]).toBeUndefined();
+});
+
+test('Create a post in a non-existent community', async () => {
+  let postRes = await createPost(alpha, -2);
+  expect(postRes).toStrictEqual({ error: 'couldnt_create_post' });
 });
 
 test('Unlike a post', async () => {
@@ -52,6 +71,10 @@ test('Unlike a post', async () => {
   let postRes = await createPost(alpha, search.communities[0].id);
   let unlike = await likePost(alpha, 0, postRes.post);
   expect(unlike.post.score).toBe(0);
+
+  // Try to unlike it again, make sure it stays at 0
+  let unlike2 = await likePost(alpha, 0, postRes.post);
+  expect(unlike2.post.score).toBe(0);
 
   // Make sure that post is unliked on beta
   let searchBeta = await searchPost(beta, postRes.post);
@@ -67,10 +90,22 @@ test('Update a post', async () => {
   let search = await searchForBetaCommunity(alpha);
   let postRes = await createPost(alpha, search.communities[0].id);
 
+  let updatedName = 'A jest test federated post, updated';
   let updatedPost = await updatePost(alpha, postRes.post);
-  expect(updatedPost.post.name).toBe('A jest test federated post, updated');
+  expect(updatedPost.post.name).toBe(updatedName);
   expect(updatedPost.post.community_local).toBe(false);
   expect(updatedPost.post.creator_local).toBe(true);
+
+  // Make sure that post is updated on beta
+  let searchBeta = await searchPost(beta, postRes.post);
+  let betaPost = searchBeta.posts[0];
+  expect(betaPost.community_local).toBe(true);
+  expect(betaPost.creator_local).toBe(false);
+  expect(betaPost.name).toBe(updatedName);
+
+  // Make sure lemmy beta cannot update the post
+  let updatedPostBeta = await updatePost(beta, betaPost);
+  expect(updatedPostBeta).toStrictEqual({ error: 'no_post_edit_allowed' });
 });
 
 test('Sticky a post', async () => {
@@ -97,6 +132,15 @@ test('Sticky a post', async () => {
   expect(betaPost2.community_local).toBe(true);
   expect(betaPost2.creator_local).toBe(false);
   expect(betaPost2.stickied).toBe(false);
+
+  // Make sure that gamma cannot sticky the post on beta
+  let searchGamma = await searchPost(gamma, postRes.post);
+  let gammaPost = searchGamma.posts[0];
+  let gammaTrySticky = await stickyPost(gamma, true, gammaPost);
+  let searchBeta3 = await searchPost(beta, postRes.post);
+  let betaPost3 = searchBeta3.posts[0];
+  expect(gammaTrySticky.post.stickied).toBe(true);
+  expect(betaPost3.stickied).toBe(false);
 });
 
 test('Lock a post', async () => {
@@ -152,6 +196,10 @@ test('Delete a post', async () => {
   // Make sure lemmy beta sees post is undeleted
   let betaPost2 = await getPost(beta, createFakeBetaPostToGetId);
   expect(betaPost2.post.deleted).toBe(false);
+
+  // Make sure lemmy beta cannot delete the post
+  let deletedPostBeta = await deletePost(beta, true, betaPost2.post);
+  expect(deletedPostBeta).toStrictEqual({ error: 'no_post_edit_allowed' });
 });
 
 test('Remove a post from admin and community on different instance', async () => {
