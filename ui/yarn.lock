@@ -4938,10 +4938,10 @@ lego-api@^1.0.7:
   dependencies:
     chain-able "^3.0.0"
 
-lemmy-js-client@^1.0.2:
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/lemmy-js-client/-/lemmy-js-client-1.0.2.tgz#6345a40ebc9218d4ad9a32cdbafdd29140e3768a"
-  integrity sha512-m4ZayBvyOF/v7M+MzPNROtrc54OHAL9+7qtxkF0lbsiGwx2vDcPDCd1Nw/tg+i3qheCvldYAdIGP4tD/zwiMgg==
+lemmy-js-client@^1.0.8:
+  version "1.0.8"
+  resolved "https://registry.yarnpkg.com/lemmy-js-client/-/lemmy-js-client-1.0.8.tgz#98e34c8e3cd07427f883f60fad376dc4d6f46e7f"
+  integrity sha512-YZxD3+8RGz7cRKdI8EIe5iQqQIMm5WzdNz6zZ7/CdkMtXUv6YuMOEv8HLTvBoGuaWIJwlMJ+23NIarxlT26IEw==
 
 leven@^3.1.0:
   version "3.1.0"

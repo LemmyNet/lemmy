@@ -1,63 +1,6 @@
 import { wsUri } from '../env';
 import {
-  wsSendSearch,
-  wsSendGetPost,
-  wsSendBanUser,
-  wsSendGetSite,
-  wsSendUserJoin,
-  wsSendRegister,
-  wsSendLogin,
-  wsSendGetPosts,
-  wsSendLikePost,
-  wsSendEditPost,
-  wsSendLockPost,
-  wsSendSavePost,
-  wsSendAddAdmin,
-  wsSendEditSite,
-  wsSendGetModlog,
-  wsSendGetCaptcha,
-  wsSendCreatePost,
-  wsSendDeletePost,
-  wsSendRemovePost,
-  wsSendStickyPost,
-  wsSendGetReplies,
-  wsSendCreateSite,
-  wsSendEditComment,
-  wsSendLikeComment,
-  wsSendSaveComment,
-  wsSendGetComments,
-  wsSendGetCommunity,
-  wsSendTransferSite,
-  wsSendEditCommunity,
-  wsSendCreateComment,
-  wsSendDeleteComment,
-  wsSendRemoveComment,
-  wsSendGetSiteConfig,
-  wsSendMarkAllAsRead,
-  wsSendDeleteAccount,
-  wsSendPasswordReset,
-  wsSendPasswordChange,
-  wsSendListCategories,
-  wsSendGetUserDetails,
-  wsSendGetUserMentions,
-  wsSendSaveSiteConfig,
-  wsSendDeleteCommunity,
-  wsSendCreateCommunity,
-  wsSendRemoveCommunity,
-  wsSendFollowCommunity,
-  wsSendListCommunities,
-  wsSendBanFromCommunity,
-  wsSendSaveUserSettings,
-  wsSendMarkCommentAsRead,
-  wsSendGetFollowedCommunities,
-  wsSendAddModToCommunity,
-  wsSendTransferCommunity,
-  wsSendMarkUserMentionAsRead,
-  wsSendDeletePrivateMessage,
-  wsSendEditPrivateMessage,
-  wsSendGetPrivateMessages,
-  wsSendCreatePrivateMessage,
-  wsSendMarkPrivateMessageAsRead,
+  LemmyWebsocket,
   LoginForm,
   RegisterForm,
   CommunityForm,
@@ -110,6 +53,7 @@ import {
   GetSiteConfig,
   GetSiteForm,
   SiteConfigForm,
+  MarkAllAsReadForm,
   WebSocketJsonResponse,
 } from 'lemmy-js-client';
 import { UserService } from './';
@@ -126,6 +70,7 @@ export class WebSocketService {
 
   public admins: Array<UserView>;
   public banned: Array<UserView>;
+  private client = new LemmyWebsocket();
 
   private constructor() {
     this.ws = new ReconnectingWebSocket(wsUri);
@@ -156,287 +101,287 @@ export class WebSocketService {
 
   public userJoin() {
     let form: UserJoinForm = { auth: UserService.Instance.auth };
-    this.ws.send(wsSendUserJoin(form));
+    this.ws.send(this.client.userJoin(form));
   }
 
   public login(form: LoginForm) {
-    this.ws.send(wsSendLogin(form));
+    this.ws.send(this.client.login(form));
   }
 
   public register(form: RegisterForm) {
-    this.ws.send(wsSendRegister(form));
+    this.ws.send(this.client.register(form));
   }
 
   public getCaptcha() {
-    this.ws.send(wsSendGetCaptcha());
+    this.ws.send(this.client.getCaptcha());
   }
 
   public createCommunity(form: CommunityForm) {
     this.setAuth(form); // TODO all these setauths at some point would be good to make required
-    this.ws.send(wsSendCreateCommunity(form));
+    this.ws.send(this.client.createCommunity(form));
   }
 
   public editCommunity(form: CommunityForm) {
     this.setAuth(form);
-    this.ws.send(wsSendEditCommunity(form));
+    this.ws.send(this.client.editCommunity(form));
   }
 
   public deleteCommunity(form: DeleteCommunityForm) {
     this.setAuth(form);
-    this.ws.send(wsSendDeleteCommunity(form));
+    this.ws.send(this.client.deleteCommunity(form));
   }
 
   public removeCommunity(form: RemoveCommunityForm) {
     this.setAuth(form);
-    this.ws.send(wsSendRemoveCommunity(form));
+    this.ws.send(this.client.removeCommunity(form));
   }
 
   public followCommunity(form: FollowCommunityForm) {
     this.setAuth(form);
-    this.ws.send(wsSendFollowCommunity(form));
+    this.ws.send(this.client.followCommunity(form));
   }
 
   public listCommunities(form: ListCommunitiesForm) {
     this.setAuth(form, false);
-    this.ws.send(wsSendListCommunities(form));
+    this.ws.send(this.client.listCommunities(form));
   }
 
   public getFollowedCommunities() {
     let form: GetFollowedCommunitiesForm = { auth: UserService.Instance.auth };
-    this.ws.send(wsSendGetFollowedCommunities(form));
+    this.ws.send(this.client.getFollowedCommunities(form));
   }
 
   public listCategories() {
-    this.ws.send(wsSendListCategories());
+    this.ws.send(this.client.listCategories());
   }
 
   public createPost(form: PostForm) {
     this.setAuth(form);
-    this.ws.send(wsSendCreatePost(form));
+    this.ws.send(this.client.createPost(form));
   }
 
   public getPost(form: GetPostForm) {
     this.setAuth(form, false);
-    this.ws.send(wsSendGetPost(form));
+    this.ws.send(this.client.getPost(form));
   }
 
   public getCommunity(form: GetCommunityForm) {
     this.setAuth(form, false);
-    this.ws.send(wsSendGetCommunity(form));
+    this.ws.send(this.client.getCommunity(form));
   }
 
   public createComment(form: CommentForm) {
     this.setAuth(form);
-    this.ws.send(wsSendCreateComment(form));
+    this.ws.send(this.client.createComment(form));
   }
 
   public editComment(form: CommentForm) {
     this.setAuth(form);
-    this.ws.send(wsSendEditComment(form));
+    this.ws.send(this.client.editComment(form));
   }
 
   public deleteComment(form: DeleteCommentForm) {
     this.setAuth(form);
-    this.ws.send(wsSendDeleteComment(form));
+    this.ws.send(this.client.deleteComment(form));
   }
 
   public removeComment(form: RemoveCommentForm) {
     this.setAuth(form);
-    this.ws.send(wsSendRemoveComment(form));
+    this.ws.send(this.client.removeComment(form));
   }
 
   public markCommentAsRead(form: MarkCommentAsReadForm) {
     this.setAuth(form);
-    this.ws.send(wsSendMarkCommentAsRead(form));
+    this.ws.send(this.client.markCommentAsRead(form));
   }
 
   public likeComment(form: CommentLikeForm) {
     this.setAuth(form);
-    this.ws.send(wsSendLikeComment(form));
+    this.ws.send(this.client.likeComment(form));
   }
 
   public saveComment(form: SaveCommentForm) {
     this.setAuth(form);
-    this.ws.send(wsSendSaveComment(form));
+    this.ws.send(this.client.saveComment(form));
   }
 
   public getPosts(form: GetPostsForm) {
     this.setAuth(form, false);
-    this.ws.send(wsSendGetPosts(form));
+    this.ws.send(this.client.getPosts(form));
   }
 
   public getComments(form: GetCommentsForm) {
     this.setAuth(form, false);
-    this.ws.send(wsSendGetComments(form));
+    this.ws.send(this.client.getComments(form));
   }
 
   public likePost(form: CreatePostLikeForm) {
     this.setAuth(form);
-    this.ws.send(wsSendLikePost(form));
+    this.ws.send(this.client.likePost(form));
   }
 
   public editPost(form: PostForm) {
     this.setAuth(form);
-    this.ws.send(wsSendEditPost(form));
+    this.ws.send(this.client.editPost(form));
   }
 
   public deletePost(form: DeletePostForm) {
     this.setAuth(form);
-    this.ws.send(wsSendDeletePost(form));
+    this.ws.send(this.client.deletePost(form));
   }
 
   public removePost(form: RemovePostForm) {
     this.setAuth(form);
-    this.ws.send(wsSendRemovePost(form));
+    this.ws.send(this.client.removePost(form));
   }
 
   public lockPost(form: LockPostForm) {
     this.setAuth(form);
-    this.ws.send(wsSendLockPost(form));
+    this.ws.send(this.client.lockPost(form));
   }
 
   public stickyPost(form: StickyPostForm) {
     this.setAuth(form);
-    this.ws.send(wsSendStickyPost(form));
+    this.ws.send(this.client.stickyPost(form));
   }
 
   public savePost(form: SavePostForm) {
     this.setAuth(form);
-    this.ws.send(wsSendSavePost(form));
+    this.ws.send(this.client.savePost(form));
   }
 
   public banFromCommunity(form: BanFromCommunityForm) {
     this.setAuth(form);
-    this.ws.send(wsSendBanFromCommunity(form));
+    this.ws.send(this.client.banFromCommunity(form));
   }
 
   public addModToCommunity(form: AddModToCommunityForm) {
     this.setAuth(form);
-    this.ws.send(wsSendAddModToCommunity(form));
+    this.ws.send(this.client.addModToCommunity(form));
   }
 
   public transferCommunity(form: TransferCommunityForm) {
     this.setAuth(form);
-    this.ws.send(wsSendTransferCommunity(form));
+    this.ws.send(this.client.transferCommunity(form));
   }
 
   public transferSite(form: TransferSiteForm) {
     this.setAuth(form);
-    this.ws.send(wsSendTransferSite(form));
+    this.ws.send(this.client.transferSite(form));
   }
 
   public banUser(form: BanUserForm) {
     this.setAuth(form);
-    this.ws.send(wsSendBanUser(form));
+    this.ws.send(this.client.banUser(form));
   }
 
   public addAdmin(form: AddAdminForm) {
     this.setAuth(form);
-    this.ws.send(wsSendAddAdmin(form));
+    this.ws.send(this.client.addAdmin(form));
   }
 
   public getUserDetails(form: GetUserDetailsForm) {
     this.setAuth(form, false);
-    this.ws.send(wsSendGetUserDetails(form));
+    this.ws.send(this.client.getUserDetails(form));
   }
 
   public getReplies(form: GetRepliesForm) {
     this.setAuth(form);
-    this.ws.send(wsSendGetReplies(form));
+    this.ws.send(this.client.getReplies(form));
   }
 
   public getUserMentions(form: GetUserMentionsForm) {
     this.setAuth(form);
-    this.ws.send(wsSendGetUserMentions(form));
+    this.ws.send(this.client.getUserMentions(form));
   }
 
   public markUserMentionAsRead(form: MarkUserMentionAsReadForm) {
     this.setAuth(form);
-    this.ws.send(wsSendMarkUserMentionAsRead(form));
+    this.ws.send(this.client.markUserMentionAsRead(form));
   }
 
   public getModlog(form: GetModlogForm) {
-    this.ws.send(wsSendGetModlog(form));
+    this.ws.send(this.client.getModlog(form));
   }
 
   public createSite(form: SiteForm) {
     this.setAuth(form);
-    this.ws.send(wsSendCreateSite(form));
+    this.ws.send(this.client.createSite(form));
   }
 
   public editSite(form: SiteForm) {
     this.setAuth(form);
-    this.ws.send(wsSendEditSite(form));
+    this.ws.send(this.client.editSite(form));
   }
 
   public getSite(form: GetSiteForm = {}) {
     this.setAuth(form, false);
-    this.ws.send(wsSendGetSite(form));
+    this.ws.send(this.client.getSite(form));
   }
 
   public getSiteConfig() {
     let form: GetSiteConfig = {};
     this.setAuth(form);
-    this.ws.send(wsSendGetSiteConfig(form));
+    this.ws.send(this.client.getSiteConfig(form));
   }
 
   public search(form: SearchForm) {
     this.setAuth(form, false);
-    this.ws.send(wsSendSearch(form));
+    this.ws.send(this.client.search(form));
   }
 
   public markAllAsRead() {
-    let form = {};
+    let form: MarkAllAsReadForm;
     this.setAuth(form);
-    this.ws.send(wsSendMarkAllAsRead(form));
+    this.ws.send(this.client.markAllAsRead(form));
   }
 
   public saveUserSettings(form: UserSettingsForm) {
     this.setAuth(form);
-    this.ws.send(wsSendSaveUserSettings(form));
+    this.ws.send(this.client.saveUserSettings(form));
   }
 
   public deleteAccount(form: DeleteAccountForm) {
     this.setAuth(form);
-    this.ws.send(wsSendDeleteAccount(form));
+    this.ws.send(this.client.deleteAccount(form));
   }
 
   public passwordReset(form: PasswordResetForm) {
-    this.ws.send(wsSendPasswordReset(form));
+    this.ws.send(this.client.passwordReset(form));
   }
 
   public passwordChange(form: PasswordChangeForm) {
-    this.ws.send(wsSendPasswordChange(form));
+    this.ws.send(this.client.passwordChange(form));
   }
 
   public createPrivateMessage(form: PrivateMessageForm) {
     this.setAuth(form);
-    this.ws.send(wsSendCreatePrivateMessage(form));
+    this.ws.send(this.client.createPrivateMessage(form));
   }
 
   public editPrivateMessage(form: EditPrivateMessageForm) {
     this.setAuth(form);
-    this.ws.send(wsSendEditPrivateMessage(form));
+    this.ws.send(this.client.editPrivateMessage(form));
   }
 
   public deletePrivateMessage(form: DeletePrivateMessageForm) {
     this.setAuth(form);
-    this.ws.send(wsSendDeletePrivateMessage(form));
+    this.ws.send(this.client.deletePrivateMessage(form));
   }
 
   public markPrivateMessageAsRead(form: MarkPrivateMessageAsReadForm) {
     this.setAuth(form);
-    this.ws.send(wsSendMarkPrivateMessageAsRead(form));
+    this.ws.send(this.client.markPrivateMessageAsRead(form));
   }
 
   public getPrivateMessages(form: GetPrivateMessagesForm) {
     this.setAuth(form);
-    this.ws.send(wsSendGetPrivateMessages(form));
+    this.ws.send(this.client.getPrivateMessages(form));
   }
 
   public saveSiteConfig(form: SiteConfigForm) {
     this.setAuth(form);
-    this.ws.send(wsSendSaveSiteConfig(form));
+    this.ws.send(this.client.saveSiteConfig(form));
   }
 
   private setAuth(obj: any, throwErr: boolean = true) {
