@@ -1,6 +1,7 @@
 use crate::{
   api::{
     check_community_ban,
+    get_post,
     get_user_from_jwt,
     get_user_from_jwt_opt,
     is_mod_or_admin,
@@ -151,7 +152,7 @@ impl Perform for CreateComment {
 
     // Check for a community ban
     let post_id = data.post_id;
-    let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let post = get_post(post_id, context.pool()).await?;
 
     check_community_ban(user.id, post.community_id, context.pool()).await?;
 
@@ -283,7 +284,7 @@ impl Perform for EditComment {
 
     // Do the mentions / recipients
     let post_id = orig_comment.post_id;
-    let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let post = get_post(post_id, context.pool()).await?;
 
     let updated_comment_content = updated_comment.content.to_owned();
     let mentions = scrape_text_for_mentions(&updated_comment_content);
@@ -379,7 +380,7 @@ impl Perform for DeleteComment {
 
     // Build the recipients
     let post_id = comment_view.post_id;
-    let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let post = get_post(post_id, context.pool()).await?;
     let mentions = vec![];
     let recipient_ids = send_local_notifs(
       mentions,
@@ -476,7 +477,7 @@ impl Perform for RemoveComment {
 
     // Build the recipients
     let post_id = comment_view.post_id;
-    let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let post = get_post(post_id, context.pool()).await?;
     let mentions = vec![];
     let recipient_ids = send_local_notifs(
       mentions,
@@ -655,7 +656,7 @@ impl Perform for CreateCommentLike {
     .await??;
 
     let post_id = orig_comment.post_id;
-    let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    let post = get_post(post_id, context.pool()).await?;
     check_community_ban(user.id, post.community_id, context.pool()).await?;
 
     let comment_id = data.comment_id;

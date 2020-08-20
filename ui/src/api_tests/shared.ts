@@ -61,32 +61,58 @@ export let gamma: API = {
   client: new LemmyHttp('http://localhost:8560/api/v1'),
 };
 
+export let delta: API = {
+  client: new LemmyHttp('http://localhost:8570/api/v1'),
+};
+
+export let epsilon: API = {
+  client: new LemmyHttp('http://localhost:8580/api/v1'),
+};
+
 export async function setupLogins() {
-  let form: LoginForm = {
+  let formAlpha: LoginForm = {
     username_or_email: 'lemmy_alpha',
     password: 'lemmy',
   };
+  let resAlpha = alpha.client.login(formAlpha);
 
-  let resA = alpha.client.login(form);
-
-  let formB = {
+  let formBeta = {
     username_or_email: 'lemmy_beta',
     password: 'lemmy',
   };
+  let resBeta = beta.client.login(formBeta);
 
-  let resB = beta.client.login(formB);
-
-  let formG = {
+  let formGamma = {
     username_or_email: 'lemmy_gamma',
     password: 'lemmy',
   };
+  let resGamma = gamma.client.login(formGamma);
 
-  let resG = gamma.client.login(formG);
+  let formDelta = {
+    username_or_email: 'lemmy_delta',
+    password: 'lemmy',
+  };
+  let resDelta = delta.client.login(formDelta);
 
-  let res = await Promise.all([resA, resB, resG]);
+  let formEpsilon = {
+    username_or_email: 'lemmy_epsilon',
+    password: 'lemmy',
+  };
+  let resEpsilon = epsilon.client.login(formEpsilon);
+
+  let res = await Promise.all([
+    resAlpha,
+    resBeta,
+    resGamma,
+    resDelta,
+    resEpsilon,
+  ]);
+
   alpha.auth = res[0].jwt;
   beta.auth = res[1].jwt;
   gamma.auth = res[2].jwt;
+  delta.auth = res[3].jwt;
+  epsilon.auth = res[4].jwt;
 }
 
 export async function createPost(
