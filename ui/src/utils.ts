@@ -34,9 +34,7 @@ import {
   PrivateMessage,
   User,
   SortType,
-  CommentSortType,
   ListingType,
-  DataType,
   SearchType,
   WebSocketResponse,
   WebSocketJsonResponse,
@@ -44,7 +42,9 @@ import {
   SearchResponse,
   CommentResponse,
   PostResponse,
-} from './interfaces';
+} from 'lemmy-js-client';
+
+import { CommentSortType, DataType } from './interfaces';
 import { UserService, WebSocketService } from './services';
 
 import Tribute from 'tributejs/src/Tribute.js';
@@ -273,27 +273,11 @@ export function capitalizeFirstLetter(str: string): string {
 }
 
 export function routeSortTypeToEnum(sort: string): SortType {
-  if (sort == 'new') {
-    return SortType.New;
-  } else if (sort == 'hot') {
-    return SortType.Hot;
-  } else if (sort == 'active') {
-    return SortType.Active;
-  } else if (sort == 'topday') {
-    return SortType.TopDay;
-  } else if (sort == 'topweek') {
-    return SortType.TopWeek;
-  } else if (sort == 'topmonth') {
-    return SortType.TopMonth;
-  } else if (sort == 'topyear') {
-    return SortType.TopYear;
-  } else if (sort == 'topall') {
-    return SortType.TopAll;
-  }
+  return SortType[sort];
 }
 
 export function routeListingTypeToEnum(type: string): ListingType {
-  return ListingType[capitalizeFirstLetter(type)];
+  return ListingType[type];
 }
 
 export function routeDataTypeToEnum(type: string): DataType {
@@ -730,8 +714,8 @@ function userSearch(text: string, cb: any) {
   if (text) {
     let form: SearchForm = {
       q: text,
-      type_: SearchType[SearchType.Users],
-      sort: SortType[SortType.TopAll],
+      type_: SearchType.Users,
+      sort: SortType.TopAll,
       page: 1,
       limit: mentionDropdownFetchLimit,
     };
@@ -767,8 +751,8 @@ function communitySearch(text: string, cb: any) {
   if (text) {
     let form: SearchForm = {
       q: text,
-      type_: SearchType[SearchType.Communities],
-      sort: SortType[SortType.TopAll],
+      type_: SearchType.Communities,
+      sort: SortType.TopAll,
       page: 1,
       limit: mentionDropdownFetchLimit,
     };
@@ -804,7 +788,7 @@ export function getListingTypeFromProps(props: any): ListingType {
   return props.match.params.listing_type
     ? routeListingTypeToEnum(props.match.params.listing_type)
     : UserService.Instance.user
-    ? UserService.Instance.user.default_listing_type
+    ? Object.values(ListingType)[UserService.Instance.user.default_listing_type]
     : ListingType.All;
 }
 
@@ -819,7 +803,7 @@ export function getSortTypeFromProps(props: any): SortType {
   return props.match.params.sort
     ? routeSortTypeToEnum(props.match.params.sort)
     : UserService.Instance.user
-    ? UserService.Instance.user.default_sort_type
+    ? Object.values(SortType)[UserService.Instance.user.default_sort_type]
     : SortType.Active;
 }
 

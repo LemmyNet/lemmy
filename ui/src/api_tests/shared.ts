@@ -1,5 +1,3 @@
-import fetch from 'node-fetch';
-
 import {
   LoginForm,
   LoginResponse,
@@ -20,15 +18,21 @@ import {
   CommentForm,
   DeleteCommentForm,
   RemoveCommentForm,
+  SearchForm,
   CommentResponse,
   CommunityForm,
   DeleteCommunityForm,
   RemoveCommunityForm,
+  GetUserMentionsForm,
   CommentLikeForm,
   CreatePostLikeForm,
   PrivateMessageForm,
   EditPrivateMessageForm,
   DeletePrivateMessageForm,
+  GetFollowedCommunitiesForm,
+  GetPrivateMessagesForm,
+  GetSiteForm,
+  GetPostForm,
   PrivateMessageResponse,
   PrivateMessagesResponse,
   GetUserMentionsResponse,
@@ -36,35 +40,33 @@ import {
   SortType,
   ListingType,
   GetSiteResponse,
-} from '../interfaces';
+  SearchType,
+  LemmyHttp,
+} from 'lemmy-js-client';
 
 export interface API {
-  url: string;
+  client: LemmyHttp;
   auth?: string;
 }
 
-function apiUrl(api: API) {
-  return `${api.url}/api/v1`;
-}
-
 export let alpha: API = {
-  url: 'http://localhost:8540',
+  client: new LemmyHttp('http://localhost:8540/api/v1'),
 };
 
 export let beta: API = {
-  url: 'http://localhost:8550',
+  client: new LemmyHttp('http://localhost:8550/api/v1'),
 };
 
 export let gamma: API = {
-  url: 'http://localhost:8560',
+  client: new LemmyHttp('http://localhost:8560/api/v1'),
 };
 
 export let delta: API = {
-  url: 'http://localhost:8570',
+  client: new LemmyHttp('http://localhost:8570/api/v1'),
 };
 
 export let epsilon: API = {
-  url: 'http://localhost:8580',
+  client: new LemmyHttp('http://localhost:8580/api/v1'),
 };
 
 export async function setupLogins() {
@@ -72,69 +74,31 @@ export async function setupLogins() {
     username_or_email: 'lemmy_alpha',
     password: 'lemmy',
   };
-
-  let resAlpha: Promise<LoginResponse> = fetch(`${apiUrl(alpha)}/user/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: wrapper(formAlpha),
-  }).then(d => d.json());
+  let resAlpha = alpha.client.login(formAlpha);
 
   let formBeta = {
     username_or_email: 'lemmy_beta',
     password: 'lemmy',
   };
-
-  let resBeta: Promise<LoginResponse> = fetch(`${apiUrl(beta)}/user/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: wrapper(formBeta),
-  }).then(d => d.json());
+  let resBeta = beta.client.login(formBeta);
 
   let formGamma = {
     username_or_email: 'lemmy_gamma',
     password: 'lemmy',
   };
-
-  let resGamma: Promise<LoginResponse> = fetch(`${apiUrl(gamma)}/user/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: wrapper(formGamma),
-  }).then(d => d.json());
+  let resGamma = gamma.client.login(formGamma);
 
   let formDelta = {
     username_or_email: 'lemmy_delta',
     password: 'lemmy',
   };
-
-  let resDelta: Promise<LoginResponse> = fetch(`${apiUrl(delta)}/user/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: wrapper(formDelta),
-  }).then(d => d.json());
+  let resDelta = delta.client.login(formDelta);
 
   let formEpsilon = {
     username_or_email: 'lemmy_epsilon',
     password: 'lemmy',
   };
-
-  let resEpsilon: Promise<LoginResponse> = fetch(
-    `${apiUrl(epsilon)}/user/login`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: wrapper(formEpsilon),
-    }
-  ).then(d => d.json());
+  let resEpsilon = epsilon.client.login(formEpsilon);
 
   let res = await Promise.all([
     resAlpha,
@@ -156,40 +120,24 @@ export async function createPost(
   community_id: number
 ): Promise<PostResponse> {
   let name = 'A jest test post';
-  let postForm: PostForm = {
+  let form: PostForm = {
     name,
     auth: api.auth,
     community_id,
     nsfw: false,
   };
-
-  let createPostRes: PostResponse = await fetch(`${apiUrl(api)}/post`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: wrapper(postForm),
-  }).then(d => d.json());
-  return createPostRes;
+  return api.client.createPost(form);
 }
 
 export async function updatePost(api: API, post: Post): Promise<PostResponse> {
   let name = 'A jest test federated post, updated';
-  let postForm: PostForm = {
+  let form: PostForm = {
     name,
     edit_id: post.id,
     auth: api.auth,
     nsfw: false,
   };
-
-  let updateResponse: PostResponse = await fetch(`${apiUrl(api)}/post`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: wrapper(postForm),
-  }).then(d => d.json());
-  return updateResponse;
+  return api.client.editPost(form);
 }
 
 export async function deletePost(
@@ -197,20 +145,12 @@ export async function deletePost(
   deleted: boolean,
   post: Post
 ): Promise<PostResponse> {
-  let deletePostForm: DeletePostForm = {
+  let form: DeletePostForm = {
     edit_id: post.id,
     deleted: deleted,
     auth: api.auth,
   };
-
-  let deletePostRes: PostResponse = await fetch(`${apiUrl(api)}/post/delete`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: wrapper(deletePostForm),
-  }).then(d => d.json());
-  return deletePostRes;
+  return api.client.deletePost(form);
 }
 
 export async function removePost(
@@ -218,20 +158,12 @@ export async function removePost(
   removed: boolean,
   post: Post
 ): Promise<PostResponse> {
-  let removePostForm: RemovePostForm = {
+  let form: RemovePostForm = {
     edit_id: post.id,
     removed,
     auth: api.auth,
   };
-
-  let removePostRes: PostResponse = await fetch(`${apiUrl(api)}/post/remove`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: wrapper(removePostForm),
-  }).then(d => d.json());
-  return removePostRes;
+  return api.client.removePost(form);
 }
 
 export async function stickyPost(
@@ -239,21 +171,12 @@ export async function stickyPost(
   stickied: boolean,
   post: Post
 ): Promise<PostResponse> {
-  let stickyPostForm: StickyPostForm = {
+  let form: StickyPostForm = {
     edit_id: post.id,
     stickied,
     auth: api.auth,
   };
-
-  let stickyRes: PostResponse = await fetch(`${apiUrl(api)}/post/sticky`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: wrapper(stickyPostForm),
-  }).then(d => d.json());
-
-  return stickyRes;
+  return api.client.stickyPost(form);
 }
 
 export async function lockPost(
@@ -261,57 +184,46 @@ export async function lockPost(
   locked: boolean,
   post: Post
 ): Promise<PostResponse> {
-  let lockPostForm: LockPostForm = {
+  let form: LockPostForm = {
     edit_id: post.id,
     locked,
     auth: api.auth,
   };
-
-  let lockRes: PostResponse = await fetch(`${apiUrl(api)}/post/lock`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: wrapper(lockPostForm),
-  }).then(d => d.json());
-
-  return lockRes;
+  return api.client.lockPost(form);
 }
 
 export async function searchPost(
   api: API,
   post: Post
 ): Promise<SearchResponse> {
-  let searchUrl = `${apiUrl(api)}/search?q=${post.ap_id}&type_=All&sort=TopAll`;
-  let searchResponse: SearchResponse = await fetch(searchUrl, {
-    method: 'GET',
-  }).then(d => d.json());
-  return searchResponse;
+  let form: SearchForm = {
+    q: post.ap_id,
+    type_: SearchType.All,
+    sort: SortType.TopAll,
+  };
+  return api.client.search(form);
 }
 
 export async function getPost(
   api: API,
   post_id: number
 ): Promise<GetPostResponse> {
-  let getPostUrl = `${apiUrl(api)}/post?id=${post_id}`;
-  let getPostRes: GetPostResponse = await fetch(getPostUrl, {
-    method: 'GET',
-  }).then(d => d.json());
-
-  return getPostRes;
+  let form: GetPostForm = {
+    id: post_id,
+  };
+  return api.client.getPost(form);
 }
 
 export async function searchComment(
   api: API,
   comment: Comment
 ): Promise<SearchResponse> {
-  let searchUrl = `${apiUrl(api)}/search?q=${
-    comment.ap_id
-  }&type_=All&sort=TopAll`;
-  let searchResponse: SearchResponse = await fetch(searchUrl, {
-    method: 'GET',
-  }).then(d => d.json());
-  return searchResponse;
+  let form: SearchForm = {
+    q: comment.ap_id,
+    type_: SearchType.All,
+    sort: SortType.TopAll,
+  };
+  return api.client.search(form);
 }
 
 export async function searchForBetaCommunity(
@@ -319,14 +231,12 @@ export async function searchForBetaCommunity(
 ): Promise<SearchResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   // Use short-hand search url
-  let searchUrl = `${apiUrl(
-    api
-  )}/search?q=!main@lemmy-beta:8550&type_=All&sort=TopAll`;
-
-  let searchResponse: SearchResponse = await fetch(searchUrl, {
-    method: 'GET',
-  }).then(d => d.json());
-  return searchResponse;
+  let form: SearchForm = {
+    q: '!main@lemmy-beta:8550',
+    type_: SearchType.All,
+    sort: SortType.TopAll,
+  };
+  return api.client.search(form);
 }
 
 export async function searchForUser(
@@ -335,14 +245,12 @@ export async function searchForUser(
 ): Promise<SearchResponse> {
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   // Use short-hand search url
-  let searchUrl = `${apiUrl(
-    api
-  )}/search?q=${apShortname}&type_=All&sort=TopAll`;
-
-  let searchResponse: SearchResponse = await fetch(searchUrl, {
-    method: 'GET',
-  }).then(d => d.json());
-  return searchResponse;
+  let form: SearchForm = {
+    q: apShortname,
+    type_: SearchType.All,
+    sort: SortType.TopAll,
+  };
+  return api.client.search(form);
 }
 
 export async function followCommunity(
@@ -350,41 +258,21 @@ export async function followCommunity(
   follow: boolean,
   community_id: number
 ): Promise<CommunityResponse> {
-  let followForm: FollowCommunityForm = {
+  let form: FollowCommunityForm = {
     community_id,
     follow,
     auth: api.auth,
   };
-
-  let followRes: CommunityResponse = await fetch(
-    `${apiUrl(api)}/community/follow`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: wrapper(followForm),
-    }
-  )
-    .then(d => d.json())
-    .catch(_e => {});
-
-  return followRes;
+  return api.client.followCommunity(form);
 }
 
 export async function checkFollowedCommunities(
   api: API
 ): Promise<GetFollowedCommunitiesResponse> {
-  let followedCommunitiesUrl = `${apiUrl(
-    api
-  )}/user/followed_communities?&auth=${api.auth}`;
-  let followedCommunitiesRes: GetFollowedCommunitiesResponse = await fetch(
-    followedCommunitiesUrl,
-    {
-      method: 'GET',
-    }
-  ).then(d => d.json());
-  return followedCommunitiesRes;
+  let form: GetFollowedCommunitiesForm = {
+    auth: api.auth,
+  };
+  return api.client.getFollowedCommunities(form);
 }
 
 export async function likePost(
@@ -392,21 +280,13 @@ export async function likePost(
   score: number,
   post: Post
 ): Promise<PostResponse> {
-  let likePostForm: CreatePostLikeForm = {
+  let form: CreatePostLikeForm = {
     post_id: post.id,
     score: score,
     auth: api.auth,
   };
 
-  let likePostRes: PostResponse = await fetch(`${apiUrl(api)}/post/like`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: wrapper(likePostForm),
-  }).then(d => d.json());
-
-  return likePostRes;
+  return api.client.likePost(form);
 }
 
 export async function createComment(
@@ -415,21 +295,13 @@ export async function createComment(
   parent_id?: number,
   content = 'a jest test comment'
 ): Promise<CommentResponse> {
-  let commentForm: CommentForm = {
+  let form: CommentForm = {
     content,
     post_id,
     parent_id,
     auth: api.auth,
   };
-
-  let createResponse: CommentResponse = await fetch(`${apiUrl(api)}/comment`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: wrapper(commentForm),
-  }).then(d => d.json());
-  return createResponse;
+  return api.client.createComment(form);
 }
 
 export async function updateComment(
@@ -437,20 +309,12 @@ export async function updateComment(
   edit_id: number,
   content = 'A jest test federated comment update'
 ): Promise<CommentResponse> {
-  let commentForm: CommentForm = {
+  let form: CommentForm = {
     content,
     edit_id,
     auth: api.auth,
   };
-
-  let updateResponse: CommentResponse = await fetch(`${apiUrl(api)}/comment`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: wrapper(commentForm),
-  }).then(d => d.json());
-  return updateResponse;
+  return api.client.editComment(form);
 }
 
 export async function deleteComment(
@@ -458,23 +322,12 @@ export async function deleteComment(
   deleted: boolean,
   edit_id: number
 ): Promise<CommentResponse> {
-  let deleteCommentForm: DeleteCommentForm = {
+  let form: DeleteCommentForm = {
     edit_id,
     deleted,
     auth: api.auth,
   };
-
-  let deleteCommentRes: CommentResponse = await fetch(
-    `${apiUrl(api)}/comment/delete`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: wrapper(deleteCommentForm),
-    }
-  ).then(d => d.json());
-  return deleteCommentRes;
+  return api.client.deleteComment(form);
 }
 
 export async function removeComment(
@@ -482,33 +335,21 @@ export async function removeComment(
   removed: boolean,
   edit_id: number
 ): Promise<CommentResponse> {
-  let removeCommentForm: RemoveCommentForm = {
+  let form: RemoveCommentForm = {
     edit_id,
     removed,
     auth: api.auth,
   };
-
-  let removeCommentRes: CommentResponse = await fetch(
-    `${apiUrl(api)}/comment/remove`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: wrapper(removeCommentForm),
-    }
-  ).then(d => d.json());
-  return removeCommentRes;
+  return api.client.removeComment(form);
 }
 
 export async function getMentions(api: API): Promise<GetUserMentionsResponse> {
-  let getMentionUrl = `${apiUrl(
-    api
-  )}/user/mention?sort=New&unread_only=false&auth=${api.auth}`;
-  let getMentionsRes: GetUserMentionsResponse = await fetch(getMentionUrl, {
-    method: 'GET',
-  }).then(d => d.json());
-  return getMentionsRes;
+  let form: GetUserMentionsForm = {
+    sort: SortType.New,
+    unread_only: false,
+    auth: api.auth,
+  };
+  return api.client.getUserMentions(form);
 }
 
 export async function likeComment(
@@ -516,48 +357,26 @@ export async function likeComment(
   score: number,
   comment: Comment
 ): Promise<CommentResponse> {
-  let likeCommentForm: CommentLikeForm = {
+  let form: CommentLikeForm = {
     comment_id: comment.id,
     score,
     auth: api.auth,
   };
-
-  let likeCommentRes: CommentResponse = await fetch(
-    `${apiUrl(api)}/comment/like`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: wrapper(likeCommentForm),
-    }
-  ).then(d => d.json());
-  return likeCommentRes;
+  return api.client.likeComment(form);
 }
 
 export async function createCommunity(
   api: API,
   name_: string = randomString(5)
 ): Promise<CommunityResponse> {
-  let communityForm: CommunityForm = {
+  let form: CommunityForm = {
     name: name_,
     title: name_,
     category_id: 1,
     nsfw: false,
     auth: api.auth,
   };
-
-  let createCommunityRes: CommunityResponse = await fetch(
-    `${apiUrl(api)}/community`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: wrapper(communityForm),
-    }
-  ).then(d => d.json());
-  return createCommunityRes;
+  return api.client.createCommunity(form);
 }
 
 export async function deleteCommunity(
@@ -565,23 +384,12 @@ export async function deleteCommunity(
   deleted: boolean,
   edit_id: number
 ): Promise<CommunityResponse> {
-  let deleteCommunityForm: DeleteCommunityForm = {
+  let form: DeleteCommunityForm = {
     edit_id,
     deleted,
     auth: api.auth,
   };
-
-  let deleteResponse: CommunityResponse = await fetch(
-    `${apiUrl(api)}/community/delete`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: wrapper(deleteCommunityForm),
-    }
-  ).then(d => d.json());
-  return deleteResponse;
+  return api.client.deleteCommunity(form);
 }
 
 export async function removeCommunity(
@@ -589,23 +397,12 @@ export async function removeCommunity(
   removed: boolean,
   edit_id: number
 ): Promise<CommunityResponse> {
-  let removeCommunityForm: RemoveCommunityForm = {
+  let form: RemoveCommunityForm = {
     edit_id,
     removed,
     auth: api.auth,
   };
-
-  let removeResponse: CommunityResponse = await fetch(
-    `${apiUrl(api)}/community/remove`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: wrapper(removeCommunityForm),
-    }
-  ).then(d => d.json());
-  return removeResponse;
+  return api.client.removeCommunity(form);
 }
 
 export async function createPrivateMessage(
@@ -613,23 +410,12 @@ export async function createPrivateMessage(
   recipient_id: number
 ): Promise<PrivateMessageResponse> {
   let content = 'A jest test federated private message';
-  let privateMessageForm: PrivateMessageForm = {
+  let form: PrivateMessageForm = {
     content,
     recipient_id,
     auth: api.auth,
   };
-
-  let createRes: PrivateMessageResponse = await fetch(
-    `${apiUrl(api)}/private_message`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: wrapper(privateMessageForm),
-    }
-  ).then(d => d.json());
-  return createRes;
+  return api.client.createPrivateMessage(form);
 }
 
 export async function updatePrivateMessage(
@@ -637,23 +423,12 @@ export async function updatePrivateMessage(
   edit_id: number
 ): Promise<PrivateMessageResponse> {
   let updatedContent = 'A jest test federated private message edited';
-  let updatePrivateMessageForm: EditPrivateMessageForm = {
+  let form: EditPrivateMessageForm = {
     content: updatedContent,
     edit_id,
     auth: api.auth,
   };
-
-  let updateRes: PrivateMessageResponse = await fetch(
-    `${apiUrl(api)}/private_message`,
-    {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: wrapper(updatePrivateMessageForm),
-    }
-  ).then(d => d.json());
-  return updateRes;
+  return api.client.editPrivateMessage(form);
 }
 
 export async function deletePrivateMessage(
@@ -661,50 +436,26 @@ export async function deletePrivateMessage(
   deleted: boolean,
   edit_id: number
 ): Promise<PrivateMessageResponse> {
-  let deletePrivateMessageForm: DeletePrivateMessageForm = {
+  let form: DeletePrivateMessageForm = {
     deleted,
     edit_id,
     auth: api.auth,
   };
-
-  let deleteRes: PrivateMessageResponse = await fetch(
-    `${apiUrl(api)}/private_message/delete`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: wrapper(deletePrivateMessageForm),
-    }
-  ).then(d => d.json());
-
-  return deleteRes;
+  return api.client.deletePrivateMessage(form);
 }
 
 export async function registerUser(
   api: API,
   username: string = randomString(5)
 ): Promise<LoginResponse> {
-  let registerForm: RegisterForm = {
+  let form: RegisterForm = {
     username,
     password: 'test',
     password_verify: 'test',
     admin: false,
     show_nsfw: true,
   };
-
-  let registerRes: Promise<LoginResponse> = fetch(
-    `${apiUrl(api)}/user/register`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: wrapper(registerForm),
-    }
-  ).then(d => d.json());
-
-  return registerRes;
+  return api.client.register(form);
 }
 
 export async function saveUserSettingsBio(
@@ -714,54 +465,36 @@ export async function saveUserSettingsBio(
   let form: UserSettingsForm = {
     show_nsfw: true,
     theme: 'darkly',
-    default_sort_type: SortType.Active,
-    default_listing_type: ListingType.All,
+    default_sort_type: Object.keys(SortType).indexOf(SortType.Active),
+    default_listing_type: Object.keys(ListingType).indexOf(ListingType.All),
     lang: 'en',
     show_avatars: true,
     send_notifications_to_email: false,
     bio: 'a changed bio',
     auth,
   };
-
-  let res: Promise<LoginResponse> = fetch(
-    `${apiUrl(api)}/user/save_user_settings`,
-    {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: wrapper(form),
-    }
-  ).then(d => d.json());
-  return res;
+  return api.client.saveUserSettings(form);
 }
 
 export async function getSite(
   api: API,
   auth: string
 ): Promise<GetSiteResponse> {
-  let siteUrl = `${apiUrl(api)}/site?auth=${auth}`;
-
-  let res: GetSiteResponse = await fetch(siteUrl, {
-    method: 'GET',
-  }).then(d => d.json());
-  return res;
+  let form: GetSiteForm = {
+    auth,
+  };
+  return api.client.getSite(form);
 }
 
 export async function listPrivateMessages(
   api: API
 ): Promise<PrivateMessagesResponse> {
-  let getPrivateMessagesUrl = `${apiUrl(api)}/private_message/list?auth=${
-    api.auth
-  }&unread_only=false&limit=999`;
-
-  let getPrivateMessagesRes: PrivateMessagesResponse = await fetch(
-    getPrivateMessagesUrl,
-    {
-      method: 'GET',
-    }
-  ).then(d => d.json());
-  return getPrivateMessagesRes;
+  let form: GetPrivateMessagesForm = {
+    auth: api.auth,
+    unread_only: false,
+    limit: 999,
+  };
+  return api.client.getPrivateMessages(form);
 }
 
 export async function unfollowRemotes(

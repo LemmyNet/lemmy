@@ -9,12 +9,12 @@ import {
   ListCategoriesResponse,
   CommunityResponse,
   WebSocketJsonResponse,
-} from '../interfaces';
+  Community,
+} from 'lemmy-js-client';
 import { WebSocketService } from '../services';
 import { wsJsonToRes, capitalizeFirstLetter, toast, randomStr } from '../utils';
 import { i18n } from '../i18next';
 
-import { Community } from '../interfaces';
 import { MarkdownTextArea } from './markdown-textarea';
 import { ImageUploadForm } from './image-upload-form';
 

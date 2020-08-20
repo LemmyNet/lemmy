@@ -9,7 +9,7 @@ import {
   UserOperation,
   WebSocketJsonResponse,
   GetSiteResponse,
-} from '../interfaces';
+} from 'lemmy-js-client';
 
 interface FooterState {
   version: string;

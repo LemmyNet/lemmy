@@ -1,6 +1,6 @@
 import { Component } from 'inferno';
 import { Link } from 'inferno-router';
-import { Community } from '../interfaces';
+import { Community } from 'lemmy-js-client';
 import { hostname, pictrsAvatarThumbnail, showAvatars } from '../utils';
 
 interface CommunityOther {

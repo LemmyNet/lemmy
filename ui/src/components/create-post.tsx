@@ -11,7 +11,7 @@ import {
   WebSocketJsonResponse,
   GetSiteResponse,
   Site,
-} from '../interfaces';
+} from 'lemmy-js-client';
 import { i18n } from '../i18next';
 
 interface CreatePostState {

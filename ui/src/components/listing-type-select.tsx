@@ -1,7 +1,7 @@
 import { Component, linkEvent } from 'inferno';
-import { ListingType } from '../interfaces';
+import { ListingType } from 'lemmy-js-client';
 import { UserService } from '../services';
-
+import { randomStr } from '../utils';
 import { i18n } from '../i18next';
 
 interface ListingTypeSelectProps {
@@ -17,6 +17,8 @@ export class ListingTypeSelect extends Component<
   ListingTypeSelectProps,
   ListingTypeSelectState
 > {
+  private id = `listing-type-input-${randomStr()}`;
+
   private emptyState: ListingTypeSelectState = {
     type_: this.props.type_,
   };
@@ -42,6 +44,7 @@ export class ListingTypeSelect extends Component<
           `}
         >
           <input
+            id={`${this.id}-subscribed`}
             type="radio"
             value={ListingType.Subscribed}
             checked={this.state.type_ == ListingType.Subscribed}
@@ -56,6 +59,7 @@ export class ListingTypeSelect extends Component<
           }`}
         >
           <input
+            id={`${this.id}-all`}
             type="radio"
             value={ListingType.All}
             checked={this.state.type_ == ListingType.All}
@@ -68,6 +72,6 @@ export class ListingTypeSelect extends Component<
   }
 
   handleTypeChange(i: ListingTypeSelect, event: any) {
-    i.props.onChange(Number(event.target.value));
+    i.props.onChange(event.target.value);
   }
 }

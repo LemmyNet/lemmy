@@ -14,7 +14,7 @@ import {
   GetUserDetailsForm,
   SortType,
   WebSocketJsonResponse,
-} from '../interfaces';
+} from 'lemmy-js-client';
 import { WebSocketService } from '../services';
 import {
   capitalizeFirstLetter,
@@ -77,7 +77,7 @@ export class PrivateMessageForm extends Component<
       this.state.privateMessageForm.recipient_id = this.props.params.recipient_id;
       let form: GetUserDetailsForm = {
         user_id: this.state.privateMessageForm.recipient_id,
-        sort: SortType[SortType.New],
+        sort: SortType.New,
         saved_only: false,
       };
       WebSocketService.Instance.getUserDetails(form);

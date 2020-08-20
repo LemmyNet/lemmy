@@ -10,7 +10,7 @@ import {
   GetSiteResponse,
   Site,
   PrivateMessageFormParams,
-} from '../interfaces';
+} from 'lemmy-js-client';
 import { toast, wsJsonToRes } from '../utils';
 import { i18n } from '../i18next';
 

@@ -12,11 +12,11 @@ import {
   UserDetailsResponse,
   UserView,
   WebSocketJsonResponse,
-  UserDetailsView,
   CommentResponse,
   BanUserResponse,
   PostResponse,
-} from '../interfaces';
+} from 'lemmy-js-client';
+import { UserDetailsView } from '../interfaces';
 import {
   wsJsonToRes,
   toast,
@@ -35,7 +35,7 @@ interface UserDetailsProps {
   user_id?: number;
   page: number;
   limit: number;
-  sort: string;
+  sort: SortType;
   enableDownvotes: boolean;
   enableNsfw: boolean;
   view: UserDetailsView;
@@ -137,7 +137,7 @@ export class UserDetails extends Component<UserDetailsProps, UserDetailsState> {
     ];
 
     // Sort it
-    if (SortType[this.props.sort] === SortType.New) {
+    if (this.props.sort === SortType.New) {
       combined.sort((a, b) => b.data.published.localeCompare(a.data.published));
     } else {
       combined.sort((a, b) => b.data.score - a.data.score);

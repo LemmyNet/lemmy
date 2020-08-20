@@ -1,11 +1,11 @@
 import { Component } from 'inferno';
+import { CommentSortType } from '../interfaces';
 import {
   CommentNode as CommentNodeI,
   CommunityUser,
   UserView,
-  CommentSortType,
   SortType,
-} from '../interfaces';
+} from 'lemmy-js-client';
 import { commentSort, commentSortSortType } from '../utils';
 import { CommentNode } from './comment-node';
 

@@ -1,6 +1,6 @@
 import { Component } from 'inferno';
 import { Link } from 'inferno-router';
-import { UserView } from '../interfaces';
+import { UserView } from 'lemmy-js-client';
 import {
   pictrsAvatarThumbnail,
   showAvatars,

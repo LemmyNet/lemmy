@@ -9,7 +9,7 @@ import {
   SiteConfigForm,
   GetSiteConfigResponse,
   WebSocketJsonResponse,
-} from '../interfaces';
+} from 'lemmy-js-client';
 import { WebSocketService } from '../services';
 import { wsJsonToRes, capitalizeFirstLetter, toast, randomStr } from '../utils';
 import autosize from 'autosize';

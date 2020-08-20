@@ -1,8 +1,13 @@
 import Cookies from 'js-cookie';
-import { User, Claims, LoginResponse } from '../interfaces';
+import { User, LoginResponse } from 'lemmy-js-client';
 import { setTheme } from '../utils';
 import jwt_decode from 'jwt-decode';
 import { Subject, BehaviorSubject } from 'rxjs';
+
+interface Claims {
+  id: number;
+  iss: string;
+}
 
 export class UserService {
   private static _instance: UserService;

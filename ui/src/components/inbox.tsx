@@ -19,7 +19,7 @@ import {
   PrivateMessageResponse,
   GetSiteResponse,
   Site,
-} from '../interfaces';
+} from 'lemmy-js-client';
 import { WebSocketService, UserService } from '../services';
 import {
   wsJsonToRes,
@@ -399,7 +399,7 @@ export class Inbox extends Component<any, InboxState> {
 
   refetch() {
     let repliesForm: GetRepliesForm = {
-      sort: SortType[this.state.sort],
+      sort: this.state.sort,
       unread_only: this.state.unreadOrAll == UnreadOrAll.Unread,
       page: this.state.page,
       limit: fetchLimit,
@@ -407,7 +407,7 @@ export class Inbox extends Component<any, InboxState> {
     WebSocketService.Instance.getReplies(repliesForm);
 
     let userMentionsForm: GetUserMentionsForm = {
-      sort: SortType[this.state.sort],
+      sort: this.state.sort,
       unread_only: this.state.unreadOrAll == UnreadOrAll.Unread,
       page: this.state.page,
       limit: fetchLimit,

@@ -1,5 +1,5 @@
 import { Component, linkEvent } from 'inferno';
-import { Post } from '../interfaces';
+import { Post } from 'lemmy-js-client';
 import { mdToHtml } from '../utils';
 import { i18n } from '../i18next';
 

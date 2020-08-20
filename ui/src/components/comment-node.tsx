@@ -16,10 +16,9 @@ import {
   AddAdminForm,
   TransferCommunityForm,
   TransferSiteForm,
-  BanType,
-  CommentSortType,
   SortType,
-} from '../interfaces';
+} from 'lemmy-js-client';
+import { CommentSortType, BanType } from '../interfaces';
 import { WebSocketService, UserService } from '../services';
 import {
   mdToHtml,

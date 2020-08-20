@@ -21,7 +21,7 @@ import {
   API,
 } from './shared';
 
-import { PostResponse } from '../interfaces';
+import { PostResponse } from 'lemmy-js-client';
 
 let postRes: PostResponse;
 
@@ -136,7 +136,7 @@ test('Remove a comment from admin and community on the same instance', async () 
 test('Remove a comment from admin and community on different instance', async () => {
   let alphaUser = await registerUser(alpha);
   let newAlphaApi: API = {
-    url: alpha.url,
+    client: alpha.client,
     auth: alphaUser.jwt,
   };
 

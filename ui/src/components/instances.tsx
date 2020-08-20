@@ -6,7 +6,7 @@ import {
   UserOperation,
   WebSocketJsonResponse,
   GetSiteResponse,
-} from '../interfaces';
+} from 'lemmy-js-client';
 import { WebSocketService } from '../services';
 import { wsJsonToRes, toast } from '../utils';
 import { i18n } from '../i18next';
