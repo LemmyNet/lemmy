@@ -75,7 +75,7 @@ async fn receive_create_post(
   context.chat_server().do_send(SendPost {
     op: UserOperation::CreatePost,
     post: res,
-    my_id: None,
+    websocket_id: None,
   });
 
   announce_if_community_is_local(create, &user, context).await?;
@@ -128,7 +128,7 @@ async fn receive_create_comment(
   context.chat_server().do_send(SendComment {
     op: UserOperation::CreateComment,
     comment: res,
-    my_id: None,
+    websocket_id: None,
   });
 
   announce_if_community_is_local(create, &user, context).await?;

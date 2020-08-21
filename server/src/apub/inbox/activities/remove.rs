@@ -107,7 +107,7 @@ async fn receive_remove_post(
   context.chat_server().do_send(SendPost {
     op: UserOperation::EditPost,
     post: res,
-    my_id: None,
+    websocket_id: None,
   });
 
   announce_if_community_is_local(remove, &mod_, context).await?;
@@ -165,7 +165,7 @@ async fn receive_remove_comment(
   context.chat_server().do_send(SendComment {
     op: UserOperation::EditComment,
     comment: res,
-    my_id: None,
+    websocket_id: None,
   });
 
   announce_if_community_is_local(remove, &mod_, context).await?;
@@ -229,7 +229,7 @@ async fn receive_remove_community(
     op: UserOperation::EditCommunity,
     response: res,
     community_id,
-    my_id: None,
+    websocket_id: None,
   });
 
   announce_if_community_is_local(remove, &mod_, context).await?;

@@ -15,8 +15,8 @@ use crate::{
   websocket::{
     server::{GetPostUsersOnline, JoinCommunityRoom, JoinPostRoom, SendPost},
     UserOperation,
-    WebsocketInfo,
   },
+  ConnectionId,
   LemmyContext,
   LemmyError,
 };
@@ -146,7 +146,7 @@ impl Perform for CreatePost {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_info: Option<WebsocketInfo>,
+    websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &CreatePost = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
@@ -247,13 +247,11 @@ impl Perform for CreatePost {
 
     let res = PostResponse { post: post_view };
 
-    if let Some(ws) = websocket_info {
-      ws.chatserver.do_send(SendPost {
-        op: UserOperation::CreatePost,
-        post: res.clone(),
-        my_id: ws.id,
-      });
-    }
+    context.chat_server().do_send(SendPost {
+      op: UserOperation::CreatePost,
+      post: res.clone(),
+      websocket_id,
+    });
 
     Ok(res)
   }
@@ -266,7 +264,7 @@ impl Perform for GetPost {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_info: Option<WebsocketInfo>,
+    websocket_id: Option<ConnectionId>,
   ) -> Result<GetPostResponse, LemmyError> {
     let data: &GetPost = &self;
     let user = get_user_from_jwt_opt(&data.auth, context.pool()).await?;
@@ -304,20 +302,18 @@ impl Perform for GetPost {
     })
     .await??;
 
-    let online = if let Some(ws) = websocket_info {
-      if let Some(id) = ws.id {
-        ws.chatserver.do_send(JoinPostRoom {
-          post_id: data.id,
-          id,
-        });
-      }
-      ws.chatserver
-        .send(GetPostUsersOnline { post_id: data.id })
-        .await
-        .unwrap_or(1)
-    } else {
-      0
-    };
+    if let Some(id) = websocket_id {
+      context.chat_server().do_send(JoinPostRoom {
+        post_id: data.id,
+        id,
+      });
+    }
+
+    let online = context
+      .chat_server()
+      .send(GetPostUsersOnline { post_id: data.id })
+      .await
+      .unwrap_or(1);
 
     // Return the jwt
     Ok(GetPostResponse {
@@ -337,7 +333,7 @@ impl Perform for GetPosts {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_info: Option<WebsocketInfo>,
+    websocket_id: Option<ConnectionId>,
   ) -> Result<GetPostsResponse, LemmyError> {
     let data: &GetPosts = &self;
     let user = get_user_from_jwt_opt(&data.auth, context.pool()).await?;
@@ -377,17 +373,15 @@ impl Perform for GetPosts {
       Err(_e) => return Err(APIError::err("couldnt_get_posts").into()),
     };
 
-    if let Some(ws) = websocket_info {
+    if let Some(id) = websocket_id {
       // You don't need to join the specific community room, bc this is already handled by
       // GetCommunity
       if data.community_id.is_none() {
-        if let Some(id) = ws.id {
-          // 0 is the "all" community
-          ws.chatserver.do_send(JoinCommunityRoom {
-            community_id: 0,
-            id,
-          });
-        }
+        // 0 is the "all" community
+        context.chat_server().do_send(JoinCommunityRoom {
+          community_id: 0,
+          id,
+        });
       }
     }
 
@@ -402,7 +396,7 @@ impl Perform for CreatePostLike {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_info: Option<WebsocketInfo>,
+    websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &CreatePostLike = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
@@ -465,13 +459,11 @@ impl Perform for CreatePostLike {
 
     let res = PostResponse { post: post_view };
 
-    if let Some(ws) = websocket_info {
-      ws.chatserver.do_send(SendPost {
-        op: UserOperation::CreatePostLike,
-        post: res.clone(),
-        my_id: ws.id,
-      });
-    }
+    context.chat_server().do_send(SendPost {
+      op: UserOperation::CreatePostLike,
+      post: res.clone(),
+      websocket_id,
+    });
 
     Ok(res)
   }
@@ -484,7 +476,7 @@ impl Perform for EditPost {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_info: Option<WebsocketInfo>,
+    websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &EditPost = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
@@ -560,13 +552,11 @@ impl Perform for EditPost {
 
     let res = PostResponse { post: post_view };
 
-    if let Some(ws) = websocket_info {
-      ws.chatserver.do_send(SendPost {
-        op: UserOperation::EditPost,
-        post: res.clone(),
-        my_id: ws.id,
-      });
-    }
+    context.chat_server().do_send(SendPost {
+      op: UserOperation::EditPost,
+      post: res.clone(),
+      websocket_id,
+    });
 
     Ok(res)
   }
@@ -579,7 +569,7 @@ impl Perform for DeletePost {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_info: Option<WebsocketInfo>,
+    websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &DeletePost = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
@@ -618,13 +608,11 @@ impl Perform for DeletePost {
 
     let res = PostResponse { post: post_view };
 
-    if let Some(ws) = websocket_info {
-      ws.chatserver.do_send(SendPost {
-        op: UserOperation::DeletePost,
-        post: res.clone(),
-        my_id: ws.id,
-      });
-    }
+    context.chat_server().do_send(SendPost {
+      op: UserOperation::DeletePost,
+      post: res.clone(),
+      websocket_id,
+    });
 
     Ok(res)
   }
@@ -637,7 +625,7 @@ impl Perform for RemovePost {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_info: Option<WebsocketInfo>,
+    websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &RemovePost = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
@@ -687,13 +675,11 @@ impl Perform for RemovePost {
 
     let res = PostResponse { post: post_view };
 
-    if let Some(ws) = websocket_info {
-      ws.chatserver.do_send(SendPost {
-        op: UserOperation::RemovePost,
-        post: res.clone(),
-        my_id: ws.id,
-      });
-    }
+    context.chat_server().do_send(SendPost {
+      op: UserOperation::RemovePost,
+      post: res.clone(),
+      websocket_id,
+    });
 
     Ok(res)
   }
@@ -706,7 +692,7 @@ impl Perform for LockPost {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_info: Option<WebsocketInfo>,
+    websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &LockPost = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
@@ -747,13 +733,11 @@ impl Perform for LockPost {
 
     let res = PostResponse { post: post_view };
 
-    if let Some(ws) = websocket_info {
-      ws.chatserver.do_send(SendPost {
-        op: UserOperation::LockPost,
-        post: res.clone(),
-        my_id: ws.id,
-      });
-    }
+    context.chat_server().do_send(SendPost {
+      op: UserOperation::LockPost,
+      post: res.clone(),
+      websocket_id,
+    });
 
     Ok(res)
   }
@@ -766,7 +750,7 @@ impl Perform for StickyPost {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_info: Option<WebsocketInfo>,
+    websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &StickyPost = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
@@ -811,13 +795,11 @@ impl Perform for StickyPost {
 
     let res = PostResponse { post: post_view };
 
-    if let Some(ws) = websocket_info {
-      ws.chatserver.do_send(SendPost {
-        op: UserOperation::StickyPost,
-        post: res.clone(),
-        my_id: ws.id,
-      });
-    }
+    context.chat_server().do_send(SendPost {
+      op: UserOperation::StickyPost,
+      post: res.clone(),
+      websocket_id,
+    });
 
     Ok(res)
   }
@@ -830,7 +812,7 @@ impl Perform for SavePost {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_info: Option<WebsocketInfo>,
+    _websocket_id: Option<ConnectionId>,
   ) -> Result<PostResponse, LemmyError> {
     let data: &SavePost = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;

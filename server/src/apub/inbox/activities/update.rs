@@ -81,7 +81,7 @@ async fn receive_update_post(
   context.chat_server().do_send(SendPost {
     op: UserOperation::EditPost,
     post: res,
-    my_id: None,
+    websocket_id: None,
   });
 
   announce_if_community_is_local(update, &user, context).await?;
@@ -136,7 +136,7 @@ async fn receive_update_comment(
   context.chat_server().do_send(SendComment {
     op: UserOperation::EditComment,
     comment: res,
-    my_id: None,
+    websocket_id: None,
   });
 
   announce_if_community_is_local(update, &user, context).await?;
