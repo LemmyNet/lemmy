@@ -1,7 +1,6 @@
 use crate::{
   api::{comment::*, community::*, post::*, site::*, user::*, Perform},
   rate_limit::RateLimit,
-  websocket::WebsocketInfo,
   LemmyContext,
 };
 use actix_web::{error::ErrorBadRequest, *};
@@ -182,13 +181,8 @@ where
   Request: Perform,
   Request: Send + 'static,
 {
-  let ws_info = WebsocketInfo {
-    chatserver: context.chat_server().to_owned(),
-    id: None,
-  };
-
   let res = data
-    .perform(&context, Some(ws_info))
+    .perform(&context, None)
     .await
     .map(|json| HttpResponse::Ok().json(json))
     .map_err(ErrorBadRequest)?;

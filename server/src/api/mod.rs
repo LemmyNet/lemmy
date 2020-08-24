@@ -1,11 +1,4 @@
-use crate::{
-  api::claims::Claims,
-  blocking,
-  websocket::WebsocketInfo,
-  DbPool,
-  LemmyContext,
-  LemmyError,
-};
+use crate::{api::claims::Claims, blocking, ConnectionId, DbPool, LemmyContext, LemmyError};
 use actix_web::web::Data;
 use lemmy_db::{
   community::*,
@@ -48,7 +41,7 @@ pub trait Perform {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_info: Option<WebsocketInfo>,
+    websocket_id: Option<ConnectionId>,
   ) -> Result<Self::Response, LemmyError>;
 }
 

@@ -85,7 +85,7 @@ async fn receive_dislike_post(
   context.chat_server().do_send(SendPost {
     op: UserOperation::CreatePostLike,
     post: res,
-    my_id: None,
+    websocket_id: None,
   });
 
   announce_if_community_is_local(dislike, &user, context).await?;
@@ -142,7 +142,7 @@ async fn receive_dislike_comment(
   context.chat_server().do_send(SendComment {
     op: UserOperation::CreateCommentLike,
     comment: res,
-    my_id: None,
+    websocket_id: None,
   });
 
   announce_if_community_is_local(dislike, &user, context).await?;

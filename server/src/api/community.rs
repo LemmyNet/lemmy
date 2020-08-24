@@ -6,8 +6,8 @@ use crate::{
   websocket::{
     server::{GetCommunityUsersOnline, JoinCommunityRoom, SendCommunityRoomMessage},
     UserOperation,
-    WebsocketInfo,
   },
+  ConnectionId,
 };
 use anyhow::Context;
 use lemmy_db::{
@@ -166,7 +166,7 @@ impl Perform for GetCommunity {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_info: Option<WebsocketInfo>,
+    websocket_id: Option<ConnectionId>,
   ) -> Result<GetCommunityResponse, LemmyError> {
     let data: &GetCommunity = &self;
     let user = get_user_from_jwt_opt(&data.auth, context.pool()).await?;
@@ -205,20 +205,17 @@ impl Perform for GetCommunity {
       Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
     };
 
-    let online = if let Some(ws) = websocket_info {
-      if let Some(id) = ws.id {
-        ws.chatserver.do_send(JoinCommunityRoom {
-          community_id: community.id,
-          id,
-        });
-      }
-      ws.chatserver
-        .send(GetCommunityUsersOnline { community_id })
-        .await
-        .unwrap_or(1)
-    } else {
-      0
-    };
+    if let Some(id) = websocket_id {
+      context
+        .chat_server()
+        .do_send(JoinCommunityRoom { community_id, id });
+    }
+
+    let online = context
+      .chat_server()
+      .send(GetCommunityUsersOnline { community_id })
+      .await
+      .unwrap_or(1);
 
     let res = GetCommunityResponse {
       community: community_view,
@@ -238,7 +235,7 @@ impl Perform for CreateCommunity {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_info: Option<WebsocketInfo>,
+    _websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &CreateCommunity = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
@@ -333,7 +330,7 @@ impl Perform for EditCommunity {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_info: Option<WebsocketInfo>,
+    websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &EditCommunity = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
@@ -403,7 +400,7 @@ impl Perform for EditCommunity {
       community: community_view,
     };
 
-    send_community_websocket(&res, websocket_info, UserOperation::EditCommunity);
+    send_community_websocket(&res, context, websocket_id, UserOperation::EditCommunity);
 
     Ok(res)
   }
@@ -416,7 +413,7 @@ impl Perform for DeleteCommunity {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_info: Option<WebsocketInfo>,
+    websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &DeleteCommunity = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
@@ -459,7 +456,7 @@ impl Perform for DeleteCommunity {
       community: community_view,
     };
 
-    send_community_websocket(&res, websocket_info, UserOperation::DeleteCommunity);
+    send_community_websocket(&res, context, websocket_id, UserOperation::DeleteCommunity);
 
     Ok(res)
   }
@@ -472,7 +469,7 @@ impl Perform for RemoveCommunity {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_info: Option<WebsocketInfo>,
+    websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &RemoveCommunity = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
@@ -527,7 +524,7 @@ impl Perform for RemoveCommunity {
       community: community_view,
     };
 
-    send_community_websocket(&res, websocket_info, UserOperation::RemoveCommunity);
+    send_community_websocket(&res, context, websocket_id, UserOperation::RemoveCommunity);
 
     Ok(res)
   }
@@ -540,7 +537,7 @@ impl Perform for ListCommunities {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_info: Option<WebsocketInfo>,
+    _websocket_id: Option<ConnectionId>,
   ) -> Result<ListCommunitiesResponse, LemmyError> {
     let data: &ListCommunities = &self;
     let user = get_user_from_jwt_opt(&data.auth, context.pool()).await?;
@@ -582,7 +579,7 @@ impl Perform for FollowCommunity {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_info: Option<WebsocketInfo>,
+    _websocket_id: Option<ConnectionId>,
   ) -> Result<CommunityResponse, LemmyError> {
     let data: &FollowCommunity = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
@@ -643,7 +640,7 @@ impl Perform for GetFollowedCommunities {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_info: Option<WebsocketInfo>,
+    _websocket_id: Option<ConnectionId>,
   ) -> Result<GetFollowedCommunitiesResponse, LemmyError> {
     let data: &GetFollowedCommunities = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
@@ -670,7 +667,7 @@ impl Perform for BanFromCommunity {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_info: Option<WebsocketInfo>,
+    websocket_id: Option<ConnectionId>,
   ) -> Result<BanFromCommunityResponse, LemmyError> {
     let data: &BanFromCommunity = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
@@ -757,14 +754,12 @@ impl Perform for BanFromCommunity {
       banned: data.ban,
     };
 
-    if let Some(ws) = websocket_info {
-      ws.chatserver.do_send(SendCommunityRoomMessage {
-        op: UserOperation::BanFromCommunity,
-        response: res.clone(),
-        community_id: data.community_id,
-        my_id: ws.id,
-      });
-    }
+    context.chat_server().do_send(SendCommunityRoomMessage {
+      op: UserOperation::BanFromCommunity,
+      response: res.clone(),
+      community_id,
+      websocket_id,
+    });
 
     Ok(res)
   }
@@ -777,7 +772,7 @@ impl Perform for AddModToCommunity {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_info: Option<WebsocketInfo>,
+    websocket_id: Option<ConnectionId>,
   ) -> Result<AddModToCommunityResponse, LemmyError> {
     let data: &AddModToCommunity = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
@@ -824,14 +819,12 @@ impl Perform for AddModToCommunity {
 
     let res = AddModToCommunityResponse { moderators };
 
-    if let Some(ws) = websocket_info {
-      ws.chatserver.do_send(SendCommunityRoomMessage {
-        op: UserOperation::AddModToCommunity,
-        response: res.clone(),
-        community_id: data.community_id,
-        my_id: ws.id,
-      });
-    }
+    context.chat_server().do_send(SendCommunityRoomMessage {
+      op: UserOperation::AddModToCommunity,
+      response: res.clone(),
+      community_id,
+      websocket_id,
+    });
 
     Ok(res)
   }
@@ -844,7 +837,7 @@ impl Perform for TransferCommunity {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_info: Option<WebsocketInfo>,
+    _websocket_id: Option<ConnectionId>,
   ) -> Result<GetCommunityResponse, LemmyError> {
     let data: &TransferCommunity = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
@@ -957,20 +950,19 @@ impl Perform for TransferCommunity {
 
 pub fn send_community_websocket(
   res: &CommunityResponse,
-  websocket_info: Option<WebsocketInfo>,
+  context: &Data<LemmyContext>,
+  websocket_id: Option<ConnectionId>,
   op: UserOperation,
 ) {
-  if let Some(ws) = websocket_info {
-    // Strip out the user id and subscribed when sending to others
-    let mut res_sent = res.clone();
-    res_sent.community.user_id = None;
-    res_sent.community.subscribed = None;
+  // Strip out the user id and subscribed when sending to others
+  let mut res_sent = res.clone();
+  res_sent.community.user_id = None;
+  res_sent.community.subscribed = None;
 
-    ws.chatserver.do_send(SendCommunityRoomMessage {
-      op,
-      response: res_sent,
-      community_id: res.community.id,
-      my_id: ws.id,
-    });
-  }
+  context.chat_server().do_send(SendCommunityRoomMessage {
+    op,
+    response: res_sent,
+    community_id: res.community.id,
+    websocket_id,
+  });
 }

@@ -76,7 +76,7 @@ async fn receive_like_post(like: Like, context: &LemmyContext) -> Result<HttpRes
   context.chat_server().do_send(SendPost {
     op: UserOperation::CreatePostLike,
     post: res,
-    my_id: None,
+    websocket_id: None,
   });
 
   announce_if_community_is_local(like, &user, context).await?;
@@ -127,7 +127,7 @@ async fn receive_like_comment(
   context.chat_server().do_send(SendComment {
     op: UserOperation::CreateCommentLike,
     comment: res,
-    my_id: None,
+    websocket_id: None,
   });
 
   announce_if_community_is_local(like, &user, context).await?;

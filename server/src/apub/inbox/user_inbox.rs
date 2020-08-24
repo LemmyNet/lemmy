@@ -152,7 +152,7 @@ async fn receive_create_private_message(
     op: UserOperation::CreatePrivateMessage,
     response: res,
     recipient_id,
-    my_id: None,
+    websocket_id: None,
   });
 
   Ok(HttpResponse::Ok().finish())
@@ -201,7 +201,7 @@ async fn receive_update_private_message(
     op: UserOperation::EditPrivateMessage,
     response: res,
     recipient_id,
-    my_id: None,
+    websocket_id: None,
   });
 
   Ok(HttpResponse::Ok().finish())
@@ -262,7 +262,7 @@ async fn receive_delete_private_message(
     op: UserOperation::EditPrivateMessage,
     response: res,
     recipient_id,
-    my_id: None,
+    websocket_id: None,
   });
 
   Ok(HttpResponse::Ok().finish())
@@ -323,7 +323,7 @@ async fn receive_undo_delete_private_message(
     op: UserOperation::EditPrivateMessage,
     response: res,
     recipient_id,
-    my_id: None,
+    websocket_id: None,
   });
 
   Ok(HttpResponse::Ok().finish())
