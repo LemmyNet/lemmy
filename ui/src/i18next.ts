@@ -28,6 +28,7 @@ import { sq } from './translations/sq';
 import { km } from './translations/km';
 import { ga } from './translations/ga';
 import { sr_Latn } from './translations/sr_Latn';
+import { ko } from './translations/ko';
 
 // https://github.com/nimbusec-oss/inferno-i18next/blob/master/tests/T.test.js#L66
 const resources = {
@@ -59,6 +60,7 @@ const resources = {
   km,
   ga,
   sr_Latn,
+  ko,
 };
 
 function format(value: any, format: any, lng: any): any {
