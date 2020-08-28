@@ -142,7 +142,7 @@ impl User_ {
   }
 
   pub fn find_by_username(conn: &PgConnection, username: &str) -> Result<User_, Error> {
-    user_.filter(name.eq(username)).first::<User_>(conn)
+    user_.filter(name.ilike(username)).first::<User_>(conn)
   }
 
   pub fn find_by_email(conn: &PgConnection, from_email: &str) -> Result<User_, Error> {
