@@ -12,12 +12,10 @@ use crate::{
   blocking,
   captcha_espeak_wav_base64,
   websocket::{
-    server::{CaptchaItem, CheckCaptcha, JoinUserRoom, SendAllMessage, SendUserRoomMessage},
-    UserOperation,
+    server::{JoinUserRoom, SendAllMessage, SendUserRoomMessage},
+    UserOperation, WebsocketInfo,
   },
-  ConnectionId,
-  LemmyContext,
-  LemmyError,
+  DbPool, LemmyError,
 };
 use actix_web::web::Data;
 use anyhow::Context;
@@ -25,41 +23,14 @@ use bcrypt::verify;
 use captcha::{gen, Difficulty};
 use chrono::Duration;
 use lemmy_db::{
-  comment::*,
-  comment_view::*,
-  community::*,
-  community_view::*,
-  diesel_option_overwrite,
-  moderator::*,
-  naive_now,
-  password_reset_request::*,
-  post::*,
-  post_view::*,
-  private_message::*,
-  private_message_view::*,
-  site::*,
-  site_view::*,
-  user::*,
-  user_mention::*,
-  user_mention_view::*,
-  user_view::*,
-  Crud,
-  Followable,
-  Joinable,
-  ListingType,
-  SortType,
+  comment::*, comment_view::*, community::*, community_view::*, moderator::*, naive_now,
+  password_reset_request::*, post::*, post_view::*, private_message::*, private_message_view::*,
+  site::*, site_view::*, user::*, user_mention::*, user_mention_view::*, user_view::*, Crud,
+  Followable, Joinable, ListingType, SortType,
 };
 use lemmy_utils::{
-  generate_actor_keypair,
-  generate_random_string,
-  is_valid_preferred_username,
-  is_valid_username,
-  location_info,
-  make_apub_endpoint,
-  naive_from_unix,
-  remove_slurs,
-  send_email,
-  settings::Settings,
+  generate_actor_keypair, generate_random_string, is_valid_username, make_apub_endpoint,
+  naive_from_unix, remove_slurs, send_email, settings::Settings, slur_check, slurs_vec_to_str,
   EndpointType,
 };
 use log::error;
@@ -355,24 +326,9 @@ impl Perform for Register {
       return Err(APIError::err("passwords_dont_match").into());
     }
 
-    // If its not the admin, check the captcha
-    if !data.admin && Settings::get().captcha.enabled {
-      let check = context
-        .chat_server()
-        .send(CheckCaptcha {
-          uuid: data
-            .captcha_uuid
-            .to_owned()
-            .unwrap_or_else(|| "".to_string()),
-          answer: data
-            .captcha_answer
-            .to_owned()
-            .unwrap_or_else(|| "".to_string()),
-        })
-        .await?;
-      if !check {
-        return Err(APIError::err("captcha_incorrect").into());
-      }
+    // Make sure the username doesn't contain slurs
+    if let Err(slurs) = slur_check(&data.username) {
+      return Err(APIError::err(&slurs_vec_to_str(slurs)).into());
     }
 
     check_slurs(&data.username)?;
