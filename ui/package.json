@@ -47,6 +47,7 @@
     "node-fetch": "^2.6.0",
     "prettier": "^2.0.4",
     "reconnecting-websocket": "^4.4.0",
+    "register-service-worker": "^1.7.1",
     "rxjs": "^6.5.5",
     "terser": "^4.6.11",
     "tippy.js": "^6.1.1",
