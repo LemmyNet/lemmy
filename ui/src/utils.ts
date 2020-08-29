@@ -85,7 +85,7 @@ export const languages = [
   { code: 'gl', name: 'Galego' },
   { code: 'hu', name: 'Magyar Nyelv' },
   { code: 'ka', name: 'ქართული ენა' },
-  { code: 'ko', name: '한국어/韓國語' },
+  { code: 'ko', name: '한국어' },
   { code: 'km', name: 'ភាសាខ្មែរ' },
   { code: 'hi', name: 'मानक हिन्दी' },
   { code: 'fa', name: 'فارسی' },
