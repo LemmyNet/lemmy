@@ -13,7 +13,7 @@ use crate::{
   blocking,
   fetch_iframely_and_pictrs_data,
   websocket::{
-    server::{GetPostUsersOnline, JoinCommunityRoom, JoinPostRoom, SendPost},
+    messages::{GetPostUsersOnline, JoinCommunityRoom, JoinPostRoom, SendPost},
     UserOperation,
   },
   ConnectionId,

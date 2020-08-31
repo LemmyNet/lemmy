@@ -1,6 +1,9 @@
 use crate::{
   get_ip,
-  websocket::server::{ChatServer, *},
+  websocket::{
+    chat_server::ChatServer,
+    messages::{Connect, Disconnect, StandardMessage, WSMessage},
+  },
   LemmyContext,
 };
 use actix::prelude::*;

@@ -14,7 +14,7 @@ use crate::{
   },
   blocking,
   websocket::{
-    server::{SendComment, SendCommunityRoomMessage, SendPost},
+    messages::{SendComment, SendCommunityRoomMessage, SendPost},
     UserOperation,
   },
   LemmyContext,

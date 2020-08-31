@@ -30,11 +30,9 @@ pub mod routes;
 pub mod version;
 pub mod websocket;
 
-use crate::{
-  request::{retry, RecvError},
-  websocket::server::ChatServer,
-};
+use crate::request::{retry, RecvError};
 
+use crate::websocket::chat_server::ChatServer;
 use actix::Addr;
 use actix_web::dev::ConnectionInfo;
 use anyhow::anyhow;

@@ -4,7 +4,7 @@ use crate::{
   apub::ActorType,
   blocking,
   websocket::{
-    server::{GetCommunityUsersOnline, JoinCommunityRoom, SendCommunityRoomMessage},
+    messages::{GetCommunityUsersOnline, JoinCommunityRoom, SendCommunityRoomMessage},
     UserOperation,
   },
   ConnectionId,

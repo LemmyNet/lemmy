@@ -12,7 +12,7 @@ use crate::{
   blocking,
   captcha_espeak_wav_base64,
   websocket::{
-    server::{CaptchaItem, CheckCaptcha, JoinUserRoom, SendAllMessage, SendUserRoomMessage},
+    messages::{CaptchaItem, CheckCaptcha, JoinUserRoom, SendAllMessage, SendUserRoomMessage},
     UserOperation,
   },
   ConnectionId,

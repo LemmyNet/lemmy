@@ -11,7 +11,7 @@ use crate::{
   apub::{ApubLikeableType, ApubObjectType},
   blocking,
   websocket::{
-    server::{JoinCommunityRoom, SendComment},
+    messages::{JoinCommunityRoom, SendComment},
     UserOperation,
   },
   ConnectionId,

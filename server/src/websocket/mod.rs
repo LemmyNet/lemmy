@@ -1,4 +1,6 @@
-pub mod server;
+pub mod chat_server;
+pub mod handlers;
+pub mod messages;
 
 use actix::prelude::*;
 use diesel::{
