@@ -267,9 +267,11 @@ impl<'a> PostQueryBuilder<'a> {
 
     let mut query = self.query;
 
-    if let ListingType::Subscribed = self.listing_type {
-      query = query.filter(subscribed.eq(true));
-    }
+    query = match self.listing_type {
+      ListingType::Subscribed => query.filter(subscribed.eq(true)),
+      ListingType::Local => query.filter(community_local.eq(true)),
+      _ => query,
+    };
 
     if let Some(for_community_id) = self.for_community_id {
       query = query.filter(community_id.eq(for_community_id));

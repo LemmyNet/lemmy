@@ -67,6 +67,20 @@ export class ListingTypeSelect extends Component<
           />
           {i18n.t('all')}
         </label>
+        <label
+          className={`pointer btn btn-outline-secondary ${
+            this.state.type_ == ListingType.Local && 'active'
+          }`}
+        >
+          <input
+            id={`${this.id}-all`}
+            type="radio"
+            value={ListingType.Local}
+            checked={this.state.type_ == ListingType.Local}
+            onChange={linkEvent(this, this.handleTypeChange)}
+          />
+          {i18n.t('local')}
+        </label>
       </div>
     );
   }
