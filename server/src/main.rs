@@ -24,7 +24,7 @@ use lemmy_server::{
   code_migrations::run_advanced_migrations,
   rate_limit::{rate_limiter::RateLimiter, RateLimit},
   routes::*,
-  websocket::server::*,
+  websocket::chat_server::ChatServer,
   LemmyContext,
   LemmyError,
 };

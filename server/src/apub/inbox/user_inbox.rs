@@ -8,7 +8,7 @@ use crate::{
     FromApub,
   },
   blocking,
-  websocket::{server::SendUserRoomMessage, UserOperation},
+  websocket::{messages::SendUserRoomMessage, UserOperation},
   LemmyContext,
   LemmyError,
 };

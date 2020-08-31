@@ -13,7 +13,7 @@ use crate::{
   blocking,
   version,
   websocket::{
-    server::{GetUsersOnline, SendAllMessage},
+    messages::{GetUsersOnline, SendAllMessage},
     UserOperation,
   },
   ConnectionId,
