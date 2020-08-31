@@ -14,24 +14,29 @@ You need to have the following packages installed, the Docker service needs to b
 
 - docker
 - docker-compose
-- cargo
-- yarn
 
 Then run the following
 ```bash
 cd docker/federation
-./run-federation-test.bash -yarn
+./start-local-instances.bash
 ```
 
-The federation test sets up 3 instances:
+The federation test sets up 5 instances:
 
-Instance / Username | Location
---- | ---
-lemmy_alpha | [127.0.0.1:8540](http://127.0.0.1:8540)
-lemmy_beta | [127.0.0.1:8550](http://127.0.0.1:8550)
-lemmy_gamma | [127.0.0.1:8560](http://127.0.0.1:8560)
+Instance | Username | Location | Notes
+--- | --- | --- | ---
+lemmy-alpha | lemmy_alpha | [127.0.0.1:8540](http://127.0.0.1:8540) | federated with all other instances
+lemmy-beta | lemmy_beta | [127.0.0.1:8550](http://127.0.0.1:8550) | federated with all other instances
+lemmy-gamma | lemmy_gamma | [127.0.0.1:8560](http://127.0.0.1:8560) | federated with all other instances
+lemmy-delta | lemmy_delta | [127.0.0.1:8570](http://127.0.0.1:8570) | only allows federation with lemmy-beta
+lemmy-epsilon | lemmy_epsilon | [127.0.0.1:8580](http://127.0.0.1:8580) | uses blocklist, has lemmy-alpha blocked
 
 You can log into each using the instance name, and `lemmy` as the password, IE (`lemmy_alpha`, `lemmy`). 
+
+To start federation between instances, visit one of them and search for a user, community or post, like this:
+- `!main@lemmy-alpha:8540`
+- `http://lemmy-beta:8550/post/3`
+- `@lemmy-gamma@lemmy-gamma:8560`
 
 Firefox containers are a good way to test them interacting.
 
@@ -40,8 +45,8 @@ Firefox containers are a good way to test them interacting.
 To run a suite of suite of federation integration tests:
 
 ```bash
-cd docker/federation-test
-./run-tests.sh
+cd docker/federation
+./run-tests.bash
 ```
 
 ## Running on a server
