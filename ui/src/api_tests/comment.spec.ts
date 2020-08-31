@@ -1,3 +1,4 @@
+jest.setTimeout(120000);
 import {
   alpha,
   beta,
@@ -19,6 +20,7 @@ import {
   createCommunity,
   registerUser,
   API,
+  delay,
 } from './shared';
 
 import { PostResponse } from 'lemmy-js-client';
@@ -30,6 +32,7 @@ beforeAll(async () => {
   await followBeta(alpha);
   await followBeta(gamma);
   let search = await searchForBetaCommunity(alpha);
+  await delay(10000);
   postRes = await createPost(
     alpha,
     search.communities.filter(c => c.local == false)[0].id
@@ -47,6 +50,7 @@ test('Create a comment', async () => {
   expect(commentRes.comment.community_local).toBe(false);
   expect(commentRes.comment.creator_local).toBe(true);
   expect(commentRes.comment.score).toBe(1);
+  await delay();
 
   // Make sure that comment is liked on beta
   let searchBeta = await searchComment(beta, commentRes.comment);
@@ -64,12 +68,14 @@ test('Create a comment in a non-existent post', async () => {
 
 test('Update a comment', async () => {
   let commentRes = await createComment(alpha, postRes.post.id);
+  await delay();
   let updateCommentRes = await updateComment(alpha, commentRes.comment.id);
   expect(updateCommentRes.comment.content).toBe(
     'A jest test federated comment update'
   );
   expect(updateCommentRes.comment.community_local).toBe(false);
   expect(updateCommentRes.comment.creator_local).toBe(true);
+  await delay();
 
   // Make sure that post is updated on beta
   let searchBeta = await searchComment(beta, commentRes.comment);
@@ -79,23 +85,21 @@ test('Update a comment', async () => {
 
 test('Delete a comment', async () => {
   let commentRes = await createComment(alpha, postRes.post.id);
+  await delay();
+
   let deleteCommentRes = await deleteComment(
     alpha,
     true,
     commentRes.comment.id
   );
   expect(deleteCommentRes.comment.deleted).toBe(true);
+  await delay();
 
-  // Make sure that comment is deleted on beta
-  // The search doesnt work below, because it returns a tombstone / http::gone
-  // let searchBeta = await searchComment(beta, commentRes.comment);
-  // console.log(searchBeta);
-  // let betaComment = searchBeta.comments[0];
-  // Create a fake post, just to get the previous new post id
-  let createdBetaPostJustToGetId = await createPost(beta, 2);
-  let betaPost = await getPost(beta, createdBetaPostJustToGetId.post.id - 1);
-  let betaComment = betaPost.comments[0];
-  expect(betaComment.deleted).toBe(true);
+  // Make sure that comment is undefined on beta
+  let searchBeta = await searchComment(beta, commentRes.comment);
+  let betaComment = searchBeta.comments[0];
+  expect(betaComment).toBeUndefined();
+  await delay();
 
   let undeleteCommentRes = await deleteComment(
     alpha,
@@ -103,6 +107,7 @@ test('Delete a comment', async () => {
     commentRes.comment.id
   );
   expect(undeleteCommentRes.comment.deleted).toBe(false);
+  await delay();
 
   // Make sure that comment is undeleted on beta
   let searchBeta2 = await searchComment(beta, commentRes.comment);
@@ -112,6 +117,7 @@ test('Delete a comment', async () => {
 
 test('Remove a comment from admin and community on the same instance', async () => {
   let commentRes = await createComment(alpha, postRes.post.id);
+  await delay();
 
   // Get the id for beta
   let betaCommentId = (await searchComment(beta, commentRes.comment))
@@ -120,6 +126,7 @@ test('Remove a comment from admin and community on the same instance', async () 
   // The beta admin removes it (the community lives on beta)
   let removeCommentRes = await removeComment(beta, true, betaCommentId);
   expect(removeCommentRes.comment.removed).toBe(true);
+  await delay();
 
   // Make sure that comment is removed on alpha (it gets pushed since an admin from beta removed it)
   let refetchedPost = await getPost(alpha, postRes.post.id);
@@ -127,6 +134,7 @@ test('Remove a comment from admin and community on the same instance', async () 
 
   let unremoveCommentRes = await removeComment(beta, false, betaCommentId);
   expect(unremoveCommentRes.comment.removed).toBe(false);
+  await delay();
 
   // Make sure that comment is unremoved on beta
   let refetchedPost2 = await getPost(alpha, postRes.post.id);
@@ -142,15 +150,19 @@ test('Remove a comment from admin and community on different instance', async ()
 
   // New alpha user creates a community, post, and comment.
   let newCommunity = await createCommunity(newAlphaApi);
+  await delay();
   let newPost = await createPost(newAlphaApi, newCommunity.community.id);
+  await delay();
   let commentRes = await createComment(newAlphaApi, newPost.post.id);
   expect(commentRes.comment.content).toBeDefined();
+  await delay();
 
   // Beta searches that to cache it, then removes it
   let searchBeta = await searchComment(beta, commentRes.comment);
   let betaComment = searchBeta.comments[0];
   let removeCommentRes = await removeComment(beta, true, betaComment.id);
   expect(removeCommentRes.comment.removed).toBe(true);
+  await delay();
 
   // Make sure its not removed on alpha
   let refetchedPost = await getPost(newAlphaApi, newPost.post.id);
@@ -159,8 +171,10 @@ test('Remove a comment from admin and community on different instance', async ()
 
 test('Unlike a comment', async () => {
   let commentRes = await createComment(alpha, postRes.post.id);
+  await delay();
   let unlike = await likeComment(alpha, 0, commentRes.comment);
   expect(unlike.comment.score).toBe(0);
+  await delay();
 
   // Make sure that post is unliked on beta
   let searchBeta = await searchComment(beta, commentRes.comment);
@@ -173,6 +187,7 @@ test('Unlike a comment', async () => {
 
 test('Federated comment like', async () => {
   let commentRes = await createComment(alpha, postRes.post.id);
+  await delay();
 
   // Find the comment on beta
   let searchBeta = await searchComment(beta, commentRes.comment);
@@ -180,6 +195,7 @@ test('Federated comment like', async () => {
 
   let like = await likeComment(beta, 1, betaComment);
   expect(like.comment.score).toBe(2);
+  await delay();
 
   // Get the post from alpha, check the likes
   let post = await getPost(alpha, postRes.post.id);
@@ -189,6 +205,7 @@ test('Federated comment like', async () => {
 test('Reply to a comment', async () => {
   // Create a comment on alpha, find it on beta
   let commentRes = await createComment(alpha, postRes.post.id);
+  await delay();
   let searchBeta = await searchComment(beta, commentRes.comment);
   let betaComment = searchBeta.comments[0];
 
@@ -201,6 +218,7 @@ test('Reply to a comment', async () => {
   expect(replyRes.comment.creator_local).toBe(true);
   expect(replyRes.comment.parent_id).toBe(betaComment.id);
   expect(replyRes.comment.score).toBe(1);
+  await delay();
 
   // Make sure that comment is seen on alpha
   // TODO not sure why, but a searchComment back to alpha, for the ap_id of betas
@@ -219,6 +237,7 @@ test('Mention beta', async () => {
   // Create a mention on alpha
   let mentionContent = 'A test mention of @lemmy_beta@lemmy-beta:8550';
   let commentRes = await createComment(alpha, postRes.post.id);
+  await delay();
   let mentionRes = await createComment(
     alpha,
     postRes.post.id,
@@ -229,6 +248,7 @@ test('Mention beta', async () => {
   expect(mentionRes.comment.community_local).toBe(false);
   expect(mentionRes.comment.creator_local).toBe(true);
   expect(mentionRes.comment.score).toBe(1);
+  await delay();
 
   let mentionsRes = await getMentions(beta);
   expect(mentionsRes.mentions[0].content).toBeDefined();
@@ -239,6 +259,7 @@ test('Mention beta', async () => {
 
 test('Comment Search', async () => {
   let commentRes = await createComment(alpha, postRes.post.id);
+  await delay();
   let searchBeta = await searchComment(beta, commentRes.comment);
   expect(searchBeta.comments[0].ap_id).toBe(commentRes.comment.ap_id);
 });
@@ -247,6 +268,7 @@ test('A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   // Create a local post
   let alphaPost = await createPost(alpha, 2);
   expect(alphaPost.post.community_local).toBe(true);
+  await delay();
 
   // Make sure gamma sees it
   let search = await searchPost(gamma, alphaPost.post);
@@ -264,6 +286,7 @@ test('A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   expect(commentRes.comment.community_local).toBe(false);
   expect(commentRes.comment.creator_local).toBe(true);
   expect(commentRes.comment.score).toBe(1);
+  await delay();
 
   // Make sure alpha sees it
   let alphaPost2 = await getPost(alpha, alphaPost.post.id);
@@ -291,6 +314,7 @@ test('Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
   // B creates a post, and two comments, should be invisible to A
   let postRes = await createPost(beta, 2);
   expect(postRes.post.name).toBeDefined();
+  await delay();
 
   let parentCommentContent = 'An invisible top level comment from beta';
   let parentCommentRes = await createComment(
@@ -300,6 +324,7 @@ test('Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
     parentCommentContent
   );
   expect(parentCommentRes.comment.content).toBe(parentCommentContent);
+  await delay();
 
   // B creates a comment, then a child one of that.
   let childCommentContent = 'An invisible child comment from beta';
@@ -310,11 +335,13 @@ test('Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
     childCommentContent
   );
   expect(childCommentRes.comment.content).toBe(childCommentContent);
+  await delay();
 
   // Follow beta again
   let follow = await followBeta(alpha);
   expect(follow.community.local).toBe(false);
   expect(follow.community.name).toBe('main');
+  await delay();
 
   // An update to the child comment on beta, should push the post, parent, and child to alpha now
   let updatedCommentContent = 'An update child comment from beta';
@@ -324,10 +351,14 @@ test('Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
     updatedCommentContent
   );
   expect(updateRes.comment.content).toBe(updatedCommentContent);
+  await delay();
 
   // Get the post from alpha
-  let createFakeAlphaPostToGetId = await createPost(alpha, 2);
-  let alphaPost = await getPost(alpha, createFakeAlphaPostToGetId.post.id - 1);
+  let search = await searchPost(alpha, postRes.post);
+  let alphaPostB = search.posts[0];
+  await delay();
+
+  let alphaPost = await getPost(alpha, alphaPostB.id);
   expect(alphaPost.post.name).toBeDefined();
   expect(alphaPost.comments[1].content).toBe(parentCommentContent);
   expect(alphaPost.comments[0].content).toBe(updatedCommentContent);

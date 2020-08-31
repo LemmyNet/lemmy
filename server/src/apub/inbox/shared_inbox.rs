@@ -66,6 +66,8 @@ pub async fn shared_inbox(
   let json = serde_json::to_string(&activity)?;
   debug!("Shared inbox received activity: {}", json);
 
+  // TODO: if we already received an activity with identical ID, then ignore this (same in other inboxes)
+
   let sender = &activity
     .actor()?
     .to_owned()

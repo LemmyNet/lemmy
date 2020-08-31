@@ -15,10 +15,12 @@ use crate::{
   PostId,
   UserId,
 };
-use actix_web::{client::Client, web};
+use actix_web::web;
 use anyhow::Context as acontext;
+use background_jobs::QueueHandle;
 use lemmy_db::naive_now;
 use lemmy_utils::location_info;
+use reqwest::Client;
 
 /// Chat server sends this messages to session
 #[derive(Message)]
@@ -181,6 +183,8 @@ pub struct ChatServer {
 
   /// An HTTP Client
   client: Client,
+
+  activity_queue: QueueHandle,
 }
 
 impl ChatServer {
@@ -188,6 +192,7 @@ impl ChatServer {
     pool: Pool<ConnectionManager<PgConnection>>,
     rate_limiter: RateLimit,
     client: Client,
+    activity_queue: QueueHandle,
   ) -> ChatServer {
     ChatServer {
       sessions: HashMap::new(),
@@ -199,6 +204,7 @@ impl ChatServer {
       rate_limiter,
       captchas: Vec::new(),
       client,
+      activity_queue,
     }
   }
 
@@ -460,6 +466,7 @@ impl ChatServer {
     };
 
     let client = self.client.clone();
+    let activity_queue = self.activity_queue.clone();
     async move {
       let msg = msg;
       let json: Value = serde_json::from_str(&msg.msg)?;
@@ -474,6 +481,7 @@ impl ChatServer {
         pool,
         chat_server: addr,
         client,
+        activity_queue,
       };
       let args = Args {
         context,

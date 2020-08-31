@@ -16,6 +16,7 @@ use openssl::{
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use url::Url;
 
 lazy_static! {
   static ref HTTP_SIG_CONFIG: Config = Config::new();
@@ -24,11 +25,11 @@ lazy_static! {
 /// Signs request headers with the given keypair.
 pub async fn sign(
   request: ClientRequest,
-  actor: &dyn ActorType,
   activity: String,
+  actor_id: &Url,
+  private_key: String,
 ) -> Result<DigestClient<String>, LemmyError> {
-  let signing_key_id = format!("{}#main-key", actor.actor_id()?);
-  let private_key = actor.private_key().context(location_info!())?;
+  let signing_key_id = format!("{}#main-key", actor_id);
 
   let digest_client = request
     .signature_with_digest(

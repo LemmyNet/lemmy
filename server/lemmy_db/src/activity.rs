@@ -113,7 +113,7 @@ mod tests {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
-      actor_id: "changeme_862362".into(),
+      actor_id: None,
       bio: None,
       local: true,
       private_key: None,

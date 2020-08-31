@@ -1,6 +1,7 @@
 use crate::{
   apub::{
-    activities::{generate_activity_id, send_activity},
+    activities::generate_activity_id,
+    activity_queue::send_activity,
     check_actor_domain,
     check_is_apub_id_valid,
     create_tombstone,
@@ -110,7 +111,7 @@ impl FromApub for PrivateMessageForm {
       updated: note.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
       read: None,
-      ap_id: check_actor_domain(note, expected_domain)?,
+      ap_id: Some(check_actor_domain(note, expected_domain)?),
       local: false,
     })
   }
@@ -134,13 +135,7 @@ impl ApubObjectType for PrivateMessage {
 
     insert_activity(creator.id, create.clone(), true, context.pool()).await?;
 
-    send_activity(
-      context.client(),
-      &create.into_any_base()?,
-      creator,
-      vec![to],
-    )
-    .await?;
+    send_activity(context.activity_queue(), create, creator, vec![to])?;
     Ok(())
   }
 
@@ -160,13 +155,7 @@ impl ApubObjectType for PrivateMessage {
 
     insert_activity(creator.id, update.clone(), true, context.pool()).await?;
 
-    send_activity(
-      context.client(),
-      &update.into_any_base()?,
-      creator,
-      vec![to],
-    )
-    .await?;
+    send_activity(context.activity_queue(), update, creator, vec![to])?;
     Ok(())
   }
 
@@ -185,13 +174,7 @@ impl ApubObjectType for PrivateMessage {
 
     insert_activity(creator.id, delete.clone(), true, context.pool()).await?;
 
-    send_activity(
-      context.client(),
-      &delete.into_any_base()?,
-      creator,
-      vec![to],
-    )
-    .await?;
+    send_activity(context.activity_queue(), delete, creator, vec![to])?;
     Ok(())
   }
 
@@ -221,7 +204,7 @@ impl ApubObjectType for PrivateMessage {
 
     insert_activity(creator.id, undo.clone(), true, context.pool()).await?;
 
-    send_activity(context.client(), &undo.into_any_base()?, creator, vec![to]).await?;
+    send_activity(context.activity_queue(), undo, creator, vec![to])?;
     Ok(())
   }
 

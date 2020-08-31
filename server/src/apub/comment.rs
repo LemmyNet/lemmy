@@ -192,7 +192,7 @@ impl FromApub for CommentForm {
       published: note.published().map(|u| u.to_owned().naive_local()),
       updated: note.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
-      ap_id: check_actor_domain(note, expected_domain)?,
+      ap_id: Some(check_actor_domain(note, expected_domain)?),
       local: false,
     })
   }
@@ -224,14 +224,7 @@ impl ApubObjectType for Comment {
       // Set the mention tags
       .set_many_tags(maa.get_tags()?);
 
-    send_activity_to_community(
-      &creator,
-      &community,
-      maa.inboxes,
-      create.into_any_base()?,
-      context,
-    )
-    .await?;
+    send_activity_to_community(&creator, &community, maa.inboxes, create, context).await?;
     Ok(())
   }
 
@@ -259,14 +252,7 @@ impl ApubObjectType for Comment {
       // Set the mention tags
       .set_many_tags(maa.get_tags()?);
 
-    send_activity_to_community(
-      &creator,
-      &community,
-      maa.inboxes,
-      update.into_any_base()?,
-      context,
-    )
-    .await?;
+    send_activity_to_community(&creator, &community, maa.inboxes, update, context).await?;
     Ok(())
   }
 
@@ -293,7 +279,7 @@ impl ApubObjectType for Comment {
       &creator,
       &community,
       vec![community.get_shared_inbox_url()?],
-      delete.into_any_base()?,
+      delete,
       context,
     )
     .await?;
@@ -336,7 +322,7 @@ impl ApubObjectType for Comment {
       &creator,
       &community,
       vec![community.get_shared_inbox_url()?],
-      undo.into_any_base()?,
+      undo,
       context,
     )
     .await?;
@@ -366,7 +352,7 @@ impl ApubObjectType for Comment {
       &mod_,
       &community,
       vec![community.get_shared_inbox_url()?],
-      remove.into_any_base()?,
+      remove,
       context,
     )
     .await?;
@@ -405,7 +391,7 @@ impl ApubObjectType for Comment {
       &mod_,
       &community,
       vec![community.get_shared_inbox_url()?],
-      undo.into_any_base()?,
+      undo,
       context,
     )
     .await?;
@@ -438,7 +424,7 @@ impl ApubLikeableType for Comment {
       &creator,
       &community,
       vec![community.get_shared_inbox_url()?],
-      like.into_any_base()?,
+      like,
       context,
     )
     .await?;
@@ -468,7 +454,7 @@ impl ApubLikeableType for Comment {
       &creator,
       &community,
       vec![community.get_shared_inbox_url()?],
-      dislike.into_any_base()?,
+      dislike,
       context,
     )
     .await?;
@@ -510,7 +496,7 @@ impl ApubLikeableType for Comment {
       &creator,
       &community,
       vec![community.get_shared_inbox_url()?],
-      undo.into_any_base()?,
+      undo,
       context,
     )
     .await?;

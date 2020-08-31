@@ -85,7 +85,7 @@ async fn receive_remove_post(
     embed_description: post.embed_description,
     embed_html: post.embed_html,
     thumbnail_url: post.thumbnail_url,
-    ap_id: post.ap_id,
+    ap_id: Some(post.ap_id),
     local: post.local,
     published: None,
   };
@@ -138,7 +138,7 @@ async fn receive_remove_comment(
     read: None,
     published: None,
     updated: Some(naive_now()),
-    ap_id: comment.ap_id,
+    ap_id: Some(comment.ap_id),
     local: comment.local,
   };
   let comment_id = comment.id;
@@ -182,7 +182,8 @@ async fn receive_remove_community(
 
   let community_actor_id = CommunityForm::from_apub(&group, context, Some(mod_.actor_id()?))
     .await?
-    .actor_id;
+    .actor_id
+    .context(location_info!())?;
 
   let community = blocking(context.pool(), move |conn| {
     Community::read_from_actor_id(conn, &community_actor_id)
@@ -200,7 +201,7 @@ async fn receive_remove_community(
     updated: Some(naive_now()),
     deleted: None,
     nsfw: community.nsfw,
-    actor_id: community.actor_id,
+    actor_id: Some(community.actor_id),
     local: community.local,
     private_key: community.private_key,
     public_key: community.public_key,

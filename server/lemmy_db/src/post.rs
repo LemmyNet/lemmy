@@ -53,13 +53,13 @@ pub struct PostForm {
   pub embed_description: Option<String>,
   pub embed_html: Option<String>,
   pub thumbnail_url: Option<String>,
-  pub ap_id: String,
+  pub ap_id: Option<String>,
   pub local: bool,
 }
 
 impl PostForm {
   pub fn get_ap_id(&self) -> Result<Url, ParseError> {
-    Url::parse(&self.ap_id)
+    Url::parse(&self.ap_id.as_ref().unwrap_or(&"not_a_url".to_string()))
   }
 }
 
@@ -180,12 +180,13 @@ impl Post {
   }
 
   pub fn upsert(conn: &PgConnection, post_form: &PostForm) -> Result<Post, Error> {
-    let existing = Self::read_from_apub_id(conn, &post_form.ap_id);
-    match existing {
-      Err(NotFound {}) => Ok(Self::create(conn, &post_form)?),
-      Ok(p) => Ok(Self::update(conn, p.id, &post_form)?),
-      Err(e) => Err(e),
-    }
+    use crate::schema::post::dsl::*;
+    insert_into(post)
+      .values(post_form)
+      .on_conflict(ap_id)
+      .do_update()
+      .set(post_form)
+      .get_result::<Self>(conn)
   }
 }
 
@@ -358,7 +359,7 @@ mod tests {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
-      actor_id: "changeme_8292683678".into(),
+      actor_id: None,
       bio: None,
       local: true,
       private_key: None,
@@ -378,7 +379,7 @@ mod tests {
       deleted: None,
       updated: None,
       nsfw: false,
-      actor_id: "changeme_8223262378".into(),
+      actor_id: None,
       local: true,
       private_key: None,
       public_key: None,
@@ -406,7 +407,7 @@ mod tests {
       embed_description: None,
       embed_html: None,
       thumbnail_url: None,
-      ap_id: "http://fake.com".into(),
+      ap_id: None,
       local: true,
       published: None,
     };
@@ -431,7 +432,7 @@ mod tests {
       embed_description: None,
       embed_html: None,
       thumbnail_url: None,
-      ap_id: "http://fake.com".into(),
+      ap_id: inserted_post.ap_id.to_owned(),
       local: true,
     };
 

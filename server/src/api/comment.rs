@@ -146,7 +146,7 @@ impl Perform for CreateComment {
       read: None,
       published: None,
       updated: None,
-      ap_id: "http://fake.com".into(),
+      ap_id: None,
       local: true,
     };
 

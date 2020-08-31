@@ -27,7 +27,7 @@ pub struct PrivateMessageForm {
   pub read: Option<bool>,
   pub published: Option<chrono::NaiveDateTime>,
   pub updated: Option<chrono::NaiveDateTime>,
-  pub ap_id: String,
+  pub ap_id: Option<String>,
   pub local: bool,
 }
 
@@ -119,6 +119,17 @@ impl PrivateMessage {
     .set(read.eq(true))
     .get_results::<Self>(conn)
   }
+
+  // TODO use this
+  pub fn upsert(conn: &PgConnection, private_message_form: &PrivateMessageForm) -> Result<Self, Error> {
+    use crate::schema::private_message::dsl::*;
+    insert_into(private_message)
+      .values(private_message_form)
+      .on_conflict(ap_id)
+      .do_update()
+      .set(private_message_form)
+      .get_result::<Self>(conn)
+  }
 }
 
 #[cfg(test)]
@@ -153,7 +164,7 @@ mod tests {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
-      actor_id: "changeme_6723878".into(),
+      actor_id: None,
       bio: None,
       local: true,
       private_key: None,
@@ -181,7 +192,7 @@ mod tests {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
-      actor_id: "changeme_287263876".into(),
+      actor_id: None,
       bio: None,
       local: true,
       private_key: None,
@@ -199,7 +210,7 @@ mod tests {
       read: None,
       published: None,
       updated: None,
-      ap_id: "http://fake.com".into(),
+      ap_id: None,
       local: true,
     };
 
@@ -214,7 +225,7 @@ mod tests {
       read: false,
       updated: None,
       published: inserted_private_message.published,
-      ap_id: "http://fake.com".into(),
+      ap_id: inserted_private_message.ap_id.to_owned(),
       local: true,
     };
 

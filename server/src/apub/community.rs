@@ -1,7 +1,8 @@
 use crate::{
   api::{check_slurs, check_slurs_opt},
   apub::{
-    activities::{generate_activity_id, send_activity},
+    activities::generate_activity_id,
+    activity_queue::send_activity,
     check_actor_domain,
     create_apub_response,
     create_apub_tombstone_response,
@@ -155,7 +156,7 @@ impl ActorType for Community {
 
     insert_activity(self.creator_id, accept.clone(), true, context.pool()).await?;
 
-    send_activity(context.client(), &accept.into_any_base()?, self, vec![to]).await?;
+    send_activity(context.activity_queue(), accept, self, vec![to])?;
     Ok(())
   }
 
@@ -176,7 +177,7 @@ impl ActorType for Community {
     // Note: For an accept, since it was automatic, no one pushed a button,
     // the community was the actor.
     // But for delete, the creator is the actor, and does the signing
-    send_activity(context.client(), &delete.into_any_base()?, creator, inboxes).await?;
+    send_activity(context.activity_queue(), delete, creator, inboxes)?;
     Ok(())
   }
 
@@ -208,7 +209,7 @@ impl ActorType for Community {
     // Note: For an accept, since it was automatic, no one pushed a button,
     // the community was the actor.
     // But for delete, the creator is the actor, and does the signing
-    send_activity(context.client(), &undo.into_any_base()?, creator, inboxes).await?;
+    send_activity(context.activity_queue(), undo, creator, inboxes)?;
     Ok(())
   }
 
@@ -229,7 +230,7 @@ impl ActorType for Community {
     // Note: For an accept, since it was automatic, no one pushed a button,
     // the community was the actor.
     // But for delete, the creator is the actor, and does the signing
-    send_activity(context.client(), &remove.into_any_base()?, mod_, inboxes).await?;
+    send_activity(context.activity_queue(), remove, mod_, inboxes)?;
     Ok(())
   }
 
@@ -258,7 +259,7 @@ impl ActorType for Community {
     // Note: For an accept, since it was automatic, no one pushed a button,
     // the community was the actor.
     // But for remove , the creator is the actor, and does the signing
-    send_activity(context.client(), &undo.into_any_base()?, mod_, inboxes).await?;
+    send_activity(context.activity_queue(), undo, mod_, inboxes)?;
     Ok(())
   }
 
@@ -402,7 +403,7 @@ impl FromApub for CommunityForm {
       updated: group.inner.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
       nsfw: group.ext_one.sensitive,
-      actor_id: check_actor_domain(group, expected_domain)?,
+      actor_id: Some(check_actor_domain(group, expected_domain)?),
       local: false,
       private_key: None,
       public_key: Some(group.ext_two.to_owned().public_key.public_key_pem),
@@ -511,7 +512,7 @@ pub async fn do_announce(
   let community_shared_inbox = community.get_shared_inbox_url()?;
   to.retain(|x| x != &community_shared_inbox);
 
-  send_activity(context.client(), &announce.into_any_base()?, community, to).await?;
+  send_activity(context.activity_queue(), announce, community, to)?;
 
   Ok(())
 }

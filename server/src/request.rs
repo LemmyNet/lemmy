@@ -14,15 +14,15 @@ pub struct RecvError(pub String);
 pub async fn retry<F, Fut, T>(f: F) -> Result<T, LemmyError>
 where
   F: Fn() -> Fut,
-  Fut: Future<Output = Result<T, actix_web::client::SendRequestError>>,
+  Fut: Future<Output = Result<T, reqwest::Error>>,
 {
   retry_custom(|| async { Ok((f)().await) }).await
 }
 
-pub async fn retry_custom<F, Fut, T>(f: F) -> Result<T, LemmyError>
+async fn retry_custom<F, Fut, T>(f: F) -> Result<T, LemmyError>
 where
   F: Fn() -> Fut,
-  Fut: Future<Output = Result<Result<T, actix_web::client::SendRequestError>, LemmyError>>,
+  Fut: Future<Output = Result<Result<T, reqwest::Error>, LemmyError>>,
 {
   let mut response = Err(anyhow!("connect timeout").into());
 
@@ -30,7 +30,7 @@ where
     match (f)().await? {
       Ok(t) => return Ok(t),
       Err(e) => {
-        if is_connect_timeout(&e) {
+        if e.is_timeout() {
           response = Err(SendError(e.to_string()).into());
           continue;
         }
@@ -40,14 +40,4 @@ where
   }
 
   response
-}
-
-fn is_connect_timeout(e: &actix_web::client::SendRequestError) -> bool {
-  if let actix_web::client::SendRequestError::Connect(e) = e {
-    if let actix_web::client::ConnectError::Timeout = e {
-      return true;
-    }
-  }
-
-  false
 }

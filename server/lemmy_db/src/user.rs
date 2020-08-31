@@ -57,7 +57,7 @@ pub struct UserForm {
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
   pub matrix_user_id: Option<String>,
-  pub actor_id: String,
+  pub actor_id: Option<String>,
   pub bio: Option<String>,
   pub local: bool,
   pub private_key: Option<String>,
@@ -152,6 +152,15 @@ impl User_ {
   pub fn get_profile_url(&self, hostname: &str) -> String {
     format!("https://{}/u/{}", hostname, self.name)
   }
+
+  pub fn upsert(conn: &PgConnection, user_form: &UserForm) -> Result<User_, Error> {
+    insert_into(user_)
+      .values(user_form)
+      .on_conflict(actor_id)
+      .do_update()
+      .set(user_form)
+      .get_result::<Self>(conn)
+  }
 }
 
 #[cfg(test)]
@@ -180,7 +189,7 @@ mod tests {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
-      actor_id: "changeme_9826382637".into(),
+      actor_id: None,
       bio: None,
       local: true,
       private_key: None,

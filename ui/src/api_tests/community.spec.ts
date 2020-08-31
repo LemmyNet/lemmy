@@ -6,6 +6,7 @@ import {
   createCommunity,
   deleteCommunity,
   removeCommunity,
+  delay,
 } from './shared';
 
 beforeAll(async () => {
@@ -24,12 +25,14 @@ test('Create community', async () => {
 
 test('Delete community', async () => {
   let communityRes = await createCommunity(beta);
+  await delay();
   let deleteCommunityRes = await deleteCommunity(
     beta,
     true,
     communityRes.community.id
   );
   expect(deleteCommunityRes.community.deleted).toBe(true);
+  await delay();
 
   // Make sure it got deleted on A
   let search = await searchForBetaCommunity(alpha);
@@ -44,6 +47,7 @@ test('Delete community', async () => {
     communityRes.community.id
   );
   expect(undeleteCommunityRes.community.deleted).toBe(false);
+  await delay();
 
   // Make sure it got undeleted on A
   let search2 = await searchForBetaCommunity(alpha);
@@ -54,6 +58,7 @@ test('Delete community', async () => {
 
 test('Remove community', async () => {
   let communityRes = await createCommunity(beta);
+  await delay();
   let removeCommunityRes = await removeCommunity(
     beta,
     true,
@@ -66,6 +71,7 @@ test('Remove community', async () => {
   let communityA = search.communities[0];
   // TODO this fails currently, because no updates are pushed
   // expect(communityA.removed).toBe(true);
+  await delay();
 
   // unremove
   let unremoveCommunityRes = await removeCommunity(
@@ -74,6 +80,7 @@ test('Remove community', async () => {
     communityRes.community.id
   );
   expect(unremoveCommunityRes.community.removed).toBe(false);
+  await delay();
 
   // Make sure it got unremoved on A
   let search2 = await searchForBetaCommunity(alpha);

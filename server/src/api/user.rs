@@ -410,7 +410,7 @@ impl Perform for Register {
       lang: "browser".into(),
       show_avatars: true,
       send_notifications_to_email: false,
-      actor_id: make_apub_endpoint(EndpointType::User, &data.username).to_string(),
+      actor_id: Some(make_apub_endpoint(EndpointType::User, &data.username).to_string()),
       bio: None,
       local: true,
       private_key: Some(user_keypair.private_key),
@@ -441,37 +441,38 @@ impl Perform for Register {
     let main_community_keypair = generate_actor_keypair()?;
 
     // Create the main community if it doesn't exist
-    let main_community = match blocking(context.pool(), move |conn| Community::read(conn, 2))
-      .await?
-    {
-      Ok(c) => c,
-      Err(_e) => {
-        let default_community_name = "main";
-        let community_form = CommunityForm {
-          name: default_community_name.to_string(),
-          title: "The Default Community".to_string(),
-          description: Some("The Default Community".to_string()),
-          category_id: 1,
-          nsfw: false,
-          creator_id: inserted_user.id,
-          removed: None,
-          deleted: None,
-          updated: None,
-          actor_id: make_apub_endpoint(EndpointType::Community, default_community_name).to_string(),
-          local: true,
-          private_key: Some(main_community_keypair.private_key),
-          public_key: Some(main_community_keypair.public_key),
-          last_refreshed_at: None,
-          published: None,
-          icon: None,
-          banner: None,
-        };
-        blocking(context.pool(), move |conn| {
-          Community::create(conn, &community_form)
-        })
-        .await??
-      }
-    };
+    let main_community =
+      match blocking(context.pool(), move |conn| Community::read(conn, 2)).await? {
+        Ok(c) => c,
+        Err(_e) => {
+          let default_community_name = "main";
+          let community_form = CommunityForm {
+            name: default_community_name.to_string(),
+            title: "The Default Community".to_string(),
+            description: Some("The Default Community".to_string()),
+            category_id: 1,
+            nsfw: false,
+            creator_id: inserted_user.id,
+            removed: None,
+            deleted: None,
+            updated: None,
+            actor_id: Some(
+              make_apub_endpoint(EndpointType::Community, default_community_name).to_string(),
+            ),
+            local: true,
+            private_key: Some(main_community_keypair.private_key),
+            public_key: Some(main_community_keypair.public_key),
+            last_refreshed_at: None,
+            published: None,
+            icon: None,
+            banner: None,
+          };
+          blocking(context.pool(), move |conn| {
+            Community::create(conn, &community_form)
+          })
+          .await??
+        }
+      };
 
     // Sign them up for main community no matter what
     let community_follower_form = CommunityFollowerForm {
@@ -643,7 +644,7 @@ impl Perform for SaveUserSettings {
       lang: data.lang.to_owned(),
       show_avatars: data.show_avatars,
       send_notifications_to_email: data.send_notifications_to_email,
-      actor_id: read_user.actor_id,
+      actor_id: Some(read_user.actor_id),
       bio,
       local: read_user.local,
       private_key: read_user.private_key,
@@ -1218,7 +1219,7 @@ impl Perform for CreatePrivateMessage {
       deleted: None,
       read: None,
       updated: None,
-      ap_id: "http://fake.com".into(),
+      ap_id: None,
       local: true,
       published: None,
     };

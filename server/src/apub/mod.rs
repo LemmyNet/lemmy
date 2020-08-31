@@ -1,4 +1,5 @@
 pub mod activities;
+pub mod activity_queue;
 pub mod comment;
 pub mod community;
 pub mod extensions;
@@ -30,7 +31,7 @@ use activitystreams::{
   prelude::*,
 };
 use activitystreams_ext::{Ext1, Ext2};
-use actix_web::{body::Body, client::Client, HttpResponse};
+use actix_web::{body::Body, HttpResponse};
 use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
 use lemmy_db::{activity::do_insert_activity, user::User_};
@@ -42,6 +43,7 @@ use lemmy_utils::{
   MentionData,
 };
 use log::debug;
+use reqwest::Client;
 use serde::Serialize;
 use url::{ParseError, Url};
 
@@ -326,7 +328,7 @@ pub async fn fetch_webfinger_url(
   );
   debug!("Fetching webfinger url: {}", &fetch_url);
 
-  let mut response = retry(|| client.get(&fetch_url).send()).await?;
+  let response = retry(|| client.get(&fetch_url).send()).await?;
 
   let res: WebFingerResponse = response
     .json()

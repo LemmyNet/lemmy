@@ -198,7 +198,7 @@ export async function searchPost(
 ): Promise<SearchResponse> {
   let form: SearchForm = {
     q: post.ap_id,
-    type_: SearchType.All,
+    type_: SearchType.Posts,
     sort: SortType.TopAll,
   };
   return api.client.search(form);
@@ -220,7 +220,7 @@ export async function searchComment(
 ): Promise<SearchResponse> {
   let form: SearchForm = {
     q: comment.ap_id,
-    type_: SearchType.All,
+    type_: SearchType.Comments,
     sort: SortType.TopAll,
   };
   return api.client.search(form);
@@ -233,7 +233,7 @@ export async function searchForBetaCommunity(
   // Use short-hand search url
   let form: SearchForm = {
     q: '!main@lemmy-beta:8550',
-    type_: SearchType.All,
+    type_: SearchType.Communities,
     sort: SortType.TopAll,
   };
   return api.client.search(form);
@@ -247,7 +247,7 @@ export async function searchForUser(
   // Use short-hand search url
   let form: SearchForm = {
     q: apShortname,
-    type_: SearchType.All,
+    type_: SearchType.Users,
     sort: SortType.TopAll,
   };
   return api.client.search(form);
@@ -523,6 +523,11 @@ export async function followBeta(api: API): Promise<CommunityResponse> {
     return follow;
   }
 }
+
+export const delay = (millis: number = 1500) =>
+  new Promise((resolve, _reject) => {
+    setTimeout(_ => resolve(), millis);
+  });
 
 export function wrapper(form: any): string {
   return JSON.stringify(form);

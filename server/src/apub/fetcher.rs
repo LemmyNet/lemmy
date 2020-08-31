@@ -15,7 +15,6 @@ use crate::{
   LemmyError,
 };
 use activitystreams::{base::BaseExt, collection::OrderedCollection, object::Note, prelude::*};
-use actix_web::client::Client;
 use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
 use diesel::result::Error::NotFound;
@@ -35,6 +34,7 @@ use lemmy_db::{
 };
 use lemmy_utils::{get_apub_protocol_string, location_info};
 use log::debug;
+use reqwest::Client;
 use serde::Deserialize;
 use std::{fmt::Debug, time::Duration};
 use url::Url;
@@ -55,6 +55,9 @@ where
 
   let timeout = Duration::from_secs(60);
 
+  // speed up tests
+  // before: 305s
+  // after: 240s
   let json = retry(|| {
     client
       .get(url.as_str())
@@ -230,7 +233,7 @@ pub async fn get_or_fetch_and_upsert_user(
       let person = fetch_remote_object::<PersonExt>(context.client(), apub_id).await?;
 
       let uf = UserForm::from_apub(&person, context, Some(apub_id.to_owned())).await?;
-      let user = blocking(context.pool(), move |conn| User_::create(conn, &uf)).await??;
+      let user = blocking(context.pool(), move |conn| User_::upsert(conn, &uf)).await??;
 
       Ok(user)
     }
@@ -286,14 +289,7 @@ async fn fetch_remote_community(
   let group = fetch_remote_object::<GroupExt>(context.client(), apub_id).await?;
 
   let cf = CommunityForm::from_apub(&group, context, Some(apub_id.to_owned())).await?;
-  let community = blocking(context.pool(), move |conn| {
-    if let Some(cid) = community_id {
-      Community::update(conn, cid, &cf)
-    } else {
-      Community::create(conn, &cf)
-    }
-  })
-  .await??;
+  let community = blocking(context.pool(), move |conn| Community::upsert(conn, &cf)).await??;
 
   // Also add the community moderators too
   let attributed_to = group.inner.attributed_to().context(location_info!())?;
@@ -341,7 +337,7 @@ async fn fetch_remote_community(
   for o in outbox_items {
     let page = PageExt::from_any_base(o)?.context(location_info!())?;
     let post = PostForm::from_apub(&page, context, None).await?;
-    let post_ap_id = post.ap_id.clone();
+    let post_ap_id = post.ap_id.as_ref().context(location_info!())?.clone();
     // Check whether the post already exists in the local db
     let existing = blocking(context.pool(), move |conn| {
       Post::read_from_apub_id(conn, &post_ap_id)
@@ -349,7 +345,7 @@ async fn fetch_remote_community(
     .await?;
     match existing {
       Ok(e) => blocking(context.pool(), move |conn| Post::update(conn, e.id, &post)).await??,
-      Err(_) => blocking(context.pool(), move |conn| Post::create(conn, &post)).await??,
+      Err(_) => blocking(context.pool(), move |conn| Post::upsert(conn, &post)).await??,
     };
     // TODO: we need to send a websocket update here
   }
@@ -374,7 +370,7 @@ pub async fn get_or_fetch_and_insert_post(
       let post = fetch_remote_object::<PageExt>(context.client(), post_ap_id).await?;
       let post_form = PostForm::from_apub(&post, context, Some(post_ap_id.to_owned())).await?;
 
-      let post = blocking(context.pool(), move |conn| Post::create(conn, &post_form)).await??;
+      let post = blocking(context.pool(), move |conn| Post::upsert(conn, &post_form)).await??;
 
       Ok(post)
     }
@@ -404,7 +400,7 @@ pub async fn get_or_fetch_and_insert_comment(
         CommentForm::from_apub(&comment, context, Some(comment_ap_id.to_owned())).await?;
 
       let comment = blocking(context.pool(), move |conn| {
-        Comment::create(conn, &comment_form)
+        Comment::upsert(conn, &comment_form)
       })
       .await??;
 

@@ -187,7 +187,7 @@ impl Perform for CreatePost {
       embed_description: iframely_description,
       embed_html: iframely_html,
       thumbnail_url: pictrs_thumbnail,
-      ap_id: "http://fake.com".into(),
+      ap_id: None,
       local: true,
       published: None,
     };
@@ -518,7 +518,7 @@ impl Perform for EditPost {
       embed_description: iframely_description,
       embed_html: iframely_html,
       thumbnail_url: pictrs_thumbnail,
-      ap_id: orig_post.ap_id,
+      ap_id: Some(orig_post.ap_id),
       local: orig_post.local,
       published: None,
     };
