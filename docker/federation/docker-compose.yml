@@ -10,8 +10,7 @@ services:
       - "8570:8570"
       - "8580:8580"
     volumes:
-      # Hack to make this work from both docker/federation/ and docker/federation-test/
-      - ../federation/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx.conf:/etc/nginx/nginx.conf
     restart: on-failure
     depends_on:
       - pictrs
