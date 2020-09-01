@@ -1,9 +1,7 @@
-use crate::{
-  api::{comment::*, community::*, post::*, site::*, user::*, Perform},
-  rate_limit::RateLimit,
-  LemmyContext,
-};
+use crate::{api::Perform, LemmyContext};
 use actix_web::{error::ErrorBadRequest, *};
+use lemmy_api_structs::{comment::*, community::*, post::*, site::*, user::*};
+use lemmy_rate_limit::RateLimit;
 use serde::Serialize;
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {

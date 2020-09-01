@@ -1,5 +1,4 @@
 // This is for db migrations that require code
-use crate::LemmyError;
 use diesel::{
   sql_types::{Nullable, Text},
   *,
@@ -19,6 +18,7 @@ use lemmy_utils::{
   make_apub_endpoint,
   settings::Settings,
   EndpointType,
+  LemmyError,
 };
 use log::info;
 

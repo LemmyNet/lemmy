@@ -5,7 +5,6 @@ use crate::{
     get_user_from_jwt,
     get_user_from_jwt_opt,
     is_mod_or_admin,
-    APIError,
     Perform,
   },
   apub::{ApubLikeableType, ApubObjectType},
@@ -14,12 +13,11 @@ use crate::{
     messages::{JoinCommunityRoom, SendComment},
     UserOperation,
   },
-  ConnectionId,
   DbPool,
   LemmyContext,
-  LemmyError,
 };
 use actix_web::web::Data;
+use lemmy_api_structs::{comment::*, APIError};
 use lemmy_db::{
   comment::*,
   comment_view::*,
@@ -40,87 +38,13 @@ use lemmy_utils::{
   scrape_text_for_mentions,
   send_email,
   settings::Settings,
+  ConnectionId,
   EndpointType,
+  LemmyError,
   MentionData,
 };
 use log::error;
-use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-
-#[derive(Serialize, Deserialize)]
-pub struct CreateComment {
-  content: String,
-  parent_id: Option<i32>,
-  pub post_id: i32,
-  form_id: Option<String>,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct EditComment {
-  content: String,
-  edit_id: i32,
-  form_id: Option<String>,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct DeleteComment {
-  edit_id: i32,
-  deleted: bool,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct RemoveComment {
-  edit_id: i32,
-  removed: bool,
-  reason: Option<String>,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct MarkCommentAsRead {
-  edit_id: i32,
-  read: bool,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct SaveComment {
-  comment_id: i32,
-  save: bool,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct CommentResponse {
-  pub comment: CommentView,
-  pub recipient_ids: Vec<i32>,
-  pub form_id: Option<String>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct CreateCommentLike {
-  comment_id: i32,
-  score: i16,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct GetComments {
-  type_: String,
-  sort: String,
-  page: Option<i64>,
-  limit: Option<i64>,
-  pub community_id: Option<i32>,
-  auth: Option<String>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct GetCommentsResponse {
-  comments: Vec<CommentView>,
-}
 
 #[async_trait::async_trait(?Send)]
 impl Perform for CreateComment {

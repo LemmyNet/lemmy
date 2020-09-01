@@ -1,13 +1,7 @@
-use crate::{
-  api::{comment::CommentResponse, post::PostResponse},
-  websocket::UserOperation,
-  CommunityId,
-  ConnectionId,
-  IPAddr,
-  PostId,
-  UserId,
-};
+use crate::websocket::UserOperation;
 use actix::{prelude::*, Recipient};
+use lemmy_api_structs::{comment::CommentResponse, post::PostResponse};
+use lemmy_utils::{CommunityId, ConnectionId, IPAddr, PostId, UserId};
 use serde::{Deserialize, Serialize};
 
 /// Chat server sends this messages to session

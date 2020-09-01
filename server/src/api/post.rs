@@ -6,7 +6,6 @@ use crate::{
     get_user_from_jwt,
     get_user_from_jwt_opt,
     is_mod_or_admin,
-    APIError,
     Perform,
   },
   apub::{ApubLikeableType, ApubObjectType},
@@ -16,11 +15,10 @@ use crate::{
     messages::{GetPostUsersOnline, JoinCommunityRoom, JoinPostRoom, SendPost},
     UserOperation,
   },
-  ConnectionId,
   LemmyContext,
-  LemmyError,
 };
 use actix_web::web::Data;
+use lemmy_api_structs::{post::*, APIError};
 use lemmy_db::{
   comment_view::*,
   community_view::*,
@@ -35,109 +33,15 @@ use lemmy_db::{
   Saveable,
   SortType,
 };
-use lemmy_utils::{is_valid_post_title, make_apub_endpoint, EndpointType};
-use serde::{Deserialize, Serialize};
+use lemmy_utils::{
+  is_valid_post_title,
+  make_apub_endpoint,
+  ConnectionId,
+  EndpointType,
+  LemmyError,
+};
 use std::str::FromStr;
 use url::Url;
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct CreatePost {
-  name: String,
-  url: Option<String>,
-  body: Option<String>,
-  nsfw: bool,
-  pub community_id: i32,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct PostResponse {
-  pub post: PostView,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct GetPost {
-  pub id: i32,
-  auth: Option<String>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct GetPostResponse {
-  post: PostView,
-  comments: Vec<CommentView>,
-  community: CommunityView,
-  moderators: Vec<CommunityModeratorView>,
-  pub online: usize,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct GetPosts {
-  type_: String,
-  sort: String,
-  page: Option<i64>,
-  limit: Option<i64>,
-  pub community_id: Option<i32>,
-  pub community_name: Option<String>,
-  auth: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct GetPostsResponse {
-  pub posts: Vec<PostView>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct CreatePostLike {
-  post_id: i32,
-  score: i16,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct EditPost {
-  pub edit_id: i32,
-  name: String,
-  url: Option<String>,
-  body: Option<String>,
-  nsfw: bool,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct DeletePost {
-  pub edit_id: i32,
-  deleted: bool,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct RemovePost {
-  pub edit_id: i32,
-  removed: bool,
-  reason: Option<String>,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct LockPost {
-  pub edit_id: i32,
-  locked: bool,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct StickyPost {
-  pub edit_id: i32,
-  stickied: bool,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct SavePost {
-  post_id: i32,
-  save: bool,
-  auth: String,
-}
 
 #[async_trait::async_trait(?Send)]
 impl Perform for CreatePost {

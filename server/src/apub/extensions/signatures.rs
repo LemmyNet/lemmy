@@ -1,4 +1,4 @@
-use crate::{apub::ActorType, LemmyError};
+use crate::apub::ActorType;
 use activitystreams::unparsed::UnparsedMutExt;
 use activitystreams_ext::UnparsedExtension;
 use actix_web::{client::ClientRequest, HttpRequest};
@@ -7,7 +7,7 @@ use http_signature_normalization_actix::{
   digest::{DigestClient, SignExt},
   Config,
 };
-use lemmy_utils::location_info;
+use lemmy_utils::{location_info, LemmyError};
 use log::debug;
 use openssl::{
   hash::MessageDigest,

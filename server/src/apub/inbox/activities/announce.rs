@@ -12,7 +12,6 @@ use crate::{
     shared_inbox::{get_community_id_from_activity, receive_unhandled_activity},
   },
   LemmyContext,
-  LemmyError,
 };
 use activitystreams::{
   activity::*,
@@ -21,7 +20,7 @@ use activitystreams::{
 };
 use actix_web::HttpResponse;
 use anyhow::Context;
-use lemmy_utils::location_info;
+use lemmy_utils::{location_info, LemmyError};
 
 pub async fn receive_announce(
   activity: AnyBase,

@@ -18,17 +18,16 @@ use diesel::{
   PgConnection,
 };
 use lemmy_db::get_database_url_from_env;
+use lemmy_rate_limit::{rate_limiter::RateLimiter, RateLimit};
 use lemmy_server::{
   apub::activity_queue::create_activity_queue,
   blocking,
   code_migrations::run_advanced_migrations,
-  rate_limit::{rate_limiter::RateLimiter, RateLimit},
   routes::*,
   websocket::chat_server::ChatServer,
   LemmyContext,
-  LemmyError,
 };
-use lemmy_utils::{settings::Settings, CACHE_CONTROL_REGEX};
+use lemmy_utils::{settings::Settings, LemmyError, CACHE_CONTROL_REGEX};
 use reqwest::Client;
 use std::sync::Arc;
 use tokio::sync::Mutex;

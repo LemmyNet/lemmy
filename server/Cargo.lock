@@ -1795,6 +1795,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
+name = "lemmy_api_structs"
+version = "0.1.0"
+dependencies = [
+ "lemmy_db",
+ "serde 1.0.114",
+ "thiserror",
+]
+
+[[package]]
 name = "lemmy_db"
 version = "0.1.0"
 dependencies = [
@@ -1810,6 +1819,20 @@ dependencies = [
  "strum",
  "strum_macros",
  "url",
+]
+
+[[package]]
+name = "lemmy_rate_limit"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "futures",
+ "lemmy_api_structs",
+ "lemmy_utils",
+ "log",
+ "strum",
+ "strum_macros",
+ "tokio",
 ]
 
 [[package]]
@@ -1841,7 +1864,9 @@ dependencies = [
  "itertools",
  "jsonwebtoken",
  "lazy_static",
+ "lemmy_api_structs",
  "lemmy_db",
+ "lemmy_rate_limit",
  "lemmy_utils",
  "log",
  "openssl",
@@ -1864,6 +1889,8 @@ dependencies = [
 name = "lemmy_utils"
 version = "0.1.0"
 dependencies = [
+ "actix-web",
+ "anyhow",
  "chrono",
  "comrak",
  "config",

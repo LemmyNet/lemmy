@@ -20,7 +20,6 @@ use crate::{
   blocking,
   DbPool,
   LemmyContext,
-  LemmyError,
 };
 use activitystreams::{
   activity::{
@@ -54,6 +53,7 @@ use lemmy_utils::{
   location_info,
   remove_slurs,
   scrape_text_for_mentions,
+  LemmyError,
   MentionData,
 };
 use log::debug;

@@ -1,5 +1,4 @@
 use crate::{
-  api::site::SearchResponse,
   apub::{
     check_is_apub_id_valid,
     ActorType,
@@ -12,12 +11,12 @@ use crate::{
   blocking,
   request::{retry, RecvError},
   LemmyContext,
-  LemmyError,
 };
 use activitystreams::{base::BaseExt, collection::OrderedCollection, object::Note, prelude::*};
 use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
 use diesel::result::Error::NotFound;
+use lemmy_api_structs::site::SearchResponse;
 use lemmy_db::{
   comment::{Comment, CommentForm},
   comment_view::CommentView,
@@ -32,7 +31,7 @@ use lemmy_db::{
   Joinable,
   SearchType,
 };
-use lemmy_utils::{get_apub_protocol_string, location_info};
+use lemmy_utils::{get_apub_protocol_string, location_info, LemmyError};
 use log::debug;
 use reqwest::Client;
 use serde::Deserialize;

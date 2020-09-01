@@ -18,7 +18,6 @@ use crate::{
   blocking,
   DbPool,
   LemmyContext,
-  LemmyError,
 };
 use activitystreams::{
   activity::{
@@ -48,7 +47,7 @@ use lemmy_db::{
   post::Post,
   user::User_,
 };
-use lemmy_utils::{convert_datetime, get_apub_protocol_string, location_info};
+use lemmy_utils::{convert_datetime, get_apub_protocol_string, location_info, LemmyError};
 use serde::Deserialize;
 use url::Url;
 

@@ -20,7 +20,6 @@ use crate::{
   routes::webfinger::WebFingerResponse,
   DbPool,
   LemmyContext,
-  LemmyError,
 };
 use activitystreams::{
   activity::Follow,
@@ -40,6 +39,7 @@ use lemmy_utils::{
   get_apub_protocol_string,
   location_info,
   settings::Settings,
+  LemmyError,
   MentionData,
 };
 use log::debug;

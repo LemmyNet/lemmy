@@ -1,8 +1,13 @@
-use crate::{blocking, LemmyContext, LemmyError};
+use crate::{blocking, LemmyContext};
 use actix_web::{error::ErrorBadRequest, web::Query, *};
 use anyhow::anyhow;
 use lemmy_db::{community::Community, user::User_};
-use lemmy_utils::{settings::Settings, WEBFINGER_COMMUNITY_REGEX, WEBFINGER_USER_REGEX};
+use lemmy_utils::{
+  settings::Settings,
+  LemmyError,
+  WEBFINGER_COMMUNITY_REGEX,
+  WEBFINGER_USER_REGEX,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]

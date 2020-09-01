@@ -1,7 +1,4 @@
-use crate::{
-  apub::{check_is_apub_id_valid, extensions::signatures::sign, ActorType},
-  LemmyError,
-};
+use crate::apub::{check_is_apub_id_valid, extensions::signatures::sign, ActorType};
 use activitystreams::{
   base::{Extends, ExtendsExt},
   object::AsObject,
@@ -17,7 +14,7 @@ use background_jobs::{
   QueueHandle,
   WorkerConfig,
 };
-use lemmy_utils::{location_info, settings::Settings};
+use lemmy_utils::{location_info, settings::Settings, LemmyError};
 use log::warn;
 use serde::{Deserialize, Serialize};
 use std::{future::Future, pin::Pin};

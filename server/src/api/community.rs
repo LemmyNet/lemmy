@@ -6,7 +6,6 @@ use crate::{
     get_user_from_jwt_opt,
     is_admin,
     is_mod_or_admin,
-    APIError,
     Perform,
   },
   apub::ActorType,
@@ -15,12 +14,11 @@ use crate::{
     messages::{GetCommunityUsersOnline, JoinCommunityRoom, SendCommunityRoomMessage},
     UserOperation,
   },
-  ConnectionId,
   LemmyContext,
-  LemmyError,
 };
 use actix_web::web::Data;
 use anyhow::Context;
+use lemmy_api_structs::{community::*, APIError};
 use lemmy_db::{
   comment::Comment,
   comment_view::CommentQueryBuilder,
@@ -44,136 +42,11 @@ use lemmy_utils::{
   location_info,
   make_apub_endpoint,
   naive_from_unix,
+  ConnectionId,
   EndpointType,
+  LemmyError,
 };
-use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-
-#[derive(Serialize, Deserialize)]
-pub struct GetCommunity {
-  id: Option<i32>,
-  pub name: Option<String>,
-  auth: Option<String>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct GetCommunityResponse {
-  pub community: CommunityView,
-  pub moderators: Vec<CommunityModeratorView>,
-  pub online: usize,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct CreateCommunity {
-  name: String,
-  title: String,
-  description: Option<String>,
-  icon: Option<String>,
-  banner: Option<String>,
-  category_id: i32,
-  nsfw: bool,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct CommunityResponse {
-  pub community: CommunityView,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ListCommunities {
-  pub sort: String,
-  pub page: Option<i64>,
-  pub limit: Option<i64>,
-  pub auth: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ListCommunitiesResponse {
-  pub communities: Vec<CommunityView>,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct BanFromCommunity {
-  pub community_id: i32,
-  user_id: i32,
-  ban: bool,
-  remove_data: Option<bool>,
-  reason: Option<String>,
-  expires: Option<i64>,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct BanFromCommunityResponse {
-  user: UserView,
-  banned: bool,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct AddModToCommunity {
-  pub community_id: i32,
-  user_id: i32,
-  added: bool,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct AddModToCommunityResponse {
-  moderators: Vec<CommunityModeratorView>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct EditCommunity {
-  pub edit_id: i32,
-  title: String,
-  description: Option<String>,
-  icon: Option<String>,
-  banner: Option<String>,
-  category_id: i32,
-  nsfw: bool,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct DeleteCommunity {
-  pub edit_id: i32,
-  deleted: bool,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct RemoveCommunity {
-  pub edit_id: i32,
-  removed: bool,
-  reason: Option<String>,
-  expires: Option<i64>,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct FollowCommunity {
-  community_id: i32,
-  follow: bool,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct GetFollowedCommunities {
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct GetFollowedCommunitiesResponse {
-  communities: Vec<CommunityFollowerView>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct TransferCommunity {
-  community_id: i32,
-  user_id: i32,
-  auth: String,
-}
 
 #[async_trait::async_trait(?Send)]
 impl Perform for GetCommunity {

@@ -1,4 +1,3 @@
-use super::user::Register;
 use crate::{
   api::{
     check_slurs,
@@ -6,7 +5,6 @@ use crate::{
     get_user_from_jwt,
     get_user_from_jwt_opt,
     is_admin,
-    APIError,
     Perform,
   },
   apub::fetcher::search_by_apub_id,
@@ -16,12 +14,11 @@ use crate::{
     messages::{GetUsersOnline, SendAllMessage},
     UserOperation,
   },
-  ConnectionId,
   LemmyContext,
-  LemmyError,
 };
 use actix_web::web::Data;
 use anyhow::Context;
+use lemmy_api_structs::{site::*, user::Register, APIError};
 use lemmy_db::{
   category::*,
   comment_view::*,
@@ -33,132 +30,14 @@ use lemmy_db::{
   post_view::*,
   site::*,
   site_view::*,
-  user::*,
   user_view::*,
   Crud,
   SearchType,
   SortType,
 };
-use lemmy_utils::{location_info, settings::Settings};
+use lemmy_utils::{location_info, settings::Settings, ConnectionId, LemmyError};
 use log::{debug, info};
-use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-
-#[derive(Serialize, Deserialize)]
-pub struct ListCategories {}
-
-#[derive(Serialize, Deserialize)]
-pub struct ListCategoriesResponse {
-  categories: Vec<Category>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Search {
-  q: String,
-  type_: String,
-  community_id: Option<i32>,
-  sort: String,
-  page: Option<i64>,
-  limit: Option<i64>,
-  auth: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct SearchResponse {
-  pub type_: String,
-  pub comments: Vec<CommentView>,
-  pub posts: Vec<PostView>,
-  pub communities: Vec<CommunityView>,
-  pub users: Vec<UserView>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct GetModlog {
-  mod_user_id: Option<i32>,
-  community_id: Option<i32>,
-  page: Option<i64>,
-  limit: Option<i64>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct GetModlogResponse {
-  removed_posts: Vec<ModRemovePostView>,
-  locked_posts: Vec<ModLockPostView>,
-  stickied_posts: Vec<ModStickyPostView>,
-  removed_comments: Vec<ModRemoveCommentView>,
-  removed_communities: Vec<ModRemoveCommunityView>,
-  banned_from_community: Vec<ModBanFromCommunityView>,
-  banned: Vec<ModBanView>,
-  added_to_community: Vec<ModAddCommunityView>,
-  added: Vec<ModAddView>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct CreateSite {
-  pub name: String,
-  pub description: Option<String>,
-  pub icon: Option<String>,
-  pub banner: Option<String>,
-  pub enable_downvotes: bool,
-  pub open_registration: bool,
-  pub enable_nsfw: bool,
-  pub auth: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct EditSite {
-  name: String,
-  description: Option<String>,
-  icon: Option<String>,
-  banner: Option<String>,
-  enable_downvotes: bool,
-  open_registration: bool,
-  enable_nsfw: bool,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct GetSite {
-  auth: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct SiteResponse {
-  site: SiteView,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct GetSiteResponse {
-  site: Option<SiteView>,
-  admins: Vec<UserView>,
-  banned: Vec<UserView>,
-  pub online: usize,
-  version: String,
-  my_user: Option<User_>,
-  federated_instances: Vec<String>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct TransferSite {
-  user_id: i32,
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct GetSiteConfig {
-  auth: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct GetSiteConfigResponse {
-  config_hjson: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct SaveSiteConfig {
-  config_hjson: String,
-  auth: String,
-}
 
 #[async_trait::async_trait(?Send)]
 impl Perform for ListCategories {

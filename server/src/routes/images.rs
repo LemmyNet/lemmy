@@ -1,7 +1,7 @@
-use crate::rate_limit::RateLimit;
 use actix::clock::Duration;
 use actix_web::{body::BodyStream, http::StatusCode, *};
 use awc::Client;
+use lemmy_rate_limit::RateLimit;
 use lemmy_utils::settings::Settings;
 use serde::{Deserialize, Serialize};
 

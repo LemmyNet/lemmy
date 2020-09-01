@@ -1,5 +1,6 @@
-use super::IPAddr;
-use crate::{api::APIError, LemmyError};
+use lemmy_utils::IPAddr;
+use lemmy_utils::LemmyError;
+use lemmy_api_structs::APIError;
 use log::debug;
 use std::{collections::HashMap, time::SystemTime};
 use strum::IntoEnumIterator;
@@ -27,7 +28,7 @@ pub struct RateLimiter {
 impl Default for RateLimiter {
   fn default() -> Self {
     Self {
-      buckets: HashMap::new(),
+      buckets: HashMap::<RateLimitType, HashMap<IPAddr, RateLimitBucket>>::new(),
     }
   }
 }
