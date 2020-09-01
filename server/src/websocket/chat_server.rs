@@ -1,6 +1,5 @@
-use super::*;
 use crate::{
-  api::{comment::*, community::*, post::*, site::*, user::*, *},
+  api::{comment::*, community::*, post::*, site::*, user::*, APIError},
   rate_limit::RateLimit,
   websocket::{
     handlers::{do_user_operation, to_json_string, Args},
@@ -15,10 +14,22 @@ use crate::{
   PostId,
   UserId,
 };
+use actix::prelude::*;
 use anyhow::Context as acontext;
 use background_jobs::QueueHandle;
+use diesel::{
+  r2d2::{ConnectionManager, Pool},
+  PgConnection,
+};
 use lemmy_utils::location_info;
+use rand::rngs::ThreadRng;
 use reqwest::Client;
+use serde::Serialize;
+use serde_json::Value;
+use std::{
+  collections::{HashMap, HashSet},
+  str::FromStr,
+};
 
 /// `ChatServer` manages chat rooms and responsible for coordinating chat
 /// session.

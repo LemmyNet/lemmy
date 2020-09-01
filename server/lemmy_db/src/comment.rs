@@ -1,6 +1,9 @@
-use super::{post::Post, *};
+use super::{post::Post};
 use crate::schema::{comment, comment_like, comment_saved};
 use url::{ParseError, Url};
+use diesel::{dsl::*, result::Error, *};
+use serde::{Deserialize, Serialize};
+use crate::{Crud, naive_now, Likeable, Saveable};
 
 // WITH RECURSIVE MyTree AS (
 //     SELECT * FROM comment WHERE parent_id IS NULL
@@ -249,7 +252,8 @@ impl Saveable<CommentSavedForm> for CommentSaved {
 
 #[cfg(test)]
 mod tests {
-  use crate::{comment::*, community::*, post::*, tests::establish_unpooled_connection, user::*};
+  use crate::{comment::*, community::*, post::*, tests::establish_unpooled_connection, user::*, SortType, ListingType};
+  use crate::Crud;
 
   #[test]
   fn test_crud() {
