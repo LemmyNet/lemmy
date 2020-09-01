@@ -78,10 +78,14 @@ impl PasswordResetRequest {
 
 #[cfg(test)]
 mod tests {
-  use super::{super::user::*};
-  use crate::{tests::establish_unpooled_connection, ListingType, SortType};
-  use crate::password_reset_request::PasswordResetRequest;
-  use crate::Crud;
+  use super::super::user::*;
+  use crate::{
+    password_reset_request::PasswordResetRequest,
+    tests::establish_unpooled_connection,
+    Crud,
+    ListingType,
+    SortType,
+  };
 
   #[test]
   fn test_crud() {
