@@ -273,5 +273,19 @@
     "spoiler": "innehållsvarning",
     "list": "lista",
     "not_a_moderator": "Inte en moderator.",
-    "invalid_url": "Ogiltig URL."
+    "invalid_url": "Ogiltig URL.",
+    "remove_posts_comments": "Ta bort inlägg och kommentarer",
+    "banner": "Omslagsbild",
+    "upload_banner": "Ladda upp omslagsbild",
+    "icon": "Ikon",
+    "upload_icon": "Ladda upp ikon",
+    "name_explain": "Namn – används som gemenskapens identifierare och kan inte ändras senare.",
+    "display_name": "Visningsnamn",
+    "active": "Aktivt",
+    "bio": "Presentation",
+    "instances": "Instanser",
+    "linked_instances": "Sammankopplade instanser",
+    "none_found": "Hittades inte.",
+    "leave_mod_team": "lämna moderationsgrupp",
+    "display_name_explain": "Visningsnamn – visas som titel på gemenskapens sida och kan ändras i efterhand."
 }
