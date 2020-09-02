@@ -11,6 +11,7 @@ members = [
     "lemmy_utils",
     "lemmy_db",
     "lemmy_api_structs",
+    "lemmy_rate_limit",
 ]
 
 [dependencies]

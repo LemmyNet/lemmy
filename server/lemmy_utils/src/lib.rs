@@ -1,5 +1,7 @@
 #[macro_use]
 pub extern crate lazy_static;
+pub extern crate actix_web;
+pub extern crate anyhow;
 pub extern crate comrak;
 pub extern crate lettre;
 pub extern crate lettre_email;
@@ -8,12 +10,11 @@ pub extern crate rand;
 pub extern crate regex;
 pub extern crate serde_json;
 pub extern crate url;
-pub extern crate actix_web;
-pub extern crate anyhow;
 
 pub mod settings;
 
 use crate::settings::Settings;
+use actix_web::dev::ConnectionInfo;
 use chrono::{DateTime, FixedOffset, Local, NaiveDateTime};
 use itertools::Itertools;
 use lettre::{
@@ -32,7 +33,6 @@ use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use regex::{Regex, RegexBuilder};
 use std::io::{Error, ErrorKind};
 use url::Url;
-use actix_web::dev::ConnectionInfo;
 
 pub type ConnectionId = usize;
 pub type PostId = i32;
@@ -58,8 +58,8 @@ pub struct LemmyError {
 }
 
 impl<T> From<T> for LemmyError
-  where
-    T: Into<anyhow::Error>,
+where
+  T: Into<anyhow::Error>,
 {
   fn from(t: T) -> Self {
     LemmyError { inner: t.into() }

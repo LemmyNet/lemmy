@@ -1,6 +1,5 @@
-use lemmy_utils::IPAddr;
-use lemmy_utils::LemmyError;
 use lemmy_api_structs::APIError;
+use lemmy_utils::{IPAddr, LemmyError};
 use log::debug;
 use std::{collections::HashMap, time::SystemTime};
 use strum::IntoEnumIterator;

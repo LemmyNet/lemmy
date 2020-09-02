@@ -1,13 +1,17 @@
 #[macro_use]
 pub extern crate strum_macros;
-pub extern crate tokio;
-pub extern crate futures;
 pub extern crate actix_web;
+pub extern crate futures;
 pub extern crate log;
+pub extern crate tokio;
 
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use futures::future::{ok, Ready};
-use lemmy_utils::settings::{RateLimitConfig, Settings};
+use lemmy_utils::{
+  get_ip,
+  settings::{RateLimitConfig, Settings},
+  LemmyError,
+};
 use rate_limiter::{RateLimitType, RateLimiter};
 use std::{
   future::Future,
@@ -16,8 +20,6 @@ use std::{
   task::{Context, Poll},
 };
 use tokio::sync::Mutex;
-use lemmy_utils::get_ip;
-use lemmy_utils::LemmyError;
 
 pub mod rate_limiter;
 

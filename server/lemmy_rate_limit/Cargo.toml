@@ -4,6 +4,10 @@ version = "0.1.0"
 authors = ["Felix Ableitner <me@nutomic.com>"]
 edition = "2018"
 
+[lib]
+name = "lemmy_rate_limit"
+path = "src/lib.rs"
+
 [dependencies]
 lemmy_utils = { path = "../lemmy_utils" }
 lemmy_api_structs = { path = "../lemmy_api_structs" }
