@@ -3,6 +3,10 @@ name = "lemmy_utils"
 version = "0.1.0"
 edition = "2018"
 
+[lib]
+name = "lemmy_utils"
+path = "src/lib.rs"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]

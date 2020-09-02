@@ -3,9 +3,7 @@ version: '3.3'
 services:
 
   lemmy:
-    build: 
-      context: ../../
-      dockerfile: docker/dev/Dockerfile
+    image: lemmy-dev:latest
     ports:
       - "8536:8536"
     restart: always

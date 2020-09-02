@@ -3,6 +3,10 @@ name = "lemmy_db"
 version = "0.1.0"
 edition = "2018"
 
+[lib]
+name = "lemmy_db"
+path = "src/lib.rs"
+
 [dependencies]
 diesel = { version = "1.4.4", features = ["postgres","chrono","r2d2","64-column-tables","serde_json"] }
 chrono = { version = "0.4.7", features = ["serde"] }
