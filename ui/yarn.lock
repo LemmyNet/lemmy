@@ -4938,10 +4938,10 @@ lego-api@^1.0.7:
   dependencies:
     chain-able "^3.0.0"
 
-lemmy-js-client@^1.0.8:
-  version "1.0.8"
-  resolved "https://registry.yarnpkg.com/lemmy-js-client/-/lemmy-js-client-1.0.8.tgz#98e34c8e3cd07427f883f60fad376dc4d6f46e7f"
-  integrity sha512-YZxD3+8RGz7cRKdI8EIe5iQqQIMm5WzdNz6zZ7/CdkMtXUv6YuMOEv8HLTvBoGuaWIJwlMJ+23NIarxlT26IEw==
+lemmy-js-client@^1.0.9:
+  version "1.0.9"
+  resolved "https://registry.yarnpkg.com/lemmy-js-client/-/lemmy-js-client-1.0.9.tgz#23cab713613612a524085d6bb3fc1d4042d262a8"
+  integrity sha512-QJc4d1HkSxjv555yH3MAOYbTfgbhmmvvuC1uhFvPwBlL5B5MTry/fWPRbtLfkYTxdZWftE+PYvLVKPr3/dFmxw==
 
 leven@^3.1.0:
   version "3.1.0"
@@ -7016,6 +7016,11 @@ regexpu-core@^4.1.3:
     regjsparser "^0.6.4"
     unicode-match-property-ecmascript "^1.0.4"
     unicode-match-property-value-ecmascript "^1.2.0"
+
+register-service-worker@^1.7.1:
+  version "1.7.1"
+  resolved "https://registry.yarnpkg.com/register-service-worker/-/register-service-worker-1.7.1.tgz#6308347ac6c0af0f6c0b22ea5d59d25e836bc932"
+  integrity sha512-IdTfUZ4u8iJL8o1w8es8l6UMGPmkwHolUdT+UmM1UypC80IB4KbpuIlvwWVj8UDS7eJwkEYRcKRgfRX+oTmJsw==
 
 registry-auth-token@^3.0.1:
   version "3.4.0"

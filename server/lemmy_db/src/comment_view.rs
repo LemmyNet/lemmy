@@ -241,9 +241,11 @@ impl<'a> CommentQueryBuilder<'a> {
       query = query.filter(content.ilike(fuzzy_search(&search_term)));
     };
 
-    if let ListingType::Subscribed = self.listing_type {
-      query = query.filter(subscribed.eq(true));
-    }
+    query = match self.listing_type {
+      ListingType::Subscribed => query.filter(subscribed.eq(true)),
+      ListingType::Local => query.filter(community_local.eq(true)),
+      _ => query,
+    };
 
     if self.saved_only {
       query = query.filter(saved.eq(true));
