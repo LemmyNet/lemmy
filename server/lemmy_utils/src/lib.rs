@@ -1,15 +1,16 @@
 #[macro_use]
-pub extern crate lazy_static;
-pub extern crate actix_web;
-pub extern crate anyhow;
-pub extern crate comrak;
-pub extern crate lettre;
-pub extern crate lettre_email;
-pub extern crate openssl;
-pub extern crate rand;
-pub extern crate regex;
-pub extern crate serde_json;
-pub extern crate url;
+extern crate lazy_static;
+extern crate actix_web;
+extern crate anyhow;
+extern crate comrak;
+extern crate lettre;
+extern crate lettre_email;
+extern crate openssl;
+extern crate rand;
+extern crate regex;
+extern crate serde_json;
+extern crate thiserror;
+extern crate url;
 
 pub mod settings;
 
@@ -32,6 +33,7 @@ use openssl::{pkey::PKey, rsa::Rsa};
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use regex::{Regex, RegexBuilder};
 use std::io::{Error, ErrorKind};
+use thiserror::Error;
 use url::Url;
 
 pub type ConnectionId = usize;
@@ -50,6 +52,20 @@ macro_rules! location_info {
       column!()
     )
   };
+}
+
+#[derive(Debug, Error)]
+#[error("{{\"error\":\"{message}\"}}")]
+pub struct APIError {
+  pub message: String,
+}
+
+impl APIError {
+  pub fn err(msg: &str) -> Self {
+    APIError {
+      message: msg.to_string(),
+    }
+  }
 }
 
 #[derive(Debug)]

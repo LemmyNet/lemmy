@@ -14,7 +14,7 @@ pub struct PasswordResetRequest {
   pub published: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Clone)]
+#[derive(Insertable, AsChangeset)]
 #[table_name = "password_reset_request"]
 pub struct PasswordResetRequestForm {
   pub user_id: i32,

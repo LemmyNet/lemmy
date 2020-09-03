@@ -124,7 +124,7 @@ table! {
 }
 
 #[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
+  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
 )]
 #[table_name = "community_fast_view"]
 pub struct CommunityView {

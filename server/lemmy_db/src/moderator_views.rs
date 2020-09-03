@@ -1,6 +1,6 @@
 use crate::limit_and_offset;
 use diesel::{result::Error, *};
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 
 table! {
   mod_remove_post_view (id) {
@@ -18,7 +18,7 @@ table! {
 }
 
 #[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
+  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
 )]
 #[table_name = "mod_remove_post_view"]
 pub struct ModRemovePostView {
@@ -78,7 +78,7 @@ table! {
 }
 
 #[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
+  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
 )]
 #[table_name = "mod_lock_post_view"]
 pub struct ModLockPostView {
@@ -137,7 +137,7 @@ table! {
 }
 
 #[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
+  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
 )]
 #[table_name = "mod_sticky_post_view"]
 pub struct ModStickyPostView {
@@ -201,7 +201,7 @@ table! {
 }
 
 #[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
+  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
 )]
 #[table_name = "mod_remove_comment_view"]
 pub struct ModRemoveCommentView {
@@ -265,7 +265,7 @@ table! {
 }
 
 #[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
+  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
 )]
 #[table_name = "mod_remove_community_view"]
 pub struct ModRemoveCommunityView {
@@ -321,7 +321,7 @@ table! {
 }
 
 #[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
+  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
 )]
 #[table_name = "mod_ban_from_community_view"]
 pub struct ModBanFromCommunityView {
@@ -382,7 +382,7 @@ table! {
 }
 
 #[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
+  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
 )]
 #[table_name = "mod_ban_view"]
 pub struct ModBanView {
@@ -436,7 +436,7 @@ table! {
 }
 
 #[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
+  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
 )]
 #[table_name = "mod_add_community_view"]
 pub struct ModAddCommunityView {
@@ -493,7 +493,7 @@ table! {
 }
 
 #[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
+  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
 )]
 #[table_name = "mod_add_view"]
 pub struct ModAddView {

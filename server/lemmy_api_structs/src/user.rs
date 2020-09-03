@@ -8,13 +8,13 @@ use lemmy_db::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct Login {
   pub username_or_email: String,
   pub password: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct Register {
   pub username: String,
   pub email: Option<String>,
@@ -26,22 +26,22 @@ pub struct Register {
   pub captcha_answer: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct GetCaptcha {}
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct GetCaptchaResponse {
   pub ok: Option<CaptchaResponse>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct CaptchaResponse {
   pub png: String,         // A Base64 encoded png
   pub wav: Option<String>, // A Base64 encoded wav audio
   pub uuid: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct SaveUserSettings {
   pub show_nsfw: bool,
   pub theme: String,
@@ -62,12 +62,12 @@ pub struct SaveUserSettings {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct LoginResponse {
   pub jwt: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct GetUserDetails {
   pub user_id: Option<i32>,
   pub username: Option<String>,
@@ -79,7 +79,7 @@ pub struct GetUserDetails {
   pub auth: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct GetUserDetailsResponse {
   pub user: UserView,
   pub follows: Vec<CommunityFollowerView>,
@@ -88,34 +88,34 @@ pub struct GetUserDetailsResponse {
   pub posts: Vec<PostView>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct GetRepliesResponse {
   pub replies: Vec<ReplyView>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct GetUserMentionsResponse {
   pub mentions: Vec<UserMentionView>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct MarkAllAsRead {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct AddAdmin {
   pub user_id: i32,
   pub added: bool,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Clone)]
 pub struct AddAdminResponse {
   pub admins: Vec<UserView>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct BanUser {
   pub user_id: i32,
   pub ban: bool,
@@ -125,13 +125,13 @@ pub struct BanUser {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Clone)]
 pub struct BanUserResponse {
   pub user: UserView,
   pub banned: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct GetReplies {
   pub sort: String,
   pub page: Option<i64>,
@@ -140,7 +140,7 @@ pub struct GetReplies {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct GetUserMentions {
   pub sort: String,
   pub page: Option<i64>,
@@ -149,68 +149,68 @@ pub struct GetUserMentions {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct MarkUserMentionAsRead {
   pub user_mention_id: i32,
   pub read: bool,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Clone)]
 pub struct UserMentionResponse {
   pub mention: UserMentionView,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct DeleteAccount {
   pub password: String,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct PasswordReset {
   pub email: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Clone)]
 pub struct PasswordResetResponse {}
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct PasswordChange {
   pub token: String,
   pub password: String,
   pub password_verify: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct CreatePrivateMessage {
   pub content: String,
   pub recipient_id: i32,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct EditPrivateMessage {
   pub edit_id: i32,
   pub content: String,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct DeletePrivateMessage {
   pub edit_id: i32,
   pub deleted: bool,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct MarkPrivateMessageAsRead {
   pub edit_id: i32,
   pub read: bool,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct GetPrivateMessages {
   pub unread_only: bool,
   pub page: Option<i64>,
@@ -218,22 +218,22 @@ pub struct GetPrivateMessages {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Clone)]
 pub struct PrivateMessagesResponse {
   pub messages: Vec<PrivateMessageView>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Clone)]
 pub struct PrivateMessageResponse {
   pub message: PrivateMessageView,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct UserJoin {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Clone)]
 pub struct UserJoinResponse {
   pub user_id: i32,
 }

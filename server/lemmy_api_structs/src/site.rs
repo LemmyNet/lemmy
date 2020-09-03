@@ -10,15 +10,15 @@ use lemmy_db::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct ListCategories {}
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct ListCategoriesResponse {
   pub categories: Vec<Category>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct Search {
   pub q: String,
   pub type_: String,
@@ -29,7 +29,7 @@ pub struct Search {
   pub auth: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
 pub struct SearchResponse {
   pub type_: String,
   pub comments: Vec<CommentView>,
@@ -38,7 +38,7 @@ pub struct SearchResponse {
   pub users: Vec<UserView>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct GetModlog {
   pub mod_user_id: Option<i32>,
   pub community_id: Option<i32>,
@@ -46,7 +46,7 @@ pub struct GetModlog {
   pub limit: Option<i64>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct GetModlogResponse {
   pub removed_posts: Vec<ModRemovePostView>,
   pub locked_posts: Vec<ModLockPostView>,
@@ -59,7 +59,7 @@ pub struct GetModlogResponse {
   pub added: Vec<ModAddView>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct CreateSite {
   pub name: String,
   pub description: Option<String>,
@@ -71,7 +71,7 @@ pub struct CreateSite {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct EditSite {
   pub name: String,
   pub description: Option<String>,
@@ -83,17 +83,17 @@ pub struct EditSite {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct GetSite {
   pub auth: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Clone)]
 pub struct SiteResponse {
   pub site: SiteView,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct GetSiteResponse {
   pub site: Option<SiteView>,
   pub admins: Vec<UserView>,
@@ -104,23 +104,23 @@ pub struct GetSiteResponse {
   pub federated_instances: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct TransferSite {
   pub user_id: i32,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct GetSiteConfig {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct GetSiteConfigResponse {
   pub config_hjson: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct SaveSiteConfig {
   pub config_hjson: String,
   pub auth: String,

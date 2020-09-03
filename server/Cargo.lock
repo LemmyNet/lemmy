@@ -1800,7 +1800,6 @@ version = "0.1.0"
 dependencies = [
  "lemmy_db",
  "serde 1.0.114",
- "thiserror",
 ]
 
 [[package]]
@@ -1827,7 +1826,6 @@ version = "0.1.0"
 dependencies = [
  "actix-web",
  "futures",
- "lemmy_api_structs",
  "lemmy_utils",
  "log",
  "strum",
@@ -1904,6 +1902,7 @@ dependencies = [
  "regex",
  "serde 1.0.114",
  "serde_json",
+ "thiserror",
  "url",
 ]
 

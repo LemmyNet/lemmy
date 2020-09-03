@@ -1,25 +1,25 @@
 #![recursion_limit = "512"]
 #[macro_use]
-pub extern crate strum_macros;
+extern crate strum_macros;
 #[macro_use]
-pub extern crate lazy_static;
-pub extern crate actix;
-pub extern crate actix_web;
-pub extern crate base64;
-pub extern crate bcrypt;
-pub extern crate captcha;
-pub extern crate chrono;
-pub extern crate diesel;
-pub extern crate dotenv;
-pub extern crate jsonwebtoken;
+extern crate lazy_static;
+extern crate actix;
+extern crate actix_web;
+extern crate base64;
+extern crate bcrypt;
+extern crate captcha;
+extern crate chrono;
+extern crate diesel;
+extern crate dotenv;
+extern crate jsonwebtoken;
 extern crate log;
-pub extern crate openssl;
-pub extern crate reqwest;
-pub extern crate rss;
-pub extern crate serde;
-pub extern crate serde_json;
-pub extern crate sha2;
-pub extern crate strum;
+extern crate openssl;
+extern crate reqwest;
+extern crate rss;
+extern crate serde;
+extern crate serde_json;
+extern crate sha2;
+extern crate strum;
 
 pub mod api;
 pub mod apub;

@@ -17,7 +17,7 @@ use crate::{
   LemmyContext,
 };
 use actix_web::web::Data;
-use lemmy_api_structs::{comment::*, APIError};
+use lemmy_api_structs::comment::*;
 use lemmy_db::{
   comment::*,
   comment_view::*,
@@ -38,6 +38,7 @@ use lemmy_utils::{
   scrape_text_for_mentions,
   send_email,
   settings::Settings,
+  APIError,
   ConnectionId,
   EndpointType,
   LemmyError,

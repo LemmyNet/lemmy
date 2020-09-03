@@ -1,9 +1,8 @@
 use super::comment::Comment;
 use crate::{schema::user_mention, Crud};
 use diesel::{dsl::*, result::Error, *};
-use serde::{Deserialize, Serialize};
 
-#[derive(Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Queryable, Associations, Identifiable, PartialEq, Debug)]
 #[belongs_to(Comment)]
 #[table_name = "user_mention"]
 pub struct UserMention {
@@ -14,7 +13,7 @@ pub struct UserMention {
   pub published: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Clone)]
+#[derive(Insertable, AsChangeset)]
 #[table_name = "user_mention"]
 pub struct UserMentionForm {
   pub recipient_id: i32,

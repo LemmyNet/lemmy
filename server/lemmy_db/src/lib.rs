@@ -1,17 +1,17 @@
 #[macro_use]
-pub extern crate diesel;
+extern crate diesel;
 #[macro_use]
-pub extern crate strum_macros;
+extern crate strum_macros;
 #[macro_use]
-pub extern crate lazy_static;
-pub extern crate bcrypt;
-pub extern crate chrono;
-pub extern crate log;
-pub extern crate regex;
-pub extern crate serde;
-pub extern crate serde_json;
-pub extern crate sha2;
-pub extern crate strum;
+extern crate lazy_static;
+extern crate bcrypt;
+extern crate chrono;
+extern crate log;
+extern crate regex;
+extern crate serde;
+extern crate serde_json;
+extern crate sha2;
+extern crate strum;
 
 use chrono::NaiveDateTime;
 use diesel::{result::Error, *};

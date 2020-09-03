@@ -18,7 +18,7 @@ use crate::{
 };
 use actix_web::web::Data;
 use anyhow::Context;
-use lemmy_api_structs::{site::*, user::Register, APIError};
+use lemmy_api_structs::{site::*, user::Register};
 use lemmy_db::{
   category::*,
   comment_view::*,
@@ -35,7 +35,7 @@ use lemmy_db::{
   SearchType,
   SortType,
 };
-use lemmy_utils::{location_info, settings::Settings, ConnectionId, LemmyError};
+use lemmy_utils::{location_info, settings::Settings, APIError, ConnectionId, LemmyError};
 use log::{debug, info};
 use std::str::FromStr;
 

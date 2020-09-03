@@ -4,21 +4,21 @@ use lemmy_db::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct GetCommunity {
   pub id: Option<i32>,
   pub name: Option<String>,
   pub auth: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct GetCommunityResponse {
   pub community: CommunityView,
   pub moderators: Vec<CommunityModeratorView>,
   pub online: usize,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct CreateCommunity {
   pub name: String,
   pub title: String,
@@ -30,12 +30,12 @@ pub struct CreateCommunity {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Clone)]
 pub struct CommunityResponse {
   pub community: CommunityView,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct ListCommunities {
   pub sort: String,
   pub page: Option<i64>,
@@ -43,12 +43,12 @@ pub struct ListCommunities {
   pub auth: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Debug)]
 pub struct ListCommunitiesResponse {
   pub communities: Vec<CommunityView>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Deserialize, Clone)]
 pub struct BanFromCommunity {
   pub community_id: i32,
   pub user_id: i32,
@@ -59,13 +59,13 @@ pub struct BanFromCommunity {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Clone)]
 pub struct BanFromCommunityResponse {
   pub user: UserView,
   pub banned: bool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct AddModToCommunity {
   pub community_id: i32,
   pub user_id: i32,
@@ -73,12 +73,12 @@ pub struct AddModToCommunity {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Clone)]
 pub struct AddModToCommunityResponse {
   pub moderators: Vec<CommunityModeratorView>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct EditCommunity {
   pub edit_id: i32,
   pub title: String,
@@ -90,14 +90,14 @@ pub struct EditCommunity {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct DeleteCommunity {
   pub edit_id: i32,
   pub deleted: bool,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct RemoveCommunity {
   pub edit_id: i32,
   pub removed: bool,
@@ -106,24 +106,24 @@ pub struct RemoveCommunity {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct FollowCommunity {
   pub community_id: i32,
   pub follow: bool,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct GetFollowedCommunities {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct GetFollowedCommunitiesResponse {
   pub communities: Vec<CommunityFollowerView>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct TransferCommunity {
   pub community_id: i32,
   pub user_id: i32,

@@ -1,9 +1,9 @@
 #[macro_use]
-pub extern crate strum_macros;
-pub extern crate actix_web;
-pub extern crate futures;
-pub extern crate log;
-pub extern crate tokio;
+extern crate strum_macros;
+extern crate actix_web;
+extern crate futures;
+extern crate log;
+extern crate tokio;
 
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use futures::future::{ok, Ready};

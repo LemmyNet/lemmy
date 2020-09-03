@@ -11,4 +11,3 @@ path = "src/lib.rs"
 [dependencies]
 lemmy_db = { path = "../lemmy_db" }
 serde = { version = "1.0.105", features = ["derive"] }
-thiserror = "1.0.20"

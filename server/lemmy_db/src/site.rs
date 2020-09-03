@@ -1,8 +1,7 @@
 use crate::{naive_now, schema::site, Crud};
 use diesel::{dsl::*, result::Error, *};
-use serde::{Deserialize, Serialize};
 
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "site"]
 pub struct Site {
   pub id: i32,
@@ -18,7 +17,7 @@ pub struct Site {
   pub banner: Option<String>,
 }
 
-#[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize)]
+#[derive(Insertable, AsChangeset)]
 #[table_name = "site"]
 pub struct SiteForm {
   pub name: String,

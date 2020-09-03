@@ -7,9 +7,8 @@ use crate::{
   Joinable,
 };
 use diesel::{dsl::*, result::Error, *};
-use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "community"]
 pub struct Community {
   pub id: i32,
@@ -32,7 +31,7 @@ pub struct Community {
   pub banner: Option<String>,
 }
 
-#[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize, Debug)]
+#[derive(Insertable, AsChangeset, Debug)]
 #[table_name = "community"]
 pub struct CommunityForm {
   pub name: String,

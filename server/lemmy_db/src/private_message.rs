@@ -1,8 +1,7 @@
 use crate::{naive_now, schema::private_message, Crud};
 use diesel::{dsl::*, result::Error, *};
-use serde::{Deserialize, Serialize};
 
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "private_message"]
 pub struct PrivateMessage {
   pub id: i32,
@@ -17,7 +16,7 @@ pub struct PrivateMessage {
   pub local: bool,
 }
 
-#[derive(Insertable, AsChangeset, Clone)]
+#[derive(Insertable, AsChangeset)]
 #[table_name = "private_message"]
 pub struct PrivateMessageForm {
   pub creator_id: i32,

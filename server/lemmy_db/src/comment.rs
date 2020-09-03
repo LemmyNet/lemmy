@@ -7,7 +7,6 @@ use crate::{
   Saveable,
 };
 use diesel::{dsl::*, result::Error, *};
-use serde::{Deserialize, Serialize};
 use url::{ParseError, Url};
 
 // WITH RECURSIVE MyTree AS (
@@ -17,7 +16,7 @@ use url::{ParseError, Url};
 // )
 // SELECT * FROM MyTree;
 
-#[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug)]
 #[belongs_to(Post)]
 #[table_name = "comment"]
 pub struct Comment {
@@ -230,7 +229,7 @@ pub struct CommentSaved {
   pub published: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Clone)]
+#[derive(Insertable, AsChangeset)]
 #[table_name = "comment_saved"]
 pub struct CommentSavedForm {
   pub comment_id: i32,

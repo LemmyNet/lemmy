@@ -13,9 +13,8 @@ use crate::{
   Crud,
 };
 use diesel::{dsl::*, result::Error, *};
-use serde::{Deserialize, Serialize};
 
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "mod_remove_post"]
 pub struct ModRemovePost {
   pub id: i32,
@@ -26,7 +25,7 @@ pub struct ModRemovePost {
   pub when_: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize)]
+#[derive(Insertable, AsChangeset)]
 #[table_name = "mod_remove_post"]
 pub struct ModRemovePostForm {
   pub mod_user_id: i32,
@@ -56,7 +55,7 @@ impl Crud<ModRemovePostForm> for ModRemovePost {
   }
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "mod_lock_post"]
 pub struct ModLockPost {
   pub id: i32,
@@ -66,7 +65,7 @@ pub struct ModLockPost {
   pub when_: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize)]
+#[derive(Insertable, AsChangeset)]
 #[table_name = "mod_lock_post"]
 pub struct ModLockPostForm {
   pub mod_user_id: i32,
@@ -95,7 +94,7 @@ impl Crud<ModLockPostForm> for ModLockPost {
   }
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "mod_sticky_post"]
 pub struct ModStickyPost {
   pub id: i32,
@@ -105,7 +104,7 @@ pub struct ModStickyPost {
   pub when_: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize)]
+#[derive(Insertable, AsChangeset)]
 #[table_name = "mod_sticky_post"]
 pub struct ModStickyPostForm {
   pub mod_user_id: i32,
@@ -134,7 +133,7 @@ impl Crud<ModStickyPostForm> for ModStickyPost {
   }
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "mod_remove_comment"]
 pub struct ModRemoveComment {
   pub id: i32,
@@ -145,7 +144,7 @@ pub struct ModRemoveComment {
   pub when_: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize)]
+#[derive(Insertable, AsChangeset)]
 #[table_name = "mod_remove_comment"]
 pub struct ModRemoveCommentForm {
   pub mod_user_id: i32,
@@ -175,7 +174,7 @@ impl Crud<ModRemoveCommentForm> for ModRemoveComment {
   }
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "mod_remove_community"]
 pub struct ModRemoveCommunity {
   pub id: i32,
@@ -187,7 +186,7 @@ pub struct ModRemoveCommunity {
   pub when_: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize)]
+#[derive(Insertable, AsChangeset)]
 #[table_name = "mod_remove_community"]
 pub struct ModRemoveCommunityForm {
   pub mod_user_id: i32,
@@ -222,7 +221,7 @@ impl Crud<ModRemoveCommunityForm> for ModRemoveCommunity {
   }
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "mod_ban_from_community"]
 pub struct ModBanFromCommunity {
   pub id: i32,
@@ -235,7 +234,7 @@ pub struct ModBanFromCommunity {
   pub when_: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize)]
+#[derive(Insertable, AsChangeset)]
 #[table_name = "mod_ban_from_community"]
 pub struct ModBanFromCommunityForm {
   pub mod_user_id: i32,
@@ -271,7 +270,7 @@ impl Crud<ModBanFromCommunityForm> for ModBanFromCommunity {
   }
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "mod_ban"]
 pub struct ModBan {
   pub id: i32,
@@ -283,7 +282,7 @@ pub struct ModBan {
   pub when_: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize)]
+#[derive(Insertable, AsChangeset)]
 #[table_name = "mod_ban"]
 pub struct ModBanForm {
   pub mod_user_id: i32,
@@ -312,7 +311,7 @@ impl Crud<ModBanForm> for ModBan {
   }
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "mod_add_community"]
 pub struct ModAddCommunity {
   pub id: i32,
@@ -323,7 +322,7 @@ pub struct ModAddCommunity {
   pub when_: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize)]
+#[derive(Insertable, AsChangeset)]
 #[table_name = "mod_add_community"]
 pub struct ModAddCommunityForm {
   pub mod_user_id: i32,
@@ -353,7 +352,7 @@ impl Crud<ModAddCommunityForm> for ModAddCommunity {
   }
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "mod_add"]
 pub struct ModAdd {
   pub id: i32,
@@ -363,7 +362,7 @@ pub struct ModAdd {
   pub when_: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize)]
+#[derive(Insertable, AsChangeset)]
 #[table_name = "mod_add"]
 pub struct ModAddForm {
   pub mod_user_id: i32,

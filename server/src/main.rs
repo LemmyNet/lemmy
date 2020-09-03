@@ -1,7 +1,5 @@
 #[macro_use]
 extern crate diesel_migrations;
-#[macro_use]
-pub extern crate lazy_static;
 
 use actix::prelude::*;
 use actix_web::{
@@ -17,6 +15,7 @@ use diesel::{
   r2d2::{ConnectionManager, Pool},
   PgConnection,
 };
+use lazy_static::lazy_static;
 use lemmy_db::get_database_url_from_env;
 use lemmy_rate_limit::{rate_limiter::RateLimiter, RateLimit};
 use lemmy_server::{

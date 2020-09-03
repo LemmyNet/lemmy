@@ -6,9 +6,9 @@ use crate::{
 };
 use bcrypt::{hash, DEFAULT_COST};
 use diesel::{dsl::*, result::Error, *};
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "user_"]
 pub struct User_ {
   pub id: i32,
@@ -38,7 +38,7 @@ pub struct User_ {
   pub banner: Option<String>,
 }
 
-#[derive(Insertable, AsChangeset, Clone, Debug)]
+#[derive(Insertable, AsChangeset, Clone)]
 #[table_name = "user_"]
 pub struct UserForm {
   pub name: String,

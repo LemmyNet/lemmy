@@ -3,16 +3,16 @@ use crate::{
   Crud,
 };
 use diesel::{dsl::*, result::Error, *};
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "category"]
 pub struct Category {
   pub id: i32,
   pub name: String,
 }
 
-#[derive(Insertable, AsChangeset, Clone, Serialize, Deserialize)]
+#[derive(Insertable, AsChangeset)]
 #[table_name = "category"]
 pub struct CategoryForm {
   pub name: String,

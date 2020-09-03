@@ -85,7 +85,7 @@ table! {
 }
 
 #[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
+  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
 )]
 #[table_name = "comment_fast_view"]
 pub struct CommentView {

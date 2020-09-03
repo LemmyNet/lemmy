@@ -1,7 +1,7 @@
 use lemmy_db::comment_view::CommentView;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct CreateComment {
   pub content: String,
   pub parent_id: Option<i32>,
@@ -10,7 +10,7 @@ pub struct CreateComment {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct EditComment {
   pub content: String,
   pub edit_id: i32,
@@ -18,14 +18,14 @@ pub struct EditComment {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct DeleteComment {
   pub edit_id: i32,
   pub deleted: bool,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct RemoveComment {
   pub edit_id: i32,
   pub removed: bool,
@@ -33,35 +33,35 @@ pub struct RemoveComment {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct MarkCommentAsRead {
   pub edit_id: i32,
   pub read: bool,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct SaveComment {
   pub comment_id: i32,
   pub save: bool,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Clone)]
 pub struct CommentResponse {
   pub comment: CommentView,
   pub recipient_ids: Vec<i32>,
   pub form_id: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct CreateCommentLike {
   pub comment_id: i32,
   pub score: i16,
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct GetComments {
   pub type_: String,
   pub sort: String,
@@ -71,7 +71,7 @@ pub struct GetComments {
   pub auth: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct GetCommentsResponse {
   pub comments: Vec<CommentView>,
 }

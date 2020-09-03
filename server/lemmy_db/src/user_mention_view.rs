@@ -1,6 +1,6 @@
 use crate::{limit_and_offset, MaybeOptional, SortType};
 use diesel::{dsl::*, pg::Pg, result::Error, *};
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 
 // The faked schema since diesel doesn't do views
 table! {
@@ -84,7 +84,7 @@ table! {
 }
 
 #[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
+  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
 )]
 #[table_name = "user_mention_fast_view"]
 pub struct UserMentionView {

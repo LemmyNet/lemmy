@@ -7,10 +7,9 @@ use crate::{
   Saveable,
 };
 use diesel::{dsl::*, result::Error, *};
-use serde::{Deserialize, Serialize};
 use url::{ParseError, Url};
 
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Queryable, Identifiable, PartialEq, Debug)]
 #[table_name = "post"]
 pub struct Post {
   pub id: i32,
@@ -34,7 +33,7 @@ pub struct Post {
   pub local: bool,
 }
 
-#[derive(Insertable, AsChangeset, Clone, Debug)]
+#[derive(Insertable, AsChangeset)]
 #[table_name = "post"]
 pub struct PostForm {
   pub name: String,
@@ -261,7 +260,7 @@ pub struct PostSaved {
   pub published: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Clone)]
+#[derive(Insertable, AsChangeset)]
 #[table_name = "post_saved"]
 pub struct PostSavedForm {
   pub post_id: i32,
@@ -299,7 +298,7 @@ pub struct PostRead {
   pub published: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable, AsChangeset, Clone)]
+#[derive(Insertable, AsChangeset)]
 #[table_name = "post_read"]
 pub struct PostReadForm {
   pub post_id: i32,

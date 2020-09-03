@@ -18,7 +18,7 @@ use crate::{
   LemmyContext,
 };
 use actix_web::web::Data;
-use lemmy_api_structs::{post::*, APIError};
+use lemmy_api_structs::post::*;
 use lemmy_db::{
   comment_view::*,
   community_view::*,
@@ -36,6 +36,7 @@ use lemmy_db::{
 use lemmy_utils::{
   is_valid_post_title,
   make_apub_endpoint,
+  APIError,
   ConnectionId,
   EndpointType,
   LemmyError,

@@ -14,7 +14,7 @@ use anyhow::Context;
 use bcrypt::verify;
 use captcha::{gen, Difficulty};
 use chrono::Duration;
-use lemmy_api_structs::{user::*, APIError};
+use lemmy_api_structs::user::*;
 use lemmy_db::{
   comment::*,
   comment_view::*,
@@ -51,6 +51,7 @@ use lemmy_utils::{
   remove_slurs,
   send_email,
   settings::Settings,
+  APIError,
   ConnectionId,
   EndpointType,
   LemmyError,
