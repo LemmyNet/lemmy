@@ -6,6 +6,7 @@ import { i18n } from '../i18next';
 
 interface ListingTypeSelectProps {
   type_: ListingType;
+  showLocal?: boolean;
   onChange?(val: ListingType): any;
 }
 
@@ -31,6 +32,7 @@ export class ListingTypeSelect extends Component<
   static getDerivedStateFromProps(props: any): ListingTypeSelectProps {
     return {
       type_: props.type_,
+      showLocal: props.showLocal,
     };
   }
 
@@ -53,6 +55,22 @@ export class ListingTypeSelect extends Component<
           />
           {i18n.t('subscribed')}
         </label>
+        {this.props.showLocal && (
+          <label
+            className={`pointer btn btn-outline-secondary ${
+              this.state.type_ == ListingType.Local && 'active'
+            }`}
+          >
+            <input
+              id={`${this.id}-local`}
+              type="radio"
+              value={ListingType.Local}
+              checked={this.state.type_ == ListingType.Local}
+              onChange={linkEvent(this, this.handleTypeChange)}
+            />
+            {i18n.t('local')}
+          </label>
+        )}
         <label
           className={`pointer btn btn-outline-secondary ${
             this.state.type_ == ListingType.All && 'active'

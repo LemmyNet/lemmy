@@ -37,7 +37,7 @@
     "inferno-router": "^7.4.2",
     "js-cookie": "^2.2.0",
     "jwt-decode": "^2.2.0",
-    "lemmy-js-client": "^1.0.8",
+    "lemmy-js-client": "^1.0.9",
     "markdown-it": "^11.0.0",
     "markdown-it-container": "^3.0.0",
     "markdown-it-emoji": "^1.4.0",

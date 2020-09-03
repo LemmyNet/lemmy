@@ -147,6 +147,7 @@ pub enum SortType {
 #[derive(EnumString, ToString, Debug, Serialize, Deserialize)]
 pub enum ListingType {
   All,
+  Local,
   Subscribed,
   Community,
 }
