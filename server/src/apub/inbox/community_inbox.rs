@@ -8,7 +8,6 @@ use crate::{
   },
   blocking,
   LemmyContext,
-  LemmyError,
 };
 use activitystreams::{
   activity::{ActorAndObject, Follow, Undo},
@@ -22,7 +21,7 @@ use lemmy_db::{
   user::User_,
   Followable,
 };
-use lemmy_utils::location_info;
+use lemmy_utils::{location_info, LemmyError};
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;

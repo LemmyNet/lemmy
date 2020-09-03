@@ -1,0 +1,19 @@
+[package]
+name = "lemmy_rate_limit"
+version = "0.1.0"
+authors = ["Felix Ableitner <me@nutomic.com>"]
+edition = "2018"
+
+[lib]
+name = "lemmy_rate_limit"
+path = "src/lib.rs"
+
+[dependencies]
+lemmy_utils = { path = "../lemmy_utils" }
+lemmy_api_structs = { path = "../lemmy_api_structs" }
+tokio = "0.2.21"
+strum = "0.18.0"
+strum_macros = "0.18.0"
+futures = "0.3.5"
+actix-web = { version = "3.0.0-alpha.3", features = ["rustls"] }
+log = "0.4.0"

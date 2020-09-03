@@ -1,5 +1,4 @@
 use crate::{
-  api::user::PrivateMessageResponse,
   apub::{
     check_is_apub_id_valid,
     extensions::signatures::verify,
@@ -10,7 +9,6 @@ use crate::{
   blocking,
   websocket::{messages::SendUserRoomMessage, UserOperation},
   LemmyContext,
-  LemmyError,
 };
 use activitystreams::{
   activity::{Accept, ActorAndObject, Create, Delete, Undo, Update},
@@ -20,6 +18,7 @@ use activitystreams::{
 };
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Context;
+use lemmy_api_structs::user::PrivateMessageResponse;
 use lemmy_db::{
   community::{CommunityFollower, CommunityFollowerForm},
   naive_now,
@@ -29,7 +28,7 @@ use lemmy_db::{
   Crud,
   Followable,
 };
-use lemmy_utils::location_info;
+use lemmy_utils::{location_info, LemmyError};
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;

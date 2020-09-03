@@ -1,8 +1,8 @@
-use crate::{blocking, version, LemmyContext, LemmyError};
+use crate::{blocking, version, LemmyContext};
 use actix_web::{body::Body, error::ErrorBadRequest, *};
 use anyhow::anyhow;
 use lemmy_db::site_view::SiteView;
-use lemmy_utils::{get_apub_protocol_string, settings::Settings};
+use lemmy_utils::{get_apub_protocol_string, settings::Settings, LemmyError};
 use serde::{Deserialize, Serialize};
 use url::Url;
 

@@ -1,5 +1,5 @@
-use crate::LemmyError;
 use anyhow::anyhow;
+use lemmy_utils::LemmyError;
 use std::future::Future;
 use thiserror::Error;
 

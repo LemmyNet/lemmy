@@ -1,5 +1,4 @@
 use crate::{
-  api::{comment::CommentResponse, post::PostResponse},
   apub::{
     fetcher::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
     inbox::shared_inbox::{
@@ -16,11 +15,11 @@ use crate::{
     UserOperation,
   },
   LemmyContext,
-  LemmyError,
 };
 use activitystreams::{activity::Dislike, base::AnyBase, object::Note, prelude::*};
 use actix_web::HttpResponse;
 use anyhow::Context;
+use lemmy_api_structs::{comment::CommentResponse, post::PostResponse};
 use lemmy_db::{
   comment::{CommentForm, CommentLike, CommentLikeForm},
   comment_view::CommentView,
@@ -28,7 +27,7 @@ use lemmy_db::{
   post_view::PostView,
   Likeable,
 };
-use lemmy_utils::location_info;
+use lemmy_utils::{location_info, LemmyError};
 
 pub async fn receive_dislike(
   activity: AnyBase,

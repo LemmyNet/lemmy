@@ -1,4 +1,4 @@
-use crate::{api::claims::Claims, blocking, LemmyContext, LemmyError};
+use crate::{api::claims::Claims, blocking, LemmyContext};
 use actix_web::{error::ErrorBadRequest, *};
 use anyhow::anyhow;
 use chrono::{DateTime, NaiveDateTime, Utc};
@@ -13,7 +13,7 @@ use lemmy_db::{
   ListingType,
   SortType,
 };
-use lemmy_utils::{markdown_to_html, settings::Settings};
+use lemmy_utils::{markdown_to_html, settings::Settings, LemmyError};
 use rss::{CategoryBuilder, ChannelBuilder, GuidBuilder, Item, ItemBuilder};
 use serde::Deserialize;
 use std::str::FromStr;

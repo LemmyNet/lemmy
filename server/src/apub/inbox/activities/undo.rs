@@ -1,5 +1,4 @@
 use crate::{
-  api::{comment::CommentResponse, community::CommunityResponse, post::PostResponse},
   apub::{
     fetcher::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
     inbox::shared_inbox::{
@@ -18,7 +17,6 @@ use crate::{
     UserOperation,
   },
   LemmyContext,
-  LemmyError,
 };
 use activitystreams::{
   activity::*,
@@ -28,6 +26,11 @@ use activitystreams::{
 };
 use actix_web::HttpResponse;
 use anyhow::{anyhow, Context};
+use lemmy_api_structs::{
+  comment::CommentResponse,
+  community::CommunityResponse,
+  post::PostResponse,
+};
 use lemmy_db::{
   comment::{Comment, CommentForm, CommentLike},
   comment_view::CommentView,
@@ -39,7 +42,7 @@ use lemmy_db::{
   Crud,
   Likeable,
 };
-use lemmy_utils::location_info;
+use lemmy_utils::{location_info, LemmyError};
 
 pub async fn receive_undo(
   activity: AnyBase,

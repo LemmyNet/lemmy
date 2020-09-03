@@ -1,5 +1,6 @@
-use crate::{api::claims::Claims, blocking, ConnectionId, DbPool, LemmyContext, LemmyError};
+use crate::{api::claims::Claims, blocking, DbPool, LemmyContext};
 use actix_web::web::Data;
+use lemmy_api_structs::APIError;
 use lemmy_db::{
   community::Community,
   community_view::CommunityUserBanView,
@@ -7,8 +8,7 @@ use lemmy_db::{
   user::User_,
   Crud,
 };
-use lemmy_utils::{slur_check, slurs_vec_to_str};
-use thiserror::Error;
+use lemmy_utils::{slur_check, slurs_vec_to_str, ConnectionId, LemmyError};
 
 pub mod claims;
 pub mod comment;
@@ -16,20 +16,6 @@ pub mod community;
 pub mod post;
 pub mod site;
 pub mod user;
-
-#[derive(Debug, Error)]
-#[error("{{\"error\":\"{message}\"}}")]
-pub struct APIError {
-  pub message: String,
-}
-
-impl APIError {
-  pub fn err(msg: &str) -> Self {
-    APIError {
-      message: msg.to_string(),
-    }
-  }
-}
 
 #[async_trait::async_trait(?Send)]
 pub trait Perform {

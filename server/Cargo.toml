@@ -9,12 +9,16 @@ lto = true
 [workspace]
 members = [
     "lemmy_utils",
-    "lemmy_db"
+    "lemmy_db",
+    "lemmy_api_structs",
+    "lemmy_rate_limit",
 ]
 
 [dependencies]
 lemmy_utils = { path = "./lemmy_utils" }
 lemmy_db = { path = "./lemmy_db" }
+lemmy_api_structs = { path = "./lemmy_api_structs" }
+lemmy_rate_limit = { path = "./lemmy_rate_limit" }
 diesel = "1.4.4"
 diesel_migrations = "1.4.0"
 dotenv = "0.15.0"

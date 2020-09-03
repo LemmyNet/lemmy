@@ -24,20 +24,19 @@ pub extern crate strum;
 pub mod api;
 pub mod apub;
 pub mod code_migrations;
-pub mod rate_limit;
 pub mod request;
 pub mod routes;
 pub mod version;
 pub mod websocket;
 
-use crate::request::{retry, RecvError};
-
-use crate::websocket::chat_server::ChatServer;
+use crate::{
+  request::{retry, RecvError},
+  websocket::chat_server::ChatServer,
+};
 use actix::Addr;
-use actix_web::dev::ConnectionInfo;
 use anyhow::anyhow;
 use background_jobs::QueueHandle;
-use lemmy_utils::{get_apub_protocol_string, settings::Settings};
+use lemmy_utils::{get_apub_protocol_string, settings::Settings, LemmyError};
 use log::error;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use reqwest::Client;
@@ -45,33 +44,6 @@ use serde::Deserialize;
 use std::process::Command;
 
 pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
-pub type ConnectionId = usize;
-pub type PostId = i32;
-pub type CommunityId = i32;
-pub type UserId = i32;
-pub type IPAddr = String;
-
-#[derive(Debug)]
-pub struct LemmyError {
-  inner: anyhow::Error,
-}
-
-impl<T> From<T> for LemmyError
-where
-  T: Into<anyhow::Error>,
-{
-  fn from(t: T) -> Self {
-    LemmyError { inner: t.into() }
-  }
-}
-
-impl std::fmt::Display for LemmyError {
-  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-    self.inner.fmt(f)
-  }
-}
-
-impl actix_web::error::ResponseError for LemmyError {}
 
 pub struct LemmyContext {
   pub pool: DbPool,
@@ -250,16 +222,6 @@ pub async fn is_image_content_type(client: &Client, test: &str) -> Result<(), Le
   } else {
     Err(anyhow!("Not an image type.").into())
   }
-}
-
-pub fn get_ip(conn_info: &ConnectionInfo) -> String {
-  conn_info
-    .realip_remote_addr()
-    .unwrap_or("127.0.0.1:12345")
-    .split(':')
-    .next()
-    .unwrap_or("127.0.0.1")
-    .to_string()
 }
 
 pub async fn blocking<F, T>(pool: &DbPool, f: F) -> Result<T, LemmyError>

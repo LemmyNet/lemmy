@@ -1,0 +1,14 @@
+[package]
+name = "lemmy_api_structs"
+version = "0.1.0"
+authors = ["Felix Ableitner <me@nutomic.com>"]
+edition = "2018"
+
+[lib]
+name = "lemmy_api_structs"
+path = "src/lib.rs"
+
+[dependencies]
+lemmy_db = { path = "../lemmy_db" }
+serde = { version = "1.0.105", features = ["derive"] }
+thiserror = "1.0.20"

@@ -1,5 +1,7 @@
 #[macro_use]
 pub extern crate lazy_static;
+pub extern crate actix_web;
+pub extern crate anyhow;
 pub extern crate comrak;
 pub extern crate lettre;
 pub extern crate lettre_email;
@@ -12,6 +14,7 @@ pub extern crate url;
 pub mod settings;
 
 use crate::settings::Settings;
+use actix_web::dev::ConnectionInfo;
 use chrono::{DateTime, FixedOffset, Local, NaiveDateTime};
 use itertools::Itertools;
 use lettre::{
@@ -31,6 +34,12 @@ use regex::{Regex, RegexBuilder};
 use std::io::{Error, ErrorKind};
 use url::Url;
 
+pub type ConnectionId = usize;
+pub type PostId = i32;
+pub type CommunityId = i32;
+pub type UserId = i32;
+pub type IPAddr = String;
+
 #[macro_export]
 macro_rules! location_info {
   () => {
@@ -42,6 +51,28 @@ macro_rules! location_info {
     )
   };
 }
+
+#[derive(Debug)]
+pub struct LemmyError {
+  inner: anyhow::Error,
+}
+
+impl<T> From<T> for LemmyError
+where
+  T: Into<anyhow::Error>,
+{
+  fn from(t: T) -> Self {
+    LemmyError { inner: t.into() }
+  }
+}
+
+impl std::fmt::Display for LemmyError {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    self.inner.fmt(f)
+  }
+}
+
+impl actix_web::error::ResponseError for LemmyError {}
 
 pub fn naive_from_unix(time: i64) -> NaiveDateTime {
   NaiveDateTime::from_timestamp(time, 0)
@@ -345,4 +376,14 @@ pub fn make_apub_endpoint(endpoint_type: EndpointType, name: &str) -> Url {
     name
   ))
   .unwrap()
+}
+
+pub fn get_ip(conn_info: &ConnectionInfo) -> String {
+  conn_info
+    .realip_remote_addr()
+    .unwrap_or("127.0.0.1:12345")
+    .split(':')
+    .next()
+    .unwrap_or("127.0.0.1")
+    .to_string()
 }
