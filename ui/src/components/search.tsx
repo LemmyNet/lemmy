@@ -311,7 +311,6 @@ export class Search extends Component<any, SearchState> {
               {i.type_ == 'users' && (
                 <div>
                   <span>
-                    @
                     <UserListing
                       user={{
                         name: (i.data as UserView).name,
@@ -398,11 +397,11 @@ export class Search extends Component<any, SearchState> {
           <div class="row">
             <div class="col-12">
               <span>
-                @
                 <UserListing
                   user={{
                     name: user.name,
                     avatar: user.avatar,
+                    preferred_username: user.preferred_username,
                   }}
                 />
               </span>
