@@ -121,7 +121,10 @@ impl PrivateMessage {
   }
 
   // TODO use this
-  pub fn upsert(conn: &PgConnection, private_message_form: &PrivateMessageForm) -> Result<Self, Error> {
+  pub fn upsert(
+    conn: &PgConnection,
+    private_message_form: &PrivateMessageForm,
+  ) -> Result<Self, Error> {
     use crate::schema::private_message::dsl::*;
     insert_into(private_message)
       .values(private_message_form)

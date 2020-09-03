@@ -1,6 +1,5 @@
-use super::*;
 use crate::{
-  api::{comment::*, post::*},
+  api::{comment::CommentResponse, post::PostResponse},
   websocket::UserOperation,
   CommunityId,
   ConnectionId,
@@ -8,6 +7,8 @@ use crate::{
   PostId,
   UserId,
 };
+use actix::{prelude::*, Recipient};
+use serde::{Deserialize, Serialize};
 
 /// Chat server sends this messages to session
 #[derive(Message)]

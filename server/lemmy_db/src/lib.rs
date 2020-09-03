@@ -14,7 +14,7 @@ pub extern crate sha2;
 pub extern crate strum;
 
 use chrono::NaiveDateTime;
-use diesel::{dsl::*, result::Error, *};
+use diesel::{result::Error, *};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{env, env::VarError};
