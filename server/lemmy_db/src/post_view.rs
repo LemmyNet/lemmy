@@ -1,7 +1,7 @@
 use super::post_view::post_fast_view::BoxedQuery;
 use crate::{fuzzy_search, limit_and_offset, ListingType, MaybeOptional, SortType};
 use diesel::{dsl::*, pg::Pg, result::Error, *};
-use serde::{Serialize};
+use serde::Serialize;
 
 // The faked schema since diesel doesn't do views
 table! {

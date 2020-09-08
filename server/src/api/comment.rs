@@ -674,6 +674,7 @@ impl Perform for GetComments {
     let sort = SortType::from_str(&data.sort)?;
 
     let community_id = data.community_id;
+    let community_name = data.community_name.to_owned();
     let page = data.page;
     let limit = data.limit;
     let comments = blocking(context.pool(), move |conn| {
@@ -681,6 +682,7 @@ impl Perform for GetComments {
         .listing_type(type_)
         .sort(&sort)
         .for_community_id(community_id)
+        .for_community_name(community_name)
         .my_user_id(user_id)
         .page(page)
         .limit(limit)
