@@ -769,6 +769,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "cargo-husky"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b02b629252fe8ef6460461409564e2c21d0c8e77e0944f3d189ff06c4e932ad"
+
+[[package]]
 name = "cc"
 version = "1.0.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1851,6 +1857,7 @@ dependencies = [
  "base64 0.12.3",
  "bcrypt",
  "captcha",
+ "cargo-husky",
  "chrono",
  "diesel",
  "diesel_migrations",
