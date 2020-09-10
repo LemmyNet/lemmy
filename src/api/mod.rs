@@ -1,11 +1,7 @@
 use crate::{api::claims::Claims, blocking, DbPool, LemmyContext};
 use actix_web::web::Data;
 use lemmy_db::{
-  community::Community,
-  community_view::CommunityUserBanView,
-  post::Post,
-  user::User_,
-  Crud,
+  community::Community, community_view::CommunityUserBanView, post::Post, user::User_, Crud,
 };
 use lemmy_utils::{slur_check, slurs_vec_to_str, APIError, ConnectionId, LemmyError};
 

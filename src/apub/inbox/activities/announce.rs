@@ -1,13 +1,8 @@
 use crate::{
   apub::inbox::{
     activities::{
-      create::receive_create,
-      delete::receive_delete,
-      dislike::receive_dislike,
-      like::receive_like,
-      remove::receive_remove,
-      undo::receive_undo,
-      update::receive_update,
+      create::receive_create, delete::receive_delete, dislike::receive_dislike, like::receive_like,
+      remove::receive_remove, undo::receive_undo, update::receive_update,
     },
     shared_inbox::{get_community_id_from_activity, receive_unhandled_activity},
   },

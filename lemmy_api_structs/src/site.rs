@@ -1,12 +1,6 @@
 use lemmy_db::{
-  category::*,
-  comment_view::*,
-  community_view::*,
-  moderator_views::*,
-  post_view::*,
-  site_view::*,
-  user::*,
-  user_view::*,
+  category::*, comment_view::*, community_view::*, moderator_views::*, post_view::*, site_view::*,
+  user::*, user_view::*,
 };
 use serde::{Deserialize, Serialize};
 

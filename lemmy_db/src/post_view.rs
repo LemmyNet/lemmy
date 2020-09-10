@@ -106,9 +106,7 @@ table! {
   }
 }
 
-#[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
-)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone)]
 #[table_name = "post_fast_view"]
 pub struct PostView {
   pub id: i32,
@@ -389,14 +387,8 @@ impl PostView {
 #[cfg(test)]
 mod tests {
   use crate::{
-    community::*,
-    post::*,
-    post_view::*,
-    tests::establish_unpooled_connection,
-    user::*,
-    Crud,
-    Likeable,
-    *,
+    community::*, post::*, post_view::*, tests::establish_unpooled_connection, user::*, Crud,
+    Likeable, *,
   };
 
   #[test]

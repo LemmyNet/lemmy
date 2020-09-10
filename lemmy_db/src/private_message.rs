@@ -137,11 +137,7 @@ impl PrivateMessage {
 #[cfg(test)]
 mod tests {
   use crate::{
-    private_message::*,
-    tests::establish_unpooled_connection,
-    user::*,
-    ListingType,
-    SortType,
+    private_message::*, tests::establish_unpooled_connection, user::*, ListingType, SortType,
   };
 
   #[test]

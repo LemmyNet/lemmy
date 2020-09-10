@@ -1,6 +1,6 @@
 use crate::{limit_and_offset, MaybeOptional};
 use diesel::{pg::Pg, result::Error, *};
-use serde::{Serialize};
+use serde::Serialize;
 
 // The faked schema since diesel doesn't do views
 table! {
@@ -28,9 +28,7 @@ table! {
   }
 }
 
-#[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
-)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone)]
 #[table_name = "private_message_view"]
 pub struct PrivateMessageView {
   pub id: i32,

@@ -3,8 +3,7 @@ use crate::{
     check_is_apub_id_valid,
     extensions::signatures::verify,
     fetcher::{get_or_fetch_and_upsert_actor, get_or_fetch_and_upsert_community},
-    insert_activity,
-    FromApub,
+    insert_activity, FromApub,
   },
   blocking,
   websocket::{messages::SendUserRoomMessage, UserOperation},
@@ -25,8 +24,7 @@ use lemmy_db::{
   private_message::{PrivateMessage, PrivateMessageForm},
   private_message_view::PrivateMessageView,
   user::User_,
-  Crud,
-  Followable,
+  Crud, Followable,
 };
 use lemmy_utils::{location_info, LemmyError};
 use log::debug;

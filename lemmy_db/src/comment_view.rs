@@ -84,9 +84,7 @@ table! {
   }
 }
 
-#[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
-)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone)]
 #[table_name = "comment_fast_view"]
 pub struct CommentView {
   pub id: i32,
@@ -497,15 +495,8 @@ impl<'a> ReplyQueryBuilder<'a> {
 #[cfg(test)]
 mod tests {
   use crate::{
-    comment::*,
-    comment_view::*,
-    community::*,
-    post::*,
-    tests::establish_unpooled_connection,
-    user::*,
-    Crud,
-    Likeable,
-    *,
+    comment::*, comment_view::*, community::*, post::*, tests::establish_unpooled_connection,
+    user::*, Crud, Likeable, *,
   };
 
   #[test]

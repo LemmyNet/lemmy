@@ -1,7 +1,7 @@
 use crate::{schema::activity, Crud};
 use diesel::{dsl::*, result::Error, *};
 use log::debug;
-use serde::{Serialize};
+use serde::Serialize;
 use serde_json::Value;
 use std::{
   fmt::Debug,
@@ -85,9 +85,7 @@ mod tests {
     activity::{Activity, ActivityForm},
     tests::establish_unpooled_connection,
     user::{UserForm, User_},
-    Crud,
-    ListingType,
-    SortType,
+    Crud, ListingType, SortType,
   };
   use serde_json::Value;
 

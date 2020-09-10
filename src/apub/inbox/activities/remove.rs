@@ -2,15 +2,10 @@ use crate::{
   apub::{
     fetcher::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
     inbox::shared_inbox::{
-      announce_if_community_is_local,
-      get_community_id_from_activity,
-      get_user_from_activity,
+      announce_if_community_is_local, get_community_id_from_activity, get_user_from_activity,
       receive_unhandled_activity,
     },
-    ActorType,
-    FromApub,
-    GroupExt,
-    PageExt,
+    ActorType, FromApub, GroupExt, PageExt,
   },
   blocking,
   websocket::{
@@ -23,9 +18,7 @@ use activitystreams::{activity::Remove, base::AnyBase, object::Note, prelude::*}
 use actix_web::HttpResponse;
 use anyhow::{anyhow, Context};
 use lemmy_api_structs::{
-  comment::CommentResponse,
-  community::CommunityResponse,
-  post::PostResponse,
+  comment::CommentResponse, community::CommunityResponse, post::PostResponse,
 };
 use lemmy_db::{
   comment::{Comment, CommentForm},

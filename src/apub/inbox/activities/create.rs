@@ -2,13 +2,9 @@ use crate::{
   api::comment::send_local_notifs,
   apub::{
     inbox::shared_inbox::{
-      announce_if_community_is_local,
-      get_user_from_activity,
-      receive_unhandled_activity,
+      announce_if_community_is_local, get_user_from_activity, receive_unhandled_activity,
     },
-    ActorType,
-    FromApub,
-    PageExt,
+    ActorType, FromApub, PageExt,
   },
   blocking,
   websocket::{

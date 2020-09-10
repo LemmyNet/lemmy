@@ -80,11 +80,8 @@ impl PasswordResetRequest {
 mod tests {
   use super::super::user::*;
   use crate::{
-    password_reset_request::PasswordResetRequest,
-    tests::establish_unpooled_connection,
-    Crud,
-    ListingType,
-    SortType,
+    password_reset_request::PasswordResetRequest, tests::establish_unpooled_connection, Crud,
+    ListingType, SortType,
   };
 
   #[test]

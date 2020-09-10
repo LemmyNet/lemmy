@@ -1,14 +1,7 @@
 use crate::{
   schema::{
-    mod_add,
-    mod_add_community,
-    mod_ban,
-    mod_ban_from_community,
-    mod_lock_post,
-    mod_remove_comment,
-    mod_remove_community,
-    mod_remove_post,
-    mod_sticky_post,
+    mod_add, mod_add_community, mod_ban, mod_ban_from_community, mod_lock_post, mod_remove_comment,
+    mod_remove_community, mod_remove_post, mod_sticky_post,
   },
   Crud,
 };
@@ -392,14 +385,8 @@ impl Crud<ModAddForm> for ModAdd {
 #[cfg(test)]
 mod tests {
   use crate::{
-    comment::*,
-    community::*,
-    moderator::*,
-    post::*,
-    tests::establish_unpooled_connection,
-    user::*,
-    ListingType,
-    SortType,
+    comment::*, community::*, moderator::*, post::*, tests::establish_unpooled_connection, user::*,
+    ListingType, SortType,
   };
 
   // use Crud;

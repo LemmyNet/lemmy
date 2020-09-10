@@ -24,9 +24,7 @@ use lettre::{
     extension::ClientId,
     ConnectionReuseParameters,
   },
-  ClientSecurity,
-  SmtpClient,
-  Transport,
+  ClientSecurity, SmtpClient, Transport,
 };
 use lettre_email::Email;
 use openssl::{pkey::PKey, rsa::Rsa};
@@ -223,14 +221,8 @@ pub fn is_valid_post_title(title: &str) -> bool {
 #[cfg(test)]
 mod tests {
   use crate::{
-    is_valid_community_name,
-    is_valid_post_title,
-    is_valid_preferred_username,
-    is_valid_username,
-    remove_slurs,
-    scrape_text_for_mentions,
-    slur_check,
-    slurs_vec_to_str,
+    is_valid_community_name, is_valid_post_title, is_valid_preferred_username, is_valid_username,
+    remove_slurs, scrape_text_for_mentions, slur_check, slurs_vec_to_str,
   };
 
   #[test]

@@ -10,8 +10,7 @@ use lemmy_db::{
   site_view::SiteView,
   user::User_,
   user_mention_view::{UserMentionQueryBuilder, UserMentionView},
-  ListingType,
-  SortType,
+  ListingType, SortType,
 };
 use lemmy_utils::{markdown_to_html, settings::Settings, LemmyError};
 use rss::{CategoryBuilder, ChannelBuilder, GuidBuilder, Item, ItemBuilder};

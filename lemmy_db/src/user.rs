@@ -1,12 +1,11 @@
 use crate::{
-  is_email_regex,
-  naive_now,
+  is_email_regex, naive_now,
   schema::{user_, user_::dsl::*},
   Crud,
 };
 use bcrypt::{hash, DEFAULT_COST};
 use diesel::{dsl::*, result::Error, *};
-use serde::{Serialize};
+use serde::Serialize;
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "user_"]
