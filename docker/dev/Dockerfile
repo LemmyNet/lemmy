@@ -1,15 +1,3 @@
-FROM node:10-jessie as node
-
-WORKDIR /app/ui
-
-# Cache deps
-COPY ui/package.json ui/yarn.lock ./
-RUN yarn install --pure-lockfile
-
-# Build 
-COPY ui /app/ui
-RUN yarn build
-
 FROM ekidd/rust-musl-builder:nightly-2020-05-07 as rust
 
 # Cache deps
@@ -64,8 +52,7 @@ RUN apk add espeak
 # Copy resources
 COPY server/config/defaults.hjson /config/defaults.hjson
 COPY --from=rust /app/server/target/x86_64-unknown-linux-musl/debug/lemmy_server /app/lemmy
-COPY --from=docs /app/docs/book/ /app/dist/documentation/
-COPY --from=node /app/ui/dist /app/dist
+COPY --from=docs /app/docs/book/ /app/documentation/
 
 RUN addgroup -g 1000 lemmy
 RUN adduser -D -s /bin/sh -u 1000 -G lemmy lemmy

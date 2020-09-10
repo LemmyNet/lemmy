@@ -13,7 +13,6 @@ pub struct Settings {
   pub bind: IpAddr,
   pub port: u16,
   pub jwt_secret: String,
-  pub front_end_dir: String,
   pub pictrs_url: String,
   pub rate_limit: RateLimitConfig,
   pub email: Option<EmailConfig>,

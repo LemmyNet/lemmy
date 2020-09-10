@@ -15,6 +15,14 @@ services:
       - pictrs
       - postgres
       - iframely
+  lemmy-isomorphic-ui:
+    image: lemmy-isomorphic-ui:latest
+    ports:
+      - "1235:1234"
+    environment:
+      - LEMMY_HOST=lemmy
+    depends_on: 
+      - lemmy
 
   postgres:
     image: postgres:12-alpine
