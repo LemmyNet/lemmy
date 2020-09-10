@@ -32,16 +32,8 @@ by the `cd` command.
 
 ### Build the backend (Rust)
 ```
-cd server
 cargo build
 # for development, use `cargo check` instead)
-```
-
-### Build the frontend (Typescript)
-```
-cd ui
-yarn
-yarn build
 ```
 
 ### Setup postgresql

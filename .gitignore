@@ -6,16 +6,14 @@ ansible/passwords/
 # docker build files
 docker/lemmy_mine.hjson
 docker/dev/env_deploy.sh
-docker/federation/volumes
-docker/federation-test/volumes
-docker/dev/volumes
-
-# local build files
-build/
-ui/src/translations
+volumes
 
 # ide config
-.idea/
-.vscode/
+.idea
+.vscode
 
+# local build files
 target
+env_setup.sh
+query_testing/*.json
+query_testing/*.json.old

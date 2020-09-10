@@ -87,7 +87,7 @@ impl Settings {
   /// added to the config.
   ///
   /// Note: The env var `LEMMY_DATABASE_URL` is parsed in
-  /// `server/lemmy_db/src/lib.rs::get_database_url_from_env()`
+  /// `lemmy_db/src/lib.rs::get_database_url_from_env()`
   fn init() -> Result<Self, ConfigError> {
     let mut s = Config::new();
 

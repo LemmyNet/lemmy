@@ -1,7 +1,7 @@
 # Configuration
 
 The configuration is based on the file
-[defaults.hjson](https://yerbamate.dev/LemmyNet/lemmy/src/branch/main/server/config/defaults.hjson).
+[defaults.hjson](https://yerbamate.dev/LemmyNet/lemmy/src/branch/main/config/defaults.hjson).
 This file also contains documentation for all the available options. To override the defaults, you
 can copy the options you want to change into your local `config.hjson` file.
 

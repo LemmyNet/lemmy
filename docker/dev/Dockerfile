@@ -15,22 +15,22 @@ RUN mkdir -p lemmy_db/src/ \
       lemmy
 
 # Copy the cargo tomls
-COPY server/Cargo.toml server/Cargo.lock ./
-COPY server/lemmy_db/Cargo.toml ./lemmy_db/
-COPY server/lemmy_utils/Cargo.toml ./lemmy_utils/
-COPY server/lemmy_api_structs/Cargo.toml ./lemmy_api_structs/
-COPY server/lemmy_rate_limit/Cargo.toml ./lemmy_rate_limit/
+COPY Cargo.toml Cargo.lock ./
+COPY lemmy_db/Cargo.toml ./lemmy_db/
+COPY lemmy_utils/Cargo.toml ./lemmy_utils/
+COPY lemmy_api_structs/Cargo.toml ./lemmy_api_structs/
+COPY lemmy_rate_limit/Cargo.toml ./lemmy_rate_limit/
 
 # Cache the deps
 RUN cargo build-deps
 
 # Copy the src folders
-COPY server/src ./src/
-COPY server/lemmy_db/src ./lemmy_db/src/
-COPY server/lemmy_utils/src/ ./lemmy_utils/src/
-COPY server/lemmy_api_structs/src/ ./lemmy_api_structs/src/
-COPY server/lemmy_rate_limit/src/ ./lemmy_rate_limit/src/
-COPY server/migrations ./migrations/
+COPY src ./src/
+COPY lemmy_db/src ./lemmy_db/src/
+COPY lemmy_utils/src/ ./lemmy_utils/src/
+COPY lemmy_api_structs/src/ ./lemmy_api_structs/src/
+COPY lemmy_rate_limit/src/ ./lemmy_rate_limit/src/
+COPY migrations ./migrations/
 
 # Build for debug
 RUN cargo build
@@ -50,7 +50,7 @@ RUN apk add libpq
 RUN apk add espeak
 
 # Copy resources
-COPY server/config/defaults.hjson /config/defaults.hjson
+COPY config/defaults.hjson /config/defaults.hjson
 COPY --from=rust /app/server/target/x86_64-unknown-linux-musl/debug/lemmy_server /app/lemmy
 COPY --from=docs /app/docs/book/ /app/documentation/
 
