@@ -273,5 +273,20 @@
     "spoiler": "spoiler",
     "list": "lista",
     "invalid_url": "URL non valido.",
-    "not_a_moderator": "Non moderatore."
+    "not_a_moderator": "Non moderatore.",
+    "name_explain": "Nome - usato come identificativo per la comunità, non può essere cambiato.",
+    "linked_instances": "Istanze collegate",
+    "remove_posts_comments": "Rimuovi pubblicazioni e commenti",
+    "banner": "Banner",
+    "upload_banner": "Carica banner",
+    "icon": "Icona",
+    "upload_icon": "Carica icona",
+    "leave_mod_team": "Abbandona il team di moderatori",
+    "display_name": "Nome visualizzato",
+    "bio_length_overflow": "La descrizione non può superare i 300 caratteri.",
+    "captcha_incorrect": "Captcha errato.",
+    "enter_code": "Inserisci codice",
+    "play_captcha_audio": "Riproduci Captcha sonoro",
+    "bio": "Descrizione",
+    "instances": "Istanze"
 }
