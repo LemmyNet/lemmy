@@ -1,10 +1,16 @@
 use crate::{
   api::{
-    check_community_ban, check_slurs, check_slurs_opt, get_user_from_jwt, get_user_from_jwt_opt,
-    is_mod_or_admin, Perform,
+    check_community_ban,
+    check_slurs,
+    check_slurs_opt,
+    get_user_from_jwt,
+    get_user_from_jwt_opt,
+    is_mod_or_admin,
+    Perform,
   },
   apub::{ApubLikeableType, ApubObjectType},
-  blocking, fetch_iframely_and_pictrs_data,
+  blocking,
+  fetch_iframely_and_pictrs_data,
   websocket::{
     messages::{GetPostUsersOnline, JoinCommunityRoom, JoinPostRoom, SendPost},
     UserOperation,
@@ -14,11 +20,26 @@ use crate::{
 use actix_web::web::Data;
 use lemmy_api_structs::post::*;
 use lemmy_db::{
-  comment_view::*, community_view::*, moderator::*, naive_now, post::*, post_view::*, site_view::*,
-  Crud, Likeable, ListingType, Saveable, SortType,
+  comment_view::*,
+  community_view::*,
+  moderator::*,
+  naive_now,
+  post::*,
+  post_view::*,
+  site_view::*,
+  Crud,
+  Likeable,
+  ListingType,
+  Saveable,
+  SortType,
 };
 use lemmy_utils::{
-  is_valid_post_title, make_apub_endpoint, APIError, ConnectionId, EndpointType, LemmyError,
+  is_valid_post_title,
+  make_apub_endpoint,
+  APIError,
+  ConnectionId,
+  EndpointType,
+  LemmyError,
 };
 use std::str::FromStr;
 use url::Url;

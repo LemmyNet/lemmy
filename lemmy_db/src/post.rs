@@ -1,7 +1,10 @@
 use crate::{
   naive_now,
   schema::{post, post_like, post_read, post_saved},
-  Crud, Likeable, Readable, Saveable,
+  Crud,
+  Likeable,
+  Readable,
+  Saveable,
 };
 use diesel::{dsl::*, result::Error, *};
 use url::{ParseError, Url};
@@ -325,7 +328,12 @@ impl Readable<PostReadForm> for PostRead {
 #[cfg(test)]
 mod tests {
   use crate::{
-    community::*, post::*, tests::establish_unpooled_connection, user::*, ListingType, SortType,
+    community::*,
+    post::*,
+    tests::establish_unpooled_connection,
+    user::*,
+    ListingType,
+    SortType,
   };
 
   #[test]

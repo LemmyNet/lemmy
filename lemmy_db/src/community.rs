@@ -1,7 +1,10 @@
 use crate::{
   naive_now,
   schema::{community, community_follower, community_moderator, community_user_ban},
-  Bannable, Crud, Followable, Joinable,
+  Bannable,
+  Crud,
+  Followable,
+  Joinable,
 };
 use diesel::{dsl::*, result::Error, *};
 

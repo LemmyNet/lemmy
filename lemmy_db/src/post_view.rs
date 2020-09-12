@@ -387,8 +387,14 @@ impl PostView {
 #[cfg(test)]
 mod tests {
   use crate::{
-    community::*, post::*, post_view::*, tests::establish_unpooled_connection, user::*, Crud,
-    Likeable, *,
+    community::*,
+    post::*,
+    post_view::*,
+    tests::establish_unpooled_connection,
+    user::*,
+    Crud,
+    Likeable,
+    *,
   };
 
   #[test]

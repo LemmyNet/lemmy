@@ -6,7 +6,13 @@ use activitystreams::{
 use anyhow::{anyhow, Context, Error};
 use awc::Client;
 use background_jobs::{
-  create_server, memory_storage::Storage, ActixJob, Backoff, MaxRetries, QueueHandle, WorkerConfig,
+  create_server,
+  memory_storage::Storage,
+  ActixJob,
+  Backoff,
+  MaxRetries,
+  QueueHandle,
+  WorkerConfig,
 };
 use lemmy_utils::{location_info, settings::Settings, LemmyError};
 use log::warn;

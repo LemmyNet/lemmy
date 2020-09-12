@@ -85,7 +85,9 @@ mod tests {
     activity::{Activity, ActivityForm},
     tests::establish_unpooled_connection,
     user::{UserForm, User_},
-    Crud, ListingType, SortType,
+    Crud,
+    ListingType,
+    SortType,
   };
   use serde_json::Value;
 

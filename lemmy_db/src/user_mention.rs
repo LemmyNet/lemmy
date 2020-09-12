@@ -73,8 +73,14 @@ impl UserMention {
 #[cfg(test)]
 mod tests {
   use crate::{
-    comment::*, community::*, post::*, tests::establish_unpooled_connection, user::*,
-    user_mention::*, ListingType, SortType,
+    comment::*,
+    community::*,
+    post::*,
+    tests::establish_unpooled_connection,
+    user::*,
+    user_mention::*,
+    ListingType,
+    SortType,
   };
 
   #[test]

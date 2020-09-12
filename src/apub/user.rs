@@ -1,16 +1,26 @@
 use crate::{
   api::{check_slurs, check_slurs_opt},
   apub::{
-    activities::generate_activity_id, activity_queue::send_activity, check_actor_domain,
-    create_apub_response, fetcher::get_or_fetch_and_upsert_actor, insert_activity, ActorType,
-    FromApub, PersonExt, ToApub,
+    activities::generate_activity_id,
+    activity_queue::send_activity,
+    check_actor_domain,
+    create_apub_response,
+    fetcher::get_or_fetch_and_upsert_actor,
+    insert_activity,
+    ActorType,
+    FromApub,
+    PersonExt,
+    ToApub,
   },
-  blocking, DbPool, LemmyContext,
+  blocking,
+  DbPool,
+  LemmyContext,
 };
 use activitystreams::{
   activity::{
     kind::{FollowType, UndoType},
-    Follow, Undo,
+    Follow,
+    Undo,
   },
   actor::{ApActor, Endpoints, Person},
   object::{Image, Tombstone},

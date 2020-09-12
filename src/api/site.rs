@@ -1,9 +1,15 @@
 use crate::{
   api::{
-    check_slurs, check_slurs_opt, get_user_from_jwt, get_user_from_jwt_opt, is_admin, Perform,
+    check_slurs,
+    check_slurs_opt,
+    get_user_from_jwt,
+    get_user_from_jwt_opt,
+    is_admin,
+    Perform,
   },
   apub::fetcher::search_by_apub_id,
-  blocking, version,
+  blocking,
+  version,
   websocket::{
     messages::{GetUsersOnline, SendAllMessage},
     UserOperation,
@@ -14,9 +20,20 @@ use actix_web::web::Data;
 use anyhow::Context;
 use lemmy_api_structs::{site::*, user::Register};
 use lemmy_db::{
-  category::*, comment_view::*, community_view::*, diesel_option_overwrite, moderator::*,
-  moderator_views::*, naive_now, post_view::*, site::*, site_view::*, user_view::*, Crud,
-  SearchType, SortType,
+  category::*,
+  comment_view::*,
+  community_view::*,
+  diesel_option_overwrite,
+  moderator::*,
+  moderator_views::*,
+  naive_now,
+  post_view::*,
+  site::*,
+  site_view::*,
+  user_view::*,
+  Crud,
+  SearchType,
+  SortType,
 };
 use lemmy_utils::{location_info, settings::Settings, APIError, ConnectionId, LemmyError};
 use log::{debug, info};

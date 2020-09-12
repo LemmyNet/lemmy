@@ -1,6 +1,10 @@
 use crate::{
   api::{
-    check_community_ban, get_post, get_user_from_jwt, get_user_from_jwt_opt, is_mod_or_admin,
+    check_community_ban,
+    get_post,
+    get_user_from_jwt,
+    get_user_from_jwt_opt,
+    is_mod_or_admin,
     Perform,
   },
   apub::{ApubLikeableType, ApubObjectType},
@@ -9,17 +13,36 @@ use crate::{
     messages::{JoinCommunityRoom, SendComment},
     UserOperation,
   },
-  DbPool, LemmyContext,
+  DbPool,
+  LemmyContext,
 };
 use actix_web::web::Data;
 use lemmy_api_structs::comment::*;
 use lemmy_db::{
-  comment::*, comment_view::*, moderator::*, post::*, site_view::*, user::*, user_mention::*, Crud,
-  Likeable, ListingType, Saveable, SortType,
+  comment::*,
+  comment_view::*,
+  moderator::*,
+  post::*,
+  site_view::*,
+  user::*,
+  user_mention::*,
+  Crud,
+  Likeable,
+  ListingType,
+  Saveable,
+  SortType,
 };
 use lemmy_utils::{
-  make_apub_endpoint, remove_slurs, scrape_text_for_mentions, send_email, settings::Settings,
-  APIError, ConnectionId, EndpointType, LemmyError, MentionData,
+  make_apub_endpoint,
+  remove_slurs,
+  scrape_text_for_mentions,
+  send_email,
+  settings::Settings,
+  APIError,
+  ConnectionId,
+  EndpointType,
+  LemmyError,
+  MentionData,
 };
 use log::error;
 use std::str::FromStr;

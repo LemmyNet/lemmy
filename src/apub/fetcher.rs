@@ -1,6 +1,11 @@
 use crate::{
   apub::{
-    check_is_apub_id_valid, ActorType, FromApub, GroupExt, PageExt, PersonExt,
+    check_is_apub_id_valid,
+    ActorType,
+    FromApub,
+    GroupExt,
+    PageExt,
+    PersonExt,
     APUB_JSON_CONTENT_TYPE,
   },
   blocking,
@@ -22,7 +27,9 @@ use lemmy_db::{
   post_view::PostView,
   user::{UserForm, User_},
   user_view::UserView,
-  Crud, Joinable, SearchType,
+  Crud,
+  Joinable,
+  SearchType,
 };
 use lemmy_utils::{get_apub_protocol_string, location_info, LemmyError};
 use log::debug;

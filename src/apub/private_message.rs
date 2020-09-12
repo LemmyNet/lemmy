@@ -1,15 +1,28 @@
 use crate::{
   apub::{
-    activities::generate_activity_id, activity_queue::send_activity, check_actor_domain,
-    check_is_apub_id_valid, create_tombstone, fetcher::get_or_fetch_and_upsert_user,
-    insert_activity, ActorType, ApubObjectType, FromApub, ToApub,
+    activities::generate_activity_id,
+    activity_queue::send_activity,
+    check_actor_domain,
+    check_is_apub_id_valid,
+    create_tombstone,
+    fetcher::get_or_fetch_and_upsert_user,
+    insert_activity,
+    ActorType,
+    ApubObjectType,
+    FromApub,
+    ToApub,
   },
-  blocking, DbPool, LemmyContext,
+  blocking,
+  DbPool,
+  LemmyContext,
 };
 use activitystreams::{
   activity::{
     kind::{CreateType, DeleteType, UndoType, UpdateType},
-    Create, Delete, Undo, Update,
+    Create,
+    Delete,
+    Undo,
+    Update,
   },
   object::{kind::NoteType, Note, Tombstone},
   prelude::*,

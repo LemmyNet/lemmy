@@ -1,7 +1,8 @@
 use crate::{
   api::{check_slurs, claims::Claims, get_user_from_jwt, get_user_from_jwt_opt, is_admin, Perform},
   apub::ApubObjectType,
-  blocking, captcha_espeak_wav_base64,
+  blocking,
+  captcha_espeak_wav_base64,
   websocket::{
     messages::{CaptchaItem, CheckCaptcha, JoinUserRoom, SendAllMessage, SendUserRoomMessage},
     UserOperation,
@@ -15,15 +16,45 @@ use captcha::{gen, Difficulty};
 use chrono::Duration;
 use lemmy_api_structs::user::*;
 use lemmy_db::{
-  comment::*, comment_view::*, community::*, community_view::*, diesel_option_overwrite,
-  moderator::*, naive_now, password_reset_request::*, post::*, post_view::*, private_message::*,
-  private_message_view::*, site::*, site_view::*, user::*, user_mention::*, user_mention_view::*,
-  user_view::*, Crud, Followable, Joinable, ListingType, SortType,
+  comment::*,
+  comment_view::*,
+  community::*,
+  community_view::*,
+  diesel_option_overwrite,
+  moderator::*,
+  naive_now,
+  password_reset_request::*,
+  post::*,
+  post_view::*,
+  private_message::*,
+  private_message_view::*,
+  site::*,
+  site_view::*,
+  user::*,
+  user_mention::*,
+  user_mention_view::*,
+  user_view::*,
+  Crud,
+  Followable,
+  Joinable,
+  ListingType,
+  SortType,
 };
 use lemmy_utils::{
-  generate_actor_keypair, generate_random_string, is_valid_preferred_username, is_valid_username,
-  location_info, make_apub_endpoint, naive_from_unix, remove_slurs, send_email, settings::Settings,
-  APIError, ConnectionId, EndpointType, LemmyError,
+  generate_actor_keypair,
+  generate_random_string,
+  is_valid_preferred_username,
+  is_valid_username,
+  location_info,
+  make_apub_endpoint,
+  naive_from_unix,
+  remove_slurs,
+  send_email,
+  settings::Settings,
+  APIError,
+  ConnectionId,
+  EndpointType,
+  LemmyError,
 };
 use log::error;
 use std::str::FromStr;

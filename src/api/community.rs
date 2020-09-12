@@ -1,7 +1,12 @@
 use crate::{
   api::{
-    check_slurs, check_slurs_opt, get_user_from_jwt, get_user_from_jwt_opt, is_admin,
-    is_mod_or_admin, Perform,
+    check_slurs,
+    check_slurs_opt,
+    get_user_from_jwt,
+    get_user_from_jwt_opt,
+    is_admin,
+    is_mod_or_admin,
+    Perform,
   },
   apub::ActorType,
   blocking,
@@ -15,13 +20,32 @@ use actix_web::web::Data;
 use anyhow::Context;
 use lemmy_api_structs::community::*;
 use lemmy_db::{
-  comment::Comment, comment_view::CommentQueryBuilder, community::*, community_view::*,
-  diesel_option_overwrite, moderator::*, naive_now, post::Post, site::*, user_view::*, Bannable,
-  Crud, Followable, Joinable, SortType,
+  comment::Comment,
+  comment_view::CommentQueryBuilder,
+  community::*,
+  community_view::*,
+  diesel_option_overwrite,
+  moderator::*,
+  naive_now,
+  post::Post,
+  site::*,
+  user_view::*,
+  Bannable,
+  Crud,
+  Followable,
+  Joinable,
+  SortType,
 };
 use lemmy_utils::{
-  generate_actor_keypair, is_valid_community_name, location_info, make_apub_endpoint,
-  naive_from_unix, APIError, ConnectionId, EndpointType, LemmyError,
+  generate_actor_keypair,
+  is_valid_community_name,
+  location_info,
+  make_apub_endpoint,
+  naive_from_unix,
+  APIError,
+  ConnectionId,
+  EndpointType,
+  LemmyError,
 };
 use std::str::FromStr;
 

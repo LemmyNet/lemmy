@@ -2,7 +2,9 @@ use super::post::Post;
 use crate::{
   naive_now,
   schema::{comment, comment_like, comment_saved},
-  Crud, Likeable, Saveable,
+  Crud,
+  Likeable,
+  Saveable,
 };
 use diesel::{dsl::*, result::Error, *};
 use url::{ParseError, Url};
@@ -255,8 +257,14 @@ impl Saveable<CommentSavedForm> for CommentSaved {
 #[cfg(test)]
 mod tests {
   use crate::{
-    comment::*, community::*, post::*, tests::establish_unpooled_connection, user::*, Crud,
-    ListingType, SortType,
+    comment::*,
+    community::*,
+    post::*,
+    tests::establish_unpooled_connection,
+    user::*,
+    Crud,
+    ListingType,
+    SortType,
   };
 
   #[test]

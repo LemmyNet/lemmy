@@ -1,5 +1,6 @@
 use crate::{
-  is_email_regex, naive_now,
+  is_email_regex,
+  naive_now,
   schema::{user_, user_::dsl::*},
   Crud,
 };
