@@ -287,5 +287,9 @@
     "linked_instances": "Sammankopplade instanser",
     "none_found": "Hittades inte.",
     "leave_mod_team": "lämna moderationsgrupp",
-    "display_name_explain": "Visningsnamn – visas som titel på gemenskapens sida och kan ändras i efterhand."
+    "display_name_explain": "Visningsnamn – visas som titel på gemenskapens sida och kan ändras i efterhand.",
+    "bio_length_overflow": "Användarpresentationen får inte innehålla fler än 300 tecken.",
+    "captcha_incorrect": "Captchan stämmer inte.",
+    "enter_code": "Uppge kod",
+    "play_captcha_audio": "Spela upp captcha-ljud"
 }
