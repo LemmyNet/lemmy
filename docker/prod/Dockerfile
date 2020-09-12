@@ -36,18 +36,6 @@ WORKDIR /app
 COPY --chown=rust:rust docs ./docs
 RUN mdbook build docs/
 
-FROM node:12-buster as node
-
-WORKDIR /app/ui
-
-# Cache deps
-COPY ui/package.json ui/yarn.lock ./
-RUN yarn install --pure-lockfile --network-timeout 600000
-
-# Build
-COPY ui /app/ui
-RUN yarn build
-
 FROM alpine:3.12 as lemmy
 
 # Install libpq for postgres
@@ -62,8 +50,7 @@ RUN adduser -D -s /bin/sh -u 1000 -G lemmy lemmy
 # Copy resources
 COPY --chown=lemmy:lemmy config/defaults.hjson /config/defaults.hjson
 COPY --chown=lemmy:lemmy --from=rust /app/server/lemmy_server /app/lemmy
-COPY --chown=lemmy:lemmy --from=docs /app/docs/book/ /app/dist/documentation/
-COPY --chown=lemmy:lemmy --from=node /app/ui/dist /app/dist
+COPY --chown=lemmy:lemmy --from=docs /app/docs/book/ /app/documentation/
 
 RUN chown lemmy:lemmy /app/lemmy
 USER lemmy
