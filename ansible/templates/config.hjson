@@ -13,8 +13,6 @@
   hostname: "{{ domain }}"
   # json web token for authorization between server and client
   jwt_secret: "{{ jwt_password }}"
-  # The location of the frontend
-  front_end_dir: "/app/dist"
   # email sending configuration
   email: {
     # hostname of the smtp server

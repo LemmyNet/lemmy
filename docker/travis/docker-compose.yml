@@ -35,7 +35,6 @@ services:
       - LEMMY_HOSTNAME=lemmy-alpha:8540
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_alpha:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
-      - LEMMY_FRONT_END_DIR=/app/dist
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-beta,lemmy-gamma,lemmy-delta,lemmy-epsilon
@@ -65,7 +64,6 @@ services:
       - LEMMY_HOSTNAME=lemmy-beta:8550
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_beta:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
-      - LEMMY_FRONT_END_DIR=/app/dist
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-alpha,lemmy-gamma,lemmy-delta,lemmy-epsilon
@@ -95,7 +93,6 @@ services:
       - LEMMY_HOSTNAME=lemmy-gamma:8560
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_gamma:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
-      - LEMMY_FRONT_END_DIR=/app/dist
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-alpha,lemmy-beta,lemmy-delta,lemmy-epsilon
@@ -126,7 +123,6 @@ services:
       - LEMMY_HOSTNAME=lemmy-delta:8570
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_delta:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
-      - LEMMY_FRONT_END_DIR=/app/dist
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-beta
@@ -157,7 +153,6 @@ services:
       - LEMMY_HOSTNAME=lemmy-epsilon:8580
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_epsilon:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
-      - LEMMY_FRONT_END_DIR=/app/dist
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_FEDERATION__BLOCKED_INSTANCES=lemmy-alpha

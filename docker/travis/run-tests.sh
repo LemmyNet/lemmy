@@ -12,7 +12,7 @@ sudo docker build ../../ --file ../prod/Dockerfile --tag dessalines/lemmy:travis
 
 sudo docker-compose up -d
 
-pushd ../../ui
+pushd ../../api_tests
 echo "Waiting for Lemmy to start..."
 while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8540/api/v1/site')" != "200" ]]; do sleep 1; done
 while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8550/api/v1/site')" != "200" ]]; do sleep 1; done
