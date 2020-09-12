@@ -33,8 +33,6 @@
   port: 8536
   # json web token for authorization between server and client
   jwt_secret: "changeme"
-  # The location of the frontend
-  front_end_dir: "../ui/dist"
   # address where pictrs is available
   pictrs_url: "http://pictrs:8080"
   # rate limits for various user actions, by user ip

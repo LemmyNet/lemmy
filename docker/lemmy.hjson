@@ -30,8 +30,6 @@
     # host where postgres is running
     host: "postgres"
   }
-  # The location of the frontend
-  front_end_dir: "/app/dist"
 #  # optional: email sending configuration
 #  email: {
 #    # hostname of the smtp server
