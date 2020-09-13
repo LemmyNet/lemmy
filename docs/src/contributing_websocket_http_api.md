@@ -759,7 +759,7 @@ Marks all user replies and mentions as read.
 
 #### Delete Account
 
-*Permananently deletes your posts and comments*
+*Permanently deletes your posts and comments*
 
 ##### Request
 ```rust
