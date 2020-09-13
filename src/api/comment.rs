@@ -9,10 +9,7 @@ use crate::{
   },
   apub::{ApubLikeableType, ApubObjectType},
   blocking,
-  websocket::{
-    messages::SendComment,
-    UserOperation,
-  },
+  websocket::{messages::SendComment, UserOperation},
   DbPool,
   LemmyContext,
 };
