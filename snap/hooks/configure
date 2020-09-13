@@ -1,0 +1,82 @@
+#!/bin/sh
+
+# Start config
+echo '{' > $SNAP_DATA/config.hjson
+
+# Set up top-level section
+for prop in hostname bind port tls_enabled jwt_secret front_end_dir pictrs_url
+do
+  _prop=$(echo $prop | sed 's/_/-/')
+  [ -n "$(snapctl get $_prop)" ] && echo "  $prop: \"$(snapctl get $_prop)\"" >> $SNAP_DATA/config.hjson
+done
+
+# Set up initial setup section
+[ -n "$(snapctl get setup)" ] && {
+  echo '  setup: {' >> $SNAP_DATA/config.hjson
+  for prop in admin_username admin_password admin_email site_name
+  do
+    _prop=$(echo $prop | sed 's/_/-/')
+    [ -n "$(snapctl get setup.$_prop)" ] && echo "    $prop: \"$(snapctl get setup.$_prop)\"" >> $SNAP_DATA/config.hjson
+  done
+  echo '  }' >> $SNAP_DATA/config.hjson
+}
+
+# Set up database section
+[ -n "$(snapctl get database)" ] && {
+  echo '  database: {' >> $SNAP_DATA/config.hjson
+  for prop in user password host port database pool_size
+  do
+    _prop=$(echo $prop | sed 's/_/-/')
+    [ -n "$(snapctl get database.$_prop)" ] && echo "    $prop: \"$(snapctl get database.$_prop)\"" >> $SNAP_DATA/config.hjson
+  done
+  echo '  }' >> $SNAP_DATA/config.hjson
+}
+
+# Set up rate limit section
+[ -n "$(snapctl get rate-limit)" ] && {
+  echo '  rate_limit: {' >> $SNAP_DATA/config.hjson
+  for prop in message message_per_second post post_per_second register register_per_second image image_per_second
+  do
+    _prop=$(echo $prop | sed 's/_/-/')
+    [ -n "$(snapctl get rate-limit.$_prop)" ] && echo "    $prop: \"$(snapctl get rate-limit.$_prop)\"" >> $SNAP_DATA/config.hjson
+  done
+  echo '  }' >> $SNAP_DATA/config.hjson
+}
+
+# Set up federation section
+[ -n "$(snapctl get federation)" ] && {
+  echo '  federation: {' >> $SNAP_DATA/config.hjson
+  for prop in enabled allowed_instances blocked_instances
+  do
+    _prop=$(echo $prop | sed 's/_/-/')
+    [ -n "$(snapctl get federation.$_prop)" ] && echo "    $prop: \"$(snapctl get federation.$_prop)\"" >> $SNAP_DATA/config.hjson
+  done
+  echo '  }' >> $SNAP_DATA/config.hjson
+}
+
+# Set up captcha section
+[ -n "$(snapctl get captcha)" ] && {
+  echo '  captcha: {' >> $SNAP_DATA/config.hjson
+  for prop in enabled difficulty
+  do
+    _prop=$(echo $prop | sed 's/_/-/')
+    [ -n "$(snapctl get captcha.$_prop)" ] && echo "    $prop: \"$(snapctl get captcha.$_prop)\"" >> $SNAP_DATA/config.hjson
+  done
+  echo '  }' >> $SNAP_DATA/config.hjson
+}
+
+# Set up email section
+[ -n "$(snapctl get email)" ] && {
+  echo '  email: {' >> $SNAP_DATA/config.hjson
+  for prop in smtp_server smtp_login smtp_password smtp_from_address use_tls
+  do
+    _prop=$(echo $prop | sed 's/_/-/')
+    [ -n "$(snapctl get email.$_prop)" ] && echo "    $prop: \"$(snapctl get email.$_prop)\"" >> $SNAP_DATA/config.hjson
+  done
+  echo '  }' >> $SNAP_DATA/config.hjson
+}
+
+# End config
+echo '}' >> $SNAP_DATA/config.hjson
+
+snapctl restart ${SNAP_NAME}.lemmy

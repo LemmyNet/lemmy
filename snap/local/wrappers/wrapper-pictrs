@@ -1,0 +1,7 @@
+#!/bin/sh
+
+set -eux
+
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$SNAP/usr/lib/x86_64-linux-gnu/pulseaudio"
+
+RUST_LOG=debug "$SNAP"/bin/pict-rs --addr 0.0.0.0:1235 --path "$SNAP_DATA"/pictrs/

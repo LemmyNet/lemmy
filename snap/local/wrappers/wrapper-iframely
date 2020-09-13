@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eux
+cd "$SNAP"/iframely
+$SNAP/bin/node "$SNAP"/iframely/server.js

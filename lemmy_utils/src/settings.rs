@@ -130,7 +130,7 @@ impl Settings {
   }
 
   pub fn read_config_file() -> Result<String, Error> {
-    fs::read_to_string(CONFIG_FILE)
+    fs::read_to_string(Self::get_config_location())
   }
 
   pub fn get_allowed_instances(&self) -> Vec<String> {

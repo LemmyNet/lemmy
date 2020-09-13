@@ -27,3 +27,22 @@ following commands:
 cd server
 ./db-init.sh
 ```
+
+### Snap Configuration
+
+If you have installed Lemmy as a snap, configuration can be done via `snap set`. Each property
+in the `config.hjson` has a corresponding `snap set` parameter, with nested properties
+separated by dots. For example, to set the hostname of your Lemmy instance, run
+
+    sudo snap set lemmy hostname=mylemmy
+
+To set the admin username before setup, run
+
+    sudo snap set lemmy setup.admin-username=admin
+
+Note that each property name that contains an underscore in `config.hjson` must be set using
+a dash via `snap set`. The dash is replaced by an underscore in the generated `config.hjson`.
+For example, `sudo snap set lemmy setup.jwt-secret=foo` is equivalent to this
+`config.hjson`:
+
+    {jwt_secret: "foo"}

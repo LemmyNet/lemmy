@@ -1,0 +1,25 @@
+#!/bin/sh
+
+set -eux
+
+# Ensure directories from `/snap` are copied over to
+# `/var/snap`, if they haven't already been.
+cd "$SNAP"
+for dir in conf html logs sbin; do
+    [ -d "$SNAP_DATA"/$dir ] || {
+        cp -rf $dir "$SNAP_DATA"/
+        chown -R snap_daemon "$SNAP_DATA"/$dir
+    }
+done
+
+# Make temp directories under `/var/snap`
+cd "$SNAP_DATA"
+for dir in client_body fastcgi proxy scgi uwsgi; do
+    [ -d ${dir}_temp ] || {
+        mkdir -p ${dir}_temp
+        chown snap_daemon ${dir}_temp
+    }
+done
+
+"$SNAP"/usr/bin/setpriv --clear-groups --reuid snap_daemon --regid snap_daemon -- \
+    "$SNAP"/sbin/nginx -g 'daemon off;' -p "$SNAP_DATA"

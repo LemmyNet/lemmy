@@ -1,0 +1,18 @@
+#!/bin/sh
+
+set -eux
+
+n=0
+until [ "$n" -ge 30 ]; do
+  "$SNAP"/usr/bin/psql -U snap_daemon postgres -c "SELECT * FROM pg_user;" > /dev/null && break
+  n=$((n+1))
+  sleep 1
+done
+
+"$SNAP"/usr/bin/psql -U snap_daemon postgres -c "CREATE USER lemmy;" || true
+"$SNAP"/usr/bin/psql -U snap_daemon postgres -c "CREATE DATABASE lemmy;" || true
+"$SNAP"/usr/bin/psql -U snap_daemon postgres -c "GRANT ALL PRIVILEGES ON DATABASE lemmy TO lemmy;" || true
+
+export LEMMY_CONFIG_LOCATION="$LEMMY_CONFIG_LOCATION"
+
+"$SNAP"/bin/lemmy_server

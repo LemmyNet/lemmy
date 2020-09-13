@@ -20,3 +20,5 @@ query_testing/*.json.old
 
 # API tests
 api_tests/node_modules
+
+*.snap

@@ -100,7 +100,7 @@ async fn main() -> Result<(), LemmyError> {
       .configure(|cfg| images::config(cfg, &rate_limiter))
       .configure(nodeinfo::config)
       .configure(webfinger::config)
-      .service(actix_files::Files::new("/docs", "/app/documentation"))
+      .service(actix_files::Files::new("/docs", "/snap/lemmy/current/ui/dist/documentation"))
   })
   .bind((settings.bind, settings.port))?
   .run()

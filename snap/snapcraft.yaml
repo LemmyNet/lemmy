@@ -1,0 +1,395 @@
+name: lemmy
+version: git
+summary: A link aggregator / Reddit clone for the fediverse
+description: |
+  Lemmy is similar to sites like Reddit, Lobste.rs, or Hacker News: you subscribe to forums you're
+  interested in, post links and discussions, then vote, and comment on them. Behind the scenes, it
+  is very different; anyone can easily run a server, and all these servers are federated (think
+  email), and connected to the same universe, called the Fediverse.
+
+  https://github.com/LemmyNet/lemmy/
+
+base: core20
+confinement: strict
+grade: devel
+
+system-usernames:
+  snap_daemon: shared
+
+parts:
+  wrappers:
+    plugin: dump
+    source: snap/local/wrappers/
+    organize:
+      wrapper-initialize: usr/bin/wrapper-initialize
+      wrapper-pg_ctl: usr/bin/wrapper-pg_ctl
+      wrapper-psql: usr/bin/wrapper-psql
+      wrapper-postgres: usr/bin/wrapper-postgres
+      wrapper-lemmy: usr/bin/wrapper-lemmy
+      wrapper-nginx: usr/bin/wrapper-nginx
+      wrapper-iframely: usr/bin/wrapper-iframely
+      wrapper-ui: usr/bin/wrapper-ui
+      wrapper-pictrs: usr/bin/wrapper-pictrs
+
+  nginx:
+    plugin: autotools
+    source: https://github.com/nginx/nginx.git
+    source-type: git
+    override-build: |
+      cp auto/configure .
+      snapcraftctl build
+    organize:
+      usr/local/nginx/conf: conf
+      usr/local/nginx/html: html
+      usr/local/nginx/logs: logs
+      usr/local/nginx/sbin: sbin
+    filesets:
+      conf:
+        - conf
+        - -conf/nginx.conf
+    stage:
+      - $conf
+      - html
+      - logs
+      - sbin
+    autotools-configure-parameters:
+      - --error-log-path=logs/error.log
+      - --http-log-path=logs/nginx.log
+    build-packages:
+      - libc6
+      - libgd3
+      - libgeoip1
+      - libpcre3-dev
+      - libssl1.1
+      - libxml2
+      - libxslt1.1
+      - zlib1g
+
+  nginx-conf:
+    plugin: dump
+    after: [nginx]
+    source: snap/local/conf
+    organize:
+      nginx.conf: conf/nginx.conf
+    stage:
+      - conf/nginx.conf
+
+  node:
+    plugin: make
+    source-type: tar
+    source: https://nodejs.org/download/release/v14.13.1/node-v14.13.1.tar.gz
+    build-packages:
+      - g++
+      - make
+      - python3-distutils
+    override-build: |
+      set -eux
+      ./configure --prefix=/ --release-urlbase=https://nodejs.org/download/release/ --tag=
+      snapcraftctl build
+      mkdir -p $SNAPCRAFT_PART_INSTALL/etc
+      echo "prefix = /usr/local" >> $SNAPCRAFT_PART_INSTALL/etc/npmrc
+
+  yarn:
+    source-type: tar
+    source: https://yarnpkg.com/latest.tar.gz
+    plugin: dump
+    # Yarn has a problem with lifecycle scripts when used inside snap, they don't complete properly, with exit code !=0.
+    # Replacing the spinner with proper stdio appears to fix it.
+    override-build: |
+      set -eux
+      snapcraftctl build
+      sed -i "s/var stdio = spinner ? undefined : 'inherit';/var stdio = 'inherit';/" $SNAPCRAFT_PART_INSTALL/lib/cli.js
+
+  postgresql:
+    plugin: autotools
+    source: https://ftp.postgresql.org/pub/source/v11.1/postgresql-11.1.tar.bz2
+    stage:
+      - usr/bin
+      - usr/include/postgresql
+      - usr/lib
+      - usr/share/doc/postgresql
+      - usr/share/postgresql
+    build-packages:
+        - bison
+        - flex
+        - libreadline-dev
+        - zlib1g-dev
+        - python-dev
+        - tcl8.6-dev
+        - libssl-dev
+        - libpam0g-dev
+        - libxml2-dev
+        - libldap2-dev
+        - libxslt1-dev
+        - uuid-dev
+        - libxml2-utils
+        - openjade
+        - opensp
+        - xsltproc
+        - gettext
+        - libperl-dev
+        - dpkg-dev
+        - pkg-config
+        - libicu-dev
+        - libipc-run-perl
+        - libio-pty-perl
+    stage-packages:
+        - libc-bin
+        - locales
+        - libxml2
+        - libasn1-8-heimdal
+        - libgssapi3-heimdal
+        - libhcrypto4-heimdal
+        - libheimbase1-heimdal
+        - libheimntlm0-heimdal
+        - libhx509-5-heimdal
+        - libkrb5-26-heimdal
+        - libldap-2.4-2
+        - libperl5.30
+        - libpython2.7
+        - libroken18-heimdal
+        - libsasl2-2
+        - libtcl8.6
+        - libwind0-heimdal
+        - libxslt1.1
+        - util-linux
+    override-build: |
+        HOST_MULTIARCH=$(gcc -print-multiarch)
+        ARCH=$(dpkg-architecture -qDEB_HOST_ARCH_BITS)
+
+        if [ $ARCH -eq 64 ]; then
+             EXTRA_CFLAGS="-fno-omit-frame-pointer"
+
+        elif [ $ARCH -eq 32 ]; then
+             EXTRA_CFLAGS="-fPIC -pie"
+        fi
+        ./configure \
+          LDFLAGS="-Wl,--as-needed -L/usr/lib/mit-krb5 -L/usr/lib/$HOST_MULTIARCH/mit-krb5" \
+          CFLAGS="-I/usr/include/mit-krb5 $EXTRA_CFLAGS" \
+          --prefix=/usr \
+          --localstatedir=/etc \
+          --sysconfdir=/var \
+          --enable-nls \
+          --enable-integer-datetimes \
+          --enable-thread-safety \
+          --enable-tap-tests \
+          --enable-debug \
+          --disable-rpath \
+          --with-icu \
+          --with-uuid=e2fs \
+          --with-gnu-ld \
+          --with-pgport=5432 \
+          --with-system-tzdata=/usr/share/zoneinfo \
+          --with-ldap \
+          --with-tcl \
+          --with-tclconfig=/usr/lib/tcl8.6/ \
+          --with-perl \
+          --with-python \
+          --with-pam \
+          --with-openssl \
+          --with-libxml \
+          --with-libxslt \
+        && make world \
+        && make install-world DESTDIR=$SNAPCRAFT_PART_INSTALL
+
+  server:
+    plugin: rust
+    source: .
+    build-packages:
+      - build-essential
+      - libpq-dev
+      - libssl-dev
+      - pkg-config
+    stage-packages:
+      - libpq5
+      - libssl1.1
+    stage:
+      - bin/lemmy_server
+      - usr/lib
+
+  ui:
+    plugin: nil
+    source: https://github.com/LemmyNet/lemmy-ui.git
+    after: [node, yarn]
+    override-build: |
+      set -eux
+      pwd
+      yarn install --pure-lockfile
+      yarn
+      yarn build:prod
+      snapcraftctl build
+      mkdir $SNAPCRAFT_PART_INSTALL/ui
+      cp -r dist $SNAPCRAFT_PART_INSTALL/ui/dist
+      cp -r node_modules $SNAPCRAFT_PART_INSTALL/ui/node_modules
+
+  iframely:
+    plugin: nil
+    source: https://github.com/itteco/iframely.git
+    build-packages:
+      - libssl1.1
+    build-environment:
+      - npm_config_unsafe_perm: 'true'
+    after: [node, yarn]
+    override-build: |
+      set -eux
+      snapcraftctl build
+      mkdir $SNAPCRAFT_PART_INSTALL/iframely
+      cp -r *.js package.json lib/ modules/ $SNAPCRAFT_PART_INSTALL/iframely/
+      cd $SNAPCRAFT_PART_INSTALL/iframely
+      npm install
+    stage:
+      - iframely
+
+  docs:
+    plugin: dump
+    source: docs/
+    override-build: |
+      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s - -y
+      . $HOME/.cargo/env
+      rustup install stable
+      cargo install mdbook --no-default-features --version "^0.4"
+      mdbook build .
+      snapcraftctl build
+    build-packages:
+      - build-essential
+    organize:
+      book: ui/dist/documentation
+    prime:
+      - ui/dist/documentation
+
+  imagemagick:
+    plugin: autotools
+    source: http://www.imagemagick.org/download/ImageMagick.tar.gz
+    autotools-configure-parameters:
+      - --enable-shared
+      - --disable-static
+      - --disable-docs
+      - --with-utilities=no
+      - --with-magick-plus-plus=no
+      - --without-perl
+      - --with-xml=no
+      - --with-png=yes
+      - --with-jpeg=yes
+      - --with-webp=yes
+      - --without-x
+    build-packages:
+      - libjpeg-dev
+      - libpng-dev
+      - libwebp-dev
+    stage-packages:
+      - libjpeg8
+      - libpng16-16
+      - libwebp6
+      - libgomp1
+      - libwebpdemux2
+      - libwebpmux3
+    organize:
+      usr/local/include/ImageMagick-7: include
+      usr/local/lib: lib
+      usr/local/bin: bin
+      usr/lib: lib
+    stage:
+      - lib/
+      - include/
+      - bin/
+
+  pict-rs:
+    plugin: rust
+    source: https://git.asonix.dog/asonix/pict-rs.git
+    after: [imagemagick]
+    build-environment:
+      - IMAGE_MAGICK_DIR: /root/stage/
+    build-packages:
+      - libgexiv2-dev
+      - clang
+      - libclang-dev
+      - llvm-dev
+      - libavutil-dev
+      - libavformat-dev
+      - libavfilter-dev
+      - libavdevice-dev
+      - libavresample-dev
+    stage-packages:
+      - libgexiv2-2
+      - libwmf0.2-7
+      - libopenexr24
+      - libdjvulibre21
+      - ffmpeg
+      - libavcodec58
+      - libavdevice58
+      - libavfilter7
+      - libavformat58
+      - libavutil56
+      - libwebpdemux2
+    stage:
+      - bin/pict-rs
+      - lib
+      - lib64
+      - usr
+
+apps:
+  lemmy:
+    environment:
+      LEMMY_CONFIG_DEFAULTS_LOCATION: $SNAP_DATA/defaults.hjson
+      LEMMY_CONFIG_LOCATION: $SNAP_DATA/config.hjson
+      LEMMY_FRONT_END_DIR: $SNAP/ui/dist/
+    command: usr/bin/wrapper-lemmy
+    plugs:
+      - network
+      - network-bind
+    daemon: simple
+  pictrs:
+    command: usr/bin/wrapper-pictrs
+    plugs:
+      - network
+      - network-bind
+    daemon: simple
+  database:
+    command: usr/bin/wrapper-initialize
+    plugs:
+      - network
+      - network-bind
+    daemon: simple
+  nginx:
+    command: usr/bin/wrapper-nginx
+    plugs:
+      - network
+      - network-bind
+    daemon: simple
+  ui:
+    command: usr/bin/wrapper-ui
+    plugs:
+      - network
+      - network-bind
+    daemon: simple
+  iframely:
+    command: usr/bin/wrapper-iframely
+    plugs:
+      - network
+      - network-bind
+    daemon: simple
+  initialize:
+    command: usr/bin/wrapper-initialize
+    plugs:
+      - network
+      - network-bind
+  initdb:
+    command: usr/bin/initdb
+    plugs:
+      - network
+      - network-bind
+  pgctl:
+    command: usr/bin/wrapper-pg_ctl
+    plugs:
+      - network
+      - network-bind
+  node:
+    command: bin/node
+  npm:
+    command: bin/npm
+  npx:
+    command: bin/npx
+  yarn:
+    command: bin/yarn.js
+  yarnpkg:
+    command: bin/yarn.js

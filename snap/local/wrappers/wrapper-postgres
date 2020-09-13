@@ -1,0 +1,9 @@
+#!/bin/sh
+
+set -e
+
+export I18NPATH=$SNAP/usr/share/i18n
+export LOCPATH=$SNAP_USER_DATA/locales
+export LANG="en_US.UTF-8"
+
+"$SNAP"/usr/bin/postgres "$@"

@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eux
+cd "$SNAP"/ui
+"$SNAP"/bin/node "$SNAP"/ui/dist/js/server.js

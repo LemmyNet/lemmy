@@ -1,0 +1,45 @@
+#!/bin/sh
+
+set -eux
+
+LOC="C.UTF-8"
+
+export LANGUAGE=C.UTF-8
+export LC_ALL=C.UTF-8
+export LANG=C.UTF-8
+export I18NPATH=$SNAP/usr/share/i18n
+export LOCPATH=$SNAP_USER_DATA/locales
+
+DATA_DIR="$SNAP_DATA/data"
+LOG_DIR="$SNAP_DATA/logs"
+PSQLHIST_DIR="$SNAP_DATA/history"
+
+[ -e "$LOCPATH" ] || mkdir "$LOCPATH"
+
+if [ ! -e $LOCPATH/$LOC ]; then
+  echo "Generating a new locale in $LOCPATH/$LOC..."
+  localedef --prefix=$LOCPATH -f UTF-8 -i en_US $LOCPATH/$LOC
+fi
+
+echo "Setting up PostgreSQL environment..."
+echo "Data directory: $DATA_DIR"
+[ -e "$DATA_DIR" ] || mkdir "$DATA_DIR"
+
+echo "Ensuring permissions are set correctly on $DATA_DIR"
+chown snap_daemon:snap_daemon -R $DATA_DIR || true
+
+echo "Logs directory: $LOG_DIR"
+[ -e "$LOG_DIR" ] || mkdir "$LOG_DIR"
+chown snap_daemon:snap_daemon -R $LOG_DIR || true
+
+echo "psql history directory: $PSQLHIST_DIR"
+[ -e "$PSQLHIST_DIR" ] || mkdir "$PSQLHIST_DIR"
+chown snap_daemon:snap_daemon -R $PSQLHIST_DIR || true
+
+echo ".psqlrc file: $SNAP_USER_COMMON/.psqlrc"
+[ -e "$SNAP_USER_COMMON/.psqlrc" ] || echo "\set HISTFILE $PSQLHIST_DIR/psql_history- :DBNAME" > $SNAP_USER_COMMON/.psqlrc
+
+echo "Checking if initdb has already been run before. If not, a new cluster will be created."
+$SNAP/usr/bin/setpriv --clear-groups --reuid snap_daemon --regid snap_daemon -- bash -c "[ -e '$DATA_DIR/base' ] || $SNAP/usr/bin/initdb -D $DATA_DIR"
+
+$SNAP/usr/bin/setpriv --clear-groups --reuid snap_daemon --regid snap_daemon -- $SNAP/usr/bin/postgres -D $DATA_DIR
