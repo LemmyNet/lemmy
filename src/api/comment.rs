@@ -10,7 +10,7 @@ use crate::{
   apub::{ApubLikeableType, ApubObjectType},
   blocking,
   websocket::{
-    messages::{JoinCommunityRoom, SendComment},
+    messages::SendComment,
     UserOperation,
   },
   DbPool,
@@ -664,7 +664,7 @@ impl Perform for GetComments {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
+    _websocket_id: Option<ConnectionId>,
   ) -> Result<GetCommentsResponse, LemmyError> {
     let data: &GetComments = &self;
     let user = get_user_from_jwt_opt(&data.auth, context.pool()).await?;
@@ -693,18 +693,6 @@ impl Perform for GetComments {
       Ok(comments) => comments,
       Err(_) => return Err(APIError::err("couldnt_get_comments").into()),
     };
-
-    if let Some(id) = websocket_id {
-      // You don't need to join the specific community room, bc this is already handled by
-      // GetCommunity
-      if data.community_id.is_none() {
-        // 0 is the "all" community
-        context.chat_server().do_send(JoinCommunityRoom {
-          community_id: 0,
-          id,
-        });
-      }
-    }
 
     Ok(GetCommentsResponse { comments })
   }

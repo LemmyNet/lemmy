@@ -55,7 +55,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("/remove", web::post().to(route_post::<RemoveCommunity>))
           .route("/transfer", web::post().to(route_post::<TransferCommunity>))
           .route("/ban_user", web::post().to(route_post::<BanFromCommunity>))
-          .route("/mod", web::post().to(route_post::<AddModToCommunity>)),
+          .route("/mod", web::post().to(route_post::<AddModToCommunity>))
+          .route("/join", web::post().to(route_post::<CommunityJoin>)),
       )
       // Post
       .service(
@@ -76,7 +77,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("/sticky", web::post().to(route_post::<StickyPost>))
           .route("/list", web::get().to(route_get::<GetPosts>))
           .route("/like", web::post().to(route_post::<CreatePostLike>))
-          .route("/save", web::put().to(route_post::<SavePost>)),
+          .route("/save", web::put().to(route_post::<SavePost>))
+          .route("/join", web::post().to(route_post::<PostJoin>)),
       )
       // Comment
       .service(

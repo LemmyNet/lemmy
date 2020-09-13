@@ -26,7 +26,7 @@ services:
       - iframely
 
   lemmy-isomorphic-ui:
-    image: dessalines/lemmy-isomorphic-ui:v0.0.5
+    image: dessalines/lemmy-isomorphic-ui:v0.0.6
     # image: lemmy-isomorphic-ui:latest
     ports:
       - "1235:1234"

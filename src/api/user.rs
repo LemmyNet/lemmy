@@ -1279,6 +1279,6 @@ impl Perform for UserJoin {
       });
     }
 
-    Ok(UserJoinResponse { user_id: user.id })
+    Ok(UserJoinResponse { joined: true })
   }
 }

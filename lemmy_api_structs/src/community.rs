@@ -129,3 +129,13 @@ pub struct TransferCommunity {
   pub user_id: i32,
   pub auth: String,
 }
+
+#[derive(Deserialize, Debug)]
+pub struct CommunityJoin {
+  pub community_id: i32,
+}
+
+#[derive(Serialize, Clone)]
+pub struct CommunityJoinResponse {
+  pub joined: bool,
+}

@@ -12,7 +12,7 @@ use crate::{
   blocking,
   fetch_iframely_and_pictrs_data,
   websocket::{
-    messages::{GetPostUsersOnline, JoinCommunityRoom, JoinPostRoom, SendPost},
+    messages::{GetPostUsersOnline, JoinPostRoom, SendPost},
     UserOperation,
   },
   LemmyContext,
@@ -169,7 +169,7 @@ impl Perform for GetPost {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
+    _websocket_id: Option<ConnectionId>,
   ) -> Result<GetPostResponse, LemmyError> {
     let data: &GetPost = &self;
     let user = get_user_from_jwt_opt(&data.auth, context.pool()).await?;
@@ -207,13 +207,6 @@ impl Perform for GetPost {
     })
     .await??;
 
-    if let Some(id) = websocket_id {
-      context.chat_server().do_send(JoinPostRoom {
-        post_id: data.id,
-        id,
-      });
-    }
-
     let online = context
       .chat_server()
       .send(GetPostUsersOnline { post_id: data.id })
@@ -238,7 +231,7 @@ impl Perform for GetPosts {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
+    _websocket_id: Option<ConnectionId>,
   ) -> Result<GetPostsResponse, LemmyError> {
     let data: &GetPosts = &self;
     let user = get_user_from_jwt_opt(&data.auth, context.pool()).await?;
@@ -277,18 +270,6 @@ impl Perform for GetPosts {
       Ok(posts) => posts,
       Err(_e) => return Err(APIError::err("couldnt_get_posts").into()),
     };
-
-    if let Some(id) = websocket_id {
-      // You don't need to join the specific community room, bc this is already handled by
-      // GetCommunity
-      if data.community_id.is_none() {
-        // 0 is the "all" community
-        context.chat_server().do_send(JoinCommunityRoom {
-          community_id: 0,
-          id,
-        });
-      }
-    }
 
     Ok(GetPostsResponse { posts })
   }
@@ -747,5 +728,27 @@ impl Perform for SavePost {
     .await??;
 
     Ok(PostResponse { post: post_view })
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for PostJoin {
+  type Response = PostJoinResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    websocket_id: Option<ConnectionId>,
+  ) -> Result<PostJoinResponse, LemmyError> {
+    let data: &PostJoin = &self;
+
+    if let Some(ws_id) = websocket_id {
+      context.chat_server().do_send(JoinPostRoom {
+        post_id: data.post_id,
+        id: ws_id,
+      });
+    }
+
+    Ok(PostJoinResponse { joined: true })
   }
 }

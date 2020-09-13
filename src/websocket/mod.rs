@@ -62,4 +62,6 @@ pub enum UserOperation {
   GetComments,
   GetSiteConfig,
   SaveSiteConfig,
+  PostJoin,
+  CommunityJoin,
 }

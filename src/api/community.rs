@@ -56,7 +56,7 @@ impl Perform for GetCommunity {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
+    _websocket_id: Option<ConnectionId>,
   ) -> Result<GetCommunityResponse, LemmyError> {
     let data: &GetCommunity = &self;
     let user = get_user_from_jwt_opt(&data.auth, context.pool()).await?;
@@ -94,12 +94,6 @@ impl Perform for GetCommunity {
       Ok(moderators) => moderators,
       Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
     };
-
-    if let Some(id) = websocket_id {
-      context
-        .chat_server()
-        .do_send(JoinCommunityRoom { community_id, id });
-    }
 
     let online = context
       .chat_server()
@@ -855,4 +849,26 @@ pub fn send_community_websocket(
     community_id: res.community.id,
     websocket_id,
   });
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for CommunityJoin {
+  type Response = CommunityJoinResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    websocket_id: Option<ConnectionId>,
+  ) -> Result<CommunityJoinResponse, LemmyError> {
+    let data: &CommunityJoin = &self;
+
+    if let Some(ws_id) = websocket_id {
+      context.chat_server().do_send(JoinCommunityRoom {
+        community_id: data.community_id,
+        id: ws_id,
+      });
+    }
+
+    Ok(CommunityJoinResponse { joined: true })
+  }
 }

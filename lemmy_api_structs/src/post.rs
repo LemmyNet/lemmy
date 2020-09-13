@@ -103,3 +103,13 @@ pub struct SavePost {
   pub save: bool,
   pub auth: String,
 }
+
+#[derive(Deserialize, Debug)]
+pub struct PostJoin {
+  pub post_id: i32,
+}
+
+#[derive(Serialize, Clone)]
+pub struct PostJoinResponse {
+  pub joined: bool,
+}

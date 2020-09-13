@@ -235,5 +235,5 @@ pub struct UserJoin {
 
 #[derive(Serialize, Clone)]
 pub struct UserJoinResponse {
-  pub user_id: i32,
+  pub joined: bool,
 }
