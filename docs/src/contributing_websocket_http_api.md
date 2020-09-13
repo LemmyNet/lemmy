@@ -1,6 +1,6 @@
 # Lemmy API
 
-*Note: this may lag behind the actual API endpoints [here](../server/src/api). The API should be considered unstable and may change any time.*
+*Note: this may lag behind the actual API endpoints [here](../src/api). The API should be considered unstable and may change any time.*
 
 <!-- toc -->
 
@@ -88,162 +88,174 @@
       - [Request](#request-16)
       - [Response](#response-16)
       - [HTTP](#http-17)
-  * [Site](#site)
-    + [List Categories](#list-categories)
+    + [User Join](#user-join)
       - [Request](#request-17)
       - [Response](#response-17)
       - [HTTP](#http-18)
-    + [Search](#search)
+  * [Site](#site)
+    + [List Categories](#list-categories)
       - [Request](#request-18)
       - [Response](#response-18)
       - [HTTP](#http-19)
-    + [Get Modlog](#get-modlog)
+    + [Search](#search)
       - [Request](#request-19)
       - [Response](#response-19)
       - [HTTP](#http-20)
-    + [Create Site](#create-site)
+    + [Get Modlog](#get-modlog)
       - [Request](#request-20)
       - [Response](#response-20)
       - [HTTP](#http-21)
-    + [Edit Site](#edit-site)
+    + [Create Site](#create-site)
       - [Request](#request-21)
       - [Response](#response-21)
       - [HTTP](#http-22)
-    + [Get Site](#get-site)
+    + [Edit Site](#edit-site)
       - [Request](#request-22)
       - [Response](#response-22)
       - [HTTP](#http-23)
-    + [Transfer Site](#transfer-site)
+    + [Get Site](#get-site)
       - [Request](#request-23)
       - [Response](#response-23)
       - [HTTP](#http-24)
-    + [Get Site Config](#get-site-config)
+    + [Transfer Site](#transfer-site)
       - [Request](#request-24)
       - [Response](#response-24)
       - [HTTP](#http-25)
-    + [Save Site Config](#save-site-config)
+    + [Get Site Config](#get-site-config)
       - [Request](#request-25)
       - [Response](#response-25)
       - [HTTP](#http-26)
-  * [Community](#community)
-    + [Get Community](#get-community)
+    + [Save Site Config](#save-site-config)
       - [Request](#request-26)
       - [Response](#response-26)
       - [HTTP](#http-27)
-    + [Create Community](#create-community)
+  * [Community](#community)
+    + [Get Community](#get-community)
       - [Request](#request-27)
       - [Response](#response-27)
       - [HTTP](#http-28)
-    + [List Communities](#list-communities)
+    + [Create Community](#create-community)
       - [Request](#request-28)
       - [Response](#response-28)
       - [HTTP](#http-29)
-    + [Ban from Community](#ban-from-community)
+    + [List Communities](#list-communities)
       - [Request](#request-29)
       - [Response](#response-29)
       - [HTTP](#http-30)
-    + [Add Mod to Community](#add-mod-to-community)
+    + [Ban from Community](#ban-from-community)
       - [Request](#request-30)
       - [Response](#response-30)
       - [HTTP](#http-31)
-    + [Edit Community](#edit-community)
+    + [Add Mod to Community](#add-mod-to-community)
       - [Request](#request-31)
       - [Response](#response-31)
       - [HTTP](#http-32)
-    + [Delete Community](#delete-community)
+    + [Edit Community](#edit-community)
       - [Request](#request-32)
       - [Response](#response-32)
       - [HTTP](#http-33)
-    + [Remove Community](#remove-community)
+    + [Delete Community](#delete-community)
       - [Request](#request-33)
       - [Response](#response-33)
       - [HTTP](#http-34)
-    + [Follow Community](#follow-community)
+    + [Remove Community](#remove-community)
       - [Request](#request-34)
       - [Response](#response-34)
       - [HTTP](#http-35)
-    + [Get Followed Communities](#get-followed-communities)
+    + [Follow Community](#follow-community)
       - [Request](#request-35)
       - [Response](#response-35)
       - [HTTP](#http-36)
-    + [Transfer Community](#transfer-community)
+    + [Get Followed Communities](#get-followed-communities)
       - [Request](#request-36)
       - [Response](#response-36)
       - [HTTP](#http-37)
-  * [Post](#post)
-    + [Create Post](#create-post)
+    + [Transfer Community](#transfer-community)
       - [Request](#request-37)
       - [Response](#response-37)
       - [HTTP](#http-38)
-    + [Get Post](#get-post)
+    + [Community Join](#community-join)
       - [Request](#request-38)
       - [Response](#response-38)
       - [HTTP](#http-39)
-    + [Get Posts](#get-posts)
+  * [Post](#post)
+    + [Create Post](#create-post)
       - [Request](#request-39)
       - [Response](#response-39)
       - [HTTP](#http-40)
-    + [Create Post Like](#create-post-like)
+    + [Get Post](#get-post)
       - [Request](#request-40)
       - [Response](#response-40)
       - [HTTP](#http-41)
-    + [Edit Post](#edit-post)
+    + [Get Posts](#get-posts)
       - [Request](#request-41)
       - [Response](#response-41)
       - [HTTP](#http-42)
-    + [Delete Post](#delete-post)
+    + [Create Post Like](#create-post-like)
       - [Request](#request-42)
       - [Response](#response-42)
       - [HTTP](#http-43)
-    + [Remove Post](#remove-post)
+    + [Edit Post](#edit-post)
       - [Request](#request-43)
       - [Response](#response-43)
       - [HTTP](#http-44)
-    + [Lock Post](#lock-post)
+    + [Delete Post](#delete-post)
       - [Request](#request-44)
       - [Response](#response-44)
       - [HTTP](#http-45)
-    + [Sticky Post](#sticky-post)
+    + [Remove Post](#remove-post)
       - [Request](#request-45)
       - [Response](#response-45)
       - [HTTP](#http-46)
-    + [Save Post](#save-post)
+    + [Lock Post](#lock-post)
       - [Request](#request-46)
       - [Response](#response-46)
       - [HTTP](#http-47)
-  * [Comment](#comment)
-    + [Create Comment](#create-comment)
+    + [Sticky Post](#sticky-post)
       - [Request](#request-47)
       - [Response](#response-47)
       - [HTTP](#http-48)
-    + [Edit Comment](#edit-comment)
+    + [Save Post](#save-post)
       - [Request](#request-48)
       - [Response](#response-48)
       - [HTTP](#http-49)
-    + [Delete Comment](#delete-comment)
+    + [Post Join](#post-join)
       - [Request](#request-49)
       - [Response](#response-49)
       - [HTTP](#http-50)
-    + [Remove Comment](#remove-comment)
+  * [Comment](#comment)
+    + [Create Comment](#create-comment)
       - [Request](#request-50)
       - [Response](#response-50)
       - [HTTP](#http-51)
-    + [Get Comments](#get-comments)
+    + [Edit Comment](#edit-comment)
       - [Request](#request-51)
       - [Response](#response-51)
       - [HTTP](#http-52)
-    + [Mark Comment as Read](#mark-comment-as-read)
+    + [Delete Comment](#delete-comment)
       - [Request](#request-52)
       - [Response](#response-52)
       - [HTTP](#http-53)
-    + [Save Comment](#save-comment)
+    + [Remove Comment](#remove-comment)
       - [Request](#request-53)
       - [Response](#response-53)
       - [HTTP](#http-54)
-    + [Create Comment Like](#create-comment-like)
+    + [Get Comments](#get-comments)
       - [Request](#request-54)
       - [Response](#response-54)
       - [HTTP](#http-55)
+    + [Mark Comment as Read](#mark-comment-as-read)
+      - [Request](#request-55)
+      - [Response](#response-55)
+      - [HTTP](#http-56)
+    + [Save Comment](#save-comment)
+      - [Request](#request-56)
+      - [Response](#response-56)
+      - [HTTP](#http-57)
+    + [Create Comment Like](#create-comment-like)
+      - [Request](#request-57)
+      - [Response](#response-57)
+      - [HTTP](#http-58)
   * [RSS / Atom feeds](#rss--atom-feeds)
     + [All](#all)
     + [Community](#community-1)
@@ -257,7 +269,7 @@
 - <code>Option<***SomeType***></code> designates an option which may be omitted in requests and not be present in responses. It will be of type ***SomeType***.
 - <code>Vec<***SomeType***></code> is a list which contains objects of type ***SomeType***.
 - `chrono::NaiveDateTime` is a timestamp string in [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) format. Timestamps will be UTC.
-- Other data types are listed [here](../server/src/db).
+- Other data types are listed [here](../src/db).
 
 ## Basic usage
 
@@ -268,6 +280,12 @@ Request and response strings are in [JSON format](https://www.json.org).
 Connect to <code>ws://***host***/api/v1/ws</code> to get started.
 
 If the ***`host`*** supports secure connections, you can use <code>wss://***host***/api/v1/ws</code>.
+
+To receive websocket messages, you must join a room / context. The three available are:
+
+- [UserJoin](#user-join). Receives replies, private messages, etc.
+- [PostJoin](#post-join). Receives new comments on a post.
+- [CommunityJoin](#community-join). Receives front page / community posts.
 
 #### Testing with Websocat
 
@@ -847,6 +865,29 @@ Marks all user replies and mentions as read.
 
 `POST /user/ban`
 
+#### User Join
+##### Request
+```rust
+{
+  op: "UserJoin",
+  data: {
+    auth: String
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "UserJoin",
+  data: {
+    joined: bool,
+  }
+}
+```
+##### HTTP
+
+`POST /user/join`
+
 ### Site
 #### List Categories
 ##### Request
@@ -1395,6 +1436,32 @@ Only admins can remove a community.
 
 `POST /community/transfer`
 
+#### Community Join
+
+The main / frontpage community is `community_id: 0`.
+
+##### Request
+```rust
+{
+  op: "CommunityJoin",
+  data: {
+    community_id: i32
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "CommunityJoin",
+  data: {
+    joined: bool,
+  }
+}
+```
+##### HTTP
+
+`POST /community/join`
+
 ### Post
 #### Create Post
 ##### Request
@@ -1678,6 +1745,29 @@ Only admins and mods can sticky a post.
 ##### HTTP
 
 `POST /post/save`
+
+#### Post Join
+##### Request
+```rust
+{
+  op: "PostJoin",
+  data: {
+    post_id: i32
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "PostJoin",
+  data: {
+    joined: bool,
+  }
+}
+```
+##### HTTP
+
+`POST /post/join`
 
 ### Comment
 #### Create Comment

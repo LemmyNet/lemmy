@@ -31,4 +31,5 @@
 - High performance.
   - Server is written in rust.
   - Front end is `~80kB` gzipped.
+  - Front end works without javascript (read-only).
   - Supports arm64 / Raspberry Pi.

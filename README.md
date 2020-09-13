@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://dev.lemmy.ml/" rel="noopener">
- <img width=200px height=200px src="ui/assets/favicon.svg"></a>
+ <img width=200px height=200px src="https://raw.githubusercontent.com/LemmyNet/lemmy-isomorphic-ui/main/src/assets/icons/favicon.avg"></a>
 
  <h3 align="center"><a href="https://dev.lemmy.ml">Lemmy</a></h3>
   <p align="center">
