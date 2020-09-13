@@ -39,7 +39,7 @@ lazy_static! {
 
 embed_migrations!();
 
-#[actix_rt::main]
+#[actix_web::main]
 async fn main() -> Result<(), LemmyError> {
   env_logger::init();
   let settings = Settings::get();

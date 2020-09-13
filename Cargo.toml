@@ -28,10 +28,10 @@ bcrypt = "0.8.0"
 chrono = { version = "0.4.7", features = ["serde"] }
 serde_json = { version = "1.0.52", features = ["preserve_order"]}
 serde = { version = "1.0.105", features = ["derive"] }
-actix = "0.10.0-alpha.2"
-actix-web = { version = "3.0.0-alpha.3", features = ["rustls"] }
-actix-files = "0.3.0-alpha.1"
-actix-web-actors = "3.0.0-alpha.1"
+actix = "0.10.0"
+actix-web = { version = "3.0.0", default-features = false, features = ["rustls"] }
+actix-files = "0.3.0"
+actix-web-actors = "3.0.0"
 actix-rt = "1.1.1"
 awc = "2.0.0-alpha.2"
 log = "0.4.0"
