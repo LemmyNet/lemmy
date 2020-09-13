@@ -536,7 +536,7 @@ These expire after 10 minutes.
 ```
 ##### HTTP
 
-`PUT /save_user_settings`
+`PUT /user/save_user_settings`
 
 #### Get Replies / Inbox
 ##### Request
@@ -592,7 +592,7 @@ These expire after 10 minutes.
 
 ##### HTTP
 
-`GET /user/mentions`
+`GET /user/mention`
 
 #### Mark User Mention as read
 
@@ -785,7 +785,7 @@ Marks all user replies and mentions as read.
 
 #### Delete Account
 
-*Permananently deletes your posts and comments*
+*Permanently deletes your posts and comments*
 
 ##### Request
 ```rust
@@ -943,7 +943,7 @@ Search types are `All, Comments, Posts, Communities, Users, Url`
 ```
 ##### HTTP
 
-`POST /search`
+`GET /search`
 
 #### Get Modlog
 ##### Request
@@ -1968,7 +1968,7 @@ Only the recipient can do this.
 ```
 ##### HTTP
 
-`POST /comment/save`
+`PUT /comment/save`
 
 #### Create Comment Like
 
