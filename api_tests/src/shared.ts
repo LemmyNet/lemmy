@@ -120,8 +120,12 @@ export async function createPost(
   community_id: number
 ): Promise<PostResponse> {
   let name = 'A jest test post';
+  let body = 'Some body';
+  let url = 'https://google.com/';
   let form: PostForm = {
     name,
+    url,
+    body,
     auth: api.auth,
     community_id,
     nsfw: false,
@@ -233,6 +237,19 @@ export async function searchForBetaCommunity(
   // Use short-hand search url
   let form: SearchForm = {
     q: '!main@lemmy-beta:8550',
+    type_: SearchType.Communities,
+    sort: SortType.TopAll,
+  };
+  return api.client.search(form);
+}
+
+export async function searchForCommunity(
+  api: API,
+  q: string,
+): Promise<SearchResponse> {
+  // Use short-hand search url
+  let form: SearchForm = {
+    q,
     type_: SearchType.Communities,
     sort: SortType.TopAll,
   };
@@ -369,9 +386,15 @@ export async function createCommunity(
   api: API,
   name_: string = randomString(5)
 ): Promise<CommunityResponse> {
+  let description = 'a sample description';
+  let icon = 'https://image.flaticon.com/icons/png/512/35/35896.png';
+  let banner = 'https://image.flaticon.com/icons/png/512/35/35896.png';
   let form: CommunityForm = {
     name: name_,
     title: name_,
+    description,
+    icon,
+    banner,
     category_id: 1,
     nsfw: false,
     auth: api.auth,

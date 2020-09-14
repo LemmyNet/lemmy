@@ -1,8 +1,10 @@
+jest.setTimeout(120000);
 import {
   alpha,
   beta,
   setupLogins,
   searchForBetaCommunity,
+  searchForCommunity,
   createCommunity,
   deleteCommunity,
   removeCommunity,
@@ -21,6 +23,17 @@ test('Create community', async () => {
   let prevName = communityRes.community.name;
   let communityRes2 = await createCommunity(alpha, prevName);
   expect(communityRes2['error']).toBe('community_already_exists');
+  await delay();
+
+  // Cache the community on beta, make sure it has the other fields
+  let searchShort = `!${prevName}@lemmy-alpha:8540`;
+  let search = await searchForCommunity(beta, searchShort);
+  let communityOnBeta = search.communities[0];
+  expect(communityOnBeta.name).toBe(communityRes.community.name);
+  expect(communityOnBeta.title).toBe(communityRes.community.title);
+  expect(communityOnBeta.description).toBe(communityRes.community.description);
+  expect(communityOnBeta.icon).toBe(communityRes.community.icon);
+  expect(communityOnBeta.banner).toBe(communityRes.community.banner);
 });
 
 test('Delete community', async () => {

@@ -56,6 +56,10 @@ test('Create a post', async () => {
   expect(betaPost.community_local).toBe(true);
   expect(betaPost.creator_local).toBe(false);
   expect(betaPost.score).toBe(1);
+  expect(betaPost.name).toBe(postRes.post.name);
+  expect(betaPost.body).toBe(postRes.post.body);
+  expect(betaPost.url).toBe(postRes.post.url);
+  expect(betaPost.nsfw).toBe(postRes.post.nsfw);
 
   // Delta only follows beta, so it should not see an alpha ap_id
   let searchDelta = await searchPost(delta, postRes.post);
