@@ -30,10 +30,10 @@ serde_json = { version = "1.0.52", features = ["preserve_order"]}
 serde = { version = "1.0.105", features = ["derive"] }
 actix = "0.10.0"
 actix-web = { version = "3.0.0", default-features = false, features = ["rustls"] }
-actix-files = "0.3.0"
-actix-web-actors = "3.0.0"
-actix-rt = "1.1.1"
-awc = "2.0.0-alpha.2"
+actix-files = { version = "0.3.0", default-features = false }
+actix-web-actors = { version = "3.0.0", default-features = false }
+actix-rt = { version = "1.1.1", default-features = false }
+awc = { version = "2.0.0", default-features = false }
 log = "0.4.0"
 env_logger = "0.7.1"
 rand = "0.7.3"
@@ -46,7 +46,7 @@ url = { version = "2.1.1", features = ["serde"] }
 percent-encoding = "2.1.0"
 openssl = "0.10"
 http = "0.2.1"
-http-signature-normalization-actix = { version = "0.4.0-alpha.2", default-features = false, features = ["sha-2"] }
+http-signature-normalization-actix = { version = "0.4.0", default-features = false, features = ["sha-2"] }
 base64 = "0.12.1"
 tokio = "0.2.21"
 futures = "0.3.5"
