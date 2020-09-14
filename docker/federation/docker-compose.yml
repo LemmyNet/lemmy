@@ -23,10 +23,10 @@ services:
 
   pictrs:
     restart: always
-    image: asonix/pictrs:amd64-v0.1.0-r9
+    image: asonix/pictrs:v0.1.13-r0
     user: 991:991
     volumes:
-      - ./volumes/pictrs:/mnt
+      - ./volumes/pictrs_alpha:/mnt
 
   lemmy-alpha:
     image: lemmy-federation:latest
