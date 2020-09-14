@@ -14,5 +14,5 @@ tokio = "0.2.21"
 strum = "0.18.0"
 strum_macros = "0.18.0"
 futures = "0.3.5"
-actix-web = { version = "3.0.0-alpha.3", features = ["rustls"] }
+actix-web = { version = "3.0.0", default-features = false, features = ["rustls"] }
 log = "0.4.0"
