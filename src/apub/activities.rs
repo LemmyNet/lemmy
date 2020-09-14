@@ -7,7 +7,7 @@ use activitystreams::{
   object::AsObject,
 };
 use lemmy_db::{community::Community, user::User_};
-use lemmy_utils::{get_apub_protocol_string, settings::Settings, LemmyError};
+use lemmy_utils::{apub::get_apub_protocol_string, settings::Settings, LemmyError};
 use serde::{export::fmt::Debug, Serialize};
 use url::{ParseError, Url};
 use uuid::Uuid;

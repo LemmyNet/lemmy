@@ -1,5 +1,4 @@
 use crate::{
-  api::check_slurs,
   apub::{
     activities::{generate_activity_id, send_activity_to_community},
     check_actor_domain,
@@ -15,7 +14,6 @@ use crate::{
     PageExt,
     ToApub,
   },
-  blocking,
   DbPool,
   LemmyContext,
 };
@@ -37,13 +35,18 @@ use activitystreams::{
 use activitystreams_ext::Ext1;
 use actix_web::{body::Body, web, HttpResponse};
 use anyhow::Context;
+use lemmy_api_structs::blocking;
 use lemmy_db::{
   community::Community,
   post::{Post, PostForm},
   user::User_,
   Crud,
 };
-use lemmy_utils::{convert_datetime, location_info, remove_slurs, LemmyError};
+use lemmy_utils::{
+  location_info,
+  utils::{check_slurs, convert_datetime, remove_slurs},
+  LemmyError,
+};
 use serde::Deserialize;
 use url::Url;
 

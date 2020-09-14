@@ -8,7 +8,7 @@ use crate::{
 use actix::prelude::*;
 use actix_web::*;
 use actix_web_actors::ws;
-use lemmy_utils::get_ip;
+use lemmy_utils::utils::get_ip;
 use log::{debug, error, info};
 use std::time::{Duration, Instant};
 

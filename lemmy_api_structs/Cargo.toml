@@ -10,4 +10,8 @@ path = "src/lib.rs"
 
 [dependencies]
 lemmy_db = { path = "../lemmy_db" }
+lemmy_utils = { path = "../lemmy_utils" }
 serde = { version = "1.0.105", features = ["derive"] }
+log = "0.4.0"
+diesel = "1.4.4"
+actix-web = { version = "3.0.0-beta.3", features = ["rustls"] }

@@ -1,5 +1,4 @@
 use crate::{
-  api::comment::send_local_notifs,
   apub::{
     fetcher::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
     inbox::shared_inbox::{
@@ -11,7 +10,6 @@ use crate::{
     FromApub,
     PageExt,
   },
-  blocking,
   websocket::{
     messages::{SendComment, SendPost},
     UserOperation,
@@ -21,7 +19,12 @@ use crate::{
 use activitystreams::{activity::Update, base::AnyBase, object::Note, prelude::*};
 use actix_web::HttpResponse;
 use anyhow::Context;
-use lemmy_api_structs::{comment::CommentResponse, post::PostResponse};
+use lemmy_api_structs::{
+  blocking,
+  comment::CommentResponse,
+  post::PostResponse,
+  send_local_notifs,
+};
 use lemmy_db::{
   comment::{Comment, CommentForm},
   comment_view::CommentView,
@@ -29,7 +32,7 @@ use lemmy_db::{
   post_view::PostView,
   Crud,
 };
-use lemmy_utils::{location_info, scrape_text_for_mentions, LemmyError};
+use lemmy_utils::{location_info, utils::scrape_text_for_mentions, LemmyError};
 
 pub async fn receive_update(
   activity: AnyBase,

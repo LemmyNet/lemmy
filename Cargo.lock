@@ -325,9 +325,9 @@ dependencies = [
 
 [[package]]
 name = "actix-web"
-version = "3.0.0"
+version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e665de333edabd0421799822dac3e7d8a25a63bb995ae1f60cd99619d8ddda8"
+checksum = "cd7fc56022da91a4dc00ccae7d7bb82e539749ca36df181695f4efdf5d413b2e"
 dependencies = [
  "actix-codec 0.3.0",
  "actix-http",
@@ -865,9 +865,9 @@ checksum = "0dbbb57365263e881e805dc77d94697c9118fd94d8da011240555aa7b23445bd"
 
 [[package]]
 name = "comrak"
-version = "0.7.0"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e17058cc536cf290563e88787d7b9e6030ce4742943017cc2ffb71f88034021c"
+checksum = "0d325e4f2ffff52ca77d995bb675494d5364aa332499d5f7c7fbb28c25e671f6"
 dependencies = [
  "clap",
  "entities",
@@ -875,9 +875,11 @@ dependencies = [
  "pest",
  "pest_derive",
  "regex",
+ "shell-words",
  "twoway",
  "typed-arena",
  "unicode_categories",
+ "xdg",
 ]
 
 [[package]]
@@ -1597,12 +1599,12 @@ dependencies = [
 
 [[package]]
 name = "http-signature-normalization-actix"
-version = "0.4.0-alpha.3"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b44149de8286e9a07aeb72f4dee198530c0fb95df77f36b11138a748788f5603"
+checksum = "88c2cc504dd6a2af53b5f2c3dba63aa5d797359df5b64a21e2230bf78146a373"
 dependencies = [
- "actix-http",
  "actix-web",
+ "awc",
  "base64 0.12.3",
  "bytes",
  "chrono",
@@ -1822,7 +1824,11 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 name = "lemmy_api_structs"
 version = "0.1.0"
 dependencies = [
+ "actix-web",
+ "diesel",
  "lemmy_db",
+ "lemmy_utils",
+ "log",
  "serde 1.0.115",
 ]
 
@@ -3108,6 +3114,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "shell-words"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6fa3938c99da4914afedd13bf3d79bcb6c277d1b2c398d23257a304d9e1b074"
+
+[[package]]
 name = "signal-hook-registry"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3236,15 +3248,15 @@ checksum = "6446ced80d6c486436db5c078dde11a9f73d42b57fb273121e160b84f63d894c"
 
 [[package]]
 name = "strum"
-version = "0.18.0"
+version = "0.19.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57bd81eb48f4c437cadc685403cad539345bf703d78e63707418431cecd4522b"
+checksum = "3924a58d165da3b7b2922c667ab0673c7b5fd52b5c19ea3442747bcb3cd15abe"
 
 [[package]]
 name = "strum_macros"
-version = "0.18.0"
+version = "0.19.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87c85aa3f8ea653bfd3ddf25f7ee357ee4d204731f6aa9ad04002306f6e2774c"
+checksum = "2d2ab682ecdcae7f5f45ae85cd7c1e6c8e68ea42c8a612d47fedf831c037146a"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -3914,3 +3926,9 @@ dependencies = [
  "winapi 0.2.8",
  "winapi-build",
 ]
+
+[[package]]
+name = "xdg"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d089681aa106a86fade1b0128fb5daf07d5867a509ab036d99988dec80429a57"

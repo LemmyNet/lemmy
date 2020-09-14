@@ -17,7 +17,6 @@ use crate::{
     FromApub,
     ToApub,
   },
-  blocking,
   DbPool,
   LemmyContext,
 };
@@ -41,6 +40,7 @@ use activitystreams::{
 use actix_web::{body::Body, web, web::Path, HttpResponse};
 use anyhow::Context;
 use itertools::Itertools;
+use lemmy_api_structs::blocking;
 use lemmy_db::{
   comment::{Comment, CommentForm},
   community::Community,
@@ -49,12 +49,9 @@ use lemmy_db::{
   Crud,
 };
 use lemmy_utils::{
-  convert_datetime,
   location_info,
-  remove_slurs,
-  scrape_text_for_mentions,
+  utils::{convert_datetime, remove_slurs, scrape_text_for_mentions, MentionData},
   LemmyError,
-  MentionData,
 };
 use log::debug;
 use serde::Deserialize;
