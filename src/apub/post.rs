@@ -253,8 +253,7 @@ impl FromApub for PostForm {
     let url = page
       .inner
       .url()
-      .as_ref()
-      .map(|u| u.as_single_xsd_string())
+      .map(|u| u.as_single_xsd_any_uri())
       .flatten()
       .map(|s| s.to_string());
     let body = page
