@@ -12,7 +12,6 @@ use crate::{
     FromApub,
     ToApub,
   },
-  blocking,
   DbPool,
   LemmyContext,
 };
@@ -28,12 +27,13 @@ use activitystreams::{
   prelude::*,
 };
 use anyhow::Context;
+use lemmy_api_structs::blocking;
 use lemmy_db::{
   private_message::{PrivateMessage, PrivateMessageForm},
   user::User_,
   Crud,
 };
-use lemmy_utils::{convert_datetime, location_info, LemmyError};
+use lemmy_utils::{location_info, utils::convert_datetime, LemmyError};
 use url::Url;
 
 #[async_trait::async_trait(?Send)]

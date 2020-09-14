@@ -1,7 +1,7 @@
 use super::user_view::user_fast::BoxedQuery;
 use crate::{fuzzy_search, limit_and_offset, MaybeOptional, SortType};
 use diesel::{dsl::*, pg::Pg, result::Error, *};
-use serde::{Serialize};
+use serde::Serialize;
 
 table! {
   user_view (id) {
@@ -51,9 +51,7 @@ table! {
   }
 }
 
-#[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
-)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone)]
 #[table_name = "user_fast"]
 pub struct UserView {
   pub id: i32,

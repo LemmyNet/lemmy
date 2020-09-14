@@ -36,14 +36,13 @@ use crate::{
 use actix::Addr;
 use anyhow::anyhow;
 use background_jobs::QueueHandle;
-use lemmy_utils::{get_apub_protocol_string, settings::Settings, LemmyError};
+use lemmy_db::DbPool;
+use lemmy_utils::{apub::get_apub_protocol_string, settings::Settings, LemmyError};
 use log::error;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use reqwest::Client;
 use serde::Deserialize;
 use std::process::Command;
-
-pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 
 pub struct LemmyContext {
   pub pool: DbPool,
@@ -222,22 +221,6 @@ pub async fn is_image_content_type(client: &Client, test: &str) -> Result<(), Le
   } else {
     Err(anyhow!("Not an image type.").into())
   }
-}
-
-pub async fn blocking<F, T>(pool: &DbPool, f: F) -> Result<T, LemmyError>
-where
-  F: FnOnce(&diesel::PgConnection) -> T + Send + 'static,
-  T: Send + 'static,
-{
-  let pool = pool.clone();
-  let res = actix_web::web::block(move || {
-    let conn = pool.get()?;
-    let res = (f)(&conn);
-    Ok(res) as Result<_, LemmyError>
-  })
-  .await?;
-
-  Ok(res)
 }
 
 pub fn captcha_espeak_wav_base64(captcha: &str) -> Result<String, LemmyError> {

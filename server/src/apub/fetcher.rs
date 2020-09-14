@@ -8,7 +8,6 @@ use crate::{
     PersonExt,
     APUB_JSON_CONTENT_TYPE,
   },
-  blocking,
   request::{retry, RecvError},
   LemmyContext,
 };
@@ -16,7 +15,7 @@ use activitystreams::{base::BaseExt, collection::OrderedCollection, object::Note
 use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
 use diesel::result::Error::NotFound;
-use lemmy_api_structs::site::SearchResponse;
+use lemmy_api_structs::{blocking, site::SearchResponse};
 use lemmy_db::{
   comment::{Comment, CommentForm},
   comment_view::CommentView,
@@ -31,7 +30,7 @@ use lemmy_db::{
   Joinable,
   SearchType,
 };
-use lemmy_utils::{get_apub_protocol_string, location_info, LemmyError};
+use lemmy_utils::{apub::get_apub_protocol_string, location_info, LemmyError};
 use log::debug;
 use reqwest::Client;
 use serde::Deserialize;

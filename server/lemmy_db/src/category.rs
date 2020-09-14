@@ -3,7 +3,7 @@ use crate::{
   Crud,
 };
 use diesel::{dsl::*, result::Error, *};
-use serde::{Serialize};
+use serde::Serialize;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "category"]

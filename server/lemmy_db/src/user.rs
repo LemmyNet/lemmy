@@ -6,7 +6,7 @@ use crate::{
 };
 use bcrypt::{hash, DEFAULT_COST};
 use diesel::{dsl::*, result::Error, *};
-use serde::{Serialize};
+use serde::Serialize;
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "user_"]

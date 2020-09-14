@@ -1,5 +1,5 @@
 use diesel::{result::Error, *};
-use serde::{Serialize};
+use serde::Serialize;
 
 table! {
   site_view (id) {
@@ -24,9 +24,7 @@ table! {
   }
 }
 
-#[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
-)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone)]
 #[table_name = "site_view"]
 pub struct SiteView {
   pub id: i32,

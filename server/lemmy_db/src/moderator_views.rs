@@ -1,6 +1,6 @@
 use crate::limit_and_offset;
 use diesel::{result::Error, *};
-use serde::{Serialize};
+use serde::Serialize;
 
 table! {
   mod_remove_post_view (id) {
@@ -17,9 +17,7 @@ table! {
   }
 }
 
-#[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
-)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone)]
 #[table_name = "mod_remove_post_view"]
 pub struct ModRemovePostView {
   pub id: i32,
@@ -77,9 +75,7 @@ table! {
   }
 }
 
-#[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
-)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone)]
 #[table_name = "mod_lock_post_view"]
 pub struct ModLockPostView {
   pub id: i32,
@@ -136,9 +132,7 @@ table! {
   }
 }
 
-#[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
-)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone)]
 #[table_name = "mod_sticky_post_view"]
 pub struct ModStickyPostView {
   pub id: i32,
@@ -200,9 +194,7 @@ table! {
   }
 }
 
-#[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
-)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone)]
 #[table_name = "mod_remove_comment_view"]
 pub struct ModRemoveCommentView {
   pub id: i32,
@@ -264,9 +256,7 @@ table! {
   }
 }
 
-#[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
-)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone)]
 #[table_name = "mod_remove_community_view"]
 pub struct ModRemoveCommunityView {
   pub id: i32,
@@ -320,9 +310,7 @@ table! {
   }
 }
 
-#[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
-)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone)]
 #[table_name = "mod_ban_from_community_view"]
 pub struct ModBanFromCommunityView {
   pub id: i32,
@@ -381,9 +369,7 @@ table! {
   }
 }
 
-#[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
-)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone)]
 #[table_name = "mod_ban_view"]
 pub struct ModBanView {
   pub id: i32,
@@ -435,9 +421,7 @@ table! {
   }
 }
 
-#[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
-)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone)]
 #[table_name = "mod_add_community_view"]
 pub struct ModAddCommunityView {
   pub id: i32,
@@ -492,9 +476,7 @@ table! {
   }
 }
 
-#[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone,
-)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, QueryableByName, Clone)]
 #[table_name = "mod_add_view"]
 pub struct ModAddView {
   pub id: i32,

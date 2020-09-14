@@ -1,15 +1,6 @@
 use crate::{
-  api::{
-    check_community_ban,
-    check_slurs,
-    check_slurs_opt,
-    get_user_from_jwt,
-    get_user_from_jwt_opt,
-    is_mod_or_admin,
-    Perform,
-  },
+  api::{check_community_ban, get_user_from_jwt, get_user_from_jwt_opt, is_mod_or_admin, Perform},
   apub::{ApubLikeableType, ApubObjectType},
-  blocking,
   fetch_iframely_and_pictrs_data,
   websocket::{
     messages::{GetPostUsersOnline, JoinCommunityRoom, JoinPostRoom, SendPost},
@@ -18,7 +9,7 @@ use crate::{
   LemmyContext,
 };
 use actix_web::web::Data;
-use lemmy_api_structs::post::*;
+use lemmy_api_structs::{blocking, post::*};
 use lemmy_db::{
   comment_view::*,
   community_view::*,
@@ -34,11 +25,10 @@ use lemmy_db::{
   SortType,
 };
 use lemmy_utils::{
-  is_valid_post_title,
-  make_apub_endpoint,
+  apub::{make_apub_endpoint, EndpointType},
+  utils::{check_slurs, check_slurs_opt, is_valid_post_title},
   APIError,
   ConnectionId,
-  EndpointType,
   LemmyError,
 };
 use std::str::FromStr;

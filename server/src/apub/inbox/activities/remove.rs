@@ -12,7 +12,6 @@ use crate::{
     GroupExt,
     PageExt,
   },
-  blocking,
   websocket::{
     messages::{SendComment, SendCommunityRoomMessage, SendPost},
     UserOperation,
@@ -23,6 +22,7 @@ use activitystreams::{activity::Remove, base::AnyBase, object::Note, prelude::*}
 use actix_web::HttpResponse;
 use anyhow::{anyhow, Context};
 use lemmy_api_structs::{
+  blocking,
   comment::CommentResponse,
   community::CommunityResponse,
   post::PostResponse,

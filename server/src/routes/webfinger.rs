@@ -1,6 +1,7 @@
-use crate::{blocking, LemmyContext};
+use crate::LemmyContext;
 use actix_web::{error::ErrorBadRequest, web::Query, *};
 use anyhow::anyhow;
+use lemmy_api_structs::blocking;
 use lemmy_db::{community::Community, user::User_};
 use lemmy_utils::{
   settings::Settings,

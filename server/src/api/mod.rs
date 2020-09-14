@@ -1,5 +1,6 @@
-use crate::{api::claims::Claims, blocking, DbPool, LemmyContext};
+use crate::{api::claims::Claims, DbPool, LemmyContext};
 use actix_web::web::Data;
+use lemmy_api_structs::blocking;
 use lemmy_db::{
   community::Community,
   community_view::CommunityUserBanView,
@@ -7,7 +8,7 @@ use lemmy_db::{
   user::User_,
   Crud,
 };
-use lemmy_utils::{slur_check, slurs_vec_to_str, APIError, ConnectionId, LemmyError};
+use lemmy_utils::{APIError, ConnectionId, LemmyError};
 
 pub mod claims;
 pub mod comment;
@@ -83,19 +84,6 @@ pub(in crate::api) async fn get_user_from_jwt_opt(
   }
 }
 
-pub(in crate) fn check_slurs(text: &str) -> Result<(), APIError> {
-  if let Err(slurs) = slur_check(text) {
-    Err(APIError::err(&slurs_vec_to_str(slurs)))
-  } else {
-    Ok(())
-  }
-}
-pub(in crate) fn check_slurs_opt(text: &Option<String>) -> Result<(), APIError> {
-  match text {
-    Some(t) => check_slurs(t),
-    None => Ok(()),
-  }
-}
 pub(in crate::api) async fn check_community_ban(
   user_id: i32,
   community_id: i32,

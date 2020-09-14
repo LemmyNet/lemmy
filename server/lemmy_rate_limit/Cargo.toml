@@ -11,8 +11,8 @@ path = "src/lib.rs"
 [dependencies]
 lemmy_utils = { path = "../lemmy_utils" }
 tokio = "0.2.21"
-strum = "0.18.0"
-strum_macros = "0.18.0"
+strum = "0.19.2"
+strum_macros = "0.19.2"
 futures = "0.3.5"
 actix-web = { version = "3.0.0", default-features = false, features = ["rustls"] }
 log = "0.4.0"

@@ -12,11 +12,11 @@ diesel = { version = "1.4.4", features = ["postgres","chrono","r2d2","64-column-
 chrono = { version = "0.4.7", features = ["serde"] }
 serde = { version = "1.0.105", features = ["derive"] }
 serde_json = { version = "1.0.52", features = ["preserve_order"]}
-strum = "0.18.0"
-strum_macros = "0.18.0"
+strum = "0.19.2"
+strum_macros = "0.19.2"
 log = "0.4.0"
 sha2 = "0.9"
-bcrypt = "0.8.0"
+bcrypt = "0.8.2"
 url = { version = "2.1.1", features = ["serde"] }
 lazy_static = "1.3.0"
 regex = "1.3.5"

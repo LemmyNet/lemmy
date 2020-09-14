@@ -15,7 +15,6 @@ use crate::{
     page_extension::PageExtension,
     signatures::{PublicKey, PublicKeyExtension},
   },
-  blocking,
   request::{retry, RecvError},
   routes::webfinger::WebFingerResponse,
   DbPool,
@@ -33,14 +32,14 @@ use activitystreams_ext::{Ext1, Ext2};
 use actix_web::{body::Body, HttpResponse};
 use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
+use lemmy_api_structs::blocking;
 use lemmy_db::{activity::do_insert_activity, user::User_};
 use lemmy_utils::{
-  convert_datetime,
-  get_apub_protocol_string,
+  apub::get_apub_protocol_string,
   location_info,
   settings::Settings,
+  utils::{convert_datetime, MentionData},
   LemmyError,
-  MentionData,
 };
 use log::debug;
 use reqwest::Client;

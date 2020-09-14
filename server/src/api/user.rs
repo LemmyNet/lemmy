@@ -1,7 +1,6 @@
 use crate::{
-  api::{check_slurs, claims::Claims, get_user_from_jwt, get_user_from_jwt_opt, is_admin, Perform},
+  api::{claims::Claims, get_user_from_jwt, get_user_from_jwt_opt, is_admin, Perform},
   apub::ApubObjectType,
-  blocking,
   captcha_espeak_wav_base64,
   websocket::{
     messages::{CaptchaItem, CheckCaptcha, JoinUserRoom, SendAllMessage, SendUserRoomMessage},
@@ -14,7 +13,7 @@ use anyhow::Context;
 use bcrypt::verify;
 use captcha::{gen, Difficulty};
 use chrono::Duration;
-use lemmy_api_structs::user::*;
+use lemmy_api_structs::{blocking, user::*};
 use lemmy_db::{
   comment::*,
   comment_view::*,
@@ -41,19 +40,20 @@ use lemmy_db::{
   SortType,
 };
 use lemmy_utils::{
-  generate_actor_keypair,
-  generate_random_string,
-  is_valid_preferred_username,
-  is_valid_username,
+  apub::{generate_actor_keypair, make_apub_endpoint, EndpointType},
+  email::send_email,
   location_info,
-  make_apub_endpoint,
-  naive_from_unix,
-  remove_slurs,
-  send_email,
   settings::Settings,
+  utils::{
+    check_slurs,
+    generate_random_string,
+    is_valid_preferred_username,
+    is_valid_username,
+    naive_from_unix,
+    remove_slurs,
+  },
   APIError,
   ConnectionId,
-  EndpointType,
   LemmyError,
 };
 use log::error;

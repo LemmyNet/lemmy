@@ -8,8 +8,8 @@ extern crate tokio;
 use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
 use futures::future::{ok, Ready};
 use lemmy_utils::{
-  get_ip,
   settings::{RateLimitConfig, Settings},
+  utils::get_ip,
   LemmyError,
 };
 use rate_limiter::{RateLimitType, RateLimiter};

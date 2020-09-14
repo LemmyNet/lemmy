@@ -6,7 +6,6 @@ use crate::{
     insert_activity,
     ActorType,
   },
-  blocking,
   LemmyContext,
 };
 use activitystreams::{
@@ -16,6 +15,7 @@ use activitystreams::{
 };
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
+use lemmy_api_structs::blocking;
 use lemmy_db::{
   community::{Community, CommunityFollower, CommunityFollowerForm},
   user::User_,

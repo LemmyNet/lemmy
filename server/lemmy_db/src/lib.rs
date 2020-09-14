@@ -40,6 +40,8 @@ pub mod user_mention;
 pub mod user_mention_view;
 pub mod user_view;
 
+pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
+
 pub trait Crud<T> {
   fn create(conn: &PgConnection, form: &T) -> Result<Self, Error>
   where

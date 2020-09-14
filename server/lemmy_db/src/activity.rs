@@ -1,7 +1,7 @@
 use crate::{schema::activity, Crud};
 use diesel::{dsl::*, result::Error, *};
 use log::debug;
-use serde::{Serialize};
+use serde::Serialize;
 use serde_json::Value;
 use std::{
   fmt::Debug,
