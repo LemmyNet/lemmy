@@ -4,11 +4,11 @@ services:
   nginx:
     image: nginx:1.17-alpine
     ports:
-      - "8540:8540"
-      - "8550:8550"
-      - "8560:8560"
-      - "8570:8570"
-      - "8580:8580"
+      - "8541:8541"
+      - "8551:8551"
+      - "8561:8561"
+      - "8571:8571"
+      - "8581:8581"
     volumes:
       # Hack to make this work from both docker/federation/ and docker/federation-test/
       - ../federation/nginx.conf:/etc/nginx/nginx.conf
@@ -32,13 +32,13 @@ services:
   lemmy-alpha:
     image: dessalines/lemmy:travis
     environment:
-      - LEMMY_HOSTNAME=lemmy-alpha:8540
+      - LEMMY_HOSTNAME=lemmy-alpha:8541
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_alpha:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-beta,lemmy-gamma,lemmy-delta,lemmy-epsilon
-      - LEMMY_PORT=8540
+      - LEMMY_PORT=8541
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_alpha
       - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
       - LEMMY_SETUP__SITE_NAME=lemmy-alpha
@@ -61,13 +61,13 @@ services:
   lemmy-beta:
     image: dessalines/lemmy:travis
     environment:
-      - LEMMY_HOSTNAME=lemmy-beta:8550
+      - LEMMY_HOSTNAME=lemmy-beta:8551
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_beta:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-alpha,lemmy-gamma,lemmy-delta,lemmy-epsilon
-      - LEMMY_PORT=8550
+      - LEMMY_PORT=8551
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_beta
       - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
       - LEMMY_SETUP__SITE_NAME=lemmy-beta
@@ -90,13 +90,13 @@ services:
   lemmy-gamma:
     image: dessalines/lemmy:travis
     environment:
-      - LEMMY_HOSTNAME=lemmy-gamma:8560
+      - LEMMY_HOSTNAME=lemmy-gamma:8561
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_gamma:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-alpha,lemmy-beta,lemmy-delta,lemmy-epsilon
-      - LEMMY_PORT=8560
+      - LEMMY_PORT=8561
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_gamma
       - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
       - LEMMY_SETUP__SITE_NAME=lemmy-gamma
@@ -120,13 +120,13 @@ services:
   lemmy-delta:
     image: dessalines/lemmy:travis
     environment:
-      - LEMMY_HOSTNAME=lemmy-delta:8570
+      - LEMMY_HOSTNAME=lemmy-delta:8571
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_delta:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-beta
-      - LEMMY_PORT=8570
+      - LEMMY_PORT=8571
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_delta
       - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
       - LEMMY_SETUP__SITE_NAME=lemmy-delta
@@ -150,13 +150,13 @@ services:
   lemmy-epsilon:
     image: dessalines/lemmy:travis
     environment:
-      - LEMMY_HOSTNAME=lemmy-epsilon:8580
+      - LEMMY_HOSTNAME=lemmy-epsilon:8581
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_epsilon:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_FEDERATION__BLOCKED_INSTANCES=lemmy-alpha
-      - LEMMY_PORT=8580
+      - LEMMY_PORT=8581
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_epsilon
       - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
       - LEMMY_SETUP__SITE_NAME=lemmy-epsilon
