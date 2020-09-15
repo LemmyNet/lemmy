@@ -50,23 +50,23 @@ export interface API {
 }
 
 export let alpha: API = {
-  client: new LemmyHttp('http://localhost:8540/api/v1'),
+  client: new LemmyHttp('http://localhost:8541/api/v1'),
 };
 
 export let beta: API = {
-  client: new LemmyHttp('http://localhost:8550/api/v1'),
+  client: new LemmyHttp('http://localhost:8551/api/v1'),
 };
 
 export let gamma: API = {
-  client: new LemmyHttp('http://localhost:8560/api/v1'),
+  client: new LemmyHttp('http://localhost:8561/api/v1'),
 };
 
 export let delta: API = {
-  client: new LemmyHttp('http://localhost:8570/api/v1'),
+  client: new LemmyHttp('http://localhost:8571/api/v1'),
 };
 
 export let epsilon: API = {
-  client: new LemmyHttp('http://localhost:8580/api/v1'),
+  client: new LemmyHttp('http://localhost:8581/api/v1'),
 };
 
 export async function setupLogins() {
@@ -236,7 +236,7 @@ export async function searchForBetaCommunity(
   // Make sure lemmy-beta/c/main is cached on lemmy_alpha
   // Use short-hand search url
   let form: SearchForm = {
-    q: '!main@lemmy-beta:8550',
+    q: '!main@lemmy-beta:8551',
     type_: SearchType.Communities,
     sort: SortType.TopAll,
   };

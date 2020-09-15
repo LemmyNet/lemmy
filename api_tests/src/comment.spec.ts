@@ -235,7 +235,7 @@ test('Reply to a comment', async () => {
 
 test('Mention beta', async () => {
   // Create a mention on alpha
-  let mentionContent = 'A test mention of @lemmy_beta@lemmy-beta:8550';
+  let mentionContent = 'A test mention of @lemmy_beta@lemmy-beta:8551';
   let commentRes = await createComment(alpha, postRes.post.id);
   await delay();
   let mentionRes = await createComment(
@@ -275,7 +275,7 @@ test('A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   let gammaPost = search.posts[0];
 
   let commentContent =
-    'A jest test federated comment announce, lets mention @lemmy_beta@lemmy-beta:8550';
+    'A jest test federated comment announce, lets mention @lemmy_beta@lemmy-beta:8551';
   let commentRes = await createComment(
     gamma,
     gammaPost.id,

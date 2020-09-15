@@ -94,6 +94,18 @@ impl ToApub for Community {
       group.set_content(d);
     }
 
+    if let Some(icon) = &self.icon {
+      let mut image = Image::new();
+      image.set_url(icon.to_owned());
+      group.set_icon(image.into_any_base()?);
+    }
+
+    if let Some(banner_url) = &self.banner {
+      let mut image = Image::new();
+      image.set_url(banner_url.to_owned());
+      group.set_image(image.into_any_base()?);
+    }
+
     let mut ap_actor = ApActor::new(self.get_inbox_url()?, group);
     ap_actor
       .set_preferred_username(self.title.to_owned())

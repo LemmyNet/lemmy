@@ -26,7 +26,7 @@ test('Create community', async () => {
   await delay();
 
   // Cache the community on beta, make sure it has the other fields
-  let searchShort = `!${prevName}@lemmy-alpha:8540`;
+  let searchShort = `!${prevName}@lemmy-alpha:8541`;
   let search = await searchForCommunity(beta, searchShort);
   let communityOnBeta = search.communities[0];
   expect(communityOnBeta.name).toBe(communityRes.community.name);

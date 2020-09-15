@@ -18,7 +18,7 @@ test('Create user', async () => {
 
   let site = await getSite(alpha, auth);
   expect(site.my_user).toBeDefined();
-  apShortname = `@${site.my_user.name}@lemmy-alpha:8540`;
+  apShortname = `@${site.my_user.name}@lemmy-alpha:8541`;
 });
 
 test('Save user settings, check changed bio from beta', async () => {

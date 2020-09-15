@@ -15,11 +15,11 @@ services:
     depends_on:
       - pictrs
       - iframely
-      - lemmy-alpha-ui
-      - lemmy-beta-ui
-      - lemmy-gamma-ui
-      - lemmy-delta-ui
-      - lemmy-epsilon-ui
+      - lemmy-alpha
+      - lemmy-beta
+      - lemmy-gamma
+      - lemmy-delta
+      - lemmy-epsilon
 
   pictrs:
     restart: always
@@ -56,6 +56,8 @@ services:
       - RUST_LOG=debug
     depends_on:
       - postgres_alpha
+    ports: 
+      - "8541:8541"
   postgres_alpha:
     image: postgres:12-alpine
     environment:
@@ -93,6 +95,8 @@ services:
       - RUST_LOG=debug
     depends_on:
       - postgres_beta
+    ports: 
+      - "8551:8551"
   postgres_beta:
     image: postgres:12-alpine
     environment:
@@ -130,6 +134,8 @@ services:
       - RUST_LOG=debug
     depends_on:
       - postgres_gamma
+    ports: 
+      - "8561:8561"
   postgres_gamma:
     image: postgres:12-alpine
     environment:
@@ -168,6 +174,8 @@ services:
       - RUST_LOG=debug
     depends_on:
       - postgres_delta
+    ports: 
+      - "8571:8571"
   postgres_delta:
     image: postgres:12-alpine
     environment:
@@ -206,6 +214,8 @@ services:
       - RUST_LOG=debug
     depends_on:
       - postgres_epsilon
+    ports: 
+      - "8581:8581"
   postgres_epsilon:
     image: postgres:12-alpine
     environment:
