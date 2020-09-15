@@ -1,34 +1,6 @@
 version: '3.3'
 
 services:
-  nginx:
-    image: nginx:1.17-alpine
-    ports:
-      - "8541:8541"
-      - "8551:8551"
-      - "8561:8561"
-      - "8571:8571"
-      - "8581:8581"
-    volumes:
-      # Hack to make this work from both docker/federation/ and docker/federation-test/
-      - ../federation/nginx.conf:/etc/nginx/nginx.conf
-    restart: on-failure
-    depends_on:
-      - pictrs
-      - iframely
-      - lemmy-alpha
-      - lemmy-beta
-      - lemmy-gamma
-      - lemmy-delta
-      - lemmy-epsilon
-
-  pictrs:
-    restart: always
-    image: asonix/pictrs:v0.1.13-r0
-    user: 991:991
-    volumes:
-      - ./volumes/pictrs_alpha:/mnt
-
   lemmy-alpha:
     image: dessalines/lemmy:travis
     environment:
@@ -49,6 +21,8 @@ services:
       - RUST_LOG=debug
     depends_on:
       - postgres_alpha
+    ports: 
+      - "8541:8541"
   postgres_alpha:
     image: postgres:12-alpine
     environment:
@@ -78,6 +52,8 @@ services:
       - RUST_LOG=debug
     depends_on:
       - postgres_beta
+    ports: 
+      - "8551:8551"
   postgres_beta:
     image: postgres:12-alpine
     environment:
@@ -107,6 +83,8 @@ services:
       - RUST_LOG=debug
     depends_on:
       - postgres_gamma
+    ports: 
+      - "8561:8561"
   postgres_gamma:
     image: postgres:12-alpine
     environment:
@@ -137,6 +115,8 @@ services:
       - RUST_LOG=debug
     depends_on:
       - postgres_delta
+    ports: 
+      - "8571:8571"
   postgres_delta:
     image: postgres:12-alpine
     environment:
@@ -167,6 +147,8 @@ services:
       - RUST_LOG=debug
     depends_on:
       - postgres_epsilon
+    ports: 
+      - "8571:8571"
   postgres_epsilon:
     image: postgres:12-alpine
     environment:
@@ -175,9 +157,3 @@ services:
       - POSTGRES_DB=lemmy
     volumes:
       - ./volumes/postgres_epsilon:/var/lib/postgresql/data
-
-  iframely:
-    image: dogbin/iframely:latest
-    volumes:
-      - ../iframely.config.local.js:/iframely/config.local.js:ro
-    restart: always
