@@ -28,17 +28,24 @@ services:
     volumes:
       - ./volumes/pictrs_alpha:/mnt
 
+  lemmy-alpha-ui:
+    image: dessalines/lemmy-ui:v0.0.14
+    environment:
+      - LEMMY_INTERNAL_HOST=lemmy-alpha:8541
+      - LEMMY_EXTERNAL_HOST=localhost:8541
+      - LEMMY_HTTPS=false
+    depends_on:
+      - lemmy-alpha
   lemmy-alpha:
     image: lemmy-federation:latest
     environment:
-      - LEMMY_HOSTNAME=lemmy-alpha:8540
+      - LEMMY_HOSTNAME=lemmy-alpha:8541
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_alpha:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
-      - LEMMY_FRONT_END_DIR=/app/dist
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-beta,lemmy-gamma,lemmy-delta,lemmy-epsilon
-      - LEMMY_PORT=8540
+      - LEMMY_PORT=8541
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_alpha
       - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
       - LEMMY_SETUP__SITE_NAME=lemmy-alpha
@@ -49,6 +56,8 @@ services:
       - RUST_LOG=debug
     depends_on:
       - postgres_alpha
+    ports: 
+      - "8541:8541"
   postgres_alpha:
     image: postgres:12-alpine
     environment:
@@ -58,17 +67,24 @@ services:
     volumes:
       - ./volumes/postgres_alpha:/var/lib/postgresql/data
 
+  lemmy-beta-ui:
+    image: dessalines/lemmy-ui:v0.0.14
+    environment:
+      - LEMMY_INTERNAL_HOST=lemmy-beta:8551
+      - LEMMY_EXTERNAL_HOST=localhost:8551
+      - LEMMY_HTTPS=false
+    depends_on:
+      - lemmy-beta
   lemmy-beta:
     image: lemmy-federation:latest
     environment:
-      - LEMMY_HOSTNAME=lemmy-beta:8550
+      - LEMMY_HOSTNAME=lemmy-beta:8551
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_beta:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
-      - LEMMY_FRONT_END_DIR=/app/dist
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-alpha,lemmy-gamma,lemmy-delta,lemmy-epsilon
-      - LEMMY_PORT=8550
+      - LEMMY_PORT=8551
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_beta
       - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
       - LEMMY_SETUP__SITE_NAME=lemmy-beta
@@ -79,6 +95,8 @@ services:
       - RUST_LOG=debug
     depends_on:
       - postgres_beta
+    ports: 
+      - "8551:8551"
   postgres_beta:
     image: postgres:12-alpine
     environment:
@@ -88,17 +106,24 @@ services:
     volumes:
       - ./volumes/postgres_beta:/var/lib/postgresql/data
 
+  lemmy-gamma-ui:
+    image: dessalines/lemmy-ui:v0.0.14
+    environment:
+      - LEMMY_INTERNAL_HOST=lemmy-gamma:8561
+      - LEMMY_EXTERNAL_HOST=localhost:8561
+      - LEMMY_HTTPS=false
+    depends_on:
+      - lemmy-gamma
   lemmy-gamma:
     image: lemmy-federation:latest
     environment:
-      - LEMMY_HOSTNAME=lemmy-gamma:8560
+      - LEMMY_HOSTNAME=lemmy-gamma:8561
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_gamma:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
-      - LEMMY_FRONT_END_DIR=/app/dist
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-alpha,lemmy-beta,lemmy-delta,lemmy-epsilon
-      - LEMMY_PORT=8560
+      - LEMMY_PORT=8561
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_gamma
       - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
       - LEMMY_SETUP__SITE_NAME=lemmy-gamma
@@ -109,6 +134,8 @@ services:
       - RUST_LOG=debug
     depends_on:
       - postgres_gamma
+    ports: 
+      - "8561:8561"
   postgres_gamma:
     image: postgres:12-alpine
     environment:
@@ -119,17 +146,24 @@ services:
       - ./volumes/postgres_gamma:/var/lib/postgresql/data
 
   # An instance with only an allowlist for beta
+  lemmy-delta-ui:
+    image: dessalines/lemmy-ui:v0.0.14
+    environment:
+      - LEMMY_INTERNAL_HOST=lemmy-delta:8571
+      - LEMMY_EXTERNAL_HOST=localhost:8571
+      - LEMMY_HTTPS=false
+    depends_on:
+      - lemmy-delta
   lemmy-delta:
     image: lemmy-federation:latest
     environment:
-      - LEMMY_HOSTNAME=lemmy-delta:8570
+      - LEMMY_HOSTNAME=lemmy-delta:8571
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_delta:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
-      - LEMMY_FRONT_END_DIR=/app/dist
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-beta
-      - LEMMY_PORT=8570
+      - LEMMY_PORT=8571
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_delta
       - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
       - LEMMY_SETUP__SITE_NAME=lemmy-delta
@@ -140,6 +174,8 @@ services:
       - RUST_LOG=debug
     depends_on:
       - postgres_delta
+    ports: 
+      - "8571:8571"
   postgres_delta:
     image: postgres:12-alpine
     environment:
@@ -150,17 +186,24 @@ services:
       - ./volumes/postgres_delta:/var/lib/postgresql/data
 
   # An instance who has a blocklist, with lemmy-alpha blocked
+  lemmy-epsilon-ui:
+    image: dessalines/lemmy-ui:v0.0.14
+    environment:
+      - LEMMY_INTERNAL_HOST=lemmy-epsilon:8581
+      - LEMMY_EXTERNAL_HOST=localhost:8581
+      - LEMMY_HTTPS=false
+    depends_on:
+      - lemmy-epsilon
   lemmy-epsilon:
     image: lemmy-federation:latest
     environment:
-      - LEMMY_HOSTNAME=lemmy-epsilon:8580
+      - LEMMY_HOSTNAME=lemmy-epsilon:8581
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_epsilon:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
-      - LEMMY_FRONT_END_DIR=/app/dist
       - LEMMY_FEDERATION__ENABLED=true
       - LEMMY_FEDERATION__TLS_ENABLED=false
       - LEMMY_FEDERATION__BLOCKED_INSTANCES=lemmy-alpha
-      - LEMMY_PORT=8580
+      - LEMMY_PORT=8581
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_epsilon
       - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
       - LEMMY_SETUP__SITE_NAME=lemmy-epsilon
@@ -171,6 +214,8 @@ services:
       - RUST_LOG=debug
     depends_on:
       - postgres_epsilon
+    ports: 
+      - "8581:8581"
   postgres_epsilon:
     image: postgres:12-alpine
     environment:

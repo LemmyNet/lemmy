@@ -1,0 +1,20 @@
+{
+  "name": "api_tests",
+  "version": "0.0.1",
+  "description": "API tests for lemmy backend",
+  "main": "index.js",
+  "repository": "https://github.com/LemmyNet/lemmy",
+  "author": "Dessalines",
+  "license": "AGPL-3.0",
+  "scripts": {
+    "api-test": "jest src/ -i --verbose"
+  },
+  "devDependencies": {
+    "@types/jest": "^26.0.13",
+    "jest": "^26.4.2",
+    "lemmy-js-client": "^1.0.11",
+    "node-fetch": "^2.6.1",
+    "ts-jest": "^26.3.0",
+    "typescript": "^4.0.2"
+  }
+}

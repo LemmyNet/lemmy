@@ -20,28 +20,22 @@ Finally, install Node and Yarn.
 brew install node yarn
 ```
 
-### Get the source code
+### Get the back end source code
 ```
 git clone https://github.com/LemmyNet/lemmy.git
 # or alternatively from gitea
 # git clone https://yerbamate.dev/LemmyNet/lemmy.git
 ```
 
-All the following commands need to be run either in `lemmy/server` or `lemmy/ui`, as indicated
-by the `cd` command.
-
 ### Build the backend (Rust)
 ```
-cd server
 cargo build
 # for development, use `cargo check` instead)
 ```
 
-### Build the frontend (Typescript)
+### Get the front end source code
 ```
-cd ui
-yarn
-yarn build
+git clone https://github.com/LemmyNet/lemmy-ui.git
 ```
 
 ### Setup postgresql
@@ -50,7 +44,7 @@ yarn build
 sudo apt install postgresql
 sudo systemctl start postgresql
 
-# Either execute server/db-init.sh, or manually initialize the postgres database:
+# Either execute db-init.sh, or manually initialize the postgres database:
 sudo -u postgres psql -c "create user lemmy with password 'password' superuser;" -U postgres
 sudo -u postgres psql -c 'create database lemmy with owner lemmy;' -U postgres
 export LEMMY_DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
@@ -62,7 +56,7 @@ brew install postgresql
 brew services start postgresql
 /usr/local/opt/postgres/bin/createuser -s postgres
 
-# Either execute server/db-init.sh, or manually initialize the postgres database:
+# Either execute db-init.sh, or manually initialize the postgres database:
 psql -c "create user lemmy with password 'password' superuser;" -U postgres
 psql -c 'create database lemmy with owner lemmy;' -U postgres
 export LEMMY_DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
@@ -70,20 +64,21 @@ export LEMMY_DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
 
 ### Run a local development instance
 ```
-# run each of these in a seperate terminal
-cd server && cargo run
-cd ui && yarn start
+cd lemmy
+cargo run
 ```
 
-Then open [localhost:4444](http://localhost:4444) in your browser. It will auto-refresh if you edit
-any frontend files. For backend coding, you will have to rerun `cargo run`. You can use
-`cargo check` as a faster way to find compilation errors.
+Then open [localhost:1235](http://localhost:1235) in your browser. To reload back-end changes, you will have to rerun `cargo run`. You can use `cargo check` as a faster way to find compilation errors.
 
-To speed up incremental builds, you can add the following to `~/.cargo/config`:
+To do front end development:
+
 ```
-[target.x86_64-unknown-linux-gnu]
-rustflags = ["-Clink-arg=-fuse-ld=lld"]
+cd lemmy-ui
+yarn
+yarn dev
 ```
+
+and goto [localhost:1234](http://localhost:1234). Front end saves should rebuild the project.
 
 Note that this setup doesn't include image uploads or link previews (provided by pict-rs and
 iframely respectively). If you want to test those, you should use the

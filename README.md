@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://dev.lemmy.ml/" rel="noopener">
- <img width=200px height=200px src="ui/assets/favicon.svg"></a>
+ <img width=200px height=200px src="https://raw.githubusercontent.com/LemmyNet/lemmy-ui/main/src/assets/icons/favicon.svg"></a>
 
  <h3 align="center"><a href="https://dev.lemmy.ml">Lemmy</a></h3>
   <p align="center">
@@ -108,12 +108,15 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 
 ### Apps
 
+- [lemmy-ui - The official web app for lemmy](https://github.com/LemmyNet/lemmy-ui)
+- [Lemmur - A flutter lemmy app ( under development )](https://github.com/krawieck/lemmur)
 - [Lemmy-mobile (Android / IOS) - React native ( under development )](https://github.com/koredefashokun/lemmy-mobile)
 
 ### Libraries
 
 - [lemmy-js-client](https://github.com/LemmyNet/lemmy-js-client)
 - [Kotlin API ( under development )](https://github.com/eiknat/lemmy-client)
+- [Dart API client ( under development )](https://github.com/krawieck/lemmy_api_client)
 
 ## Support / Donate
 

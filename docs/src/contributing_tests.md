@@ -3,7 +3,7 @@
 #### Rust
 
 After installing [local development dependencies](contributing_local_development.md), run the
-following commands in the `server` subfolder:
+following commands:
 
 ```bash
 psql -U lemmy -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"

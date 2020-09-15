@@ -1,6 +1,6 @@
 # Lemmy API
 
-*Note: this may lag behind the actual API endpoints [here](../server/src/api). The API should be considered unstable and may change any time.*
+*Note: this may lag behind the actual API endpoints [here](../src/api). The API should be considered unstable and may change any time.*
 
 <!-- toc -->
 
@@ -28,214 +28,234 @@
       - [Request](#request-1)
       - [Response](#response-1)
       - [HTTP](#http-2)
-    + [Get User Details](#get-user-details)
+    + [Get Captcha](#get-captcha)
       - [Request](#request-2)
       - [Response](#response-2)
       - [HTTP](#http-3)
-    + [Save User Settings](#save-user-settings)
+    + [Get User Details](#get-user-details)
       - [Request](#request-3)
       - [Response](#response-3)
       - [HTTP](#http-4)
-    + [Get Replies / Inbox](#get-replies--inbox)
+    + [Save User Settings](#save-user-settings)
       - [Request](#request-4)
       - [Response](#response-4)
       - [HTTP](#http-5)
-    + [Get User Mentions](#get-user-mentions)
+    + [Get Replies / Inbox](#get-replies--inbox)
       - [Request](#request-5)
       - [Response](#response-5)
       - [HTTP](#http-6)
-    + [Mark User Mention as read](#mark-user-mention-as-read)
+    + [Get User Mentions](#get-user-mentions)
       - [Request](#request-6)
       - [Response](#response-6)
       - [HTTP](#http-7)
-    + [Get Private Messages](#get-private-messages)
+    + [Mark User Mention as read](#mark-user-mention-as-read)
       - [Request](#request-7)
       - [Response](#response-7)
       - [HTTP](#http-8)
-    + [Create Private Message](#create-private-message)
+    + [Get Private Messages](#get-private-messages)
       - [Request](#request-8)
       - [Response](#response-8)
       - [HTTP](#http-9)
-    + [Edit Private Message](#edit-private-message)
+    + [Create Private Message](#create-private-message)
       - [Request](#request-9)
       - [Response](#response-9)
       - [HTTP](#http-10)
-    + [Delete Private Message](#delete-private-message)
+    + [Edit Private Message](#edit-private-message)
       - [Request](#request-10)
       - [Response](#response-10)
       - [HTTP](#http-11)
-    + [Mark Private Message as Read](#mark-private-message-as-read)
+    + [Delete Private Message](#delete-private-message)
       - [Request](#request-11)
       - [Response](#response-11)
       - [HTTP](#http-12)
-    + [Mark All As Read](#mark-all-as-read)
+    + [Mark Private Message as Read](#mark-private-message-as-read)
       - [Request](#request-12)
       - [Response](#response-12)
       - [HTTP](#http-13)
-    + [Delete Account](#delete-account)
+    + [Mark All As Read](#mark-all-as-read)
       - [Request](#request-13)
       - [Response](#response-13)
       - [HTTP](#http-14)
-    + [Add admin](#add-admin)
+    + [Delete Account](#delete-account)
       - [Request](#request-14)
       - [Response](#response-14)
       - [HTTP](#http-15)
-    + [Ban user](#ban-user)
+    + [Add admin](#add-admin)
       - [Request](#request-15)
       - [Response](#response-15)
       - [HTTP](#http-16)
-  * [Site](#site)
-    + [List Categories](#list-categories)
+    + [Ban user](#ban-user)
       - [Request](#request-16)
       - [Response](#response-16)
       - [HTTP](#http-17)
-    + [Search](#search)
+    + [User Join](#user-join)
       - [Request](#request-17)
       - [Response](#response-17)
       - [HTTP](#http-18)
-    + [Get Modlog](#get-modlog)
+  * [Site](#site)
+    + [List Categories](#list-categories)
       - [Request](#request-18)
       - [Response](#response-18)
       - [HTTP](#http-19)
-    + [Create Site](#create-site)
+    + [Search](#search)
       - [Request](#request-19)
       - [Response](#response-19)
       - [HTTP](#http-20)
-    + [Edit Site](#edit-site)
+    + [Get Modlog](#get-modlog)
       - [Request](#request-20)
       - [Response](#response-20)
       - [HTTP](#http-21)
-    + [Get Site](#get-site)
+    + [Create Site](#create-site)
       - [Request](#request-21)
       - [Response](#response-21)
       - [HTTP](#http-22)
-    + [Transfer Site](#transfer-site)
+    + [Edit Site](#edit-site)
       - [Request](#request-22)
       - [Response](#response-22)
       - [HTTP](#http-23)
-    + [Get Site Config](#get-site-config)
+    + [Get Site](#get-site)
       - [Request](#request-23)
       - [Response](#response-23)
       - [HTTP](#http-24)
-    + [Save Site Config](#save-site-config)
+    + [Transfer Site](#transfer-site)
       - [Request](#request-24)
       - [Response](#response-24)
       - [HTTP](#http-25)
-  * [Community](#community)
-    + [Get Community](#get-community)
+    + [Get Site Config](#get-site-config)
       - [Request](#request-25)
       - [Response](#response-25)
       - [HTTP](#http-26)
-    + [Create Community](#create-community)
+    + [Save Site Config](#save-site-config)
       - [Request](#request-26)
       - [Response](#response-26)
       - [HTTP](#http-27)
-    + [List Communities](#list-communities)
+  * [Community](#community)
+    + [Get Community](#get-community)
       - [Request](#request-27)
       - [Response](#response-27)
       - [HTTP](#http-28)
-    + [Ban from Community](#ban-from-community)
+    + [Create Community](#create-community)
       - [Request](#request-28)
       - [Response](#response-28)
       - [HTTP](#http-29)
-    + [Add Mod to Community](#add-mod-to-community)
+    + [List Communities](#list-communities)
       - [Request](#request-29)
       - [Response](#response-29)
       - [HTTP](#http-30)
-    + [Edit Community](#edit-community)
+    + [Ban from Community](#ban-from-community)
       - [Request](#request-30)
       - [Response](#response-30)
       - [HTTP](#http-31)
-    + [Delete Community](#delete-community)
+    + [Add Mod to Community](#add-mod-to-community)
       - [Request](#request-31)
       - [Response](#response-31)
       - [HTTP](#http-32)
-    + [Remove Community](#remove-community)
+    + [Edit Community](#edit-community)
       - [Request](#request-32)
       - [Response](#response-32)
       - [HTTP](#http-33)
-    + [Follow Community](#follow-community)
+    + [Delete Community](#delete-community)
       - [Request](#request-33)
       - [Response](#response-33)
       - [HTTP](#http-34)
-    + [Get Followed Communities](#get-followed-communities)
+    + [Remove Community](#remove-community)
       - [Request](#request-34)
       - [Response](#response-34)
       - [HTTP](#http-35)
-    + [Transfer Community](#transfer-community)
+    + [Follow Community](#follow-community)
       - [Request](#request-35)
       - [Response](#response-35)
       - [HTTP](#http-36)
-  * [Post](#post)
-    + [Create Post](#create-post)
+    + [Get Followed Communities](#get-followed-communities)
       - [Request](#request-36)
       - [Response](#response-36)
       - [HTTP](#http-37)
-    + [Get Post](#get-post)
+    + [Transfer Community](#transfer-community)
       - [Request](#request-37)
       - [Response](#response-37)
       - [HTTP](#http-38)
-    + [Get Posts](#get-posts)
+    + [Community Join](#community-join)
       - [Request](#request-38)
       - [Response](#response-38)
       - [HTTP](#http-39)
-    + [Create Post Like](#create-post-like)
+  * [Post](#post)
+    + [Create Post](#create-post)
       - [Request](#request-39)
       - [Response](#response-39)
       - [HTTP](#http-40)
-    + [Edit Post](#edit-post)
+    + [Get Post](#get-post)
       - [Request](#request-40)
       - [Response](#response-40)
       - [HTTP](#http-41)
-    + [Delete Post](#delete-post)
+    + [Get Posts](#get-posts)
       - [Request](#request-41)
       - [Response](#response-41)
       - [HTTP](#http-42)
-    + [Remove Post](#remove-post)
+    + [Create Post Like](#create-post-like)
       - [Request](#request-42)
       - [Response](#response-42)
       - [HTTP](#http-43)
-    + [Lock Post](#lock-post)
+    + [Edit Post](#edit-post)
       - [Request](#request-43)
       - [Response](#response-43)
       - [HTTP](#http-44)
-    + [Sticky Post](#sticky-post)
+    + [Delete Post](#delete-post)
       - [Request](#request-44)
       - [Response](#response-44)
       - [HTTP](#http-45)
-    + [Save Post](#save-post)
+    + [Remove Post](#remove-post)
       - [Request](#request-45)
       - [Response](#response-45)
       - [HTTP](#http-46)
-  * [Comment](#comment)
-    + [Create Comment](#create-comment)
+    + [Lock Post](#lock-post)
       - [Request](#request-46)
       - [Response](#response-46)
       - [HTTP](#http-47)
-    + [Edit Comment](#edit-comment)
+    + [Sticky Post](#sticky-post)
       - [Request](#request-47)
       - [Response](#response-47)
       - [HTTP](#http-48)
-    + [Delete Comment](#delete-comment)
+    + [Save Post](#save-post)
       - [Request](#request-48)
       - [Response](#response-48)
       - [HTTP](#http-49)
-    + [Remove Comment](#remove-comment)
+    + [Post Join](#post-join)
       - [Request](#request-49)
       - [Response](#response-49)
       - [HTTP](#http-50)
-    + [Mark Comment as Read](#mark-comment-as-read)
+  * [Comment](#comment)
+    + [Create Comment](#create-comment)
       - [Request](#request-50)
       - [Response](#response-50)
       - [HTTP](#http-51)
-    + [Save Comment](#save-comment)
+    + [Edit Comment](#edit-comment)
       - [Request](#request-51)
       - [Response](#response-51)
       - [HTTP](#http-52)
-    + [Create Comment Like](#create-comment-like)
+    + [Delete Comment](#delete-comment)
       - [Request](#request-52)
       - [Response](#response-52)
       - [HTTP](#http-53)
+    + [Remove Comment](#remove-comment)
+      - [Request](#request-53)
+      - [Response](#response-53)
+      - [HTTP](#http-54)
+    + [Get Comments](#get-comments)
+      - [Request](#request-54)
+      - [Response](#response-54)
+      - [HTTP](#http-55)
+    + [Mark Comment as Read](#mark-comment-as-read)
+      - [Request](#request-55)
+      - [Response](#response-55)
+      - [HTTP](#http-56)
+    + [Save Comment](#save-comment)
+      - [Request](#request-56)
+      - [Response](#response-56)
+      - [HTTP](#http-57)
+    + [Create Comment Like](#create-comment-like)
+      - [Request](#request-57)
+      - [Response](#response-57)
+      - [HTTP](#http-58)
   * [RSS / Atom feeds](#rss--atom-feeds)
     + [All](#all)
     + [Community](#community-1)
@@ -249,7 +269,7 @@
 - <code>Option<***SomeType***></code> designates an option which may be omitted in requests and not be present in responses. It will be of type ***SomeType***.
 - <code>Vec<***SomeType***></code> is a list which contains objects of type ***SomeType***.
 - `chrono::NaiveDateTime` is a timestamp string in [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) format. Timestamps will be UTC.
-- Other data types are listed [here](../server/src/db).
+- Other data types are listed [here](../src/db).
 
 ## Basic usage
 
@@ -260,6 +280,12 @@ Request and response strings are in [JSON format](https://www.json.org).
 Connect to <code>ws://***host***/api/v1/ws</code> to get started.
 
 If the ***`host`*** supports secure connections, you can use <code>wss://***host***/api/v1/ws</code>.
+
+To receive websocket messages, you must join a room / context. The three available are:
+
+- [UserJoin](#user-join). Receives replies, private messages, etc.
+- [PostJoin](#post-join). Receives new comments on a post.
+- [CommunityJoin](#community-join). Receives front page / community posts.
 
 #### Testing with Websocat
 
@@ -839,6 +865,29 @@ Marks all user replies and mentions as read.
 
 `POST /user/ban`
 
+#### User Join
+##### Request
+```rust
+{
+  op: "UserJoin",
+  data: {
+    auth: String
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "UserJoin",
+  data: {
+    joined: bool,
+  }
+}
+```
+##### HTTP
+
+`POST /user/join`
+
 ### Site
 #### List Categories
 ##### Request
@@ -1387,6 +1436,32 @@ Only admins can remove a community.
 
 `POST /community/transfer`
 
+#### Community Join
+
+The main / frontpage community is `community_id: 0`.
+
+##### Request
+```rust
+{
+  op: "CommunityJoin",
+  data: {
+    community_id: i32
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "CommunityJoin",
+  data: {
+    joined: bool,
+  }
+}
+```
+##### HTTP
+
+`POST /community/join`
+
 ### Post
 #### Create Post
 ##### Request
@@ -1671,6 +1746,29 @@ Only admins and mods can sticky a post.
 
 `POST /post/save`
 
+#### Post Join
+##### Request
+```rust
+{
+  op: "PostJoin",
+  data: {
+    post_id: i32
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "PostJoin",
+  data: {
+    joined: bool,
+  }
+}
+```
+##### HTTP
+
+`POST /post/join`
+
 ### Comment
 #### Create Comment
 ##### Request
@@ -1786,6 +1884,38 @@ Only a mod or admin can remove the comment.
 ##### HTTP
 
 `POST /comment/remove`
+
+#### Get Comments
+
+Comment listing types are `All, Subscribed, Community`
+
+##### Request
+```rust
+{
+  op: "GetComments",
+  data: {
+    type_: String,
+    sort: String,
+    page: Option<i64>,
+    limit: Option<i64>,
+    community_id: Option<i32>,
+    community_name: Option<String>,
+    auth: Option<String>
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "GetComments",
+  data: {
+    comments: Vec<CommentView>,
+  }
+}
+```
+##### HTTP
+
+`GET /comment/list`
 
 #### Mark Comment as Read
 

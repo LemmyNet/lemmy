@@ -15,6 +15,16 @@ services:
       - pictrs
       - postgres
       - iframely
+  lemmy-ui:
+    image: dessalines/lemmy-ui:v0.0.14
+    ports:
+      - "1235:1234"
+    environment:
+      - LEMMY_INTERNAL_HOST=lemmy:8536
+      - LEMMY_EXTERNAL_HOST=localhost:8536
+      - LEMMY_HTTPS=false
+    depends_on: 
+      - lemmy
 
   postgres:
     image: postgres:12-alpine

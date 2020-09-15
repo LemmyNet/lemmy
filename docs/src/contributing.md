@@ -18,13 +18,14 @@ Check out [Lemmy's Weblate](https://weblate.yerbamate.dev/projects/lemmy/) for t
 ### Front end
 
 - The front end is written in `typescript`, using a react-like framework called [inferno](https://infernojs.org/). All UI elements are reusable `.tsx` components.
-- The main page and routing are in `ui/src/index.tsx`.
-- The components are located in `ui/src/components`.
+- The front end repository is [lemmy-ui](https://github.com/LemmyNet/lemmy-ui).
+- The routes are at `src/shared/routes.ts`.
+- The components are located in `src/shared/components`.
 
 ### Back end
 
 - The back end is written in `rust`, using `diesel`, and `actix`.
-- The server source code is split into main sections in `server/src`. These include: 
+- The server source code is split into main sections in `src`. These include: 
   - `db` - The low level database actions.
     - Database additions are done using diesel migrations. Run `diesel migration generate xxxxx` to add new things.
   - `api` - The high level user interactions (things like `CreateComment`)
