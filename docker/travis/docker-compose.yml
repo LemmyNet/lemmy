@@ -148,7 +148,7 @@ services:
     depends_on:
       - postgres_epsilon
     ports: 
-      - "8571:8571"
+      - "8581:8581"
   postgres_epsilon:
     image: postgres:12-alpine
     environment:
