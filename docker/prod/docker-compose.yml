@@ -25,9 +25,8 @@ services:
       - pictrs
       - iframely
 
-  lemmy-isomorphic-ui:
-    image: dessalines/lemmy-isomorphic-ui:v0.0.7
-    # image: lemmy-isomorphic-ui:latest
+  lemmy-ui:
+    image: dessalines/lemmy-ui:v0.0.14
     ports:
       - "1235:1234"
     environment:
