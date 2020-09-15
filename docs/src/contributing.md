@@ -18,7 +18,7 @@ Check out [Lemmy's Weblate](https://weblate.yerbamate.dev/projects/lemmy/) for t
 ### Front end
 
 - The front end is written in `typescript`, using a react-like framework called [inferno](https://infernojs.org/). All UI elements are reusable `.tsx` components.
-- The front end repository is [lemmy-isomorphic-ui](https://github.com/LemmyNet/lemmy-isomorphic-ui).
+- The front end repository is [lemmy-ui](https://github.com/LemmyNet/lemmy-ui).
 - The routes are at `src/shared/routes.ts`.
 - The components are located in `src/shared/components`.
 

@@ -35,7 +35,7 @@ cargo build
 
 ### Get the front end source code
 ```
-git clone https://github.com/LemmyNet/lemmy-isomorphic-ui.git
+git clone https://github.com/LemmyNet/lemmy-ui.git
 ```
 
 ### Setup postgresql
@@ -73,7 +73,7 @@ Then open [localhost:1235](http://localhost:1235) in your browser. To reload bac
 To do front end development:
 
 ```
-cd lemmy-isomorphic-ui
+cd lemmy-ui
 yarn
 yarn dev
 ```
