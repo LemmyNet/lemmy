@@ -13,7 +13,7 @@ WORKDIR /app/server
 COPY Cargo.toml Cargo.lock ./
 COPY lemmy_db ./lemmy_db
 COPY lemmy_utils ./lemmy_utils
-COPY lemmy_api_structs ./lemmy_api_structs
+COPY lemmy_structs ./lemmy_structs
 COPY lemmy_rate_limit ./lemmy_rate_limit
 RUN mkdir -p ./src/bin \
    && echo 'fn main() { println!("Dummy") }' > ./src/bin/main.rs

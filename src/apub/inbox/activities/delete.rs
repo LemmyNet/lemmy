@@ -11,20 +11,17 @@ use crate::{
     GroupExt,
     PageExt,
   },
-  websocket::{
-    messages::{SendComment, SendCommunityRoomMessage, SendPost},
-    UserOperation,
-  },
   LemmyContext,
 };
 use activitystreams::{activity::Delete, base::AnyBase, object::Note, prelude::*};
 use actix_web::HttpResponse;
 use anyhow::Context;
-use lemmy_api_structs::{
+use lemmy_structs::{
   blocking,
   comment::CommentResponse,
   community::CommunityResponse,
   post::PostResponse,
+  websocket::{SendComment, SendCommunityRoomMessage, SendPost, UserOperation},
 };
 use lemmy_db::{
   comment::{Comment, CommentForm},

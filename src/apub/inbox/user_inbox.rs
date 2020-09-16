@@ -6,7 +6,6 @@ use crate::{
     insert_activity,
     FromApub,
   },
-  websocket::{messages::SendUserRoomMessage, UserOperation},
   LemmyContext,
 };
 use activitystreams::{
@@ -17,7 +16,11 @@ use activitystreams::{
 };
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Context;
-use lemmy_api_structs::{blocking, user::PrivateMessageResponse};
+use lemmy_structs::{
+  blocking,
+  user::PrivateMessageResponse,
+  websocket::{SendUserRoomMessage, UserOperation},
+};
 use lemmy_db::{
   community::{CommunityFollower, CommunityFollowerForm},
   naive_now,

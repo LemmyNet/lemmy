@@ -15,7 +15,7 @@ use activitystreams::{base::BaseExt, collection::OrderedCollection, object::Note
 use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
 use diesel::result::Error::NotFound;
-use lemmy_api_structs::{blocking, site::SearchResponse};
+use lemmy_structs::{blocking, site::SearchResponse};
 use lemmy_db::{
   comment::{Comment, CommentForm},
   comment_view::CommentView,

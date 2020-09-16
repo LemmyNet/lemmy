@@ -38,7 +38,7 @@ use activitystreams_ext::Ext2;
 use actix_web::{body::Body, web, HttpResponse};
 use anyhow::Context;
 use itertools::Itertools;
-use lemmy_api_structs::blocking;
+use lemmy_structs::blocking;
 use lemmy_db::{
   community::{Community, CommunityForm},
   community_view::{CommunityFollowerView, CommunityModeratorView},

@@ -1,8 +1,71 @@
-use crate::websocket::UserOperation;
+use crate::{comment::CommentResponse, post::PostResponse};
 use actix::{prelude::*, Recipient};
-use lemmy_api_structs::{comment::CommentResponse, post::PostResponse};
 use lemmy_utils::{CommunityId, ConnectionId, IPAddr, PostId, UserId};
 use serde::{Deserialize, Serialize};
+
+#[derive(EnumString, ToString, Debug, Clone)]
+pub enum UserOperation {
+  Login,
+  Register,
+  GetCaptcha,
+  CreateCommunity,
+  CreatePost,
+  ListCommunities,
+  ListCategories,
+  GetPost,
+  GetCommunity,
+  CreateComment,
+  EditComment,
+  DeleteComment,
+  RemoveComment,
+  MarkCommentAsRead,
+  SaveComment,
+  CreateCommentLike,
+  GetPosts,
+  CreatePostLike,
+  EditPost,
+  DeletePost,
+  RemovePost,
+  LockPost,
+  StickyPost,
+  SavePost,
+  EditCommunity,
+  DeleteCommunity,
+  RemoveCommunity,
+  FollowCommunity,
+  GetFollowedCommunities,
+  GetUserDetails,
+  GetReplies,
+  GetUserMentions,
+  MarkUserMentionAsRead,
+  GetModlog,
+  BanFromCommunity,
+  AddModToCommunity,
+  CreateSite,
+  EditSite,
+  GetSite,
+  AddAdmin,
+  BanUser,
+  Search,
+  MarkAllAsRead,
+  SaveUserSettings,
+  TransferCommunity,
+  TransferSite,
+  DeleteAccount,
+  PasswordReset,
+  PasswordChange,
+  CreatePrivateMessage,
+  EditPrivateMessage,
+  DeletePrivateMessage,
+  MarkPrivateMessageAsRead,
+  GetPrivateMessages,
+  UserJoin,
+  GetComments,
+  GetSiteConfig,
+  SaveSiteConfig,
+  PostJoin,
+  CommunityJoin,
+}
 
 /// Chat server sends this messages to session
 #[derive(Message)]

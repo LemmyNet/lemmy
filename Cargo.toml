@@ -10,14 +10,14 @@ lto = true
 members = [
     "lemmy_utils",
     "lemmy_db",
-    "lemmy_api_structs",
+    "lemmy_structs",
     "lemmy_rate_limit",
 ]
 
 [dependencies]
 lemmy_utils = { path = "./lemmy_utils" }
 lemmy_db = { path = "./lemmy_db" }
-lemmy_api_structs = { path = "./lemmy_api_structs" }
+lemmy_structs = { path = "./lemmy_structs" }
 lemmy_rate_limit = { path = "./lemmy_rate_limit" }
 diesel = "1.4.4"
 diesel_migrations = "1.4.0"
@@ -38,7 +38,6 @@ log = "0.4.0"
 env_logger = "0.7.1"
 rand = "0.7.3"
 strum = "0.19.2"
-strum_macros = "0.19.2"
 jsonwebtoken = "7.0.1"
 lazy_static = "1.3.0"
 rss = "1.9.0"

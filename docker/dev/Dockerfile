@@ -10,7 +10,7 @@ RUN cargo install --git https://github.com/romac/cargo-build-deps.git
 WORKDIR /app/server
 RUN mkdir -p lemmy_db/src/ \
       lemmy_utils/src/ \
-      lemmy_api_structs/src/ \
+      lemmy_structs/src/ \
       lemmy_rate_limit/src/ \
       lemmy
 
@@ -18,7 +18,7 @@ RUN mkdir -p lemmy_db/src/ \
 COPY Cargo.toml Cargo.lock ./
 COPY lemmy_db/Cargo.toml ./lemmy_db/
 COPY lemmy_utils/Cargo.toml ./lemmy_utils/
-COPY lemmy_api_structs/Cargo.toml ./lemmy_api_structs/
+COPY lemmy_structs/Cargo.toml ./lemmy_structs/
 COPY lemmy_rate_limit/Cargo.toml ./lemmy_rate_limit/
 
 # Cache the deps
@@ -28,7 +28,7 @@ RUN cargo build-deps
 COPY src ./src/
 COPY lemmy_db/src ./lemmy_db/src/
 COPY lemmy_utils/src/ ./lemmy_utils/src/
-COPY lemmy_api_structs/src/ ./lemmy_api_structs/src/
+COPY lemmy_structs/src/ ./lemmy_structs/src/
 COPY lemmy_rate_limit/src/ ./lemmy_rate_limit/src/
 COPY migrations ./migrations/
 

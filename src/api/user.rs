@@ -2,10 +2,6 @@ use crate::{
   api::{claims::Claims, get_user_from_jwt, get_user_from_jwt_opt, is_admin, Perform},
   apub::ApubObjectType,
   captcha_espeak_wav_base64,
-  websocket::{
-    messages::{CaptchaItem, CheckCaptcha, JoinUserRoom, SendAllMessage, SendUserRoomMessage},
-    UserOperation,
-  },
   LemmyContext,
 };
 use actix_web::web::Data;
@@ -13,7 +9,18 @@ use anyhow::Context;
 use bcrypt::verify;
 use captcha::{gen, Difficulty};
 use chrono::Duration;
-use lemmy_api_structs::{blocking, user::*};
+use lemmy_structs::{
+  blocking,
+  user::*,
+  websocket::{
+    CaptchaItem,
+    CheckCaptcha,
+    JoinUserRoom,
+    SendAllMessage,
+    SendUserRoomMessage,
+    UserOperation,
+  },
+};
 use lemmy_db::{
   comment::*,
   comment_view::*,

@@ -16,7 +16,7 @@ use diesel::{
   PgConnection,
 };
 use lazy_static::lazy_static;
-use lemmy_api_structs::blocking;
+use lemmy_structs::blocking;
 use lemmy_db::get_database_url_from_env;
 use lemmy_rate_limit::{rate_limiter::RateLimiter, RateLimit};
 use lemmy_server::{

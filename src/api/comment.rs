@@ -8,11 +8,15 @@ use crate::{
     Perform,
   },
   apub::{ApubLikeableType, ApubObjectType},
-  websocket::{messages::SendComment, UserOperation},
   LemmyContext,
 };
 use actix_web::web::Data;
-use lemmy_api_structs::{blocking, comment::*, send_local_notifs};
+use lemmy_structs::{
+  blocking,
+  comment::*,
+  send_local_notifs,
+  websocket::{SendComment, UserOperation},
+};
 use lemmy_db::{
   comment::*,
   comment_view::*,

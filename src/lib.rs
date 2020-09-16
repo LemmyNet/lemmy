@@ -1,7 +1,5 @@
 #![recursion_limit = "512"]
 #[macro_use]
-extern crate strum_macros;
-#[macro_use]
 extern crate lazy_static;
 extern crate actix;
 extern crate actix_web;

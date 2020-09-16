@@ -1,11 +1,11 @@
 [package]
-name = "lemmy_api_structs"
+name = "lemmy_structs"
 version = "0.1.0"
 authors = ["Felix Ableitner <me@nutomic.com>"]
 edition = "2018"
 
 [lib]
-name = "lemmy_api_structs"
+name = "lemmy_structs"
 path = "src/lib.rs"
 
 [dependencies]
@@ -15,3 +15,7 @@ serde = { version = "1.0.105", features = ["derive"] }
 log = "0.4.0"
 diesel = "1.4.4"
 actix-web = { version = "3.0.0-beta.3", features = ["rustls"] }
+actix = "0.10.0"
+strum = "0.19.2"
+strum_macros = "0.19.2"
+chrono = { version = "0.4.7", features = ["serde"] }

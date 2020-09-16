@@ -9,20 +9,17 @@ use crate::{
     FromApub,
     PageExt,
   },
-  websocket::{
-    messages::{SendComment, SendPost},
-    UserOperation,
-  },
   LemmyContext,
 };
 use activitystreams::{activity::Create, base::AnyBase, object::Note, prelude::*};
 use actix_web::HttpResponse;
 use anyhow::Context;
-use lemmy_api_structs::{
+use lemmy_structs::{
   blocking,
   comment::CommentResponse,
   post::PostResponse,
   send_local_notifs,
+  websocket::{SendComment, SendPost, UserOperation},
 };
 use lemmy_db::{
   comment::{Comment, CommentForm},

@@ -1,9 +1,5 @@
 use crate::{
-  websocket::{
-    handlers::{do_user_operation, to_json_string, Args},
-    messages::*,
-    UserOperation,
-  },
+  websocket::handlers::{do_user_operation, to_json_string, Args},
   LemmyContext,
 };
 use actix::prelude::*;
@@ -13,7 +9,7 @@ use diesel::{
   r2d2::{ConnectionManager, Pool},
   PgConnection,
 };
-use lemmy_api_structs::{comment::*, community::*, post::*, site::*, user::*};
+use lemmy_structs::{comment::*, community::*, post::*, site::*, user::*, websocket::*};
 use lemmy_rate_limit::RateLimit;
 use lemmy_utils::{
   location_info,

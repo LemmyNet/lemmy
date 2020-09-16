@@ -1,13 +1,18 @@
+extern crate actix;
 extern crate actix_web;
 extern crate diesel;
 extern crate log;
 extern crate serde;
+#[macro_use]
+extern crate strum_macros;
+extern crate chrono;
 
 pub mod comment;
 pub mod community;
 pub mod post;
 pub mod site;
 pub mod user;
+pub mod websocket;
 
 use diesel::PgConnection;
 use lemmy_db::{

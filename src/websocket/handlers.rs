@@ -1,14 +1,11 @@
 use crate::{
   api::Perform,
-  websocket::{
-    chat_server::{ChatServer, SessionInfo},
-    messages::*,
-    UserOperation,
-  },
+  websocket::chat_server::{ChatServer, SessionInfo},
   LemmyContext,
 };
 use actix::{Actor, Context, Handler, ResponseFuture};
 use actix_web::web;
+use lemmy_structs::websocket::*;
 use lemmy_db::naive_now;
 use lemmy_rate_limit::RateLimit;
 use lemmy_utils::{ConnectionId, IPAddr, LemmyError};

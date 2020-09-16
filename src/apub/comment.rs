@@ -40,7 +40,7 @@ use activitystreams::{
 use actix_web::{body::Body, web, web::Path, HttpResponse};
 use anyhow::Context;
 use itertools::Itertools;
-use lemmy_api_structs::blocking;
+use lemmy_structs::blocking;
 use lemmy_db::{
   comment::{Comment, CommentForm},
   community::Community,
