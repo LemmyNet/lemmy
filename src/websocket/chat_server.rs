@@ -9,8 +9,8 @@ use diesel::{
   r2d2::{ConnectionManager, Pool},
   PgConnection,
 };
-use lemmy_structs::{comment::*, community::*, post::*, site::*, user::*, websocket::*};
 use lemmy_rate_limit::RateLimit;
+use lemmy_structs::{comment::*, community::*, post::*, site::*, user::*, websocket::*};
 use lemmy_utils::{
   location_info,
   APIError,

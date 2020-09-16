@@ -6,12 +6,6 @@ use crate::{
 };
 use actix_web::web::Data;
 use anyhow::Context;
-use lemmy_structs::{
-  blocking,
-  site::*,
-  user::Register,
-  websocket::{GetUsersOnline, SendAllMessage, UserOperation},
-};
 use lemmy_db::{
   category::*,
   comment_view::*,
@@ -27,6 +21,12 @@ use lemmy_db::{
   Crud,
   SearchType,
   SortType,
+};
+use lemmy_structs::{
+  blocking,
+  site::*,
+  user::Register,
+  websocket::{GetUsersOnline, SendAllMessage, UserOperation},
 };
 use lemmy_utils::{
   location_info,

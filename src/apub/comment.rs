@@ -40,7 +40,6 @@ use activitystreams::{
 use actix_web::{body::Body, web, web::Path, HttpResponse};
 use anyhow::Context;
 use itertools::Itertools;
-use lemmy_structs::blocking;
 use lemmy_db::{
   comment::{Comment, CommentForm},
   community::Community,
@@ -48,6 +47,7 @@ use lemmy_db::{
   user::User_,
   Crud,
 };
+use lemmy_structs::blocking;
 use lemmy_utils::{
   location_info,
   utils::{convert_datetime, remove_slurs, scrape_text_for_mentions, MentionData},

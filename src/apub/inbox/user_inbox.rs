@@ -16,11 +16,6 @@ use activitystreams::{
 };
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Context;
-use lemmy_structs::{
-  blocking,
-  user::PrivateMessageResponse,
-  websocket::{SendUserRoomMessage, UserOperation},
-};
 use lemmy_db::{
   community::{CommunityFollower, CommunityFollowerForm},
   naive_now,
@@ -29,6 +24,11 @@ use lemmy_db::{
   user::User_,
   Crud,
   Followable,
+};
+use lemmy_structs::{
+  blocking,
+  user::PrivateMessageResponse,
+  websocket::{SendUserRoomMessage, UserOperation},
 };
 use lemmy_utils::{location_info, LemmyError};
 use log::debug;

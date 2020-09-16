@@ -21,13 +21,6 @@ use activitystreams::{
 };
 use actix_web::HttpResponse;
 use anyhow::{anyhow, Context};
-use lemmy_structs::{
-  blocking,
-  comment::CommentResponse,
-  community::CommunityResponse,
-  post::PostResponse,
-  websocket::{SendComment, SendCommunityRoomMessage, SendPost, UserOperation},
-};
 use lemmy_db::{
   comment::{Comment, CommentForm, CommentLike},
   comment_view::CommentView,
@@ -38,6 +31,13 @@ use lemmy_db::{
   post_view::PostView,
   Crud,
   Likeable,
+};
+use lemmy_structs::{
+  blocking,
+  comment::CommentResponse,
+  community::CommunityResponse,
+  post::PostResponse,
+  websocket::{SendComment, SendCommunityRoomMessage, SendPost, UserOperation},
 };
 use lemmy_utils::{location_info, LemmyError};
 

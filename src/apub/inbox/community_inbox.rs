@@ -15,12 +15,12 @@ use activitystreams::{
 };
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
-use lemmy_structs::blocking;
 use lemmy_db::{
   community::{Community, CommunityFollower, CommunityFollowerForm},
   user::User_,
   Followable,
 };
+use lemmy_structs::blocking;
 use lemmy_utils::{location_info, LemmyError};
 use log::debug;
 use serde::{Deserialize, Serialize};

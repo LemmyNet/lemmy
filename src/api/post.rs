@@ -5,11 +5,6 @@ use crate::{
   LemmyContext,
 };
 use actix_web::web::Data;
-use lemmy_structs::{
-  blocking,
-  post::*,
-  websocket::{GetPostUsersOnline, JoinPostRoom, SendPost, UserOperation},
-};
 use lemmy_db::{
   comment_view::*,
   community_view::*,
@@ -23,6 +18,11 @@ use lemmy_db::{
   ListingType,
   Saveable,
   SortType,
+};
+use lemmy_structs::{
+  blocking,
+  post::*,
+  websocket::{GetPostUsersOnline, JoinPostRoom, SendPost, UserOperation},
 };
 use lemmy_utils::{
   apub::{make_apub_endpoint, EndpointType},

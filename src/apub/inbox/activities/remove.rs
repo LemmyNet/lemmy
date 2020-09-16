@@ -17,13 +17,6 @@ use crate::{
 use activitystreams::{activity::Remove, base::AnyBase, object::Note, prelude::*};
 use actix_web::HttpResponse;
 use anyhow::{anyhow, Context};
-use lemmy_structs::{
-  blocking,
-  comment::CommentResponse,
-  community::CommunityResponse,
-  post::PostResponse,
-  websocket::{SendComment, SendCommunityRoomMessage, SendPost, UserOperation},
-};
 use lemmy_db::{
   comment::{Comment, CommentForm},
   comment_view::CommentView,
@@ -33,6 +26,13 @@ use lemmy_db::{
   post::{Post, PostForm},
   post_view::PostView,
   Crud,
+};
+use lemmy_structs::{
+  blocking,
+  comment::CommentResponse,
+  community::CommunityResponse,
+  post::PostResponse,
+  websocket::{SendComment, SendCommunityRoomMessage, SendPost, UserOperation},
 };
 use lemmy_utils::{location_info, LemmyError};
 

@@ -1,6 +1,5 @@
 use crate::{api::claims::Claims, DbPool, LemmyContext};
 use actix_web::web::Data;
-use lemmy_structs::blocking;
 use lemmy_db::{
   community::Community,
   community_view::CommunityUserBanView,
@@ -8,6 +7,7 @@ use lemmy_db::{
   user::User_,
   Crud,
 };
+use lemmy_structs::blocking;
 use lemmy_utils::{APIError, ConnectionId, LemmyError};
 
 pub mod claims;

@@ -15,19 +15,19 @@ use crate::{
 use activitystreams::{activity::Update, base::AnyBase, object::Note, prelude::*};
 use actix_web::HttpResponse;
 use anyhow::Context;
-use lemmy_structs::{
-  blocking,
-  comment::CommentResponse,
-  post::PostResponse,
-  send_local_notifs,
-  websocket::{SendComment, SendPost, UserOperation},
-};
 use lemmy_db::{
   comment::{Comment, CommentForm},
   comment_view::CommentView,
   post::{Post, PostForm},
   post_view::PostView,
   Crud,
+};
+use lemmy_structs::{
+  blocking,
+  comment::CommentResponse,
+  post::PostResponse,
+  send_local_notifs,
+  websocket::{SendComment, SendPost, UserOperation},
 };
 use lemmy_utils::{location_info, utils::scrape_text_for_mentions, LemmyError};
 

@@ -5,9 +5,9 @@ use crate::{
 };
 use actix::{Actor, Context, Handler, ResponseFuture};
 use actix_web::web;
-use lemmy_structs::websocket::*;
 use lemmy_db::naive_now;
 use lemmy_rate_limit::RateLimit;
+use lemmy_structs::websocket::*;
 use lemmy_utils::{ConnectionId, IPAddr, LemmyError};
 use log::{error, info};
 use rand::Rng;

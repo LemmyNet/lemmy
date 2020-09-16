@@ -11,12 +11,6 @@ use crate::{
   LemmyContext,
 };
 use actix_web::web::Data;
-use lemmy_structs::{
-  blocking,
-  comment::*,
-  send_local_notifs,
-  websocket::{SendComment, UserOperation},
-};
 use lemmy_db::{
   comment::*,
   comment_view::*,
@@ -29,6 +23,12 @@ use lemmy_db::{
   ListingType,
   Saveable,
   SortType,
+};
+use lemmy_structs::{
+  blocking,
+  comment::*,
+  send_local_notifs,
+  websocket::{SendComment, UserOperation},
 };
 use lemmy_utils::{
   apub::{make_apub_endpoint, EndpointType},

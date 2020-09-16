@@ -3,7 +3,6 @@ use actix_web::{error::ErrorBadRequest, *};
 use anyhow::anyhow;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::PgConnection;
-use lemmy_structs::blocking;
 use lemmy_db::{
   comment_view::{ReplyQueryBuilder, ReplyView},
   community::Community,
@@ -14,6 +13,7 @@ use lemmy_db::{
   ListingType,
   SortType,
 };
+use lemmy_structs::blocking;
 use lemmy_utils::{settings::Settings, utils::markdown_to_html, LemmyError};
 use rss::{CategoryBuilder, ChannelBuilder, GuidBuilder, Item, ItemBuilder};
 use serde::Deserialize;

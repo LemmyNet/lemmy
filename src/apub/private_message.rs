@@ -27,12 +27,12 @@ use activitystreams::{
   prelude::*,
 };
 use anyhow::Context;
-use lemmy_structs::blocking;
 use lemmy_db::{
   private_message::{PrivateMessage, PrivateMessageForm},
   user::User_,
   Crud,
 };
+use lemmy_structs::blocking;
 use lemmy_utils::{location_info, utils::convert_datetime, LemmyError};
 use url::Url;
 

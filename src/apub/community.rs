@@ -38,7 +38,6 @@ use activitystreams_ext::Ext2;
 use actix_web::{body::Body, web, HttpResponse};
 use anyhow::Context;
 use itertools::Itertools;
-use lemmy_structs::blocking;
 use lemmy_db::{
   community::{Community, CommunityForm},
   community_view::{CommunityFollowerView, CommunityModeratorView},
@@ -46,6 +45,7 @@ use lemmy_db::{
   post::Post,
   user::User_,
 };
+use lemmy_structs::blocking;
 use lemmy_utils::{
   apub::get_apub_protocol_string,
   location_info,

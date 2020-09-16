@@ -35,13 +35,13 @@ use activitystreams::{
 use activitystreams_ext::Ext1;
 use actix_web::{body::Body, web, HttpResponse};
 use anyhow::Context;
-use lemmy_structs::blocking;
 use lemmy_db::{
   community::Community,
   post::{Post, PostForm},
   user::User_,
   Crud,
 };
+use lemmy_structs::blocking;
 use lemmy_utils::{
   location_info,
   utils::{check_slurs, convert_datetime, remove_slurs},

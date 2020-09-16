@@ -5,16 +5,6 @@ use crate::{
 };
 use actix_web::web::Data;
 use anyhow::Context;
-use lemmy_structs::{
-  blocking,
-  community::*,
-  websocket::{
-    GetCommunityUsersOnline,
-    JoinCommunityRoom,
-    SendCommunityRoomMessage,
-    UserOperation,
-  },
-};
 use lemmy_db::{
   comment::Comment,
   comment_view::CommentQueryBuilder,
@@ -31,6 +21,16 @@ use lemmy_db::{
   Followable,
   Joinable,
   SortType,
+};
+use lemmy_structs::{
+  blocking,
+  community::*,
+  websocket::{
+    GetCommunityUsersOnline,
+    JoinCommunityRoom,
+    SendCommunityRoomMessage,
+    UserOperation,
+  },
 };
 use lemmy_utils::{
   apub::{generate_actor_keypair, make_apub_endpoint, EndpointType},

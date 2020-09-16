@@ -9,18 +9,6 @@ use anyhow::Context;
 use bcrypt::verify;
 use captcha::{gen, Difficulty};
 use chrono::Duration;
-use lemmy_structs::{
-  blocking,
-  user::*,
-  websocket::{
-    CaptchaItem,
-    CheckCaptcha,
-    JoinUserRoom,
-    SendAllMessage,
-    SendUserRoomMessage,
-    UserOperation,
-  },
-};
 use lemmy_db::{
   comment::*,
   comment_view::*,
@@ -45,6 +33,18 @@ use lemmy_db::{
   Joinable,
   ListingType,
   SortType,
+};
+use lemmy_structs::{
+  blocking,
+  user::*,
+  websocket::{
+    CaptchaItem,
+    CheckCaptcha,
+    JoinUserRoom,
+    SendAllMessage,
+    SendUserRoomMessage,
+    UserOperation,
+  },
 };
 use lemmy_utils::{
   apub::{generate_actor_keypair, make_apub_endpoint, EndpointType},

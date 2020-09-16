@@ -27,11 +27,11 @@ use activitystreams::{
 use activitystreams_ext::Ext1;
 use actix_web::{body::Body, web, HttpResponse};
 use anyhow::Context;
-use lemmy_structs::blocking;
 use lemmy_db::{
   naive_now,
   user::{UserForm, User_},
 };
+use lemmy_structs::blocking;
 use lemmy_utils::{
   location_info,
   utils::{check_slurs, check_slurs_opt, convert_datetime},
