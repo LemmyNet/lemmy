@@ -26,3 +26,5 @@ deploy:
   script: bash docker_push.sh
   on:
     tags: true
+notifications:
+  email: false
