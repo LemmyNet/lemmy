@@ -142,10 +142,9 @@ impl Perform for CreateSite {
   ) -> Result<SiteResponse, LemmyError> {
     let data: &CreateSite = &self;
 
-    match blocking(context.pool(), move |conn| { Site::read(conn, 1)}).await?
-    {
-      Ok(_site) => return Err(APIError::err("site_already_exists").into()),
-      Err(_e) => (),
+    let read_site = move |conn: &'_ _| Site::read(conn, 1);
+    if blocking(context.pool(), read_site).await?.is_ok() {
+      return Err(APIError::err("site_already_exists").into());
     };
 
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
