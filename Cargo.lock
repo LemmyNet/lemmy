@@ -1881,11 +1881,14 @@ version = "0.1.0"
 dependencies = [
  "actix",
  "actix-web",
+ "chrono",
  "diesel",
  "lemmy_db",
  "lemmy_utils",
  "log",
  "serde 1.0.116",
+ "strum",
+ "strum_macros",
 ]
 
 [[package]]
