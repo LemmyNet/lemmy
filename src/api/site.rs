@@ -142,6 +142,12 @@ impl Perform for CreateSite {
   ) -> Result<SiteResponse, LemmyError> {
     let data: &CreateSite = &self;
 
+    match blocking(context.pool(), move |conn| { Site::read(conn, 1)}).await?
+    {
+      Ok(_site) => return Err(APIError::err("site_already_exists").into()),
+      Err(_e) => (),
+    };
+
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
     check_slurs(&data.name)?;
@@ -489,6 +495,8 @@ impl Perform for TransferSite {
   ) -> Result<GetSiteResponse, LemmyError> {
     let data: &TransferSite = &self;
     let mut user = get_user_from_jwt(&data.auth, context.pool()).await?;
+
+    is_admin(context.pool(), user.id).await?;
 
     // TODO add a User_::read_safe() for this.
     user.password_encrypted = "".to_string();
