@@ -10,10 +10,30 @@ import {
   removeCommunity,
   delay,
 } from './shared';
+import {
+  Community,
+} from 'lemmy-js-client';
 
 beforeAll(async () => {
   await setupLogins();
 });
+
+function assertCommunityFederation(
+  communityOne: Community,
+  communityTwo: Community) {
+  expect(communityOne.actor_id).toBe(communityTwo.actor_id);
+  expect(communityOne.name).toBe(communityTwo.name);
+  expect(communityOne.title).toBe(communityTwo.title);
+  expect(communityOne.description).toBe(communityTwo.description);
+  expect(communityOne.icon).toBe(communityTwo.icon);
+  expect(communityOne.banner).toBe(communityTwo.banner);
+  expect(communityOne.published).toBe(communityTwo.published);
+  expect(communityOne.creator_actor_id).toBe(communityTwo.creator_actor_id);
+  expect(communityOne.nsfw).toBe(communityTwo.nsfw);
+  expect(communityOne.category_id).toBe(communityTwo.category_id);
+  expect(communityOne.removed).toBe(communityTwo.removed);
+  expect(communityOne.deleted).toBe(communityTwo.deleted);
+}
 
 test('Create community', async () => {
   let communityRes = await createCommunity(alpha);
@@ -29,11 +49,7 @@ test('Create community', async () => {
   let searchShort = `!${prevName}@lemmy-alpha:8541`;
   let search = await searchForCommunity(beta, searchShort);
   let communityOnBeta = search.communities[0];
-  expect(communityOnBeta.name).toBe(communityRes.community.name);
-  expect(communityOnBeta.title).toBe(communityRes.community.title);
-  expect(communityOnBeta.description).toBe(communityRes.community.description);
-  expect(communityOnBeta.icon).toBe(communityRes.community.icon);
-  expect(communityOnBeta.banner).toBe(communityRes.community.banner);
+  assertCommunityFederation(communityOnBeta, communityRes.community);
 });
 
 test('Delete community', async () => {
@@ -52,6 +68,7 @@ test('Delete community', async () => {
   let communityA = search.communities[0];
   // TODO this fails currently, because no updates are pushed
   // expect(communityA.deleted).toBe(true);
+  // assertCommunityFederation(communityA, communityRes.community);
 
   // Undelete
   let undeleteCommunityRes = await deleteCommunity(
@@ -67,6 +84,7 @@ test('Delete community', async () => {
   let communityA2 = search2.communities[0];
   // TODO this fails currently, because no updates are pushed
   // expect(communityA2.deleted).toBe(false);
+  // assertCommunityFederation(communityA2, undeleteCommunityRes.community);
 });
 
 test('Remove community', async () => {
@@ -84,6 +102,7 @@ test('Remove community', async () => {
   let communityA = search.communities[0];
   // TODO this fails currently, because no updates are pushed
   // expect(communityA.removed).toBe(true);
+  // assertCommunityFederation(communityA, communityRes.community);
   await delay();
 
   // unremove
@@ -100,6 +119,7 @@ test('Remove community', async () => {
   let communityA2 = search2.communities[0];
   // TODO this fails currently, because no updates are pushed
   // expect(communityA2.removed).toBe(false);
+  // assertCommunityFederation(communityA2, unremoveCommunityRes.community);
 });
 
 test('Search for beta community', async () => {

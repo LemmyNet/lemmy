@@ -22,6 +22,9 @@ import {
   API,
   delay,
 } from './shared';
+import {
+  Comment,
+} from 'lemmy-js-client';
 
 import { PostResponse } from 'lemmy-js-client';
 
@@ -44,6 +47,19 @@ afterAll(async () => {
   await unfollowRemotes(gamma);
 });
 
+function assertCommentFederation(
+  commentOne: Comment,
+  commentTwo: Comment) {
+  expect(commentOne.ap_id).toBe(commentOne.ap_id);
+  expect(commentOne.content).toBe(commentTwo.content);
+  expect(commentOne.creator_name).toBe(commentTwo.creator_name);
+  expect(commentOne.community_actor_id).toBe(commentTwo.community_actor_id);
+  expect(commentOne.published).toBe(commentTwo.published);
+  expect(commentOne.updated).toBe(commentOne.updated);
+  expect(commentOne.deleted).toBe(commentOne.deleted);
+  expect(commentOne.removed).toBe(commentOne.removed);
+}
+
 test('Create a comment', async () => {
   let commentRes = await createComment(alpha, postRes.post.id);
   expect(commentRes.comment.content).toBeDefined();
@@ -59,6 +75,7 @@ test('Create a comment', async () => {
   expect(betaComment.community_local).toBe(true);
   expect(betaComment.creator_local).toBe(false);
   expect(betaComment.score).toBe(1);
+  assertCommentFederation(betaComment, commentRes.comment);
 });
 
 test('Create a comment in a non-existent post', async () => {
@@ -68,6 +85,10 @@ test('Create a comment in a non-existent post', async () => {
 
 test('Update a comment', async () => {
   let commentRes = await createComment(alpha, postRes.post.id);
+  // Federate the comment first
+  let searchBeta = await searchComment(beta, commentRes.comment);
+  assertCommentFederation(searchBeta.comments[0], commentRes.comment);
+
   await delay();
   let updateCommentRes = await updateComment(alpha, commentRes.comment.id);
   expect(updateCommentRes.comment.content).toBe(
@@ -78,9 +99,8 @@ test('Update a comment', async () => {
   await delay();
 
   // Make sure that post is updated on beta
-  let searchBeta = await searchComment(beta, commentRes.comment);
-  let betaComment = searchBeta.comments[0];
-  expect(betaComment.content).toBe('A jest test federated comment update');
+  let searchBetaUpdated = await searchComment(beta, commentRes.comment);
+  assertCommentFederation(searchBetaUpdated.comments[0], updateCommentRes.comment);
 });
 
 test('Delete a comment', async () => {
@@ -113,6 +133,7 @@ test('Delete a comment', async () => {
   let searchBeta2 = await searchComment(beta, commentRes.comment);
   let betaComment2 = searchBeta2.comments[0];
   expect(betaComment2.deleted).toBe(false);
+  assertCommentFederation(searchBeta2.comments[0], undeleteCommentRes.comment);
 });
 
 test('Remove a comment from admin and community on the same instance', async () => {
@@ -139,6 +160,7 @@ test('Remove a comment from admin and community on the same instance', async () 
   // Make sure that comment is unremoved on beta
   let refetchedPost2 = await getPost(alpha, postRes.post.id);
   expect(refetchedPost2.comments[0].removed).toBe(false);
+  assertCommentFederation(refetchedPost2.comments[0], unremoveCommentRes.comment);
 });
 
 test('Remove a comment from admin and community on different instance', async () => {
@@ -167,6 +189,7 @@ test('Remove a comment from admin and community on different instance', async ()
   // Make sure its not removed on alpha
   let refetchedPost = await getPost(newAlphaApi, newPost.post.id);
   expect(refetchedPost.comments[0].removed).toBe(false);
+  assertCommentFederation(refetchedPost.comments[0], commentRes.comment);
 });
 
 test('Unlike a comment', async () => {
@@ -231,6 +254,7 @@ test('Reply to a comment', async () => {
   expect(alphaComment.community_local).toBe(false);
   expect(alphaComment.creator_local).toBe(false);
   expect(alphaComment.score).toBe(1);
+  assertCommentFederation(alphaComment, replyRes.comment);
 });
 
 test('Mention beta', async () => {
@@ -261,7 +285,7 @@ test('Comment Search', async () => {
   let commentRes = await createComment(alpha, postRes.post.id);
   await delay();
   let searchBeta = await searchComment(beta, commentRes.comment);
-  expect(searchBeta.comments[0].ap_id).toBe(commentRes.comment.ap_id);
+  assertCommentFederation(searchBeta.comments[0], commentRes.comment);
 });
 
 test('A and G subscribe to B (center) A posts, G mentions B, it gets announced to A', async () => {
@@ -294,6 +318,7 @@ test('A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   expect(alphaPost2.comments[0].community_local).toBe(true);
   expect(alphaPost2.comments[0].creator_local).toBe(false);
   expect(alphaPost2.comments[0].score).toBe(1);
+  assertCommentFederation(alphaPost2.comments[0], commentRes.comment);
 
   // Make sure beta has mentions
   let mentionsRes = await getMentions(beta);
@@ -360,8 +385,8 @@ test('Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
 
   let alphaPost = await getPost(alpha, alphaPostB.id);
   expect(alphaPost.post.name).toBeDefined();
-  expect(alphaPost.comments[1].content).toBe(parentCommentContent);
-  expect(alphaPost.comments[0].content).toBe(updatedCommentContent);
+  assertCommentFederation(alphaPost.comments[1], parentCommentRes.comment);
+  assertCommentFederation(alphaPost.comments[0], updateRes.comment);
   expect(alphaPost.post.community_local).toBe(false);
   expect(alphaPost.post.creator_local).toBe(false);
 });
