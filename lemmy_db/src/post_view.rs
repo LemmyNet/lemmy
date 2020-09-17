@@ -413,6 +413,7 @@ mod tests {
       matrix_user_id: None,
       avatar: None,
       banner: None,
+      published: None,
       updated: None,
       admin: false,
       banned: false,

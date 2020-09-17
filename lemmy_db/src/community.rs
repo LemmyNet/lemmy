@@ -321,6 +321,7 @@ mod tests {
       banner: None,
       admin: false,
       banned: false,
+      published: None,
       updated: None,
       show_nsfw: false,
       theme: "darkly".into(),

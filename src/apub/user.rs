@@ -262,6 +262,7 @@ impl FromApub for UserForm {
       email: None,
       avatar,
       banner,
+      published: person.inner.published().map(|u| u.to_owned().naive_local()),
       updated: person.updated().map(|u| u.to_owned().naive_local()),
       show_nsfw: false,
       theme: "".to_string(),
