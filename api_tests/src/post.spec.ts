@@ -21,6 +21,9 @@ import {
   unfollowRemotes,
   delay,
 } from './shared';
+import {
+  Post,
+} from 'lemmy-js-client';
 
 beforeAll(async () => {
   await setupLogins();
@@ -37,6 +40,24 @@ afterAll(async () => {
   await unfollowRemotes(delta);
   await unfollowRemotes(epsilon);
 });
+
+function assertPostFederation(
+  postOne: Post,
+  postTwo: Post) {
+  expect(postOne.ap_id).toBe(postTwo.ap_id);
+  expect(postOne.name).toBe(postTwo.name);
+  expect(postOne.body).toBe(postTwo.body);
+  expect(postOne.url).toBe(postTwo.url);
+  expect(postOne.nsfw).toBe(postTwo.nsfw);
+  expect(postOne.embed_title).toBe(postTwo.embed_title);
+  expect(postOne.embed_description).toBe(postTwo.embed_description);
+  expect(postOne.embed_html).toBe(postTwo.embed_html);
+  expect(postOne.published).toBe(postTwo.published);
+  expect(postOne.community_actor_id).toBe(postTwo.community_actor_id);
+  expect(postOne.locked).toBe(postTwo.locked);
+  expect(postOne.removed).toBe(postTwo.removed);
+  expect(postOne.deleted).toBe(postTwo.deleted);
+}
 
 test('Create a post', async () => {
   let search = await searchForBetaCommunity(alpha);
@@ -56,10 +77,7 @@ test('Create a post', async () => {
   expect(betaPost.community_local).toBe(true);
   expect(betaPost.creator_local).toBe(false);
   expect(betaPost.score).toBe(1);
-  expect(betaPost.name).toBe(postRes.post.name);
-  expect(betaPost.body).toBe(postRes.post.body);
-  expect(betaPost.url).toBe(postRes.post.url);
-  expect(betaPost.nsfw).toBe(postRes.post.nsfw);
+  assertPostFederation(betaPost, postRes.post);
 
   // Delta only follows beta, so it should not see an alpha ap_id
   let searchDelta = await searchPost(delta, postRes.post);
@@ -96,6 +114,7 @@ test('Unlike a post', async () => {
   expect(betaPost.community_local).toBe(true);
   expect(betaPost.creator_local).toBe(false);
   expect(betaPost.score).toBe(0);
+  assertPostFederation(betaPost, postRes.post);
 });
 
 test('Update a post', async () => {
@@ -116,6 +135,7 @@ test('Update a post', async () => {
   expect(betaPost.community_local).toBe(true);
   expect(betaPost.creator_local).toBe(false);
   expect(betaPost.name).toBe(updatedName);
+  assertPostFederation(betaPost, updatedPost.post);
   await delay();
 
   // Make sure lemmy beta cannot update the post
@@ -227,6 +247,7 @@ test('Delete a post', async () => {
   let searchBeta2 = await searchPost(beta, postRes.post);
   let betaPost2 = searchBeta2.posts[0];
   expect(betaPost2.deleted).toBe(false);
+  assertPostFederation(betaPost2, undeletedPost.post);
 
   // Make sure lemmy beta cannot delete the post
   let deletedPostBeta = await deletePost(beta, true, betaPost2);
@@ -257,6 +278,7 @@ test('Remove a post from admin and community on different instance', async () =>
   let searchBeta2 = await searchPost(beta, postRes.post);
   let betaPost2 = searchBeta2.posts[0];
   expect(betaPost2.removed).toBe(false);
+  assertPostFederation(betaPost2, undeletedPost.post);
 });
 
 test('Remove a post from admin and community on same instance', async () => {
@@ -277,6 +299,7 @@ test('Remove a post from admin and community on same instance', async () => {
   // Make sure lemmy alpha sees post is removed
   let alphaPost = await getPost(alpha, postRes.post.id);
   expect(alphaPost.post.removed).toBe(true);
+  assertPostFederation(alphaPost.post, removePostRes.post);
   await delay();
 
   // Undelete
@@ -287,6 +310,7 @@ test('Remove a post from admin and community on same instance', async () => {
   // Make sure lemmy alpha sees post is undeleted
   let alphaPost2 = await getPost(alpha, postRes.post.id);
   expect(alphaPost2.post.removed).toBe(false);
+  assertPostFederation(alphaPost2.post, undeletedPost.post);
 });
 
 test('Search for a post', async () => {

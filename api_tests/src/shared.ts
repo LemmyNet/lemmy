@@ -496,6 +496,13 @@ export async function saveUserSettingsBio(
     bio: 'a changed bio',
     auth,
   };
+  return saveUserSettings(api, form);
+}
+
+export async function saveUserSettings(
+  api: API,
+  form: UserSettingsForm
+): Promise<LoginResponse> {
   return api.client.saveUserSettings(form);
 }
 
