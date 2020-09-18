@@ -25,6 +25,7 @@ function assertUserFederation(
   expect(userOne.actor_id).toBe(userTwo.actor_id);
   expect(userOne.avatar).toBe(userTwo.avatar);
   expect(userOne.banner).toBe(userTwo.banner);
+  expect(userOne.published).toBe(userTwo.published);
 }
 
 test('Create user', async () => {

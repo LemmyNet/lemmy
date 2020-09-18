@@ -54,6 +54,7 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
       banner: Some(cuser.banner.to_owned()),
       password_encrypted: cuser.password_encrypted.to_owned(),
       preferred_username: cuser.preferred_username.to_owned(),
+      published: Some(cuser.published),
       updated: None,
       admin: cuser.admin,
       banned: cuser.banned,
