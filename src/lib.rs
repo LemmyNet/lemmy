@@ -50,7 +50,7 @@ pub struct LemmyContext {
 }
 
 impl LemmyContext {
-  pub fn create(
+  pub fn new(
     pool: DbPool,
     chat_server: Addr<ChatServer>,
     client: Client,
@@ -79,12 +79,12 @@ impl LemmyContext {
 
 impl Clone for LemmyContext {
   fn clone(&self) -> Self {
-    LemmyContext {
-      pool: self.pool.clone(),
-      chat_server: self.chat_server.clone(),
-      client: self.client.clone(),
-      activity_queue: self.activity_queue.clone(),
-    }
+    LemmyContext::new(
+      self.pool.clone(),
+      self.chat_server.clone(),
+      self.client.clone(),
+      self.activity_queue.clone(),
+    )
   }
 }
 

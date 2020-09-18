@@ -79,7 +79,6 @@ impl ActixJob for SendActivityTask {
           .post(to_url.as_str())
           .header("Content-Type", "application/json");
 
-        // TODO: i believe we have to do the signing in here because it is only valid for a few seconds
         let signed = sign(
           request,
           self.activity.clone(),

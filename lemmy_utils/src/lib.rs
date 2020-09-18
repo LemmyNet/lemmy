@@ -57,7 +57,7 @@ impl APIError {
 
 #[derive(Debug)]
 pub struct LemmyError {
-  inner: anyhow::Error,
+  pub inner: anyhow::Error,
 }
 
 impl<T> From<T> for LemmyError

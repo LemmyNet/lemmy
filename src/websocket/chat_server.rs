@@ -361,12 +361,7 @@ impl ChatServer {
 
       let user_operation: UserOperation = UserOperation::from_str(&op)?;
 
-      let context = LemmyContext {
-        pool,
-        chat_server: addr,
-        client,
-        activity_queue,
-      };
+      let context = LemmyContext::new(pool, addr, client, activity_queue);
       let args = Args {
         context,
         rate_limiter,

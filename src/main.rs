@@ -84,7 +84,7 @@ async fn main() -> Result<(), LemmyError> {
 
   // Create Http server with websocket support
   HttpServer::new(move || {
-    let context = LemmyContext::create(
+    let context = LemmyContext::new(
       pool.clone(),
       chat_server.to_owned(),
       Client::default(),
