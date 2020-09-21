@@ -1,10 +1,16 @@
 # Docker Development
 
-## Running
+## Dependencies (on Ubuntu)
 
 ```bash
 sudo apt install git docker-compose
+sudo systemctl start docker
 git clone https://github.com/LemmyNet/lemmy
+```
+
+## Running
+
+```bash
 cd lemmy/docker/dev
 sudo docker-compose up --no-deps --build
 ```
