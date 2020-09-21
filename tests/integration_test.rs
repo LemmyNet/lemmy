@@ -157,7 +157,8 @@ fn create_http_request() -> HttpRequest {
 async fn test_shared_inbox_expired_signature() {
   let request = create_http_request();
   let context = create_context();
-  let user = create_user(&context.pool().get().unwrap(), "shared_inbox_rvgfd");
+  let connection = &context.pool().get().unwrap();
+  let user = create_user(connection, "shared_inbox_rvgfd");
   let activity =
     create_activity::<CreateType, ActorAndObject<shared_inbox::ValidTypes>>(user.actor_id);
   let response = shared_inbox(request, activity, web::Data::new(context)).await;
@@ -165,13 +166,15 @@ async fn test_shared_inbox_expired_signature() {
     format!("{}", response.err().unwrap()),
     format!("{}", PrepareVerifyError::Expired)
   );
+  User_::delete(connection, user.id).unwrap();
 }
 
 #[actix_rt::test]
 async fn test_user_inbox_expired_signature() {
   let request = create_http_request();
   let context = create_context();
-  let user = create_user(&context.pool().get().unwrap(), "user_inbox_cgsax");
+  let connection = &context.pool().get().unwrap();
+  let user = create_user(connection, "user_inbox_cgsax");
   let activity =
     create_activity::<CreateType, ActorAndObject<user_inbox::ValidTypes>>(user.actor_id);
   let path = Path::<String> {
@@ -182,13 +185,15 @@ async fn test_user_inbox_expired_signature() {
     format!("{}", response.err().unwrap()),
     format!("{}", PrepareVerifyError::Expired)
   );
+  User_::delete(connection, user.id).unwrap();
 }
 
 #[actix_rt::test]
 async fn test_community_inbox_expired_signature() {
   let context = create_context();
-  let user = create_user(&context.pool().get().unwrap(), "community_inbox_hrxa");
-  let community = create_community(&context.pool().get().unwrap(), user.id);
+  let connection = &context.pool().get().unwrap();
+  let user = create_user(connection, "community_inbox_hrxa");
+  let community = create_community(connection, user.id);
   let request = create_http_request();
   let activity =
     create_activity::<FollowType, ActorAndObject<community_inbox::ValidTypes>>(user.actor_id);
@@ -198,4 +203,6 @@ async fn test_community_inbox_expired_signature() {
     format!("{}", response.err().unwrap()),
     format!("{}", PrepareVerifyError::Expired)
   );
+  User_::delete(connection, user.id).unwrap();
+  Community::delete(connection, community.id).unwrap();
 }
