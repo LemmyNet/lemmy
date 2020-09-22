@@ -20,7 +20,7 @@ before_install:
 # Change dir
 - cd docker/travis
 script:
-- "./run-tests.sh"
+- "./run-tests.bash"
 deploy:
   provider: script
   script: bash docker_push.sh

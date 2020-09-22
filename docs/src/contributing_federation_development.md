@@ -1,21 +1,9 @@
 # Federation Development
 
-## Setup
-
-If you don't have a local clone of the Lemmy repo yet, just run the following command:
-
-```bash
-git clone https://github.com/LemmyNet/lemmy
-```
-
 ## Running locally
 
-You need to have the following packages installed, the Docker service needs to be running.
+Install the dependencies as described in [Docker development](contributing_docker_development.md). Then run the following
 
-- docker
-- docker-compose
-
-Then run the following
 ```bash
 cd docker/federation
 ./start-local-instances.bash
@@ -39,15 +27,6 @@ To start federation between instances, visit one of them and search for a user, 
 - `@lemmy-gamma@lemmy-gamma:8560`
 
 Firefox containers are a good way to test them interacting.
-
-## Integration tests
-
-To run a suite of suite of federation integration tests:
-
-```bash
-cd docker/federation
-./run-tests.bash
-```
 
 ## Running on a server
 
