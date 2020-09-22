@@ -9,6 +9,8 @@ assignees: ''
 
 Found a bug? Please fill out the sections below. 👍
 
+For front end issues, use [lemmy-ui](https://github.com/LemmyNet/lemmy-ui)
+
 ### Issue Summary
 
 A summary of the bug.

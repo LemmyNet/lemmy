@@ -7,6 +7,8 @@ assignees: ''
 
 ---
 
+For front end issues, use [lemmy-ui](https://github.com/LemmyNet/lemmy-ui)
+
 ### Is your proposal related to a problem?
 
 <!--
