@@ -495,14 +495,20 @@ impl Perform for FollowCommunity {
         return Err(APIError::err("community_follower_already_exists").into());
       }
     }
-    // TODO: this needs to return a "pending" state, until Accept is received from the remote server
 
     let community_id = data.community_id;
     let user_id = user.id;
-    let community_view = blocking(context.pool(), move |conn| {
+    let mut community_view = blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, Some(user_id))
     })
     .await??;
+
+    // TODO: this needs to return a "pending" state, until Accept is received from the remote server
+    // For now, just assume that remote follows are accepted.
+    // Otherwise, the subscribed will be null
+    if !community.local {
+      community_view.subscribed = Some(data.follow);
+    }
 
     Ok(CommunityResponse {
       community: community_view,
