@@ -107,11 +107,12 @@ pub(in crate::api) async fn linked_instances(pool: &DbPool) -> Result<Vec<String
     })
     .await??;
 
-    for actor_id in &distinct_communities {
-      instances.push(Url::parse(actor_id)?.host_str().unwrap_or("").to_string());
-    }
+    instances = distinct_communities
+      .iter()
+      .map(|actor_id| Ok(Url::parse(actor_id)?.host_str().unwrap_or("").to_string()))
+      .collect::<Result<Vec<String>, LemmyError>>()?;
 
-    instances.extend(Settings::get().get_allowed_instances().into_iter());
+    instances.append(&mut Settings::get().get_allowed_instances());
     instances.retain(|a| {
       !Settings::get().get_blocked_instances().contains(a)
         && !a.eq("")
