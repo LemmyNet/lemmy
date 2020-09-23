@@ -2,10 +2,6 @@
 set -e
 git checkout main
 
-# Import translations
-git fetch weblate
-git merge weblate/main
-
 # Creating the new tag
 new_tag="$1"
 third_semver=$(echo $new_tag | cut -d "." -f 3)
