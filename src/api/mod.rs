@@ -99,31 +99,36 @@ pub(in crate::api) async fn check_community_ban(
 }
 
 pub(in crate::api) async fn linked_instances(pool: &DbPool) -> Result<Vec<String>, LemmyError> {
-  let distinct_communities = blocking(pool, move |conn| {
-    Community::distinct_federated_communities(conn)
-  })
-  .await??;
-
   let mut instances: Vec<String> = Vec::new();
 
-  for actor_id in &distinct_communities {
-    instances.push(Url::parse(actor_id)?.host_str().unwrap_or("").to_string());
+  if Settings::get().federation.enabled {
+    let distinct_communities = blocking(pool, move |conn| {
+      Community::distinct_federated_communities(conn)
+    })
+    .await??;
+
+    for actor_id in &distinct_communities {
+      instances.push(Url::parse(actor_id)?.host_str().unwrap_or("").to_string());
+    }
+
+    let mut allowed_instances = Settings::get().get_allowed_instances();
+    instances.append(&mut allowed_instances);
+
+    let blocked_instances = Settings::get().get_blocked_instances();
+    for blocked in &blocked_instances {
+      instances.retain(|i| !i.eq(blocked));
+    }
+
+    // Sort and remove dupes
+    instances.sort_unstable();
+    instances.dedup();
+
+    // Remove the empties
+    instances.retain(|d| !d.eq(""));
+
+    // Remove the current instance
+    instances.retain(|d| !d.eq(&Settings::get().hostname));
   }
-
-  let mut allowed_instances = Settings::get().get_allowed_instances();
-  instances.append(&mut allowed_instances);
-
-  let blocked_instances = Settings::get().get_blocked_instances();
-  for blocked in &blocked_instances {
-    instances.retain(|i| !i.eq(blocked));
-  }
-
-  // Sort and remove dupes
-  instances.sort_unstable();
-  instances.dedup();
-
-  // Remove the empties
-  instances.retain(|d| !d.eq(""));
 
   Ok(instances)
 }
