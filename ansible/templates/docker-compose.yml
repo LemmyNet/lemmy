@@ -15,6 +15,17 @@ services:
       - pictrs
       - iframely
 
+  lemmy-ui:
+    image: {{ lemmy_docker_ui_image }}
+    ports:
+      - "127.0.0.1:1235:1234"
+    environment:
+      - LEMMY_INTERNAL_HOST=lemmy:8536
+      - LEMMY_EXTERNAL_HOST={{ domain }}
+      - LEMMY_HTTPS=true
+    depends_on: 
+      - lemmy
+
   postgres:
     image: postgres:12-alpine
     environment:
