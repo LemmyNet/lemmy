@@ -1,5 +1,5 @@
 #!/bin/sh
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 docker tag dessalines/lemmy:travis \
-  dessalines/lemmy:v0.7.57
-docker push dessalines/lemmy:v0.7.57
+  dessalines/lemmy:v0.7.59
+docker push dessalines/lemmy:v0.7.59
