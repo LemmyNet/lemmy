@@ -86,6 +86,7 @@ fn create_user(conn: &PgConnection, name: &str) -> User_ {
     admin: false,
     banned: false,
     updated: None,
+    published: None,
     show_nsfw: false,
     theme: "darkly".into(),
     default_sort_type: SortType::Hot as i16,

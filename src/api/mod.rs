@@ -8,7 +8,8 @@ use lemmy_db::{
   Crud,
 };
 use lemmy_structs::blocking;
-use lemmy_utils::{APIError, ConnectionId, LemmyError};
+use lemmy_utils::{settings::Settings, APIError, ConnectionId, LemmyError};
+use url::Url;
 
 pub mod claims;
 pub mod comment;
@@ -95,4 +96,33 @@ pub(in crate::api) async fn check_community_ban(
   } else {
     Ok(())
   }
+}
+
+pub(in crate::api) async fn linked_instances(pool: &DbPool) -> Result<Vec<String>, LemmyError> {
+  let mut instances: Vec<String> = Vec::new();
+
+  if Settings::get().federation.enabled {
+    let distinct_communities = blocking(pool, move |conn| {
+      Community::distinct_federated_communities(conn)
+    })
+    .await??;
+
+    instances = distinct_communities
+      .iter()
+      .map(|actor_id| Ok(Url::parse(actor_id)?.host_str().unwrap_or("").to_string()))
+      .collect::<Result<Vec<String>, LemmyError>>()?;
+
+    instances.append(&mut Settings::get().get_allowed_instances());
+    instances.retain(|a| {
+      !Settings::get().get_blocked_instances().contains(a)
+        && !a.eq("")
+        && !a.eq(&Settings::get().hostname)
+    });
+
+    // Sort and remove dupes
+    instances.sort_unstable();
+    instances.dedup();
+  }
+
+  Ok(instances)
 }

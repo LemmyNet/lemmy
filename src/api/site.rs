@@ -1,5 +1,5 @@
 use crate::{
-  api::{get_user_from_jwt, get_user_from_jwt_opt, is_admin, Perform},
+  api::{get_user_from_jwt, get_user_from_jwt_opt, is_admin, linked_instances, Perform},
   apub::fetcher::search_by_apub_id,
   version,
   LemmyContext,
@@ -314,7 +314,7 @@ impl Perform for GetSite {
       online,
       version: version::VERSION.to_string(),
       my_user,
-      federated_instances: Settings::get().get_allowed_instances(),
+      federated_instances: linked_instances(context.pool()).await?,
     })
   }
 }
@@ -543,7 +543,7 @@ impl Perform for TransferSite {
       online: 0,
       version: version::VERSION.to_string(),
       my_user: Some(user),
-      federated_instances: Settings::get().get_allowed_instances(),
+      federated_instances: linked_instances(context.pool()).await?,
     })
   }
 }

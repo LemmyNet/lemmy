@@ -154,6 +154,11 @@ impl Community {
     Ok(mods_and_admins)
   }
 
+  pub fn distinct_federated_communities(conn: &PgConnection) -> Result<Vec<String>, Error> {
+    use crate::schema::community::dsl::*;
+    community.select(actor_id).distinct().load::<String>(conn)
+  }
+
   pub fn is_mod_or_admin(conn: &PgConnection, user_id: i32, community_id: i32) -> bool {
     Self::community_mods_and_admins(conn, community_id)
       .unwrap_or_default()
