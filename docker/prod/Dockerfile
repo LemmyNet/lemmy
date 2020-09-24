@@ -15,6 +15,9 @@ COPY lemmy_db ./lemmy_db
 COPY lemmy_utils ./lemmy_utils
 COPY lemmy_structs ./lemmy_structs
 COPY lemmy_rate_limit ./lemmy_rate_limit
+COPY lemmy_api ./lemmy_api
+COPY lemmy_apub ./lemmy_apub
+COPY lemmy_websocket ./lemmy_websocket
 RUN mkdir -p ./src/bin \
    && echo 'fn main() { println!("Dummy") }' > ./src/bin/main.rs
 RUN cargo build --release

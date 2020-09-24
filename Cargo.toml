@@ -8,56 +8,43 @@ lto = true
 
 [workspace]
 members = [
+    "lemmy_api",
+    "lemmy_apub",
     "lemmy_utils",
     "lemmy_db",
     "lemmy_structs",
     "lemmy_rate_limit",
+    "lemmy_websocket",
 ]
 
 [dependencies]
+lemmy_api = { path = "./lemmy_api" }
+lemmy_apub = { path = "./lemmy_apub" }
 lemmy_utils = { path = "./lemmy_utils" }
 lemmy_db = { path = "./lemmy_db" }
 lemmy_structs = { path = "./lemmy_structs" }
 lemmy_rate_limit = { path = "./lemmy_rate_limit" }
+lemmy_websocket = { path = "./lemmy_websocket" }
 diesel = "1.4"
 diesel_migrations = "1.4"
-dotenv = "0.15"
-activitystreams = "0.7.0-alpha.4"
-activitystreams-ext = "0.1.0-alpha.2"
-bcrypt = "0.8"
 chrono = { version = "0.4", features = ["serde"] }
-serde_json = { version = "1.0", features = ["preserve_order"]}
 serde = { version = "1.0", features = ["derive"] }
 actix = "0.10"
 actix-web = { version = "3.0", default-features = false, features = ["rustls"] }
 actix-files = { version = "0.3", default-features = false }
 actix-web-actors = { version = "3.0", default-features = false }
-actix-rt = { version = "1.1", default-features = false }
 awc = { version = "2.0", default-features = false }
 log = "0.4"
 env_logger = "0.7"
-rand = "0.7"
 strum = "0.19"
-strum_macros = "0.19"
-jsonwebtoken = "7.0"
 lazy_static = "1.3"
 rss = "1.9"
 url = { version = "2.1", features = ["serde"] }
-percent-encoding = "2.1"
 openssl = "0.10"
-http = "0.2"
 http-signature-normalization-actix = { version = "0.4", default-features = false, features = ["sha-2"] }
-base64 = "0.12"
 tokio = "0.2"
-futures = "0.3"
-itertools = "0.9"
-uuid = { version = "0.8", features = ["serde", "v4"] }
 sha2 = "0.9"
-async-trait = "0.1"
-captcha = "0.0"
 anyhow = "1.0"
-thiserror = "1.0"
-background-jobs = " 0.8"
 reqwest = { version = "0.10", features = ["json"] }
 
 [dev-dependencies.cargo-husky]

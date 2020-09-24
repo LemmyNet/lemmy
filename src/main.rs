@@ -16,17 +16,14 @@ use diesel::{
   PgConnection,
 };
 use lazy_static::lazy_static;
+use lemmy_api::match_websocket_operation;
+use lemmy_apub::activity_queue::create_activity_queue;
 use lemmy_db::get_database_url_from_env;
 use lemmy_rate_limit::{rate_limiter::RateLimiter, RateLimit};
-use lemmy_server::{
-  apub::activity_queue::create_activity_queue,
-  code_migrations::run_advanced_migrations,
-  routes::*,
-  websocket::chat_server::ChatServer,
-  LemmyContext,
-};
+use lemmy_server::{code_migrations::run_advanced_migrations, routes::*};
 use lemmy_structs::blocking;
 use lemmy_utils::{settings::Settings, LemmyError, CACHE_CONTROL_REGEX};
+use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
 use reqwest::Client;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -77,6 +74,7 @@ async fn main() -> Result<(), LemmyError> {
   let chat_server = ChatServer::startup(
     pool.clone(),
     rate_limiter.clone(),
+    |c, i, o, d| Box::pin(match_websocket_operation(c, i, o, d)),
     Client::default(),
     activity_queue.clone(),
   )
@@ -84,7 +82,7 @@ async fn main() -> Result<(), LemmyError> {
 
   // Create Http server with websocket support
   HttpServer::new(move || {
-    let context = LemmyContext::new(
+    let context = LemmyContext::create(
       pool.clone(),
       chat_server.to_owned(),
       Client::default(),

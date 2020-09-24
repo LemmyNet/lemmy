@@ -15,11 +15,11 @@ services:
     depends_on:
       - pictrs
       - iframely
-      - lemmy-alpha
-      - lemmy-beta
-      - lemmy-gamma
-      - lemmy-delta
-      - lemmy-epsilon
+      - lemmy-alpha-ui
+      - lemmy-beta-ui
+      - lemmy-gamma-ui
+      - lemmy-delta-ui
+      - lemmy-epsilon-ui
 
   pictrs:
     restart: always

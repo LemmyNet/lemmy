@@ -1,0 +1,28 @@
+[package]
+name = "lemmy_websocket"
+version = "0.1.0"
+authors = ["Felix Ableitner <me@nutomic.com>"]
+edition = "2018"
+
+[lib]
+name = "lemmy_websocket"
+path = "src/lib.rs"
+
+[dependencies]
+lemmy_utils = { path = "../lemmy_utils" }
+lemmy_structs = { path = "../lemmy_structs" }
+lemmy_db = { path = "../lemmy_db" }
+lemmy_rate_limit = { path = "../lemmy_rate_limit" }
+reqwest = { version = "0.10", features = ["json"] }
+log = "0.4"
+rand = "0.7"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["preserve_order"]}
+actix = "0.10"
+anyhow = "1.0"
+diesel = "1.4"
+background-jobs = " 0.8"
+tokio = "0.2"
+strum = "0.19"
+strum_macros = "0.19"
+chrono = { version = "0.4", features = ["serde"] }
