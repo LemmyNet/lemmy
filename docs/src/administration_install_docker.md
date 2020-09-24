@@ -17,6 +17,14 @@ mkdir -p volumes/pictrs
 sudo chown -R 991:991 volumes/pictrs
 ```
 
+Open up your `docker-compose.yml`, and make sure `LEMMY_EXTERNAL_HOST` for `lemmy-ui` is set to your correct host.
+
+```
+- LEMMY_INTERNAL_HOST=lemmy:8536
+- LEMMY_EXTERNAL_HOST=your-domain.com
+- LEMMY_HTTPS=false
+```
+
 After this, have a look at the [config file](administration_configuration.md) named `lemmy.hjson`, and adjust it, in particular the hostname, and possibly the db password. Then run:
 
 `docker-compose up -d`
