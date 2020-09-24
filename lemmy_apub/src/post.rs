@@ -24,7 +24,7 @@ use activitystreams::{
     Undo,
     Update,
   },
-  object::{kind::PageType, Image, Object, Page, Tombstone},
+  object::{kind::PageType, Image, Page, Tombstone},
   prelude::*,
   public,
 };
@@ -41,6 +41,7 @@ use lemmy_db::{
 use lemmy_structs::blocking;
 use lemmy_utils::{
   location_info,
+  request::fetch_iframely_and_pictrs_data,
   utils::{check_slurs, convert_datetime, remove_slurs},
   LemmyError,
 };
@@ -104,24 +105,6 @@ impl ToApub for Post {
     let url = self.url.as_ref().filter(|u| !u.is_empty());
     if let Some(u) = url {
       page.set_url(u.to_owned());
-
-      // Embeds
-      let mut page_preview = Page::new();
-      page_preview.set_url(u.to_owned());
-
-      if let Some(embed_title) = &self.embed_title {
-        page_preview.set_name(embed_title.to_owned());
-      }
-
-      if let Some(embed_description) = &self.embed_description {
-        page_preview.set_summary(embed_description.to_owned());
-      }
-
-      if let Some(embed_html) = &self.embed_html {
-        page_preview.set_content(embed_html.to_owned());
-      }
-
-      page.set_preview(page_preview.into_any_base()?);
     }
 
     if let Some(thumbnail_url) = &self.thumbnail_url {
@@ -144,50 +127,6 @@ impl ToApub for Post {
 
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
     create_tombstone(self.deleted, &self.ap_id, self.updated, PageType::Page)
-  }
-}
-
-struct EmbedType {
-  title: Option<String>,
-  description: Option<String>,
-  html: Option<String>,
-}
-
-fn extract_embed_from_apub(
-  page: &Ext1<Object<PageType>, PageExtension>,
-) -> Result<EmbedType, LemmyError> {
-  match page.inner.preview() {
-    Some(preview) => {
-      let preview_page = Page::from_any_base(preview.one().context(location_info!())?.to_owned())?
-        .context(location_info!())?;
-      let title = preview_page
-        .name()
-        .map(|n| n.one())
-        .flatten()
-        .map(|s| s.as_xsd_string())
-        .flatten()
-        .map(|s| s.to_string());
-      let description = preview_page
-        .summary()
-        .map(|s| s.as_single_xsd_string())
-        .flatten()
-        .map(|s| s.to_string());
-      let html = preview_page
-        .content()
-        .map(|c| c.as_single_xsd_string())
-        .flatten()
-        .map(|s| s.to_string());
-      Ok(EmbedType {
-        title,
-        description,
-        html,
-      })
-    }
-    None => Ok(EmbedType {
-      title: None,
-      description: None,
-      html: None,
-    }),
   }
 }
 
@@ -237,8 +176,19 @@ impl FromApub for PostForm {
       .map(|u| u.to_string()),
       None => None,
     };
+    let url = page
+      .inner
+      .url()
+      .map(|u| u.as_single_xsd_any_uri())
+      .flatten()
+      .map(|s| s.to_string());
 
-    let embed = extract_embed_from_apub(page)?;
+    let (iframely_title, iframely_description, iframely_html, pictrs_thumbnail) =
+      if let Some(url) = &url {
+        fetch_iframely_and_pictrs_data(context.client(), Some(url.to_owned())).await
+      } else {
+        (None, None, None, thumbnail_url)
+      };
 
     let name = page
       .inner
@@ -248,12 +198,6 @@ impl FromApub for PostForm {
       .as_single_xsd_string()
       .context(location_info!())?
       .to_string();
-    let url = page
-      .inner
-      .url()
-      .map(|u| u.as_single_xsd_any_uri())
-      .flatten()
-      .map(|s| s.to_string());
     let body = page
       .inner
       .content()
@@ -284,10 +228,10 @@ impl FromApub for PostForm {
       deleted: None,
       nsfw: ext.sensitive,
       stickied: Some(ext.stickied),
-      embed_title: embed.title,
-      embed_description: embed.description,
-      embed_html: embed.html,
-      thumbnail_url,
+      embed_title: iframely_title,
+      embed_description: iframely_description,
+      embed_html: iframely_html,
+      thumbnail_url: pictrs_thumbnail,
       ap_id: Some(check_actor_domain(page, expected_domain)?),
       local: false,
     })
