@@ -21,7 +21,7 @@ Open up your `docker-compose.yml`, and make sure `LEMMY_EXTERNAL_HOST` for `lemm
 
 ```
 - LEMMY_INTERNAL_HOST=lemmy:8536
-- LEMMY_EXTERNAL_HOST=localhost:8536
+- LEMMY_EXTERNAL_HOST=your-domain.com
 - LEMMY_HTTPS=false
 ```
 
