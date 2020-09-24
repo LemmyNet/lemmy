@@ -9,8 +9,8 @@ third_semver=$(echo $new_tag | cut -d "." -f 3)
 # Setting the version on the front end
 cd ../../
 # Setting the version on the backend
-echo "pub const VERSION: &str = \"$new_tag\";" > "src/version.rs"
-git add "src/version.rs"
+echo "pub const VERSION: &str = \"$new_tag\";" > "lemmy_api/src/version.rs"
+git add "lemmy_api/src/version.rs"
 # Setting the version for Ansible
 echo $new_tag > "ansible/VERSION"
 git add "ansible/VERSION"

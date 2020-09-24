@@ -14,8 +14,6 @@ lemmy_utils = { path = "../lemmy_utils" }
 serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
 diesel = "1.4"
-actix = "0.10"
 actix-web = { version = "3.0" }
-strum = "0.19"
-strum_macros = "0.19"
 chrono = { version = "0.4", features = ["serde"] }
+serde_json = { version = "1.0", features = ["preserve_order"]}

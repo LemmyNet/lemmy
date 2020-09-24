@@ -1,12 +1,3 @@
-extern crate actix;
-extern crate actix_web;
-extern crate diesel;
-extern crate log;
-extern crate serde;
-#[macro_use]
-extern crate strum_macros;
-extern crate chrono;
-
 pub mod comment;
 pub mod community;
 pub mod post;
@@ -25,6 +16,24 @@ use lemmy_db::{
 };
 use lemmy_utils::{email::send_email, settings::Settings, utils::MentionData, LemmyError};
 use log::error;
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct WebFingerLink {
+  pub rel: Option<String>,
+  #[serde(rename(serialize = "type", deserialize = "type"))]
+  pub type_: Option<String>,
+  pub href: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub template: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct WebFingerResponse {
+  pub subject: String,
+  pub aliases: Vec<String>,
+  pub links: Vec<WebFingerLink>,
+}
 
 pub async fn blocking<F, T>(pool: &DbPool, f: F) -> Result<T, LemmyError>
 where

@@ -1,36 +1,19 @@
-use crate::LemmyContext;
 use actix_web::{error::ErrorBadRequest, web::Query, *};
 use anyhow::anyhow;
 use lemmy_db::{community::Community, user::User_};
-use lemmy_structs::blocking;
+use lemmy_structs::{blocking, WebFingerLink, WebFingerResponse};
 use lemmy_utils::{
   settings::Settings,
   LemmyError,
   WEBFINGER_COMMUNITY_REGEX,
   WEBFINGER_USER_REGEX,
 };
-use serde::{Deserialize, Serialize};
+use lemmy_websocket::LemmyContext;
+use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct Params {
   resource: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct WebFingerResponse {
-  pub subject: String,
-  pub aliases: Vec<String>,
-  pub links: Vec<WebFingerLink>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct WebFingerLink {
-  pub rel: Option<String>,
-  #[serde(rename(serialize = "type", deserialize = "type"))]
-  pub type_: Option<String>,
-  pub href: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub template: Option<String>,
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {

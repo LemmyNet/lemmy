@@ -4,14 +4,6 @@ extern crate diesel;
 extern crate strum_macros;
 #[macro_use]
 extern crate lazy_static;
-extern crate bcrypt;
-extern crate chrono;
-extern crate log;
-extern crate regex;
-extern crate serde;
-extern crate serde_json;
-extern crate sha2;
-extern crate strum;
 
 use chrono::NaiveDateTime;
 use diesel::{result::Error, *};

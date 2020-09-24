@@ -12,6 +12,9 @@ RUN mkdir -p lemmy_db/src/ \
       lemmy_utils/src/ \
       lemmy_structs/src/ \
       lemmy_rate_limit/src/ \
+      lemmy_api/src/ \
+      lemmy_apub/src/ \
+      lemmy_websocket/src/ \
       lemmy
 
 # Copy the cargo tomls
@@ -20,6 +23,9 @@ COPY lemmy_db/Cargo.toml ./lemmy_db/
 COPY lemmy_utils/Cargo.toml ./lemmy_utils/
 COPY lemmy_structs/Cargo.toml ./lemmy_structs/
 COPY lemmy_rate_limit/Cargo.toml ./lemmy_rate_limit/
+COPY lemmy_api/Cargo.toml ./lemmy_api/
+COPY lemmy_apub/Cargo.toml ./lemmy_apub/
+COPY lemmy_websocket/Cargo.toml ./lemmy_websocket/
 
 # Cache the deps
 RUN cargo build-deps
@@ -30,6 +36,9 @@ COPY lemmy_db/src ./lemmy_db/src/
 COPY lemmy_utils/src/ ./lemmy_utils/src/
 COPY lemmy_structs/src/ ./lemmy_structs/src/
 COPY lemmy_rate_limit/src/ ./lemmy_rate_limit/src/
+COPY lemmy_api/src/ ./lemmy_api/src/
+COPY lemmy_apub/src/ ./lemmy_apub/src/
+COPY lemmy_websocket/src/ ./lemmy_websocket/src/
 COPY migrations ./migrations/
 
 # Build for debug
