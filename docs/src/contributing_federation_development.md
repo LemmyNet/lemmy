@@ -21,10 +21,12 @@ lemmy-epsilon | lemmy_epsilon | [127.0.0.1:8580](http://127.0.0.1:8580) | uses b
 
 You can log into each using the instance name, and `lemmy` as the password, IE (`lemmy_alpha`, `lemmy`). 
 
-To start federation between instances, visit one of them and search for a user, community or post, like this:
-- `!main@lemmy-alpha:8540`
-- `http://lemmy-beta:8550/post/3`
-- `@lemmy-gamma@lemmy-gamma:8560`
+To start federation between instances, visit one of them and search for a user, community or post, like this. Note that
+the Lemmy backend runs on a different port than the frontend, so you have to increment the port number from 
+the URL bar by one.
+- `!main@lemmy-alpha:8541`
+- `http://lemmy-beta:8551/post/3`
+- `@lemmy-gamma@lemmy-gamma:8561`
 
 Firefox containers are a good way to test them interacting.
 
