@@ -253,7 +253,7 @@ impl FromApub for UserForm {
 
     Ok(UserForm {
       name,
-      preferred_username,
+      preferred_username: Some(preferred_username),
       password_encrypted: "".to_string(),
       admin: false,
       banned: false,
@@ -271,7 +271,7 @@ impl FromApub for UserForm {
       send_notifications_to_email: false,
       matrix_user_id: None,
       actor_id: Some(check_actor_domain(person, expected_domain)?),
-      bio,
+      bio: Some(bio),
       local: false,
       private_key: None,
       public_key: Some(person.ext_one.public_key.to_owned().public_key_pem),
