@@ -335,31 +335,24 @@ impl Perform for SaveUserSettings {
     let user_id = user.id;
     let read_user = blocking(context.pool(), move |conn| User_::read(conn, user_id)).await??;
 
-    let bio = match &data.bio {
-      Some(bio) => {
-        if bio.chars().count() <= 300 {
-          Some(bio.to_owned())
-        } else {
-          return Err(APIError::err("bio_length_overflow").into());
-        }
-      }
-      None => read_user.bio,
-    };
-
     let avatar = diesel_option_overwrite(&data.avatar);
     let banner = diesel_option_overwrite(&data.banner);
     let email = diesel_option_overwrite(&data.email);
+    let bio = diesel_option_overwrite(&data.bio);
+    let preferred_username = diesel_option_overwrite(&data.preferred_username);
+    let matrix_user_id = diesel_option_overwrite(&data.matrix_user_id);
 
-    // The DB constraint should stop too many characters
-    let preferred_username = match &data.preferred_username {
-      Some(preferred_username) => {
-        if !is_valid_preferred_username(preferred_username.trim()) {
-          return Err(APIError::err("invalid_username").into());
-        }
-        Some(preferred_username.trim().to_string())
+    if let Some(Some(bio)) = &bio {
+      if bio.chars().count() > 300 {
+        return Err(APIError::err("bio_length_overflow").into());
       }
-      None => read_user.preferred_username,
-    };
+    }
+
+    if let Some(Some(preferred_username)) = &preferred_username {
+      if !is_valid_preferred_username(preferred_username.trim()) {
+        return Err(APIError::err("invalid_username").into());
+      }
+    }
 
     let password_encrypted = match &data.new_password {
       Some(new_password) => {
@@ -397,7 +390,7 @@ impl Perform for SaveUserSettings {
     let user_form = UserForm {
       name: read_user.name,
       email,
-      matrix_user_id: data.matrix_user_id.to_owned(),
+      matrix_user_id,
       avatar,
       banner,
       password_encrypted,
