@@ -31,6 +31,8 @@
   bind: "0.0.0.0"
   # port where lemmy should listen for incoming requests
   port: 8536
+  # whether tls is required for activitypub. only disable this for debugging, never for producion.
+  tls_enabled: true
   # json web token for authorization between server and client
   jwt_secret: "changeme"
   # address where pictrs is available
@@ -58,8 +60,6 @@
   federation: {
     # whether to enable activitypub federation. this feature is in alpha, do not enable in production.
     enabled: false
-    # whether tls is required for activitypub. only disable this for debugging, never for producion.
-    tls_enabled: true
     # comma separated list of instances with which federation is allowed
     allowed_instances: ""
     # comma separated list of instances which are blocked from federating

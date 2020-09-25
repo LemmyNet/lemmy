@@ -1896,6 +1896,7 @@ dependencies = [
  "chrono",
  "diesel",
  "lazy_static",
+ "lemmy_utils",
  "log",
  "regex",
  "serde 1.0.116",

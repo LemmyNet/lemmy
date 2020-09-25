@@ -32,7 +32,6 @@ use chrono::NaiveDateTime;
 use lemmy_db::{activity::do_insert_activity, user::User_, DbPool};
 use lemmy_structs::{blocking, WebFingerResponse};
 use lemmy_utils::{
-  apub::get_apub_protocol_string,
   location_info,
   request::{retry, RecvError},
   settings::Settings,
@@ -97,7 +96,7 @@ fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
     };
   }
 
-  if apub_id.scheme() != get_apub_protocol_string() {
+  if apub_id.scheme() != Settings::get().get_protocol_string() {
     return Err(anyhow!("invalid apub id scheme: {:?}", apub_id.scheme()).into());
   }
 
@@ -319,7 +318,7 @@ pub async fn fetch_webfinger_url(
 ) -> Result<Url, LemmyError> {
   let fetch_url = format!(
     "{}://{}/.well-known/webfinger?resource=acct:{}@{}",
-    get_apub_protocol_string(),
+    Settings::get().get_protocol_string(),
     mention.domain,
     mention.name,
     mention.domain

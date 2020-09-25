@@ -35,14 +35,6 @@ pub enum EndpointType {
   PrivateMessage,
 }
 
-pub fn get_apub_protocol_string() -> &'static str {
-  if Settings::get().federation.tls_enabled {
-    "https"
-  } else {
-    "http"
-  }
-}
-
 /// Generates the ActivityPub ID for a given object type and ID.
 pub fn make_apub_endpoint(endpoint_type: EndpointType, name: &str) -> Url {
   let point = match endpoint_type {
@@ -54,9 +46,8 @@ pub fn make_apub_endpoint(endpoint_type: EndpointType, name: &str) -> Url {
   };
 
   Url::parse(&format!(
-    "{}://{}/{}/{}",
-    get_apub_protocol_string(),
-    Settings::get().hostname,
+    "{}/{}/{}",
+    Settings::get().get_protocol_and_hostname(),
     point,
     name
   ))

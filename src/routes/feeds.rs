@@ -71,7 +71,7 @@ fn get_feed_all_data(conn: &PgConnection, sort_type: &SortType) -> Result<String
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
     .title(&format!("{} - All", site_view.name))
-    .link(format!("https://{}", Settings::get().hostname))
+    .link(Settings::get().get_protocol_and_hostname())
     .items(items);
 
   if let Some(site_desc) = site_view.description {
@@ -196,7 +196,7 @@ fn get_feed_front(
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
     .title(&format!("{} - Subscribed", site_view.name))
-    .link(format!("https://{}", Settings::get().hostname))
+    .link(Settings::get().get_protocol_and_hostname())
     .items(items);
 
   if let Some(site_desc) = site_view.description {
@@ -225,7 +225,10 @@ fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, Le
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
     .title(&format!("{} - Inbox", site_view.name))
-    .link(format!("https://{}/inbox", Settings::get().hostname))
+    .link(format!(
+      "{}/inbox",
+      Settings::get().get_protocol_and_hostname()
+    ))
     .items(items);
 
   if let Some(site_desc) = site_view.description {
@@ -243,8 +246,8 @@ fn create_reply_and_mention_items(
     .iter()
     .map(|r| {
       let reply_url = format!(
-        "https://{}/post/{}/comment/{}",
-        Settings::get().hostname,
+        "{}/post/{}/comment/{}",
+        Settings::get().get_protocol_and_hostname(),
         r.post_id,
         r.id
       );
@@ -256,8 +259,8 @@ fn create_reply_and_mention_items(
     .iter()
     .map(|m| {
       let mention_url = format!(
-        "https://{}/post/{}/comment/{}",
-        Settings::get().hostname,
+        "{}/post/{}/comment/{}",
+        Settings::get().get_protocol_and_hostname(),
         m.post_id,
         m.id
       );
@@ -277,7 +280,11 @@ fn build_item(
 ) -> Result<Item, LemmyError> {
   let mut i = ItemBuilder::default();
   i.title(format!("Reply from {}", creator_name));
-  let author_url = format!("https://{}/u/{}", Settings::get().hostname, creator_name);
+  let author_url = format!(
+    "{}/u/{}",
+    Settings::get().get_protocol_and_hostname(),
+    creator_name
+  );
   i.author(format!(
     "/u/{} <a href=\"{}\">(link)</a>",
     creator_name, author_url
@@ -306,7 +313,11 @@ fn create_post_items(posts: Vec<PostView>) -> Result<Vec<Item>, LemmyError> {
 
     i.title(p.name);
 
-    let author_url = format!("https://{}/u/{}", Settings::get().hostname, p.creator_name);
+    let author_url = format!(
+      "{}/u/{}",
+      Settings::get().get_protocol_and_hostname(),
+      p.creator_name
+    );
     i.author(format!(
       "/u/{} <a href=\"{}\">(link)</a>",
       p.creator_name, author_url
@@ -315,7 +326,11 @@ fn create_post_items(posts: Vec<PostView>) -> Result<Vec<Item>, LemmyError> {
     let dt = DateTime::<Utc>::from_utc(p.published, Utc);
     i.pub_date(dt.to_rfc2822());
 
-    let post_url = format!("https://{}/post/{}", Settings::get().hostname, p.id);
+    let post_url = format!(
+      "{}/post/{}",
+      Settings::get().get_protocol_and_hostname(),
+      p.id
+    );
     i.comments(post_url.to_owned());
     let guid = GuidBuilder::default()
       .permalink(true)
@@ -325,8 +340,8 @@ fn create_post_items(posts: Vec<PostView>) -> Result<Vec<Item>, LemmyError> {
     i.guid(guid);
 
     let community_url = format!(
-      "https://{}/c/{}",
-      Settings::get().hostname,
+      "{}/c/{}",
+      Settings::get().get_protocol_and_hostname(),
       p.community_name
     );
 

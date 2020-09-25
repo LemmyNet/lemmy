@@ -6,6 +6,7 @@ use crate::{
 };
 use bcrypt::{hash, DEFAULT_COST};
 use diesel::{dsl::*, result::Error, *};
+use lemmy_utils::settings::Settings;
 use serde::Serialize;
 
 #[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
@@ -151,7 +152,12 @@ impl User_ {
   }
 
   pub fn get_profile_url(&self, hostname: &str) -> String {
-    format!("https://{}/u/{}", hostname, self.name)
+    format!(
+      "{}://{}/u/{}",
+      Settings::get().get_protocol_string(),
+      hostname,
+      self.name
+    )
   }
 
   pub fn upsert(conn: &PgConnection, user_form: &UserForm) -> Result<User_, Error> {
