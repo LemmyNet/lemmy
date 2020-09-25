@@ -1,6 +1,5 @@
 use crate::{
   check_community_ban,
-  fetch_iframely_and_pictrs_data,
   get_user_from_jwt,
   get_user_from_jwt_opt,
   is_mod_or_admin,
@@ -25,6 +24,7 @@ use lemmy_db::{
 use lemmy_structs::{blocking, post::*};
 use lemmy_utils::{
   apub::{make_apub_endpoint, EndpointType},
+  request::fetch_iframely_and_pictrs_data,
   utils::{check_slurs, check_slurs_opt, is_valid_post_title},
   APIError,
   ConnectionId,
