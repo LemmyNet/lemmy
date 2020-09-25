@@ -42,7 +42,7 @@ pub struct User_ {
 #[table_name = "user_"]
 pub struct UserForm {
   pub name: String,
-  pub preferred_username: Option<String>,
+  pub preferred_username: Option<Option<String>>,
   pub password_encrypted: String,
   pub admin: bool,
   pub banned: bool,
@@ -57,9 +57,9 @@ pub struct UserForm {
   pub lang: String,
   pub show_avatars: bool,
   pub send_notifications_to_email: bool,
-  pub matrix_user_id: Option<String>,
+  pub matrix_user_id: Option<Option<String>>,
   pub actor_id: Option<String>,
-  pub bio: Option<String>,
+  pub bio: Option<Option<String>>,
   pub local: bool,
   pub private_key: Option<String>,
   pub public_key: Option<String>,

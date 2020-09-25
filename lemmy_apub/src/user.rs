@@ -241,6 +241,9 @@ impl FromApub for UserForm {
       .context(location_info!())?
       .to_string();
     let preferred_username = person.inner.preferred_username().map(|u| u.to_string());
+
+    // TODO a limit check (like the API does) might need to be done
+    // here when we federate to other platforms. Same for preferred_username
     let bio = person
       .inner
       .summary()
@@ -253,7 +256,7 @@ impl FromApub for UserForm {
 
     Ok(UserForm {
       name,
-      preferred_username,
+      preferred_username: Some(preferred_username),
       password_encrypted: "".to_string(),
       admin: false,
       banned: false,
@@ -271,7 +274,7 @@ impl FromApub for UserForm {
       send_notifications_to_email: false,
       matrix_user_id: None,
       actor_id: Some(check_actor_domain(person, expected_domain)?),
-      bio,
+      bio: Some(bio),
       local: false,
       private_key: None,
       public_key: Some(person.ext_one.public_key.to_owned().public_key_pem),
