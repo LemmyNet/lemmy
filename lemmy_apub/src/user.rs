@@ -241,6 +241,9 @@ impl FromApub for UserForm {
       .context(location_info!())?
       .to_string();
     let preferred_username = person.inner.preferred_username().map(|u| u.to_string());
+
+    // TODO a limit check (like the API does) might need to be done
+    // here when we federate to other platforms. Same for preferred_username
     let bio = person
       .inner
       .summary()
