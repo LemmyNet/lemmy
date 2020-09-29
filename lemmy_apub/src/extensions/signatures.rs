@@ -27,13 +27,19 @@ lazy_static! {
 /// Signs request headers with the given keypair.
 pub async fn sign(
   client: &Client,
-  headers: BTreeMap<String, String>,
+  mut headers: BTreeMap<String, String>,
   url: &Url,
   activity: String,
   actor_id: &Url,
   private_key: String,
 ) -> Result<Request, LemmyError> {
   let signing_key_id = format!("{}#main-key", actor_id);
+  let digest = format!(
+    "{}={}",
+    Sha256::NAME,
+    Sha256::new().compute(activity.as_bytes())
+  );
+  headers.insert("Digest".into(), digest);
 
   let mut path_and_query = url.path().to_string();
   if let Some(query) = url.query() {
@@ -49,11 +55,6 @@ pub async fn sign(
       Ok(base64::encode(signer.sign_to_vec()?)) as Result<_, LemmyError>
     })?
     .signature_header();
-  let digest = format!(
-    "{}={}",
-    Sha256::NAME,
-    Sha256::new().compute(activity.as_bytes())
-  );
 
   let mut header_map = HeaderMap::new();
   for h in headers {
@@ -66,7 +67,6 @@ pub async fn sign(
     .post(&url.to_string())
     .headers(header_map)
     .header("Signature", signature_header_value)
-    .header("Digest", digest)
     .body(activity);
 
   Ok(signed_request.build()?)
