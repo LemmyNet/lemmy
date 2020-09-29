@@ -4,7 +4,6 @@ use activitystreams::{
   object::AsObject,
 };
 use anyhow::{anyhow, Context, Error};
-use awc::Client;
 use background_jobs::{
   create_server,
   memory_storage::Storage,
@@ -16,8 +15,9 @@ use background_jobs::{
 };
 use lemmy_utils::{location_info, settings::Settings, LemmyError};
 use log::warn;
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::{future::Future, pin::Pin};
+use std::{collections::BTreeMap, future::Future, pin::Pin};
 use url::Url;
 
 pub fn send_activity<T, Kind>(
@@ -50,6 +50,7 @@ where
     actor_id: actor.actor_id()?,
     private_key: actor.private_key().context(location_info!())?,
   };
+
   activity_sender.queue::<SendActivityTask>(message)?;
 
   Ok(())
@@ -74,18 +75,18 @@ impl ActixJob for SendActivityTask {
   fn run(self, state: Self::State) -> Self::Future {
     Box::pin(async move {
       for to_url in &self.to {
-        let request = state
-          .client
-          .post(to_url.as_str())
-          .header("Content-Type", "application/json");
-
+        let mut headers = BTreeMap::<String, String>::new();
+        headers.insert("Content-Type".into(), "application/json".into());
         let signed = sign(
-          request,
+          &state.client,
+          headers,
+          to_url,
           self.activity.clone(),
           &self.actor_id,
           self.private_key.to_owned(),
         )
         .await;
+
         let signed = match signed {
           Ok(s) => s,
           Err(e) => {
@@ -94,7 +95,7 @@ impl ActixJob for SendActivityTask {
             return Ok(());
           }
         };
-        if let Err(e) = signed.send().await {
+        if let Err(e) = state.client.execute(signed).await {
           warn!("{}", e);
           return Err(anyhow!(
             "Failed to send activity {} to {}",
@@ -103,7 +104,6 @@ impl ActixJob for SendActivityTask {
           ));
         }
       }
-
       Ok(())
     })
   }

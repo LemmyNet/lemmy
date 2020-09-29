@@ -1865,6 +1865,7 @@ dependencies = [
  "diesel",
  "futures",
  "http",
+ "http-signature-normalization",
  "http-signature-normalization-actix",
  "itertools",
  "lazy_static",
