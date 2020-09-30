@@ -4,8 +4,8 @@ use activitystreams_ext::UnparsedExtension;
 use actix_web::HttpRequest;
 use anyhow::{anyhow, Context};
 use http::{header::HeaderName, HeaderMap, HeaderValue};
-use http_signature_normalization::Config;
-use http_signature_normalization_actix::{digest::DigestCreate, Config as ConfigActix};
+use http_signature_normalization_actix::Config as ConfigActix;
+use http_signature_normalization_reqwest::prelude::{Config, SignExt};
 use lemmy_utils::{location_info, LemmyError};
 use log::debug;
 use openssl::{
@@ -13,7 +13,7 @@ use openssl::{
   pkey::PKey,
   sign::{Signer, Verifier},
 };
-use reqwest::{Client, Request};
+use reqwest::{Client, Response};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, str::FromStr};
@@ -27,34 +27,13 @@ lazy_static! {
 /// Signs request headers with the given keypair.
 pub async fn sign(
   client: &Client,
-  mut headers: BTreeMap<String, String>,
+  headers: BTreeMap<String, String>,
   url: &Url,
   activity: String,
   actor_id: &Url,
   private_key: String,
-) -> Result<Request, LemmyError> {
+) -> Result<Response, LemmyError> {
   let signing_key_id = format!("{}#main-key", actor_id);
-  let digest = format!(
-    "{}={}",
-    Sha256::NAME,
-    Sha256::new().compute(activity.as_bytes())
-  );
-  headers.insert("Digest".into(), digest);
-
-  let mut path_and_query = url.path().to_string();
-  if let Some(query) = url.query() {
-    path_and_query = format!("{}?{}", path_and_query, query);
-  }
-  let signature_header_value = HTTP_SIG_CONFIG
-    .begin_sign("POST", &path_and_query, headers.clone())?
-    .sign(signing_key_id, |signing_string| {
-      let private_key = PKey::private_key_from_pem(private_key.as_bytes())?;
-      let mut signer = Signer::new(MessageDigest::sha256(), &private_key)?;
-      signer.update(signing_string.as_bytes())?;
-
-      Ok(base64::encode(signer.sign_to_vec()?)) as Result<_, LemmyError>
-    })?
-    .signature_header();
 
   let mut header_map = HeaderMap::new();
   for h in headers {
@@ -63,13 +42,25 @@ pub async fn sign(
       HeaderValue::from_str(h.1.as_str())?,
     );
   }
-  let signed_request = client
+  let response = client
     .post(&url.to_string())
     .headers(header_map)
-    .header("Signature", signature_header_value)
-    .body(activity);
+    .signature_with_digest(
+      HTTP_SIG_CONFIG.clone(),
+      signing_key_id,
+      Sha256::new(),
+      activity,
+      move |signing_string| {
+        let private_key = PKey::private_key_from_pem(private_key.as_bytes())?;
+        let mut signer = Signer::new(MessageDigest::sha256(), &private_key)?;
+        signer.update(signing_string.as_bytes())?;
 
-  Ok(signed_request.build()?)
+        Ok(base64::encode(signer.sign_to_vec()?)) as Result<_, LemmyError>
+      },
+    )
+    .await?;
+
+  Ok(response)
 }
 
 pub fn verify(request: &HttpRequest, actor: &dyn ActorType) -> Result<(), LemmyError> {
