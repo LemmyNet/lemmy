@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate lazy_static;
 
-pub mod activities;
 pub mod activity_queue;
 pub mod comment;
 pub mod community;
@@ -43,6 +42,7 @@ use log::debug;
 use reqwest::Client;
 use serde::Serialize;
 use url::{ParseError, Url};
+use uuid::Uuid;
 
 type GroupExt = Ext2<ApActor<Group>, GroupExtension, PublicKeyExtension>;
 type PersonExt = Ext1<ApActor<Person>, PublicKeyExtension>;
@@ -359,4 +359,17 @@ where
   })
   .await??;
   Ok(())
+}
+
+pub(in crate) fn generate_activity_id<T>(kind: T) -> Result<Url, ParseError>
+where
+  T: ToString,
+{
+  let id = format!(
+    "{}/activities/{}/{}",
+    Settings::get().get_protocol_and_hostname(),
+    kind.to_string().to_lowercase(),
+    Uuid::new_v4()
+  );
+  Url::parse(&id)
 }
