@@ -77,7 +77,7 @@ impl ActixJob for SendActivityTask {
       for to_url in &self.to {
         let mut headers = BTreeMap::<String, String>::new();
         headers.insert("Content-Type".into(), "application/json".into());
-        let signed = sign(
+        let result = sign(
           &state.client,
           headers,
           to_url,
@@ -87,15 +87,7 @@ impl ActixJob for SendActivityTask {
         )
         .await;
 
-        let signed = match signed {
-          Ok(s) => s,
-          Err(e) => {
-            warn!("{}", e);
-            // dont return an error because retrying would probably not fix the signing
-            return Ok(());
-          }
-        };
-        if let Err(e) = state.client.execute(signed).await {
+        if let Err(e) = result {
           warn!("{}", e);
           return Err(anyhow!(
             "Failed to send activity {} to {}",
