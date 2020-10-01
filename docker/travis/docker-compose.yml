@@ -8,7 +8,7 @@ services:
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_alpha:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
       - LEMMY_FEDERATION__ENABLED=true
-      - LEMMY_FEDERATION__TLS_ENABLED=false
+      - LEMMY_TLS_ENABLED=false
       - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-beta,lemmy-gamma,lemmy-delta,lemmy-epsilon
       - LEMMY_PORT=8541
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_alpha
@@ -39,7 +39,7 @@ services:
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_beta:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
       - LEMMY_FEDERATION__ENABLED=true
-      - LEMMY_FEDERATION__TLS_ENABLED=false
+      - LEMMY_TLS_ENABLED=false
       - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-alpha,lemmy-gamma,lemmy-delta,lemmy-epsilon
       - LEMMY_PORT=8551
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_beta
@@ -70,7 +70,7 @@ services:
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_gamma:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
       - LEMMY_FEDERATION__ENABLED=true
-      - LEMMY_FEDERATION__TLS_ENABLED=false
+      - LEMMY_TLS_ENABLED=false
       - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-alpha,lemmy-beta,lemmy-delta,lemmy-epsilon
       - LEMMY_PORT=8561
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_gamma
@@ -102,7 +102,7 @@ services:
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_delta:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
       - LEMMY_FEDERATION__ENABLED=true
-      - LEMMY_FEDERATION__TLS_ENABLED=false
+      - LEMMY_TLS_ENABLED=false
       - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-beta
       - LEMMY_PORT=8571
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_delta
@@ -134,7 +134,7 @@ services:
       - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_epsilon:5432/lemmy
       - LEMMY_JWT_SECRET=changeme
       - LEMMY_FEDERATION__ENABLED=true
-      - LEMMY_FEDERATION__TLS_ENABLED=false
+      - LEMMY_TLS_ENABLED=false
       - LEMMY_FEDERATION__BLOCKED_INSTANCES=lemmy-alpha
       - LEMMY_PORT=8581
       - LEMMY_SETUP__ADMIN_USERNAME=lemmy_epsilon

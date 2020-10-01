@@ -4,7 +4,7 @@ use activitystreams::{
   object::AsObject,
 };
 use lemmy_db::{community::Community, user::User_};
-use lemmy_utils::{apub::get_apub_protocol_string, settings::Settings, LemmyError};
+use lemmy_utils::{settings::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::{export::fmt::Debug, Serialize};
 use url::{ParseError, Url};
@@ -40,9 +40,8 @@ where
   T: ToString,
 {
   let id = format!(
-    "{}://{}/activities/{}/{}",
-    get_apub_protocol_string(),
-    Settings::get().hostname,
+    "{}/activities/{}/{}",
+    Settings::get().get_protocol_and_hostname(),
     kind.to_string().to_lowercase(),
     Uuid::new_v4()
   );

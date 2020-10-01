@@ -77,7 +77,7 @@ fn do_send_local_notifs(
   do_send_email: bool,
 ) -> Vec<i32> {
   let mut recipient_ids = Vec::new();
-  let hostname = &format!("https://{}", Settings::get().hostname);
+  let hostname = &Settings::get().get_protocol_and_hostname();
 
   // Send the local mentions
   for mention in mentions

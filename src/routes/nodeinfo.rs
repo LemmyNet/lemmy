@@ -3,7 +3,7 @@ use anyhow::anyhow;
 use lemmy_api::version;
 use lemmy_db::site_view::SiteView;
 use lemmy_structs::blocking;
-use lemmy_utils::{apub::get_apub_protocol_string, settings::Settings, LemmyError};
+use lemmy_utils::{settings::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -19,9 +19,8 @@ async fn node_info_well_known() -> Result<HttpResponse<Body>, LemmyError> {
     links: NodeInfoWellKnownLinks {
       rel: Url::parse("http://nodeinfo.diaspora.software/ns/schema/2.0")?,
       href: Url::parse(&format!(
-        "{}://{}/nodeinfo/2.0.json",
-        get_apub_protocol_string(),
-        Settings::get().hostname
+        "{}/nodeinfo/2.0.json",
+        Settings::get().get_protocol_and_hostname()
       ))?,
     },
   };

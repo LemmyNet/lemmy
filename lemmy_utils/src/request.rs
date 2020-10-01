@@ -1,4 +1,4 @@
-use crate::{apub::get_apub_protocol_string, settings::Settings, LemmyError};
+use crate::{settings::Settings, LemmyError};
 use anyhow::anyhow;
 use log::error;
 use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
@@ -149,9 +149,8 @@ pub async fn fetch_iframely_and_pictrs_data(
       // The full urls are necessary for federation
       let pictrs_thumbnail = if let Some(pictrs_hash) = pictrs_hash {
         Some(format!(
-          "{}://{}/pictrs/image/{}",
-          get_apub_protocol_string(),
-          Settings::get().hostname,
+          "{}/pictrs/image/{}",
+          Settings::get().get_protocol_and_hostname(),
           pictrs_hash
         ))
       } else {

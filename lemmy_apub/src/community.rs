@@ -44,8 +44,8 @@ use lemmy_db::{
 };
 use lemmy_structs::blocking;
 use lemmy_utils::{
-  apub::get_apub_protocol_string,
   location_info,
+  settings::Settings,
   utils::{check_slurs, check_slurs_opt, convert_datetime},
   LemmyError,
 };
@@ -299,7 +299,7 @@ impl ActorType for Community {
         };
         Ok(Url::parse(&format!(
           "{}://{}{}/inbox",
-          get_apub_protocol_string(),
+          Settings::get().get_protocol_string(),
           domain,
           port,
         ))?)

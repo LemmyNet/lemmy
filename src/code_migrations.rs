@@ -13,7 +13,7 @@ use lemmy_db::{
   Crud,
 };
 use lemmy_utils::{
-  apub::{generate_actor_keypair, get_apub_protocol_string, make_apub_endpoint, EndpointType},
+  apub::{generate_actor_keypair, make_apub_endpoint, EndpointType},
   settings::Settings,
   LemmyError,
 };
@@ -206,9 +206,8 @@ fn post_thumbnail_url_updates_2020_07_27(conn: &PgConnection) -> Result<(), Lemm
   info!("Running post_thumbnail_url_updates_2020_07_27");
 
   let domain_prefix = format!(
-    "{}://{}/pictrs/image/",
-    get_apub_protocol_string(),
-    Settings::get().hostname
+    "{}/pictrs/image/",
+    Settings::get().get_protocol_and_hostname(),
   );
 
   let incorrect_thumbnails = post.filter(thumbnail_url.not_like("http%"));

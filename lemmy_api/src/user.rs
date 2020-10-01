@@ -906,7 +906,7 @@ impl Perform for PasswordReset {
     // TODO no i18n support here.
     let user_email = &user.email.expect("email");
     let subject = &format!("Password reset for {}", user.name);
-    let hostname = &format!("https://{}", Settings::get().hostname); //TODO add https for now.
+    let hostname = &Settings::get().get_protocol_and_hostname();
     let html = &format!("<h1>Password Reset Request for {}</h1><br><a href={}/password_change/{}>Click here to reset your password</a>", user.name, hostname, &token);
     match send_email(subject, user_email, &user.name, html) {
       Ok(_o) => _o,
@@ -970,8 +970,6 @@ impl Perform for CreatePrivateMessage {
     let data: &CreatePrivateMessage = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
-    let hostname = &format!("https://{}", Settings::get().hostname);
-
     let content_slurs_removed = remove_slurs(&data.content.to_owned());
 
     let private_message_form = PrivateMessageForm {
@@ -1027,7 +1025,9 @@ impl Perform for CreatePrivateMessage {
         );
         let html = &format!(
           "<h1>Private Message</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
-          user.name, &content_slurs_removed, hostname
+          user.name,
+          &content_slurs_removed,
+          Settings::get().get_protocol_and_hostname()
         );
         match send_email(subject, &email, &recipient_user.name, html) {
           Ok(_o) => _o,

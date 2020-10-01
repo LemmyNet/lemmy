@@ -1566,9 +1566,9 @@ dependencies = [
 
 [[package]]
 name = "http-signature-normalization"
-version = "0.5.2"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee917294413cec0db93a8af6ecfa63730c1d2bb604bd1da69ba75b342fb23f21"
+checksum = "cb3a020c37b48d2258910fae9c9b4f8455651f56abfdde1ae68a9397b2765c31"
 dependencies = [
  "chrono",
  "thiserror",
@@ -1590,6 +1590,24 @@ dependencies = [
  "log",
  "sha2",
  "thiserror",
+]
+
+[[package]]
+name = "http-signature-normalization-reqwest"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7bc26a68f8963e26453c7fdea9e016e2e31a48ca018a9223f96afe2cca1a4bd1"
+dependencies = [
+ "base64 0.12.3",
+ "bytes",
+ "chrono",
+ "futures",
+ "http",
+ "http-signature-normalization",
+ "reqwest",
+ "sha2",
+ "thiserror",
+ "tokio",
 ]
 
 [[package]]
@@ -1866,6 +1884,7 @@ dependencies = [
  "futures",
  "http",
  "http-signature-normalization-actix",
+ "http-signature-normalization-reqwest",
  "itertools",
  "lazy_static",
  "lemmy_db",
@@ -1896,6 +1915,7 @@ dependencies = [
  "chrono",
  "diesel",
  "lazy_static",
+ "lemmy_utils",
  "log",
  "regex",
  "serde 1.0.116",

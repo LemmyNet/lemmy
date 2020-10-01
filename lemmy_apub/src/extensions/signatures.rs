@@ -1,12 +1,11 @@
 use crate::ActorType;
 use activitystreams::unparsed::UnparsedMutExt;
 use activitystreams_ext::UnparsedExtension;
-use actix_web::{client::ClientRequest, HttpRequest};
+use actix_web::HttpRequest;
 use anyhow::{anyhow, Context};
-use http_signature_normalization_actix::{
-  digest::{DigestClient, SignExt},
-  Config,
-};
+use http::{header::HeaderName, HeaderMap, HeaderValue};
+use http_signature_normalization_actix::Config as ConfigActix;
+use http_signature_normalization_reqwest::prelude::{Config, SignExt};
 use lemmy_utils::{location_info, LemmyError};
 use log::debug;
 use openssl::{
@@ -14,24 +13,38 @@ use openssl::{
   pkey::PKey,
   sign::{Signer, Verifier},
 };
+use reqwest::{Client, Response};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::{collections::BTreeMap, str::FromStr};
 use url::Url;
 
 lazy_static! {
+  static ref CONFIG2: ConfigActix = ConfigActix::new();
   static ref HTTP_SIG_CONFIG: Config = Config::new();
 }
 
 /// Signs request headers with the given keypair.
-pub async fn sign(
-  request: ClientRequest,
+pub async fn sign_and_send(
+  client: &Client,
+  headers: BTreeMap<String, String>,
+  url: &Url,
   activity: String,
   actor_id: &Url,
   private_key: String,
-) -> Result<DigestClient<String>, LemmyError> {
+) -> Result<Response, LemmyError> {
   let signing_key_id = format!("{}#main-key", actor_id);
 
-  let digest_client = request
+  let mut header_map = HeaderMap::new();
+  for h in headers {
+    header_map.insert(
+      HeaderName::from_str(h.0.as_str())?,
+      HeaderValue::from_str(h.1.as_str())?,
+    );
+  }
+  let response = client
+    .post(&url.to_string())
+    .headers(header_map)
     .signature_with_digest(
       HTTP_SIG_CONFIG.clone(),
       signing_key_id,
@@ -47,12 +60,12 @@ pub async fn sign(
     )
     .await?;
 
-  Ok(digest_client)
+  Ok(response)
 }
 
 pub fn verify(request: &HttpRequest, actor: &dyn ActorType) -> Result<(), LemmyError> {
   let public_key = actor.public_key().context(location_info!())?;
-  let verified = HTTP_SIG_CONFIG
+  let verified = CONFIG2
     .begin_verify(
       request.method(),
       request.uri().path_and_query(),
