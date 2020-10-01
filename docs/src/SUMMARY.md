@@ -17,6 +17,7 @@
   - [Tests](contributing_tests.md)
   - [Federation Development](contributing_federation_development.md)
   - [Websocket/HTTP API](contributing_websocket_http_api.md)
+  - [Federation Overview](contributing_federation_overview.md)
   - [ActivityPub API Outline](contributing_apub_api_outline.md)
   - [Theming Guide](contributing_theming.md)
 - [Lemmy Council](lemmy_council.md)
