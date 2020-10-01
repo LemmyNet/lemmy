@@ -7,6 +7,7 @@ import {
   checkFollowedCommunities,
   unfollowRemotes,
   delay,
+  longDelay,
 } from './shared';
 
 beforeAll(async () => {
@@ -24,10 +25,11 @@ test('Follow federated community', async () => {
   // Make sure the follow response went through
   expect(follow.community.local).toBe(false);
   expect(follow.community.name).toBe('main');
-  await delay();
+  await longDelay();
 
   // Check it from local
   let followCheck = await checkFollowedCommunities(alpha);
+  await delay();
   let remoteCommunityId = followCheck.communities.filter(
     c => c.community_local == false
   )[0].community_id;

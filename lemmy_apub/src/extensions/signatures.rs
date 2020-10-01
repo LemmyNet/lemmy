@@ -25,7 +25,7 @@ lazy_static! {
 }
 
 /// Signs request headers with the given keypair.
-pub async fn sign(
+pub async fn sign_and_send(
   client: &Client,
   headers: BTreeMap<String, String>,
   url: &Url,
