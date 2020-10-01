@@ -1,4 +1,4 @@
-jest.setTimeout(120000);
+jest.setTimeout(180000);
 import {
   alpha,
   beta,
@@ -21,6 +21,7 @@ import {
   registerUser,
   API,
   delay,
+  longDelay,
 } from './shared';
 import {
   Comment,
@@ -35,7 +36,7 @@ beforeAll(async () => {
   await followBeta(alpha);
   await followBeta(gamma);
   let search = await searchForBetaCommunity(alpha);
-  await delay(10000);
+  await longDelay();
   postRes = await createPost(
     alpha,
     search.communities.filter(c => c.local == false)[0].id
@@ -66,7 +67,7 @@ test('Create a comment', async () => {
   expect(commentRes.comment.community_local).toBe(false);
   expect(commentRes.comment.creator_local).toBe(true);
   expect(commentRes.comment.score).toBe(1);
-  await delay();
+  await longDelay();
 
   // Make sure that comment is liked on beta
   let searchBeta = await searchComment(beta, commentRes.comment);
@@ -147,7 +148,7 @@ test('Remove a comment from admin and community on the same instance', async () 
   // The beta admin removes it (the community lives on beta)
   let removeCommentRes = await removeComment(beta, true, betaCommentId);
   expect(removeCommentRes.comment.removed).toBe(true);
-  await delay();
+  await longDelay();
 
   // Make sure that comment is removed on alpha (it gets pushed since an admin from beta removed it)
   let refetchedPost = await getPost(alpha, postRes.post.id);
@@ -155,7 +156,7 @@ test('Remove a comment from admin and community on the same instance', async () 
 
   let unremoveCommentRes = await removeComment(beta, false, betaCommentId);
   expect(unremoveCommentRes.comment.removed).toBe(false);
-  await delay();
+  await longDelay();
 
   // Make sure that comment is unremoved on beta
   let refetchedPost2 = await getPost(alpha, postRes.post.id);
@@ -210,7 +211,7 @@ test('Unlike a comment', async () => {
 
 test('Federated comment like', async () => {
   let commentRes = await createComment(alpha, postRes.post.id);
-  await delay();
+  await longDelay();
 
   // Find the comment on beta
   let searchBeta = await searchComment(beta, commentRes.comment);
@@ -218,7 +219,7 @@ test('Federated comment like', async () => {
 
   let like = await likeComment(beta, 1, betaComment);
   expect(like.comment.score).toBe(2);
-  await delay();
+  await longDelay();
 
   // Get the post from alpha, check the likes
   let post = await getPost(alpha, postRes.post.id);
@@ -241,7 +242,7 @@ test('Reply to a comment', async () => {
   expect(replyRes.comment.creator_local).toBe(true);
   expect(replyRes.comment.parent_id).toBe(betaComment.id);
   expect(replyRes.comment.score).toBe(1);
-  await delay();
+  await longDelay();
 
   // Make sure that comment is seen on alpha
   // TODO not sure why, but a searchComment back to alpha, for the ap_id of betas
@@ -310,7 +311,7 @@ test('A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   expect(commentRes.comment.community_local).toBe(false);
   expect(commentRes.comment.creator_local).toBe(true);
   expect(commentRes.comment.score).toBe(1);
-  await delay();
+  await longDelay();
 
   // Make sure alpha sees it
   let alphaPost2 = await getPost(alpha, alphaPost.post.id);
@@ -319,6 +320,7 @@ test('A and G subscribe to B (center) A posts, G mentions B, it gets announced t
   expect(alphaPost2.comments[0].creator_local).toBe(false);
   expect(alphaPost2.comments[0].score).toBe(1);
   assertCommentFederation(alphaPost2.comments[0], commentRes.comment);
+  await delay();
 
   // Make sure beta has mentions
   let mentionsRes = await getMentions(beta);
@@ -381,7 +383,7 @@ test('Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
   // Get the post from alpha
   let search = await searchPost(alpha, postRes.post);
   let alphaPostB = search.posts[0];
-  await delay();
+  await longDelay();
 
   let alphaPost = await getPost(alpha, alphaPostB.id);
   expect(alphaPost.post.name).toBeDefined();

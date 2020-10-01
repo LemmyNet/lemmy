@@ -554,10 +554,15 @@ export async function followBeta(api: API): Promise<CommunityResponse> {
   }
 }
 
-export const delay = (millis: number = 1500) =>
-  new Promise((resolve, _reject) => {
+export function delay(millis: number = 500) {
+  return new Promise((resolve, _reject) => {
     setTimeout(_ => resolve(), millis);
   });
+}
+
+export function longDelay() {
+  return delay(10000);
+}
 
 export function wrapper(form: any): string {
   return JSON.stringify(form);

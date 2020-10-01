@@ -10,6 +10,7 @@ import {
   deletePrivateMessage,
   unfollowRemotes,
   delay,
+  longDelay,
 } from './shared';
 
 let recipient_id: number;
@@ -17,7 +18,7 @@ let recipient_id: number;
 beforeAll(async () => {
   await setupLogins();
   let follow = await followBeta(alpha);
-  await delay(10000);
+  await longDelay();
   recipient_id = follow.community.creator_id;
 });
 
@@ -46,7 +47,7 @@ test('Update a private message', async () => {
   let pmRes = await createPrivateMessage(alpha, recipient_id);
   let pmUpdated = await updatePrivateMessage(alpha, pmRes.message.id);
   expect(pmUpdated.message.content).toBe(updatedContent);
-  await delay();
+  await longDelay();
 
   let betaPms = await listPrivateMessages(beta);
   expect(betaPms.messages[0].content).toBe(updatedContent);
@@ -74,7 +75,7 @@ test('Delete a private message', async () => {
     pmRes.message.id
   );
   expect(undeletedPmRes.message.deleted).toBe(false);
-  await delay();
+  await longDelay();
 
   let betaPms3 = await listPrivateMessages(beta);
   expect(betaPms3.messages.length).toBe(betaPms1.messages.length);

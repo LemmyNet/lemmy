@@ -20,6 +20,7 @@ import {
   getPost,
   unfollowRemotes,
   delay,
+  longDelay,
 } from './shared';
 import {
   Post,
@@ -31,7 +32,7 @@ beforeAll(async () => {
   await followBeta(gamma);
   await followBeta(delta);
   await followBeta(epsilon);
-  await delay(10000);
+  await longDelay();
 });
 
 afterAll(async () => {
@@ -67,7 +68,7 @@ test('Create a post', async () => {
   expect(postRes.post.community_local).toBe(false);
   expect(postRes.post.creator_local).toBe(true);
   expect(postRes.post.score).toBe(1);
-  await delay();
+  await longDelay();
 
   // Make sure that post is liked on beta
   let searchBeta = await searchPost(beta, postRes.post);
@@ -104,7 +105,7 @@ test('Unlike a post', async () => {
   // Try to unlike it again, make sure it stays at 0
   let unlike2 = await likePost(alpha, 0, postRes.post);
   expect(unlike2.post.score).toBe(0);
-  await delay();
+  await longDelay();
 
   // Make sure that post is unliked on beta
   let searchBeta = await searchPost(beta, postRes.post);
@@ -284,31 +285,32 @@ test('Remove a post from admin and community on different instance', async () =>
 test('Remove a post from admin and community on same instance', async () => {
   let search = await searchForBetaCommunity(alpha);
   let postRes = await createPost(alpha, search.communities[0].id);
-  await delay();
+  await longDelay();
 
   // Get the id for beta
   let searchBeta = await searchPost(beta, postRes.post);
   let betaPost = searchBeta.posts[0];
-  await delay();
+  await longDelay();
 
   // The beta admin removes it (the community lives on beta)
   let removePostRes = await removePost(beta, true, betaPost);
   expect(removePostRes.post.removed).toBe(true);
-  await delay();
+  await longDelay();
 
   // Make sure lemmy alpha sees post is removed
   let alphaPost = await getPost(alpha, postRes.post.id);
   expect(alphaPost.post.removed).toBe(true);
   assertPostFederation(alphaPost.post, removePostRes.post);
-  await delay();
+  await longDelay();
 
   // Undelete
   let undeletedPost = await removePost(beta, false, betaPost);
   expect(undeletedPost.post.removed).toBe(false);
-  await delay();
+  await longDelay();
 
   // Make sure lemmy alpha sees post is undeleted
   let alphaPost2 = await getPost(alpha, postRes.post.id);
+  await delay();
   expect(alphaPost2.post.removed).toBe(false);
   assertPostFederation(alphaPost2.post, undeletedPost.post);
 });
