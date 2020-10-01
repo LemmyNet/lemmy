@@ -1,4 +1,4 @@
-use crate::{check_is_apub_id_valid, extensions::signatures::sign, ActorType};
+use crate::{check_is_apub_id_valid, extensions::signatures::sign_and_send, ActorType};
 use activitystreams::{
   base::{Extends, ExtendsExt},
   object::AsObject,
@@ -77,7 +77,7 @@ impl ActixJob for SendActivityTask {
       for to_url in &self.to {
         let mut headers = BTreeMap::<String, String>::new();
         headers.insert("Content-Type".into(), "application/json".into());
-        let result = sign(
+        let result = sign_and_send(
           &state.client,
           headers,
           to_url,
