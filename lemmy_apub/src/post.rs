@@ -31,6 +31,7 @@ use activitystreams::{
 use activitystreams_ext::Ext1;
 use actix_web::{body::Body, web, HttpResponse};
 use anyhow::Context;
+use diesel::result::Error::NotFound;
 use lemmy_db::{
   community::Community,
   post::{Post, PostForm},
@@ -61,6 +62,9 @@ pub async fn get_apub_post(
 ) -> Result<HttpResponse<Body>, LemmyError> {
   let id = info.post_id.parse::<i32>()?;
   let post = blocking(context.pool(), move |conn| Post::read(conn, id)).await??;
+  if !post.local {
+    return Err(NotFound.into());
+  }
 
   if !post.deleted {
     Ok(create_apub_response(&post.to_apub(context.pool()).await?))

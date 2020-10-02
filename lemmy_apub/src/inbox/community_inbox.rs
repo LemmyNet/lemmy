@@ -11,7 +11,7 @@ use activitystreams::{
   prelude::*,
 };
 use actix_web::{web, HttpRequest, HttpResponse};
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use lemmy_db::{
   community::{Community, CommunityFollower, CommunityFollowerForm},
   user::User_,
@@ -48,15 +48,6 @@ pub async fn community_inbox(
   })
   .await??;
 
-  if !community.local {
-    return Err(
-      anyhow!(
-        "Received activity is addressed to remote community {}",
-        &community.actor_id
-      )
-      .into(),
-    );
-  }
   debug!(
     "Community {} received activity {:?}",
     &community.name, &activity

@@ -143,11 +143,17 @@ impl User_ {
   }
 
   pub fn find_by_username(conn: &PgConnection, username: &str) -> Result<User_, Error> {
-    user_.filter(name.ilike(username)).first::<User_>(conn)
+    user_
+      .filter(local)
+      .filter(name.ilike(username))
+      .first::<User_>(conn)
   }
 
   pub fn find_by_email(conn: &PgConnection, from_email: &str) -> Result<User_, Error> {
-    user_.filter(email.eq(from_email)).first::<User_>(conn)
+    user_
+      .filter(local)
+      .filter(email.eq(from_email))
+      .first::<User_>(conn)
   }
 
   pub fn get_profile_url(&self, hostname: &str) -> String {
