@@ -102,8 +102,9 @@ fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
 
   let mut allowed_instances = Settings::get().get_allowed_instances();
   let blocked_instances = Settings::get().get_blocked_instances();
-
-  if !allowed_instances.is_empty() {
+  if allowed_instances.is_empty() && blocked_instances.is_empty() {
+    Ok(())
+  } else if !allowed_instances.is_empty() {
     // need to allow this explicitly because apub activities might contain objects from our local
     // instance. split is needed to remove the port in our federation test setup.
     allowed_instances.push(local_instance);

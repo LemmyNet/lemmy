@@ -62,7 +62,11 @@ pub fn do_insert_activity<T>(
 where
   T: Serialize + Debug,
 {
-  debug!("inserting activity for user {}, data {:?}", user_id, &data);
+  debug!(
+    "inserting activity for user {}, data {:?}",
+    user_id,
+    serde_json::to_string_pretty(&data).unwrap()
+  );
   let activity_form = ActivityForm {
     user_id,
     data: serde_json::to_value(&data)?,
