@@ -60,7 +60,7 @@ pub async fn shared_inbox(
 ) -> Result<HttpResponse, LemmyError> {
   let activity = input.into_inner();
 
-  let json = serde_json::to_string(&activity)?;
+  let json = serde_json::to_string_pretty(&activity)?;
   debug!("Shared inbox received activity: {}", json);
 
   // TODO: if we already received an activity with identical ID, then ignore this (same in other inboxes)

@@ -259,6 +259,7 @@ impl ActorType for Community {
     .await??;
     let inboxes = inboxes
       .into_iter()
+      .filter(|i| !i.user_local)
       .map(|u| -> Result<Url, LemmyError> {
         let url = Url::parse(&u.user_actor_id)?;
         let domain = url.domain().context(location_info!())?;
