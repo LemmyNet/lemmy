@@ -1,4 +1,3 @@
-use log::debug;
 use crate::{
   activity_queue::{send_activity_single_dest, send_to_community_followers},
   check_actor_domain,
@@ -51,6 +50,7 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
+use log::debug;
 use serde::Deserialize;
 use url::Url;
 
