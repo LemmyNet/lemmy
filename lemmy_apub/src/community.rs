@@ -1,3 +1,4 @@
+use log::debug;
 use crate::{
   activity_queue::{send_activity_single_dest, send_to_community_followers},
   check_actor_domain,
@@ -280,6 +281,10 @@ impl ActorType for Community {
       .filter(|inbox| check_is_apub_id_valid(inbox).is_ok())
       .unique()
       .collect();
+
+    // TODO remove this logging line
+    let inboxes_json = serde_json::to_string_pretty(&inboxes)?;
+    debug!("Community follower inboxes: {}", inboxes_json);
 
     Ok(inboxes)
   }

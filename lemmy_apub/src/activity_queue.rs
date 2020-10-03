@@ -174,7 +174,7 @@ where
 
   let activity = activity.into_any_base()?;
   let serialised_activity = serde_json::to_string(&activity)?;
-  insert_activity(actor.user_id(), serialised_activity.clone(), true, pool).await?;
+  insert_activity(actor.user_id(), activity.clone(), true, pool).await?;
 
   // TODO: it would make sense to create a separate task for each destination server
   let message = SendActivityTask {
