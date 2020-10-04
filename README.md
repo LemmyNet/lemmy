@@ -152,7 +152,7 @@ If you want to help with translating, take a look at [Weblate](https://weblate.y
 
 - [GitHub](https://github.com/LemmyNet/lemmy)
 - [Gitea](https://yerbamate.dev/LemmyNet/lemmy)
-- [GitLab](https://gitlab.com/dessalines/lemmy)
+- [Codeberg](https://codeberg.org/LemmyNet/lemmy)
 
 ## Credits
 
