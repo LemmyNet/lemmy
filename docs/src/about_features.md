@@ -2,7 +2,7 @@
 
 - Open source, [AGPL License](/LICENSE).
 - Self hostable, easy to deploy.
-  - Comes with [Docker](#docker), [Ansible](#ansible), [Kubernetes](#kubernetes).
+  - Comes with [Docker](#docker) and [Ansible](#ansible).
 - Clean, mobile-friendly interface.
   - Only a minimum of a username and password is required to sign up!
   - User avatar support.
