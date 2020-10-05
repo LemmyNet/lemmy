@@ -88,7 +88,7 @@ fn create_user(conn: &PgConnection, name: &str) -> User_ {
     updated: None,
     published: None,
     show_nsfw: false,
-    theme: "darkly".into(),
+    theme: "browser".into(),
     default_sort_type: SortType::Hot as i16,
     default_listing_type: ListingType::Subscribed as i16,
     lang: "browser".into(),
