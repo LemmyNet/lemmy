@@ -87,6 +87,7 @@ impl Community {
   pub fn read_from_name(conn: &PgConnection, community_name: &str) -> Result<Self, Error> {
     use crate::schema::community::dsl::*;
     community
+      .filter(local)
       .filter(name.eq(community_name))
       .first::<Self>(conn)
   }
