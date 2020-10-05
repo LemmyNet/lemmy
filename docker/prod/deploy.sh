@@ -1,10 +1,10 @@
 #!/bin/sh
 set -e
-git checkout main
+#git checkout main
 
 # Creating the new tag
 new_tag="$1"
-third_semver=$(echo $new_tag | cut -d "." -f 3)
+#third_semver=$(echo $new_tag | cut -d "." -f 3)
 
 # Setting the version on the front end
 cd ../../
@@ -17,12 +17,16 @@ git add "ansible/VERSION"
 
 cd docker/prod || exit
 
-# Changing the docker-compose prod
+# Changing various references to the Lemmy version
+sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" ../dev/docker-compose.yml
+sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" ../federation/docker-compose.yml
 sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../prod/docker-compose.yml
-sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../../ansible/templates/docker-compose.yml
+sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" ../prod/docker-compose.yml
 sed -i "s/dessalines\/lemmy:v.*/dessalines\/lemmy:$new_tag/" ../travis/docker_push.sh
+
+git add ../dev/docker-compose.yml
+git add ../federation/docker-compose.yml
 git add ../prod/docker-compose.yml
-git add ../../ansible/templates/docker-compose.yml
 git add ../travis/docker_push.sh
 
 # The commit
