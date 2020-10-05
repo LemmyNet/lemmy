@@ -8,7 +8,6 @@
 - [Administration](administration.md)
   - [Install with Docker](administration_install_docker.md)
   - [Install with Ansible](administration_install_ansible.md)
-  - [Install with Kubernetes](administration_install_kubernetes.md)
   - [Configuration](administration_configuration.md)
   - [Backup and Restore](administration_backup_and_restore.md)
 - [Contributing](contributing.md)
