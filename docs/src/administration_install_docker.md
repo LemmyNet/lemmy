@@ -25,15 +25,21 @@ Open up your `docker-compose.yml`, and make sure `LEMMY_EXTERNAL_HOST` for `lemm
 - LEMMY_HTTPS=false
 ```
 
+If you'd like a different database password, you should also change it in the `docker-compose.yml` **before** your first run.
+
 After this, have a look at the [config file](administration_configuration.md) named `lemmy.hjson`, and adjust it, in particular the hostname, and possibly the db password. Then run:
 
 `docker-compose up -d`
+
+You can access the lemmy-ui at `http://localhost:1235`
 
 To make Lemmy available outside the server, you need to setup a reverse proxy, like Nginx. [A sample nginx config](https://raw.githubusercontent.com/LemmyNet/lemmy/main/ansible/templates/nginx.conf), could be setup with:
 
 ```bash
 wget https://raw.githubusercontent.com/LemmyNet/lemmy/main/ansible/templates/nginx.conf
 # Replace the {{ vars }}
+# The default lemmy_port is 8536
+# The default lemmy_ui_port is 1235
 sudo mv nginx.conf /etc/nginx/sites-enabled/lemmy.conf
 ```
 
