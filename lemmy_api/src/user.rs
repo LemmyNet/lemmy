@@ -117,6 +117,11 @@ impl Perform for Register {
       }
     }
 
+    // Password length check
+    if data.password.len() > 60 {
+      return Err(APIError::err("invalid_password").into());
+    }
+
     // Make sure passwords match
     if data.password != data.password_verify {
       return Err(APIError::err("passwords_dont_match").into());
