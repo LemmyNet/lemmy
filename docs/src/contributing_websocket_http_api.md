@@ -921,6 +921,7 @@ Search types are `All, Comments, Posts, Communities, Users, Url`
     q: String,
     type_: String,
     community_id: Option<i32>,
+    community_name: Option<String>,
     sort: String,
     page: Option<i64>,
     limit: Option<i64>,
