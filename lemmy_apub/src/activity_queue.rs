@@ -47,6 +47,7 @@ where
       creator,
       vec![to],
       context.pool(),
+      true,
     )
     .await?;
   }
@@ -85,6 +86,7 @@ where
     community,
     to,
     context.pool(),
+    true,
   )
   .await?;
 
@@ -114,6 +116,7 @@ where
       creator,
       vec![inbox],
       context.pool(),
+      true,
     )
     .await?;
   }
@@ -143,6 +146,7 @@ where
     creator,
     mentions,
     context.pool(),
+    false, // Don't create a new DB row
   )
   .await?;
   Ok(())
@@ -158,6 +162,7 @@ async fn send_activity_internal<T, Kind>(
   actor: &dyn ActorType,
   to: Vec<Url>,
   pool: &DbPool,
+  insert_into_db: bool,
 ) -> Result<(), LemmyError>
 where
   T: AsObject<Kind> + Extends<Kind>,
@@ -174,7 +179,12 @@ where
 
   let activity = activity.into_any_base()?;
   let serialised_activity = serde_json::to_string(&activity)?;
-  insert_activity(actor.user_id(), activity.clone(), true, pool).await?;
+
+  // This is necessary because send_comment and send_comment_mentions
+  // might send the same ap_id
+  if insert_into_db {
+    insert_activity(actor.user_id(), activity.clone(), true, pool).await?;
+  }
 
   // TODO: it would make sense to create a separate task for each destination server
   let message = SendActivityTask {
