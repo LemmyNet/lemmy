@@ -164,7 +164,7 @@ where
   Kind: Serialize,
   <T as Extends<Kind>>::Error: From<serde_json::Error> + Send + Sync + 'static,
 {
-  if !Settings::get().federation.enabled {
+  if !Settings::get().federation.enabled || to.is_empty() {
     return Ok(());
   }
 

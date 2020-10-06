@@ -506,7 +506,10 @@ async fn collect_non_local_mentions_and_addresses(
     }
   }
 
-  let mut inboxes = vec![community.get_shared_inbox_url()?];
+  let mut inboxes: Vec<Url> = vec![];
+  if !community.local {
+    inboxes.push(community.get_shared_inbox_url()?);
+  }
   inboxes.extend(mention_inboxes);
   inboxes = inboxes.into_iter().unique().collect();
 

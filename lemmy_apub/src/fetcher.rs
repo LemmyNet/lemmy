@@ -55,9 +55,6 @@ where
 
   let timeout = Duration::from_secs(60);
 
-  // speed up tests
-  // before: 305s
-  // after: 240s
   let json = retry(|| {
     client
       .get(url.as_str())
