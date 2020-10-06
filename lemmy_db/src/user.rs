@@ -161,12 +161,15 @@ impl User_ {
   }
 
   pub fn upsert(conn: &PgConnection, user_form: &UserForm) -> Result<User_, Error> {
-    insert_into(user_)
-      .values(user_form)
-      .on_conflict(actor_id)
-      .do_update()
-      .set(user_form)
-      .get_result::<Self>(conn)
+    let existing = Self::read_from_actor_id(
+      conn,
+      user_form.actor_id.as_ref().unwrap_or(&"none".to_string()),
+    );
+    match existing {
+      Err(NotFound {}) => Ok(Self::create(conn, &user_form)?),
+      Ok(p) => Ok(Self::update(conn, p.id, &user_form)?),
+      Err(e) => Err(e),
+    }
   }
 }
 

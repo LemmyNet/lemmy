@@ -166,13 +166,18 @@ impl Community {
   }
 
   pub fn upsert(conn: &PgConnection, community_form: &CommunityForm) -> Result<Community, Error> {
-    use crate::schema::community::dsl::*;
-    insert_into(community)
-      .values(community_form)
-      .on_conflict(actor_id)
-      .do_update()
-      .set(community_form)
-      .get_result::<Self>(conn)
+    let existing = Self::read_from_actor_id(
+      conn,
+      community_form
+        .actor_id
+        .as_ref()
+        .unwrap_or(&"none".to_string()),
+    );
+    match existing {
+      Err(NotFound {}) => Ok(Self::create(conn, &community_form)?),
+      Ok(p) => Ok(Self::update(conn, p.id, &community_form)?),
+      Err(e) => Err(e),
+    }
   }
 }
 

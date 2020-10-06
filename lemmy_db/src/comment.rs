@@ -170,13 +170,15 @@ impl Comment {
   }
 
   pub fn upsert(conn: &PgConnection, comment_form: &CommentForm) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
-    insert_into(comment)
-      .values(comment_form)
-      .on_conflict(ap_id)
-      .do_update()
-      .set(comment_form)
-      .get_result::<Self>(conn)
+    let existing = Self::read_from_apub_id(
+      conn,
+      comment_form.ap_id.as_ref().unwrap_or(&"none".to_string()),
+    );
+    match existing {
+      Err(NotFound {}) => Ok(Self::create(conn, &comment_form)?),
+      Ok(p) => Ok(Self::update(conn, p.id, &comment_form)?),
+      Err(e) => Err(e),
+    }
   }
 }
 

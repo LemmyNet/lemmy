@@ -179,13 +179,15 @@ impl Post {
   }
 
   pub fn upsert(conn: &PgConnection, post_form: &PostForm) -> Result<Post, Error> {
-    use crate::schema::post::dsl::*;
-    insert_into(post)
-      .values(post_form)
-      .on_conflict(ap_id)
-      .do_update()
-      .set(post_form)
-      .get_result::<Self>(conn)
+    let existing = Self::read_from_apub_id(
+      conn,
+      post_form.ap_id.as_ref().unwrap_or(&"none".to_string()),
+    );
+    match existing {
+      Err(NotFound {}) => Ok(Self::create(conn, &post_form)?),
+      Ok(p) => Ok(Self::update(conn, p.id, &post_form)?),
+      Err(e) => Err(e),
+    }
   }
 }
 
