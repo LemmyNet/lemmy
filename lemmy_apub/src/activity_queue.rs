@@ -203,15 +203,15 @@ where
     insert_activity(actor.user_id(), activity.clone(), true, pool).await?;
   }
 
-  // TODO: it would make sense to create a separate task for each destination server
-  let message = SendActivityTask {
-    activity: serialised_activity,
-    to,
-    actor_id: actor.actor_id()?,
-    private_key: actor.private_key().context(location_info!())?,
-  };
-
-  activity_sender.queue::<SendActivityTask>(message)?;
+  for t in to {
+    let message = SendActivityTask {
+      activity: serialised_activity.to_owned(),
+      to: t,
+      actor_id: actor.actor_id()?,
+      private_key: actor.private_key().context(location_info!())?,
+    };
+    activity_sender.queue::<SendActivityTask>(message)?;
+  }
 
   Ok(())
 }
@@ -219,7 +219,7 @@ where
 #[derive(Clone, Debug, Deserialize, Serialize)]
 struct SendActivityTask {
   activity: String,
-  to: Vec<Url>,
+  to: Url,
   actor_id: Url,
   private_key: String,
 }
@@ -234,27 +234,25 @@ impl ActixJob for SendActivityTask {
 
   fn run(self, state: Self::State) -> Self::Future {
     Box::pin(async move {
-      for to_url in &self.to {
-        let mut headers = BTreeMap::<String, String>::new();
-        headers.insert("Content-Type".into(), "application/json".into());
-        let result = sign_and_send(
-          &state.client,
-          headers,
-          to_url,
-          self.activity.clone(),
-          &self.actor_id,
-          self.private_key.to_owned(),
-        )
-        .await;
+      let mut headers = BTreeMap::<String, String>::new();
+      headers.insert("Content-Type".into(), "application/json".into());
+      let result = sign_and_send(
+        &state.client,
+        headers,
+        &self.to,
+        self.activity.clone(),
+        &self.actor_id,
+        self.private_key.to_owned(),
+      )
+      .await;
 
-        if let Err(e) = result {
-          warn!("{}", e);
-          return Err(anyhow!(
-            "Failed to send activity {} to {}",
-            &self.activity,
-            to_url
-          ));
-        }
+      if let Err(e) = result {
+        warn!("{}", e);
+        return Err(anyhow!(
+          "Failed to send activity {} to {}",
+          &self.activity,
+          self.to
+        ));
       }
       Ok(())
     })
