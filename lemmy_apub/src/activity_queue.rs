@@ -6,7 +6,7 @@ use crate::{
   ActorType,
 };
 use activitystreams::{
-  base::{Extends, ExtendsExt},
+  base::{BaseExt, Extends, ExtendsExt},
   object::AsObject,
 };
 use anyhow::{anyhow, Context, Error};
@@ -23,9 +23,9 @@ use itertools::Itertools;
 use lemmy_db::{community::Community, user::User_, DbPool};
 use lemmy_utils::{location_info, settings::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
-use log::warn;
+use log::{debug, warn};
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
+use serde::{export::fmt::Debug, Deserialize, Serialize};
 use std::{collections::BTreeMap, future::Future, pin::Pin};
 use url::Url;
 
@@ -36,11 +36,12 @@ pub async fn send_activity_single_dest<T, Kind>(
   context: &LemmyContext,
 ) -> Result<(), LemmyError>
 where
-  T: AsObject<Kind> + Extends<Kind>,
+  T: AsObject<Kind> + Extends<Kind> + Debug + BaseExt<Kind>,
   Kind: Serialize,
   <T as Extends<Kind>>::Error: From<serde_json::Error> + Send + Sync + 'static,
 {
   if check_is_apub_id_valid(&to).is_ok() {
+    debug!("Sending activity {:?} to {}", &activity.id_unchecked(), &to);
     send_activity_internal(
       context.activity_queue(),
       activity,
@@ -62,7 +63,7 @@ pub async fn send_to_community_followers<T, Kind>(
   sender_shared_inbox: Option<Url>,
 ) -> Result<(), LemmyError>
 where
-  T: AsObject<Kind> + Extends<Kind>,
+  T: AsObject<Kind> + Extends<Kind> + Debug + BaseExt<Kind>,
   Kind: Serialize,
   <T as Extends<Kind>>::Error: From<serde_json::Error> + Send + Sync + 'static,
 {
@@ -79,6 +80,11 @@ where
     .unique()
     .map(|inbox| inbox.to_owned())
     .collect();
+  debug!(
+    "Sending activity {:?} to followers of {}",
+    &activity.id_unchecked(),
+    &community.actor_id
+  );
 
   send_activity_internal(
     context.activity_queue(),
@@ -100,7 +106,7 @@ pub async fn send_to_community<T, Kind>(
   context: &LemmyContext,
 ) -> Result<(), LemmyError>
 where
-  T: AsObject<Kind> + Extends<Kind>,
+  T: AsObject<Kind> + Extends<Kind> + Debug + BaseExt<Kind>,
   Kind: Serialize,
   <T as Extends<Kind>>::Error: From<serde_json::Error> + Send + Sync + 'static,
 {
@@ -110,6 +116,11 @@ where
   } else {
     let inbox = community.get_shared_inbox_url()?;
     check_is_apub_id_valid(&inbox)?;
+    debug!(
+      "Sending activity {:?} to community {}",
+      &activity.id_unchecked(),
+      &community.actor_id
+    );
     send_activity_internal(
       context.activity_queue(),
       activity,
@@ -131,10 +142,16 @@ pub async fn send_comment_mentions<T, Kind>(
   context: &LemmyContext,
 ) -> Result<(), LemmyError>
 where
-  T: AsObject<Kind> + Extends<Kind>,
+  T: AsObject<Kind> + Extends<Kind> + Debug + BaseExt<Kind>,
   Kind: Serialize,
   <T as Extends<Kind>>::Error: From<serde_json::Error> + Send + Sync + 'static,
 {
+  dbg!(&mentions, &activity.id_unchecked());
+  debug!(
+    "Sending mentions activity {:?} to {:?}",
+    &activity.id_unchecked(),
+    &mentions
+  );
   let mentions = mentions
     .iter()
     .filter(|inbox| check_is_apub_id_valid(inbox).is_ok())
@@ -165,7 +182,7 @@ async fn send_activity_internal<T, Kind>(
   insert_into_db: bool,
 ) -> Result<(), LemmyError>
 where
-  T: AsObject<Kind> + Extends<Kind>,
+  T: AsObject<Kind> + Extends<Kind> + Debug,
   Kind: Serialize,
   <T as Extends<Kind>>::Error: From<serde_json::Error> + Send + Sync + 'static,
 {

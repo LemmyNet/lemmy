@@ -57,14 +57,16 @@ pub async fn community_inbox(
       .into(),
     );
   }
-  debug!(
-    "Community {} received activity {:?}",
-    &community.name, &activity
-  );
   let user_uri = activity
     .actor()?
     .as_single_xsd_any_uri()
     .context(location_info!())?;
+  debug!(
+    "Community {} inbox received activity {:?} from {}",
+    community.name,
+    &activity.id_unchecked(),
+    &user_uri
+  );
   check_is_apub_id_valid(user_uri)?;
 
   let user = get_or_fetch_and_upsert_user(&user_uri, &context).await?;
