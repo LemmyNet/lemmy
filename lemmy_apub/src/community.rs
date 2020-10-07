@@ -109,8 +109,6 @@ impl ToApub for Community {
       .set_preferred_username(self.title.to_owned())
       .set_outbox(self.get_outbox_url()?)
       .set_followers(self.get_followers_url()?)
-      .set_following(self.get_following_url().parse()?)
-      .set_liked(self.get_liked_url().parse()?)
       .set_endpoints(Endpoints {
         shared_inbox: Some(self.get_shared_inbox_url()?),
         ..Default::default()
