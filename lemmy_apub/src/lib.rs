@@ -292,14 +292,6 @@ pub trait ActorType {
     Url::parse(&format!("{}/followers", &self.actor_id_str()))
   }
 
-  fn get_following_url(&self) -> String {
-    format!("{}/following", &self.actor_id_str())
-  }
-
-  fn get_liked_url(&self) -> String {
-    format!("{}/liked", &self.actor_id_str())
-  }
-
   fn get_public_key_ext(&self) -> Result<PublicKeyExtension, LemmyError> {
     Ok(
       PublicKey {

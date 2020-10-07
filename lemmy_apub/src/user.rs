@@ -78,15 +78,10 @@ impl ToApub for User_ {
     }
 
     let mut ap_actor = ApActor::new(self.get_inbox_url()?, person);
-    ap_actor
-      .set_outbox(self.get_outbox_url()?)
-      .set_followers(self.get_followers_url()?)
-      .set_following(self.get_following_url().parse()?)
-      .set_liked(self.get_liked_url().parse()?)
-      .set_endpoints(Endpoints {
-        shared_inbox: Some(self.get_shared_inbox_url()?),
-        ..Default::default()
-      });
+    ap_actor.set_endpoints(Endpoints {
+      shared_inbox: Some(self.get_shared_inbox_url()?),
+      ..Default::default()
+    });
 
     if let Some(i) = &self.preferred_username {
       ap_actor.set_preferred_username(i.to_owned());
