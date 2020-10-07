@@ -38,7 +38,7 @@ cargo build
 git clone https://github.com/LemmyNet/lemmy-ui.git
 # get the translations
 git submodule init
-git submodule update
+git submodule update --remote
 ```
 
 ### Setup postgresql
