@@ -1,5 +1,7 @@
 # Activitypub API outline
 
+**This document is completely outdated and doesn't reflect the current state of Lemmy at all**
+
 - Start with the [reddit API](https://www.reddit.com/dev/api), and find [Activitypub vocab](https://www.w3.org/TR/activitystreams-vocabulary/) to match it.
 
 <!-- toc -->

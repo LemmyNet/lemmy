@@ -23,6 +23,7 @@ pub struct Search {
   pub q: String,
   pub type_: String,
   pub community_id: Option<i32>,
+  pub community_name: Option<String>,
   pub sort: String,
   pub page: Option<i64>,
   pub limit: Option<i64>,

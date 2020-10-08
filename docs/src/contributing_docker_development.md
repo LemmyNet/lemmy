@@ -11,8 +11,8 @@ git clone https://github.com/LemmyNet/lemmy
 ## Running
 
 ```bash
-cd lemmy/docker/dev
-sudo docker-compose up --no-deps --build
+cd /docker/dev
+./docker_update.sh
 ```
 
 and go to http://localhost:1235.

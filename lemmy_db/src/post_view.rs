@@ -273,12 +273,10 @@ impl<'a> PostQueryBuilder<'a> {
 
     if let Some(for_community_id) = self.for_community_id {
       query = query.filter(community_id.eq(for_community_id));
-      query = query.then_order_by(stickied.desc());
     }
 
     if let Some(for_community_name) = self.for_community_name {
       query = query.filter(community_name.eq(for_community_name));
-      query = query.then_order_by(stickied.desc());
     }
 
     if let Some(url_search) = self.url_search {
@@ -291,6 +289,8 @@ impl<'a> PostQueryBuilder<'a> {
         .filter(name.ilike(searcher.to_owned()))
         .or_filter(body.ilike(searcher));
     }
+
+    query = query.then_order_by(stickied.desc());
 
     query = match self.sort {
       SortType::Active => query
@@ -418,7 +418,7 @@ mod tests {
       admin: false,
       banned: false,
       show_nsfw: false,
-      theme: "darkly".into(),
+      theme: "browser".into(),
       default_sort_type: SortType::Hot as i16,
       default_listing_type: ListingType::Subscribed as i16,
       lang: "browser".into(),

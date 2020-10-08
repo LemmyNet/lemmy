@@ -57,6 +57,10 @@ pub async fn community_inbox(
       .into(),
     );
   }
+  debug!(
+    "Community {} received activity {:?}",
+    &community.name, &activity
+  );
   let user_uri = activity
     .actor()?
     .as_single_xsd_any_uri()

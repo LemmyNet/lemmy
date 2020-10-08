@@ -87,6 +87,7 @@ impl Community {
   pub fn read_from_name(conn: &PgConnection, community_name: &str) -> Result<Self, Error> {
     use crate::schema::community::dsl::*;
     community
+      .filter(local)
       .filter(name.eq(community_name))
       .first::<Self>(conn)
   }
@@ -329,7 +330,7 @@ mod tests {
       published: None,
       updated: None,
       show_nsfw: false,
-      theme: "darkly".into(),
+      theme: "browser".into(),
       default_sort_type: SortType::Hot as i16,
       default_listing_type: ListingType::Subscribed as i16,
       lang: "browser".into(),

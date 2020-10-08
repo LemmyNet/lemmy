@@ -36,6 +36,7 @@ use activitystreams::{
 };
 use actix_web::{body::Body, web, web::Path, HttpResponse};
 use anyhow::Context;
+use diesel::result::Error::NotFound;
 use itertools::Itertools;
 use lemmy_db::{
   comment::{Comment, CommentForm},
@@ -69,6 +70,9 @@ pub async fn get_apub_comment(
 ) -> Result<HttpResponse<Body>, LemmyError> {
   let id = info.comment_id.parse::<i32>()?;
   let comment = blocking(context.pool(), move |conn| Comment::read(conn, id)).await??;
+  if !comment.local {
+    return Err(NotFound.into());
+  }
 
   if !comment.deleted {
     Ok(create_apub_response(

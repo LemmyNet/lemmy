@@ -12,9 +12,9 @@
   "devDependencies": {
     "@types/jest": "^26.0.14",
     "jest": "^26.4.2",
-    "lemmy-js-client": "^1.0.13",
+    "lemmy-js-client": "^1.0.14",
     "node-fetch": "^2.6.1",
-    "ts-jest": "^26.4.0",
+    "ts-jest": "^26.4.1",
     "typescript": "^4.0.3"
   }
 }

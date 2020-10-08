@@ -36,6 +36,9 @@ cargo build
 ### Get the front end source code
 ```
 git clone https://github.com/LemmyNet/lemmy-ui.git
+# get the translations
+git submodule init
+git submodule update --remote
 ```
 
 ### Setup postgresql
@@ -78,7 +81,7 @@ yarn
 yarn dev
 ```
 
-and goto [localhost:1234](http://localhost:1234). Front end saves should rebuild the project.
+and go to [localhost:1234](http://localhost:1234). Front end saves should rebuild the project.
 
 Note that this setup doesn't include image uploads or link previews (provided by pict-rs and
 iframely respectively). If you want to test those, you should use the

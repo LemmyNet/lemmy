@@ -117,6 +117,11 @@ impl Perform for Register {
       }
     }
 
+    // Password length check
+    if data.password.len() > 60 {
+      return Err(APIError::err("invalid_password").into());
+    }
+
     // Make sure passwords match
     if data.password != data.password_verify {
       return Err(APIError::err("passwords_dont_match").into());
@@ -172,7 +177,7 @@ impl Perform for Register {
       admin: data.admin,
       banned: false,
       show_nsfw: data.show_nsfw,
-      theme: "darkly".into(),
+      theme: "browser".into(),
       default_sort_type: SortType::Active as i16,
       default_listing_type: ListingType::Subscribed as i16,
       lang: "browser".into(),

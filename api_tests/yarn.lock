@@ -2360,10 +2360,10 @@ kleur@^3.0.3:
   resolved "https://registry.yarnpkg.com/kleur/-/kleur-3.0.3.tgz#a79c9ecc86ee1ce3fa6206d1216c501f147fc07e"
   integrity sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==
 
-lemmy-js-client@^1.0.13:
-  version "1.0.13"
-  resolved "https://registry.yarnpkg.com/lemmy-js-client/-/lemmy-js-client-1.0.13.tgz#d0e1246129ade295faeec1fb4b2c7397d6947a19"
-  integrity sha512-Xz87cCswi/2pbDdApw9JIy8bDWRFGiGWO6IhehTytOAzf36dr4GYgsjTQTLjBX+s+BNYr8hE0+Sz4g9c+ynoJg==
+lemmy-js-client@^1.0.14:
+  version "1.0.14"
+  resolved "https://registry.yarnpkg.com/lemmy-js-client/-/lemmy-js-client-1.0.14.tgz#81a847dd0c7d97c83913f198717498c223dc371e"
+  integrity sha512-hiGxAnAD5RFmE8qHMBtYNNYD/UrfCZ5JzmVEH/i5Vg/v5i/ZVmebx20uWtRMmdSSy6s4GbW0w4niszLW6SaJ3Q==
 
 leven@^3.1.0:
   version "3.1.0"
@@ -3382,10 +3382,10 @@ tr46@^2.0.2:
   dependencies:
     punycode "^2.1.1"
 
-ts-jest@^26.4.0:
-  version "26.4.0"
-  resolved "https://registry.yarnpkg.com/ts-jest/-/ts-jest-26.4.0.tgz#903c7827f3d3bc33efc2f91be294b164400c32e3"
-  integrity sha512-ofBzoCqf6Nv/PoWb/ByV3VNKy2KJSikamOBxvR3E6eVdIw10GwAXoyvMWXXjZJK2s6S27ZE8fI+JBTnGaovl6Q==
+ts-jest@^26.4.1:
+  version "26.4.1"
+  resolved "https://registry.yarnpkg.com/ts-jest/-/ts-jest-26.4.1.tgz#08ec0d3fc2c3a39e4a46eae5610b69fafa6babd0"
+  integrity sha512-F4aFq01aS6mnAAa0DljNmKr/Kk9y4HVZ1m6/rtJ0ED56cuxINGq3Q9eVAh+z5vcYKe5qnTMvv90vE8vUMFxomg==
   dependencies:
     "@types/jest" "26.x"
     bs-logger "0.x"
