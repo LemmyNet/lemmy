@@ -124,18 +124,13 @@ impl PrivateMessage {
     conn: &PgConnection,
     private_message_form: &PrivateMessageForm,
   ) -> Result<Self, Error> {
-    let existing = Self::read_from_apub_id(
-      conn,
-      private_message_form
-        .ap_id
-        .as_ref()
-        .unwrap_or(&"none".to_string()),
-    );
-    match existing {
-      Err(NotFound {}) => Ok(Self::create(conn, &private_message_form)?),
-      Ok(p) => Ok(Self::update(conn, p.id, &private_message_form)?),
-      Err(e) => Err(e),
-    }
+    use crate::schema::private_message::dsl::*;
+    insert_into(private_message)
+      .values(private_message_form)
+      .on_conflict(ap_id)
+      .do_update()
+      .set(private_message_form)
+      .get_result::<Self>(conn)
   }
 }
 
