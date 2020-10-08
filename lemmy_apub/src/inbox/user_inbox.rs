@@ -50,12 +50,17 @@ pub async fn user_inbox(
 ) -> Result<HttpResponse, LemmyError> {
   let activity = input.into_inner();
   let username = path.into_inner();
-  debug!("User {} received activity: {:?}", &username, &activity);
 
   let actor_uri = activity
     .actor()?
     .as_single_xsd_any_uri()
     .context(location_info!())?;
+  debug!(
+    "User {} inbox received activity {:?} from {}",
+    username,
+    &activity.id_unchecked(),
+    &actor_uri
+  );
 
   check_is_apub_id_valid(actor_uri)?;
 

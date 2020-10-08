@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate lazy_static;
 
-pub mod activities;
 pub mod activity_queue;
 pub mod comment;
 pub mod community;
@@ -43,6 +42,7 @@ use log::debug;
 use reqwest::Client;
 use serde::Serialize;
 use url::{ParseError, Url};
+use uuid::Uuid;
 
 type GroupExt = Ext2<ApActor<Group>, GroupExtension, PublicKeyExtension>;
 type PersonExt = Ext1<ApActor<Person>, PublicKeyExtension>;
@@ -102,8 +102,9 @@ fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
 
   let mut allowed_instances = Settings::get().get_allowed_instances();
   let blocked_instances = Settings::get().get_blocked_instances();
-
-  if !allowed_instances.is_empty() {
+  if allowed_instances.is_empty() && blocked_instances.is_empty() {
+    Ok(())
+  } else if !allowed_instances.is_empty() {
     // need to allow this explicitly because apub activities might contain objects from our local
     // instance. split is needed to remove the port in our federation test setup.
     allowed_instances.push(local_instance);
@@ -351,4 +352,17 @@ where
   })
   .await??;
   Ok(())
+}
+
+pub(in crate) fn generate_activity_id<T>(kind: T) -> Result<Url, ParseError>
+where
+  T: ToString,
+{
+  let id = format!(
+    "{}/activities/{}/{}",
+    Settings::get().get_protocol_and_hostname(),
+    kind.to_string().to_lowercase(),
+    Uuid::new_v4()
+  );
+  Url::parse(&id)
 }

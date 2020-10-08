@@ -1,13 +1,13 @@
 use crate::{
-  activities::generate_activity_id,
-  activity_queue::send_activity,
+  activity_queue::{send_activity_single_dest, send_to_community_followers},
   check_actor_domain,
+  check_is_apub_id_valid,
   create_apub_response,
   create_apub_tombstone_response,
   create_tombstone,
   extensions::group_extensions::GroupExtension,
   fetcher::{get_or_fetch_and_upsert_actor, get_or_fetch_and_upsert_user},
-  insert_activity,
+  generate_activity_id,
   ActorType,
   FromApub,
   GroupExt,
@@ -165,9 +165,7 @@ impl ActorType for Community {
       .set_id(generate_activity_id(AcceptType::Accept)?)
       .set_to(to.clone());
 
-    insert_activity(self.creator_id, accept.clone(), true, context.pool()).await?;
-
-    send_activity(context.activity_queue(), accept, self, vec![to])?;
+    send_activity_single_dest(accept, self, to, context).await?;
     Ok(())
   }
 
@@ -181,14 +179,7 @@ impl ActorType for Community {
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()?]);
 
-    insert_activity(self.creator_id, delete.clone(), true, context.pool()).await?;
-
-    let inboxes = self.get_follower_inboxes(context.pool()).await?;
-
-    // Note: For an accept, since it was automatic, no one pushed a button,
-    // the community was the actor.
-    // But for delete, the creator is the actor, and does the signing
-    send_activity(context.activity_queue(), delete, creator, inboxes)?;
+    send_to_community_followers(delete, self, context, None).await?;
     Ok(())
   }
 
@@ -213,14 +204,7 @@ impl ActorType for Community {
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()?]);
 
-    insert_activity(self.creator_id, undo.clone(), true, context.pool()).await?;
-
-    let inboxes = self.get_follower_inboxes(context.pool()).await?;
-
-    // Note: For an accept, since it was automatic, no one pushed a button,
-    // the community was the actor.
-    // But for delete, the creator is the actor, and does the signing
-    send_activity(context.activity_queue(), undo, creator, inboxes)?;
+    send_to_community_followers(undo, self, context, None).await?;
     Ok(())
   }
 
@@ -234,14 +218,7 @@ impl ActorType for Community {
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()?]);
 
-    insert_activity(mod_.id, remove.clone(), true, context.pool()).await?;
-
-    let inboxes = self.get_follower_inboxes(context.pool()).await?;
-
-    // Note: For an accept, since it was automatic, no one pushed a button,
-    // the community was the actor.
-    // But for delete, the creator is the actor, and does the signing
-    send_activity(context.activity_queue(), remove, mod_, inboxes)?;
+    send_to_community_followers(remove, self, context, None).await?;
     Ok(())
   }
 
@@ -263,14 +240,7 @@ impl ActorType for Community {
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()?]);
 
-    insert_activity(mod_.id, undo.clone(), true, context.pool()).await?;
-
-    let inboxes = self.get_follower_inboxes(context.pool()).await?;
-
-    // Note: For an accept, since it was automatic, no one pushed a button,
-    // the community was the actor.
-    // But for remove , the creator is the actor, and does the signing
-    send_activity(context.activity_queue(), undo, mod_, inboxes)?;
+    send_to_community_followers(undo, self, context, None).await?;
     Ok(())
   }
 
@@ -287,6 +257,7 @@ impl ActorType for Community {
     .await??;
     let inboxes = inboxes
       .into_iter()
+      .filter(|i| !i.user_local)
       .map(|u| -> Result<Url, LemmyError> {
         let url = Url::parse(&u.user_actor_id)?;
         let domain = url.domain().context(location_info!())?;
@@ -303,6 +274,8 @@ impl ActorType for Community {
         ))?)
       })
       .filter_map(Result::ok)
+      // Don't send to blocked instances
+      .filter(|inbox| check_is_apub_id_valid(inbox).is_ok())
       .unique()
       .collect();
 
@@ -511,19 +484,13 @@ pub async fn do_announce(
     .set_to(public())
     .set_many_ccs(vec![community.get_followers_url()?]);
 
-  insert_activity(community.creator_id, announce.clone(), true, context.pool()).await?;
-
-  let mut to: Vec<Url> = community.get_follower_inboxes(context.pool()).await?;
-
-  // dont send to the local instance, nor to the instance where the activity originally came from,
-  // because that would result in a database error (same data inserted twice)
-  // this seems to be the "easiest" stable alternative for remove_item()
-  let sender_shared_inbox = sender.get_shared_inbox_url()?;
-  to.retain(|x| x != &sender_shared_inbox);
-  let community_shared_inbox = community.get_shared_inbox_url()?;
-  to.retain(|x| x != &community_shared_inbox);
-
-  send_activity(context.activity_queue(), announce, community, to)?;
+  send_to_community_followers(
+    announce,
+    community,
+    context,
+    Some(sender.get_shared_inbox_url()?),
+  )
+  .await?;
 
   Ok(())
 }

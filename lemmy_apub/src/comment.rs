@@ -1,5 +1,5 @@
 use crate::{
-  activities::{generate_activity_id, send_activity_to_community},
+  activity_queue::{send_comment_mentions, send_to_community},
   check_actor_domain,
   create_apub_response,
   create_apub_tombstone_response,
@@ -10,6 +10,7 @@ use crate::{
     get_or_fetch_and_insert_post,
     get_or_fetch_and_upsert_user,
   },
+  generate_activity_id,
   ActorType,
   ApubLikeableType,
   ApubObjectType,
@@ -223,7 +224,8 @@ impl ApubObjectType for Comment {
       // Set the mention tags
       .set_many_tags(maa.get_tags()?);
 
-    send_activity_to_community(&creator, &community, maa.inboxes, create, context).await?;
+    send_to_community(&creator, &community, create.clone(), context).await?;
+    send_comment_mentions(&creator, maa.inboxes, create, context).await?;
     Ok(())
   }
 
@@ -251,7 +253,8 @@ impl ApubObjectType for Comment {
       // Set the mention tags
       .set_many_tags(maa.get_tags()?);
 
-    send_activity_to_community(&creator, &community, maa.inboxes, update, context).await?;
+    send_to_community(&creator, &community, update.clone(), context).await?;
+    send_comment_mentions(&creator, maa.inboxes, update, context).await?;
     Ok(())
   }
 
@@ -274,14 +277,7 @@ impl ApubObjectType for Comment {
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()?]);
 
-    send_activity_to_community(
-      &creator,
-      &community,
-      vec![community.get_shared_inbox_url()?],
-      delete,
-      context,
-    )
-    .await?;
+    send_to_community(&creator, &community, delete, context).await?;
     Ok(())
   }
 
@@ -317,14 +313,7 @@ impl ApubObjectType for Comment {
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()?]);
 
-    send_activity_to_community(
-      &creator,
-      &community,
-      vec![community.get_shared_inbox_url()?],
-      undo,
-      context,
-    )
-    .await?;
+    send_to_community(&creator, &community, undo, context).await?;
     Ok(())
   }
 
@@ -347,14 +336,7 @@ impl ApubObjectType for Comment {
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()?]);
 
-    send_activity_to_community(
-      &mod_,
-      &community,
-      vec![community.get_shared_inbox_url()?],
-      remove,
-      context,
-    )
-    .await?;
+    send_to_community(&mod_, &community, remove, context).await?;
     Ok(())
   }
 
@@ -386,14 +368,7 @@ impl ApubObjectType for Comment {
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()?]);
 
-    send_activity_to_community(
-      &mod_,
-      &community,
-      vec![community.get_shared_inbox_url()?],
-      undo,
-      context,
-    )
-    .await?;
+    send_to_community(&mod_, &community, undo, context).await?;
     Ok(())
   }
 }
@@ -419,14 +394,7 @@ impl ApubLikeableType for Comment {
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()?]);
 
-    send_activity_to_community(
-      &creator,
-      &community,
-      vec![community.get_shared_inbox_url()?],
-      like,
-      context,
-    )
-    .await?;
+    send_to_community(&creator, &community, like, context).await?;
     Ok(())
   }
 
@@ -449,14 +417,7 @@ impl ApubLikeableType for Comment {
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()?]);
 
-    send_activity_to_community(
-      &creator,
-      &community,
-      vec![community.get_shared_inbox_url()?],
-      dislike,
-      context,
-    )
-    .await?;
+    send_to_community(&creator, &community, dislike, context).await?;
     Ok(())
   }
 
@@ -491,14 +452,7 @@ impl ApubLikeableType for Comment {
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()?]);
 
-    send_activity_to_community(
-      &creator,
-      &community,
-      vec![community.get_shared_inbox_url()?],
-      undo,
-      context,
-    )
-    .await?;
+    send_to_community(&creator, &community, undo, context).await?;
     Ok(())
   }
 }
@@ -556,9 +510,7 @@ async fn collect_non_local_mentions_and_addresses(
     }
   }
 
-  let mut inboxes = vec![community.get_shared_inbox_url()?];
-  inboxes.extend(mention_inboxes);
-  inboxes = inboxes.into_iter().unique().collect();
+  let inboxes = mention_inboxes.into_iter().unique().collect();
 
   Ok(MentionsAndAddresses {
     addressed_ccs,

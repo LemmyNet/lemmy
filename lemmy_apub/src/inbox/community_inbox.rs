@@ -11,7 +11,7 @@ use activitystreams::{
   prelude::*,
 };
 use actix_web::{web, HttpRequest, HttpResponse};
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use lemmy_db::{
   community::{Community, CommunityFollower, CommunityFollowerForm},
   user::User_,
@@ -20,7 +20,7 @@ use lemmy_db::{
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
-use log::debug;
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
@@ -48,7 +48,16 @@ pub async fn community_inbox(
   })
   .await??;
 
-  debug!(
+  if !community.local {
+    return Err(
+      anyhow!(
+        "Received activity is addressed to remote community {}",
+        &community.actor_id
+      )
+      .into(),
+    );
+  }
+  info!(
     "Community {} received activity {:?}",
     &community.name, &activity
   );
@@ -56,6 +65,12 @@ pub async fn community_inbox(
     .actor()?
     .as_single_xsd_any_uri()
     .context(location_info!())?;
+  info!(
+    "Community {} inbox received activity {:?} from {}",
+    community.name,
+    &activity.id_unchecked(),
+    &user_uri
+  );
   check_is_apub_id_valid(user_uri)?;
 
   let user = get_or_fetch_and_upsert_user(&user_uri, &context).await?;

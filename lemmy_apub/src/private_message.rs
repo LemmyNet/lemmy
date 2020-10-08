@@ -1,11 +1,10 @@
 use crate::{
-  activities::generate_activity_id,
-  activity_queue::send_activity,
+  activity_queue::send_activity_single_dest,
   check_actor_domain,
   check_is_apub_id_valid,
   create_tombstone,
   fetcher::get_or_fetch_and_upsert_user,
-  insert_activity,
+  generate_activity_id,
   ActorType,
   ApubObjectType,
   FromApub,
@@ -130,9 +129,7 @@ impl ApubObjectType for PrivateMessage {
       .set_id(generate_activity_id(CreateType::Create)?)
       .set_to(to.clone());
 
-    insert_activity(creator.id, create.clone(), true, context.pool()).await?;
-
-    send_activity(context.activity_queue(), create, creator, vec![to])?;
+    send_activity_single_dest(create, creator, to, context).await?;
     Ok(())
   }
 
@@ -150,9 +147,7 @@ impl ApubObjectType for PrivateMessage {
       .set_id(generate_activity_id(UpdateType::Update)?)
       .set_to(to.clone());
 
-    insert_activity(creator.id, update.clone(), true, context.pool()).await?;
-
-    send_activity(context.activity_queue(), update, creator, vec![to])?;
+    send_activity_single_dest(update, creator, to, context).await?;
     Ok(())
   }
 
@@ -169,9 +164,7 @@ impl ApubObjectType for PrivateMessage {
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(to.clone());
 
-    insert_activity(creator.id, delete.clone(), true, context.pool()).await?;
-
-    send_activity(context.activity_queue(), delete, creator, vec![to])?;
+    send_activity_single_dest(delete, creator, to, context).await?;
     Ok(())
   }
 
@@ -199,9 +192,7 @@ impl ApubObjectType for PrivateMessage {
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(to.clone());
 
-    insert_activity(creator.id, undo.clone(), true, context.pool()).await?;
-
-    send_activity(context.activity_queue(), undo, creator, vec![to])?;
+    send_activity_single_dest(undo, creator, to, context).await?;
     Ok(())
   }
 

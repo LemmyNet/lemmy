@@ -134,7 +134,7 @@ impl Settings {
       .federation
       .allowed_instances
       .split(',')
-      .map(|d| d.to_string())
+      .map(|d| d.trim().to_string())
       .collect();
 
     // The defaults.hjson config always returns a [""]
@@ -148,7 +148,7 @@ impl Settings {
       .federation
       .blocked_instances
       .split(',')
-      .map(|d| d.to_string())
+      .map(|d| d.trim().to_string())
       .collect();
 
     // The defaults.hjson config always returns a [""]

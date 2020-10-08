@@ -1,11 +1,12 @@
 use crate::{
-  activities::{generate_activity_id, send_activity_to_community},
+  activity_queue::send_to_community,
   check_actor_domain,
   create_apub_response,
   create_apub_tombstone_response,
   create_tombstone,
   extensions::page_extension::PageExtension,
   fetcher::{get_or_fetch_and_upsert_community, get_or_fetch_and_upsert_user},
+  generate_activity_id,
   ActorType,
   ApubLikeableType,
   ApubObjectType,
@@ -261,14 +262,7 @@ impl ApubObjectType for Post {
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()?]);
 
-    send_activity_to_community(
-      creator,
-      &community,
-      vec![community.get_shared_inbox_url()?],
-      create,
-      context,
-    )
-    .await?;
+    send_to_community(creator, &community, create, context).await?;
     Ok(())
   }
 
@@ -289,14 +283,7 @@ impl ApubObjectType for Post {
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()?]);
 
-    send_activity_to_community(
-      creator,
-      &community,
-      vec![community.get_shared_inbox_url()?],
-      update,
-      context,
-    )
-    .await?;
+    send_to_community(creator, &community, update, context).await?;
     Ok(())
   }
 
@@ -316,14 +303,7 @@ impl ApubObjectType for Post {
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()?]);
 
-    send_activity_to_community(
-      creator,
-      &community,
-      vec![community.get_shared_inbox_url()?],
-      delete,
-      context,
-    )
-    .await?;
+    send_to_community(creator, &community, delete, context).await?;
     Ok(())
   }
 
@@ -355,14 +335,7 @@ impl ApubObjectType for Post {
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()?]);
 
-    send_activity_to_community(
-      creator,
-      &community,
-      vec![community.get_shared_inbox_url()?],
-      undo,
-      context,
-    )
-    .await?;
+    send_to_community(creator, &community, undo, context).await?;
     Ok(())
   }
 
@@ -382,14 +355,7 @@ impl ApubObjectType for Post {
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()?]);
 
-    send_activity_to_community(
-      mod_,
-      &community,
-      vec![community.get_shared_inbox_url()?],
-      remove,
-      context,
-    )
-    .await?;
+    send_to_community(mod_, &community, remove, context).await?;
     Ok(())
   }
 
@@ -417,14 +383,7 @@ impl ApubObjectType for Post {
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()?]);
 
-    send_activity_to_community(
-      mod_,
-      &community,
-      vec![community.get_shared_inbox_url()?],
-      undo,
-      context,
-    )
-    .await?;
+    send_to_community(mod_, &community, undo, context).await?;
     Ok(())
   }
 }
@@ -447,14 +406,7 @@ impl ApubLikeableType for Post {
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()?]);
 
-    send_activity_to_community(
-      &creator,
-      &community,
-      vec![community.get_shared_inbox_url()?],
-      like,
-      context,
-    )
-    .await?;
+    send_to_community(&creator, &community, like, context).await?;
     Ok(())
   }
 
@@ -474,14 +426,7 @@ impl ApubLikeableType for Post {
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()?]);
 
-    send_activity_to_community(
-      &creator,
-      &community,
-      vec![community.get_shared_inbox_url()?],
-      dislike,
-      context,
-    )
-    .await?;
+    send_to_community(&creator, &community, dislike, context).await?;
     Ok(())
   }
 
@@ -513,14 +458,7 @@ impl ApubLikeableType for Post {
       .set_to(public())
       .set_many_ccs(vec![community.get_followers_url()?]);
 
-    send_activity_to_community(
-      &creator,
-      &community,
-      vec![community.get_shared_inbox_url()?],
-      undo,
-      context,
-    )
-    .await?;
+    send_to_community(&creator, &community, undo, context).await?;
     Ok(())
   }
 }
