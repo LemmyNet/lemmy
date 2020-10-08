@@ -50,7 +50,6 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
-use log::debug;
 use serde::Deserialize;
 use url::Url;
 
@@ -281,10 +280,6 @@ impl ActorType for Community {
       .filter(|inbox| check_is_apub_id_valid(inbox).is_ok())
       .unique()
       .collect();
-
-    // TODO remove this logging line
-    let inboxes_json = serde_json::to_string_pretty(&inboxes)?;
-    debug!("Community follower inboxes: {}", inboxes_json);
 
     Ok(inboxes)
   }
