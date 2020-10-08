@@ -20,7 +20,7 @@ use lemmy_db::{
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
-use log::debug;
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
@@ -57,7 +57,7 @@ pub async fn community_inbox(
       .into(),
     );
   }
-  debug!(
+  info!(
     "Community {} received activity {:?}",
     &community.name, &activity
   );
@@ -65,7 +65,7 @@ pub async fn community_inbox(
     .actor()?
     .as_single_xsd_any_uri()
     .context(location_info!())?;
-  debug!(
+  info!(
     "Community {} inbox received activity {:?} from {}",
     community.name,
     &activity.id_unchecked(),

@@ -146,7 +146,6 @@ where
   Kind: Serialize,
   <T as Extends<Kind>>::Error: From<serde_json::Error> + Send + Sync + 'static,
 {
-  dbg!(&mentions, &activity.id_unchecked());
   debug!(
     "Sending mentions activity {:?} to {:?}",
     &activity.id_unchecked(),
@@ -191,7 +190,7 @@ where
   }
 
   for to_url in &to {
-    assert!(check_is_apub_id_valid(&to_url).is_ok());
+    check_is_apub_id_valid(&to_url)?;
   }
 
   let activity = activity.into_any_base()?;
