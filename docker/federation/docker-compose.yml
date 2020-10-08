@@ -29,7 +29,7 @@ services:
       - ./volumes/pictrs_alpha:/mnt
 
   lemmy-alpha-ui:
-    image: dessalines/lemmy-ui:v0.7.63
+    image: dessalines/lemmy-ui:v0.7.64
     environment:
       - LEMMY_INTERNAL_HOST=lemmy-alpha:8541
       - LEMMY_EXTERNAL_HOST=localhost:8541
@@ -68,7 +68,7 @@ services:
       - ./volumes/postgres_alpha:/var/lib/postgresql/data
 
   lemmy-beta-ui:
-    image: dessalines/lemmy-ui:v0.7.63
+    image: dessalines/lemmy-ui:v0.7.64
     environment:
       - LEMMY_INTERNAL_HOST=lemmy-beta:8551
       - LEMMY_EXTERNAL_HOST=localhost:8551
@@ -107,7 +107,7 @@ services:
       - ./volumes/postgres_beta:/var/lib/postgresql/data
 
   lemmy-gamma-ui:
-    image: dessalines/lemmy-ui:v0.7.63
+    image: dessalines/lemmy-ui:v0.7.64
     environment:
       - LEMMY_INTERNAL_HOST=lemmy-gamma:8561
       - LEMMY_EXTERNAL_HOST=localhost:8561
@@ -147,7 +147,7 @@ services:
 
   # An instance with only an allowlist for beta
   lemmy-delta-ui:
-    image: dessalines/lemmy-ui:v0.7.63
+    image: dessalines/lemmy-ui:v0.7.64
     environment:
       - LEMMY_INTERNAL_HOST=lemmy-delta:8571
       - LEMMY_EXTERNAL_HOST=localhost:8571
@@ -187,7 +187,7 @@ services:
 
   # An instance who has a blocklist, with lemmy-alpha blocked
   lemmy-epsilon-ui:
-    image: dessalines/lemmy-ui:v0.7.63
+    image: dessalines/lemmy-ui:v0.7.64
     environment:
       - LEMMY_INTERNAL_HOST=lemmy-epsilon:8581
       - LEMMY_EXTERNAL_HOST=localhost:8581
