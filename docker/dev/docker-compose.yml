@@ -16,7 +16,7 @@ services:
       - postgres
       - iframely
   lemmy-ui:
-    image: dessalines/lemmy-ui:v0.7.62
+    image: dessalines/lemmy-ui:v0.7.63
     ports:
       - "1235:1234"
     environment:
