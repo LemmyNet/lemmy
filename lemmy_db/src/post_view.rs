@@ -272,11 +272,15 @@ impl<'a> PostQueryBuilder<'a> {
     };
 
     if let Some(for_community_id) = self.for_community_id {
-      query = query.filter(community_id.eq(for_community_id));
+      query = query
+        .filter(community_id.eq(for_community_id))
+        .then_order_by(stickied.desc());
     }
 
     if let Some(for_community_name) = self.for_community_name {
-      query = query.filter(community_name.eq(for_community_name));
+      query = query
+        .filter(community_name.eq(for_community_name))
+        .then_order_by(stickied.desc());
     }
 
     if let Some(url_search) = self.url_search {
@@ -289,8 +293,6 @@ impl<'a> PostQueryBuilder<'a> {
         .filter(name.ilike(searcher.to_owned()))
         .or_filter(body.ilike(searcher));
     }
-
-    query = query.then_order_by(stickied.desc());
 
     query = match self.sort {
       SortType::Active => query
