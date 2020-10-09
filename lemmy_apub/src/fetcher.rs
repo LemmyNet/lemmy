@@ -338,7 +338,13 @@ async fn fetch_remote_community(
   }
   for o in outbox_items {
     let page = PageExt::from_any_base(o)?.context(location_info!())?;
-    let post = PostForm::from_apub(&page, context, None).await?;
+
+    // The post creator may be from a blocked instance,
+    // if it errors, then continue
+    let post = match PostForm::from_apub(&page, context, None).await {
+      Ok(post) => post,
+      Err(_) => continue,
+    };
     let post_ap_id = post.ap_id.as_ref().context(location_info!())?.clone();
     // Check whether the post already exists in the local db
     let existing = blocking(context.pool(), move |conn| {
