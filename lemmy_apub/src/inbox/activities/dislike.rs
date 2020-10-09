@@ -16,6 +16,8 @@ use lemmy_db::{
   comment_view::CommentView,
   post::{PostForm, PostLike, PostLikeForm},
   post_view::PostView,
+  site::Site,
+  Crud,
   Likeable,
 };
 use lemmy_structs::{blocking, comment::CommentResponse, post::PostResponse};
@@ -30,6 +32,14 @@ pub async fn receive_dislike(
   activity: AnyBase,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
+  let enable_downvotes = blocking(context.pool(), move |conn| {
+    Site::read(conn, 1).map(|s| s.enable_downvotes)
+  })
+  .await??;
+  if !enable_downvotes {
+    return Ok(HttpResponse::Ok().finish());
+  }
+
   let dislike = Dislike::from_any_base(activity)?.context(location_info!())?;
   match dislike.object().as_single_kind_str() {
     Some("Page") => receive_dislike_post(dislike, context).await,
