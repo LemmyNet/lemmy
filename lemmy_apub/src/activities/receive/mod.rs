@@ -1,6 +1,10 @@
-use crate::{fetcher::get_or_fetch_and_upsert_community, ActorType};
+use crate::{
+  fetcher::{get_or_fetch_and_upsert_community, get_or_fetch_and_upsert_user},
+  ActorType,
+};
 use activitystreams::{
-  base::{Extends, ExtendsExt},
+  activity::{ActorAndObjectRef, ActorAndObjectRefExt},
+  base::{AsBase, Extends, ExtendsExt},
   object::{AsObject, ObjectExt},
 };
 use actix_web::HttpResponse;
@@ -62,4 +66,16 @@ where
       .await?;
   }
   Ok(())
+}
+
+pub(in crate) async fn get_actor_as_user<T, A>(
+  activity: &T,
+  context: &LemmyContext,
+) -> Result<User_, LemmyError>
+where
+  T: AsBase<A> + ActorAndObjectRef,
+{
+  let actor = activity.actor()?;
+  let user_uri = actor.as_single_xsd_any_uri().context(location_info!())?;
+  get_or_fetch_and_upsert_user(&user_uri, context).await
 }

@@ -11,24 +11,17 @@ use crate::{
   },
   check_is_apub_id_valid,
   extensions::signatures::verify,
-  fetcher::{get_or_fetch_and_upsert_actor, get_or_fetch_and_upsert_user},
+  fetcher::get_or_fetch_and_upsert_actor,
   insert_activity,
 };
-use activitystreams::{
-  activity::{ActorAndObject, ActorAndObjectRef},
-  base::AsBase,
-  object::AsObject,
-  prelude::*,
-};
+use activitystreams::{activity::ActorAndObject, prelude::*};
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Context;
-use lemmy_db::user::User_;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
-use url::Url;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
@@ -55,22 +48,20 @@ pub async fn shared_inbox(
 ) -> Result<HttpResponse, LemmyError> {
   let activity = input.into_inner();
 
-  let sender = &activity
+  let actor = activity
     .actor()?
     .to_owned()
     .single_xsd_any_uri()
     .context(location_info!())?;
-  let community = get_community_id_from_activity(&activity)?;
   debug!(
     "Shared inbox received activity {:?} from {}",
     &activity.id_unchecked(),
-    &sender
+    &actor
   );
 
-  check_is_apub_id_valid(sender)?;
-  check_is_apub_id_valid(&community)?;
+  check_is_apub_id_valid(&actor)?;
 
-  let actor = get_or_fetch_and_upsert_actor(sender, &context).await?;
+  let actor = get_or_fetch_and_upsert_actor(&actor, &context).await?;
   verify(&request, actor.as_ref())?;
 
   let any_base = activity.clone().into_any_base()?;
@@ -88,31 +79,4 @@ pub async fn shared_inbox(
 
   insert_activity(actor.user_id(), activity.clone(), false, context.pool()).await?;
   res
-}
-
-pub(in crate) async fn get_user_from_activity<T, A>(
-  activity: &T,
-  context: &LemmyContext,
-) -> Result<User_, LemmyError>
-where
-  T: AsBase<A> + ActorAndObjectRef,
-{
-  let actor = activity.actor()?;
-  let user_uri = actor.as_single_xsd_any_uri().context(location_info!())?;
-  get_or_fetch_and_upsert_user(&user_uri, context).await
-}
-
-pub(in crate) fn get_community_id_from_activity<T, A>(activity: &T) -> Result<Url, LemmyError>
-where
-  T: AsBase<A> + ActorAndObjectRef + AsObject<A>,
-{
-  let cc = activity.cc().context(location_info!())?;
-  let cc = cc.as_many().context(location_info!())?;
-  Ok(
-    cc.first()
-      .context(location_info!())?
-      .as_xsd_any_uri()
-      .context(location_info!())?
-      .to_owned(),
-  )
 }

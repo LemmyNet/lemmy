@@ -1,11 +1,11 @@
 use crate::{
   activities::receive::{
     announce_if_community_is_local,
+    get_actor_as_user,
     receive_unhandled_activity,
     undo_comment::*,
     undo_post::*,
   },
-  inbox::shared_inbox::get_user_from_activity,
   ActorType,
   FromApub,
   GroupExt,
@@ -141,7 +141,7 @@ async fn receive_undo_delete_community(
   delete: &Delete,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  let user = get_user_from_activity(delete, context).await?;
+  let user = get_actor_as_user(delete, context).await?;
   let group = GroupExt::from_any_base(delete.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
@@ -207,7 +207,7 @@ async fn receive_undo_remove_community(
   remove: &Remove,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  let mod_ = get_user_from_activity(remove, context).await?;
+  let mod_ = get_actor_as_user(remove, context).await?;
   let group = GroupExt::from_any_base(remove.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 

@@ -1,7 +1,10 @@
 use crate::{
-  activities::receive::{announce_if_community_is_local, receive_unhandled_activity},
+  activities::receive::{
+    announce_if_community_is_local,
+    get_actor_as_user,
+    receive_unhandled_activity,
+  },
   fetcher::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
-  inbox::shared_inbox::{get_community_id_from_activity, get_user_from_activity},
   ActorType,
   FromApub,
   GroupExt,
@@ -38,9 +41,18 @@ pub async fn receive_remove(
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
   let remove = Remove::from_any_base(activity)?.context(location_info!())?;
-  let actor = get_user_from_activity(&remove, context).await?;
-  let community = get_community_id_from_activity(&remove)?;
-  if actor.actor_id()?.domain() != community.domain() {
+  let actor = get_actor_as_user(&remove, context).await?;
+  let cc = remove
+    .cc()
+    .map(|c| c.as_many())
+    .flatten()
+    .context(location_info!())?;
+  let community_id = cc
+    .first()
+    .map(|c| c.as_xsd_any_uri())
+    .flatten()
+    .context(location_info!())?;
+  if actor.actor_id()?.domain() != community_id.domain() {
     return Err(anyhow!("Remove receive are only allowed on local objects").into());
   }
 
@@ -56,7 +68,7 @@ async fn receive_remove_post(
   remove: Remove,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  let mod_ = get_user_from_activity(&remove, context).await?;
+  let mod_ = get_actor_as_user(&remove, context).await?;
   let page = PageExt::from_any_base(remove.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
@@ -115,7 +127,7 @@ async fn receive_remove_comment(
   remove: Remove,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  let mod_ = get_user_from_activity(&remove, context).await?;
+  let mod_ = get_actor_as_user(&remove, context).await?;
   let note = Note::from_any_base(remove.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
@@ -173,7 +185,7 @@ async fn receive_remove_community(
   remove: Remove,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  let mod_ = get_user_from_activity(&remove, context).await?;
+  let mod_ = get_actor_as_user(&remove, context).await?;
   let group = GroupExt::from_any_base(remove.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 

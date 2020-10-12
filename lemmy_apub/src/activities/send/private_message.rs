@@ -30,13 +30,13 @@ impl ApubObjectType for PrivateMessage {
     let recipient = blocking(context.pool(), move |conn| User_::read(conn, recipient_id)).await??;
 
     let mut create = Create::new(creator.actor_id.to_owned(), note.into_any_base()?);
-    let to = recipient.get_inbox_url()?;
+
     create
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(CreateType::Create)?)
-      .set_to(to.clone());
+      .set_to(recipient.actor_id()?);
 
-    send_activity_single_dest(create, creator, to, context).await?;
+    send_activity_single_dest(create, creator, recipient.get_inbox_url()?, context).await?;
     Ok(())
   }
 
@@ -48,13 +48,12 @@ impl ApubObjectType for PrivateMessage {
     let recipient = blocking(context.pool(), move |conn| User_::read(conn, recipient_id)).await??;
 
     let mut update = Update::new(creator.actor_id.to_owned(), note.into_any_base()?);
-    let to = recipient.get_inbox_url()?;
     update
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(UpdateType::Update)?)
-      .set_to(to.clone());
+      .set_to(recipient.actor_id()?);
 
-    send_activity_single_dest(update, creator, to, context).await?;
+    send_activity_single_dest(update, creator, recipient.get_inbox_url()?, context).await?;
     Ok(())
   }
 
@@ -65,13 +64,12 @@ impl ApubObjectType for PrivateMessage {
     let recipient = blocking(context.pool(), move |conn| User_::read(conn, recipient_id)).await??;
 
     let mut delete = Delete::new(creator.actor_id.to_owned(), note.into_any_base()?);
-    let to = recipient.get_inbox_url()?;
     delete
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(DeleteType::Delete)?)
-      .set_to(to.clone());
+      .set_to(recipient.actor_id()?);
 
-    send_activity_single_dest(delete, creator, to, context).await?;
+    send_activity_single_dest(delete, creator, recipient.get_inbox_url()?, context).await?;
     Ok(())
   }
 
@@ -86,20 +84,19 @@ impl ApubObjectType for PrivateMessage {
     let recipient = blocking(context.pool(), move |conn| User_::read(conn, recipient_id)).await??;
 
     let mut delete = Delete::new(creator.actor_id.to_owned(), note.into_any_base()?);
-    let to = recipient.get_inbox_url()?;
     delete
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(DeleteType::Delete)?)
-      .set_to(to.clone());
+      .set_to(recipient.actor_id()?);
 
     // Undo that fake activity
     let mut undo = Undo::new(creator.actor_id.to_owned(), delete.into_any_base()?);
     undo
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(UndoType::Undo)?)
-      .set_to(to.clone());
+      .set_to(recipient.actor_id()?);
 
-    send_activity_single_dest(undo, creator, to, context).await?;
+    send_activity_single_dest(undo, creator, recipient.get_inbox_url()?, context).await?;
     Ok(())
   }
 

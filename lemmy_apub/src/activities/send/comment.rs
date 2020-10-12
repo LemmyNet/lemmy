@@ -54,14 +54,17 @@ impl ApubObjectType for Comment {
     })
     .await??;
 
-    let maa = collect_non_local_mentions_and_addresses(&self.content, &community, context).await?;
+    let mut maa =
+      collect_non_local_mentions_and_addresses(&self.content, &community, context).await?;
+    let mut ccs = vec![community.actor_id()?];
+    ccs.append(&mut maa.addressed_ccs);
 
     let mut create = Create::new(creator.actor_id.to_owned(), note.into_any_base()?);
     create
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(CreateType::Create)?)
       .set_to(public())
-      .set_many_ccs(maa.addressed_ccs.to_owned())
+      .set_many_ccs(ccs)
       // Set the mention tags
       .set_many_tags(maa.get_tags()?);
 
@@ -83,14 +86,17 @@ impl ApubObjectType for Comment {
     })
     .await??;
 
-    let maa = collect_non_local_mentions_and_addresses(&self.content, &community, context).await?;
+    let mut maa =
+      collect_non_local_mentions_and_addresses(&self.content, &community, context).await?;
+    let mut ccs = vec![community.actor_id()?];
+    ccs.append(&mut maa.addressed_ccs);
 
     let mut update = Update::new(creator.actor_id.to_owned(), note.into_any_base()?);
     update
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(UpdateType::Update)?)
       .set_to(public())
-      .set_many_ccs(maa.addressed_ccs.to_owned())
+      .set_many_ccs(ccs)
       // Set the mention tags
       .set_many_tags(maa.get_tags()?);
 
@@ -116,7 +122,7 @@ impl ApubObjectType for Comment {
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
-      .set_many_ccs(vec![community.get_followers_url()?]);
+      .set_many_ccs(vec![community.actor_id()?]);
 
     send_to_community(&creator, &community, delete, context).await?;
     Ok(())
@@ -144,7 +150,7 @@ impl ApubObjectType for Comment {
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
-      .set_many_ccs(vec![community.get_followers_url()?]);
+      .set_many_ccs(vec![community.actor_id()?]);
 
     // Undo that fake activity
     let mut undo = Undo::new(creator.actor_id.to_owned(), delete.into_any_base()?);
@@ -152,7 +158,7 @@ impl ApubObjectType for Comment {
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
-      .set_many_ccs(vec![community.get_followers_url()?]);
+      .set_many_ccs(vec![community.actor_id()?]);
 
     send_to_community(&creator, &community, undo, context).await?;
     Ok(())
@@ -175,7 +181,7 @@ impl ApubObjectType for Comment {
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
-      .set_many_ccs(vec![community.get_followers_url()?]);
+      .set_many_ccs(vec![community.actor_id()?]);
 
     send_to_community(&mod_, &community, remove, context).await?;
     Ok(())
@@ -199,7 +205,7 @@ impl ApubObjectType for Comment {
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
-      .set_many_ccs(vec![community.get_followers_url()?]);
+      .set_many_ccs(vec![community.actor_id()?]);
 
     // Undo that fake activity
     let mut undo = Undo::new(mod_.actor_id.to_owned(), remove.into_any_base()?);
@@ -207,7 +213,7 @@ impl ApubObjectType for Comment {
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
-      .set_many_ccs(vec![community.get_followers_url()?]);
+      .set_many_ccs(vec![community.actor_id()?]);
 
     send_to_community(&mod_, &community, undo, context).await?;
     Ok(())
@@ -233,7 +239,7 @@ impl ApubLikeableType for Comment {
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(LikeType::Like)?)
       .set_to(public())
-      .set_many_ccs(vec![community.get_followers_url()?]);
+      .set_many_ccs(vec![community.actor_id()?]);
 
     send_to_community(&creator, &community, like, context).await?;
     Ok(())
@@ -256,7 +262,7 @@ impl ApubLikeableType for Comment {
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(DislikeType::Dislike)?)
       .set_to(public())
-      .set_many_ccs(vec![community.get_followers_url()?]);
+      .set_many_ccs(vec![community.actor_id()?]);
 
     send_to_community(&creator, &community, dislike, context).await?;
     Ok(())
@@ -283,7 +289,7 @@ impl ApubLikeableType for Comment {
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(DislikeType::Dislike)?)
       .set_to(public())
-      .set_many_ccs(vec![community.get_followers_url()?]);
+      .set_many_ccs(vec![community.actor_id()?]);
 
     // Undo that fake activity
     let mut undo = Undo::new(creator.actor_id.to_owned(), like.into_any_base()?);
@@ -291,7 +297,7 @@ impl ApubLikeableType for Comment {
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
-      .set_many_ccs(vec![community.get_followers_url()?]);
+      .set_many_ccs(vec![community.actor_id()?]);
 
     send_to_community(&creator, &community, undo, context).await?;
     Ok(())

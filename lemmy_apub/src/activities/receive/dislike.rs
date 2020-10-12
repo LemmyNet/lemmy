@@ -1,7 +1,10 @@
 use crate::{
-  activities::receive::{announce_if_community_is_local, receive_unhandled_activity},
+  activities::receive::{
+    announce_if_community_is_local,
+    get_actor_as_user,
+    receive_unhandled_activity,
+  },
   fetcher::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
-  inbox::shared_inbox::get_user_from_activity,
   FromApub,
   PageExt,
 };
@@ -49,7 +52,7 @@ async fn receive_dislike_post(
   dislike: Dislike,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  let user = get_user_from_activity(&dislike, context).await?;
+  let user = get_actor_as_user(&dislike, context).await?;
   let page = PageExt::from_any_base(
     dislike
       .object()
@@ -107,7 +110,7 @@ async fn receive_dislike_comment(
       .context(location_info!())?,
   )?
   .context(location_info!())?;
-  let user = get_user_from_activity(&dislike, context).await?;
+  let user = get_actor_as_user(&dislike, context).await?;
 
   let comment = CommentForm::from_apub(&note, context, None).await?;
 

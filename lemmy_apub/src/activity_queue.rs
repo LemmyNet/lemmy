@@ -31,7 +31,7 @@ use url::Url;
 pub async fn send_activity_single_dest<T, Kind>(
   activity: T,
   creator: &dyn ActorType,
-  to: Url,
+  inbox: Url,
   context: &LemmyContext,
 ) -> Result<(), LemmyError>
 where
@@ -39,13 +39,17 @@ where
   Kind: Serialize,
   <T as Extends<Kind>>::Error: From<serde_json::Error> + Send + Sync + 'static,
 {
-  if check_is_apub_id_valid(&to).is_ok() {
-    debug!("Sending activity {:?} to {}", &activity.id_unchecked(), &to);
+  if check_is_apub_id_valid(&inbox).is_ok() {
+    debug!(
+      "Sending activity {:?} to {}",
+      &activity.id_unchecked(),
+      &inbox
+    );
     send_activity_internal(
       context.activity_queue(),
       activity,
       creator,
-      vec![to],
+      vec![inbox],
       context.pool(),
       true,
     )
@@ -69,7 +73,7 @@ where
   // dont send to the local instance, nor to the instance where the activity originally came from,
   // because that would result in a database error (same data inserted twice)
   let community_shared_inbox = community.get_shared_inbox_url()?;
-  let to: Vec<Url> = community
+  let follower_inboxes: Vec<Url> = community
     .get_follower_inboxes(context.pool())
     .await?
     .iter()
@@ -89,7 +93,7 @@ where
     context.activity_queue(),
     activity,
     community,
-    to,
+    follower_inboxes,
     context.pool(),
     true,
   )
@@ -177,7 +181,7 @@ async fn send_activity_internal<T, Kind>(
   activity_sender: &QueueHandle,
   activity: T,
   actor: &dyn ActorType,
-  to: Vec<Url>,
+  inboxes: Vec<Url>,
   pool: &DbPool,
   insert_into_db: bool,
 ) -> Result<(), LemmyError>
@@ -186,7 +190,7 @@ where
   Kind: Serialize,
   <T as Extends<Kind>>::Error: From<serde_json::Error> + Send + Sync + 'static,
 {
-  if !Settings::get().federation.enabled || to.is_empty() {
+  if !Settings::get().federation.enabled || inboxes.is_empty() {
     return Ok(());
   }
 
@@ -199,10 +203,10 @@ where
     insert_activity(actor.user_id(), activity.clone(), true, pool).await?;
   }
 
-  for t in to {
+  for i in inboxes {
     let message = SendActivityTask {
       activity: serialised_activity.to_owned(),
-      to: t,
+      inbox: i,
       actor_id: actor.actor_id()?,
       private_key: actor.private_key().context(location_info!())?,
     };
@@ -215,7 +219,7 @@ where
 #[derive(Clone, Debug, Deserialize, Serialize)]
 struct SendActivityTask {
   activity: String,
-  to: Url,
+  inbox: Url,
   actor_id: Url,
   private_key: String,
 }
@@ -235,7 +239,7 @@ impl ActixJob for SendActivityTask {
       let result = sign_and_send(
         &state.client,
         headers,
-        &self.to,
+        &self.inbox,
         self.activity.clone(),
         &self.actor_id,
         self.private_key.to_owned(),
@@ -247,7 +251,7 @@ impl ActixJob for SendActivityTask {
         return Err(anyhow!(
           "Failed to send activity {} to {}",
           &self.activity,
-          self.to
+          self.inbox
         ));
       }
       Ok(())

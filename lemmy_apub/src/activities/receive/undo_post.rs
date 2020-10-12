@@ -1,7 +1,6 @@
 use crate::{
-  activities::receive::announce_if_community_is_local,
+  activities::receive::{announce_if_community_is_local, get_actor_as_user},
   fetcher::get_or_fetch_and_insert_post,
-  inbox::shared_inbox::get_user_from_activity,
   ActorType,
   FromApub,
   PageExt,
@@ -25,7 +24,7 @@ pub(crate) async fn receive_undo_like_post(
   like: &Like,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  let user = get_user_from_activity(like, context).await?;
+  let user = get_actor_as_user(like, context).await?;
   let page = PageExt::from_any_base(like.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
@@ -64,7 +63,7 @@ pub(crate) async fn receive_undo_dislike_post(
   dislike: &Dislike,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  let user = get_user_from_activity(dislike, context).await?;
+  let user = get_actor_as_user(dislike, context).await?;
   let page = PageExt::from_any_base(
     dislike
       .object()
@@ -109,7 +108,7 @@ pub(crate) async fn receive_undo_delete_post(
   delete: &Delete,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  let user = get_user_from_activity(delete, context).await?;
+  let user = get_actor_as_user(delete, context).await?;
   let page = PageExt::from_any_base(delete.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
@@ -169,7 +168,7 @@ pub(crate) async fn receive_undo_remove_post(
   remove: &Remove,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  let mod_ = get_user_from_activity(remove, context).await?;
+  let mod_ = get_actor_as_user(remove, context).await?;
   let page = PageExt::from_any_base(remove.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
