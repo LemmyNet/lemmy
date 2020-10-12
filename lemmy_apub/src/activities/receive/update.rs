@@ -1,10 +1,10 @@
 use crate::{
-  fetcher::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
-  inbox::shared_inbox::{
+  activities::receive::{
     announce_if_community_is_local,
-    get_user_from_activity,
+    get_actor_as_user,
     receive_unhandled_activity,
   },
+  fetcher::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
   ActorType,
   FromApub,
   PageExt,
@@ -34,7 +34,7 @@ pub async fn receive_update(
   let update = Update::from_any_base(activity)?.context(location_info!())?;
 
   // ensure that update and actor come from the same instance
-  let user = get_user_from_activity(&update, context).await?;
+  let user = get_actor_as_user(&update, context).await?;
   update.id(user.actor_id()?.domain().context(location_info!())?)?;
 
   match update.object().as_single_kind_str() {
@@ -48,7 +48,7 @@ async fn receive_update_post(
   update: Update,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  let user = get_user_from_activity(&update, context).await?;
+  let user = get_actor_as_user(&update, context).await?;
   let page = PageExt::from_any_base(update.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
@@ -87,7 +87,7 @@ async fn receive_update_comment(
 ) -> Result<HttpResponse, LemmyError> {
   let note = Note::from_any_base(update.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
-  let user = get_user_from_activity(&update, context).await?;
+  let user = get_actor_as_user(&update, context).await?;
 
   let comment = CommentForm::from_apub(&note, context, Some(user.actor_id()?)).await?;
 

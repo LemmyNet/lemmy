@@ -1,11 +1,13 @@
 use actix_web::*;
 use http_signature_normalization_actix::digest::middleware::VerifyDigest;
 use lemmy_apub::{
-  comment::get_apub_comment,
-  community::*,
+  http::{
+    comment::get_apub_comment,
+    community::{get_apub_community_followers, get_apub_community_http, get_apub_community_outbox},
+    post::get_apub_post,
+    user::get_apub_user_http,
+  },
   inbox::{community_inbox::community_inbox, shared_inbox::shared_inbox, user_inbox::user_inbox},
-  post::get_apub_post,
-  user::*,
   APUB_JSON_CONTENT_TYPE,
 };
 use lemmy_utils::settings::Settings;

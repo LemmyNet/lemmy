@@ -1,19 +1,18 @@
 use crate::{
-  fetcher::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
-  inbox::shared_inbox::{
+  activities::receive::{
     announce_if_community_is_local,
-    get_community_id_from_activity,
-    get_user_from_activity,
+    get_actor_as_user,
     receive_unhandled_activity,
   },
+  fetcher::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
   ActorType,
   FromApub,
   GroupExt,
   PageExt,
 };
-use activitystreams::{activity::Remove, base::AnyBase, object::Note, prelude::*};
+use activitystreams::{activity::Delete, base::AnyBase, object::Note, prelude::*};
 use actix_web::HttpResponse;
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use lemmy_db::{
   comment::{Comment, CommentForm},
   comment_view::CommentView,
@@ -37,34 +36,28 @@ use lemmy_websocket::{
   UserOperation,
 };
 
-pub async fn receive_remove(
+pub async fn receive_delete(
   activity: AnyBase,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  let remove = Remove::from_any_base(activity)?.context(location_info!())?;
-  let actor = get_user_from_activity(&remove, context).await?;
-  let community = get_community_id_from_activity(&remove)?;
-  if actor.actor_id()?.domain() != community.domain() {
-    return Err(anyhow!("Remove activities are only allowed on local objects").into());
-  }
-
-  match remove.object().as_single_kind_str() {
-    Some("Page") => receive_remove_post(remove, context).await,
-    Some("Note") => receive_remove_comment(remove, context).await,
-    Some("Group") => receive_remove_community(remove, context).await,
-    _ => receive_unhandled_activity(remove),
+  let delete = Delete::from_any_base(activity)?.context(location_info!())?;
+  match delete.object().as_single_kind_str() {
+    Some("Page") => receive_delete_post(delete, context).await,
+    Some("Note") => receive_delete_comment(delete, context).await,
+    Some("Group") => receive_delete_community(delete, context).await,
+    _ => receive_unhandled_activity(delete),
   }
 }
 
-async fn receive_remove_post(
-  remove: Remove,
+async fn receive_delete_post(
+  delete: Delete,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  let mod_ = get_user_from_activity(&remove, context).await?;
-  let page = PageExt::from_any_base(remove.object().to_owned().one().context(location_info!())?)?
+  let user = get_actor_as_user(&delete, context).await?;
+  let page = PageExt::from_any_base(delete.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
-  let post_ap_id = PostForm::from_apub(&page, context, None)
+  let post_ap_id = PostForm::from_apub(&page, context, Some(user.actor_id()?))
     .await?
     .get_ap_id()?;
 
@@ -76,8 +69,8 @@ async fn receive_remove_post(
     body: post.body.to_owned(),
     creator_id: post.creator_id.to_owned(),
     community_id: post.community_id,
-    removed: Some(true),
-    deleted: None,
+    removed: None,
+    deleted: Some(true),
     nsfw: post.nsfw,
     locked: None,
     stickied: None,
@@ -111,19 +104,19 @@ async fn receive_remove_post(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(remove, &mod_, context).await?;
+  announce_if_community_is_local(delete, &user, context).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
-async fn receive_remove_comment(
-  remove: Remove,
+async fn receive_delete_comment(
+  delete: Delete,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  let mod_ = get_user_from_activity(&remove, context).await?;
-  let note = Note::from_any_base(remove.object().to_owned().one().context(location_info!())?)?
+  let user = get_actor_as_user(&delete, context).await?;
+  let note = Note::from_any_base(delete.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
-  let comment_ap_id = CommentForm::from_apub(&note, context, None)
+  let comment_ap_id = CommentForm::from_apub(&note, context, Some(user.actor_id()?))
     .await?
     .get_ap_id()?;
 
@@ -134,8 +127,8 @@ async fn receive_remove_comment(
     parent_id: comment.parent_id,
     post_id: comment.post_id,
     creator_id: comment.creator_id,
-    removed: Some(true),
-    deleted: None,
+    removed: None,
+    deleted: Some(true),
     read: None,
     published: None,
     updated: Some(naive_now()),
@@ -169,19 +162,19 @@ async fn receive_remove_comment(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(remove, &mod_, context).await?;
+  announce_if_community_is_local(delete, &user, context).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
-async fn receive_remove_community(
-  remove: Remove,
+async fn receive_delete_community(
+  delete: Delete,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  let mod_ = get_user_from_activity(&remove, context).await?;
-  let group = GroupExt::from_any_base(remove.object().to_owned().one().context(location_info!())?)?
+  let group = GroupExt::from_any_base(delete.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
+  let user = get_actor_as_user(&delete, context).await?;
 
-  let community_actor_id = CommunityForm::from_apub(&group, context, Some(mod_.actor_id()?))
+  let community_actor_id = CommunityForm::from_apub(&group, context, Some(user.actor_id()?))
     .await?
     .actor_id
     .context(location_info!())?;
@@ -197,10 +190,10 @@ async fn receive_remove_community(
     description: community.description.to_owned(),
     category_id: community.category_id, // Note: need to keep this due to foreign key constraint
     creator_id: community.creator_id,   // Note: need to keep this due to foreign key constraint
-    removed: Some(true),
+    removed: None,
     published: None,
     updated: Some(naive_now()),
-    deleted: None,
+    deleted: Some(true),
     nsfw: community.nsfw,
     actor_id: Some(community.actor_id),
     local: community.local,
@@ -234,6 +227,6 @@ async fn receive_remove_community(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(remove, &mod_, context).await?;
+  announce_if_community_is_local(delete, &user, context).await?;
   Ok(HttpResponse::Ok().finish())
 }

@@ -1,13 +1,5 @@
 use crate::{
-  check_is_apub_id_valid,
-  community::do_announce,
-  extensions::signatures::verify,
-  fetcher::{
-    get_or_fetch_and_upsert_actor,
-    get_or_fetch_and_upsert_community,
-    get_or_fetch_and_upsert_user,
-  },
-  inbox::activities::{
+  activities::receive::{
     announce::receive_announce,
     create::receive_create,
     delete::receive_delete,
@@ -17,23 +9,19 @@ use crate::{
     undo::receive_undo,
     update::receive_update,
   },
+  check_is_apub_id_valid,
+  extensions::signatures::verify,
+  fetcher::get_or_fetch_and_upsert_actor,
   insert_activity,
 };
-use activitystreams::{
-  activity::{ActorAndObject, ActorAndObjectRef},
-  base::{AsBase, Extends},
-  object::AsObject,
-  prelude::*,
-};
+use activitystreams::{activity::ActorAndObject, prelude::*};
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Context;
-use lemmy_db::user::User_;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::debug;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
-use url::Url;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
@@ -48,11 +36,11 @@ pub enum ValidTypes {
   Announce,
 }
 
-// TODO: this isnt entirely correct, cause some of these activities are not ActorAndObject,
+// TODO: this isnt entirely correct, cause some of these receive are not ActorAndObject,
 //       but it might still work due to the anybase conversion
 pub type AcceptedActivities = ActorAndObject<ValidTypes>;
 
-/// Handler for all incoming activities to user inboxes.
+/// Handler for all incoming receive to user inboxes.
 pub async fn shared_inbox(
   request: HttpRequest,
   input: web::Json<AcceptedActivities>,
@@ -60,22 +48,20 @@ pub async fn shared_inbox(
 ) -> Result<HttpResponse, LemmyError> {
   let activity = input.into_inner();
 
-  let sender = &activity
+  let actor = activity
     .actor()?
     .to_owned()
     .single_xsd_any_uri()
     .context(location_info!())?;
-  let community = get_community_id_from_activity(&activity)?;
   debug!(
     "Shared inbox received activity {:?} from {}",
     &activity.id_unchecked(),
-    &sender
+    &actor
   );
 
-  check_is_apub_id_valid(sender)?;
-  check_is_apub_id_valid(&community)?;
+  check_is_apub_id_valid(&actor)?;
 
-  let actor = get_or_fetch_and_upsert_actor(sender, &context).await?;
+  let actor = get_or_fetch_and_upsert_actor(&actor, &context).await?;
   verify(&request, actor.as_ref())?;
 
   let any_base = activity.clone().into_any_base()?;
@@ -93,73 +79,4 @@ pub async fn shared_inbox(
 
   insert_activity(actor.user_id(), activity.clone(), false, context.pool()).await?;
   res
-}
-
-pub(in crate::inbox) fn receive_unhandled_activity<A>(
-  activity: A,
-) -> Result<HttpResponse, LemmyError>
-where
-  A: Debug,
-{
-  debug!("received unhandled activity type: {:?}", activity);
-  Ok(HttpResponse::NotImplemented().finish())
-}
-
-pub(in crate::inbox) async fn get_user_from_activity<T, A>(
-  activity: &T,
-  context: &LemmyContext,
-) -> Result<User_, LemmyError>
-where
-  T: AsBase<A> + ActorAndObjectRef,
-{
-  let actor = activity.actor()?;
-  let user_uri = actor.as_single_xsd_any_uri().context(location_info!())?;
-  get_or_fetch_and_upsert_user(&user_uri, context).await
-}
-
-pub(in crate::inbox) fn get_community_id_from_activity<T, A>(
-  activity: &T,
-) -> Result<Url, LemmyError>
-where
-  T: AsBase<A> + ActorAndObjectRef + AsObject<A>,
-{
-  let cc = activity.cc().context(location_info!())?;
-  let cc = cc.as_many().context(location_info!())?;
-  Ok(
-    cc.first()
-      .context(location_info!())?
-      .as_xsd_any_uri()
-      .context(location_info!())?
-      .to_owned(),
-  )
-}
-
-pub(in crate::inbox) async fn announce_if_community_is_local<T, Kind>(
-  activity: T,
-  user: &User_,
-  context: &LemmyContext,
-) -> Result<(), LemmyError>
-where
-  T: AsObject<Kind>,
-  T: Extends<Kind>,
-  Kind: Serialize,
-  <T as Extends<Kind>>::Error: From<serde_json::Error> + Send + Sync + 'static,
-{
-  let cc = activity.cc().context(location_info!())?;
-  let cc = cc.as_many().context(location_info!())?;
-  let community_followers_uri = cc
-    .first()
-    .context(location_info!())?
-    .as_xsd_any_uri()
-    .context(location_info!())?;
-  // TODO: this is hacky but seems to be the only way to get the community ID
-  let community_uri = community_followers_uri
-    .to_string()
-    .replace("/followers", "");
-  let community = get_or_fetch_and_upsert_community(&Url::parse(&community_uri)?, context).await?;
-
-  if community.local {
-    do_announce(activity.into_any_base()?, &community, &user, context).await?;
-  }
-  Ok(())
 }

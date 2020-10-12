@@ -1,14 +1,12 @@
-use crate::inbox::{
-  activities::{
-    create::receive_create,
-    delete::receive_delete,
-    dislike::receive_dislike,
-    like::receive_like,
-    remove::receive_remove,
-    undo::receive_undo,
-    update::receive_update,
-  },
-  shared_inbox::{get_community_id_from_activity, receive_unhandled_activity},
+use crate::activities::receive::{
+  create::receive_create,
+  delete::receive_delete,
+  dislike::receive_dislike,
+  like::receive_like,
+  receive_unhandled_activity,
+  remove::receive_remove,
+  undo::receive_undo,
+  update::receive_update,
 };
 use activitystreams::{
   activity::*,
@@ -27,8 +25,12 @@ pub async fn receive_announce(
   let announce = Announce::from_any_base(activity)?.context(location_info!())?;
 
   // ensure that announce and community come from the same instance
-  let community = get_community_id_from_activity(&announce)?;
-  announce.id(community.domain().context(location_info!())?)?;
+  let community_id = announce
+    .actor()?
+    .to_owned()
+    .single_xsd_any_uri()
+    .context(location_info!())?;
+  announce.id(community_id.domain().context(location_info!())?)?;
 
   let kind = announce.object().as_single_kind_str();
   let object = announce.object();

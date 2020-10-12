@@ -1,20 +1,10 @@
 use crate::{
+  activities::send::generate_activity_id,
   activity_queue::{send_comment_mentions, send_to_community},
-  check_actor_domain,
-  create_apub_response,
-  create_apub_tombstone_response,
-  create_tombstone,
-  fetch_webfinger_url,
-  fetcher::{
-    get_or_fetch_and_insert_comment,
-    get_or_fetch_and_insert_post,
-    get_or_fetch_and_upsert_user,
-  },
-  generate_activity_id,
+  fetcher::get_or_fetch_and_upsert_user,
   ActorType,
   ApubLikeableType,
   ApubObjectType,
-  FromApub,
   ToApub,
 };
 use activitystreams::{
@@ -30,173 +20,24 @@ use activitystreams::{
   },
   base::AnyBase,
   link::Mention,
-  object::{kind::NoteType, Note, Tombstone},
   prelude::*,
   public,
 };
-use actix_web::{body::Body, web, web::Path, HttpResponse};
-use anyhow::Context;
-use diesel::result::Error::NotFound;
+use anyhow::anyhow;
 use itertools::Itertools;
-use lemmy_db::{
-  comment::{Comment, CommentForm},
-  community::Community,
-  post::Post,
-  user::User_,
-  Crud,
-  DbPool,
-};
-use lemmy_structs::blocking;
+use lemmy_db::{comment::Comment, community::Community, post::Post, user::User_, Crud};
+use lemmy_structs::{blocking, WebFingerResponse};
 use lemmy_utils::{
-  location_info,
-  utils::{convert_datetime, remove_slurs, scrape_text_for_mentions, MentionData},
+  request::{retry, RecvError},
+  settings::Settings,
+  utils::{scrape_text_for_mentions, MentionData},
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
 use log::debug;
-use serde::Deserialize;
+use reqwest::Client;
 use serde_json::Error;
 use url::Url;
-
-#[derive(Deserialize)]
-pub struct CommentQuery {
-  comment_id: String,
-}
-
-/// Return the post json over HTTP.
-pub async fn get_apub_comment(
-  info: Path<CommentQuery>,
-  context: web::Data<LemmyContext>,
-) -> Result<HttpResponse<Body>, LemmyError> {
-  let id = info.comment_id.parse::<i32>()?;
-  let comment = blocking(context.pool(), move |conn| Comment::read(conn, id)).await??;
-  if !comment.local {
-    return Err(NotFound.into());
-  }
-
-  if !comment.deleted {
-    Ok(create_apub_response(
-      &comment.to_apub(context.pool()).await?,
-    ))
-  } else {
-    Ok(create_apub_tombstone_response(&comment.to_tombstone()?))
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl ToApub for Comment {
-  type Response = Note;
-
-  async fn to_apub(&self, pool: &DbPool) -> Result<Note, LemmyError> {
-    let mut comment = Note::new();
-
-    let creator_id = self.creator_id;
-    let creator = blocking(pool, move |conn| User_::read(conn, creator_id)).await??;
-
-    let post_id = self.post_id;
-    let post = blocking(pool, move |conn| Post::read(conn, post_id)).await??;
-
-    let community_id = post.community_id;
-    let community = blocking(pool, move |conn| Community::read(conn, community_id)).await??;
-
-    // Add a vector containing some important info to the "in_reply_to" field
-    // [post_ap_id, Option(parent_comment_ap_id)]
-    let mut in_reply_to_vec = vec![post.ap_id];
-
-    if let Some(parent_id) = self.parent_id {
-      let parent_comment = blocking(pool, move |conn| Comment::read(conn, parent_id)).await??;
-
-      in_reply_to_vec.push(parent_comment.ap_id);
-    }
-
-    comment
-      // Not needed when the Post is embedded in a collection (like for community outbox)
-      .set_context(activitystreams::context())
-      .set_id(Url::parse(&self.ap_id)?)
-      .set_published(convert_datetime(self.published))
-      .set_to(community.actor_id)
-      .set_many_in_reply_tos(in_reply_to_vec)
-      .set_content(self.content.to_owned())
-      .set_attributed_to(creator.actor_id);
-
-    if let Some(u) = self.updated {
-      comment.set_updated(convert_datetime(u));
-    }
-
-    Ok(comment)
-  }
-
-  fn to_tombstone(&self) -> Result<Tombstone, LemmyError> {
-    create_tombstone(self.deleted, &self.ap_id, self.updated, NoteType::Note)
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl FromApub for CommentForm {
-  type ApubType = Note;
-
-  /// Parse an ActivityPub note received from another instance into a Lemmy comment
-  async fn from_apub(
-    note: &Note,
-    context: &LemmyContext,
-    expected_domain: Option<Url>,
-  ) -> Result<CommentForm, LemmyError> {
-    let creator_actor_id = &note
-      .attributed_to()
-      .context(location_info!())?
-      .as_single_xsd_any_uri()
-      .context(location_info!())?;
-
-    let creator = get_or_fetch_and_upsert_user(creator_actor_id, context).await?;
-
-    let mut in_reply_tos = note
-      .in_reply_to()
-      .as_ref()
-      .context(location_info!())?
-      .as_many()
-      .context(location_info!())?
-      .iter()
-      .map(|i| i.as_xsd_any_uri().context(""));
-    let post_ap_id = in_reply_tos.next().context(location_info!())??;
-
-    // This post, or the parent comment might not yet exist on this server yet, fetch them.
-    let post = get_or_fetch_and_insert_post(&post_ap_id, context).await?;
-
-    // The 2nd item, if it exists, is the parent comment apub_id
-    // For deeply nested comments, FromApub automatically gets called recursively
-    let parent_id: Option<i32> = match in_reply_tos.next() {
-      Some(parent_comment_uri) => {
-        let parent_comment_ap_id = &parent_comment_uri?;
-        let parent_comment =
-          get_or_fetch_and_insert_comment(&parent_comment_ap_id, context).await?;
-
-        Some(parent_comment.id)
-      }
-      None => None,
-    };
-    let content = note
-      .content()
-      .context(location_info!())?
-      .as_single_xsd_string()
-      .context(location_info!())?
-      .to_string();
-    let content_slurs_removed = remove_slurs(&content);
-
-    Ok(CommentForm {
-      creator_id: creator.id,
-      post_id: post.id,
-      parent_id,
-      content: content_slurs_removed,
-      removed: None,
-      read: None,
-      published: note.published().map(|u| u.to_owned().naive_local()),
-      updated: note.updated().map(|u| u.to_owned().naive_local()),
-      deleted: None,
-      ap_id: Some(check_actor_domain(note, expected_domain)?),
-      local: false,
-    })
-  }
-}
 
 #[async_trait::async_trait(?Send)]
 impl ApubObjectType for Comment {
@@ -213,14 +54,17 @@ impl ApubObjectType for Comment {
     })
     .await??;
 
-    let maa = collect_non_local_mentions_and_addresses(&self.content, &community, context).await?;
+    let mut maa =
+      collect_non_local_mentions_and_addresses(&self.content, &community, context).await?;
+    let mut ccs = vec![community.actor_id()?];
+    ccs.append(&mut maa.addressed_ccs);
 
     let mut create = Create::new(creator.actor_id.to_owned(), note.into_any_base()?);
     create
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(CreateType::Create)?)
       .set_to(public())
-      .set_many_ccs(maa.addressed_ccs.to_owned())
+      .set_many_ccs(ccs)
       // Set the mention tags
       .set_many_tags(maa.get_tags()?);
 
@@ -242,14 +86,17 @@ impl ApubObjectType for Comment {
     })
     .await??;
 
-    let maa = collect_non_local_mentions_and_addresses(&self.content, &community, context).await?;
+    let mut maa =
+      collect_non_local_mentions_and_addresses(&self.content, &community, context).await?;
+    let mut ccs = vec![community.actor_id()?];
+    ccs.append(&mut maa.addressed_ccs);
 
     let mut update = Update::new(creator.actor_id.to_owned(), note.into_any_base()?);
     update
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(UpdateType::Update)?)
       .set_to(public())
-      .set_many_ccs(maa.addressed_ccs.to_owned())
+      .set_many_ccs(ccs)
       // Set the mention tags
       .set_many_tags(maa.get_tags()?);
 
@@ -275,7 +122,7 @@ impl ApubObjectType for Comment {
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
-      .set_many_ccs(vec![community.get_followers_url()?]);
+      .set_many_ccs(vec![community.actor_id()?]);
 
     send_to_community(&creator, &community, delete, context).await?;
     Ok(())
@@ -303,7 +150,7 @@ impl ApubObjectType for Comment {
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
-      .set_many_ccs(vec![community.get_followers_url()?]);
+      .set_many_ccs(vec![community.actor_id()?]);
 
     // Undo that fake activity
     let mut undo = Undo::new(creator.actor_id.to_owned(), delete.into_any_base()?);
@@ -311,7 +158,7 @@ impl ApubObjectType for Comment {
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
-      .set_many_ccs(vec![community.get_followers_url()?]);
+      .set_many_ccs(vec![community.actor_id()?]);
 
     send_to_community(&creator, &community, undo, context).await?;
     Ok(())
@@ -334,7 +181,7 @@ impl ApubObjectType for Comment {
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
-      .set_many_ccs(vec![community.get_followers_url()?]);
+      .set_many_ccs(vec![community.actor_id()?]);
 
     send_to_community(&mod_, &community, remove, context).await?;
     Ok(())
@@ -358,7 +205,7 @@ impl ApubObjectType for Comment {
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
-      .set_many_ccs(vec![community.get_followers_url()?]);
+      .set_many_ccs(vec![community.actor_id()?]);
 
     // Undo that fake activity
     let mut undo = Undo::new(mod_.actor_id.to_owned(), remove.into_any_base()?);
@@ -366,7 +213,7 @@ impl ApubObjectType for Comment {
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
-      .set_many_ccs(vec![community.get_followers_url()?]);
+      .set_many_ccs(vec![community.actor_id()?]);
 
     send_to_community(&mod_, &community, undo, context).await?;
     Ok(())
@@ -392,7 +239,7 @@ impl ApubLikeableType for Comment {
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(LikeType::Like)?)
       .set_to(public())
-      .set_many_ccs(vec![community.get_followers_url()?]);
+      .set_many_ccs(vec![community.actor_id()?]);
 
     send_to_community(&creator, &community, like, context).await?;
     Ok(())
@@ -415,7 +262,7 @@ impl ApubLikeableType for Comment {
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(DislikeType::Dislike)?)
       .set_to(public())
-      .set_many_ccs(vec![community.get_followers_url()?]);
+      .set_many_ccs(vec![community.actor_id()?]);
 
     send_to_community(&creator, &community, dislike, context).await?;
     Ok(())
@@ -442,7 +289,7 @@ impl ApubLikeableType for Comment {
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(DislikeType::Dislike)?)
       .set_to(public())
-      .set_many_ccs(vec![community.get_followers_url()?]);
+      .set_many_ccs(vec![community.actor_id()?]);
 
     // Undo that fake activity
     let mut undo = Undo::new(creator.actor_id.to_owned(), like.into_any_base()?);
@@ -450,7 +297,7 @@ impl ApubLikeableType for Comment {
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
-      .set_many_ccs(vec![community.get_followers_url()?]);
+      .set_many_ccs(vec![community.actor_id()?]);
 
     send_to_community(&creator, &community, undo, context).await?;
     Ok(())
@@ -517,4 +364,34 @@ async fn collect_non_local_mentions_and_addresses(
     inboxes,
     tags,
   })
+}
+
+async fn fetch_webfinger_url(mention: &MentionData, client: &Client) -> Result<Url, LemmyError> {
+  let fetch_url = format!(
+    "{}://{}/.well-known/webfinger?resource=acct:{}@{}",
+    Settings::get().get_protocol_string(),
+    mention.domain,
+    mention.name,
+    mention.domain
+  );
+  debug!("Fetching webfinger url: {}", &fetch_url);
+
+  let response = retry(|| client.get(&fetch_url).send()).await?;
+
+  let res: WebFingerResponse = response
+    .json()
+    .await
+    .map_err(|e| RecvError(e.to_string()))?;
+
+  let link = res
+    .links
+    .iter()
+    .find(|l| l.type_.eq(&Some("application/activity+json".to_string())))
+    .ok_or_else(|| anyhow!("No application/activity+json link found."))?;
+  link
+    .href
+    .to_owned()
+    .map(|u| Url::parse(&u))
+    .transpose()?
+    .ok_or_else(|| anyhow!("No href found.").into())
 }
