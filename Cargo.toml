@@ -30,8 +30,8 @@ diesel_migrations = "1.4"
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 actix = "0.10"
-actix-web = { version = "3.0", default-features = false, features = ["rustls"] }
-actix-files = { version = "0.3", default-features = false }
+actix-web = { version = "3.1", default-features = false, features = ["rustls"] }
+actix-files = { version = "0.4", default-features = false }
 actix-web-actors = { version = "3.0", default-features = false }
 awc = { version = "2.0", default-features = false }
 log = "0.4"
