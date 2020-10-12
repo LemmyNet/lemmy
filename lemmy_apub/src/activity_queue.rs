@@ -189,10 +189,6 @@ where
     return Ok(());
   }
 
-  for to_url in &to {
-    check_is_apub_id_valid(&to_url)?;
-  }
-
   let activity = activity.into_any_base()?;
   let serialised_activity = serde_json::to_string(&activity)?;
 
