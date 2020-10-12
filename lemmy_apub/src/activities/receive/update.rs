@@ -1,10 +1,7 @@
 use crate::{
+  activities::receive::{announce_if_community_is_local, receive_unhandled_activity},
   fetcher::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
-  inbox::shared_inbox::{
-    announce_if_community_is_local,
-    get_user_from_activity,
-    receive_unhandled_activity,
-  },
+  inbox::shared_inbox::get_user_from_activity,
   ActorType,
   FromApub,
   PageExt,

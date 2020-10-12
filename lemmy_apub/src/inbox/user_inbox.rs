@@ -41,7 +41,7 @@ pub enum ValidTypes {
 
 pub type AcceptedActivities = ActorAndObject<ValidTypes>;
 
-/// Handler for all incoming activities to user inboxes.
+/// Handler for all incoming receive to user inboxes.
 pub async fn user_inbox(
   request: HttpRequest,
   input: web::Json<AcceptedActivities>,

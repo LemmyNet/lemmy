@@ -1,14 +1,15 @@
-use crate::inbox::{
-  activities::{
+use crate::{
+  activities::receive::{
     create::receive_create,
     delete::receive_delete,
     dislike::receive_dislike,
     like::receive_like,
+    receive_unhandled_activity,
     remove::receive_remove,
     undo::receive_undo,
     update::receive_update,
   },
-  shared_inbox::{get_community_id_from_activity, receive_unhandled_activity},
+  inbox::shared_inbox::get_community_id_from_activity,
 };
 use activitystreams::{
   activity::*,

@@ -33,7 +33,7 @@ pub enum ValidTypes {
 
 pub type AcceptedActivities = ActorAndObject<ValidTypes>;
 
-/// Handler for all incoming activities to community inboxes.
+/// Handler for all incoming receive to community inboxes.
 pub async fn community_inbox(
   request: HttpRequest,
   input: web::Json<AcceptedActivities>,

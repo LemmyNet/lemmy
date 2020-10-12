@@ -1,11 +1,7 @@
 use crate::{
+  activities::receive::{announce_if_community_is_local, receive_unhandled_activity},
   fetcher::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
-  inbox::shared_inbox::{
-    announce_if_community_is_local,
-    get_community_id_from_activity,
-    get_user_from_activity,
-    receive_unhandled_activity,
-  },
+  inbox::shared_inbox::{get_community_id_from_activity, get_user_from_activity},
   ActorType,
   FromApub,
   GroupExt,
@@ -45,7 +41,7 @@ pub async fn receive_remove(
   let actor = get_user_from_activity(&remove, context).await?;
   let community = get_community_id_from_activity(&remove)?;
   if actor.actor_id()?.domain() != community.domain() {
-    return Err(anyhow!("Remove activities are only allowed on local objects").into());
+    return Err(anyhow!("Remove receive are only allowed on local objects").into());
   }
 
   match remove.object().as_single_kind_str() {

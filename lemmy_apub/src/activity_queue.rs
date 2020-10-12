@@ -1,6 +1,5 @@
 use crate::{
   check_is_apub_id_valid,
-  community::do_announce,
   extensions::signatures::sign_and_send,
   insert_activity,
   ActorType,
@@ -112,7 +111,9 @@ where
 {
   // if this is a local community, we need to do an announce from the community instead
   if community.local {
-    do_announce(activity.into_any_base()?, &community, creator, context).await?;
+    community
+      .send_announce(activity.into_any_base()?, creator, context)
+      .await?;
   } else {
     let inbox = community.get_shared_inbox_url()?;
     check_is_apub_id_valid(&inbox)?;
