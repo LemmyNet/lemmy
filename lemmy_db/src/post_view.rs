@@ -289,9 +289,7 @@ impl<'a> PostQueryBuilder<'a> {
 
     if let Some(search_term) = self.search_term {
       let searcher = fuzzy_search(&search_term);
-      query = query
-        .filter(name.ilike(searcher.to_owned()))
-        .or_filter(body.ilike(searcher));
+      query = query.filter(name.ilike(searcher.to_owned()).or(body.ilike(searcher)));
     }
 
     query = match self.sort {
