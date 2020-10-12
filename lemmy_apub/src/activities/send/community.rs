@@ -2,7 +2,7 @@ use crate::{
   activities::send::generate_activity_id,
   activity_queue::{send_activity_single_dest, send_to_community_followers},
   check_is_apub_id_valid,
-  fetcher::get_or_fetch_and_upsert_actor,
+  fetcher::get_or_fetch_and_upsert_user,
   ActorType,
   ToApub,
 };
@@ -72,16 +72,15 @@ impl ActorType for Community {
       .actor()?
       .as_single_xsd_any_uri()
       .context(location_info!())?;
-    let actor = get_or_fetch_and_upsert_actor(actor_uri, context).await?;
+    let user = get_or_fetch_and_upsert_user(actor_uri, context).await?;
 
     let mut accept = Accept::new(self.actor_id.to_owned(), follow.into_any_base()?);
-    let to = actor.get_inbox_url()?;
     accept
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(AcceptType::Accept)?)
-      .set_to(to.clone());
+      .set_to(user.actor_id()?);
 
-    send_activity_single_dest(accept, self, to, context).await?;
+    send_activity_single_dest(accept, self, user.get_inbox_url()?, context).await?;
     Ok(())
   }
 

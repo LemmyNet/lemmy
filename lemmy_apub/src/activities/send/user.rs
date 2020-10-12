@@ -1,7 +1,6 @@
 use crate::{
   activities::send::generate_activity_id,
   activity_queue::send_activity_single_dest,
-  fetcher::get_or_fetch_and_upsert_actor,
   ActorType,
 };
 use activitystreams::{
@@ -11,8 +10,10 @@ use activitystreams::{
     Undo,
   },
   base::{AnyBase, BaseExt, ExtendsExt},
+  object::ObjectExt,
 };
-use lemmy_db::{user::User_, DbPool};
+use lemmy_db::{community::Community, user::User_, DbPool};
+use lemmy_structs::blocking;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use url::Url;
@@ -41,14 +42,19 @@ impl ActorType for User_ {
     follow_actor_id: &Url,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let mut follow = Follow::new(self.actor_id.to_owned(), follow_actor_id.as_str());
+    let follow_actor_id = follow_actor_id.to_string();
+    let community = blocking(context.pool(), move |conn| {
+      Community::read_from_actor_id(conn, &follow_actor_id)
+    })
+    .await??;
+
+    let mut follow = Follow::new(self.actor_id.to_owned(), community.actor_id()?);
     follow
       .set_context(activitystreams::context())
-      .set_id(generate_activity_id(FollowType::Follow)?);
-    let follow_actor = get_or_fetch_and_upsert_actor(follow_actor_id, context).await?;
-    let to = follow_actor.get_inbox_url()?;
+      .set_id(generate_activity_id(FollowType::Follow)?)
+      .set_to(community.actor_id()?);
 
-    send_activity_single_dest(follow, self, to, context).await?;
+    send_activity_single_dest(follow, self, community.get_inbox_url()?, context).await?;
     Ok(())
   }
 
@@ -57,21 +63,26 @@ impl ActorType for User_ {
     follow_actor_id: &Url,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let mut follow = Follow::new(self.actor_id.to_owned(), follow_actor_id.as_str());
+    let follow_actor_id = follow_actor_id.to_string();
+    let community = blocking(context.pool(), move |conn| {
+      Community::read_from_actor_id(conn, &follow_actor_id)
+    })
+    .await??;
+
+    let mut follow = Follow::new(self.actor_id.to_owned(), community.actor_id()?);
     follow
       .set_context(activitystreams::context())
-      .set_id(generate_activity_id(FollowType::Follow)?);
-    let follow_actor = get_or_fetch_and_upsert_actor(follow_actor_id, context).await?;
-
-    let to = follow_actor.get_inbox_url()?;
+      .set_id(generate_activity_id(FollowType::Follow)?)
+      .set_to(community.actor_id()?);
 
     // Undo that fake activity
     let mut undo = Undo::new(Url::parse(&self.actor_id)?, follow.into_any_base()?);
     undo
       .set_context(activitystreams::context())
-      .set_id(generate_activity_id(UndoType::Undo)?);
+      .set_id(generate_activity_id(UndoType::Undo)?)
+      .set_to(community.actor_id()?);
 
-    send_activity_single_dest(undo, self, to, context).await?;
+    send_activity_single_dest(undo, self, community.get_inbox_url()?, context).await?;
     Ok(())
   }
 
