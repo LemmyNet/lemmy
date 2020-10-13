@@ -1,7 +1,6 @@
 use crate::{
   activities::receive::{announce_if_community_is_local, get_actor_as_user},
   fetcher::get_or_fetch_and_insert_comment,
-  ActorType,
   FromApub,
 };
 use activitystreams::{activity::*, object::Note, prelude::*};
@@ -10,8 +9,6 @@ use anyhow::Context;
 use lemmy_db::{
   comment::{Comment, CommentForm, CommentLike},
   comment_view::CommentView,
-  naive_now,
-  Crud,
   Likeable,
 };
 use lemmy_structs::{blocking, comment::CommentResponse};
@@ -115,41 +112,17 @@ pub(crate) async fn receive_undo_dislike_comment(
 }
 
 pub(crate) async fn receive_undo_delete_comment(
-  undo: Undo,
-  delete: &Delete,
   context: &LemmyContext,
+  undo: Undo,
+  comment: Comment,
 ) -> Result<HttpResponse, LemmyError> {
-  let user = get_actor_as_user(delete, context).await?;
-  let note = Note::from_any_base(delete.object().to_owned().one().context(location_info!())?)?
-    .context(location_info!())?;
-
-  let comment_ap_id = CommentForm::from_apub(&note, context, Some(user.actor_id()?))
-    .await?
-    .get_ap_id()?;
-
-  let comment = get_or_fetch_and_insert_comment(&comment_ap_id, context).await?;
-
-  let comment_form = CommentForm {
-    content: comment.content.to_owned(),
-    parent_id: comment.parent_id,
-    post_id: comment.post_id,
-    creator_id: comment.creator_id,
-    removed: None,
-    deleted: Some(false),
-    read: None,
-    published: None,
-    updated: Some(naive_now()),
-    ap_id: Some(comment.ap_id),
-    local: comment.local,
-  };
-  let comment_id = comment.id;
-  blocking(context.pool(), move |conn| {
-    Comment::update(conn, comment_id, &comment_form)
+  let deleted_comment = blocking(context.pool(), move |conn| {
+    Comment::update_deleted(conn, comment.id, false)
   })
   .await??;
 
   // Refetch the view
-  let comment_id = comment.id;
+  let comment_id = deleted_comment.id;
   let comment_view = blocking(context.pool(), move |conn| {
     CommentView::read(conn, comment_id, None)
   })
@@ -169,46 +142,23 @@ pub(crate) async fn receive_undo_delete_comment(
     websocket_id: None,
   });
 
+  let user = get_actor_as_user(&undo, context).await?;
   announce_if_community_is_local(undo, &user, context).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
 pub(crate) async fn receive_undo_remove_comment(
-  undo: Undo,
-  remove: &Remove,
   context: &LemmyContext,
+  undo: Undo,
+  comment: Comment,
 ) -> Result<HttpResponse, LemmyError> {
-  let mod_ = get_actor_as_user(remove, context).await?;
-  let note = Note::from_any_base(remove.object().to_owned().one().context(location_info!())?)?
-    .context(location_info!())?;
-
-  let comment_ap_id = CommentForm::from_apub(&note, context, None)
-    .await?
-    .get_ap_id()?;
-
-  let comment = get_or_fetch_and_insert_comment(&comment_ap_id, context).await?;
-
-  let comment_form = CommentForm {
-    content: comment.content.to_owned(),
-    parent_id: comment.parent_id,
-    post_id: comment.post_id,
-    creator_id: comment.creator_id,
-    removed: Some(false),
-    deleted: None,
-    read: None,
-    published: None,
-    updated: Some(naive_now()),
-    ap_id: Some(comment.ap_id),
-    local: comment.local,
-  };
-  let comment_id = comment.id;
-  blocking(context.pool(), move |conn| {
-    Comment::update(conn, comment_id, &comment_form)
+  let removed_comment = blocking(context.pool(), move |conn| {
+    Comment::update_removed(conn, comment.id, false)
   })
   .await??;
 
   // Refetch the view
-  let comment_id = comment.id;
+  let comment_id = removed_comment.id;
   let comment_view = blocking(context.pool(), move |conn| {
     CommentView::read(conn, comment_id, None)
   })
@@ -228,6 +178,7 @@ pub(crate) async fn receive_undo_remove_comment(
     websocket_id: None,
   });
 
+  let mod_ = get_actor_as_user(&undo, context).await?;
   announce_if_community_is_local(undo, &mod_, context).await?;
   Ok(HttpResponse::Ok().finish())
 }
