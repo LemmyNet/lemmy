@@ -1,14 +1,11 @@
-use crate::{
-  activities::receive::{
-    announce_if_community_is_local,
-    get_actor_as_user,
-    receive_unhandled_activity,
-    undo_comment::*,
-    undo_post::*,
-  },
-  ActorType,
-  FromApub,
-  GroupExt,
+use crate::activities::receive::{
+  announce_if_community_is_local,
+  find_by_id,
+  get_actor_as_user,
+  receive_unhandled_activity,
+  undo_comment::*,
+  undo_post::*,
+  FindResults,
 };
 use activitystreams::{
   activity::*,
@@ -17,12 +14,7 @@ use activitystreams::{
 };
 use actix_web::HttpResponse;
 use anyhow::{anyhow, Context};
-use lemmy_db::{
-  community::{Community, CommunityForm},
-  community_view::CommunityView,
-  naive_now,
-  Crud,
-};
+use lemmy_db::{community::Community, community_view::CommunityView};
 use lemmy_structs::{blocking, community::CommunityResponse};
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::{messages::SendCommunityRoomMessage, LemmyContext, UserOperation};
@@ -69,15 +61,18 @@ async fn receive_undo_delete(
   let delete = Delete::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
   check_is_undo_valid(&undo, &delete)?;
-  let type_ = delete
+
+  let object = delete
     .object()
-    .as_single_kind_str()
+    .to_owned()
+    .single_xsd_any_uri()
     .context(location_info!())?;
-  match type_ {
-    "Note" => receive_undo_delete_comment(undo, &delete, context).await,
-    "Page" => receive_undo_delete_post(undo, &delete, context).await,
-    "Group" => receive_undo_delete_community(undo, &delete, context).await,
-    d => Err(anyhow!("Undo Delete type {} not supported", d).into()),
+  match find_by_id(context, object).await {
+    Ok(FindResults::Post(p)) => receive_undo_delete_post(context, undo, p).await,
+    Ok(FindResults::Comment(c)) => receive_undo_delete_comment(context, undo, c).await,
+    Ok(FindResults::Community(c)) => receive_undo_delete_community(context, undo, c).await,
+    // if we dont have the object, no need to do anything
+    Err(_) => Ok(HttpResponse::Ok().finish()),
   }
 }
 
@@ -89,15 +84,17 @@ async fn receive_undo_remove(
     .context(location_info!())?;
   check_is_undo_valid(&undo, &remove)?;
 
-  let type_ = remove
+  let object = remove
     .object()
-    .as_single_kind_str()
+    .to_owned()
+    .single_xsd_any_uri()
     .context(location_info!())?;
-  match type_ {
-    "Note" => receive_undo_remove_comment(undo, &remove, context).await,
-    "Page" => receive_undo_remove_post(undo, &remove, context).await,
-    "Group" => receive_undo_remove_community(undo, &remove, context).await,
-    d => Err(anyhow!("Undo Delete type {} not supported", d).into()),
+  match find_by_id(context, object).await {
+    Ok(FindResults::Post(p)) => receive_undo_remove_post(context, undo, p).await,
+    Ok(FindResults::Comment(c)) => receive_undo_remove_comment(context, undo, c).await,
+    Ok(FindResults::Community(c)) => receive_undo_remove_community(context, undo, c).await,
+    // if we dont have the object, no need to do anything
+    Err(_) => Ok(HttpResponse::Ok().finish()),
   }
 }
 
@@ -137,51 +134,16 @@ async fn receive_undo_dislike(
 }
 
 async fn receive_undo_delete_community(
-  undo: Undo,
-  delete: &Delete,
   context: &LemmyContext,
+  undo: Undo,
+  community: Community,
 ) -> Result<HttpResponse, LemmyError> {
-  let user = get_actor_as_user(delete, context).await?;
-  let group = GroupExt::from_any_base(delete.object().to_owned().one().context(location_info!())?)?
-    .context(location_info!())?;
-
-  let community_actor_id = CommunityForm::from_apub(&group, context, Some(user.actor_id()?))
-    .await?
-    .actor_id
-    .context(location_info!())?;
-
-  let community = blocking(context.pool(), move |conn| {
-    Community::read_from_actor_id(conn, &community_actor_id)
+  let deleted_community = blocking(context.pool(), move |conn| {
+    Community::update_deleted(conn, community.id, false)
   })
   .await??;
 
-  let community_form = CommunityForm {
-    name: community.name.to_owned(),
-    title: community.title.to_owned(),
-    description: community.description.to_owned(),
-    category_id: community.category_id, // Note: need to keep this due to foreign key constraint
-    creator_id: community.creator_id,   // Note: need to keep this due to foreign key constraint
-    removed: None,
-    published: None,
-    updated: Some(naive_now()),
-    deleted: Some(false),
-    nsfw: community.nsfw,
-    actor_id: Some(community.actor_id),
-    local: community.local,
-    private_key: community.private_key,
-    public_key: community.public_key,
-    last_refreshed_at: None,
-    icon: Some(community.icon.to_owned()),
-    banner: Some(community.banner.to_owned()),
-  };
-
-  let community_id = community.id;
-  blocking(context.pool(), move |conn| {
-    Community::update(conn, community_id, &community_form)
-  })
-  .await??;
-
-  let community_id = community.id;
+  let community_id = deleted_community.id;
   let res = CommunityResponse {
     community: blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, None)
@@ -190,7 +152,6 @@ async fn receive_undo_delete_community(
   };
 
   let community_id = res.community.id;
-
   context.chat_server().do_send(SendCommunityRoomMessage {
     op: UserOperation::EditCommunity,
     response: res,
@@ -198,56 +159,22 @@ async fn receive_undo_delete_community(
     websocket_id: None,
   });
 
+  let user = get_actor_as_user(&undo, context).await?;
   announce_if_community_is_local(undo, &user, context).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
 async fn receive_undo_remove_community(
-  undo: Undo,
-  remove: &Remove,
   context: &LemmyContext,
+  undo: Undo,
+  community: Community,
 ) -> Result<HttpResponse, LemmyError> {
-  let mod_ = get_actor_as_user(remove, context).await?;
-  let group = GroupExt::from_any_base(remove.object().to_owned().one().context(location_info!())?)?
-    .context(location_info!())?;
-
-  let community_actor_id = CommunityForm::from_apub(&group, context, Some(mod_.actor_id()?))
-    .await?
-    .actor_id
-    .context(location_info!())?;
-
-  let community = blocking(context.pool(), move |conn| {
-    Community::read_from_actor_id(conn, &community_actor_id)
+  let removed_community = blocking(context.pool(), move |conn| {
+    Community::update_removed(conn, community.id, false)
   })
   .await??;
 
-  let community_form = CommunityForm {
-    name: community.name.to_owned(),
-    title: community.title.to_owned(),
-    description: community.description.to_owned(),
-    category_id: community.category_id, // Note: need to keep this due to foreign key constraint
-    creator_id: community.creator_id,   // Note: need to keep this due to foreign key constraint
-    removed: Some(false),
-    published: None,
-    updated: Some(naive_now()),
-    deleted: None,
-    nsfw: community.nsfw,
-    actor_id: Some(community.actor_id),
-    local: community.local,
-    private_key: community.private_key,
-    public_key: community.public_key,
-    last_refreshed_at: None,
-    icon: Some(community.icon.to_owned()),
-    banner: Some(community.banner.to_owned()),
-  };
-
-  let community_id = community.id;
-  blocking(context.pool(), move |conn| {
-    Community::update(conn, community_id, &community_form)
-  })
-  .await??;
-
-  let community_id = community.id;
+  let community_id = removed_community.id;
   let res = CommunityResponse {
     community: blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, None)
@@ -264,6 +191,7 @@ async fn receive_undo_remove_community(
     websocket_id: None,
   });
 
+  let mod_ = get_actor_as_user(&undo, context).await?;
   announce_if_community_is_local(undo, &mod_, context).await?;
   Ok(HttpResponse::Ok().finish())
 }
