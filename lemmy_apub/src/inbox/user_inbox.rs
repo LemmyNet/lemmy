@@ -8,6 +8,7 @@ use crate::{
 use activitystreams::{
   activity::{Accept, ActorAndObject, Create, Delete, Undo, Update},
   base::AnyBase,
+  error::DomainError,
   object::Note,
   prelude::*,
 };
@@ -130,7 +131,17 @@ async fn receive_create_private_message(
   )?
   .context(location_info!())?;
 
-  let domain = Some(create.id_unchecked().context(location_info!())?.to_owned());
+  let actor = create
+    .actor()?
+    .to_owned()
+    .single_xsd_any_uri()
+    .context(location_info!())?;
+  let domain = Some(
+    create
+      .id(actor.domain().context(location_info!())?)?
+      .context(location_info!())?
+      .to_owned(),
+  );
   let private_message = PrivateMessageForm::from_apub(&note, context, domain).await?;
 
   let inserted_private_message = blocking(&context.pool(), move |conn| {
@@ -171,7 +182,17 @@ async fn receive_update_private_message(
   )?
   .context(location_info!())?;
 
-  let domain = Some(update.id_unchecked().context(location_info!())?.to_owned());
+  let actor = update
+    .actor()?
+    .to_owned()
+    .single_xsd_any_uri()
+    .context(location_info!())?;
+  let domain = Some(
+    update
+      .id(actor.domain().context(location_info!())?)?
+      .context(location_info!())?
+      .to_owned(),
+  );
   let private_message_form = PrivateMessageForm::from_apub(&note, context, domain).await?;
 
   let private_message_ap_id = private_message_form
@@ -220,6 +241,18 @@ async fn receive_delete_private_message(
     .to_owned()
     .single_xsd_any_uri()
     .context(location_info!())?;
+  let actor = delete
+    .actor()?
+    .to_owned()
+    .single_xsd_any_uri()
+    .context(location_info!())?;
+  let delete_id = delete
+    .id(actor.domain().context(location_info!())?)?
+    .map(|i| i.domain())
+    .flatten();
+  if private_message_id.domain() != delete_id {
+    return Err(DomainError.into());
+  }
   let private_message = blocking(context.pool(), move |conn| {
     PrivateMessage::read_from_apub_id(conn, private_message_id.as_str())
   })
@@ -258,6 +291,19 @@ async fn receive_undo_delete_private_message(
     .to_owned()
     .single_xsd_any_uri()
     .context(location_info!())?;
+  let actor = undo
+    .actor()?
+    .to_owned()
+    .single_xsd_any_uri()
+    .context(location_info!())?;
+  let undo_id = undo
+    .id(actor.domain().context(location_info!())?)?
+    .map(|i| i.domain())
+    .flatten();
+  if private_message_id.domain() != undo_id {
+    return Err(DomainError.into());
+  }
+
   let private_message = blocking(context.pool(), move |conn| {
     PrivateMessage::read_from_apub_id(conn, private_message_id.as_str())
   })
