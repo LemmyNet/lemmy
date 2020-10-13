@@ -1,7 +1,7 @@
 use actix_web::{error::ErrorBadRequest, *};
 use lemmy_api::Perform;
 use lemmy_rate_limit::RateLimit;
-use lemmy_structs::{comment::*, community::*, post::*, site::*, user::*};
+use lemmy_structs::{comment::*, community::*, post::*, report::*, site::*, user::*};
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 
@@ -57,7 +57,10 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("/transfer", web::post().to(route_post::<TransferCommunity>))
           .route("/ban_user", web::post().to(route_post::<BanFromCommunity>))
           .route("/mod", web::post().to(route_post::<AddModToCommunity>))
-          .route("/join", web::post().to(route_post::<CommunityJoin>)),
+          .route("/join", web::post().to(route_post::<CommunityJoin>))
+          .route("/comment_reports",web::get().to(route_get::<ListCommentReports>))
+          .route("/post_reports", web::get().to(route_get::<ListPostReports>))
+          .route("/reports", web::get().to(route_get::<GetReportCount>)),
       )
       // Post
       .service(
@@ -79,7 +82,9 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("/list", web::get().to(route_get::<GetPosts>))
           .route("/like", web::post().to(route_post::<CreatePostLike>))
           .route("/save", web::put().to(route_post::<SavePost>))
-          .route("/join", web::post().to(route_post::<PostJoin>)),
+          .route("/join", web::post().to(route_post::<PostJoin>))
+          .route("/report", web::put().to(route_post::<CreatePostReport>))
+          .route("/resolve_report",web::post().to(route_post::<ResolvePostReport>)),
       )
       // Comment
       .service(
@@ -95,7 +100,9 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           )
           .route("/like", web::post().to(route_post::<CreateCommentLike>))
           .route("/save", web::put().to(route_post::<SaveComment>))
-          .route("/list", web::get().to(route_get::<GetComments>)),
+          .route("/list", web::get().to(route_get::<GetComments>))
+          .route("/report", web::put().to(route_post::<CreateCommentReport>))
+          .route("/resolve_report",web::post().to(route_post::<ResolveCommentReport>)),
       )
       // Private Message
       .service(

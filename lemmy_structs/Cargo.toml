@@ -17,3 +17,4 @@ diesel = "1.4"
 actix-web = { version = "3.0" }
 chrono = { version = "0.4", features = ["serde"] }
 serde_json = { version = "1.0", features = ["preserve_order"]}
+uuid = { version = "0.6.5", features = ["serde", "v4"] }

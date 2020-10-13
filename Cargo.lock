@@ -1054,6 +1054,7 @@ dependencies = [
  "pq-sys",
  "r2d2",
  "serde_json",
+ "uuid 0.6.5",
 ]
 
 [[package]]
@@ -1833,6 +1834,7 @@ dependencies = [
  "strum",
  "strum_macros",
  "url",
+ "uuid 0.6.5",
 ]
 
 [[package]]
@@ -1898,6 +1900,7 @@ dependencies = [
  "log",
  "serde 1.0.117",
  "serde_json",
+ "uuid 0.6.5",
 ]
 
 [[package]]

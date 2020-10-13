@@ -8,7 +8,7 @@ use lemmy_db::{
   Crud,
   DbPool,
 };
-use lemmy_structs::{blocking, comment::*, community::*, post::*, site::*, user::*};
+use lemmy_structs::{blocking, comment::*, community::*, post::*, report::*, site::*, user::*};
 use lemmy_utils::{settings::Settings, APIError, ConnectionId, LemmyError};
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperation};
 use serde::Deserialize;
@@ -19,6 +19,7 @@ pub mod claims;
 pub mod comment;
 pub mod community;
 pub mod post;
+pub mod report;
 pub mod site;
 pub mod user;
 pub mod version;
@@ -266,6 +267,15 @@ pub async fn match_websocket_operation(
       do_websocket_operation::<CreatePostLike>(context, id, op, data).await
     }
     UserOperation::SavePost => do_websocket_operation::<SavePost>(context, id, op, data).await,
+    UserOperation::CreatePostReport => {
+      do_websocket_operation::<CreatePostReport>(context, id, op, data).await
+    }
+    UserOperation::ListPostReports => {
+      do_websocket_operation::<ListPostReports>(context, id, op, data).await
+    }
+    UserOperation::ResolvePostReport => {
+      do_websocket_operation::<ResolvePostReport>(context, id, op, data).await
+    }
 
     // Comment ops
     UserOperation::CreateComment => {
@@ -291,6 +301,18 @@ pub async fn match_websocket_operation(
     }
     UserOperation::CreateCommentLike => {
       do_websocket_operation::<CreateCommentLike>(context, id, op, data).await
+    }
+    UserOperation::CreateCommentReport => {
+      do_websocket_operation::<CreateCommentReport>(context, id, op, data).await
+    },
+    UserOperation::ListCommentReports => {
+      do_websocket_operation::<ListCommentReports>(context, id, op, data).await
+    },
+    UserOperation::ResolveCommentReport => {
+      do_websocket_operation::<ResolveCommentReport>(context, id, op, data).await
+    }
+    UserOperation::GetReportCount => {
+      do_websocket_operation::<GetReportCount>(context, id, op, data).await
     }
   }
 }

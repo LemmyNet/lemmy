@@ -82,6 +82,19 @@ table! {
 }
 
 table! {
+    comment_report (id) {
+        id -> Uuid,
+        time -> Timestamp,
+        reason -> Nullable<Text>,
+        resolved -> Bool,
+        user_id -> Int4,
+        comment_id -> Int4,
+        comment_text -> Text,
+        comment_time -> Timestamp,
+    }
+}
+
+table! {
     comment_saved (id) {
         id -> Int4,
         comment_id -> Int4,
@@ -371,6 +384,21 @@ table! {
 }
 
 table! {
+    post_report (id) {
+        id -> Uuid,
+        time -> Timestamp,
+        reason -> Nullable<Text>,
+        resolved -> Bool,
+        user_id -> Int4,
+        post_id -> Int4,
+        post_name -> Varchar,
+        post_url -> Nullable<Text>,
+        post_body -> Nullable<Text>,
+        post_time -> Timestamp,
+    }
+}
+
+table! {
     post_saved (id) {
         id -> Int4,
         post_id -> Int4,
@@ -487,6 +515,8 @@ joinable!(comment -> user_ (creator_id));
 joinable!(comment_like -> comment (comment_id));
 joinable!(comment_like -> post (post_id));
 joinable!(comment_like -> user_ (user_id));
+joinable!(comment_report -> comment (comment_id));
+joinable!(comment_report -> user_ (user_id));
 joinable!(comment_saved -> comment (comment_id));
 joinable!(comment_saved -> user_ (user_id));
 joinable!(community -> category (category_id));
@@ -516,6 +546,8 @@ joinable!(post_like -> post (post_id));
 joinable!(post_like -> user_ (user_id));
 joinable!(post_read -> post (post_id));
 joinable!(post_read -> user_ (user_id));
+joinable!(post_report -> post (post_id));
+joinable!(post_report -> user_ (user_id));
 joinable!(post_saved -> post (post_id));
 joinable!(post_saved -> user_ (user_id));
 joinable!(site -> user_ (creator_id));
@@ -529,6 +561,7 @@ allow_tables_to_appear_in_same_query!(
   comment,
   comment_aggregates_fast,
   comment_like,
+  comment_report,
   comment_saved,
   community,
   community_aggregates_fast,
@@ -549,6 +582,7 @@ allow_tables_to_appear_in_same_query!(
   post_aggregates_fast,
   post_like,
   post_read,
+  post_report,
   post_saved,
   private_message,
   site,
