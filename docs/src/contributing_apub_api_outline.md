@@ -6,7 +6,36 @@ Before reading this, have a look at our [Federation Overview](contributing_feder
 
 Lemmy does not yet follow the ActivityPub spec in all regards. For example, we don't set a valid context indicating our context fields. We also ignore fields like `inbox`, `outbox` or `endpoints` for remote actors, and assume that everything is Lemmy. For an overview of deviations, read [#698](https://github.com/LemmyNet/lemmy/issues/698). They will be fixed in the near future.
 
+Lemmy is also really inflexible when it comes to incoming activities and objects. They need to be exactly identical to the examples below. Things like having an array instead of a single value, or an object ID instead of the full object will result in an error.
+
 In the following tables, "mandatory" refers to whether or not Lemmy will accept an incoming activity without this field. Lemmy itself will always include all non-empty fields.
+
+<!-- toc -->
+
+- [Actors](#actors)
+  * [Community](#community)
+  * [User](#user)
+- [Objects](#objects)
+  * [Post](#post)
+  * [Comment](#comment)
+  * [Private Message](#private-message)
+- [Activities](#activities)
+  * [Follow](#follow)
+  * [Accept Follow](#accept-follow)
+  * [Unfollow](#unfollow)
+  * [Create or Update Post](#create-or-update-post)
+  * [Create or Update Comment](#create-or-update-comment)
+  * [Like Post or Comment](#like-post-or-comment)
+  * [Dislike Post or Comment](#dislike-post-or-comment)
+  * [Delete Post or Comment](#delete-post-or-comment)
+  * [Remove Post or Comment](#remove-post-or-comment)
+  * [Undo](#undo)
+  * [Announce](#announce)
+  * [Create or Update Private message](#create-or-update-private-message)
+  * [Delete Private Message](#delete-private-message)
+  * [Undo Delete Private Message](#undo-delete-private-message)
+
+<!-- tocstop -->
 
 ## Actors
 
@@ -120,7 +149,7 @@ Sends and receives activities from/to other users: `Create/Note`, `Update/Note`,
 | Field Name | Mandatory | Description |
 |---|---|---|
 | `name` | yes | Name of the actor |
-| `preferredUsername` | yes | Displayname |
+| `preferredUsername` | no | Displayname |
 | `summary` | no | User bio |
 | `icon` | no | The user's avatar, shown next to the username |
 | `image` | no | The user's banner, shown on top of the profile |
@@ -281,7 +310,7 @@ Sent to: User
 | Field Name | Mandatory | Description |
 |---|---|---|
 | `actor` | yes | The same community as in the `Follow` activity |
-| `to` | no | Inbox of the user which sent the `Follow` |
+| `to` | no | ID of the user which sent the `Follow` |
 | `object` | yes | The previously sent `Follow` activity |
 
 ### Unfollow
@@ -394,7 +423,7 @@ Sent to: Community
 
 | Field Name | Mandatory | Description |
 |---|---|---|
-| `cc` | yes | followers collection of the community where the post/comment is |
+| `cc` | yes | ID of the community where the post/comment is |
 | `object` | yes | The post or comment being upvoted |
 
 ### Dislike Post or Comment
@@ -421,7 +450,7 @@ Sent to: Community
 
 | Field Name | Mandatory | Description |
 |---|---|---|
-| `cc` | yes | followers collection of the community where the post/comment is |
+| `cc` | yes | ID of the community where the post/comment is |
 | `object` | yes | The post or comment being upvoted |
 
 ### Delete Post or Comment
@@ -442,14 +471,14 @@ Sent to: Community
     "cc": [
         "https://enterprise.lemmy.ml/c/main/"
     ],
-    "object": ...,
+    "object": "https://enterprise.lemmy.ml/post/32"
 }
 ```
 
 | Field Name | Mandatory | Description |
 |---|---|---|
-| `cc` | yes | followers collection of the community where the post/comment is |
-| `object` | yes | The post or comment being upvoted |
+| `cc` | yes | ID of the community where the post/comment is |
+| `object` | yes | ID of the post or comment being deleted |
 
 ### Remove Post or Comment
 
@@ -469,14 +498,14 @@ Sent to: Community
     "cc": [
         "https://ds9.lemmy.ml/c/main/"
     ],
-    "object": ...
+    "object": "https://enterprise.lemmy.ml/comment/32"
 }
 ```
 
 | Field Name | Mandatory | Description |
 |---|---|---|
-| `cc` | yes | followers collection of the community where the post/comment is |
-| `object` | yes | The post or comment being upvoted |
+| `cc` | yes | ID of the community where the post/comment is |
+| `object` | yes | ID of the post or comment being removed |
 
 ### Undo
 
@@ -568,7 +597,7 @@ Sent to: User
     "type": "Delete",
     "actor": "https://ds9.lemmy.ml/u/sisko",
     "to": "https://enterprise.lemmy.ml/u/riker/inbox",
-    "object": ...
+    "object": "https://enterprise.lemmy.ml/private_message/341"
 }
 ```
 
