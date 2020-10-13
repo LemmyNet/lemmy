@@ -124,9 +124,7 @@ impl ActorType for Community {
   }
 
   async fn send_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
-    let group = self.to_apub(context.pool()).await?;
-
-    let mut remove = Remove::new(mod_.actor_id.to_owned(), group.into_any_base()?);
+    let mut remove = Remove::new(mod_.actor_id.to_owned(), self.actor_id()?);
     remove
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(RemoveType::Remove)?)
@@ -138,9 +136,7 @@ impl ActorType for Community {
   }
 
   async fn send_undo_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
-    let group = self.to_apub(context.pool()).await?;
-
-    let mut remove = Remove::new(mod_.actor_id.to_owned(), group.into_any_base()?);
+    let mut remove = Remove::new(mod_.actor_id.to_owned(), self.actor_id()?);
     remove
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(RemoveType::Remove)?)

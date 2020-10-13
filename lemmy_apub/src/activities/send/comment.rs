@@ -106,8 +106,6 @@ impl ApubObjectType for Comment {
   }
 
   async fn send_delete(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
-    let note = self.to_apub(context.pool()).await?;
-
     let post_id = self.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
@@ -117,7 +115,7 @@ impl ApubObjectType for Comment {
     })
     .await??;
 
-    let mut delete = Delete::new(creator.actor_id.to_owned(), note.into_any_base()?);
+    let mut delete = Delete::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
     delete
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(DeleteType::Delete)?)
@@ -133,8 +131,6 @@ impl ApubObjectType for Comment {
     creator: &User_,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let note = self.to_apub(context.pool()).await?;
-
     let post_id = self.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
@@ -145,7 +141,7 @@ impl ApubObjectType for Comment {
     .await??;
 
     // Generate a fake delete activity, with the correct object
-    let mut delete = Delete::new(creator.actor_id.to_owned(), note.into_any_base()?);
+    let mut delete = Delete::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
     delete
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(DeleteType::Delete)?)
@@ -165,8 +161,6 @@ impl ApubObjectType for Comment {
   }
 
   async fn send_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
-    let note = self.to_apub(context.pool()).await?;
-
     let post_id = self.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
@@ -176,7 +170,7 @@ impl ApubObjectType for Comment {
     })
     .await??;
 
-    let mut remove = Remove::new(mod_.actor_id.to_owned(), note.into_any_base()?);
+    let mut remove = Remove::new(mod_.actor_id.to_owned(), Url::parse(&self.ap_id)?);
     remove
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(RemoveType::Remove)?)
@@ -188,8 +182,6 @@ impl ApubObjectType for Comment {
   }
 
   async fn send_undo_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
-    let note = self.to_apub(context.pool()).await?;
-
     let post_id = self.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
@@ -200,7 +192,7 @@ impl ApubObjectType for Comment {
     .await??;
 
     // Generate a fake delete activity, with the correct object
-    let mut remove = Remove::new(mod_.actor_id.to_owned(), note.into_any_base()?);
+    let mut remove = Remove::new(mod_.actor_id.to_owned(), Url::parse(&self.ap_id)?);
     remove
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(RemoveType::Remove)?)

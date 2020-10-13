@@ -24,6 +24,7 @@ use lemmy_db::{community::Community, post::Post, user::User_, Crud};
 use lemmy_structs::blocking;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
+use url::Url;
 
 #[async_trait::async_trait(?Send)]
 impl ApubObjectType for Post {
@@ -70,15 +71,13 @@ impl ApubObjectType for Post {
   }
 
   async fn send_delete(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
-    let page = self.to_apub(context.pool()).await?;
-
     let community_id = self.community_id;
     let community = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
     })
     .await??;
 
-    let mut delete = Delete::new(creator.actor_id.to_owned(), page.into_any_base()?);
+    let mut delete = Delete::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
     delete
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(DeleteType::Delete)?)
@@ -94,15 +93,13 @@ impl ApubObjectType for Post {
     creator: &User_,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let page = self.to_apub(context.pool()).await?;
-
     let community_id = self.community_id;
     let community = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
     })
     .await??;
 
-    let mut delete = Delete::new(creator.actor_id.to_owned(), page.into_any_base()?);
+    let mut delete = Delete::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
     delete
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(DeleteType::Delete)?)
@@ -122,15 +119,13 @@ impl ApubObjectType for Post {
   }
 
   async fn send_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
-    let page = self.to_apub(context.pool()).await?;
-
     let community_id = self.community_id;
     let community = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
     })
     .await??;
 
-    let mut remove = Remove::new(mod_.actor_id.to_owned(), page.into_any_base()?);
+    let mut remove = Remove::new(mod_.actor_id.to_owned(), Url::parse(&self.ap_id)?);
     remove
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(RemoveType::Remove)?)
@@ -142,15 +137,13 @@ impl ApubObjectType for Post {
   }
 
   async fn send_undo_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
-    let page = self.to_apub(context.pool()).await?;
-
     let community_id = self.community_id;
     let community = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
     })
     .await??;
 
-    let mut remove = Remove::new(mod_.actor_id.to_owned(), page.into_any_base()?);
+    let mut remove = Remove::new(mod_.actor_id.to_owned(), Url::parse(&self.ap_id)?);
     remove
       .set_context(activitystreams::context())
       .set_id(generate_activity_id(RemoveType::Remove)?)

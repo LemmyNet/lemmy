@@ -1,27 +1,19 @@
-use crate::{
-  activities::receive::{
-    announce_if_community_is_local,
-    get_actor_as_user,
-    receive_unhandled_activity,
-  },
-  fetcher::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
-  ActorType,
-  FromApub,
-  GroupExt,
-  PageExt,
+use crate::activities::receive::{
+  announce_if_community_is_local,
+  find_by_id,
+  get_actor_as_user,
+  FindResults,
 };
-use activitystreams::{activity::Delete, base::AnyBase, object::Note, prelude::*};
+use activitystreams::{activity::Delete, base::AnyBase, prelude::*};
 use actix_web::HttpResponse;
 use anyhow::Context;
 use lemmy_db::{
-  comment::{Comment, CommentForm},
+  comment::Comment,
   comment_view::CommentView,
-  community::{Community, CommunityForm},
+  community::Community,
   community_view::CommunityView,
-  naive_now,
-  post::{Post, PostForm},
+  post::Post,
   post_view::PostView,
-  Crud,
 };
 use lemmy_structs::{
   blocking,
@@ -41,108 +33,66 @@ pub async fn receive_delete(
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
   let delete = Delete::from_any_base(activity)?.context(location_info!())?;
-  match delete.object().as_single_kind_str() {
-    Some("Page") => receive_delete_post(delete, context).await,
-    Some("Note") => receive_delete_comment(delete, context).await,
-    Some("Group") => receive_delete_community(delete, context).await,
-    _ => receive_unhandled_activity(delete),
+
+  let object = delete
+    .object()
+    .to_owned()
+    .single_xsd_any_uri()
+    .context(location_info!())?;
+
+  // Ensure that delete activity comes from the same domain as the object
+  delete.id(object.domain().context(location_info!())?)?;
+
+  match find_by_id(context, object).await {
+    Ok(FindResults::Post(p)) => receive_delete_post(context, delete, p).await,
+    Ok(FindResults::Comment(c)) => receive_delete_comment(context, delete, c).await,
+    Ok(FindResults::Community(c)) => receive_delete_community(context, delete, c).await,
+    // if we dont have the object, no need to do anything
+    Err(_) => Ok(HttpResponse::Ok().finish()),
   }
 }
 
 async fn receive_delete_post(
-  delete: Delete,
   context: &LemmyContext,
+  delete: Delete,
+  post: Post,
 ) -> Result<HttpResponse, LemmyError> {
-  let user = get_actor_as_user(&delete, context).await?;
-  let page = PageExt::from_any_base(delete.object().to_owned().one().context(location_info!())?)?
-    .context(location_info!())?;
-
-  let post_ap_id = PostForm::from_apub(&page, context, Some(user.actor_id()?))
-    .await?
-    .get_ap_id()?;
-
-  let post = get_or_fetch_and_insert_post(&post_ap_id, context).await?;
-
-  let post_form = PostForm {
-    name: post.name.to_owned(),
-    url: post.url.to_owned(),
-    body: post.body.to_owned(),
-    creator_id: post.creator_id.to_owned(),
-    community_id: post.community_id,
-    removed: None,
-    deleted: Some(true),
-    nsfw: post.nsfw,
-    locked: None,
-    stickied: None,
-    updated: Some(naive_now()),
-    embed_title: post.embed_title,
-    embed_description: post.embed_description,
-    embed_html: post.embed_html,
-    thumbnail_url: post.thumbnail_url,
-    ap_id: Some(post.ap_id),
-    local: post.local,
-    published: None,
-  };
-  let post_id = post.id;
-  blocking(context.pool(), move |conn| {
-    Post::update(conn, post_id, &post_form)
+  let deleted_post = blocking(context.pool(), move |conn| {
+    Post::update_deleted(conn, post.id, true)
   })
   .await??;
 
   // Refetch the view
-  let post_id = post.id;
+  let post_id = deleted_post.id;
   let post_view = blocking(context.pool(), move |conn| {
     PostView::read(conn, post_id, None)
   })
   .await??;
 
   let res = PostResponse { post: post_view };
-
   context.chat_server().do_send(SendPost {
     op: UserOperation::EditPost,
     post: res,
     websocket_id: None,
   });
 
+  let user = get_actor_as_user(&delete, context).await?;
   announce_if_community_is_local(delete, &user, context).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
 async fn receive_delete_comment(
-  delete: Delete,
   context: &LemmyContext,
+  delete: Delete,
+  comment: Comment,
 ) -> Result<HttpResponse, LemmyError> {
-  let user = get_actor_as_user(&delete, context).await?;
-  let note = Note::from_any_base(delete.object().to_owned().one().context(location_info!())?)?
-    .context(location_info!())?;
-
-  let comment_ap_id = CommentForm::from_apub(&note, context, Some(user.actor_id()?))
-    .await?
-    .get_ap_id()?;
-
-  let comment = get_or_fetch_and_insert_comment(&comment_ap_id, context).await?;
-
-  let comment_form = CommentForm {
-    content: comment.content.to_owned(),
-    parent_id: comment.parent_id,
-    post_id: comment.post_id,
-    creator_id: comment.creator_id,
-    removed: None,
-    deleted: Some(true),
-    read: None,
-    published: None,
-    updated: Some(naive_now()),
-    ap_id: Some(comment.ap_id),
-    local: comment.local,
-  };
-  let comment_id = comment.id;
-  blocking(context.pool(), move |conn| {
-    Comment::update(conn, comment_id, &comment_form)
+  let deleted_comment = blocking(context.pool(), move |conn| {
+    Comment::update_deleted(conn, comment.id, true)
   })
   .await??;
 
   // Refetch the view
-  let comment_id = comment.id;
+  let comment_id = deleted_comment.id;
   let comment_view = blocking(context.pool(), move |conn| {
     CommentView::read(conn, comment_id, None)
   })
@@ -155,62 +105,28 @@ async fn receive_delete_comment(
     recipient_ids,
     form_id: None,
   };
-
   context.chat_server().do_send(SendComment {
     op: UserOperation::EditComment,
     comment: res,
     websocket_id: None,
   });
 
+  let user = get_actor_as_user(&delete, context).await?;
   announce_if_community_is_local(delete, &user, context).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
 async fn receive_delete_community(
-  delete: Delete,
   context: &LemmyContext,
+  delete: Delete,
+  community: Community,
 ) -> Result<HttpResponse, LemmyError> {
-  let group = GroupExt::from_any_base(delete.object().to_owned().one().context(location_info!())?)?
-    .context(location_info!())?;
-  let user = get_actor_as_user(&delete, context).await?;
-
-  let community_actor_id = CommunityForm::from_apub(&group, context, Some(user.actor_id()?))
-    .await?
-    .actor_id
-    .context(location_info!())?;
-
-  let community = blocking(context.pool(), move |conn| {
-    Community::read_from_actor_id(conn, &community_actor_id)
+  let deleted_community = blocking(context.pool(), move |conn| {
+    Community::update_deleted(conn, community.id, true)
   })
   .await??;
 
-  let community_form = CommunityForm {
-    name: community.name.to_owned(),
-    title: community.title.to_owned(),
-    description: community.description.to_owned(),
-    category_id: community.category_id, // Note: need to keep this due to foreign key constraint
-    creator_id: community.creator_id,   // Note: need to keep this due to foreign key constraint
-    removed: None,
-    published: None,
-    updated: Some(naive_now()),
-    deleted: Some(true),
-    nsfw: community.nsfw,
-    actor_id: Some(community.actor_id),
-    local: community.local,
-    private_key: community.private_key,
-    public_key: community.public_key,
-    last_refreshed_at: None,
-    icon: Some(community.icon.to_owned()),
-    banner: Some(community.banner.to_owned()),
-  };
-
-  let community_id = community.id;
-  blocking(context.pool(), move |conn| {
-    Community::update(conn, community_id, &community_form)
-  })
-  .await??;
-
-  let community_id = community.id;
+  let community_id = deleted_community.id;
   let res = CommunityResponse {
     community: blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, None)
@@ -219,7 +135,6 @@ async fn receive_delete_community(
   };
 
   let community_id = res.community.id;
-
   context.chat_server().do_send(SendCommunityRoomMessage {
     op: UserOperation::EditCommunity,
     response: res,
@@ -227,6 +142,7 @@ async fn receive_delete_community(
     websocket_id: None,
   });
 
+  let user = get_actor_as_user(&delete, context).await?;
   announce_if_community_is_local(delete, &user, context).await?;
   Ok(HttpResponse::Ok().finish())
 }
