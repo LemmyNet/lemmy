@@ -265,11 +265,17 @@
 
 ## Data types
 
+### Lemmy types
+
+- The fields for objects like Users, Comments, Communities, and Posts, are in the [lemmy_db](https://github.com/LemmyNet/lemmy/tree/main/lemmy_db/src) folder, with the suffix `_view`. For example, the fields for `CommentView` are given [here](https://github.com/LemmyNet/lemmy/blob/main/lemmy_db/src/comment_view.rs#L89).
+- The requests and responses, although copied below, are most up to date in [lemmy_structs](https://github.com/LemmyNet/lemmy/tree/main/lemmy_structs/src).
+
+### Lower-level types
+
 - `i16`, `i32` and `i64` are respectively [16-bit](https://en.wikipedia.org/wiki/16-bit), [32-bit](https://en.wikipedia.org/wiki/32-bit) and [64-bit](https://en.wikipedia.org/wiki/64-bit_computing) integers.
 - <code>Option<***SomeType***></code> designates an option which may be omitted in requests and not be present in responses. It will be of type ***SomeType***.
 - <code>Vec<***SomeType***></code> is a list which contains objects of type ***SomeType***.
 - `chrono::NaiveDateTime` is a timestamp string in [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) format. Timestamps will be UTC.
-- Other data types are listed [here](../src/db).
 
 ## Basic usage
 
