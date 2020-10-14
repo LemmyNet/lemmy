@@ -65,15 +65,15 @@ impl ToApub for Community {
       group.set_content(d);
     }
 
-    if let Some(icon) = &self.icon {
+    if let Some(icon_url) = &self.icon {
       let mut image = Image::new();
-      image.set_url(icon.to_owned());
+      image.set_url(Url::parse(icon_url)?);
       group.set_icon(image.into_any_base()?);
     }
 
     if let Some(banner_url) = &self.banner {
       let mut image = Image::new();
-      image.set_url(banner_url.to_owned());
+      image.set_url(Url::parse(banner_url)?);
       group.set_image(image.into_any_base()?);
     }
 

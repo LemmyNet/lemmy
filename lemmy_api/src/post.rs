@@ -60,9 +60,8 @@ impl Perform for CreatePost {
     check_community_ban(user.id, data.community_id, context.pool()).await?;
 
     if let Some(url) = data.url.as_ref() {
-      match Url::parse(url) {
-        Ok(_t) => (),
-        Err(_e) => return Err(APIError::err("invalid_url").into()),
+      if Url::parse(url).is_err() {
+        return Err(APIError::err("invalid_url").into());
       }
     }
 

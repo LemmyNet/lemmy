@@ -65,12 +65,12 @@ impl ToApub for Post {
     // https://github.com/LemmyNet/lemmy/issues/602
     let url = self.url.as_ref().filter(|u| !u.is_empty());
     if let Some(u) = url {
-      page.set_url(u.to_owned());
+      page.set_url(Url::parse(u)?);
     }
 
     if let Some(thumbnail_url) = &self.thumbnail_url {
       let mut image = Image::new();
-      image.set_url(thumbnail_url.to_string());
+      image.set_url(Url::parse(thumbnail_url)?);
       page.set_image(image.into_any_base()?);
     }
 

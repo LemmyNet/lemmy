@@ -34,6 +34,7 @@ use lemmy_websocket::{
   UserOperation,
 };
 use std::str::FromStr;
+use url::Url;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for GetCommunity {
@@ -129,6 +130,22 @@ impl Perform for CreateCommunity {
       return Err(APIError::err("community_already_exists").into());
     }
 
+    // Check to make sure the icon and banners are urls
+    let icon = Some(data.icon.to_owned());
+    let banner = Some(data.banner.to_owned());
+
+    if let Some(Some(icon)) = &icon {
+      if Url::parse(icon).is_err() {
+        return Err(APIError::err("invalid_url").into());
+      }
+    }
+
+    if let Some(Some(banner)) = &banner {
+      if Url::parse(banner).is_err() {
+        return Err(APIError::err("invalid_url").into());
+      }
+    }
+
     // When you create a community, make sure the user becomes a moderator and a follower
     let keypair = generate_actor_keypair()?;
 
@@ -136,8 +153,8 @@ impl Perform for CreateCommunity {
       name: data.name.to_owned(),
       title: data.title.to_owned(),
       description: data.description.to_owned(),
-      icon: Some(data.icon.to_owned()),
-      banner: Some(data.banner.to_owned()),
+      icon,
+      banner,
       category_id: data.category_id,
       creator_id: user.id,
       removed: None,
@@ -225,6 +242,19 @@ impl Perform for EditCommunity {
 
     let icon = diesel_option_overwrite(&data.icon);
     let banner = diesel_option_overwrite(&data.banner);
+
+    // Check to make sure the icon and banners are urls
+    if let Some(Some(icon)) = &icon {
+      if Url::parse(icon).is_err() {
+        return Err(APIError::err("invalid_url").into());
+      }
+    }
+
+    if let Some(Some(banner)) = &banner {
+      if Url::parse(banner).is_err() {
+        return Err(APIError::err("invalid_url").into());
+      }
+    }
 
     let community_form = CommunityForm {
       name: read_community.name,
