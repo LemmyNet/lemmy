@@ -1,11 +1,10 @@
 use crate::{
-  check_actor_domain,
   fetcher::{
     get_or_fetch_and_insert_comment,
     get_or_fetch_and_insert_post,
     get_or_fetch_and_upsert_user,
   },
-  objects::create_tombstone,
+  objects::{check_object_domain, create_tombstone},
   FromApub,
   ToApub,
 };
@@ -140,7 +139,7 @@ impl FromApub for CommentForm {
       published: note.published().map(|u| u.to_owned().naive_local()),
       updated: note.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
-      ap_id: Some(check_actor_domain(note, expected_domain)?),
+      ap_id: Some(check_object_domain(note, expected_domain)?),
       local: false,
     })
   }

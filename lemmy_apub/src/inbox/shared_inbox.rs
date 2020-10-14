@@ -10,7 +10,7 @@ use crate::{
     update::receive_update,
   },
   check_is_apub_id_valid,
-  extensions::signatures::verify,
+  extensions::signatures::verify_signature,
   fetcher::get_or_fetch_and_upsert_actor,
   insert_activity,
 };
@@ -62,7 +62,7 @@ pub async fn shared_inbox(
   check_is_apub_id_valid(&actor)?;
 
   let actor = get_or_fetch_and_upsert_actor(&actor, &context).await?;
-  verify(&request, actor.as_ref())?;
+  verify_signature(&request, actor.as_ref())?;
 
   let any_base = activity.clone().into_any_base()?;
   let kind = activity.kind().context(location_info!())?;

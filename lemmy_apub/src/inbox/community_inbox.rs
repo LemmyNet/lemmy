@@ -1,6 +1,7 @@
 use crate::{
+  activities::receive::verify_activity_domains_valid,
   check_is_apub_id_valid,
-  extensions::signatures::verify,
+  extensions::signatures::verify_signature,
   fetcher::get_or_fetch_and_upsert_user,
   insert_activity,
   ActorType,
@@ -48,15 +49,15 @@ pub async fn community_inbox(
   })
   .await??;
 
-  if !community.local {
-    return Err(
-      anyhow!(
-        "Received activity is addressed to remote community {}",
-        &community.actor_id
-      )
-      .into(),
-    );
+  let to = activity
+    .to()
+    .context(location_info!())?
+    .to_owned()
+    .single_xsd_any_uri();
+  if Some(community.actor_id()?) != to {
+    return Err(anyhow!("Activity delivered to wrong community").into());
   }
+
   info!(
     "Community {} received activity {:?}",
     &community.name, &activity
@@ -75,7 +76,7 @@ pub async fn community_inbox(
 
   let user = get_or_fetch_and_upsert_user(&user_uri, &context).await?;
 
-  verify(&request, &user)?;
+  verify_signature(&request, &user)?;
 
   let any_base = activity.clone().into_any_base()?;
   let kind = activity.kind().context(location_info!())?;
@@ -98,6 +99,8 @@ async fn handle_follow(
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
   let follow = Follow::from_any_base(activity)?.context(location_info!())?;
+  verify_activity_domains_valid(&follow, user.actor_id()?, false)?;
+
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,
     user_id: user.id,
@@ -120,7 +123,12 @@ async fn handle_undo_follow(
   community: Community,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
-  let _undo = Undo::from_any_base(activity)?.context(location_info!())?;
+  let undo = Undo::from_any_base(activity)?.context(location_info!())?;
+  verify_activity_domains_valid(&undo, user.actor_id()?, true)?;
+
+  let object = undo.object().to_owned().one().context(location_info!())?;
+  let follow = Follow::from_any_base(object)?.context(location_info!())?;
+  verify_activity_domains_valid(&follow, user.actor_id()?, false)?;
 
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,

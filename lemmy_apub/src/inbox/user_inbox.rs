@@ -1,19 +1,20 @@
 use crate::{
+  activities::receive::verify_activity_domains_valid,
   check_is_apub_id_valid,
-  extensions::signatures::verify,
+  extensions::signatures::verify_signature,
   fetcher::{get_or_fetch_and_upsert_actor, get_or_fetch_and_upsert_community},
   insert_activity,
+  ActorType,
   FromApub,
 };
 use activitystreams::{
-  activity::{Accept, ActorAndObject, Create, Delete, Undo, Update},
+  activity::{Accept, ActorAndObject, Create, Delete, Follow, Undo, Update},
   base::AnyBase,
-  error::DomainError,
   object::Note,
   prelude::*,
 };
 use actix_web::{web, HttpRequest, HttpResponse};
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use lemmy_db::{
   community::{CommunityFollower, CommunityFollowerForm},
   private_message::{PrivateMessage, PrivateMessageForm},
@@ -50,6 +51,19 @@ pub async fn user_inbox(
 ) -> Result<HttpResponse, LemmyError> {
   let activity = input.into_inner();
   let username = path.into_inner();
+  let user = blocking(&context.pool(), move |conn| {
+    User_::read_from_name(&conn, &username)
+  })
+  .await??;
+
+  let to = activity
+    .to()
+    .context(location_info!())?
+    .to_owned()
+    .single_xsd_any_uri();
+  if Some(user.actor_id()?) != to {
+    return Err(anyhow!("Activity delivered to wrong user").into());
+  }
 
   let actor_uri = activity
     .actor()?
@@ -57,7 +71,7 @@ pub async fn user_inbox(
     .context(location_info!())?;
   debug!(
     "User {} inbox received activity {:?} from {}",
-    username,
+    user.name,
     &activity.id_unchecked(),
     &actor_uri
   );
@@ -65,16 +79,18 @@ pub async fn user_inbox(
   check_is_apub_id_valid(actor_uri)?;
 
   let actor = get_or_fetch_and_upsert_actor(actor_uri, &context).await?;
-  verify(&request, actor.as_ref())?;
+  verify_signature(&request, actor.as_ref())?;
 
   let any_base = activity.clone().into_any_base()?;
   let kind = activity.kind().context(location_info!())?;
   let res = match kind {
-    ValidTypes::Accept => receive_accept(any_base, username, &context).await,
-    ValidTypes::Create => receive_create_private_message(any_base, &context).await,
-    ValidTypes::Update => receive_update_private_message(any_base, &context).await,
-    ValidTypes::Delete => receive_delete_private_message(any_base, &context).await,
-    ValidTypes::Undo => receive_undo_delete_private_message(any_base, &context).await,
+    ValidTypes::Accept => receive_accept(&context, any_base, actor.as_ref(), user).await,
+    ValidTypes::Create => receive_create_private_message(&context, any_base, actor.as_ref()).await,
+    ValidTypes::Update => receive_update_private_message(&context, any_base, actor.as_ref()).await,
+    ValidTypes::Delete => receive_delete_private_message(&context, any_base, actor.as_ref()).await,
+    ValidTypes::Undo => {
+      receive_undo_delete_private_message(&context, any_base, actor.as_ref()).await
+    }
   };
 
   insert_activity(actor.user_id(), activity.clone(), false, context.pool()).await?;
@@ -83,11 +99,20 @@ pub async fn user_inbox(
 
 /// Handle accepted follows.
 async fn receive_accept(
-  activity: AnyBase,
-  username: String,
   context: &LemmyContext,
+  activity: AnyBase,
+  actor: &dyn ActorType,
+  user: User_,
 ) -> Result<HttpResponse, LemmyError> {
   let accept = Accept::from_any_base(activity)?.context(location_info!())?;
+  verify_activity_domains_valid(&accept, actor.actor_id()?, false)?;
+
+  // TODO: we should check that we actually sent this activity, because the remote instance
+  //       could just put a fake Follow
+  let object = accept.object().to_owned().one().context(location_info!())?;
+  let follow = Follow::from_any_base(object)?.context(location_info!())?;
+  verify_activity_domains_valid(&follow, user.actor_id()?, false)?;
+
   let community_uri = accept
     .actor()?
     .to_owned()
@@ -95,11 +120,6 @@ async fn receive_accept(
     .context(location_info!())?;
 
   let community = get_or_fetch_and_upsert_community(&community_uri, context).await?;
-
-  let user = blocking(&context.pool(), move |conn| {
-    User_::read_from_name(conn, &username)
-  })
-  .await??;
 
   // Now you need to add this to the community follower
   let community_follower_form = CommunityFollowerForm {
@@ -113,15 +133,17 @@ async fn receive_accept(
   })
   .await?;
 
-  // TODO: make sure that we actually requested a follow
   Ok(HttpResponse::Ok().finish())
 }
 
 async fn receive_create_private_message(
-  activity: AnyBase,
   context: &LemmyContext,
+  activity: AnyBase,
+  actor: &dyn ActorType,
 ) -> Result<HttpResponse, LemmyError> {
   let create = Create::from_any_base(activity)?.context(location_info!())?;
+  verify_activity_domains_valid(&create, actor.actor_id()?, true)?;
+
   let note = Note::from_any_base(
     create
       .object()
@@ -131,18 +153,8 @@ async fn receive_create_private_message(
   )?
   .context(location_info!())?;
 
-  let actor = create
-    .actor()?
-    .to_owned()
-    .single_xsd_any_uri()
-    .context(location_info!())?;
-  let domain = Some(
-    create
-      .id(actor.domain().context(location_info!())?)?
-      .context(location_info!())?
-      .to_owned(),
-  );
-  let private_message = PrivateMessageForm::from_apub(&note, context, domain).await?;
+  let private_message =
+    PrivateMessageForm::from_apub(&note, context, Some(actor.actor_id()?)).await?;
 
   let inserted_private_message = blocking(&context.pool(), move |conn| {
     PrivateMessage::create(conn, &private_message)
@@ -169,31 +181,22 @@ async fn receive_create_private_message(
 }
 
 async fn receive_update_private_message(
-  activity: AnyBase,
   context: &LemmyContext,
+  activity: AnyBase,
+  actor: &dyn ActorType,
 ) -> Result<HttpResponse, LemmyError> {
   let update = Update::from_any_base(activity)?.context(location_info!())?;
-  let note = Note::from_any_base(
-    update
-      .object()
-      .as_one()
-      .context(location_info!())?
-      .to_owned(),
-  )?
-  .context(location_info!())?;
+  verify_activity_domains_valid(&update, actor.actor_id()?, true)?;
 
-  let actor = update
-    .actor()?
-    .to_owned()
-    .single_xsd_any_uri()
-    .context(location_info!())?;
-  let domain = Some(
-    update
-      .id(actor.domain().context(location_info!())?)?
-      .context(location_info!())?
-      .to_owned(),
-  );
-  let private_message_form = PrivateMessageForm::from_apub(&note, context, domain).await?;
+  let object = update
+    .object()
+    .as_one()
+    .context(location_info!())?
+    .to_owned();
+  let note = Note::from_any_base(object)?.context(location_info!())?;
+
+  let private_message_form =
+    PrivateMessageForm::from_apub(&note, context, Some(actor.actor_id()?)).await?;
 
   let private_message_ap_id = private_message_form
     .ap_id
@@ -232,27 +235,18 @@ async fn receive_update_private_message(
 }
 
 async fn receive_delete_private_message(
-  activity: AnyBase,
   context: &LemmyContext,
+  activity: AnyBase,
+  actor: &dyn ActorType,
 ) -> Result<HttpResponse, LemmyError> {
   let delete = Delete::from_any_base(activity)?.context(location_info!())?;
+  verify_activity_domains_valid(&delete, actor.actor_id()?, true)?;
+
   let private_message_id = delete
     .object()
     .to_owned()
     .single_xsd_any_uri()
     .context(location_info!())?;
-  let actor = delete
-    .actor()?
-    .to_owned()
-    .single_xsd_any_uri()
-    .context(location_info!())?;
-  let delete_id = delete
-    .id(actor.domain().context(location_info!())?)?
-    .map(|i| i.domain())
-    .flatten();
-  if private_message_id.domain() != delete_id {
-    return Err(DomainError.into());
-  }
   let private_message = blocking(context.pool(), move |conn| {
     PrivateMessage::read_from_apub_id(conn, private_message_id.as_str())
   })
@@ -280,30 +274,21 @@ async fn receive_delete_private_message(
 }
 
 async fn receive_undo_delete_private_message(
-  activity: AnyBase,
   context: &LemmyContext,
+  activity: AnyBase,
+  actor: &dyn ActorType,
 ) -> Result<HttpResponse, LemmyError> {
   let undo = Undo::from_any_base(activity)?.context(location_info!())?;
-  let delete = Delete::from_any_base(undo.object().as_one().context(location_info!())?.to_owned())?
-    .context(location_info!())?;
+  verify_activity_domains_valid(&undo, actor.actor_id()?, true)?;
+  let object = undo.object().to_owned().one().context(location_info!())?;
+  let delete = Delete::from_any_base(object)?.context(location_info!())?;
+  verify_activity_domains_valid(&delete, actor.actor_id()?, true)?;
+
   let private_message_id = delete
     .object()
     .to_owned()
     .single_xsd_any_uri()
     .context(location_info!())?;
-  let actor = undo
-    .actor()?
-    .to_owned()
-    .single_xsd_any_uri()
-    .context(location_info!())?;
-  let undo_id = undo
-    .id(actor.domain().context(location_info!())?)?
-    .map(|i| i.domain())
-    .flatten();
-  if private_message_id.domain() != undo_id {
-    return Err(DomainError.into());
-  }
-
   let private_message = blocking(context.pool(), move |conn| {
     PrivateMessage::read_from_apub_id(conn, private_message_id.as_str())
   })
@@ -319,9 +304,7 @@ async fn receive_undo_delete_private_message(
   .await??;
 
   let res = PrivateMessageResponse { message };
-
   let recipient_id = res.message.recipient_id;
-
   context.chat_server().do_send(SendUserRoomMessage {
     op: UserOperation::EditPrivateMessage,
     response: res,

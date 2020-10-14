@@ -93,7 +93,7 @@ pub async fn search_by_apub_id(
 ) -> Result<SearchResponse, LemmyError> {
   // Parse the shorthand query url
   let query_url = if query.contains('@') {
-    debug!("{}", query);
+    debug!("Search for {}", query);
     let split = query.split('@').collect::<Vec<&str>>();
 
     // User type will look like ['', username, instance]

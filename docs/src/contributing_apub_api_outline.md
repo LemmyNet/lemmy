@@ -597,7 +597,7 @@ Sent to: User
     "type": "Delete",
     "actor": "https://ds9.lemmy.ml/u/sisko",
     "to": "https://enterprise.lemmy.ml/u/riker/inbox",
-    "object": "https://enterprise.lemmy.ml/private_message/341"
+    "object": "https://ds9.lemmy.ml/private_message/341"
 }
 ```
 
