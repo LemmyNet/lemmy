@@ -63,7 +63,7 @@ async fn full_res(
   client: web::Data<Client>,
 ) -> Result<HttpResponse, Error> {
   let url = format!(
-    "{}/image/{}",
+    "{}/image/original/{}",
     Settings::get().pictrs_url,
     &filename.into_inner()
   );
@@ -78,10 +78,11 @@ async fn thumbnail(
   let (size, file) = parts.into_inner();
 
   let url = format!(
-    "{}/image/thumbnail{}/{}",
+    "{}/image/process.{}?src={}&thumbnail={}",
     Settings::get().pictrs_url,
+    "jpg", // this can be changed to png or webp
+    &file,
     size,
-    &file
   );
 
   image(url, req, client).await
