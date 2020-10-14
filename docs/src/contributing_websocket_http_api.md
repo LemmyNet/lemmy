@@ -5,6 +5,8 @@
 <!-- toc -->
 
 - [Data types](#data-types)
+  * [Lemmy types](#lemmy-types)
+  * [Lower-level types](#lower-level-types)
 - [Basic usage](#basic-usage)
   * [WebSocket](#websocket)
     + [Testing with Websocat](#testing-with-websocat)
