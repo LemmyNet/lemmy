@@ -4,7 +4,8 @@ use crate::{
 };
 use activitystreams::{
   activity::{ActorAndObjectRef, ActorAndObjectRefExt},
-  base::{AsBase, Extends, ExtendsExt},
+  base::{AsBase, BaseExt, Extends, ExtendsExt},
+  error::DomainError,
   object::{AsObject, ObjectExt},
 };
 use actix_web::HttpResponse;
@@ -120,4 +121,37 @@ pub(crate) async fn find_by_id(
   }
 
   return Err(NotFound.into());
+}
+
+pub(crate) fn verify_activity_domains_valid<T, Kind>(
+  activity: &T,
+  actor_id: Url,
+  object_domain_must_match: bool,
+) -> Result<(), LemmyError>
+where
+  T: AsBase<Kind> + ActorAndObjectRef,
+{
+  let expected_domain = actor_id.domain().context(location_info!())?;
+
+  activity.id(expected_domain)?;
+
+  let object_id = match activity.object().to_owned().single_xsd_any_uri() {
+    // object is just an ID
+    Some(id) => id,
+    // object is something like an activity, a comment or a post
+    None => activity
+      .object()
+      .to_owned()
+      .one()
+      .context(location_info!())?
+      .id()
+      .context(location_info!())?
+      .to_owned(),
+  };
+
+  if object_domain_must_match && object_id.domain() != Some(expected_domain) {
+    return Err(DomainError.into());
+  }
+
+  Ok(())
 }

@@ -17,10 +17,8 @@ use crate::extensions::{
 use activitystreams::{
   activity::Follow,
   actor::{ApActor, Group, Person},
-  base::{AnyBase, AsBase},
-  markers::Base,
+  base::AnyBase,
   object::{Page, Tombstone},
-  prelude::*,
 };
 use activitystreams_ext::{Ext1, Ext2};
 use anyhow::{anyhow, Context};
@@ -130,24 +128,6 @@ pub trait ApubObjectType {
   ) -> Result<(), LemmyError>;
   async fn send_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
   async fn send_undo_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
-}
-
-pub(in crate) fn check_actor_domain<T, Kind>(
-  apub: &T,
-  expected_domain: Option<Url>,
-) -> Result<String, LemmyError>
-where
-  T: Base + AsBase<Kind>,
-{
-  let actor_id = if let Some(url) = expected_domain {
-    let domain = url.domain().context(location_info!())?;
-    apub.id(domain)?.context(location_info!())?
-  } else {
-    let actor_id = apub.id_unchecked().context(location_info!())?;
-    check_is_apub_id_valid(&actor_id)?;
-    actor_id
-  };
-  Ok(actor_id.to_string())
 }
 
 #[async_trait::async_trait(?Send)]

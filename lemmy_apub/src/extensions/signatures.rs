@@ -63,7 +63,7 @@ pub async fn sign_and_send(
   Ok(response)
 }
 
-pub fn verify(request: &HttpRequest, actor: &dyn ActorType) -> Result<(), LemmyError> {
+pub fn verify_signature(request: &HttpRequest, actor: &dyn ActorType) -> Result<(), LemmyError> {
   let public_key = actor.public_key().context(location_info!())?;
   let verified = CONFIG2
     .begin_verify(

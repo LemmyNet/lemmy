@@ -1,8 +1,7 @@
 use crate::{
-  check_actor_domain,
   extensions::group_extensions::GroupExtension,
   fetcher::get_or_fetch_and_upsert_user,
-  objects::create_tombstone,
+  objects::{check_object_domain, create_tombstone},
   ActorType,
   FromApub,
   GroupExt,
@@ -189,7 +188,7 @@ impl FromApub for CommunityForm {
       updated: group.inner.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
       nsfw: group.ext_one.sensitive,
-      actor_id: Some(check_actor_domain(group, expected_domain)?),
+      actor_id: Some(check_object_domain(group, expected_domain)?),
       local: false,
       private_key: None,
       public_key: Some(group.ext_two.to_owned().public_key.public_key_pem),

@@ -1,4 +1,4 @@
-use crate::{check_actor_domain, ActorType, FromApub, PersonExt, ToApub};
+use crate::{objects::check_object_domain, ActorType, FromApub, PersonExt, ToApub};
 use activitystreams::{
   actor::{ApActor, Endpoints, Person},
   object::{Image, Tombstone},
@@ -145,7 +145,7 @@ impl FromApub for UserForm {
       show_avatars: false,
       send_notifications_to_email: false,
       matrix_user_id: None,
-      actor_id: Some(check_actor_domain(person, expected_domain)?),
+      actor_id: Some(check_object_domain(person, expected_domain)?),
       bio: Some(bio),
       local: false,
       private_key: None,

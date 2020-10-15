@@ -1,8 +1,7 @@
 use crate::{
-  check_actor_domain,
   extensions::page_extension::PageExtension,
   fetcher::{get_or_fetch_and_upsert_community, get_or_fetch_and_upsert_user},
-  objects::create_tombstone,
+  objects::{check_object_domain, create_tombstone},
   FromApub,
   PageExt,
   ToApub,
@@ -193,7 +192,7 @@ impl FromApub for PostForm {
       embed_description: iframely_description,
       embed_html: iframely_html,
       thumbnail_url: pictrs_thumbnail,
-      ap_id: Some(check_actor_domain(page, expected_domain)?),
+      ap_id: Some(check_object_domain(page, expected_domain)?),
       local: false,
     })
   }
