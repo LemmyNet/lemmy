@@ -3,6 +3,7 @@ use crate::{
     announce_if_community_is_local,
     get_actor_as_user,
     receive_unhandled_activity,
+    verify_activity_domains_valid,
   },
   fetcher::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
   ActorType,
@@ -26,16 +27,15 @@ use lemmy_websocket::{
   LemmyContext,
   UserOperation,
 };
+use url::Url;
 
 pub async fn receive_update(
-  activity: AnyBase,
   context: &LemmyContext,
+  activity: AnyBase,
+  expected_domain: Url,
 ) -> Result<HttpResponse, LemmyError> {
   let update = Update::from_any_base(activity)?.context(location_info!())?;
-
-  // ensure that update and actor come from the same instance
-  let user = get_actor_as_user(&update, context).await?;
-  update.id(user.actor_id()?.domain().context(location_info!())?)?;
+  verify_activity_domains_valid(&update, expected_domain, true)?;
 
   match update.object().as_single_kind_str() {
     Some("Page") => receive_update_post(update, context).await,

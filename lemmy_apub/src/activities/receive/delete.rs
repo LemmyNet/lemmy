@@ -2,6 +2,7 @@ use crate::activities::receive::{
   announce_if_community_is_local,
   find_by_id,
   get_actor_as_user,
+  verify_activity_domains_valid,
   FindResults,
 };
 use activitystreams::{activity::Delete, base::AnyBase, prelude::*};
@@ -27,21 +28,21 @@ use lemmy_websocket::{
   LemmyContext,
   UserOperation,
 };
+use url::Url;
 
 pub async fn receive_delete(
-  activity: AnyBase,
   context: &LemmyContext,
+  activity: AnyBase,
+  expected_domain: Url,
 ) -> Result<HttpResponse, LemmyError> {
   let delete = Delete::from_any_base(activity)?.context(location_info!())?;
+  verify_activity_domains_valid(&delete, expected_domain, true)?;
 
   let object = delete
     .object()
     .to_owned()
     .single_xsd_any_uri()
     .context(location_info!())?;
-
-  // Ensure that delete activity comes from the same domain as the object
-  delete.id(object.domain().context(location_info!())?)?;
 
   match find_by_id(context, object).await {
     Ok(FindResults::Post(p)) => receive_delete_post(context, delete, p).await,

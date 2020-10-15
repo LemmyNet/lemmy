@@ -5,62 +5,43 @@ use crate::activities::receive::{
   receive_unhandled_activity,
   undo_comment::*,
   undo_post::*,
+  verify_activity_domains_valid,
   FindResults,
 };
-use activitystreams::{
-  activity::*,
-  base::{AnyBase, AsBase},
-  prelude::*,
-};
+use activitystreams::{activity::*, base::AnyBase, prelude::*};
 use actix_web::HttpResponse;
 use anyhow::{anyhow, Context};
 use lemmy_db::{community::Community, community_view::CommunityView};
 use lemmy_structs::{blocking, community::CommunityResponse};
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::{messages::SendCommunityRoomMessage, LemmyContext, UserOperation};
+use url::Url;
 
 pub async fn receive_undo(
-  activity: AnyBase,
   context: &LemmyContext,
+  activity: AnyBase,
+  expected_domain: Url,
 ) -> Result<HttpResponse, LemmyError> {
   let undo = Undo::from_any_base(activity)?.context(location_info!())?;
+  verify_activity_domains_valid(&undo, expected_domain.to_owned(), true)?;
+
   match undo.object().as_single_kind_str() {
-    Some("Delete") => receive_undo_delete(undo, context).await,
-    Some("Remove") => receive_undo_remove(undo, context).await,
-    Some("Like") => receive_undo_like(undo, context).await,
-    Some("Dislike") => receive_undo_dislike(undo, context).await,
+    Some("Delete") => receive_undo_delete(context, undo, expected_domain).await,
+    Some("Remove") => receive_undo_remove(context, undo, expected_domain).await,
+    Some("Like") => receive_undo_like(context, undo, expected_domain).await,
+    Some("Dislike") => receive_undo_dislike(context, undo, expected_domain).await,
     _ => receive_unhandled_activity(undo),
   }
 }
 
-fn check_is_undo_valid<T, A>(outer_activity: &Undo, inner_activity: &T) -> Result<(), LemmyError>
-where
-  T: AsBase<A> + ActorAndObjectRef,
-{
-  let outer_actor = outer_activity.actor()?;
-  let outer_actor_uri = outer_actor
-    .as_single_xsd_any_uri()
-    .context(location_info!())?;
-
-  let inner_actor = inner_activity.actor()?;
-  let inner_actor_uri = inner_actor
-    .as_single_xsd_any_uri()
-    .context(location_info!())?;
-
-  if outer_actor_uri.domain() != inner_actor_uri.domain() {
-    Err(anyhow!("Cant undo receive from a different instance").into())
-  } else {
-    Ok(())
-  }
-}
-
 async fn receive_undo_delete(
-  undo: Undo,
   context: &LemmyContext,
+  undo: Undo,
+  expected_domain: Url,
 ) -> Result<HttpResponse, LemmyError> {
   let delete = Delete::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
-  check_is_undo_valid(&undo, &delete)?;
+  verify_activity_domains_valid(&delete, expected_domain, true)?;
 
   let object = delete
     .object()
@@ -77,12 +58,13 @@ async fn receive_undo_delete(
 }
 
 async fn receive_undo_remove(
-  undo: Undo,
   context: &LemmyContext,
+  undo: Undo,
+  expected_domain: Url,
 ) -> Result<HttpResponse, LemmyError> {
   let remove = Remove::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
-  check_is_undo_valid(&undo, &remove)?;
+  verify_activity_domains_valid(&remove, expected_domain, false)?;
 
   let object = remove
     .object()
@@ -98,10 +80,14 @@ async fn receive_undo_remove(
   }
 }
 
-async fn receive_undo_like(undo: Undo, context: &LemmyContext) -> Result<HttpResponse, LemmyError> {
+async fn receive_undo_like(
+  context: &LemmyContext,
+  undo: Undo,
+  expected_domain: Url,
+) -> Result<HttpResponse, LemmyError> {
   let like = Like::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
-  check_is_undo_valid(&undo, &like)?;
+  verify_activity_domains_valid(&like, expected_domain, false)?;
 
   let type_ = like
     .object()
@@ -115,12 +101,13 @@ async fn receive_undo_like(undo: Undo, context: &LemmyContext) -> Result<HttpRes
 }
 
 async fn receive_undo_dislike(
-  undo: Undo,
   context: &LemmyContext,
+  undo: Undo,
+  expected_domain: Url,
 ) -> Result<HttpResponse, LemmyError> {
   let dislike = Dislike::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
-  check_is_undo_valid(&undo, &dislike)?;
+  verify_activity_domains_valid(&dislike, expected_domain, false)?;
 
   let type_ = dislike
     .object()
