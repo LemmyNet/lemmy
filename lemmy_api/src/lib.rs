@@ -100,6 +100,15 @@ pub(in crate) async fn check_community_ban(
   }
 }
 
+pub(in crate) fn check_optional_url(item: &Option<String>) -> Result<(), LemmyError> {
+  if let Some(item) = &item {
+    if Url::parse(item).is_err() {
+      return Err(APIError::err("invalid_url").into());
+    }
+  }
+  Ok(())
+}
+
 pub(in crate) async fn linked_instances(pool: &DbPool) -> Result<Vec<String>, LemmyError> {
   let mut instances: Vec<String> = Vec::new();
 

@@ -1,5 +1,6 @@
 use crate::{
   check_community_ban,
+  check_optional_url,
   get_user_from_jwt,
   get_user_from_jwt_opt,
   is_mod_or_admin,
@@ -36,7 +37,6 @@ use lemmy_websocket::{
   UserOperation,
 };
 use std::str::FromStr;
-use url::Url;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for CreatePost {
@@ -59,12 +59,7 @@ impl Perform for CreatePost {
 
     check_community_ban(user.id, data.community_id, context.pool()).await?;
 
-    if let Some(url) = data.url.as_ref() {
-      match Url::parse(url) {
-        Ok(_t) => (),
-        Err(_e) => return Err(APIError::err("invalid_url").into()),
-      }
-    }
+    check_optional_url(&data.url)?;
 
     // Fetch Iframely and pictrs cached image
     let (iframely_title, iframely_description, iframely_html, pictrs_thumbnail) =

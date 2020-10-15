@@ -39,13 +39,13 @@ impl ToApub for User_ {
 
     if let Some(avatar_url) = &self.avatar {
       let mut image = Image::new();
-      image.set_url(avatar_url.to_owned());
+      image.set_url(Url::parse(avatar_url)?);
       person.set_icon(image.into_any_base()?);
     }
 
     if let Some(banner_url) = &self.banner {
       let mut image = Image::new();
-      image.set_url(banner_url.to_owned());
+      image.set_url(Url::parse(banner_url)?);
       person.set_image(image.into_any_base()?);
     }
 

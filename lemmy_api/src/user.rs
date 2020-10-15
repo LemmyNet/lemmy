@@ -1,5 +1,6 @@
 use crate::{
   captcha_espeak_wav_base64,
+  check_optional_url,
   claims::Claims,
   get_user_from_jwt,
   get_user_from_jwt_opt,
@@ -346,6 +347,10 @@ impl Perform for SaveUserSettings {
     let bio = diesel_option_overwrite(&data.bio);
     let preferred_username = diesel_option_overwrite(&data.preferred_username);
     let matrix_user_id = diesel_option_overwrite(&data.matrix_user_id);
+
+    // Check to make sure the avatar and banners are urls
+    check_optional_url(&data.avatar)?;
+    check_optional_url(&data.banner)?;
 
     if let Some(Some(bio)) = &bio {
       if bio.chars().count() > 300 {

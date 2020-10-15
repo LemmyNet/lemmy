@@ -1,4 +1,11 @@
-use crate::{get_user_from_jwt, get_user_from_jwt_opt, is_admin, is_mod_or_admin, Perform};
+use crate::{
+  check_optional_url,
+  get_user_from_jwt,
+  get_user_from_jwt_opt,
+  is_admin,
+  is_mod_or_admin,
+  Perform,
+};
 use actix_web::web::Data;
 use anyhow::Context;
 use lemmy_apub::ActorType;
@@ -129,6 +136,13 @@ impl Perform for CreateCommunity {
       return Err(APIError::err("community_already_exists").into());
     }
 
+    // Check to make sure the icon and banners are urls
+    let icon = diesel_option_overwrite(&data.icon);
+    let banner = diesel_option_overwrite(&data.banner);
+
+    check_optional_url(&data.icon)?;
+    check_optional_url(&data.banner)?;
+
     // When you create a community, make sure the user becomes a moderator and a follower
     let keypair = generate_actor_keypair()?;
 
@@ -136,8 +150,8 @@ impl Perform for CreateCommunity {
       name: data.name.to_owned(),
       title: data.title.to_owned(),
       description: data.description.to_owned(),
-      icon: Some(data.icon.to_owned()),
-      banner: Some(data.banner.to_owned()),
+      icon,
+      banner,
       category_id: data.category_id,
       creator_id: user.id,
       removed: None,
@@ -225,6 +239,9 @@ impl Perform for EditCommunity {
 
     let icon = diesel_option_overwrite(&data.icon);
     let banner = diesel_option_overwrite(&data.banner);
+
+    check_optional_url(&data.icon)?;
+    check_optional_url(&data.banner)?;
 
     let community_form = CommunityForm {
       name: read_community.name,
