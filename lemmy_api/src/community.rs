@@ -1,4 +1,11 @@
-use crate::{get_user_from_jwt, get_user_from_jwt_opt, is_admin, is_mod_or_admin, Perform};
+use crate::{
+  check_optional_url,
+  get_user_from_jwt,
+  get_user_from_jwt_opt,
+  is_admin,
+  is_mod_or_admin,
+  Perform,
+};
 use actix_web::web::Data;
 use anyhow::Context;
 use lemmy_apub::ActorType;
@@ -131,20 +138,11 @@ impl Perform for CreateCommunity {
     }
 
     // Check to make sure the icon and banners are urls
-    let icon = Some(data.icon.to_owned());
-    let banner = Some(data.banner.to_owned());
+    let icon = diesel_option_overwrite(&data.icon);
+    let banner = diesel_option_overwrite(&data.banner);
 
-    if let Some(Some(icon)) = &icon {
-      if Url::parse(icon).is_err() {
-        return Err(APIError::err("invalid_url").into());
-      }
-    }
-
-    if let Some(Some(banner)) = &banner {
-      if Url::parse(banner).is_err() {
-        return Err(APIError::err("invalid_url").into());
-      }
-    }
+    check_optional_url(&data.icon)?;
+    check_optional_url(&data.banner)?;
 
     // When you create a community, make sure the user becomes a moderator and a follower
     let keypair = generate_actor_keypair()?;

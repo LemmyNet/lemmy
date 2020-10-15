@@ -1,5 +1,6 @@
 use crate::{
   captcha_espeak_wav_base64,
+  check_optional_url,
   claims::Claims,
   get_user_from_jwt,
   get_user_from_jwt_opt,
@@ -62,7 +63,6 @@ use lemmy_websocket::{
 };
 use log::error;
 use std::str::FromStr;
-use url::Url;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for Login {
@@ -349,17 +349,8 @@ impl Perform for SaveUserSettings {
     let matrix_user_id = diesel_option_overwrite(&data.matrix_user_id);
 
     // Check to make sure the avatar and banners are urls
-    if let Some(Some(avatar)) = &avatar {
-      if Url::parse(avatar).is_err() {
-        return Err(APIError::err("invalid_url").into());
-      }
-    }
-
-    if let Some(Some(banner)) = &banner {
-      if Url::parse(banner).is_err() {
-        return Err(APIError::err("invalid_url").into());
-      }
-    }
+    check_optional_url(&data.avatar)?;
+    check_optional_url(&data.banner)?;
 
     if let Some(Some(bio)) = &bio {
       if bio.chars().count() > 300 {
