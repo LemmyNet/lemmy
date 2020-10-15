@@ -1,8 +1,5 @@
-use crate::{
-  activities::receive::{find_by_id, get_actor_as_user, FindResults},
-  ActorType,
-};
-use activitystreams::{activity::Remove, base::AnyBase, error::DomainError, prelude::*};
+use crate::activities::receive::{find_by_id, verify_activity_domains_valid, FindResults};
+use activitystreams::{activity::Remove, base::AnyBase, prelude::*};
 use actix_web::HttpResponse;
 use anyhow::Context;
 use lemmy_db::{
@@ -25,13 +22,16 @@ use lemmy_websocket::{
   LemmyContext,
   UserOperation,
 };
+use url::Url;
 
 pub async fn receive_remove(
-  activity: AnyBase,
   context: &LemmyContext,
+  activity: AnyBase,
+  expected_domain: Url,
 ) -> Result<HttpResponse, LemmyError> {
   let remove = Remove::from_any_base(activity)?.context(location_info!())?;
-  let actor = get_actor_as_user(&remove, context).await?;
+  verify_activity_domains_valid(&remove, expected_domain, false)?;
+
   let cc = remove
     .cc()
     .map(|c| c.as_many())
@@ -48,11 +48,6 @@ pub async fn receive_remove(
     .to_owned()
     .single_xsd_any_uri()
     .context(location_info!())?;
-
-  // Ensure that remove comes from the same domain as the community
-  if actor.actor_id()?.domain() != community_id.domain() {
-    return Err(DomainError.into());
-  }
 
   // Ensure that remove activity comes from the same domain as the community
   remove.id(community_id.domain().context(location_info!())?)?;

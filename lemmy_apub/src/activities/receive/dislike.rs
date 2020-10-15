@@ -3,6 +3,7 @@ use crate::{
     announce_if_community_is_local,
     get_actor_as_user,
     receive_unhandled_activity,
+    verify_activity_domains_valid,
   },
   fetcher::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
   FromApub,
@@ -27,10 +28,12 @@ use lemmy_websocket::{
   LemmyContext,
   UserOperation,
 };
+use url::Url;
 
 pub async fn receive_dislike(
-  activity: AnyBase,
   context: &LemmyContext,
+  activity: AnyBase,
+  expected_domain: Url,
 ) -> Result<HttpResponse, LemmyError> {
   let enable_downvotes = blocking(context.pool(), move |conn| {
     Site::read(conn, 1).map(|s| s.enable_downvotes)
@@ -41,6 +44,8 @@ pub async fn receive_dislike(
   }
 
   let dislike = Dislike::from_any_base(activity)?.context(location_info!())?;
+  verify_activity_domains_valid(&dislike, expected_domain, false)?;
+
   match dislike.object().as_single_kind_str() {
     Some("Page") => receive_dislike_post(dislike, context).await,
     Some("Note") => receive_dislike_comment(dislike, context).await,

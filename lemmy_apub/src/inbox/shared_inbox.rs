@@ -48,7 +48,7 @@ pub async fn shared_inbox(
 ) -> Result<HttpResponse, LemmyError> {
   let activity = input.into_inner();
 
-  let actor = activity
+  let actor_id = activity
     .actor()?
     .to_owned()
     .single_xsd_any_uri()
@@ -56,25 +56,25 @@ pub async fn shared_inbox(
   debug!(
     "Shared inbox received activity {:?} from {}",
     &activity.id_unchecked(),
-    &actor
+    &actor_id
   );
 
-  check_is_apub_id_valid(&actor)?;
+  check_is_apub_id_valid(&actor_id)?;
 
-  let actor = get_or_fetch_and_upsert_actor(&actor, &context).await?;
+  let actor = get_or_fetch_and_upsert_actor(&actor_id, &context).await?;
   verify_signature(&request, actor.as_ref())?;
 
   let any_base = activity.clone().into_any_base()?;
   let kind = activity.kind().context(location_info!())?;
   let res = match kind {
-    ValidTypes::Announce => receive_announce(any_base, &context).await,
-    ValidTypes::Create => receive_create(any_base, &context).await,
-    ValidTypes::Update => receive_update(any_base, &context).await,
-    ValidTypes::Like => receive_like(any_base, &context).await,
-    ValidTypes::Dislike => receive_dislike(any_base, &context).await,
-    ValidTypes::Remove => receive_remove(any_base, &context).await,
-    ValidTypes::Delete => receive_delete(any_base, &context).await,
-    ValidTypes::Undo => receive_undo(any_base, &context).await,
+    ValidTypes::Announce => receive_announce(&context, any_base, actor.as_ref()).await,
+    ValidTypes::Create => receive_create(&context, any_base, actor_id).await,
+    ValidTypes::Update => receive_update(&context, any_base, actor_id).await,
+    ValidTypes::Like => receive_like(&context, any_base, actor_id).await,
+    ValidTypes::Dislike => receive_dislike(&context, any_base, actor_id).await,
+    ValidTypes::Remove => receive_remove(&context, any_base, actor_id).await,
+    ValidTypes::Delete => receive_delete(&context, any_base, actor_id).await,
+    ValidTypes::Undo => receive_undo(&context, any_base, actor_id).await,
   };
 
   insert_activity(actor.user_id(), activity.clone(), false, context.pool()).await?;

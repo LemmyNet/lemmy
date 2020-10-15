@@ -3,6 +3,7 @@ use crate::{
     announce_if_community_is_local,
     get_actor_as_user,
     receive_unhandled_activity,
+    verify_activity_domains_valid,
   },
   ActorType,
   FromApub,
@@ -24,16 +25,15 @@ use lemmy_websocket::{
   LemmyContext,
   UserOperation,
 };
+use url::Url;
 
 pub async fn receive_create(
-  activity: AnyBase,
   context: &LemmyContext,
+  activity: AnyBase,
+  expected_domain: Url,
 ) -> Result<HttpResponse, LemmyError> {
   let create = Create::from_any_base(activity)?.context(location_info!())?;
-
-  // ensure that create and actor come from the same instance
-  let user = get_actor_as_user(&create, context).await?;
-  create.id(user.actor_id()?.domain().context(location_info!())?)?;
+  verify_activity_domains_valid(&create, expected_domain, true)?;
 
   match create.object().as_single_kind_str() {
     Some("Page") => receive_create_post(create, context).await,
