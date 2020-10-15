@@ -41,7 +41,6 @@ use lemmy_websocket::{
   UserOperation,
 };
 use std::str::FromStr;
-use url::Url;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for GetCommunity {
@@ -241,18 +240,8 @@ impl Perform for EditCommunity {
     let icon = diesel_option_overwrite(&data.icon);
     let banner = diesel_option_overwrite(&data.banner);
 
-    // Check to make sure the icon and banners are urls
-    if let Some(Some(icon)) = &icon {
-      if Url::parse(icon).is_err() {
-        return Err(APIError::err("invalid_url").into());
-      }
-    }
-
-    if let Some(Some(banner)) = &banner {
-      if Url::parse(banner).is_err() {
-        return Err(APIError::err("invalid_url").into());
-      }
-    }
+    check_optional_url(&data.icon)?;
+    check_optional_url(&data.banner)?;
 
     let community_form = CommunityForm {
       name: read_community.name,
