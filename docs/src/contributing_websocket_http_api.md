@@ -269,8 +269,19 @@
 
 ### Lemmy types
 
-- The fields for objects like Users, Comments, Communities, and Posts, are in the [lemmy_db](https://github.com/LemmyNet/lemmy/tree/main/lemmy_db/src) folder, with the suffix `_view`. For example, the fields for `CommentView` are given [here](https://github.com/LemmyNet/lemmy/blob/main/lemmy_db/src/comment_view.rs#L89).
-- The requests and responses, although copied below, are most up to date in [lemmy_structs](https://github.com/LemmyNet/lemmy/tree/main/lemmy_structs/src).
+The fields for objects like Users, Comments, Communities, and Posts, are in the [lemmy_db](https://github.com/LemmyNet/lemmy/tree/main/lemmy_db/src) folder, with the suffix `_view`. The main types are:
+
+- [CommentView](https://github.com/LemmyNet/lemmy/blob/main/lemmy_db/src/comment_view.rs)
+- [CommunityView](https://github.com/LemmyNet/lemmy/blob/main/lemmy_db/src/community_view.rs)
+- [PostView](https://github.com/LemmyNet/lemmy/blob/main/lemmy_db/src/post_view.rs)
+- [UserView](https://github.com/LemmyNet/lemmy/blob/main/lemmy_db/src/user_view.rs)
+- [PrivateMessageView](https://github.com/LemmyNet/lemmy/blob/main/lemmy_db/src/private_message_view.rs)
+- [UserMentionView](https://github.com/LemmyNet/lemmy/blob/main/lemmy_db/src/user_mention_view.rs)
+- [SiteView](https://github.com/LemmyNet/lemmy/blob/main/lemmy_db/src/site_view.rs)
+- [Category](https://github.com/LemmyNet/lemmy/blob/main/lemmy_db/src/category.rs)
+- [Moderator Views](https://github.com/LemmyNet/lemmy/blob/main/lemmy_db/src/moderator_views.rs)
+
+The requests and responses, although copied below, are most up to date in [lemmy_structs](https://github.com/LemmyNet/lemmy/tree/main/lemmy_structs/src).
 
 ### Lower-level types
 
