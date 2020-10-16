@@ -60,10 +60,8 @@
   federation: {
     # whether to enable activitypub federation. 
     enabled: false
-    # Leave these next two fields empty, if you wish to federate with anyone.
-    #
-    # If you want to limit federation, only fill one of these.
-    # Make sure the other is commented out or empty
+    # Allows and blocks are described here:
+    # https://dev.lemmy.ml/docs/administration_federation.html#instance-allowlist-and-blocklist
     #
     # comma separated list of instances with which federation is allowed
     allowed_instances: ""
