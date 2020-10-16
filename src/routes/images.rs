@@ -74,7 +74,7 @@ async fn full_res(
     format!("{}/image/original/{}", Settings::get().pictrs_url, name,)
   } else {
     // Use jpg as a default when none is given
-    let format = params.format.unwrap_or("jpg".to_string());
+    let format = params.format.unwrap_or_else(|| "jpg".to_string());
 
     let mut url = format!(
       "{}/image/process.{}?src={}",
