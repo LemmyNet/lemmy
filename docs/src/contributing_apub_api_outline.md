@@ -52,8 +52,8 @@ Receives activities from user: `Follow`, `Undo/Follow`, `Create`, `Update`, `Lik
     "@context": "https://www.w3.org/ns/activitystreams",
     "id": "https://enterprise.lemmy.ml/c/main",
     "type": "Group",
-    "name": "main",
-    "preferredUsername": "The Main Community",
+    "preferredUsername": "main",
+    "name": "The Main Community",
     "category": { 
         "identifier": "1",
         "name": "Discussion"
@@ -90,8 +90,8 @@ Receives activities from user: `Follow`, `Undo/Follow`, `Create`, `Update`, `Lik
 
 | Field Name | Mandatory | Description |
 |---|---|---|
-| `name` | yes | Name of the actor |
-| `preferredUsername` | yes | Displayname |
+| `preferredUsername` | yes | Name of the actor |
+| `name` | yes | Title of the community |
 | `category` | yes | Hardcoded list of categories, see https://dev.lemmy.ml/api/v1/categories |
 | `sensitive` | yes | True indicates that all posts in the community are nsfw |
 | `attributedTo` | yes | First the community creator, then all the remaining moderators |
@@ -121,8 +121,8 @@ Sends and receives activities from/to other users: `Create/Note`, `Update/Note`,
     "@context": "https://www.w3.org/ns/activitystreams",
     "id": "https://enterprise.lemmy.ml/u/picard",
     "type": "Person",
-    "name": "riker",
-    "preferredUsername": "Jean-Luc Picard",
+    "preferredUsername": "picard",
+    "name": "Jean-Luc Picard",
     "summary": "The user bio",
     "icon": {
         "type": "Image",
@@ -148,8 +148,8 @@ Sends and receives activities from/to other users: `Create/Note`, `Update/Note`,
 
 | Field Name | Mandatory | Description |
 |---|---|---|
-| `name` | yes | Name of the actor |
-| `preferredUsername` | no | Displayname |
+| `preferredUsername` | yes | Name of the actor |
+| `name` | no | The user's displayname |
 | `summary` | no | User bio |
 | `icon` | no | The user's avatar, shown next to the username |
 | `image` | no | The user's banner, shown on top of the profile |

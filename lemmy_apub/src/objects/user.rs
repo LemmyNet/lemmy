@@ -30,7 +30,6 @@ impl ToApub for User_ {
     person
       .set_context(activitystreams::context())
       .set_id(Url::parse(&self.actor_id)?)
-      .set_name(self.name.to_owned())
       .set_published(convert_datetime(self.published));
 
     if let Some(u) = self.updated {
@@ -53,15 +52,16 @@ impl ToApub for User_ {
       person.set_summary(bio.to_owned());
     }
 
+    if let Some(i) = self.preferred_username.to_owned() {
+      person.set_name(i);
+    }
+
     let mut ap_actor = ApActor::new(self.get_inbox_url()?, person);
+    ap_actor.set_preferred_username(self.name.to_owned());
     ap_actor.set_endpoints(Endpoints {
       shared_inbox: Some(self.get_shared_inbox_url()?),
       ..Default::default()
     });
-
-    if let Some(i) = &self.preferred_username {
-      ap_actor.set_preferred_username(i.to_owned());
-    }
 
     Ok(Ext1::new(ap_actor, self.get_public_key_ext()?))
   }
@@ -104,15 +104,17 @@ impl FromApub for UserForm {
       None => None,
     };
 
-    let name = person
-      .name()
-      .context(location_info!())?
-      .one()
-      .context(location_info!())?
-      .as_xsd_string()
+    let name: String = person
+      .inner
+      .preferred_username()
       .context(location_info!())?
       .to_string();
-    let preferred_username = person.inner.preferred_username().map(|u| u.to_string());
+    let preferred_username: Option<String> = person
+      .name()
+      .map(|n| n.one())
+      .flatten()
+      .map(|n| n.to_owned().xsd_string())
+      .flatten();
 
     // TODO a limit check (like the API does) might need to be done
     // here when we federate to other platforms. Same for preferred_username
