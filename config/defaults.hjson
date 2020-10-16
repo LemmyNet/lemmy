@@ -58,8 +58,13 @@
   }
   # settings related to activitypub federation
   federation: {
-    # whether to enable activitypub federation. this feature is in alpha, do not enable in production.
+    # whether to enable activitypub federation. 
     enabled: false
+    # Leave these next two fields empty, if you wish to federate with anyone.
+    #
+    # If you want to limit federation, only fill one of these.
+    # Make sure the other is commented out or empty
+    #
     # comma separated list of instances with which federation is allowed
     allowed_instances: ""
     # comma separated list of instances which are blocked from federating
