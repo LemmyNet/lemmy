@@ -19,6 +19,7 @@ use anyhow::Context;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 
+/// Takes an announce and passes the inner activity to the appropriate handler.
 pub async fn receive_announce(
   context: &LemmyContext,
   activity: AnyBase,

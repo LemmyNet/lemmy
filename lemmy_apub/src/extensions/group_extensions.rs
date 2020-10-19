@@ -5,6 +5,8 @@ use lemmy_db::{category::Category, Crud};
 use lemmy_utils::LemmyError;
 use serde::{Deserialize, Serialize};
 
+/// Activitystreams extension to allow (de)serializing additional Community fields `category` and
+/// `sensitive` (called 'nsfw' in Lemmy).
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GroupExtension {

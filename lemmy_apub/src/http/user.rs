@@ -11,7 +11,7 @@ pub struct UserQuery {
   user_name: String,
 }
 
-/// Return the user json over HTTP.
+/// Return the ActivityPub json representation of a local user over HTTP.
 pub async fn get_apub_user_http(
   info: web::Path<UserQuery>,
   context: web::Data<LemmyContext>,

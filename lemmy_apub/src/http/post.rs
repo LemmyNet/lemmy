@@ -15,7 +15,7 @@ pub struct PostQuery {
   post_id: String,
 }
 
-/// Return the post json over HTTP.
+/// Return the ActivityPub json representation of a local post over HTTP.
 pub async fn get_apub_post(
   info: web::Path<PostQuery>,
   context: web::Data<LemmyContext>,

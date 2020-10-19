@@ -2,6 +2,9 @@ use activitystreams::unparsed::UnparsedMutExt;
 use activitystreams_ext::UnparsedExtension;
 use serde::{Deserialize, Serialize};
 
+/// Activitystreams extension to allow (de)serializing additional Post fields
+/// `comemnts_enabled` (called 'locked' in Lemmy),
+/// `sensitive` (called 'nsfw') and `stickied`.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PageExtension {

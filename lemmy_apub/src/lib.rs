@@ -29,13 +29,24 @@ use lemmy_websocket::LemmyContext;
 use serde::Serialize;
 use url::{ParseError, Url};
 
+/// Activitystreams type for community
 type GroupExt = Ext2<ApActor<Group>, GroupExtension, PublicKeyExtension>;
+/// Activitystreams type for user
 type PersonExt = Ext1<ApActor<Person>, PublicKeyExtension>;
+/// Activitystreams type for post
 type PageExt = Ext1<Page, PageExtension>;
 
 pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 
-// Checks if the ID has a valid format, correct scheme, and is in the allowed instance list.
+/// Checks if the ID is allowed for sending or receiving.
+///
+/// In particular, it checks for:
+/// - federation being enabled (if its disabled, only local URLs are allowed)
+/// - the correct scheme (either http or https)
+/// - URL being in the allowlist (if it is active)
+/// - URL not being in the blocklist (if it is active)
+///
+/// Note that only one of allowlist and blacklist can be enabled, not both.
 fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
   let settings = Settings::get();
   let domain = apub_id.domain().context(location_info!())?.to_string();
@@ -90,10 +101,11 @@ fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
   }
 }
 
+/// Trait for converting an object or actor into the respective ActivityPub type.
 #[async_trait::async_trait(?Send)]
 pub trait ToApub {
-  type Response;
-  async fn to_apub(&self, pool: &DbPool) -> Result<Self::Response, LemmyError>;
+  type ApubType;
+  async fn to_apub(&self, pool: &DbPool) -> Result<Self::ApubType, LemmyError>;
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError>;
 }
 
@@ -104,9 +116,8 @@ pub trait FromApub {
   ///
   /// * `apub` The object to read from
   /// * `context` LemmyContext which holds DB pool, HTTP client etc
-  /// * `expected_domain` If present, ensure that the apub object comes from the same domain as
-  ///                     this URL
-  ///
+  /// * `expected_domain` If present, ensure that the domains of this and of the apub object ID are
+  ///                     identical
   async fn from_apub(
     apub: &Self::ApubType,
     context: &LemmyContext,
@@ -116,6 +127,8 @@ pub trait FromApub {
     Self: Sized;
 }
 
+/// Common functions for ActivityPub objects, which are implemented by most (but not all) objects
+/// and actors in Lemmy.
 #[async_trait::async_trait(?Send)]
 pub trait ApubObjectType {
   async fn send_create(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
@@ -138,6 +151,8 @@ pub trait ApubLikeableType {
     -> Result<(), LemmyError>;
 }
 
+/// Common methods provided by ActivityPub actors (community and user). Not all methods are
+/// implemented by all actors.
 #[async_trait::async_trait(?Send)]
 pub trait ActorType {
   fn actor_id_str(&self) -> String;
@@ -149,9 +164,6 @@ pub trait ActorType {
   /// numeric id in the database, used for insert_activity
   fn user_id(&self) -> i32;
 
-  // These two have default impls, since currently a community can't follow anything,
-  // and a user can't be followed (yet)
-  #[allow(unused_variables)]
   async fn send_follow(
     &self,
     follow_actor_id: &Url,
@@ -163,7 +175,6 @@ pub trait ActorType {
     context: &LemmyContext,
   ) -> Result<(), LemmyError>;
 
-  #[allow(unused_variables)]
   async fn send_accept_follow(
     &self,
     follow: Follow,
@@ -234,6 +245,8 @@ pub trait ActorType {
   }
 }
 
+/// Store a sent or received activity in the database, for logging purposes. These records are not
+/// persistent.
 pub async fn insert_activity<T>(
   user_id: i32,
   data: T,

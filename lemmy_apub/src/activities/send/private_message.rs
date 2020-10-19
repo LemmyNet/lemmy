@@ -41,7 +41,7 @@ impl ApubObjectType for PrivateMessage {
     Ok(())
   }
 
-  /// Send out information about an edited post, to the followers of the community.
+  /// Send out information about an edited private message, to the followers of the community.
   async fn send_update(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
     let note = self.to_apub(context.pool()).await?;
 
