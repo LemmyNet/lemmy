@@ -24,11 +24,12 @@ lazy_static! {
   static ref HTTP_SIG_CONFIG: Config = Config::new();
 }
 
-/// Signs request headers with the given keypair.
+/// Creates an HTTP post request to `inbox_url`, with the given `client` and `headers`, and
+/// `activity` as request body. The request is signed with `private_key` and then sent.
 pub async fn sign_and_send(
   client: &Client,
   headers: BTreeMap<String, String>,
-  url: &Url,
+  inbox_url: &Url,
   activity: String,
   actor_id: &Url,
   private_key: String,
@@ -43,7 +44,7 @@ pub async fn sign_and_send(
     );
   }
   let response = client
-    .post(&url.to_string())
+    .post(&inbox_url.to_string())
     .headers(header_map)
     .signature_with_digest(
       HTTP_SIG_CONFIG.clone(),
@@ -63,6 +64,7 @@ pub async fn sign_and_send(
   Ok(response)
 }
 
+/// Verifies the HTTP signature on an incoming inbox request.
 pub fn verify_signature(request: &HttpRequest, actor: &dyn ActorType) -> Result<(), LemmyError> {
   let public_key = actor.public_key().context(location_info!())?;
   let verified = CONFIG2
@@ -90,8 +92,14 @@ pub fn verify_signature(request: &HttpRequest, actor: &dyn ActorType) -> Result<
   }
 }
 
-// The following is taken from here:
-// https://docs.rs/activitystreams/0.5.0-alpha.17/activitystreams/ext/index.html
+/// Extension for actor public key, which is needed on user and community for HTTP signatures.
+///
+/// Taken from: https://docs.rs/activitystreams/0.5.0-alpha.17/activitystreams/ext/index.html
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PublicKeyExtension {
+  pub public_key: PublicKey,
+}
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -99,12 +107,6 @@ pub struct PublicKey {
   pub id: String,
   pub owner: String,
   pub public_key_pem: String,
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PublicKeyExtension {
-  pub public_key: PublicKey,
 }
 
 impl PublicKey {

@@ -82,11 +82,11 @@ pub enum SearchAcceptedObjects {
 
 /// Attempt to parse the query as URL, and fetch an ActivityPub object from it.
 ///
-/// Some working examples for use with the docker/federation/ setup:
-/// http://lemmy_alpha:8540/c/main, or !main@lemmy_alpha:8540
-/// http://lemmy_alpha:8540/u/lemmy_alpha, or @lemmy_alpha@lemmy_alpha:8540
-/// http://lemmy_alpha:8540/post/3
-/// http://lemmy_alpha:8540/comment/2
+/// Some working examples for use with the `docker/federation/` setup:
+/// http://lemmy_alpha:8541/c/main, or !main@lemmy_alpha:8541
+/// http://lemmy_beta:8551/u/lemmy_alpha, or @lemmy_beta@lemmy_beta:8551
+/// http://lemmy_gamma:8561/post/3
+/// http://lemmy_delta:8571/comment/2
 pub async fn search_by_apub_id(
   query: &str,
   context: &LemmyContext,
@@ -191,19 +191,27 @@ pub async fn search_by_apub_id(
   Ok(response)
 }
 
+/// Get a remote actor from its apub ID (either a user or a community). Thin wrapper around
+/// `get_or_fetch_and_upsert_user()` and `get_or_fetch_and_upsert_community()`.
+///
+/// If it exists locally and `!should_refetch_actor()`, it is returned directly from the database.
+/// Otherwise it is fetched from the remote instance, stored and returned.
 pub(crate) async fn get_or_fetch_and_upsert_actor(
   apub_id: &Url,
   context: &LemmyContext,
 ) -> Result<Box<dyn ActorType>, LemmyError> {
-  let user = get_or_fetch_and_upsert_user(apub_id, context).await;
-  let actor: Box<dyn ActorType> = match user {
-    Ok(u) => Box::new(u),
-    Err(_) => Box::new(get_or_fetch_and_upsert_community(apub_id, context).await?),
+  let community = get_or_fetch_and_upsert_community(apub_id, context).await;
+  let actor: Box<dyn ActorType> = match community {
+    Ok(c) => Box::new(c),
+    Err(_) => Box::new(get_or_fetch_and_upsert_user(apub_id, context).await?),
   };
   Ok(actor)
 }
 
-/// Check if a remote user exists, create if not found, if its too old update it.Fetch a user, insert/update it in the database and return the user.
+/// Get a user from its apub ID.
+///
+/// If it exists locally and `!should_refetch_actor()`, it is returned directly from the database.
+/// Otherwise it is fetched from the remote instance, stored and returned.
 pub(crate) async fn get_or_fetch_and_upsert_user(
   apub_id: &Url,
   context: &LemmyContext,
@@ -241,7 +249,8 @@ pub(crate) async fn get_or_fetch_and_upsert_user(
 }
 
 /// Determines when a remote actor should be refetched from its instance. In release builds, this is
-/// ACTOR_REFETCH_INTERVAL_SECONDS after the last refetch, in debug builds always.
+/// `ACTOR_REFETCH_INTERVAL_SECONDS` after the last refetch, in debug builds
+/// `ACTOR_REFETCH_INTERVAL_SECONDS_DEBUG`.
 ///
 /// TODO it won't pick up new avatars, summaries etc until a day after.
 /// Actors need an "update" activity pushed to other servers to fix this.
@@ -255,7 +264,10 @@ fn should_refetch_actor(last_refreshed: NaiveDateTime) -> bool {
   last_refreshed.lt(&(naive_now() - update_interval))
 }
 
-/// Check if a remote community exists, create if not found, if its too old update it.Fetch a community, insert/update it in the database and return the community.
+/// Get a community from its apub ID.
+///
+/// If it exists locally and `!should_refetch_actor()`, it is returned directly from the database.
+/// Otherwise it is fetched from the remote instance, stored and returned.
 pub(crate) async fn get_or_fetch_and_upsert_community(
   apub_id: &Url,
   context: &LemmyContext,
@@ -280,6 +292,9 @@ pub(crate) async fn get_or_fetch_and_upsert_community(
   }
 }
 
+/// Request a community by apub ID from a remote instance, including moderators. If `community_id`,
+/// is set, this is an update for a community which is already known locally. If not, we don't know
+/// the community yet and also pull the outbox, to get some initial posts.
 async fn fetch_remote_community(
   apub_id: &Url,
   context: &LemmyContext,
@@ -358,6 +373,10 @@ async fn fetch_remote_community(
   Ok(community)
 }
 
+/// Gets a post by its apub ID. If it exists locally, it is returned directly. Otherwise it is
+/// pulled from its apub ID, inserted and returned.
+///
+/// The parent community is also pulled if necessary. Comments are not pulled.
 pub(crate) async fn get_or_fetch_and_insert_post(
   post_ap_id: &Url,
   context: &LemmyContext,
@@ -383,6 +402,10 @@ pub(crate) async fn get_or_fetch_and_insert_post(
   }
 }
 
+/// Gets a comment by its apub ID. If it exists locally, it is returned directly. Otherwise it is
+/// pulled from its apub ID, inserted and returned.
+///
+/// The parent community, post and comment are also pulled if necessary.
 pub(crate) async fn get_or_fetch_and_insert_comment(
   comment_ap_id: &Url,
   context: &LemmyContext,

@@ -84,6 +84,7 @@ impl ActorType for Community {
     Ok(())
   }
 
+  /// If the creator of a community deletes the community, send this to all followers.
   async fn send_delete(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
     let group = self.to_apub(context.pool()).await?;
 
@@ -98,6 +99,7 @@ impl ActorType for Community {
     Ok(())
   }
 
+  /// If the creator of a community reverts the deletion of a community, send this to all followers.
   async fn send_undo_delete(
     &self,
     creator: &User_,
@@ -123,6 +125,7 @@ impl ActorType for Community {
     Ok(())
   }
 
+  /// If an admin removes a community, send this to all followers.
   async fn send_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
     let mut remove = Remove::new(mod_.actor_id.to_owned(), self.actor_id()?);
     remove
@@ -135,6 +138,7 @@ impl ActorType for Community {
     Ok(())
   }
 
+  /// If an admin reverts the removal of a community, send this to all followers.
   async fn send_undo_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
     let mut remove = Remove::new(mod_.actor_id.to_owned(), self.actor_id()?);
     remove
@@ -155,6 +159,8 @@ impl ActorType for Community {
     Ok(())
   }
 
+  /// Wraps an activity sent to the community in an announce, and then sends the announce to all
+  /// community followers.
   async fn send_announce(
     &self,
     activity: AnyBase,

@@ -23,6 +23,7 @@ use log::debug;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
+/// Allowed activity types for shared inbox.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 pub enum ValidTypes {
@@ -40,7 +41,7 @@ pub enum ValidTypes {
 //       but it might still work due to the anybase conversion
 pub type AcceptedActivities = ActorAndObject<ValidTypes>;
 
-/// Handler for all incoming receive to user inboxes.
+/// Handler for all incoming requests to shared inbox.
 pub async fn shared_inbox(
   request: HttpRequest,
   input: web::Json<AcceptedActivities>,

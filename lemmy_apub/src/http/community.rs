@@ -19,7 +19,7 @@ pub struct CommunityQuery {
   community_name: String,
 }
 
-/// Return the community json over HTTP.
+/// Return the ActivityPub json representation of a local community over HTTP.
 pub async fn get_apub_community_http(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,
@@ -62,6 +62,8 @@ pub async fn get_apub_community_followers(
   Ok(create_apub_response(&collection))
 }
 
+/// Returns the community outbox, which is populated by a maximum of 20 posts (but no other
+/// activites like votes or comments).
 pub async fn get_apub_community_outbox(
   info: web::Path<CommunityQuery>,
   context: web::Data<LemmyContext>,

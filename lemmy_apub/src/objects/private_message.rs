@@ -23,7 +23,7 @@ use url::Url;
 
 #[async_trait::async_trait(?Send)]
 impl ToApub for PrivateMessage {
-  type Response = Note;
+  type ApubType = Note;
 
   async fn to_apub(&self, pool: &DbPool) -> Result<Note, LemmyError> {
     let mut private_message = Note::new();
@@ -58,7 +58,6 @@ impl ToApub for PrivateMessage {
 impl FromApub for PrivateMessageForm {
   type ApubType = Note;
 
-  /// Parse an ActivityPub note received from another instance into a Lemmy Private message
   async fn from_apub(
     note: &Note,
     context: &LemmyContext,

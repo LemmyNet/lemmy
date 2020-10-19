@@ -28,6 +28,11 @@ use serde::{export::fmt::Debug, Deserialize, Serialize};
 use std::{collections::BTreeMap, future::Future, pin::Pin};
 use url::Url;
 
+/// Sends a local activity to a single, remote actor.
+///
+/// * `activity` the apub activity to be sent
+/// * `creator` the local actor which created the activity
+/// * `inbox` the inbox url where the activity should be delivered to
 pub async fn send_activity_single_dest<T, Kind>(
   activity: T,
   creator: &dyn ActorType,
@@ -59,6 +64,12 @@ where
   Ok(())
 }
 
+/// From a local community, send activity to all remote followers.
+///
+/// * `activity` the apub activity to send
+/// * `community` the sending community
+/// * `sender_shared_inbox` in case of an announce, this should be the shared inbox of the inner
+///                         activities creator, as receiving a known activity will cause an error
 pub async fn send_to_community_followers<T, Kind>(
   activity: T,
   community: &Community,
@@ -102,10 +113,16 @@ where
   Ok(())
 }
 
+/// Sends an activity from a local user to a remote community.
+///
+/// * `activity` the activity to send
+/// * `creator` the creator of the activity
+/// * `community` the destination community
+///
 pub async fn send_to_community<T, Kind>(
+  activity: T,
   creator: &User_,
   community: &Community,
-  activity: T,
   context: &LemmyContext,
 ) -> Result<(), LemmyError>
 where
@@ -140,6 +157,11 @@ where
   Ok(())
 }
 
+/// Sends notification to any users mentioned in a comment
+///
+/// * `creator` user who created the comment
+/// * `mentions` list of inboxes of users which are mentioned in the comment
+/// * `activity` either a `Create/Note` or `Update/Note`
 pub async fn send_comment_mentions<T, Kind>(
   creator: &User_,
   mentions: Vec<Url>,
@@ -173,7 +195,8 @@ where
   Ok(())
 }
 
-/// Asynchronously sends the given `activity` from `actor` to every inbox URL in `to`.
+/// Create new `SendActivityTasks`, which will deliver the given activity to inboxes, as well as
+/// handling signing and retrying failed deliveres.
 ///
 /// The caller of this function needs to remove any blocked domains from `to`,
 /// using `check_is_apub_id_valid()`.
@@ -224,6 +247,8 @@ struct SendActivityTask {
   private_key: String,
 }
 
+/// Signs the activity with the sending actor's key, and delivers to the given inbox. Also retries
+/// if the delivery failed.
 impl ActixJob for SendActivityTask {
   type State = MyState;
   type Future = Pin<Box<dyn Future<Output = Result<(), Error>>>>;

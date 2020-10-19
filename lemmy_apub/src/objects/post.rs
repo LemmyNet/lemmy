@@ -31,7 +31,7 @@ use url::Url;
 
 #[async_trait::async_trait(?Send)]
 impl ToApub for Post {
-  type Response = PageExt;
+  type ApubType = PageExt;
 
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
   async fn to_apub(&self, pool: &DbPool) -> Result<PageExt, LemmyError> {
@@ -94,7 +94,9 @@ impl ToApub for Post {
 impl FromApub for PostForm {
   type ApubType = PageExt;
 
-  /// Parse an ActivityPub page received from another instance into a Lemmy post.
+  /// Converts a `PageExt` to `PostForm`.
+  ///
+  /// If the post's community or creator are not known locally, these are also fetched.
   async fn from_apub(
     page: &PageExt,
     context: &LemmyContext,

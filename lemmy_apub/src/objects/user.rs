@@ -21,11 +21,9 @@ use url::Url;
 
 #[async_trait::async_trait(?Send)]
 impl ToApub for User_ {
-  type Response = PersonExt;
+  type ApubType = PersonExt;
 
-  // Turn a Lemmy Community into an ActivityPub group that can be sent out over the network.
   async fn to_apub(&self, _pool: &DbPool) -> Result<PersonExt, LemmyError> {
-    // TODO go through all these to_string and to_owned()
     let mut person = Person::new();
     person
       .set_context(activitystreams::context())
@@ -73,7 +71,7 @@ impl ToApub for User_ {
 #[async_trait::async_trait(?Send)]
 impl FromApub for UserForm {
   type ApubType = PersonExt;
-  /// Parse an ActivityPub person received from another instance into a Lemmy user.
+
   async fn from_apub(
     person: &PersonExt,
     _context: &LemmyContext,

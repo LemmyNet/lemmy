@@ -25,6 +25,7 @@ use log::info;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
+/// Allowed activities for community inbox.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 pub enum ValidTypes {
@@ -90,7 +91,7 @@ pub async fn community_inbox(
   res
 }
 
-/// Handle a follow request from a remote user, adding it to the local database and returning an
+/// Handle a follow request from a remote user, adding the user as follower and returning an
 /// Accept activity.
 async fn handle_follow(
   activity: AnyBase,
@@ -117,6 +118,7 @@ async fn handle_follow(
   Ok(HttpResponse::Ok().finish())
 }
 
+/// Handle `Undo/Follow` from a user, removing the user from followers list.
 async fn handle_undo_follow(
   activity: AnyBase,
   user: User_,

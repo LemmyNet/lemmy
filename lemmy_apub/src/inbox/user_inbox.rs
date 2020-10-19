@@ -30,6 +30,7 @@ use log::debug;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
+/// Allowed activities for user inbox.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 pub enum ValidTypes {
@@ -42,7 +43,7 @@ pub enum ValidTypes {
 
 pub type AcceptedActivities = ActorAndObject<ValidTypes>;
 
-/// Handler for all incoming receive to user inboxes.
+/// Handler for all incoming activities to user inboxes.
 pub async fn user_inbox(
   request: HttpRequest,
   input: web::Json<AcceptedActivities>,

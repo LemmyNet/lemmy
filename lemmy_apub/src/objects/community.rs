@@ -32,9 +32,8 @@ use url::Url;
 
 #[async_trait::async_trait(?Send)]
 impl ToApub for Community {
-  type Response = GroupExt;
+  type ApubType = GroupExt;
 
-  // Turn a Lemmy Community into an ActivityPub group that can be sent out over the network.
   async fn to_apub(&self, pool: &DbPool) -> Result<GroupExt, LemmyError> {
     // The attributed to, is an ordered vector with the creator actor_ids first,
     // then the rest of the moderators
@@ -108,7 +107,6 @@ impl ToApub for Community {
 impl FromApub for CommunityForm {
   type ApubType = GroupExt;
 
-  /// Parse an ActivityPub group received from another instance into a Lemmy community.
   async fn from_apub(
     group: &GroupExt,
     context: &LemmyContext,

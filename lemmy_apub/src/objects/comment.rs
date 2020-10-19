@@ -32,7 +32,7 @@ use url::Url;
 
 #[async_trait::async_trait(?Send)]
 impl ToApub for Comment {
-  type Response = Note;
+  type ApubType = Note;
 
   async fn to_apub(&self, pool: &DbPool) -> Result<Note, LemmyError> {
     let mut comment = Note::new();
@@ -82,7 +82,9 @@ impl ToApub for Comment {
 impl FromApub for CommentForm {
   type ApubType = Note;
 
-  /// Parse an ActivityPub note received from another instance into a Lemmy comment
+  /// Converts a `Note` to `CommentForm`.
+  ///
+  /// If the parent community, post and comment(s) are not known locally, these are also fetched.
   async fn from_apub(
     note: &Note,
     context: &LemmyContext,

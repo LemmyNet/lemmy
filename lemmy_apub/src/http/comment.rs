@@ -15,7 +15,7 @@ pub struct CommentQuery {
   comment_id: String,
 }
 
-/// Return the post json over HTTP.
+/// Return the ActivityPub json representation of a local comment over HTTP.
 pub async fn get_apub_comment(
   info: Path<CommentQuery>,
   context: web::Data<LemmyContext>,
