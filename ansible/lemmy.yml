@@ -12,7 +12,7 @@
 
     - name: install python for Ansible
       # python2-minimal instead of python-minimal for ubuntu 20.04 and up
-      raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal python-setuptools)
+      raw: test -e /usr/bin/python || (apt -y update && apt install -y python3-minimal python3-setuptools)
       args:
         executable: /bin/bash
       register: output
