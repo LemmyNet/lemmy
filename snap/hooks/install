@@ -16,6 +16,7 @@ cat << EOF > $SNAP_DATA/defaults.hjson
   tls_enabled: true
   jwt_secret: "$(< /dev/urandom tr -cd "A-Za-z0-9" | head -c 40)"
   front_end_dir: "../ui/dist"
+  docs_dir: "$SNAP_DATA/documentation"
   pictrs_url: "http://localhost:1235"
   iframely_url: "http://localhost:8061"
   rate_limit: {

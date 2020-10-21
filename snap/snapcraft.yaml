@@ -253,9 +253,9 @@ parts:
     build-packages:
       - build-essential
     organize:
-      book: ui/dist/documentation
+      book: documentation
     prime:
-      - ui/dist/documentation
+      - documentation
 
   imagemagick:
     plugin: autotools
