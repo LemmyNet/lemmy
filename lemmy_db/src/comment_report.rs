@@ -110,7 +110,7 @@ impl CommentReportView {
   pub fn read(conn: &PgConnection, report_id: i32) -> Result<Self, Error> {
     use super::comment_report::comment_report_view::dsl::*;
     comment_report_view
-      .filter(id.eq(report_id))
+      .find(report_id)
       .first::<Self>(conn)
   }
 }
@@ -167,7 +167,7 @@ impl<'a> CommentReportQueryBuilder<'a> {
     let (limit, offset) = limit_and_offset(self.page, self.limit);
 
     query
-      .order_by(published.desc())
+      .order_by(published.asc())
       .limit(limit)
       .offset(offset)
       .load::<CommentReportView>(self.conn)
