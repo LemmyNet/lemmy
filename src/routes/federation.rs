@@ -13,15 +13,21 @@ use lemmy_apub::{
 use lemmy_utils::settings::Settings;
 use sha2::{Digest, Sha256};
 
+static APUB_JSON_CONTENT_TYPE_LONG: &str =
+  "application/ld+json; profile=\"https://www.w3.org/ns/activitystreams\"";
+
 pub fn config(cfg: &mut web::ServiceConfig) {
   if Settings::get().federation.enabled {
     println!("federation enabled, host is {}", Settings::get().hostname);
     let digest_verifier = VerifyDigest::new(Sha256::new());
 
+    let header_guard = guard::Any(guard::Header("Accept", APUB_JSON_CONTENT_TYPE))
+      .or(guard::Header("Accept", APUB_JSON_CONTENT_TYPE_LONG));
+
     cfg
       .service(
         web::scope("/")
-          .guard(guard::Header("Accept", APUB_JSON_CONTENT_TYPE))
+          .guard(header_guard)
           .route(
             "/c/{community_name}",
             web::get().to(get_apub_community_http),
