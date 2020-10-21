@@ -15,6 +15,7 @@ pub struct Settings {
   pub tls_enabled: bool,
   pub jwt_secret: String,
   pub pictrs_url: String,
+  pub iframely_url: String,
   pub rate_limit: RateLimitConfig,
   pub email: Option<EmailConfig>,
   pub federation: FederationConfig,

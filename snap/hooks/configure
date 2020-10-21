@@ -4,7 +4,7 @@
 echo '{' > $SNAP_DATA/config.hjson
 
 # Set up top-level section
-for prop in hostname bind port tls_enabled jwt_secret front_end_dir pictrs_url
+for prop in hostname bind port tls_enabled jwt_secret front_end_dir pictrs_url iframely_url
 do
   _prop=$(echo $prop | sed 's/_/-/')
   [ -n "$(snapctl get $_prop)" ] && echo "  $prop: \"$(snapctl get $_prop)\"" >> $SNAP_DATA/config.hjson

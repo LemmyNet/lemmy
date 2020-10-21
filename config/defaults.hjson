@@ -37,6 +37,8 @@
   jwt_secret: "changeme"
   # address where pictrs is available
   pictrs_url: "http://pictrs:8080"
+  # address where iframely is available
+  iframely_url: "http://iframely"
   # rate limits for various user actions, by user ip
   rate_limit: {
     # maximum number of messages created in interval
