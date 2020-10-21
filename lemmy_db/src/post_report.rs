@@ -1,32 +1,25 @@
-use diesel::{PgConnection, QueryDsl, RunQueryDsl, ExpressionMethods, insert_into, update};
-use diesel::pg::Pg;
-use diesel::result::*;
+use diesel::{dsl::*, pg::Pg, result::Error, *};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    limit_and_offset,
-    MaybeOptional,
-    schema::post_report,
-    post::Post,
-    Reportable,
-};
+use crate::{limit_and_offset, MaybeOptional, schema::post_report, post::Post, Reportable, naive_now};
 
 table! {
     post_report_view (id) {
-      id -> Uuid,
-      time -> Timestamp,
-      reason -> Nullable<Text>,
-      resolved -> Bool,
-      user_id -> Int4,
-      post_id -> Int4,
-      post_name -> Varchar,
-      post_url -> Nullable<Text>,
-      post_body -> Nullable<Text>,
-      post_time -> Timestamp,
-      community_id -> Int4,
-      user_name -> Varchar,
-      creator_id -> Int4,
-      creator_name -> Varchar,
+        id -> Int4,
+        creator_id -> Int4,
+        post_id -> Int4,
+        post_name -> Varchar,
+        post_url -> Nullable<Text>,
+        post_body -> Nullable<Text>,
+        reason -> Text,
+        resolved -> Bool,
+        resolver_id -> Nullable<Int4>,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
+        community_id -> Int4,
+        creator_name -> Varchar,
+        post_creator_id -> Int4,
+        post_creator_name -> Varchar,
     }
 }
 
@@ -34,30 +27,28 @@ table! {
 #[belongs_to(Post)]
 #[table_name = "post_report"]
 pub struct PostReport {
-    pub id: uuid::Uuid,
-    pub time: chrono::NaiveDateTime,
-    pub reason: Option<String>,
-    pub resolved: bool,
-    pub user_id: i32,
+    pub id: i32,
+    pub creator_id: i32,
     pub post_id: i32,
     pub post_name: String,
     pub post_url: Option<String>,
     pub post_body: Option<String>,
-    pub post_time: chrono::NaiveDateTime,
+    pub reason: String,
+    pub resolved: bool,
+    pub resolver_id: Option<i32>,
+    pub published: chrono::NaiveDateTime,
+    pub updated: Option<chrono::NaiveDateTime>,
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
 #[table_name = "post_report"]
 pub struct PostReportForm {
-    pub time: Option<chrono::NaiveDateTime>,
-    pub reason: Option<String>,
-    pub resolved: Option<bool>,
-    pub user_id: i32,
+    pub creator_id: i32,
     pub post_id: i32,
     pub post_name: String,
     pub post_url: Option<String>,
     pub post_body: Option<String>,
-    pub post_time: chrono::NaiveDateTime,
+    pub reason: String,
 }
 
 impl Reportable<PostReportForm> for PostReport {
@@ -68,37 +59,52 @@ impl Reportable<PostReportForm> for PostReport {
             .get_result::<Self>(conn)
     }
 
-    fn resolve(conn: &PgConnection, report_id: &uuid::Uuid) -> Result<usize, Error> {
+    fn resolve(conn: &PgConnection, report_id: i32, by_user_id: i32) -> Result<usize, Error> {
         use crate::schema::post_report::dsl::*;
         update(post_report.find(report_id))
-            .set(resolved.eq(true))
+            .set((
+                resolved.eq(true),
+                resolver_id.eq(by_user_id),
+                updated.eq(naive_now()),
+            ))
+            .execute(conn)
+    }
+
+    fn unresolve(conn: &PgConnection, report_id: i32) -> Result<usize, Error> {
+        use crate::schema::post_report::dsl::*;
+        update(post_report.find(report_id))
+            .set((
+                resolved.eq(false),
+                updated.eq(naive_now()),
+            ))
             .execute(conn)
     }
 }
 
 #[derive(
-Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
+Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, Clone,
 )]
 #[table_name = "post_report_view"]
 pub struct PostReportView {
-    pub id: uuid::Uuid,
-    pub time: chrono::NaiveDateTime,
-    pub reason: Option<String>,
-    pub resolved: bool,
-    pub user_id: i32,
+    pub id: i32,
+    pub creator_id: i32,
     pub post_id: i32,
     pub post_name: String,
     pub post_url: Option<String>,
     pub post_body: Option<String>,
-    pub post_time: chrono::NaiveDateTime,
+    pub reason: String,
+    pub resolved: bool,
+    pub resolver_id: Option<i32>,
+    pub published: chrono::NaiveDateTime,
+    pub updated: Option<chrono::NaiveDateTime>,
     pub community_id: i32,
-    pub user_name: String,
-    pub creator_id: i32,
     pub creator_name: String,
+    pub post_creator_id: i32,
+    pub post_creator_name: String,
 }
 
 impl PostReportView {
-    pub fn read(conn: &PgConnection, report_id: &uuid::Uuid) -> Result<Self, Error> {
+    pub fn read(conn: &PgConnection, report_id: i32) -> Result<Self, Error> {
         use super::post_report::post_report_view::dsl::*;
         post_report_view
             .filter(id.eq(report_id))
@@ -167,7 +173,7 @@ impl<'a> PostReportQueryBuilder<'a> {
         let (limit, offset) = limit_and_offset(self.page, self.limit);
 
         query
-            .order_by(time.desc())
+            .order_by(published.desc())
             .limit(limit)
             .offset(offset)
             .load::<PostReportView>(self.conn)

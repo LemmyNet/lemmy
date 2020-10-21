@@ -83,14 +83,15 @@ table! {
 
 table! {
     comment_report (id) {
-        id -> Uuid,
-        time -> Timestamp,
-        reason -> Nullable<Text>,
-        resolved -> Bool,
-        user_id -> Int4,
+        id -> Int4,
+        creator_id -> Int4,
         comment_id -> Int4,
         comment_text -> Text,
-        comment_time -> Timestamp,
+        reason -> Text,
+        resolved -> Bool,
+        resolver_id -> Nullable<Int4>,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
     }
 }
 
@@ -385,16 +386,17 @@ table! {
 
 table! {
     post_report (id) {
-        id -> Uuid,
-        time -> Timestamp,
-        reason -> Nullable<Text>,
-        resolved -> Bool,
-        user_id -> Int4,
+        id -> Int4,
+        creator_id -> Int4,
         post_id -> Int4,
         post_name -> Varchar,
         post_url -> Nullable<Text>,
         post_body -> Nullable<Text>,
-        post_time -> Timestamp,
+        reason -> Text,
+        resolved -> Bool,
+        resolver_id -> Nullable<Int4>,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
     }
 }
 
@@ -516,7 +518,6 @@ joinable!(comment_like -> comment (comment_id));
 joinable!(comment_like -> post (post_id));
 joinable!(comment_like -> user_ (user_id));
 joinable!(comment_report -> comment (comment_id));
-joinable!(comment_report -> user_ (user_id));
 joinable!(comment_saved -> comment (comment_id));
 joinable!(comment_saved -> user_ (user_id));
 joinable!(community -> category (category_id));
@@ -547,7 +548,6 @@ joinable!(post_like -> user_ (user_id));
 joinable!(post_read -> post (post_id));
 joinable!(post_read -> user_ (user_id));
 joinable!(post_report -> post (post_id));
-joinable!(post_report -> user_ (user_id));
 joinable!(post_saved -> post (post_id));
 joinable!(post_saved -> user_ (user_id));
 joinable!(site -> user_ (creator_id));
@@ -556,38 +556,38 @@ joinable!(user_mention -> comment (comment_id));
 joinable!(user_mention -> user_ (recipient_id));
 
 allow_tables_to_appear_in_same_query!(
-  activity,
-  category,
-  comment,
-  comment_aggregates_fast,
-  comment_like,
-  comment_report,
-  comment_saved,
-  community,
-  community_aggregates_fast,
-  community_follower,
-  community_moderator,
-  community_user_ban,
-  mod_add,
-  mod_add_community,
-  mod_ban,
-  mod_ban_from_community,
-  mod_lock_post,
-  mod_remove_comment,
-  mod_remove_community,
-  mod_remove_post,
-  mod_sticky_post,
-  password_reset_request,
-  post,
-  post_aggregates_fast,
-  post_like,
-  post_read,
-  post_report,
-  post_saved,
-  private_message,
-  site,
-  user_,
-  user_ban,
-  user_fast,
-  user_mention,
+    activity,
+    category,
+    comment,
+    comment_aggregates_fast,
+    comment_like,
+    comment_report,
+    comment_saved,
+    community,
+    community_aggregates_fast,
+    community_follower,
+    community_moderator,
+    community_user_ban,
+    mod_add,
+    mod_add_community,
+    mod_ban,
+    mod_ban_from_community,
+    mod_lock_post,
+    mod_remove_comment,
+    mod_remove_community,
+    mod_remove_post,
+    mod_sticky_post,
+    password_reset_request,
+    post,
+    post_aggregates_fast,
+    post_like,
+    post_read,
+    post_report,
+    post_saved,
+    private_message,
+    site,
+    user_,
+    user_ban,
+    user_fast,
+    user_mention,
 );

@@ -115,7 +115,10 @@ pub trait Reportable<T> {
   fn report(conn: &PgConnection, form: &T) -> Result<Self, Error>
     where
         Self: Sized;
-  fn resolve(conn: &PgConnection, report_id: &uuid::Uuid) -> Result<usize, Error>
+  fn resolve(conn: &PgConnection, report_id: i32, user_id: i32) -> Result<usize, Error>
+    where
+        Self: Sized;
+  fn unresolve(conn: &PgConnection, report_id: i32) -> Result<usize, Error>
     where
         Self: Sized;
 }
@@ -168,6 +171,12 @@ pub enum SearchType {
   Communities,
   Users,
   Url,
+}
+
+#[derive(EnumString, ToString, Debug, Serialize, Deserialize)]
+pub enum ReportType {
+  Comment,
+  Post,
 }
 
 pub fn fuzzy_search(q: &str) -> String {

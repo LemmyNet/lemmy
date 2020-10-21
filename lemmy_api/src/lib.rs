@@ -267,15 +267,6 @@ pub async fn match_websocket_operation(
       do_websocket_operation::<CreatePostLike>(context, id, op, data).await
     }
     UserOperation::SavePost => do_websocket_operation::<SavePost>(context, id, op, data).await,
-    UserOperation::CreatePostReport => {
-      do_websocket_operation::<CreatePostReport>(context, id, op, data).await
-    }
-    UserOperation::ListPostReports => {
-      do_websocket_operation::<ListPostReports>(context, id, op, data).await
-    }
-    UserOperation::ResolvePostReport => {
-      do_websocket_operation::<ResolvePostReport>(context, id, op, data).await
-    }
 
     // Comment ops
     UserOperation::CreateComment => {
@@ -302,14 +293,16 @@ pub async fn match_websocket_operation(
     UserOperation::CreateCommentLike => {
       do_websocket_operation::<CreateCommentLike>(context, id, op, data).await
     }
-    UserOperation::CreateCommentReport => {
-      do_websocket_operation::<CreateCommentReport>(context, id, op, data).await
-    },
-    UserOperation::ListCommentReports => {
-      do_websocket_operation::<ListCommentReports>(context, id, op, data).await
-    },
-    UserOperation::ResolveCommentReport => {
-      do_websocket_operation::<ResolveCommentReport>(context, id, op, data).await
+
+    // report ops
+    UserOperation::CreateReport => {
+      do_websocket_operation::<CreateReport>(context, id, op, data).await
+    }
+    UserOperation::ListReports => {
+      do_websocket_operation::<ListReports>(context, id, op, data).await
+    }
+    UserOperation::ResolveReport => {
+      do_websocket_operation::<ResolveReport>(context, id, op, data).await
     }
     UserOperation::GetReportCount => {
       do_websocket_operation::<GetReportCount>(context, id, op, data).await

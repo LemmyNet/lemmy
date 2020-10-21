@@ -1,31 +1,24 @@
-use diesel::{PgConnection, QueryDsl, RunQueryDsl, ExpressionMethods, insert_into, update};
-use diesel::pg::Pg;
-use diesel::result::*;
+use diesel::{dsl::*, pg::Pg, result::Error, *};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-  limit_and_offset,
-  MaybeOptional,
-  schema::comment_report,
-  comment::Comment,
-  Reportable,
-};
+use crate::{limit_and_offset, MaybeOptional, schema::comment_report, comment::Comment, Reportable, naive_now};
 
 table! {
     comment_report_view (id) {
-      id -> Uuid,
-      time -> Timestamp,
-      reason -> Nullable<Text>,
-      resolved -> Bool,
-      user_id -> Int4,
+      id -> Int4,
+      creator_id -> Int4,
       comment_id -> Int4,
       comment_text -> Text,
-      comment_time -> Timestamp,
+      reason -> Text,
+      resolved -> Bool,
+      resolver_id -> Nullable<Int4>,
+      published -> Timestamp,
+      updated -> Nullable<Timestamp>,
       post_id -> Int4,
       community_id -> Int4,
-      user_name -> Varchar,
-      creator_id -> Int4,
       creator_name -> Varchar,
+      comment_creator_id -> Int4,
+      comment_creator_name -> Varchar,
     }
 }
 
@@ -33,26 +26,24 @@ table! {
 #[belongs_to(Comment)]
 #[table_name = "comment_report"]
 pub struct CommentReport {
-  pub id: uuid::Uuid,
-  pub time: chrono::NaiveDateTime,
-  pub reason: Option<String>,
-  pub resolved: bool,
-  pub user_id: i32,
+  pub id: i32,
+  pub creator_id: i32,
   pub comment_id: i32,
   pub comment_text: String,
-  pub comment_time: chrono::NaiveDateTime,
+  pub reason: String,
+  pub resolved: bool,
+  pub resolver_id: Option<i32>,
+  pub published: chrono::NaiveDateTime,
+  pub updated: Option<chrono::NaiveDateTime>,
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
 #[table_name = "comment_report"]
 pub struct CommentReportForm {
-  pub time: Option<chrono::NaiveDateTime>,
-  pub reason: Option<String>,
-  pub resolved: Option<bool>,
-  pub user_id: i32,
+  pub creator_id: i32,
   pub comment_id: i32,
   pub comment_text: String,
-  pub comment_time: chrono::NaiveDateTime,
+  pub reason: String,
 }
 
 impl Reportable<CommentReportForm> for CommentReport {
@@ -63,32 +54,47 @@ impl Reportable<CommentReportForm> for CommentReport {
         .get_result::<Self>(conn)
   }
 
-  fn resolve(conn: &PgConnection, report_id: &uuid::Uuid) -> Result<usize, Error> {
+  fn resolve(conn: &PgConnection, report_id: i32, by_user_id: i32) -> Result<usize, Error> {
     use crate::schema::comment_report::dsl::*;
     update(comment_report.find(report_id))
-        .set(resolved.eq(true))
+        .set((
+          resolved.eq(true),
+          resolver_id.eq(by_user_id),
+          updated.eq(naive_now()),
+        ))
+        .execute(conn)
+  }
+
+  fn unresolve(conn: &PgConnection, report_id: i32) -> Result<usize, Error> {
+    use crate::schema::comment_report::dsl::*;
+    update(comment_report.find(report_id))
+        .set((
+          resolved.eq(false),
+          updated.eq(naive_now()),
+        ))
         .execute(conn)
   }
 }
 
 #[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, QueryableByName, Clone,
+  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, Clone,
 )]
 #[table_name = "comment_report_view"]
 pub struct CommentReportView {
-  pub id: uuid::Uuid,
-  pub time: chrono::NaiveDateTime,
-  pub reason: Option<String>,
-  pub resolved: bool,
-  pub user_id: i32,
+  pub id: i32,
+  pub creator_id: i32,
   pub comment_id: i32,
   pub comment_text: String,
-  pub comment_time: chrono::NaiveDateTime,
+  pub reason: String,
+  pub resolved: bool,
+  pub resolver_id: Option<i32>,
+  pub published: chrono::NaiveDateTime,
+  pub updated: Option<chrono::NaiveDateTime>,
   pub post_id: i32,
   pub community_id: i32,
-  pub user_name: String,
-  pub creator_id: i32,
   pub creator_name: String,
+  pub comment_creator_id: i32,
+  pub comment_creator_name: String,
 }
 
 pub struct CommentReportQueryBuilder<'a> {
@@ -101,7 +107,7 @@ pub struct CommentReportQueryBuilder<'a> {
 }
 
 impl CommentReportView {
-  pub fn read(conn: &PgConnection, report_id: &uuid::Uuid) -> Result<Self, Error> {
+  pub fn read(conn: &PgConnection, report_id: i32) -> Result<Self, Error> {
     use super::comment_report::comment_report_view::dsl::*;
     comment_report_view
       .filter(id.eq(report_id))
@@ -161,7 +167,7 @@ impl<'a> CommentReportQueryBuilder<'a> {
     let (limit, offset) = limit_and_offset(self.page, self.limit);
 
     query
-      .order_by(time.desc())
+      .order_by(published.desc())
       .limit(limit)
       .offset(offset)
       .load::<CommentReportView>(self.conn)

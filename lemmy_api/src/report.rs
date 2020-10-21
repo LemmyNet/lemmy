@@ -1,119 +1,55 @@
 use actix_web::web::Data;
+use std::str::FromStr;
 
-use lemmy_db::{
-  comment_report::*,
-  comment_view::*,
-  community_view::*,
-  post_report::*,
-  post_view::*,
-  Reportable,
-  user_view::UserView,
-};
+use lemmy_db::{comment_report::*, comment_view::*, post_report::*, post_view::*, Reportable, ReportType,};
 use lemmy_structs::{blocking, report::*};
 use lemmy_utils::{APIError, ConnectionId, LemmyError};
-use lemmy_websocket::LemmyContext;
+use lemmy_websocket::{LemmyContext, UserOperation, messages::SendUserRoomMessage};
 
-use crate::{check_community_ban, get_user_from_jwt, Perform};
+use crate::{check_community_ban, get_user_from_jwt, is_mod_or_admin, Perform};
 
 const MAX_REPORT_LEN: usize = 1000;
 
 #[async_trait::async_trait(?Send)]
-impl Perform for CreateCommentReport {
-  type Response = CommentReportResponse;
+impl Perform for CreateReport {
+  type Response = CreateReportResponse;
 
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<CommentReportResponse, LemmyError> {
-    let data: &CreateCommentReport = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
-    
-    // Check size of report and check for whitespace
-    let reason: Option<String> = match data.reason.clone() {
-      Some(s) if s.trim().is_empty() => None,
-      Some(s) if s.len() > MAX_REPORT_LEN => {
-        return Err(APIError::err("report_too_long").into());
-      }
-      Some(s) => Some(s),
-      None => None,
-    };
-
-    // Fetch comment information
-    let comment_id = data.comment;
-    let comment = blocking(context.pool(), move |conn| CommentView::read(&conn, comment_id, None)).await??;
-
-    // Check for community ban
-    check_community_ban(user.id, comment.community_id, context.pool()).await?;
-
-    // Insert the report
-    let comment_time = match comment.updated {
-      Some(s) => s,
-      None => comment.published,
-    };
-    let report_form = CommentReportForm {
-      time: None, // column defaults to now() in table
-      reason,
-      resolved: None, // column defaults to false
-      user_id: user.id,
-      comment_id,
-      comment_text: comment.content,
-      comment_time,
-    };
-    blocking(context.pool(), move |conn| CommentReport::report(conn, &report_form)).await??;
-
-    Ok(CommentReportResponse { success: true })
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl Perform for CreatePostReport {
-  type Response = PostReportResponse;
-
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<PostReportResponse, LemmyError> {
-    let data: &CreatePostReport = &self;
+    websocket_id: Option<ConnectionId>,
+  ) -> Result<CreateReportResponse, LemmyError> {
+    let data: &CreateReport = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
-    // Check size of report and check for whitespace
-    let reason: Option<String> = match data.reason.clone() {
-      Some(s) if s.trim().is_empty() => None,
-      Some(s) if s.len() > MAX_REPORT_LEN => {
-        return Err(APIError::err("report_too_long").into());
-      }
-      Some(s) => Some(s),
-      None => None,
-    };
+    // check size of report and check for whitespace
+    let reason = data.reason.clone();
+    if reason.trim().is_empty() {
+      return Err(APIError::err("report_reason_required").into());
+    }
+    if reason.len() > MAX_REPORT_LEN {
+      return Err(APIError::err("report_too_long").into());
+    }
 
-    // Fetch post information from the database
-    let post_id = data.post;
-    let post = blocking(context.pool(), move |conn| PostView::read(&conn, post_id, None)).await??;
+    let report_type = ReportType::from_str(&data.report_type)?;
+    let user_id = user.id;
+    match report_type {
+      ReportType::Comment => { create_comment_report(context, data, user_id).await?; }
+      ReportType::Post => { create_post_report(context, data, user_id).await?; }
+    }
 
-    // Check for community ban
-    check_community_ban(user.id, post.community_id, context.pool()).await?;
+    // to build on this, the user should get a success response, however
+    // mods should get a different response with more details
+    let res = CreateReportResponse { success: true };
 
-    // Insert the report
-    let post_time = match post.updated {
-      Some(s) => s,
-      None => post.published,
-    };
-    let report_form = PostReportForm {
-      time: None, // column defaults to now() in table
-      reason,
-      resolved: None, // column defaults to false
-      user_id: user.id,
-      post_id,
-      post_name: post.name,
-      post_url: post.url,
-      post_body: post.body,
-      post_time,
-    };
-    blocking(context.pool(), move |conn| PostReport::report(conn, &report_form)).await??;
+    context.chat_server().do_send(SendUserRoomMessage {
+      op: UserOperation::CreateReport,
+      response: res.clone(),
+      recipient_id: user.id,
+      websocket_id,
+    });
 
-    Ok(PostReportResponse { success: true })
+    Ok(res)
   }
 }
 
@@ -124,39 +60,14 @@ impl Perform for GetReportCount {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
+    websocket_id: Option<ConnectionId>,
   ) -> Result<GetReportCountResponse, LemmyError> {
     let data: &GetReportCount = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
-
     let community_id = data.community;
-    //Check community exists.
-    let community_id = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, community_id, None)
-    })
-    .await??
-    .id;
 
-    // Check community ban
-    check_community_ban(user.id, data.community, context.pool()).await?;
-
-    let mut mod_ids: Vec<i32> = Vec::new();
-    mod_ids.append(
-      &mut blocking(context.pool(), move |conn| {
-        CommunityModeratorView::for_community(conn, community_id)
-          .map(|v| v.into_iter().map(|m| m.user_id).collect())
-      })
-      .await??,
-    );
-    mod_ids.append(
-      &mut blocking(context.pool(), move |conn| {
-        UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())
-      })
-      .await??,
-    );
-    if !mod_ids.contains(&user.id) {
-      return Err(APIError::err("report_view_not_allowed").into());
-    }
+    // Check for mod/admin privileges
+    is_mod_or_admin(context.pool(), user.id, community_id).await?;
 
     let comment_reports = blocking(context.pool(), move |conn| {
       CommentReportQueryBuilder::create(conn)
@@ -173,59 +84,42 @@ impl Perform for GetReportCount {
     })
     .await??;
 
-    let response = GetReportCountResponse {
+    let res = GetReportCountResponse {
       community: community_id,
       comment_reports,
       post_reports,
     };
 
-    Ok(response)
+    context.chat_server().do_send(SendUserRoomMessage {
+      op: UserOperation::ListReports,
+      response: res.clone(),
+      recipient_id: user.id,
+      websocket_id,
+    });
+
+    Ok(res)
   }
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for ListCommentReports {
-  type Response = ListCommentReportResponse;
+impl Perform for ListReports {
+  type Response = ListReportsResponse;
 
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<ListCommentReportResponse, LemmyError> {
-    let data: &ListCommentReports = &self;
+    websocket_id: Option<ConnectionId>,
+  ) -> Result<ListReportsResponse, LemmyError> {
+    let data: &ListReports = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
-
     let community_id = data.community;
-    //Check community exists.
-    let community_id = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, community_id, None)
-    })
-    .await??
-    .id;
 
-    check_community_ban(user.id, data.community, context.pool()).await?;
-
-    let mut mod_ids: Vec<i32> = Vec::new();
-    mod_ids.append(
-      &mut blocking(context.pool(), move |conn| {
-        CommunityModeratorView::for_community(conn, community_id)
-          .map(|v| v.into_iter().map(|m| m.user_id).collect())
-      })
-      .await??,
-    );
-    mod_ids.append(
-      &mut blocking(context.pool(), move |conn| {
-        UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())
-      })
-      .await??,
-    );
-    if !mod_ids.contains(&user.id) {
-      return Err(APIError::err("report_view_not_allowed").into());
-    }
+    // Check for mod/admin privileges
+    is_mod_or_admin(context.pool(), user.id, community_id).await?;
 
     let page = data.page;
     let limit = data.limit;
-    let reports = blocking(context.pool(), move |conn| {
+    let comments = blocking(context.pool(), move |conn| {
       CommentReportQueryBuilder::create(conn)
         .community_id(community_id)
         .page(page)
@@ -234,161 +128,173 @@ impl Perform for ListCommentReports {
     })
     .await??;
 
-    Ok(ListCommentReportResponse { reports })
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl Perform for ListPostReports {
-  type Response = ListPostReportResponse;
-
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<ListPostReportResponse, LemmyError> {
-    let data: &ListPostReports = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
-
-    let community_id = data.community;
-    //Check community exists.
-    let community_id = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, community_id, None)
-    })
-    .await??
-    .id;
-    // Check for community ban
-    check_community_ban(user.id, data.community, context.pool()).await?;
-
-    let mut mod_ids: Vec<i32> = Vec::new();
-    mod_ids.append(
-      &mut blocking(context.pool(), move |conn| {
-        CommunityModeratorView::for_community(conn, community_id)
-          .map(|v| v.into_iter().map(|m| m.user_id).collect())
-      })
-      .await??,
-    );
-    mod_ids.append(
-      &mut blocking(context.pool(), move |conn| {
-        UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())
-      })
-      .await??,
-    );
-    if !mod_ids.contains(&user.id) {
-      return Err(APIError::err("report_view_not_allowed").into());
-    }
-
-    let page = data.page;
-    let limit = data.limit;
-    let reports = blocking(context.pool(), move |conn| {
+    let posts = blocking(context.pool(), move |conn| {
       PostReportQueryBuilder::create(conn)
-        .community_id(community_id)
-        .page(page)
-        .limit(limit)
-        .list()
+          .community_id(community_id)
+          .page(page)
+          .limit(limit)
+          .list()
     })
-    .await??;
+        .await??;
 
-    Ok(ListPostReportResponse { reports })
+    let res = ListReportsResponse { comments, posts };
+
+    context.chat_server().do_send(SendUserRoomMessage {
+      op: UserOperation::ListReports,
+      response: res.clone(),
+      recipient_id: user.id,
+      websocket_id,
+    });
+
+    Ok(res)
   }
 }
 
 #[async_trait::async_trait(?Send)]
-impl Perform for ResolveCommentReport {
-  type Response = ResolveCommentReportResponse;
+impl Perform for ResolveReport {
+  type Response = ResolveReportResponse;
 
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<ResolveCommentReportResponse, LemmyError> {
-    let data: &ResolveCommentReport = &self;
+    websocket_id: Option<ConnectionId>,
+  ) -> Result<ResolveReportResponse, LemmyError> {
+    let data: &ResolveReport = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
-    // Fetch the report view
-    let report_id = data.report;
-    let report = blocking(context.pool(), move |conn| CommentReportView::read(&conn, &report_id)).await??;
-
-    // Check for community ban
-    check_community_ban(user.id, report.community_id, context.pool()).await?;
-
-    // Check for mod/admin privileges
-    let mut mod_ids: Vec<i32> = Vec::new();
-    mod_ids.append(
-      &mut blocking(context.pool(), move |conn| {
-        CommunityModeratorView::for_community(conn, report.community_id)
-          .map(|v| v.into_iter().map(|m| m.user_id).collect())
-      })
-      .await??,
-    );
-    mod_ids.append(
-      &mut blocking(context.pool(), move |conn| {
-        UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())
-      })
-      .await??,
-    );
-    if !mod_ids.contains(&user.id) {
-      return Err(APIError::err("resolve_report_not_allowed").into());
+    let report_type = ReportType::from_str(&data.report_type)?;
+    let user_id = user.id;
+    match report_type {
+      ReportType::Comment => { resolve_comment_report(context, data, user_id).await?; }
+      ReportType::Post => { resolve_post_report(context, data, user_id).await?; }
     }
 
-    blocking(context.pool(), move |conn| {
-      CommentReport::resolve(conn, &report_id.clone())
-    })
-    .await??;
-
-    Ok(ResolveCommentReportResponse {
-      report: report_id,
+    let report_id = data.report_id;
+    let res = ResolveReportResponse {
+      report_type: data.report_type.to_owned(),
+      report_id,
       resolved: true,
-    })
+    };
+
+    context.chat_server().do_send(SendUserRoomMessage {
+      op: UserOperation::ResolveReport,
+      response: res.clone(),
+      recipient_id: user.id,
+      websocket_id,
+    });
+
+    Ok(res)
   }
 }
 
-#[async_trait::async_trait(?Send)]
-impl Perform for ResolvePostReport {
-  type Response = ResolvePostReportResponse;
+async fn create_comment_report(
+  context: &Data<LemmyContext>,
+  data: &CreateReport,
+  user_id: i32,
+) -> Result<(), LemmyError> {
+  let comment_id = data.entity_id;
+  let comment = blocking(context.pool(), move |conn| {
+    CommentView::read(&conn, comment_id, None)
+  }).await??;
 
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
-  ) -> Result<ResolvePostReportResponse, LemmyError> {
-    let data: &ResolvePostReport = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+  check_community_ban(user_id, comment.community_id, context.pool()).await?;
 
-    // Fetch the report view
-    let report_id = data.report;
-    let report = blocking(context.pool(), move |conn| PostReportView::read(&conn, &report_id)).await??;
+  let report_form = CommentReportForm {
+    creator_id: user_id,
+    comment_id,
+    comment_text: comment.content,
+    reason: data.reason.to_owned(),
+  };
 
-    // Check for community ban
-    check_community_ban(user.id, report.community_id, context.pool()).await?;
+  return match blocking(context.pool(), move |conn| {
+    CommentReport::report(conn, &report_form)
+  }).await? {
+    Ok(_) => Ok(()),
+    Err(_e) => Err(APIError::err("couldnt_create_report").into())
+  };
+}
 
-    // Check for mod/admin privileges
-    let mut mod_ids: Vec<i32> = Vec::new();
-    mod_ids.append(
-      &mut blocking(context.pool(), move |conn| {
-        CommunityModeratorView::for_community(conn, report.community_id)
-          .map(|v| v.into_iter().map(|m| m.user_id).collect())
-      })
-      .await??,
-    );
-    mod_ids.append(
-      &mut blocking(context.pool(), move |conn| {
-        UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())
-      })
-      .await??,
-    );
-    if !mod_ids.contains(&user.id) {
-      return Err(APIError::err("resolve_report_not_allowed").into());
+async fn create_post_report(
+  context: &Data<LemmyContext>,
+  data: &CreateReport,
+  user_id: i32,
+) -> Result<(), LemmyError> {
+  let post_id = data.entity_id;
+  let post = blocking(context.pool(), move |conn| {
+    PostView::read(&conn, post_id, None)
+  }).await??;
+
+  check_community_ban(user_id, post.community_id, context.pool()).await?;
+
+  let report_form = PostReportForm {
+    creator_id: user_id,
+    post_id,
+    post_name: post.name,
+    post_url: post.url,
+    post_body: post.body,
+    reason: data.reason.to_owned(),
+  };
+
+  return match blocking(context.pool(), move |conn| {
+    PostReport::report(conn, &report_form)
+  }).await? {
+    Ok(_) => Ok(()),
+    Err(_e) => Err(APIError::err("couldnt_create_report").into())
+  };
+}
+
+async fn resolve_comment_report(
+  context: &Data<LemmyContext>,
+  data: &ResolveReport,
+  user_id: i32,
+) -> Result<(), LemmyError> {
+  let report_id = data.report_id;
+  let report = blocking(context.pool(), move |conn| {
+    CommentReportView::read(&conn, report_id)
+  }).await??;
+
+  is_mod_or_admin(context.pool(), user_id, report.community_id).await?;
+
+  let resolved = data.resolved;
+  let resolve_fun = move |conn: &'_ _| {
+    if resolved {
+      CommentReport::resolve(conn, report_id.clone(), user_id)
+    } else {
+      CommentReport::unresolve(conn, report_id.clone())
     }
+  };
 
-    blocking(context.pool(), move |conn| {
-      PostReport::resolve(conn, &report_id.clone())
-    })
-    .await??;
+  if blocking(context.pool(),resolve_fun).await?.is_err() {
+    return Err(APIError::err("couldnt_resolve_report").into())
+  };
 
-    Ok(ResolvePostReportResponse {
-      report: report_id,
-      resolved: true,
-    })
-  }
+  Ok(())
+}
+
+async fn resolve_post_report(
+  context: &Data<LemmyContext>,
+  data: &ResolveReport,
+  user_id: i32,
+) -> Result<(), LemmyError> {
+  let report_id = data.report_id;
+  let report = blocking(context.pool(), move |conn| {
+    PostReportView::read(&conn, report_id)
+  }).await??;
+
+  is_mod_or_admin(context.pool(), user_id, report.community_id).await?;
+
+  let resolved = data.resolved;
+  let resolve_fun = move |conn: &'_ _| {
+    if resolved {
+      PostReport::resolve(conn, report_id.clone(), user_id)
+    } else {
+      PostReport::unresolve(conn, report_id.clone())
+    }
+  };
+
+  if blocking(context.pool(),resolve_fun).await?.is_err() {
+    return Err(APIError::err("couldnt_resolve_report").into())
+  };
+
+  Ok(())
 }

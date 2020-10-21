@@ -58,9 +58,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("/ban_user", web::post().to(route_post::<BanFromCommunity>))
           .route("/mod", web::post().to(route_post::<AddModToCommunity>))
           .route("/join", web::post().to(route_post::<CommunityJoin>))
-          .route("/comment_reports",web::get().to(route_get::<ListCommentReports>))
-          .route("/post_reports", web::get().to(route_get::<ListPostReports>))
-          .route("/reports", web::get().to(route_get::<GetReportCount>)),
       )
       // Post
       .service(
@@ -83,12 +80,10 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("/like", web::post().to(route_post::<CreatePostLike>))
           .route("/save", web::put().to(route_post::<SavePost>))
           .route("/join", web::post().to(route_post::<PostJoin>))
-          .route("/report", web::put().to(route_post::<CreatePostReport>))
-          .route("/resolve_report",web::post().to(route_post::<ResolvePostReport>)),
       )
       // Comment
       .service(
-        web::scope("/comment")
+          web::scope("/comment")
           .wrap(rate_limit.message())
           .route("", web::post().to(route_post::<CreateComment>))
           .route("", web::put().to(route_post::<EditComment>))
@@ -101,8 +96,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("/like", web::post().to(route_post::<CreateCommentLike>))
           .route("/save", web::put().to(route_post::<SaveComment>))
           .route("/list", web::get().to(route_get::<GetComments>))
-          .route("/report", web::put().to(route_post::<CreateCommentReport>))
-          .route("/resolve_report",web::post().to(route_post::<ResolveCommentReport>)),
       )
       // Private Message
       .service(
@@ -177,6 +170,15 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
         web::resource("/admin/add")
           .wrap(rate_limit.message())
           .route(web::post().to(route_post::<AddAdmin>)),
+      )
+      // Reports
+      .service(
+        web::scope("/report")
+            .wrap(rate_limit.message())
+            .route("", web::get().to(route_get::<GetReportCount>))
+            .route("",web::post().to(route_post::<CreateReport>))
+            .route("/resolve",web::put().to(route_post::<ResolveReport>))
+            .route("/list", web::get().to(route_get::<ListReports>))
       ),
   );
 }
