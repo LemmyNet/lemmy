@@ -24,7 +24,7 @@
   # settings related to activitypub federation
   federation: {
     # whether to enable activitypub federation. 
-    enabled: true
+    enabled: false
     # Allows and blocks are described here:
     # https://dev.lemmy.ml/docs/administration_federation.html#instance-allowlist-and-blocklist
     #
