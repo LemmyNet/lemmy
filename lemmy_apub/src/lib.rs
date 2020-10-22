@@ -27,6 +27,7 @@ use lemmy_structs::blocking;
 use lemmy_utils::{location_info, settings::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::Serialize;
+use std::net::IpAddr;
 use url::{ParseError, Url};
 
 /// Activitystreams type for community
@@ -70,6 +71,12 @@ fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
         .into(),
       )
     };
+  }
+
+  let host = apub_id.host_str().context(location_info!())?;
+  let host_as_ip = host.parse::<IpAddr>();
+  if host == "localhost" || host_as_ip.is_ok() {
+    return Err(anyhow!("invalid hostname: {:?}", host).into());
   }
 
   if apub_id.scheme() != Settings::get().get_protocol_string() {
