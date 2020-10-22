@@ -59,7 +59,7 @@ impl Perform for CreatePost {
 
     check_community_ban(user.id, data.community_id, context.pool()).await?;
 
-    check_optional_url(&data.url)?;
+    check_optional_url(&Some(data.url.to_owned()))?;
 
     // Fetch Iframely and pictrs cached image
     let (iframely_title, iframely_description, iframely_html, pictrs_thumbnail) =

@@ -349,8 +349,8 @@ impl Perform for SaveUserSettings {
     let matrix_user_id = diesel_option_overwrite(&data.matrix_user_id);
 
     // Check to make sure the avatar and banners are urls
-    check_optional_url(&data.avatar)?;
-    check_optional_url(&data.banner)?;
+    check_optional_url(&avatar)?;
+    check_optional_url(&banner)?;
 
     if let Some(Some(bio)) = &bio {
       if bio.chars().count() > 300 {
