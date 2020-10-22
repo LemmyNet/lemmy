@@ -140,8 +140,8 @@ impl Perform for CreateCommunity {
     let icon = diesel_option_overwrite(&data.icon);
     let banner = diesel_option_overwrite(&data.banner);
 
-    check_optional_url(&data.icon)?;
-    check_optional_url(&data.banner)?;
+    check_optional_url(&icon)?;
+    check_optional_url(&banner)?;
 
     // When you create a community, make sure the user becomes a moderator and a follower
     let keypair = generate_actor_keypair()?;
@@ -240,8 +240,8 @@ impl Perform for EditCommunity {
     let icon = diesel_option_overwrite(&data.icon);
     let banner = diesel_option_overwrite(&data.banner);
 
-    check_optional_url(&data.icon)?;
-    check_optional_url(&data.banner)?;
+    check_optional_url(&icon)?;
+    check_optional_url(&banner)?;
 
     let community_form = CommunityForm {
       name: read_community.name,

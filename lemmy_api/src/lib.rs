@@ -100,8 +100,8 @@ pub(in crate) async fn check_community_ban(
   }
 }
 
-pub(in crate) fn check_optional_url(item: &Option<String>) -> Result<(), LemmyError> {
-  if let Some(item) = &item {
+pub(in crate) fn check_optional_url(item: &Option<Option<String>>) -> Result<(), LemmyError> {
+  if let Some(Some(item)) = &item {
     if Url::parse(item).is_err() {
       return Err(APIError::err("invalid_url").into());
     }
