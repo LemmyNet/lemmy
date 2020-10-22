@@ -20,19 +20,14 @@ use serde::Serialize;
 use std::fmt::Debug;
 use url::Url;
 
-pub mod announce;
-pub mod create;
-pub mod delete;
-pub mod dislike;
-pub mod like;
-pub mod remove;
-pub mod undo;
-mod undo_comment;
-mod undo_post;
-pub mod update;
+pub(crate) mod comment;
+pub(crate) mod comment_undo;
+pub(crate) mod community;
+pub(crate) mod post;
+pub(crate) mod post_undo;
 
 /// Return HTTP 501 for unsupported activities in inbox.
-fn receive_unhandled_activity<A>(activity: A) -> Result<HttpResponse, LemmyError>
+pub(crate) fn receive_unhandled_activity<A>(activity: A) -> Result<HttpResponse, LemmyError>
 where
   A: Debug,
 {
