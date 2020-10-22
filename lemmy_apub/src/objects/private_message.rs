@@ -62,6 +62,7 @@ impl FromApub for PrivateMessageForm {
     note: &Note,
     context: &LemmyContext,
     expected_domain: Option<Url>,
+    request_counter: &mut i32,
   ) -> Result<PrivateMessageForm, LemmyError> {
     let creator_actor_id = note
       .attributed_to()
@@ -70,14 +71,15 @@ impl FromApub for PrivateMessageForm {
       .single_xsd_any_uri()
       .context(location_info!())?;
 
-    let creator = get_or_fetch_and_upsert_user(&creator_actor_id, context).await?;
+    let creator = get_or_fetch_and_upsert_user(&creator_actor_id, context, request_counter).await?;
     let recipient_actor_id = note
       .to()
       .context(location_info!())?
       .clone()
       .single_xsd_any_uri()
       .context(location_info!())?;
-    let recipient = get_or_fetch_and_upsert_user(&recipient_actor_id, context).await?;
+    let recipient =
+      get_or_fetch_and_upsert_user(&recipient_actor_id, context, request_counter).await?;
     let ap_id = note.id_unchecked().context(location_info!())?.to_string();
     check_is_apub_id_valid(&Url::parse(&ap_id)?)?;
 

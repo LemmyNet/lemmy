@@ -75,7 +75,8 @@ pub async fn community_inbox(
   );
   check_is_apub_id_valid(user_uri)?;
 
-  let user = get_or_fetch_and_upsert_user(&user_uri, &context).await?;
+  let request_counter = &mut 0;
+  let user = get_or_fetch_and_upsert_user(&user_uri, &context, request_counter).await?;
 
   verify_signature(&request, &user)?;
 

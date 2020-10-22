@@ -100,20 +100,23 @@ pub async fn shared_inbox(
 
   check_is_apub_id_valid(&actor_id)?;
 
-  let actor = get_or_fetch_and_upsert_actor(&actor_id, &context).await?;
+  let request_counter = &mut 0;
+  let actor = get_or_fetch_and_upsert_actor(&actor_id, &context, request_counter).await?;
   verify_signature(&request, actor.as_ref())?;
 
   let any_base = activity.clone().into_any_base()?;
   let kind = activity.kind().context(location_info!())?;
   let res = match kind {
-    ValidTypes::Announce => receive_announce(&context, any_base, actor.as_ref()).await,
-    ValidTypes::Create => receive_create(&context, any_base, actor_id).await,
-    ValidTypes::Update => receive_update(&context, any_base, actor_id).await,
-    ValidTypes::Like => receive_like(&context, any_base, actor_id).await,
-    ValidTypes::Dislike => receive_dislike(&context, any_base, actor_id).await,
+    ValidTypes::Announce => {
+      receive_announce(&context, any_base, actor.as_ref(), request_counter).await
+    }
+    ValidTypes::Create => receive_create(&context, any_base, actor_id, request_counter).await,
+    ValidTypes::Update => receive_update(&context, any_base, actor_id, request_counter).await,
+    ValidTypes::Like => receive_like(&context, any_base, actor_id, request_counter).await,
+    ValidTypes::Dislike => receive_dislike(&context, any_base, actor_id, request_counter).await,
     ValidTypes::Remove => receive_remove(&context, any_base, actor_id).await,
-    ValidTypes::Delete => receive_delete(&context, any_base, actor_id).await,
-    ValidTypes::Undo => receive_undo(&context, any_base, actor_id).await,
+    ValidTypes::Delete => receive_delete(&context, any_base, actor_id, request_counter).await,
+    ValidTypes::Undo => receive_undo(&context, any_base, actor_id, request_counter).await,
   };
 
   insert_activity(actor.user_id(), activity.clone(), false, context.pool()).await?;
@@ -125,6 +128,7 @@ async fn receive_announce(
   context: &LemmyContext,
   activity: AnyBase,
   actor: &dyn ActorType,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let announce = Announce::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&announce, actor.actor_id()?, false)?;
@@ -140,13 +144,13 @@ async fn receive_announce(
   check_is_apub_id_valid(&inner_id)?;
 
   match kind {
-    Some("Create") => receive_create(context, object, inner_id).await,
-    Some("Update") => receive_update(context, object, inner_id).await,
-    Some("Like") => receive_like(context, object, inner_id).await,
-    Some("Dislike") => receive_dislike(context, object, inner_id).await,
-    Some("Delete") => receive_delete(context, object, inner_id).await,
+    Some("Create") => receive_create(context, object, inner_id, request_counter).await,
+    Some("Update") => receive_update(context, object, inner_id, request_counter).await,
+    Some("Like") => receive_like(context, object, inner_id, request_counter).await,
+    Some("Dislike") => receive_dislike(context, object, inner_id, request_counter).await,
+    Some("Delete") => receive_delete(context, object, inner_id, request_counter).await,
     Some("Remove") => receive_remove(context, object, inner_id).await,
-    Some("Undo") => receive_undo(context, object, inner_id).await,
+    Some("Undo") => receive_undo(context, object, inner_id, request_counter).await,
     _ => receive_unhandled_activity(announce),
   }
 }
@@ -155,13 +159,14 @@ async fn receive_create(
   context: &LemmyContext,
   activity: AnyBase,
   expected_domain: Url,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let create = Create::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&create, expected_domain, true)?;
 
   match create.object().as_single_kind_str() {
-    Some("Page") => receive_create_post(create, context).await,
-    Some("Note") => receive_create_comment(create, context).await,
+    Some("Page") => receive_create_post(create, context, request_counter).await,
+    Some("Note") => receive_create_comment(create, context, request_counter).await,
     _ => receive_unhandled_activity(create),
   }
 }
@@ -170,13 +175,14 @@ async fn receive_update(
   context: &LemmyContext,
   activity: AnyBase,
   expected_domain: Url,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let update = Update::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&update, expected_domain, true)?;
 
   match update.object().as_single_kind_str() {
-    Some("Page") => receive_update_post(update, context).await,
-    Some("Note") => receive_update_comment(update, context).await,
+    Some("Page") => receive_update_post(update, context, request_counter).await,
+    Some("Note") => receive_update_comment(update, context, request_counter).await,
     _ => receive_unhandled_activity(update),
   }
 }
@@ -185,13 +191,14 @@ async fn receive_like(
   context: &LemmyContext,
   activity: AnyBase,
   expected_domain: Url,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let like = Like::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&like, expected_domain, false)?;
 
   match like.object().as_single_kind_str() {
-    Some("Page") => receive_like_post(like, context).await,
-    Some("Note") => receive_like_comment(like, context).await,
+    Some("Page") => receive_like_post(like, context, request_counter).await,
+    Some("Note") => receive_like_comment(like, context, request_counter).await,
     _ => receive_unhandled_activity(like),
   }
 }
@@ -200,6 +207,7 @@ async fn receive_dislike(
   context: &LemmyContext,
   activity: AnyBase,
   expected_domain: Url,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let enable_downvotes = blocking(context.pool(), move |conn| {
     Site::read(conn, 1).map(|s| s.enable_downvotes)
@@ -213,8 +221,8 @@ async fn receive_dislike(
   verify_activity_domains_valid(&dislike, expected_domain, false)?;
 
   match dislike.object().as_single_kind_str() {
-    Some("Page") => receive_dislike_post(dislike, context).await,
-    Some("Note") => receive_dislike_comment(dislike, context).await,
+    Some("Page") => receive_dislike_post(dislike, context, request_counter).await,
+    Some("Note") => receive_dislike_comment(dislike, context, request_counter).await,
     _ => receive_unhandled_activity(dislike),
   }
 }
@@ -223,6 +231,7 @@ pub async fn receive_delete(
   context: &LemmyContext,
   activity: AnyBase,
   expected_domain: Url,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let delete = Delete::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&delete, expected_domain, true)?;
@@ -234,9 +243,13 @@ pub async fn receive_delete(
     .context(location_info!())?;
 
   match find_by_id(context, object).await {
-    Ok(FindResults::Post(p)) => receive_delete_post(context, delete, p).await,
-    Ok(FindResults::Comment(c)) => receive_delete_comment(context, delete, c).await,
-    Ok(FindResults::Community(c)) => receive_delete_community(context, delete, c).await,
+    Ok(FindResults::Post(p)) => receive_delete_post(context, delete, p, request_counter).await,
+    Ok(FindResults::Comment(c)) => {
+      receive_delete_comment(context, delete, c, request_counter).await
+    }
+    Ok(FindResults::Community(c)) => {
+      receive_delete_community(context, delete, c, request_counter).await
+    }
     // if we dont have the object, no need to do anything
     Err(_) => Ok(HttpResponse::Ok().finish()),
   }
@@ -283,15 +296,16 @@ async fn receive_undo(
   context: &LemmyContext,
   activity: AnyBase,
   expected_domain: Url,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let undo = Undo::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&undo, expected_domain.to_owned(), true)?;
 
   match undo.object().as_single_kind_str() {
-    Some("Delete") => receive_undo_delete(context, undo, expected_domain).await,
-    Some("Remove") => receive_undo_remove(context, undo, expected_domain).await,
-    Some("Like") => receive_undo_like(context, undo, expected_domain).await,
-    Some("Dislike") => receive_undo_dislike(context, undo, expected_domain).await,
+    Some("Delete") => receive_undo_delete(context, undo, expected_domain, request_counter).await,
+    Some("Remove") => receive_undo_remove(context, undo, expected_domain, request_counter).await,
+    Some("Like") => receive_undo_like(context, undo, expected_domain, request_counter).await,
+    Some("Dislike") => receive_undo_dislike(context, undo, expected_domain, request_counter).await,
     _ => receive_unhandled_activity(undo),
   }
 }
@@ -300,6 +314,7 @@ async fn receive_undo_delete(
   context: &LemmyContext,
   undo: Undo,
   expected_domain: Url,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let delete = Delete::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
@@ -311,9 +326,13 @@ async fn receive_undo_delete(
     .single_xsd_any_uri()
     .context(location_info!())?;
   match find_by_id(context, object).await {
-    Ok(FindResults::Post(p)) => receive_undo_delete_post(context, undo, p).await,
-    Ok(FindResults::Comment(c)) => receive_undo_delete_comment(context, undo, c).await,
-    Ok(FindResults::Community(c)) => receive_undo_delete_community(context, undo, c).await,
+    Ok(FindResults::Post(p)) => receive_undo_delete_post(context, undo, p, request_counter).await,
+    Ok(FindResults::Comment(c)) => {
+      receive_undo_delete_comment(context, undo, c, request_counter).await
+    }
+    Ok(FindResults::Community(c)) => {
+      receive_undo_delete_community(context, undo, c, request_counter).await
+    }
     // if we dont have the object, no need to do anything
     Err(_) => Ok(HttpResponse::Ok().finish()),
   }
@@ -323,6 +342,7 @@ async fn receive_undo_remove(
   context: &LemmyContext,
   undo: Undo,
   expected_domain: Url,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let remove = Remove::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
@@ -334,9 +354,13 @@ async fn receive_undo_remove(
     .single_xsd_any_uri()
     .context(location_info!())?;
   match find_by_id(context, object).await {
-    Ok(FindResults::Post(p)) => receive_undo_remove_post(context, undo, p).await,
-    Ok(FindResults::Comment(c)) => receive_undo_remove_comment(context, undo, c).await,
-    Ok(FindResults::Community(c)) => receive_undo_remove_community(context, undo, c).await,
+    Ok(FindResults::Post(p)) => receive_undo_remove_post(context, undo, p, request_counter).await,
+    Ok(FindResults::Comment(c)) => {
+      receive_undo_remove_comment(context, undo, c, request_counter).await
+    }
+    Ok(FindResults::Community(c)) => {
+      receive_undo_remove_community(context, undo, c, request_counter).await
+    }
     // if we dont have the object, no need to do anything
     Err(_) => Ok(HttpResponse::Ok().finish()),
   }
@@ -346,6 +370,7 @@ async fn receive_undo_like(
   context: &LemmyContext,
   undo: Undo,
   expected_domain: Url,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let like = Like::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
@@ -356,8 +381,8 @@ async fn receive_undo_like(
     .as_single_kind_str()
     .context(location_info!())?;
   match type_ {
-    "Note" => receive_undo_like_comment(undo, &like, context).await,
-    "Page" => receive_undo_like_post(undo, &like, context).await,
+    "Note" => receive_undo_like_comment(undo, &like, context, request_counter).await,
+    "Page" => receive_undo_like_post(undo, &like, context, request_counter).await,
     d => Err(anyhow!("Undo Delete type {} not supported", d).into()),
   }
 }
@@ -366,6 +391,7 @@ async fn receive_undo_dislike(
   context: &LemmyContext,
   undo: Undo,
   expected_domain: Url,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let dislike = Dislike::from_any_base(undo.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
@@ -376,8 +402,8 @@ async fn receive_undo_dislike(
     .as_single_kind_str()
     .context(location_info!())?;
   match type_ {
-    "Note" => receive_undo_dislike_comment(undo, &dislike, context).await,
-    "Page" => receive_undo_dislike_post(undo, &dislike, context).await,
+    "Note" => receive_undo_dislike_comment(undo, &dislike, context, request_counter).await,
+    "Page" => receive_undo_dislike_post(undo, &dislike, context, request_counter).await,
     d => Err(anyhow!("Undo Delete type {} not supported", d).into()),
   }
 }

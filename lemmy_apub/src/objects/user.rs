@@ -76,6 +76,7 @@ impl FromApub for UserForm {
     person: &PersonExt,
     _context: &LemmyContext,
     expected_domain: Option<Url>,
+    _request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
     let avatar = match person.icon() {
       Some(any_image) => Some(

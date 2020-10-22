@@ -122,6 +122,7 @@ pub trait FromApub {
     apub: &Self::ApubType,
     context: &LemmyContext,
     expected_domain: Option<Url>,
+    request_counter: &mut i32,
   ) -> Result<Self, LemmyError>
   where
     Self: Sized;

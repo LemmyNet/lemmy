@@ -101,6 +101,7 @@ impl FromApub for PostForm {
     page: &PageExt,
     context: &LemmyContext,
     expected_domain: Option<Url>,
+    request_counter: &mut i32,
   ) -> Result<PostForm, LemmyError> {
     let ext = &page.ext_one;
     let creator_actor_id = page
@@ -111,7 +112,7 @@ impl FromApub for PostForm {
       .as_single_xsd_any_uri()
       .context(location_info!())?;
 
-    let creator = get_or_fetch_and_upsert_user(creator_actor_id, context).await?;
+    let creator = get_or_fetch_and_upsert_user(creator_actor_id, context, request_counter).await?;
 
     let community_actor_id = page
       .inner
@@ -121,7 +122,8 @@ impl FromApub for PostForm {
       .as_single_xsd_any_uri()
       .context(location_info!())?;
 
-    let community = get_or_fetch_and_upsert_community(community_actor_id, context).await?;
+    let community =
+      get_or_fetch_and_upsert_community(community_actor_id, context, request_counter).await?;
 
     let thumbnail_url = match &page.inner.image() {
       Some(any_image) => Image::from_any_base(
