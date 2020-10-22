@@ -2,37 +2,22 @@
 extern crate diesel_migrations;
 
 use actix::prelude::*;
-use actix_web::{
-  body::Body,
-  dev::{Service, ServiceRequest, ServiceResponse},
-  http::{
-    header::{CACHE_CONTROL, CONTENT_TYPE},
-    HeaderValue,
-  },
-  *,
-};
+use actix_web::*;
 use diesel::{
   r2d2::{ConnectionManager, Pool},
   PgConnection,
 };
-use lazy_static::lazy_static;
 use lemmy_api::match_websocket_operation;
 use lemmy_apub::activity_queue::create_activity_queue;
 use lemmy_db::get_database_url_from_env;
 use lemmy_rate_limit::{rate_limiter::RateLimiter, RateLimit};
 use lemmy_server::{code_migrations::run_advanced_migrations, routes::*};
 use lemmy_structs::blocking;
-use lemmy_utils::{settings::Settings, LemmyError, CACHE_CONTROL_REGEX};
+use lemmy_utils::{settings::Settings, LemmyError};
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
 use reqwest::Client;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-
-lazy_static! {
-  // static ref CACHE_CONTROL_VALUE: String = format!("public, max-age={}", 365 * 24 * 60 * 60);
-  // Test out 1 hour here, this is breaking some things
-  static ref CACHE_CONTROL_VALUE: String = format!("public, max-age={}", 60 * 60);
-}
 
 embed_migrations!();
 
@@ -90,7 +75,6 @@ async fn main() -> Result<(), LemmyError> {
     );
     let rate_limiter = rate_limiter.clone();
     App::new()
-      .wrap_fn(add_cache_headers)
       .wrap(middleware::Logger::default())
       .data(context)
       // The routes
@@ -107,24 +91,4 @@ async fn main() -> Result<(), LemmyError> {
   .await?;
 
   Ok(())
-}
-
-fn add_cache_headers<S>(
-  req: ServiceRequest,
-  srv: &mut S,
-) -> impl Future<Output = Result<ServiceResponse, Error>>
-where
-  S: Service<Request = ServiceRequest, Response = ServiceResponse<Body>, Error = Error>,
-{
-  let fut = srv.call(req);
-  async move {
-    let mut res = fut.await?;
-    if let Some(content_type) = res.headers().get(CONTENT_TYPE) {
-      if CACHE_CONTROL_REGEX.is_match(content_type.to_str().unwrap()) {
-        let header_val = HeaderValue::from_static(&CACHE_CONTROL_VALUE);
-        res.headers_mut().insert(CACHE_CONTROL, header_val);
-      }
-    }
-    Ok(res)
-  }
 }
