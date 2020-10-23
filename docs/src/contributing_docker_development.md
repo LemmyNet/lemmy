@@ -11,7 +11,9 @@ git clone https://github.com/LemmyNet/lemmy
 ## Running
 
 ```bash
-cd /docker/dev
+cd docker/dev
+mkdir -p volumes/pictrs
+sudo chown -R 991:991 volumes/pictrs
 ./docker_update.sh
 ```
 
