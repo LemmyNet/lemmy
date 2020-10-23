@@ -39,7 +39,6 @@ where
 /// community, the activity is announced to all community followers.
 async fn announce_if_community_is_local<T, Kind>(
   activity: T,
-  user: &User_,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError>
@@ -62,7 +61,7 @@ where
 
   if community.local {
     community
-      .send_announce(activity.into_any_base()?, &user, context)
+      .send_announce(activity.into_any_base()?, context)
       .await?;
   }
   Ok(())

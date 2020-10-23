@@ -22,7 +22,7 @@ use activitystreams::{
 };
 use activitystreams_ext::{Ext1, Ext2};
 use anyhow::{anyhow, Context};
-use lemmy_db::{activity::do_insert_activity, user::User_, DbPool};
+use lemmy_db::{activity::Activity, user::User_, DbPool};
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, settings::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -195,7 +195,6 @@ pub trait ActorType {
   async fn send_announce(
     &self,
     activity: AnyBase,
-    sender: &User_,
     context: &LemmyContext,
   ) -> Result<(), LemmyError>;
 
@@ -249,16 +248,18 @@ pub trait ActorType {
 /// Store a sent or received activity in the database, for logging purposes. These records are not
 /// persistent.
 pub async fn insert_activity<T>(
+  ap_id: &Url,
   user_id: i32,
-  data: T,
+  activity: T,
   local: bool,
   pool: &DbPool,
 ) -> Result<(), LemmyError>
 where
   T: Serialize + std::fmt::Debug + Send + 'static,
 {
+  let ap_id = ap_id.to_string();
   blocking(pool, move |conn| {
-    do_insert_activity(conn, user_id, &data, local)
+    Activity::insert(conn, ap_id, user_id, &activity, local)
   })
   .await??;
   Ok(())

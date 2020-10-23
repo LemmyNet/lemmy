@@ -74,24 +74,19 @@ pub async fn send_to_community_followers<T, Kind>(
   activity: T,
   community: &Community,
   context: &LemmyContext,
-  sender_shared_inbox: Option<Url>,
 ) -> Result<(), LemmyError>
 where
   T: AsObject<Kind> + Extends<Kind> + Debug + BaseExt<Kind>,
   Kind: Serialize,
   <T as Extends<Kind>>::Error: From<serde_json::Error> + Send + Sync + 'static,
 {
-  // dont send to the local instance, nor to the instance where the activity originally came from,
-  // because that would result in a database error (same data inserted twice)
-  let community_shared_inbox = community.get_shared_inbox_url()?;
   let follower_inboxes: Vec<Url> = community
     .get_follower_inboxes(context.pool())
     .await?
     .iter()
-    .filter(|inbox| Some(inbox) != sender_shared_inbox.as_ref().as_ref())
-    .filter(|inbox| inbox != &&community_shared_inbox)
-    .filter(|inbox| check_is_apub_id_valid(inbox).is_ok())
     .unique()
+    .filter(|inbox| inbox.host_str() != Some(&Settings::get().hostname))
+    .filter(|inbox| check_is_apub_id_valid(inbox).is_ok())
     .map(|inbox| inbox.to_owned())
     .collect();
   debug!(
@@ -133,7 +128,7 @@ where
   // if this is a local community, we need to do an announce from the community instead
   if community.local {
     community
-      .send_announce(activity.into_any_base()?, creator, context)
+      .send_announce(activity.into_any_base()?, context)
       .await?;
   } else {
     let inbox = community.get_shared_inbox_url()?;
@@ -223,7 +218,8 @@ where
   // This is necessary because send_comment and send_comment_mentions
   // might send the same ap_id
   if insert_into_db {
-    insert_activity(actor.user_id(), activity.clone(), true, pool).await?;
+    let id = activity.id().context(location_info!())?;
+    insert_activity(id, actor.user_id(), activity.clone(), true, pool).await?;
   }
 
   for i in inboxes {

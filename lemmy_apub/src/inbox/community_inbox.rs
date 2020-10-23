@@ -3,6 +3,7 @@ use crate::{
   check_is_apub_id_valid,
   extensions::signatures::verify_signature,
   fetcher::get_or_fetch_and_upsert_user,
+  inbox::{get_activity_id, is_activity_already_known},
   insert_activity,
   ActorType,
 };
@@ -80,6 +81,11 @@ pub async fn community_inbox(
 
   verify_signature(&request, &user)?;
 
+  let activity_id = get_activity_id(&activity, user_uri)?;
+  if is_activity_already_known(context.pool(), &activity_id).await? {
+    return Ok(HttpResponse::Ok().finish());
+  }
+
   let any_base = activity.clone().into_any_base()?;
   let kind = activity.kind().context(location_info!())?;
   let user_id = user.id;
@@ -88,7 +94,14 @@ pub async fn community_inbox(
     ValidTypes::Undo => handle_undo_follow(any_base, user, community, &context).await,
   };
 
-  insert_activity(user_id, activity.clone(), false, context.pool()).await?;
+  insert_activity(
+    &activity_id,
+    user_id,
+    activity.clone(),
+    false,
+    context.pool(),
+  )
+  .await?;
   res
 }
 

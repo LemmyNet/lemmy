@@ -3,6 +3,7 @@ use crate::{
   check_is_apub_id_valid,
   extensions::signatures::verify_signature,
   fetcher::{get_or_fetch_and_upsert_actor, get_or_fetch_and_upsert_community},
+  inbox::{get_activity_id, is_activity_already_known},
   insert_activity,
   ActorType,
   FromApub,
@@ -83,6 +84,11 @@ pub async fn user_inbox(
   let actor = get_or_fetch_and_upsert_actor(actor_uri, &context, request_counter).await?;
   verify_signature(&request, actor.as_ref())?;
 
+  let activity_id = get_activity_id(&activity, actor_uri)?;
+  if is_activity_already_known(context.pool(), &activity_id).await? {
+    return Ok(HttpResponse::Ok().finish());
+  }
+
   let any_base = activity.clone().into_any_base()?;
   let kind = activity.kind().context(location_info!())?;
   let res = match kind {
@@ -101,7 +107,14 @@ pub async fn user_inbox(
     }
   };
 
-  insert_activity(actor.user_id(), activity.clone(), false, context.pool()).await?;
+  insert_activity(
+    &activity_id,
+    actor.user_id(),
+    activity.clone(),
+    false,
+    context.pool(),
+  )
+  .await?;
   res
 }
 

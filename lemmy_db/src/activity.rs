@@ -12,6 +12,7 @@ use std::{
 #[table_name = "activity"]
 pub struct Activity {
   pub id: i32,
+  pub ap_id: String,
   pub user_id: i32,
   pub data: Value,
   pub local: bool,
@@ -22,6 +23,7 @@ pub struct Activity {
 #[derive(Insertable, AsChangeset)]
 #[table_name = "activity"]
 pub struct ActivityForm {
+  pub ap_id: String,
   pub user_id: i32,
   pub data: Value,
   pub local: bool,
@@ -53,30 +55,39 @@ impl Crud<ActivityForm> for Activity {
   }
 }
 
-pub fn do_insert_activity<T>(
-  conn: &PgConnection,
-  user_id: i32,
-  data: &T,
-  local: bool,
-) -> Result<Activity, IoError>
-where
-  T: Serialize + Debug,
-{
-  debug!("inserting activity for user {}: ", user_id);
-  debug!("{}", serde_json::to_string_pretty(&data)?);
-  let activity_form = ActivityForm {
-    user_id,
-    data: serde_json::to_value(&data)?,
-    local,
-    updated: None,
-  };
-  let result = Activity::create(&conn, &activity_form);
-  match result {
-    Ok(s) => Ok(s),
-    Err(e) => Err(IoError::new(
-      ErrorKind::Other,
-      format!("Failed to insert activity into database: {}", e),
-    )),
+impl Activity {
+  pub fn insert<T>(
+    conn: &PgConnection,
+    ap_id: String,
+    user_id: i32,
+    data: &T,
+    local: bool,
+  ) -> Result<Self, IoError>
+  where
+    T: Serialize + Debug,
+  {
+    debug!("inserting activity for user {}: ", user_id);
+    debug!("{}", serde_json::to_string_pretty(&data)?);
+    let activity_form = ActivityForm {
+      ap_id,
+      user_id,
+      data: serde_json::to_value(&data)?,
+      local,
+      updated: None,
+    };
+    let result = Activity::create(&conn, &activity_form);
+    match result {
+      Ok(s) => Ok(s),
+      Err(e) => Err(IoError::new(
+        ErrorKind::Other,
+        format!("Failed to insert activity into database: {}", e),
+      )),
+    }
+  }
+
+  pub fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
+    use crate::schema::activity::dsl::*;
+    activity.filter(ap_id.eq(object_id)).first::<Self>(conn)
   }
 }
 
@@ -125,16 +136,24 @@ mod tests {
 
     let inserted_creator = User_::create(&conn, &creator_form).unwrap();
 
+    let ap_id =
+      "https://enterprise.lemmy.ml/activities/delete/f1b5d57c-80f8-4e03-a615-688d552e946c";
     let test_json: Value = serde_json::from_str(
       r#"{
-    "street": "Article Circle Expressway 1",
-    "city": "North Pole",
-    "postcode": "99705",
-    "state": "Alaska"
-}"#,
+    "@context": "https://www.w3.org/ns/activitystreams",
+    "id": "https://enterprise.lemmy.ml/activities/delete/f1b5d57c-80f8-4e03-a615-688d552e946c",
+    "type": "Delete",
+    "actor": "https://enterprise.lemmy.ml/u/riker",
+    "to": "https://www.w3.org/ns/activitystreams#Public",
+    "cc": [
+        "https://enterprise.lemmy.ml/c/main/"
+    ],
+    "object": "https://enterprise.lemmy.ml/post/32"
+    }"#,
     )
     .unwrap();
     let activity_form = ActivityForm {
+      ap_id: ap_id.to_string(),
       user_id: inserted_creator.id,
       data: test_json.to_owned(),
       local: true,
@@ -144,6 +163,7 @@ mod tests {
     let inserted_activity = Activity::create(&conn, &activity_form).unwrap();
 
     let expected_activity = Activity {
+      ap_id: ap_id.to_string(),
       id: inserted_activity.id,
       user_id: inserted_creator.id,
       data: test_json,
@@ -153,9 +173,11 @@ mod tests {
     };
 
     let read_activity = Activity::read(&conn, inserted_activity.id).unwrap();
+    let read_activity_by_apub_id = Activity::read_from_apub_id(&conn, ap_id).unwrap();
     User_::delete(&conn, inserted_creator.id).unwrap();
 
     assert_eq!(expected_activity, read_activity);
+    assert_eq!(expected_activity, read_activity_by_apub_id);
     assert_eq!(expected_activity, inserted_activity);
   }
 }
