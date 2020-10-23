@@ -11,7 +11,7 @@ git clone https://github.com/LemmyNet/lemmy
 ## Running
 
 ```bash
-cd /docker/dev
+cd docker/dev
 ./docker_update.sh
 ```
 
