@@ -15,7 +15,7 @@ where
   T: ToString,
 {
   let id = format!(
-    "{}/receive/{}/{}",
+    "{}/activities/{}/{}",
     Settings::get().get_protocol_and_hostname(),
     kind.to_string().to_lowercase(),
     Uuid::new_v4()
