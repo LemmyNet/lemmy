@@ -145,7 +145,7 @@ If you want to help with translating, take a look at [Weblate](https://weblate.y
 ## Contact
 
 - [Mastodon](https://mastodon.social/@LemmyDev)
-- [Matrix](https://riot.im/app/#/room/#rust-reddit-fediverse:matrix.org)
+- [Matrix](https://matrix.to/#/#lemmy:matrix.org)
 
 ## Code Mirrors
 
