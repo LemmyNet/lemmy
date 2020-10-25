@@ -5,11 +5,13 @@ use crate::{
   get_user_from_jwt_opt,
   is_mod_or_admin,
   Perform,
+  collect_moderated_communities,
 };
 use actix_web::web::Data;
 use lemmy_apub::{ApubLikeableType, ApubObjectType};
 use lemmy_db::{
   comment::*,
+  comment_report::*,
   comment_view::*,
   moderator::*,
   post::*,
@@ -20,6 +22,7 @@ use lemmy_db::{
   ListingType,
   Saveable,
   SortType,
+  Reportable,
 };
 use lemmy_structs::{blocking, comment::*, send_local_notifs};
 use lemmy_utils::{
@@ -29,7 +32,7 @@ use lemmy_utils::{
   ConnectionId,
   LemmyError,
 };
-use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation};
+use lemmy_websocket::{messages::{SendComment, SendUserRoomMessage}, LemmyContext, UserOperation};
 use std::str::FromStr;
 
 #[async_trait::async_trait(?Send)]
@@ -680,5 +683,155 @@ impl Perform for GetComments {
     };
 
     Ok(GetCommentsResponse { comments })
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for CreateCommentReport {
+  type Response = CreateCommentReportResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    _websocket_id: Option<ConnectionId>,
+  ) -> Result<CreateCommentReportResponse, LemmyError> {
+    let data: &CreateCommentReport = &self;
+    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+
+    // check size of report and check for whitespace
+    let reason = data.reason.trim();
+    if reason.is_empty() {
+      return Err(APIError::err("report_reason_required").into());
+    }
+    if reason.len() > 1000 {
+      return Err(APIError::err("report_too_long").into());
+    }
+    
+    let user_id = user.id;
+    let comment_id = data.comment_id;
+    let comment = blocking(context.pool(), move |conn| {
+      CommentView::read(&conn, comment_id, None)
+    }).await??;
+
+    check_community_ban(user_id, comment.community_id, context.pool()).await?;
+
+    let report_form = CommentReportForm {
+      creator_id: user_id,
+      comment_id,
+      comment_text: comment.content,
+      reason: data.reason.to_owned(),
+    };
+
+    let _report = match blocking(context.pool(), move |conn| {
+      CommentReport::report(conn, &report_form)
+    }).await? {
+      Ok(report) => report,
+      Err(_e) => return Err(APIError::err("couldnt_create_report").into())
+    };
+
+    // to build on this, the user should get a success response, however
+    // mods should get a different response with more details
+    let res = CreateCommentReportResponse { success: true };
+
+    // TODO this needs to use a SendModRoomMessage
+    // context.chat_server().do_send(SendUserRoomMessage {
+    //   op: UserOperation::CreateReport,
+    //   response: res.clone(),
+    //   recipient_id: user.id,
+    //   websocket_id,
+    // });
+
+    Ok(res)
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for ResolveCommentReport {
+  type Response = ResolveCommentReportResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    _websocket_id: Option<ConnectionId>,
+  ) -> Result<ResolveCommentReportResponse, LemmyError> {
+    let data: &ResolveCommentReport = &self;
+    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+
+    let report_id = data.report_id;
+    let report = blocking(context.pool(), move |conn| {
+      CommentReportView::read(&conn, report_id)
+    }).await??;
+
+    let user_id = user.id;
+    is_mod_or_admin(context.pool(), user_id, report.community_id).await?;
+
+    let resolved = data.resolved;
+    let resolve_fun = move |conn: &'_ _| {
+      if resolved {
+        CommentReport::resolve(conn, report_id.clone(), user_id)
+      } else {
+        CommentReport::unresolve(conn, report_id.clone())
+      }
+    };
+
+    if blocking(context.pool(),resolve_fun).await?.is_err() {
+      return Err(APIError::err("couldnt_resolve_report").into())
+    };
+
+    let report_id = data.report_id;
+    let res = ResolveCommentReportResponse {
+      report_id,
+      resolved,
+    };
+
+    // TODO this needs to use a SendModRoomMessage
+    // context.chat_server().do_send(SendUserRoomMessage {
+    //   op: UserOperation::ResolveCommentReport,
+    //   response: res.clone(),
+    //   recipient_id: user.id,
+    //   websocket_id,
+    // });
+
+    Ok(res)
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for ListCommentReports {
+  type Response = ListCommentReportsResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    websocket_id: Option<ConnectionId>,
+  ) -> Result<ListCommentReportsResponse, LemmyError> {
+    let data: &ListCommentReports = &self;
+    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+
+    let user_id = user.id;
+    let community_id = data.community;
+    let community_ids = collect_moderated_communities(user_id, community_id, context.pool()).await?;
+
+    let page = data.page;
+    let limit = data.limit;
+    let comments = blocking(context.pool(), move |conn| {
+      CommentReportQueryBuilder::create(conn)
+          .community_ids(community_ids)
+          .page(page)
+          .limit(limit)
+          .list()
+    })
+        .await??;
+
+    let res = ListCommentReportsResponse { comments };
+
+    context.chat_server().do_send(SendUserRoomMessage {
+      op: UserOperation::ListCommentReports,
+      response: res.clone(),
+      recipient_id: user.id,
+      websocket_id,
+    });
+
+    Ok(res)
   }
 }

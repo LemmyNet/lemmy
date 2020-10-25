@@ -5,6 +5,7 @@ use crate::{
   get_user_from_jwt_opt,
   is_mod_or_admin,
   Perform,
+  collect_moderated_communities,
 };
 use actix_web::web::Data;
 use lemmy_apub::{ApubLikeableType, ApubObjectType};
@@ -14,6 +15,7 @@ use lemmy_db::{
   moderator::*,
   naive_now,
   post::*,
+  post_report::*,
   post_view::*,
   site_view::*,
   Crud,
@@ -21,6 +23,7 @@ use lemmy_db::{
   ListingType,
   Saveable,
   SortType,
+  Reportable,
 };
 use lemmy_structs::{blocking, post::*};
 use lemmy_utils::{
@@ -32,7 +35,7 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::{
-  messages::{GetPostUsersOnline, JoinPostRoom, SendPost},
+  messages::{GetPostUsersOnline, JoinPostRoom, SendPost, SendUserRoomMessage},
   LemmyContext,
   UserOperation,
 };
@@ -739,5 +742,156 @@ impl Perform for PostJoin {
     }
 
     Ok(PostJoinResponse { joined: true })
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for CreatePostReport {
+  type Response = CreatePostReportResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    _websocket_id: Option<ConnectionId>,
+  ) -> Result<CreatePostReportResponse, LemmyError> {
+    let data: &CreatePostReport = &self;
+    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+
+    // check size of report and check for whitespace
+    let reason = data.reason.trim();
+    if reason.is_empty() {
+      return Err(APIError::err("report_reason_required").into());
+    }
+    if reason.len() > 1000 {
+      return Err(APIError::err("report_too_long").into());
+    }
+    
+    let user_id = user.id;
+    let post_id = data.post_id;
+    let post = blocking(context.pool(), move |conn| {
+      PostView::read(&conn, post_id, None)
+    }).await??;
+
+    check_community_ban(user_id, post.community_id, context.pool()).await?;
+
+    let report_form = PostReportForm {
+      creator_id: user_id,
+      post_id,
+      post_name: post.name,
+      post_url: post.url,
+      post_body: post.body,
+      reason: data.reason.to_owned(),
+    };
+
+    let _report = match blocking(context.pool(), move |conn| {
+      PostReport::report(conn, &report_form)
+    }).await? {
+      Ok(report) => report,
+      Err(_e) => return Err(APIError::err("couldnt_create_report").into())
+    };
+
+    // to build on this, the user should get a success response, however
+    // mods should get a different response with more details
+    let res = CreatePostReportResponse { success: true };
+
+    // TODO this needs to use a SendModRoomMessage
+    // context.chat_server().do_send(SendUserRoomMessage {
+    //   op: UserOperation::CreateReport,
+    //   response: res.clone(),
+    //   recipient_id: user.id,
+    //   websocket_id,
+    // });
+
+    Ok(res)
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for ResolvePostReport {
+  type Response = ResolvePostReportResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    _websocket_id: Option<ConnectionId>,
+  ) -> Result<ResolvePostReportResponse, LemmyError> {
+    let data: &ResolvePostReport = &self;
+    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+
+    let report_id = data.report_id;
+    let report = blocking(context.pool(), move |conn| {
+      PostReportView::read(&conn, report_id)
+    }).await??;
+
+    let user_id = user.id;
+    is_mod_or_admin(context.pool(), user_id, report.community_id).await?;
+
+    let resolved = data.resolved;
+    let resolve_fun = move |conn: &'_ _| {
+      if resolved {
+        PostReport::resolve(conn, report_id.clone(), user_id)
+      } else {
+        PostReport::unresolve(conn, report_id.clone())
+      }
+    };
+
+    let res = ResolvePostReportResponse {
+      report_id,
+      resolved: true,
+    };
+
+    if blocking(context.pool(),resolve_fun).await?.is_err() {
+      return Err(APIError::err("couldnt_resolve_report").into())
+    };
+
+    // TODO this needs to use a SendModRoomMessage
+    // context.chat_server().do_send(SendUserRoomMessage {
+    //   op: UserOperation::ResolvePostReport,
+    //   response: res.clone(),
+    //   recipient_id: user.id,
+    //   websocket_id,
+    // });
+
+    Ok(res)
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for ListPostReports {
+  type Response = ListPostReportsResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    websocket_id: Option<ConnectionId>,
+  ) -> Result<ListPostReportsResponse, LemmyError> {
+    let data: &ListPostReports = &self;
+    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+
+    let user_id = user.id;
+    let community_id = data.community;
+    let community_ids = collect_moderated_communities(user_id, community_id, context.pool()).await?;
+
+    let page = data.page;
+    let limit = data.limit;
+    let posts = blocking(context.pool(), move |conn| {
+      PostReportQueryBuilder::create(conn)
+          .community_ids(community_ids)
+          .page(page)
+          .limit(limit)
+          .list()
+    })
+        .await??;
+
+    let res = ListPostReportsResponse { posts };
+
+    context.chat_server().do_send(SendUserRoomMessage {
+      op: UserOperation::ListPostReports,
+      response: res.clone(),
+      recipient_id: user.id,
+      websocket_id,
+    });
+
+    Ok(res)
   }
 }

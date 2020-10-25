@@ -50,34 +50,34 @@ impl Reportable<CommentReportForm> for CommentReport {
   fn report(conn: &PgConnection, comment_report_form: &CommentReportForm) -> Result<Self, Error> {
     use crate::schema::comment_report::dsl::*;
     insert_into(comment_report)
-        .values(comment_report_form)
-        .get_result::<Self>(conn)
+      .values(comment_report_form)
+      .get_result::<Self>(conn)
   }
 
   fn resolve(conn: &PgConnection, report_id: i32, by_user_id: i32) -> Result<usize, Error> {
     use crate::schema::comment_report::dsl::*;
     update(comment_report.find(report_id))
-        .set((
-          resolved.eq(true),
-          resolver_id.eq(by_user_id),
-          updated.eq(naive_now()),
-        ))
-        .execute(conn)
+      .set((
+        resolved.eq(true),
+        resolver_id.eq(by_user_id),
+        updated.eq(naive_now()),
+      ))
+      .execute(conn)
   }
 
   fn unresolve(conn: &PgConnection, report_id: i32) -> Result<usize, Error> {
     use crate::schema::comment_report::dsl::*;
     update(comment_report.find(report_id))
-        .set((
-          resolved.eq(false),
-          updated.eq(naive_now()),
-        ))
-        .execute(conn)
+      .set((
+        resolved.eq(false),
+        updated.eq(naive_now()),
+      ))
+      .execute(conn)
   }
 }
 
 #[derive(
-  Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, Clone,
+Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, Clone,
 )]
 #[table_name = "comment_report_view"]
 pub struct CommentReportView {
@@ -100,7 +100,7 @@ pub struct CommentReportView {
 pub struct CommentReportQueryBuilder<'a> {
   conn: &'a PgConnection,
   query: comment_report_view::BoxedQuery<'a, Pg>,
-  for_community_id: Option<i32>,
+  for_community_ids: Option<Vec<i32>>,
   page: Option<i64>,
   limit: Option<i64>,
   resolved: Option<bool>,
@@ -113,6 +113,14 @@ impl CommentReportView {
       .find(report_id)
       .first::<Self>(conn)
   }
+
+  pub fn get_report_count(conn: &PgConnection, community_ids: &Vec<i32>) -> Result<i32, Error> {
+    use super::comment_report::comment_report_view::dsl::*;
+    comment_report_view
+      .filter(resolved.eq(false).and(community_id.eq_any(community_ids)))
+      .select(sql::<sql_types::Integer>("COUNT(*)"))
+      .first::<i32>(conn)
+  }
 }
 
 impl<'a> CommentReportQueryBuilder<'a> {
@@ -124,15 +132,15 @@ impl<'a> CommentReportQueryBuilder<'a> {
     CommentReportQueryBuilder {
       conn,
       query,
-      for_community_id: None,
+      for_community_ids: None,
       page: None,
       limit: None,
       resolved: Some(false),
     }
   }
 
-  pub fn community_id<T: MaybeOptional<i32>>(mut self, community_id: T) -> Self {
-    self.for_community_id = community_id.get_optional();
+  pub fn community_ids<T: MaybeOptional<Vec<i32>>>(mut self, community_ids: T) -> Self {
+    self.for_community_ids = community_ids.get_optional();
     self
   }
 
@@ -156,8 +164,8 @@ impl<'a> CommentReportQueryBuilder<'a> {
 
     let mut query = self.query;
 
-    if let Some(comm_id) = self.for_community_id {
-      query = query.filter(community_id.eq(comm_id));
+    if let Some(comm_ids) = self.for_community_ids {
+      query = query.filter(community_id.eq_any(comm_ids));
     }
 
     if let Some(resolved_flag) = self.resolved {
@@ -172,21 +180,4 @@ impl<'a> CommentReportQueryBuilder<'a> {
       .offset(offset)
       .load::<CommentReportView>(self.conn)
   }
-
-  pub fn count(self) -> Result<usize, Error> {
-    use super::comment_report::comment_report_view::dsl::*;
-    let mut query = self.query;
-
-    if let Some(comm_id) = self.for_community_id {
-      query = query.filter(community_id.eq(comm_id));
-    }
-
-    if let Some(resolved_flag) = self.resolved {
-      query = query.filter(resolved.eq(resolved_flag));
-    }
-
-    query.execute(self.conn)
-  }
 }
-
-

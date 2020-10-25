@@ -1,14 +1,14 @@
 use crate::claims::Claims;
 use actix_web::{web, web::Data};
 use lemmy_db::{
-  community::Community,
+  community::{Community, CommunityModerator},
   community_view::CommunityUserBanView,
   post::Post,
   user::User_,
   Crud,
   DbPool,
 };
-use lemmy_structs::{blocking, comment::*, community::*, post::*, report::*, site::*, user::*};
+use lemmy_structs::{blocking, comment::*, community::*, post::*, site::*, user::*};
 use lemmy_utils::{settings::Settings, APIError, ConnectionId, LemmyError};
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperation};
 use serde::Deserialize;
@@ -19,7 +19,6 @@ pub mod claims;
 pub mod comment;
 pub mod community;
 pub mod post;
-pub mod report;
 pub mod site;
 pub mod user;
 pub mod version;
@@ -98,6 +97,23 @@ pub(in crate) async fn check_community_ban(
     Err(APIError::err("community_ban").into())
   } else {
     Ok(())
+  }
+}
+
+pub(in crate) async fn collect_moderated_communities(
+  user_id: i32,
+  community_id: Option<i32>,
+  pool: &DbPool,
+) -> Result<Vec<i32>, LemmyError> {
+  if let Some(community_id) = community_id {
+    // if the user provides a community_id, just check for mod/admin privileges
+    is_mod_or_admin(pool, user_id, community_id).await?;
+    Ok(vec![community_id])
+  } else {
+    let ids = blocking(pool, move |conn: &'_ _| {
+      CommunityModerator::get_user_moderated_communities(conn, user_id)
+    }).await??;
+    Ok(ids)
   }
 }
 
@@ -181,6 +197,9 @@ pub async fn match_websocket_operation(
     }
     UserOperation::SaveUserSettings => {
       do_websocket_operation::<SaveUserSettings>(context, id, op, data).await
+    }
+    UserOperation::GetReportCount => {
+      do_websocket_operation::<GetReportCount>(context, id, op, data).await
     }
 
     // Private Message ops
@@ -267,6 +286,15 @@ pub async fn match_websocket_operation(
       do_websocket_operation::<CreatePostLike>(context, id, op, data).await
     }
     UserOperation::SavePost => do_websocket_operation::<SavePost>(context, id, op, data).await,
+    UserOperation::CreatePostReport => {
+      do_websocket_operation::<CreatePostReport>(context, id, op, data).await
+    }
+    UserOperation::ListPostReports => {
+      do_websocket_operation::<ListPostReports>(context, id, op, data).await
+    }
+    UserOperation::ResolvePostReport => {
+      do_websocket_operation::<ResolvePostReport>(context, id, op, data).await
+    }
 
     // Comment ops
     UserOperation::CreateComment => {
@@ -293,19 +321,14 @@ pub async fn match_websocket_operation(
     UserOperation::CreateCommentLike => {
       do_websocket_operation::<CreateCommentLike>(context, id, op, data).await
     }
-
-    // report ops
-    UserOperation::CreateReport => {
-      do_websocket_operation::<CreateReport>(context, id, op, data).await
+    UserOperation::CreateCommentReport => {
+      do_websocket_operation::<CreateCommentReport>(context, id, op, data).await
     }
-    UserOperation::ListReports => {
-      do_websocket_operation::<ListReports>(context, id, op, data).await
+    UserOperation::ListCommentReports => {
+      do_websocket_operation::<ListCommentReports>(context, id, op, data).await
     }
-    UserOperation::ResolveReport => {
-      do_websocket_operation::<ResolveReport>(context, id, op, data).await
-    }
-    UserOperation::GetReportCount => {
-      do_websocket_operation::<GetReportCount>(context, id, op, data).await
+    UserOperation::ResolveCommentReport => {
+      do_websocket_operation::<ResolveCommentReport>(context, id, op, data).await
     }
   }
 }

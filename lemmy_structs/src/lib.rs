@@ -1,7 +1,6 @@
 pub mod comment;
 pub mod community;
 pub mod post;
-pub mod report;
 pub mod site;
 pub mod user;
 pub mod websocket;

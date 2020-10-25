@@ -173,12 +173,6 @@ pub enum SearchType {
   Url,
 }
 
-#[derive(EnumString, ToString, Debug, Serialize, Deserialize)]
-pub enum ReportType {
-  Comment,
-  Post,
-}
-
 pub fn fuzzy_search(q: &str) -> String {
   let replaced = q.replace(" ", "%");
   format!("%{}%", replaced)

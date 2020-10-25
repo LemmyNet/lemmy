@@ -1,7 +1,7 @@
 use actix_web::{error::ErrorBadRequest, *};
 use lemmy_api::Perform;
 use lemmy_rate_limit::RateLimit;
-use lemmy_structs::{comment::*, community::*, post::*, report::*, site::*, user::*};
+use lemmy_structs::{comment::*, community::*, post::*, site::*, user::*};
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 
@@ -57,7 +57,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("/transfer", web::post().to(route_post::<TransferCommunity>))
           .route("/ban_user", web::post().to(route_post::<BanFromCommunity>))
           .route("/mod", web::post().to(route_post::<AddModToCommunity>))
-          .route("/join", web::post().to(route_post::<CommunityJoin>))
+          .route("/join", web::post().to(route_post::<CommunityJoin>)),
       )
       // Post
       .service(
@@ -80,10 +80,13 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("/like", web::post().to(route_post::<CreatePostLike>))
           .route("/save", web::put().to(route_post::<SavePost>))
           .route("/join", web::post().to(route_post::<PostJoin>))
+          .route("/report", web::post().to(route_post::<CreatePostReport>))
+          .route("/report/resolve", web::put().to(route_post::<ResolvePostReport>))
+          .route("/report/list", web::get().to(route_get::<ListPostReports>))
       )
       // Comment
       .service(
-          web::scope("/comment")
+        web::scope("/comment")
           .wrap(rate_limit.message())
           .route("", web::post().to(route_post::<CreateComment>))
           .route("", web::put().to(route_post::<EditComment>))
@@ -96,6 +99,9 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("/like", web::post().to(route_post::<CreateCommentLike>))
           .route("/save", web::put().to(route_post::<SaveComment>))
           .route("/list", web::get().to(route_get::<GetComments>))
+          .route("/report", web::post().to(route_post::<CreateCommentReport>))
+          .route("/report/resolve", web::put().to(route_post::<ResolveCommentReport>))
+          .route("/report/list", web::get().to(route_get::<ListCommentReports>))
       )
       // Private Message
       .service(
@@ -163,6 +169,10 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route(
             "/save_user_settings",
             web::put().to(route_post::<SaveUserSettings>),
+          )
+          .route(
+            "/report_count",
+            web::get().to(route_get::<GetReportCount>)
           ),
       )
       // Admin Actions
@@ -170,15 +180,6 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
         web::resource("/admin/add")
           .wrap(rate_limit.message())
           .route(web::post().to(route_post::<AddAdmin>)),
-      )
-      // Reports
-      .service(
-        web::scope("/report")
-            .wrap(rate_limit.message())
-            .route("", web::get().to(route_get::<GetReportCount>))
-            .route("",web::post().to(route_post::<CreateReport>))
-            .route("/resolve",web::put().to(route_post::<ResolveReport>))
-            .route("/list", web::get().to(route_get::<ListReports>))
       ),
   );
 }

@@ -6,6 +6,7 @@ use crate::{
   get_user_from_jwt_opt,
   is_admin,
   Perform,
+  collect_moderated_communities
 };
 use actix_web::web::Data;
 use anyhow::Context;
@@ -15,6 +16,7 @@ use chrono::Duration;
 use lemmy_apub::ApubObjectType;
 use lemmy_db::{
   comment::*,
+  comment_report::CommentReportView,
   comment_view::*,
   community::*,
   community_view::*,
@@ -23,6 +25,7 @@ use lemmy_db::{
   naive_now,
   password_reset_request::*,
   post::*,
+  post_report::PostReportView,
   post_view::*,
   private_message::*,
   private_message_view::*,
@@ -1292,5 +1295,56 @@ impl Perform for UserJoin {
     }
 
     Ok(UserJoinResponse { joined: true })
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl Perform for GetReportCount {
+  type Response = GetReportCountResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    websocket_id: Option<ConnectionId>,
+  ) -> Result<GetReportCountResponse, LemmyError> {
+    let data: &GetReportCount = &self;
+    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
+
+    let user_id = user.id;
+    let community_id = data.community;
+    let community_ids = collect_moderated_communities(user_id, community_id, context.pool()).await?;
+
+    let res = {
+      if community_ids.is_empty() {
+        GetReportCountResponse {
+          community: None,
+          comment_reports: 0,
+          post_reports: 0,
+        }
+      } else {
+        let ids = community_ids.clone();
+        let comment_reports = blocking(context.pool(), move |conn|
+            CommentReportView::get_report_count(conn, &ids)).await??;
+
+        let ids = community_ids.clone();
+        let post_reports = blocking(context.pool(), move |conn|
+            PostReportView::get_report_count(conn, &ids)).await??;
+
+        GetReportCountResponse {
+          community: data.community,
+          comment_reports,
+          post_reports,
+        }
+      }
+    };
+
+    context.chat_server().do_send(SendUserRoomMessage {
+      op: UserOperation::GetReportCount,
+      response: res.clone(),
+      recipient_id: user.id,
+      websocket_id,
+    });
+
+    Ok(res)
   }
 }
