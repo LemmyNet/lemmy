@@ -5,7 +5,7 @@ create table comment_report (
   comment_text  text      not null,
   reason        text      not null,
   resolved      bool      not null default false,
-  resolver_id   int       references user_ on update cascade on delete cascade not null,   -- user resolving report
+  resolver_id   int       references user_ on update cascade on delete cascade,   -- user resolving report
   published     timestamp not null default now(),
   updated       timestamp null,
   unique(comment_id, creator_id) -- users should only be able to report a comment once
@@ -20,7 +20,7 @@ create table post_report (
   post_body     text,
   reason        text      not null,
   resolved      bool      not null default false,
-  resolver_id   int       references user_ on update cascade on delete cascade not null,   -- user resolving report
+  resolver_id   int       references user_ on update cascade on delete cascade,   -- user resolving report
   published     timestamp not null default now(),
   updated       timestamp null,
   unique(post_id, creator_id) -- users should only be able to report a post once
@@ -29,6 +29,7 @@ create table post_report (
 create or replace view comment_report_view as
 select cr.*,
 c.post_id,
+c.content as current_comment_text,
 p.community_id,
 f.name as creator_name,
 u.id as comment_creator_id,
@@ -41,6 +42,9 @@ left join user_ f on f.id = cr.creator_id;
 
 create or replace view post_report_view as
 select pr.*,
+p.name as current_post_name,
+p.url as current_post_url,
+p.body as current_post_body,
 p.community_id,
 f.name as creator_name,
 u.id as post_creator_id,
