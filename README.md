@@ -10,15 +10,15 @@
 </div>
 
 <p align="center">
-  <a href="https://dev.lemmy.ml/" rel="noopener">
+  <a href="https://join.lemmy.ml/" rel="noopener">
  <img width=200px height=200px src="https://raw.githubusercontent.com/LemmyNet/lemmy-ui/main/src/assets/icons/favicon.svg"></a>
 
- <h3 align="center"><a href="https://dev.lemmy.ml">Lemmy</a></h3>
+ <h3 align="center"><a href="https://join.lemmy.ml">Lemmy</a></h3>
   <p align="center">
     A link aggregator / Reddit clone for the fediverse.
     <br />
     <br />
-    <a href="https://dev.lemmy.ml">View Site</a>
+    <a href="https://join.lemmy.ml">Join Lemmy</a>
     ·
     <a href="https://dev.lemmy.ml/docs/index.html">Documentation</a>
     ·
@@ -124,7 +124,7 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 - [Support on Liberapay](https://liberapay.com/Lemmy).
 - [Support on Patreon](https://www.patreon.com/dessalines).
 - [Support on OpenCollective](https://opencollective.com/lemmy).
-- [List of Sponsors](https://dev.lemmy.ml/sponsors).
+- [List of Sponsors](https://join.lemmy.ml/sponsors).
 
 ### Crypto
 
