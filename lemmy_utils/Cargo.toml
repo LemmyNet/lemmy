@@ -11,8 +11,7 @@ path = "src/lib.rs"
 regex = "1.3"
 config = { version = "0.10", default-features = false, features = ["hjson"] }
 chrono = { version = "0.4", features = ["serde"] }
-lettre = "0.9"
-lettre_email = "0.9"
+lettre = "0.10.0-alpha.3"
 log = "0.4"
 itertools = "0.9"
 rand = "0.7"
