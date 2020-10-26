@@ -25,12 +25,14 @@ use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation};
 pub(crate) async fn receive_create_comment(
   create: Create,
   context: &LemmyContext,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
-  let user = get_actor_as_user(&create, context).await?;
+  let user = get_actor_as_user(&create, context, request_counter).await?;
   let note = Note::from_any_base(create.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
-  let comment = CommentForm::from_apub(&note, context, Some(user.actor_id()?)).await?;
+  let comment =
+    CommentForm::from_apub(&note, context, Some(user.actor_id()?), request_counter).await?;
 
   let inserted_comment =
     blocking(context.pool(), move |conn| Comment::upsert(conn, &comment)).await??;
@@ -71,23 +73,26 @@ pub(crate) async fn receive_create_comment(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(create, &user, context).await?;
+  announce_if_community_is_local(create, &user, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
 pub(crate) async fn receive_update_comment(
   update: Update,
   context: &LemmyContext,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let note = Note::from_any_base(update.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
-  let user = get_actor_as_user(&update, context).await?;
+  let user = get_actor_as_user(&update, context, request_counter).await?;
 
-  let comment = CommentForm::from_apub(&note, context, Some(user.actor_id()?)).await?;
+  let comment =
+    CommentForm::from_apub(&note, context, Some(user.actor_id()?), request_counter).await?;
 
-  let original_comment_id = get_or_fetch_and_insert_comment(&comment.get_ap_id()?, context)
-    .await?
-    .id;
+  let original_comment_id =
+    get_or_fetch_and_insert_comment(&comment.get_ap_id()?, context, request_counter)
+      .await?
+      .id;
 
   let updated_comment = blocking(context.pool(), move |conn| {
     Comment::update(conn, original_comment_id, &comment)
@@ -126,21 +131,22 @@ pub(crate) async fn receive_update_comment(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(update, &user, context).await?;
+  announce_if_community_is_local(update, &user, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
 pub(crate) async fn receive_like_comment(
   like: Like,
   context: &LemmyContext,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let note = Note::from_any_base(like.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
-  let user = get_actor_as_user(&like, context).await?;
+  let user = get_actor_as_user(&like, context, request_counter).await?;
 
-  let comment = CommentForm::from_apub(&note, context, None).await?;
+  let comment = CommentForm::from_apub(&note, context, None, request_counter).await?;
 
-  let comment_id = get_or_fetch_and_insert_comment(&comment.get_ap_id()?, context)
+  let comment_id = get_or_fetch_and_insert_comment(&comment.get_ap_id()?, context, request_counter)
     .await?
     .id;
 
@@ -177,13 +183,14 @@ pub(crate) async fn receive_like_comment(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(like, &user, context).await?;
+  announce_if_community_is_local(like, &user, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
 pub(crate) async fn receive_dislike_comment(
   dislike: Dislike,
   context: &LemmyContext,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let note = Note::from_any_base(
     dislike
@@ -193,11 +200,11 @@ pub(crate) async fn receive_dislike_comment(
       .context(location_info!())?,
   )?
   .context(location_info!())?;
-  let user = get_actor_as_user(&dislike, context).await?;
+  let user = get_actor_as_user(&dislike, context, request_counter).await?;
 
-  let comment = CommentForm::from_apub(&note, context, None).await?;
+  let comment = CommentForm::from_apub(&note, context, None, request_counter).await?;
 
-  let comment_id = get_or_fetch_and_insert_comment(&comment.get_ap_id()?, context)
+  let comment_id = get_or_fetch_and_insert_comment(&comment.get_ap_id()?, context, request_counter)
     .await?
     .id;
 
@@ -234,7 +241,7 @@ pub(crate) async fn receive_dislike_comment(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(dislike, &user, context).await?;
+  announce_if_community_is_local(dislike, &user, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
@@ -242,6 +249,7 @@ pub(crate) async fn receive_delete_comment(
   context: &LemmyContext,
   delete: Delete,
   comment: Comment,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let deleted_comment = blocking(context.pool(), move |conn| {
     Comment::update_deleted(conn, comment.id, true)
@@ -268,8 +276,8 @@ pub(crate) async fn receive_delete_comment(
     websocket_id: None,
   });
 
-  let user = get_actor_as_user(&delete, context).await?;
-  announce_if_community_is_local(delete, &user, context).await?;
+  let user = get_actor_as_user(&delete, context, request_counter).await?;
+  announce_if_community_is_local(delete, &user, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 

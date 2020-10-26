@@ -41,6 +41,7 @@ async fn announce_if_community_is_local<T, Kind>(
   activity: T,
   user: &User_,
   context: &LemmyContext,
+  request_counter: &mut i32,
 ) -> Result<(), LemmyError>
 where
   T: AsObject<Kind>,
@@ -55,7 +56,9 @@ where
     .context(location_info!())?
     .as_xsd_any_uri()
     .context(location_info!())?;
-  let community = get_or_fetch_and_upsert_community(&community_uri, context).await?;
+  // TODO: we could just read from the local db here (and ignore if the community is not found)
+  let community =
+    get_or_fetch_and_upsert_community(&community_uri, context, request_counter).await?;
 
   if community.local {
     community
@@ -69,13 +72,14 @@ where
 pub(crate) async fn get_actor_as_user<T, A>(
   activity: &T,
   context: &LemmyContext,
+  request_counter: &mut i32,
 ) -> Result<User_, LemmyError>
 where
   T: AsBase<A> + ActorAndObjectRef,
 {
   let actor = activity.actor()?;
   let user_uri = actor.as_single_xsd_any_uri().context(location_info!())?;
-  get_or_fetch_and_upsert_user(&user_uri, context).await
+  get_or_fetch_and_upsert_user(&user_uri, context, request_counter).await
 }
 
 pub(crate) enum FindResults {

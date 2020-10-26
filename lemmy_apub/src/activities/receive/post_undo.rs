@@ -20,14 +20,15 @@ pub(crate) async fn receive_undo_like_post(
   undo: Undo,
   like: &Like,
   context: &LemmyContext,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
-  let user = get_actor_as_user(like, context).await?;
+  let user = get_actor_as_user(like, context, request_counter).await?;
   let page = PageExt::from_any_base(like.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
-  let post = PostForm::from_apub(&page, context, None).await?;
+  let post = PostForm::from_apub(&page, context, None, request_counter).await?;
 
-  let post_id = get_or_fetch_and_insert_post(&post.get_ap_id()?, context)
+  let post_id = get_or_fetch_and_insert_post(&post.get_ap_id()?, context, request_counter)
     .await?
     .id;
 
@@ -51,7 +52,7 @@ pub(crate) async fn receive_undo_like_post(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(undo, &user, context).await?;
+  announce_if_community_is_local(undo, &user, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
@@ -59,8 +60,9 @@ pub(crate) async fn receive_undo_dislike_post(
   undo: Undo,
   dislike: &Dislike,
   context: &LemmyContext,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
-  let user = get_actor_as_user(dislike, context).await?;
+  let user = get_actor_as_user(dislike, context, request_counter).await?;
   let page = PageExt::from_any_base(
     dislike
       .object()
@@ -70,9 +72,9 @@ pub(crate) async fn receive_undo_dislike_post(
   )?
   .context(location_info!())?;
 
-  let post = PostForm::from_apub(&page, context, None).await?;
+  let post = PostForm::from_apub(&page, context, None, request_counter).await?;
 
-  let post_id = get_or_fetch_and_insert_post(&post.get_ap_id()?, context)
+  let post_id = get_or_fetch_and_insert_post(&post.get_ap_id()?, context, request_counter)
     .await?
     .id;
 
@@ -96,7 +98,7 @@ pub(crate) async fn receive_undo_dislike_post(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(undo, &user, context).await?;
+  announce_if_community_is_local(undo, &user, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
@@ -104,6 +106,7 @@ pub(crate) async fn receive_undo_delete_post(
   context: &LemmyContext,
   undo: Undo,
   post: Post,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let deleted_post = blocking(context.pool(), move |conn| {
     Post::update_deleted(conn, post.id, false)
@@ -124,8 +127,8 @@ pub(crate) async fn receive_undo_delete_post(
     websocket_id: None,
   });
 
-  let user = get_actor_as_user(&undo, context).await?;
-  announce_if_community_is_local(undo, &user, context).await?;
+  let user = get_actor_as_user(&undo, context, request_counter).await?;
+  announce_if_community_is_local(undo, &user, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
@@ -133,6 +136,7 @@ pub(crate) async fn receive_undo_remove_post(
   context: &LemmyContext,
   undo: Undo,
   post: Post,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let removed_post = blocking(context.pool(), move |conn| {
     Post::update_removed(conn, post.id, false)
@@ -154,7 +158,7 @@ pub(crate) async fn receive_undo_remove_post(
     websocket_id: None,
   });
 
-  let mod_ = get_actor_as_user(&undo, context).await?;
-  announce_if_community_is_local(undo, &mod_, context).await?;
+  let mod_ = get_actor_as_user(&undo, context, request_counter).await?;
+  announce_if_community_is_local(undo, &mod_, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
