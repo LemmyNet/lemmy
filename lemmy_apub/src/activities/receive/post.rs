@@ -24,12 +24,13 @@ use lemmy_websocket::{messages::SendPost, LemmyContext, UserOperation};
 pub(crate) async fn receive_create_post(
   create: Create,
   context: &LemmyContext,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
-  let user = get_actor_as_user(&create, context).await?;
+  let user = get_actor_as_user(&create, context, request_counter).await?;
   let page = PageExt::from_any_base(create.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
-  let post = PostForm::from_apub(&page, context, Some(user.actor_id()?)).await?;
+  let post = PostForm::from_apub(&page, context, Some(user.actor_id()?), request_counter).await?;
 
   // Using an upsert, since likes (which fetch the post), sometimes come in before the create
   // resulting in double posts.
@@ -50,21 +51,22 @@ pub(crate) async fn receive_create_post(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(create, &user, context).await?;
+  announce_if_community_is_local(create, &user, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
 pub(crate) async fn receive_update_post(
   update: Update,
   context: &LemmyContext,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
-  let user = get_actor_as_user(&update, context).await?;
+  let user = get_actor_as_user(&update, context, request_counter).await?;
   let page = PageExt::from_any_base(update.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
-  let post = PostForm::from_apub(&page, context, Some(user.actor_id()?)).await?;
+  let post = PostForm::from_apub(&page, context, Some(user.actor_id()?), request_counter).await?;
 
-  let original_post_id = get_or_fetch_and_insert_post(&post.get_ap_id()?, context)
+  let original_post_id = get_or_fetch_and_insert_post(&post.get_ap_id()?, context, request_counter)
     .await?
     .id;
 
@@ -87,21 +89,22 @@ pub(crate) async fn receive_update_post(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(update, &user, context).await?;
+  announce_if_community_is_local(update, &user, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
 pub(crate) async fn receive_like_post(
   like: Like,
   context: &LemmyContext,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
-  let user = get_actor_as_user(&like, context).await?;
+  let user = get_actor_as_user(&like, context, request_counter).await?;
   let page = PageExt::from_any_base(like.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
-  let post = PostForm::from_apub(&page, context, None).await?;
+  let post = PostForm::from_apub(&page, context, None, request_counter).await?;
 
-  let post_id = get_or_fetch_and_insert_post(&post.get_ap_id()?, context)
+  let post_id = get_or_fetch_and_insert_post(&post.get_ap_id()?, context, request_counter)
     .await?
     .id;
 
@@ -131,15 +134,16 @@ pub(crate) async fn receive_like_post(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(like, &user, context).await?;
+  announce_if_community_is_local(like, &user, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
 pub(crate) async fn receive_dislike_post(
   dislike: Dislike,
   context: &LemmyContext,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
-  let user = get_actor_as_user(&dislike, context).await?;
+  let user = get_actor_as_user(&dislike, context, request_counter).await?;
   let page = PageExt::from_any_base(
     dislike
       .object()
@@ -149,9 +153,9 @@ pub(crate) async fn receive_dislike_post(
   )?
   .context(location_info!())?;
 
-  let post = PostForm::from_apub(&page, context, None).await?;
+  let post = PostForm::from_apub(&page, context, None, request_counter).await?;
 
-  let post_id = get_or_fetch_and_insert_post(&post.get_ap_id()?, context)
+  let post_id = get_or_fetch_and_insert_post(&post.get_ap_id()?, context, request_counter)
     .await?
     .id;
 
@@ -181,7 +185,7 @@ pub(crate) async fn receive_dislike_post(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(dislike, &user, context).await?;
+  announce_if_community_is_local(dislike, &user, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
@@ -189,6 +193,7 @@ pub(crate) async fn receive_delete_post(
   context: &LemmyContext,
   delete: Delete,
   post: Post,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let deleted_post = blocking(context.pool(), move |conn| {
     Post::update_deleted(conn, post.id, true)
@@ -209,8 +214,8 @@ pub(crate) async fn receive_delete_post(
     websocket_id: None,
   });
 
-  let user = get_actor_as_user(&delete, context).await?;
-  announce_if_community_is_local(delete, &user, context).await?;
+  let user = get_actor_as_user(&delete, context, request_counter).await?;
+  announce_if_community_is_local(delete, &user, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 

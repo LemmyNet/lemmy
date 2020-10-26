@@ -72,7 +72,7 @@ impl ActorType for Community {
       .actor()?
       .as_single_xsd_any_uri()
       .context(location_info!())?;
-    let user = get_or_fetch_and_upsert_user(actor_uri, context).await?;
+    let user = get_or_fetch_and_upsert_user(actor_uri, context, &mut 0).await?;
 
     let mut accept = Accept::new(self.actor_id.to_owned(), follow.into_any_base()?);
     accept
