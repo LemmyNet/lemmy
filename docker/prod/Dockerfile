@@ -5,6 +5,7 @@ FROM $RUST_BUILDER_IMAGE as rust
 ARG RUSTRELEASEDIR="release"
 
 WORKDIR /app/server
+RUN sudo chown -R rust:rust .
 COPY . ./
 RUN cargo build --release
 
