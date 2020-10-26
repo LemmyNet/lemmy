@@ -57,6 +57,8 @@ pub fn send_email(
     )
     .expect("email built correctly");
 
+  // don't worry about 'dangeous'. it's just that leaving it at the default configuration
+  // is bad.
   let mut builder = SmtpTransport::builder_dangerous(domain);
 
   // Set the TLS
