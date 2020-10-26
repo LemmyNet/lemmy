@@ -1,8 +1,8 @@
 ARG RUST_BUILDER_IMAGE=ekidd/rust-musl-builder:stable
+ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-musl
+ARG RUSTRELEASEDIR="release"
 
 FROM $RUST_BUILDER_IMAGE as rust
-
-ARG RUSTRELEASEDIR="release"
 
 WORKDIR /app/server
 RUN sudo chown -R rust:rust .
