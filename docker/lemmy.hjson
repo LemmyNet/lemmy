@@ -40,6 +40,8 @@
 #    smtp_password: ""
 #    # address to send emails from, eg "noreply@your-instance.com"
 #    smtp_from_address: ""
+#    # whether or not smtp connections should use tls
+#    use_tls: true
 #  }
 }
 
