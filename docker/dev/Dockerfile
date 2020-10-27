@@ -1,71 +1,35 @@
-FROM ekidd/rust-musl-builder:nightly-2020-05-07 as rust
+# syntax=docker/dockerfile:experimental
+FROM rust:1.47-buster as rust
 
-# Cache deps
+ENV HOME=/home/root
+
 WORKDIR /app
-RUN sudo chown -R rust:rust .
-RUN USER=root cargo new server
 
-# Install cargo-build-deps
-RUN cargo install --git https://github.com/romac/cargo-build-deps.git
-WORKDIR /app/server
-RUN mkdir -p lemmy_db/src/ \
-      lemmy_utils/src/ \
-      lemmy_structs/src/ \
-      lemmy_rate_limit/src/ \
-      lemmy_api/src/ \
-      lemmy_apub/src/ \
-      lemmy_websocket/src/ \
-      lemmy
-
-# Copy the cargo tomls
-COPY Cargo.toml Cargo.lock ./
-COPY lemmy_db/Cargo.toml ./lemmy_db/
-COPY lemmy_utils/Cargo.toml ./lemmy_utils/
-COPY lemmy_structs/Cargo.toml ./lemmy_structs/
-COPY lemmy_rate_limit/Cargo.toml ./lemmy_rate_limit/
-COPY lemmy_api/Cargo.toml ./lemmy_api/
-COPY lemmy_apub/Cargo.toml ./lemmy_apub/
-COPY lemmy_websocket/Cargo.toml ./lemmy_websocket/
-
-# Cache the deps
-RUN cargo build-deps
-
-# Copy the src folders
-COPY src ./src/
-COPY lemmy_db/src ./lemmy_db/src/
-COPY lemmy_utils/src/ ./lemmy_utils/src/
-COPY lemmy_structs/src/ ./lemmy_structs/src/
-COPY lemmy_rate_limit/src/ ./lemmy_rate_limit/src/
-COPY lemmy_api/src/ ./lemmy_api/src/
-COPY lemmy_apub/src/ ./lemmy_apub/src/
-COPY lemmy_websocket/src/ ./lemmy_websocket/src/
-COPY migrations ./migrations/
+# Copy the source folders
+COPY . ./
 
 # Build for debug
-RUN cargo build
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/app/target \
+    cargo build
+RUN --mount=type=cache,target=/app/target \
+    cp target/debug/lemmy_server lemmy_server
 
-FROM ekidd/rust-musl-builder:nightly-2020-05-07 as docs
+FROM peaceiris/mdbook:v0.3.7 as docs
 WORKDIR /app
 COPY docs ./docs
-RUN sudo chown -R rust:rust .
 RUN mdbook build docs/
 
-FROM alpine:3.12
+FROM ubuntu:20.10
 
-# Install libpq for postgres
-RUN apk add libpq
-
-# Install Espeak for captchas
-RUN apk add espeak
+# Install libpq for postgres and espeak
+RUN apt-get update -y
+RUN apt-get install -y libpq-dev espeak 
 
 # Copy resources
 COPY config/defaults.hjson /config/defaults.hjson
-COPY --from=rust /app/server/target/x86_64-unknown-linux-musl/debug/lemmy_server /app/lemmy
+COPY --from=rust /app/lemmy_server /app/lemmy
 COPY --from=docs /app/docs/book/ /app/documentation/
 
-RUN addgroup -g 1000 lemmy
-RUN adduser -D -s /bin/sh -u 1000 -G lemmy lemmy
-RUN chown lemmy:lemmy /app/lemmy
-USER lemmy
 EXPOSE 8536
 CMD ["/app/lemmy"]

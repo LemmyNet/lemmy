@@ -79,15 +79,22 @@ pub async fn user_inbox(
 
   check_is_apub_id_valid(actor_uri)?;
 
-  let actor = get_or_fetch_and_upsert_actor(actor_uri, &context).await?;
+  let request_counter = &mut 0;
+  let actor = get_or_fetch_and_upsert_actor(actor_uri, &context, request_counter).await?;
   verify_signature(&request, actor.as_ref())?;
 
   let any_base = activity.clone().into_any_base()?;
   let kind = activity.kind().context(location_info!())?;
   let res = match kind {
-    ValidTypes::Accept => receive_accept(&context, any_base, actor.as_ref(), user).await,
-    ValidTypes::Create => receive_create_private_message(&context, any_base, actor.as_ref()).await,
-    ValidTypes::Update => receive_update_private_message(&context, any_base, actor.as_ref()).await,
+    ValidTypes::Accept => {
+      receive_accept(&context, any_base, actor.as_ref(), user, request_counter).await
+    }
+    ValidTypes::Create => {
+      receive_create_private_message(&context, any_base, actor.as_ref(), request_counter).await
+    }
+    ValidTypes::Update => {
+      receive_update_private_message(&context, any_base, actor.as_ref(), request_counter).await
+    }
     ValidTypes::Delete => receive_delete_private_message(&context, any_base, actor.as_ref()).await,
     ValidTypes::Undo => {
       receive_undo_delete_private_message(&context, any_base, actor.as_ref()).await
@@ -104,6 +111,7 @@ async fn receive_accept(
   activity: AnyBase,
   actor: &dyn ActorType,
   user: User_,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let accept = Accept::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&accept, actor.actor_id()?, false)?;
@@ -120,7 +128,8 @@ async fn receive_accept(
     .single_xsd_any_uri()
     .context(location_info!())?;
 
-  let community = get_or_fetch_and_upsert_community(&community_uri, context).await?;
+  let community =
+    get_or_fetch_and_upsert_community(&community_uri, context, request_counter).await?;
 
   // Now you need to add this to the community follower
   let community_follower_form = CommunityFollowerForm {
@@ -141,6 +150,7 @@ async fn receive_create_private_message(
   context: &LemmyContext,
   activity: AnyBase,
   actor: &dyn ActorType,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let create = Create::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&create, actor.actor_id()?, true)?;
@@ -155,7 +165,7 @@ async fn receive_create_private_message(
   .context(location_info!())?;
 
   let private_message =
-    PrivateMessageForm::from_apub(&note, context, Some(actor.actor_id()?)).await?;
+    PrivateMessageForm::from_apub(&note, context, Some(actor.actor_id()?), request_counter).await?;
 
   let inserted_private_message = blocking(&context.pool(), move |conn| {
     PrivateMessage::create(conn, &private_message)
@@ -185,6 +195,7 @@ async fn receive_update_private_message(
   context: &LemmyContext,
   activity: AnyBase,
   actor: &dyn ActorType,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let update = Update::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&update, actor.actor_id()?, true)?;
@@ -197,7 +208,7 @@ async fn receive_update_private_message(
   let note = Note::from_any_base(object)?.context(location_info!())?;
 
   let private_message_form =
-    PrivateMessageForm::from_apub(&note, context, Some(actor.actor_id()?)).await?;
+    PrivateMessageForm::from_apub(&note, context, Some(actor.actor_id()?), request_counter).await?;
 
   let private_message_ap_id = private_message_form
     .ap_id

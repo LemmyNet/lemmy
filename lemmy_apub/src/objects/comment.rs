@@ -89,6 +89,7 @@ impl FromApub for CommentForm {
     note: &Note,
     context: &LemmyContext,
     expected_domain: Option<Url>,
+    request_counter: &mut i32,
   ) -> Result<CommentForm, LemmyError> {
     let creator_actor_id = &note
       .attributed_to()
@@ -96,7 +97,7 @@ impl FromApub for CommentForm {
       .as_single_xsd_any_uri()
       .context(location_info!())?;
 
-    let creator = get_or_fetch_and_upsert_user(creator_actor_id, context).await?;
+    let creator = get_or_fetch_and_upsert_user(creator_actor_id, context, request_counter).await?;
 
     let mut in_reply_tos = note
       .in_reply_to()
@@ -109,7 +110,7 @@ impl FromApub for CommentForm {
     let post_ap_id = in_reply_tos.next().context(location_info!())??;
 
     // This post, or the parent comment might not yet exist on this server yet, fetch them.
-    let post = get_or_fetch_and_insert_post(&post_ap_id, context).await?;
+    let post = get_or_fetch_and_insert_post(&post_ap_id, context, request_counter).await?;
 
     // The 2nd item, if it exists, is the parent comment apub_id
     // For deeply nested comments, FromApub automatically gets called recursively
@@ -117,7 +118,7 @@ impl FromApub for CommentForm {
       Some(parent_comment_uri) => {
         let parent_comment_ap_id = &parent_comment_uri?;
         let parent_comment =
-          get_or_fetch_and_insert_comment(&parent_comment_ap_id, context).await?;
+          get_or_fetch_and_insert_comment(&parent_comment_ap_id, context, request_counter).await?;
 
         Some(parent_comment.id)
       }

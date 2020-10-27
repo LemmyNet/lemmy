@@ -111,6 +111,7 @@ impl FromApub for CommunityForm {
     group: &GroupExt,
     context: &LemmyContext,
     expected_domain: Option<Url>,
+    request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
     let creator_and_moderator_uris = group.inner.attributed_to().context(location_info!())?;
     let creator_uri = creator_and_moderator_uris
@@ -122,7 +123,7 @@ impl FromApub for CommunityForm {
       .as_xsd_any_uri()
       .context(location_info!())?;
 
-    let creator = get_or_fetch_and_upsert_user(creator_uri, context).await?;
+    let creator = get_or_fetch_and_upsert_user(creator_uri, context, request_counter).await?;
     let name = group
       .inner
       .preferred_username()

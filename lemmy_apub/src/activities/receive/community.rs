@@ -10,6 +10,7 @@ pub(crate) async fn receive_delete_community(
   context: &LemmyContext,
   delete: Delete,
   community: Community,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let deleted_community = blocking(context.pool(), move |conn| {
     Community::update_deleted(conn, community.id, true)
@@ -32,8 +33,8 @@ pub(crate) async fn receive_delete_community(
     websocket_id: None,
   });
 
-  let user = get_actor_as_user(&delete, context).await?;
-  announce_if_community_is_local(delete, &user, context).await?;
+  let user = get_actor_as_user(&delete, context, request_counter).await?;
+  announce_if_community_is_local(delete, &user, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
@@ -63,6 +64,7 @@ pub(crate) async fn receive_remove_community(
     websocket_id: None,
   });
 
+  // TODO: this should probably also call announce_if_community_is_local()
   Ok(HttpResponse::Ok().finish())
 }
 
@@ -70,6 +72,7 @@ pub(crate) async fn receive_undo_delete_community(
   context: &LemmyContext,
   undo: Undo,
   community: Community,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let deleted_community = blocking(context.pool(), move |conn| {
     Community::update_deleted(conn, community.id, false)
@@ -92,8 +95,8 @@ pub(crate) async fn receive_undo_delete_community(
     websocket_id: None,
   });
 
-  let user = get_actor_as_user(&undo, context).await?;
-  announce_if_community_is_local(undo, &user, context).await?;
+  let user = get_actor_as_user(&undo, context, request_counter).await?;
+  announce_if_community_is_local(undo, &user, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
@@ -101,6 +104,7 @@ pub(crate) async fn receive_undo_remove_community(
   context: &LemmyContext,
   undo: Undo,
   community: Community,
+  request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
   let removed_community = blocking(context.pool(), move |conn| {
     Community::update_removed(conn, community.id, false)
@@ -124,7 +128,7 @@ pub(crate) async fn receive_undo_remove_community(
     websocket_id: None,
   });
 
-  let mod_ = get_actor_as_user(&undo, context).await?;
-  announce_if_community_is_local(undo, &mod_, context).await?;
+  let mod_ = get_actor_as_user(&undo, context, request_counter).await?;
+  announce_if_community_is_local(undo, &mod_, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }

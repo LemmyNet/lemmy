@@ -262,6 +262,12 @@
     + [All](#all)
     + [Community](#community-1)
     + [User](#user)
+  * [Images](#images)
+    + [Get](#get)
+    + [Create](#create)
+      - [Request](#request-58)
+      - [Response](#response-58)
+    + [Delete](#delete)
 
 <!-- tocstop -->
 
@@ -2031,4 +2037,40 @@ Only the recipient can do this.
 #### User
 
 `/feeds/u/user-name.xml?sort=Hot`
+
+### Images
+
+Lemmy forwards image requests to a locally running Pictrs.
+
+#### Get
+
+*Format and thumbnail are optional.*
+
+`GET /pictrs/image/{filename}?format={webp, jpg, ...}&thumbnail={96}`
+
+#### Create
+
+##### Request
+
+Uploaded content must be valid multipart/form-data with an image array located within the images[] key.
+
+`POST /pictrs/image` 
+
+##### Response
+
+```
+{
+  "files": [
+    {
+      "delete_token": "{token}",
+      "file": "{file}.jpg"
+    }
+  ],
+  "msg": "ok"
+}
+```
+
+#### Delete
+
+`GET /pictrs/image/delete/{delete_token}/{file}`
 

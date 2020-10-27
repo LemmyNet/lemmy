@@ -341,7 +341,7 @@ async fn collect_non_local_mentions_and_addresses(
       debug!("mention actor_id: {}", actor_id);
       addressed_ccs.push(actor_id.to_owned().to_string().parse()?);
 
-      let mention_user = get_or_fetch_and_upsert_user(&actor_id, context).await?;
+      let mention_user = get_or_fetch_and_upsert_user(&actor_id, context, &mut 0).await?;
       let shared_inbox = mention_user.get_shared_inbox_url()?;
 
       mention_inboxes.push(shared_inbox);
