@@ -25,7 +25,7 @@ use activitystreams::{
 };
 use anyhow::anyhow;
 use itertools::Itertools;
-use lemmy_db::{comment::Comment, community::Community, post::Post, user::User_, Crud};
+use lemmy_db::{comment::Comment, community::Community, post::Post, user::User_, Crud, DbPool};
 use lemmy_structs::{blocking, WebFingerResponse};
 use lemmy_utils::{
   request::{retry, RecvError},
@@ -55,10 +55,10 @@ impl ApubObjectType for Comment {
     })
     .await??;
 
-    let mut maa =
-      collect_non_local_mentions_and_addresses(&self.content, &community, context).await?;
+    let mut maa = collect_non_local_mentions_and_addresses(&self.content, context).await?;
     let mut ccs = vec![community.actor_id()?];
     ccs.append(&mut maa.addressed_ccs);
+    ccs.push(get_comment_parent_creator_id(context.pool(), &self).await?);
 
     let mut create = Create::new(creator.actor_id.to_owned(), note.into_any_base()?);
     create
@@ -88,10 +88,10 @@ impl ApubObjectType for Comment {
     })
     .await??;
 
-    let mut maa =
-      collect_non_local_mentions_and_addresses(&self.content, &community, context).await?;
+    let mut maa = collect_non_local_mentions_and_addresses(&self.content, context).await?;
     let mut ccs = vec![community.actor_id()?];
     ccs.append(&mut maa.addressed_ccs);
+    ccs.push(get_comment_parent_creator_id(context.pool(), &self).await?);
 
     let mut update = Update::new(creator.actor_id.to_owned(), note.into_any_base()?);
     update
@@ -319,10 +319,9 @@ impl MentionsAndAddresses {
 /// Addresses are the users / addresses that go in the cc field.
 async fn collect_non_local_mentions_and_addresses(
   content: &str,
-  community: &Community,
   context: &LemmyContext,
 ) -> Result<MentionsAndAddresses, LemmyError> {
-  let mut addressed_ccs = vec![community.get_followers_url()?];
+  let mut addressed_ccs = vec![];
 
   // Add the mention tag
   let mut tags = Vec::new();
@@ -360,6 +359,27 @@ async fn collect_non_local_mentions_and_addresses(
   })
 }
 
+/// Returns the apub ID of the user this comment is responding to. Meaning, in case this is a
+/// top-level comment, the creator of the post, otherwise the creator of the parent comment.
+async fn get_comment_parent_creator_id(
+  pool: &DbPool,
+  comment: &Comment,
+) -> Result<Url, LemmyError> {
+  let parent_creator_id = if let Some(parent_comment_id) = comment.parent_id {
+    let parent_comment =
+      blocking(pool, move |conn| Comment::read(conn, parent_comment_id)).await??;
+    parent_comment.creator_id
+  } else {
+    let parent_post_id = comment.post_id;
+    let parent_post = blocking(pool, move |conn| Post::read(conn, parent_post_id)).await??;
+    parent_post.creator_id
+  };
+  let parent_creator = blocking(pool, move |conn| User_::read(conn, parent_creator_id)).await??;
+  Ok(parent_creator.actor_id()?)
+}
+
+/// Turns a user id like `@name@example.com` into an apub ID, like `https://example.com/user/name`,
+/// using webfinger.
 async fn fetch_webfinger_url(mention: &MentionData, client: &Client) -> Result<Url, LemmyError> {
   let fetch_url = format!(
     "{}://{}/.well-known/webfinger?resource=acct:{}@{}",

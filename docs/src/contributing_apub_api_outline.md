@@ -396,7 +396,7 @@ Sent to: Community
 | Field Name | Mandatory | Description |
 |---|---|---|
 | `tag` | no | List of users which are mentioned in the comment (like `@user@example.com`) |
-| `cc` | yes | Community where the post is being made, as well as any mentioned users |
+| `cc` | yes | Community where the post is being made, the user being replied to (creator of the parent post/comment), as well as any mentioned users |
 | `object` | yes | The comment being created |
 
 ### Like Post or Comment
