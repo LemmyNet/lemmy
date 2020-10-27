@@ -1,4 +1,4 @@
-use crate::activities::receive::{announce_if_community_is_local, get_actor_as_user};
+use crate::activities::receive::announce_if_community_is_local;
 use activitystreams::activity::{Delete, Remove, Undo};
 use actix_web::HttpResponse;
 use lemmy_db::{community::Community, community_view::CommunityView};
@@ -33,8 +33,7 @@ pub(crate) async fn receive_delete_community(
     websocket_id: None,
   });
 
-  let user = get_actor_as_user(&delete, context, request_counter).await?;
-  announce_if_community_is_local(delete, &user, context, request_counter).await?;
+  announce_if_community_is_local(delete, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
@@ -95,8 +94,7 @@ pub(crate) async fn receive_undo_delete_community(
     websocket_id: None,
   });
 
-  let user = get_actor_as_user(&undo, context, request_counter).await?;
-  announce_if_community_is_local(undo, &user, context, request_counter).await?;
+  announce_if_community_is_local(undo, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
@@ -128,7 +126,6 @@ pub(crate) async fn receive_undo_remove_community(
     websocket_id: None,
   });
 
-  let mod_ = get_actor_as_user(&undo, context, request_counter).await?;
-  announce_if_community_is_local(undo, &mod_, context, request_counter).await?;
+  announce_if_community_is_local(undo, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }

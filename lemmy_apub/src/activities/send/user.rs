@@ -121,7 +121,6 @@ impl ActorType for User_ {
   async fn send_announce(
     &self,
     _activity: AnyBase,
-    _sender: &User_,
     _context: &LemmyContext,
   ) -> Result<(), LemmyError> {
     unimplemented!()

@@ -42,6 +42,7 @@ use crate::{
   check_is_apub_id_valid,
   extensions::signatures::verify_signature,
   fetcher::get_or_fetch_and_upsert_actor,
+  inbox::{get_activity_id, is_activity_already_known},
   insert_activity,
   ActorType,
 };
@@ -104,6 +105,11 @@ pub async fn shared_inbox(
   let actor = get_or_fetch_and_upsert_actor(&actor_id, &context, request_counter).await?;
   verify_signature(&request, actor.as_ref())?;
 
+  let activity_id = get_activity_id(&activity, &actor_id)?;
+  if is_activity_already_known(context.pool(), &activity_id).await? {
+    return Ok(HttpResponse::Ok().finish());
+  }
+
   let any_base = activity.clone().into_any_base()?;
   let kind = activity.kind().context(location_info!())?;
   let res = match kind {
@@ -119,7 +125,14 @@ pub async fn shared_inbox(
     ValidTypes::Undo => receive_undo(&context, any_base, actor_id, request_counter).await,
   };
 
-  insert_activity(actor.user_id(), activity.clone(), false, context.pool()).await?;
+  insert_activity(
+    &activity_id,
+    actor.user_id(),
+    activity.clone(),
+    false,
+    context.pool(),
+  )
+  .await?;
   res
 }
 
@@ -142,6 +155,9 @@ async fn receive_announce(
 
   let inner_id = object.id().context(location_info!())?.to_owned();
   check_is_apub_id_valid(&inner_id)?;
+  if is_activity_already_known(context.pool(), &inner_id).await? {
+    return Ok(HttpResponse::Ok().finish());
+  }
 
   match kind {
     Some("Create") => receive_create(context, object, inner_id, request_counter).await,

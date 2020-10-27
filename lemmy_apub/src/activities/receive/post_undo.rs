@@ -52,7 +52,7 @@ pub(crate) async fn receive_undo_like_post(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(undo, &user, context, request_counter).await?;
+  announce_if_community_is_local(undo, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
@@ -98,7 +98,7 @@ pub(crate) async fn receive_undo_dislike_post(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(undo, &user, context, request_counter).await?;
+  announce_if_community_is_local(undo, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
@@ -127,8 +127,7 @@ pub(crate) async fn receive_undo_delete_post(
     websocket_id: None,
   });
 
-  let user = get_actor_as_user(&undo, context, request_counter).await?;
-  announce_if_community_is_local(undo, &user, context, request_counter).await?;
+  announce_if_community_is_local(undo, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
@@ -158,7 +157,6 @@ pub(crate) async fn receive_undo_remove_post(
     websocket_id: None,
   });
 
-  let mod_ = get_actor_as_user(&undo, context, request_counter).await?;
-  announce_if_community_is_local(undo, &mod_, context, request_counter).await?;
+  announce_if_community_is_local(undo, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
