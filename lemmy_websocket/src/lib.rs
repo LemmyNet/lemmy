@@ -148,4 +148,5 @@ pub enum UserOperation {
   SaveSiteConfig,
   PostJoin,
   CommunityJoin,
+  ModJoin,
 }

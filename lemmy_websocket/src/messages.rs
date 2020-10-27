@@ -65,6 +65,15 @@ pub struct SendCommunityRoomMessage<Response> {
 
 #[derive(Message)]
 #[rtype(result = "()")]
+pub struct SendModRoomMessage<Response> {
+  pub op: UserOperation,
+  pub response: Response,
+  pub community_id: CommunityId,
+  pub websocket_id: Option<ConnectionId>,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
 pub struct SendPost {
   pub op: UserOperation,
   pub post: PostResponse,
@@ -89,6 +98,13 @@ pub struct JoinUserRoom {
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct JoinCommunityRoom {
+  pub community_id: CommunityId,
+  pub id: ConnectionId,
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct JoinModRoom {
   pub community_id: CommunityId,
   pub id: ConnectionId,
 }

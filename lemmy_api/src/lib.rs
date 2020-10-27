@@ -195,6 +195,9 @@ pub async fn match_websocket_operation(
     UserOperation::CommunityJoin => {
       do_websocket_operation::<CommunityJoin>(context, id, op, data).await
     }
+    UserOperation::ModJoin => {
+      do_websocket_operation::<ModJoin>(context, id, op, data).await
+    }
     UserOperation::SaveUserSettings => {
       do_websocket_operation::<SaveUserSettings>(context, id, op, data).await
     }

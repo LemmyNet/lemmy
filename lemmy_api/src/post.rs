@@ -35,7 +35,13 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::{
-  messages::{GetPostUsersOnline, JoinPostRoom, SendPost, SendUserRoomMessage},
+  messages::{
+    GetPostUsersOnline,
+    JoinPostRoom,
+    SendModRoomMessage,
+    SendPost,
+    SendUserRoomMessage
+  },
   LemmyContext,
   UserOperation,
 };
@@ -752,7 +758,7 @@ impl Perform for CreatePostReport {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
+    websocket_id: Option<ConnectionId>,
   ) -> Result<CreatePostReportResponse, LemmyError> {
     let data: &CreatePostReport = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
@@ -783,24 +789,28 @@ impl Perform for CreatePostReport {
       reason: data.reason.to_owned(),
     };
 
-    let _report = match blocking(context.pool(), move |conn| {
+    let report = match blocking(context.pool(), move |conn| {
       PostReport::report(conn, &report_form)
     }).await? {
       Ok(report) => report,
       Err(_e) => return Err(APIError::err("couldnt_create_report").into())
     };
 
-    // to build on this, the user should get a success response, however
-    // mods should get a different response with more details
     let res = CreatePostReportResponse { success: true };
 
-    // TODO this needs to use a SendModRoomMessage
-    // context.chat_server().do_send(SendUserRoomMessage {
-    //   op: UserOperation::CreateReport,
-    //   response: res.clone(),
-    //   recipient_id: user.id,
-    //   websocket_id,
-    // });
+    context.chat_server().do_send(SendUserRoomMessage {
+      op: UserOperation::CreatePostReport,
+      response: res.clone(),
+      recipient_id: user.id,
+      websocket_id,
+    });
+
+    context.chat_server().do_send(SendModRoomMessage {
+      op: UserOperation::CreatePostReport,
+      response: report,
+      community_id: post.community_id,
+      websocket_id,
+    });
 
     Ok(res)
   }
@@ -813,7 +823,7 @@ impl Perform for ResolvePostReport {
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
-    _websocket_id: Option<ConnectionId>,
+    websocket_id: Option<ConnectionId>,
   ) -> Result<ResolvePostReportResponse, LemmyError> {
     let data: &ResolvePostReport = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
@@ -844,13 +854,12 @@ impl Perform for ResolvePostReport {
       return Err(APIError::err("couldnt_resolve_report").into())
     };
 
-    // TODO this needs to use a SendModRoomMessage
-    // context.chat_server().do_send(SendUserRoomMessage {
-    //   op: UserOperation::ResolvePostReport,
-    //   response: res.clone(),
-    //   recipient_id: user.id,
-    //   websocket_id,
-    // });
+    context.chat_server().do_send(SendModRoomMessage {
+      op: UserOperation::ResolvePostReport,
+      response: res.clone(),
+      community_id: report.community_id,
+      websocket_id,
+    });
 
     Ok(res)
   }

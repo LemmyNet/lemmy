@@ -23,7 +23,7 @@ table! {
     }
 }
 
-#[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
+#[derive(Identifiable, Queryable, Associations, PartialEq, Debug, Serialize)]
 #[belongs_to(Comment)]
 #[table_name = "comment_report"]
 pub struct CommentReport {

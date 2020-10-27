@@ -57,7 +57,8 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("/transfer", web::post().to(route_post::<TransferCommunity>))
           .route("/ban_user", web::post().to(route_post::<BanFromCommunity>))
           .route("/mod", web::post().to(route_post::<AddModToCommunity>))
-          .route("/join", web::post().to(route_post::<CommunityJoin>)),
+          .route("/join", web::post().to(route_post::<CommunityJoin>))
+          .route("/mod/join", web::post().to(route_post::<ModJoin>)),
       )
       // Post
       .service(

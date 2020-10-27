@@ -41,6 +41,7 @@ use lemmy_websocket::{
   UserOperation,
 };
 use std::str::FromStr;
+use lemmy_websocket::messages::JoinModRoom;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for GetCommunity {
@@ -881,5 +882,28 @@ impl Perform for CommunityJoin {
     }
 
     Ok(CommunityJoinResponse { joined: true })
+  }
+}
+
+// is this the right place for this?
+#[async_trait::async_trait(?Send)]
+impl Perform for ModJoin {
+  type Response = ModJoinResponse;
+
+  async fn perform(
+    &self,
+    context: &Data<LemmyContext>,
+    websocket_id: Option<ConnectionId>,
+  ) -> Result<ModJoinResponse, LemmyError> {
+    let data: &ModJoin = &self;
+
+    if let Some(ws_id) = websocket_id {
+      context.chat_server().do_send(JoinModRoom {
+        community_id: data.community_id,
+        id: ws_id,
+      });
+    }
+
+    Ok(ModJoinResponse { joined: true })
   }
 }
