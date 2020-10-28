@@ -1,17 +1,19 @@
-use crate::activities::receive::announce_if_community_is_local;
-use activitystreams::activity::{Delete, Remove, Undo};
-use actix_web::HttpResponse;
+use crate::{activities::receive::verify_activity_domains_valid, inbox::is_addressed_to_public};
+use activitystreams::{
+  activity::{ActorAndObjectRefExt, Delete, Remove, Undo},
+  base::{AnyBase, ExtendsExt},
+};
+use anyhow::Context;
 use lemmy_db::{community::Community, community_view::CommunityView};
 use lemmy_structs::{blocking, community::CommunityResponse};
-use lemmy_utils::LemmyError;
+use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::{messages::SendCommunityRoomMessage, LemmyContext, UserOperation};
+use url::Url;
 
 pub(crate) async fn receive_delete_community(
   context: &LemmyContext,
-  delete: Delete,
   community: Community,
-  request_counter: &mut i32,
-) -> Result<HttpResponse, LemmyError> {
+) -> Result<(), LemmyError> {
   let deleted_community = blocking(context.pool(), move |conn| {
     Community::update_deleted(conn, community.id, true)
   })
@@ -33,15 +35,28 @@ pub(crate) async fn receive_delete_community(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(delete, context, request_counter).await?;
-  Ok(HttpResponse::Ok().finish())
+  Ok(())
 }
 
 pub(crate) async fn receive_remove_community(
   context: &LemmyContext,
-  _remove: Remove,
-  community: Community,
-) -> Result<HttpResponse, LemmyError> {
+  activity: AnyBase,
+  expected_domain: &Url,
+) -> Result<(), LemmyError> {
+  let remove = Remove::from_any_base(activity)?.context(location_info!())?;
+  verify_activity_domains_valid(&remove, expected_domain, true)?;
+  is_addressed_to_public(&remove)?;
+
+  let community_uri = remove
+    .object()
+    .to_owned()
+    .single_xsd_any_uri()
+    .context(location_info!())?;
+  let community = blocking(context.pool(), move |conn| {
+    Community::read_from_actor_id(conn, community_uri.as_str())
+  })
+  .await??;
+
   let removed_community = blocking(context.pool(), move |conn| {
     Community::update_removed(conn, community.id, true)
   })
@@ -63,16 +78,21 @@ pub(crate) async fn receive_remove_community(
     websocket_id: None,
   });
 
-  // TODO: this should probably also call announce_if_community_is_local()
-  Ok(HttpResponse::Ok().finish())
+  Ok(())
 }
 
 pub(crate) async fn receive_undo_delete_community(
   context: &LemmyContext,
   undo: Undo,
   community: Community,
-  request_counter: &mut i32,
-) -> Result<HttpResponse, LemmyError> {
+  expected_domain: &Url,
+) -> Result<(), LemmyError> {
+  is_addressed_to_public(&undo)?;
+  let inner = undo.object().to_owned().one().context(location_info!())?;
+  let delete = Delete::from_any_base(inner)?.context(location_info!())?;
+  verify_activity_domains_valid(&delete, expected_domain, true)?;
+  is_addressed_to_public(&delete)?;
+
   let deleted_community = blocking(context.pool(), move |conn| {
     Community::update_deleted(conn, community.id, false)
   })
@@ -94,16 +114,31 @@ pub(crate) async fn receive_undo_delete_community(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(undo, context, request_counter).await?;
-  Ok(HttpResponse::Ok().finish())
+  Ok(())
 }
 
 pub(crate) async fn receive_undo_remove_community(
   context: &LemmyContext,
   undo: Undo,
-  community: Community,
-  request_counter: &mut i32,
-) -> Result<HttpResponse, LemmyError> {
+  expected_domain: &Url,
+) -> Result<(), LemmyError> {
+  is_addressed_to_public(&undo)?;
+
+  let inner = undo.object().to_owned().one().context(location_info!())?;
+  let remove = Remove::from_any_base(inner)?.context(location_info!())?;
+  verify_activity_domains_valid(&remove, &expected_domain, true)?;
+  is_addressed_to_public(&remove)?;
+
+  let community_uri = remove
+    .object()
+    .to_owned()
+    .single_xsd_any_uri()
+    .context(location_info!())?;
+  let community = blocking(context.pool(), move |conn| {
+    Community::read_from_actor_id(conn, community_uri.as_str())
+  })
+  .await??;
+
   let removed_community = blocking(context.pool(), move |conn| {
     Community::update_removed(conn, community.id, false)
   })
@@ -126,6 +161,5 @@ pub(crate) async fn receive_undo_remove_community(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(undo, context, request_counter).await?;
-  Ok(HttpResponse::Ok().finish())
+  Ok(())
 }

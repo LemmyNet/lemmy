@@ -1,14 +1,25 @@
 use crate::{
   activities::receive::verify_activity_domains_valid,
-  check_is_apub_id_valid,
-  extensions::signatures::verify_signature,
-  fetcher::get_or_fetch_and_upsert_user,
-  inbox::{get_activity_id, is_activity_already_known},
+  inbox::{
+    get_activity_id,
+    get_activity_to_and_cc,
+    inbox_verify_http_signature,
+    is_activity_already_known,
+    is_addressed_to_public,
+    receive_for_community::{
+      receive_create_for_community,
+      receive_delete_for_community,
+      receive_dislike_for_community,
+      receive_like_for_community,
+      receive_undo_for_community,
+      receive_update_for_community,
+    },
+  },
   insert_activity,
   ActorType,
 };
 use activitystreams::{
-  activity::{ActorAndObject, Follow, Undo},
+  activity::{kind::FollowType, ActorAndObject, Follow, Undo},
   base::AnyBase,
   prelude::*,
 };
@@ -25,89 +36,153 @@ use lemmy_websocket::LemmyContext;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
+use url::Url;
 
 /// Allowed activities for community inbox.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
-pub enum ValidTypes {
-  Follow,
-  Undo,
+pub enum CommunityValidTypes {
+  Follow,  // follow request from a user
+  Undo,    // unfollow from a user
+  Create,  // create post or comment
+  Update,  // update post or comment
+  Like,    // upvote post or comment
+  Dislike, // downvote post or comment
+  Delete,  // post or comment deleted by creator
+  Remove,  // post or comment removed by mod or admin
 }
 
-pub type AcceptedActivities = ActorAndObject<ValidTypes>;
+pub type CommunityAcceptedActivities = ActorAndObject<CommunityValidTypes>;
 
 /// Handler for all incoming receive to community inboxes.
 pub async fn community_inbox(
   request: HttpRequest,
-  input: web::Json<AcceptedActivities>,
+  input: web::Json<CommunityAcceptedActivities>,
   path: web::Path<String>,
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, LemmyError> {
   let activity = input.into_inner();
+  // First of all check the http signature
+  let request_counter = &mut 0;
+  let actor = inbox_verify_http_signature(&activity, &context, request, request_counter).await?;
 
+  // Do nothing if we received the same activity before
+  let activity_id = get_activity_id(&activity, &actor.actor_id()?)?;
+  if is_activity_already_known(context.pool(), &activity_id).await? {
+    return Ok(HttpResponse::Ok().finish());
+  }
+
+  // Check if the activity is actually meant for us
   let path = path.into_inner();
   let community = blocking(&context.pool(), move |conn| {
     Community::read_from_name(&conn, &path)
   })
   .await??;
-
-  let to = activity
-    .to()
-    .context(location_info!())?
-    .to_owned()
-    .single_xsd_any_uri();
-  if Some(community.actor_id()?) != to {
+  let to_and_cc = get_activity_to_and_cc(&activity)?;
+  if !to_and_cc.contains(&&community.actor_id()?) {
     return Err(anyhow!("Activity delivered to wrong community").into());
   }
 
+  insert_activity(&activity_id, activity.clone(), false, true, context.pool()).await?;
+
   info!(
-    "Community {} received activity {:?}",
-    &community.name, &activity
-  );
-  let user_uri = activity
-    .actor()?
-    .as_single_xsd_any_uri()
-    .context(location_info!())?;
-  info!(
-    "Community {} inbox received activity {:?} from {}",
+    "Community {} received activity {:?} from {}",
     community.name,
     &activity.id_unchecked(),
-    &user_uri
+    &actor.actor_id_str()
   );
-  check_is_apub_id_valid(user_uri)?;
 
-  let request_counter = &mut 0;
-  let user = get_or_fetch_and_upsert_user(&user_uri, &context, request_counter).await?;
+  community_receive_message(
+    activity.clone(),
+    community.clone(),
+    actor.as_ref(),
+    &context,
+    request_counter,
+  )
+  .await
+}
 
-  verify_signature(&request, &user)?;
-
-  let activity_id = get_activity_id(&activity, user_uri)?;
-  if is_activity_already_known(context.pool(), &activity_id).await? {
-    return Ok(HttpResponse::Ok().finish());
-  }
+/// Receives Follow, Undo/Follow, post actions, comment actions (including votes)
+pub(crate) async fn community_receive_message(
+  activity: CommunityAcceptedActivities,
+  to_community: Community,
+  actor: &dyn ActorType,
+  context: &LemmyContext,
+  request_counter: &mut i32,
+) -> Result<HttpResponse, LemmyError> {
+  // TODO: check if the sending user is banned by the community
 
   let any_base = activity.clone().into_any_base()?;
-  let kind = activity.kind().context(location_info!())?;
-  let res = match kind {
-    ValidTypes::Follow => handle_follow(any_base, user, community, &context).await,
-    ValidTypes::Undo => handle_undo_follow(any_base, user, community, &context).await,
+  let actor_url = actor.actor_id()?;
+  let activity_kind = activity.kind().context(location_info!())?;
+  let do_announce = match activity_kind {
+    CommunityValidTypes::Follow => {
+      handle_follow(any_base.clone(), actor_url, &to_community, &context).await?;
+      false
+    }
+    CommunityValidTypes::Undo => {
+      handle_undo(
+        context,
+        activity.clone(),
+        actor_url,
+        &to_community,
+        request_counter,
+      )
+      .await?
+    }
+    CommunityValidTypes::Create => {
+      receive_create_for_community(context, any_base.clone(), &actor_url, request_counter).await?;
+      true
+    }
+    CommunityValidTypes::Update => {
+      receive_update_for_community(context, any_base.clone(), &actor_url, request_counter).await?;
+      true
+    }
+    CommunityValidTypes::Like => {
+      receive_like_for_community(context, any_base.clone(), &actor_url, request_counter).await?;
+      true
+    }
+    CommunityValidTypes::Dislike => {
+      receive_dislike_for_community(context, any_base.clone(), &actor_url, request_counter).await?;
+      true
+    }
+    CommunityValidTypes::Delete => {
+      receive_delete_for_community(context, any_base.clone(), &actor_url).await?;
+      true
+    }
+    CommunityValidTypes::Remove => {
+      // TODO: we dont support remote mods, so this is ignored for now
+      //receive_remove_for_community(context, any_base.clone(), &user_url).await?
+      false
+    }
   };
 
-  insert_activity(&activity_id, activity.clone(), false, true, context.pool()).await?;
-  res
+  if do_announce {
+    // Check again that the activity is public, just to be sure
+    is_addressed_to_public(&activity)?;
+    to_community
+      .send_announce(activity.into_any_base()?, context)
+      .await?;
+  }
+
+  return Ok(HttpResponse::Ok().finish());
 }
 
 /// Handle a follow request from a remote user, adding the user as follower and returning an
 /// Accept activity.
 async fn handle_follow(
   activity: AnyBase,
-  user: User_,
-  community: Community,
+  user_url: Url,
+  community: &Community,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
   let follow = Follow::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&follow, user.actor_id()?, false)?;
+  verify_activity_domains_valid(&follow, &user_url, false)?;
 
+  let user = blocking(&context.pool(), move |conn| {
+    User_::read_from_actor_id(&conn, user_url.as_str())
+  })
+  .await??;
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,
     user_id: user.id,
@@ -124,20 +199,44 @@ async fn handle_follow(
   Ok(HttpResponse::Ok().finish())
 }
 
+async fn handle_undo(
+  context: &LemmyContext,
+  activity: CommunityAcceptedActivities,
+  actor_url: Url,
+  to_community: &Community,
+  request_counter: &mut i32,
+) -> Result<bool, LemmyError> {
+  let inner_kind = activity
+    .object()
+    .is_single_kind(&FollowType::Follow.to_string());
+  let any_base = activity.into_any_base()?;
+  if inner_kind {
+    handle_undo_follow(any_base, actor_url, to_community, &context).await?;
+    Ok(false)
+  } else {
+    receive_undo_for_community(context, any_base, &actor_url, request_counter).await?;
+    Ok(true)
+  }
+}
+
 /// Handle `Undo/Follow` from a user, removing the user from followers list.
 async fn handle_undo_follow(
   activity: AnyBase,
-  user: User_,
-  community: Community,
+  user_url: Url,
+  community: &Community,
   context: &LemmyContext,
-) -> Result<HttpResponse, LemmyError> {
+) -> Result<(), LemmyError> {
   let undo = Undo::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&undo, user.actor_id()?, true)?;
+  verify_activity_domains_valid(&undo, &user_url, true)?;
 
   let object = undo.object().to_owned().one().context(location_info!())?;
   let follow = Follow::from_any_base(object)?.context(location_info!())?;
-  verify_activity_domains_valid(&follow, user.actor_id()?, false)?;
+  verify_activity_domains_valid(&follow, &user_url, false)?;
 
+  let user = blocking(&context.pool(), move |conn| {
+    User_::read_from_actor_id(&conn, user_url.as_str())
+  })
+  .await??;
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,
     user_id: user.id,
@@ -149,5 +248,5 @@ async fn handle_undo_follow(
   })
   .await?;
 
-  Ok(HttpResponse::Ok().finish())
+  Ok(())
 }
