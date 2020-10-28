@@ -2,19 +2,21 @@ ARG RUST_BUILDER_IMAGE=ekidd/rust-musl-builder:stable
 
 FROM $RUST_BUILDER_IMAGE as planner
 WORKDIR /app
-RUN sudo chown -R rust:rust .
 # We only pay the installation cost once, 
 # it will be cached from the second build onwards
 RUN cargo install cargo-chef 
 COPY . ./
+RUN sudo chown -R rust:rust .
 RUN cargo chef prepare --recipe-path recipe.json
 
-FROM $RUST_BUILDER_IMAGE as cacher
-WORKDIR /app
 RUN sudo chown -R rust:rust .
+FROM $RUST_BUILDER_IMAGE as cacher
+ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-musl
+WORKDIR /app
 RUN cargo install cargo-chef
 COPY --from=planner /app/recipe.json ./recipe.json
-RUN cargo chef cook --release --recipe-path recipe.json
+RUN sudo chown -R rust:rust .
+RUN cargo chef cook --target $CARGO_BUILD_TARGET --release --recipe-path recipe.json
 
 FROM $RUST_BUILDER_IMAGE as builder
 
@@ -22,10 +24,10 @@ ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-musl
 ARG RUSTRELEASEDIR="release"
 
 WORKDIR /app
-RUN sudo chown -R rust:rust .
 COPY . ./
 # Copy over the cached dependencies
-COPY --from=cacher /app/target target
+COPY --from=cacher /app/target ./target
+RUN sudo chown -R rust:rust .
 RUN cargo build --release
 
 # reduce binary size
