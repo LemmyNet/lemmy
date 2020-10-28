@@ -27,11 +27,11 @@ pub fn send_email(
       email_config
         .smtp_from_address
         .parse()
-        .expect("from address isn't valid"),
+        .expect("email from address isn't valid"),
     )
     .to(Mailbox::new(
       Some(to_username.to_string()),
-      Address::from_str(to_email).expect("to address isn't valid"),
+      Address::from_str(to_email).expect("email to address isn't valid"),
     ))
     .subject(subject)
     .multipart(
@@ -40,7 +40,9 @@ pub fn send_email(
           .singlepart(
             SinglePart::eight_bit()
               .header(header::ContentType(
-                "text/plain; charset=utf8".parse().unwrap(),
+                "text/plain; charset=utf8"
+                  .parse()
+                  .expect("email could not parse header"),
               ))
               .body(html),
           )
@@ -48,14 +50,16 @@ pub fn send_email(
             MultiPart::related().singlepart(
               SinglePart::eight_bit()
                 .header(header::ContentType(
-                  "text/html; charset=utf8".parse().unwrap(),
+                  "text/html; charset=utf8"
+                    .parse()
+                    .expect("email could not parse header"),
                 ))
                 .body(html),
             ),
           ),
       ),
     )
-    .expect("email built correctly");
+    .expect("email built incorrectly");
 
   // don't worry about 'dangeous'. it's just that leaving it at the default configuration
   // is bad.
