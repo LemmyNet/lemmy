@@ -10,8 +10,7 @@ You will then have a running Lemmy instance.
 
 ## Configuration
 
-To configure your new Lemmy instance, see the
-[administration configuration documentation](administration_configuration.md).
+To configure your new Lemmy instance, see the [administration configuration documentation](administration_configuration.md).
 
 ## Manual Installation From Source
 
