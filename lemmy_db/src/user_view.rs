@@ -240,6 +240,11 @@ impl UserView {
       .load::<Self>(conn)
   }
 
+  pub fn get_user(conn: &PgConnection, user_id: i32) -> Result<Self, Error> {
+    use super::user_view::user_fast::dsl::*;
+    user_fast.find(user_id).first::<Self>(conn)
+  }
+
   pub fn get_user_secure(conn: &PgConnection, user_id: i32) -> Result<Self, Error> {
     use super::user_view::user_fast::dsl::*;
     use diesel::sql_types::{Nullable, Text};

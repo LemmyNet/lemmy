@@ -487,10 +487,19 @@ impl Perform for GetUserDetails {
       }
     };
 
-    let user_view = blocking(context.pool(), move |conn| {
-      UserView::get_user_secure(conn, user_details_id)
-    })
-    .await??;
+    let auth_user = user.clone();
+    let user_fun = move |conn: &'_ _| {
+      match auth_user {
+        Some(user) => if user_details_id == user.id {
+          UserView::get_user(conn, user.id)
+        } else {
+          UserView::get_user_secure(conn, user_details_id)
+        }
+        None => UserView::get_user_secure(conn, user_details_id)
+      }
+    };
+
+    let user_view = blocking(context.pool(), user_fun).await??;
 
     let page = data.page;
     let limit = data.limit;
