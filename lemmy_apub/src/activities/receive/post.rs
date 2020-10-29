@@ -51,7 +51,7 @@ pub(crate) async fn receive_create_post(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(create, &user, context, request_counter).await?;
+  announce_if_community_is_local(create, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
@@ -89,7 +89,7 @@ pub(crate) async fn receive_update_post(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(update, &user, context, request_counter).await?;
+  announce_if_community_is_local(update, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
@@ -134,7 +134,7 @@ pub(crate) async fn receive_like_post(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(like, &user, context, request_counter).await?;
+  announce_if_community_is_local(like, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
@@ -185,7 +185,7 @@ pub(crate) async fn receive_dislike_post(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(dislike, &user, context, request_counter).await?;
+  announce_if_community_is_local(dislike, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 
@@ -214,8 +214,7 @@ pub(crate) async fn receive_delete_post(
     websocket_id: None,
   });
 
-  let user = get_actor_as_user(&delete, context, request_counter).await?;
-  announce_if_community_is_local(delete, &user, context, request_counter).await?;
+  announce_if_community_is_local(delete, context, request_counter).await?;
   Ok(HttpResponse::Ok().finish())
 }
 

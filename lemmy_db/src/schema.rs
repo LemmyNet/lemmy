@@ -1,6 +1,7 @@
 table! {
     activity (id) {
         id -> Int4,
+        ap_id -> Text,
         user_id -> Int4,
         data -> Jsonb,
         local -> Bool,
