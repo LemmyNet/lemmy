@@ -74,6 +74,12 @@ parts:
     stage:
       - conf/nginx.conf
 
+  lemmy-conf:
+    plugin: dump
+    source: config
+    stage:
+      - defaults.hjson
+
   node:
     plugin: make
     source-type: tar

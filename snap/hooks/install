@@ -1,41 +1,12 @@
 #!/bin/sh
 
-cat << EOF > $SNAP_DATA/defaults.hjson
-{
-  database: {
-    user: "lemmy"
-    password: "password"
-    host: "localhost"
-    port: 5432
-    database: "lemmy"
-    pool_size: 5
-  }
-  hostname: "localhost"
-  bind: "0.0.0.0"
-  port: 8540
-  tls_enabled: true
-  jwt_secret: "$(< /dev/urandom tr -cd "A-Za-z0-9" | head -c 40)"
-  docs_dir: "$SNAP_DATA/documentation"
-  pictrs_url: "http://localhost:1235"
-  iframely_url: "http://localhost:8061"
-  rate_limit: {
-    message: 180
-    message_per_second: 60
-    post: 6
-    post_per_second: 600
-    register: 3
-    register_per_second: 3600
-    image: 6
-    image_per_second: 3600
-  }
-  federation: {
-    enabled: false
-    allowed_instances: ""
-    blocked_instances: ""
-  }
-  captcha: {
-    enabled: true
-    difficulty: medium
-  }
-}
-EOF
+TOKEN="$(< /dev/urandom tr -cd "A-Za-z0-9" | head -c 40)"
+sed \
+  -e "s/changeme/$TOKEN/g" \
+  -e "s|/app/documentation|$SNAP_DATA/documentation|g" \
+  -e 's|http://pictrs:8080|http://localhost:1235|g' \
+  -e 's|http://iframely|http://localhost:8061|g' \
+  -e 's/8536/8540/g' \
+  "$SNAP"/defaults.hjson \
+  > "$SNAP_DATA"/defaults.hjson
+
