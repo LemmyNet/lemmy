@@ -1,15 +1,17 @@
 use crate::settings::Settings;
 use lettre::{
-  smtp::{
-    authentication::{Credentials, Mechanism},
+  message::{header, Mailbox, MultiPart, SinglePart},
+  transport::smtp::{
+    authentication::Credentials,
+    client::{Tls, TlsParameters},
     extension::ClientId,
-    ConnectionReuseParameters,
   },
-  ClientSecurity,
-  SmtpClient,
+  Address,
+  Message,
+  SmtpTransport,
   Transport,
 };
-use lettre_email::Email;
+use std::str::FromStr;
 
 pub fn send_email(
   subject: &str,
@@ -18,35 +20,75 @@ pub fn send_email(
   html: &str,
 ) -> Result<(), String> {
   let email_config = Settings::get().email.ok_or("no_email_setup")?;
+  let domain = Settings::get().hostname;
 
-  let email = Email::builder()
-    .to((to_email, to_username))
-    .from(email_config.smtp_from_address.to_owned())
-    .subject(subject)
-    .html(html)
-    .build()
-    .unwrap();
-
-  let mailer = if email_config.use_tls {
-    SmtpClient::new_simple(&email_config.smtp_server).unwrap()
-  } else {
-    SmtpClient::new(&email_config.smtp_server, ClientSecurity::None).unwrap()
-  }
-  .hello_name(ClientId::Domain(Settings::get().hostname))
-  .smtp_utf8(true)
-  .authentication_mechanism(Mechanism::Plain)
-  .connection_reuse(ConnectionReuseParameters::ReuseUnlimited);
-  let mailer = if let (Some(login), Some(password)) =
-    (&email_config.smtp_login, &email_config.smtp_password)
-  {
-    mailer.credentials(Credentials::new(login.to_owned(), password.to_owned()))
-  } else {
-    mailer
+  let (smtp_server, smtp_port) = {
+    let email_and_port = email_config.smtp_server.split(':').collect::<Vec<&str>>();
+    (
+      email_and_port[0],
+      email_and_port[1]
+        .parse::<u16>()
+        .expect("email needs a port"),
+    )
   };
 
-  let mut transport = mailer.transport();
-  let result = transport.send(email.into());
-  transport.close();
+  let email = Message::builder()
+    .from(
+      email_config
+        .smtp_from_address
+        .parse()
+        .expect("email from address isn't valid"),
+    )
+    .to(Mailbox::new(
+      Some(to_username.to_string()),
+      Address::from_str(to_email).expect("email to address isn't valid"),
+    ))
+    .subject(subject)
+    .multipart(
+      MultiPart::mixed().multipart(
+        MultiPart::alternative()
+          .singlepart(
+            SinglePart::eight_bit()
+              .header(header::ContentType(
+                "text/plain; charset=utf8"
+                  .parse()
+                  .expect("email could not parse header"),
+              ))
+              .body(html),
+          )
+          .multipart(
+            MultiPart::related().singlepart(
+              SinglePart::eight_bit()
+                .header(header::ContentType(
+                  "text/html; charset=utf8"
+                    .parse()
+                    .expect("email could not parse header"),
+                ))
+                .body(html),
+            ),
+          ),
+      ),
+    )
+    .expect("email built incorrectly");
+
+  // don't worry about 'dangeous'. it's just that leaving it at the default configuration
+  // is bad.
+  let mut builder = SmtpTransport::builder_dangerous(smtp_server).port(smtp_port);
+
+  // Set the TLS
+  if email_config.use_tls {
+    let tls_config = TlsParameters::new(smtp_server.to_string()).expect("the TLS backend is happy");
+    builder = builder.tls(Tls::Wrapper(tls_config));
+  }
+
+  // Set the creds if they exist
+  if let (Some(username), Some(password)) = (email_config.smtp_login, email_config.smtp_password) {
+    builder = builder.credentials(Credentials::new(username, password));
+  }
+
+  let mailer = builder.hello_name(ClientId::Domain(domain)).build();
+
+  let result = mailer.send(&email);
 
   match result {
     Ok(_) => Ok(()),

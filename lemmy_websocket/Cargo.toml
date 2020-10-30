@@ -22,7 +22,7 @@ actix = "0.10"
 anyhow = "1.0"
 diesel = "1.4"
 background-jobs = " 0.8"
-tokio = "0.2"
+tokio = "0.3"
 strum = "0.19"
 strum_macros = "0.19"
 chrono = { version = "0.4", features = ["serde"] }
