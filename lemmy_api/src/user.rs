@@ -487,11 +487,14 @@ impl Perform for GetUserDetails {
       }
     };
 
-    let auth_user = user.clone();
+    let user_id = user.map(|u| u.id);
     let user_fun = move |conn: &'_ _| {
-      match auth_user {
-        Some(user) => if user_details_id == user.id {
-          UserView::get_user(conn, user.id)
+      match user_id {
+        // if there's a logged in user and it's the same id as the user whose details are being
+        // requested we need to use get_user_dangerous so it returns their email or other sensitive
+        // data hidden when viewing users other than yourself
+        Some(auth_user_id) => if user_details_id == auth_user_id {
+          UserView::get_user_dangerous(conn, auth_user_id)
         } else {
           UserView::get_user_secure(conn, user_details_id)
         }
@@ -505,7 +508,7 @@ impl Perform for GetUserDetails {
     let limit = data.limit;
     let saved_only = data.saved_only;
     let community_id = data.community_id;
-    let user_id = user.map(|u| u.id);
+
     let (posts, comments) = blocking(context.pool(), move |conn| {
       let mut posts_query = PostQueryBuilder::create(conn)
         .sort(&sort)
