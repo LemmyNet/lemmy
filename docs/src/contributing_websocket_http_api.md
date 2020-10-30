@@ -1200,8 +1200,9 @@ Search types are `All, Comments, Posts, Communities, Users, Url`
     description: Option<String>,
     icon: Option<String>,
     banner: Option<String>,
-    category_id: i32 ,
-    auth: String
+    category_id: i32,
+    nsfw: bool,
+    auth: String,
   }
 }
 ```
