@@ -240,6 +240,14 @@ impl UserView {
       .load::<Self>(conn)
   }
 
+  // WARNING!!! this method WILL return sensitive user information and should only be called
+  // if the user requesting these details is also the authenticated user.
+  // please use get_user_secure to obtain user rows in most cases.
+  pub fn get_user_dangerous(conn: &PgConnection, user_id: i32) -> Result<Self, Error> {
+    use super::user_view::user_fast::dsl::*;
+    user_fast.find(user_id).first::<Self>(conn)
+  }
+
   pub fn get_user_secure(conn: &PgConnection, user_id: i32) -> Result<Self, Error> {
     use super::user_view::user_fast::dsl::*;
     use diesel::sql_types::{Nullable, Text};
