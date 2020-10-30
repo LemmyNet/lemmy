@@ -10,7 +10,7 @@
   - Full vote scores `(+/-)` like old reddit.
   - Themes, including light, dark, and solarized.
   - Emojis with autocomplete support. Start typing `:`
-  - User tagging using `@`, Community tagging using `#`.
+  - User tagging using `@`, Community tagging using `!`.
   - Integrated image uploading in both posts and comments.
   - A post can consist of a title and any combination of self text, a URL, or nothing else.
   - Notifications, on comment replies and when you're tagged.

@@ -4,19 +4,18 @@ FROM $RUST_BUILDER_IMAGE as planner
 WORKDIR /app
 # We only pay the installation cost once, 
 # it will be cached from the second build onwards
-RUN cargo install cargo-chef 
+RUN cargo install cargo-chef --version 0.1.6
 COPY . ./
-RUN sudo chown -R rust:rust .
 RUN cargo chef prepare --recipe-path recipe.json
 
-RUN sudo chown -R rust:rust .
 FROM $RUST_BUILDER_IMAGE as cacher
+
 ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-musl
+
 WORKDIR /app
-RUN cargo install cargo-chef
-COPY --from=planner /app/recipe.json ./recipe.json
-RUN sudo chown -R rust:rust .
-RUN cargo chef cook --target $CARGO_BUILD_TARGET --release --recipe-path recipe.json
+RUN cargo install cargo-chef --version 0.1.6
+COPY --chown=rust:rust --from=planner /app/recipe.json ./recipe.json
+RUN cargo chef cook --release --target ${CARGO_BUILD_TARGET} --recipe-path recipe.json
 
 FROM $RUST_BUILDER_IMAGE as builder
 
@@ -24,16 +23,16 @@ ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-musl
 ARG RUSTRELEASEDIR="release"
 
 WORKDIR /app
-COPY . ./
 # Copy over the cached dependencies
-COPY --from=cacher /app/target ./target
-RUN sudo chown -R rust:rust .
+COPY --chown=rust:rust --from=cacher /app/target target
+COPY --chown=rust:rust --from=cacher /home/rust/.cargo /home/rust/.cargo
+COPY . ./
 RUN cargo build --release
 
 # reduce binary size
 RUN strip ./target/$CARGO_BUILD_TARGET/$RUSTRELEASEDIR/lemmy_server
 
-RUN cp ./target/$CARGO_BUILD_TARGET/$RUSTRELEASEDIR/lemmy_server /app/server/
+RUN cp ./target/$CARGO_BUILD_TARGET/$RUSTRELEASEDIR/lemmy_server /app/lemmy_server
 
 FROM $RUST_BUILDER_IMAGE as docs
 WORKDIR /app
@@ -53,7 +52,7 @@ RUN adduser -D -s /bin/sh -u 1000 -G lemmy lemmy
 
 # Copy resources
 COPY --chown=lemmy:lemmy config/defaults.hjson /config/defaults.hjson
-COPY --chown=lemmy:lemmy --from=builder /app/server/lemmy_server /app/lemmy
+COPY --chown=lemmy:lemmy --from=builder /app/lemmy_server /app/lemmy
 COPY --chown=lemmy:lemmy --from=docs /app/docs/book/ /app/documentation/
 
 RUN chown lemmy:lemmy /app/lemmy

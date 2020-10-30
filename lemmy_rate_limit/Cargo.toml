@@ -10,7 +10,7 @@ path = "src/lib.rs"
 
 [dependencies]
 lemmy_utils = { path = "../lemmy_utils" }
-tokio = "0.2"
+tokio = { version = "0.3", features = ["sync"] }
 strum = "0.19"
 strum_macros = "0.19"
 futures = "0.3.5"
