@@ -93,7 +93,7 @@ impl Settings {
 
     s.merge(File::with_name(&Self::get_config_defaults_location()))?;
 
-    s.merge(File::with_name(CONFIG_FILE).required(false))?;
+    s.merge(File::with_name(&Self::get_config_location()).required(false))?;
 
     // Add in settings from the environment (with a prefix of LEMMY)
     // Eg.. `LEMMY_DEBUG=1 ./target/app` would set the `debug` key
@@ -122,11 +122,15 @@ impl Settings {
   }
 
   pub fn get_config_defaults_location() -> String {
-    env::var("LEMMY_CONFIG_LOCATION").unwrap_or_else(|_| CONFIG_FILE_DEFAULTS.to_string())
+    env::var("LEMMY_CONFIG_DEFAULTS_LOCATION").unwrap_or_else(|_| CONFIG_FILE_DEFAULTS.to_string())
+  }
+
+  pub fn get_config_location() -> String {
+    env::var("LEMMY_CONFIG_LOCATION").unwrap_or_else(|_| CONFIG_FILE.to_string())
   }
 
   pub fn read_config_file() -> Result<String, Error> {
-    fs::read_to_string(CONFIG_FILE)
+    fs::read_to_string(Self::get_config_location())
   }
 
   pub fn get_allowed_instances(&self) -> Vec<String> {
