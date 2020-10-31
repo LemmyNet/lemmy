@@ -35,6 +35,8 @@
   tls_enabled: true
   # json web token for authorization between server and client
   jwt_secret: "changeme"
+  # path to built documentation
+  docs_dir: "/app/documentation"
   # address where pictrs is available
   pictrs_url: "http://pictrs:8080"
   # rate limits for various user actions, by user ip
