@@ -1,6 +1,6 @@
 use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
-use std::{env, fs, io::Error, net::IpAddr, sync::RwLock};
+use std::{env, fs, io::Error, net::IpAddr, path::PathBuf, sync::RwLock};
 
 static CONFIG_FILE_DEFAULTS: &str = "config/defaults.hjson";
 static CONFIG_FILE: &str = "config/config.hjson";
@@ -13,6 +13,7 @@ pub struct Settings {
   pub bind: IpAddr,
   pub port: u16,
   pub tls_enabled: bool,
+  pub docs_dir: PathBuf,
   pub jwt_secret: String,
   pub pictrs_url: String,
   pub rate_limit: RateLimitConfig,
