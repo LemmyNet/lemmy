@@ -493,12 +493,14 @@ impl Perform for GetUserDetails {
         // if there's a logged in user and it's the same id as the user whose details are being
         // requested we need to use get_user_dangerous so it returns their email or other sensitive
         // data hidden when viewing users other than yourself
-        Some(auth_user_id) => if user_details_id == auth_user_id {
-          UserView::get_user_dangerous(conn, auth_user_id)
-        } else {
-          UserView::get_user_secure(conn, user_details_id)
+        Some(auth_user_id) => {
+          if user_details_id == auth_user_id {
+            UserView::get_user_dangerous(conn, auth_user_id)
+          } else {
+            UserView::get_user_secure(conn, user_details_id)
+          }
         }
-        None => UserView::get_user_secure(conn, user_details_id)
+        None => UserView::get_user_secure(conn, user_details_id),
       }
     };
 
