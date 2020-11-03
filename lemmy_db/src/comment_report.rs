@@ -17,9 +17,22 @@ table! {
       post_id -> Int4,
       current_comment_text -> Text,
       community_id -> Int4,
+      creator_actor_id -> Text,
       creator_name -> Varchar,
+      creator_preferred_username -> Nullable<Varchar>,
+      creator_avatar -> Nullable<Text>,
+      creator_local -> Bool,
       comment_creator_id -> Int4,
+      comment_creator_actor_id -> Text,
       comment_creator_name -> Varchar,
+      comment_creator_preferred_username -> Nullable<Varchar>,
+      comment_creator_avatar -> Nullable<Text>,
+      comment_creator_local -> Bool,
+      resolver_actor_id -> Nullable<Text>,
+      resolver_name -> Nullable<Varchar>,
+      resolver_preferred_username -> Nullable<Varchar>,
+      resolver_avatar -> Nullable<Text>,
+      resolver_local -> Nullable<Bool>,
     }
 }
 
@@ -55,22 +68,23 @@ impl Reportable<CommentReportForm> for CommentReport {
       .get_result::<Self>(conn)
   }
 
-  fn resolve(conn: &PgConnection, report_id: i32, by_user_id: i32) -> Result<usize, Error> {
+  fn resolve(conn: &PgConnection, report_id: i32, by_resolver_id: i32) -> Result<usize, Error> {
     use crate::schema::comment_report::dsl::*;
     update(comment_report.find(report_id))
       .set((
         resolved.eq(true),
-        resolver_id.eq(by_user_id),
+        resolver_id.eq(by_resolver_id),
         updated.eq(naive_now()),
       ))
       .execute(conn)
   }
 
-  fn unresolve(conn: &PgConnection, report_id: i32) -> Result<usize, Error> {
+  fn unresolve(conn: &PgConnection, report_id: i32, by_resolver_id: i32) -> Result<usize, Error> {
     use crate::schema::comment_report::dsl::*;
     update(comment_report.find(report_id))
       .set((
         resolved.eq(false),
+        resolver_id.eq(by_resolver_id),
         updated.eq(naive_now()),
       ))
       .execute(conn)
@@ -94,9 +108,22 @@ pub struct CommentReportView {
   pub post_id: i32,
   pub current_comment_text: String,
   pub community_id: i32,
+  pub creator_actor_id: String,
   pub creator_name: String,
+  pub creator_preferred_username: Option<String>,
+  pub creator_avatar: Option<String>,
+  pub creator_local: bool,
   pub comment_creator_id: i32,
+  pub comment_creator_actor_id: String,
   pub comment_creator_name: String,
+  pub comment_creator_preferred_username: Option<String>,
+  pub comment_creator_avatar: Option<String>,
+  pub comment_creator_local: bool,
+  pub resolver_actor_id: Option<String>,
+  pub resolver_name: Option<String>,
+  pub resolver_preferred_username: Option<String>,
+  pub resolver_avatar: Option<String>,
+  pub resolver_local: Option<bool>,
 }
 
 pub struct CommentReportQueryBuilder<'a> {

@@ -775,7 +775,7 @@ impl Perform for ResolveCommentReport {
       if resolved {
         CommentReport::resolve(conn, report_id.clone(), user_id)
       } else {
-        CommentReport::unresolve(conn, report_id.clone())
+        CommentReport::unresolve(conn, report_id.clone(), user_id)
       }
     };
 

@@ -841,7 +841,7 @@ impl Perform for ResolvePostReport {
       if resolved {
         PostReport::resolve(conn, report_id.clone(), user_id)
       } else {
-        PostReport::unresolve(conn, report_id.clone())
+        PostReport::unresolve(conn, report_id.clone(), user_id)
       }
     };
 

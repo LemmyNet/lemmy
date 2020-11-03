@@ -20,9 +20,22 @@ table! {
         current_post_url -> Nullable<Text>,
         current_post_body -> Nullable<Text>,
         community_id -> Int4,
+        creator_actor_id -> Text,
         creator_name -> Varchar,
+        creator_preferred_username -> Nullable<Varchar>,
+        creator_avatar -> Nullable<Text>,
+        creator_local -> Bool,
         post_creator_id -> Int4,
+        post_creator_actor_id -> Text,
         post_creator_name -> Varchar,
+        post_creator_preferred_username -> Nullable<Varchar>,
+        post_creator_avatar -> Nullable<Text>,
+        post_creator_local -> Bool,
+        resolver_actor_id -> Nullable<Text>,
+        resolver_name -> Nullable<Varchar>,
+        resolver_preferred_username -> Nullable<Varchar>,
+        resolver_avatar -> Nullable<Text>,
+        resolver_local -> Nullable<Bool>,
     }
 }
 
@@ -62,22 +75,23 @@ impl Reportable<PostReportForm> for PostReport {
       .get_result::<Self>(conn)
   }
 
-  fn resolve(conn: &PgConnection, report_id: i32, by_user_id: i32) -> Result<usize, Error> {
+  fn resolve(conn: &PgConnection, report_id: i32, by_resolver_id: i32) -> Result<usize, Error> {
     use crate::schema::post_report::dsl::*;
     update(post_report.find(report_id))
       .set((
         resolved.eq(true),
-        resolver_id.eq(by_user_id),
+        resolver_id.eq(by_resolver_id),
         updated.eq(naive_now()),
       ))
       .execute(conn)
   }
 
-  fn unresolve(conn: &PgConnection, report_id: i32) -> Result<usize, Error> {
+  fn unresolve(conn: &PgConnection, report_id: i32, by_resolver_id: i32) -> Result<usize, Error> {
     use crate::schema::post_report::dsl::*;
     update(post_report.find(report_id))
       .set((
         resolved.eq(false),
+        resolver_id.eq(by_resolver_id),
         updated.eq(naive_now()),
       ))
       .execute(conn)
@@ -104,9 +118,22 @@ pub struct PostReportView {
   pub current_post_url: Option<String>,
   pub current_post_body: Option<String>,
   pub community_id: i32,
+  pub creator_actor_id: String,
   pub creator_name: String,
+  pub creator_preferred_username: Option<String>,
+  pub creator_avatar: Option<String>,
+  pub creator_local: bool,
   pub post_creator_id: i32,
+  pub post_creator_actor_id: String,
   pub post_creator_name: String,
+  pub post_creator_preferred_username: Option<String>,
+  pub post_creator_avatar: Option<String>,
+  pub post_creator_local: bool,
+  pub resolver_actor_id: Option<String>,
+  pub resolver_name: Option<String>,
+  pub resolver_preferred_username: Option<String>,
+  pub resolver_avatar: Option<String>,
+  pub resolver_local: Option<bool>,
 }
 
 impl PostReportView {

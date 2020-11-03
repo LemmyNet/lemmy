@@ -885,7 +885,6 @@ impl Perform for CommunityJoin {
   }
 }
 
-// is this the right place for this?
 #[async_trait::async_trait(?Send)]
 impl Perform for ModJoin {
   type Response = ModJoinResponse;
