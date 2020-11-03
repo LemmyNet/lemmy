@@ -4,7 +4,7 @@
 [![Build Status](https://travis-ci.org/LemmyNet/lemmy.svg?branch=main)](https://travis-ci.org/LemmyNet/lemmy)
 [![GitHub issues](https://img.shields.io/github/issues-raw/LemmyNet/lemmy.svg)](https://github.com/LemmyNet/lemmy/issues)
 [![Docker Pulls](https://img.shields.io/docker/pulls/dessalines/lemmy.svg)](https://cloud.docker.com/repository/docker/dessalines/lemmy/)
-[![Translation status](http://weblate.yerbamate.dev/widgets/lemmy/-/lemmy/svg-badge.svg)](http://weblate.yerbamate.dev/engage/lemmy/)
+[![Translation status](http://weblate.yerbamate.ml/widgets/lemmy/-/lemmy/svg-badge.svg)](http://weblate.yerbamate.ml/engage/lemmy/)
 [![License](https://img.shields.io/github/license/LemmyNet/lemmy.svg)](LICENSE)
 ![GitHub stars](https://img.shields.io/github/stars/LemmyNet/lemmy?style=social)
 </div>
@@ -140,7 +140,7 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 
 ### Translations
 
-If you want to help with translating, take a look at [Weblate](https://weblate.yerbamate.dev/projects/lemmy/).
+If you want to help with translating, take a look at [Weblate](https://weblate.yerbamate.ml/projects/lemmy/).
 
 ## Contact
 
@@ -150,7 +150,7 @@ If you want to help with translating, take a look at [Weblate](https://weblate.y
 ## Code Mirrors
 
 - [GitHub](https://github.com/LemmyNet/lemmy)
-- [Gitea](https://yerbamate.dev/LemmyNet/lemmy)
+- [Gitea](https://yerbamate.ml/LemmyNet/lemmy)
 - [Codeberg](https://codeberg.org/LemmyNet/lemmy)
 
 ## Credits

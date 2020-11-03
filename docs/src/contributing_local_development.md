@@ -24,7 +24,7 @@ brew install node yarn
 ```
 git clone https://github.com/LemmyNet/lemmy.git
 # or alternatively from gitea
-# git clone https://yerbamate.dev/LemmyNet/lemmy.git
+# git clone https://yerbamate.ml/LemmyNet/lemmy.git
 ```
 
 ### Build the backend (Rust)
