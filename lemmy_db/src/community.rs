@@ -225,12 +225,15 @@ impl CommunityModerator {
     diesel::delete(community_moderator.filter(community_id.eq(for_community_id))).execute(conn)
   }
 
-  pub fn get_user_moderated_communities(conn: &PgConnection, for_user_id: i32) -> Result<Vec<i32>, Error> {
+  pub fn get_user_moderated_communities(
+    conn: &PgConnection,
+    for_user_id: i32,
+  ) -> Result<Vec<i32>, Error> {
     use crate::schema::community_moderator::dsl::*;
     community_moderator
-        .filter(user_id.eq(for_user_id))
-        .select(community_id)
-        .load::<i32>(conn)
+      .filter(user_id.eq(for_user_id))
+      .select(community_id)
+      .load::<i32>(conn)
   }
 }
 

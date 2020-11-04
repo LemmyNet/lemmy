@@ -1,11 +1,11 @@
 use crate::{
   check_community_ban,
+  collect_moderated_communities,
   get_post,
   get_user_from_jwt,
   get_user_from_jwt_opt,
   is_mod_or_admin,
   Perform,
-  collect_moderated_communities,
 };
 use actix_web::web::Data;
 use lemmy_apub::{ApubLikeableType, ApubObjectType};
@@ -20,9 +20,9 @@ use lemmy_db::{
   Crud,
   Likeable,
   ListingType,
+  Reportable,
   Saveable,
   SortType,
-  Reportable,
 };
 use lemmy_structs::{blocking, comment::*, send_local_notifs};
 use lemmy_utils::{
@@ -32,9 +32,12 @@ use lemmy_utils::{
   ConnectionId,
   LemmyError,
 };
-use lemmy_websocket::{messages::{SendComment, SendUserRoomMessage}, LemmyContext, UserOperation};
+use lemmy_websocket::{
+  messages::{SendComment, SendModRoomMessage, SendUserRoomMessage},
+  LemmyContext,
+  UserOperation,
+};
 use std::str::FromStr;
-use lemmy_websocket::messages::SendModRoomMessage;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for CreateComment {
@@ -687,6 +690,7 @@ impl Perform for GetComments {
   }
 }
 
+/// Creates a comment report and notifies the moderators of the community
 #[async_trait::async_trait(?Send)]
 impl Perform for CreateCommentReport {
   type Response = CreateCommentReportResponse;
@@ -707,27 +711,30 @@ impl Perform for CreateCommentReport {
     if reason.len() > 1000 {
       return Err(APIError::err("report_too_long").into());
     }
-    
+
     let user_id = user.id;
     let comment_id = data.comment_id;
     let comment = blocking(context.pool(), move |conn| {
       CommentView::read(&conn, comment_id, None)
-    }).await??;
+    })
+    .await??;
 
     check_community_ban(user_id, comment.community_id, context.pool()).await?;
 
     let report_form = CommentReportForm {
       creator_id: user_id,
       comment_id,
-      comment_text: comment.content,
+      original_comment_text: comment.content,
       reason: data.reason.to_owned(),
     };
 
     let report = match blocking(context.pool(), move |conn| {
       CommentReport::report(conn, &report_form)
-    }).await? {
+    })
+    .await?
+    {
       Ok(report) => report,
-      Err(_e) => return Err(APIError::err("couldnt_create_report").into())
+      Err(_e) => return Err(APIError::err("couldnt_create_report").into()),
     };
 
     let res = CreateCommentReportResponse { success: true };
@@ -750,6 +757,7 @@ impl Perform for CreateCommentReport {
   }
 }
 
+/// Resolves or unresolves a comment report and notifies the moderators of the community
 #[async_trait::async_trait(?Send)]
 impl Perform for ResolveCommentReport {
   type Response = ResolveCommentReportResponse;
@@ -765,7 +773,8 @@ impl Perform for ResolveCommentReport {
     let report_id = data.report_id;
     let report = blocking(context.pool(), move |conn| {
       CommentReportView::read(&conn, report_id)
-    }).await??;
+    })
+    .await??;
 
     let user_id = user.id;
     is_mod_or_admin(context.pool(), user_id, report.community_id).await?;
@@ -779,8 +788,8 @@ impl Perform for ResolveCommentReport {
       }
     };
 
-    if blocking(context.pool(),resolve_fun).await?.is_err() {
-      return Err(APIError::err("couldnt_resolve_report").into())
+    if blocking(context.pool(), resolve_fun).await?.is_err() {
+      return Err(APIError::err("couldnt_resolve_report").into());
     };
 
     let report_id = data.report_id;
@@ -800,6 +809,8 @@ impl Perform for ResolveCommentReport {
   }
 }
 
+/// Lists comment reports for a community if an id is supplied
+/// or returns all comment reports for communities a user moderates
 #[async_trait::async_trait(?Send)]
 impl Perform for ListCommentReports {
   type Response = ListCommentReportsResponse;
@@ -814,18 +825,19 @@ impl Perform for ListCommentReports {
 
     let user_id = user.id;
     let community_id = data.community;
-    let community_ids = collect_moderated_communities(user_id, community_id, context.pool()).await?;
+    let community_ids =
+      collect_moderated_communities(user_id, community_id, context.pool()).await?;
 
     let page = data.page;
     let limit = data.limit;
     let comments = blocking(context.pool(), move |conn| {
       CommentReportQueryBuilder::create(conn)
-          .community_ids(community_ids)
-          .page(page)
-          .limit(limit)
-          .list()
+        .community_ids(community_ids)
+        .page(page)
+        .limit(limit)
+        .list()
     })
-        .await??;
+    .await??;
 
     let res = ListCommentReportsResponse { comments };
 

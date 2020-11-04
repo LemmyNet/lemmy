@@ -2,7 +2,7 @@ create table comment_report (
   id            serial    primary key,
   creator_id    int       references user_ on update cascade on delete cascade not null,   -- user reporting comment
   comment_id    int       references comment on update cascade on delete cascade not null, -- comment being reported
-  comment_text  text      not null,
+  original_comment_text  text      not null,
   reason        text      not null,
   resolved      bool      not null default false,
   resolver_id   int       references user_ on update cascade on delete cascade,   -- user resolving report
@@ -15,9 +15,9 @@ create table post_report (
   id            serial    primary key,
   creator_id    int       references user_ on update cascade on delete cascade not null, -- user reporting post
   post_id       int       references post on update cascade on delete cascade not null,  -- post being reported
-  post_name	    varchar(100) not null,
-  post_url      text,
-  post_body     text,
+  original_post_name	  varchar(100) not null,
+  original_post_url       text,
+  original_post_body      text,
   reason        text      not null,
   resolved      bool      not null default false,
   resolver_id   int       references user_ on update cascade on delete cascade,   -- user resolving report
@@ -54,7 +54,7 @@ from comment_report cr
 left join comment c on c.id = cr.comment_id
 left join post p on p.id = c.post_id
 left join user_ u on u.id = c.creator_id
-left join user_ f on f.id = cr.creator_id;
+left join user_ f on f.id = cr.creator_id
 left join user_ r on r.id = cr.resolver_id;
 
 create or replace view post_report_view as
@@ -63,7 +63,6 @@ p.name as current_post_name,
 p.url as current_post_url,
 p.body as current_post_body,
 p.community_id,
-f.name as creator_name,
 -- report creator details
 f.actor_id as creator_actor_id,
 f.name as creator_name,
@@ -86,5 +85,5 @@ r.local as resolver_local
 from post_report pr
 left join post p on p.id = pr.post_id
 left join user_ u on u.id = p.creator_id
-left join user_ f on f.id = pr.creator_id;
+left join user_ f on f.id = pr.creator_id
 left join user_ r on r.id = pr.resolver_id;

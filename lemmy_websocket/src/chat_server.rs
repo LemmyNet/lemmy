@@ -260,8 +260,8 @@ impl ChatServer {
     community_id: CommunityId,
     websocket_id: Option<ConnectionId>,
   ) -> Result<(), LemmyError>
-    where
-      Response: Serialize,
+  where
+    Response: Serialize,
   {
     let res_str = &serialize_websocket_message(op, response)?;
     if let Some(sessions) = self.mod_rooms.get(&community_id) {

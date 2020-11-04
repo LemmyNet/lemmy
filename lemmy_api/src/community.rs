@@ -36,12 +36,11 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::{
-  messages::{GetCommunityUsersOnline, JoinCommunityRoom, SendCommunityRoomMessage},
+  messages::{GetCommunityUsersOnline, JoinCommunityRoom, JoinModRoom, SendCommunityRoomMessage},
   LemmyContext,
   UserOperation,
 };
 use std::str::FromStr;
-use lemmy_websocket::messages::JoinModRoom;
 
 #[async_trait::async_trait(?Send)]
 impl Perform for GetCommunity {

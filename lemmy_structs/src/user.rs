@@ -247,6 +247,6 @@ pub struct GetReportCount {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GetReportCountResponse {
   pub community: Option<i32>,
-  pub comment_reports: i32,
-  pub post_reports: i32,
+  pub comment_reports: i64,
+  pub post_reports: i64,
 }

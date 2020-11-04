@@ -121,8 +121,8 @@ where
 }
 
 impl<Response> Handler<SendModRoomMessage<Response>> for ChatServer
-  where
-    Response: Serialize,
+where
+  Response: Serialize,
 {
   type Result = ();
 

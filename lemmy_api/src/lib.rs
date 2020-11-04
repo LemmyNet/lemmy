@@ -100,6 +100,13 @@ pub(in crate) async fn check_community_ban(
   }
 }
 
+/// Returns a list of communities that the user moderates
+/// or if a community_id is supplied validates the user is a moderator
+/// of that community and returns the community id in a vec
+///
+/// * `user_id` - the user id of the moderator
+/// * `community_id` - optional community id to check for moderator privileges
+/// * `pool` - the diesel db pool
 pub(in crate) async fn collect_moderated_communities(
   user_id: i32,
   community_id: Option<i32>,
@@ -112,7 +119,8 @@ pub(in crate) async fn collect_moderated_communities(
   } else {
     let ids = blocking(pool, move |conn: &'_ _| {
       CommunityModerator::get_user_moderated_communities(conn, user_id)
-    }).await??;
+    })
+    .await??;
     Ok(ids)
   }
 }
@@ -195,9 +203,7 @@ pub async fn match_websocket_operation(
     UserOperation::CommunityJoin => {
       do_websocket_operation::<CommunityJoin>(context, id, op, data).await
     }
-    UserOperation::ModJoin => {
-      do_websocket_operation::<ModJoin>(context, id, op, data).await
-    }
+    UserOperation::ModJoin => do_websocket_operation::<ModJoin>(context, id, op, data).await,
     UserOperation::SaveUserSettings => {
       do_websocket_operation::<SaveUserSettings>(context, id, op, data).await
     }

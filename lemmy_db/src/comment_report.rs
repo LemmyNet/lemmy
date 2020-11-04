@@ -1,14 +1,21 @@
 use diesel::{dsl::*, pg::Pg, result::Error, *};
 use serde::{Deserialize, Serialize};
 
-use crate::{limit_and_offset, MaybeOptional, schema::comment_report, comment::Comment, Reportable, naive_now};
+use crate::{
+  comment::Comment,
+  limit_and_offset,
+  naive_now,
+  schema::comment_report,
+  MaybeOptional,
+  Reportable,
+};
 
 table! {
     comment_report_view (id) {
       id -> Int4,
       creator_id -> Int4,
       comment_id -> Int4,
-      comment_text -> Text,
+      original_comment_text -> Text,
       reason -> Text,
       resolved -> Bool,
       resolver_id -> Nullable<Int4>,
@@ -43,7 +50,7 @@ pub struct CommentReport {
   pub id: i32,
   pub creator_id: i32,
   pub comment_id: i32,
-  pub comment_text: String,
+  pub original_comment_text: String,
   pub reason: String,
   pub resolved: bool,
   pub resolver_id: Option<i32>,
@@ -56,11 +63,15 @@ pub struct CommentReport {
 pub struct CommentReportForm {
   pub creator_id: i32,
   pub comment_id: i32,
-  pub comment_text: String,
+  pub original_comment_text: String,
   pub reason: String,
 }
 
 impl Reportable<CommentReportForm> for CommentReport {
+  /// creates a comment report and returns it
+  ///
+  /// * `conn` - the postgres connection
+  /// * `comment_report_form` - the filled CommentReportForm to insert
   fn report(conn: &PgConnection, comment_report_form: &CommentReportForm) -> Result<Self, Error> {
     use crate::schema::comment_report::dsl::*;
     insert_into(comment_report)
@@ -68,6 +79,11 @@ impl Reportable<CommentReportForm> for CommentReport {
       .get_result::<Self>(conn)
   }
 
+  /// resolve a comment report
+  ///
+  /// * `conn` - the postgres connection
+  /// * `report_id` - the id of the report to resolve
+  /// * `by_resolver_id` - the id of the user resolving the report
   fn resolve(conn: &PgConnection, report_id: i32, by_resolver_id: i32) -> Result<usize, Error> {
     use crate::schema::comment_report::dsl::*;
     update(comment_report.find(report_id))
@@ -79,6 +95,11 @@ impl Reportable<CommentReportForm> for CommentReport {
       .execute(conn)
   }
 
+  /// unresolve a comment report
+  ///
+  /// * `conn` - the postgres connection
+  /// * `report_id` - the id of the report to unresolve
+  /// * `by_resolver_id` - the id of the user unresolving the report
   fn unresolve(conn: &PgConnection, report_id: i32, by_resolver_id: i32) -> Result<usize, Error> {
     use crate::schema::comment_report::dsl::*;
     update(comment_report.find(report_id))
@@ -91,15 +112,13 @@ impl Reportable<CommentReportForm> for CommentReport {
   }
 }
 
-#[derive(
-Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, Clone,
-)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, Clone)]
 #[table_name = "comment_report_view"]
 pub struct CommentReportView {
   pub id: i32,
   pub creator_id: i32,
   pub comment_id: i32,
-  pub comment_text: String,
+  pub original_comment_text: String,
   pub reason: String,
   pub resolved: bool,
   pub resolver_id: Option<i32>,
@@ -136,19 +155,23 @@ pub struct CommentReportQueryBuilder<'a> {
 }
 
 impl CommentReportView {
+  /// returns the CommentReportView for the provided report_id
+  ///
+  /// * `report_id` - the report id to obtain
   pub fn read(conn: &PgConnection, report_id: i32) -> Result<Self, Error> {
     use super::comment_report::comment_report_view::dsl::*;
-    comment_report_view
-      .find(report_id)
-      .first::<Self>(conn)
+    comment_report_view.find(report_id).first::<Self>(conn)
   }
 
-  pub fn get_report_count(conn: &PgConnection, community_ids: &Vec<i32>) -> Result<i32, Error> {
+  /// returns the current unresolved comment report count for the supplied community ids
+  ///
+  /// * `community_ids` - a Vec<i32> of community_ids to get a count for
+  pub fn get_report_count(conn: &PgConnection, community_ids: &Vec<i32>) -> Result<i64, Error> {
     use super::comment_report::comment_report_view::dsl::*;
     comment_report_view
       .filter(resolved.eq(false).and(community_id.eq_any(community_ids)))
-      .select(sql::<sql_types::Integer>("COUNT(*)"))
-      .first::<i32>(conn)
+      .select(count(id))
+      .first::<i64>(conn)
   }
 }
 

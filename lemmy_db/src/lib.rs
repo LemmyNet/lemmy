@@ -113,14 +113,14 @@ pub trait Readable<T> {
 
 pub trait Reportable<T> {
   fn report(conn: &PgConnection, form: &T) -> Result<Self, Error>
-    where
-        Self: Sized;
+  where
+    Self: Sized;
   fn resolve(conn: &PgConnection, report_id: i32, resolver_id: i32) -> Result<usize, Error>
-    where
-        Self: Sized;
+  where
+    Self: Sized;
   fn unresolve(conn: &PgConnection, report_id: i32, resolver_id: i32) -> Result<usize, Error>
-    where
-        Self: Sized;
+  where
+    Self: Sized;
 }
 
 pub trait MaybeOptional<T> {

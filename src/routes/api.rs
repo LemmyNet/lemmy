@@ -82,8 +82,11 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("/save", web::put().to(route_post::<SavePost>))
           .route("/join", web::post().to(route_post::<PostJoin>))
           .route("/report", web::post().to(route_post::<CreatePostReport>))
-          .route("/report/resolve", web::put().to(route_post::<ResolvePostReport>))
-          .route("/report/list", web::get().to(route_get::<ListPostReports>))
+          .route(
+            "/report/resolve",
+            web::put().to(route_post::<ResolvePostReport>),
+          )
+          .route("/report/list", web::get().to(route_get::<ListPostReports>)),
       )
       // Comment
       .service(
@@ -101,8 +104,14 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
           .route("/save", web::put().to(route_post::<SaveComment>))
           .route("/list", web::get().to(route_get::<GetComments>))
           .route("/report", web::post().to(route_post::<CreateCommentReport>))
-          .route("/report/resolve", web::put().to(route_post::<ResolveCommentReport>))
-          .route("/report/list", web::get().to(route_get::<ListCommentReports>))
+          .route(
+            "/report/resolve",
+            web::put().to(route_post::<ResolveCommentReport>),
+          )
+          .route(
+            "/report/list",
+            web::get().to(route_get::<ListCommentReports>),
+          ),
       )
       // Private Message
       .service(
@@ -171,10 +180,7 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
             "/save_user_settings",
             web::put().to(route_post::<SaveUserSettings>),
           )
-          .route(
-            "/report_count",
-            web::get().to(route_get::<GetReportCount>)
-          ),
+          .route("/report_count", web::get().to(route_get::<GetReportCount>)),
       )
       // Admin Actions
       .service(

@@ -1,16 +1,23 @@
 use diesel::{dsl::*, pg::Pg, result::Error, *};
 use serde::{Deserialize, Serialize};
 
-use crate::{limit_and_offset, MaybeOptional, schema::post_report, post::Post, Reportable, naive_now};
+use crate::{
+  limit_and_offset,
+  naive_now,
+  post::Post,
+  schema::post_report,
+  MaybeOptional,
+  Reportable,
+};
 
 table! {
     post_report_view (id) {
         id -> Int4,
         creator_id -> Int4,
         post_id -> Int4,
-        post_name -> Varchar,
-        post_url -> Nullable<Text>,
-        post_body -> Nullable<Text>,
+        original_post_name -> Varchar,
+        original_post_url -> Nullable<Text>,
+        original_post_body -> Nullable<Text>,
         reason -> Text,
         resolved -> Bool,
         resolver_id -> Nullable<Int4>,
@@ -46,9 +53,9 @@ pub struct PostReport {
   pub id: i32,
   pub creator_id: i32,
   pub post_id: i32,
-  pub post_name: String,
-  pub post_url: Option<String>,
-  pub post_body: Option<String>,
+  pub original_post_name: String,
+  pub original_post_url: Option<String>,
+  pub original_post_body: Option<String>,
   pub reason: String,
   pub resolved: bool,
   pub resolver_id: Option<i32>,
@@ -61,13 +68,17 @@ pub struct PostReport {
 pub struct PostReportForm {
   pub creator_id: i32,
   pub post_id: i32,
-  pub post_name: String,
-  pub post_url: Option<String>,
-  pub post_body: Option<String>,
+  pub original_post_name: String,
+  pub original_post_url: Option<String>,
+  pub original_post_body: Option<String>,
   pub reason: String,
 }
 
 impl Reportable<PostReportForm> for PostReport {
+  /// creates a post report and returns it
+  ///
+  /// * `conn` - the postgres connection
+  /// * `post_report_form` - the filled CommentReportForm to insert
   fn report(conn: &PgConnection, post_report_form: &PostReportForm) -> Result<Self, Error> {
     use crate::schema::post_report::dsl::*;
     insert_into(post_report)
@@ -75,6 +86,11 @@ impl Reportable<PostReportForm> for PostReport {
       .get_result::<Self>(conn)
   }
 
+  /// resolve a post report
+  ///
+  /// * `conn` - the postgres connection
+  /// * `report_id` - the id of the report to resolve
+  /// * `by_resolver_id` - the id of the user resolving the report
   fn resolve(conn: &PgConnection, report_id: i32, by_resolver_id: i32) -> Result<usize, Error> {
     use crate::schema::post_report::dsl::*;
     update(post_report.find(report_id))
@@ -86,6 +102,11 @@ impl Reportable<PostReportForm> for PostReport {
       .execute(conn)
   }
 
+  /// resolve a post report
+  ///
+  /// * `conn` - the postgres connection
+  /// * `report_id` - the id of the report to unresolve
+  /// * `by_resolver_id` - the id of the user unresolving the report
   fn unresolve(conn: &PgConnection, report_id: i32, by_resolver_id: i32) -> Result<usize, Error> {
     use crate::schema::post_report::dsl::*;
     update(post_report.find(report_id))
@@ -98,17 +119,15 @@ impl Reportable<PostReportForm> for PostReport {
   }
 }
 
-#[derive(
-Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, Clone,
-)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Deserialize, Clone)]
 #[table_name = "post_report_view"]
 pub struct PostReportView {
   pub id: i32,
   pub creator_id: i32,
   pub post_id: i32,
-  pub post_name: String,
-  pub post_url: Option<String>,
-  pub post_body: Option<String>,
+  pub original_post_name: String,
+  pub original_post_url: Option<String>,
+  pub original_post_body: Option<String>,
   pub reason: String,
   pub resolved: bool,
   pub resolver_id: Option<i32>,
@@ -137,19 +156,23 @@ pub struct PostReportView {
 }
 
 impl PostReportView {
+  /// returns the PostReportView for the provided report_id
+  ///
+  /// * `report_id` - the report id to obtain
   pub fn read(conn: &PgConnection, report_id: i32) -> Result<Self, Error> {
     use super::post_report::post_report_view::dsl::*;
-    post_report_view
-      .find(report_id)
-      .first::<Self>(conn)
+    post_report_view.find(report_id).first::<Self>(conn)
   }
 
-  pub fn get_report_count(conn: &PgConnection, community_ids: &Vec<i32>) -> Result<i32, Error> {
+  /// returns the current unresolved post report count for the supplied community ids
+  ///
+  /// * `community_ids` - a Vec<i32> of community_ids to get a count for
+  pub fn get_report_count(conn: &PgConnection, community_ids: &Vec<i32>) -> Result<i64, Error> {
     use super::post_report::post_report_view::dsl::*;
     post_report_view
       .filter(resolved.eq(false).and(community_id.eq_any(community_ids)))
-      .select(sql::<sql_types::Integer>("COUNT(*)"))
-      .first::<i32>(conn)
+      .select(count(id))
+      .first::<i64>(conn)
   }
 }
 

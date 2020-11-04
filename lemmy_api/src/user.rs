@@ -2,11 +2,11 @@ use crate::{
   captcha_espeak_wav_base64,
   check_optional_url,
   claims::Claims,
+  collect_moderated_communities,
   get_user_from_jwt,
   get_user_from_jwt_opt,
   is_admin,
   Perform,
-  collect_moderated_communities
 };
 use actix_web::web::Data;
 use anyhow::Context;
@@ -1312,7 +1312,8 @@ impl Perform for GetReportCount {
 
     let user_id = user.id;
     let community_id = data.community;
-    let community_ids = collect_moderated_communities(user_id, community_id, context.pool()).await?;
+    let community_ids =
+      collect_moderated_communities(user_id, community_id, context.pool()).await?;
 
     let res = {
       if community_ids.is_empty() {
@@ -1323,12 +1324,16 @@ impl Perform for GetReportCount {
         }
       } else {
         let ids = community_ids.clone();
-        let comment_reports = blocking(context.pool(), move |conn|
-            CommentReportView::get_report_count(conn, &ids)).await??;
+        let comment_reports = blocking(context.pool(), move |conn| {
+          CommentReportView::get_report_count(conn, &ids)
+        })
+        .await??;
 
         let ids = community_ids.clone();
-        let post_reports = blocking(context.pool(), move |conn|
-            PostReportView::get_report_count(conn, &ids)).await??;
+        let post_reports = blocking(context.pool(), move |conn| {
+          PostReportView::get_report_count(conn, &ids)
+        })
+        .await??;
 
         GetReportCountResponse {
           community: data.community,
