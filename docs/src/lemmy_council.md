@@ -13,8 +13,8 @@ This section describes all the aspects of Lemmy where the council has decision m
 - Moderation and conflict resolution on:
   - [dev.lemmy.ml](https://dev.lemmy.ml/)
   - [github.com/LemmyNet/lemmy](https://github.com/LemmyNet/lemmy)
-  - [yerbamate.dev/LemmyNet/lemmy](https://yerbamate.dev/LemmyNet/lemmy)
-  - [weblate.yerbamate.dev/projects/lemmy/](https://weblate.yerbamate.dev/projects/lemmy/)
+  - [yerbamate.ml/LemmyNet/lemmy](https://yerbamate.ml/LemmyNet/lemmy)
+  - [weblate.yerbamate.ml/projects/lemmy/](https://weblate.yerbamate.ml/projects/lemmy/)
 - Technical administration of dev.lemmy.ml
 - Official Lemmy accounts
   - [Mastodon](https://mastodon.social/@LemmyDev)
