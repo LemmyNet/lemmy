@@ -327,9 +327,9 @@ impl Perform for DeleteCommunity {
 
     // Send apub messages
     if deleted {
-      updated_community.send_delete(&user, context).await?;
+      updated_community.send_delete(context).await?;
     } else {
-      updated_community.send_undo_delete(&user, context).await?;
+      updated_community.send_undo_delete(context).await?;
     }
 
     let edit_id = data.edit_id;
@@ -395,9 +395,9 @@ impl Perform for RemoveCommunity {
 
     // Apub messages
     if removed {
-      updated_community.send_remove(&user, context).await?;
+      updated_community.send_remove(context).await?;
     } else {
-      updated_community.send_undo_remove(&user, context).await?;
+      updated_community.send_undo_remove(context).await?;
     }
 
     let edit_id = data.edit_id;

@@ -94,27 +94,19 @@ impl ActorType for User_ {
     unimplemented!()
   }
 
-  async fn send_delete(&self, _creator: &User_, _context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn send_delete(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
     unimplemented!()
   }
 
-  async fn send_undo_delete(
-    &self,
-    _creator: &User_,
-    _context: &LemmyContext,
-  ) -> Result<(), LemmyError> {
+  async fn send_undo_delete(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
     unimplemented!()
   }
 
-  async fn send_remove(&self, _creator: &User_, _context: &LemmyContext) -> Result<(), LemmyError> {
+  async fn send_remove(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
     unimplemented!()
   }
 
-  async fn send_undo_remove(
-    &self,
-    _creator: &User_,
-    _context: &LemmyContext,
-  ) -> Result<(), LemmyError> {
+  async fn send_undo_remove(&self, _context: &LemmyContext) -> Result<(), LemmyError> {
     unimplemented!()
   }
 

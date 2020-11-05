@@ -8,7 +8,10 @@ import {
   createCommunity,
   deleteCommunity,
   removeCommunity,
+  getCommunity,
+  followCommunity,
   delay,
+  longDelay,
 } from './shared';
 import {
   Community,
@@ -55,6 +58,21 @@ test('Create community', async () => {
 test('Delete community', async () => {
   let communityRes = await createCommunity(beta);
   await delay();
+
+  // Cache the community on Alpha
+  let searchShort = `!${communityRes.community.name}@lemmy-beta:8551`;
+  let search = await searchForCommunity(alpha, searchShort);
+  let communityOnAlpha = search.communities[0];
+  assertCommunityFederation(communityOnAlpha, communityRes.community);
+  await delay();
+
+  // Follow the community from alpha
+  let follow = await followCommunity(alpha, true, communityOnAlpha.id);
+
+  // Make sure the follow response went through
+  expect(follow.community.local).toBe(false);
+  await delay();
+
   let deleteCommunityRes = await deleteCommunity(
     beta,
     true,
@@ -64,11 +82,9 @@ test('Delete community', async () => {
   await delay();
 
   // Make sure it got deleted on A
-  let search = await searchForBetaCommunity(alpha);
-  let communityA = search.communities[0];
-  // TODO this fails currently, because no updates are pushed
-  // expect(communityA.deleted).toBe(true);
-  // assertCommunityFederation(communityA, communityRes.community);
+  let communityOnAlphaDeleted = await getCommunity(alpha, communityOnAlpha.id);
+  expect(communityOnAlphaDeleted.community.deleted).toBe(true);
+  await delay();
 
   // Undelete
   let undeleteCommunityRes = await deleteCommunity(
@@ -80,29 +96,39 @@ test('Delete community', async () => {
   await delay();
 
   // Make sure it got undeleted on A
-  let search2 = await searchForBetaCommunity(alpha);
-  let communityA2 = search2.communities[0];
-  // TODO this fails currently, because no updates are pushed
-  // expect(communityA2.deleted).toBe(false);
-  // assertCommunityFederation(communityA2, undeleteCommunityRes.community);
+  let communityOnAlphaUnDeleted = await getCommunity(alpha, communityOnAlpha.id);
+  expect(communityOnAlphaUnDeleted.community.deleted).toBe(false);
 });
 
 test('Remove community', async () => {
   let communityRes = await createCommunity(beta);
   await delay();
+
+  // Cache the community on Alpha
+  let searchShort = `!${communityRes.community.name}@lemmy-beta:8551`;
+  let search = await searchForCommunity(alpha, searchShort);
+  let communityOnAlpha = search.communities[0];
+  assertCommunityFederation(communityOnAlpha, communityRes.community);
+  await delay();
+
+  // Follow the community from alpha
+  let follow = await followCommunity(alpha, true, communityOnAlpha.id);
+
+  // Make sure the follow response went through
+  expect(follow.community.local).toBe(false);
+  await delay();
+
   let removeCommunityRes = await removeCommunity(
     beta,
     true,
     communityRes.community.id
   );
   expect(removeCommunityRes.community.removed).toBe(true);
+  await delay();
 
-  // Make sure it got removed on A
-  let search = await searchForBetaCommunity(alpha);
-  let communityA = search.communities[0];
-  // TODO this fails currently, because no updates are pushed
-  // expect(communityA.removed).toBe(true);
-  // assertCommunityFederation(communityA, communityRes.community);
+  // Make sure it got Removed on A
+  let communityOnAlphaRemoved = await getCommunity(alpha, communityOnAlpha.id);
+  expect(communityOnAlphaRemoved.community.removed).toBe(true);
   await delay();
 
   // unremove
@@ -114,15 +140,18 @@ test('Remove community', async () => {
   expect(unremoveCommunityRes.community.removed).toBe(false);
   await delay();
 
-  // Make sure it got unremoved on A
-  let search2 = await searchForBetaCommunity(alpha);
-  let communityA2 = search2.communities[0];
-  // TODO this fails currently, because no updates are pushed
-  // expect(communityA2.removed).toBe(false);
-  // assertCommunityFederation(communityA2, unremoveCommunityRes.community);
+  // Make sure it got undeleted on A
+  let communityOnAlphaUnRemoved = await getCommunity(alpha, communityOnAlpha.id);
+  expect(communityOnAlphaUnRemoved.community.removed).toBe(false);
 });
 
 test('Search for beta community', async () => {
-  let search = await searchForBetaCommunity(alpha);
-  expect(search.communities[0].name).toBe('main');
+  let communityRes = await createCommunity(beta);
+  expect(communityRes.community.name).toBeDefined();
+  await delay();
+
+  let searchShort = `!${communityRes.community.name}@lemmy-beta:8551`;
+  let search = await searchForCommunity(alpha, searchShort);
+  let communityOnAlpha = search.communities[0];
+  assertCommunityFederation(communityOnAlpha, communityRes.community);
 });

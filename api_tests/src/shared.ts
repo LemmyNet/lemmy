@@ -20,6 +20,7 @@ import {
   RemoveCommentForm,
   SearchForm,
   CommentResponse,
+  GetCommunityForm,
   CommunityForm,
   DeleteCommunityForm,
   RemoveCommunityForm,
@@ -400,6 +401,16 @@ export async function createCommunity(
     auth: api.auth,
   };
   return api.client.createCommunity(form);
+}
+
+export async function getCommunity(
+  api: API,
+  id: number,
+): Promise<CommunityResponse> {
+  let form: GetCommunityForm = {
+    id,
+  };
+  return api.client.getCommunity(form);
 }
 
 export async function deleteCommunity(
