@@ -146,7 +146,7 @@ fn do_send_local_notifs(
   recipient_ids
 }
 
-fn send_email_to_user(user: User_, subject_text: &str, body_text: &str, comment_content: &str) {
+pub fn send_email_to_user(user: User_, subject_text: &str, body_text: &str, comment_content: &str) {
   if user.banned {
     return;
   }
