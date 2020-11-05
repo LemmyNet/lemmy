@@ -251,10 +251,14 @@ pub(crate) async fn get_or_fetch_and_upsert_user(
     Ok(u) if !u.local && should_refetch_actor(u.last_refreshed_at) => {
       debug!("Fetching and updating from remote user: {}", apub_id);
       let person =
-        fetch_remote_object::<PersonExt>(context.client(), apub_id, recursion_counter).await?;
+        fetch_remote_object::<PersonExt>(context.client(), apub_id, recursion_counter).await;
+      // If fetching failed, return the existing data.
+      if person.is_err() {
+        return Ok(u);
+      }
 
       let mut uf = UserForm::from_apub(
-        &person,
+        &person?,
         context,
         Some(apub_id.to_owned()),
         recursion_counter,
@@ -320,7 +324,7 @@ pub(crate) async fn get_or_fetch_and_upsert_community(
   match community {
     Ok(c) if !c.local && should_refetch_actor(c.last_refreshed_at) => {
       debug!("Fetching and updating from remote community: {}", apub_id);
-      fetch_remote_community(apub_id, context, Some(c.id), recursion_counter).await
+      fetch_remote_community(apub_id, context, Some(c), recursion_counter).await
     }
     Ok(c) => Ok(c),
     Err(NotFound {}) => {
@@ -331,17 +335,24 @@ pub(crate) async fn get_or_fetch_and_upsert_community(
   }
 }
 
-/// Request a community by apub ID from a remote instance, including moderators. If `community_id`,
+/// Request a community by apub ID from a remote instance, including moderators. If `old_community`,
 /// is set, this is an update for a community which is already known locally. If not, we don't know
 /// the community yet and also pull the outbox, to get some initial posts.
 async fn fetch_remote_community(
   apub_id: &Url,
   context: &LemmyContext,
-  community_id: Option<i32>,
+  old_community: Option<Community>,
   recursion_counter: &mut i32,
 ) -> Result<Community, LemmyError> {
-  let group = fetch_remote_object::<GroupExt>(context.client(), apub_id, recursion_counter).await?;
+  let group = fetch_remote_object::<GroupExt>(context.client(), apub_id, recursion_counter).await;
+  // If fetching failed, return the existing data.
+  if let Some(ref c) = old_community {
+    if group.is_err() {
+      return Ok(c.to_owned());
+    }
+  }
 
+  let group = group?;
   let cf =
     CommunityForm::from_apub(&group, context, Some(apub_id.to_owned()), recursion_counter).await?;
   let community = blocking(context.pool(), move |conn| Community::upsert(conn, &cf)).await??;
@@ -364,7 +375,7 @@ async fn fetch_remote_community(
   }
 
   // TODO: need to make this work to update mods of existing communities
-  if community_id.is_none() {
+  if old_community.is_none() {
     let community_id = community.id;
     blocking(context.pool(), move |conn| {
       for mod_ in creator_and_moderators {

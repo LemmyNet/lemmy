@@ -189,15 +189,11 @@ pub trait ActorType {
     context: &LemmyContext,
   ) -> Result<(), LemmyError>;
 
-  async fn send_delete(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
-  async fn send_undo_delete(
-    &self,
-    creator: &User_,
-    context: &LemmyContext,
-  ) -> Result<(), LemmyError>;
+  async fn send_delete(&self, context: &LemmyContext) -> Result<(), LemmyError>;
+  async fn send_undo_delete(&self, context: &LemmyContext) -> Result<(), LemmyError>;
 
-  async fn send_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
-  async fn send_undo_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
+  async fn send_remove(&self, context: &LemmyContext) -> Result<(), LemmyError>;
+  async fn send_undo_remove(&self, context: &LemmyContext) -> Result<(), LemmyError>;
 
   async fn send_announce(
     &self,

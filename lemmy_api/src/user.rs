@@ -38,7 +38,7 @@ use lemmy_db::{
   ListingType,
   SortType,
 };
-use lemmy_structs::{blocking, user::*};
+use lemmy_structs::{blocking, send_email_to_user, user::*};
 use lemmy_utils::{
   apub::{generate_actor_keypair, make_apub_endpoint, EndpointType},
   email::send_email,
@@ -61,7 +61,6 @@ use lemmy_websocket::{
   LemmyContext,
   UserOperation,
 };
-use log::error;
 use std::str::FromStr;
 
 #[async_trait::async_trait(?Send)]
@@ -1041,23 +1040,12 @@ impl Perform for CreatePrivateMessage {
     let recipient_user =
       blocking(context.pool(), move |conn| User_::read(conn, recipient_id)).await??;
     if recipient_user.send_notifications_to_email {
-      if let Some(email) = recipient_user.email {
-        let subject = &format!(
-          "{} - Private Message from {}",
-          Settings::get().hostname,
-          user.name,
-        );
-        let html = &format!(
-          "<h1>Private Message</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
-          user.name,
-          &content_slurs_removed,
-          Settings::get().get_protocol_and_hostname()
-        );
-        match send_email(subject, &email, &recipient_user.name, html) {
-          Ok(_o) => _o,
-          Err(e) => error!("{}", e),
-        };
-      }
+      send_email_to_user(
+        recipient_user,
+        "Private Message from",
+        "Private Message",
+        &content_slurs_removed,
+      );
     }
 
     let message = blocking(context.pool(), move |conn| {
