@@ -77,7 +77,6 @@ fn do_send_local_notifs(
   do_send_email: bool,
 ) -> Vec<i32> {
   let mut recipient_ids = Vec::new();
-  let hostname = &Settings::get().get_protocol_and_hostname();
 
   // Send the local mentions
   for mention in mentions
@@ -106,17 +105,12 @@ fn do_send_local_notifs(
 
       // Send an email to those users that have notifications on
       if do_send_email && mention_user.send_notifications_to_email {
-        if let Some(mention_email) = mention_user.email {
-          let subject = &format!("{} - Mentioned by {}", Settings::get().hostname, user.name,);
-          let html = &format!(
-            "<h1>User Mention</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
-            user.name, comment.content, hostname
-          );
-          match send_email(subject, &mention_email, &mention_user.name, html) {
-            Ok(_o) => _o,
-            Err(e) => error!("{}", e),
-          };
-        }
+        send_email_to_user(
+          mention_user,
+          "Mentioned by",
+          "User Mention",
+          &comment.content,
+        )
       }
     }
   }
@@ -130,17 +124,7 @@ fn do_send_local_notifs(
             recipient_ids.push(parent_user.id);
 
             if do_send_email && parent_user.send_notifications_to_email {
-              if let Some(comment_reply_email) = parent_user.email {
-                let subject = &format!("{} - Reply from {}", Settings::get().hostname, user.name,);
-                let html = &format!(
-                  "<h1>Comment Reply</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
-                  user.name, comment.content, hostname
-                );
-                match send_email(subject, &comment_reply_email, &parent_user.name, html) {
-                  Ok(_o) => _o,
-                  Err(e) => error!("{}", e),
-                };
-              }
+              send_email_to_user(parent_user, "Reply from", "Comment Reply", &comment.content)
             }
           }
         }
@@ -153,21 +137,37 @@ fn do_send_local_notifs(
           recipient_ids.push(parent_user.id);
 
           if do_send_email && parent_user.send_notifications_to_email {
-            if let Some(post_reply_email) = parent_user.email {
-              let subject = &format!("{} - Reply from {}", Settings::get().hostname, user.name,);
-              let html = &format!(
-                "<h1>Post Reply</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
-                user.name, comment.content, hostname
-              );
-              match send_email(subject, &post_reply_email, &parent_user.name, html) {
-                Ok(_o) => _o,
-                Err(e) => error!("{}", e),
-              };
-            }
+            send_email_to_user(parent_user, "Reply from", "Post Reply", &comment.content)
           }
         }
       }
     }
   };
   recipient_ids
+}
+
+pub fn send_email_to_user(user: User_, subject_text: &str, body_text: &str, comment_content: &str) {
+  if user.banned {
+    return;
+  }
+
+  if let Some(user_email) = user.email {
+    let subject = &format!(
+      "{} - {} {}",
+      subject_text,
+      Settings::get().hostname,
+      user.name,
+    );
+    let html = &format!(
+      "<h1>{}</h1><br><div>{} - {}</div><br><a href={}/inbox>inbox</a>",
+      body_text,
+      user.name,
+      comment_content,
+      Settings::get().get_protocol_and_hostname()
+    );
+    match send_email(subject, &user_email, &user.name, html) {
+      Ok(_o) => _o,
+      Err(e) => error!("{}", e),
+    };
+  }
 }
