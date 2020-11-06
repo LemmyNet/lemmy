@@ -57,6 +57,7 @@ where
       vec![inbox],
       context.pool(),
       true,
+      true,
     )
     .await?;
   }
@@ -102,6 +103,7 @@ where
     follower_inboxes,
     context.pool(),
     true,
+    false,
   )
   .await?;
 
@@ -145,6 +147,7 @@ where
       vec![inbox],
       context.pool(),
       true,
+      false,
     )
     .await?;
   }
@@ -185,6 +188,7 @@ where
     mentions,
     context.pool(),
     false, // Don't create a new DB row
+    false,
   )
   .await?;
   Ok(())
@@ -202,6 +206,7 @@ async fn send_activity_internal<T, Kind>(
   inboxes: Vec<Url>,
   pool: &DbPool,
   insert_into_db: bool,
+  sensitive: bool,
 ) -> Result<(), LemmyError>
 where
   T: AsObject<Kind> + Extends<Kind> + Debug,
@@ -219,7 +224,7 @@ where
   // might send the same ap_id
   if insert_into_db {
     let id = activity.id().context(location_info!())?;
-    insert_activity(id, actor.user_id(), activity.clone(), true, pool).await?;
+    insert_activity(id, activity.clone(), true, sensitive, pool).await?;
   }
 
   for i in inboxes {

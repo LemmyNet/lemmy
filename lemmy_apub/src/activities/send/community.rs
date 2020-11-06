@@ -41,10 +41,6 @@ impl ActorType for Community {
     self.private_key.to_owned()
   }
 
-  fn user_id(&self) -> i32 {
-    self.creator_id
-  }
-
   async fn send_follow(
     &self,
     _follow_actor_id: &Url,

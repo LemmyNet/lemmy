@@ -88,20 +88,12 @@ pub async fn community_inbox(
 
   let any_base = activity.clone().into_any_base()?;
   let kind = activity.kind().context(location_info!())?;
-  let user_id = user.id;
   let res = match kind {
     ValidTypes::Follow => handle_follow(any_base, user, community, &context).await,
     ValidTypes::Undo => handle_undo_follow(any_base, user, community, &context).await,
   };
 
-  insert_activity(
-    &activity_id,
-    user_id,
-    activity.clone(),
-    false,
-    context.pool(),
-  )
-  .await?;
+  insert_activity(&activity_id, activity.clone(), false, true, context.pool()).await?;
   res
 }
 

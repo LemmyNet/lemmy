@@ -13,9 +13,9 @@ use std::{
 pub struct Activity {
   pub id: i32,
   pub ap_id: String,
-  pub user_id: i32,
   pub data: Value,
   pub local: bool,
+  pub sensitive: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
 }
@@ -24,9 +24,9 @@ pub struct Activity {
 #[table_name = "activity"]
 pub struct ActivityForm {
   pub ap_id: String,
-  pub user_id: i32,
   pub data: Value,
   pub local: bool,
+  pub sensitive: bool,
   pub updated: Option<chrono::NaiveDateTime>,
 }
 
@@ -59,20 +59,19 @@ impl Activity {
   pub fn insert<T>(
     conn: &PgConnection,
     ap_id: String,
-    user_id: i32,
     data: &T,
     local: bool,
+    sensitive: bool,
   ) -> Result<Self, IoError>
   where
     T: Serialize + Debug,
   {
-    debug!("inserting activity for user {}: ", user_id);
     debug!("{}", serde_json::to_string_pretty(&data)?);
     let activity_form = ActivityForm {
       ap_id,
-      user_id,
       data: serde_json::to_value(&data)?,
       local,
+      sensitive,
       updated: None,
     };
     let result = Activity::create(&conn, &activity_form);
@@ -154,9 +153,9 @@ mod tests {
     .unwrap();
     let activity_form = ActivityForm {
       ap_id: ap_id.to_string(),
-      user_id: inserted_creator.id,
       data: test_json.to_owned(),
       local: true,
+      sensitive: false,
       updated: None,
     };
 
@@ -165,9 +164,9 @@ mod tests {
     let expected_activity = Activity {
       ap_id: ap_id.to_string(),
       id: inserted_activity.id,
-      user_id: inserted_creator.id,
       data: test_json,
       local: true,
+      sensitive: false,
       published: inserted_activity.published,
       updated: None,
     };
