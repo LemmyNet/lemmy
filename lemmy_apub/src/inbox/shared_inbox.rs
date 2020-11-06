@@ -125,14 +125,7 @@ pub async fn shared_inbox(
     ValidTypes::Undo => receive_undo(&context, any_base, actor_id, request_counter).await,
   };
 
-  insert_activity(
-    &activity_id,
-    actor.user_id(),
-    activity.clone(),
-    false,
-    context.pool(),
-  )
-  .await?;
+  insert_activity(&activity_id, activity.clone(), false, true, context.pool()).await?;
   res
 }
 

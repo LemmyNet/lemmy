@@ -107,14 +107,7 @@ pub async fn user_inbox(
     }
   };
 
-  insert_activity(
-    &activity_id,
-    actor.user_id(),
-    activity.clone(),
-    false,
-    context.pool(),
-  )
-  .await?;
+  insert_activity(&activity_id, activity.clone(), false, true, context.pool()).await?;
   res
 }
 

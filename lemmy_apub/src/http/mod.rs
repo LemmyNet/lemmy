@@ -54,5 +54,9 @@ pub async fn get_activity(
   })
   .await??;
 
-  Ok(create_apub_response(&activity.data))
+  if !activity.local || activity.sensitive {
+    Ok(HttpResponse::NotFound().finish())
+  } else {
+    Ok(create_apub_response(&activity.data))
+  }
 }

@@ -32,10 +32,6 @@ impl ActorType for User_ {
     self.private_key.to_owned()
   }
 
-  fn user_id(&self) -> i32 {
-    self.id
-  }
-
   /// As a given local user, send out a follow request to a remote community.
   async fn send_follow(
     &self,
