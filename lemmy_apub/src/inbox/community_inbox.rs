@@ -27,7 +27,9 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
 use lemmy_db::{
   community::{Community, CommunityFollower, CommunityFollowerForm},
+  community_view::CommunityUserBanView,
   user::User_,
+  DbPool,
   Followable,
 };
 use lemmy_structs::blocking;
@@ -110,14 +112,21 @@ pub(crate) async fn community_receive_message(
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<HttpResponse, LemmyError> {
-  // TODO: check if the sending user is banned by the community
+  // Only users can send activities to the community, so we can get the actor as user
+  // unconditionally.
+  let actor_id = actor.actor_id_str();
+  let user = blocking(&context.pool(), move |conn| {
+    User_::read_from_actor_id(&conn, &actor_id)
+  })
+  .await??;
+  check_community_or_site_ban(&user, &to_community, context.pool()).await?;
 
   let any_base = activity.clone().into_any_base()?;
   let actor_url = actor.actor_id()?;
   let activity_kind = activity.kind().context(location_info!())?;
   let do_announce = match activity_kind {
     CommunityValidTypes::Follow => {
-      handle_follow(any_base.clone(), actor_url, &to_community, &context).await?;
+      handle_follow(any_base.clone(), user, &to_community, &context).await?;
       false
     }
     CommunityValidTypes::Undo => {
@@ -172,17 +181,13 @@ pub(crate) async fn community_receive_message(
 /// Accept activity.
 async fn handle_follow(
   activity: AnyBase,
-  user_url: Url,
+  user: User_,
   community: &Community,
   context: &LemmyContext,
 ) -> Result<HttpResponse, LemmyError> {
   let follow = Follow::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&follow, &user_url, false)?;
+  verify_activity_domains_valid(&follow, &user.actor_id()?, false)?;
 
-  let user = blocking(&context.pool(), move |conn| {
-    User_::read_from_actor_id(&conn, user_url.as_str())
-  })
-  .await??;
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,
     user_id: user.id,
@@ -247,6 +252,24 @@ async fn handle_undo_follow(
     CommunityFollower::unfollow(&conn, &community_follower_form).ok()
   })
   .await?;
+
+  Ok(())
+}
+
+async fn check_community_or_site_ban(
+  user: &User_,
+  community: &Community,
+  pool: &DbPool,
+) -> Result<(), LemmyError> {
+  if user.banned {
+    return Err(anyhow!("User is banned from site").into());
+  }
+  let user_id = user.id;
+  let community_id = community.id;
+  let is_banned = move |conn: &'_ _| CommunityUserBanView::get(conn, user_id, community_id).is_ok();
+  if blocking(pool, is_banned).await? {
+    return Err(anyhow!("User is banned from community").into());
+  }
 
   Ok(())
 }

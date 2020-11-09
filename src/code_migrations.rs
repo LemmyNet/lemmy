@@ -57,7 +57,7 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
       published: Some(cuser.published),
       updated: None,
       admin: cuser.admin,
-      banned: cuser.banned,
+      banned: Some(cuser.banned),
       show_nsfw: cuser.show_nsfw,
       theme: cuser.theme.to_owned(),
       default_sort_type: cuser.default_sort_type,
