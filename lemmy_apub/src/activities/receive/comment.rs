@@ -9,7 +9,7 @@ use activitystreams::{
   base::ExtendsExt,
   object::Note,
 };
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use lemmy_db::{
   comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
   comment_view::CommentView,
@@ -33,11 +33,14 @@ pub(crate) async fn receive_create_comment(
   let comment =
     CommentForm::from_apub(&note, context, Some(user.actor_id()?), request_counter).await?;
 
+  let post_id = comment.post_id;
+  let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+  if post.locked {
+    return Err(anyhow!("Post is locked").into());
+  }
+
   let inserted_comment =
     blocking(context.pool(), move |conn| Comment::upsert(conn, &comment)).await??;
-
-  let post_id = inserted_comment.post_id;
-  let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
   // Note:
   // Although mentions could be gotten from the post tags (they are included there), or the ccs,
