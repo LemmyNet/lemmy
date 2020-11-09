@@ -7,7 +7,7 @@ use crate::{
 };
 use activitystreams::{
   activity::{ActorAndObjectRefExt, Create, Delete, Undo, Update},
-  base::{AnyBase, AsBase, ExtendsExt},
+  base::{AsBase, ExtendsExt},
   object::{AsObject, Note},
   public,
 };
@@ -24,12 +24,10 @@ use url::Url;
 
 pub(crate) async fn receive_create_private_message(
   context: &LemmyContext,
-  activity: AnyBase,
+  create: Create,
   expected_domain: Url,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let create = Create::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&create, &expected_domain, true)?;
   check_private_message_activity_valid(&create, context, request_counter).await?;
 
   let note = Note::from_any_base(
@@ -70,12 +68,10 @@ pub(crate) async fn receive_create_private_message(
 
 pub(crate) async fn receive_update_private_message(
   context: &LemmyContext,
-  activity: AnyBase,
+  update: Update,
   expected_domain: Url,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let update = Update::from_any_base(activity)?.context(location_info!())?;
-  verify_activity_domains_valid(&update, &expected_domain, true)?;
   check_private_message_activity_valid(&update, context, request_counter).await?;
 
   let object = update

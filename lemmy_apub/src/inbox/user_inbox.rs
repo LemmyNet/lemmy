@@ -1,5 +1,6 @@
 use crate::{
   activities::receive::{
+    comment::{receive_create_comment, receive_update_comment},
     community::{
       receive_delete_community,
       receive_remove_community,
@@ -37,7 +38,7 @@ use crate::{
   ActorType,
 };
 use activitystreams::{
-  activity::{Accept, ActorAndObject, Announce, Delete, Follow, Undo},
+  activity::{Accept, ActorAndObject, Announce, Create, Delete, Follow, Undo, Update},
   base::AnyBase,
   prelude::*,
 };
@@ -144,10 +145,10 @@ pub(crate) async fn user_receive_message(
       receive_announce(&context, any_base, actor, request_counter).await?
     }
     UserValidTypes::Create => {
-      receive_create_private_message(&context, any_base, actor_url, request_counter).await?
+      receive_create(&context, any_base, actor_url, request_counter).await?
     }
     UserValidTypes::Update => {
-      receive_update_private_message(&context, any_base, actor_url, request_counter).await?
+      receive_update(&context, any_base, actor_url, request_counter).await?
     }
     UserValidTypes::Delete => {
       receive_delete(context, any_base, &actor_url, request_counter).await?
@@ -226,7 +227,6 @@ async fn receive_announce(
     return Ok(());
   }
 
-  dbg!(&kind);
   match kind {
     Some("Create") => {
       receive_create_for_community(context, inner_activity, &inner_id, request_counter).await
@@ -246,6 +246,36 @@ async fn receive_announce(
       receive_undo_for_community(context, inner_activity, &inner_id, request_counter).await
     }
     _ => receive_unhandled_activity(inner_activity),
+  }
+}
+
+async fn receive_create(
+  context: &LemmyContext,
+  activity: AnyBase,
+  expected_domain: Url,
+  request_counter: &mut i32,
+) -> Result<(), LemmyError> {
+  let create = Create::from_any_base(activity)?.context(location_info!())?;
+  verify_activity_domains_valid(&create, &expected_domain, true)?;
+  if is_addressed_to_public(&create).is_ok() {
+    receive_create_comment(create, context, request_counter).await
+  } else {
+    receive_create_private_message(&context, create, expected_domain, request_counter).await
+  }
+}
+
+async fn receive_update(
+  context: &LemmyContext,
+  activity: AnyBase,
+  expected_domain: Url,
+  request_counter: &mut i32,
+) -> Result<(), LemmyError> {
+  let update = Update::from_any_base(activity)?.context(location_info!())?;
+  verify_activity_domains_valid(&update, &expected_domain, true)?;
+  if is_addressed_to_public(&update).is_ok() {
+    receive_update_comment(update, context, request_counter).await
+  } else {
+    receive_update_private_message(&context, update, expected_domain, request_counter).await
   }
 }
 
