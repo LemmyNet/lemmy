@@ -132,7 +132,7 @@ impl FromApub for UserForm {
       preferred_username: Some(preferred_username),
       password_encrypted: "".to_string(),
       admin: false,
-      banned: false,
+      banned: None,
       email: None,
       avatar,
       banner,

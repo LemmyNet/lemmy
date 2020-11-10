@@ -135,7 +135,6 @@ pub(in crate::inbox) async fn receive_delete_for_community(
   activity: AnyBase,
   expected_domain: &Url,
 ) -> Result<(), LemmyError> {
-  dbg!("receive_delete_for_community");
   let delete = Delete::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&delete, &expected_domain, true)?;
   is_addressed_to_public(&delete)?;
@@ -160,7 +159,6 @@ pub(in crate::inbox) async fn receive_remove_for_community(
   activity: AnyBase,
   expected_domain: &Url,
 ) -> Result<(), LemmyError> {
-  dbg!("receive_remove_for_community");
   let remove = Remove::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&remove, &expected_domain, false)?;
   is_addressed_to_public(&remove)?;

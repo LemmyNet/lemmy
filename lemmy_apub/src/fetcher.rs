@@ -497,6 +497,12 @@ pub(crate) async fn get_or_fetch_and_insert_comment(
       )
       .await?;
 
+      let post_id = comment_form.post_id;
+      let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+      if post.locked {
+        return Err(anyhow!("Post is locked").into());
+      }
+
       let comment = blocking(context.pool(), move |conn| {
         Comment::upsert(conn, &comment_form)
       })
