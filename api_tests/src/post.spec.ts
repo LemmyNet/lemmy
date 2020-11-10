@@ -21,6 +21,10 @@ import {
   unfollowRemotes,
   delay,
   longDelay,
+  searchForUser,
+  banUserFromSite,
+  searchPostLocal,
+  banUserFromCommunity,
 } from './shared';
 import {
   Post,
@@ -189,25 +193,20 @@ test('Lock a post', async () => {
   let postRes = await createPost(alpha, search.communities[0].id);
   await delay();
 
+  // Lock the post
   let lockedPostRes = await lockPost(alpha, true, postRes.post);
   expect(lockedPostRes.post.locked).toBe(true);
-  await delay();
+  await longDelay();
 
   // Make sure that post is locked on beta
-  let searchBeta = await searchPost(beta, postRes.post);
-  let betaPost = searchBeta.posts[0];
-  expect(betaPost.community_local).toBe(true);
-  expect(betaPost.creator_local).toBe(false);
-  expect(betaPost.locked).toBe(true);
+  let searchBeta = await searchPostLocal(beta, postRes.post);
+  let betaPost1 = searchBeta.posts[0];
+  expect(betaPost1.locked).toBe(true);
+  await delay();
 
   // Try to make a new comment there, on alpha
   let comment = await createComment(alpha, postRes.post.id);
   expect(comment['error']).toBe('locked');
-  await delay();
-
-  // Try to create a new comment, on beta
-  let commentBeta = await createComment(beta, betaPost.id);
-  expect(commentBeta['error']).toBe('locked');
   await delay();
 
   // Unlock a post
@@ -221,6 +220,10 @@ test('Lock a post', async () => {
   expect(betaPost2.community_local).toBe(true);
   expect(betaPost2.creator_local).toBe(false);
   expect(betaPost2.locked).toBe(false);
+
+  // Try to create a new comment, on beta
+  let commentBeta = await createComment(beta, betaPost2.id);
+  expect(commentBeta).toBeDefined();
 });
 
 test('Delete a post', async () => {
@@ -332,4 +335,71 @@ test('A and G subscribe to B (center) A posts, it gets announced to G', async ()
 
   let search2 = await searchPost(gamma, postRes.post);
   expect(search2.posts[0].name).toBeDefined();
+});
+
+test('Enforce site ban for federated user', async () => {
+
+  let alphaShortname = `@lemmy_alpha@lemmy-alpha:8541`;
+  let userSearch = await searchForUser(beta, alphaShortname);
+  let alphaUser = userSearch.users[0];
+  expect(alphaUser).toBeDefined();
+  await delay();
+
+  // ban alpha from beta site
+  let banAlpha = await banUserFromSite(beta, alphaUser.id, true);
+  expect(banAlpha.banned).toBe(true);
+  await longDelay();
+
+  // Alpha makes post on beta
+  let search = await searchForBetaCommunity(alpha);
+  await delay();
+  let postRes = await createPost(alpha, search.communities[0].id);
+  expect(postRes.post).toBeDefined();
+  expect(postRes.post.community_local).toBe(false);
+  expect(postRes.post.creator_local).toBe(true);
+  expect(postRes.post.score).toBe(1);
+  await longDelay();
+
+  // Make sure that post doesn't make it to beta
+  let searchBeta = await searchPostLocal(beta, postRes.post);
+  let betaPost = searchBeta.posts[0];
+  expect(betaPost).toBeUndefined();
+  await delay();
+
+  // Unban alpha
+  let unBanAlpha = await banUserFromSite(beta, alphaUser.id, false);
+  expect(unBanAlpha.banned).toBe(false);
+});
+
+test('Enforce community ban for federated user', async () => {
+  let alphaShortname = `@lemmy_alpha@lemmy-alpha:8541`;
+  let userSearch = await searchForUser(beta, alphaShortname);
+  let alphaUser = userSearch.users[0];
+  expect(alphaUser).toBeDefined();
+  await delay();
+
+  // ban alpha from beta site
+  await banUserFromCommunity(beta, alphaUser.id, 2, false);
+  let banAlpha = await banUserFromCommunity(beta, alphaUser.id, 2, true);
+  expect(banAlpha.banned).toBe(true);
+  await longDelay();
+
+  // Alpha makes post on beta
+  let search = await searchForBetaCommunity(alpha);
+  await delay();
+  let postRes = await createPost(alpha, search.communities[0].id);
+  expect(postRes.post).toBeDefined();
+  expect(postRes.post.community_local).toBe(false);
+  expect(postRes.post.creator_local).toBe(true);
+  expect(postRes.post.score).toBe(1);
+  await longDelay();
+
+  // Make sure that post doesn't make it to beta community
+  let searchBeta = await searchPostLocal(beta, postRes.post);
+  let betaPost = searchBeta.posts[0];
+  expect(betaPost).toBeUndefined();
+
+  // Unban alpha
+  let unBanAlpha = await banUserFromCommunity(beta, alphaUser.id, 2, false);
+  expect(unBanAlpha.banned).toBe(false);
 });

@@ -43,6 +43,10 @@ import {
   GetSiteResponse,
   SearchType,
   LemmyHttp,
+  BanUserResponse,
+  BanUserForm,
+  BanFromCommunityForm,
+  BanFromCommunityResponse,
 } from 'lemmy-js-client';
 
 export interface API {
@@ -120,8 +124,8 @@ export async function createPost(
   api: API,
   community_id: number
 ): Promise<PostResponse> {
-  let name = 'A jest test post';
-  let body = 'Some body';
+  let name = randomString(5);
+  let body = randomString(10);
   let url = 'https://google.com/';
   let form: PostForm = {
     name,
@@ -209,6 +213,18 @@ export async function searchPost(
   return api.client.search(form);
 }
 
+export async function searchPostLocal(
+  api: API,
+  post: Post
+): Promise<SearchResponse> {
+  let form: SearchForm = {
+    q: post.name,
+    type_: SearchType.Posts,
+    sort: SortType.TopAll,
+  };
+  return api.client.search(form);
+}
+
 export async function getPost(
   api: API,
   post_id: number
@@ -269,6 +285,38 @@ export async function searchForUser(
     sort: SortType.TopAll,
   };
   return api.client.search(form);
+}
+
+export async function banUserFromSite(
+  api: API,
+  user_id: number,
+  ban: boolean,
+): Promise<BanUserResponse> {
+  // Make sure lemmy-beta/c/main is cached on lemmy_alpha
+  // Use short-hand search url
+  let form: BanUserForm = {
+    user_id,
+    ban,
+    auth: api.auth,
+  };
+  return api.client.banUser(form);
+}
+
+export async function banUserFromCommunity(
+  api: API,
+  user_id: number,
+  community_id: number,
+  ban: boolean,
+): Promise<BanFromCommunityResponse> {
+  // Make sure lemmy-beta/c/main is cached on lemmy_alpha
+  // Use short-hand search url
+  let form: BanFromCommunityForm = {
+    user_id,
+    community_id,
+    ban,
+    auth: api.auth,
+  };
+  return api.client.banFromCommunity(form);
 }
 
 export async function followCommunity(
