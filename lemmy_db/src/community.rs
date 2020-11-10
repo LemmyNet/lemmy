@@ -275,8 +275,8 @@ pub struct CommunityFollower {
   pub id: i32,
   pub community_id: i32,
   pub user_id: i32,
-  pub pending: bool,
   pub published: chrono::NaiveDateTime,
+  pub pending: Option<bool>,
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
@@ -341,7 +341,7 @@ mod tests {
       avatar: None,
       banner: None,
       admin: false,
-      banned: false,
+      banned: Some(false),
       published: None,
       updated: None,
       show_nsfw: false,
@@ -407,6 +407,7 @@ mod tests {
     let community_follower_form = CommunityFollowerForm {
       community_id: inserted_community.id,
       user_id: inserted_user.id,
+      pending: false,
     };
 
     let inserted_community_follower =
@@ -416,6 +417,7 @@ mod tests {
       id: inserted_community_follower.id,
       community_id: inserted_community.id,
       user_id: inserted_user.id,
+      pending: Some(false),
       published: inserted_community_follower.published,
     };
 

@@ -16,6 +16,18 @@ use diesel::{
   PgConnection,
 };
 use http_signature_normalization_actix::PrepareVerifyError;
+use lemmy_api::match_websocket_operation;
+use lemmy_apub::{
+  activity_queue::create_activity_queue,
+  inbox::{
+    community_inbox,
+    community_inbox::community_inbox,
+    shared_inbox,
+    shared_inbox::shared_inbox,
+    user_inbox,
+    user_inbox::user_inbox,
+  },
+};
 use lemmy_db::{
   community::{Community, CommunityForm},
   user::{User_, *},
@@ -24,22 +36,8 @@ use lemmy_db::{
   SortType,
 };
 use lemmy_rate_limit::{rate_limiter::RateLimiter, RateLimit};
-use lemmy_server::{
-  apub::{
-    activity_queue::create_activity_queue,
-    inbox::{
-      community_inbox,
-      community_inbox::community_inbox,
-      shared_inbox,
-      shared_inbox::shared_inbox,
-      user_inbox,
-      user_inbox::user_inbox,
-    },
-  },
-  websocket::chat_server::ChatServer,
-  LemmyContext,
-};
 use lemmy_utils::{apub::generate_actor_keypair, settings::Settings};
+use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -61,11 +59,12 @@ fn create_context() -> LemmyContext {
   let chat_server = ChatServer::startup(
     pool.clone(),
     rate_limiter.clone(),
+    |c, i, o, d| Box::pin(match_websocket_operation(c, i, o, d)),
     Client::default(),
     activity_queue.clone(),
   )
   .start();
-  LemmyContext::new(
+  LemmyContext::create(
     pool,
     chat_server,
     Client::default(),
@@ -84,7 +83,7 @@ fn create_user(conn: &PgConnection, name: &str) -> User_ {
     avatar: None,
     banner: None,
     admin: false,
-    banned: false,
+    banned: Some(false),
     updated: None,
     published: None,
     show_nsfw: false,
@@ -177,7 +176,7 @@ async fn test_user_inbox_expired_signature() {
   let connection = &context.pool().get().unwrap();
   let user = create_user(connection, "user_inbox_cgsax");
   let activity =
-    create_activity::<CreateType, ActorAndObject<user_inbox::ValidTypes>>(user.actor_id);
+    create_activity::<CreateType, ActorAndObject<user_inbox::UserValidTypes>>(user.actor_id);
   let path = Path::<String> {
     0: "username".to_string(),
   };
@@ -196,8 +195,9 @@ async fn test_community_inbox_expired_signature() {
   let user = create_user(connection, "community_inbox_hrxa");
   let community = create_community(connection, user.id);
   let request = create_http_request();
-  let activity =
-    create_activity::<FollowType, ActorAndObject<community_inbox::ValidTypes>>(user.actor_id);
+  let activity = create_activity::<FollowType, ActorAndObject<community_inbox::CommunityValidTypes>>(
+    user.actor_id,
+  );
   let path = Path::<String> { 0: community.name };
   let response = community_inbox(request, activity, path, web::Data::new(context)).await;
   assert_eq!(
