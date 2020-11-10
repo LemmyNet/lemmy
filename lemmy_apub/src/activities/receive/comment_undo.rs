@@ -1,10 +1,9 @@
 use crate::{
-  activities::receive::{announce_if_community_is_local, get_actor_as_user},
+  activities::receive::get_actor_as_user,
   fetcher::get_or_fetch_and_insert_comment,
   FromApub,
 };
 use activitystreams::{activity::*, object::Note, prelude::*};
-use actix_web::HttpResponse;
 use anyhow::Context;
 use lemmy_db::{
   comment::{Comment, CommentForm, CommentLike},
@@ -16,11 +15,10 @@ use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation};
 
 pub(crate) async fn receive_undo_like_comment(
-  undo: Undo,
   like: &Like,
   context: &LemmyContext,
   request_counter: &mut i32,
-) -> Result<HttpResponse, LemmyError> {
+) -> Result<(), LemmyError> {
   let user = get_actor_as_user(like, context, request_counter).await?;
   let note = Note::from_any_base(like.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
@@ -57,16 +55,14 @@ pub(crate) async fn receive_undo_like_comment(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(undo, context, request_counter).await?;
-  Ok(HttpResponse::Ok().finish())
+  Ok(())
 }
 
 pub(crate) async fn receive_undo_dislike_comment(
-  undo: Undo,
   dislike: &Dislike,
   context: &LemmyContext,
   request_counter: &mut i32,
-) -> Result<HttpResponse, LemmyError> {
+) -> Result<(), LemmyError> {
   let user = get_actor_as_user(dislike, context, request_counter).await?;
   let note = Note::from_any_base(
     dislike
@@ -109,16 +105,13 @@ pub(crate) async fn receive_undo_dislike_comment(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(undo, context, request_counter).await?;
-  Ok(HttpResponse::Ok().finish())
+  Ok(())
 }
 
 pub(crate) async fn receive_undo_delete_comment(
   context: &LemmyContext,
-  undo: Undo,
   comment: Comment,
-  request_counter: &mut i32,
-) -> Result<HttpResponse, LemmyError> {
+) -> Result<(), LemmyError> {
   let deleted_comment = blocking(context.pool(), move |conn| {
     Comment::update_deleted(conn, comment.id, false)
   })
@@ -145,16 +138,13 @@ pub(crate) async fn receive_undo_delete_comment(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(undo, context, request_counter).await?;
-  Ok(HttpResponse::Ok().finish())
+  Ok(())
 }
 
 pub(crate) async fn receive_undo_remove_comment(
   context: &LemmyContext,
-  undo: Undo,
   comment: Comment,
-  request_counter: &mut i32,
-) -> Result<HttpResponse, LemmyError> {
+) -> Result<(), LemmyError> {
   let removed_comment = blocking(context.pool(), move |conn| {
     Comment::update_removed(conn, comment.id, false)
   })
@@ -181,6 +171,5 @@ pub(crate) async fn receive_undo_remove_comment(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(undo, context, request_counter).await?;
-  Ok(HttpResponse::Ok().finish())
+  Ok(())
 }

@@ -1,15 +1,14 @@
 use crate::{
-  activities::receive::{announce_if_community_is_local, get_actor_as_user},
+  activities::receive::get_actor_as_user,
   fetcher::get_or_fetch_and_insert_post,
   ActorType,
   FromApub,
   PageExt,
 };
 use activitystreams::{
-  activity::{Create, Delete, Dislike, Like, Remove, Update},
+  activity::{Create, Dislike, Like, Remove, Update},
   prelude::*,
 };
-use actix_web::HttpResponse;
 use anyhow::Context;
 use lemmy_db::{
   post::{Post, PostForm, PostLike, PostLikeForm},
@@ -25,7 +24,7 @@ pub(crate) async fn receive_create_post(
   create: Create,
   context: &LemmyContext,
   request_counter: &mut i32,
-) -> Result<HttpResponse, LemmyError> {
+) -> Result<(), LemmyError> {
   let user = get_actor_as_user(&create, context, request_counter).await?;
   let page = PageExt::from_any_base(create.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
@@ -51,15 +50,14 @@ pub(crate) async fn receive_create_post(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(create, context, request_counter).await?;
-  Ok(HttpResponse::Ok().finish())
+  Ok(())
 }
 
 pub(crate) async fn receive_update_post(
   update: Update,
   context: &LemmyContext,
   request_counter: &mut i32,
-) -> Result<HttpResponse, LemmyError> {
+) -> Result<(), LemmyError> {
   let user = get_actor_as_user(&update, context, request_counter).await?;
   let page = PageExt::from_any_base(update.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
@@ -89,15 +87,14 @@ pub(crate) async fn receive_update_post(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(update, context, request_counter).await?;
-  Ok(HttpResponse::Ok().finish())
+  Ok(())
 }
 
 pub(crate) async fn receive_like_post(
   like: Like,
   context: &LemmyContext,
   request_counter: &mut i32,
-) -> Result<HttpResponse, LemmyError> {
+) -> Result<(), LemmyError> {
   let user = get_actor_as_user(&like, context, request_counter).await?;
   let page = PageExt::from_any_base(like.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
@@ -134,15 +131,14 @@ pub(crate) async fn receive_like_post(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(like, context, request_counter).await?;
-  Ok(HttpResponse::Ok().finish())
+  Ok(())
 }
 
 pub(crate) async fn receive_dislike_post(
   dislike: Dislike,
   context: &LemmyContext,
   request_counter: &mut i32,
-) -> Result<HttpResponse, LemmyError> {
+) -> Result<(), LemmyError> {
   let user = get_actor_as_user(&dislike, context, request_counter).await?;
   let page = PageExt::from_any_base(
     dislike
@@ -185,16 +181,13 @@ pub(crate) async fn receive_dislike_post(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(dislike, context, request_counter).await?;
-  Ok(HttpResponse::Ok().finish())
+  Ok(())
 }
 
 pub(crate) async fn receive_delete_post(
   context: &LemmyContext,
-  delete: Delete,
   post: Post,
-  request_counter: &mut i32,
-) -> Result<HttpResponse, LemmyError> {
+) -> Result<(), LemmyError> {
   let deleted_post = blocking(context.pool(), move |conn| {
     Post::update_deleted(conn, post.id, true)
   })
@@ -214,15 +207,14 @@ pub(crate) async fn receive_delete_post(
     websocket_id: None,
   });
 
-  announce_if_community_is_local(delete, context, request_counter).await?;
-  Ok(HttpResponse::Ok().finish())
+  Ok(())
 }
 
 pub(crate) async fn receive_remove_post(
   context: &LemmyContext,
   _remove: Remove,
   post: Post,
-) -> Result<HttpResponse, LemmyError> {
+) -> Result<(), LemmyError> {
   let removed_post = blocking(context.pool(), move |conn| {
     Post::update_removed(conn, post.id, true)
   })
@@ -242,5 +234,5 @@ pub(crate) async fn receive_remove_post(
     websocket_id: None,
   });
 
-  Ok(HttpResponse::Ok().finish())
+  Ok(())
 }
