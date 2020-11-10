@@ -275,6 +275,7 @@ pub struct CommunityFollower {
   pub id: i32,
   pub community_id: i32,
   pub user_id: i32,
+  pub pending: bool,
   pub published: chrono::NaiveDateTime,
 }
 
@@ -283,6 +284,7 @@ pub struct CommunityFollower {
 pub struct CommunityFollowerForm {
   pub community_id: i32,
   pub user_id: i32,
+  pub pending: bool,
 }
 
 impl Followable<CommunityFollowerForm> for CommunityFollower {
@@ -294,6 +296,19 @@ impl Followable<CommunityFollowerForm> for CommunityFollower {
     insert_into(community_follower)
       .values(community_follower_form)
       .get_result::<Self>(conn)
+  }
+  fn follow_accepted(conn: &PgConnection, community_id_: i32, user_id_: i32) -> Result<Self, Error>
+  where
+    Self: Sized,
+  {
+    use crate::schema::community_follower::dsl::*;
+    diesel::update(
+      community_follower
+        .filter(community_id.eq(community_id_))
+        .filter(user_id.eq(user_id_)),
+    )
+    .set(pending.eq(true))
+    .get_result::<Self>(conn)
   }
   fn unfollow(
     conn: &PgConnection,

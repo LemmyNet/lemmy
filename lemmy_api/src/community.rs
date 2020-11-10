@@ -188,6 +188,7 @@ impl Perform for CreateCommunity {
     let community_follower_form = CommunityFollowerForm {
       community_id: inserted_community.id,
       user_id: user.id,
+      pending: false,
     };
 
     let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);
@@ -479,6 +480,7 @@ impl Perform for FollowCommunity {
     let community_follower_form = CommunityFollowerForm {
       community_id: data.community_id,
       user_id: user.id,
+      pending: false,
     };
 
     if community.local {

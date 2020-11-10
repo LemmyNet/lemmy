@@ -149,6 +149,7 @@ table! {
         id -> Int4,
         community_id -> Int4,
         user_id -> Int4,
+        pending -> Bool,
         published -> Timestamp,
     }
 }
