@@ -251,6 +251,7 @@ impl Perform for Register {
     let community_follower_form = CommunityFollowerForm {
       community_id: main_community.id,
       user_id: inserted_user.id,
+      pending: false,
     };
 
     let follow = move |conn: &'_ _| CommunityFollower::follow(conn, &community_follower_form);

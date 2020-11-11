@@ -200,6 +200,7 @@ async fn handle_follow(
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,
     user_id: user.id,
+    pending: false,
   };
 
   // This will fail if they're already a follower, but ignore the error.
@@ -254,6 +255,7 @@ async fn handle_undo_follow(
   let community_follower_form = CommunityFollowerForm {
     community_id: community.id,
     user_id: user.id,
+    pending: false,
   };
 
   // This will fail if they aren't a follower, but ignore the error.
