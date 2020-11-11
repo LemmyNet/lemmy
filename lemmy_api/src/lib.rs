@@ -1,3 +1,5 @@
+//! The Lemmy API crate
+#![deny(missing_docs)]
 use crate::claims::Claims;
 use actix_web::{web, web::Data};
 use lemmy_db::{
@@ -15,18 +17,28 @@ use serde::Deserialize;
 use std::process::Command;
 use url::Url;
 
+/// The claims
 pub mod claims;
+/// Comments
 pub mod comment;
+/// Communities
 pub mod community;
+/// Posts
 pub mod post;
+/// The site
 pub mod site;
+/// The user
 pub mod user;
+/// The version
 pub mod version;
 
 #[async_trait::async_trait(?Send)]
+/// The perform trait, which performs an API action
 pub trait Perform {
+  /// The response type
   type Response: serde::ser::Serialize + Send;
 
+  /// Perform the API action
   async fn perform(
     &self,
     context: &Data<LemmyContext>,
@@ -34,7 +46,7 @@ pub trait Perform {
   ) -> Result<Self::Response, LemmyError>;
 }
 
-pub(in crate) async fn is_mod_or_admin(
+pub(crate) async fn is_mod_or_admin(
   pool: &DbPool,
   user_id: i32,
   community_id: i32,
@@ -48,7 +60,8 @@ pub(in crate) async fn is_mod_or_admin(
   }
   Ok(())
 }
-pub async fn is_admin(pool: &DbPool, user_id: i32) -> Result<(), LemmyError> {
+
+pub(crate) async fn is_admin(pool: &DbPool, user_id: i32) -> Result<(), LemmyError> {
   let user = blocking(pool, move |conn| User_::read(conn, user_id)).await??;
   if !user.admin {
     return Err(APIError::err("not_an_admin").into());
@@ -56,14 +69,14 @@ pub async fn is_admin(pool: &DbPool, user_id: i32) -> Result<(), LemmyError> {
   Ok(())
 }
 
-pub(in crate) async fn get_post(post_id: i32, pool: &DbPool) -> Result<Post, LemmyError> {
+pub(crate) async fn get_post(post_id: i32, pool: &DbPool) -> Result<Post, LemmyError> {
   match blocking(pool, move |conn| Post::read(conn, post_id)).await? {
     Ok(post) => Ok(post),
     Err(_e) => Err(APIError::err("couldnt_find_post").into()),
   }
 }
 
-pub(in crate) async fn get_user_from_jwt(jwt: &str, pool: &DbPool) -> Result<User_, LemmyError> {
+pub(crate) async fn get_user_from_jwt(jwt: &str, pool: &DbPool) -> Result<User_, LemmyError> {
   let claims = match Claims::decode(&jwt) {
     Ok(claims) => claims.claims,
     Err(_e) => return Err(APIError::err("not_logged_in").into()),
@@ -77,7 +90,7 @@ pub(in crate) async fn get_user_from_jwt(jwt: &str, pool: &DbPool) -> Result<Use
   Ok(user)
 }
 
-pub(in crate) async fn get_user_from_jwt_opt(
+pub(crate) async fn get_user_from_jwt_opt(
   jwt: &Option<String>,
   pool: &DbPool,
 ) -> Result<Option<User_>, LemmyError> {
@@ -87,7 +100,7 @@ pub(in crate) async fn get_user_from_jwt_opt(
   }
 }
 
-pub(in crate) async fn check_community_ban(
+pub(crate) async fn check_community_ban(
   user_id: i32,
   community_id: i32,
   pool: &DbPool,
@@ -100,7 +113,7 @@ pub(in crate) async fn check_community_ban(
   }
 }
 
-pub(in crate) fn check_optional_url(item: &Option<Option<String>>) -> Result<(), LemmyError> {
+pub(crate) fn check_optional_url(item: &Option<Option<String>>) -> Result<(), LemmyError> {
   if let Some(Some(item)) = &item {
     if Url::parse(item).is_err() {
       return Err(APIError::err("invalid_url").into());
@@ -109,7 +122,7 @@ pub(in crate) fn check_optional_url(item: &Option<Option<String>>) -> Result<(),
   Ok(())
 }
 
-pub(in crate) async fn linked_instances(pool: &DbPool) -> Result<Vec<String>, LemmyError> {
+pub(crate) async fn linked_instances(pool: &DbPool) -> Result<Vec<String>, LemmyError> {
   let mut instances: Vec<String> = Vec::new();
 
   if Settings::get().federation.enabled {
@@ -138,6 +151,7 @@ pub(in crate) async fn linked_instances(pool: &DbPool) -> Result<Vec<String>, Le
   Ok(instances)
 }
 
+/// Perform the websocket operation and return the JSON result
 pub async fn match_websocket_operation(
   context: LemmyContext,
   id: ConnectionId,

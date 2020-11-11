@@ -13,6 +13,7 @@ use lettre::{
 };
 use std::str::FromStr;
 
+/// Sends an email
 pub fn send_email(
   subject: &str,
   to_email: &str,

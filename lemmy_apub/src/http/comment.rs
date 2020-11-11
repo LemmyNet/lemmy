@@ -11,6 +11,7 @@ use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
+/// The comment query string
 pub struct CommentQuery {
   comment_id: String,
 }

@@ -22,7 +22,7 @@ use std::str::FromStr;
 use strum::ParseError;
 
 #[derive(Deserialize)]
-pub struct Params {
+struct Params {
   sort: Option<String>,
 }
 
@@ -33,6 +33,7 @@ enum RequestType {
   Inbox,
 }
 
+/// The feed config
 pub fn config(cfg: &mut web::ServiceConfig) {
   cfg
     .route("/feeds/{type}/{name}.xml", web::get().to(get_feed))

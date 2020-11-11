@@ -7,6 +7,7 @@ use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
+/// The user query string
 pub struct UserQuery {
   user_name: String,
 }

@@ -13,8 +13,10 @@ struct SendError(pub String);
 
 #[derive(Clone, Debug, Error)]
 #[error("Error receiving response, {0}")]
+/// A Receive error
 pub struct RecvError(pub String);
 
+/// A Retry
 pub async fn retry<F, Fut, T>(f: F) -> Result<T, LemmyError>
 where
   F: Fn() -> Fut,
@@ -107,6 +109,7 @@ pub(crate) async fn fetch_pictrs(
   }
 }
 
+/// Fetching iframely and pictrs data
 pub async fn fetch_iframely_and_pictrs_data(
   client: &Client,
   url: Option<String>,

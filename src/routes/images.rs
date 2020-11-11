@@ -5,6 +5,7 @@ use lemmy_rate_limit::RateLimit;
 use lemmy_utils::settings::Settings;
 use serde::{Deserialize, Serialize};
 
+/// The config for the image routing
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
   let client = Client::builder()
     .header("User-Agent", "pict-rs-frontend, v0.1.0")
@@ -24,19 +25,19 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Image {
+struct Image {
   file: String,
   delete_token: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Images {
+struct Images {
   msg: String,
   files: Option<Vec<Image>>,
 }
 
 #[derive(Deserialize)]
-pub struct PictrsParams {
+struct PictrsParams {
   format: Option<String>,
   thumbnail: Option<String>,
 }

@@ -5,6 +5,7 @@ use lemmy_structs::{comment::*, community::*, post::*, site::*, user::*};
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 
+/// The API config
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
   cfg.service(
     web::scope("/api/v1")

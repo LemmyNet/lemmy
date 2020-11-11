@@ -63,15 +63,23 @@ use url::Url;
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 pub enum UserValidTypes {
-  Accept,   // community accepted our follow request
-  Create,   // create private message
-  Update,   // edit private message
-  Delete,   // private message or community deleted by creator
-  Undo,     // private message or community restored
-  Remove,   // community removed by admin
-  Announce, // post, comment or vote in community
+  /// Community accepted our follow request
+  Accept,
+  /// create private message
+  Create,
+  /// edit private message
+  Update,
+  /// private message or community deleted by creator
+  Delete,
+  /// private message or community restored
+  Undo,
+  /// community removed by admin
+  Remove,
+  /// post, comment or vote in community
+  Announce,
 }
 
+/// The accepted user activities
 pub type UserAcceptedActivities = ActorAndObject<UserValidTypes>;
 
 /// Handler for all incoming activities to user inboxes.

@@ -285,6 +285,7 @@ impl ActixJob for SendActivityTask {
   }
 }
 
+/// Creates an activity queue
 pub fn create_activity_queue() -> QueueHandle {
   // Start the application server. This guards access to to the jobs store
   let queue_handle = create_server(Storage::new());

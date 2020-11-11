@@ -17,15 +17,18 @@ static ref VALID_COMMUNITY_NAME_REGEX: Regex = Regex::new(r"^[a-z0-9_]{3,20}$").
 static ref VALID_POST_TITLE_REGEX: Regex = Regex::new(r".*\S.*").unwrap();
 }
 
+/// Get a naive datetime from unix time
 pub fn naive_from_unix(time: i64) -> NaiveDateTime {
   NaiveDateTime::from_timestamp(time, 0)
 }
 
+/// Convert a naive datetime to a fixed offset datetime
 pub fn convert_datetime(datetime: NaiveDateTime) -> DateTime<FixedOffset> {
   let now = Local::now();
   DateTime::<FixedOffset>::from_utc(datetime, *now.offset())
 }
 
+/// Replace slurs in a string with *removed*
 pub fn remove_slurs(test: &str) -> String {
   SLUR_REGEX.replace_all(test, "*removed*").to_string()
 }
@@ -44,6 +47,7 @@ pub(crate) fn slur_check(test: &str) -> Result<(), Vec<&str>> {
   }
 }
 
+/// Check for slurs, if there are any, throw an API error
 pub fn check_slurs(text: &str) -> Result<(), APIError> {
   if let Err(slurs) = slur_check(text) {
     Err(APIError::err(&slurs_vec_to_str(slurs)))
@@ -52,6 +56,7 @@ pub fn check_slurs(text: &str) -> Result<(), APIError> {
   }
 }
 
+/// Check for slurs using an option string
 pub fn check_slurs_opt(text: &Option<String>) -> Result<(), APIError> {
   match text {
     Some(t) => check_slurs(t),
@@ -65,30 +70,38 @@ pub(crate) fn slurs_vec_to_str(slurs: Vec<&str>) -> String {
   [start, combined].concat()
 }
 
+/// Generate random string
 pub fn generate_random_string() -> String {
   thread_rng().sample_iter(&Alphanumeric).take(30).collect()
 }
 
+/// Convert markdown to html
 pub fn markdown_to_html(text: &str) -> String {
   comrak::markdown_to_html(text, &comrak::ComrakOptions::default())
 }
 
 // TODO nothing is done with community / group webfingers yet, so just ignore those for now
 #[derive(Clone, PartialEq, Eq, Hash)]
+/// Mention data
 pub struct MentionData {
+  /// The mentioned name
   pub name: String,
+  /// The mentioned domain
   pub domain: String,
 }
 
 impl MentionData {
+  /// Is the mention local
   pub fn is_local(&self) -> bool {
     Settings::get().hostname.eq(&self.domain)
   }
+  /// The full user mention, IE @user@lemmy.ml
   pub fn full_name(&self) -> String {
     format!("@{}@{}", &self.name, &self.domain)
   }
 }
 
+/// Scrape the text for mentions
 pub fn scrape_text_for_mentions(text: &str) -> Vec<MentionData> {
   let mut out: Vec<MentionData> = Vec::new();
   for caps in MENTIONS_REGEX.captures_iter(text) {
@@ -100,25 +113,29 @@ pub fn scrape_text_for_mentions(text: &str) -> Vec<MentionData> {
   out.into_iter().unique().collect()
 }
 
+/// Check if the username is valid
 pub fn is_valid_username(name: &str) -> bool {
   VALID_USERNAME_REGEX.is_match(name)
 }
 
-// Can't do a regex here, reverse lookarounds not supported
+/// Check if the preferred username is valid
 pub fn is_valid_preferred_username(preferred_username: &str) -> bool {
   !preferred_username.starts_with('@')
     && preferred_username.len() >= 3
     && preferred_username.len() <= 20
 }
 
+/// Check if the community name is valid
 pub fn is_valid_community_name(name: &str) -> bool {
   VALID_COMMUNITY_NAME_REGEX.is_match(name)
 }
 
+/// Check if the post title is valid
 pub fn is_valid_post_title(title: &str) -> bool {
   VALID_POST_TITLE_REGEX.is_match(title)
 }
 
+/// Get the external IP address (note: requires nginx header forwarding)
 pub fn get_ip(conn_info: &ConnectionInfo) -> String {
   conn_info
     .realip_remote_addr()

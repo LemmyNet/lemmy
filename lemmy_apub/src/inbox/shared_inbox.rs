@@ -24,18 +24,27 @@ use url::Url;
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 pub enum ValidTypes {
+  /// Create
   Create,
+  /// Update
   Update,
+  /// Like
   Like,
+  /// Dislike
   Dislike,
+  /// Delete
   Delete,
+  /// Undo
   Undo,
+  /// Remove
   Remove,
+  /// Annnounce
   Announce,
 }
 
 // TODO: this isnt entirely correct, cause some of these receive are not ActorAndObject,
 //       but it still works due to the anybase conversion
+/// Accepted shared inbox activities
 pub type AcceptedActivities = ActorAndObject<ValidTypes>;
 
 /// Handler for all incoming requests to shared inbox.

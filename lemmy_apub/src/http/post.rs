@@ -11,6 +11,7 @@ use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
+/// The post query string
 pub struct PostQuery {
   post_id: String,
 }

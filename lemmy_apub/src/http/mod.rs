@@ -6,9 +6,13 @@ use lemmy_utils::{settings::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
 
+/// The apub comment
 pub mod comment;
+/// The apub community
 pub mod community;
+/// The apub post
 pub mod post;
+/// The apub user
 pub mod user;
 
 /// Convert the data to json and turn it into an HTTP Response with the correct ActivityPub
@@ -32,6 +36,7 @@ where
 }
 
 #[derive(Deserialize)]
+/// The community query
 pub struct CommunityQuery {
   type_: String,
   id: String,

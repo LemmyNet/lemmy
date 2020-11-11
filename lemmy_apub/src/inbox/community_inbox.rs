@@ -44,16 +44,25 @@ use url::Url;
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 pub enum CommunityValidTypes {
-  Follow,  // follow request from a user
-  Undo,    // unfollow from a user
-  Create,  // create post or comment
-  Update,  // update post or comment
-  Like,    // upvote post or comment
-  Dislike, // downvote post or comment
-  Delete,  // post or comment deleted by creator
-  Remove,  // post or comment removed by mod or admin
+  /// follow request from a user
+  Follow,
+  /// unfollow from a user
+  Undo,
+  /// create post or comment
+  Create,
+  /// update post or comment
+  Update,
+  /// upvote post or comment
+  Like,
+  /// downvote post or comment
+  Dislike,
+  /// post or comment deleted by creator
+  Delete,
+  /// post or comment removed by mod or admin
+  Remove,
 }
 
+/// The accepted community activities
 pub type CommunityAcceptedActivities = ActorAndObject<CommunityValidTypes>;
 
 /// Handler for all incoming receive to community inboxes.

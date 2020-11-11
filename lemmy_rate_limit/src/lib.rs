@@ -1,3 +1,6 @@
+//! The Lemmy rate limit crate
+
+#![deny(missing_docs)]
 #[macro_use]
 extern crate strum_macros;
 
@@ -17,39 +20,48 @@ use std::{
 };
 use tokio::sync::Mutex;
 
+/// The rate limiter
 pub mod rate_limiter;
 
 #[derive(Debug, Clone)]
+/// The rate limit
 pub struct RateLimit {
   // it might be reasonable to use a std::sync::Mutex here, since we don't need to lock this
   // across await points
+  /// A rate limiter
   pub rate_limiter: Arc<Mutex<RateLimiter>>,
 }
 
 #[derive(Debug, Clone)]
+/// The rate limited item
 pub struct RateLimited {
   rate_limiter: Arc<Mutex<RateLimiter>>,
   type_: RateLimitType,
 }
 
+/// The rate limited middleware
 pub struct RateLimitedMiddleware<S> {
   rate_limited: RateLimited,
   service: S,
 }
 
 impl RateLimit {
+  /// A rate limit for message
   pub fn message(&self) -> RateLimited {
     self.kind(RateLimitType::Message)
   }
 
+  /// A rate limit for post
   pub fn post(&self) -> RateLimited {
     self.kind(RateLimitType::Post)
   }
 
+  /// A rate limit for register
   pub fn register(&self) -> RateLimited {
     self.kind(RateLimitType::Register)
   }
 
+  /// A rate limit for images
   pub fn image(&self) -> RateLimited {
     self.kind(RateLimitType::Image)
   }
@@ -63,6 +75,7 @@ impl RateLimit {
 }
 
 impl RateLimited {
+  /// A wrapper for rate-limited
   pub async fn wrap<T, E>(
     self,
     ip_addr: String,

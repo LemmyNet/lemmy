@@ -6,12 +6,16 @@ use serde::{Deserialize, Serialize};
 type Jwt = String;
 
 #[derive(Debug, Serialize, Deserialize)]
+/// The API claims
 pub struct Claims {
+  /// The user id
   pub id: i32,
+  /// The issuer
   pub iss: String,
 }
 
 impl Claims {
+  /// Decode a jwt into claims
   pub fn decode(jwt: &str) -> Result<TokenData<Claims>, jsonwebtoken::errors::Error> {
     let v = Validation {
       validate_exp: false,
@@ -24,6 +28,7 @@ impl Claims {
     )
   }
 
+  /// Encode a jwt from a user
   pub fn jwt(user: User_, hostname: String) -> Result<Jwt, jsonwebtoken::errors::Error> {
     let my_claims = Claims {
       id: user.id,

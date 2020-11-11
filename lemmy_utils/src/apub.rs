@@ -3,8 +3,12 @@ use openssl::{pkey::PKey, rsa::Rsa};
 use std::io::{Error, ErrorKind};
 use url::Url;
 
+/// The pub / private keypair
 pub struct Keypair {
+  /// The private key
   pub private_key: String,
+
+  /// The public key
   pub public_key: String,
 }
 
@@ -27,11 +31,21 @@ pub fn generate_actor_keypair() -> Result<Keypair, Error> {
   })
 }
 
+/// The APUB endpoint types
 pub enum EndpointType {
+  /// Community
   Community,
+
+  /// User
   User,
+
+  /// Post
   Post,
+
+  /// Comment
   Comment,
+
+  /// Private Message
   PrivateMessage,
 }
 

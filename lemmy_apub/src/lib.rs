@@ -1,12 +1,21 @@
+//! The Lemmy apub crate
+#![deny(missing_docs)]
 #[macro_use]
 extern crate lazy_static;
 
+/// The activities
 pub mod activities;
+/// The activity queue
 pub mod activity_queue;
+/// The apub extensions
 pub mod extensions;
+/// The apub fetcher
 pub mod fetcher;
+/// HTTP endpoints
 pub mod http;
+/// The apub inbox
 pub mod inbox;
+/// The apub objects
 pub mod objects;
 
 use crate::extensions::{
@@ -37,6 +46,7 @@ type PersonExt = Ext1<ApActor<Person>, PublicKeyExtension>;
 /// Activitystreams type for post
 type PageExt = Ext1<Page, PageExtension>;
 
+/// The apub json content type
 pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 
 /// Checks if the ID is allowed for sending or receiving.
@@ -111,13 +121,18 @@ fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
 /// Trait for converting an object or actor into the respective ActivityPub type.
 #[async_trait::async_trait(?Send)]
 pub trait ToApub {
+  /// The apub type
   type ApubType;
+  /// Converts to an apub object
   async fn to_apub(&self, pool: &DbPool) -> Result<Self::ApubType, LemmyError>;
+  /// Creates a tombstone from a lemmy object
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError>;
 }
 
+/// Trait for converting from an apub object into a lemmy object
 #[async_trait::async_trait(?Send)]
 pub trait FromApub {
+  /// The apub type
   type ApubType;
   /// Converts an object from ActivityPub type to Lemmy internal type.
   ///
@@ -139,22 +154,32 @@ pub trait FromApub {
 /// and actors in Lemmy.
 #[async_trait::async_trait(?Send)]
 pub trait ApubObjectType {
+  /// Sends a create
   async fn send_create(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
+  /// Sends an update
   async fn send_update(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
+  /// Sends a delete
   async fn send_delete(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
+  /// Sends an undo delete
   async fn send_undo_delete(
     &self,
     creator: &User_,
     context: &LemmyContext,
   ) -> Result<(), LemmyError>;
+  /// Sends a remove
   async fn send_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
+  /// Sends an undo remove
   async fn send_undo_remove(&self, mod_: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
 }
 
 #[async_trait::async_trait(?Send)]
+/// A trait for a likeable apub type
 pub trait ApubLikeableType {
+  /// Sends a like
   async fn send_like(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
+  /// Sends a dislike
   async fn send_dislike(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError>;
+  /// Sends an undo dislike
   async fn send_undo_like(&self, creator: &User_, context: &LemmyContext)
     -> Result<(), LemmyError>;
 }
@@ -163,35 +188,47 @@ pub trait ApubLikeableType {
 /// implemented by all actors.
 #[async_trait::async_trait(?Send)]
 pub trait ActorType {
+  /// The actor id as a string
   fn actor_id_str(&self) -> String;
 
   // TODO: every actor should have a public key, so this shouldnt be an option (needs to be fixed in db)
+  /// The public key
   fn public_key(&self) -> Option<String>;
+  /// The private key
   fn private_key(&self) -> Option<String>;
 
+  /// Sends a follow
   async fn send_follow(
     &self,
     follow_actor_id: &Url,
     context: &LemmyContext,
   ) -> Result<(), LemmyError>;
+
+  /// Sends an unfollow
   async fn send_unfollow(
     &self,
     follow_actor_id: &Url,
     context: &LemmyContext,
   ) -> Result<(), LemmyError>;
 
+  /// Sends an accept follow
   async fn send_accept_follow(
     &self,
     follow: Follow,
     context: &LemmyContext,
   ) -> Result<(), LemmyError>;
 
+  /// Sends a delete
   async fn send_delete(&self, context: &LemmyContext) -> Result<(), LemmyError>;
+  /// Sends an undo delete
   async fn send_undo_delete(&self, context: &LemmyContext) -> Result<(), LemmyError>;
 
+  /// Sends a remove
   async fn send_remove(&self, context: &LemmyContext) -> Result<(), LemmyError>;
+  /// Sends an undo remove
   async fn send_undo_remove(&self, context: &LemmyContext) -> Result<(), LemmyError>;
 
+  /// Sends an announce
   async fn send_announce(
     &self,
     activity: AnyBase,
@@ -201,15 +238,18 @@ pub trait ActorType {
   /// For a given community, returns the inboxes of all followers.
   async fn get_follower_inboxes(&self, pool: &DbPool) -> Result<Vec<Url>, LemmyError>;
 
+  /// Gets the actor id as a URL
   fn actor_id(&self) -> Result<Url, ParseError> {
     Url::parse(&self.actor_id_str())
   }
 
   // TODO move these to the db rows
+  /// Gets the inbox as a URL
   fn get_inbox_url(&self) -> Result<Url, ParseError> {
     Url::parse(&format!("{}/inbox", &self.actor_id_str()))
   }
 
+  /// Gets the shared inbox as a URL
   fn get_shared_inbox_url(&self) -> Result<Url, LemmyError> {
     let actor_id = self.actor_id()?;
     let url = format!(
@@ -225,14 +265,17 @@ pub trait ActorType {
     Ok(Url::parse(&url)?)
   }
 
+  /// Gets the outbox as a URL
   fn get_outbox_url(&self) -> Result<Url, ParseError> {
     Url::parse(&format!("{}/outbox", &self.actor_id_str()))
   }
 
+  /// Gets the folloers as a URL
   fn get_followers_url(&self) -> Result<Url, ParseError> {
     Url::parse(&format!("{}/followers", &self.actor_id_str()))
   }
 
+  /// Gets the public key
   fn get_public_key_ext(&self) -> Result<PublicKeyExtension, LemmyError> {
     Ok(
       PublicKey {

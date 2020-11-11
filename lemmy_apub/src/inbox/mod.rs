@@ -19,9 +19,12 @@ use lemmy_websocket::LemmyContext;
 use serde::{export::fmt::Debug, Serialize};
 use url::Url;
 
+/// The community inbox
 pub mod community_inbox;
 mod receive_for_community;
+/// The shared inbox
 pub mod shared_inbox;
+/// The user inbox
 pub mod user_inbox;
 
 pub(crate) fn get_activity_id<T, Kind>(activity: &T, creator_uri: &Url) -> Result<Url, LemmyError>

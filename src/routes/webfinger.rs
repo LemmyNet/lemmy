@@ -12,10 +12,11 @@ use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
-pub struct Params {
+struct Params {
   resource: String,
 }
 
+/// The webfinger config
 pub fn config(cfg: &mut web::ServiceConfig) {
   if Settings::get().federation.enabled {
     cfg.route(

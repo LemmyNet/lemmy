@@ -70,8 +70,11 @@ pub struct ChatServer {
   activity_queue: QueueHandle,
 }
 
+/// Info about the websocket session
 pub struct SessionInfo {
+  /// The Address
   pub addr: Recipient<WSMessage>,
+  /// The IP
   pub ip: IPAddr,
 }
 
@@ -79,6 +82,7 @@ pub struct SessionInfo {
 /// And manages available rooms. Peers send messages to other peers in same
 /// room through `ChatServer`.
 impl ChatServer {
+  /// The startup for the chatserver
   pub fn startup(
     pool: Pool<ConnectionManager<PgConnection>>,
     rate_limiter: RateLimit,
@@ -101,6 +105,7 @@ impl ChatServer {
     }
   }
 
+  /// Join a community room
   pub fn join_community_room(
     &mut self,
     community_id: CommunityId,
@@ -130,6 +135,7 @@ impl ChatServer {
     Ok(())
   }
 
+  /// Join a post room
   pub fn join_post_room(&mut self, post_id: PostId, id: ConnectionId) -> Result<(), LemmyError> {
     // remove session from all rooms
     for sessions in self.post_rooms.values_mut() {
@@ -159,6 +165,7 @@ impl ChatServer {
     Ok(())
   }
 
+  /// Join a user room
   pub fn join_user_room(&mut self, user_id: UserId, id: ConnectionId) -> Result<(), LemmyError> {
     // remove session from all rooms
     for sessions in self.user_rooms.values_mut() {
@@ -203,6 +210,7 @@ impl ChatServer {
     Ok(())
   }
 
+  /// Send a community message
   pub fn send_community_room_message<Response>(
     &self,
     op: &UserOperation,
@@ -227,6 +235,7 @@ impl ChatServer {
     Ok(())
   }
 
+  /// Send a message to all
   pub fn send_all_message<Response>(
     &self,
     op: &UserOperation,
@@ -248,6 +257,7 @@ impl ChatServer {
     Ok(())
   }
 
+  /// Send a user message
   pub fn send_user_room_message<Response>(
     &self,
     op: &UserOperation,
@@ -272,6 +282,7 @@ impl ChatServer {
     Ok(())
   }
 
+  /// Send a comment
   pub fn send_comment(
     &self,
     user_operation: &UserOperation,
@@ -315,6 +326,7 @@ impl ChatServer {
     Ok(())
   }
 
+  /// Send a post
   pub fn send_post(
     &self,
     user_operation: &UserOperation,

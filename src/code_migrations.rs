@@ -19,6 +19,7 @@ use lemmy_utils::{
 };
 use log::info;
 
+/// Runs the database migrations which require code
 pub fn run_advanced_migrations(conn: &PgConnection) -> Result<(), LemmyError> {
   user_updates_2020_04_02(&conn)?;
   community_updates_2020_04_02(&conn)?;

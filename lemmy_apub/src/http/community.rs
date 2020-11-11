@@ -15,6 +15,7 @@ use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
+/// The community query string
 pub struct CommunityQuery {
   community_name: String,
 }

@@ -17,6 +17,7 @@ use sha2::{Digest, Sha256};
 static APUB_JSON_CONTENT_TYPE_LONG: &str =
   "application/ld+json; profile=\"https://www.w3.org/ns/activitystreams\"";
 
+/// The federation config
 pub fn config(cfg: &mut web::ServiceConfig) {
   if Settings::get().federation.enabled {
     println!("federation enabled, host is {}", Settings::get().hostname);

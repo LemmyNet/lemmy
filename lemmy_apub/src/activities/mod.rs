@@ -1,2 +1,2 @@
-pub mod receive;
-pub mod send;
+pub(crate) mod receive;
+pub(crate) mod send;

@@ -9,11 +9,11 @@ use chrono::NaiveDateTime;
 use lemmy_utils::{location_info, utils::convert_datetime, LemmyError};
 use url::Url;
 
-pub mod comment;
-pub mod community;
-pub mod post;
-pub mod private_message;
-pub mod user;
+pub(crate) mod comment;
+pub(crate) mod community;
+pub(crate) mod post;
+pub(crate) mod private_message;
+pub(crate) mod user;
 
 /// Updated is actually the deletion time
 fn create_tombstone<T>(
