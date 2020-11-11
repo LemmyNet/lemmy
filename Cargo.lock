@@ -1852,8 +1852,10 @@ dependencies = [
 name = "lemmy_server"
 version = "0.0.1"
 dependencies = [
+ "activitystreams",
  "actix",
  "actix-files",
+ "actix-rt",
  "actix-web",
  "actix-web-actors",
  "anyhow",
@@ -1877,6 +1879,7 @@ dependencies = [
  "reqwest",
  "rss",
  "serde 1.0.117",
+ "serde_json",
  "sha2",
  "strum",
  "tokio 0.3.1",

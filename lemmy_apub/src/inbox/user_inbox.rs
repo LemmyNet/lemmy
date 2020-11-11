@@ -46,7 +46,7 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
 use diesel::NotFound;
 use lemmy_db::{
-  community::{Community, CommunityFollower, CommunityFollowerForm},
+  community::{Community, CommunityFollower},
   private_message::PrivateMessage,
   user::User_,
   Followable,
@@ -173,8 +173,6 @@ async fn receive_accept(
   let accept = Accept::from_any_base(activity)?.context(location_info!())?;
   verify_activity_domains_valid(&accept, &actor.actor_id()?, false)?;
 
-  // TODO: we should check that we actually sent this activity, because the remote instance
-  //       could just put a fake Follow
   let object = accept.object().to_owned().one().context(location_info!())?;
   let follow = Follow::from_any_base(object)?.context(location_info!())?;
   verify_activity_domains_valid(&follow, &user.actor_id()?, false)?;
@@ -188,17 +186,13 @@ async fn receive_accept(
   let community =
     get_or_fetch_and_upsert_community(&community_uri, context, request_counter).await?;
 
-  // Now you need to add this to the community follower
-  let community_follower_form = CommunityFollowerForm {
-    community_id: community.id,
-    user_id: user.id,
-  };
-
-  // This will fail if they're already a follower
+  let community_id = community.id;
+  let user_id = user.id;
+  // This will throw an error if no follow was requested
   blocking(&context.pool(), move |conn| {
-    CommunityFollower::follow(conn, &community_follower_form).ok()
+    CommunityFollower::follow_accepted(conn, community_id, user_id)
   })
-  .await?;
+  .await??;
 
   Ok(())
 }

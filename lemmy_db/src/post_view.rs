@@ -416,7 +416,7 @@ mod tests {
       published: None,
       updated: None,
       admin: false,
-      banned: false,
+      banned: Some(false),
       show_nsfw: false,
       theme: "browser".into(),
       default_sort_type: SortType::Hot as i16,
