@@ -12,7 +12,7 @@ use activitystreams::{
 };
 use actix_web::HttpRequest;
 use anyhow::{anyhow, Context};
-use lemmy_db::{activity::Activity, DbPool};
+use lemmy_db::{activity::Activity, community::Community, user::User_, DbPool};
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -110,4 +110,44 @@ where
   let actor = get_or_fetch_and_upsert_actor(&actor_id, &context, request_counter).await?;
   verify_signature(&request, actor.as_ref())?;
   Ok(actor)
+}
+
+/// Returns true if `to_and_cc` contains at least one local user.
+pub(crate) async fn is_addressed_to_local_user(
+  to_and_cc: &[Url],
+  pool: &DbPool,
+) -> Result<bool, LemmyError> {
+  for url in to_and_cc {
+    let url = url.to_string();
+    let user = blocking(&pool, move |conn| User_::read_from_actor_id(&conn, &url)).await?;
+    if let Ok(u) = user {
+      if u.local {
+        return Ok(true);
+      }
+    }
+  }
+  Ok(false)
+}
+
+/// If `to_and_cc` contains the followers collection of a remote community, returns this community
+/// (like `https://example.com/c/main/followers`)
+pub(crate) async fn is_addressed_to_community_followers(
+  to_and_cc: &[Url],
+  pool: &DbPool,
+) -> Result<Option<Community>, LemmyError> {
+  for url in to_and_cc {
+    let url = url.to_string();
+    // TODO: extremely hacky, we should just store the followers url for each community in the db
+    if url.ends_with("/followers") {
+      let community_url = url.replace("/followers", "");
+      let community = blocking(&pool, move |conn| {
+        Community::read_from_actor_id(&conn, &community_url)
+      })
+      .await??;
+      if !community.local {
+        return Ok(Some(community));
+      }
+    }
+  }
+  Ok(None)
 }
