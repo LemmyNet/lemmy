@@ -206,6 +206,9 @@ impl Likeable<CommentLikeForm> for CommentLike {
     use crate::schema::comment_like::dsl::*;
     insert_into(comment_like)
       .values(comment_like_form)
+      .on_conflict((comment_id, user_id))
+      .do_update()
+      .set(comment_like_form)
       .get_result::<Self>(conn)
   }
   fn remove(conn: &PgConnection, user_id: i32, comment_id: i32) -> Result<usize, Error> {
@@ -241,6 +244,9 @@ impl Saveable<CommentSavedForm> for CommentSaved {
     use crate::schema::comment_saved::dsl::*;
     insert_into(comment_saved)
       .values(comment_saved_form)
+      .on_conflict((comment_id, user_id))
+      .do_update()
+      .set(comment_saved_form)
       .get_result::<Self>(conn)
   }
   fn unsave(conn: &PgConnection, comment_saved_form: &CommentSavedForm) -> Result<usize, Error> {

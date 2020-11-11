@@ -100,7 +100,7 @@ fn do_send_local_notifs(
       // Let the uniqueness handle this fail
       match UserMention::create(&conn, &user_mention_form) {
         Ok(_mention) => (),
-        Err(_e) => error!("{}", &_e),
+        Err(_e) => (),
       };
 
       // Send an email to those users that have notifications on
