@@ -333,6 +333,15 @@ impl Followable<CommunityFollowerForm> for CommunityFollower {
     )
     .execute(conn)
   }
+  // TODO: this function name only makes sense if you call it with a remote community. for a local
+  //       community, it will also return true if only remote followers exist
+  fn has_local_followers(conn: &PgConnection, community_id_: i32) -> Result<bool, Error> {
+    use crate::schema::community_follower::dsl::*;
+    diesel::select(exists(
+      community_follower.filter(community_id.eq(community_id_)),
+    ))
+    .get_result(conn)
+  }
 }
 
 #[cfg(test)]
