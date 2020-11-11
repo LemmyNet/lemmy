@@ -46,6 +46,9 @@ tokio = "0.3"
 sha2 = "0.9"
 anyhow = "1.0"
 reqwest = { version = "0.10", features = ["json"] }
+activitystreams = "0.7.0-alpha.4"
+actix-rt = { version = "1.1", default-features = false }
+serde_json = { version = "1.0", features = ["preserve_order"]}
 
 [dev-dependencies.cargo-husky]
 version = "1"

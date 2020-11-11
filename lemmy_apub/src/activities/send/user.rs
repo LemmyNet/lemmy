@@ -12,7 +12,12 @@ use activitystreams::{
   base::{AnyBase, BaseExt, ExtendsExt},
   object::ObjectExt,
 };
-use lemmy_db::{community::Community, user::User_, DbPool};
+use lemmy_db::{
+  community::{Community, CommunityFollower, CommunityFollowerForm},
+  user::User_,
+  DbPool,
+  Followable,
+};
 use lemmy_structs::blocking;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
@@ -43,6 +48,16 @@ impl ActorType for User_ {
       Community::read_from_actor_id(conn, &follow_actor_id)
     })
     .await??;
+
+    let community_follower_form = CommunityFollowerForm {
+      community_id: community.id,
+      user_id: self.id,
+      pending: true,
+    };
+    blocking(&context.pool(), move |conn| {
+      CommunityFollower::follow(conn, &community_follower_form).ok()
+    })
+    .await?;
 
     let mut follow = Follow::new(self.actor_id.to_owned(), community.actor_id()?);
     follow

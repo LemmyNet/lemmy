@@ -56,6 +56,9 @@ pub trait Followable<T> {
   fn follow(conn: &PgConnection, form: &T) -> Result<Self, Error>
   where
     Self: Sized;
+  fn follow_accepted(conn: &PgConnection, community_id: i32, user_id: i32) -> Result<Self, Error>
+  where
+    Self: Sized;
   fn unfollow(conn: &PgConnection, form: &T) -> Result<usize, Error>
   where
     Self: Sized;

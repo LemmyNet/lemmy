@@ -519,7 +519,7 @@ mod tests {
       avatar: None,
       banner: None,
       admin: false,
-      banned: false,
+      banned: Some(false),
       published: None,
       updated: None,
       show_nsfw: false,

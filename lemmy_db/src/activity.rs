@@ -12,22 +12,22 @@ use std::{
 #[table_name = "activity"]
 pub struct Activity {
   pub id: i32,
-  pub ap_id: String,
   pub data: Value,
   pub local: bool,
-  pub sensitive: bool,
   pub published: chrono::NaiveDateTime,
   pub updated: Option<chrono::NaiveDateTime>,
+  pub ap_id: Option<String>,
+  pub sensitive: Option<bool>,
 }
 
 #[derive(Insertable, AsChangeset)]
 #[table_name = "activity"]
 pub struct ActivityForm {
-  pub ap_id: String,
   pub data: Value,
   pub local: bool,
-  pub sensitive: bool,
   pub updated: Option<chrono::NaiveDateTime>,
+  pub ap_id: String,
+  pub sensitive: bool,
 }
 
 impl Crud<ActivityForm> for Activity {
@@ -52,6 +52,10 @@ impl Crud<ActivityForm> for Activity {
     diesel::update(activity.find(activity_id))
       .set(new_activity)
       .get_result::<Self>(conn)
+  }
+  fn delete(conn: &PgConnection, activity_id: i32) -> Result<usize, Error> {
+    use crate::schema::activity::dsl::*;
+    diesel::delete(activity.find(activity_id)).execute(conn)
   }
 }
 
@@ -115,7 +119,7 @@ mod tests {
       avatar: None,
       banner: None,
       admin: false,
-      banned: false,
+      banned: Some(false),
       published: None,
       updated: None,
       show_nsfw: false,
@@ -162,11 +166,11 @@ mod tests {
     let inserted_activity = Activity::create(&conn, &activity_form).unwrap();
 
     let expected_activity = Activity {
-      ap_id: ap_id.to_string(),
+      ap_id: Some(ap_id.to_string()),
       id: inserted_activity.id,
       data: test_json,
       local: true,
-      sensitive: false,
+      sensitive: Some(false),
       published: inserted_activity.published,
       updated: None,
     };
@@ -174,6 +178,7 @@ mod tests {
     let read_activity = Activity::read(&conn, inserted_activity.id).unwrap();
     let read_activity_by_apub_id = Activity::read_from_apub_id(&conn, ap_id).unwrap();
     User_::delete(&conn, inserted_creator.id).unwrap();
+    Activity::delete(&conn, inserted_activity.id).unwrap();
 
     assert_eq!(expected_activity, read_activity);
     assert_eq!(expected_activity, read_activity_by_apub_id);

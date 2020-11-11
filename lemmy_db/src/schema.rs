@@ -1,12 +1,12 @@
 table! {
     activity (id) {
         id -> Int4,
-        ap_id -> Text,
         data -> Jsonb,
         local -> Bool,
-        sensitive -> Bool,
         published -> Timestamp,
         updated -> Nullable<Timestamp>,
+        ap_id -> Nullable<Text>,
+        sensitive -> Nullable<Bool>,
     }
 }
 
@@ -150,6 +150,7 @@ table! {
         community_id -> Int4,
         user_id -> Int4,
         published -> Timestamp,
+        pending -> Nullable<Bool>,
     }
 }
 
