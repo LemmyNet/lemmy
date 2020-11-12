@@ -12,7 +12,7 @@ services:
     restart: always
 
   lemmy:
-    image: dessalines/lemmy:v0.8.3
+    image: dessalines/lemmy:v0.8.4
     ports:
       - "127.0.0.1:8536:8536"
     restart: always
@@ -26,7 +26,7 @@ services:
       - iframely
 
   lemmy-ui:
-    image: dessalines/lemmy-ui:v0.8.3
+    image: dessalines/lemmy-ui:v0.8.4
     ports:
       - "1235:1234"
     restart: always
