@@ -62,6 +62,7 @@ pub trait Followable<T> {
   fn unfollow(conn: &PgConnection, form: &T) -> Result<usize, Error>
   where
     Self: Sized;
+  fn has_local_followers(conn: &PgConnection, community_id: i32) -> Result<bool, Error>;
 }
 
 pub trait Joinable<T> {

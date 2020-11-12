@@ -5,6 +5,8 @@ use crate::{
     get_activity_to_and_cc,
     inbox_verify_http_signature,
     is_activity_already_known,
+    is_addressed_to_community_followers,
+    is_addressed_to_local_user,
     user_inbox::{user_receive_message, UserAcceptedActivities},
   },
   insert_activity,
@@ -12,7 +14,7 @@ use crate::{
 use activitystreams::{activity::ActorAndObject, prelude::*};
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Context;
-use lemmy_db::{community::Community, user::User_, DbPool};
+use lemmy_db::{community::Community, DbPool};
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -100,7 +102,10 @@ pub async fn shared_inbox(
   }
 
   // If to_and_cc contains followers collection of a community, pass to receive_user_message()
-  if is_addressed_to_community_followers(&to_and_cc, context.pool()).await? {
+  if is_addressed_to_community_followers(&to_and_cc, context.pool())
+    .await?
+    .is_some()
+  {
     let user_activity = UserAcceptedActivities::from_any_base(activity_any_base.clone())?
       .context(location_info!())?;
     res = Some(
@@ -145,41 +150,4 @@ async fn extract_local_community_from_destinations(
     }
   }
   Ok(None)
-}
-
-/// Returns true if `to_and_cc` contains at least one local user.
-async fn is_addressed_to_local_user(to_and_cc: &[Url], pool: &DbPool) -> Result<bool, LemmyError> {
-  for url in to_and_cc {
-    let url = url.to_string();
-    let user = blocking(&pool, move |conn| User_::read_from_actor_id(&conn, &url)).await?;
-    if let Ok(u) = user {
-      if u.local {
-        return Ok(true);
-      }
-    }
-  }
-  Ok(false)
-}
-
-/// Returns true if `to_and_cc` contains at least one followers collection of a remote community
-/// (like `https://example.com/c/main/followers`)
-async fn is_addressed_to_community_followers(
-  to_and_cc: &[Url],
-  pool: &DbPool,
-) -> Result<bool, LemmyError> {
-  for url in to_and_cc {
-    let url = url.to_string();
-    // TODO: extremely hacky, we should just store the followers url for each community in the db
-    if url.ends_with("/followers") {
-      let community_url = url.replace("/followers", "");
-      let community = blocking(&pool, move |conn| {
-        Community::read_from_actor_id(&conn, &community_url)
-      })
-      .await??;
-      if !community.local {
-        return Ok(true);
-      }
-    }
-  }
-  Ok(false)
 }
