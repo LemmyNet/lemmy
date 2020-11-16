@@ -843,7 +843,7 @@ impl Perform for TransferCommunity {
   }
 }
 
-pub fn send_community_websocket(
+fn send_community_websocket(
   res: &CommunityResponse,
   context: &Data<LemmyContext>,
   websocket_id: Option<ConnectionId>,

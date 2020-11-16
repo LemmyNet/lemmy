@@ -87,7 +87,7 @@ where
 /// The types of ActivityPub objects that can be fetched directly by searching for their ID.
 #[serde(untagged)]
 #[derive(serde::Deserialize, Debug)]
-pub enum SearchAcceptedObjects {
+enum SearchAcceptedObjects {
   Person(Box<PersonExt>),
   Group(Box<GroupExt>),
   Page(Box<PageExt>),
