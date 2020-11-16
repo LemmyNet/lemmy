@@ -4,13 +4,13 @@ use std::{collections::HashMap, time::SystemTime};
 use strum::IntoEnumIterator;
 
 #[derive(Debug, Clone)]
-pub struct RateLimitBucket {
+struct RateLimitBucket {
   last_checked: SystemTime,
   allowance: f64,
 }
 
 #[derive(Eq, PartialEq, Hash, Debug, EnumIter, Copy, Clone, AsRefStr)]
-pub enum RateLimitType {
+pub(crate) enum RateLimitType {
   Message,
   Register,
   Post,
@@ -20,7 +20,7 @@ pub enum RateLimitType {
 /// Rate limiting based on rate type and IP addr
 #[derive(Debug, Clone)]
 pub struct RateLimiter {
-  pub buckets: HashMap<RateLimitType, HashMap<IPAddr, RateLimitBucket>>,
+  buckets: HashMap<RateLimitType, HashMap<IPAddr, RateLimitBucket>>,
 }
 
 impl Default for RateLimiter {

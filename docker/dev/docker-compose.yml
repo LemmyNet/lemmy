@@ -16,7 +16,7 @@ services:
       - postgres
       - iframely
   lemmy-ui:
-    image: dessalines/lemmy-ui:v0.8.3
+    image: dessalines/lemmy-ui:v0.8.4
     ports:
       - "1235:1234"
     restart: always

@@ -22,7 +22,7 @@ use std::str::FromStr;
 use strum::ParseError;
 
 #[derive(Deserialize)]
-pub struct Params {
+struct Params {
   sort: Option<String>,
 }
 

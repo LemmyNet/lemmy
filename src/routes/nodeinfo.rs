@@ -59,18 +59,18 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct NodeInfoWellKnown {
+struct NodeInfoWellKnown {
   pub links: NodeInfoWellKnownLinks,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct NodeInfoWellKnownLinks {
+struct NodeInfoWellKnownLinks {
   pub rel: Url,
   pub href: Url,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct NodeInfo {
+struct NodeInfo {
   pub version: String,
   pub software: NodeInfoSoftware,
   pub protocols: Vec<String>,
@@ -78,14 +78,14 @@ pub struct NodeInfo {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct NodeInfoSoftware {
+struct NodeInfoSoftware {
   pub name: String,
   pub version: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct NodeInfoUsage {
+struct NodeInfoUsage {
   pub users: NodeInfoUsers,
   pub local_posts: i64,
   pub local_comments: i64,
@@ -93,6 +93,6 @@ pub struct NodeInfoUsage {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct NodeInfoUsers {
+struct NodeInfoUsers {
   pub total: i64,
 }

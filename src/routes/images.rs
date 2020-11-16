@@ -24,19 +24,19 @@ pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Image {
+struct Image {
   file: String,
   delete_token: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Images {
+struct Images {
   msg: String,
   files: Option<Vec<Image>>,
 }
 
 #[derive(Deserialize)]
-pub struct PictrsParams {
+struct PictrsParams {
   format: Option<String>,
   thumbnail: Option<String>,
 }
