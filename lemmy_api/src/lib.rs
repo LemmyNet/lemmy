@@ -34,7 +34,7 @@ pub trait Perform {
   ) -> Result<Self::Response, LemmyError>;
 }
 
-pub(in crate) async fn is_mod_or_admin(
+pub(crate) async fn is_mod_or_admin(
   pool: &DbPool,
   user_id: i32,
   community_id: i32,
@@ -56,14 +56,14 @@ pub async fn is_admin(pool: &DbPool, user_id: i32) -> Result<(), LemmyError> {
   Ok(())
 }
 
-pub(in crate) async fn get_post(post_id: i32, pool: &DbPool) -> Result<Post, LemmyError> {
+pub(crate) async fn get_post(post_id: i32, pool: &DbPool) -> Result<Post, LemmyError> {
   match blocking(pool, move |conn| Post::read(conn, post_id)).await? {
     Ok(post) => Ok(post),
     Err(_e) => Err(APIError::err("couldnt_find_post").into()),
   }
 }
 
-pub(in crate) async fn get_user_from_jwt(jwt: &str, pool: &DbPool) -> Result<User_, LemmyError> {
+pub(crate) async fn get_user_from_jwt(jwt: &str, pool: &DbPool) -> Result<User_, LemmyError> {
   let claims = match Claims::decode(&jwt) {
     Ok(claims) => claims.claims,
     Err(_e) => return Err(APIError::err("not_logged_in").into()),
@@ -77,7 +77,7 @@ pub(in crate) async fn get_user_from_jwt(jwt: &str, pool: &DbPool) -> Result<Use
   Ok(user)
 }
 
-pub(in crate) async fn get_user_from_jwt_opt(
+pub(crate) async fn get_user_from_jwt_opt(
   jwt: &Option<String>,
   pool: &DbPool,
 ) -> Result<Option<User_>, LemmyError> {
@@ -87,7 +87,7 @@ pub(in crate) async fn get_user_from_jwt_opt(
   }
 }
 
-pub(in crate) async fn check_community_ban(
+pub(crate) async fn check_community_ban(
   user_id: i32,
   community_id: i32,
   pool: &DbPool,
@@ -100,7 +100,7 @@ pub(in crate) async fn check_community_ban(
   }
 }
 
-pub(in crate) fn check_optional_url(item: &Option<Option<String>>) -> Result<(), LemmyError> {
+pub(crate) fn check_optional_url(item: &Option<Option<String>>) -> Result<(), LemmyError> {
   if let Some(Some(item)) = &item {
     if Url::parse(item).is_err() {
       return Err(APIError::err("invalid_url").into());
@@ -109,7 +109,7 @@ pub(in crate) fn check_optional_url(item: &Option<Option<String>>) -> Result<(),
   Ok(())
 }
 
-pub(in crate) async fn linked_instances(pool: &DbPool) -> Result<Vec<String>, LemmyError> {
+pub(crate) async fn linked_instances(pool: &DbPool) -> Result<Vec<String>, LemmyError> {
   let mut instances: Vec<String> = Vec::new();
 
   if Settings::get().federation.enabled {

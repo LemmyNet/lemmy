@@ -12,7 +12,7 @@ use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
-pub struct Params {
+struct Params {
   resource: String,
 }
 

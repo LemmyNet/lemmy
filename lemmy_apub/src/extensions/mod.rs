@@ -1,3 +1,3 @@
-pub mod group_extensions;
-pub mod page_extension;
-pub mod signatures;
+pub(crate) mod group_extensions;
+pub(crate) mod page_extension;
+pub(crate) mod signatures;
