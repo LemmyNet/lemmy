@@ -1,35 +1,55 @@
 ARG RUST_BUILDER_IMAGE=ekidd/rust-musl-builder:stable
 
+# Cargo chef plan
 FROM $RUST_BUILDER_IMAGE as planner
 WORKDIR /app
-RUN sudo chown -R rust:rust .
-# We only pay the installation cost once, 
-# it will be cached from the second build onwards
+
+# Copy dirs
+COPY Cargo.toml Cargo.lock .
+COPY ./src ./src
+COPY ./migrations ./migrations
+COPY ./lemmy_api ./lemmy_api
+COPY ./lemmy_apub ./lemmy_apub
+COPY ./lemmy_db ./lemmy_db
+COPY ./lemmy_rate_limit ./lemmy_rate_limit
+COPY ./lemmy_structs ./lemmy_structs
+COPY ./lemmy_utils ./lemmy_utils
+COPY ./lemmy_websocket ./lemmy_websocket
+
 RUN cargo install cargo-chef --version 0.1.6
-COPY . ./
 RUN cargo chef prepare --recipe-path recipe.json
 
+# Cargo chef cache dependencies
 FROM $RUST_BUILDER_IMAGE as cacher
-
 ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-musl
-
 WORKDIR /app
-RUN sudo chown -R rust:rust .
 RUN cargo install cargo-chef --version 0.1.6
-COPY --chown=rust:rust --from=planner /app/recipe.json ./recipe.json
+COPY --from=planner /app/recipe.json ./recipe.json
 RUN cargo chef cook --release --target ${CARGO_BUILD_TARGET} --recipe-path recipe.json
 
+# Build the project
 FROM $RUST_BUILDER_IMAGE as builder
 
 ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-musl
 ARG RUSTRELEASEDIR="release"
 
 WORKDIR /app
-RUN sudo chown -R rust:rust .
+
 # Copy over the cached dependencies
-COPY --chown=rust:rust --from=cacher /app/target target
-COPY --chown=rust:rust --from=cacher /home/rust/.cargo /home/rust/.cargo
-COPY . ./
+COPY --from=cacher /app/target target
+COPY --from=cacher /home/rust/.cargo /home/rust/.cargo
+
+# Copy the rest of the dirs
+COPY Cargo.toml Cargo.lock .
+COPY ./src ./src
+COPY ./migrations ./migrations
+COPY ./lemmy_api ./lemmy_api
+COPY ./lemmy_apub ./lemmy_apub
+COPY ./lemmy_db ./lemmy_db
+COPY ./lemmy_rate_limit ./lemmy_rate_limit
+COPY ./lemmy_structs ./lemmy_structs
+COPY ./lemmy_utils ./lemmy_utils
+COPY ./lemmy_websocket ./lemmy_websocket
 RUN cargo build --release
 
 # reduce binary size
@@ -37,11 +57,13 @@ RUN strip ./target/$CARGO_BUILD_TARGET/$RUSTRELEASEDIR/lemmy_server
 
 RUN cp ./target/$CARGO_BUILD_TARGET/$RUSTRELEASEDIR/lemmy_server /app/lemmy_server
 
+# Build the docs
 FROM $RUST_BUILDER_IMAGE as docs
 WORKDIR /app
 COPY --chown=rust:rust docs ./docs
 RUN mdbook build docs/
 
+# The alpine runner
 FROM alpine:3.12 as lemmy
 
 # Install libpq for postgres
