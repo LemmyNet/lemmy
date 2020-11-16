@@ -5,7 +5,7 @@ FROM $RUST_BUILDER_IMAGE as planner
 WORKDIR /app
 
 # Copy dirs
-COPY Cargo.toml Cargo.lock .
+COPY Cargo.toml Cargo.lock ./
 COPY ./src ./src
 COPY ./migrations ./migrations
 COPY ./lemmy_api ./lemmy_api
@@ -40,7 +40,7 @@ COPY --from=cacher /app/target target
 COPY --from=cacher /home/rust/.cargo /home/rust/.cargo
 
 # Copy the rest of the dirs
-COPY Cargo.toml Cargo.lock .
+COPY Cargo.toml Cargo.lock ./
 COPY ./src ./src
 COPY ./migrations ./migrations
 COPY ./lemmy_api ./lemmy_api
