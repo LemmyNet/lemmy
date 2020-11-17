@@ -15,6 +15,7 @@ COPY ./lemmy_rate_limit ./lemmy_rate_limit
 COPY ./lemmy_structs ./lemmy_structs
 COPY ./lemmy_utils ./lemmy_utils
 COPY ./lemmy_websocket ./lemmy_websocket
+RUN sudo chown -R rust:rust .
 
 RUN cargo install cargo-chef --version 0.1.6
 RUN cargo chef prepare --recipe-path recipe.json
@@ -25,6 +26,7 @@ ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-musl
 WORKDIR /app
 RUN cargo install cargo-chef --version 0.1.6
 COPY --from=planner /app/recipe.json ./recipe.json
+RUN sudo chown -R rust:rust .
 RUN cargo chef cook --release --target ${CARGO_BUILD_TARGET} --recipe-path recipe.json
 
 # Build the project
@@ -50,6 +52,7 @@ COPY ./lemmy_rate_limit ./lemmy_rate_limit
 COPY ./lemmy_structs ./lemmy_structs
 COPY ./lemmy_utils ./lemmy_utils
 COPY ./lemmy_websocket ./lemmy_websocket
+RUN sudo chown -R rust:rust .
 RUN cargo build --release
 
 # reduce binary size
