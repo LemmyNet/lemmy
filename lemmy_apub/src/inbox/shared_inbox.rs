@@ -65,10 +65,12 @@ pub async fn shared_inbox(
   let activity_any_base = activity.clone().into_any_base()?;
   let mut res: Option<HttpResponse> = None;
   let to_and_cc = get_activity_to_and_cc(&activity)?;
-  // If to_and_cc contains a local community, pass to receive_community_message()
   // Handle community first, so in case the sender is banned by the community, it will error out.
   // If we handled the user receive first, the activity would be inserted to the database before the
   // community could check for bans.
+  // Note that an activity can be addressed to a community and to a user (or multiple users) at the
+  // same time. In this case we still only handle it once, to avoid duplicate websocket
+  // notifications.
   let community = extract_local_community_from_destinations(&to_and_cc, context.pool()).await?;
   if let Some(community) = community {
     let community_activity = CommunityAcceptedActivities::from_any_base(activity_any_base.clone())?
@@ -83,10 +85,7 @@ pub async fn shared_inbox(
       )
       .await?,
     );
-  }
-
-  // If to_and_cc contains a local user, pass to receive_user_message()
-  if is_addressed_to_local_user(&to_and_cc, context.pool()).await? {
+  } else if is_addressed_to_local_user(&to_and_cc, context.pool()).await? {
     let user_activity = UserAcceptedActivities::from_any_base(activity_any_base.clone())?
       .context(location_info!())?;
     // `to_user` is only used for follow activities (which we dont receive here), so no need to pass
@@ -99,10 +98,7 @@ pub async fn shared_inbox(
       request_counter,
     )
     .await?;
-  }
-
-  // If to_and_cc contains followers collection of a community, pass to receive_user_message()
-  if is_addressed_to_community_followers(&to_and_cc, context.pool())
+  } else if is_addressed_to_community_followers(&to_and_cc, context.pool())
     .await?
     .is_some()
   {
