@@ -492,6 +492,9 @@ These expire after 10 minutes.
 `GET /user/get_captcha`
 
 #### Get User Details
+
+`username` can only be used for local users. To get details for a federated user, pass `user_id` instead.
+
 ##### Request
 ```rust
 {
@@ -1602,6 +1605,8 @@ The main / frontpage community is `community_id: 0`.
 
 Post listing types are `All, Subscribed, Community`
 
+`community_name` can only be used for local communities. To get posts for a federated community, pass `community_id` instead.
+
 ##### Request
 ```rust
 {
@@ -2048,6 +2053,8 @@ Only a mod or admin can remove the comment.
 #### Get Comments
 
 Comment listing types are `All, Subscribed, Community`
+
+`community_name` can only be used for local communities. To get posts for a federated community, pass `community_id` instead.
 
 ##### Request
 ```rust
