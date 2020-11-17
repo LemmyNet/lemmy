@@ -98,10 +98,7 @@ fn do_send_local_notifs(
 
       // Allow this to fail softly, since comment edits might re-update or replace it
       // Let the uniqueness handle this fail
-      match UserMention::create(&conn, &user_mention_form) {
-        Ok(_mention) => (),
-        Err(_e) => (),
-      };
+      let _ = UserMention::create(&conn, &user_mention_form);
 
       // Send an email to those users that have notifications on
       if do_send_email && mention_user.send_notifications_to_email {

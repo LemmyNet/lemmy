@@ -33,7 +33,9 @@ impl Crud<UserMentionForm> for UserMention {
     // but get_result doesnt return the existing row here
     insert_into(user_mention)
       .values(user_mention_form)
-      .on_conflict_do_nothing()
+      .on_conflict((recipient_id, comment_id))
+      .do_update()
+      .set(user_mention_form)
       .get_result::<Self>(conn)
   }
 
