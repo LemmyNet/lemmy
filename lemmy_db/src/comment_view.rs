@@ -239,7 +239,9 @@ impl<'a> CommentQueryBuilder<'a> {
     }
 
     if let Some(for_community_name) = self.for_community_name {
-      query = query.filter(community_name.eq(for_community_name));
+      query = query
+        .filter(community_name.eq(for_community_name))
+        .filter(local.eq(true));
     }
 
     if let Some(for_post_id) = self.for_post_id {

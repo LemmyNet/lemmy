@@ -280,6 +280,7 @@ impl<'a> PostQueryBuilder<'a> {
     if let Some(for_community_name) = self.for_community_name {
       query = query
         .filter(community_name.eq(for_community_name))
+        .filter(local.eq(true))
         .then_order_by(stickied.desc());
     }
 
