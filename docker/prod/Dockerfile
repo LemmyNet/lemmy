@@ -3,6 +3,8 @@ ARG RUST_BUILDER_IMAGE=ekidd/rust-musl-builder:stable
 # Cargo chef plan
 FROM $RUST_BUILDER_IMAGE as planner
 WORKDIR /app
+RUN sudo chown -R rust:rust .
+RUN cargo install cargo-chef --version 0.1.6
 
 # Copy dirs
 COPY Cargo.toml Cargo.lock ./
@@ -15,18 +17,16 @@ COPY ./lemmy_rate_limit ./lemmy_rate_limit
 COPY ./lemmy_structs ./lemmy_structs
 COPY ./lemmy_utils ./lemmy_utils
 COPY ./lemmy_websocket ./lemmy_websocket
-RUN sudo chown -R rust:rust .
 
-RUN cargo install cargo-chef --version 0.1.6
 RUN cargo chef prepare --recipe-path recipe.json
 
 # Cargo chef cache dependencies
 FROM $RUST_BUILDER_IMAGE as cacher
 ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-musl
 WORKDIR /app
+RUN sudo chown -R rust:rust .
 RUN cargo install cargo-chef --version 0.1.6
 COPY --from=planner /app/recipe.json ./recipe.json
-RUN sudo chown -R rust:rust .
 RUN cargo chef cook --release --target ${CARGO_BUILD_TARGET} --recipe-path recipe.json
 
 # Build the project
@@ -36,6 +36,7 @@ ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-musl
 ARG RUSTRELEASEDIR="release"
 
 WORKDIR /app
+RUN sudo chown -R rust:rust .
 
 # Copy over the cached dependencies
 COPY --from=cacher /app/target target
@@ -52,7 +53,6 @@ COPY ./lemmy_rate_limit ./lemmy_rate_limit
 COPY ./lemmy_structs ./lemmy_structs
 COPY ./lemmy_utils ./lemmy_utils
 COPY ./lemmy_websocket ./lemmy_websocket
-RUN sudo chown -R rust:rust .
 RUN cargo build --release
 
 # reduce binary size
