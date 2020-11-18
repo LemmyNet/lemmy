@@ -55,11 +55,13 @@ impl ToApub for User_ {
     }
 
     let mut ap_actor = ApActor::new(self.get_inbox_url()?, person);
-    ap_actor.set_preferred_username(self.name.to_owned());
-    ap_actor.set_endpoints(Endpoints {
-      shared_inbox: Some(self.get_shared_inbox_url()?),
-      ..Default::default()
-    });
+    ap_actor
+      .set_preferred_username(self.name.to_owned())
+      .set_outbox(self.get_outbox_url()?)
+      .set_endpoints(Endpoints {
+        shared_inbox: Some(self.get_shared_inbox_url()?),
+        ..Default::default()
+      });
 
     Ok(Ext1::new(ap_actor, self.get_public_key_ext()?))
   }
