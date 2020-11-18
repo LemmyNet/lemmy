@@ -6,7 +6,7 @@ use lemmy_apub::{
     community::{get_apub_community_followers, get_apub_community_http, get_apub_community_outbox},
     get_activity,
     post::get_apub_post,
-    user::get_apub_user_http,
+    user::{get_apub_user_http, get_apub_user_outbox},
   },
   inbox::{community_inbox::community_inbox, shared_inbox::shared_inbox, user_inbox::user_inbox},
   APUB_JSON_CONTENT_TYPE,
@@ -42,6 +42,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
             web::get().to(get_apub_community_outbox),
           )
           .route("/u/{user_name}", web::get().to(get_apub_user_http))
+          .route("/u/{user_name}/outbox", web::get().to(get_apub_user_outbox))
           .route("/post/{post_id}", web::get().to(get_apub_post))
           .route("/comment/{comment_id}", web::get().to(get_apub_comment))
           .route("/activities/{type_}/{id}", web::get().to(get_activity)),
