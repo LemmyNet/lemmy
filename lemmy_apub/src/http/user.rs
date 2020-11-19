@@ -38,6 +38,7 @@ pub async fn get_apub_user_outbox(
     User_::read_from_name(&conn, &info.user_name)
   })
   .await??;
+  // TODO: populate the user outbox
   let mut collection = OrderedCollection::new();
   collection
     .set_many_items(Vec::<Url>::new())
