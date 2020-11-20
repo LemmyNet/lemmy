@@ -6,16 +6,7 @@ WORKDIR /app
 RUN cargo install cargo-chef --version 0.1.6
 
 # Copy dirs
-COPY Cargo.toml Cargo.lock ./
-COPY ./src ./src
-COPY ./migrations ./migrations
-COPY ./lemmy_api ./lemmy_api
-COPY ./lemmy_apub ./lemmy_apub
-COPY ./lemmy_db ./lemmy_db
-COPY ./lemmy_rate_limit ./lemmy_rate_limit
-COPY ./lemmy_structs ./lemmy_structs
-COPY ./lemmy_utils ./lemmy_utils
-COPY ./lemmy_websocket ./lemmy_websocket
+COPY ./ ./
 
 RUN sudo chown -R rust:rust .
 RUN cargo chef prepare --recipe-path recipe.json
@@ -42,16 +33,7 @@ COPY --from=cacher /app/target target
 COPY --from=cacher /home/rust/.cargo /home/rust/.cargo
 
 # Copy the rest of the dirs
-COPY Cargo.toml Cargo.lock ./
-COPY ./src ./src
-COPY ./migrations ./migrations
-COPY ./lemmy_api ./lemmy_api
-COPY ./lemmy_apub ./lemmy_apub
-COPY ./lemmy_db ./lemmy_db
-COPY ./lemmy_rate_limit ./lemmy_rate_limit
-COPY ./lemmy_structs ./lemmy_structs
-COPY ./lemmy_utils ./lemmy_utils
-COPY ./lemmy_websocket ./lemmy_websocket
+COPY ./ ./
 
 RUN sudo chown -R rust:rust .
 RUN cargo build
