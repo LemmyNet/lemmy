@@ -1,4 +1,4 @@
-ARG RUST_BUILDER_IMAGE=ekidd/rust-musl-builder:stable
+ARG RUST_BUILDER_IMAGE=ekidd/rust-musl-builder:1.47.0
 
 # Cargo chef plan
 FROM $RUST_BUILDER_IMAGE as planner
