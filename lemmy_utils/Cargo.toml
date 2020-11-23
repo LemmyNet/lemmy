@@ -19,7 +19,7 @@ percent-encoding = "2.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"]}
 thiserror = "1.0"
-comrak = "0.8"
+comrak = { version = "0.8", default-features = false }
 lazy_static = "1.3"
 openssl = "0.10"
 url = { version = "2.1", features = ["serde"] }
