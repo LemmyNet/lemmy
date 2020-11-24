@@ -4,12 +4,18 @@ use crate::{
     get_or_fetch_and_insert_post,
     get_or_fetch_and_upsert_user,
   },
-  objects::{check_object_domain, create_tombstone},
+  objects::{
+    check_object_domain,
+    create_tombstone,
+    get_source_markdown_value,
+    set_content_and_source,
+  },
   FromApub,
+  NoteExt,
   ToApub,
 };
 use activitystreams::{
-  object::{kind::NoteType, Note, Tombstone},
+  object::{kind::NoteType, ApObject, Note, Tombstone},
   prelude::*,
 };
 use anyhow::Context;
@@ -32,10 +38,10 @@ use url::Url;
 
 #[async_trait::async_trait(?Send)]
 impl ToApub for Comment {
-  type ApubType = Note;
+  type ApubType = NoteExt;
 
-  async fn to_apub(&self, pool: &DbPool) -> Result<Note, LemmyError> {
-    let mut comment = Note::new();
+  async fn to_apub(&self, pool: &DbPool) -> Result<NoteExt, LemmyError> {
+    let mut comment = ApObject::new(Note::new());
 
     let creator_id = self.creator_id;
     let creator = blocking(pool, move |conn| User_::read(conn, creator_id)).await??;
@@ -63,8 +69,9 @@ impl ToApub for Comment {
       .set_published(convert_datetime(self.published))
       .set_to(community.actor_id)
       .set_many_in_reply_tos(in_reply_to_vec)
-      .set_content(self.content.to_owned())
       .set_attributed_to(creator.actor_id);
+
+    set_content_and_source(&mut comment, &self.content)?;
 
     if let Some(u) = self.updated {
       comment.set_updated(convert_datetime(u));
@@ -80,13 +87,13 @@ impl ToApub for Comment {
 
 #[async_trait::async_trait(?Send)]
 impl FromApub for CommentForm {
-  type ApubType = Note;
+  type ApubType = NoteExt;
 
   /// Converts a `Note` to `CommentForm`.
   ///
   /// If the parent community, post and comment(s) are not known locally, these are also fetched.
   async fn from_apub(
-    note: &Note,
+    note: &NoteExt,
     context: &LemmyContext,
     expected_domain: Option<Url>,
     request_counter: &mut i32,
@@ -124,12 +131,8 @@ impl FromApub for CommentForm {
       }
       None => None,
     };
-    let content = note
-      .content()
-      .context(location_info!())?
-      .as_single_xsd_string()
-      .context(location_info!())?
-      .to_string();
+
+    let content = get_source_markdown_value(note)?.context(location_info!())?;
     let content_slurs_removed = remove_slurs(&content);
 
     Ok(CommentForm {

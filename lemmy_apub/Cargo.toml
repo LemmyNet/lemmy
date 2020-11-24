@@ -14,7 +14,7 @@ lemmy_db = { path = "../lemmy_db" }
 lemmy_structs = { path = "../lemmy_structs" }
 lemmy_websocket = { path = "../lemmy_websocket" }
 diesel = "1.4"
-activitystreams = "0.7.0-alpha.4"
+activitystreams = "0.7.0-alpha.6"
 activitystreams-ext = "0.1.0-alpha.2"
 bcrypt = "0.8"
 chrono = { version = "0.4", features = ["serde"] }

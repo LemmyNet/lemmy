@@ -1,12 +1,18 @@
 use crate::{
   check_is_apub_id_valid,
   fetcher::get_or_fetch_and_upsert_user,
-  objects::{check_object_domain, create_tombstone},
+  objects::{
+    check_object_domain,
+    create_tombstone,
+    get_source_markdown_value,
+    set_content_and_source,
+  },
   FromApub,
+  NoteExt,
   ToApub,
 };
 use activitystreams::{
-  object::{kind::NoteType, Note, Tombstone},
+  object::{kind::NoteType, ApObject, Note, Tombstone},
   prelude::*,
 };
 use anyhow::Context;
@@ -23,10 +29,10 @@ use url::Url;
 
 #[async_trait::async_trait(?Send)]
 impl ToApub for PrivateMessage {
-  type ApubType = Note;
+  type ApubType = NoteExt;
 
-  async fn to_apub(&self, pool: &DbPool) -> Result<Note, LemmyError> {
-    let mut private_message = Note::new();
+  async fn to_apub(&self, pool: &DbPool) -> Result<NoteExt, LemmyError> {
+    let mut private_message = ApObject::new(Note::new());
 
     let creator_id = self.creator_id;
     let creator = blocking(pool, move |conn| User_::read(conn, creator_id)).await??;
@@ -38,9 +44,10 @@ impl ToApub for PrivateMessage {
       .set_context(activitystreams::context())
       .set_id(Url::parse(&self.ap_id.to_owned())?)
       .set_published(convert_datetime(self.published))
-      .set_content(self.content.to_owned())
       .set_to(recipient.actor_id)
       .set_attributed_to(creator.actor_id);
+
+    set_content_and_source(&mut private_message, &self.content)?;
 
     if let Some(u) = self.updated {
       private_message.set_updated(convert_datetime(u));
@@ -56,10 +63,10 @@ impl ToApub for PrivateMessage {
 
 #[async_trait::async_trait(?Send)]
 impl FromApub for PrivateMessageForm {
-  type ApubType = Note;
+  type ApubType = NoteExt;
 
   async fn from_apub(
-    note: &Note,
+    note: &NoteExt,
     context: &LemmyContext,
     expected_domain: Option<Url>,
     request_counter: &mut i32,
@@ -83,15 +90,12 @@ impl FromApub for PrivateMessageForm {
     let ap_id = note.id_unchecked().context(location_info!())?.to_string();
     check_is_apub_id_valid(&Url::parse(&ap_id)?)?;
 
+    let content = get_source_markdown_value(note)?.context(location_info!())?;
+
     Ok(PrivateMessageForm {
       creator_id: creator.id,
       recipient_id: recipient.id,
-      content: note
-        .content()
-        .context(location_info!())?
-        .as_single_xsd_string()
-        .context(location_info!())?
-        .to_string(),
+      content,
       published: note.published().map(|u| u.to_owned().naive_local()),
       updated: note.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,

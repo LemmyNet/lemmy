@@ -3,11 +3,11 @@ use crate::{
   fetcher::get_or_fetch_and_insert_comment,
   ActorType,
   FromApub,
+  NoteExt,
 };
 use activitystreams::{
   activity::{ActorAndObjectRefExt, Create, Dislike, Like, Remove, Update},
   base::ExtendsExt,
-  object::Note,
 };
 use anyhow::{anyhow, Context};
 use lemmy_db::{
@@ -27,7 +27,7 @@ pub(crate) async fn receive_create_comment(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let user = get_actor_as_user(&create, context, request_counter).await?;
-  let note = Note::from_any_base(create.object().to_owned().one().context(location_info!())?)?
+  let note = NoteExt::from_any_base(create.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
   let comment =
@@ -83,7 +83,7 @@ pub(crate) async fn receive_update_comment(
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let note = Note::from_any_base(update.object().to_owned().one().context(location_info!())?)?
+  let note = NoteExt::from_any_base(update.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
   let user = get_actor_as_user(&update, context, request_counter).await?;
 
@@ -140,7 +140,7 @@ pub(crate) async fn receive_like_comment(
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let note = Note::from_any_base(like.object().to_owned().one().context(location_info!())?)?
+  let note = NoteExt::from_any_base(like.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
   let user = get_actor_as_user(&like, context, request_counter).await?;
 
@@ -191,7 +191,7 @@ pub(crate) async fn receive_dislike_comment(
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
-  let note = Note::from_any_base(
+  let note = NoteExt::from_any_base(
     dislike
       .object()
       .to_owned()

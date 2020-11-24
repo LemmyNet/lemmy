@@ -64,6 +64,10 @@ Receives activities from user: `Follow`, `Undo/Follow`, `Create`, `Update`, `Lik
         "https://enterprise.lemmy.ml/u/riker"
     ],
     "content": "Welcome to the default community!",
+    "source": {
+        "content": "Welcome to the default community!",
+        "mediaType": "text/markdown"
+    },
     "icon": {
         "type": "Image",
         "url": "https://enterprise.lemmy.ml/pictrs/image/Z8pFFb21cl.png"
@@ -123,7 +127,11 @@ Sends and receives activities from/to other users: `Create/Note`, `Update/Note`,
     "type": "Person",
     "preferredUsername": "picard",
     "name": "Jean-Luc Picard",
-    "summary": "The user bio",
+    "content": "The user bio",
+    "source": {
+        "content": "The user bio",
+        "mediaType": "text/markdown"
+    },
     "icon": {
         "type": "Image",
         "url": "https://enterprise.lemmy.ml/pictrs/image/DS3q0colRA.jpg"
@@ -150,7 +158,7 @@ Sends and receives activities from/to other users: `Create/Note`, `Update/Note`,
 |---|---|---|
 | `preferredUsername` | yes | Name of the actor |
 | `name` | no | The user's displayname |
-| `summary` | no | User bio |
+| `content` | no | User bio |
 | `icon` | no | The user's avatar, shown next to the username |
 | `image` | no | The user's banner, shown on top of the profile |
 | `inbox` | no | ActivityPub inbox URL |
@@ -174,6 +182,10 @@ A page with title, and optional URL and text content. The URL often leads to an 
     "to": "https://voyager.lemmy.ml/c/main",
     "summary": "Test thumbnail 2",
     "content": "blub blub",
+    "source": {
+        "content": "blub blub",
+        "mediaType": "text/markdown"
+    },
     "url": "https://voyager.lemmy.ml:/pictrs/image/fzGwCsq7BJ.jpg",
     "image": {
         "type": "Image",
@@ -213,6 +225,10 @@ A reply to a post, or reply to another comment. Contains only text (including re
     "attributedTo": "https://enterprise.lemmy.ml/u/picard",
     "to": "https://enterprise.lemmy.ml/c/main",
     "content": "mmmk",
+    "source": {
+        "content": "mmmk",
+        "mediaType": "text/markdown"
+    },
     "inReplyTo": [
         "https://enterprise.lemmy.ml/post/38",
         "https://voyager.lemmy.ml/comment/73"
@@ -243,6 +259,11 @@ A direct message from one user to another. Can not include additional users. Thr
     "attributedTo": "https://enterprise.lemmy.ml/u/picard",
     "to": "https://voyager.lemmy.ml/u/janeway",
     "content": "test",
+    "source": {
+        "content": "test",
+        "mediaType": "text/markdown"
+    },
+    "mediaType": "text/markdown",
     "published": "2020-10-08T19:10:46.542820+00:00",
     "updated": "2020-10-08T20:13:52.547156+00:00"
 }
