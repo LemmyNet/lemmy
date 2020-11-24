@@ -18,7 +18,7 @@ use activitystreams::{
   activity::Follow,
   actor::{ApActor, Group, Person},
   base::AnyBase,
-  object::{Page, Tombstone},
+  object::{ApObject, Note, Page, Tombstone},
 };
 use activitystreams_ext::{Ext1, Ext2};
 use anyhow::{anyhow, Context};
@@ -31,11 +31,12 @@ use std::net::IpAddr;
 use url::{ParseError, Url};
 
 /// Activitystreams type for community
-type GroupExt = Ext2<ApActor<Group>, GroupExtension, PublicKeyExtension>;
+type GroupExt = Ext2<ApActor<ApObject<Group>>, GroupExtension, PublicKeyExtension>;
 /// Activitystreams type for user
-type PersonExt = Ext1<ApActor<Person>, PublicKeyExtension>;
+type PersonExt = Ext1<ApActor<ApObject<Person>>, PublicKeyExtension>;
 /// Activitystreams type for post
-type PageExt = Ext1<Page, PageExtension>;
+type PageExt = Ext1<ApObject<Page>, PageExtension>;
+type NoteExt = ApObject<Note>;
 
 pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 

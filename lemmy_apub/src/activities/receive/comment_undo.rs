@@ -2,8 +2,9 @@ use crate::{
   activities::receive::get_actor_as_user,
   fetcher::get_or_fetch_and_insert_comment,
   FromApub,
+  NoteExt,
 };
-use activitystreams::{activity::*, object::Note, prelude::*};
+use activitystreams::{activity::*, prelude::*};
 use anyhow::Context;
 use lemmy_db::{
   comment::{Comment, CommentForm, CommentLike},
@@ -20,7 +21,7 @@ pub(crate) async fn receive_undo_like_comment(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let user = get_actor_as_user(like, context, request_counter).await?;
-  let note = Note::from_any_base(like.object().to_owned().one().context(location_info!())?)?
+  let note = NoteExt::from_any_base(like.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
   let comment = CommentForm::from_apub(&note, context, None, request_counter).await?;
@@ -64,7 +65,7 @@ pub(crate) async fn receive_undo_dislike_comment(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let user = get_actor_as_user(dislike, context, request_counter).await?;
-  let note = Note::from_any_base(
+  let note = NoteExt::from_any_base(
     dislike
       .object()
       .to_owned()
