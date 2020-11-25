@@ -244,7 +244,7 @@ impl Perform for GetPosts {
     let community_name = data.community_name.to_owned();
     let posts = match blocking(context.pool(), move |conn| {
       PostQueryBuilder::create(conn)
-        .listing_type(type_)
+        .listing_type(&type_)
         .sort(&sort)
         .show_nsfw(show_nsfw)
         .for_community_id(community_id)
