@@ -4,11 +4,12 @@ use crate::{
   fetcher::get_or_fetch_and_upsert_user,
   inbox::get_activity_to_and_cc,
   FromApub,
+  NoteExt,
 };
 use activitystreams::{
   activity::{ActorAndObjectRefExt, Create, Delete, Undo, Update},
   base::{AsBase, ExtendsExt},
-  object::{AsObject, Note},
+  object::AsObject,
   public,
 };
 use anyhow::{anyhow, Context};
@@ -30,7 +31,7 @@ pub(crate) async fn receive_create_private_message(
 ) -> Result<(), LemmyError> {
   check_private_message_activity_valid(&create, context, request_counter).await?;
 
-  let note = Note::from_any_base(
+  let note = NoteExt::from_any_base(
     create
       .object()
       .as_one()
@@ -79,7 +80,7 @@ pub(crate) async fn receive_update_private_message(
     .as_one()
     .context(location_info!())?
     .to_owned();
-  let note = Note::from_any_base(object)?.context(location_info!())?;
+  let note = NoteExt::from_any_base(object)?.context(location_info!())?;
 
   let private_message_form =
     PrivateMessageForm::from_apub(&note, context, Some(expected_domain), request_counter).await?;

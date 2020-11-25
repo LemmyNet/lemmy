@@ -3,11 +3,12 @@ use crate::{
   ActorType,
   FromApub,
   GroupExt,
+  NoteExt,
   PageExt,
   PersonExt,
   APUB_JSON_CONTENT_TYPE,
 };
-use activitystreams::{base::BaseExt, collection::OrderedCollection, object::Note, prelude::*};
+use activitystreams::{base::BaseExt, collection::OrderedCollection, prelude::*};
 use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
 use diesel::result::Error::NotFound;
@@ -91,7 +92,7 @@ enum SearchAcceptedObjects {
   Person(Box<PersonExt>),
   Group(Box<GroupExt>),
   Page(Box<PageExt>),
-  Comment(Box<Note>),
+  Comment(Box<NoteExt>),
 }
 
 /// Attempt to parse the query as URL, and fetch an ActivityPub object from it.
@@ -488,7 +489,7 @@ pub(crate) async fn get_or_fetch_and_insert_comment(
         comment_ap_id
       );
       let comment =
-        fetch_remote_object::<Note>(context.client(), comment_ap_id, recursion_counter).await?;
+        fetch_remote_object::<NoteExt>(context.client(), comment_ap_id, recursion_counter).await?;
       let comment_form = CommentForm::from_apub(
         &comment,
         context,

@@ -1,7 +1,13 @@
-use crate::{objects::check_object_domain, ActorType, FromApub, PersonExt, ToApub};
+use crate::{
+  objects::{check_object_domain, get_source_markdown_value, set_content_and_source},
+  ActorType,
+  FromApub,
+  PersonExt,
+  ToApub,
+};
 use activitystreams::{
   actor::{ApActor, Endpoints, Person},
-  object::{Image, Tombstone},
+  object::{ApObject, Image, Tombstone},
   prelude::*,
 };
 use activitystreams_ext::Ext1;
@@ -24,7 +30,7 @@ impl ToApub for User_ {
   type ApubType = PersonExt;
 
   async fn to_apub(&self, _pool: &DbPool) -> Result<PersonExt, LemmyError> {
-    let mut person = Person::new();
+    let mut person = ApObject::new(Person::new());
     person
       .set_context(activitystreams::context())
       .set_id(Url::parse(&self.actor_id)?)
@@ -47,6 +53,9 @@ impl ToApub for User_ {
     }
 
     if let Some(bio) = &self.bio {
+      set_content_and_source(&mut person, bio)?;
+      // Also set summary for compatibility with older Lemmy versions.
+      // TODO: remove this after a while.
       person.set_summary(bio.to_owned());
     }
 
@@ -117,14 +126,8 @@ impl FromApub for UserForm {
       .map(|n| n.to_owned().xsd_string())
       .flatten();
 
-    // TODO a limit check (like the API does) might need to be done
-    // here when we federate to other platforms. Same for preferred_username
-    let bio = person
-      .inner
-      .summary()
-      .map(|s| s.as_single_xsd_string())
-      .flatten()
-      .map(|s| s.to_string());
+    let bio = get_source_markdown_value(person)?;
+
     check_slurs(&name)?;
     check_slurs_opt(&preferred_username)?;
     check_slurs_opt(&bio)?;

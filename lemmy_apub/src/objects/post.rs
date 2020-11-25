@@ -1,13 +1,18 @@
 use crate::{
   extensions::page_extension::PageExtension,
   fetcher::{get_or_fetch_and_upsert_community, get_or_fetch_and_upsert_user},
-  objects::{check_object_domain, create_tombstone},
+  objects::{
+    check_object_domain,
+    create_tombstone,
+    get_source_markdown_value,
+    set_content_and_source,
+  },
   FromApub,
   PageExt,
   ToApub,
 };
 use activitystreams::{
-  object::{kind::PageType, Image, Page, Tombstone},
+  object::{kind::PageType, ApObject, Image, Page, Tombstone},
   prelude::*,
 };
 use activitystreams_ext::Ext1;
@@ -35,7 +40,7 @@ impl ToApub for Post {
 
   // Turn a Lemmy post into an ActivityPub page that can be sent out over the network.
   async fn to_apub(&self, pool: &DbPool) -> Result<PageExt, LemmyError> {
-    let mut page = Page::new();
+    let mut page = ApObject::new(Page::new());
 
     let creator_id = self.creator_id;
     let creator = blocking(pool, move |conn| User_::read(conn, creator_id)).await??;
@@ -57,7 +62,7 @@ impl ToApub for Post {
       .set_attributed_to(creator.actor_id);
 
     if let Some(body) = &self.body {
-      page.set_content(body.to_owned());
+      set_content_and_source(&mut page, &body)?;
     }
 
     // TODO: hacky code because we get self.url == Some("")
@@ -162,13 +167,8 @@ impl FromApub for PostForm {
       .as_single_xsd_string()
       .context(location_info!())?
       .to_string();
-    let body = page
-      .inner
-      .content()
-      .as_ref()
-      .map(|c| c.as_single_xsd_string())
-      .flatten()
-      .map(|s| s.to_string());
+    let body = get_source_markdown_value(page)?;
+
     check_slurs(&name)?;
     let body_slurs_removed = body.map(|b| remove_slurs(&b));
     Ok(PostForm {

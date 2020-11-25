@@ -1,7 +1,12 @@
 use crate::{
   extensions::group_extensions::GroupExtension,
   fetcher::get_or_fetch_and_upsert_user,
-  objects::{check_object_domain, create_tombstone},
+  objects::{
+    check_object_domain,
+    create_tombstone,
+    get_source_markdown_value,
+    set_content_and_source,
+  },
   ActorType,
   FromApub,
   GroupExt,
@@ -10,7 +15,7 @@ use crate::{
 use activitystreams::{
   actor::{kind::GroupType, ApActor, Endpoints, Group},
   base::BaseExt,
-  object::{Image, Tombstone},
+  object::{ApObject, Image, Tombstone},
   prelude::*,
 };
 use activitystreams_ext::Ext2;
@@ -46,7 +51,7 @@ impl ToApub for Community {
     .await??;
     let moderators: Vec<String> = moderators.into_iter().map(|m| m.user_actor_id).collect();
 
-    let mut group = Group::new();
+    let mut group = ApObject::new(Group::new());
     group
       .set_context(activitystreams::context())
       .set_id(Url::parse(&self.actor_id)?)
@@ -58,9 +63,7 @@ impl ToApub for Community {
       group.set_updated(convert_datetime(u));
     }
     if let Some(d) = self.description.to_owned() {
-      // TODO: this should be html, also add source field with raw markdown
-      //       -> same for post.content and others
-      group.set_content(d);
+      set_content_and_source(&mut group, &d)?;
     }
 
     if let Some(icon_url) = &self.icon {
@@ -138,14 +141,9 @@ impl FromApub for CommunityForm {
       .as_xsd_string()
       .context(location_info!())?
       .to_string();
-    // TODO: should be parsed as html and tags like <script> removed (or use markdown source)
-    //       -> same for post.content etc
-    let description = group
-      .inner
-      .content()
-      .map(|s| s.as_single_xsd_string())
-      .flatten()
-      .map(|s| s.to_string());
+
+    let description = get_source_markdown_value(group)?;
+
     check_slurs(&name)?;
     check_slurs(&title)?;
     check_slurs_opt(&description)?;

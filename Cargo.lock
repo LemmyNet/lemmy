@@ -2,9 +2,9 @@
 # It is not intended for manual editing.
 [[package]]
 name = "activitystreams"
-version = "0.7.0-alpha.4"
+version = "0.7.0-alpha.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "261b423734cca2a170d7a76936f1f0f9e6c6fc297d36cfc5ea6aa15f9017f996"
+checksum = "0b1afe32371e466a791ced0d6ef6e6b97822bb1a279ee4cc41c4324e61cd0b2b"
 dependencies = [
  "chrono",
  "mime",

@@ -1,8 +1,9 @@
 use crate::check_is_apub_id_valid;
 use activitystreams::{
-  base::{AsBase, BaseExt},
+  base::{AsBase, BaseExt, ExtendsExt},
   markers::Base,
-  object::{Tombstone, TombstoneExt},
+  mime::{FromStrError, Mime},
+  object::{ApObjectExt, Object, ObjectExt, Tombstone, TombstoneExt},
 };
 use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
@@ -57,4 +58,74 @@ where
     actor_id
   };
   Ok(actor_id.to_string())
+}
+
+pub(in crate::objects) fn set_content_and_source<T, Kind1, Kind2>(
+  object: &mut T,
+  markdown_text: &str,
+) -> Result<(), LemmyError>
+where
+  T: ApObjectExt<Kind1> + ObjectExt<Kind2> + AsBase<Kind2>,
+{
+  let mut source = Object::<()>::new_none_type();
+  source
+    .set_content(markdown_text)
+    .set_media_type(mime_markdown()?);
+  object.set_source(source.into_any_base()?);
+
+  // set `content` to markdown for compatibility with older Lemmy versions
+  // TODO: change this to HTML in a while
+  object.set_content(markdown_text);
+  object.set_media_type(mime_markdown()?);
+  //object.set_content(markdown_to_html(markdown_text));
+  Ok(())
+}
+
+pub(in crate::objects) fn get_source_markdown_value<T, Kind1, Kind2>(
+  object: &T,
+) -> Result<Option<String>, LemmyError>
+where
+  T: ApObjectExt<Kind1> + ObjectExt<Kind2> + AsBase<Kind2>,
+{
+  let content = object
+    .content()
+    .map(|s| s.as_single_xsd_string())
+    .flatten()
+    .map(|s| s.to_string());
+  if content.is_some() {
+    let source = object.source();
+    // updated lemmy version, read markdown from `source.content`
+    if let Some(source) = source {
+      let source = Object::<()>::from_any_base(source.to_owned())?.context(location_info!())?;
+      check_is_markdown(source.media_type())?;
+      let source_content = source
+        .content()
+        .map(|s| s.as_single_xsd_string())
+        .flatten()
+        .context(location_info!())?
+        .to_string();
+      return Ok(Some(source_content));
+    }
+    // older lemmy version, read markdown from `content`
+    // TODO: remove this after a while
+    else {
+      return Ok(content);
+    }
+  }
+  Ok(None)
+}
+
+pub(in crate::objects) fn mime_markdown() -> Result<Mime, FromStrError> {
+  "text/markdown".parse()
+}
+
+pub(in crate::objects) fn check_is_markdown(mime: Option<&Mime>) -> Result<(), LemmyError> {
+  let mime = mime.context(location_info!())?;
+  if !mime.eq(&mime_markdown()?) {
+    Err(LemmyError::from(anyhow!(
+      "Lemmy only supports markdown content"
+    )))
+  } else {
+    Ok(())
+  }
 }
