@@ -1,5 +1,5 @@
 use crate::{
-  extensions::page_extension::PageExtension,
+  extensions::{context::lemmy_context, page_extension::PageExtension},
   fetcher::{get_or_fetch_and_upsert_community, get_or_fetch_and_upsert_user},
   objects::{
     check_object_domain,
@@ -52,7 +52,7 @@ impl ToApub for Post {
       // Not needed when the Post is embedded in a collection (like for community outbox)
       // TODO: need to set proper context defining sensitive/commentsEnabled fields
       // https://git.asonix.dog/Aardwolf/activitystreams/issues/5
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(self.ap_id.parse::<Url>()?)
       // Use summary field to be consistent with mastodon content warning.
       // https://mastodon.xyz/@Louisa/103987265222901387.json

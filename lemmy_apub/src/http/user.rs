@@ -1,4 +1,4 @@
-use crate::{http::create_apub_response, ActorType, ToApub};
+use crate::{extensions::context::lemmy_context, http::create_apub_response, ActorType, ToApub};
 use activitystreams::{
   base::BaseExt,
   collection::{CollectionExt, OrderedCollection},
@@ -42,7 +42,7 @@ pub async fn get_apub_user_outbox(
   let mut collection = OrderedCollection::new();
   collection
     .set_many_items(Vec::<Url>::new())
-    .set_context(activitystreams::context())
+    .set_many_contexts(lemmy_context()?)
     .set_id(user.get_outbox_url()?)
     .set_total_items(0_u64);
   Ok(create_apub_response(&collection))

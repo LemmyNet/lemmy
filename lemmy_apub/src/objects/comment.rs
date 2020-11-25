@@ -1,4 +1,5 @@
 use crate::{
+  extensions::context::lemmy_context,
   fetcher::{
     get_or_fetch_and_insert_comment,
     get_or_fetch_and_insert_post,
@@ -64,7 +65,7 @@ impl ToApub for Comment {
 
     comment
       // Not needed when the Post is embedded in a collection (like for community outbox)
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(Url::parse(&self.ap_id)?)
       .set_published(convert_datetime(self.published))
       .set_to(community.actor_id)

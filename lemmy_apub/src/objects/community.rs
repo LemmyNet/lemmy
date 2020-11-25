@@ -1,5 +1,5 @@
 use crate::{
-  extensions::group_extensions::GroupExtension,
+  extensions::{context::lemmy_context, group_extensions::GroupExtension},
   fetcher::get_or_fetch_and_upsert_user,
   objects::{
     check_object_domain,
@@ -53,7 +53,7 @@ impl ToApub for Community {
 
     let mut group = ApObject::new(Group::new());
     group
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(Url::parse(&self.actor_id)?)
       .set_name(self.title.to_owned())
       .set_published(convert_datetime(self.published))
