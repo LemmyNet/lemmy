@@ -1,35 +1,72 @@
-# syntax=docker/dockerfile:experimental
-FROM rust:1.47-buster as rust
+ARG RUST_BUILDER_IMAGE=ekidd/rust-musl-builder:1.47.0
 
-ENV HOME=/home/root
+# Cargo chef plan
+FROM $RUST_BUILDER_IMAGE as planner
+WORKDIR /app
+RUN cargo install cargo-chef --version 0.1.6
+
+# Copy dirs
+COPY ./ ./
+
+RUN sudo chown -R rust:rust .
+RUN cargo chef prepare --recipe-path recipe.json
+
+# Cargo chef cache dependencies
+FROM $RUST_BUILDER_IMAGE as cacher
+ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-musl
+WORKDIR /app
+RUN cargo install cargo-chef --version 0.1.6
+COPY --from=planner /app/recipe.json ./recipe.json
+RUN sudo chown -R rust:rust .
+RUN cargo chef cook --target ${CARGO_BUILD_TARGET} --recipe-path recipe.json
+
+# Build the project
+FROM $RUST_BUILDER_IMAGE as builder
+
+ARG CARGO_BUILD_TARGET=x86_64-unknown-linux-musl
+ARG RUSTRELEASEDIR="debug"
 
 WORKDIR /app
 
-# Copy the source folders
-COPY . ./
+# Copy over the cached dependencies
+COPY --from=cacher /app/target target
+COPY --from=cacher /home/rust/.cargo /home/rust/.cargo
 
-# Build for debug
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/app/target \
-    cargo build
-RUN --mount=type=cache,target=/app/target \
-    cp target/debug/lemmy_server lemmy_server
+# Copy the rest of the dirs
+COPY ./ ./
 
-FROM peaceiris/mdbook:v0.3.7 as docs
+RUN sudo chown -R rust:rust .
+RUN cargo build
+
+# reduce binary size
+RUN strip ./target/$CARGO_BUILD_TARGET/$RUSTRELEASEDIR/lemmy_server
+
+RUN cp ./target/$CARGO_BUILD_TARGET/$RUSTRELEASEDIR/lemmy_server /app/lemmy_server
+
+# Build the docs
+FROM $RUST_BUILDER_IMAGE as docs
 WORKDIR /app
-COPY docs ./docs
+COPY --chown=rust:rust docs ./docs
 RUN mdbook build docs/
 
-FROM ubuntu:20.10
+# The alpine runner
+FROM alpine:3.12 as lemmy
 
-# Install libpq for postgres and espeak
-RUN apt-get update -y
-RUN apt-get install -y libpq-dev espeak 
+# Install libpq for postgres
+RUN apk add libpq
+
+# Install Espeak for captchas
+RUN apk add espeak
+
+RUN addgroup -g 1000 lemmy
+RUN adduser -D -s /bin/sh -u 1000 -G lemmy lemmy
 
 # Copy resources
-COPY config/defaults.hjson /config/defaults.hjson
-COPY --from=rust /app/lemmy_server /app/lemmy
-COPY --from=docs /app/docs/book/ /app/documentation/
+COPY --chown=lemmy:lemmy config/defaults.hjson /config/defaults.hjson
+COPY --chown=lemmy:lemmy --from=builder /app/lemmy_server /app/lemmy
+COPY --chown=lemmy:lemmy --from=docs /app/docs/book/ /app/documentation/
 
+RUN chown lemmy:lemmy /app/lemmy
+USER lemmy
 EXPOSE 8536
 CMD ["/app/lemmy"]
