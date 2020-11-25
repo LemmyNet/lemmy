@@ -7,11 +7,7 @@ use activitystreams::{
 };
 use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
-use lemmy_utils::{
-  location_info,
-  utils::{convert_datetime, markdown_to_html},
-  LemmyError,
-};
+use lemmy_utils::{location_info, utils::convert_datetime, LemmyError};
 use url::Url;
 
 pub(crate) mod comment;
@@ -69,14 +65,19 @@ pub(in crate::objects) fn set_content_and_source<T, Kind1, Kind2>(
   markdown_text: &str,
 ) -> Result<(), LemmyError>
 where
-  T: ApObjectExt<Kind1> + ObjectExt<Kind2>,
+  T: ApObjectExt<Kind1> + ObjectExt<Kind2> + AsBase<Kind2>,
 {
   let mut source = Object::<()>::new_none_type();
   source
     .set_content(markdown_text)
     .set_media_type(mime_markdown()?);
   object.set_source(source.into_any_base()?);
-  object.set_content(markdown_to_html(markdown_text));
+
+  // set `content` to markdown for compatibility with older Lemmy versions
+  // TODO: change this to HTML in a while
+  object.set_content(markdown_text);
+  object.set_media_type(mime_markdown()?);
+  //object.set_content(markdown_to_html(markdown_text));
   Ok(())
 }
 
@@ -84,7 +85,7 @@ pub(in crate::objects) fn get_source_markdown_value<T, Kind1, Kind2>(
   object: &T,
 ) -> Result<Option<String>, LemmyError>
 where
-  T: ApObjectExt<Kind1> + ObjectExt<Kind2>,
+  T: ApObjectExt<Kind1> + ObjectExt<Kind2> + AsBase<Kind2>,
 {
   let content = object
     .content()
@@ -92,16 +93,24 @@ where
     .flatten()
     .map(|s| s.to_string());
   if content.is_some() {
-    let source = object.source().context(location_info!())?;
-    let source = Object::<()>::from_any_base(source.to_owned())?.context(location_info!())?;
-    check_is_markdown(source.media_type())?;
-    let source_content = source
-      .content()
-      .map(|s| s.as_single_xsd_string())
-      .flatten()
-      .context(location_info!())?
-      .to_string();
-    return Ok(Some(source_content));
+    let source = object.source();
+    // updated lemmy version, read markdown from `source.content`
+    if let Some(source) = source {
+      let source = Object::<()>::from_any_base(source.to_owned())?.context(location_info!())?;
+      check_is_markdown(source.media_type())?;
+      let source_content = source
+        .content()
+        .map(|s| s.as_single_xsd_string())
+        .flatten()
+        .context(location_info!())?
+        .to_string();
+      return Ok(Some(source_content));
+    }
+    // older lemmy version, read markdown from `content`
+    // TODO: remove this after a while
+    else {
+      return Ok(content);
+    }
   }
   Ok(None)
 }

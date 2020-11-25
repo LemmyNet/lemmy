@@ -54,7 +54,8 @@ impl ToApub for User_ {
 
     if let Some(bio) = &self.bio {
       set_content_and_source(&mut person, bio)?;
-      // Also set summary for compatibility with older Lemmy versions. Remove this after a while.
+      // Also set summary for compatibility with older Lemmy versions.
+      // TODO: remove this after a while.
       person.set_summary(bio.to_owned());
     }
 
