@@ -166,7 +166,7 @@ impl CommentReportView {
   /// returns the current unresolved comment report count for the supplied community ids
   ///
   /// * `community_ids` - a Vec<i32> of community_ids to get a count for
-  pub fn get_report_count(conn: &PgConnection, community_ids: &Vec<i32>) -> Result<i64, Error> {
+  pub fn get_report_count(conn: &PgConnection, community_ids: &[i32]) -> Result<i64, Error> {
     use super::comment_report::comment_report_view::dsl::*;
     comment_report_view
       .filter(resolved.eq(false).and(community_id.eq_any(community_ids)))

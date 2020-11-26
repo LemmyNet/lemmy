@@ -107,7 +107,7 @@ pub(crate) async fn check_community_ban(
 /// * `user_id` - the user id of the moderator
 /// * `community_id` - optional community id to check for moderator privileges
 /// * `pool` - the diesel db pool
-pub(in crate) async fn collect_moderated_communities(
+pub(crate) async fn collect_moderated_communities(
   user_id: i32,
   community_id: Option<i32>,
   pool: &DbPool,

@@ -106,6 +106,7 @@ pub struct ResolveCommentReportResponse {
 pub struct ListCommentReports {
   pub page: Option<i64>,
   pub limit: Option<i64>,
+  /// if no community is given, it returns reports for all communities moderated by the auth user
   pub community: Option<i32>,
   pub auth: String,
 }
