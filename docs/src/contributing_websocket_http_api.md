@@ -306,11 +306,12 @@ Connect to <code>ws://***host***/api/v1/ws</code> to get started.
 
 If the ***`host`*** supports secure connections, you can use <code>wss://***host***/api/v1/ws</code>.
 
-To receive websocket messages, you must join a room / context. The three available are:
+To receive websocket messages, you must join a room / context. The four available are:
 
 - [UserJoin](#user-join). Receives replies, private messages, etc.
 - [PostJoin](#post-join). Receives new comments on a post.
 - [CommunityJoin](#community-join). Receives front page / community posts.
+- [ModJoin](#mod-join). Receives community moderator updates like reports.
 
 #### Testing with Websocat
 
@@ -916,6 +917,35 @@ Marks all user replies and mentions as read.
 
 `POST /user/join`
 
+#### Get Report Count
+
+If a community is supplied, returns the report count for only that community, otherwise returns the report count for all communities the user moderates.
+
+##### Request
+```rust
+{
+  op: "GetReportCount",
+  data: {
+    community: Option<i32>,
+    auth: String
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "GetReportCount",
+  data: {
+    community: Option<i32>,
+    comment_reports: i64,
+    post_reports: i64,
+  }
+}
+```
+##### HTTP
+
+`GET /user/report_count`
+
 ### Site
 #### List Categories
 ##### Request
@@ -1492,6 +1522,29 @@ The main / frontpage community is `community_id: 0`.
 
 `POST /community/join`
 
+#### Mod Join
+##### Request
+```rust
+{
+  op: "ModJoin",
+  data: {
+    community_id: i32
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "ModJoin",
+  data: {
+    joined: bool,
+  }
+}
+```
+##### HTTP
+
+`POST /community/mod/join`
+
 ### Post
 #### Create Post
 ##### Request
@@ -1801,6 +1854,86 @@ Only admins and mods can sticky a post.
 
 `POST /post/join`
 
+#### Create Post Report
+##### Request
+```rust
+{
+  op: "CreatePostReport",
+  data: {
+    post_id: i32,
+    reason: String,
+    auth: String
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "CreatePostReport",
+  data: {
+    success: bool
+  }
+}
+```
+##### HTTP
+
+`POST /post/report`
+
+#### Resolve Post Report
+##### Request
+```rust
+{
+  op: "ResolvePostReport",
+  data: {
+    report_id: i32,
+    resolved: bool,
+    auth: String
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "ResolvePostReport",
+  data: {
+    report_id: i32,
+    resolved: bool
+  }
+}
+```
+##### HTTP
+
+`PUT /post/report/resolve`
+
+#### List Post Reports
+
+If a community is supplied, returns reports for only that community, otherwise returns the reports for all communities the user moderates
+
+##### Request
+```rust
+{
+  op: "ListPostReports",
+  data: {
+    page: Option<i64>,
+    limit: Option<i64>,
+    community: Option<i32>,
+    auth: String
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "ListPostReports",
+  data: {
+    posts: Vec<PostReportView>
+  }
+}
+```
+##### HTTP
+
+`GET /post/report/list`
+
 ### Comment
 #### Create Comment
 ##### Request
@@ -2031,6 +2164,86 @@ Only the recipient can do this.
 ##### HTTP
 
 `POST /comment/like`
+
+#### Create Comment Report
+##### Request
+```rust
+{
+  op: "CreateCommentReport",
+  data: {
+    comment_id: i32,
+    reason: String,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "CreateCommentReport",
+  data: {
+    success: bool,
+  }
+}
+```
+##### HTTP
+
+`POST /comment/report`
+
+#### Resolve Comment Report
+##### Request
+```rust
+{
+  op: "ResolveCommentReport",
+  data: {
+    report_id: i32,
+    resolved: bool,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "ResolveCommentReport",
+  data: {
+    report_id: i32,
+    resolved: bool,
+  }
+}
+```
+##### HTTP
+
+`PUT /comment/report/resolve`
+
+#### List Comment Reports
+
+If a community is supplied, returns reports for only that community, otherwise returns the reports for all communities the user moderates
+
+##### Request
+```rust
+{
+  op: "ListCommentReports",
+  data: {
+    page: Option<i64>,
+    limit: Option<i64>,
+    community: Option<i32>,
+    auth: String,
+  }
+}
+```
+##### Response
+```rust
+{
+  op: "ListCommentReports",
+  data: {
+    comments: Vec<CommentReportView>
+  }
+}
+```
+##### HTTP
+
+`GET /comment/report/list`
 
 ### RSS / Atom feeds
 

@@ -47,6 +47,8 @@ pub struct ChatServer {
   /// A map from community to set of connectionIDs
   pub community_rooms: HashMap<CommunityId, HashSet<ConnectionId>>,
 
+  pub mod_rooms: HashMap<CommunityId, HashSet<ConnectionId>>,
+
   /// A map from user id to its connection ID for joined users. Remember a user can have multiple
   /// sessions (IE clients)
   pub(super) user_rooms: HashMap<UserId, HashSet<ConnectionId>>,
@@ -90,6 +92,7 @@ impl ChatServer {
       sessions: HashMap::new(),
       post_rooms: HashMap::new(),
       community_rooms: HashMap::new(),
+      mod_rooms: HashMap::new(),
       user_rooms: HashMap::new(),
       rng: rand::thread_rng(),
       pool,
@@ -124,6 +127,29 @@ impl ChatServer {
 
     self
       .community_rooms
+      .get_mut(&community_id)
+      .context(location_info!())?
+      .insert(id);
+    Ok(())
+  }
+
+  pub fn join_mod_room(
+    &mut self,
+    community_id: CommunityId,
+    id: ConnectionId,
+  ) -> Result<(), LemmyError> {
+    // remove session from all rooms
+    for sessions in self.mod_rooms.values_mut() {
+      sessions.remove(&id);
+    }
+
+    // If the room doesn't exist yet
+    if self.mod_rooms.get_mut(&community_id).is_none() {
+      self.mod_rooms.insert(community_id, HashSet::new());
+    }
+
+    self
+      .mod_rooms
       .get_mut(&community_id)
       .context(location_info!())?
       .insert(id);
@@ -215,6 +241,30 @@ impl ChatServer {
   {
     let res_str = &serialize_websocket_message(op, response)?;
     if let Some(sessions) = self.community_rooms.get(&community_id) {
+      for id in sessions {
+        if let Some(my_id) = websocket_id {
+          if *id == my_id {
+            continue;
+          }
+        }
+        self.sendit(res_str, *id);
+      }
+    }
+    Ok(())
+  }
+
+  pub fn send_mod_room_message<Response>(
+    &self,
+    op: &UserOperation,
+    response: &Response,
+    community_id: CommunityId,
+    websocket_id: Option<ConnectionId>,
+  ) -> Result<(), LemmyError>
+  where
+    Response: Serialize,
+  {
+    let res_str = &serialize_websocket_message(op, response)?;
+    if let Some(sessions) = self.mod_rooms.get(&community_id) {
       for id in sessions {
         if let Some(my_id) = websocket_id {
           if *id == my_id {

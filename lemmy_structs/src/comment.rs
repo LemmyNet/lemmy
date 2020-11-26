@@ -1,4 +1,4 @@
-use lemmy_db::comment_view::CommentView;
+use lemmy_db::{comment_report::CommentReportView, comment_view::CommentView};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
@@ -75,4 +75,43 @@ pub struct GetComments {
 #[derive(Serialize)]
 pub struct GetCommentsResponse {
   pub comments: Vec<CommentView>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CreateCommentReport {
+  pub comment_id: i32,
+  pub reason: String,
+  pub auth: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct CreateCommentReportResponse {
+  pub success: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ResolveCommentReport {
+  pub report_id: i32,
+  pub resolved: bool,
+  pub auth: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ResolveCommentReportResponse {
+  pub report_id: i32,
+  pub resolved: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ListCommentReports {
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+  /// if no community is given, it returns reports for all communities moderated by the auth user
+  pub community: Option<i32>,
+  pub auth: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ListCommentReportsResponse {
+  pub comments: Vec<CommentReportView>,
 }

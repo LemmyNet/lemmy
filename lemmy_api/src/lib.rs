@@ -1,7 +1,7 @@
 use crate::claims::Claims;
 use actix_web::{web, web::Data};
 use lemmy_db::{
-  community::Community,
+  community::{Community, CommunityModerator},
   community_view::CommunityUserBanView,
   post::Post,
   user::User_,
@@ -100,6 +100,31 @@ pub(crate) async fn check_community_ban(
   }
 }
 
+/// Returns a list of communities that the user moderates
+/// or if a community_id is supplied validates the user is a moderator
+/// of that community and returns the community id in a vec
+///
+/// * `user_id` - the user id of the moderator
+/// * `community_id` - optional community id to check for moderator privileges
+/// * `pool` - the diesel db pool
+pub(crate) async fn collect_moderated_communities(
+  user_id: i32,
+  community_id: Option<i32>,
+  pool: &DbPool,
+) -> Result<Vec<i32>, LemmyError> {
+  if let Some(community_id) = community_id {
+    // if the user provides a community_id, just check for mod/admin privileges
+    is_mod_or_admin(pool, user_id, community_id).await?;
+    Ok(vec![community_id])
+  } else {
+    let ids = blocking(pool, move |conn: &'_ _| {
+      CommunityModerator::get_user_moderated_communities(conn, user_id)
+    })
+    .await??;
+    Ok(ids)
+  }
+}
+
 pub(crate) fn check_optional_url(item: &Option<Option<String>>) -> Result<(), LemmyError> {
   if let Some(Some(item)) = &item {
     if Url::parse(item).is_err() {
@@ -178,8 +203,12 @@ pub async fn match_websocket_operation(
     UserOperation::CommunityJoin => {
       do_websocket_operation::<CommunityJoin>(context, id, op, data).await
     }
+    UserOperation::ModJoin => do_websocket_operation::<ModJoin>(context, id, op, data).await,
     UserOperation::SaveUserSettings => {
       do_websocket_operation::<SaveUserSettings>(context, id, op, data).await
+    }
+    UserOperation::GetReportCount => {
+      do_websocket_operation::<GetReportCount>(context, id, op, data).await
     }
 
     // Private Message ops
@@ -266,6 +295,15 @@ pub async fn match_websocket_operation(
       do_websocket_operation::<CreatePostLike>(context, id, op, data).await
     }
     UserOperation::SavePost => do_websocket_operation::<SavePost>(context, id, op, data).await,
+    UserOperation::CreatePostReport => {
+      do_websocket_operation::<CreatePostReport>(context, id, op, data).await
+    }
+    UserOperation::ListPostReports => {
+      do_websocket_operation::<ListPostReports>(context, id, op, data).await
+    }
+    UserOperation::ResolvePostReport => {
+      do_websocket_operation::<ResolvePostReport>(context, id, op, data).await
+    }
 
     // Comment ops
     UserOperation::CreateComment => {
@@ -291,6 +329,15 @@ pub async fn match_websocket_operation(
     }
     UserOperation::CreateCommentLike => {
       do_websocket_operation::<CreateCommentLike>(context, id, op, data).await
+    }
+    UserOperation::CreateCommentReport => {
+      do_websocket_operation::<CreateCommentReport>(context, id, op, data).await
+    }
+    UserOperation::ListCommentReports => {
+      do_websocket_operation::<ListCommentReports>(context, id, op, data).await
+    }
+    UserOperation::ResolveCommentReport => {
+      do_websocket_operation::<ResolveCommentReport>(context, id, op, data).await
     }
   }
 }

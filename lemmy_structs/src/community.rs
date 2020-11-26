@@ -139,3 +139,13 @@ pub struct CommunityJoin {
 pub struct CommunityJoinResponse {
   pub joined: bool,
 }
+
+#[derive(Deserialize, Debug)]
+pub struct ModJoin {
+  pub community_id: i32,
+}
+
+#[derive(Serialize, Clone)]
+pub struct ModJoinResponse {
+  pub joined: bool,
+}

@@ -1,6 +1,7 @@
 use lemmy_db::{
   comment_view::CommentView,
   community_view::{CommunityModeratorView, CommunityView},
+  post_report::PostReportView,
   post_view::PostView,
 };
 use serde::{Deserialize, Serialize};
@@ -112,4 +113,42 @@ pub struct PostJoin {
 #[derive(Serialize, Clone)]
 pub struct PostJoinResponse {
   pub joined: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CreatePostReport {
+  pub post_id: i32,
+  pub reason: String,
+  pub auth: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct CreatePostReportResponse {
+  pub success: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ResolvePostReport {
+  pub report_id: i32,
+  pub resolved: bool,
+  pub auth: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ResolvePostReportResponse {
+  pub report_id: i32,
+  pub resolved: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ListPostReports {
+  pub page: Option<i64>,
+  pub limit: Option<i64>,
+  pub community: Option<i32>,
+  pub auth: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ListPostReportsResponse {
+  pub posts: Vec<PostReportView>,
 }

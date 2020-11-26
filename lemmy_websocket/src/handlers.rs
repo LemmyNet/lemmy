@@ -120,6 +120,19 @@ where
   }
 }
 
+impl<Response> Handler<SendModRoomMessage<Response>> for ChatServer
+where
+  Response: Serialize,
+{
+  type Result = ();
+
+  fn handle(&mut self, msg: SendModRoomMessage<Response>, _: &mut Context<Self>) {
+    self
+      .send_mod_room_message(&msg.op, &msg.response, msg.community_id, msg.websocket_id)
+      .ok();
+  }
+}
+
 impl Handler<SendPost> for ChatServer {
   type Result = ();
 
@@ -151,6 +164,14 @@ impl Handler<JoinCommunityRoom> for ChatServer {
 
   fn handle(&mut self, msg: JoinCommunityRoom, _: &mut Context<Self>) {
     self.join_community_room(msg.community_id, msg.id).ok();
+  }
+}
+
+impl Handler<JoinModRoom> for ChatServer {
+  type Result = ();
+
+  fn handle(&mut self, msg: JoinModRoom, _: &mut Context<Self>) {
+    self.join_mod_room(msg.community_id, msg.id).ok();
   }
 }
 

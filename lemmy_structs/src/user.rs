@@ -237,3 +237,16 @@ pub struct UserJoin {
 pub struct UserJoinResponse {
   pub joined: bool,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct GetReportCount {
+  pub community: Option<i32>,
+  pub auth: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct GetReportCountResponse {
+  pub community: Option<i32>,
+  pub comment_reports: i64,
+  pub post_reports: i64,
+}
