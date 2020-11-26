@@ -172,7 +172,7 @@ impl Settings {
     }
   }
 
-  /// Returns something like `http://localhost` or `https://dev.lemmy.ml`,
+  /// Returns something like `http://localhost` or `https://lemmy.ml`,
   /// with the correct protocol and hostname.
   pub fn get_protocol_and_hostname(&self) -> String {
     format!("{}://{}", self.get_protocol_string(), self.hostname)

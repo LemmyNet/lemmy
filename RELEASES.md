@@ -20,7 +20,7 @@ Here are some of the bigger changes:
 - The first **federation public beta release**, woohoo :fireworks: 
 - All Lemmy functionality now works over ActivityPub (except turning remote users into mods/admins)
 - Instance allowlist and blocklist
-- Documentation for [admins](https://dev.lemmy.ml/docs/administration_federation.html) and [devs](https://dev.lemmy.ml/docs/contributing_federation_overview.html) on how federation works
+- Documentation for [admins](https://lemmy.ml/docs/administration_federation.html) and [devs](https://lemmy.ml/docs/contributing_federation_overview.html) on how federation works
 - Upgraded to newest versions of @asonix activitypub libraries
 - Full local federation setup for manual testing
 - Automated testing for nearly every federation action
@@ -54,18 +54,18 @@ Here are some of the bigger changes:
 
 ## Contributors
 
-We'd also like to thank both the [NLnet foundation](https://nlnet.nl/) for their support in allowing us to work full-time on Lemmy ( as well as their support for [other important open-source projects](https://nlnet.nl/project/current.html) ), [those who sponsor us](https://dev.lemmy.ml/sponsors), and those who [help translate Lemmy](https://weblate.yerbamate.ml/projects/lemmy/). Every little bit does help. We remain committed to never allowing advertisements, monetizing, or venture-capital in Lemmy; software should be communal, and should benefit humanity, not a small group of company owners. 
+We'd also like to thank both the [NLnet foundation](https://nlnet.nl/) for their support in allowing us to work full-time on Lemmy ( as well as their support for [other important open-source projects](https://nlnet.nl/project/current.html) ), [those who sponsor us](https://lemmy.ml/sponsors), and those who [help translate Lemmy](https://weblate.yerbamate.ml/projects/lemmy/). Every little bit does help. We remain committed to never allowing advertisements, monetizing, or venture-capital in Lemmy; software should be communal, and should benefit humanity, not a small group of company owners. 
 
 ## Upgrading
 
-- [with manual Docker installation](https://dev.lemmy.ml/docs/administration_install_docker.html#updating)
-- [with Ansible installation](https://dev.lemmy.ml/docs/administration_install_ansible.html)
+- [with manual Docker installation](https://lemmy.ml/docs/administration_install_docker.html#updating)
+- [with Ansible installation](https://lemmy.ml/docs/administration_install_ansible.html)
 
 ## Testing Federation
 
 Federation is finally ready in Lemmy, pending possible bugs or other issues. So for now we suggest to enable federation only on test servers, or try it on our own test servers ( [enterprise](https://enterprise.lemmy.ml/), [ds9](https://ds9.lemmy.ml/), [voyager](https://voyager.lemmy.ml/) ).
 
-If everything goes well, after a few weeks we will enable federation on dev.lemmy.ml, at first with a limited number of trusted instances. We will also likely change the domain to https://lemmy.ml . Keep in mind that changing domains after turning on federation will break things.
+If everything goes well, after a few weeks we will enable federation on lemmy.ml, at first with a limited number of trusted instances. We will also likely change the domain to https://lemmy.ml . Keep in mind that changing domains after turning on federation will break things.
 
 To enable on your instance, edit your [lemmy.hjson](https://github.com/LemmyNet/lemmy/blob/main/config/defaults.hjson#L60) federation section to `enabled: true`, and restart.
 
@@ -147,7 +147,7 @@ Overall, since our last major release in January (v0.6.0), we have closed over
 
 Before starting the upgrade, make sure that you have a working backup of your
 database and image files. See our
-[documentation](https://dev.lemmy.ml/docs/administration_backup_and_restore.html)
+[documentation](https://lemmy.ml/docs/administration_backup_and_restore.html)
 for backup instructions.
 
 **With Ansible:**
@@ -203,4 +203,4 @@ This is the biggest release by far:
 
 Another major announcement is that Lemmy now has another lead developer besides me, [@felix@radical.town](https://radical.town/@felix). Theyve created a better documentation system, implemented RSS feeds, simplified docker and project configs, upgraded actix, working on federation, a whole lot else.
 
-https://dev.lemmy.ml
+https://lemmy.ml

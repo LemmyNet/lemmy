@@ -1,6 +1,6 @@
 {
   # for more info about the config, check out the documentation
-  # https://dev.lemmy.ml/docs/administration_configuration.html
+  # https://lemmy.ml/docs/administration_configuration.html
 
   setup: {
     # username for the admin user
@@ -11,7 +11,7 @@
     site_name: "lemmy-test"
   }
 
-  # the domain name of your instance (eg "dev.lemmy.ml")
+  # the domain name of your instance (eg "lemmy.ml")
   hostname: "my_domain"
   # address where lemmy should listen for incoming requests
   bind: "0.0.0.0"
