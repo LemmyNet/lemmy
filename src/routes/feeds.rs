@@ -62,7 +62,7 @@ async fn get_all_feed(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   let sort_type = get_sort_type(info).map_err(ErrorBadRequest)?;
-  Ok(get_feed_data(&context, &ListingType::All, sort_type).await?)
+  Ok(get_feed_data(&context, ListingType::All, sort_type).await?)
 }
 
 async fn get_local_feed(
@@ -70,12 +70,12 @@ async fn get_local_feed(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   let sort_type = get_sort_type(info).map_err(ErrorBadRequest)?;
-  Ok(get_feed_data(&context, &ListingType::Local, sort_type).await?)
+  Ok(get_feed_data(&context, ListingType::Local, sort_type).await?)
 }
 
 async fn get_feed_data(
   context: &LemmyContext,
-  listing_type: &ListingType,
+  listing_type: ListingType,
   sort_type: SortType,
 ) -> Result<HttpResponse, LemmyError> {
   let site_view = blocking(context.pool(), move |conn| SiteView::read(&conn)).await??;
