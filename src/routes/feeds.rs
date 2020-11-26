@@ -62,18 +62,7 @@ async fn get_all_feed(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   let sort_type = get_sort_type(info).map_err(ErrorBadRequest)?;
-
-  let rss = blocking(context.pool(), move |conn| {
-    get_feed_data(conn, &ListingType::All, &sort_type)
-  })
-  .await?
-  .map_err(ErrorBadRequest)?;
-
-  Ok(
-    HttpResponse::Ok()
-      .content_type("application/rss+xml")
-      .body(rss),
-  )
+  Ok(get_feed_data(&context, &ListingType::All, sort_type).await?)
 }
 
 async fn get_local_feed(
@@ -81,31 +70,24 @@ async fn get_local_feed(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   let sort_type = get_sort_type(info).map_err(ErrorBadRequest)?;
-
-  let rss = blocking(context.pool(), move |conn| {
-    get_feed_data(conn, &ListingType::Local, &sort_type)
-  })
-  .await?
-  .map_err(ErrorBadRequest)?;
-
-  Ok(
-    HttpResponse::Ok()
-      .content_type("application/rss+xml")
-      .body(rss),
-  )
+  Ok(get_feed_data(&context, &ListingType::Local, sort_type).await?)
 }
 
-fn get_feed_data(
-  conn: &PgConnection,
+async fn get_feed_data(
+  context: &LemmyContext,
   listing_type: &ListingType,
-  sort_type: &SortType,
-) -> Result<String, LemmyError> {
-  let site_view = SiteView::read(&conn)?;
+  sort_type: SortType,
+) -> Result<HttpResponse, LemmyError> {
+  let site_view = blocking(context.pool(), move |conn| SiteView::read(&conn)).await??;
 
-  let posts = PostQueryBuilder::create(&conn)
-    .listing_type(listing_type)
-    .sort(sort_type)
-    .list()?;
+  let listing_type_ = listing_type.clone();
+  let posts = blocking(context.pool(), move |conn| {
+    PostQueryBuilder::create(&conn)
+      .listing_type(&listing_type_)
+      .sort(&sort_type)
+      .list()
+  })
+  .await??;
 
   let items = create_post_items(posts)?;
 
@@ -124,7 +106,12 @@ fn get_feed_data(
     channel_builder.description(&site_desc);
   }
 
-  Ok(channel_builder.build().map_err(|e| anyhow!(e))?.to_string())
+  let rss = channel_builder.build().map_err(|e| anyhow!(e))?.to_string();
+  Ok(
+    HttpResponse::Ok()
+      .content_type("application/rss+xml")
+      .body(rss),
+  )
 }
 
 async fn get_feed(
