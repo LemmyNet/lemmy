@@ -11,11 +11,11 @@ This section describes all the aspects of Lemmy where the council has decision m
   - Priorities / Emphasis
   - Controversial features (For example, an unpopular feature should be removed)
 - Moderation and conflict resolution on:
-  - [dev.lemmy.ml](https://dev.lemmy.ml/)
+  - [lemmy.ml](https://lemmy.ml/)
   - [github.com/LemmyNet/lemmy](https://github.com/LemmyNet/lemmy)
   - [yerbamate.ml/LemmyNet/lemmy](https://yerbamate.ml/LemmyNet/lemmy)
   - [weblate.yerbamate.ml/projects/lemmy/](https://weblate.yerbamate.ml/projects/lemmy/)
-- Technical administration of dev.lemmy.ml
+- Technical administration of lemmy.ml
 - Official Lemmy accounts
   - [Mastodon](https://mastodon.social/@LemmyDev)
   - [Liberapay](https://liberapay.com/Lemmy/)
@@ -67,13 +67,13 @@ stay open for at least two days.
 
 ## 7. Communication
 - A private Matrix chat for all council members.
-- (Once private communities are done) A private community on dev.lemmy.ml for issues.
+- (Once private communities are done) A private community on lemmy.ml for issues.
 
 ## 8. Member List / Contact Info
 General Contact [@LemmyDev Mastodon](https://mastodon.social/@LemmyDev)
 
-- [Dessalines](https://dev.lemmy.ml/u/dessalines)
-- [Nutomic](https://dev.lemmy.ml/u/nutomic)
-- [AgreeableLandscape](https://dev.lemmy.ml/u/AgreeableLandscape)
-- [fruechtchen](https://dev.lemmy.ml/u/fruechtchen)
-- [kixiQu](https://dev.lemmy.ml/u/kixiQu)
+- [Dessalines](https://lemmy.ml/u/dessalines)
+- [Nutomic](https://lemmy.ml/u/nutomic)
+- [AgreeableLandscape](https://lemmy.ml/u/AgreeableLandscape)
+- [fruechtchen](https://lemmy.ml/u/fruechtchen)
+- [kixiQu](https://lemmy.ml/u/kixiQu)

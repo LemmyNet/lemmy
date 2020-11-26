@@ -25,7 +25,7 @@
     # maximum number of active sql connections
     pool_size: 5
   }
-  # the domain name of your instance (eg "dev.lemmy.ml")
+  # the domain name of your instance (eg "lemmy.ml")
   hostname: null
   # address where lemmy should listen for incoming requests
   bind: "0.0.0.0"
@@ -65,7 +65,7 @@
     # whether to enable activitypub federation. 
     enabled: false
     # Allows and blocks are described here:
-    # https://dev.lemmy.ml/docs/administration_federation.html#instance-allowlist-and-blocklist
+    # https://lemmy.ml/docs/administration_federation.html#instance-allowlist-and-blocklist
     #
     # comma separated list of instances with which federation is allowed
     allowed_instances: ""

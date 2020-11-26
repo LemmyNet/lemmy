@@ -20,7 +20,7 @@
     <br />
     <a href="https://join.lemmy.ml">Join Lemmy</a>
     ·
-    <a href="https://dev.lemmy.ml/docs/index.html">Documentation</a>
+    <a href="https://lemmy.ml/docs/index.html">Documentation</a>
     ·
     <a href="https://github.com/LemmyNet/lemmy/issues">Report Bug</a>
     ·
@@ -65,7 +65,7 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 
 - Open source, [AGPL License](/LICENSE).
 - Self hostable, easy to deploy.
-  - Comes with [Docker](https://dev.lemmy.ml/docs/administration_install_docker.html) and [Ansible](https://dev.lemmy.ml/docs/administration_install_ansible.html).
+  - Comes with [Docker](https://lemmy.ml/docs/administration_install_docker.html) and [Ansible](https://lemmy.ml/docs/administration_install_ansible.html).
 - Clean, mobile-friendly interface.
   - Only a minimum of a username and password is required to sign up!
   - User avatar support.
@@ -100,8 +100,8 @@ Each Lemmy server can set its own moderation policy; appointing site-wide admins
 
 ## Installation
 
-- [Docker](https://dev.lemmy.ml/docs/administration_install_docker.html)
-- [Ansible](https://dev.lemmy.ml/docs/administration_install_ansible.html)
+- [Docker](https://lemmy.ml/docs/administration_install_docker.html)
+- [Ansible](https://lemmy.ml/docs/administration_install_ansible.html)
 
 ## Lemmy Projects
 
@@ -134,9 +134,9 @@ Lemmy is free, open-source software, meaning no advertising, monetizing, or vent
 
 ## Contributing
 
-- [Contributing instructions](https://dev.lemmy.ml/docs/contributing.html)
-- [Docker Development](https://dev.lemmy.ml/docs/contributing_docker_development.html)
-- [Local Development](https://dev.lemmy.ml/docs/contributing_local_development.html)
+- [Contributing instructions](https://lemmy.ml/docs/contributing.html)
+- [Docker Development](https://lemmy.ml/docs/contributing_docker_development.html)
+- [Local Development](https://lemmy.ml/docs/contributing_local_development.html)
 
 ### Translations
 
