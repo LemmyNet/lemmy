@@ -156,7 +156,7 @@ pub enum SortType {
   TopAll,
 }
 
-#[derive(EnumString, ToString, Debug, Serialize, Deserialize)]
+#[derive(EnumString, ToString, Debug, Serialize, Deserialize, Clone)]
 pub enum ListingType {
   All,
   Local,
