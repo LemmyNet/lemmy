@@ -1,5 +1,6 @@
 use crate::{
   check_is_apub_id_valid,
+  extensions::context::lemmy_context,
   fetcher::get_or_fetch_and_upsert_user,
   objects::{
     check_object_domain,
@@ -41,7 +42,7 @@ impl ToApub for PrivateMessage {
     let recipient = blocking(pool, move |conn| User_::read(conn, recipient_id)).await??;
 
     private_message
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(Url::parse(&self.ap_id.to_owned())?)
       .set_published(convert_datetime(self.published))
       .set_to(recipient.actor_id)

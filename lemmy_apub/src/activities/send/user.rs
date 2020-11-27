@@ -1,6 +1,7 @@
 use crate::{
   activities::send::generate_activity_id,
   activity_queue::send_activity_single_dest,
+  extensions::context::lemmy_context,
   ActorType,
 };
 use activitystreams::{
@@ -61,7 +62,7 @@ impl ActorType for User_ {
 
     let mut follow = Follow::new(self.actor_id.to_owned(), community.actor_id()?);
     follow
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(FollowType::Follow)?)
       .set_to(community.actor_id()?);
 
@@ -82,14 +83,14 @@ impl ActorType for User_ {
 
     let mut follow = Follow::new(self.actor_id.to_owned(), community.actor_id()?);
     follow
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(FollowType::Follow)?)
       .set_to(community.actor_id()?);
 
     // Undo that fake activity
     let mut undo = Undo::new(Url::parse(&self.actor_id)?, follow.into_any_base()?);
     undo
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(community.actor_id()?);
 
