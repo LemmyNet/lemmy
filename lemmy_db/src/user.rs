@@ -37,6 +37,7 @@ pub struct User_ {
   pub public_key: Option<String>,
   pub last_refreshed_at: chrono::NaiveDateTime,
   pub banner: Option<String>,
+  pub deleted: bool,
 }
 
 #[derive(Insertable, AsChangeset, Clone)]
@@ -70,7 +71,10 @@ pub struct UserForm {
 
 impl Crud<UserForm> for User_ {
   fn read(conn: &PgConnection, user_id: i32) -> Result<Self, Error> {
-    user_.find(user_id).first::<Self>(conn)
+    user_
+      .filter(deleted.eq(false))
+      .find(user_id)
+      .first::<Self>(conn)
   }
   fn delete(conn: &PgConnection, user_id: i32) -> Result<usize, Error> {
     diesel::delete(user_.find(user_id)).execute(conn)
@@ -114,6 +118,7 @@ impl User_ {
   pub fn read_from_name(conn: &PgConnection, from_user_name: &str) -> Result<Self, Error> {
     user_
       .filter(local.eq(true))
+      .filter(deleted.eq(false))
       .filter(name.eq(from_user_name))
       .first::<Self>(conn)
   }
@@ -132,7 +137,10 @@ impl User_ {
 
   pub fn read_from_actor_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
     use crate::schema::user_::dsl::*;
-    user_.filter(actor_id.eq(object_id)).first::<Self>(conn)
+    user_
+      .filter(deleted.eq(false))
+      .filter(actor_id.eq(object_id))
+      .first::<Self>(conn)
   }
 
   pub fn find_by_email_or_username(
@@ -148,6 +156,7 @@ impl User_ {
 
   pub fn find_by_username(conn: &PgConnection, username: &str) -> Result<User_, Error> {
     user_
+      .filter(deleted.eq(false))
       .filter(local.eq(true))
       .filter(name.ilike(username))
       .first::<User_>(conn)
@@ -155,6 +164,7 @@ impl User_ {
 
   pub fn find_by_email(conn: &PgConnection, from_email: &str) -> Result<User_, Error> {
     user_
+      .filter(deleted.eq(false))
       .filter(local.eq(true))
       .filter(email.eq(from_email))
       .first::<User_>(conn)
@@ -175,6 +185,19 @@ impl User_ {
       .on_conflict(actor_id)
       .do_update()
       .set(user_form)
+      .get_result::<Self>(conn)
+  }
+
+  pub fn delete_account(conn: &PgConnection, user_id: i32) -> Result<User_, Error> {
+    diesel::update(user_.find(user_id))
+      .set((
+        preferred_username.eq::<Option<String>>(None),
+        email.eq::<Option<String>>(None),
+        matrix_user_id.eq::<Option<String>>(None),
+        bio.eq::<Option<String>>(None),
+        deleted.eq(true),
+        updated.eq(naive_now()),
+      ))
       .get_result::<Self>(conn)
   }
 }
