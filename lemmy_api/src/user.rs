@@ -890,6 +890,11 @@ impl Perform for DeleteAccount {
       return Err(APIError::err("couldnt_update_post").into());
     }
 
+    blocking(context.pool(), move |conn| {
+      User_::delete_account(conn, user_id)
+    })
+    .await??;
+
     Ok(LoginResponse {
       jwt: data.auth.to_owned(),
     })

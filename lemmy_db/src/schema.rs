@@ -467,6 +467,7 @@ table! {
         public_key -> Nullable<Text>,
         last_refreshed_at -> Timestamp,
         banner -> Nullable<Text>,
+        deleted -> Bool,
     }
 }
 

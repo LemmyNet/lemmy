@@ -782,9 +782,9 @@ impl Perform for ResolveCommentReport {
     let resolved = data.resolved;
     let resolve_fun = move |conn: &'_ _| {
       if resolved {
-        CommentReport::resolve(conn, report_id.clone(), user_id)
+        CommentReport::resolve(conn, report_id, user_id)
       } else {
-        CommentReport::unresolve(conn, report_id.clone(), user_id)
+        CommentReport::unresolve(conn, report_id, user_id)
       }
     };
 

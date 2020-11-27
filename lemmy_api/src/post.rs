@@ -839,9 +839,9 @@ impl Perform for ResolvePostReport {
     let resolved = data.resolved;
     let resolve_fun = move |conn: &'_ _| {
       if resolved {
-        PostReport::resolve(conn, report_id.clone(), user_id)
+        PostReport::resolve(conn, report_id, user_id)
       } else {
-        PostReport::unresolve(conn, report_id.clone(), user_id)
+        PostReport::unresolve(conn, report_id, user_id)
       }
     };
 
