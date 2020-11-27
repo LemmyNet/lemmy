@@ -1,6 +1,7 @@
 use crate::{
   activities::send::generate_activity_id,
   activity_queue::send_activity_single_dest,
+  extensions::context::lemmy_context,
   ActorType,
   ApubObjectType,
   ToApub,
@@ -33,7 +34,7 @@ impl ApubObjectType for PrivateMessage {
     let mut create = Create::new(creator.actor_id.to_owned(), note.into_any_base()?);
 
     create
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(CreateType::Create)?)
       .set_to(recipient.actor_id()?);
 
@@ -50,7 +51,7 @@ impl ApubObjectType for PrivateMessage {
 
     let mut update = Update::new(creator.actor_id.to_owned(), note.into_any_base()?);
     update
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UpdateType::Update)?)
       .set_to(recipient.actor_id()?);
 
@@ -64,7 +65,7 @@ impl ApubObjectType for PrivateMessage {
 
     let mut delete = Delete::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
     delete
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(recipient.actor_id()?);
 
@@ -82,14 +83,14 @@ impl ApubObjectType for PrivateMessage {
 
     let mut delete = Delete::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
     delete
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(recipient.actor_id()?);
 
     // Undo that fake activity
     let mut undo = Undo::new(creator.actor_id.to_owned(), delete.into_any_base()?);
     undo
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(recipient.actor_id()?);
 

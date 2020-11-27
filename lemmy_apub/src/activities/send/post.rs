@@ -1,6 +1,7 @@
 use crate::{
   activities::send::generate_activity_id,
   activity_queue::send_to_community,
+  extensions::context::lemmy_context,
   ActorType,
   ApubLikeableType,
   ApubObjectType,
@@ -40,7 +41,7 @@ impl ApubObjectType for Post {
 
     let mut create = Create::new(creator.actor_id.to_owned(), page.into_any_base()?);
     create
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(CreateType::Create)?)
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()?]);
@@ -61,7 +62,7 @@ impl ApubObjectType for Post {
 
     let mut update = Update::new(creator.actor_id.to_owned(), page.into_any_base()?);
     update
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UpdateType::Update)?)
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()?]);
@@ -79,7 +80,7 @@ impl ApubObjectType for Post {
 
     let mut delete = Delete::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
     delete
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()?]);
@@ -101,7 +102,7 @@ impl ApubObjectType for Post {
 
     let mut delete = Delete::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
     delete
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()?]);
@@ -109,7 +110,7 @@ impl ApubObjectType for Post {
     // Undo that fake activity
     let mut undo = Undo::new(creator.actor_id.to_owned(), delete.into_any_base()?);
     undo
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()?]);
@@ -127,7 +128,7 @@ impl ApubObjectType for Post {
 
     let mut remove = Remove::new(mod_.actor_id.to_owned(), Url::parse(&self.ap_id)?);
     remove
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()?]);
@@ -145,7 +146,7 @@ impl ApubObjectType for Post {
 
     let mut remove = Remove::new(mod_.actor_id.to_owned(), Url::parse(&self.ap_id)?);
     remove
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()?]);
@@ -153,7 +154,7 @@ impl ApubObjectType for Post {
     // Undo that fake activity
     let mut undo = Undo::new(mod_.actor_id.to_owned(), remove.into_any_base()?);
     undo
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()?]);
@@ -176,7 +177,7 @@ impl ApubLikeableType for Post {
 
     let mut like = Like::new(creator.actor_id.to_owned(), page.into_any_base()?);
     like
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(LikeType::Like)?)
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()?]);
@@ -196,7 +197,7 @@ impl ApubLikeableType for Post {
 
     let mut dislike = Dislike::new(creator.actor_id.to_owned(), page.into_any_base()?);
     dislike
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DislikeType::Dislike)?)
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()?]);
@@ -220,7 +221,7 @@ impl ApubLikeableType for Post {
 
     let mut like = Like::new(creator.actor_id.to_owned(), page.into_any_base()?);
     like
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(LikeType::Like)?)
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()?]);
@@ -228,7 +229,7 @@ impl ApubLikeableType for Post {
     // Undo that fake activity
     let mut undo = Undo::new(creator.actor_id.to_owned(), like.into_any_base()?);
     undo
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
       .set_many_ccs(vec![community.actor_id()?]);

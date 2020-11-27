@@ -2,6 +2,7 @@ use crate::{
   activities::send::generate_activity_id,
   activity_queue::{send_activity_single_dest, send_to_community_followers},
   check_is_apub_id_valid,
+  extensions::context::lemmy_context,
   fetcher::get_or_fetch_and_upsert_user,
   ActorType,
 };
@@ -71,7 +72,7 @@ impl ActorType for Community {
 
     let mut accept = Accept::new(self.actor_id.to_owned(), follow.into_any_base()?);
     accept
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(AcceptType::Accept)?)
       .set_to(user.actor_id()?);
 
@@ -83,7 +84,7 @@ impl ActorType for Community {
   async fn send_delete(&self, context: &LemmyContext) -> Result<(), LemmyError> {
     let mut delete = Delete::new(self.actor_id()?, self.actor_id()?);
     delete
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()?]);
@@ -96,14 +97,14 @@ impl ActorType for Community {
   async fn send_undo_delete(&self, context: &LemmyContext) -> Result<(), LemmyError> {
     let mut delete = Delete::new(self.actor_id()?, self.actor_id()?);
     delete
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DeleteType::Delete)?)
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()?]);
 
     let mut undo = Undo::new(self.actor_id()?, delete.into_any_base()?);
     undo
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UndoType::Undo)?)
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()?]);
@@ -116,7 +117,7 @@ impl ActorType for Community {
   async fn send_remove(&self, context: &LemmyContext) -> Result<(), LemmyError> {
     let mut remove = Remove::new(self.actor_id()?, self.actor_id()?);
     remove
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()?]);
@@ -129,7 +130,7 @@ impl ActorType for Community {
   async fn send_undo_remove(&self, context: &LemmyContext) -> Result<(), LemmyError> {
     let mut remove = Remove::new(self.actor_id()?, self.actor_id()?);
     remove
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(RemoveType::Remove)?)
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()?]);
@@ -137,7 +138,7 @@ impl ActorType for Community {
     // Undo that fake activity
     let mut undo = Undo::new(self.actor_id()?, remove.into_any_base()?);
     undo
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(LikeType::Like)?)
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()?]);
@@ -155,7 +156,7 @@ impl ActorType for Community {
   ) -> Result<(), LemmyError> {
     let mut announce = Announce::new(self.actor_id.to_owned(), activity);
     announce
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(AnnounceType::Announce)?)
       .set_to(public())
       .set_many_ccs(vec![self.get_followers_url()?]);

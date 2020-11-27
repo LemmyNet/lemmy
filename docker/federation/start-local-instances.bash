@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-sudo docker build ../../ --file ../dev/Dockerfile -t lemmy-federation:latest
+sudo docker build ../../ --file ../dev/volume_mount.dockerfile -t lemmy-federation:latest
 
 for Item in alpha beta gamma delta epsilon ; do
   sudo mkdir -p volumes/pictrs_$Item

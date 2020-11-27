@@ -1,4 +1,5 @@
 use crate::{
+  extensions::context::lemmy_context,
   objects::{check_object_domain, get_source_markdown_value, set_content_and_source},
   ActorType,
   FromApub,
@@ -32,7 +33,7 @@ impl ToApub for User_ {
   async fn to_apub(&self, _pool: &DbPool) -> Result<PersonExt, LemmyError> {
     let mut person = ApObject::new(Person::new());
     person
-      .set_context(activitystreams::context())
+      .set_many_contexts(lemmy_context()?)
       .set_id(Url::parse(&self.actor_id)?)
       .set_published(convert_datetime(self.published));
 
