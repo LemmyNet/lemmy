@@ -85,4 +85,4 @@ and go to [localhost:1234](http://localhost:1234). Front end saves should rebuil
 
 Note that this setup doesn't include image uploads or link previews (provided by pict-rs and
 iframely respectively). If you want to test those, you should use the
-[Docker development](contributing_docker_development.md).
+[Docker development](docker_development.md).

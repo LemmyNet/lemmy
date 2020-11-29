@@ -2,7 +2,7 @@
 
 ## Running locally
 
-Install the dependencies as described in [Docker development](contributing_docker_development.md). Then run the following
+Install the dependencies as described in [Docker development](docker_development.md). Then run the following
 
 ```bash
 cd docker/federation
@@ -34,8 +34,8 @@ Firefox containers are a good way to test them interacting.
 
 Note that federation is currently in alpha. **Only use it for testing**, not on any production server, and be aware that turning on federation may break your instance.
 
-Follow the normal installation instructions, either with [Ansible](administration_install_ansible.md) or
-[manually](administration_install_docker.md). Then replace the line `image: dessalines/lemmy:v0.x.x` in 
+Follow the normal installation instructions, either with [Ansible](../administration/install_ansible.md) or
+[manually](../administration/install_docker.md). Then replace the line `image: dessalines/lemmy:v0.x.x` in 
 `/lemmy/docker-compose.yml` with `image: dessalines/lemmy:federation`. Also add the following in
 `/lemmy/lemmy.hjson`:
 
