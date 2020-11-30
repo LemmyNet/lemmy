@@ -333,8 +333,6 @@ impl Perform for Search {
   ) -> Result<SearchResponse, LemmyError> {
     let data: &Search = &self;
 
-    dbg!(&data);
-
     match search_by_apub_id(&data.q, context).await {
       Ok(r) => return Ok(r),
       Err(e) => debug!("Failed to resolve search query as activitypub ID: {}", e),

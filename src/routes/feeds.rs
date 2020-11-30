@@ -42,7 +42,8 @@ enum RequestType {
 pub fn config(cfg: &mut web::ServiceConfig) {
   cfg
     .route("/feeds/{type}/{name}.xml", web::get().to(get_feed))
-    .route("/feeds/all.xml", web::get().to(get_all_feed));
+    .route("/feeds/all.xml", web::get().to(get_all_feed))
+    .route("/feeds/local.xml", web::get().to(get_local_feed));
 }
 
 lazy_static! {
@@ -61,34 +62,43 @@ async fn get_all_feed(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse, Error> {
   let sort_type = get_sort_type(info).map_err(ErrorBadRequest)?;
-
-  let rss = blocking(context.pool(), move |conn| {
-    get_feed_all_data(conn, &sort_type)
-  })
-  .await?
-  .map_err(ErrorBadRequest)?;
-
-  Ok(
-    HttpResponse::Ok()
-      .content_type("application/rss+xml")
-      .body(rss),
-  )
+  Ok(get_feed_data(&context, ListingType::All, sort_type).await?)
 }
 
-fn get_feed_all_data(conn: &PgConnection, sort_type: &SortType) -> Result<String, LemmyError> {
-  let site_view = SiteView::read(&conn)?;
+async fn get_local_feed(
+  info: web::Query<Params>,
+  context: web::Data<LemmyContext>,
+) -> Result<HttpResponse, Error> {
+  let sort_type = get_sort_type(info).map_err(ErrorBadRequest)?;
+  Ok(get_feed_data(&context, ListingType::Local, sort_type).await?)
+}
 
-  let posts = PostQueryBuilder::create(&conn)
-    .listing_type(ListingType::All)
-    .sort(sort_type)
-    .list()?;
+async fn get_feed_data(
+  context: &LemmyContext,
+  listing_type: ListingType,
+  sort_type: SortType,
+) -> Result<HttpResponse, LemmyError> {
+  let site_view = blocking(context.pool(), move |conn| SiteView::read(&conn)).await??;
+
+  let listing_type_ = listing_type.clone();
+  let posts = blocking(context.pool(), move |conn| {
+    PostQueryBuilder::create(&conn)
+      .listing_type(&listing_type_)
+      .sort(&sort_type)
+      .list()
+  })
+  .await??;
 
   let items = create_post_items(posts)?;
 
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
     .namespaces(RSS_NAMESPACE.to_owned())
-    .title(&format!("{} - All", site_view.name))
+    .title(&format!(
+      "{} - {}",
+      site_view.name,
+      listing_type.to_string()
+    ))
     .link(Settings::get().get_protocol_and_hostname())
     .items(items);
 
@@ -96,7 +106,12 @@ fn get_feed_all_data(conn: &PgConnection, sort_type: &SortType) -> Result<String
     channel_builder.description(&site_desc);
   }
 
-  Ok(channel_builder.build().map_err(|e| anyhow!(e))?.to_string())
+  let rss = channel_builder.build().map_err(|e| anyhow!(e))?.to_string();
+  Ok(
+    HttpResponse::Ok()
+      .content_type("application/rss+xml")
+      .body(rss),
+  )
 }
 
 async fn get_feed(
@@ -150,7 +165,7 @@ fn get_feed_user(
   let user_url = user.get_profile_url(&Settings::get().hostname);
 
   let posts = PostQueryBuilder::create(&conn)
-    .listing_type(ListingType::All)
+    .listing_type(&ListingType::All)
     .sort(sort_type)
     .for_creator_id(user.id)
     .list()?;
@@ -176,7 +191,7 @@ fn get_feed_community(
   let community = Community::read_from_name(&conn, &community_name)?;
 
   let posts = PostQueryBuilder::create(&conn)
-    .listing_type(ListingType::All)
+    .listing_type(&ListingType::All)
     .sort(sort_type)
     .for_community_id(community.id)
     .list()?;
@@ -206,7 +221,7 @@ fn get_feed_front(
   let user_id = Claims::decode(&jwt)?.claims.id;
 
   let posts = PostQueryBuilder::create(&conn)
-    .listing_type(ListingType::Subscribed)
+    .listing_type(&ListingType::Subscribed)
     .sort(sort_type)
     .my_user_id(user_id)
     .list()?;

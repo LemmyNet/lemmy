@@ -48,16 +48,14 @@ pub(in crate::objects) fn check_object_domain<T, Kind>(
 where
   T: Base + AsBase<Kind>,
 {
-  let actor_id = if let Some(url) = expected_domain {
-    check_is_apub_id_valid(&url)?;
+  let object_id = if let Some(url) = expected_domain {
     let domain = url.domain().context(location_info!())?;
     apub.id(domain)?.context(location_info!())?
   } else {
-    let actor_id = apub.id_unchecked().context(location_info!())?;
-    check_is_apub_id_valid(&actor_id)?;
-    actor_id
+    apub.id_unchecked().context(location_info!())?
   };
-  Ok(actor_id.to_string())
+  check_is_apub_id_valid(&object_id)?;
+  Ok(object_id.to_string())
 }
 
 pub(in crate::objects) fn set_content_and_source<T, Kind1, Kind2>(

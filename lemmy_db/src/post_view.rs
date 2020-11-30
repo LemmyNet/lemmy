@@ -160,7 +160,7 @@ pub struct PostView {
 pub struct PostQueryBuilder<'a> {
   conn: &'a PgConnection,
   query: BoxedQuery<'a, Pg>,
-  listing_type: ListingType,
+  listing_type: &'a ListingType,
   sort: &'a SortType,
   my_user_id: Option<i32>,
   for_creator_id: Option<i32>,
@@ -184,7 +184,7 @@ impl<'a> PostQueryBuilder<'a> {
     PostQueryBuilder {
       conn,
       query,
-      listing_type: ListingType::All,
+      listing_type: &ListingType::All,
       sort: &SortType::Hot,
       my_user_id: None,
       for_creator_id: None,
@@ -200,7 +200,7 @@ impl<'a> PostQueryBuilder<'a> {
     }
   }
 
-  pub fn listing_type(mut self, listing_type: ListingType) -> Self {
+  pub fn listing_type(mut self, listing_type: &'a ListingType) -> Self {
     self.listing_type = listing_type;
     self
   }
@@ -497,7 +497,7 @@ mod tests {
     };
 
     let read_post_listings_with_user = PostQueryBuilder::create(&conn)
-      .listing_type(ListingType::Community)
+      .listing_type(&ListingType::Community)
       .sort(&SortType::New)
       .for_community_id(inserted_community.id)
       .my_user_id(inserted_user.id)
@@ -505,7 +505,7 @@ mod tests {
       .unwrap();
 
     let read_post_listings_no_user = PostQueryBuilder::create(&conn)
-      .listing_type(ListingType::Community)
+      .listing_type(&ListingType::Community)
       .sort(&SortType::New)
       .for_community_id(inserted_community.id)
       .list()

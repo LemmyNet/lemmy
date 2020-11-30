@@ -4,9 +4,9 @@ set -e
 declare -a arr=(
 "https://mastodon.social/"
 "https://peertube.social/"
-"https://dev.lemmy.ml/"
-"https://dev.lemmy.ml/feeds/all.xml"
-"https://dev.lemmy.ml/.well-known/nodeinfo"
+"https://lemmy.ml/"
+"https://lemmy.ml/feeds/all.xml"
+"https://lemmy.ml/.well-known/nodeinfo"
 "https://fediverse.blog/.well-known/nodeinfo"
 "https://torrents-csv.ml/service/search?q=wheel&page=1&type_=torrent"
 )

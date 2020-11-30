@@ -1,6 +1,6 @@
 {
   # for more info about the config, check out the documentation
-  # https://dev.lemmy.ml/docs/administration_configuration.html
+  # https://lemmy.ml/docs/administration_configuration.html
 
   # settings related to the postgresql database
   database: {
@@ -9,7 +9,7 @@
     # host where postgres is running
     host: "postgres"
   }
-  # the domain name of your instance (eg "dev.lemmy.ml")
+  # the domain name of your instance (eg "lemmy.ml")
   hostname: "{{ domain }}"
   # json web token for authorization between server and client
   jwt_secret: "{{ jwt_password }}"
@@ -26,7 +26,7 @@
     # whether to enable activitypub federation. 
     enabled: false
     # Allows and blocks are described here:
-    # https://dev.lemmy.ml/docs/administration_federation.html#instance-allowlist-and-blocklist
+    # https://lemmy.ml/docs/administration_federation.html#instance-allowlist-and-blocklist
     #
     # comma separated list of instances with which federation is allowed
     # allowed_instances: ""

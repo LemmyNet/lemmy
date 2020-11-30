@@ -6,17 +6,17 @@ To enable federation, change the setting `federation.enabled` to `true` in `lemm
 
 Federation does not start automatically, but needs to be triggered manually through the search. To do this you have to enter a reference to a remote object, such as:
 
-- `!main@dev.lemmy.ml` (Community)
-- `@nutomic@dev.lemmy.ml` (User)
-- `https://dev.lemmy.ml/c/programming` (Community)
-- `https://dev.lemmy.ml/u/nutomic` (User)
-- `https://dev.lemmy.ml/post/123` (Post)
+- `!main@lemmy.ml` (Community)
+- `@nutomic@lemmy.ml` (User)
+- `https://lemmy.ml/c/programming` (Community)
+- `https://lemmy.ml/u/nutomic` (User)
+- `https://lemmy.ml/post/123` (Post)
 
 For an overview of how federation in Lemmy works on a technical level, check out our [Federation Overview](contributing_federation_overview.md).
 
 ## Instance allowlist and blocklist
 
-The federation section of Lemmy's config has two variables `allowed_instances` and `blocked_instances`. These control which other instances Lemmy will federate with. Both settings take a comma separated list of domains, eg `dev.lemmy.ml, example.com`. You can either change those settings via `/admin`, or directly on the server filesystem. 
+The federation section of Lemmy's config has two variables `allowed_instances` and `blocked_instances`. These control which other instances Lemmy will federate with. Both settings take a comma separated list of domains, eg `lemmy.ml,example.com`. You can either change those settings via `/admin`, or directly on the server filesystem. 
 
 It is important to note that these settings only affect sending and receiving of data between instances. If allow federation with a certain instance, and then remove it from the allowlist, this will not affect previously federated data. These communities, users, posts and comments will still be shown. They will just not be updated anymore. And even if an instance is blocked, it can still fetch and display public data from your instance.
 
