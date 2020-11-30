@@ -1761,6 +1761,7 @@ dependencies = [
  "async-trait",
  "awc",
  "background-jobs",
+ "backtrace",
  "base64 0.13.0",
  "bcrypt",
  "chrono",

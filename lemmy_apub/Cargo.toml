@@ -46,3 +46,4 @@ anyhow = "1.0"
 thiserror = "1.0"
 background-jobs = " 0.8"
 reqwest = { version = "0.10", features = ["json"] }
+backtrace = "0.3"
