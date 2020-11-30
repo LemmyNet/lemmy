@@ -2,6 +2,7 @@ use crate::{
   extensions::{context::lemmy_context, group_extensions::GroupExtension},
   fetcher::get_or_fetch_and_upsert_user,
   objects::{
+    apub_id_is_local,
     check_object_domain,
     create_tombstone,
     get_source_markdown_value,
@@ -186,7 +187,7 @@ impl FromApub for CommunityForm {
       deleted: None,
       nsfw: group.ext_one.sensitive,
       actor_id: Some(check_object_domain(group, expected_domain)?),
-      local: false,
+      local: apub_id_is_local(&&group.id_unchecked().context(location_info!())?)?,
       private_key: None,
       public_key: Some(group.ext_two.to_owned().public_key.public_key_pem),
       last_refreshed_at: Some(naive_now()),

@@ -64,7 +64,7 @@ pub async fn shared_inbox(
 
   let activity_any_base = activity.clone().into_any_base()?;
   let mut res: Option<HttpResponse> = None;
-  let to_and_cc = get_activity_to_and_cc(&activity)?;
+  let to_and_cc = get_activity_to_and_cc(&activity);
   // Handle community first, so in case the sender is banned by the community, it will error out.
   // If we handled the user receive first, the activity would be inserted to the database before the
   // community could check for bans.

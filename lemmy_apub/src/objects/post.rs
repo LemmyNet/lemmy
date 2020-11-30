@@ -2,6 +2,7 @@ use crate::{
   extensions::{context::lemmy_context, page_extension::PageExtension},
   fetcher::{get_or_fetch_and_upsert_community, get_or_fetch_and_upsert_user},
   objects::{
+    apub_id_is_local,
     check_object_domain,
     create_tombstone,
     get_source_markdown_value,
@@ -208,7 +209,7 @@ impl FromApub for PostForm {
       embed_html: iframely_html,
       thumbnail_url: pictrs_thumbnail,
       ap_id: Some(check_object_domain(page, expected_domain)?),
-      local: false,
+      local: apub_id_is_local(&&page.id_unchecked().context(location_info!())?)?,
     })
   }
 }

@@ -80,7 +80,7 @@ pub async fn community_inbox(
     Community::read_from_name(&conn, &path)
   })
   .await??;
-  let to_and_cc = get_activity_to_and_cc(&activity)?;
+  let to_and_cc = get_activity_to_and_cc(&activity);
   if !to_and_cc.contains(&&community.actor_id()?) {
     return Err(anyhow!("Activity delivered to wrong community").into());
   }

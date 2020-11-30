@@ -265,6 +265,7 @@ mod tests {
       private_key: None,
       public_key: None,
       last_refreshed_at: inserted_user.published,
+      deleted: false,
     };
 
     let read_user = User_::read(&conn, inserted_user.id).unwrap();

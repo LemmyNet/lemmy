@@ -1,6 +1,11 @@
 use crate::{
   extensions::context::lemmy_context,
-  objects::{check_object_domain, get_source_markdown_value, set_content_and_source},
+  objects::{
+    apub_id_is_local,
+    check_object_domain,
+    get_source_markdown_value,
+    set_content_and_source,
+  },
   ActorType,
   FromApub,
   PersonExt,
@@ -154,7 +159,7 @@ impl FromApub for UserForm {
       matrix_user_id: None,
       actor_id: Some(check_object_domain(person, expected_domain)?),
       bio: Some(bio),
-      local: false,
+      local: apub_id_is_local(&&person.id_unchecked().context(location_info!())?)?,
       private_key: None,
       public_key: Some(person.ext_one.public_key.to_owned().public_key_pem),
       last_refreshed_at: Some(naive_now()),

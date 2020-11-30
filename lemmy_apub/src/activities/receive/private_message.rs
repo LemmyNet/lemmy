@@ -194,7 +194,7 @@ async fn check_private_message_activity_valid<T, Kind>(
 where
   T: AsBase<Kind> + AsObject<Kind> + ActorAndObjectRefExt,
 {
-  let to_and_cc = get_activity_to_and_cc(activity)?;
+  let to_and_cc = get_activity_to_and_cc(activity);
   if to_and_cc.len() != 1 {
     return Err(anyhow!("Private message can only be addressed to one user").into());
   }

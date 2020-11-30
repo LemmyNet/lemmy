@@ -6,6 +6,7 @@ use crate::{
     get_or_fetch_and_upsert_user,
   },
   objects::{
+    apub_id_is_local,
     check_object_domain,
     create_tombstone,
     get_source_markdown_value,
@@ -147,7 +148,7 @@ impl FromApub for CommentForm {
       updated: note.updated().map(|u| u.to_owned().naive_local()),
       deleted: None,
       ap_id: Some(check_object_domain(note, expected_domain)?),
-      local: false,
+      local: apub_id_is_local(&&note.id_unchecked().context(location_info!())?)?,
     })
   }
 }

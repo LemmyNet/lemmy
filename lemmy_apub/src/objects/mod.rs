@@ -7,7 +7,7 @@ use activitystreams::{
 };
 use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
-use lemmy_utils::{location_info, utils::convert_datetime, LemmyError};
+use lemmy_utils::{location_info, settings::Settings, utils::convert_datetime, LemmyError};
 use url::Url;
 
 pub(crate) mod comment;
@@ -126,4 +126,20 @@ pub(in crate::objects) fn check_is_markdown(mime: Option<&Mime>) -> Result<(), L
   } else {
     Ok(())
   }
+}
+
+/// Checks if the apub id is local
+pub(in crate::objects) fn apub_id_is_local(apub_id: &Url) -> Result<bool, LemmyError> {
+  let settings = Settings::get();
+  let local_instance = settings
+    .hostname
+    .split(':')
+    .collect::<Vec<&str>>()
+    .first()
+    .context(location_info!())?
+    .to_string();
+
+  let domain = apub_id.domain().context(location_info!())?.to_string();
+
+  Ok(domain == local_instance)
 }
