@@ -19,6 +19,7 @@ use crate::{
   check_is_apub_id_valid,
   fetcher::get_or_fetch_and_upsert_community,
   inbox::{
+    assert_activity_not_local,
     get_activity_id,
     get_activity_to_and_cc,
     inbox_verify_http_signature,
@@ -106,6 +107,7 @@ pub async fn user_inbox(
     return Err(anyhow!("Activity delivered to wrong user").into());
   }
 
+  assert_activity_not_local(&activity)?;
   insert_activity(&activity_id, activity.clone(), false, true, context.pool()).await?;
 
   debug!(
