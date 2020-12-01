@@ -190,7 +190,7 @@ impl User_ {
 
   pub fn mark_as_updated(conn: &PgConnection, user_id: i32) -> Result<User_, Error> {
     diesel::update(user_.find(user_id))
-      .set((updated.eq(naive_now()),))
+      .set((last_refreshed_at.eq(naive_now()),))
       .get_result::<Self>(conn)
   }
 
