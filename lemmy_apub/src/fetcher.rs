@@ -1,5 +1,6 @@
 use crate::{
   check_is_apub_id_valid,
+  objects::FromApub,
   ActorType,
   GroupExt,
   NoteExt,
@@ -12,16 +13,15 @@ use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
 use diesel::result::Error::NotFound;
 use lemmy_db::{
-  comment::{Comment, CommentForm},
+  comment::Comment,
   comment_view::CommentView,
-  community::{Community, CommunityForm, CommunityModerator, CommunityModeratorForm},
+  community::{Community, CommunityModerator, CommunityModeratorForm},
   community_view::CommunityView,
   naive_now,
-  post::{Post, PostForm},
+  post::Post,
   post_view::PostView,
-  user::{UserForm, User_},
+  user::User_,
   user_view::UserView,
-  Crud,
   Joinable,
   SearchType,
 };
@@ -38,7 +38,6 @@ use reqwest::Client;
 use serde::Deserialize;
 use std::{fmt::Debug, time::Duration};
 use url::Url;
-use crate::objects::FromApub;
 
 static ACTOR_REFETCH_INTERVAL_SECONDS: i64 = 24 * 60 * 60;
 static ACTOR_REFETCH_INTERVAL_SECONDS_DEBUG: i64 = 10;
@@ -184,22 +183,16 @@ pub async fn search_by_apub_id(
       response
     }
     SearchAcceptedObjects::Page(p) => {
-      let post_form = PostForm::from_apub(&p, context, Some(query_url), recursion_counter).await?;
+      let p = Post::from_apub(&p, context, Some(query_url), recursion_counter).await?;
 
-      let p = blocking(context.pool(), move |conn| Post::upsert(conn, &post_form)).await??;
       response.posts =
         vec![blocking(context.pool(), move |conn| PostView::read(conn, p.id, None)).await??];
 
       response
     }
     SearchAcceptedObjects::Comment(c) => {
-      let comment_form =
-        CommentForm::from_apub(&c, context, Some(query_url), recursion_counter).await?;
+      let c = Comment::from_apub(&c, context, Some(query_url), recursion_counter).await?;
 
-      let c = blocking(context.pool(), move |conn| {
-        Comment::upsert(conn, &comment_form)
-      })
-      .await??;
       response.comments = vec![
         blocking(context.pool(), move |conn| {
           CommentView::read(conn, c.id, None)
@@ -258,15 +251,15 @@ pub(crate) async fn get_or_fetch_and_upsert_user(
         return Ok(u);
       }
 
-      let mut uf = UserForm::from_apub(
+      let user = User_::from_apub(
         &person?,
         context,
         Some(apub_id.to_owned()),
         recursion_counter,
       )
       .await?;
-      uf.last_refreshed_at = Some(naive_now());
-      let user = blocking(context.pool(), move |conn| User_::update(conn, u.id, &uf)).await??;
+      // TODO: do we need to set this? would need a separate db call
+      //uf.last_refreshed_at = Some(naive_now());
 
       Ok(user)
     }
@@ -276,14 +269,13 @@ pub(crate) async fn get_or_fetch_and_upsert_user(
       let person =
         fetch_remote_object::<PersonExt>(context.client(), apub_id, recursion_counter).await?;
 
-      let uf = UserForm::from_apub(
+      let user = User_::from_apub(
         &person,
         context,
         Some(apub_id.to_owned()),
         recursion_counter,
       )
       .await?;
-      let user = blocking(context.pool(), move |conn| User_::upsert(conn, &uf)).await??;
 
       Ok(user)
     }
@@ -354,9 +346,8 @@ async fn fetch_remote_community(
   }
 
   let group = group?;
-  let cf =
-    CommunityForm::from_apub(&group, context, Some(apub_id.to_owned()), recursion_counter).await?;
-  let community = blocking(context.pool(), move |conn| Community::upsert(conn, &cf)).await??;
+  let community =
+    Community::from_apub(&group, context, Some(apub_id.to_owned()), recursion_counter).await?;
 
   // Also add the community moderators too
   let attributed_to = group.inner.attributed_to().context(location_info!())?;
@@ -409,19 +400,9 @@ async fn fetch_remote_community(
 
     // The post creator may be from a blocked instance,
     // if it errors, then continue
-    let post = match PostForm::from_apub(&page, context, None, recursion_counter).await {
+    match Post::from_apub(&page, context, None, recursion_counter).await {
       Ok(post) => post,
       Err(_) => continue,
-    };
-    let post_ap_id = post.ap_id.as_ref().context(location_info!())?.clone();
-    // Check whether the post already exists in the local db
-    let existing = blocking(context.pool(), move |conn| {
-      Post::read_from_apub_id(conn, &post_ap_id)
-    })
-    .await?;
-    match existing {
-      Ok(e) => blocking(context.pool(), move |conn| Post::update(conn, e.id, &post)).await??,
-      Err(_) => blocking(context.pool(), move |conn| Post::upsert(conn, &post)).await??,
     };
     // TODO: we need to send a websocket update here
   }
@@ -448,17 +429,15 @@ pub(crate) async fn get_or_fetch_and_insert_post(
     Ok(p) => Ok(p),
     Err(NotFound {}) => {
       debug!("Fetching and creating remote post: {}", post_ap_id);
-      let post =
+      let page =
         fetch_remote_object::<PageExt>(context.client(), post_ap_id, recursion_counter).await?;
-      let post_form = PostForm::from_apub(
-        &post,
+      let post = Post::from_apub(
+        &page,
         context,
         Some(post_ap_id.to_owned()),
         recursion_counter,
       )
       .await?;
-
-      let post = blocking(context.pool(), move |conn| Post::upsert(conn, &post_form)).await??;
 
       Ok(post)
     }
@@ -490,7 +469,7 @@ pub(crate) async fn get_or_fetch_and_insert_comment(
       );
       let comment =
         fetch_remote_object::<NoteExt>(context.client(), comment_ap_id, recursion_counter).await?;
-      let comment_form = CommentForm::from_apub(
+      let comment = Comment::from_apub(
         &comment,
         context,
         Some(comment_ap_id.to_owned()),
@@ -498,16 +477,11 @@ pub(crate) async fn get_or_fetch_and_insert_comment(
       )
       .await?;
 
-      let post_id = comment_form.post_id;
+      let post_id = comment.post_id;
       let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
       if post.locked {
         return Err(anyhow!("Post is locked").into());
       }
-
-      let comment = blocking(context.pool(), move |conn| {
-        Comment::upsert(conn, &comment_form)
-      })
-      .await??;
 
       Ok(comment)
     }

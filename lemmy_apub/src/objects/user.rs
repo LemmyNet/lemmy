@@ -1,10 +1,16 @@
 use crate::{
   extensions::context::lemmy_context,
-  objects::{check_object_domain, get_source_markdown_value, set_content_and_source},
+  objects::{
+    check_object_domain,
+    get_source_markdown_value,
+    set_content_and_source,
+    FromApub,
+    FromApubToForm,
+    ToApub,
+  },
   ActorType,
   PersonExt,
 };
-use crate::objects::{FromApubToForm, ToApub, FromApub};
 use activitystreams::{
   actor::{ApActor, Endpoints, Person},
   object::{ApObject, Image, Tombstone},
@@ -17,8 +23,10 @@ use lemmy_db::{
   user::{UserForm, User_},
   DbPool,
 };
+use lemmy_structs::blocking;
 use lemmy_utils::{
   location_info,
+  settings::Settings,
   utils::{check_slurs, check_slurs_opt, convert_datetime},
   LemmyError,
 };
@@ -84,12 +92,25 @@ impl FromApub for User_ {
   type ApubType = PersonExt;
 
   async fn from_apub(
-    note: &PersonExt,
+    person: &PersonExt,
     context: &LemmyContext,
     expected_domain: Option<Url>,
     request_counter: &mut i32,
   ) -> Result<User_, LemmyError> {
-    todo!()
+    let user_id = person.id_unchecked().context(location_info!())?.to_owned();
+    let domain = user_id.domain().context(location_info!())?;
+    if domain == Settings::get().hostname {
+      let user = blocking(context.pool(), move |conn| {
+        User_::read_from_actor_id(conn, user_id.as_str())
+      })
+      .await??;
+      Ok(user)
+    } else {
+      let user_form =
+        UserForm::from_apub(person, context, expected_domain, request_counter).await?;
+      let user = blocking(context.pool(), move |conn| User_::upsert(conn, &user_form)).await??;
+      Ok(user)
+    }
   }
 }
 

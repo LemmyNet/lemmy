@@ -1,19 +1,20 @@
 use crate::{
   activities::receive::get_actor_as_user,
   fetcher::get_or_fetch_and_insert_comment,
+  objects::FromApub,
   NoteExt,
 };
-use crate::objects::FromApub;
 use activitystreams::{activity::*, prelude::*};
 use anyhow::Context;
 use lemmy_db::{
-  comment::{Comment, CommentForm, CommentLike},
+  comment::{Comment, CommentLike},
   comment_view::CommentView,
   Likeable,
 };
 use lemmy_structs::{blocking, comment::CommentResponse};
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation};
+use url::Url;
 
 pub(crate) async fn receive_undo_like_comment(
   like: &Like,
@@ -24,11 +25,13 @@ pub(crate) async fn receive_undo_like_comment(
   let note = NoteExt::from_any_base(like.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
-  let comment = CommentForm::from_apub(&note, context, None, request_counter).await?;
+  let comment = Comment::from_apub(&note, context, None, request_counter).await?;
 
-  let comment_id = get_or_fetch_and_insert_comment(&comment.get_ap_id()?, context, request_counter)
-    .await?
-    .id;
+  // TODO: why?
+  let comment_id =
+    get_or_fetch_and_insert_comment(&Url::parse(&comment.ap_id)?, context, request_counter)
+      .await?
+      .id;
 
   let user_id = user.id;
   blocking(context.pool(), move |conn| {
@@ -74,11 +77,13 @@ pub(crate) async fn receive_undo_dislike_comment(
   )?
   .context(location_info!())?;
 
-  let comment = CommentForm::from_apub(&note, context, None, request_counter).await?;
+  let comment = Comment::from_apub(&note, context, None, request_counter).await?;
 
-  let comment_id = get_or_fetch_and_insert_comment(&comment.get_ap_id()?, context, request_counter)
-    .await?
-    .id;
+  // TODO
+  let comment_id =
+    get_or_fetch_and_insert_comment(&Url::parse(&comment.ap_id)?, context, request_counter)
+      .await?
+      .id;
 
   let user_id = user.id;
   blocking(context.pool(), move |conn| {

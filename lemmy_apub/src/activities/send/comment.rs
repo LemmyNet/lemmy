@@ -3,6 +3,7 @@ use crate::{
   activity_queue::{send_comment_mentions, send_to_community},
   extensions::context::lemmy_context,
   fetcher::get_or_fetch_and_upsert_user,
+  objects::ToApub,
   ActorType,
   ApubLikeableType,
   ApubObjectType,
@@ -38,7 +39,6 @@ use log::debug;
 use reqwest::Client;
 use serde_json::Error;
 use url::Url;
-use crate::objects::ToApub;
 
 #[async_trait::async_trait(?Send)]
 impl ApubObjectType for Comment {

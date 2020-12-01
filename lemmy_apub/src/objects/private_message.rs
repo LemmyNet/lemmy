@@ -7,10 +7,12 @@ use crate::{
     create_tombstone,
     get_source_markdown_value,
     set_content_and_source,
+    FromApub,
+    FromApubToForm,
+    ToApub,
   },
   NoteExt,
 };
-use crate::objects::{FromApubToForm, ToApub, FromApub};
 use activitystreams::{
   object::{kind::NoteType, ApObject, Note, Tombstone},
   prelude::*,
@@ -23,7 +25,7 @@ use lemmy_db::{
   DbPool,
 };
 use lemmy_structs::blocking;
-use lemmy_utils::{location_info, utils::convert_datetime, LemmyError};
+use lemmy_utils::{location_info, settings::Settings, utils::convert_datetime, LemmyError};
 use lemmy_websocket::LemmyContext;
 use url::Url;
 
@@ -71,7 +73,23 @@ impl FromApub for PrivateMessage {
     expected_domain: Option<Url>,
     request_counter: &mut i32,
   ) -> Result<PrivateMessage, LemmyError> {
-    todo!()
+    let private_message_id = note.id_unchecked().context(location_info!())?.to_owned();
+    let domain = private_message_id.domain().context(location_info!())?;
+    if domain == Settings::get().hostname {
+      let private_message = blocking(context.pool(), move |conn| {
+        PrivateMessage::read_from_apub_id(conn, private_message_id.as_str())
+      })
+      .await??;
+      Ok(private_message)
+    } else {
+      let private_message_form =
+        PrivateMessageForm::from_apub(note, context, expected_domain, request_counter).await?;
+      let private_message = blocking(context.pool(), move |conn| {
+        PrivateMessage::upsert(conn, &private_message_form)
+      })
+      .await??;
+      Ok(private_message)
+    }
   }
 }
 

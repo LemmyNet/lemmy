@@ -1,19 +1,20 @@
 use crate::{
   activities::receive::get_actor_as_user,
   fetcher::get_or_fetch_and_insert_post,
+  objects::FromApub,
   PageExt,
 };
-use crate::objects::FromApub;
 use activitystreams::{activity::*, prelude::*};
 use anyhow::Context;
 use lemmy_db::{
-  post::{Post, PostForm, PostLike},
+  post::{Post, PostLike},
   post_view::PostView,
   Likeable,
 };
 use lemmy_structs::{blocking, post::PostResponse};
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::{messages::SendPost, LemmyContext, UserOperation};
+use url::Url;
 
 pub(crate) async fn receive_undo_like_post(
   like: &Like,
@@ -24,9 +25,10 @@ pub(crate) async fn receive_undo_like_post(
   let page = PageExt::from_any_base(like.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
-  let post = PostForm::from_apub(&page, context, None, request_counter).await?;
+  let post = Post::from_apub(&page, context, None, request_counter).await?;
 
-  let post_id = get_or_fetch_and_insert_post(&post.get_ap_id()?, context, request_counter)
+  // TODO: why?
+  let post_id = get_or_fetch_and_insert_post(&Url::parse(&post.ap_id)?, context, request_counter)
     .await?
     .id;
 
@@ -68,9 +70,10 @@ pub(crate) async fn receive_undo_dislike_post(
   )?
   .context(location_info!())?;
 
-  let post = PostForm::from_apub(&page, context, None, request_counter).await?;
+  let post = Post::from_apub(&page, context, None, request_counter).await?;
 
-  let post_id = get_or_fetch_and_insert_post(&post.get_ap_id()?, context, request_counter)
+  // TODO: why?
+  let post_id = get_or_fetch_and_insert_post(&Url::parse(&post.ap_id)?, context, request_counter)
     .await?
     .id;
 

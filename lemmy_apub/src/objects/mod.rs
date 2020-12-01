@@ -7,10 +7,10 @@ use activitystreams::{
 };
 use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
-use lemmy_utils::{location_info, utils::convert_datetime, LemmyError};
-use url::Url;
-use lemmy_websocket::LemmyContext;
 use lemmy_db::DbPool;
+use lemmy_utils::{location_info, utils::convert_datetime, LemmyError};
+use lemmy_websocket::LemmyContext;
+use url::Url;
 
 pub(crate) mod comment;
 pub(crate) mod community;
@@ -41,8 +41,8 @@ pub(crate) trait FromApub {
     expected_domain: Option<Url>,
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError>
-    where
-      Self: Sized;
+  where
+    Self: Sized;
 }
 
 #[async_trait::async_trait(?Send)]
@@ -54,8 +54,8 @@ pub(in crate::objects) trait FromApubToForm {
     expected_domain: Option<Url>,
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError>
-    where
-      Self: Sized;
+  where
+    Self: Sized;
 }
 
 /// Updated is actually the deletion time

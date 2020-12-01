@@ -2,11 +2,11 @@ use crate::{
   activities::send::generate_activity_id,
   activity_queue::send_to_community,
   extensions::context::lemmy_context,
+  objects::ToApub,
   ActorType,
   ApubLikeableType,
   ApubObjectType,
 };
-use crate::objects::ToApub;
 use activitystreams::{
   activity::{
     kind::{CreateType, DeleteType, DislikeType, LikeType, RemoveType, UndoType, UpdateType},

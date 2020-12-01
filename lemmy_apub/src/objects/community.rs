@@ -6,6 +6,9 @@ use crate::{
     create_tombstone,
     get_source_markdown_value,
     set_content_and_source,
+    FromApub,
+    FromApubToForm,
+    ToApub,
   },
   ActorType,
   GroupExt,
@@ -27,10 +30,10 @@ use lemmy_db::{
 use lemmy_structs::blocking;
 use lemmy_utils::{
   location_info,
+  settings::Settings,
   utils::{check_slurs, check_slurs_opt, convert_datetime},
   LemmyError,
 };
-use crate::objects::{FromApub, ToApub, FromApubToForm};
 use lemmy_websocket::LemmyContext;
 use url::Url;
 
@@ -117,7 +120,23 @@ impl FromApub for Community {
     expected_domain: Option<Url>,
     request_counter: &mut i32,
   ) -> Result<Community, LemmyError> {
-    todo!()
+    let community_id = group.id_unchecked().context(location_info!())?.to_owned();
+    let domain = community_id.domain().context(location_info!())?;
+    if domain == Settings::get().hostname {
+      let community = blocking(context.pool(), move |conn| {
+        Community::read_from_actor_id(conn, community_id.as_str())
+      })
+      .await??;
+      Ok(community)
+    } else {
+      let community_form =
+        CommunityForm::from_apub(group, context, expected_domain, request_counter).await?;
+      let community = blocking(context.pool(), move |conn| {
+        Community::upsert(conn, &community_form)
+      })
+      .await??;
+      Ok(community)
+    }
   }
 }
 

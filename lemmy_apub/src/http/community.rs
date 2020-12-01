@@ -1,6 +1,7 @@
 use crate::{
   extensions::context::lemmy_context,
   http::{create_apub_response, create_apub_tombstone_response},
+  objects::ToApub,
   ActorType,
 };
 use activitystreams::{
@@ -13,7 +14,6 @@ use lemmy_structs::blocking;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
-use crate::objects::ToApub;
 
 #[derive(Deserialize)]
 pub struct CommunityQuery {

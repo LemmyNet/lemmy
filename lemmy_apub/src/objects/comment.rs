@@ -10,6 +10,9 @@ use crate::{
     create_tombstone,
     get_source_markdown_value,
     set_content_and_source,
+    FromApub,
+    FromApubToForm,
+    ToApub,
   },
   NoteExt,
 };
@@ -29,13 +32,12 @@ use lemmy_db::{
 use lemmy_structs::blocking;
 use lemmy_utils::{
   location_info,
+  settings::Settings,
   utils::{convert_datetime, remove_slurs},
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
 use url::Url;
-use crate::objects::{FromApub, ToApub, FromApubToForm};
-use lemmy_utils::settings::Settings;
 
 #[async_trait::async_trait(?Send)]
 impl ToApub for Comment {
@@ -99,20 +101,23 @@ impl FromApub for Comment {
     expected_domain: Option<Url>,
     request_counter: &mut i32,
   ) -> Result<Comment, LemmyError> {
-    let comment_id = note.id_unchecked().context(location_info!())?;
+    // TODO: we should move read_from_apub_id() and upsert() into traits so we can make a generic
+    //       function to handle all this (shared with User_::from_apub etc)
+    let comment_id = note.id_unchecked().context(location_info!())?.to_owned();
     let domain = comment_id.domain().context(location_info!())?;
     if domain == Settings::get().hostname {
       let comment = blocking(context.pool(), move |conn| {
         Comment::read_from_apub_id(conn, comment_id.as_str())
       })
-        .await??;
+      .await??;
       Ok(comment)
     } else {
-      let comment_form = CommentForm::from_apub(note, context, expected_domain, request_counter)?;
+      let comment_form =
+        CommentForm::from_apub(note, context, expected_domain, request_counter).await?;
       let comment = blocking(context.pool(), move |conn| {
-        Comment::upsert(conn, comment_form)
+        Comment::upsert(conn, &comment_form)
       })
-        .await??;
+      .await??;
       Ok(comment)
     }
   }
