@@ -258,8 +258,12 @@ pub(crate) async fn get_or_fetch_and_upsert_user(
         recursion_counter,
       )
       .await?;
-      // TODO: do we need to set this? would need a separate db call
-      //uf.last_refreshed_at = Some(naive_now());
+
+      let user_id = user.id;
+      blocking(context.pool(), move |conn| {
+        User_::mark_as_updated(conn, user_id)
+      })
+      .await??;
 
       Ok(user)
     }
