@@ -1,8 +1,9 @@
-use crate::{extensions::context::lemmy_context, http::create_apub_response, ActorType, ToApub};
+use crate::{extensions::context::lemmy_context, http::create_apub_response, ActorType};
 use activitystreams::{
   base::BaseExt,
   collection::{CollectionExt, OrderedCollection},
 };
+use crate::objects::ToApub;
 use actix_web::{body::Body, web, HttpResponse};
 use lemmy_db::user::User_;
 use lemmy_structs::blocking;

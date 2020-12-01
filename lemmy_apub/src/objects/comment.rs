@@ -11,9 +11,7 @@ use crate::{
     get_source_markdown_value,
     set_content_and_source,
   },
-  FromApub,
   NoteExt,
-  ToApub,
 };
 use activitystreams::{
   object::{kind::NoteType, ApObject, Note, Tombstone},
@@ -36,6 +34,8 @@ use lemmy_utils::{
 };
 use lemmy_websocket::LemmyContext;
 use url::Url;
+use crate::objects::{FromApub, ToApub, FromApubToForm};
+use lemmy_utils::settings::Settings;
 
 #[async_trait::async_trait(?Send)]
 impl ToApub for Comment {
@@ -87,12 +87,41 @@ impl ToApub for Comment {
 }
 
 #[async_trait::async_trait(?Send)]
-impl FromApub for CommentForm {
+impl FromApub for Comment {
   type ApubType = NoteExt;
 
-  /// Converts a `Note` to `CommentForm`.
+  /// Converts a `Note` to `Comment`.
   ///
   /// If the parent community, post and comment(s) are not known locally, these are also fetched.
+  async fn from_apub(
+    note: &NoteExt,
+    context: &LemmyContext,
+    expected_domain: Option<Url>,
+    request_counter: &mut i32,
+  ) -> Result<Comment, LemmyError> {
+    let comment_id = note.id_unchecked().context(location_info!())?;
+    let domain = comment_id.domain().context(location_info!())?;
+    if domain == Settings::get().hostname {
+      let comment = blocking(context.pool(), move |conn| {
+        Comment::read_from_apub_id(conn, comment_id.as_str())
+      })
+        .await??;
+      Ok(comment)
+    } else {
+      let comment_form = CommentForm::from_apub(note, context, expected_domain, request_counter)?;
+      let comment = blocking(context.pool(), move |conn| {
+        Comment::upsert(conn, comment_form)
+      })
+        .await??;
+      Ok(comment)
+    }
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl FromApubToForm for CommentForm {
+  type ApubType = NoteExt;
+
   async fn from_apub(
     note: &NoteExt,
     context: &LemmyContext,

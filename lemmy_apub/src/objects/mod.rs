@@ -9,12 +9,54 @@ use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
 use lemmy_utils::{location_info, utils::convert_datetime, LemmyError};
 use url::Url;
+use lemmy_websocket::LemmyContext;
+use lemmy_db::DbPool;
 
 pub(crate) mod comment;
 pub(crate) mod community;
 pub(crate) mod post;
 pub(crate) mod private_message;
 pub(crate) mod user;
+
+/// Trait for converting an object or actor into the respective ActivityPub type.
+#[async_trait::async_trait(?Send)]
+pub(crate) trait ToApub {
+  type ApubType;
+  async fn to_apub(&self, pool: &DbPool) -> Result<Self::ApubType, LemmyError>;
+  fn to_tombstone(&self) -> Result<Tombstone, LemmyError>;
+}
+
+#[async_trait::async_trait(?Send)]
+pub(crate) trait FromApub {
+  type ApubType;
+  /// Converts an object from ActivityPub type to Lemmy internal type.
+  ///
+  /// * `apub` The object to read from
+  /// * `context` LemmyContext which holds DB pool, HTTP client etc
+  /// * `expected_domain` If present, ensure that the domains of this and of the apub object ID are
+  ///                     identical
+  async fn from_apub(
+    apub: &Self::ApubType,
+    context: &LemmyContext,
+    expected_domain: Option<Url>,
+    request_counter: &mut i32,
+  ) -> Result<Self, LemmyError>
+    where
+      Self: Sized;
+}
+
+#[async_trait::async_trait(?Send)]
+pub(in crate::objects) trait FromApubToForm {
+  type ApubType;
+  async fn from_apub(
+    apub: &Self::ApubType,
+    context: &LemmyContext,
+    expected_domain: Option<Url>,
+    request_counter: &mut i32,
+  ) -> Result<Self, LemmyError>
+    where
+      Self: Sized;
+}
 
 /// Updated is actually the deletion time
 fn create_tombstone<T>(

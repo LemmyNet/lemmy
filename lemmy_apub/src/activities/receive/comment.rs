@@ -2,7 +2,6 @@ use crate::{
   activities::receive::get_actor_as_user,
   fetcher::get_or_fetch_and_insert_comment,
   ActorType,
-  FromApub,
   NoteExt,
 };
 use activitystreams::{
@@ -20,6 +19,7 @@ use lemmy_db::{
 use lemmy_structs::{blocking, comment::CommentResponse, send_local_notifs};
 use lemmy_utils::{location_info, utils::scrape_text_for_mentions, LemmyError};
 use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation};
+use crate::objects::FromApub;
 
 pub(crate) async fn receive_create_comment(
   create: Create,

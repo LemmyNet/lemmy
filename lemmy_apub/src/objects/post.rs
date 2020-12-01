@@ -7,9 +7,7 @@ use crate::{
     get_source_markdown_value,
     set_content_and_source,
   },
-  FromApub,
   PageExt,
-  ToApub,
 };
 use activitystreams::{
   object::{kind::PageType, ApObject, Image, Page, Tombstone},
@@ -35,6 +33,7 @@ use lemmy_utils::{
 use lemmy_websocket::LemmyContext;
 use log::error;
 use url::Url;
+use crate::objects::{FromApubToForm, ToApub, FromApub};
 
 #[async_trait::async_trait(?Send)]
 impl ToApub for Post {
@@ -98,12 +97,26 @@ impl ToApub for Post {
 }
 
 #[async_trait::async_trait(?Send)]
-impl FromApub for PostForm {
+impl FromApub for Post {
   type ApubType = PageExt;
 
   /// Converts a `PageExt` to `PostForm`.
   ///
   /// If the post's community or creator are not known locally, these are also fetched.
+  async fn from_apub(
+    note: &PageExt,
+    context: &LemmyContext,
+    expected_domain: Option<Url>,
+    request_counter: &mut i32,
+  ) -> Result<Post, LemmyError> {
+    todo!()
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl FromApubToForm for PostForm {
+  type ApubType = PageExt;
+
   async fn from_apub(
     page: &PageExt,
     context: &LemmyContext,

@@ -3,9 +3,9 @@ use crate::{
   check_is_apub_id_valid,
   fetcher::get_or_fetch_and_upsert_user,
   inbox::get_activity_to_and_cc,
-  FromApub,
   NoteExt,
 };
+use crate::objects::FromApub;
 use activitystreams::{
   activity::{ActorAndObjectRefExt, Create, Delete, Undo, Update},
   base::{AsBase, ExtendsExt},

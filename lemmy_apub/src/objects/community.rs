@@ -8,9 +8,7 @@ use crate::{
     set_content_and_source,
   },
   ActorType,
-  FromApub,
   GroupExt,
-  ToApub,
 };
 use activitystreams::{
   actor::{kind::GroupType, ApActor, Endpoints, Group},
@@ -32,6 +30,7 @@ use lemmy_utils::{
   utils::{check_slurs, check_slurs_opt, convert_datetime},
   LemmyError,
 };
+use crate::objects::{FromApub, ToApub, FromApubToForm};
 use lemmy_websocket::LemmyContext;
 use url::Url;
 
@@ -106,8 +105,24 @@ impl ToApub for Community {
     create_tombstone(self.deleted, &self.actor_id, self.updated, GroupType::Group)
   }
 }
+
 #[async_trait::async_trait(?Send)]
-impl FromApub for CommunityForm {
+impl FromApub for Community {
+  type ApubType = GroupExt;
+
+  /// Converts a `Group` to `Community`.
+  async fn from_apub(
+    group: &GroupExt,
+    context: &LemmyContext,
+    expected_domain: Option<Url>,
+    request_counter: &mut i32,
+  ) -> Result<Community, LemmyError> {
+    todo!()
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl FromApubToForm for CommunityForm {
   type ApubType = GroupExt;
 
   async fn from_apub(

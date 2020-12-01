@@ -1,9 +1,9 @@
 use crate::{
   activities::receive::get_actor_as_user,
   fetcher::get_or_fetch_and_insert_comment,
-  FromApub,
   NoteExt,
 };
+use crate::objects::FromApub;
 use activitystreams::{activity::*, prelude::*};
 use anyhow::Context;
 use lemmy_db::{

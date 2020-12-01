@@ -5,8 +5,8 @@ use crate::{
   ActorType,
   ApubLikeableType,
   ApubObjectType,
-  ToApub,
 };
+use crate::objects::ToApub;
 use activitystreams::{
   activity::{
     kind::{CreateType, DeleteType, DislikeType, LikeType, RemoveType, UndoType, UpdateType},

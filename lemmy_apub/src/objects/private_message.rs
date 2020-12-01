@@ -8,10 +8,9 @@ use crate::{
     get_source_markdown_value,
     set_content_and_source,
   },
-  FromApub,
   NoteExt,
-  ToApub,
 };
+use crate::objects::{FromApubToForm, ToApub, FromApub};
 use activitystreams::{
   object::{kind::NoteType, ApObject, Note, Tombstone},
   prelude::*,
@@ -63,7 +62,21 @@ impl ToApub for PrivateMessage {
 }
 
 #[async_trait::async_trait(?Send)]
-impl FromApub for PrivateMessageForm {
+impl FromApub for PrivateMessage {
+  type ApubType = NoteExt;
+
+  async fn from_apub(
+    note: &NoteExt,
+    context: &LemmyContext,
+    expected_domain: Option<Url>,
+    request_counter: &mut i32,
+  ) -> Result<PrivateMessage, LemmyError> {
+    todo!()
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl FromApubToForm for PrivateMessageForm {
   type ApubType = NoteExt;
 
   async fn from_apub(

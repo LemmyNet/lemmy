@@ -4,8 +4,8 @@ use crate::{
   extensions::context::lemmy_context,
   ActorType,
   ApubObjectType,
-  ToApub,
 };
+use crate::objects::ToApub;
 use activitystreams::{
   activity::{
     kind::{CreateType, DeleteType, UndoType, UpdateType},

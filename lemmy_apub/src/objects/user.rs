@@ -2,10 +2,9 @@ use crate::{
   extensions::context::lemmy_context,
   objects::{check_object_domain, get_source_markdown_value, set_content_and_source},
   ActorType,
-  FromApub,
   PersonExt,
-  ToApub,
 };
+use crate::objects::{FromApubToForm, ToApub, FromApub};
 use activitystreams::{
   actor::{ApActor, Endpoints, Person},
   object::{ApObject, Image, Tombstone},
@@ -81,7 +80,21 @@ impl ToApub for User_ {
 }
 
 #[async_trait::async_trait(?Send)]
-impl FromApub for UserForm {
+impl FromApub for User_ {
+  type ApubType = PersonExt;
+
+  async fn from_apub(
+    note: &PersonExt,
+    context: &LemmyContext,
+    expected_domain: Option<Url>,
+    request_counter: &mut i32,
+  ) -> Result<User_, LemmyError> {
+    todo!()
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl FromApubToForm for UserForm {
   type ApubType = PersonExt;
 
   async fn from_apub(

@@ -1,7 +1,6 @@
 use crate::{
   check_is_apub_id_valid,
   ActorType,
-  FromApub,
   GroupExt,
   NoteExt,
   PageExt,
@@ -39,6 +38,7 @@ use reqwest::Client;
 use serde::Deserialize;
 use std::{fmt::Debug, time::Duration};
 use url::Url;
+use crate::objects::FromApub;
 
 static ACTOR_REFETCH_INTERVAL_SECONDS: i64 = 24 * 60 * 60;
 static ACTOR_REFETCH_INTERVAL_SECONDS_DEBUG: i64 = 10;

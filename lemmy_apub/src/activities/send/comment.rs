@@ -6,7 +6,6 @@ use crate::{
   ActorType,
   ApubLikeableType,
   ApubObjectType,
-  ToApub,
 };
 use activitystreams::{
   activity::{
@@ -39,6 +38,7 @@ use log::debug;
 use reqwest::Client;
 use serde_json::Error;
 use url::Url;
+use crate::objects::ToApub;
 
 #[async_trait::async_trait(?Send)]
 impl ApubObjectType for Comment {

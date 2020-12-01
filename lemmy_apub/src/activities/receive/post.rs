@@ -2,9 +2,9 @@ use crate::{
   activities::receive::get_actor_as_user,
   fetcher::get_or_fetch_and_insert_post,
   ActorType,
-  FromApub,
   PageExt,
 };
+use crate::objects::FromApub;
 use activitystreams::{
   activity::{Create, Dislike, Like, Remove, Update},
   prelude::*,
