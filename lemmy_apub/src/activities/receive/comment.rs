@@ -3,7 +3,7 @@ use activitystreams::{
   activity::{ActorAndObjectRefExt, Create, Dislike, Like, Remove, Update},
   base::ExtendsExt,
 };
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use lemmy_db::{
   comment::{Comment, CommentLike, CommentLikeForm},
   comment_view::CommentView,
@@ -23,14 +23,10 @@ pub(crate) async fn receive_create_comment(
   let note = NoteExt::from_any_base(create.object().to_owned().one().context(location_info!())?)?
     .context(location_info!())?;
 
-  // TODO: need to do the check for locked post before calling this
   let comment = Comment::from_apub(&note, context, Some(user.actor_id()?), request_counter).await?;
 
   let post_id = comment.post_id;
   let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
-  if post.locked {
-    return Err(anyhow!("Post is locked").into());
-  }
 
   // Note:
   // Although mentions could be gotten from the post tags (they are included there), or the ccs,

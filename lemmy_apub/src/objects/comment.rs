@@ -20,7 +20,7 @@ use activitystreams::{
   object::{kind::NoteType, ApObject, Note, Tombstone},
   prelude::*,
 };
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use lemmy_db::{
   comment::{Comment, CommentForm},
   community::Community,
@@ -114,6 +114,12 @@ impl FromApub for Comment {
     } else {
       let comment_form =
         CommentForm::from_apub(note, context, expected_domain, request_counter).await?;
+      let post_id = comment_form.post_id;
+      let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+      if post.locked {
+        return Err(anyhow!("Post is locked").into());
+      }
+
       let comment = blocking(context.pool(), move |conn| {
         Comment::upsert(conn, &comment_form)
       })
