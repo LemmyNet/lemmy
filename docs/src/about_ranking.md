@@ -4,13 +4,19 @@
 - After a day or so, the time factor should go away.
 - Use a log scale, since votes tend to snowball, and so the first 10 votes are just as important as the next hundred.
 
-## Reddit Sorting
-[Reddit's comment sorting algorithm](https://medium.com/hacking-and-gonzo/how-reddit-ranking-algorithms-work-ef111e33d0d9), the wilson confidence sort, is inadequate, because it completely ignores time. What ends up happening, especially in smaller subreddits, is that the early comments end up getting upvoted, and newer comments stay at the bottom, never to be seen. Research showed that nearly all top comments are just the [first ones posted.](https://minimaxir.com/2016/11/first-comment/)
+## Implementations
 
-## Hacker News Sorting
-The [Hacker New's ranking algorithm](https://medium.com/hacking-and-gonzo/how-hacker-news-ranking-algorithm-works-1d9b0cf2c08d) is great, but it doesn't use a log scale for the scores.
+### Reddit
+Does not take the lifetime of the thread into account, [giving early comments an overwhelming advantage over later ones,](https://minimaxir.com/2016/11/first-comment/) with the effect being even worse in small communities. New comments pool at the bottom of the thread, effectively killing off discussion and making each thread a race to comment early.  This lowers the quality of conversation and rewards comments that are repetitive and spammy.
 
-## My Algorithm
+### Hacker News
+
+While far superior to Reddit's implementation for its decay of scores over time, [Hacker News' ranking algorithm](https://medium.com/hacking-and-gonzo/how-hacker-news-ranking-algorithm-works-1d9b0cf2c08d) does not use a logarithmic scale for scores.
+
+### Lemmy
+
+Counterbalances the snowballing effect of votes over time with a logarithmic scale.  Negates the inherent advantage of early comments while still ensuring that votes still matter in the long-term, not nuking older popular comments.
+
 ```
 Rank = ScaleFactor * log(Max(1, 3 + Score)) / (Time + 2)^Gravity
 
