@@ -12,7 +12,8 @@ Start typing...
 
 Type | Description
 --- | ---
-Hot | Shows *trending* posts, based on the score, and the most recent comment time.
+Active | Shows *trending* posts, based on the score, and the most recent comment time.
+Hot | Shows *trending* posts, based on the score, and the post creation time.
 New | Newest posts.
 Top | Shows the highest scoring posts in the given time frame.
 
