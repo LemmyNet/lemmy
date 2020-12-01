@@ -1,6 +1,7 @@
 use crate::{
   activities::receive::verify_activity_domains_valid,
   inbox::{
+    assert_activity_not_local,
     get_activity_id,
     get_activity_to_and_cc,
     inbox_verify_http_signature,
@@ -85,6 +86,7 @@ pub async fn community_inbox(
     return Err(anyhow!("Activity delivered to wrong community").into());
   }
 
+  assert_activity_not_local(&activity)?;
   insert_activity(&activity_id, activity.clone(), false, true, context.pool()).await?;
 
   info!(

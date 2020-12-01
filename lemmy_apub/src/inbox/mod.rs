@@ -14,7 +14,7 @@ use actix_web::HttpRequest;
 use anyhow::{anyhow, Context};
 use lemmy_db::{activity::Activity, community::Community, user::User_, DbPool};
 use lemmy_structs::blocking;
-use lemmy_utils::{location_info, LemmyError};
+use lemmy_utils::{location_info, settings::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::{export::fmt::Debug, Serialize};
 use url::Url;
@@ -150,4 +150,23 @@ pub(crate) async fn is_addressed_to_community_followers(
     }
   }
   Ok(None)
+}
+
+pub(in crate::inbox) fn assert_activity_not_local<T, Kind>(activity: &T) -> Result<(), LemmyError>
+where
+  T: BaseExt<Kind> + Debug,
+{
+  let id = activity.id_unchecked().context(location_info!())?;
+  let activity_domain = id.domain().context(location_info!())?;
+
+  if activity_domain == Settings::get().hostname {
+    return Err(
+      anyhow!(
+        "Error: received activity which was sent by local instance: {:?}",
+        activity
+      )
+      .into(),
+    );
+  }
+  Ok(())
 }
