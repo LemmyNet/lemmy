@@ -1,6 +1,7 @@
 use actix::clock::Duration;
 use actix_web::{body::BodyStream, http::StatusCode, *};
 use awc::Client;
+use lemmy_api::claims::Claims;
 use lemmy_rate_limit::RateLimit;
 use lemmy_utils::settings::Settings;
 use serde::{Deserialize, Serialize};
@@ -46,7 +47,14 @@ async fn upload(
   body: web::Payload,
   client: web::Data<Client>,
 ) -> Result<HttpResponse, Error> {
-  // TODO: check auth and rate limit here
+  // TODO: check rate limit here
+  let jwt = req
+    .cookie("jwt")
+    .expect("No auth header for picture upload");
+
+  if Claims::decode(jwt.value()).is_err() {
+    return Ok(HttpResponse::Unauthorized().finish());
+  };
 
   let mut res = client
     .request_from(format!("{}/image", Settings::get().pictrs_url), req.head())
