@@ -65,7 +65,10 @@ pub async fn sign_and_send(
 }
 
 /// Verifies the HTTP signature on an incoming inbox request.
-pub fn verify_signature(request: &HttpRequest, actor: &dyn ActorType) -> Result<(), LemmyError> {
+pub(crate) fn verify_signature(
+  request: &HttpRequest,
+  actor: &dyn ActorType,
+) -> Result<(), LemmyError> {
   let public_key = actor.public_key().context(location_info!())?;
   let verified = CONFIG2
     .begin_verify(

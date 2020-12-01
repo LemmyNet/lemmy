@@ -111,14 +111,14 @@ fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
 
 /// Trait for converting an object or actor into the respective ActivityPub type.
 #[async_trait::async_trait(?Send)]
-pub trait ToApub {
+pub(crate) trait ToApub {
   type ApubType;
   async fn to_apub(&self, pool: &DbPool) -> Result<Self::ApubType, LemmyError>;
   fn to_tombstone(&self) -> Result<Tombstone, LemmyError>;
 }
 
 #[async_trait::async_trait(?Send)]
-pub trait FromApub {
+pub(crate) trait FromApub {
   type ApubType;
   /// Converts an object from ActivityPub type to Lemmy internal type.
   ///
@@ -248,7 +248,7 @@ pub trait ActorType {
 
 /// Store a sent or received activity in the database, for logging purposes. These records are not
 /// persistent.
-pub async fn insert_activity<T>(
+pub(crate) async fn insert_activity<T>(
   ap_id: &Url,
   activity: T,
   local: bool,
