@@ -12,10 +12,10 @@ Start typing...
 
 Type | Description
 --- | ---
-Active | Shows *trending* posts, based on the score, and the most recent comment time.
-Hot | Shows *trending* posts, based on the score, and the post creation time.
-New | Newest posts.
-Top | Shows the highest scoring posts in the given time frame.
+Active | Trending sort based on the score, and the most recent comment time.
+Hot | Trending sort based on the score, and the post creation time.
+New | Newest items.
+Top | Shows the highest scoring items in the given time frame.
 
 For more detail, check the [Post and Comment Ranking details](about_ranking.md).
 
