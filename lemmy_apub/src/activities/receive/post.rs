@@ -1,10 +1,4 @@
-use crate::{
-  activities::receive::get_actor_as_user,
-  fetcher::get_or_fetch_and_insert_post,
-  objects::FromApub,
-  ActorType,
-  PageExt,
-};
+use crate::{activities::receive::get_actor_as_user, objects::FromApub, ActorType, PageExt};
 use activitystreams::{
   activity::{Create, Dislike, Like, Remove, Update},
   prelude::*,
@@ -18,7 +12,6 @@ use lemmy_db::{
 use lemmy_structs::{blocking, post::PostResponse};
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::{messages::SendPost, LemmyContext, UserOperation};
-use url::Url;
 
 pub(crate) async fn receive_create_post(
   create: Create,
@@ -60,15 +53,10 @@ pub(crate) async fn receive_update_post(
 
   let post = Post::from_apub(&page, context, Some(user.actor_id()?), request_counter).await?;
 
-  // TODO: why?
-  let original_post_id =
-    get_or_fetch_and_insert_post(&Url::parse(&post.ap_id)?, context, request_counter)
-      .await?
-      .id;
-
+  let post_id = post.id;
   // Refetch the view
   let post_view = blocking(context.pool(), move |conn| {
-    PostView::read(conn, original_post_id, None)
+    PostView::read(conn, post_id, None)
   })
   .await??;
 
@@ -94,11 +82,7 @@ pub(crate) async fn receive_like_post(
 
   let post = Post::from_apub(&page, context, None, request_counter).await?;
 
-  // TODO: why?
-  let post_id = get_or_fetch_and_insert_post(&Url::parse(&post.ap_id)?, context, request_counter)
-    .await?
-    .id;
-
+  let post_id = post.id;
   let like_form = PostLikeForm {
     post_id,
     user_id: user.id,
@@ -145,10 +129,7 @@ pub(crate) async fn receive_dislike_post(
 
   let post = Post::from_apub(&page, context, None, request_counter).await?;
 
-  let post_id = get_or_fetch_and_insert_post(&Url::parse(&post.ap_id)?, context, request_counter)
-    .await?
-    .id;
-
+  let post_id = post.id;
   let like_form = PostLikeForm {
     post_id,
     user_id: user.id,

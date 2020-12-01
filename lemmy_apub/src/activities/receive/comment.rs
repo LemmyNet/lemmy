@@ -1,10 +1,4 @@
-use crate::{
-  activities::receive::get_actor_as_user,
-  fetcher::get_or_fetch_and_insert_comment,
-  objects::FromApub,
-  ActorType,
-  NoteExt,
-};
+use crate::{activities::receive::get_actor_as_user, objects::FromApub, ActorType, NoteExt};
 use activitystreams::{
   activity::{ActorAndObjectRefExt, Create, Dislike, Like, Remove, Update},
   base::ExtendsExt,
@@ -19,7 +13,6 @@ use lemmy_db::{
 use lemmy_structs::{blocking, comment::CommentResponse, send_local_notifs};
 use lemmy_utils::{location_info, utils::scrape_text_for_mentions, LemmyError};
 use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation};
-use url::Url;
 
 pub(crate) async fn receive_create_comment(
   create: Create,
@@ -79,12 +72,7 @@ pub(crate) async fn receive_update_comment(
 
   let comment = Comment::from_apub(&note, context, Some(user.actor_id()?), request_counter).await?;
 
-  // TODO: why fetch?
-  let original_comment_id =
-    get_or_fetch_and_insert_comment(&Url::parse(&comment.ap_id)?, context, request_counter)
-      .await?
-      .id;
-
+  let comment_id = comment.id;
   let post_id = comment.post_id;
   let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
@@ -94,7 +82,7 @@ pub(crate) async fn receive_update_comment(
 
   // Refetch the view
   let comment_view = blocking(context.pool(), move |conn| {
-    CommentView::read(conn, original_comment_id, None)
+    CommentView::read(conn, comment_id, None)
   })
   .await??;
 
@@ -124,12 +112,7 @@ pub(crate) async fn receive_like_comment(
 
   let comment = Comment::from_apub(&note, context, None, request_counter).await?;
 
-  // TODO: why do we need to fetch here if we already have the comment?
-  let comment_id =
-    get_or_fetch_and_insert_comment(&Url::parse(&comment.ap_id)?, context, request_counter)
-      .await?
-      .id;
-
+  let comment_id = comment.id;
   let like_form = CommentLikeForm {
     comment_id,
     post_id: comment.post_id,
@@ -183,12 +166,7 @@ pub(crate) async fn receive_dislike_comment(
 
   let comment = Comment::from_apub(&note, context, None, request_counter).await?;
 
-  // TODO: same as above, why fetch here?
-  let comment_id =
-    get_or_fetch_and_insert_comment(&Url::parse(&comment.ap_id)?, context, request_counter)
-      .await?
-      .id;
-
+  let comment_id = comment.id;
   let like_form = CommentLikeForm {
     comment_id,
     post_id: comment.post_id,
