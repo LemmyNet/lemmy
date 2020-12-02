@@ -25,6 +25,7 @@ use lemmy_db::{
   community::{Community, CommunityForm},
   community_view::CommunityModeratorView,
   naive_now,
+  ApubObject,
   DbPool,
 };
 use lemmy_structs::blocking;
@@ -124,7 +125,7 @@ impl FromApub for Community {
     let domain = community_id.domain().context(location_info!())?;
     if domain == Settings::get().hostname {
       let community = blocking(context.pool(), move |conn| {
-        Community::read_from_actor_id(conn, community_id.as_str())
+        Community::read_from_apub_id(conn, community_id.as_str())
       })
       .await??;
       Ok(community)

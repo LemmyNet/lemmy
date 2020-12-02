@@ -22,6 +22,7 @@ use lemmy_db::{
   post_view::PostView,
   user::User_,
   user_view::UserView,
+  ApubObject,
   Joinable,
   SearchType,
 };
@@ -236,7 +237,7 @@ pub(crate) async fn get_or_fetch_and_upsert_user(
 ) -> Result<User_, LemmyError> {
   let apub_id_owned = apub_id.to_owned();
   let user = blocking(context.pool(), move |conn| {
-    User_::read_from_actor_id(conn, apub_id_owned.as_ref())
+    User_::read_from_apub_id(conn, apub_id_owned.as_ref())
   })
   .await?;
 
@@ -314,7 +315,7 @@ pub(crate) async fn get_or_fetch_and_upsert_community(
 ) -> Result<Community, LemmyError> {
   let apub_id_owned = apub_id.to_owned();
   let community = blocking(context.pool(), move |conn| {
-    Community::read_from_actor_id(conn, apub_id_owned.as_str())
+    Community::read_from_apub_id(conn, apub_id_owned.as_str())
   })
   .await?;
 

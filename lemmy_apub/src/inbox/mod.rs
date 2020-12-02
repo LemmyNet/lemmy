@@ -12,7 +12,7 @@ use activitystreams::{
 };
 use actix_web::HttpRequest;
 use anyhow::{anyhow, Context};
-use lemmy_db::{activity::Activity, community::Community, user::User_, DbPool};
+use lemmy_db::{activity::Activity, community::Community, user::User_, ApubObject, DbPool};
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -119,7 +119,7 @@ pub(crate) async fn is_addressed_to_local_user(
 ) -> Result<bool, LemmyError> {
   for url in to_and_cc {
     let url = url.to_string();
-    let user = blocking(&pool, move |conn| User_::read_from_actor_id(&conn, &url)).await?;
+    let user = blocking(&pool, move |conn| User_::read_from_apub_id(&conn, &url)).await?;
     if let Ok(u) = user {
       if u.local {
         return Ok(true);
@@ -141,7 +141,7 @@ pub(crate) async fn is_addressed_to_community_followers(
     if url.ends_with("/followers") {
       let community_url = url.replace("/followers", "");
       let community = blocking(&pool, move |conn| {
-        Community::read_from_actor_id(&conn, &community_url)
+        Community::read_from_apub_id(&conn, &community_url)
       })
       .await??;
       if !community.local {

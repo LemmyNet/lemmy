@@ -14,7 +14,7 @@ use crate::{
 use activitystreams::{activity::ActorAndObject, prelude::*};
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Context;
-use lemmy_db::{community::Community, DbPool};
+use lemmy_db::{community::Community, ApubObject, DbPool};
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -135,10 +135,7 @@ async fn extract_local_community_from_destinations(
 ) -> Result<Option<Community>, LemmyError> {
   for url in to_and_cc {
     let url = url.to_string();
-    let community = blocking(&pool, move |conn| {
-      Community::read_from_actor_id(&conn, &url)
-    })
-    .await?;
+    let community = blocking(&pool, move |conn| Community::read_from_apub_id(&conn, &url)).await?;
     if let Ok(c) = community {
       if c.local {
         return Ok(Some(c));

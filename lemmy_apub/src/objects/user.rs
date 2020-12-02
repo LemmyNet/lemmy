@@ -21,6 +21,7 @@ use anyhow::Context;
 use lemmy_db::{
   naive_now,
   user::{UserForm, User_},
+  ApubObject,
   DbPool,
 };
 use lemmy_structs::blocking;
@@ -101,7 +102,7 @@ impl FromApub for User_ {
     let domain = user_id.domain().context(location_info!())?;
     if domain == Settings::get().hostname {
       let user = blocking(context.pool(), move |conn| {
-        User_::read_from_actor_id(conn, user_id.as_str())
+        User_::read_from_apub_id(conn, user_id.as_str())
       })
       .await??;
       Ok(user)

@@ -51,6 +51,7 @@ use lemmy_db::{
   community::{Community, CommunityFollower},
   private_message::PrivateMessage,
   user::User_,
+  ApubObject,
   Followable,
 };
 use lemmy_structs::blocking;
@@ -375,7 +376,7 @@ async fn find_community_or_private_message_by_id(
 ) -> Result<CommunityOrPrivateMessage, LemmyError> {
   let ap_id = apub_id.to_string();
   let community = blocking(context.pool(), move |conn| {
-    Community::read_from_actor_id(conn, &ap_id)
+    Community::read_from_apub_id(conn, &ap_id)
   })
   .await?;
   if let Ok(c) = community {

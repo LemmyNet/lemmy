@@ -1,6 +1,7 @@
 use crate::{
   naive_now,
   schema::{community, community_follower, community_moderator, community_user_ban},
+  ApubObject,
   Bannable,
   Crud,
   Followable,
@@ -83,19 +84,21 @@ impl Crud<CommunityForm> for Community {
   }
 }
 
+impl ApubObject for Community {
+  fn read_from_apub_id(conn: &PgConnection, for_actor_id: &str) -> Result<Self, Error> {
+    use crate::schema::community::dsl::*;
+    community
+      .filter(actor_id.eq(for_actor_id))
+      .first::<Self>(conn)
+  }
+}
+
 impl Community {
   pub fn read_from_name(conn: &PgConnection, community_name: &str) -> Result<Self, Error> {
     use crate::schema::community::dsl::*;
     community
       .filter(local.eq(true))
       .filter(name.eq(community_name))
-      .first::<Self>(conn)
-  }
-
-  pub fn read_from_actor_id(conn: &PgConnection, for_actor_id: &str) -> Result<Self, Error> {
-    use crate::schema::community::dsl::*;
-    community
-      .filter(actor_id.eq(for_actor_id))
       .first::<Self>(conn)
   }
 

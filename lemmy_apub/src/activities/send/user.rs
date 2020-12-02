@@ -16,6 +16,7 @@ use activitystreams::{
 use lemmy_db::{
   community::{Community, CommunityFollower, CommunityFollowerForm},
   user::User_,
+  ApubObject,
   DbPool,
   Followable,
 };
@@ -46,7 +47,7 @@ impl ActorType for User_ {
   ) -> Result<(), LemmyError> {
     let follow_actor_id = follow_actor_id.to_string();
     let community = blocking(context.pool(), move |conn| {
-      Community::read_from_actor_id(conn, &follow_actor_id)
+      Community::read_from_apub_id(conn, &follow_actor_id)
     })
     .await??;
 
@@ -77,7 +78,7 @@ impl ActorType for User_ {
   ) -> Result<(), LemmyError> {
     let follow_actor_id = follow_actor_id.to_string();
     let community = blocking(context.pool(), move |conn| {
-      Community::read_from_actor_id(conn, &follow_actor_id)
+      Community::read_from_apub_id(conn, &follow_actor_id)
     })
     .await??;
 

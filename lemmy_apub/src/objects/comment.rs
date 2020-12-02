@@ -26,6 +26,7 @@ use lemmy_db::{
   community::Community,
   post::Post,
   user::User_,
+  ApubObject,
   Crud,
   DbPool,
 };

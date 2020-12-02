@@ -2,6 +2,7 @@ use super::post::Post;
 use crate::{
   naive_now,
   schema::{comment, comment_like, comment_saved},
+  ApubObject,
   Crud,
   Likeable,
   Saveable,
@@ -86,6 +87,13 @@ impl Crud<CommentForm> for Comment {
   }
 }
 
+impl ApubObject for Comment {
+  fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
+    use crate::schema::comment::dsl::*;
+    comment.filter(ap_id.eq(object_id)).first::<Self>(conn)
+  }
+}
+
 impl Comment {
   pub fn update_ap_id(
     conn: &PgConnection,
@@ -97,11 +105,6 @@ impl Comment {
     diesel::update(comment.find(comment_id))
       .set(ap_id.eq(apub_id))
       .get_result::<Self>(conn)
-  }
-
-  pub fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
-    comment.filter(ap_id.eq(object_id)).first::<Self>(conn)
   }
 
   pub fn permadelete_for_creator(
