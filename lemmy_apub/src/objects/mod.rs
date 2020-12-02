@@ -13,7 +13,7 @@ use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
 use lemmy_db::{ApubObject, Crud, DbPool};
 use lemmy_structs::blocking;
-use lemmy_utils::{location_info, utils::convert_datetime, LemmyError};
+use lemmy_utils::{location_info, settings::Settings, utils::convert_datetime, LemmyError};
 use lemmy_websocket::LemmyContext;
 use url::Url;
 
@@ -185,18 +185,19 @@ pub(in crate::objects) async fn get_object_from_apub<From, Kind, To, ToForm>(
 ) -> Result<To, LemmyError>
 where
   From: BaseExt<Kind>,
-  To: ApubObject + Crud<ToForm> + Send + 'static,
+  To: ApubObject<ToForm> + Crud<ToForm> + Send + 'static,
   ToForm: FromApubToForm<From> + Send + 'static,
 {
   let object_id = from.id_unchecked().context(location_info!())?.to_owned();
-  let object_in_database = blocking(context.pool(), move |conn| {
-    To::read_from_apub_id(conn, object_id.as_str())
-  })
-  .await?;
+  let domain = object_id.domain().context(location_info!())?;
 
   // if we already have the object in our database, return that directly
-  if let Ok(to) = object_in_database {
-    Ok(to)
+  if Settings::get().hostname == domain {
+    let object = blocking(context.pool(), move |conn| {
+      To::read_from_apub_id(conn, object_id.as_str())
+    })
+    .await??;
+    Ok(object)
   }
   // if we dont have it, parse from apub and insert into database
   // TODO: this is insecure, a `Like/Post` could result in a non-existent post from a different
@@ -205,7 +206,7 @@ where
   else {
     let to_form = ToForm::from_apub(&from, context, expected_domain, request_counter).await?;
 
-    let to = blocking(context.pool(), move |conn| To::create(conn, &to_form)).await??;
+    let to = blocking(context.pool(), move |conn| To::upsert(conn, &to_form)).await??;
     Ok(to)
   }
 }

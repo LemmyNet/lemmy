@@ -87,10 +87,20 @@ impl Crud<CommentForm> for Comment {
   }
 }
 
-impl ApubObject for Comment {
+impl ApubObject<CommentForm> for Comment {
   fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
     use crate::schema::comment::dsl::*;
     comment.filter(ap_id.eq(object_id)).first::<Self>(conn)
+  }
+
+  fn upsert(conn: &PgConnection, comment_form: &CommentForm) -> Result<Self, Error> {
+    use crate::schema::comment::dsl::*;
+    insert_into(comment)
+      .values(comment_form)
+      .on_conflict(ap_id)
+      .do_update()
+      .set(comment_form)
+      .get_result::<Self>(conn)
   }
 }
 
@@ -169,16 +179,6 @@ impl Comment {
     use crate::schema::comment::dsl::*;
     diesel::update(comment.find(comment_id))
       .set((content.eq(new_content), updated.eq(naive_now())))
-      .get_result::<Self>(conn)
-  }
-
-  pub fn upsert(conn: &PgConnection, comment_form: &CommentForm) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
-    insert_into(comment)
-      .values(comment_form)
-      .on_conflict(ap_id)
-      .do_update()
-      .set(comment_form)
       .get_result::<Self>(conn)
   }
 }

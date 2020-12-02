@@ -55,7 +55,7 @@ impl Crud<PrivateMessageForm> for PrivateMessage {
   }
 }
 
-impl ApubObject for PrivateMessage {
+impl ApubObject<PrivateMessageForm> for PrivateMessage {
   fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error>
   where
     Self: Sized,
@@ -64,6 +64,16 @@ impl ApubObject for PrivateMessage {
     private_message
       .filter(ap_id.eq(object_id))
       .first::<Self>(conn)
+  }
+
+  fn upsert(conn: &PgConnection, private_message_form: &PrivateMessageForm) -> Result<Self, Error> {
+    use crate::schema::private_message::dsl::*;
+    insert_into(private_message)
+      .values(private_message_form)
+      .on_conflict(ap_id)
+      .do_update()
+      .set(private_message_form)
+      .get_result::<Self>(conn)
   }
 }
 
@@ -122,20 +132,6 @@ impl PrivateMessage {
     )
     .set(read.eq(true))
     .get_results::<Self>(conn)
-  }
-
-  // TODO use this
-  pub fn upsert(
-    conn: &PgConnection,
-    private_message_form: &PrivateMessageForm,
-  ) -> Result<Self, Error> {
-    use crate::schema::private_message::dsl::*;
-    insert_into(private_message)
-      .values(private_message_form)
-      .on_conflict(ap_id)
-      .do_update()
-      .set(private_message_form)
-      .get_result::<Self>(conn)
   }
 }
 

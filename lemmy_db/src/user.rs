@@ -90,13 +90,22 @@ impl Crud<UserForm> for User_ {
   }
 }
 
-impl ApubObject for User_ {
+impl ApubObject<UserForm> for User_ {
   fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
     use crate::schema::user_::dsl::*;
     user_
       .filter(deleted.eq(false))
       .filter(actor_id.eq(object_id))
       .first::<Self>(conn)
+  }
+
+  fn upsert(conn: &PgConnection, user_form: &UserForm) -> Result<User_, Error> {
+    insert_into(user_)
+      .values(user_form)
+      .on_conflict(actor_id)
+      .do_update()
+      .set(user_form)
+      .get_result::<Self>(conn)
   }
 }
 
@@ -180,15 +189,6 @@ impl User_ {
       hostname,
       self.name
     )
-  }
-
-  pub fn upsert(conn: &PgConnection, user_form: &UserForm) -> Result<User_, Error> {
-    insert_into(user_)
-      .values(user_form)
-      .on_conflict(actor_id)
-      .do_update()
-      .set(user_form)
-      .get_result::<Self>(conn)
   }
 
   pub fn mark_as_updated(conn: &PgConnection, user_id: i32) -> Result<User_, Error> {

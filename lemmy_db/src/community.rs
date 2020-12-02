@@ -84,12 +84,22 @@ impl Crud<CommunityForm> for Community {
   }
 }
 
-impl ApubObject for Community {
+impl ApubObject<CommunityForm> for Community {
   fn read_from_apub_id(conn: &PgConnection, for_actor_id: &str) -> Result<Self, Error> {
     use crate::schema::community::dsl::*;
     community
       .filter(actor_id.eq(for_actor_id))
       .first::<Self>(conn)
+  }
+
+  fn upsert(conn: &PgConnection, community_form: &CommunityForm) -> Result<Community, Error> {
+    use crate::schema::community::dsl::*;
+    insert_into(community)
+      .values(community_form)
+      .on_conflict(actor_id)
+      .do_update()
+      .set(community_form)
+      .get_result::<Self>(conn)
   }
 }
 
@@ -167,16 +177,6 @@ impl Community {
     Self::community_mods_and_admins(conn, community_id)
       .unwrap_or_default()
       .contains(&user_id)
-  }
-
-  pub fn upsert(conn: &PgConnection, community_form: &CommunityForm) -> Result<Community, Error> {
-    use crate::schema::community::dsl::*;
-    insert_into(community)
-      .values(community_form)
-      .on_conflict(actor_id)
-      .do_update()
-      .set(community_form)
-      .get_result::<Self>(conn)
   }
 }
 

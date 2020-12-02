@@ -124,8 +124,11 @@ pub trait Reportable<T> {
     Self: Sized;
 }
 
-pub trait ApubObject {
+pub trait ApubObject<T> {
   fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error>
+  where
+    Self: Sized;
+  fn upsert(conn: &PgConnection, user_form: &T) -> Result<Self, Error>
   where
     Self: Sized;
 }
