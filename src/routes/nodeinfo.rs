@@ -1,7 +1,7 @@
 use actix_web::{body::Body, error::ErrorBadRequest, *};
 use anyhow::anyhow;
 use lemmy_api::version;
-use lemmy_db::site_view::SiteView;
+use lemmy_db::views::site_view::SiteView;
 use lemmy_structs::blocking;
 use lemmy_utils::{settings::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -46,12 +46,11 @@ async fn node_info(context: web::Data<LemmyContext>) -> Result<HttpResponse, Err
     },
     protocols,
     usage: NodeInfoUsage {
-      users: NodeInfoUsers {
-        total: site_view.number_of_users,
-      },
-      local_posts: site_view.number_of_posts,
-      local_comments: site_view.number_of_comments,
-      open_registrations: site_view.open_registration,
+      // TODO get these again
+      users: NodeInfoUsers { total: 0 },
+      local_posts: 0,
+      local_comments: 0,
+      open_registrations: site_view.site.open_registration,
     },
   };
 

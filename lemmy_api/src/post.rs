@@ -17,7 +17,7 @@ use lemmy_db::{
   post::*,
   post_report::*,
   post_view::*,
-  site_view::*,
+  views::site_view::SiteView,
   Crud,
   Likeable,
   ListingType,
@@ -281,8 +281,8 @@ impl Perform for CreatePostLike {
 
     // Don't do a downvote if site has downvotes disabled
     if data.score == -1 {
-      let site = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
-      if !site.enable_downvotes {
+      let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
+      if !site_view.site.enable_downvotes {
         return Err(APIError::err("downvotes_disabled").into());
       }
     }

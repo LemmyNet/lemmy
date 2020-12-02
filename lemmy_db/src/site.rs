@@ -1,7 +1,8 @@
 use crate::{naive_now, schema::site, Crud};
 use diesel::{dsl::*, result::Error, *};
+use serde::Serialize;
 
-#[derive(Queryable, Identifiable, PartialEq, Debug)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Clone, Serialize)]
 #[table_name = "site"]
 pub struct Site {
   pub id: i32,

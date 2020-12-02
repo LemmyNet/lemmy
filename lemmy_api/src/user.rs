@@ -30,11 +30,11 @@ use lemmy_db::{
   private_message::*,
   private_message_view::*,
   site::*,
-  site_view::*,
   user::*,
   user_mention::*,
   user_mention_view::*,
   user_view::*,
+  views::site_view::SiteView,
   Crud,
   Followable,
   Joinable,
@@ -113,9 +113,8 @@ impl Perform for Register {
     let data: &Register = &self;
 
     // Make sure site has open registration
-    if let Ok(site) = blocking(context.pool(), move |conn| SiteView::read(conn)).await? {
-      let site: SiteView = site;
-      if !site.open_registration {
+    if let Ok(site_view) = blocking(context.pool(), move |conn| SiteView::read(conn)).await? {
+      if !site_view.site.open_registration {
         return Err(APIError::err("registration_closed").into());
       }
     }

@@ -19,8 +19,8 @@ use lemmy_db::{
   naive_now,
   post_view::*,
   site::*,
-  site_view::*,
   user_view::*,
+  views::site_view::SiteView,
   Crud,
   SearchType,
   SortType,
@@ -284,7 +284,7 @@ impl Perform for GetSite {
 
     // Make sure the site creator is the top admin
     if let Some(site_view) = site_view.to_owned() {
-      let site_creator_id = site_view.creator_id;
+      let site_creator_id = site_view.creator.id;
       // TODO investigate why this is sometimes coming back null
       // Maybe user_.admin isn't being set to true?
       if let Some(creator_index) = admins.iter().position(|r| r.id == site_creator_id) {
@@ -318,6 +318,11 @@ impl Perform for GetSite {
       version: version::VERSION.to_string(),
       my_user,
       federated_instances: linked_instances(context.pool()).await?,
+      // TODO
+      number_of_users: 0,
+      number_of_posts: 0,
+      number_of_comments: 0,
+      number_of_communities: 0,
     })
   }
 }
@@ -534,7 +539,7 @@ impl Perform for TransferSite {
     let mut admins = blocking(context.pool(), move |conn| UserView::admins(conn)).await??;
     let creator_index = admins
       .iter()
-      .position(|r| r.id == site_view.creator_id)
+      .position(|r| r.id == site_view.creator.id)
       .context(location_info!())?;
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
@@ -549,6 +554,11 @@ impl Perform for TransferSite {
       version: version::VERSION.to_string(),
       my_user: Some(user),
       federated_instances: linked_instances(context.pool()).await?,
+      // TODO
+      number_of_users: 0,
+      number_of_posts: 0,
+      number_of_comments: 0,
+      number_of_communities: 0,
     })
   }
 }

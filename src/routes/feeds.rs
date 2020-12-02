@@ -7,9 +7,9 @@ use lemmy_db::{
   comment_view::{ReplyQueryBuilder, ReplyView},
   community::Community,
   post_view::{PostQueryBuilder, PostView},
-  site_view::SiteView,
   user::User_,
   user_mention_view::{UserMentionQueryBuilder, UserMentionView},
+  views::site_view::SiteView,
   ListingType,
   SortType,
 };
@@ -96,13 +96,13 @@ async fn get_feed_data(
     .namespaces(RSS_NAMESPACE.to_owned())
     .title(&format!(
       "{} - {}",
-      site_view.name,
+      site_view.site.name,
       listing_type.to_string()
     ))
     .link(Settings::get().get_protocol_and_hostname())
     .items(items);
 
-  if let Some(site_desc) = site_view.description {
+  if let Some(site_desc) = site_view.site.description {
     channel_builder.description(&site_desc);
   }
 
@@ -175,7 +175,7 @@ fn get_feed_user(
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
     .namespaces(RSS_NAMESPACE.to_owned())
-    .title(&format!("{} - {}", site_view.name, user.name))
+    .title(&format!("{} - {}", site_view.site.name, user.name))
     .link(user_url)
     .items(items);
 
@@ -201,7 +201,7 @@ fn get_feed_community(
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
     .namespaces(RSS_NAMESPACE.to_owned())
-    .title(&format!("{} - {}", site_view.name, community.name))
+    .title(&format!("{} - {}", site_view.site.name, community.name))
     .link(community.actor_id)
     .items(items);
 
@@ -231,11 +231,11 @@ fn get_feed_front(
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
     .namespaces(RSS_NAMESPACE.to_owned())
-    .title(&format!("{} - Subscribed", site_view.name))
+    .title(&format!("{} - Subscribed", site_view.site.name))
     .link(Settings::get().get_protocol_and_hostname())
     .items(items);
 
-  if let Some(site_desc) = site_view.description {
+  if let Some(site_desc) = site_view.site.description {
     channel_builder.description(&site_desc);
   }
 
@@ -261,14 +261,14 @@ fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, Le
   let mut channel_builder = ChannelBuilder::default();
   channel_builder
     .namespaces(RSS_NAMESPACE.to_owned())
-    .title(&format!("{} - Inbox", site_view.name))
+    .title(&format!("{} - Inbox", site_view.site.name))
     .link(format!(
       "{}/inbox",
       Settings::get().get_protocol_and_hostname()
     ))
     .items(items);
 
-  if let Some(site_desc) = site_view.description {
+  if let Some(site_desc) = site_view.site.description {
     channel_builder.description(&site_desc);
   }
 

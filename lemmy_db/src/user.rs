@@ -69,6 +69,25 @@ pub struct UserForm {
   pub banner: Option<Option<String>>,
 }
 
+/// A safe representation of user, without the sensitive info
+#[derive(Clone, Debug, Serialize)]
+pub struct UserSafe {
+  pub id: i32,
+  pub name: String,
+  pub preferred_username: Option<String>,
+  pub avatar: Option<String>,
+  pub admin: bool,
+  pub banned: bool,
+  pub published: chrono::NaiveDateTime,
+  pub updated: Option<chrono::NaiveDateTime>,
+  pub matrix_user_id: Option<String>,
+  pub actor_id: String,
+  pub bio: Option<String>,
+  pub local: bool,
+  pub banner: Option<String>,
+  pub deleted: bool,
+}
+
 impl Crud<UserForm> for User_ {
   fn read(conn: &PgConnection, user_id: i32) -> Result<Self, Error> {
     user_
@@ -200,6 +219,25 @@ impl User_ {
       ))
       .get_result::<Self>(conn)
   }
+
+  pub fn to_safe(&self) -> UserSafe {
+    UserSafe {
+      id: self.id,
+      name: self.name.to_owned(),
+      preferred_username: self.preferred_username.to_owned(),
+      avatar: self.avatar.to_owned(),
+      admin: self.admin,
+      banned: self.banned,
+      published: self.published,
+      updated: self.updated,
+      matrix_user_id: self.matrix_user_id.to_owned(),
+      actor_id: self.actor_id.to_owned(),
+      bio: self.bio.to_owned(),
+      local: self.local,
+      banner: self.banner.to_owned(),
+      deleted: self.deleted,
+    }
+  }
 }
 
 #[cfg(test)]
@@ -265,6 +303,7 @@ mod tests {
       private_key: None,
       public_key: None,
       last_refreshed_at: inserted_user.published,
+      deleted: false,
     };
 
     let read_user = User_::read(&conn, inserted_user.id).unwrap();

@@ -4,9 +4,9 @@ use lemmy_db::{
   community_view::*,
   moderator_views::*,
   post_view::*,
-  site_view::*,
   user::*,
   user_view::*,
+  views::site_view::SiteView,
 };
 use serde::{Deserialize, Serialize};
 
@@ -89,6 +89,7 @@ pub struct GetSite {
   pub auth: Option<String>,
 }
 
+// TODO combine siteresponse and getsiteresponse
 #[derive(Serialize, Clone)]
 pub struct SiteResponse {
   pub site: SiteView,
@@ -96,7 +97,11 @@ pub struct SiteResponse {
 
 #[derive(Serialize)]
 pub struct GetSiteResponse {
-  pub site: Option<SiteView>,
+  pub site: Option<SiteView>, // Because the site might not be set up yet
+  pub number_of_users: i64,
+  pub number_of_posts: i64,
+  pub number_of_comments: i64,
+  pub number_of_communities: i64,
   pub admins: Vec<UserView>,
   pub banned: Vec<UserView>,
   pub online: usize,

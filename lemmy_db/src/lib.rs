@@ -33,6 +33,7 @@ pub mod user;
 pub mod user_mention;
 pub mod user_mention_view;
 pub mod user_view;
+pub mod views;
 
 pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 
