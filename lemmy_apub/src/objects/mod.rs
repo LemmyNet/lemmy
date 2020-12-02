@@ -1,4 +1,8 @@
-use crate::check_is_apub_id_valid;
+use crate::{
+  check_is_apub_id_valid,
+  fetcher::{get_or_fetch_and_upsert_community, get_or_fetch_and_upsert_user},
+  inbox::community_inbox::check_community_or_site_ban,
+};
 use activitystreams::{
   base::{AsBase, BaseExt, ExtendsExt},
   markers::Base,
@@ -204,4 +208,27 @@ where
     let to = blocking(context.pool(), move |conn| To::create(conn, &to_form)).await??;
     Ok(to)
   }
+}
+
+pub(in crate::objects) async fn check_object_for_community_or_site_ban<T, Kind>(
+  object: &T,
+  context: &LemmyContext,
+  request_counter: &mut i32,
+) -> Result<(), LemmyError>
+where
+  T: ObjectExt<Kind>,
+{
+  let user_id = object
+    .attributed_to()
+    .context(location_info!())?
+    .as_single_xsd_any_uri()
+    .context(location_info!())?;
+  let user = get_or_fetch_and_upsert_user(user_id, context, request_counter).await?;
+  let community_id = object
+    .to()
+    .context(location_info!())?
+    .as_single_xsd_any_uri()
+    .context(location_info!())?;
+  let community = get_or_fetch_and_upsert_community(community_id, context, request_counter).await?;
+  check_community_or_site_ban(&user, &community, context.pool()).await
 }

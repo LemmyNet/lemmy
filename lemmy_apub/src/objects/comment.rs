@@ -7,6 +7,7 @@ use crate::{
   },
   objects::{
     check_object_domain,
+    check_object_for_community_or_site_ban,
     create_tombstone,
     get_object_from_apub,
     get_source_markdown_value,
@@ -101,6 +102,8 @@ impl FromApub for Comment {
     expected_domain: Option<Url>,
     request_counter: &mut i32,
   ) -> Result<Comment, LemmyError> {
+    check_object_for_community_or_site_ban(note, context, request_counter).await?;
+
     let comment: Comment =
       get_object_from_apub(note, context, expected_domain, request_counter).await?;
 

@@ -3,6 +3,7 @@ use crate::{
   fetcher::{get_or_fetch_and_upsert_community, get_or_fetch_and_upsert_user},
   objects::{
     check_object_domain,
+    check_object_for_community_or_site_ban,
     create_tombstone,
     get_object_from_apub,
     get_source_markdown_value,
@@ -112,6 +113,7 @@ impl FromApub for Post {
     expected_domain: Option<Url>,
     request_counter: &mut i32,
   ) -> Result<Post, LemmyError> {
+    check_object_for_community_or_site_ban(page, context, request_counter).await?;
     get_object_from_apub(page, context, expected_domain, request_counter).await
   }
 }

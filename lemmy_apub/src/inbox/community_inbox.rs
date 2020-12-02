@@ -259,7 +259,7 @@ async fn handle_undo_follow(
   Ok(())
 }
 
-async fn check_community_or_site_ban(
+pub(crate) async fn check_community_or_site_ban(
   user: &User_,
   community: &Community,
   pool: &DbPool,
