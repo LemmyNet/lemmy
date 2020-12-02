@@ -7,7 +7,8 @@ use activitystreams::{
 };
 use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
-use lemmy_db::DbPool;
+use lemmy_db::{ApubObject, Crud, DbPool};
+use lemmy_structs::blocking;
 use lemmy_utils::{location_info, utils::convert_datetime, LemmyError};
 use lemmy_websocket::LemmyContext;
 use url::Url;
@@ -46,10 +47,9 @@ pub(crate) trait FromApub {
 }
 
 #[async_trait::async_trait(?Send)]
-pub(in crate::objects) trait FromApubToForm {
-  type ApubType;
+pub(in crate::objects) trait FromApubToForm<ApubType> {
   async fn from_apub(
-    apub: &Self::ApubType,
+    apub: &ApubType,
     context: &LemmyContext,
     expected_domain: Option<Url>,
     request_counter: &mut i32,
@@ -167,5 +167,41 @@ pub(in crate::objects) fn check_is_markdown(mime: Option<&Mime>) -> Result<(), L
     )))
   } else {
     Ok(())
+  }
+}
+
+/// Converts an ActivityPub object (eg `Note`) to a database object (eg `Comment`). If an object
+/// with the same ActivityPub ID already exists in the database, it is returned directly. Otherwise
+/// the apub object is parsed, inserted and returned.
+pub(in crate::objects) async fn get_object_from_apub<From, Kind, To, ToForm>(
+  from: &From,
+  context: &LemmyContext,
+  expected_domain: Option<Url>,
+  request_counter: &mut i32,
+) -> Result<To, LemmyError>
+where
+  From: BaseExt<Kind>,
+  To: ApubObject + Crud<ToForm> + Send + 'static,
+  ToForm: FromApubToForm<From> + Send + 'static,
+{
+  let object_id = from.id_unchecked().context(location_info!())?.to_owned();
+  let object_in_database = blocking(context.pool(), move |conn| {
+    To::read_from_apub_id(conn, object_id.as_str())
+  })
+  .await?;
+
+  // if we already have the object in our database, return that directly
+  if let Ok(to) = object_in_database {
+    Ok(to)
+  }
+  // if we dont have it, parse from apub and insert into database
+  // TODO: this is insecure, a `Like/Post` could result in a non-existent post from a different
+  //       instance being inserted into our database. we should request the object over http in that
+  //       case. this might happen exactly in the case where expected_domain = None, but i'm not sure.
+  else {
+    let to_form = ToForm::from_apub(&from, context, expected_domain, request_counter).await?;
+
+    let to = blocking(context.pool(), move |conn| To::create(conn, &to_form)).await??;
+    Ok(to)
   }
 }

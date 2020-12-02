@@ -116,9 +116,7 @@ impl FromApub for User_ {
 }
 
 #[async_trait::async_trait(?Send)]
-impl FromApubToForm for UserForm {
-  type ApubType = PersonExt;
-
+impl FromApubToForm<PersonExt> for UserForm {
   async fn from_apub(
     person: &PersonExt,
     _context: &LemmyContext,

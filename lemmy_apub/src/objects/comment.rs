@@ -8,6 +8,7 @@ use crate::{
   objects::{
     check_object_domain,
     create_tombstone,
+    get_object_from_apub,
     get_source_markdown_value,
     set_content_and_source,
     FromApub,
@@ -26,14 +27,12 @@ use lemmy_db::{
   community::Community,
   post::Post,
   user::User_,
-  ApubObject,
   Crud,
   DbPool,
 };
 use lemmy_structs::blocking;
 use lemmy_utils::{
   location_info,
-  settings::Settings,
   utils::{convert_datetime, remove_slurs},
   LemmyError,
 };
@@ -102,38 +101,27 @@ impl FromApub for Comment {
     expected_domain: Option<Url>,
     request_counter: &mut i32,
   ) -> Result<Comment, LemmyError> {
-    // TODO: we should move read_from_apub_id() and upsert() into traits so we can make a generic
-    //       function to handle all this (shared with User_::from_apub etc)
-    let comment_id = note.id_unchecked().context(location_info!())?.to_owned();
-    let domain = comment_id.domain().context(location_info!())?;
-    if domain == Settings::get().hostname {
-      let comment = blocking(context.pool(), move |conn| {
-        Comment::read_from_apub_id(conn, comment_id.as_str())
-      })
-      .await??;
-      Ok(comment)
-    } else {
-      let comment_form =
-        CommentForm::from_apub(note, context, expected_domain, request_counter).await?;
-      let post_id = comment_form.post_id;
-      let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
-      if post.locked {
-        return Err(anyhow!("Post is locked").into());
-      }
+    let comment: Comment =
+      get_object_from_apub(note, context, expected_domain, request_counter).await?;
 
-      let comment = blocking(context.pool(), move |conn| {
-        Comment::upsert(conn, &comment_form)
+    let post_id = comment.post_id;
+    let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    if post.locked {
+      // This is not very efficient because a comment gets inserted just to be deleted right
+      // afterwards, but it seems to be the easiest way to implement it.
+      blocking(context.pool(), move |conn| {
+        Comment::delete(conn, comment.id)
       })
       .await??;
+      return Err(anyhow!("Post is locked").into());
+    } else {
       Ok(comment)
     }
   }
 }
 
 #[async_trait::async_trait(?Send)]
-impl FromApubToForm for CommentForm {
-  type ApubType = NoteExt;
-
+impl FromApubToForm<NoteExt> for CommentForm {
   async fn from_apub(
     note: &NoteExt,
     context: &LemmyContext,

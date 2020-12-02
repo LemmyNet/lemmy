@@ -5,6 +5,7 @@ use crate::{
   objects::{
     check_object_domain,
     create_tombstone,
+    get_object_from_apub,
     get_source_markdown_value,
     set_content_and_source,
     FromApub,
@@ -25,7 +26,7 @@ use lemmy_db::{
   DbPool,
 };
 use lemmy_structs::blocking;
-use lemmy_utils::{location_info, settings::Settings, utils::convert_datetime, LemmyError};
+use lemmy_utils::{location_info, utils::convert_datetime, LemmyError};
 use lemmy_websocket::LemmyContext;
 use url::Url;
 
@@ -73,30 +74,12 @@ impl FromApub for PrivateMessage {
     expected_domain: Option<Url>,
     request_counter: &mut i32,
   ) -> Result<PrivateMessage, LemmyError> {
-    let private_message_id = note.id_unchecked().context(location_info!())?.to_owned();
-    let domain = private_message_id.domain().context(location_info!())?;
-    if domain == Settings::get().hostname {
-      let private_message = blocking(context.pool(), move |conn| {
-        PrivateMessage::read_from_apub_id(conn, private_message_id.as_str())
-      })
-      .await??;
-      Ok(private_message)
-    } else {
-      let private_message_form =
-        PrivateMessageForm::from_apub(note, context, expected_domain, request_counter).await?;
-      let private_message = blocking(context.pool(), move |conn| {
-        PrivateMessage::upsert(conn, &private_message_form)
-      })
-      .await??;
-      Ok(private_message)
-    }
+    get_object_from_apub(note, context, expected_domain, request_counter).await
   }
 }
 
 #[async_trait::async_trait(?Send)]
-impl FromApubToForm for PrivateMessageForm {
-  type ApubType = NoteExt;
-
+impl FromApubToForm<NoteExt> for PrivateMessageForm {
   async fn from_apub(
     note: &NoteExt,
     context: &LemmyContext,

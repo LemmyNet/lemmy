@@ -4,6 +4,7 @@ use crate::{
   objects::{
     check_object_domain,
     create_tombstone,
+    get_object_from_apub,
     get_source_markdown_value,
     set_content_and_source,
     FromApub,
@@ -23,7 +24,6 @@ use lemmy_db::{
   community::Community,
   post::{Post, PostForm},
   user::User_,
-  ApubObject,
   Crud,
   DbPool,
 };
@@ -31,7 +31,6 @@ use lemmy_structs::blocking;
 use lemmy_utils::{
   location_info,
   request::fetch_iframely_and_pictrs_data,
-  settings::Settings,
   utils::{check_slurs, convert_datetime, remove_slurs},
   LemmyError,
 };
@@ -113,26 +112,12 @@ impl FromApub for Post {
     expected_domain: Option<Url>,
     request_counter: &mut i32,
   ) -> Result<Post, LemmyError> {
-    let post_id = page.id_unchecked().context(location_info!())?.to_owned();
-    let domain = post_id.domain().context(location_info!())?;
-    if domain == Settings::get().hostname {
-      let post = blocking(context.pool(), move |conn| {
-        Post::read_from_apub_id(conn, post_id.as_str())
-      })
-      .await??;
-      Ok(post)
-    } else {
-      let post_form = PostForm::from_apub(page, context, expected_domain, request_counter).await?;
-      let post = blocking(context.pool(), move |conn| Post::upsert(conn, &post_form)).await??;
-      Ok(post)
-    }
+    get_object_from_apub(page, context, expected_domain, request_counter).await
   }
 }
 
 #[async_trait::async_trait(?Send)]
-impl FromApubToForm for PostForm {
-  type ApubType = PageExt;
-
+impl FromApubToForm<PageExt> for PostForm {
   async fn from_apub(
     page: &PageExt,
     context: &LemmyContext,
