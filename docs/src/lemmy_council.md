@@ -28,7 +28,7 @@ Every week, the council should make a thread on Lemmy that details its activity 
 
 At the same time, users can give feedback and suggestions in this thread. This should be taken into account by the council. Council members can call for a vote on any controversial issues, if they can't be resolved by discussion.
 
-## 2. Voting Process
+## 3. Voting Process
 
 Most of the time, we keep each other up to date through the Matrix chat, and take informal decisions on uncontroversial issues. For example, a user clearly violating the site rules could be banned by a single person, or ideally after discussing it with at least one other member.
 
@@ -76,3 +76,4 @@ General Contact [@LemmyDev Mastodon](https://mastodon.social/@LemmyDev)
 - [AgreeableLandscape](https://lemmy.ml/u/AgreeableLandscape)
 - [fruechtchen](https://lemmy.ml/u/fruechtchen)
 - [kixiQu](https://lemmy.ml/u/kixiQu)
+- [Karanja](https://baraza.africa/u/mwalimu)
