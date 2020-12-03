@@ -101,7 +101,7 @@ pub async fn user_inbox(
     User_::read_from_name(&conn, &username)
   })
   .await??;
-  let to_and_cc = get_activity_to_and_cc(&activity)?;
+  let to_and_cc = get_activity_to_and_cc(&activity);
   // TODO: we should also accept activities that are sent to community followers
   if !to_and_cc.contains(&&user.actor_id()?) {
     return Err(anyhow!("Activity delivered to wrong user").into());
@@ -172,7 +172,7 @@ async fn is_for_user_inbox(
   context: &LemmyContext,
   activity: &UserAcceptedActivities,
 ) -> Result<(), LemmyError> {
-  let to_and_cc = get_activity_to_and_cc(activity)?;
+  let to_and_cc = get_activity_to_and_cc(activity);
   // Check if it is addressed directly to any local user
   if is_addressed_to_local_user(&to_and_cc, context.pool()).await? {
     return Ok(());

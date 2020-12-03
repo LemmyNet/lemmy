@@ -441,6 +441,16 @@ table! {
 }
 
 table! {
+    site_aggregates (id) {
+        id -> Int4,
+        users -> Int8,
+        posts -> Int8,
+        comments -> Int8,
+        communities -> Int8,
+    }
+}
+
+table! {
     user_ (id) {
         id -> Int4,
         name -> Varchar,
@@ -587,6 +597,7 @@ allow_tables_to_appear_in_same_query!(
   post_saved,
   private_message,
   site,
+  site_aggregates,
   user_,
   user_ban,
   user_fast,

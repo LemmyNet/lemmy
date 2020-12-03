@@ -19,6 +19,7 @@ use lemmy_db::{
   naive_now,
   post_view::*,
   site::*,
+  site_aggregates::SiteAggregates,
   user_view::*,
   views::site_view::SiteView,
   Crud,
@@ -310,6 +311,8 @@ impl Perform for GetSite {
         u
       });
 
+    let counts = blocking(context.pool(), move |conn| SiteAggregates::read(conn)).await??;
+
     Ok(GetSiteResponse {
       site: site_view,
       admins,
@@ -318,11 +321,7 @@ impl Perform for GetSite {
       version: version::VERSION.to_string(),
       my_user,
       federated_instances: linked_instances(context.pool()).await?,
-      // TODO
-      number_of_users: 0,
-      number_of_posts: 0,
-      number_of_comments: 0,
-      number_of_communities: 0,
+      counts,
     })
   }
 }
@@ -546,6 +545,8 @@ impl Perform for TransferSite {
 
     let banned = blocking(context.pool(), move |conn| UserView::banned(conn)).await??;
 
+    let counts = blocking(context.pool(), move |conn| SiteAggregates::read(conn)).await??;
+
     Ok(GetSiteResponse {
       site: Some(site_view),
       admins,
@@ -554,11 +555,7 @@ impl Perform for TransferSite {
       version: version::VERSION.to_string(),
       my_user: Some(user),
       federated_instances: linked_instances(context.pool()).await?,
-      // TODO
-      number_of_users: 0,
-      number_of_posts: 0,
-      number_of_comments: 0,
-      number_of_communities: 0,
+      counts,
     })
   }
 }
