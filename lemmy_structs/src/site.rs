@@ -1,10 +1,10 @@
 use lemmy_db::{
+  aggregates::site_aggregates::SiteAggregates,
   category::*,
   comment_view::*,
   community_view::*,
   moderator_views::*,
   post_view::*,
-  site_aggregates::SiteAggregates,
   user::*,
   user_view::*,
   views::site_view::SiteView,

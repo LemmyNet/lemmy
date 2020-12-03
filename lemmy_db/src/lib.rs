@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::{env, env::VarError};
 
 pub mod activity;
+pub mod aggregates;
 pub mod category;
 pub mod comment;
 pub mod comment_report;
@@ -28,7 +29,6 @@ pub mod private_message;
 pub mod private_message_view;
 pub mod schema;
 pub mod site;
-pub mod site_aggregates;
 pub mod user;
 pub mod user_mention;
 pub mod user_mention_view;

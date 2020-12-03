@@ -60,11 +60,17 @@ returns trigger language plpgsql
 as $$
 begin
   IF (TG_OP = 'INSERT') THEN
+    -- TODO not sure if this is working right
+    -- Need to get the post creator, not the voter
     update user_aggregates 
-    set post_score = post_score + NEW.score where user_id = NEW.user_id;
+    set post_score = post_score + NEW.score
+    from post_like pl join post p on p.id = pl.post_id
+    where p.id = NEW.post_id and p.creator_id = NEW.user_id;
   ELSIF (TG_OP = 'DELETE') THEN
     update user_aggregates 
-    set post_score = post_score - OLD.score where user_id = OLD.user_id;
+    set post_score = post_score - OLD.score
+    from post_like pl join post p on p.id = pl.post_id
+    where p.id = OLD.post_id and p.creator_id = OLD.user_id;
   END IF;
   return null;
 end $$;
@@ -98,11 +104,16 @@ returns trigger language plpgsql
 as $$
 begin
   IF (TG_OP = 'INSERT') THEN
+    -- Need to get the post creator, not the voter
     update user_aggregates 
-    set comment_score = comment_score + NEW.score where user_id = NEW.user_id;
+    set comment_score = comment_score + NEW.score
+    from comment_like pl join comment p on p.id = pl.comment_id
+    where p.id = NEW.comment_id and p.creator_id = NEW.user_id;
   ELSIF (TG_OP = 'DELETE') THEN
     update user_aggregates 
-    set comment_score = comment_score - OLD.score where user_id = OLD.user_id;
+    set comment_score = comment_score - OLD.score
+    from comment_like pl join comment p on p.id = pl.comment_id
+    where p.id = OLD.comment_id and p.creator_id = OLD.user_id;
   END IF;
   return null;
 end $$;

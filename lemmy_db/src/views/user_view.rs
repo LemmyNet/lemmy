@@ -1,5 +1,6 @@
 use crate::{
-  schema::user_,
+  aggregates::user_aggregates::UserAggregates,
+  schema::{user_, user_aggregates},
   user::{UserSafe, User_},
 };
 use diesel::{result::Error, *};
@@ -8,58 +9,63 @@ use serde::Serialize;
 #[derive(Debug, Serialize, Clone)]
 pub struct UserViewSafe {
   pub user: UserSafe,
-  // TODO
-  // pub number_of_posts: i64,
-  // pub post_score: i64,
-  // pub number_of_comments: i64,
-  // pub comment_score: i64,
+  pub counts: UserAggregates,
 }
 
+#[derive(Debug, Serialize, Clone)]
 pub struct UserViewDangerous {
   pub user: User_,
-  // TODO
-  // pub number_of_posts: i64,
-  // pub post_score: i64,
-  // pub number_of_comments: i64,
-  // pub comment_score: i64,
+  pub counts: UserAggregates,
 }
 
 impl UserViewDangerous {
   pub fn read(conn: &PgConnection, id: i32) -> Result<Self, Error> {
-    let user = user_::table.find(id).first::<User_>(conn)?;
-    Ok(Self { user })
+    let (user, counts) = user_::table
+      .find(id)
+      .inner_join(user_aggregates::table)
+      .first::<(User_, UserAggregates)>(conn)?;
+    Ok(Self { user, counts })
   }
 }
 
 impl UserViewSafe {
   pub fn read(conn: &PgConnection, id: i32) -> Result<Self, Error> {
-    let user = user_::table.find(id).first::<User_>(conn)?.to_safe();
-    Ok(Self { user })
+    let (user, counts) = user_::table
+      .find(id)
+      .inner_join(user_aggregates::table)
+      .first::<(User_, UserAggregates)>(conn)?;
+    Ok(Self {
+      user: user.to_safe(),
+      counts,
+    })
   }
 
   pub fn admins(conn: &PgConnection) -> Result<Vec<Self>, Error> {
     let admins = user_::table
-      // TODO do joins here
+      .inner_join(user_aggregates::table)
       .filter(user_::admin.eq(true))
       .order_by(user_::published)
-      .load::<User_>(conn)?;
+      .load::<(User_, UserAggregates)>(conn)?;
 
     Ok(vec_to_user_view_safe(admins))
   }
 
   pub fn banned(conn: &PgConnection) -> Result<Vec<Self>, Error> {
     let banned = user_::table
-      // TODO do joins here
+      .inner_join(user_aggregates::table)
       .filter(user_::banned.eq(true))
-      .load::<User_>(conn)?;
+      .load::<(User_, UserAggregates)>(conn)?;
 
     Ok(vec_to_user_view_safe(banned))
   }
 }
 
-fn vec_to_user_view_safe(users: Vec<User_>) -> Vec<UserViewSafe> {
+fn vec_to_user_view_safe(users: Vec<(User_, UserAggregates)>) -> Vec<UserViewSafe> {
   users
     .iter()
-    .map(|a| UserViewSafe { user: a.to_safe() })
+    .map(|a| UserViewSafe {
+      user: a.0.to_safe(),
+      counts: a.1.to_owned(),
+    })
     .collect::<Vec<UserViewSafe>>()
 }

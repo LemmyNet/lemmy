@@ -1,5 +1,5 @@
 use crate::{
-  schema::{site as site_table, user_},
+  schema::{site, user_},
   site::Site,
   user::{UserSafe, User_},
 };
@@ -14,13 +14,13 @@ pub struct SiteView {
 
 impl SiteView {
   pub fn read(conn: &PgConnection) -> Result<Self, Error> {
-    let site_join = site_table::table
+    let (site, creator) = site::table
       .inner_join(user_::table)
       .first::<(Site, User_)>(conn)?;
 
     Ok(SiteView {
-      site: site_join.0,
-      creator: site_join.1.to_safe(),
+      site,
+      creator: creator.to_safe(),
     })
   }
 }

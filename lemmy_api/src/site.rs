@@ -10,6 +10,7 @@ use actix_web::web::Data;
 use anyhow::Context;
 use lemmy_apub::fetcher::search_by_apub_id;
 use lemmy_db::{
+  aggregates::site_aggregates::SiteAggregates,
   category::*,
   comment_view::*,
   community_view::*,
@@ -19,7 +20,6 @@ use lemmy_db::{
   naive_now,
   post_view::*,
   site::*,
-  site_aggregates::SiteAggregates,
   user_view::*,
   views::site_view::SiteView,
   Crud,
