@@ -218,8 +218,6 @@ impl ApubObjectType for Comment {
 #[async_trait::async_trait(?Send)]
 impl ApubLikeableType for Comment {
   async fn send_like(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
-    let note = self.to_apub(context.pool()).await?;
-
     let post_id = self.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
@@ -229,7 +227,7 @@ impl ApubLikeableType for Comment {
     })
     .await??;
 
-    let mut like = Like::new(creator.actor_id.to_owned(), note.into_any_base()?);
+    let mut like = Like::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
     like
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(LikeType::Like)?)
@@ -241,8 +239,6 @@ impl ApubLikeableType for Comment {
   }
 
   async fn send_dislike(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
-    let note = self.to_apub(context.pool()).await?;
-
     let post_id = self.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
@@ -252,7 +248,7 @@ impl ApubLikeableType for Comment {
     })
     .await??;
 
-    let mut dislike = Dislike::new(creator.actor_id.to_owned(), note.into_any_base()?);
+    let mut dislike = Dislike::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
     dislike
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DislikeType::Dislike)?)
@@ -268,8 +264,6 @@ impl ApubLikeableType for Comment {
     creator: &User_,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let note = self.to_apub(context.pool()).await?;
-
     let post_id = self.post_id;
     let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
@@ -279,7 +273,7 @@ impl ApubLikeableType for Comment {
     })
     .await??;
 
-    let mut like = Like::new(creator.actor_id.to_owned(), note.into_any_base()?);
+    let mut like = Like::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
     like
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DislikeType::Dislike)?)

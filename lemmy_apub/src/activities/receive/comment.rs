@@ -1,20 +1,6 @@
-use crate::{
-  activities::receive::{get_actor_as_user, get_like_object_id},
-  fetcher::get_or_fetch_and_insert_comment,
-  objects::FromApub,
-  ActorType,
-  NoteExt,
-};
+use crate::{activities::receive::get_actor_as_user, objects::FromApub, ActorType, NoteExt};
 use activitystreams::{
-  activity::{
-    kind::{DislikeType, LikeType},
-    ActorAndObjectRefExt,
-    Create,
-    Dislike,
-    Like,
-    Remove,
-    Update,
-  },
+  activity::{ActorAndObjectRefExt, Create, Dislike, Like, Remove, Update},
   base::ExtendsExt,
 };
 use anyhow::Context;
@@ -113,12 +99,11 @@ pub(crate) async fn receive_update_comment(
 
 pub(crate) async fn receive_like_comment(
   like: Like,
+  comment: Comment,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let user = get_actor_as_user(&like, context, request_counter).await?;
-  let comment_id = get_like_object_id::<Like, LikeType>(&like)?;
-  let comment = get_or_fetch_and_insert_comment(&comment_id, context, request_counter).await?;
 
   let comment_id = comment.id;
   let like_form = CommentLikeForm {
@@ -159,12 +144,11 @@ pub(crate) async fn receive_like_comment(
 
 pub(crate) async fn receive_dislike_comment(
   dislike: Dislike,
+  comment: Comment,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let user = get_actor_as_user(&dislike, context, request_counter).await?;
-  let comment_id = get_like_object_id::<Dislike, DislikeType>(&dislike)?;
-  let comment = get_or_fetch_and_insert_comment(&comment_id, context, request_counter).await?;
 
   let comment_id = comment.id;
   let like_form = CommentLikeForm {

@@ -31,6 +31,7 @@ use crate::{
     receive_unhandled_activity,
     verify_activity_domains_valid,
   },
+  fetcher::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
   inbox::is_addressed_to_public,
 };
 use activitystreams::{
@@ -96,10 +97,12 @@ pub(in crate::inbox) async fn receive_like_for_community(
   verify_activity_domains_valid(&like, &expected_domain, false)?;
   is_addressed_to_public(&like)?;
 
-  match like.object().as_single_kind_str() {
-    Some("Page") => receive_like_post(like, context, request_counter).await,
-    Some("Note") => receive_like_comment(like, context, request_counter).await,
-    _ => receive_unhandled_activity(like),
+  let object_id = get_like_object_id(&like)?;
+  match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
+    PostOrComment::Post(post) => receive_like_post(like, post, context, request_counter).await,
+    PostOrComment::Comment(comment) => {
+      receive_like_comment(like, comment, context, request_counter).await
+    }
   }
 }
 
@@ -122,10 +125,14 @@ pub(in crate::inbox) async fn receive_dislike_for_community(
   verify_activity_domains_valid(&dislike, &expected_domain, false)?;
   is_addressed_to_public(&dislike)?;
 
-  match dislike.object().as_single_kind_str() {
-    Some("Page") => receive_dislike_post(dislike, context, request_counter).await,
-    Some("Note") => receive_dislike_comment(dislike, context, request_counter).await,
-    _ => receive_unhandled_activity(dislike),
+  let object_id = get_like_object_id(&dislike)?;
+  match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
+    PostOrComment::Post(post) => {
+      receive_dislike_post(dislike, post, context, request_counter).await
+    }
+    PostOrComment::Comment(comment) => {
+      receive_dislike_comment(dislike, comment, context, request_counter).await
+    }
   }
 }
 
@@ -275,14 +282,14 @@ pub(in crate::inbox) async fn receive_undo_like_for_community(
   verify_activity_domains_valid(&like, &expected_domain, false)?;
   is_addressed_to_public(&like)?;
 
-  let type_ = like
-    .object()
-    .as_single_kind_str()
-    .context(location_info!())?;
-  match type_ {
-    "Note" => receive_undo_like_comment(&like, context, request_counter).await,
-    "Page" => receive_undo_like_post(&like, context, request_counter).await,
-    _ => receive_unhandled_activity(like),
+  let object_id = get_like_object_id(&like)?;
+  match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
+    PostOrComment::Post(post) => {
+      receive_undo_like_post(&like, post, context, request_counter).await
+    }
+    PostOrComment::Comment(comment) => {
+      receive_undo_like_comment(&like, comment, context, request_counter).await
+    }
   }
 }
 
@@ -298,14 +305,14 @@ pub(in crate::inbox) async fn receive_undo_dislike_for_community(
   verify_activity_domains_valid(&dislike, &expected_domain, false)?;
   is_addressed_to_public(&dislike)?;
 
-  let type_ = dislike
-    .object()
-    .as_single_kind_str()
-    .context(location_info!())?;
-  match type_ {
-    "Note" => receive_undo_dislike_comment(&dislike, context, request_counter).await,
-    "Page" => receive_undo_dislike_post(&dislike, context, request_counter).await,
-    _ => receive_unhandled_activity(dislike),
+  let object_id = get_like_object_id(&dislike)?;
+  match fetch_post_or_comment_by_id(&object_id, context, request_counter).await? {
+    PostOrComment::Post(post) => {
+      receive_undo_dislike_post(&dislike, post, context, request_counter).await
+    }
+    PostOrComment::Comment(comment) => {
+      receive_undo_dislike_comment(&dislike, comment, context, request_counter).await
+    }
   }
 }
 
@@ -340,4 +347,43 @@ async fn find_post_or_comment_by_id(
   }
 
   return Err(NotFound.into());
+}
+
+async fn fetch_post_or_comment_by_id(
+  apub_id: &Url,
+  context: &LemmyContext,
+  request_counter: &mut i32,
+) -> Result<PostOrComment, LemmyError> {
+  if let Ok(post) = get_or_fetch_and_insert_post(apub_id, context, request_counter).await {
+    return Ok(PostOrComment::Post(post));
+  }
+
+  if let Ok(comment) = get_or_fetch_and_insert_comment(apub_id, context, request_counter).await {
+    return Ok(PostOrComment::Comment(comment));
+  }
+
+  return Err(NotFound.into());
+}
+
+fn get_like_object_id<Activity>(like_or_dislike: &Activity) -> Result<Url, LemmyError>
+where
+  Activity: ActorAndObjectRefExt,
+{
+  // For backwards compatibility with older Lemmy versions where like.object contains a full
+  // post/comment. This can be removed after some time, using
+  // `activity.oject().as_single_xsd_any_uri()` instead.
+  let object = like_or_dislike.object();
+  if let Some(xsd_uri) = object.as_single_xsd_any_uri() {
+    Ok(xsd_uri.to_owned())
+  } else {
+    Ok(
+      object
+        .to_owned()
+        .one()
+        .context(location_info!())?
+        .id()
+        .context(location_info!())?
+        .to_owned(),
+    )
+  }
 }

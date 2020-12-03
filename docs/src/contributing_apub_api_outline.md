@@ -438,7 +438,7 @@ Sent to: Community
     "cc": [
         "https://ds9.lemmy.ml/c/main/"
     ],
-    "object": ...
+    "object": "https://enterprise.lemmy.ml/p/123"
 }
 ```
 
@@ -465,7 +465,7 @@ Sent to: Community
     "cc": [
       "https://ds9.lemmy.ml/c/main/"
     ],
-    "object": ...
+    "object": "https://enterprise.lemmy.ml/p/123"
 }
 ```
 

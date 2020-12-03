@@ -79,28 +79,3 @@ where
 
   Ok(())
 }
-
-pub(in crate::activities::receive) fn get_like_object_id<Activity, Kind>(
-  like_or_dislike: &Activity,
-) -> Result<Url, LemmyError>
-where
-  Activity: ActorAndObjectRefExt,
-{
-  // For backwards compatibility with older Lemmy versions where like.object contains a full
-  // post/comment. This can be removed after some time, using
-  // `activity.oject().as_single_xsd_any_uri()` instead.
-  let object = like_or_dislike.object();
-  if let Some(xsd_uri) = object.as_single_xsd_any_uri() {
-    Ok(xsd_uri.to_owned())
-  } else {
-    Ok(
-      object
-        .to_owned()
-        .one()
-        .context(location_info!())?
-        .id()
-        .context(location_info!())?
-        .to_owned(),
-    )
-  }
-}

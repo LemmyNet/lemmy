@@ -1,19 +1,6 @@
-use crate::{
-  activities::receive::{get_actor_as_user, get_like_object_id},
-  fetcher::get_or_fetch_and_insert_post,
-  objects::FromApub,
-  ActorType,
-  PageExt,
-};
+use crate::{activities::receive::get_actor_as_user, objects::FromApub, ActorType, PageExt};
 use activitystreams::{
-  activity::{
-    kind::{DislikeType, LikeType},
-    Create,
-    Dislike,
-    Like,
-    Remove,
-    Update,
-  },
+  activity::{Create, Dislike, Like, Remove, Update},
   prelude::*,
 };
 use anyhow::Context;
@@ -86,12 +73,11 @@ pub(crate) async fn receive_update_post(
 
 pub(crate) async fn receive_like_post(
   like: Like,
+  post: Post,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let user = get_actor_as_user(&like, context, request_counter).await?;
-  let post_id = get_like_object_id::<Like, LikeType>(&like)?;
-  let post = get_or_fetch_and_insert_post(&post_id, context, request_counter).await?;
 
   let post_id = post.id;
   let like_form = PostLikeForm {
@@ -125,12 +111,11 @@ pub(crate) async fn receive_like_post(
 
 pub(crate) async fn receive_dislike_post(
   dislike: Dislike,
+  post: Post,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let user = get_actor_as_user(&dislike, context, request_counter).await?;
-  let post_id = get_like_object_id::<Dislike, DislikeType>(&dislike)?;
-  let post = get_or_fetch_and_insert_post(&post_id, context, request_counter).await?;
 
   let post_id = post.id;
   let like_form = PostLikeForm {

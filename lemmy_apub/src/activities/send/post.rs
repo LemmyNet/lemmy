@@ -167,15 +167,13 @@ impl ApubObjectType for Post {
 #[async_trait::async_trait(?Send)]
 impl ApubLikeableType for Post {
   async fn send_like(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
-    let page = self.to_apub(context.pool()).await?;
-
     let community_id = self.community_id;
     let community = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
     })
     .await??;
 
-    let mut like = Like::new(creator.actor_id.to_owned(), page.into_any_base()?);
+    let mut like = Like::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
     like
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(LikeType::Like)?)
@@ -187,15 +185,13 @@ impl ApubLikeableType for Post {
   }
 
   async fn send_dislike(&self, creator: &User_, context: &LemmyContext) -> Result<(), LemmyError> {
-    let page = self.to_apub(context.pool()).await?;
-
     let community_id = self.community_id;
     let community = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
     })
     .await??;
 
-    let mut dislike = Dislike::new(creator.actor_id.to_owned(), page.into_any_base()?);
+    let mut dislike = Dislike::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
     dislike
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(DislikeType::Dislike)?)
@@ -211,15 +207,13 @@ impl ApubLikeableType for Post {
     creator: &User_,
     context: &LemmyContext,
   ) -> Result<(), LemmyError> {
-    let page = self.to_apub(context.pool()).await?;
-
     let community_id = self.community_id;
     let community = blocking(context.pool(), move |conn| {
       Community::read(conn, community_id)
     })
     .await??;
 
-    let mut like = Like::new(creator.actor_id.to_owned(), page.into_any_base()?);
+    let mut like = Like::new(creator.actor_id.to_owned(), Url::parse(&self.ap_id)?);
     like
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(LikeType::Like)?)
