@@ -95,7 +95,7 @@ impl FromApub for User_ {
   async fn from_apub(
     person: &PersonExt,
     context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
     request_counter: &mut i32,
   ) -> Result<User_, LemmyError> {
     let user_id = person.id_unchecked().context(location_info!())?.to_owned();
@@ -120,7 +120,7 @@ impl FromApubToForm<PersonExt> for UserForm {
   async fn from_apub(
     person: &PersonExt,
     _context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
     _request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
     let avatar = match person.icon() {

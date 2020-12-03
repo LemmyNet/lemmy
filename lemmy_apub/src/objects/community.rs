@@ -117,7 +117,7 @@ impl FromApub for Community {
   async fn from_apub(
     group: &GroupExt,
     context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
     request_counter: &mut i32,
   ) -> Result<Community, LemmyError> {
     get_object_from_apub(group, context, expected_domain, request_counter).await
@@ -129,7 +129,7 @@ impl FromApubToForm<GroupExt> for CommunityForm {
   async fn from_apub(
     group: &GroupExt,
     context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
     let creator_and_moderator_uris = group.inner.attributed_to().context(location_info!())?;

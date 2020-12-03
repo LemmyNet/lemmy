@@ -38,12 +38,11 @@ pub(crate) trait FromApub {
   ///
   /// * `apub` The object to read from
   /// * `context` LemmyContext which holds DB pool, HTTP client etc
-  /// * `expected_domain` If present, ensure that the domains of this and of the apub object ID are
-  ///                     identical
+  /// * `expected_domain` Domain where the object was received from
   async fn from_apub(
     apub: &Self::ApubType,
     context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError>
   where
@@ -55,7 +54,7 @@ pub(in crate::objects) trait FromApubToForm<ApubType> {
   async fn from_apub(
     apub: &ApubType,
     context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError>
   where
@@ -89,17 +88,13 @@ where
 
 pub(in crate::objects) fn check_object_domain<T, Kind>(
   apub: &T,
-  expected_domain: Option<Url>,
+  expected_domain: Url,
 ) -> Result<String, LemmyError>
 where
   T: Base + AsBase<Kind>,
 {
-  let object_id = if let Some(url) = expected_domain {
-    let domain = url.domain().context(location_info!())?;
-    apub.id(domain)?.context(location_info!())?
-  } else {
-    apub.id_unchecked().context(location_info!())?
-  };
+  let domain = expected_domain.domain().context(location_info!())?;
+  let object_id = apub.id(domain)?.context(location_info!())?;
   check_is_apub_id_valid(&object_id)?;
   Ok(object_id.to_string())
 }
@@ -180,7 +175,7 @@ pub(in crate::objects) fn check_is_markdown(mime: Option<&Mime>) -> Result<(), L
 pub(in crate::objects) async fn get_object_from_apub<From, Kind, To, ToForm>(
   from: &From,
   context: &LemmyContext,
-  expected_domain: Option<Url>,
+  expected_domain: Url,
   request_counter: &mut i32,
 ) -> Result<To, LemmyError>
 where
@@ -191,7 +186,7 @@ where
   let object_id = from.id_unchecked().context(location_info!())?.to_owned();
   let domain = object_id.domain().context(location_info!())?;
 
-  // if we already have the object in our database, return that directly
+  // if its a local object, return it directly from the database
   if Settings::get().hostname == domain {
     let object = blocking(context.pool(), move |conn| {
       To::read_from_apub_id(conn, object_id.as_str())
@@ -199,10 +194,7 @@ where
     .await??;
     Ok(object)
   }
-  // if we dont have it, parse from apub and insert into database
-  // TODO: this is insecure, a `Like/Post` could result in a non-existent post from a different
-  //       instance being inserted into our database. we should request the object over http in that
-  //       case. this might happen exactly in the case where expected_domain = None, but i'm not sure.
+  // otherwise parse and insert, assuring that it comes from the right domain
   else {
     let to_form = ToForm::from_apub(&from, context, expected_domain, request_counter).await?;
 

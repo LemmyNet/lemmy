@@ -110,7 +110,7 @@ impl FromApub for Post {
   async fn from_apub(
     page: &PageExt,
     context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
     request_counter: &mut i32,
   ) -> Result<Post, LemmyError> {
     check_object_for_community_or_site_ban(page, context, request_counter).await?;
@@ -123,7 +123,7 @@ impl FromApubToForm<PageExt> for PostForm {
   async fn from_apub(
     page: &PageExt,
     context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
     request_counter: &mut i32,
   ) -> Result<PostForm, LemmyError> {
     let ext = &page.ext_one;

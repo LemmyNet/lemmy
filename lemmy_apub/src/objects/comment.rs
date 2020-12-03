@@ -99,7 +99,7 @@ impl FromApub for Comment {
   async fn from_apub(
     note: &NoteExt,
     context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
     request_counter: &mut i32,
   ) -> Result<Comment, LemmyError> {
     check_object_for_community_or_site_ban(note, context, request_counter).await?;
@@ -128,7 +128,7 @@ impl FromApubToForm<NoteExt> for CommentForm {
   async fn from_apub(
     note: &NoteExt,
     context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
     request_counter: &mut i32,
   ) -> Result<CommentForm, LemmyError> {
     let creator_actor_id = &note

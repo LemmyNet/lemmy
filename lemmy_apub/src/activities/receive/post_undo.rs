@@ -1,13 +1,18 @@
-use crate::{activities::receive::get_actor_as_user, objects::FromApub, PageExt};
-use activitystreams::{activity::*, prelude::*};
-use anyhow::Context;
+use crate::{
+  activities::receive::{get_actor_as_user, get_like_object_id},
+  fetcher::get_or_fetch_and_insert_post,
+};
+use activitystreams::activity::{
+  kind::{DislikeType, LikeType},
+  *,
+};
 use lemmy_db::{
   post::{Post, PostLike},
   post_view::PostView,
   Likeable,
 };
 use lemmy_structs::{blocking, post::PostResponse};
-use lemmy_utils::{location_info, LemmyError};
+use lemmy_utils::LemmyError;
 use lemmy_websocket::{messages::SendPost, LemmyContext, UserOperation};
 
 pub(crate) async fn receive_undo_like_post(
@@ -16,10 +21,8 @@ pub(crate) async fn receive_undo_like_post(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let user = get_actor_as_user(like, context, request_counter).await?;
-  let page = PageExt::from_any_base(like.object().to_owned().one().context(location_info!())?)?
-    .context(location_info!())?;
-
-  let post = Post::from_apub(&page, context, None, request_counter).await?;
+  let post_id = get_like_object_id::<Like, LikeType>(&like)?;
+  let post = get_or_fetch_and_insert_post(&post_id, context, request_counter).await?;
 
   let post_id = post.id;
   let user_id = user.id;
@@ -51,16 +54,8 @@ pub(crate) async fn receive_undo_dislike_post(
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let user = get_actor_as_user(dislike, context, request_counter).await?;
-  let page = PageExt::from_any_base(
-    dislike
-      .object()
-      .to_owned()
-      .one()
-      .context(location_info!())?,
-  )?
-  .context(location_info!())?;
-
-  let post = Post::from_apub(&page, context, None, request_counter).await?;
+  let post_id = get_like_object_id::<Dislike, DislikeType>(&dislike)?;
+  let post = get_or_fetch_and_insert_post(&post_id, context, request_counter).await?;
 
   let post_id = post.id;
   let user_id = user.id;

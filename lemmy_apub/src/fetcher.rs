@@ -184,7 +184,7 @@ pub async fn search_by_apub_id(
       response
     }
     SearchAcceptedObjects::Page(p) => {
-      let p = Post::from_apub(&p, context, Some(query_url), recursion_counter).await?;
+      let p = Post::from_apub(&p, context, query_url, recursion_counter).await?;
 
       response.posts =
         vec![blocking(context.pool(), move |conn| PostView::read(conn, p.id, None)).await??];
@@ -192,7 +192,7 @@ pub async fn search_by_apub_id(
       response
     }
     SearchAcceptedObjects::Comment(c) => {
-      let c = Comment::from_apub(&c, context, Some(query_url), recursion_counter).await?;
+      let c = Comment::from_apub(&c, context, query_url, recursion_counter).await?;
 
       response.comments = vec![
         blocking(context.pool(), move |conn| {
@@ -252,13 +252,7 @@ pub(crate) async fn get_or_fetch_and_upsert_user(
         return Ok(u);
       }
 
-      let user = User_::from_apub(
-        &person?,
-        context,
-        Some(apub_id.to_owned()),
-        recursion_counter,
-      )
-      .await?;
+      let user = User_::from_apub(&person?, context, apub_id.to_owned(), recursion_counter).await?;
 
       let user_id = user.id;
       blocking(context.pool(), move |conn| {
@@ -274,13 +268,7 @@ pub(crate) async fn get_or_fetch_and_upsert_user(
       let person =
         fetch_remote_object::<PersonExt>(context.client(), apub_id, recursion_counter).await?;
 
-      let user = User_::from_apub(
-        &person,
-        context,
-        Some(apub_id.to_owned()),
-        recursion_counter,
-      )
-      .await?;
+      let user = User_::from_apub(&person, context, apub_id.to_owned(), recursion_counter).await?;
 
       Ok(user)
     }
@@ -352,7 +340,7 @@ async fn fetch_remote_community(
 
   let group = group?;
   let community =
-    Community::from_apub(&group, context, Some(apub_id.to_owned()), recursion_counter).await?;
+    Community::from_apub(&group, context, apub_id.to_owned(), recursion_counter).await?;
 
   // Also add the community moderators too
   let attributed_to = group.inner.attributed_to().context(location_info!())?;
@@ -402,13 +390,13 @@ async fn fetch_remote_community(
   }
   for o in outbox_items {
     let page = PageExt::from_any_base(o)?.context(location_info!())?;
+    let page_id = page.id_unchecked().context(location_info!())?;
 
-    // The post creator may be from a blocked instance,
-    // if it errors, then continue
-    match Post::from_apub(&page, context, None, recursion_counter).await {
-      Ok(post) => post,
-      Err(_) => continue,
-    };
+    // The post creator may be from a blocked instance, if it errors, then skip it
+    if check_is_apub_id_valid(page_id).is_err() {
+      continue;
+    }
+    Post::from_apub(&page, context, page_id.to_owned(), recursion_counter).await?;
     // TODO: we need to send a websocket update here
   }
 
@@ -436,13 +424,7 @@ pub(crate) async fn get_or_fetch_and_insert_post(
       debug!("Fetching and creating remote post: {}", post_ap_id);
       let page =
         fetch_remote_object::<PageExt>(context.client(), post_ap_id, recursion_counter).await?;
-      let post = Post::from_apub(
-        &page,
-        context,
-        Some(post_ap_id.to_owned()),
-        recursion_counter,
-      )
-      .await?;
+      let post = Post::from_apub(&page, context, post_ap_id.to_owned(), recursion_counter).await?;
 
       Ok(post)
     }
@@ -477,7 +459,7 @@ pub(crate) async fn get_or_fetch_and_insert_comment(
       let comment = Comment::from_apub(
         &comment,
         context,
-        Some(comment_ap_id.to_owned()),
+        comment_ap_id.to_owned(),
         recursion_counter,
       )
       .await?;
