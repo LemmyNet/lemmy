@@ -34,112 +34,79 @@ insert into user_aggregates (user_id, post_count, post_score, comment_count, com
   ) cd on u.id = cd.creator_id;
 
 
--- Add site aggregate triggers
--- user
-create function site_aggregates_user_increment()
+-- Add user aggregate triggers
+-- post count
+create function user_aggregates_post_count()
 returns trigger language plpgsql
 as $$
 begin
-  update site_aggregates 
-  set users = users + 1;
+  IF (TG_OP = 'INSERT') THEN
+    update user_aggregates 
+    set post_count = post_count + 1 where user_id = NEW.user_id;
+  ELSIF (TG_OP = 'DELETE') THEN
+    update user_aggregates 
+    set post_count = post_count - 1 where user_id = OLD.user_id;
+  END IF;
   return null;
 end $$;
 
-create trigger site_aggregates_insert_user
-after insert on user_
-execute procedure site_aggregates_user_increment();
+create trigger user_aggregates_post_count
+after insert or delete on post
+execute procedure user_aggregates_post_count();
 
-create function site_aggregates_user_decrement()
+-- post score
+create function user_aggregates_post_score()
 returns trigger language plpgsql
 as $$
 begin
-  update site_aggregates 
-  set users = users - 1;
+  IF (TG_OP = 'INSERT') THEN
+    update user_aggregates 
+    set post_score = post_score + NEW.score where user_id = NEW.user_id;
+  ELSIF (TG_OP = 'DELETE') THEN
+    update user_aggregates 
+    set post_score = post_score - OLD.score where user_id = OLD.user_id;
+  END IF;
   return null;
 end $$;
 
-create trigger site_aggregates_delete_user
-after delete on user_
-execute procedure site_aggregates_user_decrement();
+create trigger user_aggregates_post_score
+after insert or delete on post_like
+execute procedure user_aggregates_post_score();
 
--- post
-create function site_aggregates_post_increment()
+-- comment count
+create function user_aggregates_comment_count()
 returns trigger language plpgsql
 as $$
 begin
-  update site_aggregates 
-  set posts = posts + 1;
+  IF (TG_OP = 'INSERT') THEN
+    update user_aggregates 
+    set comment_count = comment_count + 1 where user_id = NEW.user_id;
+  ELSIF (TG_OP = 'DELETE') THEN
+    update user_aggregates 
+    set comment_count = comment_count - 1 where user_id = OLD.user_id;
+  END IF;
   return null;
 end $$;
 
-create trigger site_aggregates_insert_post
-after insert on post
-execute procedure site_aggregates_post_increment();
+create trigger user_aggregates_comment_count
+after insert or delete on comment
+execute procedure user_aggregates_comment_count();
 
-create function site_aggregates_post_decrement()
+-- comment score
+create function user_aggregates_comment_score()
 returns trigger language plpgsql
 as $$
 begin
-  update site_aggregates 
-  set posts = posts - 1;
+  IF (TG_OP = 'INSERT') THEN
+    update user_aggregates 
+    set comment_score = comment_score + NEW.score where user_id = NEW.user_id;
+  ELSIF (TG_OP = 'DELETE') THEN
+    update user_aggregates 
+    set comment_score = comment_score - OLD.score where user_id = OLD.user_id;
+  END IF;
   return null;
 end $$;
 
-create trigger site_aggregates_delete_post
-after delete on post
-execute procedure site_aggregates_post_decrement();
-
--- comment
-create function site_aggregates_comment_increment()
-returns trigger language plpgsql
-as $$
-begin
-  update site_aggregates 
-  set comments = comments + 1;
-  return null;
-end $$;
-
-create trigger site_aggregates_insert_comment
-after insert on comment
-execute procedure site_aggregates_comment_increment();
-
-create function site_aggregates_comment_decrement()
-returns trigger language plpgsql
-as $$
-begin
-  update site_aggregates 
-  set comments = comments - 1;
-  return null;
-end $$;
-
-create trigger site_aggregates_delete_comment
-after delete on comment
-execute procedure site_aggregates_comment_decrement();
-
--- community
-create function site_aggregates_community_increment()
-returns trigger language plpgsql
-as $$
-begin
-  update site_aggregates 
-  set communities = communities + 1;
-  return null;
-end $$;
-
-create trigger site_aggregates_insert_community
-after insert on community
-execute procedure site_aggregates_community_increment();
-
-create function site_aggregates_community_decrement()
-returns trigger language plpgsql
-as $$
-begin
-  update site_aggregates 
-  set communities = communities - 1;
-  return null;
-end $$;
-
-create trigger site_aggregates_delete_community
-after delete on community
-execute procedure site_aggregates_community_decrement();
-
+create trigger user_aggregates_comment_score
+after insert or delete on comment_like
+execute procedure user_aggregates_comment_score();

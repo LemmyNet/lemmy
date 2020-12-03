@@ -17,3 +17,5 @@ impl SiteAggregates {
     site_aggregates::table.first::<Self>(conn)
   }
 }
+
+// TODO add unit tests, to make sure triggers are working

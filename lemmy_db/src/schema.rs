@@ -482,6 +482,17 @@ table! {
 }
 
 table! {
+    user_aggregates (id) {
+        id -> Int4,
+        user_id -> Int4,
+        post_count -> Int8,
+        post_score -> Int8,
+        comment_count -> Int8,
+        comment_score -> Int8,
+    }
+}
+
+table! {
     user_ban (id) {
         id -> Int4,
         user_id -> Int4,
@@ -562,6 +573,7 @@ joinable!(post_report -> post (post_id));
 joinable!(post_saved -> post (post_id));
 joinable!(post_saved -> user_ (user_id));
 joinable!(site -> user_ (creator_id));
+joinable!(user_aggregates -> user_ (user_id));
 joinable!(user_ban -> user_ (user_id));
 joinable!(user_mention -> comment (comment_id));
 joinable!(user_mention -> user_ (recipient_id));
@@ -599,6 +611,7 @@ allow_tables_to_appear_in_same_query!(
   site,
   site_aggregates,
   user_,
+  user_aggregates,
   user_ban,
   user_fast,
   user_mention,
