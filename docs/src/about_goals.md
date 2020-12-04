@@ -36,6 +36,7 @@
 - [Rust docker build](https://shaneutt.com/blog/rust-fast-small-docker-image-builds/)
 - [Zurb mentions](https://github.com/zurb/tribute)
 - [TippyJS](https://github.com/atomiks/tippyjs)
+- [SQL function indexes](https://sorentwo.com/2013/12/30/let-postgres-do-the-work.html)
 
 ## Activitypub guides
 

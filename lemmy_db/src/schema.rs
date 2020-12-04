@@ -128,6 +128,16 @@ table! {
 }
 
 table! {
+    community_aggregates (id) {
+        id -> Int4,
+        community_id -> Int4,
+        subscribers -> Int8,
+        posts -> Int8,
+        comments -> Int8,
+    }
+}
+
+table! {
     community_aggregates_fast (id) {
         id -> Int4,
         name -> Nullable<Varchar>,
@@ -544,6 +554,7 @@ joinable!(comment_saved -> comment (comment_id));
 joinable!(comment_saved -> user_ (user_id));
 joinable!(community -> category (category_id));
 joinable!(community -> user_ (creator_id));
+joinable!(community_aggregates -> community (community_id));
 joinable!(community_follower -> community (community_id));
 joinable!(community_follower -> user_ (user_id));
 joinable!(community_moderator -> community (community_id));
@@ -587,6 +598,7 @@ allow_tables_to_appear_in_same_query!(
   comment_report,
   comment_saved,
   community,
+  community_aggregates,
   community_aggregates_fast,
   community_follower,
   community_moderator,
