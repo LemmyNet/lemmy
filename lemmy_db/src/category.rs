@@ -5,7 +5,7 @@ use crate::{
 use diesel::{dsl::*, result::Error, *};
 use serde::Serialize;
 
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Clone)]
 #[table_name = "category"]
 pub struct Category {
   pub id: i32,
