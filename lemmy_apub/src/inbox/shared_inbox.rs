@@ -1,5 +1,6 @@
 use crate::{
   inbox::{
+    assert_activity_not_local,
     community_inbox::{community_receive_message, CommunityAcceptedActivities},
     get_activity_id,
     get_activity_to_and_cc,
@@ -58,6 +59,7 @@ pub async fn shared_inbox(
     return Ok(HttpResponse::Ok().finish());
   }
 
+  assert_activity_not_local(&activity)?;
   // Log the activity, so we avoid receiving and parsing it twice. Note that this could still happen
   // if we receive the same activity twice in very quick succession.
   insert_activity(&activity_id, activity.clone(), false, true, context.pool()).await?;

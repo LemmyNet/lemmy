@@ -1,17 +1,22 @@
 # Trending / Hot / Best Sorting algorithm
-
-An expected feature in link aggregators is a kind of "Trending" sort which shows users a mixture of new posts / comments and popular ones, making for a display order which highlights the most currently active parts of the site / thread.  This keeps the experience fresh and makes sure the site stays moving.  Various flaws can be found in the ways that popular link aggregators like Reddit have implemented "Hot" or "Trending" sorts, so Lemmy has its own algorithm.
-
-## Goals and Considerations
+## Goals
 - During the day, new posts and comments should be near the top, so they can be voted on.
 - After a day or so, the time factor should go away.
 - Use a log scale, since votes tend to snowball, and so the first 10 votes are just as important as the next hundred.
 
-| Reddit | Hacker News | Lemmy |
-|-|-|-|
-| Does not take the lifetime of the thread into account, [giving early comments an overwhelming advantage over later ones,](https://minimaxir.com/2016/11/first-comment/) with the effect being even worse in small communities. New comments pool at the bottom of the thread, effectively killing off discussion and making each thread a race to comment early.  This lowers the quality of conversation and rewards comments that are repetitive and spammy. | While far superior to Reddit's implementation for its decay of scores over time, [Hacker News' ranking algorithm](https://medium.com/hacking-and-gonzo/how-hacker-news-ranking-algorithm-works-1d9b0cf2c08d) does not use a logarithmic scale for scores. | Counterbalances the snowballing effect of votes over time with a logarithmic scale.  Negates the inherent advantage of early comments while still ensuring that votes still matter in the long-term, not nuking older popular comments. |
+## Implementations
 
-## Additional Details
+### Reddit
+Does not take the lifetime of the thread into account, [giving early comments an overwhelming advantage over later ones,](https://minimaxir.com/2016/11/first-comment/) with the effect being even worse in small communities. New comments pool at the bottom of the thread, effectively killing off discussion and making each thread a race to comment early.  This lowers the quality of conversation and rewards comments that are repetitive and spammy.
+
+### Hacker News
+
+While far superior to Reddit's implementation for its decay of scores over time, [Hacker News' ranking algorithm](https://medium.com/hacking-and-gonzo/how-hacker-news-ranking-algorithm-works-1d9b0cf2c08d) does not use a logarithmic scale for scores.
+
+### Lemmy
+
+Counterbalances the snowballing effect of votes over time with a logarithmic scale.  Negates the inherent advantage of early comments while still ensuring that votes still matter in the long-term, not nuking older popular comments.
+
 ```
 Rank = ScaleFactor * log(Max(1, 3 + Score)) / (Time + 2)^Gravity
 
