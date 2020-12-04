@@ -1,6 +1,6 @@
 use lemmy_db::{
   community_view::{CommunityFollowerView, CommunityModeratorView, CommunityView},
-  user_view::UserView,
+  views::user_view::UserViewSafe,
 };
 use serde::{Deserialize, Serialize};
 
@@ -61,7 +61,7 @@ pub struct BanFromCommunity {
 
 #[derive(Serialize, Clone)]
 pub struct BanFromCommunityResponse {
-  pub user: UserView,
+  pub user: UserViewSafe,
   pub banned: bool,
 }
 

@@ -21,7 +21,7 @@ use lemmy_db::{
   post::{Post, PostForm},
   post_view::PostView,
   user::{UserForm, User_},
-  user_view::UserView,
+  views::user_view::UserViewSafe,
   Crud,
   Joinable,
   SearchType,
@@ -161,7 +161,7 @@ pub async fn search_by_apub_id(
 
       response.users = vec![
         blocking(context.pool(), move |conn| {
-          UserView::get_user_secure(conn, user.id)
+          UserViewSafe::read(conn, user.id)
         })
         .await??,
       ];

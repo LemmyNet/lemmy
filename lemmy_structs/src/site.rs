@@ -6,8 +6,7 @@ use lemmy_db::{
   moderator_views::*,
   post_view::*,
   user::*,
-  user_view::*,
-  views::site_view::SiteView,
+  views::{site_view::SiteView, user_view::UserViewSafe},
 };
 use serde::{Deserialize, Serialize};
 
@@ -37,7 +36,7 @@ pub struct SearchResponse {
   pub comments: Vec<CommentView>,
   pub posts: Vec<PostView>,
   pub communities: Vec<CommunityView>,
-  pub users: Vec<UserView>,
+  pub users: Vec<UserViewSafe>,
 }
 
 #[derive(Deserialize)]
@@ -100,8 +99,8 @@ pub struct SiteResponse {
 pub struct GetSiteResponse {
   pub site: Option<SiteView>, // Because the site might not be set up yet
   pub counts: SiteAggregates,
-  pub admins: Vec<UserView>,
-  pub banned: Vec<UserView>,
+  pub admins: Vec<UserViewSafe>,
+  pub banned: Vec<UserViewSafe>,
   pub online: usize,
   pub version: String,
   pub my_user: Option<User_>,

@@ -1,9 +1,13 @@
 use crate::{
   aggregates::user_aggregates::UserAggregates,
+  fuzzy_search,
+  limit_and_offset,
   schema::{user_, user_aggregates},
   user::{UserSafe, User_},
+  MaybeOptional,
+  SortType,
 };
-use diesel::{result::Error, *};
+use diesel::{dsl::*, result::Error, *};
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Clone)]
@@ -57,6 +61,140 @@ impl UserViewSafe {
       .load::<(User_, UserAggregates)>(conn)?;
 
     Ok(vec_to_user_view_safe(banned))
+  }
+}
+
+mod join_types {
+  use crate::schema::{user_, user_aggregates};
+  use diesel::{
+    pg::Pg,
+    query_builder::BoxedSelectStatement,
+    query_source::joins::{Inner, Join, JoinOn},
+    sql_types::*,
+  };
+
+  /// TODO awful, but necessary because of the boxed join
+  pub(super) type BoxedUserJoin<'a> = BoxedSelectStatement<
+    'a,
+    (
+      (
+        Integer,
+        Text,
+        Nullable<Text>,
+        Text,
+        Nullable<Text>,
+        Nullable<Text>,
+        diesel::sql_types::Bool,
+        Bool,
+        Timestamp,
+        Nullable<Timestamp>,
+        Bool,
+        Text,
+        SmallInt,
+        SmallInt,
+        Text,
+        Bool,
+        Bool,
+        Nullable<Text>,
+        Text,
+        Nullable<Text>,
+        Bool,
+        Nullable<Text>,
+        Nullable<Text>,
+        Timestamp,
+        Nullable<Text>,
+        Bool,
+      ),
+      (Integer, Integer, BigInt, BigInt, BigInt, BigInt),
+    ),
+    JoinOn<
+      Join<user_::table, user_aggregates::table, Inner>,
+      diesel::expression::operators::Eq<
+        diesel::expression::nullable::Nullable<user_aggregates::columns::user_id>,
+        diesel::expression::nullable::Nullable<user_::columns::id>,
+      >,
+    >,
+    Pg,
+  >;
+}
+
+pub struct UserQueryBuilder<'a> {
+  conn: &'a PgConnection,
+  query: join_types::BoxedUserJoin<'a>,
+  sort: &'a SortType,
+  page: Option<i64>,
+  limit: Option<i64>,
+}
+
+impl<'a> UserQueryBuilder<'a> {
+  pub fn create(conn: &'a PgConnection) -> Self {
+    let query = user_::table.inner_join(user_aggregates::table).into_boxed();
+
+    UserQueryBuilder {
+      conn,
+      query,
+      sort: &SortType::Hot,
+      page: None,
+      limit: None,
+    }
+  }
+
+  pub fn sort(mut self, sort: &'a SortType) -> Self {
+    self.sort = sort;
+    self
+  }
+
+  pub fn search_term<T: MaybeOptional<String>>(mut self, search_term: T) -> Self {
+    if let Some(search_term) = search_term.get_optional() {
+      self.query = self
+        .query
+        .filter(user_::name.ilike(fuzzy_search(&search_term)));
+    }
+    self
+  }
+
+  pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
+    self.page = page.get_optional();
+    self
+  }
+
+  pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
+    self.limit = limit.get_optional();
+    self
+  }
+
+  pub fn list(self) -> Result<Vec<UserViewSafe>, Error> {
+    let mut query = self.query;
+
+    query = match self.sort {
+      SortType::Hot => query
+        .order_by(user_aggregates::comment_score.desc())
+        .then_order_by(user_::published.desc()),
+      SortType::Active => query
+        .order_by(user_aggregates::comment_score.desc())
+        .then_order_by(user_::published.desc()),
+      SortType::New => query.order_by(user_::published.desc()),
+      SortType::TopAll => query.order_by(user_aggregates::comment_score.desc()),
+      SortType::TopYear => query
+        .filter(user_::published.gt(now - 1.years()))
+        .order_by(user_aggregates::comment_score.desc()),
+      SortType::TopMonth => query
+        .filter(user_::published.gt(now - 1.months()))
+        .order_by(user_aggregates::comment_score.desc()),
+      SortType::TopWeek => query
+        .filter(user_::published.gt(now - 1.weeks()))
+        .order_by(user_aggregates::comment_score.desc()),
+      SortType::TopDay => query
+        .filter(user_::published.gt(now - 1.days()))
+        .order_by(user_aggregates::comment_score.desc()),
+    };
+
+    let (limit, offset) = limit_and_offset(self.page, self.limit);
+    query = query.limit(limit).offset(offset);
+
+    let res = query.load::<(User_, UserAggregates)>(self.conn)?;
+
+    Ok(vec_to_user_view_safe(res))
   }
 }
 

@@ -20,8 +20,10 @@ use lemmy_db::{
   naive_now,
   post_view::*,
   site::*,
-  user_view::*,
-  views::site_view::SiteView,
+  views::{
+    site_view::SiteView,
+    user_view::{UserQueryBuilder, UserViewSafe},
+  },
   Crud,
   SearchType,
   SortType,
@@ -281,20 +283,20 @@ impl Perform for GetSite {
       None
     };
 
-    let mut admins = blocking(context.pool(), move |conn| UserView::admins(conn)).await??;
+    let mut admins = blocking(context.pool(), move |conn| UserViewSafe::admins(conn)).await??;
 
     // Make sure the site creator is the top admin
     if let Some(site_view) = site_view.to_owned() {
       let site_creator_id = site_view.creator.id;
       // TODO investigate why this is sometimes coming back null
       // Maybe user_.admin isn't being set to true?
-      if let Some(creator_index) = admins.iter().position(|r| r.id == site_creator_id) {
+      if let Some(creator_index) = admins.iter().position(|r| r.user.id == site_creator_id) {
         let creator_user = admins.remove(creator_index);
         admins.insert(0, creator_user);
       }
     }
 
-    let banned = blocking(context.pool(), move |conn| UserView::banned(conn)).await??;
+    let banned = blocking(context.pool(), move |conn| UserViewSafe::banned(conn)).await??;
 
     let online = context
       .chat_server()
@@ -535,15 +537,15 @@ impl Perform for TransferSite {
 
     let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
 
-    let mut admins = blocking(context.pool(), move |conn| UserView::admins(conn)).await??;
+    let mut admins = blocking(context.pool(), move |conn| UserViewSafe::admins(conn)).await??;
     let creator_index = admins
       .iter()
-      .position(|r| r.id == site_view.creator.id)
+      .position(|r| r.user.id == site_view.creator.id)
       .context(location_info!())?;
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
 
-    let banned = blocking(context.pool(), move |conn| UserView::banned(conn)).await??;
+    let banned = blocking(context.pool(), move |conn| UserViewSafe::banned(conn)).await??;
 
     let counts = blocking(context.pool(), move |conn| SiteAggregates::read(conn)).await??;
 
@@ -594,8 +596,8 @@ impl Perform for SaveSiteConfig {
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
     // Only let admins read this
-    let admins = blocking(context.pool(), move |conn| UserView::admins(conn)).await??;
-    let admin_ids: Vec<i32> = admins.into_iter().map(|m| m.id).collect();
+    let admins = blocking(context.pool(), move |conn| UserViewSafe::admins(conn)).await??;
+    let admin_ids: Vec<i32> = admins.into_iter().map(|m| m.user.id).collect();
 
     if !admin_ids.contains(&user.id) {
       return Err(APIError::err("not_an_admin").into());

@@ -144,14 +144,14 @@ impl Community {
   }
 
   fn community_mods_and_admins(conn: &PgConnection, community_id: i32) -> Result<Vec<i32>, Error> {
-    use crate::{community_view::CommunityModeratorView, user_view::UserView};
+    use crate::{community_view::CommunityModeratorView, views::user_view::UserViewSafe};
     let mut mods_and_admins: Vec<i32> = Vec::new();
     mods_and_admins.append(
       &mut CommunityModeratorView::for_community(conn, community_id)
         .map(|v| v.into_iter().map(|m| m.user_id).collect())?,
     );
     mods_and_admins
-      .append(&mut UserView::admins(conn).map(|v| v.into_iter().map(|a| a.id).collect())?);
+      .append(&mut UserViewSafe::admins(conn).map(|v| v.into_iter().map(|a| a.user.id).collect())?);
     Ok(mods_and_admins)
   }
 

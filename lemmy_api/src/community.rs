@@ -19,7 +19,7 @@ use lemmy_db::{
   naive_now,
   post::Post,
   site::*,
-  user_view::*,
+  views::user_view::UserViewSafe,
   Bannable,
   Crud,
   Followable,
@@ -640,7 +640,7 @@ impl Perform for BanFromCommunity {
 
     let user_id = data.user_id;
     let user_view = blocking(context.pool(), move |conn| {
-      UserView::get_user_secure(conn, user_id)
+      UserViewSafe::read(conn, user_id)
     })
     .await??;
 
@@ -748,17 +748,19 @@ impl Perform for TransferCommunity {
     })
     .await??;
 
-    let mut admins = blocking(context.pool(), move |conn| UserView::admins(conn)).await??;
+    let mut admins = blocking(context.pool(), move |conn| UserViewSafe::admins(conn)).await??;
 
     let creator_index = admins
       .iter()
-      .position(|r| r.id == site_creator_id)
+      .position(|r| r.user.id == site_creator_id)
       .context(location_info!())?;
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
 
     // Make sure user is the creator, or an admin
-    if user.id != read_community.creator_id && !admins.iter().map(|a| a.id).any(|x| x == user.id) {
+    if user.id != read_community.creator_id
+      && !admins.iter().map(|a| a.user.id).any(|x| x == user.id)
+    {
       return Err(APIError::err("not_an_admin").into());
     }
 

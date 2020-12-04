@@ -33,8 +33,10 @@ use lemmy_db::{
   user::*,
   user_mention::*,
   user_mention_view::*,
-  user_view::*,
-  views::site_view::SiteView,
+  views::{
+    site_view::SiteView,
+    user_view::{UserViewDangerous, UserViewSafe},
+  },
   Crud,
   Followable,
   Joinable,
@@ -153,7 +155,7 @@ impl Perform for Register {
 
     // Make sure there are no admins
     let any_admins = blocking(context.pool(), move |conn| {
-      UserView::admins(conn).map(|a| a.is_empty())
+      UserViewSafe::admins(conn).map(|a| a.is_empty())
     })
     .await??;
     if data.admin && !any_admins {
@@ -490,23 +492,40 @@ impl Perform for GetUserDetails {
     };
 
     let user_id = user.map(|u| u.id);
-    let user_fun = move |conn: &'_ _| {
-      match user_id {
-        // if there's a logged in user and it's the same id as the user whose details are being
-        // requested we need to use get_user_dangerous so it returns their email or other sensitive
-        // data hidden when viewing users other than yourself
-        Some(auth_user_id) => {
-          if user_details_id == auth_user_id {
-            UserView::get_user_dangerous(conn, auth_user_id)
-          } else {
-            UserView::get_user_secure(conn, user_details_id)
-          }
-        }
-        None => UserView::get_user_secure(conn, user_details_id),
-      }
-    };
 
-    let user_view = blocking(context.pool(), user_fun).await??;
+    let (user_view, user_dangerous) = if let Some(auth_user_id) = user_id {
+      if user_details_id == auth_user_id {
+        (
+          None,
+          Some(
+            blocking(context.pool(), move |conn| {
+              UserViewDangerous::read(conn, auth_user_id)
+            })
+            .await??,
+          ),
+        )
+      } else {
+        (
+          Some(
+            blocking(context.pool(), move |conn| {
+              UserViewSafe::read(conn, user_details_id)
+            })
+            .await??,
+          ),
+          None,
+        )
+      }
+    } else {
+      (
+        Some(
+          blocking(context.pool(), move |conn| {
+            UserViewSafe::read(conn, user_details_id)
+          })
+          .await??,
+        ),
+        None,
+      )
+    };
 
     let page = data.page;
     let limit = data.limit;
@@ -555,7 +574,9 @@ impl Perform for GetUserDetails {
 
     // Return the jwt
     Ok(GetUserDetailsResponse {
+      // TODO need to figure out dangerous user view here
       user: user_view,
+      user_dangerous,
       follows,
       moderates,
       comments,
@@ -600,10 +621,10 @@ impl Perform for AddAdmin {
     })
     .await??;
 
-    let mut admins = blocking(context.pool(), move |conn| UserView::admins(conn)).await??;
+    let mut admins = blocking(context.pool(), move |conn| UserViewSafe::admins(conn)).await??;
     let creator_index = admins
       .iter()
-      .position(|r| r.id == site_creator_id)
+      .position(|r| r.user.id == site_creator_id)
       .context(location_info!())?;
     let creator_user = admins.remove(creator_index);
     admins.insert(0, creator_user);
@@ -681,7 +702,7 @@ impl Perform for BanUser {
 
     let user_id = data.user_id;
     let user_view = blocking(context.pool(), move |conn| {
-      UserView::get_user_secure(conn, user_id)
+      UserViewSafe::read(conn, user_id)
     })
     .await??;
 

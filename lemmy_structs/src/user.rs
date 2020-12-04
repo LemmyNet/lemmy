@@ -4,7 +4,7 @@ use lemmy_db::{
   post_view::PostView,
   private_message_view::PrivateMessageView,
   user_mention_view::UserMentionView,
-  user_view::UserView,
+  views::user_view::{UserViewDangerous, UserViewSafe},
 };
 use serde::{Deserialize, Serialize};
 
@@ -81,7 +81,8 @@ pub struct GetUserDetails {
 
 #[derive(Serialize)]
 pub struct GetUserDetailsResponse {
-  pub user: UserView,
+  pub user: Option<UserViewSafe>,
+  pub user_dangerous: Option<UserViewDangerous>,
   pub follows: Vec<CommunityFollowerView>,
   pub moderates: Vec<CommunityModeratorView>,
   pub comments: Vec<CommentView>,
@@ -112,7 +113,7 @@ pub struct AddAdmin {
 
 #[derive(Serialize, Clone)]
 pub struct AddAdminResponse {
-  pub admins: Vec<UserView>,
+  pub admins: Vec<UserViewSafe>,
 }
 
 #[derive(Deserialize)]
@@ -127,7 +128,7 @@ pub struct BanUser {
 
 #[derive(Serialize, Clone)]
 pub struct BanUserResponse {
-  pub user: UserView,
+  pub user: UserViewSafe,
   pub banned: bool,
 }
 
