@@ -2,6 +2,7 @@ use crate::{
   schema::{site, user_},
   site::Site,
   user::{UserSafe, User_},
+  ToSafe,
 };
 use diesel::{result::Error, *};
 use serde::Serialize;
@@ -16,11 +17,9 @@ impl SiteView {
   pub fn read(conn: &PgConnection) -> Result<Self, Error> {
     let (site, creator) = site::table
       .inner_join(user_::table)
-      .first::<(Site, User_)>(conn)?;
+      .select((site::all_columns, User_::safe_columns_tuple()))
+      .first::<(Site, UserSafe)>(conn)?;
 
-    Ok(SiteView {
-      site,
-      creator: creator.to_safe(),
-    })
+    Ok(SiteView { site, creator })
   }
 }

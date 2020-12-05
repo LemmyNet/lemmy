@@ -140,6 +140,11 @@ impl<T> MaybeOptional<T> for Option<T> {
   }
 }
 
+pub(crate) trait ToSafe {
+  type SafeColumns;
+  fn safe_columns_tuple() -> Self::SafeColumns;
+}
+
 pub fn get_database_url_from_env() -> Result<String, VarError> {
   env::var("LEMMY_DATABASE_URL")
 }

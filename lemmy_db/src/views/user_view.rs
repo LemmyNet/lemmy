@@ -6,6 +6,7 @@ use crate::{
   user::{UserSafe, User_},
   MaybeOptional,
   SortType,
+  ToSafe,
 };
 use diesel::{dsl::*, result::Error, *};
 use serde::Serialize;
@@ -37,30 +38,30 @@ impl UserViewSafe {
     let (user, counts) = user_::table
       .find(id)
       .inner_join(user_aggregates::table)
-      .first::<(User_, UserAggregates)>(conn)?;
-    Ok(Self {
-      user: user.to_safe(),
-      counts,
-    })
+      .select((User_::safe_columns_tuple(), user_aggregates::all_columns))
+      .first::<(UserSafe, UserAggregates)>(conn)?;
+    Ok(Self { user, counts })
   }
 
   pub fn admins(conn: &PgConnection) -> Result<Vec<Self>, Error> {
     let admins = user_::table
       .inner_join(user_aggregates::table)
+      .select((User_::safe_columns_tuple(), user_aggregates::all_columns))
       .filter(user_::admin.eq(true))
       .order_by(user_::published)
-      .load::<(User_, UserAggregates)>(conn)?;
+      .load::<(UserSafe, UserAggregates)>(conn)?;
 
-    Ok(vec_to_user_view_safe(admins))
+    Ok(to_vec(admins))
   }
 
   pub fn banned(conn: &PgConnection) -> Result<Vec<Self>, Error> {
     let banned = user_::table
       .inner_join(user_aggregates::table)
+      .select((User_::safe_columns_tuple(), user_aggregates::all_columns))
       .filter(user_::banned.eq(true))
-      .load::<(User_, UserAggregates)>(conn)?;
+      .load::<(UserSafe, UserAggregates)>(conn)?;
 
-    Ok(vec_to_user_view_safe(banned))
+    Ok(to_vec(banned))
   }
 }
 
@@ -77,34 +78,24 @@ mod join_types {
   pub(super) type BoxedUserJoin<'a> = BoxedSelectStatement<
     'a,
     (
+      // UserSafe column types
       (
         Integer,
         Text,
         Nullable<Text>,
-        Text,
         Nullable<Text>,
-        Nullable<Text>,
-        diesel::sql_types::Bool,
+        Bool,
         Bool,
         Timestamp,
         Nullable<Timestamp>,
-        Bool,
-        Text,
-        SmallInt,
-        SmallInt,
-        Text,
-        Bool,
-        Bool,
         Nullable<Text>,
         Text,
         Nullable<Text>,
         Bool,
-        Nullable<Text>,
-        Nullable<Text>,
-        Timestamp,
         Nullable<Text>,
         Bool,
       ),
+      // UserAggregates column types
       (Integer, Integer, BigInt, BigInt, BigInt, BigInt),
     ),
     JoinOn<
@@ -128,7 +119,10 @@ pub struct UserQueryBuilder<'a> {
 
 impl<'a> UserQueryBuilder<'a> {
   pub fn create(conn: &'a PgConnection) -> Self {
-    let query = user_::table.inner_join(user_aggregates::table).into_boxed();
+    let query = user_::table
+      .inner_join(user_aggregates::table)
+      .select((User_::safe_columns_tuple(), user_aggregates::all_columns))
+      .into_boxed();
 
     UserQueryBuilder {
       conn,
@@ -192,17 +186,17 @@ impl<'a> UserQueryBuilder<'a> {
     let (limit, offset) = limit_and_offset(self.page, self.limit);
     query = query.limit(limit).offset(offset);
 
-    let res = query.load::<(User_, UserAggregates)>(self.conn)?;
+    let res = query.load::<(UserSafe, UserAggregates)>(self.conn)?;
 
-    Ok(vec_to_user_view_safe(res))
+    Ok(to_vec(res))
   }
 }
 
-fn vec_to_user_view_safe(users: Vec<(User_, UserAggregates)>) -> Vec<UserViewSafe> {
+fn to_vec(users: Vec<(UserSafe, UserAggregates)>) -> Vec<UserViewSafe> {
   users
     .iter()
     .map(|a| UserViewSafe {
-      user: a.0.to_safe(),
+      user: a.0.to_owned(),
       counts: a.1.to_owned(),
     })
     .collect::<Vec<UserViewSafe>>()

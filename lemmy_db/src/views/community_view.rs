@@ -4,6 +4,7 @@ use crate::{
   community::{Community, CommunityFollower},
   schema::{category, community, community_aggregates, community_follower, user_},
   user::{UserSafe, User_},
+  ToSafe,
 };
 use diesel::{result::Error, *};
 use serde::Serialize;
@@ -39,11 +40,17 @@ impl CommunityView {
       .inner_join(user_::table)
       .inner_join(category::table)
       .inner_join(community_aggregates::table)
-      .first::<(Community, User_, Category, CommunityAggregates)>(conn)?;
+      .select((
+        community::all_columns,
+        User_::safe_columns_tuple(),
+        category::all_columns,
+        community_aggregates::all_columns,
+      ))
+      .first::<(Community, UserSafe, Category, CommunityAggregates)>(conn)?;
 
     Ok(CommunityView {
       community,
-      creator: creator.to_safe(),
+      creator,
       category,
       subscribed,
       counts,
