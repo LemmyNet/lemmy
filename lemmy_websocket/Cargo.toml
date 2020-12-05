@@ -13,16 +13,16 @@ lemmy_utils = { path = "../lemmy_utils" }
 lemmy_structs = { path = "../lemmy_structs" }
 lemmy_db = { path = "../lemmy_db" }
 lemmy_rate_limit = { path = "../lemmy_rate_limit" }
-reqwest = { version = "0.10", features = ["json"] }
-log = "0.4"
-rand = "0.7"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = { version = "1.0", features = ["preserve_order"]}
-actix = "0.10"
-anyhow = "1.0"
-diesel = "1.4"
-background-jobs = " 0.8"
-tokio = "0.3"
-strum = "0.19"
-strum_macros = "0.19"
-chrono = { version = "0.4", features = ["serde"] }
+reqwest = { version = "0.10.9", features = ["json"] }
+log = "0.4.11"
+rand = "0.7.3"
+serde = { version = "1.0.117", features = ["derive"] }
+serde_json = { version = "1.0.60", features = ["preserve_order"] }
+actix = "0.10.0"
+anyhow = "1.0.34"
+diesel = "1.4.5"
+background-jobs = "0.8.0"
+tokio = "0.3.5"
+strum = "0.20.0"
+strum_macros = "0.20.1"
+chrono = { version = "0.4.19", features = ["serde"] }
