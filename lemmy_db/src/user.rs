@@ -60,6 +60,48 @@ pub struct UserSafe {
   pub deleted: bool,
 }
 
+mod safe_type {
+  use crate::{schema::user_::columns::*, user::User_, ToSafe};
+  type Columns = (
+    id,
+    name,
+    preferred_username,
+    avatar,
+    admin,
+    banned,
+    published,
+    updated,
+    matrix_user_id,
+    actor_id,
+    bio,
+    local,
+    banner,
+    deleted,
+  );
+
+  impl ToSafe for User_ {
+    type SafeColumns = Columns;
+    fn safe_columns_tuple() -> Self::SafeColumns {
+      (
+        id,
+        name,
+        preferred_username,
+        avatar,
+        admin,
+        banned,
+        published,
+        updated,
+        matrix_user_id,
+        actor_id,
+        bio,
+        local,
+        banner,
+        deleted,
+      )
+    }
+  }
+}
+
 #[derive(Insertable, AsChangeset, Clone)]
 #[table_name = "user_"]
 pub struct UserForm {
@@ -219,48 +261,6 @@ impl User_ {
         updated.eq(naive_now()),
       ))
       .get_result::<Self>(conn)
-  }
-}
-
-mod safe_type {
-  use crate::{schema::user_::columns::*, user::User_, ToSafe};
-  type Columns = (
-    id,
-    name,
-    preferred_username,
-    avatar,
-    admin,
-    banned,
-    published,
-    updated,
-    matrix_user_id,
-    actor_id,
-    bio,
-    local,
-    banner,
-    deleted,
-  );
-
-  impl ToSafe for User_ {
-    type SafeColumns = Columns;
-    fn safe_columns_tuple() -> Self::SafeColumns {
-      (
-        id,
-        name,
-        preferred_username,
-        avatar,
-        admin,
-        banned,
-        published,
-        updated,
-        matrix_user_id,
-        actor_id,
-        bio,
-        local,
-        banner,
-        deleted,
-      )
-    }
   }
 }
 

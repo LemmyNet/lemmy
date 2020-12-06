@@ -32,6 +32,71 @@ pub struct Community {
   pub banner: Option<String>,
 }
 
+/// A safe representation of community, without the sensitive info
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
+#[table_name = "community"]
+pub struct CommunitySafe {
+  pub id: i32,
+  pub name: String,
+  pub title: String,
+  pub description: Option<String>,
+  pub category_id: i32,
+  pub creator_id: i32,
+  pub removed: bool,
+  pub published: chrono::NaiveDateTime,
+  pub updated: Option<chrono::NaiveDateTime>,
+  pub deleted: bool,
+  pub nsfw: bool,
+  pub actor_id: String,
+  pub local: bool,
+  pub icon: Option<String>,
+  pub banner: Option<String>,
+}
+
+mod safe_type {
+  use crate::{community::Community, schema::community::columns::*, ToSafe};
+  type Columns = (
+    id,
+    name,
+    title,
+    description,
+    category_id,
+    creator_id,
+    removed,
+    published,
+    updated,
+    deleted,
+    nsfw,
+    actor_id,
+    local,
+    icon,
+    banner,
+  );
+
+  impl ToSafe for Community {
+    type SafeColumns = Columns;
+    fn safe_columns_tuple() -> Self::SafeColumns {
+      (
+        id,
+        name,
+        title,
+        description,
+        category_id,
+        creator_id,
+        removed,
+        published,
+        updated,
+        deleted,
+        nsfw,
+        actor_id,
+        local,
+        icon,
+        banner,
+      )
+    }
+  }
+}
+
 #[derive(Insertable, AsChangeset, Debug)]
 #[table_name = "community"]
 pub struct CommunityForm {
