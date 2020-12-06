@@ -13,13 +13,17 @@ use lemmy_db::{
   comment::Comment,
   comment_view::CommentQueryBuilder,
   community::*,
-  community_view::*,
   diesel_option_overwrite,
   moderator::*,
   naive_now,
   post::Post,
   site::*,
-  views::user_view::UserViewSafe,
+  views::{
+    community_follower_view::CommunityFollowerView,
+    community_moderator_view::CommunityModeratorView,
+    community_view::{CommunityQueryBuilder, CommunityView},
+    user_view::UserViewSafe,
+  },
   Bannable,
   Crud,
   Followable,
@@ -95,7 +99,7 @@ impl Perform for GetCommunity {
       .unwrap_or(1);
 
     let res = GetCommunityResponse {
-      community: community_view,
+      community_view,
       moderators,
       online,
     };
@@ -202,9 +206,7 @@ impl Perform for CreateCommunity {
     })
     .await??;
 
-    Ok(CommunityResponse {
-      community: community_view,
-    })
+    Ok(CommunityResponse { community_view })
   }
 }
 
@@ -227,7 +229,7 @@ impl Perform for EditCommunity {
     let edit_id = data.edit_id;
     let mods: Vec<i32> = blocking(context.pool(), move |conn| {
       CommunityModeratorView::for_community(conn, edit_id)
-        .map(|v| v.into_iter().map(|m| m.user_id).collect())
+        .map(|v| v.into_iter().map(|m| m.moderator.id).collect())
     })
     .await??;
     if !mods.contains(&user.id) {
@@ -284,9 +286,7 @@ impl Perform for EditCommunity {
     })
     .await??;
 
-    let res = CommunityResponse {
-      community: community_view,
-    };
+    let res = CommunityResponse { community_view };
 
     send_community_websocket(&res, context, websocket_id, UserOperation::EditCommunity);
 
@@ -340,9 +340,7 @@ impl Perform for DeleteCommunity {
     })
     .await??;
 
-    let res = CommunityResponse {
-      community: community_view,
-    };
+    let res = CommunityResponse { community_view };
 
     send_community_websocket(&res, context, websocket_id, UserOperation::DeleteCommunity);
 
@@ -408,9 +406,7 @@ impl Perform for RemoveCommunity {
     })
     .await??;
 
-    let res = CommunityResponse {
-      community: community_view,
-    };
+    let res = CommunityResponse { community_view };
 
     send_community_websocket(&res, context, websocket_id, UserOperation::RemoveCommunity);
 
@@ -445,9 +441,8 @@ impl Perform for ListCommunities {
     let page = data.page;
     let limit = data.limit;
     let communities = blocking(context.pool(), move |conn| {
-      CommunityQueryBuilder::create(conn)
+      CommunityQueryBuilder::create(conn, user_id)
         .sort(&sort)
-        .for_user(user_id)
         .show_nsfw(show_nsfw)
         .page(page)
         .limit(limit)
@@ -519,12 +514,10 @@ impl Perform for FollowCommunity {
     // For now, just assume that remote follows are accepted.
     // Otherwise, the subscribed will be null
     if !community.local {
-      community_view.subscribed = Some(data.follow);
+      community_view.subscribed = data.follow;
     }
 
-    Ok(CommunityResponse {
-      community: community_view,
-    })
+    Ok(CommunityResponse { community_view })
   }
 }
 
@@ -645,7 +638,7 @@ impl Perform for BanFromCommunity {
     .await??;
 
     let res = BanFromCommunityResponse {
-      user: user_view,
+      user_view,
       banned: data.ban,
     };
 
@@ -779,7 +772,7 @@ impl Perform for TransferCommunity {
     .await??;
     let creator_index = community_mods
       .iter()
-      .position(|r| r.user_id == data.user_id)
+      .position(|r| r.moderator.id == data.user_id)
       .context(location_info!())?;
     let creator_user = community_mods.remove(creator_index);
     community_mods.insert(0, creator_user);
@@ -793,8 +786,8 @@ impl Perform for TransferCommunity {
     // TODO: this should probably be a bulk operation
     for cmod in &community_mods {
       let community_moderator_form = CommunityModeratorForm {
-        community_id: cmod.community_id,
-        user_id: cmod.user_id,
+        community_id: cmod.community.id,
+        user_id: cmod.moderator.id,
       };
 
       let join = move |conn: &'_ _| CommunityModerator::join(conn, &community_moderator_form);
@@ -838,7 +831,7 @@ impl Perform for TransferCommunity {
 
     // Return the jwt
     Ok(GetCommunityResponse {
-      community: community_view,
+      community_view,
       moderators,
       online: 0,
     })
@@ -851,15 +844,16 @@ fn send_community_websocket(
   websocket_id: Option<ConnectionId>,
   op: UserOperation,
 ) {
+  // TODO is there any way around this?
   // Strip out the user id and subscribed when sending to others
-  let mut res_sent = res.clone();
-  res_sent.community.user_id = None;
-  res_sent.community.subscribed = None;
+  // let mut res_sent = res.clone();
+  // res_sent.community_view.user_id = None;
+  // res_sent.community.subscribed = None;
 
   context.chat_server().do_send(SendCommunityRoomMessage {
     op,
-    response: res_sent,
-    community_id: res.community.id,
+    response: res.to_owned(),
+    community_id: res.community_view.community.id,
     websocket_id,
   });
 }

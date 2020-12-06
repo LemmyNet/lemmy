@@ -2,11 +2,10 @@ use lemmy_db::{
   aggregates::site_aggregates::SiteAggregates,
   category::*,
   comment_view::*,
-  community_view::*,
   moderator_views::*,
   post_view::*,
   user::*,
-  views::{site_view::SiteView, user_view::UserViewSafe},
+  views::{community_view::CommunityView, site_view::SiteView, user_view::UserViewSafe},
 };
 use serde::{Deserialize, Serialize};
 

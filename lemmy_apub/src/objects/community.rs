@@ -22,8 +22,8 @@ use activitystreams_ext::Ext2;
 use anyhow::Context;
 use lemmy_db::{
   community::{Community, CommunityForm},
-  community_view::CommunityModeratorView,
   naive_now,
+  views::community_moderator_view::CommunityModeratorView,
   DbPool,
 };
 use lemmy_structs::blocking;
@@ -49,7 +49,10 @@ impl ToApub for Community {
       CommunityModeratorView::for_community(&conn, id)
     })
     .await??;
-    let moderators: Vec<String> = moderators.into_iter().map(|m| m.user_actor_id).collect();
+    let moderators: Vec<String> = moderators
+      .into_iter()
+      .map(|m| m.moderator.actor_id)
+      .collect();
 
     let mut group = ApObject::new(Group::new());
     group

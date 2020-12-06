@@ -1,6 +1,8 @@
-use lemmy_db::{
-  community_view::{CommunityFollowerView, CommunityModeratorView, CommunityView},
-  views::user_view::UserViewSafe,
+use lemmy_db::views::{
+  community_follower_view::CommunityFollowerView,
+  community_moderator_view::CommunityModeratorView,
+  community_view::CommunityView,
+  user_view::UserViewSafe,
 };
 use serde::{Deserialize, Serialize};
 
@@ -13,7 +15,7 @@ pub struct GetCommunity {
 
 #[derive(Serialize)]
 pub struct GetCommunityResponse {
-  pub community: CommunityView,
+  pub community_view: CommunityView,
   pub moderators: Vec<CommunityModeratorView>,
   pub online: usize,
 }
@@ -32,7 +34,7 @@ pub struct CreateCommunity {
 
 #[derive(Serialize, Clone)]
 pub struct CommunityResponse {
-  pub community: CommunityView,
+  pub community_view: CommunityView,
 }
 
 #[derive(Deserialize, Debug)]
@@ -61,7 +63,7 @@ pub struct BanFromCommunity {
 
 #[derive(Serialize, Clone)]
 pub struct BanFromCommunityResponse {
-  pub user: UserViewSafe,
+  pub user_view: UserViewSafe,
   pub banned: bool,
 }
 

@@ -13,7 +13,6 @@ use lemmy_db::{
   aggregates::site_aggregates::SiteAggregates,
   category::*,
   comment_view::*,
-  community_view::*,
   diesel_option_overwrite,
   moderator::*,
   moderator_views::*,
@@ -21,6 +20,7 @@ use lemmy_db::{
   post_view::*,
   site::*,
   views::{
+    community_view::CommunityQueryBuilder,
     site_view::SiteView,
     user_view::{UserQueryBuilder, UserViewSafe},
   },
@@ -392,7 +392,7 @@ impl Perform for Search {
       }
       SearchType::Communities => {
         communities = blocking(context.pool(), move |conn| {
-          CommunityQueryBuilder::create(conn)
+          CommunityQueryBuilder::create(conn, None)
             .sort(&sort)
             .search_term(q)
             .page(page)
@@ -445,7 +445,7 @@ impl Perform for Search {
         let sort = SortType::from_str(&data.sort)?;
 
         communities = blocking(context.pool(), move |conn| {
-          CommunityQueryBuilder::create(conn)
+          CommunityQueryBuilder::create(conn, None)
             .sort(&sort)
             .search_term(q)
             .page(page)

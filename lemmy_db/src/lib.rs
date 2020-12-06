@@ -18,7 +18,6 @@ pub mod comment;
 pub mod comment_report;
 pub mod comment_view;
 pub mod community;
-pub mod community_view;
 pub mod moderator;
 pub mod moderator_views;
 pub mod password_reset_request;

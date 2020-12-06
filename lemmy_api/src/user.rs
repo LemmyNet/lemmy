@@ -19,7 +19,6 @@ use lemmy_db::{
   comment_report::CommentReportView,
   comment_view::*,
   community::*,
-  community_view::*,
   diesel_option_overwrite,
   moderator::*,
   naive_now,
@@ -34,6 +33,8 @@ use lemmy_db::{
   user_mention::*,
   user_mention_view::*,
   views::{
+    community_follower_view::CommunityFollowerView,
+    community_moderator_view::CommunityModeratorView,
     site_view::SiteView,
     user_view::{UserViewDangerous, UserViewSafe},
   },

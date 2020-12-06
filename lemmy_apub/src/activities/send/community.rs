@@ -23,7 +23,11 @@ use activitystreams::{
 };
 use anyhow::Context;
 use itertools::Itertools;
-use lemmy_db::{community::Community, community_view::CommunityFollowerView, DbPool};
+use lemmy_db::{
+  community::Community,
+  views::community_follower_view::CommunityFollowerView,
+  DbPool,
+};
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, settings::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -179,9 +183,9 @@ impl ActorType for Community {
     .await??;
     let inboxes = inboxes
       .into_iter()
-      .filter(|i| !i.user_local)
+      .filter(|i| !i.follower.local)
       .map(|u| -> Result<Url, LemmyError> {
-        let url = Url::parse(&u.user_actor_id)?;
+        let url = Url::parse(&u.follower.actor_id)?;
         let domain = url.domain().context(location_info!())?;
         let port = if let Some(port) = url.port() {
           format!(":{}", port)

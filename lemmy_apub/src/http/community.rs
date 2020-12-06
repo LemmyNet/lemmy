@@ -9,7 +9,11 @@ use activitystreams::{
   collection::{CollectionExt, OrderedCollection, UnorderedCollection},
 };
 use actix_web::{body::Body, web, HttpResponse};
-use lemmy_db::{community::Community, community_view::CommunityFollowerView, post::Post};
+use lemmy_db::{
+  community::Community,
+  post::Post,
+  views::community_follower_view::CommunityFollowerView,
+};
 use lemmy_structs::blocking;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;

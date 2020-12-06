@@ -28,8 +28,8 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
 use lemmy_db::{
   community::{Community, CommunityFollower, CommunityFollowerForm},
-  community_view::CommunityUserBanView,
   user::User_,
+  views::community_user_ban_view::CommunityUserBanView,
   DbPool,
   Followable,
 };

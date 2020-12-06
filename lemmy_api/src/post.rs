@@ -11,13 +11,16 @@ use actix_web::web::Data;
 use lemmy_apub::{ApubLikeableType, ApubObjectType};
 use lemmy_db::{
   comment_view::*,
-  community_view::*,
   moderator::*,
   naive_now,
   post::*,
   post_report::*,
   post_view::*,
-  views::site_view::SiteView,
+  views::{
+    community_moderator_view::CommunityModeratorView,
+    community_view::CommunityView,
+    site_view::SiteView,
+  },
   Crud,
   Likeable,
   ListingType,
