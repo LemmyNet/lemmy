@@ -217,6 +217,14 @@ lazy_static! {
     Regex::new(r"^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$").unwrap();
 }
 
+pub(crate) mod functions {
+  use diesel::sql_types::*;
+
+  sql_function! {
+    fn hot_rank(score: BigInt, time: Timestamp) -> Integer;
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::fuzzy_search;

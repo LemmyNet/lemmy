@@ -42,10 +42,10 @@ as $$
 begin
   IF (TG_OP = 'INSERT') THEN
     update user_aggregates 
-    set post_count = post_count + 1 where user_id = NEW.user_id;
+    set post_count = post_count + 1 where user_id = NEW.creator_id;
   ELSIF (TG_OP = 'DELETE') THEN
     update user_aggregates 
-    set post_count = post_count - 1 where user_id = OLD.user_id;
+    set post_count = post_count - 1 where user_id = OLD.creator_id;
   END IF;
   return null;
 end $$;
@@ -86,10 +86,10 @@ as $$
 begin
   IF (TG_OP = 'INSERT') THEN
     update user_aggregates 
-    set comment_count = comment_count + 1 where user_id = NEW.user_id;
+    set comment_count = comment_count + 1 where user_id = NEW.creator_id;
   ELSIF (TG_OP = 'DELETE') THEN
     update user_aggregates 
-    set comment_count = comment_count - 1 where user_id = OLD.user_id;
+    set comment_count = comment_count - 1 where user_id = OLD.creator_id;
   END IF;
   return null;
 end $$;

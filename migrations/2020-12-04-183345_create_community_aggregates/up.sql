@@ -59,10 +59,10 @@ as $$
 begin
   IF (TG_OP = 'INSERT') THEN
     update community_aggregates 
-    set comments = comments + 1 where community_id = NEW.community_id;
+    set comments = comments + 1 from comment c join post p on p.id = c.post_id and p.id = NEW.post_id;
   ELSIF (TG_OP = 'DELETE') THEN
     update community_aggregates 
-    set comments = comments - 1 where community_id = OLD.community_id;
+    set comments = comments - 1 from comment c join post p on p.id = c.post_id and p.id = OLD.post_id;
   END IF;
   return null;
 end $$;

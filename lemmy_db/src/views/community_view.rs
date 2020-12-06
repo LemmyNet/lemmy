@@ -2,6 +2,7 @@ use crate::{
   aggregates::community_aggregates::CommunityAggregates,
   category::Category,
   community::{Community, CommunityFollower, CommunitySafe},
+  functions::hot_rank,
   fuzzy_search,
   limit_and_offset,
   schema::{category, community, community_aggregates, community_follower, user_},
@@ -253,8 +254,8 @@ impl<'a> CommunityQueryBuilder<'a> {
       // Covers all other sorts, including hot
       _ => {
         query = query
-          // TODO do custom sql function for hot_rank
-          // .order_by(hot_rank.desc())
+          // TODO do custom sql function for hot_rank, make sure this works
+          .order_by(hot_rank(community_aggregates::subscribers, community::published).desc())
           .then_order_by(community_aggregates::subscribers.desc())
       }
     };
