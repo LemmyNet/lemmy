@@ -20,7 +20,6 @@ use activitystreams::{
 };
 use activitystreams_ext::Ext1;
 use anyhow::Context;
-use backtrace::Backtrace;
 use lemmy_db::{
   community::Community,
   post::{Post, PostForm},
@@ -36,7 +35,6 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
-use log::error;
 use url::Url;
 
 #[async_trait::async_trait(?Send)]
@@ -147,15 +145,6 @@ impl FromApubToForm<PageExt> for PostForm {
 
     let community =
       get_or_fetch_and_upsert_community(community_actor_id, context, request_counter).await?;
-
-    if community.local && creator.local {
-      let page_id = page.id_unchecked().context(location_info!())?;
-      let bt = Backtrace::new();
-      error!(
-        "Lemmy is parsing a local post as remote, page id: {}, stack trace: {:?}",
-        page_id, bt
-      );
-    }
 
     let thumbnail_url = match &page.inner.image() {
       Some(any_image) => Image::from_any_base(

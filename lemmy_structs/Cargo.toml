@@ -11,7 +11,7 @@ path = "src/lib.rs"
 [dependencies]
 lemmy_db = { path = "../lemmy_db" }
 lemmy_utils = { path = "../lemmy_utils" }
-serde = { version = "1.0.117", features = ["derive"] }
+serde = { version = "1.0.118", features = ["derive"] }
 log = "0.4.11"
 diesel = "1.4.5"
 actix-web = "3.3.2"
