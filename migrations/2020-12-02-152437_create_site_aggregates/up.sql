@@ -50,6 +50,7 @@ end $$;
 
 create trigger site_aggregates_post
 after insert or delete on post
+for each row
 execute procedure site_aggregates_post();
 
 -- comment
@@ -69,6 +70,7 @@ end $$;
 
 create trigger site_aggregates_comment
 after insert or delete on comment
+for each row
 execute procedure site_aggregates_comment();
 
 -- community
@@ -88,5 +90,6 @@ end $$;
 
 create trigger site_aggregates_community
 after insert or delete on community
+for each row
 execute procedure site_aggregates_community();
 

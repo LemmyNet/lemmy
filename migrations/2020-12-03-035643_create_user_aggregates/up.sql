@@ -52,6 +52,7 @@ end $$;
 
 create trigger user_aggregates_post_count
 after insert or delete on post
+for each row
 execute procedure user_aggregates_post_count();
 
 -- post score
@@ -77,6 +78,7 @@ end $$;
 
 create trigger user_aggregates_post_score
 after insert or delete on post_like
+for each row
 execute procedure user_aggregates_post_score();
 
 -- comment count
@@ -96,6 +98,7 @@ end $$;
 
 create trigger user_aggregates_comment_count
 after insert or delete on comment
+for each row
 execute procedure user_aggregates_comment_count();
 
 -- comment score

@@ -50,6 +50,7 @@ end $$;
 
 create trigger community_aggregates_post_count
 after insert or delete on post
+for each row
 execute procedure community_aggregates_post_count();
 
 -- comment count
@@ -69,6 +70,7 @@ end $$;
 
 create trigger community_aggregates_comment_count
 after insert or delete on comment
+for each row
 execute procedure community_aggregates_comment_count();
 
 -- subscriber count
@@ -88,5 +90,6 @@ end $$;
 
 create trigger community_aggregates_subscriber_count
 after insert or delete on community_follower
+for each row
 execute procedure community_aggregates_subscriber_count();
 
