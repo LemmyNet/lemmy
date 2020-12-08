@@ -1,11 +1,12 @@
 kind: pipeline
 name: default
 
+workspace:
+  path: /drone/src/docker/travis
+
 steps:
   - name: test
     image: compose:alpine-1.27.4
     commands:
-      - ls -la /
-      - ls -la .
-      - docker-compose up -f /drone/src/docker-compose.yaml
+      - ./run-tests.bash
 
