@@ -29,4 +29,4 @@ To speed up the Docker compile, add the following to `/etc/docker/daemon.json` a
 ```
 
 If the build is still too slow, you will have to use a
-[local build](contributing_local_development.md) instead.
+[local build](local_development.md) instead.

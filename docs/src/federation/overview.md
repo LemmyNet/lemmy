@@ -1,4 +1,4 @@
-# Federation
+# Federation Overview
 
 
 This document is for anyone who wants to know how Lemmy federation works, without being overly technical. It is meant provide a high-level overview of ActivityPub federation in Lemmy. If you are implementing ActivityPub yourself and want to be compatible with Lemmy, read our [ActivityPub API outline](contributing_apub_api_outline.md).
