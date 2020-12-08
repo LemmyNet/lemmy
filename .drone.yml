@@ -3,7 +3,7 @@ name: default
 
 steps:
   - name: test
-    image: docker:dind
+    image: plugins/docker
     commands:
       - docker build . --file docker/prod/Dockerfile --tag dessalines/lemmy:travis
       - docker-compose up -f docker/travis/docker-compose.yml -d
