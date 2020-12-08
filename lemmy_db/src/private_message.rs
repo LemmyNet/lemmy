@@ -1,4 +1,4 @@
-use crate::{naive_now, schema::private_message, Crud};
+use crate::{naive_now, schema::private_message, ApubObject, Crud};
 use diesel::{dsl::*, result::Error, *};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug)]
@@ -55,6 +55,28 @@ impl Crud<PrivateMessageForm> for PrivateMessage {
   }
 }
 
+impl ApubObject<PrivateMessageForm> for PrivateMessage {
+  fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error>
+  where
+    Self: Sized,
+  {
+    use crate::schema::private_message::dsl::*;
+    private_message
+      .filter(ap_id.eq(object_id))
+      .first::<Self>(conn)
+  }
+
+  fn upsert(conn: &PgConnection, private_message_form: &PrivateMessageForm) -> Result<Self, Error> {
+    use crate::schema::private_message::dsl::*;
+    insert_into(private_message)
+      .values(private_message_form)
+      .on_conflict(ap_id)
+      .do_update()
+      .set(private_message_form)
+      .get_result::<Self>(conn)
+  }
+}
+
 impl PrivateMessage {
   pub fn update_ap_id(
     conn: &PgConnection,
@@ -66,13 +88,6 @@ impl PrivateMessage {
     diesel::update(private_message.find(private_message_id))
       .set(ap_id.eq(apub_id))
       .get_result::<Self>(conn)
-  }
-
-  pub fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
-    use crate::schema::private_message::dsl::*;
-    private_message
-      .filter(ap_id.eq(object_id))
-      .first::<Self>(conn)
   }
 
   pub fn update_content(
@@ -117,20 +132,6 @@ impl PrivateMessage {
     )
     .set(read.eq(true))
     .get_results::<Self>(conn)
-  }
-
-  // TODO use this
-  pub fn upsert(
-    conn: &PgConnection,
-    private_message_form: &PrivateMessageForm,
-  ) -> Result<Self, Error> {
-    use crate::schema::private_message::dsl::*;
-    insert_into(private_message)
-      .values(private_message_form)
-      .on_conflict(ap_id)
-      .do_update()
-      .set(private_message_form)
-      .get_result::<Self>(conn)
   }
 }
 

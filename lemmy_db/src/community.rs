@@ -1,6 +1,7 @@
 use crate::{
   naive_now,
   schema::{community, community_follower, community_moderator, community_user_ban},
+  ApubObject,
   Bannable,
   Crud,
   Followable,
@@ -83,19 +84,31 @@ impl Crud<CommunityForm> for Community {
   }
 }
 
+impl ApubObject<CommunityForm> for Community {
+  fn read_from_apub_id(conn: &PgConnection, for_actor_id: &str) -> Result<Self, Error> {
+    use crate::schema::community::dsl::*;
+    community
+      .filter(actor_id.eq(for_actor_id))
+      .first::<Self>(conn)
+  }
+
+  fn upsert(conn: &PgConnection, community_form: &CommunityForm) -> Result<Community, Error> {
+    use crate::schema::community::dsl::*;
+    insert_into(community)
+      .values(community_form)
+      .on_conflict(actor_id)
+      .do_update()
+      .set(community_form)
+      .get_result::<Self>(conn)
+  }
+}
+
 impl Community {
   pub fn read_from_name(conn: &PgConnection, community_name: &str) -> Result<Self, Error> {
     use crate::schema::community::dsl::*;
     community
       .filter(local.eq(true))
       .filter(name.eq(community_name))
-      .first::<Self>(conn)
-  }
-
-  pub fn read_from_actor_id(conn: &PgConnection, for_actor_id: &str) -> Result<Self, Error> {
-    use crate::schema::community::dsl::*;
-    community
-      .filter(actor_id.eq(for_actor_id))
       .first::<Self>(conn)
   }
 
@@ -164,16 +177,6 @@ impl Community {
     Self::community_mods_and_admins(conn, community_id)
       .unwrap_or_default()
       .contains(&user_id)
-  }
-
-  pub fn upsert(conn: &PgConnection, community_form: &CommunityForm) -> Result<Community, Error> {
-    use crate::schema::community::dsl::*;
-    insert_into(community)
-      .values(community_form)
-      .on_conflict(actor_id)
-      .do_update()
-      .set(community_form)
-      .get_result::<Self>(conn)
   }
 }
 

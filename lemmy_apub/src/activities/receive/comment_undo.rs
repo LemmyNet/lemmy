@@ -1,35 +1,23 @@
-use crate::{
-  activities::receive::get_actor_as_user,
-  fetcher::get_or_fetch_and_insert_comment,
-  FromApub,
-  NoteExt,
-};
-use activitystreams::{activity::*, prelude::*};
-use anyhow::Context;
+use crate::activities::receive::get_actor_as_user;
+use activitystreams::activity::{Dislike, Like};
 use lemmy_db::{
-  comment::{Comment, CommentForm, CommentLike},
+  comment::{Comment, CommentLike},
   comment_view::CommentView,
   Likeable,
 };
 use lemmy_structs::{blocking, comment::CommentResponse};
-use lemmy_utils::{location_info, LemmyError};
+use lemmy_utils::LemmyError;
 use lemmy_websocket::{messages::SendComment, LemmyContext, UserOperation};
 
 pub(crate) async fn receive_undo_like_comment(
   like: &Like,
+  comment: Comment,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let user = get_actor_as_user(like, context, request_counter).await?;
-  let note = NoteExt::from_any_base(like.object().to_owned().one().context(location_info!())?)?
-    .context(location_info!())?;
 
-  let comment = CommentForm::from_apub(&note, context, None, request_counter).await?;
-
-  let comment_id = get_or_fetch_and_insert_comment(&comment.get_ap_id()?, context, request_counter)
-    .await?
-    .id;
-
+  let comment_id = comment.id;
   let user_id = user.id;
   blocking(context.pool(), move |conn| {
     CommentLike::remove(conn, user_id, comment_id)
@@ -61,25 +49,13 @@ pub(crate) async fn receive_undo_like_comment(
 
 pub(crate) async fn receive_undo_dislike_comment(
   dislike: &Dislike,
+  comment: Comment,
   context: &LemmyContext,
   request_counter: &mut i32,
 ) -> Result<(), LemmyError> {
   let user = get_actor_as_user(dislike, context, request_counter).await?;
-  let note = NoteExt::from_any_base(
-    dislike
-      .object()
-      .to_owned()
-      .one()
-      .context(location_info!())?,
-  )?
-  .context(location_info!())?;
 
-  let comment = CommentForm::from_apub(&note, context, None, request_counter).await?;
-
-  let comment_id = get_or_fetch_and_insert_comment(&comment.get_ap_id()?, context, request_counter)
-    .await?
-    .id;
-
+  let comment_id = comment.id;
   let user_id = user.id;
   blocking(context.pool(), move |conn| {
     CommentLike::remove(conn, user_id, comment_id)

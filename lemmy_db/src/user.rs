@@ -2,6 +2,7 @@ use crate::{
   is_email_regex,
   naive_now,
   schema::{user_, user_::dsl::*},
+  ApubObject,
   Crud,
 };
 use bcrypt::{hash, DEFAULT_COST};
@@ -89,6 +90,25 @@ impl Crud<UserForm> for User_ {
   }
 }
 
+impl ApubObject<UserForm> for User_ {
+  fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
+    use crate::schema::user_::dsl::*;
+    user_
+      .filter(deleted.eq(false))
+      .filter(actor_id.eq(object_id))
+      .first::<Self>(conn)
+  }
+
+  fn upsert(conn: &PgConnection, user_form: &UserForm) -> Result<User_, Error> {
+    insert_into(user_)
+      .values(user_form)
+      .on_conflict(actor_id)
+      .do_update()
+      .set(user_form)
+      .get_result::<Self>(conn)
+  }
+}
+
 impl User_ {
   pub fn register(conn: &PgConnection, form: &UserForm) -> Result<Self, Error> {
     let mut edited_user = form.clone();
@@ -135,14 +155,6 @@ impl User_ {
       .get_result::<Self>(conn)
   }
 
-  pub fn read_from_actor_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
-    use crate::schema::user_::dsl::*;
-    user_
-      .filter(deleted.eq(false))
-      .filter(actor_id.eq(object_id))
-      .first::<Self>(conn)
-  }
-
   pub fn find_by_email_or_username(
     conn: &PgConnection,
     username_or_email: &str,
@@ -179,12 +191,9 @@ impl User_ {
     )
   }
 
-  pub fn upsert(conn: &PgConnection, user_form: &UserForm) -> Result<User_, Error> {
-    insert_into(user_)
-      .values(user_form)
-      .on_conflict(actor_id)
-      .do_update()
-      .set(user_form)
+  pub fn mark_as_updated(conn: &PgConnection, user_id: i32) -> Result<User_, Error> {
+    diesel::update(user_.find(user_id))
+      .set((last_refreshed_at.eq(naive_now()),))
       .get_result::<Self>(conn)
   }
 

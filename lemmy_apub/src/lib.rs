@@ -18,7 +18,7 @@ use activitystreams::{
   activity::Follow,
   actor::{ApActor, Group, Person},
   base::AnyBase,
-  object::{ApObject, Note, Page, Tombstone},
+  object::{ApObject, Note, Page},
 };
 use activitystreams_ext::{Ext1, Ext2};
 use anyhow::{anyhow, Context};
@@ -107,33 +107,6 @@ fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
   } else {
     panic!("Invalid config, both allowed_instances and blocked_instances are specified");
   }
-}
-
-/// Trait for converting an object or actor into the respective ActivityPub type.
-#[async_trait::async_trait(?Send)]
-pub trait ToApub {
-  type ApubType;
-  async fn to_apub(&self, pool: &DbPool) -> Result<Self::ApubType, LemmyError>;
-  fn to_tombstone(&self) -> Result<Tombstone, LemmyError>;
-}
-
-#[async_trait::async_trait(?Send)]
-pub trait FromApub {
-  type ApubType;
-  /// Converts an object from ActivityPub type to Lemmy internal type.
-  ///
-  /// * `apub` The object to read from
-  /// * `context` LemmyContext which holds DB pool, HTTP client etc
-  /// * `expected_domain` If present, ensure that the domains of this and of the apub object ID are
-  ///                     identical
-  async fn from_apub(
-    apub: &Self::ApubType,
-    context: &LemmyContext,
-    expected_domain: Option<Url>,
-    request_counter: &mut i32,
-  ) -> Result<Self, LemmyError>
-  where
-    Self: Sized;
 }
 
 /// Common functions for ActivityPub objects, which are implemented by most (but not all) objects
@@ -248,7 +221,7 @@ pub trait ActorType {
 
 /// Store a sent or received activity in the database, for logging purposes. These records are not
 /// persistent.
-pub async fn insert_activity<T>(
+pub(crate) async fn insert_activity<T>(
   ap_id: &Url,
   activity: T,
   local: bool,

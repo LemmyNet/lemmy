@@ -1,6 +1,7 @@
 use crate::{
   naive_now,
   schema::{post, post_like, post_read, post_saved},
+  ApubObject,
   Crud,
   Likeable,
   Readable,
@@ -62,6 +63,47 @@ impl PostForm {
   }
 }
 
+impl Crud<PostForm> for Post {
+  fn read(conn: &PgConnection, post_id: i32) -> Result<Self, Error> {
+    use crate::schema::post::dsl::*;
+    post.find(post_id).first::<Self>(conn)
+  }
+
+  fn delete(conn: &PgConnection, post_id: i32) -> Result<usize, Error> {
+    use crate::schema::post::dsl::*;
+    diesel::delete(post.find(post_id)).execute(conn)
+  }
+
+  fn create(conn: &PgConnection, new_post: &PostForm) -> Result<Self, Error> {
+    use crate::schema::post::dsl::*;
+    insert_into(post).values(new_post).get_result::<Self>(conn)
+  }
+
+  fn update(conn: &PgConnection, post_id: i32, new_post: &PostForm) -> Result<Self, Error> {
+    use crate::schema::post::dsl::*;
+    diesel::update(post.find(post_id))
+      .set(new_post)
+      .get_result::<Self>(conn)
+  }
+}
+
+impl ApubObject<PostForm> for Post {
+  fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
+    use crate::schema::post::dsl::*;
+    post.filter(ap_id.eq(object_id)).first::<Self>(conn)
+  }
+
+  fn upsert(conn: &PgConnection, post_form: &PostForm) -> Result<Post, Error> {
+    use crate::schema::post::dsl::*;
+    insert_into(post)
+      .values(post_form)
+      .on_conflict(ap_id)
+      .do_update()
+      .set(post_form)
+      .get_result::<Self>(conn)
+  }
+}
+
 impl Post {
   pub fn read(conn: &PgConnection, post_id: i32) -> Result<Self, Error> {
     use crate::schema::post::dsl::*;
@@ -79,11 +121,6 @@ impl Post {
       .then_order_by(stickied.desc())
       .limit(20)
       .load::<Self>(conn)
-  }
-
-  pub fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
-    post.filter(ap_id.eq(object_id)).first::<Self>(conn)
   }
 
   pub fn update_ap_id(conn: &PgConnection, post_id: i32, apub_id: String) -> Result<Self, Error> {
@@ -176,40 +213,6 @@ impl Post {
 
   pub fn is_post_creator(user_id: i32, post_creator_id: i32) -> bool {
     user_id == post_creator_id
-  }
-
-  pub fn upsert(conn: &PgConnection, post_form: &PostForm) -> Result<Post, Error> {
-    use crate::schema::post::dsl::*;
-    insert_into(post)
-      .values(post_form)
-      .on_conflict(ap_id)
-      .do_update()
-      .set(post_form)
-      .get_result::<Self>(conn)
-  }
-}
-
-impl Crud<PostForm> for Post {
-  fn read(conn: &PgConnection, post_id: i32) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
-    post.find(post_id).first::<Self>(conn)
-  }
-
-  fn delete(conn: &PgConnection, post_id: i32) -> Result<usize, Error> {
-    use crate::schema::post::dsl::*;
-    diesel::delete(post.find(post_id)).execute(conn)
-  }
-
-  fn create(conn: &PgConnection, new_post: &PostForm) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
-    insert_into(post).values(new_post).get_result::<Self>(conn)
-  }
-
-  fn update(conn: &PgConnection, post_id: i32, new_post: &PostForm) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
-    diesel::update(post.find(post_id))
-      .set(new_post)
-      .get_result::<Self>(conn)
   }
 }
 

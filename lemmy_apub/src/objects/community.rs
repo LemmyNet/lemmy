@@ -4,13 +4,15 @@ use crate::{
   objects::{
     check_object_domain,
     create_tombstone,
+    get_object_from_apub,
     get_source_markdown_value,
     set_content_and_source,
+    FromApub,
+    FromApubToForm,
+    ToApub,
   },
   ActorType,
-  FromApub,
   GroupExt,
-  ToApub,
 };
 use activitystreams::{
   actor::{kind::GroupType, ApActor, Endpoints, Group},
@@ -106,14 +108,28 @@ impl ToApub for Community {
     create_tombstone(self.deleted, &self.actor_id, self.updated, GroupType::Group)
   }
 }
+
 #[async_trait::async_trait(?Send)]
-impl FromApub for CommunityForm {
+impl FromApub for Community {
   type ApubType = GroupExt;
 
+  /// Converts a `Group` to `Community`.
   async fn from_apub(
     group: &GroupExt,
     context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
+    request_counter: &mut i32,
+  ) -> Result<Community, LemmyError> {
+    get_object_from_apub(group, context, expected_domain, request_counter).await
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl FromApubToForm<GroupExt> for CommunityForm {
+  async fn from_apub(
+    group: &GroupExt,
+    context: &LemmyContext,
+    expected_domain: Url,
     request_counter: &mut i32,
   ) -> Result<Self, LemmyError> {
     let creator_and_moderator_uris = group.inner.attributed_to().context(location_info!())?;

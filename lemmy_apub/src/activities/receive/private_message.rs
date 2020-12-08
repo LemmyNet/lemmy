@@ -3,7 +3,7 @@ use crate::{
   check_is_apub_id_valid,
   fetcher::get_or_fetch_and_upsert_user,
   inbox::get_activity_to_and_cc,
-  FromApub,
+  objects::FromApub,
   NoteExt,
 };
 use activitystreams::{
@@ -13,11 +13,7 @@ use activitystreams::{
   public,
 };
 use anyhow::{anyhow, Context};
-use lemmy_db::{
-  private_message::{PrivateMessage, PrivateMessageForm},
-  private_message_view::PrivateMessageView,
-  Crud,
-};
+use lemmy_db::{private_message::PrivateMessage, private_message_view::PrivateMessageView};
 use lemmy_structs::{blocking, user::PrivateMessageResponse};
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::{messages::SendUserRoomMessage, LemmyContext, UserOperation};
@@ -41,15 +37,10 @@ pub(crate) async fn receive_create_private_message(
   .context(location_info!())?;
 
   let private_message =
-    PrivateMessageForm::from_apub(&note, context, Some(expected_domain), request_counter).await?;
-
-  let inserted_private_message = blocking(&context.pool(), move |conn| {
-    PrivateMessage::create(conn, &private_message)
-  })
-  .await??;
+    PrivateMessage::from_apub(&note, context, expected_domain, request_counter).await?;
 
   let message = blocking(&context.pool(), move |conn| {
-    PrivateMessageView::read(conn, inserted_private_message.id)
+    PrivateMessageView::read(conn, private_message.id)
   })
   .await??;
 
@@ -82,24 +73,8 @@ pub(crate) async fn receive_update_private_message(
     .to_owned();
   let note = NoteExt::from_any_base(object)?.context(location_info!())?;
 
-  let private_message_form =
-    PrivateMessageForm::from_apub(&note, context, Some(expected_domain), request_counter).await?;
-
-  let private_message_ap_id = private_message_form
-    .ap_id
-    .as_ref()
-    .context(location_info!())?
-    .clone();
-  let private_message = blocking(&context.pool(), move |conn| {
-    PrivateMessage::read_from_apub_id(conn, &private_message_ap_id)
-  })
-  .await??;
-
-  let private_message_id = private_message.id;
-  blocking(&context.pool(), move |conn| {
-    PrivateMessage::update(conn, private_message_id, &private_message_form)
-  })
-  .await??;
+  let private_message =
+    PrivateMessage::from_apub(&note, context, expected_domain, request_counter).await?;
 
   let private_message_id = private_message.id;
   let message = blocking(&context.pool(), move |conn| {

@@ -5,12 +5,14 @@ use crate::{
   objects::{
     check_object_domain,
     create_tombstone,
+    get_object_from_apub,
     get_source_markdown_value,
     set_content_and_source,
+    FromApub,
+    FromApubToForm,
+    ToApub,
   },
-  FromApub,
   NoteExt,
-  ToApub,
 };
 use activitystreams::{
   object::{kind::NoteType, ApObject, Note, Tombstone},
@@ -63,13 +65,25 @@ impl ToApub for PrivateMessage {
 }
 
 #[async_trait::async_trait(?Send)]
-impl FromApub for PrivateMessageForm {
+impl FromApub for PrivateMessage {
   type ApubType = NoteExt;
 
   async fn from_apub(
     note: &NoteExt,
     context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
+    request_counter: &mut i32,
+  ) -> Result<PrivateMessage, LemmyError> {
+    get_object_from_apub(note, context, expected_domain, request_counter).await
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl FromApubToForm<NoteExt> for PrivateMessageForm {
+  async fn from_apub(
+    note: &NoteExt,
+    context: &LemmyContext,
+    expected_domain: Url,
     request_counter: &mut i32,
   ) -> Result<PrivateMessageForm, LemmyError> {
     let creator_actor_id = note

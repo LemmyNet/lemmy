@@ -1,6 +1,6 @@
 use crate::{
   http::{create_apub_response, create_apub_tombstone_response},
-  ToApub,
+  objects::ToApub,
 };
 use actix_web::{body::Body, web, web::Path, HttpResponse};
 use diesel::result::Error::NotFound;
