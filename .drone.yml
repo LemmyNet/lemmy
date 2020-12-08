@@ -8,5 +8,6 @@ steps:
   - name: test
     image: compose:alpine-1.27.4
     commands:
-      - ./run-tests.bash
+      - docker build ../../ --file ../prod/Dockerfile --tag dessalines/lemmy:travis
+      - docker-compose up -d
 
