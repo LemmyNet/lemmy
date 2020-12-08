@@ -8,6 +8,8 @@ steps:
   - name: test
     image: docker/compose:alpine-1.27.4
     commands:
+      - pwd
+      - ls -la
       - docker build ../../ --file ../prod/Dockerfile --tag dessalines/lemmy:travis
       - docker-compose up -d
 
