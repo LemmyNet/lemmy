@@ -7,19 +7,22 @@ use crate::{
   },
   objects::{
     check_object_domain,
+    check_object_for_community_or_site_ban,
     create_tombstone,
+    get_object_from_apub,
     get_source_markdown_value,
     set_content_and_source,
+    FromApub,
+    FromApubToForm,
+    ToApub,
   },
-  FromApub,
   NoteExt,
-  ToApub,
 };
 use activitystreams::{
   object::{kind::NoteType, ApObject, Note, Tombstone},
   prelude::*,
 };
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use lemmy_db::{
   comment::{Comment, CommentForm},
   community::Community,
@@ -87,16 +90,45 @@ impl ToApub for Comment {
 }
 
 #[async_trait::async_trait(?Send)]
-impl FromApub for CommentForm {
+impl FromApub for Comment {
   type ApubType = NoteExt;
 
-  /// Converts a `Note` to `CommentForm`.
+  /// Converts a `Note` to `Comment`.
   ///
   /// If the parent community, post and comment(s) are not known locally, these are also fetched.
   async fn from_apub(
     note: &NoteExt,
     context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
+    request_counter: &mut i32,
+  ) -> Result<Comment, LemmyError> {
+    check_object_for_community_or_site_ban(note, context, request_counter).await?;
+
+    let comment: Comment =
+      get_object_from_apub(note, context, expected_domain, request_counter).await?;
+
+    let post_id = comment.post_id;
+    let post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
+    if post.locked {
+      // This is not very efficient because a comment gets inserted just to be deleted right
+      // afterwards, but it seems to be the easiest way to implement it.
+      blocking(context.pool(), move |conn| {
+        Comment::delete(conn, comment.id)
+      })
+      .await??;
+      return Err(anyhow!("Post is locked").into());
+    } else {
+      Ok(comment)
+    }
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl FromApubToForm<NoteExt> for CommentForm {
+  async fn from_apub(
+    note: &NoteExt,
+    context: &LemmyContext,
+    expected_domain: Url,
     request_counter: &mut i32,
   ) -> Result<CommentForm, LemmyError> {
     let creator_actor_id = &note

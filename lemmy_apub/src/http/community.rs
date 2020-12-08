@@ -1,8 +1,8 @@
 use crate::{
   extensions::context::lemmy_context,
   http::{create_apub_response, create_apub_tombstone_response},
+  objects::ToApub,
   ActorType,
-  ToApub,
 };
 use activitystreams::{
   base::{AnyBase, BaseExt, ExtendsExt},

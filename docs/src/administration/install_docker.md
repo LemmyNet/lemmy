@@ -27,7 +27,7 @@ Open up your `docker-compose.yml`, and make sure `LEMMY_EXTERNAL_HOST` for `lemm
 
 If you'd like a different database password, you should also change it in the `docker-compose.yml` **before** your first run.
 
-After this, have a look at the [config file](administration_configuration.md) named `lemmy.hjson`, and adjust it, in particular the hostname, and possibly the db password. Then run:
+After this, have a look at the [config file](configuration.md) named `lemmy.hjson`, and adjust it, in particular the hostname, and possibly the db password. Then run:
 
 `docker-compose up -d`
 

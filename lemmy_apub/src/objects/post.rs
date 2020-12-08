@@ -3,13 +3,16 @@ use crate::{
   fetcher::{get_or_fetch_and_upsert_community, get_or_fetch_and_upsert_user},
   objects::{
     check_object_domain,
+    check_object_for_community_or_site_ban,
     create_tombstone,
+    get_object_from_apub,
     get_source_markdown_value,
     set_content_and_source,
+    FromApub,
+    FromApubToForm,
+    ToApub,
   },
-  FromApub,
   PageExt,
-  ToApub,
 };
 use activitystreams::{
   object::{kind::PageType, ApObject, Image, Page, Tombstone},
@@ -17,7 +20,6 @@ use activitystreams::{
 };
 use activitystreams_ext::Ext1;
 use anyhow::Context;
-use backtrace::Backtrace;
 use lemmy_db::{
   community::Community,
   post::{Post, PostForm},
@@ -33,7 +35,6 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::LemmyContext;
-use log::error;
 use url::Url;
 
 #[async_trait::async_trait(?Send)]
@@ -98,7 +99,7 @@ impl ToApub for Post {
 }
 
 #[async_trait::async_trait(?Send)]
-impl FromApub for PostForm {
+impl FromApub for Post {
   type ApubType = PageExt;
 
   /// Converts a `PageExt` to `PostForm`.
@@ -107,7 +108,20 @@ impl FromApub for PostForm {
   async fn from_apub(
     page: &PageExt,
     context: &LemmyContext,
-    expected_domain: Option<Url>,
+    expected_domain: Url,
+    request_counter: &mut i32,
+  ) -> Result<Post, LemmyError> {
+    check_object_for_community_or_site_ban(page, context, request_counter).await?;
+    get_object_from_apub(page, context, expected_domain, request_counter).await
+  }
+}
+
+#[async_trait::async_trait(?Send)]
+impl FromApubToForm<PageExt> for PostForm {
+  async fn from_apub(
+    page: &PageExt,
+    context: &LemmyContext,
+    expected_domain: Url,
     request_counter: &mut i32,
   ) -> Result<PostForm, LemmyError> {
     let ext = &page.ext_one;
@@ -131,15 +145,6 @@ impl FromApub for PostForm {
 
     let community =
       get_or_fetch_and_upsert_community(community_actor_id, context, request_counter).await?;
-
-    if community.local && creator.local {
-      let page_id = page.id_unchecked().context(location_info!())?;
-      let bt = Backtrace::new();
-      error!(
-        "Lemmy is parsing a local post as remote, page id: {}, stack trace: {:?}",
-        page_id, bt
-      );
-    }
 
     let thumbnail_url = match &page.inner.image() {
       Some(any_image) => Image::from_any_base(

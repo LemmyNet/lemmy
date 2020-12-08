@@ -33,7 +33,7 @@ use url::Url;
 /// * `activity` the apub activity to be sent
 /// * `creator` the local actor which created the activity
 /// * `inbox` the inbox url where the activity should be delivered to
-pub async fn send_activity_single_dest<T, Kind>(
+pub(crate) async fn send_activity_single_dest<T, Kind>(
   activity: T,
   creator: &dyn ActorType,
   inbox: Url,
@@ -71,7 +71,7 @@ where
 /// * `community` the sending community
 /// * `sender_shared_inbox` in case of an announce, this should be the shared inbox of the inner
 ///                         activities creator, as receiving a known activity will cause an error
-pub async fn send_to_community_followers<T, Kind>(
+pub(crate) async fn send_to_community_followers<T, Kind>(
   activity: T,
   community: &Community,
   context: &LemmyContext,
@@ -116,7 +116,7 @@ where
 /// * `creator` the creator of the activity
 /// * `community` the destination community
 ///
-pub async fn send_to_community<T, Kind>(
+pub(crate) async fn send_to_community<T, Kind>(
   activity: T,
   creator: &User_,
   community: &Community,
@@ -160,7 +160,7 @@ where
 /// * `creator` user who created the comment
 /// * `mentions` list of inboxes of users which are mentioned in the comment
 /// * `activity` either a `Create/Note` or `Update/Note`
-pub async fn send_comment_mentions<T, Kind>(
+pub(crate) async fn send_comment_mentions<T, Kind>(
   creator: &User_,
   mentions: Vec<Url>,
   activity: T,

@@ -1,4 +1,9 @@
-use crate::{extensions::context::lemmy_context, http::create_apub_response, ActorType, ToApub};
+use crate::{
+  extensions::context::lemmy_context,
+  http::create_apub_response,
+  objects::ToApub,
+  ActorType,
+};
 use activitystreams::{
   base::BaseExt,
   collection::{CollectionExt, OrderedCollection},

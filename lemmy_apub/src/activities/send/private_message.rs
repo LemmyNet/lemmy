@@ -2,9 +2,9 @@ use crate::{
   activities::send::generate_activity_id,
   activity_queue::send_activity_single_dest,
   extensions::context::lemmy_context,
+  objects::ToApub,
   ActorType,
   ApubObjectType,
-  ToApub,
 };
 use activitystreams::{
   activity::{

@@ -30,6 +30,7 @@ use lemmy_db::{
   community::{Community, CommunityFollower, CommunityFollowerForm},
   user::User_,
   views::community_user_ban_view::CommunityUserBanView,
+  ApubObject,
   DbPool,
   Followable,
 };
@@ -118,7 +119,7 @@ pub(crate) async fn community_receive_message(
   // unconditionally.
   let actor_id = actor.actor_id_str();
   let user = blocking(&context.pool(), move |conn| {
-    User_::read_from_actor_id(&conn, &actor_id)
+    User_::read_from_apub_id(&conn, &actor_id)
   })
   .await??;
   check_community_or_site_ban(&user, &to_community, context.pool()).await?;
@@ -242,7 +243,7 @@ async fn handle_undo_follow(
   verify_activity_domains_valid(&follow, &user_url, false)?;
 
   let user = blocking(&context.pool(), move |conn| {
-    User_::read_from_actor_id(&conn, user_url.as_str())
+    User_::read_from_apub_id(&conn, user_url.as_str())
   })
   .await??;
   let community_follower_form = CommunityFollowerForm {
@@ -260,7 +261,7 @@ async fn handle_undo_follow(
   Ok(())
 }
 
-async fn check_community_or_site_ban(
+pub(crate) async fn check_community_or_site_ban(
   user: &User_,
   community: &Community,
   pool: &DbPool,

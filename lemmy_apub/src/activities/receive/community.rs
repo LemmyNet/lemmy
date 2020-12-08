@@ -4,7 +4,7 @@ use activitystreams::{
   base::{AnyBase, ExtendsExt},
 };
 use anyhow::Context;
-use lemmy_db::{community::Community, views::community_view::CommunityView};
+use lemmy_db::{community::Community, views::community_view::CommunityView, ApubObject};
 use lemmy_structs::{blocking, community::CommunityResponse};
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::{messages::SendCommunityRoomMessage, LemmyContext, UserOperation};
@@ -53,7 +53,7 @@ pub(crate) async fn receive_remove_community(
     .single_xsd_any_uri()
     .context(location_info!())?;
   let community = blocking(context.pool(), move |conn| {
-    Community::read_from_actor_id(conn, community_uri.as_str())
+    Community::read_from_apub_id(conn, community_uri.as_str())
   })
   .await??;
 
@@ -135,7 +135,7 @@ pub(crate) async fn receive_undo_remove_community(
     .single_xsd_any_uri()
     .context(location_info!())?;
   let community = blocking(context.pool(), move |conn| {
-    Community::read_from_actor_id(conn, community_uri.as_str())
+    Community::read_from_apub_id(conn, community_uri.as_str())
   })
   .await??;
 

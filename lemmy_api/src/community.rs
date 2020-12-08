@@ -24,6 +24,7 @@ use lemmy_db::{
     community_view::{CommunityQueryBuilder, CommunityView},
     user_view::UserViewSafe,
   },
+  ApubObject,
   Bannable,
   Crud,
   Followable,
@@ -133,7 +134,7 @@ impl Perform for CreateCommunity {
     let actor_id = make_apub_endpoint(EndpointType::Community, &data.name).to_string();
     let actor_id_cloned = actor_id.to_owned();
     let community_dupe = blocking(context.pool(), move |conn| {
-      Community::read_from_actor_id(conn, &actor_id_cloned)
+      Community::read_from_apub_id(conn, &actor_id_cloned)
     })
     .await?;
     if community_dupe.is_ok() {

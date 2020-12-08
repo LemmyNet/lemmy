@@ -1,4 +1,4 @@
-# Federation 
+# Federation Administration
 
 Note: ActivityPub federation is still under development. We recommend that you only enable it on test instances for now.
 
@@ -11,6 +11,7 @@ Federation does not start automatically, but needs to be triggered manually thro
 - `https://lemmy.ml/c/programming` (Community)
 - `https://lemmy.ml/u/nutomic` (User)
 - `https://lemmy.ml/post/123` (Post)
+- `https://lemmy.ml/comment/321` (Comment)
 
 For an overview of how federation in Lemmy works on a technical level, check out our [Federation Overview](contributing_federation_overview.md).
 

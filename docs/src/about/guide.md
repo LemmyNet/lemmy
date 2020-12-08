@@ -17,7 +17,7 @@ Hot | Trending sort based on the score, and the post creation time.
 New | Newest items.
 Top | The highest scoring items in the given time frame.
 
-For more detail, check the [Post and Comment Ranking details](about_ranking.md).
+For more detail, check the [Post and Comment Ranking details](ranking.md).
 
 ## Markdown Guide
 
