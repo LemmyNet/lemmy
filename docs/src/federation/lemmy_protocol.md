@@ -1,4 +1,6 @@
-# Activitypub API outline
+# Lemmy Federation Protocol
+
+The Lemmy Protocol (or Lemmy Federation Protocol) is a strict subset of the [ActivityPub Protocol](https://www.w3.org/TR/activitypub/). Any deviation from the ActivityPub protocol is a bug in Lemmy or in this documentation (or both).
 
 This document is targeted at developers who are familiar with the ActivityPub and ActivityStreams protocols. It gives a detailed outline of the actors, objects and activities used by Lemmy.
 
