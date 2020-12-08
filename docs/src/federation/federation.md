@@ -12,3 +12,5 @@ One way you can take advantage of federation is by opening a different instance,
 - `https://lemmy.ml/u/nutomic` (User)
 - `https://lemmy.ml/post/123` (Post)
 - `https://lemmy.ml/comment/321` (Comment)
+
+You can see the list of linked instances by following the "Instances" link at the bottom of any Lemmy page.
