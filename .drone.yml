@@ -1,0 +1,18 @@
+kind: pipeline
+name: default
+
+steps:
+  - name: test
+    image: compose:alpine-1.27.4
+    volumes:
+      - name: docker_sock
+        path: /var/run/docker.sock
+    commands:
+      - ls -la /
+      - ls -la .
+      - docker-compose up -f /drone/src/docker-compose.yaml
+
+volumes:
+  - name: docker_sock
+    host:
+      path: /var/run/docker.sock
