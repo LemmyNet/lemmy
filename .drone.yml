@@ -3,18 +3,16 @@ name: default
 
 steps:
   - name: cargo test
-    image: ekidd/rust-musl-builder:1.47.0
+    image: ekidd/rust-musl-builder:experimental-stable
     user: root
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@localhost:5432/lemmy
       RUST_BACKTRACE: 1
       RUST_TEST_THREADS: 1
-      CARGO_BUILD_TARGET: x86_64-unknown-linux-musl
     commands:
-      - ls -la
-      - id
       - cargo check --all
       - cargo test --workspace --no-fail-fast
+      - mdbook build docs/
       
   - name: run federation tests
     image: docker/compose:alpine-1.27.4
