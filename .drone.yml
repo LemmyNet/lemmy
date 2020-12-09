@@ -4,6 +4,7 @@ name: default
 steps:
   - name: cargo test
     image: ekidd/rust-musl-builder:1.47.0
+    user: root
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@localhost:5432/lemmy
       RUST_BACKTRACE: 1
