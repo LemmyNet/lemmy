@@ -2,13 +2,15 @@ kind: pipeline
 name: default
 
 steps:
-  - name: build lemmy docker image
-    image: docker/compose:alpine-1.27.4
-    volumes:
-      - name: docker_sock
-        path: /var/run/docker.sock
+  - name: cargo test
+    image: ekidd/rust-musl-builder:1.47.0
+    environment:
+      - LEMMY_DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
+      - RUST_BACKTRACE=1
+      - RUST_TEST_THREADS=1
     commands:
-      - docker build . --file docker/dev/Dockerfile --tag dessalines/lemmy:travis
+      - cargo check --all
+      - cargo test --workspace --no-fail-fast
       
   - name: run federation tests
     image: docker/compose:alpine-1.27.4
@@ -33,20 +35,26 @@ steps:
       - docker-compose down
 
   - name: make release build and push to docker hub
-    image: docker/compose:alpine-1.27.4
-    volumes:
-      - name: docker_sock
-        path: /var/run/docker.sock
-    commands:
-      - docker build . --file docker/prod/Dockerfile --tag dessalines/lemmy:travis
-      - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-      - docker tag dessalines/lemmy:travis dessalines/lemmy:v0.8.10
-      - docker push dessalines/lemmy:v0.8.10
+    image: plugins/docker
+    settings:
+      dockerfile: docker/prod/Dockerfile
+      username: kevinbacon
+      password: pa55word
+      repo: dessalines/lemmy
+      tags:
+      - latest
     when:
       ref:
       - refs/heads/feature-*
       - refs/tags/*
         
+services:
+  - name: postgres
+    image: postgres:12-alpine
+    environment:
+      - POSTGRES_USER: lemmy
+      - POSTGRES_PASSWORD: password
+  
 volumes:
   - name: docker_sock
     host:
