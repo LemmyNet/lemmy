@@ -3,10 +3,17 @@ name: default
 
 steps:
   - name: test
-    image: plugins/docker
+    image: compose:alpine-1.27.4
+    volumes:
+      - name: docker_sock
+        path: /var/run/docker.sock
     commands:
       - docker build . --file docker/prod/Dockerfile --tag dessalines/lemmy:travis
       - docker-compose up -f docker/travis/docker-compose.yml -d
       - sleep 10
       - docker-compose down
 
+volumes:
+  - name: docker_sock
+    host:
+      path: /var/run/docker.sock
