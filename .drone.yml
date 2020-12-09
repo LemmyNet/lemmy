@@ -9,6 +9,7 @@ steps:
       LEMMY_DATABASE_URL: postgres://lemmy:password@localhost:5432/lemmy
       RUST_BACKTRACE: 1
       RUST_TEST_THREADS: 1
+      CARGO_BUILD_TARGET: x86_64-unknown-linux-musl
     commands:
       - ls -la
       - id
