@@ -10,6 +10,7 @@ steps:
       RUST_TEST_THREADS: 1
     commands:
       - ls -la
+      - id
       - cargo check --all
       - cargo test --workspace --no-fail-fast
       
