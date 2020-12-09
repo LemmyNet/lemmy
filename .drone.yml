@@ -3,6 +3,8 @@ name: default
 
 steps:
   - name: cargo test
+    # needed because it doesnt work as root, and drone clones as root without an easy way to change it 
+    # https://github.com/emk/rust-musl-builder/issues/96
     image: ekidd/rust-musl-builder:experimental-stable
     user: root
     environment:
@@ -12,6 +14,7 @@ steps:
     commands:
       - cargo check --all
       - cargo test --workspace --no-fail-fast
+      - cargo clippy
       - mdbook build docs/
       
   - name: run federation tests
