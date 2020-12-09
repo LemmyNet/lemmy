@@ -5,9 +5,9 @@ steps:
   - name: cargo test
     image: ekidd/rust-musl-builder:1.47.0
     environment:
-      - LEMMY_DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
-      - RUST_BACKTRACE=1
-      - RUST_TEST_THREADS=1
+      - LEMMY_DATABASE_URL: =postgres://lemmy:password@localhost:5432/lemmy
+      - RUST_BACKTRACE: 1
+      - RUST_TEST_THREADS: 1
     commands:
       - cargo check --all
       - cargo test --workspace --no-fail-fast
