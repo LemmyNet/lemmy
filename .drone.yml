@@ -9,6 +9,7 @@ steps:
       RUST_BACKTRACE: 1
       RUST_TEST_THREADS: 1
     commands:
+      - ls -la
       - cargo check --all
       - cargo test --workspace --no-fail-fast
       
