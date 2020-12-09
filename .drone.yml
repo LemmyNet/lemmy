@@ -8,7 +8,7 @@ steps:
       - name: docker_sock
         path: /var/run/docker.sock
     commands:
-      - docker build . --file docker/prod/Dockerfile --tag dessalines/lemmy:travis
+      - docker build . --file docker/dev/Dockerfile --tag dessalines/lemmy:travis
       
   - name: run federation tests
     image: docker/compose:alpine-1.27.4
@@ -32,16 +32,21 @@ steps:
       - popd
       - docker-compose down
 
-  # TODO: only if tag is set (and read version from git tag as well)
-  #- name: push to docker hub
-  #  image: docker/compose:alpine-1.27.4
-  #  volumes:
-  #    - name: docker_sock
-  #      path: /var/run/docker.sock
-  #  commands:
-  #    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-  #    - docker tag dessalines/lemmy:travis dessalines/lemmy:v0.8.10
-  #    - docker push dessalines/lemmy:v0.8.10
+   TODO: only if tag is set (and read version from git tag as well)
+  - name: make release build and push to docker hub
+    image: docker/compose:alpine-1.27.4
+    volumes:
+      - name: docker_sock
+        path: /var/run/docker.sock
+    commands:
+      - docker build . --file docker/prod/Dockerfile --tag dessalines/lemmy:travis
+      - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+      - docker tag dessalines/lemmy:travis dessalines/lemmy:v0.8.10
+      - docker push dessalines/lemmy:v0.8.10when:
+    when:
+      ref:
+      - refs/heads/feature-*
+      - refs/tags/*
         
 volumes:
   - name: docker_sock
