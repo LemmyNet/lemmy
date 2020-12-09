@@ -80,7 +80,7 @@ begin
       left join post_like pl on p.id = pl.post_id
       group by u.id
     ) pd 
-    where ua.user_id = pd.id;
+    where ua.user_id = OLD.creator_id;
 
   END IF;
   return null;
@@ -97,7 +97,6 @@ returns trigger language plpgsql
 as $$
 begin
   IF (TG_OP = 'INSERT') THEN
-    -- TODO not sure if this is working right
     -- Need to get the post creator, not the voter
     update user_aggregates ua
     set post_score = post_score + NEW.score
@@ -143,7 +142,7 @@ begin
       left join comment_like cl on c.id = cl.comment_id
       group by u.id
     ) cd 
-    where ua.user_id = cd.id;
+    where ua.user_id = OLD.creator_id;
   END IF;
   return null;
 end $$;

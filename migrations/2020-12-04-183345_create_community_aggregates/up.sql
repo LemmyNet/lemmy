@@ -2,18 +2,18 @@
 create table community_aggregates (
   id serial primary key,
   community_id int references community on update cascade on delete cascade not null,
-  subscribers bigint not null,
-  posts bigint not null,
-  comments bigint not null,
+  subscribers bigint not null default 0,
+  posts bigint not null default 0,
+  comments bigint not null default 0,
   unique (community_id)
 );
 
 insert into community_aggregates (community_id, subscribers, posts, comments)
   select 
     c.id,
-    coalesce(cf.subs, 0::bigint) as subscribers,
-    coalesce(cd.posts, 0::bigint) as posts,
-    coalesce(cd.comments, 0::bigint) as comments
+    coalesce(cf.subs, 0) as subscribers,
+    coalesce(cd.posts, 0) as posts,
+    coalesce(cd.comments, 0) as comments
   from community c
   left join ( 
     select 
@@ -33,6 +33,24 @@ insert into community_aggregates (community_id, subscribers, posts, comments)
   ) cf on cf.community_id = c.id;
 
 -- Add community aggregate triggers
+
+-- initial community add
+create function community_aggregates_community()
+returns trigger language plpgsql
+as $$
+begin
+  IF (TG_OP = 'INSERT') THEN
+    insert into community_aggregates (community_id) values (NEW.id);
+  ELSIF (TG_OP = 'DELETE') THEN
+    delete from community_aggregates where community_id = OLD.id;
+  END IF;
+  return null;
+end $$;
+
+create trigger community_aggregates_community
+after insert or delete on community
+for each row
+execute procedure community_aggregates_community();
 -- post count
 create function community_aggregates_post_count()
 returns trigger language plpgsql
@@ -44,6 +62,22 @@ begin
   ELSIF (TG_OP = 'DELETE') THEN
     update community_aggregates 
     set posts = posts - 1 where community_id = OLD.community_id;
+
+    -- Update the counts if the post got deleted
+    update community_aggregates ca
+    set posts = coalesce(cd.posts, 0),
+    comments = coalesce(cd.comments, 0)
+    from ( 
+      select 
+      c.id,
+      count(distinct p.id) as posts,
+      count(distinct ct.id) as comments
+      from community c
+      left join post p on c.id = p.community_id
+      left join comment ct on p.id = ct.post_id
+      group by c.id
+    ) cd 
+    where ca.community_id = OLD.community_id;
   END IF;
   return null;
 end $$;
@@ -59,11 +93,18 @@ returns trigger language plpgsql
 as $$
 begin
   IF (TG_OP = 'INSERT') THEN
-    update community_aggregates 
-    set comments = comments + 1 from comment c join post p on p.id = c.post_id and p.id = NEW.post_id;
+    update community_aggregates ca
+    set comments = comments + 1 from comment c, post p
+    where p.id = c.post_id 
+    and p.id = NEW.post_id 
+    and ca.community_id = p.community_id;
   ELSIF (TG_OP = 'DELETE') THEN
-    update community_aggregates 
-    set comments = comments - 1 from comment c join post p on p.id = c.post_id and p.id = OLD.post_id;
+    update community_aggregates ca
+    set comments = comments - 1 from comment c, post p
+    where p.id = c.post_id 
+    and p.id = OLD.post_id 
+    and ca.community_id = p.community_id;
+
   END IF;
   return null;
 end $$;

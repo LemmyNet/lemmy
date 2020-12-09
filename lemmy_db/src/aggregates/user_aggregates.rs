@@ -167,7 +167,7 @@ mod tests {
 
     let inserted_comment = Comment::create(&conn, &comment_form).unwrap();
 
-    let comment_like = CommentLikeForm {
+    let mut comment_like = CommentLikeForm {
       comment_id: inserted_comment.id,
       user_id: inserted_user.id,
       post_id: inserted_post.id,
@@ -176,7 +176,7 @@ mod tests {
 
     let _inserted_comment_like = CommentLike::like(&conn, &comment_like).unwrap();
 
-    let child_comment_form = CommentForm {
+    let mut child_comment_form = CommentForm {
       content: "A test comment".into(),
       creator_id: inserted_user.id,
       post_id: inserted_post.id,
@@ -218,6 +218,23 @@ mod tests {
     let after_parent_comment_delete = UserAggregates::read(&conn, inserted_user.id).unwrap();
     assert_eq!(0, after_parent_comment_delete.comment_count);
     assert_eq!(0, after_parent_comment_delete.comment_score);
+
+    // Add in the two comments again, then delete the post.
+    let new_parent_comment = Comment::create(&conn, &comment_form).unwrap();
+    child_comment_form.parent_id = Some(new_parent_comment.id);
+    Comment::create(&conn, &child_comment_form).unwrap();
+    comment_like.comment_id = new_parent_comment.id;
+    CommentLike::like(&conn, &comment_like).unwrap();
+    let after_comment_add = UserAggregates::read(&conn, inserted_user.id).unwrap();
+    assert_eq!(2, after_comment_add.comment_count);
+    assert_eq!(1, after_comment_add.comment_score);
+
+    Post::delete(&conn, inserted_post.id).unwrap();
+    let after_post_delete = UserAggregates::read(&conn, inserted_user.id).unwrap();
+    assert_eq!(0, after_post_delete.comment_score);
+    assert_eq!(0, after_post_delete.comment_count);
+    assert_eq!(0, after_post_delete.post_score);
+    assert_eq!(0, after_post_delete.post_count);
 
     // This should delete all the associated rows, and fire triggers
     let user_num_deleted = User_::delete(&conn, inserted_user.id).unwrap();

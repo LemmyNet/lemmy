@@ -31,6 +31,7 @@ end $$;
 
 create trigger site_aggregates_user
 after insert or delete on user_
+for each row
 execute procedure site_aggregates_user();
 
 -- post
