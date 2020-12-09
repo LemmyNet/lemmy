@@ -2,17 +2,47 @@ kind: pipeline
 name: default
 
 steps:
-  - name: test
+  - name: build lemmy docker image
     image: docker/compose:alpine-1.27.4
     volumes:
       - name: docker_sock
         path: /var/run/docker.sock
     commands:
       - docker build . --file docker/prod/Dockerfile --tag dessalines/lemmy:travis
-      - docker-compose up -f docker/travis/docker-compose.yml -d
-      - sleep 10
+      
+  - name: run federation tests
+    image: docker/compose:alpine-1.27.4
+    volumes:
+      - name: docker_sock
+        path: /var/run/docker.sock
+    commands:
+      - cd docker/travis/
+      - mkdir -p volumes/pictrs_{alpha,beta,gamma,delta,epsilon}
+      - chown -R 991:991 volumes/pictrs_{alpha,beta,gamma,delta,epsilon}
+      - docker-compose up -d
+      - pushd ../../api_tests
+      - echo "Waiting for Lemmy to start..."
+      - while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8541/api/v1/site')" != "200" ]]; do sleep 1; done
+      - while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8551/api/v1/site')" != "200" ]]; do sleep 1; done
+      - while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8561/api/v1/site')" != "200" ]]; do sleep 1; done
+      - while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8571/api/v1/site')" != "200" ]]; do sleep 1; done
+      - while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8581/api/v1/site')" != "200" ]]; do sleep 1; done
+      - yarn
+      - yarn api-test
+      - popd
       - docker-compose down
 
+  # TODO: only if tag is set (and read version from git tag as well)
+  #- name: push to docker hub
+  #  image: docker/compose:alpine-1.27.4
+  #  volumes:
+  #    - name: docker_sock
+  #      path: /var/run/docker.sock
+  #  commands:
+  #    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  #    - docker tag dessalines/lemmy:travis dessalines/lemmy:v0.8.10
+  #    - docker push dessalines/lemmy:v0.8.10
+        
 volumes:
   - name: docker_sock
     host:
