@@ -32,7 +32,6 @@ steps:
       - popd
       - docker-compose down
 
-   TODO: only if tag is set (and read version from git tag as well)
   - name: make release build and push to docker hub
     image: docker/compose:alpine-1.27.4
     volumes:
