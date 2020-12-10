@@ -79,30 +79,9 @@ steps:
   - name: run federation tests
     image: node:15-alpine3.12
     user: root
-    environment:
-      LEMMY_JWT_SECRET: changeme
-      LEMMY_FEDERATION__ENABLED: true
-      LEMMY_TLS_ENABLED: false
-      LEMMY_SETUP__ADMIN_PASSWORD: lemmy
-      LEMMY_RATE_LIMIT__POST: 99999
-      LEMMY_RATE_LIMIT__REGISTER: 99999
-      LEMMY_CAPTCHA__ENABLED: false
-      RUST_BACKTRACE: 1
-      RUST_LOG: debug
-      LEMMY_HOSTNAME: lemmy-alpha:8541
-      LEMMY_DATABASE_URL: postgres://lemmy:password@postgres_alpha:5432/lemmy
-      LEMMY_FEDERATION__ALLOWED_INSTANCES: lemmy-beta,lemmy-gamma,lemmy-delta,lemmy-epsilon
-      LEMMY_SETUP__ADMIN_USERNAME: lemmy_alpha
-      LEMMY_SETUP__SITE_NAME: lemmy-alpha
-    volumes:
-      - name: dieselcli
-        path: /dieselcli
     commands:
-      - mkdir -p volumes/pictrs_{alpha,beta,gamma,delta,epsilon}
-      - chown -R 991:991 volumes/pictrs_{alpha,beta,gamma,delta,epsilon}
-      - LEMMY_PORT=8541 ./target/debug/lemmy_server &
-      - LEMMY_PORT=8551 ./target/debug/lemmy_server &
       - cd api_tests/
+      - ./prepare-prepare-drone-federation-test.sh
       - yarn
       - yarn api-test
 
@@ -110,8 +89,7 @@ steps:
     image: plugins/docker
     user: root
     commands:
-      # TODO: remove newline, add `latest` (eg `0.9.1,latest`)
-      - git describe > .tags
+      - "$(git describe),latest" > .tags
     when:
       ref:
       - refs/tags/*
