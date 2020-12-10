@@ -75,10 +75,6 @@ steps:
         path: /dieselcli
     commands:
       - cargo build
-    # just to disable this temporarily
-    when:
-      ref:
-        - refs/tags/*
 
   - name: run federation tests
     image: node:15-alpine3.12
