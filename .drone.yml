@@ -80,7 +80,8 @@ steps:
     image: node:15-buster-slim
     user: root
     commands:
-      - apk add bash curl
+      - apt-get update
+      - apt-get -y install --no-install-recommends bash curl
       - cd api_tests/
       - sh prepare-drone-federation-test.sh
       - yarn
