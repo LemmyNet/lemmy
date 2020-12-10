@@ -32,7 +32,7 @@ impl CommunityView {
     // The left join below will return None in this case
     let user_id_join = my_user_id.unwrap_or(-1);
 
-    let (community, creator, category, counts, subscribed) = community::table
+    let (community, creator, category, counts, follower) = community::table
       .find(community_id)
       .inner_join(user_::table)
       .inner_join(category::table)
@@ -63,7 +63,7 @@ impl CommunityView {
       community,
       creator,
       category,
-      subscribed: subscribed.is_some(),
+      subscribed: follower.is_some(),
       counts,
     })
   }

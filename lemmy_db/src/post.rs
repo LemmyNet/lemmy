@@ -8,9 +8,10 @@ use crate::{
   Saveable,
 };
 use diesel::{dsl::*, result::Error, *};
+use serde::Serialize;
 use url::{ParseError, Url};
 
-#[derive(Queryable, Identifiable, PartialEq, Debug)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "post"]
 pub struct Post {
   pub id: i32,

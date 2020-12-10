@@ -330,6 +330,18 @@ table! {
 }
 
 table! {
+    post_aggregates (id) {
+        id -> Int4,
+        post_id -> Int4,
+        comments -> Int8,
+        score -> Int8,
+        upvotes -> Int8,
+        downvotes -> Int8,
+        newest_comment_time -> Timestamp,
+    }
+}
+
+table! {
     post_aggregates_fast (id) {
         id -> Int4,
         name -> Nullable<Varchar>,
@@ -576,6 +588,7 @@ joinable!(mod_sticky_post -> user_ (mod_user_id));
 joinable!(password_reset_request -> user_ (user_id));
 joinable!(post -> community (community_id));
 joinable!(post -> user_ (creator_id));
+joinable!(post_aggregates -> post (post_id));
 joinable!(post_like -> post (post_id));
 joinable!(post_like -> user_ (user_id));
 joinable!(post_read -> post (post_id));
@@ -614,6 +627,7 @@ allow_tables_to_appear_in_same_query!(
   mod_sticky_post,
   password_reset_request,
   post,
+  post_aggregates,
   post_aggregates_fast,
   post_like,
   post_read,
