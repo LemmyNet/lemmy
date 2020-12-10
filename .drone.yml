@@ -67,8 +67,17 @@ steps:
       ref:
         - refs/tags/*
 
-  - name: run federation tests
+  - name: cargo build
     image: ekidd/rust-musl-builder:experimental-stable
+    user: root
+    volumes:
+      - name: dieselcli
+        path: /dieselcli
+    commands:
+      - cargo build
+
+  - name: run federation tests
+    image: node:15-alpine3.12
     user: root
     environment:
       LEMMY_JWT_SECRET: changeme
@@ -85,15 +94,14 @@ steps:
       LEMMY_FEDERATION__ALLOWED_INSTANCES: lemmy-beta,lemmy-gamma,lemmy-delta,lemmy-epsilon
       LEMMY_SETUP__ADMIN_USERNAME: lemmy_alpha
       LEMMY_SETUP__SITE_NAME: lemmy-alpha
+    volumes:
+      - name: dieselcli
+        path: /dieselcli
     commands:
-      - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
-      - echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
-      - sudo apt-get update
-      - apt-get -y install --no-install-recommends yarn nodejs
       - mkdir -p volumes/pictrs_{alpha,beta,gamma,delta,epsilon}
       - chown -R 991:991 volumes/pictrs_{alpha,beta,gamma,delta,epsilon}
-      - LEMMY_PORT=8541 cargo run &
-      - LEMMY_PORT=8551 cargo run &
+      - LEMMY_PORT=8541 ./target/debug/lemmy_server &
+      - LEMMY_PORT=8551 ./target/debug/lemmy_server &
       - cd api_tests/
       - yarn
       - yarn api-test
