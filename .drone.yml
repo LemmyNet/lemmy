@@ -58,7 +58,7 @@ steps:
       - name: dieselcli
         path: /dieselcli
     commands:
-      - apt-get -y update
+      - apt-get update
       - apt-get -y install --no-install-recommends espeak postgresql-client
       - /dieselcli/diesel migration run
       - cargo test --workspace --no-fail-fast
@@ -82,11 +82,10 @@ steps:
 
   - name: run federation tests
     image: node:15-alpine3.12
-    user: root
     commands:
-      - ls -la
+      - apt-get update
+      - apt-get -y install --no-install-recommends bash curl
       - cd api_tests/
-      - ls -la
       - sh prepare-drone-federation-test.sh
       - yarn
       - yarn api-test
