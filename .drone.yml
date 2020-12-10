@@ -86,7 +86,7 @@ steps:
       - yarn api-test
 
   - name: create docker tags
-    image: plugins/docker
+    image: ekidd/rust-musl-builder:experimental-stable
     user: root
     commands:
       - "$(git describe),latest" > .tags
