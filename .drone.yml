@@ -11,20 +11,12 @@ steps:
     user: root
     commands:
       - cargo check --all
-    # just to disable this temporarily
-    when:
-      ref:
-        - refs/tags/*
 
   - name: cargo clippy
     image: ekidd/rust-musl-builder:experimental-stable
     user: root
     commands:
       - cargo clippy
-    # just to disable this temporarily
-    when:
-      ref:
-        - refs/tags/*
 
   - name: check documentation build
     image: ekidd/rust-musl-builder:experimental-stable
@@ -41,10 +33,6 @@ steps:
     commands:
       - cargo install diesel_cli --no-default-features --features postgres
       - mv /root/.cargo/bin/diesel /dieselcli/diesel
-    # just to disable this temporarily
-    when:
-      ref:
-        - refs/tags/*
 
   - name: cargo test
     image: ekidd/rust-musl-builder:experimental-stable
@@ -62,11 +50,9 @@ steps:
       - apt-get -y install --no-install-recommends espeak postgresql-client
       - /dieselcli/diesel migration run
       - cargo test --workspace --no-fail-fast
-    # just to disable this temporarily
-    when:
-      ref:
-        - refs/tags/*
 
+  # TODO: this uses rust 1.48.0, which doesnt work with config-rs, so federation tests fail
+  # https://github.com/LemmyNet/lemmy/issues/1270
   - name: cargo build
     image: ekidd/rust-musl-builder:experimental-stable
     user: root
@@ -74,7 +60,6 @@ steps:
       - name: dieselcli
         path: /dieselcli
     commands:
-      - cargo --version
       - cargo build
 
   - name: run federation tests
@@ -108,6 +93,8 @@ steps:
       ref:
       - refs/tags/*
 
+# TODO: also need to add more databases for federation test
+#       (or use multiple DBs in the same postgres instance)
 services:
   - name: database
     image: postgres:12-alpine
