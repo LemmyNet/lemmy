@@ -54,8 +54,8 @@ steps:
       - refs/tags/*
         
 services:
-  - name: postgres
-    image: postgres:12-alpine
-    environment:
-      POSTGRES_USER: lemmy
-      POSTGRES_PASSWORD: password
+- name: postgres
+  image: postgres:12-alpine
+  environment:
+    POSTGRES_USER: lemmy
+    POSTGRES_PASSWORD: password
