@@ -26,6 +26,7 @@ steps:
 
   - name: install diesel cli
     image: ekidd/rust-musl-builder:1.47.0
+    user: root
     volumes:
       - name: dieselcli
         path: /dieselcli
