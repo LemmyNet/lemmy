@@ -46,8 +46,8 @@ steps:
       - name: dieselcli
         path: /dieselcli
     commands:
-      - apt-get update
-      - apt-get -y install --no-install-recommends espeak postgresql-client
+      - sudo apt-get update
+      - sudo apt-get -y install --no-install-recommends espeak postgresql-client
       - /dieselcli/diesel migration run
       - cargo test --workspace --no-fail-fast
 
