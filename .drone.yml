@@ -11,12 +11,20 @@ steps:
     user: root
     commands:
       - cargo check --all
+    # just to disable this temporarily
+    when:
+      ref:
+        - refs/tags/*
 
   - name: cargo clippy
     image: ekidd/rust-musl-builder:experimental-stable
     user: root
     commands:
       - cargo clippy
+    # just to disable this temporarily
+    when:
+      ref:
+        - refs/tags/*
 
   - name: check documentation build
     image: ekidd/rust-musl-builder:experimental-stable
@@ -33,6 +41,10 @@ steps:
     commands:
       - cargo install diesel_cli --no-default-features --features postgres
       - mv /root/.cargo/bin/diesel /dieselcli/diesel
+    # just to disable this temporarily
+    when:
+      ref:
+        - refs/tags/*
 
   - name: cargo test
     image: ekidd/rust-musl-builder:experimental-stable
@@ -50,6 +62,10 @@ steps:
       - apt-get -y install --no-install-recommends espeak postgresql-client
       - /dieselcli/diesel migration run
       - cargo test --workspace --no-fail-fast
+    # just to disable this temporarily
+    when:
+      ref:
+        - refs/tags/*
 
   - name: run federation tests
     image: docker/compose:alpine-1.27.4
@@ -78,8 +94,8 @@ steps:
     image: plugins/docker
     settings:
       dockerfile: docker/prod/Dockerfile
-      username: kevinbacon
-      password: pa55word
+      #username: kevinbacon
+      #password: pa55word
       repo: dessalines/lemmy
       purge: true
       tags:
