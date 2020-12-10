@@ -79,6 +79,7 @@ steps:
 
   - name: run federation tests
     image: node:15-alpine3.12
+    user: root
     commands:
       - ls -la target/debug/lemmy_server
       - apk add bash curl
