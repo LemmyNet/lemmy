@@ -14,7 +14,7 @@ steps:
     commands:
       - apt-get -y update
       - apt-get -y install --no-install-recommends espeak postgresql-client
-      - psql $LEMMY_DATABASE_URL
+      - psql $LEMMY_DATABASE_URL -c "\l"
       #- cargo check --all
       #- cargo clippy
       #- cargo test --workspace --no-fail-fast
