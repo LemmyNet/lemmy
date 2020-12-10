@@ -41,10 +41,6 @@ steps:
     commands:
       - cargo install diesel_cli --no-default-features --features postgres
       - mv /root/.cargo/bin/diesel /dieselcli/diesel
-    # just to disable this temporarily
-    when:
-      ref:
-        - refs/tags/*
 
   - name: cargo test
     image: ekidd/rust-musl-builder:experimental-stable
@@ -68,27 +64,43 @@ steps:
         - refs/tags/*
 
   - name: run federation tests
-    image: docker/compose:alpine-1.27.4
+    image: ekidd/rust-musl-builder:experimental-stable
+    user: root
+    environment:
+      - LEMMY_JWT_SECRET=changeme
+      - LEMMY_FEDERATION__ENABLED=true
+      - LEMMY_TLS_ENABLED=false
+      - LEMMY_SETUP__ADMIN_PASSWORD=lemmy
+      - LEMMY_RATE_LIMIT__POST=99999
+      - LEMMY_RATE_LIMIT__REGISTER=99999
+      - LEMMY_CAPTCHA__ENABLED=false
+      - RUST_BACKTRACE=1
+      - RUST_LOG=debug
+      # TODO: these are different for each instance
+      - LEMMY_HOSTNAME=lemmy-alpha:8541
+      - LEMMY_DATABASE_URL=postgres://lemmy:password@postgres_alpha:5432/lemmy
+      - LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-beta,lemmy-gamma,lemmy-delta,lemmy-epsilon
+      #- LEMMY_PORT=8541
+      - LEMMY_SETUP__ADMIN_USERNAME=lemmy_alpha
+      - LEMMY_SETUP__SITE_NAME=lemmy-alpha
     commands:
-      - cd docker/travis/
       - mkdir -p volumes/pictrs_{alpha,beta,gamma,delta,epsilon}
       - chown -R 991:991 volumes/pictrs_{alpha,beta,gamma,delta,epsilon}
-      - docker-compose up -d
-      - pushd ../../api_tests
-      - echo "Waiting for Lemmy to start..."
-      - while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8541/api/v1/site')" != "200" ]]; do sleep 1; done
-      - while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8551/api/v1/site')" != "200" ]]; do sleep 1; done
-      - while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8561/api/v1/site')" != "200" ]]; do sleep 1; done
-      - while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8571/api/v1/site')" != "200" ]]; do sleep 1; done
-      - while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8581/api/v1/site')" != "200" ]]; do sleep 1; done
+      - LEMMY_PORT=8541 cargo run &
+      - LEMMY_PORT=8551 cargo run &
+      - cd api_tests/
       - yarn
       - yarn api-test
-      - popd
-      - docker-compose down
-    # just to disable this temporarily
+
+  - name: create docker tags
+    image: plugins/docker
+    user: root
+    commands:
+      # TODO: remove newline, add `latest` (eg `0.9.1,latest`)
+      - git describe > .tags
     when:
       ref:
-        - refs/tags/*
+      - refs/tags/*
 
   - name: make release build and push to docker hub
     image: plugins/docker
@@ -97,12 +109,9 @@ steps:
       #username: kevinbacon
       #password: pa55word
       repo: dessalines/lemmy
-      purge: true
-      tags:
-      - latest
-    #when:
-    #  ref:
-    #  - refs/tags/*
+    when:
+      ref:
+      - refs/tags/*
 
 services:
   - name: database
