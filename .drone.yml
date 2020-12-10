@@ -34,6 +34,14 @@ steps:
       - cargo install diesel_cli --no-default-features --features postgres
       - mv /root/.cargo/bin/diesel /dieselcli/diesel
 
+  # start postgres this way so that previous steps can be cached
+  - name: database
+    image: postgres:12-alpine
+    environment:
+      POSTGRES_USER: lemmy
+      POSTGRES_PASSWORD: password
+    detach: true
+
   - name: install deps and run cargo test
     image: ekidd/rust-musl-builder:experimental-stable
     user: root
@@ -50,7 +58,7 @@ steps:
       - apt-get -y install --no-install-recommends espeak postgresql-client
       - /dieselcli/diesel migration run
       - cargo test --workspace --no-fail-fast
-      
+
   - name: run federation tests
     image: docker/compose:alpine-1.27.4
     commands:
@@ -84,13 +92,6 @@ steps:
       ref:
       - refs/heads/feature-*
       - refs/tags/*
-        
-services:
-- name: database
-  image: postgres:12-alpine
-  environment:
-    POSTGRES_USER: lemmy
-    POSTGRES_PASSWORD: password
 
 volumes:
   - name: dieselcli
