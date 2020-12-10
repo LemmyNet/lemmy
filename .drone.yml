@@ -75,6 +75,10 @@ steps:
         path: /dieselcli
     commands:
       - cargo build
+    # just to disable this temporarily
+    when:
+      ref:
+        - refs/tags/*
 
   - name: run federation tests
     image: node:15-alpine3.12
@@ -83,7 +87,7 @@ steps:
       - ls -la
       - cd api_tests/
       - ls -la
-      - ./prepare-drone-federation-test.sh
+      - bash prepare-drone-federation-test.sh
       - yarn
       - yarn api-test
 
