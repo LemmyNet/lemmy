@@ -77,7 +77,7 @@ steps:
       - cargo build
 
   - name: run federation tests
-    image: node:15-alpine3.12
+    image: node:15-buster-slim
     user: root
     commands:
       - apk add bash curl

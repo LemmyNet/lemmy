@@ -18,6 +18,7 @@ ls -la ../target/
 ls -la ../target/debug/
 ls -la ../target/debug/lemmy_server
 
+# TODO: i suppose this doesnt run because of libc or some deps missing
 echo "start alpha"
 LEMMY_HOSTNAME=lemmy-alpha:8541 \
   LEMMY_PORT=8541 \
