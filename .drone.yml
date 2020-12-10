@@ -69,6 +69,10 @@ steps:
       - yarn api-test
       - popd
       - docker-compose down
+    # just to disable this temporarily
+    when:
+      ref:
+        - refs/tags/*
 
   - name: make release build and push to docker hub
     image: plugins/docker
@@ -80,10 +84,9 @@ steps:
       purge: true
       tags:
       - latest
-    when:
-      ref:
-      - refs/heads/feature-*
-      - refs/tags/*
+    #when:
+    #  ref:
+    #  - refs/tags/*
 
 services:
   - name: database
