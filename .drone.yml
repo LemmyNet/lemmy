@@ -87,7 +87,7 @@ steps:
       - ls -la
       - cd api_tests/
       - ls -la
-      - bash prepare-drone-federation-test.sh
+      - sh prepare-drone-federation-test.sh
       - yarn
       - yarn api-test
 
