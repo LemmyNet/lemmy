@@ -21,9 +21,6 @@ steps:
       
   - name: run federation tests
     image: docker/compose:alpine-1.27.4
-    volumes:
-      - name: docker_sock
-        path: /var/run/docker.sock
     commands:
       - cd docker/travis/
       - mkdir -p volumes/pictrs_{alpha,beta,gamma,delta,epsilon}
@@ -62,8 +59,3 @@ services:
     environment:
       POSTGRES_USER: lemmy
       POSTGRES_PASSWORD: password
-  
-volumes:
-  - name: docker_sock
-    host:
-      path: /var/run/docker.sock
