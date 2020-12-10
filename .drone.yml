@@ -8,7 +8,7 @@ steps:
     image: ekidd/rust-musl-builder:experimental-stable
     user: root
     environment:
-      LEMMY_DATABASE_URL: postgres://lemmy:password@localhost:5432/lemmy
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: 1
       RUST_TEST_THREADS: 1
     commands:
@@ -54,7 +54,7 @@ steps:
       - refs/tags/*
         
 services:
-- name: postgres
+- name: database
   image: postgres:12-alpine
   environment:
     POSTGRES_USER: lemmy
