@@ -2,18 +2,11 @@ kind: pipeline
 name: default
 
 steps:
-  - name: install deps
+
+  - name: cargo check
     # we need to use this experimental image because the normal rust-musl-builder doesnt
     # allow building as root (and drone doesnt have an easy way to git clone as non-root)
     # https://github.com/emk/rust-musl-builder/issues/96
-    image: ekidd/rust-musl-builder:experimental-stable
-    user: root
-    commands:
-      - apt-get -y update
-      - apt-get -y install --no-install-recommends espeak postgresql-client
-      - cargo install diesel_cli --no-default-features --features postgres
-
-  - name: cargo check
     image: ekidd/rust-musl-builder:experimental-stable
     user: root
     commands:
@@ -30,6 +23,14 @@ steps:
     user: root
     commands:
       - mdbook build docs/
+
+  - name: install test deps
+    image: ekidd/rust-musl-builder:experimental-stable
+    user: root
+    commands:
+      - apt-get -y update
+      - apt-get -y install --no-install-recommends espeak postgresql-client
+      - cargo install diesel_cli --no-default-features --features postgres
 
   - name: cargo test
     image: ekidd/rust-musl-builder:experimental-stable
