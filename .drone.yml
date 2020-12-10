@@ -11,6 +11,7 @@ steps:
     commands:
       - apt-get -y update
       - apt-get -y install --no-install-recommends espeak postgresql-client
+      - cargo install diesel_cli --no-default-features --features postgres
 
   - name: cargo check
     image: ekidd/rust-musl-builder:experimental-stable
