@@ -12,6 +12,7 @@ steps:
       RUST_BACKTRACE: 1
       RUST_TEST_THREADS: 1
     commands:
+      - apt update
       - apt install espeak postgresql-client
       - cargo check --all
       - cargo clippy
