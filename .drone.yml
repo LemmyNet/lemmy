@@ -2,23 +2,45 @@ kind: pipeline
 name: default
 
 steps:
-  - name: cargo test
-    # needed because it doesnt work as root, and drone clones as root without an easy way to change it 
+  - name: install deps
+    # we need to use this experimental image because the normal rust-musl-builder doesnt
+    # allow building as root (and drone doesnt have an easy way to git clone as non-root)
     # https://github.com/emk/rust-musl-builder/issues/96
+    image: ekidd/rust-musl-builder:experimental-stable
+    user: root
+    commands:
+      - apt-get -y update
+      - apt-get -y install --no-install-recommends espeak postgresql-client
+
+  - name: cargo check
+    image: ekidd/rust-musl-builder:experimental-stable
+    user: root
+    commands:
+      - cargo check --all
+
+  - name: cargo clippy
+    image: ekidd/rust-musl-builder:experimental-stable
+    user: root
+    commands:
+      - cargo clippy
+
+  - name: check documentation build
+    image: ekidd/rust-musl-builder:experimental-stable
+    user: root
+    commands:
+      - mdbook build docs/
+
+  - name: cargo test
     image: ekidd/rust-musl-builder:experimental-stable
     user: root
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: 1
       RUST_TEST_THREADS: 1
     commands:
-      - apt-get -y update
-      - apt-get -y install --no-install-recommends espeak postgresql-client
-      - psql $LEMMY_DATABASE_URL -c "\l"
-      #- cargo check --all
-      #- cargo clippy
-      #- cargo test --workspace --no-fail-fast
-      #- mdbook build docs/
+      - diesel migration run
+      - cargo test --workspace --no-fail-fast
       
   - name: run federation tests
     image: docker/compose:alpine-1.27.4
