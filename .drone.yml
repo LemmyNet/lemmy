@@ -81,7 +81,7 @@ steps:
     user: root
     commands:
       - cd api_tests/
-      - ./prepare-prepare-drone-federation-test.sh
+      - ./prepare-drone-federation-test.sh
       - yarn
       - yarn api-test
 
