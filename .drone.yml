@@ -82,6 +82,8 @@ steps:
       LEMMY_SETUP__ADMIN_USERNAME: lemmy_alpha
       LEMMY_SETUP__SITE_NAME: lemmy-alpha
     commands:
+      - apt-get -y update
+      - apt-get -y install --no-install-recommends yarn
       - mkdir -p volumes/pictrs_{alpha,beta,gamma,delta,epsilon}
       - chown -R 991:991 volumes/pictrs_{alpha,beta,gamma,delta,epsilon}
       - LEMMY_PORT=8541 cargo run &
