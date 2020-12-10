@@ -42,7 +42,7 @@ steps:
       POSTGRES_PASSWORD: password
     detach: true
 
-  - name: install deps and run cargo test
+  - name: cargo test
     image: ekidd/rust-musl-builder:experimental-stable
     user: root
     environment:
