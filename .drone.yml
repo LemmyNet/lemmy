@@ -58,7 +58,6 @@ steps:
       - name: dieselcli
         path: /dieselcli
     commands:
-      - cargo --version
       - apt-get update
       - apt-get -y install --no-install-recommends espeak postgresql-client
       - /dieselcli/diesel migration run
@@ -75,6 +74,7 @@ steps:
       - name: dieselcli
         path: /dieselcli
     commands:
+      - cargo --version
       - cargo build
 
   - name: run federation tests
