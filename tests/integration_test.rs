@@ -154,6 +154,7 @@ fn create_http_request() -> HttpRequest {
 }
 
 #[actix_rt::test]
+#[ignore]
 async fn test_shared_inbox_expired_signature() {
   let request = create_http_request();
   let context = create_context();
@@ -170,6 +171,7 @@ async fn test_shared_inbox_expired_signature() {
 }
 
 #[actix_rt::test]
+#[ignore]
 async fn test_user_inbox_expired_signature() {
   let request = create_http_request();
   let context = create_context();
@@ -189,6 +191,7 @@ async fn test_user_inbox_expired_signature() {
 }
 
 #[actix_rt::test]
+#[ignore]
 async fn test_community_inbox_expired_signature() {
   let context = create_context();
   let connection = &context.pool().get().unwrap();
