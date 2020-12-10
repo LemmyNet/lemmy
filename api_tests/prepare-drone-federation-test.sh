@@ -14,6 +14,9 @@ export RUST_LOG=debug
 pwd
 ls -la
 ls -la ..
+ls -la ../target/
+ls -la ../target/debug/
+ls -la ../target/debug/lemmy_server
 
 echo "start alpha"
 LEMMY_HOSTNAME=lemmy-alpha:8541 \
