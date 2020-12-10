@@ -1,9 +1,6 @@
 #!/bin/bash
 set -e
 
-# change folder so the config can be read from the default location
-cd ..
-
 export LEMMY_JWT_SECRET=changeme
 export LEMMY_FEDERATION__ENABLED=true
 export LEMMY_TLS_ENABLED=false
@@ -13,6 +10,8 @@ export LEMMY_RATE_LIMIT__REGISTER=99999
 export LEMMY_CAPTCHA__ENABLED=false
 export RUST_BACKTRACE=1
 export RUST_LOG=debug
+
+ls -la target/debug/lemmy_server
 
 echo "start alpha"
 LEMMY_HOSTNAME=lemmy-alpha:8541 \

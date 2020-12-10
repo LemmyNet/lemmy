@@ -66,8 +66,8 @@ steps:
     commands:
       - apt-get update
       - apt-get -y install --no-install-recommends bash curl postgresql-client
-      - cd api_tests/
       - bash prepare-drone-federation-test.sh
+      - cd api_tests/
       - yarn
       - yarn api-test
 
