@@ -89,7 +89,7 @@ steps:
     image: ekidd/rust-musl-builder:experimental-stable
     user: root
     commands:
-      - "$(git describe),latest" > .tags
+      - echo "$(git describe),latest" > .tags
     when:
       ref:
       - refs/tags/*
