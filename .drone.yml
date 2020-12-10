@@ -3,30 +3,29 @@ name: default
 
 steps:
 
-  - name: cargo check
-    # we need to use this experimental image because the normal rust-musl-builder doesnt
-    # allow building as root (and drone doesnt have an easy way to git clone as non-root)
-    # https://github.com/emk/rust-musl-builder/issues/96
-    image: ekidd/rust-musl-builder:experimental-stable
+  - name: chown repo
+    image: ekidd/rust-musl-builder:1.47.0
     user: root
+    commands:
+      - chown 1000:1000 . -R
+
+  - name: cargo check
+    image: ekidd/rust-musl-builder:1.47.0
     commands:
       - cargo check --all
 
   - name: cargo clippy
-    image: ekidd/rust-musl-builder:experimental-stable
-    user: root
+    image: ekidd/rust-musl-builder:1.47.0
     commands:
       - cargo clippy
 
   - name: check documentation build
-    image: ekidd/rust-musl-builder:experimental-stable
-    user: root
+    image: ekidd/rust-musl-builder:1.47.0
     commands:
       - mdbook build docs/
 
   - name: install diesel cli
-    image: ekidd/rust-musl-builder:experimental-stable
-    user: root
+    image: ekidd/rust-musl-builder:1.47.0
     volumes:
       - name: dieselcli
         path: /dieselcli
@@ -35,8 +34,7 @@ steps:
       - mv /root/.cargo/bin/diesel /dieselcli/diesel
 
   - name: cargo test
-    image: ekidd/rust-musl-builder:experimental-stable
-    user: root
+    image: ekidd/rust-musl-builder:1.47.0
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
@@ -54,8 +52,7 @@ steps:
   # TODO: this uses rust 1.48.0, which doesnt work with config-rs, so federation tests fail
   # https://github.com/LemmyNet/lemmy/issues/1270
   - name: cargo build
-    image: ekidd/rust-musl-builder:experimental-stable
-    user: root
+    image: ekidd/rust-musl-builder:1.47.0
     volumes:
       - name: dieselcli
         path: /dieselcli
@@ -64,7 +61,6 @@ steps:
 
   - name: run federation tests
     image: node:15-buster-slim
-    user: root
     commands:
       - apt-get update
       - apt-get -y install --no-install-recommends bash curl postgresql-client
@@ -74,8 +70,7 @@ steps:
       - yarn api-test
 
   - name: create docker tags
-    image: ekidd/rust-musl-builder:experimental-stable
-    user: root
+    image: ekidd/rust-musl-builder:1.47.0
     commands:
       - echo "$(git describe),latest" > .tags
     when:
