@@ -14,10 +14,11 @@ steps:
     commands:
       - apt-get -y update
       - apt-get -y install --no-install-recommends espeak postgresql-client
-      - cargo check --all
-      - cargo clippy
-      - cargo test --workspace --no-fail-fast
-      - mdbook build docs/
+      - psql $LEMMY_DATABASE_URL
+      #- cargo check --all
+      #- cargo clippy
+      #- cargo test --workspace --no-fail-fast
+      #- mdbook build docs/
       
   - name: run federation tests
     image: docker/compose:alpine-1.27.4
