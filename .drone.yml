@@ -80,7 +80,9 @@ steps:
     image: node:15-alpine3.12
     user: root
     commands:
+      - ls -la
       - cd api_tests/
+      - ls -la
       - ./prepare-drone-federation-test.sh
       - yarn
       - yarn api-test
