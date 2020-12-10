@@ -75,10 +75,12 @@ steps:
         path: /dieselcli
     commands:
       - cargo build
+      - ls -la target/debug/lemmy_server
 
   - name: run federation tests
     image: node:15-alpine3.12
     commands:
+      - ls -la target/debug/lemmy_server
       - apk add bash curl
       - cd api_tests/
       - sh prepare-drone-federation-test.sh
