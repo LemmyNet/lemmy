@@ -58,6 +58,7 @@ steps:
       - name: dieselcli
         path: /dieselcli
     commands:
+      - cargo --version
       - apt-get update
       - apt-get -y install --no-install-recommends espeak postgresql-client
       - /dieselcli/diesel migration run
@@ -76,7 +77,6 @@ steps:
     commands:
       - cargo build
 
-  # TODO: lemmy config is missing
   - name: run federation tests
     image: node:15-buster-slim
     user: root
