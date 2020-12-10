@@ -76,6 +76,7 @@ steps:
     commands:
       - cargo build
 
+  # TODO: lemmy config is missing
   - name: run federation tests
     image: node:15-buster-slim
     user: root
