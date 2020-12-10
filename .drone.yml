@@ -41,6 +41,10 @@ steps:
     commands:
       - cargo install diesel_cli --no-default-features --features postgres
       - mv /root/.cargo/bin/diesel /dieselcli/diesel
+    # just to disable this temporarily
+    when:
+      ref:
+        - refs/tags/*
 
   - name: cargo test
     image: ekidd/rust-musl-builder:experimental-stable
@@ -85,7 +89,7 @@ steps:
       - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
       - echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
       - sudo apt-get update
-      - apt-get -y install --no-install-recommends yarn
+      - apt-get -y install --no-install-recommends yarn nodejs
       - mkdir -p volumes/pictrs_{alpha,beta,gamma,delta,epsilon}
       - chown -R 991:991 volumes/pictrs_{alpha,beta,gamma,delta,epsilon}
       - LEMMY_PORT=8541 cargo run &
