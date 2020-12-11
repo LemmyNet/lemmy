@@ -45,7 +45,6 @@ steps:
     image: ekidd/rust-musl-builder:1.47.0
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
-      DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: 1
       RUST_TEST_THREADS: 1
     commands:
@@ -57,17 +56,16 @@ steps:
       ref:
         - refs/tags/*
 
-  # cargo build --release
-  # mv target/x86_64-unknown-linux-musl/release/lemmy_server target/lemmy_server
   - name: cargo build
     image: ekidd/rust-musl-builder:1.47.0
     commands:
       - cargo build
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
-      - ls -la target/lemmy_server
 
   - name: run federation tests
     image: node:15-alpine3.12
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
     commands:
       - ls -la target/lemmy_server
       - apk add bash curl postgresql-client
