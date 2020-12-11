@@ -10,9 +10,9 @@ steps:
       - chown 1000:1000 . -R
 
   - name: check formatting
-    image: ekidd/rust-musl-builder:1.47.0
+    image: rustdocker/rustfmt:nightly
     commands:
-      - cargo +nightly fmt -- --check
+      - cargo fmt -- --check
 
   - name: cargo check
     image: ekidd/rust-musl-builder:1.47.0
