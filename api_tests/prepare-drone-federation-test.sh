@@ -11,6 +11,8 @@ export LEMMY_CAPTCHA__ENABLED=false
 export RUST_BACKTRACE=1
 export RUST_LOG=debug
 
+ls -la target/release/lemmy_server
+
 echo "start alpha"
 LEMMY_HOSTNAME=lemmy-alpha:8541 \
   LEMMY_PORT=8541 \
