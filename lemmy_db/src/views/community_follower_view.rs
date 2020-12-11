@@ -2,6 +2,7 @@ use crate::{
   community::{Community, CommunitySafe},
   schema::{community, community_follower, user_},
   user::{UserSafe, User_},
+  views::ViewToVec,
   ToSafe,
 };
 use diesel::{result::Error, *};
@@ -13,6 +14,8 @@ pub struct CommunityFollowerView {
   pub follower: UserSafe,
 }
 
+type CommunityFollowerViewTuple = (CommunitySafe, UserSafe);
+
 impl CommunityFollowerView {
   pub fn for_community(conn: &PgConnection, for_community_id: i32) -> Result<Vec<Self>, Error> {
     let res = community_follower::table
@@ -21,9 +24,9 @@ impl CommunityFollowerView {
       .select((Community::safe_columns_tuple(), User_::safe_columns_tuple()))
       .filter(community_follower::community_id.eq(for_community_id))
       .order_by(community_follower::published)
-      .load::<(CommunitySafe, UserSafe)>(conn)?;
+      .load::<CommunityFollowerViewTuple>(conn)?;
 
-    Ok(to_vec(res))
+    Ok(Self::to_vec(res))
   }
 
   pub fn for_user(conn: &PgConnection, for_user_id: i32) -> Result<Vec<Self>, Error> {
@@ -33,18 +36,21 @@ impl CommunityFollowerView {
       .select((Community::safe_columns_tuple(), User_::safe_columns_tuple()))
       .filter(community_follower::user_id.eq(for_user_id))
       .order_by(community_follower::published)
-      .load::<(CommunitySafe, UserSafe)>(conn)?;
+      .load::<CommunityFollowerViewTuple>(conn)?;
 
-    Ok(to_vec(res))
+    Ok(Self::to_vec(res))
   }
 }
 
-fn to_vec(users: Vec<(CommunitySafe, UserSafe)>) -> Vec<CommunityFollowerView> {
-  users
-    .iter()
-    .map(|a| CommunityFollowerView {
-      community: a.0.to_owned(),
-      follower: a.1.to_owned(),
-    })
-    .collect::<Vec<CommunityFollowerView>>()
+impl ViewToVec for CommunityFollowerView {
+  type DbTuple = CommunityFollowerViewTuple;
+  fn to_vec(users: Vec<Self::DbTuple>) -> Vec<Self> {
+    users
+      .iter()
+      .map(|a| Self {
+        community: a.0.to_owned(),
+        follower: a.1.to_owned(),
+      })
+      .collect::<Vec<Self>>()
+  }
 }

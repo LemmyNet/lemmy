@@ -4,6 +4,7 @@ use crate::{
   limit_and_offset,
   schema::{user_, user_aggregates},
   user::{UserSafe, User_},
+  views::ViewToVec,
   MaybeOptional,
   SortType,
   ToSafe,
@@ -17,18 +18,22 @@ pub struct UserViewSafe {
   pub counts: UserAggregates,
 }
 
+type UserViewSafeTuple = (UserSafe, UserAggregates);
+
 #[derive(Debug, Serialize, Clone)]
 pub struct UserViewDangerous {
   pub user: User_,
   pub counts: UserAggregates,
 }
 
+type UserViewDangerousTuple = (User_, UserAggregates);
+
 impl UserViewDangerous {
   pub fn read(conn: &PgConnection, id: i32) -> Result<Self, Error> {
     let (user, counts) = user_::table
       .find(id)
       .inner_join(user_aggregates::table)
-      .first::<(User_, UserAggregates)>(conn)?;
+      .first::<UserViewDangerousTuple>(conn)?;
     Ok(Self { user, counts })
   }
 }
@@ -39,7 +44,7 @@ impl UserViewSafe {
       .find(id)
       .inner_join(user_aggregates::table)
       .select((User_::safe_columns_tuple(), user_aggregates::all_columns))
-      .first::<(UserSafe, UserAggregates)>(conn)?;
+      .first::<UserViewSafeTuple>(conn)?;
     Ok(Self { user, counts })
   }
 
@@ -49,9 +54,9 @@ impl UserViewSafe {
       .select((User_::safe_columns_tuple(), user_aggregates::all_columns))
       .filter(user_::admin.eq(true))
       .order_by(user_::published)
-      .load::<(UserSafe, UserAggregates)>(conn)?;
+      .load::<UserViewSafeTuple>(conn)?;
 
-    Ok(to_vec(admins))
+    Ok(Self::to_vec(admins))
   }
 
   pub fn banned(conn: &PgConnection) -> Result<Vec<Self>, Error> {
@@ -59,9 +64,9 @@ impl UserViewSafe {
       .inner_join(user_aggregates::table)
       .select((User_::safe_columns_tuple(), user_aggregates::all_columns))
       .filter(user_::banned.eq(true))
-      .load::<(UserSafe, UserAggregates)>(conn)?;
+      .load::<UserViewSafeTuple>(conn)?;
 
-    Ok(to_vec(banned))
+    Ok(Self::to_vec(banned))
   }
 }
 
@@ -186,18 +191,21 @@ impl<'a> UserQueryBuilder<'a> {
     let (limit, offset) = limit_and_offset(self.page, self.limit);
     query = query.limit(limit).offset(offset);
 
-    let res = query.load::<(UserSafe, UserAggregates)>(self.conn)?;
+    let res = query.load::<UserViewSafeTuple>(self.conn)?;
 
-    Ok(to_vec(res))
+    Ok(UserViewSafe::to_vec(res))
   }
 }
 
-fn to_vec(users: Vec<(UserSafe, UserAggregates)>) -> Vec<UserViewSafe> {
-  users
-    .iter()
-    .map(|a| UserViewSafe {
-      user: a.0.to_owned(),
-      counts: a.1.to_owned(),
-    })
-    .collect::<Vec<UserViewSafe>>()
+impl ViewToVec for UserViewSafe {
+  type DbTuple = UserViewSafeTuple;
+  fn to_vec(users: Vec<Self::DbTuple>) -> Vec<Self> {
+    users
+      .iter()
+      .map(|a| Self {
+        user: a.0.to_owned(),
+        counts: a.1.to_owned(),
+      })
+      .collect::<Vec<Self>>()
+  }
 }

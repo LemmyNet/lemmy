@@ -7,6 +7,7 @@ use crate::{
   limit_and_offset,
   schema::{category, community, community_aggregates, community_follower, user_},
   user::{UserSafe, User_},
+  views::ViewToVec,
   MaybeOptional,
   SortType,
   ToSafe,
@@ -22,6 +23,14 @@ pub struct CommunityView {
   pub subscribed: bool,
   pub counts: CommunityAggregates,
 }
+
+type CommunityViewTuple = (
+  CommunitySafe,
+  UserSafe,
+  Category,
+  CommunityAggregates,
+  Option<CommunityFollower>,
+);
 
 impl CommunityView {
   pub fn read(
@@ -51,13 +60,7 @@ impl CommunityView {
         community_aggregates::all_columns,
         community_follower::all_columns.nullable(),
       ))
-      .first::<(
-        CommunitySafe,
-        UserSafe,
-        Category,
-        CommunityAggregates,
-        Option<CommunityFollower>,
-      )>(conn)?;
+      .first::<CommunityViewTuple>(conn)?;
 
     Ok(CommunityView {
       community,
@@ -270,35 +273,24 @@ impl<'a> CommunityQueryBuilder<'a> {
       .offset(offset)
       .filter(community::removed.eq(false))
       .filter(community::deleted.eq(false))
-      .load::<(
-        CommunitySafe,
-        UserSafe,
-        Category,
-        CommunityAggregates,
-        Option<CommunityFollower>,
-      )>(self.conn)?;
+      .load::<CommunityViewTuple>(self.conn)?;
 
-    Ok(to_vec(res))
+    Ok(CommunityView::to_vec(res))
   }
 }
 
-fn to_vec(
-  users: Vec<(
-    CommunitySafe,
-    UserSafe,
-    Category,
-    CommunityAggregates,
-    Option<CommunityFollower>,
-  )>,
-) -> Vec<CommunityView> {
-  users
-    .iter()
-    .map(|a| CommunityView {
-      community: a.0.to_owned(),
-      creator: a.1.to_owned(),
-      category: a.2.to_owned(),
-      counts: a.3.to_owned(),
-      subscribed: a.4.is_some(),
-    })
-    .collect::<Vec<CommunityView>>()
+impl ViewToVec for CommunityView {
+  type DbTuple = CommunityViewTuple;
+  fn to_vec(communities: Vec<Self::DbTuple>) -> Vec<Self> {
+    communities
+      .iter()
+      .map(|a| Self {
+        community: a.0.to_owned(),
+        creator: a.1.to_owned(),
+        category: a.2.to_owned(),
+        counts: a.3.to_owned(),
+        subscribed: a.4.is_some(),
+      })
+      .collect::<Vec<Self>>()
+  }
 }

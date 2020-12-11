@@ -17,6 +17,7 @@ use crate::{
     user_,
   },
   user::{UserSafe, User_},
+  views::ViewToVec,
   ListingType,
   MaybeOptional,
   SortType,
@@ -38,7 +39,7 @@ pub struct PostView {
   pub my_vote: Option<i16>,        // Left join to PostLike
 }
 
-type OutputTuple = (
+type PostViewTuple = (
   Post,
   UserSafe,
   CommunitySafe,
@@ -107,7 +108,7 @@ impl PostView {
           post_read::all_columns.nullable(),
           post_like::score.nullable(),
         ))
-        .first::<OutputTuple>(conn)?;
+        .first::<PostViewTuple>(conn)?;
 
     Ok(PostView {
       post,
@@ -551,26 +552,28 @@ impl<'a> PostQueryBuilder<'a> {
       .filter(post::deleted.eq(false))
       .filter(community::removed.eq(false))
       .filter(community::deleted.eq(false))
-      .load::<OutputTuple>(self.conn)?;
+      .load::<PostViewTuple>(self.conn)?;
 
-    Ok(to_vec(res))
+    Ok(PostView::to_vec(res))
   }
 }
 
-// TODO turn this into a trait with an associated type
-fn to_vec(posts: Vec<OutputTuple>) -> Vec<PostView> {
-  posts
-    .iter()
-    .map(|a| PostView {
-      post: a.0.to_owned(),
-      creator: a.1.to_owned(),
-      community: a.2.to_owned(),
-      counts: a.3.to_owned(),
-      subscribed: a.4.is_some(),
-      banned_from_community: a.5.is_some(),
-      saved: a.6.is_some(),
-      read: a.7.is_some(),
-      my_vote: a.8,
-    })
-    .collect::<Vec<PostView>>()
+impl ViewToVec for PostView {
+  type DbTuple = PostViewTuple;
+  fn to_vec(posts: Vec<Self::DbTuple>) -> Vec<Self> {
+    posts
+      .iter()
+      .map(|a| Self {
+        post: a.0.to_owned(),
+        creator: a.1.to_owned(),
+        community: a.2.to_owned(),
+        counts: a.3.to_owned(),
+        subscribed: a.4.is_some(),
+        banned_from_community: a.5.is_some(),
+        saved: a.6.is_some(),
+        read: a.7.is_some(),
+        my_vote: a.8,
+      })
+      .collect::<Vec<Self>>()
+  }
 }
