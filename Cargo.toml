@@ -49,6 +49,7 @@ reqwest = { version = "0.10", features = ["json"] }
 activitystreams = "0.7.0-alpha.4"
 actix-rt = { version = "1.1", default-features = false }
 serde_json = { version = "1.0", features = ["preserve_order"]}
+ctor = "0.1.16"
 
 [dev-dependencies.cargo-husky]
 version = "1"

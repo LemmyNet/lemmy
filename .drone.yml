@@ -34,9 +34,6 @@ steps:
     commands:
       - sudo apt-get update
       - sudo apt-get -y install --no-install-recommends espeak postgresql-client
-      - cargo install diesel_cli --no-default-features --features postgres --target-dir target/
-      - ls -la target/
-      - ./target/diesel migration run
       - cargo test --workspace --no-fail-fast
 
   - name: cargo build

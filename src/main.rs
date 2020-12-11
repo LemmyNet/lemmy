@@ -92,3 +92,12 @@ async fn main() -> Result<(), LemmyError> {
 
   Ok(())
 }
+
+#[cfg(test)]
+#[ctor::ctor]
+fn init() {
+  use lemmy_db::tests::establish_unpooled_connection;
+  let conn = establish_unpooled_connection();
+    embedded_migrations::run(&conn).unwrap();
+    run_advanced_migrations(&conn).unwrap();
+}

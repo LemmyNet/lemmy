@@ -214,7 +214,7 @@ lazy_static! {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
   use super::fuzzy_search;
   use crate::{get_database_url_from_env, is_email_regex};
   use diesel::{Connection, PgConnection};
