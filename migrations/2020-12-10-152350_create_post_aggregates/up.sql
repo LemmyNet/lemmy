@@ -66,9 +66,12 @@ begin
     newest_comment_time = NEW.published
     where pa.post_id = NEW.post_id;
   ELSIF (TG_OP = 'DELETE') THEN
+    -- Join to post because that post may not exist anymore
     update post_aggregates pa
     set comments = comments - 1
-    where pa.post_id = OLD.post_id;
+    from post p
+    where pa.post_id = p.id
+    and pa.post_id = OLD.post_id;
   END IF;
   return null;
 end $$;
@@ -91,11 +94,14 @@ begin
     where pa.post_id = NEW.post_id;
 
   ELSIF (TG_OP = 'DELETE') THEN
+    -- Join to post because that post may not exist anymore
     update post_aggregates pa
     set score = score - OLD.score,
     upvotes = case when OLD.score = 1 then upvotes - 1 else upvotes end,
     downvotes = case when OLD.score = -1 then downvotes - 1 else downvotes end
-    where pa.post_id = OLD.post_id;
+    from post p
+    where pa.post_id = p.id
+    and pa.post_id = OLD.post_id;
 
   END IF;
   return null;
