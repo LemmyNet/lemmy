@@ -6,10 +6,12 @@ use lemmy_api::claims::Claims;
 use lemmy_db::{
   comment_view::{ReplyQueryBuilder, ReplyView},
   community::Community,
-  post_view::{PostQueryBuilder, PostView},
   user::User_,
   user_mention_view::{UserMentionQueryBuilder, UserMentionView},
-  views::site_view::SiteView,
+  views::{
+    post_view::{PostQueryBuilder, PostView},
+    site_view::SiteView,
+  },
   ListingType,
   SortType,
 };
@@ -82,7 +84,7 @@ async fn get_feed_data(
 
   let listing_type_ = listing_type.clone();
   let posts = blocking(context.pool(), move |conn| {
-    PostQueryBuilder::create(&conn)
+    PostQueryBuilder::create(&conn, None)
       .listing_type(&listing_type_)
       .sort(&sort_type)
       .list()
@@ -164,7 +166,7 @@ fn get_feed_user(
   let user = User_::find_by_username(&conn, &user_name)?;
   let user_url = user.get_profile_url(&Settings::get().hostname);
 
-  let posts = PostQueryBuilder::create(&conn)
+  let posts = PostQueryBuilder::create(&conn, None)
     .listing_type(&ListingType::All)
     .sort(sort_type)
     .for_creator_id(user.id)
@@ -190,7 +192,7 @@ fn get_feed_community(
   let site_view = SiteView::read(&conn)?;
   let community = Community::read_from_name(&conn, &community_name)?;
 
-  let posts = PostQueryBuilder::create(&conn)
+  let posts = PostQueryBuilder::create(&conn, None)
     .listing_type(&ListingType::All)
     .sort(sort_type)
     .for_community_id(community.id)
@@ -220,10 +222,9 @@ fn get_feed_front(
   let site_view = SiteView::read(&conn)?;
   let user_id = Claims::decode(&jwt)?.claims.id;
 
-  let posts = PostQueryBuilder::create(&conn)
+  let posts = PostQueryBuilder::create(&conn, Some(user_id))
     .listing_type(&ListingType::Subscribed)
     .sort(sort_type)
-    .my_user_id(user_id)
     .list()?;
 
   let items = create_post_items(posts)?;
@@ -349,17 +350,17 @@ fn create_post_items(posts: Vec<PostView>) -> Result<Vec<Item>, LemmyError> {
     let mut i = ItemBuilder::default();
     let mut dc_extension = DublinCoreExtensionBuilder::default();
 
-    i.title(p.name);
+    i.title(p.post.name);
 
-    dc_extension.creators(vec![p.creator_actor_id.to_owned()]);
+    dc_extension.creators(vec![p.creator.actor_id.to_owned()]);
 
-    let dt = DateTime::<Utc>::from_utc(p.published, Utc);
+    let dt = DateTime::<Utc>::from_utc(p.post.published, Utc);
     i.pub_date(dt.to_rfc2822());
 
     let post_url = format!(
       "{}/post/{}",
       Settings::get().get_protocol_and_hostname(),
-      p.id
+      p.post.id
     );
     i.comments(post_url.to_owned());
     let guid = GuidBuilder::default()
@@ -372,27 +373,27 @@ fn create_post_items(posts: Vec<PostView>) -> Result<Vec<Item>, LemmyError> {
     let community_url = format!(
       "{}/c/{}",
       Settings::get().get_protocol_and_hostname(),
-      p.community_name
+      p.community.name
     );
 
     // TODO: for category we should just put the name of the category, but then we would have
     //       to read each community from the db
 
-    if let Some(url) = p.url {
+    if let Some(url) = p.post.url {
       i.link(url);
     }
 
     // TODO add images
     let mut description = format!("submitted by <a href=\"{}\">{}</a> to <a href=\"{}\">{}</a><br>{} points | <a href=\"{}\">{} comments</a>",
-    p.creator_actor_id,
-    p.creator_name,
+    p.creator.actor_id,
+    p.creator.name,
     community_url,
-    p.community_name,
-    p.score,
+    p.community.name,
+    p.counts.score,
     post_url,
-    p.number_of_comments);
+    p.counts.comments);
 
-    if let Some(body) = p.body {
+    if let Some(body) = p.post.body {
       let html = markdown_to_html(&body);
       description.push_str(&html);
     }

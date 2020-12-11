@@ -368,22 +368,28 @@ impl ChatServer {
   pub fn send_post(
     &self,
     user_operation: &UserOperation,
-    post: &PostResponse,
+    post_res: &PostResponse,
     websocket_id: Option<ConnectionId>,
   ) -> Result<(), LemmyError> {
-    let community_id = post.post.community_id;
+    let community_id = post_res.post_view.community.id;
 
     // Don't send my data with it
-    let mut post_sent = post.clone();
-    post_sent.post.my_vote = None;
-    post_sent.post.user_id = None;
+    // TODO no idea what to do here
+    // let mut post_sent = post_res.clone();
+    // post_sent.post.my_vote = None;
+    // post_sent.post.user_id = None;
 
     // Send it to /c/all and that community
-    self.send_community_room_message(user_operation, &post_sent, 0, websocket_id)?;
-    self.send_community_room_message(user_operation, &post_sent, community_id, websocket_id)?;
+    self.send_community_room_message(user_operation, &post_res, 0, websocket_id)?;
+    self.send_community_room_message(user_operation, &post_res, community_id, websocket_id)?;
 
     // Send it to the post room
-    self.send_post_room_message(user_operation, &post_sent, post.post.id, websocket_id)?;
+    self.send_post_room_message(
+      user_operation,
+      &post_res,
+      post_res.post_view.post.id,
+      websocket_id,
+    )?;
 
     Ok(())
   }

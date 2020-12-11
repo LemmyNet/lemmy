@@ -25,7 +25,6 @@ use lemmy_db::{
   password_reset_request::*,
   post::*,
   post_report::PostReportView,
-  post_view::*,
   private_message::*,
   private_message_view::*,
   site::*,
@@ -35,6 +34,7 @@ use lemmy_db::{
   views::{
     community_follower_view::CommunityFollowerView,
     community_moderator_view::CommunityModeratorView,
+    post_view::PostQueryBuilder,
     site_view::SiteView,
     user_view::{UserViewDangerous, UserViewSafe},
   },
@@ -534,12 +534,11 @@ impl Perform for GetUserDetails {
     let community_id = data.community_id;
 
     let (posts, comments) = blocking(context.pool(), move |conn| {
-      let mut posts_query = PostQueryBuilder::create(conn)
+      let mut posts_query = PostQueryBuilder::create(conn, user_id)
         .sort(&sort)
         .show_nsfw(show_nsfw)
         .saved_only(saved_only)
         .for_community_id(community_id)
-        .my_user_id(user_id)
         .page(page)
         .limit(limit);
 

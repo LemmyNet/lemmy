@@ -3,9 +3,13 @@ use lemmy_db::{
   category::*,
   comment_view::*,
   moderator_views::*,
-  post_view::*,
   user::*,
-  views::{community_view::CommunityView, site_view::SiteView, user_view::UserViewSafe},
+  views::{
+    community_view::CommunityView,
+    post_view::PostView,
+    site_view::SiteView,
+    user_view::UserViewSafe,
+  },
 };
 use serde::{Deserialize, Serialize};
 

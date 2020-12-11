@@ -26,26 +26,26 @@ use crate::{
 use diesel::{result::Error, *};
 use serde::Serialize;
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Clone)]
 pub struct PostView {
   pub post: Post,
   pub creator: UserSafe,
   pub community: CommunitySafe,
   pub counts: PostAggregates,
-  pub subscribed: bool,            // Left join to CommunityFollower
-  pub banned_from_community: bool, // Left Join to CommunityUserBan
-  pub saved: bool,                 // Left join to PostSaved
-  pub read: bool,                  // Left join to PostRead
-  pub my_vote: Option<i16>,        // Left join to PostLike
+  pub subscribed: bool,                    // Left join to CommunityFollower
+  pub creator_banned_from_community: bool, // Left Join to CommunityUserBan
+  pub saved: bool,                         // Left join to PostSaved
+  pub read: bool,                          // Left join to PostRead
+  pub my_vote: Option<i16>,                // Left join to PostLike
 }
 
 type PostViewTuple = (
   Post,
   UserSafe,
   CommunitySafe,
+  Option<CommunityUserBan>,
   PostAggregates,
   Option<CommunityFollower>,
-  Option<CommunityUserBan>,
   Option<PostSaved>,
   Option<PostRead>,
   Option<i16>,
@@ -56,67 +56,76 @@ impl PostView {
     // The left join below will return None in this case
     let user_id_join = my_user_id.unwrap_or(-1);
 
-    let (post, creator, community, counts, follower, banned_from_community, saved, read, my_vote) =
-      post::table
-        .find(post_id)
-        .inner_join(user_::table)
-        .inner_join(community::table)
-        .inner_join(post_aggregates::table)
-        .left_join(
-          community_follower::table.on(
-            post::community_id
-              .eq(community_follower::community_id)
-              .and(community_follower::user_id.eq(user_id_join)),
-          ),
-        )
-        .left_join(
-          community_user_ban::table.on(
-            post::community_id
-              .eq(community_user_ban::community_id)
-              .and(community_user_ban::user_id.eq(user_id_join)),
-          ),
-        )
-        .left_join(
-          post_saved::table.on(
-            post::id
-              .eq(post_saved::post_id)
-              .and(post_saved::user_id.eq(user_id_join)),
-          ),
-        )
-        .left_join(
-          post_read::table.on(
-            post::id
-              .eq(post_read::post_id)
-              .and(post_read::user_id.eq(user_id_join)),
-          ),
-        )
-        .left_join(
-          post_like::table.on(
-            post::id
-              .eq(post_like::post_id)
-              .and(post_like::user_id.eq(user_id_join)),
-          ),
-        )
-        .select((
-          post::all_columns,
-          User_::safe_columns_tuple(),
-          Community::safe_columns_tuple(),
-          post_aggregates::all_columns,
-          community_follower::all_columns.nullable(),
-          community_user_ban::all_columns.nullable(),
-          post_saved::all_columns.nullable(),
-          post_read::all_columns.nullable(),
-          post_like::score.nullable(),
-        ))
-        .first::<PostViewTuple>(conn)?;
+    let (
+      post,
+      creator,
+      community,
+      creator_banned_from_community,
+      counts,
+      follower,
+      saved,
+      read,
+      my_vote,
+    ) = post::table
+      .find(post_id)
+      .inner_join(user_::table)
+      .inner_join(community::table)
+      .left_join(
+        community_user_ban::table.on(
+          post::community_id
+            .eq(community_user_ban::community_id)
+            .and(community_user_ban::user_id.eq(community::creator_id)),
+        ),
+      )
+      .inner_join(post_aggregates::table)
+      .left_join(
+        community_follower::table.on(
+          post::community_id
+            .eq(community_follower::community_id)
+            .and(community_follower::user_id.eq(user_id_join)),
+        ),
+      )
+      .left_join(
+        post_saved::table.on(
+          post::id
+            .eq(post_saved::post_id)
+            .and(post_saved::user_id.eq(user_id_join)),
+        ),
+      )
+      .left_join(
+        post_read::table.on(
+          post::id
+            .eq(post_read::post_id)
+            .and(post_read::user_id.eq(user_id_join)),
+        ),
+      )
+      .left_join(
+        post_like::table.on(
+          post::id
+            .eq(post_like::post_id)
+            .and(post_like::user_id.eq(user_id_join)),
+        ),
+      )
+      .select((
+        post::all_columns,
+        User_::safe_columns_tuple(),
+        Community::safe_columns_tuple(),
+        community_user_ban::all_columns.nullable(),
+        post_aggregates::all_columns,
+        community_follower::all_columns.nullable(),
+        post_saved::all_columns.nullable(),
+        post_read::all_columns.nullable(),
+        post_like::score.nullable(),
+      ))
+      .first::<PostViewTuple>(conn)?;
 
     Ok(PostView {
       post,
       creator,
       community,
+      creator_banned_from_community: creator_banned_from_community.is_some(),
       counts,
       subscribed: follower.is_some(),
-      banned_from_community: banned_from_community.is_some(),
       saved: saved.is_some(),
       read: read.is_some(),
       my_vote,
@@ -143,7 +152,7 @@ mod join_types {
     sql_types::*,
   };
 
-  /// TODO awful, but necessary because of the boxed join
+  // /// TODO awful, but necessary because of the boxed join
   pub(super) type BoxedPostJoin<'a> = BoxedSelectStatement<
     'a,
     (
@@ -201,9 +210,9 @@ mod join_types {
         Nullable<Text>,
         Nullable<Text>,
       ),
+      Nullable<(Integer, Integer, Integer, Timestamp)>,
       (Integer, Integer, BigInt, BigInt, BigInt, BigInt, Timestamp),
       Nullable<(Integer, Integer, Integer, Timestamp, Nullable<Bool>)>,
-      Nullable<(Integer, Integer, Integer, Timestamp)>,
       Nullable<(Integer, Integer, Integer, Timestamp)>,
       Nullable<(Integer, Integer, Integer, Timestamp)>,
       Nullable<SmallInt>,
@@ -239,41 +248,39 @@ mod join_types {
                                 diesel::expression::nullable::Nullable<community::columns::id>,
                               >,
                             >,
-                            post_aggregates::table,
-                            Inner,
+                            community_user_ban::table,
+                            LeftOuter,
                           >,
-                          diesel::expression::operators::Eq<
-                            diesel::expression::nullable::Nullable<
-                              post_aggregates::columns::post_id,
+                          diesel::expression::operators::And<
+                            diesel::expression::operators::Eq<
+                              post::columns::community_id,
+                              community_user_ban::columns::community_id,
                             >,
-                            diesel::expression::nullable::Nullable<post::columns::id>,
+                            diesel::expression::operators::Eq<
+                              community_user_ban::columns::user_id,
+                              community::columns::creator_id,
+                            >,
                           >,
                         >,
-                        community_follower::table,
-                        LeftOuter,
+                        post_aggregates::table,
+                        Inner,
                       >,
-                      diesel::expression::operators::And<
-                        diesel::expression::operators::Eq<
-                          post::columns::community_id,
-                          community_follower::columns::community_id,
-                        >,
-                        diesel::expression::operators::Eq<
-                          community_follower::columns::user_id,
-                          diesel::expression::bound::Bound<diesel::sql_types::Integer, i32>,
-                        >,
+                      diesel::expression::operators::Eq<
+                        diesel::expression::nullable::Nullable<post_aggregates::columns::post_id>,
+                        diesel::expression::nullable::Nullable<post::columns::id>,
                       >,
                     >,
-                    community_user_ban::table,
+                    community_follower::table,
                     LeftOuter,
                   >,
                   diesel::expression::operators::And<
                     diesel::expression::operators::Eq<
                       post::columns::community_id,
-                      community_user_ban::columns::community_id,
+                      community_follower::columns::community_id,
                     >,
                     diesel::expression::operators::Eq<
-                      community_user_ban::columns::user_id,
-                      diesel::expression::bound::Bound<diesel::sql_types::Integer, i32>,
+                      community_follower::columns::user_id,
+                      diesel::expression::bound::Bound<Integer, i32>,
                     >,
                   >,
                 >,
@@ -284,7 +291,7 @@ mod join_types {
                 diesel::expression::operators::Eq<post::columns::id, post_saved::columns::post_id>,
                 diesel::expression::operators::Eq<
                   post_saved::columns::user_id,
-                  diesel::expression::bound::Bound<diesel::sql_types::Integer, i32>,
+                  diesel::expression::bound::Bound<Integer, i32>,
                 >,
               >,
             >,
@@ -295,7 +302,7 @@ mod join_types {
             diesel::expression::operators::Eq<post::columns::id, post_read::columns::post_id>,
             diesel::expression::operators::Eq<
               post_read::columns::user_id,
-              diesel::expression::bound::Bound<diesel::sql_types::Integer, i32>,
+              diesel::expression::bound::Bound<Integer, i32>,
             >,
           >,
         >,
@@ -306,7 +313,7 @@ mod join_types {
         diesel::expression::operators::Eq<post::columns::id, post_like::columns::post_id>,
         diesel::expression::operators::Eq<
           post_like::columns::user_id,
-          diesel::expression::bound::Bound<diesel::sql_types::Integer, i32>,
+          diesel::expression::bound::Bound<Integer, i32>,
         >,
       >,
     >,
@@ -339,19 +346,19 @@ impl<'a> PostQueryBuilder<'a> {
     let query = post::table
       .inner_join(user_::table)
       .inner_join(community::table)
+      .left_join(
+        community_user_ban::table.on(
+          post::community_id
+            .eq(community_user_ban::community_id)
+            .and(community_user_ban::user_id.eq(community::creator_id)),
+        ),
+      )
       .inner_join(post_aggregates::table)
       .left_join(
         community_follower::table.on(
           post::community_id
             .eq(community_follower::community_id)
             .and(community_follower::user_id.eq(user_id_join)),
-        ),
-      )
-      .left_join(
-        community_user_ban::table.on(
-          post::community_id
-            .eq(community_user_ban::community_id)
-            .and(community_user_ban::user_id.eq(user_id_join)),
         ),
       )
       .left_join(
@@ -379,9 +386,9 @@ impl<'a> PostQueryBuilder<'a> {
         post::all_columns,
         User_::safe_columns_tuple(),
         Community::safe_columns_tuple(),
+        community_user_ban::all_columns.nullable(),
         post_aggregates::all_columns,
         community_follower::all_columns.nullable(),
-        community_user_ban::all_columns.nullable(),
         post_saved::all_columns.nullable(),
         post_read::all_columns.nullable(),
         post_like::score.nullable(),
@@ -567,13 +574,245 @@ impl ViewToVec for PostView {
         post: a.0.to_owned(),
         creator: a.1.to_owned(),
         community: a.2.to_owned(),
-        counts: a.3.to_owned(),
-        subscribed: a.4.is_some(),
-        banned_from_community: a.5.is_some(),
+        creator_banned_from_community: a.3.is_some(),
+        counts: a.4.to_owned(),
+        subscribed: a.5.is_some(),
         saved: a.6.is_some(),
         read: a.7.is_some(),
         my_vote: a.8,
       })
       .collect::<Vec<Self>>()
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use crate::{
+    aggregates::post_aggregates::PostAggregates,
+    community::*,
+    post::*,
+    tests::establish_unpooled_connection,
+    user::*,
+    views::post_view::{PostQueryBuilder, PostView},
+    Crud,
+    Likeable,
+    *,
+  };
+
+  #[test]
+  fn test_crud() {
+    let conn = establish_unpooled_connection();
+
+    let user_name = "tegan".to_string();
+    let community_name = "test_community_3".to_string();
+    let post_name = "test post 3".to_string();
+
+    let new_user = UserForm {
+      name: user_name.to_owned(),
+      preferred_username: None,
+      password_encrypted: "nope".into(),
+      email: None,
+      matrix_user_id: None,
+      avatar: None,
+      banner: None,
+      published: None,
+      updated: None,
+      admin: false,
+      banned: Some(false),
+      show_nsfw: false,
+      theme: "browser".into(),
+      default_sort_type: SortType::Hot as i16,
+      default_listing_type: ListingType::Subscribed as i16,
+      lang: "browser".into(),
+      show_avatars: true,
+      send_notifications_to_email: false,
+      actor_id: None,
+      bio: None,
+      local: true,
+      private_key: None,
+      public_key: None,
+      last_refreshed_at: None,
+    };
+
+    let inserted_user = User_::create(&conn, &new_user).unwrap();
+
+    let new_community = CommunityForm {
+      name: community_name.to_owned(),
+      title: "nada".to_owned(),
+      description: None,
+      creator_id: inserted_user.id,
+      category_id: 1,
+      removed: None,
+      deleted: None,
+      updated: None,
+      nsfw: false,
+      actor_id: None,
+      local: true,
+      private_key: None,
+      public_key: None,
+      last_refreshed_at: None,
+      published: None,
+      icon: None,
+      banner: None,
+    };
+
+    let inserted_community = Community::create(&conn, &new_community).unwrap();
+
+    let new_post = PostForm {
+      name: post_name.to_owned(),
+      url: None,
+      body: None,
+      creator_id: inserted_user.id,
+      community_id: inserted_community.id,
+      removed: None,
+      deleted: None,
+      locked: None,
+      stickied: None,
+      updated: None,
+      nsfw: false,
+      embed_title: None,
+      embed_description: None,
+      embed_html: None,
+      thumbnail_url: None,
+      ap_id: None,
+      local: true,
+      published: None,
+    };
+
+    let inserted_post = Post::create(&conn, &new_post).unwrap();
+
+    let post_like_form = PostLikeForm {
+      post_id: inserted_post.id,
+      user_id: inserted_user.id,
+      score: 1,
+    };
+
+    let inserted_post_like = PostLike::like(&conn, &post_like_form).unwrap();
+
+    let expected_post_like = PostLike {
+      id: inserted_post_like.id,
+      post_id: inserted_post.id,
+      user_id: inserted_user.id,
+      published: inserted_post_like.published,
+      score: 1,
+    };
+
+    let read_post_listings_with_user = PostQueryBuilder::create(&conn, Some(inserted_user.id))
+      .listing_type(&ListingType::Community)
+      .sort(&SortType::New)
+      .for_community_id(inserted_community.id)
+      .list()
+      .unwrap();
+
+    let read_post_listings_no_user = PostQueryBuilder::create(&conn, None)
+      .listing_type(&ListingType::Community)
+      .sort(&SortType::New)
+      .for_community_id(inserted_community.id)
+      .list()
+      .unwrap();
+
+    let read_post_listing_no_user = PostView::read(&conn, inserted_post.id, None).unwrap();
+    let read_post_listing_with_user =
+      PostView::read(&conn, inserted_post.id, Some(inserted_user.id)).unwrap();
+
+    // the non user version
+    let expected_post_listing_no_user = PostView {
+      post: Post {
+        id: inserted_post.id,
+        name: post_name.to_owned(),
+        creator_id: inserted_user.id,
+        url: None,
+        body: None,
+        published: inserted_post.published,
+        updated: None,
+        community_id: inserted_community.id,
+        removed: false,
+        deleted: false,
+        locked: false,
+        stickied: false,
+        nsfw: false,
+        embed_title: None,
+        embed_description: None,
+        embed_html: None,
+        thumbnail_url: None,
+        ap_id: inserted_post.ap_id.to_owned(),
+        local: true,
+      },
+      my_vote: None,
+      creator: UserSafe {
+        id: inserted_user.id,
+        name: user_name.to_owned(),
+        preferred_username: None,
+        published: inserted_user.published,
+        avatar: None,
+        actor_id: inserted_user.actor_id.to_owned(),
+        local: true,
+        banned: false,
+        deleted: false,
+        bio: None,
+        banner: None,
+        admin: false,
+        updated: None,
+        matrix_user_id: None,
+      },
+      creator_banned_from_community: false,
+      community: CommunitySafe {
+        id: inserted_community.id,
+        name: community_name.to_owned(),
+        icon: None,
+        removed: false,
+        deleted: false,
+        nsfw: false,
+        actor_id: inserted_community.actor_id.to_owned(),
+        local: true,
+        title: "nada".to_owned(),
+        description: None,
+        creator_id: inserted_user.id,
+        category_id: 1,
+        updated: None,
+        banner: None,
+        published: inserted_community.published,
+      },
+      counts: PostAggregates {
+        id: inserted_post.id, // TODO this might fail
+        post_id: inserted_post.id,
+        comments: 0,
+        score: 1,
+        upvotes: 1,
+        downvotes: 0,
+        newest_comment_time: inserted_post.published,
+      },
+      subscribed: false,
+      read: false,
+      saved: false,
+    };
+
+    // TODO More needs to be added here
+    let mut expected_post_listing_with_user = expected_post_listing_no_user.to_owned();
+    expected_post_listing_with_user.my_vote = Some(1);
+
+    let like_removed = PostLike::remove(&conn, inserted_user.id, inserted_post.id).unwrap();
+    let num_deleted = Post::delete(&conn, inserted_post.id).unwrap();
+    Community::delete(&conn, inserted_community.id).unwrap();
+    User_::delete(&conn, inserted_user.id).unwrap();
+
+    // The with user
+    assert_eq!(
+      expected_post_listing_with_user,
+      read_post_listings_with_user[0]
+    );
+    assert_eq!(expected_post_listing_with_user, read_post_listing_with_user);
+    assert_eq!(1, read_post_listings_with_user.len());
+
+    // Without the user
+    assert_eq!(expected_post_listing_no_user, read_post_listings_no_user[0]);
+    assert_eq!(expected_post_listing_no_user, read_post_listing_no_user);
+    assert_eq!(1, read_post_listings_no_user.len());
+
+    // assert_eq!(expected_post, inserted_post);
+    // assert_eq!(expected_post, updated_post);
+    assert_eq!(expected_post_like, inserted_post_like);
+    assert_eq!(1, like_removed);
+    assert_eq!(1, num_deleted);
   }
 }

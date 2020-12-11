@@ -1,8 +1,11 @@
 use lemmy_db::{
   comment_view::CommentView,
   post_report::PostReportView,
-  post_view::PostView,
-  views::{community_moderator_view::CommunityModeratorView, community_view::CommunityView},
+  views::{
+    community_moderator_view::CommunityModeratorView,
+    community_view::CommunityView,
+    post_view::PostView,
+  },
 };
 use serde::{Deserialize, Serialize};
 
@@ -18,7 +21,7 @@ pub struct CreatePost {
 
 #[derive(Serialize, Clone)]
 pub struct PostResponse {
-  pub post: PostView,
+  pub post_view: PostView,
 }
 
 #[derive(Deserialize)]
@@ -29,7 +32,7 @@ pub struct GetPost {
 
 #[derive(Serialize)]
 pub struct GetPostResponse {
-  pub post: PostView,
+  pub post_view: PostView,
   pub comments: Vec<CommentView>,
   pub community: CommunityView,
   pub moderators: Vec<CommunityModeratorView>,

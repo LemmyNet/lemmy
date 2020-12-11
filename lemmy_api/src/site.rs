@@ -17,10 +17,10 @@ use lemmy_db::{
   moderator::*,
   moderator_views::*,
   naive_now,
-  post_view::*,
   site::*,
   views::{
     community_view::CommunityQueryBuilder,
+    post_view::PostQueryBuilder,
     site_view::SiteView,
     user_view::{UserQueryBuilder, UserViewSafe},
   },
@@ -365,13 +365,12 @@ impl Perform for Search {
     match type_ {
       SearchType::Posts => {
         posts = blocking(context.pool(), move |conn| {
-          PostQueryBuilder::create(conn)
+          PostQueryBuilder::create(conn, user_id)
             .sort(&sort)
             .show_nsfw(true)
             .for_community_id(community_id)
             .for_community_name(community_name)
             .search_term(q)
-            .my_user_id(user_id)
             .page(page)
             .limit(limit)
             .list()
@@ -414,13 +413,12 @@ impl Perform for Search {
       }
       SearchType::All => {
         posts = blocking(context.pool(), move |conn| {
-          PostQueryBuilder::create(conn)
+          PostQueryBuilder::create(conn, user_id)
             .sort(&sort)
             .show_nsfw(true)
             .for_community_id(community_id)
             .for_community_name(community_name)
             .search_term(q)
-            .my_user_id(user_id)
             .page(page)
             .limit(limit)
             .list()
@@ -469,7 +467,7 @@ impl Perform for Search {
       }
       SearchType::Url => {
         posts = blocking(context.pool(), move |conn| {
-          PostQueryBuilder::create(conn)
+          PostQueryBuilder::create(conn, None)
             .sort(&sort)
             .show_nsfw(true)
             .for_community_id(community_id)

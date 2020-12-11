@@ -6,7 +6,7 @@ use activitystreams::{
 use anyhow::Context;
 use lemmy_db::{
   post::{Post, PostLike, PostLikeForm},
-  post_view::PostView,
+  views::post_view::PostView,
   Likeable,
 };
 use lemmy_structs::{blocking, post::PostResponse};
@@ -31,7 +31,7 @@ pub(crate) async fn receive_create_post(
   })
   .await??;
 
-  let res = PostResponse { post: post_view };
+  let res = PostResponse { post_view };
 
   context.chat_server().do_send(SendPost {
     op: UserOperation::CreatePost,
@@ -60,7 +60,7 @@ pub(crate) async fn receive_update_post(
   })
   .await??;
 
-  let res = PostResponse { post: post_view };
+  let res = PostResponse { post_view };
 
   context.chat_server().do_send(SendPost {
     op: UserOperation::EditPost,
@@ -98,7 +98,7 @@ pub(crate) async fn receive_like_post(
   })
   .await??;
 
-  let res = PostResponse { post: post_view };
+  let res = PostResponse { post_view };
 
   context.chat_server().do_send(SendPost {
     op: UserOperation::CreatePostLike,
@@ -136,7 +136,7 @@ pub(crate) async fn receive_dislike_post(
   })
   .await??;
 
-  let res = PostResponse { post: post_view };
+  let res = PostResponse { post_view };
 
   context.chat_server().do_send(SendPost {
     op: UserOperation::CreatePostLike,
@@ -163,7 +163,7 @@ pub(crate) async fn receive_delete_post(
   })
   .await??;
 
-  let res = PostResponse { post: post_view };
+  let res = PostResponse { post_view };
   context.chat_server().do_send(SendPost {
     op: UserOperation::EditPost,
     post: res,
@@ -190,7 +190,7 @@ pub(crate) async fn receive_remove_post(
   })
   .await??;
 
-  let res = PostResponse { post: post_view };
+  let res = PostResponse { post_view };
   context.chat_server().do_send(SendPost {
     op: UserOperation::EditPost,
     post: res,

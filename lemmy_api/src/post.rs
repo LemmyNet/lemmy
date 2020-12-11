@@ -15,10 +15,10 @@ use lemmy_db::{
   naive_now,
   post::*,
   post_report::*,
-  post_view::*,
   views::{
     community_moderator_view::CommunityModeratorView,
     community_view::CommunityView,
+    post_view::{PostQueryBuilder, PostView},
     site_view::SiteView,
   },
   Crud,
@@ -145,7 +145,7 @@ impl Perform for CreatePost {
       Err(_e) => return Err(APIError::err("couldnt_find_post").into()),
     };
 
-    let res = PostResponse { post: post_view };
+    let res = PostResponse { post_view };
 
     context.chat_server().do_send(SendPost {
       op: UserOperation::CreatePost,
@@ -190,13 +190,13 @@ impl Perform for GetPost {
     })
     .await??;
 
-    let community_id = post_view.community_id;
+    let community_id = post_view.community.id;
     let community = blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, user_id)
     })
     .await??;
 
-    let community_id = post_view.community_id;
+    let community_id = post_view.community.id;
     let moderators = blocking(context.pool(), move |conn| {
       CommunityModeratorView::for_community(conn, community_id)
     })
@@ -210,7 +210,7 @@ impl Perform for GetPost {
 
     // Return the jwt
     Ok(GetPostResponse {
-      post: post_view,
+      post_view,
       comments,
       community,
       moderators,
@@ -249,13 +249,12 @@ impl Perform for GetPosts {
     let community_id = data.community_id;
     let community_name = data.community_name.to_owned();
     let posts = match blocking(context.pool(), move |conn| {
-      PostQueryBuilder::create(conn)
+      PostQueryBuilder::create(conn, user_id)
         .listing_type(&type_)
         .sort(&sort)
         .show_nsfw(show_nsfw)
         .for_community_id(community_id)
         .for_community_name(community_name)
-        .my_user_id(user_id)
         .page(page)
         .limit(limit)
         .list()
@@ -338,7 +337,7 @@ impl Perform for CreatePostLike {
       Err(_e) => return Err(APIError::err("couldnt_find_post").into()),
     };
 
-    let res = PostResponse { post: post_view };
+    let res = PostResponse { post_view };
 
     context.chat_server().do_send(SendPost {
       op: UserOperation::CreatePostLike,
@@ -431,7 +430,7 @@ impl Perform for EditPost {
     })
     .await??;
 
-    let res = PostResponse { post: post_view };
+    let res = PostResponse { post_view };
 
     context.chat_server().do_send(SendPost {
       op: UserOperation::EditPost,
@@ -487,7 +486,7 @@ impl Perform for DeletePost {
     })
     .await??;
 
-    let res = PostResponse { post: post_view };
+    let res = PostResponse { post_view };
 
     context.chat_server().do_send(SendPost {
       op: UserOperation::DeletePost,
@@ -554,7 +553,7 @@ impl Perform for RemovePost {
     })
     .await??;
 
-    let res = PostResponse { post: post_view };
+    let res = PostResponse { post_view };
 
     context.chat_server().do_send(SendPost {
       op: UserOperation::RemovePost,
@@ -612,7 +611,7 @@ impl Perform for LockPost {
     })
     .await??;
 
-    let res = PostResponse { post: post_view };
+    let res = PostResponse { post_view };
 
     context.chat_server().do_send(SendPost {
       op: UserOperation::LockPost,
@@ -674,7 +673,7 @@ impl Perform for StickyPost {
     })
     .await??;
 
-    let res = PostResponse { post: post_view };
+    let res = PostResponse { post_view };
 
     context.chat_server().do_send(SendPost {
       op: UserOperation::StickyPost,
@@ -722,7 +721,7 @@ impl Perform for SavePost {
     })
     .await??;
 
-    Ok(PostResponse { post: post_view })
+    Ok(PostResponse { post_view })
   }
 }
 
@@ -772,19 +771,19 @@ impl Perform for CreatePostReport {
 
     let user_id = user.id;
     let post_id = data.post_id;
-    let post = blocking(context.pool(), move |conn| {
+    let post_view = blocking(context.pool(), move |conn| {
       PostView::read(&conn, post_id, None)
     })
     .await??;
 
-    check_community_ban(user_id, post.community_id, context.pool()).await?;
+    check_community_ban(user_id, post_view.community.id, context.pool()).await?;
 
     let report_form = PostReportForm {
       creator_id: user_id,
       post_id,
-      original_post_name: post.name,
-      original_post_url: post.url,
-      original_post_body: post.body,
+      original_post_name: post_view.post.name,
+      original_post_url: post_view.post.url,
+      original_post_body: post_view.post.body,
       reason: data.reason.to_owned(),
     };
 
@@ -809,7 +808,7 @@ impl Perform for CreatePostReport {
     context.chat_server().do_send(SendModRoomMessage {
       op: UserOperation::CreatePostReport,
       response: report,
-      community_id: post.community_id,
+      community_id: post_view.community.id,
       websocket_id,
     });
 

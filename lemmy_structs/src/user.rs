@@ -1,11 +1,11 @@
 use lemmy_db::{
   comment_view::{CommentView, ReplyView},
-  post_view::PostView,
   private_message_view::PrivateMessageView,
   user_mention_view::UserMentionView,
   views::{
     community_follower_view::CommunityFollowerView,
     community_moderator_view::CommunityModeratorView,
+    post_view::PostView,
     user_view::{UserViewDangerous, UserViewSafe},
   },
 };
