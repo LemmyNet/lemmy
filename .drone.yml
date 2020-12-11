@@ -24,17 +24,6 @@ steps:
     commands:
       - mdbook build docs/
 
-  # this build somehow fails with the 1.47.0 image/without root
-  - name: install diesel cli
-    image: ekidd/rust-musl-builder:experimental-stable
-    user: root
-    volumes:
-      - name: dieselcli
-        path: /dieselcli
-    commands:
-      - cargo install diesel_cli --no-default-features --features postgres
-      - mv /root/.cargo/bin/diesel /dieselcli/diesel
-
   - name: cargo test
     image: ekidd/rust-musl-builder:1.47.0
     environment:
@@ -42,20 +31,13 @@ steps:
       DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
       RUST_BACKTRACE: 1
       RUST_TEST_THREADS: 1
-    volumes:
-      - name: dieselcli
-        path: /dieselcli
     commands:
       - sudo apt-get update
       - sudo apt-get -y install --no-install-recommends espeak postgresql-client
-      - /dieselcli/diesel migration run
       - cargo test --workspace --no-fail-fast
 
   - name: cargo build
     image: ekidd/rust-musl-builder:1.47.0
-    volumes:
-      - name: dieselcli
-        path: /dieselcli
     commands:
       - cargo build
 
