@@ -15,6 +15,10 @@ for INSTANCE in lemmy_alpha lemmy_beta lemmy_gamma lemmy_delta lemmy_epsilon; do
   psql "$LEMMY_DATABASE_URL" -c "CREATE DATABASE $INSTANCE"
 done
 
+for INSTANCE in lemmy_alpha lemmy_beta lemmy_gamma lemmy_delta lemmy_epsilon; do
+  echo "127.0.0.1 $INSTANCE" >> /etc/hosts
+done
+
 echo "start alpha"
 LEMMY_HOSTNAME=lemmy-alpha:8541 \
   LEMMY_PORT=8541 \
