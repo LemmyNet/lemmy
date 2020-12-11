@@ -12,7 +12,7 @@ steps:
   - name: check formatting
     image: ekidd/rust-musl-builder:1.47.0
     commands:
-      - cargo fmt -- --check
+      - cargo +nightly fmt -- --check
 
   - name: cargo check
     image: ekidd/rust-musl-builder:1.47.0
