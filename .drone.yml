@@ -61,10 +61,16 @@ steps:
     image: ekidd/rust-musl-builder:1.47.0
     commands:
       - cargo build --release
+      - ls -la target/
+      - ls -la target/release/
+      - ls -la target/release/lemmy_server
 
   - name: run federation tests
     image: node:15-alpine3.12
     commands:
+      - ls -la target/
+      - ls -la target/release/
+      - ls -la target/release/lemmy_server
       - apk add bash curl postgresql-client
       - bash api_tests/prepare-drone-federation-test.sh
       - cd api_tests/
