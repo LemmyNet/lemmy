@@ -49,8 +49,7 @@ steps:
   - name: run federation tests
     image: node:15-alpine3.12
     commands:
-      - apt-get update
-      - apt-get -y install --no-install-recommends bash curl postgresql-client
+      - apk add bash curl postgresql-client
       - bash api_tests/prepare-drone-federation-test.sh
       - cd api_tests/
       - yarn
