@@ -60,8 +60,11 @@ steps:
   - name: cargo build
     image: ekidd/rust-musl-builder:1.47.0
     commands:
+      - cargo build
+        - ls -la target/x86_64-unknown-linux-musl/debug/lemmy_server
       - cargo build --release
-      - mv target/x86_64-unknown-linux-musl/reease/lemmy_server target/lemmy_server
+      - ls -la target/x86_64-unknown-linux-musl/release/lemmy_server
+      - mv target/x86_64-unknown-linux-musl/release/lemmy_server target/lemmy_server
       - ls -la target/lemmy_server
 
   - name: run federation tests
