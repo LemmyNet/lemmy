@@ -15,9 +15,11 @@ for INSTANCE in lemmy_alpha lemmy_beta lemmy_gamma lemmy_delta lemmy_epsilon; do
   psql "$LEMMY_DATABASE_URL" -c "CREATE DATABASE $INSTANCE"
 done
 
-for INSTANCE in lemmy_alpha lemmy_beta lemmy_gamma lemmy_delta lemmy_epsilon; do
+for INSTANCE in lemmy-alpha lemmy-beta lemmy-gamma lemmy-delta lemmy-epsilon; do
   echo "127.0.0.1 $INSTANCE" >> /etc/hosts
 done
+
+cat /etc/hosts
 
 echo "start alpha"
 LEMMY_HOSTNAME=lemmy-alpha:8541 \
@@ -67,7 +69,7 @@ LEMMY_HOSTNAME=lemmy-epsilon:8581 \
   target/lemmy_server &
 
 echo "wait for all instances to start"
-while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8541/api/v1/site')" != "200" ]]; do sleep 1; done
+while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'lemmy-alpha:8541/api/v1/site')" != "200" ]]; do sleep 1; done
 while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8551/api/v1/site')" != "200" ]]; do sleep 1; done
 while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8561/api/v1/site')" != "200" ]]; do sleep 1; done
 while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8571/api/v1/site')" != "200" ]]; do sleep 1; done
