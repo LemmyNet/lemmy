@@ -12,7 +12,7 @@ steps:
   - name: check formatting
     image: rustdocker/rust:nightly
     commands:
-      - cargo fmt -- --check
+      - /root/.cargo/bin/cargo fmt -- --check
 
   - name: cargo check
     image: ekidd/rust-musl-builder:1.47.0
