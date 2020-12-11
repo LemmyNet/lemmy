@@ -179,6 +179,7 @@ test('Sticky a post', async () => {
   // Make sure that gamma cannot sticky the post on beta
   let searchGamma = await searchPost(gamma, postRes.post);
   let gammaPost = searchGamma.posts[0];
+  await delay();
   let gammaTrySticky = await stickyPost(gamma, true, gammaPost);
   await delay();
   let searchBeta3 = await searchPost(beta, postRes.post);
@@ -287,6 +288,7 @@ test('Remove a post from admin and community on different instance', async () =>
 
 test('Remove a post from admin and community on same instance', async () => {
   let search = await searchForBetaCommunity(alpha);
+  await longDelay();
   let postRes = await createPost(alpha, search.communities[0].id);
   await longDelay();
 
