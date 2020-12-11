@@ -4,6 +4,8 @@ extern crate diesel;
 extern crate strum_macros;
 #[macro_use]
 extern crate lazy_static;
+#[macro_use]
+extern crate diesel_migrations;
 
 use chrono::NaiveDateTime;
 use diesel::{result::Error, *};
@@ -214,10 +216,12 @@ lazy_static! {
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
   use super::fuzzy_search;
   use crate::{get_database_url_from_env, is_email_regex};
   use diesel::{Connection, PgConnection};
+
+  embed_migrations!();
 
   pub fn establish_unpooled_connection() -> PgConnection {
     let db_url = match get_database_url_from_env() {
@@ -227,7 +231,9 @@ pub mod tests {
         e
       ),
     };
-    PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url))
+    let conn = PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
+    embedded_migrations::run(&conn).unwrap();
+    conn
   }
 
   #[test]

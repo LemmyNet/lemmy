@@ -936,16 +936,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ctor"
-version = "0.1.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fbaabec2c953050352311293be5c6aba8e141ba19d6811862b232d6fd020484"
-dependencies = [
- "quote",
- "syn",
-]
-
-[[package]]
 name = "darling"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1809,6 +1799,7 @@ dependencies = [
  "bcrypt",
  "chrono",
  "diesel",
+ "diesel_migrations",
  "lazy_static",
  "lemmy_utils",
  "log",
@@ -1848,7 +1839,6 @@ dependencies = [
  "awc",
  "cargo-husky",
  "chrono",
- "ctor",
  "diesel",
  "diesel_migrations",
  "env_logger",
