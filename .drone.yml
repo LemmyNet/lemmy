@@ -34,6 +34,9 @@ steps:
     commands:
       - sudo apt-get update
       - sudo apt-get -y install --no-install-recommends espeak postgresql-client
+      - cargo install diesel_cli --no-default-features --features postgres --target-dir target/
+      - ls -la target/
+      - ./target/diesel migration run
       - cargo test --workspace --no-fail-fast
 
   - name: cargo build
@@ -42,7 +45,7 @@ steps:
       - cargo build
 
   - name: run federation tests
-    image: node:15-alpine-3.12
+    image: node:15-alpine3.12
     commands:
       - apt-get update
       - apt-get -y install --no-install-recommends bash curl postgresql-client
