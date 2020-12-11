@@ -9,10 +9,15 @@ steps:
     commands:
       - chown 1000:1000 . -R
 
+  - name: check formatting
+    image: ekidd/rust-musl-builder:1.47.0
+    commands:
+      - cargo fmt -- --check
+
   - name: cargo check
     image: ekidd/rust-musl-builder:1.47.0
     commands:
-      - cargo check --all
+      - cargo check --workspace --all-targets
 
   - name: cargo clippy
     image: ekidd/rust-musl-builder:1.47.0
