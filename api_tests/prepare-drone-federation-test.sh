@@ -18,7 +18,7 @@ LEMMY_HOSTNAME=lemmy-alpha:8541 \
   LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-beta,lemmy-gamma,lemmy-delta,lemmy-epsilon \
   LEMMY_SETUP__ADMIN_USERNAME=lemmy_alpha \
   LEMMY_SETUP__SITE_NAME=lemmy-alpha \
-  target/debug/lemmy_server &
+  target/debug/lemmy_server
 
 echo "start beta"
 LEMMY_HOSTNAME=lemmy-beta:8551 \

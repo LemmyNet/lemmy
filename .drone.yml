@@ -51,8 +51,6 @@ steps:
       - /dieselcli/diesel migration run
       - cargo test --workspace --no-fail-fast
 
-  # TODO: this uses rust 1.48.0, which doesnt work with config-rs, so federation tests fail
-  # https://github.com/LemmyNet/lemmy/issues/1270
   - name: cargo build
     image: ekidd/rust-musl-builder:1.47.0
     volumes:
@@ -62,7 +60,7 @@ steps:
       - cargo build
 
   - name: run federation tests
-    image: node:15-buster-slim
+    image: node:15-alpine-3.12
     commands:
       - apt-get update
       - apt-get -y install --no-install-recommends bash curl postgresql-client
