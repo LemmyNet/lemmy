@@ -44,7 +44,7 @@ steps:
   - name: cargo build
     image: ekidd/rust-musl-builder:1.47.0
     commands:
-      - cargo build
+      - cargo build --release
 
   - name: run federation tests
     image: node:15-alpine3.12
