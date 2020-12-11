@@ -4,6 +4,8 @@ extern crate diesel;
 extern crate strum_macros;
 #[macro_use]
 extern crate lazy_static;
+// this is used in tests
+#[allow(unused_imports)]
 #[macro_use]
 extern crate diesel_migrations;
 
