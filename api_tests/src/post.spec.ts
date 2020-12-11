@@ -167,7 +167,7 @@ test('Sticky a post', async () => {
   // Unsticky a post
   let unstickiedPost = await stickyPost(alpha, false, postRes.post);
   expect(unstickiedPost.post.stickied).toBe(false);
-  await delay();
+  await longDelay();
 
   // Make sure that post is unstickied on beta
   let searchBeta2 = await searchPost(beta, postRes.post);
@@ -213,7 +213,7 @@ test('Lock a post', async () => {
   // Unlock a post
   let unlockedPost = await lockPost(alpha, false, postRes.post);
   expect(unlockedPost.post.locked).toBe(false);
-  await delay();
+  await longDelay();
 
   // Make sure that post is unlocked on beta
   let searchBeta2 = await searchPost(beta, postRes.post);
@@ -294,6 +294,7 @@ test('Remove a post from admin and community on same instance', async () => {
 
   // Get the id for beta
   let searchBeta = await searchPost(beta, postRes.post);
+  await longDelay();
   let betaPost = searchBeta.posts[0];
   await longDelay();
 
