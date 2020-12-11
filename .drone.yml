@@ -60,7 +60,7 @@ steps:
   - name: cargo build
     image: ekidd/rust-musl-builder:1.47.0
     environment:
-      -  RUSTFLAGS: "-C opt-level=0 -C lto=off"
+      RUSTFLAGS: "-C opt-level=0 -C lto=off"
     commands:
       - cargo build --release
 
