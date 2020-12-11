@@ -231,7 +231,8 @@ mod tests {
         e
       ),
     };
-    let conn = PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
+    let conn =
+      PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url));
     embedded_migrations::run(&conn).unwrap();
     conn
   }
