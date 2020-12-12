@@ -173,6 +173,7 @@ test('Sticky a post', async () => {
   // Make sure that gamma cannot sticky the post on beta
   let searchGamma = await searchPost(gamma, postRes.post);
   let gammaPost = searchGamma.posts[0];
+  await delay();
   let gammaTrySticky = await stickyPost(gamma, true, gammaPost);
   let searchBeta3 = await searchPost(beta, postRes.post);
   let betaPost3 = searchBeta3.posts[0];
@@ -182,8 +183,8 @@ test('Sticky a post', async () => {
 
 test('Lock a post', async () => {
   let search = await searchForBetaCommunity(alpha);
-  await delay();
   let postRes = await createPost(alpha, search.communities[0].id);
+  await delay();
 
   // Lock the post
   let lockedPostRes = await lockPost(alpha, true, postRes.post);
@@ -194,14 +195,17 @@ test('Lock a post', async () => {
   let searchBeta = await searchPostLocal(beta, postRes.post);
   let betaPost1 = searchBeta.posts[0];
   expect(betaPost1.locked).toBe(true);
+  await delay();
 
   // Try to make a new comment there, on alpha
   let comment = await createComment(alpha, postRes.post.id);
   expect(comment['error']).toBe('locked');
+  await delay();
 
   // Unlock a post
   let unlockedPost = await lockPost(alpha, false, postRes.post);
   expect(unlockedPost.post.locked).toBe(false);
+  await delay();
 
   // Make sure that post is unlocked on beta
   let searchBeta2 = await searchPost(beta, postRes.post);
@@ -218,6 +222,7 @@ test('Lock a post', async () => {
 
 test('Delete a post', async () => {
   let search = await searchForBetaCommunity(alpha);
+  await delay();
   let postRes = await createPost(alpha, search.communities[0].id);
 
   let deletedPost = await deletePost(alpha, true, postRes.post);
@@ -246,7 +251,9 @@ test('Delete a post', async () => {
 
 test('Remove a post from admin and community on different instance', async () => {
   let search = await searchForBetaCommunity(alpha);
+  await delay();
   let postRes = await createPost(alpha, search.communities[0].id);
+  await delay();
 
   let removedPost = await removePost(alpha, true, postRes.post);
   expect(removedPost.post.removed).toBe(true);
@@ -261,6 +268,7 @@ test('Remove a post from admin and community on different instance', async () =>
   // Undelete
   let undeletedPost = await removePost(alpha, false, postRes.post);
   expect(undeletedPost.post.removed).toBe(false);
+  await delay();
 
   // Make sure lemmy beta sees post is undeleted
   let searchBeta2 = await searchPost(beta, postRes.post);
