@@ -104,7 +104,7 @@ test('Unlike a post', async () => {
   await delay();
   let unlike = await likePost(alpha, 0, postRes.post);
   expect(unlike.post.score).toBe(0);
-  await delay();
+  await longDelay();
 
   // Try to unlike it again, make sure it stays at 0
   let unlike2 = await likePost(alpha, 0, postRes.post);
@@ -163,6 +163,7 @@ test('Sticky a post', async () => {
   expect(betaPost.community_local).toBe(true);
   expect(betaPost.creator_local).toBe(false);
   expect(betaPost.stickied).toBe(true);
+  await delay();
 
   // Unsticky a post
   let unstickiedPost = await stickyPost(alpha, false, postRes.post);
@@ -175,6 +176,7 @@ test('Sticky a post', async () => {
   expect(betaPost2.community_local).toBe(true);
   expect(betaPost2.creator_local).toBe(false);
   expect(betaPost2.stickied).toBe(false);
+  await delay();
 
   // Make sure that gamma cannot sticky the post on beta
   let searchGamma = await searchPost(gamma, postRes.post);
@@ -203,7 +205,7 @@ test('Lock a post', async () => {
   let searchBeta = await searchPostLocal(beta, postRes.post);
   let betaPost1 = searchBeta.posts[0];
   expect(betaPost1.locked).toBe(true);
-  await delay();
+  await longDelay();
 
   // Try to make a new comment there, on alpha
   let comment = await createComment(alpha, postRes.post.id);
