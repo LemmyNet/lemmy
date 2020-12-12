@@ -101,7 +101,7 @@ test('Create a post in a non-existent community', async () => {
 test('Unlike a post', async () => {
   let search = await searchForBetaCommunity(alpha);
   let postRes = await createPost(alpha, search.communities[0].id);
-  await delay();
+  await longDelay();
   let unlike = await likePost(alpha, 0, postRes.post);
   expect(unlike.post.score).toBe(0);
   await longDelay();
@@ -113,6 +113,7 @@ test('Unlike a post', async () => {
 
   // Make sure that post is unliked on beta
   let searchBeta = await searchPost(beta, postRes.post);
+  await delay();
   let betaPost = searchBeta.posts[0];
 
   expect(betaPost).toBeDefined();
