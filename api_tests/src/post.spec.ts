@@ -20,6 +20,7 @@ import {
   getPost,
   unfollowRemotes,
   delay,
+  longDelay,
   searchForUser,
   banUserFromSite,
   searchPostLocal,
@@ -35,7 +36,7 @@ beforeAll(async () => {
   await followBeta(gamma);
   await followBeta(delta);
   await followBeta(epsilon);
-  await delay();
+  await longDelay();
 });
 
 afterAll(async () => {
@@ -175,6 +176,7 @@ test('Sticky a post', async () => {
   let gammaPost = searchGamma.posts[0];
   await delay();
   let gammaTrySticky = await stickyPost(gamma, true, gammaPost);
+  await delay();
   let searchBeta3 = await searchPost(beta, postRes.post);
   let betaPost3 = searchBeta3.posts[0];
   expect(gammaTrySticky.post.stickied).toBe(true);
