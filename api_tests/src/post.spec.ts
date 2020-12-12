@@ -148,9 +148,11 @@ test('Update a post', async () => {
 test('Sticky a post', async () => {
   let search = await searchForBetaCommunity(alpha);
   let postRes = await createPost(alpha, search.communities[0].id);
+  await delay();
 
   let stickiedPostRes = await stickyPost(alpha, true, postRes.post);
   expect(stickiedPostRes.post.stickied).toBe(true);
+  await delay();
 
   // Make sure that post is stickied on beta
   let searchBeta = await searchPost(beta, postRes.post);
@@ -158,6 +160,7 @@ test('Sticky a post', async () => {
   expect(betaPost.community_local).toBe(true);
   expect(betaPost.creator_local).toBe(false);
   expect(betaPost.stickied).toBe(true);
+  await delay();
 
   // Unsticky a post
   let unstickiedPost = await stickyPost(alpha, false, postRes.post);
@@ -170,6 +173,7 @@ test('Sticky a post', async () => {
   expect(betaPost2.community_local).toBe(true);
   expect(betaPost2.creator_local).toBe(false);
   expect(betaPost2.stickied).toBe(false);
+  await delay();
 
   // Make sure that gamma cannot sticky the post on beta
   let searchGamma = await searchPost(gamma, postRes.post);
@@ -185,6 +189,7 @@ test('Sticky a post', async () => {
 
 test('Lock a post', async () => {
   let search = await searchForBetaCommunity(alpha);
+  await delay();
   let postRes = await createPost(alpha, search.communities[0].id);
   await delay();
 
@@ -281,6 +286,7 @@ test('Remove a post from admin and community on different instance', async () =>
 
 test('Remove a post from admin and community on same instance', async () => {
   let search = await searchForBetaCommunity(alpha);
+  await delay();
   let postRes = await createPost(alpha, search.communities[0].id);
   await delay();
 
