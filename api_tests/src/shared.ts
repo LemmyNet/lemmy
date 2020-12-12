@@ -613,7 +613,7 @@ export async function followBeta(api: API): Promise<CommunityResponse> {
   }
 }
 
-export function delay(millis: number = 2000) {
+export function delay(millis: number = 500) {
   return new Promise((resolve, _reject) => {
     setTimeout(_ => resolve(), millis);
   });
