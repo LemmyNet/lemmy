@@ -497,12 +497,9 @@ impl<'a> ReplyQueryBuilder<'a> {
 #[cfg(test)]
 mod tests {
   use crate::{
-    comment::*,
     comment_view::*,
-    community::*,
-    post::*,
+    source::{comment::*, community::*, post::*, user::*},
     tests::establish_unpooled_connection,
-    user::*,
     Crud,
     Likeable,
     *,

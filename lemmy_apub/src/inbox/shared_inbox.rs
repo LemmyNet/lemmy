@@ -15,7 +15,7 @@ use crate::{
 use activitystreams::{activity::ActorAndObject, prelude::*};
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::Context;
-use lemmy_db::{community::Community, ApubObject, DbPool};
+use lemmy_db::{source::community::Community, ApubObject, DbPool};
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;

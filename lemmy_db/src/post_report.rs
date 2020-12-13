@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
   limit_and_offset,
   naive_now,
-  post::Post,
   schema::post_report,
+  source::post::Post,
   MaybeOptional,
   Reportable,
 };

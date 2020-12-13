@@ -5,9 +5,11 @@ use activitystreams::{
 };
 use anyhow::Context;
 use lemmy_db::{
-  comment::{Comment, CommentLike, CommentLikeForm},
   comment_view::CommentView,
-  post::Post,
+  source::{
+    comment::{Comment, CommentLike, CommentLikeForm},
+    post::Post,
+  },
   Likeable,
 };
 use lemmy_structs::{blocking, comment::CommentResponse, send_local_notifs};

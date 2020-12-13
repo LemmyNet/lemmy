@@ -16,7 +16,10 @@ use activitystreams::{
   },
   prelude::*,
 };
-use lemmy_db::{private_message::PrivateMessage, user::User_, Crud};
+use lemmy_db::{
+  source::{private_message::PrivateMessage, user::User_},
+  Crud,
+};
 use lemmy_structs::blocking;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;

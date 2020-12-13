@@ -14,8 +14,10 @@ use activitystreams::{
   object::ObjectExt,
 };
 use lemmy_db::{
-  community::{Community, CommunityFollower, CommunityFollowerForm},
-  user::User_,
+  source::{
+    community::{Community, CommunityFollower, CommunityFollowerForm},
+    user::User_,
+  },
   ApubObject,
   DbPool,
   Followable,

@@ -10,8 +10,7 @@ use activitystreams::{
 };
 use actix_web::{body::Body, web, HttpResponse};
 use lemmy_db::{
-  community::Community,
-  post::Post,
+  source::{community::Community, post::Post},
   views::community_follower_view::CommunityFollowerView,
 };
 use lemmy_structs::blocking;

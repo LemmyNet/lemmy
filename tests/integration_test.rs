@@ -29,8 +29,10 @@ use lemmy_apub::{
   },
 };
 use lemmy_db::{
-  community::{Community, CommunityForm},
-  user::{User_, *},
+  source::{
+    community::{Community, CommunityForm},
+    user::{User_, *},
+  },
   Crud,
   ListingType,
   SortType,

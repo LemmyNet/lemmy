@@ -49,9 +49,11 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
 use diesel::NotFound;
 use lemmy_db::{
-  community::{Community, CommunityFollower},
-  private_message::PrivateMessage,
-  user::User_,
+  source::{
+    community::{Community, CommunityFollower},
+    private_message::PrivateMessage,
+    user::User_,
+  },
   ApubObject,
   Followable,
 };

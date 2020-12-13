@@ -48,7 +48,7 @@ impl Category {
 
 #[cfg(test)]
 mod tests {
-  use crate::{category::Category, tests::establish_unpooled_connection};
+  use crate::{source::category::Category, tests::establish_unpooled_connection};
 
   #[test]
   fn test_crud() {

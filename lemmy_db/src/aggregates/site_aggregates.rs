@@ -22,11 +22,13 @@ impl SiteAggregates {
 mod tests {
   use crate::{
     aggregates::site_aggregates::SiteAggregates,
-    comment::{Comment, CommentForm},
-    community::{Community, CommunityForm},
-    post::{Post, PostForm},
+    source::{
+      comment::{Comment, CommentForm},
+      community::{Community, CommunityForm},
+      post::{Post, PostForm},
+      user::{UserForm, User_},
+    },
     tests::establish_unpooled_connection,
-    user::{UserForm, User_},
     Crud,
     ListingType,
     SortType,

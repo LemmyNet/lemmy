@@ -7,10 +7,12 @@ pub mod websocket;
 
 use diesel::PgConnection;
 use lemmy_db::{
-  comment::Comment,
-  post::Post,
-  user::User_,
-  user_mention::{UserMention, UserMentionForm},
+  source::{
+    comment::Comment,
+    post::Post,
+    user::User_,
+    user_mention::{UserMention, UserMentionForm},
+  },
   Crud,
   DbPool,
 };

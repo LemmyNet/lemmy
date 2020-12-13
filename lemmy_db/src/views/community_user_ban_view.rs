@@ -1,7 +1,9 @@
 use crate::{
-  community::{Community, CommunitySafe},
   schema::{community, community_user_ban, user_},
-  user::{UserSafe, User_},
+  source::{
+    community::{Community, CommunitySafe},
+    user::{UserSafe, User_},
+  },
   ToSafe,
 };
 use diesel::{result::Error, *};

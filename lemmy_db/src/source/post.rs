@@ -332,10 +332,8 @@ impl Readable<PostReadForm> for PostRead {
 #[cfg(test)]
 mod tests {
   use crate::{
-    community::*,
-    post::*,
+    source::{community::*, post::*, user::*},
     tests::establish_unpooled_connection,
-    user::*,
     ListingType,
     SortType,
   };

@@ -1,7 +1,7 @@
 use crate::activities::receive::get_actor_as_user;
 use activitystreams::activity::{Dislike, Like};
 use lemmy_db::{
-  post::{Post, PostLike},
+  source::post::{Post, PostLike},
   views::post_view::PostView,
   Likeable,
 };

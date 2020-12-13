@@ -62,7 +62,7 @@ pub struct UserSafe {
 }
 
 mod safe_type {
-  use crate::{schema::user_::columns::*, user::User_, ToSafe};
+  use crate::{schema::user_::columns::*, source::user::User_, ToSafe};
   type Columns = (
     id,
     name,
@@ -275,7 +275,7 @@ impl User_ {
 
 #[cfg(test)]
 mod tests {
-  use crate::{tests::establish_unpooled_connection, user::*, ListingType, SortType};
+  use crate::{source::user::*, tests::establish_unpooled_connection, ListingType, SortType};
 
   #[test]
   fn test_crud() {

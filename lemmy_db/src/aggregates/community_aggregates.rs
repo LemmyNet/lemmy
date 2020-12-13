@@ -24,11 +24,13 @@ impl CommunityAggregates {
 mod tests {
   use crate::{
     aggregates::community_aggregates::CommunityAggregates,
-    comment::{Comment, CommentForm},
-    community::{Community, CommunityFollower, CommunityFollowerForm, CommunityForm},
-    post::{Post, PostForm},
+    source::{
+      comment::{Comment, CommentForm},
+      community::{Community, CommunityFollower, CommunityFollowerForm, CommunityForm},
+      post::{Post, PostForm},
+      user::{UserForm, User_},
+    },
     tests::establish_unpooled_connection,
-    user::{UserForm, User_},
     Crud,
     Followable,
     ListingType,

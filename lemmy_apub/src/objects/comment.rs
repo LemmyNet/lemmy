@@ -24,10 +24,12 @@ use activitystreams::{
 };
 use anyhow::{anyhow, Context};
 use lemmy_db::{
-  comment::{Comment, CommentForm},
-  community::Community,
-  post::Post,
-  user::User_,
+  source::{
+    comment::{Comment, CommentForm},
+    community::Community,
+    post::Post,
+    user::User_,
+  },
   Crud,
   DbPool,
 };

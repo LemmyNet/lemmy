@@ -97,9 +97,11 @@ impl Activity {
 #[cfg(test)]
 mod tests {
   use crate::{
-    activity::{Activity, ActivityForm},
+    source::{
+      activity::{Activity, ActivityForm},
+      user::{UserForm, User_},
+    },
     tests::establish_unpooled_connection,
-    user::{UserForm, User_},
     Crud,
     ListingType,
     SortType,

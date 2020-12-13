@@ -10,14 +10,10 @@ use actix_web::web::Data;
 use anyhow::Context;
 use lemmy_apub::ActorType;
 use lemmy_db::{
-  comment::Comment,
   comment_view::CommentQueryBuilder,
-  community::*,
   diesel_option_overwrite,
-  moderator::*,
   naive_now,
-  post::Post,
-  site::*,
+  source::{comment::Comment, community::*, moderator::*, post::Post, site::*},
   views::{
     community_follower_view::CommunityFollowerView,
     community_moderator_view::CommunityModeratorView,

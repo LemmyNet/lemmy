@@ -1,7 +1,9 @@
 use crate::{
-  community::{Community, CommunitySafe},
   schema::{community, community_moderator, user_},
-  user::{UserSafe, User_},
+  source::{
+    community::{Community, CommunitySafe},
+    user::{UserSafe, User_},
+  },
   views::ViewToVec,
   ToSafe,
 };

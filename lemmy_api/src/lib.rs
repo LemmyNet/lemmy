@@ -1,9 +1,11 @@
 use crate::claims::Claims;
 use actix_web::{web, web::Data};
 use lemmy_db::{
-  community::{Community, CommunityModerator},
-  post::Post,
-  user::User_,
+  source::{
+    community::{Community, CommunityModerator},
+    post::Post,
+    user::User_,
+  },
   views::community_user_ban_view::CommunityUserBanView,
   Crud,
   DbPool,

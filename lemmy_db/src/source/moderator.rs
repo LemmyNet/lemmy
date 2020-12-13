@@ -392,12 +392,8 @@ impl Crud<ModAddForm> for ModAdd {
 #[cfg(test)]
 mod tests {
   use crate::{
-    comment::*,
-    community::*,
-    moderator::*,
-    post::*,
+    source::{comment::*, community::*, moderator::*, post::*, user::*},
     tests::establish_unpooled_connection,
-    user::*,
     ListingType,
     SortType,
   };

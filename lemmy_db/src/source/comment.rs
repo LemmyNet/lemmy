@@ -260,11 +260,8 @@ impl Saveable<CommentSavedForm> for CommentSaved {
 #[cfg(test)]
 mod tests {
   use crate::{
-    comment::*,
-    community::*,
-    post::*,
+    source::{comment::*, community::*, post::*, user::*},
     tests::establish_unpooled_connection,
-    user::*,
     Crud,
     ListingType,
     SortType,

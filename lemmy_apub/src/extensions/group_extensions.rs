@@ -1,7 +1,7 @@
 use activitystreams::unparsed::UnparsedMutExt;
 use activitystreams_ext::UnparsedExtension;
 use diesel::PgConnection;
-use lemmy_db::{category::Category, Crud};
+use lemmy_db::{source::category::Category, Crud};
 use lemmy_utils::LemmyError;
 use serde::{Deserialize, Serialize};
 

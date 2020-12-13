@@ -11,10 +11,9 @@ use actix_web::web::Data;
 use lemmy_apub::{ApubLikeableType, ApubObjectType};
 use lemmy_db::{
   comment_view::*,
-  moderator::*,
   naive_now,
-  post::*,
   post_report::*,
+  source::{moderator::*, post::*},
   views::{
     community_moderator_view::CommunityModeratorView,
     community_view::CommunityView,

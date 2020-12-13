@@ -20,8 +20,10 @@ use activitystreams::{
 };
 use anyhow::Context;
 use lemmy_db::{
-  private_message::{PrivateMessage, PrivateMessageForm},
-  user::User_,
+  source::{
+    private_message::{PrivateMessage, PrivateMessageForm},
+    user::User_,
+  },
   Crud,
   DbPool,
 };

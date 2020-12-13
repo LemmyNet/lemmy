@@ -27,8 +27,10 @@ use activitystreams::{
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
 use lemmy_db::{
-  community::{Community, CommunityFollower, CommunityFollowerForm},
-  user::User_,
+  source::{
+    community::{Community, CommunityFollower, CommunityFollowerForm},
+    user::User_,
+  },
   views::community_user_ban_view::CommunityUserBanView,
   ApubObject,
   DbPool,

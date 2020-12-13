@@ -1,7 +1,9 @@
 use crate::{
   schema::{site, user_},
-  site::Site,
-  user::{UserSafe, User_},
+  source::{
+    site::Site,
+    user::{UserSafe, User_},
+  },
   ToSafe,
 };
 use diesel::{result::Error, *};

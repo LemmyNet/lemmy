@@ -1,6 +1,6 @@
 use crate::APUB_JSON_CONTENT_TYPE;
 use actix_web::{body::Body, web, HttpResponse};
-use lemmy_db::activity::Activity;
+use lemmy_db::source::activity::Activity;
 use lemmy_structs::blocking;
 use lemmy_utils::{settings::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;

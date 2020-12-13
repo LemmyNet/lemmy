@@ -5,8 +5,7 @@ use diesel::PgConnection;
 use lemmy_api::claims::Claims;
 use lemmy_db::{
   comment_view::{ReplyQueryBuilder, ReplyView},
-  community::Community,
-  user::User_,
+  source::{community::Community, user::User_},
   user_mention_view::{UserMentionQueryBuilder, UserMentionView},
   views::{
     post_view::{PostQueryBuilder, PostView},

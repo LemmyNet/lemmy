@@ -20,7 +20,7 @@ use activitystreams_ext::Ext1;
 use anyhow::Context;
 use lemmy_db::{
   naive_now,
-  user::{UserForm, User_},
+  source::user::{UserForm, User_},
   ApubObject,
   DbPool,
 };

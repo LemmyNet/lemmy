@@ -15,21 +15,23 @@ use captcha::{gen, Difficulty};
 use chrono::Duration;
 use lemmy_apub::ApubObjectType;
 use lemmy_db::{
-  comment::*,
   comment_report::CommentReportView,
   comment_view::*,
-  community::*,
   diesel_option_overwrite,
-  moderator::*,
   naive_now,
-  password_reset_request::*,
-  post::*,
   post_report::PostReportView,
-  private_message::*,
   private_message_view::*,
-  site::*,
-  user::*,
-  user_mention::*,
+  source::{
+    comment::*,
+    community::*,
+    moderator::*,
+    password_reset_request::*,
+    post::*,
+    private_message::*,
+    site::*,
+    user::*,
+    user_mention::*,
+  },
   user_mention_view::*,
   views::{
     community_follower_view::CommunityFollowerView,

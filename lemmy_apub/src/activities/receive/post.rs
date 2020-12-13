@@ -5,7 +5,7 @@ use activitystreams::{
 };
 use anyhow::Context;
 use lemmy_db::{
-  post::{Post, PostLike, PostLikeForm},
+  source::post::{Post, PostLike, PostLikeForm},
   views::post_view::PostView,
   Likeable,
 };

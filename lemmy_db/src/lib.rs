@@ -11,25 +11,16 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{env, env::VarError};
 
-pub mod activity;
-pub mod aggregates;
-pub mod category;
-pub mod comment;
 pub mod comment_report;
 pub mod comment_view;
-pub mod community;
-pub mod moderator;
 pub mod moderator_views;
-pub mod password_reset_request;
-pub mod post;
 pub mod post_report;
-pub mod private_message;
 pub mod private_message_view;
-pub mod schema;
-pub mod site;
-pub mod user;
-pub mod user_mention;
 pub mod user_mention_view;
+
+pub mod aggregates;
+pub mod schema;
+pub mod source;
 pub mod views;
 
 pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;

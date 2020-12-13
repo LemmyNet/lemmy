@@ -13,7 +13,7 @@ use activitystreams::{
   public,
 };
 use anyhow::{anyhow, Context};
-use lemmy_db::{private_message::PrivateMessage, private_message_view::PrivateMessageView};
+use lemmy_db::{private_message_view::PrivateMessageView, source::private_message::PrivateMessage};
 use lemmy_structs::{blocking, user::PrivateMessageResponse};
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::{messages::SendUserRoomMessage, LemmyContext, UserOperation};

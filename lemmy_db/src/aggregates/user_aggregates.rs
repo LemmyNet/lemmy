@@ -25,11 +25,13 @@ impl UserAggregates {
 mod tests {
   use crate::{
     aggregates::user_aggregates::UserAggregates,
-    comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
-    community::{Community, CommunityForm},
-    post::{Post, PostForm, PostLike, PostLikeForm},
+    source::{
+      comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
+      community::{Community, CommunityForm},
+      post::{Post, PostForm, PostLike, PostLikeForm},
+      user::{UserForm, User_},
+    },
     tests::establish_unpooled_connection,
-    user::{UserForm, User_},
     Crud,
     Likeable,
     ListingType,

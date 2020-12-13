@@ -23,8 +23,8 @@ use activitystreams::{
 use activitystreams_ext::Ext2;
 use anyhow::Context;
 use lemmy_db::{
-  community::{Community, CommunityForm},
   naive_now,
+  source::community::{Community, CommunityForm},
   views::community_moderator_view::CommunityModeratorView,
   DbPool,
 };

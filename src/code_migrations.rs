@@ -4,12 +4,14 @@ use diesel::{
   *,
 };
 use lemmy_db::{
-  comment::Comment,
-  community::{Community, CommunityForm},
   naive_now,
-  post::Post,
-  private_message::PrivateMessage,
-  user::{UserForm, User_},
+  source::{
+    comment::Comment,
+    community::{Community, CommunityForm},
+    post::Post,
+    private_message::PrivateMessage,
+    user::{UserForm, User_},
+  },
   Crud,
 };
 use lemmy_utils::{

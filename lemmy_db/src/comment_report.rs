@@ -2,10 +2,10 @@ use diesel::{dsl::*, pg::Pg, result::Error, *};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-  comment::Comment,
   limit_and_offset,
   naive_now,
   schema::comment_report,
+  source::comment::Comment,
   MaybeOptional,
   Reportable,
 };

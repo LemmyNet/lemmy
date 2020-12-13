@@ -1,12 +1,14 @@
 use crate::{
   aggregates::community_aggregates::CommunityAggregates,
-  category::Category,
-  community::{Community, CommunityFollower, CommunitySafe},
   functions::hot_rank,
   fuzzy_search,
   limit_and_offset,
   schema::{category, community, community_aggregates, community_follower, user_},
-  user::{UserSafe, User_},
+  source::{
+    category::Category,
+    community::{Community, CommunityFollower, CommunitySafe},
+    user::{UserSafe, User_},
+  },
   views::ViewToVec,
   MaybeOptional,
   SortType,

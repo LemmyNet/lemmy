@@ -3,7 +3,7 @@ use crate::{
   fuzzy_search,
   limit_and_offset,
   schema::{user_, user_aggregates},
-  user::{UserSafe, User_},
+  source::user::{UserSafe, User_},
   views::ViewToVec,
   MaybeOptional,
   SortType,

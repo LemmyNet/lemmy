@@ -26,7 +26,11 @@ use activitystreams::{
 };
 use anyhow::anyhow;
 use itertools::Itertools;
-use lemmy_db::{comment::Comment, community::Community, post::Post, user::User_, Crud, DbPool};
+use lemmy_db::{
+  source::{comment::Comment, community::Community, post::Post, user::User_},
+  Crud,
+  DbPool,
+};
 use lemmy_structs::{blocking, WebFingerResponse};
 use lemmy_utils::{
   request::{retry, RecvError},

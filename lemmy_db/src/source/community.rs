@@ -55,7 +55,7 @@ pub struct CommunitySafe {
 }
 
 mod safe_type {
-  use crate::{community::Community, schema::community::columns::*, ToSafe};
+  use crate::{schema::community::columns::*, source::community::Community, ToSafe};
   type Columns = (
     id,
     name,
@@ -415,7 +415,12 @@ impl Followable<CommunityFollowerForm> for CommunityFollower {
 
 #[cfg(test)]
 mod tests {
-  use crate::{community::*, tests::establish_unpooled_connection, user::*, ListingType, SortType};
+  use crate::{
+    source::{community::*, user::*},
+    tests::establish_unpooled_connection,
+    ListingType,
+    SortType,
+  };
 
   #[test]
   fn test_crud() {

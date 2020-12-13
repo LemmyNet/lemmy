@@ -13,12 +13,14 @@ use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
 use diesel::result::Error::NotFound;
 use lemmy_db::{
-  comment::Comment,
   comment_view::CommentView,
-  community::{Community, CommunityModerator, CommunityModeratorForm},
   naive_now,
-  post::Post,
-  user::User_,
+  source::{
+    comment::Comment,
+    community::{Community, CommunityModerator, CommunityModeratorForm},
+    post::Post,
+    user::User_,
+  },
   views::{community_view::CommunityView, post_view::PostView, user_view::UserViewSafe},
   ApubObject,
   Joinable,

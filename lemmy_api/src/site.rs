@@ -11,13 +11,11 @@ use anyhow::Context;
 use lemmy_apub::fetcher::search_by_apub_id;
 use lemmy_db::{
   aggregates::site_aggregates::SiteAggregates,
-  category::*,
   comment_view::*,
   diesel_option_overwrite,
-  moderator::*,
   moderator_views::*,
   naive_now,
-  site::*,
+  source::{category::*, moderator::*, site::*},
   views::{
     community_view::CommunityQueryBuilder,
     post_view::PostQueryBuilder,

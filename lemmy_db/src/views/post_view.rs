@@ -1,10 +1,8 @@
 use crate::{
   aggregates::post_aggregates::PostAggregates,
-  community::{Community, CommunityFollower, CommunitySafe, CommunityUserBan},
   functions::hot_rank,
   fuzzy_search,
   limit_and_offset,
-  post::{Post, PostRead, PostSaved},
   schema::{
     community,
     community_follower,
@@ -16,7 +14,11 @@ use crate::{
     post_saved,
     user_,
   },
-  user::{UserSafe, User_},
+  source::{
+    community::{Community, CommunityFollower, CommunitySafe, CommunityUserBan},
+    post::{Post, PostRead, PostSaved},
+    user::{UserSafe, User_},
+  },
   views::ViewToVec,
   ListingType,
   MaybeOptional,
@@ -589,10 +591,8 @@ impl ViewToVec for PostView {
 mod tests {
   use crate::{
     aggregates::post_aggregates::PostAggregates,
-    community::*,
-    post::*,
+    source::{community::*, post::*, user::*},
     tests::establish_unpooled_connection,
-    user::*,
     views::post_view::{PostQueryBuilder, PostView},
     Crud,
     Likeable,
