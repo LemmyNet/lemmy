@@ -8,6 +8,7 @@ export LEMMY_SETUP__ADMIN_PASSWORD=lemmy
 export LEMMY_RATE_LIMIT__POST=99999
 export LEMMY_RATE_LIMIT__REGISTER=99999
 export LEMMY_CAPTCHA__ENABLED=false
+export LEMMY_TEST_SEND_SYNC=1
 export RUST_BACKTRACE=1
 
 for INSTANCE in lemmy_alpha lemmy_beta lemmy_gamma lemmy_delta lemmy_epsilon; do

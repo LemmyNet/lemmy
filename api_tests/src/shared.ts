@@ -615,7 +615,7 @@ export async function followBeta(api: API): Promise<CommunityResponse> {
 
 export function delay(millis: number = 500) {
   return new Promise((resolve, _reject) => {
-    setTimeout(_ => resolve(), millis);
+    setTimeout(_ => resolve(), 10);
   });
 }
 
