@@ -86,22 +86,27 @@ steps:
     image: plugins/docker
     settings:
       dockerfile: docker/prod/Dockerfile
-      #username: kevinbacon
-      #password: pa55word
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
       repo: dessalines/lemmy
     when:
       ref:
       - refs/tags/*
 
-# TODO: also need to add more databases for federation test
-#       (or use multiple DBs in the same postgres instance)
 services:
   - name: database
     image: postgres:12-alpine
     environment:
       POSTGRES_USER: lemmy
       POSTGRES_PASSWORD: password
-    detach: true
+
+  - name: pictrs
+    image: asonix/pictrs:v0.2.5-r0
+
+  - name: iframely
+    image: dogbin/iframely:latest
 
 volumes:
   - name: dieselcli
