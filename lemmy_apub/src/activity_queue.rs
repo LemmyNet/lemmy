@@ -25,7 +25,7 @@ use lemmy_websocket::LemmyContext;
 use log::{debug, warn};
 use reqwest::Client;
 use serde::{export::fmt::Debug, Deserialize, Serialize};
-use std::{collections::BTreeMap, future::Future, pin::Pin, env};
+use std::{collections::BTreeMap, env, future::Future, pin::Pin};
 use url::Url;
 
 /// Sends a local activity to a single, remote actor.
@@ -263,13 +263,11 @@ impl ActixJob for SendActivityTask {
   const BACKOFF: Backoff = Backoff::Exponential(2);
 
   fn run(self, state: Self::State) -> Self::Future {
-    Box::pin(async move {
-      do_send(self, &state.client).await
-    })
+    Box::pin(async move { do_send(self, &state.client).await })
   }
 }
 
-async fn do_send(task: SendActivityTask, client: &Client) -> Result<(), Error>{
+async fn do_send(task: SendActivityTask, client: &Client) -> Result<(), Error> {
   let mut headers = BTreeMap::<String, String>::new();
   headers.insert("Content-Type".into(), "application/json".into());
   let result = sign_and_send(
@@ -280,15 +278,15 @@ async fn do_send(task: SendActivityTask, client: &Client) -> Result<(), Error>{
     &task.actor_id,
     task.private_key.to_owned(),
   )
-    .await;
+  .await;
 
   if let Err(e) = result {
     warn!("{}", e);
     return Err(anyhow!(
-          "Failed to send activity {} to {}",
-          &task.activity,
-          task.inbox
-        ));
+      "Failed to send activity {} to {}",
+      &task.activity,
+      task.inbox
+    ));
   }
   Ok(())
 }

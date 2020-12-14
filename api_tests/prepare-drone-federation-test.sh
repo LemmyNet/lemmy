@@ -26,7 +26,7 @@ LEMMY_HOSTNAME=lemmy-alpha:8541 \
   LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-beta,lemmy-gamma,lemmy-delta,lemmy-epsilon \
   LEMMY_SETUP__ADMIN_USERNAME=lemmy_alpha \
   LEMMY_SETUP__SITE_NAME=lemmy-alpha \
-  target/lemmy_server &
+  target/lemmy_server >/dev/null 2>&1 &
 
 echo "start beta"
 LEMMY_HOSTNAME=lemmy-beta:8551 \
@@ -35,7 +35,7 @@ LEMMY_HOSTNAME=lemmy-beta:8551 \
   LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-alpha,lemmy-gamma,lemmy-delta,lemmy-epsilon \
   LEMMY_SETUP__ADMIN_USERNAME=lemmy_beta \
   LEMMY_SETUP__SITE_NAME=lemmy-beta \
-  target/lemmy_server &
+  target/lemmy_server >/dev/null 2>&1 &
 
 echo "start gamma"
 LEMMY_HOSTNAME=lemmy-gamma:8561 \
@@ -44,7 +44,7 @@ LEMMY_HOSTNAME=lemmy-gamma:8561 \
   LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-alpha,lemmy-beta,lemmy-delta,lemmy-epsilon \
   LEMMY_SETUP__ADMIN_USERNAME=lemmy_gamma \
   LEMMY_SETUP__SITE_NAME=lemmy-gamma \
-  target/lemmy_server &
+  target/lemmy_server >/dev/null 2>&1 &
 
 echo "start delta"
 # An instance with only an allowlist for beta
@@ -54,7 +54,7 @@ LEMMY_HOSTNAME=lemmy-delta:8571 \
   LEMMY_FEDERATION__ALLOWED_INSTANCES=lemmy-beta \
   LEMMY_SETUP__ADMIN_USERNAME=lemmy_delta \
   LEMMY_SETUP__SITE_NAME=lemmy-delta \
-  target/lemmy_server &
+  target/lemmy_server >/dev/null 2>&1 &
 
 echo "start epsilon"
 # An instance who has a blocklist, with lemmy-alpha blocked
@@ -64,7 +64,7 @@ LEMMY_HOSTNAME=lemmy-epsilon:8581 \
   LEMMY_FEDERATION__BLOCKED_INSTANCES=lemmy-alpha \
   LEMMY_SETUP__ADMIN_USERNAME=lemmy_epsilon \
   LEMMY_SETUP__SITE_NAME=lemmy-epsilon \
-  target/lemmy_server &
+  target/lemmy_server >/dev/null 2>&1 &
 
 echo "wait for all instances to start"
 while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8541/api/v1/site')" != "200" ]]; do sleep 1; done
