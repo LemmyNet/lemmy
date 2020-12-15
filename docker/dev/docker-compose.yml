@@ -15,6 +15,7 @@ services:
       - pictrs
       - postgres
       - iframely
+
   lemmy-ui:
     image: dessalines/lemmy-ui:v0.8.10
     ports:
