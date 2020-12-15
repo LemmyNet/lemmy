@@ -35,6 +35,16 @@ table! {
 }
 
 table! {
+    comment_aggregates (id) {
+        id -> Int4,
+        comment_id -> Int4,
+        score -> Int8,
+        upvotes -> Int8,
+        downvotes -> Int8,
+    }
+}
+
+table! {
     comment_aggregates_fast (id) {
         id -> Int4,
         creator_id -> Nullable<Int4>,
@@ -556,8 +566,61 @@ table! {
     }
 }
 
+// These are necessary since diesel doesn't have self joins / aliases
+table! {
+    comment_alias_1 (id) {
+        id -> Int4,
+        creator_id -> Int4,
+        post_id -> Int4,
+        parent_id -> Nullable<Int4>,
+        content -> Text,
+        removed -> Bool,
+        read -> Bool,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
+        deleted -> Bool,
+        ap_id -> Varchar,
+        local -> Bool,
+    }
+}
+
+table! {
+    user_alias_1 (id) {
+        id -> Int4,
+        name -> Varchar,
+        preferred_username -> Nullable<Varchar>,
+        password_encrypted -> Text,
+        email -> Nullable<Text>,
+        avatar -> Nullable<Text>,
+        admin -> Bool,
+        banned -> Bool,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
+        show_nsfw -> Bool,
+        theme -> Varchar,
+        default_sort_type -> Int2,
+        default_listing_type -> Int2,
+        lang -> Varchar,
+        show_avatars -> Bool,
+        send_notifications_to_email -> Bool,
+        matrix_user_id -> Nullable<Text>,
+        actor_id -> Varchar,
+        bio -> Nullable<Text>,
+        local -> Bool,
+        private_key -> Nullable<Text>,
+        public_key -> Nullable<Text>,
+        last_refreshed_at -> Timestamp,
+        banner -> Nullable<Text>,
+        deleted -> Bool,
+    }
+}
+
+joinable!(comment_alias_1 -> user_alias_1 (creator_id));
+joinable!(comment -> comment_alias_1 (parent_id));
+
 joinable!(comment -> post (post_id));
 joinable!(comment -> user_ (creator_id));
+joinable!(comment_aggregates -> comment (comment_id));
 joinable!(comment_like -> comment (comment_id));
 joinable!(comment_like -> post (post_id));
 joinable!(comment_like -> user_ (user_id));
@@ -606,6 +669,7 @@ allow_tables_to_appear_in_same_query!(
   activity,
   category,
   comment,
+  comment_aggregates,
   comment_aggregates_fast,
   comment_like,
   comment_report,
@@ -641,4 +705,6 @@ allow_tables_to_appear_in_same_query!(
   user_ban,
   user_fast,
   user_mention,
+  comment_alias_1,
+  user_alias_1,
 );

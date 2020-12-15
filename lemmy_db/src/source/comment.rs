@@ -1,13 +1,14 @@
 use super::post::Post;
 use crate::{
   naive_now,
-  schema::{comment, comment_like, comment_saved},
+  schema::{comment, comment_alias_1, comment_like, comment_saved},
   ApubObject,
   Crud,
   Likeable,
   Saveable,
 };
 use diesel::{dsl::*, result::Error, *};
+use serde::Serialize;
 use url::{ParseError, Url};
 
 // WITH RECURSIVE MyTree AS (
@@ -17,10 +18,28 @@ use url::{ParseError, Url};
 // )
 // SELECT * FROM MyTree;
 
-#[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug)]
+#[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
 #[belongs_to(Post)]
 #[table_name = "comment"]
 pub struct Comment {
+  pub id: i32,
+  pub creator_id: i32,
+  pub post_id: i32,
+  pub parent_id: Option<i32>,
+  pub content: String,
+  pub removed: bool,
+  pub read: bool, // Whether the recipient has read the comment or not
+  pub published: chrono::NaiveDateTime,
+  pub updated: Option<chrono::NaiveDateTime>,
+  pub deleted: bool,
+  pub ap_id: String,
+  pub local: bool,
+}
+
+#[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
+#[belongs_to(Post)]
+#[table_name = "comment_alias_1"]
+pub struct CommentAlias1 {
   pub id: i32,
   pub creator_id: i32,
   pub post_id: i32,

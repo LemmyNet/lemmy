@@ -33,12 +33,12 @@ pub struct PostView {
   pub post: Post,
   pub creator: UserSafe,
   pub community: CommunitySafe,
-  pub counts: PostAggregates,
-  pub subscribed: bool,                    // Left join to CommunityFollower
   pub creator_banned_from_community: bool, // Left Join to CommunityUserBan
-  pub saved: bool,                         // Left join to PostSaved
-  pub read: bool,                          // Left join to PostRead
-  pub my_vote: Option<i16>,                // Left join to PostLike
+  pub counts: PostAggregates,
+  pub subscribed: bool,     // Left join to CommunityFollower
+  pub saved: bool,          // Left join to PostSaved
+  pub read: bool,           // Left join to PostRead
+  pub my_vote: Option<i16>, // Left join to PostLike
 }
 
 type PostViewTuple = (
@@ -76,7 +76,7 @@ impl PostView {
         community_user_ban::table.on(
           post::community_id
             .eq(community_user_ban::community_id)
-            .and(community_user_ban::user_id.eq(community::creator_id)),
+            .and(community_user_ban::user_id.eq(post::creator_id)),
         ),
       )
       .inner_join(post_aggregates::table)

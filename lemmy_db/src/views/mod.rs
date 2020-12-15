@@ -1,3 +1,4 @@
+pub mod comment_view;
 pub mod community_follower_view;
 pub mod community_moderator_view;
 pub mod community_user_ban_view;
