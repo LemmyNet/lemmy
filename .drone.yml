@@ -65,7 +65,8 @@ steps:
   - name: run federation tests
     image: node:15-alpine3.12
     environment:
-      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
+      DO_WRITE_HOSTS_FILE: 1
     commands:
       - ls -la target/lemmy_server
       - apk add bash curl postgresql-client
