@@ -10,11 +10,11 @@ use actix_web::web::Data;
 use anyhow::Context;
 use lemmy_apub::ActorType;
 use lemmy_db::{
-  comment_view::CommentQueryBuilder,
   diesel_option_overwrite,
   naive_now,
   source::{comment::Comment, community::*, moderator::*, post::Post, site::*},
   views::{
+    comment_view::CommentQueryBuilder,
     community_follower_view::CommunityFollowerView,
     community_moderator_view::CommunityModeratorView,
     community_view::{CommunityQueryBuilder, CommunityView},
@@ -591,7 +591,7 @@ impl Perform for BanFromCommunity {
       // Comments
       // Diesel doesn't allow updates with joins, so this has to be a loop
       let comments = blocking(context.pool(), move |conn| {
-        CommentQueryBuilder::create(conn)
+        CommentQueryBuilder::create(conn, None)
           .for_creator_id(banned_user_id)
           .for_community_id(community_id)
           .limit(std::i64::MAX)
@@ -599,8 +599,8 @@ impl Perform for BanFromCommunity {
       })
       .await??;
 
-      for comment in &comments {
-        let comment_id = comment.id;
+      for comment_view in &comments {
+        let comment_id = comment_view.comment.id;
         blocking(context.pool(), move |conn: &'_ _| {
           Comment::update_removed(conn, comment_id, remove_data)
         })

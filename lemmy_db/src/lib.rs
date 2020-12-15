@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 use std::{env, env::VarError};
 
 pub mod comment_report;
-pub mod comment_view;
 pub mod moderator_views;
 pub mod post_report;
 pub mod private_message_view;

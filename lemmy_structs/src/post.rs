@@ -1,7 +1,7 @@
 use lemmy_db::{
-  comment_view::CommentView,
   post_report::PostReportView,
   views::{
+    comment_view::CommentView,
     community_moderator_view::CommunityModeratorView,
     community_view::CommunityView,
     post_view::PostView,

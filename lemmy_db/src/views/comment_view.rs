@@ -660,3 +660,229 @@ impl ViewToVec for CommentView {
       .collect::<Vec<Self>>()
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use crate::{
+    source::{comment::*, community::*, post::*, user::*},
+    tests::establish_unpooled_connection,
+    views::comment_view::*,
+    Crud,
+    Likeable,
+    *,
+  };
+
+  #[test]
+  fn test_crud() {
+    let conn = establish_unpooled_connection();
+
+    let new_user = UserForm {
+      name: "timmy".into(),
+      preferred_username: None,
+      password_encrypted: "nope".into(),
+      email: None,
+      matrix_user_id: None,
+      avatar: None,
+      banner: None,
+      admin: false,
+      banned: Some(false),
+      published: None,
+      updated: None,
+      show_nsfw: false,
+      theme: "browser".into(),
+      default_sort_type: SortType::Hot as i16,
+      default_listing_type: ListingType::Subscribed as i16,
+      lang: "browser".into(),
+      show_avatars: true,
+      send_notifications_to_email: false,
+      actor_id: None,
+      bio: None,
+      local: true,
+      private_key: None,
+      public_key: None,
+      last_refreshed_at: None,
+    };
+
+    let inserted_user = User_::create(&conn, &new_user).unwrap();
+
+    let new_community = CommunityForm {
+      name: "test community 5".to_string(),
+      title: "nada".to_owned(),
+      description: None,
+      category_id: 1,
+      creator_id: inserted_user.id,
+      removed: None,
+      deleted: None,
+      updated: None,
+      nsfw: false,
+      actor_id: None,
+      local: true,
+      private_key: None,
+      public_key: None,
+      last_refreshed_at: None,
+      published: None,
+      icon: None,
+      banner: None,
+    };
+
+    let inserted_community = Community::create(&conn, &new_community).unwrap();
+
+    let new_post = PostForm {
+      name: "A test post 2".into(),
+      creator_id: inserted_user.id,
+      url: None,
+      body: None,
+      community_id: inserted_community.id,
+      removed: None,
+      deleted: None,
+      locked: None,
+      stickied: None,
+      updated: None,
+      nsfw: false,
+      embed_title: None,
+      embed_description: None,
+      embed_html: None,
+      thumbnail_url: None,
+      ap_id: None,
+      local: true,
+      published: None,
+    };
+
+    let inserted_post = Post::create(&conn, &new_post).unwrap();
+
+    let comment_form = CommentForm {
+      content: "A test comment 32".into(),
+      creator_id: inserted_user.id,
+      post_id: inserted_post.id,
+      parent_id: None,
+      removed: None,
+      deleted: None,
+      read: None,
+      published: None,
+      updated: None,
+      ap_id: None,
+      local: true,
+    };
+
+    let inserted_comment = Comment::create(&conn, &comment_form).unwrap();
+
+    let comment_like_form = CommentLikeForm {
+      comment_id: inserted_comment.id,
+      post_id: inserted_post.id,
+      user_id: inserted_user.id,
+      score: 1,
+    };
+
+    let _inserted_comment_like = CommentLike::like(&conn, &comment_like_form).unwrap();
+
+    let expected_comment_view_no_user = CommentView {
+      creator_banned_from_community: false,
+      my_vote: None,
+      subscribed: false,
+      saved: false,
+      comment: Comment {
+        id: inserted_comment.id,
+        content: "A test comment 32".into(),
+        creator_id: inserted_user.id,
+        post_id: inserted_post.id,
+        parent_id: None,
+        removed: false,
+        deleted: false,
+        read: false,
+        published: inserted_comment.published,
+        ap_id: inserted_comment.ap_id,
+        updated: None,
+        local: true,
+      },
+      creator: UserSafe {
+        id: inserted_user.id,
+        name: "timmy".into(),
+        preferred_username: None,
+        published: inserted_user.published,
+        avatar: None,
+        actor_id: inserted_user.actor_id.to_owned(),
+        local: true,
+        banned: false,
+        deleted: false,
+        bio: None,
+        banner: None,
+        admin: false,
+        updated: None,
+        matrix_user_id: None,
+      },
+      recipient: None,
+      post: Post {
+        id: inserted_post.id,
+        name: inserted_post.name.to_owned(),
+        creator_id: inserted_user.id,
+        url: None,
+        body: None,
+        published: inserted_post.published,
+        updated: None,
+        community_id: inserted_community.id,
+        removed: false,
+        deleted: false,
+        locked: false,
+        stickied: false,
+        nsfw: false,
+        embed_title: None,
+        embed_description: None,
+        embed_html: None,
+        thumbnail_url: None,
+        ap_id: inserted_post.ap_id.to_owned(),
+        local: true,
+      },
+      community: CommunitySafe {
+        id: inserted_community.id,
+        name: "test community 5".to_string(),
+        icon: None,
+        removed: false,
+        deleted: false,
+        nsfw: false,
+        actor_id: inserted_community.actor_id.to_owned(),
+        local: true,
+        title: "nada".to_owned(),
+        description: None,
+        creator_id: inserted_user.id,
+        category_id: 1,
+        updated: None,
+        banner: None,
+        published: inserted_community.published,
+      },
+      counts: CommentAggregates {
+        id: inserted_comment.id, // TODO
+        comment_id: inserted_comment.id,
+        score: 1,
+        upvotes: 1,
+        downvotes: 0,
+      },
+    };
+
+    let mut expected_comment_view_with_user = expected_comment_view_no_user.to_owned();
+    expected_comment_view_with_user.my_vote = Some(1);
+
+    let read_comment_views_no_user = CommentQueryBuilder::create(&conn, None)
+      .for_post_id(inserted_post.id)
+      .list()
+      .unwrap();
+
+    let read_comment_views_with_user = CommentQueryBuilder::create(&conn, Some(inserted_user.id))
+      .for_post_id(inserted_post.id)
+      .list()
+      .unwrap();
+
+    let like_removed = CommentLike::remove(&conn, inserted_user.id, inserted_comment.id).unwrap();
+    let num_deleted = Comment::delete(&conn, inserted_comment.id).unwrap();
+    Post::delete(&conn, inserted_post.id).unwrap();
+    Community::delete(&conn, inserted_community.id).unwrap();
+    User_::delete(&conn, inserted_user.id).unwrap();
+
+    assert_eq!(expected_comment_view_no_user, read_comment_views_no_user[0]);
+    assert_eq!(
+      expected_comment_view_with_user,
+      read_comment_views_with_user[0]
+    );
+    assert_eq!(1, num_deleted);
+    assert_eq!(1, like_removed);
+  }
+}

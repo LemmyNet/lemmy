@@ -1,9 +1,9 @@
 use lemmy_db::{
   aggregates::site_aggregates::SiteAggregates,
-  comment_view::*,
   moderator_views::*,
   source::{category::*, user::*},
   views::{
+    comment_view::CommentView,
     community_view::CommunityView,
     post_view::PostView,
     site_view::SiteView,

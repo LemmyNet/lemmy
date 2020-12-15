@@ -4,10 +4,10 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::PgConnection;
 use lemmy_api::claims::Claims;
 use lemmy_db::{
-  comment_view::{ReplyQueryBuilder, ReplyView},
   source::{community::Community, user::User_},
   user_mention_view::{UserMentionQueryBuilder, UserMentionView},
   views::{
+    comment_view::{CommentQueryBuilder, CommentView},
     post_view::{PostQueryBuilder, PostView},
     site_view::SiteView,
   },
@@ -248,7 +248,8 @@ fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, Le
 
   let sort = SortType::New;
 
-  let replies = ReplyQueryBuilder::create(&conn, user_id)
+  let replies = CommentQueryBuilder::create(&conn, Some(user_id))
+    .for_recipient_id(user_id)
     .sort(&sort)
     .list()?;
 
@@ -276,7 +277,7 @@ fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, Le
 }
 
 fn create_reply_and_mention_items(
-  replies: Vec<ReplyView>,
+  replies: Vec<CommentView>,
   mentions: Vec<UserMentionView>,
 ) -> Result<Vec<Item>, LemmyError> {
   let mut reply_items: Vec<Item> = replies
@@ -285,10 +286,15 @@ fn create_reply_and_mention_items(
       let reply_url = format!(
         "{}/post/{}/comment/{}",
         Settings::get().get_protocol_and_hostname(),
-        r.post_id,
-        r.id
+        r.post.id,
+        r.comment.id
       );
-      build_item(&r.creator_name, &r.published, &reply_url, &r.content)
+      build_item(
+        &r.creator.name,
+        &r.comment.published,
+        &reply_url,
+        &r.comment.content,
+      )
     })
     .collect::<Result<Vec<Item>, LemmyError>>()?;
 

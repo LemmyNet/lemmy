@@ -10,11 +10,11 @@ use crate::{
 use actix_web::web::Data;
 use lemmy_apub::{ApubLikeableType, ApubObjectType};
 use lemmy_db::{
-  comment_view::*,
   naive_now,
   post_report::*,
   source::{moderator::*, post::*},
   views::{
+    comment_view::CommentQueryBuilder,
     community_moderator_view::CommunityModeratorView,
     community_view::CommunityView,
     post_view::{PostQueryBuilder, PostView},
@@ -181,9 +181,8 @@ impl Perform for GetPost {
 
     let id = data.id;
     let comments = blocking(context.pool(), move |conn| {
-      CommentQueryBuilder::create(conn)
+      CommentQueryBuilder::create(conn, user_id)
         .for_post_id(id)
-        .my_user_id(user_id)
         .limit(9999)
         .list()
     })

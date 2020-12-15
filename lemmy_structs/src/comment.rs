@@ -1,4 +1,4 @@
-use lemmy_db::{comment_report::CommentReportView, comment_view::CommentView};
+use lemmy_db::{comment_report::CommentReportView, views::comment_view::CommentView};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
@@ -49,7 +49,7 @@ pub struct SaveComment {
 
 #[derive(Serialize, Clone)]
 pub struct CommentResponse {
-  pub comment: CommentView,
+  pub comment_view: CommentView,
   pub recipient_ids: Vec<i32>,
   pub form_id: Option<String>,
 }

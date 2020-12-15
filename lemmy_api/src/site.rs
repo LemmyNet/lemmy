@@ -11,12 +11,12 @@ use anyhow::Context;
 use lemmy_apub::fetcher::search_by_apub_id;
 use lemmy_db::{
   aggregates::site_aggregates::SiteAggregates,
-  comment_view::*,
   diesel_option_overwrite,
   moderator_views::*,
   naive_now,
   source::{category::*, moderator::*, site::*},
   views::{
+    comment_view::CommentQueryBuilder,
     community_view::CommunityQueryBuilder,
     post_view::PostQueryBuilder,
     site_view::SiteView,
@@ -377,10 +377,9 @@ impl Perform for Search {
       }
       SearchType::Comments => {
         comments = blocking(context.pool(), move |conn| {
-          CommentQueryBuilder::create(&conn)
+          CommentQueryBuilder::create(&conn, user_id)
             .sort(&sort)
             .search_term(q)
-            .my_user_id(user_id)
             .page(page)
             .limit(limit)
             .list()
@@ -427,10 +426,9 @@ impl Perform for Search {
         let sort = SortType::from_str(&data.sort)?;
 
         comments = blocking(context.pool(), move |conn| {
-          CommentQueryBuilder::create(conn)
+          CommentQueryBuilder::create(conn, user_id)
             .sort(&sort)
             .search_term(q)
-            .my_user_id(user_id)
             .page(page)
             .limit(limit)
             .list()

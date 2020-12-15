@@ -11,9 +11,11 @@ use actix_web::web::Data;
 use lemmy_apub::{ApubLikeableType, ApubObjectType};
 use lemmy_db::{
   comment_report::*,
-  comment_view::*,
   source::{comment::*, moderator::*, post::*, user::*},
-  views::site_view::SiteView,
+  views::{
+    comment_view::{CommentQueryBuilder, CommentView},
+    site_view::SiteView,
+  },
   Crud,
   Likeable,
   ListingType,
@@ -135,7 +137,7 @@ impl Perform for CreateComment {
     .await??;
 
     let mut res = CommentResponse {
-      comment: comment_view,
+      comment_view,
       recipient_ids,
       form_id: data.form_id.to_owned(),
     };
@@ -172,10 +174,10 @@ impl Perform for EditComment {
     })
     .await??;
 
-    check_community_ban(user.id, orig_comment.community_id, context.pool()).await?;
+    check_community_ban(user.id, orig_comment.community.id, context.pool()).await?;
 
     // Verify that only the creator can edit
-    if user.id != orig_comment.creator_id {
+    if user.id != orig_comment.creator.id {
       return Err(APIError::err("no_comment_edit_allowed").into());
     }
 
@@ -195,7 +197,7 @@ impl Perform for EditComment {
     updated_comment.send_update(&user, context).await?;
 
     // Do the mentions / recipients
-    let post_id = orig_comment.post_id;
+    let post_id = orig_comment.post.id;
     let post = get_post(post_id, context.pool()).await?;
 
     let updated_comment_content = updated_comment.content.to_owned();
@@ -218,7 +220,7 @@ impl Perform for EditComment {
     .await??;
 
     let mut res = CommentResponse {
-      comment: comment_view,
+      comment_view,
       recipient_ids,
       form_id: data.form_id.to_owned(),
     };
@@ -255,10 +257,10 @@ impl Perform for DeleteComment {
     })
     .await??;
 
-    check_community_ban(user.id, orig_comment.community_id, context.pool()).await?;
+    check_community_ban(user.id, orig_comment.community.id, context.pool()).await?;
 
     // Verify that only the creator can delete
-    if user.id != orig_comment.creator_id {
+    if user.id != orig_comment.creator.id {
       return Err(APIError::err("no_comment_edit_allowed").into());
     }
 
@@ -289,7 +291,7 @@ impl Perform for DeleteComment {
     .await??;
 
     // Build the recipients
-    let post_id = comment_view.post_id;
+    let post_id = comment_view.post.id;
     let post = get_post(post_id, context.pool()).await?;
     let mentions = vec![];
     let recipient_ids = send_local_notifs(
@@ -303,7 +305,7 @@ impl Perform for DeleteComment {
     .await?;
 
     let mut res = CommentResponse {
-      comment: comment_view,
+      comment_view,
       recipient_ids,
       form_id: None,
     };
@@ -340,10 +342,10 @@ impl Perform for RemoveComment {
     })
     .await??;
 
-    check_community_ban(user.id, orig_comment.community_id, context.pool()).await?;
+    check_community_ban(user.id, orig_comment.community.id, context.pool()).await?;
 
     // Verify that only a mod or admin can remove
-    is_mod_or_admin(context.pool(), user.id, orig_comment.community_id).await?;
+    is_mod_or_admin(context.pool(), user.id, orig_comment.community.id).await?;
 
     // Do the remove
     let removed = data.removed;
@@ -384,7 +386,7 @@ impl Perform for RemoveComment {
     .await??;
 
     // Build the recipients
-    let post_id = comment_view.post_id;
+    let post_id = comment_view.post.id;
     let post = get_post(post_id, context.pool()).await?;
     let mentions = vec![];
     let recipient_ids = send_local_notifs(
@@ -398,7 +400,7 @@ impl Perform for RemoveComment {
     .await?;
 
     let mut res = CommentResponse {
-      comment: comment_view,
+      comment_view,
       recipient_ids,
       form_id: None,
     };
@@ -435,23 +437,23 @@ impl Perform for MarkCommentAsRead {
     })
     .await??;
 
-    check_community_ban(user.id, orig_comment.community_id, context.pool()).await?;
+    check_community_ban(user.id, orig_comment.community.id, context.pool()).await?;
 
     // Verify that only the recipient can mark as read
     // Needs to fetch the parent comment / post to get the recipient
-    let parent_id = orig_comment.parent_id;
+    let parent_id = orig_comment.comment.parent_id;
     match parent_id {
       Some(pid) => {
         let parent_comment = blocking(context.pool(), move |conn| {
           CommentView::read(&conn, pid, None)
         })
         .await??;
-        if user.id != parent_comment.creator_id {
+        if user.id != parent_comment.creator.id {
           return Err(APIError::err("no_comment_edit_allowed").into());
         }
       }
       None => {
-        let parent_post_id = orig_comment.post_id;
+        let parent_post_id = orig_comment.post.id;
         let parent_post =
           blocking(context.pool(), move |conn| Post::read(conn, parent_post_id)).await??;
         if user.id != parent_post.creator_id {
@@ -480,7 +482,7 @@ impl Perform for MarkCommentAsRead {
     .await??;
 
     let res = CommentResponse {
-      comment: comment_view,
+      comment_view,
       recipient_ids: Vec::new(),
       form_id: None,
     };
@@ -526,7 +528,7 @@ impl Perform for SaveComment {
     .await??;
 
     Ok(CommentResponse {
-      comment: comment_view,
+      comment_view,
       recipient_ids: Vec::new(),
       form_id: None,
     })
@@ -561,7 +563,7 @@ impl Perform for CreateCommentLike {
     })
     .await??;
 
-    let post_id = orig_comment.post_id;
+    let post_id = orig_comment.post.id;
     let post = get_post(post_id, context.pool()).await?;
     check_community_ban(user.id, post.community_id, context.pool()).await?;
 
@@ -627,7 +629,7 @@ impl Perform for CreateCommentLike {
     .await??;
 
     let mut res = CommentResponse {
-      comment: liked_comment,
+      comment_view: liked_comment,
       recipient_ids,
       form_id: None,
     };
@@ -667,12 +669,11 @@ impl Perform for GetComments {
     let page = data.page;
     let limit = data.limit;
     let comments = blocking(context.pool(), move |conn| {
-      CommentQueryBuilder::create(conn)
+      CommentQueryBuilder::create(conn, user_id)
         .listing_type(type_)
         .sort(&sort)
         .for_community_id(community_id)
         .for_community_name(community_name)
-        .my_user_id(user_id)
         .page(page)
         .limit(limit)
         .list()
@@ -711,17 +712,17 @@ impl Perform for CreateCommentReport {
 
     let user_id = user.id;
     let comment_id = data.comment_id;
-    let comment = blocking(context.pool(), move |conn| {
+    let comment_view = blocking(context.pool(), move |conn| {
       CommentView::read(&conn, comment_id, None)
     })
     .await??;
 
-    check_community_ban(user_id, comment.community_id, context.pool()).await?;
+    check_community_ban(user_id, comment_view.community.id, context.pool()).await?;
 
     let report_form = CommentReportForm {
       creator_id: user_id,
       comment_id,
-      original_comment_text: comment.content,
+      original_comment_text: comment_view.comment.content,
       reason: data.reason.to_owned(),
     };
 
@@ -746,7 +747,7 @@ impl Perform for CreateCommentReport {
     context.chat_server().do_send(SendModRoomMessage {
       op: UserOperation::CreateCommentReport,
       response: report,
-      community_id: comment.community_id,
+      community_id: comment_view.community.id,
       websocket_id,
     });
 

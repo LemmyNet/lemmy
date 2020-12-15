@@ -328,9 +328,10 @@ impl ChatServer {
     comment: &CommentResponse,
     websocket_id: Option<ConnectionId>,
   ) -> Result<(), LemmyError> {
-    let mut comment_reply_sent = comment.clone();
-    comment_reply_sent.comment.my_vote = None;
-    comment_reply_sent.comment.user_id = None;
+    let comment_reply_sent = comment.clone();
+    // TODO what is this here
+    // comment_reply_sent.comment_view.my_vote = None;
+    // comment_reply_sent.comment.user_id = None;
 
     let mut comment_post_sent = comment_reply_sent.clone();
     comment_post_sent.recipient_ids = Vec::new();
@@ -339,7 +340,7 @@ impl ChatServer {
     self.send_post_room_message(
       user_operation,
       &comment_post_sent,
-      comment_post_sent.comment.post_id,
+      comment_post_sent.comment_view.post.id,
       websocket_id,
     )?;
 
@@ -358,7 +359,7 @@ impl ChatServer {
     self.send_community_room_message(
       user_operation,
       &comment_post_sent,
-      comment.comment.community_id,
+      comment.comment_view.community.id,
       websocket_id,
     )?;
 

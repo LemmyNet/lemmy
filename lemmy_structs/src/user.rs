@@ -1,8 +1,8 @@
 use lemmy_db::{
-  comment_view::{CommentView, ReplyView},
   private_message_view::PrivateMessageView,
   user_mention_view::UserMentionView,
   views::{
+    comment_view::CommentView,
     community_follower_view::CommunityFollowerView,
     community_moderator_view::CommunityModeratorView,
     post_view::PostView,
@@ -94,7 +94,7 @@ pub struct GetUserDetailsResponse {
 
 #[derive(Serialize)]
 pub struct GetRepliesResponse {
-  pub replies: Vec<ReplyView>,
+  pub replies: Vec<CommentView>,
 }
 
 #[derive(Serialize)]

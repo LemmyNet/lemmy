@@ -16,7 +16,6 @@ use chrono::Duration;
 use lemmy_apub::ApubObjectType;
 use lemmy_db::{
   comment_report::CommentReportView,
-  comment_view::*,
   diesel_option_overwrite,
   naive_now,
   post_report::PostReportView,
@@ -34,6 +33,7 @@ use lemmy_db::{
   },
   user_mention_view::*,
   views::{
+    comment_view::CommentQueryBuilder,
     community_follower_view::CommunityFollowerView,
     community_moderator_view::CommunityModeratorView,
     post_view::PostQueryBuilder,
@@ -544,10 +544,9 @@ impl Perform for GetUserDetails {
         .page(page)
         .limit(limit);
 
-      let mut comments_query = CommentQueryBuilder::create(conn)
+      let mut comments_query = CommentQueryBuilder::create(conn, user_id)
         .sort(&sort)
         .saved_only(saved_only)
-        .my_user_id(user_id)
         .page(page)
         .limit(limit);
 
@@ -742,9 +741,10 @@ impl Perform for GetReplies {
     let unread_only = data.unread_only;
     let user_id = user.id;
     let replies = blocking(context.pool(), move |conn| {
-      ReplyQueryBuilder::create(conn, user_id)
+      CommentQueryBuilder::create(conn, Some(user_id))
         .sort(&sort)
         .unread_only(unread_only)
+        .for_recipient_id(user_id)
         .page(page)
         .limit(limit)
         .list()
@@ -843,7 +843,8 @@ impl Perform for MarkAllAsRead {
 
     let user_id = user.id;
     let replies = blocking(context.pool(), move |conn| {
-      ReplyQueryBuilder::create(conn, user_id)
+      CommentQueryBuilder::create(conn, Some(user_id))
+        .for_recipient_id(user_id)
         .unread_only(true)
         .page(1)
         .limit(999)
@@ -854,8 +855,8 @@ impl Perform for MarkAllAsRead {
     // TODO: this should probably be a bulk operation
     // Not easy to do as a bulk operation,
     // because recipient_id isn't in the comment table
-    for reply in &replies {
-      let reply_id = reply.id;
+    for comment_view in &replies {
+      let reply_id = comment_view.comment.id;
       let mark_as_read = move |conn: &'_ _| Comment::update_read(conn, reply_id, true);
       if blocking(context.pool(), mark_as_read).await?.is_err() {
         return Err(APIError::err("couldnt_update_comment").into());
