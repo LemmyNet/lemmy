@@ -1,15 +1,13 @@
-use lemmy_db::{
-  private_message_view::PrivateMessageView,
-  views::{
-    comment_view::CommentView,
-    community::{
-      community_follower_view::CommunityFollowerView,
-      community_moderator_view::CommunityModeratorView,
-    },
-    post_view::PostView,
-    user_mention_view::UserMentionView,
-    user_view::{UserViewDangerous, UserViewSafe},
+use lemmy_db::views::{
+  comment_view::CommentView,
+  community::{
+    community_follower_view::CommunityFollowerView,
+    community_moderator_view::CommunityModeratorView,
   },
+  post_view::PostView,
+  private_message_view::PrivateMessageView,
+  user_mention_view::UserMentionView,
+  user_view::{UserViewDangerous, UserViewSafe},
 };
 use serde::{Deserialize, Serialize};
 

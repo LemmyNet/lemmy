@@ -19,7 +19,6 @@ use lemmy_db::{
   diesel_option_overwrite,
   naive_now,
   post_report::PostReportView,
-  private_message_view::*,
   source::{
     comment::*,
     community::*,
@@ -38,6 +37,7 @@ use lemmy_db::{
       community_moderator_view::CommunityModeratorView,
     },
     post_view::PostQueryBuilder,
+    private_message_view::{PrivateMessageQueryBuilder, PrivateMessageView},
     site_view::SiteView,
     user_mention_view::{UserMentionQueryBuilder, UserMentionView},
     user_view::{UserViewDangerous, UserViewSafe},
@@ -1146,7 +1146,7 @@ impl Perform for EditPrivateMessage {
       PrivateMessageView::read(conn, edit_id)
     })
     .await??;
-    let recipient_id = message.recipient_id;
+    let recipient_id = message.recipient.id;
 
     let res = PrivateMessageResponse { message };
 
@@ -1209,7 +1209,7 @@ impl Perform for DeletePrivateMessage {
       PrivateMessageView::read(conn, edit_id)
     })
     .await??;
-    let recipient_id = message.recipient_id;
+    let recipient_id = message.recipient.id;
 
     let res = PrivateMessageResponse { message };
 
@@ -1265,7 +1265,7 @@ impl Perform for MarkPrivateMessageAsRead {
       PrivateMessageView::read(conn, edit_id)
     })
     .await??;
-    let recipient_id = message.recipient_id;
+    let recipient_id = message.recipient.id;
 
     let res = PrivateMessageResponse { message };
 

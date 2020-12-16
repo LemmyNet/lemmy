@@ -13,7 +13,10 @@ use activitystreams::{
   public,
 };
 use anyhow::{anyhow, Context};
-use lemmy_db::{private_message_view::PrivateMessageView, source::private_message::PrivateMessage};
+use lemmy_db::{
+  source::private_message::PrivateMessage,
+  views::private_message_view::PrivateMessageView,
+};
 use lemmy_structs::{blocking, user::PrivateMessageResponse};
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::{messages::SendUserRoomMessage, LemmyContext, UserOperation};
@@ -46,7 +49,7 @@ pub(crate) async fn receive_create_private_message(
 
   let res = PrivateMessageResponse { message };
 
-  let recipient_id = res.message.recipient_id;
+  let recipient_id = res.message.recipient.id;
 
   context.chat_server().do_send(SendUserRoomMessage {
     op: UserOperation::CreatePrivateMessage,
@@ -84,7 +87,7 @@ pub(crate) async fn receive_update_private_message(
 
   let res = PrivateMessageResponse { message };
 
-  let recipient_id = res.message.recipient_id;
+  let recipient_id = res.message.recipient.id;
 
   context.chat_server().do_send(SendUserRoomMessage {
     op: UserOperation::EditPrivateMessage,
@@ -115,7 +118,7 @@ pub(crate) async fn receive_delete_private_message(
   .await??;
 
   let res = PrivateMessageResponse { message };
-  let recipient_id = res.message.recipient_id;
+  let recipient_id = res.message.recipient.id;
   context.chat_server().do_send(SendUserRoomMessage {
     op: UserOperation::EditPrivateMessage,
     response: res,
@@ -150,7 +153,7 @@ pub(crate) async fn receive_undo_delete_private_message(
   .await??;
 
   let res = PrivateMessageResponse { message };
-  let recipient_id = res.message.recipient_id;
+  let recipient_id = res.message.recipient.id;
   context.chat_server().do_send(SendUserRoomMessage {
     op: UserOperation::EditPrivateMessage,
     response: res,

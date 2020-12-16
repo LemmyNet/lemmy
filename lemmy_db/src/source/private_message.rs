@@ -1,7 +1,8 @@
 use crate::{naive_now, schema::private_message, ApubObject, Crud};
 use diesel::{dsl::*, result::Error, *};
+use serde::Serialize;
 
-#[derive(Queryable, Identifiable, PartialEq, Debug)]
+#[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "private_message"]
 pub struct PrivateMessage {
   pub id: i32,
