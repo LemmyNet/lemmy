@@ -70,6 +70,7 @@ impl UserViewSafe {
   }
 }
 
+// TODO can get rid of this by not boxing the query before the list()
 mod join_types {
   use crate::schema::{user_, user_aggregates};
   use diesel::{

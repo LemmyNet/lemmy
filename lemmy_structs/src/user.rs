@@ -1,11 +1,11 @@
 use lemmy_db::{
   private_message_view::PrivateMessageView,
-  user_mention_view::UserMentionView,
   views::{
     comment_view::CommentView,
     community_follower_view::CommunityFollowerView,
     community_moderator_view::CommunityModeratorView,
     post_view::PostView,
+    user_mention_view::UserMentionView,
     user_view::{UserViewDangerous, UserViewSafe},
   },
 };
@@ -162,7 +162,7 @@ pub struct MarkUserMentionAsRead {
 
 #[derive(Serialize, Clone)]
 pub struct UserMentionResponse {
-  pub mention: UserMentionView,
+  pub user_mention_view: UserMentionView,
 }
 
 #[derive(Deserialize)]

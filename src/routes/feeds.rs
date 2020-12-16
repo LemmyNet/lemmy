@@ -5,11 +5,11 @@ use diesel::PgConnection;
 use lemmy_api::claims::Claims;
 use lemmy_db::{
   source::{community::Community, user::User_},
-  user_mention_view::{UserMentionQueryBuilder, UserMentionView},
   views::{
     comment_view::{CommentQueryBuilder, CommentView},
     post_view::{PostQueryBuilder, PostView},
     site_view::SiteView,
+    user_mention_view::{UserMentionQueryBuilder, UserMentionView},
   },
   ListingType,
   SortType,
@@ -253,7 +253,7 @@ fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, Le
     .sort(&sort)
     .list()?;
 
-  let mentions = UserMentionQueryBuilder::create(&conn, user_id)
+  let mentions = UserMentionQueryBuilder::create(&conn, Some(user_id), user_id)
     .sort(&sort)
     .list()?;
 
@@ -304,10 +304,15 @@ fn create_reply_and_mention_items(
       let mention_url = format!(
         "{}/post/{}/comment/{}",
         Settings::get().get_protocol_and_hostname(),
-        m.post_id,
-        m.id
+        m.post.id,
+        m.comment.id
       );
-      build_item(&m.creator_name, &m.published, &mention_url, &m.content)
+      build_item(
+        &m.creator.name,
+        &m.comment.published,
+        &mention_url,
+        &m.comment.content,
+      )
     })
     .collect::<Result<Vec<Item>, LemmyError>>()?;
 

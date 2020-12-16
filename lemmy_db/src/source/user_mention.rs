@@ -1,8 +1,9 @@
 use super::comment::Comment;
 use crate::{schema::user_mention, Crud};
 use diesel::{dsl::*, result::Error, *};
+use serde::Serialize;
 
-#[derive(Queryable, Associations, Identifiable, PartialEq, Debug)]
+#[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
 #[belongs_to(Comment)]
 #[table_name = "user_mention"]
 pub struct UserMention {

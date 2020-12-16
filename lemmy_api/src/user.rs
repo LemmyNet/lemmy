@@ -31,13 +31,13 @@ use lemmy_db::{
     user::*,
     user_mention::*,
   },
-  user_mention_view::*,
   views::{
     comment_view::CommentQueryBuilder,
     community_follower_view::CommunityFollowerView,
     community_moderator_view::CommunityModeratorView,
     post_view::PostQueryBuilder,
     site_view::SiteView,
+    user_mention_view::{UserMentionQueryBuilder, UserMentionView},
     user_view::{UserViewDangerous, UserViewSafe},
   },
   Crud,
@@ -774,7 +774,7 @@ impl Perform for GetUserMentions {
     let unread_only = data.unread_only;
     let user_id = user.id;
     let mentions = blocking(context.pool(), move |conn| {
-      UserMentionQueryBuilder::create(conn, user_id)
+      UserMentionQueryBuilder::create(conn, Some(user_id), user_id)
         .sort(&sort)
         .unread_only(unread_only)
         .page(page)
@@ -819,13 +819,11 @@ impl Perform for MarkUserMentionAsRead {
     let user_mention_id = read_user_mention.id;
     let user_id = user.id;
     let user_mention_view = blocking(context.pool(), move |conn| {
-      UserMentionView::read(conn, user_mention_id, user_id)
+      UserMentionView::read(conn, user_mention_id, Some(user_id))
     })
     .await??;
 
-    Ok(UserMentionResponse {
-      mention: user_mention_view,
-    })
+    Ok(UserMentionResponse { user_mention_view })
   }
 }
 

@@ -617,6 +617,7 @@ table! {
 
 joinable!(comment_alias_1 -> user_alias_1 (creator_id));
 joinable!(comment -> comment_alias_1 (parent_id));
+joinable!(user_mention -> user_alias_1 (recipient_id));
 
 joinable!(comment -> post (post_id));
 joinable!(comment -> user_ (creator_id));
