@@ -74,107 +74,10 @@ impl CommunityView {
   }
 }
 
-mod join_types {
-  use crate::schema::{category, community, community_aggregates, community_follower, user_};
-  use diesel::{
-    pg::Pg,
-    query_builder::BoxedSelectStatement,
-    query_source::joins::{Inner, Join, JoinOn, LeftOuter},
-    sql_types::*,
-  };
-
-  /// TODO awful, but necessary because of the boxed join
-  pub(super) type BoxedCommunityJoin<'a> = BoxedSelectStatement<
-    'a,
-    (
-      (
-        Integer,
-        Text,
-        Text,
-        Nullable<Text>,
-        Integer,
-        Integer,
-        Bool,
-        Timestamp,
-        Nullable<Timestamp>,
-        Bool,
-        Bool,
-        Text,
-        Bool,
-        Nullable<Text>,
-        Nullable<Text>,
-      ),
-      (
-        Integer,
-        Text,
-        Nullable<Text>,
-        Nullable<Text>,
-        Bool,
-        Bool,
-        Timestamp,
-        Nullable<Timestamp>,
-        Nullable<Text>,
-        Text,
-        Nullable<Text>,
-        Bool,
-        Nullable<Text>,
-        Bool,
-      ),
-      (Integer, Text),
-      (Integer, Integer, BigInt, BigInt, BigInt),
-      Nullable<(Integer, Integer, Integer, Timestamp, Nullable<Bool>)>,
-    ),
-    JoinOn<
-      Join<
-        JoinOn<
-          Join<
-            JoinOn<
-              Join<
-                JoinOn<
-                  Join<community::table, user_::table, Inner>,
-                  diesel::expression::operators::Eq<
-                    diesel::expression::nullable::Nullable<community::columns::creator_id>,
-                    diesel::expression::nullable::Nullable<user_::columns::id>,
-                  >,
-                >,
-                category::table,
-                Inner,
-              >,
-              diesel::expression::operators::Eq<
-                diesel::expression::nullable::Nullable<community::columns::category_id>,
-                diesel::expression::nullable::Nullable<category::columns::id>,
-              >,
-            >,
-            community_aggregates::table,
-            Inner,
-          >,
-          diesel::expression::operators::Eq<
-            diesel::expression::nullable::Nullable<community_aggregates::columns::community_id>,
-            diesel::expression::nullable::Nullable<community::columns::id>,
-          >,
-        >,
-        community_follower::table,
-        LeftOuter,
-      >,
-      diesel::expression::operators::And<
-        diesel::expression::operators::Eq<
-          community::columns::id,
-          community_follower::columns::community_id,
-        >,
-        diesel::expression::operators::Eq<
-          community_follower::columns::user_id,
-          diesel::expression::bound::Bound<diesel::sql_types::Integer, i32>,
-        >,
-      >,
-    >,
-    Pg,
-  >;
-}
-
 pub struct CommunityQueryBuilder<'a> {
   conn: &'a PgConnection,
-  query: join_types::BoxedCommunityJoin<'a>,
   sort: &'a SortType,
+  my_user_id: Option<i32>,
   show_nsfw: bool,
   search_term: Option<String>,
   page: Option<i64>,
@@ -182,33 +85,10 @@ pub struct CommunityQueryBuilder<'a> {
 }
 
 impl<'a> CommunityQueryBuilder<'a> {
-  pub fn create(conn: &'a PgConnection, my_user_id: Option<i32>) -> Self {
-    // The left join below will return None in this case
-    let user_id_join = my_user_id.unwrap_or(-1);
-
-    let query = community::table
-      .inner_join(user_::table)
-      .inner_join(category::table)
-      .inner_join(community_aggregates::table)
-      .left_join(
-        community_follower::table.on(
-          community::id
-            .eq(community_follower::community_id)
-            .and(community_follower::user_id.eq(user_id_join)),
-        ),
-      )
-      .select((
-        Community::safe_columns_tuple(),
-        User_::safe_columns_tuple(),
-        category::all_columns,
-        community_aggregates::all_columns,
-        community_follower::all_columns.nullable(),
-      ))
-      .into_boxed();
-
+  pub fn create(conn: &'a PgConnection) -> Self {
     CommunityQueryBuilder {
       conn,
-      query,
+      my_user_id: None,
       sort: &SortType::Hot,
       show_nsfw: true,
       search_term: None,
@@ -232,6 +112,11 @@ impl<'a> CommunityQueryBuilder<'a> {
     self
   }
 
+  pub fn my_user_id<T: MaybeOptional<i32>>(mut self, my_user_id: T) -> Self {
+    self.my_user_id = my_user_id.get_optional();
+    self
+  }
+
   pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
     self.page = page.get_optional();
     self
@@ -243,7 +128,28 @@ impl<'a> CommunityQueryBuilder<'a> {
   }
 
   pub fn list(self) -> Result<Vec<CommunityView>, Error> {
-    let mut query = self.query;
+    // The left join below will return None in this case
+    let user_id_join = self.my_user_id.unwrap_or(-1);
+
+    let mut query = community::table
+      .inner_join(user_::table)
+      .inner_join(category::table)
+      .inner_join(community_aggregates::table)
+      .left_join(
+        community_follower::table.on(
+          community::id
+            .eq(community_follower::community_id)
+            .and(community_follower::user_id.eq(user_id_join)),
+        ),
+      )
+      .select((
+        Community::safe_columns_tuple(),
+        User_::safe_columns_tuple(),
+        category::all_columns,
+        community_aggregates::all_columns,
+        community_follower::all_columns.nullable(),
+      ))
+      .into_boxed();
 
     if let Some(search_term) = self.search_term {
       let searcher = fuzzy_search(&search_term);

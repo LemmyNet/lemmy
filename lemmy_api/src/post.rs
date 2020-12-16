@@ -181,8 +181,9 @@ impl Perform for GetPost {
 
     let id = data.id;
     let comments = blocking(context.pool(), move |conn| {
-      CommentQueryBuilder::create(conn, user_id)
-        .for_post_id(id)
+      CommentQueryBuilder::create(conn)
+        .my_user_id(user_id)
+        .post_id(id)
         .limit(9999)
         .list()
     })
@@ -247,12 +248,13 @@ impl Perform for GetPosts {
     let community_id = data.community_id;
     let community_name = data.community_name.to_owned();
     let posts = match blocking(context.pool(), move |conn| {
-      PostQueryBuilder::create(conn, user_id)
+      PostQueryBuilder::create(conn)
         .listing_type(&type_)
         .sort(&sort)
         .show_nsfw(show_nsfw)
-        .for_community_id(community_id)
-        .for_community_name(community_name)
+        .community_id(community_id)
+        .community_name(community_name)
+        .my_user_id(user_id)
         .page(page)
         .limit(limit)
         .list()

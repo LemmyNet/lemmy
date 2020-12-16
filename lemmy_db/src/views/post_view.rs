@@ -135,202 +135,14 @@ impl PostView {
   }
 }
 
-mod join_types {
-  use crate::schema::{
-    community,
-    community_follower,
-    community_user_ban,
-    post,
-    post_aggregates,
-    post_like,
-    post_read,
-    post_saved,
-    user_,
-  };
-  use diesel::{
-    pg::Pg,
-    query_builder::BoxedSelectStatement,
-    query_source::joins::{Inner, Join, JoinOn, LeftOuter},
-    sql_types::*,
-  };
-
-  // /// TODO awful, but necessary because of the boxed join
-  pub(super) type BoxedPostJoin<'a> = BoxedSelectStatement<
-    'a,
-    (
-      (
-        Integer,
-        Text,
-        Nullable<Text>,
-        Nullable<Text>,
-        Integer,
-        Integer,
-        Bool,
-        Bool,
-        Timestamp,
-        Nullable<Timestamp>,
-        Bool,
-        Bool,
-        Bool,
-        Nullable<Text>,
-        Nullable<Text>,
-        Nullable<Text>,
-        Nullable<Text>,
-        Text,
-        Bool,
-      ),
-      (
-        Integer,
-        Text,
-        Nullable<Text>,
-        Nullable<Text>,
-        Bool,
-        Bool,
-        Timestamp,
-        Nullable<Timestamp>,
-        Nullable<Text>,
-        Text,
-        Nullable<Text>,
-        Bool,
-        Nullable<Text>,
-        Bool,
-      ),
-      (
-        Integer,
-        Text,
-        Text,
-        Nullable<Text>,
-        Integer,
-        Integer,
-        Bool,
-        Timestamp,
-        Nullable<Timestamp>,
-        Bool,
-        Bool,
-        Text,
-        Bool,
-        Nullable<Text>,
-        Nullable<Text>,
-      ),
-      Nullable<(Integer, Integer, Integer, Timestamp)>,
-      (Integer, Integer, BigInt, BigInt, BigInt, BigInt, Timestamp),
-      Nullable<(Integer, Integer, Integer, Timestamp, Nullable<Bool>)>,
-      Nullable<(Integer, Integer, Integer, Timestamp)>,
-      Nullable<(Integer, Integer, Integer, Timestamp)>,
-      Nullable<SmallInt>,
-    ),
-    JoinOn<
-      Join<
-        JoinOn<
-          Join<
-            JoinOn<
-              Join<
-                JoinOn<
-                  Join<
-                    JoinOn<
-                      Join<
-                        JoinOn<
-                          Join<
-                            JoinOn<
-                              Join<
-                                JoinOn<
-                                  Join<post::table, user_::table, Inner>,
-                                  diesel::expression::operators::Eq<
-                                    diesel::expression::nullable::Nullable<
-                                      post::columns::creator_id,
-                                    >,
-                                    diesel::expression::nullable::Nullable<user_::columns::id>,
-                                  >,
-                                >,
-                                community::table,
-                                Inner,
-                              >,
-                              diesel::expression::operators::Eq<
-                                diesel::expression::nullable::Nullable<post::columns::community_id>,
-                                diesel::expression::nullable::Nullable<community::columns::id>,
-                              >,
-                            >,
-                            community_user_ban::table,
-                            LeftOuter,
-                          >,
-                          diesel::expression::operators::And<
-                            diesel::expression::operators::Eq<
-                              post::columns::community_id,
-                              community_user_ban::columns::community_id,
-                            >,
-                            diesel::expression::operators::Eq<
-                              community_user_ban::columns::user_id,
-                              community::columns::creator_id,
-                            >,
-                          >,
-                        >,
-                        post_aggregates::table,
-                        Inner,
-                      >,
-                      diesel::expression::operators::Eq<
-                        diesel::expression::nullable::Nullable<post_aggregates::columns::post_id>,
-                        diesel::expression::nullable::Nullable<post::columns::id>,
-                      >,
-                    >,
-                    community_follower::table,
-                    LeftOuter,
-                  >,
-                  diesel::expression::operators::And<
-                    diesel::expression::operators::Eq<
-                      post::columns::community_id,
-                      community_follower::columns::community_id,
-                    >,
-                    diesel::expression::operators::Eq<
-                      community_follower::columns::user_id,
-                      diesel::expression::bound::Bound<Integer, i32>,
-                    >,
-                  >,
-                >,
-                post_saved::table,
-                LeftOuter,
-              >,
-              diesel::expression::operators::And<
-                diesel::expression::operators::Eq<post::columns::id, post_saved::columns::post_id>,
-                diesel::expression::operators::Eq<
-                  post_saved::columns::user_id,
-                  diesel::expression::bound::Bound<Integer, i32>,
-                >,
-              >,
-            >,
-            post_read::table,
-            LeftOuter,
-          >,
-          diesel::expression::operators::And<
-            diesel::expression::operators::Eq<post::columns::id, post_read::columns::post_id>,
-            diesel::expression::operators::Eq<
-              post_read::columns::user_id,
-              diesel::expression::bound::Bound<Integer, i32>,
-            >,
-          >,
-        >,
-        post_like::table,
-        LeftOuter,
-      >,
-      diesel::expression::operators::And<
-        diesel::expression::operators::Eq<post::columns::id, post_like::columns::post_id>,
-        diesel::expression::operators::Eq<
-          post_like::columns::user_id,
-          diesel::expression::bound::Bound<Integer, i32>,
-        >,
-      >,
-    >,
-    Pg,
-  >;
-}
-
 pub struct PostQueryBuilder<'a> {
   conn: &'a PgConnection,
-  query: join_types::BoxedPostJoin<'a>,
   listing_type: &'a ListingType,
   sort: &'a SortType,
-  for_creator_id: Option<i32>,
-  for_community_id: Option<i32>,
-  for_community_name: Option<String>,
+  creator_id: Option<i32>,
+  community_id: Option<i32>,
+  community_name: Option<String>,
+  my_user_id: Option<i32>,
   search_term: Option<String>,
   url_search: Option<String>,
   show_nsfw: bool,
@@ -341,11 +153,92 @@ pub struct PostQueryBuilder<'a> {
 }
 
 impl<'a> PostQueryBuilder<'a> {
-  pub fn create(conn: &'a PgConnection, my_user_id: Option<i32>) -> Self {
-    // The left join below will return None in this case
-    let user_id_join = my_user_id.unwrap_or(-1);
+  pub fn create(conn: &'a PgConnection) -> Self {
+    PostQueryBuilder {
+      conn,
+      listing_type: &ListingType::All,
+      sort: &SortType::Hot,
+      creator_id: None,
+      community_id: None,
+      community_name: None,
+      my_user_id: None,
+      search_term: None,
+      url_search: None,
+      show_nsfw: true,
+      saved_only: false,
+      unread_only: false,
+      page: None,
+      limit: None,
+    }
+  }
 
-    let query = post::table
+  pub fn listing_type(mut self, listing_type: &'a ListingType) -> Self {
+    self.listing_type = listing_type;
+    self
+  }
+
+  pub fn sort(mut self, sort: &'a SortType) -> Self {
+    self.sort = sort;
+    self
+  }
+
+  pub fn community_id<T: MaybeOptional<i32>>(mut self, community_id: T) -> Self {
+    self.community_id = community_id.get_optional();
+    self
+  }
+
+  pub fn my_user_id<T: MaybeOptional<i32>>(mut self, my_user_id: T) -> Self {
+    self.community_id = my_user_id.get_optional();
+    self
+  }
+
+  pub fn community_name<T: MaybeOptional<String>>(mut self, community_name: T) -> Self {
+    self.community_name = community_name.get_optional();
+    self
+  }
+
+  pub fn creator_id<T: MaybeOptional<i32>>(mut self, creator_id: T) -> Self {
+    self.creator_id = creator_id.get_optional();
+    self
+  }
+
+  pub fn search_term<T: MaybeOptional<String>>(mut self, search_term: T) -> Self {
+    self.search_term = search_term.get_optional();
+    self
+  }
+
+  pub fn url_search<T: MaybeOptional<String>>(mut self, url_search: T) -> Self {
+    self.url_search = url_search.get_optional();
+    self
+  }
+
+  pub fn show_nsfw(mut self, show_nsfw: bool) -> Self {
+    self.show_nsfw = show_nsfw;
+    self
+  }
+
+  pub fn saved_only(mut self, saved_only: bool) -> Self {
+    self.saved_only = saved_only;
+    self
+  }
+
+  pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
+    self.page = page.get_optional();
+    self
+  }
+
+  pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
+    self.limit = limit.get_optional();
+    self
+  }
+
+  pub fn list(self) -> Result<Vec<PostView>, Error> {
+    use diesel::dsl::*;
+
+    // The left join below will return None in this case
+    let user_id_join = self.my_user_id.unwrap_or(-1);
+
+    let mut query = post::table
       .inner_join(user_::table)
       .inner_join(community::table)
       .left_join(
@@ -397,99 +290,21 @@ impl<'a> PostQueryBuilder<'a> {
       ))
       .into_boxed();
 
-    PostQueryBuilder {
-      conn,
-      query,
-      listing_type: &ListingType::All,
-      sort: &SortType::Hot,
-      for_creator_id: None,
-      for_community_id: None,
-      for_community_name: None,
-      search_term: None,
-      url_search: None,
-      show_nsfw: true,
-      saved_only: false,
-      unread_only: false,
-      page: None,
-      limit: None,
-    }
-  }
-
-  pub fn listing_type(mut self, listing_type: &'a ListingType) -> Self {
-    self.listing_type = listing_type;
-    self
-  }
-
-  pub fn sort(mut self, sort: &'a SortType) -> Self {
-    self.sort = sort;
-    self
-  }
-
-  pub fn for_community_id<T: MaybeOptional<i32>>(mut self, for_community_id: T) -> Self {
-    self.for_community_id = for_community_id.get_optional();
-    self
-  }
-
-  pub fn for_community_name<T: MaybeOptional<String>>(mut self, for_community_name: T) -> Self {
-    self.for_community_name = for_community_name.get_optional();
-    self
-  }
-
-  pub fn for_creator_id<T: MaybeOptional<i32>>(mut self, for_creator_id: T) -> Self {
-    self.for_creator_id = for_creator_id.get_optional();
-    self
-  }
-
-  pub fn search_term<T: MaybeOptional<String>>(mut self, search_term: T) -> Self {
-    self.search_term = search_term.get_optional();
-    self
-  }
-
-  pub fn url_search<T: MaybeOptional<String>>(mut self, url_search: T) -> Self {
-    self.url_search = url_search.get_optional();
-    self
-  }
-
-  pub fn show_nsfw(mut self, show_nsfw: bool) -> Self {
-    self.show_nsfw = show_nsfw;
-    self
-  }
-
-  pub fn saved_only(mut self, saved_only: bool) -> Self {
-    self.saved_only = saved_only;
-    self
-  }
-
-  pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
-    self.page = page.get_optional();
-    self
-  }
-
-  pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
-    self.limit = limit.get_optional();
-    self
-  }
-
-  pub fn list(self) -> Result<Vec<PostView>, Error> {
-    use diesel::dsl::*;
-
-    let mut query = self.query;
-
     query = match self.listing_type {
       ListingType::Subscribed => query.filter(community_follower::user_id.is_not_null()), // TODO could be this: and(community_follower::user_id.eq(user_id_join)),
       ListingType::Local => query.filter(community::local.eq(true)),
       _ => query,
     };
 
-    if let Some(for_community_id) = self.for_community_id {
+    if let Some(community_id) = self.community_id {
       query = query
-        .filter(post::community_id.eq(for_community_id))
+        .filter(post::community_id.eq(community_id))
         .then_order_by(post::stickied.desc());
     }
 
-    if let Some(for_community_name) = self.for_community_name {
+    if let Some(community_name) = self.community_name {
       query = query
-        .filter(community::name.eq(for_community_name))
+        .filter(community::name.eq(community_name))
         .filter(community::local.eq(true))
         .then_order_by(post::stickied.desc());
     }
@@ -506,6 +321,26 @@ impl<'a> PostQueryBuilder<'a> {
           .or(post::body.ilike(searcher)),
       );
     }
+
+    // If its for a specific user, show the removed / deleted
+    if let Some(creator_id) = self.creator_id {
+      query = query.filter(post::creator_id.eq(creator_id));
+    }
+
+    if !self.show_nsfw {
+      query = query
+        .filter(post::nsfw.eq(false))
+        .filter(community::nsfw.eq(false));
+    };
+
+    // TODO  These two might be wrong
+    if self.saved_only {
+      query = query.filter(post_saved::id.is_not_null());
+    };
+
+    if self.unread_only {
+      query = query.filter(post_read::id.is_not_null());
+    };
 
     query = match self.sort {
       SortType::Active => query
@@ -530,26 +365,6 @@ impl<'a> PostQueryBuilder<'a> {
       SortType::TopDay => query
         .filter(post::published.gt(now - 1.days()))
         .then_order_by(post_aggregates::score.desc()),
-    };
-
-    // If its for a specific user, show the removed / deleted
-    if let Some(for_creator_id) = self.for_creator_id {
-      query = query.filter(post::creator_id.eq(for_creator_id));
-    }
-
-    if !self.show_nsfw {
-      query = query
-        .filter(post::nsfw.eq(false))
-        .filter(community::nsfw.eq(false));
-    };
-
-    // TODO  These two might be wrong
-    if self.saved_only {
-      query = query.filter(post_saved::id.is_not_null());
-    };
-
-    if self.unread_only {
-      query = query.filter(post_read::id.is_not_null());
     };
 
     let (limit, offset) = limit_and_offset(self.page, self.limit);
@@ -697,17 +512,18 @@ mod tests {
       score: 1,
     };
 
-    let read_post_listings_with_user = PostQueryBuilder::create(&conn, Some(inserted_user.id))
+    let read_post_listings_with_user = PostQueryBuilder::create(&conn)
       .listing_type(&ListingType::Community)
       .sort(&SortType::New)
-      .for_community_id(inserted_community.id)
+      .community_id(inserted_community.id)
+      .my_user_id(inserted_user.id)
       .list()
       .unwrap();
 
-    let read_post_listings_no_user = PostQueryBuilder::create(&conn, None)
+    let read_post_listings_no_user = PostQueryBuilder::create(&conn)
       .listing_type(&ListingType::Community)
       .sort(&SortType::New)
-      .for_community_id(inserted_community.id)
+      .community_id(inserted_community.id)
       .list()
       .unwrap();
 

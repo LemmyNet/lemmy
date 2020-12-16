@@ -438,9 +438,10 @@ impl Perform for ListCommunities {
     let page = data.page;
     let limit = data.limit;
     let communities = blocking(context.pool(), move |conn| {
-      CommunityQueryBuilder::create(conn, user_id)
+      CommunityQueryBuilder::create(conn)
         .sort(&sort)
         .show_nsfw(show_nsfw)
+        .my_user_id(user_id)
         .page(page)
         .limit(limit)
         .list()
@@ -591,9 +592,9 @@ impl Perform for BanFromCommunity {
       // Comments
       // Diesel doesn't allow updates with joins, so this has to be a loop
       let comments = blocking(context.pool(), move |conn| {
-        CommentQueryBuilder::create(conn, None)
-          .for_creator_id(banned_user_id)
-          .for_community_id(community_id)
+        CommentQueryBuilder::create(conn)
+          .creator_id(banned_user_id)
+          .community_id(community_id)
           .limit(std::i64::MAX)
           .list()
       })

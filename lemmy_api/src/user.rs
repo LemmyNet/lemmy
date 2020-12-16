@@ -536,15 +536,17 @@ impl Perform for GetUserDetails {
     let community_id = data.community_id;
 
     let (posts, comments) = blocking(context.pool(), move |conn| {
-      let mut posts_query = PostQueryBuilder::create(conn, user_id)
+      let mut posts_query = PostQueryBuilder::create(conn)
         .sort(&sort)
         .show_nsfw(show_nsfw)
         .saved_only(saved_only)
-        .for_community_id(community_id)
+        .community_id(community_id)
+        .my_user_id(user_id)
         .page(page)
         .limit(limit);
 
-      let mut comments_query = CommentQueryBuilder::create(conn, user_id)
+      let mut comments_query = CommentQueryBuilder::create(conn)
+        .my_user_id(user_id)
         .sort(&sort)
         .saved_only(saved_only)
         .page(page)
@@ -553,8 +555,8 @@ impl Perform for GetUserDetails {
       // If its saved only, you don't care what creator it was
       // Or, if its not saved, then you only want it for that specific creator
       if !saved_only {
-        posts_query = posts_query.for_creator_id(user_details_id);
-        comments_query = comments_query.for_creator_id(user_details_id);
+        posts_query = posts_query.creator_id(user_details_id);
+        comments_query = comments_query.creator_id(user_details_id);
       }
 
       let posts = posts_query.list()?;
@@ -741,10 +743,11 @@ impl Perform for GetReplies {
     let unread_only = data.unread_only;
     let user_id = user.id;
     let replies = blocking(context.pool(), move |conn| {
-      CommentQueryBuilder::create(conn, Some(user_id))
+      CommentQueryBuilder::create(conn)
         .sort(&sort)
         .unread_only(unread_only)
-        .for_recipient_id(user_id)
+        .recipient_id(user_id)
+        .my_user_id(user_id)
         .page(page)
         .limit(limit)
         .list()
@@ -774,7 +777,9 @@ impl Perform for GetUserMentions {
     let unread_only = data.unread_only;
     let user_id = user.id;
     let mentions = blocking(context.pool(), move |conn| {
-      UserMentionQueryBuilder::create(conn, Some(user_id), user_id)
+      UserMentionQueryBuilder::create(conn)
+        .recipient_id(user_id)
+        .my_user_id(user_id)
         .sort(&sort)
         .unread_only(unread_only)
         .page(page)
@@ -841,8 +846,9 @@ impl Perform for MarkAllAsRead {
 
     let user_id = user.id;
     let replies = blocking(context.pool(), move |conn| {
-      CommentQueryBuilder::create(conn, Some(user_id))
-        .for_recipient_id(user_id)
+      CommentQueryBuilder::create(conn)
+        .my_user_id(user_id)
+        .recipient_id(user_id)
         .unread_only(true)
         .page(1)
         .limit(999)

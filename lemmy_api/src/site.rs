@@ -363,11 +363,12 @@ impl Perform for Search {
     match type_ {
       SearchType::Posts => {
         posts = blocking(context.pool(), move |conn| {
-          PostQueryBuilder::create(conn, user_id)
+          PostQueryBuilder::create(conn)
             .sort(&sort)
             .show_nsfw(true)
-            .for_community_id(community_id)
-            .for_community_name(community_name)
+            .community_id(community_id)
+            .community_name(community_name)
+            .my_user_id(user_id)
             .search_term(q)
             .page(page)
             .limit(limit)
@@ -377,9 +378,10 @@ impl Perform for Search {
       }
       SearchType::Comments => {
         comments = blocking(context.pool(), move |conn| {
-          CommentQueryBuilder::create(&conn, user_id)
+          CommentQueryBuilder::create(&conn)
             .sort(&sort)
             .search_term(q)
+            .my_user_id(user_id)
             .page(page)
             .limit(limit)
             .list()
@@ -388,7 +390,7 @@ impl Perform for Search {
       }
       SearchType::Communities => {
         communities = blocking(context.pool(), move |conn| {
-          CommunityQueryBuilder::create(conn, None)
+          CommunityQueryBuilder::create(conn)
             .sort(&sort)
             .search_term(q)
             .page(page)
@@ -410,11 +412,12 @@ impl Perform for Search {
       }
       SearchType::All => {
         posts = blocking(context.pool(), move |conn| {
-          PostQueryBuilder::create(conn, user_id)
+          PostQueryBuilder::create(conn)
             .sort(&sort)
             .show_nsfw(true)
-            .for_community_id(community_id)
-            .for_community_name(community_name)
+            .community_id(community_id)
+            .community_name(community_name)
+            .my_user_id(user_id)
             .search_term(q)
             .page(page)
             .limit(limit)
@@ -426,9 +429,10 @@ impl Perform for Search {
         let sort = SortType::from_str(&data.sort)?;
 
         comments = blocking(context.pool(), move |conn| {
-          CommentQueryBuilder::create(conn, user_id)
+          CommentQueryBuilder::create(conn)
             .sort(&sort)
             .search_term(q)
+            .my_user_id(user_id)
             .page(page)
             .limit(limit)
             .list()
@@ -439,7 +443,7 @@ impl Perform for Search {
         let sort = SortType::from_str(&data.sort)?;
 
         communities = blocking(context.pool(), move |conn| {
-          CommunityQueryBuilder::create(conn, None)
+          CommunityQueryBuilder::create(conn)
             .sort(&sort)
             .search_term(q)
             .page(page)
@@ -463,11 +467,11 @@ impl Perform for Search {
       }
       SearchType::Url => {
         posts = blocking(context.pool(), move |conn| {
-          PostQueryBuilder::create(conn, None)
+          PostQueryBuilder::create(conn)
             .sort(&sort)
             .show_nsfw(true)
-            .for_community_id(community_id)
-            .for_community_name(community_name)
+            .community_id(community_id)
+            .community_name(community_name)
             .url_search(q)
             .page(page)
             .limit(limit)

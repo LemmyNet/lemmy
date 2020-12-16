@@ -669,11 +669,12 @@ impl Perform for GetComments {
     let page = data.page;
     let limit = data.limit;
     let comments = blocking(context.pool(), move |conn| {
-      CommentQueryBuilder::create(conn, user_id)
+      CommentQueryBuilder::create(conn)
         .listing_type(type_)
         .sort(&sort)
-        .for_community_id(community_id)
-        .for_community_name(community_name)
+        .community_id(community_id)
+        .community_name(community_name)
+        .my_user_id(user_id)
         .page(page)
         .limit(limit)
         .list()

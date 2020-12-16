@@ -147,254 +147,10 @@ impl UserMentionView {
   }
 }
 
-mod join_types {
-  use crate::schema::{
-    comment,
-    comment_aggregates,
-    comment_like,
-    comment_saved,
-    community,
-    community_follower,
-    community_user_ban,
-    post,
-    user_,
-    user_alias_1,
-    user_mention,
-  };
-  use diesel::{
-    pg::Pg,
-    query_builder::BoxedSelectStatement,
-    query_source::joins::{Inner, Join, JoinOn, LeftOuter},
-    sql_types::*,
-  };
-
-  // /// TODO awful, but necessary because of the boxed join
-  pub(super) type BoxedUserMentionJoin<'a> = BoxedSelectStatement<
-    'a,
-    (
-      (Integer, Integer, Integer, Bool, Timestamp),
-      (
-        Integer,
-        Integer,
-        Integer,
-        Nullable<Integer>,
-        Text,
-        Bool,
-        Bool,
-        Timestamp,
-        Nullable<Timestamp>,
-        Bool,
-        Text,
-        Bool,
-      ),
-      (
-        Integer,
-        Text,
-        Nullable<Text>,
-        Nullable<Text>,
-        Bool,
-        Bool,
-        Timestamp,
-        Nullable<Timestamp>,
-        Nullable<Text>,
-        Text,
-        Nullable<Text>,
-        Bool,
-        Nullable<Text>,
-        Bool,
-      ),
-      (
-        Integer,
-        Text,
-        Nullable<Text>,
-        Nullable<Text>,
-        Integer,
-        Integer,
-        Bool,
-        Bool,
-        Timestamp,
-        Nullable<Timestamp>,
-        Bool,
-        Bool,
-        Bool,
-        Nullable<Text>,
-        Nullable<Text>,
-        Nullable<Text>,
-        Nullable<Text>,
-        Text,
-        Bool,
-      ),
-      (
-        Integer,
-        Text,
-        Text,
-        Nullable<Text>,
-        Integer,
-        Integer,
-        Bool,
-        Timestamp,
-        Nullable<Timestamp>,
-        Bool,
-        Bool,
-        Text,
-        Bool,
-        Nullable<Text>,
-        Nullable<Text>,
-      ),
-      (
-        Integer,
-        Text,
-        Nullable<Text>,
-        Nullable<Text>,
-        Bool,
-        Bool,
-        Timestamp,
-        Nullable<Timestamp>,
-        Nullable<Text>,
-        Text,
-        Nullable<Text>,
-        Bool,
-        Nullable<Text>,
-        Bool,
-      ),
-      (Integer, Integer, BigInt, BigInt, BigInt),
-      Nullable<(Integer, Integer, Integer, Timestamp)>,
-      Nullable<(Integer, Integer, Integer, Timestamp, Nullable<Bool>)>,
-      Nullable<(Integer, Integer, Integer, Timestamp)>,
-      Nullable<SmallInt>,
-    ),
-    JoinOn<
-      Join<
-        JoinOn<
-          Join<
-            JoinOn<
-              Join<
-                JoinOn<
-                  Join<
-                    JoinOn<
-                      Join<
-                        JoinOn<
-                          Join<
-                            JoinOn<
-                              Join<
-                                JoinOn<
-                                  Join<
-                                    JoinOn<
-                                      Join<
-                                        JoinOn<
-                                          Join<user_mention::table, comment::table, Inner>,
-                                          diesel::expression::operators::Eq<
-                                            diesel::expression::nullable::Nullable<
-                                              user_mention::columns::comment_id,
-                                            >,
-                                            diesel::expression::nullable::Nullable<
-                                              comment::columns::id,
-                                            >,
-                                          >,
-                                        >,
-                                        user_::table,
-                                        Inner,
-                                      >,
-                                      diesel::expression::operators::Eq<
-                                        comment::columns::creator_id,
-                                        user_::columns::id,
-                                      >,
-                                    >,
-                                    post::table,
-                                    Inner,
-                                  >,
-                                  diesel::expression::operators::Eq<
-                                    comment::columns::post_id,
-                                    post::columns::id,
-                                  >,
-                                >,
-                                community::table,
-                                Inner,
-                              >,
-                              diesel::expression::operators::Eq<
-                                post::columns::community_id,
-                                community::columns::id,
-                              >,
-                            >,
-                            user_alias_1::table,
-                            Inner,
-                          >,
-                          diesel::expression::operators::Eq<
-                            diesel::expression::nullable::Nullable<
-                              user_mention::columns::recipient_id,
-                            >,
-                            diesel::expression::nullable::Nullable<user_alias_1::columns::id>,
-                          >,
-                        >,
-                        comment_aggregates::table,
-                        Inner,
-                      >,
-                      diesel::expression::operators::Eq<
-                        comment::columns::id,
-                        comment_aggregates::columns::comment_id,
-                      >,
-                    >,
-                    community_user_ban::table,
-                    LeftOuter,
-                  >,
-                  diesel::expression::operators::And<
-                    diesel::expression::operators::Eq<
-                      community::columns::id,
-                      community_user_ban::columns::community_id,
-                    >,
-                    diesel::expression::operators::Eq<
-                      community_user_ban::columns::user_id,
-                      comment::columns::creator_id,
-                    >,
-                  >,
-                >,
-                community_follower::table,
-                LeftOuter,
-              >,
-              diesel::expression::operators::And<
-                diesel::expression::operators::Eq<
-                  post::columns::community_id,
-                  community_follower::columns::community_id,
-                >,
-                diesel::expression::operators::Eq<
-                  community_follower::columns::user_id,
-                  diesel::expression::bound::Bound<Integer, i32>,
-                >,
-              >,
-            >,
-            comment_saved::table,
-            LeftOuter,
-          >,
-          diesel::expression::operators::And<
-            diesel::expression::operators::Eq<
-              comment::columns::id,
-              comment_saved::columns::comment_id,
-            >,
-            diesel::expression::operators::Eq<
-              comment_saved::columns::user_id,
-              diesel::expression::bound::Bound<Integer, i32>,
-            >,
-          >,
-        >,
-        comment_like::table,
-        LeftOuter,
-      >,
-      diesel::expression::operators::And<
-        diesel::expression::operators::Eq<comment::columns::id, comment_like::columns::comment_id>,
-        diesel::expression::operators::Eq<
-          comment_like::columns::user_id,
-          diesel::expression::bound::Bound<Integer, i32>,
-        >,
-      >,
-    >,
-    Pg,
-  >;
-}
-
 pub struct UserMentionQueryBuilder<'a> {
   conn: &'a PgConnection,
-  query: join_types::BoxedUserMentionJoin<'a>,
-  for_recipient_id: i32,
+  my_user_id: Option<i32>,
+  recipient_id: Option<i32>,
   sort: &'a SortType,
   unread_only: bool,
   page: Option<i64>,
@@ -402,11 +158,55 @@ pub struct UserMentionQueryBuilder<'a> {
 }
 
 impl<'a> UserMentionQueryBuilder<'a> {
-  pub fn create(conn: &'a PgConnection, my_user_id: Option<i32>, for_recipient_id: i32) -> Self {
-    // The left join below will return None in this case
-    let user_id_join = my_user_id.unwrap_or(-1);
+  pub fn create(conn: &'a PgConnection) -> Self {
+    UserMentionQueryBuilder {
+      conn,
+      my_user_id: None,
+      recipient_id: None,
+      sort: &SortType::New,
+      unread_only: false,
+      page: None,
+      limit: None,
+    }
+  }
 
-    let query = user_mention::table
+  pub fn sort(mut self, sort: &'a SortType) -> Self {
+    self.sort = sort;
+    self
+  }
+
+  pub fn unread_only(mut self, unread_only: bool) -> Self {
+    self.unread_only = unread_only;
+    self
+  }
+
+  pub fn recipient_id<T: MaybeOptional<i32>>(mut self, recipient_id: T) -> Self {
+    self.recipient_id = recipient_id.get_optional();
+    self
+  }
+
+  pub fn my_user_id<T: MaybeOptional<i32>>(mut self, my_user_id: T) -> Self {
+    self.my_user_id = my_user_id.get_optional();
+    self
+  }
+
+  pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
+    self.page = page.get_optional();
+    self
+  }
+
+  pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
+    self.limit = limit.get_optional();
+    self
+  }
+
+  pub fn list(self) -> Result<Vec<UserMentionView>, Error> {
+    use diesel::dsl::*;
+
+    // The left join below will return None in this case
+    let user_id_join = self.my_user_id.unwrap_or(-1);
+
+    let mut query = user_mention::table
       .inner_join(comment::table)
       .inner_join(user_::table.on(comment::creator_id.eq(user_::id)))
       .inner_join(post::table.on(comment::post_id.eq(post::id)))
@@ -456,43 +256,9 @@ impl<'a> UserMentionQueryBuilder<'a> {
       ))
       .into_boxed();
 
-    UserMentionQueryBuilder {
-      conn,
-      query,
-      for_recipient_id,
-      sort: &SortType::New,
-      unread_only: false,
-      page: None,
-      limit: None,
+    if let Some(recipient_id) = self.recipient_id {
+      query = query.filter(user_mention::recipient_id.eq(recipient_id));
     }
-  }
-
-  pub fn sort(mut self, sort: &'a SortType) -> Self {
-    self.sort = sort;
-    self
-  }
-
-  pub fn unread_only(mut self, unread_only: bool) -> Self {
-    self.unread_only = unread_only;
-    self
-  }
-
-  pub fn page<T: MaybeOptional<i64>>(mut self, page: T) -> Self {
-    self.page = page.get_optional();
-    self
-  }
-
-  pub fn limit<T: MaybeOptional<i64>>(mut self, limit: T) -> Self {
-    self.limit = limit.get_optional();
-    self
-  }
-
-  pub fn list(self) -> Result<Vec<UserMentionView>, Error> {
-    use diesel::dsl::*;
-
-    let mut query = self.query;
-
-    query = query.filter(user_mention::recipient_id.eq(self.for_recipient_id));
 
     if self.unread_only {
       query = query.filter(user_mention::read.eq(false));

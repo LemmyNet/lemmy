@@ -83,7 +83,7 @@ async fn get_feed_data(
 
   let listing_type_ = listing_type.clone();
   let posts = blocking(context.pool(), move |conn| {
-    PostQueryBuilder::create(&conn, None)
+    PostQueryBuilder::create(&conn)
       .listing_type(&listing_type_)
       .sort(&sort_type)
       .list()
@@ -165,10 +165,10 @@ fn get_feed_user(
   let user = User_::find_by_username(&conn, &user_name)?;
   let user_url = user.get_profile_url(&Settings::get().hostname);
 
-  let posts = PostQueryBuilder::create(&conn, None)
+  let posts = PostQueryBuilder::create(&conn)
     .listing_type(&ListingType::All)
     .sort(sort_type)
-    .for_creator_id(user.id)
+    .creator_id(user.id)
     .list()?;
 
   let items = create_post_items(posts)?;
@@ -191,10 +191,10 @@ fn get_feed_community(
   let site_view = SiteView::read(&conn)?;
   let community = Community::read_from_name(&conn, &community_name)?;
 
-  let posts = PostQueryBuilder::create(&conn, None)
+  let posts = PostQueryBuilder::create(&conn)
     .listing_type(&ListingType::All)
     .sort(sort_type)
-    .for_community_id(community.id)
+    .community_id(community.id)
     .list()?;
 
   let items = create_post_items(posts)?;
@@ -221,8 +221,9 @@ fn get_feed_front(
   let site_view = SiteView::read(&conn)?;
   let user_id = Claims::decode(&jwt)?.claims.id;
 
-  let posts = PostQueryBuilder::create(&conn, Some(user_id))
+  let posts = PostQueryBuilder::create(&conn)
     .listing_type(&ListingType::Subscribed)
+    .my_user_id(user_id)
     .sort(sort_type)
     .list()?;
 
@@ -248,12 +249,15 @@ fn get_feed_inbox(conn: &PgConnection, jwt: String) -> Result<ChannelBuilder, Le
 
   let sort = SortType::New;
 
-  let replies = CommentQueryBuilder::create(&conn, Some(user_id))
-    .for_recipient_id(user_id)
+  let replies = CommentQueryBuilder::create(&conn)
+    .recipient_id(user_id)
+    .my_user_id(user_id)
     .sort(&sort)
     .list()?;
 
-  let mentions = UserMentionQueryBuilder::create(&conn, Some(user_id), user_id)
+  let mentions = UserMentionQueryBuilder::create(&conn)
+    .recipient_id(user_id)
+    .my_user_id(user_id)
     .sort(&sort)
     .list()?;
 

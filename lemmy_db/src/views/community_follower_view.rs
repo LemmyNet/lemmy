@@ -19,24 +19,24 @@ pub struct CommunityFollowerView {
 type CommunityFollowerViewTuple = (CommunitySafe, UserSafe);
 
 impl CommunityFollowerView {
-  pub fn for_community(conn: &PgConnection, for_community_id: i32) -> Result<Vec<Self>, Error> {
+  pub fn for_community(conn: &PgConnection, community_id: i32) -> Result<Vec<Self>, Error> {
     let res = community_follower::table
       .inner_join(community::table)
       .inner_join(user_::table)
       .select((Community::safe_columns_tuple(), User_::safe_columns_tuple()))
-      .filter(community_follower::community_id.eq(for_community_id))
+      .filter(community_follower::community_id.eq(community_id))
       .order_by(community_follower::published)
       .load::<CommunityFollowerViewTuple>(conn)?;
 
     Ok(Self::to_vec(res))
   }
 
-  pub fn for_user(conn: &PgConnection, for_user_id: i32) -> Result<Vec<Self>, Error> {
+  pub fn for_user(conn: &PgConnection, user_id: i32) -> Result<Vec<Self>, Error> {
     let res = community_follower::table
       .inner_join(community::table)
       .inner_join(user_::table)
       .select((Community::safe_columns_tuple(), User_::safe_columns_tuple()))
-      .filter(community_follower::user_id.eq(for_user_id))
+      .filter(community_follower::user_id.eq(user_id))
       .order_by(community_follower::published)
       .load::<CommunityFollowerViewTuple>(conn)?;
 

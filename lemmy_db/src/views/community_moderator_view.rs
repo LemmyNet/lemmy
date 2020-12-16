@@ -19,24 +19,24 @@ pub struct CommunityModeratorView {
 type CommunityModeratorViewTuple = (CommunitySafe, UserSafe);
 
 impl CommunityModeratorView {
-  pub fn for_community(conn: &PgConnection, for_community_id: i32) -> Result<Vec<Self>, Error> {
+  pub fn for_community(conn: &PgConnection, community_id: i32) -> Result<Vec<Self>, Error> {
     let res = community_moderator::table
       .inner_join(community::table)
       .inner_join(user_::table)
       .select((Community::safe_columns_tuple(), User_::safe_columns_tuple()))
-      .filter(community_moderator::community_id.eq(for_community_id))
+      .filter(community_moderator::community_id.eq(community_id))
       .order_by(community_moderator::published)
       .load::<CommunityModeratorViewTuple>(conn)?;
 
     Ok(Self::to_vec(res))
   }
 
-  pub fn for_user(conn: &PgConnection, for_user_id: i32) -> Result<Vec<Self>, Error> {
+  pub fn for_user(conn: &PgConnection, user_id: i32) -> Result<Vec<Self>, Error> {
     let res = community_moderator::table
       .inner_join(community::table)
       .inner_join(user_::table)
       .select((Community::safe_columns_tuple(), User_::safe_columns_tuple()))
-      .filter(community_moderator::user_id.eq(for_user_id))
+      .filter(community_moderator::user_id.eq(user_id))
       .order_by(community_moderator::published)
       .load::<CommunityModeratorViewTuple>(conn)?;
 
