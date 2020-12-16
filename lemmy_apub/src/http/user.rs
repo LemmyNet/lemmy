@@ -52,3 +52,19 @@ pub async fn get_apub_user_outbox(
     .set_total_items(0_u64);
   Ok(create_apub_response(&collection))
 }
+
+pub async fn get_apub_user_inbox(
+  info: web::Path<UserQuery>,
+  context: web::Data<LemmyContext>,
+) -> Result<HttpResponse<Body>, LemmyError> {
+  let user = blocking(context.pool(), move |conn| {
+    User_::read_from_name(&conn, &info.user_name)
+  })
+  .await??;
+
+  let mut collection = OrderedCollection::new();
+  collection
+    .set_id(format!("{}/inbox", user.actor_id).parse()?)
+    .set_many_contexts(lemmy_context()?);
+  Ok(create_apub_response(&collection))
+}

@@ -3,10 +3,15 @@ use http_signature_normalization_actix::digest::middleware::VerifyDigest;
 use lemmy_apub::{
   http::{
     comment::get_apub_comment,
-    community::{get_apub_community_followers, get_apub_community_http, get_apub_community_outbox},
+    community::{
+      get_apub_community_followers,
+      get_apub_community_http,
+      get_apub_community_inbox,
+      get_apub_community_outbox,
+    },
     get_activity,
     post::get_apub_post,
-    user::{get_apub_user_http, get_apub_user_outbox},
+    user::{get_apub_user_http, get_apub_user_inbox, get_apub_user_outbox},
   },
   inbox::{community_inbox::community_inbox, shared_inbox::shared_inbox, user_inbox::user_inbox},
   APUB_JSON_CONTENT_TYPE,
@@ -41,8 +46,13 @@ pub fn config(cfg: &mut web::ServiceConfig) {
             "/c/{community_name}/outbox",
             web::get().to(get_apub_community_outbox),
           )
+          .route(
+            "/c/{community_name}/inbox",
+            web::get().to(get_apub_community_inbox),
+          )
           .route("/u/{user_name}", web::get().to(get_apub_user_http))
           .route("/u/{user_name}/outbox", web::get().to(get_apub_user_outbox))
+          .route("/u/{user_name}/inbox", web::get().to(get_apub_user_inbox))
           .route("/post/{post_id}", web::get().to(get_apub_post))
           .route("/comment/{comment_id}", web::get().to(get_apub_comment))
           .route("/activities/{type_}/{id}", web::get().to(get_activity)),
