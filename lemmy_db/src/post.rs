@@ -240,6 +240,9 @@ impl Likeable<PostLikeForm> for PostLike {
     use crate::schema::post_like::dsl::*;
     insert_into(post_like)
       .values(post_like_form)
+      .on_conflict((post_id, user_id))
+      .do_update()
+      .set(post_like_form)
       .get_result::<Self>(conn)
   }
   fn remove(conn: &PgConnection, user_id: i32, post_id: i32) -> Result<usize, Error> {
@@ -275,6 +278,9 @@ impl Saveable<PostSavedForm> for PostSaved {
     use crate::schema::post_saved::dsl::*;
     insert_into(post_saved)
       .values(post_saved_form)
+      .on_conflict((post_id, user_id))
+      .do_update()
+      .set(post_saved_form)
       .get_result::<Self>(conn)
   }
   fn unsave(conn: &PgConnection, post_saved_form: &PostSavedForm) -> Result<usize, Error> {

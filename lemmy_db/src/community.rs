@@ -309,6 +309,9 @@ impl Followable<CommunityFollowerForm> for CommunityFollower {
     use crate::schema::community_follower::dsl::*;
     insert_into(community_follower)
       .values(community_follower_form)
+      .on_conflict((community_id, user_id))
+      .do_update()
+      .set(community_follower_form)
       .get_result::<Self>(conn)
   }
   fn follow_accepted(conn: &PgConnection, community_id_: i32, user_id_: i32) -> Result<Self, Error>

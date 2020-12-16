@@ -29,8 +29,13 @@ impl Crud<UserMentionForm> for UserMention {
 
   fn create(conn: &PgConnection, user_mention_form: &UserMentionForm) -> Result<Self, Error> {
     use crate::schema::user_mention::dsl::*;
+    // since the return here isnt utilized, we dont need to do an update
+    // but get_result doesnt return the existing row here
     insert_into(user_mention)
       .values(user_mention_form)
+      .on_conflict((recipient_id, comment_id))
+      .do_update()
+      .set(user_mention_form)
       .get_result::<Self>(conn)
   }
 
