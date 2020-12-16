@@ -15,9 +15,11 @@ use lemmy_db::{
   source::{comment::Comment, community::*, moderator::*, post::Post, site::*},
   views::{
     comment_view::CommentQueryBuilder,
-    community_follower_view::CommunityFollowerView,
-    community_moderator_view::CommunityModeratorView,
-    community_view::{CommunityQueryBuilder, CommunityView},
+    community::{
+      community_follower_view::CommunityFollowerView,
+      community_moderator_view::CommunityModeratorView,
+      community_view::{CommunityQueryBuilder, CommunityView},
+    },
     user_view::UserViewSafe,
   },
   ApubObject,

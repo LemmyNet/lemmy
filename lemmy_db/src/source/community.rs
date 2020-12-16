@@ -1,6 +1,7 @@
 use crate::{
   naive_now,
   schema::{community, community_follower, community_moderator, community_user_ban},
+  views::{community::community_moderator_view::CommunityModeratorView, user_view::UserViewSafe},
   ApubObject,
   Bannable,
   Crud,
@@ -223,7 +224,6 @@ impl Community {
   }
 
   fn community_mods_and_admins(conn: &PgConnection, community_id: i32) -> Result<Vec<i32>, Error> {
-    use crate::views::{community_moderator_view::CommunityModeratorView, user_view::UserViewSafe};
     let mut mods_and_admins: Vec<i32> = Vec::new();
     mods_and_admins.append(
       &mut CommunityModeratorView::for_community(conn, community_id)

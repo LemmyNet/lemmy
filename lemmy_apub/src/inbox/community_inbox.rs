@@ -31,7 +31,7 @@ use lemmy_db::{
     community::{Community, CommunityFollower, CommunityFollowerForm},
     user::User_,
   },
-  views::community_user_ban_view::CommunityUserBanView,
+  views::community::community_user_ban_view::CommunityUserBanView,
   ApubObject,
   DbPool,
   Followable,

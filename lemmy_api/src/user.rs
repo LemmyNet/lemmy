@@ -33,8 +33,10 @@ use lemmy_db::{
   },
   views::{
     comment_view::CommentQueryBuilder,
-    community_follower_view::CommunityFollowerView,
-    community_moderator_view::CommunityModeratorView,
+    community::{
+      community_follower_view::CommunityFollowerView,
+      community_moderator_view::CommunityModeratorView,
+    },
     post_view::PostQueryBuilder,
     site_view::SiteView,
     user_mention_view::{UserMentionQueryBuilder, UserMentionView},

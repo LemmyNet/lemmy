@@ -6,7 +6,7 @@ use lemmy_db::{
     post::Post,
     user::User_,
   },
-  views::community_user_ban_view::CommunityUserBanView,
+  views::community::community_user_ban_view::CommunityUserBanView,
   Crud,
   DbPool,
 };

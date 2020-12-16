@@ -25,7 +25,7 @@ use anyhow::Context;
 use lemmy_db::{
   naive_now,
   source::community::{Community, CommunityForm},
-  views::community_moderator_view::CommunityModeratorView,
+  views::community::community_moderator_view::CommunityModeratorView,
   DbPool,
 };
 use lemmy_structs::blocking;

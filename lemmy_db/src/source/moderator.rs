@@ -13,8 +13,9 @@ use crate::{
   Crud,
 };
 use diesel::{dsl::*, result::Error, *};
+use serde::Serialize;
 
-#[derive(Queryable, Identifiable, PartialEq, Debug)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "mod_remove_post"]
 pub struct ModRemovePost {
   pub id: i32,
@@ -55,7 +56,7 @@ impl Crud<ModRemovePostForm> for ModRemovePost {
   }
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "mod_lock_post"]
 pub struct ModLockPost {
   pub id: i32,
@@ -94,7 +95,7 @@ impl Crud<ModLockPostForm> for ModLockPost {
   }
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "mod_sticky_post"]
 pub struct ModStickyPost {
   pub id: i32,
@@ -133,7 +134,7 @@ impl Crud<ModStickyPostForm> for ModStickyPost {
   }
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "mod_remove_comment"]
 pub struct ModRemoveComment {
   pub id: i32,
@@ -174,7 +175,7 @@ impl Crud<ModRemoveCommentForm> for ModRemoveComment {
   }
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "mod_remove_community"]
 pub struct ModRemoveCommunity {
   pub id: i32,
@@ -221,7 +222,7 @@ impl Crud<ModRemoveCommunityForm> for ModRemoveCommunity {
   }
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "mod_ban_from_community"]
 pub struct ModBanFromCommunity {
   pub id: i32,
@@ -270,7 +271,7 @@ impl Crud<ModBanFromCommunityForm> for ModBanFromCommunity {
   }
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "mod_ban"]
 pub struct ModBan {
   pub id: i32,
@@ -311,7 +312,7 @@ impl Crud<ModBanForm> for ModBan {
   }
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "mod_add_community"]
 pub struct ModAddCommunity {
   pub id: i32,
@@ -352,7 +353,7 @@ impl Crud<ModAddCommunityForm> for ModAddCommunity {
   }
 }
 
-#[derive(Queryable, Identifiable, PartialEq, Debug)]
+#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
 #[table_name = "mod_add"]
 pub struct ModAdd {
   pub id: i32,

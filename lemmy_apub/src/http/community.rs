@@ -11,7 +11,7 @@ use activitystreams::{
 use actix_web::{body::Body, web, HttpResponse};
 use lemmy_db::{
   source::{community::Community, post::Post},
-  views::community_follower_view::CommunityFollowerView,
+  views::community::community_follower_view::CommunityFollowerView,
 };
 use lemmy_structs::blocking;
 use lemmy_utils::LemmyError;

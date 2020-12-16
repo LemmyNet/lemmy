@@ -15,8 +15,7 @@ use lemmy_db::{
   source::{moderator::*, post::*},
   views::{
     comment_view::CommentQueryBuilder,
-    community_moderator_view::CommunityModeratorView,
-    community_view::CommunityView,
+    community::{community_moderator_view::CommunityModeratorView, community_view::CommunityView},
     post_view::{PostQueryBuilder, PostView},
     site_view::SiteView,
   },

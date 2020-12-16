@@ -22,7 +22,7 @@ use lemmy_db::{
   },
   views::{
     comment_view::CommentView,
-    community_view::CommunityView,
+    community::community_view::CommunityView,
     post_view::PostView,
     user_view::UserViewSafe,
   },

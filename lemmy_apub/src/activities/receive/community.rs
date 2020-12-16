@@ -4,7 +4,11 @@ use activitystreams::{
   base::{AnyBase, ExtendsExt},
 };
 use anyhow::Context;
-use lemmy_db::{source::community::Community, views::community_view::CommunityView, ApubObject};
+use lemmy_db::{
+  source::community::Community,
+  views::community::community_view::CommunityView,
+  ApubObject,
+};
 use lemmy_structs::{blocking, community::CommunityResponse};
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::{messages::SendCommunityRoomMessage, LemmyContext, UserOperation};

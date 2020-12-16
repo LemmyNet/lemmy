@@ -25,7 +25,7 @@ use anyhow::Context;
 use itertools::Itertools;
 use lemmy_db::{
   source::community::Community,
-  views::community_follower_view::CommunityFollowerView,
+  views::community::community_follower_view::CommunityFollowerView,
   DbPool,
 };
 use lemmy_structs::blocking;

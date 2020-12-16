@@ -2,8 +2,10 @@ use lemmy_db::{
   private_message_view::PrivateMessageView,
   views::{
     comment_view::CommentView,
-    community_follower_view::CommunityFollowerView,
-    community_moderator_view::CommunityModeratorView,
+    community::{
+      community_follower_view::CommunityFollowerView,
+      community_moderator_view::CommunityModeratorView,
+    },
     post_view::PostView,
     user_mention_view::UserMentionView,
     user_view::{UserViewDangerous, UserViewSafe},
