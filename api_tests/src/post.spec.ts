@@ -250,13 +250,12 @@ test('Remove a post from admin and community on different instance', async () =>
 });
 
 test('Remove a post from admin and community on same instance', async () => {
+  await followBeta(alpha);
   let postRes = await createPost(alpha, betaCommunity.id);
 
   // Get the id for beta
   let searchBeta = await searchPost(beta, postRes.post);
   let betaPost = searchBeta.posts[0];
-
-  await followBeta(alpha);
 
   // The beta admin removes it (the community lives on beta)
   let removePostRes = await removePost(beta, true, betaPost);
@@ -280,6 +279,8 @@ test('Remove a post from admin and community on same instance', async () => {
 
 test('Search for a post', async () => {
   let postRes = await createPost(alpha, betaCommunity.id);
+  expect(postRes.post).toBeDefined();
+
   let searchBeta = await searchPost(beta, postRes.post);
 
   expect(searchBeta.posts[0].name).toBeDefined();
