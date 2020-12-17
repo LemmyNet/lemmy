@@ -255,7 +255,7 @@ test('Remove a post from admin and community on same instance', async () => {
   expect(postRes.post).toBeDefined();
 
   // Get the id for beta
-  let searchBeta = await searchPost(beta, postRes.post);
+  let searchBeta = await searchPostLocal(beta, postRes.post);
   let betaPost = searchBeta.posts[0];
   expect(betaPost).toBeDefined();
 
