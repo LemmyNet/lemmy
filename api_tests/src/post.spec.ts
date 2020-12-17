@@ -252,10 +252,12 @@ test('Remove a post from admin and community on different instance', async () =>
 test('Remove a post from admin and community on same instance', async () => {
   await followBeta(alpha);
   let postRes = await createPost(alpha, betaCommunity.id);
+  expect(postRes.post).toBeDefined();
 
   // Get the id for beta
   let searchBeta = await searchPost(beta, postRes.post);
   let betaPost = searchBeta.posts[0];
+  expect(betaPost).toBeDefined();
 
   // The beta admin removes it (the community lives on beta)
   let removePostRes = await removePost(beta, true, betaPost);
@@ -278,6 +280,7 @@ test('Remove a post from admin and community on same instance', async () => {
 });
 
 test('Search for a post', async () => {
+  await unfollowRemotes(alpha);
   let postRes = await createPost(alpha, betaCommunity.id);
   expect(postRes.post).toBeDefined();
 
@@ -287,10 +290,15 @@ test('Search for a post', async () => {
 });
 
 test('A and G subscribe to B (center) A posts, it gets announced to G', async () => {
+  await followBeta(alpha);
+  await followBeta(gamma);
   let postRes = await createPost(alpha, betaCommunity.id);
+  expect(postRes.post).toBeDefined();
 
-  let search2 = await searchPost(gamma, postRes.post);
+  let search2 = await searchPostLocal(gamma, postRes.post);
   expect(search2.posts[0].name).toBeDefined();
+  await unfollowRemotes(alpha);
+  await unfollowRemotes(gamma);
 });
 
 test('Enforce site ban for federated user', async () => {
