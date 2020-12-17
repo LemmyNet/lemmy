@@ -11,9 +11,6 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{env, env::VarError};
 
-pub mod comment_report;
-pub mod post_report;
-
 pub mod aggregates;
 pub mod schema;
 pub mod source;

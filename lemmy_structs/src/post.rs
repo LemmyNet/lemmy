@@ -1,10 +1,8 @@
-use lemmy_db::{
-  post_report::PostReportView,
-  views::{
-    comment_view::CommentView,
-    community::{community_moderator_view::CommunityModeratorView, community_view::CommunityView},
-    post_view::PostView,
-  },
+use lemmy_db::views::{
+  comment_view::CommentView,
+  community::{community_moderator_view::CommunityModeratorView, community_view::CommunityView},
+  post_report_view::PostReportView,
+  post_view::PostView,
 };
 use serde::{Deserialize, Serialize};
 
@@ -150,7 +148,7 @@ pub struct ListPostReports {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub struct ListPostReportsResponse {
   pub posts: Vec<PostReportView>,
 }

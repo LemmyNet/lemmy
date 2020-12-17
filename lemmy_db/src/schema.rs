@@ -615,9 +615,45 @@ table! {
     }
 }
 
+table! {
+    user_alias_2 (id) {
+        id -> Int4,
+        name -> Varchar,
+        preferred_username -> Nullable<Varchar>,
+        password_encrypted -> Text,
+        email -> Nullable<Text>,
+        avatar -> Nullable<Text>,
+        admin -> Bool,
+        banned -> Bool,
+        published -> Timestamp,
+        updated -> Nullable<Timestamp>,
+        show_nsfw -> Bool,
+        theme -> Varchar,
+        default_sort_type -> Int2,
+        default_listing_type -> Int2,
+        lang -> Varchar,
+        show_avatars -> Bool,
+        send_notifications_to_email -> Bool,
+        matrix_user_id -> Nullable<Text>,
+        actor_id -> Varchar,
+        bio -> Nullable<Text>,
+        local -> Bool,
+        private_key -> Nullable<Text>,
+        public_key -> Nullable<Text>,
+        last_refreshed_at -> Timestamp,
+        banner -> Nullable<Text>,
+        deleted -> Bool,
+    }
+}
+
 joinable!(comment_alias_1 -> user_alias_1 (creator_id));
 joinable!(comment -> comment_alias_1 (parent_id));
 joinable!(user_mention -> user_alias_1 (recipient_id));
+joinable!(post -> user_alias_1 (creator_id));
+joinable!(comment -> user_alias_1 (creator_id));
+
+joinable!(post_report -> user_alias_2 (resolver_id));
+joinable!(comment_report -> user_alias_2 (resolver_id));
 
 joinable!(comment -> post (post_id));
 joinable!(comment -> user_ (creator_id));
@@ -708,4 +744,5 @@ allow_tables_to_appear_in_same_query!(
   user_mention,
   comment_alias_1,
   user_alias_1,
+  user_alias_2,
 );

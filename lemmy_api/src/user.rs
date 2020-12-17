@@ -15,10 +15,8 @@ use captcha::{gen, Difficulty};
 use chrono::Duration;
 use lemmy_apub::ApubObjectType;
 use lemmy_db::{
-  comment_report::CommentReportView,
   diesel_option_overwrite,
   naive_now,
-  post_report::PostReportView,
   source::{
     comment::*,
     community::*,
@@ -31,11 +29,13 @@ use lemmy_db::{
     user_mention::*,
   },
   views::{
+    comment_report_view::CommentReportView,
     comment_view::CommentQueryBuilder,
     community::{
       community_follower_view::CommunityFollowerView,
       community_moderator_view::CommunityModeratorView,
     },
+    post_report_view::PostReportView,
     post_view::PostQueryBuilder,
     private_message_view::{PrivateMessageQueryBuilder, PrivateMessageView},
     site_view::SiteView,

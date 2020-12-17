@@ -11,11 +11,15 @@ use actix_web::web::Data;
 use lemmy_apub::{ApubLikeableType, ApubObjectType};
 use lemmy_db::{
   naive_now,
-  post_report::*,
-  source::{moderator::*, post::*},
+  source::{
+    moderator::*,
+    post::*,
+    post_report::{PostReport, PostReportForm},
+  },
   views::{
     comment_view::CommentQueryBuilder,
     community::{community_moderator_view::CommunityModeratorView, community_view::CommunityView},
+    post_report_view::{PostReportQueryBuilder, PostReportView},
     post_view::{PostQueryBuilder, PostView},
     site_view::SiteView,
   },
@@ -835,7 +839,7 @@ impl Perform for ResolvePostReport {
     .await??;
 
     let user_id = user.id;
-    is_mod_or_admin(context.pool(), user_id, report.community_id).await?;
+    is_mod_or_admin(context.pool(), user_id, report.community.id).await?;
 
     let resolved = data.resolved;
     let resolve_fun = move |conn: &'_ _| {
@@ -858,7 +862,7 @@ impl Perform for ResolvePostReport {
     context.chat_server().do_send(SendModRoomMessage {
       op: UserOperation::ResolvePostReport,
       response: res.clone(),
-      community_id: report.community_id,
+      community_id: report.community.id,
       websocket_id,
     });
 

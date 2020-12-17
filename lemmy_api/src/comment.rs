@@ -10,9 +10,15 @@ use crate::{
 use actix_web::web::Data;
 use lemmy_apub::{ApubLikeableType, ApubObjectType};
 use lemmy_db::{
-  comment_report::*,
-  source::{comment::*, moderator::*, post::*, user::*},
+  source::{
+    comment::*,
+    comment_report::{CommentReport, CommentReportForm},
+    moderator::*,
+    post::*,
+    user::*,
+  },
   views::{
+    comment_report_view::{CommentReportQueryBuilder, CommentReportView},
     comment_view::{CommentQueryBuilder, CommentView},
     site_view::SiteView,
   },
@@ -776,7 +782,7 @@ impl Perform for ResolveCommentReport {
     .await??;
 
     let user_id = user.id;
-    is_mod_or_admin(context.pool(), user_id, report.community_id).await?;
+    is_mod_or_admin(context.pool(), user_id, report.community.id).await?;
 
     let resolved = data.resolved;
     let resolve_fun = move |conn: &'_ _| {
@@ -800,7 +806,7 @@ impl Perform for ResolveCommentReport {
     context.chat_server().do_send(SendModRoomMessage {
       op: UserOperation::ResolveCommentReport,
       response: res.clone(),
-      community_id: report.community_id,
+      community_id: report.community.id,
       websocket_id,
     });
 

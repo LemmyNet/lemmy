@@ -1,4 +1,4 @@
-use lemmy_db::{comment_report::CommentReportView, views::comment_view::CommentView};
+use lemmy_db::views::{comment_report_view::CommentReportView, comment_view::CommentView};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
@@ -111,7 +111,7 @@ pub struct ListCommentReports {
   pub auth: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub struct ListCommentReportsResponse {
   pub comments: Vec<CommentReportView>,
 }
