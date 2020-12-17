@@ -9,8 +9,6 @@ import {
   listPrivateMessages,
   deletePrivateMessage,
   unfollowRemotes,
-  delay,
-  longDelay,
 } from './shared';
 
 let recipient_id: number;
@@ -18,7 +16,6 @@ let recipient_id: number;
 beforeAll(async () => {
   await setupLogins();
   let follow = await followBeta(alpha);
-  await longDelay();
   recipient_id = follow.community.creator_id;
 });
 
@@ -32,7 +29,6 @@ test('Create a private message', async () => {
   expect(pmRes.message.local).toBe(true);
   expect(pmRes.message.creator_local).toBe(true);
   expect(pmRes.message.recipient_local).toBe(false);
-  await delay();
 
   let betaPms = await listPrivateMessages(beta);
   expect(betaPms.messages[0].content).toBeDefined();
@@ -47,7 +43,6 @@ test('Update a private message', async () => {
   let pmRes = await createPrivateMessage(alpha, recipient_id);
   let pmUpdated = await updatePrivateMessage(alpha, pmRes.message.id);
   expect(pmUpdated.message.content).toBe(updatedContent);
-  await longDelay();
 
   let betaPms = await listPrivateMessages(beta);
   expect(betaPms.messages[0].content).toBe(updatedContent);
@@ -55,18 +50,15 @@ test('Update a private message', async () => {
 
 test('Delete a private message', async () => {
   let pmRes = await createPrivateMessage(alpha, recipient_id);
-  await delay();
   let betaPms1 = await listPrivateMessages(beta);
   let deletedPmRes = await deletePrivateMessage(alpha, true, pmRes.message.id);
   expect(deletedPmRes.message.deleted).toBe(true);
-  await delay();
 
   // The GetPrivateMessages filters out deleted,
   // even though they are in the actual database.
   // no reason to show them
   let betaPms2 = await listPrivateMessages(beta);
   expect(betaPms2.messages.length).toBe(betaPms1.messages.length - 1);
-  await delay();
 
   // Undelete
   let undeletedPmRes = await deletePrivateMessage(
@@ -75,7 +67,6 @@ test('Delete a private message', async () => {
     pmRes.message.id
   );
   expect(undeletedPmRes.message.deleted).toBe(false);
-  await longDelay();
 
   let betaPms3 = await listPrivateMessages(beta);
   expect(betaPms3.messages.length).toBe(betaPms1.messages.length);

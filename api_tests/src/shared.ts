@@ -602,8 +602,6 @@ export async function unfollowRemotes(
 }
 
 export async function followBeta(api: API): Promise<CommunityResponse> {
-  await unfollowRemotes(api);
-
   // Cache it
   let search = await searchForBetaCommunity(api);
   let com = search.communities.filter(c => c.local == false);
@@ -615,7 +613,7 @@ export async function followBeta(api: API): Promise<CommunityResponse> {
 
 export function delay(millis: number = 500) {
   return new Promise((resolve, _reject) => {
-    setTimeout(_ => resolve(), 10);
+    setTimeout(_ => resolve(), millis);
   });
 }
 
