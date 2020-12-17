@@ -1,3 +1,26 @@
+-- Drop triggers
+drop trigger if exists refresh_comment on comment;
+drop trigger if exists refresh_comment_like on comment_like;
+drop trigger if exists refresh_community on community;
+drop trigger if exists refresh_community_follower on community_follower;
+drop trigger if exists refresh_community_user_ban on community_user_ban;
+drop trigger if exists refresh_post on post;
+drop trigger if exists refresh_post_like on post_like;
+drop trigger if exists refresh_user on user_;
+
+-- Drop functions
+drop function if exists
+refresh_comment,
+refresh_comment_like,
+refresh_community,
+refresh_community_follower,
+refresh_community_user_ban,
+refresh_post,
+refresh_post_like,
+refresh_private_message,
+refresh_user
+cascade;
+
 -- Drop views
 drop view if exists
 comment_aggregates_view, 
