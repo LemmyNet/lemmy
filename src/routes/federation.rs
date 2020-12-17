@@ -22,13 +22,18 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     println!("federation enabled, host is {}", Settings::get().hostname);
     let digest_verifier = VerifyDigest::new(Sha256::new());
 
-    let header_guard = guard::Any(guard::Header("Accept", APUB_JSON_CONTENT_TYPE))
+    let header_guard_accept = guard::Any(guard::Header("Accept", APUB_JSON_CONTENT_TYPE))
       .or(guard::Header("Accept", APUB_JSON_CONTENT_TYPE_LONG));
+    let header_guard_content_type =
+      guard::Any(guard::Header("Content-Type", APUB_JSON_CONTENT_TYPE))
+        .or(guard::Header("Content-Type", APUB_JSON_CONTENT_TYPE_LONG))
+        // TODO: compatibility with previous lemmy versions, remove this later
+        .or(guard::Header("Content-Type", "application/json"));
 
     cfg
       .service(
         web::scope("/")
-          .guard(header_guard)
+          .guard(header_guard_accept)
           .route(
             "/c/{community_name}",
             web::get().to(get_apub_community_http),
@@ -49,19 +54,12 @@ pub fn config(cfg: &mut web::ServiceConfig) {
       )
       // Inboxes dont work with the header guard for some reason.
       .service(
-        web::resource("/c/{community_name}/inbox")
-          .wrap(digest_verifier.clone())
-          .route(web::post().to(community_inbox)),
-      )
-      .service(
-        web::resource("/u/{user_name}/inbox")
-          .wrap(digest_verifier.clone())
-          .route(web::post().to(user_inbox)),
-      )
-      .service(
-        web::resource("/inbox")
+        web::scope("/")
           .wrap(digest_verifier)
-          .route(web::post().to(shared_inbox)),
+          .guard(header_guard_content_type)
+          .route("/c/{community_name}/inbox", web::post().to(community_inbox))
+          .route("/u/{user_name}/inbox", web::post().to(user_inbox))
+          .route("/inbox", web::post().to(shared_inbox)),
       );
   }
 }

@@ -3,6 +3,7 @@ use crate::{
   extensions::signatures::sign_and_send,
   insert_activity,
   ActorType,
+  APUB_JSON_CONTENT_TYPE,
 };
 use activitystreams::{
   base::{BaseExt, Extends, ExtendsExt},
@@ -261,7 +262,7 @@ impl ActixJob for SendActivityTask {
   fn run(self, state: Self::State) -> Self::Future {
     Box::pin(async move {
       let mut headers = BTreeMap::<String, String>::new();
-      headers.insert("Content-Type".into(), "application/json".into());
+      headers.insert("Content-Type".into(), APUB_JSON_CONTENT_TYPE.to_string());
       let result = sign_and_send(
         &state.client,
         headers,
