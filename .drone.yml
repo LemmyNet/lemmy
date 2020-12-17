@@ -63,13 +63,14 @@ steps:
       - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
 
   - name: run federation tests
-    image: node:15-alpine3.12
+    image: node:15.4.0
     environment:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
       DO_WRITE_HOSTS_FILE: 1
     commands:
       - ls -la target/lemmy_server
-      - apk add bash curl postgresql-client
+      # - apk add bash curl postgresql-client
+      - run apt-get update && apt-get install -y postgresql-9.3 postgresql-client-9.3 postgresql-contrib-9.3
       - bash api_tests/prepare-drone-federation-test.sh
       - cd api_tests/
       - yarn
