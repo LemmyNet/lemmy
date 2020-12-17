@@ -45,42 +45,6 @@ table! {
 }
 
 table! {
-    comment_aggregates_fast (id) {
-        id -> Int4,
-        creator_id -> Nullable<Int4>,
-        post_id -> Nullable<Int4>,
-        parent_id -> Nullable<Int4>,
-        content -> Nullable<Text>,
-        removed -> Nullable<Bool>,
-        read -> Nullable<Bool>,
-        published -> Nullable<Timestamp>,
-        updated -> Nullable<Timestamp>,
-        deleted -> Nullable<Bool>,
-        ap_id -> Nullable<Varchar>,
-        local -> Nullable<Bool>,
-        post_name -> Nullable<Varchar>,
-        community_id -> Nullable<Int4>,
-        community_actor_id -> Nullable<Varchar>,
-        community_local -> Nullable<Bool>,
-        community_name -> Nullable<Varchar>,
-        community_icon -> Nullable<Text>,
-        banned -> Nullable<Bool>,
-        banned_from_community -> Nullable<Bool>,
-        creator_actor_id -> Nullable<Varchar>,
-        creator_local -> Nullable<Bool>,
-        creator_name -> Nullable<Varchar>,
-        creator_preferred_username -> Nullable<Varchar>,
-        creator_published -> Nullable<Timestamp>,
-        creator_avatar -> Nullable<Text>,
-        score -> Nullable<Int8>,
-        upvotes -> Nullable<Int8>,
-        downvotes -> Nullable<Int8>,
-        hot_rank -> Nullable<Int4>,
-        hot_rank_active -> Nullable<Int4>,
-    }
-}
-
-table! {
     comment_like (id) {
         id -> Int4,
         user_id -> Int4,
@@ -144,37 +108,6 @@ table! {
         subscribers -> Int8,
         posts -> Int8,
         comments -> Int8,
-    }
-}
-
-table! {
-    community_aggregates_fast (id) {
-        id -> Int4,
-        name -> Nullable<Varchar>,
-        title -> Nullable<Varchar>,
-        icon -> Nullable<Text>,
-        banner -> Nullable<Text>,
-        description -> Nullable<Text>,
-        category_id -> Nullable<Int4>,
-        creator_id -> Nullable<Int4>,
-        removed -> Nullable<Bool>,
-        published -> Nullable<Timestamp>,
-        updated -> Nullable<Timestamp>,
-        deleted -> Nullable<Bool>,
-        nsfw -> Nullable<Bool>,
-        actor_id -> Nullable<Varchar>,
-        local -> Nullable<Bool>,
-        last_refreshed_at -> Nullable<Timestamp>,
-        creator_actor_id -> Nullable<Varchar>,
-        creator_local -> Nullable<Bool>,
-        creator_name -> Nullable<Varchar>,
-        creator_preferred_username -> Nullable<Varchar>,
-        creator_avatar -> Nullable<Text>,
-        category_name -> Nullable<Varchar>,
-        number_of_subscribers -> Nullable<Int8>,
-        number_of_posts -> Nullable<Int8>,
-        number_of_comments -> Nullable<Int8>,
-        hot_rank -> Nullable<Int4>,
     }
 }
 
@@ -352,52 +285,6 @@ table! {
 }
 
 table! {
-    post_aggregates_fast (id) {
-        id -> Int4,
-        name -> Nullable<Varchar>,
-        url -> Nullable<Text>,
-        body -> Nullable<Text>,
-        creator_id -> Nullable<Int4>,
-        community_id -> Nullable<Int4>,
-        removed -> Nullable<Bool>,
-        locked -> Nullable<Bool>,
-        published -> Nullable<Timestamp>,
-        updated -> Nullable<Timestamp>,
-        deleted -> Nullable<Bool>,
-        nsfw -> Nullable<Bool>,
-        stickied -> Nullable<Bool>,
-        embed_title -> Nullable<Text>,
-        embed_description -> Nullable<Text>,
-        embed_html -> Nullable<Text>,
-        thumbnail_url -> Nullable<Text>,
-        ap_id -> Nullable<Varchar>,
-        local -> Nullable<Bool>,
-        creator_actor_id -> Nullable<Varchar>,
-        creator_local -> Nullable<Bool>,
-        creator_name -> Nullable<Varchar>,
-        creator_preferred_username -> Nullable<Varchar>,
-        creator_published -> Nullable<Timestamp>,
-        creator_avatar -> Nullable<Text>,
-        banned -> Nullable<Bool>,
-        banned_from_community -> Nullable<Bool>,
-        community_actor_id -> Nullable<Varchar>,
-        community_local -> Nullable<Bool>,
-        community_name -> Nullable<Varchar>,
-        community_icon -> Nullable<Text>,
-        community_removed -> Nullable<Bool>,
-        community_deleted -> Nullable<Bool>,
-        community_nsfw -> Nullable<Bool>,
-        number_of_comments -> Nullable<Int8>,
-        score -> Nullable<Int8>,
-        upvotes -> Nullable<Int8>,
-        downvotes -> Nullable<Int8>,
-        hot_rank -> Nullable<Int4>,
-        hot_rank_active -> Nullable<Int4>,
-        newest_activity_time -> Nullable<Timestamp>,
-    }
-}
-
-table! {
     post_like (id) {
         id -> Int4,
         post_id -> Int4,
@@ -529,30 +416,6 @@ table! {
         id -> Int4,
         user_id -> Int4,
         published -> Timestamp,
-    }
-}
-
-table! {
-    user_fast (id) {
-        id -> Int4,
-        actor_id -> Nullable<Varchar>,
-        name -> Nullable<Varchar>,
-        preferred_username -> Nullable<Varchar>,
-        avatar -> Nullable<Text>,
-        banner -> Nullable<Text>,
-        email -> Nullable<Text>,
-        matrix_user_id -> Nullable<Text>,
-        bio -> Nullable<Text>,
-        local -> Nullable<Bool>,
-        admin -> Nullable<Bool>,
-        banned -> Nullable<Bool>,
-        show_avatars -> Nullable<Bool>,
-        send_notifications_to_email -> Nullable<Bool>,
-        published -> Nullable<Timestamp>,
-        number_of_posts -> Nullable<Int8>,
-        post_score -> Nullable<Int8>,
-        number_of_comments -> Nullable<Int8>,
-        comment_score -> Nullable<Int8>,
     }
 }
 
@@ -707,13 +570,11 @@ allow_tables_to_appear_in_same_query!(
   category,
   comment,
   comment_aggregates,
-  comment_aggregates_fast,
   comment_like,
   comment_report,
   comment_saved,
   community,
   community_aggregates,
-  community_aggregates_fast,
   community_follower,
   community_moderator,
   community_user_ban,
@@ -729,7 +590,6 @@ allow_tables_to_appear_in_same_query!(
   password_reset_request,
   post,
   post_aggregates,
-  post_aggregates_fast,
   post_like,
   post_read,
   post_report,
@@ -740,7 +600,6 @@ allow_tables_to_appear_in_same_query!(
   user_,
   user_aggregates,
   user_ban,
-  user_fast,
   user_mention,
   comment_alias_1,
   user_alias_1,
