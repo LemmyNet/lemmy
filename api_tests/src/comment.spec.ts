@@ -356,4 +356,6 @@ test('Fetch in_reply_tos: A is unsubbed from B, B makes a post, and some embedde
   assertCommentFederation(alphaPost.comments[0], updateRes.comment);
   expect(alphaPost.post.community_local).toBe(false);
   expect(alphaPost.post.creator_local).toBe(false);
+
+  await unfollowRemotes(alpha);
 });

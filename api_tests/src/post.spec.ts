@@ -201,6 +201,7 @@ test('Lock a post', async () => {
 
 test('Delete a post', async () => {
   let postRes = await createPost(alpha, betaCommunity.id);
+  expect(postRes.post).toBeDefined();
 
   let deletedPost = await deletePost(alpha, true, postRes.post);
   expect(deletedPost.post.deleted).toBe(true);
