@@ -94,3 +94,19 @@ pub async fn get_apub_community_outbox(
     .set_total_items(len as u64);
   Ok(create_apub_response(&collection))
 }
+
+pub async fn get_apub_community_inbox(
+  info: web::Path<CommunityQuery>,
+  context: web::Data<LemmyContext>,
+) -> Result<HttpResponse<Body>, LemmyError> {
+  let community = blocking(context.pool(), move |conn| {
+    Community::read_from_name(&conn, &info.community_name)
+  })
+  .await??;
+
+  let mut collection = OrderedCollection::new();
+  collection
+    .set_id(format!("{}/inbox", community.actor_id).parse()?)
+    .set_many_contexts(lemmy_context()?);
+  Ok(create_apub_response(&collection))
+}
