@@ -35,14 +35,19 @@ beforeAll(async () => {
   await setupLogins();
   let search = await searchForBetaCommunity(alpha);
   betaCommunity = search.communities[0];
+  await unfollows();
 });
 
 afterAll(async () => {
+  await unfollows();
+});
+
+async function unfollows() {
   await unfollowRemotes(alpha);
   await unfollowRemotes(gamma);
   await unfollowRemotes(delta);
   await unfollowRemotes(epsilon);
-});
+}
 
 function assertPostFederation(
   postOne: Post,
