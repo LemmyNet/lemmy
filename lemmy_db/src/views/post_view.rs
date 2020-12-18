@@ -188,7 +188,7 @@ impl<'a> PostQueryBuilder<'a> {
   }
 
   pub fn my_user_id<T: MaybeOptional<i32>>(mut self, my_user_id: T) -> Self {
-    self.community_id = my_user_id.get_optional();
+    self.my_user_id = my_user_id.get_optional();
     self
   }
 
@@ -531,6 +531,8 @@ mod tests {
     let read_post_listing_with_user =
       PostView::read(&conn, inserted_post.id, Some(inserted_user.id)).unwrap();
 
+    let agg = PostAggregates::read(&conn, inserted_post.id).unwrap();
+
     // the non user version
     let expected_post_listing_no_user = PostView {
       post: Post {
@@ -590,7 +592,7 @@ mod tests {
         published: inserted_community.published,
       },
       counts: PostAggregates {
-        id: inserted_post.id, // TODO this might fail
+        id: agg.id,
         post_id: inserted_post.id,
         comments: 0,
         score: 1,

@@ -519,6 +519,8 @@ mod tests {
 
     let _inserted_comment_like = CommentLike::like(&conn, &comment_like_form).unwrap();
 
+    let agg = CommentAggregates::read(&conn, inserted_comment.id).unwrap();
+
     let expected_comment_view_no_user = CommentView {
       creator_banned_from_community: false,
       my_vote: None,
@@ -594,7 +596,7 @@ mod tests {
         published: inserted_community.published,
       },
       counts: CommentAggregates {
-        id: inserted_comment.id, // TODO
+        id: agg.id,
         comment_id: inserted_comment.id,
         score: 1,
         upvotes: 1,
