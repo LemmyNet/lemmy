@@ -79,12 +79,12 @@ impl UserMention {
 #[cfg(test)]
 mod tests {
   use crate::{
-    source::{community::*, user::*, user_mention::*},
+    source::{community::*, user_mention::*},
     tests::establish_unpooled_connection,
     ListingType,
     SortType,
   };
-  use lemmy_db_schema::source::{comment::*, post::*};
+  use lemmy_db_schema::source::{comment::*, post::*, user::*};
 
   #[test]
   fn test_crud() {

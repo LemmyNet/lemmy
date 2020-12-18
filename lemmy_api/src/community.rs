@@ -11,7 +11,7 @@ use anyhow::Context;
 use lemmy_apub::ActorType;
 use lemmy_db::{
   diesel_option_overwrite,
-  source::{community::*, moderator::*, site::*},
+  source::{comment::Comment_, community::*, moderator::*, post::Post_, site::*},
   views::{
     comment_view::CommentQueryBuilder,
     community::{

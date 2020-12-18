@@ -8,13 +8,13 @@ pub mod websocket;
 use diesel::PgConnection;
 use lemmy_db::{
   source::{
-    user::User_,
+    user::User,
     user_mention::{UserMention, UserMentionForm},
   },
   Crud,
   DbPool,
 };
-use lemmy_db_schema::source::{comment::Comment, post::Post};
+use lemmy_db_schema::source::{comment::Comment, post::Post, user::User_};
 use lemmy_utils::{email::send_email, settings::Settings, utils::MentionData, LemmyError};
 use log::error;
 use serde::{Deserialize, Serialize};

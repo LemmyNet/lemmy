@@ -15,7 +15,7 @@ use diesel::result::Error::NotFound;
 use lemmy_db::{
   source::{
     community::{Community, CommunityModerator, CommunityModeratorForm},
-    user::User_,
+    user::User,
   },
   views::{
     comment_view::CommentView,
@@ -24,12 +24,13 @@ use lemmy_db::{
     user_view::UserViewSafe,
   },
   ApubObject,
+  Crud,
   Joinable,
   SearchType,
 };
 use lemmy_db_schema::{
   naive_now,
-  source::{comment::Comment, post::Post},
+  source::{comment::Comment, post::Post, user::User_},
 };
 use lemmy_structs::{blocking, site::SearchResponse};
 use lemmy_utils::{

@@ -6,7 +6,6 @@ use crate::{
   source::{
     category::Category,
     community::{Community, CommunityFollower, CommunitySafe},
-    user::{UserSafe, User_},
   },
   views::ViewToVec,
   MaybeOptional,
@@ -14,12 +13,9 @@ use crate::{
   ToSafe,
 };
 use diesel::{result::Error, *};
-use lemmy_db_schema::schema::{
-  category,
-  community,
-  community_aggregates,
-  community_follower,
-  user_,
+use lemmy_db_schema::{
+  schema::{category, community, community_aggregates, community_follower, user_},
+  source::user::{UserSafe, User_},
 };
 use serde::Serialize;
 

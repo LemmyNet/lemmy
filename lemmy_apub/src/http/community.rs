@@ -10,7 +10,7 @@ use activitystreams::{
 };
 use actix_web::{body::Body, web, HttpResponse};
 use lemmy_db::{
-  source::community::Community,
+  source::{community::Community, post::Post_},
   views::community::community_follower_view::CommunityFollowerView,
 };
 use lemmy_db_schema::source::post::Post;

@@ -12,6 +12,7 @@ use lemmy_apub::{ApubLikeableType, ApubObjectType};
 use lemmy_db::{
   source::{
     moderator::*,
+    post::Post_,
     post_report::{PostReport, PostReportForm},
   },
   views::{

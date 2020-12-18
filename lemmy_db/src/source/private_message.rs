@@ -140,11 +140,12 @@ impl PrivateMessage {
 #[cfg(test)]
 mod tests {
   use crate::{
-    source::{private_message::*, user::*},
+    source::private_message::*,
     tests::establish_unpooled_connection,
     ListingType,
     SortType,
   };
+  use lemmy_db_schema::source::user::*;
 
   #[test]
   fn test_crud() {

@@ -14,14 +14,12 @@ use activitystreams::{
   object::ObjectExt,
 };
 use lemmy_db::{
-  source::{
-    community::{Community, CommunityFollower, CommunityFollowerForm},
-    user::User_,
-  },
+  source::community::{Community, CommunityFollower, CommunityFollowerForm},
   ApubObject,
   DbPool,
   Followable,
 };
+use lemmy_db_schema::source::user::User_;
 use lemmy_structs::blocking;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;

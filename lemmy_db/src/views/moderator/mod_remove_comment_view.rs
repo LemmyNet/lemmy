@@ -3,7 +3,6 @@ use crate::{
   source::{
     community::{Community, CommunitySafe},
     moderator::ModRemoveComment,
-    user::{UserAlias1, UserSafe, UserSafeAlias1, User_},
   },
   views::ViewToVec,
   ToSafe,
@@ -11,7 +10,11 @@ use crate::{
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
   schema::{comment, community, mod_remove_comment, post, user_, user_alias_1},
-  source::{comment::Comment, post::Post},
+  source::{
+    comment::Comment,
+    post::Post,
+    user::{UserAlias1, UserSafe, UserSafeAlias1, User_},
+  },
 };
 use serde::Serialize;
 

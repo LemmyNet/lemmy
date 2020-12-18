@@ -4,7 +4,7 @@ use activitystreams::{
   prelude::*,
 };
 use anyhow::Context;
-use lemmy_db::{views::post_view::PostView, Likeable};
+use lemmy_db::{source::post::Post_, views::post_view::PostView, Likeable};
 use lemmy_db_schema::source::post::{Post, PostLike, PostLikeForm};
 use lemmy_structs::{blocking, post::PostResponse};
 use lemmy_utils::{location_info, LemmyError};

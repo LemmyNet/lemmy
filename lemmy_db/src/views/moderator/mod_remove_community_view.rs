@@ -3,13 +3,15 @@ use crate::{
   source::{
     community::{Community, CommunitySafe},
     moderator::ModRemoveCommunity,
-    user::{UserSafe, User_},
   },
   views::ViewToVec,
   ToSafe,
 };
 use diesel::{result::Error, *};
-use lemmy_db_schema::schema::{community, mod_remove_community, user_};
+use lemmy_db_schema::{
+  schema::{community, mod_remove_community, user_},
+  source::user::{UserSafe, User_},
+};
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Clone)]

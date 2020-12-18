@@ -1,14 +1,17 @@
 use crate::{ApubObject, Crud, Likeable, Readable, Saveable};
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::source::post::{
-  Post,
-  PostForm,
-  PostLike,
-  PostLikeForm,
-  PostRead,
-  PostReadForm,
-  PostSaved,
-  PostSavedForm,
+use lemmy_db_schema::{
+  naive_now,
+  source::post::{
+    Post,
+    PostForm,
+    PostLike,
+    PostLikeForm,
+    PostRead,
+    PostReadForm,
+    PostSaved,
+    PostSavedForm,
+  },
 };
 
 impl Crud<PostForm> for Post {
@@ -32,6 +35,119 @@ impl Crud<PostForm> for Post {
     diesel::update(post.find(post_id))
       .set(new_post)
       .get_result::<Self>(conn)
+  }
+}
+
+pub trait Post_ {
+  //fn read(conn: &PgConnection, post_id: i32) -> Result<Post, Error>;
+  fn list_for_community(conn: &PgConnection, the_community_id: i32) -> Result<Vec<Post>, Error>;
+  fn update_ap_id(conn: &PgConnection, post_id: i32, apub_id: String) -> Result<Post, Error>;
+  fn permadelete_for_creator(conn: &PgConnection, for_creator_id: i32) -> Result<Vec<Post>, Error>;
+  fn update_deleted(conn: &PgConnection, post_id: i32, new_deleted: bool) -> Result<Post, Error>;
+  fn update_removed(conn: &PgConnection, post_id: i32, new_removed: bool) -> Result<Post, Error>;
+  fn update_removed_for_creator(
+    conn: &PgConnection,
+    for_creator_id: i32,
+    for_community_id: Option<i32>,
+    new_removed: bool,
+  ) -> Result<Vec<Post>, Error>;
+  fn update_locked(conn: &PgConnection, post_id: i32, new_locked: bool) -> Result<Post, Error>;
+  fn update_stickied(conn: &PgConnection, post_id: i32, new_stickied: bool) -> Result<Post, Error>;
+  fn is_post_creator(user_id: i32, post_creator_id: i32) -> bool;
+}
+
+impl Post_ for Post {
+  // TODO: this is a duplicate?
+  //fn read(conn: &PgConnection, post_id: i32) -> Result<Self, Error> {
+  //  use lemmy_db_schema::schema::post::dsl::*;
+  //  post.filter(id.eq(post_id)).first::<Self>(conn)
+  //}
+
+  fn list_for_community(conn: &PgConnection, the_community_id: i32) -> Result<Vec<Self>, Error> {
+    use lemmy_db_schema::schema::post::dsl::*;
+    post
+      .filter(community_id.eq(the_community_id))
+      .then_order_by(published.desc())
+      .then_order_by(stickied.desc())
+      .limit(20)
+      .load::<Self>(conn)
+  }
+
+  fn update_ap_id(conn: &PgConnection, post_id: i32, apub_id: String) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::post::dsl::*;
+
+    diesel::update(post.find(post_id))
+      .set(ap_id.eq(apub_id))
+      .get_result::<Self>(conn)
+  }
+
+  fn permadelete_for_creator(conn: &PgConnection, for_creator_id: i32) -> Result<Vec<Self>, Error> {
+    use lemmy_db_schema::schema::post::dsl::*;
+
+    let perma_deleted = "*Permananently Deleted*";
+    let perma_deleted_url = "https://deleted.com";
+
+    diesel::update(post.filter(creator_id.eq(for_creator_id)))
+      .set((
+        name.eq(perma_deleted),
+        url.eq(perma_deleted_url),
+        body.eq(perma_deleted),
+        deleted.eq(true),
+        updated.eq(naive_now()),
+      ))
+      .get_results::<Self>(conn)
+  }
+
+  fn update_deleted(conn: &PgConnection, post_id: i32, new_deleted: bool) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::post::dsl::*;
+    diesel::update(post.find(post_id))
+      .set((deleted.eq(new_deleted), updated.eq(naive_now())))
+      .get_result::<Self>(conn)
+  }
+
+  fn update_removed(conn: &PgConnection, post_id: i32, new_removed: bool) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::post::dsl::*;
+    diesel::update(post.find(post_id))
+      .set((removed.eq(new_removed), updated.eq(naive_now())))
+      .get_result::<Self>(conn)
+  }
+
+  fn update_removed_for_creator(
+    conn: &PgConnection,
+    for_creator_id: i32,
+    for_community_id: Option<i32>,
+    new_removed: bool,
+  ) -> Result<Vec<Self>, Error> {
+    use lemmy_db_schema::schema::post::dsl::*;
+
+    let mut update = diesel::update(post).into_boxed();
+    update = update.filter(creator_id.eq(for_creator_id));
+
+    if let Some(for_community_id) = for_community_id {
+      update = update.filter(community_id.eq(for_community_id));
+    }
+
+    update
+      .set((removed.eq(new_removed), updated.eq(naive_now())))
+      .get_results::<Self>(conn)
+  }
+
+  fn update_locked(conn: &PgConnection, post_id: i32, new_locked: bool) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::post::dsl::*;
+    diesel::update(post.find(post_id))
+      .set(locked.eq(new_locked))
+      .get_result::<Self>(conn)
+  }
+
+  fn update_stickied(conn: &PgConnection, post_id: i32, new_stickied: bool) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::post::dsl::*;
+    diesel::update(post.find(post_id))
+      .set(stickied.eq(new_stickied))
+      .get_result::<Self>(conn)
+  }
+
+  fn is_post_creator(user_id: i32, post_creator_id: i32) -> bool {
+    user_id == post_creator_id
   }
 }
 
@@ -116,11 +232,12 @@ impl Readable<PostReadForm> for PostRead {
 #[cfg(test)]
 mod tests {
   use crate::{
-    source::{community::*, post::*, user::*},
+    source::{community::*, post::*},
     tests::establish_unpooled_connection,
     ListingType,
     SortType,
   };
+  use lemmy_db_schema::source::user::*;
 
   #[test]
   fn test_crud() {

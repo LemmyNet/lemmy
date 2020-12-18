@@ -421,12 +421,8 @@ impl Followable<CommunityFollowerForm> for CommunityFollower {
 
 #[cfg(test)]
 mod tests {
-  use crate::{
-    source::{community::*, user::*},
-    tests::establish_unpooled_connection,
-    ListingType,
-    SortType,
-  };
+  use crate::{source::community::*, tests::establish_unpooled_connection, ListingType, SortType};
+  use lemmy_db_schema::source::user::*;
 
   #[test]
   fn test_crud() {

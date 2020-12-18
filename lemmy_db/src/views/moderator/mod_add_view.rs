@@ -1,14 +1,9 @@
-use crate::{
-  limit_and_offset,
-  source::{
-    moderator::ModAdd,
-    user::{UserAlias1, UserSafe, UserSafeAlias1, User_},
-  },
-  views::ViewToVec,
-  ToSafe,
-};
+use crate::{limit_and_offset, source::moderator::ModAdd, views::ViewToVec, ToSafe};
 use diesel::{result::Error, *};
-use lemmy_db_schema::schema::{mod_add, user_, user_alias_1};
+use lemmy_db_schema::{
+  schema::{mod_add, user_, user_alias_1},
+  source::user::{UserAlias1, UserSafe, UserSafeAlias1, User_},
+};
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Clone)]

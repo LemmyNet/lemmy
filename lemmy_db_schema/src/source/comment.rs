@@ -1,9 +1,7 @@
 use crate::{
-  naive_now,
   schema::{comment, comment_alias_1, comment_like, comment_saved},
   source::post::Post,
 };
-use diesel::{result::Error, PgConnection, *};
 use serde::Serialize;
 use url::{ParseError, Url};
 
@@ -64,85 +62,6 @@ pub struct CommentForm {
   pub deleted: Option<bool>,
   pub ap_id: Option<String>,
   pub local: bool,
-}
-
-impl Comment {
-  pub fn update_ap_id(
-    conn: &PgConnection,
-    comment_id: i32,
-    apub_id: String,
-  ) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
-
-    diesel::update(comment.find(comment_id))
-      .set(ap_id.eq(apub_id))
-      .get_result::<Self>(conn)
-  }
-
-  pub fn permadelete_for_creator(
-    conn: &PgConnection,
-    for_creator_id: i32,
-  ) -> Result<Vec<Self>, Error> {
-    use crate::schema::comment::dsl::*;
-    diesel::update(comment.filter(creator_id.eq(for_creator_id)))
-      .set((
-        content.eq("*Permananently Deleted*"),
-        deleted.eq(true),
-        updated.eq(naive_now()),
-      ))
-      .get_results::<Self>(conn)
-  }
-
-  pub fn update_deleted(
-    conn: &PgConnection,
-    comment_id: i32,
-    new_deleted: bool,
-  ) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
-    diesel::update(comment.find(comment_id))
-      .set((deleted.eq(new_deleted), updated.eq(naive_now())))
-      .get_result::<Self>(conn)
-  }
-
-  pub fn update_removed(
-    conn: &PgConnection,
-    comment_id: i32,
-    new_removed: bool,
-  ) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
-    diesel::update(comment.find(comment_id))
-      .set((removed.eq(new_removed), updated.eq(naive_now())))
-      .get_result::<Self>(conn)
-  }
-
-  pub fn update_removed_for_creator(
-    conn: &PgConnection,
-    for_creator_id: i32,
-    new_removed: bool,
-  ) -> Result<Vec<Self>, Error> {
-    use crate::schema::comment::dsl::*;
-    diesel::update(comment.filter(creator_id.eq(for_creator_id)))
-      .set((removed.eq(new_removed), updated.eq(naive_now())))
-      .get_results::<Self>(conn)
-  }
-
-  pub fn update_read(conn: &PgConnection, comment_id: i32, new_read: bool) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
-    diesel::update(comment.find(comment_id))
-      .set(read.eq(new_read))
-      .get_result::<Self>(conn)
-  }
-
-  pub fn update_content(
-    conn: &PgConnection,
-    comment_id: i32,
-    new_content: &str,
-  ) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
-    diesel::update(comment.find(comment_id))
-      .set((content.eq(new_content), updated.eq(naive_now())))
-      .get_result::<Self>(conn)
-  }
 }
 
 impl CommentForm {

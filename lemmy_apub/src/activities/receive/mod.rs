@@ -5,7 +5,7 @@ use activitystreams::{
   error::DomainError,
 };
 use anyhow::{anyhow, Context};
-use lemmy_db::source::user::User_;
+use lemmy_db_schema::source::user::User_;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
 use log::debug;

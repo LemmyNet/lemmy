@@ -391,12 +391,12 @@ impl Crud<ModAddForm> for ModAdd {
 #[cfg(test)]
 mod tests {
   use crate::{
-    source::{community::*, moderator::*, user::*},
+    source::{community::*, moderator::*},
     tests::establish_unpooled_connection,
     ListingType,
     SortType,
   };
-  use lemmy_db_schema::source::{comment::*, post::*};
+  use lemmy_db_schema::source::{comment::*, post::*, user::*};
 
   // use Crud;
   #[test]

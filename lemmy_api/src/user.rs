@@ -17,12 +17,14 @@ use lemmy_apub::ApubObjectType;
 use lemmy_db::{
   diesel_option_overwrite,
   source::{
+    comment::Comment_,
     community::*,
     moderator::*,
     password_reset_request::*,
+    post::Post_,
     private_message::*,
     site::*,
-    user::*,
+    user::User,
     user_mention::*,
   },
   views::{
@@ -47,7 +49,7 @@ use lemmy_db::{
 };
 use lemmy_db_schema::{
   naive_now,
-  source::{comment::Comment, post::Post},
+  source::{comment::Comment, post::Post, user::*},
 };
 use lemmy_structs::{blocking, send_email_to_user, user::*};
 use lemmy_utils::{

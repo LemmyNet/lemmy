@@ -3,65 +3,15 @@ use bcrypt::{hash, DEFAULT_COST};
 use diesel::{dsl::*, result::Error, *};
 use lemmy_db_schema::{
   naive_now,
-  schema::{user_, user_::dsl::*, user_alias_1, user_alias_2},
+  schema::user_::dsl::*,
+  source::user::{UserForm, User_},
 };
 use lemmy_utils::settings::Settings;
-use serde::Serialize;
-
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
-#[table_name = "user_"]
-pub struct User_ {
-  pub id: i32,
-  pub name: String,
-  pub preferred_username: Option<String>,
-  pub password_encrypted: String,
-  pub email: Option<String>,
-  pub avatar: Option<String>,
-  pub admin: bool,
-  pub banned: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub show_nsfw: bool,
-  pub theme: String,
-  pub default_sort_type: i16,
-  pub default_listing_type: i16,
-  pub lang: String,
-  pub show_avatars: bool,
-  pub send_notifications_to_email: bool,
-  pub matrix_user_id: Option<String>,
-  pub actor_id: String,
-  pub bio: Option<String>,
-  pub local: bool,
-  pub private_key: Option<String>,
-  pub public_key: Option<String>,
-  pub last_refreshed_at: chrono::NaiveDateTime,
-  pub banner: Option<String>,
-  pub deleted: bool,
-}
-
-/// A safe representation of user, without the sensitive info
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
-#[table_name = "user_"]
-pub struct UserSafe {
-  pub id: i32,
-  pub name: String,
-  pub preferred_username: Option<String>,
-  pub avatar: Option<String>,
-  pub admin: bool,
-  pub banned: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub matrix_user_id: Option<String>,
-  pub actor_id: String,
-  pub bio: Option<String>,
-  pub local: bool,
-  pub banner: Option<String>,
-  pub deleted: bool,
-}
 
 mod safe_type {
-  use crate::{source::user::User_, ToSafe};
-  use lemmy_db_schema::schema::user_::columns::*;
+  use crate::ToSafe;
+  use lemmy_db_schema::{schema::user_::columns::*, source::user::User_};
+
   type Columns = (
     id,
     name,
@@ -102,59 +52,10 @@ mod safe_type {
   }
 }
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
-#[table_name = "user_alias_1"]
-pub struct UserAlias1 {
-  pub id: i32,
-  pub name: String,
-  pub preferred_username: Option<String>,
-  pub password_encrypted: String,
-  pub email: Option<String>,
-  pub avatar: Option<String>,
-  pub admin: bool,
-  pub banned: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub show_nsfw: bool,
-  pub theme: String,
-  pub default_sort_type: i16,
-  pub default_listing_type: i16,
-  pub lang: String,
-  pub show_avatars: bool,
-  pub send_notifications_to_email: bool,
-  pub matrix_user_id: Option<String>,
-  pub actor_id: String,
-  pub bio: Option<String>,
-  pub local: bool,
-  pub private_key: Option<String>,
-  pub public_key: Option<String>,
-  pub last_refreshed_at: chrono::NaiveDateTime,
-  pub banner: Option<String>,
-  pub deleted: bool,
-}
-
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
-#[table_name = "user_alias_1"]
-pub struct UserSafeAlias1 {
-  pub id: i32,
-  pub name: String,
-  pub preferred_username: Option<String>,
-  pub avatar: Option<String>,
-  pub admin: bool,
-  pub banned: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub matrix_user_id: Option<String>,
-  pub actor_id: String,
-  pub bio: Option<String>,
-  pub local: bool,
-  pub banner: Option<String>,
-  pub deleted: bool,
-}
-
 mod safe_type_alias_1 {
-  use crate::{source::user::UserAlias1, ToSafe};
-  use lemmy_db_schema::schema::user_alias_1::columns::*;
+  use crate::ToSafe;
+  use lemmy_db_schema::{schema::user_alias_1::columns::*, source::user::UserAlias1};
+
   type Columns = (
     id,
     name,
@@ -195,59 +96,10 @@ mod safe_type_alias_1 {
   }
 }
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
-#[table_name = "user_alias_2"]
-pub struct UserAlias2 {
-  pub id: i32,
-  pub name: String,
-  pub preferred_username: Option<String>,
-  pub password_encrypted: String,
-  pub email: Option<String>,
-  pub avatar: Option<String>,
-  pub admin: bool,
-  pub banned: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub show_nsfw: bool,
-  pub theme: String,
-  pub default_sort_type: i16,
-  pub default_listing_type: i16,
-  pub lang: String,
-  pub show_avatars: bool,
-  pub send_notifications_to_email: bool,
-  pub matrix_user_id: Option<String>,
-  pub actor_id: String,
-  pub bio: Option<String>,
-  pub local: bool,
-  pub private_key: Option<String>,
-  pub public_key: Option<String>,
-  pub last_refreshed_at: chrono::NaiveDateTime,
-  pub banner: Option<String>,
-  pub deleted: bool,
-}
-
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
-#[table_name = "user_alias_2"]
-pub struct UserSafeAlias2 {
-  pub id: i32,
-  pub name: String,
-  pub preferred_username: Option<String>,
-  pub avatar: Option<String>,
-  pub admin: bool,
-  pub banned: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub matrix_user_id: Option<String>,
-  pub actor_id: String,
-  pub bio: Option<String>,
-  pub local: bool,
-  pub banner: Option<String>,
-  pub deleted: bool,
-}
-
 mod safe_type_alias_2 {
-  use crate::{source::user::UserAlias2, ToSafe};
-  use lemmy_db_schema::schema::user_alias_2::columns::*;
+  use crate::ToSafe;
+  use lemmy_db_schema::{schema::user_alias_2::columns::*, source::user::UserAlias2};
+
   type Columns = (
     id,
     name,
@@ -286,35 +138,6 @@ mod safe_type_alias_2 {
       )
     }
   }
-}
-
-#[derive(Insertable, AsChangeset, Clone)]
-#[table_name = "user_"]
-pub struct UserForm {
-  pub name: String,
-  pub preferred_username: Option<Option<String>>,
-  pub password_encrypted: String,
-  pub admin: bool,
-  pub banned: Option<bool>,
-  pub email: Option<Option<String>>,
-  pub avatar: Option<Option<String>>,
-  pub published: Option<chrono::NaiveDateTime>,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub show_nsfw: bool,
-  pub theme: String,
-  pub default_sort_type: i16,
-  pub default_listing_type: i16,
-  pub lang: String,
-  pub show_avatars: bool,
-  pub send_notifications_to_email: bool,
-  pub matrix_user_id: Option<Option<String>>,
-  pub actor_id: Option<String>,
-  pub bio: Option<Option<String>>,
-  pub local: bool,
-  pub private_key: Option<String>,
-  pub public_key: Option<String>,
-  pub last_refreshed_at: Option<chrono::NaiveDateTime>,
-  pub banner: Option<Option<String>>,
 }
 
 impl Crud<UserForm> for User_ {
@@ -356,8 +179,26 @@ impl ApubObject<UserForm> for User_ {
   }
 }
 
-impl User_ {
-  pub fn register(conn: &PgConnection, form: &UserForm) -> Result<Self, Error> {
+pub trait User {
+  fn register(conn: &PgConnection, form: &UserForm) -> Result<User_, Error>;
+  fn update_password(conn: &PgConnection, user_id: i32, new_password: &str)
+    -> Result<User_, Error>;
+  fn read_from_name(conn: &PgConnection, from_user_name: &str) -> Result<User_, Error>;
+  fn add_admin(conn: &PgConnection, user_id: i32, added: bool) -> Result<User_, Error>;
+  fn ban_user(conn: &PgConnection, user_id: i32, ban: bool) -> Result<User_, Error>;
+  fn find_by_email_or_username(
+    conn: &PgConnection,
+    username_or_email: &str,
+  ) -> Result<User_, Error>;
+  fn find_by_username(conn: &PgConnection, username: &str) -> Result<User_, Error>;
+  fn find_by_email(conn: &PgConnection, from_email: &str) -> Result<User_, Error>;
+  fn get_profile_url(&self, hostname: &str) -> String;
+  fn mark_as_updated(conn: &PgConnection, user_id: i32) -> Result<User_, Error>;
+  fn delete_account(conn: &PgConnection, user_id: i32) -> Result<User_, Error>;
+}
+
+impl User for User_ {
+  fn register(conn: &PgConnection, form: &UserForm) -> Result<Self, Error> {
     let mut edited_user = form.clone();
     let password_hash =
       hash(&form.password_encrypted, DEFAULT_COST).expect("Couldn't hash password");
@@ -367,11 +208,7 @@ impl User_ {
   }
 
   // TODO do more individual updates like these
-  pub fn update_password(
-    conn: &PgConnection,
-    user_id: i32,
-    new_password: &str,
-  ) -> Result<Self, Error> {
+  fn update_password(conn: &PgConnection, user_id: i32, new_password: &str) -> Result<Self, Error> {
     let password_hash = hash(new_password, DEFAULT_COST).expect("Couldn't hash password");
 
     diesel::update(user_.find(user_id))
@@ -382,7 +219,7 @@ impl User_ {
       .get_result::<Self>(conn)
   }
 
-  pub fn read_from_name(conn: &PgConnection, from_user_name: &str) -> Result<Self, Error> {
+  fn read_from_name(conn: &PgConnection, from_user_name: &str) -> Result<Self, Error> {
     user_
       .filter(local.eq(true))
       .filter(deleted.eq(false))
@@ -390,19 +227,19 @@ impl User_ {
       .first::<Self>(conn)
   }
 
-  pub fn add_admin(conn: &PgConnection, user_id: i32, added: bool) -> Result<Self, Error> {
+  fn add_admin(conn: &PgConnection, user_id: i32, added: bool) -> Result<Self, Error> {
     diesel::update(user_.find(user_id))
       .set(admin.eq(added))
       .get_result::<Self>(conn)
   }
 
-  pub fn ban_user(conn: &PgConnection, user_id: i32, ban: bool) -> Result<Self, Error> {
+  fn ban_user(conn: &PgConnection, user_id: i32, ban: bool) -> Result<Self, Error> {
     diesel::update(user_.find(user_id))
       .set(banned.eq(ban))
       .get_result::<Self>(conn)
   }
 
-  pub fn find_by_email_or_username(
+  fn find_by_email_or_username(
     conn: &PgConnection,
     username_or_email: &str,
   ) -> Result<Self, Error> {
@@ -413,7 +250,7 @@ impl User_ {
     }
   }
 
-  pub fn find_by_username(conn: &PgConnection, username: &str) -> Result<User_, Error> {
+  fn find_by_username(conn: &PgConnection, username: &str) -> Result<User_, Error> {
     user_
       .filter(deleted.eq(false))
       .filter(local.eq(true))
@@ -421,7 +258,7 @@ impl User_ {
       .first::<User_>(conn)
   }
 
-  pub fn find_by_email(conn: &PgConnection, from_email: &str) -> Result<User_, Error> {
+  fn find_by_email(conn: &PgConnection, from_email: &str) -> Result<User_, Error> {
     user_
       .filter(deleted.eq(false))
       .filter(local.eq(true))
@@ -429,7 +266,7 @@ impl User_ {
       .first::<User_>(conn)
   }
 
-  pub fn get_profile_url(&self, hostname: &str) -> String {
+  fn get_profile_url(&self, hostname: &str) -> String {
     format!(
       "{}://{}/u/{}",
       Settings::get().get_protocol_string(),
@@ -438,13 +275,13 @@ impl User_ {
     )
   }
 
-  pub fn mark_as_updated(conn: &PgConnection, user_id: i32) -> Result<User_, Error> {
+  fn mark_as_updated(conn: &PgConnection, user_id: i32) -> Result<User_, Error> {
     diesel::update(user_.find(user_id))
       .set((last_refreshed_at.eq(naive_now()),))
       .get_result::<Self>(conn)
   }
 
-  pub fn delete_account(conn: &PgConnection, user_id: i32) -> Result<User_, Error> {
+  fn delete_account(conn: &PgConnection, user_id: i32) -> Result<User_, Error> {
     diesel::update(user_.find(user_id))
       .set((
         preferred_username.eq::<Option<String>>(None),

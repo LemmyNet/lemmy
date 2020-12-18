@@ -1,13 +1,117 @@
 use crate::{ApubObject, Crud, Likeable, Saveable};
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::source::comment::{
-  Comment,
-  CommentForm,
-  CommentLike,
-  CommentLikeForm,
-  CommentSaved,
-  CommentSavedForm,
+use lemmy_db_schema::{
+  naive_now,
+  source::comment::{
+    Comment,
+    CommentForm,
+    CommentLike,
+    CommentLikeForm,
+    CommentSaved,
+    CommentSavedForm,
+  },
 };
+
+pub trait Comment_ {
+  fn update_ap_id(conn: &PgConnection, comment_id: i32, apub_id: String) -> Result<Comment, Error>;
+  fn permadelete_for_creator(
+    conn: &PgConnection,
+    for_creator_id: i32,
+  ) -> Result<Vec<Comment>, Error>;
+  fn update_deleted(
+    conn: &PgConnection,
+    comment_id: i32,
+    new_deleted: bool,
+  ) -> Result<Comment, Error>;
+  fn update_removed(
+    conn: &PgConnection,
+    comment_id: i32,
+    new_removed: bool,
+  ) -> Result<Comment, Error>;
+  fn update_removed_for_creator(
+    conn: &PgConnection,
+    for_creator_id: i32,
+    new_removed: bool,
+  ) -> Result<Vec<Comment>, Error>;
+  fn update_read(conn: &PgConnection, comment_id: i32, new_read: bool) -> Result<Comment, Error>;
+  fn update_content(
+    conn: &PgConnection,
+    comment_id: i32,
+    new_content: &str,
+  ) -> Result<Comment, Error>;
+}
+
+impl Comment_ for Comment {
+  fn update_ap_id(conn: &PgConnection, comment_id: i32, apub_id: String) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::comment::dsl::*;
+
+    diesel::update(comment.find(comment_id))
+      .set(ap_id.eq(apub_id))
+      .get_result::<Self>(conn)
+  }
+
+  fn permadelete_for_creator(conn: &PgConnection, for_creator_id: i32) -> Result<Vec<Self>, Error> {
+    use lemmy_db_schema::schema::comment::dsl::*;
+    diesel::update(comment.filter(creator_id.eq(for_creator_id)))
+      .set((
+        content.eq("*Permananently Deleted*"),
+        deleted.eq(true),
+        updated.eq(naive_now()),
+      ))
+      .get_results::<Self>(conn)
+  }
+
+  fn update_deleted(
+    conn: &PgConnection,
+    comment_id: i32,
+    new_deleted: bool,
+  ) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::comment::dsl::*;
+    diesel::update(comment.find(comment_id))
+      .set((deleted.eq(new_deleted), updated.eq(naive_now())))
+      .get_result::<Self>(conn)
+  }
+
+  fn update_removed(
+    conn: &PgConnection,
+    comment_id: i32,
+    new_removed: bool,
+  ) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::comment::dsl::*;
+    diesel::update(comment.find(comment_id))
+      .set((removed.eq(new_removed), updated.eq(naive_now())))
+      .get_result::<Self>(conn)
+  }
+
+  fn update_removed_for_creator(
+    conn: &PgConnection,
+    for_creator_id: i32,
+    new_removed: bool,
+  ) -> Result<Vec<Self>, Error> {
+    use lemmy_db_schema::schema::comment::dsl::*;
+    diesel::update(comment.filter(creator_id.eq(for_creator_id)))
+      .set((removed.eq(new_removed), updated.eq(naive_now())))
+      .get_results::<Self>(conn)
+  }
+
+  fn update_read(conn: &PgConnection, comment_id: i32, new_read: bool) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::comment::dsl::*;
+    diesel::update(comment.find(comment_id))
+      .set(read.eq(new_read))
+      .get_result::<Self>(conn)
+  }
+
+  fn update_content(
+    conn: &PgConnection,
+    comment_id: i32,
+    new_content: &str,
+  ) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::comment::dsl::*;
+    diesel::update(comment.find(comment_id))
+      .set((content.eq(new_content), updated.eq(naive_now())))
+      .get_result::<Self>(conn)
+  }
+}
 
 impl Crud<CommentForm> for Comment {
   fn read(conn: &PgConnection, comment_id: i32) -> Result<Self, Error> {
@@ -101,7 +205,7 @@ impl Saveable<CommentSavedForm> for CommentSaved {
 #[cfg(test)]
 mod tests {
   use crate::{
-    source::{community::*, user::*},
+    source::community::*,
     tests::establish_unpooled_connection,
     Crud,
     Likeable,
@@ -109,7 +213,11 @@ mod tests {
     Saveable,
     SortType,
   };
-  use lemmy_db_schema::source::{comment::*, post::*};
+  use lemmy_db_schema::source::{
+    comment::*,
+    post::*,
+    user::{UserForm, User_},
+  };
 
   #[test]
   fn test_crud() {

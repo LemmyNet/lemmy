@@ -22,10 +22,8 @@ use activitystreams::{
 };
 use activitystreams_ext::{Ext1, Ext2};
 use anyhow::{anyhow, Context};
-use lemmy_db::{
-  source::{activity::Activity, user::User_},
-  DbPool,
-};
+use lemmy_db::{source::activity::Activity, DbPool};
+use lemmy_db_schema::source::user::User_;
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, settings::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;

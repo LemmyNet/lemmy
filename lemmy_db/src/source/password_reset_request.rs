@@ -75,7 +75,6 @@ impl PasswordResetRequest {
 
 #[cfg(test)]
 mod tests {
-  use super::super::user::*;
   use crate::{
     source::password_reset_request::PasswordResetRequest,
     tests::establish_unpooled_connection,
@@ -83,6 +82,7 @@ mod tests {
     ListingType,
     SortType,
   };
+  use lemmy_db_schema::source::user::*;
 
   #[test]
   fn test_crud() {

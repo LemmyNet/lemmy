@@ -29,14 +29,12 @@ use lemmy_apub::{
   },
 };
 use lemmy_db::{
-  source::{
-    community::{Community, CommunityForm},
-    user::{User_, *},
-  },
+  source::community::{Community, CommunityForm},
   Crud,
   ListingType,
   SortType,
 };
+use lemmy_db_schema::source::user::{UserForm, User_};
 use lemmy_rate_limit::{rate_limiter::RateLimiter, RateLimit};
 use lemmy_utils::{apub::generate_actor_keypair, settings::Settings};
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};

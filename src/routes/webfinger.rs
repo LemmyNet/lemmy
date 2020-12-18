@@ -1,6 +1,7 @@
 use actix_web::{error::ErrorBadRequest, web::Query, *};
 use anyhow::anyhow;
-use lemmy_db::source::{community::Community, user::User_};
+use lemmy_db::source::{community::Community, user::User};
+use lemmy_db_schema::source::user::User_;
 use lemmy_structs::{blocking, WebFingerLink, WebFingerResponse};
 use lemmy_utils::{
   settings::Settings,

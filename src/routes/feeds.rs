@@ -4,7 +4,7 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::PgConnection;
 use lemmy_api::claims::Claims;
 use lemmy_db::{
-  source::{community::Community, user::User_},
+  source::{community::Community, user::User},
   views::{
     comment_view::{CommentQueryBuilder, CommentView},
     post_view::{PostQueryBuilder, PostView},
@@ -14,6 +14,7 @@ use lemmy_db::{
   ListingType,
   SortType,
 };
+use lemmy_db_schema::source::user::User_;
 use lemmy_structs::blocking;
 use lemmy_utils::{settings::Settings, utils::markdown_to_html, LemmyError};
 use lemmy_websocket::LemmyContext;

@@ -4,6 +4,7 @@ use crate::{
 };
 use actix_web::{body::Body, web, HttpResponse};
 use diesel::result::Error::NotFound;
+use lemmy_db::Crud;
 use lemmy_db_schema::source::post::Post;
 use lemmy_structs::blocking;
 use lemmy_utils::LemmyError;

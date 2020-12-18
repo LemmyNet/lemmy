@@ -4,7 +4,6 @@ use crate::{
   limit_and_offset,
   source::{
     community::{Community, CommunityFollower, CommunitySafe, CommunityUserBan},
-    user::{UserAlias1, UserSafe, UserSafeAlias1, User_},
     user_mention::UserMention,
   },
   views::ViewToVec,
@@ -30,6 +29,7 @@ use lemmy_db_schema::{
   source::{
     comment::{Comment, CommentSaved},
     post::Post,
+    user::{UserAlias1, UserSafe, UserSafeAlias1, User_},
   },
 };
 use serde::Serialize;

@@ -1,12 +1,9 @@
-use crate::{
-  source::{
-    site::Site,
-    user::{UserSafe, User_},
-  },
-  ToSafe,
-};
+use crate::{source::site::Site, ToSafe};
 use diesel::{result::Error, *};
-use lemmy_db_schema::schema::{site, user_};
+use lemmy_db_schema::{
+  schema::{site, user_},
+  source::user::{UserSafe, User_},
+};
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Clone)]

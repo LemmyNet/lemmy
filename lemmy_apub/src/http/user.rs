@@ -9,7 +9,8 @@ use activitystreams::{
   collection::{CollectionExt, OrderedCollection},
 };
 use actix_web::{body::Body, web, HttpResponse};
-use lemmy_db::source::user::User_;
+use lemmy_db::source::user::User;
+use lemmy_db_schema::source::user::User_;
 use lemmy_structs::blocking;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;

@@ -4,7 +4,7 @@ use activitystreams::{
   base::ExtendsExt,
 };
 use anyhow::Context;
-use lemmy_db::{views::comment_view::CommentView, Likeable};
+use lemmy_db::{source::comment::Comment_, views::comment_view::CommentView, Crud, Likeable};
 use lemmy_db_schema::source::{
   comment::{Comment, CommentLike, CommentLikeForm},
   post::Post,

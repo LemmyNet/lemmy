@@ -98,15 +98,13 @@ impl Activity {
 #[cfg(test)]
 mod tests {
   use crate::{
-    source::{
-      activity::{Activity, ActivityForm},
-      user::{UserForm, User_},
-    },
+    source::activity::{Activity, ActivityForm},
     tests::establish_unpooled_connection,
     Crud,
     ListingType,
     SortType,
   };
+  use lemmy_db_schema::source::user::{UserForm, User_};
   use serde_json::Value;
 
   #[test]

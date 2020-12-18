@@ -23,14 +23,11 @@ use activitystreams::{
   prelude::*,
 };
 use anyhow::{anyhow, Context};
-use lemmy_db::{
-  source::{community::Community, user::User_},
-  Crud,
-  DbPool,
-};
+use lemmy_db::{source::community::Community, Crud, DbPool};
 use lemmy_db_schema::source::{
   comment::{Comment, CommentForm},
   post::Post,
+  user::User_,
 };
 use lemmy_structs::blocking;
 use lemmy_utils::{

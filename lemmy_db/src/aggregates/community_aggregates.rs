@@ -24,10 +24,7 @@ impl CommunityAggregates {
 mod tests {
   use crate::{
     aggregates::community_aggregates::CommunityAggregates,
-    source::{
-      community::{Community, CommunityFollower, CommunityFollowerForm, CommunityForm},
-      user::{UserForm, User_},
-    },
+    source::community::{Community, CommunityFollower, CommunityFollowerForm, CommunityForm},
     tests::establish_unpooled_connection,
     Crud,
     Followable,
@@ -37,6 +34,7 @@ mod tests {
   use lemmy_db_schema::source::{
     comment::{Comment, CommentForm},
     post::{Post, PostForm},
+    user::{UserForm, User_},
   };
 
   #[test]
