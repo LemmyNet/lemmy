@@ -1718,6 +1718,7 @@ dependencies = [
  "lazy_static",
  "lemmy_apub",
  "lemmy_db",
+ "lemmy_db_schema",
  "lemmy_rate_limit",
  "lemmy_structs",
  "lemmy_utils",
@@ -1762,6 +1763,7 @@ dependencies = [
  "itertools",
  "lazy_static",
  "lemmy_db",
+ "lemmy_db_schema",
  "lemmy_structs",
  "lemmy_utils",
  "lemmy_websocket",
@@ -1805,7 +1807,12 @@ dependencies = [
 name = "lemmy_db_schema"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "diesel",
+ "log",
+ "serde 1.0.118",
+ "serde_json",
+ "url",
 ]
 
 [[package]]
@@ -1868,6 +1875,7 @@ dependencies = [
  "chrono",
  "diesel",
  "lemmy_db",
+ "lemmy_db_schema",
  "lemmy_utils",
  "log",
  "serde 1.0.118",
@@ -1909,6 +1917,7 @@ dependencies = [
  "chrono",
  "diesel",
  "lemmy_db",
+ "lemmy_db_schema",
  "lemmy_rate_limit",
  "lemmy_structs",
  "lemmy_utils",

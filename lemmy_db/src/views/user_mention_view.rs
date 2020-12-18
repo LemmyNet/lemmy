@@ -3,9 +3,7 @@ use crate::{
   functions::hot_rank,
   limit_and_offset,
   source::{
-    comment::{Comment, CommentSaved},
     community::{Community, CommunityFollower, CommunitySafe, CommunityUserBan},
-    post::Post,
     user::{UserAlias1, UserSafe, UserSafeAlias1, User_},
     user_mention::UserMention,
   },
@@ -15,18 +13,24 @@ use crate::{
   ToSafe,
 };
 use diesel::{result::Error, *};
-use lemmy_db_schema::schema::{
-  comment,
-  comment_aggregates,
-  comment_like,
-  comment_saved,
-  community,
-  community_follower,
-  community_user_ban,
-  post,
-  user_,
-  user_alias_1,
-  user_mention,
+use lemmy_db_schema::{
+  schema::{
+    comment,
+    comment_aggregates,
+    comment_like,
+    comment_saved,
+    community,
+    community_follower,
+    community_user_ban,
+    post,
+    user_,
+    user_alias_1,
+    user_mention,
+  },
+  source::{
+    comment::{Comment, CommentSaved},
+    post::Post,
+  },
 };
 use serde::Serialize;
 

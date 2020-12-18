@@ -1,6 +1,6 @@
-use crate::{naive_now, ApubObject, Crud};
+use crate::{ApubObject, Crud};
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::schema::private_message;
+use lemmy_db_schema::{naive_now, schema::private_message};
 use serde::Serialize;
 
 #[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]

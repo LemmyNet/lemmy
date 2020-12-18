@@ -1,7 +1,10 @@
-use crate::{is_email_regex, naive_now, ApubObject, Crud};
+use crate::{is_email_regex, ApubObject, Crud};
 use bcrypt::{hash, DEFAULT_COST};
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::schema::{user_, user_::dsl::*, user_alias_1, user_alias_2};
+use lemmy_db_schema::{
+  naive_now,
+  schema::{user_, user_::dsl::*, user_alias_1, user_alias_2},
+};
 use lemmy_utils::settings::Settings;
 use serde::Serialize;
 

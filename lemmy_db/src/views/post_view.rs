@@ -5,7 +5,6 @@ use crate::{
   limit_and_offset,
   source::{
     community::{Community, CommunityFollower, CommunitySafe, CommunityUserBan},
-    post::{Post, PostRead, PostSaved},
     user::{UserSafe, User_},
   },
   views::ViewToVec,
@@ -15,16 +14,19 @@ use crate::{
   ToSafe,
 };
 use diesel::{result::Error, *};
-use lemmy_db_schema::schema::{
-  community,
-  community_follower,
-  community_user_ban,
-  post,
-  post_aggregates,
-  post_like,
-  post_read,
-  post_saved,
-  user_,
+use lemmy_db_schema::{
+  schema::{
+    community,
+    community_follower,
+    community_user_ban,
+    post,
+    post_aggregates,
+    post_like,
+    post_read,
+    post_saved,
+    user_,
+  },
+  source::post::{Post, PostRead, PostSaved},
 };
 use serde::Serialize;
 
@@ -406,13 +408,14 @@ impl ViewToVec for PostView {
 mod tests {
   use crate::{
     aggregates::post_aggregates::PostAggregates,
-    source::{community::*, post::*, user::*},
+    source::{community::*, user::*},
     tests::establish_unpooled_connection,
     views::post_view::{PostQueryBuilder, PostView},
     Crud,
     Likeable,
     *,
   };
+  use lemmy_db_schema::source::post::*;
 
   #[test]
   fn test_crud() {

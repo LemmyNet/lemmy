@@ -19,11 +19,11 @@ use activitystreams::{
 use activitystreams_ext::Ext1;
 use anyhow::Context;
 use lemmy_db::{
-  naive_now,
   source::user::{UserForm, User_},
   ApubObject,
   DbPool,
 };
+use lemmy_db_schema::naive_now;
 use lemmy_structs::blocking;
 use lemmy_utils::{
   location_info,

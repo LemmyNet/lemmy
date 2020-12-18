@@ -1,6 +1,6 @@
-use crate::{naive_now, Crud};
+use crate::Crud;
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::schema::site;
+use lemmy_db_schema::{naive_now, schema::site};
 use serde::Serialize;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Clone, Serialize)]

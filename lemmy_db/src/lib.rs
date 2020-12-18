@@ -5,7 +5,6 @@ extern crate strum_macros;
 #[macro_use]
 extern crate lazy_static;
 
-use chrono::NaiveDateTime;
 use diesel::{result::Error, *};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -179,10 +178,6 @@ pub fn limit_and_offset(page: Option<i64>, limit: Option<i64>) -> (i64, i64) {
   let limit = limit.unwrap_or(10);
   let offset = limit * (page - 1);
   (limit, offset)
-}
-
-pub fn naive_now() -> NaiveDateTime {
-  chrono::prelude::Utc::now().naive_utc()
 }
 
 pub fn is_email_regex(test: &str) -> bool {

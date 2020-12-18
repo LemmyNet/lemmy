@@ -1,5 +1,4 @@
 use crate::{
-  naive_now,
   views::{community::community_moderator_view::CommunityModeratorView, user_view::UserViewSafe},
   ApubObject,
   Bannable,
@@ -8,11 +7,9 @@ use crate::{
   Joinable,
 };
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::schema::{
-  community,
-  community_follower,
-  community_moderator,
-  community_user_ban,
+use lemmy_db_schema::{
+  naive_now,
+  schema::{community, community_follower, community_moderator, community_user_ban},
 };
 use serde::Serialize;
 

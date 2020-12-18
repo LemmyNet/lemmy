@@ -3,14 +3,16 @@ use crate::{
   source::{
     community::{Community, CommunitySafe},
     moderator::ModStickyPost,
-    post::Post,
     user::{UserSafe, User_},
   },
   views::ViewToVec,
   ToSafe,
 };
 use diesel::{result::Error, *};
-use lemmy_db_schema::schema::{community, mod_sticky_post, post, user_};
+use lemmy_db_schema::{
+  schema::{community, mod_sticky_post, post, user_},
+  source::post::Post,
+};
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Clone)]

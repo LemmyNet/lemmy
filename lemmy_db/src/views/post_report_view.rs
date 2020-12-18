@@ -2,7 +2,6 @@ use crate::{
   limit_and_offset,
   source::{
     community::{Community, CommunitySafe},
-    post::Post,
     post_report::PostReport,
     user::{UserAlias1, UserAlias2, UserSafe, UserSafeAlias1, UserSafeAlias2, User_},
   },
@@ -11,7 +10,10 @@ use crate::{
   ToSafe,
 };
 use diesel::{result::Error, *};
-use lemmy_db_schema::schema::{community, post, post_report, user_, user_alias_1, user_alias_2};
+use lemmy_db_schema::{
+  schema::{community, post, post_report, user_, user_alias_1, user_alias_2},
+  source::post::Post,
+};
 use serde::Serialize;
 
 #[derive(Debug, PartialEq, Serialize, Clone)]

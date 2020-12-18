@@ -16,13 +16,10 @@ use chrono::Duration;
 use lemmy_apub::ApubObjectType;
 use lemmy_db::{
   diesel_option_overwrite,
-  naive_now,
   source::{
-    comment::*,
     community::*,
     moderator::*,
     password_reset_request::*,
-    post::*,
     private_message::*,
     site::*,
     user::*,
@@ -47,6 +44,10 @@ use lemmy_db::{
   Joinable,
   ListingType,
   SortType,
+};
+use lemmy_db_schema::{
+  naive_now,
+  source::{comment::Comment, post::Post},
 };
 use lemmy_structs::{blocking, send_email_to_user, user::*};
 use lemmy_utils::{

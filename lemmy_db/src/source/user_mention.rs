@@ -1,7 +1,6 @@
-use super::comment::Comment;
 use crate::Crud;
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::schema::user_mention;
+use lemmy_db_schema::{schema::user_mention, source::comment::Comment};
 use serde::Serialize;
 
 #[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
@@ -80,11 +79,12 @@ impl UserMention {
 #[cfg(test)]
 mod tests {
   use crate::{
-    source::{comment::*, community::*, post::*, user::*, user_mention::*},
+    source::{community::*, user::*, user_mention::*},
     tests::establish_unpooled_connection,
     ListingType,
     SortType,
   };
+  use lemmy_db_schema::source::{comment::*, post::*};
 
   #[test]
   fn test_crud() {

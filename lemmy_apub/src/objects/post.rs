@@ -21,14 +21,11 @@ use activitystreams::{
 use activitystreams_ext::Ext1;
 use anyhow::Context;
 use lemmy_db::{
-  source::{
-    community::Community,
-    post::{Post, PostForm},
-    user::User_,
-  },
+  source::{community::Community, user::User_},
   Crud,
   DbPool,
 };
+use lemmy_db_schema::source::post::{Post, PostForm};
 use lemmy_structs::blocking;
 use lemmy_utils::{
   location_info,

@@ -12,7 +12,6 @@ use lemmy_apub::fetcher::search_by_apub_id;
 use lemmy_db::{
   aggregates::site_aggregates::SiteAggregates,
   diesel_option_overwrite,
-  naive_now,
   source::{category::*, moderator::*, site::*},
   views::{
     comment_view::CommentQueryBuilder,
@@ -36,6 +35,7 @@ use lemmy_db::{
   SearchType,
   SortType,
 };
+use lemmy_db_schema::naive_now;
 use lemmy_structs::{blocking, site::*, user::Register};
 use lemmy_utils::{
   location_info,

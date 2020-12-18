@@ -11,10 +11,8 @@ use actix_web::web::Data;
 use lemmy_apub::{ApubLikeableType, ApubObjectType};
 use lemmy_db::{
   source::{
-    comment::*,
     comment_report::{CommentReport, CommentReportForm},
     moderator::*,
-    post::*,
     user::*,
   },
   views::{
@@ -28,6 +26,10 @@ use lemmy_db::{
   Reportable,
   Saveable,
   SortType,
+};
+use lemmy_db_schema::source::{
+  comment::{Comment, CommentForm, CommentLike, CommentLikeForm, CommentSaved, CommentSavedForm},
+  post::Post,
 };
 use lemmy_structs::{blocking, comment::*, send_local_notifs};
 use lemmy_utils::{

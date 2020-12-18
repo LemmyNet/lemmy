@@ -1,17 +1,18 @@
 use crate::{
   limit_and_offset,
   source::{
-    comment::Comment,
     community::{Community, CommunitySafe},
     moderator::ModRemoveComment,
-    post::Post,
     user::{UserAlias1, UserSafe, UserSafeAlias1, User_},
   },
   views::ViewToVec,
   ToSafe,
 };
 use diesel::{result::Error, *};
-use lemmy_db_schema::schema::{comment, community, mod_remove_comment, post, user_, user_alias_1};
+use lemmy_db_schema::{
+  schema::{comment, community, mod_remove_comment, post, user_, user_alias_1},
+  source::{comment::Comment, post::Post},
+};
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Clone)]

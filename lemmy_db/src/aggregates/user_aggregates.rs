@@ -26,9 +26,7 @@ mod tests {
   use crate::{
     aggregates::user_aggregates::UserAggregates,
     source::{
-      comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
       community::{Community, CommunityForm},
-      post::{Post, PostForm, PostLike, PostLikeForm},
       user::{UserForm, User_},
     },
     tests::establish_unpooled_connection,
@@ -36,6 +34,10 @@ mod tests {
     Likeable,
     ListingType,
     SortType,
+  };
+  use lemmy_db_schema::source::{
+    comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
+    post::{Post, PostForm, PostLike, PostLikeForm},
   };
 
   #[test]

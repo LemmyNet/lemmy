@@ -10,6 +10,7 @@ path = "src/lib.rs"
 
 [dependencies]
 lemmy_db = { path = "../lemmy_db" }
+lemmy_db_schema = { path = "../lemmy_db_schema" }
 lemmy_utils = { path = "../lemmy_utils" }
 serde = { version = "1.0.118", features = ["derive"] }
 log = "0.4.11"

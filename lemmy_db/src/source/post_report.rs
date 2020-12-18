@@ -1,6 +1,6 @@
-use crate::{naive_now, source::post::Post, Reportable};
+use crate::Reportable;
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::schema::post_report;
+use lemmy_db_schema::{naive_now, schema::post_report, source::post::Post};
 use serde::{Deserialize, Serialize};
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Serialize, Deserialize, Debug, Clone)]

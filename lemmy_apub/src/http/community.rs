@@ -10,9 +10,10 @@ use activitystreams::{
 };
 use actix_web::{body::Body, web, HttpResponse};
 use lemmy_db::{
-  source::{community::Community, post::Post},
+  source::community::Community,
   views::community::community_follower_view::CommunityFollowerView,
 };
+use lemmy_db_schema::source::post::Post;
 use lemmy_structs::blocking;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;

@@ -22,9 +22,10 @@ use activitystreams::{
   public,
 };
 use lemmy_db::{
-  source::{community::Community, post::Post, user::User_},
+  source::{community::Community, user::User_},
   Crud,
 };
+use lemmy_db_schema::source::post::Post;
 use lemmy_structs::blocking;
 use lemmy_utils::LemmyError;
 use lemmy_websocket::LemmyContext;

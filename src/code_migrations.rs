@@ -4,15 +4,16 @@ use diesel::{
   *,
 };
 use lemmy_db::{
-  naive_now,
   source::{
-    comment::Comment,
     community::{Community, CommunityForm},
-    post::Post,
     private_message::PrivateMessage,
     user::{UserForm, User_},
   },
   Crud,
+};
+use lemmy_db_schema::{
+  naive_now,
+  source::{comment::Comment, post::Post},
 };
 use lemmy_utils::{
   apub::{generate_actor_keypair, make_apub_endpoint, EndpointType},

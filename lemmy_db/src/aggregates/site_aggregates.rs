@@ -23,15 +23,17 @@ mod tests {
   use crate::{
     aggregates::site_aggregates::SiteAggregates,
     source::{
-      comment::{Comment, CommentForm},
       community::{Community, CommunityForm},
-      post::{Post, PostForm},
       user::{UserForm, User_},
     },
     tests::establish_unpooled_connection,
     Crud,
     ListingType,
     SortType,
+  };
+  use lemmy_db_schema::source::{
+    comment::{Comment, CommentForm},
+    post::{Post, PostForm},
   };
 
   #[test]
