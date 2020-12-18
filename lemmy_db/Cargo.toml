@@ -9,6 +9,7 @@ path = "src/lib.rs"
 
 [dependencies]
 lemmy_utils = { path = "../lemmy_utils" }
+lemmy_db_schema = { path = "../lemmy_db_schema" }
 diesel = { version = "1.4.5", features = ["postgres","chrono","r2d2","serde_json"] }
 chrono = { version = "0.4.19", features = ["serde"] }
 serde = { version = "1.0.118", features = ["derive"] }

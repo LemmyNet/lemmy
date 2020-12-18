@@ -1789,6 +1789,7 @@ dependencies = [
  "chrono",
  "diesel",
  "lazy_static",
+ "lemmy_db_schema",
  "lemmy_utils",
  "log",
  "regex",
@@ -1798,6 +1799,13 @@ dependencies = [
  "strum",
  "strum_macros",
  "url",
+]
+
+[[package]]
+name = "lemmy_db_schema"
+version = "0.1.0"
+dependencies = [
+ "diesel",
 ]
 
 [[package]]
@@ -1835,6 +1843,7 @@ dependencies = [
  "lemmy_api",
  "lemmy_apub",
  "lemmy_db",
+ "lemmy_db_schema",
  "lemmy_rate_limit",
  "lemmy_structs",
  "lemmy_utils",

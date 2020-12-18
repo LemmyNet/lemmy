@@ -1,8 +1,6 @@
-use crate::{
-  schema::{category, category::dsl::*},
-  Crud,
-};
+use crate::Crud;
 use diesel::{dsl::*, result::Error, *};
+use lemmy_db_schema::schema::{category, category::dsl::*};
 use serde::Serialize;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Clone)]

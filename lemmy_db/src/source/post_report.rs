@@ -1,7 +1,7 @@
+use crate::{naive_now, source::post::Post, Reportable};
 use diesel::{dsl::*, result::Error, *};
+use lemmy_db_schema::schema::post_report;
 use serde::{Deserialize, Serialize};
-
-use crate::{naive_now, schema::post_report, source::post::Post, Reportable};
 
 #[derive(Identifiable, Queryable, Associations, PartialEq, Serialize, Deserialize, Debug, Clone)]
 #[belongs_to(Post)]
@@ -37,7 +37,7 @@ impl Reportable<PostReportForm> for PostReport {
   /// * `conn` - the postgres connection
   /// * `post_report_form` - the filled CommentReportForm to insert
   fn report(conn: &PgConnection, post_report_form: &PostReportForm) -> Result<Self, Error> {
-    use crate::schema::post_report::dsl::*;
+    use lemmy_db_schema::schema::post_report::dsl::*;
     insert_into(post_report)
       .values(post_report_form)
       .get_result::<Self>(conn)
@@ -49,7 +49,7 @@ impl Reportable<PostReportForm> for PostReport {
   /// * `report_id` - the id of the report to resolve
   /// * `by_resolver_id` - the id of the user resolving the report
   fn resolve(conn: &PgConnection, report_id: i32, by_resolver_id: i32) -> Result<usize, Error> {
-    use crate::schema::post_report::dsl::*;
+    use lemmy_db_schema::schema::post_report::dsl::*;
     update(post_report.find(report_id))
       .set((
         resolved.eq(true),
@@ -65,7 +65,7 @@ impl Reportable<PostReportForm> for PostReport {
   /// * `report_id` - the id of the report to unresolve
   /// * `by_resolver_id` - the id of the user unresolving the report
   fn unresolve(conn: &PgConnection, report_id: i32, by_resolver_id: i32) -> Result<usize, Error> {
-    use crate::schema::post_report::dsl::*;
+    use lemmy_db_schema::schema::post_report::dsl::*;
     update(post_report.find(report_id))
       .set((
         resolved.eq(false),

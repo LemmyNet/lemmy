@@ -1,13 +1,6 @@
-use crate::{
-  naive_now,
-  schema::{post, post_like, post_read, post_saved},
-  ApubObject,
-  Crud,
-  Likeable,
-  Readable,
-  Saveable,
-};
+use crate::{naive_now, ApubObject, Crud, Likeable, Readable, Saveable};
 use diesel::{dsl::*, result::Error, *};
+use lemmy_db_schema::schema::{post, post_like, post_read, post_saved};
 use serde::Serialize;
 use url::{ParseError, Url};
 
@@ -66,22 +59,22 @@ impl PostForm {
 
 impl Crud<PostForm> for Post {
   fn read(conn: &PgConnection, post_id: i32) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
+    use lemmy_db_schema::schema::post::dsl::*;
     post.find(post_id).first::<Self>(conn)
   }
 
   fn delete(conn: &PgConnection, post_id: i32) -> Result<usize, Error> {
-    use crate::schema::post::dsl::*;
+    use lemmy_db_schema::schema::post::dsl::*;
     diesel::delete(post.find(post_id)).execute(conn)
   }
 
   fn create(conn: &PgConnection, new_post: &PostForm) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
+    use lemmy_db_schema::schema::post::dsl::*;
     insert_into(post).values(new_post).get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, post_id: i32, new_post: &PostForm) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
+    use lemmy_db_schema::schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set(new_post)
       .get_result::<Self>(conn)
@@ -90,12 +83,12 @@ impl Crud<PostForm> for Post {
 
 impl ApubObject<PostForm> for Post {
   fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
+    use lemmy_db_schema::schema::post::dsl::*;
     post.filter(ap_id.eq(object_id)).first::<Self>(conn)
   }
 
   fn upsert(conn: &PgConnection, post_form: &PostForm) -> Result<Post, Error> {
-    use crate::schema::post::dsl::*;
+    use lemmy_db_schema::schema::post::dsl::*;
     insert_into(post)
       .values(post_form)
       .on_conflict(ap_id)
@@ -107,7 +100,7 @@ impl ApubObject<PostForm> for Post {
 
 impl Post {
   pub fn read(conn: &PgConnection, post_id: i32) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
+    use lemmy_db_schema::schema::post::dsl::*;
     post.filter(id.eq(post_id)).first::<Self>(conn)
   }
 
@@ -115,7 +108,7 @@ impl Post {
     conn: &PgConnection,
     the_community_id: i32,
   ) -> Result<Vec<Self>, Error> {
-    use crate::schema::post::dsl::*;
+    use lemmy_db_schema::schema::post::dsl::*;
     post
       .filter(community_id.eq(the_community_id))
       .then_order_by(published.desc())
@@ -125,7 +118,7 @@ impl Post {
   }
 
   pub fn update_ap_id(conn: &PgConnection, post_id: i32, apub_id: String) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
+    use lemmy_db_schema::schema::post::dsl::*;
 
     diesel::update(post.find(post_id))
       .set(ap_id.eq(apub_id))
@@ -136,7 +129,7 @@ impl Post {
     conn: &PgConnection,
     for_creator_id: i32,
   ) -> Result<Vec<Self>, Error> {
-    use crate::schema::post::dsl::*;
+    use lemmy_db_schema::schema::post::dsl::*;
 
     let perma_deleted = "*Permananently Deleted*";
     let perma_deleted_url = "https://deleted.com";
@@ -157,7 +150,7 @@ impl Post {
     post_id: i32,
     new_deleted: bool,
   ) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
+    use lemmy_db_schema::schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set((deleted.eq(new_deleted), updated.eq(naive_now())))
       .get_result::<Self>(conn)
@@ -168,7 +161,7 @@ impl Post {
     post_id: i32,
     new_removed: bool,
   ) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
+    use lemmy_db_schema::schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set((removed.eq(new_removed), updated.eq(naive_now())))
       .get_result::<Self>(conn)
@@ -180,7 +173,7 @@ impl Post {
     for_community_id: Option<i32>,
     new_removed: bool,
   ) -> Result<Vec<Self>, Error> {
-    use crate::schema::post::dsl::*;
+    use lemmy_db_schema::schema::post::dsl::*;
 
     let mut update = diesel::update(post).into_boxed();
     update = update.filter(creator_id.eq(for_creator_id));
@@ -195,7 +188,7 @@ impl Post {
   }
 
   pub fn update_locked(conn: &PgConnection, post_id: i32, new_locked: bool) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
+    use lemmy_db_schema::schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set(locked.eq(new_locked))
       .get_result::<Self>(conn)
@@ -206,7 +199,7 @@ impl Post {
     post_id: i32,
     new_stickied: bool,
   ) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
+    use lemmy_db_schema::schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set(stickied.eq(new_stickied))
       .get_result::<Self>(conn)
@@ -238,7 +231,7 @@ pub struct PostLikeForm {
 
 impl Likeable<PostLikeForm> for PostLike {
   fn like(conn: &PgConnection, post_like_form: &PostLikeForm) -> Result<Self, Error> {
-    use crate::schema::post_like::dsl::*;
+    use lemmy_db_schema::schema::post_like::dsl::*;
     insert_into(post_like)
       .values(post_like_form)
       .on_conflict((post_id, user_id))
@@ -247,7 +240,7 @@ impl Likeable<PostLikeForm> for PostLike {
       .get_result::<Self>(conn)
   }
   fn remove(conn: &PgConnection, user_id: i32, post_id: i32) -> Result<usize, Error> {
-    use crate::schema::post_like::dsl;
+    use lemmy_db_schema::schema::post_like::dsl;
     diesel::delete(
       dsl::post_like
         .filter(dsl::post_id.eq(post_id))
@@ -276,7 +269,7 @@ pub struct PostSavedForm {
 
 impl Saveable<PostSavedForm> for PostSaved {
   fn save(conn: &PgConnection, post_saved_form: &PostSavedForm) -> Result<Self, Error> {
-    use crate::schema::post_saved::dsl::*;
+    use lemmy_db_schema::schema::post_saved::dsl::*;
     insert_into(post_saved)
       .values(post_saved_form)
       .on_conflict((post_id, user_id))
@@ -285,7 +278,7 @@ impl Saveable<PostSavedForm> for PostSaved {
       .get_result::<Self>(conn)
   }
   fn unsave(conn: &PgConnection, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
-    use crate::schema::post_saved::dsl::*;
+    use lemmy_db_schema::schema::post_saved::dsl::*;
     diesel::delete(
       post_saved
         .filter(post_id.eq(post_saved_form.post_id))
@@ -318,14 +311,14 @@ pub struct PostReadForm {
 
 impl Readable<PostReadForm> for PostRead {
   fn mark_as_read(conn: &PgConnection, post_read_form: &PostReadForm) -> Result<Self, Error> {
-    use crate::schema::post_read::dsl::*;
+    use lemmy_db_schema::schema::post_read::dsl::*;
     insert_into(post_read)
       .values(post_read_form)
       .get_result::<Self>(conn)
   }
 
   fn mark_as_unread(conn: &PgConnection, post_read_form: &PostReadForm) -> Result<usize, Error> {
-    use crate::schema::post_read::dsl::*;
+    use lemmy_db_schema::schema::post_read::dsl::*;
     diesel::delete(
       post_read
         .filter(post_id.eq(post_read_form.post_id))

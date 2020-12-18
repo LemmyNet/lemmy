@@ -1,6 +1,7 @@
 use super::comment::Comment;
-use crate::{schema::user_mention, Crud};
+use crate::Crud;
 use diesel::{dsl::*, result::Error, *};
+use lemmy_db_schema::schema::user_mention;
 use serde::Serialize;
 
 #[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
@@ -24,12 +25,12 @@ pub struct UserMentionForm {
 
 impl Crud<UserMentionForm> for UserMention {
   fn read(conn: &PgConnection, user_mention_id: i32) -> Result<Self, Error> {
-    use crate::schema::user_mention::dsl::*;
+    use lemmy_db_schema::schema::user_mention::dsl::*;
     user_mention.find(user_mention_id).first::<Self>(conn)
   }
 
   fn create(conn: &PgConnection, user_mention_form: &UserMentionForm) -> Result<Self, Error> {
-    use crate::schema::user_mention::dsl::*;
+    use lemmy_db_schema::schema::user_mention::dsl::*;
     // since the return here isnt utilized, we dont need to do an update
     // but get_result doesnt return the existing row here
     insert_into(user_mention)
@@ -45,7 +46,7 @@ impl Crud<UserMentionForm> for UserMention {
     user_mention_id: i32,
     user_mention_form: &UserMentionForm,
   ) -> Result<Self, Error> {
-    use crate::schema::user_mention::dsl::*;
+    use lemmy_db_schema::schema::user_mention::dsl::*;
     diesel::update(user_mention.find(user_mention_id))
       .set(user_mention_form)
       .get_result::<Self>(conn)
@@ -58,14 +59,14 @@ impl UserMention {
     user_mention_id: i32,
     new_read: bool,
   ) -> Result<Self, Error> {
-    use crate::schema::user_mention::dsl::*;
+    use lemmy_db_schema::schema::user_mention::dsl::*;
     diesel::update(user_mention.find(user_mention_id))
       .set(read.eq(new_read))
       .get_result::<Self>(conn)
   }
 
   pub fn mark_all_as_read(conn: &PgConnection, for_recipient_id: i32) -> Result<Vec<Self>, Error> {
-    use crate::schema::user_mention::dsl::*;
+    use lemmy_db_schema::schema::user_mention::dsl::*;
     diesel::update(
       user_mention
         .filter(recipient_id.eq(for_recipient_id))

@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 use std::{env, env::VarError};
 
 pub mod aggregates;
-pub mod schema;
 pub mod source;
 pub mod views;
 

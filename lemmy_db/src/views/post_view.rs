@@ -3,17 +3,6 @@ use crate::{
   functions::hot_rank,
   fuzzy_search,
   limit_and_offset,
-  schema::{
-    community,
-    community_follower,
-    community_user_ban,
-    post,
-    post_aggregates,
-    post_like,
-    post_read,
-    post_saved,
-    user_,
-  },
   source::{
     community::{Community, CommunityFollower, CommunitySafe, CommunityUserBan},
     post::{Post, PostRead, PostSaved},
@@ -26,6 +15,17 @@ use crate::{
   ToSafe,
 };
 use diesel::{result::Error, *};
+use lemmy_db_schema::schema::{
+  community,
+  community_follower,
+  community_user_ban,
+  post,
+  post_aggregates,
+  post_like,
+  post_read,
+  post_saved,
+  user_,
+};
 use serde::Serialize;
 
 #[derive(Debug, PartialEq, Serialize, Clone)]

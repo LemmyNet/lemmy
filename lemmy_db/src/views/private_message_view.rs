@@ -1,6 +1,5 @@
 use crate::{
   limit_and_offset,
-  schema::{private_message, user_, user_alias_1},
   source::{
     private_message::PrivateMessage,
     user::{UserAlias1, UserSafe, UserSafeAlias1, User_},
@@ -10,6 +9,7 @@ use crate::{
   ToSafe,
 };
 use diesel::{result::Error, *};
+use lemmy_db_schema::schema::{private_message, user_, user_alias_1};
 use serde::Serialize;
 
 #[derive(Debug, PartialEq, Serialize, Clone)]

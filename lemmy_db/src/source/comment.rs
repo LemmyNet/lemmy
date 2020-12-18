@@ -1,13 +1,7 @@
 use super::post::Post;
-use crate::{
-  naive_now,
-  schema::{comment, comment_alias_1, comment_like, comment_saved},
-  ApubObject,
-  Crud,
-  Likeable,
-  Saveable,
-};
+use crate::{naive_now, ApubObject, Crud, Likeable, Saveable};
 use diesel::{dsl::*, result::Error, *};
+use lemmy_db_schema::schema::{comment, comment_alias_1, comment_like, comment_saved};
 use serde::Serialize;
 use url::{ParseError, Url};
 
@@ -78,17 +72,17 @@ impl CommentForm {
 
 impl Crud<CommentForm> for Comment {
   fn read(conn: &PgConnection, comment_id: i32) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
+    use lemmy_db_schema::schema::comment::dsl::*;
     comment.find(comment_id).first::<Self>(conn)
   }
 
   fn delete(conn: &PgConnection, comment_id: i32) -> Result<usize, Error> {
-    use crate::schema::comment::dsl::*;
+    use lemmy_db_schema::schema::comment::dsl::*;
     diesel::delete(comment.find(comment_id)).execute(conn)
   }
 
   fn create(conn: &PgConnection, comment_form: &CommentForm) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
+    use lemmy_db_schema::schema::comment::dsl::*;
     insert_into(comment)
       .values(comment_form)
       .get_result::<Self>(conn)
@@ -99,7 +93,7 @@ impl Crud<CommentForm> for Comment {
     comment_id: i32,
     comment_form: &CommentForm,
   ) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
+    use lemmy_db_schema::schema::comment::dsl::*;
     diesel::update(comment.find(comment_id))
       .set(comment_form)
       .get_result::<Self>(conn)
@@ -108,12 +102,12 @@ impl Crud<CommentForm> for Comment {
 
 impl ApubObject<CommentForm> for Comment {
   fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
+    use lemmy_db_schema::schema::comment::dsl::*;
     comment.filter(ap_id.eq(object_id)).first::<Self>(conn)
   }
 
   fn upsert(conn: &PgConnection, comment_form: &CommentForm) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
+    use lemmy_db_schema::schema::comment::dsl::*;
     insert_into(comment)
       .values(comment_form)
       .on_conflict(ap_id)
@@ -129,7 +123,7 @@ impl Comment {
     comment_id: i32,
     apub_id: String,
   ) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
+    use lemmy_db_schema::schema::comment::dsl::*;
 
     diesel::update(comment.find(comment_id))
       .set(ap_id.eq(apub_id))
@@ -140,7 +134,7 @@ impl Comment {
     conn: &PgConnection,
     for_creator_id: i32,
   ) -> Result<Vec<Self>, Error> {
-    use crate::schema::comment::dsl::*;
+    use lemmy_db_schema::schema::comment::dsl::*;
     diesel::update(comment.filter(creator_id.eq(for_creator_id)))
       .set((
         content.eq("*Permananently Deleted*"),
@@ -155,7 +149,7 @@ impl Comment {
     comment_id: i32,
     new_deleted: bool,
   ) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
+    use lemmy_db_schema::schema::comment::dsl::*;
     diesel::update(comment.find(comment_id))
       .set((deleted.eq(new_deleted), updated.eq(naive_now())))
       .get_result::<Self>(conn)
@@ -166,7 +160,7 @@ impl Comment {
     comment_id: i32,
     new_removed: bool,
   ) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
+    use lemmy_db_schema::schema::comment::dsl::*;
     diesel::update(comment.find(comment_id))
       .set((removed.eq(new_removed), updated.eq(naive_now())))
       .get_result::<Self>(conn)
@@ -177,14 +171,14 @@ impl Comment {
     for_creator_id: i32,
     new_removed: bool,
   ) -> Result<Vec<Self>, Error> {
-    use crate::schema::comment::dsl::*;
+    use lemmy_db_schema::schema::comment::dsl::*;
     diesel::update(comment.filter(creator_id.eq(for_creator_id)))
       .set((removed.eq(new_removed), updated.eq(naive_now())))
       .get_results::<Self>(conn)
   }
 
   pub fn update_read(conn: &PgConnection, comment_id: i32, new_read: bool) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
+    use lemmy_db_schema::schema::comment::dsl::*;
     diesel::update(comment.find(comment_id))
       .set(read.eq(new_read))
       .get_result::<Self>(conn)
@@ -195,7 +189,7 @@ impl Comment {
     comment_id: i32,
     new_content: &str,
   ) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
+    use lemmy_db_schema::schema::comment::dsl::*;
     diesel::update(comment.find(comment_id))
       .set((content.eq(new_content), updated.eq(naive_now())))
       .get_result::<Self>(conn)
@@ -225,7 +219,7 @@ pub struct CommentLikeForm {
 
 impl Likeable<CommentLikeForm> for CommentLike {
   fn like(conn: &PgConnection, comment_like_form: &CommentLikeForm) -> Result<Self, Error> {
-    use crate::schema::comment_like::dsl::*;
+    use lemmy_db_schema::schema::comment_like::dsl::*;
     insert_into(comment_like)
       .values(comment_like_form)
       .on_conflict((comment_id, user_id))
@@ -234,7 +228,7 @@ impl Likeable<CommentLikeForm> for CommentLike {
       .get_result::<Self>(conn)
   }
   fn remove(conn: &PgConnection, user_id: i32, comment_id: i32) -> Result<usize, Error> {
-    use crate::schema::comment_like::dsl;
+    use lemmy_db_schema::schema::comment_like::dsl;
     diesel::delete(
       dsl::comment_like
         .filter(dsl::comment_id.eq(comment_id))
@@ -263,7 +257,7 @@ pub struct CommentSavedForm {
 
 impl Saveable<CommentSavedForm> for CommentSaved {
   fn save(conn: &PgConnection, comment_saved_form: &CommentSavedForm) -> Result<Self, Error> {
-    use crate::schema::comment_saved::dsl::*;
+    use lemmy_db_schema::schema::comment_saved::dsl::*;
     insert_into(comment_saved)
       .values(comment_saved_form)
       .on_conflict((comment_id, user_id))
@@ -272,7 +266,7 @@ impl Saveable<CommentSavedForm> for CommentSaved {
       .get_result::<Self>(conn)
   }
   fn unsave(conn: &PgConnection, comment_saved_form: &CommentSavedForm) -> Result<usize, Error> {
-    use crate::schema::comment_saved::dsl::*;
+    use lemmy_db_schema::schema::comment_saved::dsl::*;
     diesel::delete(
       comment_saved
         .filter(comment_id.eq(comment_saved_form.comment_id))

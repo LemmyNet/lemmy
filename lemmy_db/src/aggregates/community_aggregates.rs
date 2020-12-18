@@ -1,5 +1,5 @@
-use crate::schema::community_aggregates;
 use diesel::{result::Error, *};
+use lemmy_db_schema::schema::community_aggregates;
 use serde::Serialize;
 
 #[derive(Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Clone)]

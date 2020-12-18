@@ -1,8 +1,6 @@
-use crate::{
-  schema::{password_reset_request, password_reset_request::dsl::*},
-  Crud,
-};
+use crate::Crud;
 use diesel::{dsl::*, result::Error, PgConnection, *};
+use lemmy_db_schema::schema::{password_reset_request, password_reset_request::dsl::*};
 use sha2::{Digest, Sha256};
 
 #[derive(Queryable, Identifiable, PartialEq, Debug)]
@@ -23,7 +21,6 @@ pub struct PasswordResetRequestForm {
 
 impl Crud<PasswordResetRequestForm> for PasswordResetRequest {
   fn read(conn: &PgConnection, password_reset_request_id: i32) -> Result<Self, Error> {
-    use crate::schema::password_reset_request::dsl::*;
     password_reset_request
       .find(password_reset_request_id)
       .first::<Self>(conn)

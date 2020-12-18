@@ -1,5 +1,6 @@
-use crate::{naive_now, schema::private_message, ApubObject, Crud};
+use crate::{naive_now, ApubObject, Crud};
 use diesel::{dsl::*, result::Error, *};
+use lemmy_db_schema::schema::private_message;
 use serde::Serialize;
 
 #[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
@@ -33,12 +34,12 @@ pub struct PrivateMessageForm {
 
 impl Crud<PrivateMessageForm> for PrivateMessage {
   fn read(conn: &PgConnection, private_message_id: i32) -> Result<Self, Error> {
-    use crate::schema::private_message::dsl::*;
+    use lemmy_db_schema::schema::private_message::dsl::*;
     private_message.find(private_message_id).first::<Self>(conn)
   }
 
   fn create(conn: &PgConnection, private_message_form: &PrivateMessageForm) -> Result<Self, Error> {
-    use crate::schema::private_message::dsl::*;
+    use lemmy_db_schema::schema::private_message::dsl::*;
     insert_into(private_message)
       .values(private_message_form)
       .get_result::<Self>(conn)
@@ -49,7 +50,7 @@ impl Crud<PrivateMessageForm> for PrivateMessage {
     private_message_id: i32,
     private_message_form: &PrivateMessageForm,
   ) -> Result<Self, Error> {
-    use crate::schema::private_message::dsl::*;
+    use lemmy_db_schema::schema::private_message::dsl::*;
     diesel::update(private_message.find(private_message_id))
       .set(private_message_form)
       .get_result::<Self>(conn)
@@ -61,14 +62,14 @@ impl ApubObject<PrivateMessageForm> for PrivateMessage {
   where
     Self: Sized,
   {
-    use crate::schema::private_message::dsl::*;
+    use lemmy_db_schema::schema::private_message::dsl::*;
     private_message
       .filter(ap_id.eq(object_id))
       .first::<Self>(conn)
   }
 
   fn upsert(conn: &PgConnection, private_message_form: &PrivateMessageForm) -> Result<Self, Error> {
-    use crate::schema::private_message::dsl::*;
+    use lemmy_db_schema::schema::private_message::dsl::*;
     insert_into(private_message)
       .values(private_message_form)
       .on_conflict(ap_id)
@@ -84,7 +85,7 @@ impl PrivateMessage {
     private_message_id: i32,
     apub_id: String,
   ) -> Result<Self, Error> {
-    use crate::schema::private_message::dsl::*;
+    use lemmy_db_schema::schema::private_message::dsl::*;
 
     diesel::update(private_message.find(private_message_id))
       .set(ap_id.eq(apub_id))
@@ -96,7 +97,7 @@ impl PrivateMessage {
     private_message_id: i32,
     new_content: &str,
   ) -> Result<Self, Error> {
-    use crate::schema::private_message::dsl::*;
+    use lemmy_db_schema::schema::private_message::dsl::*;
     diesel::update(private_message.find(private_message_id))
       .set((content.eq(new_content), updated.eq(naive_now())))
       .get_result::<Self>(conn)
@@ -107,7 +108,7 @@ impl PrivateMessage {
     private_message_id: i32,
     new_deleted: bool,
   ) -> Result<Self, Error> {
-    use crate::schema::private_message::dsl::*;
+    use lemmy_db_schema::schema::private_message::dsl::*;
     diesel::update(private_message.find(private_message_id))
       .set(deleted.eq(new_deleted))
       .get_result::<Self>(conn)
@@ -118,14 +119,14 @@ impl PrivateMessage {
     private_message_id: i32,
     new_read: bool,
   ) -> Result<Self, Error> {
-    use crate::schema::private_message::dsl::*;
+    use lemmy_db_schema::schema::private_message::dsl::*;
     diesel::update(private_message.find(private_message_id))
       .set(read.eq(new_read))
       .get_result::<Self>(conn)
   }
 
   pub fn mark_all_as_read(conn: &PgConnection, for_recipient_id: i32) -> Result<Vec<Self>, Error> {
-    use crate::schema::private_message::dsl::*;
+    use lemmy_db_schema::schema::private_message::dsl::*;
     diesel::update(
       private_message
         .filter(recipient_id.eq(for_recipient_id))

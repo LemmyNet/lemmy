@@ -1,5 +1,6 @@
-use crate::{schema::activity, Crud};
+use crate::Crud;
 use diesel::{dsl::*, result::Error, *};
+use lemmy_db_schema::schema::activity;
 use log::debug;
 use serde::Serialize;
 use serde_json::Value;
@@ -32,12 +33,12 @@ pub struct ActivityForm {
 
 impl Crud<ActivityForm> for Activity {
   fn read(conn: &PgConnection, activity_id: i32) -> Result<Self, Error> {
-    use crate::schema::activity::dsl::*;
+    use lemmy_db_schema::schema::activity::dsl::*;
     activity.find(activity_id).first::<Self>(conn)
   }
 
   fn create(conn: &PgConnection, new_activity: &ActivityForm) -> Result<Self, Error> {
-    use crate::schema::activity::dsl::*;
+    use lemmy_db_schema::schema::activity::dsl::*;
     insert_into(activity)
       .values(new_activity)
       .get_result::<Self>(conn)
@@ -48,13 +49,13 @@ impl Crud<ActivityForm> for Activity {
     activity_id: i32,
     new_activity: &ActivityForm,
   ) -> Result<Self, Error> {
-    use crate::schema::activity::dsl::*;
+    use lemmy_db_schema::schema::activity::dsl::*;
     diesel::update(activity.find(activity_id))
       .set(new_activity)
       .get_result::<Self>(conn)
   }
   fn delete(conn: &PgConnection, activity_id: i32) -> Result<usize, Error> {
-    use crate::schema::activity::dsl::*;
+    use lemmy_db_schema::schema::activity::dsl::*;
     diesel::delete(activity.find(activity_id)).execute(conn)
   }
 }
@@ -89,7 +90,7 @@ impl Activity {
   }
 
   pub fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
-    use crate::schema::activity::dsl::*;
+    use lemmy_db_schema::schema::activity::dsl::*;
     activity.filter(ap_id.eq(object_id)).first::<Self>(conn)
   }
 }

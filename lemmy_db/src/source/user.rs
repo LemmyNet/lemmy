@@ -1,12 +1,7 @@
-use crate::{
-  is_email_regex,
-  naive_now,
-  schema::{user_, user_::dsl::*, user_alias_1, user_alias_2},
-  ApubObject,
-  Crud,
-};
+use crate::{is_email_regex, naive_now, ApubObject, Crud};
 use bcrypt::{hash, DEFAULT_COST};
 use diesel::{dsl::*, result::Error, *};
+use lemmy_db_schema::schema::{user_, user_::dsl::*, user_alias_1, user_alias_2};
 use lemmy_utils::settings::Settings;
 use serde::Serialize;
 
@@ -62,7 +57,8 @@ pub struct UserSafe {
 }
 
 mod safe_type {
-  use crate::{schema::user_::columns::*, source::user::User_, ToSafe};
+  use crate::{source::user::User_, ToSafe};
+  use lemmy_db_schema::schema::user_::columns::*;
   type Columns = (
     id,
     name,
@@ -154,7 +150,8 @@ pub struct UserSafeAlias1 {
 }
 
 mod safe_type_alias_1 {
-  use crate::{schema::user_alias_1::columns::*, source::user::UserAlias1, ToSafe};
+  use crate::{source::user::UserAlias1, ToSafe};
+  use lemmy_db_schema::schema::user_alias_1::columns::*;
   type Columns = (
     id,
     name,
@@ -246,7 +243,8 @@ pub struct UserSafeAlias2 {
 }
 
 mod safe_type_alias_2 {
-  use crate::{schema::user_alias_2::columns::*, source::user::UserAlias2, ToSafe};
+  use crate::{source::user::UserAlias2, ToSafe};
+  use lemmy_db_schema::schema::user_alias_2::columns::*;
   type Columns = (
     id,
     name,
@@ -338,7 +336,7 @@ impl Crud<UserForm> for User_ {
 
 impl ApubObject<UserForm> for User_ {
   fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
-    use crate::schema::user_::dsl::*;
+    use lemmy_db_schema::schema::user_::dsl::*;
     user_
       .filter(deleted.eq(false))
       .filter(actor_id.eq(object_id))

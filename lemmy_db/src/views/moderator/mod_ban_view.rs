@@ -1,6 +1,5 @@
 use crate::{
   limit_and_offset,
-  schema::{mod_ban, user_, user_alias_1},
   source::{
     moderator::ModBan,
     user::{UserAlias1, UserSafe, UserSafeAlias1, User_},
@@ -9,6 +8,7 @@ use crate::{
   ToSafe,
 };
 use diesel::{result::Error, *};
+use lemmy_db_schema::schema::{mod_ban, user_, user_alias_1};
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Clone)]

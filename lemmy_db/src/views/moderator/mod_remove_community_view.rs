@@ -1,6 +1,5 @@
 use crate::{
   limit_and_offset,
-  schema::{community, mod_remove_community, user_},
   source::{
     community::{Community, CommunitySafe},
     moderator::ModRemoveCommunity,
@@ -10,6 +9,7 @@ use crate::{
   ToSafe,
 };
 use diesel::{result::Error, *};
+use lemmy_db_schema::schema::{community, mod_remove_community, user_};
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Clone)]
