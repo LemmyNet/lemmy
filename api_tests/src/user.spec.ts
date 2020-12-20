@@ -9,23 +9,23 @@ import {
   getSite,
 } from './shared';
 import {
-  UserView,
-  UserSettingsForm,
+  UserViewSafe,
+  SaveUserSettings,
+  SortType,
+  ListingType,
 } from 'lemmy-js-client';
 
 let auth: string;
 let apShortname: string;
 
-function assertUserFederation(
-  userOne: UserView,
-  userTwo: UserView) {
-  expect(userOne.name).toBe(userTwo.name);
-  expect(userOne.preferred_username).toBe(userTwo.preferred_username);
-  expect(userOne.bio).toBe(userTwo.bio);
-  expect(userOne.actor_id).toBe(userTwo.actor_id);
-  expect(userOne.avatar).toBe(userTwo.avatar);
-  expect(userOne.banner).toBe(userTwo.banner);
-  expect(userOne.published).toBe(userTwo.published);
+function assertUserFederation(userOne: UserViewSafe, userTwo: UserViewSafe) {
+  expect(userOne.user.name).toBe(userTwo.user.name);
+  expect(userOne.user.preferred_username).toBe(userTwo.user.preferred_username);
+  expect(userOne.user.bio).toBe(userTwo.user.bio);
+  expect(userOne.user.actor_id).toBe(userTwo.user.actor_id);
+  expect(userOne.user.avatar).toBe(userTwo.user.avatar);
+  expect(userOne.user.banner).toBe(userTwo.user.banner);
+  expect(userOne.user.published).toBe(userTwo.user.published);
 }
 
 test('Create user', async () => {
@@ -55,20 +55,20 @@ test('Save user settings, check changed bio from beta', async () => {
 test('Set avatar and banner, check that they are federated', async () => {
   let avatar = 'https://image.flaticon.com/icons/png/512/35/35896.png';
   let banner = 'https://image.flaticon.com/icons/png/512/36/35896.png';
-  let form: UserSettingsForm = {
+  let form: SaveUserSettings = {
     show_nsfw: false,
-    theme: "",
-    default_sort_type: 0,
-    default_listing_type: 0,
-    lang: "",
+    theme: '',
+    default_sort_type: SortType.Hot,
+    default_listing_type: ListingType.All,
+    lang: '',
     avatar,
     banner,
-    preferred_username: "user321",
+    preferred_username: 'user321',
     show_avatars: false,
     send_notifications_to_email: false,
     auth,
-  }
-  let settingsRes = await saveUserSettings(alpha, form);
+  };
+  let _settingsRes = await saveUserSettings(alpha, form);
 
   let searchAlpha = await searchForUser(beta, apShortname);
   let userOnAlpha = searchAlpha.users[0];

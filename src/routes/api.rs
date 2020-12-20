@@ -7,7 +7,7 @@ use serde::Deserialize;
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {
   cfg.service(
-    web::scope("/api/v1")
+    web::scope("/api/v2")
       // Websockets
       .service(web::resource("/ws").to(super::websocket::chat_route))
       // Site
