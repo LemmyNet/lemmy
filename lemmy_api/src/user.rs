@@ -38,7 +38,6 @@ use lemmy_db::{
     post_report_view::PostReportView,
     post_view::PostQueryBuilder,
     private_message_view::{PrivateMessageQueryBuilder, PrivateMessageView},
-    site_view::SiteView,
     user_mention_view::{UserMentionQueryBuilder, UserMentionView},
     user_view::{UserViewDangerous, UserViewSafe},
   },
@@ -120,8 +119,8 @@ impl Perform for Register {
     let data: &Register = &self;
 
     // Make sure site has open registration
-    if let Ok(site_view) = blocking(context.pool(), move |conn| SiteView::read(conn)).await? {
-      if !site_view.site.open_registration {
+    if let Ok(site) = blocking(context.pool(), move |conn| Site::read_simple(conn)).await? {
+      if !site.open_registration {
         return Err(APIError::err("registration_closed").into());
       }
     }
@@ -347,9 +346,6 @@ impl Perform for SaveUserSettings {
     let data: &SaveUserSettings = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
-    let user_id = user.id;
-    let read_user = blocking(context.pool(), move |conn| User_::read(conn, user_id)).await??;
-
     let avatar = diesel_option_overwrite(&data.avatar);
     let banner = diesel_option_overwrite(&data.banner);
     let email = diesel_option_overwrite(&data.email);
@@ -373,6 +369,7 @@ impl Perform for SaveUserSettings {
       }
     }
 
+    let user_id = user.id;
     let password_encrypted = match &data.new_password {
       Some(new_password) => {
         match &data.new_password_verify {
@@ -385,8 +382,7 @@ impl Perform for SaveUserSettings {
             // Check the old password
             match &data.old_password {
               Some(old_password) => {
-                let valid: bool =
-                  verify(old_password, &read_user.password_encrypted).unwrap_or(false);
+                let valid: bool = verify(old_password, &user.password_encrypted).unwrap_or(false);
                 if !valid {
                   return Err(APIError::err("password_incorrect").into());
                 }
@@ -403,33 +399,36 @@ impl Perform for SaveUserSettings {
           None => return Err(APIError::err("passwords_dont_match").into()),
         }
       }
-      None => read_user.password_encrypted,
+      None => user.password_encrypted,
     };
 
+    let default_listing_type = ListingType::from_str(&data.default_listing_type)? as i16;
+    let default_sort_type = SortType::from_str(&data.default_sort_type)? as i16;
+
     let user_form = UserForm {
-      name: read_user.name,
+      name: user.name,
       email,
       matrix_user_id,
       avatar,
       banner,
       password_encrypted,
       preferred_username,
-      published: Some(read_user.published),
+      published: Some(user.published),
       updated: Some(naive_now()),
-      admin: read_user.admin,
-      banned: Some(read_user.banned),
+      admin: user.admin,
+      banned: Some(user.banned),
       show_nsfw: data.show_nsfw,
       theme: data.theme.to_owned(),
-      default_sort_type: data.default_sort_type,
-      default_listing_type: data.default_listing_type,
+      default_sort_type,
+      default_listing_type,
       lang: data.lang.to_owned(),
       show_avatars: data.show_avatars,
       send_notifications_to_email: data.send_notifications_to_email,
-      actor_id: Some(read_user.actor_id),
+      actor_id: Some(user.actor_id),
       bio,
-      local: read_user.local,
-      private_key: read_user.private_key,
-      public_key: read_user.public_key,
+      local: user.local,
+      private_key: user.private_key,
+      public_key: user.public_key,
       last_refreshed_at: None,
     };
 
@@ -579,9 +578,8 @@ impl Perform for GetUserDetails {
 
     // Return the jwt
     Ok(GetUserDetailsResponse {
-      // TODO need to figure out dangerous user view here
-      user: user_view,
-      user_dangerous,
+      user_view,
+      user_view_dangerous: user_dangerous,
       follows,
       moderates,
       comments,
@@ -669,22 +667,22 @@ impl Perform for BanUser {
     }
 
     // Remove their data if that's desired
-    if let Some(remove_data) = data.remove_data {
+    if data.remove_data {
       // Posts
       blocking(context.pool(), move |conn: &'_ _| {
-        Post::update_removed_for_creator(conn, banned_user_id, None, remove_data)
+        Post::update_removed_for_creator(conn, banned_user_id, None, true)
       })
       .await??;
 
       // Communities
       blocking(context.pool(), move |conn: &'_ _| {
-        Community::update_removed_for_creator(conn, banned_user_id, remove_data)
+        Community::update_removed_for_creator(conn, banned_user_id, true)
       })
       .await??;
 
       // Comments
       blocking(context.pool(), move |conn: &'_ _| {
-        Comment::update_removed_for_creator(conn, banned_user_id, remove_data)
+        Comment::update_removed_for_creator(conn, banned_user_id, true)
       })
       .await??;
     }
@@ -712,7 +710,7 @@ impl Perform for BanUser {
     .await??;
 
     let res = BanUserResponse {
-      user: user_view,
+      user_view,
       banned: data.ban,
     };
 
@@ -1091,7 +1089,9 @@ impl Perform for CreatePrivateMessage {
     })
     .await??;
 
-    let res = PrivateMessageResponse { message };
+    let res = PrivateMessageResponse {
+      private_message_view: message,
+    };
 
     context.chat_server().do_send(SendUserRoomMessage {
       op: UserOperation::CreatePrivateMessage,
@@ -1148,7 +1148,9 @@ impl Perform for EditPrivateMessage {
     .await??;
     let recipient_id = message.recipient.id;
 
-    let res = PrivateMessageResponse { message };
+    let res = PrivateMessageResponse {
+      private_message_view: message,
+    };
 
     context.chat_server().do_send(SendUserRoomMessage {
       op: UserOperation::EditPrivateMessage,
@@ -1211,7 +1213,9 @@ impl Perform for DeletePrivateMessage {
     .await??;
     let recipient_id = message.recipient.id;
 
-    let res = PrivateMessageResponse { message };
+    let res = PrivateMessageResponse {
+      private_message_view: message,
+    };
 
     context.chat_server().do_send(SendUserRoomMessage {
       op: UserOperation::DeletePrivateMessage,
@@ -1267,7 +1271,9 @@ impl Perform for MarkPrivateMessageAsRead {
     .await??;
     let recipient_id = message.recipient.id;
 
-    let res = PrivateMessageResponse { message };
+    let res = PrivateMessageResponse {
+      private_message_view: message,
+    };
 
     context.chat_server().do_send(SendUserRoomMessage {
       op: UserOperation::MarkPrivateMessageAsRead,
@@ -1305,7 +1311,9 @@ impl Perform for GetPrivateMessages {
     })
     .await??;
 
-    Ok(PrivateMessagesResponse { messages })
+    Ok(PrivateMessagesResponse {
+      private_messages: messages,
+    })
   }
 }
 

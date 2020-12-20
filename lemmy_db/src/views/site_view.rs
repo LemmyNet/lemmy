@@ -1,5 +1,6 @@
 use crate::{
-  schema::{site, user_},
+  aggregates::site_aggregates::SiteAggregates,
+  schema::{site, site_aggregates, user_},
   source::{
     site::Site,
     user::{UserSafe, User_},
@@ -13,15 +14,25 @@ use serde::Serialize;
 pub struct SiteView {
   pub site: Site,
   pub creator: UserSafe,
+  pub counts: SiteAggregates,
 }
 
 impl SiteView {
   pub fn read(conn: &PgConnection) -> Result<Self, Error> {
-    let (site, creator) = site::table
+    let (site, creator, counts) = site::table
       .inner_join(user_::table)
-      .select((site::all_columns, User_::safe_columns_tuple()))
-      .first::<(Site, UserSafe)>(conn)?;
+      .inner_join(site_aggregates::table)
+      .select((
+        site::all_columns,
+        User_::safe_columns_tuple(),
+        site_aggregates::all_columns,
+      ))
+      .first::<(Site, UserSafe, SiteAggregates)>(conn)?;
 
-    Ok(SiteView { site, creator })
+    Ok(SiteView {
+      site,
+      creator,
+      counts,
+    })
   }
 }

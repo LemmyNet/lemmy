@@ -362,6 +362,7 @@ table! {
 table! {
     site_aggregates (id) {
         id -> Int4,
+        site_id -> Int4,
         users -> Int8,
         posts -> Int8,
         comments -> Int8,
@@ -560,6 +561,7 @@ joinable!(post_report -> post (post_id));
 joinable!(post_saved -> post (post_id));
 joinable!(post_saved -> user_ (user_id));
 joinable!(site -> user_ (creator_id));
+joinable!(site_aggregates -> site (site_id));
 joinable!(user_aggregates -> user_ (user_id));
 joinable!(user_ban -> user_ (user_id));
 joinable!(user_mention -> comment (comment_id));

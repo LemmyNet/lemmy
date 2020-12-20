@@ -48,8 +48,8 @@ pub struct CaptchaResponse {
 pub struct SaveUserSettings {
   pub show_nsfw: bool,
   pub theme: String,
-  pub default_sort_type: i16,
-  pub default_listing_type: i16,
+  pub default_sort_type: String,
+  pub default_listing_type: String,
   pub lang: String,
   pub avatar: Option<String>,
   pub banner: Option<String>,
@@ -84,8 +84,8 @@ pub struct GetUserDetails {
 
 #[derive(Serialize)]
 pub struct GetUserDetailsResponse {
-  pub user: Option<UserViewSafe>,
-  pub user_dangerous: Option<UserViewDangerous>,
+  pub user_view: Option<UserViewSafe>,
+  pub user_view_dangerous: Option<UserViewDangerous>,
   pub follows: Vec<CommunityFollowerView>,
   pub moderates: Vec<CommunityModeratorView>,
   pub comments: Vec<CommentView>,
@@ -123,7 +123,7 @@ pub struct AddAdminResponse {
 pub struct BanUser {
   pub user_id: i32,
   pub ban: bool,
-  pub remove_data: Option<bool>,
+  pub remove_data: bool,
   pub reason: Option<String>,
   pub expires: Option<i64>,
   pub auth: String,
@@ -131,7 +131,7 @@ pub struct BanUser {
 
 #[derive(Serialize, Clone)]
 pub struct BanUserResponse {
-  pub user: UserViewSafe,
+  pub user_view: UserViewSafe,
   pub banned: bool,
 }
 
@@ -224,12 +224,12 @@ pub struct GetPrivateMessages {
 
 #[derive(Serialize, Clone)]
 pub struct PrivateMessagesResponse {
-  pub messages: Vec<PrivateMessageView>,
+  pub private_messages: Vec<PrivateMessageView>,
 }
 
 #[derive(Serialize, Clone)]
 pub struct PrivateMessageResponse {
-  pub message: PrivateMessageView,
+  pub private_message_view: PrivateMessageView,
 }
 
 #[derive(Deserialize, Debug)]

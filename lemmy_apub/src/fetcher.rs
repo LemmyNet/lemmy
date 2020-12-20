@@ -27,6 +27,7 @@ use lemmy_db::{
     user_view::UserViewSafe,
   },
   ApubObject,
+  Crud,
   Joinable,
   SearchType,
 };

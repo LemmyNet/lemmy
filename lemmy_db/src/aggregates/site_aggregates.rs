@@ -2,10 +2,11 @@ use crate::schema::site_aggregates;
 use diesel::{result::Error, *};
 use serde::Serialize;
 
-#[derive(Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
+#[derive(Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Clone)]
 #[table_name = "site_aggregates"]
 pub struct SiteAggregates {
   pub id: i32,
+  pub site_id: i32,
   pub users: i64,
   pub posts: i64,
   pub comments: i64,

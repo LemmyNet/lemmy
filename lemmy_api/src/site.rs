@@ -10,7 +10,6 @@ use actix_web::web::Data;
 use anyhow::Context;
 use lemmy_apub::fetcher::search_by_apub_id;
 use lemmy_db::{
-  aggregates::site_aggregates::SiteAggregates,
   diesel_option_overwrite,
   naive_now,
   source::{category::*, moderator::*, site::*},
@@ -156,7 +155,7 @@ impl Perform for CreateSite {
   ) -> Result<SiteResponse, LemmyError> {
     let data: &CreateSite = &self;
 
-    let read_site = move |conn: &'_ _| Site::read(conn, 1);
+    let read_site = move |conn: &'_ _| Site::read_simple(conn);
     if blocking(context.pool(), read_site).await?.is_ok() {
       return Err(APIError::err("site_already_exists").into());
     };
@@ -188,7 +187,7 @@ impl Perform for CreateSite {
 
     let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
 
-    Ok(SiteResponse { site: site_view })
+    Ok(SiteResponse { site_view })
   }
 }
 
@@ -209,7 +208,7 @@ impl Perform for EditSite {
     // Make sure user is an admin
     is_admin(context.pool(), user.id).await?;
 
-    let found_site = blocking(context.pool(), move |conn| Site::read(conn, 1)).await??;
+    let found_site = blocking(context.pool(), move |conn| Site::read_simple(conn)).await??;
 
     let icon = diesel_option_overwrite(&data.icon);
     let banner = diesel_option_overwrite(&data.banner);
@@ -233,7 +232,7 @@ impl Perform for EditSite {
 
     let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
 
-    let res = SiteResponse { site: site_view };
+    let res = SiteResponse { site_view };
 
     context.chat_server().do_send(SendAllMessage {
       op: UserOperation::EditSite,
@@ -256,39 +255,41 @@ impl Perform for GetSite {
   ) -> Result<GetSiteResponse, LemmyError> {
     let data: &GetSite = &self;
 
-    // TODO refactor this a little
-    let res = blocking(context.pool(), move |conn| Site::read(conn, 1)).await?;
-    let site_view = if res.is_ok() {
-      Some(blocking(context.pool(), move |conn| SiteView::read(conn)).await??)
-    } else if let Some(setup) = Settings::get().setup.as_ref() {
-      let register = Register {
-        username: setup.admin_username.to_owned(),
-        email: setup.admin_email.to_owned(),
-        password: setup.admin_password.to_owned(),
-        password_verify: setup.admin_password.to_owned(),
-        admin: true,
-        show_nsfw: true,
-        captcha_uuid: None,
-        captcha_answer: None,
-      };
-      let login_response = register.perform(context, websocket_id).await?;
-      info!("Admin {} created", setup.admin_username);
+    let site_view = match blocking(context.pool(), move |conn| SiteView::read(conn)).await? {
+      Ok(site_view) => Some(site_view),
+      // If the site isn't created yet, check the setup
+      Err(_) => {
+        if let Some(setup) = Settings::get().setup.as_ref() {
+          let register = Register {
+            username: setup.admin_username.to_owned(),
+            email: setup.admin_email.to_owned(),
+            password: setup.admin_password.to_owned(),
+            password_verify: setup.admin_password.to_owned(),
+            admin: true,
+            show_nsfw: true,
+            captcha_uuid: None,
+            captcha_answer: None,
+          };
+          let login_response = register.perform(context, websocket_id).await?;
+          info!("Admin {} created", setup.admin_username);
 
-      let create_site = CreateSite {
-        name: setup.site_name.to_owned(),
-        description: None,
-        icon: None,
-        banner: None,
-        enable_downvotes: true,
-        open_registration: true,
-        enable_nsfw: true,
-        auth: login_response.jwt,
-      };
-      create_site.perform(context, websocket_id).await?;
-      info!("Site {} created", setup.site_name);
-      Some(blocking(context.pool(), move |conn| SiteView::read(conn)).await??)
-    } else {
-      None
+          let create_site = CreateSite {
+            name: setup.site_name.to_owned(),
+            description: None,
+            icon: None,
+            banner: None,
+            enable_downvotes: true,
+            open_registration: true,
+            enable_nsfw: true,
+            auth: login_response.jwt,
+          };
+          create_site.perform(context, websocket_id).await?;
+          info!("Site {} created", setup.site_name);
+          Some(blocking(context.pool(), move |conn| SiteView::read(conn)).await??)
+        } else {
+          None
+        }
+      }
     };
 
     let mut admins = blocking(context.pool(), move |conn| UserViewSafe::admins(conn)).await??;
@@ -321,17 +322,14 @@ impl Perform for GetSite {
         u
       });
 
-    let counts = blocking(context.pool(), move |conn| SiteAggregates::read(conn)).await??;
-
     Ok(GetSiteResponse {
-      site: site_view,
+      site_view,
       admins,
       banned,
       online,
       version: version::VERSION.to_string(),
       my_user,
       federated_instances: linked_instances(context.pool()).await?,
-      counts,
     })
   }
 }
@@ -521,7 +519,7 @@ impl Perform for TransferSite {
     user.private_key = None;
     user.public_key = None;
 
-    let read_site = blocking(context.pool(), move |conn| Site::read(conn, 1)).await??;
+    let read_site = blocking(context.pool(), move |conn| Site::read_simple(conn)).await??;
 
     // Make sure user is the creator
     if read_site.creator_id != user.id {
@@ -555,17 +553,14 @@ impl Perform for TransferSite {
 
     let banned = blocking(context.pool(), move |conn| UserViewSafe::banned(conn)).await??;
 
-    let counts = blocking(context.pool(), move |conn| SiteAggregates::read(conn)).await??;
-
     Ok(GetSiteResponse {
-      site: Some(site_view),
+      site_view: Some(site_view),
       admins,
       banned,
       online: 0,
       version: version::VERSION.to_string(),
       my_user: Some(user),
       federated_instances: linked_instances(context.pool()).await?,
-      counts,
     })
   }
 }
@@ -604,12 +599,8 @@ impl Perform for SaveSiteConfig {
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
     // Only let admins read this
-    let admins = blocking(context.pool(), move |conn| UserViewSafe::admins(conn)).await??;
-    let admin_ids: Vec<i32> = admins.into_iter().map(|m| m.user.id).collect();
-
-    if !admin_ids.contains(&user.id) {
-      return Err(APIError::err("not_an_admin").into());
-    }
+    let user_id = user.id;
+    is_admin(context.pool(), user_id).await?;
 
     // Make sure docker doesn't have :ro at the end of the volume, so its not a read-only filesystem
     let config_hjson = match Settings::save_config_file(&data.config_hjson) {

@@ -10,6 +10,7 @@ use lemmy_db::{
     post::Post,
   },
   views::comment_view::CommentView,
+  Crud,
   Likeable,
 };
 use lemmy_structs::{blocking, comment::CommentResponse, send_local_notifs};

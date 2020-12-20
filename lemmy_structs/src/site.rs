@@ -1,5 +1,4 @@
 use lemmy_db::{
-  aggregates::site_aggregates::SiteAggregates,
   source::{category::*, user::*},
   views::{
     comment_view::CommentView,
@@ -101,16 +100,14 @@ pub struct GetSite {
   pub auth: Option<String>,
 }
 
-// TODO combine siteresponse and getsiteresponse
 #[derive(Serialize, Clone)]
 pub struct SiteResponse {
-  pub site: SiteView,
+  pub site_view: SiteView,
 }
 
 #[derive(Serialize)]
 pub struct GetSiteResponse {
-  pub site: Option<SiteView>, // Because the site might not be set up yet
-  pub counts: SiteAggregates,
+  pub site_view: Option<SiteView>, // Because the site might not be set up yet
   pub admins: Vec<UserViewSafe>,
   pub banned: Vec<UserViewSafe>,
   pub online: usize,

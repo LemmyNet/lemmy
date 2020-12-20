@@ -1,5 +1,6 @@
 use crate::{
   check_community_ban,
+  check_downvotes_enabled,
   check_optional_url,
   collect_moderated_communities,
   get_user_from_jwt,
@@ -18,10 +19,9 @@ use lemmy_db::{
   },
   views::{
     comment_view::CommentQueryBuilder,
-    community::{community_moderator_view::CommunityModeratorView, community_view::CommunityView},
+    community::community_moderator_view::CommunityModeratorView,
     post_report_view::{PostReportQueryBuilder, PostReportView},
     post_view::{PostQueryBuilder, PostView},
-    site_view::SiteView,
   },
   Crud,
   Likeable,
@@ -193,12 +193,6 @@ impl Perform for GetPost {
     .await??;
 
     let community_id = post_view.community.id;
-    let community = blocking(context.pool(), move |conn| {
-      CommunityView::read(conn, community_id, user_id)
-    })
-    .await??;
-
-    let community_id = post_view.community.id;
     let moderators = blocking(context.pool(), move |conn| {
       CommunityModeratorView::for_community(conn, community_id)
     })
@@ -214,7 +208,6 @@ impl Perform for GetPost {
     Ok(GetPostResponse {
       post_view,
       comments,
-      community,
       moderators,
       online,
     })
@@ -285,12 +278,7 @@ impl Perform for CreatePostLike {
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
     // Don't do a downvote if site has downvotes disabled
-    if data.score == -1 {
-      let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
-      if !site_view.site.enable_downvotes {
-        return Err(APIError::err("downvotes_disabled").into());
-      }
-    }
+    check_downvotes_enabled(data.score, context.pool()).await?;
 
     // Check for a community ban
     let post_id = data.post_id;

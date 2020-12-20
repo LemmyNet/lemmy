@@ -35,7 +35,7 @@ pub struct RemoveComment {
 
 #[derive(Deserialize)]
 pub struct MarkCommentAsRead {
-  pub edit_id: i32,
+  pub comment_id: i32,
   pub read: bool,
   pub auth: String,
 }
@@ -50,8 +50,8 @@ pub struct SaveComment {
 #[derive(Serialize, Clone)]
 pub struct CommentResponse {
   pub comment_view: CommentView,
-  pub recipient_ids: Vec<i32>,
-  pub form_id: Option<String>,
+  pub recipient_ids: Vec<i32>, // TODO another way to do this? Maybe a UserMention belongs to Comment
+  pub form_id: Option<String>, // An optional front end ID, to tell which is coming back
 }
 
 #[derive(Deserialize)]
@@ -98,6 +98,7 @@ pub struct ResolveCommentReport {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ResolveCommentReportResponse {
+  // TODO this should probably return the view
   pub report_id: i32,
   pub resolved: bool,
 }

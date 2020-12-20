@@ -59,4 +59,9 @@ impl Site {
       .set((creator_id.eq(new_creator_id), updated.eq(naive_now())))
       .get_result::<Self>(conn)
   }
+
+  pub fn read_simple(conn: &PgConnection) -> Result<Self, Error> {
+    use crate::schema::site::dsl::*;
+    site.first::<Self>(conn)
+  }
 }

@@ -58,20 +58,22 @@ impl Perform for GetCommunity {
     let user = get_user_from_jwt_opt(&data.auth, context.pool()).await?;
     let user_id = user.map(|u| u.id);
 
-    let name = data.name.to_owned().unwrap_or_else(|| "main".to_string());
-    let community = match data.id {
-      Some(id) => blocking(context.pool(), move |conn| Community::read(conn, id)).await??,
-      None => match blocking(context.pool(), move |conn| {
-        Community::read_from_name(conn, &name)
-      })
-      .await?
-      {
-        Ok(community) => community,
-        Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
-      },
+    let community_id = match data.id {
+      Some(id) => id,
+      None => {
+        let name = data.name.to_owned().unwrap_or_else(|| "main".to_string());
+        match blocking(context.pool(), move |conn| {
+          Community::read_from_name(conn, &name)
+        })
+        .await?
+        {
+          Ok(community) => community,
+          Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
+        }
+        .id
+      }
     };
 
-    let community_id = community.id;
     let community_view = match blocking(context.pool(), move |conn| {
       CommunityView::read(conn, community_id, user_id)
     })
@@ -81,7 +83,6 @@ impl Perform for GetCommunity {
       Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
     };
 
-    let community_id = community.id;
     let moderators: Vec<CommunityModeratorView> = match blocking(context.pool(), move |conn| {
       CommunityModeratorView::for_community(conn, community_id)
     })
@@ -178,6 +179,7 @@ impl Perform for CreateCommunity {
       Err(_e) => return Err(APIError::err("community_already_exists").into()),
     };
 
+    // The community creator becomes a moderator
     let community_moderator_form = CommunityModeratorForm {
       community_id: inserted_community.id,
       user_id: user.id,
@@ -188,6 +190,7 @@ impl Perform for CreateCommunity {
       return Err(APIError::err("community_moderator_already_exists").into());
     }
 
+    // Follow your own community
     let community_follower_form = CommunityFollowerForm {
       community_id: inserted_community.id,
       user_id: user.id,
@@ -584,15 +587,15 @@ impl Perform for BanFromCommunity {
     }
 
     // Remove/Restore their data if that's desired
-    if let Some(remove_data) = data.remove_data {
+    if data.remove_data {
       // Posts
       blocking(context.pool(), move |conn: &'_ _| {
-        Post::update_removed_for_creator(conn, banned_user_id, Some(community_id), remove_data)
+        Post::update_removed_for_creator(conn, banned_user_id, Some(community_id), true)
       })
       .await??;
 
       // Comments
-      // Diesel doesn't allow updates with joins, so this has to be a loop
+      // TODO Diesel doesn't allow updates with joins, so this has to be a loop
       let comments = blocking(context.pool(), move |conn| {
         CommentQueryBuilder::create(conn)
           .creator_id(banned_user_id)
@@ -605,7 +608,7 @@ impl Perform for BanFromCommunity {
       for comment_view in &comments {
         let comment_id = comment_view.comment.id;
         blocking(context.pool(), move |conn: &'_ _| {
-          Comment::update_removed(conn, comment_id, remove_data)
+          Comment::update_removed(conn, comment_id, true)
         })
         .await??;
       }
@@ -743,6 +746,7 @@ impl Perform for TransferCommunity {
 
     let mut admins = blocking(context.pool(), move |conn| UserViewSafe::admins(conn)).await??;
 
+    // Making sure the creator, if an admin, is at the top
     let creator_index = admins
       .iter()
       .position(|r| r.user.id == site_creator_id)

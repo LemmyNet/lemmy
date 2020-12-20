@@ -1,17 +1,38 @@
 -- Add site aggregates
 create table site_aggregates (
   id serial primary key,
-  users bigint not null,
-  posts bigint not null,
-  comments bigint not null,
-  communities bigint not null
+  site_id int references site on update cascade on delete cascade not null,
+  users bigint not null default 0,
+  posts bigint not null default 0,
+  comments bigint not null default 0,
+  communities bigint not null default 0
 );
 
-insert into site_aggregates (users, posts, comments, communities)
-  select ( select coalesce(count(*), 0) from user_) as users, 
+insert into site_aggregates (site_id, users, posts, comments, communities)
+  select id as site_id,
+  ( select coalesce(count(*), 0) from user_) as users, 
   ( select coalesce(count(*), 0) from post) as posts,
   ( select coalesce(count(*), 0) from comment) as comments,
-  ( select coalesce(count(*), 0) from community) as communities;
+  ( select coalesce(count(*), 0) from community) as communities
+  from site;
+
+-- initial site add
+create function site_aggregates_site()
+returns trigger language plpgsql
+as $$
+begin
+  IF (TG_OP = 'INSERT') THEN
+    insert into site_aggregates (site_id) values (NEW.id);
+  ELSIF (TG_OP = 'DELETE') THEN
+    delete from site_aggregates where site_id = OLD.id;
+  END IF;
+  return null;
+end $$;
+
+create trigger site_aggregates_site
+after insert or delete on site
+for each row
+execute procedure site_aggregates_site();
 
 -- Add site aggregate triggers
 -- user

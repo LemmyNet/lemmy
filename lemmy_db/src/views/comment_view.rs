@@ -145,6 +145,15 @@ impl CommentView {
       my_vote,
     })
   }
+
+  /// Gets the recipient user id.
+  /// If there is no parent comment, its the post creator
+  pub fn get_recipient_id(&self) -> i32 {
+    match &self.recipient {
+      Some(parent_commenter) => parent_commenter.id,
+      None => self.post.creator_id,
+    }
+  }
 }
 
 pub struct CommentQueryBuilder<'a> {

@@ -4,6 +4,7 @@ use lemmy_db::{
   source::{
     community::{Community, CommunityModerator},
     post::Post,
+    site::Site,
     user::User_,
   },
   views::community::community_user_ban_view::CommunityUserBanView,
@@ -100,6 +101,16 @@ pub(crate) async fn check_community_ban(
   } else {
     Ok(())
   }
+}
+
+pub(crate) async fn check_downvotes_enabled(score: i16, pool: &DbPool) -> Result<(), LemmyError> {
+  if score == -1 {
+    let site = blocking(pool, move |conn| Site::read_simple(conn)).await??;
+    if !site.enable_downvotes {
+      return Err(APIError::err("downvotes_disabled").into());
+    }
+  }
+  Ok(())
 }
 
 /// Returns a list of communities that the user moderates

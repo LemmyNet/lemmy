@@ -1,5 +1,6 @@
 use crate::{
   check_community_ban,
+  check_downvotes_enabled,
   collect_moderated_communities,
   get_post,
   get_user_from_jwt,
@@ -11,16 +12,13 @@ use actix_web::web::Data;
 use lemmy_apub::{ApubLikeableType, ApubObjectType};
 use lemmy_db::{
   source::{
-    comment::*,
+    comment::{Comment, CommentForm, CommentLike, CommentLikeForm, CommentSaved, CommentSavedForm},
     comment_report::{CommentReport, CommentReportForm},
-    moderator::*,
-    post::*,
-    user::*,
+    moderator::{ModRemoveComment, ModRemoveCommentForm},
   },
   views::{
     comment_report_view::{CommentReportQueryBuilder, CommentReportView},
     comment_view::{CommentQueryBuilder, CommentView},
-    site_view::SiteView,
   },
   Crud,
   Likeable,
@@ -110,6 +108,7 @@ impl Perform for CreateComment {
     updated_comment.send_create(&user, context).await?;
 
     // Scan the comment for user mentions, add those rows
+    let post_id = post.id;
     let mentions = scrape_text_for_mentions(&comment_form.content);
     let recipient_ids = send_local_notifs(
       mentions,
@@ -124,7 +123,7 @@ impl Perform for CreateComment {
     // You like your own comment by default
     let like_form = CommentLikeForm {
       comment_id: inserted_comment.id,
-      post_id: data.post_id,
+      post_id,
       user_id: user.id,
       score: 1,
     };
@@ -156,6 +155,7 @@ impl Perform for CreateComment {
 
     // strip out the recipient_ids, so that
     // users don't get double notifs
+    // TODO Do this in a different way
     res.recipient_ids = Vec::new();
 
     Ok(res)
@@ -203,16 +203,13 @@ impl Perform for EditComment {
     updated_comment.send_update(&user, context).await?;
 
     // Do the mentions / recipients
-    let post_id = orig_comment.post.id;
-    let post = get_post(post_id, context.pool()).await?;
-
     let updated_comment_content = updated_comment.content.to_owned();
     let mentions = scrape_text_for_mentions(&updated_comment_content);
     let recipient_ids = send_local_notifs(
       mentions,
       updated_comment,
       &user,
-      post,
+      orig_comment.post,
       context.pool(),
       false,
     )
@@ -239,6 +236,7 @@ impl Perform for EditComment {
 
     // strip out the recipient_ids, so that
     // users don't get double notifs
+    // TODO again
     res.recipient_ids = Vec::new();
 
     Ok(res)
@@ -297,14 +295,13 @@ impl Perform for DeleteComment {
     .await??;
 
     // Build the recipients
-    let post_id = comment_view.post.id;
-    let post = get_post(post_id, context.pool()).await?;
+    let comment_view_2 = comment_view.clone();
     let mentions = vec![];
     let recipient_ids = send_local_notifs(
       mentions,
       updated_comment,
       &user,
-      post,
+      comment_view_2.post,
       context.pool(),
       false,
     )
@@ -313,7 +310,7 @@ impl Perform for DeleteComment {
     let mut res = CommentResponse {
       comment_view,
       recipient_ids,
-      form_id: None,
+      form_id: None, // TODO a comment delete might clear forms?
     };
 
     context.chat_server().do_send(SendComment {
@@ -324,6 +321,7 @@ impl Perform for DeleteComment {
 
     // strip out the recipient_ids, so that
     // users don't get double notifs
+    // TODO again
     res.recipient_ids = Vec::new();
 
     Ok(res)
@@ -392,14 +390,14 @@ impl Perform for RemoveComment {
     .await??;
 
     // Build the recipients
-    let post_id = comment_view.post.id;
-    let post = get_post(post_id, context.pool()).await?;
+    let comment_view_2 = comment_view.clone();
+
     let mentions = vec![];
     let recipient_ids = send_local_notifs(
       mentions,
       updated_comment,
       &user,
-      post,
+      comment_view_2.post,
       context.pool(),
       false,
     )
@@ -408,7 +406,7 @@ impl Perform for RemoveComment {
     let mut res = CommentResponse {
       comment_view,
       recipient_ids,
-      form_id: None,
+      form_id: None, // TODO maybe this might clear other forms
     };
 
     context.chat_server().do_send(SendComment {
@@ -419,6 +417,7 @@ impl Perform for RemoveComment {
 
     // strip out the recipient_ids, so that
     // users don't get double notifs
+    // TODO again
     res.recipient_ids = Vec::new();
 
     Ok(res)
@@ -437,41 +436,23 @@ impl Perform for MarkCommentAsRead {
     let data: &MarkCommentAsRead = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
-    let edit_id = data.edit_id;
+    let comment_id = data.comment_id;
     let orig_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(&conn, edit_id, None)
+      CommentView::read(&conn, comment_id, None)
     })
     .await??;
 
     check_community_ban(user.id, orig_comment.community.id, context.pool()).await?;
 
     // Verify that only the recipient can mark as read
-    // Needs to fetch the parent comment / post to get the recipient
-    let parent_id = orig_comment.comment.parent_id;
-    match parent_id {
-      Some(pid) => {
-        let parent_comment = blocking(context.pool(), move |conn| {
-          CommentView::read(&conn, pid, None)
-        })
-        .await??;
-        if user.id != parent_comment.creator.id {
-          return Err(APIError::err("no_comment_edit_allowed").into());
-        }
-      }
-      None => {
-        let parent_post_id = orig_comment.post.id;
-        let parent_post =
-          blocking(context.pool(), move |conn| Post::read(conn, parent_post_id)).await??;
-        if user.id != parent_post.creator_id {
-          return Err(APIError::err("no_comment_edit_allowed").into());
-        }
-      }
+    if user.id != orig_comment.get_recipient_id() {
+      return Err(APIError::err("no_comment_edit_allowed").into());
     }
 
     // Do the mark as read
     let read = data.read;
     match blocking(context.pool(), move |conn| {
-      Comment::update_read(conn, edit_id, read)
+      Comment::update_read(conn, comment_id, read)
     })
     .await?
     {
@@ -480,7 +461,7 @@ impl Perform for MarkCommentAsRead {
     };
 
     // Refetch it
-    let edit_id = data.edit_id;
+    let edit_id = data.comment_id;
     let user_id = user.id;
     let comment_view = blocking(context.pool(), move |conn| {
       CommentView::read(conn, edit_id, Some(user_id))
@@ -556,12 +537,7 @@ impl Perform for CreateCommentLike {
     let mut recipient_ids = Vec::new();
 
     // Don't do a downvote if site has downvotes disabled
-    if data.score == -1 {
-      let site_view = blocking(context.pool(), move |conn| SiteView::read(conn)).await??;
-      if !site_view.site.enable_downvotes {
-        return Err(APIError::err("downvotes_disabled").into());
-      }
-    }
+    check_downvotes_enabled(data.score, context.pool()).await?;
 
     let comment_id = data.comment_id;
     let orig_comment = blocking(context.pool(), move |conn| {
@@ -569,34 +545,14 @@ impl Perform for CreateCommentLike {
     })
     .await??;
 
-    let post_id = orig_comment.post.id;
-    let post = get_post(post_id, context.pool()).await?;
-    check_community_ban(user.id, post.community_id, context.pool()).await?;
+    check_community_ban(user.id, orig_comment.community.id, context.pool()).await?;
 
-    let comment_id = data.comment_id;
-    let comment = blocking(context.pool(), move |conn| Comment::read(conn, comment_id)).await??;
-
-    // Add to recipient ids
-    match comment.parent_id {
-      Some(parent_id) => {
-        let parent_comment =
-          blocking(context.pool(), move |conn| Comment::read(conn, parent_id)).await??;
-        if parent_comment.creator_id != user.id {
-          let parent_user = blocking(context.pool(), move |conn| {
-            User_::read(conn, parent_comment.creator_id)
-          })
-          .await??;
-          recipient_ids.push(parent_user.id);
-        }
-      }
-      None => {
-        recipient_ids.push(post.creator_id);
-      }
-    }
+    // Add parent user to recipients
+    recipient_ids.push(orig_comment.get_recipient_id());
 
     let like_form = CommentLikeForm {
       comment_id: data.comment_id,
-      post_id,
+      post_id: orig_comment.post.id,
       user_id: user.id,
       score: data.score,
     };
@@ -609,6 +565,7 @@ impl Perform for CreateCommentLike {
     .await??;
 
     // Only add the like if the score isnt 0
+    let comment = orig_comment.comment;
     let do_add = like_form.score != 0 && (like_form.score == 1 || like_form.score == -1);
     if do_add {
       let like_form2 = like_form.clone();
@@ -649,6 +606,7 @@ impl Perform for CreateCommentLike {
     // strip out the recipient_ids, so that
     // users don't get double notifs
     res.recipient_ids = Vec::new();
+    // TODO why
 
     Ok(res)
   }

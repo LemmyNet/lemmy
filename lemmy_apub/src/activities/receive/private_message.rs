@@ -47,9 +47,11 @@ pub(crate) async fn receive_create_private_message(
   })
   .await??;
 
-  let res = PrivateMessageResponse { message };
+  let res = PrivateMessageResponse {
+    private_message_view: message,
+  };
 
-  let recipient_id = res.message.recipient.id;
+  let recipient_id = res.private_message_view.recipient.id;
 
   context.chat_server().do_send(SendUserRoomMessage {
     op: UserOperation::CreatePrivateMessage,
@@ -85,9 +87,11 @@ pub(crate) async fn receive_update_private_message(
   })
   .await??;
 
-  let res = PrivateMessageResponse { message };
+  let res = PrivateMessageResponse {
+    private_message_view: message,
+  };
 
-  let recipient_id = res.message.recipient.id;
+  let recipient_id = res.private_message_view.recipient.id;
 
   context.chat_server().do_send(SendUserRoomMessage {
     op: UserOperation::EditPrivateMessage,
@@ -117,8 +121,10 @@ pub(crate) async fn receive_delete_private_message(
   })
   .await??;
 
-  let res = PrivateMessageResponse { message };
-  let recipient_id = res.message.recipient.id;
+  let res = PrivateMessageResponse {
+    private_message_view: message,
+  };
+  let recipient_id = res.private_message_view.recipient.id;
   context.chat_server().do_send(SendUserRoomMessage {
     op: UserOperation::EditPrivateMessage,
     response: res,
@@ -152,8 +158,10 @@ pub(crate) async fn receive_undo_delete_private_message(
   })
   .await??;
 
-  let res = PrivateMessageResponse { message };
-  let recipient_id = res.message.recipient.id;
+  let res = PrivateMessageResponse {
+    private_message_view: message,
+  };
+  let recipient_id = res.private_message_view.recipient.id;
   context.chat_server().do_send(SendUserRoomMessage {
     op: UserOperation::EditPrivateMessage,
     response: res,

@@ -57,7 +57,7 @@ pub struct BanFromCommunity {
   pub community_id: i32,
   pub user_id: i32,
   pub ban: bool,
-  pub remove_data: Option<bool>,
+  pub remove_data: bool,
   pub reason: Option<String>,
   pub expires: Option<i64>,
   pub auth: String,
