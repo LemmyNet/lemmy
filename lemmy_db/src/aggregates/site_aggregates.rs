@@ -27,6 +27,7 @@ mod tests {
       comment::{Comment, CommentForm},
       community::{Community, CommunityForm},
       post::{Post, PostForm},
+      site::{Site, SiteForm},
       user::{UserForm, User_},
     },
     tests::establish_unpooled_connection,
@@ -67,6 +68,20 @@ mod tests {
     };
 
     let inserted_user = User_::create(&conn, &new_user).unwrap();
+
+    let site_form = SiteForm {
+      name: "test_site".into(),
+      description: None,
+      icon: None,
+      banner: None,
+      creator_id: inserted_user.id,
+      enable_downvotes: true,
+      open_registration: true,
+      enable_nsfw: true,
+      updated: None,
+    };
+
+    Site::create(&conn, &site_form).unwrap();
 
     let new_community = CommunityForm {
       name: "TIL_site_agg".into(),
@@ -165,10 +180,7 @@ mod tests {
     let user_num_deleted = User_::delete(&conn, inserted_user.id).unwrap();
     assert_eq!(1, user_num_deleted);
 
-    let site_aggregates_after_delete = SiteAggregates::read(&conn).unwrap();
-    assert_eq!(0, site_aggregates_after_delete.users);
-    assert_eq!(0, site_aggregates_after_delete.communities);
-    assert_eq!(0, site_aggregates_after_delete.posts);
-    assert_eq!(0, site_aggregates_after_delete.comments);
+    let after_delete = SiteAggregates::read(&conn);
+    assert!(after_delete.is_err());
   }
 }

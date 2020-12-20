@@ -50,6 +50,10 @@ impl Crud<SiteForm> for Site {
       .set(new_site)
       .get_result::<Self>(conn)
   }
+  fn delete(conn: &PgConnection, site_id: i32) -> Result<usize, Error> {
+    use crate::schema::site::dsl::*;
+    diesel::delete(site.find(site_id)).execute(conn)
+  }
 }
 
 impl Site {

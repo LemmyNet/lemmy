@@ -2,7 +2,7 @@
 create table site_aggregates (
   id serial primary key,
   site_id int references site on update cascade on delete cascade not null,
-  users bigint not null default 0,
+  users bigint not null default 1,
   posts bigint not null default 0,
   comments bigint not null default 0,
   communities bigint not null default 0
@@ -36,7 +36,7 @@ execute procedure site_aggregates_site();
 
 -- Add site aggregate triggers
 -- user
-create function site_aggregates_user()
+create or replace function site_aggregates_user()
 returns trigger language plpgsql
 as $$
 begin
@@ -44,8 +44,11 @@ begin
     update site_aggregates 
     set users = users + 1;
   ELSIF (TG_OP = 'DELETE') THEN
-    update site_aggregates 
-    set users = users - 1;
+    -- Join to site since the creator might not be there anymore
+    update site_aggregates sa
+    set users = users - 1
+    from site s
+    where sa.site_id = s.id;
   END IF;
   return null;
 end $$;
@@ -64,8 +67,10 @@ begin
     update site_aggregates 
     set posts = posts + 1;
   ELSIF (TG_OP = 'DELETE') THEN
-    update site_aggregates 
-    set posts = posts - 1;
+    update site_aggregates sa
+    set posts = posts - 1
+    from site s
+    where sa.site_id = s.id;
   END IF;
   return null;
 end $$;
@@ -84,8 +89,10 @@ begin
     update site_aggregates 
     set comments = comments + 1;
   ELSIF (TG_OP = 'DELETE') THEN
-    update site_aggregates 
-    set comments = comments - 1;
+    update site_aggregates sa
+    set comments = comments - 1
+    from site s
+    where sa.site_id = s.id;
   END IF;
   return null;
 end $$;
@@ -104,8 +111,10 @@ begin
     update site_aggregates 
     set communities = communities + 1;
   ELSIF (TG_OP = 'DELETE') THEN
-    update site_aggregates 
-    set communities = communities - 1;
+    update site_aggregates sa
+    set communities = communities - 1
+    from site s
+    where sa.site_id = s.id;
   END IF;
   return null;
 end $$;
