@@ -1,0 +1,108 @@
+kind: pipeline
+name: default
+
+steps:
+
+  - name: chown repo
+    image: ekidd/rust-musl-builder:1.47.0
+    user: root
+    commands:
+      - chown 1000:1000 . -R
+
+  - name: check formatting
+    image: rustdocker/rust:nightly
+    commands:
+      - /root/.cargo/bin/cargo fmt -- --check
+    # disable this
+    when:
+      ref:
+        - refs/tags/*
+
+  - name: cargo check
+    image: ekidd/rust-musl-builder:1.47.0
+    commands:
+      - cargo check --workspace --all-targets
+    # disable this
+    when:
+      ref:
+        - refs/tags/*
+
+  - name: cargo clippy
+    image: ekidd/rust-musl-builder:1.47.0
+    commands:
+      - cargo clippy
+    # disable this
+    when:
+      ref:
+        - refs/tags/*
+
+  - name: check documentation build
+    image: ekidd/rust-musl-builder:1.47.0
+    commands:
+      - mdbook build docs/
+
+  - name: cargo test
+    image: ekidd/rust-musl-builder:1.47.0
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      RUST_BACKTRACE: 1
+      RUST_TEST_THREADS: 1
+    commands:
+      - sudo apt-get update
+      - sudo apt-get -y install --no-install-recommends espeak postgresql-client
+      - cargo test --workspace --no-fail-fast
+    # disable this
+    when:
+      ref:
+        - refs/tags/*
+
+  - name: cargo build
+    image: ekidd/rust-musl-builder:1.47.0
+    commands:
+      - cargo build
+      - mv target/x86_64-unknown-linux-musl/debug/lemmy_server target/lemmy_server
+
+  - name: run federation tests
+    image: node:15-alpine3.12
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
+      DO_WRITE_HOSTS_FILE: 1
+    commands:
+      - ls -la target/lemmy_server
+      - apk add bash curl postgresql-client
+      - bash api_tests/prepare-drone-federation-test.sh
+      - cd api_tests/
+      - yarn
+      - yarn api-test
+
+  - name: create docker tags
+    image: ekidd/rust-musl-builder:1.47.0
+    commands:
+      - echo "$(git describe),latest" > .tags
+    when:
+      ref:
+      - refs/tags/*
+
+  - name: make release build and push to docker hub
+    image: plugins/docker
+    settings:
+      dockerfile: docker/prod/Dockerfile
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      repo: dessalines/lemmy
+    when:
+      ref:
+      - refs/tags/*
+
+services:
+  - name: database
+    image: postgres:12-alpine
+    environment:
+      POSTGRES_USER: lemmy
+      POSTGRES_PASSWORD: password
+
+volumes:
+  - name: dieselcli
+    temp: {}

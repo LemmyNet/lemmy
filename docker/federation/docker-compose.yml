@@ -52,6 +52,7 @@ services:
       - LEMMY_RATE_LIMIT__POST=99999
       - LEMMY_RATE_LIMIT__REGISTER=99999
       - LEMMY_CAPTCHA__ENABLED=false
+      - LEMMY_TEST_SEND_SYNC=1
       - RUST_BACKTRACE=1
       - RUST_LOG=debug
     depends_on:
@@ -91,6 +92,7 @@ services:
       - LEMMY_RATE_LIMIT__POST=99999
       - LEMMY_RATE_LIMIT__REGISTER=99999
       - LEMMY_CAPTCHA__ENABLED=false
+      - LEMMY_TEST_SEND_SYNC=1
       - RUST_BACKTRACE=1
       - RUST_LOG=debug
     depends_on:
@@ -130,6 +132,7 @@ services:
       - LEMMY_RATE_LIMIT__POST=99999
       - LEMMY_RATE_LIMIT__REGISTER=99999
       - LEMMY_CAPTCHA__ENABLED=false
+      - LEMMY_TEST_SEND_SYNC=1
       - RUST_BACKTRACE=1
       - RUST_LOG=debug
     depends_on:
@@ -170,6 +173,7 @@ services:
       - LEMMY_RATE_LIMIT__POST=99999
       - LEMMY_RATE_LIMIT__REGISTER=99999
       - LEMMY_CAPTCHA__ENABLED=false
+      - LEMMY_TEST_SEND_SYNC=1
       - RUST_BACKTRACE=1
       - RUST_LOG=debug
     depends_on:
@@ -210,6 +214,7 @@ services:
       - LEMMY_RATE_LIMIT__POST=99999
       - LEMMY_RATE_LIMIT__REGISTER=99999
       - LEMMY_CAPTCHA__ENABLED=false
+      - LEMMY_TEST_SEND_SYNC=1
       - RUST_BACKTRACE=1
       - RUST_LOG=debug
     depends_on:

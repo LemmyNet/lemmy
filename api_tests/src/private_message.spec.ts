@@ -9,8 +9,6 @@ import {
   listPrivateMessages,
   deletePrivateMessage,
   unfollowRemotes,
-  delay,
-  longDelay,
 } from './shared';
 
 let recipient_id: number;
@@ -18,7 +16,6 @@ let recipient_id: number;
 beforeAll(async () => {
   await setupLogins();
   let follow = await followBeta(alpha);
-  await longDelay();
   recipient_id = follow.community_view.creator.id;
 });
 
@@ -32,7 +29,6 @@ test('Create a private message', async () => {
   expect(pmRes.private_message_view.private_message.local).toBe(true);
   expect(pmRes.private_message_view.creator.local).toBe(true);
   expect(pmRes.private_message_view.recipient.local).toBe(false);
-  await delay();
 
   let betaPms = await listPrivateMessages(beta);
   expect(betaPms.private_messages[0].private_message.content).toBeDefined();
@@ -52,7 +48,6 @@ test('Update a private message', async () => {
   expect(pmUpdated.private_message_view.private_message.content).toBe(
     updatedContent
   );
-  await longDelay();
 
   let betaPms = await listPrivateMessages(beta);
   expect(betaPms.private_messages[0].private_message.content).toBe(
@@ -62,7 +57,6 @@ test('Update a private message', async () => {
 
 test('Delete a private message', async () => {
   let pmRes = await createPrivateMessage(alpha, recipient_id);
-  await delay();
   let betaPms1 = await listPrivateMessages(beta);
   let deletedPmRes = await deletePrivateMessage(
     alpha,
@@ -70,7 +64,6 @@ test('Delete a private message', async () => {
     pmRes.private_message_view.private_message.id
   );
   expect(deletedPmRes.private_message_view.private_message.deleted).toBe(true);
-  await delay();
 
   // The GetPrivateMessages filters out deleted,
   // even though they are in the actual database.
@@ -79,7 +72,6 @@ test('Delete a private message', async () => {
   expect(betaPms2.private_messages.length).toBe(
     betaPms1.private_messages.length - 1
   );
-  await delay();
 
   // Undelete
   let undeletedPmRes = await deletePrivateMessage(
@@ -90,7 +82,6 @@ test('Delete a private message', async () => {
   expect(undeletedPmRes.private_message_view.private_message.deleted).toBe(
     false
   );
-  await longDelay();
 
   let betaPms3 = await listPrivateMessages(beta);
   expect(betaPms3.private_messages.length).toBe(

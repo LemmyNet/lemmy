@@ -4,7 +4,6 @@ import {
   beta,
   registerUser,
   searchForUser,
-  saveUserSettingsBio,
   saveUserSettings,
   getSite,
 } from './shared';
@@ -38,23 +37,10 @@ test('Create user', async () => {
   apShortname = `@${site.my_user.name}@lemmy-alpha:8541`;
 });
 
-test('Save user settings, check changed bio from beta', async () => {
-  let bio = 'a changed bio';
-  let userRes = await saveUserSettingsBio(alpha, auth);
-  expect(userRes.jwt).toBeDefined();
-
-  let site = await getSite(alpha, auth);
-  expect(site.my_user.bio).toBe(bio);
-  let searchAlpha = await searchForUser(alpha, site.my_user.actor_id);
-
-  // Make sure beta sees this bio is changed
-  let searchBeta = await searchForUser(beta, apShortname);
-  assertUserFederation(searchAlpha.users[0], searchBeta.users[0]);
-});
-
-test('Set avatar and banner, check that they are federated', async () => {
+test('Set some user settings, check that they are federated', async () => {
   let avatar = 'https://image.flaticon.com/icons/png/512/35/35896.png';
   let banner = 'https://image.flaticon.com/icons/png/512/36/35896.png';
+  let bio = 'a changed bio';
   let form: SaveUserSettings = {
     show_nsfw: false,
     theme: '',
@@ -66,11 +52,12 @@ test('Set avatar and banner, check that they are federated', async () => {
     preferred_username: 'user321',
     show_avatars: false,
     send_notifications_to_email: false,
+    bio,
     auth,
   };
-  let _settingsRes = await saveUserSettings(alpha, form);
+  await saveUserSettings(alpha, form);
 
-  let searchAlpha = await searchForUser(beta, apShortname);
+  let searchAlpha = await searchForUser(alpha, apShortname);
   let userOnAlpha = searchAlpha.users[0];
   let searchBeta = await searchForUser(beta, apShortname);
   let userOnBeta = searchBeta.users[0];

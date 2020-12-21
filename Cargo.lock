@@ -1788,6 +1788,7 @@ dependencies = [
  "bcrypt",
  "chrono",
  "diesel",
+ "diesel_migrations",
  "lazy_static",
  "lemmy_utils",
  "log",

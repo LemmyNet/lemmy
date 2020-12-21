@@ -606,8 +606,6 @@ export async function unfollowRemotes(
 }
 
 export async function followBeta(api: API): Promise<CommunityResponse> {
-  await unfollowRemotes(api);
-
   // Cache it
   let search = await searchForBetaCommunity(api);
   let com = search.communities.find(c => c.community.local == false);

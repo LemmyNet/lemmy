@@ -28,7 +28,7 @@ use lemmy_websocket::LemmyContext;
 use log::{debug, warn};
 use reqwest::Client;
 use serde::{export::fmt::Debug, Deserialize, Serialize};
-use std::{collections::BTreeMap, future::Future, pin::Pin};
+use std::{collections::BTreeMap, env, future::Future, pin::Pin};
 use url::Url;
 
 /// Sends a local activity to a single, remote actor.
@@ -237,7 +237,11 @@ where
       actor_id: actor.actor_id()?,
       private_key: actor.private_key().context(location_info!())?,
     };
-    activity_sender.queue::<SendActivityTask>(message)?;
+    if env::var("LEMMY_TEST_SEND_SYNC").is_ok() {
+      do_send(message, &Client::default()).await?;
+    } else {
+      activity_sender.queue::<SendActivityTask>(message)?;
+    }
   }
 
   Ok(())
@@ -262,30 +266,32 @@ impl ActixJob for SendActivityTask {
   const BACKOFF: Backoff = Backoff::Exponential(2);
 
   fn run(self, state: Self::State) -> Self::Future {
-    Box::pin(async move {
-      let mut headers = BTreeMap::<String, String>::new();
-      headers.insert("Content-Type".into(), "application/json".into());
-      let result = sign_and_send(
-        &state.client,
-        headers,
-        &self.inbox,
-        self.activity.clone(),
-        &self.actor_id,
-        self.private_key.to_owned(),
-      )
-      .await;
-
-      if let Err(e) = result {
-        warn!("{}", e);
-        return Err(anyhow!(
-          "Failed to send activity {} to {}",
-          &self.activity,
-          self.inbox
-        ));
-      }
-      Ok(())
-    })
+    Box::pin(async move { do_send(self, &state.client).await })
   }
+}
+
+async fn do_send(task: SendActivityTask, client: &Client) -> Result<(), Error> {
+  let mut headers = BTreeMap::<String, String>::new();
+  headers.insert("Content-Type".into(), "application/json".into());
+  let result = sign_and_send(
+    client,
+    headers,
+    &task.inbox,
+    task.activity.clone(),
+    &task.actor_id,
+    task.private_key.to_owned(),
+  )
+  .await;
+
+  if let Err(e) = result {
+    warn!("{}", e);
+    return Err(anyhow!(
+      "Failed to send activity {} to {}",
+      &task.activity,
+      task.inbox
+    ));
+  }
+  Ok(())
 }
 
 pub fn create_activity_queue() -> QueueHandle {

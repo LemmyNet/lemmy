@@ -1,6 +1,6 @@
 use crate::{settings::Settings, APIError};
 use actix_web::dev::ConnectionInfo;
-use chrono::{DateTime, FixedOffset, Local, NaiveDateTime};
+use chrono::{DateTime, FixedOffset, NaiveDateTime};
 use itertools::Itertools;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use regex::{Regex, RegexBuilder};
@@ -22,8 +22,7 @@ pub fn naive_from_unix(time: i64) -> NaiveDateTime {
 }
 
 pub fn convert_datetime(datetime: NaiveDateTime) -> DateTime<FixedOffset> {
-  let now = Local::now();
-  DateTime::<FixedOffset>::from_utc(datetime, *now.offset())
+  DateTime::<FixedOffset>::from_utc(datetime, FixedOffset::east(0))
 }
 
 pub fn remove_slurs(test: &str) -> String {

@@ -1,5 +1,6 @@
 #!/bin/sh
-export DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
+set -e
+
 export LEMMY_DATABASE_URL=postgres://lemmy:password@localhost:5432/lemmy
 # Commenting since this will overwrite schema.rs, which will break things now
 # diesel migration run
