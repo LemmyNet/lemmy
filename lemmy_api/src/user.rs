@@ -19,13 +19,11 @@ use lemmy_db::{
   source::{
     comment::Comment_,
     community::Community_,
-    moderator::*,
-    password_reset_request::*,
+    password_reset_request::PasswordResetRequest_,
     post::Post_,
-    private_message::*,
-    site::*,
+    private_message::PrivateMessage_,
     user::User,
-    user_mention::*,
+    user_mention::UserMention_,
   },
   views::{
     comment_report_view::CommentReportView,
@@ -49,7 +47,17 @@ use lemmy_db::{
 };
 use lemmy_db_schema::{
   naive_now,
-  source::{comment::Comment, community::*, post::Post, user::*},
+  source::{
+    comment::Comment,
+    community::*,
+    moderator::*,
+    password_reset_request::*,
+    post::Post,
+    private_message::*,
+    site::*,
+    user::*,
+    user_mention::*,
+  },
 };
 use lemmy_structs::{blocking, send_email_to_user, user::*};
 use lemmy_utils::{

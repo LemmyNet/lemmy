@@ -1,37 +1,6 @@
 use crate::Crud;
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::schema::{
-  mod_add,
-  mod_add_community,
-  mod_ban,
-  mod_ban_from_community,
-  mod_lock_post,
-  mod_remove_comment,
-  mod_remove_community,
-  mod_remove_post,
-  mod_sticky_post,
-};
-use serde::Serialize;
-
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
-#[table_name = "mod_remove_post"]
-pub struct ModRemovePost {
-  pub id: i32,
-  pub mod_user_id: i32,
-  pub post_id: i32,
-  pub reason: Option<String>,
-  pub removed: Option<bool>,
-  pub when_: chrono::NaiveDateTime,
-}
-
-#[derive(Insertable, AsChangeset)]
-#[table_name = "mod_remove_post"]
-pub struct ModRemovePostForm {
-  pub mod_user_id: i32,
-  pub post_id: i32,
-  pub reason: Option<String>,
-  pub removed: Option<bool>,
-}
+use lemmy_db_schema::source::moderator::*;
 
 impl Crud<ModRemovePostForm> for ModRemovePost {
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
@@ -52,24 +21,6 @@ impl Crud<ModRemovePostForm> for ModRemovePost {
       .set(form)
       .get_result::<Self>(conn)
   }
-}
-
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
-#[table_name = "mod_lock_post"]
-pub struct ModLockPost {
-  pub id: i32,
-  pub mod_user_id: i32,
-  pub post_id: i32,
-  pub locked: Option<bool>,
-  pub when_: chrono::NaiveDateTime,
-}
-
-#[derive(Insertable, AsChangeset)]
-#[table_name = "mod_lock_post"]
-pub struct ModLockPostForm {
-  pub mod_user_id: i32,
-  pub post_id: i32,
-  pub locked: Option<bool>,
 }
 
 impl Crud<ModLockPostForm> for ModLockPost {
@@ -93,24 +44,6 @@ impl Crud<ModLockPostForm> for ModLockPost {
   }
 }
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
-#[table_name = "mod_sticky_post"]
-pub struct ModStickyPost {
-  pub id: i32,
-  pub mod_user_id: i32,
-  pub post_id: i32,
-  pub stickied: Option<bool>,
-  pub when_: chrono::NaiveDateTime,
-}
-
-#[derive(Insertable, AsChangeset)]
-#[table_name = "mod_sticky_post"]
-pub struct ModStickyPostForm {
-  pub mod_user_id: i32,
-  pub post_id: i32,
-  pub stickied: Option<bool>,
-}
-
 impl Crud<ModStickyPostForm> for ModStickyPost {
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
     use lemmy_db_schema::schema::mod_sticky_post::dsl::*;
@@ -132,26 +65,6 @@ impl Crud<ModStickyPostForm> for ModStickyPost {
   }
 }
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
-#[table_name = "mod_remove_comment"]
-pub struct ModRemoveComment {
-  pub id: i32,
-  pub mod_user_id: i32,
-  pub comment_id: i32,
-  pub reason: Option<String>,
-  pub removed: Option<bool>,
-  pub when_: chrono::NaiveDateTime,
-}
-
-#[derive(Insertable, AsChangeset)]
-#[table_name = "mod_remove_comment"]
-pub struct ModRemoveCommentForm {
-  pub mod_user_id: i32,
-  pub comment_id: i32,
-  pub reason: Option<String>,
-  pub removed: Option<bool>,
-}
-
 impl Crud<ModRemoveCommentForm> for ModRemoveComment {
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
     use lemmy_db_schema::schema::mod_remove_comment::dsl::*;
@@ -171,28 +84,6 @@ impl Crud<ModRemoveCommentForm> for ModRemoveComment {
       .set(form)
       .get_result::<Self>(conn)
   }
-}
-
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
-#[table_name = "mod_remove_community"]
-pub struct ModRemoveCommunity {
-  pub id: i32,
-  pub mod_user_id: i32,
-  pub community_id: i32,
-  pub reason: Option<String>,
-  pub removed: Option<bool>,
-  pub expires: Option<chrono::NaiveDateTime>,
-  pub when_: chrono::NaiveDateTime,
-}
-
-#[derive(Insertable, AsChangeset)]
-#[table_name = "mod_remove_community"]
-pub struct ModRemoveCommunityForm {
-  pub mod_user_id: i32,
-  pub community_id: i32,
-  pub reason: Option<String>,
-  pub removed: Option<bool>,
-  pub expires: Option<chrono::NaiveDateTime>,
 }
 
 impl Crud<ModRemoveCommunityForm> for ModRemoveCommunity {
@@ -220,30 +111,6 @@ impl Crud<ModRemoveCommunityForm> for ModRemoveCommunity {
   }
 }
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
-#[table_name = "mod_ban_from_community"]
-pub struct ModBanFromCommunity {
-  pub id: i32,
-  pub mod_user_id: i32,
-  pub other_user_id: i32,
-  pub community_id: i32,
-  pub reason: Option<String>,
-  pub banned: Option<bool>,
-  pub expires: Option<chrono::NaiveDateTime>,
-  pub when_: chrono::NaiveDateTime,
-}
-
-#[derive(Insertable, AsChangeset)]
-#[table_name = "mod_ban_from_community"]
-pub struct ModBanFromCommunityForm {
-  pub mod_user_id: i32,
-  pub other_user_id: i32,
-  pub community_id: i32,
-  pub reason: Option<String>,
-  pub banned: Option<bool>,
-  pub expires: Option<chrono::NaiveDateTime>,
-}
-
 impl Crud<ModBanFromCommunityForm> for ModBanFromCommunity {
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
     use lemmy_db_schema::schema::mod_ban_from_community::dsl::*;
@@ -269,28 +136,6 @@ impl Crud<ModBanFromCommunityForm> for ModBanFromCommunity {
   }
 }
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
-#[table_name = "mod_ban"]
-pub struct ModBan {
-  pub id: i32,
-  pub mod_user_id: i32,
-  pub other_user_id: i32,
-  pub reason: Option<String>,
-  pub banned: Option<bool>,
-  pub expires: Option<chrono::NaiveDateTime>,
-  pub when_: chrono::NaiveDateTime,
-}
-
-#[derive(Insertable, AsChangeset)]
-#[table_name = "mod_ban"]
-pub struct ModBanForm {
-  pub mod_user_id: i32,
-  pub other_user_id: i32,
-  pub reason: Option<String>,
-  pub banned: Option<bool>,
-  pub expires: Option<chrono::NaiveDateTime>,
-}
-
 impl Crud<ModBanForm> for ModBan {
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
     use lemmy_db_schema::schema::mod_ban::dsl::*;
@@ -308,26 +153,6 @@ impl Crud<ModBanForm> for ModBan {
       .set(form)
       .get_result::<Self>(conn)
   }
-}
-
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
-#[table_name = "mod_add_community"]
-pub struct ModAddCommunity {
-  pub id: i32,
-  pub mod_user_id: i32,
-  pub other_user_id: i32,
-  pub community_id: i32,
-  pub removed: Option<bool>,
-  pub when_: chrono::NaiveDateTime,
-}
-
-#[derive(Insertable, AsChangeset)]
-#[table_name = "mod_add_community"]
-pub struct ModAddCommunityForm {
-  pub mod_user_id: i32,
-  pub other_user_id: i32,
-  pub community_id: i32,
-  pub removed: Option<bool>,
 }
 
 impl Crud<ModAddCommunityForm> for ModAddCommunity {
@@ -351,24 +176,6 @@ impl Crud<ModAddCommunityForm> for ModAddCommunity {
   }
 }
 
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
-#[table_name = "mod_add"]
-pub struct ModAdd {
-  pub id: i32,
-  pub mod_user_id: i32,
-  pub other_user_id: i32,
-  pub removed: Option<bool>,
-  pub when_: chrono::NaiveDateTime,
-}
-
-#[derive(Insertable, AsChangeset)]
-#[table_name = "mod_add"]
-pub struct ModAddForm {
-  pub mod_user_id: i32,
-  pub other_user_id: i32,
-  pub removed: Option<bool>,
-}
-
 impl Crud<ModAddForm> for ModAdd {
   fn read(conn: &PgConnection, from_id: i32) -> Result<Self, Error> {
     use lemmy_db_schema::schema::mod_add::dsl::*;
@@ -390,14 +197,8 @@ impl Crud<ModAddForm> for ModAdd {
 
 #[cfg(test)]
 mod tests {
-  use crate::{
-    source::moderator::*,
-    tests::establish_unpooled_connection,
-    Crud,
-    ListingType,
-    SortType,
-  };
-  use lemmy_db_schema::source::{comment::*, community::*, post::*, user::*};
+  use crate::{tests::establish_unpooled_connection, Crud, ListingType, SortType};
+  use lemmy_db_schema::source::{comment::*, community::*, moderator::*, post::*, user::*};
 
   // use Crud;
   #[test]

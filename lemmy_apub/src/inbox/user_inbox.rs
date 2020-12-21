@@ -48,13 +48,10 @@ use activitystreams::{
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
 use diesel::NotFound;
-use lemmy_db::{
-  source::{private_message::PrivateMessage, user::User},
-  ApubObject,
-  Followable,
-};
+use lemmy_db::{source::user::User, ApubObject, Followable};
 use lemmy_db_schema::source::{
   community::{Community, CommunityFollower},
+  private_message::PrivateMessage,
   user::User_,
 };
 use lemmy_structs::blocking;

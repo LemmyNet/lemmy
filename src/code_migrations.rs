@@ -4,7 +4,7 @@ use diesel::{
   *,
 };
 use lemmy_db::{
-  source::{comment::Comment_, post::Post_, private_message::PrivateMessage},
+  source::{comment::Comment_, post::Post_, private_message::PrivateMessage_},
   Crud,
 };
 use lemmy_db_schema::{
@@ -13,6 +13,7 @@ use lemmy_db_schema::{
     comment::Comment,
     community::{Community, CommunityForm},
     post::Post,
+    private_message::PrivateMessage,
     user::{UserForm, User_},
   },
 };

@@ -1,6 +1,5 @@
 use lemmy_db::{
   aggregates::site_aggregates::SiteAggregates,
-  source::category::*,
   views::{
     comment_view::CommentView,
     community::community_view::CommunityView,
@@ -20,7 +19,7 @@ use lemmy_db::{
     user_view::UserViewSafe,
   },
 };
-use lemmy_db_schema::source::user::User_;
+use lemmy_db_schema::source::{category::*, user::User_};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]

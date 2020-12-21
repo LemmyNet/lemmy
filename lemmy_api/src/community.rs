@@ -14,9 +14,7 @@ use lemmy_db::{
   source::{
     comment::Comment_,
     community::{CommunityModerator_, Community_},
-    moderator::*,
     post::Post_,
-    site::*,
   },
   views::{
     comment_view::CommentQueryBuilder,
@@ -36,7 +34,7 @@ use lemmy_db::{
 };
 use lemmy_db_schema::{
   naive_now,
-  source::{comment::Comment, community::*, post::Post},
+  source::{comment::Comment, community::*, moderator::*, post::Post, site::*},
 };
 use lemmy_structs::{blocking, community::*};
 use lemmy_utils::{

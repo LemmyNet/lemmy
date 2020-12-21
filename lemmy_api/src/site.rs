@@ -12,7 +12,7 @@ use lemmy_apub::fetcher::search_by_apub_id;
 use lemmy_db::{
   aggregates::site_aggregates::SiteAggregates,
   diesel_option_overwrite,
-  source::{category::*, moderator::*, site::*},
+  source::{category::Category_, site::Site_},
   views::{
     comment_view::CommentQueryBuilder,
     community::community_view::CommunityQueryBuilder,
@@ -35,7 +35,14 @@ use lemmy_db::{
   SearchType,
   SortType,
 };
-use lemmy_db_schema::naive_now;
+use lemmy_db_schema::{
+  naive_now,
+  source::{
+    category::Category,
+    moderator::*,
+    site::{Site, *},
+  },
+};
 use lemmy_structs::{blocking, site::*, user::Register};
 use lemmy_utils::{
   location_info,

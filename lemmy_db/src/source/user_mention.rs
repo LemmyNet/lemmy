@@ -1,26 +1,6 @@
 use crate::Crud;
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::{schema::user_mention, source::comment::Comment};
-use serde::Serialize;
-
-#[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
-#[belongs_to(Comment)]
-#[table_name = "user_mention"]
-pub struct UserMention {
-  pub id: i32,
-  pub recipient_id: i32,
-  pub comment_id: i32,
-  pub read: bool,
-  pub published: chrono::NaiveDateTime,
-}
-
-#[derive(Insertable, AsChangeset)]
-#[table_name = "user_mention"]
-pub struct UserMentionForm {
-  pub recipient_id: i32,
-  pub comment_id: i32,
-  pub read: Option<bool>,
-}
+use lemmy_db_schema::source::user_mention::*;
 
 impl Crud<UserMentionForm> for UserMention {
   fn read(conn: &PgConnection, user_mention_id: i32) -> Result<Self, Error> {
@@ -52,19 +32,34 @@ impl Crud<UserMentionForm> for UserMention {
   }
 }
 
-impl UserMention {
-  pub fn update_read(
+pub trait UserMention_ {
+  fn update_read(
     conn: &PgConnection,
     user_mention_id: i32,
     new_read: bool,
-  ) -> Result<Self, Error> {
+  ) -> Result<UserMention, Error>;
+  fn mark_all_as_read(
+    conn: &PgConnection,
+    for_recipient_id: i32,
+  ) -> Result<Vec<UserMention>, Error>;
+}
+
+impl UserMention_ for UserMention {
+  fn update_read(
+    conn: &PgConnection,
+    user_mention_id: i32,
+    new_read: bool,
+  ) -> Result<UserMention, Error> {
     use lemmy_db_schema::schema::user_mention::dsl::*;
     diesel::update(user_mention.find(user_mention_id))
       .set(read.eq(new_read))
       .get_result::<Self>(conn)
   }
 
-  pub fn mark_all_as_read(conn: &PgConnection, for_recipient_id: i32) -> Result<Vec<Self>, Error> {
+  fn mark_all_as_read(
+    conn: &PgConnection,
+    for_recipient_id: i32,
+  ) -> Result<Vec<UserMention>, Error> {
     use lemmy_db_schema::schema::user_mention::dsl::*;
     diesel::update(
       user_mention
@@ -78,18 +73,13 @@ impl UserMention {
 
 #[cfg(test)]
 mod tests {
-  use crate::{
-    source::user_mention::*,
-    tests::establish_unpooled_connection,
-    Crud,
-    ListingType,
-    SortType,
-  };
+  use crate::{tests::establish_unpooled_connection, Crud, ListingType, SortType};
   use lemmy_db_schema::source::{
     comment::*,
     community::{Community, CommunityForm},
     post::*,
     user::*,
+    user_mention::*,
   };
 
   #[test]

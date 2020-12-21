@@ -1,9 +1,10 @@
-use crate::{limit_and_offset, source::moderator::ModRemoveCommunity, views::ViewToVec, ToSafe};
+use crate::{limit_and_offset, views::ViewToVec, ToSafe};
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
   schema::{community, mod_remove_community, user_},
   source::{
     community::{Community, CommunitySafe},
+    moderator::ModRemoveCommunity,
     user::{UserSafe, User_},
   },
 };

@@ -1,20 +1,6 @@
 use crate::Crud;
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::schema::{category, category::dsl::*};
-use serde::Serialize;
-
-#[derive(Queryable, Identifiable, PartialEq, Debug, Serialize, Clone)]
-#[table_name = "category"]
-pub struct Category {
-  pub id: i32,
-  pub name: String,
-}
-
-#[derive(Insertable, AsChangeset)]
-#[table_name = "category"]
-pub struct CategoryForm {
-  pub name: String,
-}
+use lemmy_db_schema::{schema::category::dsl::*, source::category::*};
 
 impl Crud<CategoryForm> for Category {
   fn read(conn: &PgConnection, category_id: i32) -> Result<Self, Error> {
@@ -38,15 +24,20 @@ impl Crud<CategoryForm> for Category {
   }
 }
 
-impl Category {
-  pub fn list_all(conn: &PgConnection) -> Result<Vec<Self>, Error> {
+pub trait Category_ {
+  fn list_all(conn: &PgConnection) -> Result<Vec<Category>, Error>;
+}
+
+impl Category_ for Category {
+  fn list_all(conn: &PgConnection) -> Result<Vec<Category>, Error> {
     category.load::<Self>(conn)
   }
 }
 
 #[cfg(test)]
 mod tests {
-  use crate::{source::category::Category, tests::establish_unpooled_connection};
+  use crate::tests::establish_unpooled_connection;
+  use lemmy_db_schema::source::category::Category;
 
   #[test]
   fn test_crud() {

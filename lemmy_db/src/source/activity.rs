@@ -1,35 +1,12 @@
 use crate::Crud;
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db_schema::schema::activity;
+use lemmy_db_schema::source::activity::*;
 use log::debug;
 use serde::Serialize;
-use serde_json::Value;
 use std::{
   fmt::Debug,
   io::{Error as IoError, ErrorKind},
 };
-
-#[derive(Queryable, Identifiable, PartialEq, Debug)]
-#[table_name = "activity"]
-pub struct Activity {
-  pub id: i32,
-  pub data: Value,
-  pub local: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub ap_id: Option<String>,
-  pub sensitive: Option<bool>,
-}
-
-#[derive(Insertable, AsChangeset)]
-#[table_name = "activity"]
-pub struct ActivityForm {
-  pub data: Value,
-  pub local: bool,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub ap_id: String,
-  pub sensitive: bool,
-}
 
 impl Crud<ActivityForm> for Activity {
   fn read(conn: &PgConnection, activity_id: i32) -> Result<Self, Error> {
@@ -60,14 +37,27 @@ impl Crud<ActivityForm> for Activity {
   }
 }
 
-impl Activity {
-  pub fn insert<T>(
+pub trait Activity_ {
+  fn insert<T>(
     conn: &PgConnection,
     ap_id: String,
     data: &T,
     local: bool,
     sensitive: bool,
-  ) -> Result<Self, IoError>
+  ) -> Result<Activity, IoError>
+  where
+    T: Serialize + Debug;
+  fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Activity, Error>;
+}
+
+impl Activity_ for Activity {
+  fn insert<T>(
+    conn: &PgConnection,
+    ap_id: String,
+    data: &T,
+    local: bool,
+    sensitive: bool,
+  ) -> Result<Activity, IoError>
   where
     T: Serialize + Debug,
   {
@@ -89,7 +79,7 @@ impl Activity {
     }
   }
 
-  pub fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
+  fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Activity, Error> {
     use lemmy_db_schema::schema::activity::dsl::*;
     activity.filter(ap_id.eq(object_id)).first::<Self>(conn)
   }
@@ -97,14 +87,11 @@ impl Activity {
 
 #[cfg(test)]
 mod tests {
-  use crate::{
-    source::activity::{Activity, ActivityForm},
-    tests::establish_unpooled_connection,
-    Crud,
-    ListingType,
-    SortType,
+  use crate::{tests::establish_unpooled_connection, Crud, ListingType, SortType};
+  use lemmy_db_schema::source::{
+    activity::{Activity, ActivityForm},
+    user::{UserForm, User_},
   };
-  use lemmy_db_schema::source::user::{UserForm, User_};
   use serde_json::Value;
 
   #[test]
