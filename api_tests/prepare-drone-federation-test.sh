@@ -83,8 +83,8 @@ LEMMY_HOSTNAME=lemmy-epsilon:8581 \
   target/lemmy_server >/dev/null 2>&1 &
 
 echo "wait for all instances to start"
-while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8541/api/v1/site')" != "200" ]]; do sleep 1; done
-while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8551/api/v1/site')" != "200" ]]; do sleep 1; done
-while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8561/api/v1/site')" != "200" ]]; do sleep 1; done
-while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8571/api/v1/site')" != "200" ]]; do sleep 1; done
-while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8581/api/v1/site')" != "200" ]]; do sleep 1; done
+while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8541/api/v2/site')" != "200" ]]; do sleep 1; done
+while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8551/api/v2/site')" != "200" ]]; do sleep 1; done
+while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8561/api/v2/site')" != "200" ]]; do sleep 1; done
+while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8571/api/v2/site')" != "200" ]]; do sleep 1; done
+while [[ "$(curl -s -o /dev/null -w '%{http_code}' 'localhost:8581/api/v2/site')" != "200" ]]; do sleep 1; done

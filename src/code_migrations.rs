@@ -43,8 +43,6 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
     .filter(local.eq(true))
     .load::<User_>(conn)?;
 
-  sql_query("alter table user_ disable trigger refresh_user").execute(conn)?;
-
   for cuser in &incorrect_users {
     let keypair = generate_actor_keypair()?;
 
@@ -78,8 +76,6 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
     User_::update(&conn, cuser.id, &form)?;
   }
 
-  sql_query("alter table user_ enable trigger refresh_user").execute(conn)?;
-
   info!("{} user rows updated.", incorrect_users.len());
 
   Ok(())
@@ -95,8 +91,6 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
     .filter(actor_id.like("changeme_%"))
     .filter(local.eq(true))
     .load::<Community>(conn)?;
-
-  sql_query("alter table community disable trigger refresh_community").execute(conn)?;
 
   for ccommunity in &incorrect_communities {
     let keypair = generate_actor_keypair()?;
@@ -124,8 +118,6 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
     Community::update(&conn, ccommunity.id, &form)?;
   }
 
-  sql_query("alter table community enable trigger refresh_community").execute(conn)?;
-
   info!("{} community rows updated.", incorrect_communities.len());
 
   Ok(())
@@ -142,16 +134,12 @@ fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
     .filter(local.eq(true))
     .load::<Post>(conn)?;
 
-  sql_query("alter table post disable trigger refresh_post").execute(conn)?;
-
   for cpost in &incorrect_posts {
     let apub_id = make_apub_endpoint(EndpointType::Post, &cpost.id.to_string()).to_string();
     Post::update_ap_id(&conn, cpost.id, apub_id)?;
   }
 
   info!("{} post rows updated.", incorrect_posts.len());
-
-  sql_query("alter table post enable trigger refresh_post").execute(conn)?;
 
   Ok(())
 }
@@ -167,14 +155,10 @@ fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
     .filter(local.eq(true))
     .load::<Comment>(conn)?;
 
-  sql_query("alter table comment disable trigger refresh_comment").execute(conn)?;
-
   for ccomment in &incorrect_comments {
     let apub_id = make_apub_endpoint(EndpointType::Comment, &ccomment.id.to_string()).to_string();
     Comment::update_ap_id(&conn, ccomment.id, apub_id)?;
   }
-
-  sql_query("alter table comment enable trigger refresh_comment").execute(conn)?;
 
   info!("{} comment rows updated.", incorrect_comments.len());
 
