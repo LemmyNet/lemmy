@@ -13,28 +13,16 @@ steps:
     image: rustdocker/rust:nightly
     commands:
       - /root/.cargo/bin/cargo fmt -- --check
-    # disable this
-    when:
-      ref:
-        - refs/tags/*
 
   - name: cargo check
     image: ekidd/rust-musl-builder:1.47.0
     commands:
       - cargo check --workspace --all-targets
-    # disable this
-    when:
-      ref:
-        - refs/tags/*
 
   - name: cargo clippy
     image: ekidd/rust-musl-builder:1.47.0
     commands:
       - cargo clippy
-    # disable this
-    when:
-      ref:
-        - refs/tags/*
 
   - name: check documentation build
     image: ekidd/rust-musl-builder:1.47.0
@@ -51,10 +39,6 @@ steps:
       - sudo apt-get update
       - sudo apt-get -y install --no-install-recommends espeak postgresql-client
       - cargo test --workspace --no-fail-fast
-    # disable this
-    when:
-      ref:
-        - refs/tags/*
 
   - name: cargo build
     image: ekidd/rust-musl-builder:1.47.0
