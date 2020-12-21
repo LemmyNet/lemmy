@@ -20,7 +20,7 @@ use activitystreams::{
 };
 use activitystreams_ext::Ext1;
 use anyhow::Context;
-use lemmy_db::{Crud, DbPool};
+use lemmy_db_queries::{Crud, DbPool};
 use lemmy_db_schema::source::{
   community::Community,
   post::{Post, PostForm},

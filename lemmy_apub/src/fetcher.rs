@@ -12,7 +12,7 @@ use activitystreams::{base::BaseExt, collection::OrderedCollection, prelude::*};
 use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
 use diesel::result::Error::NotFound;
-use lemmy_db::{source::user::User, ApubObject, Crud, Joinable, SearchType};
+use lemmy_db_queries::{source::user::User, ApubObject, Crud, Joinable, SearchType};
 use lemmy_db_schema::{
   naive_now,
   source::{
@@ -22,12 +22,8 @@ use lemmy_db_schema::{
     user::User_,
   },
 };
-use lemmy_db_views::{
-  comment_view::CommentView,
-  community::community_view::CommunityView,
-  post_view::PostView,
-  user_view::UserViewSafe,
-};
+use lemmy_db_views::{comment_view::CommentView, post_view::PostView};
+use lemmy_db_views_actor::{community_view::CommunityView, user_view::UserViewSafe};
 use lemmy_structs::{blocking, site::SearchResponse};
 use lemmy_utils::{
   location_info,

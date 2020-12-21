@@ -1,7 +1,13 @@
-use crate::ViewToVec;
 use diesel::{dsl::*, result::Error, *};
-use lemmy_db::{fuzzy_search, limit_and_offset, MaybeOptional, SortType, ToSafe};
-use lemmy_db_aggregates::user_aggregates::UserAggregates;
+use lemmy_db_queries::{
+  aggregates::user_aggregates::UserAggregates,
+  fuzzy_search,
+  limit_and_offset,
+  MaybeOptional,
+  SortType,
+  ToSafe,
+  ViewToVec,
+};
 use lemmy_db_schema::{
   schema::{user_, user_aggregates},
   source::user::{UserSafe, User_},

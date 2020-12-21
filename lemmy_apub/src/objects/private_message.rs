@@ -19,7 +19,7 @@ use activitystreams::{
   prelude::*,
 };
 use anyhow::Context;
-use lemmy_db::{Crud, DbPool};
+use lemmy_db_queries::{Crud, DbPool};
 use lemmy_db_schema::source::{
   private_message::{PrivateMessage, PrivateMessageForm},
   user::User_,

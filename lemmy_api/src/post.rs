@@ -10,7 +10,15 @@ use crate::{
 };
 use actix_web::web::Data;
 use lemmy_apub::{ApubLikeableType, ApubObjectType};
-use lemmy_db::{source::post::Post_, Crud, Likeable, ListingType, Reportable, Saveable, SortType};
+use lemmy_db_queries::{
+  source::post::Post_,
+  Crud,
+  Likeable,
+  ListingType,
+  Reportable,
+  Saveable,
+  SortType,
+};
 use lemmy_db_schema::{
   naive_now,
   source::{
@@ -21,10 +29,10 @@ use lemmy_db_schema::{
 };
 use lemmy_db_views::{
   comment_view::CommentQueryBuilder,
-  community::community_moderator_view::CommunityModeratorView,
   post_report_view::{PostReportQueryBuilder, PostReportView},
   post_view::{PostQueryBuilder, PostView},
 };
+use lemmy_db_views_actor::community_moderator_view::CommunityModeratorView;
 use lemmy_structs::{blocking, post::*};
 use lemmy_utils::{
   apub::{make_apub_endpoint, EndpointType},

@@ -1,6 +1,6 @@
-use crate::ViewToVec;
 use diesel::{result::Error, *};
-use lemmy_db::{
+use lemmy_db_queries::{
+  aggregates::post_aggregates::PostAggregates,
   functions::hot_rank,
   fuzzy_search,
   limit_and_offset,
@@ -8,8 +8,8 @@ use lemmy_db::{
   MaybeOptional,
   SortType,
   ToSafe,
+  ViewToVec,
 };
-use lemmy_db_aggregates::post_aggregates::PostAggregates;
 use lemmy_db_schema::{
   schema::{
     community,
@@ -407,8 +407,14 @@ impl ViewToVec for PostView {
 #[cfg(test)]
 mod tests {
   use crate::post_view::{PostQueryBuilder, PostView};
-  use lemmy_db::{establish_unpooled_connection, Crud, Likeable, ListingType, SortType};
-  use lemmy_db_aggregates::post_aggregates::PostAggregates;
+  use lemmy_db_queries::{
+    aggregates::post_aggregates::PostAggregates,
+    establish_unpooled_connection,
+    Crud,
+    Likeable,
+    ListingType,
+    SortType,
+  };
   use lemmy_db_schema::source::{community::*, post::*, user::*};
 
   #[test]

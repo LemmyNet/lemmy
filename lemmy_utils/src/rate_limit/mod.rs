@@ -1,13 +1,10 @@
-#[macro_use]
-extern crate strum_macros;
-
-use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
-use futures::future::{ok, Ready};
-use lemmy_utils::{
+use crate::{
   settings::{RateLimitConfig, Settings},
   utils::get_ip,
   LemmyError,
 };
+use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform};
+use futures::future::{ok, Ready};
 use rate_limiter::{RateLimitType, RateLimiter};
 use std::{
   future::Future,

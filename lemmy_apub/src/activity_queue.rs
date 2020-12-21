@@ -19,7 +19,7 @@ use background_jobs::{
   WorkerConfig,
 };
 use itertools::Itertools;
-use lemmy_db::DbPool;
+use lemmy_db_queries::DbPool;
 use lemmy_db_schema::source::{community::Community, user::User_};
 use lemmy_utils::{location_info, settings::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;

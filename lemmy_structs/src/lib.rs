@@ -5,7 +5,7 @@ pub mod site;
 pub mod user;
 
 use diesel::PgConnection;
-use lemmy_db::{source::user::User, Crud, DbPool};
+use lemmy_db_queries::{source::user::User, Crud, DbPool};
 use lemmy_db_schema::source::{
   comment::Comment,
   post::Post,

@@ -1,6 +1,5 @@
-use crate::ViewToVec;
 use diesel::{result::Error, *};
-use lemmy_db::ToSafe;
+use lemmy_db_queries::{ToSafe, ViewToVec};
 use lemmy_db_schema::{
   schema::{community, community_follower, user_},
   source::{

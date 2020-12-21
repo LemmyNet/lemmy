@@ -1,7 +1,13 @@
-use crate::ViewToVec;
 use diesel::{result::Error, *};
-use lemmy_db::{functions::hot_rank, limit_and_offset, MaybeOptional, SortType, ToSafe};
-use lemmy_db_aggregates::comment_aggregates::CommentAggregates;
+use lemmy_db_queries::{
+  aggregates::comment_aggregates::CommentAggregates,
+  functions::hot_rank,
+  limit_and_offset,
+  MaybeOptional,
+  SortType,
+  ToSafe,
+  ViewToVec,
+};
 use lemmy_db_schema::{
   schema::{
     comment,

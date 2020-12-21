@@ -1,7 +1,9 @@
 use crate::{schema::comment_report, source::comment::Comment};
 use serde::{Deserialize, Serialize};
 
-#[derive(Identifiable, Queryable, Associations, PartialEq, Serialize, Deserialize, Debug, Clone)]
+#[derive(
+  Identifiable, Queryable, Associations, PartialEq, Serialize, Deserialize, Debug, Clone,
+)]
 #[belongs_to(Comment)]
 #[table_name = "comment_report"]
 pub struct CommentReport {

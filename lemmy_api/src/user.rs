@@ -14,7 +14,7 @@ use bcrypt::verify;
 use captcha::{gen, Difficulty};
 use chrono::Duration;
 use lemmy_apub::ApubObjectType;
-use lemmy_db::{
+use lemmy_db_queries::{
   diesel_option_overwrite,
   source::{
     comment::Comment_,
@@ -49,13 +49,13 @@ use lemmy_db_schema::{
 use lemmy_db_views::{
   comment_report_view::CommentReportView,
   comment_view::CommentQueryBuilder,
-  community::{
-    community_follower_view::CommunityFollowerView,
-    community_moderator_view::CommunityModeratorView,
-  },
   post_report_view::PostReportView,
   post_view::PostQueryBuilder,
   private_message_view::{PrivateMessageQueryBuilder, PrivateMessageView},
+};
+use lemmy_db_views_actor::{
+  community_follower_view::CommunityFollowerView,
+  community_moderator_view::CommunityModeratorView,
   user_mention_view::{UserMentionQueryBuilder, UserMentionView},
   user_view::{UserViewDangerous, UserViewSafe},
 };

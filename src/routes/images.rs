@@ -2,8 +2,7 @@ use actix::clock::Duration;
 use actix_web::{body::BodyStream, http::StatusCode, *};
 use awc::Client;
 use lemmy_api::claims::Claims;
-use lemmy_rate_limit::RateLimit;
-use lemmy_utils::settings::Settings;
+use lemmy_utils::{rate_limit::RateLimit, settings::Settings};
 use serde::{Deserialize, Serialize};
 
 pub fn config(cfg: &mut web::ServiceConfig, rate_limit: &RateLimit) {

@@ -1,4 +1,4 @@
-use lemmy_utils::{APIError, IPAddr, LemmyError};
+use crate::{APIError, IPAddr, LemmyError};
 use log::debug;
 use std::{collections::HashMap, time::SystemTime};
 use strum::IntoEnumIterator;

@@ -23,8 +23,14 @@ impl UserAggregates {
 
 #[cfg(test)]
 mod tests {
-  use crate::user_aggregates::UserAggregates;
-  use lemmy_db::{establish_unpooled_connection, Crud, Likeable, ListingType, SortType};
+  use crate::{
+    aggregates::user_aggregates::UserAggregates,
+    establish_unpooled_connection,
+    Crud,
+    Likeable,
+    ListingType,
+    SortType,
+  };
   use lemmy_db_schema::source::{
     comment::{Comment, CommentForm, CommentLike, CommentLikeForm},
     community::{Community, CommunityForm},

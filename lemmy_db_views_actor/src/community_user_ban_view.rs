@@ -1,5 +1,5 @@
 use diesel::{result::Error, *};
-use lemmy_db::ToSafe;
+use lemmy_db_queries::ToSafe;
 use lemmy_db_schema::{
   schema::{community, community_user_ban, user_},
   source::{

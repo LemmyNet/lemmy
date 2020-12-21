@@ -1,6 +1,6 @@
 use crate::claims::Claims;
 use actix_web::{web, web::Data};
-use lemmy_db::{
+use lemmy_db_queries::{
   source::{
     community::{CommunityModerator_, Community_},
     site::Site_,
@@ -14,7 +14,7 @@ use lemmy_db_schema::source::{
   site::Site,
   user::User_,
 };
-use lemmy_db_views::community::{
+use lemmy_db_views_actor::{
   community_user_ban_view::CommunityUserBanView,
   community_view::CommunityView,
 };

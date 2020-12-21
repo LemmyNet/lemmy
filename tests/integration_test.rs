@@ -28,13 +28,16 @@ use lemmy_apub::{
     user_inbox::user_inbox,
   },
 };
-use lemmy_db::{Crud, ListingType, SortType};
+use lemmy_db_queries::{Crud, ListingType, SortType};
 use lemmy_db_schema::source::{
   community::{Community, CommunityForm},
   user::{UserForm, User_},
 };
-use lemmy_rate_limit::{rate_limiter::RateLimiter, RateLimit};
-use lemmy_utils::{apub::generate_actor_keypair, settings::Settings};
+use lemmy_utils::{
+  apub::generate_actor_keypair,
+  rate_limit::{rate_limiter::RateLimiter, RateLimit},
+  settings::Settings,
+};
 use lemmy_websocket::{chat_server::ChatServer, LemmyContext};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};

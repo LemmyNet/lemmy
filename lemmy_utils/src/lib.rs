@@ -1,8 +1,11 @@
 #[macro_use]
 extern crate lazy_static;
+#[macro_use]
+extern crate strum_macros;
 
 pub mod apub;
 pub mod email;
+pub mod rate_limit;
 pub mod request;
 pub mod settings;
 #[cfg(test)]

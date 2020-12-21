@@ -10,7 +10,7 @@ use crate::{
 };
 use actix_web::web::Data;
 use lemmy_apub::{ApubLikeableType, ApubObjectType};
-use lemmy_db::{
+use lemmy_db_queries::{
   source::comment::Comment_,
   Crud,
   Likeable,

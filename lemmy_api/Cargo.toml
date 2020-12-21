@@ -14,8 +14,9 @@ lemmy_utils = { path = "../lemmy_utils" }
 lemmy_db_queries = { path = "../lemmy_db_queries" }
 lemmy_db_schema = { path = "../lemmy_db_schema" }
 lemmy_db_views = { path = "../lemmy_db_views" }
+lemmy_db_views_moderator = { path = "../lemmy_db_views_moderator" }
+lemmy_db_views_actor = { path = "../lemmy_db_views_actor" }
 lemmy_structs = { path = "../lemmy_structs" }
-lemmy_rate_limit = { path = "../lemmy_rate_limit" }
 lemmy_websocket = { path = "../lemmy_websocket" }
 diesel = "1.4.5"
 bcrypt = "0.9.0"

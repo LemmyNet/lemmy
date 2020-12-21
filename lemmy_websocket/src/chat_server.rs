@@ -6,10 +6,10 @@ use diesel::{
   r2d2::{ConnectionManager, Pool},
   PgConnection,
 };
-use lemmy_rate_limit::RateLimit;
 use lemmy_structs::{comment::*, post::*};
 use lemmy_utils::{
   location_info,
+  rate_limit::RateLimit,
   APIError,
   CommunityId,
   ConnectionId,

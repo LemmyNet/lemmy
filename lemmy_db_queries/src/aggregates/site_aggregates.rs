@@ -21,8 +21,13 @@ impl SiteAggregates {
 
 #[cfg(test)]
 mod tests {
-  use crate::site_aggregates::SiteAggregates;
-  use lemmy_db::{establish_unpooled_connection, Crud, ListingType, SortType};
+  use crate::{
+    aggregates::site_aggregates::SiteAggregates,
+    establish_unpooled_connection,
+    Crud,
+    ListingType,
+    SortType,
+  };
   use lemmy_db_schema::source::{
     comment::{Comment, CommentForm},
     community::{Community, CommunityForm},

@@ -22,8 +22,14 @@ impl CommunityAggregates {
 
 #[cfg(test)]
 mod tests {
-  use crate::community_aggregates::CommunityAggregates;
-  use lemmy_db::{establish_unpooled_connection, Crud, Followable, ListingType, SortType};
+  use crate::{
+    aggregates::community_aggregates::CommunityAggregates,
+    establish_unpooled_connection,
+    Crud,
+    Followable,
+    ListingType,
+    SortType,
+  };
   use lemmy_db_schema::source::{
     comment::{Comment, CommentForm},
     community::{Community, CommunityFollower, CommunityFollowerForm, CommunityForm},

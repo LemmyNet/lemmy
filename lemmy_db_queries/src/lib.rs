@@ -14,6 +14,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{env, env::VarError};
 
+pub mod aggregates;
 pub mod source;
 
 pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
@@ -134,6 +135,13 @@ impl<T> MaybeOptional<T> for Option<T> {
 pub trait ToSafe {
   type SafeColumns;
   fn safe_columns_tuple() -> Self::SafeColumns;
+}
+
+pub trait ViewToVec {
+  type DbTuple;
+  fn to_vec(tuple: Vec<Self::DbTuple>) -> Vec<Self>
+  where
+    Self: Sized;
 }
 
 pub fn get_database_url_from_env() -> Result<String, VarError> {

@@ -1,6 +1,6 @@
-use crate::ViewToVec;
 use diesel::{result::Error, *};
-use lemmy_db::{
+use lemmy_db_queries::{
+  aggregates::comment_aggregates::CommentAggregates,
   functions::hot_rank,
   fuzzy_search,
   limit_and_offset,
@@ -8,8 +8,8 @@ use lemmy_db::{
   MaybeOptional,
   SortType,
   ToSafe,
+  ViewToVec,
 };
-use lemmy_db_aggregates::comment_aggregates::CommentAggregates;
 use lemmy_db_schema::{
   schema::{
     comment,
@@ -419,8 +419,14 @@ impl ViewToVec for CommentView {
 #[cfg(test)]
 mod tests {
   use crate::comment_view::*;
-  use lemmy_db::{establish_unpooled_connection, Crud, Likeable, ListingType, SortType};
-  use lemmy_db_aggregates::comment_aggregates::CommentAggregates;
+  use lemmy_db_queries::{
+    aggregates::comment_aggregates::CommentAggregates,
+    establish_unpooled_connection,
+    Crud,
+    Likeable,
+    ListingType,
+    SortType,
+  };
   use lemmy_db_schema::source::{comment::*, community::*, post::*, user::*};
 
   #[test]

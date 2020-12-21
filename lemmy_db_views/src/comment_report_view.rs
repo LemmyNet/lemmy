@@ -1,6 +1,5 @@
-use crate::ViewToVec;
 use diesel::{result::Error, *};
-use lemmy_db::{limit_and_offset, MaybeOptional, ToSafe};
+use lemmy_db_queries::{limit_and_offset, MaybeOptional, ToSafe, ViewToVec};
 use lemmy_db_schema::{
   schema::{comment, comment_report, community, post, user_, user_alias_1, user_alias_2},
   source::{

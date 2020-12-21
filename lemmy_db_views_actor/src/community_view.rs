@@ -1,18 +1,15 @@
-use crate::{
-  community::community_moderator_view::CommunityModeratorView,
-  user_view::UserViewSafe,
-  ViewToVec,
-};
+use crate::{community_moderator_view::CommunityModeratorView, user_view::UserViewSafe};
 use diesel::{result::Error, *};
-use lemmy_db::{
+use lemmy_db_queries::{
+  aggregates::community_aggregates::CommunityAggregates,
   functions::hot_rank,
   fuzzy_search,
   limit_and_offset,
   MaybeOptional,
   SortType,
   ToSafe,
+  ViewToVec,
 };
-use lemmy_db_aggregates::community_aggregates::CommunityAggregates;
 use lemmy_db_schema::{
   schema::{category, community, community_aggregates, community_follower, user_},
   source::{

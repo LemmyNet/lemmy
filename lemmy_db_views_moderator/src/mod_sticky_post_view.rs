@@ -1,11 +1,10 @@
-use crate::ViewToVec;
 use diesel::{result::Error, *};
-use lemmy_db::{limit_and_offset, ToSafe};
+use lemmy_db_queries::{limit_and_offset, ToSafe, ViewToVec};
 use lemmy_db_schema::{
-  schema::{community, mod_remove_post, post, user_},
+  schema::{community, mod_sticky_post, post, user_},
   source::{
     community::{Community, CommunitySafe},
-    moderator::ModRemovePost,
+    moderator::ModStickyPost,
     post::Post,
     user::{UserSafe, User_},
   },
@@ -13,16 +12,16 @@ use lemmy_db_schema::{
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Clone)]
-pub struct ModRemovePostView {
-  pub mod_remove_post: ModRemovePost,
+pub struct ModStickyPostView {
+  pub mod_sticky_post: ModStickyPost,
   pub moderator: UserSafe,
   pub post: Post,
   pub community: CommunitySafe,
 }
 
-type ModRemovePostViewTuple = (ModRemovePost, UserSafe, Post, CommunitySafe);
+type ModStickyPostViewTuple = (ModStickyPost, UserSafe, Post, CommunitySafe);
 
-impl ModRemovePostView {
+impl ModStickyPostView {
   pub fn list(
     conn: &PgConnection,
     community_id: Option<i32>,
@@ -30,12 +29,12 @@ impl ModRemovePostView {
     page: Option<i64>,
     limit: Option<i64>,
   ) -> Result<Vec<Self>, Error> {
-    let mut query = mod_remove_post::table
+    let mut query = mod_sticky_post::table
       .inner_join(user_::table)
       .inner_join(post::table)
       .inner_join(community::table.on(post::community_id.eq(community::id)))
       .select((
-        mod_remove_post::all_columns,
+        mod_sticky_post::all_columns,
         User_::safe_columns_tuple(),
         post::all_columns,
         Community::safe_columns_tuple(),
@@ -47,7 +46,7 @@ impl ModRemovePostView {
     };
 
     if let Some(mod_user_id) = mod_user_id {
-      query = query.filter(mod_remove_post::mod_user_id.eq(mod_user_id));
+      query = query.filter(mod_sticky_post::mod_user_id.eq(mod_user_id));
     };
 
     let (limit, offset) = limit_and_offset(page, limit);
@@ -55,20 +54,20 @@ impl ModRemovePostView {
     let res = query
       .limit(limit)
       .offset(offset)
-      .order_by(mod_remove_post::when_.desc())
-      .load::<ModRemovePostViewTuple>(conn)?;
+      .order_by(mod_sticky_post::when_.desc())
+      .load::<ModStickyPostViewTuple>(conn)?;
 
     Ok(Self::to_vec(res))
   }
 }
 
-impl ViewToVec for ModRemovePostView {
-  type DbTuple = ModRemovePostViewTuple;
+impl ViewToVec for ModStickyPostView {
+  type DbTuple = ModStickyPostViewTuple;
   fn to_vec(mrp: Vec<Self::DbTuple>) -> Vec<Self> {
     mrp
       .iter()
       .map(|a| Self {
-        mod_remove_post: a.0.to_owned(),
+        mod_sticky_post: a.0.to_owned(),
         moderator: a.1.to_owned(),
         post: a.2.to_owned(),
         community: a.3.to_owned(),

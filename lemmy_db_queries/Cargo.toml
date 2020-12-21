@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2018"
 
 [lib]
-name = "lemmy_db"
+name = "lemmy_db_queries"
 path = "src/lib.rs"
 
 [dependencies]

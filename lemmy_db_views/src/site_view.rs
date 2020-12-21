@@ -1,6 +1,5 @@
 use diesel::{result::Error, *};
-use lemmy_db::ToSafe;
-use lemmy_db_aggregates::site_aggregates::SiteAggregates;
+use lemmy_db_queries::{aggregates::site_aggregates::SiteAggregates, ToSafe};
 use lemmy_db_schema::{
   schema::{site, site_aggregates, user_},
   source::{

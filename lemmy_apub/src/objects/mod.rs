@@ -11,7 +11,7 @@ use activitystreams::{
 };
 use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
-use lemmy_db::{ApubObject, Crud, DbPool};
+use lemmy_db_queries::{ApubObject, Crud, DbPool};
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, settings::Settings, utils::convert_datetime, LemmyError};
 use lemmy_websocket::LemmyContext;

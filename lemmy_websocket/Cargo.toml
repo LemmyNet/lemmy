@@ -13,7 +13,6 @@ lemmy_utils = { path = "../lemmy_utils" }
 lemmy_structs = { path = "../lemmy_structs" }
 lemmy_db_queries = { path = "../lemmy_db_queries" }
 lemmy_db_schema = { path = "../lemmy_db_schema" }
-lemmy_rate_limit = { path = "../lemmy_rate_limit" }
 reqwest = { version = "0.10.10", features = ["json"] }
 log = "0.4.11"
 rand = "0.8.0"
