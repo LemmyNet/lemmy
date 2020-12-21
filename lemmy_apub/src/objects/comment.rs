@@ -118,7 +118,7 @@ impl FromApub for Comment {
         Comment::delete(conn, comment.id)
       })
       .await??;
-      return Err(anyhow!("Post is locked").into());
+      Err(anyhow!("Post is locked").into())
     } else {
       Ok(comment)
     }

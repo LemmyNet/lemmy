@@ -350,7 +350,7 @@ async fn find_post_or_comment_by_id(
     return Ok(PostOrComment::Comment(c));
   }
 
-  return Err(NotFound.into());
+  Err(NotFound.into())
 }
 
 async fn fetch_post_or_comment_by_id(
@@ -366,7 +366,7 @@ async fn fetch_post_or_comment_by_id(
     return Ok(PostOrComment::Comment(comment));
   }
 
-  return Err(NotFound.into());
+  Err(NotFound.into())
 }
 
 fn get_like_object_id<Activity>(like_or_dislike: &Activity) -> Result<Url, LemmyError>

@@ -179,7 +179,7 @@ pub(crate) async fn community_receive_message(
       .await?;
   }
 
-  return Ok(HttpResponse::Ok().finish());
+  Ok(HttpResponse::Ok().finish())
 }
 
 /// Handle a follow request from a remote user, adding the user as follower and returning an

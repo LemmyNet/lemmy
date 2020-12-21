@@ -396,5 +396,5 @@ async fn find_community_or_private_message_by_id(
     return Ok(CommunityOrPrivateMessage::PrivateMessage(p));
   }
 
-  return Err(NotFound.into());
+  Err(NotFound.into())
 }
