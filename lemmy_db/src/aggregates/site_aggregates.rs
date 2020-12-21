@@ -22,7 +22,6 @@ impl SiteAggregates {
 mod tests {
   use crate::{
     aggregates::site_aggregates::SiteAggregates,
-    source::community::{Community, CommunityForm},
     tests::establish_unpooled_connection,
     Crud,
     ListingType,
@@ -30,6 +29,7 @@ mod tests {
   };
   use lemmy_db_schema::source::{
     comment::{Comment, CommentForm},
+    community::{Community, CommunityForm},
     post::{Post, PostForm},
     user::{UserForm, User_},
   };

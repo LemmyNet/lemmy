@@ -231,13 +231,11 @@ impl Readable<PostReadForm> for PostRead {
 
 #[cfg(test)]
 mod tests {
-  use crate::{
-    source::{community::*, post::*},
-    tests::establish_unpooled_connection,
-    ListingType,
-    SortType,
+  use crate::{source::post::*, tests::establish_unpooled_connection, ListingType, SortType};
+  use lemmy_db_schema::source::{
+    community::{Community, CommunityForm},
+    user::*,
   };
-  use lemmy_db_schema::source::user::*;
 
   #[test]
   fn test_crud() {

@@ -13,10 +13,7 @@ use anyhow::{anyhow, Context};
 use chrono::NaiveDateTime;
 use diesel::result::Error::NotFound;
 use lemmy_db::{
-  source::{
-    community::{Community, CommunityModerator, CommunityModeratorForm},
-    user::User,
-  },
+  source::user::User,
   views::{
     comment_view::CommentView,
     community::community_view::CommunityView,
@@ -30,7 +27,12 @@ use lemmy_db::{
 };
 use lemmy_db_schema::{
   naive_now,
-  source::{comment::Comment, post::Post, user::User_},
+  source::{
+    comment::Comment,
+    community::{Community, CommunityModerator, CommunityModeratorForm},
+    post::Post,
+    user::User_,
+  },
 };
 use lemmy_structs::{blocking, site::SearchResponse};
 use lemmy_utils::{

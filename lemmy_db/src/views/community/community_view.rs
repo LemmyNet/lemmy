@@ -3,10 +3,7 @@ use crate::{
   functions::hot_rank,
   fuzzy_search,
   limit_and_offset,
-  source::{
-    category::Category,
-    community::{Community, CommunityFollower, CommunitySafe},
-  },
+  source::category::Category,
   views::ViewToVec,
   MaybeOptional,
   SortType,
@@ -15,7 +12,10 @@ use crate::{
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
   schema::{category, community, community_aggregates, community_follower, user_},
-  source::user::{UserSafe, User_},
+  source::{
+    community::{Community, CommunityFollower, CommunitySafe},
+    user::{UserSafe, User_},
+  },
 };
 use serde::Serialize;
 

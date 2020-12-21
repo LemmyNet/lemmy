@@ -18,7 +18,7 @@ use lemmy_db::{
   diesel_option_overwrite,
   source::{
     comment::Comment_,
-    community::*,
+    community::Community_,
     moderator::*,
     password_reset_request::*,
     post::Post_,
@@ -49,7 +49,7 @@ use lemmy_db::{
 };
 use lemmy_db_schema::{
   naive_now,
-  source::{comment::Comment, post::Post, user::*},
+  source::{comment::Comment, community::*, post::Post, user::*},
 };
 use lemmy_structs::{blocking, send_email_to_user, user::*};
 use lemmy_utils::{

@@ -1,16 +1,11 @@
-use crate::{
-  limit_and_offset,
-  source::{
-    community::{Community, CommunitySafe},
-    moderator::ModRemoveCommunity,
-  },
-  views::ViewToVec,
-  ToSafe,
-};
+use crate::{limit_and_offset, source::moderator::ModRemoveCommunity, views::ViewToVec, ToSafe};
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
   schema::{community, mod_remove_community, user_},
-  source::user::{UserSafe, User_},
+  source::{
+    community::{Community, CommunitySafe},
+    user::{UserSafe, User_},
+  },
 };
 use serde::Serialize;
 

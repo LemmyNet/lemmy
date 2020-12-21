@@ -26,7 +26,6 @@ impl PostAggregates {
 mod tests {
   use crate::{
     aggregates::post_aggregates::PostAggregates,
-    source::community::{Community, CommunityForm},
     tests::establish_unpooled_connection,
     Crud,
     Likeable,
@@ -35,6 +34,7 @@ mod tests {
   };
   use lemmy_db_schema::source::{
     comment::{Comment, CommentForm},
+    community::{Community, CommunityForm},
     post::{Post, PostForm, PostLike, PostLikeForm},
     user::{UserForm, User_},
   };

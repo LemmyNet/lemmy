@@ -3,7 +3,6 @@ use crate::{
   functions::hot_rank,
   fuzzy_search,
   limit_and_offset,
-  source::community::{Community, CommunityFollower, CommunitySafe, CommunityUserBan},
   views::ViewToVec,
   ListingType,
   MaybeOptional,
@@ -24,6 +23,7 @@ use lemmy_db_schema::{
     user_,
   },
   source::{
+    community::{Community, CommunityFollower, CommunitySafe, CommunityUserBan},
     post::{Post, PostRead, PostSaved},
     user::{UserSafe, User_},
   },
@@ -408,14 +408,13 @@ impl ViewToVec for PostView {
 mod tests {
   use crate::{
     aggregates::post_aggregates::PostAggregates,
-    source::community::*,
     tests::establish_unpooled_connection,
     views::post_view::{PostQueryBuilder, PostView},
     Crud,
     Likeable,
     *,
   };
-  use lemmy_db_schema::source::{post::*, user::*};
+  use lemmy_db_schema::source::{community::*, post::*, user::*};
 
   #[test]
   fn test_crud() {

@@ -3,7 +3,6 @@ use crate::{
   functions::hot_rank,
   fuzzy_search,
   limit_and_offset,
-  source::community::{Community, CommunityFollower, CommunitySafe, CommunityUserBan},
   views::ViewToVec,
   ListingType,
   MaybeOptional,
@@ -27,6 +26,7 @@ use lemmy_db_schema::{
   },
   source::{
     comment::{Comment, CommentAlias1, CommentSaved},
+    community::{Community, CommunityFollower, CommunitySafe, CommunityUserBan},
     post::Post,
     user::{UserAlias1, UserSafe, UserSafeAlias1, User_},
   },
@@ -409,15 +409,8 @@ impl ViewToVec for CommentView {
 
 #[cfg(test)]
 mod tests {
-  use crate::{
-    source::community::*,
-    tests::establish_unpooled_connection,
-    views::comment_view::*,
-    Crud,
-    Likeable,
-    *,
-  };
-  use lemmy_db_schema::source::{comment::*, post::*, user::*};
+  use crate::{tests::establish_unpooled_connection, views::comment_view::*, Crud, Likeable, *};
+  use lemmy_db_schema::source::{comment::*, community::*, post::*, user::*};
 
   #[test]
   fn test_crud() {

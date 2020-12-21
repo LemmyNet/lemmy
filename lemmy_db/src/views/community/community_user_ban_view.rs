@@ -1,11 +1,11 @@
-use crate::{
-  source::community::{Community, CommunitySafe},
-  ToSafe,
-};
+use crate::ToSafe;
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
   schema::{community, community_user_ban, user_},
-  source::user::{UserSafe, User_},
+  source::{
+    community::{Community, CommunitySafe},
+    user::{UserSafe, User_},
+  },
 };
 use serde::Serialize;
 

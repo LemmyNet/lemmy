@@ -1,16 +1,9 @@
-use crate::{
-  limit_and_offset,
-  source::{
-    community::{Community, CommunitySafe},
-    moderator::ModLockPost,
-  },
-  views::ViewToVec,
-  ToSafe,
-};
+use crate::{limit_and_offset, source::moderator::ModLockPost, views::ViewToVec, ToSafe};
 use diesel::{result::Error, *};
 use lemmy_db_schema::{
   schema::{community, mod_lock_post, post, user_},
   source::{
+    community::{Community, CommunitySafe},
     post::Post,
     user::{UserSafe, User_},
   },

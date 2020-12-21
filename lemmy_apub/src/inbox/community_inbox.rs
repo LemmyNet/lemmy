@@ -27,13 +27,16 @@ use activitystreams::{
 use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
 use lemmy_db::{
-  source::community::{Community, CommunityFollower, CommunityFollowerForm},
+  source::community::Community_,
   views::community::community_user_ban_view::CommunityUserBanView,
   ApubObject,
   DbPool,
   Followable,
 };
-use lemmy_db_schema::source::user::User_;
+use lemmy_db_schema::source::{
+  community::{Community, CommunityFollower, CommunityFollowerForm},
+  user::User_,
+};
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;

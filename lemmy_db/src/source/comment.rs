@@ -205,7 +205,6 @@ impl Saveable<CommentSavedForm> for CommentSaved {
 #[cfg(test)]
 mod tests {
   use crate::{
-    source::community::*,
     tests::establish_unpooled_connection,
     Crud,
     Likeable,
@@ -215,6 +214,7 @@ mod tests {
   };
   use lemmy_db_schema::source::{
     comment::*,
+    community::{Community, CommunityForm},
     post::*,
     user::{UserForm, User_},
   };

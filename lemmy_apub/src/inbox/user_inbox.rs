@@ -49,15 +49,14 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use anyhow::{anyhow, Context};
 use diesel::NotFound;
 use lemmy_db::{
-  source::{
-    community::{Community, CommunityFollower},
-    private_message::PrivateMessage,
-    user::User,
-  },
+  source::{private_message::PrivateMessage, user::User},
   ApubObject,
   Followable,
 };
-use lemmy_db_schema::source::user::User_;
+use lemmy_db_schema::source::{
+  community::{Community, CommunityFollower},
+  user::User_,
+};
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;

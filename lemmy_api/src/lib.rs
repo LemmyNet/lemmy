@@ -1,12 +1,16 @@
 use crate::claims::Claims;
 use actix_web::{web, web::Data};
 use lemmy_db::{
-  source::community::{Community, CommunityModerator},
+  source::community::{CommunityModerator_, Community_},
   views::community::community_user_ban_view::CommunityUserBanView,
   Crud,
   DbPool,
 };
-use lemmy_db_schema::source::{post::Post, user::User_};
+use lemmy_db_schema::source::{
+  community::{Community, CommunityModerator},
+  post::Post,
+  user::User_,
+};
 use lemmy_structs::{blocking, comment::*, community::*, post::*, site::*, user::*};
 use lemmy_utils::{settings::Settings, APIError, ConnectionId, LemmyError};
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperation};

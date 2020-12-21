@@ -2,10 +2,7 @@ use crate::{
   aggregates::comment_aggregates::CommentAggregates,
   functions::hot_rank,
   limit_and_offset,
-  source::{
-    community::{Community, CommunityFollower, CommunitySafe, CommunityUserBan},
-    user_mention::UserMention,
-  },
+  source::user_mention::UserMention,
   views::ViewToVec,
   MaybeOptional,
   SortType,
@@ -28,6 +25,7 @@ use lemmy_db_schema::{
   },
   source::{
     comment::{Comment, CommentSaved},
+    community::{Community, CommunityFollower, CommunitySafe, CommunityUserBan},
     post::Post,
     user::{UserAlias1, UserSafe, UserSafeAlias1, User_},
   },

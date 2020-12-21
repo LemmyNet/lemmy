@@ -1,9 +1,6 @@
 use crate::{
   limit_and_offset,
-  source::{
-    comment_report::CommentReport,
-    community::{Community, CommunitySafe},
-  },
+  source::comment_report::CommentReport,
   views::ViewToVec,
   MaybeOptional,
   ToSafe,
@@ -13,6 +10,7 @@ use lemmy_db_schema::{
   schema::{comment, comment_report, community, post, user_, user_alias_1, user_alias_2},
   source::{
     comment::Comment,
+    community::{Community, CommunitySafe},
     post::Post,
     user::{UserAlias1, UserAlias2, UserSafe, UserSafeAlias1, UserSafeAlias2, User_},
   },

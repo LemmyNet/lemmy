@@ -1,9 +1,6 @@
 use crate::{
   limit_and_offset,
-  source::{
-    community::{Community, CommunitySafe},
-    post_report::PostReport,
-  },
+  source::post_report::PostReport,
   views::ViewToVec,
   MaybeOptional,
   ToSafe,
@@ -12,6 +9,7 @@ use diesel::{result::Error, *};
 use lemmy_db_schema::{
   schema::{community, post, post_report, user_, user_alias_1, user_alias_2},
   source::{
+    community::{Community, CommunitySafe},
     post::Post,
     user::{UserAlias1, UserAlias2, UserSafe, UserSafeAlias1, UserSafeAlias2, User_},
   },

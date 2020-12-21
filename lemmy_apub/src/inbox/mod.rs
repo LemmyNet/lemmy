@@ -12,12 +12,8 @@ use activitystreams::{
 };
 use actix_web::HttpRequest;
 use anyhow::{anyhow, Context};
-use lemmy_db::{
-  source::{activity::Activity, community::Community},
-  ApubObject,
-  DbPool,
-};
-use lemmy_db_schema::source::user::User_;
+use lemmy_db::{source::activity::Activity, ApubObject, DbPool};
+use lemmy_db_schema::source::{community::Community, user::User_};
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, settings::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
