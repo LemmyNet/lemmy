@@ -14,11 +14,6 @@ steps:
     commands:
       - /root/.cargo/bin/cargo fmt -- --check
 
-  - name: cargo check
-    image: ekidd/rust-musl-builder:1.47.0
-    commands:
-      - cargo check --workspace --all-targets
-
   - name: cargo clippy
     image: ekidd/rust-musl-builder:1.47.0
     commands:
