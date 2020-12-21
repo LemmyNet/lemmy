@@ -11,8 +11,7 @@ use anyhow::Context;
 use lemmy_apub::fetcher::search_by_apub_id;
 use lemmy_db::{
   diesel_option_overwrite,
-  naive_now,
-  source::{category::*, moderator::*, site::*},
+  source::{category::Category_, site::Site_},
   views::{
     comment_view::CommentQueryBuilder,
     community::community_view::CommunityQueryBuilder,
@@ -34,6 +33,14 @@ use lemmy_db::{
   Crud,
   SearchType,
   SortType,
+};
+use lemmy_db_schema::{
+  naive_now,
+  source::{
+    category::Category,
+    moderator::*,
+    site::{Site, *},
+  },
 };
 use lemmy_structs::{blocking, site::*, user::Register};
 use lemmy_utils::{

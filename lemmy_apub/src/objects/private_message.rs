@@ -19,13 +19,10 @@ use activitystreams::{
   prelude::*,
 };
 use anyhow::Context;
-use lemmy_db::{
-  source::{
-    private_message::{PrivateMessage, PrivateMessageForm},
-    user::User_,
-  },
-  Crud,
-  DbPool,
+use lemmy_db::{Crud, DbPool};
+use lemmy_db_schema::source::{
+  private_message::{PrivateMessage, PrivateMessageForm},
+  user::User_,
 };
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, utils::convert_datetime, LemmyError};

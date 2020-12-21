@@ -3,7 +3,7 @@ use crate::{
   messages::*,
 };
 use actix::{Actor, Context, Handler, ResponseFuture};
-use lemmy_db::naive_now;
+use lemmy_db_schema::naive_now;
 use log::{error, info};
 use rand::Rng;
 use serde::Serialize;

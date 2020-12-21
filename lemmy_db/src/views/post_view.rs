@@ -3,6 +3,14 @@ use crate::{
   functions::hot_rank,
   fuzzy_search,
   limit_and_offset,
+  views::ViewToVec,
+  ListingType,
+  MaybeOptional,
+  SortType,
+  ToSafe,
+};
+use diesel::{result::Error, *};
+use lemmy_db_schema::{
   schema::{
     community,
     community_follower,
@@ -19,13 +27,7 @@ use crate::{
     post::{Post, PostRead, PostSaved},
     user::{UserSafe, User_},
   },
-  views::ViewToVec,
-  ListingType,
-  MaybeOptional,
-  SortType,
-  ToSafe,
 };
-use diesel::{result::Error, *};
 use serde::Serialize;
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
@@ -406,13 +408,13 @@ impl ViewToVec for PostView {
 mod tests {
   use crate::{
     aggregates::post_aggregates::PostAggregates,
-    source::{community::*, post::*, user::*},
     tests::establish_unpooled_connection,
     views::post_view::{PostQueryBuilder, PostView},
     Crud,
     Likeable,
     *,
   };
+  use lemmy_db_schema::source::{community::*, post::*, user::*};
 
   #[test]
   fn test_crud() {

@@ -13,14 +13,10 @@ use activitystreams::{
   base::{AnyBase, BaseExt, ExtendsExt},
   object::ObjectExt,
 };
-use lemmy_db::{
-  source::{
-    community::{Community, CommunityFollower, CommunityFollowerForm},
-    user::User_,
-  },
-  ApubObject,
-  DbPool,
-  Followable,
+use lemmy_db::{ApubObject, DbPool, Followable};
+use lemmy_db_schema::source::{
+  community::{Community, CommunityFollower, CommunityFollowerForm},
+  user::User_,
 };
 use lemmy_structs::blocking;
 use lemmy_utils::LemmyError;

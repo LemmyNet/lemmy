@@ -1,24 +1,22 @@
-use lemmy_db::{
-  source::{category::*, user::*},
-  views::{
-    comment_view::CommentView,
-    community::community_view::CommunityView,
-    moderator::{
-      mod_add_community_view::ModAddCommunityView,
-      mod_add_view::ModAddView,
-      mod_ban_from_community_view::ModBanFromCommunityView,
-      mod_ban_view::ModBanView,
-      mod_lock_post_view::ModLockPostView,
-      mod_remove_comment_view::ModRemoveCommentView,
-      mod_remove_community_view::ModRemoveCommunityView,
-      mod_remove_post_view::ModRemovePostView,
-      mod_sticky_post_view::ModStickyPostView,
-    },
-    post_view::PostView,
-    site_view::SiteView,
-    user_view::UserViewSafe,
+use lemmy_db::views::{
+  comment_view::CommentView,
+  community::community_view::CommunityView,
+  moderator::{
+    mod_add_community_view::ModAddCommunityView,
+    mod_add_view::ModAddView,
+    mod_ban_from_community_view::ModBanFromCommunityView,
+    mod_ban_view::ModBanView,
+    mod_lock_post_view::ModLockPostView,
+    mod_remove_comment_view::ModRemoveCommentView,
+    mod_remove_community_view::ModRemoveCommunityView,
+    mod_remove_post_view::ModRemovePostView,
+    mod_sticky_post_view::ModStickyPostView,
   },
+  post_view::PostView,
+  site_view::SiteView,
+  user_view::UserViewSafe,
 };
+use lemmy_db_schema::source::{category::*, user::User_};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]

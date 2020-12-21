@@ -1,29 +1,10 @@
-use crate::{
-  schema::{password_reset_request, password_reset_request::dsl::*},
-  Crud,
-};
+use crate::Crud;
 use diesel::{dsl::*, result::Error, PgConnection, *};
+use lemmy_db_schema::{schema::password_reset_request::dsl::*, source::password_reset_request::*};
 use sha2::{Digest, Sha256};
-
-#[derive(Queryable, Identifiable, PartialEq, Debug)]
-#[table_name = "password_reset_request"]
-pub struct PasswordResetRequest {
-  pub id: i32,
-  pub user_id: i32,
-  pub token_encrypted: String,
-  pub published: chrono::NaiveDateTime,
-}
-
-#[derive(Insertable, AsChangeset)]
-#[table_name = "password_reset_request"]
-pub struct PasswordResetRequestForm {
-  pub user_id: i32,
-  pub token_encrypted: String,
-}
 
 impl Crud<PasswordResetRequestForm> for PasswordResetRequest {
   fn read(conn: &PgConnection, password_reset_request_id: i32) -> Result<Self, Error> {
-    use crate::schema::password_reset_request::dsl::*;
     password_reset_request
       .find(password_reset_request_id)
       .first::<Self>(conn)
@@ -44,11 +25,24 @@ impl Crud<PasswordResetRequestForm> for PasswordResetRequest {
   }
 }
 
-impl PasswordResetRequest {
-  pub fn create_token(conn: &PgConnection, from_user_id: i32, token: &str) -> Result<Self, Error> {
+pub trait PasswordResetRequest_ {
+  fn create_token(
+    conn: &PgConnection,
+    from_user_id: i32,
+    token: &str,
+  ) -> Result<PasswordResetRequest, Error>;
+  fn read_from_token(conn: &PgConnection, token: &str) -> Result<PasswordResetRequest, Error>;
+}
+
+impl PasswordResetRequest_ for PasswordResetRequest {
+  fn create_token(
+    conn: &PgConnection,
+    from_user_id: i32,
+    token: &str,
+  ) -> Result<PasswordResetRequest, Error> {
     let mut hasher = Sha256::new();
     hasher.update(token);
-    let token_hash: String = PasswordResetRequest::bytes_to_hex(hasher.finalize().to_vec());
+    let token_hash: String = bytes_to_hex(hasher.finalize().to_vec());
 
     let form = PasswordResetRequestForm {
       user_id: from_user_id,
@@ -57,35 +51,29 @@ impl PasswordResetRequest {
 
     Self::create(&conn, &form)
   }
-  pub fn read_from_token(conn: &PgConnection, token: &str) -> Result<Self, Error> {
+  fn read_from_token(conn: &PgConnection, token: &str) -> Result<PasswordResetRequest, Error> {
     let mut hasher = Sha256::new();
     hasher.update(token);
-    let token_hash: String = PasswordResetRequest::bytes_to_hex(hasher.finalize().to_vec());
+    let token_hash: String = bytes_to_hex(hasher.finalize().to_vec());
     password_reset_request
       .filter(token_encrypted.eq(token_hash))
       .filter(published.gt(now - 1.days()))
       .first::<Self>(conn)
   }
+}
 
-  fn bytes_to_hex(bytes: Vec<u8>) -> String {
-    let mut str = String::new();
-    for byte in bytes {
-      str = format!("{}{:02x}", str, byte);
-    }
-    str
+fn bytes_to_hex(bytes: Vec<u8>) -> String {
+  let mut str = String::new();
+  for byte in bytes {
+    str = format!("{}{:02x}", str, byte);
   }
+  str
 }
 
 #[cfg(test)]
 mod tests {
-  use super::super::user::*;
-  use crate::{
-    source::password_reset_request::PasswordResetRequest,
-    tests::establish_unpooled_connection,
-    Crud,
-    ListingType,
-    SortType,
-  };
+  use crate::{tests::establish_unpooled_connection, Crud, ListingType, SortType};
+  use lemmy_db_schema::source::{password_reset_request::PasswordResetRequest, user::*};
 
   #[test]
   fn test_crud() {

@@ -2,6 +2,13 @@ use crate::{
   aggregates::comment_aggregates::CommentAggregates,
   functions::hot_rank,
   limit_and_offset,
+  views::ViewToVec,
+  MaybeOptional,
+  SortType,
+  ToSafe,
+};
+use diesel::{result::Error, *};
+use lemmy_db_schema::{
   schema::{
     comment,
     comment_aggregates,
@@ -22,12 +29,7 @@ use crate::{
     user::{UserAlias1, UserSafe, UserSafeAlias1, User_},
     user_mention::UserMention,
   },
-  views::ViewToVec,
-  MaybeOptional,
-  SortType,
-  ToSafe,
 };
-use diesel::{result::Error, *};
 use serde::Serialize;
 
 #[derive(Debug, PartialEq, Serialize, Clone)]

@@ -1,35 +1,15 @@
-use super::comment::Comment;
-use crate::{schema::user_mention, Crud};
+use crate::Crud;
 use diesel::{dsl::*, result::Error, *};
-use serde::Serialize;
-
-#[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
-#[belongs_to(Comment)]
-#[table_name = "user_mention"]
-pub struct UserMention {
-  pub id: i32,
-  pub recipient_id: i32,
-  pub comment_id: i32,
-  pub read: bool,
-  pub published: chrono::NaiveDateTime,
-}
-
-#[derive(Insertable, AsChangeset)]
-#[table_name = "user_mention"]
-pub struct UserMentionForm {
-  pub recipient_id: i32,
-  pub comment_id: i32,
-  pub read: Option<bool>,
-}
+use lemmy_db_schema::source::user_mention::*;
 
 impl Crud<UserMentionForm> for UserMention {
   fn read(conn: &PgConnection, user_mention_id: i32) -> Result<Self, Error> {
-    use crate::schema::user_mention::dsl::*;
+    use lemmy_db_schema::schema::user_mention::dsl::*;
     user_mention.find(user_mention_id).first::<Self>(conn)
   }
 
   fn create(conn: &PgConnection, user_mention_form: &UserMentionForm) -> Result<Self, Error> {
-    use crate::schema::user_mention::dsl::*;
+    use lemmy_db_schema::schema::user_mention::dsl::*;
     // since the return here isnt utilized, we dont need to do an update
     // but get_result doesnt return the existing row here
     insert_into(user_mention)
@@ -45,27 +25,42 @@ impl Crud<UserMentionForm> for UserMention {
     user_mention_id: i32,
     user_mention_form: &UserMentionForm,
   ) -> Result<Self, Error> {
-    use crate::schema::user_mention::dsl::*;
+    use lemmy_db_schema::schema::user_mention::dsl::*;
     diesel::update(user_mention.find(user_mention_id))
       .set(user_mention_form)
       .get_result::<Self>(conn)
   }
 }
 
-impl UserMention {
-  pub fn update_read(
+pub trait UserMention_ {
+  fn update_read(
     conn: &PgConnection,
     user_mention_id: i32,
     new_read: bool,
-  ) -> Result<Self, Error> {
-    use crate::schema::user_mention::dsl::*;
+  ) -> Result<UserMention, Error>;
+  fn mark_all_as_read(
+    conn: &PgConnection,
+    for_recipient_id: i32,
+  ) -> Result<Vec<UserMention>, Error>;
+}
+
+impl UserMention_ for UserMention {
+  fn update_read(
+    conn: &PgConnection,
+    user_mention_id: i32,
+    new_read: bool,
+  ) -> Result<UserMention, Error> {
+    use lemmy_db_schema::schema::user_mention::dsl::*;
     diesel::update(user_mention.find(user_mention_id))
       .set(read.eq(new_read))
       .get_result::<Self>(conn)
   }
 
-  pub fn mark_all_as_read(conn: &PgConnection, for_recipient_id: i32) -> Result<Vec<Self>, Error> {
-    use crate::schema::user_mention::dsl::*;
+  fn mark_all_as_read(
+    conn: &PgConnection,
+    for_recipient_id: i32,
+  ) -> Result<Vec<UserMention>, Error> {
+    use lemmy_db_schema::schema::user_mention::dsl::*;
     diesel::update(
       user_mention
         .filter(recipient_id.eq(for_recipient_id))
@@ -78,11 +73,13 @@ impl UserMention {
 
 #[cfg(test)]
 mod tests {
-  use crate::{
-    source::{comment::*, community::*, post::*, user::*, user_mention::*},
-    tests::establish_unpooled_connection,
-    ListingType,
-    SortType,
+  use crate::{tests::establish_unpooled_connection, Crud, ListingType, SortType};
+  use lemmy_db_schema::source::{
+    comment::*,
+    community::{Community, CommunityForm},
+    post::*,
+    user::*,
+    user_mention::*,
   };
 
   #[test]

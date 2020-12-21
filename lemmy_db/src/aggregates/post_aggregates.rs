@@ -1,5 +1,5 @@
-use crate::schema::post_aggregates;
 use diesel::{result::Error, *};
+use lemmy_db_schema::schema::post_aggregates;
 use serde::Serialize;
 
 #[derive(Queryable, Associations, Identifiable, PartialEq, Debug, Serialize, Clone)]
@@ -26,17 +26,17 @@ impl PostAggregates {
 mod tests {
   use crate::{
     aggregates::post_aggregates::PostAggregates,
-    source::{
-      comment::{Comment, CommentForm},
-      community::{Community, CommunityForm},
-      post::{Post, PostForm, PostLike, PostLikeForm},
-      user::{UserForm, User_},
-    },
     tests::establish_unpooled_connection,
     Crud,
     Likeable,
     ListingType,
     SortType,
+  };
+  use lemmy_db_schema::source::{
+    comment::{Comment, CommentForm},
+    community::{Community, CommunityForm},
+    post::{Post, PostForm, PostLike, PostLikeForm},
+    user::{UserForm, User_},
   };
 
   #[test]

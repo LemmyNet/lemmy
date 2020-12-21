@@ -1,15 +1,12 @@
-use crate::{
-  limit_and_offset,
+use crate::{limit_and_offset, views::ViewToVec, MaybeOptional, ToSafe};
+use diesel::{result::Error, *};
+use lemmy_db_schema::{
   schema::{private_message, user_, user_alias_1},
   source::{
     private_message::PrivateMessage,
     user::{UserAlias1, UserSafe, UserSafeAlias1, User_},
   },
-  views::ViewToVec,
-  MaybeOptional,
-  ToSafe,
 };
-use diesel::{result::Error, *};
 use serde::Serialize;
 
 #[derive(Debug, PartialEq, Serialize, Clone)]

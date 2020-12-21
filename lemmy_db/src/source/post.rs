@@ -1,116 +1,64 @@
-use crate::{
-  naive_now,
-  schema::{post, post_like, post_read, post_saved},
-  ApubObject,
-  Crud,
-  Likeable,
-  Readable,
-  Saveable,
-};
+use crate::{ApubObject, Crud, Likeable, Readable, Saveable};
 use diesel::{dsl::*, result::Error, *};
-use serde::Serialize;
-use url::{ParseError, Url};
-
-#[derive(Clone, Queryable, Identifiable, PartialEq, Debug, Serialize)]
-#[table_name = "post"]
-pub struct Post {
-  pub id: i32,
-  pub name: String,
-  pub url: Option<String>,
-  pub body: Option<String>,
-  pub creator_id: i32,
-  pub community_id: i32,
-  pub removed: bool,
-  pub locked: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub deleted: bool,
-  pub nsfw: bool,
-  pub stickied: bool,
-  pub embed_title: Option<String>,
-  pub embed_description: Option<String>,
-  pub embed_html: Option<String>,
-  pub thumbnail_url: Option<String>,
-  pub ap_id: String,
-  pub local: bool,
-}
-
-#[derive(Insertable, AsChangeset)]
-#[table_name = "post"]
-pub struct PostForm {
-  pub name: String,
-  pub url: Option<String>,
-  pub body: Option<String>,
-  pub creator_id: i32,
-  pub community_id: i32,
-  pub removed: Option<bool>,
-  pub locked: Option<bool>,
-  pub published: Option<chrono::NaiveDateTime>,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub deleted: Option<bool>,
-  pub nsfw: bool,
-  pub stickied: Option<bool>,
-  pub embed_title: Option<String>,
-  pub embed_description: Option<String>,
-  pub embed_html: Option<String>,
-  pub thumbnail_url: Option<String>,
-  pub ap_id: Option<String>,
-  pub local: bool,
-}
-
-impl PostForm {
-  pub fn get_ap_id(&self) -> Result<Url, ParseError> {
-    Url::parse(&self.ap_id.as_ref().unwrap_or(&"not_a_url".to_string()))
-  }
-}
+use lemmy_db_schema::{
+  naive_now,
+  source::post::{
+    Post,
+    PostForm,
+    PostLike,
+    PostLikeForm,
+    PostRead,
+    PostReadForm,
+    PostSaved,
+    PostSavedForm,
+  },
+};
 
 impl Crud<PostForm> for Post {
   fn read(conn: &PgConnection, post_id: i32) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
+    use lemmy_db_schema::schema::post::dsl::*;
     post.find(post_id).first::<Self>(conn)
   }
 
   fn delete(conn: &PgConnection, post_id: i32) -> Result<usize, Error> {
-    use crate::schema::post::dsl::*;
+    use lemmy_db_schema::schema::post::dsl::*;
     diesel::delete(post.find(post_id)).execute(conn)
   }
 
   fn create(conn: &PgConnection, new_post: &PostForm) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
+    use lemmy_db_schema::schema::post::dsl::*;
     insert_into(post).values(new_post).get_result::<Self>(conn)
   }
 
   fn update(conn: &PgConnection, post_id: i32, new_post: &PostForm) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
+    use lemmy_db_schema::schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set(new_post)
       .get_result::<Self>(conn)
   }
 }
 
-impl ApubObject<PostForm> for Post {
-  fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
-    post.filter(ap_id.eq(object_id)).first::<Self>(conn)
-  }
-
-  fn upsert(conn: &PgConnection, post_form: &PostForm) -> Result<Post, Error> {
-    use crate::schema::post::dsl::*;
-    insert_into(post)
-      .values(post_form)
-      .on_conflict(ap_id)
-      .do_update()
-      .set(post_form)
-      .get_result::<Self>(conn)
-  }
+pub trait Post_ {
+  //fn read(conn: &PgConnection, post_id: i32) -> Result<Post, Error>;
+  fn list_for_community(conn: &PgConnection, the_community_id: i32) -> Result<Vec<Post>, Error>;
+  fn update_ap_id(conn: &PgConnection, post_id: i32, apub_id: String) -> Result<Post, Error>;
+  fn permadelete_for_creator(conn: &PgConnection, for_creator_id: i32) -> Result<Vec<Post>, Error>;
+  fn update_deleted(conn: &PgConnection, post_id: i32, new_deleted: bool) -> Result<Post, Error>;
+  fn update_removed(conn: &PgConnection, post_id: i32, new_removed: bool) -> Result<Post, Error>;
+  fn update_removed_for_creator(
+    conn: &PgConnection,
+    for_creator_id: i32,
+    for_community_id: Option<i32>,
+    new_removed: bool,
+  ) -> Result<Vec<Post>, Error>;
+  fn update_locked(conn: &PgConnection, post_id: i32, new_locked: bool) -> Result<Post, Error>;
+  fn update_stickied(conn: &PgConnection, post_id: i32, new_stickied: bool) -> Result<Post, Error>;
+  fn is_post_creator(user_id: i32, post_creator_id: i32) -> bool;
 }
 
-impl Post {
-  pub fn list_for_community(
-    conn: &PgConnection,
-    the_community_id: i32,
-  ) -> Result<Vec<Self>, Error> {
-    use crate::schema::post::dsl::*;
+impl Post_ for Post {
+  fn list_for_community(conn: &PgConnection, the_community_id: i32) -> Result<Vec<Self>, Error> {
+    use lemmy_db_schema::schema::post::dsl::*;
     post
       .filter(community_id.eq(the_community_id))
       .then_order_by(published.desc())
@@ -119,19 +67,16 @@ impl Post {
       .load::<Self>(conn)
   }
 
-  pub fn update_ap_id(conn: &PgConnection, post_id: i32, apub_id: String) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
+  fn update_ap_id(conn: &PgConnection, post_id: i32, apub_id: String) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::post::dsl::*;
 
     diesel::update(post.find(post_id))
       .set(ap_id.eq(apub_id))
       .get_result::<Self>(conn)
   }
 
-  pub fn permadelete_for_creator(
-    conn: &PgConnection,
-    for_creator_id: i32,
-  ) -> Result<Vec<Self>, Error> {
-    use crate::schema::post::dsl::*;
+  fn permadelete_for_creator(conn: &PgConnection, for_creator_id: i32) -> Result<Vec<Self>, Error> {
+    use lemmy_db_schema::schema::post::dsl::*;
 
     let perma_deleted = "*Permananently Deleted*";
     let perma_deleted_url = "https://deleted.com";
@@ -147,35 +92,27 @@ impl Post {
       .get_results::<Self>(conn)
   }
 
-  pub fn update_deleted(
-    conn: &PgConnection,
-    post_id: i32,
-    new_deleted: bool,
-  ) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
+  fn update_deleted(conn: &PgConnection, post_id: i32, new_deleted: bool) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set((deleted.eq(new_deleted), updated.eq(naive_now())))
       .get_result::<Self>(conn)
   }
 
-  pub fn update_removed(
-    conn: &PgConnection,
-    post_id: i32,
-    new_removed: bool,
-  ) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
+  fn update_removed(conn: &PgConnection, post_id: i32, new_removed: bool) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set((removed.eq(new_removed), updated.eq(naive_now())))
       .get_result::<Self>(conn)
   }
 
-  pub fn update_removed_for_creator(
+  fn update_removed_for_creator(
     conn: &PgConnection,
     for_creator_id: i32,
     for_community_id: Option<i32>,
     new_removed: bool,
   ) -> Result<Vec<Self>, Error> {
-    use crate::schema::post::dsl::*;
+    use lemmy_db_schema::schema::post::dsl::*;
 
     let mut update = diesel::update(post).into_boxed();
     update = update.filter(creator_id.eq(for_creator_id));
@@ -189,51 +126,45 @@ impl Post {
       .get_results::<Self>(conn)
   }
 
-  pub fn update_locked(conn: &PgConnection, post_id: i32, new_locked: bool) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
+  fn update_locked(conn: &PgConnection, post_id: i32, new_locked: bool) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set(locked.eq(new_locked))
       .get_result::<Self>(conn)
   }
 
-  pub fn update_stickied(
-    conn: &PgConnection,
-    post_id: i32,
-    new_stickied: bool,
-  ) -> Result<Self, Error> {
-    use crate::schema::post::dsl::*;
+  fn update_stickied(conn: &PgConnection, post_id: i32, new_stickied: bool) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::post::dsl::*;
     diesel::update(post.find(post_id))
       .set(stickied.eq(new_stickied))
       .get_result::<Self>(conn)
   }
 
-  pub fn is_post_creator(user_id: i32, post_creator_id: i32) -> bool {
+  fn is_post_creator(user_id: i32, post_creator_id: i32) -> bool {
     user_id == post_creator_id
   }
 }
 
-#[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
-#[belongs_to(Post)]
-#[table_name = "post_like"]
-pub struct PostLike {
-  pub id: i32,
-  pub post_id: i32,
-  pub user_id: i32,
-  pub score: i16,
-  pub published: chrono::NaiveDateTime,
-}
+impl ApubObject<PostForm> for Post {
+  fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::post::dsl::*;
+    post.filter(ap_id.eq(object_id)).first::<Self>(conn)
+  }
 
-#[derive(Insertable, AsChangeset, Clone)]
-#[table_name = "post_like"]
-pub struct PostLikeForm {
-  pub post_id: i32,
-  pub user_id: i32,
-  pub score: i16,
+  fn upsert(conn: &PgConnection, post_form: &PostForm) -> Result<Post, Error> {
+    use lemmy_db_schema::schema::post::dsl::*;
+    insert_into(post)
+      .values(post_form)
+      .on_conflict(ap_id)
+      .do_update()
+      .set(post_form)
+      .get_result::<Self>(conn)
+  }
 }
 
 impl Likeable<PostLikeForm> for PostLike {
   fn like(conn: &PgConnection, post_like_form: &PostLikeForm) -> Result<Self, Error> {
-    use crate::schema::post_like::dsl::*;
+    use lemmy_db_schema::schema::post_like::dsl::*;
     insert_into(post_like)
       .values(post_like_form)
       .on_conflict((post_id, user_id))
@@ -242,7 +173,7 @@ impl Likeable<PostLikeForm> for PostLike {
       .get_result::<Self>(conn)
   }
   fn remove(conn: &PgConnection, user_id: i32, post_id: i32) -> Result<usize, Error> {
-    use crate::schema::post_like::dsl;
+    use lemmy_db_schema::schema::post_like::dsl;
     diesel::delete(
       dsl::post_like
         .filter(dsl::post_id.eq(post_id))
@@ -252,26 +183,9 @@ impl Likeable<PostLikeForm> for PostLike {
   }
 }
 
-#[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
-#[belongs_to(Post)]
-#[table_name = "post_saved"]
-pub struct PostSaved {
-  pub id: i32,
-  pub post_id: i32,
-  pub user_id: i32,
-  pub published: chrono::NaiveDateTime,
-}
-
-#[derive(Insertable, AsChangeset)]
-#[table_name = "post_saved"]
-pub struct PostSavedForm {
-  pub post_id: i32,
-  pub user_id: i32,
-}
-
 impl Saveable<PostSavedForm> for PostSaved {
   fn save(conn: &PgConnection, post_saved_form: &PostSavedForm) -> Result<Self, Error> {
-    use crate::schema::post_saved::dsl::*;
+    use lemmy_db_schema::schema::post_saved::dsl::*;
     insert_into(post_saved)
       .values(post_saved_form)
       .on_conflict((post_id, user_id))
@@ -280,7 +194,7 @@ impl Saveable<PostSavedForm> for PostSaved {
       .get_result::<Self>(conn)
   }
   fn unsave(conn: &PgConnection, post_saved_form: &PostSavedForm) -> Result<usize, Error> {
-    use crate::schema::post_saved::dsl::*;
+    use lemmy_db_schema::schema::post_saved::dsl::*;
     diesel::delete(
       post_saved
         .filter(post_id.eq(post_saved_form.post_id))
@@ -290,37 +204,16 @@ impl Saveable<PostSavedForm> for PostSaved {
   }
 }
 
-#[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
-#[belongs_to(Post)]
-#[table_name = "post_read"]
-pub struct PostRead {
-  pub id: i32,
-
-  pub post_id: i32,
-
-  pub user_id: i32,
-
-  pub published: chrono::NaiveDateTime,
-}
-
-#[derive(Insertable, AsChangeset)]
-#[table_name = "post_read"]
-pub struct PostReadForm {
-  pub post_id: i32,
-
-  pub user_id: i32,
-}
-
 impl Readable<PostReadForm> for PostRead {
   fn mark_as_read(conn: &PgConnection, post_read_form: &PostReadForm) -> Result<Self, Error> {
-    use crate::schema::post_read::dsl::*;
+    use lemmy_db_schema::schema::post_read::dsl::*;
     insert_into(post_read)
       .values(post_read_form)
       .get_result::<Self>(conn)
   }
 
   fn mark_as_unread(conn: &PgConnection, post_read_form: &PostReadForm) -> Result<usize, Error> {
-    use crate::schema::post_read::dsl::*;
+    use lemmy_db_schema::schema::post_read::dsl::*;
     diesel::delete(
       post_read
         .filter(post_id.eq(post_read_form.post_id))
@@ -332,11 +225,10 @@ impl Readable<PostReadForm> for PostRead {
 
 #[cfg(test)]
 mod tests {
-  use crate::{
-    source::{community::*, post::*, user::*},
-    tests::establish_unpooled_connection,
-    ListingType,
-    SortType,
+  use crate::{source::post::*, tests::establish_unpooled_connection, ListingType, SortType};
+  use lemmy_db_schema::source::{
+    community::{Community, CommunityForm},
+    user::*,
   };
 
   #[test]

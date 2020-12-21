@@ -22,11 +22,10 @@ use activitystreams::{
 };
 use activitystreams_ext::Ext2;
 use anyhow::Context;
-use lemmy_db::{
+use lemmy_db::{views::community::community_moderator_view::CommunityModeratorView, DbPool};
+use lemmy_db_schema::{
   naive_now,
   source::community::{Community, CommunityForm},
-  views::community::community_moderator_view::CommunityModeratorView,
-  DbPool,
 };
 use lemmy_structs::blocking;
 use lemmy_utils::{

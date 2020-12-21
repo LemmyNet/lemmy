@@ -12,6 +12,7 @@ path = "src/lib.rs"
 lemmy_utils = { path = "../lemmy_utils" }
 lemmy_structs = { path = "../lemmy_structs" }
 lemmy_db = { path = "../lemmy_db" }
+lemmy_db_schema = { path = "../lemmy_db_schema" }
 lemmy_rate_limit = { path = "../lemmy_rate_limit" }
 reqwest = { version = "0.10.10", features = ["json"] }
 log = "0.4.11"

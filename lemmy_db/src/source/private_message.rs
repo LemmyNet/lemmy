@@ -1,44 +1,15 @@
-use crate::{naive_now, schema::private_message, ApubObject, Crud};
+use crate::{ApubObject, Crud};
 use diesel::{dsl::*, result::Error, *};
-use serde::Serialize;
-
-#[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
-#[table_name = "private_message"]
-pub struct PrivateMessage {
-  pub id: i32,
-  pub creator_id: i32,
-  pub recipient_id: i32,
-  pub content: String,
-  pub deleted: bool,
-  pub read: bool,
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub ap_id: String,
-  pub local: bool,
-}
-
-#[derive(Insertable, AsChangeset)]
-#[table_name = "private_message"]
-pub struct PrivateMessageForm {
-  pub creator_id: i32,
-  pub recipient_id: i32,
-  pub content: String,
-  pub deleted: Option<bool>,
-  pub read: Option<bool>,
-  pub published: Option<chrono::NaiveDateTime>,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub ap_id: Option<String>,
-  pub local: bool,
-}
+use lemmy_db_schema::{naive_now, source::private_message::*};
 
 impl Crud<PrivateMessageForm> for PrivateMessage {
   fn read(conn: &PgConnection, private_message_id: i32) -> Result<Self, Error> {
-    use crate::schema::private_message::dsl::*;
+    use lemmy_db_schema::schema::private_message::dsl::*;
     private_message.find(private_message_id).first::<Self>(conn)
   }
 
   fn create(conn: &PgConnection, private_message_form: &PrivateMessageForm) -> Result<Self, Error> {
-    use crate::schema::private_message::dsl::*;
+    use lemmy_db_schema::schema::private_message::dsl::*;
     insert_into(private_message)
       .values(private_message_form)
       .get_result::<Self>(conn)
@@ -49,7 +20,7 @@ impl Crud<PrivateMessageForm> for PrivateMessage {
     private_message_id: i32,
     private_message_form: &PrivateMessageForm,
   ) -> Result<Self, Error> {
-    use crate::schema::private_message::dsl::*;
+    use lemmy_db_schema::schema::private_message::dsl::*;
     diesel::update(private_message.find(private_message_id))
       .set(private_message_form)
       .get_result::<Self>(conn)
@@ -61,14 +32,14 @@ impl ApubObject<PrivateMessageForm> for PrivateMessage {
   where
     Self: Sized,
   {
-    use crate::schema::private_message::dsl::*;
+    use lemmy_db_schema::schema::private_message::dsl::*;
     private_message
       .filter(ap_id.eq(object_id))
       .first::<Self>(conn)
   }
 
   fn upsert(conn: &PgConnection, private_message_form: &PrivateMessageForm) -> Result<Self, Error> {
-    use crate::schema::private_message::dsl::*;
+    use lemmy_db_schema::schema::private_message::dsl::*;
     insert_into(private_message)
       .values(private_message_form)
       .on_conflict(ap_id)
@@ -78,54 +49,84 @@ impl ApubObject<PrivateMessageForm> for PrivateMessage {
   }
 }
 
-impl PrivateMessage {
-  pub fn update_ap_id(
+pub trait PrivateMessage_ {
+  fn update_ap_id(
     conn: &PgConnection,
     private_message_id: i32,
     apub_id: String,
-  ) -> Result<Self, Error> {
-    use crate::schema::private_message::dsl::*;
+  ) -> Result<PrivateMessage, Error>;
+  fn update_content(
+    conn: &PgConnection,
+    private_message_id: i32,
+    new_content: &str,
+  ) -> Result<PrivateMessage, Error>;
+  fn update_deleted(
+    conn: &PgConnection,
+    private_message_id: i32,
+    new_deleted: bool,
+  ) -> Result<PrivateMessage, Error>;
+  fn update_read(
+    conn: &PgConnection,
+    private_message_id: i32,
+    new_read: bool,
+  ) -> Result<PrivateMessage, Error>;
+  fn mark_all_as_read(
+    conn: &PgConnection,
+    for_recipient_id: i32,
+  ) -> Result<Vec<PrivateMessage>, Error>;
+}
+
+impl PrivateMessage_ for PrivateMessage {
+  fn update_ap_id(
+    conn: &PgConnection,
+    private_message_id: i32,
+    apub_id: String,
+  ) -> Result<PrivateMessage, Error> {
+    use lemmy_db_schema::schema::private_message::dsl::*;
 
     diesel::update(private_message.find(private_message_id))
       .set(ap_id.eq(apub_id))
       .get_result::<Self>(conn)
   }
 
-  pub fn update_content(
+  fn update_content(
     conn: &PgConnection,
     private_message_id: i32,
     new_content: &str,
-  ) -> Result<Self, Error> {
-    use crate::schema::private_message::dsl::*;
+  ) -> Result<PrivateMessage, Error> {
+    use lemmy_db_schema::schema::private_message::dsl::*;
     diesel::update(private_message.find(private_message_id))
       .set((content.eq(new_content), updated.eq(naive_now())))
       .get_result::<Self>(conn)
   }
 
-  pub fn update_deleted(
+  fn update_deleted(
     conn: &PgConnection,
     private_message_id: i32,
     new_deleted: bool,
-  ) -> Result<Self, Error> {
-    use crate::schema::private_message::dsl::*;
+  ) -> Result<PrivateMessage, Error> {
+    use lemmy_db_schema::schema::private_message::dsl::*;
     diesel::update(private_message.find(private_message_id))
       .set(deleted.eq(new_deleted))
       .get_result::<Self>(conn)
   }
 
-  pub fn update_read(
+  fn update_read(
     conn: &PgConnection,
     private_message_id: i32,
     new_read: bool,
-  ) -> Result<Self, Error> {
-    use crate::schema::private_message::dsl::*;
+  ) -> Result<PrivateMessage, Error> {
+    use lemmy_db_schema::schema::private_message::dsl::*;
     diesel::update(private_message.find(private_message_id))
       .set(read.eq(new_read))
       .get_result::<Self>(conn)
   }
 
-  pub fn mark_all_as_read(conn: &PgConnection, for_recipient_id: i32) -> Result<Vec<Self>, Error> {
-    use crate::schema::private_message::dsl::*;
+  fn mark_all_as_read(
+    conn: &PgConnection,
+    for_recipient_id: i32,
+  ) -> Result<Vec<PrivateMessage>, Error> {
+    use lemmy_db_schema::schema::private_message::dsl::*;
     diesel::update(
       private_message
         .filter(recipient_id.eq(for_recipient_id))
@@ -138,12 +139,8 @@ impl PrivateMessage {
 
 #[cfg(test)]
 mod tests {
-  use crate::{
-    source::{private_message::*, user::*},
-    tests::establish_unpooled_connection,
-    ListingType,
-    SortType,
-  };
+  use crate::{tests::establish_unpooled_connection, ListingType, SortType};
+  use lemmy_db_schema::source::{private_message::*, user::*};
 
   #[test]
   fn test_crud() {

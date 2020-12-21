@@ -5,15 +5,12 @@ pub mod site;
 pub mod user;
 
 use diesel::PgConnection;
-use lemmy_db::{
-  source::{
-    comment::Comment,
-    post::Post,
-    user::User_,
-    user_mention::{UserMention, UserMentionForm},
-  },
-  Crud,
-  DbPool,
+use lemmy_db::{source::user::User, Crud, DbPool};
+use lemmy_db_schema::source::{
+  comment::Comment,
+  post::Post,
+  user::User_,
+  user_mention::{UserMention, UserMentionForm},
 };
 use lemmy_utils::{email::send_email, settings::Settings, utils::MentionData, LemmyError};
 use log::error;

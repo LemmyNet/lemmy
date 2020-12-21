@@ -4,6 +4,10 @@ use diesel::{
   *,
 };
 use lemmy_db::{
+  source::{comment::Comment_, post::Post_, private_message::PrivateMessage_},
+  Crud,
+};
+use lemmy_db_schema::{
   naive_now,
   source::{
     comment::Comment,
@@ -12,7 +16,6 @@ use lemmy_db::{
     private_message::PrivateMessage,
     user::{UserForm, User_},
   },
-  Crud,
 };
 use lemmy_utils::{
   apub::{generate_actor_keypair, make_apub_endpoint, EndpointType},
@@ -33,7 +36,7 @@ pub fn run_advanced_migrations(conn: &PgConnection) -> Result<(), LemmyError> {
 }
 
 fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
-  use lemmy_db::schema::user_::dsl::*;
+  use lemmy_db_schema::schema::user_::dsl::*;
 
   info!("Running user_updates_2020_04_02");
 
@@ -82,7 +85,7 @@ fn user_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
 }
 
 fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
-  use lemmy_db::schema::community::dsl::*;
+  use lemmy_db_schema::schema::community::dsl::*;
 
   info!("Running community_updates_2020_04_02");
 
@@ -124,7 +127,7 @@ fn community_updates_2020_04_02(conn: &PgConnection) -> Result<(), LemmyError> {
 }
 
 fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
-  use lemmy_db::schema::post::dsl::*;
+  use lemmy_db_schema::schema::post::dsl::*;
 
   info!("Running post_updates_2020_04_03");
 
@@ -145,7 +148,7 @@ fn post_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
 }
 
 fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
-  use lemmy_db::schema::comment::dsl::*;
+  use lemmy_db_schema::schema::comment::dsl::*;
 
   info!("Running comment_updates_2020_04_03");
 
@@ -166,7 +169,7 @@ fn comment_updates_2020_04_03(conn: &PgConnection) -> Result<(), LemmyError> {
 }
 
 fn private_message_updates_2020_05_05(conn: &PgConnection) -> Result<(), LemmyError> {
-  use lemmy_db::schema::private_message::dsl::*;
+  use lemmy_db_schema::schema::private_message::dsl::*;
 
   info!("Running private_message_updates_2020_05_05");
 
@@ -187,7 +190,7 @@ fn private_message_updates_2020_05_05(conn: &PgConnection) -> Result<(), LemmyEr
 }
 
 fn post_thumbnail_url_updates_2020_07_27(conn: &PgConnection) -> Result<(), LemmyError> {
-  use lemmy_db::schema::post::dsl::*;
+  use lemmy_db_schema::schema::post::dsl::*;
 
   info!("Running post_thumbnail_url_updates_2020_07_27");
 

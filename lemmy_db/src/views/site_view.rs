@@ -1,13 +1,12 @@
-use crate::{
-  aggregates::site_aggregates::SiteAggregates,
+use crate::{aggregates::site_aggregates::SiteAggregates, ToSafe};
+use diesel::{result::Error, *};
+use lemmy_db_schema::{
   schema::{site, site_aggregates, user_},
   source::{
     site::Site,
     user::{UserSafe, User_},
   },
-  ToSafe,
 };
-use diesel::{result::Error, *};
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Clone)]

@@ -1,5 +1,6 @@
-use crate::{
-  limit_and_offset,
+use crate::{limit_and_offset, views::ViewToVec, ToSafe};
+use diesel::{result::Error, *};
+use lemmy_db_schema::{
   schema::{community, mod_sticky_post, post, user_},
   source::{
     community::{Community, CommunitySafe},
@@ -7,10 +8,7 @@ use crate::{
     post::Post,
     user::{UserSafe, User_},
   },
-  views::ViewToVec,
-  ToSafe,
 };
-use diesel::{result::Error, *};
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Clone)]

@@ -2,14 +2,16 @@ use crate::{
   aggregates::user_aggregates::UserAggregates,
   fuzzy_search,
   limit_and_offset,
-  schema::{user_, user_aggregates},
-  source::user::{UserSafe, User_},
   views::ViewToVec,
   MaybeOptional,
   SortType,
   ToSafe,
 };
 use diesel::{dsl::*, result::Error, *};
+use lemmy_db_schema::{
+  schema::{user_, user_aggregates},
+  source::user::{UserSafe, User_},
+};
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Clone)]

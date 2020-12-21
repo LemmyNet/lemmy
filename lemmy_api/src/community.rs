@@ -11,8 +11,11 @@ use anyhow::Context;
 use lemmy_apub::ActorType;
 use lemmy_db::{
   diesel_option_overwrite,
-  naive_now,
-  source::{comment::Comment, community::*, moderator::*, post::Post, site::*},
+  source::{
+    comment::Comment_,
+    community::{CommunityModerator_, Community_},
+    post::Post_,
+  },
   views::{
     comment_view::CommentQueryBuilder,
     community::{
@@ -28,6 +31,10 @@ use lemmy_db::{
   Followable,
   Joinable,
   SortType,
+};
+use lemmy_db_schema::{
+  naive_now,
+  source::{comment::Comment, community::*, moderator::*, post::Post, site::*},
 };
 use lemmy_structs::{blocking, community::*};
 use lemmy_utils::{

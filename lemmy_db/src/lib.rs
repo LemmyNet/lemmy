@@ -9,14 +9,12 @@ extern crate lazy_static;
 #[macro_use]
 extern crate diesel_migrations;
 
-use chrono::NaiveDateTime;
 use diesel::{result::Error, *};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{env, env::VarError};
 
 pub mod aggregates;
-pub mod schema;
 pub mod source;
 pub mod views;
 
@@ -184,10 +182,6 @@ pub fn limit_and_offset(page: Option<i64>, limit: Option<i64>) -> (i64, i64) {
   let limit = limit.unwrap_or(10);
   let offset = limit * (page - 1);
   (limit, offset)
-}
-
-pub fn naive_now() -> NaiveDateTime {
-  chrono::prelude::Utc::now().naive_utc()
 }
 
 pub fn is_email_regex(test: &str) -> bool {

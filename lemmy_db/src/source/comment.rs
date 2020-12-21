@@ -1,94 +1,131 @@
-use super::post::Post;
-use crate::{
-  naive_now,
-  schema::{comment, comment_alias_1, comment_like, comment_saved},
-  ApubObject,
-  Crud,
-  Likeable,
-  Saveable,
-};
+use crate::{ApubObject, Crud, Likeable, Saveable};
 use diesel::{dsl::*, result::Error, *};
-use serde::Serialize;
-use url::{ParseError, Url};
+use lemmy_db_schema::{
+  naive_now,
+  source::comment::{
+    Comment,
+    CommentForm,
+    CommentLike,
+    CommentLikeForm,
+    CommentSaved,
+    CommentSavedForm,
+  },
+};
 
-// WITH RECURSIVE MyTree AS (
-//     SELECT * FROM comment WHERE parent_id IS NULL
-//     UNION ALL
-//     SELECT m.* FROM comment AS m JOIN MyTree AS t ON m.parent_id = t.id
-// )
-// SELECT * FROM MyTree;
-
-#[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
-#[belongs_to(Post)]
-#[table_name = "comment"]
-pub struct Comment {
-  pub id: i32,
-  pub creator_id: i32,
-  pub post_id: i32,
-  pub parent_id: Option<i32>,
-  pub content: String,
-  pub removed: bool,
-  pub read: bool, // Whether the recipient has read the comment or not
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub deleted: bool,
-  pub ap_id: String,
-  pub local: bool,
+pub trait Comment_ {
+  fn update_ap_id(conn: &PgConnection, comment_id: i32, apub_id: String) -> Result<Comment, Error>;
+  fn permadelete_for_creator(
+    conn: &PgConnection,
+    for_creator_id: i32,
+  ) -> Result<Vec<Comment>, Error>;
+  fn update_deleted(
+    conn: &PgConnection,
+    comment_id: i32,
+    new_deleted: bool,
+  ) -> Result<Comment, Error>;
+  fn update_removed(
+    conn: &PgConnection,
+    comment_id: i32,
+    new_removed: bool,
+  ) -> Result<Comment, Error>;
+  fn update_removed_for_creator(
+    conn: &PgConnection,
+    for_creator_id: i32,
+    new_removed: bool,
+  ) -> Result<Vec<Comment>, Error>;
+  fn update_read(conn: &PgConnection, comment_id: i32, new_read: bool) -> Result<Comment, Error>;
+  fn update_content(
+    conn: &PgConnection,
+    comment_id: i32,
+    new_content: &str,
+  ) -> Result<Comment, Error>;
 }
 
-#[derive(Clone, Queryable, Associations, Identifiable, PartialEq, Debug, Serialize)]
-#[belongs_to(Post)]
-#[table_name = "comment_alias_1"]
-pub struct CommentAlias1 {
-  pub id: i32,
-  pub creator_id: i32,
-  pub post_id: i32,
-  pub parent_id: Option<i32>,
-  pub content: String,
-  pub removed: bool,
-  pub read: bool, // Whether the recipient has read the comment or not
-  pub published: chrono::NaiveDateTime,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub deleted: bool,
-  pub ap_id: String,
-  pub local: bool,
-}
+impl Comment_ for Comment {
+  fn update_ap_id(conn: &PgConnection, comment_id: i32, apub_id: String) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::comment::dsl::*;
 
-#[derive(Insertable, AsChangeset, Clone)]
-#[table_name = "comment"]
-pub struct CommentForm {
-  pub creator_id: i32,
-  pub post_id: i32,
-  pub parent_id: Option<i32>,
-  pub content: String,
-  pub removed: Option<bool>,
-  pub read: Option<bool>,
-  pub published: Option<chrono::NaiveDateTime>,
-  pub updated: Option<chrono::NaiveDateTime>,
-  pub deleted: Option<bool>,
-  pub ap_id: Option<String>,
-  pub local: bool,
-}
+    diesel::update(comment.find(comment_id))
+      .set(ap_id.eq(apub_id))
+      .get_result::<Self>(conn)
+  }
 
-impl CommentForm {
-  pub fn get_ap_id(&self) -> Result<Url, ParseError> {
-    Url::parse(&self.ap_id.as_ref().unwrap_or(&"not_a_url".to_string()))
+  fn permadelete_for_creator(conn: &PgConnection, for_creator_id: i32) -> Result<Vec<Self>, Error> {
+    use lemmy_db_schema::schema::comment::dsl::*;
+    diesel::update(comment.filter(creator_id.eq(for_creator_id)))
+      .set((
+        content.eq("*Permananently Deleted*"),
+        deleted.eq(true),
+        updated.eq(naive_now()),
+      ))
+      .get_results::<Self>(conn)
+  }
+
+  fn update_deleted(
+    conn: &PgConnection,
+    comment_id: i32,
+    new_deleted: bool,
+  ) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::comment::dsl::*;
+    diesel::update(comment.find(comment_id))
+      .set((deleted.eq(new_deleted), updated.eq(naive_now())))
+      .get_result::<Self>(conn)
+  }
+
+  fn update_removed(
+    conn: &PgConnection,
+    comment_id: i32,
+    new_removed: bool,
+  ) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::comment::dsl::*;
+    diesel::update(comment.find(comment_id))
+      .set((removed.eq(new_removed), updated.eq(naive_now())))
+      .get_result::<Self>(conn)
+  }
+
+  fn update_removed_for_creator(
+    conn: &PgConnection,
+    for_creator_id: i32,
+    new_removed: bool,
+  ) -> Result<Vec<Self>, Error> {
+    use lemmy_db_schema::schema::comment::dsl::*;
+    diesel::update(comment.filter(creator_id.eq(for_creator_id)))
+      .set((removed.eq(new_removed), updated.eq(naive_now())))
+      .get_results::<Self>(conn)
+  }
+
+  fn update_read(conn: &PgConnection, comment_id: i32, new_read: bool) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::comment::dsl::*;
+    diesel::update(comment.find(comment_id))
+      .set(read.eq(new_read))
+      .get_result::<Self>(conn)
+  }
+
+  fn update_content(
+    conn: &PgConnection,
+    comment_id: i32,
+    new_content: &str,
+  ) -> Result<Self, Error> {
+    use lemmy_db_schema::schema::comment::dsl::*;
+    diesel::update(comment.find(comment_id))
+      .set((content.eq(new_content), updated.eq(naive_now())))
+      .get_result::<Self>(conn)
   }
 }
 
 impl Crud<CommentForm> for Comment {
   fn read(conn: &PgConnection, comment_id: i32) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
+    use lemmy_db_schema::schema::comment::dsl::*;
     comment.find(comment_id).first::<Self>(conn)
   }
 
   fn delete(conn: &PgConnection, comment_id: i32) -> Result<usize, Error> {
-    use crate::schema::comment::dsl::*;
+    use lemmy_db_schema::schema::comment::dsl::*;
     diesel::delete(comment.find(comment_id)).execute(conn)
   }
 
   fn create(conn: &PgConnection, comment_form: &CommentForm) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
+    use lemmy_db_schema::schema::comment::dsl::*;
     insert_into(comment)
       .values(comment_form)
       .get_result::<Self>(conn)
@@ -99,7 +136,7 @@ impl Crud<CommentForm> for Comment {
     comment_id: i32,
     comment_form: &CommentForm,
   ) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
+    use lemmy_db_schema::schema::comment::dsl::*;
     diesel::update(comment.find(comment_id))
       .set(comment_form)
       .get_result::<Self>(conn)
@@ -108,12 +145,12 @@ impl Crud<CommentForm> for Comment {
 
 impl ApubObject<CommentForm> for Comment {
   fn read_from_apub_id(conn: &PgConnection, object_id: &str) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
+    use lemmy_db_schema::schema::comment::dsl::*;
     comment.filter(ap_id.eq(object_id)).first::<Self>(conn)
   }
 
   fn upsert(conn: &PgConnection, comment_form: &CommentForm) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
+    use lemmy_db_schema::schema::comment::dsl::*;
     insert_into(comment)
       .values(comment_form)
       .on_conflict(ap_id)
@@ -123,109 +160,9 @@ impl ApubObject<CommentForm> for Comment {
   }
 }
 
-impl Comment {
-  pub fn update_ap_id(
-    conn: &PgConnection,
-    comment_id: i32,
-    apub_id: String,
-  ) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
-
-    diesel::update(comment.find(comment_id))
-      .set(ap_id.eq(apub_id))
-      .get_result::<Self>(conn)
-  }
-
-  pub fn permadelete_for_creator(
-    conn: &PgConnection,
-    for_creator_id: i32,
-  ) -> Result<Vec<Self>, Error> {
-    use crate::schema::comment::dsl::*;
-    diesel::update(comment.filter(creator_id.eq(for_creator_id)))
-      .set((
-        content.eq("*Permananently Deleted*"),
-        deleted.eq(true),
-        updated.eq(naive_now()),
-      ))
-      .get_results::<Self>(conn)
-  }
-
-  pub fn update_deleted(
-    conn: &PgConnection,
-    comment_id: i32,
-    new_deleted: bool,
-  ) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
-    diesel::update(comment.find(comment_id))
-      .set((deleted.eq(new_deleted), updated.eq(naive_now())))
-      .get_result::<Self>(conn)
-  }
-
-  pub fn update_removed(
-    conn: &PgConnection,
-    comment_id: i32,
-    new_removed: bool,
-  ) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
-    diesel::update(comment.find(comment_id))
-      .set((removed.eq(new_removed), updated.eq(naive_now())))
-      .get_result::<Self>(conn)
-  }
-
-  pub fn update_removed_for_creator(
-    conn: &PgConnection,
-    for_creator_id: i32,
-    new_removed: bool,
-  ) -> Result<Vec<Self>, Error> {
-    use crate::schema::comment::dsl::*;
-    diesel::update(comment.filter(creator_id.eq(for_creator_id)))
-      .set((removed.eq(new_removed), updated.eq(naive_now())))
-      .get_results::<Self>(conn)
-  }
-
-  pub fn update_read(conn: &PgConnection, comment_id: i32, new_read: bool) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
-    diesel::update(comment.find(comment_id))
-      .set(read.eq(new_read))
-      .get_result::<Self>(conn)
-  }
-
-  pub fn update_content(
-    conn: &PgConnection,
-    comment_id: i32,
-    new_content: &str,
-  ) -> Result<Self, Error> {
-    use crate::schema::comment::dsl::*;
-    diesel::update(comment.find(comment_id))
-      .set((content.eq(new_content), updated.eq(naive_now())))
-      .get_result::<Self>(conn)
-  }
-}
-
-#[derive(Identifiable, Queryable, Associations, PartialEq, Debug, Clone)]
-#[belongs_to(Comment)]
-#[table_name = "comment_like"]
-pub struct CommentLike {
-  pub id: i32,
-  pub user_id: i32,
-  pub comment_id: i32,
-  pub post_id: i32, // TODO this is redundant
-  pub score: i16,
-  pub published: chrono::NaiveDateTime,
-}
-
-#[derive(Insertable, AsChangeset, Clone)]
-#[table_name = "comment_like"]
-pub struct CommentLikeForm {
-  pub user_id: i32,
-  pub comment_id: i32,
-  pub post_id: i32, // TODO this is redundant
-  pub score: i16,
-}
-
 impl Likeable<CommentLikeForm> for CommentLike {
   fn like(conn: &PgConnection, comment_like_form: &CommentLikeForm) -> Result<Self, Error> {
-    use crate::schema::comment_like::dsl::*;
+    use lemmy_db_schema::schema::comment_like::dsl::*;
     insert_into(comment_like)
       .values(comment_like_form)
       .on_conflict((comment_id, user_id))
@@ -234,7 +171,7 @@ impl Likeable<CommentLikeForm> for CommentLike {
       .get_result::<Self>(conn)
   }
   fn remove(conn: &PgConnection, user_id: i32, comment_id: i32) -> Result<usize, Error> {
-    use crate::schema::comment_like::dsl;
+    use lemmy_db_schema::schema::comment_like::dsl;
     diesel::delete(
       dsl::comment_like
         .filter(dsl::comment_id.eq(comment_id))
@@ -244,26 +181,9 @@ impl Likeable<CommentLikeForm> for CommentLike {
   }
 }
 
-#[derive(Identifiable, Queryable, Associations, PartialEq, Debug)]
-#[belongs_to(Comment)]
-#[table_name = "comment_saved"]
-pub struct CommentSaved {
-  pub id: i32,
-  pub comment_id: i32,
-  pub user_id: i32,
-  pub published: chrono::NaiveDateTime,
-}
-
-#[derive(Insertable, AsChangeset)]
-#[table_name = "comment_saved"]
-pub struct CommentSavedForm {
-  pub comment_id: i32,
-  pub user_id: i32,
-}
-
 impl Saveable<CommentSavedForm> for CommentSaved {
   fn save(conn: &PgConnection, comment_saved_form: &CommentSavedForm) -> Result<Self, Error> {
-    use crate::schema::comment_saved::dsl::*;
+    use lemmy_db_schema::schema::comment_saved::dsl::*;
     insert_into(comment_saved)
       .values(comment_saved_form)
       .on_conflict((comment_id, user_id))
@@ -272,7 +192,7 @@ impl Saveable<CommentSavedForm> for CommentSaved {
       .get_result::<Self>(conn)
   }
   fn unsave(conn: &PgConnection, comment_saved_form: &CommentSavedForm) -> Result<usize, Error> {
-    use crate::schema::comment_saved::dsl::*;
+    use lemmy_db_schema::schema::comment_saved::dsl::*;
     diesel::delete(
       comment_saved
         .filter(comment_id.eq(comment_saved_form.comment_id))
@@ -285,11 +205,18 @@ impl Saveable<CommentSavedForm> for CommentSaved {
 #[cfg(test)]
 mod tests {
   use crate::{
-    source::{comment::*, community::*, post::*, user::*},
     tests::establish_unpooled_connection,
     Crud,
+    Likeable,
     ListingType,
+    Saveable,
     SortType,
+  };
+  use lemmy_db_schema::source::{
+    comment::*,
+    community::{Community, CommunityForm},
+    post::*,
+    user::{UserForm, User_},
   };
 
   #[test]

@@ -28,14 +28,10 @@ use lemmy_apub::{
     user_inbox::user_inbox,
   },
 };
-use lemmy_db::{
-  source::{
-    community::{Community, CommunityForm},
-    user::{User_, *},
-  },
-  Crud,
-  ListingType,
-  SortType,
+use lemmy_db::{Crud, ListingType, SortType};
+use lemmy_db_schema::source::{
+  community::{Community, CommunityForm},
+  user::{UserForm, User_},
 };
 use lemmy_rate_limit::{rate_limiter::RateLimiter, RateLimit};
 use lemmy_utils::{apub::generate_actor_keypair, settings::Settings};

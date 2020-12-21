@@ -1,13 +1,12 @@
-use crate::{
+use crate::{views::ViewToVec, ToSafe};
+use diesel::{result::Error, *};
+use lemmy_db_schema::{
   schema::{community, community_follower, user_},
   source::{
     community::{Community, CommunitySafe},
     user::{UserSafe, User_},
   },
-  views::ViewToVec,
-  ToSafe,
 };
-use diesel::{result::Error, *};
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Clone)]
