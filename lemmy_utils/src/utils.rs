@@ -65,7 +65,11 @@ pub(crate) fn slurs_vec_to_str(slurs: Vec<&str>) -> String {
 }
 
 pub fn generate_random_string() -> String {
-  thread_rng().sample_iter(&Alphanumeric).take(30).collect()
+  thread_rng()
+    .sample_iter(&Alphanumeric)
+    .map(char::from)
+    .take(30)
+    .collect()
 }
 
 pub fn markdown_to_html(text: &str) -> String {

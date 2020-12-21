@@ -14,7 +14,7 @@ chrono = { version = "0.4.19", features = ["serde"] }
 lettre = "0.10.0-alpha.4"
 log = "0.4.11"
 itertools = "0.9.0"
-rand = "0.7.3"
+rand = "0.8.0"
 percent-encoding = "2.1.0"
 serde = { version = "1.0.118", features = ["derive"] }
 serde_json = { version = "1.0.60", features = ["preserve_order"] }
@@ -25,5 +25,5 @@ openssl = "0.10.31"
 url = { version = "2.2.0", features = ["serde"] }
 actix-web = { version = "3.3.2", default-features = false, features = ["rustls"] }
 actix-rt = { version = "1.1.1", default-features = false }
-anyhow = "1.0.35"
+anyhow = "1.0.36"
 reqwest = { version = "0.10.10", features = ["json"] }
