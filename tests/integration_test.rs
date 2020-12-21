@@ -60,10 +60,10 @@ fn create_context() -> LemmyContext {
   let activity_queue = create_activity_queue();
   let chat_server = ChatServer::startup(
     pool.clone(),
-    rate_limiter.clone(),
+    rate_limiter,
     |c, i, o, d| Box::pin(match_websocket_operation(c, i, o, d)),
     Client::default(),
-    activity_queue.clone(),
+    activity_queue,
   )
   .start();
   LemmyContext::create(
@@ -95,7 +95,7 @@ fn create_user(conn: &PgConnection, name: &str) -> User_ {
     lang: "browser".into(),
     show_avatars: true,
     send_notifications_to_email: false,
-    actor_id: Some(format!("http://localhost:8536/u/{}", name).to_string()),
+    actor_id: Some(format!("http://localhost:8536/u/{}", name)),
     bio: None,
     local: true,
     private_key: Some(user_keypair.private_key),
