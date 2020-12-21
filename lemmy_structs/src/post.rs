@@ -1,4 +1,4 @@
-use lemmy_db::views::{
+use lemmy_db_views::{
   comment_view::CommentView,
   community::community_moderator_view::CommunityModeratorView,
   post_report_view::PostReportView,

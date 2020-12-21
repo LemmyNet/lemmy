@@ -1,4 +1,4 @@
-use lemmy_db::views::{
+use lemmy_db_views::{
   community::{
     community_follower_view::CommunityFollowerView,
     community_moderator_view::CommunityModeratorView,

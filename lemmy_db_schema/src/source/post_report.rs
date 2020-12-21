@@ -1,9 +1,7 @@
 use crate::{schema::post_report, source::post::Post};
 use serde::{Deserialize, Serialize};
 
-#[derive(
-  Identifiable, Queryable, Associations, PartialEq, Serialize, Deserialize, Debug, Clone,
-)]
+#[derive(Identifiable, Queryable, Associations, PartialEq, Serialize, Deserialize, Debug, Clone)]
 #[belongs_to(Post)]
 #[table_name = "post_report"]
 pub struct PostReport {

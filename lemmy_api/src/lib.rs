@@ -5,7 +5,6 @@ use lemmy_db::{
     community::{CommunityModerator_, Community_},
     site::Site_,
   },
-  views::community::community_user_ban_view::CommunityUserBanView,
   Crud,
   DbPool,
 };
@@ -14,6 +13,10 @@ use lemmy_db_schema::source::{
   post::Post,
   site::Site,
   user::User_,
+};
+use lemmy_db_views::community::{
+  community_user_ban_view::CommunityUserBanView,
+  community_view::CommunityView,
 };
 use lemmy_structs::{blocking, comment::*, community::*, post::*, site::*, user::*};
 use lemmy_utils::{settings::Settings, APIError, ConnectionId, LemmyError};
@@ -47,7 +50,7 @@ pub(crate) async fn is_mod_or_admin(
   community_id: i32,
 ) -> Result<(), LemmyError> {
   let is_mod_or_admin = blocking(pool, move |conn| {
-    Community::is_mod_or_admin(conn, user_id, community_id)
+    CommunityView::is_mod_or_admin(conn, user_id, community_id)
   })
   .await?;
   if !is_mod_or_admin {

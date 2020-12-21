@@ -16,15 +16,6 @@ use lemmy_db::{
     community::{CommunityModerator_, Community_},
     post::Post_,
   },
-  views::{
-    comment_view::CommentQueryBuilder,
-    community::{
-      community_follower_view::CommunityFollowerView,
-      community_moderator_view::CommunityModeratorView,
-      community_view::{CommunityQueryBuilder, CommunityView},
-    },
-    user_view::UserViewSafe,
-  },
   ApubObject,
   Bannable,
   Crud,
@@ -35,6 +26,15 @@ use lemmy_db::{
 use lemmy_db_schema::{
   naive_now,
   source::{comment::Comment, community::*, moderator::*, post::Post, site::*},
+};
+use lemmy_db_views::{
+  comment_view::CommentQueryBuilder,
+  community::{
+    community_follower_view::CommunityFollowerView,
+    community_moderator_view::CommunityModeratorView,
+    community_view::{CommunityQueryBuilder, CommunityView},
+  },
+  user_view::UserViewSafe,
 };
 use lemmy_structs::{blocking, community::*};
 use lemmy_utils::{

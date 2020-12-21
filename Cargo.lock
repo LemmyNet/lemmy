@@ -1717,8 +1717,9 @@ dependencies = [
  "jsonwebtoken",
  "lazy_static",
  "lemmy_apub",
- "lemmy_db",
+ "lemmy_db_queries",
  "lemmy_db_schema",
+ "lemmy_db_views",
  "lemmy_rate_limit",
  "lemmy_structs",
  "lemmy_utils",
@@ -1762,8 +1763,9 @@ dependencies = [
  "http-signature-normalization-reqwest",
  "itertools",
  "lazy_static",
- "lemmy_db",
+ "lemmy_db_queries",
  "lemmy_db_schema",
+ "lemmy_db_views",
  "lemmy_structs",
  "lemmy_utils",
  "lemmy_websocket",
@@ -1784,7 +1786,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_db"
+name = "lemmy_db_aggregates"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "diesel",
+ "lemmy_db_queries",
+ "lemmy_db_schema",
+ "serde 1.0.118",
+]
+
+[[package]]
+name = "lemmy_db_queries"
 version = "0.1.0"
 dependencies = [
  "bcrypt",
@@ -1814,6 +1827,17 @@ dependencies = [
  "serde 1.0.118",
  "serde_json",
  "url",
+]
+
+[[package]]
+name = "lemmy_db_views"
+version = "0.1.0"
+dependencies = [
+ "diesel",
+ "lemmy_db_aggregates",
+ "lemmy_db_queries",
+ "lemmy_db_schema",
+ "serde 1.0.118",
 ]
 
 [[package]]
@@ -1850,8 +1874,10 @@ dependencies = [
  "lazy_static",
  "lemmy_api",
  "lemmy_apub",
- "lemmy_db",
+ "lemmy_db_aggregates",
+ "lemmy_db_queries",
  "lemmy_db_schema",
+ "lemmy_db_views",
  "lemmy_rate_limit",
  "lemmy_structs",
  "lemmy_utils",
@@ -1875,8 +1901,9 @@ dependencies = [
  "actix-web",
  "chrono",
  "diesel",
- "lemmy_db",
+ "lemmy_db_queries",
  "lemmy_db_schema",
+ "lemmy_db_views",
  "lemmy_utils",
  "log",
  "serde 1.0.118",
@@ -1917,7 +1944,7 @@ dependencies = [
  "background-jobs",
  "chrono",
  "diesel",
- "lemmy_db",
+ "lemmy_db_queries",
  "lemmy_db_schema",
  "lemmy_rate_limit",
  "lemmy_structs",

@@ -11,7 +11,7 @@ members = [
     "lemmy_api",
     "lemmy_apub",
     "lemmy_utils",
-    "lemmy_db",
+    "lemmy_db_queries",
     "lemmy_db_schema",
     "lemmy_structs",
     "lemmy_rate_limit",
@@ -23,7 +23,9 @@ lemmy_api = { path = "./lemmy_api" }
 lemmy_apub = { path = "./lemmy_apub" }
 lemmy_utils = { path = "./lemmy_utils" }
 lemmy_db_schema = { path = "./lemmy_db_schema" }
-lemmy_db = { path = "./lemmy_db" }
+lemmy_db_queries = { path = "lemmy_db_queries" }
+lemmy_db_views = { path = "./lemmy_db_views" }
+lemmy_db_aggregates = { path = "./lemmy_db_aggregates" }
 lemmy_structs = { path = "./lemmy_structs" }
 lemmy_rate_limit = { path = "./lemmy_rate_limit" }
 lemmy_websocket = { path = "./lemmy_websocket" }

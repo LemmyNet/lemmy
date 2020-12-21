@@ -9,7 +9,8 @@ name = "lemmy_structs"
 path = "src/lib.rs"
 
 [dependencies]
-lemmy_db = { path = "../lemmy_db" }
+lemmy_db_queries = { path = "../lemmy_db_queries" }
+lemmy_db_views = { path = "../lemmy_db_views" }
 lemmy_db_schema = { path = "../lemmy_db_schema" }
 lemmy_utils = { path = "../lemmy_utils" }
 serde = { version = "1.0.118", features = ["derive"] }

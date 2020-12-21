@@ -11,8 +11,9 @@ path = "src/lib.rs"
 [dependencies]
 lemmy_apub = { path = "../lemmy_apub" }
 lemmy_utils = { path = "../lemmy_utils" }
-lemmy_db = { path = "../lemmy_db" }
+lemmy_db_queries = { path = "../lemmy_db_queries" }
 lemmy_db_schema = { path = "../lemmy_db_schema" }
+lemmy_db_views = { path = "../lemmy_db_views" }
 lemmy_structs = { path = "../lemmy_structs" }
 lemmy_rate_limit = { path = "../lemmy_rate_limit" }
 lemmy_websocket = { path = "../lemmy_websocket" }
