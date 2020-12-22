@@ -540,7 +540,7 @@ mod tests {
     let expected_post_listing_no_user = PostView {
       post: Post {
         id: inserted_post.id,
-        name: post_name.to_owned(),
+        name: post_name,
         creator_id: inserted_user.id,
         url: None,
         body: None,
@@ -562,7 +562,7 @@ mod tests {
       my_vote: None,
       creator: UserSafe {
         id: inserted_user.id,
-        name: user_name.to_owned(),
+        name: user_name,
         preferred_username: None,
         published: inserted_user.published,
         avatar: None,
@@ -579,7 +579,7 @@ mod tests {
       creator_banned_from_community: false,
       community: CommunitySafe {
         id: inserted_community.id,
-        name: community_name.to_owned(),
+        name: community_name,
         icon: None,
         removed: false,
         deleted: false,
