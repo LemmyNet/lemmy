@@ -153,14 +153,14 @@ impl<'a> PostReportQueryBuilder<'a> {
       .offset(offset)
       .load::<PostReportViewTuple>(self.conn)?;
 
-    Ok(PostReportView::to_vec(res))
+    Ok(PostReportView::from_tuple_to_vec(res))
   }
 }
 
 impl ViewToVec for PostReportView {
   type DbTuple = PostReportViewTuple;
-  fn to_vec(posts: Vec<Self::DbTuple>) -> Vec<Self> {
-    posts
+  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
+    items
       .iter()
       .map(|a| Self {
         post_report: a.0.to_owned(),

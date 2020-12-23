@@ -56,14 +56,14 @@ impl ModBanFromCommunityView {
       .order_by(mod_ban_from_community::when_.desc())
       .load::<ModBanFromCommunityViewTuple>(conn)?;
 
-    Ok(Self::to_vec(res))
+    Ok(Self::from_tuple_to_vec(res))
   }
 }
 
 impl ViewToVec for ModBanFromCommunityView {
   type DbTuple = ModBanFromCommunityViewTuple;
-  fn to_vec(mrp: Vec<Self::DbTuple>) -> Vec<Self> {
-    mrp
+  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
+    items
       .iter()
       .map(|a| Self {
         mod_ban_from_community: a.0.to_owned(),

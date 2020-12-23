@@ -58,7 +58,7 @@ impl UserViewSafe {
       .order_by(user_::published)
       .load::<UserViewSafeTuple>(conn)?;
 
-    Ok(Self::to_vec(admins))
+    Ok(Self::from_tuple_to_vec(admins))
   }
 
   pub fn banned(conn: &PgConnection) -> Result<Vec<Self>, Error> {
@@ -68,7 +68,7 @@ impl UserViewSafe {
       .filter(user_::banned.eq(true))
       .load::<UserViewSafeTuple>(conn)?;
 
-    Ok(Self::to_vec(banned))
+    Ok(Self::from_tuple_to_vec(banned))
   }
 }
 
@@ -149,14 +149,14 @@ impl<'a> UserQueryBuilder<'a> {
 
     let res = query.load::<UserViewSafeTuple>(self.conn)?;
 
-    Ok(UserViewSafe::to_vec(res))
+    Ok(UserViewSafe::from_tuple_to_vec(res))
   }
 }
 
 impl ViewToVec for UserViewSafe {
   type DbTuple = UserViewSafeTuple;
-  fn to_vec(users: Vec<Self::DbTuple>) -> Vec<Self> {
-    users
+  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
+    items
       .iter()
       .map(|a| Self {
         user: a.0.to_owned(),

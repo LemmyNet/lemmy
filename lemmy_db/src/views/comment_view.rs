@@ -391,14 +391,14 @@ impl<'a> CommentQueryBuilder<'a> {
       .offset(offset)
       .load::<CommentViewTuple>(self.conn)?;
 
-    Ok(CommentView::to_vec(res))
+    Ok(CommentView::from_tuple_to_vec(res))
   }
 }
 
 impl ViewToVec for CommentView {
   type DbTuple = CommentViewTuple;
-  fn to_vec(posts: Vec<Self::DbTuple>) -> Vec<Self> {
-    posts
+  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
+    items
       .iter()
       .map(|a| Self {
         comment: a.0.to_owned(),

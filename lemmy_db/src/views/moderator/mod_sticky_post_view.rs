@@ -57,14 +57,14 @@ impl ModStickyPostView {
       .order_by(mod_sticky_post::when_.desc())
       .load::<ModStickyPostViewTuple>(conn)?;
 
-    Ok(Self::to_vec(res))
+    Ok(Self::from_tuple_to_vec(res))
   }
 }
 
 impl ViewToVec for ModStickyPostView {
   type DbTuple = ModStickyPostViewTuple;
-  fn to_vec(mrp: Vec<Self::DbTuple>) -> Vec<Self> {
-    mrp
+  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
+    items
       .iter()
       .map(|a| Self {
         mod_sticky_post: a.0.to_owned(),

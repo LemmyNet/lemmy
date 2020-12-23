@@ -57,14 +57,14 @@ impl ModRemovePostView {
       .order_by(mod_remove_post::when_.desc())
       .load::<ModRemovePostViewTuple>(conn)?;
 
-    Ok(Self::to_vec(res))
+    Ok(Self::from_tuple_to_vec(res))
   }
 }
 
 impl ViewToVec for ModRemovePostView {
   type DbTuple = ModRemovePostViewTuple;
-  fn to_vec(mrp: Vec<Self::DbTuple>) -> Vec<Self> {
-    mrp
+  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
+    items
       .iter()
       .map(|a| Self {
         mod_remove_post: a.0.to_owned(),

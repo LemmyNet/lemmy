@@ -47,14 +47,14 @@ impl ModAddView {
       .order_by(mod_add::when_.desc())
       .load::<ModAddViewTuple>(conn)?;
 
-    Ok(Self::to_vec(res))
+    Ok(Self::from_tuple_to_vec(res))
   }
 }
 
 impl ViewToVec for ModAddView {
   type DbTuple = ModAddViewTuple;
-  fn to_vec(mrp: Vec<Self::DbTuple>) -> Vec<Self> {
-    mrp
+  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
+    items
       .iter()
       .map(|a| Self {
         mod_add: a.0.to_owned(),

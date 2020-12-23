@@ -14,7 +14,7 @@ use lemmy_db::{
   source::post::Post_,
   views::{
     comment_view::CommentQueryBuilder,
-    community::community_moderator_view::CommunityModeratorView,
+    community::{community_moderator_view::CommunityModeratorView, community_view::CommunityView},
     post_report_view::{PostReportQueryBuilder, PostReportView},
     post_view::{PostQueryBuilder, PostView},
   },
@@ -201,6 +201,16 @@ impl Perform for GetPost {
     })
     .await??;
 
+    // Necessary for the sidebar
+    let community_view = match blocking(context.pool(), move |conn| {
+      CommunityView::read(conn, community_id, user_id)
+    })
+    .await?
+    {
+      Ok(community) => community,
+      Err(_e) => return Err(APIError::err("couldnt_find_community").into()),
+    };
+
     let online = context
       .chat_server()
       .send(GetPostUsersOnline { post_id: data.id })
@@ -210,6 +220,7 @@ impl Perform for GetPost {
     // Return the jwt
     Ok(GetPostResponse {
       post_view,
+      community_view,
       comments,
       moderators,
       online,

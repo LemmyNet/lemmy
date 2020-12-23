@@ -71,14 +71,14 @@ impl ModRemoveCommentView {
       .order_by(mod_remove_comment::when_.desc())
       .load::<ModRemoveCommentViewTuple>(conn)?;
 
-    Ok(Self::to_vec(res))
+    Ok(Self::from_tuple_to_vec(res))
   }
 }
 
 impl ViewToVec for ModRemoveCommentView {
   type DbTuple = ModRemoveCommentViewTuple;
-  fn to_vec(mrp: Vec<Self::DbTuple>) -> Vec<Self> {
-    mrp
+  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
+    items
       .iter()
       .map(|a| Self {
         mod_remove_comment: a.0.to_owned(),

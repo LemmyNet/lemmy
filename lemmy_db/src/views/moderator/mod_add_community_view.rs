@@ -56,14 +56,14 @@ impl ModAddCommunityView {
       .order_by(mod_add_community::when_.desc())
       .load::<ModAddCommunityViewTuple>(conn)?;
 
-    Ok(Self::to_vec(res))
+    Ok(Self::from_tuple_to_vec(res))
   }
 }
 
 impl ViewToVec for ModAddCommunityView {
   type DbTuple = ModAddCommunityViewTuple;
-  fn to_vec(mrp: Vec<Self::DbTuple>) -> Vec<Self> {
-    mrp
+  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
+    items
       .iter()
       .map(|a| Self {
         mod_add_community: a.0.to_owned(),

@@ -293,14 +293,14 @@ impl<'a> UserMentionQueryBuilder<'a> {
       .offset(offset)
       .load::<UserMentionViewTuple>(self.conn)?;
 
-    Ok(UserMentionView::to_vec(res))
+    Ok(UserMentionView::from_tuple_to_vec(res))
   }
 }
 
 impl ViewToVec for UserMentionView {
   type DbTuple = UserMentionViewTuple;
-  fn to_vec(posts: Vec<Self::DbTuple>) -> Vec<Self> {
-    posts
+  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
+    items
       .iter()
       .map(|a| Self {
         user_mention: a.0.to_owned(),

@@ -109,14 +109,15 @@ impl<'a> PrivateMessageQueryBuilder<'a> {
       .order_by(private_message::published.desc())
       .load::<PrivateMessageViewTuple>(self.conn)?;
 
-    Ok(PrivateMessageView::to_vec(res))
+    Ok(PrivateMessageView::from_tuple_to_vec(res))
   }
 }
 
 impl ViewToVec for PrivateMessageView {
   type DbTuple = PrivateMessageViewTuple;
-  fn to_vec(pm: Vec<Self::DbTuple>) -> Vec<Self> {
-    pm.iter()
+  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
+    items
+      .iter()
       .map(|a| Self {
         private_message: a.0.to_owned(),
         creator: a.1.to_owned(),

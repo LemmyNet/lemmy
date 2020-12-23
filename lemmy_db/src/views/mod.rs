@@ -11,7 +11,7 @@ pub mod user_view;
 
 pub(crate) trait ViewToVec {
   type DbTuple;
-  fn to_vec(tuple: Vec<Self::DbTuple>) -> Vec<Self>
+  fn from_tuple_to_vec(tuple: Vec<Self::DbTuple>) -> Vec<Self>
   where
     Self: Sized;
 }

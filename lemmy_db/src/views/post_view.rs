@@ -380,14 +380,14 @@ impl<'a> PostQueryBuilder<'a> {
       .filter(community::deleted.eq(false))
       .load::<PostViewTuple>(self.conn)?;
 
-    Ok(PostView::to_vec(res))
+    Ok(PostView::from_tuple_to_vec(res))
   }
 }
 
 impl ViewToVec for PostView {
   type DbTuple = PostViewTuple;
-  fn to_vec(posts: Vec<Self::DbTuple>) -> Vec<Self> {
-    posts
+  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
+    items
       .iter()
       .map(|a| Self {
         post: a.0.to_owned(),

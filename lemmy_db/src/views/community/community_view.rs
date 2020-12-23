@@ -185,14 +185,14 @@ impl<'a> CommunityQueryBuilder<'a> {
       .filter(community::deleted.eq(false))
       .load::<CommunityViewTuple>(self.conn)?;
 
-    Ok(CommunityView::to_vec(res))
+    Ok(CommunityView::from_tuple_to_vec(res))
   }
 }
 
 impl ViewToVec for CommunityView {
   type DbTuple = CommunityViewTuple;
-  fn to_vec(communities: Vec<Self::DbTuple>) -> Vec<Self> {
-    communities
+  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
+    items
       .iter()
       .map(|a| Self {
         community: a.0.to_owned(),

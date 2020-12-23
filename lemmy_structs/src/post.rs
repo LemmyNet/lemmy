@@ -1,6 +1,6 @@
 use lemmy_db::views::{
   comment_view::CommentView,
-  community::community_moderator_view::CommunityModeratorView,
+  community::{community_moderator_view::CommunityModeratorView, community_view::CommunityView},
   post_report_view::PostReportView,
   post_view::PostView,
 };
@@ -30,6 +30,7 @@ pub struct GetPost {
 #[derive(Serialize)]
 pub struct GetPostResponse {
   pub post_view: PostView,
+  pub community_view: CommunityView,
   pub comments: Vec<CommentView>,
   pub moderators: Vec<CommunityModeratorView>,
   pub online: usize,

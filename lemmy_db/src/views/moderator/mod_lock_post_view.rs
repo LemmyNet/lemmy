@@ -57,14 +57,14 @@ impl ModLockPostView {
       .order_by(mod_lock_post::when_.desc())
       .load::<ModLockPostViewTuple>(conn)?;
 
-    Ok(Self::to_vec(res))
+    Ok(Self::from_tuple_to_vec(res))
   }
 }
 
 impl ViewToVec for ModLockPostView {
   type DbTuple = ModLockPostViewTuple;
-  fn to_vec(mrp: Vec<Self::DbTuple>) -> Vec<Self> {
-    mrp
+  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
+    items
       .iter()
       .map(|a| Self {
         mod_lock_post: a.0.to_owned(),

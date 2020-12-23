@@ -47,14 +47,14 @@ impl ModBanView {
       .order_by(mod_ban::when_.desc())
       .load::<ModBanViewTuple>(conn)?;
 
-    Ok(Self::to_vec(res))
+    Ok(Self::from_tuple_to_vec(res))
   }
 }
 
 impl ViewToVec for ModBanView {
   type DbTuple = ModBanViewTuple;
-  fn to_vec(mrp: Vec<Self::DbTuple>) -> Vec<Self> {
-    mrp
+  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
+    items
       .iter()
       .map(|a| Self {
         mod_ban: a.0.to_owned(),

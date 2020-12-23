@@ -167,14 +167,14 @@ impl<'a> CommentReportQueryBuilder<'a> {
       .offset(offset)
       .load::<CommentReportViewTuple>(self.conn)?;
 
-    Ok(CommentReportView::to_vec(res))
+    Ok(CommentReportView::from_tuple_to_vec(res))
   }
 }
 
 impl ViewToVec for CommentReportView {
   type DbTuple = CommentReportViewTuple;
-  fn to_vec(posts: Vec<Self::DbTuple>) -> Vec<Self> {
-    posts
+  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
+    items
       .iter()
       .map(|a| Self {
         comment_report: a.0.to_owned(),

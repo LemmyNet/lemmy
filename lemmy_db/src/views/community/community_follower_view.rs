@@ -27,7 +27,7 @@ impl CommunityFollowerView {
       .order_by(community_follower::published)
       .load::<CommunityFollowerViewTuple>(conn)?;
 
-    Ok(Self::to_vec(res))
+    Ok(Self::from_tuple_to_vec(res))
   }
 
   pub fn for_user(conn: &PgConnection, user_id: i32) -> Result<Vec<Self>, Error> {
@@ -39,14 +39,14 @@ impl CommunityFollowerView {
       .order_by(community_follower::published)
       .load::<CommunityFollowerViewTuple>(conn)?;
 
-    Ok(Self::to_vec(res))
+    Ok(Self::from_tuple_to_vec(res))
   }
 }
 
 impl ViewToVec for CommunityFollowerView {
   type DbTuple = CommunityFollowerViewTuple;
-  fn to_vec(users: Vec<Self::DbTuple>) -> Vec<Self> {
-    users
+  fn from_tuple_to_vec(items: Vec<Self::DbTuple>) -> Vec<Self> {
+    items
       .iter()
       .map(|a| Self {
         community: a.0.to_owned(),
