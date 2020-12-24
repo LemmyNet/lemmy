@@ -12,7 +12,7 @@ use activitystreams::{
 };
 use actix_web::HttpRequest;
 use anyhow::{anyhow, Context};
-use lemmy_db::{source::activity::Activity_, ApubObject, DbPool};
+use lemmy_db_queries::{source::activity::Activity_, ApubObject, DbPool};
 use lemmy_db_schema::source::{activity::Activity, community::Community, user::User_};
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, settings::Settings, LemmyError};

@@ -1,7 +1,8 @@
 use crate::activities::receive::get_actor_as_user;
 use activitystreams::activity::{Dislike, Like};
-use lemmy_db::{source::post::Post_, views::post_view::PostView, Likeable};
+use lemmy_db_queries::{source::post::Post_, Likeable};
 use lemmy_db_schema::source::post::{Post, PostLike};
+use lemmy_db_views::post_view::PostView;
 use lemmy_structs::{blocking, post::PostResponse};
 use lemmy_utils::LemmyError;
 use lemmy_websocket::{messages::SendPost, LemmyContext, UserOperation};

@@ -9,27 +9,9 @@ use crate::{
 use actix_web::web::Data;
 use anyhow::Context;
 use lemmy_apub::fetcher::search_by_apub_id;
-use lemmy_db::{
+use lemmy_db_queries::{
   diesel_option_overwrite,
   source::{category::Category_, site::Site_},
-  views::{
-    comment_view::CommentQueryBuilder,
-    community::community_view::CommunityQueryBuilder,
-    moderator::{
-      mod_add_community_view::ModAddCommunityView,
-      mod_add_view::ModAddView,
-      mod_ban_from_community_view::ModBanFromCommunityView,
-      mod_ban_view::ModBanView,
-      mod_lock_post_view::ModLockPostView,
-      mod_remove_comment_view::ModRemoveCommentView,
-      mod_remove_community_view::ModRemoveCommunityView,
-      mod_remove_post_view::ModRemovePostView,
-      mod_sticky_post_view::ModStickyPostView,
-    },
-    post_view::PostQueryBuilder,
-    site_view::SiteView,
-    user_view::{UserQueryBuilder, UserViewSafe},
-  },
   Crud,
   SearchType,
   SortType,
@@ -41,6 +23,26 @@ use lemmy_db_schema::{
     moderator::*,
     site::{Site, *},
   },
+};
+use lemmy_db_views::{
+  comment_view::CommentQueryBuilder,
+  post_view::PostQueryBuilder,
+  site_view::SiteView,
+};
+use lemmy_db_views_actor::{
+  community_view::CommunityQueryBuilder,
+  user_view::{UserQueryBuilder, UserViewSafe},
+};
+use lemmy_db_views_moderator::{
+  mod_add_community_view::ModAddCommunityView,
+  mod_add_view::ModAddView,
+  mod_ban_from_community_view::ModBanFromCommunityView,
+  mod_ban_view::ModBanView,
+  mod_lock_post_view::ModLockPostView,
+  mod_remove_comment_view::ModRemoveCommentView,
+  mod_remove_community_view::ModRemoveCommunityView,
+  mod_remove_post_view::ModRemovePostView,
+  mod_sticky_post_view::ModStickyPostView,
 };
 use lemmy_structs::{blocking, site::*, user::Register};
 use lemmy_utils::{

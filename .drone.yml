@@ -17,7 +17,7 @@ steps:
   - name: cargo clippy
     image: ekidd/rust-musl-builder:1.47.0
     commands:
-      - cargo clippy --all-targets --all-features -- -D warnings
+      - cargo clippy --workspace --all-targets --all-features -- -D warnings
 
   - name: check documentation build
     image: ekidd/rust-musl-builder:1.47.0

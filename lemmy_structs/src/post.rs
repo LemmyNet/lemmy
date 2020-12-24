@@ -1,8 +1,11 @@
-use lemmy_db::views::{
+use lemmy_db_views::{
   comment_view::CommentView,
-  community::{community_moderator_view::CommunityModeratorView, community_view::CommunityView},
   post_report_view::PostReportView,
   post_view::PostView,
+};
+use lemmy_db_views_actor::{
+  community_moderator_view::CommunityModeratorView,
+  community_view::CommunityView,
 };
 use serde::{Deserialize, Serialize};
 

@@ -3,18 +3,18 @@ use anyhow::anyhow;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::PgConnection;
 use lemmy_api::claims::Claims;
-use lemmy_db::{
+use lemmy_db_queries::{
   source::{community::Community_, user::User},
-  views::{
-    comment_view::{CommentQueryBuilder, CommentView},
-    post_view::{PostQueryBuilder, PostView},
-    site_view::SiteView,
-    user_mention_view::{UserMentionQueryBuilder, UserMentionView},
-  },
   ListingType,
   SortType,
 };
 use lemmy_db_schema::source::{community::Community, user::User_};
+use lemmy_db_views::{
+  comment_view::{CommentQueryBuilder, CommentView},
+  post_view::{PostQueryBuilder, PostView},
+  site_view::SiteView,
+};
+use lemmy_db_views_actor::user_mention_view::{UserMentionQueryBuilder, UserMentionView};
 use lemmy_structs::blocking;
 use lemmy_utils::{settings::Settings, utils::markdown_to_html, LemmyError};
 use lemmy_websocket::LemmyContext;

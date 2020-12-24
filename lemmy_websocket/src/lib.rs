@@ -4,7 +4,7 @@ extern crate strum_macros;
 use crate::chat_server::ChatServer;
 use actix::Addr;
 use background_jobs::QueueHandle;
-use lemmy_db::DbPool;
+use lemmy_db_queries::DbPool;
 use lemmy_utils::LemmyError;
 use reqwest::Client;
 use serde::Serialize;

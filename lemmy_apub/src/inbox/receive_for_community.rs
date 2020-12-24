@@ -41,7 +41,7 @@ use activitystreams::{
 };
 use anyhow::Context;
 use diesel::result::Error::NotFound;
-use lemmy_db::{ApubObject, Crud};
+use lemmy_db_queries::{ApubObject, Crud};
 use lemmy_db_schema::source::{comment::Comment, post::Post, site::Site};
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, LemmyError};

@@ -1,9 +1,7 @@
-use lemmy_db::views::{
-  community::{
-    community_follower_view::CommunityFollowerView,
-    community_moderator_view::CommunityModeratorView,
-    community_view::CommunityView,
-  },
+use lemmy_db_views_actor::{
+  community_follower_view::CommunityFollowerView,
+  community_moderator_view::CommunityModeratorView,
+  community_view::CommunityView,
   user_view::UserViewSafe,
 };
 use serde::{Deserialize, Serialize};

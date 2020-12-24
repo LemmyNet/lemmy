@@ -3,7 +3,7 @@ use diesel::{
   sql_types::{Nullable, Text},
   *,
 };
-use lemmy_db::{
+use lemmy_db_queries::{
   source::{comment::Comment_, post::Post_, private_message::PrivateMessage_},
   Crud,
 };

@@ -1717,9 +1717,11 @@ dependencies = [
  "jsonwebtoken",
  "lazy_static",
  "lemmy_apub",
- "lemmy_db",
+ "lemmy_db_queries",
  "lemmy_db_schema",
- "lemmy_rate_limit",
+ "lemmy_db_views",
+ "lemmy_db_views_actor",
+ "lemmy_db_views_moderator",
  "lemmy_structs",
  "lemmy_utils",
  "lemmy_websocket",
@@ -1762,8 +1764,10 @@ dependencies = [
  "http-signature-normalization-reqwest",
  "itertools",
  "lazy_static",
- "lemmy_db",
+ "lemmy_db_queries",
  "lemmy_db_schema",
+ "lemmy_db_views",
+ "lemmy_db_views_actor",
  "lemmy_structs",
  "lemmy_utils",
  "lemmy_websocket",
@@ -1784,7 +1788,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_db"
+name = "lemmy_db_queries"
 version = "0.1.0"
 dependencies = [
  "bcrypt",
@@ -1817,16 +1821,33 @@ dependencies = [
 ]
 
 [[package]]
-name = "lemmy_rate_limit"
+name = "lemmy_db_views"
 version = "0.1.0"
 dependencies = [
- "actix-web",
- "futures",
- "lemmy_utils",
- "log",
- "strum",
- "strum_macros",
- "tokio 0.3.6",
+ "diesel",
+ "lemmy_db_queries",
+ "lemmy_db_schema",
+ "serde 1.0.118",
+]
+
+[[package]]
+name = "lemmy_db_views_actor"
+version = "0.1.0"
+dependencies = [
+ "diesel",
+ "lemmy_db_queries",
+ "lemmy_db_schema",
+ "serde 1.0.118",
+]
+
+[[package]]
+name = "lemmy_db_views_moderator"
+version = "0.1.0"
+dependencies = [
+ "diesel",
+ "lemmy_db_queries",
+ "lemmy_db_schema",
+ "serde 1.0.118",
 ]
 
 [[package]]
@@ -1850,9 +1871,11 @@ dependencies = [
  "lazy_static",
  "lemmy_api",
  "lemmy_apub",
- "lemmy_db",
+ "lemmy_db_queries",
  "lemmy_db_schema",
- "lemmy_rate_limit",
+ "lemmy_db_views",
+ "lemmy_db_views_actor",
+ "lemmy_db_views_moderator",
  "lemmy_structs",
  "lemmy_utils",
  "lemmy_websocket",
@@ -1875,8 +1898,11 @@ dependencies = [
  "actix-web",
  "chrono",
  "diesel",
- "lemmy_db",
+ "lemmy_db_queries",
  "lemmy_db_schema",
+ "lemmy_db_views",
+ "lemmy_db_views_actor",
+ "lemmy_db_views_moderator",
  "lemmy_utils",
  "log",
  "serde 1.0.118",
@@ -1893,6 +1919,7 @@ dependencies = [
  "chrono",
  "comrak",
  "config",
+ "futures",
  "itertools",
  "lazy_static",
  "lettre",
@@ -1904,7 +1931,10 @@ dependencies = [
  "reqwest",
  "serde 1.0.118",
  "serde_json",
+ "strum",
+ "strum_macros",
  "thiserror",
+ "tokio 0.3.6",
  "url",
 ]
 
@@ -1917,9 +1947,8 @@ dependencies = [
  "background-jobs",
  "chrono",
  "diesel",
- "lemmy_db",
+ "lemmy_db_queries",
  "lemmy_db_schema",
- "lemmy_rate_limit",
  "lemmy_structs",
  "lemmy_utils",
  "log",

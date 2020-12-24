@@ -1,7 +1,7 @@
 use actix_web::{error::ErrorBadRequest, *};
 use lemmy_api::Perform;
-use lemmy_rate_limit::RateLimit;
 use lemmy_structs::{comment::*, community::*, post::*, site::*, user::*};
+use lemmy_utils::rate_limit::RateLimit;
 use lemmy_websocket::LemmyContext;
 use serde::Deserialize;
 

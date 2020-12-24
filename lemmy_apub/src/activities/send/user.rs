@@ -13,7 +13,7 @@ use activitystreams::{
   base::{AnyBase, BaseExt, ExtendsExt},
   object::ObjectExt,
 };
-use lemmy_db::{ApubObject, DbPool, Followable};
+use lemmy_db_queries::{ApubObject, DbPool, Followable};
 use lemmy_db_schema::source::{
   community::{Community, CommunityFollower, CommunityFollowerForm},
   user::User_,
