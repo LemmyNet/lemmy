@@ -48,8 +48,8 @@ pub struct CaptchaResponse {
 pub struct SaveUserSettings {
   pub show_nsfw: bool,
   pub theme: String,
-  pub default_sort_type: String,
-  pub default_listing_type: String,
+  pub default_sort_type: i16,
+  pub default_listing_type: i16,
   pub lang: String,
   pub avatar: Option<String>,
   pub banner: Option<String>,

@@ -414,8 +414,8 @@ impl Perform for SaveUserSettings {
       None => user.password_encrypted,
     };
 
-    let default_listing_type = ListingType::from_str(&data.default_listing_type)? as i16;
-    let default_sort_type = SortType::from_str(&data.default_sort_type)? as i16;
+    let default_listing_type = data.default_listing_type;
+    let default_sort_type = data.default_sort_type;
 
     let user_form = UserForm {
       name: user.name,
@@ -509,7 +509,7 @@ impl Perform for GetUserDetails {
 
     let user_id = user.map(|u| u.id);
 
-    let (user_view, user_dangerous) = if let Some(auth_user_id) = user_id {
+    let (user_view, user_view_dangerous) = if let Some(auth_user_id) = user_id {
       if user_details_id == auth_user_id {
         (
           None,
@@ -591,7 +591,7 @@ impl Perform for GetUserDetails {
     // Return the jwt
     Ok(GetUserDetailsResponse {
       user_view,
-      user_view_dangerous: user_dangerous,
+      user_view_dangerous,
       follows,
       moderates,
       comments,
