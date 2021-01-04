@@ -44,8 +44,8 @@ test('Set some user settings, check that they are federated', async () => {
   let form: SaveUserSettings = {
     show_nsfw: false,
     theme: '',
-    default_sort_type: SortType.Hot,
-    default_listing_type: ListingType.All,
+    default_sort_type: Object.keys(SortType).indexOf(SortType.Hot),
+    default_listing_type: Object.keys(ListingType).indexOf(ListingType.All),
     lang: '',
     avatar,
     banner,

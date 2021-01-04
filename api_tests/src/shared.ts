@@ -551,8 +551,8 @@ export async function saveUserSettingsBio(
   let form: SaveUserSettings = {
     show_nsfw: true,
     theme: 'darkly',
-    default_sort_type: SortType.Active,
-    default_listing_type: ListingType.All,
+    default_sort_type: Object.keys(SortType).indexOf(SortType.Active),
+    default_listing_type: Object.keys(ListingType).indexOf(ListingType.All),
     lang: 'en',
     show_avatars: true,
     send_notifications_to_email: false,
