@@ -5,6 +5,7 @@ use lemmy_structs::blocking;
 use lemmy_utils::{settings::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
 use serde::{Deserialize, Serialize};
+use http::StatusCode;
 
 pub mod comment;
 pub mod community;
@@ -28,6 +29,7 @@ where
 {
   HttpResponse::Gone()
     .content_type(APUB_JSON_CONTENT_TYPE)
+    .status(StatusCode::GONE)
     .json(data)
 }
 
