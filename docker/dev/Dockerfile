@@ -46,6 +46,8 @@ RUN cp ./target/$CARGO_BUILD_TARGET/$RUSTRELEASEDIR/lemmy_server /app/lemmy_serv
 # Build the docs
 FROM $RUST_BUILDER_IMAGE as docs
 WORKDIR /app
+RUN cargo install mdbook --git https://github.com/Ruin0x11/mdBook.git \
+        --branch localization --rev d06249b --force
 COPY --chown=rust:rust docs ./docs
 RUN mdbook build docs/
 
