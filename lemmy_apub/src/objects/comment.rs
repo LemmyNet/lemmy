@@ -1,15 +1,12 @@
 use crate::{
   extensions::context::lemmy_context,
-  fetcher::{
-    get_or_fetch_and_insert_comment,
-    get_or_fetch_and_insert_post,
-    get_or_fetch_and_upsert_user,
-  },
+  fetcher::objects::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
   objects::{
     check_object_domain,
     check_object_for_community_or_site_ban,
     create_tombstone,
     get_object_from_apub,
+    get_or_fetch_and_upsert_user,
     get_source_markdown_value,
     set_content_and_source,
     FromApub,

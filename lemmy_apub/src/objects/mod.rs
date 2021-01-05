@@ -1,6 +1,6 @@
 use crate::{
   check_is_apub_id_valid,
-  fetcher::{get_or_fetch_and_upsert_community, get_or_fetch_and_upsert_user},
+  fetcher::{community::get_or_fetch_and_upsert_community, user::get_or_fetch_and_upsert_user},
   inbox::community_inbox::check_community_or_site_ban,
 };
 use activitystreams::{

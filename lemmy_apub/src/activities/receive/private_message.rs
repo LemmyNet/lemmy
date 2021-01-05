@@ -1,7 +1,7 @@
 use crate::{
   activities::receive::verify_activity_domains_valid,
   check_is_apub_id_valid,
-  fetcher::get_or_fetch_and_upsert_user,
+  fetcher::user::get_or_fetch_and_upsert_user,
   inbox::get_activity_to_and_cc,
   objects::FromApub,
   NoteExt,

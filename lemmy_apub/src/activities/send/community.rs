@@ -3,7 +3,7 @@ use crate::{
   activity_queue::{send_activity_single_dest, send_to_community_followers},
   check_is_apub_id_valid,
   extensions::context::lemmy_context,
-  fetcher::get_or_fetch_and_upsert_user,
+  fetcher::user::get_or_fetch_and_upsert_user,
   ActorType,
 };
 use activitystreams::{
