@@ -2,6 +2,12 @@ kind: pipeline
 name: default
 
 steps:
+  - name: fetch git submodules
+    image: node:15-alpine3.12
+    commands:
+      - apk add git
+      - git submodule init
+      - git submodule update --recursive --remote
 
   - name: chown repo
     image: ekidd/rust-musl-builder:1.47.0
@@ -22,6 +28,7 @@ steps:
   - name: check documentation build
     image: ekidd/rust-musl-builder:1.47.0
     commands:
+      - cargo install mdbook --git https://github.com/Ruin0x11/mdBook.git --branch localization --rev d06249b
       - mdbook build docs/
 
   - name: cargo test
