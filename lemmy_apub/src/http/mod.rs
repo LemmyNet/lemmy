@@ -1,5 +1,6 @@
 use crate::APUB_JSON_CONTENT_TYPE;
 use actix_web::{body::Body, web, HttpResponse};
+use http::StatusCode;
 use lemmy_db_queries::source::activity::Activity_;
 use lemmy_db_schema::source::activity::Activity;
 use lemmy_structs::blocking;
@@ -29,6 +30,7 @@ where
 {
   HttpResponse::Gone()
     .content_type(APUB_JSON_CONTENT_TYPE)
+    .status(StatusCode::GONE)
     .json(data)
 }
 
