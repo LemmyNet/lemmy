@@ -1,4 +1,4 @@
-use diesel::{result::Error, *};
+use diesel::{pg::Pg, result::Error, *};
 use lemmy_db_queries::{
   aggregates::post_aggregates::PostAggregates,
   functions::hot_rank,
@@ -28,6 +28,7 @@ use lemmy_db_schema::{
     user::{UserSafe, User_},
   },
 };
+use log::debug;
 use serde::Serialize;
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
@@ -371,14 +372,17 @@ impl<'a> PostQueryBuilder<'a> {
 
     let (limit, offset) = limit_and_offset(self.page, self.limit);
 
-    let res = query
+    query = query
       .limit(limit)
       .offset(offset)
       .filter(post::removed.eq(false))
       .filter(post::deleted.eq(false))
       .filter(community::removed.eq(false))
-      .filter(community::deleted.eq(false))
-      .load::<PostViewTuple>(self.conn)?;
+      .filter(community::deleted.eq(false));
+
+    debug!("Post View Query: {:?}", debug_query::<Pg, _>(&query));
+
+    let res = query.load::<PostViewTuple>(self.conn)?;
 
     Ok(PostView::from_tuple_to_vec(res))
   }

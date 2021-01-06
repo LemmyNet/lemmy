@@ -13,8 +13,11 @@ cat explain.sql | $PSQL_CMD > user_.json
 echo "explain (analyze, format json) select * from post p limit 100" > explain.sql
 cat explain.sql | $PSQL_CMD > post.json
 
-echo "explain (analyze, format json) select * from post p, post_aggregates pa where p.id = pa.post_id order by hot_rank(pa.score, pa.published) desc limit 100" > explain.sql
+echo "explain (analyze, format json) select * from post p, post_aggregates pa where p.id = pa.post_id order by hot_rank(pa.score, pa.published) desc, pa.published desc limit 100" > explain.sql
 cat explain.sql | $PSQL_CMD > post_ordered_by_rank.json
+
+echo "explain (analyze, format json) select * from post p, post_aggregates pa where p.id = pa.post_id order by p.stickied desc, hot_rank(pa.score, pa.published) desc, pa.published desc limit 100" > explain.sql
+cat explain.sql | $PSQL_CMD > post_ordered_by_stickied.json
 
 echo "explain (analyze, format json) select * from comment limit 100" > explain.sql
 cat explain.sql | $PSQL_CMD > comment.json
@@ -22,7 +25,7 @@ cat explain.sql | $PSQL_CMD > comment.json
 echo "explain (analyze, format json) select * from community limit 100" > explain.sql
 cat explain.sql | $PSQL_CMD > community.json
 
-echo "explain (analyze, format json) select * from community c, community_aggregates ca where c.id = ca.community_id order by hot_rank(ca.subscribers, ca.published) desc limit 100" > explain.sql
+echo "explain (analyze, format json) select * from community c, community_aggregates ca where c.id = ca.community_id order by hot_rank(ca.subscribers, ca.published) desc, ca.published desc limit 100" > explain.sql
 cat explain.sql | $PSQL_CMD > community_ordered_by_subscribers.json
 
 echo "explain (analyze, format json) select * from site s" > explain.sql
