@@ -53,6 +53,17 @@ impl Perform for CreateComment {
 
     let content_slurs_removed = remove_slurs(&data.content.to_owned());
 
+    // Check for a community ban
+    let post_id = data.post_id;
+    let post = get_post(post_id, context.pool()).await?;
+
+    check_community_ban(user.id, post.community_id, context.pool()).await?;
+
+    // Check if post is locked, no new comments
+    if post.locked {
+      return Err(APIError::err("locked").into());
+    }
+
     let comment_form = CommentForm {
       content: content_slurs_removed,
       parent_id: data.parent_id.to_owned(),
@@ -66,17 +77,6 @@ impl Perform for CreateComment {
       ap_id: None,
       local: true,
     };
-
-    // Check for a community ban
-    let post_id = data.post_id;
-    let post = get_post(post_id, context.pool()).await?;
-
-    check_community_ban(user.id, post.community_id, context.pool()).await?;
-
-    // Check if post is locked, no new comments
-    if post.locked {
-      return Err(APIError::err("locked").into());
-    }
 
     // Create the comment
     let comment_form2 = comment_form.clone();
@@ -133,10 +133,24 @@ impl Perform for CreateComment {
     updated_comment.send_like(&user, context).await?;
 
     let user_id = user.id;
-    let comment_view = blocking(context.pool(), move |conn| {
+    let mut comment_view = blocking(context.pool(), move |conn| {
       CommentView::read(&conn, inserted_comment.id, Some(user_id))
     })
     .await??;
+
+    // If its a comment to yourself, mark it as read
+    let comment_id = comment_view.comment.id;
+    if user.id == comment_view.get_recipient_id() {
+      match blocking(context.pool(), move |conn| {
+        Comment::update_read(conn, comment_id, true)
+      })
+      .await?
+      {
+        Ok(comment) => comment,
+        Err(_e) => return Err(APIError::err("couldnt_update_comment").into()),
+      };
+      comment_view.comment.read = true;
+    }
 
     let mut res = CommentResponse {
       comment_view,

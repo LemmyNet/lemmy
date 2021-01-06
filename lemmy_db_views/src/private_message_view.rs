@@ -1,4 +1,4 @@
-use diesel::{result::Error, *};
+use diesel::{pg::Pg, result::Error, *};
 use lemmy_db_queries::{limit_and_offset, MaybeOptional, ToSafe, ViewToVec};
 use lemmy_db_schema::{
   schema::{private_message, user_, user_alias_1},
@@ -7,6 +7,7 @@ use lemmy_db_schema::{
     user::{UserAlias1, UserSafe, UserSafeAlias1, User_},
   },
 };
+use log::debug;
 use serde::Serialize;
 
 #[derive(Debug, PartialEq, Serialize, Clone)]
@@ -102,12 +103,18 @@ impl<'a> PrivateMessageQueryBuilder<'a> {
 
     let (limit, offset) = limit_and_offset(self.page, self.limit);
 
-    let res = query
+    query = query
       .filter(private_message::deleted.eq(false))
       .limit(limit)
       .offset(offset)
-      .order_by(private_message::published.desc())
-      .load::<PrivateMessageViewTuple>(self.conn)?;
+      .order_by(private_message::published.desc());
+
+    debug!(
+      "Private Message View Query: {:?}",
+      debug_query::<Pg, _>(&query)
+    );
+
+    let res = query.load::<PrivateMessageViewTuple>(self.conn)?;
 
     Ok(PrivateMessageView::from_tuple_to_vec(res))
   }
