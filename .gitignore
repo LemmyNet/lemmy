@@ -15,8 +15,7 @@ volumes
 # local build files
 target
 env_setup.sh
-query_testing/*.json
-query_testing/*.json.old
+query_testing/**/reports/*.json
 
 # API tests
 api_tests/node_modules

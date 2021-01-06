@@ -5,15 +5,17 @@ create table comment_aggregates (
   score bigint not null default 0,
   upvotes bigint not null default 0,
   downvotes bigint not null default 0,
+  published timestamp not null default now(),
   unique (comment_id)
 );
 
-insert into comment_aggregates (comment_id, score, upvotes, downvotes)
+insert into comment_aggregates (comment_id, score, upvotes, downvotes, published)
   select 
     c.id,
     COALESCE(cl.total, 0::bigint) AS score,
     COALESCE(cl.up, 0::bigint) AS upvotes,
-    COALESCE(cl.down, 0::bigint) AS downvotes
+    COALESCE(cl.down, 0::bigint) AS downvotes,
+    c.published
   from comment c
   left join ( select l.comment_id as id,
     sum(l.score) as total,

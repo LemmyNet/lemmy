@@ -10,6 +10,7 @@ pub struct CommentAggregates {
   pub score: i64,
   pub upvotes: i64,
   pub downvotes: i64,
+  pub published: chrono::NaiveDateTime,
 }
 
 impl CommentAggregates {

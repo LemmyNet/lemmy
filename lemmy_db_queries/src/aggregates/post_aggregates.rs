@@ -11,6 +11,7 @@ pub struct PostAggregates {
   pub score: i64,
   pub upvotes: i64,
   pub downvotes: i64,
+  pub published: chrono::NaiveDateTime,
   pub newest_comment_time: chrono::NaiveDateTime,
 }
 

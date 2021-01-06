@@ -5,15 +5,17 @@ create table community_aggregates (
   subscribers bigint not null default 0,
   posts bigint not null default 0,
   comments bigint not null default 0,
+  published timestamp not null default now(),
   unique (community_id)
 );
 
-insert into community_aggregates (community_id, subscribers, posts, comments)
+insert into community_aggregates (community_id, subscribers, posts, comments, published)
   select 
     c.id,
     coalesce(cf.subs, 0) as subscribers,
     coalesce(cd.posts, 0) as posts,
-    coalesce(cd.comments, 0) as comments
+    coalesce(cd.comments, 0) as comments,
+    c.published
   from community c
   left join ( 
     select 

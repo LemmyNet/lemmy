@@ -6,17 +6,19 @@ create table post_aggregates (
   score bigint not null default 0,
   upvotes bigint not null default 0,
   downvotes bigint not null default 0,
+  published timestamp not null default now(),
   newest_comment_time timestamp not null default now(),
   unique (post_id)
 );
 
-insert into post_aggregates (post_id, comments, score, upvotes, downvotes, newest_comment_time)
+insert into post_aggregates (post_id, comments, score, upvotes, downvotes, published, newest_comment_time)
   select 
     p.id,
     coalesce(ct.comments, 0::bigint) as comments,
     coalesce(pl.score, 0::bigint) as score,
     coalesce(pl.upvotes, 0::bigint) as upvotes,
     coalesce(pl.downvotes, 0::bigint) as downvotes,
+    p.published,
     greatest(ct.recent_comment_time, p.published) as newest_activity_time
   from post p
   left join ( 
@@ -64,7 +66,9 @@ begin
     update post_aggregates pa
     set comments = comments + 1,
     newest_comment_time = NEW.published
-    where pa.post_id = NEW.post_id;
+    where pa.post_id = NEW.post_id
+    -- A 2 day necro-bump limit
+    and published > ('now'::timestamp - '2 days'::interval);
   ELSIF (TG_OP = 'DELETE') THEN
     -- Join to post because that post may not exist anymore
     update post_aggregates pa

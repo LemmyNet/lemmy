@@ -186,9 +186,14 @@ impl<'a> CommunityQueryBuilder<'a> {
       // Covers all other sorts, including hot
       _ => {
         query = query
-          // TODO do custom sql function for hot_rank, make sure this works
-          .order_by(hot_rank(community_aggregates::subscribers, community::published).desc())
-          .then_order_by(community_aggregates::subscribers.desc())
+          .order_by(
+            hot_rank(
+              community_aggregates::subscribers,
+              community_aggregates::published,
+            )
+            .desc(),
+          )
+          .then_order_by(community_aggregates::published.desc())
       }
     };
 

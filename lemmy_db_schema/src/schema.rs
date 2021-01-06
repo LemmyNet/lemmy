@@ -41,6 +41,7 @@ table! {
         score -> Int8,
         upvotes -> Int8,
         downvotes -> Int8,
+        published -> Timestamp,
     }
 }
 
@@ -108,6 +109,7 @@ table! {
         subscribers -> Int8,
         posts -> Int8,
         comments -> Int8,
+        published -> Timestamp,
     }
 }
 
@@ -280,6 +282,7 @@ table! {
         score -> Int8,
         upvotes -> Int8,
         downvotes -> Int8,
+        published -> Timestamp,
         newest_comment_time -> Timestamp,
     }
 }
