@@ -15,8 +15,10 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 RUN --mount=type=cache,target=/app/target \
     cp target/debug/lemmy_server lemmy_server
 
-FROM peaceiris/mdbook:v0.3.7 as docs
+FROM rust:1.47-buster as docs
 WORKDIR /app
+RUN cargo install mdbook --git https://github.com/Ruin0x11/mdBook.git \
+        --branch localization --rev d06249b --force
 COPY docs ./docs
 RUN mdbook build docs/
 
