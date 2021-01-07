@@ -853,15 +853,13 @@ fn send_community_websocket(
   websocket_id: Option<ConnectionId>,
   op: UserOperation,
 ) {
-  // TODO is there any way around this?
   // Strip out the user id and subscribed when sending to others
-  // let mut res_sent = res.clone();
-  // res_sent.community_view.user_id = None;
-  // res_sent.community.subscribed = None;
+  let mut res_sent = res.clone();
+  res_sent.community_view.subscribed = false;
 
   context.chat_server().do_send(SendCommunityRoomMessage {
     op,
-    response: res.to_owned(),
+    response: res_sent,
     community_id: res.community_view.community.id,
     websocket_id,
   });

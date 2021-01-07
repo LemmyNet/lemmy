@@ -152,7 +152,7 @@ impl Perform for CreateComment {
       comment_view.comment.read = true;
     }
 
-    let mut res = CommentResponse {
+    let res = CommentResponse {
       comment_view,
       recipient_ids,
       form_id: data.form_id.to_owned(),
@@ -163,11 +163,6 @@ impl Perform for CreateComment {
       comment: res.clone(),
       websocket_id,
     });
-
-    // strip out the recipient_ids, so that
-    // users don't get double notifs
-    // TODO Do this in a different way
-    res.recipient_ids = Vec::new();
 
     Ok(res)
   }
@@ -233,7 +228,7 @@ impl Perform for EditComment {
     })
     .await??;
 
-    let mut res = CommentResponse {
+    let res = CommentResponse {
       comment_view,
       recipient_ids,
       form_id: data.form_id.to_owned(),
@@ -244,11 +239,6 @@ impl Perform for EditComment {
       comment: res.clone(),
       websocket_id,
     });
-
-    // strip out the recipient_ids, so that
-    // users don't get double notifs
-    // TODO again
-    res.recipient_ids = Vec::new();
 
     Ok(res)
   }
@@ -318,7 +308,7 @@ impl Perform for DeleteComment {
     )
     .await?;
 
-    let mut res = CommentResponse {
+    let res = CommentResponse {
       comment_view,
       recipient_ids,
       form_id: None, // TODO a comment delete might clear forms?
@@ -329,11 +319,6 @@ impl Perform for DeleteComment {
       comment: res.clone(),
       websocket_id,
     });
-
-    // strip out the recipient_ids, so that
-    // users don't get double notifs
-    // TODO again
-    res.recipient_ids = Vec::new();
 
     Ok(res)
   }
@@ -414,7 +399,7 @@ impl Perform for RemoveComment {
     )
     .await?;
 
-    let mut res = CommentResponse {
+    let res = CommentResponse {
       comment_view,
       recipient_ids,
       form_id: None, // TODO maybe this might clear other forms
@@ -425,11 +410,6 @@ impl Perform for RemoveComment {
       comment: res.clone(),
       websocket_id,
     });
-
-    // strip out the recipient_ids, so that
-    // users don't get double notifs
-    // TODO again
-    res.recipient_ids = Vec::new();
 
     Ok(res)
   }
@@ -602,7 +582,7 @@ impl Perform for CreateCommentLike {
     })
     .await??;
 
-    let mut res = CommentResponse {
+    let res = CommentResponse {
       comment_view: liked_comment,
       recipient_ids,
       form_id: None,
@@ -613,11 +593,6 @@ impl Perform for CreateCommentLike {
       comment: res.clone(),
       websocket_id,
     });
-
-    // strip out the recipient_ids, so that
-    // users don't get double notifs
-    res.recipient_ids = Vec::new();
-    // TODO why
 
     Ok(res)
   }
