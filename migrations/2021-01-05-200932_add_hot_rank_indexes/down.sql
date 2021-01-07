@@ -10,11 +10,14 @@ end; $$
 LANGUAGE plpgsql;
 
 drop index 
-  idx_post_published,
-  idx_post_stickied,
   idx_post_aggregates_hot,
+  idx_post_aggregates_stickied_hot,
   idx_post_aggregates_active,
+  idx_post_aggregates_stickied_active,
   idx_post_aggregates_score,
+  idx_post_aggregates_stickied_score,
+  idx_post_aggregates_published,
+  idx_post_aggregates_stickied_published,
   idx_comment_published,
   idx_comment_aggregates_hot,
   idx_comment_aggregates_score,

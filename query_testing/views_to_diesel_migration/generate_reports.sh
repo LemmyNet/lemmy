@@ -16,8 +16,20 @@ cat explain.sql | $PSQL_CMD > post.json
 echo "explain (analyze, format json) select * from post p, post_aggregates pa where p.id = pa.post_id order by hot_rank(pa.score, pa.published) desc, pa.published desc limit 100" > explain.sql
 cat explain.sql | $PSQL_CMD > post_ordered_by_rank.json
 
-echo "explain (analyze, format json) select * from post p, post_aggregates pa where p.id = pa.post_id order by p.stickied desc, hot_rank(pa.score, pa.published) desc, pa.published desc limit 100" > explain.sql
-cat explain.sql | $PSQL_CMD > post_ordered_by_stickied.json
+echo "explain (analyze, format json) select * from post p, post_aggregates pa where p.id = pa.post_id order by pa.stickied desc, hot_rank(pa.score, pa.published) desc, pa.published desc limit 100" > explain.sql
+cat explain.sql | $PSQL_CMD > post_ordered_by_stickied_then_rank.json
+
+echo "explain (analyze, format json) select * from post p, post_aggregates pa where p.id = pa.post_id order by pa.score desc limit 100" > explain.sql
+cat explain.sql | $PSQL_CMD > post_ordered_by_score.json
+
+echo "explain (analyze, format json) select * from post p, post_aggregates pa where p.id = pa.post_id order by pa.stickied desc, pa.score desc limit 100" > explain.sql
+cat explain.sql | $PSQL_CMD > post_ordered_by_stickied_then_score.json
+
+echo "explain (analyze, format json) select * from post p, post_aggregates pa where p.id = pa.post_id order by pa.published desc limit 100" > explain.sql
+cat explain.sql | $PSQL_CMD > post_ordered_by_published.json
+
+echo "explain (analyze, format json) select * from post p, post_aggregates pa where p.id = pa.post_id order by pa.stickied desc, pa.published desc limit 100" > explain.sql
+cat explain.sql | $PSQL_CMD > post_ordered_by_stickied_then_published.json
 
 echo "explain (analyze, format json) select * from comment limit 100" > explain.sql
 cat explain.sql | $PSQL_CMD > comment.json

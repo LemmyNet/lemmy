@@ -282,6 +282,7 @@ table! {
         score -> Int8,
         upvotes -> Int8,
         downvotes -> Int8,
+        stickied -> Bool,
         published -> Timestamp,
         newest_comment_time -> Timestamp,
     }

@@ -6,18 +6,20 @@ create table post_aggregates (
   score bigint not null default 0,
   upvotes bigint not null default 0,
   downvotes bigint not null default 0,
+  stickied boolean not null default false,
   published timestamp not null default now(),
   newest_comment_time timestamp not null default now(),
   unique (post_id)
 );
 
-insert into post_aggregates (post_id, comments, score, upvotes, downvotes, published, newest_comment_time)
+insert into post_aggregates (post_id, comments, score, upvotes, downvotes, stickied, published, newest_comment_time)
   select 
     p.id,
     coalesce(ct.comments, 0::bigint) as comments,
     coalesce(pl.score, 0::bigint) as score,
     coalesce(pl.upvotes, 0::bigint) as upvotes,
     coalesce(pl.downvotes, 0::bigint) as downvotes,
+    p.stickied,
     p.published,
     greatest(ct.recent_comment_time, p.published) as newest_activity_time
   from post p
@@ -115,3 +117,21 @@ create trigger post_aggregates_score
 after insert or delete on post_like
 for each row
 execute procedure post_aggregates_score();
+
+-- post stickied
+create function post_aggregates_stickied()
+returns trigger language plpgsql
+as $$
+begin
+  update post_aggregates pa
+  set stickied = NEW.stickied
+  where pa.post_id = NEW.id;
+
+  return null;
+end $$;
+
+create trigger post_aggregates_stickied
+after update on post
+for each row
+when (OLD.stickied is distinct from NEW.stickied)
+execute procedure post_aggregates_stickied();

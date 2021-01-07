@@ -302,14 +302,14 @@ impl<'a> PostQueryBuilder<'a> {
     if let Some(community_id) = self.community_id {
       query = query
         .filter(post::community_id.eq(community_id))
-        .then_order_by(post::stickied.desc());
+        .then_order_by(post_aggregates::stickied.desc());
     }
 
     if let Some(community_name) = self.community_name {
       query = query
         .filter(community::name.eq(community_name))
         .filter(community::local.eq(true))
-        .then_order_by(post::stickied.desc());
+        .then_order_by(post_aggregates::stickied.desc());
     }
 
     if let Some(url_search) = self.url_search {
@@ -354,7 +354,7 @@ impl<'a> PostQueryBuilder<'a> {
       SortType::Hot => query
         .then_order_by(hot_rank(post_aggregates::score, post_aggregates::published).desc())
         .then_order_by(post_aggregates::published.desc()),
-      SortType::New => query.then_order_by(post::published.desc()),
+      SortType::New => query.then_order_by(post_aggregates::published.desc()),
       SortType::TopAll => query.then_order_by(post_aggregates::score.desc()),
       SortType::TopYear => query
         .filter(post::published.gt(now - 1.years()))
@@ -605,6 +605,7 @@ mod tests {
         score: 1,
         upvotes: 1,
         downvotes: 0,
+        stickied: false,
         published: agg.published,
         newest_comment_time: inserted_post.published,
       },

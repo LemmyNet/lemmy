@@ -12,14 +12,18 @@ end; $$
 LANGUAGE plpgsql
 IMMUTABLE;
 
--- Post
-create index idx_post_published on post (published desc);
-create index idx_post_stickied on post (stickied desc);
-
 -- Post_aggregates
+create index idx_post_aggregates_stickied_hot on post_aggregates (stickied desc, hot_rank(score, published) desc, published desc);
 create index idx_post_aggregates_hot on post_aggregates (hot_rank(score, published) desc, published desc);
+
+create index idx_post_aggregates_stickied_active on post_aggregates (stickied desc, hot_rank(score, newest_comment_time) desc, newest_comment_time desc);
 create index idx_post_aggregates_active on post_aggregates (hot_rank(score, newest_comment_time) desc, newest_comment_time desc);
+
+create index idx_post_aggregates_stickied_score on post_aggregates (stickied desc, score desc);
 create index idx_post_aggregates_score on post_aggregates (score desc);
+
+create index idx_post_aggregates_stickied_published on post_aggregates (stickied desc, published desc);
+create index idx_post_aggregates_published on post_aggregates (published desc);
 
 -- Comment
 create index idx_comment_published on comment (published desc);
