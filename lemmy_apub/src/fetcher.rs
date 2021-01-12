@@ -95,7 +95,7 @@ enum SearchAcceptedObjects {
 
 /// Attempt to parse the query as URL, and fetch an ActivityPub object from it.
 ///
-/// Some working examples for use with the `docker/federation/` setup:
+/// Some working examples for use with the `api_tests` setup:
 /// http://lemmy_alpha:8541/c/main, or !main@lemmy_alpha:8541
 /// http://lemmy_beta:8551/u/lemmy_alpha, or @lemmy_beta@lemmy_beta:8551
 /// http://lemmy_gamma:8561/post/3
