@@ -29,8 +29,7 @@ steps:
   - name: cargo clippy
     image: ekidd/rust-musl-builder:1.47.0
     commands:
-      - cargo clippy --workspace --tests --all-targets --all-features -- \
-          -D warnings -D deprecated -D clippy::perf -D clippy::complexity -D clippy::dbg_macro
+      - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings -D deprecated -D clippy::perf -D clippy::complexity -D clippy::dbg_macro
 
   - name: cargo test
     image: ekidd/rust-musl-builder:1.47.0
