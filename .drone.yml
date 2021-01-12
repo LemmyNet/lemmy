@@ -29,6 +29,8 @@ steps:
     image: ekidd/rust-musl-builder:1.47.0
     commands:
       - cargo install mdbook --git https://github.com/Ruin0x11/mdBook.git --branch localization --rev d06249b
+      - git submodule init
+      - git submodule update --recursive --remote
       - mdbook build docs/
 
   - name: cargo test
