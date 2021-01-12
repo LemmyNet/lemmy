@@ -6,6 +6,7 @@ steps:
     image: node:15-alpine3.12
     commands:
       - apk add git
+      - rm -rf docs/
       - git submodule init
       - git submodule update --recursive --remote
       - find docs/
