@@ -33,7 +33,7 @@ pub async fn get_apub_user_http(
     User_::find_by_email_or_username(conn, &user_name)
   })
   .await??;
-  dbg!(&user.deleted);
+
   if !user.deleted {
     let apub = user.to_apub(context.pool()).await?;
 
