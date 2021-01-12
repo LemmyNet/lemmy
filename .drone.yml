@@ -6,6 +6,8 @@ steps:
     image: node:15-alpine3.12
     commands:
       - apk add git
+      - rm -rf docs
+      - rm -rf .git/modules/lemmy-docs
       - git submodule update --init --remote
       - find docs/
 
