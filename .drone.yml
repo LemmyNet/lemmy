@@ -6,9 +6,9 @@ steps:
     image: node:15-alpine3.12
     commands:
       - apk add git
-      - git rm docs # TODO this is necessary rn due to some git version weirdness
-      - git submodule add -b master https://github.com/LemmyNet/lemmy-docs docs
-      # - git submodule update --init --remote
+      # - git rm docs # TODO this is necessary rn due to some git version weirdness
+      # - git submodule add -b master https://github.com/LemmyNet/lemmy-docs docs
+      - git submodule update --recursive --remote
       - find docs/
 
   - name: chown repo
