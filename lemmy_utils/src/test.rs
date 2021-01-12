@@ -53,7 +53,7 @@ fn test_valid_post_title() {
 #[test]
 fn test_slur_filter() {
   let test =
-      "coons test dindu ladyboy tranny retardeds. Capitalized Niggerz. This is a bunch of other safe text.";
+      "faggot test kike tranny cocksucker retardeds. Capitalized Niggerz. This is a bunch of other safe text.";
   let slur_free = "No slurs here";
   assert_eq!(
       remove_slurs(&test),
@@ -63,13 +63,13 @@ fn test_slur_filter() {
 
   let has_slurs_vec = vec![
     "Niggerz",
-    "coons",
-    "dindu",
-    "ladyboy",
+    "cocksucker",
+    "faggot",
+    "kike",
     "retardeds",
     "tranny",
   ];
-  let has_slurs_err_str = "No slurs - Niggerz, coons, dindu, ladyboy, retardeds, tranny";
+  let has_slurs_err_str = "No slurs - Niggerz, cocksucker, faggot, kike, retardeds, tranny";
 
   assert_eq!(slur_check(test), Err(has_slurs_vec));
   assert_eq!(slur_check(slur_free), Ok(()));
