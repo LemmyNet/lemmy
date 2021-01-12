@@ -15,7 +15,7 @@ struct SendError(pub String);
 #[error("Error receiving response, {0}")]
 pub struct RecvError(pub String);
 
-pub async fn retry<F, Fut, T>(f: F) -> Result<T, LemmyError>
+pub async fn retry<F, Fut, T>(f: F) -> Result<T, reqwest::Error>
 where
   F: Fn() -> Fut,
   Fut: Future<Output = Result<T, reqwest::Error>>,
@@ -23,27 +23,27 @@ where
   retry_custom(|| async { Ok((f)().await) }).await
 }
 
-async fn retry_custom<F, Fut, T>(f: F) -> Result<T, LemmyError>
+async fn retry_custom<F, Fut, T>(f: F) -> Result<T, reqwest::Error>
 where
   F: Fn() -> Fut,
-  Fut: Future<Output = Result<Result<T, reqwest::Error>, LemmyError>>,
+  Fut: Future<Output = Result<Result<T, reqwest::Error>, reqwest::Error>>,
 {
-  let mut response = Err(anyhow!("connect timeout").into());
+  let mut response: Option<Result<T, reqwest::Error>> = None;
 
   for _ in 0u8..3 {
     match (f)().await? {
       Ok(t) => return Ok(t),
       Err(e) => {
         if e.is_timeout() {
-          response = Err(SendError(e.to_string()).into());
+          response = Some(Err(e));
           continue;
         }
-        return Err(SendError(e.to_string()).into());
+        return Err(e);
       }
     }
   }
 
-  response
+  response.unwrap()
 }
 
 #[derive(Deserialize, Debug)]

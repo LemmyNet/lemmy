@@ -8,7 +8,7 @@ use crate::{
 };
 use actix_web::web::Data;
 use anyhow::Context;
-use lemmy_apub::fetcher::search_by_apub_id;
+use lemmy_apub::fetcher::search::search_by_apub_id;
 use lemmy_db_queries::{
   diesel_option_overwrite,
   source::{category::Category_, site::Site_},

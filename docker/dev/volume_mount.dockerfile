@@ -17,8 +17,8 @@ RUN --mount=type=cache,target=/app/target \
 
 FROM rust:1.47-buster as docs
 WORKDIR /app
-RUN cargo install mdbook --git https://github.com/Ruin0x11/mdBook.git \
-        --branch localization --rev d06249b --force
+RUN cargo install mdbook --git https://github.com/Nutomic/mdBook.git \
+        --branch localization --rev 0982a82 --force
 COPY docs ./docs
 RUN mdbook build docs/
 

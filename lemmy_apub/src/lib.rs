@@ -22,8 +22,16 @@ use activitystreams::{
 };
 use activitystreams_ext::{Ext1, Ext2};
 use anyhow::{anyhow, Context};
-use lemmy_db_queries::{source::activity::Activity_, DbPool};
-use lemmy_db_schema::source::{activity::Activity, user::User_};
+use diesel::NotFound;
+use lemmy_db_queries::{source::activity::Activity_, ApubObject, DbPool};
+use lemmy_db_schema::source::{
+  activity::Activity,
+  comment::Comment,
+  community::Community,
+  post::Post,
+  private_message::PrivateMessage,
+  user::User_,
+};
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, settings::Settings, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -238,4 +246,86 @@ where
   })
   .await??;
   Ok(())
+}
+
+pub(crate) enum PostOrComment {
+  Comment(Comment),
+  Post(Post),
+}
+
+/// Tries to find a post or comment in the local database, without any network requests.
+/// This is used to handle deletions and removals, because in case we dont have the object, we can
+/// simply ignore the activity.
+pub(crate) async fn find_post_or_comment_by_id(
+  context: &LemmyContext,
+  apub_id: Url,
+) -> Result<PostOrComment, LemmyError> {
+  let ap_id = apub_id.to_string();
+  let post = blocking(context.pool(), move |conn| {
+    Post::read_from_apub_id(conn, &ap_id)
+  })
+  .await?;
+  if let Ok(p) = post {
+    return Ok(PostOrComment::Post(p));
+  }
+
+  let ap_id = apub_id.to_string();
+  let comment = blocking(context.pool(), move |conn| {
+    Comment::read_from_apub_id(conn, &ap_id)
+  })
+  .await?;
+  if let Ok(c) = comment {
+    return Ok(PostOrComment::Comment(c));
+  }
+
+  Err(NotFound.into())
+}
+
+pub(crate) enum Object {
+  Comment(Comment),
+  Post(Post),
+  Community(Community),
+  User(User_),
+  PrivateMessage(PrivateMessage),
+}
+
+pub(crate) async fn find_object_by_id(
+  context: &LemmyContext,
+  apub_id: Url,
+) -> Result<Object, LemmyError> {
+  if let Ok(pc) = find_post_or_comment_by_id(context, apub_id.to_owned()).await {
+    return Ok(match pc {
+      PostOrComment::Post(p) => Object::Post(p),
+      PostOrComment::Comment(c) => Object::Comment(c),
+    });
+  }
+
+  let ap_id = apub_id.to_string();
+  let user = blocking(context.pool(), move |conn| {
+    User_::read_from_apub_id(conn, &ap_id)
+  })
+  .await?;
+  if let Ok(u) = user {
+    return Ok(Object::User(u));
+  }
+
+  let ap_id = apub_id.to_string();
+  let community = blocking(context.pool(), move |conn| {
+    Community::read_from_apub_id(conn, &ap_id)
+  })
+  .await?;
+  if let Ok(c) = community {
+    return Ok(Object::Community(c));
+  }
+
+  let ap_id = apub_id.to_string();
+  let private_message = blocking(context.pool(), move |conn| {
+    PrivateMessage::read_from_apub_id(conn, &ap_id)
+  })
+  .await?;
+  if let Ok(pm) = private_message {
+    return Ok(Object::PrivateMessage(pm));
+  }
+
+  Err(NotFound.into())
 }

@@ -1,6 +1,6 @@
 use crate::{
   extensions::context::lemmy_context,
-  http::create_apub_response,
+  http::{create_apub_response, create_apub_tombstone_response},
   objects::ToApub,
   ActorType,
 };
@@ -28,12 +28,19 @@ pub async fn get_apub_user_http(
   context: web::Data<LemmyContext>,
 ) -> Result<HttpResponse<Body>, LemmyError> {
   let user_name = info.into_inner().user_name;
+  // TODO: this needs to be able to read deleted users, so that it can send tombstones
   let user = blocking(context.pool(), move |conn| {
     User_::find_by_email_or_username(conn, &user_name)
   })
   .await??;
-  let u = user.to_apub(context.pool()).await?;
-  Ok(create_apub_response(&u))
+
+  if !user.deleted {
+    let apub = user.to_apub(context.pool()).await?;
+
+    Ok(create_apub_response(&apub))
+  } else {
+    Ok(create_apub_tombstone_response(&user.to_tombstone()?))
+  }
 }
 
 pub async fn get_apub_user_outbox(

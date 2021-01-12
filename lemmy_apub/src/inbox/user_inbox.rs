@@ -17,7 +17,7 @@ use crate::{
     verify_activity_domains_valid,
   },
   check_is_apub_id_valid,
-  fetcher::get_or_fetch_and_upsert_community,
+  fetcher::community::get_or_fetch_and_upsert_community,
   inbox::{
     assert_activity_not_local,
     get_activity_id,

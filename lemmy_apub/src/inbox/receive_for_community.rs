@@ -31,8 +31,10 @@ use crate::{
     receive_unhandled_activity,
     verify_activity_domains_valid,
   },
-  fetcher::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
+  fetcher::objects::{get_or_fetch_and_insert_comment, get_or_fetch_and_insert_post},
+  find_post_or_comment_by_id,
   inbox::is_addressed_to_public,
+  PostOrComment,
 };
 use activitystreams::{
   activity::{Create, Delete, Dislike, Like, Remove, Undo, Update},
@@ -41,8 +43,8 @@ use activitystreams::{
 };
 use anyhow::Context;
 use diesel::result::Error::NotFound;
-use lemmy_db_queries::{ApubObject, Crud};
-use lemmy_db_schema::source::{comment::Comment, post::Post, site::Site};
+use lemmy_db_queries::Crud;
+use lemmy_db_schema::source::site::Site;
 use lemmy_structs::blocking;
 use lemmy_utils::{location_info, LemmyError};
 use lemmy_websocket::LemmyContext;
@@ -315,39 +317,6 @@ pub(in crate::inbox) async fn receive_undo_dislike_for_community(
       receive_undo_dislike_comment(&dislike, comment, context, request_counter).await
     }
   }
-}
-
-enum PostOrComment {
-  Comment(Comment),
-  Post(Post),
-}
-
-/// Tries to find a post or comment in the local database, without any network requests.
-/// This is used to handle deletions and removals, because in case we dont have the object, we can
-/// simply ignore the activity.
-async fn find_post_or_comment_by_id(
-  context: &LemmyContext,
-  apub_id: Url,
-) -> Result<PostOrComment, LemmyError> {
-  let ap_id = apub_id.to_string();
-  let post = blocking(context.pool(), move |conn| {
-    Post::read_from_apub_id(conn, &ap_id)
-  })
-  .await?;
-  if let Ok(p) = post {
-    return Ok(PostOrComment::Post(p));
-  }
-
-  let ap_id = apub_id.to_string();
-  let comment = blocking(context.pool(), move |conn| {
-    Comment::read_from_apub_id(conn, &ap_id)
-  })
-  .await?;
-  if let Ok(c) = comment {
-    return Ok(PostOrComment::Comment(c));
-  }
-
-  Err(NotFound.into())
 }
 
 async fn fetch_post_or_comment_by_id(

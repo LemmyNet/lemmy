@@ -2,7 +2,7 @@ use crate::{
   activities::send::generate_activity_id,
   activity_queue::{send_comment_mentions, send_to_community},
   extensions::context::lemmy_context,
-  fetcher::get_or_fetch_and_upsert_user,
+  fetcher::user::get_or_fetch_and_upsert_user,
   objects::ToApub,
   ActorType,
   ApubLikeableType,
