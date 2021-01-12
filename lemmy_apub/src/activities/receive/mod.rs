@@ -1,4 +1,4 @@
-use crate::fetcher::get_or_fetch_and_upsert_user;
+use crate::fetcher::user::get_or_fetch_and_upsert_user;
 use activitystreams::{
   activity::{ActorAndObjectRef, ActorAndObjectRefExt},
   base::{AsBase, BaseExt},

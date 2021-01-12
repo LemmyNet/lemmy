@@ -1,6 +1,6 @@
 use crate::{
   extensions::{context::lemmy_context, page_extension::PageExtension},
-  fetcher::{get_or_fetch_and_upsert_community, get_or_fetch_and_upsert_user},
+  fetcher::{community::get_or_fetch_and_upsert_community, user::get_or_fetch_and_upsert_user},
   objects::{
     check_object_domain,
     check_object_for_community_or_site_ban,

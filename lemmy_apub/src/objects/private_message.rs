@@ -1,7 +1,7 @@
 use crate::{
   check_is_apub_id_valid,
   extensions::context::lemmy_context,
-  fetcher::get_or_fetch_and_upsert_user,
+  fetcher::user::get_or_fetch_and_upsert_user,
   objects::{
     check_object_domain,
     create_tombstone,
