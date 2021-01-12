@@ -19,15 +19,21 @@ cd docker/prod || exit
 
 # Changing various references to the Lemmy version
 sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" ../dev/docker-compose.yml
+sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" ../federation/docker-compose.yml
 sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../prod/docker-compose.yml
 sed -i "s/dessalines\/lemmy-ui:.*/dessalines\/lemmy-ui:$new_tag/" ../prod/docker-compose.yml
+sed -i "s/dessalines\/lemmy:v.*/dessalines\/lemmy:$new_tag/" ../travis/docker_push.sh
 
 git add ../dev/docker-compose.yml
+git add ../federation/docker-compose.yml
 git add ../prod/docker-compose.yml
+git add ../travis/docker_push.sh
 
 # The commit
 git commit -m"Version $new_tag"
 git tag $new_tag
+
+# Now doing the building on travis, but leave this in for when you need to do an arm build
 
 # export COMPOSE_DOCKER_CLI_BUILD=1
 # export DOCKER_BUILDKIT=1
