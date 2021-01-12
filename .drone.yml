@@ -6,7 +6,7 @@ steps:
     image: node:15-alpine3.12
     commands:
       - apk add git
-      - git pull --recurse-submodules
+      - git submodule update --init --remote
       - find docs/
 
   - name: chown repo
