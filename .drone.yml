@@ -7,6 +7,7 @@ steps:
     commands:
       - apk add git
       - git submodule update --recursive --remote
+      - find docs/
 
   - name: chown repo
     image: ekidd/rust-musl-builder:1.47.0
