@@ -8,7 +8,7 @@ steps:
       - apk add git
       - git rm docs # TODO this is necessary rn due to some git version weirdness
       - git submodule add -b master https://github.com/LemmyNet/lemmy-docs docs
-      - git submodule update --init --remote
+      # - git submodule update --init --remote
       - find docs/
 
   - name: chown repo
