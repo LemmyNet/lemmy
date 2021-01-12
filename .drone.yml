@@ -6,7 +6,7 @@ steps:
     image: node:15-alpine3.12
     commands:
       - apk add git
-      - git submodule update --recursive --remote
+      - git submodule update --init --recursive --remote
       - find docs/
 
   - name: chown repo
@@ -14,6 +14,12 @@ steps:
     user: root
     commands:
       - chown 1000:1000 . -R
+
+  - name: check documentation build
+    image: ekidd/rust-musl-builder:1.47.0
+    commands:
+      - cargo install mdbook --git https://github.com/Ruin0x11/mdBook.git --branch localization --rev d06249b
+      - mdbook build docs/
 
   - name: check formatting
     image: rustdocker/rust:nightly
@@ -24,12 +30,6 @@ steps:
     image: ekidd/rust-musl-builder:1.47.0
     commands:
       - cargo clippy --workspace --tests --all-targets --all-features -- -D warnings
-
-  - name: check documentation build
-    image: ekidd/rust-musl-builder:1.47.0
-    commands:
-      - cargo install mdbook --git https://github.com/Ruin0x11/mdBook.git --branch localization --rev d06249b
-      - mdbook build docs/
 
   - name: cargo test
     image: ekidd/rust-musl-builder:1.47.0
