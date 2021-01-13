@@ -335,6 +335,7 @@ impl ChatServer {
 
     // Send it to the post room
     let mut comment_post_sent = comment_reply_sent.clone();
+    // Remove the recipients here to separate mentions / user messages from post or community comments
     comment_post_sent.recipient_ids = Vec::new();
     self.send_post_room_message(
       user_operation,
@@ -352,8 +353,6 @@ impl ChatServer {
       websocket_id,
     )?;
 
-    // Remove the form id here to separate mentions / user messages from post or community comments
-    comment_reply_sent.form_id = None;
     // Send it to the recipient(s) including the mentioned users
     for recipient_id in &comment_reply_sent.recipient_ids {
       self.send_user_room_message(

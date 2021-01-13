@@ -152,7 +152,7 @@ impl Perform for CreateComment {
       comment_view.comment.read = true;
     }
 
-    let res = CommentResponse {
+    let mut res = CommentResponse {
       comment_view,
       recipient_ids,
       form_id: data.form_id.to_owned(),
@@ -163,6 +163,8 @@ impl Perform for CreateComment {
       comment: res.clone(),
       websocket_id,
     });
+
+    res.recipient_ids = Vec::new(); // Necessary to avoid doubles
 
     Ok(res)
   }
