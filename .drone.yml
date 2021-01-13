@@ -78,6 +78,7 @@ steps:
       password:
         from_secret: docker_password
       repo: dessalines/lemmy
+      auto_tag: true
     when:
       ref:
       - refs/tags/*
