@@ -322,7 +322,11 @@ impl<'a> CommentQueryBuilder<'a> {
       query = query
         // TODO needs lots of testing
         .filter(user_alias_1::id.eq(recipient_id)) // Gets the comment replies
-        .or_filter(comment::parent_id.is_null().and(post::creator_id.eq(recipient_id))) // Gets the top level replies
+        .or_filter(
+          comment::parent_id
+            .is_null()
+            .and(post::creator_id.eq(recipient_id)),
+        ) // Gets the top level replies
         .filter(comment::deleted.eq(false))
         .filter(comment::removed.eq(false));
     }
