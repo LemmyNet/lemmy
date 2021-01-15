@@ -100,7 +100,9 @@ pub async fn search_by_apub_id(
     delete_object_locally(&query_url, context).await?;
   }
 
-  build_response(fetch_response?, query_url, recursion_counter, context).await
+  // Necessary because we get a stack overflow using FetchError
+  let fet_res = fetch_response.map_err(|e| LemmyError::from(e.inner))?;
+  build_response(fet_res, query_url, recursion_counter, context).await
 }
 
 async fn build_response(
