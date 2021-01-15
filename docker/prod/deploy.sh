@@ -25,6 +25,7 @@ sed -i "s/dessalines\/lemmy:.*/dessalines\/lemmy:$new_tag/" ../prod/docker-compo
 
 git add ../dev/docker-compose.yml
 git add ../prod/docker-compose.yml
+git add ../federation/docker-compose.yml
 
 # The commit
 git commit -m"Version $new_tag"

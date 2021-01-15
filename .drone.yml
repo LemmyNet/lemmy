@@ -12,7 +12,6 @@ steps:
     commands:
       - apk add git
       - git submodule update --init --recursive --remote
-      - find docs/
 
   - name: chown repo
     image: ekidd/rust-musl-builder:1.47.0
@@ -95,6 +94,12 @@ platform:
   arch: arm64
 
 steps:
+
+  - name: fetch git submodules
+    image: node:15-alpine3.12
+    commands:
+      - apk add git
+      - git submodule update --init --recursive --remote
 
   - name: cargo test
     image: rust:1.47-slim-buster
