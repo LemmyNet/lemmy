@@ -219,6 +219,13 @@ where
     return Ok(());
   }
 
+  // Don't send anything to ourselves
+  let hostname = Settings::get().get_hostname_without_port()?;
+  let inboxes: Vec<&Url> = inboxes
+    .iter()
+    .filter(|i| i.domain().unwrap() != hostname)
+    .collect();
+
   let activity = activity.into_any_base()?;
   let serialised_activity = serde_json::to_string(&activity)?;
 
@@ -232,7 +239,7 @@ where
   for i in inboxes {
     let message = SendActivityTask {
       activity: serialised_activity.to_owned(),
-      inbox: i,
+      inbox: i.to_owned(),
       actor_id: actor.actor_id()?,
       private_key: actor.private_key().context(location_info!())?,
     };
