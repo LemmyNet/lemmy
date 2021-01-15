@@ -61,13 +61,7 @@ pub static APUB_JSON_CONTENT_TYPE: &str = "application/activity+json";
 fn check_is_apub_id_valid(apub_id: &Url) -> Result<(), LemmyError> {
   let settings = Settings::get();
   let domain = apub_id.domain().context(location_info!())?.to_string();
-  let local_instance = settings
-    .hostname
-    .split(':')
-    .collect::<Vec<&str>>()
-    .first()
-    .context(location_info!())?
-    .to_string();
+  let local_instance = settings.get_hostname_without_port()?;
 
   if !settings.federation.enabled {
     return if domain == local_instance {

@@ -27,6 +27,8 @@
     <a href="https://github.com/LemmyNet/lemmy/issues">Request Feature</a>
     ·
     <a href="https://github.com/LemmyNet/lemmy/blob/main/RELEASES.md">Releases</a>
+    ·
+    <a href="https://lemmy.ml/docs/en/code_of_conduct.html">Code of Conduct</a>
   </p>
 </p>
 

@@ -1,5 +1,10 @@
+---
 kind: pipeline
-name: default
+name: amd64
+
+platform:
+  os: linux
+  arch: amd64
 
 steps:
   - name: fetch git submodules
@@ -54,20 +59,11 @@ steps:
       LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
       DO_WRITE_HOSTS_FILE: 1
     commands:
-      - ls -la target/lemmy_server
       - apk add bash curl postgresql-client
       - bash api_tests/prepare-drone-federation-test.sh
       - cd api_tests/
       - yarn
       - yarn api-test
-
-  - name: create docker tags
-    image: ekidd/rust-musl-builder:1.47.0
-    commands:
-      - echo "$(git describe),latest" > .tags
-    when:
-      ref:
-      - refs/tags/*
 
   - name: make release build and push to docker hub
     image: plugins/docker
@@ -90,6 +86,69 @@ services:
       POSTGRES_USER: lemmy
       POSTGRES_PASSWORD: password
 
-volumes:
-  - name: dieselcli
-    temp: {}
+---
+kind: pipeline
+name: arm64
+
+platform:
+  os: linux
+  arch: arm64
+
+steps:
+
+  - name: cargo test
+    image: rust:1.47-slim-buster
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432/lemmy
+      RUST_BACKTRACE: 1
+      RUST_TEST_THREADS: 1
+    commands:
+      - apt-get update
+      - apt-get -y install --no-install-recommends espeak postgresql-client libssl-dev pkg-config libpq-dev
+      - cargo test --workspace --no-fail-fast
+      - cargo build
+
+  # Using Debian here because there seems to be no official Alpine-based Rust docker image for ARM.
+  - name: cargo build
+    image: rust:1.47-slim-buster
+    commands:
+      - apt-get update
+      - apt-get -y install --no-install-recommends libssl-dev pkg-config libpq-dev
+      - cargo build
+      - mv target/debug/lemmy_server target/lemmy_server
+
+  - name: run federation tests
+    image: node:15-buster-slim
+    environment:
+      LEMMY_DATABASE_URL: postgres://lemmy:password@database:5432
+      DO_WRITE_HOSTS_FILE: 1
+    commands:
+      - mkdir -p /usr/share/man/man1 /usr/share/man/man7
+      - apt-get update
+      - apt-get -y install --no-install-recommends bash curl libssl-dev pkg-config libpq-dev postgresql-client libc6-dev
+      - bash api_tests/prepare-drone-federation-test.sh
+      - cd api_tests/
+      - yarn
+      - yarn api-test
+
+  - name: make release build and push to docker hub
+    image: plugins/docker
+    settings:
+      dockerfile: docker/prod/Dockerfile.arm
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      repo: dessalines/lemmy
+      auto_tag: true
+      auto_tag_suffix: arm64
+    when:
+      ref:
+        - refs/tags/*
+
+services:
+  - name: database
+    image: postgres:12-alpine
+    environment:
+      POSTGRES_USER: lemmy
+      POSTGRES_PASSWORD: password

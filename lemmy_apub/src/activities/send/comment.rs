@@ -57,17 +57,14 @@ impl ApubObjectType for Comment {
     })
     .await??;
 
-    let mut maa = collect_non_local_mentions_and_addresses(&self.content, context).await?;
-    let mut ccs = vec![community.actor_id()?];
-    ccs.append(&mut maa.addressed_ccs);
-    ccs.push(get_comment_parent_creator_id(context.pool(), &self).await?);
+    let maa = collect_non_local_mentions(&self, &community, context).await?;
 
     let mut create = Create::new(creator.actor_id.to_owned(), note.into_any_base()?);
     create
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(CreateType::Create)?)
       .set_to(public())
-      .set_many_ccs(ccs)
+      .set_many_ccs(maa.ccs.to_owned())
       // Set the mention tags
       .set_many_tags(maa.get_tags()?);
 
@@ -90,17 +87,14 @@ impl ApubObjectType for Comment {
     })
     .await??;
 
-    let mut maa = collect_non_local_mentions_and_addresses(&self.content, context).await?;
-    let mut ccs = vec![community.actor_id()?];
-    ccs.append(&mut maa.addressed_ccs);
-    ccs.push(get_comment_parent_creator_id(context.pool(), &self).await?);
+    let maa = collect_non_local_mentions(&self, &community, context).await?;
 
     let mut update = Update::new(creator.actor_id.to_owned(), note.into_any_base()?);
     update
       .set_many_contexts(lemmy_context()?)
       .set_id(generate_activity_id(UpdateType::Update)?)
       .set_to(public())
-      .set_many_ccs(ccs)
+      .set_many_ccs(maa.ccs.to_owned())
       // Set the mention tags
       .set_many_tags(maa.get_tags()?);
 
@@ -295,7 +289,7 @@ impl ApubLikeableType for Comment {
 }
 
 struct MentionsAndAddresses {
-  addressed_ccs: Vec<Url>,
+  ccs: Vec<Url>,
   inboxes: Vec<Url>,
   tags: Vec<Mention>,
 }
@@ -313,23 +307,26 @@ impl MentionsAndAddresses {
 /// This takes a comment, and builds a list of to_addresses, inboxes,
 /// and mention tags, so they know where to be sent to.
 /// Addresses are the users / addresses that go in the cc field.
-async fn collect_non_local_mentions_and_addresses(
-  content: &str,
+async fn collect_non_local_mentions(
+  comment: &Comment,
+  community: &Community,
   context: &LemmyContext,
 ) -> Result<MentionsAndAddresses, LemmyError> {
-  let mut addressed_ccs = vec![];
+  let parent_creator = get_comment_parent_creator(context.pool(), comment).await?;
+  let mut addressed_ccs = vec![community.actor_id()?, parent_creator.actor_id()?];
+  // Note: dont include community inbox here, as we send to it separately with `send_to_community()`
+  let mut inboxes = vec![parent_creator.get_shared_inbox_url()?];
 
   // Add the mention tag
   let mut tags = Vec::new();
 
-  // Get the inboxes for any mentions
-  let mentions = scrape_text_for_mentions(&content)
+  // Get the user IDs for any mentions
+  let mentions = scrape_text_for_mentions(&comment.content)
     .into_iter()
     // Filter only the non-local ones
     .filter(|m| !m.is_local())
     .collect::<Vec<MentionData>>();
 
-  let mut mention_inboxes: Vec<Url> = Vec::new();
   for mention in &mentions {
     // TODO should it be fetching it every time?
     if let Ok(actor_id) = fetch_webfinger_url(mention, context.client()).await {
@@ -337,19 +334,18 @@ async fn collect_non_local_mentions_and_addresses(
       addressed_ccs.push(actor_id.to_owned().to_string().parse()?);
 
       let mention_user = get_or_fetch_and_upsert_user(&actor_id, context, &mut 0).await?;
-      let shared_inbox = mention_user.get_shared_inbox_url()?;
+      inboxes.push(mention_user.get_shared_inbox_url()?);
 
-      mention_inboxes.push(shared_inbox);
       let mut mention_tag = Mention::new();
       mention_tag.set_href(actor_id).set_name(mention.full_name());
       tags.push(mention_tag);
     }
   }
 
-  let inboxes = mention_inboxes.into_iter().unique().collect();
+  let inboxes = inboxes.into_iter().unique().collect();
 
   Ok(MentionsAndAddresses {
-    addressed_ccs,
+    ccs: addressed_ccs,
     inboxes,
     tags,
   })
@@ -357,10 +353,7 @@ async fn collect_non_local_mentions_and_addresses(
 
 /// Returns the apub ID of the user this comment is responding to. Meaning, in case this is a
 /// top-level comment, the creator of the post, otherwise the creator of the parent comment.
-async fn get_comment_parent_creator_id(
-  pool: &DbPool,
-  comment: &Comment,
-) -> Result<Url, LemmyError> {
+async fn get_comment_parent_creator(pool: &DbPool, comment: &Comment) -> Result<User_, LemmyError> {
   let parent_creator_id = if let Some(parent_comment_id) = comment.parent_id {
     let parent_comment =
       blocking(pool, move |conn| Comment::read(conn, parent_comment_id)).await??;
@@ -370,8 +363,7 @@ async fn get_comment_parent_creator_id(
     let parent_post = blocking(pool, move |conn| Post::read(conn, parent_post_id)).await??;
     parent_post.creator_id
   };
-  let parent_creator = blocking(pool, move |conn| User_::read(conn, parent_creator_id)).await??;
-  Ok(parent_creator.actor_id()?)
+  Ok(blocking(pool, move |conn| User_::read(conn, parent_creator_id)).await??)
 }
 
 /// Turns a user id like `@name@example.com` into an apub ID, like `https://example.com/user/name`,
