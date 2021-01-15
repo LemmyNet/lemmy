@@ -65,14 +65,6 @@ steps:
       - yarn
       - yarn api-test
 
-  - name: create docker tags
-    image: node:15-alpine3.12
-    commands:
-      - echo "$(git describe),latest" > .tags
-    when:
-      ref:
-      - refs/tags/*
-
   - name: make release build and push to docker hub
     image: plugins/docker
     settings:
@@ -139,14 +131,6 @@ steps:
       - yarn
       - yarn api-test
 
-  - name: create docker tags
-    image: node:15-buster-slim
-    commands:
-      - echo "$(git describe),latest" > .tags
-    when:
-      ref:
-        - refs/tags/*
-
   - name: make release build and push to docker hub
     image: plugins/docker
     settings:
@@ -156,6 +140,8 @@ steps:
       password:
         from_secret: docker_password
       repo: dessalines/lemmy
+      auto_tag: true
+      auto_tag_suffix: arm64
     when:
       ref:
         - refs/tags/*
