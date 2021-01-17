@@ -6,9 +6,6 @@ edition = "2018"
 [profile.dev]
 debug = 0
 
-[profile.release]
-lto = true
-
 [workspace]
 members = [
     "lemmy_api",
