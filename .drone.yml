@@ -19,12 +19,6 @@ steps:
     commands:
       - chown 1000:1000 . -R
 
-  - name: check documentation build
-    image: ekidd/rust-musl-builder:1.47.0
-    commands:
-      - cargo install mdbook --git https://github.com/Ruin0x11/mdBook.git --branch localization --rev d06249b
-      - mdbook build docs/
-
   - name: check formatting
     image: rustdocker/rust:nightly
     commands:
