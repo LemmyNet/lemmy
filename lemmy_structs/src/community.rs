@@ -82,7 +82,7 @@ pub struct AddModToCommunityResponse {
 
 #[derive(Deserialize)]
 pub struct EditCommunity {
-  pub edit_id: i32,
+  pub community_id: i32,
   pub title: String,
   pub description: Option<String>,
   pub icon: Option<String>,
@@ -94,14 +94,14 @@ pub struct EditCommunity {
 
 #[derive(Deserialize)]
 pub struct DeleteCommunity {
-  pub edit_id: i32,
+  pub community_id: i32,
   pub deleted: bool,
   pub auth: String,
 }
 
 #[derive(Deserialize)]
 pub struct RemoveCommunity {
-  pub edit_id: i32,
+  pub community_id: i32,
   pub removed: bool,
   pub reason: Option<String>,
   pub expires: Option<i64>,
@@ -130,24 +130,4 @@ pub struct TransferCommunity {
   pub community_id: i32,
   pub user_id: i32,
   pub auth: String,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct CommunityJoin {
-  pub community_id: i32,
-}
-
-#[derive(Serialize, Clone)]
-pub struct CommunityJoinResponse {
-  pub joined: bool,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct ModJoin {
-  pub community_id: i32,
-}
-
-#[derive(Serialize, Clone)]
-pub struct ModJoinResponse {
-  pub joined: bool,
 }

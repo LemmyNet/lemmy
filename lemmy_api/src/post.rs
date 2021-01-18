@@ -46,7 +46,7 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::{
-  messages::{GetPostUsersOnline, JoinPostRoom, SendModRoomMessage, SendPost, SendUserRoomMessage},
+  messages::{GetPostUsersOnline, SendModRoomMessage, SendPost, SendUserRoomMessage},
   LemmyContext,
   UserOperation,
 };
@@ -376,8 +376,8 @@ impl Perform for EditPost {
       return Err(APIError::err("invalid_post_title").into());
     }
 
-    let edit_id = data.edit_id;
-    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, edit_id)).await??;
+    let post_id = data.post_id;
+    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
     check_community_ban(user.id, orig_post.community_id, context.pool()).await?;
 
@@ -411,9 +411,9 @@ impl Perform for EditPost {
       published: None,
     };
 
-    let edit_id = data.edit_id;
+    let post_id = data.post_id;
     let res = blocking(context.pool(), move |conn| {
-      Post::update(conn, edit_id, &post_form)
+      Post::update(conn, post_id, &post_form)
     })
     .await?;
     let updated_post: Post = match res {
@@ -432,9 +432,9 @@ impl Perform for EditPost {
     // Send apub update
     updated_post.send_update(&user, context).await?;
 
-    let edit_id = data.edit_id;
+    let post_id = data.post_id;
     let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, edit_id, Some(user.id))
+      PostView::read(conn, post_id, Some(user.id))
     })
     .await??;
 
@@ -462,8 +462,8 @@ impl Perform for DeletePost {
     let data: &DeletePost = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
-    let edit_id = data.edit_id;
-    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, edit_id)).await??;
+    let post_id = data.post_id;
+    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
     check_community_ban(user.id, orig_post.community_id, context.pool()).await?;
 
@@ -473,10 +473,10 @@ impl Perform for DeletePost {
     }
 
     // Update the post
-    let edit_id = data.edit_id;
+    let post_id = data.post_id;
     let deleted = data.deleted;
     let updated_post = blocking(context.pool(), move |conn| {
-      Post::update_deleted(conn, edit_id, deleted)
+      Post::update_deleted(conn, post_id, deleted)
     })
     .await??;
 
@@ -488,9 +488,9 @@ impl Perform for DeletePost {
     }
 
     // Refetch the post
-    let edit_id = data.edit_id;
+    let post_id = data.post_id;
     let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, edit_id, Some(user.id))
+      PostView::read(conn, post_id, Some(user.id))
     })
     .await??;
 
@@ -518,8 +518,8 @@ impl Perform for RemovePost {
     let data: &RemovePost = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
-    let edit_id = data.edit_id;
-    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, edit_id)).await??;
+    let post_id = data.post_id;
+    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
     check_community_ban(user.id, orig_post.community_id, context.pool()).await?;
 
@@ -527,17 +527,17 @@ impl Perform for RemovePost {
     is_mod_or_admin(context.pool(), user.id, orig_post.community_id).await?;
 
     // Update the post
-    let edit_id = data.edit_id;
+    let post_id = data.post_id;
     let removed = data.removed;
     let updated_post = blocking(context.pool(), move |conn| {
-      Post::update_removed(conn, edit_id, removed)
+      Post::update_removed(conn, post_id, removed)
     })
     .await??;
 
     // Mod tables
     let form = ModRemovePostForm {
       mod_user_id: user.id,
-      post_id: data.edit_id,
+      post_id: data.post_id,
       removed: Some(removed),
       reason: data.reason.to_owned(),
     };
@@ -554,10 +554,10 @@ impl Perform for RemovePost {
     }
 
     // Refetch the post
-    let edit_id = data.edit_id;
+    let post_id = data.post_id;
     let user_id = user.id;
     let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, edit_id, Some(user_id))
+      PostView::read(conn, post_id, Some(user_id))
     })
     .await??;
 
@@ -585,8 +585,8 @@ impl Perform for LockPost {
     let data: &LockPost = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
-    let edit_id = data.edit_id;
-    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, edit_id)).await??;
+    let post_id = data.post_id;
+    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
     check_community_ban(user.id, orig_post.community_id, context.pool()).await?;
 
@@ -594,17 +594,17 @@ impl Perform for LockPost {
     is_mod_or_admin(context.pool(), user.id, orig_post.community_id).await?;
 
     // Update the post
-    let edit_id = data.edit_id;
+    let post_id = data.post_id;
     let locked = data.locked;
     let updated_post = blocking(context.pool(), move |conn| {
-      Post::update_locked(conn, edit_id, locked)
+      Post::update_locked(conn, post_id, locked)
     })
     .await??;
 
     // Mod tables
     let form = ModLockPostForm {
       mod_user_id: user.id,
-      post_id: data.edit_id,
+      post_id: data.post_id,
       locked: Some(locked),
     };
     blocking(context.pool(), move |conn| ModLockPost::create(conn, &form)).await??;
@@ -613,9 +613,9 @@ impl Perform for LockPost {
     updated_post.send_update(&user, context).await?;
 
     // Refetch the post
-    let edit_id = data.edit_id;
+    let post_id = data.post_id;
     let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, edit_id, Some(user.id))
+      PostView::read(conn, post_id, Some(user.id))
     })
     .await??;
 
@@ -643,8 +643,8 @@ impl Perform for StickyPost {
     let data: &StickyPost = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
-    let edit_id = data.edit_id;
-    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, edit_id)).await??;
+    let post_id = data.post_id;
+    let orig_post = blocking(context.pool(), move |conn| Post::read(conn, post_id)).await??;
 
     check_community_ban(user.id, orig_post.community_id, context.pool()).await?;
 
@@ -652,17 +652,17 @@ impl Perform for StickyPost {
     is_mod_or_admin(context.pool(), user.id, orig_post.community_id).await?;
 
     // Update the post
-    let edit_id = data.edit_id;
+    let post_id = data.post_id;
     let stickied = data.stickied;
     let updated_post = blocking(context.pool(), move |conn| {
-      Post::update_stickied(conn, edit_id, stickied)
+      Post::update_stickied(conn, post_id, stickied)
     })
     .await??;
 
     // Mod tables
     let form = ModStickyPostForm {
       mod_user_id: user.id,
-      post_id: data.edit_id,
+      post_id: data.post_id,
       stickied: Some(stickied),
     };
     blocking(context.pool(), move |conn| {
@@ -675,9 +675,9 @@ impl Perform for StickyPost {
     updated_post.send_update(&user, context).await?;
 
     // Refetch the post
-    let edit_id = data.edit_id;
+    let post_id = data.post_id;
     let post_view = blocking(context.pool(), move |conn| {
-      PostView::read(conn, edit_id, Some(user.id))
+      PostView::read(conn, post_id, Some(user.id))
     })
     .await??;
 
@@ -730,28 +730,6 @@ impl Perform for SavePost {
     .await??;
 
     Ok(PostResponse { post_view })
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl Perform for PostJoin {
-  type Response = PostJoinResponse;
-
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<PostJoinResponse, LemmyError> {
-    let data: &PostJoin = &self;
-
-    if let Some(ws_id) = websocket_id {
-      context.chat_server().do_send(JoinPostRoom {
-        post_id: data.post_id,
-        id: ws_id,
-      });
-    }
-
-    Ok(PostJoinResponse { joined: true })
   }
 }
 

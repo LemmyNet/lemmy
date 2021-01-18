@@ -4,6 +4,7 @@ use lemmy_db_queries::{
   source::{
     community::{CommunityModerator_, Community_},
     site::Site_,
+    user::UserSafeSettings_,
   },
   Crud,
   DbPool,
@@ -12,13 +13,13 @@ use lemmy_db_schema::source::{
   community::{Community, CommunityModerator},
   post::Post,
   site::Site,
-  user::User_,
+  user::{UserSafeSettings, User_},
 };
 use lemmy_db_views_actor::{
   community_user_ban_view::CommunityUserBanView,
   community_view::CommunityView,
 };
-use lemmy_structs::{blocking, comment::*, community::*, post::*, site::*, user::*};
+use lemmy_structs::{blocking, comment::*, community::*, post::*, site::*, user::*, websocket::*};
 use lemmy_utils::{settings::Settings, APIError, ConnectionId, LemmyError};
 use lemmy_websocket::{serialize_websocket_message, LemmyContext, UserOperation};
 use serde::Deserialize;
@@ -32,6 +33,7 @@ pub mod post;
 pub mod site;
 pub mod user;
 pub mod version;
+pub mod websocket;
 
 #[async_trait::async_trait(?Send)]
 pub trait Perform {
@@ -93,6 +95,33 @@ pub(crate) async fn get_user_from_jwt_opt(
 ) -> Result<Option<User_>, LemmyError> {
   match jwt {
     Some(jwt) => Ok(Some(get_user_from_jwt(jwt, pool).await?)),
+    None => Ok(None),
+  }
+}
+
+pub(crate) async fn get_user_safe_settings_from_jwt(
+  jwt: &str,
+  pool: &DbPool,
+) -> Result<UserSafeSettings, LemmyError> {
+  let claims = match Claims::decode(&jwt) {
+    Ok(claims) => claims.claims,
+    Err(_e) => return Err(APIError::err("not_logged_in").into()),
+  };
+  let user_id = claims.id;
+  let user = blocking(pool, move |conn| UserSafeSettings::read(conn, user_id)).await??;
+  // Check for a site ban
+  if user.banned {
+    return Err(APIError::err("site_ban").into());
+  }
+  Ok(user)
+}
+
+pub(crate) async fn get_user_safe_settings_from_jwt_opt(
+  jwt: &Option<String>,
+  pool: &DbPool,
+) -> Result<Option<UserSafeSettings>, LemmyError> {
+  match jwt {
+    Some(jwt) => Ok(Some(get_user_safe_settings_from_jwt(jwt, pool).await?)),
     None => Ok(None),
   }
 }

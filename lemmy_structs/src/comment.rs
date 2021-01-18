@@ -13,21 +13,21 @@ pub struct CreateComment {
 #[derive(Deserialize)]
 pub struct EditComment {
   pub content: String,
-  pub edit_id: i32,
+  pub comment_id: i32,
   pub form_id: Option<String>,
   pub auth: String,
 }
 
 #[derive(Deserialize)]
 pub struct DeleteComment {
-  pub edit_id: i32,
+  pub comment_id: i32,
   pub deleted: bool,
   pub auth: String,
 }
 
 #[derive(Deserialize)]
 pub struct RemoveComment {
-  pub edit_id: i32,
+  pub comment_id: i32,
   pub removed: bool,
   pub reason: Option<String>,
   pub auth: String,

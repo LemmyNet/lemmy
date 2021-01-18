@@ -64,7 +64,7 @@ pub struct CreatePostLike {
 
 #[derive(Deserialize)]
 pub struct EditPost {
-  pub edit_id: i32,
+  pub post_id: i32,
   pub name: String,
   pub url: Option<String>,
   pub body: Option<String>,
@@ -74,14 +74,14 @@ pub struct EditPost {
 
 #[derive(Deserialize)]
 pub struct DeletePost {
-  pub edit_id: i32,
+  pub post_id: i32,
   pub deleted: bool,
   pub auth: String,
 }
 
 #[derive(Deserialize)]
 pub struct RemovePost {
-  pub edit_id: i32,
+  pub post_id: i32,
   pub removed: bool,
   pub reason: Option<String>,
   pub auth: String,
@@ -89,14 +89,14 @@ pub struct RemovePost {
 
 #[derive(Deserialize)]
 pub struct LockPost {
-  pub edit_id: i32,
+  pub post_id: i32,
   pub locked: bool,
   pub auth: String,
 }
 
 #[derive(Deserialize)]
 pub struct StickyPost {
-  pub edit_id: i32,
+  pub post_id: i32,
   pub stickied: bool,
   pub auth: String,
 }
@@ -106,16 +106,6 @@ pub struct SavePost {
   pub post_id: i32,
   pub save: bool,
   pub auth: String,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct PostJoin {
-  pub post_id: i32,
-}
-
-#[derive(Serialize, Clone)]
-pub struct PostJoinResponse {
-  pub joined: bool,
 }
 
 #[derive(Serialize, Deserialize)]

@@ -1,6 +1,8 @@
 use crate::{
   get_user_from_jwt,
   get_user_from_jwt_opt,
+  get_user_safe_settings_from_jwt,
+  get_user_safe_settings_from_jwt_opt,
   is_admin,
   linked_instances,
   version,
@@ -274,7 +276,6 @@ impl Perform for GetSite {
             email: setup.admin_email.to_owned(),
             password: setup.admin_password.to_owned(),
             password_verify: setup.admin_password.to_owned(),
-            admin: true,
             show_nsfw: true,
             captcha_uuid: None,
             captcha_answer: None,
@@ -322,14 +323,7 @@ impl Perform for GetSite {
       .await
       .unwrap_or(1);
 
-    let my_user = get_user_from_jwt_opt(&data.auth, context.pool())
-      .await?
-      .map(|mut u| {
-        u.password_encrypted = "".to_string();
-        u.private_key = None;
-        u.public_key = None;
-        u
-      });
+    let my_user = get_user_safe_settings_from_jwt_opt(&data.auth, context.pool()).await?;
 
     Ok(GetSiteResponse {
       site_view,
@@ -519,14 +513,9 @@ impl Perform for TransferSite {
     _websocket_id: Option<ConnectionId>,
   ) -> Result<GetSiteResponse, LemmyError> {
     let data: &TransferSite = &self;
-    let mut user = get_user_from_jwt(&data.auth, context.pool()).await?;
+    let user = get_user_safe_settings_from_jwt(&data.auth, context.pool()).await?;
 
     is_admin(context.pool(), user.id).await?;
-
-    // TODO add a User_::read_safe() for this.
-    user.password_encrypted = "".to_string();
-    user.private_key = None;
-    user.public_key = None;
 
     let read_site = blocking(context.pool(), move |conn| Site::read_simple(conn)).await??;
 

@@ -7,7 +7,7 @@ use lemmy_db_views_actor::{
   community_follower_view::CommunityFollowerView,
   community_moderator_view::CommunityModeratorView,
   user_mention_view::UserMentionView,
-  user_view::{UserViewDangerous, UserViewSafe},
+  user_view::UserViewSafe,
 };
 use serde::{Deserialize, Serialize};
 
@@ -23,7 +23,6 @@ pub struct Register {
   pub email: Option<String>,
   pub password: String,
   pub password_verify: String,
-  pub admin: bool,
   pub show_nsfw: bool,
   pub captcha_uuid: Option<String>,
   pub captcha_answer: Option<String>,
@@ -34,7 +33,7 @@ pub struct GetCaptcha {}
 
 #[derive(Serialize)]
 pub struct GetCaptchaResponse {
-  pub ok: Option<CaptchaResponse>,
+  pub ok: Option<CaptchaResponse>, // Will be None if captchas are disabled
 }
 
 #[derive(Serialize)]
@@ -84,8 +83,7 @@ pub struct GetUserDetails {
 
 #[derive(Serialize)]
 pub struct GetUserDetailsResponse {
-  pub user_view: Option<UserViewSafe>,
-  pub user_view_dangerous: Option<UserViewDangerous>,
+  pub user_view: UserViewSafe,
   pub follows: Vec<CommunityFollowerView>,
   pub moderates: Vec<CommunityModeratorView>,
   pub comments: Vec<CommentView>,
@@ -195,21 +193,21 @@ pub struct CreatePrivateMessage {
 
 #[derive(Deserialize)]
 pub struct EditPrivateMessage {
-  pub edit_id: i32,
+  pub private_message_id: i32,
   pub content: String,
   pub auth: String,
 }
 
 #[derive(Deserialize)]
 pub struct DeletePrivateMessage {
-  pub edit_id: i32,
+  pub private_message_id: i32,
   pub deleted: bool,
   pub auth: String,
 }
 
 #[derive(Deserialize)]
 pub struct MarkPrivateMessageAsRead {
-  pub edit_id: i32,
+  pub private_message_id: i32,
   pub read: bool,
   pub auth: String,
 }
@@ -230,16 +228,6 @@ pub struct PrivateMessagesResponse {
 #[derive(Serialize, Clone)]
 pub struct PrivateMessageResponse {
   pub private_message_view: PrivateMessageView,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct UserJoin {
-  pub auth: String,
-}
-
-#[derive(Serialize, Clone)]
-pub struct UserJoinResponse {
-  pub joined: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

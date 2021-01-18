@@ -57,7 +57,7 @@ use lemmy_db_views_actor::{
   community_follower_view::CommunityFollowerView,
   community_moderator_view::CommunityModeratorView,
   user_mention_view::{UserMentionQueryBuilder, UserMentionView},
-  user_view::{UserViewDangerous, UserViewSafe},
+  user_view::UserViewSafe,
 };
 use lemmy_structs::{blocking, send_email_to_user, user::*};
 use lemmy_utils::{
@@ -78,7 +78,7 @@ use lemmy_utils::{
   LemmyError,
 };
 use lemmy_websocket::{
-  messages::{CaptchaItem, CheckCaptcha, JoinUserRoom, SendAllMessage, SendUserRoomMessage},
+  messages::{CaptchaItem, CheckCaptcha, SendAllMessage, SendUserRoomMessage},
   LemmyContext,
   UserOperation,
 };
@@ -147,8 +147,14 @@ impl Perform for Register {
       return Err(APIError::err("passwords_dont_match").into());
     }
 
+    // Check if there are admins. False if admins exist
+    let no_admins = blocking(context.pool(), move |conn| {
+      UserViewSafe::admins(conn).map(|a| a.is_empty())
+    })
+    .await??;
+
     // If its not the admin, check the captcha
-    if !data.admin && Settings::get().captcha.enabled {
+    if !no_admins && Settings::get().captcha.enabled {
       let check = context
         .chat_server()
         .send(CheckCaptcha {
@@ -169,15 +175,6 @@ impl Perform for Register {
 
     check_slurs(&data.username)?;
 
-    // Make sure there are no admins
-    let any_admins = blocking(context.pool(), move |conn| {
-      UserViewSafe::admins(conn).map(|a| a.is_empty())
-    })
-    .await??;
-    if data.admin && !any_admins {
-      return Err(APIError::err("admin_already_created").into());
-    }
-
     let user_keypair = generate_actor_keypair()?;
     if !is_valid_username(&data.username) {
       return Err(APIError::err("invalid_username").into());
@@ -194,7 +191,7 @@ impl Perform for Register {
       preferred_username: None,
       published: None,
       updated: None,
-      admin: data.admin,
+      admin: no_admins,
       banned: Some(false),
       show_nsfw: data.show_nsfw,
       theme: "browser".into(),
@@ -280,7 +277,7 @@ impl Perform for Register {
     };
 
     // If its an admin, add them as a mod and follower to main
-    if data.admin {
+    if no_admins {
       let community_moderator_form = CommunityModeratorForm {
         community_id: main_community.id,
         user_id: inserted_user.id,
@@ -509,39 +506,12 @@ impl Perform for GetUserDetails {
 
     let user_id = user.map(|u| u.id);
 
-    let (user_view, user_view_dangerous) = if let Some(auth_user_id) = user_id {
-      if user_details_id == auth_user_id {
-        (
-          None,
-          Some(
-            blocking(context.pool(), move |conn| {
-              UserViewDangerous::read(conn, auth_user_id)
-            })
-            .await??,
-          ),
-        )
-      } else {
-        (
-          Some(
-            blocking(context.pool(), move |conn| {
-              UserViewSafe::read(conn, user_details_id)
-            })
-            .await??,
-          ),
-          None,
-        )
-      }
-    } else {
-      (
-        Some(
-          blocking(context.pool(), move |conn| {
-            UserViewSafe::read(conn, user_details_id)
-          })
-          .await??,
-        ),
-        None,
-      )
-    };
+    // You don't need to return settings for the user, since this comes back with GetSite
+    // `my_user`
+    let user_view = blocking(context.pool(), move |conn| {
+      UserViewSafe::read(conn, user_details_id)
+    })
+    .await??;
 
     let page = data.page;
     let limit = data.limit;
@@ -591,7 +561,6 @@ impl Perform for GetUserDetails {
     // Return the jwt
     Ok(GetUserDetailsResponse {
       user_view,
-      user_view_dangerous,
       follows,
       moderates,
       comments,
@@ -1129,9 +1098,9 @@ impl Perform for EditPrivateMessage {
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
     // Checking permissions
-    let edit_id = data.edit_id;
+    let private_message_id = data.private_message_id;
     let orig_private_message = blocking(context.pool(), move |conn| {
-      PrivateMessage::read(conn, edit_id)
+      PrivateMessage::read(conn, private_message_id)
     })
     .await??;
     if user.id != orig_private_message.creator_id {
@@ -1140,9 +1109,9 @@ impl Perform for EditPrivateMessage {
 
     // Doing the update
     let content_slurs_removed = remove_slurs(&data.content);
-    let edit_id = data.edit_id;
+    let private_message_id = data.private_message_id;
     let updated_private_message = match blocking(context.pool(), move |conn| {
-      PrivateMessage::update_content(conn, edit_id, &content_slurs_removed)
+      PrivateMessage::update_content(conn, private_message_id, &content_slurs_removed)
     })
     .await?
     {
@@ -1153,9 +1122,9 @@ impl Perform for EditPrivateMessage {
     // Send the apub update
     updated_private_message.send_update(&user, context).await?;
 
-    let edit_id = data.edit_id;
+    let private_message_id = data.private_message_id;
     let message = blocking(context.pool(), move |conn| {
-      PrivateMessageView::read(conn, edit_id)
+      PrivateMessageView::read(conn, private_message_id)
     })
     .await??;
     let recipient_id = message.recipient.id;
@@ -1188,9 +1157,9 @@ impl Perform for DeletePrivateMessage {
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
     // Checking permissions
-    let edit_id = data.edit_id;
+    let private_message_id = data.private_message_id;
     let orig_private_message = blocking(context.pool(), move |conn| {
-      PrivateMessage::read(conn, edit_id)
+      PrivateMessage::read(conn, private_message_id)
     })
     .await??;
     if user.id != orig_private_message.creator_id {
@@ -1198,10 +1167,10 @@ impl Perform for DeletePrivateMessage {
     }
 
     // Doing the update
-    let edit_id = data.edit_id;
+    let private_message_id = data.private_message_id;
     let deleted = data.deleted;
     let updated_private_message = match blocking(context.pool(), move |conn| {
-      PrivateMessage::update_deleted(conn, edit_id, deleted)
+      PrivateMessage::update_deleted(conn, private_message_id, deleted)
     })
     .await?
     {
@@ -1218,9 +1187,9 @@ impl Perform for DeletePrivateMessage {
         .await?;
     }
 
-    let edit_id = data.edit_id;
+    let private_message_id = data.private_message_id;
     let message = blocking(context.pool(), move |conn| {
-      PrivateMessageView::read(conn, edit_id)
+      PrivateMessageView::read(conn, private_message_id)
     })
     .await??;
     let recipient_id = message.recipient.id;
@@ -1253,9 +1222,9 @@ impl Perform for MarkPrivateMessageAsRead {
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
     // Checking permissions
-    let edit_id = data.edit_id;
+    let private_message_id = data.private_message_id;
     let orig_private_message = blocking(context.pool(), move |conn| {
-      PrivateMessage::read(conn, edit_id)
+      PrivateMessage::read(conn, private_message_id)
     })
     .await??;
     if user.id != orig_private_message.recipient_id {
@@ -1263,10 +1232,10 @@ impl Perform for MarkPrivateMessageAsRead {
     }
 
     // Doing the update
-    let edit_id = data.edit_id;
+    let private_message_id = data.private_message_id;
     let read = data.read;
     match blocking(context.pool(), move |conn| {
-      PrivateMessage::update_read(conn, edit_id, read)
+      PrivateMessage::update_read(conn, private_message_id, read)
     })
     .await?
     {
@@ -1276,9 +1245,9 @@ impl Perform for MarkPrivateMessageAsRead {
 
     // No need to send an apub update
 
-    let edit_id = data.edit_id;
+    let private_message_id = data.private_message_id;
     let message = blocking(context.pool(), move |conn| {
-      PrivateMessageView::read(conn, edit_id)
+      PrivateMessageView::read(conn, private_message_id)
     })
     .await??;
     let recipient_id = message.recipient.id;
@@ -1326,29 +1295,6 @@ impl Perform for GetPrivateMessages {
     Ok(PrivateMessagesResponse {
       private_messages: messages,
     })
-  }
-}
-
-#[async_trait::async_trait(?Send)]
-impl Perform for UserJoin {
-  type Response = UserJoinResponse;
-
-  async fn perform(
-    &self,
-    context: &Data<LemmyContext>,
-    websocket_id: Option<ConnectionId>,
-  ) -> Result<UserJoinResponse, LemmyError> {
-    let data: &UserJoin = &self;
-    let user = get_user_from_jwt(&data.auth, context.pool()).await?;
-
-    if let Some(ws_id) = websocket_id {
-      context.chat_server().do_send(JoinUserRoom {
-        user_id: user.id,
-        id: ws_id,
-      });
-    }
-
-    Ok(UserJoinResponse { joined: true })
   }
 }
 
