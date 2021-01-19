@@ -31,3 +31,11 @@ tokio = { version = "0.3.6", features = ["sync"] }
 strum = "0.20.0"
 strum_macros = "0.20.1"
 futures = "0.3.8"
+diesel = "1.4.5"
+http = "0.2.2"
+r2d2 = "0.8.9"
+activitystreams = "0.7.0-alpha.8"
+activitystreams-ext = "0.1.0-alpha.2"
+http-signature-normalization-actix = { version = "0.4.1", default-features = false, features = ["sha-2"] }
+http-signature-normalization-reqwest = { version = "0.1.3", default-features = false, features = ["sha-2"] }
+base64 = "0.13.0"

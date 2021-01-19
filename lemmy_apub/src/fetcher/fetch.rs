@@ -28,6 +28,15 @@ impl From<LemmyError> for FetchError {
   }
 }
 
+impl From<FetchError> for LemmyError {
+  fn from(t: FetchError) -> Self {
+    LemmyError {
+      inner: t.inner,
+      status_code: None,
+    }
+  }
+}
+
 impl From<reqwest::Error> for FetchError {
   fn from(t: reqwest::Error) -> Self {
     let status = t.status();
