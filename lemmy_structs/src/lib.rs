@@ -3,6 +3,7 @@ pub mod community;
 pub mod post;
 pub mod site;
 pub mod user;
+pub mod websocket;
 
 use diesel::PgConnection;
 use lemmy_db_queries::{source::user::User, Crud, DbPool};

@@ -1,4 +1,4 @@
-use lemmy_db_schema::source::{category::*, user::User_};
+use lemmy_db_schema::source::{category::*, user::UserSafeSettings};
 use lemmy_db_views::{comment_view::CommentView, post_view::PostView, site_view::SiteView};
 use lemmy_db_views_actor::{community_view::CommunityView, user_view::UserViewSafe};
 use lemmy_db_views_moderator::{
@@ -105,7 +105,7 @@ pub struct GetSiteResponse {
   pub banned: Vec<UserViewSafe>,
   pub online: usize,
   pub version: String,
-  pub my_user: Option<User_>,
+  pub my_user: Option<UserSafeSettings>,
   pub federated_instances: Vec<String>,
 }
 

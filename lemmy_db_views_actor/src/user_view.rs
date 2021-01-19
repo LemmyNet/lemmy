@@ -22,24 +22,6 @@ pub struct UserViewSafe {
 
 type UserViewSafeTuple = (UserSafe, UserAggregates);
 
-#[derive(Debug, Serialize, Clone)]
-pub struct UserViewDangerous {
-  pub user: User_,
-  pub counts: UserAggregates,
-}
-
-type UserViewDangerousTuple = (User_, UserAggregates);
-
-impl UserViewDangerous {
-  pub fn read(conn: &PgConnection, id: i32) -> Result<Self, Error> {
-    let (user, counts) = user_::table
-      .find(id)
-      .inner_join(user_aggregates::table)
-      .first::<UserViewDangerousTuple>(conn)?;
-    Ok(Self { user, counts })
-  }
-}
-
 impl UserViewSafe {
   pub fn read(conn: &PgConnection, id: i32) -> Result<Self, Error> {
     let (user, counts) = user_::table

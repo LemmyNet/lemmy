@@ -182,9 +182,9 @@ impl Perform for EditComment {
     let data: &EditComment = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
-    let edit_id = data.edit_id;
+    let comment_id = data.comment_id;
     let orig_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(&conn, edit_id, None)
+      CommentView::read(&conn, comment_id, None)
     })
     .await??;
 
@@ -197,9 +197,9 @@ impl Perform for EditComment {
 
     // Do the update
     let content_slurs_removed = remove_slurs(&data.content.to_owned());
-    let edit_id = data.edit_id;
+    let comment_id = data.comment_id;
     let updated_comment = match blocking(context.pool(), move |conn| {
-      Comment::update_content(conn, edit_id, &content_slurs_removed)
+      Comment::update_content(conn, comment_id, &content_slurs_removed)
     })
     .await?
     {
@@ -223,10 +223,10 @@ impl Perform for EditComment {
     )
     .await?;
 
-    let edit_id = data.edit_id;
+    let comment_id = data.comment_id;
     let user_id = user.id;
     let comment_view = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, edit_id, Some(user_id))
+      CommentView::read(conn, comment_id, Some(user_id))
     })
     .await??;
 
@@ -258,9 +258,9 @@ impl Perform for DeleteComment {
     let data: &DeleteComment = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
-    let edit_id = data.edit_id;
+    let comment_id = data.comment_id;
     let orig_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(&conn, edit_id, None)
+      CommentView::read(&conn, comment_id, None)
     })
     .await??;
 
@@ -274,7 +274,7 @@ impl Perform for DeleteComment {
     // Do the delete
     let deleted = data.deleted;
     let updated_comment = match blocking(context.pool(), move |conn| {
-      Comment::update_deleted(conn, edit_id, deleted)
+      Comment::update_deleted(conn, comment_id, deleted)
     })
     .await?
     {
@@ -290,10 +290,10 @@ impl Perform for DeleteComment {
     }
 
     // Refetch it
-    let edit_id = data.edit_id;
+    let comment_id = data.comment_id;
     let user_id = user.id;
     let comment_view = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, edit_id, Some(user_id))
+      CommentView::read(conn, comment_id, Some(user_id))
     })
     .await??;
 
@@ -338,9 +338,9 @@ impl Perform for RemoveComment {
     let data: &RemoveComment = &self;
     let user = get_user_from_jwt(&data.auth, context.pool()).await?;
 
-    let edit_id = data.edit_id;
+    let comment_id = data.comment_id;
     let orig_comment = blocking(context.pool(), move |conn| {
-      CommentView::read(&conn, edit_id, None)
+      CommentView::read(&conn, comment_id, None)
     })
     .await??;
 
@@ -352,7 +352,7 @@ impl Perform for RemoveComment {
     // Do the remove
     let removed = data.removed;
     let updated_comment = match blocking(context.pool(), move |conn| {
-      Comment::update_removed(conn, edit_id, removed)
+      Comment::update_removed(conn, comment_id, removed)
     })
     .await?
     {
@@ -363,7 +363,7 @@ impl Perform for RemoveComment {
     // Mod tables
     let form = ModRemoveCommentForm {
       mod_user_id: user.id,
-      comment_id: data.edit_id,
+      comment_id: data.comment_id,
       removed: Some(removed),
       reason: data.reason.to_owned(),
     };
@@ -380,10 +380,10 @@ impl Perform for RemoveComment {
     }
 
     // Refetch it
-    let edit_id = data.edit_id;
+    let comment_id = data.comment_id;
     let user_id = user.id;
     let comment_view = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, edit_id, Some(user_id))
+      CommentView::read(conn, comment_id, Some(user_id))
     })
     .await??;
 
@@ -454,10 +454,10 @@ impl Perform for MarkCommentAsRead {
     };
 
     // Refetch it
-    let edit_id = data.comment_id;
+    let comment_id = data.comment_id;
     let user_id = user.id;
     let comment_view = blocking(context.pool(), move |conn| {
-      CommentView::read(conn, edit_id, Some(user_id))
+      CommentView::read(conn, comment_id, Some(user_id))
     })
     .await??;
 

@@ -137,6 +137,11 @@ pub trait ToSafe {
   fn safe_columns_tuple() -> Self::SafeColumns;
 }
 
+pub trait ToSafeSettings {
+  type SafeSettingsColumns;
+  fn safe_settings_columns_tuple() -> Self::SafeSettingsColumns;
+}
+
 pub trait ViewToVec {
   type DbTuple;
   fn from_tuple_to_vec(tuple: Vec<Self::DbTuple>) -> Vec<Self>

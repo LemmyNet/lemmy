@@ -144,7 +144,7 @@ export async function editPost(api: API, post: Post): Promise<PostResponse> {
   let name = 'A jest test federated post, updated';
   let form: EditPost = {
     name,
-    edit_id: post.id,
+    post_id: post.id,
     auth: api.auth,
     nsfw: false,
   };
@@ -157,7 +157,7 @@ export async function deletePost(
   post: Post
 ): Promise<PostResponse> {
   let form: DeletePost = {
-    edit_id: post.id,
+    post_id: post.id,
     deleted: deleted,
     auth: api.auth,
   };
@@ -170,7 +170,7 @@ export async function removePost(
   post: Post
 ): Promise<PostResponse> {
   let form: RemovePost = {
-    edit_id: post.id,
+    post_id: post.id,
     removed,
     auth: api.auth,
   };
@@ -183,7 +183,7 @@ export async function stickyPost(
   post: Post
 ): Promise<PostResponse> {
   let form: StickyPost = {
-    edit_id: post.id,
+    post_id: post.id,
     stickied,
     auth: api.auth,
   };
@@ -196,7 +196,7 @@ export async function lockPost(
   post: Post
 ): Promise<PostResponse> {
   let form: LockPost = {
-    edit_id: post.id,
+    post_id: post.id,
     locked,
     auth: api.auth,
   };
@@ -376,12 +376,12 @@ export async function createComment(
 
 export async function editComment(
   api: API,
-  edit_id: number,
+  comment_id: number,
   content = 'A jest test federated comment update'
 ): Promise<CommentResponse> {
   let form: EditComment = {
     content,
-    edit_id,
+    comment_id,
     auth: api.auth,
   };
   return api.client.editComment(form);
@@ -390,10 +390,10 @@ export async function editComment(
 export async function deleteComment(
   api: API,
   deleted: boolean,
-  edit_id: number
+  comment_id: number
 ): Promise<CommentResponse> {
   let form: DeleteComment = {
-    edit_id,
+    comment_id,
     deleted,
     auth: api.auth,
   };
@@ -403,10 +403,10 @@ export async function deleteComment(
 export async function removeComment(
   api: API,
   removed: boolean,
-  edit_id: number
+  comment_id: number
 ): Promise<CommentResponse> {
   let form: RemoveComment = {
-    edit_id,
+    comment_id,
     removed,
     auth: api.auth,
   };
@@ -468,10 +468,10 @@ export async function getCommunity(
 export async function deleteCommunity(
   api: API,
   deleted: boolean,
-  edit_id: number
+  community_id: number
 ): Promise<CommunityResponse> {
   let form: DeleteCommunity = {
-    edit_id,
+    community_id,
     deleted,
     auth: api.auth,
   };
@@ -481,10 +481,10 @@ export async function deleteCommunity(
 export async function removeCommunity(
   api: API,
   removed: boolean,
-  edit_id: number
+  community_id: number
 ): Promise<CommunityResponse> {
   let form: RemoveCommunity = {
-    edit_id,
+    community_id,
     removed,
     auth: api.auth,
   };
@@ -506,12 +506,12 @@ export async function createPrivateMessage(
 
 export async function editPrivateMessage(
   api: API,
-  edit_id: number
+  private_message_id: number
 ): Promise<PrivateMessageResponse> {
   let updatedContent = 'A jest test federated private message edited';
   let form: EditPrivateMessage = {
     content: updatedContent,
-    edit_id,
+    private_message_id,
     auth: api.auth,
   };
   return api.client.editPrivateMessage(form);
@@ -520,11 +520,11 @@ export async function editPrivateMessage(
 export async function deletePrivateMessage(
   api: API,
   deleted: boolean,
-  edit_id: number
+  private_message_id: number
 ): Promise<PrivateMessageResponse> {
   let form: DeletePrivateMessage = {
     deleted,
-    edit_id,
+    private_message_id,
     auth: api.auth,
   };
   return api.client.deletePrivateMessage(form);
@@ -538,7 +538,6 @@ export async function registerUser(
     username,
     password: 'test',
     password_verify: 'test',
-    admin: false,
     show_nsfw: true,
   };
   return api.client.register(form);
