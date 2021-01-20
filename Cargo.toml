@@ -8,29 +8,29 @@ debug = 0
 
 [workspace]
 members = [
-    "lemmy_api",
-    "lemmy_apub",
-    "lemmy_utils",
-    "lemmy_db_queries",
-    "lemmy_db_schema",
-    "lemmy_db_views",
-    "lemmy_db_views_actor",
-    "lemmy_db_views_actor",
-    "lemmy_structs",
-    "lemmy_websocket",
+    "crates/api",
+    "crates/apub",
+    "crates/utils",
+    "crates/db_queries",
+    "crates/db_schema",
+    "crates/db_views",
+    "crates/db_views_actor",
+    "crates/db_views_actor",
+    "crates/structs",
+    "crates/websocket",
 ]
 
 [dependencies]
-lemmy_api = { path = "./lemmy_api" }
-lemmy_apub = { path = "./lemmy_apub" }
-lemmy_utils = { path = "./lemmy_utils" }
-lemmy_db_schema = { path = "./lemmy_db_schema" }
-lemmy_db_queries = { path = "lemmy_db_queries" }
-lemmy_db_views = { path = "./lemmy_db_views" }
-lemmy_db_views_moderator = { path = "./lemmy_db_views_moderator" }
-lemmy_db_views_actor = { path = "lemmy_db_views_actor" }
-lemmy_structs = { path = "./lemmy_structs" }
-lemmy_websocket = { path = "./lemmy_websocket" }
+lemmy_api = { path = "./crates/api" }
+lemmy_apub = { path = "./crates/apub" }
+lemmy_utils = { path = "./crates/utils" }
+lemmy_db_schema = { path = "./crates/db_schema" }
+lemmy_db_queries = { path = "./crates/db_queries" }
+lemmy_db_views = { path = "./crates/db_views" }
+lemmy_db_views_moderator = { path = "./crates/db_views_moderator" }
+lemmy_db_views_actor = { path = "./crates/db_views_actor" }
+lemmy_structs = { path = "./crates/structs" }
+lemmy_websocket = { path = "./crates/websocket" }
 diesel = "1.4.5"
 diesel_migrations = "1.4.0"
 chrono = { version = "0.4.19", features = ["serde"] }
